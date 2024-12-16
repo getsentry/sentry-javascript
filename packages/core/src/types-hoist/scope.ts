@@ -26,6 +26,14 @@ export interface ScopeContext {
   propagationContext: PropagationContext;
 }
 
+// TODO(v9): Add `normalizedRequest`
+export interface SdkProcessingMetadata {
+  [key: string]: unknown;
+  requestSession?: {
+    status: 'ok' | 'errored' | 'crashed';
+  };
+}
+
 export interface ScopeData {
   eventProcessors: EventProcessor[];
   breadcrumbs: Breadcrumb[];
@@ -35,7 +43,7 @@ export interface ScopeData {
   contexts: Contexts;
   attachments: Attachment[];
   propagationContext: PropagationContext;
-  sdkProcessingMetadata: { [key: string]: unknown };
+  sdkProcessingMetadata: SdkProcessingMetadata;
   fingerprint: string[];
   level?: SeverityLevel;
   transactionName?: string;
@@ -207,10 +215,8 @@ export interface Scope {
 
   /**
    * Add data which will be accessible during event processing but won't get sent to Sentry.
-   *
-   * TODO(v9): We should type this stricter, so that e.g. `normalizedRequest` is strictly typed.
    */
-  setSDKProcessingMetadata(newData: { [key: string]: unknown }): this;
+  setSDKProcessingMetadata(newData: SdkProcessingMetadata): this;
 
   /**
    * Add propagation context to the scope, used for distributed tracing

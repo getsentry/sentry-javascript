@@ -27,10 +27,6 @@ const clientToAggregatesMap = new Map<
   { [timestampRoundedToSeconds: string]: { exited: number; crashed: number; errored: number } }
 >();
 
-interface RequestSession {
-  status: 'ok' | 'errored' | 'crashed';
-}
-
 type Http = typeof http;
 type Https = typeof https;
 
@@ -188,9 +184,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
           response.once('close', () => {
             // We need to grab the client off the current scope instead of the isolation scope because the isolation scope doesn't hold any client out of the box.
             const client = getClient();
-            const requestSession = isolationScope.getScopeData().sdkProcessingMetadata.requestSession as
-              | RequestSession
-              | undefined;
+            const requestSession = isolationScope.getScopeData().sdkProcessingMetadata.requestSession;
 
             if (client && requestSession) {
               DEBUG_BUILD && logger.debug(`Recorded request session with status: ${requestSession.status}`);
@@ -230,10 +224,13 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
                   DEBUG_BUILD && logger.debug('Sending request session aggregate due to client flush');
                   flushPendingClientAggregates();
                 });
-                const timeout = setTimeout(() => {
-                  DEBUG_BUILD && logger.debug('Sending request session aggregate due to flushing schedule');
-                  flushPendingClientAggregates();
-                }, instrumentation.getConfig().sessionFlushingDelayMS ?? 60_000).unref();
+                const timeout = setTimeout(
+                  () => {
+                    DEBUG_BUILD && logger.debug('Sending request session aggregate due to flushing schedule');
+                    flushPendingClientAggregates();
+                  },
+                  instrumentation.getConfig().sessionFlushingDelayMS ?? 60_000,
+                ).unref();
               }
             }
           });

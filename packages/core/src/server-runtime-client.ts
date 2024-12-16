@@ -206,16 +206,12 @@ export class ServerRuntimeClient<
 }
 
 function setCurrentRequestSessionErroredOrCrashed(eventHint?: EventHint): void {
-  const isHandledException = eventHint?.mechanism?.handled ?? true;
-
-  const requestSession = getIsolationScope().getScopeData().sdkProcessingMetadata.requestSession as
-    | { status: 'ok' | 'errored' | 'crashed' }
-    | undefined;
-
+  const requestSession = getIsolationScope().getScopeData().sdkProcessingMetadata.requestSession;
   if (requestSession) {
     // We mutate instead of doing `setSdkProcessingMetadata` because the http integration stores away a particular
     // isolationScope. If that isolation scope is forked, setting the processing metadata here will not mutate the
     // original isolation scope that the http integration stored away.
+    const isHandledException = eventHint?.mechanism?.handled ?? true;
     if (isHandledException) {
       // A request session can go from "errored" -> "crashed" but not "crashed" -> "errored".
       // Crashed (unhandled exception) is worse than errored (handled exception).
