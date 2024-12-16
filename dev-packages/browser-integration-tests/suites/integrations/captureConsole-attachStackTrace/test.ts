@@ -25,8 +25,6 @@ sentryTest(
       event => event.exception && event.exception.values?.[0].value === 'console trace with error object',
     );
 
-    console.log('x', logEvent?.message);
-
     expect(logEvent).toEqual(
       expect.objectContaining({
         level: 'log',
