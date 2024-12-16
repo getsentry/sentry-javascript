@@ -56,7 +56,7 @@ snapshot[`captureException 1`] = `
                 "});",
                 "",
                 "Deno.test('captureMessage', async t => {",
-                "  let ev: sentryTypes.Event | undefined;",
+                "  let ev: sentryCore.Event | undefined;",
               ],
               pre_context: [
                 "    ev = event;",
@@ -86,7 +86,7 @@ snapshot[`captureException 1`] = `
               ],
               pre_context: [
                 "Deno.test('captureException', async t => {",
-                "  let ev: sentryTypes.Event | undefined;",
+                "  let ev: sentryCore.Event | undefined;",
                 "  const client = getTestClient(event => {",
                 "    ev = event;",
                 "  });",

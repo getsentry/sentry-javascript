@@ -1,21 +1,20 @@
 /* eslint-disable complexity */
-import type { sentryTypes } from '../build-test/index.js';
-import { sentryUtils } from '../build-test/index.js';
+import { sentryCore } from '../build-test/index.js';
 
-type EventOrSession = sentryTypes.Event | sentryTypes.Session;
+type EventOrSession = sentryCore.Event | sentryCore.Session;
 
-export function getNormalizedEvent(envelope: sentryTypes.Envelope): sentryTypes.Event | undefined {
-  let event: sentryTypes.Event | undefined;
+export function getNormalizedEvent(envelope: sentryCore.Envelope): sentryCore.Event | undefined {
+  let event: sentryCore.Event | undefined;
 
-  sentryUtils.forEachEnvelopeItem(envelope, item => {
+  sentryCore.forEachEnvelopeItem(envelope, item => {
     const [headers, body] = item;
 
     if (headers.type === 'event') {
-      event = body as sentryTypes.Event;
+      event = body as sentryCore.Event;
     }
   });
 
-  return normalize(event) as sentryTypes.Event | undefined;
+  return normalize(event) as sentryCore.Event | undefined;
 }
 
 export function normalize(event: EventOrSession | undefined): EventOrSession | undefined {
@@ -24,14 +23,14 @@ export function normalize(event: EventOrSession | undefined): EventOrSession | u
   }
 
   if (eventIsSession(event)) {
-    return normalizeSession(event as sentryTypes.Session);
+    return normalizeSession(event as sentryCore.Session);
   } else {
-    return normalizeEvent(event as sentryTypes.Event);
+    return normalizeEvent(event as sentryCore.Event);
   }
 }
 
 export function eventIsSession(data: EventOrSession): boolean {
-  return !!(data as sentryTypes.Session)?.sid;
+  return !!(data as sentryCore.Session)?.sid;
 }
 
 /**
@@ -40,7 +39,7 @@ export function eventIsSession(data: EventOrSession): boolean {
  * All properties that are timestamps, versions, ids or variables that may vary
  * by platform are replaced with placeholder strings
  */
-function normalizeSession(session: sentryTypes.Session): sentryTypes.Session {
+function normalizeSession(session: sentryCore.Session): sentryCore.Session {
   if (session.sid) {
     session.sid = '{{id}}';
   }
@@ -66,7 +65,7 @@ function normalizeSession(session: sentryTypes.Session): sentryTypes.Session {
  * All properties that are timestamps, versions, ids or variables that may vary
  * by platform are replaced with placeholder strings
  */
-function normalizeEvent(event: sentryTypes.Event): sentryTypes.Event {
+function normalizeEvent(event: sentryCore.Event): sentryCore.Event {
   if (event.sdk?.version) {
     event.sdk.version = '{{version}}';
   }

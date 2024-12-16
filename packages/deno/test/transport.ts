@@ -1,19 +1,16 @@
-import type { sentryTypes } from '../build-test/index.js';
-import { sentryCore, sentryUtils } from '../build-test/index.js';
+import { sentryCore } from '../build-test/index.js';
 
-export interface TestTransportOptions extends sentryTypes.BaseTransportOptions {
-  callback: (envelope: sentryTypes.Envelope) => void;
+export interface TestTransportOptions extends sentryCore.BaseTransportOptions {
+  callback: (envelope: sentryCore.Envelope) => void;
 }
 
 /**
  * Creates a Transport that uses the Fetch API to send events to Sentry.
  */
-export function makeTestTransport(callback: (envelope: sentryTypes.Envelope) => void) {
-  return (options: sentryTypes.BaseTransportOptions): sentryTypes.Transport => {
-    async function doCallback(
-      request: sentryTypes.TransportRequest,
-    ): Promise<sentryTypes.TransportMakeRequestResponse> {
-      await callback(sentryUtils.parseEnvelope(request.body));
+export function makeTestTransport(callback: (envelope: sentryCore.Envelope) => void) {
+  return (options: sentryCore.BaseTransportOptions): sentryCore.Transport => {
+    async function doCallback(request: sentryCore.TransportRequest): Promise<sentryCore.TransportMakeRequestResponse> {
+      await callback(sentryCore.parseEnvelope(request.body));
 
       return Promise.resolve({
         statusCode: 200,
