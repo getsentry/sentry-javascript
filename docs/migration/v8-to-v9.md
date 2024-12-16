@@ -78,6 +78,17 @@ If you need to support older browsers, we recommend transpiling your code using 
 
 ## 2. Behavior Changes
 
+### `@sentry/core` / All SDKs
+
+- If you use the optional `captureConsoleIntegration` and set `attachStackTrace: true` in your `Sentry.init` call, console messages will no longer be marked as unhandled (i.e. `handled: false`) but as handled (i.e. `handled: true`). If you want to keep sending them as unhandled, configure the `handled` option when adding the integration:
+
+```js
+Sentry.init({
+  integrations: [Sentry.captureConsoleIntegration({ handled: false })],
+  attachStackTrace: true,
+});
+```
+
 ### `@sentry/node`
 
 - When `skipOpenTelemetrySetup: true` is configured, `httpIntegration({ spans: false })` will be configured by default. This means that you no longer have to specify this yourself in this scenario. With this change, no spans are emitted once `skipOpenTelemetrySetup: true` is configured, without any further configuration being needed.

@@ -306,8 +306,7 @@ describe('CaptureConsole setup', () => {
   });
 
   describe('exception mechanism', () => {
-    // TODO (v9): Flip this below after adjusting the default value for `handled` in the integration
-    it("marks captured exception's mechanism as unhandled by default", () => {
+    it("marks captured exception's mechanism as handled by default", () => {
       const captureConsole = captureConsoleIntegration({ levels: ['error'] });
       captureConsole.setup?.(mockClient);
 
@@ -326,7 +325,7 @@ describe('CaptureConsole setup', () => {
       expect(mockScope.addEventProcessor).toHaveBeenCalledTimes(1);
 
       expect(someEvent.exception?.values?.[0]?.mechanism).toEqual({
-        handled: false,
+        handled: true,
         type: 'console',
       });
     });
