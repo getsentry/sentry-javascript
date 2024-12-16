@@ -106,7 +106,6 @@ export { metrics } from './metrics/exports';
 export { profiler } from './profiling';
 // eslint-disable-next-line deprecation/deprecation
 export { metricsDefault } from './metrics/exports-default';
-export { BrowserMetricsAggregator } from './metrics/browser-aggregator';
 export {
   // eslint-disable-next-line deprecation/deprecation
   addTracingHeadersToFetchRequest,
