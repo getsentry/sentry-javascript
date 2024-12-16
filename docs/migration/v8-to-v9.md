@@ -126,6 +126,10 @@ Older Typescript versions _may_ still work, but we will not test them anymore an
 
   To customize which files are deleted after upload, define the `filesToDeleteAfterUpload` array with globs.
 
+### `@sentry/react`
+
+The `componentStack` field in the `ErrorBoundary` component is now typed as `string | undefined` instead of `string | null | undefined`. This more closely matches the actual behavior of React, which always returns a `string` whenever a component stack is available. `undefined` is only returned if no error has been caught by the error boundary.
+
 ### Uncategorized (TODO)
 
 TODO
