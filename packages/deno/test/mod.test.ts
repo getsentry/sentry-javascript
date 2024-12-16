@@ -1,8 +1,8 @@
 import { assertEquals } from 'https://deno.land/std@0.202.0/assert/assert_equals.ts';
 import { assertSnapshot } from 'https://deno.land/std@0.202.0/testing/snapshot.ts';
 
+import type { Event } from '@sentry/core';
 import { sentryCore } from '../build-test/index.js';
-import type { Event } from '../build/index.d.ts';
 import { DenoClient, getCurrentScope, getDefaultIntegrations } from '../build/index.mjs';
 
 import { getNormalizedEvent } from './normalize.ts';
