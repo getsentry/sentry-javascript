@@ -52,6 +52,7 @@ import { SyncPromise, rejectedSyncPromise, resolvedSyncPromise } from './utils-h
 import { parseSampleRate } from './utils/parseSampleRate';
 import { prepareEvent } from './utils/prepareEvent';
 import { showSpanDropWarning } from './utils/spanUtils';
+import { getPossibleEventMessages } from './utils/eventUtils';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
 
@@ -714,13 +715,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    */
   protected _captureEvent(event: Event, hint: EventHint = {}, scope?: Scope): PromiseLike<string | undefined> {
     if (DEBUG_BUILD && isErrorEvent(event)) {
-      logger.log(
-        `Captured error event \`${
-          (event.exception && event.exception.values && event.exception.values[0] && event.exception.values[0].value) ||
-          event.message ||
-          '<unknown>'
-        }\``,
-      );
+      logger.log(`Captured error event \`${getPossibleEventMessages(event)[0] || '<unknown>'}\``);
     }
 
     return this._processEvent(event, hint, scope).then(
