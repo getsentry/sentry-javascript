@@ -32,6 +32,7 @@ import type {
 } from './types-hoist';
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
+import { DEFAULT_ENVIRONMENT } from './constants';
 import { getCurrentScope, getIsolationScope, getTraceContextFromScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import { createEventEnvelope, createSessionEnvelope } from './envelope';
@@ -368,7 +369,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    */
   public sendSession(session: Session | SessionAggregates): void {
     // Backfill release and environment on session
-    const { release: clientReleaseOption, environment: clientEnvironmentOption } = this._options;
+    const { release: clientReleaseOption, environment: clientEnvironmentOption = DEFAULT_ENVIRONMENT } = this._options;
     if ('aggregates' in session) {
       const sessionAttrs = session.attrs || {};
       if (!sessionAttrs.release && !clientReleaseOption) {
