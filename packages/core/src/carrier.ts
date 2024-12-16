@@ -74,6 +74,8 @@ export function getGlobalSingleton<Prop extends keyof SentryCarrier>(
   creator: () => NonNullable<SentryCarrier[Prop]>,
   obj = GLOBAL_OBJ,
 ): NonNullable<SentryCarrier[Prop]> {
-  const carrier = getSentryCarrier(obj);
+  const __SENTRY__ = (obj.__SENTRY__ = obj.__SENTRY__ || {});
+  const carrier = (__SENTRY__[SDK_VERSION] = __SENTRY__[SDK_VERSION] || {});
+  // Note: We do not want to set `carrier.version` here, as this may be called before any `init` is called, e.g. for the default scopes
   return carrier[name] || (carrier[name] = creator());
 }
