@@ -54,7 +54,7 @@ import { prepareEvent } from './utils/prepareEvent';
 import { showSpanDropWarning } from './utils/spanUtils';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
-const MISSING_RELEASE_FOR_SESSION_ERROR = 'Discarded session because of miss ing or non-string release';
+const MISSING_RELEASE_FOR_SESSION_ERROR = 'Discarded session because of missing or non-string release';
 
 /**
  * Base implementation for all JavaScript SDK clients.

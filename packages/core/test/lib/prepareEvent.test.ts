@@ -174,9 +174,9 @@ describe('parseEventHintOrCaptureContext', () => {
 
   it('triggers a TS error if trying to mix ScopeContext & EventHint', () => {
     const actual = parseEventHintOrCaptureContext({
-      user: { id: 'xxx' },
-      // @ts-expect-error We are specifically testing that this errors!
       mechanism: { handled: false },
+      // @ts-expect-error We are specifically testing that this errors!
+      user: { id: 'xxx' },
     });
 
     // ScopeContext takes presedence in this case, but this is actually not supported

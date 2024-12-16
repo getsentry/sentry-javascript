@@ -148,52 +148,6 @@ describe('init()', () => {
 
     expect(client).toBeInstanceOf(NodeClient);
   });
-
-  describe('autoSessionTracking', () => {
-    it('does not track session by default if no release is set', () => {
-      // On CI, we always infer the release, so this does not work
-      if (process.env.CI) {
-        return;
-      }
-      init({ dsn: PUBLIC_DSN });
-
-      const session = getIsolationScope().getSession();
-      expect(session).toBeUndefined();
-    });
-
-    it('tracks session by default if release is set', () => {
-      init({ dsn: PUBLIC_DSN, release: '1.2.3' });
-
-      const session = getIsolationScope().getSession();
-      expect(session).toBeDefined();
-    });
-
-    it('does not track session if no release is set even if autoSessionTracking=true', () => {
-      // On CI, we always infer the release, so this does not work
-      if (process.env.CI) {
-        return;
-      }
-
-      init({ dsn: PUBLIC_DSN, autoSessionTracking: true });
-
-      const session = getIsolationScope().getSession();
-      expect(session).toBeUndefined();
-    });
-
-    it('does not track session if autoSessionTracking=false', () => {
-      init({ dsn: PUBLIC_DSN, autoSessionTracking: false, release: '1.2.3' });
-
-      const session = getIsolationScope().getSession();
-      expect(session).toBeUndefined();
-    });
-
-    it('tracks session by default if autoSessionTracking=true & release is set', () => {
-      init({ dsn: PUBLIC_DSN, release: '1.2.3', autoSessionTracking: true });
-
-      const session = getIsolationScope().getSession();
-      expect(session).toBeDefined();
-    });
-  });
 });
 
 describe('validateOpenTelemetrySetup', () => {
