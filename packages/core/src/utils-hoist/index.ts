@@ -108,6 +108,7 @@ export {
   supportsDOMException,
   supportsErrorEvent,
   supportsFetch,
+  supportsHistory,
   supportsNativeFetch,
   supportsReferrerPolicy,
   supportsReportingObserver,
@@ -178,4 +179,3 @@ export { vercelWaitUntil } from './vercelWaitUntil';
 export { SDK_VERSION } from './version';
 export { getDebugImagesForResources, getFilenameToDebugIdMap } from './debug-ids';
 export { escapeStringForRegex } from './vendor/escapeStringForRegex';
-export { supportsHistory } from './vendor/supportsHistory';
