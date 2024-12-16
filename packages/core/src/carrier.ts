@@ -1,6 +1,7 @@
 import type { AsyncContextStack } from './asyncContext/stackStrategy';
 import type { AsyncContextStrategy } from './asyncContext/types';
-import type { Client, MetricsAggregator, Scope } from './types-hoist';
+import type { Scope } from './scope';
+import type { Client, MetricsAggregator } from './types-hoist';
 import type { Logger } from './utils-hoist/logger';
 import { SDK_VERSION } from './utils-hoist/version';
 import { GLOBAL_OBJ } from './utils-hoist/worldwide';

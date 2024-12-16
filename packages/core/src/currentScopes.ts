@@ -1,8 +1,7 @@
 import { getAsyncContextStrategy } from './asyncContext';
-import { getMainCarrier } from './carrier';
-import { getGlobalSingleton } from './carrier';
-import { Scope as ScopeClass } from './scope';
-import type { Client, Scope, TraceContext } from './types-hoist';
+import { getGlobalSingleton, getMainCarrier } from './carrier';
+import { Scope } from './scope';
+import type { Client, TraceContext } from './types-hoist';
 import { dropUndefinedKeys } from './utils-hoist/object';
 
 /**
@@ -29,7 +28,7 @@ export function getIsolationScope(): Scope {
  * This scope is applied to _all_ events.
  */
 export function getGlobalScope(): Scope {
-  return getGlobalSingleton('globalScope', () => new ScopeClass());
+  return getGlobalSingleton('globalScope', () => new Scope());
 }
 
 /**

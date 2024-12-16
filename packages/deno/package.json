@@ -35,7 +35,7 @@
     "deno-types": "node ./scripts/download-deno-types.mjs",
     "build": "run-s build:transpile build:types",
     "build:dev": "yarn build",
-    "build:transpile": "yarn deno-types && rollup -c rollup.config.mjs",
+    "build:transpile": "yarn rimraf node_modules/.deno && yarn deno-types && rollup -c rollup.config.mjs",
     "build:types": "run-s deno-types build:types:tsc build:types:bundle",
     "build:types:tsc": "tsc -p tsconfig.types.json",
     "build:types:bundle": "rollup -c rollup.types.config.mjs",

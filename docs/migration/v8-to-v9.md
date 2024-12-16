@@ -105,6 +105,14 @@ Object.defineProperty(exports, '__esModule', { value: true });
 The SDK no longer contains these statements.
 Let us know if this is causing issues in your setup by opening an issue on GitHub.
 
+## 6. Type Changes
+
+In v8, types have been exported from `@sentry/types`, while implementations have been exported from other classes.
+This lead to some duplication, where we had to keep an interface in `@sentry/types`, while the implementation mirroring that interface was kept e.g. in `@sentry/core`.
+Since in v9 the types have been merged into `@sentry/core`, we can get rid of some of this duplication. This means that certain things that used to be a separate interface, will not expect an actual instance of the class/concrete implementation. This should not affect most users, unless you relied on passing things with a similar shape to internal methods. The following types are affected:
+
+- `Scope` now always expects the `Scope` class
+
 # No Version Support Timeline
 
 Version support timelines are stressful for anybody using the SDK, so we won't be defining one.
