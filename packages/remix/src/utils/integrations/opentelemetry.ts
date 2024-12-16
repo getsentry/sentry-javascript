@@ -34,7 +34,7 @@ const _remixIntegration = (() => {
 }) satisfies IntegrationFn;
 
 const addRemixSpanAttributes = (span: Span): void => {
-  const attributes = spanToJSON(span).data || {};
+  const attributes = spanToJSON(span).data;
 
   // this is one of: loader, action, requestHandler
   const type = attributes['code.function'];

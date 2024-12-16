@@ -22,7 +22,7 @@ const _knexIntegration = (() => {
         const { data } = spanToJSON(span);
         // knex.version is always set in the span data
         // https://github.com/open-telemetry/opentelemetry-js-contrib/blob/0309caeafc44ac9cb13a3345b790b01b76d0497d/plugins/node/opentelemetry-instrumentation-knex/src/instrumentation.ts#L138
-        if (data && 'knex.version' in data) {
+        if ('knex.version' in data) {
           span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.db.otel.knex');
         }
       });

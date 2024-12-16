@@ -135,7 +135,7 @@ export function setupNestErrorHandler(app: MinimalNestJsApp, baseFilter: NestJsE
 }
 
 function addNestSpanAttributes(span: Span): void {
-  const attributes = spanToJSON(span).data || {};
+  const attributes = spanToJSON(span).data;
 
   // this is one of: app_creation, request_context, handler
   const type = attributes['nestjs.type'];
