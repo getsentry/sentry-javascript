@@ -118,6 +118,7 @@ export {
   spanToTraceHeader,
   spanToBaggageHeader,
   trpcMiddleware,
+  updateSpanName,
   // eslint-disable-next-line deprecation/deprecation
   addOpenTelemetryInstrumentation,
   zodErrorsIntegration,
