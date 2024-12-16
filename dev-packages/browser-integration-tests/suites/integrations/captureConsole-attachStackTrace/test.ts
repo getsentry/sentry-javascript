@@ -5,7 +5,7 @@ import { sentryTest } from '../../../utils/fixtures';
 import { getMultipleSentryEnvelopeRequests } from '../../../utils/helpers';
 
 sentryTest(
-  'it captures console messages correctly and adds a synthetic stack trace if `attachStackTrace` is set to `true`',
+  'captures console messages correctly and adds a synthetic stack trace if `attachStackTrace` is set to `true`',
   async ({ getLocalTestUrl, page }) => {
     const url = await getLocalTestUrl({ testDir: __dirname });
 
@@ -37,12 +37,16 @@ sentryTest(
     );
     expect(logEvent?.exception?.values![0]).toMatchObject({
       mechanism: {
-        handled: false,
+        handled: true,
         type: 'console',
-        synthetic: 'true',
+        synthetic: true,
       },
       value: 'console log',
+      stacktrace: {
+        frames: expect.any(Array),
+      },
     });
+
     expect(warnEvent).toEqual(
       expect.objectContaining({
         level: 'warning',
@@ -50,9 +54,21 @@ sentryTest(
         extra: {
           arguments: ['console warn'],
         },
+        message: 'console warn',
       }),
     );
-    expect(warnEvent?.exception).toBeUndefined();
+    expect(warnEvent?.exception?.values![0]).toMatchObject({
+      mechanism: {
+        handled: true,
+        type: 'console',
+        synthetic: true,
+      },
+      value: 'console warn',
+      stacktrace: {
+        frames: expect.any(Array),
+      },
+    });
+
     expect(infoEvent).toEqual(
       expect.objectContaining({
         level: 'info',
@@ -60,9 +76,21 @@ sentryTest(
         extra: {
           arguments: ['console info'],
         },
+        message: 'console info',
       }),
     );
-    expect(infoEvent?.exception).toBeUndefined();
+    expect(infoEvent?.exception?.values![0]).toMatchObject({
+      mechanism: {
+        handled: true,
+        type: 'console',
+        synthetic: true,
+      },
+      value: 'console info',
+      stacktrace: {
+        frames: expect.any(Array),
+      },
+    });
+
     expect(errorEvent).toEqual(
       expect.objectContaining({
         level: 'error',
@@ -70,9 +98,21 @@ sentryTest(
         extra: {
           arguments: ['console error'],
         },
+        message: 'console error',
       }),
     );
-    expect(errorEvent?.exception).toBeUndefined();
+    expect(errorEvent?.exception?.values![0]).toMatchObject({
+      mechanism: {
+        handled: true,
+        type: 'console',
+        synthetic: true,
+      },
+      value: 'console error',
+      stacktrace: {
+        frames: expect.any(Array),
+      },
+    });
+
     expect(traceEvent).toEqual(
       expect.objectContaining({
         level: 'log',
@@ -80,9 +120,21 @@ sentryTest(
         extra: {
           arguments: ['console trace'],
         },
+        message: 'console trace',
       }),
     );
-    expect(traceEvent?.exception).toBeUndefined();
+    expect(traceEvent?.exception?.values![0]).toMatchObject({
+      mechanism: {
+        handled: true,
+        type: 'console',
+        synthetic: true,
+      },
+      value: 'console trace',
+      stacktrace: {
+        frames: expect.any(Array),
+      },
+    });
+
     expect(errorWithErrorEvent).toEqual(
       expect.objectContaining({
         level: 'error',
