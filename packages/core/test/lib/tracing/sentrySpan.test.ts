@@ -30,7 +30,7 @@ describe('SentrySpan', () => {
 
       const spanJson = spanToJSON(span);
       expect(spanJson.description).toEqual('new name');
-      expect(spanJson.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('custom');
+      expect(spanJson.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('custom');
     });
   });
 

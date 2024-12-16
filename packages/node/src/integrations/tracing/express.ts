@@ -26,7 +26,7 @@ export const instrumentExpress = generateInstrumentOnce(
       requestHook(span) {
         addOriginToSpan(span, 'auto.http.otel.express');
 
-        const attributes = spanToJSON(span).data || {};
+        const attributes = spanToJSON(span).data;
         // this is one of: middleware, request_handler, router
         const type = attributes['express.type'];
 

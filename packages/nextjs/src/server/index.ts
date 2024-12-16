@@ -308,7 +308,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
       event.type === 'transaction' &&
       event.contexts?.trace?.data?.['next.span_type'] === 'BaseServer.handleRequest'
     ) {
-      event.contexts.trace.data = event.contexts.trace.data || {};
+      event.contexts.trace.data = event.contexts.trace.data;
       event.contexts.trace.data[SEMANTIC_ATTRIBUTE_SENTRY_OP] = 'http.server';
       event.contexts.trace.op = 'http.server';
 

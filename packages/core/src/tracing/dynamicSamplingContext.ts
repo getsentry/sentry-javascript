@@ -94,7 +94,7 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
   // Else, we generate it from the span
   const dsc = getDynamicSamplingContextFromClient(span.spanContext().traceId, client);
   const jsonSpan = spanToJSON(rootSpan);
-  const attributes = jsonSpan.data || {};
+  const attributes = jsonSpan.data;
   const maybeSampleRate = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE];
 
   if (maybeSampleRate != null) {
