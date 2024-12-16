@@ -10,6 +10,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.45.1
+
+- fix(feedback): Return when the `sendFeedback` promise resolves ([#14683](https://github.com/getsentry/sentry-javascript/pull/14683))
+
 ## 8.45.0
 
 - feat(core): Add `handled` option to `captureConsoleIntegration` ([#14664](https://github.com/getsentry/sentry-javascript/pull/14664))

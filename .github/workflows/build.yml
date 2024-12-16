@@ -4,6 +4,8 @@ on:
     branches:
       - develop
       - master
+      - v9
+      - v8
       - release/**
   pull_request:
   merge_group:
@@ -105,7 +107,7 @@ jobs:
     outputs:
       commit_label: '${{ env.COMMIT_SHA }}: ${{ env.COMMIT_MESSAGE }}'
       # Note: These next three have to be checked as strings ('true'/'false')!
-      is_develop: ${{ github.ref == 'refs/heads/develop' }}
+      is_base_branch: ${{ github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/v9' || github.ref == 'refs/heads/v8'}}
       is_release: ${{ startsWith(github.ref, 'refs/heads/release/') }}
       changed_profiling_node: ${{ steps.changed.outputs.profiling_node == 'true' }}
       changed_ci: ${{ steps.changed.outputs.workflow == 'true' }}
@@ -126,7 +128,7 @@ jobs:
     timeout-minutes: 15
     if: |
       needs.job_get_metadata.outputs.changed_any_code == 'true' ||
-      needs.job_get_metadata.outputs.is_develop == 'true' ||
+      needs.job_get_metadata.outputs.is_base_branch == 'true' ||
       needs.job_get_metadata.outputs.is_release == 'true' ||
       (needs.job_get_metadata.outputs.is_gitflow_sync == 'false' && needs.job_get_metadata.outputs.has_gitflow_label == 'false')
     steps:
@@ -171,7 +173,7 @@ jobs:
           key: nx-Linux-${{ github.ref }}-${{ env.HEAD_COMMIT || github.sha }}
           # On develop branch, we want to _store_ the cache (so it can be used by other branches), but never _restore_ from it
           restore-keys:
-            ${{needs.job_get_metadata.outputs.is_develop == 'false' && env.NX_CACHE_RESTORE_KEYS || 'nx-never-restore'}}
+            ${{needs.job_get_metadata.outputs.is_base_branch == 'false' && env.NX_CACHE_RESTORE_KEYS || 'nx-never-restore'}}
 
       - name: Build packages
         # Set the CODECOV_TOKEN for Bundle Analysis
@@ -219,7 +221,7 @@ jobs:
     timeout-minutes: 15
     runs-on: ubuntu-20.04
     if:
-      github.event_name == 'pull_request' || needs.job_get_metadata.outputs.is_develop == 'true' ||
+      github.event_name == 'pull_request' || needs.job_get_metadata.outputs.is_base_branch == 'true' ||
       needs.job_get_metadata.outputs.is_release == 'true'
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
