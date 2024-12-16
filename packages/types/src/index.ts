@@ -152,8 +152,6 @@ import type {
   StackParser as StackParser_imported,
   Stacktrace as Stacktrace_imported,
   StartSpanOptions as StartSpanOptions_imported,
-  StatsdEnvelope as StatsdEnvelope_imported,
-  StatsdItem as StatsdItem_imported,
   Thread as Thread_imported,
   ThreadCpuFrame as ThreadCpuFrame_imported,
   ThreadCpuProfile as ThreadCpuProfile_imported,
@@ -275,10 +273,6 @@ export type UserFeedbackItem = UserFeedbackItem_imported;
 export type CheckInItem = CheckInItem_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type CheckInEnvelope = CheckInEnvelope_imported;
-/** @deprecated This type has been moved to `@sentry/core`. */
-export type StatsdItem = StatsdItem_imported;
-/** @deprecated This type has been moved to `@sentry/core`. */
-export type StatsdEnvelope = StatsdEnvelope_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type ProfileItem = ProfileItem_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */

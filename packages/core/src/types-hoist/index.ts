@@ -45,8 +45,6 @@ export type {
   CheckInEnvelope,
   RawSecurityEnvelope,
   RawSecurityItem,
-  StatsdItem,
-  StatsdEnvelope,
   ProfileItem,
   ProfileChunkEnvelope,
   ProfileChunkItem,
