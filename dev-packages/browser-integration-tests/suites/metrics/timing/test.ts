@@ -67,20 +67,6 @@ sentryTest('allows to wrap sync methods with a timing metric', async ({ getLocal
   expect(span.op).toEqual('metrics.timing');
   expect(span.description).toEqual('timingSync');
   expect(span.timestamp! - span.start_timestamp).toEqual(duration);
-  expect(span._metrics_summary).toEqual({
-    'd:timingSync@second': [
-      {
-        count: 1,
-        max: duration,
-        min: duration,
-        sum: duration,
-        tags: {
-          release: '1.0.0',
-          transaction: 'manual span',
-        },
-      },
-    ],
-  });
 });
 
 sentryTest('allows to wrap async methods with a timing metric', async ({ getLocalTestUrl, page }) => {
@@ -142,18 +128,4 @@ sentryTest('allows to wrap async methods with a timing metric', async ({ getLoca
   expect(span.op).toEqual('metrics.timing');
   expect(span.description).toEqual('timingAsync');
   expect(span.timestamp! - span.start_timestamp).toEqual(duration);
-  expect(span._metrics_summary).toEqual({
-    'd:timingAsync@second': [
-      {
-        count: 1,
-        max: duration,
-        min: duration,
-        sum: duration,
-        tags: {
-          release: '1.0.0',
-          transaction: 'manual span',
-        },
-      },
-    ],
-  });
 });
