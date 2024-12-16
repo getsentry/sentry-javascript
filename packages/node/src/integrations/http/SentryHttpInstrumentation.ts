@@ -2,6 +2,7 @@
 import type * as http from 'node:http';
 import type { IncomingMessage, RequestOptions } from 'node:http';
 import type * as https from 'node:https';
+import { EventEmitter } from 'node:stream';
 import { VERSION } from '@opentelemetry/core';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
@@ -21,11 +22,6 @@ import {
 import { DEBUG_BUILD } from '../../debug-build';
 import { getRequestUrl } from '../../utils/getRequestUrl';
 import { getRequestInfo } from './vendor/getRequestInfo';
-
-const clientToAggregatesMap = new Map<
-  Client,
-  { [timestampRoundedToSeconds: string]: { exited: number; crashed: number; errored: number } }
->();
 
 type Http = typeof http;
 type Https = typeof https;
@@ -50,7 +46,8 @@ type SentryHttpInstrumentationOptions = InstrumentationConfig & {
   ignoreOutgoingRequests?: (url: string, request: RequestOptions) => boolean;
 
   /**
-   * TODO
+   * Whether the integration should create [Sessions](https://docs.sentry.io/product/releases/health/#sessions) for incoming requests to track the health and crash-free rate of your releases in Sentry.
+   * Read more about Release Health: https://docs.sentry.io/product/releases/health/
    *
    * Defaults to `true`.
    */
@@ -178,62 +175,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
         isolationScope.setTransactionName(bestEffortTransactionName);
 
         if (instrumentation.getConfig().trackIncomingRequestsAsSessions !== false) {
-          isolationScope.setSDKProcessingMetadata({
-            requestSession: { status: 'ok' },
-          });
-          response.once('close', () => {
-            // We need to grab the client off the current scope instead of the isolation scope because the isolation scope doesn't hold any client out of the box.
-            const client = getClient();
-            const requestSession = isolationScope.getScopeData().sdkProcessingMetadata.requestSession;
-
-            if (client && requestSession) {
-              DEBUG_BUILD && logger.debug(`Recorded request session with status: ${requestSession.status}`);
-
-              const roundedDate = new Date();
-              roundedDate.setSeconds(0, 0);
-              const dateBucketKey = roundedDate.toISOString();
-
-              const existingClientAggregate = clientToAggregatesMap.get(client);
-              const bucket = existingClientAggregate?.[dateBucketKey] || { exited: 0, crashed: 0, errored: 0 };
-              bucket[({ ok: 'exited', crashed: 'crashed', errored: 'errored' } as const)[requestSession.status]]++;
-
-              if (existingClientAggregate) {
-                existingClientAggregate[dateBucketKey] = bucket;
-              } else {
-                DEBUG_BUILD && logger.debug('Opened new request session aggregate.');
-                const newClientAggregate = { [dateBucketKey]: bucket };
-                clientToAggregatesMap.set(client, newClientAggregate);
-
-                const flushPendingClientAggregates = (): void => {
-                  clearTimeout(timeout);
-                  unregisterClientFlushHook();
-                  clientToAggregatesMap.delete(client);
-
-                  const aggregatePayload: AggregationCounts[] = Object.entries(newClientAggregate).map(
-                    ([timestamp, value]) => ({
-                      started: timestamp,
-                      exited: value.exited,
-                      errored: value.errored,
-                      crashed: value.crashed,
-                    }),
-                  );
-                  client.sendSession({ aggregates: aggregatePayload });
-                };
-
-                const unregisterClientFlushHook = client.on('flush', () => {
-                  DEBUG_BUILD && logger.debug('Sending request session aggregate due to client flush');
-                  flushPendingClientAggregates();
-                });
-                const timeout = setTimeout(
-                  () => {
-                    DEBUG_BUILD && logger.debug('Sending request session aggregate due to flushing schedule');
-                    flushPendingClientAggregates();
-                  },
-                  instrumentation.getConfig().sessionFlushingDelayMS ?? 60_000,
-                ).unref();
-              }
-            }
-          });
+          recordRequestSession({ requestIsolationScope: isolationScope, response });
         }
 
         return withIsolationScope(isolationScope, () => {
@@ -505,3 +447,81 @@ function patchRequestToCaptureBody(req: IncomingMessage, isolationScope: Scope):
     // ignore errors if we can't patch stuff
   }
 }
+
+/**
+ * Starts a session and tracks it in the context of a given isolation scope.
+ * When the passed response is finished, the session is put into a task and is
+ * aggregated with other sessions that may happen in a certain time window
+ * (sessionFlushingDelayMs).
+ *
+ * The sessions are always aggregated by the client that is on the current scope
+ * at the time of ending the response (if there is one).
+ */
+// Exported for unit tests
+export function recordRequestSession({
+  requestIsolationScope,
+  response,
+  sessionFlushingDelayMS,
+}: { requestIsolationScope: Scope; response: EventEmitter; sessionFlushingDelayMS?: number }): void {
+  requestIsolationScope.setSDKProcessingMetadata({
+    requestSession: { status: 'ok' },
+  });
+  response.once('close', () => {
+    // We need to grab the client off the current scope instead of the isolation scope because the isolation scope doesn't hold any client out of the box.
+    const client = getClient();
+    const requestSession = requestIsolationScope.getScopeData().sdkProcessingMetadata.requestSession;
+
+    if (client && requestSession) {
+      DEBUG_BUILD && logger.debug(`Recorded request session with status: ${requestSession.status}`);
+
+      const roundedDate = new Date();
+      roundedDate.setSeconds(0, 0);
+      const dateBucketKey = roundedDate.toISOString();
+
+      const existingClientAggregate = clientToRequestSessionAggregatesMap.get(client);
+      const bucket = existingClientAggregate?.[dateBucketKey] || { exited: 0, crashed: 0, errored: 0 };
+      bucket[({ ok: 'exited', crashed: 'crashed', errored: 'errored' } as const)[requestSession.status]]++;
+
+      if (existingClientAggregate) {
+        existingClientAggregate[dateBucketKey] = bucket;
+      } else {
+        DEBUG_BUILD && logger.debug('Opened new request session aggregate.');
+        const newClientAggregate = { [dateBucketKey]: bucket };
+        clientToRequestSessionAggregatesMap.set(client, newClientAggregate);
+
+        const flushPendingClientAggregates = (): void => {
+          clearTimeout(timeout);
+          unregisterClientFlushHook();
+          clientToRequestSessionAggregatesMap.delete(client);
+
+          const aggregatePayload: AggregationCounts[] = Object.entries(newClientAggregate).map(
+            ([timestamp, value]) => ({
+              started: timestamp,
+              exited: value.exited,
+              errored: value.errored,
+              crashed: value.crashed,
+            }),
+          );
+          client.sendSession({ aggregates: aggregatePayload });
+        };
+
+        const unregisterClientFlushHook = client.on('flush', () => {
+          DEBUG_BUILD && logger.debug('Sending request session aggregate due to client flush');
+          flushPendingClientAggregates();
+        });
+        const timeout = setTimeout(
+          () => {
+            DEBUG_BUILD && logger.debug('Sending request session aggregate due to flushing schedule');
+            flushPendingClientAggregates();
+          },
+          sessionFlushingDelayMS ?? 60_000,
+        ).unref();
+      }
+    }
+  });
+}
+
+const clientToRequestSessionAggregatesMap = new Map<
+  Client,
+  { [timestampRoundedToSeconds: string]: { exited: number; crashed: number; errored: number } }
+>();
