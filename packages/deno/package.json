@@ -47,8 +47,7 @@
     "prelint": "yarn deno-types",
     "lint": "eslint . --format stylish",
     "install:deno": "node ./scripts/install-deno.mjs",
-    "pretest": "run-s deno-types",
-    "test": "run-s install:deno test:unit",
+    "test": "run-s install:deno deno-types test:unit",
     "test:unit": "deno test --allow-read --allow-run",
     "test:unit:update": "deno test --allow-read --allow-write --allow-run -- --update",
     "yalc:publish": "node ./scripts/prepack.js && yalc publish build --push --sig"
