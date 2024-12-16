@@ -30,6 +30,15 @@ export const SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT = 'sentry.measurement_un
 export const SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE = 'sentry.measurement_value';
 
 /**
+ * A custom span name set by users guaranteed to be taken over any automatically
+ * inferred name. This attribute is removed before the span is sent.
+ *
+ * @internal only meant for internal SDK usage
+ * @hidden
+ */
+export const SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME = 'sentry.custom_span_name';
+
+/**
  * The id of the profile that this span occurred in.
  */
 export const SEMANTIC_ATTRIBUTE_PROFILE_ID = 'sentry.profile_id';
