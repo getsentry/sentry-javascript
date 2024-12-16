@@ -12,13 +12,11 @@ import { GLOBAL_OBJ } from '../utils-hoist/worldwide';
 interface CaptureConsoleOptions {
   levels?: string[];
 
-  // TODO(v9): Flip default value to `true` and adjust JSDoc!
   /**
-   * By default, Sentry will mark captured console messages as unhandled.
-   * Set this to `true` if you want to mark them as handled instead.
+   * By default, Sentry will mark captured console messages as handled.
+   * Set this to `false` if you want to mark them as unhandled instead.
    *
-   * Note: in v9 of the SDK, this option will default to `true`, meaning the default behavior will change to mark console messages as handled.
-   * @default false
+   * @default true
    */
   handled?: boolean;
 }
@@ -27,8 +25,7 @@ const INTEGRATION_NAME = 'CaptureConsole';
 
 const _captureConsoleIntegration = ((options: CaptureConsoleOptions = {}) => {
   const levels = options.levels || CONSOLE_LEVELS;
-  // TODO(v9): Flip default value to `true`
-  const handled = !!options.handled;
+  const handled = options.handled ?? true;
 
   return {
     name: INTEGRATION_NAME,
