@@ -1,20 +1,21 @@
 /* eslint-disable complexity */
+import type { Event, Session, Envelope } from '@sentry/core';
 import { sentryCore } from '../build-test/index.js';
 
-type EventOrSession = sentryCore.Event | sentryCore.Session;
+type EventOrSession = Event | Session;
 
-export function getNormalizedEvent(envelope: sentryCore.Envelope): sentryCore.Event | undefined {
-  let event: sentryCore.Event | undefined;
+export function getNormalizedEvent(envelope: Envelope): Event | undefined {
+  let event: Event | undefined;
 
   sentryCore.forEachEnvelopeItem(envelope, item => {
     const [headers, body] = item;
 
     if (headers.type === 'event') {
-      event = body as sentryCore.Event;
+      event = body as Event;
     }
   });
 
-  return normalize(event) as sentryCore.Event | undefined;
+  return normalize(event) as Event | undefined;
 }
 
 export function normalize(event: EventOrSession | undefined): EventOrSession | undefined {
@@ -23,14 +24,14 @@ export function normalize(event: EventOrSession | undefined): EventOrSession | u
   }
 
   if (eventIsSession(event)) {
-    return normalizeSession(event as sentryCore.Session);
+    return normalizeSession(event as Session);
   } else {
-    return normalizeEvent(event as sentryCore.Event);
+    return normalizeEvent(event as Event);
   }
 }
 
 export function eventIsSession(data: EventOrSession): boolean {
-  return !!(data as sentryCore.Session)?.sid;
+  return !!(data as Session)?.sid;
 }
 
 /**
@@ -39,7 +40,7 @@ export function eventIsSession(data: EventOrSession): boolean {
  * All properties that are timestamps, versions, ids or variables that may vary
  * by platform are replaced with placeholder strings
  */
-function normalizeSession(session: sentryCore.Session): sentryCore.Session {
+function normalizeSession(session: Session): Session {
   if (session.sid) {
     session.sid = '{{id}}';
   }
@@ -65,7 +66,7 @@ function normalizeSession(session: sentryCore.Session): sentryCore.Session {
  * All properties that are timestamps, versions, ids or variables that may vary
  * by platform are replaced with placeholder strings
  */
-function normalizeEvent(event: sentryCore.Event): sentryCore.Event {
+function normalizeEvent(event: Event): Event {
   if (event.sdk?.version) {
     event.sdk.version = '{{version}}';
   }
