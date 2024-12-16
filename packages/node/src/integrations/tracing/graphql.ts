@@ -67,9 +67,9 @@ export const instrumentGraphql = generateInstrumentOnce<GraphqlOptions>(
           // We keep track of each operation on the root span
           // This can either be a string, or an array of strings (if there are multiple operations)
           if (Array.isArray(existingOperations)) {
-            existingOperations.push(newOperation);
+            (existingOperations as string[]).push(newOperation);
             rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION, existingOperations);
-          } else if (existingOperations) {
+          } else if (typeof existingOperations === 'string') {
             rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION, [existingOperations, newOperation]);
           } else {
             rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION, newOperation);
