@@ -133,6 +133,6 @@ export interface MissingInstrumentationContext extends Record<string, unknown> {
  * directly is not recommended. Use the functions in @sentry/browser
  * src/utils/featureFlags instead.
  */
-export interface FeatureFlagContext extends Record<string, unknown> {
+interface FeatureFlagContext extends Record<string, unknown> {
   values: FeatureFlag[];
 }
