@@ -1,5 +1,5 @@
-import { addHandler, fill, maybeInstrument, supportsHistory, triggerHandlers } from '@sentry/core';
 import type { HandlerDataHistory } from '@sentry/core';
+import { addHandler, fill, maybeInstrument, supportsHistory, triggerHandlers } from '@sentry/core';
 import { WINDOW } from '../types';
 
 let lastHref: string | undefined;
@@ -19,29 +19,26 @@ export function addHistoryInstrumentationHandler(handler: (data: HandlerDataHist
 }
 
 function instrumentHistory(): void {
-  if (!supportsHistory()) {
-    return;
-  }
-
-  const oldOnPopState = WINDOW.onpopstate;
-  WINDOW.onpopstate = function (this: WindowEventHandlers, ...args: unknown[]) {
+  // The `popstate` event may also be triggered on `pushState`, but it may not always reliably be emitted by the browser
+  // Which is why we also monkey-patch methods below, in addition to this
+  WINDOW.addEventListener('popstate', () => {
     const to = WINDOW.location.href;
     // keep track of the current URL state, as we always receive only the updated state
     const from = lastHref;
     lastHref = to;
-    const handlerData: HandlerDataHistory = { from, to };
-    triggerHandlers('history', handlerData);
-    if (oldOnPopState) {
-      // Apparently this can throw in Firefox when incorrectly implemented plugin is installed.
-      // https://github.com/getsentry/sentry-javascript/issues/3344
-      // https://github.com/bugsnag/bugsnag-js/issues/469
-      try {
-        return oldOnPopState.apply(this, args);
-      } catch (_oO) {
-        // no-empty
-      }
+
+    if (from === to) {
+      return;
     }
-  };
+
+    const handlerData = { from, to } satisfies HandlerDataHistory;
+    triggerHandlers('history', handlerData);
+  });
+
+  // Just guard against this not being available, in weird environments
+  if (!supportsHistory()) {
+    return;
+  }
 
   function historyReplacementFunction(originalHistoryFunction: () => void): () => void {
     return function (this: History, ...args: unknown[]): void {
@@ -52,7 +49,12 @@ function instrumentHistory(): void {
         const to = String(url);
         // keep track of the current URL state, as we always receive only the updated state
         lastHref = to;
-        const handlerData: HandlerDataHistory = { from, to };
+
+        if (from === to) {
+          return;
+        }
+
+        const handlerData = { from, to } satisfies HandlerDataHistory;
         triggerHandlers('history', handlerData);
       }
       return originalHistoryFunction.apply(this, args);

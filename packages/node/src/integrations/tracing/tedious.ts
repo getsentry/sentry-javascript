@@ -31,7 +31,7 @@ const _tediousIntegration = (() => {
           return;
         }
 
-        const operation = description?.split(' ')[0] || '';
+        const operation = description.split(' ')[0] || '';
         if (TEDIUS_INSTRUMENTED_METHODS.has(operation)) {
           span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.db.otel.tedious');
         }

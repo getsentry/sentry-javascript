@@ -13,7 +13,7 @@ Sentry.init({
   dsn: process.env.SENTRY_DSN,
   release: '1.0',
   autoSessionTracking: false,
-  integrations: [Sentry.anrIntegration({ captureStackTrace: true, anrThreshold: 100 })],
+  integrations: [Sentry.anrIntegration({ captureStackTrace: true, anrThreshold: 100, maxAnrEvents: 2 })],
 });
 
 Sentry.setUser({ email: 'person@home.com' });
@@ -31,7 +31,6 @@ setTimeout(() => {
   longWork();
 }, 1000);
 
-// Ensure we only send one event even with multiple blocking events
 setTimeout(() => {
   longWork();
 }, 4000);

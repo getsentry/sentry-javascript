@@ -1565,6 +1565,8 @@ describe('continueTrace', () => {
         expect(spanToJSON(span)).toEqual({
           span_id: '1121201211212012',
           trace_id: '12312012123120121231201212312012',
+          data: {},
+          start_timestamp: 0,
         });
         expect(getSamplingDecision(span.spanContext())).toBe(false);
         expect(spanIsSampled(span)).toBe(false);
@@ -1596,6 +1598,8 @@ describe('continueTrace', () => {
         expect(spanToJSON(span)).toEqual({
           span_id: '1121201211212012',
           trace_id: '12312012123120121231201212312012',
+          data: {},
+          start_timestamp: 0,
         });
         expect(getSamplingDecision(span.spanContext())).toBe(true);
         expect(spanIsSampled(span)).toBe(true);
@@ -1630,6 +1634,8 @@ describe('continueTrace', () => {
         expect(spanToJSON(span)).toEqual({
           span_id: '1121201211212012',
           trace_id: '12312012123120121231201212312012',
+          data: {},
+          start_timestamp: 0,
         });
         expect(getSamplingDecision(span.spanContext())).toBe(true);
         expect(spanIsSampled(span)).toBe(true);

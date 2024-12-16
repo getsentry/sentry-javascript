@@ -44,7 +44,7 @@ export type SpanTimeInput = HrTime | number | Date;
 
 /** A JSON representation of a span. */
 export interface SpanJSON {
-  data?: { [key: string]: any };
+  data: SpanAttributes;
   description?: string;
   op?: string;
   parent_span_id?: string;

@@ -116,7 +116,7 @@ describe('createSpanEnvelope', () => {
 
     const spanEnvelope = createSpanEnvelope([span]);
 
-    const spanItem = spanEnvelope[1]?.[0]?.[1];
+    const spanItem = spanEnvelope[1][0]?.[1];
     expect(spanItem).toEqual({
       data: {
         'sentry.origin': 'manual',
@@ -207,7 +207,7 @@ describe('createSpanEnvelope', () => {
 
     expect(beforeSendSpan).toHaveBeenCalled();
 
-    const spanItem = spanEnvelope[1]?.[0]?.[1];
+    const spanItem = spanEnvelope[1][0]?.[1];
     expect(spanItem).toEqual({
       data: {
         'sentry.origin': 'manual',
@@ -242,7 +242,7 @@ describe('createSpanEnvelope', () => {
 
     expect(beforeSendSpan).toHaveBeenCalled();
 
-    const spanItem = spanEnvelope[1]?.[0]?.[1];
+    const spanItem = spanEnvelope[1][0]?.[1];
     expect(spanItem).toEqual({
       data: {
         'sentry.origin': 'manual',
