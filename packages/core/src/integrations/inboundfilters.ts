@@ -148,8 +148,6 @@ function _isAllowedUrl(event: Event, allowUrls?: Array<string | RegExp>): boolea
   return !url ? true : stringMatchesSomePattern(url, allowUrls);
 }
 
-
-
 function _isSentryError(event: Event): boolean {
   try {
     // @ts-expect-error can't be a sentry error if undefined

@@ -49,10 +49,10 @@ import { isParameterizedString, isPlainObject, isPrimitive, isThenable } from '.
 import { consoleSandbox, logger } from './utils-hoist/logger';
 import { checkOrSetAlreadyCaught, uuid4 } from './utils-hoist/misc';
 import { SyncPromise, rejectedSyncPromise, resolvedSyncPromise } from './utils-hoist/syncpromise';
+import { getPossibleEventMessages } from './utils/eventUtils';
 import { parseSampleRate } from './utils/parseSampleRate';
 import { prepareEvent } from './utils/prepareEvent';
 import { showSpanDropWarning } from './utils/spanUtils';
-import { getPossibleEventMessages } from './utils/eventUtils';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
 
