@@ -79,6 +79,7 @@ export {
   getActiveSpan,
   addChildSpanToSpan,
   spanTimeInputToSeconds,
+  updateSpanName,
 } from './utils/spanUtils';
 export { parseSampleRate } from './utils/parseSampleRate';
 export { applySdkMetadata } from './utils/sdkMetadata';
