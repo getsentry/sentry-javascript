@@ -151,7 +151,7 @@ export function spanToJSON(span: Span): Partial<SpanJSON> {
 }
 
 function spanIsOpenTelemetrySdkTraceBaseSpan(span: Span): span is OpenTelemetrySdkTraceBaseSpan {
-  const castSpan = span as OpenTelemetrySdkTraceBaseSpan;
+  const castSpan = span as Partial<OpenTelemetrySdkTraceBaseSpan>;
   return !!castSpan.attributes && !!castSpan.startTime && !!castSpan.name && !!castSpan.endTime && !!castSpan.status;
 }
 

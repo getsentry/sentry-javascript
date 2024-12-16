@@ -40,7 +40,7 @@ const cacheResponseHook: RedisResponseCustomAttributeFunction = (span: Span, red
   if (
     !safeKey ||
     !cacheOperation ||
-    !_redisOptions?.cachePrefixes ||
+    !_redisOptions.cachePrefixes ||
     !shouldConsiderForCache(redisCommand, safeKey, _redisOptions.cachePrefixes)
   ) {
     // not relevant for cache

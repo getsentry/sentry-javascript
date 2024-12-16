@@ -113,22 +113,22 @@ function applyDataToEvent(event: Event, data: ScopeData): void {
   const { extra, tags, user, contexts, level, transactionName } = data;
 
   const cleanedExtra = dropUndefinedKeys(extra);
-  if (cleanedExtra && Object.keys(cleanedExtra).length) {
+  if (Object.keys(cleanedExtra).length) {
     event.extra = { ...cleanedExtra, ...event.extra };
   }
 
   const cleanedTags = dropUndefinedKeys(tags);
-  if (cleanedTags && Object.keys(cleanedTags).length) {
+  if (Object.keys(cleanedTags).length) {
     event.tags = { ...cleanedTags, ...event.tags };
   }
 
   const cleanedUser = dropUndefinedKeys(user);
-  if (cleanedUser && Object.keys(cleanedUser).length) {
+  if (Object.keys(cleanedUser).length) {
     event.user = { ...cleanedUser, ...event.user };
   }
 
   const cleanedContexts = dropUndefinedKeys(contexts);
-  if (cleanedContexts && Object.keys(cleanedContexts).length) {
+  if (Object.keys(cleanedContexts).length) {
     event.contexts = { ...cleanedContexts, ...event.contexts };
   }
 
@@ -190,7 +190,7 @@ function applyFingerprintToEvent(event: Event, fingerprint: ScopeData['fingerpri
   }
 
   // If we have no data at all, remove empty array default
-  if (event.fingerprint && !event.fingerprint.length) {
+  if (!event.fingerprint.length) {
     delete event.fingerprint;
   }
 }
