@@ -50,6 +50,7 @@ import { isParameterizedString, isPlainObject, isPrimitive, isThenable } from '.
 import { consoleSandbox, logger } from './utils-hoist/logger';
 import { checkOrSetAlreadyCaught, uuid4 } from './utils-hoist/misc';
 import { SyncPromise, rejectedSyncPromise, resolvedSyncPromise } from './utils-hoist/syncpromise';
+import { getPossibleEventMessages } from './utils/eventUtils';
 import { parseSampleRate } from './utils/parseSampleRate';
 import { prepareEvent } from './utils/prepareEvent';
 import { showSpanDropWarning } from './utils/spanUtils';
@@ -730,6 +731,10 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @param scope
    */
   protected _captureEvent(event: Event, hint: EventHint = {}, scope?: Scope): PromiseLike<string | undefined> {
+    if (DEBUG_BUILD && isErrorEvent(event)) {
+      logger.log(`Captured error event \`${getPossibleEventMessages(event)[0] || '<unknown>'}\``);
+    }
+
     return this._processEvent(event, hint, scope).then(
       finalEvent => {
         return finalEvent.event_id;

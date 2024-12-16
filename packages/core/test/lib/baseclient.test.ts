@@ -366,6 +366,22 @@ describe('BaseClient', () => {
       // `captureException` should bail right away this second time around and not get as far as calling this again
       expect(clientEventFromException).toHaveBeenCalledTimes(1);
     });
+
+    test('captures logger message', () => {
+      const logSpy = jest.spyOn(loggerModule.logger, 'log').mockImplementation(() => undefined);
+
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      const client = new TestClient(options);
+
+      client.captureException(new Error('test error here'));
+      client.captureException({});
+
+      expect(logSpy).toHaveBeenCalledTimes(2);
+      expect(logSpy).toBeCalledWith('Captured error event `test error here`');
+      expect(logSpy).toBeCalledWith('Captured error event `<unknown>`');
+
+      logSpy.mockRestore();
+    });
   });
 
   describe('captureMessage', () => {
@@ -441,6 +457,20 @@ describe('BaseClient', () => {
           level: 'warning',
         }),
       );
+    });
+
+    test('captures logger message', () => {
+      const logSpy = jest.spyOn(loggerModule.logger, 'log').mockImplementation(() => undefined);
+
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      const client = new TestClient(options);
+
+      client.captureMessage('test error here');
+
+      expect(logSpy).toHaveBeenCalledTimes(1);
+      expect(logSpy).toBeCalledWith('Captured error event `test error here`');
+
+      logSpy.mockRestore();
     });
   });
 
@@ -1657,6 +1687,22 @@ describe('BaseClient', () => {
       expect(recordLostEventSpy).toHaveBeenCalledWith('sample_rate', 'error', {
         message: 'hello',
       });
+    });
+
+    test('captures logger message', () => {
+      const logSpy = jest.spyOn(loggerModule.logger, 'log').mockImplementation(() => undefined);
+
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      const client = new TestClient(options);
+
+      client.captureEvent({ message: 'hello' });
+      // transactions are ignored and not logged
+      client.captureEvent({ type: 'transaction', message: 'hello 2' });
+
+      expect(logSpy).toHaveBeenCalledTimes(1);
+      expect(logSpy).toBeCalledWith('Captured error event `hello`');
+
+      logSpy.mockRestore();
     });
   });
 
