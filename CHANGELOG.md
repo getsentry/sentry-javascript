@@ -10,6 +10,13 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.46.0
+
+- feat: Allow capture of more than 1 ANR event [v8] ([#14713](https://github.com/getsentry/sentry-javascript/pull/14713))
+- feat(node): Detect Railway release name [v8] ([#14714](https://github.com/getsentry/sentry-javascript/pull/14714))
+- fix: Normalise ANR debug image file paths if appRoot was supplied [v8] ([#14709](https://github.com/getsentry/sentry-javascript/pull/14709))
+- fix(nuxt): Remove build config from tsconfig ([#14737](https://github.com/getsentry/sentry-javascript/pull/14737))
+
 Work in this release was contributed by @conor-ob. Thank you for your contribution!
 
 ## 8.45.1
