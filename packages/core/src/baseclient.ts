@@ -367,16 +367,16 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritDoc
    */
   public sendSession(session: Session | SessionAggregates): void {
-    const clientReleaseOption = this._options.release;
-    const clientEnvironmentOption = this._options.environment;
+    // Backfill release and environment on session
+    const { release: clientReleaseOption, environment: clientEnvironmentOption } = this._options;
     if ('aggregates' in session) {
-      if (!session.attrs?.release && !clientReleaseOption) {
+      const sessionAttrs = session.attrs || {};
+      if (!sessionAttrs.release && !clientReleaseOption) {
         DEBUG_BUILD && logger.warn(MISSING_RELEASE_FOR_SESSION_ERROR);
         return;
       }
-      session.attrs = session.attrs || {};
-      session.attrs.release = session.attrs.release || clientReleaseOption;
-      session.attrs.environment = session.attrs.environment || clientEnvironmentOption;
+      sessionAttrs.release = sessionAttrs.release || clientReleaseOption;
+      sessionAttrs.environment = sessionAttrs.environment || clientEnvironmentOption;
     } else {
       if (!session.release && !clientReleaseOption) {
         DEBUG_BUILD && logger.warn(MISSING_RELEASE_FOR_SESSION_ERROR);

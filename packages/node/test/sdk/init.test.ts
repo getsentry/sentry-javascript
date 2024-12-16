@@ -2,7 +2,7 @@ import { logger } from '@sentry/core';
 import type { Integration } from '@sentry/core';
 
 import * as SentryOpentelemetry from '@sentry/opentelemetry';
-import { getClient, getIsolationScope } from '../../src/';
+import { getClient } from '../../src/';
 import * as auto from '../../src/integrations/tracing';
 import { init, validateOpenTelemetrySetup } from '../../src/sdk';
 import { NodeClient } from '../../src/sdk/client';
