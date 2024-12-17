@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { HandlerDataFetch, WebFetchResponse, WebReadableStreamDefaultReader } from '../../types-hoist';
 
-
 import { isError } from '../is';
 import { addNonEnumerableProperty, fill } from '../object';
 import { supportsNativeFetch } from '../supports';
