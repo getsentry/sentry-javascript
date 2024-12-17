@@ -459,7 +459,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [14, 16, 18, 20, 22]
+        node: [18, 20, 22]
     steps:
       - name: Check out base commit (${{ github.event.pull_request.base.sha }})
         uses: actions/checkout@v4
@@ -478,7 +478,6 @@ jobs:
         uses: ./.github/actions/restore-cache
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
-          node_version: ${{ matrix.node == 14 && '14' || '' }}
 
       - name: Run affected tests
         run: yarn test:pr:node --base=${{ github.event.pull_request.base.sha }}
@@ -715,7 +714,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [14, 16, 18, 20, 22]
+        node: [18, 20, 22]
         typescript:
           - false
         include:
@@ -735,7 +734,6 @@ jobs:
         uses: ./.github/actions/restore-cache
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
-          node_version: ${{ matrix.node == 14 && '14' || '' }}
 
       - name: Overwrite typescript version
         if: matrix.typescript

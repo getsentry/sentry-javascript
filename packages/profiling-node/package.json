@@ -32,7 +32,7 @@
     "sentry-prune-profiler-binaries": "scripts/prune-profiler-binaries.js"
   },
   "engines": {
-    "node": ">=14.18"
+    "node": ">=18.19.1"
   },
   "publishConfig": {
     "access": "public"
@@ -81,7 +81,7 @@
     "node-abi": "^3.61.0"
   },
   "devDependencies": {
-    "@types/node": "16.18.70",
+    "@types/node": "^18.19.1",
     "@types/node-abi": "^3.0.3",
     "clang-format": "^1.8.0",
     "cross-env": "^7.0.3",

@@ -2,7 +2,7 @@ import * as childProcess from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 
-type NodeVersion = '14' | '16' | '18' | '20' | '21';
+type NodeVersion = '18' | '20' | '21';
 
 interface VersionConfig {
   ignoredPackages: Array<`@${'sentry' | 'sentry-internal'}/${string}`>;
@@ -37,22 +37,6 @@ const BROWSER_TEST_PACKAGES = [
 
 // These are Node-version specific tests that need to be skipped because of support
 const SKIP_TEST_PACKAGES: Record<NodeVersion, VersionConfig> = {
-  '14': {
-    ignoredPackages: [
-      '@sentry/cloudflare',
-      '@sentry/solidstart',
-      '@sentry/sveltekit',
-      '@sentry/vercel-edge',
-      '@sentry/astro',
-      '@sentry/nuxt',
-      '@sentry/nestjs',
-      '@sentry-internal/eslint-plugin-sdk',
-      '@sentry-internal/nitro-utils',
-    ],
-  },
-  '16': {
-    ignoredPackages: ['@sentry/cloudflare', '@sentry/vercel-edge', '@sentry/astro', '@sentry/solidstart'],
-  },
   '18': {
     ignoredPackages: [],
   },

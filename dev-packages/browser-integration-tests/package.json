@@ -4,7 +4,7 @@
   "main": "index.js",
   "license": "MIT",
   "engines": {
-    "node": ">=14.18"
+    "node": ">=18.19.1"
   },
   "private": true,
   "scripts": {
@@ -52,7 +52,7 @@
   },
   "devDependencies": {
     "@types/glob": "8.0.0",
-    "@types/node": "^14.18.0",
+    "@types/node": "^18.19.1",
     "@types/pako": "^2.0.0",
     "glob": "8.0.3"
   },

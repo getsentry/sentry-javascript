@@ -58,7 +58,7 @@
     "@sentry/core": "8.45.0"
   },
   "engines": {
-    "node": ">=14.18"
+    "node": ">=18.19.1"
   },
   "volta": {
     "extends": "../../package.json"

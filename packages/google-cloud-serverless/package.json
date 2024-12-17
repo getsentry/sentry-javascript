@@ -7,7 +7,7 @@
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=14.18"
+    "node": ">=18.19.1"
   },
   "files": [
     "/build"
@@ -57,7 +57,7 @@
     "@google-cloud/common": "^3.4.1",
     "@google-cloud/functions-framework": "^1.7.1",
     "@google-cloud/pubsub": "^2.5.0",
-    "@types/node": "^14.18.0",
+    "@types/node": "^18.19.1",
     "google-gax": "^2.9.0",
     "nock": "^13.5.5"
   },

@@ -8,7 +8,7 @@
   "license": "MIT",
   "private": true,
   "engines": {
-    "node": ">=16.20"
+    "node": ">=18.19.1"
   },
   "files": [
     "/build"

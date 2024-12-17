@@ -48,7 +48,7 @@
     "@types/ember__string": "~3.0.15",
     "@types/ember__template": "~4.0.7",
     "@types/ember__utils": "~4.0.7",
-    "@types/node": "18.18.0",
+    "@types/node": "^18.19.1",
     "@types/rsvp": "~4.0.9",
     "broccoli-asset-rev": "~3.0.0",
     "ember-auto-import": "~2.4.3",
@@ -72,7 +72,7 @@
     "webpack": "~5.97.0"
   },
   "engines": {
-    "node": "14.* || 16.* || >= 18"
+    "node": ">=18.19.1"
   },
   "resolutions": {
     "@babel/traverse": "~7.25.9"
