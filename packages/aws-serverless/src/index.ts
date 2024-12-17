@@ -104,10 +104,6 @@ export {
   mysql2Integration,
   redisIntegration,
   tediousIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  nestIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  setupNestErrorHandler,
   postgresIntegration,
   prismaIntegration,
   childProcessIntegration,

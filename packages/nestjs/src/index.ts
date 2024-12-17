@@ -1,16 +1,8 @@
-import { nestIntegration as nestIntegrationAlias } from '@sentry/node';
-
 export * from '@sentry/node';
 
-/**
- * Integration capturing tracing data for NestJS.
- */
-// eslint-disable-next-line deprecation/deprecation
-export const nestIntegration = nestIntegrationAlias;
+export { nestIntegration } from './integrations/nest';
 
-// TODO(v9): Export custom `getDefaultIntegrations` from this SDK that automatically registers the `nestIntegration`.
-
-export { init } from './sdk';
+export { init, getDefaultIntegrations } from './sdk';
 
 export {
   SentryTraced,
