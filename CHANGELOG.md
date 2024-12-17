@@ -10,6 +10,8 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+Work in this release was contributed by @aloisklink. Thank you for your contribution!
+
 ## 8.46.0
 
 - feat: Allow capture of more than 1 ANR event [v8] ([#14713](https://github.com/getsentry/sentry-javascript/pull/14713))
@@ -22,6 +24,8 @@ Work in this release was contributed by @conor-ob. Thank you for your contributi
 ## 8.45.1
 
 - fix(feedback): Return when the `sendFeedback` promise resolves ([#14683](https://github.com/getsentry/sentry-javascript/pull/14683))
+
+Work in this release was contributed by @antonis. Thank you for your contribution!
 
 ## 8.45.0
 
