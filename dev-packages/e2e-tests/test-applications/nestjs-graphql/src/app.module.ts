@@ -2,7 +2,7 @@ import { ApolloDriver } from '@nestjs/apollo';
 import { Logger, Module } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
 import { GraphQLModule } from '@nestjs/graphql';
-import { SentryGlobalGraphQLFilter, SentryModule } from '@sentry/nestjs/setup';
+import { SentryGlobalFilter, SentryModule } from '@sentry/nestjs/setup';
 import { AppResolver } from './app.resolver';
 
 @Module({
@@ -19,7 +19,7 @@ import { AppResolver } from './app.resolver';
     AppResolver,
     {
       provide: APP_FILTER,
-      useClass: SentryGlobalGraphQLFilter,
+      useClass: SentryGlobalFilter,
     },
     {
       provide: Logger,
