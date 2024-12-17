@@ -9,7 +9,7 @@
   "private": true,
   "scripts": {
     "clean": "rimraf -g suites/**/dist loader-suites/**/dist tmp",
-    "install-browsers": "[[ -z \"$SKIP_PLAYWRIGHT_BROWSER_INSTALL\" ]] && yarn npx playwright install --with-deps || echo 'Skipping browser installation'",
+    "install-browsers": "[[ -z \"$SKIP_PLAYWRIGHT_BROWSER_INSTALL\" ]] && npx playwright install --with-deps || echo 'Skipping browser installation'",
     "lint": "eslint . --format stylish",
     "fix": "eslint . --format stylish --fix",
     "type-check": "tsc",
