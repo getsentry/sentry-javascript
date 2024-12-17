@@ -36,7 +36,7 @@ used merge method, so you'll need to make sure to double check that you are usin
 
 ## Backporting PRs/Commits
 
-If you want to backport a release to a previous major version, make sure to reflect this in the PR/commit title.
+If you want to backport a commit to a previous major version, make sure to reflect this in the PR/commit title.
 The name should have the backported major as a scope prefix. For example:
 
 ```
