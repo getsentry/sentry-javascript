@@ -1,3 +1,4 @@
+import type { CaptureContext, Scope } from '../scope';
 import type { Attachment } from './attachment';
 import type { Breadcrumb } from './breadcrumb';
 import type { Contexts } from './context';
@@ -10,7 +11,6 @@ import type { Mechanism } from './mechanism';
 import type { Primitive } from './misc';
 import type { PolymorphicRequest } from './polymorphics';
 import type { RequestEventData } from './request';
-import type { CaptureContext, Scope } from './scope';
 import type { SdkInfo } from './sdkinfo';
 import type { SeverityLevel } from './severity';
 import type { MetricSummary, SpanJSON } from './span';
