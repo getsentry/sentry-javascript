@@ -25,7 +25,7 @@ function getOption(selectors: string[], defaultSelectors: string[]): string {
  * Returns privacy related configuration for use in rrweb
  */
 export function getPrivacyOptions({ mask, unmask, block, unblock, ignore }: GetPrivacyOptions): GetPrivacyReturn {
-  const defaultBlockedElements = ['base[href="/"]'];
+  const defaultBlockedElements = ['base[href="/"]', 'iframe[srcdoc]:not([src])'];
 
   const maskSelector = getOption(mask, ['.sentry-mask', '[data-sentry-mask]']);
   const unmaskSelector = getOption(unmask, []);
