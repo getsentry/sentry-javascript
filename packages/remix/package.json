@@ -10,7 +10,7 @@
     "sentry-upload-sourcemaps": "scripts/sentry-upload-sourcemaps.js"
   },
   "engines": {
-    "node": ">=18.19.1"
+    "node": ">=18"
   },
   "files": [
     "/build",

@@ -7,7 +7,7 @@
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=18.19.1"
+    "node": ">=18"
   },
   "files": [
     "/build"

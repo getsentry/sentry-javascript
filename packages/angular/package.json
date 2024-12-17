@@ -7,7 +7,7 @@
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=18.19.1"
+    "node": ">=18"
   },
   "type": "module",
   "module": "build/fesm2015/sentry-angular.mjs",

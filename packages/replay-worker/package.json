@@ -49,7 +49,7 @@
     "fflate": "0.8.1"
   },
   "engines": {
-    "node": ">=18.19.1"
+    "node": ">=18"
   },
   "volta": {
     "extends": "../../package.json"

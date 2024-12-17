@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "engines": {
-    "node": ">=18.19.1"
+    "node": ">=18"
   },
   "scripts": {
     "db-up": "docker compose up -d",

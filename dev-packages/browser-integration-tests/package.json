@@ -4,7 +4,7 @@
   "main": "index.js",
   "license": "MIT",
   "engines": {
-    "node": ">=18.19.1"
+    "node": ">=18"
   },
   "private": true,
   "scripts": {
