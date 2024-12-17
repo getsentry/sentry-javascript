@@ -104,7 +104,8 @@ It will be removed in a future major version.
 
 ### `@sentry/core`
 
-- The `getNumberOfUrlSegments` method has been removed. There are no replacements.
+- The `getNumberOfUrlSegments` method has been removed. There is no replacement.
+- The `validSeverityLevels` export has been removed. There is no replacement.
 
 ### `@sentry/nestjs`
 
