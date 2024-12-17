@@ -4,14 +4,17 @@ import {
   applySdkMetadata,
   spanToJSON,
 } from '@sentry/core';
+import type { Integration } from '@sentry/core';
 import type { NodeClient, NodeOptions, Span } from '@sentry/node';
-import { init as nodeInit } from '@sentry/node';
+import { getDefaultIntegrations as getDefaultNodeIntegrations, init as nodeInit } from '@sentry/node';
+import { nestIntegration } from './integrations/nest';
 
 /**
  * Initializes the NestJS SDK
  */
 export function init(options: NodeOptions | undefined = {}): NodeClient | undefined {
   const opts: NodeOptions = {
+    defaultIntegrations: getDefaultIntegrations(options),
     ...options,
   };
 
@@ -27,6 +30,11 @@ export function init(options: NodeOptions | undefined = {}): NodeClient | undefi
   }
 
   return client;
+}
+
+/** Get the default integrations for the NestJS SDK. */
+export function getDefaultIntegrations(options: NodeOptions): Integration[] | undefined {
+  return [nestIntegration(), ...getDefaultNodeIntegrations(options)];
 }
 
 function addNestSpanAttributes(span: Span): void {
