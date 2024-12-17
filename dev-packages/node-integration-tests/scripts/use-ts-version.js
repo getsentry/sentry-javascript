@@ -7,9 +7,9 @@ const cwd = join(__dirname, '../../..');
 
 const tsVersion = process.argv[2] || '3.8';
 
-console.log(`Installing typescript@${tsVersion}...`);
+console.log(`Installing typescript@${tsVersion}, and @types/node@16...`);
 
-execSync(`yarn add --dev --ignore-workspace-root-check typescript@${tsVersion}`, { stdio: 'inherit', cwd });
+execSync(`yarn add --dev --ignore-workspace-root-check typescript@${tsVersion} @types/node@^16`, { stdio: 'inherit', cwd });
 
 console.log('Removing unsupported tsconfig options...');
 
