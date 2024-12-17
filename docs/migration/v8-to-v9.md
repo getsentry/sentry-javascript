@@ -70,6 +70,10 @@ Sentry.init({
 
 - When `skipOpenTelemetrySetup: true` is configured, `httpIntegration({ spans: false })` will be configured by default. This means that you no longer have to specify this yourself in this scenario. With this change, no spans are emitted once `skipOpenTelemetrySetup: true` is configured, without any further configuration being needed.
 
+### `@sentry/react`
+
+The `componentStack` field in the `ErrorBoundary` component is now typed as `string | undefined` instead of `string | null | undefined`. This more closely matches the actual behavior of React, which always returns a `string` whenever a component stack is available. `undefined` is only returned if no error has been caught by the error boundary.
+
 ### Uncategorized (TODO)
 
 TODO
