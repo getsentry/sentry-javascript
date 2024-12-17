@@ -1,8 +1,9 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import * as core from '@sentry/core';
-import { isPatched } from '../../../src/integrations/tracing/nest/helpers';
-import { SentryNestEventInstrumentation } from '../../../src/integrations/tracing/nest/sentry-nest-event-instrumentation';
-import type { InjectableTarget } from '../../../src/integrations/tracing/nest/types';
-import type { OnEventTarget } from '../../../src/integrations/tracing/nest/types';
+import { isPatched } from '../../src/integrations/helpers';
+import { SentryNestEventInstrumentation } from '../../src/integrations/sentry-nest-event-instrumentation';
+import type { InjectableTarget, OnEventTarget } from '../../src/integrations/types';
 
 describe('Nest', () => {
   describe('isPatched', () => {
@@ -20,13 +21,13 @@ describe('Nest', () => {
 
   describe('EventInstrumentation', () => {
     let instrumentation: SentryNestEventInstrumentation;
-    let mockOnEvent: jest.Mock;
+    let mockOnEvent: vi.Mock;
     let mockTarget: OnEventTarget;
 
     beforeEach(() => {
       instrumentation = new SentryNestEventInstrumentation();
       // Mock OnEvent to return a function that applies the descriptor
-      mockOnEvent = jest.fn().mockImplementation(() => {
+      mockOnEvent = vi.fn().mockImplementation(() => {
         return (target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
           return descriptor;
         };
@@ -35,12 +36,12 @@ describe('Nest', () => {
         name: 'TestClass',
         prototype: {},
       } as OnEventTarget;
-      jest.spyOn(core, 'startSpan');
-      jest.spyOn(core, 'captureException');
+      vi.spyOn(core, 'startSpan');
+      vi.spyOn(core, 'captureException');
     });
 
     afterEach(() => {
-      jest.restoreAllMocks();
+      vi.restoreAllMocks();
     });
 
     describe('init()', () => {
@@ -53,10 +54,10 @@ describe('Nest', () => {
     describe('OnEvent decorator wrapping', () => {
       let wrappedOnEvent: any;
       let descriptor: PropertyDescriptor;
-      let originalHandler: jest.Mock;
+      let originalHandler: vi.Mock;
 
       beforeEach(() => {
-        originalHandler = jest.fn().mockResolvedValue('result');
+        originalHandler = vi.fn().mockResolvedValue('result');
         descriptor = {
           value: originalHandler,
         };

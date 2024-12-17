@@ -18,24 +18,21 @@ const _vercelAIIntegration = (() => {
         for (const span of event.spans) {
           const { data: attributes, description: name } = span;
 
-          if (!attributes || !name || span.origin !== 'auto.vercelai.otel') {
+          if (!name || span.origin !== 'auto.vercelai.otel') {
             continue;
           }
 
-          // attributes around token usage can only be set on span finish
-          span.data = span.data || {};
-
           if (attributes['ai.usage.completionTokens'] != undefined) {
-            span.data['ai.completion_tokens.used'] = attributes['ai.usage.completionTokens'];
+            attributes['ai.completion_tokens.used'] = attributes['ai.usage.completionTokens'];
           }
           if (attributes['ai.usage.promptTokens'] != undefined) {
-            span.data['ai.prompt_tokens.used'] = attributes['ai.usage.promptTokens'];
+            attributes['ai.prompt_tokens.used'] = attributes['ai.usage.promptTokens'];
           }
           if (
             typeof attributes['ai.usage.completionTokens'] == 'number' &&
             typeof attributes['ai.usage.promptTokens'] == 'number'
           ) {
-            span.data['ai.total_tokens.used'] =
+            attributes['ai.total_tokens.used'] =
               attributes['ai.usage.completionTokens'] + attributes['ai.usage.promptTokens'];
           }
         }
@@ -51,7 +48,7 @@ const _vercelAIIntegration = (() => {
 
         const { data: attributes, description: name } = spanToJSON(span);
 
-        if (!attributes || !name) {
+        if (!name) {
           return;
         }
 

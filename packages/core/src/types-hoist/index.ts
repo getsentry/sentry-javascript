@@ -97,7 +97,6 @@ export type {
   SanitizedRequestData,
 } from './request';
 export type { Runtime } from './runtime';
-export type { CaptureContext, Scope, ScopeContext, ScopeData } from './scope';
 export type { SdkInfo } from './sdkinfo';
 export type { SdkMetadata } from './sdkmetadata';
 export type {

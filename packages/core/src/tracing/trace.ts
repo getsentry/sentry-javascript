@@ -2,12 +2,13 @@
 
 import type { AsyncContextStrategy } from '../asyncContext/types';
 import { getMainCarrier } from '../carrier';
-import type { ClientOptions, Scope, SentrySpanArguments, Span, SpanTimeInput, StartSpanOptions } from '../types-hoist';
+import type { ClientOptions, SentrySpanArguments, Span, SpanTimeInput, StartSpanOptions } from '../types-hoist';
 
 import { getClient, getCurrentScope, getIsolationScope, withScope } from '../currentScopes';
 
 import { getAsyncContextStrategy } from '../asyncContext';
 import { DEBUG_BUILD } from '../debug-build';
+import type { Scope } from '../scope';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
 import { logger } from '../utils-hoist/logger';
 import { generateTraceId } from '../utils-hoist/propagationContext';
