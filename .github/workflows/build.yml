@@ -741,9 +741,6 @@ jobs:
         working-directory: dev-packages/node-integration-tests
 
       - name: Run integration tests
-        env:
-          NODE_VERSION: ${{ matrix.node }}
-          TS_VERSION: ${{ matrix.typescript }}
         working-directory: dev-packages/node-integration-tests
         run: yarn test
 
