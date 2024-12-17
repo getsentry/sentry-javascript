@@ -74,8 +74,6 @@ export {
   linkedErrorsIntegration,
   requestDataIntegration,
   extraErrorDataIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  debugIntegration,
   dedupeIntegration,
   rewriteFramesIntegration,
   captureConsoleIntegration,

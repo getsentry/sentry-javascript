@@ -114,13 +114,9 @@ export {
   captureMessage,
   captureFeedback,
   captureConsoleIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  debugIntegration,
   dedupeIntegration,
   extraErrorDataIntegration,
   rewriteFramesIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  sessionTimingIntegration,
   // eslint-disable-next-line deprecation/deprecation
   metricsDefault as metrics,
   startSession,
