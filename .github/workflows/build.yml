@@ -1253,7 +1253,7 @@ jobs:
         include:
             # x64 glibc
           - os: ubuntu-20.04
-            node: 18
+            node: 18.19.1
             binary: linux-x64-glibc-108
           - os: ubuntu-20.04
             node: 20
@@ -1265,7 +1265,7 @@ jobs:
             # x64 musl
           - os: ubuntu-20.04
             container: node:18-alpine3.17
-            node: 18
+            node: 18.19.1
             binary: linux-x64-musl-108
           - os: ubuntu-20.04
             container: node:20-alpine3.17
@@ -1279,7 +1279,7 @@ jobs:
             # arm64 glibc
           - os: ubuntu-20.04
             arch: arm64
-            node: 18
+            node: 18.19.1
             binary: linux-arm64-glibc-108
           - os: ubuntu-20.04
             arch: arm64
@@ -1294,7 +1294,7 @@ jobs:
           - os: ubuntu-20.04
             arch: arm64
             container: node:18-alpine3.17
-            node: 18
+            node: 18.19.1
             binary: linux-arm64-musl-108
           - os: ubuntu-20.04
             arch: arm64
@@ -1309,7 +1309,7 @@ jobs:
 
             # macos x64
           - os: macos-13
-            node: 18
+            node: 18.19.1
             arch: x64
             binary: darwin-x64-108
           - os: macos-13
@@ -1324,7 +1324,7 @@ jobs:
             # macos arm64
           - os: macos-13
             arch: arm64
-            node: 18
+            node: 18.19.1
             target_platform: darwin
             binary: darwin-arm64-108
           - os: macos-13
@@ -1340,7 +1340,7 @@ jobs:
 
             # windows x64
           - os: windows-2022
-            node: 18
+            node: 18.19.1
             arch: x64
             binary: win32-x64-108
           - os: windows-2022
