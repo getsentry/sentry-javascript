@@ -27,6 +27,6 @@
   "deno.enablePaths": ["packages/deno/test"],
   "editor.defaultFormatter": "biomejs.biome",
   "[typescript]": {
-    "editor.defaultFormatter": "biomejs.biome"
+    "editor.defaultFormatter": "vscode.typescript-language-features"
   }
 }

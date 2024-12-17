@@ -134,10 +134,7 @@ export type { StackFrame } from './stackframe';
 export type { Stacktrace, StackParser, StackLineParser, StackLineParserFn } from './stacktrace';
 export type { PropagationContext, TracePropagationTargets, SerializedTraceData } from './tracing';
 export type { StartSpanOptions } from './startSpanOptions';
-export type {
-  TraceparentData,
-  TransactionSource,
-} from './transaction';
+export type { TraceparentData, TransactionSource } from './transaction';
 export type { CustomSamplingContext, SamplingContext } from './samplingcontext';
 export type {
   DurationUnit,
@@ -157,8 +154,14 @@ export type {
   TransportRequestExecutor,
 } from './transport';
 export type { User } from './user';
-export type { WebFetchHeaders, WebFetchRequest, WebFetchResponse, WebReadableStream,
-  WebReadableStreamDefaultReader, WebReadableStreamReadResult } from './whatwg';
+export type {
+  WebFetchHeaders,
+  WebFetchRequest,
+  WebFetchResponse,
+  WebReadableStream,
+  WebReadableStreamDefaultReader,
+  WebReadableStreamReadResult,
+} from './whatwg';
 export type { WrappedFunction } from './wrappedfunction';
 export type {
   HandlerDataFetch,
@@ -175,13 +178,7 @@ export type {
 
 export type { BrowserClientReplayOptions, BrowserClientProfilingOptions } from './browseroptions';
 export type { CheckIn, MonitorConfig, FinishedCheckIn, InProgressCheckIn, SerializedCheckIn } from './checkin';
-export type {
-  MetricsAggregator,
-  MetricBucketItem,
-  MetricInstance,
-  MetricData,
-  Metrics,
-} from './metrics';
+export type { MetricsAggregator, MetricBucketItem, MetricInstance, MetricData, Metrics } from './metrics';
 export type { ParameterizedString } from './parameterize';
 export type { ContinuousProfiler, ProfilingIntegration, Profiler } from './profiling';
 export type { ViewHierarchyData, ViewHierarchyWindow } from './view-hierarchy';
