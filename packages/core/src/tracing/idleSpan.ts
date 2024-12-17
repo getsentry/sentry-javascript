@@ -1,5 +1,5 @@
 import { getClient, getCurrentScope } from '../currentScopes';
-import type { Span, SpanAttributes, StartSpanOptions } from '../types-hoist';
+import type { Span, StartSpanOptions } from '../types-hoist';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON } from '../semanticAttributes';
@@ -255,7 +255,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
       return;
     }
 
-    const attributes: SpanAttributes = spanJSON.data || {};
+    const attributes = spanJSON.data;
     if (!attributes[SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON]) {
       span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON, _finishReason);
     }
