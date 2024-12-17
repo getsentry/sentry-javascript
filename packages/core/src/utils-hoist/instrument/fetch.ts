@@ -118,7 +118,7 @@ function instrumentFetch(onFetchResolved?: (response: Response) => void, skipNat
   });
 }
 
-async function resloveReader(reader: WebReadableStreamDefaultReader, onFinishedResolving: () => void): Promise<void> {
+async function resolveReader(reader: WebReadableStreamDefaultReader, onFinishedResolving: () => void): Promise<void> {
   let running = true;
   while (running) {
     try {
@@ -141,7 +141,7 @@ async function resloveReader(reader: WebReadableStreamDefaultReader, onFinishedR
  *
  * This function attaches a custom `cancel` behavior to both the parent `Response` body and its `getReader()` method.
  * When the parent stream or its reader is canceled, it triggers the cancellation of the child stream as well.
- * The function also monitors the resolution of the child's body stream using `resloveReader` and performs cleanup.
+ * The function also monitors the resolution of the child's body stream using `resolveReader` and performs cleanup.
  *
  * @param {Response} res - The `Response` object whose body stream will be resolved.
  * @param {Response} parentRes - The parent `Response` object whose body stream is linked to the cancellation of `res`.
@@ -204,7 +204,7 @@ export function resolveResponse(
     return reader;
   }) as any;
 
-  resloveReader(responseReader, onFinishedResolving).finally(() => {
+  resolveReader(responseReader, onFinishedResolving).finally(() => {
     try {
       responseReader.releaseLock();
       body.cancel().catch(() => {
