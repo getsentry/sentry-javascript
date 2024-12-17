@@ -142,6 +142,7 @@ export {
   spanToTraceHeader,
   spanToBaggageHeader,
   trpcMiddleware,
+  updateSpanName,
   zodErrorsIntegration,
   profiler,
 } from '@sentry/core';

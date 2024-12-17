@@ -3,7 +3,12 @@ import { getMainCarrier } from '../carrier';
 import { getCurrentScope } from '../currentScopes';
 import { getMetricSummaryJsonForSpan, updateMetricSummaryOnSpan } from '../metrics/metric-summary';
 import type { MetricType } from '../metrics/types';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+} from '../semanticAttributes';
 import type { SentrySpan } from '../tracing/sentrySpan';
 import { SPAN_STATUS_OK, SPAN_STATUS_UNSET } from '../tracing/spanstatus';
 import type {
@@ -309,4 +314,28 @@ export function showSpanDropWarning(): void {
     });
     hasShownSpanDropWarning = true;
   }
+}
+
+/**
+ * Updates the name of the given span and ensures that the span name is not
+ * overwritten by the Sentry SDK.
+ *
+ * Use this function instead of `span.updateName()` if you want to make sure that
+ * your name is kept. For some spans, for example root `http.server` spans the
+ * Sentry SDK would otherwise overwrite the span name with a high-quality name
+ * it infers when the span ends.
+ *
+ * Use this function in server code or when your span is started on the server
+ * and on the client (browser). If you only update a span name on the client,
+ * you can also use `span.updateName()` the SDK does not overwrite the name.
+ *
+ * @param span - The span to update the name of.
+ * @param name - The name to set on the span.
+ */
+export function updateSpanName(span: Span, name: string): void {
+  span.updateName(name);
+  span.setAttributes({
+    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+    [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: name,
+  });
 }
