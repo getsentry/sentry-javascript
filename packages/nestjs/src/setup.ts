@@ -35,10 +35,6 @@ interface ExpressRequest {
 
 /**
  * Interceptor to add Sentry tracing capabilities to Nest.js applications.
- *
- * @deprecated `SentryTracingInterceptor` is deprecated.
- * If you are using `@sentry/nestjs` you can safely remove any references to the `SentryTracingInterceptor`.
- * If you are using another package migrate to `@sentry/nestjs` and remove the `SentryTracingInterceptor` afterwards.
  */
 class SentryTracingInterceptor implements NestInterceptor {
   // used to exclude this class from being auto-instrumented
@@ -73,10 +69,7 @@ class SentryTracingInterceptor implements NestInterceptor {
     return next.handle();
   }
 }
-// eslint-disable-next-line deprecation/deprecation
 Injectable()(SentryTracingInterceptor);
-// eslint-disable-next-line deprecation/deprecation
-export { SentryTracingInterceptor };
 
 /**
  * Global filter to handle exceptions and report them to Sentry.
@@ -123,50 +116,6 @@ Catch()(SentryGlobalFilter);
 export { SentryGlobalFilter };
 
 /**
- * Global filter to handle exceptions in NestJS + GraphQL applications and report them to Sentry.
- *
- * @deprecated `SentryGlobalGraphQLFilter` is deprecated. Use the `SentryGlobalFilter` instead. The `SentryGlobalFilter` is a drop-in replacement.
- */
-class SentryGlobalGraphQLFilter {
-  private static readonly _logger = new Logger('ExceptionsHandler');
-  public readonly __SENTRY_INTERNAL__: boolean;
-
-  public constructor() {
-    this.__SENTRY_INTERNAL__ = true;
-  }
-
-  /**
-   * Catches exceptions and reports them to Sentry unless they are HttpExceptions.
-   */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  public catch(exception: unknown, host: ArgumentsHost): void {
-    // neither report nor log HttpExceptions
-    if (exception instanceof HttpException) {
-      throw exception;
-    }
-    if (exception instanceof Error) {
-      // eslint-disable-next-line deprecation/deprecation
-      SentryGlobalGraphQLFilter._logger.error(exception.message, exception.stack);
-    }
-    captureException(exception);
-    throw exception;
-  }
-}
-// eslint-disable-next-line deprecation/deprecation
-Catch()(SentryGlobalGraphQLFilter);
-// eslint-disable-next-line deprecation/deprecation
-export { SentryGlobalGraphQLFilter };
-
-/**
- * Global filter to handle exceptions and report them to Sentry.
- *
- * This filter is a generic filter that can handle both HTTP and GraphQL exceptions.
- *
- * @deprecated `SentryGlobalGenericFilter` is deprecated. Use the `SentryGlobalFilter` instead. The `SentryGlobalFilter` is a drop-in replacement.
- */
-export const SentryGlobalGenericFilter = SentryGlobalFilter;
-
-/**
  * Set up a root module that can be injected in nest applications.
  */
 class SentryModule {
@@ -179,7 +128,6 @@ class SentryModule {
       providers: [
         {
           provide: APP_INTERCEPTOR,
-          // eslint-disable-next-line deprecation/deprecation
           useClass: SentryTracingInterceptor,
         },
       ],
@@ -191,7 +139,6 @@ Module({
   providers: [
     {
       provide: APP_INTERCEPTOR,
-      // eslint-disable-next-line deprecation/deprecation
       useClass: SentryTracingInterceptor,
     },
   ],
