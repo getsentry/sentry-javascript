@@ -35,10 +35,6 @@ interface ExpressRequest {
 
 /**
  * Interceptor to add Sentry tracing capabilities to Nest.js applications.
- *
- * @deprecated `SentryTracingInterceptor` is deprecated.
- * If you are using `@sentry/nestjs` you can safely remove any references to the `SentryTracingInterceptor`.
- * If you are using another package migrate to `@sentry/nestjs` and remove the `SentryTracingInterceptor` afterwards.
  */
 class SentryTracingInterceptor implements NestInterceptor {
   // used to exclude this class from being auto-instrumented
@@ -73,10 +69,7 @@ class SentryTracingInterceptor implements NestInterceptor {
     return next.handle();
   }
 }
-// eslint-disable-next-line deprecation/deprecation
 Injectable()(SentryTracingInterceptor);
-// eslint-disable-next-line deprecation/deprecation
-export { SentryTracingInterceptor };
 
 /**
  * Global filter to handle exceptions and report them to Sentry.
@@ -179,7 +172,6 @@ class SentryModule {
       providers: [
         {
           provide: APP_INTERCEPTOR,
-          // eslint-disable-next-line deprecation/deprecation
           useClass: SentryTracingInterceptor,
         },
       ],
@@ -191,7 +183,6 @@ Module({
   providers: [
     {
       provide: APP_INTERCEPTOR,
-      // eslint-disable-next-line deprecation/deprecation
       useClass: SentryTracingInterceptor,
     },
   ],
