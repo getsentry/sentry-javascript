@@ -116,41 +116,6 @@ Catch()(SentryGlobalFilter);
 export { SentryGlobalFilter };
 
 /**
- * Global filter to handle exceptions in NestJS + GraphQL applications and report them to Sentry.
- *
- * @deprecated `SentryGlobalGraphQLFilter` is deprecated. Use the `SentryGlobalFilter` instead. The `SentryGlobalFilter` is a drop-in replacement.
- */
-class SentryGlobalGraphQLFilter {
-  private static readonly _logger = new Logger('ExceptionsHandler');
-  public readonly __SENTRY_INTERNAL__: boolean;
-
-  public constructor() {
-    this.__SENTRY_INTERNAL__ = true;
-  }
-
-  /**
-   * Catches exceptions and reports them to Sentry unless they are HttpExceptions.
-   */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  public catch(exception: unknown, host: ArgumentsHost): void {
-    // neither report nor log HttpExceptions
-    if (exception instanceof HttpException) {
-      throw exception;
-    }
-    if (exception instanceof Error) {
-      // eslint-disable-next-line deprecation/deprecation
-      SentryGlobalGraphQLFilter._logger.error(exception.message, exception.stack);
-    }
-    captureException(exception);
-    throw exception;
-  }
-}
-// eslint-disable-next-line deprecation/deprecation
-Catch()(SentryGlobalGraphQLFilter);
-// eslint-disable-next-line deprecation/deprecation
-export { SentryGlobalGraphQLFilter };
-
-/**
  * Global filter to handle exceptions and report them to Sentry.
  *
  * This filter is a generic filter that can handle both HTTP and GraphQL exceptions.
