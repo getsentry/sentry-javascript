@@ -106,6 +106,12 @@ It will be removed in a future major version.
 
 - The `getNumberOfUrlSegments` method has been removed. There are no replacements.
 
+### `@sentry/nestjs`
+
+- Removed `SentryService`.
+  If you are using `@sentry/nestjs` you can safely remove any references to the `SentryService`.
+  If you are using another package migrate to `@sentry/nestjs` and remove the `SentryService` afterwards.
+
 ## 5. Build Changes
 
 Previously the CJS versions of the SDK code (wrongfully) contained compatibility statements for default exports in ESM:
