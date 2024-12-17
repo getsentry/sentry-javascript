@@ -92,7 +92,10 @@ It will be removed in a future major version.
 
 ## 4. Removal of Deprecated APIs (TODO)
 
-TODO
+### `@sentry/react`
+
+- The `wrapUseRoutes` method has been removed. Use `wrapUseRoutesV6` or `wrapUseRoutesV7` instead depending on what version of react router you are using.
+- The `wrapCreateBrowserRouter` method has been removed. Use `wrapCreateBrowserRouterV6` or `wrapCreateBrowserRouterV7` depending on what version of react router you are using.
 
 ## 5. Build Changes
 
