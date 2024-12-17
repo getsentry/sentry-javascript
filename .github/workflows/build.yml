@@ -1237,7 +1237,7 @@ jobs:
           echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
 
   job_compile_bindings_profiling_node:
-    name: Compile profiling-node (v${{ matrix.node }}) ${{ matrix.target_platform || matrix.os }}, ${{ matrix.node || matrix.container }}, ${{ matrix.arch || matrix.container }}, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }}
+    name: Compile profiling-node (v${{ matrix.node }}) ${{ matrix.target_platform || matrix.os }}, ${{ matrix.arch || matrix.container }}, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }}
     needs: [job_get_metadata, job_build]
     # Compiling bindings can be very slow (especially on windows), so only run precompile
     # Skip precompile unless we are on a release branch as precompile slows down CI times.
@@ -1365,8 +1365,13 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
 
+      # Note: On alpine images, this does nothing
+      # The node version will be the one that is installed in the image
+      # If you want to change the node version, you need to change the image
+      # For non-alpine imgages, this will install the correct version of node
       - name: Setup Node
         uses: actions/setup-node@v4
+        if: contains(matrix.container, 'alpine') == false
         with:
           node-version: ${{ matrix.node }}
 
