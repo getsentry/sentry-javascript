@@ -1245,7 +1245,11 @@ jobs:
       (needs.job_get_metadata.outputs.changed_profiling_node == 'true') ||
       (needs.job_get_metadata.outputs.is_release == 'true')
     runs-on: ${{ matrix.os }}
-    container: ${{ matrix.container }}
+    container:
+      image: ${{ matrix.container }}
+      env:
+        NODE_VERSION: ${{ matrix.node }}
+
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -1253,7 +1257,7 @@ jobs:
         include:
             # x64 glibc
           - os: ubuntu-20.04
-            node: 18
+            node: 18.19.1
             binary: linux-x64-glibc-108
           - os: ubuntu-20.04
             node: 20
@@ -1265,7 +1269,7 @@ jobs:
             # x64 musl
           - os: ubuntu-20.04
             container: node:18-alpine3.17
-            node: 18
+            node: 18.19.1
             binary: linux-x64-musl-108
           - os: ubuntu-20.04
             container: node:20-alpine3.17
@@ -1279,7 +1283,7 @@ jobs:
             # arm64 glibc
           - os: ubuntu-20.04
             arch: arm64
-            node: 18
+            node: 18.19.1
             binary: linux-arm64-glibc-108
           - os: ubuntu-20.04
             arch: arm64
@@ -1294,7 +1298,7 @@ jobs:
           - os: ubuntu-20.04
             arch: arm64
             container: node:18-alpine3.17
-            node: 18
+            node: 18.19.1
             binary: linux-arm64-musl-108
           - os: ubuntu-20.04
             arch: arm64
@@ -1309,7 +1313,7 @@ jobs:
 
             # macos x64
           - os: macos-13
-            node: 18
+            node: 18.19.1
             arch: x64
             binary: darwin-x64-108
           - os: macos-13
@@ -1324,7 +1328,7 @@ jobs:
             # macos arm64
           - os: macos-13
             arch: arm64
-            node: 18
+            node: 18.19.1
             target_platform: darwin
             binary: darwin-arm64-108
           - os: macos-13
@@ -1340,7 +1344,7 @@ jobs:
 
             # windows x64
           - os: windows-2022
-            node: 18
+            node: 18.19.1
             arch: x64
             binary: win32-x64-108
           - os: windows-2022
@@ -1366,16 +1370,8 @@ jobs:
 
       - name: Setup Node
         uses: actions/setup-node@v4
-        if: matrix.node != '18'
         with:
           node-version: ${{ matrix.node }}
-
-      # We need to make sure to use a proper version of v18 that satisifes our minimum version
-      - name: Setup Node (v18)
-        uses: actions/setup-node@v4
-        if: matrix.node != '18'
-        with:
-          node-version-file: 'package.json'
 
       - name: Restore dependency cache
         uses: actions/cache/restore@v4
