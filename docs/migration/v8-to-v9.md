@@ -111,18 +111,6 @@ It will be removed in a future major version.
 - Removed `SentryService`.
   If you are using `@sentry/nestjs` you can safely remove any references to the `SentryService`.
   If you are using another package migrate to `@sentry/nestjs` and remove the `SentryService` afterwards.
-
-### `@sentry/nestjs`
-
-- Removed `SentryService`.
-  If you are using `@sentry/nestjs` you can safely remove any references to the `SentryService`.
-  If you are using another package migrate to `@sentry/nestjs` and remove the `SentryService` afterwards.
-
-### `@sentry/nestjs`
-
-- Removed `SentryService`.
-  If you are using `@sentry/nestjs` you can safely remove any references to the `SentryService`.
-  If you are using another package migrate to `@sentry/nestjs` and remove the `SentryService` afterwards.
 - Removed `SentryTracingInterceptor`.
   If you are using `@sentry/nestjs` you can safely remove any references to the `SentryTracingInterceptor`.
   If you are using another package migrate to `@sentry/nestjs` and remove the `SentryTracingInterceptor` afterwards.
