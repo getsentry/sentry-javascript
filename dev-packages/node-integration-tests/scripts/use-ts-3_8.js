@@ -5,7 +5,7 @@ const { writeFileSync } = require('fs');
 
 const cwd = join(__dirname, '../../..');
 
-const tsVersion = process.argv[2] || '3.8';
+const tsVersion = '3.8';
 
 console.log(`Installing typescript@${tsVersion}, and @types/node@14...`);
 

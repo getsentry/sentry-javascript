@@ -736,8 +736,8 @@ jobs:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Overwrite typescript version
-        if: matrix.typescript
-        run: node ./scripts/use-ts-version.js ${{ matrix.typescript }}
+        if: matrix.typescript == '3.8'
+        run: node ./scripts/use-ts-3_8.js
         working-directory: dev-packages/node-integration-tests
 
       - name: Run integration tests
