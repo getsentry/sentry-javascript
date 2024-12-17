@@ -106,6 +106,10 @@ It will be removed in a future major version.
 
 - The `getNumberOfUrlSegments` method has been removed. There are no replacements.
 
+### `@sentry/nestjs`
+
+- The `WithSentry` decorator has been removed. Use `SentryExceptionCaptured` instead.
+
 ## 5. Build Changes
 
 Previously the CJS versions of the SDK code (wrongfully) contained compatibility statements for default exports in ESM:
