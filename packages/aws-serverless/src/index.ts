@@ -128,8 +128,6 @@ export {
   dedupeIntegration,
   extraErrorDataIntegration,
   rewriteFramesIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  sessionTimingIntegration,
 } from '@sentry/core';
 
 export { awsIntegration } from './integration/aws';

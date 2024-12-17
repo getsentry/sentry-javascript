@@ -34,7 +34,6 @@ const IMPORTED_INTEGRATION_CDN_BUNDLE_PATHS: Record<string, string> = {
   contextLinesIntegration: 'contextlines',
   extraErrorDataIntegration: 'extraerrordata',
   reportingObserverIntegration: 'reportingobserver',
-  sessionTimingIntegration: 'sessiontiming',
   feedbackIntegration: 'feedback',
   moduleMetadataIntegration: 'modulemetadata',
 };

@@ -18,7 +18,6 @@ const LazyLoadableIntegrations = {
   httpClientIntegration: 'httpclient',
   reportingObserverIntegration: 'reportingobserver',
   rewriteFramesIntegration: 'rewriteframes',
-  sessionTimingIntegration: 'sessiontiming',
   browserProfilingIntegration: 'browserprofiling',
   moduleMetadataIntegration: 'modulemetadata',
 } as const;

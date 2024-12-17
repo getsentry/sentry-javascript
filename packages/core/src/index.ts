@@ -99,8 +99,6 @@ export { captureConsoleIntegration } from './integrations/captureconsole';
 export { dedupeIntegration } from './integrations/dedupe';
 export { extraErrorDataIntegration } from './integrations/extraerrordata';
 export { rewriteFramesIntegration } from './integrations/rewriteframes';
-// eslint-disable-next-line deprecation/deprecation
-export { sessionTimingIntegration } from './integrations/sessiontiming';
 export { zodErrorsIntegration } from './integrations/zoderrors';
 export { thirdPartyErrorFilterIntegration } from './integrations/third-party-errors-filter';
 // eslint-disable-next-line deprecation/deprecation

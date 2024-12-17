@@ -118,8 +118,6 @@ export {
   extraErrorDataIntegration,
   rewriteFramesIntegration,
   // eslint-disable-next-line deprecation/deprecation
-  sessionTimingIntegration,
-  // eslint-disable-next-line deprecation/deprecation
   metricsDefault as metrics,
   startSession,
   captureSession,

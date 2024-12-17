@@ -8,8 +8,6 @@ export {
   captureConsoleIntegration,
   extraErrorDataIntegration,
   rewriteFramesIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  sessionTimingIntegration,
   captureFeedback,
 } from '@sentry/core';
 
