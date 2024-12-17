@@ -74,7 +74,7 @@ decorator will report all unexpected errors that are received by your global err
 
 ```typescript
 import { Catch, ExceptionFilter } from '@nestjs/common';
-import { WithSentry } from '@sentry/nestjs';
+import { SentryExceptionCaptured } from '@sentry/nestjs';
 
 @Catch()
 export class YourCatchAllExceptionFilter implements ExceptionFilter {
