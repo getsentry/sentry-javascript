@@ -37,8 +37,6 @@ export {
   createGetModuleFromFilename,
   createTransport,
   cron,
-  // eslint-disable-next-line deprecation/deprecation
-  debugIntegration,
   dedupeIntegration,
   DEFAULT_USER_INCLUDES,
   defaultStackParser,

@@ -30,7 +30,6 @@ const useLoader = bundleKey.startsWith('loader');
 const IMPORTED_INTEGRATION_CDN_BUNDLE_PATHS: Record<string, string> = {
   httpClientIntegration: 'httpclient',
   captureConsoleIntegration: 'captureconsole',
-  debugIntegration: 'debug',
   rewriteFramesIntegration: 'rewriteframes',
   contextLinesIntegration: 'contextlines',
   extraErrorDataIntegration: 'extraerrordata',

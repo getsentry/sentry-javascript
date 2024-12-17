@@ -34,8 +34,6 @@ export {
   createTransport,
   cron,
   dataloaderIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  debugIntegration,
   dedupeIntegration,
   DEFAULT_USER_INCLUDES,
   defaultStackParser,

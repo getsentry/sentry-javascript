@@ -6,8 +6,6 @@ export { contextLinesIntegration } from './integrations/contextlines';
 
 export {
   captureConsoleIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  debugIntegration,
   extraErrorDataIntegration,
   rewriteFramesIntegration,
   // eslint-disable-next-line deprecation/deprecation
