@@ -34,7 +34,7 @@ test.describe('client-side errors', async () => {
     });
 
     await page.goto(`/client-error`);
-    await page.locator('#errorBtn3').click();
+    await page.locator('#error-in-error-boundary').click();
 
     const error = await errorPromise;
 

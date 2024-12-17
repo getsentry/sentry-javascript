@@ -11,6 +11,6 @@ const catchErr = () => {
   <ErrorButton id="errorBtn2" error-text="Another Error thrown from Nuxt-4 E2E test app"/>
 
   <NuxtErrorBoundary @error="catchErr">
-    <ErrorButton id="errorBtn3" error-text="Error thrown in Error Boundary"/>
+    <ErrorButton id="error-in-error-boundary" error-text="Error thrown in Error Boundary"/>
   </NuxtErrorBoundary>
 </template>
