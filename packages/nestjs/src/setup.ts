@@ -116,15 +116,6 @@ Catch()(SentryGlobalFilter);
 export { SentryGlobalFilter };
 
 /**
- * Global filter to handle exceptions and report them to Sentry.
- *
- * This filter is a generic filter that can handle both HTTP and GraphQL exceptions.
- *
- * @deprecated `SentryGlobalGenericFilter` is deprecated. Use the `SentryGlobalFilter` instead. The `SentryGlobalFilter` is a drop-in replacement.
- */
-export const SentryGlobalGenericFilter = SentryGlobalFilter;
-
-/**
  * Set up a root module that can be injected in nest applications.
  */
 class SentryModule {
