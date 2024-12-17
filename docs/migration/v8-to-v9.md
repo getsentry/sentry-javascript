@@ -97,6 +97,10 @@ It will be removed in a future major version.
 - The `wrapUseRoutes` method has been removed. Use `wrapUseRoutesV6` or `wrapUseRoutesV7` instead depending on what version of react router you are using.
 - The `wrapCreateBrowserRouter` method has been removed. Use `wrapCreateBrowserRouterV6` or `wrapCreateBrowserRouterV7` depending on what version of react router you are using.
 
+### `@sentry/core`
+
+- The `getNumberOfUrlSegments` method has been removed. There are no replacements.
+
 ## 5. Build Changes
 
 Previously the CJS versions of the SDK code (wrongfully) contained compatibility statements for default exports in ESM:
