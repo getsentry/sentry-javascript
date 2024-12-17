@@ -758,10 +758,6 @@ jobs:
       matrix:
         node: [18, 20, 22]
         remix: [1, 2]
-        # Remix v2 only supports Node 18+, so run 16 tests separately
-        include:
-          - node: 16
-            remix: 1
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -1257,9 +1253,6 @@ jobs:
         include:
             # x64 glibc
           - os: ubuntu-20.04
-            node: 16
-            binary: linux-x64-glibc-93
-          - os: ubuntu-20.04
             node: 18
             binary: linux-x64-glibc-108
           - os: ubuntu-20.04
@@ -1270,10 +1263,6 @@ jobs:
             binary: linux-x64-glibc-127
 
             # x64 musl
-          - os: ubuntu-20.04
-            container: node:16-alpine3.16
-            binary: linux-x64-musl-93
-            node: 16
           - os: ubuntu-20.04
             container: node:18-alpine3.17
             node: 18
@@ -1290,10 +1279,6 @@ jobs:
             # arm64 glibc
           - os: ubuntu-20.04
             arch: arm64
-            node: 16
-            binary: linux-arm64-glibc-93
-          - os: ubuntu-20.04
-            arch: arm64
             node: 18
             binary: linux-arm64-glibc-108
           - os: ubuntu-20.04
@@ -1306,11 +1291,6 @@ jobs:
             binary: linux-arm64-glibc-127
 
             # arm64 musl
-          - os: ubuntu-20.04
-            container: node:16-alpine3.16
-            arch: arm64
-            node: 16
-            binary: linux-arm64-musl-93
           - os: ubuntu-20.04
             arch: arm64
             container: node:18-alpine3.17
@@ -1329,10 +1309,6 @@ jobs:
 
             # macos x64
           - os: macos-13
-            node: 16
-            arch: x64
-            binary: darwin-x64-93
-          - os: macos-13
             node: 18
             arch: x64
             binary: darwin-x64-108
@@ -1346,11 +1322,6 @@ jobs:
             binary: darwin-x64-127
 
             # macos arm64
-          - os: macos-13
-            arch: arm64
-            node: 16
-            target_platform: darwin
-            binary: darwin-arm64-93
           - os: macos-13
             arch: arm64
             node: 18
@@ -1368,10 +1339,6 @@ jobs:
             binary: darwin-arm64-127
 
             # windows x64
-          - os: windows-2022
-            node: 16
-            arch: x64
-            binary: win32-x64-93
           - os: windows-2022
             node: 18
             arch: x64
