@@ -58,6 +58,7 @@ describe('GCPFunction', () => {
       headers = { ...headers, ...trace_headers };
     }
     return new Promise((resolve, _reject) => {
+      // eslint-disable-next-line deprecation/deprecation
       const d = domain.create();
       const req = {
         method: 'POST',
