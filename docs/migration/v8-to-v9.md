@@ -175,6 +175,10 @@ The following outlines deprecations that were introduced in version 8 of the SDK
   To enable session tracking, it is recommended to unset `autoSessionTracking` and ensure that either, in browser environments the `browserSessionIntegration` is added, or in server environments the `httpIntegration` is added.
   To disable session tracking, it is recommended unset `autoSessionTracking` and to remove the `browserSessionIntegration` in browser environments, or in server environments configure the `httpIntegration` with the `trackIncomingRequestsAsSessions` option set to `false`.
 
+- **The metrics API has been removed from the SDK.**
+
+The Sentry metrics beta has ended and the metrics API has been removed from the SDK. Learn more in [help center docs](https://sentry.zendesk.com/hc/en-us/articles/26369339769883-Metrics-Beta-Ended-on-October-7th).
+
 ## `@sentry/utils`
 
 - **The `@sentry/utils` package has been deprecated. Import everything from `@sentry/core` instead.**

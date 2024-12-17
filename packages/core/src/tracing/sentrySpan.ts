@@ -1,7 +1,6 @@
 import { getClient, getCurrentScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { createSpanEnvelope } from '../envelope';
-import { getMetricSummaryJsonForSpan } from '../metrics/metric-summary';
 import {
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
   SEMANTIC_ATTRIBUTE_PROFILE_ID,
@@ -233,7 +232,6 @@ export class SentrySpan implements Span {
       timestamp: this._endTime,
       trace_id: this._traceId,
       origin: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined,
-      _metrics_summary: getMetricSummaryJsonForSpan(this),
       profile_id: this._attributes[SEMANTIC_ATTRIBUTE_PROFILE_ID] as string | undefined,
       exclusive_time: this._attributes[SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME] as number | undefined,
       measurements: timedEventsToMeasurements(this._events),
@@ -385,7 +383,6 @@ export class SentrySpan implements Span {
           dynamicSamplingContext: getDynamicSamplingContextFromSpan(this),
         }),
       },
-      _metrics_summary: getMetricSummaryJsonForSpan(this),
       ...(source && {
         transaction_info: {
           source,
