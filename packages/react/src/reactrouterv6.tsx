@@ -28,12 +28,6 @@ export function wrapUseRoutesV6(origUseRoutes: UseRoutes): UseRoutes {
 }
 
 /**
- * Alias for backwards compatibility
- * @deprecated Use `wrapUseRoutesV6` or `wrapUseRoutesV7` instead.
- */
-export const wrapUseRoutes = wrapUseRoutesV6;
-
-/**
  * A wrapper function that adds Sentry routing instrumentation to a React Router v6 createBrowserRouter function.
  * This is used to automatically capture route changes as transactions when using the createBrowserRouter API.
  */
@@ -43,12 +37,6 @@ export function wrapCreateBrowserRouterV6<
 >(createRouterFunction: CreateRouterFunction<TState, TRouter>): CreateRouterFunction<TState, TRouter> {
   return createV6CompatibleWrapCreateBrowserRouter(createRouterFunction, '6');
 }
-
-/**
- * Alias for backwards compatibility
- * @deprecated Use `wrapCreateBrowserRouterV6` or `wrapCreateBrowserRouterV7` instead.
- */
-export const wrapCreateBrowserRouter = wrapCreateBrowserRouterV6;
 
 /**
  * A higher-order component that adds Sentry routing instrumentation to a React Router v6 Route component.

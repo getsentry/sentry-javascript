@@ -92,7 +92,19 @@ It will be removed in a future major version.
 
 ## 4. Removal of Deprecated APIs (TODO)
 
-TODO
+### `@sentry/core` / All SDKs
+
+- The `debugIntegration` has been removed. To log outgoing events, use [Hook Options](https://docs.sentry.io/platforms/javascript/configuration/options/#hooks) (`beforeSend`, `beforeSendTransaction`, ...).
+- The `sessionTimingIntegration` has been removed. To capture session durations alongside events, use [Context](https://docs.sentry.io/platforms/javascript/enriching-events/context/) (`Sentry.setContext()`).
+
+### `@sentry/react`
+
+- The `wrapUseRoutes` method has been removed. Use `wrapUseRoutesV6` or `wrapUseRoutesV7` instead depending on what version of react router you are using.
+- The `wrapCreateBrowserRouter` method has been removed. Use `wrapCreateBrowserRouterV6` or `wrapCreateBrowserRouterV7` depending on what version of react router you are using.
+
+### `@sentry/core`
+
+- The `getNumberOfUrlSegments` method has been removed. There are no replacements.
 
 ## 5. Build Changes
 
