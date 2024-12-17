@@ -1469,8 +1469,7 @@ jobs:
           BUILD_ARCH=arm64 \
           yarn build:bindings:arm64
 
-      - name: Build Monorepo
-        if: steps.restore-build.outputs.cache-hit != 'true'
+      - name: Build profiling-node & its dependencies
         run: yarn build --scope @sentry/profiling-node
 
       - name: Test Bindings
