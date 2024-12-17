@@ -1389,11 +1389,14 @@ jobs:
         if: contains(matrix.os, 'windows')
         run: yarn config set network-timeout 600000 -g
 
+      - name: Debug Node version
+        run: node --version
+
       - name: Install dependencies
-        env:
-          SKIP_PLAYWRIGHT_BROWSER_INSTALL: "1"
         if: steps.restore-dependencies.outputs.cache-hit != 'true'
         run: yarn install --ignore-engines --frozen-lockfile
+        env:
+          SKIP_PLAYWRIGHT_BROWSER_INSTALL: "1"
 
       - name: Configure safe directory
         run: |
