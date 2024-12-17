@@ -1,4 +1,4 @@
-import type { FeedbackInternalOptions } from '@sentry/types';
+import type { FeedbackInternalOptions } from '@sentry/core';
 // biome-ignore lint/nursery/noUnusedImports: reason
 import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
 import type { VNode } from 'preact';
@@ -14,7 +14,7 @@ export function DialogHeader({ options }: Props): VNode {
 
   return (
     <h2 class="dialog__header">
-      {options.formTitle}
+      <span class="dialog__title">{options.formTitle}</span>
       {options.showBranding ? (
         <a
           class="brand-link"

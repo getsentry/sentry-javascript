@@ -1,10 +1,8 @@
 import { getNativeImplementation } from '@sentry-internal/browser-utils';
-import { defineIntegration } from '@sentry/core';
-import type { Client, Envelope, Event, IntegrationFn } from '@sentry/types';
-import { logger, serializeEnvelope } from '@sentry/utils';
-import type { WINDOW } from '../helpers';
-
+import type { Client, Envelope, Event, IntegrationFn } from '@sentry/core';
+import { defineIntegration, logger, serializeEnvelope } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
+import type { WINDOW } from '../helpers';
 
 export type SpotlightConnectionOptions = {
   /**

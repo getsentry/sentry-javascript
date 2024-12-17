@@ -6,8 +6,8 @@ import type {
   SpanContextData,
   SpanStatus,
   SpanTimeInput,
-} from '@sentry/types';
-import { uuid4 } from '@sentry/utils';
+} from '../types-hoist';
+import { generateSpanId, generateTraceId } from '../utils-hoist/propagationContext';
 import { TRACE_FLAG_NONE } from '../utils/spanUtils';
 
 /**
@@ -18,8 +18,8 @@ export class SentryNonRecordingSpan implements Span {
   private _spanId: string;
 
   public constructor(spanContext: SentrySpanArguments = {}) {
-    this._traceId = spanContext.traceId || uuid4();
-    this._spanId = spanContext.spanId || uuid4().substring(16);
+    this._traceId = spanContext.traceId || generateTraceId();
+    this._spanId = spanContext.spanId || generateSpanId();
   }
 
   /** @inheritdoc */

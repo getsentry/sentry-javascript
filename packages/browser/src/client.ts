@@ -1,6 +1,3 @@
-import type { Scope } from '@sentry/core';
-import { applySdkMetadata } from '@sentry/core';
-import { BaseClient } from '@sentry/core';
 import type {
   BrowserClientProfilingOptions,
   BrowserClientReplayOptions,
@@ -9,11 +6,11 @@ import type {
   EventHint,
   Options,
   ParameterizedString,
+  Scope,
   SeverityLevel,
   UserFeedback,
-} from '@sentry/types';
-import { getSDKSource, logger } from '@sentry/utils';
-
+} from '@sentry/core';
+import { BaseClient, applySdkMetadata, getSDKSource, logger } from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
 import { eventFromException, eventFromMessage } from './eventbuilder';
 import { WINDOW } from './helpers';
@@ -22,7 +19,7 @@ import { createUserFeedbackEnvelope } from './userfeedback';
 
 /**
  * Configuration options for the Sentry Browser SDK.
- * @see @sentry/types Options for more information.
+ * @see @sentry/core Options for more information.
  */
 export type BrowserOptions = Options<BrowserTransportOptions> &
   BrowserClientReplayOptions &

@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import type { Package } from '@sentry/types';
+import type { Package } from '@sentry/core';
 import HtmlWebpackPlugin, { createHtmlTagObject } from 'html-webpack-plugin';
 import type { Compiler } from 'webpack';
 
@@ -176,7 +176,6 @@ class SentryScenarioGenerationPlugin {
         }
       : {};
 
-    // Checking if the current scenario has imported `@sentry/integrations`.
     compiler.hooks.normalModuleFactory.tap(this._name, factory => {
       factory.hooks.parser.for('javascript/auto').tap(this._name, parser => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access

@@ -5,10 +5,12 @@ targets:
   # NPM Targets
   ## 1. Base Packages, node or browser SDKs depend on
   ## 1.1 Types
+  # TODO(v9): Remove
   - name: npm
     id: '@sentry/types'
     includeNames: /^sentry-types-\d.*\.tgz$/
   ## 1.2 Utils
+  # TODO(v9): Remove
   - name: npm
     id: '@sentry/utils'
     includeNames: /^sentry-utils-\d.*\.tgz$/
@@ -141,19 +143,20 @@ targets:
     includeNames: /^sentry-internal-eslint-config-sdk-\d.*\.tgz$/
 
   # AWS Lambda Layer target
-  - name: aws-lambda-layer
-    includeNames: /^sentry-node-serverless-\d+.\d+.\d+(-(beta|alpha|rc)\.\d+)?\.zip$/
-    layerName: SentryNodeServerlessSDK
-    compatibleRuntimes:
-      - name: node
-        versions:
-          - nodejs10.x
-          - nodejs12.x
-          - nodejs14.x
-          - nodejs16.x
-          - nodejs18.x
-          - nodejs20.x
-    license: MIT
+  # TODO(v9): Once stable, re-add this target to publish the AWS Lambda layer
+  # - name: aws-lambda-layer
+  #   includeNames: /^sentry-node-serverless-\d+.\d+.\d+(-(beta|alpha|rc)\.\d+)?\.zip$/
+  #   layerName: SentryNodeServerlessSDK
+  #   compatibleRuntimes:
+  #     - name: node
+  #       versions:
+  #         - nodejs10.x
+  #         - nodejs12.x
+  #         - nodejs14.x
+  #         - nodejs16.x
+  #         - nodejs18.x
+  #         - nodejs20.x
+  #   license: MIT
 
   # CDN Bundle Target
   - name: gcs

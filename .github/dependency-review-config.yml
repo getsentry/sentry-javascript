@@ -1,7 +1,11 @@
 fail-on-severity: 'high'
 allow-ghsas:
   # dependency review does not allow specific file exclusions
-  # we use an older version of NextJS in our tests and thus need to 
+  # we use an older version of NextJS in our tests and thus need to
   # exclude this
   # once our minimum supported version is over 14.1.1 this can be removed
   - GHSA-fr5h-rqp8-mj6g
+  # we need this for an E2E test for the minimum required version of Nuxt 3.7.0
+  - GHSA-v784-fjjh-f8r4
+  # Next.js Cache poisoning - We require a vulnerable version for E2E testing
+  - GHSA-gp8f-8m3g-qvj9

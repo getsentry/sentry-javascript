@@ -1,4 +1,4 @@
-import type { Client, Event, EventProcessor, Integration } from '@sentry/types';
+import type { Client, Event, EventProcessor, Integration } from '../../src/types-hoist';
 
 import { getClient, getCurrentScope } from '../../src';
 

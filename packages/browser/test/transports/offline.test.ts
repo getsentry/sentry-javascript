@@ -4,13 +4,13 @@ import 'fake-indexeddb/auto';
 
 import { TextDecoder, TextEncoder } from 'util';
 import { createTransport } from '@sentry/core';
+import { createEnvelope } from '@sentry/core';
 import type {
   EventEnvelope,
   EventItem,
   InternalBaseTransportOptions,
   TransportMakeRequestResponse,
-} from '@sentry/types';
-import { createEnvelope } from '@sentry/utils';
+} from '@sentry/core';
 
 import { createStore, makeBrowserOfflineTransport, push, shift, unshift } from '../../src/transports/offline';
 

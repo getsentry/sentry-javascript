@@ -1,3 +1,4 @@
+import type { IntegrationFn, RequestEventData, SpanAttributes } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -5,12 +6,13 @@ import {
   captureException,
   continueTrace,
   defineIntegration,
+  extractQueryParamsFromUrl,
+  getSanitizedUrlString,
+  parseUrl,
   setHttpStatus,
   startSpan,
   withIsolationScope,
 } from '@sentry/core';
-import type { IntegrationFn, SpanAttributes } from '@sentry/types';
-import { getSanitizedUrlString, parseUrl } from '@sentry/utils';
 
 const INTEGRATION_NAME = 'BunServer';
 
@@ -76,11 +78,12 @@ function instrumentBunServeOptions(serveOptions: Parameters<typeof Bun.serve>[0]
         const url = getSanitizedUrlString(parsedUrl);
 
         isolationScope.setSDKProcessingMetadata({
-          request: {
+          normalizedRequest: {
             url,
             method: request.method,
             headers: request.headers.toJSON(),
-          },
+            query_string: extractQueryParamsFromUrl(url),
+          } satisfies RequestEventData,
         });
 
         return continueTrace(

@@ -3,13 +3,15 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   captureException,
   continueTrace,
+  httpRequestToRequestData,
+  isString,
+  logger,
+  objectify,
   setHttpStatus,
   startSpanManual,
+  vercelWaitUntil,
   withIsolationScope,
 } from '@sentry/core';
-import { isString, logger, objectify } from '@sentry/utils';
-
-import { vercelWaitUntil } from '@sentry/utils';
 import type { NextApiRequest } from 'next';
 import type { AugmentedNextApiResponse, NextApiHandler } from '../types';
 import { flushSafelyWithTimeout } from '../utils/responseEnd';
@@ -65,8 +67,9 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
             },
             () => {
               const reqMethod = `${(req.method || 'GET').toUpperCase()} `;
+              const normalizedRequest = httpRequestToRequestData(req);
 
-              isolationScope.setSDKProcessingMetadata({ request: req });
+              isolationScope.setSDKProcessingMetadata({ normalizedRequest });
               isolationScope.setTransactionName(`${reqMethod}${parameterizedRoute}`);
 
               return startSpanManual(

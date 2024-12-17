@@ -1,4 +1,5 @@
 import type { Page, Request } from '@playwright/test';
+import { parseEnvelope } from '@sentry/core';
 import type {
   Envelope,
   EnvelopeItem,
@@ -6,8 +7,8 @@ import type {
   Event,
   EventEnvelope,
   EventEnvelopeHeaders,
-} from '@sentry/types';
-import { parseEnvelope } from '@sentry/utils';
+  TransactionEvent,
+} from '@sentry/core';
 
 export const envelopeUrlRegex = /\.sentry\.io\/api\/\d+\/envelope\//;
 
@@ -133,13 +134,10 @@ export const countEnvelopes = async (
 
     page.on('request', requestHandler);
 
-    setTimeout(
-      () => {
-        page.off('request', requestHandler);
-        resolve(reqCount);
-      },
-      options?.timeout || 1000,
-    );
+    setTimeout(() => {
+      page.off('request', requestHandler);
+      resolve(reqCount);
+    }, options?.timeout || 1000);
   });
 
   if (options?.url) {
@@ -224,7 +222,10 @@ export function waitForErrorRequest(page: Page, callback?: (event: Event) => boo
   });
 }
 
-export function waitForTransactionRequest(page: Page): Promise<Request> {
+export function waitForTransactionRequest(
+  page: Page,
+  callback?: (event: TransactionEvent) => boolean,
+): Promise<Request> {
   return page.waitForRequest(req => {
     const postData = req.postData();
     if (!postData) {
@@ -234,7 +235,15 @@ export function waitForTransactionRequest(page: Page): Promise<Request> {
     try {
       const event = envelopeRequestParser(req);
 
-      return event.type === 'transaction';
+      if (event.type !== 'transaction') {
+        return false;
+      }
+
+      if (callback) {
+        return callback(event as TransactionEvent);
+      }
+
+      return true;
     } catch {
       return false;
     }
@@ -271,6 +280,18 @@ export function shouldSkipFeedbackTest(): boolean {
 export function shouldSkipMetricsTest(): boolean {
   const bundle = process.env.PW_BUNDLE as string | undefined;
   return bundle != null && !bundle.includes('tracing') && !bundle.includes('esm') && !bundle.includes('cjs');
+}
+
+/**
+ * We only test feature flags integrations in certain bundles/packages:
+ * - NPM (ESM, CJS)
+ * - Not CDNs.
+ *
+ * @returns `true` if we should skip the feature flags test
+ */
+export function shouldSkipFeatureFlagsTest(): boolean {
+  const bundle = process.env.PW_BUNDLE as string | undefined;
+  return bundle != null && !bundle.includes('esm') && !bundle.includes('cjs');
 }
 
 /**

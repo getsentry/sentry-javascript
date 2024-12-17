@@ -1,6 +1,5 @@
-import type { HandlerDataXhr, SentryWrappedXMLHttpRequest } from '@sentry/types';
-
-import { addHandler, isString, maybeInstrument, timestampInSeconds, triggerHandlers } from '@sentry/utils';
+import type { HandlerDataXhr, SentryWrappedXMLHttpRequest } from '@sentry/core';
+import { addHandler, isString, maybeInstrument, timestampInSeconds, triggerHandlers } from '@sentry/core';
 import { WINDOW } from '../types';
 
 export const SENTRY_XHR_DATA_KEY = '__sentry_xhr_v3__';
@@ -32,6 +31,13 @@ export function instrumentXHR(): void {
   // eslint-disable-next-line @typescript-eslint/unbound-method
   xhrproto.open = new Proxy(xhrproto.open, {
     apply(originalOpen, xhrOpenThisArg: XMLHttpRequest & SentryWrappedXMLHttpRequest, xhrOpenArgArray) {
+      // NOTE: If you are a Sentry user, and you are seeing this stack frame,
+      //       it means the error, that was caused by your XHR call did not
+      //       have a stack trace. If you are using HttpClient integration,
+      //       this is the expected behavior, as we are using this virtual error to capture
+      //       the location of your XHR call, and group your HttpClient events accordingly.
+      const virtualError = new Error();
+
       const startTimestamp = timestampInSeconds() * 1000;
 
       // open() should always be called with two or more arguments
@@ -75,6 +81,7 @@ export function instrumentXHR(): void {
             endTimestamp: timestampInSeconds() * 1000,
             startTimestamp,
             xhr: xhrOpenThisArg,
+            virtualError,
           };
           triggerHandlers('xhr', handlerData);
         }

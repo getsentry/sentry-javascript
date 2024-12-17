@@ -1,6 +1,10 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, withActiveSpan } from '@sentry/core';
-import type { Span } from '@sentry/types';
-import { addNonEnumerableProperty } from '@sentry/utils';
+import type { Span } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  addNonEnumerableProperty,
+  withActiveSpan,
+} from '@sentry/core';
 import type { CatchTarget, InjectableTarget, NextFunction, Observable, Subscription } from './types';
 
 const sentryPatched = 'sentryPatched';

@@ -1,32 +1,19 @@
-import type { Client, HandlerDataFetch, Scope, Span, SpanOrigin } from '@sentry/types';
-import {
-  BAGGAGE_HEADER_NAME,
-  SENTRY_BAGGAGE_KEY_PREFIX,
-  dynamicSamplingContextToSentryBaggageHeader,
-  generateSentryTraceHeader,
-  isInstanceOf,
-  parseUrl,
-} from '@sentry/utils';
-import { getClient, getCurrentScope, getIsolationScope } from './currentScopes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from './semanticAttributes';
-import {
-  SPAN_STATUS_ERROR,
-  getDynamicSamplingContextFromClient,
-  getDynamicSamplingContextFromSpan,
-  setHttpStatus,
-  startInactiveSpan,
-} from './tracing';
+import { SPAN_STATUS_ERROR, setHttpStatus, startInactiveSpan } from './tracing';
 import { SentryNonRecordingSpan } from './tracing/sentryNonRecordingSpan';
+import type { Client, HandlerDataFetch, Scope, Span, SpanOrigin } from './types-hoist';
+import { SENTRY_BAGGAGE_KEY_PREFIX } from './utils-hoist/baggage';
+import { isInstanceOf } from './utils-hoist/is';
+import { parseUrl } from './utils-hoist/url';
 import { hasTracingEnabled } from './utils/hasTracingEnabled';
-import { getActiveSpan, spanToTraceHeader } from './utils/spanUtils';
+import { getActiveSpan } from './utils/spanUtils';
+import { getTraceData } from './utils/traceData';
 
 type PolymorphicRequestHeaders =
   | Record<string, string | undefined>
   | Array<[string, string]>
   // the below is not precisely the Header type used in Request, but it'll pass duck-typing
   | {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      [key: string]: any;
       append: (key: string, value: string) => void;
       get: (key: string) => string | null | undefined;
     };
@@ -63,9 +50,6 @@ export function instrumentFetchRequest(
     return undefined;
   }
 
-  const scope = getCurrentScope();
-  const client = getClient();
-
   const { method, url } = handlerData.fetchData;
 
   const fullUrl = getFullURL(url);
@@ -92,37 +76,34 @@ export function instrumentFetchRequest(
   handlerData.fetchData.__span = span.spanContext().spanId;
   spans[span.spanContext().spanId] = span;
 
-  if (shouldAttachHeaders(handlerData.fetchData.url) && client) {
+  if (shouldAttachHeaders(handlerData.fetchData.url)) {
     const request: string | Request = handlerData.args[0];
 
-    // In case the user hasn't set the second argument of a fetch call we default it to `{}`.
-    handlerData.args[1] = handlerData.args[1] || {};
+    const options: { [key: string]: unknown } = handlerData.args[1] || {};
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const options: { [key: string]: any } = handlerData.args[1];
-
-    options.headers = addTracingHeadersToFetchRequest(
+    const headers = _addTracingHeadersToFetchRequest(
       request,
-      client,
-      scope,
       options,
       // If performance is disabled (TWP) or there's no active root span (pageload/navigation/interaction),
       // we do not want to use the span as base for the trace headers,
       // which means that the headers will be generated from the scope and the sampling decision is deferred
       hasTracingEnabled() && hasParent ? span : undefined,
     );
+    if (headers) {
+      // Ensure this is actually set, if no options have been passed previously
+      handlerData.args[1] = options;
+      options.headers = headers;
+    }
   }
 
   return span;
 }
 
 /**
- * Adds sentry-trace and baggage headers to the various forms of fetch headers
+ * Adds sentry-trace and baggage headers to the various forms of fetch headers.
  */
-export function addTracingHeadersToFetchRequest(
-  request: string | unknown, // unknown is actually type Request but we can't export DOM types from this package,
-  client: Client,
-  scope: Scope,
+function _addTracingHeadersToFetchRequest(
+  request: string | Request,
   fetchOptionsObj: {
     headers?:
       | {
@@ -132,48 +113,39 @@ export function addTracingHeadersToFetchRequest(
   },
   span?: Span,
 ): PolymorphicRequestHeaders | undefined {
-  const isolationScope = getIsolationScope();
+  const traceHeaders = getTraceData({ span });
+  const sentryTrace = traceHeaders['sentry-trace'];
+  const baggage = traceHeaders.baggage;
 
-  const { traceId, spanId, sampled, dsc } = {
-    ...isolationScope.getPropagationContext(),
-    ...scope.getPropagationContext(),
-  };
+  // Nothing to do, when we return undefined here, the original headers will be used
+  if (!sentryTrace) {
+    return undefined;
+  }
 
-  const sentryTraceHeader = span ? spanToTraceHeader(span) : generateSentryTraceHeader(traceId, spanId, sampled);
-
-  const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(
-    dsc || (span ? getDynamicSamplingContextFromSpan(span) : getDynamicSamplingContextFromClient(traceId, client)),
-  );
-
-  const headers =
-    fetchOptionsObj.headers ||
-    (typeof Request !== 'undefined' && isInstanceOf(request, Request) ? (request as Request).headers : undefined);
+  const headers = fetchOptionsObj.headers || (isRequest(request) ? request.headers : undefined);
 
   if (!headers) {
-    return { 'sentry-trace': sentryTraceHeader, baggage: sentryBaggageHeader };
-  } else if (typeof Headers !== 'undefined' && isInstanceOf(headers, Headers)) {
-    const newHeaders = new Headers(headers as Headers);
+    return { ...traceHeaders };
+  } else if (isHeaders(headers)) {
+    const newHeaders = new Headers(headers);
+    newHeaders.set('sentry-trace', sentryTrace);
 
-    newHeaders.set('sentry-trace', sentryTraceHeader);
-
-    if (sentryBaggageHeader) {
-      const prevBaggageHeader = newHeaders.get(BAGGAGE_HEADER_NAME);
+    if (baggage) {
+      const prevBaggageHeader = newHeaders.get('baggage');
       if (prevBaggageHeader) {
         const prevHeaderStrippedFromSentryBaggage = stripBaggageHeaderOfSentryBaggageValues(prevBaggageHeader);
         newHeaders.set(
-          BAGGAGE_HEADER_NAME,
+          'baggage',
           // If there are non-sentry entries (i.e. if the stripped string is non-empty/truthy) combine the stripped header and sentry baggage header
           // otherwise just set the sentry baggage header
-          prevHeaderStrippedFromSentryBaggage
-            ? `${prevHeaderStrippedFromSentryBaggage},${sentryBaggageHeader}`
-            : sentryBaggageHeader,
+          prevHeaderStrippedFromSentryBaggage ? `${prevHeaderStrippedFromSentryBaggage},${baggage}` : baggage,
         );
       } else {
-        newHeaders.set(BAGGAGE_HEADER_NAME, sentryBaggageHeader);
+        newHeaders.set('baggage', baggage);
       }
     }
 
-    return newHeaders as PolymorphicRequestHeaders;
+    return newHeaders;
   } else if (Array.isArray(headers)) {
     const newHeaders = [
       ...headers
@@ -183,7 +155,7 @@ export function addTracingHeadersToFetchRequest(
         })
         // Get rid of previous sentry baggage values in baggage header
         .map(header => {
-          if (Array.isArray(header) && header[0] === BAGGAGE_HEADER_NAME && typeof header[1] === 'string') {
+          if (Array.isArray(header) && header[0] === 'baggage' && typeof header[1] === 'string') {
             const [headerName, headerValue, ...rest] = header;
             return [headerName, stripBaggageHeaderOfSentryBaggageValues(headerValue), ...rest];
           } else {
@@ -191,13 +163,13 @@ export function addTracingHeadersToFetchRequest(
           }
         }),
       // Attach the new sentry-trace header
-      ['sentry-trace', sentryTraceHeader],
+      ['sentry-trace', sentryTrace],
     ];
 
-    if (sentryBaggageHeader) {
+    if (baggage) {
       // If there are multiple entries with the same key, the browser will merge the values into a single request header.
       // Its therefore safe to simply push a "baggage" entry, even though there might already be another baggage header.
-      newHeaders.push([BAGGAGE_HEADER_NAME, sentryBaggageHeader]);
+      newHeaders.push(['baggage', baggage]);
     }
 
     return newHeaders as PolymorphicRequestHeaders;
@@ -215,16 +187,37 @@ export function addTracingHeadersToFetchRequest(
       newBaggageHeaders.push(stripBaggageHeaderOfSentryBaggageValues(existingBaggageHeader));
     }
 
-    if (sentryBaggageHeader) {
-      newBaggageHeaders.push(sentryBaggageHeader);
+    if (baggage) {
+      newBaggageHeaders.push(baggage);
     }
 
     return {
       ...(headers as Exclude<typeof headers, Headers>),
-      'sentry-trace': sentryTraceHeader,
+      'sentry-trace': sentryTrace,
       baggage: newBaggageHeaders.length > 0 ? newBaggageHeaders.join(',') : undefined,
     };
   }
+}
+
+/**
+ * Adds sentry-trace and baggage headers to the various forms of fetch headers.
+ *
+ * @deprecated This function will not be exported anymore in v9.
+ */
+export function addTracingHeadersToFetchRequest(
+  request: string | unknown,
+  _client: Client | undefined,
+  _scope: Scope | undefined,
+  fetchOptionsObj: {
+    headers?:
+      | {
+          [key: string]: string[] | string | undefined;
+        }
+      | PolymorphicRequestHeaders;
+  },
+  span?: Span,
+): PolymorphicRequestHeaders | undefined {
+  return _addTracingHeadersToFetchRequest(request as Request, fetchOptionsObj, span);
 }
 
 function getFullURL(url: string): string | undefined {
@@ -263,4 +256,12 @@ function stripBaggageHeaderOfSentryBaggageValues(baggageHeader: string): string 
       .filter(baggageEntry => !baggageEntry.split('=')[0]!.startsWith(SENTRY_BAGGAGE_KEY_PREFIX))
       .join(',')
   );
+}
+
+function isRequest(request: unknown): request is Request {
+  return typeof Request !== 'undefined' && isInstanceOf(request, Request);
+}
+
+function isHeaders(headers: unknown): headers is Headers {
+  return typeof Headers !== 'undefined' && isInstanceOf(headers, Headers);
 }

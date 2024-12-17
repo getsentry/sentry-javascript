@@ -1,6 +1,6 @@
 import { expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
-import type { DynamicSamplingContext } from '@sentry/types';
+import type { DynamicSamplingContext } from '@sentry/core';
 import { sentryTest } from '../../../utils/fixtures';
 import type { EventAndTraceHeader } from '../../../utils/helpers';
 import {
@@ -170,7 +170,7 @@ async function makeRequestAndGetBaggageItems(page: Page): Promise<string[]> {
   return baggage?.split(',').sort() ?? [];
 }
 
-async function captureErrorAndGetEnvelopeTraceHeader(page: Page): Promise<DynamicSamplingContext | undefined> {
+async function captureErrorAndGetEnvelopeTraceHeader(page: Page): Promise<Partial<DynamicSamplingContext> | undefined> {
   const errorEventPromise = getMultipleSentryEnvelopeRequests<EventAndTraceHeader>(
     page,
     1,
@@ -181,5 +181,9 @@ async function captureErrorAndGetEnvelopeTraceHeader(page: Page): Promise<Dynami
   await page.locator('#btnCaptureError').click();
 
   const [, errorEnvelopeTraceHeader] = (await errorEventPromise)[0];
+
+  // @ts-expect-error - EventEnvelopeHeaders type in (types/envelope.ts) suggests that trace_id is optional,
+  // which the DynamicSamplingContext type does not permit.
+  // TODO(v9): We should adjust the EventEnvelopeHeaders type because the trace header always needs to have a trace_id
   return errorEnvelopeTraceHeader;
 }

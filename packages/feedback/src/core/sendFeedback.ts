@@ -1,8 +1,5 @@
-import { captureFeedback } from '@sentry/core';
-import { getClient } from '@sentry/core';
-import { getCurrentScope } from '@sentry/core';
-import type { Event, EventHint, SendFeedback, SendFeedbackParams, TransportMakeRequestResponse } from '@sentry/types';
-import { getLocationHref } from '@sentry/utils';
+import type { Event, EventHint, SendFeedback, SendFeedbackParams, TransportMakeRequestResponse } from '@sentry/core';
+import { captureFeedback, getClient, getCurrentScope, getLocationHref } from '@sentry/core';
 import { FEEDBACK_API_SOURCE } from '../constants';
 
 /**
@@ -55,7 +52,7 @@ export const sendFeedback: SendFeedback = (
         response.statusCode >= 200 &&
         response.statusCode < 300
       ) {
-        resolve(eventId);
+        return resolve(eventId);
       }
 
       if (response && typeof response.statusCode === 'number' && response.statusCode === 0) {

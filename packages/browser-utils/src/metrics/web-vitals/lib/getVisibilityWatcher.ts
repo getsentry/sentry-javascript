@@ -24,7 +24,7 @@ const initHiddenTime = () => {
   // that visibility state is always 'hidden' during prerendering, so we have
   // to ignore that case until prerendering finishes (see: `prerenderingchange`
   // event logic below).
-  firstHiddenTime = WINDOW.document!.visibilityState === 'hidden' && !WINDOW.document!.prerendering ? 0 : Infinity;
+  return WINDOW.document!.visibilityState === 'hidden' && !WINDOW.document!.prerendering ? 0 : Infinity;
 };
 
 const onVisibilityUpdate = (event: Event) => {
@@ -41,8 +41,7 @@ const onVisibilityUpdate = (event: Event) => {
     firstHiddenTime = event.type === 'visibilitychange' ? event.timeStamp : 0;
 
     // Remove all listeners now that a `firstHiddenTime` value has been set.
-    removeEventListener('visibilitychange', onVisibilityUpdate, true);
-    removeEventListener('prerenderingchange', onVisibilityUpdate, true);
+    removeChangeListeners();
   }
 };
 
@@ -55,13 +54,18 @@ const addChangeListeners = () => {
   addEventListener('prerenderingchange', onVisibilityUpdate, true);
 };
 
+const removeChangeListeners = () => {
+  removeEventListener('visibilitychange', onVisibilityUpdate, true);
+  removeEventListener('prerenderingchange', onVisibilityUpdate, true);
+};
+
 export const getVisibilityWatcher = () => {
   if (WINDOW.document && firstHiddenTime < 0) {
     // If the document is hidden when this code runs, assume it was hidden
     // since navigation start. This isn't a perfect heuristic, but it's the
     // best we can do until an API is available to support querying past
     // visibilityState.
-    initHiddenTime();
+    firstHiddenTime = initHiddenTime();
     addChangeListeners();
   }
   return {

@@ -1,7 +1,9 @@
 export type {
   Breadcrumb,
   BreadcrumbHint,
+  // eslint-disable-next-line deprecation/deprecation
   Request,
+  RequestEventData,
   SdkInfo,
   Event,
   EventHint,
@@ -13,7 +15,7 @@ export type {
   Thread,
   User,
   Session,
-} from '@sentry/types';
+} from '@sentry/core';
 
 export type { BrowserOptions } from './client';
 
@@ -60,6 +62,7 @@ export {
   spanToJSON,
   spanToTraceHeader,
   spanToBaggageHeader,
+  updateSpanName,
 } from '@sentry/core';
 
 export {

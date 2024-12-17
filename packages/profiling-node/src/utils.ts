@@ -1,4 +1,3 @@
-/* eslint-disable max-lines */
 import * as os from 'os';
 import type {
   Client,
@@ -15,7 +14,7 @@ import type {
   ProfileChunkItem,
   SdkInfo,
   ThreadCpuProfile,
-} from '@sentry/types';
+} from '@sentry/core';
 import {
   createEnvelope,
   dsnToString,
@@ -23,7 +22,7 @@ import {
   getDebugImagesForResources,
   logger,
   uuid4,
-} from '@sentry/utils';
+} from '@sentry/core';
 
 import { env, versions } from 'process';
 import { isMainThread, threadId } from 'worker_threads';

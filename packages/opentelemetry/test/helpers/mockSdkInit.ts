@@ -1,6 +1,6 @@
 import { ProxyTracerProvider, context, propagation, trace } from '@opentelemetry/api';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
-import type { ClientOptions, Options } from '@sentry/types';
+import type { ClientOptions, Options } from '@sentry/core';
 
 import { getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/core';
 import { setOpenTelemetryContextAsyncContextStrategy } from '../../src/asyncContextStrategy';

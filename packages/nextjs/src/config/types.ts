@@ -1,4 +1,4 @@
-import type { GLOBAL_OBJ } from '@sentry/utils';
+import type { GLOBAL_OBJ } from '@sentry/core';
 import type { SentryWebpackPluginOptions } from '@sentry/webpack-plugin';
 
 // The first argument to `withSentryConfig` (which is the user's next config).
@@ -376,7 +376,10 @@ export type SentryBuildOptions = {
   /**
    * Use `hidden-source-map` for webpack `devtool` option, which strips the `sourceMappingURL` from the bottom of built
    * JS files.
+   *
+   * @deprecated This is deprecated. The SDK emits chunks without `sourceMappingURL` for client bundles by default.
    */
+  // TODO(v9): Remove option
   hideSourceMaps?: boolean;
 
   /**
@@ -470,7 +473,7 @@ export type IgnoreWarningsOption = (
 // The two possible formats for providing custom webpack config in `next.config.js`
 export type WebpackConfigFunction = (config: WebpackConfigObject, options: BuildContext) => WebpackConfigObject;
 export type WebpackConfigObject = {
-  devtool?: string;
+  devtool?: string | boolean;
   plugins?: Array<WebpackPluginInstance>;
   entry: WebpackEntryProperty;
   output: { filename: string; path: string };

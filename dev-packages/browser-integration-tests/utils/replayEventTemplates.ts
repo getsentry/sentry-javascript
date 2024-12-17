@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 import { expect } from '@playwright/test';
 import { SDK_VERSION } from '@sentry/browser';
-import type { ReplayEvent } from '@sentry/types';
+import type { ReplayEvent } from '@sentry/core';
 
 const DEFAULT_REPLAY_EVENT = {
   type: 'replay_event',
@@ -16,7 +16,7 @@ const DEFAULT_REPLAY_EVENT = {
   event_id: expect.stringMatching(/\w{32}/),
   environment: 'production',
   sdk: {
-    integrations: [
+    integrations: expect.arrayContaining([
       'InboundFilters',
       'FunctionToString',
       'BrowserApiErrors',
@@ -25,15 +25,16 @@ const DEFAULT_REPLAY_EVENT = {
       'LinkedErrors',
       'Dedupe',
       'HttpContext',
+      'BrowserSession',
       'Replay',
-    ],
+    ]),
     version: SDK_VERSION,
     name: 'sentry.javascript.browser',
   },
   request: {
     url: expect.stringContaining('/index.html'),
     headers: {
-      'User-Agent': expect.stringContaining(''),
+      'User-Agent': expect.any(String),
     },
   },
   platform: 'javascript',

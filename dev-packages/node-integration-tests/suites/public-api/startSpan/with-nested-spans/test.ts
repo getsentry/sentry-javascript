@@ -1,4 +1,4 @@
-import type { SpanJSON } from '@sentry/types';
+import type { SpanJSON } from '@sentry/core';
 import { assertSentryTransaction } from '../../../../utils/assertions';
 import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
@@ -30,10 +30,12 @@ test('should report finished spans as children of the root transaction.', done =
             {
               description: 'span_3',
               parent_span_id: rootSpanId,
+              data: {},
             },
             {
               description: 'span_5',
               parent_span_id: span3Id,
+              data: {},
             },
           ] as SpanJSON[],
         });

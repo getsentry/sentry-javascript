@@ -1,5 +1,5 @@
 import { setTimeout } from '@sentry-internal/browser-utils';
-import type { Breadcrumb, FetchBreadcrumbData } from '@sentry/types';
+import type { Breadcrumb, FetchBreadcrumbData } from '@sentry/core';
 
 import { DEBUG_BUILD } from '../../debug-build';
 import type {

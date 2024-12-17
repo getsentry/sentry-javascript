@@ -1,8 +1,7 @@
 import type { EventEmitter } from 'events';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, defineIntegration, getClient } from '@sentry/core';
+import type { Client, IntegrationFn } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, defineIntegration, fill, getClient } from '@sentry/core';
 import { startInactiveSpan } from '@sentry/node';
-import type { Client, IntegrationFn } from '@sentry/types';
-import { fill } from '@sentry/utils';
 
 interface GrpcFunction extends CallableFunction {
   (...args: unknown[]): EventEmitter;

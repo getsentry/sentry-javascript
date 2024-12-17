@@ -1,7 +1,7 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
+import type { Client, Span } from '@sentry/core';
 import * as SentryNode from '@sentry/node';
-import type { Client, Span } from '@sentry/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { handleRequest, interpolateRouteFromUrlAndParams } from '../../src/server/middleware';
@@ -221,7 +221,7 @@ describe('sentryMiddleware', () => {
       await middleware(ctx, next);
 
       expect(setSDKProcessingMetadataMock).toHaveBeenCalledWith({
-        request: {
+        normalizedRequest: {
           method: 'GET',
           url: '/users',
           headers: {
@@ -254,7 +254,7 @@ describe('sentryMiddleware', () => {
       await middleware(ctx, next);
 
       expect(setSDKProcessingMetadataMock).toHaveBeenCalledWith({
-        request: {
+        normalizedRequest: {
           method: 'GET',
           url: '/users',
         },

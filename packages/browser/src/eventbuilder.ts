@@ -1,4 +1,3 @@
-import { getClient } from '@sentry/core';
 import type {
   Event,
   EventHint,
@@ -7,11 +6,12 @@ import type {
   SeverityLevel,
   StackFrame,
   StackParser,
-} from '@sentry/types';
+} from '@sentry/core';
 import {
   addExceptionMechanism,
   addExceptionTypeValue,
   extractExceptionKeysForMessage,
+  getClient,
   isDOMError,
   isDOMException,
   isError,
@@ -21,7 +21,7 @@ import {
   isPlainObject,
   normalizeToSize,
   resolvedSyncPromise,
-} from '@sentry/utils';
+} from '@sentry/core';
 
 type Prototype = { constructor: (...args: unknown[]) => unknown };
 
@@ -347,6 +347,7 @@ function eventFromString(
         values: [{ value: message, stacktrace: { frames } }],
       };
     }
+    addExceptionMechanism(event, { synthetic: true });
   }
 
   if (isParameterizedString(message)) {

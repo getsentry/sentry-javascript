@@ -1,10 +1,10 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/types';
+import type { Event } from '@sentry/core';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import { getMultipleSentryEnvelopeRequests, shouldSkipTracingTest } from '../../../../utils/helpers';
 
-sentryTest('should create fetch spans with http timing @firefox', async ({ browserName, getLocalTestPath, page }) => {
+sentryTest('should create fetch spans with http timing @firefox', async ({ browserName, getLocalTestUrl, page }) => {
   const supportedBrowsers = ['chromium', 'firefox'];
 
   if (shouldSkipTracingTest() || !supportedBrowsers.includes(browserName)) {
@@ -21,7 +21,7 @@ sentryTest('should create fetch spans with http timing @firefox', async ({ brows
     });
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   const envelopes = await getMultipleSentryEnvelopeRequests<Event>(page, 2, { url, timeout: 10000 });
   const tracingEvent = envelopes[envelopes.length - 1]; // last envelope contains tracing data on all browsers
@@ -35,7 +35,7 @@ sentryTest('should create fetch spans with http timing @firefox', async ({ brows
     expect(span).toMatchObject({
       description: `GET http://example.com/${index}`,
       parent_span_id: tracingEvent.contexts?.trace?.span_id,
-      span_id: expect.any(String),
+      span_id: expect.stringMatching(/[a-f0-9]{16}/),
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
       trace_id: tracingEvent.contexts?.trace?.trace_id,

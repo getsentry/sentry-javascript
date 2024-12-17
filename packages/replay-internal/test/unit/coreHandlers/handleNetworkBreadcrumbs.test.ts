@@ -11,7 +11,7 @@ import type {
   FetchBreadcrumbHint,
   SentryWrappedXMLHttpRequest,
   XhrBreadcrumbHint,
-} from '@sentry/types';
+} from '@sentry/core';
 
 import { BASE_TIMESTAMP } from '../..';
 import { NETWORK_BODY_MAX_SIZE } from '../../../src/constants';

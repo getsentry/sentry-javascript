@@ -1,4 +1,5 @@
 import { HapiInstrumentation } from '@opentelemetry/instrumentation-hapi';
+import type { IntegrationFn, Span } from '@sentry/core';
 import {
   SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -8,10 +9,9 @@ import {
   getClient,
   getDefaultIsolationScope,
   getIsolationScope,
+  logger,
   spanToJSON,
 } from '@sentry/core';
-import type { IntegrationFn, Span } from '@sentry/types';
-import { logger } from '@sentry/utils';
 import { DEBUG_BUILD } from '../../../debug-build';
 import { generateInstrumentOnce } from '../../../otel/instrument';
 import { ensureIsWrapped } from '../../../utils/ensureIsWrapped';
@@ -48,8 +48,8 @@ const _hapiIntegration = (() => {
  */
 export const hapiIntegration = defineIntegration(_hapiIntegration);
 
-function isErrorEvent(event: RequestEvent): event is RequestEvent {
-  return event && (event as RequestEvent).error !== undefined;
+function isErrorEvent(event: unknown): event is RequestEvent {
+  return !!(event && typeof event === 'object' && 'error' in event && event.error);
 }
 
 function sendErrorToSentry(errorData: object): void {
@@ -74,8 +74,8 @@ export const hapiErrorPlugin = {
     server.events.on({ name: 'request', channels: ['error'] }, (request: Request, event: RequestEvent) => {
       if (getIsolationScope() !== getDefaultIsolationScope()) {
         const route = request.route;
-        if (route && route.path) {
-          getIsolationScope().setTransactionName(`${route.method?.toUpperCase() || 'GET'} ${route.path}`);
+        if (route.path) {
+          getIsolationScope().setTransactionName(`${route.method.toUpperCase()} ${route.path}`);
         }
       } else {
         DEBUG_BUILD &&

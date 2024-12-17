@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import type { SpanEnvelope } from '@sentry/types';
+import type { SpanEnvelope } from '@sentry/core';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import {
@@ -8,12 +8,12 @@ import {
   shouldSkipTracingTest,
 } from '../../../../utils/helpers';
 
-sentryTest('sends a segment span envelope', async ({ getLocalTestPath, page }) => {
+sentryTest('sends a segment span envelope', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   const spanEnvelope = await getFirstSentryEnvelopeRequest<SpanEnvelope>(page, url, properFullEnvelopeRequestParser);
 
   const headers = spanEnvelope[0];

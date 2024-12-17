@@ -1,6 +1,6 @@
-import type { Scope } from '@sentry/types';
-import { getGlobalSingleton } from '@sentry/utils';
+import { getGlobalSingleton } from './carrier';
 import { Scope as ScopeClass } from './scope';
+import type { Scope } from './types-hoist';
 
 /** Get the default current scope. */
 export function getDefaultCurrentScope(): Scope {

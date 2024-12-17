@@ -1,5 +1,5 @@
+import type { Integration } from '@sentry/core';
 import { browserTracingIntegration as originalBrowserTracingIntegration } from '@sentry/react';
-import type { Integration } from '@sentry/types';
 import { nextRouterInstrumentNavigation, nextRouterInstrumentPageLoad } from './routing/nextRoutingInstrumentation';
 
 /**

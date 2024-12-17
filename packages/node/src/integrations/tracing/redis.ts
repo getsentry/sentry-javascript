@@ -2,6 +2,7 @@ import type { Span } from '@opentelemetry/api';
 import type { RedisResponseCustomAttributeFunction } from '@opentelemetry/instrumentation-ioredis';
 import { IORedisInstrumentation } from '@opentelemetry/instrumentation-ioredis';
 import { RedisInstrumentation } from '@opentelemetry/instrumentation-redis-4';
+import type { IntegrationFn } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_CACHE_HIT,
   SEMANTIC_ATTRIBUTE_CACHE_ITEM_SIZE,
@@ -10,9 +11,8 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   defineIntegration,
   spanToJSON,
+  truncate,
 } from '@sentry/core';
-import type { IntegrationFn } from '@sentry/types';
-import { truncate } from '@sentry/utils';
 import { generateInstrumentOnce } from '../../otel/instrument';
 import {
   GET_COMMANDS,
@@ -40,7 +40,7 @@ const cacheResponseHook: RedisResponseCustomAttributeFunction = (span: Span, red
   if (
     !safeKey ||
     !cacheOperation ||
-    !_redisOptions?.cachePrefixes ||
+    !_redisOptions.cachePrefixes ||
     !shouldConsiderForCache(redisCommand, safeKey, _redisOptions.cachePrefixes)
   ) {
     // not relevant for cache

@@ -9,9 +9,10 @@ import {
   handleCallbackErrors,
   setCapturedScopesOnSpan,
   startSpan,
+  vercelWaitUntil,
+  winterCGRequestToRequestData,
   withIsolationScope,
 } from '@sentry/core';
-import { vercelWaitUntil, winterCGRequestToRequestData } from '@sentry/utils';
 import { flushSafelyWithTimeout } from '../common/utils/responseEnd';
 import type { EdgeRouteHandler } from './types';
 
@@ -32,7 +33,7 @@ export function wrapApiHandlerWithSentry<H extends EdgeRouteHandler>(
 
         if (req instanceof Request) {
           isolationScope.setSDKProcessingMetadata({
-            request: winterCGRequestToRequestData(req),
+            normalizedRequest: winterCGRequestToRequestData(req),
           });
           currentScope.setTransactionName(`${req.method} ${parameterizedRoute}`);
         } else {

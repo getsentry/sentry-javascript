@@ -1,12 +1,12 @@
 import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
-import type { SessionContext } from '@sentry/types';
+import type { SessionContext } from '@sentry/core';
 
 import { sentryTest } from '../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest } from '../../../utils/helpers';
 
-sentryTest('should start a new session on pageload.', async ({ getLocalTestPath, page }) => {
-  const url = await getLocalTestPath({ testDir: __dirname });
+sentryTest('should start a new session on pageload.', async ({ getLocalTestUrl, page }) => {
+  const url = await getLocalTestUrl({ testDir: __dirname });
   const session = await getFirstSentryEnvelopeRequest<SessionContext>(page, url);
 
   expect(session).toBeDefined();

@@ -1,11 +1,11 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/types';
+import type { Event } from '@sentry/core';
 
 import { sentryTest } from '../../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest } from '../../../../../utils/helpers';
 
-sentryTest('works with a Request passed in', async ({ getLocalTestPath, page }) => {
-  const url = await getLocalTestPath({ testDir: __dirname });
+sentryTest('works with a Request passed in', async ({ getLocalTestUrl, page }) => {
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   await page.route('**/foo', route => {
     return route.fulfill({
@@ -37,6 +37,15 @@ sentryTest('works with a Request passed in', async ({ getLocalTestPath, page }) 
           mechanism: {
             type: 'http.client',
             handled: false,
+          },
+          stacktrace: {
+            frames: expect.arrayContaining([
+              expect.objectContaining({
+                filename: 'http://sentry-test.io/subject.bundle.js',
+                function: '?',
+                in_app: true,
+              }),
+            ]),
           },
         },
       ],

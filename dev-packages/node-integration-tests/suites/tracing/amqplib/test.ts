@@ -1,4 +1,4 @@
-import type { TransactionEvent } from '@sentry/types';
+import type { TransactionEvent } from '@sentry/core';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
 // When running docker compose, we need a larger timeout, as this takes some time.

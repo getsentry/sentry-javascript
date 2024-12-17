@@ -1,7 +1,7 @@
-import type { Transport } from '@sentry/types';
-import { SyncPromise } from '@sentry/utils';
+import type { Transport } from '../../src/types-hoist';
 
 import { createTransport } from '../../src/transports/base';
+import { SyncPromise } from '../../src/utils-hoist/syncpromise';
 
 async function sleep(delay: number): Promise<void> {
   return new SyncPromise(resolve => setTimeout(resolve, delay));

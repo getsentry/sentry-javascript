@@ -1,6 +1,5 @@
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
-import type { Event, Span } from '@sentry/types';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
   SentryNonRecordingSpan,
@@ -17,6 +16,7 @@ import {
   startSpanManual,
 } from '../../../src';
 import { TRACING_DEFAULTS, startIdleSpan } from '../../../src/tracing/idleSpan';
+import type { Event, Span } from '../../../src/types-hoist';
 
 const dsn = 'https://123@sentry.io/42';
 

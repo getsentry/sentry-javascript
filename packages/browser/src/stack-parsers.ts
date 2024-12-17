@@ -23,8 +23,8 @@
 // CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 // OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-import type { StackFrame, StackLineParser, StackLineParserFn } from '@sentry/types';
-import { UNKNOWN_FUNCTION, createStackParser } from '@sentry/utils';
+import { UNKNOWN_FUNCTION, createStackParser } from '@sentry/core';
+import type { StackFrame, StackLineParser, StackLineParserFn } from '@sentry/core';
 
 const OPERA10_PRIORITY = 10;
 const OPERA11_PRIORITY = 20;

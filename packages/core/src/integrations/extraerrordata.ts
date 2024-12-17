@@ -1,8 +1,12 @@
-import type { Contexts, Event, EventHint, ExtendedError, IntegrationFn } from '@sentry/types';
-import { addNonEnumerableProperty, isError, isPlainObject, logger, normalize, truncate } from '@sentry/utils';
 import { defineIntegration } from '../integration';
+import type { Contexts, Event, EventHint, ExtendedError, IntegrationFn } from '../types-hoist';
 
 import { DEBUG_BUILD } from '../debug-build';
+import { isError, isPlainObject } from '../utils-hoist/is';
+import { logger } from '../utils-hoist/logger';
+import { normalize } from '../utils-hoist/normalize';
+import { addNonEnumerableProperty } from '../utils-hoist/object';
+import { truncate } from '../utils-hoist/string';
 
 const INTEGRATION_NAME = 'ExtraErrorData';
 

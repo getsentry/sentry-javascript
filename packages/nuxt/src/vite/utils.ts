@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { consoleSandbox, flatten } from '@sentry/utils';
+import { consoleSandbox } from '@sentry/core';
 
 /**
  *  Find the default SDK init file for the given type (client or server).
@@ -24,6 +24,15 @@ export function findDefaultSdkInitFile(type: 'server' | 'client'): string | unde
   }
 
   return filePaths.find(filename => fs.existsSync(filename));
+}
+
+/**
+ *  Extracts the filename from a node command with a path.
+ */
+export function getFilenameFromNodeStartCommand(nodeCommand: string): string | null {
+  const regex = /[^/\\]+$/;
+  const match = nodeCommand.match(regex);
+  return match ? match[0] : null;
 }
 
 export const SENTRY_WRAPPED_ENTRY = '?sentry-query-wrapped-entry';
@@ -92,25 +101,28 @@ export function constructWrappedFunctionExportQuery(
   entrypointWrappedFunctions: string[],
   debug?: boolean,
 ): string {
+  const functionsToExport: { wrap: string[]; reexport: string[] } = {
+    wrap: [],
+    reexport: [],
+  };
+
   // `exportedBindings` can look like this:  `{ '.': [ 'handler' ] }` or `{ '.': [], './firebase-gen-1.mjs': [ 'server' ] }`
   // The key `.` refers to exports within the current file, while other keys show from where exports were imported first.
-  const functionsToExport = flatten(Object.values(exportedBindings || {})).reduce(
-    (functions, currFunctionName) => {
-      if (entrypointWrappedFunctions.includes(currFunctionName)) {
-        functions.wrap.push(currFunctionName);
+  Object.values(exportedBindings || {}).forEach(functions =>
+    functions.forEach(fn => {
+      if (entrypointWrappedFunctions.includes(fn)) {
+        functionsToExport.wrap.push(fn);
       } else {
-        functions.reexport.push(currFunctionName);
+        functionsToExport.reexport.push(fn);
       }
-      return functions;
-    },
-    { wrap: [], reexport: [] } as { wrap: string[]; reexport: string[] },
+    }),
   );
 
   if (debug && functionsToExport.wrap.length === 0) {
     consoleSandbox(() =>
       // eslint-disable-next-line no-console
       console.warn(
-        "[Sentry] No functions found to wrap. In case the server needs to export async functions other than `handler` or  `server`, consider adding the name(s) to Sentry's build options `sentry.entrypointWrappedFunctions` in `nuxt.config.ts`.",
+        "[Sentry] No functions found to wrap. In case the server needs to export async functions other than `handler` or  `server`, consider adding the name(s) to Sentry's build options `sentry.experimental_entrypointWrappedFunctions` in `nuxt.config.ts`.",
       ),
     );
   }

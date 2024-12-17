@@ -1,4 +1,4 @@
-import type { Integration } from '@sentry/types';
+import type { Integration } from '@sentry/core';
 import { instrumentOtelHttp } from '../http';
 
 import { amqplibIntegration, instrumentAmqplib } from './amqplib';
@@ -19,6 +19,7 @@ import { instrumentNest, nestIntegration } from './nest/nest';
 import { instrumentPostgres, postgresIntegration } from './postgres';
 import { instrumentRedis, redisIntegration } from './redis';
 import { instrumentTedious, tediousIntegration } from './tedious';
+import { instrumentVercelAi, vercelAIIntegration } from './vercelai';
 
 /**
  * With OTEL, all performance integrations will be added, as OTEL only initializes them when the patched package is actually required.
@@ -38,6 +39,7 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     // See https://github.com/prisma/prisma/issues/23410
     // TODO v8: Figure out a better solution for this, maybe only disable in ESM mode?
     // prismaIntegration(),
+    // eslint-disable-next-line deprecation/deprecation
     nestIntegration(),
     hapiIntegration(),
     koaIntegration(),
@@ -47,6 +49,7 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     kafkaIntegration(),
     amqplibIntegration(),
     lruMemoizerIntegration(),
+    vercelAIIntegration(),
   ];
 }
 
@@ -64,6 +67,7 @@ export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) =>
     instrumentKafka,
     instrumentKoa,
     instrumentLruMemoizer,
+    // eslint-disable-next-line deprecation/deprecation
     instrumentNest,
     instrumentMongo,
     instrumentMongoose,
@@ -76,5 +80,6 @@ export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) =>
     instrumentTedious,
     instrumentGenericPool,
     instrumentAmqplib,
+    instrumentVercelAi,
   ];
 }

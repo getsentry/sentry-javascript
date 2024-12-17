@@ -1,8 +1,10 @@
-import type { Client, DurationUnit, MetricData, MetricsAggregator as MetricsAggregatorInterface } from '@sentry/types';
-import { getGlobalSingleton, logger, timestampInSeconds } from '@sentry/utils';
+import { getGlobalSingleton } from '../carrier';
 import { getClient } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { startSpanManual } from '../tracing';
+import type { Client, DurationUnit, MetricData, MetricsAggregator as MetricsAggregatorInterface } from '../types-hoist';
+import { logger } from '../utils-hoist/logger';
+import { timestampInSeconds } from '../utils-hoist/time';
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
 import { getActiveSpan, getRootSpan, spanToJSON } from '../utils/spanUtils';
 import { COUNTER_METRIC_TYPE, DISTRIBUTION_METRIC_TYPE, GAUGE_METRIC_TYPE, SET_METRIC_TYPE } from './constants';
@@ -21,9 +23,9 @@ function getMetricsAggregatorForClient(
   client: Client,
   Aggregator: MetricsAggregatorConstructor,
 ): MetricsAggregatorInterface {
-  const globalMetricsAggregators = getGlobalSingleton<WeakMap<Client, MetricsAggregatorInterface>>(
+  const globalMetricsAggregators = getGlobalSingleton(
     'globalMetricsAggregators',
-    () => new WeakMap(),
+    () => new WeakMap<Client, MetricsAggregatorInterface>(),
   );
 
   const aggregator = globalMetricsAggregators.get(client);

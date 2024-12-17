@@ -1,15 +1,15 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/types';
+import type { Event } from '@sentry/core';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import { getMultipleSentryEnvelopeRequests, shouldSkipTracingTest } from '../../../../utils/helpers';
 
-sentryTest('should create spans for fetch requests', async ({ getLocalTestPath, page }) => {
+sentryTest('should create spans for fetch requests', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   // Because we fetch from http://example.com, fetch will throw a CORS error in firefox and webkit.
   // Chromium does not throw for cors errors.
@@ -28,7 +28,7 @@ sentryTest('should create spans for fetch requests', async ({ getLocalTestPath, 
     expect(span).toMatchObject({
       description: `GET http://example.com/${index}`,
       parent_span_id: tracingEvent.contexts?.trace?.span_id,
-      span_id: expect.any(String),
+      span_id: expect.stringMatching(/[a-f0-9]{16}/),
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
       trace_id: tracingEvent.contexts?.trace?.trace_id,
@@ -43,12 +43,12 @@ sentryTest('should create spans for fetch requests', async ({ getLocalTestPath, 
   );
 });
 
-sentryTest('should attach `sentry-trace` header to fetch requests', async ({ getLocalTestPath, page }) => {
+sentryTest('should attach `sentry-trace` header to fetch requests', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   const requests = (
     await Promise.all([

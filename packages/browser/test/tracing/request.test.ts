@@ -1,8 +1,8 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import * as browserUtils from '@sentry-internal/browser-utils';
-import type { Client } from '@sentry/types';
-import * as utils from '@sentry/utils';
+import * as utils from '@sentry/core';
+import type { Client } from '@sentry/core';
 import { WINDOW } from '../../src/helpers';
 
 import { extractNetworkProtocol, instrumentOutgoingRequests, shouldAttachHeaders } from '../../src/tracing/request';

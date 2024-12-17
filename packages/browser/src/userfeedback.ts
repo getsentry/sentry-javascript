@@ -1,5 +1,5 @@
-import type { DsnComponents, EventEnvelope, SdkMetadata, UserFeedback, UserFeedbackItem } from '@sentry/types';
-import { createEnvelope, dsnToString } from '@sentry/utils';
+import { createEnvelope, dsnToString } from '@sentry/core';
+import type { DsnComponents, EventEnvelope, SdkMetadata, UserFeedback, UserFeedbackItem } from '@sentry/core';
 
 /**
  * Creates an envelope from a user feedback.

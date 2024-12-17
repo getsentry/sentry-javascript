@@ -50,8 +50,7 @@ const DEPENDENTS: Dependent[] = [
     ignoreExports: [
       // not supported in bun:
       'NodeClient',
-      // Bun doesn't emit the required diagnostics_channel events
-      'processThreadBreadcrumbIntegration',
+      'childProcessIntegration',
     ],
   },
   {

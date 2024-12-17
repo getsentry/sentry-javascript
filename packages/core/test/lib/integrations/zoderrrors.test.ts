@@ -1,4 +1,4 @@
-import type { Event, EventHint } from '@sentry/types';
+import type { Event, EventHint } from '../../../src/types-hoist';
 
 import { applyZodErrorsToEvent } from '../../../src/integrations/zoderrors';
 
@@ -20,11 +20,7 @@ class ZodError extends Error {
     super();
 
     const actualProto = new.target.prototype;
-    if (Object.setPrototypeOf) {
-      Object.setPrototypeOf(this, actualProto);
-    } else {
-      (this as any).__proto__ = actualProto;
-    }
+    Object.setPrototypeOf(this, actualProto);
 
     this.name = 'ZodError';
     this.issues = issues;

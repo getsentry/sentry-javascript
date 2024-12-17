@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/types';
+import type { Event } from '@sentry/core';
 
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -10,12 +10,12 @@ import {
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
 
-sentryTest('creates a pageload transaction with url as source', async ({ getLocalTestPath, page }) => {
+sentryTest('creates a pageload transaction with url as source', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
   const timeOrigin = await page.evaluate<number>('window._testBaseTimestamp');

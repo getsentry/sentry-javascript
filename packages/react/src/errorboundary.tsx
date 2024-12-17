@@ -1,7 +1,7 @@
 import type { ReportDialogOptions } from '@sentry/browser';
 import { getClient, showReportDialog, withScope } from '@sentry/browser';
-import type { Scope } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import { logger } from '@sentry/core';
+import type { Scope } from '@sentry/core';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
 

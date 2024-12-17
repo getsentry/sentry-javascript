@@ -1,7 +1,7 @@
 import type { Debugger, InspectorNotification, Runtime } from 'node:inspector';
 import { Session } from 'node:inspector/promises';
 import { workerData } from 'node:worker_threads';
-import { consoleSandbox } from '@sentry/utils';
+import { consoleSandbox } from '@sentry/core';
 import type { LocalVariablesWorkerArgs, PausedExceptionEvent, RateLimitIncrement, Variables } from './common';
 import { LOCAL_VARIABLES_KEY } from './common';
 import { createRateLimiter } from './common';
@@ -67,13 +67,13 @@ async function getLocalVariables(session: Session, objectId: string): Promise<Va
   const variables = {};
 
   for (const prop of properties.result) {
-    if (prop?.value?.objectId && prop?.value.className === 'Array') {
+    if (prop.value?.objectId && prop.value.className === 'Array') {
       const id = prop.value.objectId;
       await unrollArray(session, id, prop.name, variables);
-    } else if (prop?.value?.objectId && prop?.value?.className === 'Object') {
+    } else if (prop.value?.objectId && prop.value.className === 'Object') {
       const id = prop.value.objectId;
       await unrollObject(session, id, prop.name, variables);
-    } else if (prop?.value) {
+    } else if (prop.value) {
       unrollOther(prop, variables);
     }
   }

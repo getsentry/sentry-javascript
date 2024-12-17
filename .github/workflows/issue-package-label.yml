@@ -83,11 +83,11 @@ jobs:
               "@sentry.solid": {
                 "label": "Package: solidstart"
               },
-              "@sentry.svelte": {
-                "label": "Package: svelte"
-              },
               "@sentry.sveltekit": {
                 "label": "Package: sveltekit"
+              },
+              "@sentry.svelte": {
+                "label": "Package: svelte"
               },
               "@sentry.vue": {
                 "label": "Package: vue"

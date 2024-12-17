@@ -2,6 +2,8 @@ import { existsSync } from 'fs';
 import { hostname } from 'os';
 import { basename, resolve } from 'path';
 import { types } from 'util';
+import type { Integration, Options, Scope, SdkMetadata, Span } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, logger } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import {
   SDK_VERSION,
@@ -15,13 +17,8 @@ import {
   startSpanManual,
   withScope,
 } from '@sentry/node';
-import type { Integration, Options, Scope, SdkMetadata, Span } from '@sentry/types';
-import { logger } from '@sentry/utils';
 import type { Context, Handler } from 'aws-lambda';
 import { performance } from 'perf_hooks';
-
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
-
 import { DEBUG_BUILD } from './debug-build';
 import { awsIntegration } from './integration/aws';
 import { awsLambdaIntegration } from './integration/awslambda';
@@ -339,6 +336,7 @@ export function wrapHandler<TEvent, TResult>(
     // Only start a trace and root span if the handler is not already wrapped by Otel instrumentation
     // Otherwise, we create two root spans (one from otel, one from our wrapper).
     // If Otel instrumentation didn't work or was filtered by users, we still want to trace the handler.
+    // TODO(v9): Since bumping the OTEL Instrumentation, this is likely not needed anymore, we can possibly remove this
     if (options.startTrace && !isWrappedByOtel(handler)) {
       const traceData = getAwsTraceData(event as { headers?: Record<string, string> }, context);
 

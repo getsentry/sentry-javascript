@@ -1,8 +1,8 @@
 import * as child_process from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import { escapeStringForRegex, uuid4 } from '@sentry/core';
 import { getSentryRelease } from '@sentry/node';
-import { escapeStringForRegex, uuid4 } from '@sentry/utils';
 import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 import type { Plugin } from 'vite';
@@ -269,7 +269,10 @@ function getFiles(dir: string): string[] {
 function detectSentryRelease(): string {
   let releaseFallback: string;
   try {
-    releaseFallback = child_process.execSync('git rev-parse HEAD', { stdio: 'ignore' }).toString().trim();
+    releaseFallback = child_process
+      .execSync('git rev-parse HEAD', { stdio: ['ignore', 'pipe', 'ignore'] })
+      .toString()
+      .trim();
   } catch (_) {
     // the command can throw for various reasons. Most importantly:
     // - git is not installed

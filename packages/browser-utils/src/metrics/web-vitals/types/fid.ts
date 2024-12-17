@@ -15,14 +15,13 @@
  */
 
 import type { LoadState, Metric } from './base';
-import type { FirstInputPolyfillEntry } from './polyfills';
 
 /**
  * An FID-specific version of the Metric object.
  */
 export interface FIDMetric extends Metric {
   name: 'FID';
-  entries: (PerformanceEventTiming | FirstInputPolyfillEntry)[];
+  entries: PerformanceEventTiming[];
 }
 
 /**
@@ -46,10 +45,9 @@ export interface FIDAttribution {
    */
   eventType: string;
   /**
-   * The `PerformanceEventTiming` entry corresponding to FID (or the
-   * polyfill entry in browsers that don't support Event Timing).
+   * The `PerformanceEventTiming` entry corresponding to FID.
    */
-  eventEntry: PerformanceEventTiming | FirstInputPolyfillEntry;
+  eventEntry: PerformanceEventTiming;
   /**
    * The loading state of the document at the time when the first interaction
    * occurred (see `LoadState` for details). If the first interaction occurred
@@ -64,18 +62,4 @@ export interface FIDAttribution {
  */
 export interface FIDMetricWithAttribution extends FIDMetric {
   attribution: FIDAttribution;
-}
-
-/**
- * An FID-specific version of the ReportCallback function.
- */
-export interface FIDReportCallback {
-  (metric: FIDMetric): void;
-}
-
-/**
- * An FID-specific version of the ReportCallback function with attribution.
- */
-export interface FIDReportCallbackWithAttribution {
-  (metric: FIDMetricWithAttribution): void;
 }

@@ -15,7 +15,6 @@
  */
 
 import type { Metric } from './base';
-import type { NavigationTimingPolyfillEntry } from './polyfills';
 
 /**
  * An LCP-specific version of the Metric object.
@@ -57,7 +56,7 @@ export interface LCPAttribution {
    * otherwise 0). See [Optimize LCP](https://web.dev/articles/optimize-lcp) for
    * details.
    */
-  resourceLoadTime: number;
+  resourceLoadDuration: number;
   /**
    * The delta between when the LCP resource finishes loading until the LCP
    * element is fully rendered. See [Optimize
@@ -69,7 +68,7 @@ export interface LCPAttribution {
    * general page load issues. This can be used to access `serverTiming` for example:
    * navigationEntry?.serverTiming
    */
-  navigationEntry?: PerformanceNavigationTiming | NavigationTimingPolyfillEntry;
+  navigationEntry?: PerformanceNavigationTiming;
   /**
    * The `resource` entry for the LCP resource (if applicable), which is useful
    * for diagnosing resource load issues.
@@ -86,18 +85,4 @@ export interface LCPAttribution {
  */
 export interface LCPMetricWithAttribution extends LCPMetric {
   attribution: LCPAttribution;
-}
-
-/**
- * An LCP-specific version of the ReportCallback function.
- */
-export interface LCPReportCallback {
-  (metric: LCPMetric): void;
-}
-
-/**
- * An LCP-specific version of the ReportCallback function with attribution.
- */
-export interface LCPReportCallbackWithAttribution {
-  (metric: LCPMetricWithAttribution): void;
 }

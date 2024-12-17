@@ -9,22 +9,20 @@ import type {
   Transport,
   TransportMakeRequestResponse,
   TransportRequestExecutor,
-} from '@sentry/types';
-import type { PromiseBuffer, RateLimits } from '@sentry/utils';
+} from '../types-hoist';
+
+import { DEBUG_BUILD } from '../debug-build';
 import {
-  SentryError,
   createEnvelope,
   envelopeItemTypeToDataCategory,
   forEachEnvelopeItem,
-  isRateLimited,
-  logger,
-  makePromiseBuffer,
-  resolvedSyncPromise,
   serializeEnvelope,
-  updateRateLimits,
-} from '@sentry/utils';
-
-import { DEBUG_BUILD } from '../debug-build';
+} from '../utils-hoist/envelope';
+import { SentryError } from '../utils-hoist/error';
+import { logger } from '../utils-hoist/logger';
+import { type PromiseBuffer, makePromiseBuffer } from '../utils-hoist/promisebuffer';
+import { type RateLimits, isRateLimited, updateRateLimits } from '../utils-hoist/ratelimit';
+import { resolvedSyncPromise } from '../utils-hoist/syncpromise';
 
 export const DEFAULT_TRANSPORT_BUFFER_SIZE = 64;
 
@@ -63,8 +61,7 @@ export function createTransport(
       return resolvedSyncPromise({});
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const filteredEnvelope: Envelope = createEnvelope(envelope[0], filteredEnvelopeItems as any);
+    const filteredEnvelope: Envelope = createEnvelope(envelope[0], filteredEnvelopeItems as (typeof envelope)[1]);
 
     // Creates client report for each item in an envelope
     const recordEnvelopeLoss = (reason: EventDropReason): void => {

@@ -1,6 +1,6 @@
 import { TediousInstrumentation } from '@opentelemetry/instrumentation-tedious';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, defineIntegration, spanToJSON } from '@sentry/core';
-import type { IntegrationFn } from '@sentry/types';
+import type { IntegrationFn } from '@sentry/core';
 import { generateInstrumentOnce } from '../../otel/instrument';
 
 const TEDIUS_INSTRUMENTED_METHODS = new Set([
@@ -31,7 +31,7 @@ const _tediousIntegration = (() => {
           return;
         }
 
-        const operation = description?.split(' ')[0] || '';
+        const operation = description.split(' ')[0] || '';
         if (TEDIUS_INSTRUMENTED_METHODS.has(operation)) {
           span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.db.otel.tedious');
         }

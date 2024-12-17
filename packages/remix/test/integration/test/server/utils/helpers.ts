@@ -2,10 +2,10 @@ import * as http from 'http';
 import { AddressInfo } from 'net';
 import * as path from 'path';
 import { createRequestHandler } from '@remix-run/express';
+import { logger } from '@sentry/core';
+import type { EnvelopeItemType, Event, TransactionEvent } from '@sentry/core';
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import * as Sentry from '@sentry/node';
-import type { EnvelopeItemType, Event, TransactionEvent } from '@sentry/types';
-import { logger } from '@sentry/utils';
 import type { AxiosRequestConfig } from 'axios';
 import axios from 'axios';
 import express from 'express';
@@ -54,7 +54,10 @@ class TestEnv {
   private _axiosConfig: AxiosRequestConfig | undefined = undefined;
   private _terminator: HttpTerminator;
 
-  public constructor(public readonly server: http.Server, public readonly url: string) {
+  public constructor(
+    public readonly server: http.Server,
+    public readonly url: string,
+  ) {
     this.server = server;
     this.url = url;
     this._terminator = createHttpTerminator({ server: this.server, gracefulTerminationTimeout: 0 });
@@ -236,19 +239,16 @@ class TestEnv {
           return false;
         });
 
-      setTimeout(
-        () => {
-          nock.removeInterceptor(mock);
+      setTimeout(() => {
+        nock.removeInterceptor(mock);
 
-          nock.cleanAll();
+        nock.cleanAll();
 
-          // eslint-disable-next-line @typescript-eslint/no-floating-promises
-          this._closeServer().then(() => {
-            resolve(reqCount);
-          });
-        },
-        options.timeout || 1000,
-      );
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        this._closeServer().then(() => {
+          resolve(reqCount);
+        });
+      }, options.timeout || 1000);
     });
   }
 
@@ -258,7 +258,10 @@ class TestEnv {
 }
 
 export class RemixTestEnv extends TestEnv {
-  private constructor(public readonly server: http.Server, public readonly url: string) {
+  private constructor(
+    public readonly server: http.Server,
+    public readonly url: string,
+  ) {
     super(server, url);
   }
 

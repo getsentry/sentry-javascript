@@ -1,4 +1,5 @@
 import { BaseClient, createTransport, initAndBind } from '@sentry/core';
+import { resolvedSyncPromise } from '@sentry/core';
 import type {
   BrowserClientReplayOptions,
   Client,
@@ -6,8 +7,7 @@ import type {
   Event,
   ParameterizedString,
   SeverityLevel,
-} from '@sentry/types';
-import { resolvedSyncPromise } from '@sentry/utils';
+} from '@sentry/core';
 
 export interface TestClientOptions extends ClientOptions, BrowserClientReplayOptions {}
 

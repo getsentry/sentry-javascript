@@ -40,10 +40,14 @@ test('Sends an API route transaction', async ({ baseURL }) => {
       'http.route': '/test-transaction',
     },
     op: 'http.server',
-    span_id: expect.any(String),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
     status: 'ok',
-    trace_id: expect.any(String),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     origin: 'auto.http.otel.http',
+  });
+
+  expect(transactionEvent.contexts?.response).toEqual({
+    status_code: 200,
   });
 
   expect(transactionEvent).toEqual(
@@ -69,12 +73,12 @@ test('Sends an API route transaction', async ({ baseURL }) => {
     description: 'query',
     op: 'middleware.express',
     origin: 'auto.http.otel.express',
-    parent_span_id: expect.any(String),
-    span_id: expect.any(String),
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
     start_timestamp: expect.any(Number),
     status: 'ok',
     timestamp: expect.any(Number),
-    trace_id: expect.any(String),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
   });
 
   expect(spans).toContainEqual({
@@ -88,12 +92,12 @@ test('Sends an API route transaction', async ({ baseURL }) => {
     description: 'expressInit',
     op: 'middleware.express',
     origin: 'auto.http.otel.express',
-    parent_span_id: expect.any(String),
-    span_id: expect.any(String),
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
     start_timestamp: expect.any(Number),
     status: 'ok',
     timestamp: expect.any(Number),
-    trace_id: expect.any(String),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
   });
 
   expect(spans).toContainEqual({
@@ -107,12 +111,12 @@ test('Sends an API route transaction', async ({ baseURL }) => {
     description: '/test-transaction',
     op: 'request_handler.express',
     origin: 'auto.http.otel.express',
-    parent_span_id: expect.any(String),
-    span_id: expect.any(String),
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
     start_timestamp: expect.any(Number),
     status: 'ok',
     timestamp: expect.any(Number),
-    trace_id: expect.any(String),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
   });
 });
 
@@ -147,12 +151,12 @@ test('Sends an API route transaction for an errored route', async ({ baseURL }) 
     description: 'query',
     op: 'middleware.express',
     origin: 'auto.http.otel.express',
-    parent_span_id: expect.any(String),
-    span_id: expect.any(String),
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
     start_timestamp: expect.any(Number),
     status: 'ok',
     timestamp: expect.any(Number),
-    trace_id: expect.any(String),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
   });
 
   expect(spans).toContainEqual({
@@ -166,12 +170,12 @@ test('Sends an API route transaction for an errored route', async ({ baseURL }) 
     description: 'expressInit',
     op: 'middleware.express',
     origin: 'auto.http.otel.express',
-    parent_span_id: expect.any(String),
-    span_id: expect.any(String),
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
     start_timestamp: expect.any(Number),
     status: 'ok',
     timestamp: expect.any(Number),
-    trace_id: expect.any(String),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
   });
 
   expect(spans).toContainEqual({
@@ -185,11 +189,11 @@ test('Sends an API route transaction for an errored route', async ({ baseURL }) 
     description: '/test-exception/:id',
     op: 'request_handler.express',
     origin: 'auto.http.otel.express',
-    parent_span_id: expect.any(String),
-    span_id: expect.any(String),
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
     start_timestamp: expect.any(Number),
     status: 'ok',
     timestamp: expect.any(Number),
-    trace_id: expect.any(String),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
   });
 });

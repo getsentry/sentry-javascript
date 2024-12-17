@@ -8,8 +8,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import * as SentryCore from '@sentry/core';
 import { Scope, createTransport } from '@sentry/core';
-import type { Client, Integration } from '@sentry/types';
-import { resolvedSyncPromise } from '@sentry/utils';
+import { resolvedSyncPromise } from '@sentry/core';
+import type { Client, Integration } from '@sentry/core';
 
 import type { BrowserOptions } from '../src';
 import { WINDOW } from '../src';
@@ -89,7 +89,7 @@ describe('init', () => {
     expect(initAndBindSpy).toHaveBeenCalledTimes(1);
 
     const optionsPassed = initAndBindSpy.mock.calls[0]?.[1];
-    expect(optionsPassed?.integrations?.length).toBeGreaterThan(0);
+    expect(optionsPassed?.integrations.length).toBeGreaterThan(0);
   });
 
   test("doesn't install default integrations if told not to", () => {

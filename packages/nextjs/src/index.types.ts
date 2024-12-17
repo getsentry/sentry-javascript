@@ -7,7 +7,7 @@ export * from './client';
 export * from './server';
 export * from './edge';
 
-import type { Client, Integration, Options, StackParser } from '@sentry/types';
+import type { Client, Integration, Options, StackParser } from '@sentry/core';
 
 import type * as clientSdk from './client';
 import type { ServerComponentContext, VercelCronsConfig } from './common/types';
@@ -142,5 +142,4 @@ export declare function wrapApiHandlerWithSentryVercelCrons<F extends (...args: 
  */
 export declare function wrapPageComponentWithSentry<C>(WrappingTarget: C): C;
 
-// eslint-disable-next-line deprecation/deprecation
-export { experimental_captureRequestError, captureRequestError } from './common/captureRequestError';
+export { captureRequestError } from './common/captureRequestError';
