@@ -426,7 +426,8 @@ describe('markFunctionWrapped', () => {
     const wrappedFunc = jest.fn();
     markFunctionWrapped(wrappedFunc, originalFunc);
 
-    expect((wrappedFunc as WrappedFunction).__sentry_original__).toBe(originalFunc);
+    // cannot wrap because it is frozen, but we do not error!
+    expect((wrappedFunc as WrappedFunction).__sentry_original__).toBe(undefined);
 
     wrappedFunc();
 

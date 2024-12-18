@@ -21,7 +21,7 @@
     "next": "15.0.0-canary.182",
     "react": "beta",
     "react-dom": "beta",
-    "typescript": "4.9.5"
+    "typescript": "~5.0.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.44.1",

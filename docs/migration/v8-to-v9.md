@@ -53,6 +53,8 @@ In preparation for the OpenTelemetry SDK v2, which will raise the minimum requir
 
 Additionally, like the OpenTelemetry SDK, the Sentry JavaScript SDK will follow [DefinitelyType's version support policy](https://github.com/DefinitelyTyped/DefinitelyTyped#support-window) which has a support time frame of 2 years for any released version of TypeScript.
 
+Older Typescript versions _may_ still work, but we will not test them anymore and no more guarantees apply.
+
 ## 2. Behavior Changes
 
 ### `@sentry/core` / All SDKs
