@@ -122,7 +122,6 @@ It will be removed in a future major version.
   Use the `SentryGlobalFilter` instead.
   The `SentryGlobalFilter` is a drop-in replacement.
 
-
 ## 5. Build Changes
 
 Previously the CJS versions of the SDK code (wrongfully) contained compatibility statements for default exports in ESM:
