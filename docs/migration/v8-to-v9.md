@@ -24,8 +24,8 @@ This includes features like Nullish Coalescing (`??`), Optional Chaining (`?.`),
 If you observe failures due to syntax or features listed above, it may be an indicator that your current runtime does not support ES2020.
 If your runtime does not support ES2020, we recommend transpiling the SDK using Babel or similar tooling.
 
-**Node.js:** The minimum supported Node.js versions are TBD, TBD, and TBD.
-We no longer test against Node TBD, TBD, or TBD and cannot guarantee that the SDK will work as expected on these versions.
+**Node.js:** The minimum supported Node.js version is **18.0.0**, except for ESM-only SDKs (nuxt, solidstart, astro) which require Node **18.19.1** or up.
+We no longer test against Node 14 and Node 16 and cannot guarantee that the SDK will work as expected on these versions.
 
 **Browsers:** Due to SDK code now including ES2020 features, the minimum supported browser list now looks as follows:
 
@@ -108,6 +108,7 @@ It will be removed in a future major version.
 
 ### `@sentry/nestjs`
 
+- Removed `WithSentry` decorator. Use `SentryExceptionCaptured` instead.
 - Removed `SentryService`.
   If you are using `@sentry/nestjs` you can safely remove any references to the `SentryService`.
   If you are using another package migrate to `@sentry/nestjs` and remove the `SentryService` afterwards.

@@ -6,7 +6,7 @@
     "@sentry/react": "latest || *",
     "history": "4.9.0",
     "@types/history": "4.7.11",
-    "@types/node": "16.7.13",
+    "@types/node": "^18.19.1",
     "@types/react": "npm:types-react@rc",
     "@types/react-dom": "npm:types-react-dom@rc",
     "react": "19.0.0-rc-935180c7e0-20240524",

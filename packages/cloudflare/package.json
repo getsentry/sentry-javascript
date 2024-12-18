@@ -7,7 +7,7 @@
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=14.18"
+    "node": ">=18"
   },
   "files": [
     "/build"
@@ -46,7 +46,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240725.0",
-    "@types/node": "^14.18.0",
+    "@types/node": "^18.19.1",
     "wrangler": "^3.67.1"
   },
   "scripts": {
