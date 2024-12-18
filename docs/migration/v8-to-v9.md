@@ -108,6 +108,7 @@ It will be removed in a future major version.
 - The `validSeverityLevels` export has been removed. There is no replacement.
 - The `arrayify` export has been removed. There is no replacement.
 - The `flatten` export has been removed. There is no replacement.
+- The `urlEncode` method has been removed. There is no replacement.
 
 ### `@sentry/nestjs`
 

@@ -151,7 +151,6 @@ import {
   triggerHandlers as triggerHandlers_imported,
   truncate as truncate_imported,
   updateRateLimits as updateRateLimits_imported,
-  urlEncode as urlEncode_imported,
   uuid4 as uuid4_imported,
   vercelWaitUntil as vercelWaitUntil_imported,
   watchdogTimer as watchdogTimer_imported,
@@ -604,10 +603,6 @@ export const memoBuilder = memoBuilder_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
 export const normalizeUrlToBase = normalizeUrlToBase_imported;
-
-/** @deprecated Import from `@sentry/core` instead. */
-// eslint-disable-next-line deprecation/deprecation
-export const urlEncode = urlEncode_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
 // eslint-disable-next-line deprecation/deprecation
