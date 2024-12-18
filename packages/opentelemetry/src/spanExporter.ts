@@ -21,7 +21,6 @@ import {
   dropUndefinedKeys,
   getCapturedScopesOnSpan,
   getDynamicSamplingContextFromSpan,
-  getMetricSummaryJsonForSpan,
   getStatusMessage,
   logger,
   spanTimeInputToSeconds,
@@ -298,7 +297,6 @@ export function createTransactionForOtelSpan(span: ReadableSpan): TransactionEve
         source,
       },
     }),
-    _metrics_summary: getMetricSummaryJsonForSpan(span as unknown as Span),
   });
 
   return transactionEvent;
@@ -348,7 +346,6 @@ function createAndFinishSpanForOtelSpan(node: SpanNode, spans: SpanJSON[], sentS
     status: getStatusMessage(status), // As per protocol, span status is allowed to be undefined
     op,
     origin,
-    _metrics_summary: getMetricSummaryJsonForSpan(span as unknown as Span),
     measurements: timedEventsToMeasurements(span.events),
   });
 

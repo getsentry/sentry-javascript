@@ -92,7 +92,34 @@ It will be removed in a future major version.
 
 ## 4. Removal of Deprecated APIs (TODO)
 
-TODO
+### `@sentry/core` / All SDKs
+
+- The `debugIntegration` has been removed. To log outgoing events, use [Hook Options](https://docs.sentry.io/platforms/javascript/configuration/options/#hooks) (`beforeSend`, `beforeSendTransaction`, ...).
+- The `sessionTimingIntegration` has been removed. To capture session durations alongside events, use [Context](https://docs.sentry.io/platforms/javascript/enriching-events/context/) (`Sentry.setContext()`).
+
+### `@sentry/react`
+
+- The `wrapUseRoutes` method has been removed. Use `wrapUseRoutesV6` or `wrapUseRoutesV7` instead depending on what version of react router you are using.
+- The `wrapCreateBrowserRouter` method has been removed. Use `wrapCreateBrowserRouterV6` or `wrapCreateBrowserRouterV7` depending on what version of react router you are using.
+
+### `@sentry/core`
+
+- The `getNumberOfUrlSegments` method has been removed. There are no replacements.
+
+### `@sentry/nestjs`
+
+- Removed `SentryService`.
+  If you are using `@sentry/nestjs` you can safely remove any references to the `SentryService`.
+  If you are using another package migrate to `@sentry/nestjs` and remove the `SentryService` afterwards.
+- Removed `SentryTracingInterceptor`.
+  If you are using `@sentry/nestjs` you can safely remove any references to the `SentryTracingInterceptor`.
+  If you are using another package migrate to `@sentry/nestjs` and remove the `SentryTracingInterceptor` afterwards.
+- Removed `SentryGlobalGenericFilter`.
+  Use the `SentryGlobalFilter` instead.
+  The `SentryGlobalFilter` is a drop-in replacement.
+- Removed `SentryGlobalGraphQLFilter`.
+  Use the `SentryGlobalFilter` instead.
+  The `SentryGlobalFilter` is a drop-in replacement.
 
 ## 5. Build Changes
 
@@ -147,6 +174,10 @@ The following outlines deprecations that were introduced in version 8 of the SDK
 
   To enable session tracking, it is recommended to unset `autoSessionTracking` and ensure that either, in browser environments the `browserSessionIntegration` is added, or in server environments the `httpIntegration` is added.
   To disable session tracking, it is recommended unset `autoSessionTracking` and to remove the `browserSessionIntegration` in browser environments, or in server environments configure the `httpIntegration` with the `trackIncomingRequestsAsSessions` option set to `false`.
+
+- **The metrics API has been removed from the SDK.**
+
+The Sentry metrics beta has ended and the metrics API has been removed from the SDK. Learn more in [help center docs](https://sentry.zendesk.com/hc/en-us/articles/26369339769883-Metrics-Beta-Ended-on-October-7th).
 
 ## `@sentry/utils`
 

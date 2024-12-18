@@ -77,7 +77,6 @@ import {
   getFunctionName as getFunctionName_imported,
   getGlobalSingleton as getGlobalSingleton_imported,
   getLocationHref as getLocationHref_imported,
-  getNumberOfUrlSegments as getNumberOfUrlSegments_imported,
   getOriginalFunction as getOriginalFunction_imported,
   getSDKSource as getSDKSource_imported,
   getSanitizedUrlString as getSanitizedUrlString_imported,
@@ -643,10 +642,6 @@ export const addRequestDataToEvent = addRequestDataToEvent_imported;
 /** @deprecated Import from `@sentry/core` instead. */
 // eslint-disable-next-line deprecation/deprecation
 export const BAGGAGE_HEADER_NAME = BAGGAGE_HEADER_NAME_imported;
-
-/** @deprecated Import from `@sentry/core` instead. */
-// eslint-disable-next-line deprecation/deprecation
-export const getNumberOfUrlSegments = getNumberOfUrlSegments_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
 export const getSanitizedUrlString = getSanitizedUrlString_imported;

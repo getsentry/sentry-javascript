@@ -13,13 +13,11 @@ const LazyLoadableIntegrations = {
   captureConsoleIntegration: 'captureconsole',
   contextLinesIntegration: 'contextlines',
   linkedErrorsIntegration: 'linkederrors',
-  debugIntegration: 'debug',
   dedupeIntegration: 'dedupe',
   extraErrorDataIntegration: 'extraerrordata',
   httpClientIntegration: 'httpclient',
   reportingObserverIntegration: 'reportingobserver',
   rewriteFramesIntegration: 'rewriteframes',
-  sessionTimingIntegration: 'sessiontiming',
   browserProfilingIntegration: 'browserprofiling',
   moduleMetadataIntegration: 'modulemetadata',
 } as const;

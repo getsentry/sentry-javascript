@@ -26,6 +26,3 @@ export declare function flush(timeout?: number | undefined): PromiseLike<boolean
 export declare function lastEventId(): string | undefined;
 
 export declare const continueTrace: typeof clientSdk.continueTrace;
-
-// eslint-disable-next-line deprecation/deprecation
-export declare const metrics: typeof clientSdk.metrics & typeof serverSdk.metrics;

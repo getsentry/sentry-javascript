@@ -44,6 +44,9 @@
     "access": "public"
   },
   "dependencies": {
+    "@opentelemetry/core": "^1.29.0",
+    "@opentelemetry/instrumentation": "^0.56.0",
+    "@opentelemetry/instrumentation-nestjs-core": "0.43.0",
     "@sentry/core": "8.45.0",
     "@sentry/node": "8.45.0"
   },
@@ -68,7 +71,7 @@
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts && madge --circular src/setup.ts",
-    "clean": "rimraf build coverage sentry-node-*.tgz",
+    "clean": "rimraf build coverage sentry-nestjs-*.tgz ./*.d.ts ./*.d.ts.map",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
     "test": "vitest run",
