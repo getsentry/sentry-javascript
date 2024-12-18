@@ -96,6 +96,19 @@ It will be removed in a future major version.
 
 - The `debugIntegration` has been removed. To log outgoing events, use [Hook Options](https://docs.sentry.io/platforms/javascript/configuration/options/#hooks) (`beforeSend`, `beforeSendTransaction`, ...).
 - The `sessionTimingIntegration` has been removed. To capture session durations alongside events, use [Context](https://docs.sentry.io/platforms/javascript/enriching-events/context/) (`Sentry.setContext()`).
+- The `addOpenTelemetryInstrumentation` method has been removed. Use the `openTelemetryInstrumentations` option in `Sentry.init()` or your custom Sentry Client instead.
+
+```js
+import * as Sentry from '@sentry/node';
+
+// before
+Sentry.addOpenTelemetryInstrumentation(new GenericPoolInstrumentation());
+
+// after
+Sentry.init({
+  openTelemetryInstrumentations: [new GenericPoolInstrumentation()],
+});
+```
 
 ### `@sentry/react`
 
