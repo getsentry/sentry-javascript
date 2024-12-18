@@ -21,7 +21,7 @@ describe('Unit | util | getPrivacyOptions', () => {
       }),
     ).toMatchInlineSnapshot(`
       {
-        "blockSelector": ".custom-block,.sentry-block,[data-sentry-block],base[href="/"],iframe[srcdoc]:not([src])",
+        "blockSelector": ".custom-block,.sentry-block,[data-sentry-block],base,iframe[srcdoc]:not([src])",
         "ignoreSelector": ".custom-ignore,.sentry-ignore,[data-sentry-ignore],input[type="file"]",
         "maskTextSelector": ".custom-mask,.sentry-mask,[data-sentry-mask]",
         "unblockSelector": ".custom-unblock",

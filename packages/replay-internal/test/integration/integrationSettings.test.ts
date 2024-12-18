@@ -18,7 +18,7 @@ describe('Integration | integrationSettings', () => {
       const { replay } = await mockSdk({ replayOptions: { blockAllMedia: false } });
 
       expect(replay['_recordingOptions'].blockSelector).toBe(
-        '.sentry-block,[data-sentry-block],base[href="/"],iframe[srcdoc]:not([src])',
+        '.sentry-block,[data-sentry-block],base,iframe[srcdoc]:not([src])',
       );
     });
   });
