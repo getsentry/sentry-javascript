@@ -1,6 +1,4 @@
 export { applyAggregateErrorsToEvent } from './aggregate-errors';
-// eslint-disable-next-line deprecation/deprecation
-export { flatten } from './array';
 export { getBreadcrumbLogLevelFromHttpStatusCode } from './breadcrumb-log-level';
 export { getComponentName, getDomElement, getLocationHref, htmlTreeAsString } from './browser';
 export { dsnFromString, dsnToString, makeDsn } from './dsn';
