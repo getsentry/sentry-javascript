@@ -106,7 +106,6 @@ import {
   loadModule as loadModule_imported,
   logger as logger_imported,
   makeDsn as makeDsn_imported,
-  makeFifoCache as makeFifoCache_imported,
   makePromiseBuffer as makePromiseBuffer_imported,
   markFunctionWrapped as markFunctionWrapped_imported,
   maybeInstrument as maybeInstrument_imported,
@@ -631,10 +630,6 @@ export const parseUrl = parseUrl_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
 export const stripUrlQueryAndFragment = stripUrlQueryAndFragment_imported;
-
-/** @deprecated Import from `@sentry/core` instead. */
-// eslint-disable-next-line deprecation/deprecation
-export const makeFifoCache = makeFifoCache_imported;
 
 import type {
   AddRequestDataToEventOptions as AddRequestDataToEventOptions_imported,

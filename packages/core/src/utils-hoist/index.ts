@@ -156,8 +156,6 @@ export {
 } from './baggage';
 
 export { getSanitizedUrlString, parseUrl, stripUrlQueryAndFragment } from './url';
-// eslint-disable-next-line deprecation/deprecation
-export { makeFifoCache } from './cache';
 export { eventFromMessage, eventFromUnknownInput, exceptionFromError, parseStackFrames } from './eventbuilder';
 export { callFrameToStackFrame, watchdogTimer } from './anr';
 export { LRUMap } from './lru';
