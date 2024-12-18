@@ -10,6 +10,14 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.47.0
+
+- feat(v8/core): Add `updateSpanName` helper function (#14736)
+- feat(v8/node): Do not overwrite prisma `db.system` in newer Prisma versions (#14772)
+- feat(v8/node/deps): Bump @prisma/instrumentation from 5.19.1 to 5.22.0 (#14755)
+- feat(v8/replay): Mask srcdoc iframe contents per default (#14779)
+- ref(v8/nextjs): Fix typo in source maps deletion warning (#14776)
+
 Work in this release was contributed by @aloisklink and @benjick. Thank you for your contributions!
 
 ## 8.46.0
