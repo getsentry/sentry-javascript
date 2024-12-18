@@ -106,6 +106,7 @@ It will be removed in a future major version.
 
 - The `getNumberOfUrlSegments` method has been removed. There is no replacement.
 - The `validSeverityLevels` export has been removed. There is no replacement.
+- The `makeFifoCache` method has been removed. There is no replacement.
 
 ### `@sentry/nestjs`
 
