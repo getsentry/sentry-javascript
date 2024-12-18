@@ -40,6 +40,6 @@
     "**/path-scurry/lru-cache": "10.2.0"
   },
   "engines": {
-    "node": ">=14.18"
+    "node": ">=18"
   }
 }

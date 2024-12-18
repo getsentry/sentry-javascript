@@ -7,7 +7,7 @@
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=14.18"
+    "node": ">=18"
   },
   "main": "build/cjs/index.server.js",
   "module": "build/esm/index.server.js",
@@ -118,7 +118,6 @@
     "test": "yarn test:unit",
     "test:all": "run-s test:unit",
     "test:unit": "jest",
-    "test:types": "cd test/types && yarn test",
     "test:watch": "jest --watch",
     "vercel:branch": "source vercel/set-up-branch-for-test-app-use.sh",
     "vercel:project": "source vercel/make-project-use-current-branch.sh",

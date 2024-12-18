@@ -12,7 +12,7 @@
     "sentry"
   ],
   "engines": {
-    "node": ">=14.18"
+    "node": ">=18"
   },
   "files": [
     "/src"

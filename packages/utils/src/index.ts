@@ -155,7 +155,6 @@ import {
   updateRateLimits as updateRateLimits_imported,
   urlEncode as urlEncode_imported,
   uuid4 as uuid4_imported,
-  validSeverityLevels as validSeverityLevels_imported,
   vercelWaitUntil as vercelWaitUntil_imported,
   watchdogTimer as watchdogTimer_imported,
   winterCGHeadersToDict as winterCGHeadersToDict_imported,
@@ -339,10 +338,6 @@ export const winterCGRequestToRequestData = winterCGRequestToRequestData_importe
 
 /** @deprecated Import from `@sentry/core` instead. */
 export const severityLevelFromString = severityLevelFromString_imported;
-
-/** @deprecated Import from `@sentry/core` instead. */
-// eslint-disable-next-line deprecation/deprecation
-export const validSeverityLevels = validSeverityLevels_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
 export const UNKNOWN_FUNCTION = UNKNOWN_FUNCTION_imported;

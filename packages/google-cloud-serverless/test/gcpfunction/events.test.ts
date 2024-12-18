@@ -45,8 +45,8 @@ describe('wrapEventFunction', () => {
 
   function handleEvent(fn: EventFunctionWithCallback): Promise<any> {
     return new Promise((resolve, reject) => {
+      // eslint-disable-next-line deprecation/deprecation
       const d = domain.create();
-      // d.on('error', () => res.end());
       const context = {
         eventType: 'event.type',
         resource: 'some.resource',

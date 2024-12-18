@@ -2,16 +2,7 @@ import * as childProcess from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 
-type NodeVersion = '14' | '16' | '18' | '20' | '21';
-
-interface VersionConfig {
-  ignoredPackages: Array<`@${'sentry' | 'sentry-internal'}/${string}`>;
-}
-
 const UNIT_TEST_ENV = process.env.UNIT_TEST_ENV as 'node' | 'browser' | undefined;
-
-const CURRENT_NODE_VERSION = process.version.replace('v', '').split('.')[0] as NodeVersion;
-
 const RUN_AFFECTED = process.argv.includes('--affected');
 
 // These packages are tested separately in CI, so no need to run them here
@@ -34,35 +25,6 @@ const BROWSER_TEST_PACKAGES = [
   '@sentry-internal/feedback',
   '@sentry/wasm',
 ];
-
-// These are Node-version specific tests that need to be skipped because of support
-const SKIP_TEST_PACKAGES: Record<NodeVersion, VersionConfig> = {
-  '14': {
-    ignoredPackages: [
-      '@sentry/cloudflare',
-      '@sentry/solidstart',
-      '@sentry/sveltekit',
-      '@sentry/vercel-edge',
-      '@sentry/astro',
-      '@sentry/nuxt',
-      '@sentry/nestjs',
-      '@sentry-internal/eslint-plugin-sdk',
-      '@sentry-internal/nitro-utils',
-    ],
-  },
-  '16': {
-    ignoredPackages: ['@sentry/cloudflare', '@sentry/vercel-edge', '@sentry/astro', '@sentry/solidstart'],
-  },
-  '18': {
-    ignoredPackages: [],
-  },
-  '20': {
-    ignoredPackages: [],
-  },
-  '21': {
-    ignoredPackages: [],
-  },
-};
 
 function getAllPackages(): string[] {
   const { workspaces }: { workspaces: string[] } = JSON.parse(
@@ -94,11 +56,6 @@ function runTests(): void {
     });
   } else if (UNIT_TEST_ENV === 'node') {
     BROWSER_TEST_PACKAGES.forEach(pkg => ignores.add(pkg));
-  }
-
-  const versionConfig = SKIP_TEST_PACKAGES[CURRENT_NODE_VERSION];
-  if (versionConfig) {
-    versionConfig.ignoredPackages.forEach(dep => ignores.add(dep));
   }
 
   if (RUN_AFFECTED) {

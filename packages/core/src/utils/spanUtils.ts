@@ -1,8 +1,6 @@
 import { getAsyncContextStrategy } from '../asyncContext';
 import { getMainCarrier } from '../carrier';
 import { getCurrentScope } from '../currentScopes';
-import { getMetricSummaryJsonForSpan, updateMetricSummaryOnSpan } from '../metrics/metric-summary';
-import type { MetricType } from '../metrics/types';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -12,8 +10,6 @@ import {
 import type { SentrySpan } from '../tracing/sentrySpan';
 import { SPAN_STATUS_OK, SPAN_STATUS_UNSET } from '../tracing/spanstatus';
 import type {
-  MeasurementUnit,
-  Primitive,
   Span,
   SpanAttributes,
   SpanJSON,
@@ -140,7 +136,6 @@ export function spanToJSON(span: Span): SpanJSON {
       status: getStatusMessage(status),
       op: attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP],
       origin: attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined,
-      _metrics_summary: getMetricSummaryJsonForSpan(span),
     });
   }
 
@@ -279,23 +274,6 @@ export function getActiveSpan(): Span | undefined {
   }
 
   return _getSpanForScope(getCurrentScope());
-}
-
-/**
- * Updates the metric summary on the currently active span
- */
-export function updateMetricSummaryOnActiveSpan(
-  metricType: MetricType,
-  sanitizedName: string,
-  value: number,
-  unit: MeasurementUnit,
-  tags: Record<string, Primitive>,
-  bucketKey: string,
-): void {
-  const span = getActiveSpan();
-  if (span) {
-    updateMetricSummaryOnSpan(span, metricType, sanitizedName, value, unit, tags, bucketKey);
-  }
 }
 
 /**

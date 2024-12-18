@@ -17,7 +17,7 @@
 
 ## Angular Version Compatibility
 
-This SDK officially supports Angular 15 to 17.
+This SDK officially supports Angular 14 to 19.
 
 If you're using an older Angular version please check the
 [compatibility table in the docs](https://docs.sentry.io/platforms/javascript/guides/angular/#angular-version-compatibility).
@@ -33,24 +33,17 @@ in `@sentry/browser` can be imported from `@sentry/angular`.
 To use this SDK, call `Sentry.init(options)` before you bootstrap your Angular application.
 
 ```javascript
-import { enableProdMode } from '@angular/core';
-import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
+import { bootstrapApplication } from '@angular/platform-browser';
 import { init } from '@sentry/angular';
 
-import { AppModule } from './app/app.module';
+import { AppComponent } from './app/app.component';
 
 init({
   dsn: '__DSN__',
   // ...
 });
 
-// ...
-
-enableProdMode();
-platformBrowserDynamic()
-  .bootstrapModule(AppModule)
-  .then(success => console.log(`Bootstrap success`))
-  .catch(err => console.error(err));
+bootstrapApplication(AppComponent, appConfig);
 ```
 
 ### ErrorHandler
@@ -58,10 +51,22 @@ platformBrowserDynamic()
 `@sentry/angular` exports a function to instantiate an ErrorHandler provider that will automatically send Javascript
 errors captured by the Angular's error handler.
 
-```javascript
-import { NgModule, ErrorHandler } from '@angular/core';
+```ts
+import { ApplicationConfig, NgModule, ErrorHandler } from '@angular/core';
 import { createErrorHandler } from '@sentry/angular';
 
+export const appConfig: ApplicationConfig = {
+  providers: [
+    {
+      provide: ErrorHandler,
+      useValue: createErrorHandler({
+        showDialog: true,
+      }),
+    },
+  ],
+};
+
+// Or using an old module approach:
 @NgModule({
   // ...
   providers: [
@@ -104,42 +109,27 @@ init({
 });
 ```
 
-2. Register `SentryTrace` as a provider in Angular's DI system, with a `Router` as its dependency:
+2. Inject the `TraceService` in the `APP_INITIALIZER`:
 
-```javascript
-import { NgModule } from '@angular/core';
-import { Router } from '@angular/router';
-import { TraceService } from '@sentry/angular';
+```ts
+import { ApplicationConfig, APP_INITIALIZER, provideAppInitializer } from '@angular/core';
 
-@NgModule({
-  // ...
+export const appConfig: ApplicationConfig = {
   providers: [
     {
-      provide: TraceService,
-      deps: [Router],
+      provide: APP_INITIALIZER,
+      useFactory: () => () => {},
+      deps: [TraceService],
+      multi: true,
     },
+
+    // Starting with Angular 19, we can use `provideAppInitializer`
+    // instead of directly providing `APP_INITIALIZER` (deprecated):
+    provideAppInitializer(() => inject(TraceService)),
   ],
-  // ...
-})
-export class AppModule {}
-```
+};
 
-3. Either require the `TraceService` from inside `AppModule` or use `APP_INITIALIZER` to force-instantiate Tracing.
-
-```javascript
-@NgModule({
-  // ...
-})
-export class AppModule {
-  constructor(trace: TraceService) {}
-}
-```
-
-or
-
-```javascript
-import { APP_INITIALIZER } from '@angular/core';
-
+// Or using an old module approach:
 @NgModule({
   // ...
   providers: [
@@ -149,6 +139,10 @@ import { APP_INITIALIZER } from '@angular/core';
       deps: [TraceService],
       multi: true,
     },
+
+    // Starting with Angular 19, we can use `provideAppInitializer`
+    // instead of directly providing `APP_INITIALIZER` (deprecated):
+    provideAppInitializer(() => inject(TraceService)),
   ],
   // ...
 })
@@ -161,15 +155,15 @@ To track Angular components as part of your transactions, you have 3 options.
 
 _TraceDirective:_ used to track a duration between `OnInit` and `AfterViewInit` lifecycle hooks in template:
 
-```javascript
+```ts
 import { TraceModule } from '@sentry/angular';
 
-@NgModule({
-  // ...
+@Component({
+  selector: 'some-component',
   imports: [TraceModule],
   // ...
 })
-export class AppModule {}
+export class SomeComponentThatUsesTraceDirective {}
 ```
 
 Then, inside your component's template (keep in mind that the directive's name attribute is required):
