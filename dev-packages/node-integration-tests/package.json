@@ -16,7 +16,7 @@
     "build:types": "tsc -p tsconfig.types.json",
     "clean": "rimraf -g **/node_modules && run-p clean:script",
     "clean:script": "node scripts/clean.js",
-    "prisma:init": "(cd suites/tracing/prisma-orm && ts-node ./setup.ts)",
+    "prisma:init": "cd suites/tracing/prisma-orm && yarn && yarn setup",
     "lint": "eslint . --format stylish",
     "fix": "eslint . --format stylish --fix",
     "type-check": "tsc",
