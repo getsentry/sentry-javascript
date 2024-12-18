@@ -1,9 +1,0 @@
-{
-  "description": "This is used to install the nextjs v12 so we can test against those types",
-  "scripts": {
-    "test": "yarn && yarn tsc --noEmit --project tsconfig.json"
-  },
-  "dependencies": {
-    "next": "13.2.0"
-  }
-}
