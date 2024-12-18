@@ -108,6 +108,7 @@ It will be removed in a future major version.
 
 ### `@sentry/nestjs`
 
+- Removed `WithSentry` decorator. Use `SentryExceptionCaptured` instead.
 - Removed `SentryService`.
   If you are using `@sentry/nestjs` you can safely remove any references to the `SentryService`.
   If you are using another package migrate to `@sentry/nestjs` and remove the `SentryService` afterwards.
