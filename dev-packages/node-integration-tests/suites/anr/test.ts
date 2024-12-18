@@ -1,5 +1,4 @@
 import type { Event } from '@sentry/core';
-import { conditionalTest } from '../../utils';
 import { cleanupChildProcesses, createRunner } from '../../utils/runner';
 
 const ANR_EVENT = {
@@ -107,7 +106,7 @@ const ANR_EVENT_WITH_DEBUG_META: Event = {
   },
 };
 
-conditionalTest({ min: 16 })('should report ANR when event loop blocked', () => {
+describe('should report ANR when event loop blocked', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });

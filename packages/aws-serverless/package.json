@@ -7,7 +7,7 @@
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=14.18"
+    "node": ">=18"
   },
   "files": [
     "/build/npm",
@@ -73,7 +73,7 @@
     "@types/aws-lambda": "^8.10.62"
   },
   "devDependencies": {
-    "@types/node": "^14.18.0"
+    "@types/node": "^18.19.1"
   },
   "scripts": {
     "build": "run-p build:transpile build:types build:bundle",

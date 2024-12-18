@@ -1,7 +1,6 @@
-import { conditionalTest } from '../../../utils';
 import { createRunner } from '../../../utils/runner';
 
-conditionalTest({ min: 16 })('Prisma ORM Tests', () => {
+describe('Prisma ORM Tests', () => {
   test('CJS - should instrument PostgreSQL queries from Prisma ORM', done => {
     createRunner(__dirname, 'scenario.js')
       .expect({
