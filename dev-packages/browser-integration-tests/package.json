@@ -4,12 +4,12 @@
   "main": "index.js",
   "license": "MIT",
   "engines": {
-    "node": ">=14.18"
+    "node": ">=18"
   },
   "private": true,
   "scripts": {
     "clean": "rimraf -g suites/**/dist loader-suites/**/dist tmp",
-    "install-browsers": "[[ -z \"$SKIP_PLAYWRIGHT_BROWSER_INSTALL\" ]] && yarn npx playwright install --with-deps || echo 'Skipping browser installation'",
+    "install-browsers": "[[ -z \"$SKIP_PLAYWRIGHT_BROWSER_INSTALL\" ]] && npx playwright install --with-deps || echo 'Skipping browser installation'",
     "lint": "eslint . --format stylish",
     "fix": "eslint . --format stylish --fix",
     "type-check": "tsc",
@@ -52,7 +52,7 @@
   },
   "devDependencies": {
     "@types/glob": "8.0.0",
-    "@types/node": "^14.18.0",
+    "@types/node": "^18.19.1",
     "@types/pako": "^2.0.0",
     "glob": "8.0.3"
   },

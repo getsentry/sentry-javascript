@@ -231,7 +231,6 @@ describe('SentrySpan', () => {
 
       expect(captureEventSpy).toHaveBeenCalledTimes(1);
       expect(captureEventSpy).toHaveBeenCalledWith({
-        _metrics_summary: undefined,
         contexts: {
           trace: {
             data: {

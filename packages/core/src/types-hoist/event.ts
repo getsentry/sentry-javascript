@@ -13,7 +13,7 @@ import type { PolymorphicRequest } from './polymorphics';
 import type { RequestEventData } from './request';
 import type { SdkInfo } from './sdkinfo';
 import type { SeverityLevel } from './severity';
-import type { MetricSummary, SpanJSON } from './span';
+import type { SpanJSON } from './span';
 import type { Thread } from './thread';
 import type { TransactionSource } from './transaction';
 import type { User } from './user';
@@ -82,7 +82,6 @@ export interface ErrorEvent extends Event {
 }
 export interface TransactionEvent extends Event {
   type: 'transaction';
-  _metrics_summary?: Record<string, Array<MetricSummary>>;
 }
 
 /** JSDoc */

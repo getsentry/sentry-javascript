@@ -1,5 +1,4 @@
 import type { Measurements } from './measurement';
-import type { Primitive } from './misc';
 import type { HrTime } from './opentelemetry';
 import type { SpanStatus } from './spanStatus';
 import type { TransactionSource } from './transaction';
@@ -31,14 +30,6 @@ export type SpanAttributes = Partial<{
 }> &
   Record<string, SpanAttributeValue | undefined>;
 
-export type MetricSummary = {
-  min: number;
-  max: number;
-  count: number;
-  sum: number;
-  tags?: Record<string, Primitive> | undefined;
-};
-
 /** This type is aligned with the OpenTelemetry TimeInput type. */
 export type SpanTimeInput = HrTime | number | Date;
 
@@ -54,7 +45,6 @@ export interface SpanJSON {
   timestamp?: number;
   trace_id: string;
   origin?: SpanOrigin;
-  _metrics_summary?: Record<string, Array<MetricSummary>>;
   profile_id?: string;
   exclusive_time?: number;
   measurements?: Measurements;

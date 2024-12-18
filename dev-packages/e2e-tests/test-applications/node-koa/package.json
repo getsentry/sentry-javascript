@@ -13,7 +13,7 @@
     "@koa/bodyparser": "^5.1.1",
     "@koa/router": "^12.0.1",
     "@sentry/node": "latest || *",
-    "@types/node": "18.15.1",
+    "@types/node": "^18.19.1",
     "koa": "^2.15.2",
     "typescript": "4.9.5"
   },

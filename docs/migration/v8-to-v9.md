@@ -24,8 +24,8 @@ This includes features like Nullish Coalescing (`??`), Optional Chaining (`?.`),
 If you observe failures due to syntax or features listed above, it may be an indicator that your current runtime does not support ES2020.
 If your runtime does not support ES2020, we recommend transpiling the SDK using Babel or similar tooling.
 
-**Node.js:** The minimum supported Node.js versions are TBD, TBD, and TBD.
-We no longer test against Node TBD, TBD, or TBD and cannot guarantee that the SDK will work as expected on these versions.
+**Node.js:** The minimum supported Node.js version is **18.0.0**, except for ESM-only SDKs (nuxt, solidstart, astro) which require Node **18.19.1** or up.
+We no longer test against Node 14 and Node 16 and cannot guarantee that the SDK will work as expected on these versions.
 
 **Browsers:** Due to SDK code now including ES2020 features, the minimum supported browser list now looks as follows:
 
@@ -108,7 +108,20 @@ It will be removed in a future major version.
 
 ### `@sentry/nestjs`
 
-- The `WithSentry` decorator has been removed. Use `SentryExceptionCaptured` instead.
+- Removed `WithSentry` decorator. Use `SentryExceptionCaptured` instead.
+- Removed `SentryService`.
+  If you are using `@sentry/nestjs` you can safely remove any references to the `SentryService`.
+  If you are using another package migrate to `@sentry/nestjs` and remove the `SentryService` afterwards.
+- Removed `SentryTracingInterceptor`.
+  If you are using `@sentry/nestjs` you can safely remove any references to the `SentryTracingInterceptor`.
+  If you are using another package migrate to `@sentry/nestjs` and remove the `SentryTracingInterceptor` afterwards.
+- Removed `SentryGlobalGenericFilter`.
+  Use the `SentryGlobalFilter` instead.
+  The `SentryGlobalFilter` is a drop-in replacement.
+- Removed `SentryGlobalGraphQLFilter`.
+  Use the `SentryGlobalFilter` instead.
+  The `SentryGlobalFilter` is a drop-in replacement.
+
 
 ## 5. Build Changes
 
@@ -163,6 +176,10 @@ The following outlines deprecations that were introduced in version 8 of the SDK
 
   To enable session tracking, it is recommended to unset `autoSessionTracking` and ensure that either, in browser environments the `browserSessionIntegration` is added, or in server environments the `httpIntegration` is added.
   To disable session tracking, it is recommended unset `autoSessionTracking` and to remove the `browserSessionIntegration` in browser environments, or in server environments configure the `httpIntegration` with the `trackIncomingRequestsAsSessions` option set to `false`.
+
+- **The metrics API has been removed from the SDK.**
+
+The Sentry metrics beta has ended and the metrics API has been removed from the SDK. Learn more in [help center docs](https://sentry.zendesk.com/hc/en-us/articles/26369339769883-Metrics-Beta-Ended-on-October-7th).
 
 ## `@sentry/utils`
 

@@ -67,8 +67,6 @@ export {
   withActiveSpan,
   getSpanDescendants,
   continueTrace,
-  // eslint-disable-next-line deprecation/deprecation
-  metrics,
   functionToStringIntegration,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
