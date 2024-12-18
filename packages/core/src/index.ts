@@ -101,13 +101,7 @@ export { extraErrorDataIntegration } from './integrations/extraerrordata';
 export { rewriteFramesIntegration } from './integrations/rewriteframes';
 export { zodErrorsIntegration } from './integrations/zoderrors';
 export { thirdPartyErrorFilterIntegration } from './integrations/third-party-errors-filter';
-// eslint-disable-next-line deprecation/deprecation
-export { metrics } from './metrics/exports';
 export { profiler } from './profiling';
-// eslint-disable-next-line deprecation/deprecation
-export { metricsDefault } from './metrics/exports-default';
-export { BrowserMetricsAggregator } from './metrics/browser-aggregator';
-export { getMetricSummaryJsonForSpan } from './metrics/metric-summary';
 export {
   // eslint-disable-next-line deprecation/deprecation
   addTracingHeadersToFetchRequest,
