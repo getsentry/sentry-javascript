@@ -28,7 +28,6 @@ import {
   addNormalizedRequestDataToEvent as addNormalizedRequestDataToEvent_imported,
   addRequestDataToEvent as addRequestDataToEvent_imported,
   applyAggregateErrorsToEvent as applyAggregateErrorsToEvent_imported,
-  arrayify as arrayify_imported,
   baggageHeaderToDynamicSamplingContext as baggageHeaderToDynamicSamplingContext_imported,
   basename as basename_imported,
   browserPerformanceTimeOrigin as browserPerformanceTimeOrigin_imported,
@@ -606,10 +605,6 @@ export const flatten = flatten_imported;
 /** @deprecated Import from `@sentry/core` instead. */
 // eslint-disable-next-line deprecation/deprecation
 export const memoBuilder = memoBuilder_imported;
-
-/** @deprecated Import from `@sentry/core` instead. */
-// eslint-disable-next-line deprecation/deprecation
-export const arrayify = arrayify_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
 export const normalizeUrlToBase = normalizeUrlToBase_imported;
