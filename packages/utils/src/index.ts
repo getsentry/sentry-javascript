@@ -1,6 +1,5 @@
 /* eslint-disable max-lines */
 import {
-  BAGGAGE_HEADER_NAME as BAGGAGE_HEADER_NAME_imported,
   CONSOLE_LEVELS as CONSOLE_LEVELS_imported,
   DEFAULT_RETRY_AFTER as DEFAULT_RETRY_AFTER_imported,
   DEFAULT_USER_INCLUDES as DEFAULT_USER_INCLUDES_imported,
@@ -633,10 +632,6 @@ export const extractRequestData = extractRequestData_imported;
 /** @deprecated Import from `@sentry/core` instead. */
 // eslint-disable-next-line deprecation/deprecation
 export const addRequestDataToEvent = addRequestDataToEvent_imported;
-
-/** @deprecated Import from `@sentry/core` instead. */
-// eslint-disable-next-line deprecation/deprecation
-export const BAGGAGE_HEADER_NAME = BAGGAGE_HEADER_NAME_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
 export const getSanitizedUrlString = getSanitizedUrlString_imported;

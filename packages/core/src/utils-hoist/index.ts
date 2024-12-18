@@ -151,8 +151,6 @@ export {
 } from './ratelimit';
 export type { RateLimits } from './ratelimit';
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  BAGGAGE_HEADER_NAME,
   MAX_BAGGAGE_STRING_LENGTH,
   SENTRY_BAGGAGE_KEY_PREFIX,
   SENTRY_BAGGAGE_KEY_PREFIX_REGEX,
