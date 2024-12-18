@@ -107,7 +107,7 @@ It will be removed in a future major version.
 - The `getNumberOfUrlSegments` method has been removed. There is no replacement.
 - The `validSeverityLevels` export has been removed. There is no replacement.
 - The `arrayify` export has been removed. There is no replacement.
-- The `BAGGAGE_HEADER_NAME` export has been removed. There is no replacement.
+- The `BAGGAGE_HEADER_NAME` export has been removed. Use `"baggage"` string constant directly instead.
 
 ### `@sentry/nestjs`
 
@@ -197,7 +197,7 @@ The Sentry metrics beta has ended and the metrics API has been removed from the 
 - Deprecated `arrayify`. No replacements.
 - Deprecated `memoBuilder`. No replacements.
 - Deprecated `getNumberOfUrlSegments`. No replacements.
-- Deprecated `BAGGAGE_HEADER_NAME`. No replacements.
+- Deprecated `BAGGAGE_HEADER_NAME`. Use `"baggage"` string constant directly instead.
 - Deprecated `makeFifoCache`. No replacements.
 - Deprecated `dynamicRequire`. No replacements.
 - Deprecated `flatten`. No replacements.
