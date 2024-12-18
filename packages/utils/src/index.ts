@@ -61,7 +61,6 @@ import {
   extractTraceparentData as extractTraceparentData_imported,
   filenameIsInApp as filenameIsInApp_imported,
   fill as fill_imported,
-  flatten as flatten_imported,
   forEachEnvelopeItem as forEachEnvelopeItem_imported,
   generatePropagationContext as generatePropagationContext_imported,
   generateSentryTraceHeader as generateSentryTraceHeader_imported,
@@ -597,10 +596,6 @@ export const isNodeEnv = isNodeEnv_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
 export const loadModule = loadModule_imported;
-
-/** @deprecated Import from `@sentry/core` instead. */
-// eslint-disable-next-line deprecation/deprecation
-export const flatten = flatten_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
 // eslint-disable-next-line deprecation/deprecation

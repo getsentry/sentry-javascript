@@ -108,6 +108,7 @@ It will be removed in a future major version.
 - The `validSeverityLevels` export has been removed. There is no replacement.
 - The `arrayify` export has been removed. There is no replacement.
 - The `BAGGAGE_HEADER_NAME` export has been removed. Use `"baggage"` string constant directly instead.
+- The `flatten` export has been removed. There is no replacement.
 
 ### `@sentry/nestjs`
 
