@@ -31,7 +31,7 @@ const _prismaIntegration = (() => {
 
         // In Prisma v5.22+, the `db.system` attribute is automatically set
         // On older versions, this is missing, so we add it here
-        if (spanJSON.description === 'prisma:engine:db_query' && !spanJSON.data['db.system']) {
+        if (spanJSON.description === 'prisma:engine:db_query' && !spanJSON.data?.['db.system']) {
           span.setAttribute('db.system', 'prisma');
         }
       });
