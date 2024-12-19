@@ -1,4 +1,5 @@
 import { addBreadcrumb } from './breadcrumbs';
+import type { Client } from './client';
 import { getClient, getCurrentScope, getIsolationScope, withScope } from './currentScopes';
 import {
   captureEvent,
@@ -11,7 +12,7 @@ import {
   setUser,
   startSession,
 } from './exports';
-import type { Client, EventHint, Hub, Integration, IntegrationClass, SeverityLevel } from './types-hoist';
+import type { EventHint, Hub, Integration, IntegrationClass, SeverityLevel } from './types-hoist';
 
 /**
  * This is for legacy reasons, and returns a proxy object instead of a hub to be used.
