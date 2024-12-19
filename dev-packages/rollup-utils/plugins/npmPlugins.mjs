@@ -173,5 +173,3 @@ export function makeCodeCovPlugin() {
     uploadToken: process.env.CODECOV_TOKEN,
   });
 }
-
-export { makeExtractPolyfillsPlugin } from './extractPolyfillsPlugin.mjs';

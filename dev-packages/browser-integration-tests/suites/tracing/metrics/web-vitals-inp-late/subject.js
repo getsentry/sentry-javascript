@@ -1,17 +1,19 @@
-const blockUI = (delay = 70) => e => {
-  const startTime = Date.now();
+const blockUI =
+  (delay = 70) =>
+  e => {
+    const startTime = Date.now();
 
-  function getElasped() {
-    const time = Date.now();
-    return time - startTime;
-  }
+    function getElasped() {
+      const time = Date.now();
+      return time - startTime;
+    }
 
-  while (getElasped() < delay) {
-    //
-  }
+    while (getElasped() < delay) {
+      //
+    }
 
-  e.target.classList.add('clicked');
-};
+    e.target.classList.add('clicked');
+  };
 
 document.querySelector('[data-test-id=not-so-slow-button]').addEventListener('click', blockUI(300));
 document.querySelector('[data-test-id=slow-button]').addEventListener('click', blockUI(450));

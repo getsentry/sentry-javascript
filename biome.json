@@ -3,7 +3,8 @@
   "vcs": {
     "enabled": true,
     "clientKind": "git",
-    "useIgnoreFile": true
+    "useIgnoreFile": true,
+    "defaultBranch": "develop"
   },
   "organizeImports": {
     "enabled": true
@@ -17,13 +18,15 @@
         "noUnusedVariables": "error",
         "noPrecisionLoss": "error"
       },
+      "complexity": {
+        "useRegexLiterals": "error"
+      },
       "suspicious": {
         "all": false,
         "noControlCharactersInRegex": "error"
       },
       "nursery": {
-        "noUnusedImports": "error",
-        "useRegexLiterals": "error"
+        "noUnusedImports": "error"
       },
       "performance": {
         "all": true,
@@ -32,17 +35,16 @@
       }
     },
     "ignore": [
-      ".vscode/*",
+      ".vscode",
       "**/*.json",
-      ".next/**/*",
-      ".svelte-kit/**/*",
       "**/fixtures/*/*.json",
       "**/*.min.js",
-      ".next/**",
-      ".svelte-kit/**",
-      ".angular/**",
+      ".next",
+      ".nuxt",
+      ".svelte-kit",
+      ".angular",
       "angular.json",
-      "ember/instance-initializers/**",
+      "ember/instance-initializers",
       "ember/types.d.ts",
       "solidstart/*.d.ts",
       "solidstart/client/",
@@ -92,6 +94,10 @@
   "json": {
     "formatter": {
       "enabled": true
+    },
+    "parser": {
+      "allowComments": true,
+      "allowTrailingCommas": true
     }
   }
 }

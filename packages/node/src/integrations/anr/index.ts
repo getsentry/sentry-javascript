@@ -14,6 +14,7 @@ import {
 } from '@sentry/core';
 import { NODE_VERSION } from '../../nodeVersion';
 import type { NodeClient } from '../../sdk/client';
+import { isDebuggerEnabled } from '../../utils/debug';
 import type { AnrIntegrationOptions, WorkerStartData } from './common';
 
 const { isPromise } = types;
@@ -98,8 +99,13 @@ const _anrIntegration = ((options: Partial<AnrIntegrationOptions> = {}) => {
         });
       }
     },
-    setup(initClient: NodeClient) {
+    async setup(initClient: NodeClient) {
       client = initClient;
+
+      if (options.captureStackTrace && (await isDebuggerEnabled())) {
+        logger.warn('ANR captureStackTrace has been disabled because the debugger was already enabled');
+        options.captureStackTrace = false;
+      }
 
       // setImmediate is used to ensure that all other integrations have had their setup called first.
       // This allows us to call into all integrations to fetch the full context
