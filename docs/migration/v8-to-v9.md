@@ -111,6 +111,7 @@ It will be removed in a future major version.
 - The `BAGGAGE_HEADER_NAME` export has been removed. Use `"baggage"` string constant directly instead.
 - The `flatten` export has been removed. There is no replacement.
 - The `urlEncode` method has been removed. There is no replacement.
+- The `getDomElement` method has been removed. There is no replacement.
 
 ### `@sentry/nestjs`
 

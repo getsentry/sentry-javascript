@@ -1,6 +1,10 @@
 export { applyAggregateErrorsToEvent } from './aggregate-errors';
 export { getBreadcrumbLogLevelFromHttpStatusCode } from './breadcrumb-log-level';
-export { getComponentName, getDomElement, getLocationHref, htmlTreeAsString } from './browser';
+export {
+  getComponentName,
+  getLocationHref,
+  htmlTreeAsString,
+} from './browser';
 export { dsnFromString, dsnToString, makeDsn } from './dsn';
 export { SentryError } from './error';
 export { GLOBAL_OBJ } from './worldwide';
