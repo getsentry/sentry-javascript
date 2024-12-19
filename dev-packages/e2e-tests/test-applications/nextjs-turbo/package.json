@@ -36,10 +36,10 @@
     "@sentry/react": "latest || *",
     "@sentry-internal/replay": "latest || *",
     "@sentry/vercel-edge": "latest || *",
-    "import-in-the-middle": "1.11.2"
+    "import-in-the-middle": "1.12.0"
   },
   "overrides": {
-    "import-in-the-middle": "1.11.2"
+    "import-in-the-middle": "1.12.0"
   },
   "volta": {
     "extends": "../../package.json"
