@@ -211,15 +211,6 @@ function getClientOptions(
 ): NodeClientOptions {
   const release = getRelease(options.release);
 
-  const autoSessionTracking =
-    typeof release !== 'string'
-      ? false
-      : // eslint-disable-next-line deprecation/deprecation
-        options.autoSessionTracking === undefined
-        ? true
-        : // eslint-disable-next-line deprecation/deprecation
-          options.autoSessionTracking;
-
   if (options.spotlight == null) {
     const spotlightEnv = envToBool(process.env.SENTRY_SPOTLIGHT, { strict: true });
     if (spotlightEnv == null) {
@@ -240,7 +231,6 @@ function getClientOptions(
 
   const overwriteOptions = dropUndefinedKeys({
     release,
-    autoSessionTracking,
     tracesSampleRate,
   });
 

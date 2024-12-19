@@ -33,7 +33,7 @@ export function getDefaultIntegrations(options: Options): Integration[] {
    * Note: Please make sure this stays in sync with Angular SDK, which re-exports
    * `getDefaultIntegrations` but with an adjusted set of integrations.
    */
-  const integrations = [
+  return [
     inboundFiltersIntegration(),
     functionToStringIntegration(),
     browserApiErrorsIntegration(),
@@ -42,14 +42,8 @@ export function getDefaultIntegrations(options: Options): Integration[] {
     linkedErrorsIntegration(),
     dedupeIntegration(),
     httpContextIntegration(),
+    browserSessionIntegration(),
   ];
-
-  // eslint-disable-next-line deprecation/deprecation
-  if (options.autoSessionTracking !== false) {
-    integrations.push(browserSessionIntegration());
-  }
-
-  return integrations;
 }
 
 function applyDefaultOptions(optionsArg: BrowserOptions = {}): BrowserOptions {
@@ -61,7 +55,6 @@ function applyDefaultOptions(optionsArg: BrowserOptions = {}): BrowserOptions {
         : WINDOW.SENTRY_RELEASE && WINDOW.SENTRY_RELEASE.id // This supports the variable that sentry-webpack-plugin injects
           ? WINDOW.SENTRY_RELEASE.id
           : undefined,
-    autoSessionTracking: true,
     sendClientReports: true,
   };
 
