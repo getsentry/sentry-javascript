@@ -14,8 +14,8 @@
     "/*.d.ts",
     "/*.d.ts.map"
   ],
-  "main": "build/cjs/nestjs/index.js",
-  "module": "build/esm/nestjs/index.js",
+  "main": "build/cjs/index.js",
+  "module": "build/esm/index.js",
   "types": "build/types/index.d.ts",
   "exports": {
     "./package.json": "./package.json",
