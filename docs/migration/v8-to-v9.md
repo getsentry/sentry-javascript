@@ -218,6 +218,7 @@ The Sentry metrics beta has ended and the metrics API has been removed from the 
 - Deprecated `RequestSessionStatus` type. No replacements.
 - Deprecated `SessionFlusherLike` type. No replacements.
 - Deprecated `SessionFlusher`. No replacements.
+- Deprecated `initSessionFlusher` on `ServerRuntimeClient`. No replacements. The `httpIntegration` will flush sessions by itself.
 
 ## `@sentry/nestjs`
 

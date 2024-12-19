@@ -109,8 +109,6 @@ import type {
   ReplayRecordingMode as ReplayRecordingMode_imported,
   Request as Request_imported,
   RequestEventData as RequestEventData_imported,
-  RequestSession as RequestSession_imported,
-  RequestSessionStatus as RequestSessionStatus_imported,
   Runtime as Runtime_imported,
   SamplingContext as SamplingContext_imported,
   SanitizedRequestData as SanitizedRequestData_imported,
@@ -131,7 +129,6 @@ import type {
   SessionAggregates as SessionAggregates_imported,
   SessionContext as SessionContext_imported,
   SessionEnvelope as SessionEnvelope_imported,
-  SessionFlusherLike as SessionFlusherLike_imported,
   SessionItem as SessionItem_imported,
   SessionStatus as SessionStatus_imported,
   SeverityLevel as SeverityLevel_imported,
@@ -410,15 +407,6 @@ export type Session = Session_imported;
 export type SessionContext = SessionContext_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type SessionStatus = SessionStatus_imported;
-/** @deprecated This type has been moved to `@sentry/core`. */
-// eslint-disable-next-line deprecation/deprecation
-export type RequestSession = RequestSession_imported;
-/** @deprecated This type has been moved to `@sentry/core`. */
-// eslint-disable-next-line deprecation/deprecation
-export type RequestSessionStatus = RequestSessionStatus_imported;
-/** @deprecated This type has been moved to `@sentry/core`. */
-// eslint-disable-next-line deprecation/deprecation
-export type SessionFlusherLike = SessionFlusherLike_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type SerializedSession = SerializedSession_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
