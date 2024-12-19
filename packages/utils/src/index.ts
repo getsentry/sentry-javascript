@@ -2,7 +2,6 @@
 import {
   CONSOLE_LEVELS as CONSOLE_LEVELS_imported,
   DEFAULT_RETRY_AFTER as DEFAULT_RETRY_AFTER_imported,
-  DEFAULT_USER_INCLUDES as DEFAULT_USER_INCLUDES_imported,
   GLOBAL_OBJ as GLOBAL_OBJ_imported,
   LRUMap as LRUMap_imported,
   MAX_BAGGAGE_STRING_LENGTH as MAX_BAGGAGE_STRING_LENGTH_imported,
@@ -25,7 +24,6 @@ import {
   addHandler as addHandler_imported,
   addItemToEnvelope as addItemToEnvelope_imported,
   addNonEnumerableProperty as addNonEnumerableProperty_imported,
-  addNormalizedRequestDataToEvent as addNormalizedRequestDataToEvent_imported,
   applyAggregateErrorsToEvent as applyAggregateErrorsToEvent_imported,
   baggageHeaderToDynamicSamplingContext as baggageHeaderToDynamicSamplingContext_imported,
   basename as basename_imported,
@@ -319,9 +317,6 @@ export const objectify = objectify_imported;
 export const makePromiseBuffer = makePromiseBuffer_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
-export const addNormalizedRequestDataToEvent = addNormalizedRequestDataToEvent_imported;
-
-/** @deprecated Import from `@sentry/core` instead. */
 export const winterCGHeadersToDict = winterCGHeadersToDict_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
@@ -596,9 +591,6 @@ export const memoBuilder = memoBuilder_imported;
 export const normalizeUrlToBase = normalizeUrlToBase_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
-export const DEFAULT_USER_INCLUDES = DEFAULT_USER_INCLUDES_imported;
-
-/** @deprecated Import from `@sentry/core` instead. */
 export const getSanitizedUrlString = getSanitizedUrlString_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
@@ -608,7 +600,6 @@ export const parseUrl = parseUrl_imported;
 export const stripUrlQueryAndFragment = stripUrlQueryAndFragment_imported;
 
 import type {
-  AddRequestDataToEventOptions as AddRequestDataToEventOptions_imported,
   InternalGlobal as InternalGlobal_imported,
   PromiseBuffer as PromiseBuffer_imported,
   RateLimits as RateLimits_imported,
@@ -623,9 +614,6 @@ export type SdkSource = SdkSource_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
 export type RateLimits = RateLimits_imported;
-
-/** @deprecated Import from `@sentry/core` instead. */
-export type AddRequestDataToEventOptions = AddRequestDataToEventOptions_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
 export type PromiseBuffer<T> = PromiseBuffer_imported<T>;

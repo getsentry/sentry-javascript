@@ -31,7 +31,6 @@ export {
   cron,
   dataloaderIntegration,
   dedupeIntegration,
-  DEFAULT_USER_INCLUDES,
   defaultStackParser,
   endSession,
   expressErrorHandler,

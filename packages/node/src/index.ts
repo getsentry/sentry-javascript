@@ -54,8 +54,6 @@ export { cron } from './cron';
 
 export type { NodeOptions } from './types';
 
-export { DEFAULT_USER_INCLUDES } from '@sentry/core';
-
 export {
   // These are custom variants that need to be used instead of the core one
   // As they have slightly different implementations

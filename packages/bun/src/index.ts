@@ -18,7 +18,6 @@ export type {
   Thread,
   User,
 } from '@sentry/core';
-export type { AddRequestDataToEventOptions } from '@sentry/core';
 
 export {
   addEventProcessor,
@@ -64,7 +63,6 @@ export {
   flush,
   close,
   getSentryRelease,
-  DEFAULT_USER_INCLUDES,
   createGetModuleFromFilename,
   anrIntegration,
   disableAnrDetectionForCallback,

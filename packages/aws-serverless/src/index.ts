@@ -42,7 +42,6 @@ export {
   flush,
   close,
   getSentryRelease,
-  DEFAULT_USER_INCLUDES,
   createGetModuleFromFilename,
   anrIntegration,
   disableAnrDetectionForCallback,
