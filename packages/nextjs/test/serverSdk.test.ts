@@ -48,7 +48,6 @@ describe('Server init()', () => {
             ],
           },
         },
-        autoSessionTracking: false,
         environment: 'test',
 
         // Integrations are tested separately, and we can't be more specific here without depending on the order in
