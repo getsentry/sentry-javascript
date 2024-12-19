@@ -22,7 +22,7 @@
     }
   },
   "typesVersions": {
-    "<4.9": {
+    "<5.0": {
       "lib/types/index.d.ts": [
         "lib/types-ts3.8/index.d.ts"
       ]

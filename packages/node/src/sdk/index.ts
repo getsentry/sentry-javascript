@@ -4,7 +4,6 @@ import {
   dropUndefinedKeys,
   endSession,
   functionToStringIntegration,
-  getClient,
   getCurrentScope,
   getIntegrationsToSetup,
   getIsolationScope,
@@ -156,11 +155,7 @@ function _init(
 
   logger.log(`Running in ${isCjs() ? 'CommonJS' : 'ESM'} mode.`);
 
-  // TODO(V9): Remove this code since all of the logic should be in an integration
-  // eslint-disable-next-line deprecation/deprecation
-  if (options.autoSessionTracking) {
-    startSessionTracking();
-  }
+  trackSessionForProcess();
 
   client.startClientReportTracking();
 
@@ -314,15 +309,11 @@ function updateScopeFromEnvVariables(): void {
 }
 
 /**
- * Enable automatic Session Tracking for the node process.
+ * Start a session for this process.
  */
-function startSessionTracking(): void {
-  const client = getClient<NodeClient>();
-  // eslint-disable-next-line deprecation/deprecation
-  if (client && client.getOptions().autoSessionTracking) {
-    client.initSessionFlusher();
-  }
-
+// TODO(v9): This is still extremely funky because it's a session on the scope and therefore weirdly mutable by the user.
+// Strawman proposal for v9: Either create a processSessionIntegration() or add functionality to the onunhandledexception/rejection integrations.
+function trackSessionForProcess(): void {
   startSession();
 
   // Emitted in the case of healthy sessions, error of `mechanism.handled: true` and unhandledrejections because

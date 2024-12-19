@@ -53,6 +53,8 @@ In preparation for the OpenTelemetry SDK v2, which will raise the minimum requir
 
 Additionally, like the OpenTelemetry SDK, the Sentry JavaScript SDK will follow [DefinitelyType's version support policy](https://github.com/DefinitelyTyped/DefinitelyTyped#support-window) which has a support time frame of 2 years for any released version of TypeScript.
 
+Older Typescript versions _may_ still work, but we will not test them anymore and no more guarantees apply.
+
 ## 2. Behavior Changes
 
 ### `@sentry/core` / All SDKs
@@ -96,6 +98,19 @@ It will be removed in a future major version.
 
 - The `debugIntegration` has been removed. To log outgoing events, use [Hook Options](https://docs.sentry.io/platforms/javascript/configuration/options/#hooks) (`beforeSend`, `beforeSendTransaction`, ...).
 - The `sessionTimingIntegration` has been removed. To capture session durations alongside events, use [Context](https://docs.sentry.io/platforms/javascript/enriching-events/context/) (`Sentry.setContext()`).
+- The `addOpenTelemetryInstrumentation` method has been removed. Use the `openTelemetryInstrumentations` option in `Sentry.init()` or your custom Sentry Client instead.
+
+```js
+import * as Sentry from '@sentry/node';
+
+// before
+Sentry.addOpenTelemetryInstrumentation(new GenericPoolInstrumentation());
+
+// after
+Sentry.init({
+  openTelemetryInstrumentations: [new GenericPoolInstrumentation()],
+});
+```
 
 ### `@sentry/react`
 
@@ -111,6 +126,7 @@ It will be removed in a future major version.
 - The `BAGGAGE_HEADER_NAME` export has been removed. Use `"baggage"` string constant directly instead.
 - The `flatten` export has been removed. There is no replacement.
 - The `urlEncode` method has been removed. There is no replacement.
+- The `getDomElement` method has been removed. There is no replacement.
 
 ### `@sentry/nestjs`
 
@@ -218,6 +234,7 @@ The Sentry metrics beta has ended and the metrics API has been removed from the 
 - Deprecated `RequestSessionStatus` type. No replacements.
 - Deprecated `SessionFlusherLike` type. No replacements.
 - Deprecated `SessionFlusher`. No replacements.
+- Deprecated `initSessionFlusher` on `ServerRuntimeClient`. No replacements. The `httpIntegration` will flush sessions by itself.
 
 ## `@sentry/nestjs`
 

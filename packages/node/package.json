@@ -55,7 +55,7 @@
     }
   },
   "typesVersions": {
-    "<4.9": {
+    "<5.0": {
       "build/types/index.d.ts": [
         "build/types-ts3.8/index.d.ts"
       ]
@@ -98,7 +98,7 @@
     "@prisma/instrumentation": "5.22.0",
     "@sentry/core": "8.45.0",
     "@sentry/opentelemetry": "8.45.0",
-    "import-in-the-middle": "^1.11.2"
+    "import-in-the-middle": "^1.12.0"
   },
   "devDependencies": {
     "@types/node": "^18.19.1"

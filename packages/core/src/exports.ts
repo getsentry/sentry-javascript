@@ -14,7 +14,6 @@ import type {
   User,
 } from './types-hoist';
 
-import { DEFAULT_ENVIRONMENT } from './constants';
 import { getClient, getCurrentScope, getIsolationScope, withIsolationScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import type { CaptureContext } from './scope';
@@ -265,18 +264,13 @@ export function addEventProcessor(callback: EventProcessor): void {
  * @returns the new active session
  */
 export function startSession(context?: SessionContext): Session {
-  const client = getClient();
   const isolationScope = getIsolationScope();
   const currentScope = getCurrentScope();
-
-  const { release, environment = DEFAULT_ENVIRONMENT } = (client && client.getOptions()) || {};
 
   // Will fetch userAgent if called from browser sdk
   const { userAgent } = GLOBAL_OBJ.navigator || {};
 
   const session = makeSession({
-    release,
-    environment,
     user: currentScope.getUser() || isolationScope.getUser(),
     ...(userAgent && { userAgent }),
     ...context,

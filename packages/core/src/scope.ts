@@ -12,7 +12,6 @@ import type {
   Extras,
   Primitive,
   PropagationContext,
-  RequestSession,
   Session,
   SeverityLevel,
   Span,
@@ -50,9 +49,15 @@ export interface ScopeContext {
   contexts: Contexts;
   tags: { [key: string]: Primitive };
   fingerprint: string[];
-  // eslint-disable-next-line deprecation/deprecation
-  requestSession: RequestSession;
   propagationContext: PropagationContext;
+}
+
+// TODO(v9): Add `normalizedRequest`
+export interface SdkProcessingMetadata {
+  [key: string]: unknown;
+  requestSession?: {
+    status: 'ok' | 'errored' | 'crashed';
+  };
 }
 
 /**
@@ -67,7 +72,7 @@ export interface ScopeData {
   contexts: Contexts;
   attachments: Attachment[];
   propagationContext: PropagationContext;
-  sdkProcessingMetadata: { [key: string]: unknown };
+  sdkProcessingMetadata: SdkProcessingMetadata;
   fingerprint: string[];
   level?: SeverityLevel;
   transactionName?: string;
@@ -112,7 +117,7 @@ export class Scope {
    * A place to stash data which is needed at some point in the SDK's event processing pipeline but which shouldn't get
    * sent to Sentry
    */
-  protected _sdkProcessingMetadata: { [key: string]: unknown };
+  protected _sdkProcessingMetadata: SdkProcessingMetadata;
 
   /** Fingerprint */
   protected _fingerprint?: string[];
@@ -130,10 +135,6 @@ export class Scope {
 
   /** Session */
   protected _session?: Session;
-
-  /** Request Mode Session Status */
-  // eslint-disable-next-line deprecation/deprecation
-  protected _requestSession?: RequestSession;
 
   /** The client on this scope */
   protected _client?: Client;
@@ -183,7 +184,6 @@ export class Scope {
     newScope._transactionName = this._transactionName;
     newScope._fingerprint = this._fingerprint;
     newScope._eventProcessors = [...this._eventProcessors];
-    newScope._requestSession = this._requestSession;
     newScope._attachments = [...this._attachments];
     newScope._sdkProcessingMetadata = { ...this._sdkProcessingMetadata };
     newScope._propagationContext = { ...this._propagationContext };
@@ -269,27 +269,6 @@ export class Scope {
    */
   public getUser(): User | undefined {
     return this._user;
-  }
-
-  /**
-   * Get the request session from this scope.
-   *
-   *  @deprecated Use `getSession()` and `setSession()` instead of `getRequestSession()` and `setRequestSession()`;
-   */
-  // eslint-disable-next-line deprecation/deprecation
-  public getRequestSession(): RequestSession | undefined {
-    return this._requestSession;
-  }
-
-  /**
-   * Set the request session for this scope.
-   *
-   * @deprecated Use `getSession()` and `setSession()` instead of `getRequestSession()` and `setRequestSession()`;
-   */
-  // eslint-disable-next-line deprecation/deprecation
-  public setRequestSession(requestSession?: RequestSession): this {
-    this._requestSession = requestSession;
-    return this;
   }
 
   /**
@@ -422,13 +401,12 @@ export class Scope {
 
     const scopeToMerge = typeof captureContext === 'function' ? captureContext(this) : captureContext;
 
-    const [scopeInstance, requestSession] =
+    const scopeInstance =
       scopeToMerge instanceof Scope
-        ? // eslint-disable-next-line deprecation/deprecation
-          [scopeToMerge.getScopeData(), scopeToMerge.getRequestSession()]
+        ? scopeToMerge.getScopeData()
         : isPlainObject(scopeToMerge)
-          ? [captureContext as ScopeContext, (captureContext as ScopeContext).requestSession]
-          : [];
+          ? (captureContext as ScopeContext)
+          : undefined;
 
     const { tags, extra, user, contexts, level, fingerprint = [], propagationContext } = scopeInstance || {};
 
@@ -452,10 +430,6 @@ export class Scope {
       this._propagationContext = propagationContext;
     }
 
-    if (requestSession) {
-      this._requestSession = requestSession;
-    }
-
     return this;
   }
 
@@ -473,7 +447,6 @@ export class Scope {
     this._level = undefined;
     this._transactionName = undefined;
     this._fingerprint = undefined;
-    this._requestSession = undefined;
     this._session = undefined;
     _setSpanForScope(this, undefined);
     this._attachments = [];
