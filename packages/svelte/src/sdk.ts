@@ -55,5 +55,6 @@ export function detectAndReportSvelteKit(): void {
  * @see https://github.com/sveltejs/kit/issues/307 for more information
  */
 export function isSvelteKitApp(): boolean {
+  // eslint-disable-next-line deprecation/deprecation
   return getDomElement('div#svelte-announcer') !== null;
 }

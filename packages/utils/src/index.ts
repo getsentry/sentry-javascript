@@ -560,6 +560,7 @@ export const resolve = resolve_imported;
 export const getComponentName = getComponentName_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
+// eslint-disable-next-line deprecation/deprecation
 export const getDomElement = getDomElement_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */

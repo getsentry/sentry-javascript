@@ -155,6 +155,8 @@ export function getLocationHref(): string {
  * `const element = getDomElement<Element>('selector');`
  *
  * @param selector the selector string passed on to document.querySelector
+ *
+ * @deprecated This method is deprecated and will be removed in the next major version.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function getDomElement<E = any>(selector: string): E | null {
