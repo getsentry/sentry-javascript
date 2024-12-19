@@ -212,13 +212,11 @@ function setCurrentRequestSessionErroredOrCrashed(eventHint?: EventHint): void {
     // isolationScope. If that isolation scope is forked, setting the processing metadata here will not mutate the
     // original isolation scope that the http integration stored away.
     const isHandledException = eventHint?.mechanism?.handled ?? true;
-    if (isHandledException) {
-      // A request session can go from "errored" -> "crashed" but not "crashed" -> "errored".
-      // Crashed (unhandled exception) is worse than errored (handled exception).
-      if (requestSession.status !== 'crashed') {
-        requestSession.status = 'errored';
-      }
-    } else {
+    // A request session can go from "errored" -> "crashed" but not "crashed" -> "errored".
+    // Crashed (unhandled exception) is worse than errored (handled exception).
+    if (isHandledException && requestSession.status !== 'crashed') {
+      requestSession.status = 'errored';
+    } else if (!isHandledException) {
       requestSession.status = 'crashed';
     }
   }
