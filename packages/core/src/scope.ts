@@ -272,9 +272,8 @@ export class Scope {
   }
 
   /**
-   * Get the request session from this scope.
-   *
-   *  @deprecated Use `getSession()` and `setSession()` instead of `getRequestSession()` and `setRequestSession()`;
+   * Set an object that will be merged into existing tags on the scope,
+   * and will be sent as tags data with the event.
    */
   public setTags(tags: { [key: string]: Primitive }): this {
     this._tags = {
