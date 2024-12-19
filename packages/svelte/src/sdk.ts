@@ -56,5 +56,5 @@ export function detectAndReportSvelteKit(): void {
  * @see https://github.com/sveltejs/kit/issues/307 for more information
  */
 export function isSvelteKitApp(): boolean {
-  return WINDOW.document.querySelector('div#svelte-announcer') !== null;
+  return !!WINDOW.document.querySelector('div#svelte-announcer');
 }
