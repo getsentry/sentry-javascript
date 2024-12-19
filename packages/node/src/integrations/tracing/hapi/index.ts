@@ -128,7 +128,7 @@ export async function setupHapiErrorHandler(server: Server): Promise<void> {
 }
 
 function addHapiSpanAttributes(span: Span): void {
-  const attributes = spanToJSON(span).data || {};
+  const attributes = spanToJSON(span).data;
 
   // this is one of: router, plugin, server.ext
   const type = attributes['hapi.type'];

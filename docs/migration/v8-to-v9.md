@@ -24,8 +24,8 @@ This includes features like Nullish Coalescing (`??`), Optional Chaining (`?.`),
 If you observe failures due to syntax or features listed above, it may be an indicator that your current runtime does not support ES2020.
 If your runtime does not support ES2020, we recommend transpiling the SDK using Babel or similar tooling.
 
-**Node.js:** The minimum supported Node.js versions are TBD, TBD, and TBD.
-We no longer test against Node TBD, TBD, or TBD and cannot guarantee that the SDK will work as expected on these versions.
+**Node.js:** The minimum supported Node.js version is **18.0.0**, except for ESM-only SDKs (nuxt, solidstart, astro) which require Node **18.19.1** or up.
+We no longer test against Node 14 and Node 16 and cannot guarantee that the SDK will work as expected on these versions.
 
 **Browsers:** Due to SDK code now including ES2020 features, the minimum supported browser list now looks as follows:
 
@@ -92,7 +92,41 @@ It will be removed in a future major version.
 
 ## 4. Removal of Deprecated APIs (TODO)
 
-TODO
+### `@sentry/core` / All SDKs
+
+- The `debugIntegration` has been removed. To log outgoing events, use [Hook Options](https://docs.sentry.io/platforms/javascript/configuration/options/#hooks) (`beforeSend`, `beforeSendTransaction`, ...).
+- The `sessionTimingIntegration` has been removed. To capture session durations alongside events, use [Context](https://docs.sentry.io/platforms/javascript/enriching-events/context/) (`Sentry.setContext()`).
+
+### `@sentry/react`
+
+- The `wrapUseRoutes` method has been removed. Use `wrapUseRoutesV6` or `wrapUseRoutesV7` instead depending on what version of react router you are using.
+- The `wrapCreateBrowserRouter` method has been removed. Use `wrapCreateBrowserRouterV6` or `wrapCreateBrowserRouterV7` depending on what version of react router you are using.
+
+### `@sentry/core`
+
+- The `getNumberOfUrlSegments` method has been removed. There is no replacement.
+- The `validSeverityLevels` export has been removed. There is no replacement.
+- The `makeFifoCache` method has been removed. There is no replacement.
+- The `arrayify` export has been removed. There is no replacement.
+- The `BAGGAGE_HEADER_NAME` export has been removed. Use `"baggage"` string constant directly instead.
+- The `flatten` export has been removed. There is no replacement.
+- The `urlEncode` method has been removed. There is no replacement.
+
+### `@sentry/nestjs`
+
+- Removed `WithSentry` decorator. Use `SentryExceptionCaptured` instead.
+- Removed `SentryService`.
+  If you are using `@sentry/nestjs` you can safely remove any references to the `SentryService`.
+  If you are using another package migrate to `@sentry/nestjs` and remove the `SentryService` afterwards.
+- Removed `SentryTracingInterceptor`.
+  If you are using `@sentry/nestjs` you can safely remove any references to the `SentryTracingInterceptor`.
+  If you are using another package migrate to `@sentry/nestjs` and remove the `SentryTracingInterceptor` afterwards.
+- Removed `SentryGlobalGenericFilter`.
+  Use the `SentryGlobalFilter` instead.
+  The `SentryGlobalFilter` is a drop-in replacement.
+- Removed `SentryGlobalGraphQLFilter`.
+  Use the `SentryGlobalFilter` instead.
+  The `SentryGlobalFilter` is a drop-in replacement.
 
 ## 5. Build Changes
 
@@ -104,6 +138,14 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 The SDK no longer contains these statements.
 Let us know if this is causing issues in your setup by opening an issue on GitHub.
+
+## 6. Type Changes
+
+In v8, types have been exported from `@sentry/types`, while implementations have been exported from other classes.
+This led to some duplication, where we had to keep an interface in `@sentry/types`, while the implementation mirroring that interface was kept e.g. in `@sentry/core`.
+Since v9, the types have been merged into `@sentry/core`, which removed some of this duplication. This means that certain things that used to be a separate interface, will not expect an actual instance of the class/concrete implementation. This should not affect most users, unless you relied on passing things with a similar shape to internal methods. The following types are affected:
+
+- `Scope` now always expects the `Scope` class
 
 # No Version Support Timeline
 
@@ -140,6 +182,10 @@ The following outlines deprecations that were introduced in version 8 of the SDK
   To enable session tracking, it is recommended to unset `autoSessionTracking` and ensure that either, in browser environments the `browserSessionIntegration` is added, or in server environments the `httpIntegration` is added.
   To disable session tracking, it is recommended unset `autoSessionTracking` and to remove the `browserSessionIntegration` in browser environments, or in server environments configure the `httpIntegration` with the `trackIncomingRequestsAsSessions` option set to `false`.
 
+- **The metrics API has been removed from the SDK.**
+
+The Sentry metrics beta has ended and the metrics API has been removed from the SDK. Learn more in [help center docs](https://sentry.zendesk.com/hc/en-us/articles/26369339769883-Metrics-Beta-Ended-on-October-7th).
+
 ## `@sentry/utils`
 
 - **The `@sentry/utils` package has been deprecated. Import everything from `@sentry/core` instead.**
@@ -154,7 +200,7 @@ The following outlines deprecations that were introduced in version 8 of the SDK
 - Deprecated `arrayify`. No replacements.
 - Deprecated `memoBuilder`. No replacements.
 - Deprecated `getNumberOfUrlSegments`. No replacements.
-- Deprecated `BAGGAGE_HEADER_NAME`. No replacements.
+- Deprecated `BAGGAGE_HEADER_NAME`. Use `"baggage"` string constant directly instead.
 - Deprecated `makeFifoCache`. No replacements.
 - Deprecated `dynamicRequire`. No replacements.
 - Deprecated `flatten`. No replacements.

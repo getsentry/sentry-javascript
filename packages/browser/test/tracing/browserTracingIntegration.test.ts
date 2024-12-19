@@ -426,7 +426,7 @@ describe('browserTracingIntegration', () => {
     const pageloadSpan = getActiveSpan();
 
     expect(spanToJSON(pageloadSpan!).description).toBe('changed');
-    expect(spanToJSON(pageloadSpan!).data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('custom');
+    expect(spanToJSON(pageloadSpan!).data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('custom');
   });
 
   describe('startBrowserTracingNavigationSpan', () => {
@@ -608,7 +608,7 @@ describe('browserTracingIntegration', () => {
       const pageloadSpan = getActiveSpan();
 
       expect(spanToJSON(pageloadSpan!).description).toBe('changed');
-      expect(spanToJSON(pageloadSpan!).data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('custom');
+      expect(spanToJSON(pageloadSpan!).data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('custom');
     });
 
     it('sets the navigation span name on `scope.transactionName`', () => {

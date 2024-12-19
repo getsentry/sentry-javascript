@@ -76,8 +76,6 @@ export {
   continueTrace,
   getAutoPerformanceIntegrations,
   cron,
-  // eslint-disable-next-line deprecation/deprecation
-  metrics,
   parameterize,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -104,10 +102,6 @@ export {
   mysql2Integration,
   redisIntegration,
   tediousIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  nestIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  setupNestErrorHandler,
   postgresIntegration,
   prismaIntegration,
   childProcessIntegration,
@@ -129,13 +123,9 @@ export {
 
 export {
   captureConsoleIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  debugIntegration,
   dedupeIntegration,
   extraErrorDataIntegration,
   rewriteFramesIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  sessionTimingIntegration,
 } from '@sentry/core';
 
 export { awsIntegration } from './integration/aws';

@@ -1,5 +1,4 @@
 import type {
-  CaptureContext,
   CheckIn,
   Event,
   EventHint,
@@ -17,6 +16,7 @@ import type {
 
 import { getClient, getCurrentScope, getIsolationScope, withIsolationScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
+import type { CaptureContext } from './scope';
 import { closeSession, makeSession, updateSession } from './session';
 import { isThenable } from './utils-hoist/is';
 import { logger } from './utils-hoist/logger';

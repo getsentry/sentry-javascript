@@ -1,3 +1,4 @@
+import type { ScopeContext } from '../../src';
 import { GLOBAL_OBJ, createStackParser, getGlobalScope, getIsolationScope } from '../../src';
 import type {
   Attachment,
@@ -7,7 +8,6 @@ import type {
   Event,
   EventHint,
   EventProcessor,
-  ScopeContext,
 } from '../../src/types-hoist';
 
 import { Scope } from '../../src/scope';

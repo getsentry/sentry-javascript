@@ -21,7 +21,7 @@ export function enhanceDscWithOpenTelemetryRootSpanName(client: Client): void {
     // This mutates the passed-in DSC
 
     const jsonSpan = spanToJSON(rootSpan);
-    const attributes = jsonSpan.data || {};
+    const attributes = jsonSpan.data;
     const source = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
 
     const { description } = spanHasName(rootSpan) ? parseSpanDescription(rootSpan) : { description: undefined };

@@ -222,7 +222,6 @@ const ITEM_TYPE_TO_DATA_CATEGORY_MAP: Record<EnvelopeItemType, DataCategory> = {
   check_in: 'monitor',
   feedback: 'feedback',
   span: 'span',
-  statsd: 'metric_bucket',
   raw_security: 'security',
 };
 

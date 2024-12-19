@@ -136,7 +136,7 @@ export function setupFastifyErrorHandler(fastify: Fastify): void {
 }
 
 function addFastifySpanAttributes(span: Span): void {
-  const attributes = spanToJSON(span).data || {};
+  const attributes = spanToJSON(span).data;
 
   // this is one of: middleware, request_handler
   const type = attributes['fastify.type'];

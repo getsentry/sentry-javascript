@@ -83,12 +83,6 @@ import type {
   MeasurementUnit as MeasurementUnit_imported,
   Measurements as Measurements_imported,
   Mechanism as Mechanism_imported,
-  MetricBucketItem as MetricBucketItem_imported,
-  MetricData as MetricData_imported,
-  MetricInstance as MetricInstance_imported,
-  MetricSummary as MetricSummary_imported,
-  Metrics as Metrics_imported,
-  MetricsAggregator as MetricsAggregator_imported,
   MissingInstrumentationContext as MissingInstrumentationContext_imported,
   MonitorConfig as MonitorConfig_imported,
   NoneUnit as NoneUnit_imported,
@@ -155,8 +149,6 @@ import type {
   StackParser as StackParser_imported,
   Stacktrace as Stacktrace_imported,
   StartSpanOptions as StartSpanOptions_imported,
-  StatsdEnvelope as StatsdEnvelope_imported,
-  StatsdItem as StatsdItem_imported,
   Thread as Thread_imported,
   ThreadCpuFrame as ThreadCpuFrame_imported,
   ThreadCpuProfile as ThreadCpuProfile_imported,
@@ -278,10 +270,6 @@ export type UserFeedbackItem = UserFeedbackItem_imported;
 export type CheckInItem = CheckInItem_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type CheckInEnvelope = CheckInEnvelope_imported;
-/** @deprecated This type has been moved to `@sentry/core`. */
-export type StatsdItem = StatsdItem_imported;
-/** @deprecated This type has been moved to `@sentry/core`. */
-export type StatsdEnvelope = StatsdEnvelope_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type ProfileItem = ProfileItem_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
@@ -442,8 +430,6 @@ export type SpanContextData = SpanContextData_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type TraceFlag = TraceFlag_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
-export type MetricSummary = MetricSummary_imported;
-/** @deprecated This type has been moved to `@sentry/core`. */
 export type SpanStatus = SpanStatus_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type TimedEvent = TimedEvent_imported;
@@ -542,16 +528,6 @@ export type FinishedCheckIn = FinishedCheckIn_imported;
 export type InProgressCheckIn = InProgressCheckIn_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type SerializedCheckIn = SerializedCheckIn_imported;
-/** @deprecated This type has been moved to `@sentry/core`. */
-export type MetricsAggregator = MetricsAggregator_imported;
-/** @deprecated This type has been moved to `@sentry/core`. */
-export type MetricBucketItem = MetricBucketItem_imported;
-/** @deprecated This type has been moved to `@sentry/core`. */
-export type MetricInstance = MetricInstance_imported;
-/** @deprecated This type has been moved to `@sentry/core`. */
-export type MetricData = MetricData_imported;
-/** @deprecated This type has been moved to `@sentry/core`. */
-export type Metrics = Metrics_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type ParameterizedString = ParameterizedString_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */

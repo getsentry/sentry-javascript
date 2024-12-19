@@ -1,4 +1,3 @@
-import { conditionalTest } from '../../utils';
 import { cleanupChildProcesses, createRunner } from '../../utils/runner';
 
 const EVENT = {
@@ -25,7 +24,7 @@ describe('no-code init', () => {
       .start(done);
   });
 
-  conditionalTest({ min: 18 })('--import', () => {
+  describe('--import', () => {
     test('ESM', done => {
       createRunner(__dirname, 'app.mjs')
         .withFlags('--import=@sentry/node/init')
