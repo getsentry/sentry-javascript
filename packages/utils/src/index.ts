@@ -13,7 +13,6 @@ import {
   SyncPromise as SyncPromise_imported,
   TRACEPARENT_REGEXP as TRACEPARENT_REGEXP_imported,
   UNKNOWN_FUNCTION as UNKNOWN_FUNCTION_imported,
-  _browserPerformanceTimeOriginMode as _browserPerformanceTimeOriginMode_imported,
   addConsoleInstrumentationHandler as addConsoleInstrumentationHandler_imported,
   addContextToFrame as addContextToFrame_imported,
   addExceptionMechanism as addExceptionMechanism_imported,
@@ -570,10 +569,6 @@ export const supportsReferrerPolicy = supportsReferrerPolicy_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
 export const supportsReportingObserver = supportsReportingObserver_imported;
-
-/** @deprecated Import from `@sentry/core` instead. */
-// eslint-disable-next-line deprecation/deprecation
-export const _browserPerformanceTimeOriginMode = _browserPerformanceTimeOriginMode_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
 export const browserPerformanceTimeOrigin = browserPerformanceTimeOrigin_imported;
