@@ -67,7 +67,6 @@ import {
   getBreadcrumbLogLevelFromHttpStatusCode as getBreadcrumbLogLevelFromHttpStatusCode_imported,
   getComponentName as getComponentName_imported,
   getDebugImagesForResources as getDebugImagesForResources_imported,
-  getDomElement as getDomElement_imported,
   getEventDescription as getEventDescription_imported,
   getFilenameToDebugIdMap as getFilenameToDebugIdMap_imported,
   getFramesFromEvent as getFramesFromEvent_imported,
@@ -541,9 +540,6 @@ export const resolve = resolve_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
 export const getComponentName = getComponentName_imported;
-
-/** @deprecated Import from `@sentry/core` instead. */
-export const getDomElement = getDomElement_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
 export const getLocationHref = getLocationHref_imported;

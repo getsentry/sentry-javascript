@@ -1,7 +1,8 @@
 import type { BrowserOptions } from '@sentry/browser';
+import { WINDOW } from '@sentry/browser';
 import { addEventProcessor, init as browserInit } from '@sentry/browser';
 import type { Client, EventProcessor } from '@sentry/core';
-import { applySdkMetadata, getDomElement } from '@sentry/core';
+import { applySdkMetadata } from '@sentry/core';
 /**
  * Inits the Svelte SDK
  */
@@ -55,5 +56,5 @@ export function detectAndReportSvelteKit(): void {
  * @see https://github.com/sveltejs/kit/issues/307 for more information
  */
 export function isSvelteKitApp(): boolean {
-  return getDomElement('div#svelte-announcer') !== null;
+  return WINDOW.document.querySelector('div#svelte-announcer') !== null;
 }
