@@ -26,7 +26,6 @@ import {
   addItemToEnvelope as addItemToEnvelope_imported,
   addNonEnumerableProperty as addNonEnumerableProperty_imported,
   addNormalizedRequestDataToEvent as addNormalizedRequestDataToEvent_imported,
-  addRequestDataToEvent as addRequestDataToEvent_imported,
   applyAggregateErrorsToEvent as applyAggregateErrorsToEvent_imported,
   baggageHeaderToDynamicSamplingContext as baggageHeaderToDynamicSamplingContext_imported,
   basename as basename_imported,
@@ -56,8 +55,6 @@ import {
   eventFromUnknownInput as eventFromUnknownInput_imported,
   exceptionFromError as exceptionFromError_imported,
   extractExceptionKeysForMessage as extractExceptionKeysForMessage_imported,
-  extractPathForTransaction as extractPathForTransaction_imported,
-  extractRequestData as extractRequestData_imported,
   extractTraceparentData as extractTraceparentData_imported,
   filenameIsInApp as filenameIsInApp_imported,
   fill as fill_imported,
@@ -599,19 +596,7 @@ export const memoBuilder = memoBuilder_imported;
 export const normalizeUrlToBase = normalizeUrlToBase_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
-// eslint-disable-next-line deprecation/deprecation
-export const extractPathForTransaction = extractPathForTransaction_imported;
-
-/** @deprecated Import from `@sentry/core` instead. */
 export const DEFAULT_USER_INCLUDES = DEFAULT_USER_INCLUDES_imported;
-
-/** @deprecated Import from `@sentry/core` instead. */
-// eslint-disable-next-line deprecation/deprecation
-export const extractRequestData = extractRequestData_imported;
-
-/** @deprecated Import from `@sentry/core` instead. */
-// eslint-disable-next-line deprecation/deprecation
-export const addRequestDataToEvent = addRequestDataToEvent_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
 export const getSanitizedUrlString = getSanitizedUrlString_imported;
@@ -628,7 +613,6 @@ import type {
   PromiseBuffer as PromiseBuffer_imported,
   RateLimits as RateLimits_imported,
   SdkSource as SdkSource_imported,
-  TransactionNamingScheme as TransactionNamingScheme_imported,
 } from '@sentry/core';
 
 /** @deprecated Import from `@sentry/core` instead. */
@@ -645,7 +629,3 @@ export type AddRequestDataToEventOptions = AddRequestDataToEventOptions_imported
 
 /** @deprecated Import from `@sentry/core` instead. */
 export type PromiseBuffer<T> = PromiseBuffer_imported<T>;
-
-/** @deprecated Import from `@sentry/core` instead. */
-// eslint-disable-next-line deprecation/deprecation
-export type TransactionNamingScheme = TransactionNamingScheme_imported;

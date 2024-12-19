@@ -7,8 +7,6 @@ export {
   addBreadcrumb,
   addEventProcessor,
   addIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  addRequestDataToEvent,
   amqplibIntegration,
   anrIntegration,
   disableAnrDetectionForCallback,
@@ -33,8 +31,6 @@ export {
   endSession,
   expressErrorHandler,
   expressIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  extractRequestData,
   extraErrorDataIntegration,
   fastifyIntegration,
   flush,

@@ -70,23 +70,13 @@ export type { PromiseBuffer } from './promisebuffer';
 export {
   DEFAULT_USER_INCLUDES,
   addNormalizedRequestDataToEvent,
-  // eslint-disable-next-line deprecation/deprecation
-  addRequestDataToEvent,
-  // eslint-disable-next-line deprecation/deprecation
-  extractPathForTransaction,
-  // eslint-disable-next-line deprecation/deprecation
-  extractRequestData,
   winterCGHeadersToDict,
   winterCGRequestToRequestData,
   httpRequestToRequestData,
   extractQueryParamsFromUrl,
   headersToDict,
 } from './requestdata';
-export type {
-  AddRequestDataToEventOptions,
-  // eslint-disable-next-line deprecation/deprecation
-  TransactionNamingScheme,
-} from './requestdata';
+export type { AddRequestDataToEventOptions } from './requestdata';
 
 export { severityLevelFromString } from './severity';
 export {
