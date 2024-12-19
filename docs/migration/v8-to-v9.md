@@ -146,6 +146,7 @@ This led to some duplication, where we had to keep an interface in `@sentry/type
 Since v9, the types have been merged into `@sentry/core`, which removed some of this duplication. This means that certain things that used to be a separate interface, will not expect an actual instance of the class/concrete implementation. This should not affect most users, unless you relied on passing things with a similar shape to internal methods. The following types are affected:
 
 - `Scope` now always expects the `Scope` class
+- `Client` now always expects the `BaseClient` class - there is no more abstract `Client` that can be implemented! Any `Client` class has to extend from `BaseClient`.
 
 # No Version Support Timeline
 

@@ -1,7 +1,7 @@
+import type { Client } from './baseclient';
 import { getDynamicSamplingContextFromSpan } from './tracing/dynamicSamplingContext';
 import type { SentrySpan } from './tracing/sentrySpan';
 import type {
-  Client,
   DsnComponents,
   DynamicSamplingContext,
   Event,

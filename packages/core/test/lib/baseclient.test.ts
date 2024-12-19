@@ -1,14 +1,11 @@
-import { SentryError, SyncPromise, dsnToString } from '@sentry/core';
-import type { Client, Envelope, ErrorEvent, Event, TransactionEvent } from '../../src/types-hoist';
-
-import * as loggerModule from '../../src/utils-hoist/logger';
-import * as miscModule from '../../src/utils-hoist/misc';
-import * as stringModule from '../../src/utils-hoist/string';
-import * as timeModule from '../../src/utils-hoist/time';
-
+import type {
+  Client} from '../../src';
 import {
   Scope,
+  SentryError,
+  SyncPromise,
   addBreadcrumb,
+  dsnToString,
   getCurrentScope,
   getIsolationScope,
   lastEventId,
@@ -17,6 +14,11 @@ import {
   withMonitor,
 } from '../../src';
 import * as integrationModule from '../../src/integration';
+import type { Envelope, ErrorEvent, Event, TransactionEvent } from '../../src/types-hoist';
+import * as loggerModule from '../../src/utils-hoist/logger';
+import * as miscModule from '../../src/utils-hoist/misc';
+import * as stringModule from '../../src/utils-hoist/string';
+import * as timeModule from '../../src/utils-hoist/time';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 import { AdHocIntegration, TestIntegration } from '../mocks/integration';
 import { makeFakeTransport } from '../mocks/transport';

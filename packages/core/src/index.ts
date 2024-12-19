@@ -52,6 +52,7 @@ export type { CaptureContext, ScopeContext, ScopeData } from './scope';
 export { notifyEventProcessors } from './eventProcessors';
 export { getEnvelopeEndpointWithUrlEncodedAuth, getReportDialogEndpoint } from './api';
 export { BaseClient } from './baseclient';
+export type { Client } from './baseclient';
 export { ServerRuntimeClient } from './server-runtime-client';
 export { initAndBind, setCurrentClient } from './sdk';
 export { createTransport } from './transports/base';

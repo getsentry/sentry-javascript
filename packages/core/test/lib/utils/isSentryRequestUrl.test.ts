@@ -1,4 +1,4 @@
-import type { Client } from '../../../src/types-hoist';
+import type { Client } from '../../../src/baseclient';
 
 import { isSentryRequestUrl } from '../../../src';
 
