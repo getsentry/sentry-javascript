@@ -38,12 +38,6 @@ import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from
 
 export const BROWSER_TRACING_INTEGRATION_ID = 'BrowserTracing';
 
-/**
- * This is just a small wrapper that makes `document` optional.
- * We want to be extra-safe and always check that this exists, to ensure weird environments do not blow up.
- */
-const optionalWindowDocument = WINDOW.document as (typeof WINDOW)['document'] | undefined;
-
 interface RouteInfo {
   name: string | undefined;
   source: TransactionSource | undefined;
@@ -195,6 +189,12 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
  * We explicitly export the proper type here, as this has to be extended in some cases.
  */
 export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptions> = {}) => {
+  /**
+   * This is just a small wrapper that makes `document` optional.
+   * We want to be extra-safe and always check that this exists, to ensure weird environments do not blow up.
+   */
+  const optionalWindowDocument = WINDOW.document as (typeof WINDOW)['document'] | undefined;
+
   registerSpanErrorInstrumentation();
 
   const {
@@ -467,6 +467,12 @@ export function startBrowserTracingNavigationSpan(client: Client, spanOptions: S
 
 /** Returns the value of a meta tag */
 export function getMetaContent(metaName: string): string | undefined {
+  /**
+   * This is just a small wrapper that makes `document` optional.
+   * We want to be extra-safe and always check that this exists, to ensure weird environments do not blow up.
+   */
+  const optionalWindowDocument = WINDOW.document as (typeof WINDOW)['document'] | undefined;
+
   const metaTag = optionalWindowDocument && optionalWindowDocument.querySelector(`meta[name=${metaName}]`);
   return (metaTag && metaTag.getAttribute('content')) || undefined;
 }
@@ -478,6 +484,12 @@ function registerInteractionListener(
   childSpanTimeout: BrowserTracingOptions['childSpanTimeout'],
   latestRoute: RouteInfo,
 ): void {
+  /**
+   * This is just a small wrapper that makes `document` optional.
+   * We want to be extra-safe and always check that this exists, to ensure weird environments do not blow up.
+   */
+  const optionalWindowDocument = WINDOW.document as (typeof WINDOW)['document'] | undefined;
+
   let inflightInteractionSpan: Span | undefined;
   const registerInteractionTransaction = (): void => {
     const op = 'ui.action.click';
