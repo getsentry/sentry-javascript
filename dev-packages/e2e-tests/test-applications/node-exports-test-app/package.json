@@ -21,7 +21,7 @@
     "@sentry/google-cloud-serverless": "latest || *",
     "@sentry/bun": "latest || *",
     "@types/node": "^18.19.1",
-    "typescript": "4.9.5"
+    "typescript": "~5.0.0"
   },
   "volta": {
     "extends": "../../package.json"
