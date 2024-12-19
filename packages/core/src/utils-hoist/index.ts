@@ -1,6 +1,4 @@
 export { applyAggregateErrorsToEvent } from './aggregate-errors';
-// eslint-disable-next-line deprecation/deprecation
-export { flatten } from './array';
 export { getBreadcrumbLogLevelFromHttpStatusCode } from './breadcrumb-log-level';
 export { getComponentName, getDomElement, getLocationHref, htmlTreeAsString } from './browser';
 export { dsnFromString, dsnToString, makeDsn } from './dsn';
@@ -42,8 +40,6 @@ export {
   addContextToFrame,
   addExceptionMechanism,
   addExceptionTypeValue,
-  // eslint-disable-next-line deprecation/deprecation
-  arrayify,
   checkOrSetAlreadyCaught,
   getEventDescription,
   parseSemver,
@@ -61,8 +57,6 @@ export {
   getOriginalFunction,
   markFunctionWrapped,
   objectify,
-  // eslint-disable-next-line deprecation/deprecation
-  urlEncode,
 } from './object';
 export { basename, dirname, isAbsolute, join, normalizePath, relative, resolve } from './path';
 export { makePromiseBuffer } from './promisebuffer';
@@ -90,8 +84,7 @@ export type {
   TransactionNamingScheme,
 } from './requestdata';
 
-// eslint-disable-next-line deprecation/deprecation
-export { severityLevelFromString, validSeverityLevels } from './severity';
+export { severityLevelFromString } from './severity';
 export {
   UNKNOWN_FUNCTION,
   createStackParser,
@@ -152,8 +145,6 @@ export {
 } from './ratelimit';
 export type { RateLimits } from './ratelimit';
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  BAGGAGE_HEADER_NAME,
   MAX_BAGGAGE_STRING_LENGTH,
   SENTRY_BAGGAGE_KEY_PREFIX,
   SENTRY_BAGGAGE_KEY_PREFIX_REGEX,
@@ -163,8 +154,6 @@ export {
 } from './baggage';
 
 export { getSanitizedUrlString, parseUrl, stripUrlQueryAndFragment } from './url';
-// eslint-disable-next-line deprecation/deprecation
-export { makeFifoCache } from './cache';
 export { eventFromMessage, eventFromUnknownInput, exceptionFromError, parseStackFrames } from './eventbuilder';
 export { callFrameToStackFrame, watchdogTimer } from './anr';
 export { LRUMap } from './lru';
