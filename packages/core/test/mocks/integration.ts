@@ -1,4 +1,4 @@
-import type { Client} from '../../src';
+import type { Client } from '../../src';
 import { getClient, getCurrentScope } from '../../src';
 import type { Event, EventProcessor, Integration } from '../../src/types-hoist';
 

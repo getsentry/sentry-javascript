@@ -64,25 +64,25 @@ const MISSING_RELEASE_FOR_SESSION_ERROR = 'Discarded session because of missing 
  *
  * Call the constructor with the corresponding options
  * specific to the client subclass. To access these options later, use
- * {@link BaseClient.getOptions}.
+ * {@link Client.getOptions}.
  *
  * If a Dsn is specified in the options, it will be parsed and stored. Use
- * {@link BaseClient.getDsn} to retrieve the Dsn at any moment. In case the Dsn is
+ * {@link Client.getDsn} to retrieve the Dsn at any moment. In case the Dsn is
  * invalid, the constructor will throw a {@link SentryException}. Note that
  * without a valid Dsn, the SDK will not send any events to Sentry.
  *
  * Before sending an event, it is passed through
- * {@link BaseClient._prepareEvent} to add SDK information and scope data
+ * {@link Client._prepareEvent} to add SDK information and scope data
  * (breadcrumbs and context). To add more custom information, override this
  * method and extend the resulting prepared event.
  *
  * To issue automatically created events (e.g. via instrumentation), use
- * {@link BaseClient.captureEvent}. It will prepare the event and pass it through
+ * {@link Client.captureEvent}. It will prepare the event and pass it through
  * the callback lifecycle. To issue auto-breadcrumbs, use
- * {@link BaseClient.addBreadcrumb}.
+ * {@link Client.addBreadcrumb}.
  *
  * @example
- * class NodeClient extends BaseClient<NodeOptions> {
+ * class NodeClient extends Client<NodeOptions> {
  *   public constructor(options: NodeOptions) {
  *     super(options);
  *   }
@@ -90,7 +90,7 @@ const MISSING_RELEASE_FOR_SESSION_ERROR = 'Discarded session because of missing 
  *   // ...
  * }
  */
-export abstract class BaseClient<O extends ClientOptions> {
+export abstract class Client<O extends ClientOptions = ClientOptions> {
   /** Options passed to the SDK. */
   protected readonly _options: O;
 
@@ -960,7 +960,15 @@ export abstract class BaseClient<O extends ClientOptions> {
   ): PromiseLike<Event>;
 }
 
-export type Client<O extends ClientOptions = ClientOptions> = BaseClient<O>;
+/**
+ * @deprecated Use `Client` instead. This alias may be removed in a future major version.
+ */
+export type BaseClient = Client;
+
+/**
+ * @deprecated Use `Client` instead. This alias may be removed in a future major version.
+ */
+export const BaseClient = Client;
 
 /**
  * Verifies that return value of configured `beforeSend` or `beforeSendTransaction` is of expected type, and returns the value if so.

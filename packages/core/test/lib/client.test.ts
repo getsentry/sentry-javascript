@@ -1,5 +1,3 @@
-import type {
-  Client} from '../../src';
 import {
   Scope,
   SentryError,
@@ -13,6 +11,7 @@ import {
   setCurrentClient,
   withMonitor,
 } from '../../src';
+import type { BaseClient, Client } from '../../src/client';
 import * as integrationModule from '../../src/integration';
 import type { Envelope, ErrorEvent, Event, TransactionEvent } from '../../src/types-hoist';
 import * as loggerModule from '../../src/utils-hoist/logger';
@@ -36,7 +35,7 @@ jest.spyOn(loggerModule, 'consoleSandbox').mockImplementation(cb => cb());
 jest.spyOn(stringModule, 'truncate').mockImplementation(str => str);
 jest.spyOn(timeModule, 'dateTimestampInSeconds').mockImplementation(() => 2020);
 
-describe('BaseClient', () => {
+describe('Client', () => {
   beforeEach(() => {
     TestClient.sendEventCalled = undefined;
     TestClient.instance = undefined;
@@ -2099,7 +2098,8 @@ describe('BaseClient', () => {
 
     // Make sure types work for both Client & BaseClient
     const scenarios = [
-      ['BaseClient', new TestClient(options)],
+      // eslint-disable-next-line deprecation/deprecation
+      ['BaseClient', new TestClient(options) as BaseClient],
       ['Client', new TestClient(options) as Client],
     ] as const;
 

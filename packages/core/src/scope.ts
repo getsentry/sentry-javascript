@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import type { Client } from './baseclient';
+import type { Client } from './client';
 import { updateSession } from './session';
 import type {
   Attachment,

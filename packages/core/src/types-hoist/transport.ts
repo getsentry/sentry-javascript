@@ -1,4 +1,4 @@
-import type { Client } from '../baseclient';
+import type { Client } from '../client';
 import type { Envelope } from './envelope';
 
 export type TransportRequest = {

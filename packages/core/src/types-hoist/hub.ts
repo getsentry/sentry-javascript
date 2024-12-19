@@ -1,4 +1,4 @@
-import type { Client } from '../baseclient';
+import type { Client } from '../client';
 import type { Scope } from '../scope';
 import type { Breadcrumb, BreadcrumbHint } from './breadcrumb';
 import type { Event, EventHint } from './event';

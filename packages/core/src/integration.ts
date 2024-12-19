@@ -1,4 +1,4 @@
-import type { Client } from './baseclient';
+import type { Client } from './client';
 import { getClient } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import type { Event, EventHint, Integration, IntegrationFn, Options } from './types-hoist';

@@ -1,4 +1,4 @@
-import type { Client} from '../../src';
+import type { Client } from '../../src';
 import { captureCheckIn, getCurrentScope, setCurrentClient } from '../../src';
 import { installedIntegrations } from '../../src/integration';
 import { initAndBind } from '../../src/sdk';

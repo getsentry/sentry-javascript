@@ -1,5 +1,5 @@
-import type { Client } from './baseclient';
 import { addBreadcrumb } from './breadcrumbs';
+import type { Client } from './client';
 import { getClient, getCurrentScope, getIsolationScope, withScope } from './currentScopes';
 import {
   captureEvent,

@@ -1,4 +1,4 @@
-import type { Client } from '../../../src/baseclient';
+import type { Client } from '../../../src/client';
 import { thirdPartyErrorFilterIntegration } from '../../../src/integrations/third-party-errors-filter';
 import { addMetadataToStackFrames } from '../../../src/metadata';
 import type { Event } from '../../../src/types-hoist';

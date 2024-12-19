@@ -1,4 +1,4 @@
-import type { Client } from '../baseclient';
+import type { Client } from '../client';
 import { getClient } from '../currentScopes';
 import { defineIntegration } from '../integration';
 import type { IntegrationFn, WrappedFunction } from '../types-hoist';

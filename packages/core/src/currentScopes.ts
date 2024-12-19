@@ -1,6 +1,6 @@
 import { getAsyncContextStrategy } from './asyncContext';
-import type { Client } from './baseclient';
 import { getGlobalSingleton, getMainCarrier } from './carrier';
+import type { Client } from './client';
 import { Scope } from './scope';
 import type { TraceContext } from './types-hoist';
 import { dropUndefinedKeys } from './utils-hoist/object';

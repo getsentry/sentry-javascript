@@ -1,4 +1,4 @@
-import type { Client } from './baseclient';
+import type { Client } from './client';
 import { getCurrentScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import type { ClientOptions } from './types-hoist';

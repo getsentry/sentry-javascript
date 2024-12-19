@@ -1,5 +1,4 @@
-import type {
-  Client} from '../../src';
+import type { Client } from '../../src';
 import {
   applyScopeDataToEvent,
   getCurrentScope,

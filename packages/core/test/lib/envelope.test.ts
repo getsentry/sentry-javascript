@@ -1,5 +1,4 @@
-import type {
-  Client} from '../../src';
+import type { Client } from '../../src';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SentrySpan,

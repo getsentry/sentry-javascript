@@ -1,4 +1,4 @@
-import type { Client } from './baseclient';
+import type { Client } from './client';
 import type { Scope } from './scope';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from './semanticAttributes';
 import { SPAN_STATUS_ERROR, setHttpStatus, startInactiveSpan } from './tracing';

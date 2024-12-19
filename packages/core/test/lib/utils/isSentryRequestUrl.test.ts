@@ -1,4 +1,4 @@
-import type { Client } from '../../../src/baseclient';
+import type { Client } from '../../../src/client';
 
 import { isSentryRequestUrl } from '../../../src';
 
