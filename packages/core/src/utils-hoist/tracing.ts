@@ -55,17 +55,14 @@ export function propagationContextFromHeaders(
   const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(baggage);
 
   if (!traceparentData || !traceparentData.traceId) {
-    return { traceId: generateTraceId(), spanId: generateSpanId() };
+    return { traceId: generateTraceId() };
   }
 
   const { traceId, parentSpanId, parentSampled } = traceparentData;
 
-  const virtualSpanId = generateSpanId();
-
   return {
     traceId,
     parentSpanId,
-    spanId: virtualSpanId,
     sampled: parentSampled,
     dsc: dynamicSamplingContext || {}, // If we have traceparent data but no DSC it means we are not head of trace and we must freeze it
   };

@@ -32,7 +32,6 @@ describe('Scope', () => {
       eventProcessors: [],
       propagationContext: {
         traceId: expect.any(String),
-        spanId: expect.any(String),
       },
       sdkProcessingMetadata: {},
     });
@@ -58,7 +57,6 @@ describe('Scope', () => {
       eventProcessors: [],
       propagationContext: {
         traceId: expect.any(String),
-        spanId: expect.any(String),
       },
       sdkProcessingMetadata: {},
     });
@@ -92,7 +90,6 @@ describe('Scope', () => {
       eventProcessors: [],
       propagationContext: {
         traceId: expect.any(String),
-        spanId: expect.any(String),
       },
       sdkProcessingMetadata: {},
     });
@@ -104,7 +101,6 @@ describe('Scope', () => {
 
       expect(scope.getScopeData().propagationContext).toEqual({
         traceId: expect.any(String),
-        spanId: expect.any(String),
         sampled: undefined,
         dsc: undefined,
         parentSpanId: undefined,
@@ -232,13 +228,11 @@ describe('Scope', () => {
       const oldPropagationContext = scope.getPropagationContext();
       scope.setPropagationContext({
         traceId: '86f39e84263a4de99c326acab3bfe3bd',
-        spanId: '6e0c63257de34c92',
         sampled: true,
       });
       expect(scope.getPropagationContext()).not.toEqual(oldPropagationContext);
       expect(scope.getPropagationContext()).toEqual({
         traceId: '86f39e84263a4de99c326acab3bfe3bd',
-        spanId: '6e0c63257de34c92',
         sampled: true,
       });
     });
@@ -298,7 +292,6 @@ describe('Scope', () => {
     expect(scope['_extra']).toEqual({});
     expect(scope['_propagationContext']).toEqual({
       traceId: expect.any(String),
-      spanId: expect.any(String),
       sampled: undefined,
     });
     expect(scope['_propagationContext']).not.toEqual(oldPropagationContext);
@@ -426,7 +419,6 @@ describe('Scope', () => {
         user: { id: '42' },
         propagationContext: {
           traceId: '8949daf83f4a4a70bee4c1eb9ab242ed',
-          spanId: 'a024ad8fea82680e',
           sampled: true,
         },
       };
@@ -453,7 +445,6 @@ describe('Scope', () => {
       expect(updatedScope._fingerprint).toEqual(['bar']);
       expect(updatedScope._propagationContext).toEqual({
         traceId: '8949daf83f4a4a70bee4c1eb9ab242ed',
-        spanId: 'a024ad8fea82680e',
         sampled: true,
       });
     });
@@ -502,7 +493,7 @@ describe('Scope', () => {
         tags: { tag1: 'aa', tag2: 'aa' },
         extra: { extra1: 'aa', extra2: 'aa' },
         contexts: { os: { name: 'os1' }, culture: { display_name: 'name1' } },
-        propagationContext: { spanId: '1', traceId: '1' },
+        propagationContext: { traceId: '1' },
         fingerprint: ['aa'],
       });
       scope.addBreadcrumb(breadcrumb1);

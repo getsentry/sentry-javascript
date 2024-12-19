@@ -1545,8 +1545,6 @@ describe('continueTrace', () => {
     });
 
     expect(scope.getPropagationContext()).toEqual({
-      sampled: undefined,
-      spanId: expect.any(String),
       traceId: expect.any(String),
     });
 
@@ -1579,7 +1577,6 @@ describe('continueTrace', () => {
       dsc: {}, // DSC should be an empty object (frozen), because there was an incoming trace
       sampled: false,
       parentSpanId: '1121201211212012',
-      spanId: expect.any(String),
       traceId: '12312012123120121231201212312012',
     });
 
@@ -1615,7 +1612,6 @@ describe('continueTrace', () => {
       },
       sampled: true,
       parentSpanId: '1121201211212012',
-      spanId: expect.any(String),
       traceId: '12312012123120121231201212312012',
     });
 
@@ -1651,7 +1647,6 @@ describe('continueTrace', () => {
       },
       sampled: true,
       parentSpanId: '1121201211212012',
-      spanId: expect.any(String),
       traceId: '12312012123120121231201212312012',
     });
 

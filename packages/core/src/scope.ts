@@ -22,7 +22,7 @@ import { updateSession } from './session';
 import { isPlainObject } from './utils-hoist/is';
 import { logger } from './utils-hoist/logger';
 import { uuid4 } from './utils-hoist/misc';
-import { generateSpanId, generateTraceId } from './utils-hoist/propagationContext';
+import { generateTraceId } from './utils-hoist/propagationContext';
 import { dateTimestampInSeconds } from './utils-hoist/time';
 import { merge } from './utils/merge';
 import { _getSpanForScope, _setSpanForScope } from './utils/spanOnScope';
@@ -157,7 +157,6 @@ export class Scope {
     this._sdkProcessingMetadata = {};
     this._propagationContext = {
       traceId: generateTraceId(),
-      spanId: generateSpanId(),
     };
   }
 
@@ -548,14 +547,8 @@ export class Scope {
   /**
    * Add propagation context to the scope, used for distributed tracing
    */
-  public setPropagationContext(
-    context: Omit<PropagationContext, 'spanId'> & Partial<Pick<PropagationContext, 'spanId'>>,
-  ): this {
-    this._propagationContext = {
-      // eslint-disable-next-line deprecation/deprecation
-      spanId: generateSpanId(),
-      ...context,
-    };
+  public setPropagationContext(context: PropagationContext): this {
+    this._propagationContext = context;
     return this;
   }
 
