@@ -16,15 +16,6 @@ export interface PropagationContext {
    */
   traceId: string;
   /**
-   * Represents the execution context of the current SDK. This acts as a fallback value to associate events with a
-   * particular execution context when performance monitoring is disabled.
-   *
-   * The ID of a current span (if one exists) should have precedence over this value when propagating trace data.
-   *
-   * @deprecated This value will not be used anymore in the future, and should not be set or read anymore.
-   */
-  spanId: string;
-  /**
    * Represents the sampling decision of the incoming trace.
    *
    * The current SDK should not modify this value!

@@ -19,7 +19,6 @@ import {
 } from '@sentry/core';
 import { SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING, SENTRY_TRACE_STATE_URL } from './constants';
 import { DEBUG_BUILD } from './debug-build';
-import { getPropagationContextFromSpan } from './propagator';
 import { getSamplingDecision } from './utils/getSamplingDecision';
 import { inferSpanData } from './utils/parseSpanDescription';
 import { setIsSetup } from './utils/setupCheck';
@@ -138,14 +137,6 @@ export class SentrySampler implements Sampler {
   }
 }
 
-function getParentRemoteSampled(parentSpan: Span): boolean | undefined {
-  const traceId = parentSpan.spanContext().traceId;
-  const traceparentData = getPropagationContextFromSpan(parentSpan);
-
-  // Only inherit sampled if `traceId` is the same
-  return traceparentData && traceId === traceparentData.traceId ? traceparentData.sampled : undefined;
-}
-
 function getParentSampled(parentSpan: Span, traceId: string, spanName: string): boolean | undefined {
   const parentContext = parentSpan.spanContext();
 
@@ -153,7 +144,7 @@ function getParentSampled(parentSpan: Span, traceId: string, spanName: string): 
   // Note for testing: `isSpanContextValid()` checks the format of the traceId/spanId, so we need to pass valid ones
   if (isSpanContextValid(parentContext) && parentContext.traceId === traceId) {
     if (parentContext.isRemote) {
-      const parentSampled = getParentRemoteSampled(parentSpan);
+      const parentSampled = getSamplingDecision(parentSpan.spanContext());
       DEBUG_BUILD &&
         logger.log(`[Tracing] Inheriting remote parent's sampled decision for ${spanName}: ${parentSampled}`);
       return parentSampled;

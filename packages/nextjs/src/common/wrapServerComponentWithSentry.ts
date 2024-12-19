@@ -6,7 +6,6 @@ import {
   SPAN_STATUS_OK,
   Scope,
   captureException,
-  generateSpanId,
   generateTraceId,
   getActiveSpan,
   getCapturedScopesOnSpan,
@@ -69,7 +68,6 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
                 ? propagationContextFromHeaders(headersDict['sentry-trace'], headersDict['baggage'])
                 : {
                     traceId: requestTraceId || generateTraceId(),
-                    spanId: generateSpanId(),
                   },
             );
 
