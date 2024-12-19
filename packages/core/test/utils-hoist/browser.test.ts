@@ -78,6 +78,7 @@ describe('htmlTreeAsString', () => {
 describe('getDomElement', () => {
   it('returns the element for a given query selector', () => {
     document.head.innerHTML = '<div id="mydiv">Hello</div>';
+    // eslint-disable-next-line deprecation/deprecation
     const el = getDomElement('div#mydiv');
     expect(el).toBeDefined();
     expect(el?.tagName).toEqual('DIV');

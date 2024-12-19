@@ -465,6 +465,7 @@ export function getMetaContent(metaName: string): string | undefined {
   // Can't specify generic to `getDomElement` because tracing can be used
   // in a variety of environments, have to disable `no-unsafe-member-access`
   // as a result.
+  // eslint-disable-next-line deprecation/deprecation
   const metaTag = getDomElement(`meta[name=${metaName}]`);
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   return metaTag ? metaTag.getAttribute('content') : undefined;

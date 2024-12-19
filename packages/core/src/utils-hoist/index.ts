@@ -2,7 +2,13 @@ export { applyAggregateErrorsToEvent } from './aggregate-errors';
 // eslint-disable-next-line deprecation/deprecation
 export { flatten } from './array';
 export { getBreadcrumbLogLevelFromHttpStatusCode } from './breadcrumb-log-level';
-export { getComponentName, getDomElement, getLocationHref, htmlTreeAsString } from './browser';
+export {
+  getComponentName,
+  // eslint-disable-next-line deprecation/deprecation
+  getDomElement,
+  getLocationHref,
+  htmlTreeAsString,
+} from './browser';
 export { dsnFromString, dsnToString, makeDsn } from './dsn';
 export { SentryError } from './error';
 export { GLOBAL_OBJ, getGlobalSingleton } from './worldwide';
