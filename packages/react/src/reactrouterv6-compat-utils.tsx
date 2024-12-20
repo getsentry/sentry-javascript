@@ -426,8 +426,8 @@ function getNormalizedName(
 
         // If path is not a wildcard and has no child routes, append the path
         if (path && !pathIsWildcardAndHasChildren(path, branch)) {
-          const newPath = prefixWithSlash(path);
-          pathBuilder = trimSlash(pathBuilder) + newPath;
+          const newPath = path[0] === '/' || pathBuilder[pathBuilder.length - 1] === '/' ? path : `/${path}`;
+          pathBuilder = trimSlash(pathBuilder) + prefixWithSlash(newPath);
 
           // If the path matches the current location, return the path
           if (trimSlash(location.pathname) === trimSlash(basename + branch.pathname)) {
