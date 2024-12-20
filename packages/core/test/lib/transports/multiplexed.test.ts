@@ -1,3 +1,15 @@
+import {
+  SIMPLE_MULTIPLEXED_TRANSPORT_EXTRA_ROUTING_KEY,
+  createClientReportEnvelope,
+  createEnvelope,
+  createTransport,
+  dsnFromString,
+  getEnvelopeEndpointWithUrlEncodedAuth,
+  makeMultiplexedTransport,
+  makeSimpleMultiplexedTransport,
+  parseEnvelope,
+} from '../../../src';
+import { eventFromEnvelope } from '../../../src/transports/multiplexed';
 import type {
   BaseTransportOptions,
   ClientReport,
@@ -7,17 +19,6 @@ import type {
   TransactionEvent,
   Transport,
 } from '../../../src/types-hoist';
-
-import {
-  createClientReportEnvelope,
-  createEnvelope,
-  createTransport,
-  dsnFromString,
-  getEnvelopeEndpointWithUrlEncodedAuth,
-  makeMultiplexedTransport,
-  parseEnvelope,
-} from '../../../src';
-import { eventFromEnvelope } from '../../../src/transports/multiplexed';
 
 const DSN1 = 'https://1234@5678.ingest.sentry.io/4321';
 const DSN1_URL = getEnvelopeEndpointWithUrlEncodedAuth(dsnFromString(DSN1)!);
@@ -245,5 +246,84 @@ describe('makeMultiplexedTransport', () => {
 
     const transport = makeTransport({ url: DSN1_URL, ...transportOptions });
     await transport.send(TRANSACTION_ENVELOPE);
+  });
+});
+
+describe('makeSimpleMultiplexedTransport()', () => {
+  it('sends events to targets provided in event.extra[SIMPLE_MULTIPLEXED_TRANSPORT_EXTRA_ROUTING_KEY]', async () => {
+    expect.assertions(2);
+
+    const makeTransport = makeSimpleMultiplexedTransport(
+      createTestTransport(
+        url => {
+          expect(url).toBe(DSN1_URL);
+        },
+        url => {
+          expect(url).toBe(DSN2_URL);
+        },
+      ),
+    );
+
+    const envelope = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, [
+      [
+        { type: 'event' },
+        {
+          event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2',
+          extra: {
+            [SIMPLE_MULTIPLEXED_TRANSPORT_EXTRA_ROUTING_KEY]: [DSN1, DSN2],
+          },
+        },
+      ] as EventItem,
+    ]);
+
+    const transport = makeTransport({ url: DSN1_URL, ...transportOptions });
+    await transport.send(envelope);
+  });
+
+  it('sends events to default DSN if event.extra[SIMPLE_MULTIPLEXED_TRANSPORT_EXTRA_ROUTING_KEY] is not set', async () => {
+    expect.assertions(1);
+
+    const makeTransport = makeSimpleMultiplexedTransport(
+      createTestTransport(url => {
+        expect(url).toBe(DSN1_URL);
+      }),
+    );
+
+    const envelope = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, [
+      [
+        { type: 'event' },
+        {
+          event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2',
+        },
+      ] as EventItem,
+    ]);
+
+    const transport = makeTransport({ url: DSN1_URL, ...transportOptions });
+    await transport.send(envelope);
+  });
+
+  it('sends events to default DSN if event.extra[SIMPLE_MULTIPLEXED_TRANSPORT_EXTRA_ROUTING_KEY] is an empty array', async () => {
+    expect.assertions(1);
+
+    const makeTransport = makeSimpleMultiplexedTransport(
+      createTestTransport(url => {
+        expect(url).toBe(DSN1_URL);
+      }),
+    );
+
+    const envelope = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, [
+      [
+        { type: 'event' },
+        {
+          event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2',
+          extra: {
+            [SIMPLE_MULTIPLEXED_TRANSPORT_EXTRA_ROUTING_KEY]: [],
+          },
+        },
+      ] as EventItem,
+    ]);
+
+    const transport = makeTransport({ url: DSN1_URL, ...transportOptions });
+    await transport.send(envelope);
   });
 });
