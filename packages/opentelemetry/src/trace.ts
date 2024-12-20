@@ -1,11 +1,17 @@
 import type { Context, Span, SpanContext, SpanOptions, Tracer } from '@opentelemetry/api';
 import { SpanStatusCode, TraceFlags, context, trace } from '@opentelemetry/api';
 import { suppressTracing } from '@opentelemetry/core';
-import type { Client, DynamicSamplingContext, Scope, Span as SentrySpan, TraceContext } from '@sentry/core';
+import type {
+  Client,
+  DynamicSamplingContext,
+  Scope,
+  Span as SentrySpan,
+  TraceContext,
+  continueTrace as baseContinueTrace,
+} from '@sentry/core';
 import {
   SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  continueTrace as baseContinueTrace,
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromScope,
@@ -13,8 +19,10 @@ import {
   getRootSpan,
   getTraceContextFromScope,
   handleCallbackErrors,
+  propagationContextFromHeaders,
   spanToJSON,
   spanToTraceContext,
+  withScope,
 } from '@sentry/core';
 import { continueTraceAsRemoteSpan } from './propagator';
 import type { OpenTelemetryClient, OpenTelemetrySpanContext } from './types';
@@ -247,7 +255,10 @@ function getContextForScope(scope?: Scope): Context {
  * It propagates the trace as a remote span, in addition to setting it on the propagation context.
  */
 export function continueTrace<T>(options: Parameters<typeof baseContinueTrace>[0], callback: () => T): T {
-  return baseContinueTrace(options, () => {
+  return withScope(scope => {
+    const { sentryTrace, baggage } = options;
+    const propagationContext = propagationContextFromHeaders(sentryTrace, baggage);
+    scope.setPropagationContext(propagationContext);
     return continueTraceAsRemoteSpan(context.active(), options, callback);
   });
 }
