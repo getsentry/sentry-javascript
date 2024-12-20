@@ -56,5 +56,10 @@
         "label": "react-router-7-spa (TS 3.8)"
       }
     ]
+  },
+  "pnpm": {
+    "overrides": {
+      "esbuild": "0.24.0"
+    }
   }
 }
