@@ -66,26 +66,12 @@ export { basename, dirname, isAbsolute, join, normalizePath, relative, resolve }
 export { makePromiseBuffer } from './promisebuffer';
 export type { PromiseBuffer } from './promisebuffer';
 
-// TODO: Remove requestdata export once equivalent integration is used everywhere
 export {
-  DEFAULT_USER_INCLUDES,
-  addNormalizedRequestDataToEvent,
-  // eslint-disable-next-line deprecation/deprecation
-  addRequestDataToEvent,
-  // eslint-disable-next-line deprecation/deprecation
-  extractPathForTransaction,
-  // eslint-disable-next-line deprecation/deprecation
-  extractRequestData,
   winterCGHeadersToDict,
   winterCGRequestToRequestData,
   httpRequestToRequestData,
   extractQueryParamsFromUrl,
   headersToDict,
-} from './requestdata';
-export type {
-  AddRequestDataToEventOptions,
-  // eslint-disable-next-line deprecation/deprecation
-  TransactionNamingScheme,
 } from './requestdata';
 
 export { severityLevelFromString } from './severity';

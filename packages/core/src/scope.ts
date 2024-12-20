@@ -5,6 +5,7 @@ import type {
   Client,
   Context,
   Contexts,
+  DynamicSamplingContext,
   Event,
   EventHint,
   EventProcessor,
@@ -12,6 +13,7 @@ import type {
   Extras,
   Primitive,
   PropagationContext,
+  RequestEventData,
   Session,
   SeverityLevel,
   Span,
@@ -58,6 +60,12 @@ export interface SdkProcessingMetadata {
   requestSession?: {
     status: 'ok' | 'errored' | 'crashed';
   };
+  normalizedRequest?: RequestEventData;
+  dynamicSamplingContext?: Partial<DynamicSamplingContext>;
+  capturedSpanScope?: Scope;
+  capturedSpanIsolationScope?: Scope;
+  spanCountBeforeProcessing?: number;
+  ipAddress?: string;
 }
 
 /**
@@ -537,10 +545,8 @@ export class Scope {
 
   /**
    * Add data which will be accessible during event processing but won't get sent to Sentry.
-   *
-   * TODO(v9): We should type this stricter, so that e.g. `normalizedRequest` is strictly typed.
    */
-  public setSDKProcessingMetadata(newData: { [key: string]: unknown }): this {
+  public setSDKProcessingMetadata(newData: SdkProcessingMetadata): this {
     this._sdkProcessingMetadata = merge(this._sdkProcessingMetadata, newData, 2);
     return this;
   }

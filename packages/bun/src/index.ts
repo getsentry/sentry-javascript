@@ -18,7 +18,6 @@ export type {
   Thread,
   User,
 } from '@sentry/core';
-export type { AddRequestDataToEventOptions } from '@sentry/core';
 
 export {
   addEventProcessor,
@@ -64,11 +63,6 @@ export {
   flush,
   close,
   getSentryRelease,
-  // eslint-disable-next-line deprecation/deprecation
-  addRequestDataToEvent,
-  DEFAULT_USER_INCLUDES,
-  // eslint-disable-next-line deprecation/deprecation
-  extractRequestData,
   createGetModuleFromFilename,
   anrIntegration,
   disableAnrDetectionForCallback,
