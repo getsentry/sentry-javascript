@@ -1,6 +1,7 @@
 import type { Scope } from '../types-hoist';
 import type { getTraceData } from '../utils/traceData';
 import type {
+  continueTrace,
   startInactiveSpan,
   startSpan,
   startSpanManual,
@@ -68,4 +69,11 @@ export interface AsyncContextStrategy {
 
   /** Get trace data as serialized string values for propagation via `sentry-trace` and `baggage`. */
   getTraceData?: typeof getTraceData;
+
+  /**
+   * Continue a trace from `sentry-trace` and `baggage` values.
+   * These values can be obtained from incoming request headers, or in the browser from `<meta name="sentry-trace">`
+   * and `<meta name="baggage">` HTML tags.
+   */
+  continueTrace?: typeof continueTrace;
 }

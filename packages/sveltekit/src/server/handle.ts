@@ -2,6 +2,7 @@ import type { Span } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  continueTrace,
   getActiveSpan,
   getCurrentScope,
   getDefaultIsolationScope,
@@ -13,7 +14,6 @@ import {
   winterCGRequestToRequestData,
   withIsolationScope,
 } from '@sentry/core';
-import { continueTrace } from '@sentry/node';
 import type { Handle, ResolveOptions } from '@sveltejs/kit';
 
 import { DEBUG_BUILD } from '../common/debug-build';
