@@ -3,6 +3,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   captureException,
   continueTrace,
+  getActiveSpan,
   httpRequestToRequestData,
   isString,
   logger,
@@ -59,7 +60,13 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
         req.__withSentry_applied__ = true;
 
         return withIsolationScope(isolationScope => {
-          return continueTrace(
+          // Normally, there is an active span here (from Next.js OTEL) and we just use that as parent
+          // Else, we manually continueTrace from the incoming headers
+          const continueTraceOrNot = getActiveSpan()
+            ? <T>(_opts: unknown, callback: () => T) => callback()
+            : continueTrace;
+
+          return continueTraceOrNot(
             {
               sentryTrace:
                 req.headers && isString(req.headers['sentry-trace']) ? req.headers['sentry-trace'] : undefined,

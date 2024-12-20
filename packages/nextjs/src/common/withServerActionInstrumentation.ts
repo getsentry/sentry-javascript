@@ -1,4 +1,4 @@
-import type { RequestEventData } from '@sentry/core';
+import { RequestEventData, getActiveSpan } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
@@ -95,7 +95,11 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
       } satisfies RequestEventData,
     });
 
-    return continueTrace(
+    // Normally, there is an active span here (from Next.js OTEL) and we just use that as parent
+    // Else, we manually continueTrace from the incoming headers
+    const continueTraceOrNot = getActiveSpan() ? <T>(_opts: unknown, callback: () => T) => callback() : continueTrace;
+
+    return continueTraceOrNot(
       {
         sentryTrace: sentryTraceHeader,
         baggage: baggageHeader,
