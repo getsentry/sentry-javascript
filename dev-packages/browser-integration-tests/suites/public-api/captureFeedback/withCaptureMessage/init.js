@@ -5,7 +5,7 @@ window.Sentry = Sentry;
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   beforeSend(event) {
-    Sentry.captureUserFeedback({
+    Sentry.captureFeedback({
       event_id: event.event_id,
       name: 'John Doe',
       email: 'john@doe.com',

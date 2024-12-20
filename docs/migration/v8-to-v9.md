@@ -128,6 +128,10 @@ Sentry.init({
 - The `urlEncode` method has been removed. There is no replacement.
 - The `getDomElement` method has been removed. There is no replacement.
 
+### `@sentry/browser`
+
+- The `captureUserFeedback` method has been removed. Use `captureFeedback` instead as a drop-in replacement.
+
 ### `@sentry/nestjs`
 
 - Removed `WithSentry` decorator. Use `SentryExceptionCaptured` instead.
