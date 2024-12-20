@@ -877,33 +877,33 @@ To start using the Next.js instrumentation hook, follow these steps:
 
 1. First, enable the Next.js instrumentation hook by setting the [`experimental.instrumentationHook`](https://nextjs.org/docs/app/api-reference/next-config-js/instrumentationHook) to true in your `next.config.js`. (This step is no longer required with Next.js 15)
 
-```JavaScript {filename:next.config.js} {2-4}
-module.exports = {
-  experimental: {
-    instrumentationHook: true, // Not required on Next.js 15+
-  },
-}
-```
+   ```JavaScript {filename:next.config.js} {2-4}
+   module.exports = {
+     experimental: {
+       instrumentationHook: true, // Not required on Next.js 15+
+     },
+   }
+   ```
 
 2. Next, create a `instrumentation.ts|js` file in the root directory of your project (or in the src folder if you have have one).
 
 3. Now, export a register function from the `instrumentation.ts|js` file and import your `sentry.server.config.js|ts` and `sentry.edge.config.js|ts` modules:
 
-```JavaScript {filename:instrumentation.js}
-import * as Sentry from '@sentry/nextjs';
+   ```JavaScript {filename:instrumentation.js}
+   import * as Sentry from '@sentry/nextjs';
 
-export async function register() {
-  if (process.env.NEXT_RUNTIME === 'nodejs') {
-    await import('./sentry.server.config');
-  }
+   export async function register() {
+     if (process.env.NEXT_RUNTIME === 'nodejs') {
+       await import('./sentry.server.config');
+     }
 
-  if (process.env.NEXT_RUNTIME === 'edge') {
-    await import('./sentry.edge.config');
-  }
-}
-```
+     if (process.env.NEXT_RUNTIME === 'edge') {
+       await import('./sentry.edge.config');
+     }
+   }
+   ```
 
-Note that you can initialize the SDK differently depending on which server runtime is being used.
+   Note that you can initialize the SDK differently depending on which server runtime is being used.
 
 If you are using a
 [Next.js custom server](https://nextjs.org/docs/pages/building-your-application/configuring/custom-server), the
