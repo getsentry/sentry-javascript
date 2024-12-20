@@ -192,15 +192,20 @@ export function startInactiveSpan(options: StartSpanOptions): Span {
  * be attached to the incoming trace.
  */
 export const continueTrace = <V>(
-  {
-    sentryTrace,
-    baggage,
-  }: {
+  options: {
     sentryTrace: Parameters<typeof propagationContextFromHeaders>[0];
     baggage: Parameters<typeof propagationContextFromHeaders>[1];
   },
   callback: () => V,
 ): V => {
+  const carrier = getMainCarrier();
+  const acs = getAsyncContextStrategy(carrier);
+  if (acs.continueTrace) {
+    return acs.continueTrace(options, callback);
+  }
+
+  const { sentryTrace, baggage } = options;
+
   return withScope(scope => {
     const propagationContext = propagationContextFromHeaders(sentryTrace, baggage);
     scope.setPropagationContext(propagationContext);
