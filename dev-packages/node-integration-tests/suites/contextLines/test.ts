@@ -64,7 +64,7 @@ describe('ContextLines integration in CJS', () => {
                       ],
                       post_context: ['', '// some more post context'],
                       colno: 25,
-                      lineno: 11,
+                      lineno: 10,
                       function: 'Object.?',
                       in_app: true,
                       module: 'scenario with space',
