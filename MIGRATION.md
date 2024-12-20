@@ -870,58 +870,40 @@ or look at the TypeScript type definitions of `withSentryConfig`.
 
 #### Updated the recommended way of calling `Sentry.init()`
 
-With version 8 of the SDK we will no longer support the use of `sentry.server.config.ts` and `sentry.edge.config.ts`
-files. Instead, please initialize the Sentry Next.js SDK for the serverside in a
-[Next.js instrumentation hook](https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation).
-**`sentry.client.config.ts|js` is still supported and encouraged for initializing the clientside SDK.**
+Version 8 of the Next.js SDK will require an additional `instrumentation.ts` file to execute the `sentry.server.config.js|ts` and `sentry.edge.config.js|ts` modules to initialize the SDK for the server-side.
+The `instrumentation.ts` file is a Next.js native API called [instrumentation hook](https://nextjs.org/docs/app/api-reference/file-conventions/instrumentation).
 
-The following is an example of how to initialize the serverside SDK in a Next.js instrumentation hook:
+To start using the Next.js instrumentation hook, follow these steps:
 
-1. First, enable the Next.js instrumentation hook by setting the `experimental.instrumentationHook` to `true` in your
-   `next.config.js`.
-2. Next, create a `instrumentation.ts|js` file in the root directory of your project (or in the `src` folder if you have
-   have one).
-3. Now, export a `register` function from the `instrumentation.ts|js` file and call `Sentry.init()` inside of it:
+1. First, enable the Next.js instrumentation hook by setting the [`experimental.instrumentationHook`](https://nextjs.org/docs/app/api-reference/next-config-js/instrumentationHook) to true in your `next.config.js`. (This step is no longer required with Next.js 15)
 
-   ```ts
-   import * as Sentry from '@sentry/nextjs';
+```JavaScript {filename:next.config.js} {2-4}
+module.exports = {
+  experimental: {
+    instrumentationHook: true, // Not required on Next.js 15+
+  },
+}
+```
 
-   export function register() {
-     if (process.env.NEXT_RUNTIME === 'nodejs') {
-       Sentry.init({
-         dsn: 'YOUR_DSN',
-         // Your Node.js Sentry configuration...
-       });
-     }
+2. Next, create a `instrumentation.ts|js` file in the root directory of your project (or in the src folder if you have have one).
 
-     if (process.env.NEXT_RUNTIME === 'edge') {
-       Sentry.init({
-         dsn: 'YOUR_DSN',
-         // Your Edge Runtime Sentry configuration...
-       });
-     }
-   }
-   ```
+3. Now, export a register function from the `instrumentation.ts|js` file and import your `sentry.server.config.js|ts` and `sentry.edge.config.js|ts` modules:
 
-   If you need to import a Node.js specific integration (like for example `@sentry/profiling-node`), you will have to
-   import the package using a dynamic import to prevent Next.js from bundling Node.js APIs into bundles for other
-   runtime environments (like the Browser or the Edge runtime). You can do so as follows:
+```JavaScript {filename:instrumentation.js}
+import * as Sentry from '@sentry/nextjs';
 
-   ```ts
-   import * as Sentry from '@sentry/nextjs';
+export async function register() {
+  if (process.env.NEXT_RUNTIME === 'nodejs') {
+    await import('./sentry.server.config');
+  }
 
-   export async function register() {
-     if (process.env.NEXT_RUNTIME === 'nodejs') {
-       const { nodeProfilingIntegration } = await import('@sentry/profiling-node');
-       Sentry.init({
-         dsn: 'YOUR_DSN',
-         integrations: [nodeProfilingIntegration()],
-       });
-     }
-   }
-   ```
+  if (process.env.NEXT_RUNTIME === 'edge') {
+    await import('./sentry.edge.config');
+  }
+}
+```
 
-   Note that you can initialize the SDK differently depending on which server runtime is being used.
+Note that you can initialize the SDK differently depending on which server runtime is being used.
 
 If you are using a
 [Next.js custom server](https://nextjs.org/docs/pages/building-your-application/configuring/custom-server), the
