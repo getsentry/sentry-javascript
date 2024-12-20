@@ -1,4 +1,5 @@
-import { RequestEventData, getActiveSpan } from '@sentry/core';
+import type { RequestEventData } from '@sentry/core';
+import { getActiveSpan } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
