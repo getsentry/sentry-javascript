@@ -19,10 +19,6 @@ export declare function init(
   options: Options | clientSdk.BrowserOptions | serverSdk.NodeOptions | edgeSdk.EdgeOptions,
 ): Client | undefined;
 
-export declare const getClient: typeof clientSdk.getClient;
-export declare const getRootSpan: typeof serverSdk.getRootSpan;
-export declare const continueTrace: typeof clientSdk.continueTrace;
-
 export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;
 export declare const contextLinesIntegration: typeof clientSdk.contextLinesIntegration;
 

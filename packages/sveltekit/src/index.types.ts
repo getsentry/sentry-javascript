@@ -42,7 +42,6 @@ export declare const contextLinesIntegration: typeof clientSdk.contextLinesInteg
 export declare const getDefaultIntegrations: (options: Options) => Integration[];
 export declare const defaultStackParser: StackParser;
 
-export declare const getClient: typeof clientSdk.getClient;
 // eslint-disable-next-line deprecation/deprecation
 export declare const getCurrentHub: typeof clientSdk.getCurrentHub;
 
