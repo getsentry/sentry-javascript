@@ -75,7 +75,6 @@ export async function mockSdk({ replayOptions, sentryOptions, autoStart = true }
   const client = init({
     ...getDefaultClientOptions(),
     dsn: 'https://dsn@ingest.f00.f00/1',
-    autoSessionTracking: false,
     sendClientReports: false,
     transport: () => new MockTransport(),
     replaysSessionSampleRate: 1.0,
