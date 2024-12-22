@@ -67,15 +67,11 @@ export {
   withActiveSpan,
   getSpanDescendants,
   continueTrace,
-  // eslint-disable-next-line deprecation/deprecation
-  metrics,
   functionToStringIntegration,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
   requestDataIntegration,
   extraErrorDataIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  debugIntegration,
   dedupeIntegration,
   rewriteFramesIntegration,
   captureConsoleIntegration,
@@ -89,6 +85,7 @@ export {
   spanToJSON,
   spanToTraceHeader,
   spanToBaggageHeader,
+  updateSpanName,
 } from '@sentry/core';
 
 export { withSentry } from './handler';

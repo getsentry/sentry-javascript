@@ -118,7 +118,7 @@ describe('makeMultiplexedTransport', () => {
     const makeTransport = makeMultiplexedTransport(
       createTestTransport((url, _, env) => {
         expect(url).toBe(DSN2_URL);
-        expect(env[0]?.dsn).toBe(DSN2);
+        expect(env[0].dsn).toBe(DSN2);
       }),
       () => [DSN2],
     );
@@ -134,7 +134,7 @@ describe('makeMultiplexedTransport', () => {
       createTestTransport((url, release, env) => {
         expect(url).toBe(DSN2_URL);
         expect(release).toBe('something@1.0.0');
-        expect(env[0]?.dsn).toBe(DSN2);
+        expect(env[0].dsn).toBe(DSN2);
       }),
       () => [{ dsn: DSN2, release: 'something@1.0.0' }],
     );
@@ -150,7 +150,7 @@ describe('makeMultiplexedTransport', () => {
       createTestTransport((url, release, env) => {
         expect(url).toBe('http://google.com');
         expect(release).toBe('something@1.0.0');
-        expect(env[0]?.dsn).toBe(DSN2);
+        expect(env[0].dsn).toBe(DSN2);
       }),
       () => [{ dsn: DSN2, release: 'something@1.0.0' }],
     );

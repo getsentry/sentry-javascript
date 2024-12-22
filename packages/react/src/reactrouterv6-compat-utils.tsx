@@ -16,7 +16,6 @@ import {
   getActiveSpan,
   getClient,
   getCurrentScope,
-  getNumberOfUrlSegments,
   getRootSpan,
   logger,
   spanToJSON,
@@ -436,8 +435,6 @@ function getNormalizedName(
               // If the route defined on the element is something like
               // <Route path="/stores/:storeId/products/:productId" element={<div>Product</div>} />
               // We should check against the branch.pathname for the number of / separators
-              // TODO(v9): Put the implementation of `getNumberOfUrlSegments` in this file
-              // eslint-disable-next-line deprecation/deprecation
               getNumberOfUrlSegments(pathBuilder) !== getNumberOfUrlSegments(branch.pathname) &&
               // We should not count wildcard operators in the url segments calculation
               !pathEndsWithWildcard(pathBuilder)
@@ -571,4 +568,12 @@ function getActiveRootSpan(): Span | undefined {
 
   // Only use this root span if it is a pageload or navigation span
   return op === 'navigation' || op === 'pageload' ? rootSpan : undefined;
+}
+
+/**
+ * Returns number of URL segments of a passed string URL.
+ */
+export function getNumberOfUrlSegments(url: string): number {
+  // split at '/' or at '\/' to split regex urls correctly
+  return url.split(/\\?\//).filter(s => s.length > 0 && s !== ',').length;
 }

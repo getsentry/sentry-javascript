@@ -208,7 +208,7 @@ function isPerformanceResourceTiming(entry: PerformanceEntry): entry is Performa
  * @param span A span that has yet to be finished, must contain `url` on data.
  */
 function addHTTPTimings(span: Span): void {
-  const { url } = spanToJSON(span).data || {};
+  const { url } = spanToJSON(span).data;
 
   if (!url || typeof url !== 'string') {
     return;

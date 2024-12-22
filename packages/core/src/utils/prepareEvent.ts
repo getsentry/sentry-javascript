@@ -1,17 +1,9 @@
-import type {
-  CaptureContext,
-  Client,
-  ClientOptions,
-  Event,
-  EventHint,
-  Scope as ScopeInterface,
-  ScopeContext,
-  StackParser,
-} from '../types-hoist';
+import type { Client, ClientOptions, Event, EventHint, StackParser } from '../types-hoist';
 
 import { DEFAULT_ENVIRONMENT } from '../constants';
 import { getGlobalScope } from '../currentScopes';
 import { notifyEventProcessors } from '../eventProcessors';
+import type { CaptureContext, ScopeContext } from '../scope';
 import { Scope } from '../scope';
 import { getFilenameToDebugIdMap } from '../utils-hoist/debug-ids';
 import { addExceptionMechanism, uuid4 } from '../utils-hoist/misc';
@@ -48,9 +40,9 @@ export function prepareEvent(
   options: ClientOptions,
   event: Event,
   hint: EventHint,
-  scope?: ScopeInterface,
+  scope?: Scope,
   client?: Client,
-  isolationScope?: ScopeInterface,
+  isolationScope?: Scope,
 ): PromiseLike<Event | null> {
   const { normalizeDepth = 3, normalizeMaxBreadth = 1_000 } = options;
   const prepared: Event = {
@@ -179,7 +171,7 @@ export function applyDebugIds(event: Event, stackParser: StackParser): void {
     event!.exception!.values!.forEach(exception => {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       exception.stacktrace!.frames!.forEach(frame => {
-        if (filenameDebugIdMap && frame.filename) {
+        if (frame.filename) {
           frame.debug_id = filenameDebugIdMap[frame.filename];
         }
       });
@@ -317,10 +309,7 @@ function normalizeEvent(event: Event | null, depth: number, maxBreadth: number):
   return normalized;
 }
 
-function getFinalScope(
-  scope: ScopeInterface | undefined,
-  captureContext: CaptureContext | undefined,
-): ScopeInterface | undefined {
+function getFinalScope(scope: Scope | undefined, captureContext: CaptureContext | undefined): Scope | undefined {
   if (!captureContext) {
     return scope;
   }
@@ -355,9 +344,7 @@ export function parseEventHintOrCaptureContext(
   return hint;
 }
 
-function hintIsScopeOrFunction(
-  hint: CaptureContext | EventHint,
-): hint is ScopeInterface | ((scope: ScopeInterface) => ScopeInterface) {
+function hintIsScopeOrFunction(hint: CaptureContext | EventHint): hint is Scope | ((scope: Scope) => Scope) {
   return hint instanceof Scope || typeof hint === 'function';
 }
 
@@ -369,7 +356,6 @@ const captureContextKeys: readonly ScopeContextProperty[] = [
   'contexts',
   'tags',
   'fingerprint',
-  'requestSession',
   'propagationContext',
 ] as const;
 

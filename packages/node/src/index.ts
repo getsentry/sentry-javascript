@@ -21,8 +21,6 @@ export { mongooseIntegration } from './integrations/tracing/mongoose';
 export { mysqlIntegration } from './integrations/tracing/mysql';
 export { mysql2Integration } from './integrations/tracing/mysql2';
 export { redisIntegration } from './integrations/tracing/redis';
-// eslint-disable-next-line deprecation/deprecation
-export { nestIntegration, setupNestErrorHandler } from './integrations/tracing/nest/nest';
 export { postgresIntegration } from './integrations/tracing/postgres';
 export { prismaIntegration } from './integrations/tracing/prisma';
 export { hapiIntegration, setupHapiErrorHandler } from './integrations/tracing/hapi';
@@ -60,11 +58,6 @@ export type { NodeOptions } from './types';
 export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from '@sentry/core';
 
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  addOpenTelemetryInstrumentation,
-  // These are custom variants that need to be used instead of the core one
-  // As they have slightly different implementations
-  continueTrace,
   // This needs exporting so the NodeClient can be used without calling init
   setOpenTelemetryContextAsyncContextStrategy as setNodeAsyncContextStrategy,
 } from '@sentry/opentelemetry';
@@ -109,6 +102,7 @@ export {
   getIsolationScope,
   getTraceData,
   getTraceMetaTags,
+  continueTrace,
   withScope,
   withIsolationScope,
   captureException,
@@ -116,15 +110,9 @@ export {
   captureMessage,
   captureFeedback,
   captureConsoleIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  debugIntegration,
   dedupeIntegration,
   extraErrorDataIntegration,
   rewriteFramesIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  sessionTimingIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  metricsDefault as metrics,
   startSession,
   captureSession,
   endSession,
@@ -141,6 +129,7 @@ export {
   spanToTraceHeader,
   spanToBaggageHeader,
   trpcMiddleware,
+  updateSpanName,
   zodErrorsIntegration,
   profiler,
 } from '@sentry/core';

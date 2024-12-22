@@ -1,5 +1,4 @@
 import type { Measurements } from './measurement';
-import type { Primitive } from './misc';
 import type { HrTime } from './opentelemetry';
 import type { SpanStatus } from './spanStatus';
 import type { TransactionSource } from './transaction';
@@ -31,20 +30,12 @@ export type SpanAttributes = Partial<{
 }> &
   Record<string, SpanAttributeValue | undefined>;
 
-export type MetricSummary = {
-  min: number;
-  max: number;
-  count: number;
-  sum: number;
-  tags?: Record<string, Primitive> | undefined;
-};
-
 /** This type is aligned with the OpenTelemetry TimeInput type. */
 export type SpanTimeInput = HrTime | number | Date;
 
 /** A JSON representation of a span. */
 export interface SpanJSON {
-  data?: { [key: string]: any };
+  data: SpanAttributes;
   description?: string;
   op?: string;
   parent_span_id?: string;
@@ -54,7 +45,6 @@ export interface SpanJSON {
   timestamp?: number;
   trace_id: string;
   origin?: SpanOrigin;
-  _metrics_summary?: Record<string, Array<MetricSummary>>;
   profile_id?: string;
   exclusive_time?: number;
   measurements?: Measurements;
@@ -234,6 +224,16 @@ export interface Span {
 
   /**
    * Update the name of the span.
+   *
+   * **Important:** You most likely want to use `Sentry.updateSpanName(span, name)` instead!
+   *
+   * This method will update the current span name but cannot guarantee that the new name will be
+   * the final name of the span. Instrumentation might still overwrite the name with an automatically
+   * computed name, for example in `http.server` or `db` spans.
+   *
+   * You can ensure that your name is kept and not overwritten by calling `Sentry.updateSpanName(span, name)`
+   *
+   * @param name the new name of the span
    */
   updateName(name: string): this;
 

@@ -32,6 +32,7 @@ import type {
 } from './types-hoist';
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
+import { DEFAULT_ENVIRONMENT } from './constants';
 import { getCurrentScope, getIsolationScope, getTraceContextFromScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import { createEventEnvelope, createSessionEnvelope } from './envelope';
@@ -49,11 +50,13 @@ import { isParameterizedString, isPlainObject, isPrimitive, isThenable } from '.
 import { consoleSandbox, logger } from './utils-hoist/logger';
 import { checkOrSetAlreadyCaught, uuid4 } from './utils-hoist/misc';
 import { SyncPromise, rejectedSyncPromise, resolvedSyncPromise } from './utils-hoist/syncpromise';
+import { getPossibleEventMessages } from './utils/eventUtils';
 import { parseSampleRate } from './utils/parseSampleRate';
 import { prepareEvent } from './utils/prepareEvent';
 import { showSpanDropWarning } from './utils/spanUtils';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
+const MISSING_RELEASE_FOR_SESSION_ERROR = 'Discarded session because of missing or non-string release';
 
 /**
  * Base implementation for all JavaScript SDK clients.
@@ -235,13 +238,9 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritDoc
    */
   public captureSession(session: Session): void {
-    if (!(typeof session.release === 'string')) {
-      DEBUG_BUILD && logger.warn('Discarded session because of missing or non-string release');
-    } else {
-      this.sendSession(session);
-      // After sending, we set init false to indicate it's not the first occurrence
-      updateSession(session, { init: false });
-    }
+    this.sendSession(session);
+    // After sending, we set init false to indicate it's not the first occurrence
+    updateSession(session, { init: false });
   }
 
   /**
@@ -370,6 +369,25 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritDoc
    */
   public sendSession(session: Session | SessionAggregates): void {
+    // Backfill release and environment on session
+    const { release: clientReleaseOption, environment: clientEnvironmentOption = DEFAULT_ENVIRONMENT } = this._options;
+    if ('aggregates' in session) {
+      const sessionAttrs = session.attrs || {};
+      if (!sessionAttrs.release && !clientReleaseOption) {
+        DEBUG_BUILD && logger.warn(MISSING_RELEASE_FOR_SESSION_ERROR);
+        return;
+      }
+      sessionAttrs.release = sessionAttrs.release || clientReleaseOption;
+      sessionAttrs.environment = sessionAttrs.environment || clientEnvironmentOption;
+    } else {
+      if (!session.release && !clientReleaseOption) {
+        DEBUG_BUILD && logger.warn(MISSING_RELEASE_FOR_SESSION_ERROR);
+        return;
+      }
+      session.release = session.release || clientReleaseOption;
+      session.environment = session.environment || clientEnvironmentOption;
+    }
+
     const env = createSessionEnvelope(session, this._dsn, this._options._metadata, this._options.tunnel);
 
     // sendEnvelope should not throw
@@ -713,6 +731,10 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @param scope
    */
   protected _captureEvent(event: Event, hint: EventHint = {}, scope?: Scope): PromiseLike<string | undefined> {
+    if (DEBUG_BUILD && isErrorEvent(event)) {
+      logger.log(`Captured error event \`${getPossibleEventMessages(event)[0] || '<unknown>'}\``);
+    }
+
     return this._processEvent(event, hint, scope).then(
       finalEvent => {
         return finalEvent.event_id;

@@ -6,12 +6,8 @@ export { contextLinesIntegration } from './integrations/contextlines';
 
 export {
   captureConsoleIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  debugIntegration,
   extraErrorDataIntegration,
   rewriteFramesIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  sessionTimingIntegration,
   captureFeedback,
 } from '@sentry/core';
 
@@ -34,8 +30,6 @@ import { feedbackAsyncIntegration } from './feedbackAsync';
 import { feedbackSyncIntegration } from './feedbackSync';
 export { feedbackAsyncIntegration, feedbackSyncIntegration, feedbackSyncIntegration as feedbackIntegration };
 export { getFeedback, sendFeedback } from '@sentry-internal/feedback';
-
-export * from './metrics';
 
 export { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './tracing/request';
 export {

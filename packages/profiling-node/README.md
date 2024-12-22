@@ -12,8 +12,7 @@
 
 ## Installation
 
-Profiling works as an extension of tracing so you will need both @sentry/node and @sentry/profiling-node installed. The
-minimum required major version of @sentry/node that supports profiling is 7.x.
+Profiling works as an extension of tracing so you will need both @sentry/node and @sentry/profiling-node installed.
 
 ```bash
 # Using yarn
@@ -84,7 +83,7 @@ After the binaries are built, you should see them inside the profiling-node/lib 
 
 ### Prebuilt binaries
 
-We currently ship prebuilt binaries for a few of the most common platforms and node versions (v16-22).
+We currently ship prebuilt binaries for a few of the most common platforms and node versions (v18-22).
 
 - macOS x64
 - Linux ARM64 (musl)

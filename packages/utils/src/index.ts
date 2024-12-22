@@ -1,6 +1,5 @@
 /* eslint-disable max-lines */
 import {
-  BAGGAGE_HEADER_NAME as BAGGAGE_HEADER_NAME_imported,
   CONSOLE_LEVELS as CONSOLE_LEVELS_imported,
   DEFAULT_RETRY_AFTER as DEFAULT_RETRY_AFTER_imported,
   DEFAULT_USER_INCLUDES as DEFAULT_USER_INCLUDES_imported,
@@ -28,7 +27,6 @@ import {
   addNormalizedRequestDataToEvent as addNormalizedRequestDataToEvent_imported,
   addRequestDataToEvent as addRequestDataToEvent_imported,
   applyAggregateErrorsToEvent as applyAggregateErrorsToEvent_imported,
-  arrayify as arrayify_imported,
   baggageHeaderToDynamicSamplingContext as baggageHeaderToDynamicSamplingContext_imported,
   basename as basename_imported,
   browserPerformanceTimeOrigin as browserPerformanceTimeOrigin_imported,
@@ -62,21 +60,18 @@ import {
   extractTraceparentData as extractTraceparentData_imported,
   filenameIsInApp as filenameIsInApp_imported,
   fill as fill_imported,
-  flatten as flatten_imported,
   forEachEnvelopeItem as forEachEnvelopeItem_imported,
   generatePropagationContext as generatePropagationContext_imported,
   generateSentryTraceHeader as generateSentryTraceHeader_imported,
   getBreadcrumbLogLevelFromHttpStatusCode as getBreadcrumbLogLevelFromHttpStatusCode_imported,
   getComponentName as getComponentName_imported,
   getDebugImagesForResources as getDebugImagesForResources_imported,
-  getDomElement as getDomElement_imported,
   getEventDescription as getEventDescription_imported,
   getFilenameToDebugIdMap as getFilenameToDebugIdMap_imported,
   getFramesFromEvent as getFramesFromEvent_imported,
   getFunctionName as getFunctionName_imported,
   getGlobalSingleton as getGlobalSingleton_imported,
   getLocationHref as getLocationHref_imported,
-  getNumberOfUrlSegments as getNumberOfUrlSegments_imported,
   getOriginalFunction as getOriginalFunction_imported,
   getSDKSource as getSDKSource_imported,
   getSanitizedUrlString as getSanitizedUrlString_imported,
@@ -108,7 +103,6 @@ import {
   loadModule as loadModule_imported,
   logger as logger_imported,
   makeDsn as makeDsn_imported,
-  makeFifoCache as makeFifoCache_imported,
   makePromiseBuffer as makePromiseBuffer_imported,
   markFunctionWrapped as markFunctionWrapped_imported,
   maybeInstrument as maybeInstrument_imported,
@@ -153,9 +147,7 @@ import {
   triggerHandlers as triggerHandlers_imported,
   truncate as truncate_imported,
   updateRateLimits as updateRateLimits_imported,
-  urlEncode as urlEncode_imported,
   uuid4 as uuid4_imported,
-  validSeverityLevels as validSeverityLevels_imported,
   vercelWaitUntil as vercelWaitUntil_imported,
   watchdogTimer as watchdogTimer_imported,
   winterCGHeadersToDict as winterCGHeadersToDict_imported,
@@ -339,10 +331,6 @@ export const winterCGRequestToRequestData = winterCGRequestToRequestData_importe
 
 /** @deprecated Import from `@sentry/core` instead. */
 export const severityLevelFromString = severityLevelFromString_imported;
-
-/** @deprecated Import from `@sentry/core` instead. */
-// eslint-disable-next-line deprecation/deprecation
-export const validSeverityLevels = validSeverityLevels_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
 export const UNKNOWN_FUNCTION = UNKNOWN_FUNCTION_imported;
@@ -553,9 +541,6 @@ export const resolve = resolve_imported;
 export const getComponentName = getComponentName_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
-export const getDomElement = getDomElement_imported;
-
-/** @deprecated Import from `@sentry/core` instead. */
 export const getLocationHref = getLocationHref_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
@@ -603,22 +588,10 @@ export const loadModule = loadModule_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
 // eslint-disable-next-line deprecation/deprecation
-export const flatten = flatten_imported;
-
-/** @deprecated Import from `@sentry/core` instead. */
-// eslint-disable-next-line deprecation/deprecation
 export const memoBuilder = memoBuilder_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
-// eslint-disable-next-line deprecation/deprecation
-export const arrayify = arrayify_imported;
-
-/** @deprecated Import from `@sentry/core` instead. */
 export const normalizeUrlToBase = normalizeUrlToBase_imported;
-
-/** @deprecated Import from `@sentry/core` instead. */
-// eslint-disable-next-line deprecation/deprecation
-export const urlEncode = urlEncode_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
 // eslint-disable-next-line deprecation/deprecation
@@ -636,14 +609,6 @@ export const extractRequestData = extractRequestData_imported;
 export const addRequestDataToEvent = addRequestDataToEvent_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
-// eslint-disable-next-line deprecation/deprecation
-export const BAGGAGE_HEADER_NAME = BAGGAGE_HEADER_NAME_imported;
-
-/** @deprecated Import from `@sentry/core` instead. */
-// eslint-disable-next-line deprecation/deprecation
-export const getNumberOfUrlSegments = getNumberOfUrlSegments_imported;
-
-/** @deprecated Import from `@sentry/core` instead. */
 export const getSanitizedUrlString = getSanitizedUrlString_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
@@ -651,10 +616,6 @@ export const parseUrl = parseUrl_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
 export const stripUrlQueryAndFragment = stripUrlQueryAndFragment_imported;
-
-/** @deprecated Import from `@sentry/core` instead. */
-// eslint-disable-next-line deprecation/deprecation
-export const makeFifoCache = makeFifoCache_imported;
 
 import type {
   AddRequestDataToEventOptions as AddRequestDataToEventOptions_imported,

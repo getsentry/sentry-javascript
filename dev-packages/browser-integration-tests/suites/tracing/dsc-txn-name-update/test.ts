@@ -181,5 +181,9 @@ async function captureErrorAndGetEnvelopeTraceHeader(page: Page): Promise<Partia
   await page.locator('#btnCaptureError').click();
 
   const [, errorEnvelopeTraceHeader] = (await errorEventPromise)[0];
+
+  // @ts-expect-error - EventEnvelopeHeaders type in (types/envelope.ts) suggests that trace_id is optional,
+  // which the DynamicSamplingContext type does not permit.
+  // TODO(v9): We should adjust the EventEnvelopeHeaders type because the trace header always needs to have a trace_id
   return errorEnvelopeTraceHeader;
 }

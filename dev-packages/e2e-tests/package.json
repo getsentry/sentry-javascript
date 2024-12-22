@@ -21,7 +21,7 @@
   },
   "devDependencies": {
     "@types/glob": "8.0.0",
-    "@types/node": "^18.0.0",
+    "@types/node": "^18.19.1",
     "dotenv": "16.0.3",
     "esbuild": "0.20.0",
     "glob": "8.0.3",

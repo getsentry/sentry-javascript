@@ -89,7 +89,7 @@ export const setupConnectErrorHandler = (app: ConnectApp): void => {
 };
 
 function addConnectSpanAttributes(span: Span): void {
-  const attributes = spanToJSON(span).data || {};
+  const attributes = spanToJSON(span).data;
 
   // this is one of: middleware, request_handler
   const type = attributes['connect.type'];

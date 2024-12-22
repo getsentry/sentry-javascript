@@ -1,6 +1,7 @@
 import type { ContinuousThreadCpuProfile, ThreadCpuProfile } from '@sentry/core';
 import { CpuProfilerBindings, PrivateCpuProfilerBindings } from '../src/cpu_profiler';
 import type { RawThreadCpuProfile } from '../src/types';
+import { ProfileFormat } from '../src/types';
 
 // Required because we test a hypothetical long profile
 // and we cannot use advance timers as the c++ relies on
@@ -19,10 +20,10 @@ const fibonacci = (n: number): number => {
 };
 
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-const profiled = async (name: string, fn: () => void, format: 0 | 1 = 0) => {
+const profiled = async (name: string, fn: () => void) => {
   CpuProfilerBindings.startProfiling(name);
   await fn();
-  return CpuProfilerBindings.stopProfiling(name, format);
+  return CpuProfilerBindings.stopProfiling(name, ProfileFormat.THREAD);
 };
 
 const assertValidSamplesAndStacks = (
@@ -216,15 +217,15 @@ describe('Profiler bindings', () => {
   });
 
   it('chunk format type', async () => {
-    const profile = await profiled(
-      'non nullable stack',
-      async () => {
-        await wait(1000);
-        fibonacci(36);
-        await wait(1000);
-      },
-      1,
-    );
+    const fn = async () => {
+      await wait(1000);
+      fibonacci(36);
+      await wait(1000);
+    };
+
+    CpuProfilerBindings.startProfiling('non nullable stack');
+    await fn();
+    const profile = CpuProfilerBindings.stopProfiling('non nullable stack', ProfileFormat.CHUNK);
 
     if (!profile) fail('Profile is null');
 

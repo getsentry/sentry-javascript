@@ -6,7 +6,7 @@
   "module": "build/esm/index.js",
   "types": "build/types/index.d.ts",
   "typesVersions": {
-    "<4.9": {
+    "<5.0": {
       "build/types/index.d.ts": [
         "build/types-ts3.8/index.d.ts"
       ]
@@ -49,7 +49,7 @@
     "fflate": "0.8.1"
   },
   "engines": {
-    "node": ">=14.18"
+    "node": ">=18"
   },
   "volta": {
     "extends": "../../package.json"

@@ -124,8 +124,12 @@ function createBreadcrumb(handlerData: HandlerDataFetch): void {
     return;
   }
 
+  const breadcrumbData: FetchBreadcrumbData = {
+    method: handlerData.fetchData.method,
+    url: handlerData.fetchData.url,
+  };
+
   if (handlerData.error) {
-    const data = handlerData.fetchData;
     const hint: FetchBreadcrumbHint = {
       data: handlerData.error,
       input: handlerData.args,
@@ -136,29 +140,31 @@ function createBreadcrumb(handlerData: HandlerDataFetch): void {
     addBreadcrumb(
       {
         category: 'fetch',
-        data,
+        data: breadcrumbData,
         level: 'error',
         type: 'http',
       },
       hint,
     );
   } else {
-    const data: FetchBreadcrumbData = {
-      ...handlerData.fetchData,
-      status_code: handlerData.response && handlerData.response.status,
-    };
+    const response = handlerData.response as Response | undefined;
+
+    breadcrumbData.request_body_size = handlerData.fetchData.request_body_size;
+    breadcrumbData.response_body_size = handlerData.fetchData.response_body_size;
+    breadcrumbData.status_code = response && response.status;
+
     const hint: FetchBreadcrumbHint = {
       input: handlerData.args,
-      response: handlerData.response,
+      response,
       startTimestamp,
       endTimestamp,
     };
-    const level = getBreadcrumbLogLevelFromHttpStatusCode(data.status_code);
+    const level = getBreadcrumbLogLevelFromHttpStatusCode(breadcrumbData.status_code);
 
     addBreadcrumb(
       {
         category: 'fetch',
-        data,
+        data: breadcrumbData,
         type: 'http',
         level,
       },

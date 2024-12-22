@@ -21,7 +21,6 @@ import {
   getActiveSpan,
   getClient,
   getCurrentScope,
-  getDomElement,
   getDynamicSamplingContextFromSpan,
   getIsolationScope,
   getRootSpan,
@@ -190,6 +189,12 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
  * We explicitly export the proper type here, as this has to be extended in some cases.
  */
 export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptions> = {}) => {
+  /**
+   * This is just a small wrapper that makes `document` optional.
+   * We want to be extra-safe and always check that this exists, to ensure weird environments do not blow up.
+   */
+  const optionalWindowDocument = WINDOW.document as (typeof WINDOW)['document'] | undefined;
+
   registerSpanErrorInstrumentation();
 
   const {
@@ -273,13 +278,13 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     });
 
     function emitFinish(): void {
-      if (['interactive', 'complete'].includes(WINDOW.document.readyState)) {
+      if (optionalWindowDocument && ['interactive', 'complete'].includes(optionalWindowDocument.readyState)) {
         client.emit('idleSpanEnableAutoFinish', idleSpan);
       }
     }
 
-    if (isPageloadTransaction && WINDOW.document) {
-      WINDOW.document.addEventListener('readystatechange', () => {
+    if (isPageloadTransaction && optionalWindowDocument) {
+      optionalWindowDocument.addEventListener('readystatechange', () => {
         emitFinish();
       });
 
@@ -463,12 +468,14 @@ export function startBrowserTracingNavigationSpan(client: Client, spanOptions: S
 
 /** Returns the value of a meta tag */
 export function getMetaContent(metaName: string): string | undefined {
-  // Can't specify generic to `getDomElement` because tracing can be used
-  // in a variety of environments, have to disable `no-unsafe-member-access`
-  // as a result.
-  const metaTag = getDomElement(`meta[name=${metaName}]`);
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  return metaTag ? metaTag.getAttribute('content') : undefined;
+  /**
+   * This is just a small wrapper that makes `document` optional.
+   * We want to be extra-safe and always check that this exists, to ensure weird environments do not blow up.
+   */
+  const optionalWindowDocument = WINDOW.document as (typeof WINDOW)['document'] | undefined;
+
+  const metaTag = optionalWindowDocument && optionalWindowDocument.querySelector(`meta[name=${metaName}]`);
+  return (metaTag && metaTag.getAttribute('content')) || undefined;
 }
 
 /** Start listener for interaction transactions */
@@ -478,6 +485,12 @@ function registerInteractionListener(
   childSpanTimeout: BrowserTracingOptions['childSpanTimeout'],
   latestRoute: RouteInfo,
 ): void {
+  /**
+   * This is just a small wrapper that makes `document` optional.
+   * We want to be extra-safe and always check that this exists, to ensure weird environments do not blow up.
+   */
+  const optionalWindowDocument = WINDOW.document as (typeof WINDOW)['document'] | undefined;
+
   let inflightInteractionSpan: Span | undefined;
   const registerInteractionTransaction = (): void => {
     const op = 'ui.action.click';
@@ -520,7 +533,7 @@ function registerInteractionListener(
     );
   };
 
-  if (WINDOW.document) {
+  if (optionalWindowDocument) {
     addEventListener('click', registerInteractionTransaction, { once: false, capture: true });
   }
 }

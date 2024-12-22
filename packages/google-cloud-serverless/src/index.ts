@@ -77,8 +77,6 @@ export {
   continueTrace,
   getAutoPerformanceIntegrations,
   cron,
-  // eslint-disable-next-line deprecation/deprecation
-  metrics,
   parameterize,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -104,10 +102,6 @@ export {
   mysql2Integration,
   redisIntegration,
   tediousIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  nestIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  setupNestErrorHandler,
   postgresIntegration,
   prismaIntegration,
   hapiIntegration,
@@ -118,8 +112,7 @@ export {
   spanToTraceHeader,
   spanToBaggageHeader,
   trpcMiddleware,
-  // eslint-disable-next-line deprecation/deprecation
-  addOpenTelemetryInstrumentation,
+  updateSpanName,
   zodErrorsIntegration,
   profiler,
   amqplibIntegration,
@@ -128,13 +121,9 @@ export {
 
 export {
   captureConsoleIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  debugIntegration,
   dedupeIntegration,
   extraErrorDataIntegration,
   rewriteFramesIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  sessionTimingIntegration,
 } from '@sentry/core';
 
 export { getDefaultIntegrations, init } from './sdk';

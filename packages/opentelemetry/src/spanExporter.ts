@@ -12,6 +12,7 @@ import type {
   TransactionSource,
 } from '@sentry/core';
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
@@ -20,7 +21,6 @@ import {
   dropUndefinedKeys,
   getCapturedScopesOnSpan,
   getDynamicSamplingContextFromSpan,
-  getMetricSummaryJsonForSpan,
   getStatusMessage,
   logger,
   spanTimeInputToSeconds,
@@ -297,7 +297,6 @@ export function createTransactionForOtelSpan(span: ReadableSpan): TransactionEve
         source,
       },
     }),
-    _metrics_summary: getMetricSummaryJsonForSpan(span as unknown as Span),
   });
 
   return transactionEvent;
@@ -347,7 +346,6 @@ function createAndFinishSpanForOtelSpan(node: SpanNode, spans: SpanJSON[], sentS
     status: getStatusMessage(status), // As per protocol, span status is allowed to be undefined
     op,
     origin,
-    _metrics_summary: getMetricSummaryJsonForSpan(span as unknown as Span),
     measurements: timedEventsToMeasurements(span.events),
   });
 
@@ -392,6 +390,7 @@ function removeSentryAttributes(data: Record<string, unknown>): Record<string, u
   /* eslint-disable @typescript-eslint/no-dynamic-delete */
   delete cleanedData[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE];
   delete cleanedData[SEMANTIC_ATTRIBUTE_SENTRY_PARENT_IS_REMOTE];
+  delete cleanedData[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME];
   /* eslint-enable @typescript-eslint/no-dynamic-delete */
 
   return cleanedData;

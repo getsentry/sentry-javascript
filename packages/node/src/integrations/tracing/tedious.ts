@@ -27,11 +27,11 @@ const _tediousIntegration = (() => {
       client.on('spanStart', span => {
         const { description, data } = spanToJSON(span);
         // Tedius integration always set a span name and `db.system` attribute to `mssql`.
-        if (!description || data?.['db.system'] !== 'mssql') {
+        if (!description || data['db.system'] !== 'mssql') {
           return;
         }
 
-        const operation = description?.split(' ')[0] || '';
+        const operation = description.split(' ')[0] || '';
         if (TEDIUS_INSTRUMENTED_METHODS.has(operation)) {
           span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.db.otel.tedious');
         }
