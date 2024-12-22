@@ -176,6 +176,7 @@ async function _startWorker(
     workerData: options,
     // We don't want any Node args to be passed to the worker
     execArgv: [],
+    env: { ...process.env, NODE_OPTIONS: undefined },
   });
 
   process.on('exit', () => {
