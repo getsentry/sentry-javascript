@@ -427,10 +427,10 @@ function getNormalizedName(
         // If path is not a wildcard and has no child routes, append the path
         if (path && !pathIsWildcardAndHasChildren(path, branch)) {
           const newPath = path[0] === '/' || pathBuilder[pathBuilder.length - 1] === '/' ? path : `/${path}`;
-          pathBuilder += newPath;
+          pathBuilder = trimSlash(pathBuilder) + prefixWithSlash(newPath);
 
           // If the path matches the current location, return the path
-          if (location.pathname.endsWith(basename + branch.pathname)) {
+          if (trimSlash(location.pathname) === trimSlash(basename + branch.pathname)) {
             if (
               // If the route defined on the element is something like
               // <Route path="/stores/:storeId/products/:productId" element={<div>Product</div>} />
