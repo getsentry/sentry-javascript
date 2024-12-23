@@ -72,7 +72,7 @@
     "@opentelemetry/instrumentation-amqplib": "^0.45.0",
     "@opentelemetry/instrumentation-connect": "0.42.0",
     "@opentelemetry/instrumentation-dataloader": "0.15.0",
-    "@opentelemetry/instrumentation-express": "0.46.0",
+    "@opentelemetry/instrumentation-express": "0.47.0",
     "@opentelemetry/instrumentation-fastify": "0.43.0",
     "@opentelemetry/instrumentation-fs": "0.18.0",
     "@opentelemetry/instrumentation-generic-pool": "0.42.0",
