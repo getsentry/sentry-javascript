@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import type { UserFeedback } from '@sentry/core';
+import type { FeedbackEvent } from '@sentry/core';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
@@ -7,12 +7,13 @@ import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
 sentryTest('should capture simple user feedback', async ({ getLocalTestUrl, page }) => {
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  const eventData = await getFirstSentryEnvelopeRequest<UserFeedback>(page, url);
+  const eventData = await getFirstSentryEnvelopeRequest<FeedbackEvent>(page, url);
 
-  expect(eventData).toMatchObject({
-    eventId: 'test_event_id',
-    email: 'test_email',
-    comments: 'test_comments',
-    name: 'test_name',
-  });
+  expect(eventData.contexts).toMatchObject(expect.objectContaining({
+    feedback: {
+      contact_email: 'test_email',
+      message: 'test_comments',
+      name: 'test_name',
+    }
+  }))
 });
