@@ -9,11 +9,13 @@ sentryTest('should capture simple user feedback', async ({ getLocalTestUrl, page
 
   const eventData = await getFirstSentryEnvelopeRequest<FeedbackEvent>(page, url);
 
-  expect(eventData.contexts).toMatchObject(expect.objectContaining({
-    feedback: {
-      contact_email: 'test_email',
-      message: 'test_comments',
-      name: 'test_name',
-    }
-  }))
+  expect(eventData.contexts).toMatchObject(
+    expect.objectContaining({
+      feedback: {
+        contact_email: 'test_email',
+        message: 'test_comments',
+        name: 'test_name',
+      },
+    }),
+  );
 });

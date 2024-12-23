@@ -14,10 +14,14 @@ sentryTest('capture user feedback when captureMessage is called', async ({ getLo
   const errorEvent = ('exception' in data[0] ? data[0] : data[1]) as Event;
   const feedback = ('exception' in data[0] ? data[1] : data[0]) as FeedbackEvent;
 
-  expect(feedback.contexts).toEqual(expect.objectContaining({
-    message: 'This feedback should be attached associated with the captured message',
-    contact_email: 'john@doe.com',
-    associated_event_id: errorEvent.event_id,
-    name: 'John Doe',
-  }));
+  expect(feedback.contexts).toEqual(
+    expect.objectContaining({
+      feedback: {
+        message: 'This feedback should be attached associated with the captured message',
+        contact_email: 'john@doe.com',
+        associated_event_id: errorEvent.event_id,
+        name: 'John Doe',
+      },
+    }),
+  );
 });
