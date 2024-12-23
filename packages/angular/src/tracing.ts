@@ -238,7 +238,16 @@ export class TraceService implements OnDestroy {
 }
 
 /**
- * A directive that can be used to capture initialization lifecycle of the whole component.
+ * Captures the initialization lifecycle of the component this directive is applied to.
+ * Specifically, this directive measures the time between `ngOnInit` and `ngAfterViewInit`
+ * of the component.
+ *
+ * Falls back to the component's selector if no name is provided.
+ *
+ * @example
+ * ```html
+ * <app-my-component trace="myComponent"></app-my-component>
+ * ```
  */
 @Directive({ selector: '[trace]' })
 export class TraceDirective implements OnInit, AfterViewInit {
@@ -257,7 +266,7 @@ export class TraceDirective implements OnInit, AfterViewInit {
       // Technically, the `trace` binding should always be provided.
       // However, if it is incorrectly declared on the element without a
       // value (e.g., `<app-component trace />`), we fall back to using `tagName`
-      // (which is `APP-COMPONENT`).
+      // (which is e.g. `APP-COMPONENT`).
       this.componentName = this._host.nativeElement.tagName.toLowerCase();
     }
 
