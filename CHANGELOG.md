@@ -10,6 +10,8 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+Work in this release was contributed by @arturovt. Thank you for your contribution!
+
 ## 8.47.0
 
 - feat(v8/core): Add `updateSpanName` helper function (#14736)
