@@ -155,14 +155,18 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
 
         const normalizedRequest = httpRequestToRequestData(request);
 
+        // This is non-standard but may be set on e.g. Express requests
+        //  const user = request ? request.user : undefined;
+
+        // request.ip is non-standard but some frameworks set this
+        const ipAddress = request
+          ? (request as { ip?: string }).ip || (request.socket && request.socket.remoteAddress)
+          : undefined;
+
         patchRequestToCaptureBody(request, isolationScope);
 
         // Update the isolation scope, isolate this request
-        // TODO(v9): Stop setting `request`, we only rely on normalizedRequest anymore
-        isolationScope.setSDKProcessingMetadata({
-          request,
-          normalizedRequest,
-        });
+        isolationScope.setSDKProcessingMetadata({ normalizedRequest, ipAddress });
 
         // attempt to update the scope's `transactionName` based on the request URL
         // Ideally, framework instrumentations coming after the HttpInstrumentation
