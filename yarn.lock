@@ -7568,6 +7568,13 @@
   dependencies:
     "@opentelemetry/api" "^1.3.0"
 
+"@opentelemetry/api-logs@0.57.0":
+  version "0.57.0"
+  resolved "https://registry.yarnpkg.com/@opentelemetry/api-logs/-/api-logs-0.57.0.tgz#794f9ff6343671f68e228eeb606d416c4ab29653"
+  integrity sha512-l1aJ30CXeauVYaI+btiynHpw341LthkMTv3omi1VJDX14werY2Wmv9n1yudMsq9HuY0m8PvXEVX4d8zxEb+WRg==
+  dependencies:
+    "@opentelemetry/api" "^1.3.0"
+
 "@opentelemetry/api@1.9.0", "@opentelemetry/api@^1.0.0", "@opentelemetry/api@^1.3.0", "@opentelemetry/api@^1.8", "@opentelemetry/api@^1.9.0":
   version "1.9.0"
   resolved "https://registry.yarnpkg.com/@opentelemetry/api/-/api-1.9.0.tgz#d03eba68273dc0f7509e2a3d5cba21eae10379fe"
@@ -7615,12 +7622,12 @@
     "@opentelemetry/instrumentation" "^0.56.0"
     "@opentelemetry/semantic-conventions" "^1.27.0"
 
-"@opentelemetry/instrumentation-aws-lambda@0.49.0":
-  version "0.49.0"
-  resolved "https://registry.yarnpkg.com/@opentelemetry/instrumentation-aws-lambda/-/instrumentation-aws-lambda-0.49.0.tgz#dbc27f899b4c9148b6608f6584673c517bbf439c"
-  integrity sha512-FIKQSzX/MSzfARqgm7lX9p/QUj7USyicioBYI5BFGuOOoLefxBlJINAcRs3EvCh1taEnJ7/LpbrhlcF7r4Yqvg==
+"@opentelemetry/instrumentation-aws-lambda@0.50.0":
+  version "0.50.0"
+  resolved "https://registry.yarnpkg.com/@opentelemetry/instrumentation-aws-lambda/-/instrumentation-aws-lambda-0.50.0.tgz#83a196e743d12dc4cbf4a83e874533635bebccde"
+  integrity sha512-9yKygM6xqVANaV3urc5lW/lWms/AkzlS8TJXnFxNscmQuU4WjxkBX9/kEWJgE5jYvkWqmc0r1s/ZgwGZvyl/rQ==
   dependencies:
-    "@opentelemetry/instrumentation" "^0.56.0"
+    "@opentelemetry/instrumentation" "^0.57.0"
     "@opentelemetry/semantic-conventions" "^1.27.0"
     "@types/aws-lambda" "8.10.143"
 
@@ -7864,6 +7871,18 @@
   dependencies:
     "@opentelemetry/api-logs" "0.52.1"
     "@types/shimmer" "^1.0.2"
+    import-in-the-middle "^1.8.1"
+    require-in-the-middle "^7.1.1"
+    semver "^7.5.2"
+    shimmer "^1.2.1"
+
+"@opentelemetry/instrumentation@^0.57.0":
+  version "0.57.0"
+  resolved "https://registry.yarnpkg.com/@opentelemetry/instrumentation/-/instrumentation-0.57.0.tgz#397d68587abd4d46d2d0ac6b4f2438af49706ff8"
+  integrity sha512-qIKp+tSCLqofneUWRc5XHtr9jHIq0N0BJfaJamM9gjEFO8sthV4SDXDGNOSAx16PxkbrQJ5/AxMPAGCXl8W/Hg==
+  dependencies:
+    "@opentelemetry/api-logs" "0.57.0"
+    "@types/shimmer" "^1.2.0"
     import-in-the-middle "^1.8.1"
     require-in-the-middle "^7.1.1"
     semver "^7.5.2"
@@ -9605,15 +9624,10 @@
   resolved "https://registry.yarnpkg.com/@types/array.prototype.flat/-/array.prototype.flat-1.2.1.tgz#5433a141730f8e1d7a8e7486458ceb8144ee5edc"
   integrity sha512-JOvNJUU/zjfJWcA1aHDnCKHwQjZ7VQ3UNfbcMKXrkQKKyMkJHrQ9vpSVMhgsztrtsbIRJKazMDvg2QggFVwJqw==
 
-"@types/aws-lambda@8.10.143":
+"@types/aws-lambda@8.10.143", "@types/aws-lambda@^8.10.62":
   version "8.10.143"
   resolved "https://registry.yarnpkg.com/@types/aws-lambda/-/aws-lambda-8.10.143.tgz#383693fbaadc6994a71d64a7c09e8c244fad8dff"
   integrity sha512-u5vzlcR14ge/4pMTTMDQr3MF0wEe38B2F9o84uC4F43vN5DGTy63npRrB6jQhyt+C0lGv4ZfiRcRkqJoZuPnmg==
-
-"@types/aws-lambda@^8.10.62":
-  version "8.10.122"
-  resolved "https://registry.yarnpkg.com/@types/aws-lambda/-/aws-lambda-8.10.122.tgz#206c8d71b09325d26a458dba27db842afdc54df1"
-  integrity sha512-vBkIh9AY22kVOCEKo5CJlyCgmSWvasC+SWUxL/x/vOwRobMpI/HG1xp/Ae3AqmSiZeLUbOhW0FCD3ZjqqUxmXw==
 
 "@types/babel__core@^7.0.0", "@types/babel__core@^7.1.14":
   version "7.1.19"
