@@ -14,4 +14,3 @@ export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsInteg
 export declare const contextLinesIntegration: typeof clientSdk.contextLinesIntegration;
 export declare const getDefaultIntegrations: (options: Options) => Integration[];
 export declare const defaultStackParser: StackParser;
-export declare const continueTrace: typeof clientSdk.continueTrace;
