@@ -163,6 +163,10 @@ Object.defineProperty(exports, '__esModule', { value: true });
 The SDK no longer contains these statements.
 Let us know if this is causing issues in your setup by opening an issue on GitHub.
 
+### `@sentry/deno`
+
+- The Sentry import from the deno registry has changed from `import * as Sentry from 'https://deno.land/x/sentry/index.mjs'` to `import * as Sentry from 'https://deno.land/x/sentry/build/index.mjs'`
+
 ## 6. Type Changes
 
 In v8, types have been exported from `@sentry/types`, while implementations have been exported from other classes.

@@ -26,7 +26,7 @@ and hook into the environment. Note that you can turn off almost all side effect
 
 ```javascript
 // Import from the Deno registry
-import * as Sentry from 'https://deno.land/x/sentry/index.mjs';
+import * as Sentry from 'https://deno.land/x/sentry/build/index.mjs';
 
 // or import from npm registry
 import * as Sentry from 'npm:@sentry/deno';
