@@ -1,20 +1,25 @@
 import * as Sentry from '@sentry/browser';
 
+window.openFeatureClient = {
+  _hooks: [],
+
+  getBooleanValue(flag, value) {
+    this._hooks.forEach(hook => {
+      hook.error({ flagKey: flag, defaultValue: false }, new Error('flag eval error'));
+    });
+    return value;
+  },
+
+  addHooks(hooks) {
+    this._hooks = [...this._hooks, ...hooks];
+  },
+};
+
 window.Sentry = Sentry;
-window.sentryOpenFeatureIntegration = Sentry.openFeatureIntegration();
+window.sentryOpenFeatureIntegration = Sentry.openFeatureIntegration(window.openFeatureClient);
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   sampleRate: 1.0,
   integrations: [window.sentryOpenFeatureIntegration],
 });
-
-window.initialize = () => {
-  return {
-    getBooleanValue(flag, value) {
-      let hook = new Sentry.OpenFeatureIntegrationHook();
-      hook.error({ flagKey: flag, defaultValue: false }, new Error('flag eval error'));
-      return value;
-    },
-  };
-};
