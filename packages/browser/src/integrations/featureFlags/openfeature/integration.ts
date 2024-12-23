@@ -6,25 +6,29 @@
  *   - OpenFeature.getClient().addHooks(new OpenFeatureIntegrationHook());
  */
 import type { Client, Event, EventHint, IntegrationFn } from '@sentry/core';
-import type { EvaluationDetails, HookContext, HookHints, JsonValue, OpenFeatureHook } from './types';
+import type { EvaluationDetails, HookContext, HookHints, JsonValue, OpenFeatureHook, OpenFeatureClient } from './types';
 
 import { defineIntegration } from '@sentry/core';
 import { copyFlagsFromScopeToEvent, insertFlagToScope } from '../../../utils/featureFlags';
 
-export const openFeatureIntegration = defineIntegration(() => {
+export const openFeatureIntegration = defineIntegration((openFeatureClient: OpenFeatureClient) => {
   return {
     name: 'OpenFeature',
 
     processEvent(event: Event, _hint: EventHint, _client: Client): Event {
       return copyFlagsFromScopeToEvent(event);
     },
+
+    setupOnce() {
+      openFeatureClient.addHooks([new OpenFeatureIntegrationHook()]);
+    }
   };
 }) satisfies IntegrationFn;
 
 /**
  * OpenFeature Hook class implementation.
  */
-export class OpenFeatureIntegrationHook implements OpenFeatureHook {
+class OpenFeatureIntegrationHook implements OpenFeatureHook {
   /**
    * Successful evaluation result.
    */

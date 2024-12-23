@@ -23,7 +23,7 @@ sentryTest('Flag evaluation error hook', async ({ getLocalTestUrl, page }) => {
   await page.goto(url);
 
   await page.evaluate(bufferSize => {
-    const client = (window as any).initialize();
+    const client = (window as any).openFeatureClient;
     for (let i = 1; i <= bufferSize; i++) {
       client.getBooleanValue(`feat${i}`, false);
     }
