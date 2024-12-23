@@ -1,3 +1,4 @@
+import type { SpanJSON } from '@sentry/core';
 import { SentryError, SyncPromise, dsnToString } from '@sentry/core';
 import type { Client, Envelope, ErrorEvent, Event, TransactionEvent } from '../../src/types-hoist';
 
@@ -1200,15 +1201,14 @@ describe('BaseClient', () => {
       expect(loggerWarnSpy).toBeCalledWith('before send for type `transaction` returned `null`, will not send event.');
     });
 
-    test('calls `beforeSendSpan` and discards the span', () => {
+    test('does not discard span and warn when returning null from `beforeSendSpan`', () => {
       const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
-
-      const beforeSendSpan = jest.fn(() => null);
+      const beforeSendSpan = jest.fn(() => null as unknown as SpanJSON);
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendSpan });
       const client = new TestClient(options);
 
       const transaction: Event = {
-        transaction: '/cats/are/great',
+        transaction: '/dogs/are/great',
         type: 'transaction',
         spans: [
           {
@@ -1231,12 +1231,11 @@ describe('BaseClient', () => {
 
       expect(beforeSendSpan).toHaveBeenCalledTimes(2);
       const capturedEvent = TestClient.instance!.event!;
-      expect(capturedEvent.spans).toHaveLength(0);
-      expect(client['_outcomes']).toEqual({ 'before_send:span': 2 });
+      expect(capturedEvent.spans).toHaveLength(2);
+      expect(client['_outcomes']).toEqual({});
 
-      expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
-      expect(consoleWarnSpy).toBeCalledWith(
-        '[Sentry] Deprecation warning: Returning null from `beforeSendSpan` will be disallowed from SDK version 9.0.0 onwards. The callback will only support mutating spans. To drop certain spans, configure the respective integrations directly.',
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        '[Sentry] Returning null from `beforeSendSpan` is disallowed. To drop certain spans, configure the respective integrations directly.',
       );
       consoleWarnSpy.mockRestore();
     });

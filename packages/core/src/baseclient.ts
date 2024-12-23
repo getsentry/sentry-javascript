@@ -994,11 +994,11 @@ function processBeforeSend(
       const processedSpans: SpanJSON[] = [];
       for (const span of event.spans) {
         const processedSpan = beforeSendSpan(span);
-        if (processedSpan) {
-          processedSpans.push(processedSpan);
-        } else {
+        if (!processedSpan) {
           showSpanDropWarning();
-          client.recordDroppedEvent('before_send', 'span');
+          processedSpans.push(span);
+        } else {
+          processedSpans.push(processedSpan);
         }
       }
       event.spans = processedSpans;
