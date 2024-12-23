@@ -31,20 +31,20 @@ const ANR_EVENT = {
         mechanism: { type: 'ANR' },
         stacktrace: {
           frames: expect.arrayContaining([
-            {
+            expect.objectContaining({
               colno: expect.any(Number),
               lineno: expect.any(Number),
               filename: expect.any(String),
               function: '?',
               in_app: true,
-            },
-            {
+            }),
+            expect.objectContaining({
               colno: expect.any(Number),
               lineno: expect.any(Number),
               filename: expect.any(String),
               function: 'longWork',
               in_app: true,
-            },
+            }),
           ]),
         },
       },
@@ -120,6 +120,26 @@ conditionalTest({ min: 16 })('should report ANR when event loop blocked', () => 
     createRunner(__dirname, 'basic.mjs')
       .withMockSentryServer()
       .expect({ event: ANR_EVENT_WITH_DEBUG_META })
+      .start(done);
+  });
+
+  test('Custom appRootPath', done => {
+    const ANR_EVENT_WITH_SPECIFIC_DEBUG_META: Event = {
+      ...ANR_EVENT_WITH_SCOPE,
+      debug_meta: {
+        images: [
+          {
+            type: 'sourcemap',
+            debug_id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa',
+            code_file: 'app:///app-path.mjs',
+          },
+        ],
+      },
+    };
+
+    createRunner(__dirname, 'app-path.mjs')
+      .withMockSentryServer()
+      .expect({ event: ANR_EVENT_WITH_SPECIFIC_DEBUG_META })
       .start(done);
   });
 
