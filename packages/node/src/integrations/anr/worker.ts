@@ -91,22 +91,27 @@ function applyDebugMeta(event: Event): void {
     return;
   }
 
+  const normalisedDebugImages = options.appRootPath ? {} : mainDebugImages;
+  if (options.appRootPath) {
+    for (const [path, debugId] of Object.entries(mainDebugImages)) {
+      normalisedDebugImages[normalizeUrlToBase(path, options.appRootPath)] = debugId;
+    }
+  }
+
   const filenameToDebugId = new Map<string, string>();
 
   for (const exception of event.exception?.values || []) {
     for (const frame of exception.stacktrace?.frames || []) {
       const filename = frame.abs_path || frame.filename;
-      if (filename && mainDebugImages[filename]) {
-        filenameToDebugId.set(filename, mainDebugImages[filename] as string);
+      if (filename && normalisedDebugImages[filename]) {
+        filenameToDebugId.set(filename, normalisedDebugImages[filename] as string);
       }
     }
   }
 
   if (filenameToDebugId.size > 0) {
     const images: DebugImage[] = [];
-    for (const [filename, debug_id] of filenameToDebugId.entries()) {
-      const code_file = options.appRootPath ? normalizeUrlToBase(filename, options.appRootPath) : filename;
-
+    for (const [code_file, debug_id] of filenameToDebugId.entries()) {
       images.push({
         type: 'sourcemap',
         code_file,

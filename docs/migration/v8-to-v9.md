@@ -72,6 +72,10 @@ Sentry.init({
 
 - When `skipOpenTelemetrySetup: true` is configured, `httpIntegration({ spans: false })` will be configured by default. This means that you no longer have to specify this yourself in this scenario. With this change, no spans are emitted once `skipOpenTelemetrySetup: true` is configured, without any further configuration being needed.
 
+### `@sentry/browser`
+
+- The `captureUserFeedback` method has been removed. Use `captureFeedback` instead and update the `comments` field to `message`.
+
 ### Uncategorized (TODO)
 
 TODO
@@ -128,6 +132,10 @@ Sentry.init({
 - The `urlEncode` method has been removed. There is no replacement.
 - The `getDomElement` method has been removed. There is no replacement.
 
+### `@sentry/browser`
+
+- The `captureUserFeedback` method has been removed. Use `captureFeedback` instead and update the `comments` field to `message`.
+
 ### `@sentry/nestjs`
 
 - Removed `WithSentry` decorator. Use `SentryExceptionCaptured` instead.
@@ -154,6 +162,10 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 The SDK no longer contains these statements.
 Let us know if this is causing issues in your setup by opening an issue on GitHub.
+
+### `@sentry/deno`
+
+- The import of Sentry from the deno registry has changed. Use `import * as Sentry from 'https://deno.land/x/sentry/build/index.mjs'` instead.
 
 ## 6. Type Changes
 
