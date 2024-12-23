@@ -4,6 +4,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  continueTrace,
   fill,
   getActiveSpan,
   getClient,
@@ -19,7 +20,6 @@ import {
   winterCGRequestToRequestData,
   withIsolationScope,
 } from '@sentry/core';
-import { continueTrace } from '@sentry/opentelemetry';
 import { DEBUG_BUILD } from './debug-build';
 import { captureRemixServerException, errorHandleDataFunction, errorHandleDocumentRequestFunction } from './errors';
 import { getFutureFlagsServer, getRemixVersionFromBuild } from './futureFlags';
