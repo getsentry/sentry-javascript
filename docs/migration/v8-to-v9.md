@@ -165,7 +165,7 @@ Let us know if this is causing issues in your setup by opening an issue on GitHu
 
 ### `@sentry/deno`
 
-- The Sentry import from the deno registry has changed from `import * as Sentry from 'https://deno.land/x/sentry/index.mjs'` to `import * as Sentry from 'https://deno.land/x/sentry/build/index.mjs'`
+- The import of Sentry from the deno registry has changed. Use `import * as Sentry from 'https://deno.land/x/sentry/build/index.mjs'` instead.
 
 ## 6. Type Changes
 
