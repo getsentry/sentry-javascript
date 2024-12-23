@@ -7870,9 +7870,9 @@
     shimmer "^1.2.1"
 
 "@opentelemetry/propagation-utils@^0.30.14":
-  version "0.30.14"
-  resolved "https://registry.yarnpkg.com/@opentelemetry/propagation-utils/-/propagation-utils-0.30.14.tgz#ba8454e3337e03a79282ea4e210819ae4cab7de2"
-  integrity sha512-RsdKGFd0PYG5Aop9aq8khYbR8Oq+lYTQBX/9/pk7b+8+0WwdFqrvGDmRxpBAH9hgIvtUgETeshlYctwjo2l9SQ==
+  version "0.30.15"
+  resolved "https://registry.yarnpkg.com/@opentelemetry/propagation-utils/-/propagation-utils-0.30.15.tgz#cf82691ec728afa6a117d0585da2b75ec7e0459a"
+  integrity sha512-nQ30K+eXTkd9Kt8yep9FPrqogS712GvdkV6R1T+xZMSZnFrRCyZuWxMtP3+s3hrK2HWw3ti4lsIfBzsHWYiyrA==
 
 "@opentelemetry/redis-common@^0.36.2":
   version "0.36.2"
