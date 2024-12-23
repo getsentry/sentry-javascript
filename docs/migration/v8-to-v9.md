@@ -72,6 +72,10 @@ Sentry.init({
 
 - When `skipOpenTelemetrySetup: true` is configured, `httpIntegration({ spans: false })` will be configured by default. This means that you no longer have to specify this yourself in this scenario. With this change, no spans are emitted once `skipOpenTelemetrySetup: true` is configured, without any further configuration being needed.
 
+### `@sentry/browser`
+
+- The `captureUserFeedback` method has been removed. Use `captureFeedback` instead and update the `comments` field to `message`.
+
 ### Uncategorized (TODO)
 
 TODO
@@ -127,6 +131,10 @@ Sentry.init({
 - The `flatten` export has been removed. There is no replacement.
 - The `urlEncode` method has been removed. There is no replacement.
 - The `getDomElement` method has been removed. There is no replacement.
+
+### `@sentry/browser`
+
+- The `captureUserFeedback` method has been removed. Use `captureFeedback` instead and update the `comments` field to `message`.
 
 ### `@sentry/nestjs`
 
