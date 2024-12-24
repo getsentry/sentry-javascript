@@ -68,6 +68,7 @@ export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
   return sentryRequestHandler;
 }
 
+<<<<<<< HEAD
 async function instrumentHandle(
   { event, resolve }: Parameters<Handle>[0],
   options: SentryHandleOptions,
@@ -147,4 +148,9 @@ export function isFetchProxyRequired(version: string): boolean {
     // ignore
   }
   return true;
+=======
+/** Documented in `worker/handle.ts` */
+export function initCloudflareSentryHandle(_options: any): Handle {
+  return ({ event, resolve }) => resolve(event);
+>>>>>>> 0f35b2f6a (fix(sveltekit): fix prerender failure when using cloudflare workers)
 }

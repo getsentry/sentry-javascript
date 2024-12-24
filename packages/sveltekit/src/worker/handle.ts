@@ -30,6 +30,8 @@ export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
 
 /** Initializes Sentry SvelteKit Cloudflare SDK
  *  This should be before the sentryHandle() call.
+ *
+ *  In Node.js, this is a stub that does nothing.
  * */
 export function initCloudflareSentryHandle(options: CloudflareOptions): Handle {
   const opts: CloudflareOptions = {
