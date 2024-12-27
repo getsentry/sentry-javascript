@@ -7776,12 +7776,12 @@
     "@opentelemetry/instrumentation" "^0.56.0"
     "@opentelemetry/semantic-conventions" "^1.27.0"
 
-"@opentelemetry/instrumentation-mysql2@0.44.0":
-  version "0.44.0"
-  resolved "https://registry.yarnpkg.com/@opentelemetry/instrumentation-mysql2/-/instrumentation-mysql2-0.44.0.tgz#309d3fa452d4fcb632c4facb68ed7ea74b6738f9"
-  integrity sha512-e9QY4AGsjGFwmfHd6kBa4yPaQZjAq2FuxMb0BbKlXCAjG+jwqw+sr9xWdJGR60jMsTq52hx3mAlE3dUJ9BipxQ==
+"@opentelemetry/instrumentation-mysql2@0.45.0":
+  version "0.45.0"
+  resolved "https://registry.yarnpkg.com/@opentelemetry/instrumentation-mysql2/-/instrumentation-mysql2-0.45.0.tgz#95501759d470dbc7038670e91205e8ed601ec402"
+  integrity sha512-qLslv/EPuLj0IXFvcE3b0EqhWI8LKmrgRPIa4gUd8DllbBpqJAvLNJSv3cC6vWwovpbSI3bagNO/3Q2SuXv2xA==
   dependencies:
-    "@opentelemetry/instrumentation" "^0.56.0"
+    "@opentelemetry/instrumentation" "^0.57.0"
     "@opentelemetry/semantic-conventions" "^1.27.0"
     "@opentelemetry/sql-common" "^0.40.1"
 
