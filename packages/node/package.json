@@ -69,7 +69,7 @@
     "@opentelemetry/context-async-hooks": "^1.29.0",
     "@opentelemetry/core": "^1.29.0",
     "@opentelemetry/instrumentation": "^0.56.0",
-    "@opentelemetry/instrumentation-amqplib": "^0.45.0",
+    "@opentelemetry/instrumentation-amqplib": "^0.46.0",
     "@opentelemetry/instrumentation-connect": "0.42.0",
     "@opentelemetry/instrumentation-dataloader": "0.15.0",
     "@opentelemetry/instrumentation-express": "0.47.0",
