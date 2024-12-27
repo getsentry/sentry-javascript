@@ -1,1 +1,1 @@
-export { openFeatureIntegration } from './integration';
+export { openFeatureIntegration, type OpenFeatureIntegrationOptions } from './integration';

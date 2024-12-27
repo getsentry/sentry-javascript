@@ -11,7 +11,11 @@ import type { EvaluationDetails, HookContext, HookHints, JsonValue, OpenFeatureC
 import { defineIntegration } from '@sentry/core';
 import { copyFlagsFromScopeToEvent, insertFlagToScope } from '../../../utils/featureFlags';
 
-export const openFeatureIntegration = defineIntegration((openFeatureClient: OpenFeatureClient) => {
+export type OpenFeatureIntegrationOptions = {
+  openFeatureClient: OpenFeatureClient;
+};
+
+export const openFeatureIntegration = defineIntegration(({openFeatureClient}: OpenFeatureIntegrationOptions) => {
   return {
     name: 'OpenFeature',
 

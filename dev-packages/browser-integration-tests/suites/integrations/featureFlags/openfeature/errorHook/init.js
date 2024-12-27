@@ -16,7 +16,7 @@ window.openFeatureClient = {
 };
 
 window.Sentry = Sentry;
-window.sentryOpenFeatureIntegration = Sentry.openFeatureIntegration(window.openFeatureClient);
+window.sentryOpenFeatureIntegration = Sentry.openFeatureIntegration({openFeatureClient: window.openFeatureClient});
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
