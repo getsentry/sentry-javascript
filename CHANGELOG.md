@@ -10,6 +10,22 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.48.0
+
+### Deprecations
+
+- **feat(v8/core): Deprecate `getDomElement` method ([#14799](https://github.com/getsentry/sentry-javascript/pull/14799))**
+
+  Deprecates `getDomElement`. There is no replacement.
+
+### Other changes
+
+- fix(aws-lambda): Remove version suffix from lambda layer ([#14843](https://github.com/getsentry/sentry-javascript/pull/14843))
+- fix(nestjs/v8): Use correct main/module path in package.json ([#14791](https://github.com/getsentry/sentry-javascript/pull/14791))
+- fix(v8/angular): Fall back to element `tagName` when name is not provided to `TraceDirective` ([#14828](https://github.com/getsentry/sentry-javascript/pull/14828))
+- fix(v8/node): Correctly resolve debug IDs for ANR events with custom appRoot ([#14823](https://github.com/getsentry/sentry-javascript/pull/14823))
+- fix(v8/node): Ensure `NODE_OPTIONS` is not passed to worker threads ([#14825](https://github.com/getsentry/sentry-javascript/pull/14825))
+
 Work in this release was contributed by @arturovt. Thank you for your contribution!
 
 ## 8.47.0
