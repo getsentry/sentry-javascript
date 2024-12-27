@@ -89,5 +89,5 @@ export interface BaseHook<T extends FlagValue = FlagValue, BeforeHookReturn = un
 export type OpenFeatureHook = BaseHook<FlagValue, void, void>;
 
 export interface OpenFeatureClient {
-  addHooks(hooks: OpenFeatureHook[]): OpenFeatureClient;
+  addHooks(...hooks: OpenFeatureHook[]): OpenFeatureClient;
 }

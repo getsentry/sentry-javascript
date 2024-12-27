@@ -10,7 +10,7 @@ window.openFeatureClient = {
     return value;
   },
 
-  addHooks(hooks) {
+  addHooks(...hooks) {
     this._hooks = [...this._hooks, ...hooks];
   },
 };

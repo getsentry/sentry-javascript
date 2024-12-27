@@ -20,7 +20,7 @@ export const openFeatureIntegration = defineIntegration((openFeatureClient: Open
     },
 
     setupOnce() {
-      openFeatureClient.addHooks([new OpenFeatureIntegrationHook()]);
+      openFeatureClient.addHooks(new OpenFeatureIntegrationHook());
     }
   };
 }) satisfies IntegrationFn;
