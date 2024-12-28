@@ -11,7 +11,7 @@ import * as SentryNode from '@sentry/node';
 import type { Load, ServerLoad } from '@sveltejs/kit';
 import { error, redirect } from '@sveltejs/kit';
 
-import { wrapLoadWithSentry, wrapServerLoadWithSentry } from '../../src/server/load';
+import { wrapLoadWithSentry, wrapServerLoadWithSentry } from '../../src/server-common/load';
 import { getDefaultNodeClientOptions } from '../utils';
 
 const mockCaptureException = vi.spyOn(SentryNode, 'captureException').mockImplementation(() => 'xx');
