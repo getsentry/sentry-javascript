@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as SentryNode from '@sentry/node';
 import type { HandleServerError, RequestEvent } from '@sveltejs/kit';
 
-import { handleErrorWithSentry } from '../../src/server/handleError';
+import { handleErrorWithSentry } from '../../src/server-common/handleError';
 
 const mockCaptureException = vi.spyOn(SentryNode, 'captureException').mockImplementation(() => 'xx');
 
