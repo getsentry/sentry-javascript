@@ -125,7 +125,8 @@ export * from '@sentry/node';
 export { init } from './sdk';
 export { handleErrorWithSentry } from '../server-common/handleError';
 export { wrapLoadWithSentry, wrapServerLoadWithSentry } from '../server-common/load';
-export { sentryHandle, initCloudflareSentryHandle } from './handle';
+export { sentryHandle } from '../server-common/handle';
+export { initCloudflareSentryHandle } from './handle';
 export { wrapServerRouteWithSentry } from '../server-common/serverRoute';
 
 /**
