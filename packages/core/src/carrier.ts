@@ -1,6 +1,7 @@
 import type { AsyncContextStack } from './asyncContext/stackStrategy';
 import type { AsyncContextStrategy } from './asyncContext/types';
-import type { Client, Integration, MetricsAggregator, Scope } from './types-hoist';
+import type { Scope } from './scope';
+import type { Logger } from './utils-hoist/logger';
 import { SDK_VERSION } from './utils-hoist/version';
 import { GLOBAL_OBJ } from './utils-hoist/worldwide';
 
@@ -16,21 +17,19 @@ type VersionedCarrier = {
   version?: string;
 } & Record<Exclude<string, 'version'>, SentryCarrier>;
 
-interface SentryCarrier {
+export interface SentryCarrier {
   acs?: AsyncContextStrategy;
   stack?: AsyncContextStack;
 
   globalScope?: Scope;
   defaultIsolationScope?: Scope;
   defaultCurrentScope?: Scope;
-  globalMetricsAggregators?: WeakMap<Client, MetricsAggregator> | undefined;
+  logger?: Logger;
 
-  // TODO(v9): Remove these properties - they are no longer used and were left over in v8
-  integrations?: Integration[];
-  extensions?: {
-    // eslint-disable-next-line @typescript-eslint/ban-types
-    [key: string]: Function;
-  };
+  /** Overwrites TextEncoder used in `@sentry/core`, need for `react-native@0.73` and older */
+  encodePolyfill?: (input: string) => Uint8Array;
+  /** Overwrites TextDecoder used in `@sentry/core`, need for `react-native@0.73` and older */
+  decodePolyfill?: (input: Uint8Array) => string;
 }
 
 /**
@@ -56,4 +55,26 @@ export function getSentryCarrier(carrier: Carrier): SentryCarrier {
   // Intentionally populating and returning the version of "this" SDK instance
   // rather than what's set in .version so that "this" SDK always gets its carrier
   return (__SENTRY__[SDK_VERSION] = __SENTRY__[SDK_VERSION] || {});
+}
+
+/**
+ * Returns a global singleton contained in the global `__SENTRY__[]` object.
+ *
+ * If the singleton doesn't already exist in `__SENTRY__`, it will be created using the given factory
+ * function and added to the `__SENTRY__` object.
+ *
+ * @param name name of the global singleton on __SENTRY__
+ * @param creator creator Factory function to create the singleton if it doesn't already exist on `__SENTRY__`
+ * @param obj (Optional) The global object on which to look for `__SENTRY__`, if not `GLOBAL_OBJ`'s return value
+ * @returns the singleton
+ */
+export function getGlobalSingleton<Prop extends keyof SentryCarrier>(
+  name: Prop,
+  creator: () => NonNullable<SentryCarrier[Prop]>,
+  obj = GLOBAL_OBJ,
+): NonNullable<SentryCarrier[Prop]> {
+  const __SENTRY__ = (obj.__SENTRY__ = obj.__SENTRY__ || {});
+  const carrier = (__SENTRY__[SDK_VERSION] = __SENTRY__[SDK_VERSION] || {});
+  // Note: We do not want to set `carrier.version` here, as this may be called before any `init` is called, e.g. for the default scopes
+  return carrier[name] || (carrier[name] = creator());
 }

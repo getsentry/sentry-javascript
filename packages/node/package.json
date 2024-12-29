@@ -1,13 +1,13 @@
 {
   "name": "@sentry/node",
-  "version": "8.44.0",
+  "version": "8.45.0",
   "description": "Sentry Node SDK using OpenTelemetry for performance instrumentation",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/node",
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=14.18"
+    "node": ">=18"
   },
   "files": [
     "/build"
@@ -55,7 +55,7 @@
     }
   },
   "typesVersions": {
-    "<4.9": {
+    "<5.0": {
       "build/types/index.d.ts": [
         "build/types-ts3.8/index.d.ts"
       ]
@@ -69,10 +69,10 @@
     "@opentelemetry/context-async-hooks": "^1.29.0",
     "@opentelemetry/core": "^1.29.0",
     "@opentelemetry/instrumentation": "^0.56.0",
-    "@opentelemetry/instrumentation-amqplib": "^0.45.0",
+    "@opentelemetry/instrumentation-amqplib": "^0.46.0",
     "@opentelemetry/instrumentation-connect": "0.42.0",
     "@opentelemetry/instrumentation-dataloader": "0.15.0",
-    "@opentelemetry/instrumentation-express": "0.46.0",
+    "@opentelemetry/instrumentation-express": "0.47.0",
     "@opentelemetry/instrumentation-fastify": "0.43.0",
     "@opentelemetry/instrumentation-fs": "0.18.0",
     "@opentelemetry/instrumentation-generic-pool": "0.42.0",
@@ -87,8 +87,7 @@
     "@opentelemetry/instrumentation-mongodb": "0.50.0",
     "@opentelemetry/instrumentation-mongoose": "0.45.0",
     "@opentelemetry/instrumentation-mysql": "0.44.0",
-    "@opentelemetry/instrumentation-mysql2": "0.44.0",
-    "@opentelemetry/instrumentation-nestjs-core": "0.43.0",
+    "@opentelemetry/instrumentation-mysql2": "0.45.0",
     "@opentelemetry/instrumentation-pg": "0.49.0",
     "@opentelemetry/instrumentation-redis-4": "0.45.0",
     "@opentelemetry/instrumentation-tedious": "0.17.0",
@@ -96,13 +95,13 @@
     "@opentelemetry/resources": "^1.29.0",
     "@opentelemetry/sdk-trace-base": "^1.29.0",
     "@opentelemetry/semantic-conventions": "^1.28.0",
-    "@prisma/instrumentation": "5.19.1",
-    "@sentry/core": "8.44.0",
-    "@sentry/opentelemetry": "8.44.0",
-    "import-in-the-middle": "^1.11.2"
+    "@prisma/instrumentation": "5.22.0",
+    "@sentry/core": "8.45.0",
+    "@sentry/opentelemetry": "8.45.0",
+    "import-in-the-middle": "^1.12.0"
   },
   "devDependencies": {
-    "@types/node": "^14.18.0"
+    "@types/node": "^18.19.1"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",

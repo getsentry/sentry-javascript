@@ -1,7 +1,8 @@
-import type { Client, DynamicSamplingContext, Scope, Span } from '../types-hoist';
+import type { Client, DynamicSamplingContext, Span } from '../types-hoist';
 
 import { DEFAULT_ENVIRONMENT } from '../constants';
 import { getClient } from '../currentScopes';
+import type { Scope } from '../scope';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
 import {
   baggageHeaderToDynamicSamplingContext,
@@ -94,7 +95,7 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
   // Else, we generate it from the span
   const dsc = getDynamicSamplingContextFromClient(span.spanContext().traceId, client);
   const jsonSpan = spanToJSON(rootSpan);
-  const attributes = jsonSpan.data || {};
+  const attributes = jsonSpan.data;
   const maybeSampleRate = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE];
 
   if (maybeSampleRate != null) {

@@ -30,12 +30,10 @@ const useLoader = bundleKey.startsWith('loader');
 const IMPORTED_INTEGRATION_CDN_BUNDLE_PATHS: Record<string, string> = {
   httpClientIntegration: 'httpclient',
   captureConsoleIntegration: 'captureconsole',
-  debugIntegration: 'debug',
   rewriteFramesIntegration: 'rewriteframes',
   contextLinesIntegration: 'contextlines',
   extraErrorDataIntegration: 'extraerrordata',
   reportingObserverIntegration: 'reportingobserver',
-  sessionTimingIntegration: 'sessiontiming',
   feedbackIntegration: 'feedback',
   moduleMetadataIntegration: 'modulemetadata',
 };
@@ -176,7 +174,6 @@ class SentryScenarioGenerationPlugin {
         }
       : {};
 
-    // Checking if the current scenario has imported `@sentry/integrations`.
     compiler.hooks.normalModuleFactory.tap(this._name, factory => {
       factory.hooks.parser.for('javascript/auto').tap(this._name, parser => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access

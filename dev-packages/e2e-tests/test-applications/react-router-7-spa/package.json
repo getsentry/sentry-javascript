@@ -15,7 +15,7 @@
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "vite": "^6.0.1",
     "@vitejs/plugin-react": "^4.3.4",
-    "typescript": "4.9.5"
+    "typescript": "~5.0.0"
   },
   "scripts": {
     "build": "vite build",
@@ -56,5 +56,10 @@
         "label": "react-router-7-spa (TS 3.8)"
       }
     ]
+  },
+  "pnpm": {
+    "overrides": {
+      "esbuild": "0.24.0"
+    }
   }
 }

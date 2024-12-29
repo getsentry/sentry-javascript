@@ -1,10 +1,10 @@
 import { getClient, getCurrentScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { createSpanEnvelope } from '../envelope';
-import { getMetricSummaryJsonForSpan } from '../metrics/metric-summary';
 import {
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
   SEMANTIC_ATTRIBUTE_PROFILE_ID,
+  SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -232,7 +232,6 @@ export class SentrySpan implements Span {
       timestamp: this._endTime,
       trace_id: this._traceId,
       origin: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined,
-      _metrics_summary: getMetricSummaryJsonForSpan(this),
       profile_id: this._attributes[SEMANTIC_ATTRIBUTE_PROFILE_ID] as string | undefined,
       exclusive_time: this._attributes[SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME] as number | undefined,
       measurements: timedEventsToMeasurements(this._events),
@@ -355,6 +354,14 @@ export class SentrySpan implements Span {
 
     const source = this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] as TransactionSource | undefined;
 
+    // remove internal root span attributes we don't need to send.
+    /* eslint-disable @typescript-eslint/no-dynamic-delete */
+    delete this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME];
+    spans.forEach(span => {
+      span.data && delete span.data[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME];
+    });
+    // eslint-enabled-next-line @typescript-eslint/no-dynamic-delete
+
     const transaction: TransactionEvent = {
       contexts: {
         trace: spanToTransactionTraceContext(this),
@@ -376,7 +383,6 @@ export class SentrySpan implements Span {
           dynamicSamplingContext: getDynamicSamplingContextFromSpan(this),
         }),
       },
-      _metrics_summary: getMetricSummaryJsonForSpan(this),
       ...(source && {
         transaction_info: {
           source,

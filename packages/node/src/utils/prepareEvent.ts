@@ -49,7 +49,6 @@ const captureContextKeys: readonly ScopeContextProperty[] = [
   'contexts',
   'tags',
   'fingerprint',
-  'requestSession',
   'propagationContext',
 ] as const;
 

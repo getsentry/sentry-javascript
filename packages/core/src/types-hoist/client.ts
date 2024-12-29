@@ -1,3 +1,4 @@
+import type { Scope } from '../scope';
 import type { Breadcrumb, BreadcrumbHint } from './breadcrumb';
 import type { CheckIn, MonitorConfig } from './checkin';
 import type { EventDropReason } from './clientreport';
@@ -10,7 +11,6 @@ import type { FeedbackEvent } from './feedback';
 import type { Integration } from './integration';
 import type { ClientOptions } from './options';
 import type { ParameterizedString } from './parameterize';
-import type { Scope } from './scope';
 import type { SdkMetadata } from './sdkmetadata';
 import type { Session, SessionAggregates } from './session';
 import type { SeverityLevel } from './severity';

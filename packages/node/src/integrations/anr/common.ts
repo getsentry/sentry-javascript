@@ -22,6 +22,12 @@ export interface AnrIntegrationOptions {
    */
   captureStackTrace: boolean;
   /**
+   * Maximum number of ANR events to send.
+   *
+   * Defaults to 1.
+   */
+  maxAnrEvents: number;
+  /**
    * Tags to include with ANR events.
    */
   staticTags: { [key: string]: Primitive };

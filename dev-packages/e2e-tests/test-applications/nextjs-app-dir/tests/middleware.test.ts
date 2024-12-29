@@ -95,7 +95,7 @@ test('Should trace outgoing fetch requests inside middleware and create breadcru
     expect.arrayContaining([
       {
         category: 'fetch',
-        data: { __span: expect.any(String), method: 'GET', status_code: 200, url: 'http://localhost:3030/' },
+        data: { method: 'GET', status_code: 200, url: 'http://localhost:3030/' },
         timestamp: expect.any(Number),
         type: 'http',
       },

@@ -47,7 +47,7 @@ export const instrumentGraphql = generateInstrumentOnce<GraphqlOptions>(
       responseHook(span) {
         addOriginToSpan(span, 'auto.graphql.otel.graphql');
 
-        const attributes = spanToJSON(span).data || {};
+        const attributes = spanToJSON(span).data;
 
         // If operation.name is not set, we fall back to use operation.type only
         const operationType = attributes['graphql.operation.type'];
@@ -58,7 +58,7 @@ export const instrumentGraphql = generateInstrumentOnce<GraphqlOptions>(
 
           // We guard to only do this on http.server spans
 
-          const rootSpanAttributes = spanToJSON(rootSpan).data || {};
+          const rootSpanAttributes = spanToJSON(rootSpan).data;
 
           const existingOperations = rootSpanAttributes[SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION] || [];
 
@@ -67,9 +67,9 @@ export const instrumentGraphql = generateInstrumentOnce<GraphqlOptions>(
           // We keep track of each operation on the root span
           // This can either be a string, or an array of strings (if there are multiple operations)
           if (Array.isArray(existingOperations)) {
-            existingOperations.push(newOperation);
+            (existingOperations as string[]).push(newOperation);
             rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION, existingOperations);
-          } else if (existingOperations) {
+          } else if (typeof existingOperations === 'string') {
             rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION, [existingOperations, newOperation]);
           } else {
             rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION, newOperation);

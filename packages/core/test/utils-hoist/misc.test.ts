@@ -3,7 +3,6 @@ import type { Event, Mechanism, StackFrame } from '../../src/types-hoist';
 import {
   addContextToFrame,
   addExceptionMechanism,
-  arrayify,
   checkOrSetAlreadyCaught,
   getEventDescription,
   uuid4,
@@ -215,7 +214,7 @@ describe('addExceptionMechanism', () => {
 
     addExceptionMechanism(event);
 
-    expect(event.exception.values[0]?.mechanism).toEqual(defaultMechanism);
+    expect(event.exception.values[0].mechanism).toEqual(defaultMechanism);
   });
 
   it('prefers current values to defaults', () => {
@@ -226,7 +225,7 @@ describe('addExceptionMechanism', () => {
 
     addExceptionMechanism(event);
 
-    expect(event.exception.values[0]?.mechanism).toEqual(nonDefaultMechanism);
+    expect(event.exception.values[0].mechanism).toEqual(nonDefaultMechanism);
   });
 
   it('prefers incoming values to current values', () => {
@@ -239,7 +238,7 @@ describe('addExceptionMechanism', () => {
     addExceptionMechanism(event, newMechanism);
 
     // the new `handled` value took precedence
-    expect(event.exception.values[0]?.mechanism).toEqual({ type: 'instrument', handled: true, synthetic: true });
+    expect(event.exception.values[0].mechanism).toEqual({ type: 'instrument', handled: true, synthetic: true });
   });
 
   it('merges data values', () => {
@@ -251,7 +250,7 @@ describe('addExceptionMechanism', () => {
 
     addExceptionMechanism(event, newMechanism);
 
-    expect(event.exception.values[0]?.mechanism.data).toEqual({
+    expect(event.exception.values[0].mechanism.data).toEqual({
       function: 'addEventListener',
       handler: 'organizeShoes',
       target: 'closet',
@@ -361,29 +360,5 @@ describe('uuid4 generation', () => {
     for (let index = 0; index < 1_000; index++) {
       expect(uuid4()).toMatch(uuid4Regex);
     }
-  });
-});
-
-describe('arrayify()', () => {
-  it('returns arrays untouched', () => {
-    // eslint-disable-next-line deprecation/deprecation
-    expect(arrayify([])).toEqual([]);
-    // eslint-disable-next-line deprecation/deprecation
-    expect(arrayify(['dogs', 'are', 'great'])).toEqual(['dogs', 'are', 'great']);
-  });
-
-  it('wraps non-arrays with an array', () => {
-    // eslint-disable-next-line deprecation/deprecation
-    expect(arrayify(1231)).toEqual([1231]);
-    // eslint-disable-next-line deprecation/deprecation
-    expect(arrayify('dogs are great')).toEqual(['dogs are great']);
-    // eslint-disable-next-line deprecation/deprecation
-    expect(arrayify(true)).toEqual([true]);
-    // eslint-disable-next-line deprecation/deprecation
-    expect(arrayify({})).toEqual([{}]);
-    // eslint-disable-next-line deprecation/deprecation
-    expect(arrayify(null)).toEqual([null]);
-    // eslint-disable-next-line deprecation/deprecation
-    expect(arrayify(undefined)).toEqual([undefined]);
   });
 });

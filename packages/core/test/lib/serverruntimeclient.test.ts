@@ -154,4 +154,52 @@ describe('ServerRuntimeClient', () => {
       expect(sendEnvelopeSpy).toHaveBeenCalledTimes(0);
     });
   });
+
+  describe('captureException', () => {
+    it('sends an exception event with level error', () => {
+      const options = getDefaultClientOptions({ dsn: PUBLIC_DSN });
+      client = new ServerRuntimeClient(options);
+
+      const sendEnvelopeSpy = jest.spyOn(client, 'sendEnvelope');
+
+      client.captureException(new Error('foo'));
+
+      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
+      expect(sendEnvelopeSpy).toHaveBeenCalledWith([
+        expect.any(Object),
+        [
+          [
+            expect.any(Object),
+            expect.objectContaining({
+              level: 'error',
+            }),
+          ],
+        ],
+      ]);
+    });
+  });
+
+  describe('captureMessage', () => {
+    it('sends a message event with level info', () => {
+      const options = getDefaultClientOptions({ dsn: PUBLIC_DSN });
+      client = new ServerRuntimeClient(options);
+
+      const sendEnvelopeSpy = jest.spyOn(client, 'sendEnvelope');
+
+      client.captureMessage('foo');
+
+      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
+      expect(sendEnvelopeSpy).toHaveBeenCalledWith([
+        expect.any(Object),
+        [
+          [
+            expect.any(Object),
+            expect.objectContaining({
+              level: 'info',
+            }),
+          ],
+        ],
+      ]);
+    });
+  });
 });

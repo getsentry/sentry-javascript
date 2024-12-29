@@ -2,9 +2,18 @@ name: "CI: Enforce License Compliance"
 
 on:
   push:
-    branches: [master, develop, release/*]
+    branches:
+      - develop
+      - master
+      - v9
+      - v8
+      - release/**
   pull_request:
-    branches: [master, develop]
+    branches:
+      - develop
+      - master
+      - v9
+      - v8
 
 jobs:
   enforce-license-compliance:

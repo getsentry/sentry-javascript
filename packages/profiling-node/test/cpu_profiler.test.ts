@@ -1,6 +1,7 @@
 import type { ContinuousThreadCpuProfile, ThreadCpuProfile } from '@sentry/core';
 import { CpuProfilerBindings, PrivateCpuProfilerBindings } from '../src/cpu_profiler';
 import type { RawThreadCpuProfile } from '../src/types';
+import { ProfileFormat } from '../src/types';
 
 // Required because we test a hypothetical long profile
 // and we cannot use advance timers as the c++ relies on
@@ -19,10 +20,10 @@ const fibonacci = (n: number): number => {
 };
 
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-const profiled = async (name: string, fn: () => void, format: 0 | 1 = 0) => {
+const profiled = async (name: string, fn: () => void) => {
   CpuProfilerBindings.startProfiling(name);
   await fn();
-  return CpuProfilerBindings.stopProfiling(name, format);
+  return CpuProfilerBindings.stopProfiling(name, ProfileFormat.THREAD);
 };
 
 const assertValidSamplesAndStacks = (
@@ -69,28 +70,28 @@ const assertValidMeasurements = (measurement: RawThreadCpuProfile['measurements'
 
 describe('Private bindings', () => {
   it('does not crash if collect resources is false', async () => {
-    PrivateCpuProfilerBindings.startProfiling('profiled-program');
+    PrivateCpuProfilerBindings.startProfiling!('profiled-program');
     await wait(100);
     expect(() => {
-      const profile = PrivateCpuProfilerBindings.stopProfiling('profiled-program', 0, 0, false);
+      const profile = PrivateCpuProfilerBindings.stopProfiling!('profiled-program', 0, 0, false);
       if (!profile) throw new Error('No profile');
     }).not.toThrow();
   });
 
   it('throws if invalid format is supplied', async () => {
-    PrivateCpuProfilerBindings.startProfiling('profiled-program');
+    PrivateCpuProfilerBindings.startProfiling!('profiled-program');
     await wait(100);
     expect(() => {
-      const profile = PrivateCpuProfilerBindings.stopProfiling('profiled-program', Number.MAX_SAFE_INTEGER, 0, false);
+      const profile = PrivateCpuProfilerBindings.stopProfiling!('profiled-program', Number.MAX_SAFE_INTEGER, 0, false);
       if (!profile) throw new Error('No profile');
     }).toThrow('StopProfiling expects a valid format type as second argument.');
   });
 
   it('collects resources', async () => {
-    PrivateCpuProfilerBindings.startProfiling('profiled-program');
+    PrivateCpuProfilerBindings.startProfiling!('profiled-program');
     await wait(100);
 
-    const profile = PrivateCpuProfilerBindings.stopProfiling('profiled-program', 0, 0, true);
+    const profile = PrivateCpuProfilerBindings.stopProfiling!('profiled-program', 0, 0, true);
     if (!profile) throw new Error('No profile');
 
     expect(profile.resources.length).toBeGreaterThan(0);
@@ -104,10 +105,10 @@ describe('Private bindings', () => {
   });
 
   it('does not collect resources', async () => {
-    PrivateCpuProfilerBindings.startProfiling('profiled-program');
+    PrivateCpuProfilerBindings.startProfiling!('profiled-program');
     await wait(100);
 
-    const profile = PrivateCpuProfilerBindings.stopProfiling('profiled-program', 0, 0, false);
+    const profile = PrivateCpuProfilerBindings.stopProfiling!('profiled-program', 0, 0, false);
     if (!profile) throw new Error('No profile');
 
     expect(profile.resources.length).toBe(0);
@@ -216,15 +217,15 @@ describe('Profiler bindings', () => {
   });
 
   it('chunk format type', async () => {
-    const profile = await profiled(
-      'non nullable stack',
-      async () => {
-        await wait(1000);
-        fibonacci(36);
-        await wait(1000);
-      },
-      1,
-    );
+    const fn = async () => {
+      await wait(1000);
+      fibonacci(36);
+      await wait(1000);
+    };
+
+    CpuProfilerBindings.startProfiling('non nullable stack');
+    await fn();
+    const profile = CpuProfilerBindings.stopProfiling('non nullable stack', ProfileFormat.CHUNK);
 
     if (!profile) fail('Profile is null');
 
@@ -336,5 +337,28 @@ describe('Profiler bindings', () => {
     // @ts-expect-error deopt reasons are disabled for now as we need to figure out the backend support
     const hasDeoptimizedFrame = profile.frames.some(f => f.deopt_reasons && f.deopt_reasons.length > 0);
     expect(hasDeoptimizedFrame).toBe(true);
+  });
+
+  it('does not crash if the native startProfiling function is not available', async () => {
+    const original = PrivateCpuProfilerBindings.startProfiling;
+    PrivateCpuProfilerBindings.startProfiling = undefined;
+
+    expect(() => {
+      CpuProfilerBindings.startProfiling('profiled-program');
+    }).not.toThrow();
+
+    PrivateCpuProfilerBindings.startProfiling = original;
+  });
+
+  it('does not crash if the native stopProfiling function is not available', async () => {
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    const original = PrivateCpuProfilerBindings.stopProfiling;
+    PrivateCpuProfilerBindings.stopProfiling = undefined;
+
+    expect(() => {
+      CpuProfilerBindings.stopProfiling('profiled-program', 0);
+    }).not.toThrow();
+
+    PrivateCpuProfilerBindings.stopProfiling = original;
   });
 });

@@ -89,7 +89,7 @@ describe('init', () => {
     expect(initAndBindSpy).toHaveBeenCalledTimes(1);
 
     const optionsPassed = initAndBindSpy.mock.calls[0]?.[1];
-    expect(optionsPassed?.integrations?.length).toBeGreaterThan(0);
+    expect(optionsPassed?.integrations.length).toBeGreaterThan(0);
   });
 
   test("doesn't install default integrations if told not to", () => {

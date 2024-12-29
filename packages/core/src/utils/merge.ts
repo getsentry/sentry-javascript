@@ -13,7 +13,7 @@ export function merge<T>(initialObj: T, mergeObj: T, levels = 2): T {
   }
 
   // If the merge object is an empty object, and the initial object is not undefined, we return the initial object
-  if (initialObj && mergeObj && Object.keys(mergeObj).length === 0) {
+  if (initialObj && Object.keys(mergeObj).length === 0) {
     return initialObj;
   }
 

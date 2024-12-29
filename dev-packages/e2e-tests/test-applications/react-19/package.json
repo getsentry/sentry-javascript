@@ -6,13 +6,13 @@
     "@sentry/react": "latest || *",
     "history": "4.9.0",
     "@types/history": "4.7.11",
-    "@types/node": "16.7.13",
+    "@types/node": "^18.19.1",
     "@types/react": "npm:types-react@rc",
     "@types/react-dom": "npm:types-react-dom@rc",
     "react": "19.0.0-rc-935180c7e0-20240524",
     "react-dom": "19.0.0-rc-935180c7e0-20240524",
     "react-scripts": "5.0.1",
-    "typescript": "4.9.5"
+    "typescript": "~5.0.0"
   },
   "scripts": {
     "build": "react-scripts build",

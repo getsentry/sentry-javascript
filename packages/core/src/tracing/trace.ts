@@ -2,12 +2,13 @@
 
 import type { AsyncContextStrategy } from '../asyncContext/types';
 import { getMainCarrier } from '../carrier';
-import type { ClientOptions, Scope, SentrySpanArguments, Span, SpanTimeInput, StartSpanOptions } from '../types-hoist';
+import type { ClientOptions, SentrySpanArguments, Span, SpanTimeInput, StartSpanOptions } from '../types-hoist';
 
 import { getClient, getCurrentScope, getIsolationScope, withScope } from '../currentScopes';
 
 import { getAsyncContextStrategy } from '../asyncContext';
 import { DEBUG_BUILD } from '../debug-build';
+import type { Scope } from '../scope';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
 import { logger } from '../utils-hoist/logger';
 import { generateTraceId } from '../utils-hoist/propagationContext';
@@ -191,15 +192,20 @@ export function startInactiveSpan(options: StartSpanOptions): Span {
  * be attached to the incoming trace.
  */
 export const continueTrace = <V>(
-  {
-    sentryTrace,
-    baggage,
-  }: {
+  options: {
     sentryTrace: Parameters<typeof propagationContextFromHeaders>[0];
     baggage: Parameters<typeof propagationContextFromHeaders>[1];
   },
   callback: () => V,
 ): V => {
+  const carrier = getMainCarrier();
+  const acs = getAsyncContextStrategy(carrier);
+  if (acs.continueTrace) {
+    return acs.continueTrace(options, callback);
+  }
+
+  const { sentryTrace, baggage } = options;
+
   return withScope(scope => {
     const propagationContext = propagationContextFromHeaders(sentryTrace, baggage);
     scope.setPropagationContext(propagationContext);

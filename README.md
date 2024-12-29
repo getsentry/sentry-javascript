@@ -79,6 +79,8 @@ package. Please refer to the README and instructions of those SDKs for more deta
 The current version of the SDK is 8.x. Version 7.x of the SDK will continue to receive critical bugfixes until end
 of 2024.
 
+All SDKs require Node v18+ to run. ESM-only SDKs require Node v18.19.1+ to run.
+
 ## Installation and Usage
 
 To install a SDK, simply add the high-level package, for example:

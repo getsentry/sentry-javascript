@@ -171,7 +171,6 @@ describe('WinterCGFetch instrumentation', () => {
           method: 'POST',
           status_code: 201,
           url: 'http://my-website.com/',
-          __span: expect.any(String),
         },
         type: 'http',
       },

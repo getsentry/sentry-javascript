@@ -1,4 +1,4 @@
-import type { Scope } from './scope';
+import type { Scope } from '../scope';
 import type { Span, SpanAttributes, SpanTimeInput } from './span';
 
 export interface StartSpanOptions {

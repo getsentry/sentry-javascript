@@ -14,7 +14,6 @@ describe('Hint', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    // @ts-expect-error for testing
     delete GLOBAL_OBJ.__SENTRY__;
   });
 

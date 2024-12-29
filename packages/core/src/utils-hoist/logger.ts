@@ -1,7 +1,7 @@
+import { getGlobalSingleton } from '../carrier';
 import type { ConsoleLevel } from '../types-hoist';
-
 import { DEBUG_BUILD } from './debug-build';
-import { GLOBAL_OBJ, getGlobalSingleton } from './worldwide';
+import { GLOBAL_OBJ } from './worldwide';
 
 /** Prefix for logging strings */
 const PREFIX = 'Sentry Logger ';
@@ -24,7 +24,7 @@ export const originalConsoleMethods: {
   [key in ConsoleLevel]?: (...args: unknown[]) => void;
 } = {};
 
-/** JSDoc */
+/** A Sentry Logger instance. */
 export interface Logger extends LoggerConsoleMethods {
   disable(): void;
   enable(): void;

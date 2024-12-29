@@ -85,7 +85,7 @@ function setupAutomatedSpanProfiling(client: NodeClient): void {
       // Unref timeout so it doesn't keep the process alive.
       timeout.unref();
 
-      getCurrentScope().setContext('profile', { profile_id });
+      getIsolationScope().setContext('profile', { profile_id });
       spanToProfileIdMap.set(span, profile_id);
     }
   });

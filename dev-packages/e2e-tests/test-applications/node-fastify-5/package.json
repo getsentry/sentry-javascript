@@ -14,7 +14,7 @@
     "@sentry/node": "latest || *",
     "@sentry/core": "latest || *",
     "@sentry/opentelemetry": "latest || *",
-    "@types/node": "22.7.5",
+    "@types/node": "^18.19.1",
     "fastify": "5.0.0",
     "typescript": "5.6.3",
     "ts-node": "10.9.2"

@@ -105,7 +105,7 @@ export function instrumentVueRouter(
     if (options.instrumentPageLoad && isPageLoadNavigation) {
       const activeRootSpan = getActiveRootSpan();
       if (activeRootSpan) {
-        const existingAttributes = spanToJSON(activeRootSpan).data || {};
+        const existingAttributes = spanToJSON(activeRootSpan).data;
         if (existingAttributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] !== 'custom') {
           activeRootSpan.updateName(spanName);
           activeRootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, transactionSource);

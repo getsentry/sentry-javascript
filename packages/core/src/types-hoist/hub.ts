@@ -1,10 +1,10 @@
+import type { Scope } from '../scope';
 import type { Breadcrumb, BreadcrumbHint } from './breadcrumb';
 import type { Client } from './client';
 import type { Event, EventHint } from './event';
 import type { Extra, Extras } from './extra';
 import type { Integration, IntegrationClass } from './integration';
 import type { Primitive } from './misc';
-import type { Scope } from './scope';
 import type { Session } from './session';
 import type { SeverityLevel } from './severity';
 import type { User } from './user';

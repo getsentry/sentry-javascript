@@ -126,8 +126,6 @@ export function makeTerserPlugin() {
           '_sentryId',
           // Keeps the frozen DSC on a Sentry Span
           '_frozenDsc',
-          // This keeps metrics summary on spans
-          '_metrics_summary',
           // These are used to keep span & scope relationships
           '_sentryRootSpan',
           '_sentryChildSpans',

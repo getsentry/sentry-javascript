@@ -6,7 +6,7 @@ export default defineConfig({
   input: './build-types/index.d.ts',
   output: [{ file: 'build/index.d.ts', format: 'es' }],
   plugins: [
-    dts({ respectExternal: true }),
+    dts({ respectExternal: false }),
     // The bundled types contain a declaration for the __DEBUG_BUILD__ global
     // This can result in errors about duplicate global declarations so we strip it out!
     {

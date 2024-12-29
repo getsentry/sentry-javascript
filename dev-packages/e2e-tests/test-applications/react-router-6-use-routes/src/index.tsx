@@ -39,7 +39,7 @@ Sentry.init({
   tunnel: 'http://localhost:3031', // proxy server
 });
 
-const useSentryRoutes = Sentry.wrapUseRoutes(useRoutes);
+const useSentryRoutes = Sentry.wrapUseRoutesV6(useRoutes);
 
 function App() {
   return useSentryRoutes([

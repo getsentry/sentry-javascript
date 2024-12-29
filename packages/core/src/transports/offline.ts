@@ -170,7 +170,15 @@ export function makeOfflineTransport<TO>(
 
     return {
       send,
-      flush: t => transport.flush(t),
+      flush: timeout => {
+        // If there's no timeout, we should attempt to flush the offline queue.
+        if (timeout === undefined) {
+          retryDelay = START_DELAY;
+          flushIn(MIN_DELAY);
+        }
+
+        return transport.flush(timeout);
+      },
     };
   };
 }

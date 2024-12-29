@@ -11,7 +11,6 @@ import {
   fill,
   markFunctionWrapped,
   objectify,
-  urlEncode,
 } from '../../src/utils-hoist/object';
 import { testOnlyIfNodeVersionAtLeast } from './testutils';
 
@@ -125,23 +124,6 @@ describe('fill()', () => {
 
     // But should be accessible directly
     expect(source.foo.prototype).toBe(bar);
-  });
-});
-
-describe('urlEncode()', () => {
-  test('returns empty string for empty object input', () => {
-    // eslint-disable-next-line deprecation/deprecation
-    expect(urlEncode({})).toEqual('');
-  });
-
-  test('returns single key/value pair joined with = sign', () => {
-    // eslint-disable-next-line deprecation/deprecation
-    expect(urlEncode({ foo: 'bar' })).toEqual('foo=bar');
-  });
-
-  test('returns multiple key/value pairs joined together with & sign', () => {
-    // eslint-disable-next-line deprecation/deprecation
-    expect(urlEncode({ foo: 'bar', pickle: 'rick', morty: '4 2' })).toEqual('foo=bar&pickle=rick&morty=4%202');
   });
 });
 
@@ -444,7 +426,8 @@ describe('markFunctionWrapped', () => {
     const wrappedFunc = jest.fn();
     markFunctionWrapped(wrappedFunc, originalFunc);
 
-    expect((wrappedFunc as WrappedFunction).__sentry_original__).toBe(originalFunc);
+    // cannot wrap because it is frozen, but we do not error!
+    expect((wrappedFunc as WrappedFunction).__sentry_original__).toBe(undefined);
 
     wrappedFunc();
 

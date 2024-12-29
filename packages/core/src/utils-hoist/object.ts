@@ -87,21 +87,6 @@ export function getOriginalFunction<T extends Function>(func: WrappedFunction<T>
 }
 
 /**
- * Encodes given object into url-friendly format
- *
- * @param object An object that contains serializable values
- * @returns string Encoded
- *
- * @deprecated This function is deprecated and will be removed in the next major version of the SDK.
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function urlEncode(object: { [key: string]: any }): string {
-  return Object.entries(object)
-    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
-    .join('&');
-}
-
-/**
  * Transforms any `Error` or `Event` into a plain object with all of their enumerable properties, and some of their
  * non-enumerable properties attached.
  *

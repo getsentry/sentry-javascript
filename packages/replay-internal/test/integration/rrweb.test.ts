@@ -23,7 +23,7 @@ describe('Integration | rrweb', () => {
     });
     expect(mockRecord.mock.calls[0]?.[0]).toMatchInlineSnapshot(`
       {
-        "blockSelector": ".sentry-block,[data-sentry-block],base[href="/"],img,image,svg,video,object,picture,embed,map,audio,link[rel="icon"],link[rel="apple-touch-icon"]",
+        "blockSelector": ".sentry-block,[data-sentry-block],base,iframe[srcdoc]:not([src]),img,image,svg,video,object,picture,embed,map,audio,link[rel="icon"],link[rel="apple-touch-icon"]",
         "collectFonts": true,
         "emit": [Function],
         "errorHandler": [Function],
@@ -62,7 +62,7 @@ describe('Integration | rrweb', () => {
 
     expect(mockRecord.mock.calls[0]?.[0]).toMatchInlineSnapshot(`
       {
-        "blockSelector": ".sentry-block,[data-sentry-block],base[href="/"],img,image,svg,video,object,picture,embed,map,audio,link[rel="icon"],link[rel="apple-touch-icon"]",
+        "blockSelector": ".sentry-block,[data-sentry-block],base,iframe[srcdoc]:not([src]),img,image,svg,video,object,picture,embed,map,audio,link[rel="icon"],link[rel="apple-touch-icon"]",
         "checkoutEveryNms": 360000,
         "collectFonts": true,
         "emit": [Function],

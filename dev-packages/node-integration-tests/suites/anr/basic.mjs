@@ -30,3 +30,8 @@ function longWork() {
 setTimeout(() => {
   longWork();
 }, 1000);
+
+// Ensure we only send one event even with multiple blocking events
+setTimeout(() => {
+  longWork();
+}, 4000);

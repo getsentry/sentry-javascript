@@ -10,7 +10,6 @@ const reexportedPluggableIntegrationFiles = [
   'dedupe',
   'extraerrordata',
   'rewriteframes',
-  'sessiontiming',
   'feedback',
   'modulemetadata',
 ];

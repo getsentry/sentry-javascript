@@ -340,7 +340,7 @@ export function constructWebpackConfigFunction(
           if (!isServer && !userSentryOptions.sourcemaps?.deleteSourcemapsAfterUpload) {
             // eslint-disable-next-line no-console
             console.warn(
-              "[@sentry/nextjs] The Sentry SDK has enabled source map generation for your Next.js app. If you don't want to serve Source Maps to your users, either set the `deleteSourceMapsAfterUpload` option to true, or manually delete the source maps after the build. In future Sentry SDK versions `deleteSourceMapsAfterUpload` will default to `true`. If you do not want to generate and upload sourcemaps, set the `sourcemaps.disable` option in `withSentryConfig()`.",
+              "[@sentry/nextjs] The Sentry SDK has enabled source map generation for your Next.js app. If you don't want to serve Source Maps to your users, either set the `sourcemaps.deleteSourcemapsAfterUpload` option to true, or manually delete the source maps after the build. In future Sentry SDK versions `sourcemaps.deleteSourcemapsAfterUpload` will default to `true`. If you do not want to generate and upload sourcemaps, set the `sourcemaps.disable` option in `withSentryConfig()`.",
             );
           }
 

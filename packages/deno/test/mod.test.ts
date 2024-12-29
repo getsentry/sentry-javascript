@@ -1,21 +1,19 @@
 import { assertEquals } from 'https://deno.land/std@0.202.0/assert/assert_equals.ts';
 import { assertSnapshot } from 'https://deno.land/std@0.202.0/testing/snapshot.ts';
 
-import type { sentryTypes } from '../build-test/index.js';
-import { sentryUtils } from '../build-test/index.js';
+import type { Event } from '@sentry/core';
+import { createStackParser, nodeStackLineParser } from '@sentry/core';
 import { DenoClient, getCurrentScope, getDefaultIntegrations } from '../build/index.mjs';
+
 import { getNormalizedEvent } from './normalize.ts';
 import { makeTestTransport } from './transport.ts';
 
-function getTestClient(
-  callback: (event?: sentryTypes.Event) => void,
-  integrations: sentryTypes.Integration[] = [],
-): DenoClient {
+function getTestClient(callback: (event?: Event) => void): DenoClient {
   const client = new DenoClient({
     dsn: 'https://233a45e5efe34c47a3536797ce15dafa@nothing.here/5650507',
     debug: true,
-    integrations: [...getDefaultIntegrations({}), ...integrations],
-    stackParser: sentryUtils.createStackParser(sentryUtils.nodeStackLineParser()),
+    integrations: getDefaultIntegrations({}),
+    stackParser: createStackParser(nodeStackLineParser()),
     transport: makeTestTransport(envelope => {
       callback(getNormalizedEvent(envelope));
     }),
@@ -34,7 +32,7 @@ function delay(time: number): Promise<void> {
 }
 
 Deno.test('captureException', async t => {
-  let ev: sentryTypes.Event | undefined;
+  let ev: Event | undefined;
   const client = getTestClient(event => {
     ev = event;
   });
@@ -50,7 +48,7 @@ Deno.test('captureException', async t => {
 });
 
 Deno.test('captureMessage', async t => {
-  let ev: sentryTypes.Event | undefined;
+  let ev: Event | undefined;
   const client = getTestClient(event => {
     ev = event;
   });
@@ -62,7 +60,7 @@ Deno.test('captureMessage', async t => {
 });
 
 Deno.test('captureMessage twice', async t => {
-  let ev: sentryTypes.Event | undefined;
+  let ev: Event | undefined;
   const client = getTestClient(event => {
     ev = event;
   });

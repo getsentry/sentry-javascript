@@ -1,25 +1,22 @@
 import { loggingTransport } from '@sentry-internal/node-integration-tests';
-import type { SessionFlusher } from '@sentry/core';
 import * as Sentry from '@sentry/node';
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   release: '1.0',
   transport: loggingTransport,
+  integrations: [
+    Sentry.httpIntegration({
+      // Flush after 2 seconds (to avoid waiting for the default 60s)
+      sessionFlushingDelayMS: 2_000,
+    }),
+  ],
 });
 
 import { startExpressServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
 import express from 'express';
 
 const app = express();
-
-// eslint-disable-next-line deprecation/deprecation
-const flusher = (Sentry.getClient() as Sentry.NodeClient)['_sessionFlusher'] as SessionFlusher;
-
-// Flush after 2 seconds (to avoid waiting for the default 60s)
-setTimeout(() => {
-  flusher?.flush();
-}, 2000);
 
 app.get('/test/success', (_req, res) => {
   res.send('Success!');

@@ -54,14 +54,14 @@
     "@sentry/ember": "latest || *",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@tsconfig/ember": "^3.0.6",
-    "@types/node": "18.18.0",
+    "@types/node": "^18.19.1",
     "@tsconfig/node18": "18.2.4",
     "@types/rsvp": "^4.0.9",
     "ts-node": "10.9.1",
     "typescript": "^5.4.5"
   },
   "engines": {
-    "node": ">= 18"
+    "node": ">=18"
   },
   "ember": {
     "edition": "octane"

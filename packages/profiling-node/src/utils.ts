@@ -37,16 +37,12 @@ export const PROFILER_THREAD_NAME = isMainThread ? 'main' : 'worker';
 const FORMAT_VERSION = '1';
 const CONTINUOUS_FORMAT_VERSION = '2';
 
-// Os machine was backported to 16.18, but this was not reflected in the types
-// @ts-expect-error ignore missing
-const machine = typeof os.machine === 'function' ? os.machine() : os.arch();
-
 // Machine properties (eval only once)
 const PLATFORM = os.platform();
 const RELEASE = os.release();
 const VERSION = os.version();
 const TYPE = os.type();
-const MODEL = machine;
+const MODEL = os.machine();
 const ARCH = os.arch();
 
 /**

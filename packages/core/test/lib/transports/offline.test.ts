@@ -328,7 +328,7 @@ describe('makeOfflineTransport', () => {
       // When it gets shifted out of the store, the sent_at header should be updated
       const envelopes = getSentEnvelopes().map(parseEnvelope) as EventEnvelope[];
       expect(envelopes[0]?.[0]).toBeDefined();
-      const sent_at = new Date(envelopes[0]![0]?.sent_at);
+      const sent_at = new Date(envelopes[0]![0].sent_at);
 
       expect(sent_at.getTime()).toBeGreaterThan(testStartTime.getTime());
     },

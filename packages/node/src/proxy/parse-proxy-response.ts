@@ -89,7 +89,7 @@ export function parseProxyResponse(socket: Readable): Promise<{ connect: Connect
         return;
       }
 
-      const headerParts = buffered.slice(0, endOfHeaders).toString('ascii').split('\r\n');
+      const headerParts = buffered.subarray(0, endOfHeaders).toString('ascii').split('\r\n');
       const firstLine = headerParts.shift();
       if (!firstLine) {
         socket.destroy();

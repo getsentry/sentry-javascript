@@ -271,18 +271,6 @@ export function shouldSkipFeedbackTest(): boolean {
 }
 
 /**
- * We can only test metrics tests in certain bundles/packages:
- * - NPM (ESM, CJS)
- * - CDN bundles that include tracing
- *
- * @returns `true` if we should skip the metrics test
- */
-export function shouldSkipMetricsTest(): boolean {
-  const bundle = process.env.PW_BUNDLE as string | undefined;
-  return bundle != null && !bundle.includes('tracing') && !bundle.includes('esm') && !bundle.includes('cjs');
-}
-
-/**
  * We only test feature flags integrations in certain bundles/packages:
  * - NPM (ESM, CJS)
  * - Not CDNs.

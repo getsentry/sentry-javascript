@@ -1,6 +1,6 @@
 import { JSDOM } from 'jsdom';
 
-import { getDomElement, htmlTreeAsString } from '../../src/utils-hoist/browser';
+import { htmlTreeAsString } from '../../src/utils-hoist/browser';
 
 beforeAll(() => {
   const dom = new JSDOM();
@@ -72,15 +72,5 @@ describe('htmlTreeAsString', () => {
     expect(htmlTreeAsString(document.querySelector('button'), { maxStringLength: 100 })).toBe(
       'div#main-cta > div.container > button.bg-blue-500.hover:bg-blue-700.text-white.hover:text-blue-100',
     );
-  });
-});
-
-describe('getDomElement', () => {
-  it('returns the element for a given query selector', () => {
-    document.head.innerHTML = '<div id="mydiv">Hello</div>';
-    const el = getDomElement('div#mydiv');
-    expect(el).toBeDefined();
-    expect(el?.tagName).toEqual('DIV');
-    expect(el?.id).toEqual('mydiv');
   });
 });

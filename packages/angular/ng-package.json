@@ -4,6 +4,6 @@
   "lib": {
     "entryFile": "src/index.ts"
   },
-  "allowedNonPeerDependencies": ["@sentry/browser", "@sentry/core", "@sentry/utils", "@sentry/types", "tslib"],
+  "allowedNonPeerDependencies": ["@sentry/browser", "@sentry/core", "@sentry/types", "tslib"],
   "assets": []
 }

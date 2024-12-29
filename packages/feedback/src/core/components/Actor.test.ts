@@ -22,7 +22,7 @@ describe('Actor', () => {
     const actorComponent = feedback!.createWidget();
 
     expect(actorComponent.el).toBeInstanceOf(HTMLButtonElement);
-    expect(actorComponent.el?.textContent).toBe(TRIGGER_LABEL);
+    expect(actorComponent.el.textContent).toBe(TRIGGER_LABEL);
   });
 
   it('renders the correct aria label for the button', () => {
@@ -43,19 +43,19 @@ describe('Actor', () => {
     // aria label is the same as trigger label when the trigger label isn't empty
     const actorDefault = feedback!.createWidget({ triggerLabel: 'Button' });
 
-    expect(actorDefault.el?.textContent).toBe('Button');
-    expect(actorDefault.el?.ariaLabel).toBe('Button');
+    expect(actorDefault.el.textContent).toBe('Button');
+    expect(actorDefault.el.ariaLabel).toBe('Button');
 
     // aria label is default text when trigger label is empty and aria isn't configured
     const actorIcon = feedback!.createWidget({ triggerLabel: '' });
 
-    expect(actorIcon.el?.textContent).toBe('');
-    expect(actorIcon.el?.ariaLabel).toBe(TRIGGER_LABEL);
+    expect(actorIcon.el.textContent).toBe('');
+    expect(actorIcon.el.ariaLabel).toBe(TRIGGER_LABEL);
 
     // aria label is the triggerAriaLabel if it's configured
     const actorAria = feedback!.createWidget({ triggerLabel: 'Button', triggerAriaLabel: 'Aria' });
 
-    expect(actorAria.el?.textContent).toBe('Button');
-    expect(actorAria.el?.ariaLabel).toBe('Aria');
+    expect(actorAria.el.textContent).toBe('Button');
+    expect(actorAria.el.ariaLabel).toBe('Aria');
   });
 });

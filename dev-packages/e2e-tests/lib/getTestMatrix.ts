@@ -101,7 +101,7 @@ function addIncludesForTestApp(
 }
 
 function getSentryDependencies(appName: string): string[] {
-  const packageJson = getPackageJson(appName) || {};
+  const packageJson = getPackageJson(appName);
 
   const dependencies = {
     ...packageJson.devDependencies,

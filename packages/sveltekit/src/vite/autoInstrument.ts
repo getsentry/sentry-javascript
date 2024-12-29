@@ -1,6 +1,5 @@
 import * as fs from 'fs';
 import * as path from 'path';
-/* eslint-disable @sentry-internal/sdk/no-optional-chaining */
 import type { ExportNamedDeclaration } from '@babel/types';
 import { parseModule } from 'magicast';
 import type { Plugin } from 'vite';

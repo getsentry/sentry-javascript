@@ -7,7 +7,7 @@ export interface NodeCronOptions {
 }
 
 export interface NodeCron {
-  schedule: (cronExpression: string, callback: () => void, options: NodeCronOptions) => unknown;
+  schedule: (cronExpression: string, callback: () => void, options: NodeCronOptions | undefined) => unknown;
 }
 
 /**
@@ -30,20 +30,23 @@ export interface NodeCron {
  */
 export function instrumentNodeCron<T>(lib: Partial<NodeCron> & T): T {
   return new Proxy(lib, {
-    get(target, prop: keyof NodeCron) {
+    get(target, prop) {
       if (prop === 'schedule' && target.schedule) {
         // When 'get' is called for schedule, return a proxied version of the schedule function
         return new Proxy(target.schedule, {
           apply(target, thisArg, argArray: Parameters<NodeCron['schedule']>) {
             const [expression, callback, options] = argArray;
 
-            if (!options?.name) {
+            const name = options?.name;
+            const timezone = options?.timezone;
+
+            if (!name) {
               throw new Error('Missing "name" for scheduled job. A name is required for Sentry check-in monitoring.');
             }
 
-            async function monitoredCallback(): Promise<void> {
+            const monitoredCallback = async (): Promise<void> => {
               return withMonitor(
-                options.name,
+                name,
                 async () => {
                   // We have to manually catch here and capture the exception because node-cron swallows errors
                   // https://github.com/node-cron/node-cron/issues/399
@@ -56,16 +59,16 @@ export function instrumentNodeCron<T>(lib: Partial<NodeCron> & T): T {
                 },
                 {
                   schedule: { type: 'crontab', value: replaceCronNames(expression) },
-                  timezone: options?.timezone,
+                  timezone,
                 },
               );
-            }
+            };
 
             return target.apply(thisArg, [expression, monitoredCallback, options]);
           },
         });
       } else {
-        return target[prop];
+        return target[prop as keyof T];
       }
     },
   });

@@ -18,24 +18,21 @@ const _vercelAIIntegration = (() => {
         for (const span of event.spans) {
           const { data: attributes, description: name } = span;
 
-          if (!attributes || !name || span.origin !== 'auto.vercelai.otel') {
+          if (!name || span.origin !== 'auto.vercelai.otel') {
             continue;
           }
 
-          // attributes around token usage can only be set on span finish
-          span.data = span.data || {};
-
           if (attributes['ai.usage.completionTokens'] != undefined) {
-            span.data['ai.completion_tokens.used'] = attributes['ai.usage.completionTokens'];
+            attributes['ai.completion_tokens.used'] = attributes['ai.usage.completionTokens'];
           }
           if (attributes['ai.usage.promptTokens'] != undefined) {
-            span.data['ai.prompt_tokens.used'] = attributes['ai.usage.promptTokens'];
+            attributes['ai.prompt_tokens.used'] = attributes['ai.usage.promptTokens'];
           }
           if (
-            attributes['ai.usage.completionTokens'] != undefined &&
-            attributes['ai.usage.promptTokens'] != undefined
+            typeof attributes['ai.usage.completionTokens'] == 'number' &&
+            typeof attributes['ai.usage.promptTokens'] == 'number'
           ) {
-            span.data['ai.total_tokens.used'] =
+            attributes['ai.total_tokens.used'] =
               attributes['ai.usage.completionTokens'] + attributes['ai.usage.promptTokens'];
           }
         }
@@ -51,18 +48,18 @@ const _vercelAIIntegration = (() => {
 
         const { data: attributes, description: name } = spanToJSON(span);
 
-        if (!attributes || !name) {
+        if (!name) {
           return;
         }
 
         // The id of the model
-        const aiModelId: string | undefined = attributes['ai.model.id'];
+        const aiModelId = attributes['ai.model.id'];
 
         // the provider of the model
-        const aiModelProvider: string | undefined = attributes['ai.model.provider'];
+        const aiModelProvider = attributes['ai.model.provider'];
 
         // both of these must be defined for the integration to work
-        if (!aiModelId || !aiModelProvider) {
+        if (typeof aiModelId !== 'string' || typeof aiModelProvider !== 'string' || !aiModelId || !aiModelProvider) {
           return;
         }
 
@@ -137,9 +134,10 @@ const _vercelAIIntegration = (() => {
         span.updateName(nameWthoutAi);
 
         // If a Telemetry name is set and it is a pipeline span, use that as the operation name
-        if (attributes['ai.telemetry.functionId'] && isPipelineSpan) {
-          span.updateName(attributes['ai.telemetry.functionId']);
-          span.setAttribute('ai.pipeline.name', attributes['ai.telemetry.functionId']);
+        const functionId = attributes['ai.telemetry.functionId'];
+        if (functionId && typeof functionId === 'string' && isPipelineSpan) {
+          span.updateName(functionId);
+          span.setAttribute('ai.pipeline.name', functionId);
         }
 
         if (attributes['ai.prompt']) {

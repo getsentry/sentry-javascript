@@ -17,5 +17,10 @@
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@sentry/astro": "^8.42.0",
     "astro": "^5.0.3"
+  },
+  "pnpm": {
+    "overrides": {
+      "esbuild": "0.24.0"
+    }
   }
 }

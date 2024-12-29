@@ -2,7 +2,6 @@ import {
   consoleSandbox,
   dedupeIntegration,
   functionToStringIntegration,
-  getClient,
   getCurrentScope,
   getIntegrationsToSetup,
   getReportDialogEndpoint,
@@ -13,7 +12,7 @@ import {
   stackParserFromStackParserOptions,
   supportsFetch,
 } from '@sentry/core';
-import type { Client, DsnLike, Integration, Options, UserFeedback } from '@sentry/core';
+import type { Client, DsnLike, Integration, Options } from '@sentry/core';
 import type { BrowserClientOptions, BrowserOptions } from './client';
 import { BrowserClient } from './client';
 import { DEBUG_BUILD } from './debug-build';
@@ -306,17 +305,4 @@ export function forceLoad(): void {
  */
 export function onLoad(callback: () => void): void {
   callback();
-}
-
-/**
- * Captures user feedback and sends it to Sentry.
- *
- * @deprecated Use `captureFeedback` instead.
- */
-export function captureUserFeedback(feedback: UserFeedback): void {
-  const client = getClient<BrowserClient>();
-  if (client) {
-    // eslint-disable-next-line deprecation/deprecation
-    client.captureUserFeedback(feedback);
-  }
 }

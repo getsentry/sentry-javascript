@@ -1,4 +1,4 @@
-import { continueTrace } from '@sentry/node';
+import { continueTrace } from '@sentry/core';
 import type { Handle } from '@sveltejs/kit';
 
 import { sentryHandleGeneric, SentryHandleOptions } from '../server-common/handle';

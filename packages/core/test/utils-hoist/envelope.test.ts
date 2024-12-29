@@ -7,6 +7,7 @@ import {
   spanToJSON,
 } from '@sentry/core';
 import { SentrySpan } from '@sentry/core';
+import { getSentryCarrier } from '../../src/carrier';
 import {
   addItemToEnvelope,
   createEnvelope,
@@ -71,7 +72,7 @@ describe('envelope', () => {
         measurements: { inp: { value: expect.any(Number), unit: expect.any(String) } },
       };
 
-      expect(spanEnvelopeItem[0]?.type).toBe('span');
+      expect(spanEnvelopeItem[0].type).toBe('span');
       expect(spanEnvelopeItem[1]).toMatchObject(expectedObj);
     });
   });
@@ -107,17 +108,18 @@ describe('envelope', () => {
       {
         name: 'with TextEncoder/Decoder polyfill',
         before: () => {
-          GLOBAL_OBJ.__SENTRY__ = {} as InternalGlobal['__SENTRY__'];
-          GLOBAL_OBJ.__SENTRY__.encodePolyfill = jest.fn<Uint8Array, [string]>((input: string) =>
+          GLOBAL_OBJ.__SENTRY__ = {};
+
+          getSentryCarrier(GLOBAL_OBJ).encodePolyfill = jest.fn<Uint8Array, [string]>((input: string) =>
             new TextEncoder().encode(input),
           );
-          GLOBAL_OBJ.__SENTRY__.decodePolyfill = jest.fn<string, [Uint8Array]>((input: Uint8Array) =>
+          getSentryCarrier(GLOBAL_OBJ).decodePolyfill = jest.fn<string, [Uint8Array]>((input: Uint8Array) =>
             new TextDecoder().decode(input),
           );
         },
         after: () => {
-          expect(GLOBAL_OBJ.__SENTRY__.encodePolyfill).toHaveBeenCalled();
-          expect(GLOBAL_OBJ.__SENTRY__.decodePolyfill).toHaveBeenCalled();
+          expect(getSentryCarrier(GLOBAL_OBJ).encodePolyfill).toHaveBeenCalled();
+          expect(getSentryCarrier(GLOBAL_OBJ).decodePolyfill).toHaveBeenCalled();
         },
       },
       {

@@ -17,7 +17,9 @@ describe('Integration | integrationSettings', () => {
     it('sets the correct configuration when `blockAllMedia` is disabled', async () => {
       const { replay } = await mockSdk({ replayOptions: { blockAllMedia: false } });
 
-      expect(replay['_recordingOptions'].blockSelector).toBe('.sentry-block,[data-sentry-block],base[href="/"]');
+      expect(replay['_recordingOptions'].blockSelector).toBe(
+        '.sentry-block,[data-sentry-block],base,iframe[srcdoc]:not([src])',
+      );
     });
   });
 

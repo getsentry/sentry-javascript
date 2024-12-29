@@ -44,8 +44,8 @@ describe('wrapCloudEventFunction', () => {
 
   function handleCloudEvent(fn: CloudEventFunctionWithCallback): Promise<any> {
     return new Promise((resolve, reject) => {
+      // eslint-disable-next-line deprecation/deprecation
       const d = domain.create();
-      // d.on('error', () => res.end());
       const context = {
         type: 'event.type',
       };

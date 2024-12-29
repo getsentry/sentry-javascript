@@ -1,5 +1,6 @@
+import type { ScopeData } from '../../../src';
 import { startInactiveSpan } from '../../../src';
-import type { Attachment, Breadcrumb, Event, EventProcessor, EventType, ScopeData } from '../../../src/types-hoist';
+import type { Attachment, Breadcrumb, Event, EventProcessor, EventType } from '../../../src/types-hoist';
 import {
   applyScopeDataToEvent,
   mergeAndOverwriteScopeData,

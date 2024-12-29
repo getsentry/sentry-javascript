@@ -8,8 +8,6 @@ export {
   addEventProcessor,
   addIntegration,
   // eslint-disable-next-line deprecation/deprecation
-  addOpenTelemetryInstrumentation,
-  // eslint-disable-next-line deprecation/deprecation
   addRequestDataToEvent,
   amqplibIntegration,
   anrIntegration,
@@ -29,8 +27,6 @@ export {
   createGetModuleFromFilename,
   createTransport,
   cron,
-  // eslint-disable-next-line deprecation/deprecation
-  debugIntegration,
   dedupeIntegration,
   DEFAULT_USER_INCLUDES,
   defaultStackParser,
@@ -73,16 +69,12 @@ export {
   linkedErrorsIntegration,
   localVariablesIntegration,
   makeNodeTransport,
-  // eslint-disable-next-line deprecation/deprecation
-  metrics,
   modulesIntegration,
   mongoIntegration,
   mongooseIntegration,
   mysql2Integration,
   mysqlIntegration,
   nativeNodeFetchIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  nestIntegration,
   NodeClient,
   nodeContextIntegration,
   onUncaughtExceptionIntegration,
@@ -99,8 +91,6 @@ export {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  // eslint-disable-next-line deprecation/deprecation
-  sessionTimingIntegration,
   setContext,
   setCurrentClient,
   setExtra,
@@ -113,8 +103,6 @@ export {
   setupExpressErrorHandler,
   setupHapiErrorHandler,
   setupKoaErrorHandler,
-  // eslint-disable-next-line deprecation/deprecation
-  setupNestErrorHandler,
   setUser,
   spanToBaggageHeader,
   spanToJSON,
@@ -128,6 +116,7 @@ export {
   startSpanManual,
   tediousIntegration,
   trpcMiddleware,
+  updateSpanName,
   withActiveSpan,
   withIsolationScope,
   withMonitor,
