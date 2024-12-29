@@ -27,8 +27,6 @@ export {
   close,
   continueTrace,
   createTransport,
-  // eslint-disable-next-line deprecation/deprecation
-  debugIntegration,
   dedupeIntegration,
   extraErrorDataIntegration,
   flush,
@@ -48,8 +46,6 @@ export {
   isInitialized,
   lastEventId,
   linkedErrorsIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  metrics,
   requestDataIntegration,
   rewriteFramesIntegration,
   Scope,
