@@ -1,7 +1,8 @@
-import type { continueTrace, Span } from '@sentry/core';
+import type { Span } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  continueTrace,
   getActiveSpan,
   getCurrentScope,
   getDefaultIsolationScope,
@@ -153,13 +154,18 @@ export function isFetchProxyRequired(version: string): boolean {
  * A SvelteKit handle function that wraps the request for Sentry error and
  * performance monitoring.
  *
- * Some environments require a different continueTrace function. E.g. Node can use
- * the Opentelemetry SDK, whereas Cloudflare cannot.
+ * Usage:
+ * ```
+ * // src/hooks.server.ts
+ * import { sentryHandle } from '@sentry/sveltekit';
+ *
+ * export const handle = sentryHandle();
+ *
+ * // Optionally use the `sequence` function to add additional handlers.
+ * // export const handle = sequence(sentryHandle(), yourCustomHandler);
+ * ```
  */
-export function sentryHandleGeneric(
-  continueTraceFunction: typeof continueTrace,
-  handlerOptions?: SentryHandleOptions,
-): Handle {
+export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
   const options = {
     handleUnknownRoutes: false,
     injectFetchProxyScript: true,
@@ -189,7 +195,7 @@ export function sentryHandleGeneric(
       isolationScope.setSDKProcessingMetadata({
         normalizedRequest: winterCGRequestToRequestData(input.event.request.clone()),
       });
-      return continueTraceFunction(getTracePropagationData(input.event), () => instrumentHandle(input, options));
+      return continueTrace(getTracePropagationData(input.event), () => instrumentHandle(input, options));
     });
   };
 
