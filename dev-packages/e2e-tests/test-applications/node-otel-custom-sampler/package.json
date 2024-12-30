@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.0",
-    "@opentelemetry/sdk-trace-node": "^1.25.1",
+    "@opentelemetry/sdk-trace-node": "^1.30.0",
     "@sentry/node": "latest || *",
     "@sentry/opentelemetry": "latest || *",
     "@types/express": "4.17.17",

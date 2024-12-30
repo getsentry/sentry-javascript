@@ -9,11 +9,7 @@
   "engines": {
     "node": ">=18"
   },
-  "files": [
-    "/build",
-    "/*.d.ts",
-    "/*.d.ts.map"
-  ],
+  "files": ["/build", "/*.d.ts", "/*.d.ts.map"],
   "main": "build/cjs/index.js",
   "module": "build/esm/index.js",
   "types": "build/types/index.d.ts",
@@ -44,9 +40,9 @@
     "access": "public"
   },
   "dependencies": {
-    "@opentelemetry/core": "^1.29.0",
-    "@opentelemetry/instrumentation": "^0.56.0",
-    "@opentelemetry/instrumentation-nestjs-core": "0.43.0",
+    "@opentelemetry/core": "^1.30.0",
+    "@opentelemetry/instrumentation": "^0.57.0",
+    "@opentelemetry/instrumentation-nestjs-core": "0.44.0",
     "@sentry/core": "8.45.0",
     "@sentry/node": "8.45.0"
   },

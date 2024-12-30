@@ -9,9 +9,7 @@
   "engines": {
     "node": ">=18"
   },
-  "files": [
-    "/build"
-  ],
+  "files": ["/build"],
   "main": "build/cjs/index.js",
   "module": "build/esm/index.js",
   "types": "build/types/index.d.ts",
@@ -30,9 +28,7 @@
   },
   "typesVersions": {
     "<5.0": {
-      "build/types/index.d.ts": [
-        "build/types-ts3.8/index.d.ts"
-      ]
+      "build/types/index.d.ts": ["build/types-ts3.8/index.d.ts"]
     }
   },
   "publishConfig": {
@@ -44,9 +40,9 @@
   },
   "devDependencies": {
     "@edge-runtime/types": "3.0.1",
-    "@opentelemetry/core": "^1.29.0",
-    "@opentelemetry/resources": "^1.29.0",
-    "@opentelemetry/sdk-trace-base": "^1.29.0",
+    "@opentelemetry/core": "^1.30.0",
+    "@opentelemetry/resources": "^1.30.0",
+    "@opentelemetry/sdk-trace-base": "^1.30.0",
     "@opentelemetry/semantic-conventions": "^1.28.0",
     "@sentry/opentelemetry": "8.45.0"
   },
