@@ -1,6 +1,7 @@
 import {
   consoleSandbox,
   dedupeIntegration,
+  dropUndefinedKeys,
   functionToStringIntegration,
   getCurrentScope,
   getIntegrationsToSetup,
@@ -64,15 +65,10 @@ function applyDefaultOptions(optionsArg: BrowserOptions = {}): BrowserOptions {
     sendClientReports: true,
   };
 
-  // TODO: Instead of dropping just `defaultIntegrations`, we should simply
-  // call `dropUndefinedKeys` on the entire `optionsArg`.
-  // However, for this to work we need to adjust the `hasTracingEnabled()` logic
-  // first as it differentiates between `undefined` and the key not being in the object.
-  if (optionsArg.defaultIntegrations == null) {
-    delete optionsArg.defaultIntegrations;
-  }
-
-  return { ...defaultOptions, ...optionsArg };
+  return {
+    ...defaultOptions,
+    ...dropUndefinedKeys(optionsArg),
+  };
 }
 
 type ExtensionProperties = {
