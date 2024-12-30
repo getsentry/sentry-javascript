@@ -15,7 +15,7 @@
     "circularDepCheck": "lerna run circularDepCheck",
     "clean": "run-s clean:build clean:caches",
     "clean:build": "lerna run clean",
-    "clean:caches": "yarn rimraf eslintcache .nxcache && yarn jest --clearCache",
+    "clean:caches": "yarn rimraf eslintcache .nxcache .nx && yarn jest --clearCache",
     "clean:deps": "lerna clean --yes && rm -rf node_modules && yarn",
     "clean:tarballs": "rimraf {packages,dev-packages}/*/*.tgz",
     "clean:watchman": "watchman watch-del \".\"",

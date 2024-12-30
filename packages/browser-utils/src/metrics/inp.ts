@@ -127,9 +127,8 @@ function _trackINP(): () => void {
 
 /**
  * Register a listener to cache route information for INP interactions.
- * TODO(v9): `latestRoute` no longer needs to be passed in and will be removed in v9.
  */
-export function registerInpInteractionListener(_latestRoute?: unknown): void {
+export function registerInpInteractionListener(): void {
   const handleEntries = ({ entries }: { entries: PerformanceEntry[] }): void => {
     const activeSpan = getActiveSpan();
     const activeRootSpan = activeSpan && getRootSpan(activeSpan);
