@@ -4,10 +4,10 @@
 export interface RequestEventData {
   url?: string;
   method?: string;
-  data?: any;
+  data?: unknown;
   query_string?: QueryParams;
-  cookies?: { [key: string]: string };
-  env?: { [key: string]: string };
+  cookies?: Record<string, string>;
+  env?: Record<string, string>;
   headers?: { [key: string]: string };
 }
 
