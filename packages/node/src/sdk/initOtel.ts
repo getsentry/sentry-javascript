@@ -1,6 +1,7 @@
 import moduleModule from 'module';
 import { DiagLogLevel, diag } from '@opentelemetry/api';
 import { Resource } from '@opentelemetry/resources';
+import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import {
   ATTR_SERVICE_NAME,
@@ -22,15 +23,20 @@ declare const __IMPORT_META_URL_REPLACEMENT__: string;
 // About 277h - this must fit into new Array(len)!
 const MAX_MAX_SPAN_WAIT_DURATION = 1_000_000;
 
+interface AdditionalOpenTelemetryOptions {
+  /** Additional SpanProcessor instances that should be used. */
+  spanProcessors?: SpanProcessor[];
+}
+
 /**
  * Initialize OpenTelemetry for Node.
  */
-export function initOpenTelemetry(client: NodeClient): void {
+export function initOpenTelemetry(client: NodeClient, options: AdditionalOpenTelemetryOptions = {}): void {
   if (client.getOptions().debug) {
     setupOpenTelemetryLogger();
   }
 
-  const provider = setupOtel(client);
+  const provider = setupOtel(client, options);
   client.traceProvider = provider;
 }
 
@@ -129,7 +135,7 @@ function getPreloadMethods(integrationNames?: string[]): ((() => void) & { id: s
 }
 
 /** Just exported for tests. */
-export function setupOtel(client: NodeClient): BasicTracerProvider {
+export function setupOtel(client: NodeClient, options: AdditionalOpenTelemetryOptions = {}): BasicTracerProvider {
   // Create and configure NodeTracerProvider
   const provider = new BasicTracerProvider({
     sampler: new SentrySampler(client),
@@ -144,6 +150,7 @@ export function setupOtel(client: NodeClient): BasicTracerProvider {
       new SentrySpanProcessor({
         timeout: _clampSpanProcessorTimeout(client.getOptions().maxSpanWaitDuration),
       }),
+      ...(options.spanProcessors || []),
     ],
   });
 
