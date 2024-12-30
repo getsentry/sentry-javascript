@@ -1,12 +1,8 @@
 import type { Nitro } from 'nitropack';
 import { addSentryPluginToVite } from '../vite';
 import type { SentrySolidStartPluginOptions } from '../vite/types';
-import { addAutoInstrumentation, addInstrumentationFileToBuild } from './addInstrumentation';
-import type { RollupConfig, SolidStartInlineConfig, SolidStartInlineServerConfig } from './types';
-
-const defaultSentrySolidStartPluginOptions: SentrySolidStartPluginOptions = {
-  autoInstrument: true,
-};
+import { addInstrumentationFileToBuild, addSentryTopImport } from './addInstrumentation';
+import type { SolidStartInlineConfig, SolidStartInlineServerConfig } from './types';
 
 /**
  * Modifies the passed in Solid Start configuration with build-time enhancements such as
@@ -17,16 +13,20 @@ const defaultSentrySolidStartPluginOptions: SentrySolidStartPluginOptions = {
  * @param sentrySolidStartPluginOptions Options to configure the plugin
  * @returns The modified config to be exported and passed back into `defineConfig`
  */
-export const withSentry = (
+export function withSentry(
   solidStartConfig: SolidStartInlineConfig = {},
-  sentrySolidStartPluginOptions: SentrySolidStartPluginOptions = defaultSentrySolidStartPluginOptions,
-): SolidStartInlineConfig => {
+  sentrySolidStartPluginOptions: SentrySolidStartPluginOptions,
+): SolidStartInlineConfig {
+  const sentryPluginOptions = {
+    ...sentrySolidStartPluginOptions,
+  };
+
   const server = (solidStartConfig.server || {}) as SolidStartInlineServerConfig;
   const hooks = server.hooks || {};
   const vite =
     typeof solidStartConfig.vite === 'function'
-      ? (...args: unknown[]) => addSentryPluginToVite(solidStartConfig.vite(...args), sentrySolidStartPluginOptions)
-      : addSentryPluginToVite(solidStartConfig.vite, sentrySolidStartPluginOptions);
+      ? (...args: unknown[]) => addSentryPluginToVite(solidStartConfig.vite(...args), sentryPluginOptions)
+      : addSentryPluginToVite(solidStartConfig.vite, sentryPluginOptions);
 
   return {
     ...solidStartConfig,
@@ -35,11 +35,11 @@ export const withSentry = (
       ...server,
       hooks: {
         ...hooks,
-        async 'rollup:before'(nitro: Nitro, config: RollupConfig) {
-          if (sentrySolidStartPluginOptions.autoInstrument) {
-            await addAutoInstrumentation(nitro, config);
-          } else {
-            await addInstrumentationFileToBuild(nitro);
+        async 'rollup:before'(nitro: Nitro) {
+          await addInstrumentationFileToBuild(nitro);
+
+          if (sentrySolidStartPluginOptions?.autoInjectServerSentry === 'top-level-import') {
+            await addSentryTopImport(nitro);
           }
 
           // Run user provided hook
@@ -50,4 +50,4 @@ export const withSentry = (
       },
     },
   };
-};
+}

@@ -1,5 +1,6 @@
 export const SENTRY_WRAPPED_ENTRY = '?sentry-query-wrapped-entry';
-export const SENTRY_FUNCTIONS_REEXPORT = '?sentry-query-functions-reexport=';
+export const SENTRY_WRAPPED_FUNCTIONS = '?sentry-query-wrapped-functions=';
+export const SENTRY_REEXPORTED_FUNCTIONS = '?sentry-query-reexported-functions=';
 export const QUERY_END_INDICATOR = 'SENTRY-QUERY-END';
 
 /**
@@ -15,42 +16,67 @@ export function removeSentryQueryFromPath(url: string): string {
 }
 
 /**
- * Extracts and sanitizes function re-export query parameters from a query string.
- * If it is a default export, it is not considered for re-exporting. This function is mostly relevant for re-exporting
- * serverless `handler` functions.
+ * Extracts and sanitizes function re-export and function wrap query parameters from a query string.
+ * If it is a default export, it is not considered for re-exporting.
  *
  * Only exported for testing.
  */
-export function extractFunctionReexportQueryParameters(query: string): string[] {
+export function extractFunctionReexportQueryParameters(query: string): { wrap: string[]; reexport: string[] } {
   // Regex matches the comma-separated params between the functions query
   // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor
-  const regex = new RegExp(`\\${SENTRY_FUNCTIONS_REEXPORT}(.*?)\\${QUERY_END_INDICATOR}`);
-  const match = query.match(regex);
+  const wrapRegex = new RegExp(
+    `\\${SENTRY_WRAPPED_FUNCTIONS}(.*?)(\\${QUERY_END_INDICATOR}|\\${SENTRY_REEXPORTED_FUNCTIONS})`,
+  );
+  // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor
+  const reexportRegex = new RegExp(`\\${SENTRY_REEXPORTED_FUNCTIONS}(.*?)(\\${QUERY_END_INDICATOR})`);
 
-  return match && match[1]
-    ? match[1]
-        .split(',')
-        .filter(param => param !== '')
-        // Sanitize, as code could be injected with another rollup plugin
-        .map((str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-    : [];
+  const wrapMatch = query.match(wrapRegex);
+  const reexportMatch = query.match(reexportRegex);
+
+  const wrap =
+    wrapMatch && wrapMatch[1]
+      ? wrapMatch[1]
+          .split(',')
+          .filter(param => param !== '')
+          // Sanitize, as code could be injected with another rollup plugin
+          .map((str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+      : [];
+
+  const reexport =
+    reexportMatch && reexportMatch[1]
+      ? reexportMatch[1]
+          .split(',')
+          .filter(param => param !== '' && param !== 'default')
+          // Sanitize, as code could be injected with another rollup plugin
+          .map((str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+      : [];
+
+  return { wrap, reexport };
 }
 
 /**
- * Constructs a code snippet with function reexports (can be used in Rollup plugins)
+ * Constructs a code snippet with function reexports (can be used in Rollup plugins as a return value for `load()`)
  */
 export function constructFunctionReExport(pathWithQuery: string, entryId: string): string {
-  const functionNames = extractFunctionReexportQueryParameters(pathWithQuery);
+  const { wrap: wrapFunctions, reexport: reexportFunctions } = extractFunctionReexportQueryParameters(pathWithQuery);
 
-  return functionNames.reduce(
-    (functionsCode, currFunctionName) =>
-      functionsCode.concat(
-        'async function reExport(...args) {\n' +
-          `  const res = await import(${JSON.stringify(entryId)});\n` +
-          `  return res.${currFunctionName}.call(this, ...args);\n` +
-          '}\n' +
-          `export { reExport as ${currFunctionName} };\n`,
+  return wrapFunctions
+    .reduce(
+      (functionsCode, currFunctionName) =>
+        functionsCode.concat(
+          `async function ${currFunctionName}_sentryWrapped(...args) {\n` +
+            `  const res = await import(${JSON.stringify(entryId)});\n` +
+            `  return res.${currFunctionName}.call(this, ...args);\n` +
+            '}\n' +
+            `export { ${currFunctionName}_sentryWrapped as ${currFunctionName} };\n`,
+        ),
+      '',
+    )
+    .concat(
+      reexportFunctions.reduce(
+        (functionsCode, currFunctionName) =>
+          functionsCode.concat(`export { ${currFunctionName} } from ${JSON.stringify(entryId)};`),
+        '',
       ),
-    '',
-  );
+    );
 }

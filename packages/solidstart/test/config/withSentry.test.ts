@@ -1,17 +1,16 @@
 import type { Nitro } from 'nitropack';
 import type { Plugin } from 'vite';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { RollupConfig } from '../../build/types/config/types';
 import { withSentry } from '../../src/config';
 
 const userDefinedNitroRollupBeforeHookMock = vi.fn();
 const userDefinedNitroCloseHookMock = vi.fn();
 const addInstrumentationFileToBuildMock = vi.fn();
-const addAutoInstrumentationMock = vi.fn();
+const addSentryTopImportMock = vi.fn();
 
 vi.mock('../../src/config/addInstrumentation', () => ({
   addInstrumentationFileToBuild: (...args: unknown[]) => addInstrumentationFileToBuildMock(...args),
-  addAutoInstrumentation: (...args: unknown[]) => addAutoInstrumentationMock(...args),
+  addSentryTopImport: (...args: unknown[]) => addSentryTopImportMock(...args),
 }));
 
 beforeEach(() => {
@@ -37,21 +36,38 @@ describe('withSentry()', () => {
       preset: 'vercel',
     },
   };
-  const rollupConfig: RollupConfig = {
-    plugins: [],
-  };
 
-  it('adds a nitro hook to auto instrumentation the backend', async () => {
-    const config = withSentry(solidStartConfig);
-    await config?.server.hooks['rollup:before'](nitroOptions, rollupConfig);
-    expect(addAutoInstrumentationMock).toHaveBeenCalledWith(nitroOptions, rollupConfig);
-  });
-
-  it('adds a nitro hook to add the instrumentation file to the build if auto instrumentation is turned off', async () => {
-    const config = withSentry(solidStartConfig, { autoInstrument: false });
+  it('adds a nitro hook to add the instrumentation file to the build if no plugin options are provided', async () => {
+    const config = withSentry(solidStartConfig, {});
     await config?.server.hooks['rollup:before'](nitroOptions);
     expect(addInstrumentationFileToBuildMock).toHaveBeenCalledWith(nitroOptions);
     expect(userDefinedNitroRollupBeforeHookMock).toHaveBeenCalledWith(nitroOptions);
+  });
+
+  it('adds a nitro hook to add the instrumentation file as top level import to the server entry file when configured in autoInjectServerSentry', async () => {
+    const config = withSentry(solidStartConfig, { autoInjectServerSentry: 'top-level-import' });
+    await config?.server.hooks['rollup:before'](nitroOptions);
+    await config?.server.hooks['close'](nitroOptions);
+    expect(addSentryTopImportMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: {
+          buildDir: '/path/to/buildDir',
+          output: {
+            serverDir: '/path/to/serverDir',
+          },
+          preset: 'vercel',
+        },
+      }),
+    );
+    expect(userDefinedNitroCloseHookMock).toHaveBeenCalled();
+  });
+
+  it('does not add the instrumentation file as top level import if autoInjectServerSentry is undefined', async () => {
+    const config = withSentry(solidStartConfig, { autoInjectServerSentry: undefined });
+    await config?.server.hooks['rollup:before'](nitroOptions);
+    await config?.server.hooks['close'](nitroOptions);
+    expect(addSentryTopImportMock).not.toHaveBeenCalled();
+    expect(userDefinedNitroCloseHookMock).toHaveBeenCalled();
   });
 
   it('adds the sentry solidstart vite plugin', () => {

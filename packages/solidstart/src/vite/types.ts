@@ -135,28 +135,20 @@ export type SentrySolidStartPluginOptions = {
   instrumentation?: string;
 
   /**
-   * When `true`, automatically bundles the instrumentation file into
-   * the nitro server entry file and dynamically imports (`import()`) the original server
-   * entry file so that Sentry can instrument the server side of the application.
    *
-   * When `false`, the Sentry instrument file is added as a separate file to the
-   * nitro server output directory alongside the server entry file. To instrument the
-   * server side of the application, add
-   * `--import ./.output/server/instrument.server.mjs` to your `NODE_OPTIONS`.
+   * Enables (partial) server tracing by automatically injecting Sentry for environments where modifying the node option `--import` is not possible.
    *
-   * @default: true
+   * **DO NOT** add the node CLI flag `--import` in your node start script, when auto-injecting Sentry.
+   * This would initialize Sentry twice on the server-side and this leads to unexpected issues.
+   *
+   * ---
+   *
+   * **"top-level-import"**
+   *
+   * Enabling basic server tracing with top-level import can be used for environments where modifying the node option `--import` is not possible.
+   * However, enabling this option only supports limited tracing instrumentation. Only http traces will be collected (but no database-specific traces etc.).
+   *
+   * If `"top-level-import"` is enabled, the Sentry SDK will import the Sentry server config at the top of the server entry file to load the SDK on the server.
    */
-  autoInstrument?: boolean;
-
-  /**
-   * By default (unless you configure `autoInstrument: false`), the SDK will try to wrap your
-   * application entrypoint with a dynamic `import()` to ensure all dependencies can be properly instrumented.
-   *
-   * By default, the SDK will wrap the default export as well as a `handler` or `server` export from the entrypoint.
-   * If your application has a different main export that is used to run the application, you can overwrite this by
-   * providing an array of export names to wrap.
-   *
-   * Any wrapped export is expected to be an async function.
-   */
-  asyncFunctionsToReExport?: string[];
+  autoInjectServerSentry?: 'top-level-import';
 };
