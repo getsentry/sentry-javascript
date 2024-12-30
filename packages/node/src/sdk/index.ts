@@ -164,7 +164,9 @@ function _init(
   // If users opt-out of this, they _have_ to set up OpenTelemetry themselves
   // There is no way to use this SDK without OpenTelemetry!
   if (!options.skipOpenTelemetrySetup) {
-    initOpenTelemetry(client);
+    initOpenTelemetry(client, {
+      spanProcessors: options.openTelemetrySpanProcessors,
+    });
     validateOpenTelemetrySetup();
   }
 
