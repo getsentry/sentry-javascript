@@ -1033,14 +1033,14 @@ describe('BaseClient', () => {
     });
 
     test('calls `beforeSendSpan` and uses original spans without any changes', () => {
-      expect.assertions(2);
+      expect.assertions(3);
 
       const beforeSendSpan = jest.fn(span => span);
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendSpan });
       const client = new TestClient(options);
 
       const transaction: Event = {
-        transaction: '/cats/are/great',
+        transaction: '/dogs/are/great',
         type: 'transaction',
         spans: [
           {
@@ -1061,9 +1061,10 @@ describe('BaseClient', () => {
       };
       client.captureEvent(transaction);
 
-      expect(beforeSendSpan).toHaveBeenCalledTimes(2);
+      expect(beforeSendSpan).toHaveBeenCalledTimes(3);
       const capturedEvent = TestClient.instance!.event!;
       expect(capturedEvent.spans).toEqual(transaction.spans);
+      expect(capturedEvent.transaction).toEqual(transaction.transaction);
     });
 
     test('calls `beforeSend` and uses the modified event', () => {
@@ -1123,7 +1124,7 @@ describe('BaseClient', () => {
     });
 
     test('calls `beforeSendSpan` and uses the modified spans', () => {
-      expect.assertions(3);
+      expect.assertions(4);
 
       const beforeSendSpan = jest.fn(span => {
         span.data = { version: 'bravo' };
@@ -1133,7 +1134,7 @@ describe('BaseClient', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendSpan });
       const client = new TestClient(options);
       const transaction: Event = {
-        transaction: '/cats/are/great',
+        transaction: '/dogs/are/great',
         type: 'transaction',
         spans: [
           {
@@ -1155,12 +1156,13 @@ describe('BaseClient', () => {
 
       client.captureEvent(transaction);
 
-      expect(beforeSendSpan).toHaveBeenCalledTimes(2);
+      expect(beforeSendSpan).toHaveBeenCalledTimes(3);
       const capturedEvent = TestClient.instance!.event!;
       for (const [idx, span] of capturedEvent.spans!.entries()) {
         const originalSpan = transaction.spans![idx];
         expect(span).toEqual({ ...originalSpan, data: { version: 'bravo' } });
       }
+      expect(capturedEvent.contexts?.trace?.data).toEqual({ version: 'bravo' });
     });
 
     test('calls `beforeSend` and discards the event', () => {
@@ -1229,7 +1231,7 @@ describe('BaseClient', () => {
       };
       client.captureEvent(transaction);
 
-      expect(beforeSendSpan).toHaveBeenCalledTimes(2);
+      expect(beforeSendSpan).toHaveBeenCalledTimes(3);
       const capturedEvent = TestClient.instance!.event!;
       expect(capturedEvent.spans).toHaveLength(2);
       expect(client['_outcomes']).toEqual({});

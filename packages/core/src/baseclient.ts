@@ -54,6 +54,7 @@ import { getPossibleEventMessages } from './utils/eventUtils';
 import { parseSampleRate } from './utils/parseSampleRate';
 import { prepareEvent } from './utils/prepareEvent';
 import { showSpanDropWarning } from './utils/spanUtils';
+import { convertSpanJsonToTransactionEvent, convertTransactionEventToSpanJson } from './utils/transactionEvent';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
 const MISSING_RELEASE_FOR_SESSION_ERROR = 'Discarded session because of missing or non-string release';
@@ -984,41 +985,57 @@ function processBeforeSend(
   hint: EventHint,
 ): PromiseLike<Event | null> | Event | null {
   const { beforeSend, beforeSendTransaction, beforeSendSpan } = options;
+  let processedEvent = event;
 
-  if (isErrorEvent(event) && beforeSend) {
-    return beforeSend(event, hint);
+  if (isErrorEvent(processedEvent) && beforeSend) {
+    return beforeSend(processedEvent, hint);
   }
 
-  if (isTransactionEvent(event)) {
-    if (event.spans && beforeSendSpan) {
-      const processedSpans: SpanJSON[] = [];
-      for (const span of event.spans) {
-        const processedSpan = beforeSendSpan(span);
-        if (!processedSpan) {
-          showSpanDropWarning();
-          processedSpans.push(span);
-        } else {
-          processedSpans.push(processedSpan);
-        }
+  if (isTransactionEvent(processedEvent)) {
+    if (beforeSendSpan) {
+      // process root span
+      const processedRootSpanJson = beforeSendSpan(convertTransactionEventToSpanJson(processedEvent));
+      if (!processedRootSpanJson) {
+        showSpanDropWarning();
+      } else {
+        // update event with processed root span values
+        processedEvent = {
+          ...event,
+          ...convertSpanJsonToTransactionEvent(processedRootSpanJson),
+        };
       }
-      event.spans = processedSpans;
+
+      // process child spans
+      if (processedEvent.spans) {
+        const processedSpans: SpanJSON[] = [];
+        for (const span of processedEvent.spans) {
+          const processedSpan = beforeSendSpan(span);
+          if (!processedSpan) {
+            showSpanDropWarning();
+            processedSpans.push(span);
+          } else {
+            processedSpans.push(processedSpan);
+          }
+        }
+        processedEvent.spans = processedSpans;
+      }
     }
 
     if (beforeSendTransaction) {
-      if (event.spans) {
+      if (processedEvent.spans) {
         // We store the # of spans before processing in SDK metadata,
         // so we can compare it afterwards to determine how many spans were dropped
-        const spanCountBefore = event.spans.length;
-        event.sdkProcessingMetadata = {
+        const spanCountBefore = processedEvent.spans.length;
+        processedEvent.sdkProcessingMetadata = {
           ...event.sdkProcessingMetadata,
           spanCountBeforeProcessing: spanCountBefore,
         };
       }
-      return beforeSendTransaction(event, hint);
+      return beforeSendTransaction(processedEvent as TransactionEvent, hint);
     }
   }
 
-  return event;
+  return processedEvent;
 }
 
 function isErrorEvent(event: Event): event is ErrorEvent {
