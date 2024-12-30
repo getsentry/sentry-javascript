@@ -1,8 +1,6 @@
 import type { Primitive } from '../types-hoist';
 
 import { isSyntheticEvent, isVueViewModel } from './is';
-import type { MemoFunc } from './memo';
-import { memoBuilder } from './memo';
 import { convertToPlainObject } from './object';
 import { getFunctionName } from './stacktrace';
 
@@ -12,6 +10,13 @@ type Prototype = { constructor: (...args: unknown[]) => unknown };
 // way lets us use a single type in the places where behave as if we are only dealing with objects, even if some of them
 // might be arrays.
 type ObjOrArray<T> = { [key: string]: T };
+
+type MemoFunc = [
+  // memoize
+  (obj: object) => boolean,
+  // unmemoize
+  (obj: object) => void,
+];
 
 /**
  * Recursively normalizes the given object.
@@ -74,8 +79,7 @@ function visit(
   value: unknown,
   depth: number = +Infinity,
   maxProperties: number = +Infinity,
-  // eslint-disable-next-line deprecation/deprecation
-  memo: MemoFunc = memoBuilder(),
+  memo = memoBuilder(),
 ): Primitive | ObjOrArray<unknown> {
   const [memoize, unmemoize] = memo;
 
@@ -303,4 +307,23 @@ export function normalizeUrlToBase(url: string, basePath: string): string {
       // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor
       .replace(new RegExp(`(file://)?/*${escapedBase}/*`, 'ig'), 'app:///')
   );
+}
+
+/**
+ * Helper to decycle json objects
+ */
+function memoBuilder(): MemoFunc {
+  const inner = new WeakSet<object>();
+  function memoize(obj: object): boolean {
+    if (inner.has(obj)) {
+      return true;
+    }
+    inner.add(obj);
+    return false;
+  }
+
+  function unmemoize(obj: object): void {
+    inner.delete(obj);
+  }
+  return [memoize, unmemoize];
 }
