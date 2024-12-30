@@ -1,11 +1,6 @@
-import type { RollupConfig } from 'vite';
+import type { Nitro } from 'nitropack';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Nitro } from '../../build/types/config/types';
-import {
-  addAutoInstrumentation,
-  addInstrumentationFileToBuild,
-  staticHostPresets,
-} from '../../src/config/addInstrumentation';
+import { addInstrumentationFileToBuild, staticHostPresets } from '../../src/config/addInstrumentation';
 
 const consoleLogSpy = vi.spyOn(console, 'log');
 const consoleWarnSpy = vi.spyOn(console, 'warn');
@@ -79,26 +74,5 @@ describe('addInstrumentationFileToBuild()', () => {
       },
     });
     expect(fsCopyFileMock).not.toHaveBeenCalled();
-  });
-});
-
-describe('addAutoInstrumentation()', () => {
-  const nitroOptions: Nitro = {
-    options: {
-      buildDir: '/path/to/buildDir',
-      output: {
-        serverDir: '/path/to/serverDir',
-      },
-      preset: 'vercel',
-    },
-  };
-
-  it('adds the `sentry-solidstart-auto-instrument` rollup plugin to the rollup config', async () => {
-    const rollupConfig: RollupConfig = {
-      plugins: [],
-    };
-
-    await addAutoInstrumentation(nitroOptions, rollupConfig);
-    expect(rollupConfig.plugins.find(plugin => plugin.name === 'sentry-solidstart-auto-instrument')).toBeTruthy();
   });
 });

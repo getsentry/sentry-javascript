@@ -159,7 +159,7 @@ where `instrument.server.mjs` is located, monitor the build log output for
 Depending on where the application is deployed to, it might not be possible to modify or use `NODE_OPTIONS` to import
 `instrument.server.mjs`.
 
-For such platforms, we offer the `experimental_basicServerTracing` flag to add a top level import of
+For such platforms, we offer the option `autoInjectServerSentry: 'top-level-import'` to add a top level import of
 `instrument.server.mjs` to the server entry file.
 
 ```typescript
@@ -180,7 +180,7 @@ export default defineConfig(
       // optional: if your `instrument.server.ts` file is not located inside `src`
       instrumentation: './mypath/instrument.server.ts',
       // optional: if NODE_OPTIONS or --import is not avaiable
-      experimental_basicServerTracing: true,
+      autoInjectServerSentry: 'top-level-import',
     },
   ),
 );
