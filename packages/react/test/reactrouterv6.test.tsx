@@ -13,7 +13,9 @@ import {
   Navigate,
   Outlet,
   Route,
+  RouterProvider,
   Routes,
+  createMemoryRouter,
   createRoutesFromChildren,
   matchRoutes,
   useLocation,
@@ -21,10 +23,13 @@ import {
   useRoutes,
 } from 'react-router-6';
 
+import type { RouteObject } from 'react-router-6';
+
 import { BrowserClient } from '../src';
 import {
   reactRouterV6BrowserTracingIntegration,
   withSentryReactRouterV6Routing,
+  wrapCreateBrowserRouterV6,
   wrapUseRoutesV6,
 } from '../src/reactrouterv6';
 
@@ -77,6 +82,90 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     getCurrentScope().setClient(undefined);
+  });
+
+  describe('wrapCreateBrowserRouterV6 - createMemoryRouter', () => {
+    it('starts a pageload transaction', () => {
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+
+      const routes: RouteObject[] = [
+        {
+          path: '/',
+          element: <div>Home</div>,
+        },
+        {
+          path: '/about',
+          element: <div>About</div>,
+        },
+      ];
+
+      const wrappedCreateMemoryRouter = wrapCreateBrowserRouterV6(createMemoryRouter);
+
+      const router = wrappedCreateMemoryRouter(routes, {
+        initialEntries: ['/', '/about'],
+        initialIndex: 1,
+      });
+
+      render(<RouterProvider router={router} />);
+
+      expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(1);
+      expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
+        name: '/',
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react.reactrouter_v6',
+        },
+      });
+    });
+
+    it('updates the transaction name on a pageload', () => {
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+
+      const routes: RouteObject[] = [
+        {
+          path: '/',
+          element: <div>Home</div>,
+        },
+        {
+          path: '/about',
+          element: <div>About</div>,
+        },
+      ];
+
+      const wrappedCreateMemoryRouter = wrapCreateBrowserRouterV6(createMemoryRouter);
+
+      const router = wrappedCreateMemoryRouter(routes, {
+        initialEntries: ['/', '/about'],
+        initialIndex: 2,
+      });
+
+      render(<RouterProvider router={router} />);
+
+      expect(mockRootSpan.updateName).toHaveBeenLastCalledWith('/about');
+    });
   });
 
   describe('withSentryReactRouterV6Routing', () => {

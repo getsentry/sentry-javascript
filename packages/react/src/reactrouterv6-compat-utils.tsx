@@ -83,17 +83,39 @@ export function createV6CompatibleWrapCreateBrowserRouter<
   // `opts` for createBrowserHistory and createMemoryHistory are different, but also not relevant for us at the moment.
   // `basename` is the only option that is relevant for us, and it is the same for all.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return function (routes: RouteObject[], opts?: Record<string, any> & { basename?: string }): TRouter {
+  return function (
+    routes: RouteObject[],
+    opts?: Record<string, any> & {
+      basename?: string;
+      initialEntries?: (string | { pathname: string })[];
+      initialIndex?: number;
+    },
+  ): TRouter {
     const router = createRouterFunction(routes, opts);
     const basename = opts?.basename;
 
     const activeRootSpan = getActiveRootSpan();
 
-    // The initial load ends when `createBrowserRouter` is called.
-    // This is the earliest convenient time to update the transaction name.
-    // Callbacks to `router.subscribe` are not called for the initial load.
+    const initialEntries = opts && opts.initialEntries;
+    const initialIndex = opts && opts.initialIndex;
+
+    const hasOnlyOneInitialEntry = initialEntries && initialEntries.length === 1;
+    const hasIndexedEntry = initialIndex !== undefined && initialEntries && initialEntries[initialIndex];
+
+    const initialEntry = hasOnlyOneInitialEntry
+      ? initialEntries[0]
+      : hasIndexedEntry
+        ? initialEntries[initialIndex]
+        : undefined;
+
+    const location = initialEntry
+      ? typeof initialEntry === 'string'
+        ? { pathname: initialEntry }
+        : initialEntry
+      : router.state.location;
+
     if (router.state.historyAction === 'POP' && activeRootSpan) {
-      updatePageloadTransaction(activeRootSpan, router.state.location, routes, undefined, basename);
+      updatePageloadTransaction(activeRootSpan, location, routes, undefined, basename);
     }
 
     router.subscribe((state: RouterState) => {
