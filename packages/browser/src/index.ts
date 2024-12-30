@@ -74,4 +74,4 @@ export {
   type FeatureFlagsIntegration,
 } from './integrations/featureFlags';
 export { launchDarklyIntegration, buildLaunchDarklyFlagUsedHandler } from './integrations/featureFlags/launchdarkly';
-export { openFeatureIntegration, type OpenFeatureIntegrationOptions } from './integrations/featureFlags/openfeature';
+export { openFeatureIntegration } from './integrations/featureFlags/openfeature';
