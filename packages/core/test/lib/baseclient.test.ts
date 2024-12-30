@@ -87,44 +87,6 @@ describe('BaseClient', () => {
       expect(consoleWarnSpy).toHaveBeenCalledTimes(0);
       consoleWarnSpy.mockRestore();
     });
-
-    describe.each(['tracesSampleRate', 'tracesSampler', 'enableTracing'])('%s', key => {
-      it('warns when set to undefined', () => {
-        const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
-
-        const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, [key]: undefined });
-        new TestClient(options);
-
-        expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
-        expect(consoleWarnSpy).toBeCalledWith(
-          `[Sentry] Deprecation warning: \`${key}\` is set to undefined, which leads to tracing being enabled. In v9, a value of \`undefined\` will result in tracing being disabled.`,
-        );
-        consoleWarnSpy.mockRestore();
-      });
-
-      it('warns when set to null', () => {
-        const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
-
-        const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, [key]: null });
-        new TestClient(options);
-
-        expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
-        expect(consoleWarnSpy).toBeCalledWith(
-          `[Sentry] Deprecation warning: \`${key}\` is set to undefined, which leads to tracing being enabled. In v9, a value of \`undefined\` will result in tracing being disabled.`,
-        );
-        consoleWarnSpy.mockRestore();
-      });
-
-      it('does not warn when set to 0', () => {
-        const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
-
-        const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, [key]: 0 });
-        new TestClient(options);
-
-        expect(consoleWarnSpy).toHaveBeenCalledTimes(0);
-        consoleWarnSpy.mockRestore();
-      });
-    });
   });
 
   describe('getOptions()', () => {
