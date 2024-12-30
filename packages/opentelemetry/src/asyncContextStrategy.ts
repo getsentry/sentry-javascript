@@ -6,7 +6,7 @@ import {
   SENTRY_FORK_SET_ISOLATION_SCOPE_CONTEXT_KEY,
   SENTRY_FORK_SET_SCOPE_CONTEXT_KEY,
 } from './constants';
-import { startInactiveSpan, startSpan, startSpanManual, withActiveSpan } from './trace';
+import { continueTrace, startInactiveSpan, startSpan, startSpanManual, withActiveSpan } from './trace';
 import type { CurrentScopes } from './types';
 import { getScopesFromContext } from './utils/contextData';
 import { getActiveSpan } from './utils/getActiveSpan';
@@ -103,6 +103,7 @@ export function setOpenTelemetryContextAsyncContextStrategy(): void {
     getActiveSpan,
     suppressTracing,
     getTraceData,
+    continueTrace,
     // The types here don't fully align, because our own `Span` type is narrower
     // than the OTEL one - but this is OK for here, as we now we'll only have OTEL spans passed around
     withActiveSpan: withActiveSpan as typeof defaultWithActiveSpan,
