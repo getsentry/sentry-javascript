@@ -131,6 +131,7 @@ Sentry.init({
 - The `flatten` export has been removed. There is no replacement.
 - The `urlEncode` method has been removed. There is no replacement.
 - The `getDomElement` method has been removed. There is no replacement.
+- The `Request` type has been removed. Use `RequestEventData` type instead.
 
 ### `@sentry/browser`
 
