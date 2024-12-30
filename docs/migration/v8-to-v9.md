@@ -68,6 +68,9 @@ Sentry.init({
 });
 ```
 
+- Dropping spans in the `beforeSendSpan` hook is no longer possible.
+- The `beforeSendSpan` hook now receives the root span as well as the child spans.
+
 ### `@sentry/node`
 
 - When `skipOpenTelemetrySetup: true` is configured, `httpIntegration({ spans: false })` will be configured by default. This means that you no longer have to specify this yourself in this scenario. With this change, no spans are emitted once `skipOpenTelemetrySetup: true` is configured, without any further configuration being needed.
@@ -191,6 +194,10 @@ The following outlines deprecations that were introduced in version 8 of the SDK
 ## General
 
 - **Returning `null` from `beforeSendSpan` span is deprecated.**
+
+  Returning `null` from `beforeSendSpan` will now result in a warning being logged.
+  In v9, dropping spans is not possible anymore within this hook.
+
 - **Passing `undefined` to `tracesSampleRate` / `tracesSampler` / `enableTracing` will be handled differently in v9**
 
   In v8, a setup like the following:
