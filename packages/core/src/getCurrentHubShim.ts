@@ -82,7 +82,7 @@ export const getCurrentHub = getCurrentHubShim;
  * Sends the current Session on the scope
  */
 function _sendSessionUpdate(): void {
-  const scope = getCurrentScope();
+  const scope = getIsolationScope();
   const client = getClient();
 
   const session = scope.getSession();
