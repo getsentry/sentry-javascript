@@ -1,16 +1,29 @@
-/**
- * OpenFeature integration.
- *
- * Add the openFeatureIntegration() function call to your integration lists.
- * Add the integration hook to your OpenFeature object.
- *   - OpenFeature.getClient().addHooks(new OpenFeatureIntegrationHook());
- */
 import type { Client, Event, EventHint, IntegrationFn } from '@sentry/core';
 import type { EvaluationDetails, HookContext, HookHints, JsonValue, OpenFeatureClient, OpenFeatureHook } from './types';
 
 import { defineIntegration } from '@sentry/core';
 import { copyFlagsFromScopeToEvent, insertFlagToScope } from '../../../utils/featureFlags';
 
+/**
+ * Sentry integration for capturing feature flags from the OpenFeature SDK.
+ *
+ * See the [feature flag documentation](https://develop.sentry.dev/sdk/expected-features/#feature-flags) for more information.
+ *
+ * @example
+ * ```
+ * import * as Sentry from '@sentry/browser';
+ * import { OpenFeature } from '@openfeature/web-sdk';
+ *
+ * OpenFeature.setProvider(new MyProviderOfChoice());
+ * const client = OpenFeature.getClient();
+ * const openFeatureIntegration = Sentry.openFeatureIntegration({openFeatureClient: client});
+ *
+ * Sentry.init({
+ *   dsn: '___PUBLIC_DSN___',
+ *   integrations: [openFeatureIntegration]
+ * });
+ * ```
+ */
 export const openFeatureIntegration = defineIntegration((openFeatureClient: OpenFeatureClient) => {
   return {
     name: 'OpenFeature',
@@ -26,7 +39,8 @@ export const openFeatureIntegration = defineIntegration((openFeatureClient: Open
 }) satisfies IntegrationFn;
 
 /**
- * OpenFeature Hook class implementation.
+ * OpenFeatureHook class implementation. Listens for flag evaluations and
+ * updates the `flags` context in our Sentry scope.
  */
 class OpenFeatureIntegrationHook implements OpenFeatureHook {
   /**
