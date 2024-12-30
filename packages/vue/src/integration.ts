@@ -12,9 +12,11 @@ const DEFAULT_CONFIG: VueOptions = {
   attachProps: true,
   logErrors: true,
   attachErrorHandler: true,
-  hooks: DEFAULT_HOOKS,
-  timeout: 2000,
-  trackComponents: false,
+  tracingOptions: {
+    hooks: DEFAULT_HOOKS,
+    timeout: 2000,
+    trackComponents: false,
+  },
 };
 
 const INTEGRATION_NAME = 'Vue';
@@ -73,12 +75,6 @@ const vueInit = (app: Vue, options: Options): void => {
   }
 
   if (hasTracingEnabled(options)) {
-    app.mixin(
-      createTracingMixins({
-        ...options,
-        // eslint-disable-next-line deprecation/deprecation
-        ...options.tracingOptions,
-      }),
-    );
+    app.mixin(createTracingMixins(options.tracingOptions));
   }
 };

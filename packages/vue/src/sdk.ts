@@ -2,21 +2,12 @@ import { SDK_VERSION, getDefaultIntegrations, init as browserInit } from '@sentr
 
 import type { Client } from '@sentry/core';
 import { vueIntegration } from './integration';
-import type { Options, TracingOptions } from './types';
+import type { Options } from './types';
 
 /**
  * Inits the Vue SDK
  */
-export function init(
-  config: Partial<
-    Omit<Options, 'tracingOptions'> & {
-      /**
-       * @deprecated Add the `vueIntegration()` and pass the `tracingOptions` there instead.
-       */
-      tracingOptions: Partial<TracingOptions>;
-    }
-  > = {},
-): Client | undefined {
+export function init(config: Partial<Omit<Options, 'tracingOptions'>> = {}): Client | undefined {
   const options = {
     _metadata: {
       sdk: {

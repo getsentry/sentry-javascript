@@ -152,6 +152,27 @@ Sentry.init({
   Use the `SentryGlobalFilter` instead.
   The `SentryGlobalFilter` is a drop-in replacement.
 
+## `@sentry/vue`
+
+- Removed `tracingOptions`, `trackComponents`, `timeout`, `hooks` options everywhere other than in the `tracingOptions` option of the `vueIntegration()`.
+  These options should now be set as follows:
+
+  ```ts
+  import * as Sentry from '@sentry/vue';
+
+  Sentry.init({
+    integrations: [
+      Sentry.vueIntegration({
+        tracingOptions: {
+          trackComponents: true,
+          timeout: 1000,
+          hooks: ['mount', 'update', 'unmount'],
+        },
+      }),
+    ],
+  });
+  ```
+
 ## 5. Build Changes
 
 Previously the CJS versions of the SDK code (wrongfully) contained compatibility statements for default exports in ESM:
