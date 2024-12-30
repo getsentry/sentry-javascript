@@ -204,9 +204,7 @@ export function init(browserOptions: BrowserOptions = {}): Client | undefined {
  * All properties the report dialog supports
  */
 export interface ReportDialogOptions {
-  // TODO(v9): Change this to  [key: string]: unknkown;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any;
+  [key: string]: unknown;
   eventId?: string;
   dsn?: DsnLike;
   user?: {
