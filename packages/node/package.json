@@ -81,7 +81,7 @@
     "@opentelemetry/instrumentation-http": "0.56.0",
     "@opentelemetry/instrumentation-ioredis": "0.46.0",
     "@opentelemetry/instrumentation-kafkajs": "0.6.0",
-    "@opentelemetry/instrumentation-knex": "0.43.0",
+    "@opentelemetry/instrumentation-knex": "0.44.0",
     "@opentelemetry/instrumentation-koa": "0.46.0",
     "@opentelemetry/instrumentation-lru-memoizer": "0.43.0",
     "@opentelemetry/instrumentation-mongodb": "0.51.0",
