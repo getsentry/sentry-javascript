@@ -1,7 +1,7 @@
+import type { Client, DsnLike, Integration, Options } from '@sentry/core';
 import {
   consoleSandbox,
   dedupeIntegration,
-  dropUndefinedKeys,
   functionToStringIntegration,
   getCurrentScope,
   getIntegrationsToSetup,
@@ -13,7 +13,6 @@ import {
   stackParserFromStackParserOptions,
   supportsFetch,
 } from '@sentry/core';
-import type { Client, DsnLike, Integration, Options } from '@sentry/core';
 import type { BrowserClientOptions, BrowserOptions } from './client';
 import { BrowserClient } from './client';
 import { DEBUG_BUILD } from './debug-build';
@@ -67,8 +66,25 @@ function applyDefaultOptions(optionsArg: BrowserOptions = {}): BrowserOptions {
 
   return {
     ...defaultOptions,
-    ...dropUndefinedKeys(optionsArg),
+    ...dropUndefinedKeysFlat(optionsArg),
   };
+}
+
+/**
+ * In contrast to the regular `dropUndefinedKeys` method,
+ * this one does not deep-drop keys, but only on the top level.
+ */
+function dropUndefinedKeysFlat<T extends object>(obj: T): Partial<T> {
+  const mutatetedObj: Partial<T> = {};
+
+  for (const k of Object.getOwnPropertyNames(obj)) {
+    const key = k as keyof T;
+    if (obj[key] !== undefined) {
+      mutatetedObj[key] = obj[key];
+    }
+  }
+
+  return mutatetedObj;
 }
 
 type ExtensionProperties = {
