@@ -90,7 +90,7 @@
     "@opentelemetry/instrumentation-mysql2": "0.45.0",
     "@opentelemetry/instrumentation-pg": "0.49.0",
     "@opentelemetry/instrumentation-redis-4": "0.45.0",
-    "@opentelemetry/instrumentation-tedious": "0.17.0",
+    "@opentelemetry/instrumentation-tedious": "0.18.0",
     "@opentelemetry/instrumentation-undici": "0.9.0",
     "@opentelemetry/resources": "^1.29.0",
     "@opentelemetry/sdk-trace-base": "^1.29.0",
