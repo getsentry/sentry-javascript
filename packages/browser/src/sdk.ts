@@ -51,7 +51,8 @@ export function getDefaultIntegrations(options: Options): Integration[] {
   return integrations;
 }
 
-function applyDefaultOptions(optionsArg: BrowserOptions = {}): BrowserOptions {
+/** Exported only for tests. */
+export function applyDefaultOptions(optionsArg: BrowserOptions = {}): BrowserOptions {
   const defaultOptions: BrowserOptions = {
     defaultIntegrations: getDefaultIntegrations(optionsArg),
     release:
@@ -66,7 +67,7 @@ function applyDefaultOptions(optionsArg: BrowserOptions = {}): BrowserOptions {
 
   return {
     ...defaultOptions,
-    ...dropUndefinedKeysFlat(optionsArg),
+    ...dropTopLevelUndefinedKeys(optionsArg),
   };
 }
 
@@ -74,7 +75,7 @@ function applyDefaultOptions(optionsArg: BrowserOptions = {}): BrowserOptions {
  * In contrast to the regular `dropUndefinedKeys` method,
  * this one does not deep-drop keys, but only on the top level.
  */
-function dropUndefinedKeysFlat<T extends object>(obj: T): Partial<T> {
+function dropTopLevelUndefinedKeys<T extends object>(obj: T): Partial<T> {
   const mutatetedObj: Partial<T> = {};
 
   for (const k of Object.getOwnPropertyNames(obj)) {
