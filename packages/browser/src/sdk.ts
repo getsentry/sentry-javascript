@@ -1,3 +1,4 @@
+import type { Client, DsnLike, Integration, Options } from '@sentry/core';
 import {
   consoleSandbox,
   dedupeIntegration,
@@ -12,7 +13,6 @@ import {
   stackParserFromStackParserOptions,
   supportsFetch,
 } from '@sentry/core';
-import type { Client, DsnLike, Integration, Options } from '@sentry/core';
 import type { BrowserClientOptions, BrowserOptions } from './client';
 import { BrowserClient } from './client';
 import { DEBUG_BUILD } from './debug-build';
@@ -51,7 +51,8 @@ export function getDefaultIntegrations(options: Options): Integration[] {
   return integrations;
 }
 
-function applyDefaultOptions(optionsArg: BrowserOptions = {}): BrowserOptions {
+/** Exported only for tests. */
+export function applyDefaultOptions(optionsArg: BrowserOptions = {}): BrowserOptions {
   const defaultOptions: BrowserOptions = {
     defaultIntegrations: getDefaultIntegrations(optionsArg),
     release:
@@ -64,15 +65,27 @@ function applyDefaultOptions(optionsArg: BrowserOptions = {}): BrowserOptions {
     sendClientReports: true,
   };
 
-  // TODO: Instead of dropping just `defaultIntegrations`, we should simply
-  // call `dropUndefinedKeys` on the entire `optionsArg`.
-  // However, for this to work we need to adjust the `hasTracingEnabled()` logic
-  // first as it differentiates between `undefined` and the key not being in the object.
-  if (optionsArg.defaultIntegrations == null) {
-    delete optionsArg.defaultIntegrations;
+  return {
+    ...defaultOptions,
+    ...dropTopLevelUndefinedKeys(optionsArg),
+  };
+}
+
+/**
+ * In contrast to the regular `dropUndefinedKeys` method,
+ * this one does not deep-drop keys, but only on the top level.
+ */
+function dropTopLevelUndefinedKeys<T extends object>(obj: T): Partial<T> {
+  const mutatetedObj: Partial<T> = {};
+
+  for (const k of Object.getOwnPropertyNames(obj)) {
+    const key = k as keyof T;
+    if (obj[key] !== undefined) {
+      mutatetedObj[key] = obj[key];
+    }
   }
 
-  return { ...defaultOptions, ...optionsArg };
+  return mutatetedObj;
 }
 
 type ExtensionProperties = {
