@@ -21,7 +21,9 @@ export const sentrySolidStartVite = (options: SentrySolidStartPluginOptions = {}
   // Because the file is just copied over to the output server
   // directory the release injection file from sentry vite plugin
   // wouldn't resolve correctly otherwise.
-  sentryPlugins.push(makeBuildInstrumentationFilePlugin(options));
+  if (options.autoInjectServerSentry !== 'experimental_dynamic-import') {
+    sentryPlugins.push(makeBuildInstrumentationFilePlugin(options));
+  }
 
   return sentryPlugins;
 };

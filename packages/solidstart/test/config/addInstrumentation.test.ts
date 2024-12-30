@@ -1,6 +1,11 @@
 import type { Nitro } from 'nitropack';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { addInstrumentationFileToBuild, staticHostPresets } from '../../src/config/addInstrumentation';
+import {
+  addDynamicImportEntryFileWrapper,
+  addInstrumentationFileToBuild,
+  staticHostPresets,
+} from '../../src/config/addInstrumentation';
+import type { RollupConfig } from '../../src/config/types';
 
 const consoleLogSpy = vi.spyOn(console, 'log');
 const consoleWarnSpy = vi.spyOn(console, 'warn');
@@ -185,5 +190,33 @@ describe('addInstrumentationFileToBuild()', () => {
       '[Sentry SolidStart withSentry] Failed to add instrumentation file to build.',
       error,
     );
+  });
+});
+
+describe('addAutoInstrumentation()', () => {
+  const nitroOptions: Nitro = {
+    options: {
+      srcDir: 'path/to/srcDir',
+      buildDir: '/path/to/buildDir',
+      output: {
+        serverDir: '/path/to/serverDir',
+      },
+      preset: 'vercel',
+    },
+  };
+
+  it('adds the `sentry-wrap-server-entry-with-dynamic-import` rollup plugin to the rollup config', async () => {
+    const rollupConfig: RollupConfig = {
+      plugins: [],
+    };
+
+    await addDynamicImportEntryFileWrapper({
+      nitro: nitroOptions,
+      rollupConfig,
+      sentryPluginOptions: { experimental_entrypointWrappedFunctions: [] },
+    });
+    expect(
+      rollupConfig.plugins.find(plugin => plugin.name === 'sentry-wrap-server-entry-with-dynamic-import'),
+    ).toBeTruthy();
   });
 });
