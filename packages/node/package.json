@@ -84,7 +84,7 @@
     "@opentelemetry/instrumentation-knex": "0.43.0",
     "@opentelemetry/instrumentation-koa": "0.46.0",
     "@opentelemetry/instrumentation-lru-memoizer": "0.43.0",
-    "@opentelemetry/instrumentation-mongodb": "0.50.0",
+    "@opentelemetry/instrumentation-mongodb": "0.51.0",
     "@opentelemetry/instrumentation-mongoose": "0.45.0",
     "@opentelemetry/instrumentation-mysql": "0.44.0",
     "@opentelemetry/instrumentation-mysql2": "0.45.0",

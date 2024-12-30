@@ -7759,12 +7759,12 @@
   dependencies:
     "@opentelemetry/instrumentation" "^0.56.0"
 
-"@opentelemetry/instrumentation-mongodb@0.50.0":
-  version "0.50.0"
-  resolved "https://registry.yarnpkg.com/@opentelemetry/instrumentation-mongodb/-/instrumentation-mongodb-0.50.0.tgz#e5c60ad0bfbdd8ac3238c255a0662b7430083303"
-  integrity sha512-DtwJMjYFXFT5auAvv8aGrBj1h3ciA/dXQom11rxL7B1+Oy3FopSpanvwYxJ+z0qmBrQ1/iMuWELitYqU4LnlkQ==
+"@opentelemetry/instrumentation-mongodb@0.51.0":
+  version "0.51.0"
+  resolved "https://registry.yarnpkg.com/@opentelemetry/instrumentation-mongodb/-/instrumentation-mongodb-0.51.0.tgz#8a323c2fb4cb2c93bf95f1b1c0fcb30952d12a08"
+  integrity sha512-cMKASxCX4aFxesoj3WK8uoQ0YUrRvnfxaO72QWI2xLu5ZtgX/QvdGBlU3Ehdond5eb74c2s1cqRQUIptBnKz1g==
   dependencies:
-    "@opentelemetry/instrumentation" "^0.56.0"
+    "@opentelemetry/instrumentation" "^0.57.0"
     "@opentelemetry/semantic-conventions" "^1.27.0"
 
 "@opentelemetry/instrumentation-mongoose@0.45.0":
