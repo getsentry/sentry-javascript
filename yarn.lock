@@ -7684,12 +7684,12 @@
     "@opentelemetry/core" "^1.8.0"
     "@opentelemetry/instrumentation" "^0.56.0"
 
-"@opentelemetry/instrumentation-generic-pool@0.42.0":
-  version "0.42.0"
-  resolved "https://registry.yarnpkg.com/@opentelemetry/instrumentation-generic-pool/-/instrumentation-generic-pool-0.42.0.tgz#6c6c6dcf2300e803acb22b2b914c6053acb80bf3"
-  integrity sha512-J4QxqiQ1imtB9ogzsOnHra0g3dmmLAx4JCeoK3o0rFes1OirljNHnO8Hsj4s1jAir8WmWvnEEQO1y8yk6j2tog==
+"@opentelemetry/instrumentation-generic-pool@0.43.0":
+  version "0.43.0"
+  resolved "https://registry.yarnpkg.com/@opentelemetry/instrumentation-generic-pool/-/instrumentation-generic-pool-0.43.0.tgz#b1769eb0e30f2abb764a9cbc811aa3d4560ecc24"
+  integrity sha512-at8GceTtNxD1NfFKGAuwtqM41ot/TpcLh+YsGe4dhf7gvv1HW/ZWdq6nfRtS6UjIvZJOokViqLPJ3GVtZItAnQ==
   dependencies:
-    "@opentelemetry/instrumentation" "^0.56.0"
+    "@opentelemetry/instrumentation" "^0.57.0"
 
 "@opentelemetry/instrumentation-graphql@0.46.0":
   version "0.46.0"
