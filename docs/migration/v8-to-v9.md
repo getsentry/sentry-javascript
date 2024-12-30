@@ -154,7 +154,7 @@ Sentry.init({
 
 ## `@sentry/vue`
 
-- Removed `tracingOptions`, `trackComponents`, `timeout`, `hooks` options everywhere other than in the `tracingOptions` option of the `vueIntegration()`.
+- The options `tracingOptions`, `trackComponents`, `timeout`, `hooks` have been removed everywhere except in the `tracingOptions` option of `vueIntegration()`.
   These options should now be set as follows:
 
   ```ts
