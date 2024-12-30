@@ -1,6 +1,6 @@
 import { clearCachedImplementation, getNativeImplementation } from '@sentry-internal/browser-utils';
 import type { Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/core';
-import { createTransport, rejectedSyncPromise } from '@sentry/core';
+import { createTransport, rejectedSyncPromise, suppressTracing } from '@sentry/core';
 import type { WINDOW } from '../helpers';
 import type { BrowserTransportOptions } from './types';
 
@@ -45,18 +45,19 @@ export function makeFetchTransport(
     }
 
     try {
-      // TODO: This may need a `suppressTracing` call in the future when we switch the browser SDK to OTEL
-      return nativeFetch(options.url, requestOptions).then(response => {
-        pendingBodySize -= requestSize;
-        pendingCount--;
-        return {
-          statusCode: response.status,
-          headers: {
-            'x-sentry-rate-limits': response.headers.get('X-Sentry-Rate-Limits'),
-            'retry-after': response.headers.get('Retry-After'),
-          },
-        };
-      });
+      return suppressTracing(() =>
+        nativeFetch(options.url, requestOptions).then(response => {
+          pendingBodySize -= requestSize;
+          pendingCount--;
+          return {
+            statusCode: response.status,
+            headers: {
+              'x-sentry-rate-limits': response.headers.get('X-Sentry-Rate-Limits'),
+              'retry-after': response.headers.get('Retry-After'),
+            },
+          };
+        }),
+      );
     } catch (e) {
       clearCachedImplementation('fetch');
       pendingBodySize -= requestSize;
