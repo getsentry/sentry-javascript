@@ -11,12 +11,6 @@ export interface RequestEventData {
   headers?: { [key: string]: string };
 }
 
-/**
- * Request data included in an event as sent to Sentry.
- * @deprecated: This type will be removed in v9. Use `RequestEventData` instead.
- */
-export type Request = RequestEventData;
-
 export type QueryParams = string | { [key: string]: string } | Array<[string, string]>;
 
 /**

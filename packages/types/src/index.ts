@@ -107,7 +107,6 @@ import type {
   ReplayEvent as ReplayEvent_imported,
   ReplayRecordingData as ReplayRecordingData_imported,
   ReplayRecordingMode as ReplayRecordingMode_imported,
-  Request as Request_imported,
   RequestEventData as RequestEventData_imported,
   Runtime as Runtime_imported,
   SamplingContext as SamplingContext_imported,
@@ -378,9 +377,6 @@ export type UserFeedback = UserFeedback_imported;
 export type QueryParams = QueryParams_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type RequestEventData = RequestEventData_imported;
-/** @deprecated This type has been moved to `@sentry/core`. */
-// eslint-disable-next-line deprecation/deprecation
-export type Request = Request_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type SanitizedRequestData = SanitizedRequestData_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
