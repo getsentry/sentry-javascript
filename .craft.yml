@@ -9,32 +9,27 @@ targets:
   - name: npm
     id: '@sentry/types'
     includeNames: /^sentry-types-\d.*\.tgz$/
-  ## 1.2 Utils
-  # TODO(v9): Remove
-  - name: npm
-    id: '@sentry/utils'
-    includeNames: /^sentry-utils-\d.*\.tgz$/
-  ## 1.3 Core SDK
+  ## 1.2 Core SDK
   - name: npm
     id: '@sentry/core'
     includeNames: /^sentry-core-\d.*\.tgz$/
-  ## 1.4 Browser Utils package
+  ## 1.3 Browser Utils package
   - name: npm
     id: '@sentry-internal/browser-utils'
     includeNames: /^sentry-internal-browser-utils-\d.*\.tgz$/
-  ## 1.5 Replay Internal package (browser only)
+  ## 1.4 Replay Internal package (browser only)
   - name: npm
     id: '@sentry-internal/replay'
     includeNames: /^sentry-internal-replay-\d.*\.tgz$/
-  ## 1.6 OpenTelemetry package
+  ## 1.5 OpenTelemetry package
   - name: npm
     id: '@sentry/opentelemetry'
     includeNames: /^sentry-opentelemetry-\d.*\.tgz$/
-  ## 1.7 Feedback package (browser only)
+  ## 1.6 Feedback package (browser only)
   - name: npm
     id: '@sentry-internal/feedback'
     includeNames: /^sentry-internal-feedback-\d.*\.tgz$/
-  ## 1.8 ReplayCanvas package (browser only)
+  ## 1.7 ReplayCanvas package (browser only)
   - name: npm
     id: '@sentry-internal/replay-canvas'
     includeNames: /^sentry-internal-replay-canvas-\d.*\.tgz$/

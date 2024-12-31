@@ -1,8 +1,6 @@
 export type {
   Breadcrumb,
   BreadcrumbHint,
-  // eslint-disable-next-line deprecation/deprecation
-  Request,
   RequestEventData,
   SdkInfo,
   Event,

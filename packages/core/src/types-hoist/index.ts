@@ -90,8 +90,6 @@ export type {
 export type {
   QueryParams,
   RequestEventData,
-  // eslint-disable-next-line deprecation/deprecation
-  Request,
   SanitizedRequestData,
 } from './request';
 export type { Runtime } from './runtime';

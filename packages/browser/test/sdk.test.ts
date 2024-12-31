@@ -13,7 +13,7 @@ import type { Client, Integration } from '@sentry/core';
 
 import type { BrowserOptions } from '../src';
 import { WINDOW } from '../src';
-import { init } from '../src/sdk';
+import { applyDefaultOptions, getDefaultIntegrations, init } from '../src/sdk';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 
@@ -275,5 +275,102 @@ describe('init', () => {
   it('returns a client from init', () => {
     const client = init();
     expect(client).not.toBeUndefined();
+  });
+});
+
+describe('applyDefaultOptions', () => {
+  test('it works with empty options', () => {
+    const options = {};
+    const actual = applyDefaultOptions(options);
+
+    expect(actual).toEqual({
+      defaultIntegrations: expect.any(Array),
+      release: undefined,
+      autoSessionTracking: true,
+      sendClientReports: true,
+    });
+
+    expect(actual.defaultIntegrations && actual.defaultIntegrations.map(i => i.name)).toEqual(
+      getDefaultIntegrations(options).map(i => i.name),
+    );
+  });
+
+  test('it works with options', () => {
+    const options = {
+      tracesSampleRate: 0.5,
+      release: '1.0.0',
+      autoSessionTracking: false,
+    };
+    const actual = applyDefaultOptions(options);
+
+    expect(actual).toEqual({
+      defaultIntegrations: expect.any(Array),
+      release: '1.0.0',
+      autoSessionTracking: false,
+      sendClientReports: true,
+      tracesSampleRate: 0.5,
+    });
+
+    expect(actual.defaultIntegrations && actual.defaultIntegrations.map(i => i.name)).toEqual(
+      getDefaultIntegrations(options).map(i => i.name),
+    );
+  });
+
+  test('it works with defaultIntegrations=false', () => {
+    const options = {
+      defaultIntegrations: false,
+    } as const;
+    const actual = applyDefaultOptions(options);
+
+    expect(actual.defaultIntegrations).toStrictEqual(false);
+  });
+
+  test('it works with defaultIntegrations=[]', () => {
+    const options = {
+      defaultIntegrations: [],
+    };
+    const actual = applyDefaultOptions(options);
+
+    expect(actual.defaultIntegrations).toEqual([]);
+  });
+
+  test('it works with tracesSampleRate=undefined', () => {
+    const options = {
+      tracesSampleRate: undefined,
+    } as const;
+    const actual = applyDefaultOptions(options);
+
+    // Not defined, not even undefined
+    expect('tracesSampleRate' in actual).toBe(false);
+  });
+
+  test('it works with tracesSampleRate=null', () => {
+    const options = {
+      tracesSampleRate: null,
+    } as any;
+    const actual = applyDefaultOptions(options);
+
+    expect(actual.tracesSampleRate).toStrictEqual(null);
+  });
+
+  test('it works with tracesSampleRate=0', () => {
+    const options = {
+      tracesSampleRate: 0,
+    } as const;
+    const actual = applyDefaultOptions(options);
+
+    expect(actual.tracesSampleRate).toStrictEqual(0);
+  });
+
+  test('it does not deep-drop undefined keys', () => {
+    const options = {
+      obj: {
+        prop: undefined,
+      },
+    } as any;
+    const actual = applyDefaultOptions(options) as any;
+
+    expect('prop' in actual.obj).toBe(true);
+    expect(actual.obj.prop).toStrictEqual(undefined);
   });
 });

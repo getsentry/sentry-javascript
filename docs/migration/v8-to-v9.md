@@ -70,6 +70,16 @@ Sentry.init({
 
 - Dropping spans in the `beforeSendSpan` hook is no longer possible.
 - The `beforeSendSpan` hook now receives the root span as well as the child spans.
+- In previous versions, we determined if tracing is enabled (for Tracing Without Performance) by checking if either `tracesSampleRate` or `traceSampler` are _defined_ at all, in `Sentry.init()`. This means that e.g. the following config would lead to tracing without performance (=tracing being enabled, even if no spans would be started):
+
+```js
+Sentry.init({
+  tracesSampleRate: undefined,
+});
+```
+
+In v9, an `undefined` value will be treated the same as if the value is not defined at all. You'll need to set `tracesSampleRate: 0` if you want to enable tracing without performance.
+
 
 ### `@sentry/node`
 
@@ -134,6 +144,7 @@ Sentry.init({
 - The `flatten` export has been removed. There is no replacement.
 - The `urlEncode` method has been removed. There is no replacement.
 - The `getDomElement` method has been removed. There is no replacement.
+- The `Request` type has been removed. Use `RequestEventData` type instead.
 
 ### `@sentry/browser`
 
@@ -154,6 +165,27 @@ Sentry.init({
 - Removed `SentryGlobalGraphQLFilter`.
   Use the `SentryGlobalFilter` instead.
   The `SentryGlobalFilter` is a drop-in replacement.
+
+## `@sentry/vue`
+
+- The options `tracingOptions`, `trackComponents`, `timeout`, `hooks` have been removed everywhere except in the `tracingOptions` option of `vueIntegration()`.
+  These options should now be set as follows:
+
+  ```ts
+  import * as Sentry from '@sentry/vue';
+
+  Sentry.init({
+    integrations: [
+      Sentry.vueIntegration({
+        tracingOptions: {
+          trackComponents: true,
+          timeout: 1000,
+          hooks: ['mount', 'update', 'unmount'],
+        },
+      }),
+    ],
+  });
+  ```
 
 ## 5. Build Changes
 
