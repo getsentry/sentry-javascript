@@ -822,7 +822,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
         }
 
         const session = currentScope.getSession() || isolationScope.getSession();
-        if (!isTransaction && session) {
+        if (!isError && session) {
           this._updateSessionFromEvent(session, processedEvent);
         }
 
