@@ -80,11 +80,7 @@ export {
   extractQueryParamsFromUrl,
   headersToDict,
 } from './requestdata';
-export type {
-  AddRequestDataToEventOptions,
-  // eslint-disable-next-line deprecation/deprecation
-  TransactionNamingScheme,
-} from './requestdata';
+export type { AddRequestDataToEventOptions } from './requestdata';
 
 export { severityLevelFromString } from './severity';
 export {
