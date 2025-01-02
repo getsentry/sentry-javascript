@@ -79,6 +79,45 @@ describe('applyDebugIds', () => {
       }),
     );
   });
+
+  it('handles multiple exception values where not all events have valid stack traces', () => {
+    GLOBAL_OBJ._sentryDebugIds = {
+      'filename1.js\nfilename1.js': 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa',
+      'filename2.js\nfilename2.js': 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb',
+    };
+    const stackParser = createStackParser([0, line => ({ filename: line })]);
+
+    const event: Event = {
+      exception: {
+        values: [
+          {
+            value: 'first exception without stack trace',
+          },
+          {
+            stacktrace: {
+              frames: [{ filename: 'filename1.js' }, { filename: 'filename2.js' }],
+            },
+          },
+        ],
+      },
+    };
+
+    applyDebugIds(event, stackParser);
+
+    expect(event.exception?.values?.[0]).toEqual({
+      value: 'first exception without stack trace',
+    });
+
+    expect(event.exception?.values?.[1]?.stacktrace?.frames).toContainEqual({
+      filename: 'filename1.js',
+      debug_id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa',
+    });
+
+    expect(event.exception?.values?.[1]?.stacktrace?.frames).toContainEqual({
+      filename: 'filename2.js',
+      debug_id: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb',
+    });
+  });
 });
 
 describe('applyDebugMeta', () => {
