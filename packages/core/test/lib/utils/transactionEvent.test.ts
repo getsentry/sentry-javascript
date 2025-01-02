@@ -25,6 +25,7 @@ describe('convertTransactionEventToSpanJson', () => {
       start_timestamp: 0,
       timestamp: 1234567890,
       trace_id: 'abc123',
+      is_segment: true,
     });
   });
 
@@ -74,6 +75,7 @@ describe('convertTransactionEventToSpanJson', () => {
       measurements: {
         fp: { value: 123, unit: 'millisecond' },
       },
+      is_segment: true,
     });
   });
 
@@ -88,6 +90,7 @@ describe('convertTransactionEventToSpanJson', () => {
       span_id: '',
       start_timestamp: 0,
       trace_id: '',
+      is_segment: true,
     });
   });
 });

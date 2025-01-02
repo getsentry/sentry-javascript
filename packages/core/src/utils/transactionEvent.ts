@@ -22,6 +22,7 @@ export function convertTransactionEventToSpanJson(event: TransactionEvent): Span
     profile_id: data?.[SEMANTIC_ATTRIBUTE_PROFILE_ID] as string | undefined,
     exclusive_time: data?.[SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME] as number | undefined,
     measurements: event.measurements,
+    is_segment: true,
   });
 }
 
