@@ -74,7 +74,7 @@ export async function addInstrumentationFileToBuild(nitro: Nitro): Promise<void>
     } catch (error) {
       consoleSandbox(() => {
         // eslint-disable-next-line no-console
-        console.warn('[Sentry SolidStart withSentry] Build process failed.', error);
+        console.warn('[Sentry SolidStart withSentry] Failed to add instrumentation file to build.', error);
       });
     }
   });
