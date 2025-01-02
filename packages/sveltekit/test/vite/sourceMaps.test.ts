@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { changeViteSourceMapSettings } from '../../src/vite/sourceMaps';
+import type { CustomSentryVitePluginOptions } from '../../src/vite/types';
 
 import type { Plugin } from 'vite';
 import { makeCustomSentryVitePlugins } from '../../src/vite/sourceMaps';
@@ -75,10 +77,26 @@ describe('makeCustomSentryVitePlugin()', () => {
   });
 
   describe('Custom debug id source maps plugin plugin', () => {
-    it('enables source map generation', async () => {
+    it('enables source map generation when unset', async () => {
       const plugin = await getSentryViteSubPlugin('sentry-sveltekit-debug-id-upload-plugin');
       // @ts-expect-error this function exists!
       const sentrifiedConfig = plugin.config({ build: { foo: {} }, test: {} });
+      expect(sentrifiedConfig).toEqual({
+        build: {
+          foo: {},
+          sourcemap: 'hidden',
+        },
+        test: {},
+      });
+    });
+
+    it('keeps source map generation settings', async () => {
+      const plugin = await getCustomSentryViteUploadSourcemapsPlugin();
+      // @ts-expect-error this function exists!
+      const sentrifiedConfig = plugin.config({
+        build: { sourcemap: true, foo: {} },
+        test: {},
+      });
       expect(sentrifiedConfig).toEqual({
         build: {
           foo: {},
@@ -235,5 +253,52 @@ describe('makeCustomSentryVitePlugin()', () => {
         expect.any(Error),
       );
     });
+  });
+});
+
+describe('changeViteSourceMapSettings()', () => {
+  let viteConfig: { build?: { sourcemap?: boolean | 'inline' | 'hidden' } };
+  let sentryModuleOptions: CustomSentryVitePluginOptions;
+
+  beforeEach(() => {
+    viteConfig = {};
+    sentryModuleOptions = {};
+  });
+
+  it('handles vite source map settings', () => {
+    const cases = [
+      { sourcemap: false, expectedSourcemap: false, expectedReturn: 'disabled' },
+      { sourcemap: 'hidden', expectedSourcemap: 'hidden', expectedReturn: 'enabled' },
+      { sourcemap: 'inline', expectedSourcemap: 'inline', expectedReturn: 'enabled' },
+      { sourcemap: true, expectedSourcemap: true, expectedReturn: 'enabled' },
+      { sourcemap: undefined, expectedSourcemap: 'hidden', expectedReturn: 'unset' },
+    ];
+
+    cases.forEach(({ sourcemap, expectedSourcemap, expectedReturn }) => {
+      viteConfig.build = { sourcemap };
+      const previousUserSourceMapSetting = changeViteSourceMapSettings(viteConfig, sentryModuleOptions);
+      expect(viteConfig.build.sourcemap).toBe(expectedSourcemap);
+      expect(previousUserSourceMapSetting).toBe(expectedReturn);
+    });
+  });
+
+  it('logs warnings and messages when debug is enabled', () => {
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    sentryModuleOptions = { debug: true };
+
+    viteConfig.build = { sourcemap: false };
+    changeViteSourceMapSettings(viteConfig, sentryModuleOptions);
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Parts of source map generation are currently disabled'),
+    );
+
+    viteConfig.build = { sourcemap: 'hidden' };
+    changeViteSourceMapSettings(viteConfig, sentryModuleOptions);
+    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Sentry will keep this source map setting'));
+
+    consoleWarnSpy.mockRestore();
+    consoleLogSpy.mockRestore();
   });
 });

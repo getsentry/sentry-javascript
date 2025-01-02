@@ -1,11 +1,11 @@
 import * as child_process from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
-import { escapeStringForRegex, uuid4 } from '@sentry/core';
+import { consoleSandbox, escapeStringForRegex, uuid4 } from '@sentry/core';
 import { getSentryRelease } from '@sentry/node';
 import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
-import type { Plugin } from 'vite';
+import type { Plugin, UserConfig } from 'vite';
 
 import MagicString from 'magic-string';
 import { WRAPPED_MODULE_SUFFIX } from './autoInstrument';
@@ -135,26 +135,18 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
     enforce: 'post', // this needs to be set to post, otherwise we don't pick up the output from the SvelteKit adapter
 
     // Modify the config to generate source maps
-    config: config => {
-      const sourceMapsPreviouslyNotEnabled = !config.build?.sourcemap;
-      if (debug && sourceMapsPreviouslyNotEnabled) {
-        // eslint-disable-next-line no-console
-        console.log('[Source Maps Plugin] Enabling source map generation');
-        if (!mergedOptions.sourcemaps?.filesToDeleteAfterUpload) {
+    config: (config: UserConfig) => {
+      changeViteSourceMapSettings(config, options);
+
+      if (debug && !mergedOptions.sourcemaps?.filesToDeleteAfterUpload) {
+        consoleSandbox(() => {
           // eslint-disable-next-line no-console
           console.warn(
-            `[Source Maps Plugin] We recommend setting the \`sourceMapsUploadOptions.sourcemaps.filesToDeleteAfterUpload\` option to clean up source maps after uploading.
-[Source Maps Plugin] Otherwise, source maps might be deployed to production, depending on your configuration`,
+            '[Source Maps Plugin] We recommend setting the `sourceMapsUploadOptions.sourcemaps.filesToDeleteAfterUpload` option to clean up source maps after uploading. Otherwise, source maps might be deployed to production, depending on your configuration',
           );
-        }
+        });
       }
-      return {
-        ...config,
-        build: {
-          ...config.build,
-          sourcemap: true,
-        },
-      };
+      return config;
     },
 
     resolveId: (id, _importer, _ref) => {
@@ -330,6 +322,86 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
     customDebugIdUploadPlugin,
     customFileDeletionPlugin,
   ];
+}
+
+/**
+ * Whether the user enabled (true, 'hidden', 'inline') or disabled (false) source maps
+ */
+export type UserSourceMapSetting = 'enabled' | 'disabled' | 'unset' | undefined;
+
+/** There are 3 ways to set up source maps (https://github.com/getsentry/sentry-javascript/issues/13993)
+ *
+ *     1. User explicitly disabled source maps
+ *       - keep this setting (emit a warning that errors won't be unminified in Sentry)
+ *       - We won't upload anything
+ *
+ *     2. Users enabled source map generation (true, 'hidden', 'inline').
+ *       - keep this setting (don't do anything - like deletion - besides uploading)
+ *
+ *     3. Users didn't set source maps generation
+ *       - we enable 'hidden' source maps generation
+ *       - configure `filesToDeleteAfterUpload` to delete all .map files (we emit a log about this)
+ *
+ * --> only exported for testing
+ */
+export function changeViteSourceMapSettings(
+  viteConfig: {
+    build?: {
+      sourcemap?: boolean | 'inline' | 'hidden';
+    };
+  },
+  sentryPluginOptions?: CustomSentryVitePluginOptions,
+): UserSourceMapSetting {
+  let previousUserSourceMapSetting: UserSourceMapSetting = undefined;
+
+  viteConfig.build = viteConfig.build || {};
+
+  const viteSourceMap = viteConfig.build.sourcemap;
+
+  if (viteSourceMap === false) {
+    warnExplicitlyDisabledSourceMap('vite.build.sourcemap');
+    previousUserSourceMapSetting = 'disabled';
+  } else if (viteSourceMap && ['hidden', 'inline', true].includes(viteSourceMap)) {
+    logKeepSourceMapSetting('vite.build.sourcemap', viteSourceMap.toString(), sentryPluginOptions);
+    previousUserSourceMapSetting = 'enabled';
+  } else {
+    viteConfig.build.sourcemap = 'hidden';
+    logSentryEnablesSourceMap('vite.build.sourcemap', 'hidden');
+    previousUserSourceMapSetting = 'unset';
+  }
+
+  return previousUserSourceMapSetting;
+}
+
+function logKeepSourceMapSetting(
+  settingKey: string,
+  settingValue: string,
+  sentryPluginOptions?: CustomSentryVitePluginOptions,
+): void {
+  if (sentryPluginOptions?.debug) {
+    consoleSandbox(() => {
+      // eslint-disable-next-line no-console
+      console.log(
+        `[Sentry] We discovered \`${settingKey}\` is set to \`${settingValue}\`. Sentry will keep this source map setting. This will un-minify the code snippet on the Sentry Issue page.`,
+      );
+    });
+  }
+}
+
+function warnExplicitlyDisabledSourceMap(settingKey: string): void {
+  consoleSandbox(() => {
+    //  eslint-disable-next-line no-console
+    console.warn(
+      `[Sentry] Parts of source map generation are currently disabled in your Nuxt configuration (\`${settingKey}: false\`). This setting is either a default setting or was explicitly set in your configuration. Sentry won't override this setting. Without source maps, code snippets on the Sentry Issues page will remain minified. To show unminified code, enable source maps in \`${settingKey}\` (e.g. by setting them to \`hidden\`).`,
+    );
+  });
+}
+
+function logSentryEnablesSourceMap(settingKey: string, settingValue: string): void {
+  consoleSandbox(() => {
+    //  eslint-disable-next-line no-console
+    console.log(`[Sentry] Enabled source map generation in the build options with \`${settingKey}: ${settingValue}\`.`);
+  });
 }
 
 function getFiles(dir: string): string[] {
