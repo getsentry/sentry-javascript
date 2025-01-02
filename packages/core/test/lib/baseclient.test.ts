@@ -1029,6 +1029,77 @@ describe('BaseClient', () => {
       expect(capturedEvent.transaction).toEqual(transaction.transaction);
     });
 
+    test('does not modify existing contexts for root span in `beforeSendSpan`', () => {
+      const beforeSendSpan = jest.fn((span: SpanJSON) => {
+        return {
+          ...span,
+          data: {
+            modified: 'true',
+          },
+        };
+      });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendSpan });
+      const client = new TestClient(options);
+
+      const transaction: Event = {
+        transaction: '/animals/are/great',
+        type: 'transaction',
+        spans: [],
+        breadcrumbs: [
+          {
+            type: 'ui.click',
+          },
+        ],
+        contexts: {
+          trace: {
+            data: {
+              modified: 'false',
+              dropMe: 'true',
+            },
+            span_id: '9e15bf99fbe4bc80',
+            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          },
+          app: {
+            data: {
+              modified: 'false',
+            },
+          },
+        },
+      };
+      client.captureEvent(transaction);
+
+      expect(beforeSendSpan).toHaveBeenCalledTimes(1);
+      const capturedEvent = TestClient.instance!.event!;
+      expect(capturedEvent).toEqual({
+        transaction: '/animals/are/great',
+        breadcrumbs: [
+          {
+            type: 'ui.click',
+          },
+        ],
+        type: 'transaction',
+        spans: [],
+        environment: 'production',
+        event_id: '12312012123120121231201212312012',
+        start_timestamp: 0,
+        timestamp: 2020,
+        contexts: {
+          trace: {
+            data: {
+              modified: 'true',
+            },
+            span_id: '9e15bf99fbe4bc80',
+            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          },
+          app: {
+            data: {
+              modified: 'false',
+            },
+          },
+        },
+      });
+    });
+
     test('calls `beforeSend` and uses the modified event', () => {
       expect.assertions(2);
 
