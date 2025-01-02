@@ -39,6 +39,8 @@ export function rejectedSyncPromise<T = never>(reason?: any): PromiseLike<T> {
   });
 }
 
+type Executor<T> = (resolve: (value?: T | PromiseLike<T> | null) => void, reject: (reason?: any) => void) => void;
+
 /**
  * Thenable class that behaves like a Promise and follows it's interface
  * but is not async internally
@@ -47,73 +49,12 @@ export class SyncPromise<T> implements PromiseLike<T> {
   private _state: States;
   private _handlers: Array<[boolean, (value: T) => void, (reason: any) => any]>;
   private _value: any;
-  private _resolve: (value?: T | PromiseLike<T> | null) => void;
-  private _reject: (reason?: any) => void;
-  private _executeHandlers: () => void;
-  private _setResult: (state: States, value?: T | PromiseLike<T> | any) => void;
 
-  public constructor(
-    executor: (resolve: (value?: T | PromiseLike<T> | null) => void, reject: (reason?: any) => void) => void,
-  ) {
+  public constructor(executor: Executor<T>) {
     this._state = States.PENDING;
     this._handlers = [];
 
-    // We set this functions here as class properties, to make binding them easier
-    // This way, the `this` context is easier to maintain
-    this._resolve = (value?: T | PromiseLike<T> | null) => {
-      this._setResult(States.RESOLVED, value);
-    };
-
-    this._reject = (reason?: any) => {
-      this._setResult(States.REJECTED, reason);
-    };
-
-    this._executeHandlers = () => {
-      if (this._state === States.PENDING) {
-        return;
-      }
-
-      const cachedHandlers = this._handlers.slice();
-      this._handlers = [];
-
-      cachedHandlers.forEach(handler => {
-        if (handler[0]) {
-          return;
-        }
-
-        if (this._state === States.RESOLVED) {
-          handler[1](this._value as unknown as any);
-        }
-
-        if (this._state === States.REJECTED) {
-          handler[2](this._value);
-        }
-
-        handler[0] = true;
-      });
-    };
-
-    this._setResult = (state: States, value?: T | PromiseLike<T> | any) => {
-      if (this._state !== States.PENDING) {
-        return;
-      }
-
-      if (isThenable(value)) {
-        void (value as PromiseLike<T>).then(this._resolve, this._reject);
-        return;
-      }
-
-      this._state = state;
-      this._value = value;
-
-      this._executeHandlers();
-    };
-
-    try {
-      executor(this._resolve, this._reject);
-    } catch (e) {
-      this._reject(e);
-    }
+    this._runExecutor(executor);
   }
 
   /** @inheritdoc */
@@ -190,5 +131,64 @@ export class SyncPromise<T> implements PromiseLike<T> {
         resolve(val as unknown as any);
       });
     });
+  }
+
+  /** Excute the resolve/reject handlers. */
+  private _executeHandlers(): void {
+    if (this._state === States.PENDING) {
+      return;
+    }
+
+    const cachedHandlers = this._handlers.slice();
+    this._handlers = [];
+
+    cachedHandlers.forEach(handler => {
+      if (handler[0]) {
+        return;
+      }
+
+      if (this._state === States.RESOLVED) {
+        handler[1](this._value as unknown as any);
+      }
+
+      if (this._state === States.REJECTED) {
+        handler[2](this._value);
+      }
+
+      handler[0] = true;
+    });
+  }
+
+  /** Run the executor for the SyncPromise. */
+  private _runExecutor(executor: Executor<T>): void {
+    const setResult = (state: States, value?: T | PromiseLike<T> | any): void => {
+      if (this._state !== States.PENDING) {
+        return;
+      }
+
+      if (isThenable(value)) {
+        void (value as PromiseLike<T>).then(resolve, reject);
+        return;
+      }
+
+      this._state = state;
+      this._value = value;
+
+      this._executeHandlers();
+    };
+
+    const resolve = (value: unknown): void => {
+      setResult(States.RESOLVED, value);
+    };
+
+    const reject = (reason: unknown): void => {
+      setResult(States.REJECTED, reason);
+    };
+
+    try {
+      executor(resolve, reject);
+    } catch (e) {
+      reject(e);
+    }
   }
 }
