@@ -8,11 +8,15 @@ const fsAccessMock = vi.fn();
 const fsCopyFileMock = vi.fn();
 const fsReadFile = vi.fn();
 const fsWriteFileMock = vi.fn();
+const fsMkdirMock = vi.fn();
+const fsReaddirMock = vi.fn();
+const fsExistsSyncMock = vi.fn();
 
 vi.mock('fs', async () => {
   const actual = await vi.importActual('fs');
   return {
     ...actual,
+    existsSync: (...args: unknown[]) => fsExistsSyncMock(...args),
     promises: {
       // @ts-expect-error this exists
       ...actual.promises,
@@ -20,6 +24,8 @@ vi.mock('fs', async () => {
       copyFile: (...args: unknown[]) => fsCopyFileMock(...args),
       readFile: (...args: unknown[]) => fsReadFile(...args),
       writeFile: (...args: unknown[]) => fsWriteFileMock(...args),
+      mkdir: (...args: unknown[]) => fsMkdirMock(...args),
+      readdir: (...args: unknown[]) => fsReaddirMock(...args),
     },
   };
 });
@@ -30,6 +36,9 @@ beforeEach(() => {
 
 describe('addInstrumentationFileToBuild()', () => {
   const nitroOptions: Nitro = {
+    hooks: {
+      hook: vi.fn(),
+    },
     options: {
       buildDir: '/path/to/buildDir',
       output: {
@@ -39,40 +48,142 @@ describe('addInstrumentationFileToBuild()', () => {
     },
   };
 
+  const callNitroCloseHook = async () => {
+    const hookCallback = nitroOptions.hooks.hook.mock.calls[0][1];
+    await hookCallback();
+  };
+
   it('adds `instrument.server.mjs` to the server output directory', async () => {
     fsCopyFileMock.mockResolvedValueOnce(true);
     await addInstrumentationFileToBuild(nitroOptions);
+
+    await callNitroCloseHook();
+
     expect(fsCopyFileMock).toHaveBeenCalledWith(
       '/path/to/buildDir/build/ssr/instrument.server.js',
       '/path/to/serverDir/instrument.server.mjs',
     );
-    expect(consoleLogSpy).toHaveBeenCalledWith(
-      '[Sentry SolidStart withSentry] Successfully created /path/to/serverDir/instrument.server.mjs.',
-    );
   });
 
-  it('warns when `instrument.server.js` can not be copied to the server output directory', async () => {
+  it('warns when `instrument.server.js` cannot be copied to the server output directory', async () => {
     const error = new Error('Failed to copy file.');
     fsCopyFileMock.mockRejectedValueOnce(error);
     await addInstrumentationFileToBuild(nitroOptions);
+
+    await callNitroCloseHook();
+
     expect(fsCopyFileMock).toHaveBeenCalledWith(
       '/path/to/buildDir/build/ssr/instrument.server.js',
       '/path/to/serverDir/instrument.server.mjs',
     );
     expect(consoleWarnSpy).toHaveBeenCalledWith(
-      '[Sentry SolidStart withSentry] Failed to create /path/to/serverDir/instrument.server.mjs.',
+      '[Sentry SolidStart withSentry] Failed to add instrumentation file to build.',
       error,
     );
   });
 
-  it.each([staticHostPresets])("doesn't add `instrument.server.mjs` for static host `%s`", async preset => {
-    await addInstrumentationFileToBuild({
+  it.each(staticHostPresets)("doesn't add `instrument.server.mjs` for static host `%s`", async preset => {
+    const staticNitroOptions = {
       ...nitroOptions,
       options: {
         ...nitroOptions.options,
         preset,
       },
-    });
+    };
+
+    await addInstrumentationFileToBuild(staticNitroOptions);
+
+    await callNitroCloseHook();
+
     expect(fsCopyFileMock).not.toHaveBeenCalled();
+  });
+
+  it('creates assets directory if it does not exist', async () => {
+    fsExistsSyncMock.mockReturnValue(false);
+    fsMkdirMock.mockResolvedValueOnce(true);
+    fsCopyFileMock.mockResolvedValueOnce(true);
+    await addInstrumentationFileToBuild(nitroOptions);
+
+    await callNitroCloseHook();
+
+    expect(fsMkdirMock).toHaveBeenCalledWith('/path/to/serverDir/assets', { recursive: true });
+    expect(consoleLogSpy).toHaveBeenCalledWith(
+      '[Sentry SolidStart withSentry] Successfully created directory /path/to/serverDir/assets.',
+    );
+  });
+
+  it('does not create assets directory if it already exists', async () => {
+    fsExistsSyncMock.mockReturnValue(true);
+    await addInstrumentationFileToBuild(nitroOptions);
+
+    await callNitroCloseHook();
+
+    expect(fsMkdirMock).not.toHaveBeenCalled();
+  });
+
+  it('copies release injection file if available', async () => {
+    fsExistsSyncMock.mockReturnValue(true);
+    fsReaddirMock.mockResolvedValueOnce(['_sentry-release-injection-file-test.js']);
+    fsCopyFileMock.mockResolvedValueOnce(true);
+    await addInstrumentationFileToBuild(nitroOptions);
+
+    await callNitroCloseHook();
+
+    expect(fsCopyFileMock).toHaveBeenCalledWith(
+      '/path/to/buildDir/build/ssr/assets/_sentry-release-injection-file-test.js',
+      '/path/to/serverDir/assets/_sentry-release-injection-file-test.js',
+    );
+    expect(consoleLogSpy).toHaveBeenCalledWith(
+      '[Sentry SolidStart withSentry] Successfully created /path/to/serverDir/assets/_sentry-release-injection-file-test.js.',
+    );
+  });
+
+  it('warns when release injection file cannot be copied', async () => {
+    const error = new Error('Failed to copy release injection file.');
+    fsExistsSyncMock.mockReturnValue(true);
+    fsReaddirMock.mockResolvedValueOnce(['_sentry-release-injection-file-test.js']);
+    fsCopyFileMock.mockRejectedValueOnce(error);
+    await addInstrumentationFileToBuild(nitroOptions);
+
+    await callNitroCloseHook();
+
+    expect(fsCopyFileMock).toHaveBeenCalledWith(
+      '/path/to/buildDir/build/ssr/assets/_sentry-release-injection-file-test.js',
+      '/path/to/serverDir/assets/_sentry-release-injection-file-test.js',
+    );
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      '[Sentry SolidStart withSentry] Failed to copy release injection file.',
+      error,
+    );
+  });
+
+  it('does not copy release injection file if not found', async () => {
+    fsExistsSyncMock.mockReturnValue(true);
+    fsReaddirMock.mockResolvedValueOnce([]);
+    await addInstrumentationFileToBuild(nitroOptions);
+
+    await callNitroCloseHook();
+
+    expect(fsCopyFileMock).not.toHaveBeenCalledWith(
+      expect.stringContaining('_sentry-release-injection-file-'),
+      expect.any(String),
+    );
+  });
+
+  it('warns when `instrument.server.js` is not found', async () => {
+    const error = new Error('File not found');
+    fsCopyFileMock.mockRejectedValueOnce(error);
+    await addInstrumentationFileToBuild(nitroOptions);
+
+    await callNitroCloseHook();
+
+    expect(fsCopyFileMock).toHaveBeenCalledWith(
+      '/path/to/buildDir/build/ssr/instrument.server.js',
+      '/path/to/serverDir/instrument.server.mjs',
+    );
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      '[Sentry SolidStart withSentry] Failed to add instrumentation file to build.',
+      error,
+    );
   });
 });
