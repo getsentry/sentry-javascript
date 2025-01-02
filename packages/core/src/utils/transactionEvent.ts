@@ -49,11 +49,8 @@ export function convertSpanJsonToTransactionEvent(span: SpanJSON): TransactionEv
         },
       },
     },
+    measurements: span.measurements,
   };
-
-  if (span.measurements) {
-    event.measurements = span.measurements;
-  }
 
   return dropUndefinedKeys(event);
 }
