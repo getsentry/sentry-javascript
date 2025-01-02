@@ -160,6 +160,49 @@ describe('applyDebugMeta', () => {
       debug_id: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb',
     });
   });
+
+  it('handles multiple exception values where not all events have valid stack traces', () => {
+    const event: Event = {
+      exception: {
+        values: [
+          {
+            value: 'first exception without stack trace',
+          },
+          {
+            stacktrace: {
+              frames: [
+                { filename: 'filename1.js', debug_id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa' },
+                { filename: 'filename2.js', debug_id: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb' },
+              ],
+            },
+          },
+        ],
+      },
+    };
+
+    applyDebugMeta(event);
+
+    expect(event.exception?.values?.[0]).toEqual({
+      value: 'first exception without stack trace',
+    });
+
+    expect(event.exception?.values?.[1]?.stacktrace?.frames).toEqual([
+      { filename: 'filename1.js' },
+      { filename: 'filename2.js' },
+    ]);
+
+    expect(event.debug_meta?.images).toContainEqual({
+      type: 'sourcemap',
+      code_file: 'filename1.js',
+      debug_id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa',
+    });
+
+    expect(event.debug_meta?.images).toContainEqual({
+      type: 'sourcemap',
+      code_file: 'filename2.js',
+      debug_id: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb',
+    });
+  });
 });
 
 describe('parseEventHintOrCaptureContext', () => {
