@@ -142,6 +142,7 @@ Sentry.init({
 - The `urlEncode` method has been removed. There is no replacement.
 - The `getDomElement` method has been removed. There is no replacement.
 - The `Request` type has been removed. Use `RequestEventData` type instead.
+- The `memoBuilder` method has been removed. There is no replacement.
 
 ### `@sentry/browser`
 
