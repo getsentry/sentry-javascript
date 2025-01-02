@@ -37,7 +37,7 @@ export type AddRequestDataToEventOptions = {
     request?: boolean | Array<(typeof DEFAULT_REQUEST_INCLUDES)[number]>;
     /** @deprecated This option will be removed in v9. It does not do anything anymore, the `transcation` is set in other places. */
     // eslint-disable-next-line deprecation/deprecation
-    transaction?: boolean | TransactionNamingScheme;
+    transaction?: boolean | 'path' | 'methodPath' | 'handler';
     user?: boolean | Array<(typeof DEFAULT_USER_INCLUDES)[number]>;
   };
 
@@ -53,11 +53,6 @@ export type AddRequestDataToEventOptions = {
     };
   };
 };
-
-/**
- * @deprecated This type will be removed in v9. It is not in use anymore.
- */
-export type TransactionNamingScheme = 'path' | 'methodPath' | 'handler';
 
 /**
  * Extracts a complete and parameterized path from the request object and uses it to construct transaction name.
@@ -295,8 +290,8 @@ export function addNormalizedRequestDataToEvent(
 
     if (Object.keys(extractedUser).length) {
       event.user = {
-        ...event.user,
         ...extractedUser,
+        ...event.user,
       };
     }
   }

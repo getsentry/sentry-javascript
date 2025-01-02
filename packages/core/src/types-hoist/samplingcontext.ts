@@ -35,7 +35,7 @@ export interface SamplingContext extends CustomSamplingContext {
   location?: WorkerLocation;
 
   /**
-   * Object representing the incoming request to a node server. Passed by default when using the TracingHandler.
+   * Object representing the incoming request to a node server.
    */
   request?: ExtractedNodeRequestData;
 

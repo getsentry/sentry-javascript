@@ -1,8 +1,6 @@
 export type {
   Breadcrumb,
   BreadcrumbHint,
-  // eslint-disable-next-line deprecation/deprecation
-  Request,
   RequestEventData,
   SdkInfo,
   Event,
@@ -27,6 +25,7 @@ export {
   addIntegration,
   captureException,
   captureEvent,
+  captureFeedback,
   captureMessage,
   close,
   createTransport,
@@ -92,8 +91,6 @@ export {
   init,
   onLoad,
   showReportDialog,
-  // eslint-disable-next-line deprecation/deprecation
-  captureUserFeedback,
 } from './sdk';
 
 export { breadcrumbsIntegration } from './integrations/breadcrumbs';

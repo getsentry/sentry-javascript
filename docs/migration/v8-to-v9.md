@@ -68,9 +68,23 @@ Sentry.init({
 });
 ```
 
+- In previous versions, we determined if tracing is enabled (for Tracing Without Performance) by checking if either `tracesSampleRate` or `traceSampler` are _defined_ at all, in `Sentry.init()`. This means that e.g. the following config would lead to tracing without performance (=tracing being enabled, even if no spans would be started):
+
+```js
+Sentry.init({
+  tracesSampleRate: undefined,
+});
+```
+
+In v9, an `undefined` value will be treated the same as if the value is not defined at all. You'll need to set `tracesSampleRate: 0` if you want to enable tracing without performance.
+
 ### `@sentry/node`
 
 - When `skipOpenTelemetrySetup: true` is configured, `httpIntegration({ spans: false })` will be configured by default. This means that you no longer have to specify this yourself in this scenario. With this change, no spans are emitted once `skipOpenTelemetrySetup: true` is configured, without any further configuration being needed.
+
+### `@sentry/browser`
+
+- The `captureUserFeedback` method has been removed. Use `captureFeedback` instead and update the `comments` field to `message`.
 
 ### Uncategorized (TODO)
 
@@ -127,6 +141,13 @@ Sentry.init({
 - The `flatten` export has been removed. There is no replacement.
 - The `urlEncode` method has been removed. There is no replacement.
 - The `getDomElement` method has been removed. There is no replacement.
+- The `Request` type has been removed. Use `RequestEventData` type instead.
+- The `TransactionNamingScheme` type has been removed. There is no replacement.
+- The `memoBuilder` method has been removed. There is no replacement.
+
+### `@sentry/browser`
+
+- The `captureUserFeedback` method has been removed. Use `captureFeedback` instead and update the `comments` field to `message`.
 
 ### `@sentry/nestjs`
 
@@ -144,6 +165,27 @@ Sentry.init({
   Use the `SentryGlobalFilter` instead.
   The `SentryGlobalFilter` is a drop-in replacement.
 
+## `@sentry/vue`
+
+- The options `tracingOptions`, `trackComponents`, `timeout`, `hooks` have been removed everywhere except in the `tracingOptions` option of `vueIntegration()`.
+  These options should now be set as follows:
+
+  ```ts
+  import * as Sentry from '@sentry/vue';
+
+  Sentry.init({
+    integrations: [
+      Sentry.vueIntegration({
+        tracingOptions: {
+          trackComponents: true,
+          timeout: 1000,
+          hooks: ['mount', 'update', 'unmount'],
+        },
+      }),
+    ],
+  });
+  ```
+
 ## 5. Build Changes
 
 Previously the CJS versions of the SDK code (wrongfully) contained compatibility statements for default exports in ESM:
@@ -154,6 +196,10 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 The SDK no longer contains these statements.
 Let us know if this is causing issues in your setup by opening an issue on GitHub.
+
+### `@sentry/deno`
+
+- The import of Sentry from the deno registry has changed. Use `import * as Sentry from 'https://deno.land/x/sentry/build/index.mjs'` instead.
 
 ## 6. Type Changes
 
