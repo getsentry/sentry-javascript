@@ -58,6 +58,8 @@ export class SyncPromise<T> implements PromiseLike<T> {
     this._state = States.PENDING;
     this._handlers = [];
 
+    // We set this functions here as class properties, to make binding them easier
+    // This way, the `this` context is easier to maintain
     this._resolve = (value?: T | PromiseLike<T> | null) => {
       this._setResult(States.RESOLVED, value);
     };

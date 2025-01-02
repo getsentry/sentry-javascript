@@ -235,6 +235,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       });
     }
 
+    // We set these handler properties as class properties, to make binding/unbinding them easier
     this._handleVisibilityChange = () => {
       if (WINDOW.document.visibilityState === 'visible') {
         this._doChangeToForegroundTasks();
