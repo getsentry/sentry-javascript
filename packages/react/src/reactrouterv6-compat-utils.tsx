@@ -213,7 +213,14 @@ export function createV6CompatibleWrapUseRoutes(origUseRoutes: UseRoutes, versio
           });
         });
 
-        updatePageloadTransaction(getActiveRootSpan(), normalizedLocation, routes, undefined, undefined, Array.from(allRoutes);
+        updatePageloadTransaction(
+          getActiveRootSpan(),
+          normalizedLocation,
+          routes,
+          undefined,
+          undefined,
+          Array.from(allRoutes),
+        );
         isMountRenderPass.current = false;
       } else {
         handleNavigation({
@@ -539,7 +546,7 @@ export function createV6CompatibleWithSentryReactRouterRouting<P extends Record<
             });
           });
 
-          updatePageloadTransaction(getActiveRootSpan(), location, routes, undefined, undefined, Array.from(allRoutes);
+          updatePageloadTransaction(getActiveRootSpan(), location, routes, undefined, undefined, Array.from(allRoutes));
           isMountRenderPass.current = false;
         } else {
           handleNavigation({
