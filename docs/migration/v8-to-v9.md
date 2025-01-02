@@ -150,7 +150,6 @@ Sentry.init({
 The following changes are unlikely to affect users of the SDK. They are listed here only for completion sake, and to alert users that may be relying on internal behavior.
 
 - `client._prepareEvent()` now requires a currentScope & isolationScope to be passed as last arugments
-- `client._processEvent()` is now private (was protected)
 
 ### `@sentry/browser`
 

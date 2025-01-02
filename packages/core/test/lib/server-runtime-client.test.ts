@@ -1,6 +1,6 @@
 import type { Event, EventHint } from '../../src/types-hoist';
 
-import { createTransport } from '../../src';
+import { Scope, createTransport } from '../../src';
 import type { ServerRuntimeClientOptions } from '../../src/server-runtime-client';
 import { ServerRuntimeClient } from '../../src/server-runtime-client';
 
@@ -18,6 +18,9 @@ function getDefaultClientOptions(options: Partial<ServerRuntimeClientOptions> = 
 describe('ServerRuntimeClient', () => {
   let client: ServerRuntimeClient;
 
+  const currentScope = new Scope();
+  const isolationScope = new Scope();
+
   describe('_prepareEvent', () => {
     test('adds platform to event', () => {
       const options = getDefaultClientOptions({ dsn: PUBLIC_DSN });
@@ -25,7 +28,7 @@ describe('ServerRuntimeClient', () => {
 
       const event: Event = {};
       const hint: EventHint = {};
-      (client as any)._prepareEvent(event, hint);
+      client['_prepareEvent'](event, hint, currentScope, isolationScope);
 
       expect(event.platform).toEqual('blargh');
     });
@@ -36,7 +39,7 @@ describe('ServerRuntimeClient', () => {
 
       const event: Event = {};
       const hint: EventHint = {};
-      (client as any)._prepareEvent(event, hint);
+      client['_prepareEvent'](event, hint, currentScope, isolationScope);
 
       expect(event.server_name).toEqual('server');
     });
@@ -47,7 +50,7 @@ describe('ServerRuntimeClient', () => {
 
       const event: Event = {};
       const hint: EventHint = {};
-      (client as any)._prepareEvent(event, hint);
+      client['_prepareEvent'](event, hint, currentScope, isolationScope);
 
       expect(event.contexts?.runtime).toEqual({
         name: 'edge',
@@ -60,7 +63,7 @@ describe('ServerRuntimeClient', () => {
 
       const event: Event = { contexts: { runtime: { name: 'foo', version: '1.2.3' } } };
       const hint: EventHint = {};
-      (client as any)._prepareEvent(event, hint);
+      client['_prepareEvent'](event, hint, currentScope, isolationScope);
 
       expect(event.contexts?.runtime).toEqual({ name: 'foo', version: '1.2.3' });
       expect(event.contexts?.runtime).not.toEqual({ name: 'edge' });
