@@ -32,7 +32,7 @@ export function getDefaultIntegrations(options: BrowserOptions = {}): Integratio
   // see:
   //  - https://github.com/getsentry/sentry-javascript/issues/5417#issuecomment-1453407097
   //  - https://github.com/getsentry/sentry-javascript/issues/2744
-  const integrations = [
+  return [
     inboundFiltersIntegration(),
     functionToStringIntegration(),
     breadcrumbsIntegration(),
@@ -40,14 +40,8 @@ export function getDefaultIntegrations(options: BrowserOptions = {}): Integratio
     linkedErrorsIntegration(),
     dedupeIntegration(),
     httpContextIntegration(),
+    browserSessionIntegration(),
   ];
-
-  // eslint-disable-next-line deprecation/deprecation
-  if (options.autoSessionTracking !== false) {
-    integrations.push(browserSessionIntegration());
-  }
-
-  return integrations;
 }
 
 /**

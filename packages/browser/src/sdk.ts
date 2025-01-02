@@ -27,12 +27,12 @@ import { defaultStackParser } from './stack-parsers';
 import { makeFetchTransport } from './transports/fetch';
 
 /** Get the default integrations for the browser SDK. */
-export function getDefaultIntegrations(options: Options): Integration[] {
+export function getDefaultIntegrations(_options: Options): Integration[] {
   /**
    * Note: Please make sure this stays in sync with Angular SDK, which re-exports
    * `getDefaultIntegrations` but with an adjusted set of integrations.
    */
-  const integrations = [
+  return [
     inboundFiltersIntegration(),
     functionToStringIntegration(),
     browserApiErrorsIntegration(),
@@ -41,14 +41,8 @@ export function getDefaultIntegrations(options: Options): Integration[] {
     linkedErrorsIntegration(),
     dedupeIntegration(),
     httpContextIntegration(),
+    browserSessionIntegration(),
   ];
-
-  // eslint-disable-next-line deprecation/deprecation
-  if (options.autoSessionTracking !== false) {
-    integrations.push(browserSessionIntegration());
-  }
-
-  return integrations;
 }
 
 /** Exported only for tests. */
@@ -61,7 +55,6 @@ export function applyDefaultOptions(optionsArg: BrowserOptions = {}): BrowserOpt
         : WINDOW.SENTRY_RELEASE && WINDOW.SENTRY_RELEASE.id // This supports the variable that sentry-webpack-plugin injects
           ? WINDOW.SENTRY_RELEASE.id
           : undefined,
-    autoSessionTracking: true,
     sendClientReports: true,
   };
 

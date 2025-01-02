@@ -46,7 +46,6 @@ export async function mockSdk({ sentryOptions }: MockSdkParams = {}): Promise<vo
   init({
     ...getDefaultClientOptions(),
     dsn: 'https://dsn@ingest.f00.f00/1',
-    autoSessionTracking: false,
     sendClientReports: false,
     transport: () => new MockTransport(),
     replaysSessionSampleRate: 0.0,
