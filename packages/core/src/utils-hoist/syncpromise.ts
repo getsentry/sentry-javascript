@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/explicit-function-return-type */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { isThenable } from './is';
 
@@ -44,16 +43,69 @@ export function rejectedSyncPromise<T = never>(reason?: any): PromiseLike<T> {
  * Thenable class that behaves like a Promise and follows it's interface
  * but is not async internally
  */
-class SyncPromise<T> implements PromiseLike<T> {
+export class SyncPromise<T> implements PromiseLike<T> {
   private _state: States;
   private _handlers: Array<[boolean, (value: T) => void, (reason: any) => any]>;
   private _value: any;
+  private _resolve: (value?: T | PromiseLike<T> | null) => void;
+  private _reject: (reason?: any) => void;
+  private _executeHandlers: () => void;
+  private _setResult: (state: States, value?: T | PromiseLike<T> | any) => void;
 
   public constructor(
     executor: (resolve: (value?: T | PromiseLike<T> | null) => void, reject: (reason?: any) => void) => void,
   ) {
     this._state = States.PENDING;
     this._handlers = [];
+
+    this._resolve = (value?: T | PromiseLike<T> | null) => {
+      this._setResult(States.RESOLVED, value);
+    };
+
+    this._reject = (reason?: any) => {
+      this._setResult(States.REJECTED, reason);
+    };
+
+    this._executeHandlers = () => {
+      if (this._state === States.PENDING) {
+        return;
+      }
+
+      const cachedHandlers = this._handlers.slice();
+      this._handlers = [];
+
+      cachedHandlers.forEach(handler => {
+        if (handler[0]) {
+          return;
+        }
+
+        if (this._state === States.RESOLVED) {
+          handler[1](this._value as unknown as any);
+        }
+
+        if (this._state === States.REJECTED) {
+          handler[2](this._value);
+        }
+
+        handler[0] = true;
+      });
+    };
+
+    this._setResult = (state: States, value?: T | PromiseLike<T> | any) => {
+      if (this._state !== States.PENDING) {
+        return;
+      }
+
+      if (isThenable(value)) {
+        void (value as PromiseLike<T>).then(this._resolve, this._reject);
+        return;
+      }
+
+      this._state = state;
+      this._value = value;
+
+      this._executeHandlers();
+    };
 
     try {
       executor(this._resolve, this._reject);
@@ -62,7 +114,7 @@ class SyncPromise<T> implements PromiseLike<T> {
     }
   }
 
-  /** JSDoc */
+  /** @inheritdoc */
   public then<TResult1 = T, TResult2 = never>(
     onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | null,
     onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null,
@@ -99,14 +151,14 @@ class SyncPromise<T> implements PromiseLike<T> {
     });
   }
 
-  /** JSDoc */
+  /** @inheritdoc */
   public catch<TResult = never>(
     onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | null,
   ): PromiseLike<T | TResult> {
     return this.then(val => val, onrejected);
   }
 
-  /** JSDoc */
+  /** @inheritdoc */
   public finally<TResult>(onfinally?: (() => void) | null): PromiseLike<TResult> {
     return new SyncPromise<TResult>((resolve, reject) => {
       let val: TResult | any;
@@ -137,59 +189,4 @@ class SyncPromise<T> implements PromiseLike<T> {
       });
     });
   }
-
-  /** JSDoc */
-  private readonly _resolve = (value?: T | PromiseLike<T> | null) => {
-    this._setResult(States.RESOLVED, value);
-  };
-
-  /** JSDoc */
-  private readonly _reject = (reason?: any) => {
-    this._setResult(States.REJECTED, reason);
-  };
-
-  /** JSDoc */
-  private readonly _setResult = (state: States, value?: T | PromiseLike<T> | any) => {
-    if (this._state !== States.PENDING) {
-      return;
-    }
-
-    if (isThenable(value)) {
-      void (value as PromiseLike<T>).then(this._resolve, this._reject);
-      return;
-    }
-
-    this._state = state;
-    this._value = value;
-
-    this._executeHandlers();
-  };
-
-  /** JSDoc */
-  private readonly _executeHandlers = () => {
-    if (this._state === States.PENDING) {
-      return;
-    }
-
-    const cachedHandlers = this._handlers.slice();
-    this._handlers = [];
-
-    cachedHandlers.forEach(handler => {
-      if (handler[0]) {
-        return;
-      }
-
-      if (this._state === States.RESOLVED) {
-        handler[1](this._value as unknown as any);
-      }
-
-      if (this._state === States.REJECTED) {
-        handler[2](this._value);
-      }
-
-      handler[0] = true;
-    });
-  };
 }
-
-export { SyncPromise };

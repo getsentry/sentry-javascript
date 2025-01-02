@@ -78,6 +78,8 @@ Sentry.init({
 
 In v9, an `undefined` value will be treated the same as if the value is not defined at all. You'll need to set `tracesSampleRate: 0` if you want to enable tracing without performance.
 
+- The `getCurrentHub().getIntegration(IntegrationClass)` method will always return `null` in v9. This has already stopped working mostly in v8, because we stopped exposing integration classes. In v9, the fallback behavior has been removed. Note that this does not change the type signature and is thus not technically breaking, but still worth pointing out.
+
 ### `@sentry/node`
 
 - When `skipOpenTelemetrySetup: true` is configured, `httpIntegration({ spans: false })` will be configured by default. This means that you no longer have to specify this yourself in this scenario. With this change, no spans are emitted once `skipOpenTelemetrySetup: true` is configured, without any further configuration being needed.
@@ -208,6 +210,7 @@ This led to some duplication, where we had to keep an interface in `@sentry/type
 Since v9, the types have been merged into `@sentry/core`, which removed some of this duplication. This means that certain things that used to be a separate interface, will not expect an actual instance of the class/concrete implementation. This should not affect most users, unless you relied on passing things with a similar shape to internal methods. The following types are affected:
 
 - `Scope` now always expects the `Scope` class
+- The `IntegrationClass` type is no longer exported - it was not used anymore. Instead, use `Integration` or `IntegrationFn`.
 
 # No Version Support Timeline
 

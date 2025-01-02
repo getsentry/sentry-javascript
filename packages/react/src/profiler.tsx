@@ -39,13 +39,6 @@ class Profiler extends React.Component<ProfilerProps> {
    */
   protected _updateSpan: Span | undefined;
 
-  // eslint-disable-next-line @typescript-eslint/member-ordering
-  public static defaultProps: Partial<ProfilerProps> = {
-    disabled: false,
-    includeRender: true,
-    includeUpdates: true,
-  };
-
   public constructor(props: ProfilerProps) {
     super(props);
     const { name, disabled = false } = this.props;
@@ -140,6 +133,14 @@ class Profiler extends React.Component<ProfilerProps> {
     return this.props.children;
   }
 }
+
+Object.assign(Profiler, {
+  defaultProps: {
+    disabled: false,
+    includeRender: true,
+    includeUpdates: true,
+  },
+});
 
 /**
  * withProfiler is a higher order component that wraps a

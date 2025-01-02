@@ -11,7 +11,7 @@ import {
   setUser,
   startSession,
 } from './exports';
-import type { Client, EventHint, Hub, Integration, IntegrationClass, SeverityLevel } from './types-hoist';
+import type { Client, EventHint, Hub, Integration, SeverityLevel } from './types-hoist';
 
 /**
  * This is for legacy reasons, and returns a proxy object instead of a hub to be used.
@@ -48,9 +48,8 @@ export function getCurrentHubShim(): Hub {
     setExtras,
     setContext,
 
-    getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null {
-      const client = getClient();
-      return (client && client.getIntegrationByName<T>(integration.id)) || null;
+    getIntegration<T extends Integration>(_integration: unknown): T | null {
+      return null;
     },
 
     startSession,

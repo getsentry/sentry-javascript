@@ -5,6 +5,7 @@ import {
   InstrumentationNodeModuleDefinition,
   InstrumentationNodeModuleFile,
 } from '@opentelemetry/instrumentation';
+import type { SpanAttributes } from '@sentry/core';
 import { SDK_VERSION, captureException, startSpan } from '@sentry/core';
 import { getEventSpanOptions } from './helpers';
 import type { OnEventTarget } from './types';
@@ -17,23 +18,23 @@ const supportedVersions = ['>=2.0.0'];
  * This hooks into the `OnEvent` decorator, which is applied on event handlers.
  */
 export class SentryNestEventInstrumentation extends InstrumentationBase {
-  public static readonly COMPONENT = '@nestjs/event-emitter';
-  public static readonly COMMON_ATTRIBUTES = {
-    component: SentryNestEventInstrumentation.COMPONENT,
-  };
+  public readonly COMPONENT: string;
+  public readonly COMMON_ATTRIBUTES: SpanAttributes;
 
   public constructor(config: InstrumentationConfig = {}) {
     super('sentry-nestjs-event', SDK_VERSION, config);
+
+    this.COMPONENT = '@nestjs/event-emitter';
+    this.COMMON_ATTRIBUTES = {
+      component: this.COMPONENT,
+    };
   }
 
   /**
    * Initializes the instrumentation by defining the modules to be patched.
    */
   public init(): InstrumentationNodeModuleDefinition {
-    const moduleDef = new InstrumentationNodeModuleDefinition(
-      SentryNestEventInstrumentation.COMPONENT,
-      supportedVersions,
-    );
+    const moduleDef = new InstrumentationNodeModuleDefinition(this.COMPONENT, supportedVersions);
 
     moduleDef.files.push(this._getOnEventFileInstrumentation(supportedVersions));
     return moduleDef;

@@ -5,7 +5,7 @@ import {
   InstrumentationNodeModuleDefinition,
   InstrumentationNodeModuleFile,
 } from '@opentelemetry/instrumentation';
-import type { Span } from '@sentry/core';
+import type { Span, SpanAttributes } from '@sentry/core';
 import {
   SDK_VERSION,
   addNonEnumerableProperty,
@@ -29,20 +29,23 @@ const supportedVersions = ['>=8.0.0 <11'];
  * 2. @Catch decorator, which is applied on exception filters.
  */
 export class SentryNestInstrumentation extends InstrumentationBase {
-  public static readonly COMPONENT = '@nestjs/common';
-  public static readonly COMMON_ATTRIBUTES = {
-    component: SentryNestInstrumentation.COMPONENT,
-  };
+  public readonly COMPONENT: string;
+  public readonly COMMON_ATTRIBUTES: SpanAttributes;
 
   public constructor(config: InstrumentationConfig = {}) {
     super('sentry-nestjs', SDK_VERSION, config);
+
+    this.COMPONENT = '@nestjs/common';
+    this.COMMON_ATTRIBUTES = {
+      component: this.COMPONENT,
+    };
   }
 
   /**
    * Initializes the instrumentation by defining the modules to be patched.
    */
   public init(): InstrumentationNodeModuleDefinition {
-    const moduleDef = new InstrumentationNodeModuleDefinition(SentryNestInstrumentation.COMPONENT, supportedVersions);
+    const moduleDef = new InstrumentationNodeModuleDefinition(this.COMPONENT, supportedVersions);
 
     moduleDef.files.push(
       this._getInjectableFileInstrumentation(supportedVersions),
