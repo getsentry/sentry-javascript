@@ -2,6 +2,7 @@ import { addBreadcrumb } from './breadcrumbs';
 import { getClient, getCurrentScope, getIsolationScope, withScope } from './currentScopes';
 import {
   captureEvent,
+  captureSession,
   endSession,
   setContext,
   setExtra,
@@ -54,15 +55,7 @@ export function getCurrentHubShim(): Hub {
 
     startSession,
     endSession,
-    captureSession(end?: boolean): void {
-      // both send the update and pull the session from the scope
-      if (end) {
-        return endSession();
-      }
-
-      // only send the update
-      _sendSessionUpdate();
-    },
+    captureSession,
   };
 }
 
@@ -77,16 +70,3 @@ export function getCurrentHubShim(): Hub {
  */
 // eslint-disable-next-line deprecation/deprecation
 export const getCurrentHub = getCurrentHubShim;
-
-/**
- * Sends the current Session on the scope
- */
-function _sendSessionUpdate(): void {
-  const scope = getIsolationScope();
-  const client = getClient();
-
-  const session = scope.getSession();
-  if (client && session) {
-    client.captureSession(session);
-  }
-}
