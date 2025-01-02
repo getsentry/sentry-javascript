@@ -68,6 +68,16 @@ Sentry.init({
 });
 ```
 
+- In previous versions, we determined if tracing is enabled (for Tracing Without Performance) by checking if either `tracesSampleRate` or `traceSampler` are _defined_ at all, in `Sentry.init()`. This means that e.g. the following config would lead to tracing without performance (=tracing being enabled, even if no spans would be started):
+
+```js
+Sentry.init({
+  tracesSampleRate: undefined,
+});
+```
+
+In v9, an `undefined` value will be treated the same as if the value is not defined at all. You'll need to set `tracesSampleRate: 0` if you want to enable tracing without performance.
+
 ### `@sentry/node`
 
 - When `skipOpenTelemetrySetup: true` is configured, `httpIntegration({ spans: false })` will be configured by default. This means that you no longer have to specify this yourself in this scenario. With this change, no spans are emitted once `skipOpenTelemetrySetup: true` is configured, without any further configuration being needed.
@@ -133,6 +143,7 @@ Sentry.init({
 - The `getDomElement` method has been removed. There is no replacement.
 - The `Request` type has been removed. Use `RequestEventData` type instead.
 - The `TransactionNamingScheme` type has been removed. There is no replacement.
+- The `memoBuilder` method has been removed. There is no replacement.
 
 ### `@sentry/browser`
 
