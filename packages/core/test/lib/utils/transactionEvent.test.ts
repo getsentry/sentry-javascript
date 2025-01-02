@@ -1,10 +1,10 @@
+import { SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME, SEMANTIC_ATTRIBUTE_PROFILE_ID } from '../../../src/semanticAttributes';
+import type { SpanJSON, TransactionEvent } from '../../../src/types-hoist';
+import {} from '../../../src/types-hoist';
 import {
   convertSpanJsonToTransactionEvent,
   convertTransactionEventToSpanJson,
 } from '../../../src/utils/transactionEvent';
-import { SEMANTIC_ATTRIBUTE_PROFILE_ID, SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME } from '../../../src/semanticAttributes';
-import type { TransactionEvent, SpanJSON } from '../../../src/types-hoist';
-import {} from '../../../src/types-hoist';
 
 describe('convertTransactionEventToSpanJson', () => {
   it('should convert a minimal transaction event to span JSON', () => {
