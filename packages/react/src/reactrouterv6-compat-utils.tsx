@@ -180,7 +180,7 @@ export function createV6CompatibleWrapUseRoutes(origUseRoutes: UseRoutes, versio
     return origUseRoutes;
   }
 
-  const allRoutes: RouteObject[] = [];
+  const allRoutes: Set<RouteObject> = new Set();
 
   const SentryRoutes: React.FC<{
     children?: React.ReactNode;
@@ -207,10 +207,21 @@ export function createV6CompatibleWrapUseRoutes(origUseRoutes: UseRoutes, versio
 
       if (isMountRenderPass.current) {
         routes.forEach(route => {
-          allRoutes.push(...getChildRoutesRecursively(route));
+          const extractedChildRoutes = getChildRoutesRecursively(route);
+
+          extractedChildRoutes.forEach(r => {
+            allRoutes.add(r);
+          });
         });
 
-        updatePageloadTransaction(getActiveRootSpan(), normalizedLocation, routes, undefined, undefined, allRoutes);
+        updatePageloadTransaction(
+          getActiveRootSpan(),
+          normalizedLocation,
+          routes,
+          undefined,
+          undefined,
+          Array.from(allRoutes),
+        );
         isMountRenderPass.current = false;
       } else {
         handleNavigation({
@@ -218,7 +229,7 @@ export function createV6CompatibleWrapUseRoutes(origUseRoutes: UseRoutes, versio
           routes,
           navigationType,
           version,
-          allRoutes,
+          allRoutes: Array.from(allRoutes),
         });
       }
     }, [navigationType, stableLocationParam]);
@@ -343,14 +354,18 @@ function locationIsInsideDescendantRoute(location: Location, routes: RouteObject
   return false;
 }
 
-function getChildRoutesRecursively(route: RouteObject, allRoutes: RouteObject[] = []): RouteObject[] {
-  if (route.children && !route.index) {
-    route.children.forEach(child => {
-      allRoutes.push(...getChildRoutesRecursively(child, allRoutes));
-    });
-  }
+function getChildRoutesRecursively(route: RouteObject, allRoutes: Set<RouteObject> = new Set()): Set<RouteObject> {
+  if (!allRoutes.has(route)) {
+    allRoutes.add(route);
 
-  allRoutes.push(route);
+    if (route.children && !route.index) {
+      route.children.forEach(child => {
+        const childRoutes = getChildRoutesRecursively(child, allRoutes);
+
+        childRoutes.forEach(r => allRoutes.add(r));
+      });
+    }
+  }
 
   return allRoutes;
 }
@@ -513,7 +528,7 @@ export function createV6CompatibleWithSentryReactRouterRouting<P extends Record<
     return Routes;
   }
 
-  const allRoutes: RouteObject[] = [];
+  const allRoutes: Set<RouteObject> = new Set();
 
   const SentryRoutes: React.FC<P> = (props: P) => {
     const isMountRenderPass = React.useRef(true);
@@ -527,10 +542,14 @@ export function createV6CompatibleWithSentryReactRouterRouting<P extends Record<
 
         if (isMountRenderPass.current) {
           routes.forEach(route => {
-            allRoutes.push(...getChildRoutesRecursively(route));
+            const extractedChildRoutes = getChildRoutesRecursively(route);
+
+            extractedChildRoutes.forEach(r => {
+              allRoutes.add(r);
+            });
           });
 
-          updatePageloadTransaction(getActiveRootSpan(), location, routes, undefined, undefined, allRoutes);
+          updatePageloadTransaction(getActiveRootSpan(), location, routes, undefined, undefined, Array.from(allRoutes));
           isMountRenderPass.current = false;
         } else {
           handleNavigation({
@@ -538,7 +557,7 @@ export function createV6CompatibleWithSentryReactRouterRouting<P extends Record<
             routes,
             navigationType,
             version,
-            allRoutes,
+            allRoutes: Array.from(allRoutes),
           });
         }
       },
