@@ -764,7 +764,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @param currentScope A scope containing event metadata.
    * @returns A SyncPromise that resolves with the event or rejects in case event was/will not be send.
    */
-  protected _processEvent(
+  private _processEvent(
     event: Event,
     hint: EventHint,
     currentScope: Scope,
