@@ -144,6 +144,9 @@ Sentry.init({
 - The `urlEncode` method has been removed. There is no replacement.
 - The `getDomElement` method has been removed. There is no replacement.
 - The `memoBuilder` method has been removed. There is no replacement.
+- The `extractRequestData` method has been removed. Manually extract relevant data off request instead.
+- The `addRequestDataToEvent` method has been removed. Use `addNormalizedRequestDataToEvent` instead.
+- The `extractPathForTransaction` method has been removed. There is no replacement.
 
 #### Other/Internal Changes
 
