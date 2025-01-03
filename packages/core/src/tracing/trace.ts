@@ -16,7 +16,14 @@ import { propagationContextFromHeaders } from '../utils-hoist/tracing';
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
 import { _getSpanForScope, _setSpanForScope } from '../utils/spanOnScope';
-import { addChildSpanToSpan, getRootSpan, spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
+import {
+  addChildSpanToSpan,
+  getActiveSpan,
+  getRootSpan,
+  spanIsSampled,
+  spanTimeInputToSeconds,
+  spanToJSON,
+} from '../utils/spanUtils';
 import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanStart } from './logSpans';
 import { sampleSpan } from './sampling';
@@ -44,9 +51,11 @@ export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) =
   }
 
   const spanArguments = parseSentrySpanArguments(options);
-  const { forceTransaction, parentSpan: customParentSpan } = options;
+  const { forceTransaction, parentSpan: customParentSpan, scope: customScope } = options;
 
-  return withScope(options.scope, () => {
+  const previousActiveSpanOnCustomScope = customScope && _getSpanForScope(customScope);
+
+  return withScope(customScope, () => {
     // If `options.parentSpan` is defined, we want to wrap the callback in `withActiveSpan`
     const wrapper = getActiveSpanWrapper<T>(customParentSpan);
 
@@ -75,7 +84,14 @@ export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) =
             activeSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
           }
         },
-        () => activeSpan.end(),
+        () => {
+          activeSpan.end();
+          if (customScope) {
+            // If a custom scope is passed, we don't fork the scope. Therefore, we need to reset the
+            // active span on the scope to the previous active span (or to undefined if there was none)
+            _setSpanForScope(customScope, previousActiveSpanOnCustomScope);
+          }
+        },
       );
     });
   });
