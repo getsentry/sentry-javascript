@@ -1,18 +1,10 @@
-import type {
-  Event,
-  PolymorphicRequest,
-  RequestEventData,
-  TransactionSource,
-  WebFetchHeaders,
-  WebFetchRequest,
-} from '../types-hoist';
+import type { Event, PolymorphicRequest, RequestEventData, WebFetchHeaders, WebFetchRequest } from '../types-hoist';
 
 import { parseCookie } from './cookie';
 import { DEBUG_BUILD } from './debug-build';
 import { isPlainObject } from './is';
 import { logger } from './logger';
 import { dropUndefinedKeys } from './object';
-import { stripUrlQueryAndFragment } from './url';
 import { getClientIPAddress, ipHeaderNames } from './vendor/getIpAddress';
 
 const DEFAULT_INCLUDES = {
@@ -31,9 +23,6 @@ export type AddRequestDataToEventOptions = {
   include?: {
     ip?: boolean;
     request?: boolean | Array<(typeof DEFAULT_REQUEST_INCLUDES)[number]>;
-    /** @deprecated This option will be removed in v9. It does not do anything anymore, the `transcation` is set in other places. */
-    // eslint-disable-next-line deprecation/deprecation
-    transaction?: boolean | 'path' | 'methodPath' | 'handler';
     user?: boolean | Array<(typeof DEFAULT_USER_INCLUDES)[number]>;
   };
 
@@ -49,55 +38,6 @@ export type AddRequestDataToEventOptions = {
     };
   };
 };
-
-/**
- * Extracts a complete and parameterized path from the request object and uses it to construct transaction name.
- * If the parameterized transaction name cannot be extracted, we fall back to the raw URL.
- *
- * Additionally, this function determines and returns the transaction name source
- *
- * eg. GET /mountpoint/user/:id
- *
- * @param req A request object
- * @param options What to include in the transaction name (method, path, or a custom route name to be
- *                used instead of the request's route)
- *
- * @returns A tuple of the fully constructed transaction name [0] and its source [1] (can be either 'route' or 'url')
- * @deprecated This method will be removed in v9. It is not in use anymore.
- */
-export function extractPathForTransaction(
-  req: PolymorphicRequest,
-  options: { path?: boolean; method?: boolean; customRoute?: string } = {},
-): [string, TransactionSource] {
-  const method = req.method && req.method.toUpperCase();
-
-  let path = '';
-  let source: TransactionSource = 'url';
-
-  // Check to see if there's a parameterized route we can use (as there is in Express)
-  if (options.customRoute || req.route) {
-    path = options.customRoute || `${req.baseUrl || ''}${req.route && req.route.path}`;
-    source = 'route';
-  }
-
-  // Otherwise, just take the original URL
-  else if (req.originalUrl || req.url) {
-    path = stripUrlQueryAndFragment(req.originalUrl || req.url || '');
-  }
-
-  let name = '';
-  if (options.method && method) {
-    name += method;
-  }
-  if (options.method && options.path) {
-    name += ' ';
-  }
-  if (options.path && path) {
-    name += path;
-  }
-
-  return [name, source];
-}
 
 function extractUserData(
   user: {

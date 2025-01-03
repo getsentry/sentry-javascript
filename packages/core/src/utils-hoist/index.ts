@@ -68,8 +68,6 @@ export type { PromiseBuffer } from './promisebuffer';
 export {
   DEFAULT_USER_INCLUDES,
   addNormalizedRequestDataToEvent,
-  // eslint-disable-next-line deprecation/deprecation
-  extractPathForTransaction,
   winterCGHeadersToDict,
   winterCGRequestToRequestData,
   httpRequestToRequestData,
