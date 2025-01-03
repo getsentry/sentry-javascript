@@ -1,10 +1,6 @@
 import { defineIntegration } from '../integration';
 import type { IntegrationFn } from '../types-hoist';
-import {
-  type AddRequestDataToEventOptions,
-  addNormalizedRequestDataToEvent,
-  addRequestDataToEvent,
-} from '../utils-hoist/requestdata';
+import { type AddRequestDataToEventOptions, addNormalizedRequestDataToEvent } from '../utils-hoist/requestdata';
 
 export type RequestDataIntegrationOptions = {
   /**
@@ -93,13 +89,7 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
         return event;
       }
 
-      // TODO(v9): Eventually we can remove this fallback branch and only rely on the normalizedRequest above
-      if (!request) {
-        return event;
-      }
-
-      // eslint-disable-next-line deprecation/deprecation
-      return addRequestDataToEvent(event, request, addRequestDataOptions);
+      return event;
     },
   };
 }) satisfies IntegrationFn;

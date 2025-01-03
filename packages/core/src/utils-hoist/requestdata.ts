@@ -1,7 +1,5 @@
-/* eslint-disable max-lines */
 import type {
   Event,
-  ExtractedNodeRequestData,
   PolymorphicRequest,
   RequestEventData,
   TransactionSource,
@@ -11,11 +9,9 @@ import type {
 
 import { parseCookie } from './cookie';
 import { DEBUG_BUILD } from './debug-build';
-import { isPlainObject, isString } from './is';
+import { isPlainObject } from './is';
 import { logger } from './logger';
-import { normalize } from './normalize';
 import { dropUndefinedKeys } from './object';
-import { truncate } from './string';
 import { stripUrlQueryAndFragment } from './url';
 import { getClientIPAddress, ipHeaderNames } from './vendor/getIpAddress';
 
@@ -122,137 +118,6 @@ function extractUserData(
 }
 
 /**
- * Normalize data from the request object, accounting for framework differences.
- *
- * @param req The request object from which to extract data
- * @param options.include An optional array of keys to include in the normalized data. Defaults to
- * DEFAULT_REQUEST_INCLUDES if not provided.
- * @param options.deps Injected, platform-specific dependencies
- * @returns An object containing normalized request data
- *
- * @deprecated Instead manually normalize the request data into a format that fits `addNormalizedRequestDataToEvent`.
- */
-export function extractRequestData(
-  req: PolymorphicRequest,
-  options: {
-    include?: string[];
-  } = {},
-): ExtractedNodeRequestData {
-  const { include = DEFAULT_REQUEST_INCLUDES } = options;
-  const requestData: { [key: string]: unknown } = {};
-
-  // headers:
-  //   node, express, koa, nextjs: req.headers
-  const headers = (req.headers || {}) as typeof req.headers & {
-    host?: string;
-    cookie?: string;
-  };
-  // method:
-  //   node, express, koa, nextjs: req.method
-  const method = req.method;
-  // host:
-  //   express: req.hostname in > 4 and req.host in < 4
-  //   koa: req.host
-  //   node, nextjs: req.headers.host
-  // Express 4 mistakenly strips off port number from req.host / req.hostname so we can't rely on them
-  // See: https://github.com/expressjs/express/issues/3047#issuecomment-236653223
-  // Also: https://github.com/getsentry/sentry-javascript/issues/1917
-  const host = headers.host || req.hostname || req.host || '<no host>';
-  // protocol:
-  //   node, nextjs: <n/a>
-  //   express, koa: req.protocol
-  const protocol = req.protocol === 'https' || (req.socket && req.socket.encrypted) ? 'https' : 'http';
-  // url (including path and query string):
-  //   node, express: req.originalUrl
-  //   koa, nextjs: req.url
-  const originalUrl = req.originalUrl || req.url || '';
-  // absolute url
-  const absoluteUrl = originalUrl.startsWith(protocol) ? originalUrl : `${protocol}://${host}${originalUrl}`;
-  include.forEach(key => {
-    switch (key) {
-      case 'headers': {
-        requestData.headers = headers;
-
-        // Remove the Cookie header in case cookie data should not be included in the event
-        if (!include.includes('cookies')) {
-          delete (requestData.headers as { cookie?: string }).cookie;
-        }
-
-        // Remove IP headers in case IP data should not be included in the event
-        if (!include.includes('ip')) {
-          ipHeaderNames.forEach(ipHeaderName => {
-            // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-            delete (requestData.headers as Record<string, unknown>)[ipHeaderName];
-          });
-        }
-
-        break;
-      }
-      case 'method': {
-        requestData.method = method;
-        break;
-      }
-      case 'url': {
-        requestData.url = absoluteUrl;
-        break;
-      }
-      case 'cookies': {
-        // cookies:
-        //   node, express, koa: req.headers.cookie
-        //   vercel, sails.js, express (w/ cookie middleware), nextjs: req.cookies
-        requestData.cookies =
-          // TODO (v8 / #5257): We're only sending the empty object for backwards compatibility, so the last bit can
-          // come off in v8
-          req.cookies || (headers.cookie && parseCookie(headers.cookie)) || {};
-        break;
-      }
-      case 'query_string': {
-        // query string:
-        //   node: req.url (raw)
-        //   express, koa, nextjs: req.query
-        requestData.query_string = extractQueryParams(req);
-        break;
-      }
-      case 'data': {
-        if (method === 'GET' || method === 'HEAD') {
-          break;
-        }
-        // NOTE: As of v8, request is (unless a user sets this manually) ALWAYS a http request
-        // Which does not have a body by default
-        // However, in our http instrumentation, we patch the request to capture the body and store it on the
-        // request as `.body` anyhow
-        // In v9, we may update requestData to only work with plain http requests
-        // body data:
-        //   express, koa, nextjs: req.body
-        //
-        //   when using node by itself, you have to read the incoming stream(see
-        //   https://nodejs.dev/learn/get-http-request-body-data-using-nodejs); if a user is doing that, we can't know
-        //   where they're going to store the final result, so they'll have to capture this data themselves
-        const body = req.body;
-        if (body !== undefined) {
-          const stringBody: string = isString(body)
-            ? body
-            : isPlainObject(body)
-              ? JSON.stringify(normalize(body))
-              : truncate(`${body}`, 1024);
-          if (stringBody) {
-            requestData.data = stringBody;
-          }
-        }
-        break;
-      }
-      default: {
-        if ({}.hasOwnProperty.call(req, key)) {
-          requestData[key] = (req as { [key: string]: unknown })[key];
-        }
-      }
-    }
-  });
-
-  return requestData;
-}
-
-/**
  * Add already normalized request data to an event.
  * This mutates the passed in event.
  */
@@ -304,94 +169,6 @@ export function addNormalizedRequestDataToEvent(
         ip_address: ip,
       };
     }
-  }
-}
-
-/**
- * Add data from the given request to the given event
- *
- * @param event The event to which the request data will be added
- * @param req Request object
- * @param options.include Flags to control what data is included
- * @param options.deps Injected platform-specific dependencies
- * @returns The mutated `Event` object
- *
- * @deprecated Use `addNormalizedRequestDataToEvent` instead.
- */
-export function addRequestDataToEvent(
-  event: Event,
-  req: PolymorphicRequest,
-  options?: AddRequestDataToEventOptions,
-): Event {
-  const include = {
-    ...DEFAULT_INCLUDES,
-    ...(options && options.include),
-  };
-
-  if (include.request) {
-    const includeRequest = Array.isArray(include.request) ? [...include.request] : [...DEFAULT_REQUEST_INCLUDES];
-    if (include.ip) {
-      includeRequest.push('ip');
-    }
-
-    // eslint-disable-next-line deprecation/deprecation
-    const extractedRequestData = extractRequestData(req, { include: includeRequest });
-
-    event.request = {
-      ...event.request,
-      ...extractedRequestData,
-    };
-  }
-
-  if (include.user) {
-    const extractedUser = req.user && isPlainObject(req.user) ? extractUserData(req.user, include.user) : {};
-
-    if (Object.keys(extractedUser).length) {
-      event.user = {
-        ...event.user,
-        ...extractedUser,
-      };
-    }
-  }
-
-  // client ip:
-  //   node, nextjs: req.socket.remoteAddress
-  //   express, koa: req.ip
-  //   It may also be sent by proxies as specified in X-Forwarded-For or similar headers
-  if (include.ip) {
-    const ip = (req.headers && getClientIPAddress(req.headers)) || req.ip || (req.socket && req.socket.remoteAddress);
-    if (ip) {
-      event.user = {
-        ...event.user,
-        ip_address: ip,
-      };
-    }
-  }
-
-  return event;
-}
-
-function extractQueryParams(req: PolymorphicRequest): string | Record<string, unknown> | undefined {
-  // url (including path and query string):
-  //   node, express: req.originalUrl
-  //   koa, nextjs: req.url
-  let originalUrl = req.originalUrl || req.url || '';
-
-  if (!originalUrl) {
-    return;
-  }
-
-  // The `URL` constructor can't handle internal URLs of the form `/some/path/here`, so stick a dummy protocol and
-  // hostname on the beginning. Since the point here is just to grab the query string, it doesn't matter what we use.
-  if (originalUrl.startsWith('/')) {
-    originalUrl = `http://dogs.are.great${originalUrl}`;
-  }
-
-  try {
-    const queryParams = req.query || new URL(originalUrl).search.slice(1);
-    return queryParams.length ? queryParams : undefined;
-  } catch {
-    return undefined;
   }
 }
 
