@@ -300,7 +300,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    *
    * @returns A new span that will be sent or null if the span should not be sent.
    */
-  beforeSendSpan?: (span: SpanJSON) => SpanJSON | null;
+  beforeSendSpan?: (span: SpanJSON) => SpanJSON;
 
   /**
    * An event-processing callback for transaction events, guaranteed to be invoked after all other event
