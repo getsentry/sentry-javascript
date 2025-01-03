@@ -269,6 +269,75 @@ describe('startSpan', () => {
     expect(getActiveSpan()).toBe(undefined);
   });
 
+  describe('handles multiple spans in sequence with a custom scope', () => {
+    it('with parent span', () => {
+      const initialScope = getCurrentScope();
+
+      const manualScope = initialScope.clone();
+      const parentSpan = new SentrySpan({ spanId: 'parent-span-id', sampled: true });
+      _setSpanForScope(manualScope, parentSpan);
+
+      startSpan({ name: 'span 1', scope: manualScope }, span1 => {
+        expect(getCurrentScope()).not.toBe(initialScope);
+        expect(getCurrentScope()).toBe(manualScope);
+        expect(getActiveSpan()).toBe(span1);
+        expect(spanToJSON(span1).parent_span_id).toBe('parent-span-id');
+      });
+
+      withScope(manualScope, () => {
+        expect(getActiveSpan()).toBe(parentSpan);
+      });
+
+      startSpan({ name: 'span 2', scope: manualScope }, span2 => {
+        expect(getCurrentScope()).not.toBe(initialScope);
+        expect(getCurrentScope()).toBe(manualScope);
+        expect(getActiveSpan()).toBe(span2);
+        expect(spanToJSON(span2).parent_span_id).toBe('parent-span-id');
+      });
+
+      withScope(manualScope, () => {
+        expect(getActiveSpan()).toBe(parentSpan);
+      });
+
+      expect(getCurrentScope()).toBe(initialScope);
+      expect(getActiveSpan()).toBe(undefined);
+    });
+
+    it('without parent span', () => {
+      const initialScope = getCurrentScope();
+      const manualScope = initialScope.clone();
+
+      const traceId = manualScope.getPropagationContext()?.traceId;
+
+      startSpan({ name: 'span 1', scope: manualScope }, span1 => {
+        expect(getCurrentScope()).not.toBe(initialScope);
+        expect(getCurrentScope()).toBe(manualScope);
+        expect(getActiveSpan()).toBe(span1);
+        expect(spanToJSON(span1).parent_span_id).toBe(undefined);
+        expect(span1.spanContext().traceId).toBe(traceId);
+      });
+
+      withScope(manualScope, () => {
+        expect(getActiveSpan()).toBe(undefined);
+      });
+
+      startSpan({ name: 'span 2', scope: manualScope }, span2 => {
+        expect(getCurrentScope()).not.toBe(initialScope);
+        expect(getCurrentScope()).toBe(manualScope);
+        expect(getActiveSpan()).toBe(span2);
+        expect(spanToJSON(span2).parent_span_id).toBe(undefined);
+        expect(span2.spanContext().traceId).toBe(traceId);
+      });
+
+      withScope(manualScope, () => {
+        expect(getActiveSpan()).toBe(undefined);
+      });
+
+      expect(getCurrentScope()).toBe(initialScope);
+      expect(getActiveSpan()).toBe(undefined);
+    });
+  });
+
   it('allows to pass a parentSpan', () => {
     const parentSpan = new SentrySpan({ spanId: 'parent-span-id', sampled: true, name: 'parent-span' });
 
