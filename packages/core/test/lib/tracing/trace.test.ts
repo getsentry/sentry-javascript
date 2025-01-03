@@ -779,27 +779,76 @@ describe('startSpanManual', () => {
     expect(getActiveSpan()).toBe(undefined);
   });
 
-  it('allows to pass a scope', () => {
-    const initialScope = getCurrentScope();
+  describe('allows to pass a scope', () => {
+    it('with parent span', () => {
+      const initialScope = getCurrentScope();
 
-    const manualScope = initialScope.clone();
-    const parentSpan = new SentrySpan({ spanId: 'parent-span-id', sampled: true });
-    _setSpanForScope(manualScope, parentSpan);
+      const manualScope = initialScope.clone();
+      const parentSpan = new SentrySpan({ spanId: 'parent-span-id', sampled: true });
+      _setSpanForScope(manualScope, parentSpan);
 
-    startSpanManual({ name: 'GET users/[id]', scope: manualScope }, span => {
-      expect(getCurrentScope()).not.toBe(initialScope);
-      expect(getCurrentScope()).toBe(manualScope);
-      expect(getActiveSpan()).toBe(span);
-      expect(spanToJSON(span).parent_span_id).toBe('parent-span-id');
+      let span1: Span | undefined;
 
-      span.end();
+      startSpanManual({ name: 'GET users/[id]', scope: manualScope }, span => {
+        span1 = span;
+        expect(getCurrentScope()).not.toBe(initialScope);
+        expect(getCurrentScope()).toBe(manualScope);
+        expect(getActiveSpan()).toBe(span);
+        expect(spanToJSON(span).parent_span_id).toBe('parent-span-id');
 
-      // Is still the active span
-      expect(getActiveSpan()).toBe(span);
+        span.end();
+
+        // Is still the active span
+        expect(getActiveSpan()).toBe(span);
+      });
+
+      startSpanManual({ name: 'POST users/[id]', scope: manualScope }, (span, finish) => {
+        expect(getCurrentScope()).not.toBe(initialScope);
+        expect(getCurrentScope()).toBe(manualScope);
+        expect(getActiveSpan()).toBe(span);
+        expect(spanToJSON(span).parent_span_id).toBe(span1?.spanContext().spanId);
+
+        finish();
+
+        // using finish() resets the scope correctly
+        expect(getActiveSpan()).toBe(span1);
+      });
+
+      expect(getCurrentScope()).toBe(initialScope);
+      expect(getActiveSpan()).toBe(undefined);
     });
 
-    expect(getCurrentScope()).toBe(initialScope);
-    expect(getActiveSpan()).toBe(undefined);
+    it('without parent span', () => {
+      const initialScope = getCurrentScope();
+      const manualScope = initialScope.clone();
+
+      startSpanManual({ name: 'GET users/[id]', scope: manualScope }, (span, finish) => {
+        expect(getCurrentScope()).not.toBe(initialScope);
+        expect(getCurrentScope()).toBe(manualScope);
+        expect(getActiveSpan()).toBe(span);
+        expect(spanToJSON(span).parent_span_id).toBe(undefined);
+
+        finish();
+
+        // Is still the active span
+        expect(getActiveSpan()).toBe(undefined);
+      });
+
+      startSpanManual({ name: 'GET users/[id]', scope: manualScope }, (span, finish) => {
+        expect(getCurrentScope()).not.toBe(initialScope);
+        expect(getCurrentScope()).toBe(manualScope);
+        expect(getActiveSpan()).toBe(span);
+        expect(spanToJSON(span).parent_span_id).toBe(undefined);
+
+        finish();
+
+        // using finish() resets the scope correctly
+        expect(getActiveSpan()).toBe(undefined);
+      });
+
+      expect(getCurrentScope()).toBe(initialScope);
+      expect(getActiveSpan()).toBe(undefined);
+    });
   });
 
   it('allows to pass a parentSpan', () => {
