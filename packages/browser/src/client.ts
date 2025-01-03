@@ -105,8 +105,13 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
   /**
    * @inheritDoc
    */
-  protected _prepareEvent(event: Event, hint: EventHint, scope?: Scope): PromiseLike<Event | null> {
+  protected _prepareEvent(
+    event: Event,
+    hint: EventHint,
+    currentScope: Scope,
+    isolationScope: Scope,
+  ): PromiseLike<Event | null> {
     event.platform = event.platform || 'javascript';
-    return super._prepareEvent(event, hint, scope);
+    return super._prepareEvent(event, hint, currentScope, isolationScope);
   }
 }

@@ -143,9 +143,13 @@ Sentry.init({
 - The `flatten` export has been removed. There is no replacement.
 - The `urlEncode` method has been removed. There is no replacement.
 - The `getDomElement` method has been removed. There is no replacement.
-- The `Request` type has been removed. Use `RequestEventData` type instead.
-- The `TransactionNamingScheme` type has been removed. There is no replacement.
 - The `memoBuilder` method has been removed. There is no replacement.
+
+#### Other/Internal Changes
+
+The following changes are unlikely to affect users of the SDK. They are listed here only for completion sake, and to alert users that may be relying on internal behavior.
+
+- `client._prepareEvent()` now requires a currentScope & isolationScope to be passed as last arugments
 
 ### `@sentry/browser`
 
@@ -210,6 +214,8 @@ This led to some duplication, where we had to keep an interface in `@sentry/type
 Since v9, the types have been merged into `@sentry/core`, which removed some of this duplication. This means that certain things that used to be a separate interface, will not expect an actual instance of the class/concrete implementation. This should not affect most users, unless you relied on passing things with a similar shape to internal methods. The following types are affected:
 
 - `Scope` now always expects the `Scope` class
+- The `TransactionNamingScheme` type has been removed. There is no replacement.
+- The `Request` type has been removed. Use `RequestEventData` type instead.
 - The `IntegrationClass` type is no longer exported - it was not used anymore. Instead, use `Integration` or `IntegrationFn`.
 
 # No Version Support Timeline
