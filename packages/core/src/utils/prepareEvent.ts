@@ -1,10 +1,10 @@
-import type { Client, ClientOptions, Event, EventHint, StackParser } from '../types-hoist';
-
+import type { Client } from '../client';
 import { DEFAULT_ENVIRONMENT } from '../constants';
 import { getGlobalScope } from '../currentScopes';
 import { notifyEventProcessors } from '../eventProcessors';
 import type { CaptureContext, ScopeContext } from '../scope';
 import { Scope } from '../scope';
+import type { ClientOptions, Event, EventHint, StackParser } from '../types-hoist';
 import { getFilenameToDebugIdMap } from '../utils-hoist/debug-ids';
 import { addExceptionMechanism, uuid4 } from '../utils-hoist/misc';
 import { normalize } from '../utils-hoist/normalize';

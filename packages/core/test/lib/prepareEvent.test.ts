@@ -1,14 +1,6 @@
-import type { ScopeContext } from '../../src';
+import type { Client, ScopeContext } from '../../src';
 import { GLOBAL_OBJ, createStackParser, getGlobalScope, getIsolationScope } from '../../src';
-import type {
-  Attachment,
-  Breadcrumb,
-  Client,
-  ClientOptions,
-  Event,
-  EventHint,
-  EventProcessor,
-} from '../../src/types-hoist';
+import type { Attachment, Breadcrumb, ClientOptions, Event, EventHint, EventProcessor } from '../../src/types-hoist';
 
 import { Scope } from '../../src/scope';
 import {
