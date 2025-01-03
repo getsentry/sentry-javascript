@@ -220,6 +220,7 @@ Since v9, the types have been merged into `@sentry/core`, which removed some of 
 - The `TransactionNamingScheme` type has been removed. There is no replacement.
 - The `Request` type has been removed. Use `RequestEventData` type instead.
 - The `IntegrationClass` type is no longer exported - it was not used anymore. Instead, use `Integration` or `IntegrationFn`.
+- `ReportDialogOptions` now extends `Record<string, unknown>` instead of `Record<string, any>` - this should not affect most users.
 
 # No Version Support Timeline
 
