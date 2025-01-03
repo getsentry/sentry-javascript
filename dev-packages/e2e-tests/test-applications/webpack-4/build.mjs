@@ -19,6 +19,22 @@ webpack(
     },
     plugins: [new HtmlWebpackPlugin(), new webpack.EnvironmentPlugin(['E2E_TEST_DSN'])],
     mode: 'production',
+    // webpack 4 does not support ES2020 features out of the box, so we need to transpile them
+    module: {
+      rules: [
+        {
+          test: /\.(?:js|mjs|cjs)$/,
+          use: {
+            loader: 'babel-loader',
+            options: {
+              presets: [
+                ['@babel/preset-env', { targets: "ie 11" }]
+              ]
+            }
+          }
+        }
+      ]
+    }
   },
   (err, stats) => {
     if (err) {
