@@ -77,7 +77,6 @@ import type {
   InProgressCheckIn as InProgressCheckIn_imported,
   InformationUnit as InformationUnit_imported,
   Integration as Integration_imported,
-  IntegrationClass as IntegrationClass_imported,
   IntegrationFn as IntegrationFn_imported,
   InternalBaseTransportOptions as InternalBaseTransportOptions_imported,
   MeasurementUnit as MeasurementUnit_imported,
@@ -304,8 +303,6 @@ export type Extras = Extras_imported;
 export type Hub = Hub_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type Integration = Integration_imported;
-/** @deprecated This type has been moved to `@sentry/core`. */
-export type IntegrationClass<T> = IntegrationClass_imported<T>;
 /** @deprecated This type has been moved to `@sentry/core`. */
 // eslint-disable-next-line deprecation/deprecation
 export type IntegrationFn<IntegrationType = Integration> = IntegrationFn_imported<IntegrationType>;
