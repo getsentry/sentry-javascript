@@ -1,3 +1,4 @@
+import type { ReportDialogOptions } from './report-dialog';
 import type { DsnComponents, DsnLike, SdkInfo } from './types-hoist';
 import { dsnToString, makeDsn } from './utils-hoist/dsn';
 
@@ -44,13 +45,7 @@ export function getEnvelopeEndpointWithUrlEncodedAuth(dsn: DsnComponents, tunnel
 }
 
 /** Returns the url to the report dialog endpoint. */
-export function getReportDialogEndpoint(
-  dsnLike: DsnLike,
-  dialogOptions: {
-    [key: string]: unknown;
-    user?: { name?: string; email?: string };
-  },
-): string {
+export function getReportDialogEndpoint(dsnLike: DsnLike, dialogOptions: ReportDialogOptions): string {
   const dsn = makeDsn(dsnLike);
   if (!dsn) {
     return '';
