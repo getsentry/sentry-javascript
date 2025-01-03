@@ -1,4 +1,4 @@
-import type { Client } from './client';
+import type { Client } from '../client';
 import type { Event, EventHint } from './event';
 
 /** Integration interface */

@@ -1,5 +1,5 @@
+import type { Client } from '../client';
 import type {
-  Client,
   Event,
   EventHint,
   Exception,
@@ -10,7 +10,6 @@ import type {
   StackFrame,
   StackParser,
 } from '../types-hoist';
-
 import { isError, isErrorEvent, isParameterizedString, isPlainObject } from './is';
 import { addExceptionMechanism, addExceptionTypeValue } from './misc';
 import { normalizeToSize } from './normalize';

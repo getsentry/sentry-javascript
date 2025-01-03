@@ -12,8 +12,8 @@ import type {
   TraceContext,
 } from './types-hoist';
 
-import { BaseClient } from './baseclient';
 import { createCheckInEnvelope } from './checkin';
+import { Client } from './client';
 import { getIsolationScope, getTraceContextFromScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import type { Scope } from './scope';
@@ -40,7 +40,7 @@ export interface ServerRuntimeClientOptions extends ClientOptions<BaseTransportO
  */
 export class ServerRuntimeClient<
   O extends ClientOptions & ServerRuntimeClientOptions = ServerRuntimeClientOptions,
-> extends BaseClient<O> {
+> extends Client<O> {
   /**
    * Creates a new Edge SDK instance.
    * @param options Configuration options for this SDK.

@@ -7,7 +7,6 @@ export type {
   FetchBreadcrumbHint,
   XhrBreadcrumbHint,
 } from './breadcrumb';
-export type { Client } from './client';
 export type { ClientReport, Outcome, EventDropReason } from './clientreport';
 export type {
   Context,
