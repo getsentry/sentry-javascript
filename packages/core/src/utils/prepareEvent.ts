@@ -166,19 +166,13 @@ export function applyDebugIds(event: Event, stackParser: StackParser): void {
   // Build a map of filename -> debug_id
   const filenameDebugIdMap = getFilenameToDebugIdMap(stackParser);
 
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    event!.exception!.values!.forEach(exception => {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      exception.stacktrace!.frames!.forEach(frame => {
-        if (frame.filename) {
-          frame.debug_id = filenameDebugIdMap[frame.filename];
-        }
-      });
+  event.exception?.values?.forEach(exception => {
+    exception.stacktrace?.frames?.forEach(frame => {
+      if (frame.filename) {
+        frame.debug_id = filenameDebugIdMap[frame.filename];
+      }
     });
-  } catch (e) {
-    // To save bundle size we're just try catching here instead of checking for the existence of all the different objects.
-  }
+  });
 }
 
 /**
@@ -187,24 +181,18 @@ export function applyDebugIds(event: Event, stackParser: StackParser): void {
 export function applyDebugMeta(event: Event): void {
   // Extract debug IDs and filenames from the stack frames on the event.
   const filenameDebugIdMap: Record<string, string> = {};
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    event.exception!.values!.forEach(exception => {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      exception.stacktrace!.frames!.forEach(frame => {
-        if (frame.debug_id) {
-          if (frame.abs_path) {
-            filenameDebugIdMap[frame.abs_path] = frame.debug_id;
-          } else if (frame.filename) {
-            filenameDebugIdMap[frame.filename] = frame.debug_id;
-          }
-          delete frame.debug_id;
+  event.exception?.values?.forEach(exception => {
+    exception.stacktrace?.frames?.forEach(frame => {
+      if (frame.debug_id) {
+        if (frame.abs_path) {
+          filenameDebugIdMap[frame.abs_path] = frame.debug_id;
+        } else if (frame.filename) {
+          filenameDebugIdMap[frame.filename] = frame.debug_id;
         }
-      });
+        delete frame.debug_id;
+      }
     });
-  } catch (e) {
-    // To save bundle size we're just try catching here instead of checking for the existence of all the different objects.
-  }
+  });
 
   if (Object.keys(filenameDebugIdMap).length === 0) {
     return;
