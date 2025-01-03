@@ -1,24 +1,20 @@
 import type { Request, Response } from 'express';
 
-export interface HttpFunction {
-  (req: Request, res: Response): any; // eslint-disable-line @typescript-eslint/no-explicit-any
-}
+export type HttpFunction = (req: Request, res: Response) => void;
 
-export interface EventFunction {
-  (data: Record<string, any>, context: Context): any; // eslint-disable-line @typescript-eslint/no-explicit-any
-}
+export type EventFunction = (data: Record<string, unknown>, context: Context) => void;
 
-export interface EventFunctionWithCallback {
-  (data: Record<string, any>, context: Context, callback: Function): any; // eslint-disable-line @typescript-eslint/no-explicit-any, @typescript-eslint/ban-types
-}
+export type EventFunctionWithCallback = (
+  data: Record<string, unknown>,
+  context: Context,
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  callback: Function,
+) => void;
 
-export interface CloudEventFunction {
-  (cloudevent: CloudEventsContext): any; // eslint-disable-line @typescript-eslint/no-explicit-any
-}
+export type CloudEventFunction = (cloudevent: CloudEventsContext) => void;
 
-export interface CloudEventFunctionWithCallback {
-  (cloudevent: CloudEventsContext, callback: Function): any; // eslint-disable-line @typescript-eslint/no-explicit-any, @typescript-eslint/ban-types
-}
+// eslint-disable-next-line @typescript-eslint/ban-types
+export type CloudEventFunctionWithCallback = (cloudevent: CloudEventsContext, callback: Function) => void;
 
 export interface CloudFunctionsContext {
   eventId?: string;
