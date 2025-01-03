@@ -1,4 +1,4 @@
-import type { Options, SamplingContext } from '../types-hoist';
+import type { Options, RequestEventData, SamplingContext } from '../types-hoist';
 
 import { getIsolationScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
@@ -21,7 +21,9 @@ export function sampleSpan(
     return [false];
   }
 
-  const normalizedRequest = getIsolationScope().getScopeData().sdkProcessingMetadata.normalizedRequest;
+  // Casting this from unknown, as the type of `sdkProcessingMetadata` is only changed in v9 and `normalizedRequest` is set in SentryHttpInstrumentation
+  const normalizedRequest = getIsolationScope().getScopeData().sdkProcessingMetadata
+    .normalizedRequest as RequestEventData;
 
   const enhancedSamplingContext = {
     ...samplingContext,
