@@ -97,9 +97,8 @@ export function makeDebuggerPlugin(hookName) {
  */
 export function makeCleanupPlugin() {
   return cleanup({
-    // line endings are unix-ized by default
-    comments: 'all', // comments to keep
-    compactComments: 'false', // don't remove blank lines in multi-line comments
+    // Keep comments containing `Copyright` and `@license`
+    comments: ['license', /Copyright/],
     maxEmptyLines: 1,
     extensions: ['js', 'jsx', 'ts', 'tsx'],
   });
