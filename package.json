@@ -31,6 +31,7 @@
     "lint:lerna": "lerna run lint",
     "lint:biome": "biome check .",
     "lint:prettier": "prettier \"**/*.md\" \"**/*.css\" --check",
+    "lint:es-compatibility": "es-check es2020 ./packages/*/build/{bundles,npm/cjs,cjs}/*.js && es-check es2020 ./packages/*/build/{npm/esm,esm}/*.js --module",
     "postpublish": "lerna run --stream --concurrency 1 postpublish",
     "test": "lerna run --ignore \"@sentry-internal/{browser-integration-tests,e2e-tests,integration-shims,node-integration-tests}\" test",
     "test:unit": "lerna run --ignore \"@sentry-internal/{browser-integration-tests,e2e-tests,integration-shims,node-integration-tests}\" test:unit",
@@ -115,6 +116,7 @@
     "@vitest/coverage-v8": "^1.6.0",
     "deepmerge": "^4.2.2",
     "downlevel-dts": "~0.11.0",
+    "es-check": "^7.2.1",
     "eslint": "7.32.0",
     "jest": "^27.5.1",
     "jest-environment-node": "^27.5.1",
@@ -144,7 +146,8 @@
   "resolutions": {
     "gauge/strip-ansi": "6.0.1",
     "wide-align/string-width": "4.2.3",
-    "cliui/wrap-ansi": "7.0.0"
+    "cliui/wrap-ansi": "7.0.0",
+    "**/sucrase": "getsentry/sucrase#es2020-polyfills"
   },
   "version": "0.0.0",
   "name": "sentry-javascript",
