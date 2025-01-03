@@ -68,16 +68,6 @@ describe('`RequestData` integration', () => {
       expect(passedOptions?.include).toEqual(expect.objectContaining({ ip: false, user: true }));
     });
 
-    it('moves `transactionNamingScheme` to `transaction` include', () => {
-      const requestDataEventProcessor = initWithRequestDataIntegrationOptions({ transactionNamingScheme: 'path' });
-
-      void requestDataEventProcessor(event, {});
-
-      const passedOptions = addNormalizedRequestDataToEventSpy.mock.calls[0]?.[3];
-
-      expect(passedOptions?.include).toEqual(expect.objectContaining({ transaction: 'path' }));
-    });
-
     it('moves `true` request keys into `request` include, but omits `false` ones', async () => {
       const requestDataEventProcessor = initWithRequestDataIntegrationOptions({
         include: { data: true, cookies: false },

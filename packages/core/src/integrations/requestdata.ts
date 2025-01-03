@@ -21,12 +21,6 @@ export type RequestDataIntegrationOptions = {
           email?: boolean;
         };
   };
-
-  /**
-   * Whether to identify transactions by parameterized path, parameterized path with method, or handler name.
-   * @deprecated This option does not do anything anymore, and will be removed in v9.
-   */
-  transactionNamingScheme?: 'path' | 'methodPath' | 'handler';
 };
 
 const DEFAULT_OPTIONS = {
@@ -106,8 +100,6 @@ function convertReqDataIntegrationOptsToAddReqDataOpts(
   integrationOptions: Required<RequestDataIntegrationOptions>,
 ): AddRequestDataToEventOptions {
   const {
-    // eslint-disable-next-line deprecation/deprecation
-    transactionNamingScheme,
     include: { ip, user, ...requestOptions },
   } = integrationOptions;
 
@@ -138,7 +130,6 @@ function convertReqDataIntegrationOptsToAddReqDataOpts(
       ip,
       user: addReqDataUserOpt,
       request: requestIncludeKeys.length !== 0 ? requestIncludeKeys : undefined,
-      transaction: transactionNamingScheme,
     },
   };
 }
