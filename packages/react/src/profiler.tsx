@@ -134,6 +134,7 @@ class Profiler extends React.Component<ProfilerProps> {
   }
 }
 
+// React.Component default props are defined as static property on the class
 Object.assign(Profiler, {
   defaultProps: {
     disabled: false,
