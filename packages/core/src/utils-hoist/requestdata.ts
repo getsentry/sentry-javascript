@@ -22,10 +22,8 @@ import { getClientIPAddress, ipHeaderNames } from './vendor/getIpAddress';
 const DEFAULT_INCLUDES = {
   ip: false,
   request: true,
-  user: true,
 };
 const DEFAULT_REQUEST_INCLUDES = ['cookies', 'data', 'headers', 'method', 'query_string', 'url'];
-export const DEFAULT_USER_INCLUDES = ['id', 'username', 'email'];
 
 /**
  * Options deciding what parts of the request to use when enhancing an event
@@ -38,7 +36,6 @@ export type AddRequestDataToEventOptions = {
     /** @deprecated This option will be removed in v9. It does not do anything anymore, the `transcation` is set in other places. */
     // eslint-disable-next-line deprecation/deprecation
     transaction?: boolean | 'path' | 'methodPath' | 'handler';
-    user?: boolean | Array<(typeof DEFAULT_USER_INCLUDES)[number]>;
   };
 
   /** Injected platform-specific dependencies */
@@ -101,24 +98,6 @@ export function extractPathForTransaction(
   }
 
   return [name, source];
-}
-
-function extractUserData(
-  user: {
-    [key: string]: unknown;
-  },
-  keys: boolean | string[],
-): { [key: string]: unknown } {
-  const extractedUser: { [key: string]: unknown } = {};
-  const attributes = Array.isArray(keys) ? keys : DEFAULT_USER_INCLUDES;
-
-  attributes.forEach(key => {
-    if (user && key in user) {
-      extractedUser[key] = user[key];
-    }
-  });
-
-  return extractedUser;
 }
 
 /**
@@ -260,7 +239,7 @@ export function addNormalizedRequestDataToEvent(
   event: Event,
   req: RequestEventData,
   // This is non-standard data that is not part of the regular HTTP request
-  additionalData: { ipAddress?: string; user?: Record<string, unknown> },
+  additionalData: { ipAddress?: string },
   options: AddRequestDataToEventOptions,
 ): void {
   const include = {
@@ -280,20 +259,6 @@ export function addNormalizedRequestDataToEvent(
       ...event.request,
       ...extractedRequestData,
     };
-  }
-
-  if (include.user) {
-    const extractedUser =
-      additionalData.user && isPlainObject(additionalData.user)
-        ? extractUserData(additionalData.user, include.user)
-        : {};
-
-    if (Object.keys(extractedUser).length) {
-      event.user = {
-        ...extractedUser,
-        ...event.user,
-      };
-    }
   }
 
   if (include.ip) {
@@ -341,17 +306,6 @@ export function addRequestDataToEvent(
       ...event.request,
       ...extractedRequestData,
     };
-  }
-
-  if (include.user) {
-    const extractedUser = req.user && isPlainObject(req.user) ? extractUserData(req.user, include.user) : {};
-
-    if (Object.keys(extractedUser).length) {
-      event.user = {
-        ...event.user,
-        ...extractedUser,
-      };
-    }
   }
 
   // client ip:

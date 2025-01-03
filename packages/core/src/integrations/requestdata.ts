@@ -17,13 +17,6 @@ export type RequestDataIntegrationOptions = {
     ip?: boolean;
     query_string?: boolean;
     url?: boolean;
-    user?:
-      | boolean
-      | {
-          id?: boolean;
-          username?: boolean;
-          email?: boolean;
-        };
   };
 
   /**
@@ -41,11 +34,6 @@ const DEFAULT_OPTIONS = {
     ip: false,
     query_string: true,
     url: true,
-    user: {
-      id: true,
-      username: true,
-      email: true,
-    },
   },
   transactionNamingScheme: 'methodPath' as const,
 };
@@ -59,14 +47,6 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
     include: {
       ...DEFAULT_OPTIONS.include,
       ...options.include,
-      user:
-        options.include && typeof options.include.user === 'boolean'
-          ? options.include.user
-          : {
-              ...DEFAULT_OPTIONS.include.user,
-              // Unclear why TS still thinks `options.include.user` could be a boolean at this point
-              ...((options.include || {}).user as Record<string, boolean>),
-            },
     },
   };
 
@@ -87,9 +67,8 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
       if (normalizedRequest) {
         // Some other data is not available in standard HTTP requests, but can sometimes be augmented by e.g. Express or Next.js
         const ipAddress = request ? request.ip || (request.socket && request.socket.remoteAddress) : undefined;
-        const user = request ? request.user : undefined;
 
-        addNormalizedRequestDataToEvent(event, normalizedRequest, { ipAddress, user }, addRequestDataOptions);
+        addNormalizedRequestDataToEvent(event, normalizedRequest, { ipAddress }, addRequestDataOptions);
         return event;
       }
 
@@ -118,7 +97,7 @@ function convertReqDataIntegrationOptsToAddReqDataOpts(
   const {
     // eslint-disable-next-line deprecation/deprecation
     transactionNamingScheme,
-    include: { ip, user, ...requestOptions },
+    include: { ip, ...requestOptions },
   } = integrationOptions;
 
   const requestIncludeKeys: string[] = ['method'];
@@ -128,25 +107,9 @@ function convertReqDataIntegrationOptsToAddReqDataOpts(
     }
   }
 
-  let addReqDataUserOpt;
-  if (user === undefined) {
-    addReqDataUserOpt = true;
-  } else if (typeof user === 'boolean') {
-    addReqDataUserOpt = user;
-  } else {
-    const userIncludeKeys: string[] = [];
-    for (const [key, value] of Object.entries(user)) {
-      if (value) {
-        userIncludeKeys.push(key);
-      }
-    }
-    addReqDataUserOpt = userIncludeKeys;
-  }
-
   return {
     include: {
       ip,
-      user: addReqDataUserOpt,
       request: requestIncludeKeys.length !== 0 ? requestIncludeKeys : undefined,
       transaction: transactionNamingScheme,
     },
