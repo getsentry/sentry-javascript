@@ -28,7 +28,7 @@ sentryTest('Flag evaluations in forked scopes are stored separately.', async ({ 
   await page.evaluate(() => {
     const Sentry = (window as any).Sentry;
     const errorButton = document.querySelector('#error') as HTMLButtonElement;
-    const client = (window as any).initialize();
+    const client = (window as any).openFeatureClient;
 
     client.getBooleanValue('shared', true);
 

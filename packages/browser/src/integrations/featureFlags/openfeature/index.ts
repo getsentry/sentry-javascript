@@ -1,1 +1,1 @@
-export { openFeatureIntegration, OpenFeatureIntegrationHook } from './integration';
+export { openFeatureIntegration } from './integration';
