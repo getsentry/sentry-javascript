@@ -496,7 +496,6 @@ describe('startSpan', () => {
         test2: 'aa',
         test3: 'bb',
       },
-      transactionContext: expect.objectContaining({ name: 'outer', parentSampled: undefined }),
     });
   });
 

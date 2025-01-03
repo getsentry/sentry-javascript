@@ -381,10 +381,6 @@ function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parent
         name,
         parentSampled,
         attributes,
-        transactionContext: {
-          name,
-          parentSampled,
-        },
       });
 
   const rootSpan = new SentrySpan({
