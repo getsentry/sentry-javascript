@@ -83,7 +83,7 @@ const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
 afterEach(done => {
   jest.clearAllMocks();
 
-  if (testServer && testServer.listening) {
+  if (testServer?.listening) {
     testServer.close(done);
   } else {
     done();

@@ -104,7 +104,7 @@ export function node(getModule?: GetModuleFn): StackLineParserFn {
       const isNative = lineMatch[5] === 'native';
 
       // If it's a Windows path, trim the leading slash so that `/C:/foo` becomes `C:/foo`
-      if (filename && filename.match(/\/[A-Z]:/)) {
+      if (filename?.match(/\/[A-Z]:/)) {
         filename = filename.slice(1);
       }
 

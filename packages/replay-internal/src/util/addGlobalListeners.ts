@@ -60,7 +60,7 @@ export function addGlobalListeners(replay: ReplayContainer): void {
     // We want to flush replay
     client.on('beforeSendFeedback', (feedbackEvent, options) => {
       const replayId = replay.getSessionId();
-      if (options && options.includeReplay && replay.isEnabled() && replayId) {
+      if (options?.includeReplay && replay.isEnabled() && replayId) {
         // This should never reject
         if (feedbackEvent.contexts && feedbackEvent.contexts.feedback) {
           feedbackEvent.contexts.feedback.replay_id = replayId;

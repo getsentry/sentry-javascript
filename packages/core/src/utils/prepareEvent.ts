@@ -149,12 +149,12 @@ export function applyClientOptions(event: Event, options: ClientOptions): void {
   }
 
   const exception = event.exception && event.exception.values && event.exception.values[0];
-  if (exception && exception.value) {
+  if (exception?.value) {
     exception.value = truncate(exception.value, maxValueLength);
   }
 
   const request = event.request;
-  if (request && request.url) {
+  if (request?.url) {
     request.url = truncate(request.url, maxValueLength);
   }
 }

@@ -322,7 +322,7 @@ export function TraceClass(options?: TraceClassOptions): ClassDecorator {
       tracingSpan = runOutsideAngular(() =>
         startInactiveSpan({
           onlyIfParent: true,
-          name: `<${options && options.name ? options.name : 'unnamed'}>`,
+          name: `<${options?.name ? options.name : 'unnamed'}>`,
           op: ANGULAR_INIT_OP,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_class_decorator',
@@ -367,7 +367,7 @@ export function TraceMethod(options?: TraceMethodOptions): MethodDecorator {
       runOutsideAngular(() => {
         startInactiveSpan({
           onlyIfParent: true,
-          name: `<${options && options.name ? options.name : 'unnamed'}>`,
+          name: `<${options?.name ? options.name : 'unnamed'}>`,
           op: `${ANGULAR_OP}.${String(propertyKey)}`,
           startTime: now,
           attributes: {
@@ -397,9 +397,9 @@ export function TraceMethod(options?: TraceMethodOptions): MethodDecorator {
 export function getParameterizedRouteFromSnapshot(route?: ActivatedRouteSnapshot | null): string {
   const parts: string[] = [];
 
-  let currentRoute = route && route.firstChild;
+  let currentRoute = route?.firstChild;
   while (currentRoute) {
-    const path = currentRoute && currentRoute.routeConfig && currentRoute.routeConfig.path;
+    const path = currentRoute?.routeConfig && currentRoute.routeConfig.path;
     if (path === null || path === undefined) {
       break;
     }

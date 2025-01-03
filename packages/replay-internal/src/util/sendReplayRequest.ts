@@ -30,8 +30,8 @@ export async function sendReplayRequest({
 
   const client = getClient();
   const scope = getCurrentScope();
-  const transport = client && client.getTransport();
-  const dsn = client && client.getDsn();
+  const transport = client?.getTransport();
+  const dsn = client?.getDsn();
 
   if (!client || !transport || !dsn || !session.sampled) {
     return resolvedSyncPromise({});

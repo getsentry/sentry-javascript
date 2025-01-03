@@ -67,7 +67,7 @@ function extractNextDataTagInformation(): NextDataTagInfo {
   // Let's be on the safe side and actually check first if there is really a __NEXT_DATA__ script tag on the page.
   // Theoretically this should always be the case though.
   const nextDataTag = globalObject.document.getElementById('__NEXT_DATA__');
-  if (nextDataTag && nextDataTag.innerHTML) {
+  if (nextDataTag?.innerHTML) {
     try {
       nextData = JSON.parse(nextDataTag.innerHTML);
     } catch (e) {
@@ -91,7 +91,7 @@ function extractNextDataTagInformation(): NextDataTagInfo {
   nextDataTagInfo.route = page;
   nextDataTagInfo.params = query;
 
-  if (props && props.pageProps) {
+  if (props?.pageProps) {
     nextDataTagInfo.sentryTrace = props.pageProps._sentryTraceData;
     nextDataTagInfo.baggage = props.pageProps._sentryBaggage;
   }

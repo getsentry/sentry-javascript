@@ -57,7 +57,7 @@ export function reactRouterV3BrowserTracingIntegration(
     afterAllSetup(client) {
       integration.afterAllSetup(client);
 
-      if (instrumentPageLoad && WINDOW && WINDOW.location) {
+      if (instrumentPageLoad && WINDOW.location) {
         normalizeTransactionName(
           routes,
           WINDOW.location as unknown as Location,

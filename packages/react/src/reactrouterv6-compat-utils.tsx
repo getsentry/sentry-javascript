@@ -85,7 +85,7 @@ export function createV6CompatibleWrapCreateBrowserRouter<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return function (routes: RouteObject[], opts?: Record<string, any> & { basename?: string }): TRouter {
     const router = createRouterFunction(routes, opts);
-    const basename = opts && opts.basename;
+    const basename = opts?.basename;
 
     const activeRootSpan = getActiveRootSpan();
 
@@ -150,7 +150,7 @@ export function createReactRouterV6CompatibleTracingIntegration(
     afterAllSetup(client) {
       integration.afterAllSetup(client);
 
-      const initPathName = WINDOW && WINDOW.location && WINDOW.location.pathname;
+      const initPathName = WINDOW.location?.pathname;
       if (instrumentPageLoad && initPathName) {
         startBrowserTracingPageLoadSpan(client, {
           name: initPathName,
@@ -196,9 +196,7 @@ export function createV6CompatibleWrapUseRoutes(origUseRoutes: UseRoutes, versio
 
     // A value with stable identity to either pick `locationArg` if available or `location` if not
     const stableLocationParam =
-      typeof locationArg === 'string' || (locationArg && locationArg.pathname)
-        ? (locationArg as { pathname: string })
-        : location;
+      typeof locationArg === 'string' || locationArg?.pathname ? (locationArg as { pathname: string }) : location;
 
     _useEffect(() => {
       const normalizedLocation =
