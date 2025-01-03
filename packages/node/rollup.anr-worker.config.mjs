@@ -7,7 +7,6 @@ export function createWorkerCodeBuilder(entry, outDir) {
     makeBaseBundleConfig({
       bundleType: 'node-worker',
       entrypoints: [entry],
-      sucrase: { disableESTransforms: true },
       licenseTitle: '@sentry/node',
       outputFileBase: () => 'worker-script.js',
       packageSpecificConfig: {
