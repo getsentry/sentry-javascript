@@ -55,7 +55,7 @@ export { cron } from './cron';
 export type { NodeOptions } from './types';
 
 // eslint-disable-next-line deprecation/deprecation
-export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from '@sentry/core';
+export { addRequestDataToEvent, extractRequestData } from '@sentry/core';
 
 export {
   // This needs exporting so the NodeClient can be used without calling init

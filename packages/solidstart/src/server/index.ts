@@ -28,7 +28,6 @@ export {
   createTransport,
   cron,
   dedupeIntegration,
-  DEFAULT_USER_INCLUDES,
   defaultStackParser,
   endSession,
   expressErrorHandler,
