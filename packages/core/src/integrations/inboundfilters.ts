@@ -131,7 +131,6 @@ function _isIgnoredTransaction(event: Event, ignoreTransactions?: Array<string |
 }
 
 function _isDeniedUrl(event: Event, denyUrls?: Array<string | RegExp>): boolean {
-  // TODO: Use Glob instead?
   if (!denyUrls || !denyUrls.length) {
     return false;
   }
@@ -140,7 +139,6 @@ function _isDeniedUrl(event: Event, denyUrls?: Array<string | RegExp>): boolean 
 }
 
 function _isAllowedUrl(event: Event, allowUrls?: Array<string | RegExp>): boolean {
-  // TODO: Use Glob instead?
   if (!allowUrls || !allowUrls.length) {
     return true;
   }

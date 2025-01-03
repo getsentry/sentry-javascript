@@ -32,8 +32,7 @@ export function setContextOnScope(scope: Scope, context: Context): void {
 
 /**
  * Get the context related to a scope.
- * TODO v8: Use this for the `trace` functions.
- * */
+ */
 export function getContextFromScope(scope: Scope): Context | undefined {
   return (scope as { [SCOPE_CONTEXT_FIELD]?: Context })[SCOPE_CONTEXT_FIELD];
 }
