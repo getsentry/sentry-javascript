@@ -155,6 +155,9 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
 
         const normalizedRequest = httpRequestToRequestData(request);
 
+        // request.ip is non-standard but some frameworks set this
+        const ipAddress = (request as { ip?: string }).ip || request.socket?.remoteAddress;
+
         patchRequestToCaptureBody(request, isolationScope);
 
         // Update the isolation scope, isolate this request
@@ -162,6 +165,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
         isolationScope.setSDKProcessingMetadata({
           request,
           normalizedRequest,
+          ipAddress,
         });
 
         // attempt to update the scope's `transactionName` based on the request URL
