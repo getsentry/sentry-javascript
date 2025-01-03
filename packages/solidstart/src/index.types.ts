@@ -4,6 +4,7 @@
 export * from './client';
 export * from './server';
 export * from './vite';
+export * from './config';
 
 import type { Client, Integration, Options, StackParser } from '@sentry/core';
 

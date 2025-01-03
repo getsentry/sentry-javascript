@@ -3,9 +3,9 @@
   "version": "0.0.0",
   "scripts": {
     "clean": "pnpx rimraf node_modules pnpm-lock.yaml .vinxi .output",
-    "dev": "NODE_OPTIONS='--import ./src/instrument.server.mjs' vinxi dev",
-    "build": "vinxi build && sh ./post_build.sh",
-    "preview": "HOST=localhost PORT=3030 NODE_OPTIONS='--import ./src/instrument.server.mjs' vinxi start",
+    "build": "vinxi build && sh post_build.sh",
+    "preview": "HOST=localhost PORT=3030 vinxi start",
+    "start:import": "HOST=localhost PORT=3030 node --import ./.output/server/instrument.server.mjs .output/server/index.mjs",
     "test:prod": "TEST_ENV=production playwright test",
     "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm test:prod"
