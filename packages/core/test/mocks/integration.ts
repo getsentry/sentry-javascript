@@ -1,6 +1,6 @@
-import type { Client, Event, EventProcessor, Integration } from '../../src/types-hoist';
-
+import type { Client } from '../../src';
 import { getClient, getCurrentScope } from '../../src';
+import type { Event, EventProcessor, Integration } from '../../src/types-hoist';
 
 export class TestIntegration implements Integration {
   public static id: string = 'TestIntegration';
