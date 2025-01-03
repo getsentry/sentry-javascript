@@ -99,10 +99,6 @@ export class SentrySampler implements Sampler {
     const [sampled, sampleRate] = sampleSpan(options, {
       name: inferredSpanName,
       attributes: mergedAttributes,
-      transactionContext: {
-        name: inferredSpanName,
-        parentSampled,
-      },
       parentSampled,
     });
 

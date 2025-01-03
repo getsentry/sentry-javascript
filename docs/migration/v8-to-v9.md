@@ -220,6 +220,7 @@ Since v9, the types have been merged into `@sentry/core`, which removed some of 
 - The `TransactionNamingScheme` type has been removed. There is no replacement.
 - The `Request` type has been removed. Use `RequestEventData` type instead.
 - The `IntegrationClass` type is no longer exported - it was not used anymore. Instead, use `Integration` or `IntegrationFn`.
+- The `samplingContext.transactionContext` object in the `tracesSampler` has been removed. All object attributes are available in the top-level of `samplingContext`.
 
 # No Version Support Timeline
 
