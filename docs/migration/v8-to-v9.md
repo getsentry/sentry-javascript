@@ -144,6 +144,8 @@ Sentry.init({
 - The `Request` type has been removed. Use `RequestEventData` type instead.
 - The `TransactionNamingScheme` type has been removed. There is no replacement.
 - The `memoBuilder` method has been removed. There is no replacement.
+- The `extractRequestData` method has been removed. Manually extract relevant data off request instead.
+- The `addRequestDataToEvent` method has been removed. Use `addNormalizedRequestDataToEvent` instead.
 
 ### `@sentry/browser`
 
