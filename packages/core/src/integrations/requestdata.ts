@@ -69,14 +69,13 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
       // that's happened, it will be easier to add this logic in without worrying about unexpected side effects.)
 
       const { sdkProcessingMetadata = {} } = event;
-      const { request, normalizedRequest } = sdkProcessingMetadata;
+      const { request, normalizedRequest, ipAddress } = sdkProcessingMetadata;
 
       const addRequestDataOptions = convertReqDataIntegrationOptsToAddReqDataOpts(_options);
 
       // If this is set, it takes precedence over the plain request object
       if (normalizedRequest) {
         // Some other data is not available in standard HTTP requests, but can sometimes be augmented by e.g. Express or Next.js
-        const ipAddress = request ? request.ip || (request.socket && request.socket.remoteAddress) : undefined;
         const user = request ? request.user : undefined;
 
         addNormalizedRequestDataToEvent(event, normalizedRequest, { ipAddress, user }, addRequestDataOptions);
