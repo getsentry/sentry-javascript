@@ -14,7 +14,6 @@ Sentry.init({
       !!samplingContext.normalizedRequest.headers
     );
   },
-  debug: true,
 });
 
 // express must be required after Sentry is initialized
