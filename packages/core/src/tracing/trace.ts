@@ -16,14 +16,7 @@ import { propagationContextFromHeaders } from '../utils-hoist/tracing';
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
 import { _getSpanForScope, _setSpanForScope } from '../utils/spanOnScope';
-import {
-  addChildSpanToSpan,
-  getActiveSpan,
-  getRootSpan,
-  spanIsSampled,
-  spanTimeInputToSeconds,
-  spanToJSON,
-} from '../utils/spanUtils';
+import { addChildSpanToSpan, getRootSpan, spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
 import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanStart } from './logSpans';
 import { sampleSpan } from './sampling';
