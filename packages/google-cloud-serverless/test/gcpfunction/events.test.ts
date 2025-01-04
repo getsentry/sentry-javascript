@@ -1,4 +1,3 @@
-import * as domain from 'domain';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 
 import type { Event } from '@sentry/core';
@@ -45,22 +44,20 @@ describe('wrapEventFunction', () => {
 
   function handleEvent(fn: EventFunctionWithCallback): Promise<any> {
     return new Promise((resolve, reject) => {
-      // eslint-disable-next-line deprecation/deprecation
-      const d = domain.create();
       const context = {
         eventType: 'event.type',
         resource: 'some.resource',
       };
-      d.on('error', reject);
-      d.run(() =>
-        process.nextTick(fn, {}, context, (err: any, result: any) => {
-          if (err != null || err != undefined) {
-            reject(err);
-          } else {
-            resolve(result);
-          }
-        }),
-      );
+
+      const result = fn({}, context, (err: any, result: any) => {
+        if (err != null || err != undefined) {
+          reject(err);
+        } else {
+          resolve(result);
+        }
+      });
+
+      Promise.allSettled([result]).catch(error => reject(error));
     });
   }
 
