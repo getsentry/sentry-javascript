@@ -6,13 +6,12 @@ Sentry.init({
   release: '1.0',
   transport: loggingTransport,
   tracesSampler: samplingContext => {
-    // The name we get here is inferred at span creation time
-    // At this point, we sadly do not have a http.route attribute yet,
-    // so we infer the name from the unparameterized route instead
+    // The sampling decision is based on whether the data in `normalizedRequest` is available --> this is what we want to test for
     return (
-      samplingContext.name === 'GET /test/123' &&
-      samplingContext.attributes['sentry.op'] === 'http.server' &&
-      samplingContext.attributes['http.method'] === 'GET'
+      samplingContext.normalizedRequest.url.includes('/test-normalized-request?query=123') &&
+      samplingContext.normalizedRequest.method &&
+      samplingContext.normalizedRequest.query_string === 'query=123' &&
+      !!samplingContext.normalizedRequest.headers
     );
   },
 });
@@ -26,11 +25,7 @@ const app = express();
 
 app.use(cors());
 
-app.get('/test/:id', (_req, res) => {
-  res.send('Success');
-});
-
-app.get('/test2', (_req, res) => {
+app.get('/test-normalized-request', (_req, res) => {
   res.send('Success');
 });
 

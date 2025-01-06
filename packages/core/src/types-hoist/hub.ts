@@ -3,7 +3,7 @@ import type { Breadcrumb, BreadcrumbHint } from './breadcrumb';
 import type { Client } from './client';
 import type { Event, EventHint } from './event';
 import type { Extra, Extras } from './extra';
-import type { Integration, IntegrationClass } from './integration';
+import type { Integration } from './integration';
 import type { Primitive } from './misc';
 import type { Session } from './session';
 import type { SeverityLevel } from './severity';
@@ -171,9 +171,9 @@ export interface Hub {
   /**
    * Returns the integration if installed on the current client.
    *
-   * @deprecated Use `Sentry.getClient().getIntegration()` instead.
+   * @deprecated Use `Sentry.getClient().getIntegrationByName()` instead.
    */
-  getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null;
+  getIntegration<T extends Integration>(integration: unknown): T | null;
 
   /**
    * Starts a new `Session`, sets on the current scope and returns it.

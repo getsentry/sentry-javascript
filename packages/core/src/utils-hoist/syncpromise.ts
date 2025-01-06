@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/explicit-function-return-type */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { isThenable } from './is';
 
@@ -40,29 +39,25 @@ export function rejectedSyncPromise<T = never>(reason?: any): PromiseLike<T> {
   });
 }
 
+type Executor<T> = (resolve: (value?: T | PromiseLike<T> | null) => void, reject: (reason?: any) => void) => void;
+
 /**
  * Thenable class that behaves like a Promise and follows it's interface
  * but is not async internally
  */
-class SyncPromise<T> implements PromiseLike<T> {
+export class SyncPromise<T> implements PromiseLike<T> {
   private _state: States;
   private _handlers: Array<[boolean, (value: T) => void, (reason: any) => any]>;
   private _value: any;
 
-  public constructor(
-    executor: (resolve: (value?: T | PromiseLike<T> | null) => void, reject: (reason?: any) => void) => void,
-  ) {
+  public constructor(executor: Executor<T>) {
     this._state = States.PENDING;
     this._handlers = [];
 
-    try {
-      executor(this._resolve, this._reject);
-    } catch (e) {
-      this._reject(e);
-    }
+    this._runExecutor(executor);
   }
 
-  /** JSDoc */
+  /** @inheritdoc */
   public then<TResult1 = T, TResult2 = never>(
     onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | null,
     onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null,
@@ -99,14 +94,14 @@ class SyncPromise<T> implements PromiseLike<T> {
     });
   }
 
-  /** JSDoc */
+  /** @inheritdoc */
   public catch<TResult = never>(
     onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | null,
   ): PromiseLike<T | TResult> {
     return this.then(val => val, onrejected);
   }
 
-  /** JSDoc */
+  /** @inheritdoc */
   public finally<TResult>(onfinally?: (() => void) | null): PromiseLike<TResult> {
     return new SyncPromise<TResult>((resolve, reject) => {
       let val: TResult | any;
@@ -138,35 +133,8 @@ class SyncPromise<T> implements PromiseLike<T> {
     });
   }
 
-  /** JSDoc */
-  private readonly _resolve = (value?: T | PromiseLike<T> | null) => {
-    this._setResult(States.RESOLVED, value);
-  };
-
-  /** JSDoc */
-  private readonly _reject = (reason?: any) => {
-    this._setResult(States.REJECTED, reason);
-  };
-
-  /** JSDoc */
-  private readonly _setResult = (state: States, value?: T | PromiseLike<T> | any) => {
-    if (this._state !== States.PENDING) {
-      return;
-    }
-
-    if (isThenable(value)) {
-      void (value as PromiseLike<T>).then(this._resolve, this._reject);
-      return;
-    }
-
-    this._state = state;
-    this._value = value;
-
-    this._executeHandlers();
-  };
-
-  /** JSDoc */
-  private readonly _executeHandlers = () => {
+  /** Excute the resolve/reject handlers. */
+  private _executeHandlers(): void {
     if (this._state === States.PENDING) {
       return;
     }
@@ -189,7 +157,38 @@ class SyncPromise<T> implements PromiseLike<T> {
 
       handler[0] = true;
     });
-  };
-}
+  }
 
-export { SyncPromise };
+  /** Run the executor for the SyncPromise. */
+  private _runExecutor(executor: Executor<T>): void {
+    const setResult = (state: States, value?: T | PromiseLike<T> | any): void => {
+      if (this._state !== States.PENDING) {
+        return;
+      }
+
+      if (isThenable(value)) {
+        void (value as PromiseLike<T>).then(resolve, reject);
+        return;
+      }
+
+      this._state = state;
+      this._value = value;
+
+      this._executeHandlers();
+    };
+
+    const resolve = (value: unknown): void => {
+      setResult(States.RESOLVED, value);
+    };
+
+    const reject = (reason: unknown): void => {
+      setResult(States.REJECTED, reason);
+    };
+
+    try {
+      executor(resolve, reject);
+    } catch (e) {
+      reject(e);
+    }
+  }
+}

@@ -2,6 +2,7 @@ import { addBreadcrumb } from './breadcrumbs';
 import { getClient, getCurrentScope, getIsolationScope, withScope } from './currentScopes';
 import {
   captureEvent,
+  captureSession,
   endSession,
   setContext,
   setExtra,
@@ -11,7 +12,7 @@ import {
   setUser,
   startSession,
 } from './exports';
-import type { Client, EventHint, Hub, Integration, IntegrationClass, SeverityLevel } from './types-hoist';
+import type { Client, EventHint, Hub, Integration, SeverityLevel } from './types-hoist';
 
 /**
  * This is for legacy reasons, and returns a proxy object instead of a hub to be used.
@@ -48,22 +49,13 @@ export function getCurrentHubShim(): Hub {
     setExtras,
     setContext,
 
-    getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null {
-      const client = getClient();
-      return (client && client.getIntegrationByName<T>(integration.id)) || null;
+    getIntegration<T extends Integration>(_integration: unknown): T | null {
+      return null;
     },
 
     startSession,
     endSession,
-    captureSession(end?: boolean): void {
-      // both send the update and pull the session from the scope
-      if (end) {
-        return endSession();
-      }
-
-      // only send the update
-      _sendSessionUpdate();
-    },
+    captureSession,
   };
 }
 
@@ -78,16 +70,3 @@ export function getCurrentHubShim(): Hub {
  */
 // eslint-disable-next-line deprecation/deprecation
 export const getCurrentHub = getCurrentHubShim;
-
-/**
- * Sends the current Session on the scope
- */
-function _sendSessionUpdate(): void {
-  const scope = getCurrentScope();
-  const client = getClient();
-
-  const session = scope.getSession();
-  if (client && session) {
-    client.captureSession(session);
-  }
-}

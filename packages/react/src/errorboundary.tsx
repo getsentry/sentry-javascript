@@ -145,14 +145,14 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     }
   }
 
-  public resetErrorBoundary: () => void = () => {
+  public resetErrorBoundary(): void {
     const { onReset } = this.props;
     const { error, componentStack, eventId } = this.state;
     if (onReset) {
       onReset(error, componentStack, eventId);
     }
     this.setState(INITIAL_STATE);
-  };
+  }
 
   public render(): React.ReactNode {
     const { fallback, children } = this.props;
@@ -164,7 +164,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
         element = React.createElement(fallback, {
           error: state.error,
           componentStack: state.componentStack as string,
-          resetError: this.resetErrorBoundary,
+          resetError: this.resetErrorBoundary.bind(this),
           eventId: state.eventId as string,
         });
       } else {

@@ -287,10 +287,6 @@ export function startSession(context?: SessionContext): Session {
   // Afterwards we set the new session on the scope
   isolationScope.setSession(session);
 
-  // TODO (v8): Remove this and only use the isolation scope(?).
-  // For v7 though, we can't "soft-break" people using getCurrentHub().getScope().setSession()
-  currentScope.setSession(session);
-
   return session;
 }
 
@@ -309,10 +305,6 @@ export function endSession(): void {
 
   // the session is over; take it off of the scope
   isolationScope.setSession();
-
-  // TODO (v8): Remove this and only use the isolation scope(?).
-  // For v7 though, we can't "soft-break" people using getCurrentHub().getScope().setSession()
-  currentScope.setSession();
 }
 
 /**
@@ -320,11 +312,8 @@ export function endSession(): void {
  */
 function _sendSessionUpdate(): void {
   const isolationScope = getIsolationScope();
-  const currentScope = getCurrentScope();
   const client = getClient();
-  // TODO (v8): Remove currentScope and only use the isolation scope(?).
-  // For v7 though, we can't "soft-break" people using getCurrentHub().getScope().setSession()
-  const session = currentScope.getSession() || isolationScope.getSession();
+  const session = isolationScope.getSession();
   if (session && client) {
     client.captureSession(session);
   }
