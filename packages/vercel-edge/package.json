@@ -44,7 +44,7 @@
   },
   "devDependencies": {
     "@edge-runtime/types": "3.0.1",
-    "@opentelemetry/core": "^1.29.0",
+    "@opentelemetry/core": "^1.30.0",
     "@opentelemetry/resources": "^1.29.0",
     "@opentelemetry/sdk-trace-base": "^1.29.0",
     "@opentelemetry/semantic-conventions": "^1.28.0",
