@@ -239,6 +239,7 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
     captureExceptions: boolean;
     traceInternals: boolean;
     continuousCheckout: number;
+    recordCrossOriginIframes: boolean;
   }>;
 }
 

@@ -152,6 +152,11 @@ export class Replay implements Integration {
       },
     };
 
+    // experimental support for recording iframes from different origins
+    if (_experiments.recordCrossOriginIframes) {
+      this._recordingOptions.recordCrossOriginIframes = true;
+    }
+
     this._initialOptions = {
       flushMinDelay,
       flushMaxDelay,
