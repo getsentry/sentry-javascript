@@ -63,9 +63,6 @@ export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from
 export {
   // eslint-disable-next-line deprecation/deprecation
   addOpenTelemetryInstrumentation,
-  // These are custom variants that need to be used instead of the core one
-  // As they have slightly different implementations
-  continueTrace,
   // This needs exporting so the NodeClient can be used without calling init
   setOpenTelemetryContextAsyncContextStrategy as setNodeAsyncContextStrategy,
 } from '@sentry/opentelemetry';
@@ -110,6 +107,7 @@ export {
   getIsolationScope,
   getTraceData,
   getTraceMetaTags,
+  continueTrace,
   withScope,
   withIsolationScope,
   captureException,

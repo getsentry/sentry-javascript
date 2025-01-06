@@ -1,6 +1,6 @@
 import type { Span as WriteableSpan } from '@opentelemetry/api';
 import type { Instrumentation } from '@opentelemetry/instrumentation';
-import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
+import type { ReadableSpan, SpanProcessor } from '@opentelemetry/sdk-trace-base';
 import type { ClientOptions, Options, SamplingContext, Scope, Span, TracePropagationTargets } from '@sentry/core';
 
 import type { NodeTransportOptions } from './transports';
@@ -120,6 +120,11 @@ export interface BaseNodeOptions {
    * Use this option if you want to register OpenTelemetry instrumentation that the Sentry SDK does not yet have support for.
    */
   openTelemetryInstrumentations?: Instrumentation[];
+
+  /**
+   * Provide an array of additional OpenTelemetry SpanProcessors that should be registered.
+   */
+  openTelemetrySpanProcessors?: SpanProcessor[];
 
   /**
    * The max. duration in seconds that the SDK will wait for parent spans to be finished before discarding a span.
