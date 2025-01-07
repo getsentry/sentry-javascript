@@ -286,7 +286,6 @@ describe('applyDefaultOptions', () => {
     expect(actual).toEqual({
       defaultIntegrations: expect.any(Array),
       release: undefined,
-      autoSessionTracking: true,
       sendClientReports: true,
     });
 
@@ -299,14 +298,12 @@ describe('applyDefaultOptions', () => {
     const options = {
       tracesSampleRate: 0.5,
       release: '1.0.0',
-      autoSessionTracking: false,
     };
     const actual = applyDefaultOptions(options);
 
     expect(actual).toEqual({
       defaultIntegrations: expect.any(Array),
       release: '1.0.0',
-      autoSessionTracking: false,
       sendClientReports: true,
       tracesSampleRate: 0.5,
     });
