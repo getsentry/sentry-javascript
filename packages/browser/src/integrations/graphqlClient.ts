@@ -46,17 +46,17 @@ function _updateSpanWithGraphQLData(client: Client, options: GraphQLClientOption
     if (isHttpClientSpan) {
       const httpUrl = spanAttributes[SEMANTIC_ATTRIBUTE_URL_FULL] || spanAttributes['http.url'];
       const httpMethod = spanAttributes[SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD] || spanAttributes['http.method'];
-      
-      if (!isString(httpUrl) || !isString(httpMethod)){
-        return 
+
+      if (!isString(httpUrl) || !isString(httpMethod)) {
+        return;
       }
 
       const { endpoints } = options;
       const isTracedGraphqlEndpoint = stringMatchesSomePattern(httpUrl, endpoints);
-      const payload = _getRequestPayloadXhrOrFetch(handlerData)
+      const payload = _getRequestPayloadXhrOrFetch(handlerData);
 
-      if (isTracedGraphqlEndpoint && payload) {       
-        const graphqlBody = getGraphQLRequestPayload(payload) as GraphQLRequestPayload
+      if (isTracedGraphqlEndpoint && payload) {
+        const graphqlBody = getGraphQLRequestPayload(payload) as GraphQLRequestPayload;
         const operationInfo = _getGraphQLOperation(graphqlBody);
 
         span.updateName(`${httpMethod} ${httpUrl} (${operationInfo})`);
@@ -79,16 +79,15 @@ function _updateBreadcrumbWithGraphQLData(client: Client, options: GraphQLClient
       const { endpoints } = options;
 
       const isTracedGraphqlEndpoint = stringMatchesSomePattern(httpUrl, endpoints);
-      const payload = _getRequestPayloadXhrOrFetch(handlerData)
+      const payload = _getRequestPayloadXhrOrFetch(handlerData);
 
       if (isTracedGraphqlEndpoint && data && payload) {
-
-        const graphqlBody = getGraphQLRequestPayload(payload)
+        const graphqlBody = getGraphQLRequestPayload(payload);
 
         if (!data.graphql && graphqlBody) {
           const operationInfo = _getGraphQLOperation(graphqlBody as GraphQLRequestPayload);
-          data["graphql.document"] = (graphqlBody as GraphQLRequestPayload).query
-          data["graphql.operation"] = operationInfo;
+          data['graphql.document'] = (graphqlBody as GraphQLRequestPayload).query;
+          data['graphql.operation'] = operationInfo;
         }
 
         // The body prop attached to HandlerDataFetch for the span should be removed.
@@ -101,11 +100,11 @@ function _updateBreadcrumbWithGraphQLData(client: Client, options: GraphQLClient
 }
 
 /**
- * @param requestBody - GraphQL request 
+ * @param requestBody - GraphQL request
  * @returns A formatted version of the request: 'TYPE NAME' or 'TYPE'
  */
 function _getGraphQLOperation(requestBody: GraphQLRequestPayload): string {
-  const { query: graphqlQuery, operationName: graphqlOperationName } = requestBody
+  const { query: graphqlQuery, operationName: graphqlOperationName } = requestBody;
 
   const { operationName = graphqlOperationName, operationType } = parseGraphQLQuery(graphqlQuery);
   const operationInfo = operationName ? `${operationType} ${operationName}` : `${operationType}`;
@@ -123,16 +122,15 @@ function _getRequestPayloadXhrOrFetch(handlerData: HandlerDataXhr | HandlerDataF
 
   let body: string | undefined;
 
-  if(isXhr){
+  if (isXhr) {
     const sentryXhrData = (handlerData as HandlerDataXhr).xhr[SENTRY_XHR_DATA_KEY];
-    body = getBodyString(sentryXhrData?.body)[0]
-
-  } else if(isFetch){
-    const sentryFetchData = (handlerData as HandlerDataFetch).fetchData
-    body = getBodyString(sentryFetchData.body)[0]
+    body = sentryXhrData && getBodyString(sentryXhrData.body)[0];
+  } else if (isFetch) {
+    const sentryFetchData = (handlerData as HandlerDataFetch).fetchData;
+    body = getBodyString(sentryFetchData.body)[0];
   }
 
-  return body
+  return body;
 }
 
 /**
