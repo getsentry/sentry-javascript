@@ -1,14 +1,9 @@
-import { SentryError, SyncPromise, dsnToString } from '@sentry/core';
-import type { Client, Envelope, ErrorEvent, Event, TransactionEvent } from '../../src/types-hoist';
-
-import * as loggerModule from '../../src/utils-hoist/logger';
-import * as miscModule from '../../src/utils-hoist/misc';
-import * as stringModule from '../../src/utils-hoist/string';
-import * as timeModule from '../../src/utils-hoist/time';
-
 import {
   Scope,
+  SentryError,
+  SyncPromise,
   addBreadcrumb,
+  dsnToString,
   getCurrentScope,
   getIsolationScope,
   lastEventId,
@@ -16,7 +11,13 @@ import {
   setCurrentClient,
   withMonitor,
 } from '../../src';
+import type { BaseClient, Client } from '../../src/client';
 import * as integrationModule from '../../src/integration';
+import type { Envelope, ErrorEvent, Event, TransactionEvent } from '../../src/types-hoist';
+import * as loggerModule from '../../src/utils-hoist/logger';
+import * as miscModule from '../../src/utils-hoist/misc';
+import * as stringModule from '../../src/utils-hoist/string';
+import * as timeModule from '../../src/utils-hoist/time';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 import { AdHocIntegration, TestIntegration } from '../mocks/integration';
 import { makeFakeTransport } from '../mocks/transport';
@@ -34,7 +35,7 @@ jest.spyOn(loggerModule, 'consoleSandbox').mockImplementation(cb => cb());
 jest.spyOn(stringModule, 'truncate').mockImplementation(str => str);
 jest.spyOn(timeModule, 'dateTimestampInSeconds').mockImplementation(() => 2020);
 
-describe('BaseClient', () => {
+describe('Client', () => {
   beforeEach(() => {
     TestClient.sendEventCalled = undefined;
     TestClient.instance = undefined;
@@ -2059,7 +2060,8 @@ describe('BaseClient', () => {
 
     // Make sure types work for both Client & BaseClient
     const scenarios = [
-      ['BaseClient', new TestClient(options)],
+      // eslint-disable-next-line deprecation/deprecation
+      ['BaseClient', new TestClient(options) as BaseClient],
       ['Client', new TestClient(options) as Client],
     ] as const;
 

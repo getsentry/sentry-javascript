@@ -147,6 +147,27 @@ export class ReplayContainer implements ReplayContainerInterface {
    */
   private _canvas: ReplayCanvasIntegrationOptions | undefined;
 
+  /**
+   * Handle when visibility of the page content changes. Opening a new tab will
+   * cause the state to change to hidden because of content of current page will
+   * be hidden. Likewise, moving a different window to cover the contents of the
+   * page will also trigger a change to a hidden state.
+   */
+  private _handleVisibilityChange: () => void;
+
+  /**
+   * Handle when page is blurred
+   */
+  private _handleWindowBlur: () => void;
+
+  /**
+   * Handle when page is focused
+   */
+  private _handleWindowFocus: () => void;
+
+  /** Ensure page remains active when a key is pressed. */
+  private _handleKeyboardEvent: (event: KeyboardEvent) => void;
+
   public constructor({
     options,
     recordingOptions,
@@ -213,6 +234,43 @@ export class ReplayContainer implements ReplayContainerInterface {
         traceInternals: !!experiments.traceInternals,
       });
     }
+
+    // We set these handler properties as class properties, to make binding/unbinding them easier
+    this._handleVisibilityChange = () => {
+      if (WINDOW.document.visibilityState === 'visible') {
+        this._doChangeToForegroundTasks();
+      } else {
+        this._doChangeToBackgroundTasks();
+      }
+    };
+
+    /**
+     * Handle when page is blurred
+     */
+    this._handleWindowBlur = () => {
+      const breadcrumb = createBreadcrumb({
+        category: 'ui.blur',
+      });
+
+      // Do not count blur as a user action -- it's part of the process of them
+      // leaving the page
+      this._doChangeToBackgroundTasks(breadcrumb);
+    };
+
+    this._handleWindowFocus = () => {
+      const breadcrumb = createBreadcrumb({
+        category: 'ui.focus',
+      });
+
+      // Do not count focus as a user action -- instead wait until they focus and
+      // interactive with page
+      this._doChangeToForegroundTasks(breadcrumb);
+    };
+
+    /** Ensure page remains active when a key is pressed. */
+    this._handleKeyboardEvent = (event: KeyboardEvent) => {
+      handleKeyboardEvent(this, event);
+    };
   }
 
   /** Get the event context. */
@@ -394,7 +452,7 @@ export class ReplayContainer implements ReplayContainerInterface {
               checkoutEveryNms: Math.max(360_000, this._options._experiments.continuousCheckout),
             }),
         emit: getHandleRecordingEmit(this),
-        onMutation: this._onMutationHandler,
+        onMutation: this._onMutationHandler.bind(this),
         ...(canvasOptions
           ? {
               recordCanvas: canvasOptions.recordCanvas,
@@ -908,51 +966,6 @@ export class ReplayContainer implements ReplayContainerInterface {
   }
 
   /**
-   * Handle when visibility of the page content changes. Opening a new tab will
-   * cause the state to change to hidden because of content of current page will
-   * be hidden. Likewise, moving a different window to cover the contents of the
-   * page will also trigger a change to a hidden state.
-   */
-  private _handleVisibilityChange: () => void = () => {
-    if (WINDOW.document.visibilityState === 'visible') {
-      this._doChangeToForegroundTasks();
-    } else {
-      this._doChangeToBackgroundTasks();
-    }
-  };
-
-  /**
-   * Handle when page is blurred
-   */
-  private _handleWindowBlur: () => void = () => {
-    const breadcrumb = createBreadcrumb({
-      category: 'ui.blur',
-    });
-
-    // Do not count blur as a user action -- it's part of the process of them
-    // leaving the page
-    this._doChangeToBackgroundTasks(breadcrumb);
-  };
-
-  /**
-   * Handle when page is focused
-   */
-  private _handleWindowFocus: () => void = () => {
-    const breadcrumb = createBreadcrumb({
-      category: 'ui.focus',
-    });
-
-    // Do not count focus as a user action -- instead wait until they focus and
-    // interactive with page
-    this._doChangeToForegroundTasks(breadcrumb);
-  };
-
-  /** Ensure page remains active when a key is pressed. */
-  private _handleKeyboardEvent: (event: KeyboardEvent) => void = (event: KeyboardEvent) => {
-    handleKeyboardEvent(this, event);
-  };
-
-  /**
    * Tasks to run when we consider a page to be hidden (via blurring and/or visibility)
    */
   private _doChangeToBackgroundTasks(breadcrumb?: ReplayBreadcrumbFrame): void {
@@ -1199,7 +1212,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Flush recording data to Sentry. Creates a lock so that only a single flush
    * can be active at a time. Do not call this directly.
    */
-  private _flush = async ({
+  private async _flush({
     force = false,
   }: {
     /**
@@ -1208,7 +1221,7 @@ export class ReplayContainer implements ReplayContainerInterface {
      * is stopped).
      */
     force?: boolean;
-  } = {}): Promise<void> => {
+  } = {}): Promise<void> {
     if (!this._isEnabled && !force) {
       // This can happen if e.g. the replay was stopped because of exceeding the retry limit
       return;
@@ -1279,7 +1292,7 @@ export class ReplayContainer implements ReplayContainerInterface {
         this._debouncedFlush();
       }
     }
-  };
+  }
 
   /** Save the session, if it is sticky */
   private _maybeSaveSession(): void {
@@ -1289,7 +1302,7 @@ export class ReplayContainer implements ReplayContainerInterface {
   }
 
   /** Handler for rrweb.record.onMutation */
-  private _onMutationHandler = (mutations: unknown[]): boolean => {
+  private _onMutationHandler(mutations: unknown[]): boolean {
     const count = mutations.length;
 
     const mutationLimit = this._options.mutationLimit;
@@ -1319,5 +1332,5 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     // `true` means we use the regular mutation handling by rrweb
     return true;
-  };
+  }
 }
