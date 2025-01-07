@@ -88,10 +88,8 @@ sentryTest('should update breadcrumbs for GraphQL Fetch requests', async ({ getL
       status_code: 200,
       url: 'http://sentry-test.io/foo',
       __span: expect.any(String),
-      graphql: {
-        query: query,
-        operationName: 'query Test',
-      },
+      'graphql.document': query,
+      'graphql.operation': 'query Test',
     },
   });
 });

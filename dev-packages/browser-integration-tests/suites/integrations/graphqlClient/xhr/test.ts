@@ -87,10 +87,8 @@ sentryTest('should update breadcrumbs for GraphQL XHR requests', async ({ getLoc
       method: 'POST',
       status_code: 200,
       url: 'http://sentry-test.io/foo',
-      graphql: {
-        query: query,
-        operationName: 'query Test',
-      },
+      'graphql.document': query,
+      'graphql.operation': 'query Test',
     },
   });
 });
