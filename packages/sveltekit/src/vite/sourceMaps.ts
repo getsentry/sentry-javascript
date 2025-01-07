@@ -329,7 +329,7 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
  */
 export type UserSourceMapSetting = 'enabled' | 'disabled' | 'unset' | undefined;
 
-/** There are 3 ways to set up source maps (https://github.com/getsentry/sentry-javascript/issues/13993)
+/** There are 3 ways to set up source map generation (https://github.com/getsentry/sentry-javascript/issues/13993)
  *
  *     1. User explicitly disabled source maps
  *       - keep this setting (emit a warning that errors won't be unminified in Sentry)
@@ -358,50 +358,39 @@ export function changeViteSourceMapSettings(
 
   const viteSourceMap = viteConfig.build.sourcemap;
 
+  const settingKey = 'vite.build.sourcemap';
+
   if (viteSourceMap === false) {
-    warnExplicitlyDisabledSourceMap('vite.build.sourcemap');
     previousUserSourceMapSetting = 'disabled';
+
+    consoleSandbox(() => {
+      //  eslint-disable-next-line no-console
+      console.warn(
+        `[Sentry] Parts of source map generation are currently disabled in your Vite configuration (\`${settingKey}: false\`). This setting is either a default setting or was explicitly set in your configuration. Sentry won't override this setting. Without source maps, code snippets on the Sentry Issues page will remain minified. To show unminified code, enable source maps in \`${settingKey}\` (e.g. by setting them to \`hidden\`).`,
+      );
+    });
   } else if (viteSourceMap && ['hidden', 'inline', true].includes(viteSourceMap)) {
-    logKeepSourceMapSetting('vite.build.sourcemap', viteSourceMap.toString(), sentryPluginOptions);
     previousUserSourceMapSetting = 'enabled';
+
+    if (sentryPluginOptions?.debug) {
+      consoleSandbox(() => {
+        // eslint-disable-next-line no-console
+        console.log(
+          `[Sentry] We discovered \`${settingKey}\` is set to \`${viteSourceMap.toString()}\`. Sentry will keep this source map setting. This will un-minify the code snippet on the Sentry Issue page.`,
+        );
+      });
+    }
   } else {
-    viteConfig.build.sourcemap = 'hidden';
-    logSentryEnablesSourceMap('vite.build.sourcemap', 'hidden');
     previousUserSourceMapSetting = 'unset';
+    viteConfig.build.sourcemap = 'hidden';
+
+    consoleSandbox(() => {
+      //  eslint-disable-next-line no-console
+      console.log(`[Sentry] Enabled source map generation in the build options with \`${settingKey}: 'hidden'\`.`);
+    });
   }
 
   return previousUserSourceMapSetting;
-}
-
-function logKeepSourceMapSetting(
-  settingKey: string,
-  settingValue: string,
-  sentryPluginOptions?: CustomSentryVitePluginOptions,
-): void {
-  if (sentryPluginOptions?.debug) {
-    consoleSandbox(() => {
-      // eslint-disable-next-line no-console
-      console.log(
-        `[Sentry] We discovered \`${settingKey}\` is set to \`${settingValue}\`. Sentry will keep this source map setting. This will un-minify the code snippet on the Sentry Issue page.`,
-      );
-    });
-  }
-}
-
-function warnExplicitlyDisabledSourceMap(settingKey: string): void {
-  consoleSandbox(() => {
-    //  eslint-disable-next-line no-console
-    console.warn(
-      `[Sentry] Parts of source map generation are currently disabled in your Nuxt configuration (\`${settingKey}: false\`). This setting is either a default setting or was explicitly set in your configuration. Sentry won't override this setting. Without source maps, code snippets on the Sentry Issues page will remain minified. To show unminified code, enable source maps in \`${settingKey}\` (e.g. by setting them to \`hidden\`).`,
-    );
-  });
-}
-
-function logSentryEnablesSourceMap(settingKey: string, settingValue: string): void {
-  consoleSandbox(() => {
-    //  eslint-disable-next-line no-console
-    console.log(`[Sentry] Enabled source map generation in the build options with \`${settingKey}: ${settingValue}\`.`);
-  });
 }
 
 function getFiles(dir: string): string[] {
