@@ -38,7 +38,7 @@ export function makeSession(context?: Omit<SessionContext, 'started' | 'status'>
  * Note that this function mutates the passed object and returns void.
  * (Had to do this instead of returning a new and updated session because closing and sending a session
  * makes an update to the session after it was passed to the sending logic.
- * @see BaseClient.captureSession )
+ * @see Client.captureSession )
  *
  * @param session the `Session` to update
  * @param context the `SessionContext` holding the properties that should be updated in @param session
