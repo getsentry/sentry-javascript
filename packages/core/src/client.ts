@@ -14,6 +14,8 @@ import type {
   EventHint,
   EventProcessor,
   FeedbackEvent,
+  HandlerDataFetch,
+  HandlerDataXhr,
   Integration,
   MonitorConfig,
   Outcome,
@@ -584,8 +586,8 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
   /** @inheritdoc */
   public on(
-    hook: 'outgoingRequestBreadcrumbStart',
-    callback: (breadcrumb: Breadcrumb, { body }: { body: unknown }) => void,
+    hook: 'beforeOutgoingRequestBreadcrumb',
+    callback: (breadcrumb: Breadcrumb, handlerData: HandlerDataXhr | HandlerDataFetch) => void,
   ): () => void;
 
   public on(hook: 'flush', callback: () => void): () => void;
@@ -718,7 +720,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public emit(hook: 'outgoingRequestSpanStart', span: Span, { body }: { body: unknown }): void;
 
   /** @inheritdoc */
-  public emit(hook: 'outgoingRequestBreadcrumbStart', breadcrumb: Breadcrumb, { body }: { body: unknown }): void;
+  public emit(hook: 'beforeOutgoingRequestBreadcrumb', breadcrumb: Breadcrumb, handlerData: HandlerDataXhr | HandlerDataFetch): void;
 
   /** @inheritdoc */
   public emit(hook: 'flush'): void;
