@@ -15,8 +15,7 @@ export const serverFilePresets = ['netlify'];
  * TODO: The mechanism of manually copying those files could maybe be improved
  *
  * This will no-op if no `instrument.server.js` file was found in the
- * build directory. Make sure the `sentrySolidStartVite` plugin was
- * added to `app.config.ts` to enable building the instrumentation file.
+ * build directory.
  */
 export async function addInstrumentationFileToBuild(nitro: Nitro): Promise<void> {
   nitro.hooks.hook('close', async () => {
