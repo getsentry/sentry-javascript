@@ -582,7 +582,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public on(hook: 'startNavigationSpan', callback: (options: StartSpanOptions) => void): () => void;
 
   /** @inheritdoc */
-  public on(hook: 'outgoingRequestSpanStart', callback: (span: Span, { body }: { body: unknown }) => void): () => void;
+  public on(hook: 'beforeOutgoingRequestSpan', callback: (span: Span, handlerData: HandlerDataXhr | HandlerDataFetch) => void): () => void;
 
   /** @inheritdoc */
   public on(
@@ -717,7 +717,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public emit(hook: 'startNavigationSpan', options: StartSpanOptions): void;
 
   /** @inheritdoc */
-  public emit(hook: 'outgoingRequestSpanStart', span: Span, { body }: { body: unknown }): void;
+  public emit(hook: 'beforeOutgoingRequestSpan', span: Span, handlerData: HandlerDataXhr | HandlerDataFetch): void;
 
   /** @inheritdoc */
   public emit(hook: 'beforeOutgoingRequestBreadcrumb', breadcrumb: Breadcrumb, handlerData: HandlerDataXhr | HandlerDataFetch): void;

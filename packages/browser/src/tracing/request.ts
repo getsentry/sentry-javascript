@@ -405,7 +405,7 @@ export function xhrCallback(
   }
 
   if (client) {
-    client.emit('outgoingRequestSpanStart', span, { body: getGraphQLRequestPayload(sentryXhrData.body as string) });
+    client.emit('beforeOutgoingRequestSpan', span, handlerData);
   }
 
   return span;

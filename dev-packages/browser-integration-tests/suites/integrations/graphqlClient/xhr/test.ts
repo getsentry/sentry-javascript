@@ -52,7 +52,7 @@ sentryTest('should update spans for GraphQL XHR requests', async ({ getLocalTest
       'server.address': 'sentry-test.io',
       'sentry.op': 'http.client',
       'sentry.origin': 'auto.http.browser',
-      body: queryPayload,
+      'graphql.document': queryPayload,
     },
   });
 });
