@@ -53,10 +53,11 @@ function _updateSpanWithGraphQLData(client: Client, options: GraphQLClientOption
 
       const { endpoints } = options;
       const isTracedGraphqlEndpoint = stringMatchesSomePattern(httpUrl, endpoints);
+      const payload = _getRequestPayloadXhrOrFetch(handlerData)
 
-      if (isTracedGraphqlEndpoint) {        
-        const payload = _getRequestPayloadXhrOrFetch(handlerData)
-        const operationInfo = _getGraphQLOperation(getGraphQLRequestPayload(payload as string) as GraphQLRequestPayload);
+      if (isTracedGraphqlEndpoint && payload) {       
+        const graphqlBody = getGraphQLRequestPayload(payload) as GraphQLRequestPayload
+        const operationInfo = _getGraphQLOperation(graphqlBody);
 
         span.updateName(`${httpMethod} ${httpUrl} (${operationInfo})`);
         span.setAttribute('graphql.document', payload);
@@ -78,15 +79,14 @@ function _updateBreadcrumbWithGraphQLData(client: Client, options: GraphQLClient
       const { endpoints } = options;
 
       const isTracedGraphqlEndpoint = stringMatchesSomePattern(httpUrl, endpoints);
+      const payload = _getRequestPayloadXhrOrFetch(handlerData)
 
-      if (isTracedGraphqlEndpoint && data) {
+      if (isTracedGraphqlEndpoint && data && payload) {
 
-        const payload = _getRequestPayloadXhrOrFetch(handlerData)
-        const graphqlBody = getGraphQLRequestPayload(payload as string)
+        const graphqlBody = getGraphQLRequestPayload(payload)
 
         if (!data.graphql && graphqlBody) {
           const operationInfo = _getGraphQLOperation(graphqlBody as GraphQLRequestPayload);
-
           data["graphql.document"] = (graphqlBody as GraphQLRequestPayload).query
           data["graphql.operation"] = operationInfo;
         }
@@ -100,6 +100,10 @@ function _updateBreadcrumbWithGraphQLData(client: Client, options: GraphQLClient
   });
 }
 
+/**
+ * @param requestBody - GraphQL request 
+ * @returns A formatted version of the request: 'TYPE NAME' or 'TYPE'
+ */
 function _getGraphQLOperation(requestBody: GraphQLRequestPayload): string {
   const { query: graphqlQuery, operationName: graphqlOperationName } = requestBody
 
