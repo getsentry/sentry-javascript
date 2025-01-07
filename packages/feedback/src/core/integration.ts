@@ -5,7 +5,7 @@ import type {
   Integration,
   IntegrationFn,
 } from '@sentry/core';
-import { getClient, isBrowser, logger } from '@sentry/core';
+import { addIntegration, isBrowser, logger } from '@sentry/core';
 import {
   ADD_SCREENSHOT_LABEL,
   CANCEL_BUTTON_LABEL,
@@ -39,16 +39,22 @@ type Unsubscribe = () => void;
  * Allow users to capture user feedback and send it to Sentry.
  */
 
-interface BuilderOptions {
-  // The type here should be `keyof typeof LazyLoadableIntegrations`, but that'll cause a cicrular
-  // dependency with @sentry/core
-  lazyLoadIntegration: (
-    name: 'feedbackModalIntegration' | 'feedbackScreenshotIntegration',
-    scriptNonce?: string,
-  ) => Promise<IntegrationFn>;
-  getModalIntegration?: null | (() => IntegrationFn);
-  getScreenshotIntegration?: null | (() => IntegrationFn);
-}
+type BuilderOptions =
+  | {
+      lazyLoadIntegration?: never;
+      getModalIntegration: () => IntegrationFn;
+      getScreenshotIntegration: () => IntegrationFn;
+    }
+  | {
+      // The type here should be `keyof typeof LazyLoadableIntegrations`, but that'll cause a cicrular
+      // dependency with @sentry/core
+      lazyLoadIntegration: (
+        name: 'feedbackModalIntegration' | 'feedbackScreenshotIntegration',
+        scriptNonce?: string,
+      ) => Promise<IntegrationFn>;
+      getModalIntegration?: never;
+      getScreenshotIntegration?: never;
+    };
 
 export const buildFeedbackIntegration = ({
   lazyLoadIntegration,
@@ -172,45 +178,40 @@ export const buildFeedbackIntegration = ({
       return _shadow as ShadowRoot;
     };
 
-    const _findIntegration = async <I extends Integration>(
-      integrationName: string,
-      getter: undefined | null | (() => IntegrationFn),
-      functionMethodName: 'feedbackModalIntegration' | 'feedbackScreenshotIntegration',
-    ): Promise<I> => {
-      const client = getClient();
-      const existing = client && client.getIntegrationByName(integrationName);
-      if (existing) {
-        return existing as I;
-      }
-      const integrationFn = (getter && getter()) || (await lazyLoadIntegration(functionMethodName, scriptNonce));
-      const integration = integrationFn();
-      client && client.addIntegration(integration);
-      return integration as I;
-    };
-
     const _loadAndRenderDialog = async (
       options: FeedbackInternalOptions,
     ): Promise<ReturnType<FeedbackModalIntegration['createDialog']>> => {
       const screenshotRequired = options.enableScreenshot && isScreenshotSupported();
-      const [modalIntegration, screenshotIntegration] = await Promise.all([
-        _findIntegration<FeedbackModalIntegration>('FeedbackModal', getModalIntegration, 'feedbackModalIntegration'),
-        screenshotRequired
-          ? _findIntegration<FeedbackScreenshotIntegration>(
-              'FeedbackScreenshot',
-              getScreenshotIntegration,
-              'feedbackScreenshotIntegration',
-            )
-          : undefined,
-      ]);
-      if (!modalIntegration) {
-        // TODO: Let the end-user retry async loading
+
+      let modalIntegration: FeedbackModalIntegration;
+      let screenshotIntegration: FeedbackScreenshotIntegration | undefined;
+
+      try {
+        const modalIntegrationFn = getModalIntegration
+          ? getModalIntegration()
+          : await lazyLoadIntegration('feedbackModalIntegration', scriptNonce);
+        modalIntegration = modalIntegrationFn() as FeedbackModalIntegration;
+        addIntegration(modalIntegration);
+      } catch {
         DEBUG_BUILD &&
           logger.error(
-            '[Feedback] Missing feedback modal integration. Try using `feedbackSyncIntegration` in your `Sentry.init`.',
+            '[Feedback] Error when trying to load feedback integrations. Try using `feedbackSyncIntegration` in your `Sentry.init`.',
           );
         throw new Error('[Feedback] Missing feedback modal integration!');
       }
-      if (screenshotRequired && !screenshotIntegration) {
+
+      try {
+        const screenshotIntegrationFn = screenshotRequired
+          ? getScreenshotIntegration
+            ? getScreenshotIntegration()
+            : await lazyLoadIntegration('feedbackScreenshotIntegration', scriptNonce)
+          : undefined;
+
+        if (screenshotIntegrationFn) {
+          screenshotIntegration = screenshotIntegrationFn() as FeedbackScreenshotIntegration;
+          addIntegration(screenshotIntegration);
+        }
+      } catch {
         DEBUG_BUILD &&
           logger.error('[Feedback] Missing feedback screenshot integration. Proceeding without screenshots.');
       }
@@ -227,7 +228,7 @@ export const buildFeedbackIntegration = ({
             options.onFormSubmitted && options.onFormSubmitted();
           },
         },
-        screenshotIntegration: screenshotRequired ? screenshotIntegration : undefined,
+        screenshotIntegration,
         sendFeedback,
         shadow: _createShadow(options),
       });
