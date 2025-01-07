@@ -31669,8 +31669,8 @@ stylus@0.59.0, stylus@^0.59.0:
     source-map "^0.7.3"
 
 sucrase@^3.27.0, sucrase@^3.35.0, sucrase@getsentry/sucrase#es2020-polyfills:
-  version "3.35.0"
-  resolved "https://codeload.github.com/getsentry/sucrase/tar.gz/0e9fad08c1c4f120580a2040207255346d42720f"
+  version "3.36.0"
+  resolved "https://codeload.github.com/getsentry/sucrase/tar.gz/fd682f6129e507c00bb4e6319cc5d6b767e36061"
   dependencies:
     "@jridgewell/gen-mapping" "^0.3.2"
     commander "^4.0.0"
