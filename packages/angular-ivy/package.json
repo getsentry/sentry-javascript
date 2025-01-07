@@ -13,7 +13,7 @@
   "module": "build/fesm2015/sentry-angular.js",
   "publishConfig": {
     "access": "public",
-    "tag": "v7"
+    "tag": "latest"
   },
   "peerDependencies": {
     "@angular/common": ">= 12.x <= 17.x",
