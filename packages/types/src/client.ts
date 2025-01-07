@@ -296,7 +296,10 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * A hook for GraphQL client integration to enhance a span with request data.
    * @returns A function that, when executed, removes the registered callback.
    */
-  on(hook: 'beforeOutgoingRequestSpan', callback: (span: Span, handlerData: HandlerDataXhr | HandlerDataFetch) => void): () => void;
+  on(
+    hook: 'beforeOutgoingRequestSpan',
+    callback: (span: Span, handlerData: HandlerDataXhr | HandlerDataFetch) => void,
+  ): () => void;
 
   /**
    * A hook for GraphQL client integration to enhance a breadcrumb with request data.
@@ -411,7 +414,11 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   /**
    * Emit a hook event for GraphQL client integration to enhance a breadcrumb with request data.
    */
-  emit(hook: 'beforeOutgoingRequestBreadcrumb', breadcrumb: Breadcrumb, handlerData: HandlerDataXhr | HandlerDataFetch): void;
+  emit(
+    hook: 'beforeOutgoingRequestBreadcrumb',
+    breadcrumb: Breadcrumb,
+    handlerData: HandlerDataXhr | HandlerDataFetch,
+  ): void;
 
   /**
    * Emit a hook event for client flush
