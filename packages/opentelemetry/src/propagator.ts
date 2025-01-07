@@ -233,7 +233,7 @@ export function getInjectionData(context: Context): {
   return {
     dynamicSamplingContext,
     traceId: propagationContext.traceId,
-    spanId: undefined,
+    spanId: propagationContext.propagationSpanId,
     sampled: propagationContext.sampled,
   };
 }

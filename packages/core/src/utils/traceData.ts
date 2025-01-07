@@ -5,7 +5,6 @@ import { isEnabled } from '../exports';
 import type { Scope } from '../scope';
 import { getDynamicSamplingContextFromScope, getDynamicSamplingContextFromSpan } from '../tracing';
 import type { SerializedTraceData, Span } from '../types-hoist';
-import { generateSpanId } from '../utils-hoist';
 import { dynamicSamplingContextToSentryBaggageHeader } from '../utils-hoist/baggage';
 import { logger } from '../utils-hoist/logger';
 import { TRACEPARENT_REGEXP, generateSentryTraceHeader } from '../utils-hoist/tracing';
@@ -56,6 +55,6 @@ export function getTraceData(options: { span?: Span } = {}): SerializedTraceData
  * Get a sentry-trace header value for the given scope.
  */
 function scopeToTraceHeader(scope: Scope): string {
-  const { traceId, sampled } = scope.getPropagationContext();
-  return generateSentryTraceHeader(traceId, generateSpanId(), sampled);
+  const { traceId, sampled, propagationSpanId } = scope.getPropagationContext();
+  return generateSentryTraceHeader(traceId, propagationSpanId, sampled);
 }

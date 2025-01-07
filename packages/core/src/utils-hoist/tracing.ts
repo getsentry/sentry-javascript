@@ -72,8 +72,8 @@ export function propagationContextFromHeaders(
  * Create sentry-trace header from span context values.
  */
 export function generateSentryTraceHeader(
-  traceId: string = generateTraceId(),
-  spanId: string = generateSpanId(),
+  traceId: string | undefined = generateTraceId(),
+  spanId: string | undefined = generateSpanId(),
   sampled?: boolean,
 ): string {
   let sampledString = '';

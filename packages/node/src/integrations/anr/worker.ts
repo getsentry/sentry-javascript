@@ -127,11 +127,11 @@ function applyScopeToEvent(event: Event, scope: ScopeData): void {
   applyScopeDataToEvent(event, scope);
 
   if (!event.contexts?.trace) {
-    const { traceId, parentSpanId } = scope.propagationContext;
+    const { traceId, parentSpanId, propagationSpanId } = scope.propagationContext;
     event.contexts = {
       trace: {
         trace_id: traceId,
-        span_id: generateSpanId(),
+        span_id: propagationSpanId || generateSpanId(),
         parent_span_id: parentSpanId,
       },
       ...event.contexts,

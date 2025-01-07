@@ -128,11 +128,11 @@ export function getClient<C extends Client>(): C | undefined {
 export function getTraceContextFromScope(scope: Scope): TraceContext {
   const propagationContext = scope.getPropagationContext();
 
-  const { traceId, parentSpanId } = propagationContext;
+  const { traceId, parentSpanId, propagationSpanId } = propagationContext;
 
   const traceContext: TraceContext = dropUndefinedKeys({
     trace_id: traceId,
-    span_id: generateSpanId(),
+    span_id: propagationSpanId || generateSpanId(),
     parent_span_id: parentSpanId,
   });
 
