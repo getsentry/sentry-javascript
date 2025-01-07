@@ -55,7 +55,6 @@ describe('getTraceData', () => {
     getCurrentScope().setPropagationContext({
       traceId: '12345678901234567890123456789012',
       sampled: true,
-      spanId: '1234567890123456',
       dsc: {
         environment: 'staging',
         public_key: 'key',
@@ -65,10 +64,10 @@ describe('getTraceData', () => {
 
     const traceData = getTraceData();
 
-    expect(traceData).toEqual({
-      'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
-      baggage: 'sentry-environment=staging,sentry-public_key=key,sentry-trace_id=12345678901234567890123456789012',
-    });
+    expect(traceData['sentry-trace']).toMatch(/^12345678901234567890123456789012-[a-f0-9]{16}-1$/);
+    expect(traceData.baggage).toEqual(
+      'sentry-environment=staging,sentry-public_key=key,sentry-trace_id=12345678901234567890123456789012',
+    );
   });
 
   it('works with an span with frozen DSC in traceState', () => {

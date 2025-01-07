@@ -1545,8 +1545,6 @@ describe('continueTrace', () => {
     });
 
     expect(scope.getPropagationContext()).toEqual({
-      sampled: undefined,
-      spanId: expect.any(String),
       traceId: expect.any(String),
     });
 
@@ -1554,7 +1552,7 @@ describe('continueTrace', () => {
   });
 
   it('works with trace data', () => {
-    const scope = continueTrace(
+    continueTrace(
       {
         sentryTrace: '12312012123120121231201212312012-1121201211212012-0',
         baggage: undefined,
@@ -1570,21 +1568,12 @@ describe('continueTrace', () => {
         });
         expect(getSamplingDecision(span.spanContext())).toBe(false);
         expect(spanIsSampled(span)).toBe(false);
-
-        return getCurrentScope();
       },
     );
-
-    expect(scope.getPropagationContext()).toEqual({
-      spanId: expect.any(String),
-      traceId: expect.any(String),
-    });
-
-    expect(scope.getScopeData().sdkProcessingMetadata).toEqual({});
   });
 
   it('works with trace & baggage data', () => {
-    const scope = continueTrace(
+    continueTrace(
       {
         sentryTrace: '12312012123120121231201212312012-1121201211212012-1',
         baggage: 'sentry-version=1.0,sentry-environment=production',
@@ -1600,21 +1589,12 @@ describe('continueTrace', () => {
         });
         expect(getSamplingDecision(span.spanContext())).toBe(true);
         expect(spanIsSampled(span)).toBe(true);
-
-        return getCurrentScope();
       },
     );
-
-    expect(scope.getPropagationContext()).toEqual({
-      spanId: expect.any(String),
-      traceId: expect.any(String),
-    });
-
-    expect(scope.getScopeData().sdkProcessingMetadata).toEqual({});
   });
 
   it('works with trace & 3rd party baggage data', () => {
-    const scope = continueTrace(
+    continueTrace(
       {
         sentryTrace: '12312012123120121231201212312012-1121201211212012-1',
         baggage: 'sentry-version=1.0,sentry-environment=production,dogs=great,cats=boring',
@@ -1630,16 +1610,8 @@ describe('continueTrace', () => {
         });
         expect(getSamplingDecision(span.spanContext())).toBe(true);
         expect(spanIsSampled(span)).toBe(true);
-
-        return getCurrentScope();
       },
     );
-
-    expect(scope.getPropagationContext()).toEqual({
-      spanId: expect.any(String),
-      traceId: expect.any(String),
-    });
-    expect(scope.getScopeData().sdkProcessingMetadata).toEqual({});
   });
 
   it('returns response of callback', () => {
