@@ -1,3 +1,5 @@
+import { SENTRY_XHR_DATA_KEY } from '@sentry-internal/browser-utils';
+import { getBodyString } from '@sentry-internal/replay';
 import {
   SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -5,17 +7,19 @@ import {
   defineIntegration,
   spanToJSON,
 } from '@sentry/core';
-import type { Client, IntegrationFn } from '@sentry/types';
-import { parseGraphQLQuery } from '@sentry/utils';
+import type { Client, HandlerDataFetch, HandlerDataXhr, IntegrationFn } from '@sentry/types';
+import { getGraphQLRequestPayload, parseGraphQLQuery } from '@sentry/utils';
 
 interface GraphQLClientOptions {
   endpoints: Array<string>;
 }
 
+// Standard graphql request shape: https://graphql.org/learn/serving-over-http/#post-request-and-body
 interface GraphQLRequestPayload {
   query: string;
   operationName?: string;
-  variables?: Record<string, any>;
+  variables?: Record<string, unknown>;
+  extensions?: Record<string, unknown>;
 }
 
 const INTEGRATION_NAME = 'GraphQLClient';
@@ -48,7 +52,7 @@ function _updateSpanWithGraphQLData(client: Client, options: GraphQLClientOption
       if (isTracedGraphqlEndpoint) {
         const httpMethod = spanAttributes[SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD] || spanAttributes['http.method'];
 
-        const operationInfo = _getGraphQLOperation(body);
+        const operationInfo = _getGraphQLOperation(getGraphQLRequestPayload(body as string) as GraphQLRequestPayload);
         span.updateName(`${httpMethod} ${httpUrl} (${operationInfo})`);
         span.setAttribute('body', JSON.stringify(body));
       }
@@ -57,7 +61,7 @@ function _updateSpanWithGraphQLData(client: Client, options: GraphQLClientOption
 }
 
 function _updateBreadcrumbWithGraphQLData(client: Client, options: GraphQLClientOptions): void {
-  client.on('outgoingRequestBreadcrumbStart', (breadcrumb, { body }) => {
+  client.on('beforeOutgoingRequestBreadcrumb', (breadcrumb, handlerData) => {
     const { category, type, data } = breadcrumb;
 
     const isFetch = category === 'fetch';
@@ -71,11 +75,24 @@ function _updateBreadcrumbWithGraphQLData(client: Client, options: GraphQLClient
       const isTracedGraphqlEndpoint = endpoints.includes(httpUrl);
 
       if (isTracedGraphqlEndpoint && data) {
-        if (!data.graphql) {
-          const operationInfo = _getGraphQLOperation(body);
+
+        let body: string | undefined;
+        
+        if(isXhr){
+          const sentryXhrData = (handlerData as HandlerDataXhr).xhr[SENTRY_XHR_DATA_KEY];
+          body = getBodyString(sentryXhrData?.body)[0]
+
+        } else if(isFetch){
+          const sentryFetchData = (handlerData as HandlerDataFetch).fetchData
+          body = getBodyString(sentryFetchData.body)[0]
+        }
+   
+        const graphqlBody = getGraphQLRequestPayload(body as string)
+        if (!data.graphql && graphqlBody) {
+          const operationInfo = _getGraphQLOperation(graphqlBody as GraphQLRequestPayload);
 
           data.graphql = {
-            query: (body as GraphQLRequestPayload).query,
+            query: (graphqlBody as GraphQLRequestPayload).query,
             operationName: operationInfo,
           };
         }
@@ -89,11 +106,8 @@ function _updateBreadcrumbWithGraphQLData(client: Client, options: GraphQLClient
   });
 }
 
-function _getGraphQLOperation(requestBody: unknown): string {
-  // Standard graphql request shape: https://graphql.org/learn/serving-over-http/#post-request
-  const graphqlBody = requestBody as GraphQLRequestPayload;
-  const graphqlQuery = graphqlBody.query;
-  const graphqlOperationName = graphqlBody.operationName;
+function _getGraphQLOperation(requestBody: GraphQLRequestPayload): string {
+  const { query: graphqlQuery, operationName: graphqlOperationName } = requestBody
 
   const { operationName = graphqlOperationName, operationType } = parseGraphQLQuery(graphqlQuery);
   const operationInfo = operationName ? `${operationType} ${operationName}` : `${operationType}`;

@@ -7,6 +7,7 @@ import type { DynamicSamplingContext, Envelope } from './envelope';
 import type { Event, EventHint } from './event';
 import type { EventProcessor } from './eventprocessor';
 import type { FeedbackEvent } from './feedback';
+import type { HandlerDataFetch, HandlerDataXhr } from './instrument';
 import type { Integration } from './integration';
 import type { ClientOptions } from './options';
 import type { ParameterizedString } from './parameterize';
@@ -302,8 +303,8 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * @returns A function that, when executed, removes the registered callback.
    */
   on(
-    hook: 'outgoingRequestBreadcrumbStart',
-    callback: (breadcrumb: Breadcrumb, { body }: { body: unknown }) => void,
+    hook: 'beforeOutgoingRequestBreadcrumb',
+    callback: (breadcrumb: Breadcrumb, handlerData: HandlerDataXhr | HandlerDataFetch) => void,
   ): () => void;
 
   /**
@@ -410,7 +411,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   /**
    * Emit a hook event for GraphQL client integration to enhance a breadcrumb with request data.
    */
-  emit(hook: 'outgoingRequestBreadcrumbStart', breadcrumb: Breadcrumb, { body }: { body: unknown }): void;
+  emit(hook: 'beforeOutgoingRequestBreadcrumb', breadcrumb: Breadcrumb, handlerData: HandlerDataXhr | HandlerDataFetch): void;
 
   /**
    * Emit a hook event for client flush

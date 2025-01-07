@@ -16,3 +16,4 @@ export type {
 } from './types';
 
 export { getReplay } from './util/getReplay';
+export { getBodyString } from './coreHandlers/util/networkUtils';
