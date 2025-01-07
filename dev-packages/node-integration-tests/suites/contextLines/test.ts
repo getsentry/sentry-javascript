@@ -55,6 +55,7 @@ describe('ContextLines integration in CJS', () => {
                       filename: expect.stringMatching(/\/scenario with space.cjs$/),
                       context_line: "Sentry.captureException(new Error('Test Error'));",
                       pre_context: [
+                        '',
                         'Sentry.init({',
                         "  dsn: 'https://public@dsn.ingest.sentry.io/1337',",
                         "  release: '1.0',",
