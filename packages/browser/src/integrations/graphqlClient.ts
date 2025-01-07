@@ -35,7 +35,7 @@ const _graphqlClientIntegration = ((options: GraphQLClientOptions) => {
 }) satisfies IntegrationFn;
 
 function _updateSpanWithGraphQLData(client: Client, options: GraphQLClientOptions): void {
-  client.on('outgoingRequestSpanStart', (span, { body }) => {
+  client.on('beforeOutgoingRequestSpan', (span, handlerData) => {
     const spanJSON = spanToJSON(span);
 
     const spanAttributes = spanJSON.data || {};
@@ -51,10 +51,24 @@ function _updateSpanWithGraphQLData(client: Client, options: GraphQLClientOption
 
       if (isTracedGraphqlEndpoint) {
         const httpMethod = spanAttributes[SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD] || spanAttributes['http.method'];
+        
+        const isXhr = 'xhr' in handlerData;
+        const isFetch = 'fetchData' in handlerData;
+
+        let body: string | undefined;
+
+        if(isXhr){
+          const sentryXhrData = (handlerData as HandlerDataXhr).xhr[SENTRY_XHR_DATA_KEY];
+          body = getBodyString(sentryXhrData?.body)[0]
+
+        } else if(isFetch){
+          const sentryFetchData = (handlerData as HandlerDataFetch).fetchData
+          body = getBodyString(sentryFetchData.body)[0]
+        }
 
         const operationInfo = _getGraphQLOperation(getGraphQLRequestPayload(body as string) as GraphQLRequestPayload);
         span.updateName(`${httpMethod} ${httpUrl} (${operationInfo})`);
-        span.setAttribute('body', JSON.stringify(body));
+        span.setAttribute('graphql.document', body);
       }
     }
   });

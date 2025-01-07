@@ -97,7 +97,7 @@ export function instrumentFetchRequest(
   }
 
   if (client) {
-    client.emit('outgoingRequestSpanStart', span, { body: getGraphQLRequestPayload(body as string) });
+    client.emit('beforeOutgoingRequestSpan', span, handlerData);
   }
 
   return span;
