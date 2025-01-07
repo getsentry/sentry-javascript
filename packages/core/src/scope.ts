@@ -67,6 +67,7 @@ export interface SdkProcessingMetadata {
   capturedSpanScope?: Scope;
   capturedSpanIsolationScope?: Scope;
   spanCountBeforeProcessing?: number;
+  ipAddress?: string;
 }
 
 /**
