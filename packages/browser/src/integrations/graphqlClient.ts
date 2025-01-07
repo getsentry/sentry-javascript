@@ -8,10 +8,10 @@ import {
   spanToJSON,
 } from '@sentry/core';
 import type { Client, HandlerDataFetch, HandlerDataXhr, IntegrationFn } from '@sentry/types';
-import { getGraphQLRequestPayload, parseGraphQLQuery } from '@sentry/utils';
+import { getGraphQLRequestPayload, isString, parseGraphQLQuery, stringMatchesSomePattern } from '@sentry/utils';
 
 interface GraphQLClientOptions {
-  endpoints: Array<string>;
+  endpoints: Array<string | RegExp>;
 }
 
 // Standard graphql request shape: https://graphql.org/learn/serving-over-http/#post-request-and-body
@@ -45,30 +45,21 @@ function _updateSpanWithGraphQLData(client: Client, options: GraphQLClientOption
 
     if (isHttpClientSpan) {
       const httpUrl = spanAttributes[SEMANTIC_ATTRIBUTE_URL_FULL] || spanAttributes['http.url'];
+      const httpMethod = spanAttributes[SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD] || spanAttributes['http.method'];
+      
+      if (!isString(httpUrl) || !isString(httpMethod)){
+        return 
+      }
 
       const { endpoints } = options;
-      const isTracedGraphqlEndpoint = endpoints.includes(httpUrl);
+      const isTracedGraphqlEndpoint = stringMatchesSomePattern(httpUrl, endpoints);
 
-      if (isTracedGraphqlEndpoint) {
-        const httpMethod = spanAttributes[SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD] || spanAttributes['http.method'];
-        
-        const isXhr = 'xhr' in handlerData;
-        const isFetch = 'fetchData' in handlerData;
+      if (isTracedGraphqlEndpoint) {        
+        const payload = _getRequestPayloadXhrOrFetch(handlerData)
+        const operationInfo = _getGraphQLOperation(getGraphQLRequestPayload(payload as string) as GraphQLRequestPayload);
 
-        let body: string | undefined;
-
-        if(isXhr){
-          const sentryXhrData = (handlerData as HandlerDataXhr).xhr[SENTRY_XHR_DATA_KEY];
-          body = getBodyString(sentryXhrData?.body)[0]
-
-        } else if(isFetch){
-          const sentryFetchData = (handlerData as HandlerDataFetch).fetchData
-          body = getBodyString(sentryFetchData.body)[0]
-        }
-
-        const operationInfo = _getGraphQLOperation(getGraphQLRequestPayload(body as string) as GraphQLRequestPayload);
         span.updateName(`${httpMethod} ${httpUrl} (${operationInfo})`);
-        span.setAttribute('graphql.document', body);
+        span.setAttribute('graphql.document', payload);
       }
     }
   });
@@ -86,29 +77,18 @@ function _updateBreadcrumbWithGraphQLData(client: Client, options: GraphQLClient
       const httpUrl = data && data.url;
       const { endpoints } = options;
 
-      const isTracedGraphqlEndpoint = endpoints.includes(httpUrl);
+      const isTracedGraphqlEndpoint = stringMatchesSomePattern(httpUrl, endpoints);
 
       if (isTracedGraphqlEndpoint && data) {
 
-        let body: string | undefined;
-        
-        if(isXhr){
-          const sentryXhrData = (handlerData as HandlerDataXhr).xhr[SENTRY_XHR_DATA_KEY];
-          body = getBodyString(sentryXhrData?.body)[0]
+        const payload = _getRequestPayloadXhrOrFetch(handlerData)
+        const graphqlBody = getGraphQLRequestPayload(payload as string)
 
-        } else if(isFetch){
-          const sentryFetchData = (handlerData as HandlerDataFetch).fetchData
-          body = getBodyString(sentryFetchData.body)[0]
-        }
-   
-        const graphqlBody = getGraphQLRequestPayload(body as string)
         if (!data.graphql && graphqlBody) {
           const operationInfo = _getGraphQLOperation(graphqlBody as GraphQLRequestPayload);
 
-          data.graphql = {
-            query: (graphqlBody as GraphQLRequestPayload).query,
-            operationName: operationInfo,
-          };
+          data["graphql.document"] = (graphqlBody as GraphQLRequestPayload).query
+          data["graphql.operation"] = operationInfo;
         }
 
         // The body prop attached to HandlerDataFetch for the span should be removed.
@@ -127,6 +107,28 @@ function _getGraphQLOperation(requestBody: GraphQLRequestPayload): string {
   const operationInfo = operationName ? `${operationType} ${operationName}` : `${operationType}`;
 
   return operationInfo;
+}
+
+/**
+ * Get the request body/payload based on the shape of the HandlerData
+ * @param handlerData - Xhr or Fetch HandlerData
+ */
+function _getRequestPayloadXhrOrFetch(handlerData: HandlerDataXhr | HandlerDataFetch): string | undefined {
+  const isXhr = 'xhr' in handlerData;
+  const isFetch = 'fetchData' in handlerData;
+
+  let body: string | undefined;
+
+  if(isXhr){
+    const sentryXhrData = (handlerData as HandlerDataXhr).xhr[SENTRY_XHR_DATA_KEY];
+    body = getBodyString(sentryXhrData?.body)[0]
+
+  } else if(isFetch){
+    const sentryFetchData = (handlerData as HandlerDataFetch).fetchData
+    body = getBodyString(sentryFetchData.body)[0]
+  }
+
+  return body
 }
 
 /**
