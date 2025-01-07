@@ -84,6 +84,8 @@ In v9, an `undefined` value will be treated the same as if the value is not defi
 
 - When `skipOpenTelemetrySetup: true` is configured, `httpIntegration({ spans: false })` will be configured by default. This means that you no longer have to specify this yourself in this scenario. With this change, no spans are emitted once `skipOpenTelemetrySetup: true` is configured, without any further configuration being needed.
 
+- The `requestDataIntegration` will no longer automatically set the user from `request.user`. This is an express-specific, undocumented behavior, and also conflicts with our privacy-by-default strategy. Starting in v9, you'll need to manually call `Sentry.setUser()` e.g. in a middleware to set the user on Sentry events.
+
 ### `@sentry/browser`
 
 - The `captureUserFeedback` method has been removed. Use `captureFeedback` instead and update the `comments` field to `message`.
@@ -127,6 +129,8 @@ Sentry.init({
   openTelemetryInstrumentations: [new GenericPoolInstrumentation()],
 });
 ```
+
+- The `DEFAULT_USER_INCLUDES` constant has been removed.
 
 ### `@sentry/react`
 
