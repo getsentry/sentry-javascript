@@ -51,7 +51,7 @@ export interface WrapperOptions {
   captureAllSettledReasons: boolean;
   /**
    * Automatically trace all handler invocations.
-   * You may want to disable this if you use express within Lambda (use tracingHandler instead).
+   * You may want to disable this if you use express within Lambda.
    * @default true
    */
   startTrace: boolean;

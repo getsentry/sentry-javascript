@@ -59,7 +59,7 @@ export function findTrackComponent(trackComponents: string[], formattedName: str
   return isMatched;
 }
 
-export const createTracingMixins = (options: TracingOptions): Mixins => {
+export const createTracingMixins = (options: Partial<TracingOptions> = {}): Mixins => {
   const hooks = (options.hooks || [])
     .concat(DEFAULT_HOOKS)
     // Removing potential duplicates
@@ -138,7 +138,7 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
           if (!span) return;
           span.end();
 
-          finishRootSpan(this, timestampInSeconds(), options.timeout);
+          finishRootSpan(this, timestampInSeconds(), options.timeout || 2000);
         }
       };
     }

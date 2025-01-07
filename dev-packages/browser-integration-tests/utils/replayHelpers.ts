@@ -12,7 +12,7 @@ import type { fullSnapshotEvent, incrementalSnapshotEvent } from '@sentry-intern
 import { EventType } from '@sentry-internal/rrweb';
 import type { ReplayEventWithTime } from '@sentry/browser';
 import type { Breadcrumb, Event, ReplayEvent, ReplayRecordingMode } from '@sentry/core';
-import pako from 'pako';
+import { decompressSync, strFromU8 } from 'fflate';
 
 import { envelopeRequestParser } from './helpers';
 
@@ -406,9 +406,9 @@ export const replayEnvelopeParser = (request: Request | null): unknown[] => {
         if (envelopeBytes[i] === 0x78 && envelopeBytes[i + 1] === 0x9c) {
           try {
             // We found a zlib-compressed payload - let's decompress it
-            const payload = envelopeBytes.slice(i);
+            const payload = (envelopeBytes as Buffer).subarray(i);
             // now we return the decompressed payload as JSON
-            const decompressedPayload = pako.inflate(payload as unknown as Uint8Array, { to: 'string' });
+            const decompressedPayload = decompress(payload);
             return JSON.parse(decompressedPayload);
           } catch {
             // Let's log that something went wrong
@@ -487,4 +487,13 @@ function normalizeNumberAttribute(num: number): string {
 function getRequest(resOrReq: Request | Response): Request {
   // @ts-expect-error we check this
   return typeof resOrReq.request === 'function' ? (resOrReq as Response).request() : (resOrReq as Request);
+}
+
+/** Decompress a compressed data payload. */
+function decompress(data: Uint8Array): string {
+  if (!(data instanceof Uint8Array)) {
+    throw new Error(`Data passed to decompress is not a Uint8Array: ${data}`);
+  }
+  const decompressed = decompressSync(data);
+  return strFromU8(decompressed);
 }

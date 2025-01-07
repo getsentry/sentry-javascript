@@ -53,6 +53,8 @@ In preparation for the OpenTelemetry SDK v2, which will raise the minimum requir
 
 Additionally, like the OpenTelemetry SDK, the Sentry JavaScript SDK will follow [DefinitelyType's version support policy](https://github.com/DefinitelyTyped/DefinitelyTyped#support-window) which has a support time frame of 2 years for any released version of TypeScript.
 
+Older Typescript versions _may_ still work, but we will not test them anymore and no more guarantees apply.
+
 ## 2. Behavior Changes
 
 ### `@sentry/core` / All SDKs
@@ -66,9 +68,25 @@ Sentry.init({
 });
 ```
 
+- In previous versions, we determined if tracing is enabled (for Tracing Without Performance) by checking if either `tracesSampleRate` or `traceSampler` are _defined_ at all, in `Sentry.init()`. This means that e.g. the following config would lead to tracing without performance (=tracing being enabled, even if no spans would be started):
+
+```js
+Sentry.init({
+  tracesSampleRate: undefined,
+});
+```
+
+In v9, an `undefined` value will be treated the same as if the value is not defined at all. You'll need to set `tracesSampleRate: 0` if you want to enable tracing without performance.
+
+- The `getCurrentHub().getIntegration(IntegrationClass)` method will always return `null` in v9. This has already stopped working mostly in v8, because we stopped exposing integration classes. In v9, the fallback behavior has been removed. Note that this does not change the type signature and is thus not technically breaking, but still worth pointing out.
+
 ### `@sentry/node`
 
 - When `skipOpenTelemetrySetup: true` is configured, `httpIntegration({ spans: false })` will be configured by default. This means that you no longer have to specify this yourself in this scenario. With this change, no spans are emitted once `skipOpenTelemetrySetup: true` is configured, without any further configuration being needed.
+
+### `@sentry/browser`
+
+- The `captureUserFeedback` method has been removed. Use `captureFeedback` instead and update the `comments` field to `message`.
 
 ### Uncategorized (TODO)
 
@@ -96,6 +114,19 @@ It will be removed in a future major version.
 
 - The `debugIntegration` has been removed. To log outgoing events, use [Hook Options](https://docs.sentry.io/platforms/javascript/configuration/options/#hooks) (`beforeSend`, `beforeSendTransaction`, ...).
 - The `sessionTimingIntegration` has been removed. To capture session durations alongside events, use [Context](https://docs.sentry.io/platforms/javascript/enriching-events/context/) (`Sentry.setContext()`).
+- The `addOpenTelemetryInstrumentation` method has been removed. Use the `openTelemetryInstrumentations` option in `Sentry.init()` or your custom Sentry Client instead.
+
+```js
+import * as Sentry from '@sentry/node';
+
+// before
+Sentry.addOpenTelemetryInstrumentation(new GenericPoolInstrumentation());
+
+// after
+Sentry.init({
+  openTelemetryInstrumentations: [new GenericPoolInstrumentation()],
+});
+```
 
 ### `@sentry/react`
 
@@ -112,6 +143,20 @@ It will be removed in a future major version.
 - The `flatten` export has been removed. There is no replacement.
 - The `urlEncode` method has been removed. There is no replacement.
 - The `getDomElement` method has been removed. There is no replacement.
+- The `memoBuilder` method has been removed. There is no replacement.
+- The `extractRequestData` method has been removed. Manually extract relevant data off request instead.
+- The `addRequestDataToEvent` method has been removed. Use `addNormalizedRequestDataToEvent` instead.
+- The `extractPathForTransaction` method has been removed. There is no replacement.
+
+#### Other/Internal Changes
+
+The following changes are unlikely to affect users of the SDK. They are listed here only for completion sake, and to alert users that may be relying on internal behavior.
+
+- `client._prepareEvent()` now requires a currentScope & isolationScope to be passed as last arugments
+
+### `@sentry/browser`
+
+- The `captureUserFeedback` method has been removed. Use `captureFeedback` instead and update the `comments` field to `message`.
 
 ### `@sentry/nestjs`
 
@@ -129,6 +174,27 @@ It will be removed in a future major version.
   Use the `SentryGlobalFilter` instead.
   The `SentryGlobalFilter` is a drop-in replacement.
 
+## `@sentry/vue`
+
+- The options `tracingOptions`, `trackComponents`, `timeout`, `hooks` have been removed everywhere except in the `tracingOptions` option of `vueIntegration()`.
+  These options should now be set as follows:
+
+  ```ts
+  import * as Sentry from '@sentry/vue';
+
+  Sentry.init({
+    integrations: [
+      Sentry.vueIntegration({
+        tracingOptions: {
+          trackComponents: true,
+          timeout: 1000,
+          hooks: ['mount', 'update', 'unmount'],
+        },
+      }),
+    ],
+  });
+  ```
+
 ## 5. Build Changes
 
 Previously the CJS versions of the SDK code (wrongfully) contained compatibility statements for default exports in ESM:
@@ -140,6 +206,10 @@ Object.defineProperty(exports, '__esModule', { value: true });
 The SDK no longer contains these statements.
 Let us know if this is causing issues in your setup by opening an issue on GitHub.
 
+### `@sentry/deno`
+
+- The import of Sentry from the deno registry has changed. Use `import * as Sentry from 'https://deno.land/x/sentry/build/index.mjs'` instead.
+
 ## 6. Type Changes
 
 In v8, types have been exported from `@sentry/types`, while implementations have been exported from other classes.
@@ -147,6 +217,11 @@ This led to some duplication, where we had to keep an interface in `@sentry/type
 Since v9, the types have been merged into `@sentry/core`, which removed some of this duplication. This means that certain things that used to be a separate interface, will not expect an actual instance of the class/concrete implementation. This should not affect most users, unless you relied on passing things with a similar shape to internal methods. The following types are affected:
 
 - `Scope` now always expects the `Scope` class
+- The `TransactionNamingScheme` type has been removed. There is no replacement.
+- The `Request` type has been removed. Use `RequestEventData` type instead.
+- The `IntegrationClass` type is no longer exported - it was not used anymore. Instead, use `Integration` or `IntegrationFn`.
+- The `samplingContext.request` attribute in the `tracesSampler` has been removed. Use `samplingContext.normalizedRequest` instead. Note that the type of `normalizedRequest` differs from `request`.
+- `Client` now always expects the `BaseClient` class - there is no more abstract `Client` that can be implemented! Any `Client` class has to extend from `BaseClient`.
 
 # No Version Support Timeline
 

@@ -1,4 +1,5 @@
-import type { ExtractedNodeRequestData, WorkerLocation } from './misc';
+import type { RequestEventData } from '../types-hoist/request';
+import type { WorkerLocation } from './misc';
 import type { SpanAttributes } from './span';
 
 /**
@@ -35,9 +36,9 @@ export interface SamplingContext extends CustomSamplingContext {
   location?: WorkerLocation;
 
   /**
-   * Object representing the incoming request to a node server. Passed by default when using the TracingHandler.
+   * Object representing the incoming request to a node server in a normalized format.
    */
-  request?: ExtractedNodeRequestData;
+  normalizedRequest?: RequestEventData;
 
   /** The name of the span being sampled. */
   name: string;

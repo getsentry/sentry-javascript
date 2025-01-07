@@ -7,7 +7,7 @@ import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 import * as requestDataModule from '../../../src/utils-hoist/requestdata';
 
-const addRequestDataToEventSpy = jest.spyOn(requestDataModule, 'addRequestDataToEvent');
+const addNormalizedRequestDataToEventSpy = jest.spyOn(requestDataModule, 'addNormalizedRequestDataToEvent');
 
 const headers = { ears: 'furry', nose: 'wet', tongue: 'spotted', cookie: 'favorite=zukes' };
 const method = 'wagging';
@@ -50,7 +50,7 @@ describe('`RequestData` integration', () => {
       hostname,
       originalUrl: `${path}?${queryString}`,
     } as unknown as IncomingMessage;
-    event = { sdkProcessingMetadata: { request: req } };
+    event = { sdkProcessingMetadata: { request: req, normalizedRequest: {} } };
   });
 
   afterEach(() => {
@@ -62,20 +62,10 @@ describe('`RequestData` integration', () => {
       const requestDataEventProcessor = initWithRequestDataIntegrationOptions({ include: { ip: false, user: true } });
 
       void requestDataEventProcessor(event, {});
-
-      const passedOptions = addRequestDataToEventSpy.mock.calls[0]?.[2];
+      expect(addNormalizedRequestDataToEventSpy).toHaveBeenCalled();
+      const passedOptions = addNormalizedRequestDataToEventSpy.mock.calls[0]?.[3];
 
       expect(passedOptions?.include).toEqual(expect.objectContaining({ ip: false, user: true }));
-    });
-
-    it('moves `transactionNamingScheme` to `transaction` include', () => {
-      const requestDataEventProcessor = initWithRequestDataIntegrationOptions({ transactionNamingScheme: 'path' });
-
-      void requestDataEventProcessor(event, {});
-
-      const passedOptions = addRequestDataToEventSpy.mock.calls[0]?.[2];
-
-      expect(passedOptions?.include).toEqual(expect.objectContaining({ transaction: 'path' }));
     });
 
     it('moves `true` request keys into `request` include, but omits `false` ones', async () => {
@@ -85,7 +75,7 @@ describe('`RequestData` integration', () => {
 
       void requestDataEventProcessor(event, {});
 
-      const passedOptions = addRequestDataToEventSpy.mock.calls[0]?.[2];
+      const passedOptions = addNormalizedRequestDataToEventSpy.mock.calls[0]?.[3];
 
       expect(passedOptions?.include?.request).toEqual(expect.arrayContaining(['data']));
       expect(passedOptions?.include?.request).not.toEqual(expect.arrayContaining(['cookies']));
@@ -98,7 +88,7 @@ describe('`RequestData` integration', () => {
 
       void requestDataEventProcessor(event, {});
 
-      const passedOptions = addRequestDataToEventSpy.mock.calls[0]?.[2];
+      const passedOptions = addNormalizedRequestDataToEventSpy.mock.calls[0]?.[3];
 
       expect(passedOptions?.include?.user).toEqual(expect.arrayContaining(['id']));
       expect(passedOptions?.include?.user).not.toEqual(expect.arrayContaining(['email']));

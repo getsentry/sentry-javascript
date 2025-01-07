@@ -1,10 +1,6 @@
 import { defineIntegration } from '../integration';
 import type { IntegrationFn } from '../types-hoist';
-import {
-  type AddRequestDataToEventOptions,
-  addNormalizedRequestDataToEvent,
-  addRequestDataToEvent,
-} from '../utils-hoist/requestdata';
+import { type AddRequestDataToEventOptions, addNormalizedRequestDataToEvent } from '../utils-hoist/requestdata';
 
 export type RequestDataIntegrationOptions = {
   /**
@@ -25,12 +21,6 @@ export type RequestDataIntegrationOptions = {
           email?: boolean;
         };
   };
-
-  /**
-   * Whether to identify transactions by parameterized path, parameterized path with method, or handler name.
-   * @deprecated This option does not do anything anymore, and will be removed in v9.
-   */
-  transactionNamingScheme?: 'path' | 'methodPath' | 'handler';
 };
 
 const DEFAULT_OPTIONS = {
@@ -79,27 +69,20 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
       // that's happened, it will be easier to add this logic in without worrying about unexpected side effects.)
 
       const { sdkProcessingMetadata = {} } = event;
-      const { request, normalizedRequest } = sdkProcessingMetadata;
+      const { request, normalizedRequest, ipAddress } = sdkProcessingMetadata;
 
       const addRequestDataOptions = convertReqDataIntegrationOptsToAddReqDataOpts(_options);
 
       // If this is set, it takes precedence over the plain request object
       if (normalizedRequest) {
         // Some other data is not available in standard HTTP requests, but can sometimes be augmented by e.g. Express or Next.js
-        const ipAddress = request ? request.ip || (request.socket && request.socket.remoteAddress) : undefined;
         const user = request ? request.user : undefined;
 
         addNormalizedRequestDataToEvent(event, normalizedRequest, { ipAddress, user }, addRequestDataOptions);
         return event;
       }
 
-      // TODO(v9): Eventually we can remove this fallback branch and only rely on the normalizedRequest above
-      if (!request) {
-        return event;
-      }
-
-      // eslint-disable-next-line deprecation/deprecation
-      return addRequestDataToEvent(event, request, addRequestDataOptions);
+      return event;
     },
   };
 }) satisfies IntegrationFn;
@@ -116,8 +99,6 @@ function convertReqDataIntegrationOptsToAddReqDataOpts(
   integrationOptions: Required<RequestDataIntegrationOptions>,
 ): AddRequestDataToEventOptions {
   const {
-    // eslint-disable-next-line deprecation/deprecation
-    transactionNamingScheme,
     include: { ip, user, ...requestOptions },
   } = integrationOptions;
 
@@ -148,7 +129,6 @@ function convertReqDataIntegrationOptsToAddReqDataOpts(
       ip,
       user: addReqDataUserOpt,
       request: requestIncludeKeys.length !== 0 ? requestIncludeKeys : undefined,
-      transaction: transactionNamingScheme,
     },
   };
 }

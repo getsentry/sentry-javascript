@@ -1576,11 +1576,8 @@ describe('continueTrace', () => {
     );
 
     expect(scope.getPropagationContext()).toEqual({
-      dsc: {}, // DSC should be an empty object (frozen), because there was an incoming trace
-      sampled: false,
-      parentSpanId: '1121201211212012',
       spanId: expect.any(String),
-      traceId: '12312012123120121231201212312012',
+      traceId: expect.any(String),
     });
 
     expect(scope.getScopeData().sdkProcessingMetadata).toEqual({});
@@ -1609,14 +1606,8 @@ describe('continueTrace', () => {
     );
 
     expect(scope.getPropagationContext()).toEqual({
-      dsc: {
-        environment: 'production',
-        version: '1.0',
-      },
-      sampled: true,
-      parentSpanId: '1121201211212012',
       spanId: expect.any(String),
-      traceId: '12312012123120121231201212312012',
+      traceId: expect.any(String),
     });
 
     expect(scope.getScopeData().sdkProcessingMetadata).toEqual({});
@@ -1645,16 +1636,9 @@ describe('continueTrace', () => {
     );
 
     expect(scope.getPropagationContext()).toEqual({
-      dsc: {
-        environment: 'production',
-        version: '1.0',
-      },
-      sampled: true,
-      parentSpanId: '1121201211212012',
       spanId: expect.any(String),
-      traceId: '12312012123120121231201212312012',
+      traceId: expect.any(String),
     });
-
     expect(scope.getScopeData().sdkProcessingMetadata).toEqual({});
   });
 

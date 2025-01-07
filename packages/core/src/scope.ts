@@ -1,24 +1,26 @@
 /* eslint-disable max-lines */
+import type { Client } from './client';
+import { updateSession } from './session';
 import type {
   Attachment,
   Breadcrumb,
-  Client,
   Context,
   Contexts,
+  DynamicSamplingContext,
   Event,
   EventHint,
   EventProcessor,
   Extra,
   Extras,
+  PolymorphicRequest,
   Primitive,
   PropagationContext,
+  RequestEventData,
   Session,
   SeverityLevel,
   Span,
   User,
 } from './types-hoist';
-
-import { updateSession } from './session';
 import { isPlainObject } from './utils-hoist/is';
 import { logger } from './utils-hoist/logger';
 import { uuid4 } from './utils-hoist/misc';
@@ -58,6 +60,13 @@ export interface SdkProcessingMetadata {
   requestSession?: {
     status: 'ok' | 'errored' | 'crashed';
   };
+  request?: PolymorphicRequest;
+  normalizedRequest?: RequestEventData;
+  dynamicSamplingContext?: Partial<DynamicSamplingContext>;
+  capturedSpanScope?: Scope;
+  capturedSpanIsolationScope?: Scope;
+  spanCountBeforeProcessing?: number;
+  ipAddress?: string;
 }
 
 /**
@@ -537,10 +546,8 @@ export class Scope {
 
   /**
    * Add data which will be accessible during event processing but won't get sent to Sentry.
-   *
-   * TODO(v9): We should type this stricter, so that e.g. `normalizedRequest` is strictly typed.
    */
-  public setSDKProcessingMetadata(newData: { [key: string]: unknown }): this {
+  public setSDKProcessingMetadata(newData: SdkProcessingMetadata): this {
     this._sdkProcessingMetadata = merge(this._sdkProcessingMetadata, newData, 2);
     return this;
   }

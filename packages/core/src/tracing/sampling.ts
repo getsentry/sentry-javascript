@@ -1,5 +1,6 @@
 import type { Options, SamplingContext } from '../types-hoist';
 
+import { getIsolationScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { logger } from '../utils-hoist/logger';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
@@ -20,13 +21,20 @@ export function sampleSpan(
     return [false];
   }
 
+  const normalizedRequest = getIsolationScope().getScopeData().sdkProcessingMetadata.normalizedRequest;
+
+  const enhancedSamplingContext = {
+    ...samplingContext,
+    normalizedRequest: samplingContext.normalizedRequest || normalizedRequest,
+  };
+
   // we would have bailed already if neither `tracesSampler` nor `tracesSampleRate` nor `enableTracing` were defined, so one of these should
   // work; prefer the hook if so
   let sampleRate;
   if (typeof options.tracesSampler === 'function') {
-    sampleRate = options.tracesSampler(samplingContext);
-  } else if (samplingContext.parentSampled !== undefined) {
-    sampleRate = samplingContext.parentSampled;
+    sampleRate = options.tracesSampler(enhancedSamplingContext);
+  } else if (enhancedSamplingContext.parentSampled !== undefined) {
+    sampleRate = enhancedSamplingContext.parentSampled;
   } else if (typeof options.tracesSampleRate !== 'undefined') {
     sampleRate = options.tracesSampleRate;
   } else {

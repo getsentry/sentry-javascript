@@ -7,7 +7,7 @@ import router from './router';
 import { createPinia } from 'pinia';
 
 import * as Sentry from '@sentry/vue';
-import { browserTracingIntegration } from '@sentry/vue';
+import { browserTracingIntegration, vueIntegration } from '@sentry/vue';
 
 const app = createApp(App);
 const pinia = createPinia();
@@ -17,12 +17,16 @@ Sentry.init({
   dsn: import.meta.env.PUBLIC_E2E_TEST_DSN,
   tracesSampleRate: 1.0,
   integrations: [
+    vueIntegration({
+      tracingOptions: {
+        trackComponents: ['ComponentMainView', '<ComponentOneView>'],
+      },
+    }),
     browserTracingIntegration({
       router,
     }),
   ],
   tunnel: `http://localhost:3031/`, // proxy server
-  trackComponents: ['ComponentMainView', '<ComponentOneView>'],
 });
 
 pinia.use(

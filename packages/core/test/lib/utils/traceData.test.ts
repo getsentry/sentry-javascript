@@ -1,3 +1,4 @@
+import type { Client } from '../../../src/';
 import {
   SentrySpan,
   getCurrentScope,
@@ -11,8 +12,7 @@ import {
 } from '../../../src/';
 import { getAsyncContextStrategy } from '../../../src/asyncContext';
 import { freezeDscOnSpan } from '../../../src/tracing/dynamicSamplingContext';
-import type { Client, Span } from '../../../src/types-hoist';
-
+import type { Span } from '../../../src/types-hoist';
 import type { TestClientOptions } from '../../mocks/client';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 

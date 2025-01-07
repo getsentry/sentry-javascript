@@ -14,7 +14,7 @@
     "tsconfig.json"
   ],
   "peerDependencies": {
-    "typescript": "4.9.5"
+    "typescript": "~5.0.0"
   },
   "scripts": {
     "clean": "yarn rimraf sentry-internal-typescript-*.tgz",
