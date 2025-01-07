@@ -267,6 +267,8 @@ jobs:
         run: yarn lint:lerna
       - name: Lint C++ files
         run: yarn lint:clang
+      - name: Lint for ES compatibility
+        run: yarn lint:es-compatibility
 
   job_check_format:
     name: Check file formatting
