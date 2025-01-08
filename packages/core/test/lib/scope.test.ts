@@ -1,3 +1,4 @@
+import type { Client } from '../../src';
 import {
   applyScopeDataToEvent,
   getCurrentScope,
@@ -6,9 +7,8 @@ import {
   withIsolationScope,
   withScope,
 } from '../../src';
-import type { Breadcrumb, Client, Event } from '../../src/types-hoist';
-
 import { Scope } from '../../src/scope';
+import type { Breadcrumb, Event } from '../../src/types-hoist';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 import { clearGlobalScope } from './clear-global-scope';
 

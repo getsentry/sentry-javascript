@@ -84,6 +84,8 @@ In v9, an `undefined` value will be treated the same as if the value is not defi
 
 - When `skipOpenTelemetrySetup: true` is configured, `httpIntegration({ spans: false })` will be configured by default. This means that you no longer have to specify this yourself in this scenario. With this change, no spans are emitted once `skipOpenTelemetrySetup: true` is configured, without any further configuration being needed.
 
+- The `requestDataIntegration` will no longer automatically set the user from `request.user`. This is an express-specific, undocumented behavior, and also conflicts with our privacy-by-default strategy. Starting in v9, you'll need to manually call `Sentry.setUser()` e.g. in a middleware to set the user on Sentry events.
+
 ### `@sentry/browser`
 
 - The `captureUserFeedback` method has been removed. Use `captureFeedback` instead and update the `comments` field to `message`.
@@ -127,6 +129,8 @@ Sentry.init({
   openTelemetryInstrumentations: [new GenericPoolInstrumentation()],
 });
 ```
+
+- The `DEFAULT_USER_INCLUDES` constant has been removed.
 
 ### `@sentry/react`
 
@@ -222,6 +226,7 @@ Since v9, the types have been merged into `@sentry/core`, which removed some of 
 - The `IntegrationClass` type is no longer exported - it was not used anymore. Instead, use `Integration` or `IntegrationFn`.
 - The `samplingContext.request` attribute in the `tracesSampler` has been removed. Use `samplingContext.normalizedRequest` instead. Note that the type of `normalizedRequest` differs from `request`.
 - The `samplingContext.transactionContext` object in the `tracesSampler` has been removed. All object attributes are available in the top-level of `samplingContext`.
+- `Client` now always expects the `BaseClient` class - there is no more abstract `Client` that can be implemented! Any `Client` class has to extend from `BaseClient`.
 
 # No Version Support Timeline
 
