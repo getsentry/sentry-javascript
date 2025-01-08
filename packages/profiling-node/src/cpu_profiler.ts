@@ -39,7 +39,7 @@ export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
       : // This case is hit when the tests are run
         pathToFileURL(__filename).href;
 
-  const createdRequire = createRequire(__IMPORT_META_URL_REPLACEMENT__);
+  const createdRequire = createRequire(importMetaUrl);
   const esmCompatibleDirname = dirname(fileURLToPath(importMetaUrl));
 
   // If a binary path is specified, use that.
