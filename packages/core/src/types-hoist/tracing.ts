@@ -32,9 +32,9 @@ export interface PropagationContext {
   parentSpanId?: string;
 
   /**
-   * A span ID to be used when using tracing without performance (without an active span).
-   * This is only set/used when the SDK wants to ensure to use the same span ID for propagation.
-   * If this is empty, a random span ID will be generated.
+   * A span ID that should be used for the `trace` context of various event types, and for propagation of a `parentSpanId` to downstream services, when performance is disabled or when there is no active span.
+   * This value should be set by the SDK in an informed way when the same span ID should be used for one unit of execution (e.g. a request, usually tied to the isolation scope).
+   * If this value is undefined on the propagation context, the SDK will generate a random span ID for `trace` contexts and trace propagation.
    */
   propagationSpanId?: string;
 
