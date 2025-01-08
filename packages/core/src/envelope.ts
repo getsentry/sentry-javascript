@@ -1,7 +1,7 @@
+import type { Client } from './client';
 import { getDynamicSamplingContextFromSpan } from './tracing/dynamicSamplingContext';
 import type { SentrySpan } from './tracing/sentrySpan';
 import type {
-  Client,
   DsnComponents,
   DynamicSamplingContext,
   Event,
@@ -18,7 +18,6 @@ import type {
   SessionItem,
   SpanEnvelope,
   SpanItem,
-  SpanJSON,
 } from './types-hoist';
 import { dsnToString } from './utils-hoist/dsn';
 import {
@@ -127,13 +126,17 @@ export function createSpanEnvelope(spans: [SentrySpan, ...SentrySpan[]], client?
   const beforeSendSpan = client && client.getOptions().beforeSendSpan;
   const convertToSpanJSON = beforeSendSpan
     ? (span: SentrySpan) => {
-        const spanJson = beforeSendSpan(spanToJSON(span) as SpanJSON);
-        if (!spanJson) {
+        const spanJson = spanToJSON(span);
+        const processedSpan = beforeSendSpan(spanJson);
+
+        if (!processedSpan) {
           showSpanDropWarning();
+          return spanJson;
         }
-        return spanJson;
+
+        return processedSpan;
       }
-    : (span: SentrySpan) => spanToJSON(span);
+    : spanToJSON;
 
   const items: SpanItem[] = [];
   for (const span of spans) {

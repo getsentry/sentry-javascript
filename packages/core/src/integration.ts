@@ -1,7 +1,7 @@
+import type { Client } from './client';
 import { getClient } from './currentScopes';
-import type { Client, Event, EventHint, Integration, IntegrationFn, Options } from './types-hoist';
-
 import { DEBUG_BUILD } from './debug-build';
+import type { Event, EventHint, Integration, IntegrationFn, Options } from './types-hoist';
 import { logger } from './utils-hoist/logger';
 
 export const installedIntegrations: string[] = [];

@@ -23,7 +23,7 @@ import { IS_DEBUG_BUILD } from './flags';
 /**
  * Get the default integrations for the Angular SDK.
  */
-export function getDefaultIntegrations(options: BrowserOptions = {}): Integration[] {
+export function getDefaultIntegrations(_options: BrowserOptions = {}): Integration[] {
   // Don't include the BrowserApiErrors integration as it interferes with the Angular SDK's `ErrorHandler`:
   // BrowserApiErrors would catch certain errors before they reach the `ErrorHandler` and
   // thus provide a lower fidelity error than what `SentryErrorHandler`
@@ -32,7 +32,7 @@ export function getDefaultIntegrations(options: BrowserOptions = {}): Integratio
   // see:
   //  - https://github.com/getsentry/sentry-javascript/issues/5417#issuecomment-1453407097
   //  - https://github.com/getsentry/sentry-javascript/issues/2744
-  const integrations = [
+  return [
     inboundFiltersIntegration(),
     functionToStringIntegration(),
     breadcrumbsIntegration(),
@@ -40,14 +40,8 @@ export function getDefaultIntegrations(options: BrowserOptions = {}): Integratio
     linkedErrorsIntegration(),
     dedupeIntegration(),
     httpContextIntegration(),
+    browserSessionIntegration(),
   ];
-
-  // eslint-disable-next-line deprecation/deprecation
-  if (options.autoSessionTracking !== false) {
-    integrations.push(browserSessionIntegration());
-  }
-
-  return integrations;
 }
 
 /**
