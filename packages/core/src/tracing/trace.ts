@@ -370,9 +370,13 @@ function getAcs(): AsyncContextStrategy {
   return getAsyncContextStrategy(carrier);
 }
 
-function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parentSampled?: boolean): SentrySpan {
+function _startRootSpan(
+  spanArguments: SentrySpanArguments,
+  scope: Scope,
+  parentSampled?: boolean,
+): SentrySpan | SentryNonRecordingSpan {
   const client = getClient();
-  const options: Partial<ClientOptions> = (client && client.getOptions()) || {};
+  const options: Partial<ClientOptions> = client?.getOptions() || {};
 
   const { name = '', attributes } = spanArguments;
   const [sampled, sampleRate] = scope.getScopeData().sdkProcessingMetadata[SUPPRESS_TRACING_KEY]
@@ -387,14 +391,17 @@ function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parent
         },
       });
 
-  const rootSpan = new SentrySpan({
-    ...spanArguments,
-    attributes: {
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
-      ...spanArguments.attributes,
-    },
-    sampled,
-  });
+  const rootSpan = sampled
+    ? new SentrySpan({
+        ...spanArguments,
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+          ...spanArguments.attributes,
+        },
+        sampled,
+      })
+    : new SentryNonRecordingSpan({ traceId: spanArguments.traceId });
+
   if (sampleRate !== undefined) {
     rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, sampleRate);
   }

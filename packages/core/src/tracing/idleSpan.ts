@@ -15,6 +15,7 @@ import {
   spanToJSON,
 } from '../utils/spanUtils';
 import { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
+import { recordDroppedRootSpan } from './sentrySpan';
 import { SPAN_STATUS_ERROR } from './spanstatus';
 import { startInactiveSpan } from './trace';
 
@@ -122,6 +123,14 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
     apply(target, thisArg, args: Parameters<Span['end']>) {
       if (beforeSpanEnd) {
         beforeSpanEnd(span);
+      }
+
+      // If the span is non-recording, nothing more to do here...
+      // This is the case if tracing is enabled but this specific span was not sampled
+      // We make sure to record this as dropped in this case
+      if (thisArg instanceof SentryNonRecordingSpan) {
+        recordDroppedRootSpan(thisArg);
+        return;
       }
 
       // Just ensuring that this keeps working, even if we ever have more arguments here
