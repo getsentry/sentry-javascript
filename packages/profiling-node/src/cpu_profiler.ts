@@ -3,7 +3,7 @@ import { arch as _arch, platform as _platform } from 'node:os';
 import { join, resolve } from 'node:path';
 import { dirname } from 'node:path';
 import { env, versions } from 'node:process';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { threadId } from 'node:worker_threads';
 import { familySync } from 'detect-libc';
 import { getAbi } from 'node-abi';
@@ -18,6 +18,8 @@ import type {
 } from './types';
 import type { ProfileFormat } from './types';
 
+declare const __IMPORT_META_URL_REPLACEMENT__: string;
+
 const stdlib = familySync();
 const platform = process.env['BUILD_PLATFORM'] || _platform();
 const arch = process.env['BUILD_ARCH'] || _arch();
@@ -29,8 +31,16 @@ const identifier = [platform, arch, stdlib, abi].filter(c => c !== undefined && 
  */
 // eslint-disable-next-line complexity
 export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
-  const createdRequire = createRequire(import.meta.url);
-  const esmCompatibleDirname = dirname(fileURLToPath(import.meta.url));
+  // We need to work around using import.meta.url directly with __IMPORT_META_URL_REPLACEMENT__ because jest complains about it.
+  const importMetaUrl =
+    typeof __IMPORT_META_URL_REPLACEMENT__ !== 'undefined'
+      ? // This case is always hit when the SDK is built
+        __IMPORT_META_URL_REPLACEMENT__
+      : // This case is hit when the tests are run
+        pathToFileURL(__filename).href;
+
+  const createdRequire = createRequire(__IMPORT_META_URL_REPLACEMENT__);
+  const esmCompatibleDirname = dirname(fileURLToPath(importMetaUrl));
 
   // If a binary path is specified, use that.
   if (env['SENTRY_PROFILER_BINARY_PATH']) {
