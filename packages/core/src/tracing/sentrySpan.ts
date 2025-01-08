@@ -34,7 +34,6 @@ import {
   getRootSpan,
   getSpanDescendants,
   getStatusMessage,
-  spanIsSampled,
   spanTimeInputToSeconds,
   spanToJSON,
   spanToTransactionTraceContext,
@@ -336,7 +335,6 @@ export class SentrySpan implements Span {
     const { scope: capturedSpanScope, isolationScope: capturedSpanIsolationScope } = getCapturedScopesOnSpan(this);
 
     if (this._sampled !== true) {
-      recordDroppedRootSpan(this);
       return undefined;
     }
 
@@ -434,19 +432,4 @@ function sendSpanEnvelope(envelope: SpanEnvelope): void {
   // sendEnvelope should not throw
   // eslint-disable-next-line @typescript-eslint/no-floating-promises
   client.sendEnvelope(envelope);
-}
-
-/** Record a dropped root span. */
-export function recordDroppedRootSpan(span: Span): void {
-  const { scope: capturedSpanScope } = getCapturedScopesOnSpan(span);
-  const scope = capturedSpanScope || getCurrentScope();
-  const client = scope.getClient() || getClient();
-
-  if (!spanIsSampled(span)) {
-    DEBUG_BUILD && logger.log('[Tracing] Discarding root span because its trace was not chosen to be sampled.');
-
-    if (client) {
-      client.recordDroppedEvent('sample_rate', 'transaction');
-    }
-  }
 }

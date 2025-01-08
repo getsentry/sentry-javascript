@@ -391,6 +391,11 @@ function _startRootSpan(
         },
       });
 
+  if (!sampled && client) {
+    DEBUG_BUILD && logger.log('[Tracing] Discarding root span because its trace was not chosen to be sampled.');
+    client.recordDroppedEvent('sample_rate', 'transaction');
+  }
+
   const rootSpan = sampled
     ? new SentrySpan({
         ...spanArguments,

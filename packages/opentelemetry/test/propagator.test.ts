@@ -25,7 +25,7 @@ describe('SentryPropagator', () => {
     mockSdkInit({
       environment: 'production',
       release: '1.0.0',
-      enableTracing: true,
+      tracesSampleRate: 1,
       dsn: 'https://abc@domain/123',
     });
   });
