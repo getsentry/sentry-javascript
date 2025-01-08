@@ -78,6 +78,7 @@ describe('withSentry()', () => {
     });
     const names = config?.vite.plugins.flat().map((plugin: Plugin) => plugin.name);
     expect(names).toEqual([
+      'sentry-solidstart-build-instrumentation-file',
       'sentry-solidstart-source-maps',
       'sentry-telemetry-plugin',
       'sentry-vite-release-injection-plugin',
@@ -85,7 +86,6 @@ describe('withSentry()', () => {
       'sentry-vite-debug-id-injection-plugin',
       'sentry-vite-debug-id-upload-plugin',
       'sentry-file-deletion-plugin',
-      'sentry-solidstart-build-instrumentation-file',
     ]);
   });
 
@@ -106,6 +106,7 @@ describe('withSentry()', () => {
 
     const names = config?.vite.plugins.flat().map((plugin: Plugin) => plugin.name);
     expect(names).toEqual([
+      'sentry-solidstart-build-instrumentation-file',
       'sentry-solidstart-source-maps',
       'sentry-telemetry-plugin',
       'sentry-vite-release-injection-plugin',
@@ -113,7 +114,6 @@ describe('withSentry()', () => {
       'sentry-vite-debug-id-injection-plugin',
       'sentry-vite-debug-id-upload-plugin',
       'sentry-file-deletion-plugin',
-      'sentry-solidstart-build-instrumentation-file',
       'my-test-plugin',
     ]);
   });
@@ -138,6 +138,7 @@ describe('withSentry()', () => {
       .plugins.flat()
       .map((plugin: Plugin) => plugin.name);
     expect(names).toEqual([
+      'sentry-solidstart-build-instrumentation-file',
       'sentry-solidstart-source-maps',
       'sentry-telemetry-plugin',
       'sentry-vite-release-injection-plugin',
@@ -145,7 +146,6 @@ describe('withSentry()', () => {
       'sentry-vite-debug-id-injection-plugin',
       'sentry-vite-debug-id-upload-plugin',
       'sentry-file-deletion-plugin',
-      'sentry-solidstart-build-instrumentation-file',
       'my-test-plugin',
     ]);
   });
