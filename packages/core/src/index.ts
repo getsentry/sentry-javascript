@@ -3,7 +3,6 @@ export type { AsyncContextStrategy } from './asyncContext/types';
 export type { Carrier } from './carrier';
 export type { OfflineStore, OfflineTransportOptions } from './transports/offline';
 export type { ServerRuntimeClientOptions } from './server-runtime-client';
-export type { RequestDataIntegrationOptions } from './integrations/requestdata';
 export type { IntegrationIndex } from './integration';
 
 export * from './tracing';
@@ -90,6 +89,13 @@ export { parseSampleRate } from './utils/parseSampleRate';
 export { applySdkMetadata } from './utils/sdkMetadata';
 export { getTraceData } from './utils/traceData';
 export { getTraceMetaTags } from './utils/meta';
+export {
+  winterCGHeadersToDict,
+  winterCGRequestToRequestData,
+  httpRequestToRequestData,
+  extractQueryParamsFromUrl,
+  headersToDict,
+} from './utils/request';
 export { DEFAULT_ENVIRONMENT } from './constants';
 export { addBreadcrumb } from './breadcrumbs';
 export { functionToStringIntegration } from './integrations/functiontostring';

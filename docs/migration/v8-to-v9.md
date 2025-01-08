@@ -173,8 +173,9 @@ Sentry.init({
 - The `getDomElement` method has been removed. There is no replacement.
 - The `memoBuilder` method has been removed. There is no replacement.
 - The `extractRequestData` method has been removed. Manually extract relevant data off request instead.
-- The `addRequestDataToEvent` method has been removed. Use `addNormalizedRequestDataToEvent` instead.
+- The `addRequestDataToEvent` method has been removed. Use `httpRequestToRequestData` instead and put the resulting object directly on `event.request`.
 - The `extractPathForTransaction` method has been removed. There is no replacement.
+- The `addNormalizedRequestDataToEvent` method has been removed. Use `httpRequestToRequestData` instead and put the resulting object directly on `event.request`.
 
 #### Other/Internal Changes
 
@@ -254,6 +255,7 @@ Since v9, the types have been merged into `@sentry/core`, which removed some of 
 - The `samplingContext.request` attribute in the `tracesSampler` has been removed. Use `samplingContext.normalizedRequest` instead. Note that the type of `normalizedRequest` differs from `request`.
 - `Client` now always expects the `BaseClient` class - there is no more abstract `Client` that can be implemented! Any `Client` class has to extend from `BaseClient`.
 - `ReportDialogOptions` now extends `Record<string, unknown>` instead of `Record<string, any>` - this should not affect most users.
+- The `RequestDataIntegrationOptions` type has been removed. There is no replacement.
 
 # No Version Support Timeline
 
@@ -307,7 +309,7 @@ The Sentry metrics beta has ended and the metrics API has been removed from the 
 - Deprecated `TransactionNamingScheme` type.
 - Deprecated `validSeverityLevels`. Will not be replaced.
 - Deprecated `urlEncode`. No replacements.
-- Deprecated `addRequestDataToEvent`. Use `addNormalizedRequestDataToEvent` instead.
+- Deprecated `addRequestDataToEvent`. Use `httpRequestToRequestData` instead and put the resulting object directly on `event.request`.
 - Deprecated `extractRequestData`. Instead manually extract relevant data off request.
 - Deprecated `arrayify`. No replacements.
 - Deprecated `memoBuilder`. No replacements.

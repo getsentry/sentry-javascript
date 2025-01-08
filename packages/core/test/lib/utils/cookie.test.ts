@@ -28,7 +28,7 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import { parseCookie } from '../../src/utils-hoist/cookie';
+import { parseCookie } from '../../../src/utils/cookie';
 
 describe('parseCookie(str)', function () {
   it('should parse cookie string to object', function () {
