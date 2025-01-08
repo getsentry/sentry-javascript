@@ -30,16 +30,22 @@ export const attachErrorHandler = (app: Vue, options: VueOptions): void => {
     setTimeout(() => {
       captureException(error, {
         captureContext: { contexts: { vue: metadata } },
-        mechanism: { handled: false },
+        mechanism: { handled: !!originalErrorHandler, type: 'vue-errorHandler' },
       });
     });
 
     // Check if the current `app.config.errorHandler` is explicitly set by the user before calling it.
     if (typeof originalErrorHandler === 'function' && app.config.errorHandler) {
       (originalErrorHandler as UnknownFunc).call(app, error, vm, lifecycleHook);
-    }
+    } // TODO(v9): Always throw when no user-defined error handler is provided (this will log the error to the console as well). Delete the Code with logErrors below
+    /* else {
+      throw error;
+    } */
 
-    if (options.logErrors) {
+    if (!originalErrorHandler) {
+      throw error;
+      // eslint-disable-next-line deprecation/deprecation
+    } else if (options.logErrors) {
       const hasConsole = typeof console !== 'undefined';
       const message = `Error in ${lifecycleHook}: "${error && error.toString()}"`;
 
