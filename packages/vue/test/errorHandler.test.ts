@@ -1,32 +1,34 @@
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, describe, expect, it, test, vi } from 'vitest';
 
 import { setCurrentClient } from '@sentry/browser';
 
 import { attachErrorHandler } from '../src/errorhandler';
 import type { Operation, Options, ViewModel, Vue } from '../src/types';
-import { generateComponentTrace } from '../src/vendor/components';
 
 describe('attachErrorHandler', () => {
-  describe('attachProps', () => {
+  describe('attach data to captureException', () => {
     afterEach(() => {
       vi.resetAllMocks();
+      // we need timers to still call captureException wrapped inside setTimeout after the error throws
+      vi.useRealTimers();
     });
 
     describe("given I don't want to `attachProps`", () => {
       test('no `propsData` is added to the metadata', () => {
-        // arrange
         const t = testHarness({
-          enableErrorHandler: false,
           enableWarnHandler: false,
           attachProps: false,
           vm: null,
+          enableConsole: true,
         });
 
-        // act
-        t.run();
+        vi.useFakeTimers();
+        expect(() => t.run()).toThrow(DummyError);
+        vi.runAllTimers();
 
         // assert
         t.expect.errorToHaveBeenCaptured().withoutProps();
+        t.expect.errorToHaveBeenCaptured().withMechanismMetadata({ handled: false, type: 'vue-errorHandler' });
       });
     });
 
@@ -41,10 +43,13 @@ describe('attachErrorHandler', () => {
             });
 
             // act
-            t.run();
+            vi.useFakeTimers();
+            expect(() => t.run()).toThrow(DummyError);
+            vi.runAllTimers();
 
             // assert
             t.expect.errorToHaveBeenCaptured().withoutProps();
+            t.expect.errorToHaveBeenCaptured().withMechanismMetadata({ handled: false, type: 'vue-errorHandler' });
           });
         });
 
@@ -58,7 +63,9 @@ describe('attachErrorHandler', () => {
               });
 
               // act
-              t.run();
+              vi.useFakeTimers();
+              expect(() => t.run()).toThrow(DummyError);
+              vi.runAllTimers();
 
               // assert
               t.expect.errorToHaveBeenCaptured().withoutProps();
@@ -76,7 +83,9 @@ describe('attachErrorHandler', () => {
               });
 
               // act
-              t.run();
+              vi.useFakeTimers();
+              expect(() => t.run()).toThrow(DummyError);
+              vi.runAllTimers();
 
               // assert
               t.expect.errorToHaveBeenCaptured().withoutProps();
@@ -94,7 +103,9 @@ describe('attachErrorHandler', () => {
               });
 
               // act
-              t.run();
+              vi.useFakeTimers();
+              expect(() => t.run()).toThrow(DummyError);
+              vi.runAllTimers();
 
               // assert
               t.expect.errorToHaveBeenCaptured().withProps(props);
@@ -114,7 +125,9 @@ describe('attachErrorHandler', () => {
               });
 
               // act
-              t.run();
+              vi.useFakeTimers();
+              expect(() => t.run()).toThrow(DummyError);
+              vi.runAllTimers();
 
               // assert
               t.expect.errorToHaveBeenCaptured().withProps(props);
@@ -123,31 +136,22 @@ describe('attachErrorHandler', () => {
         });
       });
     });
-  });
 
-  describe('provided errorHandler', () => {
-    describe('given I did not provide an `errorHandler`', () => {
-      test('it is not called', () => {
+    describe('attach mechanism metadata', () => {
+      it('should mark error as unhandled and capture correct metadata', () => {
         // arrange
-        const t = testHarness({
-          enableErrorHandler: false,
-          vm: {
-            $options: {
-              name: 'stub-vm',
-            },
-          },
-        });
+        const t = testHarness({ vm: null });
 
         // act
-        t.run();
+        vi.useFakeTimers();
+        expect(() => t.run()).toThrow(DummyError);
+        vi.runAllTimers();
 
         // assert
-        t.expect.errorHandlerSpy.not.toHaveBeenCalled();
+        t.expect.errorToHaveBeenCaptured().withMechanismMetadata({ handled: false, type: 'vue-errorHandler' });
       });
-    });
 
-    describe('given I provided an `errorHandler`', () => {
-      test('it is called', () => {
+      it('should mark error as handled and properly delegate to error handler', () => {
         // arrange
         const vm = {
           $options: {
@@ -156,6 +160,7 @@ describe('attachErrorHandler', () => {
         };
         const t = testHarness({
           enableErrorHandler: true,
+          enableConsole: true,
           vm,
         });
 
@@ -164,137 +169,38 @@ describe('attachErrorHandler', () => {
 
         // assert
         t.expect.errorHandlerSpy.toHaveBeenCalledWith(expect.any(Error), vm, 'stub-lifecycle-hook');
+        t.expect.errorToHaveBeenCaptured().withMechanismMetadata({ handled: true, type: 'vue-errorHandler' });
       });
     });
   });
 
-  describe('error logging', () => {
-    describe('given I disabled error logging', () => {
-      describe('when an error is captured', () => {
-        test('it logs nothing', () => {
-          // arrange
-          const vm = {
-            $options: {
-              name: 'stub-vm',
-            },
-          };
-          const t = testHarness({
-            enableWarnHandler: false,
-            logErrors: false,
-            vm,
-          });
-
-          // act
-          t.run();
-
-          // assert
-          t.expect.consoleErrorSpy.not.toHaveBeenCalled();
-          t.expect.warnHandlerSpy.not.toHaveBeenCalled();
-        });
-      });
+  describe('error re-throwing and logging', () => {
+    afterEach(() => {
+      vi.resetAllMocks();
     });
 
-    describe('given I enabled error logging', () => {
-      describe('when I provide a `warnHandler`', () => {
-        describe('when a error is captured', () => {
-          test.each([
-            [
-              'with wm',
-              {
-                $options: {
-                  name: 'stub-vm',
-                },
-              },
-              generateComponentTrace({
-                $options: {
-                  name: 'stub-vm',
-                },
-              } as ViewModel),
-            ],
-            ['without vm', null, ''],
-          ])('it calls my `warnHandler` (%s)', (_, vm, expectedTrace) => {
-            // arrange
-            const t = testHarness({
-              vm,
-              logErrors: true,
-              enableWarnHandler: true,
-            });
-
-            // act
-            t.run();
-
-            // assert
-            t.expect.consoleErrorSpy.not.toHaveBeenCalled();
-            t.expect.warnHandlerSpy.toHaveBeenCalledWith(
-              'Error in stub-lifecycle-hook: "DummyError: just an error"',
-              vm,
-              expectedTrace,
-            );
-          });
+    describe('error re-throwing', () => {
+      it('should re-throw error when no error handler exists', () => {
+        const t = testHarness({
+          enableErrorHandler: false,
+          enableConsole: true,
+          vm: { $options: { name: 'stub-vm' } },
         });
+
+        expect(() => t.run()).toThrow(DummyError);
       });
 
-      describe('when I do not provide a `warnHandler`', () => {
-        describe("and I don't have a console", () => {
-          test('it logs nothing', () => {
-            // arrange
-            const vm = {
-              $options: {
-                name: 'stub-vm',
-              },
-            };
-            const t = testHarness({
-              vm,
-              logErrors: true,
-              enableConsole: false,
-            });
-
-            // act
-            t.run();
-
-            // assert
-            t.expect.consoleErrorSpy.not.toHaveBeenCalled();
-          });
+      it('should call user-defined error handler when provided', () => {
+        const vm = { $options: { name: 'stub-vm' } };
+        const t = testHarness({
+          enableErrorHandler: true,
+          enableConsole: true,
+          vm,
         });
 
-        describe('and I silenced logging in Vue', () => {
-          test('it logs nothing', () => {
-            // arrange
-            const vm = {
-              $options: {
-                name: 'stub-vm',
-              },
-            };
-            const t = testHarness({
-              vm,
-              logErrors: true,
-              silent: true,
-            });
+        t.run();
 
-            // act
-            t.run();
-
-            // assert
-            t.expect.consoleErrorSpy.not.toHaveBeenCalled();
-          });
-        });
-
-        test('it call `console.error`', () => {
-          // arrange
-          const t = testHarness({
-            vm: null,
-            logErrors: true,
-            enableConsole: true,
-          });
-
-          // act
-          t.run();
-
-          // assert
-          t.expect.consoleErrorSpy.toHaveBeenCalledWith(
-            '[Vue warn]: Error in stub-lifecycle-hook: "DummyError: just an error"',
-          );
-        });
+        t.expect.errorHandlerSpy.toHaveBeenCalledWith(expect.any(Error), vm, 'stub-lifecycle-hook');
       });
     });
   });
@@ -308,7 +214,6 @@ type TestHarnessOpts = {
   enableConsole?: boolean;
   silent?: boolean;
   attachProps?: boolean;
-  logErrors?: boolean;
 };
 
 class DummyError extends Error {
@@ -321,7 +226,6 @@ class DummyError extends Error {
 const testHarness = ({
   silent,
   attachProps,
-  logErrors,
   enableWarnHandler,
   enableErrorHandler,
   enableConsole,
@@ -366,7 +270,6 @@ const testHarness = ({
 
   const options: Options = {
     attachProps: !!attachProps,
-    logErrors: !!logErrors,
     tracingOptions: {},
     trackComponents: [],
     timeout: 0,
@@ -393,6 +296,7 @@ const testHarness = ({
         expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
         const error = captureExceptionSpy.mock.calls[0][0];
         const contexts = captureExceptionSpy.mock.calls[0][1]?.captureContext.contexts;
+        const mechanismMetadata = captureExceptionSpy.mock.calls[0][1]?.mechanism;
 
         expect(error).toBeInstanceOf(DummyError);
 
@@ -402,6 +306,9 @@ const testHarness = ({
           },
           withoutProps: () => {
             expect(contexts).not.toHaveProperty('vue.propsData');
+          },
+          withMechanismMetadata: (mechanism: { handled: boolean; type: 'vue-errorHandler' }) => {
+            expect(mechanismMetadata).toEqual(mechanism);
           },
         };
       },
