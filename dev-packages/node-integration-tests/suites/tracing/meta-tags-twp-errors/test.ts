@@ -5,6 +5,7 @@ describe('errors in TwP mode have same trace in trace context and getTraceData()
     cleanupChildProcesses();
   });
 
+  // In a request handler, the spanId is consistent inside of the request
   test('in incoming request', done => {
     createRunner(__dirname, 'server.js')
       .expect({
@@ -30,6 +31,7 @@ describe('errors in TwP mode have same trace in trace context and getTraceData()
       .makeRequest('get', '/test');
   });
 
+  // Outside of a request handler, the spanId is random
   test('outside of a request handler', done => {
     createRunner(__dirname, 'no-server.js')
       .expect({
