@@ -18,7 +18,7 @@
     "@sentry/node": "latest || *",
     "@sentry/profiling-node": "latest || *",
     "electron": "^33.2.0",
-    "esbuild": "0.24.2"
+    "esbuild": "0.20.0"
   },
   "volta": {
     "extends": "../../package.json"
