@@ -90,6 +90,12 @@ In v9, an `undefined` value will be treated the same as if the value is not defi
 
 - The `captureUserFeedback` method has been removed. Use `captureFeedback` instead and update the `comments` field to `message`.
 
+### `@sentry/nextjs`
+
+- The Sentry Next.js SDK will no longer use the Next.js Build ID as fallback identifier for releases. The SDK will continue to attempt to read CI-provider-specific environment variables and the current git SHA to automatically determine a release name. If you examine that you no longer see releases created in Sentry, it is recommended to manually provide a release name to `withSentryConfig` via the `release.name` option.
+
+  This behavior was changed because the Next.js Build ID is non-deterministic and the release name is injected into client bundles, causing build artifacts to be non-deterministic. This caused issues for some users. Additionally, because it is uncertain whether it will be possible to rely on a Build ID when Turbopack becomes stable, we decided to pull the plug now instead of introducing confusing behavior in the future.
+
 ### Uncategorized (TODO)
 
 TODO
@@ -388,6 +394,7 @@ The Sentry metrics beta has ended and the metrics API has been removed from the 
 ## `@sentry/nextjs`
 
 - Deprecated `hideSourceMaps`. No replacements. The SDK emits hidden sourcemaps by default.
+-
 
 ## `@sentry/opentelemetry`
 

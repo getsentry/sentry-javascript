@@ -4,7 +4,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { escapeStringForRegex, loadModule, logger } from '@sentry/core';
-import { getSentryRelease } from '@sentry/node';
 import * as chalk from 'chalk';
 import { sync as resolveSync } from 'resolve';
 
@@ -43,6 +42,7 @@ let showedMissingGlobalErrorWarningMsg = false;
 export function constructWebpackConfigFunction(
   userNextConfig: NextConfigObject = {},
   userSentryOptions: SentryBuildOptions = {},
+  releaseName: string | undefined,
 ): WebpackConfigFunction {
   // Will be called by nextjs and passed its default webpack configuration and context data about the build (whether
   // we're building server or client, whether we're in dev, what version of webpack we're using, etc). Note that
@@ -71,7 +71,7 @@ export function constructWebpackConfigFunction(
     const newConfig = setUpModuleRules(rawNewConfig);
 
     // Add a loader which will inject code that sets global values
-    addValueInjectionLoader(newConfig, userNextConfig, userSentryOptions, buildContext);
+    addValueInjectionLoader(newConfig, userNextConfig, userSentryOptions, buildContext, releaseName);
 
     addOtelWarningIgnoreRule(newConfig);
 
@@ -358,7 +358,7 @@ export function constructWebpackConfigFunction(
 
         newConfig.plugins = newConfig.plugins || [];
         const sentryWebpackPluginInstance = sentryWebpackPlugin(
-          getWebpackPluginOptions(buildContext, userSentryOptions),
+          getWebpackPluginOptions(buildContext, userSentryOptions, releaseName),
         );
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         sentryWebpackPluginInstance._name = 'sentry-webpack-plugin'; // For tests and debugging. Serves no other purpose.
@@ -580,6 +580,7 @@ function addValueInjectionLoader(
   userNextConfig: NextConfigObject,
   userSentryOptions: SentryBuildOptions,
   buildContext: BuildContext,
+  releaseName: string | undefined,
 ): void {
   const assetPrefix = userNextConfig.assetPrefix || userNextConfig.basePath || '';
 
@@ -592,9 +593,7 @@ function addValueInjectionLoader(
 
     // The webpack plugin's release injection breaks the `app` directory so we inject the release manually here instead.
     // Having a release defined in dev-mode spams releases in Sentry so we only set one in non-dev mode
-    SENTRY_RELEASE: buildContext.dev
-      ? undefined
-      : { id: userSentryOptions.release?.name ?? getSentryRelease(buildContext.buildId) },
+    SENTRY_RELEASE: releaseName && !buildContext.dev ? { id: releaseName } : undefined,
     _sentryBasePath: buildContext.dev ? userNextConfig.basePath : undefined,
   };
 

@@ -1,7 +1,9 @@
 /* eslint-disable complexity */
 import { isThenable, parseSemver } from '@sentry/core';
 
+import * as childProcess from 'child_process';
 import * as fs from 'fs';
+import { getSentryRelease } from '@sentry/node';
 import { sync as resolveSync } from 'resolve';
 import type {
   ExportedNextConfig as NextConfig,
@@ -174,9 +176,11 @@ function getFinalConfigObject(
     );
   }
 
+  const releaseName = userSentryOptions.release?.name ?? getSentryRelease() ?? getGitRevision();
+
   return {
     ...incomingUserNextConfigObject,
-    webpack: constructWebpackConfigFunction(incomingUserNextConfigObject, userSentryOptions),
+    webpack: constructWebpackConfigFunction(incomingUserNextConfigObject, userSentryOptions, releaseName),
   };
 }
 
@@ -315,4 +319,17 @@ function resolveNextjsPackageJson(): string | undefined {
   } catch {
     return undefined;
   }
+}
+
+function getGitRevision(): string | undefined {
+  let gitRevision: string | undefined;
+  try {
+    gitRevision = childProcess
+      .execSync('git rev-parse HEAD', { stdio: ['ignore', 'pipe', 'ignore'] })
+      .toString()
+      .trim();
+  } catch (e) {
+    // noop
+  }
+  return gitRevision;
 }
