@@ -27,8 +27,6 @@ export declare function flush(timeout?: number | undefined): PromiseLike<boolean
 
 // eslint-disable-next-line deprecation/deprecation
 export declare const getCurrentHub: typeof clientSdk.getCurrentHub;
-export declare const getClient: typeof clientSdk.getClient;
-export declare const continueTrace: typeof clientSdk.continueTrace;
 
 export declare const Span: clientSdk.Span;
 

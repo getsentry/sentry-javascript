@@ -491,7 +491,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
       });
     });
 
-    it('works with descendant wildcard routes - pageload', () => {
+    it('works under a slash route with a trailing slash', () => {
       const client = createMockBrowserClient();
       setCurrentClient(client);
 
@@ -505,87 +505,140 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         }),
       );
       const SentryRoutes = withSentryReactRouterV6Routing(Routes);
-
-      const DetailsRoutes = () => (
-        <SentryRoutes>
-          <Route path=":detailId" element={<div id="details">Details</div>} />
-        </SentryRoutes>
-      );
-
-      const ViewsRoutes = () => (
-        <SentryRoutes>
-          <Route index element={<div id="views">Views</div>} />
-          <Route path="views/:viewId/*" element={<DetailsRoutes />} />
-        </SentryRoutes>
-      );
-
-      const ProjectsRoutes = () => (
-        <SentryRoutes>
-          <Route path="projects/:projectId/*" element={<ViewsRoutes />}></Route>
-          <Route path="*" element={<div>No Match Page</div>} />
-        </SentryRoutes>
-      );
-
-      render(
-        <MemoryRouter initialEntries={['/projects/000/views/111/222']}>
-          <SentryRoutes>
-            <Route path="/*" element={<ProjectsRoutes />}></Route>
-          </SentryRoutes>
-        </MemoryRouter>,
-      );
-
-      expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(1);
-      expect(mockRootSpan.updateName).toHaveBeenLastCalledWith('/projects/:projectId/views/:viewId/:detailId');
-      expect(mockRootSpan.setAttribute).toHaveBeenLastCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
-    });
-
-    it('works with descendant wildcard routes - navigation', () => {
-      const client = createMockBrowserClient();
-      setCurrentClient(client);
-
-      client.addIntegration(
-        reactRouterV6BrowserTracingIntegration({
-          useEffect: React.useEffect,
-          useLocation,
-          useNavigationType,
-          createRoutesFromChildren,
-          matchRoutes,
-        }),
-      );
-      const SentryRoutes = withSentryReactRouterV6Routing(Routes);
-
-      const DetailsRoutes = () => (
-        <SentryRoutes>
-          <Route path=":detailId" element={<div id="details">Details</div>} />
-        </SentryRoutes>
-      );
-
-      const ViewsRoutes = () => (
-        <SentryRoutes>
-          <Route index element={<div id="views">Views</div>} />
-          <Route path="views/:viewId/*" element={<DetailsRoutes />} />
-        </SentryRoutes>
-      );
-
-      const ProjectsRoutes = () => (
-        <SentryRoutes>
-          <Route path="projects/:projectId/*" element={<ViewsRoutes />}></Route>
-          <Route path="*" element={<div>No Match Page</div>} />
-        </SentryRoutes>
-      );
 
       render(
         <MemoryRouter initialEntries={['/']}>
           <SentryRoutes>
-            <Route index element={<Navigate to="/projects/123/views/234/567" />} />
-            <Route path="/*" element={<ProjectsRoutes />}></Route>
+            <Route index element={<Navigate to="/issues/123/" />} />
+            <Route path="/" element={<div>root</div>}>
+              <Route path="/issues/:groupId/" element={<div>issues group</div>}>
+                <Route index element={<div>index</div>} />
+              </Route>
+            </Route>
           </SentryRoutes>
         </MemoryRouter>,
       );
 
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
-        name: '/projects/:projectId/views/:viewId/:detailId',
+        name: '/issues/:groupId/',
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+        },
+      });
+    });
+
+    it('works nested under a slash root without a trailing slash', () => {
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+      const SentryRoutes = withSentryReactRouterV6Routing(Routes);
+
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <SentryRoutes>
+            <Route index element={<Navigate to="/issues/123" />} />
+            <Route path="/" element={<div>root</div>}>
+              <Route path="/issues/:groupId/" element={<div>issues group</div>}>
+                <Route index element={<div>index</div>} />
+              </Route>
+            </Route>
+          </SentryRoutes>
+        </MemoryRouter>,
+      );
+
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
+        name: '/issues/:groupId/',
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+        },
+      });
+    });
+
+    it('works under a slash route with a trailing slash', () => {
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+      const SentryRoutes = withSentryReactRouterV6Routing(Routes);
+
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <SentryRoutes>
+            <Route index element={<Navigate to="/issues/123/" />} />
+            <Route path="/" element={<div>root</div>}>
+              <Route path="/issues/:groupId/" element={<div>issues group</div>}>
+                <Route index element={<div>index</div>} />
+              </Route>
+            </Route>
+          </SentryRoutes>
+        </MemoryRouter>,
+      );
+
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
+        name: '/issues/:groupId/',
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+        },
+      });
+    });
+
+    it('works nested under a slash root without a trailing slash', () => {
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+      const SentryRoutes = withSentryReactRouterV6Routing(Routes);
+
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <SentryRoutes>
+            <Route index element={<Navigate to="/issues/123" />} />
+            <Route path="/" element={<div>root</div>}>
+              <Route path="/issues/:groupId/" element={<div>issues group</div>}>
+                <Route index element={<div>index</div>} />
+              </Route>
+            </Route>
+          </SentryRoutes>
+        </MemoryRouter>,
+      );
+
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
+        name: '/issues/:groupId/',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
@@ -1136,150 +1189,6 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
       });
     });
 
-    it('works with descendant wildcard routes - pageload', () => {
-      const client = createMockBrowserClient();
-      setCurrentClient(client);
-
-      client.addIntegration(
-        reactRouterV6BrowserTracingIntegration({
-          useEffect: React.useEffect,
-          useLocation,
-          useNavigationType,
-          createRoutesFromChildren,
-          matchRoutes,
-        }),
-      );
-
-      const wrappedUseRoutes = wrapUseRoutesV6(useRoutes);
-
-      const DetailsRoutes = () =>
-        wrappedUseRoutes([
-          {
-            path: ':detailId',
-            element: <div id="details">Details</div>,
-          },
-        ]);
-
-      const ViewsRoutes = () =>
-        wrappedUseRoutes([
-          {
-            index: true,
-            element: <div id="views">Views</div>,
-          },
-          {
-            path: 'views/:viewId/*',
-            element: <DetailsRoutes />,
-          },
-        ]);
-
-      const ProjectsRoutes = () =>
-        wrappedUseRoutes([
-          {
-            path: 'projects/:projectId/*',
-            element: <ViewsRoutes />,
-          },
-          {
-            path: '*',
-            element: <div>No Match Page</div>,
-          },
-        ]);
-
-      const Routes = () =>
-        wrappedUseRoutes([
-          {
-            path: '/*',
-            element: <ProjectsRoutes />,
-          },
-        ]);
-
-      render(
-        <MemoryRouter initialEntries={['/projects/123/views/456/789']}>
-          <Routes />
-        </MemoryRouter>,
-      );
-
-      expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(1);
-      expect(mockRootSpan.updateName).toHaveBeenLastCalledWith('/projects/:projectId/views/:viewId/:detailId');
-      expect(mockRootSpan.setAttribute).toHaveBeenLastCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
-    });
-
-    it('works with descendant wildcard routes - navigation', () => {
-      const client = createMockBrowserClient();
-      setCurrentClient(client);
-
-      client.addIntegration(
-        reactRouterV6BrowserTracingIntegration({
-          useEffect: React.useEffect,
-          useLocation,
-          useNavigationType,
-          createRoutesFromChildren,
-          matchRoutes,
-        }),
-      );
-
-      const wrappedUseRoutes = wrapUseRoutesV6(useRoutes);
-
-      const DetailsRoutes = () =>
-        wrappedUseRoutes([
-          {
-            path: ':detailId',
-            element: <div id="details">Details</div>,
-          },
-        ]);
-
-      const ViewsRoutes = () =>
-        wrappedUseRoutes([
-          {
-            index: true,
-            element: <div id="views">Views</div>,
-          },
-          {
-            path: 'views/:viewId/*',
-            element: <DetailsRoutes />,
-          },
-        ]);
-
-      const ProjectsRoutes = () =>
-        wrappedUseRoutes([
-          {
-            path: 'projects/:projectId/*',
-            element: <ViewsRoutes />,
-          },
-          {
-            path: '*',
-            element: <div>No Match Page</div>,
-          },
-        ]);
-
-      const Routes = () =>
-        wrappedUseRoutes([
-          {
-            index: true,
-            element: <Navigate to="/projects/123/views/456/789" />,
-          },
-          {
-            path: '/*',
-            element: <ProjectsRoutes />,
-          },
-        ]);
-
-      render(
-        <MemoryRouter initialEntries={['/']}>
-          <Routes />
-        </MemoryRouter>,
-      );
-
-      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
-      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
-        name: '/projects/:projectId/views/:viewId/:detailId',
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
-        },
-      });
-    });
-
     it('does not add double slashes to URLS', () => {
       const client = createMockBrowserClient();
       setCurrentClient(client);
@@ -1395,6 +1304,84 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
       expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(1);
       expect(mockRootSpan.updateName).toHaveBeenLastCalledWith('/tests/:testId/*');
       expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+    });
+
+    it('works under a slash route with a trailing slash', () => {
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+      const SentryRoutes = withSentryReactRouterV6Routing(Routes);
+
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <SentryRoutes>
+            <Route index element={<Navigate to="/issues/123/" />} />
+            <Route path="/" element={<div>root</div>}>
+              <Route path="/issues/:groupId/" element={<div>issues group</div>}>
+                <Route index element={<div>index</div>} />
+              </Route>
+            </Route>
+          </SentryRoutes>
+        </MemoryRouter>,
+      );
+
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
+        name: '/issues/:groupId/',
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+        },
+      });
+    });
+
+    it('works nested under a slash root without a trailing slash', () => {
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+      const SentryRoutes = withSentryReactRouterV6Routing(Routes);
+
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <SentryRoutes>
+            <Route index element={<Navigate to="/issues/123" />} />
+            <Route path="/" element={<div>root</div>}>
+              <Route path="/issues/:groupId/" element={<div>issues group</div>}>
+                <Route index element={<div>index</div>} />
+              </Route>
+            </Route>
+          </SentryRoutes>
+        </MemoryRouter>,
+      );
+
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
+        name: '/issues/:groupId/',
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+        },
+      });
     });
 
     it("updates the scope's `transactionName` on a navigation", () => {

@@ -295,8 +295,8 @@ export function addNormalizedRequestDataToEvent(
 
     if (Object.keys(extractedUser).length) {
       event.user = {
-        ...event.user,
         ...extractedUser,
+        ...event.user,
       };
     }
   }

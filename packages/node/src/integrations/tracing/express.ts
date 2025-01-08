@@ -93,7 +93,9 @@ interface MiddlewareError extends Error {
   };
 }
 
-type ExpressMiddleware = (
+type ExpressMiddleware = (req: http.IncomingMessage, res: http.ServerResponse, next: () => void) => void;
+
+type ExpressErrorMiddleware = (
   error: MiddlewareError,
   req: http.IncomingMessage,
   res: http.ServerResponse,
@@ -111,13 +113,17 @@ interface ExpressHandlerOptions {
 /**
  * An Express-compatible error handler.
  */
-export function expressErrorHandler(options?: ExpressHandlerOptions): ExpressMiddleware {
+export function expressErrorHandler(options?: ExpressHandlerOptions): ExpressErrorMiddleware {
   return function sentryErrorMiddleware(
     error: MiddlewareError,
-    _req: http.IncomingMessage,
+    request: http.IncomingMessage,
     res: http.ServerResponse,
     next: (error: MiddlewareError) => void,
   ): void {
+    // Ensure we use the express-enhanced request here, instead of the plain HTTP one
+    // When an error happens, the `expressRequestHandler` middleware does not run, so we set it here too
+    getIsolationScope().setSDKProcessingMetadata({ request });
+
     const shouldHandleError = options?.shouldHandleError || defaultShouldHandleError;
 
     if (shouldHandleError(error)) {
@@ -152,6 +158,19 @@ export function expressErrorHandler(options?: ExpressHandlerOptions): ExpressMid
   };
 }
 
+function expressRequestHandler(): ExpressMiddleware {
+  return function sentryRequestMiddleware(
+    request: http.IncomingMessage,
+    _res: http.ServerResponse,
+    next: () => void,
+  ): void {
+    // Ensure we use the express-enhanced request here, instead of the plain HTTP one
+    getIsolationScope().setSDKProcessingMetadata({ request });
+
+    next();
+  };
+}
+
 /**
  * Add an Express error handler to capture errors to Sentry.
  *
@@ -177,9 +196,10 @@ export function expressErrorHandler(options?: ExpressHandlerOptions): ExpressMid
  * ```
  */
 export function setupExpressErrorHandler(
-  app: { use: (middleware: ExpressMiddleware) => unknown },
+  app: { use: (middleware: ExpressMiddleware | ExpressErrorMiddleware) => unknown },
   options?: ExpressHandlerOptions,
 ): void {
+  app.use(expressRequestHandler());
   app.use(expressErrorHandler(options));
   ensureIsWrapped(app.use, 'express');
 }
