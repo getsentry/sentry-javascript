@@ -1,8 +1,8 @@
+import type { Client } from '../../src';
 import { captureCheckIn, getCurrentScope, setCurrentClient } from '../../src';
-import type { Client, Integration } from '../../src/types-hoist';
-
 import { installedIntegrations } from '../../src/integration';
 import { initAndBind } from '../../src/sdk';
+import type { Integration } from '../../src/types-hoist';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 
 // eslint-disable-next-line no-var

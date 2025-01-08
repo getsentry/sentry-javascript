@@ -1,3 +1,7 @@
+import { getClient, getCurrentScope, getIsolationScope, withIsolationScope } from './currentScopes';
+import { DEBUG_BUILD } from './debug-build';
+import type { CaptureContext } from './scope';
+import { closeSession, makeSession, updateSession } from './session';
 import type {
   CheckIn,
   Event,
@@ -13,11 +17,6 @@ import type {
   SeverityLevel,
   User,
 } from './types-hoist';
-
-import { getClient, getCurrentScope, getIsolationScope, withIsolationScope } from './currentScopes';
-import { DEBUG_BUILD } from './debug-build';
-import type { CaptureContext } from './scope';
-import { closeSession, makeSession, updateSession } from './session';
 import { isThenable } from './utils-hoist/is';
 import { logger } from './utils-hoist/logger';
 import { uuid4 } from './utils-hoist/misc';
@@ -287,10 +286,6 @@ export function startSession(context?: SessionContext): Session {
   // Afterwards we set the new session on the scope
   isolationScope.setSession(session);
 
-  // TODO (v8): Remove this and only use the isolation scope(?).
-  // For v7 though, we can't "soft-break" people using getCurrentHub().getScope().setSession()
-  currentScope.setSession(session);
-
   return session;
 }
 
@@ -309,10 +304,6 @@ export function endSession(): void {
 
   // the session is over; take it off of the scope
   isolationScope.setSession();
-
-  // TODO (v8): Remove this and only use the isolation scope(?).
-  // For v7 though, we can't "soft-break" people using getCurrentHub().getScope().setSession()
-  currentScope.setSession();
 }
 
 /**
@@ -320,11 +311,8 @@ export function endSession(): void {
  */
 function _sendSessionUpdate(): void {
   const isolationScope = getIsolationScope();
-  const currentScope = getCurrentScope();
   const client = getClient();
-  // TODO (v8): Remove currentScope and only use the isolation scope(?).
-  // For v7 though, we can't "soft-break" people using getCurrentHub().getScope().setSession()
-  const session = currentScope.getSession() || isolationScope.getSession();
+  const session = isolationScope.getSession();
   if (session && client) {
     client.captureSession(session);
   }

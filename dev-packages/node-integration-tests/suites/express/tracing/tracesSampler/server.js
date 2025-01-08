@@ -15,7 +15,6 @@ Sentry.init({
       samplingContext.attributes['http.method'] === 'GET'
     );
   },
-  debug: true,
 });
 
 // express must be required after Sentry is initialized

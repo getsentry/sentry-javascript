@@ -80,9 +80,13 @@ Sentry.init({
 
 In v9, an `undefined` value will be treated the same as if the value is not defined at all. You'll need to set `tracesSampleRate: 0` if you want to enable tracing without performance.
 
+- The `getCurrentHub().getIntegration(IntegrationClass)` method will always return `null` in v9. This has already stopped working mostly in v8, because we stopped exposing integration classes. In v9, the fallback behavior has been removed. Note that this does not change the type signature and is thus not technically breaking, but still worth pointing out.
+
 ### `@sentry/node`
 
 - When `skipOpenTelemetrySetup: true` is configured, `httpIntegration({ spans: false })` will be configured by default. This means that you no longer have to specify this yourself in this scenario. With this change, no spans are emitted once `skipOpenTelemetrySetup: true` is configured, without any further configuration being needed.
+
+- The `requestDataIntegration` will no longer automatically set the user from `request.user`. This is an express-specific, undocumented behavior, and also conflicts with our privacy-by-default strategy. Starting in v9, you'll need to manually call `Sentry.setUser()` e.g. in a middleware to set the user on Sentry events.
 
 ### `@sentry/browser`
 
@@ -128,6 +132,8 @@ Sentry.init({
 });
 ```
 
+- The `DEFAULT_USER_INCLUDES` constant has been removed.
+
 ### `@sentry/react`
 
 - The `wrapUseRoutes` method has been removed. Use `wrapUseRoutesV6` or `wrapUseRoutesV7` instead depending on what version of react router you are using.
@@ -143,7 +149,16 @@ Sentry.init({
 - The `flatten` export has been removed. There is no replacement.
 - The `urlEncode` method has been removed. There is no replacement.
 - The `getDomElement` method has been removed. There is no replacement.
-- The `Request` type has been removed. Use `RequestEventData` type instead.
+- The `memoBuilder` method has been removed. There is no replacement.
+- The `extractRequestData` method has been removed. Manually extract relevant data off request instead.
+- The `addRequestDataToEvent` method has been removed. Use `addNormalizedRequestDataToEvent` instead.
+- The `extractPathForTransaction` method has been removed. There is no replacement.
+
+#### Other/Internal Changes
+
+The following changes are unlikely to affect users of the SDK. They are listed here only for completion sake, and to alert users that may be relying on internal behavior.
+
+- `client._prepareEvent()` now requires a currentScope & isolationScope to be passed as last arugments
 
 ### `@sentry/browser`
 
@@ -208,6 +223,11 @@ This led to some duplication, where we had to keep an interface in `@sentry/type
 Since v9, the types have been merged into `@sentry/core`, which removed some of this duplication. This means that certain things that used to be a separate interface, will not expect an actual instance of the class/concrete implementation. This should not affect most users, unless you relied on passing things with a similar shape to internal methods. The following types are affected:
 
 - `Scope` now always expects the `Scope` class
+- The `TransactionNamingScheme` type has been removed. There is no replacement.
+- The `Request` type has been removed. Use `RequestEventData` type instead.
+- The `IntegrationClass` type is no longer exported - it was not used anymore. Instead, use `Integration` or `IntegrationFn`.
+- The `samplingContext.request` attribute in the `tracesSampler` has been removed. Use `samplingContext.normalizedRequest` instead. Note that the type of `normalizedRequest` differs from `request`.
+- `Client` now always expects the `BaseClient` class - there is no more abstract `Client` that can be implemented! Any `Client` class has to extend from `BaseClient`.
 
 # No Version Support Timeline
 

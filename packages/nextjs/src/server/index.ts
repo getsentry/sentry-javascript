@@ -117,8 +117,6 @@ export function init(options: NodeOptions): NodeClient | undefined {
     environment: process.env.SENTRY_ENVIRONMENT || getVercelEnv(false) || process.env.NODE_ENV,
     defaultIntegrations: customDefaultIntegrations,
     ...options,
-    // Right now we only capture frontend sessions for Next.js
-    autoSessionTracking: false,
   };
 
   if (DEBUG_BUILD && opts.debug) {

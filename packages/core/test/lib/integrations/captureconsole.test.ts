@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 
+import type { Client } from '../../../src';
 import * as CurrentScopes from '../../../src/currentScopes';
 import * as SentryCore from '../../../src/exports';
-import type { Client, ConsoleLevel, Event } from '../../../src/types-hoist';
-
 import { captureConsoleIntegration } from '../../../src/integrations/captureconsole';
+import type { ConsoleLevel, Event } from '../../../src/types-hoist';
 import { addConsoleInstrumentationHandler } from '../../../src/utils-hoist/instrument/console';
 import { resetInstrumentationHandlers } from '../../../src/utils-hoist/instrument/handlers';
 import { CONSOLE_LEVELS, originalConsoleMethods } from '../../../src/utils-hoist/logger';

@@ -2,7 +2,7 @@
 import type {
   Breadcrumb,
   BreadcrumbHint,
-  Client,
+  CheckIn,
   ClientOptions,
   DataCategory,
   DsnComponents,
@@ -15,6 +15,7 @@ import type {
   EventProcessor,
   FeedbackEvent,
   Integration,
+  MonitorConfig,
   Outcome,
   ParameterizedString,
   SdkMetadata,
@@ -73,7 +74,7 @@ const MISSING_RELEASE_FOR_SESSION_ERROR = 'Discarded session because of missing 
  * without a valid Dsn, the SDK will not send any events to Sentry.
  *
  * Before sending an event, it is passed through
- * {@link BaseClient._prepareEvent} to add SDK information and scope data
+ * {@link Client._prepareEvent} to add SDK information and scope data
  * (breadcrumbs and context). To add more custom information, override this
  * method and extend the resulting prepared event.
  *
@@ -83,7 +84,7 @@ const MISSING_RELEASE_FOR_SESSION_ERROR = 'Discarded session because of missing 
  * {@link Client.addBreadcrumb}.
  *
  * @example
- * class NodeClient extends BaseClient<NodeOptions> {
+ * class NodeClient extends Client<NodeOptions> {
  *   public constructor(options: NodeOptions) {
  *     super(options);
  *   }
@@ -91,7 +92,7 @@ const MISSING_RELEASE_FOR_SESSION_ERROR = 'Discarded session because of missing 
  *   // ...
  * }
  */
-export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
+export abstract class Client<O extends ClientOptions = ClientOptions> {
   /** Options passed to the SDK. */
   protected readonly _options: O;
 
@@ -218,8 +219,11 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
     const sdkProcessingMetadata = event.sdkProcessingMetadata || {};
     const capturedSpanScope: Scope | undefined = sdkProcessingMetadata.capturedSpanScope;
+    const capturedSpanIsolationScope: Scope | undefined = sdkProcessingMetadata.capturedSpanIsolationScope;
 
-    this._process(this._captureEvent(event, hintWithEventId, capturedSpanScope || currentScope));
+    this._process(
+      this._captureEvent(event, hintWithEventId, capturedSpanScope || currentScope, capturedSpanIsolationScope),
+    );
 
     return hintWithEventId.event_id;
   }
@@ -232,6 +236,17 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     // After sending, we set init false to indicate it's not the first occurrence
     updateSession(session, { init: false });
   }
+
+  /**
+   * Create a cron monitor check in and send it to Sentry. This method is not available on all clients.
+   *
+   * @param checkIn An object that describes a check in.
+   * @param upsertMonitorConfig An optional object that describes a monitor config. Use this if you want
+   * to create a monitor automatically when sending a check in.
+   * @param scope An optional scope containing event metadata.
+   * @returns A string representing the id of the check in.
+   */
+  public captureCheckIn?(checkIn: CheckIn, monitorConfig?: MonitorConfig, scope?: Scope): string;
 
   /**
    * @inheritDoc
@@ -442,7 +457,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /** @inheritdoc */
   public on(
     hook: 'beforeSendFeedback',
-    callback: (feedback: FeedbackEvent, options?: { includeReplay: boolean }) => void,
+    callback: (feedback: FeedbackEvent, options?: { includeReplay?: boolean }) => void,
   ): () => void;
 
   /** @inheritdoc */
@@ -537,7 +552,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public emit(hook: 'createDsc', dsc: DynamicSamplingContext, rootSpan?: Span): void;
 
   /** @inheritdoc */
-  public emit(hook: 'beforeSendFeedback', feedback: FeedbackEvent, options?: { includeReplay: boolean }): void;
+  public emit(hook: 'beforeSendFeedback', feedback: FeedbackEvent, options?: { includeReplay?: boolean }): void;
 
   /** @inheritdoc */
   public emit(
@@ -678,8 +693,8 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   protected _prepareEvent(
     event: Event,
     hint: EventHint,
-    currentScope = getCurrentScope(),
-    isolationScope = getIsolationScope(),
+    currentScope: Scope,
+    isolationScope: Scope,
   ): PromiseLike<Event | null> {
     const options = this.getOptions();
     const integrations = Object.keys(this._integrations);
@@ -720,12 +735,17 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @param hint
    * @param scope
    */
-  protected _captureEvent(event: Event, hint: EventHint = {}, scope?: Scope): PromiseLike<string | undefined> {
+  protected _captureEvent(
+    event: Event,
+    hint: EventHint = {},
+    currentScope = getCurrentScope(),
+    isolationScope = getIsolationScope(),
+  ): PromiseLike<string | undefined> {
     if (DEBUG_BUILD && isErrorEvent(event)) {
       logger.log(`Captured error event \`${getPossibleEventMessages(event)[0] || '<unknown>'}\``);
     }
 
-    return this._processEvent(event, hint, scope).then(
+    return this._processEvent(event, hint, currentScope, isolationScope).then(
       finalEvent => {
         return finalEvent.event_id;
       },
@@ -758,7 +778,12 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @param currentScope A scope containing event metadata.
    * @returns A SyncPromise that resolves with the event or rejects in case event was/will not be send.
    */
-  protected _processEvent(event: Event, hint: EventHint, currentScope?: Scope): PromiseLike<Event> {
+  protected _processEvent(
+    event: Event,
+    hint: EventHint,
+    currentScope: Scope,
+    isolationScope: Scope,
+  ): PromiseLike<Event> {
     const options = this.getOptions();
     const { sampleRate } = options;
 
@@ -781,12 +806,9 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       );
     }
 
-    const dataCategory: DataCategory = eventType === 'replay_event' ? 'replay' : eventType;
+    const dataCategory = (eventType === 'replay_event' ? 'replay' : eventType) satisfies DataCategory;
 
-    const sdkProcessingMetadata = event.sdkProcessingMetadata || {};
-    const capturedSpanIsolationScope: Scope | undefined = sdkProcessingMetadata.capturedSpanIsolationScope;
-
-    return this._prepareEvent(event, hint, currentScope, capturedSpanIsolationScope)
+    return this._prepareEvent(event, hint, currentScope, isolationScope)
       .then(prepared => {
         if (prepared === null) {
           this.recordDroppedEvent('event_processor', dataCategory, event);
@@ -813,8 +835,8 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
           throw new SentryError(`${beforeSendLabel} returned \`null\`, will not send event.`, 'log');
         }
 
-        const session = currentScope && currentScope.getSession();
-        if (!isTransaction && session) {
+        const session = currentScope.getSession() || isolationScope.getSession();
+        if (isError && session) {
           this._updateSessionFromEvent(session, processedEvent);
         }
 
@@ -937,6 +959,16 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     _hint?: EventHint,
   ): PromiseLike<Event>;
 }
+
+/**
+ * @deprecated Use `Client` instead. This alias may be removed in a future major version.
+ */
+export type BaseClient = Client;
+
+/**
+ * @deprecated Use `Client` instead. This alias may be removed in a future major version.
+ */
+export const BaseClient = Client;
 
 /**
  * Verifies that return value of configured `beforeSend` or `beforeSendTransaction` is of expected type, and returns the value if so.

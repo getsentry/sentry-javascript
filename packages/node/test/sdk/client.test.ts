@@ -2,8 +2,7 @@ import * as os from 'os';
 import { ProxyTracer } from '@opentelemetry/api';
 import * as opentelemetryInstrumentationPackage from '@opentelemetry/instrumentation';
 import type { Event, EventHint } from '@sentry/core';
-import { SDK_VERSION, getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/core';
-
+import { SDK_VERSION, Scope, getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/core';
 import { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
 import { NodeClient } from '../../src';
 import { getDefaultNodeClientOptions } from '../helpers/getDefaultNodeClientOptions';
@@ -65,13 +64,16 @@ describe('NodeClient', () => {
   });
 
   describe('_prepareEvent', () => {
+    const currentScope = new Scope();
+    const isolationScope = new Scope();
+
     test('adds platform to event', () => {
       const options = getDefaultNodeClientOptions({});
       const client = new NodeClient(options);
 
       const event: Event = {};
       const hint: EventHint = {};
-      client['_prepareEvent'](event, hint);
+      client['_prepareEvent'](event, hint, currentScope, isolationScope);
 
       expect(event.platform).toEqual('node');
     });
@@ -82,7 +84,7 @@ describe('NodeClient', () => {
 
       const event: Event = {};
       const hint: EventHint = {};
-      client['_prepareEvent'](event, hint);
+      client['_prepareEvent'](event, hint, currentScope, isolationScope);
 
       expect(event.contexts?.runtime).toEqual({
         name: 'node',
@@ -96,7 +98,7 @@ describe('NodeClient', () => {
 
       const event: Event = {};
       const hint: EventHint = {};
-      client['_prepareEvent'](event, hint);
+      client['_prepareEvent'](event, hint, currentScope, isolationScope);
 
       expect(event.server_name).toEqual('foo');
     });
@@ -108,7 +110,7 @@ describe('NodeClient', () => {
 
       const event: Event = {};
       const hint: EventHint = {};
-      client['_prepareEvent'](event, hint);
+      client['_prepareEvent'](event, hint, currentScope, isolationScope);
 
       expect(event.server_name).toEqual('foo');
 
@@ -121,7 +123,7 @@ describe('NodeClient', () => {
 
       const event: Event = {};
       const hint: EventHint = {};
-      client['_prepareEvent'](event, hint);
+      client['_prepareEvent'](event, hint, currentScope, isolationScope);
 
       expect(event.server_name).toEqual(os.hostname());
     });
@@ -132,7 +134,7 @@ describe('NodeClient', () => {
 
       const event: Event = { contexts: { runtime: { name: 'foo', version: '1.2.3' } } };
       const hint: EventHint = {};
-      client['_prepareEvent'](event, hint);
+      client['_prepareEvent'](event, hint, currentScope, isolationScope);
 
       expect(event.contexts?.runtime).toEqual({ name: 'foo', version: '1.2.3' });
       expect(event.contexts?.runtime).not.toEqual({ name: 'node', version: process.version });
@@ -144,7 +146,7 @@ describe('NodeClient', () => {
 
       const event: Event = { server_name: 'foo' };
       const hint: EventHint = {};
-      client['_prepareEvent'](event, hint);
+      client['_prepareEvent'](event, hint, currentScope, isolationScope);
 
       expect(event.server_name).toEqual('foo');
       expect(event.server_name).not.toEqual('bar');

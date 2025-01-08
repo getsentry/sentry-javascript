@@ -5,28 +5,21 @@ describe('express user handling', () => {
     cleanupChildProcesses();
   });
 
-  test('picks user from request', done => {
+  test('ignores user from request', done => {
+    expect.assertions(2);
+
     createRunner(__dirname, 'server.js')
       .expect({
-        event: {
-          user: {
-            id: '1',
-            email: 'test@sentry.io',
-          },
-          exception: {
-            values: [
-              {
-                value: 'error_1',
-              },
-            ],
-          },
+        event: event => {
+          expect(event.user).toBeUndefined();
+          expect(event.exception?.values?.[0]?.value).toBe('error_1');
         },
       })
       .start(done)
       .makeRequest('get', '/test1', { expectError: true });
   });
 
-  test('setUser overwrites user from request', done => {
+  test('using setUser in middleware works', done => {
     createRunner(__dirname, 'server.js')
       .expect({
         event: {

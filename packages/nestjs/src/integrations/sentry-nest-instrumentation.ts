@@ -20,6 +20,7 @@ import { getMiddlewareSpanOptions, getNextProxy, instrumentObservable, isPatched
 import type { CallHandler, CatchTarget, InjectableTarget, MinimalNestJsExecutionContext, Observable } from './types';
 
 const supportedVersions = ['>=8.0.0 <11'];
+const COMPONENT = '@nestjs/common';
 
 /**
  * Custom instrumentation for nestjs.
@@ -29,11 +30,6 @@ const supportedVersions = ['>=8.0.0 <11'];
  * 2. @Catch decorator, which is applied on exception filters.
  */
 export class SentryNestInstrumentation extends InstrumentationBase {
-  public static readonly COMPONENT = '@nestjs/common';
-  public static readonly COMMON_ATTRIBUTES = {
-    component: SentryNestInstrumentation.COMPONENT,
-  };
-
   public constructor(config: InstrumentationConfig = {}) {
     super('sentry-nestjs', SDK_VERSION, config);
   }
@@ -42,7 +38,7 @@ export class SentryNestInstrumentation extends InstrumentationBase {
    * Initializes the instrumentation by defining the modules to be patched.
    */
   public init(): InstrumentationNodeModuleDefinition {
-    const moduleDef = new InstrumentationNodeModuleDefinition(SentryNestInstrumentation.COMPONENT, supportedVersions);
+    const moduleDef = new InstrumentationNodeModuleDefinition(COMPONENT, supportedVersions);
 
     moduleDef.files.push(
       this._getInjectableFileInstrumentation(supportedVersions),

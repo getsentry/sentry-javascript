@@ -3,6 +3,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import {
   BrowserRouter,
+  Outlet,
   Route,
   Routes,
   createRoutesFromChildren,
@@ -48,17 +49,28 @@ const DetailsRoutes = () => (
   </SentryRoutes>
 );
 
+const DetailsRoutesAlternative = () => (
+  <SentryRoutes>
+    <Route path=":detailId" element={<div id="details">Details</div>} />
+  </SentryRoutes>
+);
+
 const ViewsRoutes = () => (
   <SentryRoutes>
     <Route index element={<div id="views">Views</div>} />
     <Route path="views/:viewId/*" element={<DetailsRoutes />} />
+    <Route path="old-views/:viewId/*" element={<DetailsRoutesAlternative />} />
   </SentryRoutes>
 );
 
 const ProjectsRoutes = () => (
   <SentryRoutes>
-    <Route path="projects/:projectId/*" element={<ViewsRoutes />}></Route>
-    <Route path="*" element={<div>No Match Page</div>} />
+    <Route path="projects" element={<Outlet />}>
+      <Route index element={<div>Project Page Root</div>} />
+      <Route path="*" element={<Outlet />}>
+        <Route path=":projectId/*" element={<ViewsRoutes />} />
+      </Route>
+    </Route>
   </SentryRoutes>
 );
 
@@ -67,7 +79,7 @@ root.render(
   <BrowserRouter>
     <SentryRoutes>
       <Route path="/" element={<Index />} />
-      <Route path="/*" element={<ProjectsRoutes />}></Route>
+      <Route path="/*" element={<ProjectsRoutes />} />
     </SentryRoutes>
   </BrowserRouter>,
 );
