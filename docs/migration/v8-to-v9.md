@@ -68,6 +68,8 @@ Sentry.init({
 });
 ```
 
+- Dropping spans in the `beforeSendSpan` hook is no longer possible.
+- The `beforeSendSpan` hook now receives the root span as well as the child spans.
 - In previous versions, we determined if tracing is enabled (for Tracing Without Performance) by checking if either `tracesSampleRate` or `traceSampler` are _defined_ at all, in `Sentry.init()`. This means that e.g. the following config would lead to tracing without performance (=tracing being enabled, even if no spans would be started):
 
 ```js
@@ -243,6 +245,10 @@ The following outlines deprecations that were introduced in version 8 of the SDK
 ## General
 
 - **Returning `null` from `beforeSendSpan` span is deprecated.**
+
+  Returning `null` from `beforeSendSpan` will now result in a warning being logged.
+  In v9, dropping spans is not possible anymore within this hook.
+
 - **Passing `undefined` to `tracesSampleRate` / `tracesSampler` / `enableTracing` will be handled differently in v9**
 
   In v8, a setup like the following:
