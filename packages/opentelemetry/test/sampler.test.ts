@@ -1,7 +1,9 @@
-import { SpanKind, context } from '@opentelemetry/api';
+import { SpanKind, context, trace } from '@opentelemetry/api';
 import { TraceState } from '@opentelemetry/core';
 import { SamplingDecision } from '@opentelemetry/sdk-trace-base';
 import { ATTR_HTTP_REQUEST_METHOD } from '@opentelemetry/semantic-conventions';
+import { generateSpanId, generateTraceId } from '@sentry/core';
+import { SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING } from '../src/constants';
 import { SentrySampler } from '../src/sampler';
 import { TestClient, getDefaultTestClientOptions } from './helpers/TestClient';
 import { cleanupOtel } from './helpers/mockSdkInit';
@@ -17,7 +19,7 @@ describe('SentrySampler', () => {
     const sampler = new SentrySampler(client);
 
     const ctx = context.active();
-    const traceId = '1234567890123456';
+    const traceId = generateTraceId();
     const spanName = 'test';
     const spanKind = SpanKind.INTERNAL;
     const spanAttributes = {};
@@ -35,13 +37,41 @@ describe('SentrySampler', () => {
     spyOnDroppedEvent.mockReset();
   });
 
+  it('works with tracesSampleRate=0 & for a child span', () => {
+    const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 0 }));
+    const spyOnDroppedEvent = jest.spyOn(client, 'recordDroppedEvent');
+    const sampler = new SentrySampler(client);
+
+    const traceId = generateTraceId();
+    const ctx = trace.setSpanContext(context.active(), {
+      spanId: generateSpanId(),
+      traceId,
+      traceFlags: 0,
+      traceState: new TraceState().set(SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING, '1'),
+    });
+    const spanName = 'test';
+    const spanKind = SpanKind.INTERNAL;
+    const spanAttributes = {};
+    const links = undefined;
+
+    const actual = sampler.shouldSample(ctx, traceId, spanName, spanKind, spanAttributes, links);
+    expect(actual).toEqual({
+      decision: SamplingDecision.NOT_RECORD,
+      attributes: { 'sentry.sample_rate': 0 },
+      traceState: new TraceState().set(SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING, '1'),
+    });
+    expect(spyOnDroppedEvent).toHaveBeenCalledTimes(0);
+
+    spyOnDroppedEvent.mockReset();
+  });
+
   it('works with tracesSampleRate=1', () => {
     const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
     const spyOnDroppedEvent = jest.spyOn(client, 'recordDroppedEvent');
     const sampler = new SentrySampler(client);
 
     const ctx = context.active();
-    const traceId = '1234567890123456';
+    const traceId = generateTraceId();
     const spanName = 'test';
     const spanKind = SpanKind.INTERNAL;
     const spanAttributes = {};
@@ -64,7 +94,7 @@ describe('SentrySampler', () => {
     const sampler = new SentrySampler(client);
 
     const ctx = context.active();
-    const traceId = '1234567890123456';
+    const traceId = generateTraceId();
     const spanName = 'test';
     const spanKind = SpanKind.INTERNAL;
     const spanAttributes = {};
@@ -86,7 +116,7 @@ describe('SentrySampler', () => {
     const sampler = new SentrySampler(client);
 
     const ctx = context.active();
-    const traceId = '1234567890123456';
+    const traceId = generateTraceId();
     const spanName = 'test';
     const spanKind = SpanKind.CLIENT;
     const spanAttributes = {
