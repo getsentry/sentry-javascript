@@ -333,6 +333,8 @@ export class SentrySpan implements Span {
     }
 
     const { scope: capturedSpanScope, isolationScope: capturedSpanIsolationScope } = getCapturedScopesOnSpan(this);
+    const scope = capturedSpanScope || getCurrentScope();
+    const client = scope.getClient() || getClient();
 
     if (this._sampled !== true) {
       return undefined;

@@ -370,13 +370,9 @@ function getAcs(): AsyncContextStrategy {
   return getAsyncContextStrategy(carrier);
 }
 
-function _startRootSpan(
-  spanArguments: SentrySpanArguments,
-  scope: Scope,
-  parentSampled?: boolean,
-): SentrySpan | SentryNonRecordingSpan {
+function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parentSampled?: boolean): SentrySpan {
   const client = getClient();
-  const options: Partial<ClientOptions> = client?.getOptions() || {};
+  const options: Partial<ClientOptions> = (client && client.getOptions()) || {};
 
   const { name = '', attributes } = spanArguments;
   const [sampled, sampleRate] = scope.getScopeData().sdkProcessingMetadata[SUPPRESS_TRACING_KEY]
@@ -391,21 +387,19 @@ function _startRootSpan(
         },
       });
 
+  const rootSpan = new SentrySpan({
+    ...spanArguments,
+    attributes: {
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+      ...spanArguments.attributes,
+    },
+    sampled,
+  });
+
   if (!sampled && client) {
     DEBUG_BUILD && logger.log('[Tracing] Discarding root span because its trace was not chosen to be sampled.');
     client.recordDroppedEvent('sample_rate', 'transaction');
   }
-
-  const rootSpan = sampled
-    ? new SentrySpan({
-        ...spanArguments,
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
-          ...spanArguments.attributes,
-        },
-        sampled,
-      })
-    : new SentryNonRecordingSpan({ traceId: spanArguments.traceId });
 
   if (sampleRate !== undefined) {
     rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, sampleRate);
