@@ -90,6 +90,16 @@ In v9, an `undefined` value will be treated the same as if the value is not defi
 
 - The `captureUserFeedback` method has been removed. Use `captureFeedback` instead and update the `comments` field to `message`.
 
+### Meta-Framework SDKs (`@sentry/astro`, `@sentry/nuxt`)
+
+- Updated source map generation to respect the user-provided value of your build config, such as `vite.build.sourcemap`:
+
+  - Explicitly disabled (false): Emit warning, no source map upload.
+  - Explicitly enabled (true, 'hidden', 'inline'): No changes, source maps are uploaded and not automatically deleted.
+  - Unset: Enable 'hidden', delete `.map` files after uploading them to Sentry.
+
+  To customize which files are deleted after upload, define the `filesToDeleteAfterUpload` array with globs.
+
 ### Uncategorized (TODO)
 
 TODO
