@@ -1208,13 +1208,6 @@ jobs:
         run: |
           xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" -- yarn test:assert
 
-      # Skipped for now because I don't know what this test actually tests, couldn't get it to work.
-      # - name: Run E2E ESM test
-      #   working-directory: dev-packages/e2e-tests/test-applications/node-profiling
-      #   run: |
-      #     npm pkg set type=module
-      #     node index.mjs
-
   job_required_jobs_passed:
     name: All required jobs passed or were skipped
     needs:

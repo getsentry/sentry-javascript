@@ -11,19 +11,9 @@ console.log('Running build using esbuild version', esbuild.version);
 esbuild.buildSync({
   platform: 'node',
   entryPoints: ['./index.ts'],
-  outfile: './dist/index.shimmed.mjs',
+  outfile: './dist/cjs/index.cjs',
   target: 'esnext',
-  format: 'esm',
+  format: 'cjs',
   bundle: true,
   loader: { '.node': 'copy' },
-  banner: {
-    js: `
-        import { dirname } from 'node:path';
-        import { fileURLToPath } from 'node:url';
-        import { createRequire } from 'node:module';
-        const require = createRequire(import.meta.url);
-        const __filename = fileURLToPath(import.meta.url);
-        const __dirname = dirname(__filename);
-        `,
-  },
 });
