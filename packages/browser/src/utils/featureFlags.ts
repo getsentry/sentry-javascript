@@ -22,9 +22,8 @@ export function copyFlagsFromScopeToEvent(event: Event): Event {
   const flagContext = scope.getScopeData().contexts.flags;
   const flagBuffer = flagContext ? flagContext.values : [];
 
-  if (!flagBuffer.length) {
-    return event;
-  }
+  // Note we still copy empty buffers to the event, as way to signal whether
+  // a FF integration has been set up.
 
   if (event.contexts === undefined) {
     event.contexts = {};
