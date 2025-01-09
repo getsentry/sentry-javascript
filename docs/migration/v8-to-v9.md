@@ -217,6 +217,12 @@ The following changes are unlikely to affect users of the SDK. They are listed h
   });
   ```
 
+### `@sentry/opentelemetry`
+
+- Removed `getPropagationContextFromSpan`.
+  This function was primarily internally used.
+  It's functionality was misleading and should not be used.
+
 ## 5. Build Changes
 
 Previously the CJS versions of the SDK code (wrongfully) contained compatibility statements for default exports in ESM:

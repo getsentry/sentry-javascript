@@ -47,8 +47,6 @@ export { setOpenTelemetryContextAsyncContextStrategy } from './asyncContextStrat
 export { wrapContextManagerClass } from './contextManager';
 export {
   SentryPropagator,
-  // eslint-disable-next-line deprecation/deprecation
-  getPropagationContextFromSpan,
   shouldPropagateTraceForUrl,
 } from './propagator';
 export { SentrySpanProcessor } from './spanProcessor';

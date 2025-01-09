@@ -2,63 +2,28 @@ import type { Baggage, Context, Span, SpanContext, TextMapGetter, TextMapSetter 
 import { INVALID_TRACEID, TraceFlags, context, propagation, trace } from '@opentelemetry/api';
 import { W3CBaggagePropagator, isTracingSuppressed } from '@opentelemetry/core';
 import { ATTR_URL_FULL, SEMATTRS_HTTP_URL } from '@opentelemetry/semantic-conventions';
-import type { DynamicSamplingContext, Options, PropagationContext, continueTrace } from '@sentry/core';
+import type { DynamicSamplingContext, Options, continueTrace } from '@sentry/core';
 import {
   LRUMap,
   SENTRY_BAGGAGE_KEY_PREFIX,
-  baggageHeaderToDynamicSamplingContext,
   generateSentryTraceHeader,
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromScope,
   getDynamicSamplingContextFromSpan,
   getIsolationScope,
-  getRootSpan,
   logger,
   parseBaggageHeader,
   propagationContextFromHeaders,
   spanToJSON,
   stringMatchesSomePattern,
 } from '@sentry/core';
-import {
-  SENTRY_BAGGAGE_HEADER,
-  SENTRY_TRACE_HEADER,
-  SENTRY_TRACE_STATE_DSC,
-  SENTRY_TRACE_STATE_URL,
-} from './constants';
+import { SENTRY_BAGGAGE_HEADER, SENTRY_TRACE_HEADER, SENTRY_TRACE_STATE_URL } from './constants';
 import { DEBUG_BUILD } from './debug-build';
 import { getScopesFromContext, setScopesOnContext } from './utils/contextData';
 import { getSamplingDecision } from './utils/getSamplingDecision';
 import { makeTraceState } from './utils/makeTraceState';
 import { setIsSetup } from './utils/setupCheck';
-import { spanHasParentId } from './utils/spanTypes';
-
-/**
- * Get the Sentry propagation context from a span context.
- * @deprecated This method is not used anymore and may be removed in a future major.
- */
-export function getPropagationContextFromSpan(span: Span): PropagationContext {
-  const spanContext = span.spanContext();
-  const { traceId, traceState } = spanContext;
-
-  // When we have a dsc trace state, it means this came from the incoming trace
-  // Then this takes presedence over the root span
-  const dscString = traceState ? traceState.get(SENTRY_TRACE_STATE_DSC) : undefined;
-  const traceStateDsc = dscString ? baggageHeaderToDynamicSamplingContext(dscString) : undefined;
-
-  const parentSpanId = spanHasParentId(span) ? span.parentSpanId : undefined;
-  const sampled = getSamplingDecision(spanContext);
-
-  // No trace state? --> Take DSC from root span
-  const dsc = traceStateDsc || getDynamicSamplingContextFromSpan(getRootSpan(span));
-
-  return {
-    traceId,
-    sampled,
-    parentSpanId,
-    dsc,
-  };
-}
 
 /**
  * Injects and extracts `sentry-trace` and `baggage` headers from carriers.
