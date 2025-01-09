@@ -15,6 +15,7 @@ import { getAsyncContextStrategy } from '../../../src/asyncContext';
 import {
   SentrySpan,
   continueTrace,
+  getDynamicSamplingContextFromSpan,
   registerSpanErrorInstrumentation,
   startInactiveSpan,
   startSpan,
@@ -217,6 +218,13 @@ describe('startSpan', () => {
 
     expect(span).toBeDefined();
     expect(span).toBeInstanceOf(SentryNonRecordingSpan);
+    expect(getDynamicSamplingContextFromSpan(span)).toEqual({
+      environment: 'production',
+      sample_rate: '0',
+      sampled: 'false',
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      transaction: 'GET users/[id]',
+    });
   });
 
   it('creates & finishes span', async () => {
@@ -633,6 +641,13 @@ describe('startSpanManual', () => {
 
     expect(span).toBeDefined();
     expect(span).toBeInstanceOf(SentryNonRecordingSpan);
+    expect(getDynamicSamplingContextFromSpan(span)).toEqual({
+      environment: 'production',
+      sample_rate: '0',
+      sampled: 'false',
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      transaction: 'GET users/[id]',
+    });
   });
 
   it('creates & finishes span', async () => {
@@ -971,6 +986,13 @@ describe('startInactiveSpan', () => {
 
     expect(span).toBeDefined();
     expect(span).toBeInstanceOf(SentryNonRecordingSpan);
+    expect(getDynamicSamplingContextFromSpan(span)).toEqual({
+      environment: 'production',
+      sample_rate: '0',
+      sampled: 'false',
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      transaction: 'GET users/[id]',
+    });
   });
 
   it('creates & finishes span', async () => {
