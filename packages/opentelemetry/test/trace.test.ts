@@ -1336,12 +1336,27 @@ describe('trace (sampling)', () => {
       });
     });
 
-    expect(tracesSampler).toHaveBeenCalledTimes(3);
-    expect(tracesSampler).toHaveBeenLastCalledWith({
-      parentSampled: false,
+    expect(tracesSampler).toHaveBeenCalledTimes(2);
+    expect(tracesSampler).toHaveBeenCalledWith(
+      expect.objectContaining({
+        parentSampled: undefined,
+        name: 'outer',
+        attributes: {},
+        transactionContext: { name: 'outer', parentSampled: undefined },
+      }),
+    );
+    expect(tracesSampler).toHaveBeenCalledWith(
+      expect.objectContaining({
+        parentSampled: undefined,
+        name: 'outer2',
+        attributes: {},
+        transactionContext: { name: 'outer2', parentSampled: undefined },
+      }),
+    );
+
+    // Only root spans should go through the sampler
+    expect(tracesSampler).not.toHaveBeenLastCalledWith({
       name: 'inner2',
-      attributes: {},
-      transactionContext: { name: 'inner2', parentSampled: false },
     });
   });
 
@@ -1390,13 +1405,22 @@ describe('trace (sampling)', () => {
       });
     });
 
-    expect(tracesSampler).toHaveBeenCalledTimes(3);
-    expect(tracesSampler).toHaveBeenLastCalledWith({
-      parentSampled: false,
-      name: 'inner2',
-      attributes: {},
-      transactionContext: { name: 'inner2', parentSampled: false },
-    });
+    expect(tracesSampler).toHaveBeenCalledTimes(2);
+    expect(tracesSampler).toHaveBeenCalledWith(
+      expect.objectContaining({
+        parentSampled: undefined,
+        name: 'outer2',
+        attributes: {},
+        transactionContext: { name: 'outer2', parentSampled: undefined },
+      }),
+    );
+
+    // Only root spans should be passed to tracesSampler
+    expect(tracesSampler).not.toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        name: 'inner2',
+      }),
+    );
 
     // Now return `0.4`, it should not sample
     tracesSamplerResponse = 0.4;
@@ -1405,7 +1429,7 @@ describe('trace (sampling)', () => {
       expect(outerSpan.isRecording()).toBe(false);
     });
 
-    expect(tracesSampler).toHaveBeenCalledTimes(4);
+    expect(tracesSampler).toHaveBeenCalledTimes(3);
     expect(tracesSampler).toHaveBeenLastCalledWith({
       parentSampled: undefined,
       name: 'outer3',
