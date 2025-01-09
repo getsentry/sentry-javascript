@@ -8,7 +8,6 @@ describe('propagationContextFromHeaders()', () => {
     const result = propagationContextFromHeaders(undefined, undefined);
     expect(result).toEqual({
       traceId: expect.any(String),
-      spanId: expect.any(String),
     });
   });
 
@@ -16,7 +15,6 @@ describe('propagationContextFromHeaders()', () => {
     const result = propagationContextFromHeaders(undefined, EXAMPLE_BAGGAGE);
     expect(result).toEqual({
       traceId: expect.any(String),
-      spanId: expect.any(String),
     });
   });
 
@@ -26,7 +24,6 @@ describe('propagationContextFromHeaders()', () => {
       expect.objectContaining({
         traceId: '12312012123120121231201212312012',
         parentSpanId: '1121201211212012',
-        spanId: expect.any(String),
         sampled: true,
       }),
     );
@@ -46,7 +43,6 @@ describe('propagationContextFromHeaders()', () => {
     expect(result).toEqual({
       traceId: '12312012123120121231201212312012',
       parentSpanId: '1121201211212012',
-      spanId: expect.any(String),
       sampled: true,
       dsc: {
         release: '1.2.3',
@@ -81,20 +77,18 @@ describe('extractTraceparentData', () => {
   });
 
   test('just sample decision - false', () => {
-    const data = extractTraceparentData('0') as any;
+    const data = extractTraceparentData('0')!;
 
     expect(data).toBeDefined();
     expect(data.traceId).toBeUndefined();
-    expect(data.spanId).toBeUndefined();
     expect(data.parentSampled).toBeFalsy();
   });
 
   test('just sample decision - true', () => {
-    const data = extractTraceparentData('1') as any;
+    const data = extractTraceparentData('1')!;
 
     expect(data).toBeDefined();
     expect(data.traceId).toBeUndefined();
-    expect(data.spanId).toBeUndefined();
     expect(data.parentSampled).toBeTruthy();
   });
 

@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "node build.mjs && node build.shimmed.mjs",
-    "test": "node dist/index.js && node --experimental-require-module dist/index.js && node dist/index.shimmed.mjs",
+    "build": "node build-cjs.mjs && node build-esm.mjs",
+    "test": "node dist/cjs/index.js && node --experimental-require-module dist/cjs/index.js && node dist/esm/index.mjs",
     "clean": "npx rimraf node_modules dist",
     "test:electron": "$(pnpm bin)/electron-rebuild && playwright test",
     "test:build": "pnpm run typecheck && pnpm run build",
@@ -17,9 +17,9 @@
     "@sentry/electron": "latest || *",
     "@sentry/node": "latest || *",
     "@sentry/profiling-node": "latest || *",
-    "electron": "^33.2.0"
+    "electron": "^33.2.0",
+    "esbuild": "0.20.0"
   },
-  "devDependencies": {},
   "volta": {
     "extends": "../../package.json"
   },

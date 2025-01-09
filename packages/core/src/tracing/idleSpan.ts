@@ -124,6 +124,12 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
         beforeSpanEnd(span);
       }
 
+      // If the span is non-recording, nothing more to do here...
+      // This is the case if tracing is enabled but this specific span was not sampled
+      if (thisArg instanceof SentryNonRecordingSpan) {
+        return;
+      }
+
       // Just ensuring that this keeps working, even if we ever have more arguments here
       const [definedEndTimestamp, ...rest] = args;
       const timestamp = definedEndTimestamp || timestampInSeconds();

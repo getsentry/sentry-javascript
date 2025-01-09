@@ -13,7 +13,7 @@ import {
 } from '../../src';
 import type { BaseClient, Client } from '../../src/client';
 import * as integrationModule from '../../src/integration';
-import type { Envelope, ErrorEvent, Event, TransactionEvent } from '../../src/types-hoist';
+import type { Envelope, ErrorEvent, Event, SpanJSON, TransactionEvent } from '../../src/types-hoist';
 import * as loggerModule from '../../src/utils-hoist/logger';
 import * as miscModule from '../../src/utils-hoist/misc';
 import * as stringModule from '../../src/utils-hoist/string';
@@ -995,14 +995,14 @@ describe('Client', () => {
     });
 
     test('calls `beforeSendSpan` and uses original spans without any changes', () => {
-      expect.assertions(2);
+      expect.assertions(3);
 
       const beforeSendSpan = jest.fn(span => span);
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendSpan });
       const client = new TestClient(options);
 
       const transaction: Event = {
-        transaction: '/cats/are/great',
+        transaction: '/dogs/are/great',
         type: 'transaction',
         spans: [
           {
@@ -1023,25 +1023,81 @@ describe('Client', () => {
       };
       client.captureEvent(transaction);
 
-      expect(beforeSendSpan).toHaveBeenCalledTimes(2);
+      expect(beforeSendSpan).toHaveBeenCalledTimes(3);
       const capturedEvent = TestClient.instance!.event!;
       expect(capturedEvent.spans).toEqual(transaction.spans);
+      expect(capturedEvent.transaction).toEqual(transaction.transaction);
     });
 
-    test('calls `beforeSend` and uses the modified event', () => {
-      expect.assertions(2);
-
-      const beforeSend = jest.fn(event => {
-        event.message = 'changed1';
-        return event;
+    test('does not modify existing contexts for root span in `beforeSendSpan`', () => {
+      const beforeSendSpan = jest.fn((span: SpanJSON) => {
+        return {
+          ...span,
+          data: {
+            modified: 'true',
+          },
+        };
       });
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSend });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendSpan });
       const client = new TestClient(options);
 
-      client.captureEvent({ message: 'hello' });
+      const transaction: Event = {
+        transaction: '/animals/are/great',
+        type: 'transaction',
+        spans: [],
+        breadcrumbs: [
+          {
+            type: 'ui.click',
+          },
+        ],
+        contexts: {
+          trace: {
+            data: {
+              modified: 'false',
+              dropMe: 'true',
+            },
+            span_id: '9e15bf99fbe4bc80',
+            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          },
+          app: {
+            data: {
+              modified: 'false',
+            },
+          },
+        },
+      };
+      client.captureEvent(transaction);
 
-      expect(beforeSend).toHaveBeenCalled();
-      expect(TestClient.instance!.event!.message).toEqual('changed1');
+      expect(beforeSendSpan).toHaveBeenCalledTimes(1);
+      const capturedEvent = TestClient.instance!.event!;
+      expect(capturedEvent).toEqual({
+        transaction: '/animals/are/great',
+        breadcrumbs: [
+          {
+            type: 'ui.click',
+          },
+        ],
+        type: 'transaction',
+        spans: [],
+        environment: 'production',
+        event_id: '12312012123120121231201212312012',
+        start_timestamp: 0,
+        timestamp: 2020,
+        contexts: {
+          trace: {
+            data: {
+              modified: 'true',
+            },
+            span_id: '9e15bf99fbe4bc80',
+            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          },
+          app: {
+            data: {
+              modified: 'false',
+            },
+          },
+        },
+      });
     });
 
     test('calls `beforeSendTransaction` and uses the modified event', () => {
@@ -1085,7 +1141,7 @@ describe('Client', () => {
     });
 
     test('calls `beforeSendSpan` and uses the modified spans', () => {
-      expect.assertions(3);
+      expect.assertions(4);
 
       const beforeSendSpan = jest.fn(span => {
         span.data = { version: 'bravo' };
@@ -1095,7 +1151,7 @@ describe('Client', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendSpan });
       const client = new TestClient(options);
       const transaction: Event = {
-        transaction: '/cats/are/great',
+        transaction: '/dogs/are/great',
         type: 'transaction',
         spans: [
           {
@@ -1117,12 +1173,13 @@ describe('Client', () => {
 
       client.captureEvent(transaction);
 
-      expect(beforeSendSpan).toHaveBeenCalledTimes(2);
+      expect(beforeSendSpan).toHaveBeenCalledTimes(3);
       const capturedEvent = TestClient.instance!.event!;
       for (const [idx, span] of capturedEvent.spans!.entries()) {
         const originalSpan = transaction.spans![idx];
         expect(span).toEqual({ ...originalSpan, data: { version: 'bravo' } });
       }
+      expect(capturedEvent.contexts?.trace?.data).toEqual({ version: 'bravo' });
     });
 
     test('calls `beforeSend` and discards the event', () => {
@@ -1163,15 +1220,15 @@ describe('Client', () => {
       expect(loggerWarnSpy).toBeCalledWith('before send for type `transaction` returned `null`, will not send event.');
     });
 
-    test('calls `beforeSendSpan` and discards the span', () => {
+    test('does not discard span and warn when returning null from `beforeSendSpan', () => {
       const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
 
-      const beforeSendSpan = jest.fn(() => null);
+      const beforeSendSpan = jest.fn(() => null as unknown as SpanJSON);
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendSpan });
       const client = new TestClient(options);
 
       const transaction: Event = {
-        transaction: '/cats/are/great',
+        transaction: '/dogs/are/great',
         type: 'transaction',
         spans: [
           {
@@ -1192,14 +1249,14 @@ describe('Client', () => {
       };
       client.captureEvent(transaction);
 
-      expect(beforeSendSpan).toHaveBeenCalledTimes(2);
+      expect(beforeSendSpan).toHaveBeenCalledTimes(3);
       const capturedEvent = TestClient.instance!.event!;
-      expect(capturedEvent.spans).toHaveLength(0);
-      expect(client['_outcomes']).toEqual({ 'before_send:span': 2 });
+      expect(capturedEvent.spans).toHaveLength(2);
+      expect(client['_outcomes']).toEqual({});
 
       expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
-      expect(consoleWarnSpy).toBeCalledWith(
-        '[Sentry] Deprecation warning: Returning null from `beforeSendSpan` will be disallowed from SDK version 9.0.0 onwards. The callback will only support mutating spans. To drop certain spans, configure the respective integrations directly.',
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        '[Sentry] Returning null from `beforeSendSpan` is disallowed. To drop certain spans, configure the respective integrations directly.',
       );
       consoleWarnSpy.mockRestore();
     });

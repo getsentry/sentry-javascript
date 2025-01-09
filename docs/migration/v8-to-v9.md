@@ -68,6 +68,8 @@ Sentry.init({
 });
 ```
 
+- Dropping spans in the `beforeSendSpan` hook is no longer possible.
+- The `beforeSendSpan` hook now receives the root span as well as the child spans.
 - In previous versions, we determined if tracing is enabled (for Tracing Without Performance) by checking if either `tracesSampleRate` or `traceSampler` are _defined_ at all, in `Sentry.init()`. This means that e.g. the following config would lead to tracing without performance (=tracing being enabled, even if no spans would be started):
 
 ```js
@@ -89,6 +91,12 @@ In v9, an `undefined` value will be treated the same as if the value is not defi
 ### `@sentry/browser`
 
 - The `captureUserFeedback` method has been removed. Use `captureFeedback` instead and update the `comments` field to `message`.
+
+### `@sentry/nextjs`
+
+- The Sentry Next.js SDK will no longer use the Next.js Build ID as fallback identifier for releases. The SDK will continue to attempt to read CI-provider-specific environment variables and the current git SHA to automatically determine a release name. If you examine that you no longer see releases created in Sentry, it is recommended to manually provide a release name to `withSentryConfig` via the `release.name` option.
+
+  This behavior was changed because the Next.js Build ID is non-deterministic and the release name is injected into client bundles, causing build artifacts to be non-deterministic. This caused issues for some users. Additionally, because it is uncertain whether it will be possible to rely on a Build ID when Turbopack becomes stable, we decided to pull the plug now instead of introducing confusing behavior in the future.
 
 ### Uncategorized (TODO)
 
@@ -226,6 +234,7 @@ Since v9, the types have been merged into `@sentry/core`, which removed some of 
 - The `IntegrationClass` type is no longer exported - it was not used anymore. Instead, use `Integration` or `IntegrationFn`.
 - The `samplingContext.request` attribute in the `tracesSampler` has been removed. Use `samplingContext.normalizedRequest` instead. Note that the type of `normalizedRequest` differs from `request`.
 - `Client` now always expects the `BaseClient` class - there is no more abstract `Client` that can be implemented! Any `Client` class has to extend from `BaseClient`.
+- `ReportDialogOptions` now extends `Record<string, unknown>` instead of `Record<string, any>` - this should not affect most users.
 
 # No Version Support Timeline
 
@@ -243,6 +252,10 @@ The following outlines deprecations that were introduced in version 8 of the SDK
 ## General
 
 - **Returning `null` from `beforeSendSpan` span is deprecated.**
+
+  Returning `null` from `beforeSendSpan` will now result in a warning being logged.
+  In v9, dropping spans is not possible anymore within this hook.
+
 - **Passing `undefined` to `tracesSampleRate` / `tracesSampler` / `enableTracing` will be handled differently in v9**
 
   In v8, a setup like the following:
