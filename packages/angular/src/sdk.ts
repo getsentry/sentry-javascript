@@ -62,7 +62,7 @@ export function init(options: BrowserOptions): Client | undefined {
 function checkAndSetAngularVersion(): void {
   const ANGULAR_MINIMUM_VERSION = 14;
 
-  const angularVersion = VERSION && VERSION.major ? parseInt(VERSION.major, 10) : undefined;
+  const angularVersion = VERSION?.major && parseInt(VERSION.major, 10);
 
   if (angularVersion) {
     if (angularVersion < ANGULAR_MINIMUM_VERSION) {

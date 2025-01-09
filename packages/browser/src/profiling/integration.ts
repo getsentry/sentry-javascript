@@ -49,7 +49,7 @@ const _browserProfilingIntegration = (() => {
         const profilesToAddToEnvelope: Profile[] = [];
 
         for (const profiledTransaction of profiledTransactionEvents) {
-          const context = profiledTransaction && profiledTransaction.contexts;
+          const context = profiledTransaction?.contexts;
           const profile_id = context && context['profile'] && context['profile']['profile_id'];
           const start_timestamp = context && context['profile'] && context['profile']['start_timestamp'];
 

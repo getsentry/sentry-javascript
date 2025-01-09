@@ -50,7 +50,7 @@ export function wrapServerEntryWithDynamicImport(config: WrapServerEntryPluginOp
         return { id: source, moduleSideEffects: true };
       }
 
-      if (additionalImports && additionalImports.includes(source)) {
+      if (additionalImports?.includes(source)) {
         // When importing additional imports like "import-in-the-middle/hook.mjs" in the returned code of the `load()` function below:
         // By setting `moduleSideEffects` to `true`, the import is added to the bundle, although nothing is imported from it
         // By importing "import-in-the-middle/hook.mjs", we can make sure this file is included, as not all node builders are including files imported with `module.register()`.
@@ -67,7 +67,7 @@ export function wrapServerEntryWithDynamicImport(config: WrapServerEntryPluginOp
         const resolution = await this.resolve(source, importer, options);
 
         // If it cannot be resolved or is external, just return it so that Rollup can display an error
-        if (!resolution || (resolution && resolution.external)) return resolution;
+        if (!resolution || resolution?.external) return resolution;
 
         const moduleInfo = await this.load(resolution);
 

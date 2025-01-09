@@ -84,6 +84,6 @@ export function isSpotlightInteraction(event: Event): boolean {
       event.contexts &&
       event.contexts.trace &&
       event.contexts.trace.op === 'ui.action.click' &&
-      event.spans.some(({ description }) => description && description.includes('#sentry-spotlight')),
+      event.spans.some(({ description }) => description?.includes('#sentry-spotlight')),
   );
 }

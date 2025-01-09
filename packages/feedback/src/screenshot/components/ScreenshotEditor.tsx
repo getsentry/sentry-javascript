@@ -302,7 +302,7 @@ export function ScreenshotEditorFactory({
       onAfterScreenshot: hooks.useCallback(() => {
         (dialog.el as HTMLElement).style.display = 'block';
         const container = canvasContainerRef.current;
-        container && container.appendChild(imageBuffer);
+        container?.appendChild(imageBuffer);
         resizeCropper();
       }, []),
       onError: hooks.useCallback(error => {

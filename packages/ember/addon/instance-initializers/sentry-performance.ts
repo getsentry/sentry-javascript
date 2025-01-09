@@ -18,7 +18,7 @@ import {
   getClient,
   startInactiveSpan,
 } from '@sentry/browser';
-import { GLOBAL_OBJ, browserPerformanceTimeOrigin, timestampInSeconds } from '@sentry/core';
+import { GLOBAL_OBJ, addIntegration, browserPerformanceTimeOrigin, timestampInSeconds } from '@sentry/core';
 import type { Span } from '@sentry/core';
 import type { ExtendedBackburner } from '@sentry/ember/runloop';
 import type { EmberRouterMain, EmberSentryConfig, GlobalConfig, OwnConfig } from '../types';
@@ -410,7 +410,7 @@ function _hasPerformanceSupport(): { HAS_PERFORMANCE: boolean; HAS_PERFORMANCE_T
     measure?: Performance['measure'];
     getEntriesByName?: Performance['getEntriesByName'];
   };
-  const HAS_PERFORMANCE = Boolean(_performance && _performance.clearMarks && _performance.clearMeasures);
+  const HAS_PERFORMANCE = Boolean(_performance?.clearMarks && _performance.clearMeasures);
   const HAS_PERFORMANCE_TIMING = Boolean(
     _performance.measure && _performance.getEntriesByName && browserPerformanceTimeOrigin !== undefined,
   );
@@ -439,12 +439,8 @@ export async function instrumentForPerformance(appInstance: ApplicationInstance)
   });
 
   const client = getClient<BrowserClient>();
-
   const isAlreadyInitialized = macroCondition(isTesting()) ? !!client?.getIntegrationByName('BrowserTracing') : false;
-
-  if (client && client.addIntegration) {
-    client.addIntegration(browserTracing);
-  }
+  addIntegration(browserTracing);
 
   // We _always_ call this, as it triggers the page load & navigation spans
   _instrumentNavigation(appInstance, config, startBrowserTracingPageLoadSpan, startBrowserTracingNavigationSpan);

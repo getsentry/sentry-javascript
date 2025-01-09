@@ -98,7 +98,7 @@ export interface ProfiledEvent extends Event {
 }
 
 function getTraceId(event: Event): string {
-  const traceId: unknown = event && event.contexts && event.contexts['trace'] && event.contexts['trace']['trace_id'];
+  const traceId: unknown = event.contexts?.trace?.['trace_id'];
   // Log a warning if the profile has an invalid traceId (should be uuidv4).
   // All profiles and transactions are rejected if this is the case and we want to
   // warn users that this is happening if they enable debug flag
@@ -333,7 +333,7 @@ export function findProfiledTransactionsFromEnvelope(envelope: Envelope): Event[
     for (let j = 1; j < item.length; j++) {
       const event = item[j] as Event;
 
-      if (event && event.contexts && event.contexts['profile'] && event.contexts['profile']['profile_id']) {
+      if (event?.contexts && event.contexts['profile'] && event.contexts['profile']['profile_id']) {
         events.push(item[j] as Event);
       }
     }
@@ -347,8 +347,8 @@ export function findProfiledTransactionsFromEnvelope(envelope: Envelope): Event[
  */
 export function applyDebugMetadata(resource_paths: ReadonlyArray<string>): DebugImage[] {
   const client = getClient();
-  const options = client && client.getOptions();
-  const stackParser = options && options.stackParser;
+  const options = client?.getOptions();
+  const stackParser = options?.stackParser;
 
   if (!stackParser) {
     return [];
@@ -478,7 +478,7 @@ export function shouldProfileSpan(span: Span): boolean {
   }
 
   const client = getClient();
-  const options = client && client.getOptions();
+  const options = client?.getOptions();
   if (!options) {
     DEBUG_BUILD && logger.log('[Profiling] Profiling disabled, no options found.');
     return false;

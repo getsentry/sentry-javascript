@@ -154,8 +154,6 @@ describe('init', () => {
       new MockIntegration('MockIntegration 0.2'),
     ];
 
-    const originalLocation = WINDOW.location || {};
-
     const options = getDefaultBrowserOptions({ dsn: PUBLIC_DSN, defaultIntegrations: DEFAULT_INTEGRATIONS });
 
     afterEach(() => {
@@ -204,12 +202,9 @@ describe('init', () => {
       extensionProtocol => {
         const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-        // @ts-expect-error - this is a hack to simulate a dedicated page in a browser extension
-        delete WINDOW.location;
-        // @ts-expect-error - this is a hack to simulate a dedicated page in a browser extension
-        WINDOW.location = {
-          href: `${extensionProtocol}://mock-extension-id/dedicated-page.html`,
-        };
+        const locationHrefSpy = vi
+          .spyOn(SentryCore, 'getLocationHref')
+          .mockImplementation(() => `${extensionProtocol}://mock-extension-id/dedicated-page.html`);
 
         Object.defineProperty(WINDOW, 'browser', { value: { runtime: { id: 'mock-extension-id' } }, writable: true });
 
@@ -218,7 +213,7 @@ describe('init', () => {
         expect(consoleErrorSpy).toBeCalledTimes(0);
 
         consoleErrorSpy.mockRestore();
-        WINDOW.location = originalLocation;
+        locationHrefSpy.mockRestore();
       },
     );
 

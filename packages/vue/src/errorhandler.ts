@@ -41,7 +41,7 @@ export const attachErrorHandler = (app: Vue, options: VueOptions): void => {
 
     if (options.logErrors) {
       const hasConsole = typeof console !== 'undefined';
-      const message = `Error in ${lifecycleHook}: "${error && error.toString()}"`;
+      const message = `Error in ${lifecycleHook}: "${error?.toString()}"`;
 
       if (warnHandler) {
         (warnHandler as UnknownFunc).call(null, message, vm, trace);

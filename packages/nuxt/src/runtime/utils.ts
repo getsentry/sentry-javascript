@@ -66,7 +66,7 @@ export function reportNuxtError(options: {
     const sentryOptions = sentryClient ? (sentryClient.getOptions() as ClientOptions & VueOptions) : null;
 
     // `attachProps` is enabled by default and props should only not be attached if explicitly disabled (see DEFAULT_CONFIG in `vueIntegration`).
-    if (sentryOptions && sentryOptions.attachProps && instance.$props !== false) {
+    if (sentryOptions?.attachProps && instance.$props !== false) {
       metadata.propsData = instance.$props;
     }
   }

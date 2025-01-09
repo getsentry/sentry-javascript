@@ -1,4 +1,4 @@
-const sentryCarrier = window && window.__SENTRY__;
+const sentryCarrier = window?.__SENTRY__;
 
 /**
  * Simulate an old pre v8 SDK obtaining the hub from the global sentry carrier

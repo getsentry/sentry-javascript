@@ -372,7 +372,7 @@ function getAcs(): AsyncContextStrategy {
 
 function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parentSampled?: boolean): SentrySpan {
   const client = getClient();
-  const options: Partial<ClientOptions> = (client && client.getOptions()) || {};
+  const options: Partial<ClientOptions> = client?.getOptions() || {};
 
   const { name = '', attributes } = spanArguments;
   const [sampled, sampleRate] = scope.getScopeData().sdkProcessingMetadata[SUPPRESS_TRACING_KEY]

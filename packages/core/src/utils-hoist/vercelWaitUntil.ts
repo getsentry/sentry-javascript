@@ -19,11 +19,9 @@ export function vercelWaitUntil(task: Promise<unknown>): void {
     GLOBAL_OBJ[Symbol.for('@vercel/request-context')];
 
   const ctx =
-    vercelRequestContextGlobal && vercelRequestContextGlobal.get && vercelRequestContextGlobal.get()
-      ? vercelRequestContextGlobal.get()
-      : {};
+    vercelRequestContextGlobal?.get && vercelRequestContextGlobal.get() ? vercelRequestContextGlobal.get() : {};
 
-  if (ctx && ctx.waitUntil) {
+  if (ctx?.waitUntil) {
     ctx.waitUntil(task);
   }
 }

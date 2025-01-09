@@ -23,6 +23,7 @@ import {
   getCurrentScope,
   getDynamicSamplingContextFromSpan,
   getIsolationScope,
+  getLocationHref,
   getRootSpan,
   logger,
   propagationContextFromHeaders,
@@ -298,7 +299,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     name: BROWSER_TRACING_INTEGRATION_ID,
     afterAllSetup(client) {
       let activeSpan: Span | undefined;
-      let startingUrl: string | undefined = WINDOW.location && WINDOW.location.href;
+      let startingUrl: string | undefined = getLocationHref();
 
       function maybeEndActiveSpan(): void {
         if (activeSpan && !spanToJSON(activeSpan).timestamp) {
@@ -384,7 +385,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
              * only be caused in certain development environments where the usage of a hot module reloader is causing
              * errors.
              */
-            if (from === undefined && startingUrl && startingUrl.indexOf(to) !== -1) {
+            if (from === undefined && startingUrl?.indexOf(to) !== -1) {
               startingUrl = undefined;
               return;
             }
@@ -473,8 +474,8 @@ export function getMetaContent(metaName: string): string | undefined {
    */
   const optionalWindowDocument = WINDOW.document as (typeof WINDOW)['document'] | undefined;
 
-  const metaTag = optionalWindowDocument && optionalWindowDocument.querySelector(`meta[name=${metaName}]`);
-  return (metaTag && metaTag.getAttribute('content')) || undefined;
+  const metaTag = optionalWindowDocument?.querySelector(`meta[name=${metaName}]`);
+  return metaTag?.getAttribute('content') || undefined;
 }
 
 /** Start listener for interaction transactions */

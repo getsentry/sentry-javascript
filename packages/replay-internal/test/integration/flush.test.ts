@@ -113,7 +113,7 @@ describe('Integration | flush', () => {
   });
 
   afterAll(() => {
-    replay && replay.stop();
+    replay?.stop();
   });
 
   it('flushes twice after multiple flush() calls)', async () => {
