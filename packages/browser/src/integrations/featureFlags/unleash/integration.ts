@@ -51,7 +51,7 @@ export const unleashIntegration = defineIntegration((unleashClientClass: Unleash
           return result;
         },
       };
-      const originalIsEnabled = unleashClientPrototype.isEnabled.bind(unleashClientPrototype);
+      const originalIsEnabled = unleashClientPrototype.isEnabled;
       unleashClientPrototype.isEnabled = new Proxy(originalIsEnabled, sentryIsEnabled);
 
       const sentryGetVariant = {
@@ -61,12 +61,12 @@ export const unleashIntegration = defineIntegration((unleashClientClass: Unleash
           args: [toggleName: string],
         ) => {
           const variant = Reflect.apply(target, thisArg, args);
-          const result = variant.enabled;
+          const result = variant.feature_enabled || false; // undefined means the feature does not exist.
           insertFlagToScope(args[0], result);
           return variant;
         },
       };
-      const originalGetVariant = unleashClientPrototype.getVariant.bind(unleashClientPrototype);
+      const originalGetVariant = unleashClientPrototype.getVariant;
       unleashClientPrototype.getVariant = new Proxy(originalGetVariant, sentryGetVariant);
     },
   };

@@ -36,12 +36,14 @@ sentryTest('Basic isEnabled test with eviction, update, and no async tasks', asy
   const req = await reqPromise;
   const event = envelopeRequestParser(req);
 
-  const expectedFlags = [{ flag: 'feat2', result: false }];
-  for (let i = 4; i <= FLAG_BUFFER_SIZE; i++) {
+  const expectedFlags = [{ flag: 'feat2', result: true }];
+  expectedFlags.push({ flag: 'feat4', result: true });
+  expectedFlags.push({ flag: 'feat5', result: true });
+  for (let i = 6; i <= FLAG_BUFFER_SIZE; i++) {
     expectedFlags.push({ flag: `feat${i}`, result: false });
   }
   expectedFlags.push({ flag: `feat${FLAG_BUFFER_SIZE + 1}`, result: false });
-  expectedFlags.push({ flag: 'feat3', result: false });
+  expectedFlags.push({ flag: 'feat3', result: true });
 
   expect(event.contexts?.flags?.values).toEqual(expectedFlags);
 });
@@ -76,12 +78,14 @@ sentryTest('Basic getVariant test with eviction, update, and no async tasks', as
   const req = await reqPromise;
   const event = envelopeRequestParser(req);
 
-  const expectedFlags = [{ flag: 'feat2', result: false }];
-  for (let i = 4; i <= FLAG_BUFFER_SIZE; i++) {
+  const expectedFlags = [{ flag: 'feat2', result: true }];
+  expectedFlags.push({ flag: 'feat4', result: true });
+  expectedFlags.push({ flag: 'feat5', result: true });
+  for (let i = 6; i <= FLAG_BUFFER_SIZE; i++) {
     expectedFlags.push({ flag: `feat${i}`, result: false });
   }
   expectedFlags.push({ flag: `feat${FLAG_BUFFER_SIZE + 1}`, result: false });
-  expectedFlags.push({ flag: 'feat3', result: false });
+  expectedFlags.push({ flag: 'feat3', result: true });
 
   expect(event.contexts?.flags?.values).toEqual(expectedFlags);
 });
