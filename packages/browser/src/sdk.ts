@@ -1,4 +1,4 @@
-import type { Client, DsnLike, Integration, Options } from '@sentry/core';
+import type { Client, Integration, Options, ReportDialogOptions } from '@sentry/core';
 import {
   consoleSandbox,
   dedupeIntegration,
@@ -27,12 +27,12 @@ import { defaultStackParser } from './stack-parsers';
 import { makeFetchTransport } from './transports/fetch';
 
 /** Get the default integrations for the browser SDK. */
-export function getDefaultIntegrations(options: Options): Integration[] {
+export function getDefaultIntegrations(_options: Options): Integration[] {
   /**
    * Note: Please make sure this stays in sync with Angular SDK, which re-exports
    * `getDefaultIntegrations` but with an adjusted set of integrations.
    */
-  const integrations = [
+  return [
     inboundFiltersIntegration(),
     functionToStringIntegration(),
     browserApiErrorsIntegration(),
@@ -41,14 +41,8 @@ export function getDefaultIntegrations(options: Options): Integration[] {
     linkedErrorsIntegration(),
     dedupeIntegration(),
     httpContextIntegration(),
+    browserSessionIntegration(),
   ];
-
-  // eslint-disable-next-line deprecation/deprecation
-  if (options.autoSessionTracking !== false) {
-    integrations.push(browserSessionIntegration());
-  }
-
-  return integrations;
 }
 
 /** Exported only for tests. */
@@ -61,7 +55,6 @@ export function applyDefaultOptions(optionsArg: BrowserOptions = {}): BrowserOpt
         : WINDOW.SENTRY_RELEASE && WINDOW.SENTRY_RELEASE.id // This supports the variable that sentry-webpack-plugin injects
           ? WINDOW.SENTRY_RELEASE.id
           : undefined,
-    autoSessionTracking: true,
     sendClientReports: true,
   };
 
@@ -205,37 +198,6 @@ export function init(browserOptions: BrowserOptions = {}): Client | undefined {
   };
 
   return initAndBind(BrowserClient, clientOptions);
-}
-
-/**
- * All properties the report dialog supports
- */
-export interface ReportDialogOptions {
-  // TODO(v9): Change this to  [key: string]: unknkown;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any;
-  eventId?: string;
-  dsn?: DsnLike;
-  user?: {
-    email?: string;
-    name?: string;
-  };
-  lang?: string;
-  title?: string;
-  subtitle?: string;
-  subtitle2?: string;
-  labelName?: string;
-  labelEmail?: string;
-  labelComments?: string;
-  labelClose?: string;
-  labelSubmit?: string;
-  errorGeneric?: string;
-  errorFormEntry?: string;
-  successMessage?: string;
-  /** Callback after reportDialog showed up */
-  onLoad?(this: void): void;
-  /** Callback after reportDialog closed */
-  onClose?(this: void): void;
 }
 
 /**

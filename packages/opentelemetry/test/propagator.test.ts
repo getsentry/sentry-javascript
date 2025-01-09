@@ -25,7 +25,7 @@ describe('SentryPropagator', () => {
     mockSdkInit({
       environment: 'production',
       release: '1.0.0',
-      enableTracing: true,
+      tracesSampleRate: 1,
       dsn: 'https://abc@domain/123',
     });
   });
@@ -45,7 +45,6 @@ describe('SentryPropagator', () => {
           scope.setPropagationContext({
             traceId: 'd4cda95b652f4a1592b449d5929fda1b',
             parentSpanId: '6e0c63257de34c93',
-            spanId: '6e0c63257de34c92',
             sampled: true,
           });
 
@@ -59,7 +58,7 @@ describe('SentryPropagator', () => {
               'sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b',
             ].sort(),
           );
-          expect(carrier[SENTRY_TRACE_HEADER]).toBe('d4cda95b652f4a1592b449d5929fda1b-6e0c63257de34c92-1');
+          expect(carrier[SENTRY_TRACE_HEADER]).toMatch(/d4cda95b652f4a1592b449d5929fda1b-[a-f0-9]{16}-1/);
         });
       });
 
@@ -68,7 +67,6 @@ describe('SentryPropagator', () => {
           scope.setPropagationContext({
             traceId: 'd4cda95b652f4a1592b449d5929fda1b',
             parentSpanId: '6e0c63257de34c93',
-            spanId: '6e0c63257de34c92',
             sampled: true,
             dsc: {
               transaction: 'sampled-transaction',
@@ -96,7 +94,7 @@ describe('SentryPropagator', () => {
               'sentry-replay_id=dsc_replay_id',
             ].sort(),
           );
-          expect(carrier[SENTRY_TRACE_HEADER]).toBe('d4cda95b652f4a1592b449d5929fda1b-6e0c63257de34c92-1');
+          expect(carrier[SENTRY_TRACE_HEADER]).toMatch(/d4cda95b652f4a1592b449d5929fda1b-[a-f0-9]{16}-1/);
         });
       });
 
@@ -322,7 +320,6 @@ describe('SentryPropagator', () => {
                 scope.setPropagationContext({
                   traceId: 'TRACE_ID',
                   parentSpanId: 'PARENT_SPAN_ID',
-                  spanId: 'SPAN_ID',
                   sampled: true,
                 });
 
@@ -362,7 +359,6 @@ describe('SentryPropagator', () => {
               scope.setPropagationContext({
                 traceId: 'TRACE_ID',
                 parentSpanId: 'PARENT_SPAN_ID',
-                spanId: 'SPAN_ID',
                 sampled: true,
               });
 
@@ -399,7 +395,6 @@ describe('SentryPropagator', () => {
               scope.setPropagationContext({
                 traceId: 'TRACE_ID',
                 parentSpanId: 'PARENT_SPAN_ID',
-                spanId: 'SPAN_ID',
                 sampled: true,
               });
 
@@ -601,7 +596,6 @@ describe('SentryPropagator', () => {
       const context = propagator.extract(ROOT_CONTEXT, carrier, defaultTextMapGetter);
       expect(trace.getSpanContext(context)).toEqual(undefined);
       expect(getCurrentScope().getPropagationContext()).toEqual({
-        spanId: expect.stringMatching(/[a-f0-9]{16}/),
         traceId: expect.stringMatching(/[a-f0-9]{32}/),
       });
     });
@@ -652,7 +646,6 @@ describe('SentryPropagator', () => {
       const context = propagator.extract(ROOT_CONTEXT, carrier, defaultTextMapGetter);
       expect(trace.getSpanContext(context)).toEqual(undefined);
       expect(getCurrentScope().getPropagationContext()).toEqual({
-        spanId: expect.stringMatching(/[a-f0-9]{16}/),
         traceId: expect.stringMatching(/[a-f0-9]{32}/),
       });
     });

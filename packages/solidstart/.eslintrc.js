@@ -10,6 +10,13 @@ module.exports = {
         project: ['tsconfig.test.json'],
       },
     },
+    {
+      files: ['src/vite/**', 'src/server/**', 'src/config/**'],
+      rules: {
+        '@sentry-internal/sdk/no-optional-chaining': 'off',
+        '@sentry-internal/sdk/no-nullish-coalescing': 'off',
+      },
+    },
   ],
   extends: ['../../.eslintrc.js'],
 };

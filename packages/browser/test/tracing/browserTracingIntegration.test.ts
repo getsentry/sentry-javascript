@@ -643,19 +643,15 @@ describe('browserTracingIntegration', () => {
       const newCurrentScopePropCtx = getCurrentScope().getPropagationContext();
 
       expect(oldCurrentScopePropCtx).toEqual({
-        spanId: expect.stringMatching(/[a-f0-9]{16}/),
         traceId: expect.stringMatching(/[a-f0-9]{32}/),
       });
       expect(oldIsolationScopePropCtx).toEqual({
-        spanId: expect.stringMatching(/[a-f0-9]{16}/),
         traceId: expect.stringMatching(/[a-f0-9]{32}/),
       });
       expect(newCurrentScopePropCtx).toEqual({
-        spanId: expect.stringMatching(/[a-f0-9]{16}/),
         traceId: expect.stringMatching(/[a-f0-9]{32}/),
       });
       expect(newIsolationScopePropCtx).toEqual({
-        spanId: expect.stringMatching(/[a-f0-9]{16}/),
         traceId: expect.stringMatching(/[a-f0-9]{32}/),
       });
 
@@ -680,7 +676,6 @@ describe('browserTracingIntegration', () => {
 
       const propCtxBeforeEnd = getCurrentScope().getPropagationContext();
       expect(propCtxBeforeEnd).toStrictEqual({
-        spanId: expect.stringMatching(/[a-f0-9]{16}/),
         traceId: expect.stringMatching(/[a-f0-9]{32}/),
       });
 
@@ -688,8 +683,6 @@ describe('browserTracingIntegration', () => {
 
       const propCtxAfterEnd = getCurrentScope().getPropagationContext();
       expect(propCtxAfterEnd).toStrictEqual({
-        // eslint-disable-next-line deprecation/deprecation
-        spanId: propCtxBeforeEnd.spanId,
         traceId: propCtxBeforeEnd.traceId,
         sampled: true,
         dsc: {
@@ -720,7 +713,6 @@ describe('browserTracingIntegration', () => {
 
       const propCtxBeforeEnd = getCurrentScope().getPropagationContext();
       expect(propCtxBeforeEnd).toStrictEqual({
-        spanId: expect.stringMatching(/[a-f0-9]{16}/),
         traceId: expect.stringMatching(/[a-f0-9]{32}/),
       });
 
@@ -728,8 +720,6 @@ describe('browserTracingIntegration', () => {
 
       const propCtxAfterEnd = getCurrentScope().getPropagationContext();
       expect(propCtxAfterEnd).toStrictEqual({
-        // eslint-disable-next-line deprecation/deprecation
-        spanId: propCtxBeforeEnd.spanId,
         traceId: propCtxBeforeEnd.traceId,
         sampled: false,
         dsc: {

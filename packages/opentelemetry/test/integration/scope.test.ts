@@ -26,7 +26,11 @@ describe('Integration | Scope', () => {
       const beforeSend = jest.fn(() => null);
       const beforeSendTransaction = jest.fn(() => null);
 
-      mockSdkInit({ enableTracing, beforeSend, beforeSendTransaction });
+      mockSdkInit({
+        tracesSampleRate: enableTracing ? 1 : 0,
+        beforeSend,
+        beforeSendTransaction,
+      });
 
       const client = getClient() as TestClientInterface;
 

@@ -18,7 +18,7 @@ describe('setupEventContextTrace', () => {
     client = new TestClient(
       getDefaultTestClientOptions({
         sampleRate: 1,
-        enableTracing: true,
+        tracesSampleRate: 1,
         beforeSend,
         debug: true,
         dsn: PUBLIC_DSN,
