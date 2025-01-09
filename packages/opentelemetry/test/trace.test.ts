@@ -34,7 +34,7 @@ import { cleanupOtel, mockSdkInit } from './helpers/mockSdkInit';
 
 describe('trace', () => {
   beforeEach(() => {
-    mockSdkInit({ enableTracing: true });
+    mockSdkInit({ tracesSampleRate: 1 });
   });
 
   afterEach(() => {
@@ -1138,7 +1138,7 @@ describe('trace', () => {
 
 describe('trace (tracing disabled)', () => {
   beforeEach(() => {
-    mockSdkInit({ enableTracing: false });
+    mockSdkInit({ tracesSampleRate: 0 });
   });
 
   afterEach(() => {
@@ -1475,7 +1475,7 @@ describe('trace (sampling)', () => {
 
 describe('HTTP methods (sampling)', () => {
   beforeEach(() => {
-    mockSdkInit({ enableTracing: true });
+    mockSdkInit({ tracesSampleRate: 1 });
   });
 
   afterEach(() => {
@@ -1530,7 +1530,7 @@ describe('HTTP methods (sampling)', () => {
 
 describe('continueTrace', () => {
   beforeEach(() => {
-    mockSdkInit({ enableTracing: true });
+    mockSdkInit({ tracesSampleRate: 1 });
   });
 
   afterEach(() => {
@@ -1631,7 +1631,7 @@ describe('continueTrace', () => {
 
 describe('suppressTracing', () => {
   beforeEach(() => {
-    mockSdkInit({ enableTracing: true });
+    mockSdkInit({ tracesSampleRate: 1 });
   });
 
   afterEach(() => {

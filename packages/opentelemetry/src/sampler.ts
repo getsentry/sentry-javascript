@@ -120,6 +120,11 @@ export class SentrySampler implements Sampler {
     }
 
     if (!sampled) {
+      if (parentSampled === undefined) {
+        DEBUG_BUILD && logger.log('[Tracing] Discarding root span because its trace was not chosen to be sampled.');
+        this._client.recordDroppedEvent('sample_rate', 'transaction');
+      }
+
       return {
         ...wrapSamplingDecision({ decision: SamplingDecision.NOT_RECORD, context, spanAttributes }),
         attributes,
