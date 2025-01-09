@@ -43,6 +43,19 @@ describe('Unit | coreHandlers | util | fetchUtils', () => {
     });
 
     it('works with text body', async () => {
+      const encoder = new TextEncoder();
+
+      const mockRead = vi
+        .fn()
+        .mockResolvedValueOnce({
+          value: encoder.encode('text body'),
+          done: false,
+        })
+        .mockResolvedValueOnce({
+          value: null,
+          done: true,
+        });
+
       const response = {
         headers: {
           has: () => {
@@ -50,6 +63,19 @@ describe('Unit | coreHandlers | util | fetchUtils', () => {
           },
           get: () => {
             return undefined;
+          },
+        },
+        body: {
+          getReader: () => {
+            return {
+              read: mockRead,
+              cancel: async (reason?: any) => {
+                mockRead.mockRejectedValue(new Error(reason));
+              },
+              releaseLock: async () => {
+                // noop
+              },
+            };
           },
         },
         clone: () => response,
@@ -74,6 +100,8 @@ describe('Unit | coreHandlers | util | fetchUtils', () => {
     });
 
     it('works with body that fails', async () => {
+      const mockRead = vi.fn().mockRejectedValueOnce(new Error('cannot read'));
+
       const response = {
         headers: {
           has: () => {
@@ -81,6 +109,19 @@ describe('Unit | coreHandlers | util | fetchUtils', () => {
           },
           get: () => {
             return undefined;
+          },
+        },
+        body: {
+          getReader: () => {
+            return {
+              read: mockRead,
+              cancel: async (_?: any) => {
+                // noop
+              },
+              releaseLock: async () => {
+                // noop
+              },
+            };
           },
         },
         clone: () => response,
@@ -105,6 +146,12 @@ describe('Unit | coreHandlers | util | fetchUtils', () => {
     });
 
     it('works with body that times out', async () => {
+      const encoder = new TextEncoder();
+      const mockRead = vi.fn();
+
+      let cancelled = false;
+      let cancellReason = '';
+
       const response = {
         headers: {
           has: () => {
@@ -112,6 +159,38 @@ describe('Unit | coreHandlers | util | fetchUtils', () => {
           },
           get: () => {
             return undefined;
+          },
+        },
+        body: {
+          getReader: () => {
+            return {
+              read: async () => {
+                if (cancelled) {
+                  mockRead.mockRejectedValue(new Error(cancellReason));
+                } else {
+                  mockRead.mockResolvedValueOnce({
+                    value: encoder.encode('chunk'),
+                    done: false,
+                  });
+                }
+
+                await new Promise(res => {
+                  setTimeout(() => {
+                    res(1);
+                  }, 200);
+                });
+
+                // eslint-disable-next-line no-return-await
+                return await mockRead();
+              },
+              cancel: async (reason?: any) => {
+                cancelled = true;
+                cancellReason = reason;
+              },
+              releaseLock: async () => {
+                // noop
+              },
+            };
           },
         },
         clone: () => response,
