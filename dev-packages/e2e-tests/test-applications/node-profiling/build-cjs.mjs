@@ -4,17 +4,17 @@
 // only runs integration and unit tests, this change would be missed and could end up in a release.
 // Therefor, once all binaries are precompiled in CI and tests pass, run esbuild with bundle:true
 // which will copy all binaries to the outfile folder and throw if any of them are missing.
-import esbuild from "esbuild";
+import esbuild from 'esbuild';
 
-console.log("Running build using esbuild version", esbuild.version);
+console.log('Running build using esbuild version', esbuild.version);
 
 esbuild.buildSync({
-	platform: "node",
-	entryPoints: ["./index.ts"],
-	outfile: "./dist/cjs/index.js",
-	target: "esnext",
-	format: "cjs",
-	bundle: true,
-	loader: { ".node": "copy" },
-	external: ["@sentry/node", "@sentry/profiling-node"],
+  platform: 'node',
+  entryPoints: ['./index.ts'],
+  outfile: './dist/cjs/index.js',
+  target: 'esnext',
+  format: 'cjs',
+  bundle: true,
+  loader: { '.node': 'copy' },
+  external: ['@sentry/node', '@sentry/profiling-node'],
 });
