@@ -1,6 +1,7 @@
 import { Session as InspectorSession } from 'node:inspector';
 import { parentPort, workerData } from 'node:worker_threads';
 import type { DebugImage, Event, ScopeData, Session, StackFrame } from '@sentry/core';
+import { generateSpanId } from '@sentry/core';
 import {
   applyScopeDataToEvent,
   callFrameToStackFrame,
@@ -126,13 +127,11 @@ function applyScopeToEvent(event: Event, scope: ScopeData): void {
   applyScopeDataToEvent(event, scope);
 
   if (!event.contexts?.trace) {
-    // TODO(v9): Use generateSpanId() instead of spanId
-    // eslint-disable-next-line deprecation/deprecation
-    const { traceId, spanId, parentSpanId } = scope.propagationContext;
+    const { traceId, parentSpanId, propagationSpanId } = scope.propagationContext;
     event.contexts = {
       trace: {
         trace_id: traceId,
-        span_id: spanId,
+        span_id: propagationSpanId || generateSpanId(),
         parent_span_id: parentSpanId,
       },
       ...event.contexts,

@@ -9,7 +9,6 @@ import { uuid4 } from './misc';
 export function generatePropagationContext(): PropagationContext {
   return {
     traceId: generateTraceId(),
-    spanId: generateSpanId(),
   };
 }
 

@@ -19,12 +19,10 @@ import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 const dsn = 'https://123@sentry.io/42';
 
 const SCOPE_TRACE_ID = '12345678901234567890123456789012';
-const SCOPE_SPAN_ID = '1234567890123456';
 
 function setupClient(opts?: Partial<TestClientOptions>): Client {
   getCurrentScope().setPropagationContext({
     traceId: SCOPE_TRACE_ID,
-    spanId: SCOPE_SPAN_ID,
   });
 
   const options = getDefaultTestClientOptions({
@@ -164,7 +162,7 @@ describe('getTraceData', () => {
     getCurrentScope().setPropagationContext({
       traceId: '12345678901234567890123456789012',
       sampled: true,
-      spanId: '1234567890123456',
+      parentSpanId: '1234567890123456',
       dsc: {
         environment: 'staging',
         public_key: 'key',
@@ -174,10 +172,10 @@ describe('getTraceData', () => {
 
     const traceData = getTraceData();
 
-    expect(traceData).toEqual({
-      'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
-      baggage: 'sentry-environment=staging,sentry-public_key=key,sentry-trace_id=12345678901234567890123456789012',
-    });
+    expect(traceData['sentry-trace']).toMatch(/^12345678901234567890123456789012-[a-f0-9]{16}-1$/);
+    expect(traceData.baggage).toEqual(
+      'sentry-environment=staging,sentry-public_key=key,sentry-trace_id=12345678901234567890123456789012',
+    );
   });
 
   it('returns frozen DSC from SentrySpan if available', () => {
