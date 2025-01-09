@@ -3,9 +3,9 @@ import * as Sentry from '@sentry/browser';
 window.UnleashClient = class {
   constructor() {
     this._featureToVariant = {
-      'feat2': {name: 'variant1', enabled: true, feature_enabled: true, payload: {type: 'string', value: 'test'}},
-      'feat3': {name: 'eu-west', enabled: true, feature_enabled: true},
-      'feat4': {
+      feat2: {name: 'variant1', enabled: true, feature_enabled: true, payload: {type: 'string', value: 'test'}},
+      feat3: {name: 'eu-west', enabled: true, feature_enabled: true},
+      feat4: {
         name: 'paid-orgs',
         enabled: true,
         feature_enabled: true,
@@ -16,10 +16,10 @@ window.UnleashClient = class {
       },
 
       // Enabled feature with no configured variants.
-      'feat5': {name: 'disabled', enabled: false, feature_enabled: true},
+      feat5: {name: 'disabled', enabled: false, feature_enabled: true},
 
       // Disabled feature.
-      'feat6': {name: 'disabled', enabled: false, feature_enabled: false},
+      feat6: {name: 'disabled', enabled: false, feature_enabled: false},
     };
 
     // Variant returned for features that don't exist.
