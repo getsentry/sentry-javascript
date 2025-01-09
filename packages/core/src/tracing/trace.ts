@@ -391,7 +391,11 @@ function getAcs(): AsyncContextStrategy {
   return getAsyncContextStrategy(carrier);
 }
 
-function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parentSampled?: boolean): SentrySpan {
+function _startRootSpan(
+  spanArguments: SentrySpanArguments,
+  scope: Scope,
+  parentSampled?: boolean,
+): SentrySpan | SentryNonRecordingSpan {
   const client = getClient();
   const options: Partial<ClientOptions> = client?.getOptions() || {};
 
@@ -408,14 +412,25 @@ function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parent
         },
       });
 
-  const rootSpan = new SentrySpan({
-    ...spanArguments,
-    attributes: {
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
-      ...spanArguments.attributes,
-    },
-    sampled,
-  });
+  const rootSpan = sampled
+    ? new SentrySpan({
+        ...spanArguments,
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+          ...spanArguments.attributes,
+        },
+        sampled,
+      })
+    : new SentryNonRecordingSpan({ traceId: spanArguments.traceId });
+
+  if (!sampled) {
+    const dsc = {
+      sample_rate: sampleRate !== undefined ? `${sampleRate}` : undefined,
+      transaction: name,
+      ...getDynamicSamplingContextFromSpan(rootSpan),
+    } satisfies Partial<DynamicSamplingContext>;
+    freezeDscOnSpan(rootSpan, dsc);
+  }
 
   if (!sampled && client) {
     DEBUG_BUILD && logger.log('[Tracing] Discarding root span because its trace was not chosen to be sampled.');

@@ -20,15 +20,18 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SentryNonRecordingSpan,
   TRACING_DEFAULTS,
   getActiveSpan,
   getCurrentScope,
   getDynamicSamplingContextFromSpan,
   getIsolationScope,
+  getTraceData,
   setCurrentClient,
   spanIsSampled,
   spanToJSON,
   startInactiveSpan,
+  updateSpanName,
 } from '@sentry/core';
 import type { Span, StartSpanOptions } from '@sentry/core';
 import { JSDOM } from 'jsdom';
@@ -265,6 +268,10 @@ describe('browserTracingIntegration', () => {
 
       expect(span).toBeDefined();
       expect(spanIsSampled(span!)).toBe(false);
+
+      // Ensure getTraceData is correct in this case
+      const traceData = getTraceData();
+      expect(traceData['sentry-trace']).toEqual(`${span?.spanContext().traceId}-${span?.spanContext().spanId}-0`);
     });
 
     it('works with integration setup', () => {
@@ -365,7 +372,7 @@ describe('browserTracingIntegration', () => {
 
       const client = new BrowserClient(
         getDefaultBrowserClientOptions({
-          tracesSampleRate: 0,
+          tracesSampleRate: 1,
           integrations: [
             browserTracingIntegration({
               instrumentPageLoad: false,
@@ -378,9 +385,7 @@ describe('browserTracingIntegration', () => {
       setCurrentClient(client);
       client.init();
 
-      startBrowserTracingPageLoadSpan(client, { name: 'test span' });
-
-      const pageloadSpan = getActiveSpan();
+      const pageloadSpan = startBrowserTracingPageLoadSpan(client, { name: 'test span' });
 
       expect(spanToJSON(pageloadSpan!).op).toBe('test op');
     });
@@ -408,7 +413,7 @@ describe('browserTracingIntegration', () => {
 
     const client = new BrowserClient(
       getDefaultBrowserClientOptions({
-        tracesSampleRate: 0,
+        tracesSampleRate: 1,
         integrations: [
           browserTracingIntegration({
             instrumentPageLoad: false,
@@ -458,6 +463,10 @@ describe('browserTracingIntegration', () => {
 
       expect(span).toBeDefined();
       expect(spanIsSampled(span!)).toBe(false);
+
+      // Ensure getTraceData is correct in this case
+      const traceData = getTraceData();
+      expect(traceData['sentry-trace']).toEqual(`${span?.spanContext().traceId}-${span?.spanContext().spanId}-0`);
     });
 
     it('works with integration setup', () => {
@@ -562,7 +571,7 @@ describe('browserTracingIntegration', () => {
 
       const client = new BrowserClient(
         getDefaultBrowserClientOptions({
-          tracesSampleRate: 0,
+          tracesSampleRate: 1,
           integrations: [
             browserTracingIntegration({
               instrumentPageLoad: false,
@@ -575,9 +584,7 @@ describe('browserTracingIntegration', () => {
       setCurrentClient(client);
       client.init();
 
-      startBrowserTracingNavigationSpan(client, { name: 'test span' });
-
-      const navigationSpan = getActiveSpan();
+      const navigationSpan = startBrowserTracingNavigationSpan(client, { name: 'test span' });
 
       expect(spanToJSON(navigationSpan!).op).toBe('test op');
     });
@@ -590,7 +597,7 @@ describe('browserTracingIntegration', () => {
 
       const client = new BrowserClient(
         getDefaultBrowserClientOptions({
-          tracesSampleRate: 0,
+          tracesSampleRate: 1,
           integrations: [
             browserTracingIntegration({
               instrumentPageLoad: false,
@@ -628,7 +635,7 @@ describe('browserTracingIntegration', () => {
     it("updates the scopes' propagationContexts on a navigation", () => {
       const client = new BrowserClient(
         getDefaultBrowserClientOptions({
-          integrations: [browserTracingIntegration()],
+          integrations: [browserTracingIntegration({ instrumentPageLoad: false })],
         }),
       );
       setCurrentClient(client);
@@ -637,7 +644,8 @@ describe('browserTracingIntegration', () => {
       const oldIsolationScopePropCtx = getIsolationScope().getPropagationContext();
       const oldCurrentScopePropCtx = getCurrentScope().getPropagationContext();
 
-      startBrowserTracingNavigationSpan(client, { name: 'test navigation span' });
+      const span = startBrowserTracingNavigationSpan(client, { name: 'test navigation span' });
+      const traceId = span!.spanContext().traceId;
 
       const newIsolationScopePropCtx = getIsolationScope().getPropagationContext();
       const newCurrentScopePropCtx = getCurrentScope().getPropagationContext();
@@ -649,7 +657,14 @@ describe('browserTracingIntegration', () => {
         traceId: expect.stringMatching(/[a-f0-9]{32}/),
       });
       expect(newCurrentScopePropCtx).toEqual({
-        traceId: expect.stringMatching(/[a-f0-9]{32}/),
+        traceId,
+        sampled: false,
+        dsc: {
+          environment: 'production',
+          public_key: 'examplePublicKey',
+          sample_rate: '0',
+          trace_id: traceId,
+        },
       });
       expect(newIsolationScopePropCtx).toEqual({
         traceId: expect.stringMatching(/[a-f0-9]{32}/),
@@ -657,6 +672,22 @@ describe('browserTracingIntegration', () => {
 
       expect(newIsolationScopePropCtx.traceId).not.toEqual(oldIsolationScopePropCtx.traceId);
       expect(newCurrentScopePropCtx.traceId).not.toEqual(oldCurrentScopePropCtx.traceId);
+
+      const span2 = startBrowserTracingNavigationSpan(client, { name: 'test navigation span 2' });
+      const traceId2 = span2!.spanContext().traceId;
+      expect(traceId2).not.toEqual(traceId);
+
+      const newCurrentScopePropCtx2 = getCurrentScope().getPropagationContext();
+      expect(newCurrentScopePropCtx2).toEqual({
+        traceId: traceId2,
+        sampled: false,
+        dsc: {
+          environment: 'production',
+          public_key: 'examplePublicKey',
+          sample_rate: '0',
+          trace_id: traceId2,
+        },
+      });
     });
 
     it("saves the span's positive sampling decision and its DSC on the propagationContext when the span finishes", () => {
@@ -677,8 +708,18 @@ describe('browserTracingIntegration', () => {
       const propCtxBeforeEnd = getCurrentScope().getPropagationContext();
       expect(propCtxBeforeEnd).toStrictEqual({
         traceId: expect.stringMatching(/[a-f0-9]{32}/),
+        sampled: true,
+        dsc: {
+          environment: 'production',
+          public_key: 'examplePublicKey',
+          sample_rate: '1',
+          sampled: 'true',
+          transaction: 'mySpan',
+          trace_id: propCtxBeforeEnd.traceId,
+        },
       });
 
+      updateSpanName(navigationSpan!, 'mySpan2');
       navigationSpan!.end();
 
       const propCtxAfterEnd = getCurrentScope().getPropagationContext();
@@ -690,7 +731,7 @@ describe('browserTracingIntegration', () => {
           public_key: 'examplePublicKey',
           sample_rate: '1',
           sampled: 'true',
-          transaction: 'mySpan',
+          transaction: 'mySpan2',
           trace_id: propCtxBeforeEnd.traceId,
         },
       });
@@ -714,6 +755,15 @@ describe('browserTracingIntegration', () => {
       const propCtxBeforeEnd = getCurrentScope().getPropagationContext();
       expect(propCtxBeforeEnd).toStrictEqual({
         traceId: expect.stringMatching(/[a-f0-9]{32}/),
+        sampled: false,
+        dsc: {
+          environment: 'production',
+          public_key: 'examplePublicKey',
+          sample_rate: '0',
+          sampled: 'false',
+          transaction: 'mySpan',
+          trace_id: propCtxBeforeEnd.traceId,
+        },
       });
 
       navigationSpan!.end();
@@ -758,11 +808,8 @@ describe('browserTracingIntegration', () => {
       const dynamicSamplingContext = getDynamicSamplingContextFromSpan(idleSpan!);
       const propagationContext = getCurrentScope().getPropagationContext();
 
-      // Span is correct
-      expect(spanToJSON(idleSpan).op).toBe('pageload');
-      expect(spanToJSON(idleSpan).trace_id).toEqual('12312012123120121231201212312012');
-      expect(spanToJSON(idleSpan).parent_span_id).toEqual('1121201211212012');
-      expect(spanIsSampled(idleSpan)).toBe(false);
+      // Span is non-recording
+      expect(idleSpan instanceof SentryNonRecordingSpan).toBe(true);
 
       expect(dynamicSamplingContext).toBeDefined();
       expect(dynamicSamplingContext).toStrictEqual({ release: '2.1.14' });
@@ -770,6 +817,10 @@ describe('browserTracingIntegration', () => {
       // Propagation context keeps the meta tag trace data for later events on the same route to add them to the trace
       expect(propagationContext.traceId).toEqual('12312012123120121231201212312012');
       expect(propagationContext.parentSpanId).toEqual('1121201211212012');
+
+      // Ensure getTraceData is correct in this case
+      const traceData = getTraceData();
+      expect(traceData['sentry-trace']).toMatch(/12312012123120121231201212312012-[a-f0-9]{16}-0/);
     });
 
     it('puts frozen Dynamic Sampling Context on pageload span if sentry-trace data and only 3rd party baggage is present', () => {
@@ -795,11 +846,8 @@ describe('browserTracingIntegration', () => {
       const dynamicSamplingContext = getDynamicSamplingContextFromSpan(idleSpan);
       const propagationContext = getCurrentScope().getPropagationContext();
 
-      // Span is correct
-      expect(spanToJSON(idleSpan).op).toBe('pageload');
-      expect(spanToJSON(idleSpan).trace_id).toEqual('12312012123120121231201212312012');
-      expect(spanToJSON(idleSpan).parent_span_id).toEqual('1121201211212012');
-      expect(spanIsSampled(idleSpan)).toBe(false);
+      // Span is NonRecordingSpan
+      expect(idleSpan instanceof SentryNonRecordingSpan).toBe(true);
 
       expect(dynamicSamplingContext).toBeDefined();
       expect(dynamicSamplingContext).toStrictEqual({});
@@ -807,6 +855,10 @@ describe('browserTracingIntegration', () => {
       // Propagation context keeps the meta tag trace data for later events on the same route to add them to the trace
       expect(propagationContext.traceId).toEqual('12312012123120121231201212312012');
       expect(propagationContext.parentSpanId).toEqual('1121201211212012');
+
+      // Ensure getTraceData is correct in this case
+      const traceData = getTraceData();
+      expect(traceData['sentry-trace']).toMatch(/12312012123120121231201212312012-[a-f0-9]{16}-0/);
     });
 
     it('ignores the meta tag data for navigation spans', () => {
