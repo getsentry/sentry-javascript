@@ -29,7 +29,7 @@ describe('attachErrorHandler', () => {
 
         // assert
         t.expect.errorToHaveBeenCaptured().withoutProps();
-        t.expect.errorToHaveBeenCaptured().withMechanismMetadata({ handled: false, type: 'vue-errorHandler' });
+        t.expect.errorToHaveBeenCaptured().withMechanismMetadata({ handled: false, type: 'vue' });
       });
     });
 
@@ -50,7 +50,7 @@ describe('attachErrorHandler', () => {
 
             // assert
             t.expect.errorToHaveBeenCaptured().withoutProps();
-            t.expect.errorToHaveBeenCaptured().withMechanismMetadata({ handled: false, type: 'vue-errorHandler' });
+            t.expect.errorToHaveBeenCaptured().withMechanismMetadata({ handled: false, type: 'vue' });
           });
         });
 
@@ -149,7 +149,7 @@ describe('attachErrorHandler', () => {
         vi.runAllTimers();
 
         // assert
-        t.expect.errorToHaveBeenCaptured().withMechanismMetadata({ handled: false, type: 'vue-errorHandler' });
+        t.expect.errorToHaveBeenCaptured().withMechanismMetadata({ handled: false, type: 'vue' });
       });
 
       it('should mark error as handled and properly delegate to error handler', () => {
@@ -170,7 +170,7 @@ describe('attachErrorHandler', () => {
 
         // assert
         t.expect.errorHandlerSpy.toHaveBeenCalledWith(expect.any(Error), vm, 'stub-lifecycle-hook');
-        t.expect.errorToHaveBeenCaptured().withMechanismMetadata({ handled: true, type: 'vue-errorHandler' });
+        t.expect.errorToHaveBeenCaptured().withMechanismMetadata({ handled: true, type: 'vue' });
       });
     });
   });
@@ -375,7 +375,7 @@ const testHarness = ({
           withoutProps: () => {
             expect(contexts).not.toHaveProperty('vue.propsData');
           },
-          withMechanismMetadata: (mechanism: { handled: boolean; type: 'vue-errorHandler' }) => {
+          withMechanismMetadata: (mechanism: { handled: boolean; type: 'vue' }) => {
             expect(mechanismMetadata).toEqual(mechanism);
           },
         };
