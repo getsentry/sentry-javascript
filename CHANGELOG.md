@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.120.3
+
+- fix(v7/publish): Ensure discontinued packages are published with `latest` tag (#14926)
+
 ## 7.120.2
 
 - fix(tracing-internal): Fix case when lrp keys offset is 0 (#14615)
