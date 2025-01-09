@@ -518,7 +518,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       }
 
       // After flush, destroy event buffer
-      this.eventBuffer && this.eventBuffer.destroy();
+      this.eventBuffer?.destroy();
       this.eventBuffer = null;
 
       // Clear session from session storage, note this means if a new session
@@ -715,7 +715,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
   /** Get the current session (=replay) ID */
   public getSessionId(): string | undefined {
-    return this.session && this.session.id;
+    return this.session?.id;
   }
 
   /**
@@ -1144,7 +1144,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     await this._addPerformanceEntries();
 
     // Check eventBuffer again, as it could have been stopped in the meanwhile
-    if (!this.eventBuffer || !this.eventBuffer.hasEvents) {
+    if (!this.eventBuffer?.hasEvents) {
       return;
     }
 

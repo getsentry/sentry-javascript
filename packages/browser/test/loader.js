@@ -37,8 +37,8 @@
     if (
       ('e' in content ||
         'p' in content ||
-        (content.f && content.f.indexOf('capture') > -1) ||
-        (content.f && content.f.indexOf('showReportDialog') > -1)) &&
+        (content.f?.indexOf('capture') > -1) ||
+        (content.f?.indexOf('showReportDialog') > -1)) &&
       lazy
     ) {
       // We only want to lazy inject/load the sdk bundle if
@@ -115,7 +115,7 @@
       var initAlreadyCalled = false;
       var __sentry = _window['__SENTRY__'];
       // If there is a global __SENTRY__ that means that in any of the callbacks init() was already invoked
-      if (!(typeof __sentry === 'undefined') && __sentry.hub && __sentry.hub.getClient()) {
+      if (!(typeof __sentry === 'undefined') && __sentry.hub?.getClient()) {
         initAlreadyCalled = true;
       }
 

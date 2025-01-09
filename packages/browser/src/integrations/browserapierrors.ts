@@ -166,7 +166,7 @@ function _wrapEventTarget(target: string): void {
   const proto = globalObject[target]?.prototype;
 
   // eslint-disable-next-line no-prototype-builtins
-  if (!proto || !proto.hasOwnProperty || !proto.hasOwnProperty('addEventListener')) {
+  if (!proto?.hasOwnProperty?.('addEventListener')) {
     return;
   }
 

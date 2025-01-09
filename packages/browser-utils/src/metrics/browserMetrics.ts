@@ -97,7 +97,7 @@ export function startTrackingWebVitals({ recordClsStandaloneSpans }: StartTracki
       fidCleanupCallback();
       lcpCleanupCallback();
       ttfbCleanupCallback();
-      clsCleanupCallback && clsCleanupCallback();
+      clsCleanupCallback?.();
     };
   }
 
@@ -300,7 +300,7 @@ interface AddPerformanceEntriesOptions {
 /** Add performance related spans to a transaction */
 export function addPerformanceEntries(span: Span, options: AddPerformanceEntriesOptions): void {
   const performance = getBrowserPerformanceAPI();
-  if (!performance || !performance.getEntries || !browserPerformanceTimeOrigin) {
+  if (!performance?.getEntries || !browserPerformanceTimeOrigin) {
     // Gatekeeper if performance API not available
     return;
   }

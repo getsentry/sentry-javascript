@@ -335,7 +335,7 @@ describe('Profiler bindings', () => {
     });
 
     // @ts-expect-error deopt reasons are disabled for now as we need to figure out the backend support
-    const hasDeoptimizedFrame = profile.frames.some(f => f.deopt_reasons && f.deopt_reasons.length > 0);
+    const hasDeoptimizedFrame = profile.frames.some(f => f.deopt_reasons?.length > 0);
     expect(hasDeoptimizedFrame).toBe(true);
   });
 

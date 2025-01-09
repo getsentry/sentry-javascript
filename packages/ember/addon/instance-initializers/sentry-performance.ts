@@ -85,7 +85,7 @@ function getTransitionInformation(
 }
 
 function getLocationURL(location: EmberRouterMain['location']): string {
-  if (!location || !location.getURL || !location.formatURL) {
+  if (!location?.getURL || !location?.formatURL) {
     return '';
   }
   const url = location.formatURL(location.getURL());
