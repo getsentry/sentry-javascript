@@ -21,8 +21,11 @@ import type { IVariant, UnleashClient, UnleashClientClass } from './types';
  *   integrations: [unleashIntegration],
  * });
  *
- * const unleashClient = new UnleashClient(...);
- * unleashClient.isEnabled('my-feature');
+ * const unleash = new UnleashClient(...);
+ * unleash.start();
+ *
+ * unleash.isEnabled('my-feature');
+ * unleash.getVariant('other-feature');
  * Sentry.captureException(new Error('something went wrong'));
  * ```
  */

@@ -21,5 +21,3 @@ Sentry.init({
   sampleRate: 1.0,
   integrations: [window.sentryUnleashIntegration],
 });
-
-
