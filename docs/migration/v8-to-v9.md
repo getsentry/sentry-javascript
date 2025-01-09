@@ -394,7 +394,6 @@ The Sentry metrics beta has ended and the metrics API has been removed from the 
 ## `@sentry/nextjs`
 
 - Deprecated `hideSourceMaps`. No replacements. The SDK emits hidden sourcemaps by default.
--
 
 ## `@sentry/opentelemetry`
 
