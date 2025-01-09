@@ -43,6 +43,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
             typeof uploadOptions?.filesToDeleteAfterUpload === 'undefined' &&
             computedSourceMapSettings.previousUserSourceMapSetting === 'unset'
           ) {
+            // This also works for adapters, as the source maps are also copied to e.g. the .vercel folder
             updatedFilesToDeleteAfterUpload = ['./dist/**/client/**/*.map', './dist/**/server/**/*.map'];
 
             consoleSandbox(() => {
@@ -69,9 +70,8 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
                     telemetry: uploadOptions.telemetry ?? true,
                     sourcemaps: {
                       assets: uploadOptions.assets ?? [getSourcemapsAssetsGlob(config)],
-                      filesToDeleteAfterUpload: uploadOptions?.filesToDeleteAfterUpload
-                        ? uploadOptions?.filesToDeleteAfterUpload
-                        : updatedFilesToDeleteAfterUpload,
+                      filesToDeleteAfterUpload:
+                        uploadOptions?.filesToDeleteAfterUpload ?? updatedFilesToDeleteAfterUpload,
                     },
                     bundleSizeOptimizations: {
                       ...options.bundleSizeOptimizations,
@@ -247,7 +247,9 @@ export function getUpdatedSourceMapSettings(
 
     consoleSandbox(() => {
       //  eslint-disable-next-line no-console
-      console.log(`[Sentry] Enabled source map generation in the build options with \`${settingKey}: 'hidden'\`.`);
+      console.log(
+        `[Sentry] Enabled source map generation in the build options with \`${settingKey}: 'hidden'\`. The source maps will be deleted after they were uploaded to Sentry.`,
+      );
     });
   }
 
