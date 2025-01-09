@@ -354,7 +354,7 @@ export function constructWebpackConfigFunction(
           //
           // We only update this if no explicit value is set
           // (Next.js defaults to `false`: https://github.com/vercel/next.js/blob/5f4f96c133bd6b10954812cc2fef6af085b82aa5/packages/next/src/build/webpack/config/blocks/base.ts#L61)
-          if (newConfig.devtool === false) {
+          if (!newConfig.devtool) {
             logger.info(
               `[@sentry/nextjs] Automatically enabling source map generation for ${
                 isServer ? 'server' : 'client'
