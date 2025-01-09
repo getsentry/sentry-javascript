@@ -336,11 +336,15 @@ export function constructWebpackConfigFunction(
 
       if (sentryWebpackPlugin) {
         if (!userSentryOptions.sourcemaps?.disable) {
-          // TODO(v9): Remove this warning and print warning in case source map deletion is auto configured
-          if (!isServer && !userSentryOptions.sourcemaps?.deleteSourcemapsAfterUpload) {
+          // enable source map deletion if not explicitly disabled
+          if (!isServer && userSentryOptions.sourcemaps?.deleteSourcemapsAfterUpload === undefined) {
+            userSentryOptions.sourcemaps = {
+              ...userSentryOptions.sourcemaps,
+              deleteSourcemapsAfterUpload: true,
+            };
             // eslint-disable-next-line no-console
             console.warn(
-              "[@sentry/nextjs] The Sentry SDK has enabled source map generation for your Next.js app. If you don't want to serve Source Maps to your users, either set the `sourcemaps.deleteSourcemapsAfterUpload` option to true, or manually delete the source maps after the build. In future Sentry SDK versions `sourcemaps.deleteSourcemapsAfterUpload` will default to `true`. If you do not want to generate and upload sourcemaps, set the `sourcemaps.disable` option in `withSentryConfig()`.",
+              '[@sentry/nextjs] Source maps will be automatically deleted after being uploaded to Sentry. If you want to keep the source maps, set the `sourcemaps.deleteSourcemapsAfterUpload` option to false in `withSentryConfig()`. If you do not want to generate and upload sourcemaps at all, set the `sourcemaps.disable` option to true.',
             );
           }
 
