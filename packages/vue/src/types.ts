@@ -44,6 +44,8 @@ export interface VueOptions {
   /**
    * When set to `true`, original Vue's `logError` will be called as well.
    * https://github.com/vuejs/vue/blob/c2b1cfe9ccd08835f2d99f6ce60f67b4de55187f/src/core/util/error.js#L38-L48
+   *
+   * @deprecated Will be removed in future versions of the SDK. The error will always be logged unless you define a custom Vue errorHandler.
    */
   logErrors: boolean;
 
