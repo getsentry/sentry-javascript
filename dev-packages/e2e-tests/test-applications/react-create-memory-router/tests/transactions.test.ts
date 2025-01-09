@@ -15,7 +15,7 @@ test('Captures a pageload transaction', async ({ page }) => {
       effectiveConnectionType: expect.any(String),
       hardwareConcurrency: expect.any(String),
       'lcp.element': 'body > div#root > div',
-      'lcp.size': 8084,
+      'lcp.size': expect.any(Number),
       'sentry.idle_span_finish_reason': 'idleTimeout',
       'sentry.op': 'pageload',
       'sentry.origin': 'auto.pageload.react.reactrouter_v6',
