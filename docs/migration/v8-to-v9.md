@@ -228,6 +228,7 @@ Since v9, the types have been merged into `@sentry/core`, which removed some of 
 - The `IntegrationClass` type is no longer exported - it was not used anymore. Instead, use `Integration` or `IntegrationFn`.
 - The `samplingContext.request` attribute in the `tracesSampler` has been removed. Use `samplingContext.normalizedRequest` instead. Note that the type of `normalizedRequest` differs from `request`.
 - `Client` now always expects the `BaseClient` class - there is no more abstract `Client` that can be implemented! Any `Client` class has to extend from `BaseClient`.
+- `ReportDialogOptions` now extends `Record<string, unknown>` instead of `Record<string, any>` - this should not affect most users.
 
 # No Version Support Timeline
 
