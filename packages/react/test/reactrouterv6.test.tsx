@@ -29,7 +29,6 @@ import { BrowserClient } from '../src';
 import {
   reactRouterV6BrowserTracingIntegration,
   withSentryReactRouterV6Routing,
-  wrapCreateBrowserRouterV6,
   wrapCreateMemoryRouterV6,
   wrapUseRoutesV6,
 } from '../src/reactrouterv6';
