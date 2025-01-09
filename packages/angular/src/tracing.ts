@@ -322,7 +322,7 @@ export function TraceClass(options?: TraceClassOptions): ClassDecorator {
       tracingSpan = runOutsideAngular(() =>
         startInactiveSpan({
           onlyIfParent: true,
-          name: `<${options?.name ? options.name : 'unnamed'}>`,
+          name: `<${options?.name || 'unnamed'}>`,
           op: ANGULAR_INIT_OP,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_class_decorator',
