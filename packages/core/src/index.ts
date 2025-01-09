@@ -111,6 +111,7 @@ export {
 } from './fetch';
 export { trpcMiddleware } from './trpc';
 export { captureFeedback } from './feedback';
+export { handleTunnelEnvelope } from './tunnel';
 
 // eslint-disable-next-line deprecation/deprecation
 export { getCurrentHubShim, getCurrentHub } from './getCurrentHubShim';
