@@ -98,6 +98,16 @@ In v9, an `undefined` value will be treated the same as if the value is not defi
 
   This behavior was changed because the Next.js Build ID is non-deterministic and the release name is injected into client bundles, causing build artifacts to be non-deterministic. This caused issues for some users. Additionally, because it is uncertain whether it will be possible to rely on a Build ID when Turbopack becomes stable, we decided to pull the plug now instead of introducing confusing behavior in the future.
 
+### All Meta-Framework SDKs (`@sentry/astro`, `@sentry/nuxt`)
+
+- Updated source map generation to respect the user-provided value of your build config, such as `vite.build.sourcemap`:
+
+  - Explicitly disabled (false): Emit warning, no source map upload.
+  - Explicitly enabled (true, 'hidden', 'inline'): No changes, source maps are uploaded and not automatically deleted.
+  - Unset: Enable 'hidden', delete `.map` files after uploading them to Sentry.
+
+  To customize which files are deleted after upload, define the `filesToDeleteAfterUpload` array with globs.
+
 ### Uncategorized (TODO)
 
 TODO
