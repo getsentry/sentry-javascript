@@ -33,20 +33,16 @@ export const unleashIntegration = defineIntegration((unleashClientClass: Unleash
         apply: (
           target: (this: UnleashClient, toggleName: string) => boolean,
           thisArg: UnleashClient,
-          args: [toggleName: string]
+          args: [toggleName: string],
         ) => {
           const result = Reflect.apply(target, thisArg, args);
           insertFlagToScope(args[0], result);
           return result;
-        }
+        },
       };
       const unleashClientPrototype = unleashClientClass.prototype as UnleashClient;
       const originalIsEnabled = unleashClientPrototype.isEnabled.bind(unleashClientPrototype);
-      unleashClientPrototype.isEnabled = new Proxy(
-        originalIsEnabled,
-        sentryIsEnabled
-      );
+      unleashClientPrototype.isEnabled = new Proxy(originalIsEnabled, sentryIsEnabled);
     },
   };
 }) satisfies IntegrationFn;
-

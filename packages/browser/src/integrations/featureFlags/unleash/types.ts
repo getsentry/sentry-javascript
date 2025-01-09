@@ -3,8 +3,8 @@ export interface IVariant {
   enabled: boolean;
   feature_enabled?: boolean;
   payload?: {
-      type: string;
-      value: string;
+    type: string;
+    value: string;
   };
 }
 
