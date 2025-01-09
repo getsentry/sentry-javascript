@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/feedback",
-  "version": "7.120.2",
+  "version": "7.120.3",
   "description": "Sentry SDK integration for user feedback",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/feedback",
@@ -30,9 +30,9 @@
     "tag": "v7"
   },
   "dependencies": {
-    "@sentry/core": "7.120.2",
-    "@sentry/types": "7.120.2",
-    "@sentry/utils": "7.120.2"
+    "@sentry/core": "7.120.3",
+    "@sentry/types": "7.120.3",
+    "@sentry/utils": "7.120.3"
   },
   "scripts": {
     "build": "run-p build:transpile build:types build:bundle",
