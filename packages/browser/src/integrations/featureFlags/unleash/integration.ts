@@ -2,7 +2,7 @@ import type { Client, Event, EventHint, IntegrationFn } from '@sentry/core';
 
 import { defineIntegration } from '@sentry/core';
 import { copyFlagsFromScopeToEvent, insertFlagToScope } from '../../../utils/featureFlags';
-import type { UnleashClient } from './types';
+import type { UnleashClient, UnleashClientClass } from './types';
 
 /**
  * Sentry integration for capturing feature flags from the Unleash SDK.
@@ -20,7 +20,7 @@ import type { UnleashClient } from './types';
  * });
  * ```
  */
-export const unleashIntegration = defineIntegration((openFeatureClient: UnleashClient ) => {
+export const unleashIntegration = defineIntegration((unleashClientClass: UnleashClientClass) => {
   return {
     name: 'Unleash',
 
@@ -29,8 +29,24 @@ export const unleashIntegration = defineIntegration((openFeatureClient: UnleashC
     },
 
     setupOnce() {
-      openFeatureClient.isEnabled = Proxy();
-      openFeatureClient.getVariant = Proxy();
+      const sentryIsEnabled = {
+        apply: (
+          target: (this: UnleashClient, toggleName: string) => boolean,
+          thisArg: UnleashClient,
+          args: [toggleName: string]
+        ) => {
+          const result = Reflect.apply(target, thisArg, args);
+          insertFlagToScope(args[0], result);
+          return result;
+        }
+      };
+      const unleashClientPrototype = unleashClientClass.prototype as UnleashClient;
+      const originalIsEnabled = unleashClientPrototype.isEnabled.bind(unleashClientPrototype);
+      unleashClientPrototype.isEnabled = new Proxy(
+        originalIsEnabled,
+        sentryIsEnabled
+      );
     },
   };
 }) satisfies IntegrationFn;
+

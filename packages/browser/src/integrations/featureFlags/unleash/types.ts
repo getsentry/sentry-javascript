@@ -1,11 +1,16 @@
-export type Variant = {
-  variantName: string;
+export interface IVariant {
+  name: string;
   enabled: boolean;
-  payload?: object; // TODO:
-  // TODO:
+  feature_enabled?: boolean;
+  payload?: {
+      type: string;
+      value: string;
+  };
 }
 
 export interface UnleashClient {
-  isEnabled(featureName: string): boolean;
-  getVariant(featureName: string): Variant;
+  isEnabled(this: UnleashClient, featureName: string): boolean;
+  getVariant(this: UnleashClient, featureName: string): IVariant;
 }
+
+export type UnleashClientClass = new (...args: unknown[]) => UnleashClient;
