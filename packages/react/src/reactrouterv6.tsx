@@ -39,6 +39,19 @@ export function wrapCreateBrowserRouterV6<
 }
 
 /**
+ * A wrapper function that adds Sentry routing instrumentation to a React Router v6 createMemoryRouter function.
+ * This is used to automatically capture route changes as transactions when using the createMemoryRouter API.
+ * The difference between createBrowserRouter and createMemoryRouter is that with createMemoryRouter,
+ * optional `initialEntries` are also taken into account.
+ */
+export function wrapCreateMemoryRouterV6<
+  TState extends RouterState = RouterState,
+  TRouter extends Router<TState> = Router<TState>,
+>(createMemoryRouterFunction: CreateRouterFunction<TState, TRouter>): CreateRouterFunction<TState, TRouter> {
+  return createV6CompatibleWrapCreateBrowserRouter(createMemoryRouterFunction, '6', true);
+}
+
+/**
  * A higher-order component that adds Sentry routing instrumentation to a React Router v6 Route component.
  * This is used to automatically capture route changes as transactions.
  */

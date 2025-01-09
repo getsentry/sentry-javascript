@@ -70,6 +70,7 @@ export function createV6CompatibleWrapCreateBrowserRouter<
 >(
   createRouterFunction: CreateRouterFunction<TState, TRouter>,
   version: V6CompatibleVersion,
+  isMemoryRouter = false,
 ): CreateRouterFunction<TState, TRouter> {
   if (!_useEffect || !_useLocation || !_useNavigationType || !_matchRoutes) {
     DEBUG_BUILD &&
@@ -82,9 +83,9 @@ export function createV6CompatibleWrapCreateBrowserRouter<
 
   // `opts` for createBrowserHistory and createMemoryHistory are different, but also not relevant for us at the moment.
   // `basename` is the only option that is relevant for us, and it is the same for all.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return function (
     routes: RouteObject[],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     opts?: Record<string, any> & {
       basename?: string;
       initialEntries?: (string | { pathname: string })[];
@@ -95,18 +96,21 @@ export function createV6CompatibleWrapCreateBrowserRouter<
     const basename = opts?.basename;
 
     const activeRootSpan = getActiveRootSpan();
+    let initialEntry = undefined;
 
-    const initialEntries = opts && opts.initialEntries;
-    const initialIndex = opts && opts.initialIndex;
+    if (isMemoryRouter) {
+      const initialEntries = opts && opts.initialEntries;
+      const initialIndex = opts && opts.initialIndex;
 
-    const hasOnlyOneInitialEntry = initialEntries && initialEntries.length === 1;
-    const hasIndexedEntry = initialIndex !== undefined && initialEntries && initialEntries[initialIndex];
+      const hasOnlyOneInitialEntry = initialEntries && initialEntries.length === 1;
+      const hasIndexedEntry = initialIndex !== undefined && initialEntries && initialEntries[initialIndex];
 
-    const initialEntry = hasOnlyOneInitialEntry
-      ? initialEntries[0]
-      : hasIndexedEntry
-        ? initialEntries[initialIndex]
-        : undefined;
+      initialEntry = hasOnlyOneInitialEntry
+        ? initialEntries[0]
+        : hasIndexedEntry
+          ? initialEntries[initialIndex]
+          : undefined;
+    }
 
     const location = initialEntry
       ? typeof initialEntry === 'string'
