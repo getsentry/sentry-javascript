@@ -1,5 +1,5 @@
 import { getClient, getCurrentScope } from '../currentScopes';
-import type { Span, StartSpanOptions } from '../types-hoist';
+import type { DynamicSamplingContext, Span, StartSpanOptions } from '../types-hoist';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON } from '../semanticAttributes';
@@ -14,6 +14,7 @@ import {
   spanTimeInputToSeconds,
   spanToJSON,
 } from '../utils/spanUtils';
+import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
 import { SPAN_STATUS_ERROR } from './spanstatus';
 import { startInactiveSpan } from './trace';
@@ -109,7 +110,16 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
   const client = getClient();
 
   if (!client || !hasTracingEnabled()) {
-    return new SentryNonRecordingSpan();
+    const span = new SentryNonRecordingSpan();
+
+    const dsc = {
+      sample_rate: '0',
+      sampled: 'false',
+      ...getDynamicSamplingContextFromSpan(span),
+    } satisfies Partial<DynamicSamplingContext>;
+    freezeDscOnSpan(span, dsc);
+
+    return span;
   }
 
   const scope = getCurrentScope();

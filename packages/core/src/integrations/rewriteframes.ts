@@ -54,7 +54,7 @@ export const rewriteFramesIntegration = defineIntegration((options: RewriteFrame
   const root = options.root;
   const prefix = options.prefix || 'app:///';
 
-  const isBrowser = 'window' in GLOBAL_OBJ && GLOBAL_OBJ.window !== undefined;
+  const isBrowser = 'window' in GLOBAL_OBJ && !!GLOBAL_OBJ.window;
 
   const iteratee: StackFrameIteratee = options.iteratee || generateIteratee({ isBrowser, root, prefix });
 

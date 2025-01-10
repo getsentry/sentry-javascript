@@ -60,7 +60,7 @@ function _instrumentPageload(client: Client): void {
       return;
     }
 
-    const routeId = page.route && page.route.id;
+    const routeId = page.route?.id;
 
     if (routeId) {
       pageloadSpan.updateName(routeId);

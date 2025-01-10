@@ -148,7 +148,7 @@ export function applyClientOptions(event: Event, options: ClientOptions): void {
     event.message = truncate(event.message, maxValueLength);
   }
 
-  const exception = event.exception && event.exception.values && event.exception.values[0];
+  const exception = event.exception?.values?.[0];
   if (exception?.value) {
     exception.value = truncate(exception.value, maxValueLength);
   }
@@ -265,7 +265,7 @@ function normalizeEvent(event: Event | null, depth: number, maxBreadth: number):
   // For now the decision is to skip normalization of Transactions and Spans,
   // so this block overwrites the normalized event to add back the original
   // Transaction information prior to normalization.
-  if (event.contexts && event.contexts.trace && normalized.contexts) {
+  if (event.contexts?.trace && normalized.contexts) {
     normalized.contexts.trace = event.contexts.trace;
 
     // event.contexts.trace.data may contain circular/dangerous data so we need to normalize it
@@ -290,7 +290,7 @@ function normalizeEvent(event: Event | null, depth: number, maxBreadth: number):
   // flag integrations. It has a greater nesting depth than our other typed
   // Contexts, so we re-normalize with a fixed depth of 3 here. We do not want
   // to skip this in case of conflicting, user-provided context.
-  if (event.contexts && event.contexts.flags && normalized.contexts) {
+  if (event.contexts?.flags && normalized.contexts) {
     normalized.contexts.flags = normalize(event.contexts.flags, 3, maxBreadth);
   }
 

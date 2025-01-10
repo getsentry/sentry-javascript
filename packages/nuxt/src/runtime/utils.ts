@@ -61,7 +61,7 @@ export function reportNuxtError(options: {
     // todo: add component name and trace (like in the vue integration)
   };
 
-  if (instance && instance.$props) {
+  if (instance?.$props) {
     const sentryClient = getClient();
     const sentryOptions = sentryClient ? (sentryClient.getOptions() as ClientOptions & VueOptions) : null;
 

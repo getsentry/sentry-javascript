@@ -27,8 +27,8 @@ export default defineNitroPlugin(nitroApp => {
     }
 
     const { method, path } = {
-      method: errorContext.event && errorContext.event._method ? errorContext.event._method : '',
-      path: errorContext.event && errorContext.event._path ? errorContext.event._path : null,
+      method: errorContext.event?._method ? errorContext.event._method : '',
+      path: errorContext.event?._path ? errorContext.event._path : null,
     };
 
     if (path) {
