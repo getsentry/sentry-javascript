@@ -57,7 +57,7 @@ describe('SentrySampler', () => {
     const actual = sampler.shouldSample(ctx, traceId, spanName, spanKind, spanAttributes, links);
     expect(actual).toEqual({
       decision: SamplingDecision.NOT_RECORD,
-      attributes: { 'sentry.sample_rate': 0 },
+      attributes: {},
       traceState: new TraceState().set(SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING, '1'),
     });
     expect(spyOnDroppedEvent).toHaveBeenCalledTimes(0);
