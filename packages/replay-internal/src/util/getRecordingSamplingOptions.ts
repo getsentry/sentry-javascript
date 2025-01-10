@@ -8,8 +8,11 @@ const NAVIGATOR = GLOBAL_OBJ.navigator;
  */
 export function getRecordingSamplingOptions(): Partial<{ sampling: { mousemove: boolean } }> {
   if (
-    /iPhone|iPad|iPod/i.test(NAVIGATOR?.userAgent ?? '') ||
-    (/Macintosh/i.test(NAVIGATOR?.userAgent ?? '') && NAVIGATOR?.maxTouchPoints && NAVIGATOR?.maxTouchPoints > 1)
+    /iPhone|iPad|iPod/i.test((NAVIGATOR && NAVIGATOR.userAgent) || '') ||
+    (/Macintosh/i.test((NAVIGATOR && NAVIGATOR.userAgent) || '') &&
+      NAVIGATOR &&
+      NAVIGATOR.maxTouchPoints &&
+      NAVIGATOR.maxTouchPoints > 1)
   ) {
     return {
       sampling: {
