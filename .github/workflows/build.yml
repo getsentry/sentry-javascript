@@ -267,6 +267,8 @@ jobs:
         run: yarn lint:lerna
       - name: Lint C++ files
         run: yarn lint:clang
+      - name: Lint for ES compatibility
+        run: yarn lint:es-compatibility
 
   job_check_format:
     name: Check file formatting
@@ -1200,7 +1202,8 @@ jobs:
       - name: Run E2E test
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
         timeout-minutes: 10
-        run: xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" -- yarn test:assert
+        run: |
+          xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" -- yarn test:assert
 
   job_required_jobs_passed:
     name: All required jobs passed or were skipped

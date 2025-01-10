@@ -60,7 +60,7 @@ export function appRouterInstrumentNavigation(client: Client): void {
   let currentNavigationSpan: Span | undefined = undefined;
 
   WINDOW.addEventListener('popstate', () => {
-    if (currentNavigationSpan && currentNavigationSpan.isRecording()) {
+    if (currentNavigationSpan?.isRecording()) {
       currentNavigationSpan.updateName(WINDOW.location.pathname);
       currentNavigationSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'url');
     } else {

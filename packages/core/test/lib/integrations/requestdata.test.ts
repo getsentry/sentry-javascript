@@ -59,13 +59,13 @@ describe('`RequestData` integration', () => {
 
   describe('option conversion', () => {
     it('leaves `ip` and `user` at top level of `include`', () => {
-      const requestDataEventProcessor = initWithRequestDataIntegrationOptions({ include: { ip: false, user: true } });
+      const requestDataEventProcessor = initWithRequestDataIntegrationOptions({ include: { ip: false } });
 
       void requestDataEventProcessor(event, {});
       expect(addNormalizedRequestDataToEventSpy).toHaveBeenCalled();
       const passedOptions = addNormalizedRequestDataToEventSpy.mock.calls[0]?.[3];
 
-      expect(passedOptions?.include).toEqual(expect.objectContaining({ ip: false, user: true }));
+      expect(passedOptions?.include).toEqual(expect.objectContaining({ ip: false }));
     });
 
     it('moves `true` request keys into `request` include, but omits `false` ones', async () => {
@@ -79,19 +79,6 @@ describe('`RequestData` integration', () => {
 
       expect(passedOptions?.include?.request).toEqual(expect.arrayContaining(['data']));
       expect(passedOptions?.include?.request).not.toEqual(expect.arrayContaining(['cookies']));
-    });
-
-    it('moves `true` user keys into `user` include, but omits `false` ones', async () => {
-      const requestDataEventProcessor = initWithRequestDataIntegrationOptions({
-        include: { user: { id: true, email: false } },
-      });
-
-      void requestDataEventProcessor(event, {});
-
-      const passedOptions = addNormalizedRequestDataToEventSpy.mock.calls[0]?.[3];
-
-      expect(passedOptions?.include?.user).toEqual(expect.arrayContaining(['id']));
-      expect(passedOptions?.include?.user).not.toEqual(expect.arrayContaining(['email']));
     });
   });
 });

@@ -1,10 +1,10 @@
-import type { Client, ClientOptions, Event, EventHint, StackParser } from '../types-hoist';
-
+import type { Client } from '../client';
 import { DEFAULT_ENVIRONMENT } from '../constants';
 import { getGlobalScope } from '../currentScopes';
 import { notifyEventProcessors } from '../eventProcessors';
 import type { CaptureContext, ScopeContext } from '../scope';
 import { Scope } from '../scope';
+import type { ClientOptions, Event, EventHint, StackParser } from '../types-hoist';
 import { getFilenameToDebugIdMap } from '../utils-hoist/debug-ids';
 import { addExceptionMechanism, uuid4 } from '../utils-hoist/misc';
 import { normalize } from '../utils-hoist/normalize';
@@ -148,13 +148,13 @@ export function applyClientOptions(event: Event, options: ClientOptions): void {
     event.message = truncate(event.message, maxValueLength);
   }
 
-  const exception = event.exception && event.exception.values && event.exception.values[0];
-  if (exception && exception.value) {
+  const exception = event.exception?.values?.[0];
+  if (exception?.value) {
     exception.value = truncate(exception.value, maxValueLength);
   }
 
   const request = event.request;
-  if (request && request.url) {
+  if (request?.url) {
     request.url = truncate(request.url, maxValueLength);
   }
 }
@@ -166,19 +166,13 @@ export function applyDebugIds(event: Event, stackParser: StackParser): void {
   // Build a map of filename -> debug_id
   const filenameDebugIdMap = getFilenameToDebugIdMap(stackParser);
 
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    event!.exception!.values!.forEach(exception => {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      exception.stacktrace!.frames!.forEach(frame => {
-        if (frame.filename) {
-          frame.debug_id = filenameDebugIdMap[frame.filename];
-        }
-      });
+  event.exception?.values?.forEach(exception => {
+    exception.stacktrace?.frames?.forEach(frame => {
+      if (frame.filename) {
+        frame.debug_id = filenameDebugIdMap[frame.filename];
+      }
     });
-  } catch (e) {
-    // To save bundle size we're just try catching here instead of checking for the existence of all the different objects.
-  }
+  });
 }
 
 /**
@@ -187,24 +181,18 @@ export function applyDebugIds(event: Event, stackParser: StackParser): void {
 export function applyDebugMeta(event: Event): void {
   // Extract debug IDs and filenames from the stack frames on the event.
   const filenameDebugIdMap: Record<string, string> = {};
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    event.exception!.values!.forEach(exception => {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      exception.stacktrace!.frames!.forEach(frame => {
-        if (frame.debug_id) {
-          if (frame.abs_path) {
-            filenameDebugIdMap[frame.abs_path] = frame.debug_id;
-          } else if (frame.filename) {
-            filenameDebugIdMap[frame.filename] = frame.debug_id;
-          }
-          delete frame.debug_id;
+  event.exception?.values?.forEach(exception => {
+    exception.stacktrace?.frames?.forEach(frame => {
+      if (frame.debug_id) {
+        if (frame.abs_path) {
+          filenameDebugIdMap[frame.abs_path] = frame.debug_id;
+        } else if (frame.filename) {
+          filenameDebugIdMap[frame.filename] = frame.debug_id;
         }
-      });
+        delete frame.debug_id;
+      }
     });
-  } catch (e) {
-    // To save bundle size we're just try catching here instead of checking for the existence of all the different objects.
-  }
+  });
 
   if (Object.keys(filenameDebugIdMap).length === 0) {
     return;
@@ -277,7 +265,7 @@ function normalizeEvent(event: Event | null, depth: number, maxBreadth: number):
   // For now the decision is to skip normalization of Transactions and Spans,
   // so this block overwrites the normalized event to add back the original
   // Transaction information prior to normalization.
-  if (event.contexts && event.contexts.trace && normalized.contexts) {
+  if (event.contexts?.trace && normalized.contexts) {
     normalized.contexts.trace = event.contexts.trace;
 
     // event.contexts.trace.data may contain circular/dangerous data so we need to normalize it
@@ -302,7 +290,7 @@ function normalizeEvent(event: Event | null, depth: number, maxBreadth: number):
   // flag integrations. It has a greater nesting depth than our other typed
   // Contexts, so we re-normalize with a fixed depth of 3 here. We do not want
   // to skip this in case of conflicting, user-provided context.
-  if (event.contexts && event.contexts.flags && normalized.contexts) {
+  if (event.contexts?.flags && normalized.contexts) {
     normalized.contexts.flags = normalize(event.contexts.flags, 3, maxBreadth);
   }
 

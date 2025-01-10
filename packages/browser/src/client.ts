@@ -9,7 +9,7 @@ import type {
   Scope,
   SeverityLevel,
 } from '@sentry/core';
-import { BaseClient, applySdkMetadata, getSDKSource } from '@sentry/core';
+import { Client, applySdkMetadata, getSDKSource } from '@sentry/core';
 import { eventFromException, eventFromMessage } from './eventbuilder';
 import { WINDOW } from './helpers';
 import type { BrowserTransportOptions } from './transports/types';
@@ -58,7 +58,7 @@ export type BrowserClientOptions = ClientOptions<BrowserTransportOptions> &
  * @see BrowserOptions for documentation on configuration options.
  * @see SentryClient for usage documentation.
  */
-export class BrowserClient extends BaseClient<BrowserClientOptions> {
+export class BrowserClient extends Client<BrowserClientOptions> {
   /**
    * Creates a new Browser SDK instance.
    *

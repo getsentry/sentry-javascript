@@ -10,7 +10,7 @@ function delay(ms: number) {
 
 sentryTest('should queue and retry events when they fail to send', async ({ getLocalTestUrl, page }) => {
   // makeBrowserOfflineTransport is not included in any CDN bundles
-  if (process.env.PW_BUNDLE && process.env.PW_BUNDLE.startsWith('bundle')) {
+  if (process.env.PW_BUNDLE?.startsWith('bundle')) {
     sentryTest.skip();
   }
 

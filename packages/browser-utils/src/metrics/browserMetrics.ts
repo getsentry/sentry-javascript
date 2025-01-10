@@ -97,7 +97,7 @@ export function startTrackingWebVitals({ recordClsStandaloneSpans }: StartTracki
       fidCleanupCallback();
       lcpCleanupCallback();
       ttfbCleanupCallback();
-      clsCleanupCallback && clsCleanupCallback();
+      clsCleanupCallback?.();
     };
   }
 
@@ -300,7 +300,7 @@ interface AddPerformanceEntriesOptions {
 export function addPerformanceEntries(span: Span, options: AddPerformanceEntriesOptions): void {
   const performance = getBrowserPerformanceAPI();
   const origin = browserPerformanceTimeOrigin();
-  if (!performance || !WINDOW.performance.getEntries || !origin) {
+  if (!performance?.getEntries || !origin) {
     // Gatekeeper if performance API not available
     return;
   }
@@ -674,7 +674,7 @@ function _setWebVitalAttributes(span: Span): void {
   }
 
   // See: https://developer.mozilla.org/en-US/docs/Web/API/LayoutShift
-  if (_clsEntry && _clsEntry.sources) {
+  if (_clsEntry?.sources) {
     _clsEntry.sources.forEach((source, index) =>
       span.setAttribute(`cls.source.${index + 1}`, htmlTreeAsString(source.node)),
     );

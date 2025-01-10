@@ -155,7 +155,7 @@ export function isRegExp(wat: unknown): wat is RegExp {
  */
 export function isThenable(wat: any): wat is PromiseLike<any> {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  return Boolean(wat && wat.then && typeof wat.then === 'function');
+  return Boolean(wat?.then && typeof wat.then === 'function');
 }
 
 /**

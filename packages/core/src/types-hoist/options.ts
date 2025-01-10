@@ -25,16 +25,6 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   attachStacktrace?: boolean;
 
   /**
-   * A flag enabling Sessions Tracking feature.
-   * By default, Session Tracking is enabled.
-   *
-   * @deprecated Setting the `autoSessionTracking` option is deprecated.
-   * To enable session tracking, it is recommended to unset `autoSessionTracking` and ensure that either, in browser environments the `browserSessionIntegration` is added, or in server environments the `httpIntegration` is added.
-   * To disable session tracking, it is recommended unset `autoSessionTracking` and to remove the `browserSessionIntegration` in browser environments, or in server environments configure the `httpIntegration` with the `trackIncomingRequestsAsSessions` option set to `false`.
-   */
-  autoSessionTracking?: boolean;
-
-  /**
    * Send SDK Client Reports. When calling `Sentry.init()`, this option defaults to `true`.
    */
   sendClientReports?: boolean;
@@ -300,7 +290,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    *
    * @returns A new span that will be sent or null if the span should not be sent.
    */
-  beforeSendSpan?: (span: SpanJSON) => SpanJSON | null;
+  beforeSendSpan?: (span: SpanJSON) => SpanJSON;
 
   /**
    * An event-processing callback for transaction events, guaranteed to be invoked after all other event

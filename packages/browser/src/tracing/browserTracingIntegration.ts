@@ -16,13 +16,14 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   TRACING_DEFAULTS,
+  addNonEnumerableProperty,
   browserPerformanceTimeOrigin,
   generateTraceId,
-  getActiveSpan,
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromSpan,
   getIsolationScope,
+  getLocationHref,
   getRootSpan,
   logger,
   propagationContextFromHeaders,
@@ -246,7 +247,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
   };
 
   /** Create routing idle transaction. */
-  function _createRouteSpan(client: Client, startSpanOptions: StartSpanOptions): Span {
+  function _createRouteSpan(client: Client, startSpanOptions: StartSpanOptions): void {
     const isPageloadTransaction = startSpanOptions.op === 'pageload';
 
     const finalStartSpanOptions: StartSpanOptions = beforeStartSpan
@@ -274,8 +275,10 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       beforeSpanEnd: span => {
         _collectWebVitals();
         addPerformanceEntries(span, { recordClsOnPageloadSpan: !enableStandaloneClsSpans });
+        setActiveIdleSpan(client, undefined);
       },
     });
+    setActiveIdleSpan(client, idleSpan);
 
     function emitFinish(): void {
       if (optionalWindowDocument && ['interactive', 'complete'].includes(optionalWindowDocument.readyState)) {
@@ -290,17 +293,16 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
 
       emitFinish();
     }
-
-    return idleSpan;
   }
 
   return {
     name: BROWSER_TRACING_INTEGRATION_ID,
     afterAllSetup(client) {
-      let activeSpan: Span | undefined;
-      let startingUrl: string | undefined = WINDOW.location && WINDOW.location.href;
+      let startingUrl: string | undefined = getLocationHref();
 
       function maybeEndActiveSpan(): void {
+        const activeSpan = getActiveIdleSpan(client);
+
         if (activeSpan && !spanToJSON(activeSpan).timestamp) {
           DEBUG_BUILD && logger.log(`[Tracing] Finishing current active span with op: ${spanToJSON(activeSpan).op}`);
           // If there's an open active span, we need to finish it before creating an new one.
@@ -315,7 +317,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
 
         maybeEndActiveSpan();
 
-        activeSpan = _createRouteSpan(client, {
+        _createRouteSpan(client, {
           op: 'navigation',
           ...startSpanOptions,
         });
@@ -333,7 +335,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         const propagationContext = propagationContextFromHeaders(sentryTrace, baggage);
         getCurrentScope().setPropagationContext(propagationContext);
 
-        activeSpan = _createRouteSpan(client, {
+        _createRouteSpan(client, {
           op: 'pageload',
           ...startSpanOptions,
         });
@@ -385,7 +387,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
              * only be caused in certain development environments where the usage of a hot module reloader is causing
              * errors.
              */
-            if (from === undefined && startingUrl && startingUrl.indexOf(to) !== -1) {
+            if (from === undefined && startingUrl?.indexOf(to) !== -1) {
               startingUrl = undefined;
               return;
             }
@@ -409,7 +411,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       }
 
       if (enableInteractions) {
-        registerInteractionListener(idleTimeout, finalTimeout, childSpanTimeout, latestRoute);
+        registerInteractionListener(client, idleTimeout, finalTimeout, childSpanTimeout, latestRoute);
       }
 
       if (enableInp) {
@@ -441,12 +443,9 @@ export function startBrowserTracingPageLoadSpan(
   traceOptions?: { sentryTrace?: string | undefined; baggage?: string | undefined },
 ): Span | undefined {
   client.emit('startPageLoadSpan', spanOptions, traceOptions);
-
   getCurrentScope().setTransactionName(spanOptions.name);
 
-  const span = getActiveSpan();
-  const op = span && spanToJSON(span).op;
-  return op === 'pageload' ? span : undefined;
+  return getActiveIdleSpan(client);
 }
 
 /**
@@ -461,9 +460,7 @@ export function startBrowserTracingNavigationSpan(client: Client, spanOptions: S
 
   getCurrentScope().setTransactionName(spanOptions.name);
 
-  const span = getActiveSpan();
-  const op = span && spanToJSON(span).op;
-  return op === 'navigation' ? span : undefined;
+  return getActiveIdleSpan(client);
 }
 
 /** Returns the value of a meta tag */
@@ -474,12 +471,13 @@ export function getMetaContent(metaName: string): string | undefined {
    */
   const optionalWindowDocument = WINDOW.document as (typeof WINDOW)['document'] | undefined;
 
-  const metaTag = optionalWindowDocument && optionalWindowDocument.querySelector(`meta[name=${metaName}]`);
-  return (metaTag && metaTag.getAttribute('content')) || undefined;
+  const metaTag = optionalWindowDocument?.querySelector(`meta[name=${metaName}]`);
+  return metaTag?.getAttribute('content') || undefined;
 }
 
 /** Start listener for interaction transactions */
 function registerInteractionListener(
+  client: Client,
   idleTimeout: BrowserTracingOptions['idleTimeout'],
   finalTimeout: BrowserTracingOptions['finalTimeout'],
   childSpanTimeout: BrowserTracingOptions['childSpanTimeout'],
@@ -495,10 +493,9 @@ function registerInteractionListener(
   const registerInteractionTransaction = (): void => {
     const op = 'ui.action.click';
 
-    const activeSpan = getActiveSpan();
-    const rootSpan = activeSpan && getRootSpan(activeSpan);
-    if (rootSpan) {
-      const currentRootSpanOp = spanToJSON(rootSpan).op;
+    const activeIdleSpan = getActiveIdleSpan(client);
+    if (activeIdleSpan) {
+      const currentRootSpanOp = spanToJSON(activeIdleSpan).op;
       if (['navigation', 'pageload'].includes(currentRootSpanOp as string)) {
         DEBUG_BUILD &&
           logger.warn(`[Tracing] Did not create ${op} span because a pageload or navigation span is in progress.`);
@@ -536,4 +533,14 @@ function registerInteractionListener(
   if (optionalWindowDocument) {
     addEventListener('click', registerInteractionTransaction, { once: false, capture: true });
   }
+}
+
+// We store the active idle span on the client object, so we can access it from exported functions
+const ACTIVE_IDLE_SPAN_PROPERTY = '_sentry_idleSpan';
+function getActiveIdleSpan(client: Client): Span | undefined {
+  return (client as { [ACTIVE_IDLE_SPAN_PROPERTY]?: Span })[ACTIVE_IDLE_SPAN_PROPERTY];
+}
+
+function setActiveIdleSpan(client: Client, span: Span | undefined): void {
+  addNonEnumerableProperty(client, ACTIVE_IDLE_SPAN_PROPERTY, span);
 }

@@ -1,7 +1,9 @@
 /* eslint-disable complexity */
 import { isThenable, parseSemver } from '@sentry/core';
 
+import * as childProcess from 'child_process';
 import * as fs from 'fs';
+import { getSentryRelease } from '@sentry/node';
 import { sync as resolveSync } from 'resolve';
 import type {
   ExportedNextConfig as NextConfig,
@@ -20,7 +22,6 @@ let showedExportModeTunnelWarning = false;
  * @param sentryBuildOptions Additional options to configure instrumentation and
  * @returns The modified config to be exported
  */
-// TODO(v9): Always return an async function here to allow us to do async things like grabbing a deterministic build ID.
 export function withSentryConfig<C>(nextConfig?: C, sentryBuildOptions: SentryBuildOptions = {}): C {
   const castNextConfig = (nextConfig as NextConfig) || {};
   if (typeof castNextConfig === 'function') {
@@ -174,9 +175,11 @@ function getFinalConfigObject(
     );
   }
 
+  const releaseName = userSentryOptions.release?.name ?? getSentryRelease() ?? getGitRevision();
+
   return {
     ...incomingUserNextConfigObject,
-    webpack: constructWebpackConfigFunction(incomingUserNextConfigObject, userSentryOptions),
+    webpack: constructWebpackConfigFunction(incomingUserNextConfigObject, userSentryOptions, releaseName),
   };
 }
 
@@ -315,4 +318,17 @@ function resolveNextjsPackageJson(): string | undefined {
   } catch {
     return undefined;
   }
+}
+
+function getGitRevision(): string | undefined {
+  let gitRevision: string | undefined;
+  try {
+    gitRevision = childProcess
+      .execSync('git rev-parse HEAD', { stdio: ['ignore', 'pipe', 'ignore'] })
+      .toString()
+      .trim();
+  } catch (e) {
+    // noop
+  }
+  return gitRevision;
 }

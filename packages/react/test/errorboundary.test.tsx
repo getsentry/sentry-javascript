@@ -4,7 +4,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import * as React from 'react';
 import { useState } from 'react';
 
-import type { ErrorBoundaryProps } from '../src/errorboundary';
+import type { ErrorBoundaryProps, FallbackRender } from '../src/errorboundary';
 import { ErrorBoundary, UNKNOWN_COMPONENT, withErrorBoundary } from '../src/errorboundary';
 
 const mockCaptureException = jest.fn();
@@ -537,47 +537,47 @@ describe('ErrorBoundary', () => {
       expect(mockOnReset).toHaveBeenCalledTimes(1);
       expect(mockOnReset).toHaveBeenCalledWith(expect.any(Error), expect.any(String), expect.any(String));
     });
+    it.each`
+      fallback | handled      | expected
+      ${true}  | ${undefined} | ${true}
+      ${false} | ${undefined} | ${false}
+      ${true}  | ${false}     | ${false}
+      ${true}  | ${true}      | ${true}
+      ${false} | ${true}      | ${true}
+      ${false} | ${false}     | ${false}
+    `(
+      'sets `handled: $expected` when `handled` is $handled and `fallback` is $fallback',
+      async ({
+        fallback,
+        handled,
+        expected,
+      }: {
+        fallback: boolean;
+        handled: boolean | undefined;
+        expected: boolean;
+      }) => {
+        const fallbackComponent: FallbackRender | undefined = fallback
+          ? ({ resetError }) => <button data-testid="reset" onClick={resetError} />
+          : undefined;
+        render(
+          <TestApp handled={handled} fallback={fallbackComponent}>
+            <h1>children</h1>
+          </TestApp>,
+        );
 
-    it('sets `handled: true` when a fallback is provided', async () => {
-      render(
-        <TestApp fallback={({ resetError }) => <button data-testid="reset" onClick={resetError} />}>
-          <h1>children</h1>
-        </TestApp>,
-      );
+        expect(mockCaptureException).toHaveBeenCalledTimes(0);
 
-      expect(mockCaptureException).toHaveBeenCalledTimes(0);
+        const btn = screen.getByTestId('errorBtn');
+        fireEvent.click(btn);
 
-      const btn = screen.getByTestId('errorBtn');
-      fireEvent.click(btn);
-
-      expect(mockCaptureException).toHaveBeenCalledTimes(1);
-      expect(mockCaptureException).toHaveBeenLastCalledWith(expect.any(Object), {
-        captureContext: {
-          contexts: { react: { componentStack: expect.any(String) } },
-        },
-        mechanism: { handled: true },
-      });
-    });
-
-    it('sets `handled: false` when no fallback is provided', async () => {
-      render(
-        <TestApp>
-          <h1>children</h1>
-        </TestApp>,
-      );
-
-      expect(mockCaptureException).toHaveBeenCalledTimes(0);
-
-      const btn = screen.getByTestId('errorBtn');
-      fireEvent.click(btn);
-
-      expect(mockCaptureException).toHaveBeenCalledTimes(1);
-      expect(mockCaptureException).toHaveBeenLastCalledWith(expect.any(Object), {
-        captureContext: {
-          contexts: { react: { componentStack: expect.any(String) } },
-        },
-        mechanism: { handled: false },
-      });
-    });
+        expect(mockCaptureException).toHaveBeenCalledTimes(1);
+        expect(mockCaptureException).toHaveBeenLastCalledWith(expect.any(Object), {
+          captureContext: {
+            contexts: { react: { componentStack: expect.any(String) } },
+          },
+          mechanism: { handled: expected },
+        });
+      },
+    );
   });
 });

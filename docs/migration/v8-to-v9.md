@@ -68,6 +68,8 @@ Sentry.init({
 });
 ```
 
+- Dropping spans in the `beforeSendSpan` hook is no longer possible.
+- The `beforeSendSpan` hook now receives the root span as well as the child spans.
 - In previous versions, we determined if tracing is enabled (for Tracing Without Performance) by checking if either `tracesSampleRate` or `traceSampler` are _defined_ at all, in `Sentry.init()`. This means that e.g. the following config would lead to tracing without performance (=tracing being enabled, even if no spans would be started):
 
 ```js
@@ -84,9 +86,33 @@ In v9, an `undefined` value will be treated the same as if the value is not defi
 
 - When `skipOpenTelemetrySetup: true` is configured, `httpIntegration({ spans: false })` will be configured by default. This means that you no longer have to specify this yourself in this scenario. With this change, no spans are emitted once `skipOpenTelemetrySetup: true` is configured, without any further configuration being needed.
 
+- The `requestDataIntegration` will no longer automatically set the user from `request.user`. This is an express-specific, undocumented behavior, and also conflicts with our privacy-by-default strategy. Starting in v9, you'll need to manually call `Sentry.setUser()` e.g. in a middleware to set the user on Sentry events.
+
+- The `tracesSampler` hook will no longer be called for _every_ span. Instead, it will only be called for "root spans". Root spans are spans that have no local parent span. Root spans may however have incoming trace data from a different service, for example when using distributed tracing.
+
 ### `@sentry/browser`
 
 - The `captureUserFeedback` method has been removed. Use `captureFeedback` instead and update the `comments` field to `message`.
+
+### `@sentry/nextjs`
+
+- The Sentry Next.js SDK will no longer use the Next.js Build ID as fallback identifier for releases. The SDK will continue to attempt to read CI-provider-specific environment variables and the current git SHA to automatically determine a release name. If you examine that you no longer see releases created in Sentry, it is recommended to manually provide a release name to `withSentryConfig` via the `release.name` option.
+
+  This behavior was changed because the Next.js Build ID is non-deterministic and the release name is injected into client bundles, causing build artifacts to be non-deterministic. This caused issues for some users. Additionally, because it is uncertain whether it will be possible to rely on a Build ID when Turbopack becomes stable, we decided to pull the plug now instead of introducing confusing behavior in the future.
+
+- Source maps are now automatically enabled for both client and server builds unless explicitly disabled via `sourcemaps.disable`. Client builds use `hidden-source-map` while server builds use `source-map` as their webpack `devtool` setting unless any other value than `false` or `undefined` has been assigned already.
+
+- By default, source maps will now be automatically deleted after being uploaded to Sentry for client-side builds. You can opt out of this behavior by explicitly setting `sourcemaps.deleteSourcemapsAfterUpload` to `false` in your Sentry config.
+
+### All Meta-Framework SDKs (`@sentry/astro`, `@sentry/nuxt`)
+
+- Updated source map generation to respect the user-provided value of your build config, such as `vite.build.sourcemap`:
+
+  - Explicitly disabled (false): Emit warning, no source map upload.
+  - Explicitly enabled (true, 'hidden', 'inline'): No changes, source maps are uploaded and not automatically deleted.
+  - Unset: Enable 'hidden', delete `.map` files after uploading them to Sentry.
+
+  To customize which files are deleted after upload, define the `filesToDeleteAfterUpload` array with globs.
 
 ### Uncategorized (TODO)
 
@@ -127,6 +153,8 @@ Sentry.init({
   openTelemetryInstrumentations: [new GenericPoolInstrumentation()],
 });
 ```
+
+- The `DEFAULT_USER_INCLUDES` constant has been removed.
 
 ### `@sentry/react`
 
@@ -195,6 +223,9 @@ The following changes are unlikely to affect users of the SDK. They are listed h
   });
   ```
 
+- The option `logErrors` in the `vueIntegration` has been removed. The Sentry Vue error handler will propagate the error to a user-defined error handler
+  or just re-throw the error (which will log the error without modifying).
+
 ## 5. Build Changes
 
 Previously the CJS versions of the SDK code (wrongfully) contained compatibility statements for default exports in ESM:
@@ -221,6 +252,8 @@ Since v9, the types have been merged into `@sentry/core`, which removed some of 
 - The `Request` type has been removed. Use `RequestEventData` type instead.
 - The `IntegrationClass` type is no longer exported - it was not used anymore. Instead, use `Integration` or `IntegrationFn`.
 - The `samplingContext.request` attribute in the `tracesSampler` has been removed. Use `samplingContext.normalizedRequest` instead. Note that the type of `normalizedRequest` differs from `request`.
+- `Client` now always expects the `BaseClient` class - there is no more abstract `Client` that can be implemented! Any `Client` class has to extend from `BaseClient`.
+- `ReportDialogOptions` now extends `Record<string, unknown>` instead of `Record<string, any>` - this should not affect most users.
 
 # No Version Support Timeline
 
@@ -238,6 +271,10 @@ The following outlines deprecations that were introduced in version 8 of the SDK
 ## General
 
 - **Returning `null` from `beforeSendSpan` span is deprecated.**
+
+  Returning `null` from `beforeSendSpan` will now result in a warning being logged.
+  In v9, dropping spans is not possible anymore within this hook.
+
 - **Passing `undefined` to `tracesSampleRate` / `tracesSampler` / `enableTracing` will be handled differently in v9**
 
   In v8, a setup like the following:
@@ -344,6 +381,9 @@ The Sentry metrics beta has ended and the metrics API has been removed from the 
     ],
   });
   ```
+
+- Deprecated `logErrors` in the `vueIntegration`. The Sentry Vue error handler will propagate the error to a user-defined error handler
+  or just re-throw the error (which will log the error without modifying).
 
 ## `@sentry/nuxt` and `@sentry/vue`
 

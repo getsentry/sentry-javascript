@@ -323,7 +323,7 @@ export function wrapHandler<TEvent, TResult>(
         throw e;
       } finally {
         clearTimeout(timeoutWarningTimer);
-        if (span && span.isRecording()) {
+        if (span?.isRecording()) {
           span.end();
         }
         await flush(options.flushTimeout).catch(e => {

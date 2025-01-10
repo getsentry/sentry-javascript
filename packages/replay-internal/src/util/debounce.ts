@@ -32,7 +32,7 @@ export function debounce(func: CallbackFunction, wait: number, options?: Debounc
   let timerId: ReturnType<typeof setTimeout> | undefined;
   let maxTimerId: ReturnType<typeof setTimeout> | undefined;
 
-  const maxWait = options && options.maxWait ? Math.max(options.maxWait, wait) : 0;
+  const maxWait = options?.maxWait ? Math.max(options.maxWait, wait) : 0;
 
   function invokeFunc(): unknown {
     cancelTimers();

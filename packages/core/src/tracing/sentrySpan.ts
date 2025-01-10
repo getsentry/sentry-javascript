@@ -333,17 +333,8 @@ export class SentrySpan implements Span {
     }
 
     const { scope: capturedSpanScope, isolationScope: capturedSpanIsolationScope } = getCapturedScopesOnSpan(this);
-    const scope = capturedSpanScope || getCurrentScope();
-    const client = scope.getClient() || getClient();
 
     if (this._sampled !== true) {
-      // At this point if `sampled !== true` we want to discard the transaction.
-      DEBUG_BUILD && logger.log('[Tracing] Discarding transaction because its trace was not chosen to be sampled.');
-
-      if (client) {
-        client.recordDroppedEvent('sample_rate', 'transaction');
-      }
-
       return undefined;
     }
 

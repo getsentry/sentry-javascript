@@ -19,8 +19,6 @@ interface Performance {
 
 /**
  * Returns a timestamp in seconds since the UNIX epoch using the Date API.
- *
- * TODO(v8): Return type should be rounded.
  */
 export function dateTimestampInSeconds(): number {
   return Date.now() / ONE_SECOND_IN_MS;
@@ -34,7 +32,7 @@ export function dateTimestampInSeconds(): number {
  */
 function createUnixTimestampInSecondsFunc(): () => number {
   const { performance } = GLOBAL_OBJ as typeof GLOBAL_OBJ & { performance?: Performance };
-  if (!performance || !performance.now) {
+  if (!performance?.now) {
     return dateTimestampInSeconds;
   }
 
@@ -82,7 +80,7 @@ function getBrowserTimeOrigin(): [number | undefined, string] {
   // data as reliable if they are within a reasonable threshold of the current time.
 
   const { performance } = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
-  if (!performance || !performance.now) {
+  if (!performance?.now) {
     return [undefined, 'none'];
   }
 
@@ -102,7 +100,7 @@ function getBrowserTimeOrigin(): [number | undefined, string] {
   // a valid fallback. In the absence of an initial time provided by the browser, fallback to the current time from the
   // Date API.
   // eslint-disable-next-line deprecation/deprecation
-  const navigationStart = performance.timing && performance.timing.navigationStart;
+  const navigationStart = performance.timing?.navigationStart;
   const hasNavigationStart = typeof navigationStart === 'number';
   // if navigationStart isn't available set delta to threshold so it isn't used
   const navigationStartDelta = hasNavigationStart ? Math.abs(navigationStart + performanceNow - dateNow) : threshold;

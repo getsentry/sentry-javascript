@@ -1,7 +1,7 @@
+import type { Client } from './client';
 import { getDynamicSamplingContextFromSpan } from './tracing/dynamicSamplingContext';
 import type { SentrySpan } from './tracing/sentrySpan';
 import type {
-  Client,
   DsnComponents,
   DynamicSamplingContext,
   Event,
@@ -18,7 +18,6 @@ import type {
   SessionItem,
   SpanEnvelope,
   SpanItem,
-  SpanJSON,
 } from './types-hoist';
 import { dsnToString } from './utils-hoist/dsn';
 import {
@@ -86,7 +85,7 @@ export function createEventEnvelope(
   */
   const eventType = event.type && event.type !== 'replay_event' ? event.type : 'event';
 
-  enhanceEventWithSdkInfo(event, metadata && metadata.sdk);
+  enhanceEventWithSdkInfo(event, metadata?.sdk);
 
   const envelopeHeaders = createEventEnvelopeHeaders(event, sdkInfo, tunnel, dsn);
 
@@ -115,8 +114,8 @@ export function createSpanEnvelope(spans: [SentrySpan, ...SentrySpan[]], client?
   // different segments in one envelope
   const dsc = getDynamicSamplingContextFromSpan(spans[0]);
 
-  const dsn = client && client.getDsn();
-  const tunnel = client && client.getOptions().tunnel;
+  const dsn = client?.getDsn();
+  const tunnel = client?.getOptions().tunnel;
 
   const headers: SpanEnvelope[0] = {
     sent_at: new Date().toISOString(),
@@ -124,16 +123,20 @@ export function createSpanEnvelope(spans: [SentrySpan, ...SentrySpan[]], client?
     ...(!!tunnel && dsn && { dsn: dsnToString(dsn) }),
   };
 
-  const beforeSendSpan = client && client.getOptions().beforeSendSpan;
+  const beforeSendSpan = client?.getOptions().beforeSendSpan;
   const convertToSpanJSON = beforeSendSpan
     ? (span: SentrySpan) => {
-        const spanJson = beforeSendSpan(spanToJSON(span) as SpanJSON);
-        if (!spanJson) {
+        const spanJson = spanToJSON(span);
+        const processedSpan = beforeSendSpan(spanJson);
+
+        if (!processedSpan) {
           showSpanDropWarning();
+          return spanJson;
         }
-        return spanJson;
+
+        return processedSpan;
       }
-    : (span: SentrySpan) => spanToJSON(span);
+    : spanToJSON;
 
   const items: SpanItem[] = [];
   for (const span of spans) {

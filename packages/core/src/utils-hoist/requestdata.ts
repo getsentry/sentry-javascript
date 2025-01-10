@@ -2,7 +2,6 @@ import type { Event, PolymorphicRequest, RequestEventData, WebFetchHeaders, WebF
 
 import { parseCookie } from './cookie';
 import { DEBUG_BUILD } from './debug-build';
-import { isPlainObject } from './is';
 import { logger } from './logger';
 import { dropUndefinedKeys } from './object';
 import { getClientIPAddress, ipHeaderNames } from './vendor/getIpAddress';
@@ -10,10 +9,8 @@ import { getClientIPAddress, ipHeaderNames } from './vendor/getIpAddress';
 const DEFAULT_INCLUDES = {
   ip: false,
   request: true,
-  user: true,
 };
 const DEFAULT_REQUEST_INCLUDES = ['cookies', 'data', 'headers', 'method', 'query_string', 'url'];
-export const DEFAULT_USER_INCLUDES = ['id', 'username', 'email'];
 
 /**
  * Options deciding what parts of the request to use when enhancing an event
@@ -23,7 +20,6 @@ export type AddRequestDataToEventOptions = {
   include?: {
     ip?: boolean;
     request?: boolean | Array<(typeof DEFAULT_REQUEST_INCLUDES)[number]>;
-    user?: boolean | Array<(typeof DEFAULT_USER_INCLUDES)[number]>;
   };
 
   /** Injected platform-specific dependencies */
@@ -39,24 +35,6 @@ export type AddRequestDataToEventOptions = {
   };
 };
 
-function extractUserData(
-  user: {
-    [key: string]: unknown;
-  },
-  keys: boolean | string[],
-): { [key: string]: unknown } {
-  const extractedUser: { [key: string]: unknown } = {};
-  const attributes = Array.isArray(keys) ? keys : DEFAULT_USER_INCLUDES;
-
-  attributes.forEach(key => {
-    if (user && key in user) {
-      extractedUser[key] = user[key];
-    }
-  });
-
-  return extractedUser;
-}
-
 /**
  * Add already normalized request data to an event.
  * This mutates the passed in event.
@@ -65,12 +43,12 @@ export function addNormalizedRequestDataToEvent(
   event: Event,
   req: RequestEventData,
   // This is non-standard data that is not part of the regular HTTP request
-  additionalData: { ipAddress?: string; user?: Record<string, unknown> },
+  additionalData: { ipAddress?: string },
   options: AddRequestDataToEventOptions,
 ): void {
   const include = {
     ...DEFAULT_INCLUDES,
-    ...(options && options.include),
+    ...options?.include,
   };
 
   if (include.request) {
@@ -85,20 +63,6 @@ export function addNormalizedRequestDataToEvent(
       ...event.request,
       ...extractedRequestData,
     };
-  }
-
-  if (include.user) {
-    const extractedUser =
-      additionalData.user && isPlainObject(additionalData.user)
-        ? extractUserData(additionalData.user, include.user)
-        : {};
-
-    if (Object.keys(extractedUser).length) {
-      event.user = {
-        ...extractedUser,
-        ...event.user,
-      };
-    }
   }
 
   if (include.ip) {
@@ -258,7 +222,7 @@ function extractNormalizedRequestData(
   }
 
   if (includeKeys.includes('cookies')) {
-    const cookies = normalizedRequest.cookies || (headers && headers.cookie ? parseCookie(headers.cookie) : undefined);
+    const cookies = normalizedRequest.cookies || (headers?.cookie ? parseCookie(headers.cookie) : undefined);
     requestData.cookies = cookies || {};
   }
 

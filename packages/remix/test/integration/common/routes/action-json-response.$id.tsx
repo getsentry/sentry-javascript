@@ -43,7 +43,7 @@ export default function ActionJSONResponse() {
 
   return (
     <div>
-      <h1>{data && data.test ? data.test : 'Not Found'}</h1>
+      <h1>{data?.test ? data.test : 'Not Found'}</h1>
     </div>
   );
 }
