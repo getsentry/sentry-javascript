@@ -219,6 +219,9 @@ The following changes are unlikely to affect users of the SDK. They are listed h
   });
   ```
 
+- The option `logErrors` in the `vueIntegration` has been removed. The Sentry Vue error handler will propagate the error to a user-defined error handler
+  or just re-throw the error (which will log the error without modifying).
+
 ## 5. Build Changes
 
 Previously the CJS versions of the SDK code (wrongfully) contained compatibility statements for default exports in ESM:
@@ -374,6 +377,9 @@ The Sentry metrics beta has ended and the metrics API has been removed from the 
     ],
   });
   ```
+
+- Deprecated `logErrors` in the `vueIntegration`. The Sentry Vue error handler will propagate the error to a user-defined error handler
+  or just re-throw the error (which will log the error without modifying).
 
 ## `@sentry/nuxt` and `@sentry/vue`
 
