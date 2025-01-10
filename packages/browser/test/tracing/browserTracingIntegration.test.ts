@@ -658,6 +658,7 @@ describe('browserTracingIntegration', () => {
       });
       expect(newCurrentScopePropCtx).toEqual({
         traceId: expect.stringMatching(/[a-f0-9]{32}/),
+        sampled: false,
       });
       expect(newIsolationScopePropCtx).toEqual({
         traceId: expect.stringMatching(/[a-f0-9]{32}/),
@@ -674,10 +675,19 @@ describe('browserTracingIntegration', () => {
       expect(newCurrentScopePropCtx2).toEqual({
         traceId: traceId2,
         sampled: false,
+      });
+
+      span2?.end();
+
+      const newCurrentScopePropCtx2After = getCurrentScope().getPropagationContext();
+      expect(newCurrentScopePropCtx2After).toEqual({
+        traceId: traceId2,
+        sampled: false,
         dsc: {
           environment: 'production',
           public_key: 'examplePublicKey',
           sample_rate: '0',
+          sampled: 'false',
           trace_id: traceId2,
         },
       });
@@ -701,6 +711,7 @@ describe('browserTracingIntegration', () => {
       const propCtxBeforeEnd = getCurrentScope().getPropagationContext();
       expect(propCtxBeforeEnd).toStrictEqual({
         traceId: expect.stringMatching(/[a-f0-9]{32}/),
+        sampled: true,
       });
 
       updateSpanName(navigationSpan!, 'mySpan2');
@@ -739,6 +750,7 @@ describe('browserTracingIntegration', () => {
       const propCtxBeforeEnd = getCurrentScope().getPropagationContext();
       expect(propCtxBeforeEnd).toStrictEqual({
         traceId: expect.stringMatching(/[a-f0-9]{32}/),
+        sampled: false,
       });
 
       navigationSpan!.end();

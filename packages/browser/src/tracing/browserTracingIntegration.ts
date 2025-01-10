@@ -9,7 +9,8 @@ import {
   startTrackingLongTasks,
   startTrackingWebVitals,
 } from '@sentry-internal/browser-utils';
-import type { Client, IntegrationFn, Span, StartSpanOptions, TransactionSource } from '@sentry/core';
+import type { Client, IntegrationFn, Span, StartSpanOptions, TransactionSource} from '@sentry/core';
+import { dropUndefinedKeys } from '@sentry/core';
 import {
   GLOBAL_OBJ,
   SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
@@ -303,6 +304,22 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
 
       emitFinish();
     }
+
+    // A trace should to stay the consistent over the entire time span of one route.
+    // Therefore, we update the traceId/sampled properties on the propagation context.
+    // The DSC is only set once the span has ended
+    const scope = getCurrentScope();
+    const oldPropagationContext = scope.getPropagationContext();
+
+    scope.setPropagationContext(
+      dropUndefinedKeys({
+        ...oldPropagationContext,
+        traceId: idleSpan.spanContext().traceId,
+        sampled: spanIsSampled(idleSpan),
+        // Reset the DSC, it should be read from the span while it is active
+        dsc: undefined,
+      }),
+    );
   }
 
   return {
