@@ -10,6 +10,8 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+Work in this release was contributed by @HHK1. Thank you for your contribution!
+
 Work in this release was contributed by @aloisklink, @arturovt, @benjick and @maximepvrt. Thank you for your contributions!
 
 - **feat(solidstart)!: Default to `--import` setup and add `autoInjectServerSentry` ([#14862](https://github.com/getsentry/sentry-javascript/pull/14862))**
