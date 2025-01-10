@@ -2,7 +2,7 @@ import type { Client, Event, EventHint, IntegrationFn } from '@sentry/core';
 
 import { defineIntegration } from '@sentry/core';
 import { copyFlagsFromScopeToEvent, insertFlagToScope } from '../../../utils/featureFlags';
-import type { IVariant, UnleashClient, UnleashClientClass } from './types';
+import type { UnleashClient, UnleashClientClass } from './types';
 
 /**
  * Sentry integration for capturing feature flag evaluations from the Unleash SDK.
@@ -54,22 +54,6 @@ export const unleashIntegration = defineIntegration((unleashClientClass: Unleash
       // eslint-disable-next-line @typescript-eslint/unbound-method
       const originalIsEnabled = unleashClientPrototype.isEnabled;
       unleashClientPrototype.isEnabled = new Proxy(originalIsEnabled, sentryIsEnabled);
-
-      const sentryGetVariant = {
-        apply: (
-          target: (this: UnleashClient, toggleName: string) => IVariant,
-          thisArg: UnleashClient,
-          args: [toggleName: string],
-        ) => {
-          const variant = Reflect.apply(target, thisArg, args);
-          const result = variant.feature_enabled || false; // undefined means the feature does not exist.
-          insertFlagToScope(args[0], result);
-          return variant;
-        },
-      };
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      const originalGetVariant = unleashClientPrototype.getVariant;
-      unleashClientPrototype.getVariant = new Proxy(originalGetVariant, sentryGetVariant);
     },
   };
 }) satisfies IntegrationFn;
