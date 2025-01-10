@@ -56,7 +56,7 @@ glob.glob(
 
             transaction.spans.forEach(span => {
               const node = spanMap.get(span.span_id);
-              if (node && node.parent_span_id) {
+              if (node?.parent_span_id) {
                 const parentNode = spanMap.get(node.parent_span_id);
                 parentNode.children.push(node);
               }

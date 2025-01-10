@@ -61,12 +61,12 @@ export function reportNuxtError(options: {
     // todo: add component name and trace (like in the vue integration)
   };
 
-  if (instance && instance.$props) {
+  if (instance?.$props) {
     const sentryClient = getClient();
     const sentryOptions = sentryClient ? (sentryClient.getOptions() as ClientOptions & VueOptions) : null;
 
     // `attachProps` is enabled by default and props should only not be attached if explicitly disabled (see DEFAULT_CONFIG in `vueIntegration`).
-    if (sentryOptions && sentryOptions.attachProps && instance.$props !== false) {
+    if (sentryOptions?.attachProps && instance.$props !== false) {
       metadata.propsData = instance.$props;
     }
   }

@@ -190,7 +190,7 @@ function getConfigWithDefaults(options: Partial<HttpOptions> = {}): HttpInstrume
       }
 
       const _ignoreOutgoingRequests = options.ignoreOutgoingRequests;
-      if (_ignoreOutgoingRequests && _ignoreOutgoingRequests(url, request)) {
+      if (_ignoreOutgoingRequests?.(url, request)) {
         return true;
       }
 
@@ -209,7 +209,7 @@ function getConfigWithDefaults(options: Partial<HttpOptions> = {}): HttpInstrume
       }
 
       const _ignoreIncomingRequests = options.ignoreIncomingRequests;
-      if (urlPath && _ignoreIncomingRequests && _ignoreIncomingRequests(urlPath, request)) {
+      if (urlPath && _ignoreIncomingRequests?.(urlPath, request)) {
         return true;
       }
 

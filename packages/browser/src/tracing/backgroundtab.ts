@@ -7,7 +7,7 @@ import { WINDOW } from '../helpers';
  * document is hidden.
  */
 export function registerBackgroundTabDetection(): void {
-  if (WINDOW && WINDOW.document) {
+  if (WINDOW.document) {
     WINDOW.document.addEventListener('visibilitychange', () => {
       const activeSpan = getActiveSpan();
       if (!activeSpan) {

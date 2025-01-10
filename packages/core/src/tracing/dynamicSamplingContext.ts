@@ -83,7 +83,7 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
 
   // For OpenTelemetry, we freeze the DSC on the trace state
   const traceState = rootSpan.spanContext().traceState;
-  const traceStateDsc = traceState && traceState.get('sentry.dsc');
+  const traceStateDsc = traceState?.get('sentry.dsc');
 
   // If the span has a DSC, we want it to take precedence
   const dscOnTraceState = traceStateDsc && baggageHeaderToDynamicSamplingContext(traceStateDsc);

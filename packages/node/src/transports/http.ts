@@ -92,13 +92,11 @@ export function makeNodeTransport(options: NodeTransportOptions): Transport {
 function applyNoProxyOption(transportUrlSegments: URL, proxy: string | undefined): string | undefined {
   const { no_proxy } = process.env;
 
-  const urlIsExemptFromProxy =
-    no_proxy &&
-    no_proxy
-      .split(',')
-      .some(
-        exemption => transportUrlSegments.host.endsWith(exemption) || transportUrlSegments.hostname.endsWith(exemption),
-      );
+  const urlIsExemptFromProxy = no_proxy
+    ?.split(',')
+    .some(
+      exemption => transportUrlSegments.host.endsWith(exemption) || transportUrlSegments.hostname.endsWith(exemption),
+    );
 
   if (urlIsExemptFromProxy) {
     return undefined;

@@ -179,7 +179,7 @@ export function buildNetworkRequestOrResponse(
 
   const { body: normalizedBody, warnings } = normalizeNetworkBody(body);
   info.body = normalizedBody;
-  if (warnings && warnings.length > 0) {
+  if (warnings?.length) {
     info._meta = {
       warnings,
     };

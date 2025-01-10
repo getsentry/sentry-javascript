@@ -27,7 +27,7 @@ function onSpanStart(span: Span, parentContext: Context): void {
   }
 
   // We need this in the span exporter
-  if (parentSpan && parentSpan.spanContext().isRemote) {
+  if (parentSpan?.spanContext().isRemote) {
     span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_PARENT_IS_REMOTE, true);
   }
 

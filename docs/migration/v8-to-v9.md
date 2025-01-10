@@ -88,6 +88,8 @@ In v9, an `undefined` value will be treated the same as if the value is not defi
 
 - The `requestDataIntegration` will no longer automatically set the user from `request.user`. This is an express-specific, undocumented behavior, and also conflicts with our privacy-by-default strategy. Starting in v9, you'll need to manually call `Sentry.setUser()` e.g. in a middleware to set the user on Sentry events.
 
+- The `tracesSampler` hook will no longer be called for _every_ span. Instead, it will only be called for "root spans". Root spans are spans that have no local parent span. Root spans may however have incoming trace data from a different service, for example when using distributed tracing.
+
 ### `@sentry/browser`
 
 - The `captureUserFeedback` method has been removed. Use `captureFeedback` instead and update the `comments` field to `message`.
@@ -101,6 +103,16 @@ In v9, an `undefined` value will be treated the same as if the value is not defi
 - By default, source maps will now be automatically deleted after being uploaded to Sentry for client-side builds. You can opt out of this behavior by explicitly setting `sourcemaps.deleteSourcemapsAfterUpload` to `false` in your Sentry config.
 
 - Source maps are now automatically enabled for both client and server builds unless explicitly disabled via `sourcemaps.disable`. Client builds use `hidden-source-map` while server builds use `source-map` as their webpack `devtool` setting unless any other value than `false` or `undefined` has been assigned already.
+
+### All Meta-Framework SDKs (`@sentry/astro`, `@sentry/nuxt`)
+
+- Updated source map generation to respect the user-provided value of your build config, such as `vite.build.sourcemap`:
+
+  - Explicitly disabled (false): Emit warning, no source map upload.
+  - Explicitly enabled (true, 'hidden', 'inline'): No changes, source maps are uploaded and not automatically deleted.
+  - Unset: Enable 'hidden', delete `.map` files after uploading them to Sentry.
+
+  To customize which files are deleted after upload, define the `filesToDeleteAfterUpload` array with globs.
 
 ### Uncategorized (TODO)
 
@@ -210,6 +222,9 @@ The following changes are unlikely to affect users of the SDK. They are listed h
     ],
   });
   ```
+
+- The option `logErrors` in the `vueIntegration` has been removed. The Sentry Vue error handler will propagate the error to a user-defined error handler
+  or just re-throw the error (which will log the error without modifying).
 
 ## 5. Build Changes
 
@@ -366,6 +381,9 @@ The Sentry metrics beta has ended and the metrics API has been removed from the 
     ],
   });
   ```
+
+- Deprecated `logErrors` in the `vueIntegration`. The Sentry Vue error handler will propagate the error to a user-defined error handler
+  or just re-throw the error (which will log the error without modifying).
 
 ## `@sentry/nuxt` and `@sentry/vue`
 

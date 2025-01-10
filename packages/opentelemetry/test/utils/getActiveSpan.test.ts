@@ -96,7 +96,7 @@ describe('getRootSpan', () => {
   let provider: BasicTracerProvider | undefined;
 
   beforeEach(() => {
-    const client = new TestClient(getDefaultTestClientOptions());
+    const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
     provider = setupOtel(client);
   });
 

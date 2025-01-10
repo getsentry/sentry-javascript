@@ -33,7 +33,7 @@ export const TestClient = wrapClientClass(BaseTestClient);
 export type TestClientInterface = Client & OpenTelemetryClient;
 
 export function init(options: Partial<Options> = {}): void {
-  const client = new TestClient(getDefaultTestClientOptions(options));
+  const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1, ...options }));
 
   // The client is on the current scope, from where it generally is inherited
   getCurrentScope().setClient(client);
@@ -42,7 +42,6 @@ export function init(options: Partial<Options> = {}): void {
 
 export function getDefaultTestClientOptions(options: Partial<Options> = {}): ClientOptions {
   return {
-    enableTracing: true,
     integrations: [],
     transport: () => createTransport({ recordDroppedEvent: () => undefined }, _ => resolvedSyncPromise({})),
     stackParser: () => [],

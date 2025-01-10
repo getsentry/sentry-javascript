@@ -572,7 +572,7 @@ export class Scope {
    * @returns {string} The id of the captured Sentry event.
    */
   public captureException(exception: unknown, hint?: EventHint): string {
-    const eventId = hint && hint.event_id ? hint.event_id : uuid4();
+    const eventId = hint?.event_id || uuid4();
 
     if (!this._client) {
       logger.warn('No client configured on scope - will not capture exception!');
@@ -601,7 +601,7 @@ export class Scope {
    * @returns {string} The id of the captured message.
    */
   public captureMessage(message: string, level?: SeverityLevel, hint?: EventHint): string {
-    const eventId = hint && hint.event_id ? hint.event_id : uuid4();
+    const eventId = hint?.event_id || uuid4();
 
     if (!this._client) {
       logger.warn('No client configured on scope - will not capture message!');
@@ -631,7 +631,7 @@ export class Scope {
    * @returns {string} The id of the captured event.
    */
   public captureEvent(event: Event, hint?: EventHint): string {
-    const eventId = hint && hint.event_id ? hint.event_id : uuid4();
+    const eventId = hint?.event_id || uuid4();
 
     if (!this._client) {
       logger.warn('No client configured on scope - will not capture event!');
