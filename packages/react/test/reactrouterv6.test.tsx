@@ -13,7 +13,9 @@ import {
   Navigate,
   Outlet,
   Route,
+  RouterProvider,
   Routes,
+  createMemoryRouter,
   createRoutesFromChildren,
   matchRoutes,
   useLocation,
@@ -21,10 +23,13 @@ import {
   useRoutes,
 } from 'react-router-6';
 
+import type { RouteObject } from 'react-router-6';
+
 import { BrowserClient } from '../src';
 import {
   reactRouterV6BrowserTracingIntegration,
   withSentryReactRouterV6Routing,
+  wrapCreateMemoryRouterV6,
   wrapUseRoutesV6,
 } from '../src/reactrouterv6';
 
@@ -77,6 +82,99 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     getCurrentScope().setClient(undefined);
+  });
+
+  it('wrapCreateMemoryRouterV6 starts and updates a pageload transaction - single initialEntry', () => {
+    const client = createMockBrowserClient();
+    setCurrentClient(client);
+
+    client.addIntegration(
+      reactRouterV6BrowserTracingIntegration({
+        useEffect: React.useEffect,
+        useLocation,
+        useNavigationType,
+        createRoutesFromChildren,
+        matchRoutes,
+      }),
+    );
+
+    const routes: RouteObject[] = [
+      {
+        path: '/',
+        element: <div>Home</div>,
+      },
+      {
+        path: '/about',
+        element: <div>About</div>,
+      },
+    ];
+
+    const wrappedCreateMemoryRouter = wrapCreateMemoryRouterV6(createMemoryRouter);
+
+    const router = wrappedCreateMemoryRouter(routes, {
+      initialEntries: ['/about'],
+    });
+
+    render(<RouterProvider router={router} />);
+
+    expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(1);
+    expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
+      name: '/',
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react.reactrouter_v6',
+      },
+    });
+
+    expect(mockRootSpan.updateName).toHaveBeenLastCalledWith('/about');
+  });
+
+  it('wrapCreateMemoryRouterV6 starts and updates a pageload transaction - multiple initialEntries', () => {
+    const client = createMockBrowserClient();
+    setCurrentClient(client);
+
+    client.addIntegration(
+      reactRouterV6BrowserTracingIntegration({
+        useEffect: React.useEffect,
+        useLocation,
+        useNavigationType,
+        createRoutesFromChildren,
+        matchRoutes,
+      }),
+    );
+
+    const routes: RouteObject[] = [
+      {
+        path: '/',
+        element: <div>Home</div>,
+      },
+      {
+        path: '/about',
+        element: <div>About</div>,
+      },
+    ];
+
+    const wrappedCreateMemoryRouter = wrapCreateMemoryRouterV6(createMemoryRouter);
+
+    const router = wrappedCreateMemoryRouter(routes, {
+      initialEntries: ['/', '/about'],
+      initialIndex: 1,
+    });
+
+    render(<RouterProvider router={router} />);
+
+    expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(1);
+    expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
+      name: '/',
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react.reactrouter_v6',
+      },
+    });
+
+    expect(mockRootSpan.updateName).toHaveBeenLastCalledWith('/about');
   });
 
   describe('withSentryReactRouterV6Routing', () => {

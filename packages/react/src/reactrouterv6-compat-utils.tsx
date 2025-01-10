@@ -81,10 +81,7 @@ export function createV6CompatibleWrapCreateBrowserRouter<
     return createRouterFunction;
   }
 
-  // `opts` for createBrowserHistory and createMemoryHistory are different, but also not relevant for us at the moment.
-  // `basename` is the only option that is relevant for us, and it is the same for all.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return function (routes: RouteObject[], opts?: Record<string, any> & { basename?: string }): TRouter {
+  return function (routes: RouteObject[], opts?: Record<string, unknown> & { basename?: string }): TRouter {
     const router = createRouterFunction(routes, opts);
     const basename = opts && opts.basename;
 
@@ -95,6 +92,78 @@ export function createV6CompatibleWrapCreateBrowserRouter<
     // Callbacks to `router.subscribe` are not called for the initial load.
     if (router.state.historyAction === 'POP' && activeRootSpan) {
       updatePageloadTransaction(activeRootSpan, router.state.location, routes, undefined, basename);
+    }
+
+    router.subscribe((state: RouterState) => {
+      const location = state.location;
+      if (state.historyAction === 'PUSH' || state.historyAction === 'POP') {
+        handleNavigation({
+          location,
+          routes,
+          navigationType: state.historyAction,
+          version,
+          basename,
+        });
+      }
+    });
+
+    return router;
+  };
+}
+
+/**
+ * Creates a wrapCreateMemoryRouter function that can be used with all React Router v6 compatible versions.
+ */
+export function createV6CompatibleWrapCreateMemoryRouter<
+  TState extends RouterState = RouterState,
+  TRouter extends Router<TState> = Router<TState>,
+>(
+  createRouterFunction: CreateRouterFunction<TState, TRouter>,
+  version: V6CompatibleVersion,
+): CreateRouterFunction<TState, TRouter> {
+  if (!_useEffect || !_useLocation || !_useNavigationType || !_matchRoutes) {
+    DEBUG_BUILD &&
+      logger.warn(
+        `reactRouterV${version}Instrumentation was unable to wrap the \`createMemoryRouter\` function because of one or more missing parameters.`,
+      );
+
+    return createRouterFunction;
+  }
+
+  return function (
+    routes: RouteObject[],
+    opts?: Record<string, unknown> & {
+      basename?: string;
+      initialEntries?: (string | { pathname: string })[];
+      initialIndex?: number;
+    },
+  ): TRouter {
+    const router = createRouterFunction(routes, opts);
+    const basename = opts?.basename;
+
+    const activeRootSpan = getActiveRootSpan();
+    let initialEntry = undefined;
+
+    const initialEntries = opts?.initialEntries;
+    const initialIndex = opts?.initialIndex;
+
+    const hasOnlyOneInitialEntry = initialEntries && initialEntries.length === 1;
+    const hasIndexedEntry = initialIndex !== undefined && initialEntries && initialEntries[initialIndex];
+
+    initialEntry = hasOnlyOneInitialEntry
+      ? initialEntries[0]
+      : hasIndexedEntry
+        ? initialEntries[initialIndex]
+        : undefined;
+
+    const location = initialEntry
+      ? typeof initialEntry === 'string'
+        ? { pathname: initialEntry }
+        : initialEntry
+      : router.state.location;
+
+    if (router.state.historyAction === 'POP' && activeRootSpan) {
+      updatePageloadTransaction(activeRootSpan, location, routes, undefined, basename);
     }
 
     router.subscribe((state: RouterState) => {
