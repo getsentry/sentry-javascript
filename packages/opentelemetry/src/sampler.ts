@@ -104,7 +104,7 @@ export class SentrySampler implements Sampler {
         name: inferredSpanName,
         attributes: mergedAttributes,
         parentSampled,
-    });
+      });
 
       const attributes: Attributes = {
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: sampleRate,
