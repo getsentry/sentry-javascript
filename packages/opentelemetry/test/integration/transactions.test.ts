@@ -37,7 +37,7 @@ describe('Integration | Transactions', () => {
     });
 
     mockSdkInit({
-      enableTracing: true,
+      tracesSampleRate: 1,
       beforeSendTransaction,
       release: '8.0.0',
     });
@@ -178,7 +178,7 @@ describe('Integration | Transactions', () => {
   it('correctly creates concurrent transaction & spans', async () => {
     const beforeSendTransaction = jest.fn(() => null);
 
-    mockSdkInit({ enableTracing: true, beforeSendTransaction });
+    mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
 
     const client = getClient() as TestClientInterface;
 
@@ -339,7 +339,7 @@ describe('Integration | Transactions', () => {
       traceState,
     };
 
-    mockSdkInit({ enableTracing: true, beforeSendTransaction });
+    mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
 
     const client = getClient() as TestClientInterface;
 
@@ -443,7 +443,7 @@ describe('Integration | Transactions', () => {
     const logs: unknown[] = [];
     jest.spyOn(logger, 'log').mockImplementation(msg => logs.push(msg));
 
-    mockSdkInit({ enableTracing: true, beforeSendTransaction });
+    mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
 
     const provider = getProvider();
     const multiSpanProcessor = provider?.activeSpanProcessor as
@@ -516,7 +516,7 @@ describe('Integration | Transactions', () => {
     const transactions: Event[] = [];
 
     mockSdkInit({
-      enableTracing: true,
+      tracesSampleRate: 1,
       beforeSendTransaction: event => {
         transactions.push(event);
         return null;
@@ -573,7 +573,7 @@ describe('Integration | Transactions', () => {
     const transactions: Event[] = [];
 
     mockSdkInit({
-      enableTracing: true,
+      tracesSampleRate: 1,
       beforeSendTransaction: event => {
         transactions.push(event);
         return null;
@@ -644,7 +644,7 @@ describe('Integration | Transactions', () => {
     };
 
     mockSdkInit({
-      enableTracing: true,
+      tracesSampleRate: 1,
       beforeSendTransaction,
       release: '7.0.0',
     });

@@ -194,7 +194,7 @@ function globalHandlerLog(type: string): void {
 
 function getOptions(): { stackParser: StackParser; attachStacktrace?: boolean } {
   const client = getClient<BrowserClient>();
-  const options = (client && client.getOptions()) || {
+  const options = client?.getOptions() || {
     stackParser: () => [],
     attachStacktrace: false,
   };

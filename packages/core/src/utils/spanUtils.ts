@@ -9,6 +9,7 @@ import {
 } from '../semanticAttributes';
 import type { SentrySpan } from '../tracing/sentrySpan';
 import { SPAN_STATUS_OK, SPAN_STATUS_UNSET } from '../tracing/spanstatus';
+import { getCapturedScopesOnSpan } from '../tracing/utils';
 import type {
   Span,
   SpanAttributes,
@@ -61,7 +62,9 @@ export function spanToTraceContext(span: Span): TraceContext {
   // If the span is remote, we use a random/virtual span as span_id to the trace context,
   // and the remote span as parent_span_id
   const parent_span_id = isRemote ? spanId : spanToJSON(span).parent_span_id;
-  const span_id = isRemote ? generateSpanId() : spanId;
+  const scope = getCapturedScopesOnSpan(span).scope;
+
+  const span_id = isRemote ? scope?.getPropagationContext().propagationSpanId || generateSpanId() : spanId;
 
   return dropUndefinedKeys({
     parent_span_id,
@@ -286,7 +289,7 @@ export function showSpanDropWarning(): void {
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.warn(
-        '[Sentry] Deprecation warning: Returning null from `beforeSendSpan` will be disallowed from SDK version 9.0.0 onwards. The callback will only support mutating spans. To drop certain spans, configure the respective integrations directly.',
+        '[Sentry] Returning null from `beforeSendSpan` is disallowed. To drop certain spans, configure the respective integrations directly.',
       );
     });
     hasShownSpanDropWarning = true;

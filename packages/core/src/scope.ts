@@ -24,7 +24,7 @@ import type {
 import { isPlainObject } from './utils-hoist/is';
 import { logger } from './utils-hoist/logger';
 import { uuid4 } from './utils-hoist/misc';
-import { generateSpanId, generateTraceId } from './utils-hoist/propagationContext';
+import { generateTraceId } from './utils-hoist/propagationContext';
 import { dateTimestampInSeconds } from './utils-hoist/time';
 import { merge } from './utils/merge';
 import { _getSpanForScope, _setSpanForScope } from './utils/spanOnScope';
@@ -166,7 +166,6 @@ export class Scope {
     this._sdkProcessingMetadata = {};
     this._propagationContext = {
       traceId: generateTraceId(),
-      spanId: generateSpanId(),
     };
   }
 
@@ -555,14 +554,8 @@ export class Scope {
   /**
    * Add propagation context to the scope, used for distributed tracing
    */
-  public setPropagationContext(
-    context: Omit<PropagationContext, 'spanId'> & Partial<Pick<PropagationContext, 'spanId'>>,
-  ): this {
-    this._propagationContext = {
-      // eslint-disable-next-line deprecation/deprecation
-      spanId: generateSpanId(),
-      ...context,
-    };
+  public setPropagationContext(context: PropagationContext): this {
+    this._propagationContext = context;
     return this;
   }
 
@@ -579,7 +572,7 @@ export class Scope {
    * @returns {string} The id of the captured Sentry event.
    */
   public captureException(exception: unknown, hint?: EventHint): string {
-    const eventId = hint && hint.event_id ? hint.event_id : uuid4();
+    const eventId = hint?.event_id || uuid4();
 
     if (!this._client) {
       logger.warn('No client configured on scope - will not capture exception!');
@@ -608,7 +601,7 @@ export class Scope {
    * @returns {string} The id of the captured message.
    */
   public captureMessage(message: string, level?: SeverityLevel, hint?: EventHint): string {
-    const eventId = hint && hint.event_id ? hint.event_id : uuid4();
+    const eventId = hint?.event_id || uuid4();
 
     if (!this._client) {
       logger.warn('No client configured on scope - will not capture message!');
@@ -638,7 +631,7 @@ export class Scope {
    * @returns {string} The id of the captured event.
    */
   public captureEvent(event: Event, hint?: EventHint): string {
-    const eventId = hint && hint.event_id ? hint.event_id : uuid4();
+    const eventId = hint?.event_id || uuid4();
 
     if (!this._client) {
       logger.warn('No client configured on scope - will not capture event!');

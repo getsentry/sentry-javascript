@@ -5,7 +5,6 @@ describe('generatePropagationContext', () => {
     // eslint-disable-next-line deprecation/deprecation
     expect(generatePropagationContext()).toEqual({
       traceId: expect.stringMatching(/^[0-9a-f]{32}$/),
-      spanId: expect.stringMatching(/^[0-9a-f]{16}$/),
     });
   });
 });

@@ -11,9 +11,10 @@ console.log('Running build using esbuild version', esbuild.version);
 esbuild.buildSync({
   platform: 'node',
   entryPoints: ['./index.ts'],
-  outdir: './dist',
+  outfile: './dist/esm/index.mjs',
   target: 'esnext',
-  format: 'cjs',
+  format: 'esm',
   bundle: true,
   loader: { '.node': 'copy' },
+  external: ['@sentry/node', '@sentry/profiling-node'],
 });

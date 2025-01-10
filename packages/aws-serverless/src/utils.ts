@@ -53,7 +53,7 @@ export function getAwsTraceData(event: HandlerEvent, context?: HandlerContext): 
     baggage: headers.baggage,
   };
 
-  if (context && context.clientContext && context.clientContext.Custom) {
+  if (context?.clientContext?.Custom) {
     const customContext: Record<string, unknown> = context.clientContext.Custom;
     const sentryTrace = isString(customContext['sentry-trace']) ? customContext['sentry-trace'] : undefined;
 

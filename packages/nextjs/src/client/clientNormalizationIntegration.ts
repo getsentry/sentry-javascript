@@ -15,13 +15,12 @@ export const nextjsClientStackFrameNormalizationIntegration = defineIntegration(
 
         // We need to URI-decode the filename because Next.js has wildcard routes like "/users/[id].js" which show up as "/users/%5id%5.js" in Error stacktraces.
         // The corresponding sources that Next.js generates have proper brackets so we also need proper brackets in the frame so that source map resolving works.
-        if (frame.filename && frame.filename.startsWith('app:///_next')) {
+        if (frame.filename?.startsWith('app:///_next')) {
           frame.filename = decodeURI(frame.filename);
         }
 
         if (
-          frame.filename &&
-          frame.filename.match(
+          frame.filename?.match(
             /^app:\/\/\/_next\/static\/chunks\/(main-|main-app-|polyfills-|webpack-|framework-|framework\.)[0-9a-f]+\.js$/,
           )
         ) {

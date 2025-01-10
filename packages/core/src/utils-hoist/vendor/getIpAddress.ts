@@ -62,7 +62,7 @@ export function getClientIPAddress(headers: { [key: string]: string | string[] |
       return parseForwardedHeader(value);
     }
 
-    return value && value.split(',').map((v: string) => v.trim());
+    return value?.split(',').map((v: string) => v.trim());
   });
 
   // Flatten the array and filter out any falsy entries

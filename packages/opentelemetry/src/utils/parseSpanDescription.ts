@@ -255,8 +255,8 @@ export function getSanitizedUrl(
 
   const parsedUrl = typeof httpUrl === 'string' ? parseUrl(httpUrl) : undefined;
   const url = parsedUrl ? getSanitizedUrlString(parsedUrl) : undefined;
-  const query = parsedUrl && parsedUrl.search ? parsedUrl.search : undefined;
-  const fragment = parsedUrl && parsedUrl.hash ? parsedUrl.hash : undefined;
+  const query = parsedUrl?.search || undefined;
+  const fragment = parsedUrl?.hash || undefined;
 
   if (typeof httpRoute === 'string') {
     return { urlPath: httpRoute, url, query, fragment, hasRoute: true };

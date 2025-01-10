@@ -15,6 +15,7 @@ import { getAsyncContextStrategy } from '../../../src/asyncContext';
 import {
   SentrySpan,
   continueTrace,
+  getDynamicSamplingContextFromSpan,
   registerSpanErrorInstrumentation,
   startInactiveSpan,
   startSpan,
@@ -217,6 +218,13 @@ describe('startSpan', () => {
 
     expect(span).toBeDefined();
     expect(span).toBeInstanceOf(SentryNonRecordingSpan);
+    expect(getDynamicSamplingContextFromSpan(span)).toEqual({
+      environment: 'production',
+      sample_rate: '0',
+      sampled: 'false',
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      transaction: 'GET users/[id]',
+    });
   });
 
   it('creates & finishes span', async () => {
@@ -396,7 +404,6 @@ describe('startSpan', () => {
     withScope(scope => {
       scope.setPropagationContext({
         traceId: '99999999999999999999999999999999',
-        spanId: '1212121212121212',
         dsc: {},
         parentSpanId: '4242424242424242',
       });
@@ -633,6 +640,13 @@ describe('startSpanManual', () => {
 
     expect(span).toBeDefined();
     expect(span).toBeInstanceOf(SentryNonRecordingSpan);
+    expect(getDynamicSamplingContextFromSpan(span)).toEqual({
+      environment: 'production',
+      sample_rate: '0',
+      sampled: 'false',
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      transaction: 'GET users/[id]',
+    });
   });
 
   it('creates & finishes span', async () => {
@@ -828,7 +842,6 @@ describe('startSpanManual', () => {
     withScope(scope => {
       scope.setPropagationContext({
         traceId: '99999999999999999999999999999991',
-        spanId: '1212121212121212',
         dsc: {},
         parentSpanId: '4242424242424242',
       });
@@ -972,6 +985,13 @@ describe('startInactiveSpan', () => {
 
     expect(span).toBeDefined();
     expect(span).toBeInstanceOf(SentryNonRecordingSpan);
+    expect(getDynamicSamplingContextFromSpan(span)).toEqual({
+      environment: 'production',
+      sample_rate: '0',
+      sampled: 'false',
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      transaction: 'GET users/[id]',
+    });
   });
 
   it('creates & finishes span', async () => {
@@ -1146,7 +1166,6 @@ describe('startInactiveSpan', () => {
     withScope(scope => {
       scope.setPropagationContext({
         traceId: '99999999999999999999999999999991',
-        spanId: '1212121212121212',
         dsc: {},
         parentSpanId: '4242424242424242',
       });
@@ -1328,7 +1347,6 @@ describe('continueTrace', () => {
 
     expect(scope.getPropagationContext()).toEqual({
       sampled: undefined,
-      spanId: expect.any(String),
       traceId: expect.any(String),
     });
 
@@ -1350,7 +1368,6 @@ describe('continueTrace', () => {
       dsc: {}, // DSC should be an empty object (frozen), because there was an incoming trace
       sampled: false,
       parentSpanId: '1121201211212012',
-      spanId: expect.any(String),
       traceId: '12312012123120121231201212312012',
     });
 
@@ -1375,7 +1392,6 @@ describe('continueTrace', () => {
       },
       sampled: true,
       parentSpanId: '1121201211212012',
-      spanId: expect.any(String),
       traceId: '12312012123120121231201212312012',
     });
 
@@ -1400,7 +1416,6 @@ describe('continueTrace', () => {
       },
       sampled: true,
       parentSpanId: '1121201211212012',
-      spanId: expect.any(String),
       traceId: '12312012123120121231201212312012',
     });
 

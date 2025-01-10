@@ -1,9 +1,9 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { MockInstance } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import * as browserUtils from '@sentry-internal/browser-utils';
 import * as utils from '@sentry/core';
 import type { Client } from '@sentry/core';
-import { WINDOW } from '../../src/helpers';
 
 import { extractNetworkProtocol, instrumentOutgoingRequests, shouldAttachHeaders } from '../../src/tracing/request';
 
@@ -131,18 +131,14 @@ describe('shouldAttachHeaders', () => {
   });
 
   describe('with no defined `tracePropagationTargets`', () => {
-    let originalWindowLocation: Location;
+    let locationHrefSpy: MockInstance;
 
-    beforeAll(() => {
-      originalWindowLocation = WINDOW.location;
-      // @ts-expect-error Override delete
-      delete WINDOW.location;
-      // @ts-expect-error We are missing some fields of the Origin interface but it doesn't matter for these tests.
-      WINDOW.location = new URL('https://my-origin.com');
+    beforeEach(() => {
+      locationHrefSpy = vi.spyOn(utils, 'getLocationHref').mockImplementation(() => 'https://my-origin.com');
     });
 
-    afterAll(() => {
-      WINDOW.location = originalWindowLocation;
+    afterEach(() => {
+      locationHrefSpy.mockReset();
     });
 
     it.each([
@@ -173,18 +169,16 @@ describe('shouldAttachHeaders', () => {
   });
 
   describe('with `tracePropagationTargets`', () => {
-    let originalWindowLocation: Location;
+    let locationHrefSpy: MockInstance;
 
-    beforeAll(() => {
-      originalWindowLocation = WINDOW.location;
-      // @ts-expect-error Override delete
-      delete WINDOW.location;
-      // @ts-expect-error We are missing some fields of the Origin interface but it doesn't matter for these tests.
-      WINDOW.location = new URL('https://my-origin.com/api/my-route');
+    beforeEach(() => {
+      locationHrefSpy = vi
+        .spyOn(utils, 'getLocationHref')
+        .mockImplementation(() => 'https://my-origin.com/api/my-route');
     });
 
-    afterAll(() => {
-      WINDOW.location = originalWindowLocation;
+    afterEach(() => {
+      locationHrefSpy.mockReset();
     });
 
     it.each([
@@ -298,18 +292,14 @@ describe('shouldAttachHeaders', () => {
   });
 
   describe('when window.location.href is not available', () => {
-    let originalWindowLocation: Location;
+    let locationHrefSpy: MockInstance;
 
-    beforeAll(() => {
-      originalWindowLocation = WINDOW.location;
-      // @ts-expect-error Override delete
-      delete WINDOW.location;
-      // @ts-expect-error We need to simulate an edge-case
-      WINDOW.location = undefined;
+    beforeEach(() => {
+      locationHrefSpy = vi.spyOn(utils, 'getLocationHref').mockImplementation(() => '');
     });
 
-    afterAll(() => {
-      WINDOW.location = originalWindowLocation;
+    afterEach(() => {
+      locationHrefSpy.mockReset();
     });
 
     describe('with no defined `tracePropagationTargets`', () => {
