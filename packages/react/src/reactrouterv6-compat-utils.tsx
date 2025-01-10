@@ -399,11 +399,11 @@ function pathEndsWithWildcard(path: string): boolean {
 }
 
 function pathIsWildcardAndHasChildren(path: string, branch: RouteMatch<string>): boolean {
-  return (pathEndsWithWildcard(path) && branch.route.children && branch.route.children.length > 0) || false;
+  return (pathEndsWithWildcard(path) && !!branch.route.children?.length) || false;
 }
 
 function routeIsDescendant(route: RouteObject): boolean {
-  return !!(!route.children && route.element && route.path && route.path.endsWith('/*'));
+  return !!(!route.children && route.element && route.path?.endsWith('/*'));
 }
 
 function locationIsInsideDescendantRoute(location: Location, routes: RouteObject[]): boolean {

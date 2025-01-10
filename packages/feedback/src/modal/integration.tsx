@@ -50,7 +50,7 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
         },
         open() {
           renderContent(true);
-          options.onFormOpen && options.onFormOpen();
+          options.onFormOpen?.();
           originalOverflow = DOCUMENT.body.style.overflow;
           DOCUMENT.body.style.overflow = 'hidden';
         },
@@ -73,18 +73,18 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
             defaultEmail={(userKey && user && user[userKey.email]) || ''}
             onFormClose={() => {
               renderContent(false);
-              options.onFormClose && options.onFormClose();
+              options.onFormClose?.();
             }}
             onSubmit={sendFeedback}
             onSubmitSuccess={(data: FeedbackFormData) => {
               renderContent(false);
-              options.onSubmitSuccess && options.onSubmitSuccess(data);
+              options.onSubmitSuccess?.(data);
             }}
             onSubmitError={(error: Error) => {
-              options.onSubmitError && options.onSubmitError(error);
+              options.onSubmitError?.(error);
             }}
             onFormSubmitted={() => {
-              options.onFormSubmitted && options.onFormSubmitted();
+              options.onFormSubmitted?.();
             }}
             open={open}
           />,

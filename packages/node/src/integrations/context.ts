@@ -247,7 +247,7 @@ export function getDeviceContext(deviceOpt: DeviceContextOptions | true): Device
 
   if (deviceOpt === true || deviceOpt.cpu) {
     const cpuInfo = os.cpus() as os.CpuInfo[] | undefined;
-    const firstCpu = cpuInfo && cpuInfo[0];
+    const firstCpu = cpuInfo?.[0];
     if (firstCpu) {
       device.processor_count = cpuInfo.length;
       device.cpu_description = firstCpu.model;

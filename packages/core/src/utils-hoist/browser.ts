@@ -76,7 +76,7 @@ function _htmlElementAsString(el: unknown, keyAttrs?: string[]): string {
 
   const out = [];
 
-  if (!elem || !elem.tagName) {
+  if (!elem?.tagName) {
     return '';
   }
 

@@ -360,7 +360,7 @@ describe('Integration | flush', () => {
     expect(mockFlush).toHaveBeenCalledTimes(1);
     expect(mockSendReplay).toHaveBeenCalledTimes(1);
 
-    const replayData = mockSendReplay.mock.calls[0][0];
+    const replayData = mockSendReplay.mock.calls?.[0]?.[0] as SentryUtils.ReplayRecordingData;
 
     expect(JSON.parse(replayData.recordingData)).toEqual([
       {
@@ -509,28 +509,28 @@ describe('Integration | flush', () => {
   });
 
   it('resets flush lock when flush is called multiple times before it resolves', async () => {
-    let _resolve;
+    let _resolve: undefined | (() => void);
     mockRunFlush.mockImplementation(
       () =>
         new Promise(resolve => {
           _resolve = resolve;
         }),
     );
-    const mockDebouncedFlush: MockedFunction<ReplayContainer['_debouncedFlush']> = vi.spyOn(replay, '_debouncedFlush');
+    const mockDebouncedFlush = vi.spyOn(replay, '_debouncedFlush');
     mockDebouncedFlush.mockImplementation(vi.fn);
     mockDebouncedFlush.cancel = vi.fn();
 
     const results = [replay['_flush'](), replay['_flush']()];
     expect(replay['_flushLock']).not.toBeUndefined();
 
-    _resolve && _resolve();
+    _resolve?.();
     await Promise.all(results);
     expect(replay['_flushLock']).toBeUndefined();
     mockDebouncedFlush.mockRestore();
   });
 
   it('resets flush lock when flush is called multiple times before it rejects', async () => {
-    let _reject;
+    let _reject: undefined | ((error: Error) => void);
     mockRunFlush.mockImplementation(
       () =>
         new Promise((_, reject) => {
@@ -545,7 +545,7 @@ describe('Integration | flush', () => {
     const result = replay['_flush']();
     expect(replay['_flushLock']).not.toBeUndefined();
 
-    _reject && _reject(new Error('Throw runFlush'));
+    _reject?.(new Error('Throw runFlush'));
     await result;
     expect(replay['_flushLock']).toBeUndefined();
     mockDebouncedFlush.mockRestore();

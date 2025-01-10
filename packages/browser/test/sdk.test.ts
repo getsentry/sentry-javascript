@@ -284,7 +284,7 @@ describe('applyDefaultOptions', () => {
       sendClientReports: true,
     });
 
-    expect(actual.defaultIntegrations && actual.defaultIntegrations.map(i => i.name)).toEqual(
+    expect((actual.defaultIntegrations as { name: string }[]).map(i => i.name)).toEqual(
       getDefaultIntegrations(options).map(i => i.name),
     );
   });
@@ -303,7 +303,7 @@ describe('applyDefaultOptions', () => {
       tracesSampleRate: 0.5,
     });
 
-    expect(actual.defaultIntegrations && actual.defaultIntegrations.map(i => i.name)).toEqual(
+    expect((actual.defaultIntegrations as { name: string }[]).map(i => i.name)).toEqual(
       getDefaultIntegrations(options).map(i => i.name),
     );
   });

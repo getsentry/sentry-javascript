@@ -88,6 +88,8 @@ In v9, an `undefined` value will be treated the same as if the value is not defi
 
 - The `requestDataIntegration` will no longer automatically set the user from `request.user`. This is an express-specific, undocumented behavior, and also conflicts with our privacy-by-default strategy. Starting in v9, you'll need to manually call `Sentry.setUser()` e.g. in a middleware to set the user on Sentry events.
 
+- The `tracesSampler` hook will no longer be called for _every_ span. Instead, it will only be called for "root spans". Root spans are spans that have no local parent span. Root spans may however have incoming trace data from a different service, for example when using distributed tracing.
+
 ### `@sentry/browser`
 
 - The `captureUserFeedback` method has been removed. Use `captureFeedback` instead and update the `comments` field to `message`.
@@ -216,6 +218,9 @@ The following changes are unlikely to affect users of the SDK. They are listed h
     ],
   });
   ```
+
+- The option `logErrors` in the `vueIntegration` has been removed. The Sentry Vue error handler will propagate the error to a user-defined error handler
+  or just re-throw the error (which will log the error without modifying).
 
 ## 5. Build Changes
 
@@ -372,6 +377,9 @@ The Sentry metrics beta has ended and the metrics API has been removed from the 
     ],
   });
   ```
+
+- Deprecated `logErrors` in the `vueIntegration`. The Sentry Vue error handler will propagate the error to a user-defined error handler
+  or just re-throw the error (which will log the error without modifying).
 
 ## `@sentry/nuxt` and `@sentry/vue`
 

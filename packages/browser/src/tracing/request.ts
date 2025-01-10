@@ -12,6 +12,7 @@ import {
   addFetchInstrumentationHandler,
   browserPerformanceTimeOrigin,
   getActiveSpan,
+  getLocationHref,
   getTraceData,
   hasTracingEnabled,
   instrumentFetchRequest,
@@ -297,7 +298,7 @@ export function shouldAttachHeaders(
 ): boolean {
   // window.location.href not being defined is an edge case in the browser but we need to handle it.
   // Potentially dangerous situations where it may not be defined: Browser Extensions, Web Workers, patching of the location obj
-  const href: string | undefined = WINDOW.location && WINDOW.location.href;
+  const href = getLocationHref();
 
   if (!href) {
     // If there is no window.location.origin, we default to only attaching tracing headers to relative requests, i.e. ones that start with `/`
@@ -345,7 +346,7 @@ export function xhrCallback(
   spans: Record<string, Span>,
 ): Span | undefined {
   const xhr = handlerData.xhr;
-  const sentryXhrData = xhr && xhr[SENTRY_XHR_DATA_KEY];
+  const sentryXhrData = xhr?.[SENTRY_XHR_DATA_KEY];
 
   if (!xhr || xhr.__sentry_own_request__ || !sentryXhrData) {
     return undefined;

@@ -280,7 +280,7 @@ async function addSourceContext(event: Event, contextLines: number): Promise<Eve
   // and attempt to add source context to frames.
   if (contextLines > 0 && event.exception?.values) {
     for (const exception of event.exception.values) {
-      if (exception.stacktrace && exception.stacktrace.frames && exception.stacktrace.frames.length > 0) {
+      if (exception.stacktrace?.frames && exception.stacktrace.frames.length > 0) {
         addSourceContextToFrames(exception.stacktrace.frames, contextLines, LRU_FILE_CONTENTS_CACHE);
       }
     }

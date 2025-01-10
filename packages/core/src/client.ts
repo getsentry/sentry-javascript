@@ -612,7 +612,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   protected _updateSessionFromEvent(session: Session, event: Event): void {
     let crashed = false;
     let errored = false;
-    const exceptions = event.exception && event.exception.values;
+    const exceptions = event.exception?.values;
 
     if (exceptions) {
       errored = true;
@@ -841,9 +841,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
         }
 
         if (isTransaction) {
-          const spanCountBefore =
-            (processedEvent.sdkProcessingMetadata && processedEvent.sdkProcessingMetadata.spanCountBeforeProcessing) ||
-            0;
+          const spanCountBefore = processedEvent.sdkProcessingMetadata?.spanCountBeforeProcessing || 0;
           const spanCountAfter = processedEvent.spans ? processedEvent.spans.length : 0;
 
           const droppedSpanCount = spanCountBefore - spanCountAfter;

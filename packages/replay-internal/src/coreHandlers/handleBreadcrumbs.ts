@@ -61,7 +61,7 @@ export function normalizeBreadcrumb(breadcrumb: Breadcrumb): Breadcrumb | null {
 export function normalizeConsoleBreadcrumb(
   breadcrumb: Omit<Breadcrumb, 'category'> & BreadcrumbWithCategory,
 ): ReplayFrame {
-  const args = breadcrumb.data && breadcrumb.data.arguments;
+  const args = breadcrumb.data?.arguments;
 
   if (!Array.isArray(args) || args.length === 0) {
     return createBreadcrumb(breadcrumb);

@@ -15,7 +15,7 @@ export function applyAggregateErrorsToEvent(
   event: Event,
   hint?: EventHint,
 ): void {
-  if (!event.exception || !event.exception.values || !hint || !isInstanceOf(hint.originalException, Error)) {
+  if (!event.exception?.values || !hint || !isInstanceOf(hint.originalException, Error)) {
     return;
   }
 
