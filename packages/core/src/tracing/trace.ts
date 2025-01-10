@@ -46,9 +46,11 @@ export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) =
   const spanArguments = parseSentrySpanArguments(options);
   const { forceTransaction, parentSpan: customParentSpan, scope: customScope } = options;
 
-  const previousActiveSpanOnCustomScope = customScope && _getSpanForScope(customScope);
+  // We still need to fork a potentially passed scope, as we set the active span on it
+  // and we need to ensure that it is cleaned up properly once the span ends.
+  const customForkedScope = customScope?.clone();
 
-  return withScope(customScope, () => {
+  return withScope(customForkedScope, () => {
     // If `options.parentSpan` is defined, we want to wrap the callback in `withActiveSpan`
     const wrapper = getActiveSpanWrapper<T>(customParentSpan);
 
@@ -79,11 +81,6 @@ export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) =
         },
         () => {
           activeSpan.end();
-          if (customScope) {
-            // If a custom scope is passed, we don't fork the scope. Therefore, we need to reset the
-            // active span on the scope to the previous active span (or to undefined if there was none)
-            _setSpanForScope(customScope, previousActiveSpanOnCustomScope);
-          }
         },
       );
     });

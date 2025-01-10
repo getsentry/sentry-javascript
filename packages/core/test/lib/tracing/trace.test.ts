@@ -25,7 +25,7 @@ import {
 import { SentryNonRecordingSpan } from '../../../src/tracing/sentryNonRecordingSpan';
 import { startNewTrace } from '../../../src/tracing/trace';
 import type { Event, Span, StartSpanOptions } from '../../../src/types-hoist';
-import { _setSpanForScope } from '../../../src/utils/spanOnScope';
+import { _getSpanForScope, _setSpanForScope } from '../../../src/utils/spanOnScope';
 import { getActiveSpan, getRootSpan, getSpanDescendants, spanIsSampled } from '../../../src/utils/spanUtils';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
@@ -251,20 +251,44 @@ describe('startSpan', () => {
     expect(getActiveSpan()).toBe(undefined);
   });
 
-  it('allows to pass a scope', () => {
+  it('starts the span on the fork of a passed custom scope', () => {
     const initialScope = getCurrentScope();
 
-    const manualScope = initialScope.clone();
-    const parentSpan = new SentrySpan({ spanId: 'parent-span-id', sampled: true });
-    _setSpanForScope(manualScope, parentSpan);
+    const customScope = initialScope.clone();
+    customScope.setTag('dogs', 'great');
 
-    startSpan({ name: 'GET users/[id]', scope: manualScope }, span => {
+    const parentSpan = new SentrySpan({ spanId: 'parent-span-id', sampled: true });
+    _setSpanForScope(customScope, parentSpan);
+
+    startSpan({ name: 'GET users/[id]', scope: customScope }, span => {
+      // current scope is forked from the customScope
       expect(getCurrentScope()).not.toBe(initialScope);
-      expect(getCurrentScope()).toBe(manualScope);
+      expect(getCurrentScope()).not.toBe(customScope);
+      expect(getCurrentScope().getScopeData().tags).toEqual({ dogs: 'great' });
+
+      // active span is set correctly
       expect(getActiveSpan()).toBe(span);
+
+      // span has the correct parent span
       expect(spanToJSON(span).parent_span_id).toBe('parent-span-id');
+
+      // scope data modifications
+      getCurrentScope().setTag('cats', 'great');
+      customScope.setTag('bears', 'great');
+
+      expect(getCurrentScope().getScopeData().tags).toEqual({ dogs: 'great', cats: 'great' });
+      expect(customScope.getScopeData().tags).toEqual({ dogs: 'great', bears: 'great' });
     });
 
+    // customScope modifications are persisted
+    expect(customScope.getScopeData().tags).toEqual({ dogs: 'great', bears: 'great' });
+
+    // span is parent span again on customScope
+    withScope(customScope, () => {
+      expect(getActiveSpan()).toBe(parentSpan);
+    });
+
+    // but activeSpan and currentScope are reset, since customScope was never active
     expect(getCurrentScope()).toBe(initialScope);
     expect(getActiveSpan()).toBe(undefined);
   });
@@ -273,29 +297,35 @@ describe('startSpan', () => {
     it('with parent span', () => {
       const initialScope = getCurrentScope();
 
-      const manualScope = initialScope.clone();
+      const customScope = initialScope.clone();
       const parentSpan = new SentrySpan({ spanId: 'parent-span-id', sampled: true });
-      _setSpanForScope(manualScope, parentSpan);
+      _setSpanForScope(customScope, parentSpan);
 
-      startSpan({ name: 'span 1', scope: manualScope }, span1 => {
+      startSpan({ name: 'span 1', scope: customScope }, span1 => {
+        // current scope is forked from the customScope
         expect(getCurrentScope()).not.toBe(initialScope);
-        expect(getCurrentScope()).toBe(manualScope);
+        expect(getCurrentScope()).not.toBe(customScope);
+
         expect(getActiveSpan()).toBe(span1);
         expect(spanToJSON(span1).parent_span_id).toBe('parent-span-id');
       });
 
-      withScope(manualScope, () => {
+      // active span on customScope is reset
+      withScope(customScope, () => {
         expect(getActiveSpan()).toBe(parentSpan);
       });
 
-      startSpan({ name: 'span 2', scope: manualScope }, span2 => {
+      startSpan({ name: 'span 2', scope: customScope }, span2 => {
+        // current scope is forked from the customScope
         expect(getCurrentScope()).not.toBe(initialScope);
-        expect(getCurrentScope()).toBe(manualScope);
+        expect(getCurrentScope()).not.toBe(customScope);
+
         expect(getActiveSpan()).toBe(span2);
+        // both, span1 and span2 are children of the parent span
         expect(spanToJSON(span2).parent_span_id).toBe('parent-span-id');
       });
 
-      withScope(manualScope, () => {
+      withScope(customScope, () => {
         expect(getActiveSpan()).toBe(parentSpan);
       });
 
@@ -305,31 +335,35 @@ describe('startSpan', () => {
 
     it('without parent span', () => {
       const initialScope = getCurrentScope();
-      const manualScope = initialScope.clone();
+      const customScope = initialScope.clone();
 
-      const traceId = manualScope.getPropagationContext()?.traceId;
+      const traceId = customScope.getPropagationContext()?.traceId;
 
-      startSpan({ name: 'span 1', scope: manualScope }, span1 => {
+      startSpan({ name: 'span 1', scope: customScope }, span1 => {
         expect(getCurrentScope()).not.toBe(initialScope);
-        expect(getCurrentScope()).toBe(manualScope);
+        expect(getCurrentScope()).not.toBe(customScope);
+
         expect(getActiveSpan()).toBe(span1);
-        expect(spanToJSON(span1).parent_span_id).toBe(undefined);
+        expect(getRootSpan(getActiveSpan()!)).toBe(span1);
+
         expect(span1.spanContext().traceId).toBe(traceId);
       });
 
-      withScope(manualScope, () => {
+      withScope(customScope, () => {
         expect(getActiveSpan()).toBe(undefined);
       });
 
-      startSpan({ name: 'span 2', scope: manualScope }, span2 => {
+      startSpan({ name: 'span 2', scope: customScope }, span2 => {
         expect(getCurrentScope()).not.toBe(initialScope);
-        expect(getCurrentScope()).toBe(manualScope);
+        expect(getCurrentScope()).not.toBe(customScope);
+
         expect(getActiveSpan()).toBe(span2);
-        expect(spanToJSON(span2).parent_span_id).toBe(undefined);
+        expect(getRootSpan(getActiveSpan()!)).toBe(span2);
+
         expect(span2.spanContext().traceId).toBe(traceId);
       });
 
-      withScope(manualScope, () => {
+      withScope(customScope, () => {
         expect(getActiveSpan()).toBe(undefined);
       });
 

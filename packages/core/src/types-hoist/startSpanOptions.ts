@@ -5,7 +5,16 @@ export interface StartSpanOptions {
   /** A manually specified start time for the created `Span` object. */
   startTime?: SpanTimeInput;
 
-  /** If defined, start this span off this scope instead off the current scope. */
+  /**
+   * If set, start the span on a fork of this scope instead of on the current scope.
+   * To ensure proper span cleanup, the passed scope is cloned for the duration of the span.
+   *
+   * If you want to modify the passed scope inside the callback, be aware that:
+   * - calling `getCurrentScope()` will return the cloned scope, meaning all modifications
+   *   will be reset once the callback finishes
+   * - if you want to modify the passed scope and have the changes persist after the callback
+   *   ends, modify the scope directly and don't use `getCurrentScope()`
+   */
   scope?: Scope;
 
   /** The name of the span. */
