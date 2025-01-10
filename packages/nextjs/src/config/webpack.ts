@@ -357,7 +357,7 @@ export function constructWebpackConfigFunction(
           if (!newConfig.devtool) {
             logger.info(
               `[@sentry/nextjs] Automatically enabling source map generation for ${
-                isServer ? 'server' : 'client'
+                runtime
               } build.`,
             );
             // `hidden-source-map` produces the same sourcemaps as `source-map`, but doesn't include the `sourceMappingURL`
