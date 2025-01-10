@@ -19,8 +19,6 @@ interface Performance {
 
 /**
  * Returns a timestamp in seconds since the UNIX epoch using the Date API.
- *
- * TODO(v8): Return type should be rounded.
  */
 export function dateTimestampInSeconds(): number {
   return Date.now() / ONE_SECOND_IN_MS;
