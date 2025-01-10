@@ -1,8 +1,21 @@
+import { logger } from '@sentry/core';
 import type { Nitro } from 'nitropack';
 import { addSentryPluginToVite } from '../vite';
 import type { SentrySolidStartPluginOptions } from '../vite/types';
-import { addInstrumentationFileToBuild, addSentryTopImport } from './addInstrumentation';
-import type { SolidStartInlineConfig, SolidStartInlineServerConfig } from './types';
+import {
+  addDynamicImportEntryFileWrapper,
+  addInstrumentationFileToBuild,
+  addSentryTopImport,
+} from './addInstrumentation';
+import type { RollupConfig, SolidStartInlineConfig, SolidStartInlineServerConfig } from './types';
+
+const defaultSentrySolidStartPluginOptions: Omit<
+  SentrySolidStartPluginOptions,
+  'experimental_entrypointWrappedFunctions'
+> &
+  Required<Pick<SentrySolidStartPluginOptions, 'experimental_entrypointWrappedFunctions'>> = {
+  experimental_entrypointWrappedFunctions: ['default', 'handler', 'server'],
+};
 
 /**
  * Modifies the passed in Solid Start configuration with build-time enhancements such as
@@ -19,6 +32,7 @@ export function withSentry(
 ): SolidStartInlineConfig {
   const sentryPluginOptions = {
     ...sentrySolidStartPluginOptions,
+    ...defaultSentrySolidStartPluginOptions,
   };
 
   const server = (solidStartConfig.server || {}) as SolidStartInlineServerConfig;
@@ -35,11 +49,20 @@ export function withSentry(
       ...server,
       hooks: {
         ...hooks,
-        async 'rollup:before'(nitro: Nitro) {
-          await addInstrumentationFileToBuild(nitro);
+        async 'rollup:before'(nitro: Nitro, config: RollupConfig) {
+          if (sentrySolidStartPluginOptions?.autoInjectServerSentry === 'experimental_dynamic-import') {
+            await addDynamicImportEntryFileWrapper({ nitro, rollupConfig: config, sentryPluginOptions });
 
-          if (sentrySolidStartPluginOptions?.autoInjectServerSentry === 'top-level-import') {
-            await addSentryTopImport(nitro);
+            sentrySolidStartPluginOptions.debug &&
+              logger.log(
+                'Wrapping the server entry file with a dynamic `import()`, so Sentry can be preloaded before the server initializes.',
+              );
+          } else {
+            await addInstrumentationFileToBuild(nitro);
+
+            if (sentrySolidStartPluginOptions?.autoInjectServerSentry === 'top-level-import') {
+              await addSentryTopImport(nitro);
+            }
           }
 
           // Run user provided hook
