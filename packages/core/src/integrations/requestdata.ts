@@ -19,14 +19,14 @@ type RequestDataIntegrationOptions = {
   include?: RequestDataIncludeOptions;
 };
 
-const DEFAULT_INCLUDE = {
+const DEFAULT_INCLUDE: RequestDataIncludeOptions = {
   cookies: true,
   data: true,
   headers: true,
   ip: false,
   query_string: true,
   url: true,
-} satisfies RequestDataIncludeOptions;
+};
 
 const INTEGRATION_NAME = 'RequestData';
 
