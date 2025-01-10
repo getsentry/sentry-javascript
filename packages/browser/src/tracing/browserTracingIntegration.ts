@@ -282,6 +282,8 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
 
         scope.setPropagationContext({
           ...oldPropagationContext,
+          traceId: idleSpan.spanContext().traceId,
+          sampled: spanIsSampled(idleSpan),
           dsc: getDynamicSamplingContextFromSpan(span),
         });
       },
@@ -301,21 +303,6 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
 
       emitFinish();
     }
-
-    // A trace should to stay the consistent over the entire time span of one route.
-    // Therefore, when the initial pageload or navigation root span ends, we update the
-    // scope's propagation context to keep span-specific attributes like the `sampled` decision and
-    // the dynamic sampling context valid, even after the root span has ended.
-    // This ensures that the trace data is consistent for the entire duration of the route.
-    const scope = getCurrentScope();
-    const oldPropagationContext = scope.getPropagationContext();
-
-    scope.setPropagationContext({
-      ...oldPropagationContext,
-      traceId: idleSpan.spanContext().traceId,
-      sampled: spanIsSampled(idleSpan),
-      dsc: getDynamicSamplingContextFromSpan(idleSpan),
-    });
   }
 
   return {
