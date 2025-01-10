@@ -336,17 +336,6 @@ export function constructWebpackConfigFunction(
 
       if (sentryWebpackPlugin) {
         if (!userSentryOptions.sourcemaps?.disable) {
-          // enable source map deletion if not explicitly disabled
-          if (!isServer && userSentryOptions.sourcemaps?.deleteSourcemapsAfterUpload === undefined) {
-            logger.warn(
-              '[@sentry/nextjs] Source maps will be automatically deleted after being uploaded to Sentry. If you want to keep the source maps, set the `sourcemaps.deleteSourcemapsAfterUpload` option to false in `withSentryConfig()`. If you do not want to generate and upload sourcemaps at all, set the `sourcemaps.disable` option to true.',
-            );
-            userSentryOptions.sourcemaps = {
-              ...userSentryOptions.sourcemaps,
-              deleteSourcemapsAfterUpload: true,
-            };
-          }
-
           // Source maps can be configured in 3 ways:
           // 1. (next config): productionBrowserSourceMaps
           // 2. (next config): experimental.serverSourceMaps
@@ -355,11 +344,7 @@ export function constructWebpackConfigFunction(
           // We only update this if no explicit value is set
           // (Next.js defaults to `false`: https://github.com/vercel/next.js/blob/5f4f96c133bd6b10954812cc2fef6af085b82aa5/packages/next/src/build/webpack/config/blocks/base.ts#L61)
           if (!newConfig.devtool) {
-            logger.info(
-              `[@sentry/nextjs] Automatically enabling source map generation for ${
-                runtime
-              } build.`,
-            );
+            logger.info(`[@sentry/nextjs] Automatically enabling source map generation for ${runtime} build.`);
             // `hidden-source-map` produces the same sourcemaps as `source-map`, but doesn't include the `sourceMappingURL`
             // comment at the bottom. For folks who aren't publicly hosting their sourcemaps, this is helpful because then
             // the browser won't look for them and throw errors into the console when it can't find them. Because this is a
@@ -370,6 +355,17 @@ export function constructWebpackConfigFunction(
             } else {
               newConfig.devtool = 'hidden-source-map';
             }
+          }
+
+          // enable source map deletion if not explicitly disabled
+          if (!isServer && userSentryOptions.sourcemaps?.deleteSourcemapsAfterUpload === undefined) {
+            logger.warn(
+              '[@sentry/nextjs] Source maps will be automatically deleted after being uploaded to Sentry. If you want to keep the source maps, set the `sourcemaps.deleteSourcemapsAfterUpload` option to false in `withSentryConfig()`. If you do not want to generate and upload sourcemaps at all, set the `sourcemaps.disable` option to true.',
+            );
+            userSentryOptions.sourcemaps = {
+              ...userSentryOptions.sourcemaps,
+              deleteSourcemapsAfterUpload: true,
+            };
           }
         }
 
