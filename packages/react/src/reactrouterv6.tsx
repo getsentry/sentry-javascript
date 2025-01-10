@@ -5,6 +5,7 @@ import {
   createReactRouterV6CompatibleTracingIntegration,
   createV6CompatibleWithSentryReactRouterRouting,
   createV6CompatibleWrapCreateBrowserRouter,
+  createV6CompatibleWrapCreateMemoryRouter,
   createV6CompatibleWrapUseRoutes,
 } from './reactrouterv6-compat-utils';
 import type { CreateRouterFunction, Router, RouterState, UseRoutes } from './types';
@@ -48,7 +49,7 @@ export function wrapCreateMemoryRouterV6<
   TState extends RouterState = RouterState,
   TRouter extends Router<TState> = Router<TState>,
 >(createMemoryRouterFunction: CreateRouterFunction<TState, TRouter>): CreateRouterFunction<TState, TRouter> {
-  return createV6CompatibleWrapCreateBrowserRouter(createMemoryRouterFunction, '6', true);
+  return createV6CompatibleWrapCreateMemoryRouter(createMemoryRouterFunction, '6');
 }
 
 /**
