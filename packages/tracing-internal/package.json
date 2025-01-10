@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/tracing",
-  "version": "7.120.2",
+  "version": "7.120.3",
   "description": "Sentry Internal Tracing Package",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/tracing-internal",
@@ -30,9 +30,9 @@
     "tag": "v7"
   },
   "dependencies": {
-    "@sentry/core": "7.120.2",
-    "@sentry/types": "7.120.2",
-    "@sentry/utils": "7.120.2"
+    "@sentry/core": "7.120.3",
+    "@sentry/types": "7.120.3",
+    "@sentry/utils": "7.120.3"
   },
   "devDependencies": {
     "@types/express": "^4.17.14"
