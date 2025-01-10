@@ -82,6 +82,16 @@ In v9, an `undefined` value will be treated the same as if the value is not defi
 
 - The `getCurrentHub().getIntegration(IntegrationClass)` method will always return `null` in v9. This has already stopped working mostly in v8, because we stopped exposing integration classes. In v9, the fallback behavior has been removed. Note that this does not change the type signature and is thus not technically breaking, but still worth pointing out.
 
+- The `startSpan` behavior was slightly changed if you pass a custom `scope` to the span start options: While in v8, the passed scope was set active directly on the passed scope, in v9, the scope is cloned. This behavior change does not apply to `@sentry/node` where the scope was already cloned. This change was made to ensure that the span only remains active within the callback and to align behavior between `@sentry/node` and all other SDKs. As a result of the change, your span hierarchy should be more accurate. However, be aware that modifying the scope (e.g. set tags) within the `startSpan` callback behaves a bit differently now.
+
+```js
+startSpan({ name: 'example', scope: customScope }, () => {
+  getCurrentScope().setTag('tag-a', 'a'); // this tag will only remain within the callback
+  // set the tag directly on customScope in addition, if you want to to persist the tag outside of the callback
+  customScope.setTag('tag-a', 'a');
+});
+```
+
 ### `@sentry/node`
 
 - When `skipOpenTelemetrySetup: true` is configured, `httpIntegration({ spans: false })` will be configured by default. This means that you no longer have to specify this yourself in this scenario. With this change, no spans are emitted once `skipOpenTelemetrySetup: true` is configured, without any further configuration being needed.
