@@ -51,6 +51,7 @@ export const unleashIntegration = defineIntegration((unleashClientClass: Unleash
           return result;
         },
       };
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       const originalIsEnabled = unleashClientPrototype.isEnabled;
       unleashClientPrototype.isEnabled = new Proxy(originalIsEnabled, sentryIsEnabled);
 
@@ -66,6 +67,7 @@ export const unleashIntegration = defineIntegration((unleashClientClass: Unleash
           return variant;
         },
       };
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       const originalGetVariant = unleashClientPrototype.getVariant;
       unleashClientPrototype.getVariant = new Proxy(originalGetVariant, sentryGetVariant);
     },
