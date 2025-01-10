@@ -24,11 +24,19 @@ sentryTest('Basic test with eviction, update, and no async tasks', async ({ getL
 
   await page.evaluate(bufferSize => {
     const client = new (window as any).UnleashClient();
-    for (let i = 1; i <= bufferSize; i++) {
+
+    client.isEnabled('feat1');
+    client.isEnabled('strFeat');
+    client.isEnabled('noPayloadFeat');
+    client.isEnabled('jsonFeat');
+    client.isEnabled('noVariantFeat');
+    client.isEnabled('disabledFeat');
+
+    for (let i = 7; i <= bufferSize; i++) {
       client.isEnabled(`feat${i}`);
     }
     client.isEnabled(`feat${bufferSize + 1}`); // eviction
-    client.isEnabled('feat3'); // update
+    client.isEnabled('noPayloadFeat'); // update (move to tail)
   }, FLAG_BUFFER_SIZE);
 
   const reqPromise = waitForErrorRequest(page);
@@ -36,14 +44,15 @@ sentryTest('Basic test with eviction, update, and no async tasks', async ({ getL
   const req = await reqPromise;
   const event = envelopeRequestParser(req);
 
-  const expectedFlags = [{ flag: 'feat2', result: true }];
-  expectedFlags.push({ flag: 'feat4', result: true });
-  expectedFlags.push({ flag: 'feat5', result: true });
-  for (let i = 6; i <= FLAG_BUFFER_SIZE; i++) {
+  const expectedFlags = [{ flag: 'strFeat', result: true }];
+  expectedFlags.push({ flag: 'jsonFeat', result: true });
+  expectedFlags.push({ flag: 'noVariantFeat', result: true });
+  expectedFlags.push({ flag: 'disabledFeat', result: false });
+  for (let i = 7; i <= FLAG_BUFFER_SIZE; i++) {
     expectedFlags.push({ flag: `feat${i}`, result: false });
   }
   expectedFlags.push({ flag: `feat${FLAG_BUFFER_SIZE + 1}`, result: false });
-  expectedFlags.push({ flag: 'feat3', result: true });
+  expectedFlags.push({ flag: 'noPayloadFeat', result: true });
 
   expect(event.contexts?.flags?.values).toEqual(expectedFlags);
 });
