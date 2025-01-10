@@ -48,7 +48,7 @@ export function addNormalizedRequestDataToEvent(
 ): void {
   const include = {
     ...DEFAULT_INCLUDES,
-    ...(options && options.include),
+    ...options?.include,
   };
 
   if (include.request) {
@@ -222,7 +222,7 @@ function extractNormalizedRequestData(
   }
 
   if (includeKeys.includes('cookies')) {
-    const cookies = normalizedRequest.cookies || (headers && headers.cookie ? parseCookie(headers.cookie) : undefined);
+    const cookies = normalizedRequest.cookies || (headers?.cookie ? parseCookie(headers.cookie) : undefined);
     requestData.cookies = cookies || {};
   }
 

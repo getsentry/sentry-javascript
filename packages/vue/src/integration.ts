@@ -58,7 +58,7 @@ const vueInit = (app: Vue, options: Options): void => {
       };
     };
 
-    const isMounted = appWithInstance._instance && appWithInstance._instance.isMounted;
+    const isMounted = appWithInstance._instance?.isMounted;
     if (isMounted === true) {
       consoleSandbox(() => {
         // eslint-disable-next-line no-console

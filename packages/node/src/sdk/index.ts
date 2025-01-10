@@ -319,7 +319,7 @@ function trackSessionForProcess(): void {
     // Terminal Status i.e. Exited or Crashed because
     // "When a session is moved away from ok it must not be updated anymore."
     // Ref: https://develop.sentry.dev/sdk/sessions/
-    if (session && session.status !== 'ok') {
+    if (session?.status !== 'ok') {
       endSession();
     }
   });

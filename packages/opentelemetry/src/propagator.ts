@@ -198,7 +198,7 @@ export function getInjectionData(context: Context): {
 
   // If we have a remote span, the spanId should be considered as the parentSpanId, not spanId itself
   // Instead, we use a virtual (generated) spanId for propagation
-  if (span && span.spanContext().isRemote) {
+  if (span?.spanContext().isRemote) {
     const spanContext = span.spanContext();
     const dynamicSamplingContext = getDynamicSamplingContextFromSpan(span);
 

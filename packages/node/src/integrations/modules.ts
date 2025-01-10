@@ -54,7 +54,7 @@ function getPaths(): string[] {
 function collectModules(): {
   [name: string]: string;
 } {
-  const mainPaths = (require.main && require.main.paths) || [];
+  const mainPaths = require.main?.paths || [];
   const paths = getPaths();
   const infos: {
     [name: string]: string;

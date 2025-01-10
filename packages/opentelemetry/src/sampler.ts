@@ -95,45 +95,62 @@ export class SentrySampler implements Sampler {
       return wrapSamplingDecision({ decision: undefined, context, spanAttributes });
     }
 
-    const [sampled, sampleRate] = sampleSpan(options, {
-      name: inferredSpanName,
-      attributes: mergedAttributes,
-      transactionContext: {
+    const isRootSpan = !parentSpan || parentContext?.isRemote;
+
+    // We only sample based on parameters (like tracesSampleRate or tracesSampler) for root spans (which is done in sampleSpan).
+    // Non-root-spans simply inherit the sampling decision from their parent.
+    if (isRootSpan) {
+      const [sampled, sampleRate] = sampleSpan(options, {
         name: inferredSpanName,
+        attributes: mergedAttributes,
+        transactionContext: {
+          name: inferredSpanName,
+          parentSampled,
+        },
         parentSampled,
-      },
-      parentSampled,
-    });
+      });
 
-    const attributes: Attributes = {
-      [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: sampleRate,
-    };
-
-    const method = `${maybeSpanHttpMethod}`.toUpperCase();
-    if (method === 'OPTIONS' || method === 'HEAD') {
-      DEBUG_BUILD && logger.log(`[Tracing] Not sampling span because HTTP method is '${method}' for ${spanName}`);
-
-      return {
-        ...wrapSamplingDecision({ decision: SamplingDecision.NOT_RECORD, context, spanAttributes }),
-        attributes,
+      const attributes: Attributes = {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: sampleRate,
       };
-    }
 
-    if (!sampled) {
-      if (parentSampled === undefined) {
+      const method = `${maybeSpanHttpMethod}`.toUpperCase();
+      if (method === 'OPTIONS' || method === 'HEAD') {
+        DEBUG_BUILD && logger.log(`[Tracing] Not sampling span because HTTP method is '${method}' for ${spanName}`);
+
+        return {
+          ...wrapSamplingDecision({ decision: SamplingDecision.NOT_RECORD, context, spanAttributes }),
+          attributes,
+        };
+      }
+
+      if (
+        !sampled &&
+        // We check for `parentSampled === undefined` because we only want to record client reports for spans that are trace roots (ie. when there was incoming trace)
+        parentSampled === undefined
+      ) {
         DEBUG_BUILD && logger.log('[Tracing] Discarding root span because its trace was not chosen to be sampled.');
         this._client.recordDroppedEvent('sample_rate', 'transaction');
       }
 
       return {
-        ...wrapSamplingDecision({ decision: SamplingDecision.NOT_RECORD, context, spanAttributes }),
+        ...wrapSamplingDecision({
+          decision: sampled ? SamplingDecision.RECORD_AND_SAMPLED : SamplingDecision.NOT_RECORD,
+          context,
+          spanAttributes,
+        }),
         attributes,
       };
+    } else {
+      return {
+        ...wrapSamplingDecision({
+          decision: parentSampled ? SamplingDecision.RECORD_AND_SAMPLED : SamplingDecision.NOT_RECORD,
+          context,
+          spanAttributes,
+        }),
+        attributes: {},
+      };
     }
-    return {
-      ...wrapSamplingDecision({ decision: SamplingDecision.RECORD_AND_SAMPLED, context, spanAttributes }),
-      attributes,
-    };
   }
 
   /** Returns the sampler name or short description with the configuration. */

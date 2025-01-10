@@ -63,7 +63,7 @@ function formatIssueTitle(issue: ZodIssue): SingleLevelZodIssue<ZodIssue> {
 function formatIssueMessage(zodError: ZodError): string {
   const errorKeyMap = new Set<string | number | symbol>();
   for (const iss of zodError.issues) {
-    if (iss.path && iss.path[0]) {
+    if (iss.path?.[0]) {
       errorKeyMap.add(iss.path[0]);
     }
   }
@@ -77,10 +77,8 @@ function formatIssueMessage(zodError: ZodError): string {
  */
 export function applyZodErrorsToEvent(limit: number, event: Event, hint?: EventHint): Event {
   if (
-    !event.exception ||
-    !event.exception.values ||
-    !hint ||
-    !hint.originalException ||
+    !event.exception?.values ||
+    !hint?.originalException ||
     !originalExceptionIsZodError(hint.originalException) ||
     hint.originalException.issues.length === 0
   ) {

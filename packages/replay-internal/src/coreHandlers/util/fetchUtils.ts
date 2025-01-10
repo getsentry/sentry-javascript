@@ -179,8 +179,7 @@ function getResponseData(
   },
 ): ReplayNetworkRequestOrResponse | undefined {
   try {
-    const size =
-      bodyText && bodyText.length && responseBodySize === undefined ? getBodySize(bodyText) : responseBodySize;
+    const size = bodyText?.length && responseBodySize === undefined ? getBodySize(bodyText) : responseBodySize;
 
     if (!captureDetails) {
       return buildSkippedNetworkRequestOrResponse(size);
