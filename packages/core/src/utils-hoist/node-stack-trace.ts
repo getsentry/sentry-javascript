@@ -100,7 +100,7 @@ export function node(getModule?: GetModuleFn): StackLineParserFn {
         functionName = typeName ? `${typeName}.${methodName}` : methodName;
       }
 
-      let filename = lineMatch[2] && lineMatch[2].startsWith('file://') ? lineMatch[2].slice(7) : lineMatch[2];
+      let filename = lineMatch[2]?.startsWith('file://') ? lineMatch[2].slice(7) : lineMatch[2];
       const isNative = lineMatch[5] === 'native';
 
       // If it's a Windows path, trim the leading slash so that `/C:/foo` becomes `C:/foo`

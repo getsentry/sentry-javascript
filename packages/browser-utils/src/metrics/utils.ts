@@ -106,7 +106,7 @@ export function startStandaloneWebVitalSpan(options: StandaloneWebVitalSpanOptio
     // Web vital score calculation relies on the user agent to account for different
     // browsers setting different thresholds for what is considered a good/meh/bad value.
     // For example: Chrome vs. Chrome Mobile
-    'user_agent.original': WINDOW.navigator && WINDOW.navigator.userAgent,
+    'user_agent.original': WINDOW.navigator?.userAgent,
 
     ...passedAttributes,
   };

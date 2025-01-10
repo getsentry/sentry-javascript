@@ -51,8 +51,8 @@ function addSourceContext(event: Event, contextLines: number): Event {
     return event;
   }
 
-  const exceptions = event.exception && event.exception.values;
-  if (!exceptions || !exceptions.length) {
+  const exceptions = event.exception?.values;
+  if (!exceptions?.length) {
     return event;
   }
 

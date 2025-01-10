@@ -55,7 +55,7 @@ export function uuid4(): string {
 }
 
 function getFirstException(event: Event): Exception | undefined {
-  return event.exception && event.exception.values ? event.exception.values[0] : undefined;
+  return event.exception?.values?.[0];
 }
 
 /**

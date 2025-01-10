@@ -39,8 +39,8 @@ function handleTransactionEvent(replay: ReplayContainer, event: TransactionEvent
   // Collect traceIds in _context regardless of `recordingMode`
   // In error mode, _context gets cleared on every checkout
   // We limit to max. 100 transactions linked
-  if (event.contexts && event.contexts.trace && event.contexts.trace.trace_id && replayContext.traceIds.size < 100) {
-    replayContext.traceIds.add(event.contexts.trace.trace_id as string);
+  if (event.contexts?.trace?.trace_id && replayContext.traceIds.size < 100) {
+    replayContext.traceIds.add(event.contexts.trace.trace_id);
   }
 }
 

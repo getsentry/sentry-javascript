@@ -19,7 +19,7 @@ export const attachErrorHandler = (app: Vue, options: VueOptions): void => {
     if (options.attachProps && vm) {
       // Vue2 - $options.propsData
       // Vue3 - $props
-      if (vm.$options && vm.$options.propsData) {
+      if (vm.$options?.propsData) {
         metadata.propsData = vm.$options.propsData;
       } else if (vm.$props) {
         metadata.propsData = vm.$props;

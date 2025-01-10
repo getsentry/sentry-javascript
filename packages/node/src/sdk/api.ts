@@ -15,7 +15,7 @@ export function getSentryRelease(fallback?: string): string | undefined {
   }
 
   // This supports the variable that sentry-webpack-plugin injects
-  if (GLOBAL_OBJ.SENTRY_RELEASE && GLOBAL_OBJ.SENTRY_RELEASE.id) {
+  if (GLOBAL_OBJ.SENTRY_RELEASE?.id) {
     return GLOBAL_OBJ.SENTRY_RELEASE.id;
   }
 
