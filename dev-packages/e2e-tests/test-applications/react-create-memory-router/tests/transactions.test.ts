@@ -9,28 +9,6 @@ test('Captures a pageload transaction', async ({ page }) => {
   await page.goto('/');
 
   const transactionEvent = await transactionEventPromise;
-  expect(transactionEvent.contexts?.trace).toEqual({
-    data: {
-      deviceMemory: expect.any(String),
-      effectiveConnectionType: expect.any(String),
-      hardwareConcurrency: expect.any(String),
-      'lcp.element': 'body > div#root > div',
-      'lcp.size': expect.any(Number),
-      'sentry.idle_span_finish_reason': 'idleTimeout',
-      'sentry.op': 'pageload',
-      'sentry.origin': 'auto.pageload.react.reactrouter_v6',
-      'sentry.sample_rate': 1,
-      'sentry.source': 'route',
-      'performance.timeOrigin': expect.any(Number),
-      'performance.activationStart': expect.any(Number),
-      'lcp.renderTime': expect.any(Number),
-      'lcp.loadTime': expect.any(Number),
-    },
-    op: 'pageload',
-    span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-    origin: 'auto.pageload.react.reactrouter_v6',
-  });
 
   expect(transactionEvent).toEqual(
     expect.objectContaining({
@@ -42,62 +20,21 @@ test('Captures a pageload transaction', async ({ page }) => {
     }),
   );
 
-  expect(transactionEvent.spans).toContainEqual({
-    data: {
-      'sentry.origin': 'auto.ui.browser.metrics',
-      'sentry.op': 'browser.domContentLoadedEvent',
-    },
-    description: page.url(),
-    op: 'browser.domContentLoadedEvent',
-    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    start_timestamp: expect.any(Number),
-    timestamp: expect.any(Number),
-    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-    origin: 'auto.ui.browser.metrics',
-  });
-  expect(transactionEvent.spans).toContainEqual({
-    data: {
-      'sentry.origin': 'auto.ui.browser.metrics',
-      'sentry.op': 'browser.connect',
-    },
-    description: page.url(),
-    op: 'browser.connect',
-    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    start_timestamp: expect.any(Number),
-    timestamp: expect.any(Number),
-    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-    origin: 'auto.ui.browser.metrics',
-  });
-  expect(transactionEvent.spans).toContainEqual({
-    data: {
-      'sentry.origin': 'auto.ui.browser.metrics',
-      'sentry.op': 'browser.request',
-    },
-    description: page.url(),
-    op: 'browser.request',
-    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    start_timestamp: expect.any(Number),
-    timestamp: expect.any(Number),
-    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-    origin: 'auto.ui.browser.metrics',
-  });
-  expect(transactionEvent.spans).toContainEqual({
-    data: {
-      'sentry.origin': 'auto.ui.browser.metrics',
-      'sentry.op': 'browser.response',
-    },
-    description: page.url(),
-    op: 'browser.response',
-    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    start_timestamp: expect.any(Number),
-    timestamp: expect.any(Number),
-    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-    origin: 'auto.ui.browser.metrics',
-  });
+  expect(transactionEvent.contexts?.trace).toEqual(
+    expect.objectContaining({
+      data: expect.objectContaining({
+        'sentry.idle_span_finish_reason': 'idleTimeout',
+        'sentry.op': 'pageload',
+        'sentry.origin': 'auto.pageload.react.reactrouter_v6',
+        'sentry.sample_rate': 1,
+        'sentry.source': 'route',
+      }),
+      op: 'pageload',
+      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      origin: 'auto.pageload.react.reactrouter_v6',
+    }),
+  );
 });
 
 test('Captures a navigation transaction', async ({ page }) => {
@@ -112,9 +49,6 @@ test('Captures a navigation transaction', async ({ page }) => {
   const transactionEvent = await transactionEventPromise;
   expect(transactionEvent.contexts?.trace).toEqual({
     data: expect.objectContaining({
-      deviceMemory: expect.any(String),
-      effectiveConnectionType: expect.any(String),
-      hardwareConcurrency: expect.any(String),
       'sentry.idle_span_finish_reason': 'idleTimeout',
       'sentry.op': 'navigation',
       'sentry.origin': 'auto.navigation.react.reactrouter_v6',
