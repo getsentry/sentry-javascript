@@ -9,7 +9,7 @@ import {
   startTrackingLongTasks,
   startTrackingWebVitals,
 } from '@sentry-internal/browser-utils';
-import type { Client, IntegrationFn, Span, StartSpanOptions, TransactionSource} from '@sentry/core';
+import type { Client, IntegrationFn, Span, StartSpanOptions, TransactionSource } from '@sentry/core';
 import { dropUndefinedKeys } from '@sentry/core';
 import {
   GLOBAL_OBJ,
