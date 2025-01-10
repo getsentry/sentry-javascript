@@ -458,7 +458,9 @@ export function startBrowserTracingPageLoadSpan(
  * This will only do something if a browser tracing integration has been setup.
  */
 export function startBrowserTracingNavigationSpan(client: Client, spanOptions: StartSpanOptions): Span | undefined {
+  // Reset this to ensure we start a new trace, instead of continuing the last pageload/navigation trace
   getIsolationScope().setPropagationContext({ traceId: generateTraceId() });
+  getCurrentScope().setPropagationContext({ traceId: generateTraceId() });
 
   client.emit('startNavigationSpan', spanOptions);
   getCurrentScope().setTransactionName(spanOptions.name);
