@@ -34,7 +34,7 @@ import { cleanupOtel, mockSdkInit } from './helpers/mockSdkInit';
 
 describe('trace', () => {
   beforeEach(() => {
-    mockSdkInit({ enableTracing: true });
+    mockSdkInit({ tracesSampleRate: 1 });
   });
 
   afterEach(() => {
@@ -1138,7 +1138,7 @@ describe('trace', () => {
 
 describe('trace (tracing disabled)', () => {
   beforeEach(() => {
-    mockSdkInit({ enableTracing: false });
+    mockSdkInit({ tracesSampleRate: 0 });
   });
 
   afterEach(() => {
@@ -1336,12 +1336,27 @@ describe('trace (sampling)', () => {
       });
     });
 
-    expect(tracesSampler).toHaveBeenCalledTimes(3);
-    expect(tracesSampler).toHaveBeenLastCalledWith({
-      parentSampled: false,
+    expect(tracesSampler).toHaveBeenCalledTimes(2);
+    expect(tracesSampler).toHaveBeenCalledWith(
+      expect.objectContaining({
+        parentSampled: undefined,
+        name: 'outer',
+        attributes: {},
+        transactionContext: { name: 'outer', parentSampled: undefined },
+      }),
+    );
+    expect(tracesSampler).toHaveBeenCalledWith(
+      expect.objectContaining({
+        parentSampled: undefined,
+        name: 'outer2',
+        attributes: {},
+        transactionContext: { name: 'outer2', parentSampled: undefined },
+      }),
+    );
+
+    // Only root spans should go through the sampler
+    expect(tracesSampler).not.toHaveBeenLastCalledWith({
       name: 'inner2',
-      attributes: {},
-      transactionContext: { name: 'inner2', parentSampled: false },
     });
   });
 
@@ -1390,13 +1405,22 @@ describe('trace (sampling)', () => {
       });
     });
 
-    expect(tracesSampler).toHaveBeenCalledTimes(3);
-    expect(tracesSampler).toHaveBeenLastCalledWith({
-      parentSampled: false,
-      name: 'inner2',
-      attributes: {},
-      transactionContext: { name: 'inner2', parentSampled: false },
-    });
+    expect(tracesSampler).toHaveBeenCalledTimes(2);
+    expect(tracesSampler).toHaveBeenCalledWith(
+      expect.objectContaining({
+        parentSampled: undefined,
+        name: 'outer2',
+        attributes: {},
+        transactionContext: { name: 'outer2', parentSampled: undefined },
+      }),
+    );
+
+    // Only root spans should be passed to tracesSampler
+    expect(tracesSampler).not.toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        name: 'inner2',
+      }),
+    );
 
     // Now return `0.4`, it should not sample
     tracesSamplerResponse = 0.4;
@@ -1405,7 +1429,7 @@ describe('trace (sampling)', () => {
       expect(outerSpan.isRecording()).toBe(false);
     });
 
-    expect(tracesSampler).toHaveBeenCalledTimes(4);
+    expect(tracesSampler).toHaveBeenCalledTimes(3);
     expect(tracesSampler).toHaveBeenLastCalledWith({
       parentSampled: undefined,
       name: 'outer3',
@@ -1475,7 +1499,7 @@ describe('trace (sampling)', () => {
 
 describe('HTTP methods (sampling)', () => {
   beforeEach(() => {
-    mockSdkInit({ enableTracing: true });
+    mockSdkInit({ tracesSampleRate: 1 });
   });
 
   afterEach(() => {
@@ -1530,7 +1554,7 @@ describe('HTTP methods (sampling)', () => {
 
 describe('continueTrace', () => {
   beforeEach(() => {
-    mockSdkInit({ enableTracing: true });
+    mockSdkInit({ tracesSampleRate: 1 });
   });
 
   afterEach(() => {
@@ -1545,8 +1569,6 @@ describe('continueTrace', () => {
     });
 
     expect(scope.getPropagationContext()).toEqual({
-      sampled: undefined,
-      spanId: expect.any(String),
       traceId: expect.any(String),
     });
 
@@ -1554,7 +1576,7 @@ describe('continueTrace', () => {
   });
 
   it('works with trace data', () => {
-    const scope = continueTrace(
+    continueTrace(
       {
         sentryTrace: '12312012123120121231201212312012-1121201211212012-0',
         baggage: undefined,
@@ -1570,21 +1592,12 @@ describe('continueTrace', () => {
         });
         expect(getSamplingDecision(span.spanContext())).toBe(false);
         expect(spanIsSampled(span)).toBe(false);
-
-        return getCurrentScope();
       },
     );
-
-    expect(scope.getPropagationContext()).toEqual({
-      spanId: expect.any(String),
-      traceId: expect.any(String),
-    });
-
-    expect(scope.getScopeData().sdkProcessingMetadata).toEqual({});
   });
 
   it('works with trace & baggage data', () => {
-    const scope = continueTrace(
+    continueTrace(
       {
         sentryTrace: '12312012123120121231201212312012-1121201211212012-1',
         baggage: 'sentry-version=1.0,sentry-environment=production',
@@ -1600,21 +1613,12 @@ describe('continueTrace', () => {
         });
         expect(getSamplingDecision(span.spanContext())).toBe(true);
         expect(spanIsSampled(span)).toBe(true);
-
-        return getCurrentScope();
       },
     );
-
-    expect(scope.getPropagationContext()).toEqual({
-      spanId: expect.any(String),
-      traceId: expect.any(String),
-    });
-
-    expect(scope.getScopeData().sdkProcessingMetadata).toEqual({});
   });
 
   it('works with trace & 3rd party baggage data', () => {
-    const scope = continueTrace(
+    continueTrace(
       {
         sentryTrace: '12312012123120121231201212312012-1121201211212012-1',
         baggage: 'sentry-version=1.0,sentry-environment=production,dogs=great,cats=boring',
@@ -1630,16 +1634,8 @@ describe('continueTrace', () => {
         });
         expect(getSamplingDecision(span.spanContext())).toBe(true);
         expect(spanIsSampled(span)).toBe(true);
-
-        return getCurrentScope();
       },
     );
-
-    expect(scope.getPropagationContext()).toEqual({
-      spanId: expect.any(String),
-      traceId: expect.any(String),
-    });
-    expect(scope.getScopeData().sdkProcessingMetadata).toEqual({});
   });
 
   it('returns response of callback', () => {
@@ -1659,7 +1655,7 @@ describe('continueTrace', () => {
 
 describe('suppressTracing', () => {
   beforeEach(() => {
-    mockSdkInit({ enableTracing: true });
+    mockSdkInit({ tracesSampleRate: 1 });
   });
 
   afterEach(() => {

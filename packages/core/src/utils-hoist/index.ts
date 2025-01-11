@@ -66,14 +66,7 @@ export type { PromiseBuffer } from './promisebuffer';
 
 // TODO: Remove requestdata export once equivalent integration is used everywhere
 export {
-  DEFAULT_USER_INCLUDES,
   addNormalizedRequestDataToEvent,
-  // eslint-disable-next-line deprecation/deprecation
-  addRequestDataToEvent,
-  // eslint-disable-next-line deprecation/deprecation
-  extractPathForTransaction,
-  // eslint-disable-next-line deprecation/deprecation
-  extractRequestData,
   winterCGHeadersToDict,
   winterCGRequestToRequestData,
   httpRequestToRequestData,

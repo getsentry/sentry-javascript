@@ -12,8 +12,8 @@ import type {
   TraceContext,
 } from './types-hoist';
 
-import { BaseClient } from './baseclient';
 import { createCheckInEnvelope } from './checkin';
+import { Client } from './client';
 import { getIsolationScope, getTraceContextFromScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import type { Scope } from './scope';
@@ -40,7 +40,7 @@ export interface ServerRuntimeClientOptions extends ClientOptions<BaseTransportO
  */
 export class ServerRuntimeClient<
   O extends ClientOptions & ServerRuntimeClientOptions = ServerRuntimeClientOptions,
-> extends BaseClient<O> {
+> extends Client<O> {
   /**
    * Creates a new Edge SDK instance.
    * @param options Configuration options for this SDK.
@@ -88,7 +88,7 @@ export class ServerRuntimeClient<
    */
   public captureEvent(event: Event, hint?: EventHint, scope?: Scope): string {
     // If the event is of type Exception, then a request session should be captured
-    const isException = !event.type && event.exception && event.exception.values && event.exception.values.length > 0;
+    const isException = !event.type && event.exception?.values && event.exception.values.length > 0;
     if (isException) {
       setCurrentRequestSessionErroredOrCrashed(hint);
     }
@@ -166,8 +166,8 @@ export class ServerRuntimeClient<
   protected _prepareEvent(
     event: Event,
     hint: EventHint,
-    scope?: Scope,
-    isolationScope?: Scope,
+    currentScope: Scope,
+    isolationScope: Scope,
   ): PromiseLike<Event | null> {
     if (this._options.platform) {
       event.platform = event.platform || this._options.platform;
@@ -176,7 +176,7 @@ export class ServerRuntimeClient<
     if (this._options.runtime) {
       event.contexts = {
         ...event.contexts,
-        runtime: (event.contexts || {}).runtime || this._options.runtime,
+        runtime: event.contexts?.runtime || this._options.runtime,
       };
     }
 
@@ -184,7 +184,7 @@ export class ServerRuntimeClient<
       event.server_name = event.server_name || this._options.serverName;
     }
 
-    return super._prepareEvent(event, hint, scope, isolationScope);
+    return super._prepareEvent(event, hint, currentScope, isolationScope);
   }
 
   /** Extract trace information from scope */

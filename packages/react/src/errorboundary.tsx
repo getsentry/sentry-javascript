@@ -35,6 +35,12 @@ export type ErrorBoundaryProps = {
    *
    */
   fallback?: React.ReactElement | FallbackRender | undefined;
+  /**
+   * If set to `true` or `false`, the error `handled` property will be set to the given value.
+   * If unset, the default behaviour is to rely on the presence of the `fallback` prop to determine
+   * if the error was handled or not.
+   */
+  handled?: boolean | undefined;
   /** Called when the error boundary encounters an error */
   onError?: ((error: unknown, componentStack: string | undefined, eventId: string) => void) | undefined;
   /** Called on componentDidMount() */
@@ -107,7 +113,8 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
         beforeCapture(scope, error, passedInComponentStack);
       }
 
-      const eventId = captureReactException(error, errorInfo, { mechanism: { handled: !!this.props.fallback } });
+      const handled = this.props.handled != null ? this.props.handled : !!this.props.fallback;
+      const eventId = captureReactException(error, errorInfo, { mechanism: { handled } });
 
       if (onError) {
         onError(error, passedInComponentStack, eventId);
@@ -145,14 +152,14 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     }
   }
 
-  public resetErrorBoundary: () => void = () => {
+  public resetErrorBoundary(): void {
     const { onReset } = this.props;
     const { error, componentStack, eventId } = this.state;
     if (onReset) {
       onReset(error, componentStack, eventId);
     }
     this.setState(INITIAL_STATE);
-  };
+  }
 
   public render(): React.ReactNode {
     const { fallback, children } = this.props;
@@ -164,7 +171,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
         element = React.createElement(fallback, {
           error: state.error,
           componentStack: state.componentStack as string,
-          resetError: this.resetErrorBoundary,
+          resetError: this.resetErrorBoundary.bind(this),
           eventId: state.eventId as string,
         });
       } else {

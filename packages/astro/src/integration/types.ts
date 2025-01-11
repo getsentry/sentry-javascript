@@ -73,6 +73,16 @@ type SourceMapsOptions = {
    * @see https://www.npmjs.com/package/glob#glob-primer
    */
   assets?: string | Array<string>;
+
+  /**
+   * A glob or an array of globs that specifies the build artifacts that should be deleted after the artifact
+   * upload to Sentry has been completed.
+   *
+   * @default [] - By default no files are deleted.
+   *
+   * The globbing patterns follow the implementation of the glob package. (https://www.npmjs.com/package/glob)
+   */
+  filesToDeleteAfterUpload?: string | Array<string>;
 };
 
 type BundleSizeOptimizationOptions = {

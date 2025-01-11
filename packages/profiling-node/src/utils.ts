@@ -134,7 +134,7 @@ function createProfilePayload(
   // Log a warning if the profile has an invalid traceId (should be uuidv4).
   // All profiles and transactions are rejected if this is the case and we want to
   // warn users that this is happening if they enable debug flag
-  if (trace_id && trace_id.length !== 32) {
+  if (trace_id?.length !== 32) {
     DEBUG_BUILD && logger.log(`[Profiling] Invalid traceId: ${trace_id} on profiled event`);
   }
 
@@ -207,7 +207,7 @@ function createProfileChunkPayload(
   // Log a warning if the profile has an invalid traceId (should be uuidv4).
   // All profiles and transactions are rejected if this is the case and we want to
   // warn users that this is happening if they enable debug flag
-  if (trace_id && trace_id.length !== 32) {
+  if (trace_id?.length !== 32) {
     DEBUG_BUILD && logger.log(`[Profiling] Invalid traceId: ${trace_id} on profiled event`);
   }
 
@@ -423,7 +423,7 @@ export function makeProfileChunkEnvelope(
 export function applyDebugMetadata(client: Client, resource_paths: ReadonlyArray<string>): DebugImage[] {
   const options = client.getOptions();
 
-  if (!options || !options.stackParser) {
+  if (!options?.stackParser) {
     return [];
   }
 

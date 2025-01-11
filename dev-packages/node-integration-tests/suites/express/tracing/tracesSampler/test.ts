@@ -22,3 +22,23 @@ describe('express tracesSampler', () => {
     });
   });
 });
+
+describe('express tracesSampler includes normalizedRequest data', () => {
+  afterAll(() => {
+    cleanupChildProcesses();
+  });
+
+  describe('CJS', () => {
+    test('correctly samples & passes data to tracesSampler', done => {
+      const runner = createRunner(__dirname, 'scenario-normalizedRequest.js')
+        .expect({
+          transaction: {
+            transaction: 'GET /test-normalized-request',
+          },
+        })
+        .start(done);
+
+      runner.makeRequest('get', '/test-normalized-request?query=123');
+    });
+  });
+});

@@ -71,8 +71,8 @@ export const createSentryPiniaPlugin: (options?: SentryPiniaPluginOptions) => Pi
 
         if (typeof transformedState !== 'undefined' && transformedState !== null) {
           const client = getClient();
-          const options = client && client.getOptions();
-          const normalizationDepth = (options && options.normalizeDepth) || 3; // default state normalization depth to 3
+          const options = client?.getOptions();
+          const normalizationDepth = options?.normalizeDepth || 3; // default state normalization depth to 3
           const piniaStateContext = { type: 'pinia', value: transformedState };
 
           const newState = {

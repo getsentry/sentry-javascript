@@ -10,7 +10,7 @@ describe('recordRequestSession()', () => {
     const client = createTestClient();
     const sendSessionSpy = jest.spyOn(client, 'sendSession');
 
-    jest.setSystemTime(new Date('March 19, 1999 06:12:34'));
+    jest.setSystemTime(new Date('March 19, 1999 06:12:34 UTC'));
 
     simulateRequest(client, 'ok');
 
@@ -25,7 +25,7 @@ describe('recordRequestSession()', () => {
     const client = createTestClient();
     const sendSessionSpy = jest.spyOn(client, 'sendSession');
 
-    jest.setSystemTime(new Date('March 19, 1999 06:12:34'));
+    jest.setSystemTime(new Date('March 19, 1999 06:12:34 UTC'));
 
     simulateRequest(client, 'crashed');
 
@@ -40,7 +40,7 @@ describe('recordRequestSession()', () => {
     const client = createTestClient();
     const sendSessionSpy = jest.spyOn(client, 'sendSession');
 
-    jest.setSystemTime(new Date('March 19, 1999 06:12:34'));
+    jest.setSystemTime(new Date('March 19, 1999 06:12:34 UTC'));
 
     simulateRequest(client, 'errored');
 
@@ -56,7 +56,7 @@ describe('recordRequestSession()', () => {
 
     const sendSessionSpy = jest.spyOn(client, 'sendSession');
 
-    jest.setSystemTime(new Date('March 19, 1999 06:00:00'));
+    jest.setSystemTime(new Date('March 19, 1999 06:00:00 UTC'));
 
     simulateRequest(client, 'ok');
     simulateRequest(client, 'ok');
@@ -64,7 +64,7 @@ describe('recordRequestSession()', () => {
     simulateRequest(client, 'errored');
 
     // "Wait" 1+ second to get into new bucket
-    jest.setSystemTime(new Date('March 19, 1999 06:01:01'));
+    jest.setSystemTime(new Date('March 19, 1999 06:01:01 UTC'));
 
     simulateRequest(client, 'ok');
     simulateRequest(client, 'errored');
@@ -89,12 +89,12 @@ describe('recordRequestSession()', () => {
 
     const sendSessionSpy = jest.spyOn(client, 'sendSession');
 
-    jest.setSystemTime(new Date('March 19, 1999 06:00:00'));
+    jest.setSystemTime(new Date('March 19, 1999 06:00:00 UTC'));
 
     simulateRequest(client, 'ok');
 
     // "Wait" 1+ second to get into new bucket
-    jest.setSystemTime(new Date('March 19, 1999 06:01:01'));
+    jest.setSystemTime(new Date('March 19, 1999 06:01:01 UTC'));
 
     simulateRequest(client, 'ok');
 

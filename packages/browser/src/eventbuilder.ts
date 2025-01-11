@@ -55,7 +55,7 @@ function eventFromPlainObject(
   isUnhandledRejection?: boolean,
 ): Event {
   const client = getClient();
-  const normalizeDepth = client && client.getOptions().normalizeDepth;
+  const normalizeDepth = client?.getOptions().normalizeDepth;
 
   // If we can, we extract an exception from the object properties
   const errorFromProp = getErrorPropertyFromObject(exception);
@@ -178,7 +178,7 @@ function isWebAssemblyException(exception: unknown): exception is WebAssembly.Ex
  * Usually, this is the `name` property on Error objects but WASM errors need to be treated differently.
  */
 export function extractType(ex: Error & { message: { error?: Error } }): string | undefined {
-  const name = ex && ex.name;
+  const name = ex?.name;
 
   // The name for WebAssembly.Exception Errors needs to be extracted differently.
   // Context: https://github.com/getsentry/sentry-javascript/issues/13787
@@ -197,7 +197,7 @@ export function extractType(ex: Error & { message: { error?: Error } }): string 
  * In this specific case we try to extract stacktrace.message.error.message
  */
 export function extractMessage(ex: Error & { message: { error?: Error } }): string {
-  const message = ex && ex.message;
+  const message = ex?.message;
 
   if (!message) {
     return 'No error message';
@@ -225,11 +225,11 @@ export function eventFromException(
   hint?: EventHint,
   attachStacktrace?: boolean,
 ): PromiseLike<Event> {
-  const syntheticException = (hint && hint.syntheticException) || undefined;
+  const syntheticException = hint?.syntheticException || undefined;
   const event = eventFromUnknownInput(stackParser, exception, syntheticException, attachStacktrace);
   addExceptionMechanism(event); // defaults to { type: 'generic', handled: true }
   event.level = 'error';
-  if (hint && hint.event_id) {
+  if (hint?.event_id) {
     event.event_id = hint.event_id;
   }
   return resolvedSyncPromise(event);
@@ -246,10 +246,10 @@ export function eventFromMessage(
   hint?: EventHint,
   attachStacktrace?: boolean,
 ): PromiseLike<Event> {
-  const syntheticException = (hint && hint.syntheticException) || undefined;
+  const syntheticException = hint?.syntheticException || undefined;
   const event = eventFromString(stackParser, message, syntheticException, attachStacktrace);
   event.level = level;
-  if (hint && hint.event_id) {
+  if (hint?.event_id) {
     event.event_id = hint.event_id;
   }
   return resolvedSyncPromise(event);

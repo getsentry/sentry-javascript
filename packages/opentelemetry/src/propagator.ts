@@ -8,7 +8,6 @@ import {
   SENTRY_BAGGAGE_KEY_PREFIX,
   baggageHeaderToDynamicSamplingContext,
   generateSentryTraceHeader,
-  generateSpanId,
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromScope,
@@ -34,10 +33,13 @@ import { makeTraceState } from './utils/makeTraceState';
 import { setIsSetup } from './utils/setupCheck';
 import { spanHasParentId } from './utils/spanTypes';
 
-/** Get the Sentry propagation context from a span context. */
+/**
+ * Get the Sentry propagation context from a span context.
+ * @deprecated This method is not used anymore and may be removed in a future major.
+ */
 export function getPropagationContextFromSpan(span: Span): PropagationContext {
   const spanContext = span.spanContext();
-  const { traceId, spanId, traceState } = spanContext;
+  const { traceId, traceState } = spanContext;
 
   // When we have a dsc trace state, it means this came from the incoming trace
   // Then this takes presedence over the root span
@@ -52,7 +54,6 @@ export function getPropagationContextFromSpan(span: Span): PropagationContext {
 
   return {
     traceId,
-    spanId,
     sampled,
     parentSpanId,
     dsc,
@@ -197,16 +198,14 @@ export function getInjectionData(context: Context): {
 
   // If we have a remote span, the spanId should be considered as the parentSpanId, not spanId itself
   // Instead, we use a virtual (generated) spanId for propagation
-  if (span && span.spanContext().isRemote) {
+  if (span?.spanContext().isRemote) {
     const spanContext = span.spanContext();
     const dynamicSamplingContext = getDynamicSamplingContextFromSpan(span);
 
     return {
       dynamicSamplingContext,
       traceId: spanContext.traceId,
-      // Because this is a remote span, we do not want to propagate this directly
-      // As otherwise things may be attached "directly" to an unrelated span
-      spanId: generateSpanId(),
+      spanId: undefined,
       sampled: getSamplingDecision(spanContext),
     };
   }
@@ -234,9 +233,7 @@ export function getInjectionData(context: Context): {
   return {
     dynamicSamplingContext,
     traceId: propagationContext.traceId,
-    // TODO(v9): Use generateSpanId() instead
-    // eslint-disable-next-line deprecation/deprecation
-    spanId: propagationContext.spanId,
+    spanId: propagationContext.propagationSpanId,
     sampled: propagationContext.sampled,
   };
 }

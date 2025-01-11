@@ -6,5 +6,5 @@ import type { replayIntegration } from '../integration';
  */
 export function getReplay(): ReturnType<typeof replayIntegration> | undefined {
   const client = getClient();
-  return client && client.getIntegrationByName<ReturnType<typeof replayIntegration>>('Replay');
+  return client?.getIntegrationByName<ReturnType<typeof replayIntegration>>('Replay');
 }

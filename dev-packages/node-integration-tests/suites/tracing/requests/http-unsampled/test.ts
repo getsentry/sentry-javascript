@@ -27,6 +27,7 @@ test('outgoing http requests are correctly instrumented when not sampled', done 
     .then(([SERVER_URL, closeTestServer]) => {
       createRunner(__dirname, 'scenario.ts')
         .withEnv({ SERVER_URL })
+        .ignore('client_report')
         .expect({
           event: {
             exception: {

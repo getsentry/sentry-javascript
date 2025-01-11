@@ -31,7 +31,7 @@ export function withSentryConfig(
   // see: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map
   const sentryPreprocessors = new Map<string, SentryPreprocessorGroup>();
 
-  const shouldTrackComponents = mergedOptions.componentTracking && mergedOptions.componentTracking.trackComponents;
+  const shouldTrackComponents = mergedOptions.componentTracking?.trackComponents;
   if (shouldTrackComponents) {
     const firstPassPreproc: SentryPreprocessorGroup = componentTrackingPreprocessor(mergedOptions.componentTracking);
     sentryPreprocessors.set(firstPassPreproc.sentryId || '', firstPassPreproc);

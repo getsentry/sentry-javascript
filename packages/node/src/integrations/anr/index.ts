@@ -186,7 +186,7 @@ async function _startWorker(
 
   const timer = setInterval(() => {
     try {
-      const currentSession = getCurrentScope().getSession();
+      const currentSession = getIsolationScope().getSession();
       // We need to copy the session object and remove the toJSON method so it can be sent to the worker
       // serialized without making it a SerializedSession
       const session = currentSession ? { ...currentSession, toJSON: undefined } : undefined;
@@ -202,7 +202,7 @@ async function _startWorker(
   worker.on('message', (msg: string) => {
     if (msg === 'session-ended') {
       log('ANR event sent from ANR worker. Clearing session in this thread.');
-      getCurrentScope().setSession(undefined);
+      getIsolationScope().setSession(undefined);
     }
   });
 
