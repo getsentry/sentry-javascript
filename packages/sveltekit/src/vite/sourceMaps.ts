@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import * as child_process from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -5,7 +6,7 @@ import { consoleSandbox, escapeStringForRegex, uuid4 } from '@sentry/core';
 import { getSentryRelease } from '@sentry/node';
 import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
-import type { Plugin, UserConfig } from 'vite';
+import { type Plugin, type UserConfig, loadConfigFromFile } from 'vite';
 
 import MagicString from 'magic-string';
 import { WRAPPED_MODULE_SUFFIX } from './autoInstrument';
@@ -26,6 +27,18 @@ type Sorcery = {
 // storing this in the module scope because `makeCustomSentryVitePlugin` is called multiple times
 // and we only want to generate a uuid once in case we have to fall back to it.
 const releaseName = detectSentryRelease();
+
+let sourceMapSetting: {
+  updatedSourceMapSetting?: boolean | 'inline' | 'hidden';
+  previousSourceMapSetting?: UserSourceMapSetting;
+} = { previousSourceMapSetting: undefined, updatedSourceMapSetting: undefined };
+
+/**
+ * For mocking the value of `sourceMapSetting` in tests
+ */
+export const __setSourceMapSettingForTest = (value: typeof sourceMapSetting): void => {
+  sourceMapSetting = value;
+};
 
 /**
  * Creates a new Vite plugin that uses the unplugin-based Sentry Vite plugin to create
@@ -60,6 +73,34 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
     },
   };
 
+  const filesToDeleteGlob = './.*/**/*.map';
+
+  if (sourceMapSetting.updatedSourceMapSetting === undefined) {
+    const configFile = await loadConfigFromFile({ command: 'build', mode: 'production' });
+
+    if (configFile) {
+      sourceMapSetting = getUpdatedSourceMapSetting(configFile.config);
+    } else {
+      if (options?.debug) {
+        consoleSandbox(() => {
+          // eslint-disable-next-line no-console
+          console.warn(
+            '[Source Maps Plugin] Could not load Vite config with Vite "production" mode. This is needed for Sentry to automatically update source map settings.',
+          );
+        });
+      }
+    }
+
+    if (options?.debug && sourceMapSetting.previousSourceMapSetting === 'unset') {
+      consoleSandbox(() => {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[Source Maps Plugin] Automatically setting \`sourceMapsUploadOptions.sourcemaps.filesToDeleteAfterUpload: ["${filesToDeleteGlob}"]\` to delete generated source maps after they were uploaded to Sentry.`,
+        );
+      });
+    }
+  }
+
   const mergedOptions = {
     ...defaultPluginOptions,
     ...options,
@@ -67,7 +108,15 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
       ...defaultPluginOptions.release,
       ...options?.release,
     },
+    sourcemaps: {
+      ...options?.sourcemaps,
+      filesToDeleteAfterUpload:
+        sourceMapSetting.previousSourceMapSetting === 'unset' && !options?.sourcemaps?.filesToDeleteAfterUpload
+          ? ['./.*/**/*.map']
+          : options?.sourcemaps?.filesToDeleteAfterUpload,
+    },
   };
+
   const { debug } = mergedOptions;
 
   const sentryPlugins: Plugin[] = await sentryVitePlugin(mergedOptions);
@@ -129,26 +178,48 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
     __sentry_sveltekit_output_dir: outputDir,
   };
 
+  const sourceMapSettingsPlugin: Plugin = {
+    name: 'sentry-sveltekit-update-source-map-setting-plugin',
+    apply: 'build', // only apply this plugin at build time
+    config: (config: UserConfig) => {
+      const settingKey = 'build.sourcemap';
+
+      if (sourceMapSetting.previousSourceMapSetting === 'unset') {
+        consoleSandbox(() => {
+          //  eslint-disable-next-line no-console
+          console.log(`[Sentry] Enabled source map generation in the build options with \`${settingKey}: "hidden"\`.`);
+        });
+
+        return {
+          ...config,
+          build: { ...config.build, sourcemap: 'hidden' },
+        };
+      } else if (sourceMapSetting.previousSourceMapSetting === 'disabled') {
+        consoleSandbox(() => {
+          //  eslint-disable-next-line no-console
+          console.warn(
+            `[Sentry] Parts of source map generation are currently disabled in your Vite configuration (\`${settingKey}: false\`). This setting is either a default setting or was explicitly set in your configuration. Sentry won't override this setting. Without source maps, code snippets on the Sentry Issues page will remain minified. To show unminified code, enable source maps in \`${settingKey}\` (e.g. by setting them to \`hidden\`).`,
+          );
+        });
+      } else if (sourceMapSetting.previousSourceMapSetting === 'enabled') {
+        if (mergedOptions?.debug) {
+          consoleSandbox(() => {
+            // eslint-disable-next-line no-console
+            console.log(
+              `[Sentry] We discovered you enabled source map generation in  your Vite configuration (\`${settingKey}\`). Sentry will keep this source map setting. This will un-minify the code snippet on the Sentry Issue page.`,
+            );
+          });
+        }
+      }
+
+      return config;
+    },
+  };
+
   const customDebugIdUploadPlugin: Plugin = {
     name: 'sentry-sveltekit-debug-id-upload-plugin',
     apply: 'build', // only apply this plugin at build time
     enforce: 'post', // this needs to be set to post, otherwise we don't pick up the output from the SvelteKit adapter
-
-    // Modify the config to generate source maps
-    config: (config: UserConfig) => {
-      changeViteSourceMapSettings(config, options);
-
-      if (debug && !mergedOptions.sourcemaps?.filesToDeleteAfterUpload) {
-        consoleSandbox(() => {
-          // eslint-disable-next-line no-console
-          console.warn(
-            '[Source Maps Plugin] We recommend setting the `sourceMapsUploadOptions.sourcemaps.filesToDeleteAfterUpload` option to clean up source maps after uploading. Otherwise, source maps might be deployed to production, depending on your configuration',
-          );
-        });
-      }
-      return config;
-    },
-
     resolveId: (id, _importer, _ref) => {
       if (id === VIRTUAL_GLOBAL_VALUES_FILE) {
         return {
@@ -318,6 +389,7 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
 
   return [
     ...unchangedSentryVitePlugins,
+    sourceMapSettingsPlugin,
     customReleaseManagementPlugin,
     customDebugIdUploadPlugin,
     customFileDeletionPlugin,
@@ -344,53 +416,30 @@ export type UserSourceMapSetting = 'enabled' | 'disabled' | 'unset' | undefined;
  *
  * --> only exported for testing
  */
-export function changeViteSourceMapSettings(
-  viteConfig: {
-    build?: {
-      sourcemap?: boolean | 'inline' | 'hidden';
-    };
-  },
-  sentryPluginOptions?: CustomSentryVitePluginOptions,
-): UserSourceMapSetting {
-  let previousUserSourceMapSetting: UserSourceMapSetting = undefined;
+export function getUpdatedSourceMapSetting(viteConfig: {
+  build?: {
+    sourcemap?: boolean | 'inline' | 'hidden';
+  };
+}): { updatedSourceMapSetting: boolean | 'inline' | 'hidden'; previousSourceMapSetting: UserSourceMapSetting } {
+  let previousSourceMapSetting: UserSourceMapSetting;
+  let updatedSourceMapSetting: boolean | 'inline' | 'hidden' | undefined;
 
   viteConfig.build = viteConfig.build || {};
 
   const viteSourceMap = viteConfig.build.sourcemap;
 
-  const settingKey = 'vite.build.sourcemap';
-
   if (viteSourceMap === false) {
-    previousUserSourceMapSetting = 'disabled';
-
-    consoleSandbox(() => {
-      //  eslint-disable-next-line no-console
-      console.warn(
-        `[Sentry] Parts of source map generation are currently disabled in your Vite configuration (\`${settingKey}: false\`). This setting is either a default setting or was explicitly set in your configuration. Sentry won't override this setting. Without source maps, code snippets on the Sentry Issues page will remain minified. To show unminified code, enable source maps in \`${settingKey}\` (e.g. by setting them to \`hidden\`).`,
-      );
-    });
+    previousSourceMapSetting = 'disabled';
+    updatedSourceMapSetting = viteSourceMap;
   } else if (viteSourceMap && ['hidden', 'inline', true].includes(viteSourceMap)) {
-    previousUserSourceMapSetting = 'enabled';
-
-    if (sentryPluginOptions?.debug) {
-      consoleSandbox(() => {
-        // eslint-disable-next-line no-console
-        console.log(
-          `[Sentry] We discovered \`${settingKey}\` is set to \`${viteSourceMap.toString()}\`. Sentry will keep this source map setting. This will un-minify the code snippet on the Sentry Issue page.`,
-        );
-      });
-    }
+    previousSourceMapSetting = 'enabled';
+    updatedSourceMapSetting = viteSourceMap;
   } else {
-    previousUserSourceMapSetting = 'unset';
-    viteConfig.build.sourcemap = 'hidden';
-
-    consoleSandbox(() => {
-      //  eslint-disable-next-line no-console
-      console.log(`[Sentry] Enabled source map generation in the build options with \`${settingKey}: 'hidden'\`.`);
-    });
+    previousSourceMapSetting = 'unset';
+    updatedSourceMapSetting = 'hidden';
   }
 
-  return previousUserSourceMapSetting;
+  return { previousSourceMapSetting, updatedSourceMapSetting };
 }
 
 function getFiles(dir: string): string[] {
