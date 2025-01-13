@@ -139,13 +139,13 @@ export function createV6CompatibleWrapCreateMemoryRouter<
     },
   ): TRouter {
     const router = createRouterFunction(routes, opts);
-    const basename = opts?.basename;
+    const basename = opts ? opts.basename : undefined;
 
     const activeRootSpan = getActiveRootSpan();
     let initialEntry = undefined;
 
-    const initialEntries = opts?.initialEntries;
-    const initialIndex = opts?.initialIndex;
+    const initialEntries = opts ? opts.initialEntries : undefined;
+    const initialIndex = opts ? opts.initialIndex : undefined;
 
     const hasOnlyOneInitialEntry = initialEntries && initialEntries.length === 1;
     const hasIndexedEntry = initialIndex !== undefined && initialEntries && initialEntries[initialIndex];
