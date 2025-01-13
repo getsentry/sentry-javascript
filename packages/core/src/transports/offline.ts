@@ -134,9 +134,9 @@ export function makeOfflineTransport<TO>(
 
         if (result) {
           // If there's a retry-after header, use that as the next delay.
-          if (result.headers && result.headers['retry-after']) {
+          if (result.headers?.['retry-after']) {
             delay = parseRetryAfterHeader(result.headers['retry-after']);
-          } else if (result.headers && result.headers['x-sentry-rate-limits']) {
+          } else if (result.headers?.['x-sentry-rate-limits']) {
             delay = 60_000; // 60 seconds
           } // If we have a server error, return now so we don't flush the queue.
           else if ((result.statusCode || 0) >= 400) {

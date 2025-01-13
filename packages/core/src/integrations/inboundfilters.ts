@@ -131,8 +131,7 @@ function _isIgnoredTransaction(event: Event, ignoreTransactions?: Array<string |
 }
 
 function _isDeniedUrl(event: Event, denyUrls?: Array<string | RegExp>): boolean {
-  // TODO: Use Glob instead?
-  if (!denyUrls || !denyUrls.length) {
+  if (!denyUrls?.length) {
     return false;
   }
   const url = _getEventFilterUrl(event);
@@ -140,8 +139,7 @@ function _isDeniedUrl(event: Event, denyUrls?: Array<string | RegExp>): boolean 
 }
 
 function _isAllowedUrl(event: Event, allowUrls?: Array<string | RegExp>): boolean {
-  // TODO: Use Glob instead?
-  if (!allowUrls || !allowUrls.length) {
+  if (!allowUrls?.length) {
     return true;
   }
   const url = _getEventFilterUrl(event);
@@ -193,7 +191,7 @@ function _isUselessError(event: Event): boolean {
   }
 
   // We only want to consider events for dropping that actually have recorded exception values.
-  if (!event.exception || !event.exception.values || event.exception.values.length === 0) {
+  if (!event.exception?.values?.length) {
     return false;
   }
 

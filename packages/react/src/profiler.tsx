@@ -158,7 +158,7 @@ function withProfiler<P extends Record<string, any>>(
   options?: Pick<Partial<ProfilerProps>, Exclude<keyof ProfilerProps, 'updateProps' | 'children'>>,
 ): React.FC<P> {
   const componentDisplayName =
-    (options && options.name) || WrappedComponent.displayName || WrappedComponent.name || UNKNOWN_COMPONENT;
+    options?.name || WrappedComponent.displayName || WrappedComponent.name || UNKNOWN_COMPONENT;
 
   const Wrapped: React.FC<P> = (props: P) => (
     <Profiler {...options} name={componentDisplayName} updateProps={props}>
@@ -189,7 +189,7 @@ function useProfiler(
   },
 ): void {
   const [mountSpan] = React.useState(() => {
-    if (options && options.disabled) {
+    if (options?.disabled) {
       return undefined;
     }
 

@@ -64,11 +64,10 @@ export function instrumentDOM(): void {
   // guaranteed to fire at least once.)
   ['EventTarget', 'Node'].forEach((target: string) => {
     const globalObject = WINDOW as unknown as Record<string, { prototype?: object }>;
-    const targetObj = globalObject[target];
-    const proto = targetObj && targetObj.prototype;
+    const proto = globalObject[target]?.prototype;
 
     // eslint-disable-next-line no-prototype-builtins
-    if (!proto || !proto.hasOwnProperty || !proto.hasOwnProperty('addEventListener')) {
+    if (!proto?.hasOwnProperty?.('addEventListener')) {
       return;
     }
 
@@ -170,7 +169,7 @@ function shouldSkipDOMEvent(eventType: string, target: SentryWrappedTarget | nul
     return false;
   }
 
-  if (!target || !target.tagName) {
+  if (!target?.tagName) {
     return true;
   }
 

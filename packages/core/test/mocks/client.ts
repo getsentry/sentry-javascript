@@ -85,7 +85,7 @@ export class TestClient extends Client<TestClientOptions> {
     // In real life, this will get deleted as part of envelope creation.
     delete event.sdkProcessingMetadata;
 
-    TestClient.sendEventCalled && TestClient.sendEventCalled(event);
+    TestClient.sendEventCalled?.(event);
   }
 
   public sendSession(session: Session): void {

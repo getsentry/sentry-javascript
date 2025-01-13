@@ -104,7 +104,7 @@ function getException(
   mechanism.synthetic = true;
 
   if (isPlainObject(exception)) {
-    const normalizeDepth = client && client.getOptions().normalizeDepth;
+    const normalizeDepth = client?.getOptions().normalizeDepth;
     const extras = { ['__serialized__']: normalizeToSize(exception as Record<string, unknown>, normalizeDepth) };
 
     const errorFromProp = getErrorPropertyFromObject(exception);
@@ -113,7 +113,7 @@ function getException(
     }
 
     const message = getMessageForObject(exception);
-    const ex = (hint && hint.syntheticException) || new Error(message);
+    const ex = hint?.syntheticException || new Error(message);
     ex.message = message;
 
     return [ex, extras];
@@ -121,7 +121,7 @@ function getException(
 
   // This handles when someone does: `throw "something awesome";`
   // We use synthesized Error here so we can extract a (rough) stack trace.
-  const ex = (hint && hint.syntheticException) || new Error(exception as string);
+  const ex = hint?.syntheticException || new Error(exception as string);
   ex.message = `${exception}`;
 
   return [ex, undefined];
@@ -137,8 +137,7 @@ export function eventFromUnknownInput(
   exception: unknown,
   hint?: EventHint,
 ): Event {
-  const providedMechanism: Mechanism | undefined =
-    hint && hint.data && (hint.data as { mechanism: Mechanism }).mechanism;
+  const providedMechanism: Mechanism | undefined = hint?.data && (hint.data as { mechanism: Mechanism }).mechanism;
   const mechanism: Mechanism = providedMechanism || {
     handled: true,
     type: 'generic',
@@ -161,7 +160,7 @@ export function eventFromUnknownInput(
 
   return {
     ...event,
-    event_id: hint && hint.event_id,
+    event_id: hint?.event_id,
   };
 }
 
@@ -177,11 +176,11 @@ export function eventFromMessage(
   attachStacktrace?: boolean,
 ): Event {
   const event: Event = {
-    event_id: hint && hint.event_id,
+    event_id: hint?.event_id,
     level,
   };
 
-  if (attachStacktrace && hint && hint.syntheticException) {
+  if (attachStacktrace && hint?.syntheticException) {
     const frames = parseStackFrames(stackParser, hint.syntheticException);
     if (frames.length) {
       event.exception = {

@@ -88,7 +88,7 @@ export class ServerRuntimeClient<
    */
   public captureEvent(event: Event, hint?: EventHint, scope?: Scope): string {
     // If the event is of type Exception, then a request session should be captured
-    const isException = !event.type && event.exception && event.exception.values && event.exception.values.length > 0;
+    const isException = !event.type && event.exception?.values && event.exception.values.length > 0;
     if (isException) {
       setCurrentRequestSessionErroredOrCrashed(hint);
     }
@@ -176,7 +176,7 @@ export class ServerRuntimeClient<
     if (this._options.runtime) {
       event.contexts = {
         ...event.contexts,
-        runtime: (event.contexts || {}).runtime || this._options.runtime,
+        runtime: event.contexts?.runtime || this._options.runtime,
       };
     }
 

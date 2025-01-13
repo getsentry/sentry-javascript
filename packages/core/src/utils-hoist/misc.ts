@@ -26,10 +26,10 @@ export function uuid4(): string {
 
   let getRandomByte = (): number => Math.random() * 16;
   try {
-    if (crypto && crypto.randomUUID) {
+    if (crypto?.randomUUID) {
       return crypto.randomUUID().replace(/-/g, '');
     }
-    if (crypto && crypto.getRandomValues) {
+    if (crypto?.getRandomValues) {
       getRandomByte = () => {
         // crypto.getRandomValues might return undefined instead of the typed array
         // in old Chromium versions (e.g. 23.0.1235.0 (151422))
@@ -55,7 +55,7 @@ export function uuid4(): string {
 }
 
 function getFirstException(event: Event): Exception | undefined {
-  return event.exception && event.exception.values ? event.exception.values[0] : undefined;
+  return event.exception?.values?.[0];
 }
 
 /**
@@ -115,7 +115,7 @@ export function addExceptionMechanism(event: Event, newMechanism?: Partial<Mecha
   firstException.mechanism = { ...defaultMechanism, ...currentMechanism, ...newMechanism };
 
   if (newMechanism && 'data' in newMechanism) {
-    const mergedData = { ...(currentMechanism && currentMechanism.data), ...newMechanism.data };
+    const mergedData = { ...currentMechanism?.data, ...newMechanism.data };
     firstException.mechanism.data = mergedData;
   }
 }

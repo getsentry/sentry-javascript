@@ -44,14 +44,14 @@ export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
     const { path, type, next, rawInput, getRawInput } = opts;
 
     const client = getClient();
-    const clientOptions = client && client.getOptions();
+    const clientOptions = client?.getOptions();
 
     const trpcContext: Record<string, unknown> = {
       procedure_path: path,
       procedure_type: type,
     };
 
-    if (options.attachRpcInput !== undefined ? options.attachRpcInput : clientOptions && clientOptions.sendDefaultPii) {
+    if (options.attachRpcInput !== undefined ? options.attachRpcInput : clientOptions?.sendDefaultPii) {
       if (rawInput !== undefined) {
         trpcContext.input = normalize(rawInput);
       }
