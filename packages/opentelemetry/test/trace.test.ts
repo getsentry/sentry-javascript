@@ -290,24 +290,46 @@ describe('trace', () => {
       let manualScope: Scope;
       let parentSpan: Span;
 
+      // "hack" to create a manual scope with a parent span
       startSpanManual({ name: 'detached' }, span => {
         parentSpan = span;
         manualScope = getCurrentScope();
         manualScope.setTag('manual', 'tag');
       });
 
+      expect(manualScope!.getScopeData().tags).toEqual({ manual: 'tag' });
+      expect(getCurrentScope()).not.toBe(manualScope!);
+
       getCurrentScope().setTag('outer', 'tag');
 
       startSpan({ name: 'GET users/[id]', scope: manualScope! }, span => {
+        // the current scope in the callback is a fork of the manual scope
         expect(getCurrentScope()).not.toBe(initialScope);
+        expect(getCurrentScope()).not.toBe(manualScope);
+        expect(getCurrentScope().getScopeData().tags).toEqual({ manual: 'tag' });
 
-        expect(getCurrentScope()).toEqual(manualScope);
+        // getActiveSpan returns the correct span
         expect(getActiveSpan()).toBe(span);
 
+        // span hierarchy is correct
         expect(getSpanParentSpanId(span)).toBe(parentSpan.spanContext().spanId);
+
+        // scope data modifications are isolated between original and forked manual scope
+        getCurrentScope().setTag('inner', 'tag');
+        manualScope!.setTag('manual-scope-inner', 'tag');
+
+        expect(getCurrentScope().getScopeData().tags).toEqual({ manual: 'tag', inner: 'tag' });
+        expect(manualScope!.getScopeData().tags).toEqual({ manual: 'tag', 'manual-scope-inner': 'tag' });
       });
 
+      // manualScope modifications remain set outside the callback
+      expect(manualScope!.getScopeData().tags).toEqual({ manual: 'tag', 'manual-scope-inner': 'tag' });
+
+      // current scope is reset back to initial scope
       expect(getCurrentScope()).toBe(initialScope);
+      expect(getCurrentScope().getScopeData().tags).toEqual({ outer: 'tag' });
+
+      // although the manual span is still running, it's no longer active due to being outside of the callback
       expect(getActiveSpan()).toBe(undefined);
     });
 
@@ -1322,7 +1344,6 @@ describe('trace (sampling)', () => {
       parentSampled: undefined,
       name: 'outer',
       attributes: {},
-      transactionContext: { name: 'outer', parentSampled: undefined },
     });
 
     // Now return `false`, it should not sample
@@ -1342,7 +1363,6 @@ describe('trace (sampling)', () => {
         parentSampled: undefined,
         name: 'outer',
         attributes: {},
-        transactionContext: { name: 'outer', parentSampled: undefined },
       }),
     );
     expect(tracesSampler).toHaveBeenCalledWith(
@@ -1350,7 +1370,6 @@ describe('trace (sampling)', () => {
         parentSampled: undefined,
         name: 'outer2',
         attributes: {},
-        transactionContext: { name: 'outer2', parentSampled: undefined },
       }),
     );
 
@@ -1391,7 +1410,6 @@ describe('trace (sampling)', () => {
         attr2: 1,
         'sentry.op': 'test.op',
       },
-      transactionContext: { name: 'outer', parentSampled: undefined },
     });
 
     // Now return `0`, it should not sample
@@ -1411,7 +1429,6 @@ describe('trace (sampling)', () => {
         parentSampled: undefined,
         name: 'outer2',
         attributes: {},
-        transactionContext: { name: 'outer2', parentSampled: undefined },
       }),
     );
 
@@ -1434,7 +1451,6 @@ describe('trace (sampling)', () => {
       parentSampled: undefined,
       name: 'outer3',
       attributes: {},
-      transactionContext: { name: 'outer3', parentSampled: undefined },
     });
   });
 
@@ -1468,10 +1484,6 @@ describe('trace (sampling)', () => {
       parentSampled: true,
       name: 'outer',
       attributes: {},
-      transactionContext: {
-        name: 'outer',
-        parentSampled: true,
-      },
     });
   });
 
