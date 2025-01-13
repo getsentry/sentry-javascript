@@ -171,7 +171,7 @@ export function getInjectionData(context: Context): {
       dynamicSamplingContext,
       traceId: spanContext.traceId,
       spanId: undefined,
-      sampled: getSamplingDecision(spanContext),
+      sampled: getSamplingDecision(spanContext), // TODO: Do we need to change something here?
     };
   }
 
@@ -184,7 +184,7 @@ export function getInjectionData(context: Context): {
       dynamicSamplingContext,
       traceId: spanContext.traceId,
       spanId: spanContext.spanId,
-      sampled: getSamplingDecision(spanContext),
+      sampled: getSamplingDecision(spanContext), // TODO: Do we need to change something here?
     };
   }
 

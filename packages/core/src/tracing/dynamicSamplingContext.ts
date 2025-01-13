@@ -11,6 +11,7 @@ import {
 import { addNonEnumerableProperty, dropUndefinedKeys } from '../utils-hoist/object';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
 import { getRootSpan, spanIsSampled, spanToJSON } from '../utils/spanUtils';
+import { getCapturedScopesOnSpan } from './utils';
 
 /**
  * If you change this value, also update the terser plugin config to
@@ -116,7 +117,7 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
   // So we end up with an active span that is not sampled (neither positively nor negatively)
   if (hasTracingEnabled()) {
     dsc.sampled = String(spanIsSampled(rootSpan));
-    // TODO(lforst): Grab scope off of root span and put sample_rand on dsc
+    dsc.sample_rand = getCapturedScopesOnSpan(rootSpan).scope?.getPropagationContext().sampleRand.toString();
   }
 
   client.emit('createDsc', dsc, rootSpan);
