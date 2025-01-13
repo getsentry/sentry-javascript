@@ -779,39 +779,57 @@ describe('startSpanManual', () => {
     expect(getActiveSpan()).toBe(undefined);
   });
 
-  describe('allows to pass a scope', () => {
+  describe('starts a span on the fork of a custom scope if passed', () => {
     it('with parent span', () => {
       const initialScope = getCurrentScope();
 
-      const manualScope = initialScope.clone();
+      const customScope = initialScope.clone();
+      customScope.setTag('dogs', 'great');
+
       const parentSpan = new SentrySpan({ spanId: 'parent-span-id', sampled: true });
-      _setSpanForScope(manualScope, parentSpan);
+      _setSpanForScope(customScope, parentSpan);
 
-      let span1: Span | undefined;
-
-      startSpanManual({ name: 'GET users/[id]', scope: manualScope }, span => {
-        span1 = span;
+      startSpanManual({ name: 'GET users/[id]', scope: customScope }, span => {
+        // current scope is forked from the customScope
         expect(getCurrentScope()).not.toBe(initialScope);
-        expect(getCurrentScope()).toBe(manualScope);
-        expect(getActiveSpan()).toBe(span);
+        expect(getCurrentScope()).not.toBe(customScope);
         expect(spanToJSON(span).parent_span_id).toBe('parent-span-id');
+
+        // span is active span
+        expect(getActiveSpan()).toBe(span);
 
         span.end();
 
-        // Is still the active span
+        // span is still the active span (weird but it is what it is)
         expect(getActiveSpan()).toBe(span);
+
+        getCurrentScope().setTag('cats', 'great');
+        customScope.setTag('bears', 'great');
+
+        expect(getCurrentScope().getScopeData().tags).toEqual({ dogs: 'great', cats: 'great' });
+        expect(customScope.getScopeData().tags).toEqual({ dogs: 'great', bears: 'great' });
       });
 
-      startSpanManual({ name: 'POST users/[id]', scope: manualScope }, (span, finish) => {
-        expect(getCurrentScope()).not.toBe(initialScope);
-        expect(getCurrentScope()).toBe(manualScope);
-        expect(getActiveSpan()).toBe(span);
-        expect(spanToJSON(span).parent_span_id).toBe(span1?.spanContext().spanId);
+      expect(getCurrentScope()).toBe(initialScope);
+      expect(getActiveSpan()).toBe(undefined);
 
+      startSpanManual({ name: 'POST users/[id]', scope: customScope }, (span, finish) => {
+        // current scope is forked from the customScope
+        expect(getCurrentScope()).not.toBe(initialScope);
+        expect(getCurrentScope()).not.toBe(customScope);
+        expect(spanToJSON(span).parent_span_id).toBe('parent-span-id');
+
+        // scope data modification from customScope in previous callback is persisted
+        expect(getCurrentScope().getScopeData().tags).toEqual({ dogs: 'great', bears: 'great' });
+
+        // span is active span
+        expect(getActiveSpan()).toBe(span);
+
+        // calling finish() or span.end() has the same effect
         finish();
 
         // using finish() resets the scope correctly
-        expect(getActiveSpan()).toBe(span1);
+        expect(getActiveSpan()).toBe(span);
       });
 
       expect(getCurrentScope()).toBe(initialScope);
@@ -823,27 +841,33 @@ describe('startSpanManual', () => {
       const manualScope = initialScope.clone();
 
       startSpanManual({ name: 'GET users/[id]', scope: manualScope }, (span, finish) => {
+        // current scope is forked from the customScope
         expect(getCurrentScope()).not.toBe(initialScope);
-        expect(getCurrentScope()).toBe(manualScope);
+        expect(getCurrentScope()).not.toBe(manualScope);
+        expect(getCurrentScope()).toEqual(manualScope);
+
+        // span is active span and a root span
         expect(getActiveSpan()).toBe(span);
-        expect(spanToJSON(span).parent_span_id).toBe(undefined);
+        expect(getRootSpan(span)).toBe(span);
 
-        finish();
+        span.end();
 
-        // Is still the active span
-        expect(getActiveSpan()).toBe(undefined);
+        expect(getActiveSpan()).toBe(span);
       });
 
-      startSpanManual({ name: 'GET users/[id]', scope: manualScope }, (span, finish) => {
+      startSpanManual({ name: 'POST users/[id]', scope: manualScope }, (span, finish) => {
         expect(getCurrentScope()).not.toBe(initialScope);
-        expect(getCurrentScope()).toBe(manualScope);
+        expect(getCurrentScope()).not.toBe(manualScope);
+        expect(getCurrentScope()).toEqual(manualScope);
+
+        // second span is active span and its own root span
         expect(getActiveSpan()).toBe(span);
-        expect(spanToJSON(span).parent_span_id).toBe(undefined);
+        expect(getRootSpan(span)).toBe(span);
 
         finish();
 
-        // using finish() resets the scope correctly
-        expect(getActiveSpan()).toBe(undefined);
+        // calling finish() or span.end() has the same effect
+        expect(getActiveSpan()).toBe(span);
       });
 
       expect(getCurrentScope()).toBe(initialScope);

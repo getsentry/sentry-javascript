@@ -96,9 +96,7 @@ export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) =
 
 /**
  * Similar to `Sentry.startSpan`. Wraps a function with a transaction/span, but does not finish the span
- * after the function is done automatically. Use the `finish` function passed to the callback,
- * to finish the span manually and sett he previous span as the active span again. If you don't use `finish`
- * but `span.end()` instead, the span will be ended but remain as the active span.
+ * after the function is done automatically. Use `span.end()` to end the span.
  *
  * The created span is the active span and will be used as parent by other spans created inside the function
  * and can be accessed via `Sentry.getActiveSpan()`, as long as the function is executed while the scope is active.
@@ -115,7 +113,9 @@ export function startSpanManual<T>(options: StartSpanOptions, callback: (span: S
   const spanArguments = parseSentrySpanArguments(options);
   const { forceTransaction, parentSpan: customParentSpan, scope: customScope } = options;
 
-  return withScope(options.scope, () => {
+  const customForkedScope = customScope?.clone();
+
+  return withScope(customForkedScope, () => {
     // If `options.parentSpan` is defined, we want to wrap the callback in `withActiveSpan`
     const wrapper = getActiveSpanWrapper<T>(customParentSpan);
 
@@ -133,20 +133,14 @@ export function startSpanManual<T>(options: StartSpanOptions, callback: (span: S
             scope,
           });
 
-      const previousActiveSpanOnCustomScope = customScope && _getSpanForScope(customScope);
       _setSpanForScope(scope, activeSpan);
 
-      function finishAndSetSpan(): void {
-        activeSpan.end();
-        if (customScope) {
-          // If a custom scope is passed, we don't fork the scope. Therefore, we need to reset the
-          // active span on the scope to the previous active span (or to undefined if there was none)
-          _setSpanForScope(customScope, previousActiveSpanOnCustomScope);
-        }
-      }
-
       return handleCallbackErrors(
-        () => callback(activeSpan, finishAndSetSpan),
+        // We pass the `finish` function to the callback, so the user can finish the span manually
+        // this is mainly here for historic purposes because previously, we instructed users to call
+        // `finish` instead of `span.end()` to also clean up the scope. Nowadays, calling `span.end()`
+        // or `finish` has the same effect and we simply leave it here to avoid breaking user code.
+        () => callback(activeSpan, () => activeSpan.end()),
         () => {
           // Only update the span status if it hasn't been changed yet, and the span is not yet finished
           const { status } = spanToJSON(activeSpan);
