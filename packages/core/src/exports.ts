@@ -243,7 +243,7 @@ export function isInitialized(): boolean {
 /** If the SDK is initialized & enabled. */
 export function isEnabled(): boolean {
   const client = getClient();
-  return !!client && client.getOptions().enabled !== false && !!client.getTransport();
+  return client?.getOptions().enabled !== false && !!client?.getTransport();
 }
 
 /**
@@ -277,7 +277,7 @@ export function startSession(context?: SessionContext): Session {
 
   // End existing session if there's one
   const currentSession = isolationScope.getSession();
-  if (currentSession && currentSession.status === 'ok') {
+  if (currentSession?.status === 'ok') {
     updateSession(currentSession, { status: 'exited' });
   }
 

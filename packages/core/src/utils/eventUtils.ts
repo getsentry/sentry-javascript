@@ -13,7 +13,7 @@ export function getPossibleEventMessages(event: Event): string[] {
   try {
     // @ts-expect-error Try catching to save bundle size
     const lastException = event.exception.values[event.exception.values.length - 1];
-    if (lastException && lastException.value) {
+    if (lastException?.value) {
       possibleMessages.push(lastException.value);
       if (lastException.type) {
         possibleMessages.push(`${lastException.type}: ${lastException.value}`);

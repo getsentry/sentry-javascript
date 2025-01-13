@@ -59,7 +59,7 @@ let _useMatches: UseMatches | undefined;
 let _instrumentNavigation: boolean | undefined;
 
 function getInitPathName(): string | undefined {
-  if (WINDOW && WINDOW.location) {
+  if (WINDOW.location) {
     return WINDOW.location.pathname;
   }
 
@@ -177,7 +177,7 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
         return;
       }
 
-      if (_instrumentNavigation && matches && matches.length) {
+      if (_instrumentNavigation && matches?.length) {
         if (activeRootSpan) {
           activeRootSpan.end();
         }

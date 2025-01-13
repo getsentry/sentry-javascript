@@ -60,14 +60,12 @@ describe('componentTrackingPreprocessor', () => {
       ];
 
       const preprocessedComponents = components.map(cmp => {
-        const res: any =
-          preProc.script &&
-          preProc.script({
-            content: cmp.originalCode,
-            filename: cmp.filename,
-            attributes: {},
-            markup: '',
-          });
+        const res: any = preProc.script?.({
+          content: cmp.originalCode,
+          filename: cmp.filename,
+          attributes: {},
+          markup: '',
+        });
         return { ...cmp, newCode: res.code, map: res.map };
       });
 
@@ -83,14 +81,12 @@ describe('componentTrackingPreprocessor', () => {
       ];
 
       const preprocessedComponents = components.map(cmp => {
-        const res: any =
-          preProc.script &&
-          preProc.script({
-            content: cmp.originalCode,
-            filename: cmp.filename,
-            attributes: {},
-            markup: '',
-          });
+        const res: any = preProc.script?.({
+          content: cmp.originalCode,
+          filename: cmp.filename,
+          attributes: {},
+          markup: '',
+        });
         return { ...cmp, newCode: res.code, map: res.map };
       });
 
@@ -108,14 +104,12 @@ describe('componentTrackingPreprocessor', () => {
       ];
 
       const [cmp1, cmp2, cmp3] = components.map(cmp => {
-        const res: any =
-          preProc.script &&
-          preProc.script({
-            content: cmp.originalCode,
-            filename: cmp.filename,
-            attributes: {},
-            markup: '',
-          });
+        const res: any = preProc.script?.({
+          content: cmp.originalCode,
+          filename: cmp.filename,
+          attributes: {},
+          markup: '',
+        });
         return { ...cmp, newCode: res.code, map: res.map };
       });
 
@@ -146,14 +140,12 @@ describe('componentTrackingPreprocessor', () => {
       ];
 
       const [cmp11, cmp12, cmp2] = components.map(cmp => {
-        const res: any =
-          preProc.script &&
-          preProc.script({
-            content: cmp.originalCode,
-            filename: cmp.filename,
-            attributes: {},
-            markup: '',
-          });
+        const res: any = preProc.script?.({
+          content: cmp.originalCode,
+          filename: cmp.filename,
+          attributes: {},
+          markup: '',
+        });
         return { ...cmp, newCode: res.code, map: res.map };
       });
 
@@ -169,14 +161,12 @@ describe('componentTrackingPreprocessor', () => {
         name: 'Cmp2',
       };
 
-      const res: any =
-        preProc.script &&
-        preProc.script({
-          content: component.originalCode,
-          filename: component.filename,
-          attributes: { context: 'module' },
-          markup: '',
-        });
+      const res: any = preProc.script?.({
+        content: component.originalCode,
+        filename: component.filename,
+        attributes: { context: 'module' },
+        markup: '',
+      });
 
       const processedComponent = { ...component, newCode: res.code, map: res.map };
 
@@ -193,12 +183,10 @@ describe('componentTrackingPreprocessor', () => {
         name: 'Cmp2',
       };
 
-      const res: any =
-        preProc.markup &&
-        preProc.markup({
-          content: component.originalCode,
-          filename: component.filename,
-        });
+      const res: any = preProc.markup?.({
+        content: component.originalCode,
+        filename: component.filename,
+      });
 
       expect(res.code).toEqual(
         "<script>\n</script>\n<p>I'm just a plain component</p>\n<style>p{margin-top:10px}</style>",
@@ -214,12 +202,10 @@ describe('componentTrackingPreprocessor', () => {
         name: 'Cmp2',
       };
 
-      const res: any =
-        preProc.markup &&
-        preProc.markup({
-          content: component.originalCode,
-          filename: component.filename,
-        });
+      const res: any = preProc.markup?.({
+        content: component.originalCode,
+        filename: component.filename,
+      });
 
       expect(res.code).toEqual(
         "<script>console.log('hi');</script>\n<p>I'm a component with a script</p>\n<style>p{margin-top:10px}</style>",

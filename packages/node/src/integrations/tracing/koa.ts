@@ -29,7 +29,7 @@ export const instrumentKoa = generateInstrumentOnce(
           return;
         }
         const attributes = spanToJSON(span).data;
-        const route = attributes && attributes[ATTR_HTTP_ROUTE];
+        const route = attributes[ATTR_HTTP_ROUTE];
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         const method = info.context?.request?.method?.toUpperCase() || 'GET';
         if (route) {

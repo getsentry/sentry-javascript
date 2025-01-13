@@ -16,7 +16,6 @@ export type {
   Thread,
   User,
 } from '@sentry/core';
-export type { AddRequestDataToEventOptions } from '@sentry/core';
 
 export type { CloudflareOptions } from './client';
 

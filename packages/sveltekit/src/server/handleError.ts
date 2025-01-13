@@ -9,7 +9,7 @@ import { flushIfServerless } from './utils';
 function defaultErrorHandler({ error }: Parameters<HandleServerError>[0]): ReturnType<HandleServerError> {
   // @ts-expect-error this conforms to the default implementation (including this ts-expect-error)
   // eslint-disable-next-line no-console
-  consoleSandbox(() => console.error(error && error.stack));
+  consoleSandbox(() => console.error(error?.stack));
 }
 
 type HandleServerErrorInput = Parameters<HandleServerError>[0];
@@ -66,7 +66,7 @@ function isNotFoundError(input: SafeHandleServerErrorInput): boolean {
   // SvelteKit 1.x doesn't offer a reliable way to check for a Not Found error.
   // So we check the route id (shouldn't exist) and the raw stack trace
   // We can delete all of this below whenever we drop Kit 1.x support
-  const hasNoRouteId = !event.route || !event.route.id;
+  const hasNoRouteId = !event.route?.id;
 
   const rawStack: string =
     (error != null &&

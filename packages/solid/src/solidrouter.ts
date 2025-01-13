@@ -37,8 +37,8 @@ function handleNavigation(location: string): void {
   // To avoid increasing the api surface with internal properties, we look at
   // the sdk metadata.
   const metaData = client.getSdkMetadata();
-  const { name } = (metaData && metaData.sdk) || {};
-  const framework = name && name.includes('solidstart') ? 'solidstart' : 'solid';
+  const { name } = metaData?.sdk || {};
+  const framework = name?.includes('solidstart') ? 'solidstart' : 'solid';
 
   startBrowserTracingNavigationSpan(client, {
     name: location,

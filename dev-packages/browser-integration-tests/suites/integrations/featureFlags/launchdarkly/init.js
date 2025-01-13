@@ -13,7 +13,7 @@ Sentry.init({
 // Also, no SDK has mock utils for FlagUsedHandler's.
 const MockLaunchDarkly = {
   initialize(_clientId, context, options) {
-    const flagUsedHandler = options && options.inspectors ? options.inspectors[0].method : undefined;
+    const flagUsedHandler = options.inspectors ? options.inspectors[0].method : undefined;
 
     return {
       variation(key, defaultValue) {

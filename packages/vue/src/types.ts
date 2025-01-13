@@ -42,12 +42,6 @@ export interface VueOptions {
   attachProps: boolean;
 
   /**
-   * When set to `true`, original Vue's `logError` will be called as well.
-   * https://github.com/vuejs/vue/blob/c2b1cfe9ccd08835f2d99f6ce60f67b4de55187f/src/core/util/error.js#L38-L48
-   */
-  logErrors: boolean;
-
-  /**
    *  By default, Sentry attaches an error handler to capture exceptions and report them to Sentry.
    *  When `attachErrorHandler` is set to `false`, automatic error reporting is disabled.
    *

@@ -149,7 +149,7 @@ export async function devErrorSymbolicationEventProcessor(event: Event, hint: Ev
         event.exception.values[0].stacktrace.frames = event.exception.values[0].stacktrace.frames.map(
           (frame, i, frames) => {
             const resolvedFrame = resolvedFrames[frames.length - 1 - i];
-            if (!resolvedFrame || !resolvedFrame.originalStackFrame || !resolvedFrame.originalCodeFrame) {
+            if (!resolvedFrame?.originalStackFrame || !resolvedFrame.originalCodeFrame) {
               return {
                 ...frame,
                 platform: frame.filename?.startsWith('node:internal') ? 'nodejs' : undefined, // simple hack that will prevent a source mapping error from showing up

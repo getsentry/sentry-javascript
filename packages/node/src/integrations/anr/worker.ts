@@ -253,7 +253,7 @@ if (options.captureStackTrace) {
 
           clearTimeout(getScopeTimeout);
 
-          const scopes = param && param.result ? (param.result.value as ScopeData) : undefined;
+          const scopes = param?.result ? (param.result.value as ScopeData) : undefined;
 
           session.post('Debugger.resume');
           session.post('Debugger.disable');

@@ -2,7 +2,14 @@
 
 import type { AsyncContextStrategy } from '../asyncContext/types';
 import { getMainCarrier } from '../carrier';
-import type { ClientOptions, SentrySpanArguments, Span, SpanTimeInput, StartSpanOptions } from '../types-hoist';
+import type {
+  ClientOptions,
+  DynamicSamplingContext,
+  SentrySpanArguments,
+  Span,
+  SpanTimeInput,
+  StartSpanOptions,
+} from '../types-hoist';
 
 import { getClient, getCurrentScope, getIsolationScope, withScope } from '../currentScopes';
 
@@ -284,7 +291,21 @@ function createChildOrRootSpan({
   scope: Scope;
 }): Span {
   if (!hasTracingEnabled()) {
-    return new SentryNonRecordingSpan();
+    const span = new SentryNonRecordingSpan();
+
+    // If this is a root span, we ensure to freeze a DSC
+    // So we can have at least partial data here
+    if (forceTransaction || !parentSpan) {
+      const dsc = {
+        sampled: 'false',
+        sample_rate: '0',
+        transaction: spanArguments.name,
+        ...getDynamicSamplingContextFromSpan(span),
+      } satisfies Partial<DynamicSamplingContext>;
+      freezeDscOnSpan(span, dsc);
+    }
+
+    return span;
   }
 
   const isolationScope = getIsolationScope();
@@ -372,7 +393,7 @@ function getAcs(): AsyncContextStrategy {
 
 function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parentSampled?: boolean): SentrySpan {
   const client = getClient();
-  const options: Partial<ClientOptions> = (client && client.getOptions()) || {};
+  const options: Partial<ClientOptions> = client?.getOptions() || {};
 
   const { name = '', attributes } = spanArguments;
   const [sampled, sampleRate] = scope.getScopeData().sdkProcessingMetadata[SUPPRESS_TRACING_KEY]

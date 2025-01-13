@@ -156,7 +156,7 @@ export function withActiveSpan<T>(span: Span | null, callback: (scope: Scope) =>
 
 function getTracer(): Tracer {
   const client = getClient<Client & OpenTelemetryClient>();
-  return (client && client.tracer) || trace.getTracer('@sentry/opentelemetry', SDK_VERSION);
+  return client?.tracer || trace.getTracer('@sentry/opentelemetry', SDK_VERSION);
 }
 
 function getSpanOptions(options: OpenTelemetrySpanContext): SpanOptions {

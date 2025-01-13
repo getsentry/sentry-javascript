@@ -121,11 +121,11 @@ function instrumentReactRouter(
   matchPath?: MatchPath,
 ): void {
   function getInitPathName(): string | undefined {
-    if (history && history.location) {
+    if (history.location) {
       return history.location.pathname;
     }
 
-    if (WINDOW && WINDOW.location) {
+    if (WINDOW.location) {
       return WINDOW.location.pathname;
     }
 
@@ -226,7 +226,7 @@ export function withSentryRouting<P extends Record<string, any>, R extends React
   const componentDisplayName = Route.displayName || Route.name;
 
   const WrappedRoute: React.FC<P> = (props: P) => {
-    if (props && props.computedMatch && props.computedMatch.isExact) {
+    if (props?.computedMatch?.isExact) {
       const route = props.computedMatch.path;
       const activeRootSpan = getActiveRootSpan();
 

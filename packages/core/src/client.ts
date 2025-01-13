@@ -207,7 +207,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     const eventId = uuid4();
 
     // ensure we haven't captured this very object before
-    if (hint && hint.originalException && checkOrSetAlreadyCaught(hint.originalException)) {
+    if (hint?.originalException && checkOrSetAlreadyCaught(hint.originalException)) {
       DEBUG_BUILD && logger.log(ALREADY_SEEN_ERROR);
       return eventId;
     }
@@ -612,14 +612,14 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   protected _updateSessionFromEvent(session: Session, event: Event): void {
     let crashed = false;
     let errored = false;
-    const exceptions = event.exception && event.exception.values;
+    const exceptions = event.exception?.values;
 
     if (exceptions) {
       errored = true;
 
       for (const ex of exceptions) {
         const mechanism = ex.mechanism;
-        if (mechanism && mechanism.handled === false) {
+        if (mechanism?.handled === false) {
           crashed = true;
           break;
         }
@@ -698,7 +698,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   ): PromiseLike<Event | null> {
     const options = this.getOptions();
     const integrations = Object.keys(this._integrations);
-    if (!hint.integrations && integrations.length > 0) {
+    if (!hint.integrations && integrations?.length) {
       hint.integrations = integrations;
     }
 
@@ -841,9 +841,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
         }
 
         if (isTransaction) {
-          const spanCountBefore =
-            (processedEvent.sdkProcessingMetadata && processedEvent.sdkProcessingMetadata.spanCountBeforeProcessing) ||
-            0;
+          const spanCountBefore = processedEvent.sdkProcessingMetadata?.spanCountBeforeProcessing || 0;
           const spanCountAfter = processedEvent.spans ? processedEvent.spans.length : 0;
 
           const droppedSpanCount = spanCountBefore - spanCountAfter;

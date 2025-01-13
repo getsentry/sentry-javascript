@@ -5,6 +5,7 @@ import {
   functionToStringIntegration,
   getCurrentScope,
   getIntegrationsToSetup,
+  getLocationHref,
   getReportDialogEndpoint,
   inboundFiltersIntegration,
   initAndBind,
@@ -52,7 +53,7 @@ export function applyDefaultOptions(optionsArg: BrowserOptions = {}): BrowserOpt
     release:
       typeof __SENTRY_RELEASE__ === 'string' // This allows build tooling to find-and-replace __SENTRY_RELEASE__ to inject a release value
         ? __SENTRY_RELEASE__
-        : WINDOW.SENTRY_RELEASE && WINDOW.SENTRY_RELEASE.id // This supports the variable that sentry-webpack-plugin injects
+        : WINDOW.SENTRY_RELEASE?.id // This supports the variable that sentry-webpack-plugin injects
           ? WINDOW.SENTRY_RELEASE.id
           : undefined,
     sendClientReports: true,
@@ -103,8 +104,8 @@ function shouldShowBrowserExtensionError(): boolean {
   const extensionKey = windowWithMaybeExtension.chrome ? 'chrome' : 'browser';
   const extensionObject = windowWithMaybeExtension[extensionKey];
 
-  const runtimeId = extensionObject && extensionObject.runtime && extensionObject.runtime.id;
-  const href = (WINDOW.location && WINDOW.location.href) || '';
+  const runtimeId = extensionObject?.runtime?.id;
+  const href = getLocationHref() || '';
 
   const extensionProtocols = ['chrome-extension:', 'moz-extension:', 'ms-browser-extension:', 'safari-web-extension:'];
 
@@ -214,7 +215,7 @@ export function showReportDialog(options: ReportDialogOptions = {}): void {
 
   const scope = getCurrentScope();
   const client = scope.getClient();
-  const dsn = client && client.getDsn();
+  const dsn = client?.getDsn();
 
   if (!dsn) {
     DEBUG_BUILD && logger.error('DSN not configured for showReportDialog call');
