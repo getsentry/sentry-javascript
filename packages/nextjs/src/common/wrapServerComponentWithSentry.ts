@@ -6,7 +6,6 @@ import {
   SPAN_STATUS_OK,
   Scope,
   captureException,
-  generateTraceId,
   getActiveSpan,
   getCapturedScopesOnSpan,
   getRootSpan,
