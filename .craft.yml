@@ -141,7 +141,7 @@ targets:
   # TODO(v9): Once stable, re-add this target to publish the AWS Lambda layer
   # - name: aws-lambda-layer
   #   includeNames: /^sentry-node-serverless-\d+.\d+.\d+(-(beta|alpha|rc)\.\d+)?\.zip$/
-  #   layerName: SentryNodeServerlessSDK
+  #   layerName: SentryNodeServerlessSDKv9
   #   compatibleRuntimes:
   #     - name: node
   #       versions:
