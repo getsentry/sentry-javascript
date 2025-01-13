@@ -82,6 +82,16 @@ In v9, an `undefined` value will be treated the same as if the value is not defi
 
 - The `getCurrentHub().getIntegration(IntegrationClass)` method will always return `null` in v9. This has already stopped working mostly in v8, because we stopped exposing integration classes. In v9, the fallback behavior has been removed. Note that this does not change the type signature and is thus not technically breaking, but still worth pointing out.
 
+- The `startSpan` behavior was slightly changed if you pass a custom `scope` to the span start options: While in v8, the passed scope was set active directly on the passed scope, in v9, the scope is cloned. This behavior change does not apply to `@sentry/node` where the scope was already cloned. This change was made to ensure that the span only remains active within the callback and to align behavior between `@sentry/node` and all other SDKs. As a result of the change, your span hierarchy should be more accurate. However, be aware that modifying the scope (e.g. set tags) within the `startSpan` callback behaves a bit differently now.
+
+```js
+startSpan({ name: 'example', scope: customScope }, () => {
+  getCurrentScope().setTag('tag-a', 'a'); // this tag will only remain within the callback
+  // set the tag directly on customScope in addition, if you want to to persist the tag outside of the callback
+  customScope.setTag('tag-a', 'a');
+});
+```
+
 ### `@sentry/node`
 
 - When `skipOpenTelemetrySetup: true` is configured, `httpIntegration({ spans: false })` will be configured by default. This means that you no longer have to specify this yourself in this scenario. With this change, no spans are emitted once `skipOpenTelemetrySetup: true` is configured, without any further configuration being needed.
@@ -104,7 +114,7 @@ In v9, an `undefined` value will be treated the same as if the value is not defi
 
 - By default, source maps will now be automatically deleted after being uploaded to Sentry for client-side builds. You can opt out of this behavior by explicitly setting `sourcemaps.deleteSourcemapsAfterUpload` to `false` in your Sentry config.
 
-### All Meta-Framework SDKs (`@sentry/astro`, `@sentry/nuxt`)
+### All Meta-Framework SDKs (`@sentry/astro`, `@sentry/nuxt`, `@sentry/solidstart`)
 
 - Updated source map generation to respect the user-provided value of your build config, such as `vite.build.sourcemap`:
 
@@ -173,8 +183,9 @@ Sentry.init({
 - The `getDomElement` method has been removed. There is no replacement.
 - The `memoBuilder` method has been removed. There is no replacement.
 - The `extractRequestData` method has been removed. Manually extract relevant data off request instead.
-- The `addRequestDataToEvent` method has been removed. Use `addNormalizedRequestDataToEvent` instead.
+- The `addRequestDataToEvent` method has been removed. Use `httpRequestToRequestData` instead and put the resulting object directly on `event.request`.
 - The `extractPathForTransaction` method has been removed. There is no replacement.
+- The `addNormalizedRequestDataToEvent` method has been removed. Use `httpRequestToRequestData` instead and put the resulting object directly on `event.request`.
 
 #### Other/Internal Changes
 
@@ -252,8 +263,10 @@ Since v9, the types have been merged into `@sentry/core`, which removed some of 
 - The `Request` type has been removed. Use `RequestEventData` type instead.
 - The `IntegrationClass` type is no longer exported - it was not used anymore. Instead, use `Integration` or `IntegrationFn`.
 - The `samplingContext.request` attribute in the `tracesSampler` has been removed. Use `samplingContext.normalizedRequest` instead. Note that the type of `normalizedRequest` differs from `request`.
+- The `samplingContext.transactionContext` object in the `tracesSampler` has been removed. All object attributes are available in the top-level of `samplingContext`.
 - `Client` now always expects the `BaseClient` class - there is no more abstract `Client` that can be implemented! Any `Client` class has to extend from `BaseClient`.
 - `ReportDialogOptions` now extends `Record<string, unknown>` instead of `Record<string, any>` - this should not affect most users.
+- The `RequestDataIntegrationOptions` type has been removed. There is no replacement.
 
 # No Version Support Timeline
 
@@ -307,7 +320,7 @@ The Sentry metrics beta has ended and the metrics API has been removed from the 
 - Deprecated `TransactionNamingScheme` type.
 - Deprecated `validSeverityLevels`. Will not be replaced.
 - Deprecated `urlEncode`. No replacements.
-- Deprecated `addRequestDataToEvent`. Use `addNormalizedRequestDataToEvent` instead.
+- Deprecated `addRequestDataToEvent`. Use `httpRequestToRequestData` instead and put the resulting object directly on `event.request`.
 - Deprecated `extractRequestData`. Instead manually extract relevant data off request.
 - Deprecated `arrayify`. No replacements.
 - Deprecated `memoBuilder`. No replacements.

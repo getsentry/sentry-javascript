@@ -12,7 +12,6 @@ import type {
   EventProcessor,
   Extra,
   Extras,
-  PolymorphicRequest,
   Primitive,
   PropagationContext,
   RequestEventData,
@@ -60,7 +59,6 @@ export interface SdkProcessingMetadata {
   requestSession?: {
     status: 'ok' | 'errored' | 'crashed';
   };
-  request?: PolymorphicRequest;
   normalizedRequest?: RequestEventData;
   dynamicSamplingContext?: Partial<DynamicSamplingContext>;
   capturedSpanScope?: Scope;
