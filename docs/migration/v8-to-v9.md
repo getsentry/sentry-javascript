@@ -104,7 +104,7 @@ In v9, an `undefined` value will be treated the same as if the value is not defi
 
 - By default, source maps will now be automatically deleted after being uploaded to Sentry for client-side builds. You can opt out of this behavior by explicitly setting `sourcemaps.deleteSourcemapsAfterUpload` to `false` in your Sentry config.
 
-### All Meta-Framework SDKs (`@sentry/astro`, `@sentry/nuxt`)
+### All Meta-Framework SDKs (`@sentry/astro`, `@sentry/nuxt`, `@sentry/solidstart`)
 
 - Updated source map generation to respect the user-provided value of your build config, such as `vite.build.sourcemap`:
 
