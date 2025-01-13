@@ -1,4 +1,4 @@
-import type { PropagationContext, TraceparentData } from '../types-hoist';
+import type { DynamicSamplingContext, PropagationContext, TraceparentData } from '../types-hoist';
 
 import { baggageHeaderToDynamicSamplingContext } from './baggage';
 import { generateSpanId, generateTraceId } from './propagationContext';
@@ -68,7 +68,7 @@ export function propagationContextFromHeaders(
     parentSpanId,
     sampled: parentSampled,
     dsc: dynamicSamplingContext || {}, // If we have traceparent data but no DSC it means we are not head of trace and we must freeze it
-    sampleRand: parseSampleRandFromDsc(dynamicSamplingContext?.sample_rand),
+    sampleRand: getSampleRandFromTraceparentAndDsc(traceparentData, dynamicSamplingContext),
   };
 }
 
@@ -99,5 +99,40 @@ export function parseSampleRandFromDsc(sampleRand: string | undefined): number {
     return Number(sampleRand);
   } catch {
     return Math.random();
+  }
+}
+
+function getSampleRandFromTraceparentAndDsc(
+  traceparentData: TraceparentData | undefined,
+  dsc: Partial<DynamicSamplingContext> | undefined,
+): number {
+  const parsedSampleRand = parseSamplingDscNumber(dsc?.sample_rand);
+  if (parsedSampleRand !== undefined) {
+    return parsedSampleRand;
+  }
+
+  const parsedSampleRate = parseSamplingDscNumber(dsc?.sample_rate);
+  if (parsedSampleRate && traceparentData?.parentSampled !== undefined) {
+    return traceparentData.parentSampled
+      ? // Returns a sample rand with positive sampling decision [0, sampleRate)
+        Math.random() * parsedSampleRate
+      : // Returns a sample rand with negative sampling decision [sampleRate, 1]
+        parsedSampleRate + Math.random() * (1 - parsedSampleRate);
+  } else {
+    return Math.random();
+  }
+}
+
+function parseSamplingDscNumber(sampleRand: string | undefined): number | undefined {
+  try {
+    const parsed = Number(sampleRand); // Number(undefined) will return NaN and fail the next check
+    if (isNaN(parsed) || parsed < 0 || parsed > 1) {
+      // This is probably an invariant but returning undefined seems sensible.
+      return undefined;
+    } else {
+      return parsed;
+    }
+  } catch {
+    return undefined;
   }
 }
