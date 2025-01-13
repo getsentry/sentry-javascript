@@ -61,42 +61,42 @@ Older Typescript versions _may_ still work, but we will not test them anymore an
 
 - If you use the optional `captureConsoleIntegration` and set `attachStackTrace: true` in your `Sentry.init` call, console messages will no longer be marked as unhandled (i.e. `handled: false`) but as handled (i.e. `handled: true`). If you want to keep sending them as unhandled, configure the `handled` option when adding the integration:
 
-```js
-Sentry.init({
-  integrations: [Sentry.captureConsoleIntegration({ handled: false })],
-  attachStackTrace: true,
-});
-```
+  ```js
+  Sentry.init({
+    integrations: [Sentry.captureConsoleIntegration({ handled: false })],
+    attachStackTrace: true,
+  });
+  ```
 
 - Dropping spans in the `beforeSendSpan` hook is no longer possible.
 - The `beforeSendSpan` hook now receives the root span as well as the child spans.
 - In previous versions, we determined if tracing is enabled (for Tracing Without Performance) by checking if either `tracesSampleRate` or `traceSampler` are _defined_ at all, in `Sentry.init()`. This means that e.g. the following config would lead to tracing without performance (=tracing being enabled, even if no spans would be started):
 
-```js
-Sentry.init({
-  tracesSampleRate: undefined,
-});
-```
+  ```js
+  Sentry.init({
+    tracesSampleRate: undefined,
+  });
+  ```
 
-In v9, an `undefined` value will be treated the same as if the value is not defined at all. You'll need to set `tracesSampleRate: 0` if you want to enable tracing without performance.
+  In v9, an `undefined` value will be treated the same as if the value is not defined at all. You'll need to set `tracesSampleRate: 0` if you want to enable tracing without performance.
 
 - The `getCurrentHub().getIntegration(IntegrationClass)` method will always return `null` in v9. This has already stopped working mostly in v8, because we stopped exposing integration classes. In v9, the fallback behavior has been removed. Note that this does not change the type signature and is thus not technically breaking, but still worth pointing out.
 
 - The `startSpan` behavior was slightly changed if you pass a custom `scope` to the span start options: While in v8, the passed scope was set active directly on the passed scope, in v9, the scope is cloned. This behavior change does not apply to `@sentry/node` where the scope was already cloned. This change was made to ensure that the span only remains active within the callback and to align behavior between `@sentry/node` and all other SDKs. As a result of the change, your span hierarchy should be more accurate. However, be aware that modifying the scope (e.g. set tags) within the `startSpan` callback behaves a bit differently now.
 
-```js
-startSpan({ name: 'example', scope: customScope }, () => {
-  getCurrentScope().setTag('tag-a', 'a'); // this tag will only remain within the callback
-  // set the tag directly on customScope in addition, if you want to to persist the tag outside of the callback
-  customScope.setTag('tag-a', 'a');
-});
-```
+  ```js
+  startSpan({ name: 'example', scope: customScope }, () => {
+    getCurrentScope().setTag('tag-a', 'a'); // this tag will only remain within the callback
+    // set the tag directly on customScope in addition, if you want to to persist the tag outside of the callback
+    customScope.setTag('tag-a', 'a');
+  });
+  ```
 
 ### `@sentry/node`
 
 - When `skipOpenTelemetrySetup: true` is configured, `httpIntegration({ spans: false })` will be configured by default.
 
-This means that you no longer have to specify this yourself in this scenario. With this change, no spans are emitted once `skipOpenTelemetrySetup: true` is configured, without any further configuration being needed.
+  This means that you no longer have to specify this yourself in this scenario. With this change, no spans are emitted once `skipOpenTelemetrySetup: true` is configured, without any further configuration being needed.
 
 - The `requestDataIntegration` will no longer automatically set the user from `request.user`. This is an express-specific, undocumented behavior, and also conflicts with our privacy-by-default strategy. Starting in v9, you'll need to manually call `Sentry.setUser()` e.g. in a middleware to set the user on Sentry events.
 
@@ -219,23 +219,23 @@ The following changes are unlikely to affect users of the SDK. They are listed h
 
 - The options `tracingOptions`, `trackComponents`, `timeout`, `hooks` have been removed everywhere except in the `tracingOptions` option of `vueIntegration()`.
 
-These options should now be set as follows:
+  These options should now be set as follows:
 
-```js
-import * as Sentry from '@sentry/vue';
+  ```js
+  import * as Sentry from '@sentry/vue';
 
-Sentry.init({
-  integrations: [
-    Sentry.vueIntegration({
-      tracingOptions: {
-        trackComponents: true,
-        timeout: 1000,
-        hooks: ['mount', 'update', 'unmount'],
-      },
-    }),
-  ],
-});
-```
+  Sentry.init({
+    integrations: [
+      Sentry.vueIntegration({
+        tracingOptions: {
+          trackComponents: true,
+          timeout: 1000,
+          hooks: ['mount', 'update', 'unmount'],
+        },
+      }),
+    ],
+  });
+  ```
 
 - The option `logErrors` in the `vueIntegration` has been removed. The Sentry Vue error handler will propagate the error to a user-defined error handler
   or just re-throw the error (which will log the error without modifying).
@@ -255,13 +255,13 @@ Let us know if this is causing issues in your setup by opening an issue on GitHu
 
 - The import of Sentry from the deno registry has changed. Use the `import * as Sentry from 'https://deno.land/x/sentry/build/index.mjs'` import instead.
 
-```js
-// before
-import * as Sentry from 'https://deno.land/x/sentry/index.mjs';
+  ```js
+  // before
+  import * as Sentry from 'https://deno.land/x/sentry/index.mjs';
 
-// after
-import * as Sentry from 'https://deno.land/x/sentry/build/index.mjs';
-```
+  // after
+  import * as Sentry from 'https://deno.land/x/sentry/build/index.mjs';
+  ```
 
 ## 6. Type Changes
 
