@@ -157,7 +157,7 @@ function createBreadcrumb(handlerData: HandlerDataFetch): void {
 
     breadcrumbData.request_body_size = handlerData.fetchData.request_body_size;
     breadcrumbData.response_body_size = handlerData.fetchData.response_body_size;
-    breadcrumbData.status_code = response && response.status;
+    breadcrumbData.status_code = response?.status;
 
     const hint: FetchBreadcrumbHint = {
       input: handlerData.args,

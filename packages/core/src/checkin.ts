@@ -24,7 +24,7 @@ export function createCheckInEnvelope(
     sent_at: new Date().toISOString(),
   };
 
-  if (metadata && metadata.sdk) {
+  if (metadata?.sdk) {
     headers.sdk = {
       name: metadata.sdk.name,
       version: metadata.sdk.version,

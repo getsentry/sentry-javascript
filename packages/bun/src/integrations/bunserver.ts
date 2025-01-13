@@ -100,7 +100,7 @@ function instrumentBunServeOptions(serveOptions: Parameters<typeof Bun.serve>[0]
                   const response = await (fetchTarget.apply(fetchThisArg, fetchArgs) as ReturnType<
                     typeof serveOptions.fetch
                   >);
-                  if (response && response.status) {
+                  if (response?.status) {
                     setHttpStatus(span, response.status);
                     isolationScope.setContext('response', {
                       headers: response.headers.toJSON(),

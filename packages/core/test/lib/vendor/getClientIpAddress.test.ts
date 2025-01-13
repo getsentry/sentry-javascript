@@ -1,4 +1,4 @@
-import { getClientIPAddress } from '../../src/utils-hoist/vendor/getIpAddress';
+import { getClientIPAddress } from '../../../src/vendor/getIpAddress';
 
 describe('getClientIPAddress', () => {
   it.each([

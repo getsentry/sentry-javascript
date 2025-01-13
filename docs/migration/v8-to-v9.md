@@ -82,15 +82,47 @@ In v9, an `undefined` value will be treated the same as if the value is not defi
 
 - The `getCurrentHub().getIntegration(IntegrationClass)` method will always return `null` in v9. This has already stopped working mostly in v8, because we stopped exposing integration classes. In v9, the fallback behavior has been removed. Note that this does not change the type signature and is thus not technically breaking, but still worth pointing out.
 
+- The `startSpan` behavior was slightly changed if you pass a custom `scope` to the span start options: While in v8, the passed scope was set active directly on the passed scope, in v9, the scope is cloned. This behavior change does not apply to `@sentry/node` where the scope was already cloned. This change was made to ensure that the span only remains active within the callback and to align behavior between `@sentry/node` and all other SDKs. As a result of the change, your span hierarchy should be more accurate. However, be aware that modifying the scope (e.g. set tags) within the `startSpan` callback behaves a bit differently now.
+
+```js
+startSpan({ name: 'example', scope: customScope }, () => {
+  getCurrentScope().setTag('tag-a', 'a'); // this tag will only remain within the callback
+  // set the tag directly on customScope in addition, if you want to to persist the tag outside of the callback
+  customScope.setTag('tag-a', 'a');
+});
+```
+
 ### `@sentry/node`
 
 - When `skipOpenTelemetrySetup: true` is configured, `httpIntegration({ spans: false })` will be configured by default. This means that you no longer have to specify this yourself in this scenario. With this change, no spans are emitted once `skipOpenTelemetrySetup: true` is configured, without any further configuration being needed.
 
 - The `requestDataIntegration` will no longer automatically set the user from `request.user`. This is an express-specific, undocumented behavior, and also conflicts with our privacy-by-default strategy. Starting in v9, you'll need to manually call `Sentry.setUser()` e.g. in a middleware to set the user on Sentry events.
 
+- The `tracesSampler` hook will no longer be called for _every_ span. Instead, it will only be called for "root spans". Root spans are spans that have no local parent span. Root spans may however have incoming trace data from a different service, for example when using distributed tracing.
+
 ### `@sentry/browser`
 
 - The `captureUserFeedback` method has been removed. Use `captureFeedback` instead and update the `comments` field to `message`.
+
+### `@sentry/nextjs`
+
+- The Sentry Next.js SDK will no longer use the Next.js Build ID as fallback identifier for releases. The SDK will continue to attempt to read CI-provider-specific environment variables and the current git SHA to automatically determine a release name. If you examine that you no longer see releases created in Sentry, it is recommended to manually provide a release name to `withSentryConfig` via the `release.name` option.
+
+  This behavior was changed because the Next.js Build ID is non-deterministic and the release name is injected into client bundles, causing build artifacts to be non-deterministic. This caused issues for some users. Additionally, because it is uncertain whether it will be possible to rely on a Build ID when Turbopack becomes stable, we decided to pull the plug now instead of introducing confusing behavior in the future.
+
+- Source maps are now automatically enabled for both client and server builds unless explicitly disabled via `sourcemaps.disable`. Client builds use `hidden-source-map` while server builds use `source-map` as their webpack `devtool` setting unless any other value than `false` or `undefined` has been assigned already.
+
+- By default, source maps will now be automatically deleted after being uploaded to Sentry for client-side builds. You can opt out of this behavior by explicitly setting `sourcemaps.deleteSourcemapsAfterUpload` to `false` in your Sentry config.
+
+### All Meta-Framework SDKs (`@sentry/astro`, `@sentry/nuxt`, `@sentry/solidstart`)
+
+- Updated source map generation to respect the user-provided value of your build config, such as `vite.build.sourcemap`:
+
+  - Explicitly disabled (false): Emit warning, no source map upload.
+  - Explicitly enabled (true, 'hidden', 'inline'): No changes, source maps are uploaded and not automatically deleted.
+  - Unset: Enable 'hidden', delete `.map` files after uploading them to Sentry.
+
+  To customize which files are deleted after upload, define the `filesToDeleteAfterUpload` array with globs.
 
 ### Uncategorized (TODO)
 
@@ -151,8 +183,9 @@ Sentry.init({
 - The `getDomElement` method has been removed. There is no replacement.
 - The `memoBuilder` method has been removed. There is no replacement.
 - The `extractRequestData` method has been removed. Manually extract relevant data off request instead.
-- The `addRequestDataToEvent` method has been removed. Use `addNormalizedRequestDataToEvent` instead.
+- The `addRequestDataToEvent` method has been removed. Use `httpRequestToRequestData` instead and put the resulting object directly on `event.request`.
 - The `extractPathForTransaction` method has been removed. There is no replacement.
+- The `addNormalizedRequestDataToEvent` method has been removed. Use `httpRequestToRequestData` instead and put the resulting object directly on `event.request`.
 
 #### Other/Internal Changes
 
@@ -201,6 +234,9 @@ The following changes are unlikely to affect users of the SDK. They are listed h
   });
   ```
 
+- The option `logErrors` in the `vueIntegration` has been removed. The Sentry Vue error handler will propagate the error to a user-defined error handler
+  or just re-throw the error (which will log the error without modifying).
+
 ## 5. Build Changes
 
 Previously the CJS versions of the SDK code (wrongfully) contained compatibility statements for default exports in ESM:
@@ -227,7 +263,10 @@ Since v9, the types have been merged into `@sentry/core`, which removed some of 
 - The `Request` type has been removed. Use `RequestEventData` type instead.
 - The `IntegrationClass` type is no longer exported - it was not used anymore. Instead, use `Integration` or `IntegrationFn`.
 - The `samplingContext.request` attribute in the `tracesSampler` has been removed. Use `samplingContext.normalizedRequest` instead. Note that the type of `normalizedRequest` differs from `request`.
+- The `samplingContext.transactionContext` object in the `tracesSampler` has been removed. All object attributes are available in the top-level of `samplingContext`.
 - `Client` now always expects the `BaseClient` class - there is no more abstract `Client` that can be implemented! Any `Client` class has to extend from `BaseClient`.
+- `ReportDialogOptions` now extends `Record<string, unknown>` instead of `Record<string, any>` - this should not affect most users.
+- The `RequestDataIntegrationOptions` type has been removed. There is no replacement.
 
 # No Version Support Timeline
 
@@ -281,7 +320,7 @@ The Sentry metrics beta has ended and the metrics API has been removed from the 
 - Deprecated `TransactionNamingScheme` type.
 - Deprecated `validSeverityLevels`. Will not be replaced.
 - Deprecated `urlEncode`. No replacements.
-- Deprecated `addRequestDataToEvent`. Use `addNormalizedRequestDataToEvent` instead.
+- Deprecated `addRequestDataToEvent`. Use `httpRequestToRequestData` instead and put the resulting object directly on `event.request`.
 - Deprecated `extractRequestData`. Instead manually extract relevant data off request.
 - Deprecated `arrayify`. No replacements.
 - Deprecated `memoBuilder`. No replacements.
@@ -355,6 +394,9 @@ The Sentry metrics beta has ended and the metrics API has been removed from the 
     ],
   });
   ```
+
+- Deprecated `logErrors` in the `vueIntegration`. The Sentry Vue error handler will propagate the error to a user-defined error handler
+  or just re-throw the error (which will log the error without modifying).
 
 ## `@sentry/nuxt` and `@sentry/vue`
 

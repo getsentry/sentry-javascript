@@ -55,11 +55,13 @@ describe('sentrySvelteKit()', () => {
       // default source maps plugins:
       'sentry-telemetry-plugin',
       'sentry-vite-release-injection-plugin',
-      'sentry-debug-id-upload-plugin',
       'sentry-vite-debug-id-injection-plugin',
-      'sentry-file-deletion-plugin',
+      // custom release plugin:
+      'sentry-sveltekit-release-management-plugin',
       // custom source maps plugin:
-      'sentry-upload-sveltekit-source-maps',
+      'sentry-sveltekit-debug-id-upload-plugin',
+      // custom deletion plugin
+      'sentry-sveltekit-file-deletion-plugin',
     ]);
   });
 
@@ -76,7 +78,7 @@ describe('sentrySvelteKit()', () => {
     const instrumentPlugin = plugins[0];
 
     expect(plugins).toHaveLength(1);
-    expect(instrumentPlugin.name).toEqual('sentry-auto-instrumentation');
+    expect(instrumentPlugin?.name).toEqual('sentry-auto-instrumentation');
 
     process.env.NODE_ENV = previousEnv;
   });

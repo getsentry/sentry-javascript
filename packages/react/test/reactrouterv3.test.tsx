@@ -8,22 +8,10 @@ import {
   setCurrentClient,
 } from '@sentry/core';
 import { act, render } from '@testing-library/react';
+// biome-ignore lint/nursery/noUnusedImports: <explanation>
 import * as React from 'react';
 import { IndexRoute, Route, Router, createMemoryHistory, createRoutes, match } from 'react-router-3';
-
-import type { Match, Route as RouteType } from '../src/reactrouterv3';
 import { reactRouterV3BrowserTracingIntegration } from '../src/reactrouterv3';
-
-// Have to manually set types because we are using package-alias
-declare module 'react-router-3' {
-  type History = { replace: (s: string) => void; push: (s: string) => void };
-  export function createMemoryHistory(): History;
-  export const Router: React.ComponentType<{ history: History }>;
-  export const Route: React.ComponentType<{ path: string; component?: React.ComponentType<any> }>;
-  export const IndexRoute: React.ComponentType<{ component: React.ComponentType<any> }>;
-  export const match: Match;
-  export const createRoutes: (routes: any) => RouteType[];
-}
 
 const mockStartBrowserTracingPageLoadSpan = jest.fn();
 const mockStartBrowserTracingNavigationSpan = jest.fn();

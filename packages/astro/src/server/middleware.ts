@@ -87,11 +87,13 @@ async function instrumentRequest(
   isolationScope?: Scope,
 ): Promise<Response> {
   // Make sure we don't accidentally double wrap (e.g. user added middleware and integration auto added it)
-  const locals = ctx.locals as AstroLocalsWithSentry;
-  if (locals && locals.__sentry_wrapped__) {
+  const locals = ctx.locals as AstroLocalsWithSentry | undefined;
+  if (locals?.__sentry_wrapped__) {
     return next();
   }
-  addNonEnumerableProperty(locals, '__sentry_wrapped__', true);
+  if (locals) {
+    addNonEnumerableProperty(locals, '__sentry_wrapped__', true);
+  }
 
   const isDynamicPageRequest = checkIsDynamicPageRequest(ctx);
 
@@ -164,7 +166,7 @@ async function instrumentRequest(
               const client = getClient();
               const contentType = originalResponse.headers.get('content-type');
 
-              const isPageloadRequest = contentType && contentType.startsWith('text/html');
+              const isPageloadRequest = contentType?.startsWith('text/html');
               if (!isPageloadRequest || !client) {
                 return originalResponse;
               }

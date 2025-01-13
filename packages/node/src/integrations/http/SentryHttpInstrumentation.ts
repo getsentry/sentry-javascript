@@ -9,6 +9,7 @@ import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opent
 import type { AggregationCounts, Client, RequestEventData, SanitizedRequestData, Scope } from '@sentry/core';
 import {
   addBreadcrumb,
+  generateSpanId,
   getBreadcrumbLogLevelFromHttpStatusCode,
   getClient,
   getIsolationScope,
@@ -18,6 +19,7 @@ import {
   parseUrl,
   stripUrlQueryAndFragment,
   withIsolationScope,
+  withScope,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import { getRequestUrl } from '../../utils/getRequestUrl';
@@ -161,12 +163,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
         patchRequestToCaptureBody(request, isolationScope);
 
         // Update the isolation scope, isolate this request
-        // TODO(v9): Stop setting `request`, we only rely on normalizedRequest anymore
-        isolationScope.setSDKProcessingMetadata({
-          request,
-          normalizedRequest,
-          ipAddress,
-        });
+        isolationScope.setSDKProcessingMetadata({ normalizedRequest, ipAddress });
 
         // attempt to update the scope's `transactionName` based on the request URL
         // Ideally, framework instrumentations coming after the HttpInstrumentation
@@ -187,7 +184,11 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
         }
 
         return withIsolationScope(isolationScope, () => {
-          return original.apply(this, [event, ...args]);
+          return withScope(scope => {
+            // Set a new propagationSpanId for this request
+            scope.getPropagationContext().propagationSpanId = generateSpanId();
+            return original.apply(this, [event, ...args]);
+          });
         });
       };
     };

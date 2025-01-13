@@ -78,7 +78,7 @@ export default defineNuxtModule<ModuleOptions>({
     }
 
     nuxt.hooks.hook('nitro:init', nitro => {
-      if (serverConfigFile && serverConfigFile.includes('.server.config')) {
+      if (serverConfigFile?.includes('.server.config')) {
         if (nitro.options.dev) {
           consoleSandbox(() => {
             // eslint-disable-next-line no-console

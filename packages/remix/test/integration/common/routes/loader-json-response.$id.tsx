@@ -22,7 +22,7 @@ export default function LoaderJSONResponse() {
 
   return (
     <div>
-      <h1>{data && data.id ? data.id : 'Not Found'}</h1>
+      <h1>{data?.id ? data.id : 'Not Found'}</h1>
     </div>
   );
 }

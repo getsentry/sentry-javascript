@@ -33,7 +33,7 @@ export function sentryBeforeResponseMiddleware() {
     addNonEnumerableProperty(response, '__sentry_wrapped__', true);
 
     const contentType = event.response.headers.get('content-type');
-    const isPageloadRequest = contentType && contentType.startsWith('text/html');
+    const isPageloadRequest = contentType?.startsWith('text/html');
 
     if (!isPageloadRequest) {
       return;

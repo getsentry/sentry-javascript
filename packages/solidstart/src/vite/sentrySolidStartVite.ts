@@ -1,19 +1,24 @@
 import type { Plugin, UserConfig } from 'vite';
 import { makeBuildInstrumentationFilePlugin } from './buildInstrumentationFile';
-import { makeSourceMapsVitePlugin } from './sourceMaps';
+import { makeAddSentryVitePlugin, makeEnableSourceMapsVitePlugin } from './sourceMaps';
 import type { SentrySolidStartPluginOptions } from './types';
 
 /**
  * Various Sentry vite plugins to be used for SolidStart.
  */
-export const sentrySolidStartVite = (options: SentrySolidStartPluginOptions = {}): Plugin[] => {
+export const sentrySolidStartVite = (options: SentrySolidStartPluginOptions = {}, viteConfig: UserConfig): Plugin[] => {
   const sentryPlugins: Plugin[] = [];
 
-  sentryPlugins.push(makeBuildInstrumentationFilePlugin(options));
+  if (options.autoInjectServerSentry !== 'experimental_dynamic-import') {
+    sentryPlugins.push(makeBuildInstrumentationFilePlugin(options));
+  }
 
   if (process.env.NODE_ENV !== 'development') {
     if (options.sourceMapsUploadOptions?.enabled ?? true) {
-      sentryPlugins.push(...makeSourceMapsVitePlugin(options));
+      const sourceMapsPlugin = makeAddSentryVitePlugin(options, viteConfig);
+      const enableSourceMapsPlugin = makeEnableSourceMapsVitePlugin(options);
+
+      sentryPlugins.push(...sourceMapsPlugin, ...enableSourceMapsPlugin);
     }
   }
 
@@ -25,7 +30,7 @@ export const sentrySolidStartVite = (options: SentrySolidStartPluginOptions = {}
  */
 export const addSentryPluginToVite = (config: UserConfig = {}, options: SentrySolidStartPluginOptions): UserConfig => {
   const plugins = Array.isArray(config.plugins) ? [...config.plugins] : [];
-  plugins.unshift(sentrySolidStartVite(options));
+  plugins.unshift(sentrySolidStartVite(options, config));
 
   return {
     ...config,

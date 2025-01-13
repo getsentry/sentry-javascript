@@ -2,7 +2,14 @@
 
 import type { AsyncContextStrategy } from '../asyncContext/types';
 import { getMainCarrier } from '../carrier';
-import type { ClientOptions, SentrySpanArguments, Span, SpanTimeInput, StartSpanOptions } from '../types-hoist';
+import type {
+  ClientOptions,
+  DynamicSamplingContext,
+  SentrySpanArguments,
+  Span,
+  SpanTimeInput,
+  StartSpanOptions,
+} from '../types-hoist';
 
 import { getClient, getCurrentScope, getIsolationScope, withScope } from '../currentScopes';
 
@@ -44,9 +51,13 @@ export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) =
   }
 
   const spanArguments = parseSentrySpanArguments(options);
-  const { forceTransaction, parentSpan: customParentSpan } = options;
+  const { forceTransaction, parentSpan: customParentSpan, scope: customScope } = options;
 
-  return withScope(options.scope, () => {
+  // We still need to fork a potentially passed scope, as we set the active span on it
+  // and we need to ensure that it is cleaned up properly once the span ends.
+  const customForkedScope = customScope?.clone();
+
+  return withScope(customForkedScope, () => {
     // If `options.parentSpan` is defined, we want to wrap the callback in `withActiveSpan`
     const wrapper = getActiveSpanWrapper<T>(customParentSpan);
 
@@ -75,7 +86,9 @@ export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) =
             activeSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
           }
         },
-        () => activeSpan.end(),
+        () => {
+          activeSpan.end();
+        },
       );
     });
   });
@@ -284,7 +297,21 @@ function createChildOrRootSpan({
   scope: Scope;
 }): Span {
   if (!hasTracingEnabled()) {
-    return new SentryNonRecordingSpan();
+    const span = new SentryNonRecordingSpan();
+
+    // If this is a root span, we ensure to freeze a DSC
+    // So we can have at least partial data here
+    if (forceTransaction || !parentSpan) {
+      const dsc = {
+        sampled: 'false',
+        sample_rate: '0',
+        transaction: spanArguments.name,
+        ...getDynamicSamplingContextFromSpan(span),
+      } satisfies Partial<DynamicSamplingContext>;
+      freezeDscOnSpan(span, dsc);
+    }
+
+    return span;
   }
 
   const isolationScope = getIsolationScope();
@@ -372,7 +399,7 @@ function getAcs(): AsyncContextStrategy {
 
 function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parentSampled?: boolean): SentrySpan {
   const client = getClient();
-  const options: Partial<ClientOptions> = (client && client.getOptions()) || {};
+  const options: Partial<ClientOptions> = client?.getOptions() || {};
 
   const { name = '', attributes } = spanArguments;
   const [sampled, sampleRate] = scope.getScopeData().sdkProcessingMetadata[SUPPRESS_TRACING_KEY]
@@ -381,10 +408,6 @@ function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parent
         name,
         parentSampled,
         attributes,
-        transactionContext: {
-          name,
-          parentSampled,
-        },
       });
 
   const rootSpan = new SentrySpan({
@@ -395,6 +418,12 @@ function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parent
     },
     sampled,
   });
+
+  if (!sampled && client) {
+    DEBUG_BUILD && logger.log('[Tracing] Discarding root span because its trace was not chosen to be sampled.');
+    client.recordDroppedEvent('sample_rate', 'transaction');
+  }
+
   if (sampleRate !== undefined) {
     rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, sampleRate);
   }

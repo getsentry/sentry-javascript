@@ -13,11 +13,10 @@ export type {
   Thread,
   User,
   Session,
+  ReportDialogOptions,
 } from '@sentry/core';
 
 export type { BrowserOptions } from './client';
-
-export type { ReportDialogOptions } from './sdk';
 
 export {
   addEventProcessor,

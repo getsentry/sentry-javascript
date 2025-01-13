@@ -70,7 +70,7 @@ export function mapStatus(span: AbstractSpan): SpanStatus {
   }
 
   // We default to setting the spans status to ok.
-  if (status && status.code === SpanStatusCode.UNSET) {
+  if (status?.code === SpanStatusCode.UNSET) {
     return { code: SPAN_STATUS_OK };
   } else {
     return { code: SPAN_STATUS_ERROR, message: 'unknown_error' };

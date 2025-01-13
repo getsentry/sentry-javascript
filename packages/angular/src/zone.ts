@@ -8,7 +8,7 @@ declare const Zone: any;
 // Therefore, it's advisable to safely check whether the `run` function is
 // available in the `<root>` context.
 // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-const isNgZoneEnabled = typeof Zone !== 'undefined' && Zone.root && Zone.root.run;
+const isNgZoneEnabled = typeof Zone !== 'undefined' && Zone.root?.run;
 
 /**
  * The function that does the same job as `NgZone.runOutsideAngular`.

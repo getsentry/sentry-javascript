@@ -29,7 +29,7 @@ export function wrapLoadWithSentry<T extends (...args: any) => any>(origLoad: T)
 
       addNonEnumerableProperty(event as unknown as Record<string, unknown>, '__sentry_wrapped__', true);
 
-      const routeId = event.route && event.route.id;
+      const routeId = event.route?.id;
 
       try {
         // We need to await before returning, otherwise we won't catch any errors thrown by the load function

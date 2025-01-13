@@ -7,8 +7,8 @@ import type { DsnComponents } from '../types-hoist';
  * @param url url to verify
  */
 export function isSentryRequestUrl(url: string, client: Client | undefined): boolean {
-  const dsn = client && client.getDsn();
-  const tunnel = client && client.getOptions().tunnel;
+  const dsn = client?.getDsn();
+  const tunnel = client?.getOptions().tunnel;
   return checkDsn(url, dsn) || checkTunnel(url, tunnel);
 }
 

@@ -220,12 +220,12 @@ export const buildFeedbackIntegration = ({
         options: {
           ...options,
           onFormClose: () => {
-            dialog && dialog.close();
-            options.onFormClose && options.onFormClose();
+            dialog?.close();
+            options.onFormClose?.();
           },
           onFormSubmitted: () => {
-            dialog && dialog.close();
-            options.onFormSubmitted && options.onFormSubmitted();
+            dialog?.close();
+            options.onFormSubmitted?.();
           },
         },
         screenshotIntegration,
@@ -253,8 +253,8 @@ export const buildFeedbackIntegration = ({
           dialog = await _loadAndRenderDialog({
             ...mergedOptions,
             onFormSubmitted: () => {
-              dialog && dialog.removeFromDom();
-              mergedOptions.onFormSubmitted && mergedOptions.onFormSubmitted();
+              dialog?.removeFromDom();
+              mergedOptions.onFormSubmitted?.();
             },
           });
         }
@@ -264,7 +264,7 @@ export const buildFeedbackIntegration = ({
       targetEl.addEventListener('click', handleClick);
       const unsubscribe = (): void => {
         _subscriptions = _subscriptions.filter(sub => sub !== unsubscribe);
-        dialog && dialog.removeFromDom();
+        dialog?.removeFromDom();
         dialog = null;
         targetEl.removeEventListener('click', handleClick);
       };
@@ -342,7 +342,7 @@ export const buildFeedbackIntegration = ({
        */
       remove(): void {
         if (_shadow) {
-          _shadow.parentElement && _shadow.parentElement.remove();
+          _shadow.parentElement?.remove();
           _shadow = null;
         }
         // Remove any lingering subscriptions

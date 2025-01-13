@@ -118,7 +118,7 @@ function instrumentFetch(onFetchResolved?: (response: Response) => void, skipNat
 }
 
 async function resolveResponse(res: Response | undefined, onFinishedResolving: () => void): Promise<void> {
-  if (res && res.body) {
+  if (res?.body) {
     const body = res.body;
     const responseReader = body.getReader();
 
