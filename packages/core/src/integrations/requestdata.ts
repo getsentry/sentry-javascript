@@ -115,7 +115,7 @@ function extractNormalizedRequestData(
   }
 
   if (include.cookies) {
-    const cookies = normalizedRequest.cookies || (headers && headers.cookie ? parseCookie(headers.cookie) : undefined);
+    const cookies = normalizedRequest.cookies || (headers?.cookie ? parseCookie(headers.cookie) : undefined);
     requestData.cookies = cookies || {};
   }
 

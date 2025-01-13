@@ -106,7 +106,7 @@ function getAbsoluteUrl({
   protocol,
   host,
 }: { url?: string; protocol: string; host?: string }): string | undefined {
-  if (url && url.startsWith('http')) {
+  if (url?.startsWith('http')) {
     return url;
   }
 
