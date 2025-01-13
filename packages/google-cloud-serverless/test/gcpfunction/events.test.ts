@@ -1,4 +1,4 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, isThenable } from '@sentry/core';
 
 import type { Event } from '@sentry/core';
 import { wrapEventFunction } from '../../src/gcpfunction/events';
@@ -49,15 +49,13 @@ describe('wrapEventFunction', () => {
         resource: 'some.resource',
       };
 
-      const result = fn({}, context, (err: any, result: any) => {
+      fn({}, context, (err: any, result: any) => {
         if (err != null || err != undefined) {
           reject(err);
         } else {
           resolve(result);
         }
       });
-
-      Promise.allSettled([result]).catch(error => reject(error));
     });
   }
 
