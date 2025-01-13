@@ -414,10 +414,6 @@ function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parent
           name,
           parentSampled,
           attributes,
-          transactionContext: {
-            name,
-            parentSampled,
-          },
           // parentSampleRate: 'TODO',
         },
         sampleRand,
