@@ -54,7 +54,7 @@ export function propagationContextFromHeaders(
   const traceparentData = extractTraceparentData(sentryTrace);
   const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(baggage);
 
-  if (!traceparentData || !traceparentData.traceId) {
+  if (!traceparentData?.traceId) {
     return { traceId: generateTraceId() };
   }
 

@@ -2,6 +2,9 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { consoleSandbox } from '@sentry/core';
 import type { Nitro } from 'nitropack';
+import type { SentrySolidStartPluginOptions } from '../vite/types';
+import type { RollupConfig } from './types';
+import { wrapServerEntryWithDynamicImport } from './wrapServerEntryWithDynamicImport';
 
 // Nitro presets for hosts that only host static files
 export const staticHostPresets = ['github_pages'];
@@ -132,4 +135,48 @@ export async function addSentryTopImport(nitro: Nitro): Promise<void> {
       );
     }
   });
+}
+
+/**
+ * This function modifies the Rollup configuration to include a plugin that wraps the entry file with a dynamic import (`import()`)
+ * and adds the Sentry server config with the static `import` declaration.
+ *
+ * With this, the Sentry server config can be loaded before all other modules of the application (which is needed for import-in-the-middle).
+ * See: https://nodejs.org/api/module.html#enabling
+ */
+export async function addDynamicImportEntryFileWrapper({
+  nitro,
+  rollupConfig,
+  sentryPluginOptions,
+}: {
+  nitro: Nitro;
+  rollupConfig: RollupConfig;
+  sentryPluginOptions: Omit<SentrySolidStartPluginOptions, 'experimental_entrypointWrappedFunctions'> &
+    Required<Pick<SentrySolidStartPluginOptions, 'experimental_entrypointWrappedFunctions'>>;
+}): Promise<void> {
+  // Static file hosts have no server component so there's nothing to do
+  if (staticHostPresets.includes(nitro.options.preset)) {
+    return;
+  }
+
+  const srcDir = nitro.options.srcDir;
+  // todo allow other instrumentation paths
+  const serverInstrumentationPath = path.resolve(srcDir, 'src', 'instrument.server.ts');
+
+  const instrumentationFileName = sentryPluginOptions.instrumentation
+    ? path.basename(sentryPluginOptions.instrumentation)
+    : '';
+
+  rollupConfig.plugins.push(
+    wrapServerEntryWithDynamicImport({
+      serverConfigFileName: sentryPluginOptions.instrumentation
+        ? path.join(path.dirname(instrumentationFileName), path.parse(instrumentationFileName).name)
+        : 'instrument.server',
+      serverEntrypointFileName: sentryPluginOptions.serverEntrypointFileName || nitro.options.preset,
+      resolvedServerConfigPath: serverInstrumentationPath,
+      entrypointWrappedFunctions: sentryPluginOptions.experimental_entrypointWrappedFunctions,
+      additionalImports: ['import-in-the-middle/hook.mjs'],
+      debug: sentryPluginOptions.debug,
+    }),
+  );
 }

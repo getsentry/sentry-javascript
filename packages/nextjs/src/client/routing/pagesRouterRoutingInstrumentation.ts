@@ -113,7 +113,7 @@ export function pagesRouterInstrumentPageLoad(client: Client): void {
   let name = route || globalObject.location.pathname;
 
   // /_error is the fallback page for all errors. If there is a transaction name for /_error, use that instead
-  if (parsedBaggage && parsedBaggage['sentry-transaction'] && name === '/_error') {
+  if (parsedBaggage?.['sentry-transaction'] && name === '/_error') {
     name = parsedBaggage['sentry-transaction'];
     // Strip any HTTP method from the span name
     name = name.replace(/^(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS|TRACE|CONNECT)\s+/i, '');
@@ -172,7 +172,7 @@ export function pagesRouterInstrumentNavigation(client: Client): void {
 }
 
 function getNextRouteFromPathname(pathname: string): string | undefined {
-  const pageRoutes = (globalObject.__BUILD_MANIFEST || {}).sortedPages;
+  const pageRoutes = globalObject.__BUILD_MANIFEST?.sortedPages;
 
   // Page route should in 99.999% of the cases be defined by now but just to be sure we make a check here
   if (!pageRoutes) {

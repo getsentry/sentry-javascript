@@ -456,9 +456,7 @@ describe('getUpdatedSourceMapSettings', () => {
 
     astroConfig.vite.build.sourcemap = false;
     getUpdatedSourceMapSettings(astroConfig, sentryOptions);
-    expect(consoleWarnSpy).toHaveBeenCalledWith(
-      expect.stringContaining('Source map generation are currently disabled'),
-    );
+    expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('Source map generation is currently disabled'));
 
     astroConfig.vite.build.sourcemap = 'hidden';
     getUpdatedSourceMapSettings(astroConfig, sentryOptions);

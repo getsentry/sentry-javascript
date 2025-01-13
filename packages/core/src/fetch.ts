@@ -235,8 +235,7 @@ function endSpan(span: Span, handlerData: HandlerDataFetch): void {
   if (handlerData.response) {
     setHttpStatus(span, handlerData.response.status);
 
-    const contentLength =
-      handlerData.response && handlerData.response.headers && handlerData.response.headers.get('content-length');
+    const contentLength = handlerData.response?.headers && handlerData.response.headers.get('content-length');
 
     if (contentLength) {
       const contentLengthNum = parseInt(contentLength);

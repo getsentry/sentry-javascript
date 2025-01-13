@@ -104,7 +104,7 @@ describe('detectAndReportSvelteKit()', () => {
     document.body.innerHTML += '<div id="svelte-announcer">Home</div>';
     detectAndReportSvelteKit();
 
-    const processedEvent = passedEventProcessor && passedEventProcessor({} as unknown as any, {});
+    const processedEvent = passedEventProcessor?.({} as unknown as any, {});
 
     expect(processedEvent).toBeDefined();
     expect(processedEvent).toEqual({ modules: { svelteKit: 'latest' } });
@@ -114,7 +114,7 @@ describe('detectAndReportSvelteKit()', () => {
     document.body.innerHTML = '';
     detectAndReportSvelteKit();
 
-    const processedEvent = passedEventProcessor && passedEventProcessor({} as unknown as any, {});
+    const processedEvent = passedEventProcessor?.({} as unknown as any, {});
 
     expect(processedEvent).toBeDefined();
     expect(processedEvent).toEqual({});

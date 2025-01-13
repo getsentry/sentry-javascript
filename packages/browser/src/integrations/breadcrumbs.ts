@@ -352,7 +352,7 @@ function _getHistoryBreadcrumbHandler(client: Client): (handlerData: HandlerData
     const parsedTo = parseUrl(to);
 
     // Initial pushState doesn't provide `from` information
-    if (!parsedFrom || !parsedFrom.path) {
+    if (!parsedFrom?.path) {
       parsedFrom = parsedLoc;
     }
 

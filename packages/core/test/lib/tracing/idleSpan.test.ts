@@ -7,6 +7,7 @@ import {
   getActiveSpan,
   getClient,
   getCurrentScope,
+  getDynamicSamplingContextFromSpan,
   getGlobalScope,
   getIsolationScope,
   setCurrentClient,
@@ -60,6 +61,14 @@ describe('startIdleSpan', () => {
     const idleSpan = startIdleSpan({ name: 'foo' });
     expect(idleSpan).toBeDefined();
     expect(idleSpan).toBeInstanceOf(SentryNonRecordingSpan);
+    // DSC is still correctly set on the span
+    expect(getDynamicSamplingContextFromSpan(idleSpan)).toEqual({
+      environment: 'production',
+      public_key: '123',
+      sample_rate: '0',
+      sampled: 'false',
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    });
 
     // not set as active span, though
     expect(getActiveSpan()).toBe(undefined);

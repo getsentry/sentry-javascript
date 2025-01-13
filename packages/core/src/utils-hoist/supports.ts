@@ -124,7 +124,7 @@ export function supportsNativeFetch(): boolean {
       const sandbox = doc.createElement('iframe');
       sandbox.hidden = true;
       doc.head.appendChild(sandbox);
-      if (sandbox.contentWindow && sandbox.contentWindow.fetch) {
+      if (sandbox.contentWindow?.fetch) {
         // eslint-disable-next-line @typescript-eslint/unbound-method
         result = isNativeFunction(sandbox.contentWindow.fetch);
       }
