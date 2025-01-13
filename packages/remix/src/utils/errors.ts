@@ -1,10 +1,14 @@
-import type { AppData, DataFunctionArgs, EntryContext, HandleDocumentRequestFunction } from '@remix-run/node';
+import type {
+  ActionFunctionArgs,
+  EntryContext,
+  HandleDocumentRequestFunction,
+  LoaderFunctionArgs,
+} from '@remix-run/node';
 import {
   addExceptionMechanism,
   captureException,
   getClient,
   handleCallbackErrors,
-  isPrimitive,
   logger,
   objectify,
   winterCGRequestToRequestData,
@@ -22,19 +26,13 @@ import type { DataFunction, RemixRequest } from './vendor/types';
  * @param err The error to capture.
  * @param name The name of the origin function.
  * @param request The request object.
- * @param isRemixV2 Whether the error is from Remix v2 or not. Default is `true`.
  *
  * @returns A promise that resolves when the exception is captured.
  */
-export async function captureRemixServerException(
-  err: unknown,
-  name: string,
-  request: Request,
-  isRemixV2: boolean = true,
-): Promise<void> {
+export async function captureRemixServerException(err: unknown, name: string, request: Request): Promise<void> {
   // Skip capturing if the thrown error is not a 5xx response
   // https://remix.run/docs/en/v1/api/conventions#throwing-responses-in-loaders
-  if (isRemixV2 && isRouteErrorResponse(err) && err.status < 500) {
+  if (isRouteErrorResponse(err) && err.status < 500) {
     return;
   }
 
@@ -82,7 +80,6 @@ export async function captureRemixServerException(
  *
  * @param origDocumentRequestFunction The original `HandleDocumentRequestFunction`.
  * @param requestContext The request context.
- * @param isRemixV2 Whether the Remix version is v2 or not.
  *
  * @returns The wrapped `HandleDocumentRequestFunction`.
  */
@@ -96,7 +93,6 @@ export function errorHandleDocumentRequestFunction(
     context: EntryContext;
     loadContext?: Record<string, unknown>;
   },
-  isRemixV2: boolean,
 ): HandleDocumentRequestFunction {
   const { request, responseStatusCode, responseHeaders, context, loadContext } = requestContext;
 
@@ -105,14 +101,6 @@ export function errorHandleDocumentRequestFunction(
       return origDocumentRequestFunction.call(this, request, responseStatusCode, responseHeaders, context, loadContext);
     },
     err => {
-      // This exists to capture the server-side rendering errors on Remix v1
-      // On Remix v2, we capture SSR errors at `handleError`
-      // We also skip primitives here, as we can't dedupe them, and also we don't expect any primitive SSR errors.
-      if (!isRemixV2 && !isPrimitive(err)) {
-        // eslint-disable-next-line @typescript-eslint/no-floating-promises
-        captureRemixServerException(err, 'documentRequest', request, isRemixV2);
-      }
-
       throw err;
     },
   );
@@ -125,7 +113,6 @@ export function errorHandleDocumentRequestFunction(
  * @param origFn The original `DataFunction`.
  * @param name The name of the function.
  * @param args The arguments of the function.
- * @param isRemixV2 Whether the Remix version is v2 or not.
  * @param span The span to store the form data keys.
  *
  * @returns The wrapped `DataFunction`.
@@ -134,10 +121,9 @@ export async function errorHandleDataFunction(
   this: unknown,
   origFn: DataFunction,
   name: string,
-  args: DataFunctionArgs,
-  isRemixV2: boolean,
+  args: ActionFunctionArgs | LoaderFunctionArgs,
   span?: Span,
-): Promise<Response | AppData> {
+): Promise<Response> {
   return handleCallbackErrors(
     async () => {
       if (name === 'action' && span) {
@@ -151,12 +137,11 @@ export async function errorHandleDataFunction(
       return origFn.call(this, args);
     },
     err => {
-      // On Remix v2, we capture all unexpected errors (except the `Route Error Response`s / Thrown Responses) in `handleError` function.
+      // We capture all unexpected errors (except the `Route Error Response`s / Thrown Responses) in `handleError` function.
       // This is both for consistency and also avoid duplicates such as primitives like `string` or `number` being captured twice.
-      // Remix v1 does not have a `handleError` function, so we capture all errors here.
-      if (isRemixV2 ? isResponse(err) : true) {
+      if (isResponse(err)) {
         // eslint-disable-next-line @typescript-eslint/no-floating-promises
-        captureRemixServerException(err, name, args.request, true);
+        captureRemixServerException(err, name, args.request);
       }
 
       throw err;
