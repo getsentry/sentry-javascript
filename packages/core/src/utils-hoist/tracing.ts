@@ -55,7 +55,10 @@ export function propagationContextFromHeaders(
   const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(baggage);
 
   if (!traceparentData?.traceId) {
-    return { traceId: generateTraceId() };
+    return {
+      traceId: generateTraceId(),
+      sampleRand: Math.random(),
+    };
   }
 
   const { traceId, parentSpanId, parentSampled } = traceparentData;
@@ -65,6 +68,7 @@ export function propagationContextFromHeaders(
     parentSpanId,
     sampled: parentSampled,
     dsc: dynamicSamplingContext || {}, // If we have traceparent data but no DSC it means we are not head of trace and we must freeze it
+    sampleRand: parseSampleRandFromDsc(dynamicSamplingContext?.sample_rand),
   };
 }
 
@@ -81,4 +85,19 @@ export function generateSentryTraceHeader(
     sampledString = sampled ? '-1' : '-0';
   }
   return `${traceId}-${spanId}${sampledString}`;
+}
+
+/**
+ * TODO
+ */
+export function parseSampleRandFromDsc(sampleRand: string | undefined): number {
+  if (!sampleRand) {
+    return Math.random();
+  }
+
+  try {
+    return Number(sampleRand);
+  } catch {
+    return Math.random();
+  }
 }

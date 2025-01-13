@@ -17,6 +17,11 @@ export interface PropagationContext {
   traceId: string;
 
   /**
+   * TODO
+   */
+  sampleRand: number;
+
+  /**
    * Represents the sampling decision of the incoming trace.
    *
    * The current SDK should not modify this value!

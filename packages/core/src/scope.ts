@@ -164,6 +164,7 @@ export class Scope {
     this._sdkProcessingMetadata = {};
     this._propagationContext = {
       traceId: generateTraceId(),
+      sampleRand: Math.random(),
     };
   }
 
@@ -456,7 +457,7 @@ export class Scope {
     this._session = undefined;
     _setSpanForScope(this, undefined);
     this._attachments = [];
-    this.setPropagationContext({ traceId: generateTraceId() });
+    this.setPropagationContext({ traceId: generateTraceId(), sampleRand: Math.random() });
 
     this._notifyScopeListeners();
     return this;

@@ -279,7 +279,10 @@ export function suppressTracing<T>(callback: () => T): T {
  */
 export function startNewTrace<T>(callback: () => T): T {
   return withScope(scope => {
-    scope.setPropagationContext({ traceId: generateTraceId() });
+    scope.setPropagationContext({
+      traceId: generateTraceId(),
+      sampleRand: Math.random(),
+    });
     DEBUG_BUILD && logger.info(`Starting a new trace with id ${scope.getPropagationContext().traceId}`);
     return withActiveSpan(null, callback);
   });
@@ -402,17 +405,23 @@ function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parent
   const options: Partial<ClientOptions> = client?.getOptions() || {};
 
   const { name = '', attributes } = spanArguments;
+  const sampleRand = scope.getPropagationContext().sampleRand;
   const [sampled, sampleRate] = scope.getScopeData().sdkProcessingMetadata[SUPPRESS_TRACING_KEY]
     ? [false]
-    : sampleSpan(options, {
-        name,
-        parentSampled,
-        attributes,
-        transactionContext: {
+    : sampleSpan(
+        options,
+        {
           name,
           parentSampled,
+          attributes,
+          transactionContext: {
+            name,
+            parentSampled,
+          },
+          // parentSampleRate: 'TODO',
         },
-      });
+        sampleRand,
+      );
 
   const rootSpan = new SentrySpan({
     ...spanArguments,

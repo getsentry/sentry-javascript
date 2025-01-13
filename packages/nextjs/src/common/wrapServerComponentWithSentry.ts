@@ -64,12 +64,12 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
           if (process.env.NEXT_RUNTIME === 'edge') {
             const propagationContext = commonObjectToPropagationContext(
               context.headers,
-              headersDict?.['sentry-trace']
-                ? propagationContextFromHeaders(headersDict['sentry-trace'], headersDict['baggage'])
-                : {
-                    traceId: requestTraceId || generateTraceId(),
-                  },
+              propagationContextFromHeaders(headersDict?.['sentry-trace'], headersDict?.['baggage']),
             );
+
+            if (requestTraceId) {
+              propagationContext.traceId = requestTraceId;
+            }
 
             scope.setPropagationContext(propagationContext);
           }

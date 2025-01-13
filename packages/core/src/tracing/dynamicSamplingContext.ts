@@ -116,6 +116,7 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
   // So we end up with an active span that is not sampled (neither positively nor negatively)
   if (hasTracingEnabled()) {
     dsc.sampled = String(spanIsSampled(rootSpan));
+    // TODO(lforst): Grab scope off of root span and put sample_rand on dsc
   }
 
   client.emit('createDsc', dsc, rootSpan);

@@ -186,6 +186,7 @@ Sentry.init({
 - The `addRequestDataToEvent` method has been removed. Use `httpRequestToRequestData` instead and put the resulting object directly on `event.request`.
 - The `extractPathForTransaction` method has been removed. There is no replacement.
 - The `addNormalizedRequestDataToEvent` method has been removed. Use `httpRequestToRequestData` instead and put the resulting object directly on `event.request`.
+- A `sampleRand` field on `PropagationContext` is now required. This is relevant if you used `scope.setPropagationContext(...)`
 
 #### Other/Internal Changes
 
