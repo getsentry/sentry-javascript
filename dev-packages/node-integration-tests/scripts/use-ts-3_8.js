@@ -22,13 +22,10 @@ const tsVersion = '3.8';
 
 console.log(`Installing typescript@${tsVersion}, and @types/node@14...`);
 
-execSync(
-  `yarn add --dev --ignore-workspace-root-check typescript@${tsVersion} @types/node@^14 @types/express@4.17.13 @types/express-serve-static-core@4.17.30`,
-  {
-    stdio: 'inherit',
-    cwd,
-  },
-);
+execSync(`yarn add --dev --ignore-workspace-root-check typescript@${tsVersion} @types/node@^14`, {
+  stdio: 'inherit',
+  cwd,
+});
 
 console.log('Removing unsupported tsconfig options...');
 
