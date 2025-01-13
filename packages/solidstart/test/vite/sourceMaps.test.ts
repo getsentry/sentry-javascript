@@ -183,6 +183,7 @@ describe('getUpdatedSourceMapSettings', () => {
       const result = getUpdatedSourceMapSettings({ build: { sourcemap: false } });
 
       expect(result).toBe(false);
+      // eslint-disable-next-line no-console
       expect(console.warn).toHaveBeenCalledWith(
         expect.stringContaining('[Sentry] Source map generation is currently disabled'),
       );
@@ -194,10 +195,11 @@ describe('getUpdatedSourceMapSettings', () => {
       ['hidden', 'hidden'],
       ['inline', 'inline'],
       [true, true],
-    ])('should keep sourcemap as %s when set to %s', (input, expected) => {
+    ] as ('inline' | 'hidden' | boolean)[][])('should keep sourcemap as %s when set to %s', (input, expected) => {
       const result = getUpdatedSourceMapSettings({ build: { sourcemap: input } }, { debug: true });
 
       expect(result).toBe(expected);
+      // eslint-disable-next-line no-console
       expect(console.log).toHaveBeenCalledWith(
         expect.stringContaining(`[Sentry] We discovered \`vite.build.sourcemap\` is set to \`${input.toString()}\``),
       );
@@ -211,6 +213,7 @@ describe('getUpdatedSourceMapSettings', () => {
         const result = getUpdatedSourceMapSettings({ build: { sourcemap: input as any } });
 
         expect(result).toBe('hidden');
+        // eslint-disable-next-line no-console
         expect(console.log).toHaveBeenCalledWith(
           expect.stringContaining(
             "[Sentry] Enabled source map generation in the build options with `vite.build.sourcemap: 'hidden'`",
@@ -223,6 +226,7 @@ describe('getUpdatedSourceMapSettings', () => {
       const result = getUpdatedSourceMapSettings({});
 
       expect(result).toBe('hidden');
+      // eslint-disable-next-line no-console
       expect(console.log).toHaveBeenCalledWith(
         expect.stringContaining(
           "[Sentry] Enabled source map generation in the build options with `vite.build.sourcemap: 'hidden'`",
