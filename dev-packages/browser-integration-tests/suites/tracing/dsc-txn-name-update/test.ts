@@ -164,7 +164,6 @@ sentryTest('updates the DSC when the txn name is updated and high-quality', asyn
     public_key: 'public',
     release: '1.1.1',
     trace_id: traceId,
-    sample_rand: expect.any(String),
   });
 });
 
