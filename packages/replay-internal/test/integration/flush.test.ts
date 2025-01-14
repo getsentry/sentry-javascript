@@ -93,7 +93,7 @@ describe('Integration | flush', () => {
     mockEventBufferFinish.mockClear();
 
     Object.defineProperty(SentryUtils, 'browserPerformanceTimeOrigin', {
-      value: BASE_TIMESTAMP,
+      value: () => BASE_TIMESTAMP,
       writable: true,
     });
   });
@@ -107,7 +107,7 @@ describe('Integration | flush', () => {
       writable: true,
     });
     Object.defineProperty(SentryUtils, 'browserPerformanceTimeOrigin', {
-      value: prevBrowserPerformanceTimeOrigin,
+      value: () => prevBrowserPerformanceTimeOrigin,
       writable: true,
     });
   });

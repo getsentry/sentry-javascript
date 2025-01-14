@@ -6,6 +6,7 @@ afterAll(() => {
 
 test('should record client report for event processors', done => {
   createRunner(__dirname, 'scenario.ts')
+    .unignore('client_report')
     .expect({
       client_report: {
         discarded_events: [
