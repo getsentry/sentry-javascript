@@ -75,7 +75,6 @@ async function flushWithTimeout(): Promise<void> {
   }
 }
 
-// copied from '@sentry-internal/nitro-utils' - the nuxt-module-builder does not inline devDependencies
 function patchEventHandler(handler: EventHandler): EventHandler {
   return new Proxy(handler, {
     async apply(handlerTarget, handlerThisArg, handlerArgs: Parameters<EventHandler>) {
