@@ -116,6 +116,11 @@ Older Typescript versions _may_ still work, but we will not test them anymore an
 
 - By default, source maps will now be automatically deleted after being uploaded to Sentry for client-side builds. You can opt out of this behavior by explicitly setting `sourcemaps.deleteSourcemapsAfterUpload` to `false` in your Sentry config.
 
+### `@sentry/sveltekit`
+
+- SvelteKit 1 is no longer supported, due to some features missing in the first version of the framework. This allows the SDK to remove some brittle workarounds that were necessary for proper 1.x support.
+- In v8, the Sentry SvelteKit SDK would inject a small `<script>` into your rendered HTML server response to correctly instrument client-side `fetch` calls. This no longer is necessary with SvelteKit 2.x. Therefore, SDK no longer injects this script. Likewise, the `fetchProxyScriptNonce` and `injectFetchProxyScript` were removed from the `sentryHandle` options. Besides removing the removed options if you set them, we recommend reviewing your CSP settings to remove any nonce or hash entries for the no longer injected script.
+
 ### All Meta-Framework SDKs (`@sentry/astro`, `@sentry/nuxt`, `@sentry/solidstart`)
 
 - Updated source map generation to respect the user-provided value of your build config, such as `vite.build.sourcemap`:
