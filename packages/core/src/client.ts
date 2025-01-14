@@ -430,12 +430,8 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   /**
    * Record on the client that an event got dropped (ie, an event that will not be sent to Sentry).
    */
-  public recordDroppedEvent(reason: EventDropReason, category: DataCategory, eventOrCount?: Event | number): void {
+  public recordDroppedEvent(reason: EventDropReason, category: DataCategory, count: number = 1): void {
     if (this._options.sendClientReports) {
-      // TODO v9: We do not need the `event` passed as third argument anymore, and can possibly remove this overload
-      // If event is passed as third argument, we assume this is a count of 1
-      const count = typeof eventOrCount === 'number' ? eventOrCount : 1;
-
       // We want to track each category (error, transaction, session, replay_event) separately
       // but still keep the distinction between different type of outcomes.
       // We could use nested maps, but it's much easier to read and type this way.
@@ -919,7 +915,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     // Sampling for transaction happens somewhere else
     const parsedSampleRate = typeof sampleRate === 'undefined' ? undefined : parseSampleRate(sampleRate);
     if (isError && typeof parsedSampleRate === 'number' && Math.random() > parsedSampleRate) {
-      this.recordDroppedEvent('sample_rate', 'error', event);
+      this.recordDroppedEvent('sample_rate', 'error');
       return rejectedSyncPromise(
         new SentryError(
           `Discarding event because it's not included in the random sample (sampling rate = ${sampleRate})`,
@@ -933,7 +929,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     return this._prepareEvent(event, hint, currentScope, isolationScope)
       .then(prepared => {
         if (prepared === null) {
-          this.recordDroppedEvent('event_processor', dataCategory, event);
+          this.recordDroppedEvent('event_processor', dataCategory);
           throw new SentryError('An event processor returned `null`, will not send event.', 'log');
         }
 
@@ -947,7 +943,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       })
       .then(processedEvent => {
         if (processedEvent === null) {
-          this.recordDroppedEvent('before_send', dataCategory, event);
+          this.recordDroppedEvent('before_send', dataCategory);
           if (isTransaction) {
             const spans = event.spans || [];
             // the transaction itself counts as one span, plus all the child spans that are added

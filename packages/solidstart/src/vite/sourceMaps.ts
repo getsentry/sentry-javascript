@@ -18,7 +18,7 @@ export function makeAddSentryVitePlugin(options: SentrySolidStartPluginOptions, 
     // Only if source maps were previously not set, we update the "filesToDeleteAfterUpload" (as we override the setting with "hidden")
     typeof viteConfig.build?.sourcemap === 'undefined'
   ) {
-    // This also works for adapters, as the source maps are also copied to e.g. the .vercel folder
+    // For .output, .vercel, .netlify etc.
     updatedFilesToDeleteAfterUpload = ['.*/**/*.map'];
 
     consoleSandbox(() => {
