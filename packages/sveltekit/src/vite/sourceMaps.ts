@@ -85,7 +85,7 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
         consoleSandbox(() => {
           // eslint-disable-next-line no-console
           console.warn(
-            '[Source Maps Plugin] Could not load Vite config with Vite "production" mode. This is needed for Sentry to automatically update source map settings.',
+            '[Sentry] Could not load Vite config with Vite "production" mode. This is needed for Sentry to automatically update source map settings.',
           );
         });
       }
@@ -95,7 +95,7 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
       consoleSandbox(() => {
         // eslint-disable-next-line no-console
         console.warn(
-          `[Source Maps Plugin] Automatically setting \`sourceMapsUploadOptions.sourcemaps.filesToDeleteAfterUpload: ["${filesToDeleteGlob}"]\` to delete generated source maps after they were uploaded to Sentry.`,
+          `[Sentry] Automatically setting \`sourceMapsUploadOptions.sourcemaps.filesToDeleteAfterUpload: ["${filesToDeleteGlob}"]\` to delete generated source maps after they were uploaded to Sentry.`,
         );
       });
     }
