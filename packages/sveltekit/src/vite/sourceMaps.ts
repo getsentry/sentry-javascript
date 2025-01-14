@@ -55,7 +55,6 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
   const svelteConfig = await loadSvelteConfig();
 
   const usedAdapter = options?.adapter || 'other';
-  const sveltekitOutputDir = svelteConfig.kit?.outDir || '.svelte-kit';
   const adapterOutputDir = await getAdapterOutputDir(svelteConfig, usedAdapter);
 
   const globalWithSourceMapSetting = globalThis as GlobalWithSourceMapSetting;
