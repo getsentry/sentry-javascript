@@ -41,15 +41,26 @@ export type SentryHandleOptions = {
    * of `fetch` calls in `load` functions.
    *
    * @default true
+   *
+   * @deprecated This option will be removed in the next major version of the SDK. There's no replacement as the fetch
+   * proxy script will no longer be added to the page response.
    */
   injectFetchProxyScript?: boolean;
 
   /**
-   * If this option is set, the `sentryHandle` handler will add a nonce attribute to the script
-   * tag it injects into the page. This script is used to enable instrumentation of `fetch` calls
-   * in `load` functions.
+   * Warning: This option is <b>strongly discouraged</b> to be used and will be removed in the next major version of the SDK.
    *
-   * Use this if your CSP policy blocks the fetch proxy script injected by `sentryHandle`.
+   * If you set this option, the passed nonce will be added to fetch proxy `<script>` tag that the Sentry SDK adds to your page.
+   * The nonce passed to this option will be reused across multiple requests, which is defeating the purpose of a nonce.
+   * See below for options what to do instead.
+   *
+   * @deprecated This option will be removed in the next major version of the SDK. There's no replacement as the fetch
+   * proxy script will no longer be added to the page response.
+   *
+   * Until then, you have the following options:
+   * - set a hash of the nonce in the CSP header instead as documented [in our docs]()
+   * - update `@sveltejs/kit` to at least version 1.26.0 or newer and set `injectFetchProxyScript: false`
+   * - continue to use this option but we strongly advise against it!
    */
   fetchProxyScriptNonce?: string;
 };
@@ -73,12 +84,13 @@ export const FETCH_PROXY_SCRIPT = `
  * Exported only for testing
  */
 export function addSentryCodeToPage(options: SentryHandleOptions): NonNullable<ResolveOptions['transformPageChunk']> {
+  // eslint-disable-next-line deprecation/deprecation
   const { fetchProxyScriptNonce, injectFetchProxyScript } = options;
   // if injectFetchProxyScript is not set, we default to true
   const shouldInjectScript = injectFetchProxyScript !== false;
   const nonce = fetchProxyScriptNonce ? `nonce="${fetchProxyScriptNonce}"` : '';
 
-  return ({ html }) => {
+  return ({ html }: { html: string }) => {
     const metaTags = getTraceMetaTags();
     const headWithMetaTags = metaTags ? `<head>\n${metaTags}` : '<head>';
 
