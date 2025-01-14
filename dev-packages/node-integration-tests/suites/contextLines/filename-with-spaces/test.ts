@@ -1,6 +1,6 @@
 import { join } from 'path';
-import { conditionalTest } from '../../utils';
-import { createRunner } from '../../utils/runner';
+import { conditionalTest } from '../../../utils';
+import { createRunner } from '../../../utils/runner';
 
 conditionalTest({ min: 18 })('ContextLines integration in ESM', () => {
   test('reads encoded context lines from filenames with spaces', done => {

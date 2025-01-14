@@ -168,6 +168,12 @@ export function createRunner(...paths: string[]) {
       expectedEnvelopes.push(expected);
       return this;
     },
+    expectN: function (n: number, expected: Expected) {
+      for (let i = 0; i < n; i++) {
+        expectedEnvelopes.push(expected);
+      }
+      return this;
+    },
     expectHeader: function (expected: ExpectedEnvelopeHeader) {
       if (!expectedEnvelopeHeaders) {
         expectedEnvelopeHeaders = [];
