@@ -193,6 +193,7 @@ Sentry.init({
 The following changes are unlikely to affect users of the SDK. They are listed here only for completion sake, and to alert users that may be relying on internal behavior.
 
 - `client._prepareEvent()` now requires a currentScope & isolationScope to be passed as last arugments
+- `client.recordDroppedEvent()` no longer accepts an `event` as third argument. The event was no longer used for some time, instead you can (optionally) pass a count of dropped events as third argument.
 
 ### `@sentry/nestjs`
 
