@@ -61,6 +61,13 @@ export function propagationContextFromHeaders(
     };
   }
 
+  const sampleRand = getSampleRandFromTraceparentAndDsc(traceparentData, dynamicSamplingContext);
+
+  // The sample_rand on the DSC needs to be generated based on traceparent + baggage.
+  if (dynamicSamplingContext) {
+    dynamicSamplingContext.sample_rand = sampleRand.toString();
+  }
+
   const { traceId, parentSpanId, parentSampled } = traceparentData;
 
   return {
@@ -68,7 +75,7 @@ export function propagationContextFromHeaders(
     parentSpanId,
     sampled: parentSampled,
     dsc: dynamicSamplingContext || {}, // If we have traceparent data but no DSC it means we are not head of trace and we must freeze it
-    sampleRand: getSampleRandFromTraceparentAndDsc(traceparentData, dynamicSamplingContext),
+    sampleRand: sampleRand,
   };
 }
 
@@ -88,29 +95,19 @@ export function generateSentryTraceHeader(
 }
 
 /**
- * TODO
+ * Given any combination of an incoming trace, generate a sample rand based on its defined semantics.
  */
-export function parseSampleRandFromDsc(sampleRand: string | undefined): number {
-  if (!sampleRand) {
-    return Math.random();
-  }
-
-  try {
-    return Number(sampleRand);
-  } catch {
-    return Math.random();
-  }
-}
-
 function getSampleRandFromTraceparentAndDsc(
   traceparentData: TraceparentData | undefined,
   dsc: Partial<DynamicSamplingContext> | undefined,
 ): number {
+  // When there is an incoming sample rand use it.
   const parsedSampleRand = parseSamplingDscNumber(dsc?.sample_rand);
   if (parsedSampleRand !== undefined) {
     return parsedSampleRand;
   }
 
+  // Otherwise, if there is an incoming sampling decision + sample rate, generate a sample rand that would lead to the same sampling decision.
   const parsedSampleRate = parseSamplingDscNumber(dsc?.sample_rate);
   if (parsedSampleRate && traceparentData?.parentSampled !== undefined) {
     return traceparentData.parentSampled
@@ -119,10 +116,14 @@ function getSampleRandFromTraceparentAndDsc(
       : // Returns a sample rand with negative sampling decision [sampleRate, 1]
         parsedSampleRate + Math.random() * (1 - parsedSampleRate);
   } else {
+    // If nothing applies, return a random sample rand.
     return Math.random();
   }
 }
 
+/**
+ * Given a string form of a numeric-like on the DSC, safely convert it to a number.
+ */
 function parseSamplingDscNumber(sampleRand: string | undefined): number | undefined {
   try {
     const parsed = Number(sampleRand); // Number(undefined) will return NaN and fail the next check
