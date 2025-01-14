@@ -35,23 +35,6 @@ export type SentryHandleOptions = {
    * @default false
    */
   handleUnknownRoutes?: boolean;
-
-  /**
-   * Controls if `sentryHandle` should inject a script tag into the page that enables instrumentation
-   * of `fetch` calls in `load` functions.
-   *
-   * @default true
-   */
-  injectFetchProxyScript?: boolean;
-
-  /**
-   * If this option is set, the `sentryHandle` handler will add a nonce attribute to the script
-   * tag it injects into the page. This script is used to enable instrumentation of `fetch` calls
-   * in `load` functions.
-   *
-   * Use this if your CSP policy blocks the fetch proxy script injected by `sentryHandle`.
-   */
-  fetchProxyScriptNonce?: string;
 };
 
 /**
@@ -72,23 +55,11 @@ export const FETCH_PROXY_SCRIPT = `
  *
  * Exported only for testing
  */
-export function addSentryCodeToPage(options: SentryHandleOptions): NonNullable<ResolveOptions['transformPageChunk']> {
-  const { fetchProxyScriptNonce, injectFetchProxyScript } = options;
-  // if injectFetchProxyScript is not set, we default to true
-  const shouldInjectScript = injectFetchProxyScript !== false;
-  const nonce = fetchProxyScriptNonce ? `nonce="${fetchProxyScriptNonce}"` : '';
-
-  return ({ html }) => {
-    const metaTags = getTraceMetaTags();
-    const headWithMetaTags = metaTags ? `<head>\n${metaTags}` : '<head>';
-
-    const headWithFetchScript = shouldInjectScript ? `\n<script ${nonce}>${FETCH_PROXY_SCRIPT}</script>` : '';
-
-    const modifiedHead = `${headWithMetaTags}${headWithFetchScript}`;
-
-    return html.replace('<head>', modifiedHead);
-  };
-}
+export const addSentryCodeToPage = (({ html }) => {
+  const metaTags = getTraceMetaTags();
+  const headWithMetaTags = metaTags ? `<head>\n${metaTags}` : '<head>';
+  return html.replace('<head>', headWithMetaTags);
+}) satisfies NonNullable<ResolveOptions['transformPageChunk']>;
 
 /**
  * A SvelteKit handle function that wraps the request for Sentry error and
@@ -174,7 +145,7 @@ async function instrumentHandle(
           normalizedRequest: winterCGRequestToRequestData(event.request.clone()),
         });
         const res = await resolve(event, {
-          transformPageChunk: addSentryCodeToPage(options),
+          transformPageChunk: addSentryCodeToPage,
         });
         if (span) {
           setHttpStatus(span, res.status);
