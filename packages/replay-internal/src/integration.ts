@@ -116,6 +116,8 @@ export class Replay implements Integration {
   }: ReplayConfiguration = {}) {
     this.name = Replay.id;
 
+    console.log('repla3y');
+
     const privacyOptions = getPrivacyOptions({
       mask,
       unmask,
