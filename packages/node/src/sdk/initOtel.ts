@@ -14,7 +14,6 @@ import { createAddHookMessageChannel } from 'import-in-the-middle';
 import { DEBUG_BUILD } from '../debug-build';
 import { getOpenTelemetryInstrumentationToPreload } from '../integrations/tracing';
 import { SentryContextManager } from '../otel/contextManager';
-import type { EsmLoaderHookOptions } from '../types';
 import { isCjs } from '../utils/commonjs';
 import type { NodeClient } from './client';
 
