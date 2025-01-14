@@ -110,9 +110,9 @@ export class SentrySampler implements Sampler {
         {
           name: inferredSpanName,
           attributes: mergedAttributes,
-          // parentSampleRate: 'TODO',
           normalizedRequest: isolationScope?.getScopeData().sdkProcessingMetadata.normalizedRequest,
           parentSampled,
+          // TODO(v9): provide a parentSampleRate here
         },
         sampleRand,
       );

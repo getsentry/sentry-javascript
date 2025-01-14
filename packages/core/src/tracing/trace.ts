@@ -414,7 +414,7 @@ function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parent
           name,
           parentSampled,
           attributes,
-          // parentSampleRate: 'TODO',
+          // TODO(v9): provide a parentSampleRate here
         },
         sampleRand,
       );
