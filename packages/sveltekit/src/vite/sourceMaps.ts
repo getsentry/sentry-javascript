@@ -71,7 +71,10 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
     },
   };
 
-  const defaultFileDeletionGlob = [`./${sveltekitOutputDir}/**/*.map`, `./${adapterOutputDir}/**/*.map`];
+  // Including all hidden (`.*`) directories by default so that folders like .vercel,
+  // .netlify, etc are also cleaned up. Additionally, we include the adapter output
+  // dir which could be a non-hidden directory, like `build` for the Node adapter.
+  const defaultFileDeletionGlob = ['./.*/**/*.map', `./${adapterOutputDir}/**/*.map`];
 
   if (!globalWithSourceMapSetting._sentry_sourceMapSetting) {
     const configFile = await loadConfigFromFile({ command: 'build', mode: 'production' });
@@ -115,7 +118,7 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
     sourcemaps: {
       ...options?.sourcemaps,
       filesToDeleteAfterUpload: shouldDeleteDefaultSourceMaps
-        ? [`./${sveltekitOutputDir}/**/*.map`, `./${adapterOutputDir}/**/*.map`]
+        ? defaultFileDeletionGlob
         : options?.sourcemaps?.filesToDeleteAfterUpload,
     },
   };
