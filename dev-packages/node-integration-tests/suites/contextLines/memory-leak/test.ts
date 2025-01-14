@@ -1,6 +1,7 @@
+import { conditionalTest } from '../../../utils';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
-describe('ContextLines integration in CJS', () => {
+conditionalTest({ min: 18 })('ContextLines integration in CJS', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
