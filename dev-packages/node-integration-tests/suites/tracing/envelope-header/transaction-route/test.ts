@@ -12,6 +12,7 @@ test('envelope header for transaction event of route correct', done => {
           release: '1.0',
           sample_rate: '1',
           sampled: 'true',
+          sample_rand: expect.any(String),
         },
       },
     })

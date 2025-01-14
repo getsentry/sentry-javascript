@@ -1,4 +1,4 @@
-import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
+import { cleanupChildProcesses, createRunner } from '../../utils/runner';
 
 describe('sample_rand propagation', () => {
   afterAll(() => {
