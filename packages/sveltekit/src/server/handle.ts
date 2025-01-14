@@ -38,17 +38,6 @@ export type SentryHandleOptions = {
 };
 
 /**
- * Exported only for testing
- */
-export const FETCH_PROXY_SCRIPT = `
-    const f = window.fetch;
-    if(f){
-      window._sentryFetchProxy = function(...a){return f(...a)}
-      window.fetch = function(...a){return window._sentryFetchProxy(...a)}
-    }
-`;
-
-/**
  * Adds Sentry tracing <meta> tags to the returned html page.
  * Adds Sentry fetch proxy script to the returned html page if enabled in options.
  * Also adds a nonce attribute to the script tag if users specified one for CSP.
@@ -79,7 +68,6 @@ export const addSentryCodeToPage = (({ html }) => {
 export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
   const options = {
     handleUnknownRoutes: false,
-    injectFetchProxyScript: true,
     ...handlerOptions,
   };
 

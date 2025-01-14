@@ -14,7 +14,7 @@ import type { Handle } from '@sveltejs/kit';
 import { redirect } from '@sveltejs/kit';
 import { vi } from 'vitest';
 
-import { FETCH_PROXY_SCRIPT, addSentryCodeToPage, sentryHandle } from '../../src/server/handle';
+import { addSentryCodeToPage, sentryHandle } from '../../src/server/handle';
 import { getDefaultNodeClientOptions } from '../utils';
 
 const mockCaptureException = vi.spyOn(SentryNode, 'captureException').mockImplementation(() => 'xx');
