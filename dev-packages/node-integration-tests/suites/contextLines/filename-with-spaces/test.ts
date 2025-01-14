@@ -1,5 +1,5 @@
 import { join } from 'path';
-import { createRunner } from '../../utils/runner';
+import { createRunner } from '../../../utils/runner';
 
 describe('ContextLines integration in ESM', () => {
   test('reads encoded context lines from filenames with spaces', done => {

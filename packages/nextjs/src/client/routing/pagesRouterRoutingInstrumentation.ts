@@ -119,12 +119,13 @@ export function pagesRouterInstrumentPageLoad(client: Client): void {
     name = name.replace(/^(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS|TRACE|CONNECT)\s+/i, '');
   }
 
+  const origin = browserPerformanceTimeOrigin();
   startBrowserTracingPageLoadSpan(
     client,
     {
       name,
       // pageload should always start at timeOrigin (and needs to be in s, not ms)
-      startTime: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
+      startTime: origin ? origin / 1000 : undefined,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.nextjs.pages_router_instrumentation',

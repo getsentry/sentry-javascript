@@ -135,9 +135,7 @@ describe('createTransport', () => {
 
         await transport.send(ERROR_ENVELOPE);
         expect(requestExecutor).not.toHaveBeenCalled();
-        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'error', {
-          event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2',
-        });
+        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'error');
         requestExecutor.mockClear();
         recordDroppedEventCallback.mockClear();
 
@@ -179,9 +177,7 @@ describe('createTransport', () => {
 
         await transport.send(ERROR_ENVELOPE); // Error envelope should not be sent because of pending rate limit
         expect(requestExecutor).not.toHaveBeenCalled();
-        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'error', {
-          event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2',
-        });
+        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'error');
         requestExecutor.mockClear();
         recordDroppedEventCallback.mockClear();
 
@@ -223,23 +219,19 @@ describe('createTransport', () => {
 
         await transport.send(TRANSACTION_ENVELOPE); // Transaction envelope should not be sent because of pending rate limit
         expect(requestExecutor).not.toHaveBeenCalled();
-        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'transaction', {
-          event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2',
-        });
+        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'transaction');
         requestExecutor.mockClear();
         recordDroppedEventCallback.mockClear();
 
         await transport.send(ERROR_ENVELOPE); // Error envelope should not be sent because of pending rate limit
         expect(requestExecutor).not.toHaveBeenCalled();
-        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'error', {
-          event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2',
-        });
+        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'error');
         requestExecutor.mockClear();
         recordDroppedEventCallback.mockClear();
 
         await transport.send(ATTACHMENT_ENVELOPE); // Attachment envelope should not be sent because of pending rate limit
         expect(requestExecutor).not.toHaveBeenCalled();
-        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'attachment', undefined);
+        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'attachment');
         requestExecutor.mockClear();
         recordDroppedEventCallback.mockClear();
 
@@ -287,17 +279,13 @@ describe('createTransport', () => {
 
         await transport.send(TRANSACTION_ENVELOPE); // Transaction envelope should not be sent because of pending rate limit
         expect(requestExecutor).not.toHaveBeenCalled();
-        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'transaction', {
-          event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2',
-        });
+        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'transaction');
         requestExecutor.mockClear();
         recordDroppedEventCallback.mockClear();
 
         await transport.send(ERROR_ENVELOPE); // Error envelope should not be sent because of pending rate limit
         expect(requestExecutor).not.toHaveBeenCalled();
-        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'error', {
-          event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2',
-        });
+        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'error');
         requestExecutor.mockClear();
         recordDroppedEventCallback.mockClear();
 
