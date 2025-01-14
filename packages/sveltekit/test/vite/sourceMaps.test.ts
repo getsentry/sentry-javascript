@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { __setSourceMapSettingForTest, getUpdatedSourceMapSetting } from '../../src/vite/sourceMaps';
+import { getUpdatedSourceMapSetting, makeCustomSentryVitePlugins } from '../../src/vite/sourceMaps';
 
 import type { Plugin } from 'vite';
-import { makeCustomSentryVitePlugins } from '../../src/vite/sourceMaps';
+
+import * as vite from 'vite';
 
 const mockedViteDebugIdUploadPlugin = {
   name: 'sentry-vite-debug-id-upload-plugin',
@@ -18,6 +19,15 @@ const mockedFileDeletionPlugin = {
   name: 'sentry-file-deletion-plugin',
   writeBundle: vi.fn(),
 };
+
+vi.mock('vite', async () => {
+  const original = (await vi.importActual('vite')) as any;
+
+  return {
+    ...original,
+    loadConfigFromFile: vi.fn(),
+  };
+});
 
 vi.mock('@sentry/vite-plugin', async () => {
   const original = (await vi.importActual('@sentry/vite-plugin')) as any;
@@ -75,68 +85,83 @@ describe('makeCustomSentryVitePlugins()', () => {
   });
 
   describe('Custom source map settings update plugin', () => {
+    beforeEach(() => {
+      // @ts-expect-error - this global variable is set/accessed in src/vite/sourceMaps.ts
+      globalThis._sentry_sourceMapSetting = undefined;
+    });
     it('returns the custom sentry source maps plugin', async () => {
       const plugin = await getSentryViteSubPlugin('sentry-sveltekit-update-source-map-setting-plugin');
 
-      expect(plugin?.name).toEqual('sentry-sveltekit-update-source-map-setting-plugin');
-      expect(plugin?.apply).toEqual('build');
-      expect(plugin?.config).toBeInstanceOf(Function);
+      expect(plugin).toEqual({
+        name: 'sentry-sveltekit-update-source-map-setting-plugin',
+        apply: 'build',
+        config: expect.any(Function),
+      });
     });
 
     it('keeps source map generation settings when previously enabled', async () => {
+      const originalConfig = {
+        build: { sourcemap: true, assetsDir: 'assets' },
+      };
+
+      vi.spyOn(vite, 'loadConfigFromFile').mockResolvedValueOnce({
+        path: '',
+        config: originalConfig,
+        dependencies: [],
+      });
+
       const plugin = await getSentryViteSubPlugin('sentry-sveltekit-update-source-map-setting-plugin');
 
-      __setSourceMapSettingForTest({
-        previousSourceMapSetting: 'enabled',
-        updatedSourceMapSetting: undefined,
-      });
-
       // @ts-expect-error this function exists!
-      const sentryConfig = plugin.config({
-        build: { sourcemap: true, foo: {} },
-        test: {},
-      });
-      expect(sentryConfig).toEqual({
-        build: {
-          foo: {},
-          sourcemap: true,
-        },
-        test: {},
-      });
+      const sentryConfig = plugin.config(originalConfig);
+
+      expect(sentryConfig).toEqual(originalConfig);
     });
 
     it('keeps source map generation settings when previously disabled', async () => {
+      const originalConfig = {
+        build: { sourcemap: false, assetsDir: 'assets' },
+      };
+
+      vi.spyOn(vite, 'loadConfigFromFile').mockResolvedValueOnce({
+        path: '',
+        config: originalConfig,
+        dependencies: [],
+      });
+
       const plugin = await getSentryViteSubPlugin('sentry-sveltekit-update-source-map-setting-plugin');
 
-      __setSourceMapSettingForTest({
-        previousSourceMapSetting: 'disabled',
-        updatedSourceMapSetting: undefined,
-      });
-
       // @ts-expect-error this function exists!
-      const sentryConfig = plugin.config({
-        build: { sourcemap: false, foo: {} },
-        test: {},
-      });
+      const sentryConfig = plugin.config(originalConfig);
+
       expect(sentryConfig).toEqual({
         build: {
-          foo: {},
+          ...originalConfig.build,
           sourcemap: false,
         },
-        test: {},
       });
     });
 
     it('enables source map generation with "hidden" when unset', async () => {
+      const originalConfig = {
+        build: { assetsDir: 'assets' },
+      };
+
+      vi.spyOn(vite, 'loadConfigFromFile').mockResolvedValueOnce({
+        path: '',
+        config: originalConfig,
+        dependencies: [],
+      });
+
       const plugin = await getSentryViteSubPlugin('sentry-sveltekit-update-source-map-setting-plugin');
       // @ts-expect-error this function exists!
-      const sentryConfig = plugin.config({ build: { foo: {} }, test: {} });
+      const sentryConfig = plugin.config(originalConfig);
       expect(sentryConfig).toEqual({
+        ...originalConfig,
         build: {
-          foo: {},
+          ...originalConfig.build,
           sourcemap: 'hidden',
         },
-        test: {},
       });
     });
   });
@@ -293,23 +318,24 @@ describe('makeCustomSentryVitePlugins()', () => {
 });
 
 describe('changeViteSourceMapSettings()', () => {
-  it('handles vite source map settings', () => {
-    const cases = [
-      { sourcemap: false, expectedSourcemap: false, expectedPrevious: 'disabled' },
-      { sourcemap: 'hidden', expectedSourcemap: 'hidden', expectedPrevious: 'enabled' },
-      { sourcemap: 'inline', expectedSourcemap: 'inline', expectedPrevious: 'enabled' },
-      { sourcemap: true, expectedSourcemap: true, expectedPrevious: 'enabled' },
-      { sourcemap: undefined, expectedSourcemap: 'hidden', expectedPrevious: 'unset' },
-    ];
+  const cases = [
+    { sourcemap: false, expectedSourcemap: false, expectedPrevious: 'disabled' },
+    { sourcemap: 'hidden', expectedSourcemap: 'hidden', expectedPrevious: 'enabled' },
+    { sourcemap: 'inline', expectedSourcemap: 'inline', expectedPrevious: 'enabled' },
+    { sourcemap: true, expectedSourcemap: true, expectedPrevious: 'enabled' },
+    { sourcemap: undefined, expectedSourcemap: 'hidden', expectedPrevious: 'unset' },
+  ];
 
-    cases.forEach(({ sourcemap, expectedSourcemap, expectedPrevious }) => {
-      const viteConfig = { build: { sourcemap } };
-      const result = getUpdatedSourceMapSetting(viteConfig);
+  it.each(cases)('handles vite source map settings $1', async ({ sourcemap, expectedSourcemap, expectedPrevious }) => {
+    const viteConfig = { build: { sourcemap } };
 
-      expect(result).toEqual({
-        updatedSourceMapSetting: expectedSourcemap,
-        previousSourceMapSetting: expectedPrevious,
-      });
+    const { getUpdatedSourceMapSetting } = await import('../../src/vite/sourceMaps');
+
+    const result = getUpdatedSourceMapSetting(viteConfig);
+
+    expect(result).toEqual({
+      updatedSourceMapSetting: expectedSourcemap,
+      previousSourceMapSetting: expectedPrevious,
     });
   });
 });
