@@ -17,6 +17,11 @@ export type FallbackRender = (errorData: {
   resetError(): void;
 }) => React.ReactElement;
 
+type OnUnmountType = {
+  (error: null, componentStack: null, eventId: null): void;
+  (error: unknown, componentStack: string, eventId: string): void;
+};
+
 export type ErrorBoundaryProps = {
   children?: React.ReactNode | (() => React.ReactNode);
   /** If a Sentry report dialog should be rendered on error */
@@ -45,10 +50,18 @@ export type ErrorBoundaryProps = {
   onError?: ((error: unknown, componentStack: string, eventId: string) => void) | undefined;
   /** Called on componentDidMount() */
   onMount?: (() => void) | undefined;
-  /** Called if resetError() is called from the fallback render props function  */
-  onReset?: ((error: unknown, componentStack: string | null, eventId: string | null) => void) | undefined;
-  /** Called on componentWillUnmount() */
-  onUnmount?: ((error: unknown, componentStack: string | null, eventId: string | null) => void) | undefined;
+  /**
+   * Called when the error boundary resets due to a reset call from the
+   * fallback render props function.
+   */
+  onReset?: ((error: unknown, componentStack: string, eventId: string) => void) | undefined;
+  /**
+   * Called on componentWillUnmount() with the error, componentStack, and eventId.
+   *
+   * If the error boundary never encountered an error, the error
+   * componentStack, and eventId will be null.
+   */
+  onUnmount?: OnUnmountType | undefined;
   /** Called before the error is captured by Sentry, allows for you to add tags or context using the scope */
   beforeCapture?: ((scope: Scope, error: unknown, componentStack: string) => void) | undefined;
 };
@@ -140,7 +153,15 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     const { error, componentStack, eventId } = this.state;
     const { onUnmount } = this.props;
     if (onUnmount) {
-      onUnmount(error, componentStack, eventId);
+      if (this.state === INITIAL_STATE) {
+        // If the error boundary never encountered an error, call onUnmount with null values
+        onUnmount(null, null, null);
+      } else {
+        // `componentStack` and `eventId` are guaranteed to be non-null here because `onUnmount` is only called
+        // when the error boundary has already encountered an error.
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        onUnmount(error, componentStack!, eventId!);
+      }
     }
 
     if (this._cleanupHook) {
@@ -153,7 +174,10 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     const { onReset } = this.props;
     const { error, componentStack, eventId } = this.state;
     if (onReset) {
-      onReset(error, componentStack, eventId);
+      // `componentStack` and `eventId` are guaranteed to be non-null here because `onReset` is only called
+      // when the error boundary has already encountered an error.
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      onReset(error, componentStack!, eventId!);
     }
     this.setState(INITIAL_STATE);
   }
