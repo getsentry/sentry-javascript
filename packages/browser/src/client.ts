@@ -112,6 +112,15 @@ export class BrowserClient extends Client<BrowserClientOptions> {
     isolationScope: Scope,
   ): PromiseLike<Event | null> {
     event.platform = event.platform || 'javascript';
+
+    // By default, we want to infer the IP address, unless this is explicitly set to `null`
+    if (typeof event.user?.ip_address === 'undefined') {
+      event.user = {
+        ...event.user,
+        ip_address: '{{auto}}',
+      };
+    }
+
     return super._prepareEvent(event, hint, currentScope, isolationScope);
   }
 }
