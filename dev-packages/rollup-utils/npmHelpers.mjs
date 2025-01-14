@@ -30,7 +30,6 @@ const packageDotJSON = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), '.
 export function makeBaseNPMConfig(options = {}) {
   const {
     entrypoints = ['src/index.ts'],
-    esModuleInterop = false,
     hasBundles = false,
     packageSpecificConfig = {},
     sucrase = {},
@@ -83,16 +82,7 @@ export function makeBaseNPMConfig(options = {}) {
       // (We don't need it, so why waste the bytes?)
       freeze: false,
 
-      // Equivalent to `esModuleInterop` in tsconfig.
-      // Controls whether rollup emits helpers to handle special cases where turning
-      //     `import * as dogs from 'dogs'`
-      // into
-      //     `const dogs = require('dogs')`
-      // doesn't work.
-      //
-      // `auto` -> emit helpers
-      // `esModule` -> don't emit helpers
-      interop: esModuleInterop ? 'auto' : 'esModule',
+      interop: 'esModule',
     },
 
     plugins: [
