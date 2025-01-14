@@ -131,7 +131,7 @@ function _init(
   }
 
   if (!isCjs() && options.registerEsmLoaderHooks !== false) {
-    maybeInitializeEsmLoader(options.registerEsmLoaderHooks === true ? undefined : options.registerEsmLoaderHooks);
+    maybeInitializeEsmLoader();
   }
 
   setOpenTelemetryContextAsyncContextStrategy();
