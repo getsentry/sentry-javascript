@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getUpdatedSourceMapSetting, makeCustomSentryVitePlugins } from '../../src/vite/sourceMaps';
+import { makeCustomSentryVitePlugins } from '../../src/vite/sourceMaps';
 
 import type { Plugin } from 'vite';
 
