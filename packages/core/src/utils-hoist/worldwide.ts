@@ -49,7 +49,7 @@ type BackwardsCompatibleSentryCarrier = SentryCarrier & {
 
 /** Internal global with common properties and Sentry extensions  */
 export type InternalGlobal = {
-  navigator?: { userAgent?: string };
+  navigator?: { userAgent?: string; maxTouchPoints?: number };
   console: Console;
   PerformanceObserver?: any;
   Sentry?: any;

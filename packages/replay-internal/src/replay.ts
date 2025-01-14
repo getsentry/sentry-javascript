@@ -47,6 +47,7 @@ import { createBreadcrumb } from './util/createBreadcrumb';
 import { createPerformanceEntries } from './util/createPerformanceEntries';
 import { createPerformanceSpans } from './util/createPerformanceSpans';
 import { debounce } from './util/debounce';
+import { getRecordingSamplingOptions } from './util/getRecordingSamplingOptions';
 import { getHandleRecordingEmit } from './util/handleRecordingEmit';
 import { isExpired } from './util/isExpired';
 import { isSessionExpired } from './util/isSessionExpired';
@@ -394,6 +395,7 @@ export class ReplayContainer implements ReplayContainerInterface {
               checkoutEveryNms: Math.max(360_000, this._options._experiments.continuousCheckout),
             }),
         emit: getHandleRecordingEmit(this),
+        ...getRecordingSamplingOptions(),
         onMutation: this._onMutationHandler,
         ...(canvasOptions
           ? {
