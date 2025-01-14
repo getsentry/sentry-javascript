@@ -152,7 +152,7 @@ export function createRunner(...paths: string[]) {
   let expectedEnvelopeHeaders: ExpectedEnvelopeHeader[] | undefined = undefined;
   const flags: string[] = [];
   // By default, we ignore session & sessions
-  const ignored: Set<EnvelopeItemType> = new Set(['session', 'sessions']);
+  const ignored: Set<EnvelopeItemType> = new Set(['session', 'sessions', 'client_report']);
   let withEnv: Record<string, string> = {};
   let withSentryServer = false;
   let dockerOptions: DockerOptions | undefined;
