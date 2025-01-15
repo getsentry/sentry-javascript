@@ -1,4 +1,5 @@
 import type { Client } from './client';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OVERRIDE_TRACE_SAMPLE_RATE } from './semanticAttributes';
 import { getDynamicSamplingContextFromSpan } from './tracing/dynamicSamplingContext';
 import type { SentrySpan } from './tracing/sentrySpan';
 import type {
@@ -141,6 +142,8 @@ export function createSpanEnvelope(spans: [SentrySpan, ...SentrySpan[]], client?
   const items: SpanItem[] = [];
   for (const span of spans) {
     const spanJson = convertToSpanJSON(span);
+    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+    delete spanJson.data[SEMANTIC_ATTRIBUTE_SENTRY_OVERRIDE_TRACE_SAMPLE_RATE];
     if (spanJson) {
       items.push(createSpanEnvelopeItem(spanJson));
     }

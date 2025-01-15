@@ -45,6 +45,7 @@ sentryTest('sends a segment span envelope', async ({ getLocalTestUrl, page }) =>
     data: {
       'sentry.origin': 'manual',
       'sentry.sample_rate': 1,
+      'sentry.override_trace_sample_rate': true, // This should probably not be here but for now it will be.
       'sentry.source': 'custom',
     },
     description: 'standalone_segment_span',
