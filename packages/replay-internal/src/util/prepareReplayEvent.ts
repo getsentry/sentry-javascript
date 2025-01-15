@@ -40,6 +40,8 @@ export async function prepareReplayEvent({
     return null;
   }
 
+  client.emit('postprocessEvent', preparedEvent, eventHint);
+
   // This normally happens in browser client "_prepareEvent"
   // but since we do not use this private method from the client, but rather the plain import
   // we need to do this manually.
@@ -54,16 +56,6 @@ export async function prepareReplayEvent({
     name: name || 'sentry.javascript.unknown',
     version: version || '0.0.0',
   };
-
-  // By default, we want to infer the IP address, unless this is explicitly set to `null`
-  // We do this after all other processing is done
-  // If `ip_address` is explicitly set to `null` or a value, we leave it as is
-  if (preparedEvent.user?.ip_address === undefined) {
-    preparedEvent.user = {
-      ...preparedEvent.user,
-      ip_address: '{{auto}}',
-    };
-  }
 
   return preparedEvent;
 }

@@ -8,6 +8,7 @@ import type {
   ParameterizedString,
   Scope,
   SeverityLevel,
+  User,
 } from '@sentry/core';
 import { Client, applySdkMetadata, getSDKSource } from '@sentry/core';
 import { eventFromException, eventFromMessage } from './eventbuilder';
@@ -82,6 +83,23 @@ export class BrowserClient extends Client<BrowserClientOptions> {
         }
       });
     }
+
+    this.on('postprocessEvent', event => {
+      addAutoIpAddressToUser(event);
+    });
+
+    this.on('beforeSendSession', session => {
+      if ('aggregates' in session) {
+        if (session.attrs?.['ip_address'] === undefined) {
+          session.attrs = {
+            ...session.attrs,
+            ip_address: '{{auto}}',
+          };
+        }
+      } else {
+        addAutoIpAddressToUser(session);
+      }
+    });
   }
 
   /**
@@ -113,22 +131,18 @@ export class BrowserClient extends Client<BrowserClientOptions> {
   ): PromiseLike<Event | null> {
     event.platform = event.platform || 'javascript';
 
-    return super._prepareEvent(event, hint, currentScope, isolationScope).then(prepared => {
-      if (!prepared) {
-        return prepared;
-      }
+    return super._prepareEvent(event, hint, currentScope, isolationScope);
+  }
+}
 
-      // By default, we want to infer the IP address, unless this is explicitly set to `null`
-      // We do this after all other processing is done
-      // If `ip_address` is explicitly set to `null` or a value, we leave it as is
-      if (prepared.user?.ip_address === undefined) {
-        prepared.user = {
-          ...prepared.user,
-          ip_address: '{{auto}}',
-        };
-      }
-
-      return prepared;
-    });
+// By default, we want to infer the IP address, unless this is explicitly set to `null`
+// We do this after all other processing is done
+// If `ip_address` is explicitly set to `null` or a value, we leave it as is
+function addAutoIpAddressToUser(objWithMaybeUser: { user?: User | null }): void {
+  if (objWithMaybeUser.user?.ip_address === undefined) {
+    objWithMaybeUser.user = {
+      ...objWithMaybeUser.user,
+      ip_address: '{{auto}}',
+    };
   }
 }
