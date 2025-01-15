@@ -61,7 +61,6 @@ function _wrappedIsEnabled(original: (this: UnleashClient, ...args: unknown[]) =
     if (typeof toggleName === 'string' && typeof result === 'boolean') {
       insertFlagToScope(toggleName, result);
     } else {
-      // TODO: test this branch
       logger.error(`[Feature Flags] UnleashClient.isEnabled does not match expected signature. arg0: ${toggleName} (${typeof toggleName}), result: ${result} (${typeof result})`);
     }
     return result;
