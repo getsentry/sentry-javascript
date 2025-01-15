@@ -15,24 +15,29 @@ export function sampleSpan(
   options: Pick<Options, 'tracesSampleRate' | 'tracesSampler' | 'enableTracing'>,
   samplingContext: SamplingContext,
   sampleRand: number,
-): [sampled: boolean, sampleRate?: number] {
+): [sampled: boolean, sampleRate?: number, shouldUpdateSampleRateOnDsc?: boolean] {
   // nothing to do if tracing is not enabled
   if (!hasTracingEnabled(options)) {
     return [false];
   }
+
+  let shouldUpdateSampleRateOnDsc = false;
 
   // we would have bailed already if neither `tracesSampler` nor `tracesSampleRate` nor `enableTracing` were defined, so one of these should
   // work; prefer the hook if so
   let sampleRate;
   if (typeof options.tracesSampler === 'function') {
     sampleRate = options.tracesSampler(samplingContext);
+    shouldUpdateSampleRateOnDsc = true;
   } else if (samplingContext.parentSampled !== undefined) {
     sampleRate = samplingContext.parentSampled;
   } else if (typeof options.tracesSampleRate !== 'undefined') {
     sampleRate = options.tracesSampleRate;
+    shouldUpdateSampleRateOnDsc = true;
   } else {
     // When `enableTracing === true`, we use a sample rate of 100%
     sampleRate = 1;
+    shouldUpdateSampleRateOnDsc = true;
   }
 
   // Since this is coming from the user (or from a function provided by the user), who knows what we might get.
@@ -54,7 +59,7 @@ export function sampleSpan(
             : 'a negative sampling decision was inherited or tracesSampleRate is set to 0'
         }`,
       );
-    return [false, parsedSampleRate];
+    return [false, parsedSampleRate, shouldUpdateSampleRateOnDsc];
   }
 
   // Now we roll the dice. Math.random is inclusive of 0, but not of 1, so strict < is safe here. In case sampleRate is
@@ -69,8 +74,8 @@ export function sampleSpan(
           sampleRate,
         )})`,
       );
-    return [false, parsedSampleRate];
+    return [false, parsedSampleRate, shouldUpdateSampleRateOnDsc];
   }
 
-  return [true, parsedSampleRate];
+  return [true, parsedSampleRate, shouldUpdateSampleRateOnDsc];
 }

@@ -13,6 +13,7 @@ import {
 import type { Client, SpanAttributes } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_OVERRIDE_TRACE_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   hasTracingEnabled,
   logger,
@@ -106,7 +107,7 @@ export class SentrySampler implements Sampler {
     // Non-root-spans simply inherit the sampling decision from their parent.
     if (isRootSpan) {
       const currentPropagationContext = scope?.getPropagationContext();
-      const [sampled, sampleRate] = sampleSpan(
+      const [sampled, sampleRate, shouldUpdateSampleRateOnDsc] = sampleSpan(
         options,
         {
           name: inferredSpanName,
@@ -120,6 +121,7 @@ export class SentrySampler implements Sampler {
 
       const attributes: Attributes = {
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: sampleRate,
+        [SEMANTIC_ATTRIBUTE_SENTRY_OVERRIDE_TRACE_SAMPLE_RATE]: shouldUpdateSampleRateOnDsc,
       };
 
       const method = `${maybeSpanHttpMethod}`.toUpperCase();
