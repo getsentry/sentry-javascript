@@ -142,8 +142,11 @@ export function createSpanEnvelope(spans: [SentrySpan, ...SentrySpan[]], client?
   const items: SpanItem[] = [];
   for (const span of spans) {
     const spanJson = convertToSpanJSON(span);
+
+    // This attribute is important for internal logic but should not leak into actual data
     // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
     delete spanJson.data[SEMANTIC_ATTRIBUTE_SENTRY_OVERRIDE_TRACE_SAMPLE_RATE];
+
     if (spanJson) {
       items.push(createSpanEnvelopeItem(spanJson));
     }
