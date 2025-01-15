@@ -24,6 +24,9 @@
     "@playwright/test": "^1.27.1",
     "ts-node": "10.9.1"
   },
+  "resolutions": {
+    "@types/qs": "6.9.17"
+  },
   "volta": {
     "extends": "../../package.json"
   }
