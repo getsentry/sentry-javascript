@@ -65,12 +65,6 @@ export function wrapCreateMemoryRouterV6<
 }
 
 /**
- * Alias for consistency with `wrapCreateBrowserRouter`
- * @deprecated Use `wrapCreateMemoryRouterV6` or `wrapCreateMemoryRouterV7` instead.
- */
-export const wrapCreateMemoryRouter = wrapCreateMemoryRouterV6;
-
-/**
  * A higher-order component that adds Sentry routing instrumentation to a React Router v6 Route component.
  * This is used to automatically capture route changes as transactions.
  */
