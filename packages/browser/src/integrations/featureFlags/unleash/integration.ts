@@ -1,6 +1,6 @@
 import type { Client, Event, EventHint, IntegrationFn } from '@sentry/core';
 
-import { defineIntegration } from '@sentry/core';
+import { defineIntegration, fill, logger } from '@sentry/core';
 import { copyFlagsFromScopeToEvent, insertFlagToScope } from '../../../utils/featureFlags';
 import type { UnleashClient, UnleashClientClass } from './types';
 
@@ -39,21 +39,28 @@ export const unleashIntegration = defineIntegration((unleashClientClass: Unleash
 
     setupOnce() {
       const unleashClientPrototype = unleashClientClass.prototype as UnleashClient;
-
-      const sentryIsEnabled = {
-        apply: (
-          target: (this: UnleashClient, toggleName: string) => boolean,
-          thisArg: UnleashClient,
-          args: [toggleName: string],
-        ) => {
-          const result = Reflect.apply(target, thisArg, args);
-          insertFlagToScope(args[0], result);
-          return result;
-        },
-      };
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      const originalIsEnabled = unleashClientPrototype.isEnabled;
-      unleashClientPrototype.isEnabled = new Proxy(originalIsEnabled, sentryIsEnabled);
+      fill(unleashClientPrototype, 'isEnabled', _wrappedIsEnabled);
     },
   };
 }) satisfies IntegrationFn;
+
+/**
+ * Wraps the UnleashClient.isEnabled method to capture feature flag evaluations. Its only side effect is writing to Sentry scope.
+ *
+ * @param original - The original method.
+ * @returns Wrapped method. Results should match the original.
+ */
+function _wrappedIsEnabled(original: (this: UnleashClient, ...args: unknown[]) => unknown): (this: UnleashClient, ...args: unknown[]) => unknown {
+  return function (this: UnleashClient, ...args: unknown[]): unknown {
+    const toggleName = args[0];
+    const result = original.apply(this, args);
+
+    if (typeof toggleName === 'string' && typeof result === 'boolean') {
+      insertFlagToScope(toggleName, result);
+    } else {
+      // TODO: test this branch
+      logger.error(`[Feature Flags] UnleashClient.isEnabled does not match expected signature. arg0: ${toggleName} (${typeof toggleName}), result: ${result} (${typeof result})`);
+    }
+    return result;
+  };
+}
