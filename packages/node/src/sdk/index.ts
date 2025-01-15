@@ -81,18 +81,8 @@ export function getDefaultIntegrations(options: Options): Integration[] {
     // Note that this means that without tracing enabled, e.g. `expressIntegration()` will not be added
     // This means that generally request isolation will work (because that is done by httpIntegration)
     // But `transactionName` will not be set automatically
-    ...(shouldAddPerformanceIntegrations(options) ? getAutoPerformanceIntegrations() : []),
+    ...(hasTracingEnabled(options) ? getAutoPerformanceIntegrations() : []),
   ];
-}
-
-function shouldAddPerformanceIntegrations(options: Options): boolean {
-  if (!hasTracingEnabled(options)) {
-    return false;
-  }
-
-  // We want to ensure `tracesSampleRate` is not just undefined/null here
-  // eslint-disable-next-line deprecation/deprecation
-  return options.enableTracing || options.tracesSampleRate != null || 'tracesSampler' in options;
 }
 
 /**
