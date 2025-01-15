@@ -142,13 +142,21 @@ function getContextLinesFromFile(path: string, ranges: ReadlineRange[], output: 
       input: stream,
     });
 
+    // We need to explicitly destroy the stream to prevent memory leaks,
+    // removing the listeners on the readline interface is not enough.
+    // See: https://github.com/nodejs/node/issues/9002 and https://github.com/getsentry/sentry-javascript/issues/14892
+    function destroyStreamAndResolve(): void {
+      stream.destroy();
+      resolve();
+    }
+
     // Init at zero and increment at the start of the loop because lines are 1 indexed.
     let lineNumber = 0;
     let currentRangeIndex = 0;
     const range = ranges[currentRangeIndex];
     if (range === undefined) {
       // We should never reach this point, but if we do, we should resolve the promise to prevent it from hanging.
-      resolve();
+      destroyStreamAndResolve();
       return;
     }
     let rangeStart = range[0];
@@ -162,14 +170,14 @@ function getContextLinesFromFile(path: string, ranges: ReadlineRange[], output: 
       DEBUG_BUILD && logger.error(`Failed to read file: ${path}. Error: ${e}`);
       lineReaded.close();
       lineReaded.removeAllListeners();
-      resolve();
+      destroyStreamAndResolve();
     }
 
     // We need to handle the error event to prevent the process from crashing in < Node 16
     // https://github.com/nodejs/node/pull/31603
     stream.on('error', onStreamError);
     lineReaded.on('error', onStreamError);
-    lineReaded.on('close', resolve);
+    lineReaded.on('close', destroyStreamAndResolve);
 
     lineReaded.on('line', line => {
       lineNumber++;
