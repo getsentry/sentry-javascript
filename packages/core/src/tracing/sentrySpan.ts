@@ -7,6 +7,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_OVERRIDE_TRACE_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '../semanticAttributes';
 import type {
@@ -348,6 +349,7 @@ export class SentrySpan implements Span {
     // remove internal root span attributes we don't need to send.
     /* eslint-disable @typescript-eslint/no-dynamic-delete */
     delete this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME];
+    delete this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_OVERRIDE_TRACE_SAMPLE_RATE];
     spans.forEach(span => {
       span.data && delete span.data[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME];
     });
