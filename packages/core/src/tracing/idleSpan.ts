@@ -109,6 +109,59 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
 
   const client = getClient();
 
+  function patchSpanEnd(span: Span): void {
+    // We patch span.end to ensure we can run some things before the span is ended
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    span.end = new Proxy(span.end, {
+      apply(target, thisArg, args: Parameters<Span['end']>) {
+        if (beforeSpanEnd) {
+          beforeSpanEnd(span);
+        }
+
+        // If the span is non-recording, nothing more to do here...
+        // This is the case if tracing is enabled but this specific span was not sampled
+        if (thisArg instanceof SentryNonRecordingSpan) {
+          return;
+        }
+
+        // Just ensuring that this keeps working, even if we ever have more arguments here
+        const [definedEndTimestamp, ...rest] = args;
+        const timestamp = definedEndTimestamp || timestampInSeconds();
+        const spanEndTimestamp = spanTimeInputToSeconds(timestamp);
+
+        // Ensure we end with the last span timestamp, if possible
+        const spans = getSpanDescendants(span).filter(child => child !== span);
+
+        // If we have no spans, we just end, nothing else to do here
+        if (!spans.length) {
+          onIdleSpanEnded(spanEndTimestamp);
+          return Reflect.apply(target, thisArg, [spanEndTimestamp, ...rest]);
+        }
+
+        const childEndTimestamps = spans
+          .map(span => spanToJSON(span).timestamp)
+          .filter(timestamp => !!timestamp) as number[];
+        const latestSpanEndTimestamp = childEndTimestamps.length ? Math.max(...childEndTimestamps) : undefined;
+
+        // In reality this should always exist here, but type-wise it may be undefined...
+        const spanStartTimestamp = spanToJSON(span).start_timestamp;
+
+        // The final endTimestamp should:
+        // * Never be before the span start timestamp
+        // * Be the latestSpanEndTimestamp, if there is one, and it is smaller than the passed span end timestamp
+        // * Otherwise be the passed end timestamp
+        // Final timestamp can never be after finalTimeout
+        const endTimestamp = Math.min(
+          spanStartTimestamp ? spanStartTimestamp + finalTimeout / 1000 : Infinity,
+          Math.max(spanStartTimestamp || -Infinity, Math.min(spanEndTimestamp, latestSpanEndTimestamp || Infinity)),
+        );
+
+        onIdleSpanEnded(endTimestamp);
+        return Reflect.apply(target, thisArg, [endTimestamp, ...rest]);
+      },
+    });
+  }
+
   if (!client || !hasTracingEnabled()) {
     const span = new SentryNonRecordingSpan();
 
@@ -118,7 +171,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
       ...getDynamicSamplingContextFromSpan(span),
     } satisfies Partial<DynamicSamplingContext>;
     freezeDscOnSpan(span, dsc);
-
+    patchSpanEnd(span);
     return span;
   }
 
@@ -126,56 +179,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
   const previousActiveSpan = getActiveSpan();
   const span = _startIdleSpan(startSpanOptions);
 
-  // We patch span.end to ensure we can run some things before the span is ended
-  // eslint-disable-next-line @typescript-eslint/unbound-method
-  span.end = new Proxy(span.end, {
-    apply(target, thisArg, args: Parameters<Span['end']>) {
-      if (beforeSpanEnd) {
-        beforeSpanEnd(span);
-      }
-
-      // If the span is non-recording, nothing more to do here...
-      // This is the case if tracing is enabled but this specific span was not sampled
-      if (thisArg instanceof SentryNonRecordingSpan) {
-        return;
-      }
-
-      // Just ensuring that this keeps working, even if we ever have more arguments here
-      const [definedEndTimestamp, ...rest] = args;
-      const timestamp = definedEndTimestamp || timestampInSeconds();
-      const spanEndTimestamp = spanTimeInputToSeconds(timestamp);
-
-      // Ensure we end with the last span timestamp, if possible
-      const spans = getSpanDescendants(span).filter(child => child !== span);
-
-      // If we have no spans, we just end, nothing else to do here
-      if (!spans.length) {
-        onIdleSpanEnded(spanEndTimestamp);
-        return Reflect.apply(target, thisArg, [spanEndTimestamp, ...rest]);
-      }
-
-      const childEndTimestamps = spans
-        .map(span => spanToJSON(span).timestamp)
-        .filter(timestamp => !!timestamp) as number[];
-      const latestSpanEndTimestamp = childEndTimestamps.length ? Math.max(...childEndTimestamps) : undefined;
-
-      // In reality this should always exist here, but type-wise it may be undefined...
-      const spanStartTimestamp = spanToJSON(span).start_timestamp;
-
-      // The final endTimestamp should:
-      // * Never be before the span start timestamp
-      // * Be the latestSpanEndTimestamp, if there is one, and it is smaller than the passed span end timestamp
-      // * Otherwise be the passed end timestamp
-      // Final timestamp can never be after finalTimeout
-      const endTimestamp = Math.min(
-        spanStartTimestamp ? spanStartTimestamp + finalTimeout / 1000 : Infinity,
-        Math.max(spanStartTimestamp || -Infinity, Math.min(spanEndTimestamp, latestSpanEndTimestamp || Infinity)),
-      );
-
-      onIdleSpanEnded(endTimestamp);
-      return Reflect.apply(target, thisArg, [endTimestamp, ...rest]);
-    },
-  });
+  patchSpanEnd(span);
 
   /**
    * Cancels the existing idle timeout, if there is one.
