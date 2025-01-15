@@ -16,6 +16,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   hasTracingEnabled,
   logger,
+  parseSampleRate,
   sampleSpan,
 } from '@sentry/core';
 import { SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING, SENTRY_TRACE_STATE_URL } from './constants';
@@ -104,7 +105,7 @@ export class SentrySampler implements Sampler {
     // We only sample based on parameters (like tracesSampleRate or tracesSampler) for root spans (which is done in sampleSpan).
     // Non-root-spans simply inherit the sampling decision from their parent.
     if (isRootSpan) {
-      const sampleRand = scope?.getPropagationContext().sampleRand ?? Math.random();
+      const currentPropagationContext = scope?.getPropagationContext();
       const [sampled, sampleRate] = sampleSpan(
         options,
         {
@@ -112,9 +113,9 @@ export class SentrySampler implements Sampler {
           attributes: mergedAttributes,
           normalizedRequest: isolationScope?.getScopeData().sdkProcessingMetadata.normalizedRequest,
           parentSampled,
-          // TODO(v9): provide a parentSampleRate here
+          parentSampleRate: parseSampleRate(currentPropagationContext?.dsc?.sample_rate),
         },
-        sampleRand,
+        currentPropagationContext?.sampleRand ?? Math.random(),
       );
 
       const attributes: Attributes = {
