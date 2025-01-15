@@ -10,6 +10,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.50.0
+
+- feat(v8/react): Add support for React Router `createMemoryRouter` ([#14985](https://github.com/getsentry/sentry-javascript/pull/14985))
+
 ## 8.49.0
 
 - feat(v8/browser): Flush offline queue on flush and browser online event ([#14969](https://github.com/getsentry/sentry-javascript/pull/14969))
