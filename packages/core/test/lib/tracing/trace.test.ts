@@ -840,7 +840,7 @@ describe('startSpanManual', () => {
       const initialScope = getCurrentScope();
       const manualScope = initialScope.clone();
 
-      startSpanManual({ name: 'GET users/[id]', scope: manualScope }, (span, finish) => {
+      startSpanManual({ name: 'GET users/[id]', scope: manualScope }, span => {
         // current scope is forked from the customScope
         expect(getCurrentScope()).not.toBe(initialScope);
         expect(getCurrentScope()).not.toBe(manualScope);
