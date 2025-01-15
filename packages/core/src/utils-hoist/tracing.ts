@@ -1,4 +1,5 @@
 import type { DynamicSamplingContext, PropagationContext, TraceparentData } from '../types-hoist';
+import { parseSampleRate } from '../utils/parseSampleRate';
 
 import { baggageHeaderToDynamicSamplingContext } from './baggage';
 import { generateSpanId, generateTraceId } from './propagationContext';
@@ -102,13 +103,13 @@ function getSampleRandFromTraceparentAndDsc(
   dsc: Partial<DynamicSamplingContext> | undefined,
 ): number {
   // When there is an incoming sample rand use it.
-  const parsedSampleRand = parseSamplingDscNumber(dsc?.sample_rand);
+  const parsedSampleRand = parseSampleRate(dsc?.sample_rand);
   if (parsedSampleRand !== undefined) {
     return parsedSampleRand;
   }
 
   // Otherwise, if there is an incoming sampling decision + sample rate, generate a sample rand that would lead to the same sampling decision.
-  const parsedSampleRate = parseSamplingDscNumber(dsc?.sample_rate);
+  const parsedSampleRate = parseSampleRate(dsc?.sample_rate);
   if (parsedSampleRate && traceparentData?.parentSampled !== undefined) {
     return traceparentData.parentSampled
       ? // Returns a sample rand with positive sampling decision [0, sampleRate)
@@ -118,22 +119,5 @@ function getSampleRandFromTraceparentAndDsc(
   } else {
     // If nothing applies, return a random sample rand.
     return Math.random();
-  }
-}
-
-/**
- * Given a string form of a numeric-like on the DSC, safely convert it to a number.
- */
-function parseSamplingDscNumber(sampleRand: string | undefined): number | undefined {
-  try {
-    const parsed = Number(sampleRand); // Number(undefined) will return NaN and fail the next check
-    if (isNaN(parsed) || parsed < 0 || parsed > 1) {
-      // This is probably an invariant but returning undefined seems sensible.
-      return undefined;
-    } else {
-      return parsed;
-    }
-  } catch {
-    return undefined;
   }
 }
