@@ -41,9 +41,15 @@ sentryTest('Logs and returns if isEnabled does not match expected signature', as
   // Expected error logs.
   expect(errorLogs).toEqual(
     expect.arrayContaining([
-      expect.stringContaining('[Feature Flags] UnleashClient.isEnabled does not match expected signature. arg0: my-feature (string), result: my-feature (string)'),
-      expect.stringContaining('[Feature Flags] UnleashClient.isEnabled does not match expected signature. arg0: 999 (number), result: 999 (number)'),
-      expect.stringContaining('[Feature Flags] UnleashClient.isEnabled does not match expected signature. arg0: [object Object] (object), result: [object Object] (object)'),
+      expect.stringContaining(
+        '[Feature Flags] UnleashClient.isEnabled does not match expected signature. arg0: my-feature (string), result: my-feature (string)',
+      ),
+      expect.stringContaining(
+        '[Feature Flags] UnleashClient.isEnabled does not match expected signature. arg0: 999 (number), result: 999 (number)',
+      ),
+      expect.stringContaining(
+        '[Feature Flags] UnleashClient.isEnabled does not match expected signature. arg0: [object Object] (object), result: [object Object] (object)',
+      ),
     ]),
   );
 });

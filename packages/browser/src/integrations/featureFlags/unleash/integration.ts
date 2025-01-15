@@ -29,20 +29,22 @@ import type { UnleashClient, UnleashClientClass } from './types';
  * Sentry.captureException(new Error('something went wrong'));
  * ```
  */
-export const unleashIntegration = defineIntegration(({unleashClientClass}: {unleashClientClass: UnleashClientClass}) => {
-  return {
-    name: 'Unleash',
+export const unleashIntegration = defineIntegration(
+  ({ unleashClientClass }: { unleashClientClass: UnleashClientClass }) => {
+    return {
+      name: 'Unleash',
 
-    processEvent(event: Event, _hint: EventHint, _client: Client): Event {
-      return copyFlagsFromScopeToEvent(event);
-    },
+      processEvent(event: Event, _hint: EventHint, _client: Client): Event {
+        return copyFlagsFromScopeToEvent(event);
+      },
 
-    setupOnce() {
-      const unleashClientPrototype = unleashClientClass.prototype as UnleashClient;
-      fill(unleashClientPrototype, 'isEnabled', _wrappedIsEnabled);
-    },
-  };
-}) satisfies IntegrationFn;
+      setupOnce() {
+        const unleashClientPrototype = unleashClientClass.prototype as UnleashClient;
+        fill(unleashClientPrototype, 'isEnabled', _wrappedIsEnabled);
+      },
+    };
+  },
+) satisfies IntegrationFn;
 
 /**
  * Wraps the UnleashClient.isEnabled method to capture feature flag evaluations. Its only side effect is writing to Sentry scope.
@@ -53,7 +55,9 @@ export const unleashIntegration = defineIntegration(({unleashClientClass}: {unle
  * @param original - The original method.
  * @returns Wrapped method. Results should match the original.
  */
-function _wrappedIsEnabled(original: (this: UnleashClient, ...args: unknown[]) => unknown): (this: UnleashClient, ...args: unknown[]) => unknown {
+function _wrappedIsEnabled(
+  original: (this: UnleashClient, ...args: unknown[]) => unknown,
+): (this: UnleashClient, ...args: unknown[]) => unknown {
   return function (this: UnleashClient, ...args: unknown[]): unknown {
     const toggleName = args[0];
     const result = original.apply(this, args);
@@ -61,7 +65,9 @@ function _wrappedIsEnabled(original: (this: UnleashClient, ...args: unknown[]) =
     if (typeof toggleName === 'string' && typeof result === 'boolean') {
       insertFlagToScope(toggleName, result);
     } else {
-      logger.error(`[Feature Flags] UnleashClient.isEnabled does not match expected signature. arg0: ${toggleName} (${typeof toggleName}), result: ${result} (${typeof result})`);
+      logger.error(
+        `[Feature Flags] UnleashClient.isEnabled does not match expected signature. arg0: ${toggleName} (${typeof toggleName}), result: ${result} (${typeof result})`,
+      );
     }
     return result;
   };
