@@ -75,11 +75,21 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
   }
 
   const rootSpan = getRootSpan(span);
+  const rootSpanJson = spanToJSON(rootSpan);
+  const rootSpanAttributes = rootSpanJson.data;
+  const maybeSampleRate = rootSpanAttributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE];
+
+  function applyRootSpanSampleRateToDsc(dsc: Partial<DynamicSamplingContext>): Partial<DynamicSamplingContext> {
+    if (maybeSampleRate != null) {
+      dsc.sample_rate = `${maybeSampleRate}`;
+    }
+    return dsc;
+  }
 
   // For core implementation, we freeze the DSC onto the span as a non-enumerable property
   const frozenDsc = (rootSpan as SpanWithMaybeDsc)[FROZEN_DSC_FIELD];
   if (frozenDsc) {
-    return frozenDsc;
+    return applyRootSpanSampleRateToDsc(frozenDsc);
   }
 
   // For OpenTelemetry, we freeze the DSC on the trace state
@@ -90,24 +100,17 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
   const dscOnTraceState = traceStateDsc && baggageHeaderToDynamicSamplingContext(traceStateDsc);
 
   if (dscOnTraceState) {
-    return dscOnTraceState;
+    return applyRootSpanSampleRateToDsc(dscOnTraceState);
   }
 
   // Else, we generate it from the span
   const dsc = getDynamicSamplingContextFromClient(span.spanContext().traceId, client);
-  const jsonSpan = spanToJSON(rootSpan);
-  const attributes = jsonSpan.data;
-  const maybeSampleRate = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE];
-
-  if (maybeSampleRate != null) {
-    dsc.sample_rate = `${maybeSampleRate}`;
-  }
 
   // We don't want to have a transaction name in the DSC if the source is "url" because URLs might contain PII
-  const source = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+  const source = rootSpanAttributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
 
   // after JSON conversion, txn.name becomes jsonSpan.description
-  const name = jsonSpan.description;
+  const name = rootSpanJson.description;
   if (source !== 'url' && name) {
     dsc.transaction = name;
   }
@@ -122,7 +125,7 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
 
   client.emit('createDsc', dsc, rootSpan);
 
-  return dsc;
+  return applyRootSpanSampleRateToDsc(dsc);
 }
 
 /**
