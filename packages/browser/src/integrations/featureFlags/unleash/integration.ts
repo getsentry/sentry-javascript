@@ -47,6 +47,9 @@ export const unleashIntegration = defineIntegration(({unleashClientClass}: {unle
 /**
  * Wraps the UnleashClient.isEnabled method to capture feature flag evaluations. Its only side effect is writing to Sentry scope.
  *
+ * This wrapper is safe for all isEnabled signatures. If the signature does not match (this: UnleashClient, toggleName: string, ...args: unknown[]) => boolean,
+ * we log an error and return the original result.
+ *
  * @param original - The original method.
  * @returns Wrapped method. Results should match the original.
  */
