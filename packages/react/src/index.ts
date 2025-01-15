@@ -22,10 +22,12 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   wrapCreateBrowserRouter,
   wrapCreateBrowserRouterV6,
+  wrapCreateMemoryRouterV6,
 } from './reactrouterv6';
 export {
   reactRouterV7BrowserTracingIntegration,
   withSentryReactRouterV7Routing,
   wrapCreateBrowserRouterV7,
+  wrapCreateMemoryRouterV7,
   wrapUseRoutesV7,
 } from './reactrouterv7';

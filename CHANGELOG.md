@@ -10,6 +10,20 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.50.0
+
+- feat(v8/react): Add support for React Router `createMemoryRouter` ([#14985](https://github.com/getsentry/sentry-javascript/pull/14985))
+
+## 8.49.0
+
+- feat(v8/browser): Flush offline queue on flush and browser online event ([#14969](https://github.com/getsentry/sentry-javascript/pull/14969))
+- feat(v8/react): Add a `handled` prop to ErrorBoundary ([#14978](https://github.com/getsentry/sentry-javascript/pull/14978))
+- fix(profiling/v8): Don't put `require`, `__filename` and `__dirname` on global object ([#14952](https://github.com/getsentry/sentry-javascript/pull/14952))
+- fix(v8/node): Enforce that ContextLines integration does not leave open file handles ([#14997](https://github.com/getsentry/sentry-javascript/pull/14997))
+- fix(v8/replay): Disable mousemove sampling in rrweb for iOS browsers ([#14944](https://github.com/getsentry/sentry-javascript/pull/14944))
+- fix(v8/sveltekit): Ensure source maps deletion is called after source ma… ([#14963](https://github.com/getsentry/sentry-javascript/pull/14963))
+- fix(v8/vue): Re-throw error when no errorHandler exists ([#14943](https://github.com/getsentry/sentry-javascript/pull/14943))
+
 Work in this release was contributed by @HHK1 and @mstrokin. Thank you for your contribution!
 
 ## 8.48.0
