@@ -55,5 +55,15 @@ export async function prepareReplayEvent({
     version: version || '0.0.0',
   };
 
+  // By default, we want to infer the IP address, unless this is explicitly set to `null`
+  // We do this after all other processing is done
+  // If `ip_address` is explicitly set to `null` or a value, we leave it as is
+  if (preparedEvent.user?.ip_address === undefined) {
+    preparedEvent.user = {
+      ...preparedEvent.user,
+      ip_address: '{{auto}}',
+    };
+  }
+
   return preparedEvent;
 }

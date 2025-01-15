@@ -103,6 +103,9 @@ sentryTest(
         headers: expect.any(Object),
         url: expect.any(String),
       },
+      user: {
+        ip_address: '{{auto}}',
+      },
       sdk: expect.any(Object),
       spans: [
         {
