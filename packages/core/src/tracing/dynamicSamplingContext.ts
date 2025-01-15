@@ -79,6 +79,8 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
   const rootSpanAttributes = rootSpanJson.data;
   const maybeSampleRate = rootSpanAttributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE];
 
+  // The root span sample rate should always be applied to the DSC, even if the DSC is frozen.
+  // This is so that the downstream traces/services can use parentSampleRate in their `tracesSampler` to make consistent sampling decisions across the entire trace.
   function applyRootSpanSampleRateToDsc(dsc: Partial<DynamicSamplingContext>): Partial<DynamicSamplingContext> {
     if (maybeSampleRate != null) {
       dsc.sample_rate = `${maybeSampleRate}`;
