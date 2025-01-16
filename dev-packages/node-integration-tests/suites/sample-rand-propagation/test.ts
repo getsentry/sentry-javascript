@@ -58,7 +58,7 @@ describe('sample_rand propagation', () => {
     expect(sampleRand).toStrictEqual(expect.any(Number));
     expect(sampleRand).not.toBeNaN();
     expect(sampleRand).toBeLessThan(0.25);
-    expect(sampleRand).toBeLessThan(1);
+    expect(sampleRand).toBeGreaterThanOrEqual(0);
   });
 
   test('propagates a sample_rand that would lead to a negative sampling decision when there is an incoming negative sampling decision but no sample_rand in the baggage header', async () => {
