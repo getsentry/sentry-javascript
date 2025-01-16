@@ -75,21 +75,11 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
   }
 
   const rootSpan = getRootSpan(span);
-  const rootSpanPropagationContext = getCapturedScopesOnSpan(rootSpan).scope?.getPropagationContext();
-
-  // The root span sample rate should always be applied to the DSC, even if the DSC is frozen.
-  // This is so that the downstream traces/services can use parentSampleRate in their `tracesSampler` to make consistent sampling decisions across the entire trace.
-  function applyRootSpanSampleRateToDsc(dsc: Partial<DynamicSamplingContext>): Partial<DynamicSamplingContext> {
-    if (rootSpanPropagationContext?.sampleRateOverride !== undefined) {
-      dsc.sample_rate = `${rootSpanPropagationContext.sampleRateOverride}`;
-    }
-    return dsc;
-  }
 
   // For core implementation, we freeze the DSC onto the span as a non-enumerable property
   const frozenDsc = (rootSpan as SpanWithMaybeDsc)[FROZEN_DSC_FIELD];
   if (frozenDsc) {
-    return applyRootSpanSampleRateToDsc(frozenDsc);
+    return frozenDsc;
   }
 
   // For OpenTelemetry, we freeze the DSC on the trace state
@@ -100,26 +90,24 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
   const dscOnTraceState = traceStateDsc && baggageHeaderToDynamicSamplingContext(traceStateDsc);
 
   if (dscOnTraceState) {
-    return applyRootSpanSampleRateToDsc(dscOnTraceState);
+    return dscOnTraceState;
   }
 
   // Else, we generate it from the span
   const dsc = getDynamicSamplingContextFromClient(span.spanContext().traceId, client);
+  const jsonSpan = spanToJSON(rootSpan);
+  const attributes = jsonSpan.data;
+  const maybeSampleRate = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE];
 
-  const rootSpanJson = spanToJSON(rootSpan);
-  const rootSpanAttributes = rootSpanJson.data;
-  const maybeSampleRate = rootSpanAttributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE];
-
-  // Note: This is a `!= null` check meaning "nullish"
   if (maybeSampleRate != null) {
     dsc.sample_rate = `${maybeSampleRate}`;
   }
 
   // We don't want to have a transaction name in the DSC if the source is "url" because URLs might contain PII
-  const source = rootSpanAttributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+  const source = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
 
   // after JSON conversion, txn.name becomes jsonSpan.description
-  const name = rootSpanJson.description;
+  const name = jsonSpan.description;
   if (source !== 'url' && name) {
     dsc.transaction = name;
   }
@@ -129,12 +117,12 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
   // So we end up with an active span that is not sampled (neither positively nor negatively)
   if (hasTracingEnabled()) {
     dsc.sampled = String(spanIsSampled(rootSpan));
-    dsc.sample_rand = rootSpanPropagationContext?.sampleRand.toString();
+    dsc.sample_rand = getCapturedScopesOnSpan(rootSpan).scope?.getPropagationContext().sampleRand.toString();
   }
 
   client.emit('createDsc', dsc, rootSpan);
 
-  return applyRootSpanSampleRateToDsc(dsc);
+  return dsc;
 }
 
 /**
