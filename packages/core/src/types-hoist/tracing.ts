@@ -50,6 +50,16 @@ export interface PropagationContext {
    * The current SDK should not modify this value!
    */
   dsc?: Partial<DynamicSamplingContext>;
+
+  /**
+   * This is set when the currently incoming sample rate should be overridden for further propagation.
+   *
+   * This is the case whenever
+   * - the tracesSampleRate is applied
+   * - the tracesSampler is invoked
+   */
+  // TODO: Link to docs when this is properly specified. For now: https://github.com/getsentry/team-sdks/issues/117
+  sampleRateOverride?: number;
 }
 
 /**

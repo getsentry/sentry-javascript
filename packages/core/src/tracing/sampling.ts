@@ -21,7 +21,7 @@ export function sampleSpan(
     return [false];
   }
 
-  let shouldUpdateSampleRateOnDsc = undefined;
+  let shouldUpdateSampleRateOnDsc: undefined | true = undefined;
 
   // we would have bailed already if neither `tracesSampler` nor `tracesSampleRate` nor `enableTracing` were defined, so one of these should
   // work; prefer the hook if so
@@ -74,8 +74,7 @@ export function sampleSpan(
           sampleRate,
         )})`,
       );
-    return [false, parsedSampleRate, shouldUpdateSampleRateOnDsc];
   }
 
-  return [true, parsedSampleRate, shouldUpdateSampleRateOnDsc];
+  return [shouldSample, parsedSampleRate, shouldUpdateSampleRateOnDsc];
 }

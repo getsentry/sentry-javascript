@@ -8,7 +8,6 @@ import { Span as SpanClass } from '@opentelemetry/sdk-trace-base';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_OVERRIDE_TRACE_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   getClient,
@@ -224,7 +223,6 @@ describe('trace', () => {
           expect(span).toBeDefined();
           expect(getSpanAttributes(span)).toEqual({
             [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-            [SEMANTIC_ATTRIBUTE_SENTRY_OVERRIDE_TRACE_SAMPLE_RATE]: true,
           });
         },
       );
@@ -245,7 +243,6 @@ describe('trace', () => {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test.origin',
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'my-op',
             [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-            [SEMANTIC_ATTRIBUTE_SENTRY_OVERRIDE_TRACE_SAMPLE_RATE]: true,
           });
         },
       );
@@ -270,7 +267,6 @@ describe('trace', () => {
           expect(getSpanStartTime(span)).toEqual(date);
           expect(getSpanAttributes(span)).toEqual({
             [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-            [SEMANTIC_ATTRIBUTE_SENTRY_OVERRIDE_TRACE_SAMPLE_RATE]: true,
             test1: 'test 1',
             test2: 2,
           });
@@ -528,7 +524,6 @@ describe('trace', () => {
       expect(span).toBeDefined();
       expect(getSpanAttributes(span)).toEqual({
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-        [SEMANTIC_ATTRIBUTE_SENTRY_OVERRIDE_TRACE_SAMPLE_RATE]: true,
       });
 
       const span2 = startInactiveSpan({
@@ -543,7 +538,6 @@ describe('trace', () => {
       expect(span2).toBeDefined();
       expect(getSpanAttributes(span2)).toEqual({
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-        [SEMANTIC_ATTRIBUTE_SENTRY_OVERRIDE_TRACE_SAMPLE_RATE]: true,
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test.origin',
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'my-op',
@@ -568,7 +562,6 @@ describe('trace', () => {
       expect(getSpanStartTime(span)).toEqual(date);
       expect(getSpanAttributes(span)).toEqual({
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-        [SEMANTIC_ATTRIBUTE_SENTRY_OVERRIDE_TRACE_SAMPLE_RATE]: true,
         test1: 'test 1',
         test2: 2,
       });
@@ -841,7 +834,6 @@ describe('trace', () => {
           expect(getSpanStartTime(span)).toEqual(date);
           expect(getSpanAttributes(span)).toEqual({
             [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-            [SEMANTIC_ATTRIBUTE_SENTRY_OVERRIDE_TRACE_SAMPLE_RATE]: true,
             test1: 'test 1',
             test2: 2,
           });

@@ -15,7 +15,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_OVERRIDE_TRACE_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   captureEvent,
@@ -392,7 +391,6 @@ function removeSentryAttributes(data: Record<string, unknown>): Record<string, u
   delete cleanedData[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE];
   delete cleanedData[SEMANTIC_ATTRIBUTE_SENTRY_PARENT_IS_REMOTE];
   delete cleanedData[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME];
-  delete cleanedData[SEMANTIC_ATTRIBUTE_SENTRY_OVERRIDE_TRACE_SAMPLE_RATE];
   /* eslint-enable @typescript-eslint/no-dynamic-delete */
 
   return cleanedData;

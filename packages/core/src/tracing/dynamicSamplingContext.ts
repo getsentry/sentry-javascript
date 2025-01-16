@@ -2,11 +2,7 @@ import type { Client } from '../client';
 import { DEFAULT_ENVIRONMENT } from '../constants';
 import { getClient } from '../currentScopes';
 import type { Scope } from '../scope';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OVERRIDE_TRACE_SAMPLE_RATE,
-  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-} from '../semanticAttributes';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
 import type { DynamicSamplingContext, Span } from '../types-hoist';
 import {
   baggageHeaderToDynamicSamplingContext,
@@ -79,17 +75,13 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
   }
 
   const rootSpan = getRootSpan(span);
-  const rootSpanJson = spanToJSON(rootSpan);
-  const rootSpanAttributes = rootSpanJson.data;
-  const shouldOverrideDscSampleRate = rootSpanAttributes[SEMANTIC_ATTRIBUTE_SENTRY_OVERRIDE_TRACE_SAMPLE_RATE];
-  const maybeSampleRate = rootSpanAttributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE];
+  const rootSpanPropagationContext = getCapturedScopesOnSpan(rootSpan).scope?.getPropagationContext();
 
   // The root span sample rate should always be applied to the DSC, even if the DSC is frozen.
   // This is so that the downstream traces/services can use parentSampleRate in their `tracesSampler` to make consistent sampling decisions across the entire trace.
   function applyRootSpanSampleRateToDsc(dsc: Partial<DynamicSamplingContext>): Partial<DynamicSamplingContext> {
-    // Note: This is a `!= null` check meaning "nullish"
-    if (shouldOverrideDscSampleRate && maybeSampleRate != null) {
-      dsc.sample_rate = `${maybeSampleRate}`;
+    if (rootSpanPropagationContext?.sampleRateOverride !== undefined) {
+      dsc.sample_rate = `${rootSpanPropagationContext.sampleRateOverride}`;
     }
     return dsc;
   }
@@ -114,6 +106,10 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
   // Else, we generate it from the span
   const dsc = getDynamicSamplingContextFromClient(span.spanContext().traceId, client);
 
+  const rootSpanJson = spanToJSON(rootSpan);
+  const rootSpanAttributes = rootSpanJson.data;
+  const maybeSampleRate = rootSpanAttributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE];
+
   // Note: This is a `!= null` check meaning "nullish"
   if (maybeSampleRate != null) {
     dsc.sample_rate = `${maybeSampleRate}`;
@@ -133,7 +129,7 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
   // So we end up with an active span that is not sampled (neither positively nor negatively)
   if (hasTracingEnabled()) {
     dsc.sampled = String(spanIsSampled(rootSpan));
-    dsc.sample_rand = getCapturedScopesOnSpan(rootSpan).scope?.getPropagationContext().sampleRand.toString();
+    dsc.sample_rand = rootSpanPropagationContext?.sampleRand.toString();
   }
 
   client.emit('createDsc', dsc, rootSpan);

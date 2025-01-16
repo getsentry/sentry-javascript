@@ -16,11 +16,7 @@ import { getClient, getCurrentScope, getIsolationScope, withScope } from '../cur
 import { getAsyncContextStrategy } from '../asyncContext';
 import { DEBUG_BUILD } from '../debug-build';
 import type { Scope } from '../scope';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OVERRIDE_TRACE_SAMPLE_RATE,
-  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-} from '../semanticAttributes';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
 import { logger } from '../utils-hoist/logger';
 import { generateTraceId } from '../utils-hoist/propagationContext';
 import { propagationContextFromHeaders } from '../utils-hoist/tracing';
@@ -442,7 +438,9 @@ function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parent
 
   if (sampleRate !== undefined) {
     rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, sampleRate);
-    rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OVERRIDE_TRACE_SAMPLE_RATE, shouldUpdateSampleRateOnDsc);
+    if (shouldUpdateSampleRateOnDsc) {
+      currentPropagationContext.sampleRateOverride = sampleRate;
+    }
   }
 
   if (client) {
