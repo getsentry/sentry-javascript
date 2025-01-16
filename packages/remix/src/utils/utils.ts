@@ -25,27 +25,3 @@ export async function storeFormDataKeys(args: DataFunctionArgs, span: Span): Pro
     DEBUG_BUILD && logger.warn('Failed to read FormData from request', e);
   }
 }
-
-/**
- * Get transaction name from routes and url
- */
-export function getTransactionName(routes: ServerRoute[], url: URL): [string, TransactionSource] {
-  const matches = matchServerRoutes(routes, url.pathname);
-  const match = matches && getRequestMatch(url, matches);
-  return match === null ? [url.pathname, 'url'] : [match.route.id || 'no-route-id', 'route'];
-}
-
-/**
- * Creates routes from the server route manifest
- *
- * @param manifest
- * @param parentId
- */
-export function createRoutes(manifest: ServerRouteManifest, parentId?: string): ServerRoute[] {
-  return Object.entries(manifest)
-    .filter(([, route]) => route.parentId === parentId)
-    .map(([id, route]) => ({
-      ...route,
-      children: createRoutes(manifest, id),
-    }));
-}

@@ -76,48 +76,6 @@ export async function captureRemixServerException(
     return scope;
   });
 }
-
-/**
- * Wraps the original `HandleDocumentRequestFunction` with error handling.
- *
- * @param origDocumentRequestFunction The original `HandleDocumentRequestFunction`.
- * @param requestContext The request context.
- * @param isRemixV2 Whether the Remix version is v2 or not.
- *
- * @returns The wrapped `HandleDocumentRequestFunction`.
- */
-export function errorHandleDocumentRequestFunction(
-  this: unknown,
-  origDocumentRequestFunction: HandleDocumentRequestFunction,
-  requestContext: {
-    request: RemixRequest;
-    responseStatusCode: number;
-    responseHeaders: Headers;
-    context: EntryContext;
-    loadContext?: Record<string, unknown>;
-  },
-  isRemixV2: boolean,
-): HandleDocumentRequestFunction {
-  const { request, responseStatusCode, responseHeaders, context, loadContext } = requestContext;
-
-  return handleCallbackErrors(
-    () => {
-      return origDocumentRequestFunction.call(this, request, responseStatusCode, responseHeaders, context, loadContext);
-    },
-    err => {
-      // This exists to capture the server-side rendering errors on Remix v1
-      // On Remix v2, we capture SSR errors at `handleError`
-      // We also skip primitives here, as we can't dedupe them, and also we don't expect any primitive SSR errors.
-      if (!isRemixV2 && !isPrimitive(err)) {
-        // eslint-disable-next-line @typescript-eslint/no-floating-promises
-        captureRemixServerException(err, 'documentRequest', request, isRemixV2);
-      }
-
-      throw err;
-    },
-  );
-}
-
 /**
  * Wraps the original `DataFunction` with error handling.
  * This function also stores the form data keys if the action is being called.
@@ -135,26 +93,15 @@ export async function errorHandleDataFunction(
   origFn: DataFunction,
   name: string,
   args: DataFunctionArgs,
-  isRemixV2: boolean,
-  span?: Span,
 ): Promise<Response | AppData> {
   return handleCallbackErrors(
     async () => {
-      if (name === 'action' && span) {
-        const options = getClient()?.getOptions() as RemixOptions;
-
-        if (options.sendDefaultPii && options.captureActionFormDataKeys) {
-          await storeFormDataKeys(args, span);
-        }
-      }
-
       return origFn.call(this, args);
     },
     err => {
-      // On Remix v2, we capture all unexpected errors (except the `Route Error Response`s / Thrown Responses) in `handleError` function.
+      // We capture all unexpected errors (except the `Route Error Response`s / Thrown Responses) in `handleError` function.
       // This is both for consistency and also avoid duplicates such as primitives like `string` or `number` being captured twice.
-      // Remix v1 does not have a `handleError` function, so we capture all errors here.
-      if (isRemixV2 ? isResponse(err) : true) {
+      if (isResponse(err)) {
         // eslint-disable-next-line @typescript-eslint/no-floating-promises
         captureRemixServerException(err, name, args.request, true);
       }

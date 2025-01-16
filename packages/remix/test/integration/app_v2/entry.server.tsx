@@ -1,6 +1,4 @@
-if (process.env.USE_OTEL !== '1') {
-  require('../instrument.server.cjs');
-}
+require('../instrument.server.cjs');
 
 import * as Sentry from '@sentry/remix';
 

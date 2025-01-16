@@ -2,7 +2,7 @@ import { GLOBAL_OBJ } from '@sentry/core';
 
 import type { FutureConfig, ServerBuild } from './vendor/types';
 
-export type EnhancedGlobal = typeof GLOBAL_OBJ & {
+type EnhancedGlobal = typeof GLOBAL_OBJ & {
   __remixContext?: {
     future?: FutureConfig;
     state?: {
@@ -28,17 +28,6 @@ export function getFutureFlagsBrowser(): FutureConfig | undefined {
   }
 
   return window.__remixContext.future;
-}
-
-/**
- * Get the future flags from the Remix server build
- *
- * @param build The Remix server build
- *
- * @returns The future flags
- */
-export function getFutureFlagsServer(build: ServerBuild): FutureConfig | undefined {
-  return build.future;
 }
 
 /**

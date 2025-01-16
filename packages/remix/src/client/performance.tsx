@@ -24,19 +24,19 @@ import * as React from 'react';
 import { DEBUG_BUILD } from '../utils/debug-build';
 import { getFutureFlagsBrowser, readRemixVersionFromLoader } from '../utils/futureFlags';
 
-export type Params<Key extends string = string> = {
+type Params<Key extends string = string> = {
   readonly [key in Key]: string | undefined;
 };
 
-export interface RouteMatch<ParamKey extends string = string> {
+interface RouteMatch<ParamKey extends string = string> {
   params: Params<ParamKey>;
   pathname: string;
   id: string;
   handle: unknown;
 }
-export type UseEffect = (cb: () => void, deps: unknown[]) => void;
+type UseEffect = (cb: () => void, deps: unknown[]) => void;
 
-export type UseLocation = () => {
+type UseLocation = () => {
   pathname: string;
   search?: string;
   hash?: string;
@@ -44,7 +44,7 @@ export type UseLocation = () => {
   key?: unknown;
 };
 
-export type UseMatches = () => RouteMatch[] | null;
+type UseMatches = () => RouteMatch[] | null;
 
 export type RemixBrowserTracingIntegrationOptions = Partial<Parameters<typeof originalBrowserTracingIntegration>[0]> & {
   useEffect?: UseEffect;
