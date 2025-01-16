@@ -1,20 +1,16 @@
-import type { AppData, DataFunctionArgs, EntryContext, HandleDocumentRequestFunction } from '@remix-run/node';
+import type { AppData, DataFunctionArgs } from '@remix-run/node';
 import {
   addExceptionMechanism,
   captureException,
-  getClient,
   handleCallbackErrors,
-  isPrimitive,
   logger,
   objectify,
   winterCGRequestToRequestData,
 } from '@sentry/core';
-import type { RequestEventData, Span } from '@sentry/core';
+import type { RequestEventData } from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
-import type { RemixOptions } from './remixOptions';
-import { storeFormDataKeys } from './utils';
 import { extractData, isResponse, isRouteErrorResponse } from './vendor/response';
-import type { DataFunction, RemixRequest } from './vendor/types';
+import type { DataFunction } from './vendor/types';
 
 /**
  * Captures an exception happened in the Remix server.

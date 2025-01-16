@@ -1,9 +1,7 @@
 import type { DataFunctionArgs } from '@remix-run/node';
 import { logger } from '@sentry/core';
-import type { Span, TransactionSource } from '@sentry/core';
+import type { Span } from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
-import { getRequestMatch, matchServerRoutes } from './vendor/response';
-import type { ServerRoute, ServerRouteManifest } from './vendor/types';
 
 /**
  *
