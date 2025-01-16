@@ -43,7 +43,7 @@ If you need to support older browsers, we recommend transpiling your code using 
 Support for the following Framework versions is dropped:
 
 - **Remix**: Version `1.x`
-- **TanStack Router**: Version `1.63.0` and lower
+- **TanStack Router**: Version `1.63.0` and lower (relevant when using `tanstackRouterBrowserTracingIntegration`)
 - **SvelteKit**: SvelteKit version `1.x`
 - **Ember.js**: Ember.js version `3.x` and lower
 
