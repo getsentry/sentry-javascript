@@ -45,7 +45,7 @@ Support for the following Framework versions is dropped:
 - **Remix**: Version `1.x`
 - **TanStack Router**: Version `1.63.0` and lower (relevant when using `tanstackRouterBrowserTracingIntegration`)
 - **SvelteKit**: SvelteKit version `1.x`
-- **Ember.js**: Ember.js version `3.x` and lower
+- **Ember.js**: Ember.js version `3.x` and lower (minimum supported version is `4.x`)
 
 ### TypeScript Version Policy
 
