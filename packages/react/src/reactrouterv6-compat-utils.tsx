@@ -94,14 +94,19 @@ export function createV6CompatibleWrapCreateBrowserRouter<
     }
 
     router.subscribe((state: RouterState) => {
-      const location = state.location;
       if (state.historyAction === 'PUSH' || state.historyAction === 'POP') {
-        handleNavigation({
-          location,
-          routes,
-          navigationType: state.historyAction,
-          version,
-          basename,
+        // Use requestAnimationFrame to wait for Suspense boundaries to settle
+        requestAnimationFrame(() => {
+          // Small delay to allow for Suspense transitions
+          setTimeout(() => {
+            handleNavigation({
+              location: state.location,
+              routes,
+              navigationType: state.historyAction,
+              version,
+              basename,
+            });
+          }, 100);
         });
       }
     });
