@@ -31,7 +31,7 @@ import type { DataFunction, RemixRequest } from './vendor/types';
  */
 export async function captureRemixServerException(err: unknown, name: string, request: Request): Promise<void> {
   // Skip capturing if the thrown error is not a 5xx response
-  // https://remix.run/docs/en/v1/api/conventions#throwing-responses-in-loaders
+  // https://remix.run/docs/en/main/route/loader#throwing-responses-in-loaders
   if (isRouteErrorResponse(err) && err.status < 500) {
     return;
   }
