@@ -20,8 +20,6 @@ test('should capture React component errors.', async ({ page }) => {
       type: 'Error',
       value: 'Sentry React Component Error',
       stacktrace: { frames: expect.any(Array) },
-      // In v2 this error will be marked unhandled, in v1 its handled because of LinkedErrors
-      // This should be fine though because the error boundary's error is marked unhandled
       mechanism: { type: 'instrument', handled: false },
     },
   ]);
