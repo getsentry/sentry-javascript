@@ -13,4 +13,11 @@ export interface UnleashClient {
   getVariant(this: UnleashClient, featureName: string): IVariant;
 }
 
-export type UnleashClientClass = new (...args: unknown[]) => UnleashClient;
+export interface IConfig {
+  [key: string]: unknown;
+  appName: string;
+  clientKey: string;
+  url: URL | string;
+}
+
+export type UnleashClientClass = new (config: IConfig) => UnleashClient;
