@@ -21,6 +21,11 @@ export interface SamplingContext extends CustomSamplingContext {
   parentSampled?: boolean;
 
   /**
+   * Sample rate that is coming from an incoming trace (if there is one).
+   */
+  parentSampleRate?: number;
+
+  /**
    * Object representing the URL of the current page or worker script. Passed by default when using the `BrowserTracing`
    * integration.
    */

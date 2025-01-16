@@ -29,7 +29,7 @@ test('Should propagate sentry trace baggage data from an incoming to an outgoing
   const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express', {
     headers: {
       'sentry-trace': '12312012123120121231201212312012-1121201211212012-1',
-      baggage: 'sentry-release=2.0.0,sentry-environment=myEnv,dogs=great',
+      baggage: 'sentry-release=2.0.0,sentry-environment=myEnv,dogs=great,sentry-sample_rand=0.42',
     },
   });
 
@@ -37,7 +37,7 @@ test('Should propagate sentry trace baggage data from an incoming to an outgoing
   expect(response).toMatchObject({
     test_data: {
       host: 'somewhere.not.sentry',
-      baggage: 'sentry-release=2.0.0,sentry-environment=myEnv',
+      baggage: 'sentry-release=2.0.0,sentry-environment=myEnv,sentry-sample_rand=0.42',
     },
   });
 });

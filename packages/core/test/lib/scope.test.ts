@@ -32,6 +32,7 @@ describe('Scope', () => {
       eventProcessors: [],
       propagationContext: {
         traceId: expect.any(String),
+        sampleRand: expect.any(Number),
       },
       sdkProcessingMetadata: {},
     });
@@ -57,6 +58,7 @@ describe('Scope', () => {
       eventProcessors: [],
       propagationContext: {
         traceId: expect.any(String),
+        sampleRand: expect.any(Number),
       },
       sdkProcessingMetadata: {},
     });
@@ -90,6 +92,7 @@ describe('Scope', () => {
       eventProcessors: [],
       propagationContext: {
         traceId: expect.any(String),
+        sampleRand: expect.any(Number),
       },
       sdkProcessingMetadata: {},
     });
@@ -101,6 +104,7 @@ describe('Scope', () => {
 
       expect(scope.getScopeData().propagationContext).toEqual({
         traceId: expect.any(String),
+        sampleRand: expect.any(Number),
         sampled: undefined,
         dsc: undefined,
         parentSpanId: undefined,
@@ -228,12 +232,14 @@ describe('Scope', () => {
       const oldPropagationContext = scope.getPropagationContext();
       scope.setPropagationContext({
         traceId: '86f39e84263a4de99c326acab3bfe3bd',
+        sampleRand: 0.42,
         sampled: true,
       });
       expect(scope.getPropagationContext()).not.toEqual(oldPropagationContext);
       expect(scope.getPropagationContext()).toEqual({
         traceId: '86f39e84263a4de99c326acab3bfe3bd',
         sampled: true,
+        sampleRand: 0.42,
       });
     });
 
@@ -293,6 +299,7 @@ describe('Scope', () => {
     expect(scope['_propagationContext']).toEqual({
       traceId: expect.any(String),
       sampled: undefined,
+      sampleRand: expect.any(Number),
     });
     expect(scope['_propagationContext']).not.toEqual(oldPropagationContext);
   });
@@ -420,6 +427,7 @@ describe('Scope', () => {
         propagationContext: {
           traceId: '8949daf83f4a4a70bee4c1eb9ab242ed',
           sampled: true,
+          sampleRand: 0.42,
         },
       };
 
@@ -446,6 +454,7 @@ describe('Scope', () => {
       expect(updatedScope._propagationContext).toEqual({
         traceId: '8949daf83f4a4a70bee4c1eb9ab242ed',
         sampled: true,
+        sampleRand: 0.42,
       });
     });
   });
@@ -493,7 +502,7 @@ describe('Scope', () => {
         tags: { tag1: 'aa', tag2: 'aa' },
         extra: { extra1: 'aa', extra2: 'aa' },
         contexts: { os: { name: 'os1' }, culture: { display_name: 'name1' } },
-        propagationContext: { traceId: '1' },
+        propagationContext: { traceId: '1', sampleRand: 0.42 },
         fingerprint: ['aa'],
       });
       scope.addBreadcrumb(breadcrumb1);

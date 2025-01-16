@@ -16,6 +16,7 @@ describe('tracesSampleRate propagation', () => {
             sampled: 'true',
             trace_id: traceId,
             transaction: 'myTransaction',
+            sample_rand: '0.42',
           },
         },
       })
@@ -23,7 +24,7 @@ describe('tracesSampleRate propagation', () => {
       .makeRequest('get', '/test', {
         headers: {
           'sentry-trace': `${traceId}-1234567812345678-1`,
-          baggage: `sentry-sample_rate=0.05,sentry-trace_id=${traceId},sentry-sampled=true,sentry-transaction=myTransaction`,
+          baggage: `sentry-sample_rate=0.05,sentry-trace_id=${traceId},sentry-sampled=true,sentry-transaction=myTransaction,sentry-sample_rand=0.42`,
         },
       });
   });

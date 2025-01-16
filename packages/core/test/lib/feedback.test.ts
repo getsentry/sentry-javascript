@@ -262,6 +262,7 @@ describe('captureFeedback', () => {
       traceId,
       parentSpanId: spanId,
       dsc,
+      sampleRand: 0.42,
     });
 
     const eventId = captureFeedback({
@@ -351,6 +352,7 @@ describe('captureFeedback', () => {
           sampled: 'true',
           sample_rate: '1',
           transaction: 'test-span',
+          sample_rand: expect.any(String),
         },
       },
       [

@@ -58,6 +58,7 @@ sentryTest(
         sampled: 'true',
         trace_id: traceId,
         transaction: 'test-route',
+        sample_rand: expect.any(String),
       },
     });
 

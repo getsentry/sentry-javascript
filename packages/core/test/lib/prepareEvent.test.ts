@@ -238,6 +238,7 @@ describe('parseEventHintOrCaptureContext', () => {
       fingerprint: ['xx', 'yy'],
       propagationContext: {
         traceId: 'xxx',
+        sampleRand: Math.random(),
       },
     };
 
@@ -328,7 +329,7 @@ describe('prepareEvent', () => {
       tags: { tag1: 'aa', tag2: 'aa' },
       extra: { extra1: 'aa', extra2: 'aa' },
       contexts: { os: { name: 'os1' }, culture: { display_name: 'name1' } },
-      propagationContext: { traceId: '1' },
+      propagationContext: { traceId: '1', sampleRand: 0.42 },
       fingerprint: ['aa'],
     });
     scope.addBreadcrumb(breadcrumb1);

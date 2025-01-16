@@ -1,3 +1,4 @@
+/* eslint-disable complexity */
 import type { Attributes, Context, Span, TraceState as TraceStateInterface } from '@opentelemetry/api';
 import { SpanKind, isSpanContextValid, trace } from '@opentelemetry/api';
 import { TraceState } from '@opentelemetry/core';
@@ -19,6 +20,7 @@ import {
 } from '@sentry/core';
 import { SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING, SENTRY_TRACE_STATE_URL } from './constants';
 import { DEBUG_BUILD } from './debug-build';
+import { getScopesFromContext } from './utils/contextData';
 import { getSamplingDecision } from './utils/getSamplingDecision';
 import { inferSpanData } from './utils/parseSpanDescription';
 import { setIsSetup } from './utils/setupCheck';
@@ -97,14 +99,23 @@ export class SentrySampler implements Sampler {
 
     const isRootSpan = !parentSpan || parentContext?.isRemote;
 
+    const { isolationScope, scope } = getScopesFromContext(context) ?? {};
+
     // We only sample based on parameters (like tracesSampleRate or tracesSampler) for root spans (which is done in sampleSpan).
     // Non-root-spans simply inherit the sampling decision from their parent.
     if (isRootSpan) {
-      const [sampled, sampleRate] = sampleSpan(options, {
-        name: inferredSpanName,
-        attributes: mergedAttributes,
-        parentSampled,
-      });
+      const sampleRand = scope?.getPropagationContext().sampleRand ?? Math.random();
+      const [sampled, sampleRate] = sampleSpan(
+        options,
+        {
+          name: inferredSpanName,
+          attributes: mergedAttributes,
+          normalizedRequest: isolationScope?.getScopeData().sdkProcessingMetadata.normalizedRequest,
+          parentSampled,
+          // TODO(v9): provide a parentSampleRate here
+        },
+        sampleRand,
+      );
 
       const attributes: Attributes = {
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: sampleRate,

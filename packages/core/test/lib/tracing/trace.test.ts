@@ -473,6 +473,7 @@ describe('startSpan', () => {
         sample_rate: '1',
         transaction: 'outer transaction',
         sampled: 'true',
+        sample_rand: expect.any(String),
       },
     });
 
@@ -498,6 +499,7 @@ describe('startSpan', () => {
         sample_rate: '1',
         transaction: 'outer transaction',
         sampled: 'true',
+        sample_rand: expect.any(String),
       },
     });
   });
@@ -507,6 +509,7 @@ describe('startSpan', () => {
     withScope(scope => {
       scope.setPropagationContext({
         traceId: '99999999999999999999999999999999',
+        sampleRand: Math.random(),
         dsc: {},
         parentSpanId: '4242424242424242',
       });
@@ -902,6 +905,7 @@ describe('startSpanManual', () => {
         sample_rate: '1',
         transaction: 'outer transaction',
         sampled: 'true',
+        sample_rand: expect.any(String),
       },
     });
 
@@ -927,6 +931,7 @@ describe('startSpanManual', () => {
         sample_rate: '1',
         transaction: 'outer transaction',
         sampled: 'true',
+        sample_rand: expect.any(String),
       },
     });
   });
@@ -945,6 +950,7 @@ describe('startSpanManual', () => {
     withScope(scope => {
       scope.setPropagationContext({
         traceId: '99999999999999999999999999999991',
+        sampleRand: Math.random(),
         dsc: {},
         parentSpanId: '4242424242424242',
       });
@@ -1230,6 +1236,7 @@ describe('startInactiveSpan', () => {
         sample_rate: '1',
         transaction: 'outer transaction',
         sampled: 'true',
+        sample_rand: expect.any(String),
       },
     });
 
@@ -1255,6 +1262,7 @@ describe('startInactiveSpan', () => {
         sample_rate: '1',
         transaction: 'outer transaction',
         sampled: 'true',
+        sample_rand: expect.any(String),
       },
     });
   });
@@ -1269,6 +1277,7 @@ describe('startInactiveSpan', () => {
     withScope(scope => {
       scope.setPropagationContext({
         traceId: '99999999999999999999999999999991',
+        sampleRand: Math.random(),
         dsc: {},
         parentSpanId: '4242424242424242',
       });
@@ -1451,6 +1460,7 @@ describe('continueTrace', () => {
     expect(scope.getPropagationContext()).toEqual({
       sampled: undefined,
       traceId: expect.any(String),
+      sampleRand: expect.any(Number),
     });
 
     expect(scope.getScopeData().sdkProcessingMetadata).toEqual({});
@@ -1472,6 +1482,7 @@ describe('continueTrace', () => {
       sampled: false,
       parentSpanId: '1121201211212012',
       traceId: '12312012123120121231201212312012',
+      sampleRand: expect.any(Number),
     });
 
     expect(scope.getScopeData().sdkProcessingMetadata).toEqual({});
@@ -1492,10 +1503,12 @@ describe('continueTrace', () => {
       dsc: {
         environment: 'production',
         version: '1.0',
+        sample_rand: expect.any(String),
       },
       sampled: true,
       parentSpanId: '1121201211212012',
       traceId: '12312012123120121231201212312012',
+      sampleRand: expect.any(Number),
     });
 
     expect(scope.getScopeData().sdkProcessingMetadata).toEqual({});
@@ -1516,10 +1529,12 @@ describe('continueTrace', () => {
       dsc: {
         environment: 'production',
         version: '1.0',
+        sample_rand: expect.any(String),
       },
       sampled: true,
       parentSpanId: '1121201211212012',
       traceId: '12312012123120121231201212312012',
+      sampleRand: expect.any(Number),
     });
 
     expect(scope.getScopeData().sdkProcessingMetadata).toEqual({});
