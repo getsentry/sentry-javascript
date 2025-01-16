@@ -1,2 +1,7 @@
-export * from '../../common/routes/ssr-error';
-export { default } from '../../common/routes/ssr-error';
+export default function SSRError() {
+  const data = ['err'].map(err => {
+    throw new Error('Sentry SSR Test Error');
+  });
+
+  return <div>{data}</div>;
+}
