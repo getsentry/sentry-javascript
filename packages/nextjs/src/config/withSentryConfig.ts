@@ -50,17 +50,6 @@ function getFinalConfigObject(
   incomingUserNextConfigObject: NextConfigObject,
   userSentryOptions: SentryBuildOptions,
 ): NextConfigObject {
-  // TODO(v9): Remove this check for the Sentry property
-  if ('sentry' in incomingUserNextConfigObject) {
-    // eslint-disable-next-line no-console
-    console.warn(
-      '[@sentry/nextjs] Setting a `sentry` property on the Next.js config object as a means of configuration is no longer supported. Please use the `sentryBuildOptions` argument of of the `withSentryConfig()` function instead.',
-    );
-
-    // Next 12.2.3+ warns about non-canonical properties on `userNextConfig`.
-    delete incomingUserNextConfigObject.sentry;
-  }
-
   if (userSentryOptions?.tunnelRoute) {
     if (incomingUserNextConfigObject.output === 'export') {
       if (!showedExportModeTunnelWarning) {
