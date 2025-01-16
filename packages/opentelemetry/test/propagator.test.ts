@@ -46,6 +46,7 @@ describe('SentryPropagator', () => {
             traceId: 'd4cda95b652f4a1592b449d5929fda1b',
             parentSpanId: '6e0c63257de34c93',
             sampled: true,
+            sampleRand: Math.random(),
           });
 
           propagator.inject(context.active(), carrier, defaultTextMapSetter);
@@ -68,6 +69,7 @@ describe('SentryPropagator', () => {
             traceId: 'd4cda95b652f4a1592b449d5929fda1b',
             parentSpanId: '6e0c63257de34c93',
             sampled: true,
+            sampleRand: Math.random(),
             dsc: {
               transaction: 'sampled-transaction',
               sampled: 'false',
@@ -133,6 +135,7 @@ describe('SentryPropagator', () => {
             'sentry-sampled=true',
             'sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b',
             'sentry-transaction=test',
+            expect.stringMatching(/sentry-sample_rand=0\.[0-9]+/),
           ],
           'd4cda95b652f4a1592b449d5929fda1b-{{spanId}}-1',
           true,
@@ -186,6 +189,7 @@ describe('SentryPropagator', () => {
             'sentry-sampled=true',
             'sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b',
             'sentry-transaction=test',
+            expect.stringMatching(/sentry-sample_rand=0\.[0-9]+/),
           ],
           'd4cda95b652f4a1592b449d5929fda1b-{{spanId}}-1',
           undefined,
@@ -299,8 +303,9 @@ describe('SentryPropagator', () => {
         context.with(trace.setSpanContext(ROOT_CONTEXT, spanContext), () => {
           trace.getTracer('test').startActiveSpan('test', span => {
             propagator.inject(context.active(), carrier, defaultTextMapSetter);
-
-            expect(baggageToArray(carrier[SENTRY_BAGGAGE_HEADER])).toEqual(baggage.sort());
+            baggage.forEach(baggageItem => {
+              expect(baggageToArray(carrier[SENTRY_BAGGAGE_HEADER])).toContainEqual(baggageItem);
+            });
             expect(carrier[SENTRY_TRACE_HEADER]).toBe(sentryTrace.replace('{{spanId}}', span.spanContext().spanId));
           });
         });
@@ -321,21 +326,23 @@ describe('SentryPropagator', () => {
                   traceId: 'TRACE_ID',
                   parentSpanId: 'PARENT_SPAN_ID',
                   sampled: true,
+                  sampleRand: Math.random(),
                 });
 
                 propagator.inject(context.active(), carrier, defaultTextMapSetter);
 
-                expect(baggageToArray(carrier[SENTRY_BAGGAGE_HEADER])).toEqual(
-                  [
-                    'sentry-environment=production',
-                    'sentry-release=1.0.0',
-                    'sentry-public_key=abc',
-                    'sentry-sample_rate=1',
-                    'sentry-sampled=true',
-                    'sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b',
-                    'sentry-transaction=test',
-                  ].sort(),
-                );
+                [
+                  'sentry-environment=production',
+                  'sentry-release=1.0.0',
+                  'sentry-public_key=abc',
+                  'sentry-sample_rate=1',
+                  'sentry-sampled=true',
+                  'sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b',
+                  'sentry-transaction=test',
+                  expect.stringMatching(/sentry-sample_rand=0\.[0-9]+/),
+                ].forEach(item => {
+                  expect(baggageToArray(carrier[SENTRY_BAGGAGE_HEADER])).toContainEqual(item);
+                });
                 expect(carrier[SENTRY_TRACE_HEADER]).toBe(
                   `d4cda95b652f4a1592b449d5929fda1b-${span.spanContext().spanId}-1`,
                 );
@@ -360,6 +367,7 @@ describe('SentryPropagator', () => {
                 traceId: 'TRACE_ID',
                 parentSpanId: 'PARENT_SPAN_ID',
                 sampled: true,
+                sampleRand: Math.random(),
               });
 
               propagator.inject(context.active(), carrier, defaultTextMapSetter);
@@ -396,6 +404,7 @@ describe('SentryPropagator', () => {
                 traceId: 'TRACE_ID',
                 parentSpanId: 'PARENT_SPAN_ID',
                 sampled: true,
+                sampleRand: Math.random(),
               });
 
               propagator.inject(context.active(), carrier, defaultTextMapSetter);
@@ -597,13 +606,14 @@ describe('SentryPropagator', () => {
       expect(trace.getSpanContext(context)).toEqual(undefined);
       expect(getCurrentScope().getPropagationContext()).toEqual({
         traceId: expect.stringMatching(/[a-f0-9]{32}/),
+        sampleRand: expect.any(Number),
       });
     });
 
     it('sets data from baggage header on span context', () => {
       const sentryTraceHeader = 'd4cda95b652f4a1592b449d5929fda1b-6e0c63257de34c92-1';
       const baggage =
-        'sentry-environment=production,sentry-release=1.0.0,sentry-public_key=abc,sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b,sentry-transaction=dsc-transaction';
+        'sentry-environment=production,sentry-release=1.0.0,sentry-public_key=abc,sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b,sentry-transaction=dsc-transaction,sentry-sample_rand=0.123';
       carrier[SENTRY_TRACE_HEADER] = sentryTraceHeader;
       carrier[SENTRY_BAGGAGE_HEADER] = baggage;
       const context = propagator.extract(ROOT_CONTEXT, carrier, defaultTextMapGetter);
@@ -619,6 +629,7 @@ describe('SentryPropagator', () => {
             public_key: 'abc',
             trace_id: 'd4cda95b652f4a1592b449d5929fda1b',
             transaction: 'dsc-transaction',
+            sample_rand: '0.123',
           },
         }),
       });
@@ -647,6 +658,7 @@ describe('SentryPropagator', () => {
       expect(trace.getSpanContext(context)).toEqual(undefined);
       expect(getCurrentScope().getPropagationContext()).toEqual({
         traceId: expect.stringMatching(/[a-f0-9]{32}/),
+        sampleRand: expect.any(Number),
       });
     });
   });

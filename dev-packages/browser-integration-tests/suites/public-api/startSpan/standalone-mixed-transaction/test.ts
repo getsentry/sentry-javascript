@@ -47,6 +47,7 @@ sentryTest(
         sampled: 'true',
         trace_id: traceId,
         transaction: 'outer',
+        sample_rand: expect.any(String),
       },
     });
 
@@ -64,6 +65,7 @@ sentryTest(
         sampled: 'true',
         trace_id: traceId,
         transaction: 'outer',
+        sample_rand: expect.any(String),
       },
     });
 

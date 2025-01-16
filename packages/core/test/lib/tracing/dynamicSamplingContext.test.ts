@@ -71,6 +71,7 @@ describe('getDynamicSamplingContextFromSpan', () => {
       sample_rate: '0.56',
       trace_id: expect.stringMatching(/^[a-f0-9]{32}$/),
       transaction: 'tx',
+      sample_rand: expect.any(String),
     });
   });
 
@@ -88,6 +89,7 @@ describe('getDynamicSamplingContextFromSpan', () => {
       sample_rate: '1',
       trace_id: expect.stringMatching(/^[a-f0-9]{32}$/),
       transaction: 'tx',
+      sample_rand: expect.any(String),
     });
   });
 
@@ -110,6 +112,7 @@ describe('getDynamicSamplingContextFromSpan', () => {
       sample_rate: '0.56',
       trace_id: expect.stringMatching(/^[a-f0-9]{32}$/),
       transaction: 'tx',
+      sample_rand: undefined, // this is a bit funky admittedly
     });
   });
 
