@@ -8,6 +8,8 @@ sentryTest('Logs and returns if isEnabled does not match expected signature', as
   if (shouldSkipFeatureFlagsTest()) {
     sentryTest.skip();
   }
+  const bundleKey = process.env.PW_BUNDLE || '';
+  const hasDebug = !bundleKey.includes('_min');
 
   await page.route('https://dsn.ingest.sentry.io/**/*', route => {
     return route.fulfill({
@@ -39,17 +41,19 @@ sentryTest('Logs and returns if isEnabled does not match expected signature', as
   expect(results).toEqual(['my-feature', 999, {}]);
 
   // Expected error logs.
-  expect(errorLogs).toEqual(
-    expect.arrayContaining([
-      expect.stringContaining(
-        '[Feature Flags] UnleashClient.isEnabled does not match expected signature. arg0: my-feature (string), result: my-feature (string)',
-      ),
-      expect.stringContaining(
-        '[Feature Flags] UnleashClient.isEnabled does not match expected signature. arg0: 999 (number), result: 999 (number)',
-      ),
-      expect.stringContaining(
-        '[Feature Flags] UnleashClient.isEnabled does not match expected signature. arg0: [object Object] (object), result: [object Object] (object)',
-      ),
-    ]),
-  );
+  if (hasDebug) {
+    expect(errorLogs).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining(
+          '[Feature Flags] UnleashClient.isEnabled does not match expected signature. arg0: my-feature (string), result: my-feature (string)',
+        ),
+        expect.stringContaining(
+          '[Feature Flags] UnleashClient.isEnabled does not match expected signature. arg0: 999 (number), result: 999 (number)',
+        ),
+        expect.stringContaining(
+          '[Feature Flags] UnleashClient.isEnabled does not match expected signature. arg0: [object Object] (object), result: [object Object] (object)',
+        ),
+      ]),
+    );
+  }
 });
