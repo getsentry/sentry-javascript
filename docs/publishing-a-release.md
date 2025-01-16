@@ -22,18 +22,20 @@ _These steps are only relevant to Sentry employees when preparing and publishing
 
 ## Publishing a release for previous majors
 
-1. Run `yarn changelog` on the major branch (e.g. `v8`) and determine what version will be released (we use
+1. Run `yarn changelog` on a previous major branch (e.g. `v8`) and determine what version will be released (we use
    [semver](https://semver.org))
-2. Create a branch, e.g. `changelog-8.45.1`, off the major branch (e.g. `v8`)
+2. Create a branch, e.g. `changelog-8.45.1`, off a previous major branch (e.g. `v8`)
 3. Update `CHANGELOG.md` to add an entry for the next release number and a list of changes since the
    last release. (See details below.)
-4. Open a PR with the title `meta(changelog): Update changelog for VERSION` against the major branch.
-5. Once the PR is merged, open the [Prepare Release workflow](https://github.com/getsentry/sentry-javascript/actions/workflows/release.yml) and
+4. Open a PR with the title `meta(changelog): Update changelog for VERSION` against the previous major branch (e.g. `v8`).
+5. **Be cautious!** The PR against the previous major branch should be merged via "Squash and Merge"
+   (as the commits already exist on this branch).
+6. Once the PR is merged, open the [Prepare Release workflow](https://github.com/getsentry/sentry-javascript/actions/workflows/release.yml) and
    fill in ![run-release-workflow.png](./assets/run-release-workflow.png)
    1. The major branch you want to release for, e.g. `v8`
    2. The version you want to release, e.g. `8.45.1`
    3. The major branch to merge into, e.g. `v8`
-6. Run the release workflow
+7. Run the release workflow
 
 ## Updating the Changelog
 

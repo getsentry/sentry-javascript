@@ -48,10 +48,6 @@ export function maybeProfileSpan(
     profilesSampleRate = profilesSampler({
       name: spanName,
       attributes: data,
-      transactionContext: {
-        name: spanName,
-        parentSampled,
-      },
       parentSampled,
       ...customSamplingContext,
     });

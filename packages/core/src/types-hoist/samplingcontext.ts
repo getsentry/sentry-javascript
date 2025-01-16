@@ -16,15 +16,6 @@ export interface CustomSamplingContext {
  */
 export interface SamplingContext extends CustomSamplingContext {
   /**
-   * Context data with which transaction being sampled was created.
-   * @deprecated This is duplicate data and will be removed eventually.
-   */
-  transactionContext: {
-    name: string;
-    parentSampled?: boolean | undefined;
-  };
-
-  /**
    * Sampling decision from the parent transaction, if any.
    */
   parentSampled?: boolean;

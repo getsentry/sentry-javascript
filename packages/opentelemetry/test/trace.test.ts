@@ -1344,7 +1344,6 @@ describe('trace (sampling)', () => {
       parentSampled: undefined,
       name: 'outer',
       attributes: {},
-      transactionContext: { name: 'outer', parentSampled: undefined },
     });
 
     // Now return `false`, it should not sample
@@ -1364,7 +1363,6 @@ describe('trace (sampling)', () => {
         parentSampled: undefined,
         name: 'outer',
         attributes: {},
-        transactionContext: { name: 'outer', parentSampled: undefined },
       }),
     );
     expect(tracesSampler).toHaveBeenCalledWith(
@@ -1372,7 +1370,6 @@ describe('trace (sampling)', () => {
         parentSampled: undefined,
         name: 'outer2',
         attributes: {},
-        transactionContext: { name: 'outer2', parentSampled: undefined },
       }),
     );
 
@@ -1413,7 +1410,6 @@ describe('trace (sampling)', () => {
         attr2: 1,
         'sentry.op': 'test.op',
       },
-      transactionContext: { name: 'outer', parentSampled: undefined },
     });
 
     // Now return `0`, it should not sample
@@ -1433,7 +1429,6 @@ describe('trace (sampling)', () => {
         parentSampled: undefined,
         name: 'outer2',
         attributes: {},
-        transactionContext: { name: 'outer2', parentSampled: undefined },
       }),
     );
 
@@ -1456,7 +1451,6 @@ describe('trace (sampling)', () => {
       parentSampled: undefined,
       name: 'outer3',
       attributes: {},
-      transactionContext: { name: 'outer3', parentSampled: undefined },
     });
   });
 
@@ -1490,10 +1484,6 @@ describe('trace (sampling)', () => {
       parentSampled: true,
       name: 'outer',
       attributes: {},
-      transactionContext: {
-        name: 'outer',
-        parentSampled: true,
-      },
     });
   });
 

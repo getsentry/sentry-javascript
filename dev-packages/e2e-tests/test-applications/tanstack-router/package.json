@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@sentry/react": "latest || *",
-    "@tanstack/react-router": "1.34.5",
+    "@tanstack/react-router": "1.64.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
@@ -24,7 +24,7 @@
     "@typescript-eslint/parser": "^7.2.0",
     "@vitejs/plugin-react-swc": "^3.5.0",
     "typescript": "^5.2.2",
-    "vite": "^5.4.10",
+    "vite": "^5.4.11",
     "@playwright/test": "^1.44.1",
     "@sentry-internal/test-utils": "link:../../../test-utils"
   },
