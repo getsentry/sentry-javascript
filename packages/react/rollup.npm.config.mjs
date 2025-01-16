@@ -2,7 +2,6 @@ import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollu
 
 export default makeNPMConfigVariants(
   makeBaseNPMConfig({
-    esModuleInterop: true,
     packageSpecificConfig: {
       external: ['react', 'react/jsx-runtime'],
     },

@@ -76,7 +76,7 @@ export function propagationContextFromHeaders(
     parentSpanId,
     sampled: parentSampled,
     dsc: dynamicSamplingContext || {}, // If we have traceparent data but no DSC it means we are not head of trace and we must freeze it
-    sampleRand: sampleRand,
+    sampleRand,
   };
 }
 
@@ -97,6 +97,8 @@ export function generateSentryTraceHeader(
 
 /**
  * Given any combination of an incoming trace, generate a sample rand based on its defined semantics.
+ *
+ * Read more: https://develop.sentry.dev/sdk/telemetry/traces/#propagated-random-value
  */
 function getSampleRandFromTraceparentAndDsc(
   traceparentData: TraceparentData | undefined,
@@ -114,7 +116,7 @@ function getSampleRandFromTraceparentAndDsc(
     return traceparentData.parentSampled
       ? // Returns a sample rand with positive sampling decision [0, sampleRate)
         Math.random() * parsedSampleRate
-      : // Returns a sample rand with negative sampling decision [sampleRate, 1]
+      : // Returns a sample rand with negative sampling decision [sampleRate, 1)
         parsedSampleRate + Math.random() * (1 - parsedSampleRate);
   } else {
     // If nothing applies, return a random sample rand.

@@ -62,8 +62,8 @@ export function sampleSpan(
     return [false, parsedSampleRate, shouldUpdateSampleRateOnDsc];
   }
 
-  // Now we roll the dice. Math.random is inclusive of 0, but not of 1, so strict < is safe here. In case sampleRate is
-  // a boolean, the < comparison will cause it to be automatically cast to 1 if it's true and 0 if it's false.
+  // We always compare the sample rand for the current execution context against the chosen sample rate.
+  // Read more: https://develop.sentry.dev/sdk/telemetry/traces/#propagated-random-value
   const shouldSample = sampleRand < parsedSampleRate;
 
   // if we're not going to keep it, we're done
