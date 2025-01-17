@@ -442,7 +442,7 @@ jobs:
       - name: Set up Deno
         uses: denoland/setup-deno@v2.0.1
         with:
-          deno-version: v1.38.5
+          deno-version: v2.1.5
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
@@ -756,7 +756,6 @@ jobs:
       fail-fast: false
       matrix:
         node: [18, 20, 22]
-        remix: [1, 2]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -779,7 +778,6 @@ jobs:
       - name: Run integration tests
         env:
           NODE_VERSION: ${{ matrix.node }}
-          REMIX_VERSION: ${{ matrix.remix }}
         run: |
           cd packages/remix
           yarn test:integration:ci

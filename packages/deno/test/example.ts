@@ -1,4 +1,4 @@
-import * as Sentry from '../build/index.mjs';
+import * as Sentry from '../build/esm/index.js';
 
 Sentry.init({
   dsn: 'https://1234@some-domain.com/4505526893805568',

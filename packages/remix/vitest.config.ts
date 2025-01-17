@@ -7,7 +7,7 @@ export default defineConfig({
     globals: true,
     disableConsoleIntercept: true,
     silent: false,
-    setupFiles: useOtel ? './test/integration/instrument.server.cjs' : undefined,
+    setupFiles: useOtel ? './test/integration/instrument.server.mjs' : undefined,
     include: useOtel ? ['**/instrumentation-otel/*.test.ts'] : ['**/instrumentation-legacy/*.test.ts'],
   },
 });
