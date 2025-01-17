@@ -1,6 +1,5 @@
 const { loggingTransport } = require('@sentry-internal/node-integration-tests');
 const Sentry = require('@sentry/node');
-const http = require('http');
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
@@ -23,6 +22,8 @@ Sentry.init({
     }),
   ],
 });
+
+const https = require('https');
 
 // express must be required after Sentry is initialized
 const express = require('express');
@@ -55,7 +56,7 @@ startExpressServerAndSendPortToRunner(app);
 
 function makeHttpRequest(url) {
   return new Promise((resolve, reject) => {
-    http
+    https
       .get(url, res => {
         res.on('data', () => {});
         res.on('end', () => {
