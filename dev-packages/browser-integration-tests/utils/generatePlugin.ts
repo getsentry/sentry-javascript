@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import type { Package } from '@sentry/core';
+import { type Package } from '@sentry/core';
 import HtmlWebpackPlugin, { createHtmlTagObject } from 'html-webpack-plugin';
 import type { Compiler } from 'webpack';
 
@@ -38,6 +38,8 @@ const IMPORTED_INTEGRATION_CDN_BUNDLE_PATHS: Record<string, string> = {
   sessionTimingIntegration: 'sessiontiming',
   feedbackIntegration: 'feedback',
   moduleMetadataIntegration: 'modulemetadata',
+  // technically, this is not an integration, but let's add it anyway for simplicity
+  makeMultiplexedTransport: 'multiplexedtransport',
 };
 
 const BUNDLE_PATHS: Record<string, Record<string, string>> = {
