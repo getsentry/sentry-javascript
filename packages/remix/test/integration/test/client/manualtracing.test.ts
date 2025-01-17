@@ -2,8 +2,6 @@ import { expect, test } from '@playwright/test';
 import { Event } from '@sentry/core';
 import { getMultipleSentryEnvelopeRequests } from './utils/helpers';
 
-const useV2 = process.env.REMIX_VERSION === '2';
-
 test('should report a manually created / finished transaction.', async ({ page }) => {
   const envelopes = await getMultipleSentryEnvelopeRequests<Event>(page, 2, {
     url: '/manual-tracing/0',
@@ -19,5 +17,5 @@ test('should report a manually created / finished transaction.', async ({ page }
 
   expect(pageloadEnvelope.contexts?.trace?.op).toBe('pageload');
   expect(pageloadEnvelope.type).toBe('transaction');
-  expect(pageloadEnvelope.transaction).toBe(useV2 ? 'routes/manual-tracing.$id' : 'routes/manual-tracing/$id');
+  expect(pageloadEnvelope.transaction).toBe('routes/manual-tracing.$id');
 });

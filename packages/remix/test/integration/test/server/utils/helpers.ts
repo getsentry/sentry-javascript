@@ -74,13 +74,13 @@ class TestEnv {
   public static async init(testDir: string, serverPath?: string, scenarioPath?: string): Promise<TestEnv> {
     const defaultServerPath = path.resolve(process.cwd(), 'utils', 'defaults', 'server');
 
-    const [server, url] = await new Promise<[http.Server, string]>(resolve => {
+    const [server, url] = await new Promise<[http.Server, string]>(async resolve => {
       // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-member-access
-      const app = require(serverPath || defaultServerPath).default as Express;
+      const { default: app } = (await import(serverPath || defaultServerPath)) as { default: Express };
 
-      app.get('/test', (_req, res) => {
+      app.get('/test', async (_req, res) => {
         try {
-          require(scenarioPath || `${testDir}/scenario`);
+          await import(scenarioPath || `${testDir}/scenario`);
         } finally {
           res.status(200).end();
         }
@@ -267,10 +267,10 @@ export class RemixTestEnv extends TestEnv {
 
   public static async init(): Promise<RemixTestEnv> {
     let serverPort;
-    const server = await new Promise<http.Server>(resolve => {
+    const server = await new Promise<http.Server>(async resolve => {
       const app = express();
 
-      app.all('*', createRequestHandler({ build: require('../../../build') }));
+      app.all('*', createRequestHandler({ build: await import('../../../build') }));
 
       const server = app.listen(0, () => {
         serverPort = (server.address() as AddressInfo).port;

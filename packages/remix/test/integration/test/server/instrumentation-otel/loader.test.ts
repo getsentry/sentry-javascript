@@ -2,8 +2,6 @@ import { Event } from '@sentry/core';
 import { describe, expect, it } from 'vitest';
 import { RemixTestEnv, assertSentryEvent, assertSentryTransaction } from '../utils/helpers';
 
-const useV2 = process.env.REMIX_VERSION === '2';
-
 describe('Remix API Loaders', () => {
   it('reports an error thrown from the loader', async () => {
     const env = await RemixTestEnv.init();
@@ -34,7 +32,7 @@ describe('Remix API Loaders', () => {
             stacktrace: expect.any(Object),
             mechanism: {
               data: {
-                function: useV2 ? 'remix.server.handleError' : 'loader',
+                function: 'remix.server.handleError',
               },
               handled: false,
               type: 'instrument',
@@ -167,7 +165,7 @@ describe('Remix API Loaders', () => {
             stacktrace: expect.any(Object),
             mechanism: {
               data: {
-                function: useV2 ? 'remix.server.handleError' : 'loader',
+                function: 'remix.server.handleError',
               },
               handled: false,
               type: 'instrument',
@@ -244,7 +242,7 @@ describe('Remix API Loaders', () => {
           data: {
             'code.function': 'loader',
             'sentry.op': 'loader.remix',
-            'match.route.id': `routes/loader-defer-response${useV2 ? '.' : '/'}$id`,
+            'match.route.id': 'routes/loader-defer-response.$id',
           },
         },
         {
