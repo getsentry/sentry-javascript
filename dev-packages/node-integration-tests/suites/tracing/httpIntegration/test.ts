@@ -137,11 +137,11 @@ describe('httpIntegration', () => {
 
             const requestSpans = event.spans?.filter(span => span.op === 'http.client');
             expect(requestSpans).toHaveLength(1);
-            expect(requestSpans![0]?.description).toBe('GET http://example.com/pass');
+            expect(requestSpans![0]?.description).toBe('GET https://example.com/pass');
 
             const breadcrumbs = event.breadcrumbs?.filter(b => b.category === 'http');
             expect(breadcrumbs).toHaveLength(1);
-            expect(breadcrumbs![0]?.data?.url).toEqual('http://example.com/pass');
+            expect(breadcrumbs![0]?.data?.url).toEqual('https://example.com/pass');
           },
         })
         .start(done);
@@ -157,11 +157,11 @@ describe('httpIntegration', () => {
 
             const requestSpans = event.spans?.filter(span => span.op === 'http.client');
             expect(requestSpans).toHaveLength(1);
-            expect(requestSpans![0]?.description).toBe('GET http://example.com/pass');
+            expect(requestSpans![0]?.description).toBe('GET https://example.com/pass');
 
             const breadcrumbs = event.breadcrumbs?.filter(b => b.category === 'http');
             expect(breadcrumbs).toHaveLength(1);
-            expect(breadcrumbs![0]?.data?.url).toEqual('http://example.com/pass');
+            expect(breadcrumbs![0]?.data?.url).toEqual('https://example.com/pass');
           },
         })
         .start(done);
