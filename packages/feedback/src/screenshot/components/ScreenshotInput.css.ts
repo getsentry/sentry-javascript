@@ -84,6 +84,10 @@ export function createScreenshotInputStyles(styleNonce?: string): HTMLStyleEleme
   border-left: none;
   border-top: none;
 }
+.editor__pen-tool {
+  width: 30px;
+  height: 30px;
+}
 `;
 
   if (styleNonce) {
