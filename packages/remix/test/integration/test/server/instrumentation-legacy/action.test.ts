@@ -1,8 +1,6 @@
 import { describe, it } from 'vitest';
 import { RemixTestEnv, assertSentryEvent, assertSentryTransaction } from '../utils/helpers';
 
-const useV2 = process.env.REMIX_VERSION === '2';
-
 describe('Remix API Actions', () => {
   it('correctly instruments a parameterized Remix API action', async () => {
     const env = await RemixTestEnv.init();
@@ -15,10 +13,10 @@ describe('Remix API Actions', () => {
     const transaction = envelope[2]!;
 
     assertSentryTransaction(transaction, {
-      transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
+      transaction: `routes/action-json-response.$id`,
       spans: [
         {
-          description: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
+          description: `routes/action-json-response.$id`,
           op: 'function.remix.action',
         },
         {
@@ -26,11 +24,11 @@ describe('Remix API Actions', () => {
           op: 'function.remix.loader',
         },
         {
-          description: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
+          description: `routes/action-json-response.$id`,
           op: 'function.remix.loader',
         },
         {
-          description: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
+          description: `routes/action-json-response.$id`,
           op: 'function.remix.document_request',
         },
       ],
@@ -81,7 +79,7 @@ describe('Remix API Actions', () => {
             stacktrace: expect.any(Object),
             mechanism: {
               data: {
-                function: useV2 ? 'remix.server.handleError' : 'action',
+                function: 'remix.server.handleError',
               },
               handled: false,
               type: 'instrument',
@@ -107,7 +105,7 @@ describe('Remix API Actions', () => {
     const [event] = envelopes.filter(envelope => envelope[1]?.type === 'event');
 
     assertSentryTransaction(transaction![2]!, {
-      transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
+      transaction: `routes/action-json-response.$id`,
       request: {
         method: 'POST',
         url,
@@ -165,7 +163,7 @@ describe('Remix API Actions', () => {
           },
         },
       },
-      transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
+      transaction: 'routes/action-json-response.$id',
     });
 
     assertSentryTransaction(transaction_2![2]!, {
@@ -179,7 +177,7 @@ describe('Remix API Actions', () => {
           },
         },
       },
-      transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
+      transaction: 'routes/action-json-response.$id',
     });
 
     assertSentryEvent(event![2]!, {
@@ -192,7 +190,7 @@ describe('Remix API Actions', () => {
             stacktrace: expect.any(Object),
             mechanism: {
               data: {
-                function: useV2 ? 'remix.server.handleError' : 'loader',
+                function: 'remix.server.handleError',
               },
               handled: false,
               type: 'instrument',
@@ -228,7 +226,7 @@ describe('Remix API Actions', () => {
           },
         },
       },
-      transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
+      transaction: 'routes/action-json-response.$id',
     });
 
     assertSentryEvent(event![2]!, {
@@ -277,7 +275,7 @@ describe('Remix API Actions', () => {
           },
         },
       },
-      transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
+      transaction: 'routes/action-json-response.$id',
     });
 
     assertSentryEvent(event![2]!, {
@@ -326,7 +324,7 @@ describe('Remix API Actions', () => {
           },
         },
       },
-      transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
+      transaction: 'routes/action-json-response.$id',
     });
 
     assertSentryEvent(event![2]!, {
@@ -375,7 +373,7 @@ describe('Remix API Actions', () => {
           },
         },
       },
-      transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
+      transaction: 'routes/action-json-response.$id',
     });
 
     assertSentryEvent(event![2]!, {
@@ -424,7 +422,7 @@ describe('Remix API Actions', () => {
           },
         },
       },
-      transaction: `routes/server-side-unexpected-errors${useV2 ? '.' : '/'}$id`,
+      transaction: 'routes/server-side-unexpected-errors.$id',
     });
 
     assertSentryEvent(event![2]!, {
@@ -437,7 +435,7 @@ describe('Remix API Actions', () => {
             stacktrace: expect.any(Object),
             mechanism: {
               data: {
-                function: useV2 ? 'remix.server.handleError' : 'action',
+                function: 'remix.server.handleError',
               },
               handled: false,
               type: 'instrument',
@@ -473,7 +471,7 @@ describe('Remix API Actions', () => {
           },
         },
       },
-      transaction: `routes/server-side-unexpected-errors${useV2 ? '.' : '/'}$id`,
+      transaction: 'routes/server-side-unexpected-errors.$id',
     });
 
     assertSentryEvent(event![2]!, {
@@ -486,7 +484,7 @@ describe('Remix API Actions', () => {
             stacktrace: expect.any(Object),
             mechanism: {
               data: {
-                function: useV2 ? 'remix.server.handleError' : 'action',
+                function: 'remix.server.handleError',
               },
               handled: false,
               type: 'instrument',
