@@ -1,7 +1,7 @@
 import type { Client } from '../client';
 import { DEFAULT_ENVIRONMENT } from '../constants';
 import { getClient } from '../currentScopes';
-import { Scope } from '../scope';
+import type { Scope } from '../scope';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
 import type { DynamicSamplingContext, Span } from '../types-hoist';
 import {
