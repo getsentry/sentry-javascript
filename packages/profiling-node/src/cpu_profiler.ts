@@ -40,10 +40,6 @@ export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
       : // This case is hit when the tests are run
         pathToFileURL(__filename).href;
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-  // __CREATE_REQUIRE__;
-
-  // const createdRequire = createRequire(importMetaUrl);
   const esmCompatibleDirname = dirname(fileURLToPath(importMetaUrl));
 
   // If a binary path is specified, use that.
