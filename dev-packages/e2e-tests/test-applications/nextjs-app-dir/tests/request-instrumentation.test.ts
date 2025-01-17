@@ -18,7 +18,7 @@ test.skip('Should send a transaction with a http span', async ({ request }) => {
         'sentry.op': 'http.client',
         'sentry.origin': 'auto.http.otel.http',
       }),
-      description: 'GET http://example.com/',
+      description: 'GET https://example.com/',
     }),
   );
 });
