@@ -95,10 +95,9 @@ export function createV6CompatibleWrapCreateBrowserRouter<
 
     router.subscribe((state: RouterState) => {
       if (state.historyAction === 'PUSH' || state.historyAction === 'POP') {
-        // Use requestAnimationFrame to wait for Suspense boundaries to settle
-        requestAnimationFrame(() => {
-          // Small delay to allow for Suspense transitions
-          setTimeout(() => {
+        // Wait for the next render if loading an unsettled route
+        if (state.navigation.state !== 'idle') {
+          requestAnimationFrame(() => {
             handleNavigation({
               location: state.location,
               routes,
@@ -106,8 +105,16 @@ export function createV6CompatibleWrapCreateBrowserRouter<
               version,
               basename,
             });
-          }, 100);
-        });
+          });
+        } else {
+          handleNavigation({
+            location: state.location,
+            routes,
+            navigationType: state.historyAction,
+            version,
+            basename,
+          });
+        }
       }
     });
 

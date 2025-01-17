@@ -74,5 +74,10 @@ test('Captures a navigation transaction', async ({ page }) => {
     }),
   );
 
-  expect(transactionEvent.spans).toEqual([]);
+  expect(transactionEvent.spans).toEqual([
+    expect.objectContaining({
+      op: 'resource.script',
+      origin: 'auto.resource.browser.metrics',
+    }),
+  ]);
 });
