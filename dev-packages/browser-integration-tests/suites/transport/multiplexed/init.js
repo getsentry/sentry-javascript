@@ -1,12 +1,12 @@
 import * as Sentry from '@sentry/browser';
 
-import { makeFetchTransport, makeMultiplexedTransport } from '@sentry/browser';
+import { makeMultiplexedTransport } from '@sentry/browser';
 
 window.Sentry = Sentry;
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  transport: makeMultiplexedTransport(makeFetchTransport, ({ getEvent }) => {
+  transport: makeMultiplexedTransport(Sentry.makeFetchTransport, ({ getEvent }) => {
     const event = getEvent('event');
 
     if (event.tags.to === 'a') {
