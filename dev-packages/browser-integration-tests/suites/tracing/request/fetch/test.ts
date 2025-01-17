@@ -17,12 +17,8 @@ sentryTest('should create spans for fetch requests', async ({ getLocalTestUrl, p
 
   // We will wait 500ms for all envelopes to be sent. Generally, in all browsers, the last sent
   // envelope contains tracing data.
-  const events = await getMultipleSentryEnvelopeRequests<Event>(page, 1, {
-    url,
-    timeout: 10000,
-    envelopeType: 'transaction',
-  });
-  const tracingEvent = events[0];
+  const envelopes = await getMultipleSentryEnvelopeRequests<Event>(page, 4, { url, timeout: 10000 });
+  const tracingEvent = envelopes.find(event => event.type === 'transaction')!; // last envelope contains tracing data on all browsers
 
   const requestSpans = tracingEvent.spans?.filter(({ op }) => op === 'http.client');
 
