@@ -1,9 +1,9 @@
-import { LoaderFunction, V2_MetaFunction, defer, json, redirect } from '@remix-run/node';
+import { LoaderFunction, MetaFunction, defer, json, redirect } from '@remix-run/node';
 import { Links, LiveReload, Meta, Outlet, Scripts, ScrollRestoration, useRouteError } from '@remix-run/react';
-import { V2_ErrorBoundaryComponent } from '@remix-run/react/dist/routeModules';
+import { ErrorBoundaryComponent } from '@remix-run/react/dist/routeModules';
 import { captureRemixErrorBoundaryError, withSentry } from '@sentry/remix';
 
-export const ErrorBoundary: V2_ErrorBoundaryComponent = () => {
+export const ErrorBoundary: ErrorBoundaryComponent = () => {
   const error = useRouteError();
 
   captureRemixErrorBoundaryError(error);
@@ -15,7 +15,7 @@ export const ErrorBoundary: V2_ErrorBoundaryComponent = () => {
   );
 };
 
-export const meta: V2_MetaFunction = ({ data }) => [
+export const meta: MetaFunction = ({ data }) => [
   { charset: 'utf-8' },
   { title: 'New Remix App' },
   { name: 'viewport', content: 'width=device-width,initial-scale=1' },

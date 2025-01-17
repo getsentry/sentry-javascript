@@ -1,7 +1,8 @@
-import { ActionFunction, LoaderFunction, json, redirect } from '@remix-run/node';
+import { ActionFunction, ActionFunctionArgs, json, redirect } from '@remix-run/node';
 import { useActionData } from '@remix-run/react';
+import { LoaderFunctionArgs } from '@remix-run/router';
 
-export const loader: LoaderFunction = async ({ params: { id } }) => {
+export const loader = async ({ params: { id } }: LoaderFunctionArgs) => {
   if (id === '-100') {
     throw new Error('Unexpected Server Error');
   }
@@ -9,7 +10,7 @@ export const loader: LoaderFunction = async ({ params: { id } }) => {
   return null;
 };
 
-export const action: ActionFunction = async ({ params: { id } }) => {
+export const action: ActionFunction = async ({ params: { id } }: ActionFunctionArgs) => {
   if (id === '-1') {
     throw new Error('Unexpected Server Error');
   }
@@ -39,7 +40,7 @@ export const action: ActionFunction = async ({ params: { id } }) => {
 };
 
 export default function ActionJSONResponse() {
-  const data = useActionData();
+  const data = useActionData<typeof action>();
 
   return (
     <div>
