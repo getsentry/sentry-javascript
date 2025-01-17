@@ -1,8 +1,6 @@
 import { describe, it } from 'vitest';
 import { RemixTestEnv, assertSentryEvent, assertSentryTransaction } from '../utils/helpers';
 
-const useV2 = process.env.REMIX_VERSION === '2';
-
 describe('Remix API Actions', () => {
   it('correctly instruments a parameterized Remix API action', async () => {
     const env = await RemixTestEnv.init();
@@ -22,7 +20,7 @@ describe('Remix API Actions', () => {
           data: {
             'code.function': 'action',
             'sentry.op': 'action.remix',
-            'match.route.id': `routes/action-json-response${useV2 ? '.' : '/'}$id`,
+            'match.route.id': 'routes/action-json-response.$id',
             'match.params.id': '123123',
           },
         },
@@ -30,7 +28,7 @@ describe('Remix API Actions', () => {
           data: {
             'code.function': 'loader',
             'sentry.op': 'loader.remix',
-            'match.route.id': `routes/action-json-response${useV2 ? '.' : '/'}$id`,
+            'match.route.id': 'routes/action-json-response.$id',
             'match.params.id': '123123',
           },
         },
@@ -89,7 +87,7 @@ describe('Remix API Actions', () => {
             stacktrace: expect.any(Object),
             mechanism: {
               data: {
-                function: useV2 ? 'remix.server.handleError' : 'action',
+                function: 'remix.server.handleError',
               },
               handled: false,
               type: 'instrument',
@@ -197,7 +195,7 @@ describe('Remix API Actions', () => {
             stacktrace: expect.any(Object),
             mechanism: {
               data: {
-                function: useV2 ? 'remix.server.handleError' : 'loader',
+                function: 'remix.server.handleError',
               },
               handled: false,
               type: 'instrument',
@@ -432,7 +430,7 @@ describe('Remix API Actions', () => {
             stacktrace: expect.any(Object),
             mechanism: {
               data: {
-                function: useV2 ? 'remix.server.handleError' : 'action',
+                function: 'remix.server.handleError',
               },
               handled: false,
               type: 'instrument',
@@ -479,7 +477,7 @@ describe('Remix API Actions', () => {
             stacktrace: expect.any(Object),
             mechanism: {
               data: {
-                function: useV2 ? 'remix.server.handleError' : 'action',
+                function: 'remix.server.handleError',
               },
               handled: false,
               type: 'instrument',

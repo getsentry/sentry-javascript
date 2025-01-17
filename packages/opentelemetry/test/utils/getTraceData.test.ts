@@ -54,6 +54,7 @@ describe('getTraceData', () => {
   it('returns propagationContext DSC data if no span is available', () => {
     getCurrentScope().setPropagationContext({
       traceId: '12345678901234567890123456789012',
+      sampleRand: Math.random(),
       sampled: true,
       dsc: {
         environment: 'staging',

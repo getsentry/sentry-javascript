@@ -473,6 +473,7 @@ describe('startSpan', () => {
         sample_rate: '1',
         transaction: 'outer transaction',
         sampled: 'true',
+        sample_rand: expect.any(String),
       },
     });
 
@@ -498,6 +499,7 @@ describe('startSpan', () => {
         sample_rate: '1',
         transaction: 'outer transaction',
         sampled: 'true',
+        sample_rand: expect.any(String),
       },
     });
   });
@@ -507,6 +509,7 @@ describe('startSpan', () => {
     withScope(scope => {
       scope.setPropagationContext({
         traceId: '99999999999999999999999999999999',
+        sampleRand: Math.random(),
         dsc: {},
         parentSpanId: '4242424242424242',
       });
@@ -779,27 +782,100 @@ describe('startSpanManual', () => {
     expect(getActiveSpan()).toBe(undefined);
   });
 
-  it('allows to pass a scope', () => {
-    const initialScope = getCurrentScope();
+  describe('starts a span on the fork of a custom scope if passed', () => {
+    it('with parent span', () => {
+      const initialScope = getCurrentScope();
 
-    const manualScope = initialScope.clone();
-    const parentSpan = new SentrySpan({ spanId: 'parent-span-id', sampled: true });
-    _setSpanForScope(manualScope, parentSpan);
+      const customScope = initialScope.clone();
+      customScope.setTag('dogs', 'great');
 
-    startSpanManual({ name: 'GET users/[id]', scope: manualScope }, span => {
-      expect(getCurrentScope()).not.toBe(initialScope);
-      expect(getCurrentScope()).toBe(manualScope);
-      expect(getActiveSpan()).toBe(span);
-      expect(spanToJSON(span).parent_span_id).toBe('parent-span-id');
+      const parentSpan = new SentrySpan({ spanId: 'parent-span-id', sampled: true });
+      _setSpanForScope(customScope, parentSpan);
 
-      span.end();
+      startSpanManual({ name: 'GET users/[id]', scope: customScope }, span => {
+        // current scope is forked from the customScope
+        expect(getCurrentScope()).not.toBe(initialScope);
+        expect(getCurrentScope()).not.toBe(customScope);
+        expect(spanToJSON(span).parent_span_id).toBe('parent-span-id');
 
-      // Is still the active span
-      expect(getActiveSpan()).toBe(span);
+        // span is active span
+        expect(getActiveSpan()).toBe(span);
+
+        span.end();
+
+        // span is still the active span (weird but it is what it is)
+        expect(getActiveSpan()).toBe(span);
+
+        getCurrentScope().setTag('cats', 'great');
+        customScope.setTag('bears', 'great');
+
+        expect(getCurrentScope().getScopeData().tags).toEqual({ dogs: 'great', cats: 'great' });
+        expect(customScope.getScopeData().tags).toEqual({ dogs: 'great', bears: 'great' });
+      });
+
+      expect(getCurrentScope()).toBe(initialScope);
+      expect(getActiveSpan()).toBe(undefined);
+
+      startSpanManual({ name: 'POST users/[id]', scope: customScope }, (span, finish) => {
+        // current scope is forked from the customScope
+        expect(getCurrentScope()).not.toBe(initialScope);
+        expect(getCurrentScope()).not.toBe(customScope);
+        expect(spanToJSON(span).parent_span_id).toBe('parent-span-id');
+
+        // scope data modification from customScope in previous callback is persisted
+        expect(getCurrentScope().getScopeData().tags).toEqual({ dogs: 'great', bears: 'great' });
+
+        // span is active span
+        expect(getActiveSpan()).toBe(span);
+
+        // calling finish() or span.end() has the same effect
+        finish();
+
+        // using finish() resets the scope correctly
+        expect(getActiveSpan()).toBe(span);
+      });
+
+      expect(getCurrentScope()).toBe(initialScope);
+      expect(getActiveSpan()).toBe(undefined);
     });
 
-    expect(getCurrentScope()).toBe(initialScope);
-    expect(getActiveSpan()).toBe(undefined);
+    it('without parent span', () => {
+      const initialScope = getCurrentScope();
+      const manualScope = initialScope.clone();
+
+      startSpanManual({ name: 'GET users/[id]', scope: manualScope }, span => {
+        // current scope is forked from the customScope
+        expect(getCurrentScope()).not.toBe(initialScope);
+        expect(getCurrentScope()).not.toBe(manualScope);
+        expect(getCurrentScope()).toEqual(manualScope);
+
+        // span is active span and a root span
+        expect(getActiveSpan()).toBe(span);
+        expect(getRootSpan(span)).toBe(span);
+
+        span.end();
+
+        expect(getActiveSpan()).toBe(span);
+      });
+
+      startSpanManual({ name: 'POST users/[id]', scope: manualScope }, (span, finish) => {
+        expect(getCurrentScope()).not.toBe(initialScope);
+        expect(getCurrentScope()).not.toBe(manualScope);
+        expect(getCurrentScope()).toEqual(manualScope);
+
+        // second span is active span and its own root span
+        expect(getActiveSpan()).toBe(span);
+        expect(getRootSpan(span)).toBe(span);
+
+        finish();
+
+        // calling finish() or span.end() has the same effect
+        expect(getActiveSpan()).toBe(span);
+      });
+
+      expect(getCurrentScope()).toBe(initialScope);
+      expect(getActiveSpan()).toBe(undefined);
+    });
   });
 
   it('allows to pass a parentSpan', () => {
@@ -902,6 +978,7 @@ describe('startSpanManual', () => {
         sample_rate: '1',
         transaction: 'outer transaction',
         sampled: 'true',
+        sample_rand: expect.any(String),
       },
     });
 
@@ -927,6 +1004,7 @@ describe('startSpanManual', () => {
         sample_rate: '1',
         transaction: 'outer transaction',
         sampled: 'true',
+        sample_rand: expect.any(String),
       },
     });
   });
@@ -945,6 +1023,7 @@ describe('startSpanManual', () => {
     withScope(scope => {
       scope.setPropagationContext({
         traceId: '99999999999999999999999999999991',
+        sampleRand: Math.random(),
         dsc: {},
         parentSpanId: '4242424242424242',
       });
@@ -1230,6 +1309,7 @@ describe('startInactiveSpan', () => {
         sample_rate: '1',
         transaction: 'outer transaction',
         sampled: 'true',
+        sample_rand: expect.any(String),
       },
     });
 
@@ -1255,6 +1335,7 @@ describe('startInactiveSpan', () => {
         sample_rate: '1',
         transaction: 'outer transaction',
         sampled: 'true',
+        sample_rand: expect.any(String),
       },
     });
   });
@@ -1269,6 +1350,7 @@ describe('startInactiveSpan', () => {
     withScope(scope => {
       scope.setPropagationContext({
         traceId: '99999999999999999999999999999991',
+        sampleRand: Math.random(),
         dsc: {},
         parentSpanId: '4242424242424242',
       });
@@ -1451,6 +1533,7 @@ describe('continueTrace', () => {
     expect(scope.getPropagationContext()).toEqual({
       sampled: undefined,
       traceId: expect.any(String),
+      sampleRand: expect.any(Number),
     });
 
     expect(scope.getScopeData().sdkProcessingMetadata).toEqual({});
@@ -1472,6 +1555,7 @@ describe('continueTrace', () => {
       sampled: false,
       parentSpanId: '1121201211212012',
       traceId: '12312012123120121231201212312012',
+      sampleRand: expect.any(Number),
     });
 
     expect(scope.getScopeData().sdkProcessingMetadata).toEqual({});
@@ -1492,10 +1576,12 @@ describe('continueTrace', () => {
       dsc: {
         environment: 'production',
         version: '1.0',
+        sample_rand: expect.any(String),
       },
       sampled: true,
       parentSpanId: '1121201211212012',
       traceId: '12312012123120121231201212312012',
+      sampleRand: expect.any(Number),
     });
 
     expect(scope.getScopeData().sdkProcessingMetadata).toEqual({});
@@ -1516,10 +1602,12 @@ describe('continueTrace', () => {
       dsc: {
         environment: 'production',
         version: '1.0',
+        sample_rand: expect.any(String),
       },
       sampled: true,
       parentSpanId: '1121201211212012',
       traceId: '12312012123120121231201212312012',
+      sampleRand: expect.any(Number),
     });
 
     expect(scope.getScopeData().sdkProcessingMetadata).toEqual({});
