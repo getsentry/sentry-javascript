@@ -11,7 +11,7 @@ Sentry.init({
   integrations: [
     Sentry.httpIntegration({
       ignoreOutgoingRequests: (url, request) => {
-        if (url === 'http://example.com/blockUrl') {
+        if (url === 'https://example.com/blockUrl') {
           return true;
         }
 
@@ -34,16 +34,16 @@ const app = express();
 app.use(cors());
 
 app.get('/testUrl', (_req, response) => {
-  makeHttpRequest('http://example.com/blockUrl').then(() => {
-    makeHttpRequest('http://example.com/pass').then(() => {
+  makeHttpRequest('https://example.com/blockUrl').then(() => {
+    makeHttpRequest('https://example.com/pass').then(() => {
       response.send({ response: 'done' });
     });
   });
 });
 
 app.get('/testRequest', (_req, response) => {
-  makeHttpRequest('http://example.com/blockRequest').then(() => {
-    makeHttpRequest('http://example.com/pass').then(() => {
+  makeHttpRequest('https://example.com/blockRequest').then(() => {
+    makeHttpRequest('https://example.com/pass').then(() => {
       response.send({ response: 'done' });
     });
   });
