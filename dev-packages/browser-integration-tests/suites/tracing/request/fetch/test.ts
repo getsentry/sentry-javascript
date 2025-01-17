@@ -11,6 +11,8 @@ sentryTest('should create spans for fetch requests', async ({ getLocalTestUrl, p
     sentryTest.skip();
   }
 
+  await page.route('http://example.com/*', route => route.fulfill({ body: 'ok' }));
+
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   const req = await waitForTransactionRequestOnUrl(page, url);
@@ -43,6 +45,8 @@ sentryTest('should attach `sentry-trace` header to fetch requests', async ({ get
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
+
+  await page.route('http://example.com/*', route => route.fulfill({ body: 'ok' }));
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
