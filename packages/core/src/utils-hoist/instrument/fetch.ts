@@ -234,4 +234,3 @@ export function parseFetchArgs(fetchArgs: unknown[]): { method: string; url: str
     method: hasProp(arg, 'method') ? String(arg.method).toUpperCase() : 'GET',
   };
 }
-

@@ -1,11 +1,10 @@
-import { getGraphQLRequestPayload, parseFetchPayload, parseGraphQLQuery } from "../../src/integrations/graphqlClient";
+import { getGraphQLRequestPayload, parseFetchPayload, parseGraphQLQuery } from '../../src/integrations/graphqlClient';
 
 describe('GraphqlClient', () => {
-    describe('parseFetchPayload', () => {
-
+  describe('parseFetchPayload', () => {
     const data = [1, 2, 3];
     const jsonData = '{"data":[1,2,3]}';
-  
+
     it.each([
       ['string URL only', ['http://example.com'], undefined],
       ['URL object only', [new URL('http://example.com')], undefined],
@@ -28,10 +27,10 @@ describe('GraphqlClient', () => {
       ],
     ])('%s', (_name, args, expected) => {
       const actual = parseFetchPayload(args as unknown[]);
-  
+
       expect(actual).toEqual(expected);
     });
-  }); 
+  });
 
   describe('parseGraphQLQuery', () => {
     const queryOne = `query Test {
@@ -72,7 +71,7 @@ describe('GraphqlClient', () => {
       expect(parseGraphQLQuery(input)).toEqual(output);
     });
   });
-  
+
   describe('getGraphQLRequestPayload', () => {
     test('should return undefined for non-GraphQL request', () => {
       const requestBody = { data: [1, 2, 3] };
@@ -90,5 +89,3 @@ describe('GraphqlClient', () => {
     });
   });
 });
-
-
