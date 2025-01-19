@@ -62,7 +62,7 @@ function _updateSpanWithGraphQLData(client: Client, options: GraphQLClientOption
 
     const { endpoints } = options;
     const isTracedGraphqlEndpoint = stringMatchesSomePattern(httpUrl, endpoints);
-    const payload = _getRequestPayloadXhrOrFetch(hint);
+    const payload = getRequestPayloadXhrOrFetch(hint);
 
     if (isTracedGraphqlEndpoint && payload) {
       const graphqlBody = getGraphQLRequestPayload(payload) as GraphQLRequestPayload;
@@ -87,7 +87,7 @@ function _updateBreadcrumbWithGraphQLData(client: Client, options: GraphQLClient
       const { endpoints } = options;
 
       const isTracedGraphqlEndpoint = stringMatchesSomePattern(httpUrl, endpoints);
-      const payload = _getRequestPayloadXhrOrFetch(handlerData);
+      const payload = getRequestPayloadXhrOrFetch(handlerData);
 
       if (isTracedGraphqlEndpoint && data && payload) {
         const graphqlBody = getGraphQLRequestPayload(payload);
@@ -117,18 +117,17 @@ function _getGraphQLOperation(requestBody: GraphQLRequestPayload): string {
 
 /**
  * Get the request body/payload based on the shape of the hint
- * TODO: export for test?
+ * Exported for tests only.
  */
-function _getRequestPayloadXhrOrFetch(hint: XhrHint | FetchHint): string | undefined {
+export function getRequestPayloadXhrOrFetch(hint: XhrHint | FetchHint): string | undefined {
   const isXhr = 'xhr' in hint;
-  const isFetch = !isXhr;
 
   let body: string | undefined;
 
   if (isXhr) {
     const sentryXhrData = hint.xhr[SENTRY_XHR_DATA_KEY];
     body = sentryXhrData && getBodyString(sentryXhrData.body)[0];
-  } else if (isFetch) {
+  } else {
     const sentryFetchData = parseFetchPayload(hint.input);
     body = getBodyString(sentryFetchData)[0];
   }
