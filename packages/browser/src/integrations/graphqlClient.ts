@@ -65,11 +65,13 @@ function _updateSpanWithGraphQLData(client: Client, options: GraphQLClientOption
     const payload = getRequestPayloadXhrOrFetch(hint);
 
     if (isTracedGraphqlEndpoint && payload) {
-      const graphqlBody = getGraphQLRequestPayload(payload) as GraphQLRequestPayload;
-      const operationInfo = _getGraphQLOperation(graphqlBody);
+      const graphqlBody = getGraphQLRequestPayload(payload);
 
-      span.updateName(`${httpMethod} ${httpUrl} (${operationInfo})`);
-      span.setAttribute('graphql.document', payload);
+      if (graphqlBody) {
+        const operationInfo = _getGraphQLOperation(graphqlBody);
+        span.updateName(`${httpMethod} ${httpUrl} (${operationInfo})`);
+        span.setAttribute('graphql.document', payload);
+      }
     }
   });
 }
@@ -93,8 +95,8 @@ function _updateBreadcrumbWithGraphQLData(client: Client, options: GraphQLClient
         const graphqlBody = getGraphQLRequestPayload(payload);
 
         if (!data.graphql && graphqlBody) {
-          const operationInfo = _getGraphQLOperation(graphqlBody as GraphQLRequestPayload);
-          data['graphql.document'] = (graphqlBody as GraphQLRequestPayload).query;
+          const operationInfo = _getGraphQLOperation(graphqlBody);
+          data['graphql.document'] = graphqlBody.query;
           data['graphql.operation'] = operationInfo;
         }
       }
@@ -182,14 +184,13 @@ export function parseGraphQLQuery(query: string): GraphQLOperation {
  * @param payload - A valid JSON string
  * @returns A POJO or undefined
  */
-export function getGraphQLRequestPayload(payload: string): unknown | undefined {
+export function getGraphQLRequestPayload(payload: string): GraphQLRequestPayload | undefined {
   let graphqlBody = undefined;
   try {
-    const requestBody = JSON.parse(payload);
+    const requestBody = JSON.parse(payload) satisfies GraphQLRequestPayload;
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const isGraphQLRequest = !!requestBody['query'];
-
     if (isGraphQLRequest) {
       graphqlBody = requestBody;
     }
