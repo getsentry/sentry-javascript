@@ -1,5 +1,6 @@
 import { SENTRY_XHR_DATA_KEY } from '@sentry-internal/browser-utils';
-import { FetchHint, getBodyString, XhrHint } from '@sentry-internal/replay';
+import { getBodyString } from '@sentry-internal/replay';
+import type { FetchHint, XhrHint } from '@sentry-internal/replay';
 import {
   SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -20,6 +21,11 @@ interface GraphQLRequestPayload {
   operationName?: string;
   variables?: Record<string, unknown>;
   extensions?: Record<string, unknown>;
+}
+
+interface GraphQLOperation {
+  operationType: string | undefined;
+  operationName: string | undefined;
 }
 
 const INTEGRATION_NAME = 'GraphQLClient';
@@ -65,7 +71,6 @@ function _updateSpanWithGraphQLData(client: Client, options: GraphQLClientOption
       span.updateName(`${httpMethod} ${httpUrl} (${operationInfo})`);
       span.setAttribute('graphql.document', payload);
     }
-    
   });
 }
 
@@ -92,11 +97,6 @@ function _updateBreadcrumbWithGraphQLData(client: Client, options: GraphQLClient
           data['graphql.document'] = (graphqlBody as GraphQLRequestPayload).query;
           data['graphql.operation'] = operationInfo;
         }
-
-        // The body prop attached to HandlerDataFetch for the span should be removed.
-        if (isFetch && data.body) {
-          delete data.body;
-        }
       }
     }
   });
@@ -121,7 +121,7 @@ function _getGraphQLOperation(requestBody: GraphQLRequestPayload): string {
  */
 function _getRequestPayloadXhrOrFetch(hint: XhrHint | FetchHint): string | undefined {
   const isXhr = 'xhr' in hint;
-  const isFetch = !isXhr
+  const isFetch = !isXhr;
 
   let body: string | undefined;
 
@@ -136,6 +136,7 @@ function _getRequestPayloadXhrOrFetch(hint: XhrHint | FetchHint): string | undef
   return body;
 }
 
+// Duplicate from deprecated @sentry-utils/src/instrument/fetch.ts
 function hasProp<T extends string>(obj: unknown, prop: T): obj is Record<string, string> {
   return !!obj && typeof obj === 'object' && !!(obj as Record<string, string>)[prop];
 }
@@ -154,13 +155,9 @@ export function parseFetchPayload(fetchArgs: unknown[]): string | undefined {
   return hasProp(arg, 'body') ? String(arg.body) : undefined;
 }
 
-interface GraphQLOperation {
-  operationType: string | undefined;
-  operationName: string | undefined;
-}
-
 /**
  * Extract the name and type of the operation from the GraphQL query.
+ * Exported for tests only.
  * @param query
  */
 export function parseGraphQLQuery(query: string): GraphQLOperation {

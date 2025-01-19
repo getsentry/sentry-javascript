@@ -23,7 +23,6 @@ import {
   stringMatchesSomePattern,
 } from '@sentry/core';
 import { WINDOW } from '../helpers';
-import { XhrHint } from '@sentry-internal/replay';
 
 /** Options for Request Instrumentation */
 export interface RequestInstrumentationOptions {

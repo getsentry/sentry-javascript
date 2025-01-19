@@ -35,7 +35,9 @@ import {
   parseUrl,
   safeJoin,
   severityLevelFromString,
-} from '@sentry/core';
+} from '@sentry/utils';
+
+import type { FetchHint, XhrHint } from '@sentry-internal/replay';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 
@@ -258,7 +260,7 @@ function _getXhrBreadcrumbHandler(client: Client): (handlerData: HandlerDataXhr)
       level: getBreadcrumbLogLevelFromHttpStatusCode(status_code),
     };
 
-    client.emit('beforeOutgoingRequestBreadcrumb', breadcrumb, handlerData);
+    client.emit('beforeOutgoingRequestBreadcrumb', breadcrumb, hint as XhrHint);
 
     addBreadcrumb(breadcrumb, hint);
   };
@@ -305,7 +307,7 @@ function _getFetchBreadcrumbHandler(client: Client): (handlerData: HandlerDataFe
         type: 'http',
       } satisfies Breadcrumb;
 
-      client.emit('beforeOutgoingRequestBreadcrumb', breadcrumb, handlerData);
+      client.emit('beforeOutgoingRequestBreadcrumb', breadcrumb, hint as FetchHint);
 
       addBreadcrumb(breadcrumb, hint);
     } else {
@@ -329,7 +331,7 @@ function _getFetchBreadcrumbHandler(client: Client): (handlerData: HandlerDataFe
         level: getBreadcrumbLogLevelFromHttpStatusCode(data.status_code),
       };
 
-      client.emit('beforeOutgoingRequestBreadcrumb', breadcrumb, handlerData);
+      client.emit('beforeOutgoingRequestBreadcrumb', breadcrumb, hint as FetchHint);
 
       addBreadcrumb(breadcrumb, hint);
     }

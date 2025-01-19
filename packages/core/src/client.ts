@@ -16,7 +16,6 @@ import type {
   FeedbackEvent,
   FetchBreadcrumbHint,
   HandlerDataFetch,
-  HandlerDataXhr,
   Integration,
   MonitorConfig,
   Outcome,
@@ -64,6 +63,17 @@ import { convertSpanJsonToTransactionEvent, convertTransactionEventToSpanJson } 
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
 const MISSING_RELEASE_FOR_SESSION_ERROR = 'Discarded session because of missing or non-string release';
+
+type RequestBody = null | Blob | BufferSource | FormData | URLSearchParams | string;
+
+export type XhrHint = XhrBreadcrumbHint & {
+  xhr: XMLHttpRequest & SentryWrappedXMLHttpRequest;
+  input?: RequestBody;
+};
+export type FetchHint = FetchBreadcrumbHint & {
+  input: HandlerDataFetch['args'];
+  response: Response;
+};
 
 /**
  * Base implementation for all JavaScript SDK clients.
@@ -584,15 +594,12 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public on(hook: 'startNavigationSpan', callback: (options: StartSpanOptions) => void): () => void;
 
   /** @inheritdoc */
-  public on(
-    hook: 'beforeOutgoingRequestSpan',
-    callback: (span: Span, hint: XhrHint | FetchHint ) => void,
-  ): () => void;
+  public on(hook: 'beforeOutgoingRequestSpan', callback: (span: Span, hint: XhrHint | FetchHint) => void): () => void;
 
   /** @inheritdoc */
   public on(
     hook: 'beforeOutgoingRequestBreadcrumb',
-    callback: (breadcrumb: Breadcrumb, handlerData: HandlerDataXhr | HandlerDataFetch) => void,
+    callback: (breadcrumb: Breadcrumb, hint: XhrHint | FetchHint) => void,
   ): () => void;
 
   public on(hook: 'flush', callback: () => void): () => void;
@@ -725,11 +732,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public emit(hook: 'beforeOutgoingRequestSpan', span: Span, hint: XhrHint | FetchHint): void;
 
   /** @inheritdoc */
-  public emit(
-    hook: 'beforeOutgoingRequestBreadcrumb',
-    breadcrumb: Breadcrumb,
-    handlerData: HandlerDataXhr | HandlerDataFetch,
-  ): void;
+  public emit(hook: 'beforeOutgoingRequestBreadcrumb', breadcrumb: Breadcrumb, hint: XhrHint | FetchHint): void;
 
   /** @inheritdoc */
   public emit(hook: 'flush'): void;

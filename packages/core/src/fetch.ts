@@ -97,8 +97,14 @@ export function instrumentFetchRequest(
   }
 
   if (client) {
-    const fetchHint = { input: handlerData.args , response: handlerData.response, startTimestamp: handlerData.startTimestamp, endTimestamp: handlerData.endTimestamp } satisfies FetchHint
-    client.emit('beforeOutgoingRequestSpan', span, fetchHint);
+    // There's no 'input' key in HandlerDataFetch
+    const fetchHint = {
+      input: handlerData.args,
+      response: handlerData.response,
+      startTimestamp: handlerData.startTimestamp,
+      endTimestamp: handlerData.endTimestamp,
+    };
+    client.emit('beforeOutgoingRequestSpan', span, fetchHint as FetchHint);
   }
 
   return span;
