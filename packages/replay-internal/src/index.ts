@@ -13,6 +13,8 @@ export type {
   ReplaySpanFrameEvent,
   CanvasManagerInterface,
   CanvasManagerOptions,
+  FetchHint,
+  XhrHint,
 } from './types';
 
 export { getReplay } from './util/getReplay';

@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { HandlerDataFetch } from '../../types-hoist';
 
-import { getGraphQLRequestPayload } from '../graphql';
 import { isError } from '../is';
 import { addNonEnumerableProperty, fill } from '../object';
 import { supportsNativeFetch } from '../supports';
@@ -236,16 +235,3 @@ export function parseFetchArgs(fetchArgs: unknown[]): { method: string; url: str
   };
 }
 
-/**
- * Parses the fetch arguments to extract the request payload.
- * Exported for tests only.
- */
-export function parseFetchPayload(fetchArgs: unknown[]): string | undefined {
-  if (fetchArgs.length === 2) {
-    const options = fetchArgs[1];
-    return hasProp(options, 'body') ? String(options.body) : undefined;
-  }
-
-  const arg = fetchArgs[0];
-  return hasProp(arg, 'body') ? String(arg.body) : undefined;
-}

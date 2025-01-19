@@ -97,7 +97,8 @@ export function instrumentFetchRequest(
   }
 
   if (client) {
-    client.emit('beforeOutgoingRequestSpan', span, handlerData);
+    const fetchHint = { input: handlerData.args , response: handlerData.response, startTimestamp: handlerData.startTimestamp, endTimestamp: handlerData.endTimestamp } satisfies FetchHint
+    client.emit('beforeOutgoingRequestSpan', span, fetchHint);
   }
 
   return span;
