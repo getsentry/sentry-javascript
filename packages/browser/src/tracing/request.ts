@@ -23,6 +23,7 @@ import {
   stringMatchesSomePattern,
 } from '@sentry/core';
 import { WINDOW } from '../helpers';
+import { XhrHint } from '@sentry-internal/replay';
 
 /** Options for Request Instrumentation */
 export interface RequestInstrumentationOptions {
@@ -405,7 +406,7 @@ export function xhrCallback(
   }
 
   if (client) {
-    client.emit('beforeOutgoingRequestSpan', span, handlerData);
+    client.emit('beforeOutgoingRequestSpan', span, handlerData as XhrHint);
   }
 
   return span;

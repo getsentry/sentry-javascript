@@ -14,6 +14,7 @@ import type {
   EventHint,
   EventProcessor,
   FeedbackEvent,
+  FetchBreadcrumbHint,
   HandlerDataFetch,
   HandlerDataXhr,
   Integration,
@@ -21,6 +22,7 @@ import type {
   Outcome,
   ParameterizedString,
   SdkMetadata,
+  SentryWrappedXMLHttpRequest,
   Session,
   SessionAggregates,
   SeverityLevel,
@@ -584,7 +586,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   /** @inheritdoc */
   public on(
     hook: 'beforeOutgoingRequestSpan',
-    callback: (span: Span, handlerData: HandlerDataXhr | HandlerDataFetch) => void,
+    callback: (span: Span, hint: XhrHint | FetchHint ) => void,
   ): () => void;
 
   /** @inheritdoc */
@@ -720,7 +722,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public emit(hook: 'startNavigationSpan', options: StartSpanOptions): void;
 
   /** @inheritdoc */
-  public emit(hook: 'beforeOutgoingRequestSpan', span: Span, handlerData: HandlerDataXhr | HandlerDataFetch): void;
+  public emit(hook: 'beforeOutgoingRequestSpan', span: Span, hint: XhrHint | FetchHint): void;
 
   /** @inheritdoc */
   public emit(

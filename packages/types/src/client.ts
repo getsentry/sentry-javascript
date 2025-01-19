@@ -1,4 +1,6 @@
-import type { Breadcrumb, BreadcrumbHint } from './breadcrumb';
+// if imported, circular dep
+// import type { FetchHint, XhrHint } from '@sentry-internal/replay';
+import type { Breadcrumb, BreadcrumbHint, FetchBreadcrumbHint, XhrBreadcrumbHint } from './breadcrumb';
 import type { CheckIn, MonitorConfig } from './checkin';
 import type { EventDropReason } from './clientreport';
 import type { DataCategory } from './datacategory';
@@ -7,7 +9,7 @@ import type { DynamicSamplingContext, Envelope } from './envelope';
 import type { Event, EventHint } from './event';
 import type { EventProcessor } from './eventprocessor';
 import type { FeedbackEvent } from './feedback';
-import type { HandlerDataFetch, HandlerDataXhr } from './instrument';
+import type { HandlerDataFetch, HandlerDataXhr, SentryWrappedXMLHttpRequest } from './instrument';
 import type { Integration } from './integration';
 import type { ClientOptions } from './options';
 import type { ParameterizedString } from './parameterize';
@@ -18,6 +20,17 @@ import type { SeverityLevel } from './severity';
 import type { Span, SpanAttributes, SpanContextData } from './span';
 import type { StartSpanOptions } from './startSpanOptions';
 import type { Transport, TransportMakeRequestResponse } from './transport';
+
+type RequestBody = null | Blob | BufferSource | FormData | URLSearchParams | string;
+
+export type XhrHint = XhrBreadcrumbHint & {
+  xhr: XMLHttpRequest & SentryWrappedXMLHttpRequest;
+  input?: RequestBody;
+};
+export type FetchHint = FetchBreadcrumbHint & {
+  input: HandlerDataFetch['args'];
+  response: Response;
+};
 
 /**
  * User-Facing Sentry SDK Client.
@@ -298,7 +311,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    */
   on(
     hook: 'beforeOutgoingRequestSpan',
-    callback: (span: Span, handlerData: HandlerDataXhr | HandlerDataFetch) => void,
+    callback: (span: Span, hint: XhrHint | FetchHint) => void,
   ): () => void;
 
   /**
@@ -409,7 +422,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   /**
    * Emit a hook event for GraphQL client integration to enhance a span with request data.
    */
-  emit(hook: 'beforeOutgoingRequestSpan', span: Span, handlerData: HandlerDataXhr | HandlerDataFetch): void;
+  emit(hook: 'beforeOutgoingRequestSpan', span: Span, hint: XhrHint | FetchHint): void;
 
   /**
    * Emit a hook event for GraphQL client integration to enhance a breadcrumb with request data.
