@@ -1,11 +1,24 @@
-import { getGraphQLRequestPayload, parseFetchPayload, parseGraphQLQuery } from '../../src/integrations/graphqlClient';
+/**
+ * @vitest-environment jsdom
+ */
+
+import { describe, expect, test } from 'vitest';
+
+import { SENTRY_XHR_DATA_KEY } from '@sentry-internal/browser-utils';
+import type { FetchHint, XhrHint } from '@sentry-internal/replay';
+import {
+  getGraphQLRequestPayload,
+  getRequestPayloadXhrOrFetch,
+  parseFetchPayload,
+  parseGraphQLQuery,
+} from '../../src/integrations/graphqlClient';
 
 describe('GraphqlClient', () => {
   describe('parseFetchPayload', () => {
     const data = [1, 2, 3];
     const jsonData = '{"data":[1,2,3]}';
 
-    it.each([
+    test.each([
       ['string URL only', ['http://example.com'], undefined],
       ['URL object only', [new URL('http://example.com')], undefined],
       ['Request URL only', [{ url: 'http://example.com' }], undefined],
@@ -86,6 +99,74 @@ describe('GraphqlClient', () => {
       };
 
       expect(getGraphQLRequestPayload(JSON.stringify(requestBody))).toEqual(requestBody);
+    });
+  });
+
+  describe('getRequestPayloadXhrOrFetch', () => {
+    test('should parse xhr payload', () => {
+      const hint: XhrHint = {
+        xhr: {
+          [SENTRY_XHR_DATA_KEY]: {
+            method: 'POST',
+            url: 'http://example.com/test',
+            status_code: 200,
+            body: JSON.stringify({ key: 'value' }),
+            request_headers: {
+              'Content-Type': 'application/json',
+            },
+          },
+          ...new XMLHttpRequest(),
+        },
+        input: JSON.stringify({ key: 'value' }),
+        startTimestamp: Date.now(),
+        endTimestamp: Date.now() + 1000,
+      };
+
+      const result = getRequestPayloadXhrOrFetch(hint);
+      expect(result).toEqual(JSON.stringify({ key: 'value' }));
+    });
+    test('should parse fetch payload', () => {
+      const hint: FetchHint = {
+        input: [
+          'http://example.com/test',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ key: 'value' }),
+          },
+        ],
+        response: new Response(JSON.stringify({ key: 'value' }), {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }),
+        startTimestamp: Date.now(),
+        endTimestamp: Date.now() + 1000,
+      };
+
+      const result = getRequestPayloadXhrOrFetch(hint);
+      expect(result).toEqual(JSON.stringify({ key: 'value' }));
+    });
+    test('should return undefined if no body is in the response', () => {
+      const hint: FetchHint = {
+        input: [
+          'http://example.com/test',
+          {
+            method: 'GET',
+          },
+        ],
+        response: new Response(null, {
+          status: 200,
+        }),
+        startTimestamp: Date.now(),
+        endTimestamp: Date.now() + 1000,
+      };
+
+      const result = getRequestPayloadXhrOrFetch(hint);
+      expect(result).toBeUndefined();
     });
   });
 });
