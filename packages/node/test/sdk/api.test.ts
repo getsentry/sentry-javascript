@@ -22,7 +22,7 @@ describe('withActiveSpan()', () => {
 
   it('should create child spans when calling startSpan within the callback', async () => {
     const beforeSendTransaction = jest.fn(() => null);
-    mockSdkInit({ enableTracing: true, beforeSendTransaction });
+    mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
     const client = getClient();
 
     const inactiveSpan = startInactiveSpan({ name: 'inactive-span' });
@@ -70,7 +70,7 @@ describe('withActiveSpan()', () => {
       transactions.push(event);
       return null;
     });
-    mockSdkInit({ enableTracing: true, beforeSendTransaction });
+    mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
     const client = getClient();
 
     startSpan({ name: 'parent-span' }, () => {

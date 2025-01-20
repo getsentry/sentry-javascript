@@ -12,7 +12,6 @@
 
 ## Links
 
-- [SDK on Deno registry](https://deno.land/x/sentry)
 - [Official SDK Docs](https://docs.sentry.io/quickstart/)
 - [TypeDoc](http://getsentry.github.io/sentry-javascript/)
 

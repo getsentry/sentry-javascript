@@ -10,7 +10,7 @@ declare const __SENTRY_TRACING__: boolean | undefined;
  * Tracing is enabled when at least one of `tracesSampleRate` and `tracesSampler` is defined in the SDK config.
  */
 export function hasTracingEnabled(
-  maybeOptions?: Pick<Options, 'tracesSampleRate' | 'tracesSampler' | 'enableTracing'> | undefined,
+  maybeOptions?: Pick<Options, 'tracesSampleRate' | 'tracesSampler'> | undefined,
 ): boolean {
   if (typeof __SENTRY_TRACING__ === 'boolean' && !__SENTRY_TRACING__) {
     return false;
@@ -18,6 +18,9 @@ export function hasTracingEnabled(
 
   const client = getClient();
   const options = maybeOptions || client?.getOptions();
-  // eslint-disable-next-line deprecation/deprecation
-  return !!options && (options.enableTracing || options.tracesSampleRate != null || !!options.tracesSampler);
+  return (
+    !!options &&
+    // Note: This check is `!= null`, meaning "nullish"
+    (options.tracesSampleRate != null || !!options.tracesSampler)
+  );
 }
