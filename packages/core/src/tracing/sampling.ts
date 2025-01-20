@@ -21,6 +21,8 @@ export function sampleSpan(
     return [false];
   }
 
+  let shouldUpdateSampleRateOnDownstreamTrace = undefined;
+
   // we would have bailed already if neither `tracesSampler` nor `tracesSampleRate` were defined, so one of these should
   // work; prefer the hook if so
   let sampleRate;
