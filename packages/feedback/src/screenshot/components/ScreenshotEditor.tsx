@@ -89,9 +89,9 @@ export function ScreenshotEditorFactory({
     hooks.useEffect(() => {
       WINDOW.addEventListener('resize', resize, false);
 
-      // return () => {
-      //   WINDOW.removeEventListener('resize', resize, false);
-      // };
+      return () => {
+        WINDOW.removeEventListener('resize', resize, false);
+      };
     }, []);
 
     function resizeCanvas(canvasRef: Hooks.Ref<HTMLCanvasElement>, imageDimensions: Rect): void {
