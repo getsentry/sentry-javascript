@@ -1,7 +1,5 @@
 export { registerSpanErrorInstrumentation } from './errors';
 export { setCapturedScopesOnSpan, getCapturedScopesOnSpan } from './utils';
-// eslint-disable-next-line deprecation/deprecation
-export { addTracingExtensions } from './hubextensions';
 export { startIdleSpan, TRACING_DEFAULTS } from './idleSpan';
 export { SentrySpan } from './sentrySpan';
 export { SentryNonRecordingSpan } from './sentryNonRecordingSpan';

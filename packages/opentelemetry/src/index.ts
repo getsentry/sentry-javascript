@@ -24,8 +24,6 @@ export { getDynamicSamplingContextFromSpan } from '@sentry/core';
 export { isSentryRequestSpan } from './utils/isSentryRequest';
 
 export { enhanceDscWithOpenTelemetryRootSpanName } from './utils/enhanceDscWithOpenTelemetryRootSpanName';
-// eslint-disable-next-line deprecation/deprecation
-export { generateSpanContextForPropagationContext } from './utils/generateSpanContextForPropagationContext';
 
 export { getActiveSpan } from './utils/getActiveSpan';
 export {
