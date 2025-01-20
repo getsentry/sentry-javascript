@@ -44,7 +44,11 @@ export function createScreenshotInputStyles(styleNonce?: string): HTMLStyleEleme
 
 .editor__canvas-container canvas {
   object-fit: contain;
-  position: relative;
+  position: absolute;
+}
+
+.editor__crop-container {
+  position: absolute;
 }
 
 .editor__crop-btn-group {

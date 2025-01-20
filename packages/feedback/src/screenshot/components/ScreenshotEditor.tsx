@@ -88,21 +88,31 @@ export function ScreenshotEditorFactory({
 
     hooks.useEffect(() => {
       WINDOW.addEventListener('resize', resize, false);
+
+      // return () => {
+      //   WINDOW.removeEventListener('resize', resize, false);
+      // };
     }, []);
 
-    function resize(): void {
-      const cropper = croppingRef.current;
-      const imageDimensions = constructRect(getContainedSize(imageBuffer));
-      if (cropper) {
-        cropper.width = imageDimensions.width * DPI;
-        cropper.height = imageDimensions.height * DPI;
-        cropper.style.width = `${imageDimensions.width}px`;
-        cropper.style.height = `${imageDimensions.height}px`;
-        const ctx = cropper.getContext('2d');
+    function resizeCanvas(canvasRef: Hooks.Ref<HTMLCanvasElement>, imageDimensions: Rect): void {
+      const canvas = canvasRef.current;
+      if (canvas) {
+        canvas.width = imageDimensions.width * DPI;
+        canvas.height = imageDimensions.height * DPI;
+        canvas.style.width = `${imageDimensions.width}px`;
+        canvas.style.height = `${imageDimensions.height}px`;
+        const ctx = canvas.getContext('2d');
         if (ctx) {
           ctx.scale(DPI, DPI);
         }
       }
+    }
+
+    function resize(): void {
+      const imageDimensions = constructRect(getContainedSize(imageBuffer));
+
+      resizeCanvas(croppingRef, imageDimensions);
+      resizeCanvas(annotatingRef, imageDimensions);
 
       const cropContainer = cropContainerRef.current;
       if (cropContainer) {
@@ -111,18 +121,6 @@ export function ScreenshotEditorFactory({
       }
 
       setCroppingRect({ startX: 0, startY: 0, endX: imageDimensions.width, endY: imageDimensions.height });
-
-      const annotater = annotatingRef.current;
-      if (annotater) {
-        annotater.width = imageDimensions.width * DPI;
-        annotater.height = imageDimensions.height * DPI;
-        annotater.style.width = `${imageDimensions.width}px`;
-        annotater.style.height = `${imageDimensions.height}px`;
-        const ctx = annotater.getContext('2d');
-        if (ctx) {
-          ctx.scale(DPI, DPI);
-        }
-      }
     }
 
     hooks.useEffect(() => {
@@ -262,11 +260,10 @@ export function ScreenshotEditorFactory({
       DOCUMENT.addEventListener('mouseup', handleMouseUp);
     }
 
-    function onAnnotateStart(e: MouseEvent): void {
+    function onAnnotateStart(): void {
       if (!isAnnotating) return;
 
       const handleMouseMove = (moveEvent: MouseEvent): void => {
-        console.log(moveEvent.clientX, moveEvent.clientY);
         const annotateCanvas = annotatingRef.current;
         if (annotateCanvas) {
           const rect = annotateCanvas.getBoundingClientRect();
@@ -293,7 +290,7 @@ export function ScreenshotEditorFactory({
 
         // draws the annotation onto the image buffer
         // TODO: move this to a better place
-        submitAnnotate();
+        applyAnnotation();
 
         DOCUMENT.removeEventListener('mousemove', handleMouseMove);
         DOCUMENT.removeEventListener('mouseup', handleMouseUp);
@@ -303,7 +300,7 @@ export function ScreenshotEditorFactory({
       DOCUMENT.addEventListener('mouseup', handleMouseUp);
     }
 
-    function submitCrop(): void {
+    function applyCrop(): void {
       const cutoutCanvas = DOCUMENT.createElement('canvas');
       const imageBox = constructRect(getContainedSize(imageBuffer));
       const croppingBox = constructRect(croppingRect);
@@ -337,7 +334,7 @@ export function ScreenshotEditorFactory({
       }
     }
 
-    function submitAnnotate(): void {
+    function applyAnnotation(): void {
       // draw the annotations onto the image (ie "squash" the canvases)
       const imageCtx = imageBuffer.getContext('2d');
       const annotateCanvas = annotatingRef.current;
@@ -406,14 +403,10 @@ export function ScreenshotEditorFactory({
           ></button>
         )}
         <div class="editor__canvas-container" ref={canvasContainerRef}>
-          <div
-            class="editor__crop-container"
-            style={{ position: 'absolute', zIndex: isAnnotating ? 1 : 2 }}
-            ref={cropContainerRef}
-          >
+          <div class="editor__crop-container" style={{ zIndex: isAnnotating ? 1 : 2 }} ref={cropContainerRef}>
             <canvas
               onMouseDown={onDragStart}
-              style={{ position: 'absolute', cursor: confirmCrop ? 'move' : 'auto' }}
+              style={{ cursor: confirmCrop ? 'move' : 'auto' }}
               ref={croppingRef}
             ></canvas>
             <CropCorner
@@ -468,7 +461,7 @@ export function ScreenshotEditorFactory({
               <button
                 onClick={e => {
                   e.preventDefault();
-                  submitCrop();
+                  applyCrop();
                   setConfirmCrop(false);
                 }}
                 class="btn btn--primary"
@@ -478,8 +471,9 @@ export function ScreenshotEditorFactory({
             </div>
           </div>
           <canvas
+            class="editor__annotation"
             onMouseDown={onAnnotateStart}
-            style={{ position: 'absolute', zIndex: isAnnotating ? '2' : '1' }}
+            style={{ zIndex: isAnnotating ? '2' : '1' }}
             ref={annotatingRef}
           ></canvas>
         </div>
