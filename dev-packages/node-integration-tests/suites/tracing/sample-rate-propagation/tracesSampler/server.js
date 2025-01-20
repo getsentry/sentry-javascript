@@ -5,6 +5,8 @@ Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   transport: loggingTransport,
   tracesSampler: ({ parentSampleRate }) => {
+    console.log({ parentSampleRate });
+
     if (parentSampleRate) {
       return parentSampleRate;
     }

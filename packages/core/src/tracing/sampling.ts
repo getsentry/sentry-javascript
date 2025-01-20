@@ -15,29 +15,29 @@ export function sampleSpan(
   options: Pick<Options, 'tracesSampleRate' | 'tracesSampler' | 'enableTracing'>,
   samplingContext: SamplingContext,
   sampleRand: number,
-): [sampled: boolean, sampleRate?: number, shouldUpdateSampleRateOnDsc?: boolean] {
+): [sampled: boolean, sampleRate?: number, shouldUpdateSampleRateOnDownstreamTrace?: boolean] {
   // nothing to do if tracing is not enabled
   if (!hasTracingEnabled(options)) {
     return [false];
   }
 
-  let shouldUpdateSampleRateOnDsc: undefined | true = undefined;
+  let shouldUpdateSampleRateOnDownstreamTrace = undefined;
 
   // we would have bailed already if neither `tracesSampler` nor `tracesSampleRate` nor `enableTracing` were defined, so one of these should
   // work; prefer the hook if so
   let sampleRate;
   if (typeof options.tracesSampler === 'function') {
     sampleRate = options.tracesSampler(samplingContext);
-    shouldUpdateSampleRateOnDsc = true;
+    shouldUpdateSampleRateOnDownstreamTrace = true;
   } else if (samplingContext.parentSampled !== undefined) {
     sampleRate = samplingContext.parentSampled;
   } else if (typeof options.tracesSampleRate !== 'undefined') {
     sampleRate = options.tracesSampleRate;
-    shouldUpdateSampleRateOnDsc = true;
+    shouldUpdateSampleRateOnDownstreamTrace = true;
   } else {
     // When `enableTracing === true`, we use a sample rate of 100%
     sampleRate = 1;
-    shouldUpdateSampleRateOnDsc = true;
+    shouldUpdateSampleRateOnDownstreamTrace = true;
   }
 
   // Since this is coming from the user (or from a function provided by the user), who knows what we might get.
@@ -59,7 +59,7 @@ export function sampleSpan(
             : 'a negative sampling decision was inherited or tracesSampleRate is set to 0'
         }`,
       );
-    return [false, parsedSampleRate, shouldUpdateSampleRateOnDsc];
+    return [false, parsedSampleRate, shouldUpdateSampleRateOnDownstreamTrace];
   }
 
   // We always compare the sample rand for the current execution context against the chosen sample rate.
@@ -74,7 +74,8 @@ export function sampleSpan(
           sampleRate,
         )})`,
       );
+    return [false, parsedSampleRate, shouldUpdateSampleRateOnDownstreamTrace];
   }
 
-  return [shouldSample, parsedSampleRate, shouldUpdateSampleRateOnDsc];
+  return [true, parsedSampleRate, shouldUpdateSampleRateOnDownstreamTrace];
 }

@@ -13,6 +13,7 @@ import {
 import type { Client, SpanAttributes } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_OVERRIDE_TRACE_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   hasTracingEnabled,
   logger,
@@ -111,7 +112,7 @@ export class SentrySampler implements Sampler {
       const { isolationScope, scope } = getScopesFromContext(context) ?? {};
       const currentPropagationContext = scope?.getPropagationContext();
       const sampleRand = currentPropagationContext?.sampleRand ?? Math.random();
-      const [sampled, sampleRate, shouldUpdateSampleRateOnDsc] = sampleSpan(
+      const [sampled, sampleRate, shouldUpdateSampleRateOnDownstreamTrace] = sampleSpan(
         options,
         {
           name: inferredSpanName,
@@ -125,11 +126,10 @@ export class SentrySampler implements Sampler {
 
       const attributes: Attributes = {
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: sampleRate,
+        [SEMANTIC_ATTRIBUTE_SENTRY_OVERRIDE_TRACE_SAMPLE_RATE]: shouldUpdateSampleRateOnDownstreamTrace
+          ? sampleRate
+          : undefined,
       };
-
-      if (currentPropagationContext && sampleRate && shouldUpdateSampleRateOnDsc) {
-        currentPropagationContext.sampleRateOverride = sampleRate;
-      }
 
       const method = `${maybeSpanHttpMethod}`.toUpperCase();
       if (method === 'OPTIONS' || method === 'HEAD') {
@@ -227,7 +227,7 @@ export function wrapSamplingDecision({
   // - the tracesSampler is invoked
   // Since unsampled OTEL spans (NonRecordingSpans) cannot hold attributes we need to store this on the (trace)context.
   if (sampleRateOverride) {
-    traceState = traceState.set(SENTRY_TRACE_STATE_SAMPLE_RATE_OVERRIDE, `${sampleRand}`);
+    traceState = traceState.set(SENTRY_TRACE_STATE_SAMPLE_RATE_OVERRIDE, `${sampleRateOverride}`);
   }
 
   // If the decision is undefined, we treat it as NOT_RECORDING, but we don't propagate this decision to downstream SDKs

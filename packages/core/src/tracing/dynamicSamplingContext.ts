@@ -2,7 +2,11 @@ import type { Client } from '../client';
 import { DEFAULT_ENVIRONMENT } from '../constants';
 import { getClient } from '../currentScopes';
 import type { Scope } from '../scope';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OVERRIDE_TRACE_SAMPLE_RATE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+} from '../semanticAttributes';
 import type { DynamicSamplingContext, Span } from '../types-hoist';
 import {
   baggageHeaderToDynamicSamplingContext,
@@ -75,31 +79,42 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
   }
 
   const rootSpan = getRootSpan(span);
+  const rootSpanJson = spanToJSON(rootSpan);
+  const rootSpanAttributes = rootSpanJson.data;
+  const traceState = rootSpan.spanContext().traceState;
+
+  // The root span sample rate should always be applied to the DSC, even if the DSC is frozen.
+  // This is so that the downstream traces/services can use parentSampleRate in their `tracesSampler` to make consistent sampling decisions across the entire trace.
+  const traceSampleRateOverride =
+    traceState?.get('sentry.sample_rate_override') ??
+    rootSpanAttributes[SEMANTIC_ATTRIBUTE_SENTRY_OVERRIDE_TRACE_SAMPLE_RATE];
+  function applyTraceSampleRateOverrideToDsc(dsc: Partial<DynamicSamplingContext>): Partial<DynamicSamplingContext> {
+    if (typeof traceSampleRateOverride === 'number' || typeof traceSampleRateOverride === 'string') {
+      dsc.sample_rate = `${traceSampleRateOverride}`;
+    }
+    return dsc;
+  }
 
   // For core implementation, we freeze the DSC onto the span as a non-enumerable property
   const frozenDsc = (rootSpan as SpanWithMaybeDsc)[FROZEN_DSC_FIELD];
   if (frozenDsc) {
-    return frozenDsc;
+    return applyTraceSampleRateOverrideToDsc(frozenDsc);
   }
 
   // For OpenTelemetry, we freeze the DSC on the trace state
-  const traceState = rootSpan.spanContext().traceState;
   const traceStateDsc = traceState?.get('sentry.dsc');
 
   // If the span has a DSC, we want it to take precedence
   const dscOnTraceState = traceStateDsc && baggageHeaderToDynamicSamplingContext(traceStateDsc);
 
   if (dscOnTraceState) {
-    return dscOnTraceState;
+    return applyTraceSampleRateOverrideToDsc(dscOnTraceState);
   }
 
   // Else, we generate it from the span
   const dsc = getDynamicSamplingContextFromClient(span.spanContext().traceId, client);
-  const jsonSpan = spanToJSON(rootSpan);
-  const attributes = jsonSpan.data;
-  const maybeSampleRate =
-    traceState?.get('sentry.sample_rate_override') ?? attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE];
 
+  const maybeSampleRate = rootSpanAttributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE];
   if (
     // Note: This check is `!=`, so we effectively check for "nullish"
     maybeSampleRate != null
@@ -108,10 +123,10 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
   }
 
   // We don't want to have a transaction name in the DSC if the source is "url" because URLs might contain PII
-  const source = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+  const source = rootSpanAttributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
 
   // after JSON conversion, txn.name becomes jsonSpan.description
-  const name = jsonSpan.description;
+  const name = rootSpanJson.description;
   if (source !== 'url' && name) {
     dsc.transaction = name;
   }
@@ -133,7 +148,7 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
 
   client.emit('createDsc', dsc, rootSpan);
 
-  return dsc;
+  return applyTraceSampleRateOverrideToDsc(dsc);
 }
 
 /**
