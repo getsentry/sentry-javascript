@@ -345,6 +345,7 @@ The `enableTracing` option was removed. In v9, to emulate `enableTracing: true`,
 To enable session tracking, it is recommended to unset `autoSessionTracking` and ensure that either, in browser environments the `browserSessionIntegration` is added, or in server environments the `httpIntegration` is added.
 
 To disable session tracking, it is recommended unset `autoSessionTracking` and to remove the `browserSessionIntegration` in browser environments, or in server environments configure the `httpIntegration` with the `trackIncomingRequestsAsSessions` option set to `false`.
+Additionally, in Node.js environments, a session was automatically created for every node process when `autoSessionTracking` was set to `true`. This behavior has been replaced by the `processSessionIntegration` which is configured by default.
 
 - **The metrics API has been removed from the SDK.**
 
