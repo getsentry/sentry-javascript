@@ -4,7 +4,7 @@
 export interface User {
   [key: string]: any;
   id?: string | number;
-  ip_address?: string;
+  ip_address?: string | null;
   email?: string;
   username?: string;
   geo?: GeoLocation;

@@ -38,6 +38,8 @@ We no longer test against Node 14 and Node 16 and cannot guarantee that the SDK 
 
 If you need to support older browsers, we recommend transpiling your code using Babel or similar tooling.
 
+**Deno:** The minimum supported Deno version is now **2.0.0**.
+
 ### Framework Support Changes
 
 Support for the following Framework versions is dropped:
@@ -102,6 +104,8 @@ Older Typescript versions _may_ still work, but we will not test them anymore an
 
 - The `tracesSampler` hook will no longer be called for _every_ span. Instead, it will only be called for "root spans". Root spans are spans that have no local parent span. Root spans may however have incoming trace data from a different service, for example when using distributed tracing.
 
+- The `childProcessIntegration`'s (previously `processThreadBreadcrumbIntegration`) `name` value has been changed from `"ProcessAndThreadBreadcrumbs"` to `"ChildProcess"`. This is relevant if you were filtering integrations by name.
+
 ### `@sentry/browser`
 
 - The `captureUserFeedback` method has been removed. Use the `captureFeedback` method instead and update the `comments` field to `message`.
@@ -115,6 +119,8 @@ Older Typescript versions _may_ still work, but we will not test them anymore an
 - Source maps are now automatically enabled for both client and server builds unless explicitly disabled via `sourcemaps.disable`. Client builds use `hidden-source-map` while server builds use `source-map` as their webpack `devtool` setting unless any other value than `false` or `undefined` has been assigned already.
 
 - By default, source maps will now be automatically deleted after being uploaded to Sentry for client-side builds. You can opt out of this behavior by explicitly setting `sourcemaps.deleteSourcemapsAfterUpload` to `false` in your Sentry config.
+
+- The `sentry` property on the Next.js config object has officially been discontinued. Pass options to `withSentryConfig` directly.
 
 ### All Meta-Framework SDKs (`@sentry/astro`, `@sentry/nuxt`, `@sentry/solidstart`)
 
@@ -267,6 +273,8 @@ Let us know if this is causing issues in your setup by opening an issue on GitHu
 
 ### `@sentry/deno`
 
+The minimum supported Deno version is now **2.0.0**.
+
 - `@sentry/deno` is no longer published on `deno.land` so you'll need to import
   from npm:
 
@@ -322,7 +330,7 @@ The following outlines deprecations that were introduced in version 8 of the SDK
 
 - **Passing `undefined` to `tracesSampleRate` / `tracesSampler` / `enableTracing` will be handled differently in v9**
 
-In v8, explicitly setting `tracesSampleRate` (even if it is set to `undefined`) will result in tracing being _enabled_, although no spans will be generated.
+In v8, explicitly setting `tracesSampleRate` (even if it is set to `undefined`) resulted in tracing being _enabled_, although no spans were generated.
 
 ```ts
 Sentry.init({
@@ -334,11 +342,14 @@ In v9, we will streamline this behavior so that passing `undefined` will result 
 
 If you are relying on `undefined` being passed in and having tracing enabled because of this, you should update your config to set e.g. `tracesSampleRate: 0` instead, which will also enable tracing in v9.
 
+The `enableTracing` option was removed. In v9, to emulate `enableTracing: true`, set `tracesSampleRate: 1`. To emulate `enableTracing: false`, remove the `tracesSampleRate` and `tracesSampler` options (if configured).
+
 - **The `autoSessionTracking` option is deprecated.**
 
 To enable session tracking, it is recommended to unset `autoSessionTracking` and ensure that either, in browser environments the `browserSessionIntegration` is added, or in server environments the `httpIntegration` is added.
 
 To disable session tracking, it is recommended unset `autoSessionTracking` and to remove the `browserSessionIntegration` in browser environments, or in server environments configure the `httpIntegration` with the `trackIncomingRequestsAsSessions` option set to `false`.
+Additionally, in Node.js environments, a session was automatically created for every node process when `autoSessionTracking` was set to `true`. This behavior has been replaced by the `processSessionIntegration` which is configured by default.
 
 - **The metrics API has been removed from the SDK.**
 

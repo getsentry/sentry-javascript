@@ -108,6 +108,9 @@ export function startStandaloneWebVitalSpan(options: StandaloneWebVitalSpanOptio
     // For example: Chrome vs. Chrome Mobile
     'user_agent.original': WINDOW.navigator?.userAgent,
 
+    // This tells Sentry to infer the IP address from the request
+    'client.address': '{{auto}}',
+
     ...passedAttributes,
   };
 
