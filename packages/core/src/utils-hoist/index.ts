@@ -136,8 +136,6 @@ export { eventFromMessage, eventFromUnknownInput, exceptionFromError, parseStack
 export { callFrameToStackFrame, watchdogTimer } from './anr';
 export { LRUMap } from './lru';
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  generatePropagationContext,
   generateTraceId,
   generateSpanId,
 } from './propagationContext';
