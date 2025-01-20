@@ -121,7 +121,7 @@ export class SentrySampler implements Sampler {
           parentSampled,
           parentSampleRate: parseSampleRate(currentPropagationContext?.dsc?.sample_rate),
         },
-        currentPropagationContext?.sampleRand ?? Math.random(),
+        sampleRand,
       );
 
       const attributes: Attributes = {
