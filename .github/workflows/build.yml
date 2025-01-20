@@ -747,7 +747,7 @@ jobs:
         run: yarn test
 
   job_remix_integration_tests:
-    name: Remix v2 (Node ${{ matrix.node }}) Tests
+    name: Remix (Node ${{ matrix.node }}) Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_remix == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
