@@ -587,7 +587,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
   /** Updates existing session based on the provided event */
   protected _updateSessionFromEvent(session: Session, event: Event): void {
-    let crashed = false;
+    let crashed = event.level === 'fatal';
     let errored = false;
     const exceptions = event.exception && event.exception.values;
 
