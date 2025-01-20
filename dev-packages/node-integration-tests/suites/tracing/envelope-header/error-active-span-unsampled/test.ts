@@ -11,6 +11,7 @@ test('envelope header for error event during active unsampled span is correct', 
           environment: 'production',
           release: '1.0',
           sampled: 'false',
+          sample_rand: expect.any(String),
         },
       },
     })
