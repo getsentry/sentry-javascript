@@ -395,14 +395,16 @@ export function ScreenshotEditorFactory({
     return (
       <div class="editor">
         <style nonce={options.styleNonce} dangerouslySetInnerHTML={styles} />
-        <button
-          class="editor__pen-tool"
-          style={{ background: isAnnotating ? 'red' : 'white' }}
-          onClick={e => {
-            e.preventDefault();
-            setIsAnnotating(!isAnnotating);
-          }}
-        ></button>
+        {options._experiments.annotations && (
+          <button
+            class="editor__pen-tool"
+            style={{ background: isAnnotating ? 'red' : 'white' }}
+            onClick={e => {
+              e.preventDefault();
+              setIsAnnotating(!isAnnotating);
+            }}
+          ></button>
+        )}
         <div class="editor__canvas-container" ref={canvasContainerRef}>
           <div
             class="editor__crop-container"
