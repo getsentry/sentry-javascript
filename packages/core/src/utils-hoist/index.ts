@@ -47,8 +47,7 @@ export {
   parseSemver,
   uuid4,
 } from './misc';
-// eslint-disable-next-line deprecation/deprecation
-export { dynamicRequire, isNodeEnv, loadModule } from './node';
+export { isNodeEnv, loadModule } from './node';
 export { normalize, normalizeToSize, normalizeUrlToBase } from './normalize';
 export {
   addNonEnumerableProperty,
@@ -136,8 +135,6 @@ export { eventFromMessage, eventFromUnknownInput, exceptionFromError, parseStack
 export { callFrameToStackFrame, watchdogTimer } from './anr';
 export { LRUMap } from './lru';
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  generatePropagationContext,
   generateTraceId,
   generateSpanId,
 } from './propagationContext';

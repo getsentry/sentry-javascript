@@ -13,7 +13,7 @@ installGlobals();
 
 const ABORT_DELAY = 5_000;
 
-export const handleError = Sentry.wrapRemixHandleError;
+export const handleError = Sentry.sentryHandleError;
 
 export default function handleRequest(
   request: Request,
