@@ -296,7 +296,8 @@ describe('sentryHandle', () => {
                 return (
                   'sentry-environment=production,sentry-release=1.0.0,sentry-transaction=dogpark,' +
                   'sentry-public_key=dogsarebadatkeepingsecrets,' +
-                  'sentry-trace_id=1234567890abcdef1234567890abcdef,sentry-sample_rate=1'
+                  'sentry-trace_id=1234567890abcdef1234567890abcdef,sentry-sample_rate=1,' +
+                  'sentry-sample_rand=0.42'
                 );
               }
 
@@ -332,6 +333,7 @@ describe('sentryHandle', () => {
         sample_rate: '1',
         trace_id: '1234567890abcdef1234567890abcdef',
         transaction: 'dogpark',
+        sample_rand: '0.42',
       });
     });
 

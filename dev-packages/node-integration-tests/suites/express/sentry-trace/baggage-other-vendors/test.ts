@@ -11,7 +11,7 @@ test('should merge `baggage` header of a third party vendor with the Sentry DSC 
   const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express', {
     headers: {
       'sentry-trace': '12312012123120121231201212312012-1121201211212012-1',
-      baggage: 'sentry-release=2.0.0,sentry-environment=myEnv',
+      baggage: 'sentry-release=2.0.0,sentry-environment=myEnv,sentry-sample_rand=0.42',
     },
   });
 
@@ -19,7 +19,7 @@ test('should merge `baggage` header of a third party vendor with the Sentry DSC 
   expect(response).toMatchObject({
     test_data: {
       host: 'somewhere.not.sentry',
-      baggage: 'other=vendor,foo=bar,third=party,sentry-release=2.0.0,sentry-environment=myEnv',
+      baggage: 'other=vendor,foo=bar,third=party,sentry-release=2.0.0,sentry-environment=myEnv,sentry-sample_rand=0.42',
     },
   });
 });

@@ -197,6 +197,7 @@ Sentry.init({
 - The `addRequestDataToEvent` method has been removed. Use `httpRequestToRequestData` instead and put the resulting object directly on `event.request`.
 - The `extractPathForTransaction` method has been removed. There is no replacement.
 - The `addNormalizedRequestDataToEvent` method has been removed. Use `httpRequestToRequestData` instead and put the resulting object directly on `event.request`.
+- A `sampleRand` field on `PropagationContext` is now required. This is relevant if you used `scope.setPropagationContext(...)`
 
 #### Other/Internal Changes
 
@@ -251,6 +252,12 @@ The following changes are unlikely to affect users of the SDK. They are listed h
 - The option `logErrors` in the `vueIntegration` has been removed. The Sentry Vue error handler will propagate the error to a user-defined error handler
   or just re-throw the error (which will log the error without modifying).
 
+### `@sentry/opentelemetry`
+
+- Removed `getPropagationContextFromSpan`.
+  This function was primarily internally used.
+  It's functionality was misleading and should not be used.
+
 ## 5. Build Changes
 
 Previously the CJS versions of the SDK code (wrongfully) contained compatibility statements for default exports in ESM:
@@ -264,15 +271,17 @@ Let us know if this is causing issues in your setup by opening an issue on GitHu
 
 ### `@sentry/deno`
 
-- The import of Sentry from the deno registry has changed. Use the `import * as Sentry from 'https://deno.land/x/sentry/build/index.mjs'` import instead.
+- `@sentry/deno` is no longer published on `deno.land` so you'll need to import
+  from npm:
 
-  ```js
-  // before
-  import * as Sentry from 'https://deno.land/x/sentry/index.mjs';
+```javascript
+import * as Sentry from 'npm:@sentry/deno';
 
-  // after
-  import * as Sentry from 'https://deno.land/x/sentry/build/index.mjs';
-  ```
+Sentry.init({
+  dsn: '__DSN__',
+  // ...
+});
+```
 
 ## 6. Type Changes
 

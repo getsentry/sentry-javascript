@@ -1,24 +1,22 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/core';
-
 import { sentryTest } from '../../../../utils/fixtures';
-import { getMultipleSentryEnvelopeRequests, shouldSkipTracingTest } from '../../../../utils/helpers';
+import {
+  envelopeRequestParser,
+  shouldSkipTracingTest,
+  waitForTransactionRequestOnUrl,
+} from '../../../../utils/helpers';
 
 sentryTest('should create spans for fetch requests', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
 
+  await page.route('http://example.com/*', route => route.fulfill({ body: 'ok' }));
+
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  // Because we fetch from http://example.com, fetch will throw a CORS error in firefox and webkit.
-  // Chromium does not throw for cors errors.
-  // This means that we will intercept a dynamic amount of envelopes here.
-
-  // We will wait 500ms for all envelopes to be sent. Generally, in all browsers, the last sent
-  // envelope contains tracing data.
-  const envelopes = await getMultipleSentryEnvelopeRequests<Event>(page, 4, { url, timeout: 10000 });
-  const tracingEvent = envelopes.find(event => event.type === 'transaction')!; // last envelope contains tracing data on all browsers
+  const req = await waitForTransactionRequestOnUrl(page, url);
+  const tracingEvent = envelopeRequestParser(req);
 
   const requestSpans = tracingEvent.spans?.filter(({ op }) => op === 'http.client');
 
@@ -47,6 +45,8 @@ sentryTest('should attach `sentry-trace` header to fetch requests', async ({ get
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
+
+  await page.route('http://example.com/*', route => route.fulfill({ body: 'ok' }));
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 

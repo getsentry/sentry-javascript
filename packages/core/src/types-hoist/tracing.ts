@@ -17,6 +17,12 @@ export interface PropagationContext {
   traceId: string;
 
   /**
+   * A random between 0 an 1 (including 0, excluding 1) used for sampling in the current execution context.
+   * This should be newly generated when a new trace is started.
+   */
+  sampleRand: number;
+
+  /**
    * Represents the sampling decision of the incoming trace.
    *
    * The current SDK should not modify this value!

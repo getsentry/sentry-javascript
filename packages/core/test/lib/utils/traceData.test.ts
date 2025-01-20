@@ -23,6 +23,7 @@ const SCOPE_TRACE_ID = '12345678901234567890123456789012';
 function setupClient(opts?: Partial<TestClientOptions>): Client {
   getCurrentScope().setPropagationContext({
     traceId: SCOPE_TRACE_ID,
+    sampleRand: Math.random(),
   });
 
   const options = getDefaultTestClientOptions({
@@ -163,10 +164,12 @@ describe('getTraceData', () => {
       traceId: '12345678901234567890123456789012',
       sampled: true,
       parentSpanId: '1234567890123456',
+      sampleRand: 0.42,
       dsc: {
         environment: 'staging',
         public_key: 'key',
         trace_id: '12345678901234567890123456789012',
+        sample_rand: '0.42',
       },
     });
 
@@ -174,7 +177,7 @@ describe('getTraceData', () => {
 
     expect(traceData['sentry-trace']).toMatch(/^12345678901234567890123456789012-[a-f0-9]{16}-1$/);
     expect(traceData.baggage).toEqual(
-      'sentry-environment=staging,sentry-public_key=key,sentry-trace_id=12345678901234567890123456789012',
+      'sentry-environment=staging,sentry-public_key=key,sentry-trace_id=12345678901234567890123456789012,sentry-sample_rand=0.42',
     );
   });
 

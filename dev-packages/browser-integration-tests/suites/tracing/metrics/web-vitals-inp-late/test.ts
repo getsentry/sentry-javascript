@@ -55,6 +55,7 @@ sentryTest('should capture an INP click event span after pageload', async ({ bro
       sample_rate: '1',
       sampled: 'true',
       trace_id: traceId,
+      sample_rand: expect.any(String),
     },
   });
 

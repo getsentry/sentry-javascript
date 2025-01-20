@@ -1,30 +1,33 @@
 import { extractTraceparentData, propagationContextFromHeaders } from '../../src/utils-hoist/tracing';
 
 const EXAMPLE_SENTRY_TRACE = '12312012123120121231201212312012-1121201211212012-1';
-const EXAMPLE_BAGGAGE = 'sentry-release=1.2.3,sentry-foo=bar,other=baz';
+const EXAMPLE_BAGGAGE = 'sentry-release=1.2.3,sentry-foo=bar,other=baz,sentry-sample_rand=0.42';
 
 describe('propagationContextFromHeaders()', () => {
   it('returns a completely new propagation context when no sentry-trace data is given but baggage data is given', () => {
     const result = propagationContextFromHeaders(undefined, undefined);
     expect(result).toEqual({
       traceId: expect.any(String),
+      sampleRand: expect.any(Number),
     });
   });
 
   it('returns a completely new propagation context when no sentry-trace data is given', () => {
     const result = propagationContextFromHeaders(undefined, EXAMPLE_BAGGAGE);
-    expect(result).toEqual({
+    expect(result).toStrictEqual({
       traceId: expect.any(String),
+      sampleRand: expect.any(Number),
     });
   });
 
   it('returns the correct traceparent data within the propagation context when sentry trace data is given', () => {
     const result = propagationContextFromHeaders(EXAMPLE_SENTRY_TRACE, undefined);
-    expect(result).toEqual(
+    expect(result).toStrictEqual(
       expect.objectContaining({
         traceId: '12312012123120121231201212312012',
         parentSpanId: '1121201211212012',
         sampled: true,
+        sampleRand: expect.any(Number),
       }),
     );
   });
@@ -44,9 +47,11 @@ describe('propagationContextFromHeaders()', () => {
       traceId: '12312012123120121231201212312012',
       parentSpanId: '1121201211212012',
       sampled: true,
+      sampleRand: 0.42,
       dsc: {
         release: '1.2.3',
         foo: 'bar',
+        sample_rand: '0.42',
       },
     });
   });

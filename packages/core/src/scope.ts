@@ -163,6 +163,7 @@ export class Scope {
     this._sdkProcessingMetadata = {};
     this._propagationContext = {
       traceId: generateTraceId(),
+      sampleRand: Math.random(),
     };
   }
 
@@ -340,12 +341,12 @@ export class Scope {
   }
 
   /**
-   * Sets the transaction name on the scope so that the name of the transaction
-   * (e.g. taken server route or page location) is attached to future events.
+   * Sets the transaction name on the scope so that the name of e.g. taken server route or
+   * the page location is attached to future events.
    *
    * IMPORTANT: Calling this function does NOT change the name of the currently active
-   * span. If you want to change the name of the active span, use `span.updateName()`
-   * instead.
+   * root span. If you want to change the name of the active root span, use
+   * `Sentry.updateSpanName(rootSpan, 'new name')` instead.
    *
    * By default, the SDK updates the scope's transaction name automatically on sensible
    * occasions, such as a page navigation or when handling a new request on the server.
@@ -455,7 +456,7 @@ export class Scope {
     this._session = undefined;
     _setSpanForScope(this, undefined);
     this._attachments = [];
-    this.setPropagationContext({ traceId: generateTraceId() });
+    this.setPropagationContext({ traceId: generateTraceId(), sampleRand: Math.random() });
 
     this._notifyScopeListeners();
     return this;

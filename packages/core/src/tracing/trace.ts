@@ -96,7 +96,7 @@ export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) =
 
 /**
  * Similar to `Sentry.startSpan`. Wraps a function with a transaction/span, but does not finish the span
- * after the function is done automatically. You'll have to call `span.end()` manually.
+ * after the function is done automatically. Use `span.end()` to end the span.
  *
  * The created span is the active span and will be used as parent by other spans created inside the function
  * and can be accessed via `Sentry.getActiveSpan()`, as long as the function is executed while the scope is active.
@@ -111,9 +111,11 @@ export function startSpanManual<T>(options: StartSpanOptions, callback: (span: S
   }
 
   const spanArguments = parseSentrySpanArguments(options);
-  const { forceTransaction, parentSpan: customParentSpan } = options;
+  const { forceTransaction, parentSpan: customParentSpan, scope: customScope } = options;
 
-  return withScope(options.scope, () => {
+  const customForkedScope = customScope?.clone();
+
+  return withScope(customForkedScope, () => {
     // If `options.parentSpan` is defined, we want to wrap the callback in `withActiveSpan`
     const wrapper = getActiveSpanWrapper<T>(customParentSpan);
 
@@ -133,12 +135,12 @@ export function startSpanManual<T>(options: StartSpanOptions, callback: (span: S
 
       _setSpanForScope(scope, activeSpan);
 
-      function finishAndSetSpan(): void {
-        activeSpan.end();
-      }
-
       return handleCallbackErrors(
-        () => callback(activeSpan, finishAndSetSpan),
+        // We pass the `finish` function to the callback, so the user can finish the span manually
+        // this is mainly here for historic purposes because previously, we instructed users to call
+        // `finish` instead of `span.end()` to also clean up the scope. Nowadays, calling `span.end()`
+        // or `finish` has the same effect and we simply leave it here to avoid breaking user code.
+        () => callback(activeSpan, () => activeSpan.end()),
         () => {
           // Only update the span status if it hasn't been changed yet, and the span is not yet finished
           const { status } = spanToJSON(activeSpan);
@@ -279,7 +281,10 @@ export function suppressTracing<T>(callback: () => T): T {
  */
 export function startNewTrace<T>(callback: () => T): T {
   return withScope(scope => {
-    scope.setPropagationContext({ traceId: generateTraceId() });
+    scope.setPropagationContext({
+      traceId: generateTraceId(),
+      sampleRand: Math.random(),
+    });
     DEBUG_BUILD && logger.info(`Starting a new trace with id ${scope.getPropagationContext().traceId}`);
     return withActiveSpan(null, callback);
   });
@@ -402,13 +407,19 @@ function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parent
   const options: Partial<ClientOptions> = client?.getOptions() || {};
 
   const { name = '', attributes } = spanArguments;
+  const sampleRand = scope.getPropagationContext().sampleRand;
   const [sampled, sampleRate] = scope.getScopeData().sdkProcessingMetadata[SUPPRESS_TRACING_KEY]
     ? [false]
-    : sampleSpan(options, {
-        name,
-        parentSampled,
-        attributes,
-      });
+    : sampleSpan(
+        options,
+        {
+          name,
+          parentSampled,
+          attributes,
+          // TODO(v9): provide a parentSampleRate here
+        },
+        sampleRand,
+      );
 
   const rootSpan = new SentrySpan({
     ...spanArguments,

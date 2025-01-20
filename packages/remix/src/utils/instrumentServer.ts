@@ -22,7 +22,6 @@ import {
 } from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
 import { captureRemixServerException, errorHandleDataFunction, errorHandleDocumentRequestFunction } from './errors';
-import { getFutureFlagsServer, getRemixVersionFromBuild } from './futureFlags';
 import type { RemixOptions } from './remixOptions';
 import { createRoutes, getTransactionName } from './utils';
 import { extractData, isDeferredData, isResponse, isRouteErrorResponse, json } from './vendor/response';
@@ -33,7 +32,6 @@ import type {
   DataFunction,
   DataFunctionArgs,
   EntryContext,
-  FutureConfig,
   HandleDocumentRequestFunction,
   RemixRequest,
   RequestHandler,
@@ -41,8 +39,6 @@ import type {
   ServerRoute,
   ServerRouteManifest,
 } from './vendor/types';
-
-let FUTURE_FLAGS: FutureConfig | undefined;
 
 const redirectStatusCodes = new Set([301, 302, 303, 307, 308]);
 function isRedirectResponse(response: Response): boolean {
@@ -67,7 +63,6 @@ export function sentryHandleError(err: unknown, { request }: DataFunctionArgs): 
   // We don't want to capture them twice.
   // This function is only for capturing unhandled server-side exceptions.
   // https://remix.run/docs/en/main/file-conventions/entry.server#thrown-responses
-  // https://remix.run/docs/en/v1/api/conventions#throwing-responses-in-loaders
   if (isResponse(err) || isRouteErrorResponse(err)) {
     return;
   }
@@ -99,7 +94,7 @@ export function wrapHandleErrorWithSentry(
   };
 }
 
-function makeWrappedDocumentRequestFunction(autoInstrumentRemix?: boolean, remixVersion?: number) {
+function makeWrappedDocumentRequestFunction(autoInstrumentRemix?: boolean) {
   return function (origDocumentRequestFunction: HandleDocumentRequestFunction): HandleDocumentRequestFunction {
     return async function (
       this: unknown,
@@ -116,8 +111,6 @@ function makeWrappedDocumentRequestFunction(autoInstrumentRemix?: boolean, remix
         context,
         loadContext,
       };
-
-      const isRemixV2 = FUTURE_FLAGS?.v2_errorBoundary || remixVersion === 2;
 
       if (!autoInstrumentRemix) {
         const activeSpan = getActiveSpan();
@@ -139,21 +132,11 @@ function makeWrappedDocumentRequestFunction(autoInstrumentRemix?: boolean, remix
             },
           },
           () => {
-            return errorHandleDocumentRequestFunction.call(
-              this,
-              origDocumentRequestFunction,
-              documentRequestContext,
-              isRemixV2,
-            );
+            return errorHandleDocumentRequestFunction.call(this, origDocumentRequestFunction, documentRequestContext);
           },
         );
       } else {
-        return errorHandleDocumentRequestFunction.call(
-          this,
-          origDocumentRequestFunction,
-          documentRequestContext,
-          isRemixV2,
-        );
+        return errorHandleDocumentRequestFunction.call(this, origDocumentRequestFunction, documentRequestContext);
       }
     };
   };
@@ -163,12 +146,9 @@ function makeWrappedDataFunction(
   origFn: DataFunction,
   id: string,
   name: 'action' | 'loader',
-  remixVersion: number,
   autoInstrumentRemix?: boolean,
 ): DataFunction {
   return async function (this: unknown, args: DataFunctionArgs): Promise<Response | AppData> {
-    const isRemixV2 = FUTURE_FLAGS?.v2_errorBoundary || remixVersion === 2;
-
     if (!autoInstrumentRemix) {
       return startSpan(
         {
@@ -180,25 +160,25 @@ function makeWrappedDataFunction(
           },
         },
         (span: Span) => {
-          return errorHandleDataFunction.call(this, origFn, name, args, isRemixV2, span);
+          return errorHandleDataFunction.call(this, origFn, name, args, span);
         },
       );
     } else {
-      return errorHandleDataFunction.call(this, origFn, name, args, isRemixV2);
+      return errorHandleDataFunction.call(this, origFn, name, args);
     }
   };
 }
 
 const makeWrappedAction =
-  (id: string, remixVersion: number, autoInstrumentRemix?: boolean) =>
+  (id: string, autoInstrumentRemix?: boolean) =>
   (origAction: DataFunction): DataFunction => {
-    return makeWrappedDataFunction(origAction, id, 'action', remixVersion, autoInstrumentRemix);
+    return makeWrappedDataFunction(origAction, id, 'action', autoInstrumentRemix);
   };
 
 const makeWrappedLoader =
-  (id: string, remixVersion: number, autoInstrumentRemix?: boolean) =>
+  (id: string, autoInstrumentRemix?: boolean) =>
   (origLoader: DataFunction): DataFunction => {
-    return makeWrappedDataFunction(origLoader, id, 'loader', remixVersion, autoInstrumentRemix);
+    return makeWrappedDataFunction(origLoader, id, 'loader', autoInstrumentRemix);
   };
 
 function getTraceAndBaggage(): {
@@ -217,7 +197,7 @@ function getTraceAndBaggage(): {
   return {};
 }
 
-function makeWrappedRootLoader(remixVersion: number) {
+function makeWrappedRootLoader() {
   return function (origLoader: DataFunction): DataFunction {
     return async function (this: unknown, args: DataFunctionArgs): Promise<Response | AppData> {
       const res = await origLoader.call(this, args);
@@ -226,7 +206,6 @@ function makeWrappedRootLoader(remixVersion: number) {
       if (isDeferredData(res)) {
         res.data['sentryTrace'] = traceAndBaggage.sentryTrace;
         res.data['sentryBaggage'] = traceAndBaggage.sentryBaggage;
-        res.data['remixVersion'] = remixVersion;
 
         return res;
       }
@@ -243,7 +222,7 @@ function makeWrappedRootLoader(remixVersion: number) {
 
           if (typeof data === 'object') {
             return json(
-              { ...data, ...traceAndBaggage, remixVersion },
+              { ...data, ...traceAndBaggage },
               {
                 headers: res.headers,
                 statusText: res.statusText,
@@ -257,7 +236,7 @@ function makeWrappedRootLoader(remixVersion: number) {
         }
       }
 
-      return { ...res, ...traceAndBaggage, remixVersion };
+      return { ...res, ...traceAndBaggage };
     };
   };
 }
@@ -351,7 +330,6 @@ function wrapRequestHandler(
 
 function instrumentBuildCallback(build: ServerBuild, autoInstrumentRemix: boolean): ServerBuild {
   const routes: ServerRouteManifest = {};
-  const remixVersion = getRemixVersionFromBuild(build);
   const wrappedEntry = { ...build.entry, module: { ...build.entry.module } };
 
   // Not keeping boolean flags like it's done for `requestHandler` functions,
@@ -360,7 +338,7 @@ function instrumentBuildCallback(build: ServerBuild, autoInstrumentRemix: boolea
   // We should be able to wrap them, as they may not be wrapped before.
   const defaultExport = wrappedEntry.module.default as undefined | WrappedFunction;
   if (defaultExport && !defaultExport.__sentry_original__) {
-    fill(wrappedEntry.module, 'default', makeWrappedDocumentRequestFunction(autoInstrumentRemix, remixVersion));
+    fill(wrappedEntry.module, 'default', makeWrappedDocumentRequestFunction(autoInstrumentRemix));
   }
 
   for (const [id, route] of Object.entries(build.routes)) {
@@ -368,12 +346,12 @@ function instrumentBuildCallback(build: ServerBuild, autoInstrumentRemix: boolea
 
     const routeAction = wrappedRoute.module.action as undefined | WrappedFunction;
     if (routeAction && !routeAction.__sentry_original__) {
-      fill(wrappedRoute.module, 'action', makeWrappedAction(id, remixVersion, autoInstrumentRemix));
+      fill(wrappedRoute.module, 'action', makeWrappedAction(id, autoInstrumentRemix));
     }
 
     const routeLoader = wrappedRoute.module.loader as undefined | WrappedFunction;
     if (routeLoader && !routeLoader.__sentry_original__) {
-      fill(wrappedRoute.module, 'loader', makeWrappedLoader(id, remixVersion, autoInstrumentRemix));
+      fill(wrappedRoute.module, 'loader', makeWrappedLoader(id, autoInstrumentRemix));
     }
 
     // Entry module should have a loader function to provide `sentry-trace` and `baggage`
@@ -384,7 +362,7 @@ function instrumentBuildCallback(build: ServerBuild, autoInstrumentRemix: boolea
       }
 
       // We want to wrap the root loader regardless of whether it's already wrapped before.
-      fill(wrappedRoute.module, 'loader', makeWrappedRootLoader(remixVersion));
+      fill(wrappedRoute.module, 'loader', makeWrappedRootLoader());
     }
 
     routes[id] = wrappedRoute;
@@ -409,19 +387,13 @@ export function instrumentBuild(
 
       if (resolvedBuild instanceof Promise) {
         return resolvedBuild.then(build => {
-          FUTURE_FLAGS = getFutureFlagsServer(build);
-
           return instrumentBuildCallback(build, autoInstrumentRemix);
         });
       } else {
-        FUTURE_FLAGS = getFutureFlagsServer(resolvedBuild);
-
         return instrumentBuildCallback(resolvedBuild, autoInstrumentRemix);
       }
     };
   } else {
-    FUTURE_FLAGS = getFutureFlagsServer(build);
-
     return instrumentBuildCallback(build, autoInstrumentRemix);
   }
 }

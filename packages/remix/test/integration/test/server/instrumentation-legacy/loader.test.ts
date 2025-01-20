@@ -2,8 +2,6 @@ import { Event } from '@sentry/core';
 import { describe, expect, it } from 'vitest';
 import { RemixTestEnv, assertSentryEvent, assertSentryTransaction } from '../utils/helpers';
 
-const useV2 = process.env.REMIX_VERSION === '2';
-
 describe('Remix API Loaders', () => {
   it('reports an error thrown from the loader', async () => {
     const env = await RemixTestEnv.init();
@@ -35,7 +33,7 @@ describe('Remix API Loaders', () => {
             stacktrace: expect.any(Object),
             mechanism: {
               data: {
-                function: useV2 ? 'remix.server.handleError' : 'loader',
+                function: 'remix.server.handleError',
               },
               handled: false,
               type: 'instrument',
@@ -96,7 +94,7 @@ describe('Remix API Loaders', () => {
     const transaction = envelope[2]!;
 
     assertSentryTransaction(transaction, {
-      transaction: `routes/loader-json-response${useV2 ? '.' : '/'}$id`,
+      transaction: 'routes/loader-json-response.$id',
       transaction_info: {
         source: 'route',
       },
@@ -106,11 +104,11 @@ describe('Remix API Loaders', () => {
           op: 'function.remix.loader',
         },
         {
-          description: `routes/loader-json-response${useV2 ? '.' : '/'}$id`,
+          description: 'routes/loader-json-response.$id',
           op: 'function.remix.loader',
         },
         {
-          description: `routes/loader-json-response${useV2 ? '.' : '/'}$id`,
+          description: 'routes/loader-json-response.$id',
           op: 'function.remix.document_request',
         },
       ],
@@ -141,7 +139,7 @@ describe('Remix API Loaders', () => {
           },
         },
       },
-      transaction: `routes/loader-json-response${useV2 ? '.' : '/'}$id`,
+      transaction: 'routes/loader-json-response.$id',
     });
 
     assertSentryTransaction(transaction_2![2]!, {
@@ -155,7 +153,7 @@ describe('Remix API Loaders', () => {
           },
         },
       },
-      transaction: `routes/loader-json-response${useV2 ? '.' : '/'}$id`,
+      transaction: 'routes/loader-json-response.$id',
     });
 
     assertSentryEvent(event![2]!, {
@@ -168,7 +166,7 @@ describe('Remix API Loaders', () => {
             stacktrace: expect.any(Object),
             mechanism: {
               data: {
-                function: useV2 ? 'remix.server.handleError' : 'loader',
+                function: 'remix.server.handleError',
               },
               handled: false,
               type: 'instrument',
@@ -236,39 +234,24 @@ describe('Remix API Loaders', () => {
     const transaction = envelope[2]!;
 
     assertSentryTransaction(transaction, {
-      transaction: useV2 ? 'routes/loader-defer-response.$id' : 'routes/loader-defer-response/$id',
+      transaction: 'routes/loader-defer-response.$id',
       transaction_info: {
         source: 'route',
       },
-      spans: useV2
-        ? [
-            {
-              description: 'root',
-              op: 'function.remix.loader',
-            },
-            {
-              description: 'routes/loader-defer-response.$id',
-              op: 'function.remix.loader',
-            },
-            {
-              description: 'routes/loader-defer-response.$id',
-              op: 'function.remix.document_request',
-            },
-          ]
-        : [
-            {
-              description: 'root',
-              op: 'function.remix.loader',
-            },
-            {
-              description: 'routes/loader-defer-response/$id',
-              op: 'function.remix.loader',
-            },
-            {
-              description: 'routes/loader-defer-response/$id',
-              op: 'function.remix.document_request',
-            },
-          ],
+      spans: [
+        {
+          description: 'root',
+          op: 'function.remix.loader',
+        },
+        {
+          description: 'routes/loader-defer-response.$id',
+          op: 'function.remix.loader',
+        },
+        {
+          description: 'routes/loader-defer-response.$id',
+          op: 'function.remix.document_request',
+        },
+      ],
     });
   });
 

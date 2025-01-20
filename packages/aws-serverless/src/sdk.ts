@@ -1,20 +1,17 @@
 import { existsSync } from 'fs';
-import { hostname } from 'os';
 import { basename, resolve } from 'path';
 import { types } from 'util';
 import type { Integration, Options, Scope, SdkMetadata, Span } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, logger } from '@sentry/core';
+import { logger } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import {
   SDK_VERSION,
   captureException,
   captureMessage,
-  continueTrace,
   flush,
   getCurrentScope,
   getDefaultIntegrationsWithoutPerformance,
   initWithoutDefaultIntegrations,
-  startSpanManual,
   withScope,
 } from '@sentry/node';
 import type { Context, Handler } from 'aws-lambda';
@@ -22,7 +19,7 @@ import { performance } from 'perf_hooks';
 import { DEBUG_BUILD } from './debug-build';
 import { awsIntegration } from './integration/aws';
 import { awsLambdaIntegration } from './integration/awslambda';
-import { getAwsTraceData, markEventUnhandled } from './utils';
+import { markEventUnhandled } from './utils';
 
 const { isPromise } = types;
 

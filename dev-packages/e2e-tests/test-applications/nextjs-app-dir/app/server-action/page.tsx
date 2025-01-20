@@ -9,7 +9,7 @@ export default function ServerComponent() {
       'myServerAction',
       { formData, headers: headers(), recordResponse: true },
       async () => {
-        await fetch('http://example.com/');
+        await fetch('https://example.com/');
         return { city: 'Vienna' };
       },
     );

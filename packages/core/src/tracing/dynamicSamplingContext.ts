@@ -11,6 +11,7 @@ import {
 import { addNonEnumerableProperty, dropUndefinedKeys } from '../utils-hoist/object';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
 import { getRootSpan, spanIsSampled, spanToJSON } from '../utils/spanUtils';
+import { getCapturedScopesOnSpan } from './utils';
 
 /**
  * If you change this value, also update the terser plugin config to
@@ -116,6 +117,14 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
   // So we end up with an active span that is not sampled (neither positively nor negatively)
   if (hasTracingEnabled()) {
     dsc.sampled = String(spanIsSampled(rootSpan));
+    dsc.sample_rand =
+      // In OTEL we store the sample rand on the trace state because we cannot access scopes for NonRecordingSpans
+      // The Sentry OTEL SpanSampler takes care of writing the sample rand on the root span
+      traceState?.get('sentry.sample_rand') ??
+      // On all other platforms we can actually get the scopes from a root span (we use this as a fallback)
+      getCapturedScopesOnSpan(rootSpan)
+        .scope?.getPropagationContext()
+        .sampleRand.toString();
   }
 
   client.emit('createDsc', dsc, rootSpan);

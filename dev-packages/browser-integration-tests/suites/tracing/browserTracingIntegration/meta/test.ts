@@ -43,6 +43,7 @@ sentryTest(
       sample_rate: '0.3232',
       trace_id: '123',
       public_key: 'public',
+      sample_rand: '0.42',
     });
   },
 );

@@ -163,6 +163,7 @@ describe('sendFeedback', () => {
           sample_rate: '1',
           sampled: 'true',
           transaction: 'test span',
+          sample_rand: expect.any(String),
         },
       },
       [
