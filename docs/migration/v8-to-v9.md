@@ -38,6 +38,8 @@ We no longer test against Node 14 and Node 16 and cannot guarantee that the SDK 
 
 If you need to support older browsers, we recommend transpiling your code using Babel or similar tooling.
 
+**Deno:** The minimum supported Deno version is now **2.0.0**.
+
 ### Framework Support Changes
 
 Support for the following Framework versions is dropped:
@@ -270,6 +272,8 @@ The SDK no longer contains these statements.
 Let us know if this is causing issues in your setup by opening an issue on GitHub.
 
 ### `@sentry/deno`
+
+The minimum supported Deno version is now **2.0.0**.
 
 - `@sentry/deno` is no longer published on `deno.land` so you'll need to import
   from npm:
