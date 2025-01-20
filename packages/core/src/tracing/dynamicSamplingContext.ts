@@ -146,9 +146,11 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
         .sampleRand.toString();
   }
 
+  applyTraceSampleRateOverrideToDsc(dsc);
+
   client.emit('createDsc', dsc, rootSpan);
 
-  return applyTraceSampleRateOverrideToDsc(dsc);
+  return dsc;
 }
 
 /**
