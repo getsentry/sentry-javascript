@@ -73,11 +73,6 @@ export function sentryHandleError(err: unknown, { request }: DataFunctionArgs): 
 }
 
 /**
- * @deprecated Use `sentryHandleError` instead.
- */
-export const wrapRemixHandleError = sentryHandleError;
-
-/**
  * Sentry wrapper for Remix's `handleError` function.
  * Remix Docs: https://remix.run/docs/en/main/file-conventions/entry.server#handleerror
  */

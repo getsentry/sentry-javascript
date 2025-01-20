@@ -57,6 +57,9 @@ sentryTest('should capture feedback with custom button', async ({ getLocalTestUr
     event_id: expect.stringMatching(/\w{32}/),
     environment: 'production',
     tags: {},
+    user: {
+      ip_address: '{{auto}}',
+    },
     sdk: {
       integrations: expect.arrayContaining(['Feedback']),
       version: expect.any(String),

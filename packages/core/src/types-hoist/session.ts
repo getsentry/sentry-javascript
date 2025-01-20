@@ -37,6 +37,7 @@ export interface SessionAggregates {
   attrs?: {
     environment?: string;
     release?: string;
+    ip_address?: string | null;
   };
   aggregates: Array<AggregationCounts>;
 }

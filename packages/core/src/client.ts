@@ -411,6 +411,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       }
       sessionAttrs.release = sessionAttrs.release || clientReleaseOption;
       sessionAttrs.environment = sessionAttrs.environment || clientEnvironmentOption;
+      session.attrs = sessionAttrs;
     } else {
       if (!session.release && !clientReleaseOption) {
         DEBUG_BUILD && logger.warn(MISSING_RELEASE_FOR_SESSION_ERROR);
@@ -419,6 +420,8 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       session.release = session.release || clientReleaseOption;
       session.environment = session.environment || clientEnvironmentOption;
     }
+
+    this.emit('beforeSendSession', session);
 
     const env = createSessionEnvelope(session, this._dsn, this._options._metadata, this._options.tunnel);
 
@@ -504,12 +507,27 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public on(hook: 'beforeSendEvent', callback: (event: Event, hint?: EventHint | undefined) => void): () => void;
 
   /**
+   * Register a callback for before sending a session or session aggregrates..
+   * Receives the session/aggregate as second argument.
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'beforeSendSession', callback: (session: Session | SessionAggregates) => void): () => void;
+
+  /**
    * Register a callback for preprocessing an event,
    * before it is passed to (global) event processors.
    * Receives an Event & EventHint as arguments.
    * @returns {() => void} A function that, when executed, removes the registered callback.
    */
   public on(hook: 'preprocessEvent', callback: (event: Event, hint?: EventHint | undefined) => void): () => void;
+
+  /**
+   * Register a callback for postprocessing an event,
+   * after it was passed to (global) event processors, before it is being sent.
+   * Receives an Event & EventHint as arguments.
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'postprocessEvent', callback: (event: Event, hint?: EventHint | undefined) => void): () => void;
 
   /**
    * Register a callback for when an event has been sent.
@@ -637,10 +655,22 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public emit(hook: 'beforeSendEvent', event: Event, hint?: EventHint): void;
 
   /**
+   * Fire a hook event before sending a session/aggregates.
+   * Expects to be given the prepared session/aggregates as second argument.
+   */
+  public emit(hook: 'beforeSendSession', session: Session | SessionAggregates): void;
+
+  /**
    * Fire a hook event to process events before they are passed to (global) event processors.
    * Expects to be given an Event & EventHint as the second/third argument.
    */
   public emit(hook: 'preprocessEvent', event: Event, hint?: EventHint): void;
+
+  /**
+   * Fire a hook event to process a user on an event before it is sent to Sentry, after all other processors have run.
+   * Expects to be given an Event & EventHint as the second/third argument.
+   */
+  public emit(hook: 'postprocessEvent', event: Event, hint?: EventHint): void;
 
   /*
    * Fire a hook event after sending an event. Expects to be given an Event as the
@@ -830,6 +860,8 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       if (evt === null) {
         return evt;
       }
+
+      this.emit('postprocessEvent', evt, hint);
 
       evt.contexts = {
         trace: getTraceContextFromScope(currentScope),
@@ -1079,11 +1111,13 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 /**
  * @deprecated Use `Client` instead. This alias may be removed in a future major version.
  */
+// TODO(v10): Remove
 export type BaseClient = Client;
 
 /**
  * @deprecated Use `Client` instead. This alias may be removed in a future major version.
  */
+// TODO(v10): Remove
 export const BaseClient = Client;
 
 /**
