@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('should correctly instrument `fetch` for performance tracing', async ({ page }) => {
-  await page.route('http://example.com/**/*', route => {
+  await page.route('https://example.com/**/*', route => {
     return route.fulfill({
       status: 200,
       body: JSON.stringify({
@@ -34,8 +34,8 @@ test('should correctly instrument `fetch` for performance tracing', async ({ pag
       expect.objectContaining({
         data: {
           'http.method': 'GET',
-          url: 'http://example.com',
-          'http.url': 'http://example.com/',
+          url: 'https://example.com',
+          'http.url': 'https://example.com/',
           'server.address': 'example.com',
           type: 'fetch',
           'http.response_content_length': expect.any(Number),
@@ -43,7 +43,7 @@ test('should correctly instrument `fetch` for performance tracing', async ({ pag
           'sentry.op': 'http.client',
           'sentry.origin': 'auto.http.browser',
         },
-        description: 'GET http://example.com',
+        description: 'GET https://example.com',
         op: 'http.client',
         parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
         span_id: expect.stringMatching(/[a-f0-9]{16}/),

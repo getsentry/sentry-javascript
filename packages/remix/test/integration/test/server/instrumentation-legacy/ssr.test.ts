@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { RemixTestEnv, assertSentryEvent, assertSentryTransaction } from '../utils/helpers';
 
-const useV2 = process.env.REMIX_VERSION === '2';
-
 describe('Server Side Rendering', () => {
   it('correctly reports a server side rendering error', async () => {
     const env = await RemixTestEnv.init();
@@ -19,12 +17,10 @@ describe('Server Side Rendering', () => {
           },
         },
       },
-      ...(useV2 && {
-        tags: {
-          // Testing that the wrapped `handleError` correctly adds tags
-          'remix-test-tag': 'remix-test-value',
-        },
-      }),
+      tags: {
+        // Testing that the wrapped `handleError` correctly adds tags
+        'remix-test-tag': 'remix-test-value',
+      },
     });
 
     assertSentryEvent(event![2]!, {
@@ -37,7 +33,7 @@ describe('Server Side Rendering', () => {
             stacktrace: expect.any(Object),
             mechanism: {
               data: {
-                function: useV2 ? 'remix.server.handleError' : 'documentRequest',
+                function: 'remix.server.handleError',
               },
               handled: false,
               type: 'instrument',

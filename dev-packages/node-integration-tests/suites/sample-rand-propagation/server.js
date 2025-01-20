@@ -4,7 +4,7 @@ const Sentry = require('@sentry/node');
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   transport: loggingTransport,
-  tracesSampleRate: 1,
+  tracesSampleRate: 0.00000001, // It's important that this is not 1, so that we also check logic for NonRecordingSpans, which is usually the edge-case
 });
 
 // express must be required after Sentry is initialized

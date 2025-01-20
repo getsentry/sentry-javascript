@@ -64,15 +64,15 @@
     "yargs": "^17.6.0"
   },
   "devDependencies": {
-    "@remix-run/node": "^1.4.3",
-    "@remix-run/react": "^1.4.3",
+    "@remix-run/node": "^2.15.2",
+    "@remix-run/react": "^2.15.2",
     "@types/express": "^4.17.14",
     "vite": "^5.4.11"
   },
   "peerDependencies": {
-    "@remix-run/node": "1.x || 2.x",
-    "@remix-run/react": "1.x || 2.x",
-    "react": "16.x || 17.x || 18.x"
+    "@remix-run/node": "2.x",
+    "@remix-run/react": "2.x",
+    "react": "18.x"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
@@ -92,10 +92,9 @@
     "lint": "eslint . --format stylish",
     "test": "yarn test:unit",
     "test:integration": "run-s test:integration:otel test:integration:legacy",
-    "test:integration:otel": "export USE_OTEL=1 && run-s test:integration:v1 test:integration:v2",
-    "test:integration:legacy": "export USE_OTEL=0 && run-s test:integration:v1 test:integration:v2",
-    "test:integration:v1": "run-s test:integration:clean test:integration:prepare test:integration:client test:integration:server",
-    "test:integration:v2": "export REMIX_VERSION=2 && yarn test:integration:v1",
+    "test:integration:otel": "export USE_OTEL=1 && yarn test:integration:v2",
+    "test:integration:legacy": "export USE_OTEL=0 && yarn test:integration:v2",
+    "test:integration:v2": "run-s test:integration:clean test:integration:prepare test:integration:client test:integration:server",
     "test:integration:ci": "run-s test:integration:ci:otel test:integration:ci:legacy",
     "test:integration:ci:otel": "USE_OTEL=1 yarn test:integration:ci:common",
     "test:integration:ci:legacy": "USE_OTEL=0 yarn test:integration:ci:common",
