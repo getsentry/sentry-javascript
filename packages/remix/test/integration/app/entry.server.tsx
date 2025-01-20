@@ -5,7 +5,6 @@ if (process.env.USE_OTEL !== '1') {
     dsn: 'https://public@dsn.ingest.sentry.io/1337',
     tracesSampleRate: 1,
     tracePropagationTargets: ['example.org'],
-    autoInstrumentRemix: false,
   });
 }
 
