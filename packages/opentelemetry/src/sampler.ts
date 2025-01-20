@@ -138,7 +138,13 @@ export class SentrySampler implements Sampler {
         DEBUG_BUILD && logger.log(`[Tracing] Not sampling span because HTTP method is '${method}' for ${spanName}`);
 
         return {
-          ...wrapSamplingDecision({ decision: SamplingDecision.NOT_RECORD, context, spanAttributes, sampleRand }),
+          ...wrapSamplingDecision({
+            decision: SamplingDecision.NOT_RECORD,
+            context,
+            spanAttributes,
+            sampleRand,
+            sampleRateOverride: 0, // we don't want to sample anything in the downstream trace either
+          }),
           attributes,
         };
       }

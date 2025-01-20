@@ -42,8 +42,12 @@ describe('getDynamicSamplingContextFromSpan', () => {
           spanId: '12345',
           traceFlags: 0,
           traceState: {
-            get() {
-              return 'sentry-environment=myEnv2';
+            get(key: string) {
+              if (key === 'sentry.dsc') {
+                return 'sentry-environment=myEnv2';
+              } else {
+                return undefined;
+              }
             },
           } as unknown as SpanContextData['traceState'],
         };
@@ -68,7 +72,7 @@ describe('getDynamicSamplingContextFromSpan', () => {
       release: '1.0.1',
       environment: 'production',
       sampled: 'true',
-      sample_rate: '0.56',
+      sample_rate: '1',
       trace_id: expect.stringMatching(/^[a-f0-9]{32}$/),
       transaction: 'tx',
       sample_rand: expect.any(String),
