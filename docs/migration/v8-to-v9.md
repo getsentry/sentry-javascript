@@ -102,6 +102,8 @@ Older Typescript versions _may_ still work, but we will not test them anymore an
 
 - The `tracesSampler` hook will no longer be called for _every_ span. Instead, it will only be called for "root spans". Root spans are spans that have no local parent span. Root spans may however have incoming trace data from a different service, for example when using distributed tracing.
 
+- The `childProcessIntegration`'s (previously `processThreadBreadcrumbIntegration`) `name` value has been changed from `"ProcessAndThreadBreadcrumbs"` to `"ChildProcess"`. This is relevant if you were filtering integrations by name.
+
 ### `@sentry/browser`
 
 - The `captureUserFeedback` method has been removed. Use the `captureFeedback` method instead and update the `comments` field to `message`.
@@ -115,6 +117,8 @@ Older Typescript versions _may_ still work, but we will not test them anymore an
 - Source maps are now automatically enabled for both client and server builds unless explicitly disabled via `sourcemaps.disable`. Client builds use `hidden-source-map` while server builds use `source-map` as their webpack `devtool` setting unless any other value than `false` or `undefined` has been assigned already.
 
 - By default, source maps will now be automatically deleted after being uploaded to Sentry for client-side builds. You can opt out of this behavior by explicitly setting `sourcemaps.deleteSourcemapsAfterUpload` to `false` in your Sentry config.
+
+- The `sentry` property on the Next.js config object has officially been discontinued. Pass options to `withSentryConfig` directly.
 
 ### All Meta-Framework SDKs (`@sentry/astro`, `@sentry/nuxt`, `@sentry/solidstart`)
 

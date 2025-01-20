@@ -12,8 +12,7 @@ interface Options {
   includeChildProcessArgs?: boolean;
 }
 
-// TODO(v9): Update this name and mention in migration docs.
-const INTEGRATION_NAME = 'ProcessAndThreadBreadcrumbs';
+const INTEGRATION_NAME = 'ChildProcess';
 
 /**
  * Capture breadcrumbs for child processes and worker threads.
@@ -22,14 +21,12 @@ export const childProcessIntegration = defineIntegration((options: Options = {})
   return {
     name: INTEGRATION_NAME,
     setup(_client) {
-      // eslint-disable-next-line deprecation/deprecation
       diagnosticsChannel.channel('child_process').subscribe((event: unknown) => {
         if (event && typeof event === 'object' && 'process' in event) {
           captureChildProcessEvents(event.process as ChildProcess, options);
         }
       });
 
-      // eslint-disable-next-line deprecation/deprecation
       diagnosticsChannel.channel('worker_threads').subscribe((event: unknown) => {
         if (event && typeof event === 'object' && 'worker' in event) {
           captureWorkerThreadEvents(event.worker as Worker);
