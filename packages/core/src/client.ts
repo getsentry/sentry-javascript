@@ -732,6 +732,10 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     let errored = false;
     const exceptions = event.exception?.values;
 
+    if (event.level === 'fatal') {
+      crashed = true;
+    }
+
     if (exceptions) {
       errored = true;
 
