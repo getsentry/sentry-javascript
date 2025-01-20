@@ -591,6 +591,10 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     let errored = false;
     const exceptions = event.exception && event.exception.values;
 
+    if (event.level === 'fatal') {
+      crashed = true;
+    }
+
     if (exceptions) {
       errored = true;
 
