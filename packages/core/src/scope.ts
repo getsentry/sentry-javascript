@@ -479,9 +479,11 @@ export class Scope {
       ...breadcrumb,
     };
 
-    const breadcrumbs = this._breadcrumbs;
-    breadcrumbs.push(mergedBreadcrumb);
-    this._breadcrumbs = breadcrumbs.length > maxCrumbs ? breadcrumbs.slice(-maxCrumbs) : breadcrumbs;
+    this._breadcrumbs.push(mergedBreadcrumb);
+    if (this._breadcrumbs.length > maxCrumbs) {
+      this._breadcrumbs = this._breadcrumbs.slice(-maxCrumbs);
+      this._client?.recordDroppedEvent('buffer_overflow', 'log_item');
+    }
 
     this._notifyScopeListeners();
 
