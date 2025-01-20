@@ -267,15 +267,17 @@ Let us know if this is causing issues in your setup by opening an issue on GitHu
 
 ### `@sentry/deno`
 
-- The import of Sentry from the deno registry has changed. Use the `import * as Sentry from 'https://deno.land/x/sentry/build/index.mjs'` import instead.
+- `@sentry/deno` is no longer published on `deno.land` so you'll need to import
+  from npm:
 
-  ```js
-  // before
-  import * as Sentry from 'https://deno.land/x/sentry/index.mjs';
+```javascript
+import * as Sentry from 'npm:@sentry/deno';
 
-  // after
-  import * as Sentry from 'https://deno.land/x/sentry/build/index.mjs';
-  ```
+Sentry.init({
+  dsn: '__DSN__',
+  // ...
+});
+```
 
 ## 6. Type Changes
 
