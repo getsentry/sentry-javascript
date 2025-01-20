@@ -85,19 +85,23 @@ export class BrowserClient extends Client<BrowserClientOptions> {
     }
 
     this.on('postprocessEvent', event => {
-      addAutoIpAddressToUser(event);
+      if (this._options.sendDefaultPii) {
+        addAutoIpAddressToUser(event);
+      }
     });
 
     this.on('beforeSendSession', session => {
-      if ('aggregates' in session) {
-        if (session.attrs?.['ip_address'] === undefined) {
-          session.attrs = {
-            ...session.attrs,
-            ip_address: '{{auto}}',
-          };
+      if (this._options.sendDefaultPii) {
+        if ('aggregates' in session) {
+          if (session.attrs?.['ip_address'] === undefined) {
+            session.attrs = {
+              ...session.attrs,
+              ip_address: '{{auto}}',
+            };
+          }
+        } else {
+          addAutoIpAddressToUser(session);
         }
-      } else {
-        addAutoIpAddressToUser(session);
       }
     });
   }
