@@ -22,6 +22,7 @@ import {
 import {
   SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING,
   SENTRY_TRACE_STATE_SAMPLE_RAND,
+  SENTRY_TRACE_STATE_SAMPLE_RATE_OVERRIDE,
   SENTRY_TRACE_STATE_URL,
 } from './constants';
 import { DEBUG_BUILD } from './debug-build';
@@ -207,16 +208,26 @@ export function wrapSamplingDecision({
   context,
   spanAttributes,
   sampleRand,
+  sampleRateOverride,
 }: {
   decision: SamplingDecision | undefined;
   context: Context;
   spanAttributes: SpanAttributes;
   sampleRand?: number;
+  sampleRateOverride?: number;
 }): SamplingResult {
   let traceState = getBaseTraceState(context, spanAttributes);
 
   if (sampleRand !== undefined) {
     traceState = traceState.set(SENTRY_TRACE_STATE_SAMPLE_RAND, `${sampleRand}`);
+  }
+
+  // We will override the propagated sample rate downstream when
+  // - the tracesSampleRate is applied
+  // - the tracesSampler is invoked
+  // Since unsampled OTEL spans (NonRecordingSpans) cannot hold attributes we need to store this on the (trace)context.
+  if (sampleRateOverride) {
+    traceState = traceState.set(SENTRY_TRACE_STATE_SAMPLE_RATE_OVERRIDE, `${sampleRand}`);
   }
 
   // If the decision is undefined, we treat it as NOT_RECORDING, but we don't propagate this decision to downstream SDKs

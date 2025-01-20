@@ -97,9 +97,13 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
   const dsc = getDynamicSamplingContextFromClient(span.spanContext().traceId, client);
   const jsonSpan = spanToJSON(rootSpan);
   const attributes = jsonSpan.data;
-  const maybeSampleRate = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE];
+  const maybeSampleRate =
+    traceState?.get('sentry.sample_rate_override') ?? attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE];
 
-  if (maybeSampleRate != null) {
+  if (
+    // Note: This check is `!=`, so we effectively check for "nullish"
+    maybeSampleRate != null
+  ) {
     dsc.sample_rate = `${maybeSampleRate}`;
   }
 
