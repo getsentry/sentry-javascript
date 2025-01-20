@@ -30,7 +30,6 @@ const packageDotJSON = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), '.
 export function makeBaseNPMConfig(options = {}) {
   const {
     entrypoints = ['src/index.ts'],
-    esModuleInterop = false,
     hasBundles = false,
     packageSpecificConfig = {},
     sucrase = {},
@@ -56,9 +55,8 @@ export function makeBaseNPMConfig(options = {}) {
 
       sourcemap: true,
 
-      // Include __esModule property when generating exports
-      // Before the upgrade to Rollup 4 this was included by default and when it was gone it broke tests
-      esModule: true,
+      // Include __esModule property when there is a default prop
+      esModule: 'if-default-prop',
 
       // output individual files rather than one big bundle
       preserveModules: true,
@@ -84,16 +82,7 @@ export function makeBaseNPMConfig(options = {}) {
       // (We don't need it, so why waste the bytes?)
       freeze: false,
 
-      // Equivalent to `esModuleInterop` in tsconfig.
-      // Controls whether rollup emits helpers to handle special cases where turning
-      //     `import * as dogs from 'dogs'`
-      // into
-      //     `const dogs = require('dogs')`
-      // doesn't work.
-      //
-      // `auto` -> emit helpers
-      // `esModule` -> don't emit helpers
-      interop: esModuleInterop ? 'auto' : 'esModule',
+      interop: 'esModule',
     },
 
     plugins: [
@@ -121,9 +110,13 @@ export function makeBaseNPMConfig(options = {}) {
 }
 
 export function makeNPMConfigVariants(baseConfig, options = {}) {
-  const { emitEsm = true } = options;
+  const { emitEsm = true, emitCjs = true } = options;
 
-  const variantSpecificConfigs = [{ output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs') } }];
+  const variantSpecificConfigs = [];
+
+  if (emitCjs) {
+    variantSpecificConfigs.push({ output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs') } });
+  }
 
   if (emitEsm) {
     variantSpecificConfigs.push({

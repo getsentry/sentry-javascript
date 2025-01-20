@@ -1,3 +1,4 @@
+/* eslint-disable complexity */
 import type { Attributes, Context, Span, TraceState as TraceStateInterface } from '@opentelemetry/api';
 import { SpanKind, isSpanContextValid, trace } from '@opentelemetry/api';
 import { TraceState } from '@opentelemetry/core';
@@ -19,6 +20,7 @@ import {
 } from '@sentry/core';
 import { SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING, SENTRY_TRACE_STATE_URL } from './constants';
 import { DEBUG_BUILD } from './debug-build';
+import { getScopesFromContext } from './utils/contextData';
 import { getSamplingDecision } from './utils/getSamplingDecision';
 import { inferSpanData } from './utils/parseSpanDescription';
 import { setIsSetup } from './utils/setupCheck';
@@ -95,45 +97,67 @@ export class SentrySampler implements Sampler {
       return wrapSamplingDecision({ decision: undefined, context, spanAttributes });
     }
 
-    const [sampled, sampleRate] = sampleSpan(options, {
-      name: inferredSpanName,
-      attributes: mergedAttributes,
-      transactionContext: {
-        name: inferredSpanName,
-        parentSampled,
-      },
-      parentSampled,
-    });
+    const isRootSpan = !parentSpan || parentContext?.isRemote;
 
-    const attributes: Attributes = {
-      [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: sampleRate,
-    };
+    const { isolationScope, scope } = getScopesFromContext(context) ?? {};
 
-    const method = `${maybeSpanHttpMethod}`.toUpperCase();
-    if (method === 'OPTIONS' || method === 'HEAD') {
-      DEBUG_BUILD && logger.log(`[Tracing] Not sampling span because HTTP method is '${method}' for ${spanName}`);
+    // We only sample based on parameters (like tracesSampleRate or tracesSampler) for root spans (which is done in sampleSpan).
+    // Non-root-spans simply inherit the sampling decision from their parent.
+    if (isRootSpan) {
+      const sampleRand = scope?.getPropagationContext().sampleRand ?? Math.random();
+      const [sampled, sampleRate] = sampleSpan(
+        options,
+        {
+          name: inferredSpanName,
+          attributes: mergedAttributes,
+          normalizedRequest: isolationScope?.getScopeData().sdkProcessingMetadata.normalizedRequest,
+          parentSampled,
+          // TODO(v9): provide a parentSampleRate here
+        },
+        sampleRand,
+      );
 
-      return {
-        ...wrapSamplingDecision({ decision: SamplingDecision.NOT_RECORD, context, spanAttributes }),
-        attributes,
+      const attributes: Attributes = {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: sampleRate,
       };
-    }
 
-    if (!sampled) {
-      if (parentSampled === undefined) {
+      const method = `${maybeSpanHttpMethod}`.toUpperCase();
+      if (method === 'OPTIONS' || method === 'HEAD') {
+        DEBUG_BUILD && logger.log(`[Tracing] Not sampling span because HTTP method is '${method}' for ${spanName}`);
+
+        return {
+          ...wrapSamplingDecision({ decision: SamplingDecision.NOT_RECORD, context, spanAttributes }),
+          attributes,
+        };
+      }
+
+      if (
+        !sampled &&
+        // We check for `parentSampled === undefined` because we only want to record client reports for spans that are trace roots (ie. when there was incoming trace)
+        parentSampled === undefined
+      ) {
         DEBUG_BUILD && logger.log('[Tracing] Discarding root span because its trace was not chosen to be sampled.');
         this._client.recordDroppedEvent('sample_rate', 'transaction');
       }
 
       return {
-        ...wrapSamplingDecision({ decision: SamplingDecision.NOT_RECORD, context, spanAttributes }),
+        ...wrapSamplingDecision({
+          decision: sampled ? SamplingDecision.RECORD_AND_SAMPLED : SamplingDecision.NOT_RECORD,
+          context,
+          spanAttributes,
+        }),
         attributes,
       };
+    } else {
+      return {
+        ...wrapSamplingDecision({
+          decision: parentSampled ? SamplingDecision.RECORD_AND_SAMPLED : SamplingDecision.NOT_RECORD,
+          context,
+          spanAttributes,
+        }),
+        attributes: {},
+      };
     }
-    return {
-      ...wrapSamplingDecision({ decision: SamplingDecision.RECORD_AND_SAMPLED, context, spanAttributes }),
-      attributes,
-    };
   }
 
   /** Returns the sampler name or short description with the configuration. */

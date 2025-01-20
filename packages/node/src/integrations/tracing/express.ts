@@ -180,7 +180,7 @@ export function setupExpressErrorHandler(
 }
 
 function getStatusCodeFromResponse(error: MiddlewareError): number {
-  const statusCode = error.status || error.statusCode || error.status_code || (error.output && error.output.statusCode);
+  const statusCode = error.status || error.statusCode || error.status_code || error.output?.statusCode;
   return statusCode ? parseInt(statusCode as string, 10) : 500;
 }
 

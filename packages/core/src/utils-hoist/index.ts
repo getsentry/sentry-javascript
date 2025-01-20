@@ -64,17 +64,6 @@ export { basename, dirname, isAbsolute, join, normalizePath, relative, resolve }
 export { makePromiseBuffer } from './promisebuffer';
 export type { PromiseBuffer } from './promisebuffer';
 
-// TODO: Remove requestdata export once equivalent integration is used everywhere
-export {
-  addNormalizedRequestDataToEvent,
-  winterCGHeadersToDict,
-  winterCGRequestToRequestData,
-  httpRequestToRequestData,
-  extractQueryParamsFromUrl,
-  headersToDict,
-} from './requestdata';
-export type { AddRequestDataToEventOptions } from './requestdata';
-
 export { severityLevelFromString } from './severity';
 export {
   UNKNOWN_FUNCTION,
@@ -99,8 +88,6 @@ export {
 } from './supports';
 export { SyncPromise, rejectedSyncPromise, resolvedSyncPromise } from './syncpromise';
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  _browserPerformanceTimeOriginMode,
   browserPerformanceTimeOrigin,
   dateTimestampInSeconds,
   timestampInSeconds,

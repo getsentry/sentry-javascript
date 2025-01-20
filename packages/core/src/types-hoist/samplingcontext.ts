@@ -16,18 +16,14 @@ export interface CustomSamplingContext {
  */
 export interface SamplingContext extends CustomSamplingContext {
   /**
-   * Context data with which transaction being sampled was created.
-   * @deprecated This is duplicate data and will be removed eventually.
-   */
-  transactionContext: {
-    name: string;
-    parentSampled?: boolean | undefined;
-  };
-
-  /**
    * Sampling decision from the parent transaction, if any.
    */
   parentSampled?: boolean;
+
+  /**
+   * Sample rate that is coming from an incoming trace (if there is one).
+   */
+  parentSampleRate?: number;
 
   /**
    * Object representing the URL of the current page or worker script. Passed by default when using the `BrowserTracing`

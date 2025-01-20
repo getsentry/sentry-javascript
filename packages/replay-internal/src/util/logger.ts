@@ -27,7 +27,7 @@ interface ReplayLogger extends LoggerConsoleMethods {
   /**
    * Configures the logger with additional debugging behavior
    */
-  setConfig(config: LoggerConfig): void;
+  setConfig(config: Partial<LoggerConfig>): void;
 }
 
 function _addBreadcrumb(message: unknown, level: SeverityLevel = 'info'): void {
@@ -51,9 +51,9 @@ function makeReplayLogger(): ReplayLogger {
   const _logger: Partial<ReplayLogger> = {
     exception: () => undefined,
     infoTick: () => undefined,
-    setConfig: (opts: LoggerConfig) => {
-      _capture = opts.captureExceptions;
-      _trace = opts.traceInternals;
+    setConfig: (opts: Partial<LoggerConfig>) => {
+      _capture = !!opts.captureExceptions;
+      _trace = !!opts.traceInternals;
     },
   };
 

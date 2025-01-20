@@ -27,8 +27,8 @@ export default defineNitroPlugin(nitroApp => {
     }
 
     const { method, path } = {
-      method: errorContext.event && errorContext.event._method ? errorContext.event._method : '',
-      path: errorContext.event && errorContext.event._path ? errorContext.event._path : null,
+      method: errorContext.event?._method ? errorContext.event._method : '',
+      path: errorContext.event?._path ? errorContext.event._path : null,
     };
 
     if (path) {
@@ -75,7 +75,6 @@ async function flushWithTimeout(): Promise<void> {
   }
 }
 
-// copied from '@sentry-internal/nitro-utils' - the nuxt-module-builder does not inline devDependencies
 function patchEventHandler(handler: EventHandler): EventHandler {
   return new Proxy(handler, {
     async apply(handlerTarget, handlerThisArg, handlerArgs: Parameters<EventHandler>) {

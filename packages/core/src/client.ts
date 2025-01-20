@@ -150,7 +150,9 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   }
 
   /**
-   * @inheritDoc
+   * Captures an exception event and sends it to Sentry.
+   *
+   * Unlike `captureException` exported from every SDK, this method requires that you pass it the current scope.
    */
   public captureException(exception: unknown, hint?: EventHint, scope?: Scope): string {
     const eventId = uuid4();
@@ -176,7 +178,9 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   }
 
   /**
-   * @inheritDoc
+   * Captures a message event and sends it to Sentry.
+   *
+   * Unlike `captureMessage` exported from every SDK, this method requires that you pass it the current scope.
    */
   public captureMessage(
     message: ParameterizedString,
@@ -201,7 +205,9 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   }
 
   /**
-   * @inheritDoc
+   * Captures a manually created event and sends it to Sentry.
+   *
+   * Unlike `captureEvent` exported from every SDK, this method requires that you pass it the current scope.
    */
   public captureEvent(event: Event, hint?: EventHint, currentScope?: Scope): string {
     const eventId = uuid4();
@@ -229,7 +235,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   }
 
   /**
-   * @inheritDoc
+   * Captures a session.
    */
   public captureSession(session: Session): void {
     this.sendSession(session);
@@ -249,37 +255,42 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public captureCheckIn?(checkIn: CheckIn, monitorConfig?: MonitorConfig, scope?: Scope): string;
 
   /**
-   * @inheritDoc
+   * Get the current Dsn.
    */
   public getDsn(): DsnComponents | undefined {
     return this._dsn;
   }
 
   /**
-   * @inheritDoc
+   * Get the current options.
    */
   public getOptions(): O {
     return this._options;
   }
 
   /**
+   * Get the SDK metadata.
    * @see SdkMetadata
-   *
-   * @return The metadata of the SDK
    */
   public getSdkMetadata(): SdkMetadata | undefined {
     return this._options._metadata;
   }
 
   /**
-   * @inheritDoc
+   * Returns the transport that is used by the client.
+   * Please note that the transport gets lazy initialized so it will only be there once the first event has been sent.
    */
   public getTransport(): Transport | undefined {
     return this._transport;
   }
 
   /**
-   * @inheritDoc
+   * Wait for all events to be sent or the timeout to expire, whichever comes first.
+   *
+   * @param timeout Maximum time in ms the client should wait for events to be flushed. Omitting this parameter will
+   *   cause the client to wait until all events are sent before resolving the promise.
+   * @returns A promise that will resolve with `true` if all events are sent before the timeout, or `false` if there are
+   * still events in the queue when the timeout is reached.
    */
   public flush(timeout?: number): PromiseLike<boolean> {
     const transport = this._transport;
@@ -294,7 +305,12 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   }
 
   /**
-   * @inheritDoc
+   * Flush the event queue and set the client to `enabled = false`. See {@link Client.flush}.
+   *
+   * @param {number} timeout Maximum time in ms the client should wait before shutting down. Omitting this parameter will cause
+   *   the client to wait until all events are sent before disabling itself.
+   * @returns {Promise<boolean>} A promise which resolves to `true` if the flush completes successfully before the timeout, or `false` if
+   * it doesn't.
    */
   public close(timeout?: number): PromiseLike<boolean> {
     return this.flush(timeout).then(result => {
@@ -304,17 +320,24 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     });
   }
 
-  /** Get all installed event processors. */
+  /**
+   * Get all installed event processors.
+   */
   public getEventProcessors(): EventProcessor[] {
     return this._eventProcessors;
   }
 
-  /** @inheritDoc */
+  /**
+   * Adds an event processor that applies to any event processed by this client.
+   */
   public addEventProcessor(eventProcessor: EventProcessor): void {
     this._eventProcessors.push(eventProcessor);
   }
 
-  /** @inheritdoc */
+  /**
+   * Initialize this client.
+   * Call this after the client was set on a scope.
+   */
   public init(): void {
     if (
       this._isEnabled() ||
@@ -332,14 +355,18 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   /**
    * Gets an installed integration by its name.
    *
-   * @returns The installed integration or `undefined` if no integration with that `name` was installed.
+   * @returns {Integration|undefined} The installed integration or `undefined` if no integration with that `name` was installed.
    */
   public getIntegrationByName<T extends Integration = Integration>(integrationName: string): T | undefined {
     return this._integrations[integrationName] as T | undefined;
   }
 
   /**
-   * @inheritDoc
+   * Add an integration to the client.
+   * This can be used to e.g. lazy load integrations.
+   * In most cases, this should not be necessary,
+   * and you're better off just passing the integrations via `integrations: []` at initialization time.
+   * However, if you find the need to conditionally load & add an integration, you can use `addIntegration` to do so.
    */
   public addIntegration(integration: Integration): void {
     const isAlreadyInstalled = this._integrations[integration.name];
@@ -353,7 +380,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   }
 
   /**
-   * @inheritDoc
+   * Send a fully prepared event to Sentry.
    */
   public sendEvent(event: Event, hint: EventHint = {}): void {
     this.emit('beforeSendEvent', event, hint);
@@ -371,7 +398,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   }
 
   /**
-   * @inheritDoc
+   * Send a session or session aggregrates to Sentry.
    */
   public sendSession(session: Session | SessionAggregates): void {
     // Backfill release and environment on session
@@ -401,14 +428,10 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   }
 
   /**
-   * @inheritDoc
+   * Record on the client that an event got dropped (ie, an event that will not be sent to Sentry).
    */
-  public recordDroppedEvent(reason: EventDropReason, category: DataCategory, eventOrCount?: Event | number): void {
+  public recordDroppedEvent(reason: EventDropReason, category: DataCategory, count: number = 1): void {
     if (this._options.sendClientReports) {
-      // TODO v9: We do not need the `event` passed as third argument anymore, and can possibly remove this overload
-      // If event is passed as third argument, we assume this is a count of 1
-      const count = typeof eventOrCount === 'number' ? eventOrCount : 1;
-
       // We want to track each category (error, transaction, session, replay_event) separately
       // but still keep the distinction between different type of outcomes.
       // We could use nested maps, but it's much easier to read and type this way.
@@ -421,46 +444,19 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     }
   }
 
-  // Keep on() & emit() signatures in sync with types' client.ts interface
   /* eslint-disable @typescript-eslint/unified-signatures */
-
-  /** @inheritdoc */
+  /**
+   * Register a callback for whenever a span is started.
+   * Receives the span as argument.
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
   public on(hook: 'spanStart', callback: (span: Span) => void): () => void;
 
-  /** @inheritdoc */
-  public on(hook: 'spanEnd', callback: (span: Span) => void): () => void;
-
-  /** @inheritdoc */
-  public on(hook: 'idleSpanEnableAutoFinish', callback: (span: Span) => void): () => void;
-
-  /** @inheritdoc */
-  public on(hook: 'beforeEnvelope', callback: (envelope: Envelope) => void): () => void;
-
-  /** @inheritdoc */
-  public on(hook: 'beforeSendEvent', callback: (event: Event, hint?: EventHint) => void): () => void;
-
-  /** @inheritdoc */
-  public on(hook: 'preprocessEvent', callback: (event: Event, hint?: EventHint) => void): () => void;
-
-  /** @inheritdoc */
-  public on(
-    hook: 'afterSendEvent',
-    callback: (event: Event, sendResponse: TransportMakeRequestResponse) => void,
-  ): () => void;
-
-  /** @inheritdoc */
-  public on(hook: 'beforeAddBreadcrumb', callback: (breadcrumb: Breadcrumb, hint?: BreadcrumbHint) => void): () => void;
-
-  /** @inheritdoc */
-  public on(hook: 'createDsc', callback: (dsc: DynamicSamplingContext, rootSpan?: Span) => void): () => void;
-
-  /** @inheritdoc */
-  public on(
-    hook: 'beforeSendFeedback',
-    callback: (feedback: FeedbackEvent, options?: { includeReplay?: boolean }) => void,
-  ): () => void;
-
-  /** @inheritdoc */
+  /**
+   * Register a callback before span sampling runs. Receives a `samplingDecision` object argument with a `decision`
+   * property that can be used to make a sampling decision that will be enforced, before any span sampling runs.
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
   public on(
     hook: 'beforeSampling',
     callback: (
@@ -474,7 +470,83 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     ) => void,
   ): void;
 
-  /** @inheritdoc */
+  /**
+   * Register a callback for whenever a span is ended.
+   * Receives the span as argument.
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'spanEnd', callback: (span: Span) => void): () => void;
+
+  /**
+   * Register a callback for when an idle span is allowed to auto-finish.
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'idleSpanEnableAutoFinish', callback: (span: Span) => void): () => void;
+
+  /**
+   * Register a callback for transaction start and finish.
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'beforeEnvelope', callback: (envelope: Envelope) => void): () => void;
+
+  /**
+   * Register a callback that runs when stack frame metadata should be applied to an event.
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'applyFrameMetadata', callback: (event: Event) => void): () => void;
+
+  /**
+   * Register a callback for before sending an event.
+   * This is called right before an event is sent and should not be used to mutate the event.
+   * Receives an Event & EventHint as arguments.
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'beforeSendEvent', callback: (event: Event, hint?: EventHint | undefined) => void): () => void;
+
+  /**
+   * Register a callback for preprocessing an event,
+   * before it is passed to (global) event processors.
+   * Receives an Event & EventHint as arguments.
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'preprocessEvent', callback: (event: Event, hint?: EventHint | undefined) => void): () => void;
+
+  /**
+   * Register a callback for when an event has been sent.
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(
+    hook: 'afterSendEvent',
+    callback: (event: Event, sendResponse: TransportMakeRequestResponse) => void,
+  ): () => void;
+
+  /**
+   * Register a callback before a breadcrumb is added.
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'beforeAddBreadcrumb', callback: (breadcrumb: Breadcrumb, hint?: BreadcrumbHint) => void): () => void;
+
+  /**
+   * Register a callback when a DSC (Dynamic Sampling Context) is created.
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'createDsc', callback: (dsc: DynamicSamplingContext, rootSpan?: Span) => void): () => void;
+
+  /**
+   * Register a callback when a Feedback event has been prepared.
+   * This should be used to mutate the event. The options argument can hint
+   * about what kind of mutation it expects.
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(
+    hook: 'beforeSendFeedback',
+    callback: (feedback: FeedbackEvent, options?: { includeReplay?: boolean }) => void,
+  ): () => void;
+
+  /**
+   * A hook for the browser tracing integrations to trigger a span start for a page load.
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
   public on(
     hook: 'startPageLoadSpan',
     callback: (
@@ -483,16 +555,27 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     ) => void,
   ): () => void;
 
-  /** @inheritdoc */
+  /**
+   * A hook for browser tracing integrations to trigger a span for a navigation.
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
   public on(hook: 'startNavigationSpan', callback: (options: StartSpanOptions) => void): () => void;
 
+  /**
+   * A hook that is called when the client is flushing
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
   public on(hook: 'flush', callback: () => void): () => void;
 
+  /**
+   * A hook that is called when the client is closing
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
   public on(hook: 'close', callback: () => void): () => void;
 
-  public on(hook: 'applyFrameMetadata', callback: (event: Event) => void): () => void;
-
-  /** @inheritdoc */
+  /**
+   * Register a hook oin this client.
+   */
   public on(hook: string, callback: unknown): () => void {
     const hooks = (this._hooks[hook] = this._hooks[hook] || []);
 
@@ -512,7 +595,10 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     };
   }
 
-  /** @inheritdoc */
+  /** Fire a hook whenever a span starts. */
+  public emit(hook: 'spanStart', span: Span): void;
+
+  /** A hook that is called every time before a span is sampled. */
   public emit(
     hook: 'beforeSampling',
     samplingData: {
@@ -524,56 +610,88 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     samplingDecision: { decision: boolean },
   ): void;
 
-  /** @inheritdoc */
-  public emit(hook: 'spanStart', span: Span): void;
-
-  /** @inheritdoc */
+  /** Fire a hook whenever a span ends. */
   public emit(hook: 'spanEnd', span: Span): void;
 
-  /** @inheritdoc */
+  /**
+   * Fire a hook indicating that an idle span is allowed to auto finish.
+   */
   public emit(hook: 'idleSpanEnableAutoFinish', span: Span): void;
 
-  /** @inheritdoc */
+  /*
+   * Fire a hook event for envelope creation and sending. Expects to be given an envelope as the
+   * second argument.
+   */
   public emit(hook: 'beforeEnvelope', envelope: Envelope): void;
 
-  /** @inheritdoc */
+  /*
+   * Fire a hook indicating that stack frame metadata should be applied to the event passed to the hook.
+   */
+  public emit(hook: 'applyFrameMetadata', event: Event): void;
+
+  /**
+   * Fire a hook event before sending an event.
+   * This is called right before an event is sent and should not be used to mutate the event.
+   * Expects to be given an Event & EventHint as the second/third argument.
+   */
   public emit(hook: 'beforeSendEvent', event: Event, hint?: EventHint): void;
 
-  /** @inheritdoc */
+  /**
+   * Fire a hook event to process events before they are passed to (global) event processors.
+   * Expects to be given an Event & EventHint as the second/third argument.
+   */
   public emit(hook: 'preprocessEvent', event: Event, hint?: EventHint): void;
 
-  /** @inheritdoc */
+  /*
+   * Fire a hook event after sending an event. Expects to be given an Event as the
+   * second argument.
+   */
   public emit(hook: 'afterSendEvent', event: Event, sendResponse: TransportMakeRequestResponse): void;
 
-  /** @inheritdoc */
+  /**
+   * Fire a hook for when a breadcrumb is added. Expects the breadcrumb as second argument.
+   */
   public emit(hook: 'beforeAddBreadcrumb', breadcrumb: Breadcrumb, hint?: BreadcrumbHint): void;
 
-  /** @inheritdoc */
+  /**
+   * Fire a hook for when a DSC (Dynamic Sampling Context) is created. Expects the DSC as second argument.
+   */
   public emit(hook: 'createDsc', dsc: DynamicSamplingContext, rootSpan?: Span): void;
 
-  /** @inheritdoc */
+  /**
+   * Fire a hook event for after preparing a feedback event. Events to be given
+   * a feedback event as the second argument, and an optional options object as
+   * third argument.
+   */
   public emit(hook: 'beforeSendFeedback', feedback: FeedbackEvent, options?: { includeReplay?: boolean }): void;
 
-  /** @inheritdoc */
+  /**
+   * Emit a hook event for browser tracing integrations to trigger a span start for a page load.
+   */
   public emit(
     hook: 'startPageLoadSpan',
     options: StartSpanOptions,
     traceOptions?: { sentryTrace?: string | undefined; baggage?: string | undefined },
   ): void;
 
-  /** @inheritdoc */
+  /**
+   * Emit a hook event for browser tracing integrations to trigger a span for a navigation.
+   */
   public emit(hook: 'startNavigationSpan', options: StartSpanOptions): void;
 
-  /** @inheritdoc */
+  /**
+   * Emit a hook event for client flush
+   */
   public emit(hook: 'flush'): void;
 
-  /** @inheritdoc */
+  /**
+   * Emit a hook event for client close
+   */
   public emit(hook: 'close'): void;
 
-  /** @inheritdoc */
-  public emit(hook: 'applyFrameMetadata', event: Event): void;
-
-  /** @inheritdoc */
+  /**
+   * Emit a hook that was previously registered via `on()`.
+   */
   public emit(hook: string, ...rest: unknown[]): void {
     const callbacks = this._hooks[hook];
     if (callbacks) {
@@ -582,7 +700,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   }
 
   /**
-   * @inheritdoc
+   * Send an envelope to Sentry.
    */
   public sendEnvelope(envelope: Envelope): PromiseLike<TransportMakeRequestResponse> {
     this.emit('beforeEnvelope', envelope);
@@ -612,7 +730,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   protected _updateSessionFromEvent(session: Session, event: Event): void {
     let crashed = false;
     let errored = false;
-    const exceptions = event.exception && event.exception.values;
+    const exceptions = event.exception?.values;
 
     if (exceptions) {
       errored = true;
@@ -797,7 +915,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     // Sampling for transaction happens somewhere else
     const parsedSampleRate = typeof sampleRate === 'undefined' ? undefined : parseSampleRate(sampleRate);
     if (isError && typeof parsedSampleRate === 'number' && Math.random() > parsedSampleRate) {
-      this.recordDroppedEvent('sample_rate', 'error', event);
+      this.recordDroppedEvent('sample_rate', 'error');
       return rejectedSyncPromise(
         new SentryError(
           `Discarding event because it's not included in the random sample (sampling rate = ${sampleRate})`,
@@ -811,7 +929,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     return this._prepareEvent(event, hint, currentScope, isolationScope)
       .then(prepared => {
         if (prepared === null) {
-          this.recordDroppedEvent('event_processor', dataCategory, event);
+          this.recordDroppedEvent('event_processor', dataCategory);
           throw new SentryError('An event processor returned `null`, will not send event.', 'log');
         }
 
@@ -825,7 +943,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       })
       .then(processedEvent => {
         if (processedEvent === null) {
-          this.recordDroppedEvent('before_send', dataCategory, event);
+          this.recordDroppedEvent('before_send', dataCategory);
           if (isTransaction) {
             const spans = event.spans || [];
             // the transaction itself counts as one span, plus all the child spans that are added
@@ -841,9 +959,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
         }
 
         if (isTransaction) {
-          const spanCountBefore =
-            (processedEvent.sdkProcessingMetadata && processedEvent.sdkProcessingMetadata.spanCountBeforeProcessing) ||
-            0;
+          const spanCountBefore = processedEvent.sdkProcessingMetadata?.spanCountBeforeProcessing || 0;
           const spanCountAfter = processedEvent.spans ? processedEvent.spans.length : 0;
 
           const droppedSpanCount = spanCountBefore - spanCountAfter;
@@ -946,12 +1062,12 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   }
 
   /**
-   * @inheritDoc
+   * Creates an {@link Event} from all inputs to `captureException` and non-primitive inputs to `captureMessage`.
    */
   public abstract eventFromException(_exception: unknown, _hint?: EventHint): PromiseLike<Event>;
 
   /**
-   * @inheritDoc
+   * Creates an {@link Event} from primitive inputs to `captureMessage`.
    */
   public abstract eventFromMessage(
     _message: ParameterizedString,

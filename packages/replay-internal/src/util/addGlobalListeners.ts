@@ -62,7 +62,7 @@ export function addGlobalListeners(replay: ReplayContainer): void {
       const replayId = replay.getSessionId();
       if (options?.includeReplay && replay.isEnabled() && replayId) {
         // This should never reject
-        if (feedbackEvent.contexts && feedbackEvent.contexts.feedback) {
+        if (feedbackEvent.contexts?.feedback) {
           feedbackEvent.contexts.feedback.replay_id = replayId;
         }
       }

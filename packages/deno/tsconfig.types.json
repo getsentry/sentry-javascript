@@ -4,6 +4,6 @@
     "declaration": true,
     "declarationMap": false,
     "emitDeclarationOnly": true,
-    "outDir": "build-types"
+    "outDir": "build/esm"
   }
 }

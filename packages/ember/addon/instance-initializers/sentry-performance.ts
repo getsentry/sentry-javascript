@@ -85,7 +85,7 @@ function getTransitionInformation(
 }
 
 function getLocationURL(location: EmberRouterMain['location']): string {
-  if (!location || !location.getURL || !location.formatURL) {
+  if (!location?.getURL || !location?.formatURL) {
     return '';
   }
   const url = location.formatURL(location.getURL());
@@ -366,8 +366,9 @@ function _instrumentInitialLoad(config: EmberSentryConfig): void {
     return;
   }
 
+  const origin = browserPerformanceTimeOrigin();
   // Split performance check in two so clearMarks still happens even if timeOrigin isn't available.
-  if (!HAS_PERFORMANCE_TIMING || browserPerformanceTimeOrigin === undefined) {
+  if (!HAS_PERFORMANCE_TIMING || origin === undefined) {
     return;
   }
   const measureName = '@sentry/ember:initial-load';
@@ -383,7 +384,7 @@ function _instrumentInitialLoad(config: EmberSentryConfig): void {
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const measure = measures[0]!;
 
-  const startTime = (measure.startTime + browserPerformanceTimeOrigin) / 1000;
+  const startTime = (measure.startTime + origin) / 1000;
   const endTime = startTime + measure.duration / 1000;
 
   startInactiveSpan({

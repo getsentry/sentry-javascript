@@ -1,6 +1,5 @@
 import type { Options, SamplingContext } from '../types-hoist';
 
-import { getIsolationScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { logger } from '../utils-hoist/logger';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
@@ -15,26 +14,20 @@ import { parseSampleRate } from '../utils/parseSampleRate';
 export function sampleSpan(
   options: Pick<Options, 'tracesSampleRate' | 'tracesSampler' | 'enableTracing'>,
   samplingContext: SamplingContext,
+  sampleRand: number,
 ): [sampled: boolean, sampleRate?: number] {
   // nothing to do if tracing is not enabled
   if (!hasTracingEnabled(options)) {
     return [false];
   }
 
-  const normalizedRequest = getIsolationScope().getScopeData().sdkProcessingMetadata.normalizedRequest;
-
-  const enhancedSamplingContext = {
-    ...samplingContext,
-    normalizedRequest: samplingContext.normalizedRequest || normalizedRequest,
-  };
-
   // we would have bailed already if neither `tracesSampler` nor `tracesSampleRate` nor `enableTracing` were defined, so one of these should
   // work; prefer the hook if so
   let sampleRate;
   if (typeof options.tracesSampler === 'function') {
-    sampleRate = options.tracesSampler(enhancedSamplingContext);
-  } else if (enhancedSamplingContext.parentSampled !== undefined) {
-    sampleRate = enhancedSamplingContext.parentSampled;
+    sampleRate = options.tracesSampler(samplingContext);
+  } else if (samplingContext.parentSampled !== undefined) {
+    sampleRate = samplingContext.parentSampled;
   } else if (typeof options.tracesSampleRate !== 'undefined') {
     sampleRate = options.tracesSampleRate;
   } else {
@@ -64,9 +57,9 @@ export function sampleSpan(
     return [false, parsedSampleRate];
   }
 
-  // Now we roll the dice. Math.random is inclusive of 0, but not of 1, so strict < is safe here. In case sampleRate is
-  // a boolean, the < comparison will cause it to be automatically cast to 1 if it's true and 0 if it's false.
-  const shouldSample = Math.random() < parsedSampleRate;
+  // We always compare the sample rand for the current execution context against the chosen sample rate.
+  // Read more: https://develop.sentry.dev/sdk/telemetry/traces/#propagated-random-value
+  const shouldSample = sampleRand < parsedSampleRate;
 
   // if we're not going to keep it, we're done
   if (!shouldSample) {

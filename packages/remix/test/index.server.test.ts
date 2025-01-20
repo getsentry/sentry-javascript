@@ -2,6 +2,13 @@ import * as SentryNode from '@sentry/node';
 
 import { init } from '../src/index.server';
 
+jest.mock('@sentry/node', () => {
+  return {
+    __esModule: true,
+    ...jest.requireActual('@sentry/node'),
+  };
+});
+
 const nodeInit = jest.spyOn(SentryNode, 'init');
 
 describe('Server init()', () => {

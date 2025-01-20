@@ -78,14 +78,6 @@ targets:
   - name: npm
     id: '@sentry/deno'
     includeNames: /^sentry-deno-\d.*\.tgz$/
-  - name: commit-on-git-repository
-    # This will publish on the Deno registry
-    id: getsentry/deno
-    archive: /^sentry-deno-\d.*\.tgz$/
-    repositoryUrl: https://github.com/getsentry/sentry-deno.git
-    stripComponents: 1
-    branch: main
-    createTag: true
 
   ## 5. Node-based Packages
   - name: npm
@@ -141,7 +133,7 @@ targets:
   # TODO(v9): Once stable, re-add this target to publish the AWS Lambda layer
   # - name: aws-lambda-layer
   #   includeNames: /^sentry-node-serverless-\d+.\d+.\d+(-(beta|alpha|rc)\.\d+)?\.zip$/
-  #   layerName: SentryNodeServerlessSDK
+  #   layerName: SentryNodeServerlessSDKv9
   #   compatibleRuntimes:
   #     - name: node
   #       versions:

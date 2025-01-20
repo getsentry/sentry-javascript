@@ -48,6 +48,7 @@ sentryTest('updates the DSC when the txn name is updated and high-quality', asyn
     'sentry-environment=production',
     'sentry-public_key=public',
     'sentry-release=1.1.1',
+    expect.stringMatching(/sentry-sample_rand=0\.[0-9]+/),
     'sentry-sample_rate=1',
     'sentry-sampled=true',
     `sentry-trace_id=${traceId}`,
@@ -62,6 +63,7 @@ sentryTest('updates the DSC when the txn name is updated and high-quality', asyn
     sample_rate: '1',
     sampled: 'true',
     trace_id: traceId,
+    sample_rand: expect.any(String),
   });
 
   // 4
@@ -73,6 +75,7 @@ sentryTest('updates the DSC when the txn name is updated and high-quality', asyn
     'sentry-environment=production',
     'sentry-public_key=public',
     'sentry-release=1.1.1',
+    expect.stringMatching(/sentry-sample_rand=0\.[0-9]+/),
     'sentry-sample_rate=1',
     'sentry-sampled=true',
     `sentry-trace_id=${traceId}`,
@@ -89,6 +92,7 @@ sentryTest('updates the DSC when the txn name is updated and high-quality', asyn
     sampled: 'true',
     trace_id: traceId,
     transaction: 'updated-root-span-1',
+    sample_rand: expect.any(String),
   });
 
   // 7
@@ -100,6 +104,7 @@ sentryTest('updates the DSC when the txn name is updated and high-quality', asyn
     'sentry-environment=production',
     'sentry-public_key=public',
     'sentry-release=1.1.1',
+    expect.stringMatching(/sentry-sample_rand=0\.[0-9]+/),
     'sentry-sample_rate=1',
     'sentry-sampled=true',
     `sentry-trace_id=${traceId}`,
@@ -116,6 +121,7 @@ sentryTest('updates the DSC when the txn name is updated and high-quality', asyn
     sampled: 'true',
     trace_id: traceId,
     transaction: 'updated-root-span-2',
+    sample_rand: expect.any(String),
   });
 
   // 10
@@ -137,6 +143,7 @@ sentryTest('updates the DSC when the txn name is updated and high-quality', asyn
     sampled: 'true',
     trace_id: traceId,
     transaction: 'updated-root-span-2',
+    sample_rand: expect.any(String),
   });
 
   expect(txnEvent.transaction).toEqual('updated-root-span-2');
@@ -182,8 +189,5 @@ async function captureErrorAndGetEnvelopeTraceHeader(page: Page): Promise<Partia
 
   const [, errorEnvelopeTraceHeader] = (await errorEventPromise)[0];
 
-  // @ts-expect-error - EventEnvelopeHeaders type in (types/envelope.ts) suggests that trace_id is optional,
-  // which the DynamicSamplingContext type does not permit.
-  // TODO(v9): We should adjust the EventEnvelopeHeaders type because the trace header always needs to have a trace_id
   return errorEnvelopeTraceHeader;
 }

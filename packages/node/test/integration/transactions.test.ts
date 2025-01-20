@@ -109,6 +109,7 @@ describe('Integration | Transactions', () => {
       release: '8.0.0',
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       transaction: 'test name',
+      sample_rand: expect.any(String),
     });
 
     expect(transaction.environment).toEqual('production');

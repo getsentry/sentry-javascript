@@ -15,7 +15,7 @@ import type { VendoredTanstackRouter, VendoredTanstackRouterRouteMatch } from '.
 /**
  * A custom browser tracing integration for TanStack Router.
  *
- * The minimum compatible version of `@tanstack/router` is `1.34.5`.
+ * The minimum compatible version of `@tanstack/react-router` is `1.64.0`.
  *
  * @param router A TanStack Router `Router` instance that should be used for routing instrumentation.
  * @param options Sentry browser tracing configuration.

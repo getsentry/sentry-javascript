@@ -52,6 +52,9 @@ module.exports = {
 
         '@typescript-eslint/consistent-type-imports': 'error',
 
+        // We want to use optional chaining, where possible, to safe bytes
+        '@typescript-eslint/prefer-optional-chain': 'error',
+
         // Private and protected members of a class should be prefixed with a leading underscore.
         // typeLike declarations (class, interface, typeAlias, enum, typeParameter) should be
         // PascalCase.
