@@ -108,7 +108,7 @@ describe('init()', () => {
       init({
         dsn: PUBLIC_DSN,
         integrations: mockIntegrations,
-        enableTracing: true,
+        tracesSampleRate: 1,
       });
 
       expect(mockIntegrations[0]?.setupOnce as jest.Mock).toHaveBeenCalledTimes(1);

@@ -22,7 +22,7 @@ describe('Integration | Transactions', () => {
     });
 
     mockSdkInit({
-      enableTracing: true,
+      tracesSampleRate: 1,
       beforeSendTransaction,
       release: '8.0.0',
     });
@@ -164,7 +164,7 @@ describe('Integration | Transactions', () => {
   it('correctly creates concurrent transaction & spans', async () => {
     const beforeSendTransaction = jest.fn(() => null);
 
-    mockSdkInit({ enableTracing: true, beforeSendTransaction });
+    mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
 
     const client = Sentry.getClient()!;
 
@@ -309,7 +309,7 @@ describe('Integration | Transactions', () => {
   it('correctly creates concurrent transaction & spans when using native OTEL tracer', async () => {
     const beforeSendTransaction = jest.fn(() => null);
 
-    mockSdkInit({ enableTracing: true, beforeSendTransaction });
+    mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
 
     const client = Sentry.getClient<Sentry.NodeClient>();
 
@@ -457,7 +457,7 @@ describe('Integration | Transactions', () => {
       traceFlags: TraceFlags.SAMPLED,
     };
 
-    mockSdkInit({ enableTracing: true, beforeSendTransaction });
+    mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
 
     const client = Sentry.getClient()!;
 
@@ -562,7 +562,7 @@ describe('Integration | Transactions', () => {
     const logs: unknown[] = [];
     jest.spyOn(logger, 'log').mockImplementation(msg => logs.push(msg));
 
-    mockSdkInit({ enableTracing: true, beforeSendTransaction });
+    mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
 
     const provider = getProvider();
     const multiSpanProcessor = provider?.activeSpanProcessor as
@@ -641,7 +641,7 @@ describe('Integration | Transactions', () => {
     jest.spyOn(logger, 'log').mockImplementation(msg => logs.push(msg));
 
     mockSdkInit({
-      enableTracing: true,
+      tracesSampleRate: 1,
       beforeSendTransaction,
       maxSpanWaitDuration: 100 * 60,
     });

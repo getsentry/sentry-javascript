@@ -82,17 +82,6 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   tracesSampleRate?: number;
 
   /**
-   * If this is enabled, spans and trace data will be generated and captured.
-   * This will set the `tracesSampleRate` to the recommended default of `1.0` if `tracesSampleRate` is undefined.
-   * Note that `tracesSampleRate` and `tracesSampler` take precedence over this option.
-   *
-   * @deprecated This option is deprecated and will be removed in the next major version. If you want to enable performance
-   * monitoring, please use the `tracesSampleRate` or `tracesSampler` options instead. If you wan't to disable performance
-   * monitoring, remove the `tracesSampler` and `tracesSampleRate` options.
-   */
-  enableTracing?: boolean;
-
-  /**
    * If this is enabled, any spans started will always have their parent be the active root span,
    * if there is any active span.
    *

@@ -21,13 +21,13 @@ describe('Integration | Scope', () => {
   describe.each([
     ['with tracing', true],
     ['without tracing', false],
-  ])('%s', (_name, enableTracing) => {
+  ])('%s', (_name, tracingEnabled) => {
     it('correctly syncs OTEL context & Sentry hub/scope', async () => {
       const beforeSend = jest.fn(() => null);
       const beforeSendTransaction = jest.fn(() => null);
 
       mockSdkInit({
-        tracesSampleRate: enableTracing ? 1 : 0,
+        tracesSampleRate: tracingEnabled ? 1 : 0,
         beforeSend,
         beforeSendTransaction,
       });
@@ -53,7 +53,7 @@ describe('Integration | Scope', () => {
           scope2.setTag('tag3', 'val3');
 
           startSpan({ name: 'outer' }, span => {
-            expect(getCapturedScopesOnSpan(span).scope).toBe(enableTracing ? scope2 : undefined);
+            expect(getCapturedScopesOnSpan(span).scope).toBe(tracingEnabled ? scope2 : undefined);
 
             spanId = span.spanContext().spanId;
             traceId = span.spanContext().traceId;
@@ -103,7 +103,7 @@ describe('Integration | Scope', () => {
         },
       );
 
-      if (enableTracing) {
+      if (tracingEnabled) {
         expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
         // Note: Scope for transaction is taken at `start` time, not `finish` time
         expect(beforeSendTransaction).toHaveBeenCalledWith(
@@ -144,7 +144,7 @@ describe('Integration | Scope', () => {
       const beforeSend = jest.fn(() => null);
       const beforeSendTransaction = jest.fn(() => null);
 
-      mockSdkInit({ enableTracing, beforeSend, beforeSendTransaction });
+      mockSdkInit({ tracesSampleRate: tracingEnabled ? 1 : 0, beforeSend, beforeSendTransaction });
 
       const client = getClient() as TestClientInterface;
       const rootScope = getCurrentScope();
@@ -253,7 +253,7 @@ describe('Integration | Scope', () => {
         },
       );
 
-      if (enableTracing) {
+      if (tracingEnabled) {
         expect(beforeSendTransaction).toHaveBeenCalledTimes(2);
       }
     });
@@ -262,7 +262,7 @@ describe('Integration | Scope', () => {
       const beforeSend = jest.fn(() => null);
       const beforeSendTransaction = jest.fn(() => null);
 
-      mockSdkInit({ enableTracing, beforeSend, beforeSendTransaction });
+      mockSdkInit({ tracesSampleRate: tracingEnabled ? 1 : 0, beforeSend, beforeSendTransaction });
 
       const client = getClient() as TestClientInterface;
       const rootScope = getCurrentScope();
@@ -379,7 +379,7 @@ describe('Integration | Scope', () => {
         },
       );
 
-      if (enableTracing) {
+      if (tracingEnabled) {
         expect(beforeSendTransaction).toHaveBeenCalledTimes(2);
       }
     });
