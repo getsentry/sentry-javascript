@@ -37,6 +37,9 @@ const DEFAULT_REPLAY_EVENT = {
       'User-Agent': expect.any(String),
     },
   },
+  user: {
+    ip_address: '{{auto}}',
+  },
   platform: 'javascript',
 };
 
