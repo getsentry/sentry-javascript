@@ -11,9 +11,9 @@ import {
   SEMATTRS_HTTP_URL,
 } from '@opentelemetry/semantic-conventions';
 import type { Client, SpanAttributes } from '@sentry/core';
+import { baggageHeaderToDynamicSamplingContext } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_OVERRIDE_TRACE_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   hasTracingEnabled,
   logger,
@@ -21,6 +21,7 @@ import {
   sampleSpan,
 } from '@sentry/core';
 import {
+  SENTRY_TRACE_STATE_DSC,
   SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING,
   SENTRY_TRACE_STATE_SAMPLE_RAND,
   SENTRY_TRACE_STATE_SAMPLE_RATE_OVERRIDE,
@@ -109,9 +110,13 @@ export class SentrySampler implements Sampler {
     // We only sample based on parameters (like tracesSampleRate or tracesSampler) for root spans (which is done in sampleSpan).
     // Non-root-spans simply inherit the sampling decision from their parent.
     if (isRootSpan) {
-      const { isolationScope, scope } = getScopesFromContext(context) ?? {};
-      const currentPropagationContext = scope?.getPropagationContext();
-      const sampleRand = currentPropagationContext?.sampleRand ?? Math.random();
+      const { isolationScope } = getScopesFromContext(context) ?? {};
+
+      const dscString = parentContext?.traceState ? parentContext.traceState.get(SENTRY_TRACE_STATE_DSC) : undefined;
+      const dsc = dscString ? baggageHeaderToDynamicSamplingContext(dscString) : undefined;
+
+      const sampleRand = parseSampleRate(dsc?.sample_rand) ?? Math.random();
+
       const [sampled, sampleRate, shouldUpdateSampleRateOnDownstreamTrace] = sampleSpan(
         options,
         {
@@ -119,16 +124,13 @@ export class SentrySampler implements Sampler {
           attributes: mergedAttributes,
           normalizedRequest: isolationScope?.getScopeData().sdkProcessingMetadata.normalizedRequest,
           parentSampled,
-          parentSampleRate: parseSampleRate(currentPropagationContext?.dsc?.sample_rate),
+          parentSampleRate: parseSampleRate(dsc?.sample_rate),
         },
         sampleRand,
       );
 
       const attributes: Attributes = {
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: sampleRate,
-        [SEMANTIC_ATTRIBUTE_SENTRY_OVERRIDE_TRACE_SAMPLE_RATE]: shouldUpdateSampleRateOnDownstreamTrace
-          ? sampleRate
-          : undefined,
       };
 
       const method = `${maybeSpanHttpMethod}`.toUpperCase();
@@ -156,6 +158,7 @@ export class SentrySampler implements Sampler {
           context,
           spanAttributes,
           sampleRand,
+          sampleRateOverride: shouldUpdateSampleRateOnDownstreamTrace ? sampleRate : undefined,
         }),
         attributes,
       };
