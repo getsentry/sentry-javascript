@@ -143,7 +143,7 @@ export class SentrySampler implements Sampler {
             context,
             spanAttributes,
             sampleRand,
-            sampleRateOverride: 0, // we don't want to sample anything in the downstream trace either
+            shouldUpdateSampleRateOnDownstreamTrace: 0, // we don't want to sample anything in the downstream trace either
           }),
           attributes,
         };
@@ -164,7 +164,7 @@ export class SentrySampler implements Sampler {
           context,
           spanAttributes,
           sampleRand,
-          sampleRateOverride: shouldUpdateSampleRateOnDownstreamTrace ? sampleRate : undefined,
+          shouldUpdateSampleRateOnDownstreamTrace: shouldUpdateSampleRateOnDownstreamTrace ? sampleRate : undefined,
         }),
         attributes,
       };
@@ -217,13 +217,13 @@ export function wrapSamplingDecision({
   context,
   spanAttributes,
   sampleRand,
-  sampleRateOverride,
+  shouldUpdateSampleRateOnDownstreamTrace,
 }: {
   decision: SamplingDecision | undefined;
   context: Context;
   spanAttributes: SpanAttributes;
   sampleRand?: number;
-  sampleRateOverride?: number;
+  shouldUpdateSampleRateOnDownstreamTrace?: number;
 }): SamplingResult {
   let traceState = getBaseTraceState(context, spanAttributes);
 
@@ -235,8 +235,8 @@ export function wrapSamplingDecision({
   // - the tracesSampleRate is applied
   // - the tracesSampler is invoked
   // Since unsampled OTEL spans (NonRecordingSpans) cannot hold attributes we need to store this on the (trace)context.
-  if (sampleRateOverride) {
-    traceState = traceState.set(SENTRY_TRACE_STATE_SAMPLE_RATE_OVERRIDE, `${sampleRateOverride}`);
+  if (shouldUpdateSampleRateOnDownstreamTrace !== undefined) {
+    traceState = traceState.set(SENTRY_TRACE_STATE_SAMPLE_RATE_OVERRIDE, `${shouldUpdateSampleRateOnDownstreamTrace}`);
   }
 
   // If the decision is undefined, we treat it as NOT_RECORDING, but we don't propagate this decision to downstream SDKs
