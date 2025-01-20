@@ -122,9 +122,9 @@ export type { ReportDialogOptions } from './report-dialog';
 // eslint-disable-next-line deprecation/deprecation
 export { getCurrentHubShim, getCurrentHub } from './getCurrentHubShim';
 
-// TODO(v9): Make this structure pretty again and don't do "export *" (since this is non-breaking, can be done whenever)
+// TODO: Make this structure pretty again and don't do "export *"
 export * from './utils-hoist/index';
-// TODO(v9): Make this structure pretty again and don't do "export *" (since this is non-breaking, can be done whenever)
+// TODO: Make this structure pretty again and don't do "export *"
 export * from './types-hoist/index';
 
 export type { FeatureFlag } from './featureFlags';

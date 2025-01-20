@@ -333,7 +333,7 @@ export function wrapHandler<TEvent, TResult>(
     // Only start a trace and root span if the handler is not already wrapped by Otel instrumentation
     // Otherwise, we create two root spans (one from otel, one from our wrapper).
     // If Otel instrumentation didn't work or was filtered by users, we still want to trace the handler.
-    // TODO(v9): Since bumping the OTEL Instrumentation, this is likely not needed anymore, we can possibly remove this (can be done whenever since it would be non-breaking)
+    // TODO: Since bumping the OTEL Instrumentation, this is likely not needed anymore, we can possibly remove this (can be done whenever since it would be non-breaking)
     if (options.startTrace && !isWrappedByOtel(handler)) {
       const traceData = getAwsTraceData(event as { headers?: Record<string, string> }, context);
 
