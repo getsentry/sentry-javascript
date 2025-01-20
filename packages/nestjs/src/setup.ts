@@ -57,9 +57,7 @@ class SentryTracingInterceptor implements NestInterceptor {
       const req = context.switchToHttp().getRequest() as FastifyRequest | ExpressRequest;
       if ('routeOptions' in req && req.routeOptions?.url) {
         // fastify case
-        getIsolationScope().setTransactionName(
-          `${(req.method || 'GET').toUpperCase()} ${req.routeOptions.url}`,
-        );
+        getIsolationScope().setTransactionName(`${(req.method || 'GET').toUpperCase()} ${req.routeOptions.url}`);
       } else if ('route' in req && req.route?.path) {
         // express case
         getIsolationScope().setTransactionName(`${(req.method || 'GET').toUpperCase()} ${req.route.path}`);
