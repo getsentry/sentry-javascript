@@ -55,6 +55,7 @@ import { getPossibleEventMessages } from './utils/eventUtils';
 import { merge } from './utils/merge';
 import { parseSampleRate } from './utils/parseSampleRate';
 import { prepareEvent } from './utils/prepareEvent';
+import { showSpanDropWarning } from './utils/spanUtils';
 import { convertSpanJsonToTransactionEvent, convertTransactionEventToSpanJson } from './utils/transactionEvent';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
@@ -1131,15 +1132,24 @@ function processBeforeSend(
     if (beforeSendSpan) {
       // process root span
       const processedRootSpanJson = beforeSendSpan(convertTransactionEventToSpanJson(processedEvent));
-      // update event with processed root span values
-      processedEvent = merge(event, convertSpanJsonToTransactionEvent(processedRootSpanJson));
+      if (!processedRootSpanJson) {
+        showSpanDropWarning();
+      } else {
+        // update event with processed root span values
+        processedEvent = merge(event, convertSpanJsonToTransactionEvent(processedRootSpanJson));
+      }
 
       // process child spans
       if (processedEvent.spans) {
         const processedSpans: SpanJSON[] = [];
         for (const span of processedEvent.spans) {
           const processedSpan = beforeSendSpan(span);
-          processedSpans.push(processedSpan);
+          if (!processedSpan) {
+            showSpanDropWarning();
+            processedSpans.push(span);
+          } else {
+            processedSpans.push(processedSpan);
+          }
         }
         processedEvent.spans = processedSpans;
       }

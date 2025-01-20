@@ -19,6 +19,7 @@ import type {
   SpanTimeInput,
   TraceContext,
 } from '../types-hoist';
+import { consoleSandbox } from '../utils-hoist/logger';
 import { addNonEnumerableProperty, dropUndefinedKeys } from '../utils-hoist/object';
 import { generateSpanId } from '../utils-hoist/propagationContext';
 import { timestampInSeconds } from '../utils-hoist/time';
@@ -28,6 +29,8 @@ import { _getSpanForScope } from './spanOnScope';
 // These are aligned with OpenTelemetry trace flags
 export const TRACE_FLAG_NONE = 0x0;
 export const TRACE_FLAG_SAMPLED = 0x1;
+
+let hasShownSpanDropWarning = false;
 
 /**
  * Convert a span to a trace context, which can be sent as the `trace` context in an event.
@@ -273,6 +276,21 @@ export function getActiveSpan(): Span | undefined {
   }
 
   return _getSpanForScope(getCurrentScope());
+}
+
+/**
+ * Logs a warning once if `beforeSendSpan` is used to drop spans.
+ */
+export function showSpanDropWarning(): void {
+  if (!hasShownSpanDropWarning) {
+    consoleSandbox(() => {
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[Sentry] Returning null from `beforeSendSpan` is disallowed. To drop certain spans, configure the respective integrations directly.',
+      );
+    });
+    hasShownSpanDropWarning = true;
+  }
 }
 
 /**

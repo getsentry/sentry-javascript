@@ -27,7 +27,7 @@ import {
   getSdkMetadataForEnvelopeHeader,
 } from './utils-hoist/envelope';
 import { uuid4 } from './utils-hoist/misc';
-import { spanToJSON } from './utils/spanUtils';
+import { showSpanDropWarning, spanToJSON } from './utils/spanUtils';
 
 /**
  * Apply SdkInfo (name, version, packages, integrations) to the corresponding event key.
@@ -128,6 +128,12 @@ export function createSpanEnvelope(spans: [SentrySpan, ...SentrySpan[]], client?
     ? (span: SentrySpan) => {
         const spanJson = spanToJSON(span);
         const processedSpan = beforeSendSpan(spanJson);
+
+        if (!processedSpan) {
+          showSpanDropWarning();
+          return spanJson;
+        }
+
         return processedSpan;
       }
     : spanToJSON;
