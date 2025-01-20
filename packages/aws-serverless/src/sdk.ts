@@ -1,17 +1,20 @@
 import { existsSync } from 'fs';
+import { hostname } from 'os';
 import { basename, resolve } from 'path';
 import { types } from 'util';
 import type { Integration, Options, Scope, SdkMetadata, Span } from '@sentry/core';
-import { logger } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, logger } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import {
   SDK_VERSION,
   captureException,
   captureMessage,
+  continueTrace,
   flush,
   getCurrentScope,
   getDefaultIntegrationsWithoutPerformance,
   initWithoutDefaultIntegrations,
+  startSpanManual,
   withScope,
 } from '@sentry/node';
 import type { Context, Handler } from 'aws-lambda';
@@ -19,7 +22,7 @@ import { performance } from 'perf_hooks';
 import { DEBUG_BUILD } from './debug-build';
 import { awsIntegration } from './integration/aws';
 import { awsLambdaIntegration } from './integration/awslambda';
-import { markEventUnhandled } from './utils';
+import { getAwsTraceData, markEventUnhandled } from './utils';
 
 const { isPromise } = types;
 
@@ -211,6 +214,18 @@ function enhanceScopeWithEnvironmentData(scope: Scope, context: Context, startTi
 }
 
 /**
+ * Adds additional transaction-related information from the environment and AWS Context to the Sentry Scope.
+ *
+ * @param scope Scope that should be enhanced
+ * @param context AWS Lambda context that will be used to extract some part of the data
+ */
+function enhanceScopeWithTransactionData(scope: Scope, context: Context): void {
+  scope.setTransactionName(context.functionName);
+  scope.setTag('server_name', process.env._AWS_XRAY_DAEMON_ADDRESS || process.env.SENTRY_NAME || hostname());
+  scope.setTag('url', `awslambda:///${context.functionName}`);
+}
+
+/**
  * Wraps a lambda handler adding it error capture and tracing capabilities.
  *
  * @param handler Handler
@@ -315,8 +330,50 @@ export function wrapHandler<TEvent, TResult>(
       return rv;
     }
 
+    // Only start a trace and root span if the handler is not already wrapped by Otel instrumentation
+    // Otherwise, we create two root spans (one from otel, one from our wrapper).
+    // If Otel instrumentation didn't work or was filtered by users, we still want to trace the handler.
+    // TODO(v9): Since bumping the OTEL Instrumentation, this is likely not needed anymore, we can possibly remove this
+    if (options.startTrace && !isWrappedByOtel(handler)) {
+      const traceData = getAwsTraceData(event as { headers?: Record<string, string> }, context);
+
+      return continueTrace({ sentryTrace: traceData['sentry-trace'], baggage: traceData.baggage }, () => {
+        return startSpanManual(
+          {
+            name: context.functionName,
+            op: 'function.aws.lambda',
+            attributes: {
+              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless',
+            },
+          },
+          span => {
+            enhanceScopeWithTransactionData(getCurrentScope(), context);
+
+            return processResult(span);
+          },
+        );
+      });
+    }
+
     return withScope(async () => {
       return processResult(undefined);
     });
   };
+}
+
+/**
+ * Checks if Otel's AWSLambda instrumentation successfully wrapped the handler.
+ * Check taken from @opentelemetry/core
+ */
+function isWrappedByOtel(
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  handler: Function & { __original?: unknown; __unwrap?: unknown; __wrapped?: boolean },
+): boolean {
+  return (
+    typeof handler === 'function' &&
+    typeof handler.__original === 'function' &&
+    typeof handler.__unwrap === 'function' &&
+    handler.__wrapped === true
+  );
 }
