@@ -8,12 +8,12 @@ import type {
   ParameterizedString,
   Scope,
   SeverityLevel,
-  User,
 } from '@sentry/core';
 import { Client, applySdkMetadata, getSDKSource } from '@sentry/core';
 import { eventFromException, eventFromMessage } from './eventbuilder';
 import { WINDOW } from './helpers';
 import type { BrowserTransportOptions } from './transports/types';
+import { addAutoIpAddressToSession, addAutoIpAddressToUser } from './utils/ipAddress';
 
 /**
  * Configuration options for the Sentry Browser SDK.
@@ -84,22 +84,8 @@ export class BrowserClient extends Client<BrowserClientOptions> {
       });
     }
 
-    this.on('postprocessEvent', event => {
-      addAutoIpAddressToUser(event);
-    });
-
-    this.on('beforeSendSession', session => {
-      if ('aggregates' in session) {
-        if (session.attrs?.['ip_address'] === undefined) {
-          session.attrs = {
-            ...session.attrs,
-            ip_address: '{{auto}}',
-          };
-        }
-      } else {
-        addAutoIpAddressToUser(session);
-      }
-    });
+    this.on('postprocessEvent', addAutoIpAddressToUser);
+    this.on('beforeSendSession', addAutoIpAddressToSession);
   }
 
   /**
@@ -132,17 +118,5 @@ export class BrowserClient extends Client<BrowserClientOptions> {
     event.platform = event.platform || 'javascript';
 
     return super._prepareEvent(event, hint, currentScope, isolationScope);
-  }
-}
-
-// By default, we want to infer the IP address, unless this is explicitly set to `null`
-// We do this after all other processing is done
-// If `ip_address` is explicitly set to `null` or a value, we leave it as is
-function addAutoIpAddressToUser(objWithMaybeUser: { user?: User | null }): void {
-  if (objWithMaybeUser.user?.ip_address === undefined) {
-    objWithMaybeUser.user = {
-      ...objWithMaybeUser.user,
-      ip_address: '{{auto}}',
-    };
   }
 }
