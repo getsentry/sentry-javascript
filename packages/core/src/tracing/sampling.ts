@@ -12,7 +12,7 @@ import { parseSampleRate } from '../utils/parseSampleRate';
  * sent to Sentry.
  */
 export function sampleSpan(
-  options: Pick<Options, 'tracesSampleRate' | 'tracesSampler' | 'enableTracing'>,
+  options: Pick<Options, 'tracesSampleRate' | 'tracesSampler'>,
   samplingContext: SamplingContext,
   sampleRand: number,
 ): [sampled: boolean, sampleRate?: number, shouldUpdateSampleRateOnDownstreamTrace?: boolean] {
@@ -21,9 +21,7 @@ export function sampleSpan(
     return [false];
   }
 
-  let shouldUpdateSampleRateOnDownstreamTrace = undefined;
-
-  // we would have bailed already if neither `tracesSampler` nor `tracesSampleRate` nor `enableTracing` were defined, so one of these should
+  // we would have bailed already if neither `tracesSampler` nor `tracesSampleRate` were defined, so one of these should
   // work; prefer the hook if so
   let sampleRate;
   if (typeof options.tracesSampler === 'function') {
@@ -33,10 +31,6 @@ export function sampleSpan(
     sampleRate = samplingContext.parentSampled;
   } else if (typeof options.tracesSampleRate !== 'undefined') {
     sampleRate = options.tracesSampleRate;
-    shouldUpdateSampleRateOnDownstreamTrace = true;
-  } else {
-    // When `enableTracing === true`, we use a sample rate of 100%
-    sampleRate = 1;
     shouldUpdateSampleRateOnDownstreamTrace = true;
   }
 

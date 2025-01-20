@@ -374,15 +374,6 @@ export type SentryBuildOptions = {
   unstable_sentryWebpackPluginOptions?: SentryWebpackPluginOptions;
 
   /**
-   * Use `hidden-source-map` for webpack `devtool` option, which strips the `sourceMappingURL` from the bottom of built
-   * JS files.
-   *
-   * @deprecated This is deprecated. The SDK emits chunks without `sourceMappingURL` for client bundles by default.
-   */
-  // TODO(v9): Remove option
-  hideSourceMaps?: boolean;
-
-  /**
    * Include Next.js-internal code and code from dependencies when uploading source maps.
    *
    * Note: Enabling this option can lead to longer build times.

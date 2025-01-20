@@ -1,10 +1,13 @@
 import * as Sentry from '@sentry/browser';
 
+import { moduleMetadataIntegration } from '@sentry/browser';
+import { rewriteFramesIntegration } from '@sentry/browser';
+
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   integrations: [
-    Sentry.moduleMetadataIntegration(),
-    Sentry.rewriteFramesIntegration({
+    moduleMetadataIntegration(),
+    rewriteFramesIntegration({
       iteratee: frame => {
         return {
           ...frame,
