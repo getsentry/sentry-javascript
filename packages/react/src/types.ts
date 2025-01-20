@@ -184,7 +184,7 @@ export interface RouterInit {
 
 export type NavigationState = {
   state: 'idle' | 'loading' | 'submitting';
-}
+};
 
 export type NavigationStates = {
   Idle: NavigationState;
