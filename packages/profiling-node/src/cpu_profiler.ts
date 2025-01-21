@@ -54,6 +54,13 @@ export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
     return createdRequire(`${binaryPath}.node`);
   }
 
+  // @electron/rebuild generates the binary in the generic node-gyp directory
+  try {
+    return createdRequire('../../build/Release/sentry_cpu_profiler.node');
+  } catch (_) {
+    // ignore
+  }
+
   // We need the fallthrough so that in the end, we can fallback to the dynamic require.
   // This is for cases where precompiled binaries were not provided, but may have been compiled from source.
   if (platform === 'darwin') {
@@ -167,13 +174,6 @@ export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
         }
       }
     }
-  }
-
-  // @electron/rebuild generates the binary in the generic node-gyp directory
-  try {
-    return createdRequire('../../build/Release/sentry_cpu_profiler.node');
-  } catch (_) {
-    // ignore
   }
 
   const built_from_source_path = resolve(esmCompatibleDirname, '..', `sentry_cpu_profiler-${identifier}`);
