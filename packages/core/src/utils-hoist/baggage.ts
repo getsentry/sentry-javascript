@@ -53,7 +53,10 @@ export function baggageHeaderToDynamicSamplingContext(
 export function dynamicSamplingContextToSentryBaggageHeader(
   dynamicSamplingContext: Partial<DynamicSamplingContext>,
 ): string;
-export function dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext?: undefined): undefined;
+export function dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext: undefined): undefined;
+export function dynamicSamplingContextToSentryBaggageHeader(
+  dynamicSamplingContext: Partial<DynamicSamplingContext> | undefined,
+): string | undefined;
 /**
  * Turns a Dynamic Sampling Object into a baggage header by prefixing all the keys on the object with "sentry-".
  *
@@ -65,7 +68,7 @@ export function dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingConte
  */
 export function dynamicSamplingContextToSentryBaggageHeader(
   // this also takes undefined for convenience and bundle size in other places
-  dynamicSamplingContext?: Partial<DynamicSamplingContext>,
+  dynamicSamplingContext: Partial<DynamicSamplingContext> | undefined,
 ): string | undefined {
   if (!dynamicSamplingContext) {
     return undefined;
