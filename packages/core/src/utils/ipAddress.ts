@@ -1,4 +1,4 @@
-import type { Session, SessionAggregates, User } from '@sentry/core';
+import type { Session, SessionAggregates, User } from '../types-hoist';
 
 // By default, we want to infer the IP address, unless this is explicitly set to `null`
 // We do this after all other processing is done

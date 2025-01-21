@@ -99,4 +99,3 @@ export { linkedErrorsIntegration } from './integrations/linkederrors';
 export { browserApiErrorsIntegration } from './integrations/browserapierrors';
 
 export { lazyLoadIntegration } from './utils/lazyLoadIntegration';
-export { addAutoIpAddressToSession, addAutoIpAddressToUser } from './utils/ipAddress';

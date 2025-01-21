@@ -9,11 +9,16 @@ import type {
   Scope,
   SeverityLevel,
 } from '@sentry/core';
-import { Client, applySdkMetadata, getSDKSource } from '@sentry/core';
+import {
+  Client,
+  addAutoIpAddressToSession,
+  addAutoIpAddressToUser,
+  applySdkMetadata,
+  getSDKSource,
+} from '@sentry/core';
 import { eventFromException, eventFromMessage } from './eventbuilder';
 import { WINDOW } from './helpers';
 import type { BrowserTransportOptions } from './transports/types';
-import { addAutoIpAddressToSession, addAutoIpAddressToUser } from './utils/ipAddress';
 
 /**
  * Configuration options for the Sentry Browser SDK.
