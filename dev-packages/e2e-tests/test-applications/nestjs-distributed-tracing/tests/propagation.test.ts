@@ -88,6 +88,7 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
     data: {
       'sentry.source': 'route',
       'sentry.origin': 'auto.http.otel.http',
+      'sentry.sample_rate': 1,
       'sentry.op': 'http.server',
       url: `http://localhost:3030/test-inbound-headers/${id}`,
       'otel.kind': 'SERVER',
@@ -170,6 +171,7 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
       'sentry.source': 'route',
       'sentry.origin': 'auto.http.otel.http',
       'sentry.op': 'http.server',
+      'sentry.sample_rate': 1,
       url: `http://localhost:3030/test-outgoing-fetch/${id}`,
       'otel.kind': 'SERVER',
       'http.response.status_code': 200,
