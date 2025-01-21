@@ -91,9 +91,7 @@ export function setupNestErrorHandler(app: MinimalNestJsApp, baseFilter: NestJsE
         const req = context.switchToHttp().getRequest();
         if ('routeOptions' in req && req.routeOptions && req.routeOptions.url) {
           // fastify case
-          getIsolationScope().setTransactionName(
-            `${req.routeOptions.method?.toUpperCase() || 'GET'} ${req.routeOptions.url}`,
-          );
+          getIsolationScope().setTransactionName(`${req.method?.toUpperCase() || 'GET'} ${req.routeOptions.url}`);
         } else if ('route' in req && req.route && req.route.path) {
           // express case
           getIsolationScope().setTransactionName(`${req.method?.toUpperCase() || 'GET'} ${req.route.path}`);
