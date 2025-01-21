@@ -8,7 +8,6 @@ import type {
   ParameterizedString,
   Scope,
   SeverityLevel,
-  User,
 } from '@sentry/core';
 import { Client, applySdkMetadata, getSDKSource } from '@sentry/core';
 import { eventFromException, eventFromMessage } from './eventbuilder';
