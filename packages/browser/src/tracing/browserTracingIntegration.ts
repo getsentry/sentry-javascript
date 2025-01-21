@@ -276,9 +276,9 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         addPerformanceEntries(span, { recordClsOnPageloadSpan: !enableStandaloneClsSpans });
         setActiveIdleSpan(client, undefined);
 
-        // A trace should to stay the consistent over the entire time span of one route.
-        // Therefore, we update the traceId/sampled properties on the propagation context.
-        // When a navigation happens, this is overwritten
+        // A trace should stay consistent over the entire timespan of one route - even after the pageload/navigation ended.
+        // Only when another navigation happens, we want to create a new trace.
+        // This way, e.g. errors that occur after the pageload span ended are still associated to the pageload trace.
         const scope = getCurrentScope();
         const oldPropagationContext = scope.getPropagationContext();
 
@@ -444,7 +444,6 @@ export function startBrowserTracingPageLoadSpan(
  * This will only do something if a browser tracing integration has been setup.
  */
 export function startBrowserTracingNavigationSpan(client: Client, spanOptions: StartSpanOptions): Span | undefined {
-  // Reset this to ensure we start a new trace, instead of continuing the last pageload/navigation trace
   getIsolationScope().setPropagationContext({ traceId: generateTraceId(), sampleRand: Math.random() });
   getCurrentScope().setPropagationContext({ traceId: generateTraceId(), sampleRand: Math.random() });
 
