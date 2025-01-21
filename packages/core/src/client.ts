@@ -758,7 +758,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
   /** Updates existing session based on the provided event */
   protected _updateSessionFromEvent(session: Session, event: Event): void {
-    let crashed = false;
+    let crashed = event.level === 'fatal';
     let errored = false;
     const exceptions = event.exception?.values;
 
@@ -1111,11 +1111,13 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 /**
  * @deprecated Use `Client` instead. This alias may be removed in a future major version.
  */
+// TODO(v10): Remove
 export type BaseClient = Client;
 
 /**
  * @deprecated Use `Client` instead. This alias may be removed in a future major version.
  */
+// TODO(v10): Remove
 export const BaseClient = Client;
 
 /**

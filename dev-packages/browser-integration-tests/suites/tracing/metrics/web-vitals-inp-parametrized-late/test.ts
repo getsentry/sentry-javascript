@@ -74,7 +74,6 @@ sentryTest(
         'sentry.source': 'custom',
         transaction: 'test-route',
         'user_agent.original': expect.stringContaining('Chrome'),
-        'client.address': '{{auto}}',
       },
       measurements: {
         inp: {

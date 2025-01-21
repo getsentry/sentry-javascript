@@ -110,11 +110,7 @@ export { rewriteFramesIntegration } from './integrations/rewriteframes';
 export { zodErrorsIntegration } from './integrations/zoderrors';
 export { thirdPartyErrorFilterIntegration } from './integrations/third-party-errors-filter';
 export { profiler } from './profiling';
-export {
-  // eslint-disable-next-line deprecation/deprecation
-  addTracingHeadersToFetchRequest,
-  instrumentFetchRequest,
-} from './fetch';
+export { instrumentFetchRequest } from './fetch';
 export { trpcMiddleware } from './trpc';
 export { captureFeedback } from './feedback';
 export type { ReportDialogOptions } from './report-dialog';

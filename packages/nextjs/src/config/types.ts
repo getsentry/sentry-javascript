@@ -122,7 +122,7 @@ export type SentryBuildOptions = {
    */
   sourcemaps?: {
     /**
-     * Disable any functionality related to source maps upload.
+     * Disable any functionality related to source maps.
      */
     disable?: boolean;
 

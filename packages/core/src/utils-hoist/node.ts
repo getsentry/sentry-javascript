@@ -23,10 +23,9 @@ export function isNodeEnv(): boolean {
  * Requires a module which is protected against bundler minification.
  *
  * @param request The module path to resolve
- * @deprecated This function will be removed in the next major version.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function dynamicRequire(mod: any, request: string): any {
+function dynamicRequire(mod: any, request: string): any {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   return mod.require(request);
 }
@@ -48,7 +47,6 @@ export function loadModule<T>(moduleName: string): T | undefined {
   let mod: T | undefined;
 
   try {
-    // eslint-disable-next-line deprecation/deprecation
     mod = dynamicRequire(module, moduleName);
   } catch (e) {
     // no-empty
@@ -56,9 +54,7 @@ export function loadModule<T>(moduleName: string): T | undefined {
 
   if (!mod) {
     try {
-      // eslint-disable-next-line deprecation/deprecation
       const { cwd } = dynamicRequire(module, 'process');
-      // eslint-disable-next-line deprecation/deprecation
       mod = dynamicRequire(module, `${cwd()}/node_modules/${moduleName}`) as T;
     } catch (e) {
       // no-empty

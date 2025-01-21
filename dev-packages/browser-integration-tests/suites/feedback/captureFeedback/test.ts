@@ -69,9 +69,6 @@ sentryTest('should capture feedback', async ({ getLocalTestUrl, page }) => {
         'User-Agent': expect.stringContaining(''),
       },
     },
-    user: {
-      ip_address: '{{auto}}',
-    },
     platform: 'javascript',
   });
 });
