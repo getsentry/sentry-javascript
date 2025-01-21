@@ -8,8 +8,8 @@ import {
   spanToJSON,
 } from '@sentry/core';
 import type { EventEnvelopeHeaders, Span } from '@sentry/core';
-import { NodeClient, setCurrentClient } from '@sentry/node';
 import * as SentryCore from '@sentry/core';
+import { NodeClient, setCurrentClient } from '@sentry/node';
 import type { Handle } from '@sveltejs/kit';
 import { redirect } from '@sveltejs/kit';
 import { vi } from 'vitest';
