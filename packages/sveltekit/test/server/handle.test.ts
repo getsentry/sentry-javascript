@@ -9,15 +9,16 @@ import {
 } from '@sentry/core';
 import type { EventEnvelopeHeaders, Span } from '@sentry/core';
 import { NodeClient, setCurrentClient } from '@sentry/node';
-import * as SentryNode from '@sentry/node';
+import * as SentryCore from '@sentry/core';
 import type { Handle } from '@sveltejs/kit';
 import { redirect } from '@sveltejs/kit';
 import { vi } from 'vitest';
 
-import { FETCH_PROXY_SCRIPT, addSentryCodeToPage, isFetchProxyRequired, sentryHandle } from '../../src/server/handle';
+import { FETCH_PROXY_SCRIPT, addSentryCodeToPage, isFetchProxyRequired } from '../../src/server-common/handle';
+import { sentryHandle } from '../../src/server-common/handle';
 import { getDefaultNodeClientOptions } from '../utils';
 
-const mockCaptureException = vi.spyOn(SentryNode, 'captureException').mockImplementation(() => 'xx');
+const mockCaptureException = vi.spyOn(SentryCore, 'captureException').mockImplementation(() => 'xx');
 
 function mockEvent(override: Record<string, unknown> = {}): Parameters<Handle>[0]['event'] {
   const event: Parameters<Handle>[0]['event'] = {
@@ -394,7 +395,7 @@ describe('addSentryCodeToPage', () => {
 
   it('adds meta tags and the fetch proxy script if there is an active transaction', () => {
     const transformPageChunk = addSentryCodeToPage({ injectFetchProxyScript: true });
-    SentryNode.startSpan({ name: 'test' }, () => {
+    SentryCore.startSpan({ name: 'test' }, () => {
       const transformed = transformPageChunk({ html, done: true }) as string;
 
       expect(transformed).toContain('<meta name="sentry-trace"');
