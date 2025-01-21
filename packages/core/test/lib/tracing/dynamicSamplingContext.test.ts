@@ -72,7 +72,7 @@ describe('getDynamicSamplingContextFromSpan', () => {
       release: '1.0.1',
       environment: 'production',
       sampled: 'true',
-      sample_rate: '1',
+      sample_rate: '0.56',
       trace_id: expect.stringMatching(/^[a-f0-9]{32}$/),
       transaction: 'tx',
       sample_rand: expect.any(String),

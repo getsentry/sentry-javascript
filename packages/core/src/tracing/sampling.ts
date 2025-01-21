@@ -15,25 +15,25 @@ export function sampleSpan(
   options: Pick<Options, 'tracesSampleRate' | 'tracesSampler'>,
   samplingContext: SamplingContext,
   sampleRand: number,
-): [sampled: boolean, sampleRate?: number, shouldUpdateSampleRateOnDownstreamTrace?: boolean] {
+): [sampled: boolean, sampleRate?: number, localSampleRateWasApplied?: boolean] {
   // nothing to do if tracing is not enabled
   if (!hasTracingEnabled(options)) {
     return [false];
   }
 
-  let shouldUpdateSampleRateOnDownstreamTrace = undefined;
+  let localSampleRateWasApplied = undefined;
 
   // we would have bailed already if neither `tracesSampler` nor `tracesSampleRate` were defined, so one of these should
   // work; prefer the hook if so
   let sampleRate;
   if (typeof options.tracesSampler === 'function') {
     sampleRate = options.tracesSampler(samplingContext);
-    shouldUpdateSampleRateOnDownstreamTrace = true;
+    localSampleRateWasApplied = true;
   } else if (samplingContext.parentSampled !== undefined) {
     sampleRate = samplingContext.parentSampled;
   } else if (typeof options.tracesSampleRate !== 'undefined') {
     sampleRate = options.tracesSampleRate;
-    shouldUpdateSampleRateOnDownstreamTrace = true;
+    localSampleRateWasApplied = true;
   }
 
   // Since this is coming from the user (or from a function provided by the user), who knows what we might get.
@@ -55,7 +55,7 @@ export function sampleSpan(
             : 'a negative sampling decision was inherited or tracesSampleRate is set to 0'
         }`,
       );
-    return [false, parsedSampleRate, shouldUpdateSampleRateOnDownstreamTrace];
+    return [false, parsedSampleRate, localSampleRateWasApplied];
   }
 
   // We always compare the sample rand for the current execution context against the chosen sample rate.
@@ -70,8 +70,7 @@ export function sampleSpan(
           sampleRate,
         )})`,
       );
-    return [false, parsedSampleRate, shouldUpdateSampleRateOnDownstreamTrace];
   }
 
-  return [true, parsedSampleRate, shouldUpdateSampleRateOnDownstreamTrace];
+  return [shouldSample, parsedSampleRate, localSampleRateWasApplied];
 }

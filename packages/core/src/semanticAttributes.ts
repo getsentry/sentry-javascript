@@ -6,16 +6,12 @@
 export const SEMANTIC_ATTRIBUTE_SENTRY_SOURCE = 'sentry.source';
 
 /**
- * Use this attribute to represent the sample rate used for a span.
+ * Attributes that holds the sample rate that was locally applied to a span.
+ * If this attribute is not defined, it means that the span inherited a sampling decision.
  *
  * NOTE: Is only defined on root spans.
  */
 export const SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE = 'sentry.sample_rate';
-
-/**
- * Use this attribute on a root span to propagate the spans sample rate downstream as parent sample rate in the DSC, overriding anything that was previously set on the DSC.
- */
-export const SEMANTIC_ATTRIBUTE_SENTRY_OVERRIDE_TRACE_SAMPLE_RATE = 'sentry.override_trace_sample_rate';
 
 /**
  * Use this attribute to represent the operation of a span.
