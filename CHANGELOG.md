@@ -10,6 +10,17 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.51.0
+
+- feat(v8/browser): Add `multiplexedtransport.js` CDN bundle (#15043) (#15046)
+- feat(v8/browser): Add Unleash integration (#14948)
+- feat(v8/deno): Deprecate Deno SDK as published on deno.land (#15121)
+- feat(v8/node): Add `prismaInstrumentation` option to Prisma integration as escape hatch for all Prisma versions (#15128)
+- feat(v8/sveltekit): Deprecate `fetchProxyScriptNonce` option (#15011)
+- fix(v8/aws-lambda): Avoid overwriting root span name (#15054)
+- fix(v8/core): `fatal` events should set session as crashed (#15073)
+- fix(v8/node/nestjs): Use method on current fastify request (#15104)
+
 ## 8.50.0
 
 - feat(v8/react): Add support for React Router `createMemoryRouter` ([#14985](https://github.com/getsentry/sentry-javascript/pull/14985))
