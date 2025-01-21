@@ -9,7 +9,7 @@ import {
   startTrackingLongTasks,
   startTrackingWebVitals,
 } from '@sentry-internal/browser-utils';
-import type { Client, IntegrationFn, Span, StartSpanOptions, TransactionSource } from '@sentry/core';
+import { Client, IntegrationFn, Span, StartSpanOptions, TransactionSource, dropUndefinedKeys } from '@sentry/core';
 import {
   GLOBAL_OBJ,
   SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
@@ -276,6 +276,17 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         _collectWebVitals();
         addPerformanceEntries(span, { recordClsOnPageloadSpan: !enableStandaloneClsSpans });
         setActiveIdleSpan(client, undefined);
+
+        // Ensure that DSC is updated with possibly final transaction etc.
+        const scope = getCurrentScope();
+        const oldPropagationContext = scope.getPropagationContext();
+
+        scope.setPropagationContext({
+          ...oldPropagationContext,
+          traceId: idleSpan.spanContext().traceId,
+          sampled: spanIsSampled(idleSpan),
+          dsc: getDynamicSamplingContextFromSpan(span),
+        });
       },
     });
     setActiveIdleSpan(client, idleSpan);
@@ -293,6 +304,22 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
 
       emitFinish();
     }
+
+    // A trace should to stay the consistent over the entire time span of one route.
+    // Therefore, we update the traceId/sampled properties on the propagation context.
+    // The DSC is only set once the span has ended
+    const scope = getCurrentScope();
+    const oldPropagationContext = scope.getPropagationContext();
+
+    scope.setPropagationContext(
+      dropUndefinedKeys({
+        ...oldPropagationContext,
+        traceId: idleSpan.spanContext().traceId,
+        sampled: spanIsSampled(idleSpan),
+        // Reset the DSC, it should be read from the span while it is active
+        dsc: undefined,
+      }),
+    );
   }
 
   return {
@@ -338,27 +365,6 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         _createRouteSpan(client, {
           op: 'pageload',
           ...startSpanOptions,
-        });
-      });
-
-      // A trace should to stay the consistent over the entire time span of one route.
-      // Therefore, when the initial pageload or navigation root span ends, we update the
-      // scope's propagation context to keep span-specific attributes like the `sampled` decision and
-      // the dynamic sampling context valid, even after the root span has ended.
-      // This ensures that the trace data is consistent for the entire duration of the route.
-      client.on('spanEnd', span => {
-        const op = spanToJSON(span).op;
-        if (span !== getRootSpan(span) || (op !== 'navigation' && op !== 'pageload')) {
-          return;
-        }
-
-        const scope = getCurrentScope();
-        const oldPropagationContext = scope.getPropagationContext();
-
-        scope.setPropagationContext({
-          ...oldPropagationContext,
-          sampled: oldPropagationContext.sampled !== undefined ? oldPropagationContext.sampled : spanIsSampled(span),
-          dsc: oldPropagationContext.dsc || getDynamicSamplingContextFromSpan(span),
         });
       });
 
@@ -453,8 +459,15 @@ export function startBrowserTracingPageLoadSpan(
  * This will only do something if a browser tracing integration has been setup.
  */
 export function startBrowserTracingNavigationSpan(client: Client, spanOptions: StartSpanOptions): Span | undefined {
-  getIsolationScope().setPropagationContext({ traceId: generateTraceId(), sampleRand: Math.random() });
-  getCurrentScope().setPropagationContext({ traceId: generateTraceId(), sampleRand: Math.random() });
+  // Reset this to ensure we start a new trace, instead of continuing the last pageload/navigation trace
+  getIsolationScope().setPropagationContext({
+    traceId: generateTraceId(),
+    sampleRand: Math.random(),
+  });
+  getCurrentScope().setPropagationContext({
+    traceId: generateTraceId(),
+    sampleRand: Math.random(),
+  });
 
   client.emit('startNavigationSpan', spanOptions);
 
