@@ -1,4 +1,4 @@
-import { CloudflareOptions, wrapRequestHandler } from '@sentry/cloudflare';
+import { type CloudflareOptions, wrapRequestHandler } from '@sentry/cloudflare';
 import { getDefaultIntegrations as getDefaultCloudflareIntegrations } from '@sentry/cloudflare';
 import type { Handle } from '@sveltejs/kit';
 

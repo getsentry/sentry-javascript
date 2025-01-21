@@ -1,7 +1,7 @@
 import {
-  addNonEnumerableProperty,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  addNonEnumerableProperty,
   startSpan,
 } from '@sentry/core';
 import type { RequestEvent } from '@sveltejs/kit';
