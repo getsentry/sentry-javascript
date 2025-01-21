@@ -73,11 +73,11 @@ export function ScreenshotEditorFactory({
   options,
 }: FactoryParams): ComponentType<Props> {
   const useTakeScreenshot = useTakeScreenshotFactory({ hooks });
+  const CropCorner = CropCornerFactory({ h });
+  const PenIcon = PenIconFactory({ h });
 
   return function ScreenshotEditor({ onError }: Props): VNode {
     const styles = hooks.useMemo(() => ({ __html: createScreenshotInputStyles(options.styleNonce).innerText }), []);
-    const CropCorner = CropCornerFactory({ h });
-    const PenIcon = PenIconFactory({ h });
 
     const canvasContainerRef = hooks.useRef<HTMLDivElement>(null);
     const cropContainerRef = hooks.useRef<HTMLDivElement>(null);
@@ -411,7 +411,7 @@ export function ScreenshotEditorFactory({
                 setIsAnnotating(!isAnnotating);
               }}
             >
-              <PenIcon></PenIcon>
+              <PenIcon />
             </button>
           </div>
         )}
