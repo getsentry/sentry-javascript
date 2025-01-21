@@ -26,7 +26,7 @@ const CHILD_EVENT: Event = {
     {
       category: 'child_process',
       message: "Child process exited with code '1'",
-      level: 'info',
+      level: 'warning',
     },
   ],
 };
