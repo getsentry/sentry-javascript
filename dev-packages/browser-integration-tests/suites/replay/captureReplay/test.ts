@@ -55,9 +55,6 @@ sentryTest('should capture replays (@sentry/browser export)', async ({ getLocalT
         'User-Agent': expect.stringContaining(''),
       },
     },
-    user: {
-      ip_address: '{{auto}}',
-    },
     platform: 'javascript',
   });
 
@@ -95,9 +92,6 @@ sentryTest('should capture replays (@sentry/browser export)', async ({ getLocalT
       headers: {
         'User-Agent': expect.stringContaining(''),
       },
-    },
-    user: {
-      ip_address: '{{auto}}',
     },
     platform: 'javascript',
   });
