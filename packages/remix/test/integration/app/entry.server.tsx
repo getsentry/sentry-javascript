@@ -1,13 +1,5 @@
 import * as Sentry from '@sentry/remix';
 
-if (process.env.USE_OTEL !== '1') {
-  Sentry.init({
-    dsn: 'https://public@dsn.ingest.sentry.io/1337',
-    tracesSampleRate: 1,
-    tracePropagationTargets: ['example.org'],
-  });
-}
-
 import type { EntryContext } from '@remix-run/node';
 import { RemixServer } from '@remix-run/react';
 import { renderToString } from 'react-dom/server';
