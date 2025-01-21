@@ -23,7 +23,7 @@ export function getWebpackPluginOptions(
   const distDir = (userNextConfig as NextConfigObject).distDir?.replace(/\\/g, '/') ?? '.next';
   const distDirAbsPath = path.posix.join(projectDir, distDir);
 
-  let sourcemapUploadAssets: string[] = [];
+  const sourcemapUploadAssets: string[] = [];
   const sourcemapUploadIgnore: string[] = [];
 
   if (isServer) {
