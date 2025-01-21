@@ -33,7 +33,6 @@ test('Event emitter', async () => {
     data: {
       'sentry.source': 'custom',
       'sentry.op': 'event.nestjs',
-      'sentry.sample_rate': 1,
       'sentry.origin': 'auto.event.nestjs',
     },
     origin: 'auto.event.nestjs',
