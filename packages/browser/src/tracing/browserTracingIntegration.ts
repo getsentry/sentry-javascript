@@ -9,7 +9,7 @@ import {
   startTrackingLongTasks,
   startTrackingWebVitals,
 } from '@sentry-internal/browser-utils';
-import { Client, IntegrationFn, Span, StartSpanOptions, TransactionSource, dropUndefinedKeys } from '@sentry/core';
+import type { Client, IntegrationFn, Span, StartSpanOptions, TransactionSource } from '@sentry/core';
 import {
   GLOBAL_OBJ,
   SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
@@ -18,13 +18,13 @@ import {
   TRACING_DEFAULTS,
   addNonEnumerableProperty,
   browserPerformanceTimeOrigin,
+  dropUndefinedKeys,
   generateTraceId,
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromSpan,
   getIsolationScope,
   getLocationHref,
-  getRootSpan,
   logger,
   propagationContextFromHeaders,
   registerSpanErrorInstrumentation,
