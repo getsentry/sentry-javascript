@@ -18,7 +18,6 @@ import {
   TRACING_DEFAULTS,
   addNonEnumerableProperty,
   browserPerformanceTimeOrigin,
-  dropUndefinedKeys,
   generateTraceId,
   getClient,
   getCurrentScope,
@@ -277,7 +276,9 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         addPerformanceEntries(span, { recordClsOnPageloadSpan: !enableStandaloneClsSpans });
         setActiveIdleSpan(client, undefined);
 
-        // Ensure that DSC is updated with possibly final transaction etc.
+        // A trace should to stay the consistent over the entire time span of one route.
+        // Therefore, we update the traceId/sampled properties on the propagation context.
+        // When a navigation happens, this is overwritten
         const scope = getCurrentScope();
         const oldPropagationContext = scope.getPropagationContext();
 
@@ -304,22 +305,6 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
 
       emitFinish();
     }
-
-    // A trace should to stay the consistent over the entire time span of one route.
-    // Therefore, we update the traceId/sampled properties on the propagation context.
-    // The DSC is only set once the span has ended
-    const scope = getCurrentScope();
-    const oldPropagationContext = scope.getPropagationContext();
-
-    scope.setPropagationContext(
-      dropUndefinedKeys({
-        ...oldPropagationContext,
-        traceId: idleSpan.spanContext().traceId,
-        sampled: spanIsSampled(idleSpan),
-        // Reset the DSC, it should be read from the span while it is active
-        dsc: undefined,
-      }),
-    );
   }
 
   return {
@@ -460,14 +445,8 @@ export function startBrowserTracingPageLoadSpan(
  */
 export function startBrowserTracingNavigationSpan(client: Client, spanOptions: StartSpanOptions): Span | undefined {
   // Reset this to ensure we start a new trace, instead of continuing the last pageload/navigation trace
-  getIsolationScope().setPropagationContext({
-    traceId: generateTraceId(),
-    sampleRand: Math.random(),
-  });
-  getCurrentScope().setPropagationContext({
-    traceId: generateTraceId(),
-    sampleRand: Math.random(),
-  });
+  getIsolationScope().setPropagationContext({ traceId: generateTraceId(), sampleRand: Math.random() });
+  getCurrentScope().setPropagationContext({ traceId: generateTraceId(), sampleRand: Math.random() });
 
   client.emit('startNavigationSpan', spanOptions);
 
