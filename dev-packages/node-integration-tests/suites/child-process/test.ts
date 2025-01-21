@@ -43,7 +43,7 @@ describe('should capture child process events', () => {
     cleanupChildProcesses();
   });
 
-  describe('worker', () => {
+  conditionalTest({ min: 20 })('worker', () => {
     test('ESM', done => {
       createRunner(__dirname, 'worker.mjs').expect({ event: WORKER_EVENT }).start(done);
     });
