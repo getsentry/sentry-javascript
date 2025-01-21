@@ -51,10 +51,6 @@ export function getWebpackPluginOptions(
     );
   }
 
-  if (sentryBuildOptions.sourcemaps?.disable) {
-    sourcemapUploadAssets = [];
-  }
-
   return {
     authToken: sentryBuildOptions.authToken,
     headers: sentryBuildOptions.headers,
@@ -69,6 +65,7 @@ export function getWebpackPluginOptions(
     silent: sentryBuildOptions.silent,
     url: sentryBuildOptions.sentryUrl,
     sourcemaps: {
+      disable: sentryBuildOptions.sourcemaps?.disable,
       rewriteSources(source) {
         if (source.startsWith('webpack://_N_E/')) {
           return source.replace('webpack://_N_E/', '');
