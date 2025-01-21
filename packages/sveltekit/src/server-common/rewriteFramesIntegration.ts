@@ -53,8 +53,8 @@ export function rewriteFramesIteratee(frame: StackFrame): StackFrame {
   if (isWindowsFrame || startsWithSlash) {
     const filename = isWindowsFrame
       ? frame.filename
-        .replace(/^[a-zA-Z]:/, '') // remove Windows-style prefix
-        .replace(/\\/g, '/') // replace all `\\` instances with `/`
+          .replace(/^[a-zA-Z]:/, '') // remove Windows-style prefix
+          .replace(/\\/g, '/') // replace all `\\` instances with `/`
       : frame.filename;
 
     let strippedFilename;
