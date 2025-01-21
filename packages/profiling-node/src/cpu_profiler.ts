@@ -54,11 +54,16 @@ export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
     return createdRequire(`${binaryPath}.node`);
   }
 
-  // @electron/rebuild generates the binary in the generic node-gyp directory
-  try {
-    return createdRequire('../../build/Release/sentry_cpu_profiler.node');
-  } catch (_) {
-    // ignore
+  if (process.versions.electron) {
+    try {
+      // @electron/rebuild generates the binary in the generic node-gyp directory
+      return createdRequire('../../build/Release/sentry_cpu_profiler.node');
+    } catch (_) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        "Could not find '@sentry/profiling-node' binary. You should use '@electron/rebuild' to rebuild the native module.",
+      );
+    }
   }
 
   // We need the fallthrough so that in the end, we can fallback to the dynamic require.
