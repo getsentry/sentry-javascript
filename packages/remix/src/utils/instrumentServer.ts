@@ -1,4 +1,4 @@
-import type { RequestEventData } from '@sentry/core';
+import type { RequestEventData, WrappedFunction } from '@sentry/core';
 import {
   continueTrace,
   fill,
@@ -12,7 +12,7 @@ import {
   withIsolationScope,
 } from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
-import { captureRemixServerException } from './errors';
+import { captureRemixServerException, errorHandleDataFunction, errorHandleDocumentRequestFunction } from './errors';
 import { extractData, isDeferredData, isResponse, isRouteErrorResponse, json } from './vendor/response';
 import type {
   AppData,
@@ -20,6 +20,8 @@ import type {
   CreateRequestHandlerFunction,
   DataFunction,
   DataFunctionArgs,
+  EntryContext,
+  HandleDocumentRequestFunction,
   RemixRequest,
   RequestHandler,
   ServerBuild,
@@ -90,6 +92,45 @@ function getTraceAndBaggage(): {
 
   return {};
 }
+
+function makeWrappedDocumentRequestFunction() {
+  return function (origDocumentRequestFunction: HandleDocumentRequestFunction): HandleDocumentRequestFunction {
+    return async function (
+      this: unknown,
+      request: Request,
+      responseStatusCode: number,
+      responseHeaders: Headers,
+      context: EntryContext,
+      loadContext?: Record<string, unknown>,
+    ): Promise<Response> {
+      return errorHandleDocumentRequestFunction.call(this, origDocumentRequestFunction, {
+        request,
+        responseStatusCode,
+        responseHeaders,
+        context,
+        loadContext,
+      });
+    };
+  };
+}
+
+function makeWrappedDataFunction(origFn: DataFunction, id: string, name: 'action' | 'loader'): DataFunction {
+  return async function (this: unknown, args: DataFunctionArgs): Promise<Response | AppData> {
+    return errorHandleDataFunction.call(this, origFn, name, args);
+  };
+}
+
+const makeWrappedAction =
+  (id: string) =>
+  (origAction: DataFunction): DataFunction => {
+    return makeWrappedDataFunction(origAction, id, 'action');
+  };
+
+const makeWrappedLoader =
+  (id: string) =>
+  (origLoader: DataFunction): DataFunction => {
+    return makeWrappedDataFunction(origLoader, id, 'loader');
+  };
 
 function makeWrappedRootLoader() {
   return function (origLoader: DataFunction): DataFunction {
@@ -177,8 +218,27 @@ function instrumentBuildCallback(build: ServerBuild): ServerBuild {
   const routes: ServerRouteManifest = {};
   const wrappedEntry = { ...build.entry, module: { ...build.entry.module } };
 
+  // Not keeping boolean flags like it's done for `requestHandler` functions,
+  // Because the build can change between build and runtime.
+  // So if there is a new `loader` or`action` or `documentRequest` after build.
+  // We should be able to wrap them, as they may not be wrapped before.
+  const defaultExport = wrappedEntry.module.default as undefined | WrappedFunction;
+  if (defaultExport && !defaultExport.__sentry_original__) {
+    fill(wrappedEntry.module, 'default', makeWrappedDocumentRequestFunction());
+  }
+
   for (const [id, route] of Object.entries(build.routes)) {
     const wrappedRoute = { ...route, module: { ...route.module } };
+
+    const routeAction = wrappedRoute.module.action as undefined | WrappedFunction;
+    if (routeAction && !routeAction.__sentry_original__) {
+      fill(wrappedRoute.module, 'action', makeWrappedAction(id));
+    }
+
+    const routeLoader = wrappedRoute.module.loader as undefined | WrappedFunction;
+    if (routeLoader && !routeLoader.__sentry_original__) {
+      fill(wrappedRoute.module, 'loader', makeWrappedLoader(id));
+    }
 
     // Entry module should have a loader function to provide `sentry-trace` and `baggage`
     // They will be available for the root `meta` function as `data.sentryTrace` and `data.sentryBaggage`
