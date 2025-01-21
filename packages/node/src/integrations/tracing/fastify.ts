@@ -25,10 +25,10 @@ interface Fastify {
  * Works for Fastify 3, 4 and presumably 5.
  */
 interface FastifyRequestRouteInfo {
+  method?: string;
   // since fastify@4.10.0
   routeOptions?: {
     url?: string;
-    method?: string;
   };
   routerPath?: string;
 }
@@ -107,7 +107,7 @@ export function setupFastifyErrorHandler(fastify: Fastify): void {
         // Taken from Otel Fastify instrumentation:
         // https://github.com/open-telemetry/opentelemetry-js-contrib/blob/main/plugins/node/opentelemetry-instrumentation-fastify/src/instrumentation.ts#L94-L96
         const routeName = reqWithRouteInfo.routeOptions?.url || reqWithRouteInfo.routerPath;
-        const method = reqWithRouteInfo.routeOptions?.method || 'GET';
+        const method = reqWithRouteInfo.method || 'GET';
 
         getIsolationScope().setTransactionName(`${method} ${routeName}`);
       });
