@@ -240,7 +240,7 @@ sentryTest(
     // sampling decision is propagated from active span sampling decision
     expect(headers['sentry-trace']).toMatch(new RegExp(`^${pageloadTraceId}-[0-9a-f]{16}-1$`));
     expect(headers['baggage']).toBe(
-      `sentry-environment=production,sentry-public_key=public,sentry-trace_id=${pageloadTraceId},sentry-sample_rate=1,sentry-sampled=true,sentry-sample_rand=${pageloadTraceHeader?.sample_rand}`,
+      `sentry-environment=production,sentry-public_key=public,sentry-trace_id=${pageloadTraceId},sentry-sampled=true,sentry-sample_rand=${pageloadTraceHeader?.sample_rand},sentry-sample_rate=1`,
     );
   },
 );
@@ -297,7 +297,7 @@ sentryTest(
     // sampling decision is propagated from active span sampling decision
     expect(headers['sentry-trace']).toMatch(new RegExp(`^${pageloadTraceId}-[0-9a-f]{16}-1$`));
     expect(headers['baggage']).toBe(
-      `sentry-environment=production,sentry-public_key=public,sentry-trace_id=${pageloadTraceId},sentry-sample_rate=1,sentry-sampled=true,sentry-sample_rand=${pageloadTraceHeader?.sample_rand}`,
+      `sentry-environment=production,sentry-public_key=public,sentry-trace_id=${pageloadTraceId},sentry-sampled=true,sentry-sample_rand=${pageloadTraceHeader?.sample_rand},sentry-sample_rate=1`,
     );
   },
 );
