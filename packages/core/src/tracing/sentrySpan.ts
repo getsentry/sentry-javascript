@@ -10,6 +10,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '../semanticAttributes';
 import type {
+  DynamicSamplingContext,
   SentrySpanArguments,
   Span,
   SpanAttributeValue,
@@ -24,6 +25,8 @@ import type {
   TransactionEvent,
   TransactionSource,
 } from '../types-hoist';
+import type { TraceState } from '../types-hoist/span';
+import { dynamicSamplingContextToSentryBaggageHeader } from '../utils-hoist';
 import { logger } from '../utils-hoist/logger';
 import { dropUndefinedKeys } from '../utils-hoist/object';
 import { generateSpanId, generateTraceId } from '../utils-hoist/propagationContext';
@@ -31,6 +34,7 @@ import { timestampInSeconds } from '../utils-hoist/time';
 import {
   TRACE_FLAG_NONE,
   TRACE_FLAG_SAMPLED,
+  generateTraceState,
   getRootSpan,
   getSpanDescendants,
   getStatusMessage,
@@ -63,6 +67,7 @@ export class SentrySpan implements Span {
   protected _status?: SpanStatus;
   /** The timed events added to this span. */
   protected _events: TimedEvent[];
+  protected _traceState?: TraceState;
 
   /** if true, treat span as a standalone span (not part of a transaction) */
   private _isStandaloneSpan?: boolean;
@@ -74,7 +79,10 @@ export class SentrySpan implements Span {
    * @hideconstructor
    * @hidden
    */
-  public constructor(spanContext: SentrySpanArguments = {}) {
+  public constructor(
+    spanContext: SentrySpanArguments = {},
+    additionalSpanContext?: { dsc?: Partial<DynamicSamplingContext> },
+  ) {
     this._traceId = spanContext.traceId || generateTraceId();
     this._spanId = spanContext.spanId || generateSpanId();
     this._startTime = spanContext.startTimestamp || timestampInSeconds();
@@ -102,6 +110,18 @@ export class SentrySpan implements Span {
     this._events = [];
 
     this._isStandaloneSpan = spanContext.isStandalone;
+
+    const dsc = additionalSpanContext?.dsc;
+    if (dsc) {
+      const traceState = generateTraceState().set(
+        'sentry.dsc',
+        dynamicSamplingContextToSentryBaggageHeader({
+          ...getDynamicSamplingContextFromSpan(this),
+          ...dsc,
+        }),
+      );
+      this._traceState = traceState;
+    }
 
     // If the span is already ended, ensure we finalize the span immediately
     if (this._endTime) {
@@ -144,11 +164,12 @@ export class SentrySpan implements Span {
 
   /** @inheritdoc */
   public spanContext(): SpanContextData {
-    const { _spanId: spanId, _traceId: traceId, _sampled: sampled } = this;
+    const { _spanId: spanId, _traceId: traceId, _sampled: sampled, _traceState: traceState } = this;
     return {
       spanId,
       traceId,
       traceFlags: sampled ? TRACE_FLAG_SAMPLED : TRACE_FLAG_NONE,
+      traceState,
     };
   }
 

@@ -1,8 +1,7 @@
 import { getClient, getCurrentScope } from '../currentScopes';
-import type { DynamicSamplingContext, Span, StartSpanOptions } from '../types-hoist';
-
 import { DEBUG_BUILD } from '../debug-build';
 import { SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON } from '../semanticAttributes';
+import type { Span, StartSpanOptions } from '../types-hoist';
 import { logger } from '../utils-hoist/logger';
 import { timestampInSeconds } from '../utils-hoist/time';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
@@ -14,7 +13,6 @@ import {
   spanTimeInputToSeconds,
   spanToJSON,
 } from '../utils/spanUtils';
-import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
 import { SPAN_STATUS_ERROR } from './spanstatus';
 import { startInactiveSpan } from './trace';
@@ -110,16 +108,8 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
   const client = getClient();
 
   if (!client || !hasTracingEnabled()) {
-    const span = new SentryNonRecordingSpan();
-
-    const dsc = {
-      sample_rate: '0',
-      sampled: 'false',
-      ...getDynamicSamplingContextFromSpan(span),
-    } satisfies Partial<DynamicSamplingContext>;
-    freezeDscOnSpan(span, dsc);
-
-    return span;
+    // We want to freeze the DSC here, but let this be inferred by the SentryNonRecordingSpan constructor
+    return new SentryNonRecordingSpan({}, { dsc: {} });
   }
 
   const scope = getCurrentScope();

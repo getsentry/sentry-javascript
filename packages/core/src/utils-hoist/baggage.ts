@@ -50,6 +50,10 @@ export function baggageHeaderToDynamicSamplingContext(
   }
 }
 
+export function dynamicSamplingContextToSentryBaggageHeader(
+  dynamicSamplingContext: Partial<DynamicSamplingContext>,
+): string;
+export function dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext?: undefined): undefined;
 /**
  * Turns a Dynamic Sampling Object into a baggage header by prefixing all the keys on the object with "sentry-".
  *

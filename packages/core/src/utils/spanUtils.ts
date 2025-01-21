@@ -19,6 +19,7 @@ import type {
   SpanTimeInput,
   TraceContext,
 } from '../types-hoist';
+import type { TraceState } from '../types-hoist/span';
 import { consoleSandbox } from '../utils-hoist/logger';
 import { addNonEnumerableProperty, dropUndefinedKeys } from '../utils-hoist/object';
 import { generateSpanId } from '../utils-hoist/propagationContext';
@@ -31,6 +32,33 @@ export const TRACE_FLAG_NONE = 0x0;
 export const TRACE_FLAG_SAMPLED = 0x1;
 
 let hasShownSpanDropWarning = false;
+
+/**
+ * Generate an immutable trace state.
+ */
+export function generateTraceState(state: Record<string, string | undefined> = {}): TraceState {
+  return {
+    get(key: string): string | undefined {
+      return state[key];
+    },
+    set(key: string, value: string): TraceState {
+      return generateTraceState({
+        ...state,
+        [key]: value,
+      });
+    },
+    unset(key: string): TraceState {
+      return generateTraceState({
+        ...state,
+        [key]: undefined,
+      });
+    },
+    serialize(): string {
+      // TODO: Do we need this?
+      return '';
+    },
+  };
+}
 
 /**
  * Convert a span to a trace context, which can be sent as the `trace` context in an event.

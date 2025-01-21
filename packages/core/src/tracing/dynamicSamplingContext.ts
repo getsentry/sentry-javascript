@@ -8,28 +8,10 @@ import {
   baggageHeaderToDynamicSamplingContext,
   dynamicSamplingContextToSentryBaggageHeader,
 } from '../utils-hoist/baggage';
-import { addNonEnumerableProperty, dropUndefinedKeys } from '../utils-hoist/object';
+import { dropUndefinedKeys } from '../utils-hoist/object';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
 import { getRootSpan, spanIsSampled, spanToJSON } from '../utils/spanUtils';
 import { getCapturedScopesOnSpan } from './utils';
-
-/**
- * If you change this value, also update the terser plugin config to
- * avoid minification of the object property!
- */
-const FROZEN_DSC_FIELD = '_frozenDsc';
-
-type SpanWithMaybeDsc = Span & {
-  [FROZEN_DSC_FIELD]?: Partial<DynamicSamplingContext> | undefined;
-};
-
-/**
- * Freeze the given DSC on the given span.
- */
-export function freezeDscOnSpan(span: Span, dsc: Partial<DynamicSamplingContext>): void {
-  const spanWithMaybeDsc = span as SpanWithMaybeDsc;
-  addNonEnumerableProperty(spanWithMaybeDsc, FROZEN_DSC_FIELD, dsc);
-}
 
 /**
  * Creates a dynamic sampling context from a client.
@@ -75,12 +57,6 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
   }
 
   const rootSpan = getRootSpan(span);
-
-  // For core implementation, we freeze the DSC onto the span as a non-enumerable property
-  const frozenDsc = (rootSpan as SpanWithMaybeDsc)[FROZEN_DSC_FIELD];
-  if (frozenDsc) {
-    return frozenDsc;
-  }
 
   // For OpenTelemetry, we freeze the DSC on the trace state
   const traceState = rootSpan.spanContext().traceState;

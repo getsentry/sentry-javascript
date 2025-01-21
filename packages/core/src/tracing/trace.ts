@@ -1,7 +1,12 @@
 /* eslint-disable max-lines */
 
+import { getAsyncContextStrategy } from '../asyncContext';
 import type { AsyncContextStrategy } from '../asyncContext/types';
 import { getMainCarrier } from '../carrier';
+import { getClient, getCurrentScope, getIsolationScope, withScope } from '../currentScopes';
+import { DEBUG_BUILD } from '../debug-build';
+import type { Scope } from '../scope';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
 import type {
   ClientOptions,
   DynamicSamplingContext,
@@ -10,13 +15,6 @@ import type {
   SpanTimeInput,
   StartSpanOptions,
 } from '../types-hoist';
-
-import { getClient, getCurrentScope, getIsolationScope, withScope } from '../currentScopes';
-
-import { getAsyncContextStrategy } from '../asyncContext';
-import { DEBUG_BUILD } from '../debug-build';
-import type { Scope } from '../scope';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
 import { logger } from '../utils-hoist/logger';
 import { generateTraceId } from '../utils-hoist/propagationContext';
 import { propagationContextFromHeaders } from '../utils-hoist/tracing';
@@ -24,7 +22,7 @@ import { handleCallbackErrors } from '../utils/handleCallbackErrors';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
 import { _getSpanForScope, _setSpanForScope } from '../utils/spanOnScope';
 import { addChildSpanToSpan, getRootSpan, spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
-import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
+import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanStart } from './logSpans';
 import { sampleSpan } from './sampling';
 import { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
@@ -302,21 +300,18 @@ function createChildOrRootSpan({
   scope: Scope;
 }): Span {
   if (!hasTracingEnabled()) {
-    const span = new SentryNonRecordingSpan();
-
     // If this is a root span, we ensure to freeze a DSC
     // So we can have at least partial data here
     if (forceTransaction || !parentSpan) {
       const dsc = {
-        sampled: 'false',
-        sample_rate: '0',
         transaction: spanArguments.name,
-        ...getDynamicSamplingContextFromSpan(span),
       } satisfies Partial<DynamicSamplingContext>;
-      freezeDscOnSpan(span, dsc);
+
+      return new SentryNonRecordingSpan({}, { dsc });
     }
 
-    return span;
+    // Child span, no DSC needed
+    return new SentryNonRecordingSpan();
   }
 
   const isolationScope = getIsolationScope();
@@ -339,9 +334,8 @@ function createChildOrRootSpan({
       },
       scope,
       parentSampled,
+      dsc,
     );
-
-    freezeDscOnSpan(span, dsc);
   } else {
     const {
       traceId,
@@ -361,11 +355,8 @@ function createChildOrRootSpan({
       },
       scope,
       parentSampled,
+      dsc,
     );
-
-    if (dsc) {
-      freezeDscOnSpan(span, dsc);
-    }
   }
 
   logSpanStart(span);
@@ -402,7 +393,12 @@ function getAcs(): AsyncContextStrategy {
   return getAsyncContextStrategy(carrier);
 }
 
-function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parentSampled?: boolean): SentrySpan {
+function _startRootSpan(
+  spanArguments: SentrySpanArguments,
+  scope: Scope,
+  parentSampled: boolean | undefined,
+  dsc: Partial<DynamicSamplingContext> | undefined,
+): SentrySpan {
   const client = getClient();
   const options: Partial<ClientOptions> = client?.getOptions() || {};
 
@@ -421,14 +417,17 @@ function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parent
         sampleRand,
       );
 
-  const rootSpan = new SentrySpan({
-    ...spanArguments,
-    attributes: {
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
-      ...spanArguments.attributes,
+  const rootSpan = new SentrySpan(
+    {
+      ...spanArguments,
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+        ...spanArguments.attributes,
+      },
+      sampled,
     },
-    sampled,
-  });
+    { dsc },
+  );
 
   if (!sampled && client) {
     DEBUG_BUILD && logger.log('[Tracing] Discarding root span because its trace was not chosen to be sampled.');
