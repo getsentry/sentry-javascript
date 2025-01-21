@@ -56,7 +56,7 @@ export function createScreenshotInputStyles(styleNonce?: string): HTMLStyleEleme
   padding: 8px;
   gap: 8px;
   border-radius: var(--menu-border-radius, 6px);
-  background: var(--button-primary-background, var(--background));
+  background: var(--button-background, var(--background));
   width: 175px;
   position: absolute;
 }
@@ -91,7 +91,6 @@ export function createScreenshotInputStyles(styleNonce?: string): HTMLStyleEleme
 }
 .editor__tool-container {
   position: absolute;
-  z-index: 2;
   padding: 10px 0px;
   top: 0;
 }
