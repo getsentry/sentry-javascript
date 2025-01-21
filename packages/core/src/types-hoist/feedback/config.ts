@@ -64,7 +64,7 @@ export interface FeedbackGeneralConfiguration {
    *
    * Default: undefined
    */
-  _experiments: Partial<{ annotations: boolean; }>
+  _experiments: Partial<{ annotations: boolean }>;
 
   /**
    * Set an object that will be merged sent as tags data with the event.
