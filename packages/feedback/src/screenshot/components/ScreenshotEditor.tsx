@@ -261,7 +261,9 @@ export function ScreenshotEditorFactory({
     }
 
     function onAnnotateStart(): void {
-      if (!isAnnotating) return;
+      if (!isAnnotating) {
+        return;
+      }
 
       const handleMouseMove = (moveEvent: MouseEvent): void => {
         const annotateCanvas = annotatingRef.current;
