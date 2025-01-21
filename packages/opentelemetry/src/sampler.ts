@@ -10,7 +10,8 @@ import {
   SEMATTRS_HTTP_METHOD,
   SEMATTRS_HTTP_URL,
 } from '@opentelemetry/semantic-conventions';
-import { Client, SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SpanAttributes } from '@sentry/core';
+import type { Client, SpanAttributes } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/core';
 import { baggageHeaderToDynamicSamplingContext } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, hasTracingEnabled, logger, parseSampleRate, sampleSpan } from '@sentry/core';
 import {
