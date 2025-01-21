@@ -69,7 +69,7 @@ function captureChildProcessEvents(child: ChildProcess, options: Options): void 
           addBreadcrumb({
             category: 'child_process',
             message: `Child process exited with code '${code}'`,
-            level: code === 0 ? 'warning' : 'info',
+            level: code === 0 ? 'info' : 'warning',
             data,
           });
         }
