@@ -1,7 +1,7 @@
-import * as Sentry from '@sentry/node';
-import { loggingTransport } from '@sentry-internal/node-integration-tests';
-import * as path from 'path';
 import { fork } from 'child_process';
+import * as path from 'path';
+import { loggingTransport } from '@sentry-internal/node-integration-tests';
+import * as Sentry from '@sentry/node';
 
 const __dirname = new URL('.', import.meta.url).pathname;
 

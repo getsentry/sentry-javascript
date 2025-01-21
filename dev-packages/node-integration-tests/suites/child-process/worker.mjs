@@ -1,6 +1,6 @@
-import * as Sentry from '@sentry/node';
-import { loggingTransport } from '@sentry-internal/node-integration-tests';
 import * as path from 'path';
+import { loggingTransport } from '@sentry-internal/node-integration-tests';
+import * as Sentry from '@sentry/node';
 import { Worker } from 'worker_threads';
 
 const __dirname = new URL('.', import.meta.url).pathname;
