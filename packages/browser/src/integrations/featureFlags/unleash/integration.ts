@@ -15,11 +15,9 @@ import type { UnleashClient, UnleashClientClass } from './types';
  * import { UnleashClient } from 'unleash-proxy-client';
  * import * as Sentry from '@sentry/browser';
  *
- * const unleashIntegration = Sentry.unleashIntegration({unleashClientClass: UnleashClient});
- *
  * Sentry.init({
  *   dsn: '___PUBLIC_DSN___',
- *   integrations: [unleashIntegration],
+ *   integrations: [Sentry.unleashIntegration({unleashClientClass: UnleashClient})],
  * });
  *
  * const unleash = new UnleashClient(...);
