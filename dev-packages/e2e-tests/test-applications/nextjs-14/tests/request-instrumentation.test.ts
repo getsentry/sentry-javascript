@@ -19,7 +19,7 @@ test('Should send a transaction with a fetch span', async ({ page }) => {
         'sentry.op': 'http.client',
         'sentry.origin': 'auto.http.otel.node_fetch',
       }),
-      description: 'GET http://example.com/',
+      description: 'GET https://example.com/',
     }),
   );
 
@@ -30,7 +30,7 @@ test('Should send a transaction with a fetch span', async ({ page }) => {
         'sentry.op': 'http.client',
         'sentry.origin': 'auto.http.otel.http',
       }),
-      description: 'GET http://example.com/',
+      description: 'GET https://example.com/',
     }),
   );
 });

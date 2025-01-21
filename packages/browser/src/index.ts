@@ -39,8 +39,6 @@ export {
 } from './tracing/browserTracingIntegration';
 export type { RequestInstrumentationOptions } from './tracing/request';
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  addTracingExtensions,
   registerSpanErrorInstrumentation,
   getActiveSpan,
   getRootSpan,

@@ -18,7 +18,11 @@ import {
   logger,
   sampleSpan,
 } from '@sentry/core';
-import { SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING, SENTRY_TRACE_STATE_URL } from './constants';
+import {
+  SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING,
+  SENTRY_TRACE_STATE_SAMPLE_RAND,
+  SENTRY_TRACE_STATE_URL,
+} from './constants';
 import { DEBUG_BUILD } from './debug-build';
 import { getScopesFromContext } from './utils/contextData';
 import { getSamplingDecision } from './utils/getSamplingDecision';
@@ -99,11 +103,10 @@ export class SentrySampler implements Sampler {
 
     const isRootSpan = !parentSpan || parentContext?.isRemote;
 
-    const { isolationScope, scope } = getScopesFromContext(context) ?? {};
-
     // We only sample based on parameters (like tracesSampleRate or tracesSampler) for root spans (which is done in sampleSpan).
     // Non-root-spans simply inherit the sampling decision from their parent.
     if (isRootSpan) {
+      const { isolationScope, scope } = getScopesFromContext(context) ?? {};
       const sampleRand = scope?.getPropagationContext().sampleRand ?? Math.random();
       const [sampled, sampleRate] = sampleSpan(
         options,
@@ -126,7 +129,7 @@ export class SentrySampler implements Sampler {
         DEBUG_BUILD && logger.log(`[Tracing] Not sampling span because HTTP method is '${method}' for ${spanName}`);
 
         return {
-          ...wrapSamplingDecision({ decision: SamplingDecision.NOT_RECORD, context, spanAttributes }),
+          ...wrapSamplingDecision({ decision: SamplingDecision.NOT_RECORD, context, spanAttributes, sampleRand }),
           attributes,
         };
       }
@@ -145,6 +148,7 @@ export class SentrySampler implements Sampler {
           decision: sampled ? SamplingDecision.RECORD_AND_SAMPLED : SamplingDecision.NOT_RECORD,
           context,
           spanAttributes,
+          sampleRand,
         }),
         attributes,
       };
@@ -196,8 +200,18 @@ export function wrapSamplingDecision({
   decision,
   context,
   spanAttributes,
-}: { decision: SamplingDecision | undefined; context: Context; spanAttributes: SpanAttributes }): SamplingResult {
-  const traceState = getBaseTraceState(context, spanAttributes);
+  sampleRand,
+}: {
+  decision: SamplingDecision | undefined;
+  context: Context;
+  spanAttributes: SpanAttributes;
+  sampleRand?: number;
+}): SamplingResult {
+  let traceState = getBaseTraceState(context, spanAttributes);
+
+  if (sampleRand !== undefined) {
+    traceState = traceState.set(SENTRY_TRACE_STATE_SAMPLE_RAND, `${sampleRand}`);
+  }
 
   // If the decision is undefined, we treat it as NOT_RECORDING, but we don't propagate this decision to downstream SDKs
   // Which is done by not setting `SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING` traceState

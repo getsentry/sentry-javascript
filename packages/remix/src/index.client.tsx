@@ -15,12 +15,7 @@ export * from '@sentry/react';
 // function signature is the same as in the server SDK.
 // See issue: https://github.com/getsentry/sentry-javascript/issues/9594
 /* eslint-disable @typescript-eslint/no-unused-vars */
-export async function captureRemixServerException(
-  err: unknown,
-  name: string,
-  request: Request,
-  isRemixV2?: boolean,
-): Promise<void> {
+export async function captureRemixServerException(err: unknown, name: string, request: Request): Promise<void> {
   DEBUG_BUILD &&
     logger.warn(
       '`captureRemixServerException` is a server-only function and should not be called in the browser. ' +

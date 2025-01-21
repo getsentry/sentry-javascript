@@ -129,8 +129,6 @@ export {
 export * from '@sentry/node';
 
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  wrapRemixHandleError,
   sentryHandleError,
   wrapHandleErrorWithSentry,
 } from './utils/instrumentServer';
@@ -153,23 +151,8 @@ export function getRemixDefaultIntegrations(options: RemixOptions): Integration[
   return [
     ...getDefaultNodeIntegrations(options as NodeOptions).filter(integration => integration.name !== 'Http'),
     httpIntegration(),
-    // eslint-disable-next-line deprecation/deprecation
-    options.autoInstrumentRemix ? remixIntegration() : undefined,
+    remixIntegration(),
   ].filter(int => int) as Integration[];
-}
-
-/**
- * Returns the given Express createRequestHandler function.
- * This function is no-op and only returns the given function.
- *
- * @deprecated No need to wrap the Express request handler.
- * @param createRequestHandlerFn The Remix Express `createRequestHandler`.
- * @returns `createRequestHandler` function.
- */
-export function wrapExpressCreateRequestHandler(createRequestHandlerFn: unknown): unknown {
-  DEBUG_BUILD && logger.warn('wrapExpressCreateRequestHandler is deprecated and no longer needed.');
-
-  return createRequestHandlerFn;
 }
 
 /** Initializes Sentry Remix SDK on Node. */
@@ -186,7 +169,7 @@ export function init(options: RemixOptions): NodeClient | undefined {
 
   const client = nodeInit(options as NodeOptions);
 
-  instrumentServer(options);
+  instrumentServer();
 
   return client;
 }

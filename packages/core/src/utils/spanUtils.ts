@@ -30,7 +30,6 @@ import { _getSpanForScope } from './spanOnScope';
 export const TRACE_FLAG_NONE = 0x0;
 export const TRACE_FLAG_SAMPLED = 0x1;
 
-// todo(v9): Remove this once we've stopped dropping spans via `beforeSendSpan`
 let hasShownSpanDropWarning = false;
 
 /**
@@ -281,8 +280,6 @@ export function getActiveSpan(): Span | undefined {
 
 /**
  * Logs a warning once if `beforeSendSpan` is used to drop spans.
- *
- * todo(v9): Remove this once we've stopped dropping spans via `beforeSendSpan`.
  */
 export function showSpanDropWarning(): void {
   if (!hasShownSpanDropWarning) {
