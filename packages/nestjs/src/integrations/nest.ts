@@ -1,4 +1,4 @@
-import { NestInstrumentation } from '@opentelemetry/instrumentation-nestjs-core';
+import { NestInstrumentation } from './sentry-nest-core-instrumentation';
 import { defineIntegration } from '@sentry/core';
 import { generateInstrumentOnce } from '@sentry/node';
 import { SentryNestEventInstrumentation } from './sentry-nest-event-instrumentation';
