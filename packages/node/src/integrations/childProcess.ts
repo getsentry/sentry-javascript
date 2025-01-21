@@ -1,7 +1,7 @@
 import type { ChildProcess } from 'node:child_process';
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { Worker } from 'node:worker_threads';
-import { addBreadcrumb, captureException, defineIntegration } from '@sentry/core';
+import { addBreadcrumb, defineIntegration } from '@sentry/core';
 
 interface Options {
   /**
@@ -10,13 +10,6 @@ interface Options {
    * @default false
    */
   includeChildProcessArgs?: boolean;
-
-  /**
-   * Whether to capture errors from worker threads.
-   *
-   * @default true
-   */
-  captureWorkerErrors?: boolean;
 }
 
 const INTEGRATION_NAME = 'ChildProcess';
@@ -36,7 +29,7 @@ export const childProcessIntegration = defineIntegration((options: Options = {})
 
       diagnosticsChannel.channel('worker_threads').subscribe((event: unknown) => {
         if (event && typeof event === 'object' && 'worker' in event) {
-          captureWorkerThreadEvents(event.worker as Worker, options);
+          captureWorkerThreadEvents(event.worker as Worker);
         }
       });
     },
@@ -89,7 +82,7 @@ function captureChildProcessEvents(child: ChildProcess, options: Options): void 
     });
 }
 
-function captureWorkerThreadEvents(worker: Worker, options: Options): void {
+function captureWorkerThreadEvents(worker: Worker): void {
   let threadId: number | undefined;
 
   worker
@@ -97,17 +90,11 @@ function captureWorkerThreadEvents(worker: Worker, options: Options): void {
       threadId = worker.threadId;
     })
     .on('error', error => {
-      if (options.captureWorkerErrors !== false) {
-        captureException(error, {
-          mechanism: { type: 'instrument', handled: false, data: { threadId: String(threadId) } },
-        });
-      } else {
-        addBreadcrumb({
-          category: 'worker_thread',
-          message: `Worker thread errored with '${error.message}'`,
-          level: 'error',
-          data: { threadId },
-        });
-      }
+      addBreadcrumb({
+        category: 'worker_thread',
+        message: `Worker thread errored with '${error.message}'`,
+        level: 'error',
+        data: { threadId },
+      });
     });
 }

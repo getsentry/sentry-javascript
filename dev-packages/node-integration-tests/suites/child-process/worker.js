@@ -7,7 +7,6 @@ Sentry.init({
   debug: true,
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   release: '1.0',
-  integrations: [Sentry.childProcessIntegration()],
   transport: loggingTransport,
 });
 
