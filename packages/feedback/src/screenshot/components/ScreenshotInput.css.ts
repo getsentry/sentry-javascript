@@ -15,6 +15,7 @@ export function createScreenshotInputStyles(styleNonce?: string): HTMLStyleEleme
   padding-top: 65px;
   padding-bottom: 65px;
   flex-grow: 1;
+  position: relative;
 
   background-color: ${surface200};
   background-image: repeating-linear-gradient(
@@ -55,7 +56,7 @@ export function createScreenshotInputStyles(styleNonce?: string): HTMLStyleEleme
   padding: 8px;
   gap: 8px;
   border-radius: var(--menu-border-radius, 6px);
-  background: var(--button-primary-background, var(--background));
+  background: var(--button-background, var(--background));
   width: 175px;
   position: absolute;
 }
@@ -88,9 +89,18 @@ export function createScreenshotInputStyles(styleNonce?: string): HTMLStyleEleme
   border-left: none;
   border-top: none;
 }
+.editor__tool-container {
+  position: absolute;
+  padding: 10px 0px;
+  top: 0;
+}
 .editor__pen-tool {
-  width: 30px;
   height: 30px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: var(--button-border, var(--border));
+  border-radius: var(--button-border-radius, 6px);
 }
 `;
 
