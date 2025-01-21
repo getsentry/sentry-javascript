@@ -173,11 +173,11 @@ describe('getWebpackPluginOptions()', () => {
     });
   });
 
-  it('sets `sourcemaps.assets` to an empty array when `sourcemaps.disable` is true', () => {
+  it('sets `sourcemaps.disable` plugin options to true when `sourcemaps.disable` is true', () => {
     const buildContext = generateBuildContext({ isServer: false });
     const generatedPluginOptions = getWebpackPluginOptions(buildContext, { sourcemaps: { disable: true } }, undefined);
     expect(generatedPluginOptions.sourcemaps).toMatchObject({
-      assets: [],
+      disable: true,
     });
   });
 
