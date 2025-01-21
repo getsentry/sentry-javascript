@@ -86,7 +86,12 @@ export class BrowserClient extends Client<BrowserClientOptions> {
 
     if (this._options.sendDefaultPii) {
       this.on('postprocessEvent', event => {
-        addAutoIpAddressToUser(event);
+        if (event.user?.ip_address === undefined) {
+          event.user = {
+            ...event.user,
+            ip_address: '{{auto}}',
+          };
+        }
       });
 
       this.on('beforeSendSession', session => {
@@ -98,7 +103,9 @@ export class BrowserClient extends Client<BrowserClientOptions> {
             };
           }
         } else {
-          addAutoIpAddressToUser(session);
+          if (session.ipAddress === undefined) {
+            session.ipAddress = '{{auto}}';
+          }
         }
       });
     }
@@ -134,17 +141,5 @@ export class BrowserClient extends Client<BrowserClientOptions> {
     event.platform = event.platform || 'javascript';
 
     return super._prepareEvent(event, hint, currentScope, isolationScope);
-  }
-}
-
-// By default, we want to infer the IP address, unless this is explicitly set to `null`
-// We do this after all other processing is done
-// If `ip_address` is explicitly set to `null` or a value, we leave it as is
-function addAutoIpAddressToUser(objWithMaybeUser: { user?: User | null }): void {
-  if (objWithMaybeUser.user?.ip_address === undefined) {
-    objWithMaybeUser.user = {
-      ...objWithMaybeUser.user,
-      ip_address: '{{auto}}',
-    };
   }
 }
