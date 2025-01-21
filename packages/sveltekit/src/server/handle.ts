@@ -40,27 +40,25 @@ export type SentryHandleOptions = {
    * Controls if `sentryHandle` should inject a script tag into the page that enables instrumentation
    * of `fetch` calls in `load` functions.
    *
-   * @default true
+   * You can safely set this to `false` if you're using `@sveltejs/kit` version 2.16.0 or newer. This
+   * is only needed for versions older than 2.16.0.
    *
-   * @deprecated This option will be removed in the next major version of the SDK. There's no replacement as the fetch
-   * proxy script will no longer be added to the page response.
+   * @default true
    */
   injectFetchProxyScript?: boolean;
 
   /**
-   * Warning: This option is <b>strongly discouraged</b> to be used and will be removed in the next major version of the SDK.
+   * Warning: Setting this option is **strongly discouraged** and it will be removed in the next major version of the SDK.
    *
    * If you set this option, the passed nonce will be added to fetch proxy `<script>` tag that the Sentry SDK adds to your page.
    * The nonce passed to this option will be reused across multiple requests, which is defeating the purpose of a nonce.
    * See below for options what to do instead.
    *
-   * @deprecated This option will be removed in the next major version of the SDK. There's no replacement as the fetch
-   * proxy script will no longer be added to the page response.
+   * @deprecated This option will be removed in the next major version of the SDK.
    *
-   * Until then, you have the following options:
-   * - set a hash of the nonce in the CSP header instead as documented [in our docs]()
-   * - update `@sveltejs/kit` to at least version 1.26.0 or newer and set `injectFetchProxyScript: false`
-   * - continue to use this option but we strongly advise against it!
+   * If you rely on this option, you have the following replacement options:
+   * - set a hash instead of the nonce in your CSP config [as documented here](https://docs.sentry.io/platforms/javascript/guides/sveltekit/manual-setup/#configure-csp-for-client-side-fetch-instrumentation)
+   * - update `@sveltejs/kit` to at least version 2.16.0 or newer and set `injectFetchProxyScript: false`
    */
   fetchProxyScriptNonce?: string;
 };
