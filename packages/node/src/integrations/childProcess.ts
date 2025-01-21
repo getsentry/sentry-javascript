@@ -22,7 +22,7 @@ interface Options {
 const INTEGRATION_NAME = 'ChildProcess';
 
 /**
- * Capture breadcrumbs for child processes and worker threads.
+ * Capture breadcrumbs and events for child processes and worker threads.
  */
 export const childProcessIntegration = defineIntegration((options: Options = {}) => {
   return {
