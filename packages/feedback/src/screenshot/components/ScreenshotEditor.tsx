@@ -87,24 +87,26 @@ export function ScreenshotEditorFactory({
     const [isAnnotating, setIsAnnotating] = hooks.useState(false);
 
     hooks.useEffect(() => {
-      WINDOW.addEventListener('resize', resize, false);
+      WINDOW.addEventListener('resize', resize);
 
       return () => {
-        WINDOW.removeEventListener('resize', resize, false);
+        WINDOW.removeEventListener('resize', resize);
       };
     }, []);
 
     function resizeCanvas(canvasRef: Hooks.Ref<HTMLCanvasElement>, imageDimensions: Rect): void {
       const canvas = canvasRef.current;
-      if (canvas) {
-        canvas.width = imageDimensions.width * DPI;
-        canvas.height = imageDimensions.height * DPI;
-        canvas.style.width = `${imageDimensions.width}px`;
-        canvas.style.height = `${imageDimensions.height}px`;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.scale(DPI, DPI);
-        }
+      if (!canvas) {
+        return;
+      }
+
+      canvas.width = imageDimensions.width * DPI;
+      canvas.height = imageDimensions.height * DPI;
+      canvas.style.width = `${imageDimensions.width}px`;
+      canvas.style.height = `${imageDimensions.height}px`;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.scale(DPI, DPI);
       }
     }
 
