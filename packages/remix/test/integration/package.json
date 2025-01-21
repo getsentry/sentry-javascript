@@ -5,8 +5,7 @@
   "scripts": {
     "build": "remix build",
     "dev": "remix dev",
-    "start": "remix-serve build/index.js",
-    "start:otel": "NODE_OPTIONS='--import=./instrument.server.mjs' remix-serve build/index.js"
+    "start": "NODE_OPTIONS='--import=./instrument.server.mjs' remix-serve build/index.js"
   },
   "dependencies": {
     "@remix-run/express": "2.15.2",
