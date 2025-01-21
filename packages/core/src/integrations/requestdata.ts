@@ -1,4 +1,3 @@
-import { Client } from '../client';
 import { defineIntegration } from '../integration';
 import type { Event, IntegrationFn, RequestEventData } from '../types-hoist';
 import { parseCookie } from '../utils/cookie';
@@ -43,8 +42,13 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
       const { sdkProcessingMetadata = {} } = event;
       const { normalizedRequest, ipAddress } = sdkProcessingMetadata;
 
+      const includeWithDefaultPiiApplied: RequestDataIncludeOptions = {
+        ...include,
+        ip: include.ip || client.getOptions().sendDefaultPii,
+      };
+
       if (normalizedRequest) {
-        addNormalizedRequestDataToEvent(event, normalizedRequest, { ipAddress }, include, client);
+        addNormalizedRequestDataToEvent(event, normalizedRequest, { ipAddress }, includeWithDefaultPiiApplied);
       }
 
       return event;
@@ -68,14 +72,13 @@ function addNormalizedRequestDataToEvent(
   // Data that should not go into `event.request` but is somehow related to requests
   additionalData: { ipAddress?: string },
   include: RequestDataIncludeOptions,
-  client: Client,
 ): void {
   event.request = {
     ...event.request,
     ...extractNormalizedRequestData(req, include),
   };
 
-  if (include.ip || client.getOptions().sendDefaultPii) {
+  if (include.ip) {
     const ip = (req.headers && getClientIPAddress(req.headers)) || additionalData.ipAddress;
     if (ip) {
       event.user = {

@@ -84,14 +84,12 @@ export class BrowserClient extends Client<BrowserClientOptions> {
       });
     }
 
-    this.on('postprocessEvent', event => {
-      if (this._options.sendDefaultPii) {
+    if (this._options.sendDefaultPii) {
+      this.on('postprocessEvent', event => {
         addAutoIpAddressToUser(event);
-      }
-    });
+      });
 
-    this.on('beforeSendSession', session => {
-      if (this._options.sendDefaultPii) {
+      this.on('beforeSendSession', session => {
         if ('aggregates' in session) {
           if (session.attrs?.['ip_address'] === undefined) {
             session.attrs = {
@@ -102,8 +100,8 @@ export class BrowserClient extends Client<BrowserClientOptions> {
         } else {
           addAutoIpAddressToUser(session);
         }
-      }
-    });
+      });
+    }
   }
 
   /**
