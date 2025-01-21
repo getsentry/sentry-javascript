@@ -29,10 +29,9 @@ const _prismaIntegration = (() => {
           span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.db.otel.prisma');
         }
 
-        // In Prisma v5.22+, the `db.system` attribute is automatically set
-        // On older versions, this is missing, so we add it here
-        if (spanJSON.description === 'prisma:engine:db_query' && !spanJSON.data['db.system']) {
-          span.setAttribute('db.system', 'prisma');
+        // Make sure we use the query text as the span name, for ex. SELECT * FROM "User" WHERE "id" = $1
+        if (spanJSON.description === 'prisma:engine:db_query' && spanJSON.data?.['db.query.text']) {
+          span.updateName(spanJSON.data['db.query.text'] as string);
         }
       });
     },
@@ -45,19 +44,6 @@ const _prismaIntegration = (() => {
  * For more information, see the [`prismaIntegration` documentation](https://docs.sentry.io/platforms/javascript/guides/node/configuration/integrations/prisma/).
  *
  * @example
- *
- * Make sure `previewFeatures = ["tracing"]` is set in the prisma client generator block. See the
- * [prisma docs](https://www.prisma.io/docs/concepts/components/prisma-client/opentelemetry-tracing) for more details.
- *
- * ```prisma
- * generator client {
- *  provider = "prisma-client-js"
- *  previewFeatures = ["tracing"]
- * }
- * ```
- *
- * Then you can use the integration like this:
- *
  * ```javascript
  * const Sentry = require('@sentry/node');
  *

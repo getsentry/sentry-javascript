@@ -16,14 +16,14 @@ const { PrismaClient } = require('@prisma/client');
 setInterval(() => {}, 1000);
 
 async function run() {
-  const client = new PrismaClient();
-
   await Sentry.startSpan(
     {
       name: 'Test Transaction',
       op: 'transaction',
     },
     async span => {
+      const client = new PrismaClient();
+
       await client.user.create({
         data: {
           name: 'Tilda',
