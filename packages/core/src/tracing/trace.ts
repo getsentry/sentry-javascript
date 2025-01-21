@@ -428,6 +428,8 @@ function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parent
     ...spanArguments,
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+      [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]:
+        sampleRate !== undefined && localSampleRateWasApplied ? sampleRate : undefined,
       ...spanArguments.attributes,
     },
     sampled,
@@ -436,10 +438,6 @@ function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parent
   if (!sampled && client) {
     DEBUG_BUILD && logger.log('[Tracing] Discarding root span because its trace was not chosen to be sampled.');
     client.recordDroppedEvent('sample_rate', 'transaction');
-  }
-
-  if (sampleRate !== undefined && localSampleRateWasApplied) {
-    rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, sampleRate);
   }
 
   if (client) {
