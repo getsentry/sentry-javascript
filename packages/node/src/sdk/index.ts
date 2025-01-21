@@ -2,11 +2,9 @@ import type { Integration, Options } from '@sentry/core';
 import {
   consoleSandbox,
   dropUndefinedKeys,
-  endSession,
   functionToStringIntegration,
   getCurrentScope,
   getIntegrationsToSetup,
-  getIsolationScope,
   hasTracingEnabled,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
@@ -14,7 +12,6 @@ import {
   propagationContextFromHeaders,
   requestDataIntegration,
   stackParserFromStackParserOptions,
-  startSession,
 } from '@sentry/core';
 import {
   enhanceDscWithOpenTelemetryRootSpanName,
@@ -33,6 +30,7 @@ import { modulesIntegration } from '../integrations/modules';
 import { nativeNodeFetchIntegration } from '../integrations/node-fetch';
 import { onUncaughtExceptionIntegration } from '../integrations/onuncaughtexception';
 import { onUnhandledRejectionIntegration } from '../integrations/onunhandledrejection';
+import { processSessionIntegration } from '../integrations/processSession';
 import { INTEGRATION_NAME as SPOTLIGHT_INTEGRATION_NAME, spotlightIntegration } from '../integrations/spotlight';
 import { getAutoPerformanceIntegrations } from '../integrations/tracing';
 import { makeNodeTransport } from '../transports';
@@ -69,6 +67,7 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
     localVariablesIntegration(),
     nodeContextIntegration(),
     childProcessIntegration(),
+    processSessionIntegration(),
     ...getCjsOnlyIntegrations(),
   ];
 }
@@ -144,8 +143,6 @@ function _init(
   client.init();
 
   logger.log(`Running in ${isCjs() ? 'CommonJS' : 'ESM'} mode.`);
-
-  trackSessionForProcess();
 
   client.startClientReportTracking();
 
@@ -288,29 +285,4 @@ function updateScopeFromEnvVariables(): void {
     const propagationContext = propagationContextFromHeaders(sentryTraceEnv, baggageEnv);
     getCurrentScope().setPropagationContext(propagationContext);
   }
-}
-
-/**
- * Start a session for this process.
- */
-// TODO(v9): This is still extremely funky because it's a session on the scope and therefore weirdly mutable by the user.
-// Strawman proposal for v9: Either create a processSessionIntegration() or add functionality to the onunhandledexception/rejection integrations.
-function trackSessionForProcess(): void {
-  startSession();
-
-  // Emitted in the case of healthy sessions, error of `mechanism.handled: true` and unhandledrejections because
-  // The 'beforeExit' event is not emitted for conditions causing explicit termination,
-  // such as calling process.exit() or uncaught exceptions.
-  // Ref: https://nodejs.org/api/process.html#process_event_beforeexit
-  process.on('beforeExit', () => {
-    const session = getIsolationScope().getSession();
-
-    // Only call endSession, if the Session exists on Scope and SessionStatus is not a
-    // Terminal Status i.e. Exited or Crashed because
-    // "When a session is moved away from ok it must not be updated anymore."
-    // Ref: https://develop.sentry.dev/sdk/sessions/
-    if (session?.status !== 'ok') {
-      endSession();
-    }
-  });
 }

@@ -46,8 +46,8 @@
     "@sentry/browser": "8.45.0",
     "axios": "1.7.7",
     "babel-loader": "^8.2.2",
-    "html-webpack-plugin": "^5.5.0",
     "fflate": "0.8.2",
+    "html-webpack-plugin": "^5.5.0",
     "webpack": "^5.95.0"
   },
   "devDependencies": {

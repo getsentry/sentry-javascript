@@ -16,9 +16,9 @@ import { isExpectedError } from './helpers';
 // https://github.com/fastify/fastify/blob/87f9f20687c938828f1138f91682d568d2a31e53/types/request.d.ts#L41
 interface FastifyRequest {
   routeOptions?: {
-    method?: string;
     url?: string;
   };
+  method?: string;
 }
 
 // Partial extract of ExpressRequest interface
@@ -57,9 +57,7 @@ class SentryTracingInterceptor implements NestInterceptor {
       const req = context.switchToHttp().getRequest() as FastifyRequest | ExpressRequest;
       if ('routeOptions' in req && req.routeOptions?.url) {
         // fastify case
-        getIsolationScope().setTransactionName(
-          `${(req.routeOptions.method || 'GET').toUpperCase()} ${req.routeOptions.url}`,
-        );
+        getIsolationScope().setTransactionName(`${(req.method || 'GET').toUpperCase()} ${req.routeOptions.url}`);
       } else if ('route' in req && req.route?.path) {
         // express case
         getIsolationScope().setTransactionName(`${(req.method || 'GET').toUpperCase()} ${req.route.path}`);
