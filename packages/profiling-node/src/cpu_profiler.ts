@@ -169,6 +169,13 @@ export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
     }
   }
 
+  // @electron/rebuild generates the binary in the generic node-gyp directory
+  try {
+    return createdRequire('../../build/Release/sentry_cpu_profiler.node');
+  } catch (_) {
+    // ignore
+  }
+
   const built_from_source_path = resolve(esmCompatibleDirname, '..', `sentry_cpu_profiler-${identifier}`);
   return createdRequire(`${built_from_source_path}.node`);
 }
