@@ -15,6 +15,7 @@ export function createScreenshotInputStyles(styleNonce?: string): HTMLStyleEleme
   padding-top: 65px;
   padding-bottom: 65px;
   flex-grow: 1;
+  position: relative;
 
   background-color: ${surface200};
   background-image: repeating-linear-gradient(
@@ -88,9 +89,19 @@ export function createScreenshotInputStyles(styleNonce?: string): HTMLStyleEleme
   border-left: none;
   border-top: none;
 }
+.editor__tool-container {
+  position: absolute;
+  z-index: 2;
+  padding: 10px 0px;
+  top: 0;
+}
 .editor__pen-tool {
-  width: 30px;
   height: 30px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: var(--button-border, var(--border));
+  border-radius: var(--button-border-radius, 6px);
 }
 `;
 

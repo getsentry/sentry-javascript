@@ -6,6 +6,7 @@ import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-
 import type * as Hooks from 'preact/hooks';
 import { DOCUMENT, WINDOW } from '../../constants';
 import CropCornerFactory from './CropCorner';
+import PenIconFactory from './PenIcon';
 import { createScreenshotInputStyles } from './ScreenshotInput.css';
 import { useTakeScreenshotFactory } from './useTakeScreenshot';
 
@@ -76,6 +77,7 @@ export function ScreenshotEditorFactory({
   return function ScreenshotEditor({ onError }: Props): VNode {
     const styles = hooks.useMemo(() => ({ __html: createScreenshotInputStyles(options.styleNonce).innerText }), []);
     const CropCorner = CropCornerFactory({ h });
+    const PenIcon = PenIconFactory({ h });
 
     const canvasContainerRef = hooks.useRef<HTMLDivElement>(null);
     const cropContainerRef = hooks.useRef<HTMLDivElement>(null);
@@ -393,14 +395,15 @@ export function ScreenshotEditorFactory({
       <div class="editor">
         <style nonce={options.styleNonce} dangerouslySetInnerHTML={styles} />
         {options._experiments.annotations && (
-          <button
-            class="editor__pen-tool"
-            style={{ background: isAnnotating ? 'red' : 'white' }}
-            onClick={e => {
-              e.preventDefault();
-              setIsAnnotating(!isAnnotating);
-            }}
-          ></button>
+          <div class="editor__tool-container">
+            <PenIcon
+              isAnnotating={isAnnotating}
+              onClick={e => {
+                e.preventDefault();
+                setIsAnnotating(!isAnnotating);
+              }}
+            />
+          </div>
         )}
         <div class="editor__canvas-container" ref={canvasContainerRef}>
           <div class="editor__crop-container" style={{ zIndex: isAnnotating ? 1 : 2 }} ref={cropContainerRef}>
