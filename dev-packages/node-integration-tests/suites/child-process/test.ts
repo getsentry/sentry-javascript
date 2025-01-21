@@ -8,6 +8,13 @@ const WORKER_EVENT: Event = {
       {
         type: 'Error',
         value: 'Test error',
+        mechanism: {
+          type: 'instrument',
+          handled: false,
+          data: {
+            threadId: expect.any(String),
+          },
+        },
       },
     ],
   },
