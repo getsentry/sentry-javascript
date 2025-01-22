@@ -1,4 +1,4 @@
-import { SpanJSON } from '@sentry/core';
+import type { SpanJSON } from '@sentry/core';
 import { createRunner } from '../../../utils/runner';
 
 describe('Prisma ORM Tests', () => {
@@ -76,7 +76,7 @@ describe('Prisma ORM Tests', () => {
               'db.system': 'postgresql',
               'otel.kind': 'CLIENT',
             },
-            description: `DELETE FROM \"public\".\"User\" WHERE \"public\".\"User\".\"email\"::text LIKE $1`,
+            description: 'DELETE FROM "public"."User" WHERE "public"."User"."email"::text LIKE $1',
           });
         },
       })
