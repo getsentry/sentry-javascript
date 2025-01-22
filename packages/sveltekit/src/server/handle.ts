@@ -14,7 +14,7 @@ import {
   winterCGRequestToRequestData,
   withIsolationScope,
 } from '@sentry/core';
-import { type Handle, type ResolveOptions, VERSION } from '@sveltejs/kit';
+import { type Handle, type ResolveOptions } from '@sveltejs/kit';
 
 import { DEBUG_BUILD } from '../common/debug-build';
 import { flushIfServerless, getTracePropagationData, sendErrorToSentry } from './utils';
@@ -95,7 +95,7 @@ export function addSentryCodeToPage(options: { injectFetchProxyScript: boolean }
 export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
   const options: Required<SentryHandleOptions> = {
     handleUnknownRoutes: false,
-    injectFetchProxyScript: isFetchProxyRequired(VERSION),
+    injectFetchProxyScript: isFetchProxyRequired('2.16.0'),
     ...handlerOptions,
   };
 

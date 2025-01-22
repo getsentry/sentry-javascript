@@ -26,6 +26,11 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
     adapter: options.adapter || (await detectAdapter(options.debug)),
   };
 
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore - just testing for now
+  const kit = await import('@sveltejs/kit');
+  console.log('XX kit version', kit.VERSION);
+
   const sentryPlugins: Plugin[] = [];
 
   if (mergedOptions.autoInstrument) {
