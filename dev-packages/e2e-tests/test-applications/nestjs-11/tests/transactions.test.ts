@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Sends an API route transaction', async ({ baseURL }) => {
-  const pageloadTransactionEventPromise = waitForTransaction('nestjs-basic', transactionEvent => {
+  const pageloadTransactionEventPromise = waitForTransaction('nestjs-11', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent?.transaction === 'GET /test-transaction'
@@ -125,7 +125,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
 test('API route transaction includes nest middleware span. Spans created in and after middleware are nested correctly', async ({
   baseURL,
 }) => {
-  const pageloadTransactionEventPromise = waitForTransaction('nestjs-basic', transactionEvent => {
+  const pageloadTransactionEventPromise = waitForTransaction('nestjs-11', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent?.transaction === 'GET /test-middleware-instrumentation'
@@ -205,7 +205,7 @@ test('API route transaction includes nest middleware span. Spans created in and 
 test('API route transaction includes nest guard span and span started in guard is nested correctly', async ({
   baseURL,
 }) => {
-  const transactionEventPromise = waitForTransaction('nestjs-basic', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('nestjs-11', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent?.transaction === 'GET /test-guard-instrumentation'
@@ -268,7 +268,7 @@ test('API route transaction includes nest guard span and span started in guard i
 });
 
 test('API route transaction includes nest pipe span for valid request', async ({ baseURL }) => {
-  const transactionEventPromise = waitForTransaction('nestjs-basic', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('nestjs-11', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent?.transaction === 'GET /test-pipe-instrumentation/:id' &&
@@ -305,7 +305,7 @@ test('API route transaction includes nest pipe span for valid request', async ({
 });
 
 test('API route transaction includes nest pipe span for invalid request', async ({ baseURL }) => {
-  const transactionEventPromise = waitForTransaction('nestjs-basic', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('nestjs-11', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent?.transaction === 'GET /test-pipe-instrumentation/:id' &&
@@ -344,7 +344,7 @@ test('API route transaction includes nest pipe span for invalid request', async 
 test('API route transaction includes nest interceptor spans before route execution. Spans created in and after interceptor are nested correctly', async ({
   baseURL,
 }) => {
-  const pageloadTransactionEventPromise = waitForTransaction('nestjs-basic', transactionEvent => {
+  const pageloadTransactionEventPromise = waitForTransaction('nestjs-11', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent?.transaction === 'GET /test-interceptor-instrumentation'
@@ -462,7 +462,7 @@ test('API route transaction includes nest interceptor spans before route executi
 test('API route transaction includes exactly one nest interceptor span after route execution. Spans created in controller and in interceptor are nested correctly', async ({
   baseURL,
 }) => {
-  const pageloadTransactionEventPromise = waitForTransaction('nestjs-basic', transactionEvent => {
+  const pageloadTransactionEventPromise = waitForTransaction('nestjs-11', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent?.transaction === 'GET /test-interceptor-instrumentation'
@@ -544,7 +544,7 @@ test('API route transaction includes exactly one nest interceptor span after rou
 test('API route transaction includes nest async interceptor spans before route execution. Spans created in and after async interceptor are nested correctly', async ({
   baseURL,
 }) => {
-  const pageloadTransactionEventPromise = waitForTransaction('nestjs-basic', transactionEvent => {
+  const pageloadTransactionEventPromise = waitForTransaction('nestjs-11', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent?.transaction === 'GET /test-async-interceptor-instrumentation'
@@ -629,7 +629,7 @@ test('API route transaction includes nest async interceptor spans before route e
 test('API route transaction includes exactly one nest async interceptor span after route execution. Spans created in controller and in async interceptor are nested correctly', async ({
   baseURL,
 }) => {
-  const pageloadTransactionEventPromise = waitForTransaction('nestjs-basic', transactionEvent => {
+  const pageloadTransactionEventPromise = waitForTransaction('nestjs-11', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent?.transaction === 'GET /test-async-interceptor-instrumentation'

@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
-test('Sends exception to Sentry', async ({ baseURL }) => {
-  const errorEventPromise = waitForError('nestjs-basic', event => {
+test.only('Sends exception to Sentry', async ({ baseURL }) => {
+  const errorEventPromise = waitForError('nestjs-11', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'This is an exception with id 123';
   });
 
@@ -33,7 +33,7 @@ test('Sends exception to Sentry', async ({ baseURL }) => {
 test('Does not send HttpExceptions to Sentry', async ({ baseURL }) => {
   let errorEventOccurred = false;
 
-  waitForError('nestjs-basic', event => {
+  waitForError('nestjs-11', event => {
     if (!event.type && event.exception?.values?.[0]?.value === 'This is an expected 400 exception with id 123') {
       errorEventOccurred = true;
     }
@@ -41,7 +41,7 @@ test('Does not send HttpExceptions to Sentry', async ({ baseURL }) => {
     return event?.transaction === 'GET /test-expected-400-exception/:id';
   });
 
-  waitForError('nestjs-basic', event => {
+  waitForError('nestjs-11', event => {
     if (!event.type && event.exception?.values?.[0]?.value === 'This is an expected 500 exception with id 123') {
       errorEventOccurred = true;
     }
@@ -49,11 +49,11 @@ test('Does not send HttpExceptions to Sentry', async ({ baseURL }) => {
     return event?.transaction === 'GET /test-expected-500-exception/:id';
   });
 
-  const transactionEventPromise400 = waitForTransaction('nestjs-basic', transactionEvent => {
+  const transactionEventPromise400 = waitForTransaction('nestjs-11', transactionEvent => {
     return transactionEvent?.transaction === 'GET /test-expected-400-exception/:id';
   });
 
-  const transactionEventPromise500 = waitForTransaction('nestjs-basic', transactionEvent => {
+  const transactionEventPromise500 = waitForTransaction('nestjs-11', transactionEvent => {
     return transactionEvent?.transaction === 'GET /test-expected-500-exception/:id';
   });
 
@@ -74,7 +74,7 @@ test('Does not send HttpExceptions to Sentry', async ({ baseURL }) => {
 test('Does not send RpcExceptions to Sentry', async ({ baseURL }) => {
   let errorEventOccurred = false;
 
-  waitForError('nestjs-basic', event => {
+  waitForError('nestjs-11', event => {
     if (!event.type && event.exception?.values?.[0]?.value === 'This is an expected RPC exception with id 123') {
       errorEventOccurred = true;
     }
@@ -82,7 +82,7 @@ test('Does not send RpcExceptions to Sentry', async ({ baseURL }) => {
     return event?.transaction === 'GET /test-expected-rpc-exception/:id';
   });
 
-  const transactionEventPromise = waitForTransaction('nestjs-basic', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('nestjs-11', transactionEvent => {
     return transactionEvent?.transaction === 'GET /test-expected-rpc-exception/:id';
   });
 
@@ -101,7 +101,7 @@ test('Global exception filter registered in main module is applied and exception
 }) => {
   let errorEventOccurred = false;
 
-  waitForError('nestjs-basic', event => {
+  waitForError('nestjs-11', event => {
     if (!event.type && event.exception?.values?.[0]?.value === 'Example exception was handled by global filter!') {
       errorEventOccurred = true;
     }
@@ -109,7 +109,7 @@ test('Global exception filter registered in main module is applied and exception
     return event?.transaction === 'GET /example-exception-global-filter';
   });
 
-  const transactionEventPromise = waitForTransaction('nestjs-basic', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('nestjs-11', transactionEvent => {
     return transactionEvent?.transaction === 'GET /example-exception-global-filter';
   });
 
@@ -136,7 +136,7 @@ test('Local exception filter registered in main module is applied and exception 
 }) => {
   let errorEventOccurred = false;
 
-  waitForError('nestjs-basic', event => {
+  waitForError('nestjs-11', event => {
     if (!event.type && event.exception?.values?.[0]?.value === 'Example exception was handled by local filter!') {
       errorEventOccurred = true;
     }
@@ -144,7 +144,7 @@ test('Local exception filter registered in main module is applied and exception 
     return event?.transaction === 'GET /example-exception-local-filter';
   });
 
-  const transactionEventPromise = waitForTransaction('nestjs-basic', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('nestjs-11', transactionEvent => {
     return transactionEvent?.transaction === 'GET /example-exception-local-filter';
   });
 

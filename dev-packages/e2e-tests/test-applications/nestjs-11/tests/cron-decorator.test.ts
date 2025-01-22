@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForEnvelopeItem, waitForError } from '@sentry-internal/test-utils';
 
 test('Cron job triggers send of in_progress envelope', async ({ baseURL }) => {
-  const inProgressEnvelopePromise = waitForEnvelopeItem('nestjs-basic', envelope => {
+  const inProgressEnvelopePromise = waitForEnvelopeItem('nestjs-11', envelope => {
     return (
       envelope[0].type === 'check_in' &&
       envelope[1]['monitor_slug'] === 'test-cron-slug' &&
@@ -10,7 +10,7 @@ test('Cron job triggers send of in_progress envelope', async ({ baseURL }) => {
     );
   });
 
-  const okEnvelopePromise = waitForEnvelopeItem('nestjs-basic', envelope => {
+  const okEnvelopePromise = waitForEnvelopeItem('nestjs-11', envelope => {
     return (
       envelope[0].type === 'check_in' &&
       envelope[1]['monitor_slug'] === 'test-cron-slug' &&
@@ -63,7 +63,7 @@ test('Cron job triggers send of in_progress envelope', async ({ baseURL }) => {
 });
 
 test('Sends exceptions to Sentry on error in cron job', async ({ baseURL }) => {
-  const errorEventPromise = waitForError('nestjs-basic', event => {
+  const errorEventPromise = waitForError('nestjs-11', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'Test error from cron job';
   });
 
