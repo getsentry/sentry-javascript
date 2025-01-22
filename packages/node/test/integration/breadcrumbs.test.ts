@@ -99,7 +99,7 @@ describe('Integration | breadcrumbs', () => {
     const beforeSend = jest.fn(() => null);
     const beforeBreadcrumb = jest.fn(breadcrumb => breadcrumb);
 
-    mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, enableTracing: true });
+    mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, tracesSampleRate: 1 });
 
     const client = getClient() as NodeClient;
 
@@ -144,7 +144,7 @@ describe('Integration | breadcrumbs', () => {
     const beforeSend = jest.fn(() => null);
     const beforeBreadcrumb = jest.fn(breadcrumb => breadcrumb);
 
-    mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, enableTracing: true });
+    mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, tracesSampleRate: 1 });
 
     const client = getClient() as NodeClient;
 
@@ -196,7 +196,7 @@ describe('Integration | breadcrumbs', () => {
     const beforeSend = jest.fn(() => null);
     const beforeBreadcrumb = jest.fn(breadcrumb => breadcrumb);
 
-    mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, enableTracing: true });
+    mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, tracesSampleRate: 1 });
 
     const client = getClient() as NodeClient;
 
@@ -237,7 +237,7 @@ describe('Integration | breadcrumbs', () => {
     const beforeSend = jest.fn(() => null);
     const beforeBreadcrumb = jest.fn(breadcrumb => breadcrumb);
 
-    mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, enableTracing: true });
+    mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, tracesSampleRate: 1 });
 
     const client = getClient() as NodeClient;
 
@@ -295,7 +295,7 @@ describe('Integration | breadcrumbs', () => {
     const beforeSend = jest.fn(() => null);
     const beforeBreadcrumb = jest.fn(breadcrumb => breadcrumb);
 
-    mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, enableTracing: true });
+    mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, tracesSampleRate: 1 });
 
     const client = getClient() as NodeClient;
 

@@ -5,6 +5,7 @@ import { defineIntegration } from '../integration';
 import { logger } from '../utils-hoist/logger';
 import { getEventDescription } from '../utils-hoist/misc';
 import { stringMatchesSomePattern } from '../utils-hoist/string';
+import { getPossibleEventMessages } from '../utils/eventUtils';
 
 // "Script error." is hard coded into browsers for errors that it can't read.
 // this is the result of a script being pulled in from an external domain and CORS.
@@ -117,7 +118,7 @@ function _isIgnoredError(event: Event, ignoreErrors?: Array<string | RegExp>): b
     return false;
   }
 
-  return _getPossibleEventMessages(event).some(message => stringMatchesSomePattern(message, ignoreErrors));
+  return getPossibleEventMessages(event).some(message => stringMatchesSomePattern(message, ignoreErrors));
 }
 
 function _isIgnoredTransaction(event: Event, ignoreTransactions?: Array<string | RegExp>): boolean {
@@ -130,8 +131,7 @@ function _isIgnoredTransaction(event: Event, ignoreTransactions?: Array<string |
 }
 
 function _isDeniedUrl(event: Event, denyUrls?: Array<string | RegExp>): boolean {
-  // TODO: Use Glob instead?
-  if (!denyUrls || !denyUrls.length) {
+  if (!denyUrls?.length) {
     return false;
   }
   const url = _getEventFilterUrl(event);
@@ -139,39 +139,11 @@ function _isDeniedUrl(event: Event, denyUrls?: Array<string | RegExp>): boolean 
 }
 
 function _isAllowedUrl(event: Event, allowUrls?: Array<string | RegExp>): boolean {
-  // TODO: Use Glob instead?
-  if (!allowUrls || !allowUrls.length) {
+  if (!allowUrls?.length) {
     return true;
   }
   const url = _getEventFilterUrl(event);
   return !url ? true : stringMatchesSomePattern(url, allowUrls);
-}
-
-function _getPossibleEventMessages(event: Event): string[] {
-  const possibleMessages: string[] = [];
-
-  if (event.message) {
-    possibleMessages.push(event.message);
-  }
-
-  let lastException;
-  try {
-    // @ts-expect-error Try catching to save bundle size
-    lastException = event.exception.values[event.exception.values.length - 1];
-  } catch (e) {
-    // try catching to save bundle size checking existence of variables
-  }
-
-  if (lastException) {
-    if (lastException.value) {
-      possibleMessages.push(lastException.value);
-      if (lastException.type) {
-        possibleMessages.push(`${lastException.type}: ${lastException.value}`);
-      }
-    }
-  }
-
-  return possibleMessages;
 }
 
 function _isSentryError(event: Event): boolean {
@@ -219,7 +191,7 @@ function _isUselessError(event: Event): boolean {
   }
 
   // We only want to consider events for dropping that actually have recorded exception values.
-  if (!event.exception || !event.exception.values || event.exception.values.length === 0) {
+  if (!event.exception?.values?.length) {
     return false;
   }
 

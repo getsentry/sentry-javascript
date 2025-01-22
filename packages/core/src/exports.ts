@@ -1,5 +1,8 @@
+import { getClient, getCurrentScope, getIsolationScope, withIsolationScope } from './currentScopes';
+import { DEBUG_BUILD } from './debug-build';
+import type { CaptureContext } from './scope';
+import { closeSession, makeSession, updateSession } from './session';
 import type {
-  CaptureContext,
   CheckIn,
   Event,
   EventHint,
@@ -14,11 +17,6 @@ import type {
   SeverityLevel,
   User,
 } from './types-hoist';
-
-import { DEFAULT_ENVIRONMENT } from './constants';
-import { getClient, getCurrentScope, getIsolationScope, withIsolationScope } from './currentScopes';
-import { DEBUG_BUILD } from './debug-build';
-import { closeSession, makeSession, updateSession } from './session';
 import { isThenable } from './utils-hoist/is';
 import { logger } from './utils-hoist/logger';
 import { uuid4 } from './utils-hoist/misc';
@@ -245,7 +243,7 @@ export function isInitialized(): boolean {
 /** If the SDK is initialized & enabled. */
 export function isEnabled(): boolean {
   const client = getClient();
-  return !!client && client.getOptions().enabled !== false && !!client.getTransport();
+  return client?.getOptions().enabled !== false && !!client?.getTransport();
 }
 
 /**
@@ -265,18 +263,13 @@ export function addEventProcessor(callback: EventProcessor): void {
  * @returns the new active session
  */
 export function startSession(context?: SessionContext): Session {
-  const client = getClient();
   const isolationScope = getIsolationScope();
   const currentScope = getCurrentScope();
-
-  const { release, environment = DEFAULT_ENVIRONMENT } = (client && client.getOptions()) || {};
 
   // Will fetch userAgent if called from browser sdk
   const { userAgent } = GLOBAL_OBJ.navigator || {};
 
   const session = makeSession({
-    release,
-    environment,
     user: currentScope.getUser() || isolationScope.getUser(),
     ...(userAgent && { userAgent }),
     ...context,
@@ -284,7 +277,7 @@ export function startSession(context?: SessionContext): Session {
 
   // End existing session if there's one
   const currentSession = isolationScope.getSession();
-  if (currentSession && currentSession.status === 'ok') {
+  if (currentSession?.status === 'ok') {
     updateSession(currentSession, { status: 'exited' });
   }
 
@@ -292,10 +285,6 @@ export function startSession(context?: SessionContext): Session {
 
   // Afterwards we set the new session on the scope
   isolationScope.setSession(session);
-
-  // TODO (v8): Remove this and only use the isolation scope(?).
-  // For v7 though, we can't "soft-break" people using getCurrentHub().getScope().setSession()
-  currentScope.setSession(session);
 
   return session;
 }
@@ -315,10 +304,6 @@ export function endSession(): void {
 
   // the session is over; take it off of the scope
   isolationScope.setSession();
-
-  // TODO (v8): Remove this and only use the isolation scope(?).
-  // For v7 though, we can't "soft-break" people using getCurrentHub().getScope().setSession()
-  currentScope.setSession();
 }
 
 /**
@@ -326,11 +311,8 @@ export function endSession(): void {
  */
 function _sendSessionUpdate(): void {
   const isolationScope = getIsolationScope();
-  const currentScope = getCurrentScope();
   const client = getClient();
-  // TODO (v8): Remove currentScope and only use the isolation scope(?).
-  // For v7 though, we can't "soft-break" people using getCurrentHub().getScope().setSession()
-  const session = currentScope.getSession() || isolationScope.getSession();
+  const session = isolationScope.getSession();
   if (session && client) {
     client.captureSession(session);
   }

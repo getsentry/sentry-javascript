@@ -6,8 +6,6 @@ const WINDOW = GLOBAL_OBJ as unknown as Window;
 
 declare const EdgeRuntime: string | undefined;
 
-export { supportsHistory } from './vendor/supportsHistory';
-
 /**
  * Tells whether current environment supports ErrorEvent objects
  * {@link supportsErrorEvent}.
@@ -54,6 +52,16 @@ export function supportsDOMException(): boolean {
   } catch (e) {
     return false;
   }
+}
+
+/**
+ * Tells whether current environment supports History API
+ * {@link supportsHistory}.
+ *
+ * @returns Answer to the given question.
+ */
+export function supportsHistory(): boolean {
+  return 'history' in WINDOW;
 }
 
 /**
@@ -116,7 +124,7 @@ export function supportsNativeFetch(): boolean {
       const sandbox = doc.createElement('iframe');
       sandbox.hidden = true;
       doc.head.appendChild(sandbox);
-      if (sandbox.contentWindow && sandbox.contentWindow.fetch) {
+      if (sandbox.contentWindow?.fetch) {
         // eslint-disable-next-line @typescript-eslint/unbound-method
         result = isNativeFunction(sandbox.contentWindow.fetch);
       }

@@ -74,11 +74,11 @@ export function startStandaloneWebVitalSpan(options: StandaloneWebVitalSpanOptio
 
   const { name, transaction, attributes: passedAttributes, startTime } = options;
 
-  const { release, environment } = client.getOptions();
+  const { release, environment, sendDefaultPii } = client.getOptions();
   // We need to get the replay, user, and activeTransaction from the current scope
   // so that we can associate replay id, profile id, and a user display to the span
   const replay = client.getIntegrationByName<Integration & { getReplayId: () => string }>('Replay');
-  const replayId = replay && replay.getReplayId();
+  const replayId = replay?.getReplayId();
 
   const scope = getCurrentScope();
 
@@ -106,7 +106,10 @@ export function startStandaloneWebVitalSpan(options: StandaloneWebVitalSpanOptio
     // Web vital score calculation relies on the user agent to account for different
     // browsers setting different thresholds for what is considered a good/meh/bad value.
     // For example: Chrome vs. Chrome Mobile
-    'user_agent.original': WINDOW.navigator && WINDOW.navigator.userAgent,
+    'user_agent.original': WINDOW.navigator?.userAgent,
+
+    // This tells Sentry to infer the IP address from the request
+    'client.address': sendDefaultPii ? '{{auto}}' : undefined,
 
     ...passedAttributes,
   };
@@ -124,7 +127,7 @@ export function startStandaloneWebVitalSpan(options: StandaloneWebVitalSpanOptio
 /** Get the browser performance API. */
 export function getBrowserPerformanceAPI(): Performance | undefined {
   // @ts-expect-error we want to make sure all of these are available, even if TS is sure they are
-  return WINDOW && WINDOW.addEventListener && WINDOW.performance;
+  return WINDOW.addEventListener && WINDOW.performance;
 }
 
 /**

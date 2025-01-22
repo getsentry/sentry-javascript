@@ -9,6 +9,8 @@ sentryTest('should create spans for XHR requests', async ({ getLocalTestUrl, pag
     sentryTest.skip();
   }
 
+  await page.route('http://example.com/*', route => route.fulfill({ body: 'ok' }));
+
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);

@@ -6,12 +6,8 @@ export { contextLinesIntegration } from './integrations/contextlines';
 
 export {
   captureConsoleIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  debugIntegration,
   extraErrorDataIntegration,
   rewriteFramesIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  sessionTimingIntegration,
   captureFeedback,
 } from '@sentry/core';
 
@@ -35,8 +31,6 @@ import { feedbackSyncIntegration } from './feedbackSync';
 export { feedbackAsyncIntegration, feedbackSyncIntegration, feedbackSyncIntegration as feedbackIntegration };
 export { getFeedback, sendFeedback } from '@sentry-internal/feedback';
 
-export * from './metrics';
-
 export { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './tracing/request';
 export {
   browserTracingIntegration,
@@ -45,8 +39,6 @@ export {
 } from './tracing/browserTracingIntegration';
 export type { RequestInstrumentationOptions } from './tracing/request';
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  addTracingExtensions,
   registerSpanErrorInstrumentation,
   getActiveSpan,
   getRootSpan,
@@ -75,3 +67,4 @@ export {
 } from './integrations/featureFlags';
 export { launchDarklyIntegration, buildLaunchDarklyFlagUsedHandler } from './integrations/featureFlags/launchdarkly';
 export { openFeatureIntegration, OpenFeatureIntegrationHook } from './integrations/featureFlags/openfeature';
+export { unleashIntegration } from './integrations/featureFlags/unleash';

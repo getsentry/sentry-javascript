@@ -10,11 +10,12 @@ const globalWithVue = GLOBAL_OBJ as typeof GLOBAL_OBJ & { Vue: Vue };
 const DEFAULT_CONFIG: VueOptions = {
   Vue: globalWithVue.Vue,
   attachProps: true,
-  logErrors: true,
   attachErrorHandler: true,
-  hooks: DEFAULT_HOOKS,
-  timeout: 2000,
-  trackComponents: false,
+  tracingOptions: {
+    hooks: DEFAULT_HOOKS,
+    timeout: 2000,
+    trackComponents: false,
+  },
 };
 
 const INTEGRATION_NAME = 'Vue';
@@ -57,7 +58,7 @@ const vueInit = (app: Vue, options: Options): void => {
       };
     };
 
-    const isMounted = appWithInstance._instance && appWithInstance._instance.isMounted;
+    const isMounted = appWithInstance._instance?.isMounted;
     if (isMounted === true) {
       consoleSandbox(() => {
         // eslint-disable-next-line no-console
@@ -73,12 +74,6 @@ const vueInit = (app: Vue, options: Options): void => {
   }
 
   if (hasTracingEnabled(options)) {
-    app.mixin(
-      createTracingMixins({
-        ...options,
-        // eslint-disable-next-line deprecation/deprecation
-        ...options.tracingOptions,
-      }),
-    );
+    app.mixin(createTracingMixins(options.tracingOptions));
   }
 };

@@ -51,7 +51,7 @@ export interface WrapperOptions {
   captureAllSettledReasons: boolean;
   /**
    * Automatically trace all handler invocations.
-   * You may want to disable this if you use express within Lambda (use tracingHandler instead).
+   * You may want to disable this if you use express within Lambda.
    * @default true
    */
   startTrace: boolean;
@@ -220,10 +220,7 @@ function enhanceScopeWithEnvironmentData(scope: Scope, context: Context, startTi
  * @param context AWS Lambda context that will be used to extract some part of the data
  */
 function enhanceScopeWithTransactionData(scope: Scope, context: Context): void {
-  scope.addEventProcessor(event => {
-    event.transaction = context.functionName;
-    return event;
-  });
+  scope.setTransactionName(context.functionName);
   scope.setTag('server_name', process.env._AWS_XRAY_DAEMON_ADDRESS || process.env.SENTRY_NAME || hostname());
   scope.setTag('url', `awslambda:///${context.functionName}`);
 }
@@ -323,7 +320,7 @@ export function wrapHandler<TEvent, TResult>(
         throw e;
       } finally {
         clearTimeout(timeoutWarningTimer);
-        if (span && span.isRecording()) {
+        if (span?.isRecording()) {
           span.end();
         }
         await flush(options.flushTimeout).catch(e => {
@@ -336,7 +333,7 @@ export function wrapHandler<TEvent, TResult>(
     // Only start a trace and root span if the handler is not already wrapped by Otel instrumentation
     // Otherwise, we create two root spans (one from otel, one from our wrapper).
     // If Otel instrumentation didn't work or was filtered by users, we still want to trace the handler.
-    // TODO(v9): Since bumping the OTEL Instrumentation, this is likely not needed anymore, we can possibly remove this
+    // TODO: Since bumping the OTEL Instrumentation, this is likely not needed anymore, we can possibly remove this (can be done whenever since it would be non-breaking)
     if (options.startTrace && !isWrappedByOtel(handler)) {
       const traceData = getAwsTraceData(event as { headers?: Record<string, string> }, context);
 

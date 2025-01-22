@@ -1,13 +1,13 @@
+import type { Client } from '../client';
 import { getDefaultCurrentScope, getDefaultIsolationScope } from '../defaultScopes';
 import { Scope } from '../scope';
-import type { Client, Scope as ScopeInterface } from '../types-hoist';
 import { isThenable } from '../utils-hoist/is';
 import { getMainCarrier, getSentryCarrier } from './../carrier';
 import type { AsyncContextStrategy } from './types';
 
 interface Layer {
   client?: Client;
-  scope: ScopeInterface;
+  scope: Scope;
 }
 
 /**
@@ -15,9 +15,9 @@ interface Layer {
  */
 export class AsyncContextStack {
   private readonly _stack: [Layer, ...Layer[]];
-  private _isolationScope: ScopeInterface;
+  private _isolationScope: Scope;
 
-  public constructor(scope?: ScopeInterface, isolationScope?: ScopeInterface) {
+  public constructor(scope?: Scope, isolationScope?: Scope) {
     let assignedScope;
     if (!scope) {
       assignedScope = new Scope();
@@ -40,7 +40,7 @@ export class AsyncContextStack {
   /**
    * Fork a scope for the stack.
    */
-  public withScope<T>(callback: (scope: ScopeInterface) => T): T {
+  public withScope<T>(callback: (scope: Scope) => T): T {
     const scope = this._pushScope();
 
     let maybePromiseResult: T;
@@ -79,14 +79,14 @@ export class AsyncContextStack {
   /**
    * Returns the scope of the top stack.
    */
-  public getScope(): ScopeInterface {
+  public getScope(): Scope {
     return this.getStackTop().scope;
   }
 
   /**
    * Get the isolation scope for the stack.
    */
-  public getIsolationScope(): ScopeInterface {
+  public getIsolationScope(): Scope {
     return this._isolationScope;
   }
 
@@ -100,7 +100,7 @@ export class AsyncContextStack {
   /**
    * Push a scope to the stack.
    */
-  private _pushScope(): ScopeInterface {
+  private _pushScope(): Scope {
     // We want to clone the content of prev scope
     const scope = this.getScope().clone();
     this._stack.push({
@@ -130,11 +130,11 @@ function getAsyncContextStack(): AsyncContextStack {
   return (sentry.stack = sentry.stack || new AsyncContextStack(getDefaultCurrentScope(), getDefaultIsolationScope()));
 }
 
-function withScope<T>(callback: (scope: ScopeInterface) => T): T {
+function withScope<T>(callback: (scope: Scope) => T): T {
   return getAsyncContextStack().withScope(callback);
 }
 
-function withSetScope<T>(scope: ScopeInterface, callback: (scope: ScopeInterface) => T): T {
+function withSetScope<T>(scope: Scope, callback: (scope: Scope) => T): T {
   const stack = getAsyncContextStack() as AsyncContextStack;
   return stack.withScope(() => {
     stack.getStackTop().scope = scope;
@@ -142,7 +142,7 @@ function withSetScope<T>(scope: ScopeInterface, callback: (scope: ScopeInterface
   });
 }
 
-function withIsolationScope<T>(callback: (isolationScope: ScopeInterface) => T): T {
+function withIsolationScope<T>(callback: (isolationScope: Scope) => T): T {
   return getAsyncContextStack().withScope(() => {
     return callback(getAsyncContextStack().getIsolationScope());
   });
@@ -156,7 +156,7 @@ export function getStackAsyncContextStrategy(): AsyncContextStrategy {
     withIsolationScope,
     withScope,
     withSetScope,
-    withSetIsolationScope: <T>(_isolationScope: ScopeInterface, callback: (isolationScope: ScopeInterface) => T) => {
+    withSetIsolationScope: <T>(_isolationScope: Scope, callback: (isolationScope: Scope) => T) => {
       return withIsolationScope(callback);
     },
     getCurrentScope: () => getAsyncContextStack().getScope(),

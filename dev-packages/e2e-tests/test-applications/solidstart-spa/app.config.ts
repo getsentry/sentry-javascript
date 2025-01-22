@@ -1,9 +1,9 @@
-import { sentrySolidStartVite } from '@sentry/solidstart';
+import { withSentry } from '@sentry/solidstart';
 import { defineConfig } from '@solidjs/start/config';
 
-export default defineConfig({
-  ssr: false,
-  vite: {
-    plugins: [sentrySolidStartVite()],
-  },
-});
+export default defineConfig(
+  withSentry({
+    ssr: false,
+    middleware: './src/middleware.ts',
+  }),
+);

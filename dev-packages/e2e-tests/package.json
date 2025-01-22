@@ -16,12 +16,12 @@
     "clean": "rimraf tmp node_modules && yarn clean:test-applications && yarn clean:pnpm",
     "ci:build-matrix": "ts-node ./lib/getTestMatrix.ts",
     "ci:build-matrix-optional": "ts-node ./lib/getTestMatrix.ts --optional=true",
-    "clean:test-applications": "rimraf --glob test-applications/**/{node_modules,dist,build,.next,.sveltekit,pnpm-lock.yaml,.last-run.json,test-results}",
+    "clean:test-applications": "rimraf --glob test-applications/**/{node_modules,dist,build,.next,.nuxt,.sveltekit,pnpm-lock.yaml,.last-run.json,test-results}",
     "clean:pnpm": "pnpm store prune"
   },
   "devDependencies": {
     "@types/glob": "8.0.0",
-    "@types/node": "^18.0.0",
+    "@types/node": "^18.19.1",
     "dotenv": "16.0.3",
     "esbuild": "0.20.0",
     "glob": "8.0.3",

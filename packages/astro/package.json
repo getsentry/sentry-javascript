@@ -14,7 +14,7 @@
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=18.14.1"
+    "node": ">=18.19.1"
   },
   "type": "module",
   "files": [
@@ -63,7 +63,7 @@
   },
   "devDependencies": {
     "astro": "^3.5.0",
-    "vite": "^5.4.10"
+    "vite": "^5.4.11"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",

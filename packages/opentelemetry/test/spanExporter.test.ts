@@ -6,7 +6,7 @@ import { cleanupOtel, mockSdkInit } from './helpers/mockSdkInit';
 describe('createTransactionForOtelSpan', () => {
   beforeEach(() => {
     mockSdkInit({
-      enableTracing: true,
+      tracesSampleRate: 1,
     });
   });
 

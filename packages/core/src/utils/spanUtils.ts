@@ -1,14 +1,16 @@
 import { getAsyncContextStrategy } from '../asyncContext';
 import { getMainCarrier } from '../carrier';
 import { getCurrentScope } from '../currentScopes';
-import { getMetricSummaryJsonForSpan, updateMetricSummaryOnSpan } from '../metrics/metric-summary';
-import type { MetricType } from '../metrics/types';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+} from '../semanticAttributes';
 import type { SentrySpan } from '../tracing/sentrySpan';
 import { SPAN_STATUS_OK, SPAN_STATUS_UNSET } from '../tracing/spanstatus';
+import { getCapturedScopesOnSpan } from '../tracing/utils';
 import type {
-  MeasurementUnit,
-  Primitive,
   Span,
   SpanAttributes,
   SpanJSON,
@@ -28,7 +30,6 @@ import { _getSpanForScope } from './spanOnScope';
 export const TRACE_FLAG_NONE = 0x0;
 export const TRACE_FLAG_SAMPLED = 0x1;
 
-// todo(v9): Remove this once we've stopped dropping spans via `beforeSendSpan`
 let hasShownSpanDropWarning = false;
 
 /**
@@ -60,7 +61,9 @@ export function spanToTraceContext(span: Span): TraceContext {
   // If the span is remote, we use a random/virtual span as span_id to the trace context,
   // and the remote span as parent_span_id
   const parent_span_id = isRemote ? spanId : spanToJSON(span).parent_span_id;
-  const span_id = isRemote ? generateSpanId() : spanId;
+  const scope = getCapturedScopesOnSpan(span).scope;
+
+  const span_id = isRemote ? scope?.getPropagationContext().propagationSpanId || generateSpanId() : spanId;
 
   return dropUndefinedKeys({
     parent_span_id,
@@ -112,46 +115,44 @@ function ensureTimestampInSeconds(timestamp: number): number {
 // Note: Because of this, we currently have a circular type dependency (which we opted out of in package.json).
 // This is not avoidable as we need `spanToJSON` in `spanUtils.ts`, which in turn is needed by `span.ts` for backwards compatibility.
 // And `spanToJSON` needs the Span class from `span.ts` to check here.
-export function spanToJSON(span: Span): Partial<SpanJSON> {
+export function spanToJSON(span: Span): SpanJSON {
   if (spanIsSentrySpan(span)) {
     return span.getSpanJSON();
   }
 
-  try {
-    const { spanId: span_id, traceId: trace_id } = span.spanContext();
+  const { spanId: span_id, traceId: trace_id } = span.spanContext();
 
-    // Handle a span from @opentelemetry/sdk-base-trace's `Span` class
-    if (spanIsOpenTelemetrySdkTraceBaseSpan(span)) {
-      const { attributes, startTime, name, endTime, parentSpanId, status } = span;
+  // Handle a span from @opentelemetry/sdk-base-trace's `Span` class
+  if (spanIsOpenTelemetrySdkTraceBaseSpan(span)) {
+    const { attributes, startTime, name, endTime, parentSpanId, status } = span;
 
-      return dropUndefinedKeys({
-        span_id,
-        trace_id,
-        data: attributes,
-        description: name,
-        parent_span_id: parentSpanId,
-        start_timestamp: spanTimeInputToSeconds(startTime),
-        // This is [0,0] by default in OTEL, in which case we want to interpret this as no end time
-        timestamp: spanTimeInputToSeconds(endTime) || undefined,
-        status: getStatusMessage(status),
-        op: attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP],
-        origin: attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined,
-        _metrics_summary: getMetricSummaryJsonForSpan(span),
-      });
-    }
-
-    // Finally, at least we have `spanContext()`....
-    return {
+    return dropUndefinedKeys({
       span_id,
       trace_id,
-    };
-  } catch {
-    return {};
+      data: attributes,
+      description: name,
+      parent_span_id: parentSpanId,
+      start_timestamp: spanTimeInputToSeconds(startTime),
+      // This is [0,0] by default in OTEL, in which case we want to interpret this as no end time
+      timestamp: spanTimeInputToSeconds(endTime) || undefined,
+      status: getStatusMessage(status),
+      op: attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP],
+      origin: attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined,
+    });
   }
+
+  // Finally, at least we have `spanContext()`....
+  // This should not actually happen in reality, but we need to handle it for type safety.
+  return {
+    span_id,
+    trace_id,
+    start_timestamp: 0,
+    data: {},
+  };
 }
 
 function spanIsOpenTelemetrySdkTraceBaseSpan(span: Span): span is OpenTelemetrySdkTraceBaseSpan {
-  const castSpan = span as OpenTelemetrySdkTraceBaseSpan;
+  const castSpan = span as Partial<OpenTelemetrySdkTraceBaseSpan>;
   return !!castSpan.attributes && !!castSpan.startTime && !!castSpan.name && !!castSpan.endTime && !!castSpan.status;
 }
 
@@ -278,35 +279,40 @@ export function getActiveSpan(): Span | undefined {
 }
 
 /**
- * Updates the metric summary on the currently active span
- */
-export function updateMetricSummaryOnActiveSpan(
-  metricType: MetricType,
-  sanitizedName: string,
-  value: number,
-  unit: MeasurementUnit,
-  tags: Record<string, Primitive>,
-  bucketKey: string,
-): void {
-  const span = getActiveSpan();
-  if (span) {
-    updateMetricSummaryOnSpan(span, metricType, sanitizedName, value, unit, tags, bucketKey);
-  }
-}
-
-/**
  * Logs a warning once if `beforeSendSpan` is used to drop spans.
- *
- * todo(v9): Remove this once we've stopped dropping spans via `beforeSendSpan`.
  */
 export function showSpanDropWarning(): void {
   if (!hasShownSpanDropWarning) {
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.warn(
-        '[Sentry] Deprecation warning: Returning null from `beforeSendSpan` will be disallowed from SDK version 9.0.0 onwards. The callback will only support mutating spans. To drop certain spans, configure the respective integrations directly.',
+        '[Sentry] Returning null from `beforeSendSpan` is disallowed. To drop certain spans, configure the respective integrations directly.',
       );
     });
     hasShownSpanDropWarning = true;
   }
+}
+
+/**
+ * Updates the name of the given span and ensures that the span name is not
+ * overwritten by the Sentry SDK.
+ *
+ * Use this function instead of `span.updateName()` if you want to make sure that
+ * your name is kept. For some spans, for example root `http.server` spans the
+ * Sentry SDK would otherwise overwrite the span name with a high-quality name
+ * it infers when the span ends.
+ *
+ * Use this function in server code or when your span is started on the server
+ * and on the client (browser). If you only update a span name on the client,
+ * you can also use `span.updateName()` the SDK does not overwrite the name.
+ *
+ * @param span - The span to update the name of.
+ * @param name - The name to set on the span.
+ */
+export function updateSpanName(span: Span, name: string): void {
+  span.updateName(name);
+  span.setAttributes({
+    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+    [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: name,
+  });
 }

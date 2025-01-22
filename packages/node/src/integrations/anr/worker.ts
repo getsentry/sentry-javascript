@@ -1,6 +1,7 @@
 import { Session as InspectorSession } from 'node:inspector';
 import { parentPort, workerData } from 'node:worker_threads';
 import type { DebugImage, Event, ScopeData, Session, StackFrame } from '@sentry/core';
+import { generateSpanId } from '@sentry/core';
 import {
   applyScopeDataToEvent,
   callFrameToStackFrame,
@@ -23,7 +24,7 @@ type VoidFunction = () => void;
 
 const options: WorkerStartData = workerData;
 let session: Session | undefined;
-let hasSentAnrEvent = false;
+let sentAnrEvents = 0;
 let mainDebugImages: Record<string, string> = {};
 
 function log(msg: string): void {
@@ -91,24 +92,31 @@ function applyDebugMeta(event: Event): void {
     return;
   }
 
+  const normalisedDebugImages = options.appRootPath ? {} : mainDebugImages;
+  if (options.appRootPath) {
+    for (const [path, debugId] of Object.entries(mainDebugImages)) {
+      normalisedDebugImages[normalizeUrlToBase(path, options.appRootPath)] = debugId;
+    }
+  }
+
   const filenameToDebugId = new Map<string, string>();
 
   for (const exception of event.exception?.values || []) {
     for (const frame of exception.stacktrace?.frames || []) {
       const filename = frame.abs_path || frame.filename;
-      if (filename && mainDebugImages[filename]) {
-        filenameToDebugId.set(filename, mainDebugImages[filename] as string);
+      if (filename && normalisedDebugImages[filename]) {
+        filenameToDebugId.set(filename, normalisedDebugImages[filename] as string);
       }
     }
   }
 
   if (filenameToDebugId.size > 0) {
     const images: DebugImage[] = [];
-    for (const [filename, debugId] of filenameToDebugId.entries()) {
+    for (const [code_file, debug_id] of filenameToDebugId.entries()) {
       images.push({
         type: 'sourcemap',
-        code_file: filename,
-        debug_id: debugId,
+        code_file,
+        debug_id,
       });
     }
     event.debug_meta = { images };
@@ -119,13 +127,11 @@ function applyScopeToEvent(event: Event, scope: ScopeData): void {
   applyScopeDataToEvent(event, scope);
 
   if (!event.contexts?.trace) {
-    // TODO(v9): Use generateSpanId() instead of spanId
-    // eslint-disable-next-line deprecation/deprecation
-    const { traceId, spanId, parentSpanId } = scope.propagationContext;
+    const { traceId, parentSpanId, propagationSpanId } = scope.propagationContext;
     event.contexts = {
       trace: {
         trace_id: traceId,
-        span_id: spanId,
+        span_id: propagationSpanId || generateSpanId(),
         parent_span_id: parentSpanId,
       },
       ...event.contexts,
@@ -134,11 +140,11 @@ function applyScopeToEvent(event: Event, scope: ScopeData): void {
 }
 
 async function sendAnrEvent(frames?: StackFrame[], scope?: ScopeData): Promise<void> {
-  if (hasSentAnrEvent) {
+  if (sentAnrEvents >= options.maxAnrEvents) {
     return;
   }
 
-  hasSentAnrEvent = true;
+  sentAnrEvents += 1;
 
   await sendAbnormalSession();
 
@@ -179,11 +185,13 @@ async function sendAnrEvent(frames?: StackFrame[], scope?: ScopeData): Promise<v
   await transport.send(envelope);
   await transport.flush(2000);
 
-  // Delay for 5 seconds so that stdio can flush if the main event loop ever restarts.
-  // This is mainly for the benefit of logging or debugging.
-  setTimeout(() => {
-    process.exit(0);
-  }, 5_000);
+  if (sentAnrEvents >= options.maxAnrEvents) {
+    // Delay for 5 seconds so that stdio can flush if the main event loop ever restarts.
+    // This is mainly for the benefit of logging or debugging.
+    setTimeout(() => {
+      process.exit(0);
+    }, 5_000);
+  }
 }
 
 let debuggerPause: VoidFunction | undefined;
@@ -245,7 +253,7 @@ if (options.captureStackTrace) {
 
           clearTimeout(getScopeTimeout);
 
-          const scopes = param && param.result ? (param.result.value as ScopeData) : undefined;
+          const scopes = param?.result ? (param.result.value as ScopeData) : undefined;
 
           session.post('Debugger.resume');
           session.post('Debugger.disable');

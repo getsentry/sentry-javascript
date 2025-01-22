@@ -62,8 +62,7 @@ function setupAutomatedSpanProfiling(client: NodeClient): void {
       const options = client.getOptions();
       // Not intended for external use, hence missing types, but we want to profile a couple of things at Sentry that
       // currently exceed the default timeout set by the SDKs.
-      const maxProfileDurationMs =
-        (options._experiments && options._experiments['maxProfileDurationMs']) || MAX_PROFILE_DURATION_MS;
+      const maxProfileDurationMs = options._experiments?.maxProfileDurationMs || MAX_PROFILE_DURATION_MS;
 
       if (PROFILE_TIMEOUTS[profile_id]) {
         global.clearTimeout(PROFILE_TIMEOUTS[profile_id]);
@@ -146,6 +145,11 @@ function setupAutomatedSpanProfiling(client: NodeClient): void {
 
       // @ts-expect-error profile does not inherit from Event
       client.emit('preprocessEvent', profile, {
+        event_id: profiledTransaction.event_id,
+      });
+
+      // @ts-expect-error profile does not inherit from Event
+      client.emit('postprocessEvent', profile, {
         event_id: profiledTransaction.event_id,
       });
     }

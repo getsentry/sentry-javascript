@@ -48,7 +48,7 @@ snapshot[`captureException 1`] = `
               filename: "app:///test/mod.test.ts",
               function: "?",
               in_app: true,
-              lineno: 46,
+              lineno: 44,
               post_context: [
                 "",
                 "  await delay(200);",
@@ -56,7 +56,7 @@ snapshot[`captureException 1`] = `
                 "});",
                 "",
                 "Deno.test('captureMessage', async t => {",
-                "  let ev: sentryTypes.Event | undefined;",
+                "  let ev: Event | undefined;",
               ],
               pre_context: [
                 "    ev = event;",
@@ -74,7 +74,7 @@ snapshot[`captureException 1`] = `
               filename: "app:///test/mod.test.ts",
               function: "something",
               in_app: true,
-              lineno: 43,
+              lineno: 41,
               post_context: [
                 "  }",
                 "",
@@ -86,7 +86,7 @@ snapshot[`captureException 1`] = `
               ],
               pre_context: [
                 "Deno.test('captureException', async t => {",
-                "  let ev: sentryTypes.Event | undefined;",
+                "  let ev: Event | undefined;",
                 "  const client = getTestClient(event => {",
                 "    ev = event;",
                 "  });",

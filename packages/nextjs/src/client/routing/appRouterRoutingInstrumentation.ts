@@ -11,10 +11,11 @@ export const INCOMPLETE_APP_ROUTER_INSTRUMENTATION_TRANSACTION_NAME = 'incomplet
 
 /** Instruments the Next.js app router for pageloads. */
 export function appRouterInstrumentPageLoad(client: Client): void {
+  const origin = browserPerformanceTimeOrigin();
   startBrowserTracingPageLoadSpan(client, {
     name: WINDOW.location.pathname,
     // pageload should always start at timeOrigin (and needs to be in s, not ms)
-    startTime: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
+    startTime: origin ? origin / 1000 : undefined,
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.nextjs.app_router_instrumentation',
@@ -59,7 +60,7 @@ export function appRouterInstrumentNavigation(client: Client): void {
   let currentNavigationSpan: Span | undefined = undefined;
 
   WINDOW.addEventListener('popstate', () => {
-    if (currentNavigationSpan && currentNavigationSpan.isRecording()) {
+    if (currentNavigationSpan?.isRecording()) {
       currentNavigationSpan.updateName(WINDOW.location.pathname);
       currentNavigationSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'url');
     } else {
@@ -129,7 +130,8 @@ export function appRouterInstrumentNavigation(client: Client): void {
 
 function transactionNameifyRouterArgument(target: string): string {
   try {
-    return new URL(target, 'http://some-random-base.com/').pathname;
+    // We provide an arbitrary base because we only care about the pathname and it makes URL parsing more resilient.
+    return new URL(target, 'http://example.com/').pathname;
   } catch {
     return '/';
   }

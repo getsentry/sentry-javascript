@@ -4,6 +4,8 @@ on:
     branches:
       - develop
       - master
+      - v9
+      - v8
       - release/**
   pull_request:
   merge_group:
@@ -105,7 +107,7 @@ jobs:
     outputs:
       commit_label: '${{ env.COMMIT_SHA }}: ${{ env.COMMIT_MESSAGE }}'
       # Note: These next three have to be checked as strings ('true'/'false')!
-      is_develop: ${{ github.ref == 'refs/heads/develop' }}
+      is_base_branch: ${{ github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/v9' || github.ref == 'refs/heads/v8'}}
       is_release: ${{ startsWith(github.ref, 'refs/heads/release/') }}
       changed_profiling_node: ${{ steps.changed.outputs.profiling_node == 'true' }}
       changed_ci: ${{ steps.changed.outputs.workflow == 'true' }}
@@ -126,7 +128,7 @@ jobs:
     timeout-minutes: 15
     if: |
       needs.job_get_metadata.outputs.changed_any_code == 'true' ||
-      needs.job_get_metadata.outputs.is_develop == 'true' ||
+      needs.job_get_metadata.outputs.is_base_branch == 'true' ||
       needs.job_get_metadata.outputs.is_release == 'true' ||
       (needs.job_get_metadata.outputs.is_gitflow_sync == 'false' && needs.job_get_metadata.outputs.has_gitflow_label == 'false')
     steps:
@@ -171,7 +173,7 @@ jobs:
           key: nx-Linux-${{ github.ref }}-${{ env.HEAD_COMMIT || github.sha }}
           # On develop branch, we want to _store_ the cache (so it can be used by other branches), but never _restore_ from it
           restore-keys:
-            ${{needs.job_get_metadata.outputs.is_develop == 'false' && env.NX_CACHE_RESTORE_KEYS || 'nx-never-restore'}}
+            ${{needs.job_get_metadata.outputs.is_base_branch == 'false' && env.NX_CACHE_RESTORE_KEYS || 'nx-never-restore'}}
 
       - name: Build packages
         # Set the CODECOV_TOKEN for Bundle Analysis
@@ -219,7 +221,7 @@ jobs:
     timeout-minutes: 15
     runs-on: ubuntu-20.04
     if:
-      github.event_name == 'pull_request' || needs.job_get_metadata.outputs.is_develop == 'true' ||
+      github.event_name == 'pull_request' || needs.job_get_metadata.outputs.is_base_branch == 'true' ||
       needs.job_get_metadata.outputs.is_release == 'true'
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -265,6 +267,8 @@ jobs:
         run: yarn lint:lerna
       - name: Lint C++ files
         run: yarn lint:clang
+      - name: Lint for ES compatibility
+        run: yarn lint:es-compatibility
 
   job_check_format:
     name: Check file formatting
@@ -438,7 +442,7 @@ jobs:
       - name: Set up Deno
         uses: denoland/setup-deno@v2.0.1
         with:
-          deno-version: v1.38.5
+          deno-version: v2.1.5
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
@@ -457,7 +461,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [14, 16, 18, 20, 22]
+        node: [18, 20, 22]
     steps:
       - name: Check out base commit (${{ github.event.pull_request.base.sha }})
         uses: actions/checkout@v4
@@ -476,7 +480,6 @@ jobs:
         uses: ./.github/actions/restore-cache
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
-          node_version: ${{ matrix.node == 14 && '14' || '' }}
 
       - name: Run affected tests
         run: yarn test:pr:node --base=${{ github.event.pull_request.base.sha }}
@@ -713,7 +716,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [14, 16, 18, 20, 22]
+        node: [18, 20, 22]
         typescript:
           - false
         include:
@@ -733,22 +736,18 @@ jobs:
         uses: ./.github/actions/restore-cache
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
-          node_version: ${{ matrix.node == 14 && '14' || '' }}
 
       - name: Overwrite typescript version
-        if: matrix.typescript
-        run: node ./scripts/use-ts-version.js ${{ matrix.typescript }}
+        if: matrix.typescript == '3.8'
+        run: node ./scripts/use-ts-3_8.js
         working-directory: dev-packages/node-integration-tests
 
       - name: Run integration tests
-        env:
-          NODE_VERSION: ${{ matrix.node }}
-          TS_VERSION: ${{ matrix.typescript }}
         working-directory: dev-packages/node-integration-tests
         run: yarn test
 
   job_remix_integration_tests:
-    name: Remix v${{ matrix.remix }} (Node ${{ matrix.node }}) Tests
+    name: Remix (Node ${{ matrix.node }}) Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_remix == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
@@ -757,11 +756,6 @@ jobs:
       fail-fast: false
       matrix:
         node: [18, 20, 22]
-        remix: [1, 2]
-        # Remix v2 only supports Node 18+, so run 16 tests separately
-        include:
-          - node: 16
-            remix: 1
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -784,7 +778,6 @@ jobs:
       - name: Run integration tests
         env:
           NODE_VERSION: ${{ matrix.node }}
-          REMIX_VERSION: ${{ matrix.remix }}
         run: |
           cd packages/remix
           yarn test:integration:ci
@@ -1207,7 +1200,8 @@ jobs:
       - name: Run E2E test
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
         timeout-minutes: 10
-        run: xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" -- yarn test:assert
+        run: |
+          xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" -- yarn test:assert
 
   job_required_jobs_passed:
     name: All required jobs passed or were skipped
@@ -1241,7 +1235,7 @@ jobs:
           echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
 
   job_compile_bindings_profiling_node:
-    name: Compile & Test Profiling Bindings (v${{ matrix.node }}) ${{ matrix.target_platform || matrix.os }}, ${{ matrix.node || matrix.container }}, ${{ matrix.arch || matrix.container }}, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }}
+    name: Compile profiling-node (v${{ matrix.node }}) ${{ matrix.target_platform || matrix.os }}, ${{ matrix.arch || matrix.container }}, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }}
     needs: [job_get_metadata, job_build]
     # Compiling bindings can be very slow (especially on windows), so only run precompile
     # Skip precompile unless we are on a release branch as precompile slows down CI times.
@@ -1249,16 +1243,14 @@ jobs:
       (needs.job_get_metadata.outputs.changed_profiling_node == 'true') ||
       (needs.job_get_metadata.outputs.is_release == 'true')
     runs-on: ${{ matrix.os }}
-    container: ${{ matrix.container }}
+    container:
+      image: ${{ matrix.container }}
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         include:
             # x64 glibc
-          - os: ubuntu-20.04
-            node: 16
-            binary: linux-x64-glibc-93
           - os: ubuntu-20.04
             node: 18
             binary: linux-x64-glibc-108
@@ -1270,10 +1262,6 @@ jobs:
             binary: linux-x64-glibc-127
 
             # x64 musl
-          - os: ubuntu-20.04
-            container: node:16-alpine3.16
-            binary: linux-x64-musl-93
-            node: 16
           - os: ubuntu-20.04
             container: node:18-alpine3.17
             node: 18
@@ -1290,10 +1278,6 @@ jobs:
             # arm64 glibc
           - os: ubuntu-20.04
             arch: arm64
-            node: 16
-            binary: linux-arm64-glibc-93
-          - os: ubuntu-20.04
-            arch: arm64
             node: 18
             binary: linux-arm64-glibc-108
           - os: ubuntu-20.04
@@ -1306,11 +1290,6 @@ jobs:
             binary: linux-arm64-glibc-127
 
             # arm64 musl
-          - os: ubuntu-20.04
-            container: node:16-alpine3.16
-            arch: arm64
-            node: 16
-            binary: linux-arm64-musl-93
           - os: ubuntu-20.04
             arch: arm64
             container: node:18-alpine3.17
@@ -1329,10 +1308,6 @@ jobs:
 
             # macos x64
           - os: macos-13
-            node: 16
-            arch: x64
-            binary: darwin-x64-93
-          - os: macos-13
             node: 18
             arch: x64
             binary: darwin-x64-108
@@ -1346,11 +1321,6 @@ jobs:
             binary: darwin-x64-127
 
             # macos arm64
-          - os: macos-13
-            arch: arm64
-            node: 16
-            target_platform: darwin
-            binary: darwin-arm64-93
           - os: macos-13
             arch: arm64
             node: 18
@@ -1368,10 +1338,6 @@ jobs:
             binary: darwin-arm64-127
 
             # windows x64
-          - os: windows-2022
-            node: 16
-            arch: x64
-            binary: win32-x64-93
           - os: windows-2022
             node: 18
             arch: x64
@@ -1397,8 +1363,13 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
 
+      # Note: On alpine images, this does nothing
+      # The node version will be the one that is installed in the image
+      # If you want to change the node version, you need to change the image
+      # For non-alpine imgages, this will install the correct version of node
       - name: Setup Node
         uses: actions/setup-node@v4
+        if: contains(matrix.container, 'alpine') == false
         with:
           node-version: ${{ matrix.node }}
 
@@ -1415,10 +1386,10 @@ jobs:
         run: yarn config set network-timeout 600000 -g
 
       - name: Install dependencies
-        env:
-          SKIP_PLAYWRIGHT_BROWSER_INSTALL: "1"
         if: steps.restore-dependencies.outputs.cache-hit != 'true'
         run: yarn install --ignore-engines --frozen-lockfile
+        env:
+          SKIP_PLAYWRIGHT_BROWSER_INSTALL: "1"
 
       - name: Configure safe directory
         run: |
@@ -1496,8 +1467,7 @@ jobs:
           BUILD_ARCH=arm64 \
           yarn build:bindings:arm64
 
-      - name: Build Monorepo
-        if: steps.restore-build.outputs.cache-hit != 'true'
+      - name: Build profiling-node & its dependencies
         run: yarn build --scope @sentry/profiling-node
 
       - name: Test Bindings

@@ -6,7 +6,10 @@
 export const SEMANTIC_ATTRIBUTE_SENTRY_SOURCE = 'sentry.source';
 
 /**
- * Use this attribute to represent the sample rate used for a span.
+ * Attributes that holds the sample rate that was locally applied to a span.
+ * If this attribute is not defined, it means that the span inherited a sampling decision.
+ *
+ * NOTE: Is only defined on root spans.
  */
 export const SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE = 'sentry.sample_rate';
 
@@ -28,6 +31,15 @@ export const SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT = 'sentry.measurement_un
 
 /** The value of a measurement, which may be stored as a TimedEvent. */
 export const SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE = 'sentry.measurement_value';
+
+/**
+ * A custom span name set by users guaranteed to be taken over any automatically
+ * inferred name. This attribute is removed before the span is sent.
+ *
+ * @internal only meant for internal SDK usage
+ * @hidden
+ */
+export const SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME = 'sentry.custom_span_name';
 
 /**
  * The id of the profile that this span occurred in.

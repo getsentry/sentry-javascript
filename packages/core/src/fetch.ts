@@ -1,7 +1,7 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from './semanticAttributes';
 import { SPAN_STATUS_ERROR, setHttpStatus, startInactiveSpan } from './tracing';
 import { SentryNonRecordingSpan } from './tracing/sentryNonRecordingSpan';
-import type { Client, HandlerDataFetch, Scope, Span, SpanOrigin } from './types-hoist';
+import type { HandlerDataFetch, Span, SpanOrigin } from './types-hoist';
 import { SENTRY_BAGGAGE_KEY_PREFIX } from './utils-hoist/baggage';
 import { isInstanceOf } from './utils-hoist/is';
 import { parseUrl } from './utils-hoist/url';
@@ -199,27 +199,6 @@ function _addTracingHeadersToFetchRequest(
   }
 }
 
-/**
- * Adds sentry-trace and baggage headers to the various forms of fetch headers.
- *
- * @deprecated This function will not be exported anymore in v9.
- */
-export function addTracingHeadersToFetchRequest(
-  request: string | unknown,
-  _client: Client | undefined,
-  _scope: Scope | undefined,
-  fetchOptionsObj: {
-    headers?:
-      | {
-          [key: string]: string[] | string | undefined;
-        }
-      | PolymorphicRequestHeaders;
-  },
-  span?: Span,
-): PolymorphicRequestHeaders | undefined {
-  return _addTracingHeadersToFetchRequest(request as Request, fetchOptionsObj, span);
-}
-
 function getFullURL(url: string): string | undefined {
   try {
     const parsed = new URL(url);
@@ -233,8 +212,7 @@ function endSpan(span: Span, handlerData: HandlerDataFetch): void {
   if (handlerData.response) {
     setHttpStatus(span, handlerData.response.status);
 
-    const contentLength =
-      handlerData.response && handlerData.response.headers && handlerData.response.headers.get('content-length');
+    const contentLength = handlerData.response?.headers && handlerData.response.headers.get('content-length');
 
     if (contentLength) {
       const contentLengthNum = parseInt(contentLength);

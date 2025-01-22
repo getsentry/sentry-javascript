@@ -1,3 +1,4 @@
+import { getSentryCarrier } from '../carrier';
 import type {
   Attachment,
   AttachmentItem,
@@ -74,18 +75,16 @@ export function envelopeContainsItemType(envelope: Envelope, types: EnvelopeItem
  * Encode a string to UTF8 array.
  */
 function encodeUTF8(input: string): Uint8Array {
-  return GLOBAL_OBJ.__SENTRY__ && GLOBAL_OBJ.__SENTRY__.encodePolyfill
-    ? GLOBAL_OBJ.__SENTRY__.encodePolyfill(input)
-    : new TextEncoder().encode(input);
+  const carrier = getSentryCarrier(GLOBAL_OBJ);
+  return carrier.encodePolyfill ? carrier.encodePolyfill(input) : new TextEncoder().encode(input);
 }
 
 /**
  * Decode a UTF8 array to string.
  */
 function decodeUTF8(input: Uint8Array): string {
-  return GLOBAL_OBJ.__SENTRY__ && GLOBAL_OBJ.__SENTRY__.decodePolyfill
-    ? GLOBAL_OBJ.__SENTRY__.decodePolyfill(input)
-    : new TextDecoder().decode(input);
+  const carrier = getSentryCarrier(GLOBAL_OBJ);
+  return carrier.decodePolyfill ? carrier.decodePolyfill(input) : new TextDecoder().decode(input);
 }
 
 /**
@@ -223,7 +222,6 @@ const ITEM_TYPE_TO_DATA_CATEGORY_MAP: Record<EnvelopeItemType, DataCategory> = {
   check_in: 'monitor',
   feedback: 'feedback',
   span: 'span',
-  statsd: 'metric_bucket',
   raw_security: 'security',
 };
 
@@ -236,7 +234,7 @@ export function envelopeItemTypeToDataCategory(type: EnvelopeItemType): DataCate
 
 /** Extracts the minimal SDK info from the metadata or an events */
 export function getSdkMetadataForEnvelopeHeader(metadataOrEvent?: SdkMetadata | Event): SdkInfo | undefined {
-  if (!metadataOrEvent || !metadataOrEvent.sdk) {
+  if (!metadataOrEvent?.sdk) {
     return;
   }
   const { name, version } = metadataOrEvent.sdk;
@@ -253,7 +251,7 @@ export function createEventEnvelopeHeaders(
   tunnel: string | undefined,
   dsn?: DsnComponents,
 ): EventEnvelopeHeaders {
-  const dynamicSamplingContext = event.sdkProcessingMetadata && event.sdkProcessingMetadata.dynamicSamplingContext;
+  const dynamicSamplingContext = event.sdkProcessingMetadata?.dynamicSamplingContext;
   return {
     event_id: event.event_id as string,
     sent_at: new Date().toISOString(),

@@ -164,15 +164,7 @@ packages:
     unpublish: $all
     # proxy: npmjs # Don't proxy for E2E tests!
 
-  # TODO(v9): Remove
   '@sentry/types':
-    access: $all
-    publish: $all
-    unpublish: $all
-    # proxy: npmjs # Don't proxy for E2E tests!
-
-  # TODO(v9): Remove
-  '@sentry/utils':
     access: $all
     publish: $all
     unpublish: $all

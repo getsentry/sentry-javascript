@@ -5,7 +5,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   captureException,
   defineIntegration,
-  getClient,
   getDefaultIsolationScope,
   getIsolationScope,
   logger,
@@ -13,7 +12,6 @@ import {
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import { generateInstrumentOnce } from '../../otel/instrument';
-import type { NodeClient } from '../../sdk/client';
 import { addOriginToSpan } from '../../utils/addOriginToSpan';
 import { ensureIsWrapped } from '../../utils/ensureIsWrapped';
 
@@ -26,7 +24,7 @@ export const instrumentExpress = generateInstrumentOnce(
       requestHook(span) {
         addOriginToSpan(span, 'auto.http.otel.express');
 
-        const attributes = spanToJSON(span).data || {};
+        const attributes = spanToJSON(span).data;
         // this is one of: middleware, request_handler, router
         const type = attributes['express.type'];
 
@@ -93,7 +91,9 @@ interface MiddlewareError extends Error {
   };
 }
 
-type ExpressMiddleware = (
+type ExpressMiddleware = (req: http.IncomingMessage, res: http.ServerResponse, next: () => void) => void;
+
+type ExpressErrorMiddleware = (
   error: MiddlewareError,
   req: http.IncomingMessage,
   res: http.ServerResponse,
@@ -111,44 +111,38 @@ interface ExpressHandlerOptions {
 /**
  * An Express-compatible error handler.
  */
-export function expressErrorHandler(options?: ExpressHandlerOptions): ExpressMiddleware {
+export function expressErrorHandler(options?: ExpressHandlerOptions): ExpressErrorMiddleware {
   return function sentryErrorMiddleware(
     error: MiddlewareError,
-    _req: http.IncomingMessage,
+    request: http.IncomingMessage,
     res: http.ServerResponse,
     next: (error: MiddlewareError) => void,
   ): void {
+    // Ensure we use the express-enhanced request here, instead of the plain HTTP one
+    // When an error happens, the `expressRequestHandler` middleware does not run, so we set it here too
+    getIsolationScope().setSDKProcessingMetadata({ request });
+
     const shouldHandleError = options?.shouldHandleError || defaultShouldHandleError;
 
     if (shouldHandleError(error)) {
-      const client = getClient<NodeClient>();
-      // eslint-disable-next-line deprecation/deprecation
-      if (client && client.getOptions().autoSessionTracking) {
-        // Check if the `SessionFlusher` is instantiated on the client to go into this branch that marks the
-        // `requestSession.status` as `Crashed`, and this check is necessary because the `SessionFlusher` is only
-        // instantiated when the the`requestHandler` middleware is initialised, which indicates that we should be
-        // running in SessionAggregates mode
-        const isSessionAggregatesMode = client['_sessionFlusher'] !== undefined;
-        if (isSessionAggregatesMode) {
-          // eslint-disable-next-line deprecation/deprecation
-          const requestSession = getIsolationScope().getRequestSession();
-          // If an error bubbles to the `errorHandler`, then this is an unhandled error, and should be reported as a
-          // Crashed session. The `_requestSession.status` is checked to ensure that this error is happening within
-          // the bounds of a request, and if so the status is updated
-          if (requestSession && requestSession.status !== undefined) {
-            requestSession.status = 'crashed';
-          }
-        }
-      }
-
       const eventId = captureException(error, { mechanism: { type: 'middleware', handled: false } });
       (res as { sentry?: string }).sentry = eventId;
-      next(error);
-
-      return;
     }
 
     next(error);
+  };
+}
+
+function expressRequestHandler(): ExpressMiddleware {
+  return function sentryRequestMiddleware(
+    request: http.IncomingMessage,
+    _res: http.ServerResponse,
+    next: () => void,
+  ): void {
+    // Ensure we use the express-enhanced request here, instead of the plain HTTP one
+    getIsolationScope().setSDKProcessingMetadata({ request });
+
+    next();
   };
 }
 
@@ -177,15 +171,16 @@ export function expressErrorHandler(options?: ExpressHandlerOptions): ExpressMid
  * ```
  */
 export function setupExpressErrorHandler(
-  app: { use: (middleware: ExpressMiddleware) => unknown },
+  app: { use: (middleware: ExpressMiddleware | ExpressErrorMiddleware) => unknown },
   options?: ExpressHandlerOptions,
 ): void {
+  app.use(expressRequestHandler());
   app.use(expressErrorHandler(options));
   ensureIsWrapped(app.use, 'express');
 }
 
 function getStatusCodeFromResponse(error: MiddlewareError): number {
-  const statusCode = error.status || error.statusCode || error.status_code || (error.output && error.output.statusCode);
+  const statusCode = error.status || error.statusCode || error.status_code || error.output?.statusCode;
   return statusCode ? parseInt(statusCode as string, 10) : 500;
 }
 

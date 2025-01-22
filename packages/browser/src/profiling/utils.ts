@@ -21,16 +21,16 @@ const MS_TO_NS = 1e6;
 const THREAD_ID_STRING = String(0);
 const THREAD_NAME = 'main';
 
+// We force make this optional to be on the safe side...
+const navigator = WINDOW.navigator as typeof WINDOW.navigator | undefined;
+
 // Machine properties (eval only once)
 let OS_PLATFORM = '';
 let OS_PLATFORM_VERSION = '';
 let OS_ARCH = '';
-let OS_BROWSER = (WINDOW.navigator && WINDOW.navigator.userAgent) || '';
+let OS_BROWSER = navigator?.userAgent || '';
 let OS_MODEL = '';
-const OS_LOCALE =
-  (WINDOW.navigator && WINDOW.navigator.language) ||
-  (WINDOW.navigator && WINDOW.navigator.languages && WINDOW.navigator.languages[0]) ||
-  '';
+const OS_LOCALE = navigator?.language || navigator?.languages?.[0] || '';
 
 type UAData = {
   platform?: string;
@@ -52,7 +52,7 @@ function isUserAgentData(data: unknown): data is UserAgentData {
 }
 
 // @ts-expect-error userAgentData is not part of the navigator interface yet
-const userAgentData = WINDOW.navigator && WINDOW.navigator.userAgentData;
+const userAgentData = navigator?.userAgentData;
 
 if (isUserAgentData(userAgentData)) {
   userAgentData
@@ -63,7 +63,7 @@ if (isUserAgentData(userAgentData)) {
       OS_MODEL = ua.model || '';
       OS_PLATFORM_VERSION = ua.platformVersion || '';
 
-      if (ua.fullVersionList && ua.fullVersionList.length > 0) {
+      if (ua.fullVersionList?.length) {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const firstUa = ua.fullVersionList[ua.fullVersionList.length - 1]!;
         OS_BROWSER = `${firstUa.brand} ${firstUa.version}`;
@@ -98,7 +98,7 @@ export interface ProfiledEvent extends Event {
 }
 
 function getTraceId(event: Event): string {
-  const traceId: unknown = event && event.contexts && event.contexts['trace'] && event.contexts['trace']['trace_id'];
+  const traceId: unknown = event.contexts?.trace?.['trace_id'];
   // Log a warning if the profile has an invalid traceId (should be uuidv4).
   // All profiles and transactions are rejected if this is the case and we want to
   // warn users that this is happening if they enable debug flag
@@ -199,7 +199,7 @@ export function createProfilePayload(
  *
  */
 export function isProfiledTransactionEvent(event: Event): event is ProfiledEvent {
-  return !!(event.sdkProcessingMetadata && event.sdkProcessingMetadata['profile']);
+  return !!event.sdkProcessingMetadata?.profile;
 }
 
 /*
@@ -241,9 +241,9 @@ export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): Profi
   // when that happens, we need to ensure we are correcting the profile timings so the two timelines stay in sync.
   // Since JS self profiling time origin is always initialized to performance.timeOrigin, we need to adjust for
   // the drift between the SDK selected value and our profile time origin.
-  const origin =
-    typeof performance.timeOrigin === 'number' ? performance.timeOrigin : browserPerformanceTimeOrigin || 0;
-  const adjustForOriginChange = origin - (browserPerformanceTimeOrigin || origin);
+  const perfOrigin = browserPerformanceTimeOrigin();
+  const origin = typeof performance.timeOrigin === 'number' ? performance.timeOrigin : perfOrigin || 0;
+  const adjustForOriginChange = origin - (perfOrigin || origin);
 
   input.samples.forEach((jsSample, i) => {
     // If sample has no stack, add an empty sample
@@ -333,7 +333,7 @@ export function findProfiledTransactionsFromEnvelope(envelope: Envelope): Event[
     for (let j = 1; j < item.length; j++) {
       const event = item[j] as Event;
 
-      if (event && event.contexts && event.contexts['profile'] && event.contexts['profile']['profile_id']) {
+      if (event?.contexts && event.contexts['profile'] && event.contexts['profile']['profile_id']) {
         events.push(item[j] as Event);
       }
     }
@@ -347,8 +347,8 @@ export function findProfiledTransactionsFromEnvelope(envelope: Envelope): Event[
  */
 export function applyDebugMetadata(resource_paths: ReadonlyArray<string>): DebugImage[] {
   const client = getClient();
-  const options = client && client.getOptions();
-  const stackParser = options && options.stackParser;
+  const options = client?.getOptions();
+  const stackParser = options?.stackParser;
 
   if (!stackParser) {
     return [];
@@ -478,7 +478,7 @@ export function shouldProfileSpan(span: Span): boolean {
   }
 
   const client = getClient();
-  const options = client && client.getOptions();
+  const options = client?.getOptions();
   if (!options) {
     DEBUG_BUILD && logger.log('[Profiling] Profiling disabled, no options found.');
     return false;

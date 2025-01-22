@@ -1,5 +1,6 @@
+import type { ScopeData } from '../../../src';
 import { startInactiveSpan } from '../../../src';
-import type { Attachment, Breadcrumb, Event, EventProcessor, EventType, ScopeData } from '../../../src/types-hoist';
+import type { Attachment, Breadcrumb, Event, EventProcessor, EventType } from '../../../src/types-hoist';
 import {
   applyScopeDataToEvent,
   mergeAndOverwriteScopeData,
@@ -81,7 +82,7 @@ describe('mergeScopeData', () => {
       extra: {},
       contexts: {},
       attachments: [],
-      propagationContext: { spanId: '1', traceId: '1' },
+      propagationContext: { traceId: '1', sampleRand: 0.42 },
       sdkProcessingMetadata: {},
       fingerprint: [],
     };
@@ -93,7 +94,7 @@ describe('mergeScopeData', () => {
       extra: {},
       contexts: {},
       attachments: [],
-      propagationContext: { spanId: '1', traceId: '1' },
+      propagationContext: { traceId: '1', sampleRand: 0.42 },
       sdkProcessingMetadata: {},
       fingerprint: [],
     };
@@ -106,7 +107,7 @@ describe('mergeScopeData', () => {
       extra: {},
       contexts: {},
       attachments: [],
-      propagationContext: { spanId: '1', traceId: '1' },
+      propagationContext: { traceId: '1', sampleRand: 0.42 },
       sdkProcessingMetadata: {},
       fingerprint: [],
     });
@@ -133,7 +134,7 @@ describe('mergeScopeData', () => {
       extra: { extra1: 'aa', extra2: 'aa' },
       contexts: { os: { name: 'os1' }, culture: { display_name: 'name1' } },
       attachments: [attachment1],
-      propagationContext: { spanId: '1', traceId: '1' },
+      propagationContext: { traceId: '1', sampleRand: 0.42 },
       sdkProcessingMetadata: {
         aa: 'aa',
         bb: 'aa',
@@ -153,7 +154,7 @@ describe('mergeScopeData', () => {
       extra: { extra2: 'bb', extra3: 'bb' },
       contexts: { os: { name: 'os2' } },
       attachments: [attachment2, attachment3],
-      propagationContext: { spanId: '2', traceId: '2' },
+      propagationContext: { traceId: '2', sampleRand: 0.42 },
       sdkProcessingMetadata: {
         bb: 'bb',
         cc: 'bb',
@@ -174,7 +175,7 @@ describe('mergeScopeData', () => {
       extra: { extra1: 'aa', extra2: 'bb', extra3: 'bb' },
       contexts: { os: { name: 'os2' }, culture: { display_name: 'name1' } },
       attachments: [attachment1, attachment2, attachment3],
-      propagationContext: { spanId: '2', traceId: '2' },
+      propagationContext: { traceId: '2', sampleRand: 0.42 },
       sdkProcessingMetadata: {
         aa: 'aa',
         bb: 'bb',
@@ -201,7 +202,7 @@ describe('applyScopeDataToEvent', () => {
       extra: {},
       contexts: {},
       attachments: [],
-      propagationContext: { spanId: '1', traceId: '1' },
+      propagationContext: { traceId: '1', sampleRand: 0.42 },
       sdkProcessingMetadata: {},
       fingerprint: [],
       transactionName: 'foo',
@@ -222,7 +223,7 @@ describe('applyScopeDataToEvent', () => {
       extra: {},
       contexts: {},
       attachments: [],
-      propagationContext: { spanId: '1', traceId: '1' },
+      propagationContext: { traceId: '1', sampleRand: 0.42 },
       sdkProcessingMetadata: {},
       fingerprint: [],
       transactionName: 'foo',
@@ -253,7 +254,7 @@ describe('applyScopeDataToEvent', () => {
       extra: {},
       contexts: {},
       attachments: [],
-      propagationContext: { spanId: '1', traceId: '1' },
+      propagationContext: { traceId: '1', sampleRand: 0.42 },
       sdkProcessingMetadata: {},
       fingerprint: [],
       transactionName: '/users/:id',
@@ -277,7 +278,7 @@ describe('applyScopeDataToEvent', () => {
         extra: {},
         contexts: {},
         attachments: [],
-        propagationContext: { spanId: '1', traceId: '1' },
+        propagationContext: { traceId: '1', sampleRand: 0.42 },
         sdkProcessingMetadata: {},
         fingerprint: [],
         transactionName: 'foo',

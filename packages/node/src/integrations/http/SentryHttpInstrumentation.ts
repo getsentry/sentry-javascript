@@ -1,12 +1,15 @@
+/* eslint-disable max-lines */
 import type * as http from 'node:http';
 import type { IncomingMessage, RequestOptions } from 'node:http';
 import type * as https from 'node:https';
+import type { EventEmitter } from 'node:stream';
 import { VERSION } from '@opentelemetry/core';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
-import type { RequestEventData, SanitizedRequestData, Scope } from '@sentry/core';
+import type { AggregationCounts, Client, RequestEventData, SanitizedRequestData, Scope } from '@sentry/core';
 import {
   addBreadcrumb,
+  generateSpanId,
   getBreadcrumbLogLevelFromHttpStatusCode,
   getClient,
   getIsolationScope,
@@ -16,11 +19,12 @@ import {
   parseUrl,
   stripUrlQueryAndFragment,
   withIsolationScope,
+  withScope,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
-import type { NodeClient } from '../../sdk/client';
 import { getRequestUrl } from '../../utils/getRequestUrl';
 import { getRequestInfo } from './vendor/getRequestInfo';
+
 type Http = typeof http;
 type Https = typeof https;
 
@@ -42,6 +46,21 @@ type SentryHttpInstrumentationOptions = InstrumentationConfig & {
    * @param request Contains the {@type RequestOptions} object used to make the outgoing request.
    */
   ignoreOutgoingRequests?: (url: string, request: RequestOptions) => boolean;
+
+  /**
+   * Whether the integration should create [Sessions](https://docs.sentry.io/product/releases/health/#sessions) for incoming requests to track the health and crash-free rate of your releases in Sentry.
+   * Read more about Release Health: https://docs.sentry.io/product/releases/health/
+   *
+   * Defaults to `true`.
+   */
+  trackIncomingRequestsAsSessions?: boolean;
+
+  /**
+   * Number of milliseconds until sessions tracked with `trackIncomingRequestsAsSessions` will be flushed as a session aggregate.
+   *
+   * Defaults to `60000` (60s).
+   */
+  sessionFlushingDelayMS?: number;
 };
 
 // We only want to capture request bodies up to 1mb.
@@ -134,24 +153,17 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
 
         const isolationScope = getIsolationScope().clone();
         const request = args[0] as http.IncomingMessage;
+        const response = args[1] as http.OutgoingMessage;
 
         const normalizedRequest = httpRequestToRequestData(request);
+
+        // request.ip is non-standard but some frameworks set this
+        const ipAddress = (request as { ip?: string }).ip || request.socket?.remoteAddress;
 
         patchRequestToCaptureBody(request, isolationScope);
 
         // Update the isolation scope, isolate this request
-        // TODO(v9): Stop setting `request`, we only rely on normalizedRequest anymore
-        isolationScope.setSDKProcessingMetadata({
-          request,
-          normalizedRequest,
-        });
-
-        const client = getClient<NodeClient>();
-        // eslint-disable-next-line deprecation/deprecation
-        if (client && client.getOptions().autoSessionTracking) {
-          // eslint-disable-next-line deprecation/deprecation
-          isolationScope.setRequestSession({ status: 'ok' });
-        }
+        isolationScope.setSDKProcessingMetadata({ normalizedRequest, ipAddress });
 
         // attempt to update the scope's `transactionName` based on the request URL
         // Ideally, framework instrumentations coming after the HttpInstrumentation
@@ -163,8 +175,20 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
 
         isolationScope.setTransactionName(bestEffortTransactionName);
 
+        if (instrumentation.getConfig().trackIncomingRequestsAsSessions !== false) {
+          recordRequestSession({
+            requestIsolationScope: isolationScope,
+            response,
+            sessionFlushingDelayMS: instrumentation.getConfig().sessionFlushingDelayMS ?? 60_000,
+          });
+        }
+
         return withIsolationScope(isolationScope, () => {
-          return original.apply(this, [event, ...args]);
+          return withScope(scope => {
+            // Set a new propagationSpanId for this request
+            scope.getPropagationContext().propagationSpanId = generateSpanId();
+            return original.apply(this, [event, ...args]);
+          });
         });
       };
     };
@@ -363,8 +387,8 @@ function patchRequestToCaptureBody(req: IncomingMessage, isolationScope: Scope):
         if (event === 'data') {
           const callback = new Proxy(listener, {
             apply: (target, thisArg, args: Parameters<typeof listener>) => {
-              // If we have already read more than the max body length, we stop addiing chunks
-              // To avoid growing the memory indefinitely if a respons is e.g. streamed
+              // If we have already read more than the max body length, we stop adding chunks
+              // To avoid growing the memory indefinitely if a response is e.g. streamed
               if (getChunksSize() < MAX_BODY_BYTE_LENGTH) {
                 const chunk = args[0] as Buffer;
                 chunks.push(chunk);
@@ -432,3 +456,78 @@ function patchRequestToCaptureBody(req: IncomingMessage, isolationScope: Scope):
     // ignore errors if we can't patch stuff
   }
 }
+
+/**
+ * Starts a session and tracks it in the context of a given isolation scope.
+ * When the passed response is finished, the session is put into a task and is
+ * aggregated with other sessions that may happen in a certain time window
+ * (sessionFlushingDelayMs).
+ *
+ * The sessions are always aggregated by the client that is on the current scope
+ * at the time of ending the response (if there is one).
+ */
+// Exported for unit tests
+export function recordRequestSession({
+  requestIsolationScope,
+  response,
+  sessionFlushingDelayMS,
+}: { requestIsolationScope: Scope; response: EventEmitter; sessionFlushingDelayMS?: number }): void {
+  requestIsolationScope.setSDKProcessingMetadata({
+    requestSession: { status: 'ok' },
+  });
+  response.once('close', () => {
+    // We need to grab the client off the current scope instead of the isolation scope because the isolation scope doesn't hold any client out of the box.
+    const client = getClient();
+    const requestSession = requestIsolationScope.getScopeData().sdkProcessingMetadata.requestSession;
+
+    if (client && requestSession) {
+      DEBUG_BUILD && logger.debug(`Recorded request session with status: ${requestSession.status}`);
+
+      const roundedDate = new Date();
+      roundedDate.setSeconds(0, 0);
+      const dateBucketKey = roundedDate.toISOString();
+
+      const existingClientAggregate = clientToRequestSessionAggregatesMap.get(client);
+      const bucket = existingClientAggregate?.[dateBucketKey] || { exited: 0, crashed: 0, errored: 0 };
+      bucket[({ ok: 'exited', crashed: 'crashed', errored: 'errored' } as const)[requestSession.status]]++;
+
+      if (existingClientAggregate) {
+        existingClientAggregate[dateBucketKey] = bucket;
+      } else {
+        DEBUG_BUILD && logger.debug('Opened new request session aggregate.');
+        const newClientAggregate = { [dateBucketKey]: bucket };
+        clientToRequestSessionAggregatesMap.set(client, newClientAggregate);
+
+        const flushPendingClientAggregates = (): void => {
+          clearTimeout(timeout);
+          unregisterClientFlushHook();
+          clientToRequestSessionAggregatesMap.delete(client);
+
+          const aggregatePayload: AggregationCounts[] = Object.entries(newClientAggregate).map(
+            ([timestamp, value]) => ({
+              started: timestamp,
+              exited: value.exited,
+              errored: value.errored,
+              crashed: value.crashed,
+            }),
+          );
+          client.sendSession({ aggregates: aggregatePayload });
+        };
+
+        const unregisterClientFlushHook = client.on('flush', () => {
+          DEBUG_BUILD && logger.debug('Sending request session aggregate due to client flush');
+          flushPendingClientAggregates();
+        });
+        const timeout = setTimeout(() => {
+          DEBUG_BUILD && logger.debug('Sending request session aggregate due to flushing schedule');
+          flushPendingClientAggregates();
+        }, sessionFlushingDelayMS).unref();
+      }
+    }
+  });
+}
+
+const clientToRequestSessionAggregatesMap = new Map<
+  Client,
+  { [timestampRoundedToSeconds: string]: { exited: number; crashed: number; errored: number } }
+>();

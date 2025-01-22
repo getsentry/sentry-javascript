@@ -1,17 +1,13 @@
+import { DEBUG_BUILD } from '../debug-build';
 import type {
   Envelope,
   EnvelopeItem,
-  EnvelopeItemType,
-  Event,
   EventDropReason,
-  EventItem,
   InternalBaseTransportOptions,
   Transport,
   TransportMakeRequestResponse,
   TransportRequestExecutor,
 } from '../types-hoist';
-
-import { DEBUG_BUILD } from '../debug-build';
 import {
   createEnvelope,
   envelopeItemTypeToDataCategory,
@@ -49,8 +45,7 @@ export function createTransport(
     forEachEnvelopeItem(envelope, (item, type) => {
       const dataCategory = envelopeItemTypeToDataCategory(type);
       if (isRateLimited(rateLimits, dataCategory)) {
-        const event: Event | undefined = getEventForEnvelopeItem(item, type);
-        options.recordDroppedEvent('ratelimit_backoff', dataCategory, event);
+        options.recordDroppedEvent('ratelimit_backoff', dataCategory);
       } else {
         filteredEnvelopeItems.push(item);
       }
@@ -66,8 +61,7 @@ export function createTransport(
     // Creates client report for each item in an envelope
     const recordEnvelopeLoss = (reason: EventDropReason): void => {
       forEachEnvelopeItem(filteredEnvelope, (item, type) => {
-        const event: Event | undefined = getEventForEnvelopeItem(item, type);
-        options.recordDroppedEvent(reason, envelopeItemTypeToDataCategory(type), event);
+        options.recordDroppedEvent(reason, envelopeItemTypeToDataCategory(type));
       });
     };
 
@@ -106,12 +100,4 @@ export function createTransport(
     send,
     flush,
   };
-}
-
-function getEventForEnvelopeItem(item: Envelope[1][number], type: EnvelopeItemType): Event | undefined {
-  if (type !== 'event' && type !== 'transaction') {
-    return undefined;
-  }
-
-  return Array.isArray(item) ? (item as EventItem)[1] : undefined;
 }

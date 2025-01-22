@@ -1,7 +1,7 @@
+import type { Client } from './client';
 import { getClient } from './currentScopes';
-import type { Client, Event, EventHint, Integration, IntegrationFn, Options } from './types-hoist';
-
 import { DEBUG_BUILD } from './debug-build';
+import type { Event, EventHint, Integration, IntegrationFn, Options } from './types-hoist';
 import { logger } from './utils-hoist/logger';
 
 export const installedIntegrations: string[] = [];
@@ -84,7 +84,7 @@ export function getIntegrationsToSetup(options: Pick<Options, 'defaultIntegratio
 export function setupIntegrations(client: Client, integrations: Integration[]): IntegrationIndex {
   const integrationIndex: IntegrationIndex = {};
 
-  integrations.forEach(integration => {
+  integrations.forEach((integration: Integration | undefined) => {
     // guard against empty provided integrations
     if (integration) {
       setupIntegration(client, integration, integrationIndex);
@@ -100,7 +100,7 @@ export function setupIntegrations(client: Client, integrations: Integration[]): 
 export function afterSetupIntegrations(client: Client, integrations: Integration[]): void {
   for (const integration of integrations) {
     // guard against empty provided integrations
-    if (integration && integration.afterAllSetup) {
+    if (integration?.afterAllSetup) {
       integration.afterAllSetup(client);
     }
   }

@@ -23,7 +23,7 @@ describe('instruments fetch', () => {
     // We expect init to swap window.fetch with our fetch proxy so that the proxy is instrumented
     init({
       dsn: 'https://public@dsn.ingest.sentry.io/1337',
-      enableTracing: true,
+      tracesSampleRate: 1,
     });
 
     // fetch proxy was instrumented
@@ -39,7 +39,7 @@ describe('instruments fetch', () => {
 
     init({
       dsn: 'https://public@dsn.ingest.sentry.io/1337',
-      enableTracing: true,
+      tracesSampleRate: 1,
     });
 
     expect(await globalThis.fetch('')).toEqual('fetch');
@@ -52,7 +52,7 @@ describe('instruments fetch', () => {
 
     init({
       dsn: 'https://public@dsn.ingest.sentry.io/1337',
-      enableTracing: true,
+      tracesSampleRate: 1,
     });
 
     expect(await globalThis._sentryFetchProxy()).toEqual('_sentryFetchProxy');

@@ -1,9 +1,10 @@
 import { getAsyncContextStrategy } from './asyncContext';
-import { getMainCarrier } from './carrier';
-import { Scope as ScopeClass } from './scope';
-import type { Client, Scope, TraceContext } from './types-hoist';
+import { getGlobalSingleton, getMainCarrier } from './carrier';
+import type { Client } from './client';
+import { Scope } from './scope';
+import type { TraceContext } from './types-hoist';
+import { generateSpanId } from './utils-hoist';
 import { dropUndefinedKeys } from './utils-hoist/object';
-import { getGlobalSingleton } from './utils-hoist/worldwide';
 
 /**
  * Get the currently active scope.
@@ -29,7 +30,7 @@ export function getIsolationScope(): Scope {
  * This scope is applied to _all_ events.
  */
 export function getGlobalScope(): Scope {
-  return getGlobalSingleton('globalScope', () => new ScopeClass());
+  return getGlobalSingleton('globalScope', () => new Scope());
 }
 
 /**
@@ -127,13 +128,11 @@ export function getClient<C extends Client>(): C | undefined {
 export function getTraceContextFromScope(scope: Scope): TraceContext {
   const propagationContext = scope.getPropagationContext();
 
-  // TODO(v9): Use generateSpanId() instead of spanId
-  // eslint-disable-next-line deprecation/deprecation
-  const { traceId, spanId, parentSpanId } = propagationContext;
+  const { traceId, parentSpanId, propagationSpanId } = propagationContext;
 
   const traceContext: TraceContext = dropUndefinedKeys({
     trace_id: traceId,
-    span_id: spanId,
+    span_id: propagationSpanId || generateSpanId(),
     parent_span_id: parentSpanId,
   });
 

@@ -52,6 +52,9 @@ module.exports = {
 
         '@typescript-eslint/consistent-type-imports': 'error',
 
+        // We want to use optional chaining, where possible, to safe bytes
+        '@typescript-eslint/prefer-optional-chain': 'error',
+
         // Private and protected members of a class should be prefixed with a leading underscore.
         // typeLike declarations (class, interface, typeAlias, enum, typeParameter) should be
         // PascalCase.
@@ -130,11 +133,6 @@ module.exports = {
           },
         ],
 
-        // We want to prevent optional chaining & nullish coalescing usage in our files
-        // to prevent unnecessary bundle size. Turned off in tests.
-        '@sentry-internal/sdk/no-optional-chaining': 'error',
-        '@sentry-internal/sdk/no-nullish-coalescing': 'error',
-
         // We want to avoid using the RegExp constructor as it can lead to invalid or dangerous regular expressions
         // if end user input is used in the constructor. It's fine to ignore this rule if it is safe to use the RegExp.
         // However, we want to flag each use case so that we're aware of the potential danger.
@@ -181,8 +179,6 @@ module.exports = {
         '@typescript-eslint/no-explicit-any': 'off',
         '@typescript-eslint/no-non-null-assertion': 'off',
         '@typescript-eslint/no-empty-function': 'off',
-        '@sentry-internal/sdk/no-optional-chaining': 'off',
-        '@sentry-internal/sdk/no-nullish-coalescing': 'off',
         '@typescript-eslint/no-floating-promises': 'off',
         '@sentry-internal/sdk/no-focused-tests': 'error',
         '@sentry-internal/sdk/no-skipped-tests': 'error',

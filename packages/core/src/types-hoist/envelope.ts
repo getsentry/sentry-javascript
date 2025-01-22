@@ -23,6 +23,7 @@ export type DynamicSamplingContext = {
   transaction?: string;
   replay_id?: string;
   sampled?: string;
+  sample_rand?: string;
 };
 
 // https://github.com/getsentry/relay/blob/311b237cd4471042352fa45e7a0824b8995f216f/relay-server/src/envelope.rs#L154
@@ -41,7 +42,6 @@ export type EnvelopeItemType =
   | 'replay_event'
   | 'replay_recording'
   | 'check_in'
-  | 'statsd'
   | 'span'
   | 'raw_security';
 
@@ -84,7 +84,6 @@ type ReplayRecordingItemHeaders = { type: 'replay_recording'; length: number };
 type CheckInItemHeaders = { type: 'check_in' };
 type ProfileItemHeaders = { type: 'profile' };
 type ProfileChunkItemHeaders = { type: 'profile_chunk' };
-type StatsdItemHeaders = { type: 'statsd'; length: number };
 type SpanItemHeaders = { type: 'span' };
 type RawSecurityHeaders = { type: 'raw_security'; sentry_release?: string; sentry_environment?: string };
 
@@ -98,7 +97,6 @@ export type ClientReportItem = BaseEnvelopeItem<ClientReportItemHeaders, ClientR
 export type CheckInItem = BaseEnvelopeItem<CheckInItemHeaders, SerializedCheckIn>;
 type ReplayEventItem = BaseEnvelopeItem<ReplayEventItemHeaders, ReplayEvent>;
 type ReplayRecordingItem = BaseEnvelopeItem<ReplayRecordingItemHeaders, ReplayRecordingData>;
-export type StatsdItem = BaseEnvelopeItem<StatsdItemHeaders, string>;
 export type FeedbackItem = BaseEnvelopeItem<FeedbackItemHeaders, FeedbackEvent>;
 export type ProfileItem = BaseEnvelopeItem<ProfileItemHeaders, Profile>;
 export type ProfileChunkItem = BaseEnvelopeItem<ProfileChunkItemHeaders, ProfileChunk>;
@@ -110,7 +108,6 @@ type SessionEnvelopeHeaders = { sent_at: string };
 type CheckInEnvelopeHeaders = { trace?: DynamicSamplingContext };
 type ClientReportEnvelopeHeaders = BaseEnvelopeHeaders;
 type ReplayEnvelopeHeaders = BaseEnvelopeHeaders;
-type StatsdEnvelopeHeaders = BaseEnvelopeHeaders;
 type SpanEnvelopeHeaders = BaseEnvelopeHeaders & { trace?: DynamicSamplingContext };
 
 export type EventEnvelope = BaseEnvelope<
@@ -121,7 +118,6 @@ export type SessionEnvelope = BaseEnvelope<SessionEnvelopeHeaders, SessionItem>;
 export type ClientReportEnvelope = BaseEnvelope<ClientReportEnvelopeHeaders, ClientReportItem>;
 export type ReplayEnvelope = [ReplayEnvelopeHeaders, [ReplayEventItem, ReplayRecordingItem]];
 export type CheckInEnvelope = BaseEnvelope<CheckInEnvelopeHeaders, CheckInItem>;
-export type StatsdEnvelope = BaseEnvelope<StatsdEnvelopeHeaders, StatsdItem>;
 export type SpanEnvelope = BaseEnvelope<SpanEnvelopeHeaders, SpanItem>;
 export type ProfileChunkEnvelope = BaseEnvelope<BaseEnvelopeHeaders, ProfileChunkItem>;
 export type RawSecurityEnvelope = BaseEnvelope<BaseEnvelopeHeaders, RawSecurityItem>;
@@ -133,7 +129,6 @@ export type Envelope =
   | ProfileChunkEnvelope
   | ReplayEnvelope
   | CheckInEnvelope
-  | StatsdEnvelope
   | SpanEnvelope
   | RawSecurityEnvelope;
 

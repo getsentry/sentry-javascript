@@ -37,7 +37,7 @@ const EXPECTED_LOCAL_VARIABLES_EVENT = {
   },
 };
 
-conditionalTest({ min: 18 })('LocalVariables integration', () => {
+describe('LocalVariables integration', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });

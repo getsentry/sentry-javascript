@@ -37,16 +37,12 @@ export const PROFILER_THREAD_NAME = isMainThread ? 'main' : 'worker';
 const FORMAT_VERSION = '1';
 const CONTINUOUS_FORMAT_VERSION = '2';
 
-// Os machine was backported to 16.18, but this was not reflected in the types
-// @ts-expect-error ignore missing
-const machine = typeof os.machine === 'function' ? os.machine() : os.arch();
-
 // Machine properties (eval only once)
 const PLATFORM = os.platform();
 const RELEASE = os.release();
 const VERSION = os.version();
 const TYPE = os.type();
-const MODEL = machine;
+const MODEL = os.machine();
 const ARCH = os.arch();
 
 /**
@@ -138,7 +134,7 @@ function createProfilePayload(
   // Log a warning if the profile has an invalid traceId (should be uuidv4).
   // All profiles and transactions are rejected if this is the case and we want to
   // warn users that this is happening if they enable debug flag
-  if (trace_id && trace_id.length !== 32) {
+  if (trace_id?.length !== 32) {
     DEBUG_BUILD && logger.log(`[Profiling] Invalid traceId: ${trace_id} on profiled event`);
   }
 
@@ -211,7 +207,7 @@ function createProfileChunkPayload(
   // Log a warning if the profile has an invalid traceId (should be uuidv4).
   // All profiles and transactions are rejected if this is the case and we want to
   // warn users that this is happening if they enable debug flag
-  if (trace_id && trace_id.length !== 32) {
+  if (trace_id?.length !== 32) {
     DEBUG_BUILD && logger.log(`[Profiling] Invalid traceId: ${trace_id} on profiled event`);
   }
 
@@ -427,7 +423,7 @@ export function makeProfileChunkEnvelope(
 export function applyDebugMetadata(client: Client, resource_paths: ReadonlyArray<string>): DebugImage[] {
   const options = client.getOptions();
 
-  if (!options || !options.stackParser) {
+  if (!options?.stackParser) {
     return [];
   }
 

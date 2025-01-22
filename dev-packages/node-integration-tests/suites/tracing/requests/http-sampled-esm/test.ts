@@ -1,9 +1,8 @@
 import { join } from 'path';
-import { conditionalTest } from '../../../../utils';
 import { createRunner } from '../../../../utils/runner';
 import { createTestServer } from '../../../../utils/server';
 
-conditionalTest({ min: 18 })('outgoing http in ESM', () => {
+describe('outgoing http in ESM', () => {
   test('outgoing sampled http requests are correctly instrumented in ESM', done => {
     expect.assertions(11);
 

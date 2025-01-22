@@ -1,46 +1,9 @@
 import type { Span as WriteableSpan } from '@opentelemetry/api';
 import type { Instrumentation } from '@opentelemetry/instrumentation';
-import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
+import type { ReadableSpan, SpanProcessor } from '@opentelemetry/sdk-trace-base';
 import type { ClientOptions, Options, SamplingContext, Scope, Span, TracePropagationTargets } from '@sentry/core';
 
 import type { NodeTransportOptions } from './transports';
-
-/**
- * Note: In the next major version of the Sentry SDK this interface will be removed and the SDK will by default only wrap
- * ESM modules that are required to be wrapped by OpenTelemetry Instrumentation.
- */
-export interface EsmLoaderHookOptions {
-  /**
-   * Provide a list of modules to wrap with `import-in-the-middle`.
-   *
-   * @deprecated It is recommended to use `onlyIncludeInstrumentedModules: true` instead of manually defining modules to include and exclude.
-   */
-  include?: Array<string | RegExp>;
-
-  /**
-   * Provide a list of modules to prevent them from being wrapped with `import-in-the-middle`.
-   *
-   * @deprecated It is recommended to use `onlyIncludeInstrumentedModules: true` instead of manually defining modules to include and exclude.
-   */
-  exclude?: Array<string | RegExp>;
-
-  /**
-   * When set to `true`, `import-in-the-middle` will only wrap ESM modules that are specifically instrumented by
-   * OpenTelemetry plugins. This is useful to avoid issues where `import-in-the-middle` is not compatible with some of
-   * your dependencies.
-   *
-   * **Note**: This feature will only work if you `Sentry.init()` the SDK before the instrumented modules are loaded.
-   * This can be achieved via the Node `--import` CLI flag or by loading your app via async `import()` after calling
-   * `Sentry.init()`.
-   *
-   * Defaults to `false`.
-   *
-   * Note: In the next major version of the Sentry SDK this option will be removed and the SDK will by default only wrap
-   * ESM modules that are required to be wrapped by OpenTelemetry Instrumentation.
-   */
-  // TODO(v9): Make `onlyIncludeInstrumentedModules: true` the default behavior.
-  onlyIncludeInstrumentedModules?: boolean;
-}
 
 export interface BaseNodeOptions {
   /**
@@ -72,8 +35,7 @@ export interface BaseNodeOptions {
    * Profiling is enabled if either this or `profilesSampleRate` is defined. If both are defined, `profilesSampleRate` is
    * ignored.
    *
-   * Will automatically be passed a context object of default and optional custom data. See
-   * {@link Transaction.samplingContext} and {@link Hub.startTransaction}.
+   * Will automatically be passed a context object of default and optional custom data.
    *
    * @returns A sample rate between 0 and 1 (0 drops the profile, 1 guarantees it will be sent). Returning `true` is
    * equivalent to returning 1 and returning `false` is equivalent to returning 0.
@@ -122,6 +84,11 @@ export interface BaseNodeOptions {
   openTelemetryInstrumentations?: Instrumentation[];
 
   /**
+   * Provide an array of additional OpenTelemetry SpanProcessors that should be registered.
+   */
+  openTelemetrySpanProcessors?: SpanProcessor[];
+
+  /**
    * The max. duration in seconds that the SDK will wait for parent spans to be finished before discarding a span.
    * The SDK will automatically clean up spans that have no finished parent after this duration.
    * This is necessary to prevent memory leaks in case of parent spans that are never finished or otherwise dropped/missing.
@@ -138,22 +105,9 @@ export interface BaseNodeOptions {
    * with certain libraries. If you run into problems running your app with this enabled,
    * please raise an issue in https://github.com/getsentry/sentry-javascript.
    *
-   * You can optionally exclude specific modules or only include specific modules from being instrumented by providing
-   * an object with `include` or `exclude` properties.
-   *
-   * ```js
-   * registerEsmLoaderHooks: {
-   *   exclude: ['openai'],
-   * }
-   * ```
-   *
    * Defaults to `true`.
-   *
-   * Note: In the next major version of the SDK, the possibility to provide fine-grained control will be removed from this option.
-   * This means that it will only be possible to pass `true` or `false`. The default value will continue to be `true`.
    */
-  // TODO(v9): Only accept true | false | undefined.
-  registerEsmLoaderHooks?: boolean | EsmLoaderHookOptions;
+  registerEsmLoaderHooks?: boolean;
 
   /**
    * Configures in which interval client reports will be flushed. Defaults to `60_000` (milliseconds).

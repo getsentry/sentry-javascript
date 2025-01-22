@@ -85,21 +85,11 @@ export function init(options: VercelEdgeOptions = {}): Client | undefined {
     const detectedRelease = getSentryRelease();
     if (detectedRelease !== undefined) {
       options.release = detectedRelease;
-    } else {
-      // If release is not provided, then we should disable autoSessionTracking
-      // eslint-disable-next-line deprecation/deprecation
-      options.autoSessionTracking = false;
     }
   }
 
   options.environment =
     options.environment || process.env.SENTRY_ENVIRONMENT || getVercelEnv(false) || process.env.NODE_ENV;
-
-  // eslint-disable-next-line deprecation/deprecation
-  if (options.autoSessionTracking === undefined && options.dsn !== undefined) {
-    // eslint-disable-next-line deprecation/deprecation
-    options.autoSessionTracking = true;
-  }
 
   const client = new VercelEdgeClient({
     ...options,
@@ -215,7 +205,7 @@ export function getSentryRelease(fallback?: string): string | undefined {
   }
 
   // This supports the variable that sentry-webpack-plugin injects
-  if (GLOBAL_OBJ.SENTRY_RELEASE && GLOBAL_OBJ.SENTRY_RELEASE.id) {
+  if (GLOBAL_OBJ.SENTRY_RELEASE?.id) {
     return GLOBAL_OBJ.SENTRY_RELEASE.id;
   }
 
@@ -268,6 +258,8 @@ export function getSentryRelease(fallback?: string): string | undefined {
     process.env['HEROKU_TEST_RUN_COMMIT_VERSION'] ||
     // Heroku #2 https://docs.sentry.io/product/integrations/deployment/heroku/#configure-releases
     process.env['HEROKU_SLUG_COMMIT'] ||
+    // Railway - https://docs.railway.app/reference/variables#git-variables
+    process.env['RAILWAY_GIT_COMMIT_SHA'] ||
     // Render - https://render.com/docs/environment-variables
     process.env['RENDER_GIT_COMMIT'] ||
     // Semaphore CI - https://docs.semaphoreci.com/ci-cd-environment/environment-variables

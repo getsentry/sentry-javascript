@@ -22,7 +22,7 @@ describe('Integration | Transactions', () => {
     });
 
     mockSdkInit({
-      enableTracing: true,
+      tracesSampleRate: 1,
       beforeSendTransaction,
       release: '8.0.0',
     });
@@ -109,6 +109,7 @@ describe('Integration | Transactions', () => {
       release: '8.0.0',
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       transaction: 'test name',
+      sample_rand: expect.any(String),
     });
 
     expect(transaction.environment).toEqual('production');
@@ -163,7 +164,7 @@ describe('Integration | Transactions', () => {
   it('correctly creates concurrent transaction & spans', async () => {
     const beforeSendTransaction = jest.fn(() => null);
 
-    mockSdkInit({ enableTracing: true, beforeSendTransaction });
+    mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
 
     const client = Sentry.getClient()!;
 
@@ -308,7 +309,7 @@ describe('Integration | Transactions', () => {
   it('correctly creates concurrent transaction & spans when using native OTEL tracer', async () => {
     const beforeSendTransaction = jest.fn(() => null);
 
-    mockSdkInit({ enableTracing: true, beforeSendTransaction });
+    mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
 
     const client = Sentry.getClient<Sentry.NodeClient>();
 
@@ -456,7 +457,7 @@ describe('Integration | Transactions', () => {
       traceFlags: TraceFlags.SAMPLED,
     };
 
-    mockSdkInit({ enableTracing: true, beforeSendTransaction });
+    mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
 
     const client = Sentry.getClient()!;
 
@@ -491,7 +492,6 @@ describe('Integration | Transactions', () => {
               'sentry.op': 'test op',
               'sentry.origin': 'auto.test',
               'sentry.source': 'task',
-              'sentry.sample_rate': 1,
             },
             op: 'test op',
             span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -517,7 +517,7 @@ describe('Integration | Transactions', () => {
 
     // Checking the spans here, as they are circular to the transaction...
     const runArgs = beforeSendTransaction.mock.calls[0] as unknown as [TransactionEvent, unknown];
-    const spans = runArgs[0]?.spans || [];
+    const spans = runArgs[0].spans || [];
 
     // note: Currently, spans do not have any context/span added to them
     // This is the same behavior as for the "regular" SDKs
@@ -561,7 +561,7 @@ describe('Integration | Transactions', () => {
     const logs: unknown[] = [];
     jest.spyOn(logger, 'log').mockImplementation(msg => logs.push(msg));
 
-    mockSdkInit({ enableTracing: true, beforeSendTransaction });
+    mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
 
     const provider = getProvider();
     const multiSpanProcessor = provider?.activeSpanProcessor as
@@ -640,7 +640,7 @@ describe('Integration | Transactions', () => {
     jest.spyOn(logger, 'log').mockImplementation(msg => logs.push(msg));
 
     mockSdkInit({
-      enableTracing: true,
+      tracesSampleRate: 1,
       beforeSendTransaction,
       maxSpanWaitDuration: 100 * 60,
     });

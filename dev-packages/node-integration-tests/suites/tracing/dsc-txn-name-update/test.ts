@@ -17,6 +17,7 @@ test('adds current transaction name to baggage when the txn name is high-quality
         'sentry-environment=production',
         'sentry-public_key=public',
         'sentry-release=1.0',
+        expect.stringMatching(/sentry-sample_rand=0\.[0-9]+/),
         'sentry-sample_rate=1',
         'sentry-sampled=true',
         `sentry-trace_id=${traceId}`,
@@ -27,6 +28,7 @@ test('adds current transaction name to baggage when the txn name is high-quality
         'sentry-environment=production',
         'sentry-public_key=public',
         'sentry-release=1.0',
+        expect.stringMatching(/sentry-sample_rand=0\.[0-9]+/),
         'sentry-sample_rate=1',
         'sentry-sampled=true',
         `sentry-trace_id=${traceId}`,
@@ -38,6 +40,7 @@ test('adds current transaction name to baggage when the txn name is high-quality
         'sentry-environment=production',
         'sentry-public_key=public',
         'sentry-release=1.0',
+        expect.stringMatching(/sentry-sample_rand=0\.[0-9]+/),
         'sentry-sample_rate=1',
         'sentry-sampled=true',
         `sentry-trace_id=${traceId}`,
@@ -68,6 +71,7 @@ test('adds current transaction name to trace envelope header when the txn name i
           sample_rate: '1',
           sampled: 'true',
           trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+          sample_rand: expect.any(String),
         },
       },
     })
@@ -81,6 +85,7 @@ test('adds current transaction name to trace envelope header when the txn name i
           sampled: 'true',
           trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           transaction: 'updated-name-1',
+          sample_rand: expect.any(String),
         },
       },
     })
@@ -94,6 +99,7 @@ test('adds current transaction name to trace envelope header when the txn name i
           sampled: 'true',
           trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           transaction: 'updated-name-2',
+          sample_rand: expect.any(String),
         },
       },
     })
@@ -107,6 +113,7 @@ test('adds current transaction name to trace envelope header when the txn name i
           sampled: 'true',
           trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           transaction: 'updated-name-2',
+          sample_rand: expect.any(String),
         },
       },
     })

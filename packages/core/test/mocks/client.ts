@@ -9,7 +9,7 @@ import type {
   SeverityLevel,
 } from '../../src/types-hoist';
 
-import { BaseClient } from '../../src/baseclient';
+import { Client } from '../../src/client';
 import { initAndBind } from '../../src/sdk';
 import { createTransport } from '../../src/transports/base';
 import { resolvedSyncPromise } from '../../src/utils-hoist/syncpromise';
@@ -37,7 +37,7 @@ export interface TestClientOptions extends ClientOptions {
   defaultIntegrations?: Integration[] | false;
 }
 
-export class TestClient extends BaseClient<TestClientOptions> {
+export class TestClient extends Client<TestClientOptions> {
   public static instance?: TestClient;
   public static sendEventCalled?: (event: Event) => void;
 
@@ -85,7 +85,7 @@ export class TestClient extends BaseClient<TestClientOptions> {
     // In real life, this will get deleted as part of envelope creation.
     delete event.sdkProcessingMetadata;
 
-    TestClient.sendEventCalled && TestClient.sendEventCalled(event);
+    TestClient.sendEventCalled?.(event);
   }
 
   public sendSession(session: Session): void {

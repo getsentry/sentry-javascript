@@ -10,7 +10,7 @@ import {
 const META_TAG_TRACE_ID = '12345678901234567890123456789012';
 const META_TAG_PARENT_SPAN_ID = '1234567890123456';
 const META_TAG_BAGGAGE =
-  'sentry-trace_id=12345678901234567890123456789012,sentry-public_key=public,sentry-release=1.0.0,sentry-environment=prod';
+  'sentry-trace_id=12345678901234567890123456789012,sentry-public_key=public,sentry-release=1.0.0,sentry-environment=prod,sentry-sample_rand=0.42';
 
 sentryTest('error on initial page has traceId from meta tag', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
@@ -41,6 +41,7 @@ sentryTest('error on initial page has traceId from meta tag', async ({ getLocalT
     public_key: 'public',
     release: '1.0.0',
     trace_id: META_TAG_TRACE_ID,
+    sample_rand: '0.42',
   });
 });
 
@@ -72,6 +73,7 @@ sentryTest('error has new traceId after navigation', async ({ getLocalTestUrl, p
     public_key: 'public',
     release: '1.0.0',
     trace_id: META_TAG_TRACE_ID,
+    sample_rand: expect.any(String),
   });
 
   const errorEventPromise2 = getFirstSentryEnvelopeRequest<EventAndTraceHeader>(

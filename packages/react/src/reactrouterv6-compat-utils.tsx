@@ -16,7 +16,6 @@ import {
   getActiveSpan,
   getClient,
   getCurrentScope,
-  getNumberOfUrlSegments,
   getRootSpan,
   logger,
   spanToJSON,
@@ -81,12 +80,9 @@ export function createV6CompatibleWrapCreateBrowserRouter<
     return createRouterFunction;
   }
 
-  // `opts` for createBrowserHistory and createMemoryHistory are different, but also not relevant for us at the moment.
-  // `basename` is the only option that is relevant for us, and it is the same for all.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return function (routes: RouteObject[], opts?: Record<string, any> & { basename?: string }): TRouter {
+  return function (routes: RouteObject[], opts?: Record<string, unknown> & { basename?: string }): TRouter {
     const router = createRouterFunction(routes, opts);
-    const basename = opts && opts.basename;
+    const basename = opts?.basename;
 
     const activeRootSpan = getActiveRootSpan();
 
@@ -95,6 +91,78 @@ export function createV6CompatibleWrapCreateBrowserRouter<
     // Callbacks to `router.subscribe` are not called for the initial load.
     if (router.state.historyAction === 'POP' && activeRootSpan) {
       updatePageloadTransaction(activeRootSpan, router.state.location, routes, undefined, basename);
+    }
+
+    router.subscribe((state: RouterState) => {
+      const location = state.location;
+      if (state.historyAction === 'PUSH' || state.historyAction === 'POP') {
+        handleNavigation({
+          location,
+          routes,
+          navigationType: state.historyAction,
+          version,
+          basename,
+        });
+      }
+    });
+
+    return router;
+  };
+}
+
+/**
+ * Creates a wrapCreateMemoryRouter function that can be used with all React Router v6 compatible versions.
+ */
+export function createV6CompatibleWrapCreateMemoryRouter<
+  TState extends RouterState = RouterState,
+  TRouter extends Router<TState> = Router<TState>,
+>(
+  createRouterFunction: CreateRouterFunction<TState, TRouter>,
+  version: V6CompatibleVersion,
+): CreateRouterFunction<TState, TRouter> {
+  if (!_useEffect || !_useLocation || !_useNavigationType || !_matchRoutes) {
+    DEBUG_BUILD &&
+      logger.warn(
+        `reactRouterV${version}Instrumentation was unable to wrap the \`createMemoryRouter\` function because of one or more missing parameters.`,
+      );
+
+    return createRouterFunction;
+  }
+
+  return function (
+    routes: RouteObject[],
+    opts?: Record<string, unknown> & {
+      basename?: string;
+      initialEntries?: (string | { pathname: string })[];
+      initialIndex?: number;
+    },
+  ): TRouter {
+    const router = createRouterFunction(routes, opts);
+    const basename = opts?.basename;
+
+    const activeRootSpan = getActiveRootSpan();
+    let initialEntry = undefined;
+
+    const initialEntries = opts?.initialEntries;
+    const initialIndex = opts?.initialIndex;
+
+    const hasOnlyOneInitialEntry = initialEntries && initialEntries.length === 1;
+    const hasIndexedEntry = initialIndex !== undefined && initialEntries && initialEntries[initialIndex];
+
+    initialEntry = hasOnlyOneInitialEntry
+      ? initialEntries[0]
+      : hasIndexedEntry
+        ? initialEntries[initialIndex]
+        : undefined;
+
+    const location = initialEntry
+      ? typeof initialEntry === 'string'
+        ? { pathname: initialEntry }
+        : initialEntry
+      : router.state.location;
+
+    if (router.state.historyAction === 'POP' && activeRootSpan) {
+      updatePageloadTransaction(activeRootSpan, location, routes, undefined, basename);
     }
 
     router.subscribe((state: RouterState) => {
@@ -151,7 +219,7 @@ export function createReactRouterV6CompatibleTracingIntegration(
     afterAllSetup(client) {
       integration.afterAllSetup(client);
 
-      const initPathName = WINDOW && WINDOW.location && WINDOW.location.pathname;
+      const initPathName = WINDOW.location?.pathname;
       if (instrumentPageLoad && initPathName) {
         startBrowserTracingPageLoadSpan(client, {
           name: initPathName,
@@ -180,7 +248,7 @@ export function createV6CompatibleWrapUseRoutes(origUseRoutes: UseRoutes, versio
     return origUseRoutes;
   }
 
-  const allRoutes: RouteObject[] = [];
+  const allRoutes: Set<RouteObject> = new Set();
 
   const SentryRoutes: React.FC<{
     children?: React.ReactNode;
@@ -197,9 +265,7 @@ export function createV6CompatibleWrapUseRoutes(origUseRoutes: UseRoutes, versio
 
     // A value with stable identity to either pick `locationArg` if available or `location` if not
     const stableLocationParam =
-      typeof locationArg === 'string' || (locationArg && locationArg.pathname)
-        ? (locationArg as { pathname: string })
-        : location;
+      typeof locationArg === 'string' || locationArg?.pathname ? (locationArg as { pathname: string }) : location;
 
     _useEffect(() => {
       const normalizedLocation =
@@ -207,10 +273,21 @@ export function createV6CompatibleWrapUseRoutes(origUseRoutes: UseRoutes, versio
 
       if (isMountRenderPass.current) {
         routes.forEach(route => {
-          allRoutes.push(...getChildRoutesRecursively(route));
+          const extractedChildRoutes = getChildRoutesRecursively(route);
+
+          extractedChildRoutes.forEach(r => {
+            allRoutes.add(r);
+          });
         });
 
-        updatePageloadTransaction(getActiveRootSpan(), normalizedLocation, routes, undefined, undefined, allRoutes);
+        updatePageloadTransaction(
+          getActiveRootSpan(),
+          normalizedLocation,
+          routes,
+          undefined,
+          undefined,
+          Array.from(allRoutes),
+        );
         isMountRenderPass.current = false;
       } else {
         handleNavigation({
@@ -218,7 +295,7 @@ export function createV6CompatibleWrapUseRoutes(origUseRoutes: UseRoutes, versio
           routes,
           navigationType,
           version,
-          allRoutes,
+          allRoutes: Array.from(allRoutes),
         });
       }
     }, [navigationType, stableLocationParam]);
@@ -322,11 +399,11 @@ function pathEndsWithWildcard(path: string): boolean {
 }
 
 function pathIsWildcardAndHasChildren(path: string, branch: RouteMatch<string>): boolean {
-  return (pathEndsWithWildcard(path) && branch.route.children && branch.route.children.length > 0) || false;
+  return (pathEndsWithWildcard(path) && !!branch.route.children?.length) || false;
 }
 
 function routeIsDescendant(route: RouteObject): boolean {
-  return !!(!route.children && route.element && route.path && route.path.endsWith('/*'));
+  return !!(!route.children && route.element && route.path?.endsWith('/*'));
 }
 
 function locationIsInsideDescendantRoute(location: Location, routes: RouteObject[]): boolean {
@@ -343,14 +420,18 @@ function locationIsInsideDescendantRoute(location: Location, routes: RouteObject
   return false;
 }
 
-function getChildRoutesRecursively(route: RouteObject, allRoutes: RouteObject[] = []): RouteObject[] {
-  if (route.children && !route.index) {
-    route.children.forEach(child => {
-      allRoutes.push(...getChildRoutesRecursively(child, allRoutes));
-    });
-  }
+function getChildRoutesRecursively(route: RouteObject, allRoutes: Set<RouteObject> = new Set()): Set<RouteObject> {
+  if (!allRoutes.has(route)) {
+    allRoutes.add(route);
 
-  allRoutes.push(route);
+    if (route.children && !route.index) {
+      route.children.forEach(child => {
+        const childRoutes = getChildRoutesRecursively(child, allRoutes);
+
+        childRoutes.forEach(r => allRoutes.add(r));
+      });
+    }
+  }
 
   return allRoutes;
 }
@@ -428,16 +509,14 @@ function getNormalizedName(
         // If path is not a wildcard and has no child routes, append the path
         if (path && !pathIsWildcardAndHasChildren(path, branch)) {
           const newPath = path[0] === '/' || pathBuilder[pathBuilder.length - 1] === '/' ? path : `/${path}`;
-          pathBuilder += newPath;
+          pathBuilder = trimSlash(pathBuilder) + prefixWithSlash(newPath);
 
           // If the path matches the current location, return the path
-          if (location.pathname.endsWith(basename + branch.pathname)) {
+          if (trimSlash(location.pathname) === trimSlash(basename + branch.pathname)) {
             if (
               // If the route defined on the element is something like
               // <Route path="/stores/:storeId/products/:productId" element={<div>Product</div>} />
               // We should check against the branch.pathname for the number of / separators
-              // TODO(v9): Put the implementation of `getNumberOfUrlSegments` in this file
-              // eslint-disable-next-line deprecation/deprecation
               getNumberOfUrlSegments(pathBuilder) !== getNumberOfUrlSegments(branch.pathname) &&
               // We should not count wildcard operators in the url segments calculation
               !pathEndsWithWildcard(pathBuilder)
@@ -513,7 +592,7 @@ export function createV6CompatibleWithSentryReactRouterRouting<P extends Record<
     return Routes;
   }
 
-  const allRoutes: RouteObject[] = [];
+  const allRoutes: Set<RouteObject> = new Set();
 
   const SentryRoutes: React.FC<P> = (props: P) => {
     const isMountRenderPass = React.useRef(true);
@@ -527,10 +606,14 @@ export function createV6CompatibleWithSentryReactRouterRouting<P extends Record<
 
         if (isMountRenderPass.current) {
           routes.forEach(route => {
-            allRoutes.push(...getChildRoutesRecursively(route));
+            const extractedChildRoutes = getChildRoutesRecursively(route);
+
+            extractedChildRoutes.forEach(r => {
+              allRoutes.add(r);
+            });
           });
 
-          updatePageloadTransaction(getActiveRootSpan(), location, routes, undefined, undefined, allRoutes);
+          updatePageloadTransaction(getActiveRootSpan(), location, routes, undefined, undefined, Array.from(allRoutes));
           isMountRenderPass.current = false;
         } else {
           handleNavigation({
@@ -538,7 +621,7 @@ export function createV6CompatibleWithSentryReactRouterRouting<P extends Record<
             routes,
             navigationType,
             version,
-            allRoutes,
+            allRoutes: Array.from(allRoutes),
           });
         }
       },
@@ -571,4 +654,12 @@ function getActiveRootSpan(): Span | undefined {
 
   // Only use this root span if it is a pageload or navigation span
   return op === 'navigation' || op === 'pageload' ? rootSpan : undefined;
+}
+
+/**
+ * Returns number of URL segments of a passed string URL.
+ */
+export function getNumberOfUrlSegments(url: string): number {
+  // split at '/' or at '\/' to split regex urls correctly
+  return url.split(/\\?\//).filter(s => s.length > 0 && s !== ',').length;
 }

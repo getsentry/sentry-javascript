@@ -1,26 +1,27 @@
 {
   "private": true,
   "sideEffects": false,
+  "type": "module",
   "scripts": {
     "build": "remix build",
     "dev": "remix dev",
-    "start": "remix-serve build"
+    "start": "NODE_OPTIONS='--import=./instrument.server.mjs' remix-serve build/index.js"
   },
   "dependencies": {
-    "@remix-run/express": "1.17.0",
-    "@remix-run/node": "1.17.0",
-    "@remix-run/react": "1.17.0",
-    "@remix-run/serve": "1.17.0",
+    "@remix-run/express": "2.15.2",
+    "@remix-run/node": "2.15.2",
+    "@remix-run/react": "2.15.2",
+    "@remix-run/serve": "2.15.2",
     "@sentry/remix": "file:../..",
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2"
+    "react": "^18",
+    "react-dom": "^18"
   },
   "devDependencies": {
-    "@remix-run/dev": "1.17.0",
-    "@types/react": "^17.0.47",
-    "@types/react-dom": "^17.0.17",
+    "@remix-run/dev": "2.15.2",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
     "nock": "^13.5.5",
-    "typescript": "4.9.5"
+    "typescript": "~5.0.0"
   },
   "resolutions": {
     "@sentry/browser": "file:../../../browser",
@@ -32,6 +33,7 @@
     "@sentry-internal/replay": "file:../../../replay-internal",
     "@sentry-internal/replay-canvas": "file:../../../replay-canvas",
     "@sentry-internal/feedback": "file:../../../feedback",
+    "@sentry-internal/browser-integration-tests": "file:../../../../dev-packages/browser-integration-tests",
     "@vanilla-extract/css": "1.13.0",
     "@vanilla-extract/integration": "6.2.4",
     "@types/mime": "^3.0.0",
@@ -40,6 +42,6 @@
     "**/path-scurry/lru-cache": "10.2.0"
   },
   "engines": {
-    "node": ">=14.18"
+    "node": ">=18"
   }
 }

@@ -5,36 +5,30 @@ targets:
   # NPM Targets
   ## 1. Base Packages, node or browser SDKs depend on
   ## 1.1 Types
-  # TODO(v9): Remove
   - name: npm
     id: '@sentry/types'
     includeNames: /^sentry-types-\d.*\.tgz$/
-  ## 1.2 Utils
-  # TODO(v9): Remove
-  - name: npm
-    id: '@sentry/utils'
-    includeNames: /^sentry-utils-\d.*\.tgz$/
-  ## 1.3 Core SDK
+  ## 1.2 Core SDK
   - name: npm
     id: '@sentry/core'
     includeNames: /^sentry-core-\d.*\.tgz$/
-  ## 1.4 Browser Utils package
+  ## 1.3 Browser Utils package
   - name: npm
     id: '@sentry-internal/browser-utils'
     includeNames: /^sentry-internal-browser-utils-\d.*\.tgz$/
-  ## 1.5 Replay Internal package (browser only)
+  ## 1.4 Replay Internal package (browser only)
   - name: npm
     id: '@sentry-internal/replay'
     includeNames: /^sentry-internal-replay-\d.*\.tgz$/
-  ## 1.6 OpenTelemetry package
+  ## 1.5 OpenTelemetry package
   - name: npm
     id: '@sentry/opentelemetry'
     includeNames: /^sentry-opentelemetry-\d.*\.tgz$/
-  ## 1.7 Feedback package (browser only)
+  ## 1.6 Feedback package (browser only)
   - name: npm
     id: '@sentry-internal/feedback'
     includeNames: /^sentry-internal-feedback-\d.*\.tgz$/
-  ## 1.8 ReplayCanvas package (browser only)
+  ## 1.7 ReplayCanvas package (browser only)
   - name: npm
     id: '@sentry-internal/replay-canvas'
     includeNames: /^sentry-internal-replay-canvas-\d.*\.tgz$/
@@ -83,14 +77,6 @@ targets:
   - name: npm
     id: '@sentry/deno'
     includeNames: /^sentry-deno-\d.*\.tgz$/
-  - name: commit-on-git-repository
-    # This will publish on the Deno registry
-    id: getsentry/deno
-    archive: /^sentry-deno-\d.*\.tgz$/
-    repositoryUrl: https://github.com/getsentry/sentry-deno.git
-    stripComponents: 1
-    branch: main
-    createTag: true
 
   ## 5. Node-based Packages
   - name: npm
@@ -142,37 +128,21 @@ targets:
     id: '@sentry-internal/eslint-config-sdk'
     includeNames: /^sentry-internal-eslint-config-sdk-\d.*\.tgz$/
 
-  # TODO(v9): Remove this target
-  # NOTE: We publish the v8 layer under its own name so people on v8 can still get patches
-  # whenever we release a new v8 version—otherwise we would overwrite the current major lambda layer.
-  - name: aws-lambda-layer
-    includeNames: /^sentry-node-serverless-\d+.\d+.\d+(-(beta|alpha|rc)\.\d+)?\.zip$/
-    layerName: SentryNodeServerlessSDKv8
-    compatibleRuntimes:
-      - name: node
-        versions:
-          - nodejs10.x
-          - nodejs12.x
-          - nodejs14.x
-          - nodejs16.x
-          - nodejs18.x
-          - nodejs20.x
-    license: MIT
-
   # AWS Lambda Layer target
-  - name: aws-lambda-layer
-    includeNames: /^sentry-node-serverless-\d+.\d+.\d+(-(beta|alpha|rc)\.\d+)?\.zip$/
-    layerName: SentryNodeServerlessSDK
-    compatibleRuntimes:
-      - name: node
-        versions:
-          - nodejs10.x
-          - nodejs12.x
-          - nodejs14.x
-          - nodejs16.x
-          - nodejs18.x
-          - nodejs20.x
-    license: MIT
+  # TODO(v9): Once stable, re-add this target to publish the AWS Lambda layer
+  # - name: aws-lambda-layer
+  #   includeNames: /^sentry-node-serverless-\d+.\d+.\d+(-(beta|alpha|rc)\.\d+)?\.zip$/
+  #   layerName: SentryNodeServerlessSDKv9
+  #   compatibleRuntimes:
+  #     - name: node
+  #       versions:
+  #         - nodejs10.x
+  #         - nodejs12.x
+  #         - nodejs14.x
+  #         - nodejs16.x
+  #         - nodejs18.x
+  #         - nodejs20.x
+  #   license: MIT
 
   # CDN Bundle Target
   - name: gcs

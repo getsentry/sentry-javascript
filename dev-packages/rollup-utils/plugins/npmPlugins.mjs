@@ -29,6 +29,10 @@ export function makeSucrasePlugin(options = {}, sucraseOptions = {}) {
     },
     {
       transforms: ['typescript', 'jsx'],
+      // We use a custom forked version of sucrase,
+      // where there is a new option `disableES2019Transforms`
+      disableESTransforms: false,
+      disableES2019Transforms: true,
       ...sucraseOptions,
     },
   );
@@ -173,5 +177,3 @@ export function makeCodeCovPlugin() {
     uploadToken: process.env.CODECOV_TOKEN,
   });
 }
-
-export { makeExtractPolyfillsPlugin } from './extractPolyfillsPlugin.mjs';

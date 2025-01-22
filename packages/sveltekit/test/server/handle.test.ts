@@ -296,7 +296,8 @@ describe('sentryHandle', () => {
                 return (
                   'sentry-environment=production,sentry-release=1.0.0,sentry-transaction=dogpark,' +
                   'sentry-public_key=dogsarebadatkeepingsecrets,' +
-                  'sentry-trace_id=1234567890abcdef1234567890abcdef,sentry-sample_rate=1'
+                  'sentry-trace_id=1234567890abcdef1234567890abcdef,sentry-sample_rate=1,' +
+                  'sentry-sample_rand=0.42'
                 );
               }
 
@@ -332,6 +333,7 @@ describe('sentryHandle', () => {
         sample_rate: '1',
         trace_id: '1234567890abcdef1234567890abcdef',
         transaction: 'dogpark',
+        sample_rand: '0.42',
       });
     });
 
@@ -430,36 +432,24 @@ describe('addSentryCodeToPage', () => {
   </html>`;
 
   it("Adds add meta tags and fetch proxy script if there's no active transaction", () => {
-    const transformPageChunk = addSentryCodeToPage({});
+    const transformPageChunk = addSentryCodeToPage({ injectFetchProxyScript: true });
     const transformed = transformPageChunk({ html, done: true });
 
     expect(transformed).toContain('<meta name="sentry-trace"');
     expect(transformed).toContain('<meta name="baggage"');
     expect(transformed).not.toContain('sentry-transaction=');
-    expect(transformed).toContain(`<script >${FETCH_PROXY_SCRIPT}</script>`);
+    expect(transformed).toContain(`<script>${FETCH_PROXY_SCRIPT}</script>`);
   });
 
   it('adds meta tags and the fetch proxy script if there is an active transaction', () => {
-    const transformPageChunk = addSentryCodeToPage({});
+    const transformPageChunk = addSentryCodeToPage({ injectFetchProxyScript: true });
     SentryNode.startSpan({ name: 'test' }, () => {
       const transformed = transformPageChunk({ html, done: true }) as string;
 
       expect(transformed).toContain('<meta name="sentry-trace"');
       expect(transformed).toContain('<meta name="baggage"');
       expect(transformed).toContain('sentry-transaction=test');
-      expect(transformed).toContain(`<script >${FETCH_PROXY_SCRIPT}</script>`);
-    });
-  });
-
-  it('adds a nonce attribute to the script if the `fetchProxyScriptNonce` option is specified', () => {
-    const transformPageChunk = addSentryCodeToPage({ fetchProxyScriptNonce: '123abc' });
-    SentryNode.startSpan({ name: 'test' }, () => {
-      const transformed = transformPageChunk({ html, done: true }) as string;
-
-      expect(transformed).toContain('<meta name="sentry-trace"');
-      expect(transformed).toContain('<meta name="baggage"');
-      expect(transformed).toContain('sentry-transaction=test');
-      expect(transformed).toContain(`<script nonce="123abc">${FETCH_PROXY_SCRIPT}</script>`);
+      expect(transformed).toContain(`<script>${FETCH_PROXY_SCRIPT}</script>`);
     });
   });
 

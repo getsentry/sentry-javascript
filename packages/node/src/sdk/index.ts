@@ -2,12 +2,9 @@ import type { Integration, Options } from '@sentry/core';
 import {
   consoleSandbox,
   dropUndefinedKeys,
-  endSession,
   functionToStringIntegration,
-  getClient,
   getCurrentScope,
   getIntegrationsToSetup,
-  getIsolationScope,
   hasTracingEnabled,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
@@ -15,7 +12,6 @@ import {
   propagationContextFromHeaders,
   requestDataIntegration,
   stackParserFromStackParserOptions,
-  startSession,
 } from '@sentry/core';
 import {
   enhanceDscWithOpenTelemetryRootSpanName,
@@ -34,6 +30,7 @@ import { modulesIntegration } from '../integrations/modules';
 import { nativeNodeFetchIntegration } from '../integrations/node-fetch';
 import { onUncaughtExceptionIntegration } from '../integrations/onuncaughtexception';
 import { onUnhandledRejectionIntegration } from '../integrations/onunhandledrejection';
+import { processSessionIntegration } from '../integrations/processSession';
 import { INTEGRATION_NAME as SPOTLIGHT_INTEGRATION_NAME, spotlightIntegration } from '../integrations/spotlight';
 import { getAutoPerformanceIntegrations } from '../integrations/tracing';
 import { makeNodeTransport } from '../transports';
@@ -70,6 +67,7 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
     localVariablesIntegration(),
     nodeContextIntegration(),
     childProcessIntegration(),
+    processSessionIntegration(),
     ...getCjsOnlyIntegrations(),
   ];
 }
@@ -82,18 +80,8 @@ export function getDefaultIntegrations(options: Options): Integration[] {
     // Note that this means that without tracing enabled, e.g. `expressIntegration()` will not be added
     // This means that generally request isolation will work (because that is done by httpIntegration)
     // But `transactionName` will not be set automatically
-    ...(shouldAddPerformanceIntegrations(options) ? getAutoPerformanceIntegrations() : []),
+    ...(hasTracingEnabled(options) ? getAutoPerformanceIntegrations() : []),
   ];
-}
-
-function shouldAddPerformanceIntegrations(options: Options): boolean {
-  if (!hasTracingEnabled(options)) {
-    return false;
-  }
-
-  // We want to ensure `tracesSampleRate` is not just undefined/null here
-  // eslint-disable-next-line deprecation/deprecation
-  return options.enableTracing || options.tracesSampleRate != null || 'tracesSampler' in options;
 }
 
 /**
@@ -132,7 +120,7 @@ function _init(
   }
 
   if (!isCjs() && options.registerEsmLoaderHooks !== false) {
-    maybeInitializeEsmLoader(options.registerEsmLoaderHooks === true ? undefined : options.registerEsmLoaderHooks);
+    maybeInitializeEsmLoader();
   }
 
   setOpenTelemetryContextAsyncContextStrategy();
@@ -156,12 +144,6 @@ function _init(
 
   logger.log(`Running in ${isCjs() ? 'CommonJS' : 'ESM'} mode.`);
 
-  // TODO(V9): Remove this code since all of the logic should be in an integration
-  // eslint-disable-next-line deprecation/deprecation
-  if (options.autoSessionTracking) {
-    startSessionTracking();
-  }
-
   client.startClientReportTracking();
 
   updateScopeFromEnvVariables();
@@ -169,7 +151,9 @@ function _init(
   // If users opt-out of this, they _have_ to set up OpenTelemetry themselves
   // There is no way to use this SDK without OpenTelemetry!
   if (!options.skipOpenTelemetrySetup) {
-    initOpenTelemetry(client);
+    initOpenTelemetry(client, {
+      spanProcessors: options.openTelemetrySpanProcessors,
+    });
     validateOpenTelemetrySetup();
   }
 
@@ -216,15 +200,6 @@ function getClientOptions(
 ): NodeClientOptions {
   const release = getRelease(options.release);
 
-  const autoSessionTracking =
-    typeof release !== 'string'
-      ? false
-      : // eslint-disable-next-line deprecation/deprecation
-        options.autoSessionTracking === undefined
-        ? true
-        : // eslint-disable-next-line deprecation/deprecation
-          options.autoSessionTracking;
-
   if (options.spotlight == null) {
     const spotlightEnv = envToBool(process.env.SENTRY_SPOTLIGHT, { strict: true });
     if (spotlightEnv == null) {
@@ -245,7 +220,6 @@ function getClientOptions(
 
   const overwriteOptions = dropUndefinedKeys({
     release,
-    autoSessionTracking,
     tracesSampleRate,
   });
 
@@ -311,33 +285,4 @@ function updateScopeFromEnvVariables(): void {
     const propagationContext = propagationContextFromHeaders(sentryTraceEnv, baggageEnv);
     getCurrentScope().setPropagationContext(propagationContext);
   }
-}
-
-/**
- * Enable automatic Session Tracking for the node process.
- */
-function startSessionTracking(): void {
-  const client = getClient<NodeClient>();
-  // eslint-disable-next-line deprecation/deprecation
-  if (client && client.getOptions().autoSessionTracking) {
-    client.initSessionFlusher();
-  }
-
-  startSession();
-
-  // Emitted in the case of healthy sessions, error of `mechanism.handled: true` and unhandledrejections because
-  // The 'beforeExit' event is not emitted for conditions causing explicit termination,
-  // such as calling process.exit() or uncaught exceptions.
-  // Ref: https://nodejs.org/api/process.html#process_event_beforeexit
-  process.on('beforeExit', () => {
-    const session = getIsolationScope().getSession();
-
-    // Only call endSession, if the Session exists on Scope and SessionStatus is not a
-    // Terminal Status i.e. Exited or Crashed because
-    // "When a session is moved away from ok it must not be updated anymore."
-    // Ref: https://develop.sentry.dev/sdk/sessions/
-    if (session && session.status !== 'ok') {
-      endSession();
-    }
-  });
 }

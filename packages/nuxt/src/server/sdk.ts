@@ -18,7 +18,6 @@ import type { SentryNuxtServerOptions } from '../common/types';
 export function init(options: SentryNuxtServerOptions): Client | undefined {
   const sentryOptions = {
     ...options,
-    registerEsmLoaderHooks: mergeRegisterEsmLoaderHooks(options),
     defaultIntegrations: getNuxtDefaultIntegrations(options),
   };
 
@@ -90,28 +89,6 @@ function getNuxtDefaultIntegrations(options: NodeOptions): Integration[] {
       },
     }),
   ];
-}
-
-/**
- * Adds /vue/ to the registerEsmLoaderHooks options and merges it with the old values in the array if one is defined.
- * If the registerEsmLoaderHooks option is already a boolean, nothing is changed.
- *
- * Only exported for Testing purposes.
- */
-export function mergeRegisterEsmLoaderHooks(
-  options: SentryNuxtServerOptions,
-): SentryNuxtServerOptions['registerEsmLoaderHooks'] {
-  if (typeof options.registerEsmLoaderHooks === 'object' && options.registerEsmLoaderHooks !== null) {
-    return {
-      // eslint-disable-next-line deprecation/deprecation
-      exclude: Array.isArray(options.registerEsmLoaderHooks.exclude)
-        ? // eslint-disable-next-line deprecation/deprecation
-          [...options.registerEsmLoaderHooks.exclude, /vue/]
-        : // eslint-disable-next-line deprecation/deprecation
-          options.registerEsmLoaderHooks.exclude ?? [/vue/],
-    };
-  }
-  return options.registerEsmLoaderHooks ?? { exclude: [/vue/] };
 }
 
 /**

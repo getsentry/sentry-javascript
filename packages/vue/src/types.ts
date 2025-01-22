@@ -42,12 +42,6 @@ export interface VueOptions {
   attachProps: boolean;
 
   /**
-   * When set to `true`, original Vue's `logError` will be called as well.
-   * https://github.com/vuejs/vue/blob/c2b1cfe9ccd08835f2d99f6ce60f67b4de55187f/src/core/util/error.js#L38-L48
-   */
-  logErrors: boolean;
-
-  /**
    *  By default, Sentry attaches an error handler to capture exceptions and report them to Sentry.
    *  When `attachErrorHandler` is set to `false`, automatic error reporting is disabled.
    *
@@ -60,64 +54,9 @@ export interface VueOptions {
 
   /** {@link TracingOptions} */
   tracingOptions?: Partial<TracingOptions>;
-
-  /**
-   * Decides whether to track components by hooking into its lifecycle methods.
-   * Can be either set to `boolean` to enable/disable tracking for all of them.
-   * Or to an array of specific component names (case-sensitive).
-   *
-   * @deprecated Use tracingOptions
-   */
-  trackComponents: boolean | string[];
-
-  /**
-   * How long to wait until the tracked root activity is marked as finished and sent of to Sentry
-   *
-   * @deprecated Use tracingOptions
-   */
-  timeout: number;
-
-  /**
-   * List of hooks to keep track of during component lifecycle.
-   * Available hooks: 'activate' | 'create' | 'destroy' | 'mount' | 'unmount' | 'update'
-   * Based on https://vuejs.org/v2/api/#Options-Lifecycle-Hooks
-   *
-   * @deprecated Use tracingOptions
-   */
-  hooks: Operation[];
 }
 
-export interface Options extends BrowserOptions, VueOptions {
-  /**
-   * @deprecated Use `vueIntegration` tracingOptions
-   */
-  tracingOptions?: Partial<TracingOptions>;
-
-  /**
-   * Decides whether to track components by hooking into its lifecycle methods.
-   * Can be either set to `boolean` to enable/disable tracking for all of them.
-   * Or to an array of specific component names (case-sensitive).
-   *
-   * @deprecated Use `vueIntegration` tracingOptions
-   */
-  trackComponents: boolean | string[];
-
-  /**
-   * How long to wait until the tracked root activity is marked as finished and sent of to Sentry
-   *
-   * @deprecated Use `vueIntegration` tracingOptions
-   */
-  timeout: number;
-
-  /**
-   * List of hooks to keep track of during component lifecycle.
-   * Available hooks: 'activate' | 'create' | 'destroy' | 'mount' | 'unmount' | 'update'
-   * Based on https://vuejs.org/v2/api/#Options-Lifecycle-Hooks
-   *
-   * @deprecated Use `vueIntegration` tracingOptions
-   */
-  hooks: Operation[];
-}
+export type Options = BrowserOptions & VueOptions;
 
 /** Vue specific configuration for Tracing Integration  */
 export interface TracingOptions {

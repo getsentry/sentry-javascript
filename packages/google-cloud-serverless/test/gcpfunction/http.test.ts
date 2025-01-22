@@ -1,5 +1,3 @@
-import * as domain from 'domain';
-
 import type { Integration } from '@sentry/core';
 
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
@@ -58,7 +56,6 @@ describe('GCPFunction', () => {
       headers = { ...headers, ...trace_headers };
     }
     return new Promise((resolve, _reject) => {
-      const d = domain.create();
       const req = {
         method: 'POST',
         url: '/path?q=query',
@@ -66,8 +63,12 @@ describe('GCPFunction', () => {
         body: { foo: 'bar' },
       } as Request;
       const res = { end: resolve } as Response;
-      d.on('error', () => res.end());
-      d.run(() => process.nextTick(fn, req, res));
+
+      try {
+        fn(req, res);
+      } catch (error) {
+        res.end();
+      }
     });
   }
 

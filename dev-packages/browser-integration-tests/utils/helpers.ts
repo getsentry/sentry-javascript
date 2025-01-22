@@ -7,6 +7,7 @@ import type {
   Event,
   EventEnvelope,
   EventEnvelopeHeaders,
+  SessionContext,
   TransactionEvent,
 } from '@sentry/core';
 
@@ -157,7 +158,7 @@ export const countEnvelopes = async (
  * @param {{ path?: string; content?: string }} impl
  * @return {*}  {Promise<void>}
  */
-async function runScriptInSandbox(
+export async function runScriptInSandbox(
   page: Page,
   impl: {
     path?: string;
@@ -178,7 +179,7 @@ async function runScriptInSandbox(
  * @param {string} [url]
  * @return {*}  {Promise<Array<Event>>}
  */
-async function getSentryEvents(page: Page, url?: string): Promise<Array<Event>> {
+export async function getSentryEvents(page: Page, url?: string): Promise<Array<Event>> {
   if (url) {
     await page.goto(url);
   }
@@ -250,6 +251,25 @@ export function waitForTransactionRequest(
   });
 }
 
+export async function waitForSession(page: Page): Promise<SessionContext> {
+  const req = await page.waitForRequest(req => {
+    const postData = req.postData();
+    if (!postData) {
+      return false;
+    }
+
+    try {
+      const event = envelopeRequestParser<SessionContext>(req);
+
+      return typeof event.init === 'boolean' && event.started !== undefined;
+    } catch {
+      return false;
+    }
+  });
+
+  return envelopeRequestParser<SessionContext>(req);
+}
+
 /**
  * We can only test tracing tests in certain bundles/packages:
  * - NPM (ESM, CJS)
@@ -268,18 +288,6 @@ export function shouldSkipTracingTest(): boolean {
 export function shouldSkipFeedbackTest(): boolean {
   // We always run these, in bundles the pluggable integration is automatically added
   return false;
-}
-
-/**
- * We can only test metrics tests in certain bundles/packages:
- * - NPM (ESM, CJS)
- * - CDN bundles that include tracing
- *
- * @returns `true` if we should skip the metrics test
- */
-export function shouldSkipMetricsTest(): boolean {
-  const bundle = process.env.PW_BUNDLE as string | undefined;
-  return bundle != null && !bundle.includes('tracing') && !bundle.includes('esm') && !bundle.includes('cjs');
 }
 
 /**
@@ -365,7 +373,7 @@ async function getMultipleRequests<T>(
 /**
  * Wait and get multiple envelope requests at the given URL, or the current page
  */
-async function getMultipleSentryEnvelopeRequests<T>(
+export async function getMultipleSentryEnvelopeRequests<T>(
   page: Page,
   count: number,
   options?: {
@@ -386,7 +394,7 @@ async function getMultipleSentryEnvelopeRequests<T>(
  * @param {string} [url]
  * @return {*}  {Promise<T>}
  */
-async function getFirstSentryEnvelopeRequest<T>(
+export async function getFirstSentryEnvelopeRequest<T>(
   page: Page,
   url?: string,
   requestParser: (req: Request) => T = envelopeRequestParser as (req: Request) => T,
@@ -400,5 +408,3 @@ async function getFirstSentryEnvelopeRequest<T>(
 
   return req;
 }
-
-export { runScriptInSandbox, getMultipleSentryEnvelopeRequests, getFirstSentryEnvelopeRequest, getSentryEvents };

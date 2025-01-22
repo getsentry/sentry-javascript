@@ -15,10 +15,6 @@ export {
   addBreadcrumb,
   addEventProcessor,
   addIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  addOpenTelemetryInstrumentation,
-  // eslint-disable-next-line deprecation/deprecation
-  addRequestDataToEvent,
   amqplibIntegration,
   anrIntegration,
   disableAnrDetectionForCallback,
@@ -37,16 +33,11 @@ export {
   createGetModuleFromFilename,
   createTransport,
   cron,
-  // eslint-disable-next-line deprecation/deprecation
-  debugIntegration,
   dedupeIntegration,
-  DEFAULT_USER_INCLUDES,
   defaultStackParser,
   endSession,
   expressErrorHandler,
   expressIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  extractRequestData,
   extraErrorDataIntegration,
   fastifyIntegration,
   flush,
@@ -56,8 +47,6 @@ export {
   getActiveSpan,
   getAutoPerformanceIntegrations,
   getClient,
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub,
   getCurrentScope,
   getDefaultIntegrations,
   getGlobalScope,
@@ -79,16 +68,12 @@ export {
   linkedErrorsIntegration,
   localVariablesIntegration,
   makeNodeTransport,
-  // eslint-disable-next-line deprecation/deprecation
-  metrics,
   modulesIntegration,
   mongoIntegration,
   mongooseIntegration,
   mysql2Integration,
   mysqlIntegration,
   nativeNodeFetchIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  nestIntegration,
   NodeClient,
   nodeContextIntegration,
   onUncaughtExceptionIntegration,
@@ -105,8 +90,6 @@ export {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  // eslint-disable-next-line deprecation/deprecation
-  sessionTimingIntegration,
   setContext,
   setCurrentClient,
   setExtra,
@@ -119,8 +102,6 @@ export {
   setupExpressErrorHandler,
   setupHapiErrorHandler,
   setupKoaErrorHandler,
-  // eslint-disable-next-line deprecation/deprecation
-  setupNestErrorHandler,
   setUser,
   spanToBaggageHeader,
   spanToJSON,
@@ -134,6 +115,7 @@ export {
   startSpanManual,
   tediousIntegration,
   trpcMiddleware,
+  updateSpanName,
   withActiveSpan,
   withIsolationScope,
   withMonitor,
@@ -145,8 +127,6 @@ export {
 export * from '@sentry/node';
 
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  wrapRemixHandleError,
   sentryHandleError,
   wrapHandleErrorWithSentry,
 } from './utils/instrumentServer';
@@ -169,23 +149,8 @@ export function getRemixDefaultIntegrations(options: RemixOptions): Integration[
   return [
     ...getDefaultNodeIntegrations(options as NodeOptions).filter(integration => integration.name !== 'Http'),
     httpIntegration(),
-    // eslint-disable-next-line deprecation/deprecation
-    options.autoInstrumentRemix ? remixIntegration() : undefined,
+    remixIntegration(),
   ].filter(int => int) as Integration[];
-}
-
-/**
- * Returns the given Express createRequestHandler function.
- * This function is no-op and only returns the given function.
- *
- * @deprecated No need to wrap the Express request handler.
- * @param createRequestHandlerFn The Remix Express `createRequestHandler`.
- * @returns `createRequestHandler` function.
- */
-export function wrapExpressCreateRequestHandler(createRequestHandlerFn: unknown): unknown {
-  DEBUG_BUILD && logger.warn('wrapExpressCreateRequestHandler is deprecated and no longer needed.');
-
-  return createRequestHandlerFn;
 }
 
 /** Initializes Sentry Remix SDK on Node. */
@@ -202,7 +167,7 @@ export function init(options: RemixOptions): NodeClient | undefined {
 
   const client = nodeInit(options as NodeOptions);
 
-  instrumentServer(options);
+  instrumentServer();
 
   return client;
 }

@@ -260,8 +260,9 @@ describe('captureFeedback', () => {
 
     getCurrentScope().setPropagationContext({
       traceId,
-      spanId,
+      parentSpanId: spanId,
       dsc,
+      sampleRand: 0.42,
     });
 
     const eventId = captureFeedback({
@@ -290,7 +291,8 @@ describe('captureFeedback', () => {
             contexts: {
               trace: {
                 trace_id: traceId,
-                span_id: spanId,
+                parent_span_id: spanId,
+                span_id: expect.stringMatching(/[a-f0-9]{16}/),
               },
               feedback: {
                 message: 'test',
@@ -312,7 +314,7 @@ describe('captureFeedback', () => {
       getDefaultTestClientOptions({
         dsn: 'https://dsn@ingest.f00.f00/1',
         enableSend: true,
-        enableTracing: true,
+        tracesSampleRate: 1,
         // We don't care about transactions here...
         beforeSendTransaction() {
           return null;
@@ -350,6 +352,7 @@ describe('captureFeedback', () => {
           sampled: 'true',
           sample_rate: '1',
           transaction: 'test-span',
+          sample_rand: expect.any(String),
         },
       },
       [
@@ -382,7 +385,7 @@ describe('captureFeedback', () => {
       getDefaultTestClientOptions({
         dsn: 'https://dsn@ingest.f00.f00/1',
         enableSend: true,
-        enableTracing: true,
+        tracesSampleRate: 1,
         // We don't care about transactions here...
         beforeSendTransaction() {
           return null;

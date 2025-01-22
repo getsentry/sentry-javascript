@@ -46,16 +46,8 @@ export const replayIntegration = ((options?: ReplayConfiguration) => {
 
 /**
  * Replay integration
- *
- * TODO: Rewrite this to be functional integration
- * Exported for tests.
  */
 export class Replay implements Integration {
-  /**
-   * @inheritDoc
-   */
-  public static id: string = 'Replay';
-
   /**
    * @inheritDoc
    */
@@ -114,7 +106,7 @@ export class Replay implements Integration {
     beforeErrorSampling,
     onError,
   }: ReplayConfiguration = {}) {
-    this.name = Replay.id;
+    this.name = 'Replay';
 
     const privacyOptions = getPrivacyOptions({
       mask,
@@ -288,7 +280,7 @@ export class Replay implements Integration {
    * Get the current session ID.
    */
   public getReplayId(): string | undefined {
-    if (!this._replay || !this._replay.isEnabled()) {
+    if (!this._replay?.isEnabled()) {
       return;
     }
 
@@ -304,7 +296,7 @@ export class Replay implements Integration {
    *   - or calling `flush()` to send the replay
    */
   public getRecordingMode(): ReplayRecordingMode | undefined {
-    if (!this._replay || !this._replay.isEnabled()) {
+    if (!this._replay?.isEnabled()) {
       return;
     }
 

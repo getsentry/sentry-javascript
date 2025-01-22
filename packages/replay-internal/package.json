@@ -19,7 +19,7 @@
     }
   },
   "typesVersions": {
-    "<4.9": {
+    "<5.0": {
       "build/npm/types/index.d.ts": [
         "build/npm/types-ts3.8/index.d.ts"
       ]
@@ -71,7 +71,7 @@
     "@sentry-internal/replay-worker": "8.45.0",
     "@sentry-internal/rrweb": "2.31.0",
     "@sentry-internal/rrweb-snapshot": "2.31.0",
-    "fflate": "^0.8.1",
+    "fflate": "0.8.2",
     "jest-matcher-utils": "^29.0.0",
     "jsdom-worker": "^0.2.1"
   },
@@ -80,7 +80,7 @@
     "@sentry/core": "8.45.0"
   },
   "engines": {
-    "node": ">=14.18"
+    "node": ">=18"
   },
   "volta": {
     "extends": "../../package.json"

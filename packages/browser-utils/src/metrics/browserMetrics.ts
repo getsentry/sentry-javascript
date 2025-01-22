@@ -83,7 +83,7 @@ interface StartTrackingWebVitalsOptions {
  */
 export function startTrackingWebVitals({ recordClsStandaloneSpans }: StartTrackingWebVitalsOptions): () => void {
   const performance = getBrowserPerformanceAPI();
-  if (performance && browserPerformanceTimeOrigin) {
+  if (performance && browserPerformanceTimeOrigin()) {
     // @ts-expect-error we want to make sure all of these are available, even if TS is sure they are
     if (performance.mark) {
       WINDOW.performance.mark('sentry-tracing-init');
@@ -97,7 +97,7 @@ export function startTrackingWebVitals({ recordClsStandaloneSpans }: StartTracki
       fidCleanupCallback();
       lcpCleanupCallback();
       ttfbCleanupCallback();
-      clsCleanupCallback && clsCleanupCallback();
+      clsCleanupCallback?.();
     };
   }
 
@@ -117,7 +117,7 @@ export function startTrackingLongTasks(): void {
     const { op: parentOp, start_timestamp: parentStartTimestamp } = spanToJSON(parent);
 
     for (const entry of entries) {
-      const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
+      const startTime = msToSec((browserPerformanceTimeOrigin() as number) + entry.startTime);
       const duration = msToSec(entry.duration);
 
       if (parentOp === 'navigation' && parentStartTimestamp && startTime < parentStartTimestamp) {
@@ -156,7 +156,7 @@ export function startTrackingLongAnimationFrames(): void {
         continue;
       }
 
-      const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
+      const startTime = msToSec((browserPerformanceTimeOrigin() as number) + entry.startTime);
 
       const { start_timestamp: parentStartTimestamp, op: parentOp } = spanToJSON(parent);
 
@@ -167,7 +167,6 @@ export function startTrackingLongAnimationFrames(): void {
         // routing instrumentations
         continue;
       }
-
       const duration = msToSec(entry.duration);
 
       const attributes: SpanAttributes = {
@@ -210,7 +209,7 @@ export function startTrackingInteractions(): void {
     }
     for (const entry of entries) {
       if (entry.name === 'click') {
-        const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
+        const startTime = msToSec((browserPerformanceTimeOrigin() as number) + entry.startTime);
         const duration = msToSec(entry.duration);
 
         const spanOptions: StartSpanOptions & Required<Pick<StartSpanOptions, 'attributes'>> = {
@@ -271,7 +270,7 @@ function _trackFID(): () => void {
       return;
     }
 
-    const timeOrigin = msToSec(browserPerformanceTimeOrigin as number);
+    const timeOrigin = msToSec(browserPerformanceTimeOrigin() as number);
     const startTime = msToSec(entry.startTime);
     _measurements['fid'] = { value: metric.value, unit: 'millisecond' };
     _measurements['mark.fid'] = { value: timeOrigin + startTime, unit: 'second' };
@@ -300,12 +299,13 @@ interface AddPerformanceEntriesOptions {
 /** Add performance related spans to a transaction */
 export function addPerformanceEntries(span: Span, options: AddPerformanceEntriesOptions): void {
   const performance = getBrowserPerformanceAPI();
-  if (!performance || !performance.getEntries || !browserPerformanceTimeOrigin) {
+  const origin = browserPerformanceTimeOrigin();
+  if (!performance?.getEntries || !origin) {
     // Gatekeeper if performance API not available
     return;
   }
 
-  const timeOrigin = msToSec(browserPerformanceTimeOrigin);
+  const timeOrigin = msToSec(origin);
 
   const performanceEntries = performance.getEntries();
 
@@ -674,7 +674,7 @@ function _setWebVitalAttributes(span: Span): void {
   }
 
   // See: https://developer.mozilla.org/en-US/docs/Web/API/LayoutShift
-  if (_clsEntry && _clsEntry.sources) {
+  if (_clsEntry?.sources) {
     _clsEntry.sources.forEach((source, index) =>
       span.setAttribute(`cls.source.${index + 1}`, htmlTreeAsString(source.node)),
     );

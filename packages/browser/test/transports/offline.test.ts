@@ -64,6 +64,7 @@ describe('makeOfflineTransport', () => {
     await deleteDatabase('sentry');
     (global as any).TextEncoder = TextEncoder;
     (global as any).TextDecoder = TextDecoder;
+    (global as any).addEventListener = () => {};
   });
 
   it('indexedDb wrappers push, unshift and pop', async () => {
@@ -114,5 +115,33 @@ describe('makeOfflineTransport', () => {
 
     expect(queuedCount).toEqual(1);
     expect(getSendCount()).toEqual(2);
+  });
+
+  it('flush forces retry', async () => {
+    const { getSendCount, baseTransport } = createTestTransport(new Error(), { statusCode: 200 }, { statusCode: 200 });
+    let queuedCount = 0;
+    const transport = makeBrowserOfflineTransport(baseTransport)({
+      ...transportOptions,
+      shouldStore: () => {
+        queuedCount += 1;
+        return true;
+      },
+      url: 'http://localhost',
+    });
+    const result = await transport.send(ERROR_ENVELOPE);
+
+    expect(result).toEqual({});
+
+    await delay(MIN_DELAY * 2);
+
+    expect(getSendCount()).toEqual(0);
+    expect(queuedCount).toEqual(1);
+
+    await transport.flush();
+
+    await delay(MIN_DELAY * 2);
+
+    expect(queuedCount).toEqual(1);
+    expect(getSendCount()).toEqual(1);
   });
 });

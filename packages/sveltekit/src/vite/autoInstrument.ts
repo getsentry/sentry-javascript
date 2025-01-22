@@ -1,6 +1,5 @@
 import * as fs from 'fs';
 import * as path from 'path';
-/* eslint-disable @sentry-internal/sdk/no-optional-chaining */
 import type { ExportNamedDeclaration } from '@babel/types';
 import { parseModule } from 'magicast';
 import type { Plugin } from 'vite';
@@ -116,13 +115,13 @@ export async function canWrapLoad(id: string, debug: boolean): Promise<boolean> 
     .filter((statement): statement is ExportNamedDeclaration => statement.type === 'ExportNamedDeclaration')
     .find(exportDecl => {
       // find `export const load = ...`
-      if (exportDecl.declaration && exportDecl.declaration.type === 'VariableDeclaration') {
+      if (exportDecl.declaration?.type === 'VariableDeclaration') {
         const variableDeclarations = exportDecl.declaration.declarations;
         return variableDeclarations.find(decl => decl.id.type === 'Identifier' && decl.id.name === 'load');
       }
 
       // find `export function load = ...`
-      if (exportDecl.declaration && exportDecl.declaration.type === 'FunctionDeclaration') {
+      if (exportDecl.declaration?.type === 'FunctionDeclaration') {
         const functionId = exportDecl.declaration.id;
         return functionId?.name === 'load';
       }

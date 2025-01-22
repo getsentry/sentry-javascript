@@ -1,4 +1,3 @@
-import * as domain from 'domain';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 
 import { wrapCloudEventFunction } from '../../src/gcpfunction/cloud_events';
@@ -44,21 +43,21 @@ describe('wrapCloudEventFunction', () => {
 
   function handleCloudEvent(fn: CloudEventFunctionWithCallback): Promise<any> {
     return new Promise((resolve, reject) => {
-      const d = domain.create();
-      // d.on('error', () => res.end());
       const context = {
         type: 'event.type',
       };
-      d.on('error', reject);
-      d.run(() =>
-        process.nextTick(fn, context, (err: any, result: any) => {
+
+      try {
+        fn(context, (err: any, result: any) => {
           if (err != null || err != undefined) {
             reject(err);
           } else {
             resolve(result);
           }
-        }),
-      );
+        });
+      } catch (error) {
+        reject(error);
+      }
     });
   }
 
