@@ -2,7 +2,6 @@ import type { AsyncContextStack } from './asyncContext/stackStrategy';
 import type { AsyncContextStrategy } from './asyncContext/types';
 import type { Scope } from './scope';
 import type { Logger } from './utils-hoist/logger';
-import { SDK_VERSION } from './utils-hoist/version';
 import { GLOBAL_OBJ } from './utils-hoist/worldwide';
 
 /**
@@ -16,6 +15,11 @@ export interface Carrier {
 type VersionedCarrier = {
   version?: string;
 } & Record<Exclude<string, 'version'>, SentryCarrier>;
+
+/**
+ * IMPORTANT - This must be updated if any breaking changes are made to the 'SentryCarrier' interface.
+ */
+const CARRIER_VERSION = '9';
 
 export interface SentryCarrier {
   acs?: AsyncContextStrategy;
@@ -34,10 +38,6 @@ export interface SentryCarrier {
 
 /**
  * Returns the global shim registry.
- *
- * FIXME: This function is problematic, because despite always returning a valid Carrier,
- * it has an optional `__SENTRY__` property, which then in turn requires us to always perform an unnecessary check
- * at the call-site. We always access the carrier through this function, so we can guarantee that `__SENTRY__` is there.
  **/
 export function getMainCarrier(): Carrier {
   // This ensures a Sentry carrier exists
@@ -50,11 +50,11 @@ export function getSentryCarrier(carrier: Carrier): SentryCarrier {
   const __SENTRY__ = (carrier.__SENTRY__ = carrier.__SENTRY__ || {});
 
   // For now: First SDK that sets the .version property wins
-  __SENTRY__.version = __SENTRY__.version || SDK_VERSION;
+  __SENTRY__.version = __SENTRY__.version || CARRIER_VERSION;
 
   // Intentionally populating and returning the version of "this" SDK instance
   // rather than what's set in .version so that "this" SDK always gets its carrier
-  return (__SENTRY__[SDK_VERSION] = __SENTRY__[SDK_VERSION] || {});
+  return (__SENTRY__[CARRIER_VERSION] = __SENTRY__[CARRIER_VERSION] || {});
 }
 
 /**
@@ -74,7 +74,7 @@ export function getGlobalSingleton<Prop extends keyof SentryCarrier>(
   obj = GLOBAL_OBJ,
 ): NonNullable<SentryCarrier[Prop]> {
   const __SENTRY__ = (obj.__SENTRY__ = obj.__SENTRY__ || {});
-  const carrier = (__SENTRY__[SDK_VERSION] = __SENTRY__[SDK_VERSION] || {});
+  const carrier = (__SENTRY__[CARRIER_VERSION] = __SENTRY__[CARRIER_VERSION] || {});
   // Note: We do not want to set `carrier.version` here, as this may be called before any `init` is called, e.g. for the default scopes
   return carrier[name] || (carrier[name] = creator());
 }
