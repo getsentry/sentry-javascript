@@ -248,9 +248,7 @@ function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: s
   };
 }
 
-// TODO(v9): Inject the release into all the bundles. This is breaking because grabbing the build ID if the user provides
-// it in `generateBuildId` (https://nextjs.org/docs/app/api-reference/next-config-js/generateBuildId) is async but we do
-// not turn the next config function in the type it was passed.
+// TODO: For Turbopack we need to pass the release name here and pick it up in the SDK
 function setUpBuildTimeVariables(userNextConfig: NextConfigObject, userSentryOptions: SentryBuildOptions): void {
   const assetPrefix = userNextConfig.assetPrefix || userNextConfig.basePath || '';
   const basePath = userNextConfig.basePath ?? '';
