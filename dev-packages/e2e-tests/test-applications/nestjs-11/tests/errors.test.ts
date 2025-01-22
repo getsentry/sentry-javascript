@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
-test.only('Sends exception to Sentry', async ({ baseURL }) => {
+test('Sends exception to Sentry', async ({ baseURL }) => {
   const errorEventPromise = waitForError('nestjs-11', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'This is an exception with id 123';
   });
