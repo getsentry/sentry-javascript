@@ -33,7 +33,6 @@ test.describe('tracing in static routes with server islands', () => {
           data: expect.objectContaining({
             'sentry.op': 'pageload',
             'sentry.origin': 'auto.pageload.browser',
-            'sentry.sample_rate': 1,
             'sentry.source': 'url',
           }),
           op: 'pageload',
@@ -75,7 +74,6 @@ test.describe('tracing in static routes with server islands', () => {
           data: expect.objectContaining({
             'sentry.op': 'http.server',
             'sentry.origin': 'auto.http.astro',
-            'sentry.sample_rate': 1,
             'sentry.source': 'route',
           }),
           op: 'http.server',

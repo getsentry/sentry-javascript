@@ -36,7 +36,6 @@ test.describe('tracing in static/pre-rendered routes', () => {
           data: expect.objectContaining({
             'sentry.op': 'pageload',
             'sentry.origin': 'auto.pageload.browser',
-            'sentry.sample_rate': 1,
             'sentry.source': 'url',
           }),
           op: 'pageload',

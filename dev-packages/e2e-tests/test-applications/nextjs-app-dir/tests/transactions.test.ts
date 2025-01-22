@@ -36,7 +36,6 @@ test('Sends a pageload transaction', async ({ page }) => {
           data: expect.objectContaining({
             'sentry.op': 'pageload',
             'sentry.origin': 'auto.pageload.nextjs.app_router_instrumentation',
-            'sentry.sample_rate': 1,
             'sentry.source': 'url',
           }),
         },

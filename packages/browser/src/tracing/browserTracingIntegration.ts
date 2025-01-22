@@ -317,6 +317,9 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
 
         maybeEndActiveSpan();
 
+        getIsolationScope().setPropagationContext({ traceId: generateTraceId(), sampleRand: Math.random() });
+        getCurrentScope().setPropagationContext({ traceId: generateTraceId(), sampleRand: Math.random() });
+
         _createRouteSpan(client, {
           op: 'navigation',
           ...startSpanOptions,
@@ -453,9 +456,6 @@ export function startBrowserTracingPageLoadSpan(
  * This will only do something if a browser tracing integration has been setup.
  */
 export function startBrowserTracingNavigationSpan(client: Client, spanOptions: StartSpanOptions): Span | undefined {
-  getIsolationScope().setPropagationContext({ traceId: generateTraceId(), sampleRand: Math.random() });
-  getCurrentScope().setPropagationContext({ traceId: generateTraceId(), sampleRand: Math.random() });
-
   client.emit('startNavigationSpan', spanOptions);
 
   getCurrentScope().setTransactionName(spanOptions.name);
