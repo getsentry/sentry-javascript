@@ -14,7 +14,7 @@ import {
   winterCGRequestToRequestData,
   withIsolationScope,
 } from '@sentry/core';
-import type { Handle, ResolveOptions } from '@sveltejs/kit';
+import { VERSION, type Handle, type ResolveOptions } from '@sveltejs/kit';
 
 import { DEBUG_BUILD } from '../common/debug-build';
 import { flushIfServerless, getTracePropagationData, sendErrorToSentry } from './utils';
@@ -95,7 +95,7 @@ export function addSentryCodeToPage(options: { injectFetchProxyScript: boolean }
 export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
   const options: Required<SentryHandleOptions> = {
     handleUnknownRoutes: false,
-    injectFetchProxyScript: true,
+    injectFetchProxyScript: isFetchProxyRequired(VERSION),
     ...handlerOptions,
   };
 
@@ -176,4 +176,20 @@ async function instrumentHandle(
   } finally {
     await flushIfServerless();
   }
+}
+
+/**
+ * We only need to inject the fetch proxy script for SvelteKit versions < 2.16.0.
+ * Exported only for testing.
+ */
+export function isFetchProxyRequired(version: string): boolean {
+  try {
+    const [major, minor] = version.trim().replace(/-.*/, '').split('.').map(Number);
+    if (major != null && minor != null && (major > 2 || (major === 2 && minor >= 16))) {
+      return false;
+    }
+  } catch {
+    // ignore
+  }
+  return true;
 }
