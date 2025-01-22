@@ -107,7 +107,12 @@ Older Typescript versions _may_ still work, but we will not test them anymore an
 
 - The `childProcessIntegration`'s (previously `processThreadBreadcrumbIntegration`) `name` value has been changed from `"ProcessAndThreadBreadcrumbs"` to `"ChildProcess"`. This is relevant if you were filtering integrations by name.
 
-- The Prisma integration no longer supports Prisma v5. As per Prisma v6, the `previewFeatures = ["tracing"]` option in your prisma client generator block is no longer required to use tracing with the Prisma integration.
+- The Prisma integration no longer supports Prisma v5. As per Prisma v6, the `previewFeatures = ["tracing"]` client generator option in your Prisma Schema is no longer required to use tracing with the Prisma integration.
+
+  For performance instrumentation using Prisma v5:
+
+  1. Install the `@prisma/instrumentation` package on version 5
+  1. Pass a `new PrismaInstrumentation()` instance as exported from `@prisma/instrumentation` to the the `Sentry.init()`'s `openTelemetryInstrumentations` option.
 
 ### `@sentry/browser`
 
