@@ -40,14 +40,15 @@ If you need to support older browsers, we recommend transpiling your code using 
 
 **Deno:** The minimum supported Deno version is now **2.0.0**.
 
-### Framework Support Changes
+### Framework and Library Support Changes
 
-Support for the following Framework versions is dropped:
+Support for the following frameworks and library versions are dropped:
 
 - **Remix**: Version `1.x`
 - **TanStack Router**: Version `1.63.0` and lower (relevant when using `tanstackRouterBrowserTracingIntegration`)
-- **SvelteKit**: SvelteKit version `1.x`
-- **Ember.js**: Ember.js version `3.x` and lower (minimum supported version is `4.x`)
+- **SvelteKit**: Version `1.x`
+- **Ember.js**: Version `3.x` and lower (minimum supported version is `4.x`)
+- **Prisma**: Version `5.x`
 
 ### TypeScript Version Policy
 
@@ -105,6 +106,13 @@ Older Typescript versions _may_ still work, but we will not test them anymore an
 - The `tracesSampler` hook will no longer be called for _every_ span. Instead, it will only be called for "root spans". Root spans are spans that have no local parent span. Root spans may however have incoming trace data from a different service, for example when using distributed tracing.
 
 - The `childProcessIntegration`'s (previously `processThreadBreadcrumbIntegration`) `name` value has been changed from `"ProcessAndThreadBreadcrumbs"` to `"ChildProcess"`. This is relevant if you were filtering integrations by name.
+
+- The Prisma integration no longer supports Prisma v5. As per Prisma v6, the `previewFeatures = ["tracing"]` client generator option in your Prisma Schema is no longer required to use tracing with the Prisma integration.
+
+  For performance instrumentation using Prisma v5:
+
+  1. Install the `@prisma/instrumentation` package on version 5
+  1. Pass a `new PrismaInstrumentation()` instance as exported from `@prisma/instrumentation` to the the `Sentry.init()`'s `openTelemetryInstrumentations` option.
 
 ### `@sentry/browser`
 
