@@ -19,6 +19,9 @@
  * limitations under the License.
  */
 
+import type { Controller } from '@nestjs/common/interfaces';
+import type { NestFactory } from '@nestjs/core/nest-factory.js';
+import type { RouterExecutionContext } from '@nestjs/core/router/router-execution-context.js';
 import * as api from '@opentelemetry/api';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import {
@@ -27,9 +30,6 @@ import {
   InstrumentationNodeModuleFile,
   isWrapped,
 } from '@opentelemetry/instrumentation';
-import type { NestFactory } from '@nestjs/core/nest-factory.js';
-import type { RouterExecutionContext } from '@nestjs/core/router/router-execution-context.js';
-import type { Controller } from '@nestjs/common/interfaces';
 import { ATTR_HTTP_REQUEST_METHOD, ATTR_HTTP_ROUTE, SEMATTRS_HTTP_URL } from '@opentelemetry/semantic-conventions';
 
 import { SDK_VERSION } from '@sentry/core';
