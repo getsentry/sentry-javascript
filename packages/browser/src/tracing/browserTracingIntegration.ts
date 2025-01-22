@@ -24,7 +24,6 @@ import {
   getDynamicSamplingContextFromSpan,
   getIsolationScope,
   getLocationHref,
-  getRootSpan,
   logger,
   propagationContextFromHeaders,
   registerSpanErrorInstrumentation,
@@ -276,6 +275,19 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         _collectWebVitals();
         addPerformanceEntries(span, { recordClsOnPageloadSpan: !enableStandaloneClsSpans });
         setActiveIdleSpan(client, undefined);
+
+        // A trace should stay consistent over the entire timespan of one route - even after the pageload/navigation ended.
+        // Only when another navigation happens, we want to create a new trace.
+        // This way, e.g. errors that occur after the pageload span ended are still associated to the pageload trace.
+        const scope = getCurrentScope();
+        const oldPropagationContext = scope.getPropagationContext();
+
+        scope.setPropagationContext({
+          ...oldPropagationContext,
+          traceId: idleSpan.spanContext().traceId,
+          sampled: spanIsSampled(idleSpan),
+          dsc: getDynamicSamplingContextFromSpan(span),
+        });
       },
     });
     setActiveIdleSpan(client, idleSpan);
@@ -341,27 +353,6 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         _createRouteSpan(client, {
           op: 'pageload',
           ...startSpanOptions,
-        });
-      });
-
-      // A trace should to stay the consistent over the entire time span of one route.
-      // Therefore, when the initial pageload or navigation root span ends, we update the
-      // scope's propagation context to keep span-specific attributes like the `sampled` decision and
-      // the dynamic sampling context valid, even after the root span has ended.
-      // This ensures that the trace data is consistent for the entire duration of the route.
-      client.on('spanEnd', span => {
-        const op = spanToJSON(span).op;
-        if (span !== getRootSpan(span) || (op !== 'navigation' && op !== 'pageload')) {
-          return;
-        }
-
-        const scope = getCurrentScope();
-        const oldPropagationContext = scope.getPropagationContext();
-
-        scope.setPropagationContext({
-          ...oldPropagationContext,
-          sampled: oldPropagationContext.sampled !== undefined ? oldPropagationContext.sampled : spanIsSampled(span),
-          dsc: oldPropagationContext.dsc || getDynamicSamplingContextFromSpan(span),
         });
       });
 
