@@ -56,6 +56,14 @@ Now, there are two options to set up the SDK:
    );
    ```
 
+## 9.0.0-alpha.0
+
+This is an alpha release of the upcoming major release of version 9.
+This release does not yet entail a comprehensive changelog as version 9 is not yet stable.
+
+For this release's iteration of the migration guide, see the [Migration Guide as per `9.0.0-alpha.0`](https://github.com/getsentry/sentry-javascript/blob/6e4b593adcc4ce951afa8ae0cda0605ecd226cda/docs/migration/v8-to-v9.md).
+Please note that the migration guide is work in progress and subject to change.
+
 ## 8.45.0
 
 - feat(core): Add `handled` option to `captureConsoleIntegration` ([#14664](https://github.com/getsentry/sentry-javascript/pull/14664))
