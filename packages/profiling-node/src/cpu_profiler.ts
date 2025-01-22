@@ -18,8 +18,8 @@ import type {
 import type { ProfileFormat } from './types';
 
 declare const __IMPORT_META_URL_REPLACEMENT__: string;
-declare const __LOAD_MODULE_REPLACEMENT__: (path: string) => PrivateV8CpuProfilerBindings;
 declare const __CREATE_REQUIRE__: string;
+declare const __LOAD_MODULE_REPLACEMENT__: (path: string) => PrivateV8CpuProfilerBindings;
 
 const stdlib = familySync();
 const platform = process.env['BUILD_PLATFORM'] || _platform();
@@ -39,6 +39,10 @@ export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
         __IMPORT_META_URL_REPLACEMENT__
       : // This case is hit when the tests are run
         pathToFileURL(__filename).href;
+
+  // During build-time in ESM, this is replaced with an assignment of `require`. In CJS, this line is empty, so we can use the native require.
+  // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+  __CREATE_REQUIRE__;
 
   const esmCompatibleDirname = dirname(fileURLToPath(importMetaUrl));
 

@@ -26,6 +26,7 @@ export default [
             preventAssignment: false,
             values: {
               __IMPORT_META_URL_REPLACEMENT__: 'import.meta.url',
+              __CREATE_REQUIRE__: '', // empty, so the native CJS `require` can be used without getting renamed during build (because of a new assignment)
               __LOAD_MODULE_REPLACEMENT__: 'require',
             },
           }),
@@ -45,7 +46,8 @@ export default [
             preventAssignment: false,
             values: {
               __IMPORT_META_URL_REPLACEMENT__: 'import.meta.url',
-              __LOAD_MODULE_REPLACEMENT__: 'import',
+              __CREATE_REQUIRE__: 'const require = createRequire(importMetaUrl);', // Variable assignment for the require replacement below
+              __LOAD_MODULE_REPLACEMENT__: 'require',
             },
           }),
         ],
