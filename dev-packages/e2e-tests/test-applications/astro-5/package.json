@@ -15,7 +15,7 @@
     "@astrojs/node": "^9.0.0",
     "@playwright/test": "^1.46.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
-    "@sentry/astro": "^8.42.0",
+    "@sentry/astro": "latest || *",
     "astro": "^5.0.3"
   },
   "pnpm": {
