@@ -107,12 +107,35 @@ Older Typescript versions _may_ still work, but we will not test them anymore an
 
 - The `childProcessIntegration`'s (previously `processThreadBreadcrumbIntegration`) `name` value has been changed from `"ProcessAndThreadBreadcrumbs"` to `"ChildProcess"`. This is relevant if you were filtering integrations by name.
 
-- The Prisma integration no longer supports Prisma v5. As per Prisma v6, the `previewFeatures = ["tracing"]` client generator option in your Prisma Schema is no longer required to use tracing with the Prisma integration.
+- The Prisma integration no longer supports Prisma v5 and supports Prisma v6 by default. As per Prisma v6, the `previewFeatures = ["tracing"]` client generator option in your Prisma Schema is no longer required to use tracing with the Prisma integration.
 
-  For performance instrumentation using Prisma v5:
+  For performance instrumentation using other/older Prisma versions:
 
-  1. Install the `@prisma/instrumentation` package on version 5
-  1. Pass a `new PrismaInstrumentation()` instance as exported from `@prisma/instrumentation` to the the `Sentry.init()`'s `openTelemetryInstrumentations` option.
+  1. Install the `@prisma/instrumentation` package with the desired version.
+  1. Pass a `new PrismaInstrumentation()` instance as exported from `@prisma/instrumentation` to the `prismaInstrumentation` option of this integration:
+
+     ```js
+     import { PrismaInstrumentation } from '@prisma/instrumentation';
+     Sentry.init({
+       integrations: [
+         prismaIntegration({
+           // Override the default instrumentation that Sentry uses
+           prismaInstrumentation: new PrismaInstrumentation(),
+         }),
+       ],
+     });
+     ```
+
+     The passed instrumentation instance will override the default instrumentation instance the integration would use, while the `prismaIntegration` will still ensure data compatibility for the various Prisma versions.
+
+  1. Depending on your Prisma version (prior to Prisma version 6), add `previewFeatures = ["tracing"]` to the client generator block of your Prisma schema:
+
+     ```
+     generator client {
+       provider = "prisma-client-js"
+       previewFeatures = ["tracing"]
+     }
+     ```
 
 ### `@sentry/browser`
 
