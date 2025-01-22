@@ -261,6 +261,10 @@ The following changes are unlikely to affect users of the SDK. They are listed h
   This function was primarily internally used.
   It's functionality was misleading and should not be used.
 
+### `@sentry/sveltekit`
+
+- The `fetchProxyScriptNonce` option in `sentryHandle()` was removed due to security concerns. If you previously specified this option for your CSP policy, specify a [script hash](https://docs.sentry.io/platforms/javascript/guides/sveltekit/manual-setup/#configure-csp-for-client-side-fetch-instrumentation) in your CSP config or [disable](https://docs.sentry.io/platforms/javascript/guides/sveltekit/manual-setup/#disable-client-side-fetch-proxy-script) the injection of the script entirely.
+
 ## 5. Build Changes
 
 Previously the CJS versions of the SDK code (wrongfully) contained compatibility statements for default exports in ESM:
@@ -482,6 +486,10 @@ Sentry.init({
 ## `@sentry/nextjs`
 
 - Deprecated the `hideSourceMaps` option. There are no replacements for this option. The SDK emits hidden sourcemaps by default.
+
+### `@sentry/sveltekit`
+
+- The `fetchProxyScriptNonce` option in `sentryHandle()` was deprecated due to security concerns. If you previously specified this option for your CSP policy, specify a [script hash](https://docs.sentry.io/platforms/javascript/guides/sveltekit/manual-setup/#configure-csp-for-client-side-fetch-instrumentation) in your CSP config or [disable](https://docs.sentry.io/platforms/javascript/guides/sveltekit/manual-setup/#disable-client-side-fetch-proxy-script) the injection of the script entirely.
 
 ## `@sentry/opentelemetry`
 
