@@ -93,10 +93,10 @@ export function addSentryCodeToPage(options: { injectFetchProxyScript: boolean }
  * ```
  */
 export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
-  const options: Required<SentryHandleOptions> = {
-    handleUnknownRoutes: false,
-    injectFetchProxyScript: isFetchProxyRequired('2.16.0'),
-    ...handlerOptions,
+  const { handleUnknownRoutes, ...rest } = handlerOptions ?? {};
+  const options = {
+    handleUnknownRoutes: handleUnknownRoutes ?? false,
+    ...rest,
   };
 
   const sentryRequestHandler: Handle = input => {
@@ -131,10 +131,22 @@ export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
 
 async function instrumentHandle(
   { event, resolve }: Parameters<Handle>[0],
-  options: Required<SentryHandleOptions>,
+  options: SentryHandleOptions,
 ): Promise<Response> {
   if (!event.route?.id && !options.handleUnknownRoutes) {
     return resolve(event);
+  }
+
+  // caching the result of the version check in `options.injectFetchProxyScript`
+  // to avoid doing the dynamic import on every request
+  if (options.injectFetchProxyScript == null) {
+    try {
+      // @ts-expect-error - the dynamic import is fine here
+      const { VERSION } = await import('@sveltejs/kit');
+      options.injectFetchProxyScript = isFetchProxyRequired(VERSION);
+    } catch {
+      options.injectFetchProxyScript = true;
+    }
   }
 
   const routeName = `${event.request.method} ${event.route?.id || event.url.pathname}`;
@@ -161,7 +173,7 @@ async function instrumentHandle(
           normalizedRequest: winterCGRequestToRequestData(event.request.clone()),
         });
         const res = await resolve(event, {
-          transformPageChunk: addSentryCodeToPage({ injectFetchProxyScript: options.injectFetchProxyScript }),
+          transformPageChunk: addSentryCodeToPage({ injectFetchProxyScript: options.injectFetchProxyScript ?? true }),
         });
         if (span) {
           setHttpStatus(span, res.status);
