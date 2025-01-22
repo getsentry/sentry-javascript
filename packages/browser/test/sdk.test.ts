@@ -34,30 +34,6 @@ export class MockIntegration implements Integration {
   }
 }
 
-vi.mock('@sentry/core', async requireActual => {
-  return {
-    ...((await requireActual()) as any),
-    getCurrentHub(): {
-      bindClient(client: Client): boolean;
-      getClient(): boolean;
-      getScope(): Scope;
-    } {
-      return {
-        getClient(): boolean {
-          return false;
-        },
-        getScope(): Scope {
-          return new Scope();
-        },
-        bindClient(client: Client): boolean {
-          client.init!();
-          return true;
-        },
-      };
-    },
-  };
-});
-
 describe('init', () => {
   beforeEach(() => {
     vi.clearAllMocks();
