@@ -81,7 +81,7 @@ export const prismaIntegration = defineIntegration(
           }
 
           // Make sure we use the query text as the span name, for ex. SELECT * FROM "User" WHERE "id" = $1
-          if (spanJSON.description === 'prisma:engine:db_query' && spanJSON.data?.['db.query.text']) {
+          if (spanJSON.description === 'prisma:engine:db_query' && spanJSON.data['db.query.text']) {
             span.updateName(spanJSON.data['db.query.text'] as string);
           }
 
