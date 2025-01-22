@@ -247,8 +247,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * Tracing is enabled if either this or `tracesSampleRate` is defined. If both are defined, `tracesSampleRate` is
    * ignored.
    *
-   * Will automatically be passed a context object of default and optional custom data. See
-   * {@link Transaction.samplingContext} and {@link Hub.startTransaction}.
+   * Will automatically be passed a context object of default and optional custom data.
    *
    * @returns A sample rate between 0 and 1 (0 drops the trace, 1 guarantees it will be sent). Returning `true` is
    * equivalent to returning 1 and returning `false` is equivalent to returning 0.

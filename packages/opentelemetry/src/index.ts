@@ -37,8 +37,6 @@ export {
 
 export { suppressTracing } from './utils/suppressTracing';
 
-// eslint-disable-next-line deprecation/deprecation
-export { getCurrentHubShim } from '@sentry/core';
 export { setupEventContextTrace } from './setupEventContextTrace';
 
 export { setOpenTelemetryContextAsyncContextStrategy } from './asyncContextStrategy';

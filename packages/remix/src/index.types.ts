@@ -25,9 +25,6 @@ export declare function captureRemixServerException(err: unknown, name: string, 
 // methods from `@sentry/core`.
 declare const runtime: 'client' | 'server';
 
-// eslint-disable-next-line deprecation/deprecation
-export declare const getCurrentHub: typeof clientSdk.getCurrentHub;
-
 export const close = runtime === 'client' ? clientSdk.close : serverSdk.close;
 export const flush = runtime === 'client' ? clientSdk.flush : serverSdk.flush;
 export const lastEventId = runtime === 'client' ? clientSdk.lastEventId : serverSdk.lastEventId;

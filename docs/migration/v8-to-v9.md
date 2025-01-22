@@ -188,6 +188,7 @@ Sentry.init({
 ```
 
 - The `DEFAULT_USER_INCLUDES` constant has been removed.
+- The `getCurrentHub()`, `Hub` and `getCurrentHubShim()` APIs have been removed. They were on compatibility life support since the release of v8 and have now been fully removed from the SDK.
 
 ### `@sentry/browser`
 

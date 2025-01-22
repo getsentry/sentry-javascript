@@ -7,9 +7,9 @@ import type { Mock } from 'vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import * as SentryCore from '@sentry/core';
-import { Scope, createTransport } from '@sentry/core';
+import { createTransport } from '@sentry/core';
 import { resolvedSyncPromise } from '@sentry/core';
-import type { Client, Integration } from '@sentry/core';
+import type { Integration } from '@sentry/core';
 
 import type { BrowserOptions } from '../src';
 import { WINDOW } from '../src';
@@ -33,30 +33,6 @@ export class MockIntegration implements Integration {
     this.name = name;
   }
 }
-
-vi.mock('@sentry/core', async requireActual => {
-  return {
-    ...((await requireActual()) as any),
-    getCurrentHub(): {
-      bindClient(client: Client): boolean;
-      getClient(): boolean;
-      getScope(): Scope;
-    } {
-      return {
-        getClient(): boolean {
-          return false;
-        },
-        getScope(): Scope {
-          return new Scope();
-        },
-        bindClient(client: Client): boolean {
-          client.init!();
-          return true;
-        },
-      };
-    },
-  };
-});
 
 describe('init', () => {
   beforeEach(() => {

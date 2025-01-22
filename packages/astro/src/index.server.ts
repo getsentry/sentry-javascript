@@ -45,8 +45,6 @@ export {
   getActiveSpan,
   getAutoPerformanceIntegrations,
   getClient,
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub,
   getCurrentScope,
   getDefaultIntegrations,
   getGlobalScope,
