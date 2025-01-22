@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Transaction includes span and correct value for decorated async function', async ({ baseURL }) => {
-  const transactionEventPromise = waitForTransaction('nestjs-basic', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('nestjs-11', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent?.transaction === 'GET /test-span-decorator-async'
@@ -37,7 +37,7 @@ test('Transaction includes span and correct value for decorated async function',
 });
 
 test('Transaction includes span and correct value for decorated sync function', async ({ baseURL }) => {
-  const transactionEventPromise = waitForTransaction('nestjs-basic', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('nestjs-11', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent?.transaction === 'GET /test-span-decorator-sync'
