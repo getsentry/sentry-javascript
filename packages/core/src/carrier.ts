@@ -19,7 +19,7 @@ type VersionedCarrier = {
 /**
  * IMPORTANT - This must be updated if any breaking changes are made to the 'SentryCarrier' interface.
  */
-const CARRIER_VERSION = '9';
+export const CARRIER_VERSION = '9';
 
 export interface SentryCarrier {
   acs?: AsyncContextStrategy;
