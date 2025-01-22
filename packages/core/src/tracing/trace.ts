@@ -22,6 +22,7 @@ import { generateTraceId } from '../utils-hoist/propagationContext';
 import { propagationContextFromHeaders } from '../utils-hoist/tracing';
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
+import { parseSampleRate } from '../utils/parseSampleRate';
 import { _getSpanForScope, _setSpanForScope } from '../utils/spanOnScope';
 import { addChildSpanToSpan, getRootSpan, spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
 import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
@@ -407,8 +408,10 @@ function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parent
   const options: Partial<ClientOptions> = client?.getOptions() || {};
 
   const { name = '', attributes } = spanArguments;
-  const sampleRand = scope.getPropagationContext().sampleRand;
-  const [sampled, sampleRate] = scope.getScopeData().sdkProcessingMetadata[SUPPRESS_TRACING_KEY]
+  const currentPropagationContext = scope.getPropagationContext();
+  const [sampled, sampleRate, localSampleRateWasApplied] = scope.getScopeData().sdkProcessingMetadata[
+    SUPPRESS_TRACING_KEY
+  ]
     ? [false]
     : sampleSpan(
         options,
@@ -416,15 +419,17 @@ function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parent
           name,
           parentSampled,
           attributes,
-          // TODO(v9): provide a parentSampleRate here
+          parentSampleRate: parseSampleRate(currentPropagationContext.dsc?.sample_rate),
         },
-        sampleRand,
+        currentPropagationContext.sampleRand,
       );
 
   const rootSpan = new SentrySpan({
     ...spanArguments,
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+      [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]:
+        sampleRate !== undefined && localSampleRateWasApplied ? sampleRate : undefined,
       ...spanArguments.attributes,
     },
     sampled,
@@ -433,10 +438,6 @@ function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parent
   if (!sampled && client) {
     DEBUG_BUILD && logger.log('[Tracing] Discarding root span because its trace was not chosen to be sampled.');
     client.recordDroppedEvent('sample_rate', 'transaction');
-  }
-
-  if (sampleRate !== undefined) {
-    rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, sampleRate);
   }
 
   if (client) {

@@ -32,7 +32,7 @@ describe('Sentry.trackComponent()', () => {
 
     init({
       dsn: PUBLIC_DSN,
-      enableTracing: true,
+      tracesSampleRate: 1,
       beforeSendTransaction,
     });
   });

@@ -1,3 +1,4 @@
+import { parseBaggageHeader } from '@sentry/core';
 import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 import type { TestAPIResponse } from '../server';
 
@@ -102,14 +103,20 @@ test('Should populate and propagate sentry baggage if sentry-trace header does n
   const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express');
 
   expect(response).toBeDefined();
-  expect(response).toMatchObject({
-    test_data: {
-      host: 'somewhere.not.sentry',
-      // TraceId changes, hence we only expect that the string contains the traceid key
-      baggage: expect.stringMatching(
-        /sentry-environment=prod,sentry-release=1.0,sentry-public_key=public,sentry-trace_id=[\S]*,sentry-sample_rate=1,sentry-transaction=GET%20%2Ftest%2Fexpress/,
-      ),
-    },
+
+  const parsedBaggage = parseBaggageHeader(response?.test_data.baggage);
+
+  expect(response?.test_data.host).toBe('somewhere.not.sentry');
+  expect(parsedBaggage).toStrictEqual({
+    'sentry-environment': 'prod',
+    'sentry-release': '1.0',
+    'sentry-public_key': 'public',
+    // TraceId changes, hence we only expect that the string contains the traceid key
+    'sentry-trace_id': expect.stringMatching(/[\S]*/),
+    'sentry-sample_rand': expect.stringMatching(/[\S]*/),
+    'sentry-sample_rate': '1',
+    'sentry-sampled': 'true',
+    'sentry-transaction': 'GET /test/express',
   });
 });
 
@@ -123,13 +130,18 @@ test('Should populate Sentry and ignore 3rd party content if sentry-trace header
   });
 
   expect(response).toBeDefined();
-  expect(response).toMatchObject({
-    test_data: {
-      host: 'somewhere.not.sentry',
-      // TraceId changes, hence we only expect that the string contains the traceid key
-      baggage: expect.stringMatching(
-        /sentry-environment=prod,sentry-release=1.0,sentry-public_key=public,sentry-trace_id=[\S]*,sentry-sample_rate=1,sentry-transaction=GET%20%2Ftest%2Fexpress/,
-      ),
-    },
+  expect(response?.test_data.host).toBe('somewhere.not.sentry');
+
+  const parsedBaggage = parseBaggageHeader(response?.test_data.baggage);
+  expect(parsedBaggage).toStrictEqual({
+    'sentry-environment': 'prod',
+    'sentry-release': '1.0',
+    'sentry-public_key': 'public',
+    // TraceId changes, hence we only expect that the string contains the traceid key
+    'sentry-trace_id': expect.stringMatching(/[\S]*/),
+    'sentry-sample_rand': expect.stringMatching(/[\S]*/),
+    'sentry-sample_rate': '1',
+    'sentry-sampled': 'true',
+    'sentry-transaction': 'GET /test/express',
   });
 });

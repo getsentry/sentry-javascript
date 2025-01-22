@@ -39,8 +39,6 @@ export {
 } from './tracing/browserTracingIntegration';
 export type { RequestInstrumentationOptions } from './tracing/request';
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  addTracingExtensions,
   registerSpanErrorInstrumentation,
   getActiveSpan,
   getRootSpan,
@@ -69,3 +67,4 @@ export {
 } from './integrations/featureFlags';
 export { launchDarklyIntegration, buildLaunchDarklyFlagUsedHandler } from './integrations/featureFlags/launchdarkly';
 export { openFeatureIntegration, OpenFeatureIntegrationHook } from './integrations/featureFlags/openfeature';
+export { unleashIntegration } from './integrations/featureFlags/unleash';

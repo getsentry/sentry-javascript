@@ -82,6 +82,32 @@ export class BrowserClient extends Client<BrowserClientOptions> {
         }
       });
     }
+
+    if (this._options.sendDefaultPii) {
+      this.on('postprocessEvent', event => {
+        if (event.user?.ip_address === undefined) {
+          event.user = {
+            ...event.user,
+            ip_address: '{{auto}}',
+          };
+        }
+      });
+
+      this.on('beforeSendSession', session => {
+        if ('aggregates' in session) {
+          if (session.attrs?.['ip_address'] === undefined) {
+            session.attrs = {
+              ...session.attrs,
+              ip_address: '{{auto}}',
+            };
+          }
+        } else {
+          if (session.ipAddress === undefined) {
+            session.ipAddress = '{{auto}}';
+          }
+        }
+      });
+    }
   }
 
   /**
@@ -112,6 +138,7 @@ export class BrowserClient extends Client<BrowserClientOptions> {
     isolationScope: Scope,
   ): PromiseLike<Event | null> {
     event.platform = event.platform || 'javascript';
+
     return super._prepareEvent(event, hint, currentScope, isolationScope);
   }
 }

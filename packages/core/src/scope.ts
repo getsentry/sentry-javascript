@@ -53,7 +53,6 @@ export interface ScopeContext {
   propagationContext: PropagationContext;
 }
 
-// TODO(v9): Add `normalizedRequest`
 export interface SdkProcessingMetadata {
   [key: string]: unknown;
   requestSession?: {

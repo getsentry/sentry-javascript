@@ -26,11 +26,14 @@ describe('SentrySampler', () => {
     const links = undefined;
 
     const actual = sampler.shouldSample(ctx, traceId, spanName, spanKind, spanAttributes, links);
-    expect(actual).toEqual({
-      decision: SamplingDecision.NOT_RECORD,
-      attributes: { 'sentry.sample_rate': 0 },
-      traceState: new TraceState().set('sentry.sampled_not_recording', '1'),
-    });
+    expect(actual).toEqual(
+      expect.objectContaining({
+        decision: SamplingDecision.NOT_RECORD,
+        attributes: { 'sentry.sample_rate': 0 },
+      }),
+    );
+    expect(actual.traceState?.get('sentry.sampled_not_recording')).toBe('1');
+    expect(actual.traceState?.get('sentry.sample_rand')).toEqual(expect.any(String));
     expect(spyOnDroppedEvent).toHaveBeenCalledTimes(1);
     expect(spyOnDroppedEvent).toHaveBeenCalledWith('sample_rate', 'transaction');
 
@@ -57,7 +60,6 @@ describe('SentrySampler', () => {
     const actual = sampler.shouldSample(ctx, traceId, spanName, spanKind, spanAttributes, links);
     expect(actual).toEqual({
       decision: SamplingDecision.NOT_RECORD,
-      attributes: {},
       traceState: new TraceState().set(SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING, '1'),
     });
     expect(spyOnDroppedEvent).toHaveBeenCalledTimes(0);
@@ -81,7 +83,7 @@ describe('SentrySampler', () => {
     expect(actual).toEqual({
       decision: SamplingDecision.RECORD_AND_SAMPLED,
       attributes: { 'sentry.sample_rate': 1 },
-      traceState: new TraceState(),
+      traceState: expect.any(TraceState),
     });
     expect(spyOnDroppedEvent).toHaveBeenCalledTimes(0);
 

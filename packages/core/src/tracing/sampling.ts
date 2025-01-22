@@ -12,27 +12,28 @@ import { parseSampleRate } from '../utils/parseSampleRate';
  * sent to Sentry.
  */
 export function sampleSpan(
-  options: Pick<Options, 'tracesSampleRate' | 'tracesSampler' | 'enableTracing'>,
+  options: Pick<Options, 'tracesSampleRate' | 'tracesSampler'>,
   samplingContext: SamplingContext,
   sampleRand: number,
-): [sampled: boolean, sampleRate?: number] {
+): [sampled: boolean, sampleRate?: number, localSampleRateWasApplied?: boolean] {
   // nothing to do if tracing is not enabled
   if (!hasTracingEnabled(options)) {
     return [false];
   }
 
-  // we would have bailed already if neither `tracesSampler` nor `tracesSampleRate` nor `enableTracing` were defined, so one of these should
+  let localSampleRateWasApplied = undefined;
+
+  // we would have bailed already if neither `tracesSampler` nor `tracesSampleRate` were defined, so one of these should
   // work; prefer the hook if so
   let sampleRate;
   if (typeof options.tracesSampler === 'function') {
     sampleRate = options.tracesSampler(samplingContext);
+    localSampleRateWasApplied = true;
   } else if (samplingContext.parentSampled !== undefined) {
     sampleRate = samplingContext.parentSampled;
   } else if (typeof options.tracesSampleRate !== 'undefined') {
     sampleRate = options.tracesSampleRate;
-  } else {
-    // When `enableTracing === true`, we use a sample rate of 100%
-    sampleRate = 1;
+    localSampleRateWasApplied = true;
   }
 
   // Since this is coming from the user (or from a function provided by the user), who knows what we might get.
@@ -54,7 +55,7 @@ export function sampleSpan(
             : 'a negative sampling decision was inherited or tracesSampleRate is set to 0'
         }`,
       );
-    return [false, parsedSampleRate];
+    return [false, parsedSampleRate, localSampleRateWasApplied];
   }
 
   // We always compare the sample rand for the current execution context against the chosen sample rate.
@@ -69,8 +70,7 @@ export function sampleSpan(
           sampleRate,
         )})`,
       );
-    return [false, parsedSampleRate];
   }
 
-  return [true, parsedSampleRate];
+  return [shouldSample, parsedSampleRate, localSampleRateWasApplied];
 }

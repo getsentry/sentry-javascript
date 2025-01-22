@@ -40,6 +40,8 @@ export async function prepareReplayEvent({
     return null;
   }
 
+  client.emit('postprocessEvent', preparedEvent, eventHint);
+
   // This normally happens in browser client "_prepareEvent"
   // but since we do not use this private method from the client, but rather the plain import
   // we need to do this manually.

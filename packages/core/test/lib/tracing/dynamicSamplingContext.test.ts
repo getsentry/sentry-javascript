@@ -42,8 +42,12 @@ describe('getDynamicSamplingContextFromSpan', () => {
           spanId: '12345',
           traceFlags: 0,
           traceState: {
-            get() {
-              return 'sentry-environment=myEnv2';
+            get(key: string) {
+              if (key === 'sentry.dsc') {
+                return 'sentry-environment=myEnv2';
+              } else {
+                return undefined;
+              }
             },
           } as unknown as SpanContextData['traceState'],
         };

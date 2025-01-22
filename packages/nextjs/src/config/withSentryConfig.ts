@@ -50,17 +50,6 @@ function getFinalConfigObject(
   incomingUserNextConfigObject: NextConfigObject,
   userSentryOptions: SentryBuildOptions,
 ): NextConfigObject {
-  // TODO(v9): Remove this check for the Sentry property
-  if ('sentry' in incomingUserNextConfigObject) {
-    // eslint-disable-next-line no-console
-    console.warn(
-      '[@sentry/nextjs] Setting a `sentry` property on the Next.js config object as a means of configuration is no longer supported. Please use the `sentryBuildOptions` argument of of the `withSentryConfig()` function instead.',
-    );
-
-    // Next 12.2.3+ warns about non-canonical properties on `userNextConfig`.
-    delete incomingUserNextConfigObject.sentry;
-  }
-
   if (userSentryOptions?.tunnelRoute) {
     if (incomingUserNextConfigObject.output === 'export') {
       if (!showedExportModeTunnelWarning) {
@@ -259,9 +248,7 @@ function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: s
   };
 }
 
-// TODO(v9): Inject the release into all the bundles. This is breaking because grabbing the build ID if the user provides
-// it in `generateBuildId` (https://nextjs.org/docs/app/api-reference/next-config-js/generateBuildId) is async but we do
-// not turn the next config function in the type it was passed.
+// TODO: For Turbopack we need to pass the release name here and pick it up in the SDK
 function setUpBuildTimeVariables(userNextConfig: NextConfigObject, userSentryOptions: SentryBuildOptions): void {
   const assetPrefix = userNextConfig.assetPrefix || userNextConfig.basePath || '';
   const basePath = userNextConfig.basePath ?? '';

@@ -434,7 +434,6 @@ describe('trace', () => {
         data: {
           'sentry.source': 'custom',
           'sentry.origin': 'manual',
-          'sentry.sample_rate': 1,
         },
         parent_span_id: innerParentSpanId,
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -693,7 +692,6 @@ describe('trace', () => {
         data: {
           'sentry.source': 'custom',
           'sentry.origin': 'manual',
-          'sentry.sample_rate': 1,
         },
         parent_span_id: innerParentSpanId,
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -990,7 +988,6 @@ describe('trace', () => {
         data: {
           'sentry.source': 'custom',
           'sentry.origin': 'manual',
-          'sentry.sample_rate': 1,
         },
         parent_span_id: innerParentSpanId,
         span_id: expect.stringMatching(/[a-f0-9]{16}/),

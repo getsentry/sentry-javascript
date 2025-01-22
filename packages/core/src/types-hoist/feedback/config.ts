@@ -58,6 +58,15 @@ export interface FeedbackGeneralConfiguration {
   };
 
   /**
+   * _experiments allows users to enable experimental or internal features.
+   * We don't consider such features as part of the public API and hence we don't guarantee semver for them.
+   * Experimental features can be added, changed or removed at any time.
+   *
+   * Default: undefined
+   */
+  _experiments: Partial<{ annotations: boolean }>;
+
+  /**
    * Set an object that will be merged sent as tags data with the event.
    */
   tags?: { [key: string]: Primitive };

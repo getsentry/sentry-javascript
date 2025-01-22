@@ -6,6 +6,8 @@ export const SENTRY_BAGGAGE_HEADER = 'baggage';
 export const SENTRY_TRACE_STATE_DSC = 'sentry.dsc';
 export const SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING = 'sentry.sampled_not_recording';
 export const SENTRY_TRACE_STATE_URL = 'sentry.url';
+export const SENTRY_TRACE_STATE_SAMPLE_RAND = 'sentry.sample_rand';
+export const SENTRY_TRACE_STATE_SAMPLE_RATE = 'sentry.sample_rate';
 
 export const SENTRY_SCOPES_CONTEXT_KEY = createContextKey('sentry_scopes');
 

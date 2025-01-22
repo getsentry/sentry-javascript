@@ -110,11 +110,7 @@ export { rewriteFramesIntegration } from './integrations/rewriteframes';
 export { zodErrorsIntegration } from './integrations/zoderrors';
 export { thirdPartyErrorFilterIntegration } from './integrations/third-party-errors-filter';
 export { profiler } from './profiling';
-export {
-  // eslint-disable-next-line deprecation/deprecation
-  addTracingHeadersToFetchRequest,
-  instrumentFetchRequest,
-} from './fetch';
+export { instrumentFetchRequest } from './fetch';
 export { trpcMiddleware } from './trpc';
 export { captureFeedback } from './feedback';
 export type { ReportDialogOptions } from './report-dialog';
@@ -122,9 +118,9 @@ export type { ReportDialogOptions } from './report-dialog';
 // eslint-disable-next-line deprecation/deprecation
 export { getCurrentHubShim, getCurrentHub } from './getCurrentHubShim';
 
-// TODO(v9): Make this structure pretty again and don't do "export *"
+// TODO: Make this structure pretty again and don't do "export *"
 export * from './utils-hoist/index';
-// TODO(v9): Make this structure pretty again and don't do "export *"
+// TODO: Make this structure pretty again and don't do "export *"
 export * from './types-hoist/index';
 
 export type { FeatureFlag } from './featureFlags';

@@ -1,5 +1,3 @@
-import type { Client } from './client';
-import type { Scope } from './scope';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from './semanticAttributes';
 import { SPAN_STATUS_ERROR, setHttpStatus, startInactiveSpan } from './tracing';
 import { SentryNonRecordingSpan } from './tracing/sentryNonRecordingSpan';
@@ -199,27 +197,6 @@ function _addTracingHeadersToFetchRequest(
       baggage: newBaggageHeaders.length > 0 ? newBaggageHeaders.join(',') : undefined,
     };
   }
-}
-
-/**
- * Adds sentry-trace and baggage headers to the various forms of fetch headers.
- *
- * @deprecated This function will not be exported anymore in v9.
- */
-export function addTracingHeadersToFetchRequest(
-  request: string | unknown,
-  _client: Client | undefined,
-  _scope: Scope | undefined,
-  fetchOptionsObj: {
-    headers?:
-      | {
-          [key: string]: string[] | string | undefined;
-        }
-      | PolymorphicRequestHeaders;
-  },
-  span?: Span,
-): PolymorphicRequestHeaders | undefined {
-  return _addTracingHeadersToFetchRequest(request as Request, fetchOptionsObj, span);
 }
 
 function getFullURL(url: string): string | undefined {
