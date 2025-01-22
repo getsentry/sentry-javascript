@@ -27,7 +27,7 @@ export const instrumentPrisma = generateInstrumentOnce<{ prismaInstrumentation?:
  * Adds Sentry tracing instrumentation for the [Prisma](https://www.npmjs.com/package/prisma) ORM.
  * For more information, see the [`prismaIntegration` documentation](https://docs.sentry.io/platforms/javascript/guides/node/configuration/integrations/prisma/).
  *
- * Make sure `previewFeatures = ["tracing"]` is added to the generator block in of your Prisma schema.
+ * Make sure `previewFeatures = ["tracing"]` is added to the generator block in your Prisma schema.
  *
  * ```prisma
  * generator client {

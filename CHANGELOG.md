@@ -12,14 +12,44 @@
 
 ## 8.51.0
 
-- feat(v8/browser): Add `multiplexedtransport.js` CDN bundle (#15043) (#15046)
-- feat(v8/browser): Add Unleash integration (#14948)
-- feat(v8/deno): Deprecate Deno SDK as published on deno.land (#15121)
-- feat(v8/node): Add `prismaInstrumentation` option to Prisma integration as escape hatch for all Prisma versions (#15128)
-- feat(v8/sveltekit): Deprecate `fetchProxyScriptNonce` option (#15011)
-- fix(v8/aws-lambda): Avoid overwriting root span name (#15054)
-- fix(v8/core): `fatal` events should set session as crashed (#15073)
-- fix(v8/node/nestjs): Use method on current fastify request (#15104)
+### Important Changes
+
+- **feat(v8/node): Add `prismaInstrumentation` option to Prisma integration as escape hatch for all Prisma versions ([#15128](https://github.com/getsentry/sentry-javascript/pull/15128))**
+
+  This release adds a compatibility API to add support for Prisma version 6.
+  To capture performance data for Prisma version 6:
+
+  1. Install the `@prisma/instrumentation` package on version 6.
+  1. Pass a `new PrismaInstrumentation()` instance as exported from `@prisma/instrumentation` to the `prismaInstrumentation` option:
+
+     ```js
+     import { PrismaInstrumentation } from '@prisma/instrumentation';
+
+     Sentry.init({
+       integrations: [
+         prismaIntegration({
+           // Override the default instrumentation that Sentry uses
+           prismaInstrumentation: new PrismaInstrumentation(),
+         }),
+       ],
+     });
+     ```
+
+     The passed instrumentation instance will override the default instrumentation instance the integration would use, while the `prismaIntegration` will still ensure data compatibility for the various Prisma versions.
+
+  1. Remove the `previewFeatures = ["tracing"]` option from the client generator block of your Prisma schema.
+
+### Other Changes
+
+- feat(v8/browser): Add `multiplexedtransport.js` CDN bundle ([#15046](https://github.com/getsentry/sentry-javascript/pull/15046))
+- feat(v8/browser): Add Unleash integration ([#14948](https://github.com/getsentry/sentry-javascript/pull/14948))
+- feat(v8/deno): Deprecate Deno SDK as published on deno.land ([#15121](https://github.com/getsentry/sentry-javascript/pull/15121))
+- feat(v8/sveltekit): Deprecate `fetchProxyScriptNonce` option ([#15011](https://github.com/getsentry/sentry-javascript/pull/15011))
+- fix(v8/aws-lambda): Avoid overwriting root span name ([#15054](https://github.com/getsentry/sentry-javascript/pull/15054))
+- fix(v8/core): `fatal` events should set session as crashed ([#15073](https://github.com/getsentry/sentry-javascript/pull/15073))
+- fix(v8/node/nestjs): Use method on current fastify request ([#15104](https://github.com/getsentry/sentry-javascript/pull/15104))
+
+Work in this release was contributed by @tjhiggins, and @nwalters512. Thank you for your contributions!
 
 ## 8.50.0
 
@@ -35,7 +65,7 @@
 - fix(v8/sveltekit): Ensure source maps deletion is called after source ma… ([#14963](https://github.com/getsentry/sentry-javascript/pull/14963))
 - fix(v8/vue): Re-throw error when no errorHandler exists ([#14943](https://github.com/getsentry/sentry-javascript/pull/14943))
 
-Work in this release was contributed by @HHK1 and @mstrokin. Thank you for your contribution!
+Work in this release was contributed by @HHK1 and @mstrokin. Thank you for your contributions!
 
 ## 8.48.0
 
