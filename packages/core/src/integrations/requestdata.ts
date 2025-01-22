@@ -23,7 +23,6 @@ const DEFAULT_INCLUDE: RequestDataIncludeOptions = {
   cookies: true,
   data: true,
   headers: true,
-  ip: false,
   query_string: true,
   url: true,
 };
@@ -44,7 +43,7 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
 
       const includeWithDefaultPiiApplied: RequestDataIncludeOptions = {
         ...include,
-        ip: include.ip || client.getOptions().sendDefaultPii,
+        ip: include.ip ?? client.getOptions().sendDefaultPii,
       };
 
       if (normalizedRequest) {
