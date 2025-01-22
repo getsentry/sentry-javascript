@@ -68,7 +68,7 @@ export const prismaIntegration = defineIntegration(
      * For more information refer to the documentation of `prismaIntegration()` or see https://docs.sentry.io/platforms/javascript/guides/node/configuration/integrations/prisma/
      */
     prismaInstrumentation?: Instrumentation;
-  }) => {
+  } = {}) => {
     return {
       name: INTEGRATION_NAME,
       setupOnce() {
