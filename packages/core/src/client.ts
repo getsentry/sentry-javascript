@@ -742,12 +742,12 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   /**
    * Emit a hook event for GraphQL client integration to enhance a span with request data.
    */
-  emit(hook: 'beforeOutgoingRequestSpan', span: Span, hint: XhrHint | FetchHint): void;
+  public emit(hook: 'beforeOutgoingRequestSpan', span: Span, hint: XhrHint | FetchHint): void;
 
   /**
    * Emit a hook event for GraphQL client integration to enhance a breadcrumb with request data.
    */
-  emit(hook: 'beforeOutgoingRequestBreadcrumb', breadcrumb: Breadcrumb, hint: XhrHint | FetchHint): void;
+  public emit(hook: 'beforeOutgoingRequestBreadcrumb', breadcrumb: Breadcrumb, hint: XhrHint | FetchHint): void;
 
   /**
    * Emit a hook event for client flush

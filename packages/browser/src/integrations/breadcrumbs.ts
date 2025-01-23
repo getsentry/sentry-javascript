@@ -315,7 +315,7 @@ function _getFetchBreadcrumbHandler(client: Client): (handlerData: HandlerDataFe
       const response = handlerData.response as Response | undefined;
       const data: FetchBreadcrumbData = {
         ...handlerData.fetchData,
-        status_code: response && response.status,
+        status_code: response?.status,
       };
 
       breadcrumbData.request_body_size = handlerData.fetchData.request_body_size;
