@@ -16,5 +16,7 @@ export default makeNPMConfigVariants(
         }),
       ],
     },
-  }),
+  }),{
+    emitEsm: false,
+  }
 );

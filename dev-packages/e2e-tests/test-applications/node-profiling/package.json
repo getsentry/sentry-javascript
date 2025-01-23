@@ -3,13 +3,15 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "typecheck": "tsc --noEmit",
-    "build": "node build-cjs.mjs && node build-esm.mjs",
-    "test": "node dist/cjs/index.js && node --experimental-require-module dist/cjs/index.js && node dist/esm/index.mjs",
+    "test": "node dist/cjs/index.js && node dist/cjs/index.js && node dist/esm/index.mjs",
     "clean": "npx rimraf node_modules dist",
     "test:electron": "$(pnpm bin)/electron-rebuild && playwright test",
-    "test:build": "pnpm run typecheck && pnpm run build",
-    "test:assert": "pnpm run test && pnpm run test:electron"
+    "test:build": "npm run test:build:esbuild && npm run test:build:webpack",
+    "test:build:webpack": "webpack --config webpack.config.mjs",
+    "test:build:esbuild": "node esbuild.mjs",
+    "test:assert": "npm run test:assert:esbuild && npm run test:assert:webpack",
+    "test:assert:esbuild": "node dist/esbuild/index.js",
+    "test:assert:webpack": "node dist/webpack/index.js"
   },
   "dependencies": {
     "@electron/rebuild": "^3.7.0",
@@ -18,7 +20,10 @@
     "@sentry/node": "latest || *",
     "@sentry/profiling-node": "latest || *",
     "electron": "^33.2.0",
-    "esbuild": "0.20.0"
+    "esbuild": "0.24.2",
+    "webpack": "5.97.1",
+    "webpack-cli": "6.0.1",
+    "node-loader": "2.1.0"
   },
   "volta": {
     "extends": "../../package.json"
