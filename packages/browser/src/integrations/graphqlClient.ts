@@ -8,8 +8,8 @@ import {
   defineIntegration,
   spanToJSON,
 } from '@sentry/core';
-import type { Client, IntegrationFn } from '@sentry/types';
-import { isString, stringMatchesSomePattern } from '@sentry/utils';
+import type { Client, IntegrationFn } from '@sentry/core';
+import { isString, stringMatchesSomePattern } from '@sentry/core';
 
 interface GraphQLClientOptions {
   endpoints: Array<string | RegExp>;

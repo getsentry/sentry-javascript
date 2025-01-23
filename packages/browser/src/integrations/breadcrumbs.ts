@@ -35,7 +35,7 @@ import {
   parseUrl,
   safeJoin,
   severityLevelFromString,
-} from '@sentry/utils';
+} from '@sentry/core';
 
 import type { FetchHint, XhrHint } from '@sentry-internal/replay';
 import { DEBUG_BUILD } from '../debug-build';
@@ -293,6 +293,7 @@ function _getFetchBreadcrumbHandler(client: Client): (handlerData: HandlerDataFe
     };
 
     if (handlerData.error) {
+      const data: FetchBreadcrumbData = handlerData.fetchData;
       const hint: FetchBreadcrumbHint = {
         data: handlerData.error,
         input: handlerData.args,
@@ -312,6 +313,10 @@ function _getFetchBreadcrumbHandler(client: Client): (handlerData: HandlerDataFe
       addBreadcrumb(breadcrumb, hint);
     } else {
       const response = handlerData.response as Response | undefined;
+      const data: FetchBreadcrumbData = {
+        ...handlerData.fetchData,
+        status_code: response && response.status,
+      };
 
       breadcrumbData.request_body_size = handlerData.fetchData.request_body_size;
       breadcrumbData.response_body_size = handlerData.fetchData.response_body_size;

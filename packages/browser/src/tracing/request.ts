@@ -3,6 +3,7 @@ import {
   addPerformanceInstrumentationHandler,
   addXhrInstrumentationHandler,
 } from '@sentry-internal/browser-utils';
+import { XhrHint } from '@sentry-internal/replay';
 import type { Client, HandlerDataXhr, SentryWrappedXMLHttpRequest, Span } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -12,6 +13,7 @@ import {
   addFetchInstrumentationHandler,
   browserPerformanceTimeOrigin,
   getActiveSpan,
+  getClient,
   getLocationHref,
   getTraceData,
   hasTracingEnabled,
@@ -404,6 +406,7 @@ export function xhrCallback(
     );
   }
 
+  const client = getClient();
   if (client) {
     client.emit('beforeOutgoingRequestSpan', span, handlerData as XhrHint);
   }

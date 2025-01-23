@@ -33,6 +33,7 @@ import type {
   TransactionEvent,
   Transport,
   TransportMakeRequestResponse,
+  XhrBreadcrumbHint,
 } from './types-hoist';
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
@@ -593,15 +594,25 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    */
   public on(hook: 'startNavigationSpan', callback: (options: StartSpanOptions) => void): () => void;
 
-  /** @inheritdoc */
+  /**
+   * A hook for GraphQL client integration to enhance a span with request data.
+   * @returns A function that, when executed, removes the registered callback.
+   */
   public on(hook: 'beforeOutgoingRequestSpan', callback: (span: Span, hint: XhrHint | FetchHint) => void): () => void;
 
-  /** @inheritdoc */
+  /**
+   * A hook for GraphQL client integration to enhance a breadcrumb with request data.
+   * @returns A function that, when executed, removes the registered callback.
+   */
   public on(
     hook: 'beforeOutgoingRequestBreadcrumb',
     callback: (breadcrumb: Breadcrumb, hint: XhrHint | FetchHint) => void,
   ): () => void;
 
+  /**
+   * A hook that is called when the client is flushing
+   * @returns A function that, when executed, removes the registered callback.
+   */
   public on(hook: 'flush', callback: () => void): () => void;
 
   /**
@@ -728,13 +739,19 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    */
   public emit(hook: 'startNavigationSpan', options: StartSpanOptions): void;
 
-  /** @inheritdoc */
-  public emit(hook: 'beforeOutgoingRequestSpan', span: Span, hint: XhrHint | FetchHint): void;
+  /**
+   * Emit a hook event for GraphQL client integration to enhance a span with request data.
+   */
+  emit(hook: 'beforeOutgoingRequestSpan', span: Span, hint: XhrHint | FetchHint): void;
 
-  /** @inheritdoc */
-  public emit(hook: 'beforeOutgoingRequestBreadcrumb', breadcrumb: Breadcrumb, hint: XhrHint | FetchHint): void;
+  /**
+   * Emit a hook event for GraphQL client integration to enhance a breadcrumb with request data.
+   */
+  emit(hook: 'beforeOutgoingRequestBreadcrumb', breadcrumb: Breadcrumb, hint: XhrHint | FetchHint): void;
 
-  /** @inheritdoc */
+  /**
+   * Emit a hook event for client flush
+   */
   public emit(hook: 'flush'): void;
 
   /**

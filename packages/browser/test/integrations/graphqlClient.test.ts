@@ -79,7 +79,7 @@ describe('GraphqlClient', () => {
         queryThree,
         { operationName: 'OnTestItemAdded', operationType: 'subscription' },
       ],
-      // ['should handle query without name', queryFour, { operationName: undefined, operationType: 'query' }],
+      // TODO: ['should handle query without name', queryFour, { operationName: undefined, operationType: 'query' }],
     ])('%s', (_, input, output) => {
       expect(parseGraphQLQuery(input)).toEqual(output);
     });
