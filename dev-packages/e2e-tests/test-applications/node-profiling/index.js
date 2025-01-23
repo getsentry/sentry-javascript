@@ -1,8 +1,8 @@
-const Sentry =  require('@sentry/node');
+const Sentry = require('@sentry/node');
 const { nodeProfilingIntegration } = require('@sentry/profiling-node');
 const { inspect } = require('util');
 
-const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 function transport(_) {
   return {

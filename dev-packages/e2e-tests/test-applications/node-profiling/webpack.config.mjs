@@ -11,13 +11,13 @@ export default {
     filename: 'index.js',
   },
   resolve: {
-    extensions: [".js", ".node"],
+    extensions: ['.js', '.node'],
   },
   module: {
     rules: [
       {
         test: /\.node$/,
-        loader: "node-loader",
+        loader: 'node-loader',
       },
     ],
   },
