@@ -6,10 +6,11 @@ import {
   SEMANTIC_ATTRIBUTE_URL_FULL,
   defineIntegration,
   hasProp,
+  isString,
   spanToJSON,
+  stringMatchesSomePattern,
 } from '@sentry/core';
 import type { Client, IntegrationFn } from '@sentry/core';
-import { isString, stringMatchesSomePattern } from '@sentry/core';
 
 interface GraphQLClientOptions {
   endpoints: Array<string | RegExp>;

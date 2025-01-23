@@ -611,7 +611,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
   /**
    * A hook that is called when the client is flushing
-   * @returns A function that, when executed, removes the registered callback.
+   * @returns {() => void} A function that, when executed, removes the registered callback.
    */
   public on(hook: 'flush', callback: () => void): () => void;
 
