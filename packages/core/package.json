@@ -66,5 +66,8 @@
   "volta": {
     "extends": "../../package.json"
   },
-  "sideEffects": false
+  "sideEffects": false,
+  "devDependencies": {
+    "zod": "^3.24.1"
+  }
 }

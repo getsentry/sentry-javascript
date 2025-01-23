@@ -54,6 +54,8 @@ Now, there are two options to set up the SDK:
    );
    ```
 
+Work in this release was contributed by @jahands. Thank you for your contribution!
+
 ## 8.51.0
 
 ### Important Changes
