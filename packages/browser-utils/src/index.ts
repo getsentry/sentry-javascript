@@ -25,6 +25,6 @@ export { fetch, setTimeout, clearCachedImplementation, getNativeImplementation }
 
 export { addXhrInstrumentationHandler, SENTRY_XHR_DATA_KEY } from './instrument/xhr';
 
-export type { NetworkMetaWarning } from './types';
-
 export { getBodyString } from './networkUtils';
+
+export type { FetchHint, NetworkMetaWarning, XhrHint } from './types';

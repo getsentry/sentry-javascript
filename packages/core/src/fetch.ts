@@ -1,9 +1,8 @@
-import type { FetchHint } from './client';
 import { getClient } from './currentScopes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from './semanticAttributes';
 import { SPAN_STATUS_ERROR, setHttpStatus, startInactiveSpan } from './tracing';
 import { SentryNonRecordingSpan } from './tracing/sentryNonRecordingSpan';
-import type { HandlerDataFetch, Span, SpanOrigin } from './types-hoist';
+import type { FetchBreadcrumbHint, HandlerDataFetch, Span, SpanOrigin } from './types-hoist';
 import { SENTRY_BAGGAGE_KEY_PREFIX } from './utils-hoist/baggage';
 import { isInstanceOf } from './utils-hoist/is';
 import { parseUrl } from './utils-hoist/url';
@@ -99,15 +98,16 @@ export function instrumentFetchRequest(
   }
 
   const client = getClient();
+
   if (client) {
-    // There's no 'input' key in HandlerDataFetch
     const fetchHint = {
       input: handlerData.args,
       response: handlerData.response,
       startTimestamp: handlerData.startTimestamp,
-      endTimestamp: handlerData.endTimestamp,
-    };
-    client.emit('beforeOutgoingRequestSpan', span, fetchHint as FetchHint);
+      endTimestamp: handlerData.endTimestamp ?? Date.now(),
+    } satisfies FetchBreadcrumbHint;
+
+    client.emit('beforeOutgoingRequestSpan', span, fetchHint);
   }
 
   return span;

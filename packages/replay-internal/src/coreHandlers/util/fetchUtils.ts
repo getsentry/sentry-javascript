@@ -1,10 +1,9 @@
 import { getBodyString, setTimeout } from '@sentry-internal/browser-utils';
-import type { NetworkMetaWarning } from '@sentry-internal/browser-utils';
+import type { FetchHint, NetworkMetaWarning } from '@sentry-internal/browser-utils';
 import type { Breadcrumb, FetchBreadcrumbData } from '@sentry/core';
 
 import { DEBUG_BUILD } from '../../debug-build';
 import type {
-  FetchHint,
   ReplayContainer,
   ReplayNetworkOptions,
   ReplayNetworkRequestData,

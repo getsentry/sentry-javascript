@@ -6,6 +6,7 @@ import {
   addHistoryInstrumentationHandler,
   addXhrInstrumentationHandler,
 } from '@sentry-internal/browser-utils';
+import type { FetchHint, XhrHint } from '@sentry-internal/browser-utils';
 import type {
   Breadcrumb,
   Client,
@@ -37,7 +38,6 @@ import {
   severityLevelFromString,
 } from '@sentry/core';
 
-import type { FetchHint, XhrHint } from '@sentry-internal/replay';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 

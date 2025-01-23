@@ -1,5 +1,5 @@
 import { SENTRY_XHR_DATA_KEY, getBodyString } from '@sentry-internal/browser-utils';
-import type { FetchHint, XhrHint } from '@sentry-internal/replay';
+import type { FetchHint, XhrHint } from '@sentry-internal/browser-utils';
 import {
   SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -63,7 +63,7 @@ function _updateSpanWithGraphQLData(client: Client, options: GraphQLClientOption
 
     const { endpoints } = options;
     const isTracedGraphqlEndpoint = stringMatchesSomePattern(httpUrl, endpoints);
-    const payload = getRequestPayloadXhrOrFetch(hint);
+    const payload = getRequestPayloadXhrOrFetch(hint as XhrHint | FetchHint);
 
     if (isTracedGraphqlEndpoint && payload) {
       const graphqlBody = getGraphQLRequestPayload(payload);
@@ -90,7 +90,7 @@ function _updateBreadcrumbWithGraphQLData(client: Client, options: GraphQLClient
       const { endpoints } = options;
 
       const isTracedGraphqlEndpoint = stringMatchesSomePattern(httpUrl, endpoints);
-      const payload = getRequestPayloadXhrOrFetch(handlerData);
+      const payload = getRequestPayloadXhrOrFetch(handlerData as XhrHint | FetchHint);
 
       if (isTracedGraphqlEndpoint && data && payload) {
         const graphqlBody = getGraphQLRequestPayload(payload);
