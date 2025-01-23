@@ -1,4 +1,5 @@
-import { RequestEventData, vercelWaitUntil } from '@sentry/core';
+import type { RequestEventData } from '@sentry/core';
+import { vercelWaitUntil } from '@sentry/core';
 import { captureException, headersToDict, withScope } from '@sentry/core';
 import { flushSafelyWithTimeout } from './utils/responseEnd';
 
