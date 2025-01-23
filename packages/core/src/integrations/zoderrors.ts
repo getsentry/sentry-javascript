@@ -151,7 +151,7 @@ export function applyZodErrorsToEvent(
   }
 
   try {
-    const flattenedIssues = hint.originalException.issues.map(flattenIssue);
+    const flattenedIssues = hint.originalException.issues.slice(0, limit).map(flattenIssue);
 
     if (saveZodIssuesAsAttachment) {
       // Sometimes having the full error details can be helpful.
