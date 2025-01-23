@@ -14,7 +14,7 @@ import {
   winterCGRequestToRequestData,
   withIsolationScope,
 } from '@sentry/core';
-import { type Handle, type ResolveOptions } from '@sveltejs/kit';
+import type { Handle, ResolveOptions } from '@sveltejs/kit';
 
 import { DEBUG_BUILD } from '../common/debug-build';
 import { flushIfServerless, getTracePropagationData, sendErrorToSentry } from './utils';
