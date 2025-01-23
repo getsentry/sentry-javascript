@@ -1,10 +1,10 @@
-import { setTimeout } from '@sentry-internal/browser-utils';
+import { getBodyString, setTimeout } from '@sentry-internal/browser-utils';
+import type { NetworkMetaWarning } from '@sentry-internal/browser-utils';
 import type { Breadcrumb, FetchBreadcrumbData } from '@sentry/core';
 
 import { DEBUG_BUILD } from '../../debug-build';
 import type {
   FetchHint,
-  NetworkMetaWarning,
   ReplayContainer,
   ReplayNetworkOptions,
   ReplayNetworkRequestData,
@@ -17,7 +17,6 @@ import {
   buildSkippedNetworkRequestOrResponse,
   getAllowedHeaders,
   getBodySize,
-  getBodyString,
   makeNetworkReplayBreadcrumb,
   mergeWarning,
   parseContentLengthHeader,
@@ -118,7 +117,7 @@ function _getRequestInfo(
 
   // We only want to transmit string or string-like bodies
   const requestBody = _getFetchRequestArgBody(input);
-  const [bodyStr, warning] = getBodyString(requestBody);
+  const [bodyStr, warning] = getBodyString(requestBody, logger);
   const data = buildNetworkRequestOrResponse(headers, requestBodySize, bodyStr);
 
   if (warning) {
