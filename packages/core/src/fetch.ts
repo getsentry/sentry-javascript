@@ -1,3 +1,5 @@
+import { FetchHint } from './client';
+import { getClient } from './currentScopes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from './semanticAttributes';
 import { SPAN_STATUS_ERROR, setHttpStatus, startInactiveSpan } from './tracing';
 import { SentryNonRecordingSpan } from './tracing/sentryNonRecordingSpan';
@@ -96,6 +98,7 @@ export function instrumentFetchRequest(
     }
   }
 
+  const client = getClient();
   if (client) {
     // There's no 'input' key in HandlerDataFetch
     const fetchHint = {

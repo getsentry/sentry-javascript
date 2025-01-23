@@ -32,8 +32,6 @@ import { feedbackSyncIntegration } from './feedbackSync';
 export { feedbackAsyncIntegration, feedbackSyncIntegration, feedbackSyncIntegration as feedbackIntegration };
 export { getFeedback, sendFeedback } from '@sentry-internal/feedback';
 
-export * from './metrics';
-
 export { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './tracing/request';
 export {
   browserTracingIntegration,

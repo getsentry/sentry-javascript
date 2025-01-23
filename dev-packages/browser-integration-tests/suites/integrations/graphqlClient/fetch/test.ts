@@ -13,8 +13,8 @@ const query = `query Test{
 }`;
 const queryPayload = JSON.stringify({ query });
 
-sentryTest('should update spans for GraphQL Fetch requests', async ({ getLocalTestPath, page }) => {
-  const url = await getLocalTestPath({ testDir: __dirname });
+sentryTest('should update spans for GraphQL Fetch requests', async ({ getLocalTestUrl, page }) => {
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   await page.route('**/foo', route => {
     return route.fulfill({
@@ -57,8 +57,8 @@ sentryTest('should update spans for GraphQL Fetch requests', async ({ getLocalTe
   });
 });
 
-sentryTest('should update breadcrumbs for GraphQL Fetch requests', async ({ getLocalTestPath, page }) => {
-  const url = await getLocalTestPath({ testDir: __dirname });
+sentryTest('should update breadcrumbs for GraphQL Fetch requests', async ({ getLocalTestUrl, page }) => {
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   await page.route('**/foo', route => {
     return route.fulfill({
