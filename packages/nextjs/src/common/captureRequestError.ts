@@ -1,5 +1,6 @@
-import type { RequestEventData } from '@sentry/core';
+import { RequestEventData, vercelWaitUntil } from '@sentry/core';
 import { captureException, headersToDict, withScope } from '@sentry/core';
+import { flushSafelyWithTimeout } from './utils/responseEnd';
 
 type RequestInfo = {
   path: string;
@@ -39,5 +40,7 @@ export function captureRequestError(error: unknown, request: RequestInfo, errorC
         handled: false,
       },
     });
+
+    vercelWaitUntil(flushSafelyWithTimeout());
   });
 }
