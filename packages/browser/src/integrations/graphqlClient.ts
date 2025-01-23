@@ -1,5 +1,4 @@
-import { SENTRY_XHR_DATA_KEY } from '@sentry-internal/browser-utils';
-import { getBodyString } from '@sentry-internal/replay';
+import { SENTRY_XHR_DATA_KEY, getBodyString } from '@sentry-internal/browser-utils';
 import type { FetchHint, XhrHint } from '@sentry-internal/replay';
 import {
   SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,

@@ -1,14 +1,9 @@
-import { SENTRY_XHR_DATA_KEY } from '@sentry-internal/browser-utils';
+import { SENTRY_XHR_DATA_KEY, getBodyString } from '@sentry-internal/browser-utils';
+import type { NetworkMetaWarning } from '@sentry-internal/browser-utils';
 import type { Breadcrumb, XhrBreadcrumbData } from '@sentry/core';
 
 import { DEBUG_BUILD } from '../../debug-build';
-import type {
-  NetworkMetaWarning,
-  ReplayContainer,
-  ReplayNetworkOptions,
-  ReplayNetworkRequestData,
-  XhrHint,
-} from '../../types';
+import type { ReplayContainer, ReplayNetworkOptions, ReplayNetworkRequestData, XhrHint } from '../../types';
 import { logger } from '../../util/logger';
 import { addNetworkBreadcrumb } from './addNetworkBreadcrumb';
 import {
@@ -16,7 +11,6 @@ import {
   buildSkippedNetworkRequestOrResponse,
   getAllowedHeaders,
   getBodySize,
-  getBodyString,
   makeNetworkReplayBreadcrumb,
   mergeWarning,
   parseContentLengthHeader,
@@ -111,7 +105,7 @@ function _prepareXhrData(
     : {};
   const networkResponseHeaders = getAllowedHeaders(getResponseHeaders(xhr), options.networkResponseHeaders);
 
-  const [requestBody, requestWarning] = options.networkCaptureBodies ? getBodyString(input) : [undefined];
+  const [requestBody, requestWarning] = options.networkCaptureBodies ? getBodyString(input, logger) : [undefined];
   const [responseBody, responseWarning] = options.networkCaptureBodies ? _getXhrResponseBody(xhr) : [undefined];
 
   const request = buildNetworkRequestOrResponse(networkRequestHeaders, requestBodySize, requestBody);
