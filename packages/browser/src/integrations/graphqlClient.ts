@@ -85,7 +85,7 @@ function _updateBreadcrumbWithGraphQLData(client: Client, options: GraphQLClient
     const isHttpBreadcrumb = type === 'http';
 
     if (isHttpBreadcrumb && (isFetch || isXhr)) {
-      const httpUrl = data && data.url;
+      const httpUrl = data?.url;
       const { endpoints } = options;
 
       const isTracedGraphqlEndpoint = stringMatchesSomePattern(httpUrl, endpoints);

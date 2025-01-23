@@ -3,7 +3,7 @@ import {
   addPerformanceInstrumentationHandler,
   addXhrInstrumentationHandler,
 } from '@sentry-internal/browser-utils';
-import { XhrHint } from '@sentry-internal/replay';
+import type { XhrHint } from '@sentry-internal/replay';
 import type { Client, HandlerDataXhr, SentryWrappedXMLHttpRequest, Span } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
