@@ -236,7 +236,19 @@ Sentry.init({
 
 ### `@sentry/solidstart`
 
-- The `sentrySolidStartVite` plugin is no longer exported. Instead, wrap the SolidStart config with `withSentry` and provide Sentry options as the second parameter.
+- The `sentrySolidStartVite` plugin is no longer exported. Instead, wrap the SolidStart config with `withSentry` and
+  provide Sentry options as the second parameter.
+
+  ```
+  // app.config.ts
+  import { defineConfig } from '@solidjs/start/config';
+  import { withSentry } from '@sentry/solidstart';
+
+  export default defineConfig(withSentry(
+    { /* SolidStart config */ },
+    { /* Sentry build-time config (like project and org) */ })
+  );
+  ```
 
 #### Other/Internal Changes
 
