@@ -12,11 +12,11 @@ interface ZodErrorsOptions {
    */
   limit?: number;
   /**
-   * Save full error info as an attachment in Sentry
+   * Save full list of Zod issues as an attachment in Sentry
    *
    * @default false
    */
-  saveAttachments?: boolean;
+  saveZodIssuesAsAttachment?: boolean;
 }
 
 const DEFAULT_LIMIT = 10;
@@ -137,7 +137,7 @@ export function formatIssueMessage(zodError: ZodError): string {
  */
 export function applyZodErrorsToEvent(
   limit: number,
-  saveAttachments: boolean | undefined,
+  saveZodIssuesAsAttachment: boolean = false,
   event: Event,
   hint: EventHint,
 ): Event {
@@ -153,7 +153,7 @@ export function applyZodErrorsToEvent(
   try {
     const flattenedIssues = hint.originalException.issues.map(flattenIssue);
 
-    if (saveAttachments === true) {
+    if (saveZodIssuesAsAttachment) {
       // Sometimes having the full error details can be helpful.
       // Attachments have much higher limits, so we can include the full list of issues.
       if (!Array.isArray(hint.attachments)) {
@@ -206,7 +206,7 @@ const _zodErrorsIntegration = ((options: ZodErrorsOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
     processEvent(originalEvent, hint): Event {
-      const processedEvent = applyZodErrorsToEvent(limit, options.saveAttachments, originalEvent, hint);
+      const processedEvent = applyZodErrorsToEvent(limit, options.saveZodIssuesAsAttachment, originalEvent, hint);
       return processedEvent;
     },
   };
