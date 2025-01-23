@@ -234,6 +234,10 @@ Sentry.init({
 - The `addNormalizedRequestDataToEvent` method has been removed. Use `httpRequestToRequestData` instead and put the resulting object directly on `event.request`.
 - A `sampleRand` field on `PropagationContext` is now required. This is relevant if you used `scope.setPropagationContext(...)`
 
+### `@sentry/solidstart`
+
+- The `sentrySolidStartVite` plugin is no longer exported. Instead, wrap the SolidStart config with `withSentry` and provide Sentry options as the second parameter.
+
 #### Other/Internal Changes
 
 The following changes are unlikely to affect users of the SDK. They are listed here only for completion sake, and to alert users that may be relying on internal behavior.
