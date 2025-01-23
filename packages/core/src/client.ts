@@ -15,13 +15,11 @@ import type {
   EventProcessor,
   FeedbackEvent,
   FetchBreadcrumbHint,
-  HandlerDataFetch,
   Integration,
   MonitorConfig,
   Outcome,
   ParameterizedString,
   SdkMetadata,
-  SentryWrappedXMLHttpRequest,
   Session,
   SessionAggregates,
   SeverityLevel,
@@ -64,17 +62,6 @@ import { convertSpanJsonToTransactionEvent, convertTransactionEventToSpanJson } 
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
 const MISSING_RELEASE_FOR_SESSION_ERROR = 'Discarded session because of missing or non-string release';
-
-type RequestBody = null | Blob | BufferSource | FormData | URLSearchParams | string;
-
-export type XhrHint = XhrBreadcrumbHint & {
-  xhr: XMLHttpRequest & SentryWrappedXMLHttpRequest;
-  input?: RequestBody;
-};
-export type FetchHint = FetchBreadcrumbHint & {
-  input: HandlerDataFetch['args'];
-  response: Response;
-};
 
 /**
  * Base implementation for all JavaScript SDK clients.
@@ -598,7 +585,10 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * A hook for GraphQL client integration to enhance a span with request data.
    * @returns A function that, when executed, removes the registered callback.
    */
-  public on(hook: 'beforeOutgoingRequestSpan', callback: (span: Span, hint: XhrHint | FetchHint) => void): () => void;
+  public on(
+    hook: 'beforeOutgoingRequestSpan',
+    callback: (span: Span, hint: XhrBreadcrumbHint | FetchBreadcrumbHint) => void,
+  ): () => void;
 
   /**
    * A hook for GraphQL client integration to enhance a breadcrumb with request data.
@@ -606,7 +596,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    */
   public on(
     hook: 'beforeOutgoingRequestBreadcrumb',
-    callback: (breadcrumb: Breadcrumb, hint: XhrHint | FetchHint) => void,
+    callback: (breadcrumb: Breadcrumb, hint: XhrBreadcrumbHint | FetchBreadcrumbHint) => void,
   ): () => void;
 
   /**
@@ -742,12 +732,16 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   /**
    * Emit a hook event for GraphQL client integration to enhance a span with request data.
    */
-  public emit(hook: 'beforeOutgoingRequestSpan', span: Span, hint: XhrHint | FetchHint): void;
+  public emit(hook: 'beforeOutgoingRequestSpan', span: Span, hint: XhrBreadcrumbHint | FetchBreadcrumbHint): void;
 
   /**
    * Emit a hook event for GraphQL client integration to enhance a breadcrumb with request data.
    */
-  public emit(hook: 'beforeOutgoingRequestBreadcrumb', breadcrumb: Breadcrumb, hint: XhrHint | FetchHint): void;
+  public emit(
+    hook: 'beforeOutgoingRequestBreadcrumb',
+    breadcrumb: Breadcrumb,
+    hint: XhrBreadcrumbHint | FetchBreadcrumbHint,
+  ): void;
 
   /**
    * Emit a hook event for client flush
