@@ -5,6 +5,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_URL_FULL,
   defineIntegration,
+  hasProp,
   spanToJSON,
 } from '@sentry/core';
 import type { Client, IntegrationFn } from '@sentry/core';
@@ -134,11 +135,6 @@ export function getRequestPayloadXhrOrFetch(hint: XhrHint | FetchHint): string |
   }
 
   return body;
-}
-
-// Duplicate from deprecated @sentry-utils/src/instrument/fetch.ts
-function hasProp<T extends string>(obj: unknown, prop: T): obj is Record<string, string> {
-  return !!obj && typeof obj === 'object' && !!(obj as Record<string, string>)[prop];
 }
 
 /**

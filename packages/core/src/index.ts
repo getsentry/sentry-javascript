@@ -96,6 +96,7 @@ export {
   extractQueryParamsFromUrl,
   headersToDict,
 } from './utils/request';
+export { hasProp } from './utils/hasProp';
 export { DEFAULT_ENVIRONMENT } from './constants';
 export { addBreadcrumb } from './breadcrumbs';
 export { functionToStringIntegration } from './integrations/functiontostring';
