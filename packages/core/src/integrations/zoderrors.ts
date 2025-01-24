@@ -206,7 +206,7 @@ export function applyZodErrorsToEvent(
 }
 
 const _zodErrorsIntegration = ((options: ZodErrorsOptions = {}) => {
-  const limit = options.limit ?? DEFAULT_LIMIT;
+  const limit = typeof options.limit === 'undefined' ? DEFAULT_LIMIT : options.limit;
 
   return {
     name: INTEGRATION_NAME,
