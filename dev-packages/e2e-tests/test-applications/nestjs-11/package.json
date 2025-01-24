@@ -44,5 +44,8 @@
     "ts-loader": "^9.4.3",
     "tsconfig-paths": "^4.2.0",
     "typescript": "~5.0.0"
+  },
+  "volta": {
+    "node": "20.18.2"
   }
 }

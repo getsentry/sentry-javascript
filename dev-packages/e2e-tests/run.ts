@@ -5,14 +5,34 @@ import * as dotenv from 'dotenv';
 import { sync as globSync } from 'glob';
 
 import { registrySetup } from './registrySetup';
+import { readFileSync } from 'fs';
 
 const DEFAULT_DSN = 'https://username@domain/123';
 const DEFAULT_SENTRY_ORG_SLUG = 'sentry-javascript-sdks';
 const DEFAULT_SENTRY_PROJECT = 'sentry-javascript-e2e-tests';
 
-function asyncExec(command: string, options: { env: Record<string, string | undefined>; cwd: string }): Promise<void> {
+interface PackageJson {
+  volta?: {
+    node?: string;
+  };
+}
+
+function getVoltaNodeVersion(packageJsonPath: string): string | undefined {
+  try {
+    const packageJson: PackageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
+    return packageJson.volta?.node;
+  } catch {
+    return undefined;
+  }
+}
+
+function asyncExec(
+  command: string,
+  options: { env: Record<string, string | undefined>; cwd: string; nodeVersion?: string },
+): Promise<void> {
   return new Promise((resolve, reject) => {
-    const process = spawn(command, { ...options, shell: true });
+    const finalCommand = options.nodeVersion ? `volta run --node ${options.nodeVersion} ${command}` : command;
+    const process = spawn(finalCommand, { ...options, shell: true });
 
     process.stdout.on('data', data => {
       console.log(`${data}`);
@@ -75,12 +95,13 @@ async function run(): Promise<void> {
 
     for (const testAppPath of testAppPaths) {
       const cwd = resolve('test-applications', testAppPath);
+      const nodeVersion = getVoltaNodeVersion(resolve(cwd, 'package.json'));
 
       console.log(`Building ${testAppPath}...`);
-      await asyncExec('pnpm test:build', { env, cwd });
+      await asyncExec('pnpm test:build', { env, cwd, nodeVersion });
 
       console.log(`Testing ${testAppPath}...`);
-      await asyncExec('pnpm test:assert', { env, cwd });
+      await asyncExec('pnpm test:assert', { env, cwd, nodeVersion });
     }
   } catch (error) {
     console.error(error);
