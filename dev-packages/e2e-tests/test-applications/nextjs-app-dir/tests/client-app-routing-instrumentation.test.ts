@@ -26,9 +26,11 @@ test('Creates a navigation transaction for app router routes', async ({ page }) 
     );
   });
 
-  await page.goto(`/server-component/parameter/${randomRoute}`);
-  await clientPageloadTransactionPromise;
-  await page.getByText('Page (/server-component/[parameter])').isVisible();
+  await Promise.all([
+    page.goto(`/server-component/parameter/${randomRoute}`),
+    clientPageloadTransactionPromise,
+    page.getByText('Page (/server-component/[parameter])').isVisible(),
+  ]);
 
   const clientNavigationTransactionPromise = waitForTransaction('nextjs-app-dir', transactionEvent => {
     return (
@@ -46,13 +48,17 @@ test('Creates a navigation transaction for app router routes', async ({ page }) 
     );
   });
 
-  await page.getByText('/server-component/parameter/foo/bar/baz').click();
+  const [, clientNavigationTransaction, serverComponentTransaction] = await Promise.all([
+    page.getByText('/server-component/parameter/foo/bar/baz').click(),
+    clientNavigationTransactionPromise,
+    serverComponentTransactionPromise,
+  ]);
 
-  expect(await clientNavigationTransactionPromise).toBeDefined();
-  expect(await serverComponentTransactionPromise).toBeDefined();
+  expect(clientNavigationTransaction).toBeDefined();
+  expect(serverComponentTransaction).toBeDefined();
 
-  expect((await serverComponentTransactionPromise).contexts?.trace?.trace_id).toBe(
-    (await clientNavigationTransactionPromise).contexts?.trace?.trace_id,
+  expect(serverComponentTransaction.contexts?.trace?.trace_id).toBe(
+    clientNavigationTransaction.contexts?.trace?.trace_id,
   );
 });
 
