@@ -92,6 +92,9 @@ export function createScreenshotInputStyles(styleNonce?: string): HTMLStyleEleme
 .editor__tool-container {
   position: absolute;
   padding: 10px 0px;
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
   top: 0;
 }
 .editor__pen-tool {

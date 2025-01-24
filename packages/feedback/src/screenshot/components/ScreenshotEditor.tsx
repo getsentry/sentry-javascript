@@ -87,6 +87,7 @@ export function ScreenshotEditorFactory({
     const [confirmCrop, setConfirmCrop] = hooks.useState(false);
     const [isResizing, setIsResizing] = hooks.useState(false);
     const [isAnnotating, setIsAnnotating] = hooks.useState(false);
+    const [colour, setColour] = hooks.useState('#000000');
 
     hooks.useEffect(() => {
       WINDOW.addEventListener('resize', resize);
@@ -279,6 +280,7 @@ export function ScreenshotEditorFactory({
 
           const ctx = annotateCanvas.getContext('2d');
           if (ctx) {
+            ctx.strokeStyle = colour;
             ctx.lineTo(x, y);
             ctx.stroke();
             ctx.beginPath();
@@ -417,6 +419,14 @@ export function ScreenshotEditorFactory({
             >
               <PenIcon />
             </button>
+            <input
+              type="color"
+              id="colour-picker"
+              value={colour}
+              onChange={e => {
+                setColour((e.target as HTMLInputElement)?.value);
+              }}
+            ></input>
           </div>
         )}
         <div class="editor__canvas-container" ref={canvasContainerRef}>
