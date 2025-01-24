@@ -188,6 +188,9 @@ describe('should report ANR when event loop blocked', () => {
         session: {
           status: 'abnormal',
           abnormal_mechanism: 'anr_foreground',
+          attrs: {
+            release: '1.0.0',
+          },
         },
       })
       .expect({ event: ANR_EVENT_WITH_SCOPE })
