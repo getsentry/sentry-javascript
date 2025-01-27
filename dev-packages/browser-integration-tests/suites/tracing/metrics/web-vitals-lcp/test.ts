@@ -32,12 +32,10 @@ sentryTest('captures LCP vitals with element details.', async ({ browserName, ge
   expect(eventData.contexts?.trace?.data?.['lcp.size']).toBeGreaterThan(0);
   expect(eventData.contexts?.trace?.data?.['lcp.loadTime']).toBeGreaterThan(0);
 
-  // renderTime is 0 because we don't return the `Timing-Allow-Origin` header
-  // and the image is loaded from a 3rd party origin
-  expect(eventData.contexts?.trace?.data?.['lcp.renderTime']).toBe(0);
+  expect(eventData.contexts?.trace?.data?.['lcp.renderTime']).toBeGreaterThan(0);
 
-  // The LCP value should be the loadTime because the renderTime is not set
-  expect(eventData.measurements?.lcp?.value).toBeCloseTo(eventData.contexts?.trace?.data?.['lcp.loadTime']);
+  // The LCP value should be the renderTime
+  expect(eventData.measurements?.lcp?.value).toBeCloseTo(eventData.contexts?.trace?.data?.['lcp.renderTime']);
 });
 
 sentryTest(
