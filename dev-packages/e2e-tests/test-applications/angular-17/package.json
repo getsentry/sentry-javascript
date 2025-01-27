@@ -29,7 +29,7 @@
     "zone.js": "~0.14.3"
   },
   "devDependencies": {
-    "@playwright/test": "^1.44.1",
+    "@playwright/test": "~1.50.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@angular-devkit/build-angular": "^17.1.1",
     "@angular/cli": "^17.1.1",
