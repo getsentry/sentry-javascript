@@ -1,6 +1,6 @@
 import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, type Event } from '@sentry/core';
+import { type Event, SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -74,7 +74,7 @@ sentryTest('should add resource spans to pageload transaction', async ({ getLoca
       'http.response_content_length': expect.any(Number),
       'http.response_delivery_type': '',
       'http.response_transfer_size': expect.any(Number),
-      'network.protocol.name': 'unknown',
+      'network.protocol.name': '',
       'network.protocol.version': 'unknown',
       'resource.render_blocking_status': 'non-blocking',
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.img',
@@ -99,7 +99,7 @@ sentryTest('should add resource spans to pageload transaction', async ({ getLoca
       'http.response_content_length': expect.any(Number),
       'http.response_delivery_type': '',
       'http.response_transfer_size': expect.any(Number),
-      'network.protocol.name': 'unknown',
+      'network.protocol.name': '',
       'network.protocol.version': 'unknown',
       'resource.render_blocking_status': 'non-blocking',
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.link',
@@ -124,7 +124,7 @@ sentryTest('should add resource spans to pageload transaction', async ({ getLoca
       'http.response_content_length': expect.any(Number),
       'http.response_delivery_type': '',
       'http.response_transfer_size': expect.any(Number),
-      'network.protocol.name': 'unknown',
+      'network.protocol.name': '',
       'network.protocol.version': 'unknown',
       'resource.render_blocking_status': 'non-blocking',
       'sentry.op': 'resource.script',
