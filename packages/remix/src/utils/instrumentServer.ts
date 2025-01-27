@@ -448,7 +448,7 @@ const makeWrappedCreateRequestHandler = (options: RemixOptions) =>
 export function instrumentServer(options: RemixOptions): void {
   const pkg = loadModule<{
     createRequestHandler: CreateRequestHandlerFunction;
-  }>('@remix-run/server-runtime');
+  }>('@remix-run/server-runtime', module);
 
   if (!pkg) {
     DEBUG_BUILD && logger.warn('Remix SDK was unable to require `@remix-run/server-runtime` package.');
