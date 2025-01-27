@@ -12,7 +12,7 @@ jobs:
     permissions:
       pull-requests: write
       contents: write
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04-arm
     if: |
       github.event.pull_request.merged == true
       && github.event.pull_request.author_association != 'COLLABORATOR'
