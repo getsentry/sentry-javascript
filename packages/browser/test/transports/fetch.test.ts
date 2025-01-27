@@ -50,7 +50,7 @@ describe('NewFetchTransport', () => {
       body: serializeEnvelope(ERROR_ENVELOPE),
       method: 'POST',
       keepalive: true,
-      referrerPolicy: 'origin',
+      referrerPolicy: 'strict-origin',
     });
   });
 
