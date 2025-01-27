@@ -54,7 +54,7 @@ Now, there are two options to set up the SDK:
    );
    ```
 
-Work in this release was contributed by @jahands. Thank you for your contribution!
+Work in this release was contributed by @jahands and @jrandolf. Thank you for your contributions!
 
 ## 8.51.0
 

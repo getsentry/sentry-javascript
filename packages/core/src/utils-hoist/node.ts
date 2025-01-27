@@ -42,14 +42,16 @@ export function dynamicRequire(mod: any, request: string): any {
  * That is to mimic the behavior of `require.resolve` exactly.
  *
  * @param moduleName module name to require
+ * @param existingModule module to use for requiring
  * @returns possibly required module
  */
-export function loadModule<T>(moduleName: string): T | undefined {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function loadModule<T>(moduleName: string, existingModule: any = module): T | undefined {
   let mod: T | undefined;
 
   try {
     // eslint-disable-next-line deprecation/deprecation
-    mod = dynamicRequire(module, moduleName);
+    mod = dynamicRequire(existingModule, moduleName);
   } catch (e) {
     // no-empty
   }
@@ -57,9 +59,9 @@ export function loadModule<T>(moduleName: string): T | undefined {
   if (!mod) {
     try {
       // eslint-disable-next-line deprecation/deprecation
-      const { cwd } = dynamicRequire(module, 'process');
+      const { cwd } = dynamicRequire(existingModule, 'process');
       // eslint-disable-next-line deprecation/deprecation
-      mod = dynamicRequire(module, `${cwd()}/node_modules/${moduleName}`) as T;
+      mod = dynamicRequire(existingModule, `${cwd()}/node_modules/${moduleName}`) as T;
     } catch (e) {
       // no-empty
     }
