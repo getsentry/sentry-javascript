@@ -5,10 +5,12 @@ import { type Event, SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORI
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
 
-sentryTest('should add resource spans to pageload transaction', async ({ getLocalTestUrl, page }) => {
+sentryTest('should add resource spans to pageload transaction', async ({ getLocalTestUrl, page, browserName }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
+
+  const isWebkitRun = browserName === 'webkit';
 
   // Intercepting asset requests to avoid network-related flakiness and random retries (on Firefox).
   await page.route('https://example.com/path/to/image.svg', (route: Route) =>
@@ -72,16 +74,18 @@ sentryTest('should add resource spans to pageload transaction', async ({ getLoca
     data: {
       'http.decoded_response_content_length': expect.any(Number),
       'http.response_content_length': expect.any(Number),
-      'http.response_delivery_type': '',
       'http.response_transfer_size': expect.any(Number),
       'network.protocol.name': '',
       'network.protocol.version': 'unknown',
-      'resource.render_blocking_status': 'non-blocking',
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.img',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
       'server.address': 'example.com',
       'url.same_origin': false,
       'url.scheme': 'https',
+      ...(!isWebkitRun && {
+        'resource.render_blocking_status': 'non-blocking',
+        'http.response_delivery_type': '',
+      }),
     },
     description: 'https://example.com/path/to/image.svg',
     op: 'resource.img',
@@ -97,16 +101,18 @@ sentryTest('should add resource spans to pageload transaction', async ({ getLoca
     data: {
       'http.decoded_response_content_length': expect.any(Number),
       'http.response_content_length': expect.any(Number),
-      'http.response_delivery_type': '',
       'http.response_transfer_size': expect.any(Number),
       'network.protocol.name': '',
       'network.protocol.version': 'unknown',
-      'resource.render_blocking_status': 'non-blocking',
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.link',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
       'server.address': 'example.com',
       'url.same_origin': false,
       'url.scheme': 'https',
+      ...(!isWebkitRun && {
+        'resource.render_blocking_status': 'non-blocking',
+        'http.response_delivery_type': '',
+      }),
     },
     description: 'https://example.com/path/to/style.css',
     op: 'resource.link',
@@ -122,16 +128,18 @@ sentryTest('should add resource spans to pageload transaction', async ({ getLoca
     data: {
       'http.decoded_response_content_length': expect.any(Number),
       'http.response_content_length': expect.any(Number),
-      'http.response_delivery_type': '',
       'http.response_transfer_size': expect.any(Number),
       'network.protocol.name': '',
       'network.protocol.version': 'unknown',
-      'resource.render_blocking_status': 'non-blocking',
       'sentry.op': 'resource.script',
       'sentry.origin': 'auto.resource.browser.metrics',
       'server.address': 'example.com',
       'url.same_origin': false,
       'url.scheme': 'https',
+      ...(!isWebkitRun && {
+        'resource.render_blocking_status': 'non-blocking',
+        'http.response_delivery_type': '',
+      }),
     },
     description: 'https://example.com/path/to/script.js',
     op: 'resource.script',
