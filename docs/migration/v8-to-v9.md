@@ -1,7 +1,5 @@
 # Upgrading from 8.x to 9.x
 
-**DISCLAIMER: THIS MIGRATION GUIDE IS WORK IN PROGRESS**
-
 Version 9 of the Sentry SDK concerns API cleanup and compatibility updates.
 This update contains behavioral changes that will not be caught by TypeScript or linters, so we recommend carefully reading the section on [Behavioral Changes](#2-behavior-changes).
 
@@ -24,7 +22,7 @@ This includes features like Nullish Coalescing (`??`), Optional Chaining (`?.`),
 If you observe failures due to syntax or features listed above, it may indicate that your current runtime does not support ES2020.
 If your runtime does not support ES2020, we recommend transpiling the SDK using Babel or similar tooling.
 
-**Node.js:** The minimum supported Node.js version is **18.0.0**, except for ESM-only SDKs (nuxt, solidstart, astro) which require Node **18.19.1** or up.
+**Node.js:** The minimum supported Node.js version is **18.0.0**, except for ESM-only SDKs (`@sentry/astro`, `@sentry/nuxt`, `@sentry/sveltekit`) which require Node.js version **18.19.1** or higher.
 We no longer test against Node 14 and Node 16 and cannot guarantee that the SDK will work as expected on these versions.
 
 **Browsers:** Due to SDK code now including ES2020 features, the minimum supported browser list now looks as follows:
@@ -52,7 +50,7 @@ Support for the following frameworks and library versions are dropped:
 
 ### TypeScript Version Policy
 
-In preparation for the OpenTelemetry SDK v2, which will raise the minimum required TypeScript version, the minimum required TypeScript version is increased to version `5.0.4` (TBD https://github.com/open-telemetry/opentelemetry-js/pull/5145).
+In preparation for the OpenTelemetry SDK v2, which will raise the minimum required TypeScript version, the minimum required TypeScript version is increased to version `5.0.4`.
 
 Additionally, like the OpenTelemetry SDK, the Sentry JavaScript SDK will follow [DefinitelyType's version support policy](https://github.com/DefinitelyTyped/DefinitelyTyped#support-window) which has a support time frame of 2 years for any released version of TypeScript.
 
@@ -71,7 +69,7 @@ Older Typescript versions _may_ still work, but we will not test them anymore an
   });
   ```
 
-- Dropping spans in the `beforeSendSpan` hook is no longer possible.
+- Dropping spans in the `beforeSendSpan` hook is no longer possible. This means you cannot return `null` from the `beforeSendSpan` hook anymore.
 - The `beforeSendSpan` hook now receives the root span as well as the child spans.
 - In previous versions, we determined if tracing is enabled (for Tracing Without Performance) by checking if either `tracesSampleRate` or `traceSampler` are _defined_ at all, in `Sentry.init()`. This means that e.g. the following config would lead to tracing without performance (=tracing being enabled, even if no spans would be started):
 
@@ -112,7 +110,7 @@ Older Typescript versions _may_ still work, but we will not test them anymore an
   For performance instrumentation using other/older Prisma versions:
 
   1. Install the `@prisma/instrumentation` package with the desired version.
-  1. Pass a `new PrismaInstrumentation()` instance as exported from `@prisma/instrumentation` to the `prismaInstrumentation` option of this integration:
+  2. Pass a `new PrismaInstrumentation()` instance as exported from `@prisma/instrumentation` to the `prismaInstrumentation` option of this integration:
 
      ```js
      import { PrismaInstrumentation } from '@prisma/instrumentation';
@@ -128,7 +126,7 @@ Older Typescript versions _may_ still work, but we will not test them anymore an
 
      The passed instrumentation instance will override the default instrumentation instance the integration would use, while the `prismaIntegration` will still ensure data compatibility for the various Prisma versions.
 
-  1. Depending on your Prisma version (prior to Prisma version 6), add `previewFeatures = ["tracing"]` to the client generator block of your Prisma schema:
+  3. Depending on your Prisma version (prior to Prisma version 6), add `previewFeatures = ["tracing"]` to the client generator block of your Prisma schema:
 
      ```
      generator client {
@@ -154,7 +152,7 @@ Older Typescript versions _may_ still work, but we will not test them anymore an
 
 - The `sentry` property on the Next.js config object has officially been discontinued. Pass options to `withSentryConfig` directly.
 
-### All Meta-Framework SDKs (`@sentry/astro`, `@sentry/nuxt`, `@sentry/solidstart`)
+### All Meta-Framework SDKs (`@sentry/astro`, `@sentry/nextjs`, `@sentry/nuxt`, `@sentry/sveltekit`, `@sentry/solidstart`)
 
 - Updated source map generation to respect the user-provided value of your build config, such as `vite.build.sourcemap`:
 
@@ -169,10 +167,6 @@ Older Typescript versions _may_ still work, but we will not test them anymore an
 The `componentStack` field in the `ErrorBoundary` component is now typed as `string` instead of `string | null | undefined` for the `onError` and `onReset` lifecycle methods. This more closely matches the actual behavior of React, which always returns a `string` whenever a component stack is available.
 
 In the `onUnmount` lifecycle method, the `componentStack` field is now typed as `string | null`. The `componentStack` is `null` when no error has been thrown at time of unmount.
-
-### Uncategorized (TODO)
-
-TODO
 
 ## 3. Package Removals
 
@@ -190,27 +184,34 @@ You may experience slight compatibility issues in the future by using it.
 We decided to keep this package around to temporarily lessen the upgrade burden.
 It will be removed in a future major version.
 
-## 4. Removal of Deprecated APIs (TODO)
+## 4. Removal of Deprecated APIs
 
 ### `@sentry/core` / All SDKs
 
+- **The metrics API has been removed from the SDK.**
+
+  The Sentry metrics beta has ended and the metrics API has been removed from the SDK. Learn more in the Sentry [help center docs](https://sentry.zendesk.com/hc/en-us/articles/26369339769883-Metrics-Beta-Ended-on-October-7th).
+
 - The `debugIntegration` has been removed. To log outgoing events, use [Hook Options](https://docs.sentry.io/platforms/javascript/configuration/options/#hooks) (`beforeSend`, `beforeSendTransaction`, ...).
+
 - The `sessionTimingIntegration` has been removed. To capture session durations alongside events, use [Context](https://docs.sentry.io/platforms/javascript/enriching-events/context/) (`Sentry.setContext()`).
+
 - The `addOpenTelemetryInstrumentation` method has been removed. Use the `openTelemetryInstrumentations` option in `Sentry.init()` or your custom Sentry Client instead.
 
-```js
-import * as Sentry from '@sentry/node';
+  ```js
+  import * as Sentry from '@sentry/node';
 
-// before
-Sentry.addOpenTelemetryInstrumentation(new GenericPoolInstrumentation());
+  // before
+  Sentry.addOpenTelemetryInstrumentation(new GenericPoolInstrumentation());
 
-// after
-Sentry.init({
-  openTelemetryInstrumentations: [new GenericPoolInstrumentation()],
-});
-```
+  // after
+  Sentry.init({
+    openTelemetryInstrumentations: [new GenericPoolInstrumentation()],
+  });
+  ```
 
 - The `DEFAULT_USER_INCLUDES` constant has been removed.
+
 - The `getCurrentHub()`, `Hub` and `getCurrentHubShim()` APIs have been removed. They were on compatibility life support since the release of v8 and have now been fully removed from the SDK.
 
 ### `@sentry/browser`
@@ -239,7 +240,7 @@ Sentry.init({
 - The `sentrySolidStartVite` plugin is no longer exported. Instead, wrap the SolidStart config with `withSentry` and
   provide Sentry options as the second parameter.
 
-  ```
+  ```ts
   // app.config.ts
   import { defineConfig } from '@solidjs/start/config';
   import { withSentry } from '@sentry/solidstart';
@@ -249,13 +250,6 @@ Sentry.init({
     { /* Sentry build-time config (like project and org) */ })
   );
   ```
-
-#### Other/Internal Changes
-
-The following changes are unlikely to affect users of the SDK. They are listed here only for completion sake, and to alert users that may be relying on internal behavior.
-
-- `client._prepareEvent()` now requires a currentScope & isolationScope to be passed as last arugments
-- `client.recordDroppedEvent()` no longer accepts an `event` as third argument. The event was no longer used for some time, instead you can (optionally) pass a count of dropped events as third argument.
 
 ### `@sentry/nestjs`
 
@@ -278,7 +272,7 @@ The following changes are unlikely to affect users of the SDK. They are listed h
 - The `wrapUseRoutes` method has been removed. Use the `wrapUseRoutesV6` or `wrapUseRoutesV7` methods instead depending on what version of react router you are using.
 - The `wrapCreateBrowserRouter` method has been removed. Use the `wrapCreateBrowserRouterV6` or `wrapCreateBrowserRouterV7` methods depending on what version of react router you are using.
 
-## `@sentry/vue`
+### `@sentry/vue`
 
 - The options `tracingOptions`, `trackComponents`, `timeout`, `hooks` have been removed everywhere except in the `tracingOptions` option of `vueIntegration()`.
 
@@ -313,6 +307,13 @@ The following changes are unlikely to affect users of the SDK. They are listed h
 
 - The `fetchProxyScriptNonce` option in `sentryHandle()` was removed due to security concerns. If you previously specified this option for your CSP policy, specify a [script hash](https://docs.sentry.io/platforms/javascript/guides/sveltekit/manual-setup/#configure-csp-for-client-side-fetch-instrumentation) in your CSP config or [disable](https://docs.sentry.io/platforms/javascript/guides/sveltekit/manual-setup/#disable-client-side-fetch-proxy-script) the injection of the script entirely.
 
+#### Other/Internal Changes
+
+The following changes are unlikely to affect users of the SDK. They are listed here only for completion sake, and to alert users that may be relying on internal behavior.
+
+- `client._prepareEvent()` now requires a currentScope & isolationScope to be passed as last arugments
+- `client.recordDroppedEvent()` no longer accepts an `event` as third argument. The event was no longer used for some time, instead you can (optionally) pass a count of dropped events as third argument.
+
 ## 5. Build Changes
 
 Previously the CJS versions of the SDK code (wrongfully) contained compatibility statements for default exports in ESM:
@@ -326,19 +327,18 @@ Let us know if this is causing issues in your setup by opening an issue on GitHu
 
 ### `@sentry/deno`
 
-The minimum supported Deno version is now **2.0.0**.
+- The minimum supported Deno version for the Deno SDK (`@sentry/deno`) is now **2.0.0**.
 
-- `@sentry/deno` is no longer published on `deno.land` so you'll need to import
-  from npm:
+- `@sentry/deno` is no longer published on the `deno.land` registry so you'll need to import the SDK from npm:
 
-```javascript
-import * as Sentry from 'npm:@sentry/deno';
+  ```javascript
+  import * as Sentry from 'npm:@sentry/deno';
 
-Sentry.init({
-  dsn: '__DSN__',
-  // ...
-});
-```
+  Sentry.init({
+    dsn: '__DSN__',
+    // ...
+  });
+  ```
 
 ## 6. Type Changes
 
@@ -383,49 +383,49 @@ The following outlines deprecations that were introduced in version 8 of the SDK
 
 - **Passing `undefined` to `tracesSampleRate` / `tracesSampler` / `enableTracing` will be handled differently in v9**
 
-In v8, explicitly setting `tracesSampleRate` (even if it is set to `undefined`) resulted in tracing being _enabled_, although no spans were generated.
+  In v8, explicitly setting `tracesSampleRate` (even if it is set to `undefined`) resulted in tracing being _enabled_, although no spans were generated.
 
-```ts
-Sentry.init({
-  tracesSampleRate: undefined,
-});
-```
+  ```ts
+  Sentry.init({
+    tracesSampleRate: undefined,
+  });
+  ```
 
-In v9, we will streamline this behavior so that passing `undefined` will result in tracing being disabled, the same as not passing the option at all.
+  In v9, we will streamline this behavior so that passing `undefined` will result in tracing being disabled, the same as not passing the option at all.
 
-If you are relying on `undefined` being passed in and having tracing enabled because of this, you should update your config to set e.g. `tracesSampleRate: 0` instead, which will also enable tracing in v9.
+  If you are relying on `undefined` being passed in and having tracing enabled because of this, you should update your config to set e.g. `tracesSampleRate: 0` instead, which will also enable tracing in v9.
 
-The `enableTracing` option was removed. In v9, to emulate `enableTracing: true`, set `tracesSampleRate: 1`. To emulate `enableTracing: false`, remove the `tracesSampleRate` and `tracesSampler` options (if configured).
+  The `enableTracing` option was removed. In v9, to emulate `enableTracing: true`, set `tracesSampleRate: 1`. To emulate `enableTracing: false`, remove the `tracesSampleRate` and `tracesSampler` options (if configured).
 
 - **The `autoSessionTracking` option is deprecated.**
 
-To enable session tracking, it is recommended to unset `autoSessionTracking` and ensure that either, in browser environments the `browserSessionIntegration` is added, or in server environments the `httpIntegration` is added.
+  To enable session tracking, it is recommended to unset `autoSessionTracking` and ensure that either, in browser environments the `browserSessionIntegration` is added, or in server environments the `httpIntegration` is added.
 
-To disable session tracking, it is recommended unset `autoSessionTracking` and to remove the `browserSessionIntegration` in browser environments, or in server environments configure the `httpIntegration` with the `trackIncomingRequestsAsSessions` option set to `false`.
-Additionally, in Node.js environments, a session was automatically created for every node process when `autoSessionTracking` was set to `true`. This behavior has been replaced by the `processSessionIntegration` which is configured by default.
+  To disable session tracking, it is recommended unset `autoSessionTracking` and to remove the `browserSessionIntegration` in browser environments, or in server environments configure the `httpIntegration` with the `trackIncomingRequestsAsSessions` option set to `false`.
+  Additionally, in Node.js environments, a session was automatically created for every node process when `autoSessionTracking` was set to `true`. This behavior has been replaced by the `processSessionIntegration` which is configured by default.
 
-- **The metrics API has been removed from the SDK.**
+- **The metrics API is deprecated.**
 
-The Sentry metrics beta has ended and the metrics API has been removed from the SDK. Learn more in [help center docs](https://sentry.zendesk.com/hc/en-us/articles/26369339769883-Metrics-Beta-Ended-on-October-7th).
+  The Sentry metrics beta has ended and the metrics API has been deprecated in `8.x`. The entire API will be removed in `9.x` of the SDK. Learn more in the Sentry [help center docs](https://sentry.zendesk.com/hc/en-us/articles/26369339769883-Metrics-Beta-Ended-on-October-7th).
 
 ## `@sentry/utils`
 
 - **The `@sentry/utils` package has been deprecated. Import everything from `@sentry/core` instead.**
 
-- Deprecated `AddRequestDataToEventOptions.transaction`. This option effectively doesn't do anything anymore, and will be removed in v9.
-- Deprecated `TransactionNamingScheme` type.
-- Deprecated `validSeverityLevels`. Will not be replaced.
-- Deprecated `urlEncode`. No replacements.
-- Deprecated `addRequestDataToEvent`. Use `httpRequestToRequestData` instead and put the resulting object directly on `event.request`.
-- Deprecated `extractRequestData`. Instead manually extract relevant data off request.
-- Deprecated `arrayify`. No replacements.
-- Deprecated `memoBuilder`. No replacements.
-- Deprecated `getNumberOfUrlSegments`. No replacements.
-- Deprecated `BAGGAGE_HEADER_NAME`. Use the `"baggage"` string constant directly instead.
-- Deprecated `makeFifoCache`. No replacements.
-- Deprecated `dynamicRequire`. No replacements.
-- Deprecated `flatten`. No replacements.
-- Deprecated `_browserPerformanceTimeOriginMode`. No replacements.
+  - Deprecated `AddRequestDataToEventOptions.transaction`. This option effectively doesn't do anything anymore, and will be removed in v9.
+  - Deprecated `TransactionNamingScheme` type.
+  - Deprecated `validSeverityLevels`. Will not be replaced.
+  - Deprecated `urlEncode`. No replacements.
+  - Deprecated `addRequestDataToEvent`. Use `httpRequestToRequestData` instead and put the resulting object directly on `event.request`.
+  - Deprecated `extractRequestData`. Instead manually extract relevant data off request.
+  - Deprecated `arrayify`. No replacements.
+  - Deprecated `memoBuilder`. No replacements.
+  - Deprecated `getNumberOfUrlSegments`. No replacements.
+  - Deprecated `BAGGAGE_HEADER_NAME`. Use the `"baggage"` string constant directly instead.
+  - Deprecated `makeFifoCache`. No replacements.
+  - Deprecated `dynamicRequire`. No replacements.
+  - Deprecated `flatten`. No replacements.
+  - Deprecated `_browserPerformanceTimeOriginMode`. No replacements.
 
 ## `@sentry/core`
 
@@ -461,10 +461,10 @@ The Sentry metrics beta has ended and the metrics API has been removed from the 
 
 - **The `@sentry/types` package has been deprecated. Import everything from `@sentry/core` instead.**
 
-- Deprecated `Request` in favor of `RequestEventData`.
-- Deprecated `RequestSession`. No replacements.
-- Deprecated `RequestSessionStatus`. No replacements.
-- Deprecated `SessionFlusherLike`. No replacements.
+  - Deprecated `Request` in favor of `RequestEventData`.
+  - Deprecated `RequestSession`. No replacements.
+  - Deprecated `RequestSessionStatus`. No replacements.
+  - Deprecated `SessionFlusherLike`. No replacements.
 
 ## `@sentry/nuxt`
 
@@ -474,23 +474,23 @@ The Sentry metrics beta has ended and the metrics API has been removed from the 
 
 - Deprecated `tracingOptions`, `trackComponents`, `timeout`, `hooks` options everywhere other than in the `tracingOptions` option of the `vueIntegration()`.
 
-These options should now be set as follows:
+  These options should now be set as follows:
 
-```ts
-import * as Sentry from '@sentry/vue';
+  ```ts
+  import * as Sentry from '@sentry/vue';
 
-Sentry.init({
-  integrations: [
-    Sentry.vueIntegration({
-      tracingOptions: {
-        trackComponents: true,
-        timeout: 1000,
-        hooks: ['mount', 'update', 'unmount'],
-      },
-    }),
-  ],
-});
-```
+  Sentry.init({
+    integrations: [
+      Sentry.vueIntegration({
+        tracingOptions: {
+          trackComponents: true,
+          timeout: 1000,
+          hooks: ['mount', 'update', 'unmount'],
+        },
+      }),
+    ],
+  });
+  ```
 
 - Deprecated `logErrors` in the `vueIntegration`. The Sentry Vue error handler will propagate the error to a user-defined error handler
   or just re-throw the error (which will log the error without modifying).
@@ -499,24 +499,24 @@ Sentry.init({
 
 - When component tracking is enabled, "update" spans are no longer created by default.
 
-Add an `"update"` item to the `tracingOptions.hooks` option via the `vueIntegration()` to restore this behavior.
+  Add an `"update"` item to the `tracingOptions.hooks` option via the `vueIntegration()` to restore this behavior.
 
-```ts
-Sentry.init({
-  integrations: [
-    Sentry.vueIntegration({
-      tracingOptions: {
-        trackComponents: true,
-        hooks: [
-          'mount',
-          'update', // <--
-          'unmount',
-        ],
-      },
-    }),
-  ],
-});
-```
+  ```ts
+  Sentry.init({
+    integrations: [
+      Sentry.vueIntegration({
+        tracingOptions: {
+          trackComponents: true,
+          hooks: [
+            'mount',
+            'update', // add this line to re-enable update spans
+            'unmount',
+          ],
+        },
+      }),
+    ],
+  });
+  ```
 
 ## `@sentry/astro`
 
