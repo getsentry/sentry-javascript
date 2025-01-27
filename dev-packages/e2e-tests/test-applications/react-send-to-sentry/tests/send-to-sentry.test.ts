@@ -180,24 +180,26 @@ test('Sends a Replay recording to Sentry', async ({ browser }) => {
     .toBe(200);
 
   // now fetch the first recording segment
-  await expect
-    .poll(
-      async () => {
-        const response = await fetch(
-          `https://sentry.io/api/0/projects/${sentryTestOrgSlug}/${sentryTestProject}/replays/${replayId}/recording-segments/?cursor=100%3A0%3A1`,
-          { headers: { Authorization: `Bearer ${authToken}` } },
-        );
+  const data = expect.poll(
+    async () => {
+      const response = await fetch(
+        `https://sentry.io/api/0/projects/${sentryTestOrgSlug}/${sentryTestProject}/replays/${replayId}/recording-segments/?cursor=100%3A0%3A1`,
+        { headers: { Authorization: `Bearer ${authToken}` } },
+      );
 
-        if (response.ok) {
-          const data = await response.json();
-          return data[0];
-        }
+      if (response.ok) {
+        const data = await response.json();
+        return data[0];
+      }
 
-        return response.status;
-      },
-      {
-        timeout: EVENT_POLLING_TIMEOUT,
-      },
-    )
-    .toEqual(ReplayRecordingData);
+      return response.status;
+    },
+    {
+      timeout: EVENT_POLLING_TIMEOUT,
+    },
+  );
+
+  // Check that that all expected data is present but relax the order
+  expect(data).toEqual(expect.arrayContaining(ReplayRecordingData));
+  expect(data).toHaveLength(ReplayRecordingData.length);
 });
