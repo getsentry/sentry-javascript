@@ -10,7 +10,11 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-- **feat(solidstart): Default to `--import` setup and add `autoInjectServerSentry` ([#14862](https://github.com/getsentry/sentry-javascript/pull/14862))**
+## 8.52.0
+
+### Important Changes
+
+- **feat(solidstart): Add `withSentry` wrapper for SolidStart config ([#15135](https://github.com/getsentry/sentry-javascript/pull/15135))**
 
 To enable the SolidStart SDK, wrap your SolidStart Config with `withSentry`. The `sentrySolidStartVite` plugin is now automatically
 added by `withSentry` and you can pass the Sentry build-time options like this:
@@ -54,7 +58,14 @@ Now, there are two options to set up the SDK:
    );
    ```
 
-Work in this release was contributed by @jahands and @jrandolf. Thank you for your contributions!
+### Other Changes
+
+- feat(v8/core): Add client outcomes for breadcrumbs buffer ([#15149](https://github.com/getsentry/sentry-javascript/pull/15149))
+- feat(v8/core): Improve error formatting in ZodErrors integration ([#15155](https://github.com/getsentry/sentry-javascript/pull/15155))
+- fix(v8/bun): Ensure instrumentation of `Bun.serve` survives a server reload ([#15157](https://github.com/getsentry/sentry-javascript/pull/15157))
+- fix(v8/core): Pass `module` into `loadModule` ([#15139](https://github.com/getsentry/sentry-javascript/pull/15139)) (#15166)
+
+Work in this release was contributed by @jahands, @jrandolf, and @nathankleyn. Thank you for your contributions!
 
 ## 8.51.0
 
