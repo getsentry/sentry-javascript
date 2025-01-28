@@ -6,7 +6,7 @@ const UNIT_TEST_ENV = process.env.UNIT_TEST_ENV as 'node' | 'browser' | undefine
 const RUN_AFFECTED = process.argv.includes('--affected');
 
 // These packages are tested separately in CI, so no need to run them here
-const DEFAULT_SKIP_PACKAGES = ['@sentry/profiling-node', '@sentry/bun', '@sentry/deno'];
+const DEFAULT_SKIP_PACKAGES = ['@sentry/bun', '@sentry/deno'];
 
 // All other packages are run for multiple node versions
 const BROWSER_TEST_PACKAGES = [
