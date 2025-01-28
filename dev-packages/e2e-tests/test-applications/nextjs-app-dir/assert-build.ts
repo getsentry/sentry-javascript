@@ -10,6 +10,7 @@ const buildStderr = fs.readFileSync('.tmp_build_stderr', 'utf-8');
 
 // Assert that there was no funky build time warning when we are on a stable (pinned) version
 if (nextjsVersion !== 'latest' && !nextjsVersion.includes('-canary') && !nextjsVersion.includes('-rc')) {
+  console.log(buildStderr);
   assert.doesNotMatch(buildStderr, /Import trace for requested module/); // This is Next.js/Webpack speech for "something is off"
 }
 
