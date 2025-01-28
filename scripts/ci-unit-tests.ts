@@ -17,7 +17,6 @@ const BROWSER_TEST_PACKAGES = [
   '@sentry/angular',
   '@sentry/solid',
   '@sentry/svelte',
-  '@sentry/profiling-node',
   '@sentry-internal/browser-utils',
   '@sentry-internal/replay',
   '@sentry-internal/replay-canvas',
