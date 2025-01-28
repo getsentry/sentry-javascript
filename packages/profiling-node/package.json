@@ -69,7 +69,7 @@
   "dependencies": {
     "@sentry/core": "9.0.0-alpha.0",
     "@sentry/node": "9.0.0-alpha.0",
-    "@sentry-internal/node-cpu-profiler": "1.0.0"
+    "@sentry-internal/node-cpu-profiler": "^2.0.0"
   },
   "devDependencies": {
     "@types/node": "^18.19.1",
