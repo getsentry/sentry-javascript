@@ -49,7 +49,7 @@ describe('postgres native auto instrumentation', () => {
     };
 
     createRunner(__dirname, 'scenario.js')
-      .withDockerCompose({ workingDirectory: [__dirname], readyMatches: ['port 5432']})
+      .withDockerCompose({ workingDirectory: [__dirname], readyMatches: ['port 5432'] })
       .expect({ transaction: EXPECTED_TRANSACTION })
       .start(done);
   });
