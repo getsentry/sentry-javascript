@@ -57,9 +57,9 @@
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:watch": "run-p build:transpile:watch build:types:watch",
     "build:tarball": "npm pack",
-    "test:watch": "cross-env SENTRY_PROFILER_BINARY_DIR=build jest --watch",
+    "test:watch": "jest --watch",
     "test:bundle": "node test-binaries.esbuild.js",
-    "test": "cross-env SENTRY_PROFILER_BINARY_DIR=lib jest --config jest.config.js"
+    "test": "jest --config jest.config.js"
   },
   "dependencies": {
     "@sentry/core": "9.0.0-alpha.0",
@@ -67,8 +67,7 @@
     "@sentry-internal/node-cpu-profiler": "^2.0.0"
   },
   "devDependencies": {
-    "@types/node": "^18.19.1",
-    "cross-env": "^7.0.3"
+    "@types/node": "^18.19.1"
   },
   "volta": {
     "extends": "../../package.json"
