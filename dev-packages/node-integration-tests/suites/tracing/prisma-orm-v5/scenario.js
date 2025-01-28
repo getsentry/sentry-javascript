@@ -23,7 +23,7 @@ setInterval(() => {}, 1000);
 async function run() {
   const client = new PrismaClient();
 
-  await Sentry.startSpan(
+  await Sentry.startSpanManual(
     {
       name: 'Test Transaction',
       op: 'transaction',

@@ -45,28 +45,6 @@ describe('Prisma ORM Tests', () => {
           expect(spans).toContainEqual(
             expect.objectContaining({
               data: {
-                'sentry.origin': 'auto.db.otel.prisma',
-              },
-              description: 'prisma:engine',
-              status: 'ok',
-            }),
-          );
-          expect(spans).toContainEqual(
-            expect.objectContaining({
-              data: {
-                'sentry.origin': 'auto.db.otel.prisma',
-                'sentry.op': 'db',
-                'db.system': 'postgresql',
-              },
-              description: 'prisma:engine:connection',
-              status: 'ok',
-              op: 'db',
-            }),
-          );
-
-          expect(spans).toContainEqual(
-            expect.objectContaining({
-              data: {
                 'db.statement': expect.stringContaining(
                   'INSERT INTO "public"."User" ("createdAt","email","name") VALUES ($1,$2,$3) RETURNING "public"."User"."id", "public"."User"."createdAt", "public"."User"."email", "public"."User"."name" /* traceparent',
                 ),
@@ -80,24 +58,6 @@ describe('Prisma ORM Tests', () => {
               ),
               status: 'ok',
               op: 'db',
-            }),
-          );
-          expect(spans).toContainEqual(
-            expect.objectContaining({
-              data: {
-                'sentry.origin': 'auto.db.otel.prisma',
-              },
-              description: 'prisma:engine:serialize',
-              status: 'ok',
-            }),
-          );
-          expect(spans).toContainEqual(
-            expect.objectContaining({
-              data: {
-                'sentry.origin': 'auto.db.otel.prisma',
-              },
-              description: 'prisma:engine:response_json_serialization',
-              status: 'ok',
             }),
           );
           expect(spans).toContainEqual(
@@ -118,15 +78,6 @@ describe('Prisma ORM Tests', () => {
                 'sentry.origin': 'auto.db.otel.prisma',
               },
               description: 'prisma:client:serialize',
-              status: 'ok',
-            }),
-          );
-          expect(spans).toContainEqual(
-            expect.objectContaining({
-              data: {
-                'sentry.origin': 'auto.db.otel.prisma',
-              },
-              description: 'prisma:engine',
               status: 'ok',
             }),
           );

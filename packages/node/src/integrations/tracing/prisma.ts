@@ -1,10 +1,57 @@
 import type { Instrumentation } from '@opentelemetry/instrumentation';
 // When importing CJS modules into an ESM module, we cannot import the named exports directly.
 import * as prismaInstrumentation from '@prisma/instrumentation';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, defineIntegration, spanToJSON } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, consoleSandbox, defineIntegration, spanToJSON } from '@sentry/core';
 import { generateInstrumentOnce } from '../../otel/instrument';
+import type { PrismaV5TracingHelper } from './prisma/vendor/v5-tracing-helper';
+import type { PrismaV6TracingHelper } from './prisma/vendor/v6-tracing-helper';
 
 const INTEGRATION_NAME = 'Prisma';
+
+const EsmInteropPrismaInstrumentation: typeof prismaInstrumentation.PrismaInstrumentation =
+  // @ts-expect-error We need to do the following for interop reasons
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  prismaInstrumentation.default?.PrismaInstrumentation || prismaInstrumentation.PrismaInstrumentation;
+
+type CompatibilityLayerTraceHelper = PrismaV5TracingHelper & PrismaV6TracingHelper;
+
+function isPrismaV6TracingHelper(helper: unknown): helper is PrismaV6TracingHelper {
+  return !!helper && typeof helper === 'object' && 'dispatchEngineSpans' in helper;
+}
+
+class SentryPrismaInteropInstrumentation extends EsmInteropPrismaInstrumentation {
+  public constructor() {
+    super();
+  }
+
+  public enable(): void {
+    super.enable();
+
+    const prismaInstrumentationObject = (globalThis as Record<string, unknown>).PRISMA_INSTRUMENTATION;
+    const prismaTracingHelper =
+      prismaInstrumentationObject &&
+      typeof prismaInstrumentationObject === 'object' &&
+      'helper' in prismaInstrumentationObject
+        ? prismaInstrumentationObject.helper
+        : undefined;
+
+    let emittedWarning = false;
+
+    if (isPrismaV6TracingHelper(prismaTracingHelper)) {
+      (prismaTracingHelper as CompatibilityLayerTraceHelper).createEngineSpan = () => {
+        consoleSandbox(() => {
+          if (!emittedWarning) {
+            emittedWarning = true;
+            // eslint-disable-next-line no-console
+            console.warn(
+              '[Sentry] The Sentry SDK supports tracing with Prisma version 5 only with limited capabilities. For full tracing capabilities pass `prismaInstrumentation` for version 5 to the Sentry `prismaIntegration`. Read more: https://docs.sentry.io/platforms/javascript/guides/node/configuration/integrations/prisma/',
+            );
+          }
+        });
+      };
+    }
+  }
+}
 
 export const instrumentPrisma = generateInstrumentOnce<{ prismaInstrumentation?: Instrumentation }>(
   INTEGRATION_NAME,
@@ -14,12 +61,7 @@ export const instrumentPrisma = generateInstrumentOnce<{ prismaInstrumentation?:
       return options.prismaInstrumentation;
     }
 
-    const EsmInteropPrismaInstrumentation: typeof prismaInstrumentation.PrismaInstrumentation =
-      // @ts-expect-error We need to do the following for interop reasons
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      prismaInstrumentation.default?.PrismaInstrumentation || prismaInstrumentation.PrismaInstrumentation;
-
-    return new EsmInteropPrismaInstrumentation({});
+    return new SentryPrismaInteropInstrumentation();
   },
 );
 
