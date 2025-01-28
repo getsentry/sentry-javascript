@@ -41,10 +41,10 @@
     "clean": "rimraf -g ./node_modules ./build"
   },
   "peerDependencies": {
-    "@playwright/test": "^1.44.1"
+    "@playwright/test": "~1.50.0"
   },
   "devDependencies": {
-    "@playwright/test": "^1.44.1",
+    "@playwright/test": "~1.50.0",
     "@sentry/core": "9.0.0-alpha.0"
   },
   "volta": {
