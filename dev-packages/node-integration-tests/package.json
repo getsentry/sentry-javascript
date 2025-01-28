@@ -62,7 +62,7 @@
     "nock": "^13.5.5",
     "node-cron": "^3.0.3",
     "node-schedule": "^2.1.1",
-    "pg": "^8.7.3",
+    "pg": "^8.13.1",
     "pg-native": "^3.2.0",
     "proxy": "^2.1.1",
     "redis-4": "npm:redis@^4.6.14",
