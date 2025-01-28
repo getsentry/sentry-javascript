@@ -1,6 +1,6 @@
 {
   "name": "@sentry/solidstart",
-  "version": "8.51.0",
+  "version": "8.52.0",
   "description": "Official Sentry SDK for Solid Start",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/solidstart",
@@ -66,10 +66,10 @@
     }
   },
   "dependencies": {
-    "@sentry/core": "8.51.0",
-    "@sentry/node": "8.51.0",
-    "@sentry/opentelemetry": "8.51.0",
-    "@sentry/solid": "8.51.0",
+    "@sentry/core": "8.52.0",
+    "@sentry/node": "8.52.0",
+    "@sentry/opentelemetry": "8.52.0",
+    "@sentry/solid": "8.52.0",
     "@sentry/vite-plugin": "2.22.6"
   },
   "devDependencies": {
