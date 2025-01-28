@@ -1,5 +1,6 @@
 /* eslint-disable max-lines */
 
+import { CpuProfilerBindings } from '@sentry-internal/node-cpu-profiler';
 import type { Event, IntegrationFn, Profile, ProfileChunk, ProfilingIntegration, Span } from '@sentry/core';
 import {
   LRUMap,
@@ -14,7 +15,6 @@ import {
   uuid4,
 } from '@sentry/core';
 import type { NodeClient } from '@sentry/node';
-import { CpuProfilerBindings } from '@sentry-internal/node-cpu-profiler';
 import { DEBUG_BUILD } from './debug-build';
 import { NODE_MAJOR, NODE_VERSION } from './nodeVersion';
 import { MAX_PROFILE_DURATION_MS, maybeProfileSpan, stopSpanProfile } from './spanProfileUtils';

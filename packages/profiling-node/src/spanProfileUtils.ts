@@ -1,7 +1,7 @@
+import { CpuProfilerBindings } from '@sentry-internal/node-cpu-profiler';
 import type { CustomSamplingContext, Span } from '@sentry/core';
 import { logger, spanIsSampled, spanToJSON, uuid4 } from '@sentry/core';
 import type { NodeClient } from '@sentry/node';
-import { CpuProfilerBindings } from '@sentry-internal/node-cpu-profiler';
 import { DEBUG_BUILD } from './debug-build';
 import type { RawThreadCpuProfile } from './types';
 import { isValidSampleRate } from './utils';
