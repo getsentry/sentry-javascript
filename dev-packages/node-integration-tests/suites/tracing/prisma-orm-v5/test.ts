@@ -41,25 +41,6 @@ describe('Prisma ORM Tests', () => {
               status: 'ok',
             }),
           );
-
-          expect(spans).toContainEqual(
-            expect.objectContaining({
-              data: {
-                'db.statement': expect.stringContaining(
-                  'INSERT INTO "public"."User" ("createdAt","email","name") VALUES ($1,$2,$3) RETURNING "public"."User"."id", "public"."User"."createdAt", "public"."User"."email", "public"."User"."name" /* traceparent',
-                ),
-                'sentry.origin': 'auto.db.otel.prisma',
-                'sentry.op': 'db',
-                'db.system': 'postgresql',
-                'otel.kind': 'CLIENT',
-              },
-              description: expect.stringContaining(
-                'INSERT INTO "public"."User" ("createdAt","email","name") VALUES ($1,$2,$3) RETURNING "public"."User"."id", "public"."User"."createdAt", "public"."User"."email", "public"."User"."name" /* traceparent',
-              ),
-              status: 'ok',
-              op: 'db',
-            }),
-          );
           expect(spans).toContainEqual(
             expect.objectContaining({
               data: {

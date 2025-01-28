@@ -1,5 +1,4 @@
 const Sentry = require('@sentry/node');
-const { PrismaInstrumentation } = require('@prisma/instrumentation');
 const { loggingTransport } = require('@sentry-internal/node-integration-tests');
 
 Sentry.init({
@@ -7,11 +6,7 @@ Sentry.init({
   release: '1.0',
   tracesSampleRate: 1.0,
   transport: loggingTransport,
-  integrations: [
-    Sentry.prismaIntegration({
-      prismaInstrumentation: new PrismaInstrumentation(),
-    }),
-  ],
+  integrations: [Sentry.prismaIntegration()],
 });
 
 const { randomBytes } = require('crypto');
