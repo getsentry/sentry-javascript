@@ -201,6 +201,22 @@ describe('BaseClient', () => {
       expect(isolationScopeBreadcrumbs).toEqual([{ message: 'hello3', timestamp: expect.any(Number) }]);
     });
 
+    test('it records `buffer_overflow` client discard reason when buffer overflows', () => {
+      const options = getDefaultTestClientOptions({ maxBreadcrumbs: 1 });
+      const client = new TestClient(options);
+      const recordLostEventSpy = jest.spyOn(client, 'recordDroppedEvent');
+      setCurrentClient(client);
+      getIsolationScope().setClient(client);
+      client.init();
+
+      addBreadcrumb({ message: 'hello1' });
+      addBreadcrumb({ message: 'hello2' });
+      addBreadcrumb({ message: 'hello3' });
+
+      expect(recordLostEventSpy).toHaveBeenCalledTimes(2);
+      expect(recordLostEventSpy).toHaveBeenLastCalledWith('buffer_overflow', 'log_item');
+    });
+
     test('calls `beforeBreadcrumb` and adds the breadcrumb without any changes', () => {
       const beforeBreadcrumb = jest.fn(breadcrumb => breadcrumb);
       const options = getDefaultTestClientOptions({ beforeBreadcrumb });

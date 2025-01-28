@@ -10,6 +10,104 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.52.0
+
+### Important Changes
+
+- **feat(solidstart): Add `withSentry` wrapper for SolidStart config ([#15135](https://github.com/getsentry/sentry-javascript/pull/15135))**
+
+To enable the SolidStart SDK, wrap your SolidStart Config with `withSentry`. The `sentrySolidStartVite` plugin is now automatically
+added by `withSentry` and you can pass the Sentry build-time options like this:
+
+```js
+import { defineConfig } from '@solidjs/start/config';
+import { withSentry } from '@sentry/solidstart';
+
+export default defineConfig(
+  withSentry(
+    {
+      /* Your SolidStart config options... */
+    },
+    {
+      // Options for setting up source maps
+      org: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT,
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+    },
+  ),
+);
+```
+
+With the `withSentry` wrapper, the Sentry server config should not be added to the `public` directory anymore.
+Add the Sentry server config in `src/instrument.server.ts`. Then, the server config will be placed inside the server build output as `instrument.server.mjs`.
+
+Now, there are two options to set up the SDK:
+
+1. **(recommended)** Provide an `--import` CLI flag to the start command like this (path depends on your server setup):
+   `node --import ./.output/server/instrument.server.mjs .output/server/index.mjs`
+2. Add `autoInjectServerSentry: 'top-level-import'` and the Sentry config will be imported at the top of the server entry (comes with tracing limitations)
+   ```js
+   withSentry(
+     {
+       /* Your SolidStart config options... */
+     },
+     {
+       // Optional: Install Sentry with a top-level import
+       autoInjectServerSentry: 'top-level-import',
+     },
+   );
+   ```
+
+### Other Changes
+
+- feat(v8/core): Add client outcomes for breadcrumbs buffer ([#15149](https://github.com/getsentry/sentry-javascript/pull/15149))
+- feat(v8/core): Improve error formatting in ZodErrors integration ([#15155](https://github.com/getsentry/sentry-javascript/pull/15155))
+- fix(v8/bun): Ensure instrumentation of `Bun.serve` survives a server reload ([#15157](https://github.com/getsentry/sentry-javascript/pull/15157))
+- fix(v8/core): Pass `module` into `loadModule` ([#15139](https://github.com/getsentry/sentry-javascript/pull/15139)) (#15166)
+
+Work in this release was contributed by @jahands, @jrandolf, and @nathankleyn. Thank you for your contributions!
+
+## 8.51.0
+
+### Important Changes
+
+- **feat(v8/node): Add `prismaInstrumentation` option to Prisma integration as escape hatch for all Prisma versions ([#15128](https://github.com/getsentry/sentry-javascript/pull/15128))**
+
+  This release adds a compatibility API to add support for Prisma version 6.
+  To capture performance data for Prisma version 6:
+
+  1. Install the `@prisma/instrumentation` package on version 6.
+  1. Pass a `new PrismaInstrumentation()` instance as exported from `@prisma/instrumentation` to the `prismaInstrumentation` option:
+
+     ```js
+     import { PrismaInstrumentation } from '@prisma/instrumentation';
+
+     Sentry.init({
+       integrations: [
+         prismaIntegration({
+           // Override the default instrumentation that Sentry uses
+           prismaInstrumentation: new PrismaInstrumentation(),
+         }),
+       ],
+     });
+     ```
+
+     The passed instrumentation instance will override the default instrumentation instance the integration would use, while the `prismaIntegration` will still ensure data compatibility for the various Prisma versions.
+
+  1. Remove the `previewFeatures = ["tracing"]` option from the client generator block of your Prisma schema.
+
+### Other Changes
+
+- feat(v8/browser): Add `multiplexedtransport.js` CDN bundle ([#15046](https://github.com/getsentry/sentry-javascript/pull/15046))
+- feat(v8/browser): Add Unleash integration ([#14948](https://github.com/getsentry/sentry-javascript/pull/14948))
+- feat(v8/deno): Deprecate Deno SDK as published on deno.land ([#15121](https://github.com/getsentry/sentry-javascript/pull/15121))
+- feat(v8/sveltekit): Deprecate `fetchProxyScriptNonce` option ([#15011](https://github.com/getsentry/sentry-javascript/pull/15011))
+- fix(v8/aws-lambda): Avoid overwriting root span name ([#15054](https://github.com/getsentry/sentry-javascript/pull/15054))
+- fix(v8/core): `fatal` events should set session as crashed ([#15073](https://github.com/getsentry/sentry-javascript/pull/15073))
+- fix(v8/node/nestjs): Use method on current fastify request ([#15104](https://github.com/getsentry/sentry-javascript/pull/15104))
+
+Work in this release was contributed by @tjhiggins, and @nwalters512. Thank you for your contributions!
+
 ## 8.50.0
 
 - feat(v8/react): Add support for React Router `createMemoryRouter` ([#14985](https://github.com/getsentry/sentry-javascript/pull/14985))
@@ -24,7 +122,7 @@
 - fix(v8/sveltekit): Ensure source maps deletion is called after source ma… ([#14963](https://github.com/getsentry/sentry-javascript/pull/14963))
 - fix(v8/vue): Re-throw error when no errorHandler exists ([#14943](https://github.com/getsentry/sentry-javascript/pull/14943))
 
-Work in this release was contributed by @HHK1 and @mstrokin. Thank you for your contribution!
+Work in this release was contributed by @HHK1 and @mstrokin. Thank you for your contributions!
 
 ## 8.48.0
 
