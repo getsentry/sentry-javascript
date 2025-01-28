@@ -40,12 +40,7 @@
   },
   "files": [
     "/lib",
-    "/bindings",
-    "/binding.gyp",
     "package.json",
-    "/scripts/binaries.js",
-    "/scripts/check-build.js",
-    "/scripts/copy-target.js",
     "/scripts/prune-profiler-binaries.js"
   ],
   "scripts": {
