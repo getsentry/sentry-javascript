@@ -10,12 +10,12 @@ import type { SentryNuxtClientOptions } from '../common/types';
  */
 export function init(options: SentryNuxtClientOptions): Client | undefined {
   console.log(options)
-  console.log(process.env.NODE_ENV)
+  console.log(import.meta.dev)
 
   const sentryOptions = {
     /* BrowserTracing is added later with the Nuxt client plugin */
     defaultIntegrations: [...getBrowserDefaultIntegrations(options)],
-    environment: process.env.NODE_ENV,
+    environment: import.meta.dev ? 'development' : 'production',
     ...options,
   };
 

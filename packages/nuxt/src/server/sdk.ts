@@ -17,11 +17,11 @@ import type { SentryNuxtServerOptions } from '../common/types';
  */
 export function init(options: SentryNuxtServerOptions): Client | undefined {
   console.log(options)
-  console.log(process.env.NODE_ENV)
+  console.log(import.meta.dev)
 
   const sentryOptions = {
     defaultIntegrations: getNuxtDefaultIntegrations(options),
-    environment: process.env.NODE_ENV,
+    environment: import.meta.dev ? 'development' : 'production',
     ...options,
   };
 
