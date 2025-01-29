@@ -245,9 +245,15 @@ It will be removed in a future major version.
   import { defineConfig } from '@solidjs/start/config';
   import { withSentry } from '@sentry/solidstart';
 
-  export default defineConfig(withSentry(
-    { /* SolidStart config */ },
-    { /* Sentry build-time config (like project and org) */ })
+  export default defineConfig(
+    withSentry(
+      {
+        /* SolidStart config */
+      },
+      {
+        /* Sentry build-time config (like project and org) */
+      },
+    ),
   );
   ```
 
