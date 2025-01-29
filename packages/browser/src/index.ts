@@ -52,6 +52,8 @@ export {
   getSpanStatusFromHttpCode,
   setHttpStatus,
   makeMultiplexedTransport,
+  makeSimpleMultiplexedTransport,
+  SIMPLE_MULTIPLEXED_TRANSPORT_EXTRA_ROUTING_KEY,
   moduleMetadataIntegration,
   zodErrorsIntegration,
   thirdPartyErrorFilterIntegration,
