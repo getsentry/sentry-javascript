@@ -1,20 +1,19 @@
-import commonjs from '@rollup/plugin-commonjs';
-import replace from '@rollup/plugin-replace';
 import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollup-utils';
 
 export default makeNPMConfigVariants(
   makeBaseNPMConfig({
     packageSpecificConfig: {
-      output: { dir: 'lib', preserveModules: false },
-      plugins: [
-        commonjs(),
-        replace({
-          preventAssignment: false,
-          values: {
-            __IMPORT_META_URL_REPLACEMENT__: 'import.meta.url',
-          },
-        }),
-      ],
+      output: {
+        dir: 'lib',
+        // set exports to 'named' or 'auto' so that rollup doesn't warn
+        exports: 'named',
+        // set preserveModules to false because for profiling we actually want
+        // to bundle everything into one file.
+        preserveModules:
+          process.env.SENTRY_BUILD_PRESERVE_MODULES === undefined
+            ? false
+            : Boolean(process.env.SENTRY_BUILD_PRESERVE_MODULES),
+      },
     },
   }),
 );

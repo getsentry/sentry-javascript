@@ -84,13 +84,11 @@ sentryTest(
 
     const eventData = await promise;
 
-    const uiSpans = eventData.spans?.filter(({ op }) => op?.startsWith('ui.long-animation-frame'));
+    const uiSpans = eventData.spans?.filter(({ op }) => op?.startsWith('ui.long-animation-frame')) || [];
 
-    expect(uiSpans?.length).toBeGreaterThanOrEqual(2);
+    expect(uiSpans.length).toBeGreaterThanOrEqual(2);
 
-    const eventListenerUISpan = (uiSpans || []).find(
-      span => span.data?.['browser.script.invoker'] === 'BUTTON#clickme.onclick',
-    )!;
+    const eventListenerUISpan = uiSpans.find(span => span.data['browser.script.invoker'] === 'BUTTON#clickme.onclick')!;
 
     expect(eventListenerUISpan).toEqual(
       expect.objectContaining({
@@ -100,6 +98,7 @@ sentryTest(
         data: {
           'browser.script.invoker': 'BUTTON#clickme.onclick',
           'browser.script.invoker_type': 'event-listener',
+          'code.filepath': 'https://example.com/path/to/script.js',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.long-animation-frame',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
         },

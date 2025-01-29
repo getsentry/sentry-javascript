@@ -15,7 +15,7 @@
     "@sentry/solidstart": "latest || *"
   },
   "devDependencies": {
-    "@playwright/test": "^1.44.1",
+    "@playwright/test": "~1.50.0",
     "@solidjs/meta": "^0.29.4",
     "@solidjs/router": "^0.13.4",
     "@solidjs/start": "^1.0.2",
