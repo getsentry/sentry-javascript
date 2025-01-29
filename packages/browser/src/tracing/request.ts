@@ -2,6 +2,7 @@ import {
   SENTRY_XHR_DATA_KEY,
   addPerformanceInstrumentationHandler,
   addXhrInstrumentationHandler,
+  extractNetworkProtocol,
 } from '@sentry-internal/browser-utils';
 import type { XhrHint } from '@sentry-internal/browser-utils';
 import type { Client, HandlerDataXhr, SentryWrappedXMLHttpRequest, Span } from '@sentry/core';
@@ -228,37 +229,6 @@ function addHTTPTimings(span: Span): void {
       }
     });
   });
-}
-
-/**
- * Converts ALPN protocol ids to name and version.
- *
- * (https://www.iana.org/assignments/tls-extensiontype-values/tls-extensiontype-values.xhtml#alpn-protocol-ids)
- * @param nextHopProtocol PerformanceResourceTiming.nextHopProtocol
- */
-export function extractNetworkProtocol(nextHopProtocol: string): { name: string; version: string } {
-  let name = 'unknown';
-  let version = 'unknown';
-  let _name = '';
-  for (const char of nextHopProtocol) {
-    // http/1.1 etc.
-    if (char === '/') {
-      [name, version] = nextHopProtocol.split('/') as [string, string];
-      break;
-    }
-    // h2, h3 etc.
-    if (!isNaN(Number(char))) {
-      name = _name === 'h' ? 'http' : _name;
-      version = nextHopProtocol.split(_name)[1] as string;
-      break;
-    }
-    _name += char;
-  }
-  if (_name === nextHopProtocol) {
-    // webrtc, ftp, etc.
-    name = _name;
-  }
-  return { name, version };
 }
 
 function getAbsoluteTime(time: number = 0): number {
