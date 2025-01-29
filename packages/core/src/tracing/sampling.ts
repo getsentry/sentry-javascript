@@ -41,7 +41,12 @@ export function sampleSpan(
   const parsedSampleRate = parseSampleRate(sampleRate);
 
   if (parsedSampleRate === undefined) {
-    DEBUG_BUILD && logger.warn('[Tracing] Discarding transaction because of invalid sample rate.');
+    DEBUG_BUILD &&
+      logger.trace(
+        `[Tracing] Discarding transaction because of invalid sample rate. Sample rate must be a boolean or a number between 0 and 1. Got ${JSON.stringify(
+          sampleRate,
+        )} of type ${JSON.stringify(typeof sampleRate)}.`,
+      );
     return [false];
   }
 
