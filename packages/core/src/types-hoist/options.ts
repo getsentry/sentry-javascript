@@ -139,15 +139,6 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   normalizeMaxBreadth?: number;
 
   /**
-   * Controls how many milliseconds to wait before shutting down. The default is
-   * SDK-specific but typically around 2 seconds. Setting this too low can cause
-   * problems for sending events from command line applications. Setting it too
-   * high can cause the application to block for users with network connectivity
-   * problems.
-   */
-  shutdownTimeout?: number;
-
-  /**
    * A pattern for error messages which should not be sent to Sentry.
    * By default, all errors will be sent.
    */

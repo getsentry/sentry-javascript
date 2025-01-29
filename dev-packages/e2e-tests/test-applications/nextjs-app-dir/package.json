@@ -25,7 +25,7 @@
     "typescript": "~5.0.0"
   },
   "devDependencies": {
-    "@playwright/test": "^1.44.1",
+    "@playwright/test": "~1.50.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@sentry-internal/feedback": "latest || *",
     "@sentry-internal/replay-canvas": "latest || *",
