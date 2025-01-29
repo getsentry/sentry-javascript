@@ -5,46 +5,14 @@
 import { describe, expect, test } from 'vitest';
 
 import { SENTRY_XHR_DATA_KEY } from '@sentry-internal/browser-utils';
-import type { FetchHint, XhrHint } from '@sentry-internal/replay';
+import type { FetchHint, XhrHint } from '@sentry-internal/browser-utils';
 import {
   getGraphQLRequestPayload,
   getRequestPayloadXhrOrFetch,
-  parseFetchPayload,
   parseGraphQLQuery,
 } from '../../src/integrations/graphqlClient';
 
 describe('GraphqlClient', () => {
-  describe('parseFetchPayload', () => {
-    const data = [1, 2, 3];
-    const jsonData = '{"data":[1,2,3]}';
-
-    test.each([
-      ['string URL only', ['http://example.com'], undefined],
-      ['URL object only', [new URL('http://example.com')], undefined],
-      ['Request URL only', [{ url: 'http://example.com' }], undefined],
-      [
-        'Request URL & method only',
-        [{ url: 'http://example.com', method: 'post', body: JSON.stringify({ data }) }],
-        jsonData,
-      ],
-      ['string URL & options', ['http://example.com', { method: 'post', body: JSON.stringify({ data }) }], jsonData],
-      [
-        'URL object & options',
-        [new URL('http://example.com'), { method: 'post', body: JSON.stringify({ data }) }],
-        jsonData,
-      ],
-      [
-        'Request URL & options',
-        [{ url: 'http://example.com' }, { method: 'post', body: JSON.stringify({ data }) }],
-        jsonData,
-      ],
-    ])('%s', (_name, args, expected) => {
-      const actual = parseFetchPayload(args as unknown[]);
-
-      expect(actual).toEqual(expected);
-    });
-  });
-
   describe('parseGraphQLQuery', () => {
     const queryOne = `query Test {
       items {

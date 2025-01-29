@@ -1,11 +1,10 @@
-import { SENTRY_XHR_DATA_KEY, getBodyString } from '@sentry-internal/browser-utils';
+import { SENTRY_XHR_DATA_KEY, getBodyString, getFetchRequestArgBody } from '@sentry-internal/browser-utils';
 import type { FetchHint, XhrHint } from '@sentry-internal/browser-utils';
 import {
   SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_URL_FULL,
   defineIntegration,
-  hasProp,
   isString,
   spanToJSON,
   stringMatchesSomePattern,
@@ -131,25 +130,11 @@ export function getRequestPayloadXhrOrFetch(hint: XhrHint | FetchHint): string |
     const sentryXhrData = hint.xhr[SENTRY_XHR_DATA_KEY];
     body = sentryXhrData && getBodyString(sentryXhrData.body)[0];
   } else {
-    const sentryFetchData = parseFetchPayload(hint.input);
+    const sentryFetchData = getFetchRequestArgBody(hint.input);
     body = getBodyString(sentryFetchData)[0];
   }
 
   return body;
-}
-
-/**
- * Parses the fetch arguments to extract the request payload.
- * Exported for tests only.
- */
-export function parseFetchPayload(fetchArgs: unknown[]): string | undefined {
-  if (fetchArgs.length === 2) {
-    const options = fetchArgs[1];
-    return hasProp(options, 'body') ? String(options.body) : undefined;
-  }
-
-  const arg = fetchArgs[0];
-  return hasProp(arg, 'body') ? String(arg.body) : undefined;
 }
 
 /**

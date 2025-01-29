@@ -70,3 +70,15 @@ export function getBodyString(
 
   return [undefined, 'UNPARSEABLE_BODY_TYPE'];
 }
+
+/**
+ * Parses the fetch arguments to extract the request payload.
+ * We only support getting the body from the fetch options.
+ */
+export function getFetchRequestArgBody(fetchArgs: unknown[] = []): RequestInit['body'] | undefined {
+  if (fetchArgs.length !== 2 || typeof fetchArgs[1] !== 'object') {
+    return undefined;
+  }
+
+  return (fetchArgs[1] as RequestInit).body;
+}
