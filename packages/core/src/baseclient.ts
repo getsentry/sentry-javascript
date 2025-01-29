@@ -721,11 +721,10 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
         if (DEBUG_BUILD) {
           // If something's gone wrong, log the error as a warning. If it's just us having used a `SentryError` for
           // control flow, log just the message (no stack) as a log-level log.
-          const sentryError = reason as SentryError;
-          if (sentryError.logLevel === 'log') {
-            logger.log(sentryError.message);
+          if (reason instanceof SentryError && reason.logLevel === 'log') {
+            logger.log(reason.message);
           } else {
-            logger.warn(sentryError);
+            logger.warn(reason);
           }
         }
         return undefined;
