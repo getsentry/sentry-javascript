@@ -671,7 +671,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [18, 20, 22]
+        node: ['18.20.5', 20, 22]
         typescript:
           - false
         include:
