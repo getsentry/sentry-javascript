@@ -716,6 +716,7 @@ function addOtelWarningIgnoreRule(newConfig: WebpackConfigObjectWithModuleRules)
     // We provide these objects in addition to the hook above to provide redundancy in case the hook fails.
     { module: /@opentelemetry\/instrumentation/, message: /Critical dependency/ },
     { module: /@prisma\/instrumentation/, message: /Critical dependency/ },
+    { module: /require-in-the-middle/, message: /Critical dependency/ },
   ] satisfies IgnoreWarningsOption;
 
   if (newConfig.ignoreWarnings === undefined) {
