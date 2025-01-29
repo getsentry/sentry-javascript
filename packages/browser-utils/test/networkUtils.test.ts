@@ -83,18 +83,14 @@ describe('getFetchRequestArgBody', () => {
 
   describe('does not work without body passed as the second option', () => {
     it.each([
-      ['string URL only', ['http://example.com'], undefined],
-      ['URL object only', [new URL('http://example.com')], undefined],
-      ['Request URL only', [{ url: 'http://example.com' }], undefined],
-      [
-        'body in first arg',
-        [{ url: 'http://example.com', method: 'POST', body: JSON.stringify({ data: [1, 2, 3] }) }],
-        undefined,
-      ],
-    ])('%s', (_name, args, expected) => {
+      ['string URL only', ['http://example.com']],
+      ['URL object only', [new URL('http://example.com')]],
+      ['Request URL only', [{ url: 'http://example.com' }]],
+      ['body in first arg', [{ url: 'http://example.com', method: 'POST', body: JSON.stringify({ data: [1, 2, 3] }) }]],
+    ])('%s', (_name, args) => {
       const actual = getFetchRequestArgBody(args);
 
-      expect(actual).toEqual(expected);
+      expect(actual).toBeUndefined();
     });
   });
 });
