@@ -47,7 +47,7 @@ class SentryPrismaInteropInstrumentation extends EsmInteropPrismaInstrumentation
             emittedWarning = true;
             // eslint-disable-next-line no-console
             console.warn(
-              '[Sentry] This version of the Sentry SDK supports tracing with Prisma 6 only with very limited capabilities. For full tracing capabilities pass `prismaInstrumentation` for version 6 to the Sentry `prismaIntegration`. Read more: https://docs.sentry.io/platforms/javascript/guides/node/configuration/integrations/prisma/',
+              '[Sentry] This version (v8) of the Sentry SDK does not support tracing with Prisma version 6 out of the box. To trace Prisma version 6, pass a `prismaInstrumentation` for version 6 to the Sentry `prismaIntegration`. Read more: https://docs.sentry.io/platforms/javascript/guides/node/configuration/integrations/prisma/',
             );
           }
         });
