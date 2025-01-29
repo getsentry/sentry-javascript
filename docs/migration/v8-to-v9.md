@@ -110,7 +110,7 @@ Older Typescript versions _may_ still work, but we will not test them anymore an
   For performance instrumentation using other/older Prisma versions:
 
   1. Install the `@prisma/instrumentation` package with the desired version.
-  2. Pass a `new PrismaInstrumentation()` instance as exported from `@prisma/instrumentation` to the `prismaInstrumentation` option of this integration:
+  1. Pass a `new PrismaInstrumentation()` instance as exported from `@prisma/instrumentation` to the `prismaInstrumentation` option of this integration:
 
      ```js
      import { PrismaInstrumentation } from '@prisma/instrumentation';
@@ -126,7 +126,7 @@ Older Typescript versions _may_ still work, but we will not test them anymore an
 
      The passed instrumentation instance will override the default instrumentation instance the integration would use, while the `prismaIntegration` will still ensure data compatibility for the various Prisma versions.
 
-  3. Depending on your Prisma version (prior to Prisma version 6), add `previewFeatures = ["tracing"]` to the client generator block of your Prisma schema:
+  1. Depending on your Prisma version (prior to Prisma version 6), add `previewFeatures = ["tracing"]` to the client generator block of your Prisma schema:
 
      ```
      generator client {
