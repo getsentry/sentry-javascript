@@ -264,16 +264,6 @@ function getExistingBaggage(carrier: unknown): string | undefined {
   }
 }
 
-/** Try to get the existing sentry-trace header so we can merge this in. */
-function getExistingSentryTrace(carrier: unknown): string | undefined {
-  try {
-    const sentryTrace = (carrier as Record<string, string | string[]>)[SENTRY_TRACE_HEADER];
-    return Array.isArray(sentryTrace) ? sentryTrace.join(',') : sentryTrace;
-  } catch {
-    return undefined;
-  }
-}
-
 /**
  * It is pretty tricky to get access to the outgoing request URL of a request in the propagator.
  * As we only have access to the context of the span to be sent and the carrier (=headers),
