@@ -121,7 +121,11 @@ export class SentryNodeFetchInstrumentation extends InstrumentationBase<SentryNo
     const tracePropagationTargets = getClient()?.getOptions().tracePropagationTargets;
     const addedHeaders = shouldPropagateTraceForUrl(url, tracePropagationTargets, this._propagationDecisionMap)
       ? getTraceData()
-      : {};
+      : undefined;
+
+    if (!addedHeaders) {
+      return;
+    }
 
     // We do not want to overwrite existing headers here
     // If the core UndiciInstrumentation is registered, it will already have set the headers
