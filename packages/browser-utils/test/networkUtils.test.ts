@@ -6,12 +6,12 @@ import { describe, expect, it } from 'vitest';
 import { getBodyString, getFetchRequestArgBody, serializeFormData } from '../src/networkUtils';
 
 describe('getBodyString', () => {
-  it('should work with a string', () => {
+  it('works with a string', () => {
     const actual = getBodyString('abc');
     expect(actual).toEqual(['abc']);
   });
 
-  it('should work with URLSearchParams', () => {
+  it('works with URLSearchParams', () => {
     const body = new URLSearchParams();
     body.append('name', 'Anne');
     body.append('age', '32');
@@ -19,21 +19,21 @@ describe('getBodyString', () => {
     expect(actual).toEqual(['name=Anne&age=32']);
   });
 
-  it('should work with FormData', () => {
+  it('works with FormData', () => {
     const body = new FormData();
-    body.append('name', 'Bob');
+    body.append('name', 'Anne');
     body.append('age', '32');
     const actual = getBodyString(body);
-    expect(actual).toEqual(['name=Bob&age=32']);
+    expect(actual).toEqual(['name=Anne&age=32']);
   });
 
-  it('should work with empty data', () => {
+  it('works with empty  data', () => {
     const body = undefined;
     const actual = getBodyString(body);
     expect(actual).toEqual([undefined]);
   });
 
-  it('should return unparsable with other types of data', () => {
+  it('works with other type of data', () => {
     const body = {};
     const actual = getBodyString(body);
     expect(actual).toEqual([undefined, 'UNPARSEABLE_BODY_TYPE']);
@@ -42,7 +42,7 @@ describe('getBodyString', () => {
 
 describe('getFetchRequestArgBody', () => {
   describe('valid types of body', () => {
-    it('should work with json string', () => {
+    it('works with json string', () => {
       const body = { data: [1, 2, 3] };
       const jsonBody = JSON.stringify(body);
 
@@ -50,7 +50,7 @@ describe('getFetchRequestArgBody', () => {
       expect(actual).toEqual(jsonBody);
     });
 
-    it('should work with URLSearchParams', () => {
+    it('works with URLSearchParams', () => {
       const body = new URLSearchParams();
       body.append('name', 'Anne');
       body.append('age', '32');
@@ -59,7 +59,7 @@ describe('getFetchRequestArgBody', () => {
       expect(actual).toEqual(body);
     });
 
-    it('should work with FormData', () => {
+    it('works with FormData', () => {
       const body = new FormData();
       body.append('name', 'Bob');
       body.append('age', '32');
@@ -68,13 +68,13 @@ describe('getFetchRequestArgBody', () => {
       expect(actual).toEqual(body);
     });
 
-    it('should work with Blob', () => {
+    it('works with Blob', () => {
       const body = new Blob(['example'], { type: 'text/plain' });
       const actual = getFetchRequestArgBody(['http://example.com', { method: 'POST', body }]);
       expect(actual).toEqual(body);
     });
 
-    it('should work with BufferSource (ArrayBufferView | ArrayBuffer)', () => {
+    it('works with BufferSource (ArrayBufferView | ArrayBuffer)', () => {
       const body = new Uint8Array([1, 2, 3]);
       const actual = getFetchRequestArgBody(['http://example.com', { method: 'POST', body }]);
       expect(actual).toEqual(body);

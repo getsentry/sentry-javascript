@@ -15,7 +15,7 @@ interface GraphQLClientOptions {
   endpoints: Array<string | RegExp>;
 }
 
-// Standard graphql request shape: https://graphql.org/learn/serving-over-http/#post-request-and-body
+/** Standard graphql request shape: https://graphql.org/learn/serving-over-http/#post-request-and-body */
 interface GraphQLRequestPayload {
   query: string;
   operationName?: string;
@@ -118,7 +118,8 @@ function _getGraphQLOperation(requestBody: GraphQLRequestPayload): string {
 }
 
 /**
- * Get the request body/payload based on the shape of the hint
+ * Get the request body/payload based on the shape of the hint.
+ * 
  * Exported for tests only.
  */
 export function getRequestPayloadXhrOrFetch(hint: XhrHint | FetchHint): string | undefined {
@@ -139,8 +140,8 @@ export function getRequestPayloadXhrOrFetch(hint: XhrHint | FetchHint): string |
 
 /**
  * Extract the name and type of the operation from the GraphQL query.
+ * 
  * Exported for tests only.
- * @param query
  */
 export function parseGraphQLQuery(query: string): GraphQLOperation {
   const queryRe = /^(?:\s*)(query|mutation|subscription)(?:\s*)(\w+)(?:\s*)[{(]/;

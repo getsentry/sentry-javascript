@@ -45,6 +45,7 @@ export function getBodyString(body: unknown, _logger: Logger = logger): [string 
 
 /**
  * Parses the fetch arguments to extract the request payload.
+ *
  * We only support getting the body from the fetch options.
  */
 export function getFetchRequestArgBody(fetchArgs: unknown[] = []): RequestInit['body'] | undefined {
