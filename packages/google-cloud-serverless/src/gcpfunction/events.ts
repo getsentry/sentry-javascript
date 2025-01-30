@@ -22,16 +22,15 @@ export function wrapEventFunction(
   return proxyFunction(fn, f => domainify(_wrapEventFunction(f, wrapOptions)));
 }
 
-/** */
 function _wrapEventFunction<F extends EventFunction | EventFunctionWithCallback>(
   fn: F,
   wrapOptions: Partial<EventFunctionWrapperOptions> = {},
-): (...args: Parameters<F>) => ReturnType<F> | Promise<void> {
+): (...args: Parameters<F>) => void | Promise<void> {
   const options: EventFunctionWrapperOptions = {
     flushTimeout: 2000,
     ...wrapOptions,
   };
-  return (...eventFunctionArguments: Parameters<F>): ReturnType<F> | Promise<void> => {
+  return (...eventFunctionArguments: Parameters<F>): void | Promise<void> => {
     const [data, context, callback] = eventFunctionArguments;
 
     return startSpanManual(
@@ -47,8 +46,8 @@ function _wrapEventFunction<F extends EventFunction | EventFunctionWithCallback>
         const scope = getCurrentScope();
         scope.setContext('gcp.function.context', { ...context });
 
-        const newCallback = domainify((...args: unknown[]) => {
-          if (args[0] !== null && args[0] !== undefined) {
+        const newCallback = domainify((...args): void => {
+          if (args[0] != null) {
             captureException(args[0], scope => markEventUnhandled(scope));
           }
           span.end();
