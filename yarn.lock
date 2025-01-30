@@ -19989,6 +19989,14 @@ libpq@1.8.13:
     bindings "1.5.0"
     nan "2.19.0"
 
+libpq@1.8.14:
+  version "1.8.14"
+  resolved "https://registry.yarnpkg.com/libpq/-/libpq-1.8.14.tgz#1cc404b887c2bf1a6c9ffdb7245aca4a7b44f2ff"
+  integrity sha512-/DDvQCiXP0KBMZ31U2mmURKaxoKt9kNqqgrSO2RuBKS+OJjw5b7uHi5jFoV8zPAUa2TNtq2XfcWL1OWDEyjwlg==
+  dependencies:
+    bindings "1.5.0"
+    nan "2.22.0"
+
 license-webpack-plugin@4.0.2:
   version "4.0.2"
   resolved "https://registry.yarnpkg.com/license-webpack-plugin/-/license-webpack-plugin-4.0.2.tgz#1e18442ed20b754b82f1adeff42249b81d11aec6"
@@ -22003,6 +22011,11 @@ nan@2.19.0:
   version "2.19.0"
   resolved "https://registry.yarnpkg.com/nan/-/nan-2.19.0.tgz#bb58122ad55a6c5bc973303908d5b16cfdd5a8c0"
   integrity sha512-nO1xXxfh/RWNxfd/XPfbIfFk5vgLsAxUR9y5O0cHMJu/AW9U95JLXqthYHjEp+8gQ5p96K9jUp8nbVOxCdRbtw==
+
+nan@2.22.0:
+  version "2.22.0"
+  resolved "https://registry.yarnpkg.com/nan/-/nan-2.22.0.tgz#31bc433fc33213c97bad36404bb68063de604de3"
+  integrity sha512-nbajikzWTMwsW+eSsNm3QwlOs7het9gGJU5dDZzRTQGk03vyBOauxgI4VakDzE0PtsGTmXPsXTbbjVhRwR5mpw==
 
 nanoid@^3.3.3, nanoid@^3.3.4, nanoid@^3.3.6, nanoid@^3.3.7:
   version "3.3.7"
