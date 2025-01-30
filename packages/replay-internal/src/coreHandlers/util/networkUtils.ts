@@ -1,6 +1,7 @@
+import { serializeFormData } from '@sentry-internal/browser-utils';
+import type { NetworkMetaWarning } from '@sentry-internal/browser-utils';
 import { dropUndefinedKeys, stringMatchesSomePattern } from '@sentry/core';
 
-import type { NetworkMetaWarning } from '@sentry-internal/browser-utils';
 import { NETWORK_BODY_MAX_SIZE, WINDOW } from '../../constants';
 import type {
   NetworkBody,
@@ -28,7 +29,7 @@ export function getBodySize(body: RequestInit['body']): number | undefined {
     }
 
     if (body instanceof FormData) {
-      const formDataStr = _serializeFormData(body);
+      const formDataStr = serializeFormData(body);
       return textEncoder.encode(formDataStr).length;
     }
 
@@ -168,13 +169,6 @@ export function getAllowedHeaders(headers: Record<string, string>, allowedHeader
     }
     return filteredHeaders;
   }, {});
-}
-
-function _serializeFormData(formData: FormData): string {
-  // This is a bit simplified, but gives us a decent estimate
-  // This converts e.g. { name: 'Anne Smith', age: 13 } to 'name=Anne+Smith&age=13'
-  // @ts-expect-error passing FormData to URLSearchParams actually works
-  return new URLSearchParams(formData).toString();
 }
 
 function normalizeNetworkBody(body: string | undefined): {

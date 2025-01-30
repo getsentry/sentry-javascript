@@ -3,7 +3,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { getBodyString, getFetchRequestArgBody } from '../src/networkUtils';
+import { getBodyString, getFetchRequestArgBody, serializeFormData } from '../src/networkUtils';
 
 describe('getBodyString', () => {
   it('should work with a string', () => {
@@ -92,5 +92,16 @@ describe('getFetchRequestArgBody', () => {
 
       expect(actual).toBeUndefined();
     });
+  });
+});
+
+describe('serializeFormData', () => {
+  it('works with FormData', () => {
+    const formData = new FormData();
+    formData.append('name', 'Anne Smith');
+    formData.append('age', '13');
+
+    const actual = serializeFormData(formData);
+    expect(actual).toBe('name=Anne+Smith&age=13');
   });
 });
