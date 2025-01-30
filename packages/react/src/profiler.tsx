@@ -1,14 +1,11 @@
 import { startInactiveSpan } from '@sentry/browser';
 import type { Span } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, spanToJSON, timestampInSeconds, withActiveSpan } from '@sentry/core';
-import * as hoistNonReactStatics from 'hoist-non-react-statics';
+
 import * as React from 'react';
 
-// Ensure we use the default export from hoist-non-react-statics if available,
-// falling back to the module itself. This handles both ESM and CJS usage.
-const hoistStatics: typeof hoistNonReactStatics.default = hoistNonReactStatics.default || hoistNonReactStatics;
-
 import { REACT_MOUNT_OP, REACT_RENDER_OP, REACT_UPDATE_OP } from './constants';
+import { hoistNonReactStatics } from './hoist-non-react-statics';
 
 export const UNKNOWN_COMPONENT = 'unknown';
 
@@ -174,7 +171,7 @@ function withProfiler<P extends Record<string, any>>(
 
   // Copy over static methods from Wrapped component to Profiler HOC
   // See: https://reactjs.org/docs/higher-order-components.html#static-methods-must-be-copied-over
-  hoistStatics(Wrapped, WrappedComponent);
+  hoistNonReactStatics(Wrapped, WrappedComponent);
   return Wrapped;
 }
 
