@@ -1,10 +1,60 @@
 import type { Instrumentation } from '@opentelemetry/instrumentation';
 // When importing CJS modules into an ESM module, we cannot import the named exports directly.
 import * as prismaInstrumentation from '@prisma/instrumentation';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, defineIntegration, spanToJSON } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, consoleSandbox, defineIntegration, spanToJSON } from '@sentry/core';
 import { generateInstrumentOnce } from '../../otel/instrument';
+import type { PrismaV5TracingHelper } from './prisma/vendor/v5-tracing-helper';
+import type { PrismaV6TracingHelper } from './prisma/vendor/v6-tracing-helper';
 
 const INTEGRATION_NAME = 'Prisma';
+
+const EsmInteropPrismaInstrumentation: typeof prismaInstrumentation.PrismaInstrumentation =
+  // @ts-expect-error We need to do the following for interop reasons
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  prismaInstrumentation.default?.PrismaInstrumentation || prismaInstrumentation.PrismaInstrumentation;
+
+type CompatibilityLayerTraceHelper = PrismaV5TracingHelper & PrismaV6TracingHelper;
+
+function isPrismaV5TracingHelper(helper: unknown): helper is PrismaV5TracingHelper {
+  return !!helper && typeof helper === 'object' && 'createEngineSpan' in helper;
+}
+
+class SentryPrismaInteropInstrumentation extends EsmInteropPrismaInstrumentation {
+  public constructor() {
+    super();
+  }
+
+  public enable(): void {
+    super.enable();
+
+    // The PrismaIntegration (super class) defines a global variable `global["PRISMA_INSTRUMENTATION"]` when `enable()` is called. This global variable holds a "TracingHelper" which Prisma uses internally to create tracing data. It's their way of not depending on OTEL with their main package. The sucky thing is, prisma broke the interface of the tracing helper with the v6 major update. This means that if you use Prisma 6 with the v5 instrumentation (or vice versa) Prisma just blows up, because tries to call methods on the helper that no longer exist.
+    // Because we actually want to use the v6 instrumentation and not blow up in Prisma 5 user's faces, what we're doing here is backfilling the v5 method (`createEngineSpan`) with a noop so that no longer crashes when it attempts to call that function.
+    // We still won't fully emit all the spans, but this could potentially be implemented in the future.
+    const prismaInstrumentationObject = (globalThis as Record<string, unknown>).PRISMA_INSTRUMENTATION;
+    const prismaTracingHelper =
+      prismaInstrumentationObject &&
+      typeof prismaInstrumentationObject === 'object' &&
+      'helper' in prismaInstrumentationObject
+        ? prismaInstrumentationObject.helper
+        : undefined;
+
+    let emittedWarning = false;
+
+    if (isPrismaV5TracingHelper(prismaTracingHelper)) {
+      (prismaTracingHelper as CompatibilityLayerTraceHelper).dispatchEngineSpans = () => {
+        consoleSandbox(() => {
+          if (!emittedWarning) {
+            emittedWarning = true;
+            // eslint-disable-next-line no-console
+            console.warn(
+              '[Sentry] This version (v8) of the Sentry SDK does not support tracing with Prisma version 6 out of the box. To trace Prisma version 6, pass a `prismaInstrumentation` for version 6 to the Sentry `prismaIntegration`. Read more: https://docs.sentry.io/platforms/javascript/guides/node/configuration/integrations/prisma/',
+            );
+          }
+        });
+      };
+    }
+  }
+}
 
 export const instrumentPrisma = generateInstrumentOnce<{ prismaInstrumentation?: Instrumentation }>(
   INTEGRATION_NAME,
@@ -14,12 +64,7 @@ export const instrumentPrisma = generateInstrumentOnce<{ prismaInstrumentation?:
       return options.prismaInstrumentation;
     }
 
-    const EsmInteropPrismaInstrumentation: typeof prismaInstrumentation.PrismaInstrumentation =
-      // @ts-expect-error We need to do the following for interop reasons
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      prismaInstrumentation.default?.PrismaInstrumentation || prismaInstrumentation.PrismaInstrumentation;
-
-    return new EsmInteropPrismaInstrumentation({});
+    return new SentryPrismaInteropInstrumentation();
   },
 );
 
