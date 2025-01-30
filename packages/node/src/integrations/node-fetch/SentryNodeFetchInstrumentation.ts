@@ -127,6 +127,8 @@ export class SentryNodeFetchInstrumentation extends InstrumentationBase<SentryNo
       return;
     }
 
+    addedHeaders['sentry-trace'] = `${addedHeaders['sentry-trace']}-ZZZZ`;
+
     // We do not want to overwrite existing headers here
     // If the core UndiciInstrumentation is registered, it will already have set the headers
     // We do not want to add any then
