@@ -127,8 +127,6 @@ export class SentryNodeFetchInstrumentation extends InstrumentationBase<SentryNo
       return;
     }
 
-    addedHeaders['sentry-trace'] = `${addedHeaders['sentry-trace']}-ZZZZ`;
-
     // We do not want to overwrite existing headers here
     // If the core UndiciInstrumentation is registered, it will already have set the headers
     // We do not want to add any then
@@ -137,9 +135,9 @@ export class SentryNodeFetchInstrumentation extends InstrumentationBase<SentryNo
       Object.entries(addedHeaders)
         .filter(([k]) => {
           // If the header already exists, we do not want to set it again
-          return !requestHeaders.includes(`${k}:`);
+          return !requestHeaders.includes(k);
         })
-        .forEach(headers => requestHeaders.push(...headers));
+        .forEach(keyValuePair => requestHeaders.push(...keyValuePair));
     } else {
       const requestHeaders = request.headers;
       request.headers += Object.entries(addedHeaders)
