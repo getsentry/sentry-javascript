@@ -25,6 +25,12 @@ export default function Home() {
         <li>
           <A href="/back-navigation">Test back navigation</A>
         </li>
+        <li>
+          <A href="/uncaught-route-error">Test uncaught errors in routes</A>
+        </li>
+        <li>
+          <A href="/server-error-without-instrumentation">Test uncaught errors in server action without instrumentation wrapper</A>
+        </li>
       </ul>
     </>
   );
