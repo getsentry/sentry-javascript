@@ -6,6 +6,7 @@ import {
   addHistoryInstrumentationHandler,
   addXhrInstrumentationHandler,
 } from '@sentry-internal/browser-utils';
+import type { FetchHint, XhrHint } from '@sentry-internal/browser-utils';
 import type {
   Breadcrumb,
   Client,
@@ -36,6 +37,7 @@ import {
   safeJoin,
   severityLevelFromString,
 } from '@sentry/core';
+
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 
@@ -251,17 +253,16 @@ function _getXhrBreadcrumbHandler(client: Client): (handlerData: HandlerDataXhr)
       endTimestamp,
     };
 
-    const level = getBreadcrumbLogLevelFromHttpStatusCode(status_code);
+    const breadcrumb = {
+      category: 'xhr',
+      data,
+      type: 'http',
+      level: getBreadcrumbLogLevelFromHttpStatusCode(status_code),
+    };
 
-    addBreadcrumb(
-      {
-        category: 'xhr',
-        data,
-        type: 'http',
-        level,
-      },
-      hint,
-    );
+    client.emit('beforeOutgoingRequestBreadcrumb', breadcrumb, hint as XhrHint);
+
+    addBreadcrumb(breadcrumb, hint);
   };
 }
 
@@ -292,6 +293,7 @@ function _getFetchBreadcrumbHandler(client: Client): (handlerData: HandlerDataFe
     };
 
     if (handlerData.error) {
+      const data: FetchBreadcrumbData = handlerData.fetchData;
       const hint: FetchBreadcrumbHint = {
         data: handlerData.error,
         input: handlerData.args,
@@ -299,17 +301,22 @@ function _getFetchBreadcrumbHandler(client: Client): (handlerData: HandlerDataFe
         endTimestamp,
       };
 
-      addBreadcrumb(
-        {
-          category: 'fetch',
-          data: breadcrumbData,
-          level: 'error',
-          type: 'http',
-        },
-        hint,
-      );
+      const breadcrumb = {
+        category: 'fetch',
+        data,
+        level: 'error',
+        type: 'http',
+      } satisfies Breadcrumb;
+
+      client.emit('beforeOutgoingRequestBreadcrumb', breadcrumb, hint as FetchHint);
+
+      addBreadcrumb(breadcrumb, hint);
     } else {
       const response = handlerData.response as Response | undefined;
+      const data: FetchBreadcrumbData = {
+        ...handlerData.fetchData,
+        status_code: response?.status,
+      };
 
       breadcrumbData.request_body_size = handlerData.fetchData.request_body_size;
       breadcrumbData.response_body_size = handlerData.fetchData.response_body_size;
@@ -321,17 +328,17 @@ function _getFetchBreadcrumbHandler(client: Client): (handlerData: HandlerDataFe
         startTimestamp,
         endTimestamp,
       };
-      const level = getBreadcrumbLogLevelFromHttpStatusCode(breadcrumbData.status_code);
 
-      addBreadcrumb(
-        {
-          category: 'fetch',
-          data: breadcrumbData,
-          type: 'http',
-          level,
-        },
-        hint,
-      );
+      const breadcrumb = {
+        category: 'fetch',
+        data,
+        type: 'http',
+        level: getBreadcrumbLogLevelFromHttpStatusCode(data.status_code),
+      };
+
+      client.emit('beforeOutgoingRequestBreadcrumb', breadcrumb, hint as FetchHint);
+
+      addBreadcrumb(breadcrumb, hint);
     }
   };
 }

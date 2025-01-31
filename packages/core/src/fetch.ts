@@ -1,7 +1,8 @@
+import { getClient } from './currentScopes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from './semanticAttributes';
 import { SPAN_STATUS_ERROR, setHttpStatus, startInactiveSpan } from './tracing';
 import { SentryNonRecordingSpan } from './tracing/sentryNonRecordingSpan';
-import type { HandlerDataFetch, Span, SpanOrigin } from './types-hoist';
+import type { FetchBreadcrumbHint, HandlerDataFetch, Span, SpanOrigin } from './types-hoist';
 import { SENTRY_BAGGAGE_KEY_PREFIX } from './utils-hoist/baggage';
 import { isInstanceOf } from './utils-hoist/is';
 import { parseUrl } from './utils-hoist/url';
@@ -94,6 +95,19 @@ export function instrumentFetchRequest(
       handlerData.args[1] = options;
       options.headers = headers;
     }
+  }
+
+  const client = getClient();
+
+  if (client) {
+    const fetchHint = {
+      input: handlerData.args,
+      response: handlerData.response,
+      startTimestamp: handlerData.startTimestamp,
+      endTimestamp: handlerData.endTimestamp,
+    } satisfies FetchBreadcrumbHint;
+
+    client.emit('beforeOutgoingRequestSpan', span, fetchHint);
   }
 
   return span;

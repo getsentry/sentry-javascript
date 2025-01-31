@@ -56,9 +56,9 @@
     "clean": "rimraf build coverage sentry-internal-browser-utils-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
-    "test:unit": "jest",
-    "test": "jest",
-    "test:watch": "jest --watch",
+    "test:unit": "vitest run",
+    "test": "vitest run",
+    "test:watch": "vitest --watch",
     "yalc:publish": "yalc publish --push --sig"
   },
   "volta": {

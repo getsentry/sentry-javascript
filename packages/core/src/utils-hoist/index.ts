@@ -38,6 +38,8 @@ export {
 } from './is';
 export { isBrowser } from './isBrowser';
 export { CONSOLE_LEVELS, consoleSandbox, logger, originalConsoleMethods } from './logger';
+export type { Logger } from './logger';
+
 export {
   addContextToFrame,
   addExceptionMechanism,

@@ -94,7 +94,7 @@ export interface FetchBreadcrumbHint {
   data?: unknown;
   response?: unknown;
   startTimestamp: number;
-  endTimestamp: number;
+  endTimestamp?: number;
 }
 
 export interface XhrBreadcrumbHint {

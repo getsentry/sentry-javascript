@@ -1,15 +1,9 @@
+import type { NetworkMetaWarning } from '@sentry-internal/browser-utils';
+
 type JsonObject = Record<string, unknown>;
 type JsonArray = unknown[];
 
 export type NetworkBody = JsonObject | JsonArray | string;
-
-export type NetworkMetaWarning =
-  | 'MAYBE_JSON_TRUNCATED'
-  | 'TEXT_TRUNCATED'
-  | 'URL_SKIPPED'
-  | 'BODY_PARSE_ERROR'
-  | 'BODY_PARSE_TIMEOUT'
-  | 'UNPARSEABLE_BODY_TYPE';
 
 interface NetworkMeta {
   warnings?: NetworkMetaWarning[];
