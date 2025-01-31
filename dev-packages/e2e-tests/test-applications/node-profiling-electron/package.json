@@ -19,6 +19,6 @@
     "extends": "../../package.json"
   },
   "sentryTest": {
-    "optional": true
+    "skip": true
   }
 }
