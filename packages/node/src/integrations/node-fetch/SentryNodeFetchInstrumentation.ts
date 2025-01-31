@@ -162,13 +162,14 @@ export class SentryNodeFetchInstrumentation extends InstrumentationBase<SentryNo
       }
 
       // For baggage, we make sure to merge this into a possibly existing header
-      const existingBaggage = request.headers.match(/baggage: (.*)\r\n/)?.[1];
+      const baggageHeaderRegex = /baggage: (.*)\r\n/;
+      const existingBaggage = request.headers.match(baggageHeaderRegex)?.[1];
       if (baggage && !existingBaggage) {
         request.headers += `${SENTRY_BAGGAGE_HEADER}: ${baggage}\r\n`;
       } else if (baggage) {
         const merged = mergeBaggageHeaders(existingBaggage, baggage);
         if (merged) {
-          request.headers = request.headers.replace(/baggage: (.*)\r\n/, `baggage: ${merged}\r\n`);
+          request.headers = request.headers.replace(baggageHeaderRegex, `baggage: ${merged}\r\n`);
         }
       }
     }
