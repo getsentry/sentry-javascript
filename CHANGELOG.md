@@ -13,7 +13,7 @@
 ## 8.53.0
 
 - feat(v8/nuxt): Add `url` to `SourcemapsUploadOptions` (#15202)
-- fix(v8/react): From location can be undefined in Tanstack Router Instrumentation (#15237)
+- fix(v8/react): `fromLocation` can be undefined in Tanstack Router Instrumentation (#15237)
 
 Work in this release was contributed by @tannerlinsley. Thank you for your contribution!
 
