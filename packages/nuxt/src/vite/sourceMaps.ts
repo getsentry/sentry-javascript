@@ -91,6 +91,7 @@ export function getPluginOptions(
     project: sourceMapsUploadOptions.project ?? process.env.SENTRY_PROJECT,
     authToken: sourceMapsUploadOptions.authToken ?? process.env.SENTRY_AUTH_TOKEN,
     telemetry: sourceMapsUploadOptions.telemetry ?? true,
+    url: sourceMapsUploadOptions.url ?? process.env.SENTRY_URL,
     debug: moduleOptions.debug ?? false,
     _metaOptions: {
       telemetry: {
