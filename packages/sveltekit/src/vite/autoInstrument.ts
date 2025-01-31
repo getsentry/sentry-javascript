@@ -3,8 +3,7 @@ import * as path from 'path';
 import type { ExportNamedDeclaration } from '@babel/types';
 import { parseModule } from 'magicast';
 import type { Plugin } from 'vite';
-
-export const WRAPPED_MODULE_SUFFIX = '?sentry-auto-wrap';
+import { WRAPPED_MODULE_SUFFIX } from '../common/utils';
 
 export type AutoInstrumentSelection = {
   /**
