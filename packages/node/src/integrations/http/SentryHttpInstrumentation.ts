@@ -604,9 +604,9 @@ function getAbsoluteUrl(origin: string, path: string = '/'): string {
 }
 
 function mergeBaggageHeaders(
-  existing: string | string[] | number | null | undefined | boolean,
+  existing: string | string[] | number | undefined,
   baggage: string,
-): string | undefined {
+): string | string[] | number | undefined {
   if (!existing) {
     return baggage;
   }
@@ -614,8 +614,17 @@ function mergeBaggageHeaders(
   const existingBaggageEntries = parseBaggageHeader(existing);
   const newBaggageEntries = parseBaggageHeader(baggage);
 
-  // Existing entries take precedence
-  const mergedBaggageEntries = { ...newBaggageEntries, ...existingBaggageEntries };
+  if (!newBaggageEntries) {
+    return existing;
+  }
+
+  // Existing entries take precedence, ensuring order remains stable for minimal changes
+  const mergedBaggageEntries = { ...existingBaggageEntries };
+  Object.entries(newBaggageEntries).forEach(([key, value]) => {
+    if (!mergedBaggageEntries[key]) {
+      mergedBaggageEntries[key] = value;
+    }
+  });
 
   return objectToBaggageHeader(mergedBaggageEntries);
 }
