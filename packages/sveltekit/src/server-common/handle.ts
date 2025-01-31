@@ -3,7 +3,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   continueTrace,
-  getActiveSpan,
   getCurrentScope,
   getDefaultIsolationScope,
   getIsolationScope,
@@ -130,7 +129,11 @@ async function instrumentHandle(
       },
       async (span?: Span) => {
         getCurrentScope().setSDKProcessingMetadata({
-          normalizedRequest: winterCGRequestToRequestData(event.request.clone()),
+          // We specifically avoid cloning the request here to avoid double read errors.
+          // We only read request headers so we're not consuming the body anyway.
+          // Note to future readers: This sounds counter-intuitive but please read
+          // https://github.com/getsentry/sentry-javascript/issues/14583
+          normalizedRequest: winterCGRequestToRequestData(event.request),
         });
         const res = await resolve(event, {
           transformPageChunk: addSentryCodeToPage({ injectFetchProxyScript: options.injectFetchProxyScript ?? true }),
@@ -173,23 +176,17 @@ export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
   };
 
   const sentryRequestHandler: Handle = input => {
-    // event.isSubRequest was added in SvelteKit 1.21.0 and we can use it to check
-    // if we should create a new execution context or not.
+    // Escape hatch to suppress request isolation and trace continuation (see initCloudflareSentryHandle)
+    const skipIsolation =
+      '_sentrySkipRequestIsolation' in input.event.locals && input.event.locals._sentrySkipRequestIsolation;
+
     // In case of a same-origin `fetch` call within a server`load` function,
     // SvelteKit will actually just re-enter the `handle` function and set `isSubRequest`
     // to `true` so that no additional network call is made.
     // We want the `http.server` span of that nested call to be a child span of the
     // currently active span instead of a new root span to correctly reflect this
     // behavior.
-    // As a fallback for Kit < 1.21.0, we check if there is an active span only if there's none,
-    // we create a new execution context.
-    const isSubRequest = typeof input.event.isSubRequest === 'boolean' ? input.event.isSubRequest : !!getActiveSpan();
-
-    // Escape hatch to suppress request isolation and trace continuation (see initCloudflareSentryHandle)
-    const skipIsolation =
-      '_sentrySkipRequestIsolation' in input.event.locals && input.event.locals._sentrySkipRequestIsolation;
-
-    if (isSubRequest || skipIsolation) {
+    if (skipIsolation || input.event.isSubRequest) {
       return instrumentHandle(input, options);
     }
 
@@ -197,7 +194,11 @@ export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
       // We only call continueTrace in the initial top level request to avoid
       // creating a new root span for the sub request.
       isolationScope.setSDKProcessingMetadata({
-        normalizedRequest: winterCGRequestToRequestData(input.event.request.clone()),
+        // We specifically avoid cloning the request here to avoid double read errors.
+        // We only read request headers so we're not consuming the body anyway.
+        // Note to future readers: This sounds counter-intuitive but please read
+        // https://github.com/getsentry/sentry-javascript/issues/14583
+        normalizedRequest: winterCGRequestToRequestData(input.event.request),
       });
       return continueTrace(getTracePropagationData(input.event), () => instrumentHandle(input, options));
     });
