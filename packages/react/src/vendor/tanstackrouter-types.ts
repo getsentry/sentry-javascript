@@ -46,7 +46,7 @@ export interface VendoredTanstackRouter {
     eventType: 'onResolved' | 'onBeforeNavigate',
     callback: (stateUpdate: {
       toLocation: VendoredTanstackRouterLocation;
-      fromLocation: VendoredTanstackRouterLocation;
+      fromLocation?: VendoredTanstackRouterLocation;
     }) => void,
   ): () => void;
 }
