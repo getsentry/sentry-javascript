@@ -11,7 +11,7 @@
 export { handleErrorWithSentry } from '../server-common/handleError';
 export { wrapLoadWithSentry, wrapServerLoadWithSentry } from '../server-common/load';
 export { sentryHandle } from '../server-common/handle';
-export { initCloudflareSentryHandle } from './handle';
+export { initCloudflareSentryHandle } from './cloudflare';
 export { wrapServerRouteWithSentry } from '../server-common/serverRoute';
 
 // Re-export some functions from Cloudflare SDK
