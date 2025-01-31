@@ -24,8 +24,8 @@ interface GraphQLRequestPayload {
 }
 
 interface GraphQLOperation {
-  operationType: string | undefined;
-  operationName: string | undefined;
+  operationType?: string;
+  operationName?: string;
 }
 
 const INTEGRATION_NAME = 'GraphQLClient';
@@ -144,14 +144,22 @@ export function getRequestPayloadXhrOrFetch(hint: XhrHint | FetchHint): string |
  * Exported for tests only.
  */
 export function parseGraphQLQuery(query: string): GraphQLOperation {
-  const queryRe = /^(?:\s*)(query|mutation|subscription)(?:\s*)(\w+)(?:\s*)[{(]/;
+  const namedQueryRe = /^(?:\s*)(query|mutation|subscription)(?:\s*)(\w+)(?:\s*)[{(]/;
+  const unnamedQueryRe = /^(?:\s*)(query|mutation|subscription)(?:\s*)[{(]/;
 
-  const matched = query.match(queryRe);
-
-  if (matched) {
+  const namedMatch = query.match(namedQueryRe);
+  if (namedMatch) {
     return {
-      operationType: matched[1],
-      operationName: matched[2],
+      operationType: namedMatch[1],
+      operationName: namedMatch[2],
+    };
+  }
+
+  const unnamedMatch = query.match(unnamedQueryRe);
+  if (unnamedMatch) {
+    return {
+      operationType: unnamedMatch[1],
+      operationName: undefined,
     };
   }
   return {
