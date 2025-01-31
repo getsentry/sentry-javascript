@@ -495,7 +495,7 @@ function addSentryHeadersToRequestOptions(
 
   Object.entries(addedHeaders).forEach(([k, v]) => {
     // We do not want to overwrite existing headers here
-    // If the core UndiciInstrumentation is registered, it will already have set the headers
+    // If the core HttpInstrumentation is registered, it will already have set the headers
     // We do not want to add any then
     if (!headers[k]) {
       headers[k] = v;
