@@ -13,7 +13,7 @@ type SourceMapsOptions = {
    *
    * @default false
    */
-  silent?: SentryVitePluginOptions['silent'];
+  silent?: boolean;
 
   /**
    * When an error occurs during release creation or sourcemaps upload, the plugin will call this function.
@@ -30,14 +30,27 @@ type SourceMapsOptions = {
    * }
    * ```
    */
-  errorHandler?: SentryVitePluginOptions['errorHandler'];
+  errorHandler?: (err: Error) => void;
 
   /**
    * Options related to managing the Sentry releases for a build.
    *
    * More info: https://docs.sentry.io/product/releases/
    */
-  release?: SentryVitePluginOptions['release'];
+  release?: {
+    /**
+     * Unique identifier for the release you want to create.
+     *
+     * This value can also be specified via the `SENTRY_RELEASE` environment variable.
+     *
+     * Defaults to automatically detecting a value for your environment.
+     * This includes values for Cordova, Heroku, AWS CodeBuild, CircleCI, Xcode, and Gradle, and otherwise uses the git `HEAD`'s commit SHA.
+     * (the latter requires access to git CLI and for the root directory to be a valid repository)
+     *
+     * If you didn't provide a value and the plugin can't automatically detect one, no release will be created.
+     */
+    name?: string;
+  };
 
   /**
    * If this flag is `true`, and an auth token is detected, the Sentry SDK will

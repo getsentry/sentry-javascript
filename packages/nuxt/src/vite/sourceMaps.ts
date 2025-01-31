@@ -95,7 +95,9 @@ export function getPluginOptions(
     debug: moduleOptions.debug ?? false,
     silent: sourceMapsUploadOptions.silent ?? false,
     errorHandler: sourceMapsUploadOptions.errorHandler,
-    release: sourceMapsUploadOptions.release,
+    release: {
+      name: sourceMapsUploadOptions.release?.name,
+    },
     _metaOptions: {
       telemetry: {
         metaFramework: 'nuxt',
