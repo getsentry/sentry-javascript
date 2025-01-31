@@ -2,8 +2,8 @@ import { type CloudflareOptions, wrapRequestHandler } from '@sentry/cloudflare';
 import { getDefaultIntegrations as getDefaultCloudflareIntegrations } from '@sentry/cloudflare';
 import type { Handle } from '@sveltejs/kit';
 
-import { rewriteFramesIntegration } from '../server-common/rewriteFramesIntegration';
 import { addNonEnumerableProperty } from '@sentry/core';
+import { rewriteFramesIntegration } from '../server-common/rewriteFramesIntegration';
 
 /** Initializes Sentry SvelteKit Cloudflare SDK
  *  This should be before the sentryHandle() call.
