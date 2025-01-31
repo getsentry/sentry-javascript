@@ -104,7 +104,7 @@ export function instrumentFetchRequest(
       input: handlerData.args,
       response: handlerData.response,
       startTimestamp: handlerData.startTimestamp,
-      endTimestamp: handlerData.endTimestamp ?? Date.now(),
+      endTimestamp: handlerData.endTimestamp,
     } satisfies FetchBreadcrumbHint;
 
     client.emit('beforeOutgoingRequestSpan', span, fetchHint);

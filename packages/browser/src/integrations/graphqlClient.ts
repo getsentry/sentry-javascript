@@ -119,7 +119,7 @@ function _getGraphQLOperation(requestBody: GraphQLRequestPayload): string {
 
 /**
  * Get the request body/payload based on the shape of the hint.
- * 
+ *
  * Exported for tests only.
  */
 export function getRequestPayloadXhrOrFetch(hint: XhrHint | FetchHint): string | undefined {
@@ -140,7 +140,7 @@ export function getRequestPayloadXhrOrFetch(hint: XhrHint | FetchHint): string |
 
 /**
  * Extract the name and type of the operation from the GraphQL query.
- * 
+ *
  * Exported for tests only.
  */
 export function parseGraphQLQuery(query: string): GraphQLOperation {
