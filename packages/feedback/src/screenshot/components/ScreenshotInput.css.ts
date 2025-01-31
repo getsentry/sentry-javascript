@@ -11,11 +11,17 @@ export function createScreenshotInputStyles(styleNonce?: string): HTMLStyleEleme
 
   style.textContent = `
 .editor {
+  display: flex;
+  flex-grow: 1;
+  flex-direction: column;
+}
+.editor__image-container {
   padding: 10px;
   padding-top: 65px;
   padding-bottom: 65px;
-  flex-grow: 1;
   position: relative;
+  height: 100%;
+  border-radius: var(--menu-border-radius, 6px);
 
   background-color: ${surface200};
   background-image: repeating-linear-gradient(
@@ -90,13 +96,16 @@ export function createScreenshotInputStyles(styleNonce?: string): HTMLStyleEleme
   border-top: none;
 }
 .editor__tool-container {
-  position: absolute;
-  padding: 10px 0px;
-  top: 0;
+  padding-top: 10px;
+  display: flex;
+  justify-content: space-between;
 }
-.editor__pen-tool {
+.editor__tool-bar {
   height: 30px;
   display: flex;
+    gap: 8px;
+}
+.editor__tool {
   justify-content: center;
   align-items: center;
   border: var(--button-border, var(--border));
