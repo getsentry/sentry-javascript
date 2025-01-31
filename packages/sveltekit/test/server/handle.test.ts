@@ -99,6 +99,7 @@ beforeEach(() => {
   client.init();
 
   mockCaptureException.mockClear();
+  vi.clearAllMocks();
 });
 
 describe('sentryHandle', () => {
@@ -366,6 +367,23 @@ describe('sentryHandle', () => {
       }
 
       expect(_span!).toBeDefined();
+    });
+
+    it("doesn't create an isolation scope when the `_sentrySkipRequestIsolation` local is set", async () => {
+      const withIsolationScopeSpy = vi.spyOn(SentryCore, 'withIsolationScope');
+      const continueTraceSpy = vi.spyOn(SentryCore, 'continueTrace');
+
+      try {
+        await sentryHandle({ handleUnknownRoutes: true })({
+          event: { ...mockEvent({ route: undefined }), locals: { _sentrySkipRequestIsolation: true } },
+          resolve: resolve(type, isError),
+        });
+      } catch {
+        //
+      }
+
+      expect(withIsolationScopeSpy).not.toHaveBeenCalled();
+      expect(continueTraceSpy).not.toHaveBeenCalled();
     });
   });
 });

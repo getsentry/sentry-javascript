@@ -73,6 +73,22 @@ export function addSentryCodeToPage(options: { injectFetchProxyScript: boolean }
   };
 }
 
+/**
+ * We only need to inject the fetch proxy script for SvelteKit versions < 2.16.0.
+ * Exported only for testing.
+ */
+export function isFetchProxyRequired(version: string): boolean {
+  try {
+    const [major, minor] = version.trim().replace(/-.*/, '').split('.').map(Number);
+    if (major != null && minor != null && (major > 2 || (major === 2 && minor >= 16))) {
+      return false;
+    }
+  } catch {
+    // ignore
+  }
+  return true;
+}
+
 async function instrumentHandle(
   { event, resolve }: Parameters<Handle>[0],
   options: SentryHandleOptions,
@@ -135,22 +151,6 @@ async function instrumentHandle(
 }
 
 /**
- * We only need to inject the fetch proxy script for SvelteKit versions < 2.16.0.
- * Exported only for testing.
- */
-export function isFetchProxyRequired(version: string): boolean {
-  try {
-    const [major, minor] = version.trim().replace(/-.*/, '').split('.').map(Number);
-    if (major != null && minor != null && (major > 2 || (major === 2 && minor >= 16))) {
-      return false;
-    }
-  } catch {
-    // ignore
-  }
-  return true;
-}
-
-/**
  * A SvelteKit handle function that wraps the request for Sentry error and
  * performance monitoring.
  *
@@ -166,10 +166,10 @@ export function isFetchProxyRequired(version: string): boolean {
  * ```
  */
 export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
+  const { handleUnknownRoutes, ...rest } = handlerOptions ?? {};
   const options = {
-    handleUnknownRoutes: false,
-    injectFetchProxyScript: true,
-    ...handlerOptions,
+    handleUnknownRoutes: handleUnknownRoutes ?? false,
+    ...rest,
   };
 
   const sentryRequestHandler: Handle = input => {
@@ -185,7 +185,11 @@ export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
     // we create a new execution context.
     const isSubRequest = typeof input.event.isSubRequest === 'boolean' ? input.event.isSubRequest : !!getActiveSpan();
 
-    if (isSubRequest) {
+    // Escape hatch to suppress request isolation and trace continuation (see initCloudflareSentryHandle)
+    const skipIsolation =
+      '_sentrySkipRequestIsolation' in input.event.locals && input.event.locals._sentrySkipRequestIsolation;
+
+    if (isSubRequest || skipIsolation) {
       return instrumentHandle(input, options);
     }
 
