@@ -32,12 +32,11 @@ describe('GraphqlClient', () => {
           }
       }`;
 
-    // TODO: support name-less queries
-    //   const queryFour = `   query   {
-    //     items {
-    //         id
-    //         }
-    //     }`;
+    const queryFour = `query  {
+      items {
+          id
+          }
+      }`;
 
     test.each([
       ['should handle query type', queryOne, { operationName: 'Test', operationType: 'query' }],
@@ -47,7 +46,7 @@ describe('GraphqlClient', () => {
         queryThree,
         { operationName: 'OnTestItemAdded', operationType: 'subscription' },
       ],
-      // TODO: ['should handle query without name', queryFour, { operationName: undefined, operationType: 'query' }],
+      ['should handle query without name', queryFour, { operationName: undefined, operationType: 'query' }],
     ])('%s', (_, input, output) => {
       expect(parseGraphQLQuery(input)).toEqual(output);
     });
@@ -64,6 +63,7 @@ describe('GraphqlClient', () => {
         query: 'query Test {\r\n  items {\r\n    id\r\n   }\r\n }',
         operationName: 'Test',
         variables: {},
+        extensions: {},
       };
 
       expect(getGraphQLRequestPayload(JSON.stringify(requestBody))).toEqual(requestBody);
