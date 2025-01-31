@@ -3,12 +3,13 @@ import { getDefaultIntegrations as getDefaultCloudflareIntegrations } from '@sen
 import type { Handle } from '@sveltejs/kit';
 
 import { rewriteFramesIntegration } from '../server-common/rewriteFramesIntegration';
+import { addNonEnumerableProperty } from '@sentry/core';
 
 /** Initializes Sentry SvelteKit Cloudflare SDK
  *  This should be before the sentryHandle() call.
  *
- *  In Node.js, this is a stub that does nothing.
- * */
+ *  In the Node export, this is a stub that does nothing.
+ */
 export function initCloudflareSentryHandle(options: CloudflareOptions): Handle {
   const opts: CloudflareOptions = {
     defaultIntegrations: [...getDefaultCloudflareIntegrations(options), rewriteFramesIntegration()],
@@ -17,17 +18,24 @@ export function initCloudflareSentryHandle(options: CloudflareOptions): Handle {
 
   const handleInitSentry: Handle = ({ event, resolve }) => {
     // if event.platform exists (should be there in a cloudflare worker), then do the cloudflare sentry init
-    return event.platform
-      ? wrapRequestHandler(
-          {
-            options: opts,
-            request: event.request,
-            // @ts-expect-error This will exist in Cloudflare
-            context: event.platform.context,
-          },
-          () => resolve(event),
-        )
-      : resolve(event);
+    if (event.platform) {
+      // This is an optional local that the `sentryHandle` handler checks for to avoid double isolation
+      // In Cloudflare the `wrapRequestHandler` function already takes care of
+      // - request isolation
+      // - trace continuation
+      // -setting the request onto the scope
+      addNonEnumerableProperty(event.locals, '_sentrySkipRequestIsolation', true);
+      return wrapRequestHandler(
+        {
+          options: opts,
+          request: event.request,
+          // @ts-expect-error This will exist in Cloudflare
+          context: event.platform.context,
+        },
+        () => resolve(event),
+      );
+    }
+    return resolve(event);
   };
 
   return handleInitSentry;
