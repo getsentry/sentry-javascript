@@ -10,6 +10,13 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.53.0
+
+- feat(v8/nuxt): Add `url` to `SourcemapsUploadOptions` (#15202)
+- fix(v8/react): From location can be undefined in Tanstack Router Instrumentation (#15237)
+
+Work in this release was contributed by @tannerlinsley. Thank you for your contribution!
+
 ## 8.52.1
 
 - fix(v8/nextjs): Fix nextjs build warning (#15226)
