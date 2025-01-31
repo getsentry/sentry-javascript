@@ -1,12 +1,17 @@
-/* eslint-disable max-lines */
 import type * as http from 'node:http';
 import type { IncomingMessage, RequestOptions } from 'node:http';
 import type * as https from 'node:https';
 import type { EventEmitter } from 'node:stream';
+/* eslint-disable max-lines */
 import { VERSION } from '@opentelemetry/core';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
-import type { AggregationCounts, Client, RequestEventData, SanitizedRequestData, Scope } from '@sentry/core';
+import type {
+  AggregationCounts,
+  Client,
+  RequestEventData,
+  SanitizedRequestData,
+  Scope} from '@sentry/core';
 import {
   LRUMap,
   addBreadcrumb,
@@ -18,6 +23,8 @@ import {
   getTraceData,
   httpRequestToRequestData,
   logger,
+  objectToBaggageHeader,
+  parseBaggageHeader,
   parseUrl,
   stripUrlQueryAndFragment,
   withIsolationScope,
@@ -493,14 +500,17 @@ function addSentryHeadersToRequestOptions(
   }
   const headers = options.headers;
 
-  Object.entries(addedHeaders).forEach(([k, v]) => {
-    // We do not want to overwrite existing headers here
-    // If the core HttpInstrumentation is registered, it will already have set the headers
-    // We do not want to add any then
-    if (!headers[k]) {
-      headers[k] = v;
-    }
-  });
+  const { 'sentry-trace': sentryTrace, baggage } = addedHeaders;
+
+  // We do not want to overwrite existing header here, if it was already set
+  if (sentryTrace && !headers['sentry-trace']) {
+    headers['sentry-trace'] = sentryTrace;
+  }
+
+  // For baggage, we make sure to merge this into a possibly existing header
+  if (baggage) {
+    headers['baggage'] = mergeBaggageHeaders(headers['baggage'], baggage);
+  }
 }
 
 /**
@@ -596,4 +606,21 @@ function getAbsoluteUrl(origin: string, path: string = '/'): string {
 
     return `${url}${path}`;
   }
+}
+
+function mergeBaggageHeaders(
+  existing: string | string[] | number | null | undefined | boolean,
+  baggage: string,
+): string | undefined {
+  if (!existing) {
+    return baggage;
+  }
+
+  const existingBaggageEntries = parseBaggageHeader(existing);
+  const newBaggageEntries = parseBaggageHeader(baggage);
+
+  // Existing entries take precedence
+  const mergedBaggageEntries = { ...newBaggageEntries, ...existingBaggageEntries };
+
+  return objectToBaggageHeader(mergedBaggageEntries);
 }
