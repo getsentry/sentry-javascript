@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "clean": "npx rimraf node_modules dist",
-    "test:build": "node build-cjs.mjs && $(pnpm bin)/electron-rebuild",
+    "test:build": "pnpm install && $(pnpm bin)/electron-rebuild",
     "test:assert": "playwright test"
   },
   "dependencies": {
@@ -13,8 +13,7 @@
     "@sentry/electron": "latest || *",
     "@sentry/node": "latest || *",
     "@sentry/profiling-node": "latest || *",
-    "electron": "^33.2.0",
-    "esbuild": "0.20.0"
+    "electron": "^33.2.0"
   },
   "volta": {
     "extends": "../../package.json"
