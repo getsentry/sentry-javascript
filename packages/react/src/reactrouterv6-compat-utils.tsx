@@ -22,8 +22,8 @@ import {
 } from '@sentry/core';
 import * as React from 'react';
 
-import { hoistNonReactStatics } from './hoist-non-react-statics';
 import { DEBUG_BUILD } from './debug-build';
+import { hoistNonReactStatics } from './hoist-non-react-statics';
 import type {
   Action,
   AgnosticDataRouteMatch,
