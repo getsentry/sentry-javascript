@@ -6,7 +6,7 @@ import { init as initNodeSdk } from '@sentry/node';
 import { rewriteFramesIntegration } from '../server-common/rewriteFramesIntegration';
 
 /**
- *
+ * Initialize the Server-side Sentry SDK
  * @param options
  */
 export function init(options: NodeOptions): NodeClient | undefined {
