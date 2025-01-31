@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "clean": "npx rimraf node_modules dist",
-    "test:build": "pnpm install && $(pnpm bin)/electron-rebuild",
-    "test:assert": "playwright test"
+    "test:build": "pnpm install",
+    "test:assert": "$(pnpm bin)/electron-rebuild && pnpm run playwright test"
   },
   "dependencies": {
     "@electron/rebuild": "^3.7.0",
