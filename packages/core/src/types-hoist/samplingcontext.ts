@@ -12,7 +12,7 @@ export interface CustomSamplingContext {
 /**
  * Data passed to the `tracesSampler` function, which forms the basis for whatever decisions it might make.
  *
- * Adds default data to data provided by the user. See {@link Hub.startTransaction}
+ * Adds default data to data provided by the user.
  */
 export interface SamplingContext extends CustomSamplingContext {
   /**

@@ -33,6 +33,13 @@ type SourceMapsOptions = {
   org?: string;
 
   /**
+   * The URL of your Sentry instance if you're using self-hosted Sentry.
+   *
+   * @default https://sentry.io by default the plugin will point towards the Sentry SaaS URL
+   */
+  url?: string;
+
+  /**
    * The project slug of your Sentry project.
    * Instead of specifying this option, you can also set the `SENTRY_PROJECT` environment variable.
    */

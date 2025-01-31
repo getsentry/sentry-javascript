@@ -73,7 +73,6 @@ import type {
   HandlerDataUnhandledRejection as HandlerDataUnhandledRejection_imported,
   HandlerDataXhr as HandlerDataXhr_imported,
   HttpHeaderValue as HttpHeaderValue_imported,
-  Hub as Hub_imported,
   InProgressCheckIn as InProgressCheckIn_imported,
   InformationUnit as InformationUnit_imported,
   Integration as Integration_imported,
@@ -298,9 +297,6 @@ export type Exception = Exception_imported;
 export type Extra = Extra_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type Extras = Extras_imported;
-/** @deprecated This type has been moved to `@sentry/core`. */
-// eslint-disable-next-line deprecation/deprecation
-export type Hub = Hub_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type Integration = Integration_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */

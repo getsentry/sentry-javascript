@@ -70,11 +70,9 @@ sentryTest(
         'sentry.exclusive_time': inpValue,
         'sentry.op': 'ui.interaction.click',
         'sentry.origin': 'auto.http.browser.inp',
-        'sentry.sample_rate': 1,
         'sentry.source': 'custom',
         transaction: 'test-route',
         'user_agent.original': expect.stringContaining('Chrome'),
-        'client.address': '{{auto}}',
       },
       measurements: {
         inp: {

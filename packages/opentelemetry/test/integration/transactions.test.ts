@@ -374,7 +374,6 @@ describe('Integration | Transactions', () => {
               'sentry.op': 'test op',
               'sentry.origin': 'auto.test',
               'sentry.source': 'task',
-              'sentry.sample_rate': 1,
             },
             op: 'test op',
             span_id: expect.stringMatching(/[a-f0-9]{16}/),

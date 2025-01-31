@@ -56,7 +56,7 @@ export async function lazyLoadIntegration(
   const script = WINDOW.document.createElement('script');
   script.src = url;
   script.crossOrigin = 'anonymous';
-  script.referrerPolicy = 'origin';
+  script.referrerPolicy = 'strict-origin';
 
   if (scriptNonce) {
     script.setAttribute('nonce', scriptNonce);

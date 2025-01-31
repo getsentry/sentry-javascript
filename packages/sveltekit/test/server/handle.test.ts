@@ -14,7 +14,7 @@ import type { Handle } from '@sveltejs/kit';
 import { redirect } from '@sveltejs/kit';
 import { vi } from 'vitest';
 
-import { FETCH_PROXY_SCRIPT, addSentryCodeToPage, sentryHandle } from '../../src/server/handle';
+import { FETCH_PROXY_SCRIPT, addSentryCodeToPage, isFetchProxyRequired, sentryHandle } from '../../src/server/handle';
 import { getDefaultNodeClientOptions } from '../utils';
 
 const mockCaptureException = vi.spyOn(SentryNode, 'captureException').mockImplementation(() => 'xx');
@@ -432,36 +432,24 @@ describe('addSentryCodeToPage', () => {
   </html>`;
 
   it("Adds add meta tags and fetch proxy script if there's no active transaction", () => {
-    const transformPageChunk = addSentryCodeToPage({});
+    const transformPageChunk = addSentryCodeToPage({ injectFetchProxyScript: true });
     const transformed = transformPageChunk({ html, done: true });
 
     expect(transformed).toContain('<meta name="sentry-trace"');
     expect(transformed).toContain('<meta name="baggage"');
     expect(transformed).not.toContain('sentry-transaction=');
-    expect(transformed).toContain(`<script >${FETCH_PROXY_SCRIPT}</script>`);
+    expect(transformed).toContain(`<script>${FETCH_PROXY_SCRIPT}</script>`);
   });
 
   it('adds meta tags and the fetch proxy script if there is an active transaction', () => {
-    const transformPageChunk = addSentryCodeToPage({});
+    const transformPageChunk = addSentryCodeToPage({ injectFetchProxyScript: true });
     SentryNode.startSpan({ name: 'test' }, () => {
       const transformed = transformPageChunk({ html, done: true }) as string;
 
       expect(transformed).toContain('<meta name="sentry-trace"');
       expect(transformed).toContain('<meta name="baggage"');
       expect(transformed).toContain('sentry-transaction=test');
-      expect(transformed).toContain(`<script >${FETCH_PROXY_SCRIPT}</script>`);
-    });
-  });
-
-  it('adds a nonce attribute to the script if the `fetchProxyScriptNonce` option is specified', () => {
-    const transformPageChunk = addSentryCodeToPage({ fetchProxyScriptNonce: '123abc' });
-    SentryNode.startSpan({ name: 'test' }, () => {
-      const transformed = transformPageChunk({ html, done: true }) as string;
-
-      expect(transformed).toContain('<meta name="sentry-trace"');
-      expect(transformed).toContain('<meta name="baggage"');
-      expect(transformed).toContain('sentry-transaction=test');
-      expect(transformed).toContain(`<script nonce="123abc">${FETCH_PROXY_SCRIPT}</script>`);
+      expect(transformed).toContain(`<script>${FETCH_PROXY_SCRIPT}</script>`);
     });
   });
 
@@ -472,5 +460,22 @@ describe('addSentryCodeToPage', () => {
     expect(transformed).toContain('<meta name="sentry-trace"');
     expect(transformed).toContain('<meta name="baggage"');
     expect(transformed).not.toContain(`<script >${FETCH_PROXY_SCRIPT}</script>`);
+  });
+});
+
+describe('isFetchProxyRequired', () => {
+  it.each(['2.16.0', '2.16.1', '2.17.0', '3.0.0', '3.0.0-alpha.0'])(
+    'returns false if the version is greater than or equal to 2.16.0 (%s)',
+    version => {
+      expect(isFetchProxyRequired(version)).toBe(false);
+    },
+  );
+
+  it.each(['2.15.0', '2.15.1', '1.30.0', '1.0.0'])('returns true if the version is lower than 2.16.0 (%s)', version => {
+    expect(isFetchProxyRequired(version)).toBe(true);
+  });
+
+  it.each(['invalid', 'a.b.c'])('returns true for an invalid version (%s)', version => {
+    expect(isFetchProxyRequired(version)).toBe(true);
   });
 });

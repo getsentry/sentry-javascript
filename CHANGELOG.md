@@ -10,51 +10,15 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-Work in this release was contributed by @GrizliK1988, @davidturissini, @nwalters512, @aloisklink, @arturovt, @benjick, @maximepvrt, @mstrokin, and @kunal-511. Thank you for your contributions!
+Work in this release was contributed by @tjhiggins, @chris-basebone, @GrizliK1988, @davidturissini, @nwalters512, @aloisklink, @arturovt, @benjick, @maximepvrt, @mstrokin, @kunal-511, @jahands, @jrandolf, @tannerlinsley, @Zen-cronic and @nathankleyn. Thank you for your contributions!
 
-- **feat(solidstart)!: Default to `--import` setup and add `autoInjectServerSentry` ([#14862](https://github.com/getsentry/sentry-javascript/pull/14862))**
+## 9.0.0-alpha.0
 
-To enable the SolidStart SDK, wrap your SolidStart Config with `withSentry`. The `sentrySolidStartVite` plugin is now automatically
-added by `withSentry` and you can pass the Sentry build-time options like this:
+This is an alpha release of the upcoming major release of version 9.
+This release does not yet entail a comprehensive changelog as version 9 is not yet stable.
 
-```js
-import { defineConfig } from '@solidjs/start/config';
-import { withSentry } from '@sentry/solidstart';
-
-export default defineConfig(
-  withSentry(
-    {
-      /* Your SolidStart config options... */
-    },
-    {
-      // Options for setting up source maps
-      org: process.env.SENTRY_ORG,
-      project: process.env.SENTRY_PROJECT,
-      authToken: process.env.SENTRY_AUTH_TOKEN,
-    },
-  ),
-);
-```
-
-With the `withSentry` wrapper, the Sentry server config should not be added to the `public` directory anymore.
-Add the Sentry server config in `src/instrument.server.ts`. Then, the server config will be placed inside the server build output as `instrument.server.mjs`.
-
-Now, there are two options to set up the SDK:
-
-1. **(recommended)** Provide an `--import` CLI flag to the start command like this (path depends on your server setup):
-   `node --import ./.output/server/instrument.server.mjs .output/server/index.mjs`
-2. Add `autoInjectServerSentry: 'top-level-import'` and the Sentry config will be imported at the top of the server entry (comes with tracing limitations)
-   ```js
-   withSentry(
-     {
-       /* Your SolidStart config options... */
-     },
-     {
-       // Optional: Install Sentry with a top-level import
-       autoInjectServerSentry: 'top-level-import',
-     },
-   );
-   ```
+For this release's iteration of the migration guide, see the [Migration Guide as per `9.0.0-alpha.0`](https://github.com/getsentry/sentry-javascript/blob/6e4b593adcc4ce951afa8ae0cda0605ecd226cda/docs/migration/v8-to-v9.md).
+Please note that the migration guide is work in progress and subject to change.
 
 ## 8.45.0
 

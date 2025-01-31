@@ -46,7 +46,13 @@ async function sendAbnormalSession(): Promise<void> {
   // of we have an existing session passed from the main thread, send it as abnormal
   if (session) {
     log('Sending abnormal session');
-    updateSession(session, { status: 'abnormal', abnormal_mechanism: 'anr_foreground' });
+
+    updateSession(session, {
+      status: 'abnormal',
+      abnormal_mechanism: 'anr_foreground',
+      release: options.release,
+      environment: options.environment,
+    });
 
     const envelope = createSessionEnvelope(session, options.dsn, options.sdkMetadata, options.tunnel);
     // Log the envelope so to aid in testing

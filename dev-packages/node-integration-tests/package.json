@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/node-integration-tests",
-  "version": "8.45.0",
+  "version": "9.0.0-alpha.0",
   "license": "MIT",
   "engines": {
     "node": ">=18"
@@ -16,11 +16,12 @@
     "build:types": "tsc -p tsconfig.types.json",
     "clean": "rimraf -g **/node_modules && run-p clean:script",
     "clean:script": "node scripts/clean.js",
-    "prisma:init": "cd suites/tracing/prisma-orm && yarn && yarn setup",
+    "prisma-v5:init": "cd suites/tracing/prisma-orm-v5 && yarn && yarn setup",
+    "prisma-v6:init": "cd suites/tracing/prisma-orm-v6 && yarn && yarn setup",
     "lint": "eslint . --format stylish",
     "fix": "eslint . --format stylish --fix",
     "type-check": "tsc",
-    "pretest": "run-s --silent prisma:init",
+    "pretest": "run-s --silent prisma-v5:init prisma-v6:init",
     "test": "jest --config ./jest.config.js",
     "test:watch": "yarn test --watch"
   },
@@ -30,10 +31,9 @@
     "@nestjs/common": "10.4.6",
     "@nestjs/core": "10.4.6",
     "@nestjs/platform-express": "10.4.6",
-    "@prisma/client": "5.22.0",
-    "@sentry/aws-serverless": "8.45.0",
-    "@sentry/core": "8.45.0",
-    "@sentry/node": "8.45.0",
+    "@sentry/aws-serverless": "9.0.0-alpha.0",
+    "@sentry/core": "9.0.0-alpha.0",
+    "@sentry/node": "9.0.0-alpha.0",
     "@types/mongodb": "^3.6.20",
     "@types/mysql": "^2.15.21",
     "@types/pg": "^8.6.5",

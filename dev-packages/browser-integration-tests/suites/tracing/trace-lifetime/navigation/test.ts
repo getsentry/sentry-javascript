@@ -250,7 +250,7 @@ sentryTest(
     const navigationTraceId = navigationTraceContext?.trace_id;
     expect(headers['sentry-trace']).toMatch(new RegExp(`^${navigationTraceId}-[0-9a-f]{16}-1$`));
     expect(headers['baggage']).toEqual(
-      `sentry-environment=production,sentry-public_key=public,sentry-trace_id=${navigationTraceId},sentry-sample_rate=1,sentry-sampled=true,sentry-sample_rand=${navigationTraceHeader?.sample_rand}`,
+      `sentry-environment=production,sentry-public_key=public,sentry-trace_id=${navigationTraceId},sentry-sampled=true,sentry-sample_rand=${navigationTraceHeader?.sample_rand},sentry-sample_rate=1`,
     );
   },
 );
@@ -313,7 +313,7 @@ sentryTest(
     const navigationTraceId = navigationTraceContext?.trace_id;
     expect(headers['sentry-trace']).toMatch(new RegExp(`^${navigationTraceId}-[0-9a-f]{16}-1$`));
     expect(headers['baggage']).toEqual(
-      `sentry-environment=production,sentry-public_key=public,sentry-trace_id=${navigationTraceId},sentry-sample_rate=1,sentry-sampled=true,sentry-sample_rand=${navigationTraceHeader?.sample_rand}`,
+      `sentry-environment=production,sentry-public_key=public,sentry-trace_id=${navigationTraceId},sentry-sampled=true,sentry-sample_rand=${navigationTraceHeader?.sample_rand},sentry-sample_rate=1`,
     );
   },
 );
