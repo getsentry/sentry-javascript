@@ -7,8 +7,8 @@ import {
   join,
   rewriteFramesIntegration as originalRewriteFramesIntegration,
 } from '@sentry/core';
-import type { GlobalWithSentryValues } from '../vite/injectGlobalValues';
 import { WRAPPED_MODULE_SUFFIX } from '../common/utils';
+import type { GlobalWithSentryValues } from '../vite/injectGlobalValues';
 
 type StackFrameIteratee = (frame: StackFrame) => StackFrame;
 interface RewriteFramesOptions {

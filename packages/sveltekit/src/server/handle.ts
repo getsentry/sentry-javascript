@@ -1,6 +1,6 @@
+import type { CloudflareOptions } from '@sentry/cloudflare';
 import type { Handle } from '@sveltejs/kit';
 import { init } from './sdk';
-import type { CloudflareOptions } from '@sentry/cloudflare';
 
 /**
  * Actual implementation in ../worker/handle.ts
