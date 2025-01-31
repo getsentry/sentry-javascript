@@ -18,7 +18,7 @@
     "clean:script": "node scripts/clean.js",
     "prisma-v5:init": "cd suites/tracing/prisma-orm-v5 && yarn && yarn setup",
     "prisma-v6:init": "cd suites/tracing/prisma-orm-v6 && yarn && yarn setup",
-    "pg-native:rebuild": "yarn add --force pg-native --pure-lockfile",
+    "pg-native:rebuild": "yarn add --force pg-native --frozen-lockfile",
     "lint": "eslint . --format stylish",
     "fix": "eslint . --format stylish --fix",
     "type-check": "tsc",
