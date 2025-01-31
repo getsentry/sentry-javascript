@@ -14,7 +14,7 @@ on:
         default: master
 jobs:
   release:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     name: 'Release a new version'
     steps:
       - name: Get auth token

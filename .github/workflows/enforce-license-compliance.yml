@@ -17,7 +17,7 @@ on:
 
 jobs:
   enforce-license-compliance:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: 'Enforce License Compliance'
         uses: getsentry/action-enforce-license-compliance@main

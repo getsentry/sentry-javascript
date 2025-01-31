@@ -12,7 +12,7 @@ on:
 # This workflow is triggered when a release is published
 jobs:
   release-comment-issues:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     name: 'Notify issues'
     steps:
       - name: Get version
