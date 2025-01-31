@@ -5,7 +5,7 @@
   "scripts": {
     "clean": "npx rimraf node_modules dist",
     "test:build": "pnpm install",
-    "test:assert": "$(pnpm bin)/electron-rebuild && pnpm run playwright test"
+    "test:assert": "$(pnpm bin)/electron-rebuild && pnpm playwright test"
   },
   "dependencies": {
     "@electron/rebuild": "^3.7.0",
