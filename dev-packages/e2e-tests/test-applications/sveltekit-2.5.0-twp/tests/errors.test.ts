@@ -2,11 +2,11 @@ import { expect, test } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
 
 test('errors on frontend and backend are connected by the same trace', async ({ page }) => {
-  const clientErrorPromise = waitForError('sveltekit-2-twp', evt => {
+  const clientErrorPromise = waitForError('sveltekit-2.5.0-twp', evt => {
     return evt.exception?.values?.[0].value === 'Client Error';
   });
 
-  const serverErrorPromise = waitForError('sveltekit-2-twp', evt => {
+  const serverErrorPromise = waitForError('sveltekit-2.5.0-twp', evt => {
     return evt.exception?.values?.[0].value === 'No search query provided';
   });
 

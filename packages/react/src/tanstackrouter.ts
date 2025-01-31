@@ -65,7 +65,7 @@ export function tanstackRouterBrowserTracingIntegration(
         // The onBeforeNavigate hook is called at the very beginning of a navigation and is only called once per navigation, even when the user is redirected
         castRouterInstance.subscribe('onBeforeNavigate', onBeforeNavigateArgs => {
           // onBeforeNavigate is called during pageloads. We can avoid creating navigation spans by comparing the states of the to and from arguments.
-          if (onBeforeNavigateArgs.toLocation.state === onBeforeNavigateArgs.fromLocation.state) {
+          if (onBeforeNavigateArgs.toLocation.state === onBeforeNavigateArgs.fromLocation?.state) {
             return;
           }
 
