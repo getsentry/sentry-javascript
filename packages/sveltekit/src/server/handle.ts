@@ -1,9 +1,24 @@
 import type { Handle } from '@sveltejs/kit';
+import { init } from './sdk';
+import type { CloudflareOptions } from '@sentry/cloudflare';
 
 /**
- * actual implementation in ../worker/handle.ts
- * @return no-op handler when initCLoudflareSentryHandle is called via node/server entry point
+ * Actual implementation in ../worker/handle.ts
+ *
+ * This handler initializes the Sentry Node(!) SDK with the passed options. This is necessary to get
+ * the SDK configured for cloudflare working in dev mode.
+ *
+ * @return version of initCLoudflareSentryHandle that is called via node/server entry point
  */
-export function initCloudflareSentryHandle(_options: unknown): Handle {
-  return ({ event, resolve }) => resolve(event);
+export function initCloudflareSentryHandle(options: CloudflareOptions): Handle {
+  let sentryInitialized = false;
+
+  return ({ event, resolve }) => {
+    if (!sentryInitialized) {
+      sentryInitialized = true;
+      init(options);
+    }
+
+    return resolve(event);
+  };
 }
