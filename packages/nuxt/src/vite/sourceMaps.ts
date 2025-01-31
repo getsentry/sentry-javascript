@@ -93,6 +93,11 @@ export function getPluginOptions(
     telemetry: sourceMapsUploadOptions.telemetry ?? true,
     url: sourceMapsUploadOptions.url ?? process.env.SENTRY_URL,
     debug: moduleOptions.debug ?? false,
+    silent: sourceMapsUploadOptions.silent ?? false,
+    errorHandler: sourceMapsUploadOptions.errorHandler,
+    release: {
+      name: sourceMapsUploadOptions.release?.name,
+    },
     _metaOptions: {
       telemetry: {
         metaFramework: 'nuxt',
