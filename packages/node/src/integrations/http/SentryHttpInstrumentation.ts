@@ -18,8 +18,6 @@ import {
   getTraceData,
   httpRequestToRequestData,
   logger,
-  objectToBaggageHeader,
-  parseBaggageHeader,
   parseUrl,
   stripUrlQueryAndFragment,
   withIsolationScope,
@@ -27,6 +25,7 @@ import {
 } from '@sentry/core';
 import { shouldPropagateTraceForUrl } from '@sentry/opentelemetry';
 import { DEBUG_BUILD } from '../../debug-build';
+import { mergeBaggageHeaders } from '../../utils/baggage';
 import { getRequestUrl } from '../../utils/getRequestUrl';
 import { getRequestInfo } from './vendor/getRequestInfo';
 
@@ -601,30 +600,4 @@ function getAbsoluteUrl(origin: string, path: string = '/'): string {
 
     return `${url}${path}`;
   }
-}
-
-function mergeBaggageHeaders(
-  existing: string | string[] | number | undefined,
-  baggage: string,
-): string | string[] | number | undefined {
-  if (!existing) {
-    return baggage;
-  }
-
-  const existingBaggageEntries = parseBaggageHeader(existing);
-  const newBaggageEntries = parseBaggageHeader(baggage);
-
-  if (!newBaggageEntries) {
-    return existing;
-  }
-
-  // Existing entries take precedence, ensuring order remains stable for minimal changes
-  const mergedBaggageEntries = { ...existingBaggageEntries };
-  Object.entries(newBaggageEntries).forEach(([key, value]) => {
-    if (!mergedBaggageEntries[key]) {
-      mergedBaggageEntries[key] = value;
-    }
-  });
-
-  return objectToBaggageHeader(mergedBaggageEntries);
 }

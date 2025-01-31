@@ -7,7 +7,11 @@ import { addBreadcrumb, getBreadcrumbLogLevelFromHttpStatusCode, getSanitizedUrl
 import { shouldPropagateTraceForUrl } from '@sentry/opentelemetry';
 import * as diagch from 'diagnostics_channel';
 import { NODE_MAJOR, NODE_MINOR } from '../../nodeVersion';
+import { mergeBaggageHeaders } from '../../utils/baggage';
 import type { UndiciRequest, UndiciResponse } from './types';
+
+const SENTRY_TRACE_HEADER = 'sentry-trace';
+const SENTRY_BAGGAGE_HEADER = 'baggage';
 
 export type SentryNodeFetchInstrumentationOptions = InstrumentationConfig & {
   /**
@@ -18,8 +22,7 @@ export type SentryNodeFetchInstrumentationOptions = InstrumentationConfig & {
   breadcrumbs?: boolean;
 
   /**
-   * Do not capture breadcrumbs for outgoing fetch requests to URLs where the given callback returns `true`.
-   * For the scope of this instrumentation, this callback only controls breadcrumb creation.
+   * Do not capture breadcrumbs or inject headers for outgoing fetch requests to URLs where the given callback returns `true`.
    * The same option can be passed to the top-level httpIntegration where it controls both, breadcrumb and
    * span creation.
    *
@@ -127,26 +130,47 @@ export class SentryNodeFetchInstrumentation extends InstrumentationBase<SentryNo
       return;
     }
 
+    const { 'sentry-trace': sentryTrace, baggage } = addedHeaders;
+
     // We do not want to overwrite existing headers here
     // If the core UndiciInstrumentation is registered, it will already have set the headers
     // We do not want to add any then
     if (Array.isArray(request.headers)) {
       const requestHeaders = request.headers;
-      Object.entries(addedHeaders)
-        .filter(([k]) => {
-          // If the header already exists, we do not want to set it again
-          return !requestHeaders.includes(k);
-        })
-        .forEach(keyValuePair => requestHeaders.push(...keyValuePair));
+
+      // We do not want to overwrite existing header here, if it was already set
+      if (sentryTrace && !requestHeaders.includes(SENTRY_TRACE_HEADER)) {
+        requestHeaders.push(SENTRY_TRACE_HEADER, sentryTrace);
+      }
+
+      // For baggage, we make sure to merge this into a possibly existing header
+      const existingBaggagePos = requestHeaders.findIndex(header => header === SENTRY_BAGGAGE_HEADER);
+      if (baggage && existingBaggagePos === -1) {
+        requestHeaders.push(SENTRY_BAGGAGE_HEADER, baggage);
+      } else if (baggage) {
+        const existingBaggage = requestHeaders[existingBaggagePos + 1];
+        const merged = mergeBaggageHeaders(existingBaggage, baggage);
+        if (merged) {
+          requestHeaders[existingBaggagePos + 1] = merged;
+        }
+      }
     } else {
       const requestHeaders = request.headers;
-      request.headers += Object.entries(addedHeaders)
-        .filter(([k]) => {
-          // If the header already exists, we do not want to set it again
-          return !requestHeaders.includes(`${k}:`);
-        })
-        .map(([k, v]) => `${k}: ${v}\r\n`)
-        .join('');
+      // We do not want to overwrite existing header here, if it was already set
+      if (sentryTrace && !requestHeaders.includes(`${SENTRY_TRACE_HEADER}:`)) {
+        request.headers += `${SENTRY_TRACE_HEADER}: ${sentryTrace}\r\n`;
+      }
+
+      // For baggage, we make sure to merge this into a possibly existing header
+      const existingBaggage = request.headers.match(/baggage: (.*)\r\n/)?.[1];
+      if (baggage && !existingBaggage) {
+        request.headers += `${SENTRY_BAGGAGE_HEADER}: ${baggage}\r\n`;
+      } else if (baggage) {
+        const merged = mergeBaggageHeaders(existingBaggage, baggage);
+        if (merged) {
+          request.headers = request.headers.replace(/baggage: (.*)\r\n/, `baggage: ${merged}\r\n`);
+        }
+      }
     }
   }
 
