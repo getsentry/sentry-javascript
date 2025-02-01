@@ -47,7 +47,7 @@
     "@sentry/core": "9.0.0-alpha.0",
     "@sentry/node": "9.0.0-alpha.0",
     "@sentry/opentelemetry": "9.0.0-alpha.0",
-    "@sentry/rollup-plugin": "2.22.7",
+    "@sentry/rollup-plugin": "3.1.0",
     "@sentry/vite-plugin": "2.22.6",
     "@sentry/vue": "9.0.0-alpha.0"
   },
