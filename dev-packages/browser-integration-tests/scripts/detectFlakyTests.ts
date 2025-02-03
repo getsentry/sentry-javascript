@@ -46,7 +46,7 @@ ${changedPaths.join('\n')}
   try {
     await new Promise<void>((resolve, reject) => {
       const cp = childProcess.spawn(
-        `npx playwright test ${testPaths.length ? testPaths.join(' ') : './suites'} --repeat-each ${repeatEachCount}`,
+        `npx playwright test ${testPaths.length ? testPaths.join(' ') : './suites'} --repeat-each ${repeatEachCount} --project=chromium`,
         { shell: true, cwd, stdio: 'inherit' },
       );
 
