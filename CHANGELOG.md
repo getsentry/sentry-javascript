@@ -14,7 +14,11 @@ Work in this release was contributed by @tjhiggins, @chris-basebone, @GrizliK198
 
 ## 9.0.0-alpha.1
 
-- fix(react): Import default for hoistNonReactStatics ([#15238](https://github.com/getsentry/sentry-javascript/pull/15238))
+This is an alpha release of the upcoming major release of version 9.
+This release does not yet entail a comprehensive changelog as version 9 is not yet stable.
+
+For this release's iteration of the migration guide, see the [Migration Guide as per `9.0.0-alpha.1`](https://github.com/getsentry/sentry-javascript/blob/e4333e5ce2d65be319ee6a5a5976f7c93983a417/docs/migration/v8-to-v9.md).
+Please note that the migration guide is work in progress and subject to change.
 
 ## 9.0.0-alpha.0
 
