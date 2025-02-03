@@ -47,7 +47,7 @@
   "dependencies": {
     "@sentry/core": "9.0.0-alpha.1",
     "@sentry/react": "9.0.0-alpha.1",
-    "@sentry/webpack-plugin": "2.22.7"
+    "@sentry/webpack-plugin": "3.1.1"
   },
   "peerDependencies": {
     "gatsby": "^2.0.0 || ^3.0.0 || ^4.0.0 || ^5.0.0",
