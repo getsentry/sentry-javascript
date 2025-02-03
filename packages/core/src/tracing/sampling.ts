@@ -27,7 +27,21 @@ export function sampleSpan(
   // work; prefer the hook if so
   let sampleRate;
   if (typeof options.tracesSampler === 'function') {
-    sampleRate = options.tracesSampler(samplingContext);
+    sampleRate = options.tracesSampler({
+      ...samplingContext,
+      inheritOrSampleWith(fallbackSampleRate) {
+        if (typeof samplingContext.parentSampleRate === 'number') {
+          return samplingContext.parentSampleRate;
+        }
+
+        // Fallback if parent sample rate is not on the incoming trace (e.g. if there is no baggage)
+        if (typeof samplingContext.parentSampled === 'boolean') {
+          return 1;
+        }
+
+        return fallbackSampleRate;
+      },
+    });
     localSampleRateWasApplied = true;
   } else if (samplingContext.parentSampled !== undefined) {
     sampleRate = samplingContext.parentSampled;

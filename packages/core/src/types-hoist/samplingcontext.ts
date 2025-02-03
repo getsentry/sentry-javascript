@@ -41,4 +41,9 @@ export interface SamplingContext extends CustomSamplingContext {
 
   /** Initial attributes that have been passed to the span being sampled. */
   attributes?: SpanAttributes;
+
+  /**
+   * Returns a sample rate value that matches the sampling decision from the incoming trace, or falls back to the provided `fallbackSampleRate`.
+   */
+  inheritOrSampleWith: (fallbackSampleRate: number) => number;
 }
