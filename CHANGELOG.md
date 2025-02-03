@@ -10,6 +10,13 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.54.0
+
+- feat(v8/deps): Upgrade all OpenTelemetry dependencies ([#15098](https://github.com/getsentry/sentry-javascript/pull/15098))
+- fix(node/v8): Add compatibility layer for Prisma v5 ([#15210](https://github.com/getsentry/sentry-javascript/pull/15210))
+
+Work in this release was contributed by @nwalters512. Thank you for your contribution!
+
 ## 8.53.0
 
 - feat(v8/nuxt): Add `url` to `SourcemapsUploadOptions` (#15202)
