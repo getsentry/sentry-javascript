@@ -7,6 +7,7 @@ test('an h1 contains hello world"', async () => {
     process: {
       env: {
         ...process.env,
+        NODE_ENV: 'development',
       },
     },
   });

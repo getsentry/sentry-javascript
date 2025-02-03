@@ -53,9 +53,7 @@ export function applyDefaultOptions(optionsArg: BrowserOptions = {}): BrowserOpt
     release:
       typeof __SENTRY_RELEASE__ === 'string' // This allows build tooling to find-and-replace __SENTRY_RELEASE__ to inject a release value
         ? __SENTRY_RELEASE__
-        : WINDOW.SENTRY_RELEASE?.id // This supports the variable that sentry-webpack-plugin injects
-          ? WINDOW.SENTRY_RELEASE.id
-          : undefined,
+        : WINDOW.SENTRY_RELEASE?.id, // This supports the variable that sentry-webpack-plugin injects
     sendClientReports: true,
   };
 
