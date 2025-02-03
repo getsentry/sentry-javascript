@@ -88,7 +88,7 @@ export function ScreenshotEditorFactory({
     const [croppingRect, setCroppingRect] = hooks.useState<Box>({ startX: 0, startY: 0, endX: 0, endY: 0 });
     const [confirmCrop, setConfirmCrop] = hooks.useState(false);
     const [isResizing, setIsResizing] = hooks.useState(false);
-    const [isCropping, setIsCropping] = hooks.useState(false);
+    const [isCropping, setIsCropping] = hooks.useState(true);
     const [isAnnotating, setIsAnnotating] = hooks.useState(false);
 
     hooks.useEffect(() => {
@@ -491,16 +491,6 @@ export function ScreenshotEditorFactory({
             <div />
             <div class="editor__tool-bar">
               <button
-                class={`editor__tool ${isAnnotating ? 'editor__tool--active' : ''}`}
-                onClick={e => {
-                  e.preventDefault();
-                  setIsAnnotating(!isAnnotating);
-                  setIsCropping(false);
-                }}
-              >
-                <PenIcon />
-              </button>
-              <button
                 class={`editor__tool ${isCropping ? 'editor__tool--active' : ''}`}
                 onClick={e => {
                   e.preventDefault();
@@ -509,6 +499,16 @@ export function ScreenshotEditorFactory({
                 }}
               >
                 <CropIcon />
+              </button>
+              <button
+                class={`editor__tool ${isAnnotating ? 'editor__tool--active' : ''}`}
+                onClick={e => {
+                  e.preventDefault();
+                  setIsAnnotating(!isAnnotating);
+                  setIsCropping(false);
+                }}
+              >
+                <PenIcon />
               </button>
             </div>
             <div />
