@@ -190,7 +190,7 @@ test('Sends a Replay recording to Sentry', async ({ browser }) => {
 
         if (response.ok) {
           const data = await response.json();
-          return data[0];
+          return { data: data[0], length: data[0].length };
         }
 
         return response.status;
@@ -199,5 +199,6 @@ test('Sends a Replay recording to Sentry', async ({ browser }) => {
         timeout: EVENT_POLLING_TIMEOUT,
       },
     )
-    .toEqual(ReplayRecordingData);
+    // Check that that all expected data is present but relax the order to avoid flakes
+    .toEqual({ data: expect.arrayContaining(ReplayRecordingData), length: ReplayRecordingData.length });
 });

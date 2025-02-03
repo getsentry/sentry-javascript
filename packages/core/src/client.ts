@@ -758,7 +758,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
   /** Updates existing session based on the provided event */
   protected _updateSessionFromEvent(session: Session, event: Event): void {
-    let crashed = false;
+    let crashed = event.level === 'fatal';
     let errored = false;
     const exceptions = event.exception?.values;
 
@@ -903,11 +903,10 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
         if (DEBUG_BUILD) {
           // If something's gone wrong, log the error as a warning. If it's just us having used a `SentryError` for
           // control flow, log just the message (no stack) as a log-level log.
-          const sentryError = reason as SentryError;
-          if (sentryError.logLevel === 'log') {
-            logger.log(sentryError.message);
+          if (reason instanceof SentryError && reason.logLevel === 'log') {
+            logger.log(reason.message);
           } else {
-            logger.warn(sentryError);
+            logger.warn(reason);
           }
         }
         return undefined;

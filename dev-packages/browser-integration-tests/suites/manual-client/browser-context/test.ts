@@ -34,9 +34,6 @@ sentryTest('allows to setup a client manually & capture exceptions', async ({ ge
         'User-Agent': expect.any(String),
       }),
     },
-    user: {
-      ip_address: '{{auto}}',
-    },
     timestamp: expect.any(Number),
     environment: 'local',
     release: '0.0.1',

@@ -43,15 +43,6 @@ export type SentryHandleOptions = {
    * @default true
    */
   injectFetchProxyScript?: boolean;
-
-  /**
-   * If this option is set, the `sentryHandle` handler will add a nonce attribute to the script
-   * tag it injects into the page. This script is used to enable instrumentation of `fetch` calls
-   * in `load` functions.
-   *
-   * Use this if your CSP policy blocks the fetch proxy script injected by `sentryHandle`.
-   */
-  fetchProxyScriptNonce?: string;
 };
 
 /**
@@ -68,21 +59,17 @@ export const FETCH_PROXY_SCRIPT = `
 /**
  * Adds Sentry tracing <meta> tags to the returned html page.
  * Adds Sentry fetch proxy script to the returned html page if enabled in options.
- * Also adds a nonce attribute to the script tag if users specified one for CSP.
  *
  * Exported only for testing
  */
-export function addSentryCodeToPage(options: SentryHandleOptions): NonNullable<ResolveOptions['transformPageChunk']> {
-  const { fetchProxyScriptNonce, injectFetchProxyScript } = options;
-  // if injectFetchProxyScript is not set, we default to true
-  const shouldInjectScript = injectFetchProxyScript !== false;
-  const nonce = fetchProxyScriptNonce ? `nonce="${fetchProxyScriptNonce}"` : '';
-
+export function addSentryCodeToPage(options: { injectFetchProxyScript: boolean }): NonNullable<
+  ResolveOptions['transformPageChunk']
+> {
   return ({ html }) => {
     const metaTags = getTraceMetaTags();
     const headWithMetaTags = metaTags ? `<head>\n${metaTags}` : '<head>';
 
-    const headWithFetchScript = shouldInjectScript ? `\n<script ${nonce}>${FETCH_PROXY_SCRIPT}</script>` : '';
+    const headWithFetchScript = options.injectFetchProxyScript ? `\n<script>${FETCH_PROXY_SCRIPT}</script>` : '';
 
     const modifiedHead = `${headWithMetaTags}${headWithFetchScript}`;
 
@@ -106,10 +93,10 @@ export function addSentryCodeToPage(options: SentryHandleOptions): NonNullable<R
  * ```
  */
 export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
+  const { handleUnknownRoutes, ...rest } = handlerOptions ?? {};
   const options = {
-    handleUnknownRoutes: false,
-    injectFetchProxyScript: true,
-    ...handlerOptions,
+    handleUnknownRoutes: handleUnknownRoutes ?? false,
+    ...rest,
   };
 
   const sentryRequestHandler: Handle = input => {
@@ -150,6 +137,18 @@ async function instrumentHandle(
     return resolve(event);
   }
 
+  // caching the result of the version check in `options.injectFetchProxyScript`
+  // to avoid doing the dynamic import on every request
+  if (options.injectFetchProxyScript == null) {
+    try {
+      // @ts-expect-error - the dynamic import is fine here
+      const { VERSION } = await import('@sveltejs/kit');
+      options.injectFetchProxyScript = isFetchProxyRequired(VERSION);
+    } catch {
+      options.injectFetchProxyScript = true;
+    }
+  }
+
   const routeName = `${event.request.method} ${event.route?.id || event.url.pathname}`;
 
   if (getIsolationScope() !== getDefaultIsolationScope()) {
@@ -174,7 +173,7 @@ async function instrumentHandle(
           normalizedRequest: winterCGRequestToRequestData(event.request.clone()),
         });
         const res = await resolve(event, {
-          transformPageChunk: addSentryCodeToPage(options),
+          transformPageChunk: addSentryCodeToPage({ injectFetchProxyScript: options.injectFetchProxyScript ?? true }),
         });
         if (span) {
           setHttpStatus(span, res.status);
@@ -189,4 +188,20 @@ async function instrumentHandle(
   } finally {
     await flushIfServerless();
   }
+}
+
+/**
+ * We only need to inject the fetch proxy script for SvelteKit versions < 2.16.0.
+ * Exported only for testing.
+ */
+export function isFetchProxyRequired(version: string): boolean {
+  try {
+    const [major, minor] = version.trim().replace(/-.*/, '').split('.').map(Number);
+    if (major != null && minor != null && (major > 2 || (major === 2 && minor >= 16))) {
+      return false;
+    }
+  } catch {
+    // ignore
+  }
+  return true;
 }

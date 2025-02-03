@@ -89,8 +89,10 @@ export class BrowserClient extends Client<BrowserClientOptions> {
       });
     }
 
-    this.on('postprocessEvent', addAutoIpAddressToUser);
-    this.on('beforeSendSession', addAutoIpAddressToSession);
+    if (this._options.sendDefaultPii) {
+      this.on('postprocessEvent', addAutoIpAddressToUser);
+      this.on('beforeSendSession', addAutoIpAddressToSession);
+    }
   }
 
   /**

@@ -349,7 +349,7 @@ export class SentrySpan implements Span {
     /* eslint-disable @typescript-eslint/no-dynamic-delete */
     delete this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME];
     spans.forEach(span => {
-      span.data && delete span.data[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME];
+      delete span.data[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME];
     });
     // eslint-enabled-next-line @typescript-eslint/no-dynamic-delete
 

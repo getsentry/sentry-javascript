@@ -17,6 +17,8 @@ export {
   registerInpInteractionListener,
 } from './metrics/browserMetrics';
 
+export { extractNetworkProtocol } from './metrics/utils';
+
 export { addClickKeypressInstrumentationHandler } from './instrument/dom';
 
 export { addHistoryInstrumentationHandler } from './instrument/history';

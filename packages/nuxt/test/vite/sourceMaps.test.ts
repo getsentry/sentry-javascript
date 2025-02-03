@@ -20,6 +20,7 @@ describe('getPluginOptions', () => {
       SENTRY_ORG: 'default-org',
       SENTRY_PROJECT: 'default-project',
       SENTRY_AUTH_TOKEN: 'default-token',
+      SENTRY_URL: 'https://santry.io',
     };
 
     process.env = { ...defaultEnv };
@@ -31,6 +32,7 @@ describe('getPluginOptions', () => {
         org: 'default-org',
         project: 'default-project',
         authToken: 'default-token',
+        url: 'https://santry.io',
         telemetry: true,
         sourcemaps: expect.objectContaining({
           rewriteSources: expect.any(Function),
@@ -114,6 +116,7 @@ describe('getPluginOptions', () => {
           assets: ['custom-assets/**/*'],
           filesToDeleteAfterUpload: ['delete-this.js'],
         },
+        url: 'https://santry.io',
       },
       debug: true,
       unstable_sentryBundlerPluginOptions: {
@@ -124,6 +127,7 @@ describe('getPluginOptions', () => {
         release: {
           name: 'test-release',
         },
+        url: 'https://suntry.io',
       },
     };
     const options = getPluginOptions(customOptions, false);
@@ -140,6 +144,7 @@ describe('getPluginOptions', () => {
         release: expect.objectContaining({
           name: 'test-release',
         }),
+        url: 'https://suntry.io',
       }),
     );
   });

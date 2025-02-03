@@ -18,20 +18,12 @@ export declare const contextLinesIntegration: typeof clientSdk.contextLinesInteg
 export declare const getDefaultIntegrations: (options: Options) => Integration[];
 export declare const defaultStackParser: StackParser;
 
-export declare function captureRemixServerException(
-  err: unknown,
-  name: string,
-  request: Request,
-  isRemixV2?: boolean,
-): Promise<void>;
+export declare function captureRemixServerException(err: unknown, name: string, request: Request): Promise<void>;
 
 // This variable is not a runtime variable but just a type to tell typescript that the methods below can either come
 // from the client SDK or from the server SDK. TypeScript is smart enough to understand that these resolve to the same
 // methods from `@sentry/core`.
 declare const runtime: 'client' | 'server';
-
-// eslint-disable-next-line deprecation/deprecation
-export declare const getCurrentHub: typeof clientSdk.getCurrentHub;
 
 export const close = runtime === 'client' ? clientSdk.close : serverSdk.close;
 export const flush = runtime === 'client' ? clientSdk.flush : serverSdk.flush;

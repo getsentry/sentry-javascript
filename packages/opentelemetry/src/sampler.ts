@@ -1,5 +1,5 @@
 /* eslint-disable complexity */
-import type { Attributes, Context, Span, TraceState as TraceStateInterface } from '@opentelemetry/api';
+import type { Context, Span, TraceState as TraceStateInterface } from '@opentelemetry/api';
 import { SpanKind, isSpanContextValid, trace } from '@opentelemetry/api';
 import { TraceState } from '@opentelemetry/core';
 import type { Sampler, SamplingResult } from '@opentelemetry/sdk-trace-base';
@@ -11,16 +11,14 @@ import {
   SEMATTRS_HTTP_URL,
 } from '@opentelemetry/semantic-conventions';
 import type { Client, SpanAttributes } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/core';
+import { baggageHeaderToDynamicSamplingContext } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP, hasTracingEnabled, logger, parseSampleRate, sampleSpan } from '@sentry/core';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  hasTracingEnabled,
-  logger,
-  sampleSpan,
-} from '@sentry/core';
-import {
+  SENTRY_TRACE_STATE_DSC,
   SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING,
   SENTRY_TRACE_STATE_SAMPLE_RAND,
+  SENTRY_TRACE_STATE_SAMPLE_RATE,
   SENTRY_TRACE_STATE_URL,
 } from './constants';
 import { DEBUG_BUILD } from './debug-build';
@@ -106,31 +104,37 @@ export class SentrySampler implements Sampler {
     // We only sample based on parameters (like tracesSampleRate or tracesSampler) for root spans (which is done in sampleSpan).
     // Non-root-spans simply inherit the sampling decision from their parent.
     if (isRootSpan) {
-      const { isolationScope, scope } = getScopesFromContext(context) ?? {};
-      const sampleRand = scope?.getPropagationContext().sampleRand ?? Math.random();
-      const [sampled, sampleRate] = sampleSpan(
+      const { isolationScope } = getScopesFromContext(context) ?? {};
+
+      const dscString = parentContext?.traceState ? parentContext.traceState.get(SENTRY_TRACE_STATE_DSC) : undefined;
+      const dsc = dscString ? baggageHeaderToDynamicSamplingContext(dscString) : undefined;
+
+      const sampleRand = parseSampleRate(dsc?.sample_rand) ?? Math.random();
+
+      const [sampled, sampleRate, localSampleRateWasApplied] = sampleSpan(
         options,
         {
           name: inferredSpanName,
           attributes: mergedAttributes,
           normalizedRequest: isolationScope?.getScopeData().sdkProcessingMetadata.normalizedRequest,
           parentSampled,
-          // TODO(v9): provide a parentSampleRate here
+          parentSampleRate: parseSampleRate(dsc?.sample_rate),
         },
         sampleRand,
       );
-
-      const attributes: Attributes = {
-        [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: sampleRate,
-      };
 
       const method = `${maybeSpanHttpMethod}`.toUpperCase();
       if (method === 'OPTIONS' || method === 'HEAD') {
         DEBUG_BUILD && logger.log(`[Tracing] Not sampling span because HTTP method is '${method}' for ${spanName}`);
 
         return {
-          ...wrapSamplingDecision({ decision: SamplingDecision.NOT_RECORD, context, spanAttributes, sampleRand }),
-          attributes,
+          ...wrapSamplingDecision({
+            decision: SamplingDecision.NOT_RECORD,
+            context,
+            spanAttributes,
+            sampleRand,
+            downstreamTraceSampleRate: 0, // we don't want to sample anything in the downstream trace either
+          }),
         };
       }
 
@@ -149,8 +153,12 @@ export class SentrySampler implements Sampler {
           context,
           spanAttributes,
           sampleRand,
+          downstreamTraceSampleRate: localSampleRateWasApplied ? sampleRate : undefined,
         }),
-        attributes,
+        attributes: {
+          // We set the sample rate on the span when a local sample rate was applied to better understand how traces were sampled in Sentry
+          [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: localSampleRateWasApplied ? sampleRate : undefined,
+        },
       };
     } else {
       return {
@@ -159,7 +167,6 @@ export class SentrySampler implements Sampler {
           context,
           spanAttributes,
         }),
-        attributes: {},
       };
     }
   }
@@ -201,13 +208,23 @@ export function wrapSamplingDecision({
   context,
   spanAttributes,
   sampleRand,
+  downstreamTraceSampleRate,
 }: {
   decision: SamplingDecision | undefined;
   context: Context;
   spanAttributes: SpanAttributes;
   sampleRand?: number;
+  downstreamTraceSampleRate?: number;
 }): SamplingResult {
   let traceState = getBaseTraceState(context, spanAttributes);
+
+  // We will override the propagated sample rate downstream when
+  // - the tracesSampleRate is applied
+  // - the tracesSampler is invoked
+  // Since unsampled OTEL spans (NonRecordingSpans) cannot hold attributes we need to store this on the (trace)context.
+  if (downstreamTraceSampleRate !== undefined) {
+    traceState = traceState.set(SENTRY_TRACE_STATE_SAMPLE_RATE, `${downstreamTraceSampleRate}`);
+  }
 
   if (sampleRand !== undefined) {
     traceState = traceState.set(SENTRY_TRACE_STATE_SAMPLE_RAND, `${sampleRand}`);

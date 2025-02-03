@@ -808,3 +808,8 @@ test('Calling canActivate method on service with Injectable decorator returns 20
   const response = await fetch(`${baseURL}/test-service-canActivate`);
   expect(response.status).toBe(200);
 });
+
+test('Calling @All method on service with Injectable decorator returns 200', async ({ baseURL }) => {
+  const response = await fetch(`${baseURL}/test-all`);
+  expect(response.status).toBe(200);
+});

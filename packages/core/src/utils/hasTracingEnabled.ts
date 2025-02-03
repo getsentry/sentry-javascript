@@ -20,7 +20,7 @@ export function hasTracingEnabled(
   const options = maybeOptions || client?.getOptions();
   return (
     !!options &&
-    // Note: This check is `!= null`, meaning "nullish"
+    // Note: This check is `!= null`, meaning "nullish". `0` is not "nullish", `undefined` and `null` are. (This comment was brought to you by 15 minutes of questioning life)
     (options.tracesSampleRate != null || !!options.tracesSampler)
   );
 }

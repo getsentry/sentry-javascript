@@ -23,7 +23,6 @@ const DEFAULT_INCLUDE: RequestDataIncludeOptions = {
   cookies: true,
   data: true,
   headers: true,
-  ip: false,
   query_string: true,
   url: true,
 };
@@ -38,12 +37,17 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
 
   return {
     name: INTEGRATION_NAME,
-    processEvent(event) {
+    processEvent(event, _hint, client) {
       const { sdkProcessingMetadata = {} } = event;
       const { normalizedRequest, ipAddress } = sdkProcessingMetadata;
 
+      const includeWithDefaultPiiApplied: RequestDataIncludeOptions = {
+        ...include,
+        ip: include.ip ?? client.getOptions().sendDefaultPii,
+      };
+
       if (normalizedRequest) {
-        addNormalizedRequestDataToEvent(event, normalizedRequest, { ipAddress }, include);
+        addNormalizedRequestDataToEvent(event, normalizedRequest, { ipAddress }, includeWithDefaultPiiApplied);
       }
 
       return event;

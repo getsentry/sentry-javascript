@@ -6,7 +6,8 @@
 export const SEMANTIC_ATTRIBUTE_SENTRY_SOURCE = 'sentry.source';
 
 /**
- * Use this attribute to represent the sample rate used for a span.
+ * Attributes that holds the sample rate that was locally applied to a span.
+ * If this attribute is not defined, it means that the span inherited a sampling decision.
  *
  * NOTE: Is only defined on root spans.
  */
