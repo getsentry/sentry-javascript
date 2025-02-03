@@ -407,13 +407,13 @@ export function ScreenshotEditorFactory({
         <style nonce={options.styleNonce} dangerouslySetInnerHTML={styles} />
         <div class="editor__image-container">
           <div class="editor__canvas-container" ref={canvasContainerRef}>
-            <div class="editor__crop-container" style={{ zIndex: isAnnotating ? 1 : 2 }} ref={cropContainerRef}>
-              <canvas
-                onMouseDown={onDragStart}
-                style={{ cursor: confirmCrop ? 'move' : 'auto' }}
-                ref={croppingRef}
-              ></canvas>
-              {isCropping && (
+            <div
+              class={`editor__crop-container ${isAnnotating ? 'editor__crop-container--inactive' : ''}
+              ${confirmCrop ? 'editor__crop-container--move' : ''}`}
+              ref={cropContainerRef}
+            >
+              <canvas onMouseDown={onDragStart} ref={croppingRef}></canvas>
+              {(!options._experiments.annotations || isCropping) && (
                 <div>
                   <CropCorner
                     left={croppingRect.startX - CROP_BUTTON_BORDER}
@@ -441,48 +441,47 @@ export function ScreenshotEditorFactory({
                   ></CropCorner>
                 </div>
               )}
-              <div
-                style={{
-                  left: Math.max(0, croppingRect.endX - 191),
-                  top: Math.max(0, croppingRect.endY + 8),
-                  display: confirmCrop ? 'flex' : 'none',
-                }}
-                class="editor__crop-btn-group"
-              >
-                <button
-                  onClick={e => {
-                    e.preventDefault();
-                    if (croppingRef.current) {
-                      setCroppingRect({
-                        startX: 0,
-                        startY: 0,
-                        endX: croppingRef.current.width / DPI,
-                        endY: croppingRef.current.height / DPI,
-                      });
-                    }
-                    setConfirmCrop(false);
+              {(!options._experiments.annotations || isCropping) && (
+                <div
+                  style={{
+                    left: Math.max(0, croppingRect.endX - 191),
+                    top: Math.max(0, croppingRect.endY + 8),
                   }}
-                  class="btn btn--default"
+                  class={`editor__crop-btn-group ${confirmCrop ? 'editor__crop-btn-group--active' : ''}`}
                 >
-                  {options.cancelButtonLabel}
-                </button>
-                <button
-                  onClick={e => {
-                    e.preventDefault();
-                    applyCrop();
-                    setConfirmCrop(false);
-                  }}
-                  class="btn btn--primary"
-                >
-                  {options.confirmButtonLabel}
-                </button>
-              </div>
+                  <button
+                    onClick={e => {
+                      e.preventDefault();
+                      if (croppingRef.current) {
+                        setCroppingRect({
+                          startX: 0,
+                          startY: 0,
+                          endX: croppingRef.current.width / DPI,
+                          endY: croppingRef.current.height / DPI,
+                        });
+                      }
+                      setConfirmCrop(false);
+                    }}
+                    class="btn btn--default"
+                  >
+                    {options.cancelButtonLabel}
+                  </button>
+                  <button
+                    onClick={e => {
+                      e.preventDefault();
+                      applyCrop();
+                      setConfirmCrop(false);
+                    }}
+                    class="btn btn--primary"
+                  >
+                    {options.confirmButtonLabel}
+                  </button>
+                </div>
+              )}
             </div>
-
             <canvas
-              class="editor__annotation"
+              class={`editor__annotation ${isAnnotating ? 'editor__annotation--active' : ''}`}
               onMouseDown={onAnnotateStart}
-              style={{ zIndex: isAnnotating ? '2' : '1' }}
               ref={annotatingRef}
             ></canvas>
           </div>
@@ -492,40 +491,24 @@ export function ScreenshotEditorFactory({
             <div />
             <div class="editor__tool-bar">
               <button
-                class="editor__tool"
-                style={{
-                  background: isAnnotating
-                    ? 'var(--button-primary-background, var(--accent-background))'
-                    : 'var(--button-background, var(--background))',
-                  color: isAnnotating
-                    ? 'var(--button-primary-foreground, var(--accent-foreground))'
-                    : 'var(--button-foreground, var(--foreground))',
-                }}
+                class={`editor__tool ${isAnnotating ? 'editor__tool--active' : ''}`}
                 onClick={e => {
                   e.preventDefault();
                   setIsAnnotating(!isAnnotating);
                   setIsCropping(false);
                 }}
               >
-                <CropIcon />
+                <PenIcon />
               </button>
               <button
-                class="editor__tool"
-                style={{
-                  background: isCropping
-                    ? 'var(--button-primary-background, var(--accent-background))'
-                    : 'var(--button-background, var(--background))',
-                  color: isCropping
-                    ? 'var(--button-primary-foreground, var(--accent-foreground))'
-                    : 'var(--button-foreground, var(--foreground))',
-                }}
+                class={`editor__tool ${isCropping ? 'editor__tool--active' : ''}`}
                 onClick={e => {
                   e.preventDefault();
                   setIsCropping(!isCropping);
                   setIsAnnotating(false);
                 }}
               >
-                <PenIcon />
+                <CropIcon />
               </button>
             </div>
             <div />
