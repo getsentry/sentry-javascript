@@ -3,7 +3,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   continueTrace,
-  getActiveSpan,
   getCurrentScope,
   getDefaultIsolationScope,
   getIsolationScope,
