@@ -28,6 +28,8 @@ export function addAutoIpAddressToSession(session: Session | SessionAggregates):
       };
     }
   } else {
-    addAutoIpAddressToUser(session);
+    if (session.ipAddress === undefined) {
+      session.ipAddress = '{{auto}}';
+    }
   }
 }
