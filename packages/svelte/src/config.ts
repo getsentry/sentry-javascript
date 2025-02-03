@@ -22,30 +22,23 @@ export function withSentryConfig(
   const mergedOptions = {
     ...DEFAULT_SENTRY_OPTIONS,
     ...sentryOptions,
+    componentTracking: {
+      ...DEFAULT_SENTRY_OPTIONS.componentTracking,
+      ...(sentryOptions && sentryOptions.componentTracking),
+    },
   };
 
   const originalPreprocessors = getOriginalPreprocessorArray(originalConfig);
 
-  // Map is insertion-order-preserving. It's important to add preprocessors
-  // to this map in the right order we want to see them being executed.
-  // see: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map
-  const sentryPreprocessors = new Map<string, SentryPreprocessorGroup>();
-
-  const shouldTrackComponents = mergedOptions.componentTracking && mergedOptions.componentTracking.trackComponents;
-  if (shouldTrackComponents) {
-    const firstPassPreproc: SentryPreprocessorGroup = componentTrackingPreprocessor(mergedOptions.componentTracking);
-    sentryPreprocessors.set(firstPassPreproc.sentryId || '', firstPassPreproc);
+  // Bail if users already added the preprocessor
+  if (originalPreprocessors.find((p: PreprocessorGroup) => !!(p as SentryPreprocessorGroup).sentryId)) {
+    return originalConfig;
   }
 
-  // We prioritize user-added preprocessors, so we don't insert sentry processors if they
-  // have already been added by users.
-  originalPreprocessors.forEach((p: SentryPreprocessorGroup) => {
-    if (p.sentryId) {
-      sentryPreprocessors.delete(p.sentryId);
-    }
-  });
-
-  const mergedPreprocessors = [...sentryPreprocessors.values(), ...originalPreprocessors];
+  const mergedPreprocessors = [...originalPreprocessors];
+  if (mergedOptions.componentTracking.trackComponents) {
+    mergedPreprocessors.unshift(componentTrackingPreprocessor(mergedOptions.componentTracking));
+  }
 
   return {
     ...originalConfig,

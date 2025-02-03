@@ -9,7 +9,6 @@ import { getClient, getCurrentScope, getIsolationScope, init, startSpan } from '
 
 import type { TransactionEvent } from '@sentry/core';
 
-// @ts-expect-error svelte import
 import DummyComponent from './components/Dummy.svelte';
 
 const PUBLIC_DSN = 'https://username@domain/123';
@@ -32,7 +31,7 @@ describe('Sentry.trackComponent()', () => {
 
     init({
       dsn: PUBLIC_DSN,
-      enableTracing: true,
+      tracesSampleRate: 1.0,
       beforeSendTransaction,
     });
   });
@@ -220,7 +219,7 @@ describe('Sentry.trackComponent()', () => {
     expect(transaction.spans![1]?.description).toEqual('<CustomComponentName>');
   });
 
-  it("doesn't do anything, if there's no ongoing transaction", async () => {
+  it("doesn't do anything, if there's no ongoing parent span", async () => {
     render(DummyComponent, {
       props: { options: { componentName: 'CustomComponentName' } },
     });
@@ -230,7 +229,7 @@ describe('Sentry.trackComponent()', () => {
     expect(transactions).toHaveLength(0);
   });
 
-  it("doesn't record update spans, if there's no ongoing root span at that time", async () => {
+  it("doesn't record update spans, if there's no ongoing parent span at that time", async () => {
     const component = startSpan({ name: 'outer' }, span => {
       expect(span).toBeDefined();
 
