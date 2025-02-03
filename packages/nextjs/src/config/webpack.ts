@@ -332,7 +332,7 @@ export function constructWebpackConfigFunction(
     // Symbolication for dev-mode errors is done elsewhere.
     if (!isDev) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { sentryWebpackPlugin } = loadModule<{ sentryWebpackPlugin: any }>('@sentry/webpack-plugin') ?? {};
+      const { sentryWebpackPlugin } = loadModule<{ sentryWebpackPlugin: any }>('@sentry/webpack-plugin', module) ?? {};
 
       if (sentryWebpackPlugin) {
         if (!userSentryOptions.sourcemaps?.disable) {
@@ -728,6 +728,7 @@ function addOtelWarningIgnoreRule(newConfig: WebpackConfigObjectWithModuleRules)
     // We provide these objects in addition to the hook above to provide redundancy in case the hook fails.
     { module: /@opentelemetry\/instrumentation/, message: /Critical dependency/ },
     { module: /@prisma\/instrumentation/, message: /Critical dependency/ },
+    { module: /require-in-the-middle/, message: /Critical dependency/ },
   ] satisfies IgnoreWarningsOption;
 
   if (newConfig.ignoreWarnings === undefined) {

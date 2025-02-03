@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/react';
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
 import {
   RouterProvider,
@@ -42,12 +42,21 @@ Sentry.init({
 });
 
 const sentryCreateBrowserRouter = Sentry.wrapCreateBrowserRouterV6(createBrowserRouter);
+const LazyLoadedUser = lazy(() => import('./pages/LazyLoadedUser'));
 
 const router = sentryCreateBrowserRouter(
   [
     {
       path: '/',
       element: <Index />,
+    },
+    {
+      path: '/lazy-loaded-user/*',
+      element: (
+        <Suspense fallback={<div>Loading...</div>}>
+          <LazyLoadedUser />
+        </Suspense>
+      ),
     },
     {
       path: '/user/:id',

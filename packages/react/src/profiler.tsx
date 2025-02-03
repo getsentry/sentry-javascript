@@ -1,10 +1,10 @@
 import { startInactiveSpan } from '@sentry/browser';
 import type { Span } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, spanToJSON, timestampInSeconds, withActiveSpan } from '@sentry/core';
-import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
 
 import { REACT_MOUNT_OP, REACT_RENDER_OP, REACT_UPDATE_OP } from './constants';
+import { hoistNonReactStatics } from './hoist-non-react-statics';
 
 export const UNKNOWN_COMPONENT = 'unknown';
 
@@ -236,4 +236,4 @@ function useProfiler(
   }, []);
 }
 
-export { withProfiler, Profiler, useProfiler };
+export { Profiler, useProfiler, withProfiler };

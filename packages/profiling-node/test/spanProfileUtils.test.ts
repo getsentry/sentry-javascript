@@ -1,11 +1,11 @@
 import * as Sentry from '@sentry/node';
 
+import { CpuProfilerBindings } from '@sentry-internal/node-cpu-profiler';
 import { getMainCarrier } from '@sentry/core';
 import { GLOBAL_OBJ, createEnvelope, logger } from '@sentry/core';
 import type { ProfilingIntegration } from '@sentry/core';
 import type { ProfileChunk, Transport } from '@sentry/core';
 import type { NodeClientOptions } from '@sentry/node/build/types/types';
-import { CpuProfilerBindings } from '../src/cpu_profiler';
 import { _nodeProfilingIntegration } from '../src/integration';
 
 function makeClientWithHooks(): [Sentry.NodeClient, Transport] {

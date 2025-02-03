@@ -62,7 +62,7 @@ env:
 jobs:
   job_get_metadata:
     name: Get Metadata
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     permissions:
       pull-requests: read
     steps:
@@ -84,8 +84,6 @@ jobs:
           echo "COMMIT_MESSAGE=$(git log -n 1 --pretty=format:%s $COMMIT_SHA)" >> $GITHUB_ENV
 
       # Most changed packages are determined in job_build via Nx
-      # However, for profiling-node we only want to run certain things when in this specific package
-      # something changed, not in any of the dependencies (which include core, utils, ...)
       - name: Determine changed packages
         uses: dorny/paths-filter@v3.0.1
         id: changed
@@ -93,9 +91,6 @@ jobs:
           filters: |
             workflow:
               - '.github/**'
-            profiling_node:
-              - 'packages/profiling-node/**'
-              - 'dev-packages/e2e-tests/test-applications/node-profiling/**'
             any_code:
               - '!**/*.md'
 
@@ -109,7 +104,6 @@ jobs:
       # Note: These next three have to be checked as strings ('true'/'false')!
       is_base_branch: ${{ github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/v9' || github.ref == 'refs/heads/v8'}}
       is_release: ${{ startsWith(github.ref, 'refs/heads/release/') }}
-      changed_profiling_node: ${{ steps.changed.outputs.profiling_node == 'true' }}
       changed_ci: ${{ steps.changed.outputs.workflow == 'true' }}
       changed_any_code: ${{ steps.changed.outputs.any_code == 'true' }}
 
@@ -124,7 +118,7 @@ jobs:
   job_build:
     name: Build
     needs: job_get_metadata
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     timeout-minutes: 15
     if: |
       needs.job_get_metadata.outputs.changed_any_code == 'true' ||
@@ -198,12 +192,11 @@ jobs:
       changed_deno: ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected, '@sentry/deno') }}
       changed_bun: ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected, '@sentry/bun') }}
       changed_browser_integration: ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected, '@sentry-internal/browser-integration-tests') }}
-      # If you are looking for changed_profiling_node, this is defined in job_get_metadata
 
   job_check_branches:
     name: Check PR branches
     needs: job_get_metadata
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     if: github.event_name == 'pull_request'
     permissions:
       pull-requests: write
@@ -219,7 +212,7 @@ jobs:
     name: Size Check
     needs: [job_get_metadata, job_build]
     timeout-minutes: 15
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     if:
       github.event_name == 'pull_request' || needs.job_get_metadata.outputs.is_base_branch == 'true' ||
       needs.job_get_metadata.outputs.is_release == 'true'
@@ -249,7 +242,7 @@ jobs:
     # inter-package dependencies resolve cleanly.
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -274,7 +267,7 @@ jobs:
     name: Check file formatting
     needs: [job_get_metadata]
     timeout-minutes: 10
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -297,7 +290,7 @@ jobs:
     name: Circular Dependency Check
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -316,8 +309,8 @@ jobs:
 
   job_artifacts:
     name: Upload Artifacts
-    needs: [job_get_metadata, job_build, job_compile_bindings_profiling_node]
-    runs-on: ubuntu-20.04
+    needs: [job_get_metadata, job_build]
+    runs-on: ubuntu-22.04
     # Build artifacts are only needed for releasing workflow.
     if: needs.job_get_metadata.outputs.is_release == 'true'
     steps:
@@ -333,13 +326,6 @@ jobs:
         uses: ./.github/actions/restore-cache
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
-
-      - name: Extract Profiling Node Prebuilt Binaries
-        uses: actions/download-artifact@v4
-        with:
-          pattern: profiling-node-binaries-${{ github.sha }}-*
-          path: ${{ github.workspace }}/packages/profiling-node/lib/
-          merge-multiple: true
 
       - name: Pack tarballs
         run: yarn build:tarball
@@ -361,7 +347,7 @@ jobs:
     name: Browser Unit Tests
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Check out base commit (${{ github.event.pull_request.base.sha }})
         uses: actions/checkout@v4
@@ -400,7 +386,7 @@ jobs:
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_bun == 'true' || github.event_name != 'pull_request'
     timeout-minutes: 10
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
     steps:
@@ -427,7 +413,7 @@ jobs:
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_deno == 'true' || github.event_name != 'pull_request'
     timeout-minutes: 10
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
     steps:
@@ -457,7 +443,7 @@ jobs:
     name: Node (${{ matrix.node }}) Unit Tests
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
@@ -497,37 +483,6 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-
-  job_profiling_node_unit_tests:
-    name: Node Profiling Unit Tests
-    needs: [job_get_metadata, job_build]
-    if: |
-      needs.job_build.outputs.changed_node == 'true' ||
-      needs.job_get_metadata.outputs.changed_profiling_node == 'true' ||
-      github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Check out current commit
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ env.HEAD_COMMIT }}
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11.7'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Build Configure node-gyp
-        run: yarn lerna run build:bindings:configure --scope @sentry/profiling-node
-      - name: Build Bindings for Current Environment
-        run: yarn build --scope @sentry/profiling-node
-      - name: Unit Test
-        run: yarn lerna run test --scope @sentry/profiling-node
 
   job_browser_playwright_tests:
     name: Playwright ${{ matrix.bundle }}${{ matrix.project && matrix.project != 'chromium' && format(' {0}', matrix.project) || ''}}${{ matrix.shard && format(' ({0}/{1})', matrix.shard, matrix.shards) || ''}} Tests
@@ -600,7 +555,7 @@ jobs:
         env:
           PW_BUNDLE: ${{ matrix.bundle }}
         working-directory: dev-packages/browser-integration-tests
-        run: yarn test:ci${{ matrix.project && format(' --project={0}', matrix.project) || '' }}${{ matrix.shard && format(' --shard={0}/{1}', matrix.shard, matrix.shards) || '' }}
+        run: yarn test:all${{ matrix.project && format(' --project={0}', matrix.project) || '' }}${{ matrix.shard && format(' --shard={0}/{1}', matrix.shard, matrix.shards) || '' }}
 
       - name: Upload Playwright Traces
         uses: actions/upload-artifact@v4
@@ -623,7 +578,7 @@ jobs:
     name: PW ${{ matrix.bundle }} Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -683,7 +638,7 @@ jobs:
   job_check_for_faulty_dts:
     name: Check for faulty .d.ts files
     needs: [job_get_metadata, job_build]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     timeout-minutes: 5
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -711,12 +666,12 @@ jobs:
       Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_node_integration == 'true' || github.event_name != 'pull_request'
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        node: [18, 20, 22]
+        node: ['18.20.5', 20, 22]
         typescript:
           - false
         include:
@@ -750,7 +705,7 @@ jobs:
     name: Remix (Node ${{ matrix.node }}) Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_remix == 'true' || github.event_name != 'pull_request'
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     timeout-minutes: 10
     strategy:
       fail-fast: false
@@ -786,12 +741,10 @@ jobs:
     name: Prepare E2E tests
     # We want to run this if:
     # - The build job was successful, not skipped
-    # - AND if the profiling node bindings were either successful or skipped
     if: |
       always() &&
-      needs.job_build.result == 'success' &&
-      (needs.job_compile_bindings_profiling_node.result == 'success' || needs.job_compile_bindings_profiling_node.result == 'skipped')
-    needs: [job_get_metadata, job_build, job_compile_bindings_profiling_node]
+      needs.job_build.result == 'success'
+    needs: [job_get_metadata, job_build]
     runs-on: ubuntu-20.04-large-js
     timeout-minutes: 15
     outputs:
@@ -823,26 +776,6 @@ jobs:
           # On develop branch, we want to _store_ the cache (so it can be used by other branches), but never _restore_ from it
           restore-keys: ${{ env.NX_CACHE_RESTORE_KEYS }}
 
-      # Rebuild profiling by compiling TS and pull the precompiled binary artifacts
-      - name: Build Profiling Node
-        if: |
-          (needs.job_get_metadata.outputs.changed_profiling_node == 'true') ||
-          (needs.job_get_metadata.outputs.is_release == 'true') ||
-          (github.event_name != 'pull_request')
-        run: yarn lerna run build:lib --scope @sentry/profiling-node
-
-      - name: Extract Profiling Node Prebuilt Binaries
-        if: |
-          (needs.job_get_metadata.outputs.changed_profiling_node == 'true') ||
-            (needs.job_get_metadata.outputs.is_release == 'true') ||
-          (github.event_name != 'pull_request')
-        uses: actions/download-artifact@v4
-        with:
-          pattern: profiling-node-binaries-${{ github.sha }}-*
-          path: ${{ github.workspace }}/packages/profiling-node/lib/
-          merge-multiple: true
-      # End rebuild profiling
-
       - name: Build tarballs
         run: yarn build:tarball
 
@@ -868,7 +801,7 @@ jobs:
     # See: https://github.com/actions/runner/issues/2205
     if: always() && needs.job_e2e_prepare.result == 'success' && needs.job_e2e_prepare.outputs.matrix != '{"include":[]}'
     needs: [job_get_metadata, job_build, job_e2e_prepare]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     timeout-minutes: 15
     env:
       # We just use a dummy DSN here, only send to the tunnel anyhow
@@ -990,7 +923,7 @@ jobs:
       (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
       github.actor != 'dependabot[bot]'
     needs: [job_get_metadata, job_build, job_e2e_prepare]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     timeout-minutes: 15
     env:
       E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
@@ -1089,137 +1022,20 @@ jobs:
           directory: dist
           workingDirectory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
 
-  job_profiling_e2e_tests:
-    name: E2E ${{ matrix.label || matrix.test-application }} Test
-    # We only run E2E tests for non-fork PRs because the E2E tests require secrets to work and they can't be accessed from forks
-    # Dependabot specifically also has access to secrets
-    # We need to add the `always()` check here because the previous step has this as well :(
-    # See: https://github.com/actions/runner/issues/2205
-    if:
-      # Only run profiling e2e tests if profiling node bindings have changed
-      always() && needs.job_e2e_prepare.result == 'success' &&
-      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
-     (
-        (needs.job_get_metadata.outputs.changed_profiling_node == 'true') ||
-        (needs.job_get_metadata.outputs.is_release == 'true')
-      )
-    needs: [job_get_metadata, job_build, job_e2e_prepare]
-    runs-on: ubuntu-22.04
-    timeout-minutes: 15
-    env:
-      E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
-      E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
-      E2E_TEST_SENTRY_ORG_SLUG: 'sentry-javascript-sdks'
-      E2E_TEST_SENTRY_PROJECT: 'sentry-javascript-e2e-tests'
-    strategy:
-      fail-fast: false
-      matrix:
-        test-application: ['node-profiling']
-        build-command:
-          - false
-        label:
-          - false
-    steps:
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ env.HEAD_COMMIT }}
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9.4.0
-
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
-
-      - name: Build Profiling Node
-        run: yarn lerna run build:lib --scope @sentry/profiling-node
-
-      - name: Extract Profiling Node Prebuilt Binaries
-        uses: actions/download-artifact@v4
-        with:
-          pattern: profiling-node-binaries-${{ github.sha }}-*
-          path: ${{ github.workspace }}/packages/profiling-node/lib/
-          merge-multiple: true
-
-      - name: Restore tarball cache
-        uses: actions/cache/restore@v4
-        id: restore-tarball-cache
-        with:
-          path: ${{ github.workspace }}/packages/*/*.tgz
-          key: ${{ env.BUILD_CACHE_TARBALL_KEY }}
-
-      - name: Build tarballs if not cached
-        if: steps.restore-tarball-cache.outputs.cache-hit != 'true'
-        run: yarn build:tarball
-
-      - name: Install Playwright
-        uses: ./.github/actions/install-playwright
-        with:
-          browsers: chromium
-
-      - name: Get node version
-        id: versions
-        run: |
-          echo "echo node=$(jq -r '.volta.node' dev-packages/e2e-tests/package.json)" >> $GITHUB_OUTPUT
-
-      - name: Validate Verdaccio
-        run: yarn test:validate
-        working-directory: dev-packages/e2e-tests
-
-      - name: Prepare Verdaccio
-        run: yarn test:prepare
-        working-directory: dev-packages/e2e-tests
-        env:
-          E2E_TEST_PUBLISH_SCRIPT_NODE_VERSION: ${{ steps.versions.outputs.node }}
-
-      - name: Setup xvfb and update ubuntu dependencies
-        run: |
-          sudo apt-get install xvfb x11-xkb-utils xfonts-100dpi xfonts-75dpi xfonts-scalable xfonts-cyrillic x11-apps
-          sudo apt-get install build-essential clang libdbus-1-dev libgtk2.0-dev \
-                       libnotify-dev libgconf2-dev \
-                       libasound2-dev libcap-dev libcups2-dev libxtst-dev \
-                       libxss1 libnss3-dev gcc-multilib g++-multilib
-
-      - name: Install dependencies
-        working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
-        run: yarn install --ignore-engines --frozen-lockfile
-
-      - name: Build E2E app
-        working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
-        timeout-minutes: 7
-        run: yarn ${{ matrix.build-command || 'test:build' }}
-
-      - name: Run E2E test
-        working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
-        timeout-minutes: 10
-        run: |
-          xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" -- yarn test:assert
-
   job_required_jobs_passed:
     name: All required jobs passed or were skipped
     needs:
       [
         job_build,
-        job_compile_bindings_profiling_node,
         job_browser_unit_tests,
         job_bun_unit_tests,
         job_deno_unit_tests,
         job_node_unit_tests,
-        job_profiling_node_unit_tests,
         job_node_integration_tests,
         job_browser_playwright_tests,
         job_browser_loader_tests,
         job_remix_integration_tests,
         job_e2e_tests,
-        job_profiling_e2e_tests,
         job_artifacts,
         job_lint,
         job_check_format,
@@ -1227,257 +1043,9 @@ jobs:
       ]
     # Always run this, even if a dependent job failed
     if: always()
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Check for failures
         if: contains(needs.*.result, 'failure')
         run: |
           echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
-
-  job_compile_bindings_profiling_node:
-    name: Compile profiling-node (v${{ matrix.node }}) ${{ matrix.target_platform || matrix.os }}, ${{ matrix.arch || matrix.container }}, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }}
-    needs: [job_get_metadata, job_build]
-    # Compiling bindings can be very slow (especially on windows), so only run precompile
-    # Skip precompile unless we are on a release branch as precompile slows down CI times.
-    if: |
-      (needs.job_get_metadata.outputs.changed_profiling_node == 'true') ||
-      (needs.job_get_metadata.outputs.is_release == 'true')
-    runs-on: ${{ matrix.os }}
-    container:
-      image: ${{ matrix.container }}
-    timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-            # x64 glibc
-          - os: ubuntu-20.04
-            node: 18
-            binary: linux-x64-glibc-108
-          - os: ubuntu-20.04
-            node: 20
-            binary: linux-x64-glibc-115
-          - os: ubuntu-20.04
-            node: 22
-            binary: linux-x64-glibc-127
-
-            # x64 musl
-          - os: ubuntu-20.04
-            container: node:18-alpine3.17
-            node: 18
-            binary: linux-x64-musl-108
-          - os: ubuntu-20.04
-            container: node:20-alpine3.17
-            node: 20
-            binary: linux-x64-musl-115
-          - os: ubuntu-20.04
-            container: node:22-alpine3.18
-            node: 22
-            binary: linux-x64-musl-127
-
-            # arm64 glibc
-          - os: ubuntu-20.04
-            arch: arm64
-            node: 18
-            binary: linux-arm64-glibc-108
-          - os: ubuntu-20.04
-            arch: arm64
-            node: 20
-            binary: linux-arm64-glibc-115
-          - os: ubuntu-20.04
-            arch: arm64
-            node: 22
-            binary: linux-arm64-glibc-127
-
-            # arm64 musl
-          - os: ubuntu-20.04
-            arch: arm64
-            container: node:18-alpine3.17
-            node: 18
-            binary: linux-arm64-musl-108
-          - os: ubuntu-20.04
-            arch: arm64
-            container: node:20-alpine3.17
-            node: 20
-            binary: linux-arm64-musl-115
-          - os: ubuntu-20.04
-            arch: arm64
-            container: node:22-alpine3.18
-            node: 22
-            binary: linux-arm64-musl-127
-
-            # macos x64
-          - os: macos-13
-            node: 18
-            arch: x64
-            binary: darwin-x64-108
-          - os: macos-13
-            node: 20
-            arch: x64
-            binary: darwin-x64-115
-          - os: macos-13
-            node: 22
-            arch: x64
-            binary: darwin-x64-127
-
-            # macos arm64
-          - os: macos-13
-            arch: arm64
-            node: 18
-            target_platform: darwin
-            binary: darwin-arm64-108
-          - os: macos-13
-            arch: arm64
-            node: 20
-            target_platform: darwin
-            binary: darwin-arm64-115
-          - os: macos-13
-            arch: arm64
-            node: 22
-            target_platform: darwin
-            binary: darwin-arm64-127
-
-            # windows x64
-          - os: windows-2022
-            node: 18
-            arch: x64
-            binary: win32-x64-108
-          - os: windows-2022
-            node: 20
-            arch: x64
-            binary: win32-x64-115
-          - os: windows-2022
-            node: 22
-            arch: x64
-            binary: win32-x64-127
-
-    steps:
-      - name: Setup (alpine)
-        if: contains(matrix.container, 'alpine')
-        run: |
-          apk add --no-cache build-base git g++ make curl python3
-          ln -sf python3 /usr/bin/python
-
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ env.HEAD_COMMIT }}
-
-      # Note: On alpine images, this does nothing
-      # The node version will be the one that is installed in the image
-      # If you want to change the node version, you need to change the image
-      # For non-alpine imgages, this will install the correct version of node
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        if: contains(matrix.container, 'alpine') == false
-        with:
-          node-version: ${{ matrix.node }}
-
-      - name: Restore dependency cache
-        uses: actions/cache/restore@v4
-        id: restore-dependencies
-        with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-          enableCrossOsArchive: true
-
-      - name: Increase yarn network timeout on Windows
-        if: contains(matrix.os, 'windows')
-        run: yarn config set network-timeout 600000 -g
-
-      - name: Install dependencies
-        if: steps.restore-dependencies.outputs.cache-hit != 'true'
-        run: yarn install --ignore-engines --frozen-lockfile
-        env:
-          SKIP_PLAYWRIGHT_BROWSER_INSTALL: "1"
-
-      - name: Configure safe directory
-        run: |
-          git config --global --add safe.directory "*"
-
-      - name: Setup python
-        uses: actions/setup-python@v5
-        if: ${{ !contains(matrix.container, 'alpine') }}
-        id: python-setup
-        with:
-          python-version: '3.8.10'
-
-      - name: Setup (arm64| ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})
-        if: matrix.arch == 'arm64' && !contains(matrix.container, 'alpine') && matrix.target_platform != 'darwin'
-        run: |
-          sudo apt-get update
-          sudo apt install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
-
-      - name: Setup Musl
-        if: contains(matrix.container, 'alpine')
-        run: |
-          cd packages/profiling-node
-          curl -OL https://musl.cc/aarch64-linux-musl-cross.tgz
-          tar -xzvf aarch64-linux-musl-cross.tgz
-          $(pwd)/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc --version
-
-      # configure node-gyp
-      - name: Configure node-gyp
-        if: matrix.arch != 'arm64'
-        run: |
-          cd packages/profiling-node
-          yarn build:bindings:configure
-
-      - name: Configure node-gyp (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})
-        if: matrix.arch == 'arm64' && matrix.target_platform != 'darwin'
-        run: |
-          cd packages/profiling-node
-          yarn build:bindings:configure:arm64
-
-      - name: Configure node-gyp (arm64, darwin)
-        if: matrix.arch == 'arm64' && matrix.target_platform == 'darwin'
-        run: |
-          cd packages/profiling-node
-          yarn build:bindings:configure:arm64
-
-      # build bindings
-      - name: Build Bindings
-        if: matrix.arch != 'arm64'
-        run: |
-          yarn lerna run build:bindings --scope @sentry/profiling-node
-
-      - name: Build Bindings (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})
-        if: matrix.arch == 'arm64' && contains(matrix.container, 'alpine') && matrix.target_platform != 'darwin'
-        run: |
-          cd packages/profiling-node
-          CC=$(pwd)/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc \
-          CXX=$(pwd)/aarch64-linux-musl-cross/bin/aarch64-linux-musl-g++ \
-          BUILD_ARCH=arm64 \
-          yarn build:bindings
-
-      - name: Build Bindings (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})
-        if: matrix.arch == 'arm64' && !contains(matrix.container, 'alpine') && matrix.target_platform != 'darwin'
-        run: |
-          cd packages/profiling-node
-          CC=aarch64-linux-gnu-gcc \
-          CXX=aarch64-linux-gnu-g++ \
-          BUILD_ARCH=arm64 \
-          yarn build:bindings:arm64
-
-      - name: Build Bindings (arm64, darwin)
-        if: matrix.arch == 'arm64' && matrix.target_platform == 'darwin'
-        run: |
-          cd packages/profiling-node
-          BUILD_PLATFORM=darwin \
-          BUILD_ARCH=arm64 \
-          yarn build:bindings:arm64
-
-      - name: Build profiling-node & its dependencies
-        run: yarn build --scope @sentry/profiling-node
-
-      - name: Test Bindings
-        if: matrix.arch != 'arm64'
-        run: |
-          yarn lerna run test --scope @sentry/profiling-node
-
-      - name: Archive Binary
-        uses: actions/upload-artifact@v4
-        with:
-          name: profiling-node-binaries-${{ github.sha }}-${{ matrix.binary }}
-          path: ${{ github.workspace }}/packages/profiling-node/lib/sentry_cpu_profiler-${{matrix.binary}}.node
-          if-no-files-found: error

@@ -1,6 +1,6 @@
 import { logger } from '@sentry/core';
 import type { Nitro } from 'nitropack';
-import { addSentryPluginToVite } from '../vite';
+import { addSentryPluginToVite } from '../vite/sentrySolidStartVite';
 import type { SentrySolidStartPluginOptions } from '../vite/types';
 import {
   addDynamicImportEntryFileWrapper,

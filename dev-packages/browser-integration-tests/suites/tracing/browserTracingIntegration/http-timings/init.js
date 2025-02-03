@@ -13,4 +13,10 @@ Sentry.init({
     }),
   ],
   tracesSampleRate: 1,
+  transportOptions: {
+    fetchOptions: {
+      // See: https://github.com/microsoft/playwright/issues/34497
+      keepalive: false,
+    },
+  },
 });
