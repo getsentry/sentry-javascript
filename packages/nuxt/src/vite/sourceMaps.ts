@@ -97,6 +97,7 @@ export function getPluginOptions(
     errorHandler: sourceMapsUploadOptions.errorHandler,
     release: {
       name: sourceMapsUploadOptions.release?.name,
+      ...moduleOptions?.unstable_sentryBundlerPluginOptions?.release,
     },
     _metaOptions: {
       telemetry: {
