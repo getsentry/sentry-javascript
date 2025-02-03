@@ -10,6 +10,21 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.53.0
+
+- feat(v8/nuxt): Add `url` to `SourcemapsUploadOptions` (#15202)
+- fix(v8/react): `fromLocation` can be undefined in Tanstack Router Instrumentation (#15237)
+
+Work in this release was contributed by @tannerlinsley. Thank you for your contribution!
+
+## 8.52.1
+
+- fix(v8/nextjs): Fix nextjs build warning (#15226)
+- ref(v8/browser): Add protocol attributes to resource spans #15224
+- ref(v8/core): Don't set `this.name` to `new.target.prototype.constructor.name` (#15222)
+
+Work in this release was contributed by @Zen-cronic. Thank you for your contribution!
+
 ## 8.52.0
 
 ### Important Changes

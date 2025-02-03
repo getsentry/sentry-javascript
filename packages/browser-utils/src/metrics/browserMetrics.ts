@@ -20,7 +20,13 @@ import {
   addPerformanceInstrumentationHandler,
   addTtfbInstrumentationHandler,
 } from './instrument';
-import { getBrowserPerformanceAPI, isMeasurementValue, msToSec, startAndEndSpan } from './utils';
+import {
+  extractNetworkProtocol,
+  getBrowserPerformanceAPI,
+  isMeasurementValue,
+  msToSec,
+  startAndEndSpan,
+} from './utils';
 import { getActivationStart } from './web-vitals/lib/getActivationStart';
 import { getNavigationEntry } from './web-vitals/lib/getNavigationEntry';
 import { getVisibilityWatcher } from './web-vitals/lib/getVisibilityWatcher';
@@ -595,6 +601,10 @@ export function _addResourceSpans(
   }
 
   attributes['url.same_origin'] = resourceUrl.includes(WINDOW.location.origin);
+
+  const { name, version } = extractNetworkProtocol(entry.nextHopProtocol);
+  attributes['network.protocol.name'] = name;
+  attributes['network.protocol.version'] = version;
 
   const startTimestamp = timeOrigin + startTime;
   const endTimestamp = startTimestamp + duration;
