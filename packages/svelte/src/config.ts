@@ -3,7 +3,7 @@ import type { PreprocessorGroup } from 'svelte/types/compiler/preprocess';
 import { componentTrackingPreprocessor, defaultComponentTrackingOptions } from './preprocessors';
 import type { SentryPreprocessorGroup, SentrySvelteConfigOptions, SvelteConfig } from './types';
 
-const DEFAULT_SENTRY_OPTIONS: SentrySvelteConfigOptions = {
+const defaultSentryOptions: SentrySvelteConfigOptions = {
   componentTracking: defaultComponentTrackingOptions,
 };
 
@@ -20,10 +20,10 @@ export function withSentryConfig(
   sentryOptions?: SentrySvelteConfigOptions,
 ): SvelteConfig {
   const mergedOptions = {
-    ...DEFAULT_SENTRY_OPTIONS,
+    ...defaultSentryOptions,
     ...sentryOptions,
     componentTracking: {
-      ...DEFAULT_SENTRY_OPTIONS.componentTracking,
+      ...defaultSentryOptions.componentTracking,
       ...sentryOptions?.componentTracking,
     },
   };

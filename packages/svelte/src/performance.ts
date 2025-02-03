@@ -11,7 +11,7 @@ const defaultTrackComponentOptions: {
   componentName?: string;
 } = {
   trackInit: true,
-  trackUpdates: true,
+  trackUpdates: false,
 };
 
 /**
