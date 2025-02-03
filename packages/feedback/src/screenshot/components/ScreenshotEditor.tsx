@@ -413,7 +413,7 @@ export function ScreenshotEditorFactory({
               ref={cropContainerRef}
             >
               <canvas onMouseDown={onDragStart} ref={croppingRef}></canvas>
-              {(!options._experiments.annotations || isCropping) && (
+              {isCropping && (
                 <div>
                   <CropCorner
                     left={croppingRect.startX - CROP_BUTTON_BORDER}
@@ -441,7 +441,7 @@ export function ScreenshotEditorFactory({
                   ></CropCorner>
                 </div>
               )}
-              {(!options._experiments.annotations || isCropping) && (
+              {isCropping && (
                 <div
                   style={{
                     left: Math.max(0, croppingRect.endX - 191),
