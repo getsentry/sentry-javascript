@@ -85,7 +85,11 @@ export function createV6CompatibleWrapCreateBrowserRouter<
 
   return function (routes: RouteObject[], opts?: Record<string, unknown> & { basename?: string }): TRouter {
     routes.forEach(route => {
-      allRoutes.add(route);
+      const extractedChildRoutes = getChildRoutesRecursively(route);
+
+      extractedChildRoutes.forEach(r => {
+        allRoutes.add(r);
+      });
     });
 
     const router = createRouterFunction(routes, opts);
@@ -166,7 +170,11 @@ export function createV6CompatibleWrapCreateMemoryRouter<
     },
   ): TRouter {
     routes.forEach(route => {
-      allRoutes.add(route);
+      const extractedChildRoutes = getChildRoutesRecursively(route);
+
+      extractedChildRoutes.forEach(r => {
+        allRoutes.add(r);
+      });
     });
 
     const router = createRouterFunction(routes, opts);
@@ -458,7 +466,9 @@ function getChildRoutesRecursively(route: RouteObject, allRoutes: Set<RouteObjec
       route.children.forEach(child => {
         const childRoutes = getChildRoutesRecursively(child, allRoutes);
 
-        childRoutes.forEach(r => allRoutes.add(r));
+        childRoutes.forEach(r => {
+          allRoutes.add(r);
+        });
       });
     }
   }
@@ -497,6 +507,11 @@ function rebuildRoutePathFromAllRoutes(allRoutes: RouteObject[], location: Locat
     if (match.route.path && match.route.path !== '*') {
       const path = pickPath(match);
       const strippedPath = stripBasenameFromPathname(location.pathname, prefixWithSlash(match.pathnameBase));
+
+      if (location.pathname === strippedPath) {
+        return trimSlash(strippedPath);
+      }
+
 
       return trimSlash(
         trimSlash(path || '') +
@@ -588,6 +603,8 @@ function updatePageloadTransaction(
   if (branches) {
     let name,
       source: TransactionSource = 'url';
+
+    debugger;
     const isInDescendantRoute = locationIsInsideDescendantRoute(location, allRoutes || routes);
 
     if (isInDescendantRoute) {
