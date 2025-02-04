@@ -84,13 +84,7 @@ export function createV6CompatibleWrapCreateBrowserRouter<
   }
 
   return function (routes: RouteObject[], opts?: Record<string, unknown> & { basename?: string }): TRouter {
-    routes.forEach(route => {
-      const extractedChildRoutes = getChildRoutesRecursively(route);
-
-      extractedChildRoutes.forEach(r => {
-        allRoutes.add(r);
-      });
-    });
+    addRoutesToAllRoutes(routes);
 
     const router = createRouterFunction(routes, opts);
     const basename = opts?.basename;
@@ -169,13 +163,7 @@ export function createV6CompatibleWrapCreateMemoryRouter<
       initialIndex?: number;
     },
   ): TRouter {
-    routes.forEach(route => {
-      const extractedChildRoutes = getChildRoutesRecursively(route);
-
-      extractedChildRoutes.forEach(r => {
-        allRoutes.add(r);
-      });
-    });
+    addRoutesToAllRoutes(routes);
 
     const router = createRouterFunction(routes, opts);
     const basename = opts?.basename;
@@ -311,13 +299,7 @@ export function createV6CompatibleWrapUseRoutes(origUseRoutes: UseRoutes, versio
         typeof stableLocationParam === 'string' ? { pathname: stableLocationParam } : stableLocationParam;
 
       if (isMountRenderPass.current) {
-        routes.forEach(route => {
-          const extractedChildRoutes = getChildRoutesRecursively(route);
-
-          extractedChildRoutes.forEach(r => {
-            allRoutes.add(r);
-          });
-        });
+        addRoutesToAllRoutes(routes);
 
         updatePageloadTransaction(
           getActiveRootSpan(),
@@ -457,6 +439,17 @@ function locationIsInsideDescendantRoute(location: Location, routes: RouteObject
 
   return false;
 }
+
+function addRoutesToAllRoutes(routes: RouteObject[]): void {
+  routes.forEach(route => {
+    const extractedChildRoutes = getChildRoutesRecursively(route);
+
+    extractedChildRoutes.forEach(r => {
+      allRoutes.add(r);
+    });
+  });
+}
+
 
 function getChildRoutesRecursively(route: RouteObject, allRoutes: Set<RouteObject> = new Set()): Set<RouteObject> {
   if (!allRoutes.has(route)) {
@@ -648,13 +641,7 @@ export function createV6CompatibleWithSentryReactRouterRouting<P extends Record<
         const routes = _createRoutesFromChildren(props.children) as RouteObject[];
 
         if (isMountRenderPass.current) {
-          routes.forEach(route => {
-            const extractedChildRoutes = getChildRoutesRecursively(route);
-
-            extractedChildRoutes.forEach(r => {
-              allRoutes.add(r);
-            });
-          });
+          addRoutesToAllRoutes(routes);
 
           updatePageloadTransaction(getActiveRootSpan(), location, routes, undefined, undefined, Array.from(allRoutes));
           isMountRenderPass.current = false;
