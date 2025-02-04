@@ -361,14 +361,23 @@ export function handleNavigation(opts: {
       [name, source] = getNormalizedName(routes, location, branches, basename);
     }
 
-    startBrowserTracingNavigationSpan(client, {
-      name,
-      attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.react.reactrouter_v${version}`,
-      },
-    });
+    const activeSpan = getActiveSpan();
+    const isAlreadyInNavigationSpan = activeSpan && spanToJSON(activeSpan).op === 'navigation';
+
+    // Cross usage can result in multiple navigation spans being created without this check
+    if (isAlreadyInNavigationSpan) {
+      activeSpan?.updateName(name);
+      activeSpan?.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
+    } else {
+      startBrowserTracingNavigationSpan(client, {
+        name,
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.react.reactrouter_v${version}`,
+        },
+      });
+    }
   }
 }
 
@@ -449,7 +458,6 @@ function addRoutesToAllRoutes(routes: RouteObject[]): void {
     });
   });
 }
-
 
 function getChildRoutesRecursively(route: RouteObject, allRoutes: Set<RouteObject> = new Set()): Set<RouteObject> {
   if (!allRoutes.has(route)) {
