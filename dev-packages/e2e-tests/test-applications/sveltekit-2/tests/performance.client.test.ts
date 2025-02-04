@@ -127,6 +127,7 @@ test.describe('client-specific performance events', () => {
           description: '<Component3>',
           op: 'ui.svelte.update',
           origin: 'auto.ui.svelte',
+        }),
       ]),
     );
   });
