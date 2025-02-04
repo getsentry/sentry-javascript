@@ -608,6 +608,7 @@ describe('startSpan', () => {
         test2: 'aa',
         test3: 'bb',
       },
+      inheritOrSampleWith: expect.any(Function),
     });
   });
 
