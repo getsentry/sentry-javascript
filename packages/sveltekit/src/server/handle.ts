@@ -3,7 +3,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   continueTrace,
-  getActiveSpan,
   getCurrentScope,
   getDefaultIsolationScope,
   getIsolationScope,
@@ -100,19 +99,13 @@ export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
   };
 
   const sentryRequestHandler: Handle = input => {
-    // event.isSubRequest was added in SvelteKit 1.21.0 and we can use it to check
-    // if we should create a new execution context or not.
     // In case of a same-origin `fetch` call within a server`load` function,
     // SvelteKit will actually just re-enter the `handle` function and set `isSubRequest`
     // to `true` so that no additional network call is made.
     // We want the `http.server` span of that nested call to be a child span of the
     // currently active span instead of a new root span to correctly reflect this
     // behavior.
-    // As a fallback for Kit < 1.21.0, we check if there is an active span only if there's none,
-    // we create a new execution context.
-    const isSubRequest = typeof input.event.isSubRequest === 'boolean' ? input.event.isSubRequest : !!getActiveSpan();
-
-    if (isSubRequest) {
+    if (input.event.isSubRequest) {
       return instrumentHandle(input, options);
     }
 

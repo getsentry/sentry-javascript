@@ -6,7 +6,7 @@ import type { ComponentTrackingInitOptions, SentryPreprocessorGroup, TrackCompon
 export const defaultComponentTrackingOptions: Required<ComponentTrackingInitOptions> = {
   trackComponents: true,
   trackInit: true,
-  trackUpdates: true,
+  trackUpdates: false,
 };
 
 export const FIRST_PASS_COMPONENT_TRACKING_PREPROC_ID = 'FIRST_PASS_COMPONENT_TRACKING_PREPROCESSOR';

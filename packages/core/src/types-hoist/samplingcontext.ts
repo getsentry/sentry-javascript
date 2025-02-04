@@ -10,9 +10,7 @@ export interface CustomSamplingContext {
 }
 
 /**
- * Data passed to the `tracesSampler` function, which forms the basis for whatever decisions it might make.
- *
- * Adds default data to data provided by the user.
+ * Auxiliary data for various sampling mechanisms in the Sentry SDK.
  */
 export interface SamplingContext extends CustomSamplingContext {
   /**
@@ -41,4 +39,14 @@ export interface SamplingContext extends CustomSamplingContext {
 
   /** Initial attributes that have been passed to the span being sampled. */
   attributes?: SpanAttributes;
+}
+
+/**
+ * Auxiliary data passed to the `tracesSampler` function.
+ */
+export interface TracesSamplerSamplingContext extends SamplingContext {
+  /**
+   * Returns a sample rate value that matches the sampling decision from the incoming trace, or falls back to the provided `fallbackSampleRate`.
+   */
+  inheritOrSampleWith: (fallbackSampleRate: number) => number;
 }
