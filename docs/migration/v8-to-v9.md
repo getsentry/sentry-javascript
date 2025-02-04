@@ -439,17 +439,13 @@ The following changes are unlikely to affect users of the SDK. They are listed h
 
 ## 5. Build Changes
 
-The CJS code for the SDK now only contains compatibility statements for CJS/ESM in modules that have default exports:
+- The CJS code for the SDK now only contains compatibility statements for CJS/ESM in modules that have default exports:
 
-```js
-Object.defineProperty(exports, '__esModule', { value: true });
-```
+  ```js
+  Object.defineProperty(exports, '__esModule', { value: true });
+  ```
 
-Let us know if this is causing issues in your setup by opening an issue on GitHub.
-
-### `@sentry/deno`
-
-- The minimum supported Deno version for the Deno SDK (`@sentry/deno`) is now **2.0.0**.
+  Let us know if this is causing issues in your setup by opening an issue on GitHub.
 
 - `@sentry/deno` is no longer published on the `deno.land` registry so you'll need to import the SDK from npm:
 
