@@ -27,7 +27,24 @@ export function sampleSpan(
   // work; prefer the hook if so
   let sampleRate;
   if (typeof options.tracesSampler === 'function') {
-    sampleRate = options.tracesSampler(samplingContext);
+    sampleRate = options.tracesSampler({
+      ...samplingContext,
+      inheritOrSampleWith: fallbackSampleRate => {
+        // If we have an incoming parent sample rate, we'll just use that one.
+        // The sampling decision will be inherited because of the sample_rand that was generated when the trace reached the incoming boundaries of the SDK.
+        if (typeof samplingContext.parentSampleRate === 'number') {
+          return samplingContext.parentSampleRate;
+        }
+
+        // Fallback if parent sample rate is not on the incoming trace (e.g. if there is no baggage)
+        // This is to provide backwards compatibility if there are incoming traces from older SDKs that don't send a parent sample rate or a sample rand. In these cases we just want to force either a sampling decision on the downstream traces via the sample rate.
+        if (typeof samplingContext.parentSampled === 'boolean') {
+          return Number(samplingContext.parentSampled);
+        }
+
+        return fallbackSampleRate;
+      },
+    });
     localSampleRateWasApplied = true;
   } else if (samplingContext.parentSampled !== undefined) {
     sampleRate = samplingContext.parentSampled;
