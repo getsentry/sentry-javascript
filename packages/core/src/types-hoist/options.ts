@@ -2,7 +2,7 @@ import type { CaptureContext } from '../scope';
 import type { Breadcrumb, BreadcrumbHint } from './breadcrumb';
 import type { ErrorEvent, EventHint, TransactionEvent } from './event';
 import type { Integration } from './integration';
-import type { SamplingContext } from './samplingcontext';
+import type { TracesSamplerSamplingContext } from './samplingcontext';
 import type { SdkMetadata } from './sdkmetadata';
 import type { SpanJSON } from './span';
 import type { StackLineParser, StackParser } from './stacktrace';
@@ -243,7 +243,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * @returns A sample rate between 0 and 1 (0 drops the trace, 1 guarantees it will be sent). Returning `true` is
    * equivalent to returning 1 and returning `false` is equivalent to returning 0.
    */
-  tracesSampler?: (samplingContext: SamplingContext) => number | boolean;
+  tracesSampler?: (samplingContext: TracesSamplerSamplingContext) => number | boolean;
 
   /**
    * An event-processing callback for error and message events, guaranteed to be invoked after all other event
