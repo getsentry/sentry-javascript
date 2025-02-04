@@ -512,7 +512,6 @@ function rebuildRoutePathFromAllRoutes(allRoutes: RouteObject[], location: Locat
         return trimSlash(strippedPath);
       }
 
-
       return trimSlash(
         trimSlash(path || '') +
           prefixWithSlash(
@@ -604,7 +603,6 @@ function updatePageloadTransaction(
     let name,
       source: TransactionSource = 'url';
 
-    debugger;
     const isInDescendantRoute = locationIsInsideDescendantRoute(location, allRoutes || routes);
 
     if (isInDescendantRoute) {
