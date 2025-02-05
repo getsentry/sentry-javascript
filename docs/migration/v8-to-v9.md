@@ -277,7 +277,8 @@ All exports and APIs of `@sentry/utils` and `@sentry/types` (except for the ones
 
 ### `@sentry/browser`
 
-- The `captureUserFeedback` method has been removed. Use the `captureFeedback` method instead and update the `comments` field to `message`.
+- The `captureUserFeedback` method has been removed.
+  Use the `captureFeedback` method instead and update the `comments` field to `message`.
 
 ### `@sentry/nextjs`
 
