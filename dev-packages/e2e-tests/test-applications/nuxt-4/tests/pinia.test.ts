@@ -18,10 +18,10 @@ test('sends pinia action breadcrumbs and state context', async ({ page }) => {
   expect(error).toBeTruthy();
   expect(error.breadcrumbs?.length).toBeGreaterThan(0);
 
-  const actionBreadcrumb = error.breadcrumbs?.find(breadcrumb => breadcrumb.category === 'action');
+  const actionBreadcrumb = error.breadcrumbs?.find(breadcrumb => breadcrumb.category === 'action.pinia');
 
   expect(actionBreadcrumb).toBeDefined();
-  expect(actionBreadcrumb?.message).toBe('Transformed: addItem');
+  expect(actionBreadcrumb?.message).toBe('Store: cart | Action: addItem.transformed');
   expect(actionBreadcrumb?.level).toBe('info');
 
   const stateContext = error.contexts?.state?.state;
@@ -30,6 +30,6 @@ test('sends pinia action breadcrumbs and state context', async ({ page }) => {
   expect(stateContext?.type).toBe('pinia');
   expect(stateContext?.value).toEqual({
     transformed: true,
-    rawItems: ['item'],
+    cart: { rawItems: ['item'] },
   });
 });

@@ -357,10 +357,12 @@ All exports and APIs of `@sentry/utils` and `@sentry/types` (except for the ones
   ```
 
 - The option `logErrors` in the `vueIntegration` has been removed. The Sentry Vue error handler will always propagate the error to a user-defined error handler or re-throw the error (which will log the error without modifying).
+- The option `stateTransformer` in `createSentryPiniaPlugin()` now receives the full state from all stores as its parameter. The top-level keys of the state object are the store IDs.
 
 ### `@sentry/nuxt`
 
 - The `tracingOptions` option in `Sentry.init()` was removed in favor of passing the `vueIntegration()` to `Sentry.init({ integrations: [...] })` and setting `tracingOptions` there.
+- The option `stateTransformer` in the `piniaIntegration` now receives the full state from all stores as its parameter. The top-level keys of the state object are the store IDs.
 
 ### `@sentry/vue` and `@sentry/nuxt`
 
