@@ -55,18 +55,6 @@ Older Typescript versions _may_ continue to be compatible, but no guarantees app
 
 ### `@sentry/core` / All SDKs
 
-- Passing `undefined` as a `tracesSampleRate` option value will now be treated the same as if the option was not defined at all.
-  In previous versions, it was checked whether `tracesSampleRate` or `traceSampler` are _defined_ at all, in `Sentry.init()` to determine whether tracing should be enabled.
-  Passing `undefined` to `tracesSampleRate` previously would enable tracing without the performance monitoring aspect (=tracing being enabled, though no spans would be started).
-  If you want to preserve having tracing enabled without creating spans, set `tracesSampleRate: 0`:
-
-  ```diff
-  Sentry.init({
-  -  tracesSampleRate: undefined,
-  +  tracesSampleRate: 0,
-  });
-  ```
-
 - Dropping spans in the `beforeSendSpan` hook is no longer possible.
   This means you can no longer return `null` from the `beforeSendSpan` hook.
   This hook is intended to be used to add additional data to spans or remove unwanted attributes (for example for PII stripping).
@@ -92,6 +80,12 @@ Older Typescript versions _may_ continue to be compatible, but no guarantees app
     customScope.setTag('tag-a', 'a');
   });
   ```
+
+- Passing `undefined` as a `tracesSampleRate` option value will now be treated the same as if the attribute was not defined at all.
+  In previous versions, it was checked whether the `tracesSampleRate` property existed in the SDK options to determine whether to propagate trace data for distributed tracing.
+  Consequentially, this sometimes caused the SDK to propagate negative sampling decisions when `tracesSampleRate: undefined` was passed.
+  This is no longer the case and sampling decisions will be deferred to downstream SDKs for distributed tracing.
+  This is more of a bugfix rather than a breaking change, however, depending on the setup of your SDKs, an increase in sampled traces may be observed.
 
 - If you use the optional `captureConsoleIntegration` and set `attachStackTrace: true` in your `Sentry.init` call, console messages will no longer be marked as unhandled (i.e. `handled: false`) but as handled (i.e. `handled: true`).
   If you want to keep sending them as unhandled, configure the `handled` option when adding the integration:
