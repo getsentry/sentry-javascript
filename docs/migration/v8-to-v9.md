@@ -75,16 +75,6 @@ Older Typescript versions _may_ continue to be compatible, but no guarantees app
 - The `beforeSendSpan` hook now receives the root span as well as the child spans.
   We recommend checking your `beforeSendSpan` to account for this change.
 
-- If you use the optional `captureConsoleIntegration` and set `attachStackTrace: true` in your `Sentry.init` call, console messages will no longer be marked as unhandled (i.e. `handled: false`) but as handled (i.e. `handled: true`).
-  If you want to keep sending them as unhandled, configure the `handled` option when adding the integration:
-
-  ```js
-  Sentry.init({
-    integrations: [Sentry.captureConsoleIntegration({ handled: false })],
-    attachStackTrace: true,
-  });
-  ```
-
 - The `request` property on the `samplingContext` argument passed to the `tracesSampler` and `profilesSampler` options has been removed.
   `samplingContext.normalizedRequest` can be used instead.
   Note that the type of `normalizedRequest` differs from `request`.
@@ -100,6 +90,16 @@ Older Typescript versions _may_ continue to be compatible, but no guarantees app
     getCurrentScope().setTag('tag-a', 'a'); // this tag will only remain within the callback
     // set the tag directly on customScope in addition, if you want to to persist the tag outside of the callback
     customScope.setTag('tag-a', 'a');
+  });
+  ```
+
+- If you use the optional `captureConsoleIntegration` and set `attachStackTrace: true` in your `Sentry.init` call, console messages will no longer be marked as unhandled (i.e. `handled: false`) but as handled (i.e. `handled: true`).
+  If you want to keep sending them as unhandled, configure the `handled` option when adding the integration:
+
+  ```js
+  Sentry.init({
+    integrations: [Sentry.captureConsoleIntegration({ handled: false })],
+    attachStackTrace: true,
   });
   ```
 
