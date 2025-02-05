@@ -31,7 +31,22 @@ export interface BaseDenoOptions {
  * Configuration options for the Sentry Deno SDK
  * @see @sentry/core Options for more information.
  */
-export interface DenoOptions extends Options<DenoTransportOptions>, BaseDenoOptions {}
+export interface DenoOptions
+  extends Options<
+      DenoTransportOptions,
+      [
+        'InboundFilters',
+        'FunctionToString',
+        'LinkedErrors',
+        'Dedupe',
+        'Breadcrumbs',
+        'DenoContext',
+        'ContextLines',
+        'NormalizePaths',
+        'GLobalHandlers',
+      ]
+    >,
+    BaseDenoOptions {}
 
 /**
  * Configuration options for the Sentry Deno SDK Client class

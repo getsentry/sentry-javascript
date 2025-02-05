@@ -56,7 +56,7 @@ export interface VueOptions {
   tracingOptions?: Partial<TracingOptions>;
 }
 
-export type Options = BrowserOptions & VueOptions;
+export type Options = BrowserOptions<['Vue']> & VueOptions;
 
 /** Vue specific configuration for Tracing Integration  */
 export interface TracingOptions {

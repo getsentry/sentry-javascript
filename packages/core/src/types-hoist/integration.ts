@@ -48,3 +48,10 @@ export interface Integration {
  * This is expected to return an integration.
  */
 export type IntegrationFn<IntegrationType = Integration> = (...rest: any[]) => IntegrationType;
+
+/**
+ * A map of integration names to true/false.
+ */
+export type IntegrationsMapping<KnownIntegrationNames extends string[] = []> = Record<string, boolean | undefined> & {
+  [key in KnownIntegrationNames[number]]?: boolean | undefined;
+};

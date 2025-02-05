@@ -26,7 +26,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
 /**
  * @see {@link Sentry.init}
  */
-export function init(options: NodeOptions = {}): NodeClient | undefined {
+export function init(options: NodeOptions<['GoogleCloudHttp', 'GoogleCloudGrpc']> = {}): NodeClient | undefined {
   const opts = {
     _metadata: {} as SdkMetadata,
     defaultIntegrations: getDefaultIntegrations(options),

@@ -1,4 +1,4 @@
-import type { Client, Integration, Options, ServerRuntimeClientOptions, StackParser } from '@sentry/core';
+import type { Client, Integration, ServerRuntimeClientOptions, StackParser } from '@sentry/core';
 import {
   createStackParser,
   dedupeIntegration,
@@ -19,8 +19,11 @@ import { normalizePathsIntegration } from './integrations/normalizepaths';
 import { makeFetchTransport } from './transports';
 import type { DenoOptions } from './types';
 
-/** Get the default integrations for the Deno SDK. */
-export function getDefaultIntegrations(_options: Options): Integration[] {
+/**
+ * Get the default integrations for the Deno SDK.
+ * Ensure to keep this in sync with `DenoOptions`!
+ */
+export function getDefaultIntegrations(_options: DenoOptions): Integration[] {
   // We return a copy of the defaultIntegrations here to avoid mutating this
   return [
     // Common

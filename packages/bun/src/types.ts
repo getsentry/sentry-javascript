@@ -41,7 +41,26 @@ export interface BaseBunOptions {
  * Configuration options for the Sentry Bun SDK
  * @see @sentry/core Options for more information.
  */
-export interface BunOptions extends Options<BunTransportOptions>, BaseBunOptions {}
+export interface BunOptions
+  extends Options<
+      BunTransportOptions,
+      [
+        'InboundFilters',
+        'FunctionToString',
+        'LinkedErrors',
+        'RequestData',
+        'Console',
+        'Http',
+        'NodeFetch',
+        'OnUncaughtException',
+        'OnUnhandledRejection',
+        'ContextLines',
+        'Context',
+        'Modules',
+        'BunServer',
+      ]
+    >,
+    BaseBunOptions {}
 
 /**
  * Configuration options for the Sentry Bun SDK Client class

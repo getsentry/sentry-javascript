@@ -1,7 +1,7 @@
 import type { CaptureContext } from '../scope';
 import type { Breadcrumb, BreadcrumbHint } from './breadcrumb';
 import type { ErrorEvent, EventHint, TransactionEvent } from './event';
-import type { Integration } from './integration';
+import type { Integration, IntegrationsMapping } from './integration';
 import type { TracesSamplerSamplingContext } from './samplingcontext';
 import type { SdkMetadata } from './sdkmetadata';
 import type { SpanJSON } from './span';
@@ -302,13 +302,26 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
 }
 
 /** Base configuration options for every SDK. */
-export interface Options<TO extends BaseTransportOptions = BaseTransportOptions>
-  extends Omit<Partial<ClientOptions<TO>>, 'integrations' | 'transport' | 'stackParser'> {
+export interface Options<
+  TO extends BaseTransportOptions = BaseTransportOptions,
+  DefaultIntegrationNames extends string[] = [],
+> extends Omit<Partial<ClientOptions<TO>>, 'integrations' | 'transport' | 'stackParser'> {
   /**
    * If this is set to false, default integrations will not be added, otherwise this will internally be set to the
    * recommended default integrations.
    */
   defaultIntegrations?: false | Integration[];
+
+  /**
+   * Pass a map of integrations that should be explicitly disabled.
+   * This allows you to e.g. opt out of default integrations easily.
+   * For example, if you do not want to add the `inboundFiltersIntegration`, you can configure:
+   *
+   * ```js
+   * disableIntegrations: { InboundFilters: true }
+   * ```
+   */
+  disableIntegrations?: IntegrationsMapping<DefaultIntegrationNames>;
 
   /**
    * List of integrations that should be installed after SDK was initialized.

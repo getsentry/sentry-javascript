@@ -6,7 +6,7 @@ import {
   ATTR_SERVICE_VERSION,
   SEMRESATTRS_SERVICE_NAMESPACE,
 } from '@opentelemetry/semantic-conventions';
-import type { Client, Integration, Options } from '@sentry/core';
+import type { Client, Integration } from '@sentry/core';
 import {
   GLOBAL_OBJ,
   SDK_VERSION,
@@ -47,8 +47,11 @@ declare const process: {
 
 const nodeStackParser = createStackParser(nodeStackLineParser());
 
-/** Get the default integrations for the browser SDK. */
-export function getDefaultIntegrations(options: Options): Integration[] {
+/**
+ * Get the default integrations for the VercelEdge SDK.
+ * Ensure to keep this in sync with `VercelEdgeOptions`!
+ */
+export function getDefaultIntegrations(options: VercelEdgeOptions): Integration[] {
   return [
     dedupeIntegration(),
     inboundFiltersIntegration(),

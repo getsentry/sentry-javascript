@@ -23,7 +23,7 @@ const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
 declare const __SENTRY_TRACING__: boolean;
 
 /** Inits the Sentry NextJS SDK on the browser with the React SDK. */
-export function init(options: BrowserOptions): Client | undefined {
+export function init(options: BrowserOptions<['NextjsClientStackFrameNormalization']>): Client | undefined {
   const opts = {
     environment: getVercelEnv(true) || process.env.NODE_ENV,
     defaultIntegrations: getDefaultIntegrations(options),
@@ -59,7 +59,7 @@ export function init(options: BrowserOptions): Client | undefined {
   return client;
 }
 
-function getDefaultIntegrations(options: BrowserOptions): Integration[] {
+function getDefaultIntegrations(options: BrowserOptions<['NextjsClientStackFrameNormalization']>): Integration[] {
   const customDefaultIntegrations = getReactDefaultIntegrations(options);
   // This evaluates to true unless __SENTRY_TRACING__ is text-replaced with "false",
   // in which case everything inside will get tree-shaken away
