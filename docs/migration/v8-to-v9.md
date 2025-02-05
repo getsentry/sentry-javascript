@@ -108,7 +108,7 @@ Older Typescript versions _may_ continue to be compatible, but no guarantees app
 - The SDK no longer instructs the Sentry backend to automatically infer IP addresses by default.
   Depending on the version of the Sentry backend (self-hosted), this may lead to IP addresses no longer showing up in Sentry, and events being grouped to "anonymous users".
   At the time of writing, the Sentry SaaS solution will still continue to infer IP addresses, but this will change in the near future.
-  Set the `sendDefaultPii` option in `Sentry.init()` to true to instruct the Sentry backend to infer IP addresses.
+  Set `sendDefaultPii: true` in `Sentry.init()` to instruct the Sentry backend to always infer IP addresses.
 
 ### `@sentry/node` / All SDKs running in Node.js
 
