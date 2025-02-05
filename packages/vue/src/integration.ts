@@ -1,4 +1,4 @@
-import { GLOBAL_OBJ, consoleSandbox, defineIntegration, hasTracingEnabled } from '@sentry/core';
+import { GLOBAL_OBJ, consoleSandbox, defineIntegration, hasSpansEnabled } from '@sentry/core';
 import { DEFAULT_HOOKS } from './constants';
 import { DEBUG_BUILD } from './debug-build';
 import { attachErrorHandler } from './errorhandler';
@@ -73,7 +73,7 @@ const vueInit = (app: Vue, options: Options): void => {
     attachErrorHandler(app, options);
   }
 
-  if (hasTracingEnabled(options)) {
+  if (hasSpansEnabled(options)) {
     app.mixin(createTracingMixins(options.tracingOptions));
   }
 };
