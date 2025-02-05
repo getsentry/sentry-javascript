@@ -18,7 +18,7 @@ test('sends pinia action breadcrumbs and state context', async ({ page }) => {
   expect(error).toBeTruthy();
   expect(error.breadcrumbs?.length).toBeGreaterThan(0);
 
-  const actionBreadcrumb = error.breadcrumbs?.find(breadcrumb => breadcrumb.category === 'action.pinia');
+  const actionBreadcrumb = error.breadcrumbs?.find(breadcrumb => breadcrumb.category === 'pinia.action');
 
   expect(actionBreadcrumb).toBeDefined();
   expect(actionBreadcrumb?.message).toBe('Store: cart | Action: addItem.transformed');
