@@ -126,6 +126,23 @@ describe('addInstrumentationFileToBuild()', () => {
     expect(fsMkdirMock).not.toHaveBeenCalled();
   });
 
+  it('does not copy release injection file source map file', async () => {
+    fsExistsSyncMock.mockReturnValue(true);
+    fsReaddirMock.mockResolvedValueOnce(['_sentry-release-injection-file-test.js.map']);
+    fsCopyFileMock.mockResolvedValueOnce(true);
+    await addInstrumentationFileToBuild(nitroOptions);
+
+    await callNitroCloseHook();
+
+    expect(fsCopyFileMock).not.toHaveBeenCalledWith(
+      '/path/to/buildDir/build/ssr/assets/_sentry-release-injection-file-test.js.map',
+      '/path/to/serverDir/assets/_sentry-release-injection-file-test.js.map',
+    );
+    expect(consoleLogSpy).not.toHaveBeenCalledWith(
+      '[Sentry SolidStart withSentry] Successfully created /path/to/serverDir/assets/_sentry-release-injection-file-test.js.map.',
+    );
+  });
+
   it('copies release injection file if available', async () => {
     fsExistsSyncMock.mockReturnValue(true);
     fsReaddirMock.mockResolvedValueOnce(['_sentry-release-injection-file-test.js']);
