@@ -118,7 +118,7 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
     dsc.transaction = name;
   }
 
-  // How can we even land here with hasTracingEnabled() returning false?
+  // How can we even land here with hasSpansEnabled() returning false?
   // Otel creates a Non-recording span in Tracing Without Performance mode when handling incoming requests
   // So we end up with an active span that is not sampled (neither positively nor negatively)
   if (hasSpansEnabled()) {

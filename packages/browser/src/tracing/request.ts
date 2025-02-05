@@ -15,6 +15,7 @@ import {
   getActiveSpan,
   getLocationHref,
   getTraceData,
+  hasSpansEnabled,
   instrumentFetchRequest,
   parseUrl,
   setHttpStatus,
