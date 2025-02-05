@@ -155,8 +155,6 @@ Older Typescript versions _may_ continue to be compatible, but no guarantees app
 - The SDK no longer instructs the Sentry backend to automatically infer IP addresses by default.
   This means that places where you previously saw IP addresses in Sentry may now be grouped to anonymous users.
   Set the `sendDefaultPii` option in `Sentry.init()` to true to instruct the Sentry backend to infer IP addresses.
-- The `captureUserFeedback` method has been removed.
-  Use the `captureFeedback` method instead and set the `message` property instead of `comments`.
 
 ### `@sentry/nextjs`
 
