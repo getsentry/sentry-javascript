@@ -193,6 +193,7 @@ export function getGraphQLRequestPayload(payload: string): GraphQLRequestPayload
 }
 
 /**
- * GraphQL Client integration for the browser.
+ * This integration ensures that GraphQL requests made in the browser
+ * have their GraphQL-specific data captured and attached to spans and breadcrumbs.
  */
 export const graphqlClientIntegration = defineIntegration(_graphqlClientIntegration);

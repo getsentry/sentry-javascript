@@ -2,7 +2,7 @@ import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
+import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
 
 // Duplicate from subject.js
 const query = `query Test{
@@ -13,7 +13,11 @@ const query = `query Test{
 }`;
 const queryPayload = JSON.stringify({ query });
 
-sentryTest('should update spans for GraphQL Fetch requests', async ({ getLocalTestUrl, page }) => {
+sentryTest('should update spans for GraphQL fetch requests', async ({ getLocalTestUrl, page }) => {
+  if (shouldSkipTracingTest()) {
+    return;
+  }
+
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   await page.route('**/foo', route => {
@@ -57,7 +61,11 @@ sentryTest('should update spans for GraphQL Fetch requests', async ({ getLocalTe
   });
 });
 
-sentryTest('should update breadcrumbs for GraphQL Fetch requests', async ({ getLocalTestUrl, page }) => {
+sentryTest('should update breadcrumbs for GraphQL fetch requests', async ({ getLocalTestUrl, page }) => {
+  if (shouldSkipTracingTest()) {
+    return;
+  }
+
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   await page.route('**/foo', route => {

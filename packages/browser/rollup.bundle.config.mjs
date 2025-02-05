@@ -12,6 +12,7 @@ const reexportedPluggableIntegrationFiles = [
   'rewriteframes',
   'feedback',
   'modulemetadata',
+  'graphqlclient',
 ];
 
 browserPluggableIntegrationFiles.forEach(integrationName => {
