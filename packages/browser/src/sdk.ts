@@ -172,13 +172,15 @@ declare const __SENTRY_RELEASE__: string | undefined;
 export function init(browserOptions: BrowserOptions = {}): Client | undefined {
   const options = applyDefaultOptions(browserOptions);
 
-  if (DEBUG_BUILD && !options.skipBrowserExtensionCheck && shouldShowBrowserExtensionError()) {
-    consoleSandbox(() => {
-      // eslint-disable-next-line no-console
-      console.error(
-        '[Sentry] You cannot run Sentry this way in a browser extension, check: https://docs.sentry.io/platforms/javascript/best-practices/browser-extensions/',
-      );
-    });
+  if (!options.skipBrowserExtensionCheck && shouldShowBrowserExtensionError()) {
+    if (DEBUG_BUILD) {
+      consoleSandbox(() => {
+        // eslint-disable-next-line no-console
+        console.error(
+          '[Sentry] You cannot run Sentry this way in a browser extension, check: https://docs.sentry.io/platforms/javascript/best-practices/browser-extensions/',
+        );
+      });
+    }
     return;
   }
 
