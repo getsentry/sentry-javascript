@@ -157,6 +157,20 @@ Older Typescript versions _may_ continue to be compatible, but no guarantees app
   You no longer have to specify this manually.
   With this change, no spans are emitted once `skipOpenTelemetrySetup: true` is configured, without any further configuration being needed.
 
+### All Meta-Framework SDKs (`@sentry/nextjs`, `@sentry/nuxt`, `@sentry/sveltekit`, `@sentry/astro`, `@sentry/solidstart`)
+
+- SDKs no longer transform user-provided values for source map generation in build configurations (like Vite config, Rollup config, or `next.config.js`).
+
+  If source maps are explicitly disabled, the SDK will not enable them. If source maps are explicitly enabled, the SDK will not change how they are emitted. **However,** the SDK will also _not_ delete source maps after uploading them. If source map generation is not configured, the SDK will turn it on and delete them after the upload.
+
+  To customize which files are deleted after upload, define the `filesToDeleteAfterUpload` array with globs.
+
+### `@sentry/react`
+
+- The `componentStack` field in the `ErrorBoundary` component is now typed as `string` instead of `string | null | undefined` for the `onError` and `onReset` lifecycle methods. This more closely matches the actual behavior of React, which always returns a `string` whenever a component stack is available.
+
+  In the `onUnmount` lifecycle method, the `componentStack` field is now typed as `string | null`. The `componentStack` is `null` when no error has been thrown at time of unmount.
+
 ### `@sentry/nextjs`
 
 - By default, client-side source maps will now be automatically deleted after being uploaded to Sentry during the build.
@@ -173,20 +187,6 @@ Older Typescript versions _may_ continue to be compatible, but no guarantees app
 
 - The `sentry` property on the Next.js config object has officially been discontinued.
   Pass options to `withSentryConfig` directly.
-
-### All Meta-Framework SDKs (`@sentry/astro`, `@sentry/nextjs`, `@sentry/nuxt`, `@sentry/sveltekit`, `@sentry/solidstart`)
-
-- SDKs no longer transform user-provided values for source map generation in build configurations (like Vite config, Rollup config, or `next.config.js`).
-
-  If source maps are explicitly disabled, the SDK will not enable them. If source maps are explicitly enabled, the SDK will not change how they are emitted. **However,** the SDK will also _not_ delete source maps after uploading them. If source map generation is not configured, the SDK will turn it on and delete them after the upload.
-
-  To customize which files are deleted after upload, define the `filesToDeleteAfterUpload` array with globs.
-
-### `@sentry/react`
-
-- The `componentStack` field in the `ErrorBoundary` component is now typed as `string` instead of `string | null | undefined` for the `onError` and `onReset` lifecycle methods. This more closely matches the actual behavior of React, which always returns a `string` whenever a component stack is available.
-
-  In the `onUnmount` lifecycle method, the `componentStack` field is now typed as `string | null`. The `componentStack` is `null` when no error has been thrown at time of unmount.
 
 ## 3. Package Removals
 
