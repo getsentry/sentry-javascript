@@ -103,7 +103,14 @@ Older Typescript versions _may_ continue to be compatible, but no guarantees app
   });
   ```
 
-### `@sentry/node`
+### `@sentry/browser` / All SDKs running in the browser
+
+- The SDK no longer instructs the Sentry backend to automatically infer IP addresses by default.
+  Depending on the version of the Sentry backend (self-hosted), this may lead to IP addresses no longer showing up in Sentry, and events being grouped to "anonymous users".
+  At the time of writing, the Sentry SaaS solution will still continue to infer IP addresses, but this will change in the near future.
+  Set the `sendDefaultPii` option in `Sentry.init()` to true to instruct the Sentry backend to infer IP addresses.
+
+### `@sentry/node` / All SDKs running in Node.js
 
 - The `tracesSampler` hook will no longer be called for _every_ span.
   Root spans may however have incoming trace data from a different service, for example when using distributed tracing.
@@ -149,12 +156,6 @@ Older Typescript versions _may_ continue to be compatible, but no guarantees app
 - When `skipOpenTelemetrySetup: true` is configured, `httpIntegration({ spans: false })` will be configured by default.
   You no longer have to specify this manually.
   With this change, no spans are emitted once `skipOpenTelemetrySetup: true` is configured, without any further configuration being needed.
-
-### `@sentry/browser`
-
-- The SDK no longer instructs the Sentry backend to automatically infer IP addresses by default.
-  This means that places where you previously saw IP addresses in Sentry may now be grouped to anonymous users.
-  Set the `sendDefaultPii` option in `Sentry.init()` to true to instruct the Sentry backend to infer IP addresses.
 
 ### `@sentry/nextjs`
 
