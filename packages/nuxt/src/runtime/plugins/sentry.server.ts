@@ -52,7 +52,11 @@ export default defineNitroPlugin(nitroApp => {
 });
 
 async function flushIfServerless(): Promise<void> {
-  const isServerless = !!process.env.LAMBDA_TASK_ROOT || !!process.env.VERCEL || !!process.env.NETLIFY;
+  const isServerless =
+    !!process.env.FUNCTIONS_WORKER_RUNTIME || // Azure Functions
+    !!process.env.LAMBDA_TASK_ROOT || // AWS Lambda
+    !!process.env.VERCEL ||
+    !!process.env.NETLIFY;
 
   // @ts-expect-error This is not typed
   if (GLOBAL_OBJ[Symbol.for('@vercel/request-context')]) {
