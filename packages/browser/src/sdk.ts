@@ -172,7 +172,7 @@ declare const __SENTRY_RELEASE__: string | undefined;
 export function init(browserOptions: BrowserOptions = {}): Client | undefined {
   const options = applyDefaultOptions(browserOptions);
 
-  if (!options.skipBrowserExtensionCheck && shouldShowBrowserExtensionError()) {
+  if (DEBUG_BUILD && !options.skipBrowserExtensionCheck && shouldShowBrowserExtensionError()) {
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.error(
@@ -182,12 +182,10 @@ export function init(browserOptions: BrowserOptions = {}): Client | undefined {
     return;
   }
 
-  if (DEBUG_BUILD) {
-    if (!supportsFetch()) {
-      logger.warn(
-        'No Fetch API detected. The Sentry SDK requires a Fetch API compatible environment to send events. Please add a Fetch API polyfill.',
-      );
-    }
+  if (DEBUG_BUILD && !supportsFetch()) {
+    logger.warn(
+      'No Fetch API detected. The Sentry SDK requires a Fetch API compatible environment to send events. Please add a Fetch API polyfill.',
+    );
   }
   const clientOptions: BrowserClientOptions = {
     ...options,
