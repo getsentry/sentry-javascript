@@ -3,7 +3,7 @@
 Version 9 of the Sentry JavaScript SDK concerns API cleanup and version support changes.
 This update contains behavioral changes that will not be caught by type checkers, linters or tests, so we recommend carefully reading through the entire migration guide instead of purely relying on automatic tooling.
 
-`v9` of the SDK is compatible with Sentry self-hosted versions 24.4.2 or higher (unchanged from last major).
+`v9` of the SDK is compatible with Sentry self-hosted versions 24.4.2 or higher (unchanged from v8).
 Lower versions may continue to work, but may not support all features.
 
 ## 1. Version Support Changes:
@@ -29,7 +29,7 @@ If your runtime does not support ES2020, we recommend transpiling the SDK using 
 - Opera 67
 - Samsung Internet 13.0
 
-If you need to support older browsers, we recommend transpiling your code using, SWC, Babel or similar tooling.
+If you need to support older browsers, we recommend transpiling your code using SWC, Babel or similar tooling.
 
 **Deno:** The minimum supported Deno version is now **2.0.0**.
 
@@ -156,7 +156,7 @@ Older Typescript versions _may_ continue to be compatible, but no guarantees app
   This means that places where you previously saw IP addresses in Sentry may now be grouped to anonymous users.
   Set the `sendDefaultPii` option in `Sentry.init()` to true to instruct the Sentry backend to infer IP addresses.
 - The `captureUserFeedback` method has been removed.
-  Use the `captureFeedback` method instead and update the `comments` field to `message`.
+  Use the `captureFeedback` method instead and set the `message` property instead of `comments`.
 
 ### `@sentry/nextjs`
 
@@ -207,8 +207,7 @@ All exports and APIs of `@sentry/utils` and `@sentry/types` (except for the ones
   The Sentry metrics beta has ended and the metrics API has been removed from the SDK. Learn more in the Sentry [help center docs](https://sentry.zendesk.com/hc/en-us/articles/26369339769883-Metrics-Beta-Ended-on-October-7th).
 
 - The `enableTracing` option was removed.
-  In v9, to emulate `enableTracing: true`, set `tracesSampleRate: 1`.
-  To emulate `enableTracing: false`, remove the `tracesSampleRate` and `tracesSampler` options (if configured).
+  Instead, set `tracesSampleRate: 1` or `tracesSampleRate: 0`.
 
 - The `autoSessionTracking` option was removed.
 
@@ -367,7 +366,7 @@ All exports and APIs of `@sentry/utils` and `@sentry/types` (except for the ones
 ### `@sentry/remix`
 
 - The `autoInstrumentRemix` option was removed.
-  The SDK now behaves as if the option were set to `true` as the only and default behavior.
+  The SDK now always behaves as if the option were set to `true`.
 
 ### `@sentry/sveltekit`
 
