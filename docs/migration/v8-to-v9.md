@@ -204,6 +204,33 @@ All exports and APIs of `@sentry/utils` and `@sentry/types` (except for the ones
 
   The Sentry metrics beta has ended and the metrics API has been removed from the SDK. Learn more in the Sentry [help center docs](https://sentry.zendesk.com/hc/en-us/articles/26369339769883-Metrics-Beta-Ended-on-October-7th).
 
+- The `transactionContext` property on the `samplingContext` argument passed to the `tracesSampler` and `profilesSampler` options has been removed.
+  All object attributes are available in the top-level of `samplingContext`:
+
+  ```diff
+  Sentry.init({
+    // Custom traces sampler
+    tracesSampler: samplingContext => {
+  -   if (samplingContext.transactionContext.name === '/health-check') {
+  +   if (samplingContext.name === '/health-check') {
+        return 0;
+      } else {
+        return 0.5;
+      }
+    },
+
+    // Custom profiles sampler
+    profilesSampler: samplingContext => {
+  -   if (samplingContext.transactionContext.name === '/health-check') {
+  +   if (samplingContext.name === '/health-check') {
+        return 0;
+      } else {
+        return 0.5;
+      }
+    },
+  })
+  ```
+
 - The `enableTracing` option was removed.
   Instead, set `tracesSampleRate: 1` or `tracesSampleRate: 0`.
 
@@ -229,8 +256,6 @@ All exports and APIs of `@sentry/utils` and `@sentry/types` (except for the ones
     openTelemetryInstrumentations: [new GenericPoolInstrumentation()],
   });
   ```
-
-- The `transactionContext` property on the `samplingContext` argument passed to the `tracesSampler` and `profilesSampler` options has been removed. All object attributes are available in the top-level of `samplingContext`.
 
 - The `debugIntegration` has been removed. To log outgoing events, use [Hook Options](https://docs.sentry.io/platforms/javascript/configuration/options/#hooks) (`beforeSend`, `beforeSendTransaction`, ...).
 
