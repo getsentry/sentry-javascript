@@ -189,6 +189,63 @@ describe('getIntegrationsToSetup', () => {
     });
   });
 
+  describe('disableIntegrations', () => {
+    it('works without integrations', () => {
+      const integrations = getIntegrationsToSetup({
+        integrations: [],
+        disableIntegrations: {},
+      });
+
+      expect(integrations.map(i => i.name)).toEqual([]);
+    });
+
+    it('ignores unknown integration names', () => {
+      const integrations = getIntegrationsToSetup({
+        integrations: [new MockIntegration('foo'), new MockIntegration('bar')],
+        disableIntegrations: {
+          foo2: true,
+          bar2: true,
+        },
+      });
+
+      expect(integrations.map(i => i.name)).toEqual(['foo', 'bar']);
+    });
+
+    it('removes default integrations', () => {
+      const integrations = getIntegrationsToSetup({
+        defaultIntegrations: [new MockIntegration('foo'), new MockIntegration('bar'), new MockIntegration('baz')],
+        disableIntegrations: {
+          bar: true,
+        },
+      });
+
+      expect(integrations.map(i => i.name)).toEqual(['foo', 'baz']);
+    });
+
+    it('removes default integrations', () => {
+      const integrations = getIntegrationsToSetup({
+        defaultIntegrations: [new MockIntegration('foo'), new MockIntegration('bar'), new MockIntegration('baz')],
+        disableIntegrations: {
+          bar: true,
+        },
+      });
+
+      expect(integrations.map(i => i.name)).toEqual(['foo', 'baz']);
+    });
+
+    it('ignores default integrations when setting false or undefined', () => {
+      const integrations = getIntegrationsToSetup({
+        defaultIntegrations: [new MockIntegration('foo'), new MockIntegration('bar'), new MockIntegration('baz')],
+        disableIntegrations: {
+          bar: false,
+          foo: undefined,
+        },
+      });
+
+      expect(integrations.map(i => i.name)).toEqual(['foo', 'bar', 'baz']);
+    });
+  });
+
   it('works with empty array', () => {
     const integrations = getIntegrationsToSetup({
       integrations: [],

@@ -37,7 +37,12 @@ interface BaseCloudflareOptions {}
  *
  * @see @sentry/core Options for more information.
  */
-export interface CloudflareOptions extends Options<CloudflareTransportOptions>, BaseCloudflareOptions {}
+export interface CloudflareOptions
+  extends Options<
+      CloudflareTransportOptions,
+      ['Dedupe', 'InboundFilters', 'FunctionToString', 'LinkedErrors', 'Fetch', 'RequestData']
+    >,
+    BaseCloudflareOptions {}
 
 /**
  * Configuration options for the Sentry Cloudflare SDK Client class

@@ -22,6 +22,8 @@ import { instrumentVercelAi, vercelAIIntegration } from './vercelai';
 
 /**
  * With OTEL, all performance integrations will be added, as OTEL only initializes them when the patched package is actually required.
+ *
+ * Ensure to keep this in sync with `NodeOptions`!
  */
 export function getAutoPerformanceIntegrations(): Integration[] {
   return [

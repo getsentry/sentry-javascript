@@ -40,9 +40,12 @@ function filterDuplicates(integrations: Integration[]): Integration[] {
 }
 
 /** Gets integrations to install */
-export function getIntegrationsToSetup(options: Pick<Options, 'defaultIntegrations' | 'integrations'>): Integration[] {
+export function getIntegrationsToSetup(
+  options: Pick<Options, 'defaultIntegrations' | 'integrations' | 'disableIntegrations'>,
+): Integration[] {
   const defaultIntegrations = options.defaultIntegrations || [];
   const userIntegrations = options.integrations;
+  const disableIntegrations = options.disableIntegrations || {};
 
   // We flag default instances, so that later we can tell them apart from any user-created instances of the same class
   defaultIntegrations.forEach((integration: IntegrationWithDefaultInstance) => {
@@ -59,6 +62,9 @@ export function getIntegrationsToSetup(options: Pick<Options, 'defaultIntegratio
   } else {
     integrations = defaultIntegrations;
   }
+
+  // Remove disabled integrations
+  integrations = integrations.filter(integration => !disableIntegrations[integration.name]);
 
   return filterDuplicates(integrations);
 }

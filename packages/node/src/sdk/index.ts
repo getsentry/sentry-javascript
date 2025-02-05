@@ -47,6 +47,8 @@ function getCjsOnlyIntegrations(): Integration[] {
 
 /**
  * Get default integrations, excluding performance.
+ *
+ * Ensure to keep this in sync with `NodeOptions`!
  */
 export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
   return [

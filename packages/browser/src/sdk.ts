@@ -32,6 +32,8 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
   /**
    * Note: Please make sure this stays in sync with Angular SDK, which re-exports
    * `getDefaultIntegrations` but with an adjusted set of integrations.
+   *
+   * Ensure to keep this in sync with `BrowserOptions`!
    */
   return [
     inboundFiltersIntegration(),

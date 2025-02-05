@@ -9,7 +9,7 @@ export const instrumentVercelAi = generateInstrumentOnce('vercelAI', () => new S
 
 const _vercelAIIntegration = (() => {
   return {
-    name: 'vercelAI',
+    name: 'VercelAI',
     setupOnce() {
       instrumentVercelAi();
     },

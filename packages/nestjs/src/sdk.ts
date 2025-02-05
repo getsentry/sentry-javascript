@@ -12,7 +12,7 @@ import { nestIntegration } from './integrations/nest';
 /**
  * Initializes the NestJS SDK
  */
-export function init(options: NodeOptions | undefined = {}): NodeClient | undefined {
+export function init(options: NodeOptions<['Nest']> | undefined = {}): NodeClient | undefined {
   const opts: NodeOptions = {
     defaultIntegrations: getDefaultIntegrations(options),
     ...options,

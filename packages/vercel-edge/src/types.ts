@@ -62,7 +62,12 @@ export interface BaseVercelEdgeOptions {
  * Configuration options for the Sentry VercelEdge SDK
  * @see @sentry/core Options for more information.
  */
-export interface VercelEdgeOptions extends Options<VercelEdgeTransportOptions>, BaseVercelEdgeOptions {}
+export interface VercelEdgeOptions
+  extends Options<
+      VercelEdgeTransportOptions,
+      ['Dedupe', 'InboundFilters', 'FunctionToString', 'LinkedErrors', 'WinterCGFetch', 'RequestData']
+    >,
+    BaseVercelEdgeOptions {}
 
 /**
  * Configuration options for the Sentry VercelEdge SDK Client class

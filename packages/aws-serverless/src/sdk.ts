@@ -71,7 +71,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
  *
  * @param options Configuration options for the SDK, @see {@link AWSLambdaOptions}.
  */
-export function init(options: NodeOptions = {}): NodeClient | undefined {
+export function init(options: NodeOptions<['Aws', 'AwsLambda']> = {}): NodeClient | undefined {
   const opts = {
     _metadata: {} as SdkMetadata,
     defaultIntegrations: getDefaultIntegrations(options),

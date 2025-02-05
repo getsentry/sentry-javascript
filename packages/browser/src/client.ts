@@ -24,7 +24,22 @@ import type { BrowserTransportOptions } from './transports/types';
  * Configuration options for the Sentry Browser SDK.
  * @see @sentry/core Options for more information.
  */
-export type BrowserOptions = Options<BrowserTransportOptions> &
+export type BrowserOptions<AdditionalDefaultIntegrations extends string[] = []> = Options<
+  BrowserTransportOptions,
+  [
+    'InboundFilters',
+    'FunctionToString',
+    'BrowserApiErrors',
+    'Breadcrumbs',
+    'GlobalHandlers',
+    'LinkedErrors',
+    'Dedupe',
+    'HttpContext',
+    'BrowserSession',
+    'BrowserTracing',
+    ...AdditionalDefaultIntegrations,
+  ]
+> &
   BrowserClientReplayOptions &
   BrowserClientProfilingOptions & {
     /**

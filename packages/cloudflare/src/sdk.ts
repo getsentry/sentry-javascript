@@ -15,7 +15,10 @@ import { fetchIntegration } from './integrations/fetch';
 import { makeCloudflareTransport } from './transport';
 import { defaultStackParser } from './vendor/stacktrace';
 
-/** Get the default integrations for the Cloudflare SDK. */
+/**
+ * Get the default integrations for the Cloudflare SDK.
+ * Ensure to keep this in sync with `CloudflareOptions`!
+ */
 export function getDefaultIntegrations(options: CloudflareOptions): Integration[] {
   const sendDefaultPii = options.sendDefaultPii ?? false;
   return [

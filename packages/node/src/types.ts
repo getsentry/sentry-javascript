@@ -136,7 +136,48 @@ export interface BaseNodeOptions {
  * Configuration options for the Sentry Node SDK
  * @see @sentry/core Options for more information.
  */
-export interface NodeOptions extends Options<NodeTransportOptions>, BaseNodeOptions {}
+export interface NodeOptions<AdditionalDefaultIntegrations extends string[] = []>
+  extends Options<
+      NodeTransportOptions,
+      [
+        'InboundFilters',
+        'FunctionToString',
+        'LinkedErrors',
+        'RequestData',
+        'Console',
+        'Http',
+        'NodeFetch',
+        'OnUncaughtException',
+        'OnUnhandledRejection',
+        'ContextLines',
+        'LocalVariables',
+        'Context',
+        'ChildProcess',
+        'ProcessSession',
+        'Modules',
+        'Express',
+        'Fastify',
+        'Graphql',
+        'Mongo',
+        'Mongoose',
+        'Mysql',
+        'Mysql2',
+        'Redis',
+        'Postgres',
+        'Prisma',
+        'Hapi',
+        'Koa',
+        'Connect',
+        'Tedious',
+        'GenericPool',
+        'Kafka',
+        'Amqplib',
+        'LruMemoizer',
+        'VercelAI',
+        ...AdditionalDefaultIntegrations,
+      ]
+    >,
+    BaseNodeOptions {}
 
 /**
  * Configuration options for the Sentry Node SDK Client class

@@ -23,7 +23,10 @@ import { bunServerIntegration } from './integrations/bunserver';
 import { makeFetchTransport } from './transports';
 import type { BunOptions } from './types';
 
-/** Get the default integrations for the Bun SDK. */
+/**
+ * Get the default integrations for the Bun SDK.
+ * Ensure to keep this in sync with `BunOptions`!
+ */
 export function getDefaultIntegrations(_options: Options): Integration[] {
   // We return a copy of the defaultIntegrations here to avoid mutating this
   return [
