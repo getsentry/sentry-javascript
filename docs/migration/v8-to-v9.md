@@ -491,7 +491,7 @@ These changes should not affect most users unless you relied on passing things w
 
 In v8, interfaces have been exported from `@sentry/types`, while implementations have been exported from other packages.
 
-# No Version Support Timeline
+## No Version Support Timeline
 
 Version support timelines are stressful for everybody using the SDK, so we won't be defining one.
 Instead, we will be applying bug fixes and features to older versions as long as there is demand.
