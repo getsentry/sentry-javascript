@@ -123,6 +123,9 @@ Older Typescript versions _may_ continue to be compatible, but no guarantees app
 - The `childProcessIntegration`'s (previously `processThreadBreadcrumbIntegration`) `name` value has been changed from `"ProcessAndThreadBreadcrumbs"` to `"ChildProcess"`.
   Any filtering logic for registered integrations should be updated to account for the changed name.
 
+- The `vercelAIIntegration`'s `name` value has been changed from `"vercelAI"` to `"VercelAI"` (capitalized).
+  Any filtering logic for registered integrations should be updated to account for the changed name.
+
 - The Prisma integration no longer supports Prisma v5 and supports Prisma v6 by default. As per Prisma v6, the `previewFeatures = ["tracing"]` client generator option in your Prisma Schema is no longer required to use tracing with the Prisma integration.
 
   For performance instrumentation using other/older Prisma versions:
