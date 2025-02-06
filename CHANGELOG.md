@@ -24,6 +24,7 @@ A comprehensive migration guide outlining all changes for all the frameworks can
 
 #### Breaking Changes
 
+- doc(deno)!: Make Deno v2 the minimum supported version (#15085)
 - feat!: Bump typescript to `~5.0.0` (#14758)
 - feat!: Drop `nitro-utils` package (#14998)
 - feat!: Only collect ip addresses with `sendDefaultPii: true` (#15084)
@@ -34,6 +35,7 @@ A comprehensive migration guide outlining all changes for all the frameworks can
 - feat!: Remove deprecated and unused code (#15077)
 - feat!: Remove metrics API from the JS SDK (#14745)
 - feat!: Require Node `>=18` as minimum supported version (#14749)
+- feat(astro)!: Respect user-specified source map setting (#14941)
 - feat(browser)!: Remove `captureUserFeedback` method (#14820)
 - feat(build)!: Drop pre-ES2020 polyfills (#14882)
 - feat(core)!: Add `normalizedRequest` to `samplingContext` (#14902)
@@ -61,7 +63,9 @@ A comprehensive migration guide outlining all changes for all the frameworks can
 - feat(core)!: Update `requestDataIntegration` handling (#14806)
 - feat(deno)!: Remove deno prepack (#14829)
 - feat(ember)!: Officially drop support for ember `<=3.x` (#15032)
+- feat(nestjs)!: Move `nestIntegration` into nest sdk and remove `setupNestErrorHandler` (#14751)
 - feat(nestjs)!: Remove `@WithSentry` decorator (#14762)
+- feat(nestjs)!: Remove `SentryService` (#14759)
 - feat(nextjs)!: Don't rely on Next.js Build ID for release names (#14939)
 - feat(nextjs)!: Remove `experimental_captureRequestError` (#14607)
 - feat(nextjs)!: Respect user-provided source map generation settings (#14956)
@@ -80,27 +84,22 @@ A comprehensive migration guide outlining all changes for all the frameworks can
 - feat(remix)!: Remove `autoInstrumentRemix` option (#15074)
 - feat(solidstart)!: Default to `--import` setup and add `autoInjectServerSentry` (#14862)
 - feat(solidstart)!: No longer export `sentrySolidStartVite` (#15143)
+- feat(solidstart)!: Respect user-provided source map setting (#14979)
 - feat(svelte)!: Disable component update tracking by default (#15265)
 - feat(sveltekit)!: Drop support for SvelteKit @1.x (#15037)
 - feat(sveltekit)!: Remove `fetchProxyScriptNonce` option (#15123)
+- feat(sveltekit)!: Respect user-provided source map generation settings (#14886)
 - feat(utils)!: Remove `@sentry/utils` package (#14830)
 - feat(vue)!: Remove configuring Vue tracing options anywhere else other than through the `vueIntegration`'s `tracingOptions` option (#14856)
 - feat(vue/nuxt)!: No longer create `"update"` spans for component tracking by default (#14602)
+- fix(node)!: Fix name of `vercelAIIntegration` to `VercelAI` (#15298)
+- fix(vue)!: Remove `logError` from `vueIntegration` (#14958)
 - ref!: Don't polyfill optional chaining and nullish coalescing (#14603)
 - ref(core)!: Cleanup internal types, including `ReportDialogOptions` (#14861)
 - ref(core)!: Mark exceptions from `captureConsoleIntegration` as `handled: true` by default (#14734)
 - ref(core)!: Move `shutdownTimeout` option type from core to node (#15217)
 - ref(core)!: Remove `Scope` type interface in favor of using `Scope` class (#14721)
 - ref(core)!: Remove backwards compatible SentryCarrier type (#14697)
-
-- doc(deno)!: Make Deno v2 the minimum supported version (#15085)
-- feat(astro)!: Respect user-specified source map setting (#14941)
-- feat(nestjs)!: Move `nestIntegration` into nest sdk and remove `setupNestErrorHandler` (#14751)
-- feat(nestjs)!: Remove `SentryService` (#14759)
-- feat(solidstart)!: Respect user-provided source map setting (#14979)
-- feat(sveltekit)!: Respect user-provided source map generation settings (#14886)
-- fix(node)!: Fix name of `vercelAIIntegration` to `VercelAI` (#15298)
-- fix(vue)!: Remove `logError` from `vueIntegration` (#14958)
 
 #### Other Changes
 
