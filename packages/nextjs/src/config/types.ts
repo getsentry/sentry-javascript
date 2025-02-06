@@ -363,6 +363,11 @@ export type SentryBuildOptions = {
      * Whether the component name annotate plugin should be enabled or not.
      */
     enabled?: boolean;
+
+    /**
+     * A list of strings representing the names of components to ignore. The plugin will not apply `data-sentry` annotations on the DOM element for these components.
+     */
+    ignoredComponents?: string[];
   };
 
   /**
