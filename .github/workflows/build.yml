@@ -694,7 +694,6 @@ jobs:
 
       - name: Build `pg-native`
         run: yarn pg-native:build
-        working-directory: dev-packages/node-integration-tests
 
       - name: Overwrite typescript version
         if: matrix.typescript == '3.8'
