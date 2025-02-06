@@ -26,7 +26,7 @@ class MockStatsigClient {
 window.statsigClient = new MockStatsigClient();
 
 window.Sentry = Sentry;
-window.sentryStatsigIntegration = Sentry.statsigIntegration({ statsigClient: window.statsigClient });
+window.sentryStatsigIntegration = Sentry.statsigIntegration({ featureFlagClient: window.statsigClient });
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
