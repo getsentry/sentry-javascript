@@ -11,11 +11,17 @@ export function createScreenshotInputStyles(styleNonce?: string): HTMLStyleEleme
 
   style.textContent = `
 .editor {
+  display: flex;
+  flex-grow: 1;
+  flex-direction: column;
+}
+.editor__image-container {
   padding: 10px;
   padding-top: 65px;
   padding-bottom: 65px;
-  flex-grow: 1;
   position: relative;
+  height: 100%;
+  border-radius: var(--menu-border-radius, 6px);
 
   background-color: ${surface200};
   background-image: repeating-linear-gradient(
@@ -34,6 +40,13 @@ export function createScreenshotInputStyles(styleNonce?: string): HTMLStyleEleme
     );
 }
 
+.editor__annotation {
+  z-index: 1;
+}
+.editor__annotation--active {
+  z-index: 2;
+}
+
 .editor__canvas-container {
   width: 100%;
   height: 100%;
@@ -49,7 +62,15 @@ export function createScreenshotInputStyles(styleNonce?: string): HTMLStyleEleme
 }
 
 .editor__crop-container {
+  custor: auto;
   position: absolute;
+  z-index: 2;
+}
+.editor__crop-container--inactive {
+  z-index: 1;
+}
+.editor__crop-container--move {
+  cursor: move;
 }
 
 .editor__crop-btn-group {
@@ -59,6 +80,10 @@ export function createScreenshotInputStyles(styleNonce?: string): HTMLStyleEleme
   background: var(--button-background, var(--background));
   width: 175px;
   position: absolute;
+  display: none;
+}
+.editor__crop-btn-group--active {
+  display: flex;
 }
 
 .editor__crop-corner {
@@ -90,17 +115,28 @@ export function createScreenshotInputStyles(styleNonce?: string): HTMLStyleEleme
   border-top: none;
 }
 .editor__tool-container {
-  position: absolute;
-  padding: 10px 0px;
-  top: 0;
-}
-.editor__pen-tool {
-  height: 30px;
+  padding-top: 8px;
   display: flex;
+  justify-content: space-between;
+}
+.editor__tool-bar {
+  display: flex;
+  gap: 8px;
+}
+.editor__tool {
+  display: flex;
+  padding: 8px 12px;
   justify-content: center;
   align-items: center;
   border: var(--button-border, var(--border));
   border-radius: var(--button-border-radius, 6px);
+  background: var(--button-background, var(--background));
+  color: var(--button-foreground, var(--foreground));
+}
+
+.editor__tool--active {
+  background: var(--button-primary-background, var(--accent-background));
+  color: var(--button-primary-foreground, var(--accent-foreground));
 }
 `;
 

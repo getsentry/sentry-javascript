@@ -1,19 +1,22 @@
 import { addBreadcrumb, addNonEnumerableProperty, getClient, getCurrentScope, getGlobalScope } from '@sentry/core';
+import type { Ref } from 'vue';
 
-// Inline PiniaPlugin type
+// Inline Pinia types
+type StateTree = Record<string | number | symbol, any>;
 type PiniaPlugin = (context: {
   store: {
     $id: string;
     $state: unknown;
     $onAction: (callback: (context: { name: string; after: (callback: () => void) => void }) => void) => void;
   };
+  pinia: { state: Ref<Record<string, StateTree>> };
 }) => void;
 
 type SentryPiniaPluginOptions = {
   attachPiniaState?: boolean;
   addBreadcrumbs?: boolean;
-  actionTransformer?: (action: any) => any;
-  stateTransformer?: (state: any) => any;
+  actionTransformer?: (action: string) => any;
+  stateTransformer?: (state: Record<string, unknown>) => any;
 };
 
 export const createSentryPiniaPlugin: (options?: SentryPiniaPluginOptions) => PiniaPlugin = (
@@ -24,19 +27,29 @@ export const createSentryPiniaPlugin: (options?: SentryPiniaPluginOptions) => Pi
     stateTransformer: state => state,
   },
 ) => {
-  const plugin: PiniaPlugin = ({ store }) => {
+  const plugin: PiniaPlugin = ({ store, pinia }) => {
+    const getAllStoreStates = (): Record<string, unknown> => {
+      const states: Record<string, unknown> = {};
+
+      Object.keys(pinia.state.value).forEach(storeId => {
+        states[storeId] = pinia.state.value[storeId];
+      });
+
+      return states;
+    };
+
     options.attachPiniaState !== false &&
       getGlobalScope().addEventProcessor((event, hint) => {
         try {
           // Get current timestamp in hh:mm:ss
           const timestamp = new Date().toTimeString().split(' ')[0];
-          const filename = `pinia_state_${store.$id}_${timestamp}.json`;
+          const filename = `pinia_state_all_stores_${timestamp}.json`;
 
           hint.attachments = [
             ...(hint.attachments || []),
             {
               filename,
-              data: JSON.stringify(store.$state),
+              data: JSON.stringify(getAllStoreStates()),
             },
           ];
         } catch (_) {
@@ -58,14 +71,15 @@ export const createSentryPiniaPlugin: (options?: SentryPiniaPluginOptions) => Pi
           options.addBreadcrumbs !== false
         ) {
           addBreadcrumb({
-            category: 'action',
-            message: transformedActionName,
+            category: 'pinia.action',
+            message: `Store: ${store.$id} | Action: ${transformedActionName}`,
             level: 'info',
           });
         }
 
-        /* Set latest state to scope */
-        const transformedState = options.stateTransformer ? options.stateTransformer(store.$state) : store.$state;
+        /* Set latest state of all stores to scope */
+        const allStates = getAllStoreStates();
+        const transformedState = options.stateTransformer ? options.stateTransformer(allStates) : allStates;
         const scope = getCurrentScope();
         const currentState = scope.getScopeData().contexts.state;
 

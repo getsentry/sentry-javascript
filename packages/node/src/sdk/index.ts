@@ -5,7 +5,7 @@ import {
   functionToStringIntegration,
   getCurrentScope,
   getIntegrationsToSetup,
-  hasTracingEnabled,
+  hasSpansEnabled,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
   logger,
@@ -80,7 +80,7 @@ export function getDefaultIntegrations(options: Options): Integration[] {
     // Note that this means that without tracing enabled, e.g. `expressIntegration()` will not be added
     // This means that generally request isolation will work (because that is done by httpIntegration)
     // But `transactionName` will not be set automatically
-    ...(hasTracingEnabled(options) ? getAutoPerformanceIntegrations() : []),
+    ...(hasSpansEnabled(options) ? getAutoPerformanceIntegrations() : []),
   ];
 }
 
@@ -175,7 +175,7 @@ export function validateOpenTelemetrySetup(): void {
 
   const required: ReturnType<typeof openTelemetrySetupCheck> = ['SentryContextManager', 'SentryPropagator'];
 
-  if (hasTracingEnabled()) {
+  if (hasSpansEnabled()) {
     required.push('SentrySpanProcessor');
   }
 

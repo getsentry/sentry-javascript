@@ -4,7 +4,7 @@ import {
   fill,
   getClient,
   getTraceData,
-  hasTracingEnabled,
+  hasSpansEnabled,
   isNodeEnv,
   loadModule,
   logger,
@@ -197,7 +197,7 @@ function wrapRequestHandler(origRequestHandler: RequestHandler): RequestHandler 
 
       isolationScope.setSDKProcessingMetadata({ normalizedRequest });
 
-      if (!options || !hasTracingEnabled(options)) {
+      if (!options || !hasSpansEnabled(options)) {
         return origRequestHandler.call(this, request, loadContext);
       }
 

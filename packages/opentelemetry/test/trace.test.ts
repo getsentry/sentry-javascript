@@ -1350,6 +1350,7 @@ describe('trace (sampling)', () => {
       parentSampled: undefined,
       name: 'outer',
       attributes: {},
+      inheritOrSampleWith: expect.any(Function),
     });
 
     // Now return `false`, it should not sample
@@ -1416,6 +1417,7 @@ describe('trace (sampling)', () => {
         attr2: 1,
         'sentry.op': 'test.op',
       },
+      inheritOrSampleWith: expect.any(Function),
     });
 
     // Now return `0`, it should not sample
@@ -1457,6 +1459,7 @@ describe('trace (sampling)', () => {
       parentSampled: undefined,
       name: 'outer3',
       attributes: {},
+      inheritOrSampleWith: expect.any(Function),
     });
   });
 
@@ -1490,6 +1493,7 @@ describe('trace (sampling)', () => {
       parentSampled: true,
       name: 'outer',
       attributes: {},
+      inheritOrSampleWith: expect.any(Function),
     });
   });
 

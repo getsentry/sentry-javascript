@@ -6,12 +6,12 @@ const browserPluggableIntegrationFiles = ['contextlines', 'httpclient', 'reporti
 
 const reexportedPluggableIntegrationFiles = [
   'captureconsole',
-  'debug',
   'dedupe',
   'extraerrordata',
   'rewriteframes',
   'feedback',
   'modulemetadata',
+  'spotlight',
 ];
 
 browserPluggableIntegrationFiles.forEach(integrationName => {

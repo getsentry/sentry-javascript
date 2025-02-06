@@ -13,7 +13,7 @@ import {
 import type { Client, SpanAttributes } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/core';
 import { baggageHeaderToDynamicSamplingContext } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, hasTracingEnabled, logger, parseSampleRate, sampleSpan } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP, hasSpansEnabled, logger, parseSampleRate, sampleSpan } from '@sentry/core';
 import {
   SENTRY_TRACE_STATE_DSC,
   SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING,
@@ -52,7 +52,7 @@ export class SentrySampler implements Sampler {
     const parentSpan = getValidSpan(context);
     const parentContext = parentSpan?.spanContext();
 
-    if (!hasTracingEnabled(options)) {
+    if (!hasSpansEnabled(options)) {
       return wrapSamplingDecision({ decision: undefined, context, spanAttributes });
     }
 
