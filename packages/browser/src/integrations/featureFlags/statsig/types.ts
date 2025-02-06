@@ -13,6 +13,6 @@ type EventNameToEventDataMap = {
 export interface StatsigClient {
   on(
     event: keyof EventNameToEventDataMap,
-    callback: (data: EventNameToEventDataMap[keyof EventNameToEventDataMap]) => void
+    callback: (data: EventNameToEventDataMap[keyof EventNameToEventDataMap]) => void,
   ): void;
 }

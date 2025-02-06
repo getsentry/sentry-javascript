@@ -2,7 +2,7 @@ import type { Client, Event, EventHint, IntegrationFn } from '@sentry/core';
 
 import { defineIntegration } from '@sentry/core';
 import { copyFlagsFromScopeToEvent, insertFlagToScope } from '../../../utils/featureFlags';
-import type { StatsigClient, FeatureGate } from './types';
+import type { FeatureGate, StatsigClient } from './types';
 
 /**
  * Sentry integration for capturing feature flag evaluations from the Statsig js-client SDK.
@@ -27,20 +27,18 @@ import type { StatsigClient, FeatureGate } from './types';
  * Sentry.captureException(new Error('something went wrong'));
  * ```
  */
-export const statsigIntegration = defineIntegration(
-  ({ statsigClient }: { statsigClient: StatsigClient }) => {
-    return {
-      name: 'Statsig',
+export const statsigIntegration = defineIntegration(({ statsigClient }: { statsigClient: StatsigClient }) => {
+  return {
+    name: 'Statsig',
 
-      processEvent(event: Event, _hint: EventHint, _client: Client): Event {
-        return copyFlagsFromScopeToEvent(event);
-      },
+    processEvent(event: Event, _hint: EventHint, _client: Client): Event {
+      return copyFlagsFromScopeToEvent(event);
+    },
 
-      setup() {
-        statsigClient.on('gate_evaluation', (event: { gate: FeatureGate }) => {
-          insertFlagToScope(event.gate.name, event.gate.value);
-        });
-      },
-    };
-  },
-) satisfies IntegrationFn;
+    setup() {
+      statsigClient.on('gate_evaluation', (event: { gate: FeatureGate }) => {
+        insertFlagToScope(event.gate.name, event.gate.value);
+      });
+    },
+  };
+}) satisfies IntegrationFn;
