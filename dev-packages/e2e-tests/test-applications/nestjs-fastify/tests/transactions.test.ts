@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-test.only('Sends an API route transaction', async ({ baseURL }) => {
+test('Sends an API route transaction', async ({ baseURL }) => {
   const pageloadTransactionEventPromise = waitForTransaction('nestjs-fastify', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
