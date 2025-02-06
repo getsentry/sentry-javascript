@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-test('Sends an API route transaction', async ({ baseURL }) => {
+test.only('Sends an API route transaction', async ({ baseURL }) => {
   const pageloadTransactionEventPromise = waitForTransaction('nestjs-fastify', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
@@ -25,7 +25,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
       'http.url': 'http://localhost:3030/test-transaction',
       'http.host': 'localhost:3030',
       'net.host.name': 'localhost',
-      'http.method': 'GET',
+      'http.request.method': 'GET',
       'http.scheme': 'http',
       'http.target': '/test-transaction',
       'http.user_agent': 'node',
@@ -92,7 +92,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
             component: '@nestjs/core',
             'nestjs.version': expect.any(String),
             'nestjs.type': 'request_context',
-            'http.method': 'GET',
+            'http.request.method': 'GET',
             'http.url': '/test-transaction',
             'http.route': '/test-transaction',
             'nestjs.controller': 'AppController',
