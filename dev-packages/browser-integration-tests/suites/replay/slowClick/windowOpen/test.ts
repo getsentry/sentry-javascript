@@ -8,13 +8,6 @@ sentryTest('window.open() is considered for slow click', async ({ getLocalTestUr
     sentryTest.skip();
   }
 
-  await page.route('http://example.com/', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({}),
-    });
-  });
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
@@ -63,5 +56,5 @@ sentryTest('window.open() is considered for slow click', async ({ getLocalTestUr
   const pages = context.pages();
 
   expect(pages.length).toBe(2);
-  expect(pages[1].url()).toBe('https://example.com/');
+  expect(pages[1].url()).toBe('https://github.com/');
 });

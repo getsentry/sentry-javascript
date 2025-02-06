@@ -1,4 +1,4 @@
-const request = new Request('http://example.com/api/test/', {
+const request = new Request('http://sentry-test-site.io/api/test/', {
   headers: { foo: '11' },
 });
 

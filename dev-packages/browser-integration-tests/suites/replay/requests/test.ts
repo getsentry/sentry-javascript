@@ -10,7 +10,7 @@ sentryTest('replay recording should contain fetch request span', async ({ getLoc
     sentryTest.skip();
   }
 
-  await page.route('https://example.com', route => {
+  await page.route('https://sentry-test-site.io', route => {
     return route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -27,7 +27,7 @@ sentryTest('replay recording should contain fetch request span', async ({ getLoc
 
   const { performanceSpans: spans0 } = getReplayRecordingContent(req0);
 
-  await Promise.all([page.waitForResponse('https://example.com'), page.locator('#fetch').click()]);
+  await Promise.all([page.waitForResponse('https://sentry-test-site.io'), page.locator('#fetch').click()]);
 
   const { performanceSpans: spans1 } = getReplayRecordingContent(await reqPromise1);
 
@@ -40,7 +40,7 @@ sentryTest('replay recording should contain XHR request span', async ({ getLocal
     sentryTest.skip();
   }
 
-  await page.route('https://example.com', route => {
+  await page.route('https://sentry-test-site.io', route => {
     return route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -57,7 +57,7 @@ sentryTest('replay recording should contain XHR request span', async ({ getLocal
 
   const { performanceSpans: spans0 } = getReplayRecordingContent(req0);
 
-  await Promise.all([page.waitForResponse('https://example.com'), page.locator('#xhr').click()]);
+  await Promise.all([page.waitForResponse('https://sentry-test-site.io'), page.locator('#xhr').click()]);
 
   const { performanceSpans: spans1 } = getReplayRecordingContent(await reqPromise1);
 

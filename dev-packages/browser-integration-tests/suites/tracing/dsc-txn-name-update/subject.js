@@ -26,7 +26,7 @@ btnUpdateName.addEventListener('click', () => {
 });
 
 btnMakeRequest.addEventListener('click', () => {
-  fetch('https://example.com/api');
+  fetch('https://sentry-test-site.io/api');
 });
 
 btnCaptureError.addEventListener('click', () => {

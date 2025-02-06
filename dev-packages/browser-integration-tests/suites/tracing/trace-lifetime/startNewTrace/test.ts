@@ -17,7 +17,7 @@ sentryTest(
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 
-    await page.route('http://example.com/**', route => {
+    await page.route('http://sentry-test-site.io/**', route => {
       return route.fulfill({
         status: 200,
         contentType: 'application/json',

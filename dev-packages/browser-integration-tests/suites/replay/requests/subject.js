@@ -6,11 +6,11 @@ document.getElementById('go-background').addEventListener('click', () => {
 });
 
 document.getElementById('fetch').addEventListener('click', () => {
-  fetch('https://example.com', { method: 'POST', body: 'foo' });
+  fetch('https://sentry-test-site.io', { method: 'POST', body: 'foo' });
 });
 
 document.getElementById('xhr').addEventListener('click', () => {
   const xhr = new XMLHttpRequest();
-  xhr.open('GET', 'https://example.com');
+  xhr.open('GET', 'https://sentry-test-site.io');
   xhr.send();
 });

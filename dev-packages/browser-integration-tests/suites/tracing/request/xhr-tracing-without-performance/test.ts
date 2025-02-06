@@ -15,7 +15,7 @@ sentryTest(
     const requests = (
       await Promise.all([
         page.goto(url),
-        Promise.all([0, 1, 2].map(idx => page.waitForRequest(`http://example.com/${idx}`))),
+        Promise.all([0, 1, 2].map(idx => page.waitForRequest(`http://sentry-test-site.io/${idx}`))),
       ])
     )[1];
 

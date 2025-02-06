@@ -4,5 +4,5 @@ window.Sentry = Sentry;
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  tracePropagationTargets: ['http://example.com'],
+  tracePropagationTargets: ['http://sentry-test-site.io'],
 });

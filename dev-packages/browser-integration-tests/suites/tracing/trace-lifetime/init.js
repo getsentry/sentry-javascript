@@ -7,6 +7,6 @@ window.Sentry = Sentry;
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   integrations: [Sentry.browserTracingIntegration(), feedbackIntegration()],
-  tracePropagationTargets: ['http://example.com'],
+  tracePropagationTargets: ['http://sentry-test-site.io'],
   tracesSampleRate: 1,
 });

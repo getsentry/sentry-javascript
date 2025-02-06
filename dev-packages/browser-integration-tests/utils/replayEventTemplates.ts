@@ -190,7 +190,7 @@ export const expectedFPPerformanceSpan = {
 
 export const expectedFetchPerformanceSpan = {
   op: 'resource.fetch',
-  description: 'https://example.com',
+  description: 'https://sentry-test-site.io',
   startTimestamp: expect.any(Number),
   endTimestamp: expect.any(Number),
   data: {
@@ -215,7 +215,7 @@ export const expectedFetchPerformanceSpan = {
 
 export const expectedXHRPerformanceSpan = {
   op: 'resource.xhr',
-  description: 'https://example.com',
+  description: 'https://sentry-test-site.io',
   startTimestamp: expect.any(Number),
   endTimestamp: expect.any(Number),
   data: {
