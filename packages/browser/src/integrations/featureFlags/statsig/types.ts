@@ -1,9 +1,6 @@
 export type FeatureGate = {
   readonly name: string;
   readonly value: boolean;
-  // readonly ruleID: string;
-  // readonly details: EvaluationDetails;
-  // readonly __evaluation: GateEvaluation | null;
 };
 
 type EventNameToEventDataMap = {
