@@ -85,7 +85,7 @@
     "@sentry/opentelemetry": "9.0.0-alpha.2",
     "@sentry/react": "9.0.0-alpha.2",
     "@sentry/vercel-edge": "9.0.0-alpha.2",
-    "@sentry/webpack-plugin": "2.22.7",
+    "@sentry/webpack-plugin": "3.1.2",
     "chalk": "3.0.0",
     "resolve": "1.22.8",
     "rollup": "3.29.5",
