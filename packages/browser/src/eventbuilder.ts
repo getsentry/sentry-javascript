@@ -200,6 +200,10 @@ export function extractMessage(ex: Error & { message: { error?: Error } }): stri
   const message = ex?.message;
 
   if (isWebAssemblyException(ex)) {
+    // For Node 18, Emscripten sets array[type, message] to the "message" property on the WebAssembly.Exception object
+    if (Array.isArray(ex.message) && ex.message.length == 2) {
+      return ex.message[1];
+    }
     return 'wasm exception';
   }
 
