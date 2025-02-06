@@ -4,8 +4,8 @@ import { resolve } from 'path';
 import * as dotenv from 'dotenv';
 import { sync as globSync } from 'glob';
 
-import { registrySetup } from './registrySetup';
 import { readFileSync } from 'fs';
+import { registrySetup } from './registrySetup';
 
 const DEFAULT_DSN = 'https://username@domain/123';
 const DEFAULT_SENTRY_ORG_SLUG = 'sentry-javascript-sdks';
