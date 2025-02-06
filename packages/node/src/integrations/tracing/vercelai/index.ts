@@ -5,11 +5,13 @@ import { generateInstrumentOnce } from '../../../otel/instrument';
 import { addOriginToSpan } from '../../../utils/addOriginToSpan';
 import { SentryVercelAiInstrumentation, sentryVercelAiPatched } from './instrumentation';
 
-export const instrumentVercelAi = generateInstrumentOnce('vercelAI', () => new SentryVercelAiInstrumentation({}));
+const INTEGRATION_NAME = 'VercelAI';
+
+export const instrumentVercelAi = generateInstrumentOnce(INTEGRATION_NAME, () => new SentryVercelAiInstrumentation({}));
 
 const _vercelAIIntegration = (() => {
   return {
-    name: 'vercelAI',
+    name: INTEGRATION_NAME,
     setupOnce() {
       instrumentVercelAi();
     },

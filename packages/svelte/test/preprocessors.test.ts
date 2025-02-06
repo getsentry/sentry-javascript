@@ -24,7 +24,7 @@ function expectComponentCodeToBeModified(
   preprocessedComponents.forEach(cmp => {
     const expectedFunctionCallOptions = {
       trackInit: options?.trackInit ?? true,
-      trackUpdates: options?.trackUpdates ?? true,
+      trackUpdates: options?.trackUpdates ?? false,
       componentName: cmp.name,
     };
     const expectedFunctionCall = `trackComponent(${JSON.stringify(expectedFunctionCallOptions)});\n`;
@@ -115,7 +115,7 @@ describe('componentTrackingPreprocessor', () => {
 
       expect(cmp2?.newCode).toEqual(cmp2?.originalCode);
 
-      expectComponentCodeToBeModified([cmp1!, cmp3!], { trackInit: true, trackUpdates: true });
+      expectComponentCodeToBeModified([cmp1!, cmp3!], { trackInit: true, trackUpdates: false });
     });
 
     it('doesnt inject the function call to the same component more than once', () => {
@@ -149,7 +149,7 @@ describe('componentTrackingPreprocessor', () => {
         return { ...cmp, newCode: res.code, map: res.map };
       });
 
-      expectComponentCodeToBeModified([cmp11!, cmp2!], { trackInit: true, trackUpdates: true });
+      expectComponentCodeToBeModified([cmp11!, cmp2!], { trackInit: true });
       expect(cmp12!.newCode).toEqual(cmp12!.originalCode);
     });
 
@@ -228,7 +228,7 @@ describe('componentTrackingPreprocessor', () => {
 
       expect(processedCode.code).toEqual(
         '<script>import { trackComponent } from "@sentry/svelte";\n' +
-          'trackComponent({"trackInit":true,"trackUpdates":true,"componentName":"Cmp1"});\n\n' +
+          'trackComponent({"trackInit":true,"trackUpdates":false,"componentName":"Cmp1"});\n\n' +
           '</script>\n' +
           "<p>I'm just a plain component</p>\n" +
           '<style>p{margin-top:10px}</style>',
@@ -248,7 +248,7 @@ describe('componentTrackingPreprocessor', () => {
 
       expect(processedCode.code).toEqual(
         '<script>import { trackComponent } from "@sentry/svelte";\n' +
-          'trackComponent({"trackInit":true,"trackUpdates":true,"componentName":"Cmp2"});\n' +
+          'trackComponent({"trackInit":true,"trackUpdates":false,"componentName":"Cmp2"});\n' +
           "console.log('hi');</script>\n" +
           "<p>I'm a component with a script</p>\n" +
           '<style>p{margin-top:10px}</style>',
@@ -267,7 +267,7 @@ describe('componentTrackingPreprocessor', () => {
 
       expect(processedCode.code).toEqual(
         '<script>import { trackComponent } from "@sentry/svelte";\n' +
-          'trackComponent({"trackInit":true,"trackUpdates":true,"componentName":"unknown"});\n' +
+          'trackComponent({"trackInit":true,"trackUpdates":false,"componentName":"unknown"});\n' +
           "console.log('hi');</script>",
       );
     });

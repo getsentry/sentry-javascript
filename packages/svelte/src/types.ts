@@ -29,7 +29,7 @@ export type SpanOptions = {
    * onMount lifecycle hook. This span tells how long it takes a component
    * to be created and inserted into the DOM.
    *
-   * Defaults to true if component tracking is enabled
+   * @default `true` if component tracking is enabled
    */
   trackInit?: boolean;
 
@@ -37,7 +37,10 @@ export type SpanOptions = {
    * If true, a span is recorded between a component's beforeUpdate and afterUpdate
    * lifecycle hooks.
    *
-   * Defaults to true if component tracking is enabled
+   * Caution: Component updates can only be tracked in Svelte versions prior to version 5
+   * or in Svelte 5 in legacy mode (i.e. without Runes).
+   *
+   * @default `false` if component tracking is enabled
    */
   trackUpdates?: boolean;
 };

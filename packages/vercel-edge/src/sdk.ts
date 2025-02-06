@@ -15,7 +15,7 @@ import {
   functionToStringIntegration,
   getCurrentScope,
   getIntegrationsToSetup,
-  hasTracingEnabled,
+  hasSpansEnabled,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
   logger,
@@ -124,7 +124,7 @@ function validateOpenTelemetrySetup(): void {
 
   const required: ReturnType<typeof openTelemetrySetupCheck> = ['SentryContextManager', 'SentryPropagator'];
 
-  if (hasTracingEnabled()) {
+  if (hasSpansEnabled()) {
     required.push('SentrySpanProcessor');
   }
 

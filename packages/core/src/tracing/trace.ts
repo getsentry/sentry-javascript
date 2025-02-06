@@ -21,7 +21,7 @@ import { logger } from '../utils-hoist/logger';
 import { generateTraceId } from '../utils-hoist/propagationContext';
 import { propagationContextFromHeaders } from '../utils-hoist/tracing';
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
-import { hasTracingEnabled } from '../utils/hasTracingEnabled';
+import { hasSpansEnabled } from '../utils/hasSpansEnabled';
 import { parseSampleRate } from '../utils/parseSampleRate';
 import { _getSpanForScope, _setSpanForScope } from '../utils/spanOnScope';
 import { addChildSpanToSpan, getRootSpan, spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
@@ -302,7 +302,7 @@ function createChildOrRootSpan({
   forceTransaction?: boolean;
   scope: Scope;
 }): Span {
-  if (!hasTracingEnabled()) {
+  if (!hasSpansEnabled()) {
     const span = new SentryNonRecordingSpan();
 
     // If this is a root span, we ensure to freeze a DSC

@@ -45,7 +45,7 @@
     "yalc:publish": "lerna run yalc:publish"
   },
   "volta": {
-    "node": "18.20.5",
+    "node": "20.18.2",
     "yarn": "1.22.22",
     "pnpm": "9.15.0"
   },

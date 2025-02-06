@@ -8,7 +8,7 @@ const config = {
 };
 
 const configWithSentry = withSentryConfig(config, {
-  componentTracking: { trackUpdates: false, trackComponents: true, trackInit: true },
+  componentTracking: { trackComponents: true, trackInit: true },
 });
 
 export default configWithSentry;
