@@ -199,17 +199,16 @@ export function extractType(ex: Error & { message: { error?: Error } }): string 
 export function extractMessage(ex: Error & { message: { error?: Error } }): string {
   const message = ex?.message;
 
+  if (isWebAssemblyException(ex)) {
+    return 'wasm exception';
+  }
+
   if (!message) {
     return 'No error message';
   }
 
   if (message.error && typeof message.error.message === 'string') {
     return message.error.message;
-  }
-
-  // Emscripten sets array[type, message] to the "message" property on the WebAssembly.Exception object
-  if (isWebAssemblyException(ex) && Array.isArray(ex.message) && ex.message.length == 2) {
-    return ex.message[1];
   }
 
   return message;
