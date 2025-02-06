@@ -34,11 +34,11 @@ export function getBodyString(body: unknown, _logger: Logger = logger): [string 
       return [undefined];
     }
   } catch (error) {
-    DEBUG_BUILD && logger.error(error, 'Failed to serialize body', body);
+    DEBUG_BUILD && _logger.error(error, 'Failed to serialize body', body);
     return [undefined, 'BODY_PARSE_ERROR'];
   }
 
-  DEBUG_BUILD && logger.info('Skipping network body because of body type', body);
+  DEBUG_BUILD && _logger.info('Skipping network body because of body type', body);
 
   return [undefined, 'UNPARSEABLE_BODY_TYPE'];
 }
