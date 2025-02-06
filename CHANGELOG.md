@@ -12,6 +12,14 @@
 
 Work in this release was contributed by @tjhiggins, @chris-basebone, @GrizliK1988, @davidturissini, @nwalters512, @aloisklink, @arturovt, @benjick, @maximepvrt, @mstrokin, @kunal-511, @jahands, @jrandolf, @tannerlinsley, @Zen-cronic, @maxmaxme and @nathankleyn. Thank you for your contributions!
 
+## 9.0.0-alpha.2
+
+This is an alpha release of the upcoming major release of version 9.
+This release does not yet entail a comprehensive changelog as version 9 is not yet stable.
+
+For this release's iteration of the migration guide, see the [Migration Guide as per `9.0.0-alpha.2`](https://github.com/getsentry/sentry-javascript/blob/fbedd59954d378264d11b879b6eb2a482fbc0d1b/MIGRATION.md).
+Please note that the migration guide is work in progress and subject to change.
+
 ## 9.0.0-alpha.1
 
 This is an alpha release of the upcoming major release of version 9.
