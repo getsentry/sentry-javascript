@@ -9,10 +9,10 @@ These docs walk through how to migrate our JavaScript SDKs through different maj
 
 # Upgrading from 8.x to 9.x
 
-Version 9 of the Sentry JavaScript SDK concerns API cleanup and version support changes.
-This update contains behavioral changes that will not be caught by type checkers, linters or tests, so we recommend carefully reading through the entire migration guide instead of purely relying on automatic tooling.
+Version 9 of the Sentry JavaScript SDK primarily introduces API cleanup and version support changes.
+This update contains behavioral changes that will not be caught by type checkers, linters, or tests, so we recommend carefully reading through the entire migration guide instead of relying on automatic tooling.
 
-`v9` of the SDK is compatible with Sentry self-hosted versions 24.4.2 or higher (unchanged from v8).
+Version 9 of the SDK is compatible with Sentry self-hosted versions 24.4.2 or higher (unchanged from v8).
 Lower versions may continue to work, but may not support all features.
 
 ## 1. Version Support Changes:
@@ -27,16 +27,16 @@ This includes features like Nullish Coalescing (`??`), Optional Chaining (`?.`),
 If you observe failures due to syntax or features listed above, it may indicate that your current runtime does not support ES2020.
 If your runtime does not support ES2020, we recommend transpiling the SDK using Babel or similar tooling.
 
-**Node.js:** The minimum supported Node.js version is **18.0.0**, except for ESM-only SDKs (`@sentry/astro`, `@sentry/nuxt`, `@sentry/sveltekit`) which require Node.js version **18.19.1** or higher.
+**Node.js:** The minimum supported Node.js version is **18.0.0** (Released Apr 19, 2022), except for ESM-only SDKs (`@sentry/astro`, `@sentry/nuxt`, `@sentry/sveltekit`) which require Node.js version **18.19.1** (Released Feb 14, 2024) or higher.
 
 **Browsers:** Due to SDK code now including ES2020 features, the minimum supported browser list now looks as follows:
 
-- Chrome 80
-- Edge 80
-- Safari 14, iOS Safari 14.4
-- Firefox 74
-- Opera 67
-- Samsung Internet 13.0
+- Chrome 80 (Released Feb 5, 2020)
+- Edge 80 (Released Feb 7, 2020)
+- Safari 14, iOS Safari 14.4 (Released Sep 16, 2020)
+- Firefox 74 (Released Mar 10, 2020)
+- Opera 67 (Released Mar 12, 2020)
+- Samsung Internet 13.0 (Released Nov 20, 2020)
 
 If you need to support older browsers, we recommend transpiling your code using SWC, Babel or similar tooling.
 
@@ -54,11 +54,11 @@ Support for the following frameworks and library versions are dropped:
 
 ### TypeScript Version Policy
 
-In preparation for v2 of the OpenTelemetry SDK, which will raise the minimum required TypeScript version, the minimum required TypeScript version is increased to version `5.0.4`.
+In preparation for v2 of the OpenTelemetry SDK, the minimum required TypeScript version is increased to version `5.0.4`.
 
 Additionally, like the OpenTelemetry SDK, the Sentry JavaScript SDK will follow [DefinitelyType's version support policy](https://github.com/DefinitelyTyped/DefinitelyTyped#support-window) which has a support time frame of 2 years for any released version of TypeScript.
 
-Older Typescript versions _may_ continue to be compatible, but no guarantees apply.
+Older TypeScript versions _may_ continue to be compatible, but no guarantees apply.
 
 ### AWS Lambda Layer Changes
 
@@ -90,7 +90,7 @@ The ARN will be published in the [Sentry docs](https://docs.sentry.io/platforms/
   While in v8, the passed scope was set active directly on the passed scope, in v9, the scope is cloned. This behavior change does not apply to `@sentry/node` where the scope was already cloned.
   This change was made to ensure that the span only remains active within the callback and to align behavior between `@sentry/node` and all other SDKs.
   As a result of the change, span hierarchy should be more accurate.
-  However, modifying the scope (e.g. set tags) within the `startSpan` callback behaves a bit differently now.
+  However, modifying the scope (for example, set tags) within the `startSpan` callback behaves a bit differently now.
 
   ```js
   startSpan({ name: 'example', scope: customScope }, () => {
@@ -101,12 +101,12 @@ The ARN will be published in the [Sentry docs](https://docs.sentry.io/platforms/
   ```
 
 - Passing `undefined` as a `tracesSampleRate` option value will now be treated the same as if the attribute was not defined at all.
-  In previous versions, it was checked whether the `tracesSampleRate` property existed in the SDK options to determine whether to propagate trace data for distributed tracing.
+  In previous versions, it was checked whether the `tracesSampleRate` property existed in the SDK options to decide if trace data should be propagated for tracing.
   Consequentially, this sometimes caused the SDK to propagate negative sampling decisions when `tracesSampleRate: undefined` was passed.
   This is no longer the case and sampling decisions will be deferred to downstream SDKs for distributed tracing.
   This is more of a bugfix rather than a breaking change, however, depending on the setup of your SDKs, an increase in sampled traces may be observed.
 
-- If you use the optional `captureConsoleIntegration` and set `attachStackTrace: true` in your `Sentry.init` call, console messages will no longer be marked as unhandled (i.e. `handled: false`) but as handled (i.e. `handled: true`).
+- If you use the optional `captureConsoleIntegration` and set `attachStackTrace: true` in your `Sentry.init` call, console messages will no longer be marked as unhandled (`handled: false`) but as handled (`handled: true`).
   If you want to keep sending them as unhandled, configure the `handled` option when adding the integration:
 
   ```js
