@@ -46,7 +46,6 @@ export function init(options: VercelEdgeOptions = {}): void {
   }
 
   const opts = {
-    defaultIntegrations: customDefaultIntegrations,
     ...options,
   };
 

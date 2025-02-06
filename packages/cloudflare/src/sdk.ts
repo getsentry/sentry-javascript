@@ -32,14 +32,12 @@ export function getDefaultIntegrations(options: CloudflareOptions): Integration[
  * Initializes the cloudflare SDK.
  */
 export function init(options: CloudflareOptions): CloudflareClient | undefined {
-  if (options.defaultIntegrations === undefined) {
-    options.defaultIntegrations = getDefaultIntegrations(options);
-  }
+  const defaultIntegrations = getDefaultIntegrations(options);
 
   const clientOptions: CloudflareClientOptions = {
     ...options,
     stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
-    integrations: getIntegrationsToSetup(options),
+    integrations: getIntegrationsToSetup(options, defaultIntegrations),
     transport: options.transport || makeCloudflareTransport,
   };
 

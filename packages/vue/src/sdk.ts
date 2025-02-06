@@ -1,5 +1,6 @@
-import { getDefaultIntegrations, init as browserInit } from '@sentry/browser';
-import type { Client } from '@sentry/core';
+import type { BrowserOptions } from '@sentry/browser';
+import { getDefaultIntegrations, initWithDefaultIntegrations } from '@sentry/browser';
+import type { Client, Integration } from '@sentry/core';
 import { applySdkMetadata } from '@sentry/core';
 import { vueIntegration } from './integration';
 import type { Options } from './types';
@@ -9,11 +10,14 @@ import type { Options } from './types';
  */
 export function init(options: Partial<Omit<Options, 'tracingOptions'>> = {}): Client | undefined {
   const opts = {
-    defaultIntegrations: [...getDefaultIntegrations(options), vueIntegration()],
     ...options,
   };
 
   applySdkMetadata(opts, 'vue');
 
-  return browserInit(opts);
+  return initWithDefaultIntegrations(opts, getVueDefaultIntegrations);
+}
+
+function getVueDefaultIntegrations(options: BrowserOptions): Integration[] {
+  return [...getDefaultIntegrations(options), vueIntegration()];
 }

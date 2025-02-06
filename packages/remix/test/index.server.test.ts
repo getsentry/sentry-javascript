@@ -9,7 +9,7 @@ jest.mock('@sentry/node', () => {
   };
 });
 
-const nodeInit = jest.spyOn(SentryNode, 'init');
+const nodeInit = jest.spyOn(SentryNode, 'initWithDefaultIntegrations');
 
 describe('Server init()', () => {
   afterEach(() => {
@@ -44,6 +44,7 @@ describe('Server init()', () => {
           },
         },
       }),
+      expect.any(Function),
     );
   });
 

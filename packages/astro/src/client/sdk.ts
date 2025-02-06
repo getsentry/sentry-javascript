@@ -2,10 +2,10 @@ import type { BrowserOptions } from '@sentry/browser';
 import {
   browserTracingIntegration,
   getDefaultIntegrations as getBrowserDefaultIntegrations,
-  init as initBrowserSdk,
+  initWithDefaultIntegrations,
 } from '@sentry/browser';
-import { applySdkMetadata } from '@sentry/core';
 import type { Client, Integration } from '@sentry/core';
+import { applySdkMetadata } from '@sentry/core';
 
 // Tree-shakable guard to remove all code related to tracing
 declare const __SENTRY_TRACING__: boolean;
@@ -17,13 +17,12 @@ declare const __SENTRY_TRACING__: boolean;
  */
 export function init(options: BrowserOptions): Client | undefined {
   const opts = {
-    defaultIntegrations: getDefaultIntegrations(options),
     ...options,
   };
 
   applySdkMetadata(opts, 'astro', ['astro', 'browser']);
 
-  return initBrowserSdk(opts);
+  return initWithDefaultIntegrations(opts, getDefaultIntegrations);
 }
 
 function getDefaultIntegrations(options: BrowserOptions): Integration[] {

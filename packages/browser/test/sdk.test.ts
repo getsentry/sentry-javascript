@@ -13,7 +13,7 @@ import type { Integration } from '@sentry/core';
 
 import type { BrowserOptions } from '../src';
 import { WINDOW } from '../src';
-import { applyDefaultOptions, getDefaultIntegrations, init } from '../src/sdk';
+import { applyDefaultOptions, init } from '../src/sdk';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 
@@ -255,14 +255,9 @@ describe('applyDefaultOptions', () => {
     const actual = applyDefaultOptions(options);
 
     expect(actual).toEqual({
-      defaultIntegrations: expect.any(Array),
       release: undefined,
       sendClientReports: true,
     });
-
-    expect((actual.defaultIntegrations as { name: string }[]).map(i => i.name)).toEqual(
-      getDefaultIntegrations(options).map(i => i.name),
-    );
   });
 
   test('it works with options', () => {
@@ -273,15 +268,10 @@ describe('applyDefaultOptions', () => {
     const actual = applyDefaultOptions(options);
 
     expect(actual).toEqual({
-      defaultIntegrations: expect.any(Array),
       release: '1.0.0',
       sendClientReports: true,
       tracesSampleRate: 0.5,
     });
-
-    expect((actual.defaultIntegrations as { name: string }[]).map(i => i.name)).toEqual(
-      getDefaultIntegrations(options).map(i => i.name),
-    );
   });
 
   test('it works with defaultIntegrations=false', () => {
@@ -309,7 +299,7 @@ describe('applyDefaultOptions', () => {
     const actual = applyDefaultOptions(options);
 
     // Not defined, not even undefined
-    expect('tracesSampleRate' in actual).toBe(false);
+    expect(actual.tracesSampleRate).toStrictEqual(undefined);
   });
 
   test('it works with tracesSampleRate=null', () => {

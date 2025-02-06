@@ -25,8 +25,8 @@ jest.mock('@sentry/node', () => {
   const original = jest.requireActual('@sentry/node');
   return {
     ...original,
-    init: (options: unknown) => {
-      mockInit(options);
+    initWithDefaultIntegrations: (options: unknown, getDefaultIntergations: unknown) => {
+      mockInit(options, getDefaultIntergations);
     },
     startSpanManual: (...args: unknown[]) => {
       mockStartSpanManual(...args);
@@ -171,10 +171,9 @@ describe('GCPFunction', () => {
 
     await handleHttp(wrappedHandler);
 
-    const initOptions = (mockInit as unknown as jest.SpyInstance).mock.calls[0];
-    const defaultIntegrations = initOptions[0]?.defaultIntegrations.map((i: Integration) => i.name);
-
-    expect(defaultIntegrations).toContain('RequestData');
+    const getDefaultIntegrationsFn = mockInit.mock.calls[0][1] as () => Integration[];
+    const integrationNames = getDefaultIntegrationsFn().map(i => i.name);
+    expect(integrationNames).toContain('RequestData');
 
     expect(mockScope.setSDKProcessingMetadata).toHaveBeenCalledWith({
       normalizedRequest: {

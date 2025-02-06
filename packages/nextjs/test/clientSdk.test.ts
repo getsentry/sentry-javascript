@@ -7,7 +7,7 @@ import { JSDOM } from 'jsdom';
 
 import { breadcrumbsIntegration, browserTracingIntegration, init } from '../src/client';
 
-const reactInit = jest.spyOn(SentryReact, 'init');
+const reactInit = jest.spyOn(SentryReact, 'initWithDefaultIntegrations');
 const loggerLogSpy = jest.spyOn(logger, 'log');
 
 // We're setting up JSDom here because the Next.js routing instrumentations requires a few things to be present on pageload:
@@ -69,13 +69,13 @@ describe('Client init()', () => {
           },
         },
         environment: 'test',
-        defaultIntegrations: expect.arrayContaining([
-          expect.objectContaining({
-            name: 'NextjsClientStackFrameNormalization',
-          }),
-        ]),
       }),
+      expect.any(Function),
     );
+
+    const getDefaultIntegrationsFn = reactInit.mock.calls[0]?.[1] as () => Integration[];
+    const integrationNames = getDefaultIntegrationsFn().map(i => i.name);
+    expect(integrationNames).toContain('NextjsClientStackFrameNormalization');
   });
 
   it('adds 404 transaction filter', () => {

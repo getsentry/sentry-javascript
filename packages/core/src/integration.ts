@@ -40,24 +40,36 @@ function filterDuplicates(integrations: Integration[]): Integration[] {
 }
 
 /** Gets integrations to install */
-export function getIntegrationsToSetup(options: Pick<Options, 'defaultIntegrations' | 'integrations'>): Integration[] {
-  const defaultIntegrations = options.defaultIntegrations || [];
+export function getIntegrationsToSetup(
+  options: Pick<Options, 'defaultIntegrations' | 'integrations'>,
+  defaultIntegrations: Integration[] = [],
+): Integration[] {
   const userIntegrations = options.integrations;
 
+  // If `defaultIntegrations: false` is defined, we disable all default integrations
+  // TODO(v10): If an array is passed, we use this - this is deprecated and will eventually be removed
+  // Else, we use the default integrations that are directly passed to this function as second argument
+  const defaultIntegrationsToUse =
+    options.defaultIntegrations === false
+      ? []
+      : Array.isArray(options.defaultIntegrations)
+        ? options.defaultIntegrations
+        : defaultIntegrations;
+
   // We flag default instances, so that later we can tell them apart from any user-created instances of the same class
-  defaultIntegrations.forEach((integration: IntegrationWithDefaultInstance) => {
+  defaultIntegrationsToUse.forEach((integration: IntegrationWithDefaultInstance) => {
     integration.isDefaultInstance = true;
   });
 
   let integrations: Integration[];
 
   if (Array.isArray(userIntegrations)) {
-    integrations = [...defaultIntegrations, ...userIntegrations];
+    integrations = [...defaultIntegrationsToUse, ...userIntegrations];
   } else if (typeof userIntegrations === 'function') {
-    const resolvedUserIntegrations = userIntegrations(defaultIntegrations);
+    const resolvedUserIntegrations = userIntegrations(defaultIntegrationsToUse);
     integrations = Array.isArray(resolvedUserIntegrations) ? resolvedUserIntegrations : [resolvedUserIntegrations];
   } else {
-    integrations = defaultIntegrations;
+    integrations = defaultIntegrationsToUse;
   }
 
   return filterDuplicates(integrations);

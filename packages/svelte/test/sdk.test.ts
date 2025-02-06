@@ -9,7 +9,7 @@ import * as SentryBrowser from '@sentry/browser';
 
 import { init as svelteInit } from '../src/sdk';
 
-const browserInit = vi.spyOn(SentryBrowser, 'init');
+const browserInit = vi.spyOn(SentryBrowser, 'initWithDefaultIntegrations');
 
 describe('Initialize Svelte SDk', () => {
   beforeEach(() => {
@@ -32,7 +32,7 @@ describe('Initialize Svelte SDk', () => {
     };
 
     expect(browserInit).toHaveBeenCalledTimes(1);
-    expect(browserInit).toHaveBeenLastCalledWith(expect.objectContaining(expectedMetadata));
+    expect(browserInit).toHaveBeenLastCalledWith(expect.objectContaining(expectedMetadata), expect.any(Function));
   });
 
   it("doesn't add the default svelte metadata, if metadata is already passed", () => {
@@ -64,6 +64,7 @@ describe('Initialize Svelte SDk', () => {
           },
         },
       }),
+      expect.any(Function),
     );
   });
 

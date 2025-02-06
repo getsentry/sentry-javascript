@@ -1,5 +1,7 @@
 export * from './exports';
 
+export { initWithDefaultIntegrations } from './sdk';
+
 export { reportingObserverIntegration } from './integrations/reportingobserver';
 export { httpClientIntegration } from './integrations/httpclient';
 export { contextLinesIntegration } from './integrations/contextlines';

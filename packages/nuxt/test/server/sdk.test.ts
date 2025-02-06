@@ -8,7 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { init } from '../../src/server';
 import { clientSourceMapErrorFilter } from '../../src/server/sdk';
 
-const nodeInit = vi.spyOn(SentryNode, 'init');
+const nodeInit = vi.spyOn(SentryNode, 'initWithDefaultIntegrations');
 
 describe('Nuxt Server SDK', () => {
   describe('init', () => {
@@ -37,7 +37,7 @@ describe('Nuxt Server SDK', () => {
       };
 
       expect(nodeInit).toHaveBeenCalledTimes(1);
-      expect(nodeInit).toHaveBeenLastCalledWith(expect.objectContaining(expectedMetadata));
+      expect(nodeInit).toHaveBeenLastCalledWith(expect.objectContaining(expectedMetadata), expect.any(Function));
     });
 
     it('returns client from init', () => {

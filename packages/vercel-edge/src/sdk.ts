@@ -66,10 +66,6 @@ export function init(options: VercelEdgeOptions = {}): Client | undefined {
   const scope = getCurrentScope();
   scope.update(options.initialScope);
 
-  if (options.defaultIntegrations === undefined) {
-    options.defaultIntegrations = getDefaultIntegrations(options);
-  }
-
   if (options.dsn === undefined && process.env.SENTRY_DSN) {
     options.dsn = process.env.SENTRY_DSN;
   }
@@ -91,10 +87,12 @@ export function init(options: VercelEdgeOptions = {}): Client | undefined {
   options.environment =
     options.environment || process.env.SENTRY_ENVIRONMENT || getVercelEnv(false) || process.env.NODE_ENV;
 
+  const defaultIntegrations = getDefaultIntegrations(options);
+
   const client = new VercelEdgeClient({
     ...options,
     stackParser: stackParserFromStackParserOptions(options.stackParser || nodeStackParser),
-    integrations: getIntegrationsToSetup(options),
+    integrations: getIntegrationsToSetup(options, defaultIntegrations),
     transport: options.transport || makeEdgeTransport,
   });
   // The client is on the current scope, from where it generally is inherited

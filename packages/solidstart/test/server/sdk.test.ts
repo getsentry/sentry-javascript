@@ -4,7 +4,7 @@ import * as SentryNode from '@sentry/node';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { init as solidStartInit } from '../../src/server';
 
-const browserInit = vi.spyOn(SentryNode, 'init');
+const nodeInit = vi.spyOn(SentryNode, 'init');
 
 describe('Initialize Solid Start SDK', () => {
   beforeEach(() => {
@@ -30,8 +30,8 @@ describe('Initialize Solid Start SDK', () => {
     };
 
     expect(client).not.toBeUndefined();
-    expect(browserInit).toHaveBeenCalledTimes(1);
-    expect(browserInit).toHaveBeenLastCalledWith(expect.objectContaining(expectedMetadata));
+    expect(nodeInit).toHaveBeenCalledTimes(1);
+    expect(nodeInit).toHaveBeenLastCalledWith(expect.objectContaining(expectedMetadata));
   });
 
   it('filters out low quality transactions', async () => {

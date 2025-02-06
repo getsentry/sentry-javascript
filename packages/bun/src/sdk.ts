@@ -1,16 +1,16 @@
+import type { Integration, Options } from '@sentry/core';
 import {
   functionToStringIntegration,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
   requestDataIntegration,
 } from '@sentry/core';
-import type { Integration, Options } from '@sentry/core';
 import type { NodeClient } from '@sentry/node';
 import {
   consoleIntegration,
   contextLinesIntegration,
   httpIntegration,
-  init as initNode,
+  initWithDefaultIntegrations,
   modulesIntegration,
   nativeNodeFetchIntegration,
   nodeContextIntegration,
@@ -93,12 +93,11 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
  * @see {@link BunOptions} for documentation on configuration options.
  */
 export function init(options: BunOptions = {}): NodeClient | undefined {
-  options.clientClass = BunClient;
-  options.transport = options.transport || makeFetchTransport;
+  const opts = {
+    transport: makeFetchTransport,
+    ...options,
+    clientClass: BunClient,
+  };
 
-  if (options.defaultIntegrations === undefined) {
-    options.defaultIntegrations = getDefaultIntegrations(options);
-  }
-
-  return initNode(options);
+  return initWithDefaultIntegrations(opts, getDefaultIntegrations);
 }

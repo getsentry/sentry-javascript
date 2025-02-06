@@ -18,6 +18,10 @@ import type * as serverSdk from './server';
 export declare function init(
   options: Options | clientSdk.BrowserOptions | serverSdk.NodeOptions | edgeSdk.EdgeOptions,
 ): Client | undefined;
+export declare function initWithDefaultIntegrations(
+  options: Options | clientSdk.BrowserOptions | serverSdk.NodeOptions | edgeSdk.EdgeOptions,
+  getDefaultIntegrations: (options: Options) => Integration[],
+): Client | undefined;
 
 export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;
 export declare const contextLinesIntegration: typeof clientSdk.contextLinesIntegration;

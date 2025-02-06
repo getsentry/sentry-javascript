@@ -307,9 +307,12 @@ export interface Options<TO extends BaseTransportOptions = BaseTransportOptions>
   /**
    * If this is set to false, default integrations will not be added, otherwise this will internally be set to the
    * recommended default integrations.
+   *
+   * It is deprecated to pass `Integrations[]` here. This capability will be removed in v10.
+   *
+   * TODO(v10): Remove `Integration[]` support.
    */
   defaultIntegrations?: false | Integration[];
-
   /**
    * List of integrations that should be installed after SDK was initialized.
    * Accepts either a list of integrations or a function that receives

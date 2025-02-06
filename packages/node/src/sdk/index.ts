@@ -73,7 +73,7 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
 }
 
 /** Get the default integrations for the Node SDK. */
-export function getDefaultIntegrations(options: Options): Integration[] {
+export function getDefaultIntegrations(options: NodeOptions): Integration[] {
   return [
     ...getDefaultIntegrationsWithoutPerformance(),
     // We only add performance integrations if tracing is enabled
@@ -88,22 +88,24 @@ export function getDefaultIntegrations(options: Options): Integration[] {
  * Initialize Sentry for Node.
  */
 export function init(options: NodeOptions | undefined = {}): NodeClient | undefined {
-  return _init(options, getDefaultIntegrations);
+  return initWithDefaultIntegrations(options, getDefaultIntegrations);
 }
 
 /**
  * Initialize Sentry for Node, without any integrations added by default.
+ *
+ * @deprecated Use `initWithDefaultIntegrations` directly instead. This function will be removed in the next major version.
  */
 export function initWithoutDefaultIntegrations(options: NodeOptions | undefined = {}): NodeClient {
-  return _init(options, () => []);
+  return initWithDefaultIntegrations(options, () => []);
 }
 
 /**
- * Initialize Sentry for Node, without performance instrumentation.
+ * Initialize Sentry for Node, with the specified getter function for default integrations.
  */
-function _init(
+export function initWithDefaultIntegrations(
   _options: NodeOptions | undefined = {},
-  getDefaultIntegrationsImpl: (options: Options) => Integration[],
+  getDefaultIntegrationsImpl: (options: NodeOptions) => Integration[],
 ): NodeClient {
   const options = getClientOptions(_options, getDefaultIntegrationsImpl);
 
@@ -229,17 +231,12 @@ function getClientOptions(
     ...overwriteOptions,
   };
 
-  if (options.defaultIntegrations === undefined) {
-    options.defaultIntegrations = getDefaultIntegrationsImpl(mergedOptions);
-  }
+  const defaultIntegrations = getDefaultIntegrationsImpl(mergedOptions);
 
   const clientOptions: NodeClientOptions = {
     ...mergedOptions,
     stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
-    integrations: getIntegrationsToSetup({
-      defaultIntegrations: options.defaultIntegrations,
-      integrations: options.integrations,
-    }),
+    integrations: getIntegrationsToSetup(mergedOptions, defaultIntegrations),
   };
 
   return clientOptions;
