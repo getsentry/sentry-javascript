@@ -58,7 +58,11 @@ sentryTest(
     );
 
     await sentryTest.step('fetch with Headers instance', () =>
-      assertRequests({ page, buttonSelector: '#fetchHeaders', requestMatcher: 'http://sentry-test-site.io/fetch-headers' }),
+      assertRequests({
+        page,
+        buttonSelector: '#fetchHeaders',
+        requestMatcher: 'http://sentry-test-site.io/fetch-headers',
+      }),
     );
   },
 );

@@ -8,7 +8,6 @@ sentryTest('window.open() is considered for slow click', async ({ getLocalTestUr
     sentryTest.skip();
   }
 
-
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   await Promise.all([waitForReplayRequest(page, 0), page.goto(url)]);

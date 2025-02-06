@@ -11,7 +11,9 @@ fetchPojo.addEventListener('click', () => {
     fetch('http://sentry-test-site.io/fetch-pojo', fetchOptions)
       .then(res => res.text())
       .then(() =>
-        Sentry.startSpan({ name: 'does-not-matter-2' }, () => fetch('http://sentry-test-site.io/fetch-pojo', fetchOptions)),
+        Sentry.startSpan({ name: 'does-not-matter-2' }, () =>
+          fetch('http://sentry-test-site.io/fetch-pojo', fetchOptions),
+        ),
       ),
   );
 });
@@ -29,7 +31,9 @@ fetchArray.addEventListener('click', () => {
     fetch('http://sentry-test-site.io/fetch-array', fetchOptions)
       .then(res => res.text())
       .then(() =>
-        Sentry.startSpan({ name: 'does-not-matter-2' }, () => fetch('http://sentry-test-site.io/fetch-array', fetchOptions)),
+        Sentry.startSpan({ name: 'does-not-matter-2' }, () =>
+          fetch('http://sentry-test-site.io/fetch-array', fetchOptions),
+        ),
       ),
   );
 });
@@ -47,7 +51,9 @@ fetchHeaders.addEventListener('click', () => {
     fetch('http://sentry-test-site.io/fetch-headers', fetchOptions)
       .then(res => res.text())
       .then(() =>
-        Sentry.startSpan({ name: 'does-not-matter-2' }, () => fetch('http://sentry-test-site.io/fetch-headers', fetchOptions)),
+        Sentry.startSpan({ name: 'does-not-matter-2' }, () =>
+          fetch('http://sentry-test-site.io/fetch-headers', fetchOptions),
+        ),
       ),
   );
 });
