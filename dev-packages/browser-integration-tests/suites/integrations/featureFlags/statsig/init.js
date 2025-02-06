@@ -11,7 +11,7 @@ class MockStatsigClient {
   }
 
   checkGate(name) {
-    const value = this._mockGateValues[name] || false;  // unknown features default to false.
+    const value = this._mockGateValues[name] || false; // unknown features default to false.
     this._gateEvaluationListeners.forEach(listener => {
       listener({ gate: { name, value } });
     });
