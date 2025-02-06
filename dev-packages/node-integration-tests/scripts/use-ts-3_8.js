@@ -15,7 +15,7 @@ const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
 if (!packageJson.resolutions) packageJson.resolutions = {};
 packageJson.resolutions['@types/express'] = '4.17.13';
 packageJson.resolutions['@types/express-serve-static-core'] = '4.17.30';
-packageJson.resolutions['@types/send'] = '0.17.1';
+packageJson.resolutions['@types/send'] = '#ts3.8';
 
 writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
 
