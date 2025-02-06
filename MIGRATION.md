@@ -90,7 +90,7 @@ The ARN will be published in the [Sentry docs](https://docs.sentry.io/platforms/
   While in v8, the passed scope was set active directly on the passed scope, in v9, the scope is cloned. This behavior change does not apply to `@sentry/node` where the scope was already cloned.
   This change was made to ensure that the span only remains active within the callback and to align behavior between `@sentry/node` and all other SDKs.
   As a result of the change, span hierarchy should be more accurate.
-  However, modifying the scope (for example, set tags) within the `startSpan` callback behaves a bit differently now.
+  However, modifying the scope (for example, setting tags) within the `startSpan` callback behaves a bit differently now.
 
   ```js
   startSpan({ name: 'example', scope: customScope }, () => {
