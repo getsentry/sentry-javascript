@@ -6,6 +6,8 @@ export * from './exports';
 
 export { logger };
 
+export { initWithDefaultIntegrations } from './sdk';
+
 export { reportingObserverIntegration } from './integrations/reportingobserver';
 export { httpClientIntegration } from './integrations/httpclient';
 export { contextLinesIntegration } from './integrations/contextlines';

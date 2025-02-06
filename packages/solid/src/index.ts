@@ -1,5 +1,5 @@
 export * from '@sentry/browser';
 
-export { init } from './sdk';
+export { init, initWithDefaultIntegrations } from './sdk';
 
 export * from './errorboundary';

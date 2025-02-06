@@ -42,24 +42,40 @@ function filterDuplicates(integrations: Integration[]): Integration[] {
 }
 
 /** Gets integrations to install */
-export function getIntegrationsToSetup(options: Pick<Options, 'defaultIntegrations' | 'integrations'>): Integration[] {
-  const defaultIntegrations = options.defaultIntegrations || [];
+export function getIntegrationsToSetup(
+  options: Pick<Options, 'defaultIntegrations' | 'integrations'>,
+  defaultIntegrations: Integration[] = [],
+): Integration[] {
   const userIntegrations = options.integrations;
 
+  // User-defined defaultIntegrations
+  // TODO(v10): If an array is passed, we use this - this is deprecated and will eventually be removed
+  const passedDefaultIntegrations = Array.isArray(options.defaultIntegrations)
+    ? options.defaultIntegrations
+    : undefined;
+
+  if (DEBUG_BUILD && passedDefaultIntegrations) {
+    logger.warn('Sentry: The `defaultIntegrations` option is deprecated. Use the `integrations` option instead.');
+  }
+
+  // If `defaultIntegrations: false` is defined, we disable all default integrations
+
+  // Else, we use the default integrations that are directly passed to this function as second argument
+  const defaultIntegrationsToUse =
+    options.defaultIntegrations === false ? [] : passedDefaultIntegrations || defaultIntegrations;
+
   // We flag default instances, so that later we can tell them apart from any user-created instances of the same class
-  defaultIntegrations.forEach((integration: IntegrationWithDefaultInstance) => {
+  defaultIntegrationsToUse.forEach((integration: IntegrationWithDefaultInstance) => {
     integration.isDefaultInstance = true;
   });
 
   let integrations: Integration[];
 
-  if (Array.isArray(userIntegrations)) {
-    integrations = [...defaultIntegrations, ...userIntegrations];
-  } else if (typeof userIntegrations === 'function') {
-    const resolvedUserIntegrations = userIntegrations(defaultIntegrations);
+  if (typeof userIntegrations === 'function') {
+    const resolvedUserIntegrations = userIntegrations(defaultIntegrationsToUse);
     integrations = Array.isArray(resolvedUserIntegrations) ? resolvedUserIntegrations : [resolvedUserIntegrations];
   } else {
-    integrations = defaultIntegrations;
+    integrations = [...defaultIntegrationsToUse, ...(userIntegrations || [])];
   }
 
   return filterDuplicates(integrations);

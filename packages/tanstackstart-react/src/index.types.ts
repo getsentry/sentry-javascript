@@ -13,6 +13,10 @@ export * from './common';
 
 /** Initializes Sentry TanStack Start SDK */
 export declare function init(options: Options | clientSdk.BrowserOptions | serverSdk.NodeOptions): Client | undefined;
+export declare function initWithDefaultIntegrations(
+  options: Options | clientSdk.BrowserOptions | serverSdk.NodeOptions,
+  getDefaultIntegrations: (options: Options) => Integration[],
+): Client | undefined;
 
 export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;
 export declare const contextLinesIntegration: typeof clientSdk.contextLinesIntegration;
