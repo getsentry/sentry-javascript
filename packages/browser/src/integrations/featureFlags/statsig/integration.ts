@@ -1,7 +1,6 @@
 import type { Client, Event, EventHint, IntegrationFn } from '@sentry/core';
 
-import { defineIntegration, logger } from '@sentry/core';
-import { DEBUG_BUILD } from '../../../debug-build';
+import { defineIntegration } from '@sentry/core';
 import { copyFlagsFromScopeToEvent, insertFlagToScope } from '../../../utils/featureFlags';
 import type { StatsigClient, FeatureGate } from './types';
 
@@ -37,19 +36,9 @@ export const statsigIntegration = defineIntegration(
         return copyFlagsFromScopeToEvent(event);
       },
 
-      setupOnce() {
+      setup() {
         statsigClient.on('gate_evaluation', (event: { gate: FeatureGate }) => {
-          try {
-            insertFlagToScope(event.gate.name, event.gate.value);
-          } catch (error) {
-            if (!(error instanceof TypeError)) {
-              throw error;
-            }
-
-            if (DEBUG_BUILD) {
-              logger.error(`[Feature Flags] Error reading Statsig gate evaluation: ${error.message}`);
-            }
-          }
+          insertFlagToScope(event.gate.name, event.gate.value);
         });
       },
     };
