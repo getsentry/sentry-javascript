@@ -3,18 +3,23 @@ import * as Sentry from '@sentry/browser';
 class MockStatsigClient {
   constructor() {
     this._gateEvaluationListeners = [];
+    this._mockGateValues = {};
   }
 
   on(event, listener) {
     this._gateEvaluationListeners.push(listener);
   }
 
-  checkGate(name, defaultVal) {
-    // Note the actual StatsigClient.checkGate does not take a defaultVal.
+  checkGate(name) {
+    const value = this._mockGateValues[name] || false;  // unknown features default to false.
     this._gateEvaluationListeners.forEach(listener => {
-      listener({ gate: { name, value: defaultVal } });
+      listener({ gate: { name, value } });
     });
-    return defaultVal;
+    return value;
+  }
+
+  setMockGateValue(name, value) {
+    this._mockGateValues[name] = value;
   }
 }
 

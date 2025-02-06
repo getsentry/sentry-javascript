@@ -30,18 +30,22 @@ sentryTest('Flag evaluations in forked scopes are stored separately.', async ({ 
     const errorButton = document.querySelector('#error') as HTMLButtonElement;
     const client = (window as any).statsigClient;
 
-    client.checkGate('shared', true);
+    client.setMockGateValue('shared', true);
+    client.setMockGateValue('main', true);
+
+    client.checkGate('shared');
 
     Sentry.withScope((scope: Scope) => {
-      client.checkGate('forked', true);
-      client.checkGate('shared', false);
+      client.setMockGateValue('forked', true);
+      client.setMockGateValue('shared', false); // override the value in the parent scope.
+
+      client.checkGate('forked');
+      client.checkGate('shared');
       scope.setTag('isForked', true);
-      if (errorButton) {
-        errorButton.click();
-      }
+      errorButton.click();
     });
 
-    client.checkGate('main', true);
+    client.checkGate('main');
     Sentry.getCurrentScope().setTag('isForked', false);
     errorButton.click();
     return true;

@@ -4,7 +4,7 @@ import { sentryTest } from '../../../../../utils/fixtures';
 
 import { envelopeRequestParser, shouldSkipFeatureFlagsTest, waitForErrorRequest } from '../../../../../utils/helpers';
 
-const FLAG_BUFFER_SIZE = 100; // Corresponds to constant in featureFlags.ts, in browser utils.
+import { FLAG_BUFFER_SIZE } from '../../constants'
 
 sentryTest('Basic test with eviction, update, and no async tasks', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipFeatureFlagsTest()) {
@@ -25,10 +25,14 @@ sentryTest('Basic test with eviction, update, and no async tasks', async ({ getL
   await page.evaluate(bufferSize => {
     const client = (window as any).statsigClient;
     for (let i = 1; i <= bufferSize; i++) {
-      client.checkGate(`feat${i}`, false);
+      client.checkGate(`feat${i}`); // values default to false
     }
-    client.checkGate(`feat${bufferSize + 1}`, true); // eviction
-    client.checkGate('feat3', true); // update
+
+    client.setMockGateValue(`feat${bufferSize + 1}`, true);
+    client.checkGate(`feat${bufferSize + 1}`); // eviction
+
+    client.setMockGateValue('feat3', true);
+    client.checkGate('feat3'); // update
   }, FLAG_BUFFER_SIZE);
 
   const reqPromise = waitForErrorRequest(page);

@@ -11,7 +11,7 @@ import type { FeatureGate, StatsigClient } from './types';
  *
  * @example
  * ```
- * import { StatsigClient } from '';
+ * import { StatsigClient } from '@statsig/js-client';
  * import * as Sentry from '@sentry/browser';
  *
  * const statsigClient = new StatsigClient();
