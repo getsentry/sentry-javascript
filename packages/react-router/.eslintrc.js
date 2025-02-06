@@ -3,6 +3,13 @@ module.exports = {
     browser: true,
     node: true,
   },
-  overrides: [],
+  overrides: [
+    {
+      files: ['vite.config.ts'],
+      parserOptions: {
+        project: ['tsconfig.test.json'],
+      },
+    },
+  ],
   extends: ['../../.eslintrc.js'],
 };

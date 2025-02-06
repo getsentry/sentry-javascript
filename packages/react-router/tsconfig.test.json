@@ -1,7 +1,7 @@
 {
   "extends": "./tsconfig.json",
 
-  "include": ["test/**/*", "vitest.config.ts"],
+  "include": ["test/**/*", "vite.config.ts"],
 
   "compilerOptions": {
     "lib": ["DOM", "ES2018"],
