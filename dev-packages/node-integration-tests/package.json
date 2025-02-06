@@ -18,11 +18,11 @@
     "clean:script": "node scripts/clean.js",
     "prisma-v5:init": "cd suites/tracing/prisma-orm-v5 && yarn && yarn setup",
     "prisma-v6:init": "cd suites/tracing/prisma-orm-v6 && yarn && yarn setup",
-    "pg-native:rebuild": "yarn add --force pg-native --frozen-lockfile",
+    "pg-native:build": "npm rebuild pg-native",
     "lint": "eslint . --format stylish",
     "fix": "eslint . --format stylish --fix",
     "type-check": "tsc",
-    "pretest": "run-s --silent pg-native:rebuild prisma-v5:init prisma-v6:init",
+    "pretest": "run-s --silent prisma-v5:init prisma-v6:init",
     "test": "jest --config ./jest.config.js",
     "test:watch": "yarn test --watch"
   },
