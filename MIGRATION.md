@@ -60,6 +60,16 @@ Additionally, like the OpenTelemetry SDK, the Sentry JavaScript SDK will follow 
 
 Older Typescript versions _may_ continue to be compatible, but no guarantees apply.
 
+### AWS Lambda Layer Changes
+
+A new AWS Lambda Layer for version 9 will be published as `SentryNodeServerlessSDKv9`.
+The ARN will be published in the [Sentry docs](https://docs.sentry.io/platforms/javascript/guides/aws-lambda/install/cjs-layer/) once available.
+
+The previous `SentryNodeServerlessSDK` layer will not receive new updates anymore.
+
+Updates and fixes for version 8 will be published as `SentryNodeServerlessSDKv8`.
+The ARN will be published in the [Sentry docs](https://docs.sentry.io/platforms/javascript/guides/aws-lambda/install/cjs-layer/) once available.
+
 ## 2. Behavior Changes
 
 ### `@sentry/core` / All SDKs
