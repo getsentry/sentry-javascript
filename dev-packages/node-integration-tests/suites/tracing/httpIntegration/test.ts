@@ -14,51 +14,6 @@ describe('httpIntegration', () => {
       return;
     }
 
-    createTestServer(done)
-      .get('/api/v0', () => {}, 200)
-      .start()
-      .then(([SERVER_URL, closeTestServer]) => {
-        createRunner(__dirname, 'server.js')
-          .withEnv({ SERVER_URL })
-          .expect({
-            transaction: {
-              contexts: {
-                trace: {
-                  span_id: expect.stringMatching(/[a-f0-9]{16}/),
-                  trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-                  data: {
-                    url: expect.stringMatching(/\/test$/),
-                    'http.response.status_code': 200,
-                    attr1: 'yes',
-                    attr2: 'yes',
-                    attr3: 'yes',
-                  },
-                  op: 'http.server',
-                  status: 'ok',
-                },
-              },
-              extra: {
-                requestHookCalled: {
-                  url: expect.stringMatching(/\/test$/),
-                  method: 'GET',
-                },
-                responseHookCalled: {
-                  url: expect.stringMatching(/\/test$/),
-                  method: 'GET',
-                },
-                applyCustomAttributesOnSpanCalled: {
-                  reqUrl: expect.stringMatching(/\/test$/),
-                  reqMethod: 'GET',
-                  resUrl: expect.stringMatching(/\/test$/),
-                  resMethod: 'GET',
-                },
-              },
-            },
-          })
-          .start(closeTestServer)
-          .makeRequest('get', '/test');
-      });
-
     createRunner(__dirname, 'server.js')
       .expect({
         transaction: {
