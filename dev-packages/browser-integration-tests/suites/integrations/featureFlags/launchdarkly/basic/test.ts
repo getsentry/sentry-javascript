@@ -4,7 +4,7 @@ import { sentryTest } from '../../../../../utils/fixtures';
 
 import { envelopeRequestParser, shouldSkipFeatureFlagsTest, waitForErrorRequest } from '../../../../../utils/helpers';
 
-import { FLAG_BUFFER_SIZE } from '../../constants'
+import { FLAG_BUFFER_SIZE } from '../../constants';
 
 sentryTest('Basic test with eviction, update, and no async tasks', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipFeatureFlagsTest()) {
