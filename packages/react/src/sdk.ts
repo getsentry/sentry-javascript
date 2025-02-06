@@ -1,6 +1,6 @@
 import type { BrowserOptions } from '@sentry/browser';
 import {
-  getDefaultIntegrations,
+  init as browserInit,
   initWithDefaultIntegrations as browserInitWithDefaultIntegrations,
   setContext,
 } from '@sentry/browser';
@@ -13,7 +13,13 @@ import { version } from 'react';
  * Inits the React SDK
  */
 export function init(options: BrowserOptions): Client | undefined {
-  return initWithDefaultIntegrations(options, getDefaultIntegrations);
+  const opts = {
+    ...options,
+  };
+
+  applySdkMetadata(opts, 'react');
+  setContext('react', { version });
+  return browserInit(opts);
 }
 
 /**
