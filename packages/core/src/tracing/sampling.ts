@@ -2,7 +2,7 @@ import type { Options, SamplingContext } from '../types-hoist';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { logger } from '../utils-hoist/logger';
-import { hasTracingEnabled } from '../utils/hasTracingEnabled';
+import { hasSpansEnabled } from '../utils/hasSpansEnabled';
 import { parseSampleRate } from '../utils/parseSampleRate';
 
 /**
@@ -16,8 +16,8 @@ export function sampleSpan(
   samplingContext: SamplingContext,
   sampleRand: number,
 ): [sampled: boolean, sampleRate?: number, localSampleRateWasApplied?: boolean] {
-  // nothing to do if tracing is not enabled
-  if (!hasTracingEnabled(options)) {
+  // nothing to do if span recording is not enabled
+  if (!hasSpansEnabled(options)) {
     return [false];
   }
 

@@ -173,21 +173,21 @@ export function init(browserOptions: BrowserOptions = {}): Client | undefined {
   const options = applyDefaultOptions(browserOptions);
 
   if (!options.skipBrowserExtensionCheck && shouldShowBrowserExtensionError()) {
-    consoleSandbox(() => {
-      // eslint-disable-next-line no-console
-      console.error(
-        '[Sentry] You cannot run Sentry this way in a browser extension, check: https://docs.sentry.io/platforms/javascript/best-practices/browser-extensions/',
-      );
-    });
+    if (DEBUG_BUILD) {
+      consoleSandbox(() => {
+        // eslint-disable-next-line no-console
+        console.error(
+          '[Sentry] You cannot run Sentry this way in a browser extension, check: https://docs.sentry.io/platforms/javascript/best-practices/browser-extensions/',
+        );
+      });
+    }
     return;
   }
 
-  if (DEBUG_BUILD) {
-    if (!supportsFetch()) {
-      logger.warn(
-        'No Fetch API detected. The Sentry SDK requires a Fetch API compatible environment to send events. Please add a Fetch API polyfill.',
-      );
-    }
+  if (DEBUG_BUILD && !supportsFetch()) {
+    logger.warn(
+      'No Fetch API detected. The Sentry SDK requires a Fetch API compatible environment to send events. Please add a Fetch API polyfill.',
+    );
   }
   const clientOptions: BrowserClientOptions = {
     ...options,

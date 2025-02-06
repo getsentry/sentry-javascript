@@ -113,7 +113,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
         stealthWrap(moduleExports.Server.prototype, 'emit', this._getPatchIncomingRequestFunction());
 
         // Patch outgoing requests for breadcrumbs
-        const patchedRequest = stealthWrap(moduleExports, 'request', this._getPatchOutgoingRequestFunction());
+        const patchedRequest = stealthWrap(moduleExports, 'request', this._getPatchOutgoingRequestFunction('http'));
         stealthWrap(moduleExports, 'get', this._getPatchOutgoingGetFunction(patchedRequest));
 
         return moduleExports;
@@ -134,7 +134,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
         stealthWrap(moduleExports.Server.prototype, 'emit', this._getPatchIncomingRequestFunction());
 
         // Patch outgoing requests for breadcrumbs
-        const patchedRequest = stealthWrap(moduleExports, 'request', this._getPatchOutgoingRequestFunction());
+        const patchedRequest = stealthWrap(moduleExports, 'request', this._getPatchOutgoingRequestFunction('https'));
         stealthWrap(moduleExports, 'get', this._getPatchOutgoingGetFunction(patchedRequest));
 
         return moduleExports;
@@ -211,7 +211,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
   /**
    * Patch the outgoing request function for breadcrumbs.
    */
-  private _getPatchOutgoingRequestFunction(): (
+  private _getPatchOutgoingRequestFunction(component: 'http' | 'https'): (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     original: (...args: any[]) => http.ClientRequest,
   ) => (options: URL | http.RequestOptions | string, ...args: unknown[]) => http.ClientRequest {
@@ -226,10 +226,21 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
         // so that it matches what Otel instrumentation passes to `ignoreOutgoingRequestHook`.
         // @see https://github.com/open-telemetry/opentelemetry-js/blob/7293e69c1e55ca62e15d0724d22605e61bd58952/experimental/packages/opentelemetry-instrumentation-http/src/http.ts#L756-L789
         const requestArgs = [...args] as RequestArgs;
-        const options = requestArgs[0];
+
+        let options = requestArgs[0];
+
+        // Make sure correct fallback attributes are set on the options object for https before we pass them to the vendored getRequestInfo function.
+        // Ref: https://github.com/open-telemetry/opentelemetry-js/blob/887ff1cd6e3f795f703e40a9fbe89b3cba7e88c3/experimental/packages/opentelemetry-instrumentation-http/src/http.ts#L390
+        if (component === 'https' && typeof options === 'object' && options?.constructor?.name !== 'URL') {
+          options = Object.assign({}, options);
+          options.protocol = options.protocol || 'https:';
+          options.port = options.port || 443;
+        }
+
         const extraOptions = typeof requestArgs[1] === 'object' ? requestArgs[1] : undefined;
 
         const { optionsParsed, origin, pathname } = getRequestInfo(instrumentation._diag, options, extraOptions);
+
         const url = getAbsoluteUrl(origin, pathname);
 
         addSentryHeadersToRequestOptions(url, optionsParsed, instrumentation._propagationDecisionMap);

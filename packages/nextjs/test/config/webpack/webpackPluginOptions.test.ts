@@ -34,6 +34,7 @@ describe('getWebpackPluginOptions()', () => {
         telemetry: false,
         reactComponentAnnotation: {
           enabled: true,
+          ignoredComponents: ['myComponent'],
         },
         silent: false,
         debug: true,
@@ -65,6 +66,7 @@ describe('getWebpackPluginOptions()', () => {
     expect(generatedPluginOptions.org).toBe('my-org');
     expect(generatedPluginOptions.project).toBe('my-project');
     expect(generatedPluginOptions.reactComponentAnnotation?.enabled).toBe(true);
+    expect(generatedPluginOptions.reactComponentAnnotation?.ignoredComponents).toStrictEqual(['myComponent']);
     expect(generatedPluginOptions.release?.create).toBe(false);
     expect(generatedPluginOptions.release?.deploy?.env).toBe('my-env');
     expect(generatedPluginOptions.release?.dist).toBe('my-dist');
@@ -88,6 +90,7 @@ describe('getWebpackPluginOptions()', () => {
       project: 'my-project',
       reactComponentAnnotation: {
         enabled: true,
+        ignoredComponents: ['myComponent'],
       },
       release: {
         create: false,

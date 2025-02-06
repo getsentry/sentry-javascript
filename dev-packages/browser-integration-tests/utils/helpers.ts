@@ -303,6 +303,14 @@ export function shouldSkipFeatureFlagsTest(): boolean {
 }
 
 /**
+ * Returns true if the current bundle has debug logs.
+ */
+export function hasDebugLogs(): boolean {
+  const bundle = process.env.PW_BUNDLE;
+  return !bundle?.includes('min');
+}
+
+/**
  * Waits until a number of requests matching urlRgx at the given URL arrive.
  * If the timeout option is configured, this function will abort waiting, even if it hasn't received the configured
  * amount of requests, and returns all the events received up to that point in time.

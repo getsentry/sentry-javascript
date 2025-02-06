@@ -17,7 +17,7 @@ import {
   getClient,
   getLocationHref,
   getTraceData,
-  hasTracingEnabled,
+  hasSpansEnabled,
   instrumentFetchRequest,
   parseUrl,
   setHttpStatus,
@@ -324,7 +324,7 @@ export function xhrCallback(
     return undefined;
   }
 
-  const shouldCreateSpanResult = hasTracingEnabled() && shouldCreateSpan(sentryXhrData.url);
+  const shouldCreateSpanResult = hasSpansEnabled() && shouldCreateSpan(sentryXhrData.url);
 
   // check first if the request has finished and is tracked by an existing span which should now end
   if (handlerData.endTimestamp && shouldCreateSpanResult) {
@@ -372,7 +372,7 @@ export function xhrCallback(
       // If performance is disabled (TWP) or there's no active root span (pageload/navigation/interaction),
       // we do not want to use the span as base for the trace headers,
       // which means that the headers will be generated from the scope and the sampling decision is deferred
-      hasTracingEnabled() && hasParent ? span : undefined,
+      hasSpansEnabled() && hasParent ? span : undefined,
     );
   }
 
