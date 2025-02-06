@@ -14,7 +14,12 @@ export function init(options: BrowserOptions): Client | undefined {
 }
 
 /**
- * Inits the Svelte SDK with the given default integrations getter function.
+ * Initialize a Svelte client with the provided options and default integrations getter function.
+ * This is an internal method the SDK uses under the hood to set up things - you should not use this as a user!
+ * Instead, use `init()` to initialize the SDK.
+ *
+ * @hidden
+ * @internal
  */
 export function initWithDefaultIntegrations(
   options: BrowserOptions,

@@ -46,15 +46,21 @@ export function getIntegrationsToSetup(
 ): Integration[] {
   const userIntegrations = options.integrations;
 
-  // If `defaultIntegrations: false` is defined, we disable all default integrations
+  // User-defined defaultIntegrations
   // TODO(v10): If an array is passed, we use this - this is deprecated and will eventually be removed
+  const passedDefaultIntegrations = Array.isArray(options.defaultIntegrations)
+    ? options.defaultIntegrations
+    : undefined;
+
+  if (DEBUG_BUILD && passedDefaultIntegrations) {
+    logger.warn('Sentry: The `defaultIntegrations` option is deprecated. Use the `integrations` option instead.');
+  }
+
+  // If `defaultIntegrations: false` is defined, we disable all default integrations
+
   // Else, we use the default integrations that are directly passed to this function as second argument
   const defaultIntegrationsToUse =
-    options.defaultIntegrations === false
-      ? []
-      : Array.isArray(options.defaultIntegrations)
-        ? options.defaultIntegrations
-        : defaultIntegrations;
+    options.defaultIntegrations === false ? [] : passedDefaultIntegrations || defaultIntegrations;
 
   // We flag default instances, so that later we can tell them apart from any user-created instances of the same class
   defaultIntegrationsToUse.forEach((integration: IntegrationWithDefaultInstance) => {

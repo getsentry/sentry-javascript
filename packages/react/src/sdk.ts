@@ -23,7 +23,12 @@ export function init(options: BrowserOptions): Client | undefined {
 }
 
 /**
- * Init the React SDK with the given default integrations getter function.
+ * Initialize a React client with the provided options and default integrations getter function.
+ * This is an internal method the SDK uses under the hood to set up things - you should not use this as a user!
+ * Instead, use `init()` to initialize the SDK.
+ *
+ * @hidden
+ * @internal
  */
 export function initWithDefaultIntegrations(
   options: BrowserOptions,

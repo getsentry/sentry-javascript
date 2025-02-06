@@ -93,15 +93,18 @@ export function init(options: NodeOptions | undefined = {}): NodeClient | undefi
 
 /**
  * Initialize Sentry for Node, without any integrations added by default.
- *
- * @deprecated Use `initWithDefaultIntegrations` directly instead. This function will be removed in the next major version.
  */
 export function initWithoutDefaultIntegrations(options: NodeOptions | undefined = {}): NodeClient {
   return initWithDefaultIntegrations(options, () => []);
 }
 
 /**
- * Initialize Sentry for Node, with the specified getter function for default integrations.
+ * Initialize a Node client with the provided options and default integrations getter function.
+ * This is an internal method the SDK uses under the hood to set up things - you should not use this as a user!
+ * Instead, use `init()` to initialize the SDK.
+ *
+ * @hidden
+ * @internal
  */
 export function initWithDefaultIntegrations(
   _options: NodeOptions | undefined = {},
