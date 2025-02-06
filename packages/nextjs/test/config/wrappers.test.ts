@@ -15,7 +15,7 @@ describe('data-fetching function wrappers should not create manual spans', () =>
     req = { headers: {}, url: 'http://dogs.are.great/tricks/kangaroo' } as IncomingMessage;
     res = { end: jest.fn() } as unknown as ServerResponse;
 
-    jest.spyOn(SentryCore, 'hasTracingEnabled').mockReturnValue(true);
+    jest.spyOn(SentryCore, 'hasSpansEnabled').mockReturnValue(true);
     jest.spyOn(SentryCore, 'getClient').mockImplementation(() => {
       return {
         getOptions: () => ({}),

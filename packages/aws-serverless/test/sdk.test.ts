@@ -515,7 +515,6 @@ describe('AWSLambda', () => {
           _metadata: {
             sdk: {
               name: 'sentry.javascript.aws-serverless',
-              integrations: ['AWSLambda'],
               packages: [
                 {
                   name: 'npm:@sentry/aws-serverless',

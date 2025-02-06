@@ -31,7 +31,7 @@ Sentry.init({
 
 pinia.use(
   Sentry.createSentryPiniaPlugin({
-    actionTransformer: action => `Transformed: ${action}`,
+    actionTransformer: action => `${action}.transformed`,
     stateTransformer: state => ({
       transformed: true,
       ...state,
