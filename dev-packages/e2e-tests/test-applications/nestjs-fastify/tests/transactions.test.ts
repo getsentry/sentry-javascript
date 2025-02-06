@@ -25,7 +25,7 @@ test.only('Sends an API route transaction', async ({ baseURL }) => {
       'http.url': 'http://localhost:3030/test-transaction',
       'http.host': 'localhost:3030',
       'net.host.name': 'localhost',
-      'http.request.method': 'GET',
+      'http.method': 'GET',
       'http.scheme': 'http',
       'http.target': '/test-transaction',
       'http.user_agent': 'node',
