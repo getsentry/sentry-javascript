@@ -2,7 +2,7 @@
 
 <!-- prettier-ignore-start -->
 > [!IMPORTANT]
-> If you are upgrading to the `8.x` versions of the SDK from `7.x` or below, make sure you follow our
+> If you are upgrading to the `9.x` versions of the SDK from `8.x` or below, make sure you follow our
 > [migration guide](https://docs.sentry.io/platforms/javascript/migration/) first.
 <!-- prettier-ignore-end -->
 

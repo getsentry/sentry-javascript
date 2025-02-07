@@ -13,6 +13,8 @@ sentryTest(
     }
     const url = await getLocalTestUrl({ testDir: __dirname });
 
+    await page.route('**/path/to/script.js', route => route.fulfill({ path: `${__dirname}/assets/script.js` }));
+
     await page.goto(url);
 
     const navigationTransactionEventPromise = getFirstSentryEnvelopeRequest<Event>(page);
