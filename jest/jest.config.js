@@ -34,6 +34,7 @@ module.exports = {
             'jest-junit',
             {
               outputName: 'jest.junit.xml',
+              classNameTemplate: '{filepath}',
             },
           ],
         ],
