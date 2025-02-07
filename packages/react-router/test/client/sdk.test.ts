@@ -41,7 +41,7 @@ describe('React Router client SDK', () => {
     });
 
     it('returns client from init', () => {
-      expect(init({})).not.toBeUndefined();
+      expect(reactRouterInit({})).not.toBeUndefined();
     });
   });
 });
