@@ -10,7 +10,7 @@ export default defineConfig({
       enabled: true,
       reportsDirectory: './coverage',
     },
-    reporters: ['default', ...(process.env.CI ? ['junit'] : [])],
+    reporters: ['default', ...(process.env.CI ? [['junit', {classnameTemplate: '{filepath}'}] : [])],
     outputFile: {
       junit: 'vitest.junit.xml',
     },
