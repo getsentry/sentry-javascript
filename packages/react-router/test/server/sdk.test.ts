@@ -4,7 +4,7 @@ import * as SentryNode from '@sentry/node';
 
 import { SDK_VERSION } from '@sentry/node';
 
-import { init } from '../../src/server/sdk';
+import { init as reactRouterInit } from '../../src/server/sdk';
 
 const nodeInit = vi.spyOn(SentryNode, 'init');
 
@@ -22,7 +22,7 @@ describe('React Router server SDK', () => {
     it('adds React Router metadata to the SDK options', () => {
       expect(nodeInit).not.toHaveBeenCalled();
 
-      init({});
+      reactRouterInit({});
 
       expect(nodeInit).toHaveBeenCalledTimes(1);
       expect(nodeInit).toHaveBeenCalledWith(
@@ -42,7 +42,7 @@ describe('React Router server SDK', () => {
     });
 
     it('returns client from init', () => {
-      expect(init({})).not.toBeUndefined();
+      expect(reactRouterInit({})).not.toBeUndefined();
     });
   });
 });

@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as SentryBrowser from '@sentry/browser';
 import { SDK_VERSION, getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/browser';
 
-import { init } from '../../src/client';
+import { init as reactRouterInit } from '../../src/client';
 
 const browserInit = vi.spyOn(SentryBrowser, 'init');
 
@@ -21,7 +21,7 @@ describe('React Router client SDK', () => {
     it('adds React Router metadata to the SDK options', () => {
       expect(browserInit).not.toHaveBeenCalled();
 
-      init({});
+      reactRouterInit({});
 
       const expectedMetadata = {
         _metadata: {
