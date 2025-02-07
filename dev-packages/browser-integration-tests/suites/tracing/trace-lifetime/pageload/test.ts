@@ -197,7 +197,7 @@ sentryTest(
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 
-    await page.route('http://example.com/**', route => {
+    await page.route('http://sentry-test-site.example/**', route => {
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -210,7 +210,7 @@ sentryTest(
       undefined,
       eventAndTraceHeaderRequestParser,
     );
-    const requestPromise = page.waitForRequest('http://example.com/*');
+    const requestPromise = page.waitForRequest('http://sentry-test-site.example/*');
     await page.goto(url);
     await page.locator('#fetchBtn').click();
     const [[pageloadEvent, pageloadTraceHeader], request] = await Promise.all([pageloadEventPromise, requestPromise]);
@@ -254,7 +254,7 @@ sentryTest(
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 
-    await page.route('http://example.com/**', route => {
+    await page.route('http://sentry-test-site.example/**', route => {
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -267,7 +267,7 @@ sentryTest(
       undefined,
       eventAndTraceHeaderRequestParser,
     );
-    const requestPromise = page.waitForRequest('http://example.com/*');
+    const requestPromise = page.waitForRequest('http://sentry-test-site.example/*');
     await page.goto(url);
     await page.locator('#xhrBtn').click();
     const [[pageloadEvent, pageloadTraceHeader], request] = await Promise.all([pageloadEventPromise, requestPromise]);
@@ -311,7 +311,7 @@ sentryTest(
 
 //     const url = await getLocalTestUrl({ testDir: __dirname });
 
-//     await page.route('http://example.com/**', route => {
+//     await page.route('http://sentry-test-site.example/**', route => {
 //       return route.fulfill({
 //         status: 200,
 //         contentType: 'application/json',
@@ -346,7 +346,7 @@ sentryTest(
 //       trace_id: pageloadTraceId,
 //     });
 
-//     const requestPromise = page.waitForRequest('http://example.com/*');
+//     const requestPromise = page.waitForRequest('http://sentry-test-site.example/*');
 //     await page.locator('#xhrBtn').click();
 //     const request = await requestPromise;
 
@@ -369,7 +369,7 @@ sentryTest(
 
 //     const url = await getLocalTestUrl({ testDir: __dirname });
 
-//     await page.route('http://example.com/**', route => {
+//     await page.route('http://sentry-test-site.example/**', route => {
 //       return route.fulfill({
 //         status: 200,
 //         contentType: 'application/json',
@@ -406,7 +406,7 @@ sentryTest(
 //       trace_id: pageloadTraceId,
 //     });
 
-//     const requestPromise = page.waitForRequest('http://example.com/**');
+//     const requestPromise = page.waitForRequest('http://sentry-test-site.example/**');
 //     const customTransactionEventPromise = getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
 //       page,
 //       undefined,

@@ -13,7 +13,7 @@ sentryTest('should add resource spans to pageload transaction', async ({ getLoca
   const isWebkitRun = browserName === 'webkit';
 
   // Intercepting asset requests to avoid network-related flakiness and random retries (on Firefox).
-  await page.route('https://example.com/path/to/image.svg', (route: Route) =>
+  await page.route('https://sentry-test-site.example/path/to/image.svg', (route: Route) =>
     route.fulfill({
       path: `${__dirname}/assets/image.svg`,
       headers: {
@@ -22,7 +22,7 @@ sentryTest('should add resource spans to pageload transaction', async ({ getLoca
       },
     }),
   );
-  await page.route('https://example.com/path/to/script.js', (route: Route) =>
+  await page.route('https://sentry-test-site.example/path/to/script.js', (route: Route) =>
     route.fulfill({
       path: `${__dirname}/assets/script.js`,
       headers: {
@@ -31,7 +31,7 @@ sentryTest('should add resource spans to pageload transaction', async ({ getLoca
       },
     }),
   );
-  await page.route('https://example.com/path/to/style.css', (route: Route) =>
+  await page.route('https://sentry-test-site.example/path/to/style.css', (route: Route) =>
     route.fulfill({
       path: `${__dirname}/assets/style.css`,
       headers: {
@@ -58,7 +58,11 @@ sentryTest('should add resource spans to pageload transaction', async ({ getLoca
 
   const hasCdnBundle = (process.env.PW_BUNDLE || '').startsWith('bundle');
 
-  const expectedScripts = ['/init.bundle.js', '/subject.bundle.js', 'https://example.com/path/to/script.js'];
+  const expectedScripts = [
+    '/init.bundle.js',
+    '/subject.bundle.js',
+    'https://sentry-test-site.example/path/to/script.js',
+  ];
   if (hasCdnBundle) {
     expectedScripts.unshift('/cdn.bundle.js');
   }
@@ -67,7 +71,7 @@ sentryTest('should add resource spans to pageload transaction', async ({ getLoca
   expect(scriptSpans?.map(({ parent_span_id }) => parent_span_id)).toEqual(expectedScripts.map(() => spanId));
 
   const customScriptSpan = scriptSpans?.find(
-    ({ description }) => description === 'https://example.com/path/to/script.js',
+    ({ description }) => description === 'https://sentry-test-site.example/path/to/script.js',
   );
 
   expect(imgSpan).toEqual({
@@ -79,7 +83,7 @@ sentryTest('should add resource spans to pageload transaction', async ({ getLoca
       'network.protocol.version': 'unknown',
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.img',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
-      'server.address': 'example.com',
+      'server.address': 'sentry-test-site.example',
       'url.same_origin': false,
       'url.scheme': 'https',
       ...(!isWebkitRun && {
@@ -87,7 +91,7 @@ sentryTest('should add resource spans to pageload transaction', async ({ getLoca
         'http.response_delivery_type': '',
       }),
     },
-    description: 'https://example.com/path/to/image.svg',
+    description: 'https://sentry-test-site.example/path/to/image.svg',
     op: 'resource.img',
     origin: 'auto.resource.browser.metrics',
     parent_span_id: spanId,
@@ -106,7 +110,7 @@ sentryTest('should add resource spans to pageload transaction', async ({ getLoca
       'network.protocol.version': 'unknown',
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.link',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
-      'server.address': 'example.com',
+      'server.address': 'sentry-test-site.example',
       'url.same_origin': false,
       'url.scheme': 'https',
       ...(!isWebkitRun && {
@@ -114,7 +118,7 @@ sentryTest('should add resource spans to pageload transaction', async ({ getLoca
         'http.response_delivery_type': '',
       }),
     },
-    description: 'https://example.com/path/to/style.css',
+    description: 'https://sentry-test-site.example/path/to/style.css',
     op: 'resource.link',
     origin: 'auto.resource.browser.metrics',
     parent_span_id: spanId,
@@ -133,7 +137,7 @@ sentryTest('should add resource spans to pageload transaction', async ({ getLoca
       'network.protocol.version': 'unknown',
       'sentry.op': 'resource.script',
       'sentry.origin': 'auto.resource.browser.metrics',
-      'server.address': 'example.com',
+      'server.address': 'sentry-test-site.example',
       'url.same_origin': false,
       'url.scheme': 'https',
       ...(!isWebkitRun && {
@@ -141,7 +145,7 @@ sentryTest('should add resource spans to pageload transaction', async ({ getLoca
         'http.response_delivery_type': '',
       }),
     },
-    description: 'https://example.com/path/to/script.js',
+    description: 'https://sentry-test-site.example/path/to/script.js',
     op: 'resource.script',
     origin: 'auto.resource.browser.metrics',
     parent_span_id: spanId,
