@@ -11,6 +11,9 @@ export default defineConfig({
       reportsDirectory: './coverage',
     },
     reporters: ['default', 'junit'],
+    outputFile: {
+      junit: `vitest.junit.xml`,
+    },
     typecheck: {
       tsconfig: './tsconfig.test.json',
     },

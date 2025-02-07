@@ -386,7 +386,7 @@ jobs:
         continue-on-error: true
         uses: codecov/test-results-action@v1
         with:
-          directory: packages/remix
+          files: packages/**/*.xml
           token: ${{ secrets.CODECOV_TOKEN }}
 
   job_bun_unit_tests:
@@ -490,6 +490,14 @@ jobs:
       - name: Compute test coverage
         uses: codecov/codecov-action@v5
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Upload test results to Codecov
+        if: cancelled() == false
+        continue-on-error: true
+        uses: codecov/test-results-action@v1
+        with:
+          files: packages/**/*.junit.xml
           token: ${{ secrets.CODECOV_TOKEN }}
 
   job_browser_playwright_tests:
