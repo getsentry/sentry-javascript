@@ -140,7 +140,9 @@ type SourceMapsOptions = {
  */
 export type SentryNuxtModuleOptions = {
   /**
-   * Disable the Sentry Nuxt Module
+   * Enable the Sentry Nuxt Module.
+   *
+   * @default true
    */
   enabled?: boolean;
 
