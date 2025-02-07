@@ -4,7 +4,7 @@
 
 /* eslint-disable @typescript-eslint/unbound-method */
 import type { Mock } from 'vitest';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import * as SentryCore from '@sentry/core';
 import { createTransport } from '@sentry/core';
@@ -13,7 +13,7 @@ import type { Integration } from '@sentry/core';
 
 import type { BrowserOptions } from '../src';
 import { WINDOW } from '../src';
-import { applyDefaultOptions, init } from '../src/sdk';
+import { applyDefaultOptions, init, initWithDefaultIntegrations } from '../src/sdk';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 
@@ -35,15 +35,11 @@ export class MockIntegration implements Integration {
 }
 
 describe('init', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
-  afterAll(() => {
-    vi.resetAllMocks();
-  });
-
-  test('installs default integrations', () => {
+  test('installs passed default integrations', () => {
     const DEFAULT_INTEGRATIONS: Integration[] = [
       new MockIntegration('MockIntegration 0.1'),
       new MockIntegration('MockIntegration 0.2'),
@@ -56,28 +52,41 @@ describe('init', () => {
     expect(DEFAULT_INTEGRATIONS[1]!.setupOnce as Mock).toHaveBeenCalledTimes(1);
   });
 
+  it('installs default integrations', () => {
+    // Note: We need to prevent this from actually adding all the default integrations, as otherwise
+    // following tests may fail (e.g. because console is monkey patched etc.)
+    const spyGetIntegrationsToSetup = vi.spyOn(SentryCore, 'getIntegrationsToSetup').mockImplementation(() => []);
+
+    const options = getDefaultBrowserOptions({ dsn: PUBLIC_DSN });
+    init(options);
+
+    expect(spyGetIntegrationsToSetup).toHaveBeenCalledTimes(1);
+    expect(spyGetIntegrationsToSetup).toHaveBeenCalledWith(
+      expect.objectContaining(options),
+      expect.arrayContaining([expect.objectContaining({ name: 'InboundFilters' })]),
+    );
+  });
+
   it('installs default integrations if `defaultIntegrations: undefined`', () => {
-    // @ts-expect-error this is fine for testing
-    const initAndBindSpy = vi.spyOn(SentryCore, 'initAndBind').mockImplementationOnce(() => {});
+    // Note: We need to prevent this from actually adding all the default integrations, as otherwise
+    // following tests may fail (e.g. because console is monkey patched etc.)
+    const spyGetIntegrationsToSetup = vi.spyOn(SentryCore, 'getIntegrationsToSetup').mockImplementation(() => []);
+
     const options = getDefaultBrowserOptions({ dsn: PUBLIC_DSN, defaultIntegrations: undefined });
     init(options);
 
-    expect(initAndBindSpy).toHaveBeenCalledTimes(1);
-
-    const optionsPassed = initAndBindSpy.mock.calls[0]?.[1];
-    expect(optionsPassed?.integrations.length).toBeGreaterThan(0);
+    expect(spyGetIntegrationsToSetup).toHaveBeenCalledTimes(1);
+    expect(spyGetIntegrationsToSetup).toHaveBeenCalledWith(
+      expect.objectContaining(options),
+      expect.arrayContaining([expect.objectContaining({ name: 'InboundFilters' })]),
+    );
   });
 
-  test("doesn't install default integrations if told not to", () => {
-    const DEFAULT_INTEGRATIONS: Integration[] = [
-      new MockIntegration('MockIntegration 0.3'),
-      new MockIntegration('MockIntegration 0.4'),
-    ];
+  test("doesn't install any default integrations if told not to", () => {
     const options = getDefaultBrowserOptions({ dsn: PUBLIC_DSN, defaultIntegrations: false });
-    init(options);
+    const client = init(options);
 
-    expect(DEFAULT_INTEGRATIONS[0]!.setupOnce as Mock).toHaveBeenCalledTimes(0);
-    expect(DEFAULT_INTEGRATIONS[1]!.setupOnce as Mock).toHaveBeenCalledTimes(0);
+    expect(client?.['_integrations']).toEqual({});
   });
 
   it('installs merged default integrations, with overrides provided through options', () => {
@@ -137,7 +146,7 @@ describe('init', () => {
       Object.defineProperty(WINDOW, 'browser', { value: undefined, writable: true });
       Object.defineProperty(WINDOW, 'nw', { value: undefined, writable: true });
       Object.defineProperty(WINDOW, 'window', { value: WINDOW, writable: true });
-      vi.clearAllMocks();
+      vi.restoreAllMocks();
     });
 
     it('logs a browser extension error if executed inside a Chrome extension', () => {
@@ -154,8 +163,6 @@ describe('init', () => {
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         '[Sentry] You cannot run Sentry this way in a browser extension, check: https://docs.sentry.io/platforms/javascript/best-practices/browser-extensions/',
       );
-
-      consoleErrorSpy.mockRestore();
     });
 
     it('logs a browser extension error if executed inside a Firefox/Safari extension', () => {
@@ -169,8 +176,6 @@ describe('init', () => {
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         '[Sentry] You cannot run Sentry this way in a browser extension, check: https://docs.sentry.io/platforms/javascript/best-practices/browser-extensions/',
       );
-
-      consoleErrorSpy.mockRestore();
     });
 
     it.each(['chrome-extension', 'moz-extension', 'ms-browser-extension', 'safari-web-extension'])(
@@ -246,6 +251,32 @@ describe('init', () => {
   it('returns a client from init', () => {
     const client = init();
     expect(client).not.toBeUndefined();
+  });
+});
+
+describe('initWithDefaultIntegrations', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  test('installs with provided getDefaultIntegrations function', () => {
+    const integration1 = new MockIntegration(SentryCore.uuid4());
+    const integration2 = new MockIntegration(SentryCore.uuid4());
+    const getDefaultIntegrations = vi.fn(() => [integration1, integration2]);
+    const options = getDefaultBrowserOptions({ dsn: PUBLIC_DSN });
+
+    const client = initWithDefaultIntegrations(options, getDefaultIntegrations);
+
+    expect(getDefaultIntegrations).toHaveBeenCalledTimes(1);
+    expect(getDefaultIntegrations).toHaveBeenCalledWith(options);
+
+    expect(client).toBeDefined();
+    expect(client?.['_integrations']).toEqual({
+      [integration1.name]: integration1,
+      [integration2.name]: integration2,
+    });
+    expect(integration1.setupOnce).toHaveBeenCalledTimes(1);
+    expect(integration2.setupOnce).toHaveBeenCalledTimes(1);
   });
 });
 

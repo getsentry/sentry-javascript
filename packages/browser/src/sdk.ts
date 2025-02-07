@@ -130,16 +130,16 @@ export function init(browserOptions: BrowserOptions = {}): Client | undefined {
   const options = applyDefaultOptions(browserOptions);
   const defaultIntegrations = getDefaultIntegrations(browserOptions);
 
-  const showBrowserExtensionError = !options.skipBrowserExtensionCheck && shouldShowBrowserExtensionError();
+  const isBrowserExtension = !options.skipBrowserExtensionCheck && shouldShowBrowserExtensionError();
 
   if (DEBUG_BUILD) {
     logBrowserEnvironmentWarnings({
-      browserExtension: showBrowserExtensionError,
+      browserExtension: isBrowserExtension,
       fetch: !supportsFetch(),
     });
   }
 
-  if (showBrowserExtensionError) {
+  if (isBrowserExtension) {
     return;
   }
 
@@ -162,16 +162,16 @@ export function initWithDefaultIntegrations(
   const options = applyDefaultOptions(browserOptions);
   const defaultIntegrations = getDefaultIntegrationsImpl(browserOptions);
 
-  const showBrowserExtensionError = !options.skipBrowserExtensionCheck && shouldShowBrowserExtensionError();
+  const isBrowserExtension = !options.skipBrowserExtensionCheck && shouldShowBrowserExtensionError();
 
   if (DEBUG_BUILD) {
     logBrowserEnvironmentWarnings({
-      browserExtension: showBrowserExtensionError,
+      browserExtension: isBrowserExtension,
       fetch: !supportsFetch(),
     });
   }
 
-  if (showBrowserExtensionError) {
+  if (isBrowserExtension) {
     return;
   }
   const clientOptions = getClientOptions(options, defaultIntegrations);
