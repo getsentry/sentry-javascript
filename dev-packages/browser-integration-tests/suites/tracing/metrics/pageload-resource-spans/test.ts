@@ -58,7 +58,11 @@ sentryTest('should add resource spans to pageload transaction', async ({ getLoca
 
   const hasCdnBundle = (process.env.PW_BUNDLE || '').startsWith('bundle');
 
-  const expectedScripts = ['/init.bundle.js', '/subject.bundle.js', 'https://sentry-test-site.example/path/to/script.js'];
+  const expectedScripts = [
+    '/init.bundle.js',
+    '/subject.bundle.js',
+    'https://sentry-test-site.example/path/to/script.js',
+  ];
   if (hasCdnBundle) {
     expectedScripts.unshift('/cdn.bundle.js');
   }
