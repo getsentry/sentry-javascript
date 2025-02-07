@@ -5,7 +5,7 @@ import { DEBUG_BUILD } from '../../../debug-build';
 import { copyFlagsFromScopeToEvent, insertFlagToScope } from '../../../utils/featureFlags';
 import type { UnleashClient, UnleashClientClass } from './types';
 
-export type UnleashIntegrationOptions = {
+type UnleashIntegrationOptions = {
   featureFlagClientClass: UnleashClientClass;
 };
 
