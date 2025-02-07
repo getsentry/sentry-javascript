@@ -67,7 +67,7 @@ startTransition(() => {
 
 Now, update your `app/root.tsx` file to report any unhandled errors from your global error boundary:
 
-```tsx {diff} {filename: app/root.tsx}
+```tsx
 import * as Sentry from '@sentry/react-router';
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
@@ -106,7 +106,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
 
 Create an `instrument.server.mjs` file in the root of your app:
 
-```js {filename: instrument.server.mjs} {"onboardingOptions": {"performance": "7", "profiling": "2, 6, 8"}}
+```js
 import * as Sentry from '@sentry/node';
 
 Sentry.init({
@@ -117,7 +117,7 @@ Sentry.init({
 
 In your `entry.server.tsx` file, export the `handleError` function:
 
-```tsx {diff} {filename: entry.server.tsx}
+```tsx
 import * as Sentry from '@sentry/node';
 import { type HandleErrorFunction } from 'react-router';
 
@@ -138,7 +138,7 @@ export const handleError: HandleErrorFunction = (error, { request }) => {
 Since React Router is running in ESM mode, you need to use the `--import` command line options to load our server-side instrumentation module before the application starts.
 Update the `start` and `dev` script to include the instrumentation file:
 
-```json {filename: package.json}
+```json
 "scripts": {
   "dev": "NODE_OPTIONS='--import ./instrument.server.mjs' react-router dev",
   "start": "NODE_OPTIONS='--import ./instrument.server.mjs' react-router-serve ./build/server/index.js",
