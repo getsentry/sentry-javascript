@@ -148,6 +148,7 @@ A comprehensive migration guide outlining all changes for all the frameworks can
 - fix(core): Fork scope if custom scope is passed to `startSpan` (#14900)
 - fix(core): Only fall back to `sendDefaultPii` for IP collection in `requestDataIntegration` (#15125)
 - fix(nextjs): Flush with `waitUntil` in `captureRequestError` (#15146)
+- fix(nextjs): Use batched devserver symbolication endpoint (#15335)
 - fix(node): Don't leak `__span` property into breadcrumbs (#14798)
 - fix(node): Ensure `httpIntegration` propagates traces (#15233)
 - fix(node): Fix sample rand propagation for negative sampling decisions (#15045)
