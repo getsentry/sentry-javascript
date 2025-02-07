@@ -16,7 +16,7 @@ sentryTest('updates the DSC when the txn name is updated and high-quality', asyn
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  await page.route('http://sentry-test-site.io/**/*', route => {
+  await page.route('http://sentry-test-site.example/**/*', route => {
     return route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -176,7 +176,7 @@ sentryTest('updates the DSC when the txn name is updated and high-quality', asyn
 });
 
 async function makeRequestAndGetBaggageItems(page: Page): Promise<string[]> {
-  const requestPromise = page.waitForRequest('https://sentry-test-site.io/*');
+  const requestPromise = page.waitForRequest('https://sentry-test-site.example/*');
   await page.locator('#btnMakeRequest').click();
   const request = await requestPromise;
 

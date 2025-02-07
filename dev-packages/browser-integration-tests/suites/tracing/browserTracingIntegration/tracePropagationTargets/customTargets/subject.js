@@ -1,3 +1,3 @@
-fetch('http://sentry-test-site.io/0').then(
-  fetch('http://sentry-test-site.io/1').then(fetch('http://sentry-test-site.io/2')),
+fetch('http://sentry-test-site.example/0').then(
+  fetch('http://sentry-test-site.example/1').then(fetch('http://sentry-test-site.example/2')),
 );

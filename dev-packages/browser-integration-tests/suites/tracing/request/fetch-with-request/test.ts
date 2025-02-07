@@ -10,7 +10,7 @@ sentryTest(
       sentryTest.skip();
     }
 
-    const requestPromise = page.waitForRequest('http://sentry-test-site.io/api/test/');
+    const requestPromise = page.waitForRequest('http://sentry-test-site.example/api/test/');
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 

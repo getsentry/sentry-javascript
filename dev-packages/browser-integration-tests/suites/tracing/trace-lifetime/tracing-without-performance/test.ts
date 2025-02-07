@@ -105,7 +105,7 @@ sentryTest('outgoing fetch requests have new traceId after navigation', async ({
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  await page.route('http://sentry-test-site.io/**', route => {
+  await page.route('http://sentry-test-site.example/**', route => {
     return route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -115,7 +115,7 @@ sentryTest('outgoing fetch requests have new traceId after navigation', async ({
 
   await page.goto(url);
 
-  const requestPromise = page.waitForRequest('http://sentry-test-site.io/*');
+  const requestPromise = page.waitForRequest('http://sentry-test-site.example/*');
   await page.locator('#fetchBtn').click();
   const request = await requestPromise;
   const headers = request.headers();
@@ -126,7 +126,7 @@ sentryTest('outgoing fetch requests have new traceId after navigation', async ({
 
   await page.goto(`${url}#navigation`);
 
-  const requestPromise2 = page.waitForRequest('http://sentry-test-site.io/*');
+  const requestPromise2 = page.waitForRequest('http://sentry-test-site.example/*');
   await page.locator('#fetchBtn').click();
   const request2 = await requestPromise2;
   const headers2 = request2.headers();
@@ -147,7 +147,7 @@ sentryTest('outgoing XHR requests have new traceId after navigation', async ({ g
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  await page.route('http://sentry-test-site.io/**', route => {
+  await page.route('http://sentry-test-site.example/**', route => {
     return route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -157,7 +157,7 @@ sentryTest('outgoing XHR requests have new traceId after navigation', async ({ g
 
   await page.goto(url);
 
-  const requestPromise = page.waitForRequest('http://sentry-test-site.io/*');
+  const requestPromise = page.waitForRequest('http://sentry-test-site.example/*');
   await page.locator('#xhrBtn').click();
   const request = await requestPromise;
   const headers = request.headers();
@@ -168,7 +168,7 @@ sentryTest('outgoing XHR requests have new traceId after navigation', async ({ g
 
   await page.goto(`${url}#navigation`);
 
-  const requestPromise2 = page.waitForRequest('http://sentry-test-site.io/*');
+  const requestPromise2 = page.waitForRequest('http://sentry-test-site.example/*');
   await page.locator('#xhrBtn').click();
   const request2 = await requestPromise2;
   const headers2 = request2.headers();
