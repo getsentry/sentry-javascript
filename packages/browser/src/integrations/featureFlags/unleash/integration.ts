@@ -1,5 +1,3 @@
-
-
 import type { Client, Event, EventHint, IntegrationFn } from '@sentry/core';
 
 import { defineIntegration, fill, logger } from '@sentry/core';
