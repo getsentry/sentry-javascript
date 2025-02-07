@@ -172,7 +172,7 @@ A comprehensive migration guide outlining all changes for all the frameworks can
 - ref(svelte): Remove SvelteKit detection (#15313)
 - ref(sveltekit): Clean up sub-request check (#15251)
 
-Work in this release was contributed by @tjhiggins, @chris-basebone, @GrizliK1988, @davidturissini, @nwalters512, @aloisklink, @arturovt, @benjick, @maximepvrt, @mstrokin, @kunal-511, @jahands, @jrandolf, @tannerlinsley, @Zen-cronic, @maxmaxme and @nathankleyn. Thank you for your contributions!
+Work in this release was contributed by @aloisklink, @arturovt, @aryanvdesh, @benjick, @chris-basebone, @davidturissini, @GrizliK1988, @jahands, @jrandolf, @kunal-511, @maximepvrt, @maxmaxme, @mstrokin, @nathankleyn, @nwalters512, @tannerlinsley, @tjhiggins, and @Zen-cronic. Thank you for your contributions!
 
 ## 9.0.0-alpha.2
 
