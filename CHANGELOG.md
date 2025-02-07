@@ -170,7 +170,6 @@ A comprehensive migration guide outlining all changes for all the frameworks can
 - ref(react): Adapt tanstack router type (#15241)
 - ref(svelte): Remove SvelteKit detection (#15313)
 - ref(sveltekit): Clean up sub-request check (#15251)
-- feat(react-router): Add basic package (#15289)
 
 Work in this release was contributed by @tjhiggins, @chris-basebone, @GrizliK1988, @davidturissini, @nwalters512, @aloisklink, @arturovt, @benjick, @maximepvrt, @mstrokin, @kunal-511, @jahands, @jrandolf, @tannerlinsley, @Zen-cronic, @maxmaxme and @nathankleyn. Thank you for your contributions!
 
