@@ -96,6 +96,13 @@ type SourceMapsOptions = {
  */
 export type SentryNuxtModuleOptions = {
   /**
+   * Enable the Sentry Nuxt Module.
+   *
+   * @default true
+   */
+  enabled?: boolean;
+
+  /**
    * Options for the Sentry Vite plugin to customize the source maps upload process.
    *
    * These options are always read from the `sentry` module options in the `nuxt.config.(js|ts).
