@@ -12,6 +12,10 @@
   "files": [
     "/build"
   ],
+  "main": "build/cjs/index.server.js",
+  "module": "build/esm/index.server.js",
+  "browser": "build/esm/index.client.js",
+  "types": "build/types/index.types.d.ts",
   "exports": {
     "./package.json": "./package.json",
     ".": {
@@ -54,7 +58,7 @@
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:tarball": "npm pack",
-    "circularDepCheck": "madge --circular src/index.server.ts",
+    "circularDepCheck": "madge --circular src/index.client.ts && madge --circular src/index.server.ts && madge --circular src/index.types.ts",
     "clean": "rimraf build coverage sentry-react-router-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
@@ -64,7 +68,6 @@
     "yalc:publish": "yalc publish --push --sig"
   },
   "volta": {
-    "node": "20.18.2",
     "extends": "../../package.json"
   }
 }
