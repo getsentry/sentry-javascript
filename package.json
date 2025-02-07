@@ -73,6 +73,7 @@
     "packages/opentelemetry",
     "packages/profiling-node",
     "packages/react",
+    "packages/react-router",
     "packages/remix",
     "packages/replay-internal",
     "packages/replay-canvas",
