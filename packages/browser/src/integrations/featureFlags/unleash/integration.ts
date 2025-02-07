@@ -5,6 +5,10 @@ import { DEBUG_BUILD } from '../../../debug-build';
 import { copyFlagsFromScopeToEvent, insertFlagToScope } from '../../../utils/featureFlags';
 import type { UnleashClient, UnleashClientClass } from './types';
 
+export type UnleashIntegrationOptions = {
+  featureFlagClientClass: UnleashClientClass;
+};
+
 /**
  * Sentry integration for capturing feature flag evaluations from the Unleash SDK.
  *
@@ -17,19 +21,18 @@ import type { UnleashClient, UnleashClientClass } from './types';
  *
  * Sentry.init({
  *   dsn: '___PUBLIC_DSN___',
- *   integrations: [Sentry.unleashIntegration({unleashClientClass: UnleashClient})],
+ *   integrations: [Sentry.unleashIntegration({featureFlagClientClass: UnleashClient})],
  * });
  *
  * const unleash = new UnleashClient(...);
  * unleash.start();
  *
  * unleash.isEnabled('my-feature');
- * unleash.getVariant('other-feature');
  * Sentry.captureException(new Error('something went wrong'));
  * ```
  */
 export const unleashIntegration = defineIntegration(
-  ({ unleashClientClass }: { unleashClientClass: UnleashClientClass }) => {
+  ({ featureFlagClientClass: unleashClientClass }: UnleashIntegrationOptions) => {
     return {
       name: 'Unleash',
 
