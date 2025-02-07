@@ -10,6 +10,7 @@ export default defineConfig({
       enabled: true,
       reportsDirectory: './coverage',
     },
+    reporters: ['default', 'junit'],
     typecheck: {
       tsconfig: './tsconfig.test.json',
     },

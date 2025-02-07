@@ -28,6 +28,15 @@ module.exports = {
   ...(process.env.CI
     ? {
         coverageReporters: ['json', 'lcov', 'clover'],
+        reporters: [
+          'default',
+          [
+            'jest-junit',
+            {
+              outputName: 'jest.junit.xml',
+            },
+          ],
+        ],
       }
     : {}),
 };

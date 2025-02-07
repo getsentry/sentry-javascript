@@ -381,6 +381,14 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
+      - name: Upload test results to Codecov
+        if: cancelled() == false
+        continue-on-error: true
+        uses: codecov/test-results-action@v1
+        with:
+          directory: packages/remix
+          token: ${{ secrets.CODECOV_TOKEN }}
+
   job_bun_unit_tests:
     name: Bun Unit Tests
     needs: [job_get_metadata, job_build]
@@ -701,6 +709,14 @@ jobs:
         working-directory: dev-packages/node-integration-tests
         run: yarn test
 
+      - name: Upload test results to Codecov
+        if: cancelled() == false
+        continue-on-error: true
+        uses: codecov/test-results-action@v1
+        with:
+          directory: dev-packages/node-integration-tests
+          token: ${{ secrets.CODECOV_TOKEN }}
+
   job_remix_integration_tests:
     name: Remix (Node ${{ matrix.node }}) Tests
     needs: [job_get_metadata, job_build]
@@ -736,6 +752,14 @@ jobs:
         run: |
           cd packages/remix
           yarn test:integration:ci
+
+      - name: Upload test results to Codecov
+        if: cancelled() == false
+        continue-on-error: true
+        uses: codecov/test-results-action@v1
+        with:
+          directory: packages/remix
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   job_e2e_prepare:
     name: Prepare E2E tests
