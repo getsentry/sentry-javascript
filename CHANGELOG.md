@@ -129,7 +129,7 @@ A comprehensive migration guide outlining all changes for all the frameworks can
 - feat(gatsby): Preserve user-provided source map settings (#15006)
 - feat(nestjs): Remove `SentryTracingInterceptor`, `SentryGlobalGraphQLFilter`, `SentryGlobalGenericFilter` (#14761)
 - feat(nextjs): Directly forward `sourcemaps.disable` to webpack plugin (#15109)
-- feat(node): Add missing vercelAIIntegration export (#15318)
+- feat(node): Add missing `vercelAIIntegration` export (#15318)
 - feat(node): Add `processSessionIntegration` (#15081)
 - feat(node): Capture exceptions from `worker_threads` (#15105)
 - feat(nuxt): add `silent`, `errorHandler`, `release` to `SourceMapsOptions` (#15246)
