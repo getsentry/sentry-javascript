@@ -2,7 +2,7 @@
 
 <!-- prettier-ignore-start -->
 > [!IMPORTANT]
-> If you are upgrading to the `8.x` versions of the SDK from `7.x` or below, make sure you follow our
+> If you are upgrading to the `9.x` versions of the SDK from `8.x` or below, make sure you follow our
 > [migration guide](https://docs.sentry.io/platforms/javascript/migration/) first.
 <!-- prettier-ignore-end -->
 
@@ -129,6 +129,7 @@ A comprehensive migration guide outlining all changes for all the frameworks can
 - feat(gatsby): Preserve user-provided source map settings (#15006)
 - feat(nestjs): Remove `SentryTracingInterceptor`, `SentryGlobalGraphQLFilter`, `SentryGlobalGenericFilter` (#14761)
 - feat(nextjs): Directly forward `sourcemaps.disable` to webpack plugin (#15109)
+- feat(node): Add missing `vercelAIIntegration` export (#15318)
 - feat(node): Add `processSessionIntegration` (#15081)
 - feat(node): Capture exceptions from `worker_threads` (#15105)
 - feat(nuxt): add `silent`, `errorHandler`, `release` to `SourceMapsOptions` (#15246)
@@ -148,6 +149,7 @@ A comprehensive migration guide outlining all changes for all the frameworks can
 - fix(core): Fork scope if custom scope is passed to `startSpan` (#14900)
 - fix(core): Only fall back to `sendDefaultPii` for IP collection in `requestDataIntegration` (#15125)
 - fix(nextjs): Flush with `waitUntil` in `captureRequestError` (#15146)
+- fix(nextjs): Use batched devserver symbolication endpoint (#15335)
 - fix(node): Don't leak `__span` property into breadcrumbs (#14798)
 - fix(node): Ensure `httpIntegration` propagates traces (#15233)
 - fix(node): Fix sample rand propagation for negative sampling decisions (#15045)
@@ -170,7 +172,7 @@ A comprehensive migration guide outlining all changes for all the frameworks can
 - ref(svelte): Remove SvelteKit detection (#15313)
 - ref(sveltekit): Clean up sub-request check (#15251)
 
-Work in this release was contributed by @tjhiggins, @chris-basebone, @GrizliK1988, @davidturissini, @nwalters512, @aloisklink, @arturovt, @benjick, @maximepvrt, @mstrokin, @kunal-511, @jahands, @jrandolf, @tannerlinsley, @Zen-cronic, @maxmaxme and @nathankleyn. Thank you for your contributions!
+Work in this release was contributed by @aloisklink, @arturovt, @aryanvdesh, @benjick, @chris-basebone, @davidturissini, @GrizliK1988, @jahands, @jrandolf, @kunal-511, @maximepvrt, @maxmaxme, @mstrokin, @nathankleyn, @nwalters512, @tannerlinsley, @tjhiggins, and @Zen-cronic. Thank you for your contributions!
 
 ## 9.0.0-alpha.2
 
