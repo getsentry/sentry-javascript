@@ -23,12 +23,16 @@ sentryTest('Basic test with eviction, update, and no async tasks', async ({ getL
   await page.goto(url);
 
   await page.evaluate(bufferSize => {
-    const client = (window as any).initialize();
+    const client = (window as any).statsigClient;
     for (let i = 1; i <= bufferSize; i++) {
-      client.getBooleanValue(`feat${i}`, false);
+      client.checkGate(`feat${i}`); // values default to false
     }
-    client.getBooleanValue(`feat${bufferSize + 1}`, true); // eviction
-    client.getBooleanValue('feat3', true); // update
+
+    client.setMockGateValue(`feat${bufferSize + 1}`, true);
+    client.checkGate(`feat${bufferSize + 1}`); // eviction
+
+    client.setMockGateValue('feat3', true);
+    client.checkGate('feat3'); // update
   }, FLAG_BUFFER_SIZE);
 
   const reqPromise = waitForErrorRequest(page);
