@@ -10,19 +10,19 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-### 9.0.0
+## 9.0.0
 
 Version `9.0.0` marks a release of the Sentry JavaScript SDKs that contains breaking changes.
 The goal of this release is to trim down on unused and potentially confusing APIs, prepare the SDKs for future framework versions to build deeper instrumentation, and remove old polyfills to reduce the packages' size.
 
-#### How To Upgrade
+### How To Upgrade
 
 Please carefully read through the migration guide in the Sentry docs on how to upgrade from version 8 to version 9.
 Make sure to select your specific platform/framework in the top left corner: https://docs.sentry.io/platforms/javascript/migration/v8-to-v9/
 
 A comprehensive migration guide outlining all changes for all the frameworks can be found within the Sentry JavaScript SDK Repository: https://github.com/getsentry/sentry-javascript/blob/develop/MIGRATION.md
 
-#### Breaking Changes
+### Breaking Changes
 
 - doc(deno)!: Make Deno v2 the minimum supported version (#15085)
 - feat!: Bump typescript to `~5.0.0` (#14758)
@@ -101,7 +101,7 @@ A comprehensive migration guide outlining all changes for all the frameworks can
 - ref(core)!: Remove `Scope` type interface in favor of using `Scope` class (#14721)
 - ref(core)!: Remove backwards compatible SentryCarrier type (#14697)
 
-#### Other Changes
+### Other Changes
 
 - chore(browser): Export ipAddress helpers for use in other SDKs (#15079)
 - deps(node): Bump `import-in-the-middle` to `1.12.0` (#14796)
@@ -126,12 +126,14 @@ A comprehensive migration guide outlining all changes for all the frameworks can
 - feat(deps): bump @opentelemetry/instrumentation-mongodb from 0.50.0 to 0.51.0 (#14871)
 - feat(deps): bump @opentelemetry/instrumentation-tedious from 0.17.0 to 0.18.0 (#14868)
 - feat(deps): bump @sentry/cli from 2.39.1 to 2.41.1 (#15173)
+- feat(flags): Add Statsig browser integration (#15319)
 - feat(gatsby): Preserve user-provided source map settings (#15006)
 - feat(nestjs): Remove `SentryTracingInterceptor`, `SentryGlobalGraphQLFilter`, `SentryGlobalGenericFilter` (#14761)
 - feat(nextjs): Directly forward `sourcemaps.disable` to webpack plugin (#15109)
-- feat(node): Add missing `vercelAIIntegration` export (#15318)
 - feat(node): Add `processSessionIntegration` (#15081)
+- feat(node): Add missing `vercelAIIntegration` export (#15318)
 - feat(node): Capture exceptions from `worker_threads` (#15105)
+- feat(nuxt): Add enabled to disable Sentry module (#15337)
 - feat(nuxt): add `silent`, `errorHandler`, `release` to `SourceMapsOptions` (#15246)
 - feat(profiling-node): Use `@sentry-internal/node-cpu-profiler` (#15208)
 - feat(replay): Update fflate to 0.8.2 (#14867)
