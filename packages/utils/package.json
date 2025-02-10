@@ -36,7 +36,8 @@
     }
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "tag": "latest"
   },
   "dependencies": {
     "@sentry/core": "8.54.0"

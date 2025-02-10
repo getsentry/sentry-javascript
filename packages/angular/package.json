@@ -12,7 +12,8 @@
   "type": "module",
   "module": "build/fesm2015/sentry-angular.mjs",
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "tag": "v8"
   },
   "peerDependencies": {
     "@angular/common": ">= 14.x <= 19.x",

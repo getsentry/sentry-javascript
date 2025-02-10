@@ -36,7 +36,8 @@
     }
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "tag": "v8"
   },
   "TODO(v9):": "Remove these dependencies",
   "devDependencies": {

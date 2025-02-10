@@ -18,7 +18,8 @@
     }
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "tag": "v8"
   },
   "files": [
     "/build"
