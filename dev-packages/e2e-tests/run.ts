@@ -10,10 +10,7 @@ const DEFAULT_DSN = 'https://username@domain/123';
 const DEFAULT_SENTRY_ORG_SLUG = 'sentry-javascript-sdks';
 const DEFAULT_SENTRY_PROJECT = 'sentry-javascript-e2e-tests';
 
-function asyncExec(
-  command: string,
-  options: { env: Record<string, string | undefined>; cwd: string; nodeVersion?: string },
-): Promise<void> {
+function asyncExec(command: string, options: { env: Record<string, string | undefined>; cwd: string }): Promise<void> {
   return new Promise((resolve, reject) => {
     const process = spawn(command, { ...options, shell: true });
 
