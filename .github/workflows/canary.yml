@@ -27,7 +27,7 @@ permissions:
 jobs:
   job_e2e_prepare:
     name: Prepare E2E Canary tests
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - name: Check out current commit
@@ -54,7 +54,7 @@ jobs:
   job_e2e_tests:
     name: E2E ${{ matrix.label }} Test
     needs: [job_e2e_prepare]
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
       # We just use a dummy DSN here, only send to the tunnel anyhow
