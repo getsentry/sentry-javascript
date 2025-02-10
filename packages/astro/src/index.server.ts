@@ -118,6 +118,7 @@ export {
   tediousIntegration,
   trpcMiddleware,
   updateSpanName,
+  vercelAIIntegration,
   withActiveSpan,
   withIsolationScope,
   withMonitor,
