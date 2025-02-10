@@ -1,4 +1,4 @@
-import { getCurrentScope, getGlobalScope, getIsolationScope, getClient } from '@sentry/core';
+import { getClient, getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/core';
 import type { FeedbackFormData, FeedbackModalIntegration, IntegrationFn, User } from '@sentry/core';
 import { h, render } from 'preact';
 import * as hooks from 'preact/hooks';
