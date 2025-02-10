@@ -51,7 +51,7 @@ interface FactoryParams {
   options: FeedbackInternalOptions;
 }
 
-export default function CropFactory({ h, hooks, options}: FactoryParams): (props: {
+export default function CropFactory({ h, hooks, options }: FactoryParams): (props: {
   action: 'crop' | 'annotate' | '';
   imageBuffer: HTMLCanvasElement;
   croppingRef: Hooks.Ref<HTMLCanvasElement>;
