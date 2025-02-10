@@ -1,7 +1,7 @@
 import type { VNode, h as hType } from 'preact';
 import type * as Hooks from 'preact/hooks';
-import PenIconFactory from './PenIcon';
 import CropIconFactory from './CropIcon';
+import PenIconFactory from './PenIcon';
 
 interface FactoryParams {
   h: typeof hType;

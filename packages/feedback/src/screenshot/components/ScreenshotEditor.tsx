@@ -1,15 +1,14 @@
-/* eslint-disable max-lines */
 import type { FeedbackInternalOptions, FeedbackModalIntegration } from '@sentry/core';
 import type { ComponentType, VNode, h as hType } from 'preact';
 // biome-ignore lint/nursery/noUnusedImports: reason
 import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
 import type * as Hooks from 'preact/hooks';
 import { WINDOW } from '../../constants';
-import { createScreenshotInputStyles } from './ScreenshotInput.css';
-import { useTakeScreenshotFactory } from './useTakeScreenshot';
-import ToolbarFactory from './Toolbar';
 import AnnotationsFactory from './Annotations';
 import CropFactory from './Crop';
+import { createScreenshotInputStyles } from './ScreenshotInput.css';
+import ToolbarFactory from './Toolbar';
+import { useTakeScreenshotFactory } from './useTakeScreenshot';
 
 const DPI = WINDOW.devicePixelRatio;
 
@@ -39,16 +38,7 @@ interface Rect {
   width: number;
 }
 
-const constructRect = (box: Box): Rect => {
-  return {
-    x: Math.min(box.startX, box.endX),
-    y: Math.min(box.startY, box.endY),
-    width: Math.abs(box.startX - box.endX),
-    height: Math.abs(box.startY - box.endY),
-  };
-};
-
-const getContainedSize = (img: HTMLCanvasElement): Box => {
+const getContainedSize = (img: HTMLCanvasElement): Rect => {
   const imgClientHeight = img.clientHeight;
   const imgClientWidth = img.clientWidth;
   const ratio = img.width / img.height;
@@ -60,7 +50,7 @@ const getContainedSize = (img: HTMLCanvasElement): Box => {
   }
   const x = (imgClientWidth - width) / 2;
   const y = (imgClientHeight - height) / 2;
-  return { startX: x, startY: y, endX: width + x, endY: height + y };
+  return { x: x, y: y, width: width, height: height };
 };
 
 export function ScreenshotEditorFactory({
@@ -115,7 +105,7 @@ export function ScreenshotEditorFactory({
     }
 
     function resize(): void {
-      const imageDimensions = constructRect(getContainedSize(imageBuffer));
+      const imageDimensions = getContainedSize(imageBuffer);
 
       resizeCanvas(croppingRef, imageDimensions);
       resizeCanvas(annotatingRef, imageDimensions);

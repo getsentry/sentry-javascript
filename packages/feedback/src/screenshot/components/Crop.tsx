@@ -1,8 +1,7 @@
-/* eslint-disable max-lines */
+import type { FeedbackInternalOptions } from '@sentry/core';
 import type { VNode, h as hType } from 'preact';
 import type * as Hooks from 'preact/hooks';
 import { DOCUMENT, WINDOW } from '../../constants';
-import type { FeedbackInternalOptions } from '@sentry/core';
 import CropCornerFactory from './CropCorner';
 
 const CROP_BUTTON_SIZE = 30;
@@ -31,7 +30,7 @@ const constructRect = (box: Box): Rect => ({
   height: Math.abs(box.startY - box.endY),
 });
 
-const getContainedSize = (img: HTMLCanvasElement): Box => {
+const getContainedSize = (img: HTMLCanvasElement): Rect => {
   const imgClientHeight = img.clientHeight;
   const imgClientWidth = img.clientWidth;
   const ratio = img.width / img.height;
@@ -43,7 +42,7 @@ const getContainedSize = (img: HTMLCanvasElement): Box => {
   }
   const x = (imgClientWidth - width) / 2;
   const y = (imgClientHeight - height) / 2;
-  return { startX: x, startY: y, endX: width + x, endY: height + y };
+  return { x: x, y: y, width: width, height: height };
 };
 
 interface FactoryParams {
@@ -53,7 +52,7 @@ interface FactoryParams {
 }
 
 export default function CropFactory({
-  h, // eslint-disable-line @typescript-eslint/no-unused-vars
+  h,
   hooks,
   options,
 }: FactoryParams): (props: {
@@ -99,7 +98,7 @@ export default function CropFactory({
         return;
       }
 
-      const imageDimensions = constructRect(getContainedSize(imageBuffer));
+      const imageDimensions = getContainedSize(imageBuffer);
       const croppingBox = constructRect(croppingRect);
       ctx.clearRect(0, 0, imageDimensions.width, imageDimensions.height);
 
@@ -124,7 +123,9 @@ export default function CropFactory({
     // Resizing logic
     const makeHandleMouseMove = hooks.useCallback((corner: string) => {
       return (e: MouseEvent) => {
-        if (!croppingRef.current) return;
+        if (!croppingRef.current) {
+          return;
+        }
 
         const cropCanvas = croppingRef.current;
         const cropBoundingRect = cropCanvas.getBoundingClientRect();
@@ -166,13 +167,17 @@ export default function CropFactory({
 
     // Dragging logic
     const onDragStart = (e: MouseEvent): void => {
-      if (isResizing) return;
+      if (isResizing) {
+        return;
+      }
 
       initialPositionRef.current = { initialX: e.clientX, initialY: e.clientY };
 
       const handleMouseMove = (moveEvent: MouseEvent): void => {
         const cropCanvas = croppingRef.current;
-        if (!cropCanvas) return;
+        if (!cropCanvas) {
+          return;
+        }
 
         const deltaX = moveEvent.clientX - initialPositionRef.current.initialX;
         const deltaY = moveEvent.clientY - initialPositionRef.current.initialY;
@@ -222,7 +227,7 @@ export default function CropFactory({
 
     function applyCrop(): void {
       const cutoutCanvas = DOCUMENT.createElement('canvas');
-      const imageBox = constructRect(getContainedSize(imageBuffer));
+      const imageBox = getContainedSize(imageBuffer);
       const croppingBox = constructRect(croppingRect);
       cutoutCanvas.width = croppingBox.width * DPI;
       cutoutCanvas.height = croppingBox.height * DPI;
@@ -269,25 +274,25 @@ export default function CropFactory({
               top={croppingRect.startY - CROP_BUTTON_BORDER}
               onGrabButton={onGrabButton}
               corner="top-left"
-            ></CropCorner>
+            />
             <CropCorner
               left={croppingRect.endX - CROP_BUTTON_SIZE + CROP_BUTTON_BORDER}
               top={croppingRect.startY - CROP_BUTTON_BORDER}
               onGrabButton={onGrabButton}
               corner="top-right"
-            ></CropCorner>
+            />
             <CropCorner
               left={croppingRect.startX - CROP_BUTTON_BORDER}
               top={croppingRect.endY - CROP_BUTTON_SIZE + CROP_BUTTON_BORDER}
               onGrabButton={onGrabButton}
               corner="bottom-left"
-            ></CropCorner>
+            />
             <CropCorner
               left={croppingRect.endX - CROP_BUTTON_SIZE + CROP_BUTTON_BORDER}
               top={croppingRect.endY - CROP_BUTTON_SIZE + CROP_BUTTON_BORDER}
               onGrabButton={onGrabButton}
               corner="bottom-right"
-            ></CropCorner>
+            />
           </div>
         )}
         {action === 'crop' && (
