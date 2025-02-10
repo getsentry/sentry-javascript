@@ -1,8 +1,8 @@
 /* eslint-disable no-console */
 import { spawn } from 'child_process';
+import { resolve } from 'path';
 import * as dotenv from 'dotenv';
 import { sync as globSync } from 'glob';
-import { resolve } from 'path';
 
 import { registrySetup } from './registrySetup';
 
