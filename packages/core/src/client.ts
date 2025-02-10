@@ -562,6 +562,11 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   ): () => void;
 
   /**
+   * Register a callback when the feedback widget is opened in a user's browser
+   */
+  public on(hook: 'openFeedbackWidget', callback: () => void): () => void;
+
+  /**
    * A hook for the browser tracing integrations to trigger a span start for a page load.
    * @returns {() => void} A function that, when executed, removes the registered callback.
    */
@@ -694,6 +699,11 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * third argument.
    */
   public emit(hook: 'beforeSendFeedback', feedback: FeedbackEvent, options?: { includeReplay?: boolean }): void;
+
+  /**
+   * Fire a hook event for when the feedback widget is opened in a user's browser
+   */
+  public emit(hook: 'openFeedbackWidget'): void;
 
   /**
    * Emit a hook event for browser tracing integrations to trigger a span start for a page load.
