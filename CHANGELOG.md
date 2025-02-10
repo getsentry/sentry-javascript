@@ -153,7 +153,6 @@ A comprehensive migration guide outlining all changes for all the frameworks can
 - fix(nextjs): Flush with `waitUntil` in `captureRequestError` (#15146)
 - fix(nextjs): Use batched devserver symbolication endpoint (#15335)
 - fix(node): Don't leak `__span` property into breadcrumbs (#14798)
-- fix(node): Ensure `httpIntegration` propagates traces (#15233)
 - fix(node): Fix sample rand propagation for negative sampling decisions (#15045)
 - fix(node): Missing `release` from ANR sessions (#15138)
 - fix(node): Set the correct fallback URL fields for outgoing https requests if they are not defined (#15316)
