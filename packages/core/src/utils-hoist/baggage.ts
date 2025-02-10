@@ -130,7 +130,7 @@ function baggageHeaderToObject(baggageHeader: string): Record<string, string> {
  * @returns a baggage header string, or `undefined` if the object didn't have any values, since an empty baggage header
  * is not spec compliant.
  */
-export function objectToBaggageHeader(object: Record<string, string>): string | undefined {
+function objectToBaggageHeader(object: Record<string, string>): string | undefined {
   if (Object.keys(object).length === 0) {
     // An empty baggage header is not spec compliant: We return undefined.
     return undefined;
