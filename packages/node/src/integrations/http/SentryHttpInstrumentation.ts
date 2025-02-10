@@ -99,7 +99,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
         stealthWrap(moduleExports.Server.prototype, 'emit', this._getPatchIncomingRequestFunction());
 
         // Patch outgoing requests for breadcrumbs
-        const patchedRequest = stealthWrap(moduleExports, 'request', this._getPatchOutgoingRequestFunction('http'));
+        const patchedRequest = stealthWrap(moduleExports, 'request', this._getPatchOutgoingRequestFunction());
         stealthWrap(moduleExports, 'get', this._getPatchOutgoingGetFunction(patchedRequest));
 
         return moduleExports;
@@ -120,7 +120,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
         stealthWrap(moduleExports.Server.prototype, 'emit', this._getPatchIncomingRequestFunction());
 
         // Patch outgoing requests for breadcrumbs
-        const patchedRequest = stealthWrap(moduleExports, 'request', this._getPatchOutgoingRequestFunction('https'));
+        const patchedRequest = stealthWrap(moduleExports, 'request', this._getPatchOutgoingRequestFunction());
         stealthWrap(moduleExports, 'get', this._getPatchOutgoingGetFunction(patchedRequest));
 
         return moduleExports;
@@ -197,7 +197,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
   /**
    * Patch the outgoing request function for breadcrumbs.
    */
-  private _getPatchOutgoingRequestFunction(component: 'http' | 'https'): (
+  private _getPatchOutgoingRequestFunction(): (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     original: (...args: any[]) => http.ClientRequest,
   ) => (options: URL | http.RequestOptions | string, ...args: unknown[]) => http.ClientRequest {
