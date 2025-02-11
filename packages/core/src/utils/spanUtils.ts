@@ -14,6 +14,8 @@ import type {
   Span,
   SpanAttributes,
   SpanJSON,
+  SpanLink,
+  SpanLinkJSON,
   SpanOrigin,
   SpanStatus,
   SpanTimeInput,
@@ -79,6 +81,19 @@ export function spanToTraceHeader(span: Span): string {
   const { traceId, spanId } = span.spanContext();
   const sampled = spanIsSampled(span);
   return generateSentryTraceHeader(traceId, spanId, sampled);
+}
+
+/**
+ *  Converts the span links array to a flattened version to be sent within an envelope
+ */
+export function convertSpanLinksForEnvelope(links: SpanLink[]): SpanLinkJSON[] {
+  return links.map(({ context: { spanId, traceId, traceFlags, ...restContext }, attributes }) => ({
+    span_id: spanId,
+    trace_id: traceId,
+    sampled: traceFlags === TRACE_FLAG_SAMPLED,
+    attributes,
+    ...restContext,
+  }));
 }
 
 /**
@@ -180,7 +195,7 @@ function spanIsSentrySpan(span: Span): span is SentrySpan {
  * However, this has a slightly different semantic, as it also returns false if the span is finished.
  * So in the case where this distinction is important, use this method.
  */
-export function spanIsSampled(span: Span): boolean {
+export function spanIsSampled(span: { spanContext: Span['spanContext'] }): boolean {
   // We align our trace flags with the ones OpenTelemetry use
   // So we also check for sampled the same way they do.
   const { traceFlags } = span.spanContext();
