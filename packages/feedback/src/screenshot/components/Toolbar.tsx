@@ -23,9 +23,9 @@ export default function ToolbarFactory({ h }: FactoryParams) {
         <div />
         <div class="editor__tool-bar">
           <button
+            type="button"
             class={`editor__tool ${action === 'crop' ? 'editor__tool--active' : ''}`}
-            onClick={e => {
-              e.preventDefault();
+            onClick={() => {
               if (action === 'crop') {
                 setAction('');
               } else {
@@ -36,9 +36,9 @@ export default function ToolbarFactory({ h }: FactoryParams) {
             <CropIcon />
           </button>
           <button
+            type="button"
             class={`editor__tool ${action === 'annotate' ? 'editor__tool--active' : ''}`}
-            onClick={e => {
-              e.preventDefault();
+            onClick={() => {
               if (action === 'annotate') {
                 setAction('');
               } else {
