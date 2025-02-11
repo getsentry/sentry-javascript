@@ -62,6 +62,9 @@ export interface ReactRouterOptions {
 
 type V6CompatibleVersion = '6' | '7';
 
+// Keeping as a global variable for cross-usage in multiple functions
+const allRoutes = new Set<RouteObject>();
+
 /**
  * Creates a wrapCreateBrowserRouter function that can be used with all React Router v6 compatible versions.
  */
@@ -82,6 +85,10 @@ export function createV6CompatibleWrapCreateBrowserRouter<
   }
 
   return function (routes: RouteObject[], opts?: Record<string, unknown> & { basename?: string }): TRouter {
+    routes.forEach(route => {
+      allRoutes.add(route);
+    });
+
     const router = createRouterFunction(routes, opts);
     const basename = opts && opts.basename;
 
@@ -91,19 +98,40 @@ export function createV6CompatibleWrapCreateBrowserRouter<
     // This is the earliest convenient time to update the transaction name.
     // Callbacks to `router.subscribe` are not called for the initial load.
     if (router.state.historyAction === 'POP' && activeRootSpan) {
-      updatePageloadTransaction(activeRootSpan, router.state.location, routes, undefined, basename);
+      updatePageloadTransaction(
+        activeRootSpan,
+        router.state.location,
+        routes,
+        undefined,
+        basename,
+        Array.from(allRoutes),
+      );
     }
 
     router.subscribe((state: RouterState) => {
-      const location = state.location;
       if (state.historyAction === 'PUSH' || state.historyAction === 'POP') {
-        handleNavigation({
-          location,
-          routes,
-          navigationType: state.historyAction,
-          version,
-          basename,
-        });
+        // Wait for the next render if loading an unsettled route
+        if (state.navigation.state !== 'idle') {
+          requestAnimationFrame(() => {
+            handleNavigation({
+              location: state.location,
+              routes,
+              navigationType: state.historyAction,
+              version,
+              basename,
+              allRoutes: Array.from(allRoutes),
+            });
+          });
+        } else {
+          handleNavigation({
+            location: state.location,
+            routes,
+            navigationType: state.historyAction,
+            version,
+            basename,
+            allRoutes: Array.from(allRoutes),
+          });
+        }
       }
     });
 
@@ -138,6 +166,10 @@ export function createV6CompatibleWrapCreateMemoryRouter<
       initialIndex?: number;
     },
   ): TRouter {
+    routes.forEach(route => {
+      allRoutes.add(route);
+    });
+
     const router = createRouterFunction(routes, opts);
     const basename = opts ? opts.basename : undefined;
 
@@ -163,7 +195,7 @@ export function createV6CompatibleWrapCreateMemoryRouter<
       : router.state.location;
 
     if (router.state.historyAction === 'POP' && activeRootSpan) {
-      updatePageloadTransaction(activeRootSpan, location, routes, undefined, basename);
+      updatePageloadTransaction(activeRootSpan, location, routes, undefined, basename, Array.from(allRoutes));
     }
 
     router.subscribe((state: RouterState) => {
@@ -175,6 +207,7 @@ export function createV6CompatibleWrapCreateMemoryRouter<
           navigationType: state.historyAction,
           version,
           basename,
+          allRoutes: Array.from(allRoutes),
         });
       }
     });
@@ -249,8 +282,6 @@ export function createV6CompatibleWrapUseRoutes(origUseRoutes: UseRoutes, versio
     return origUseRoutes;
   }
 
-  const allRoutes: Set<RouteObject> = new Set();
-
   const SentryRoutes: React.FC<{
     children?: React.ReactNode;
     routes: RouteObject[];
@@ -322,7 +353,6 @@ export function handleNavigation(opts: {
   allRoutes?: RouteObject[];
 }): void {
   const { location, routes, navigationType, version, matches, basename, allRoutes } = opts;
-
   const branches = Array.isArray(matches) ? matches : _matchRoutes(routes, location, basename);
 
   const client = getClient();
@@ -558,7 +588,7 @@ function updatePageloadTransaction(
 ): void {
   const branches = Array.isArray(matches)
     ? matches
-    : (_matchRoutes(routes, location, basename) as unknown as RouteMatch[]);
+    : (_matchRoutes(allRoutes || routes, location, basename) as unknown as RouteMatch[]);
 
   if (branches) {
     let name,
@@ -574,7 +604,7 @@ function updatePageloadTransaction(
       [name, source] = getNormalizedName(routes, location, branches, basename);
     }
 
-    getCurrentScope().setTransactionName(name);
+    getCurrentScope().setTransactionName(name || '/');
 
     if (activeRootSpan) {
       activeRootSpan.updateName(name);
@@ -596,8 +626,6 @@ export function createV6CompatibleWithSentryReactRouterRouting<P extends Record<
 
     return Routes;
   }
-
-  const allRoutes: Set<RouteObject> = new Set();
 
   const SentryRoutes: React.FC<P> = (props: P) => {
     const isMountRenderPass = React.useRef(true);
