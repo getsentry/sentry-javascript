@@ -11,6 +11,7 @@ const reexportedPluggableIntegrationFiles = [
   'rewriteframes',
   'feedback',
   'modulemetadata',
+  'graphqlclient',
   'spotlight',
 ];
 

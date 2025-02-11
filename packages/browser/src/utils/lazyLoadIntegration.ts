@@ -15,6 +15,7 @@ const LazyLoadableIntegrations = {
   linkedErrorsIntegration: 'linkederrors',
   dedupeIntegration: 'dedupe',
   extraErrorDataIntegration: 'extraerrordata',
+  graphqlClientIntegration: 'graphqlclient',
   httpClientIntegration: 'httpclient',
   reportingObserverIntegration: 'reportingobserver',
   rewriteFramesIntegration: 'rewriteframes',

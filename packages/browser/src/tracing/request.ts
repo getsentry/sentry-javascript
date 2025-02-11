@@ -4,6 +4,7 @@ import {
   addXhrInstrumentationHandler,
   extractNetworkProtocol,
 } from '@sentry-internal/browser-utils';
+import type { XhrHint } from '@sentry-internal/browser-utils';
 import type { Client, HandlerDataXhr, SentryWrappedXMLHttpRequest, Span } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -13,6 +14,7 @@ import {
   addFetchInstrumentationHandler,
   browserPerformanceTimeOrigin,
   getActiveSpan,
+  getClient,
   getLocationHref,
   getTraceData,
   hasSpansEnabled,
@@ -372,6 +374,11 @@ export function xhrCallback(
       // which means that the headers will be generated from the scope and the sampling decision is deferred
       hasSpansEnabled() && hasParent ? span : undefined,
     );
+  }
+
+  const client = getClient();
+  if (client) {
+    client.emit('beforeOutgoingRequestSpan', span, handlerData as XhrHint);
   }
 
   return span;
