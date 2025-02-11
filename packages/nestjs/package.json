@@ -45,18 +45,20 @@
   },
   "dependencies": {
     "@opentelemetry/core": "^1.30.1",
+    "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/instrumentation": "^0.57.1",
     "@opentelemetry/instrumentation-nestjs-core": "0.44.0",
+    "@opentelemetry/semantic-conventions": "^1.27.0",
     "@sentry/core": "9.0.0-alpha.2",
     "@sentry/node": "9.0.0-alpha.2"
   },
   "devDependencies": {
-    "@nestjs/common": "^8.0.0 || ^9.0.0 || ^10.0.0",
-    "@nestjs/core": "^8.0.0 || ^9.0.0 || ^10.0.0"
+    "@nestjs/common": "^10.0.0",
+    "@nestjs/core": "^10.0.0"
   },
   "peerDependencies": {
-    "@nestjs/common": "^8.0.0 || ^9.0.0 || ^10.0.0",
-    "@nestjs/core": "^8.0.0 || ^9.0.0 || ^10.0.0"
+    "@nestjs/common": "^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0",
+    "@nestjs/core": "^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
