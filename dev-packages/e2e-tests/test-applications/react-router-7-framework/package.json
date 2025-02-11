@@ -29,11 +29,13 @@
     "build": "react-router build",
     "dev": "NODE_OPTIONS='--import ./instrument.mjs' react-router dev",
     "start": "NODE_OPTIONS='--import ./instrument.mjs' react-router-serve ./build/server/index.js",
-    "test": "pnpm typecheck && playwright test",
+    "proxy": "node start-event-proxy.mjs",
     "typecheck": "react-router typegen && tsc",
-    "clean": "npx rimraf node_modules .react-router pnpm-lock.yaml",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install && pnpm build",
-    "test:assert": "pnpm test"
+    "test:assert": "pnpm test:ts && pnpm test:playwright",
+    "test:ts": "pnpm typecheck",
+    "test:playwright": "playwright test"
   },
   "eslintConfig": {
     "extends": [
