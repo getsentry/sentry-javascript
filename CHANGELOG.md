@@ -10,6 +10,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 9.0.1
+
+- ref(flags): rename unleash integration param ([#15343](https://github.com/getsentry/sentry-javascript/pull/15343))
+
 ## 9.0.0
 
 Version `9.0.0` marks a release of the Sentry JavaScript SDKs that contains breaking changes.
