@@ -36,7 +36,8 @@
     "node": ">=14.18"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "tag": "v8"
   },
   "files": [
     "/lib",

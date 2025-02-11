@@ -7,7 +7,8 @@
   "author": "Sentry",
   "license": "MIT",
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "tag": "v8"
   },
   "files": [
     "tsconfig.json"
