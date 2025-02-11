@@ -113,7 +113,11 @@ export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
       // We only call continueTrace in the initial top level request to avoid
       // creating a new root span for the sub request.
       isolationScope.setSDKProcessingMetadata({
-        normalizedRequest: winterCGRequestToRequestData(input.event.request.clone()),
+        // We specifically avoid cloning the request here to avoid double read errors.
+        // We only read request headers so we're not consuming the body anyway.
+        // Note to future readers: This sounds counter-intuitive but please read
+        // https://github.com/getsentry/sentry-javascript/issues/14583
+        normalizedRequest: winterCGRequestToRequestData(input.event.request),
       });
       return continueTrace(getTracePropagationData(input.event), () => instrumentHandle(input, options));
     });
@@ -163,7 +167,11 @@ async function instrumentHandle(
       },
       async (span?: Span) => {
         getCurrentScope().setSDKProcessingMetadata({
-          normalizedRequest: winterCGRequestToRequestData(event.request.clone()),
+          // We specifically avoid cloning the request here to avoid double read errors.
+          // We only read request headers so we're not consuming the body anyway.
+          // Note to future readers: This sounds counter-intuitive but please read
+          // https://github.com/getsentry/sentry-javascript/issues/14583
+          normalizedRequest: winterCGRequestToRequestData(event.request),
         });
         const res = await resolve(event, {
           transformPageChunk: addSentryCodeToPage({ injectFetchProxyScript: options.injectFetchProxyScript ?? true }),
