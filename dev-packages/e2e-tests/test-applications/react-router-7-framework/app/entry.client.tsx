@@ -7,9 +7,9 @@ Sentry.init({
   environment: 'qa', // dynamic sampling bias to keep transactions
   // todo: get this from env
   dsn: 'https://username@domain/123',
+  tunnel: `http://localhost:3031/`, // proxy server
   integrations: [Sentry.browserTracingIntegration()],
   tracesSampleRate: 1.0,
-  tunnel: `http://localhost:3031/`, // proxy server
   tracePropagationTargets: [/^\//],
 });
 
