@@ -4773,14 +4773,14 @@
     iterare "1.2.1"
     tslib "2.7.0"
 
-"@nestjs/common@^8.0.0 || ^9.0.0 || ^10.0.0":
-  version "10.4.7"
-  resolved "https://registry.yarnpkg.com/@nestjs/common/-/common-10.4.7.tgz#076cb77c06149805cb1e193d8cdc69bbe8446c75"
-  integrity sha512-gIOpjD3Mx8gfYGxYm/RHPcJzqdknNNFCyY+AxzBT3gc5Xvvik1Dn5OxaMGw5EbVfhZgJKVP0n83giUOAlZQe7w==
+"@nestjs/common@^10.0.0":
+  version "10.4.15"
+  resolved "https://registry.yarnpkg.com/@nestjs/common/-/common-10.4.15.tgz#27c291466d9100eb86fdbe6f7bbb4d1a6ad55f70"
+  integrity sha512-vaLg1ZgwhG29BuLDxPA9OAcIlgqzp9/N8iG0wGapyUNTf4IY4O6zAHgN6QalwLhFxq7nOI021vdRojR1oF3bqg==
   dependencies:
     uid "2.0.2"
     iterare "1.2.1"
-    tslib "2.7.0"
+    tslib "2.8.1"
 
 "@nestjs/core@10.4.6":
   version "10.4.6"
@@ -4794,17 +4794,17 @@
     path-to-regexp "3.3.0"
     tslib "2.7.0"
 
-"@nestjs/core@^8.0.0 || ^9.0.0 || ^10.0.0":
-  version "10.4.7"
-  resolved "https://registry.yarnpkg.com/@nestjs/core/-/core-10.4.7.tgz#adb27067a8c40b79f0713b417457fdfc6cf3406a"
-  integrity sha512-AIpQzW/vGGqSLkKvll1R7uaSNv99AxZI2EFyVJPNGDgFsfXaohfV1Ukl6f+s75Km+6Fj/7aNl80EqzNWQCS8Ig==
+"@nestjs/core@^10.0.0":
+  version "10.4.15"
+  resolved "https://registry.yarnpkg.com/@nestjs/core/-/core-10.4.15.tgz#1343a3395d5c54e9b792608cb75eef39053806d5"
+  integrity sha512-UBejmdiYwaH6fTsz2QFBlC1cJHM+3UDeLZN+CiP9I1fRv2KlBZsmozGLbV5eS1JAVWJB4T5N5yQ0gjN8ZvcS2w==
   dependencies:
     uid "2.0.2"
     "@nuxtjs/opencollective" "0.3.2"
     fast-safe-stringify "2.1.1"
     iterare "1.2.1"
     path-to-regexp "3.3.0"
-    tslib "2.7.0"
+    tslib "2.8.1"
 
 "@nestjs/platform-express@10.4.6":
   version "10.4.6"
@@ -28622,6 +28622,11 @@ tslib@2.7.0, tslib@^2.0.0, tslib@^2.0.1, tslib@^2.0.3, tslib@^2.1.0, tslib@^2.2.
   version "2.7.0"
   resolved "https://registry.yarnpkg.com/tslib/-/tslib-2.7.0.tgz#d9b40c5c40ab59e8738f297df3087bf1a2690c01"
   integrity sha512-gLXCKdN1/j47AiHiOkJN69hJmcbGTHI0ImLmbYLHykhgeN0jVGola9yVjFgzCUklsZQMW55o+dW7IXv3RCXDzA==
+
+tslib@2.8.1:
+  version "2.8.1"
+  resolved "https://registry.yarnpkg.com/tslib/-/tslib-2.8.1.tgz#612efe4ed235d567e8aba5f2a5fab70280ade83f"
+  integrity sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==
 
 tslib@^1.11.1, tslib@^1.8.1, tslib@^1.9.0:
   version "1.14.1"
