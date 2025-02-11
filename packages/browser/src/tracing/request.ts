@@ -16,6 +16,7 @@ import {
   getActiveSpan,
   getClient,
   getLocationHref,
+  getSanitizedUrlString,
   getTraceData,
   hasSpansEnabled,
   instrumentFetchRequest,
@@ -24,6 +25,7 @@ import {
   spanToJSON,
   startInactiveSpan,
   stringMatchesSomePattern,
+  stripUrlQueryAndFragment,
 } from '@sentry/core';
 import { WINDOW } from '../helpers';
 
@@ -324,7 +326,9 @@ export function xhrCallback(
     return undefined;
   }
 
-  const shouldCreateSpanResult = hasSpansEnabled() && shouldCreateSpan(sentryXhrData.url);
+  const { url, method } = sentryXhrData;
+
+  const shouldCreateSpanResult = hasSpansEnabled() && shouldCreateSpan(url);
 
   // check first if the request has finished and is tracked by an existing span which should now end
   if (handlerData.endTimestamp && shouldCreateSpanResult) {
@@ -342,23 +346,27 @@ export function xhrCallback(
     return undefined;
   }
 
-  const fullUrl = getFullURL(sentryXhrData.url);
-  const host = fullUrl ? parseUrl(fullUrl).host : undefined;
+  const fullUrl = getFullURL(url);
+  const parsedUrl = fullUrl ? parseUrl(fullUrl) : parseUrl(url);
+
+  const urlForSpanName = parsedUrl ? getSanitizedUrlString(parsedUrl) : stripUrlQueryAndFragment(url);
 
   const hasParent = !!getActiveSpan();
 
   const span =
     shouldCreateSpanResult && hasParent
       ? startInactiveSpan({
-          name: `${sentryXhrData.method} ${sentryXhrData.url}`,
+          name: `${method} ${urlForSpanName}`,
           attributes: {
+            url,
             type: 'xhr',
-            'http.method': sentryXhrData.method,
+            'http.method': method,
             'http.url': fullUrl,
-            url: sentryXhrData.url,
-            'server.address': host,
+            'server.address': parsedUrl?.host,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser',
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
+            ...(parsedUrl?.search && { 'http.query': parsedUrl?.search }),
+            ...(parsedUrl?.hash && { 'http.fragment': parsedUrl?.hash }),
           },
         })
       : new SentryNonRecordingSpan();
@@ -366,7 +374,7 @@ export function xhrCallback(
   xhr.__sentry_xhr_span_id__ = span.spanContext().spanId;
   spans[xhr.__sentry_xhr_span_id__] = span;
 
-  if (shouldAttachHeaders(sentryXhrData.url)) {
+  if (shouldAttachHeaders(url)) {
     addTracingHeadersToXhrRequest(
       xhr,
       // If performance is disabled (TWP) or there's no active root span (pageload/navigation/interaction),

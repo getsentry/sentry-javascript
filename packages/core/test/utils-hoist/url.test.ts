@@ -72,3 +72,126 @@ describe('getSanitizedUrlString', () => {
     expect(getSanitizedUrlString(urlObject)).toEqual(sanitizedURL);
   });
 });
+
+describe('parseUrl', () => {
+  it.each([
+    [
+      'https://somedomain.com',
+      { host: 'somedomain.com', path: '', search: '', hash: '', protocol: 'https', relative: '' },
+    ],
+    [
+      'https://somedomain.com/path/to/happiness',
+      {
+        host: 'somedomain.com',
+        path: '/path/to/happiness',
+        search: '',
+        hash: '',
+        protocol: 'https',
+        relative: '/path/to/happiness',
+      },
+    ],
+    [
+      'https://somedomain.com/path/to/happiness?auhtToken=abc123&param2=bar',
+      {
+        host: 'somedomain.com',
+        path: '/path/to/happiness',
+        search: '?auhtToken=abc123&param2=bar',
+        hash: '',
+        protocol: 'https',
+        relative: '/path/to/happiness?auhtToken=abc123&param2=bar',
+      },
+    ],
+    [
+      'https://somedomain.com/path/to/happiness?auhtToken=abc123&param2=bar#wildfragment',
+      {
+        host: 'somedomain.com',
+        path: '/path/to/happiness',
+        search: '?auhtToken=abc123&param2=bar',
+        hash: '#wildfragment',
+        protocol: 'https',
+        relative: '/path/to/happiness?auhtToken=abc123&param2=bar#wildfragment',
+      },
+    ],
+    [
+      'https://somedomain.com/path/to/happiness#somewildfragment123',
+      {
+        host: 'somedomain.com',
+        path: '/path/to/happiness',
+        search: '',
+        hash: '#somewildfragment123',
+        protocol: 'https',
+        relative: '/path/to/happiness#somewildfragment123',
+      },
+    ],
+    [
+      'https://somedomain.com/path/to/happiness#somewildfragment123?auhtToken=abc123&param2=bar',
+      {
+        host: 'somedomain.com',
+        path: '/path/to/happiness',
+        search: '',
+        hash: '#somewildfragment123?auhtToken=abc123&param2=bar',
+        protocol: 'https',
+        relative: '/path/to/happiness#somewildfragment123?auhtToken=abc123&param2=bar',
+      },
+    ],
+    [
+      // yup, this is a valid URL (protocol-agnostic URL)
+      '//somedomain.com/path/to/happiness?auhtToken=abc123&param2=bar#wildfragment',
+      {
+        host: 'somedomain.com',
+        path: '/path/to/happiness',
+        search: '?auhtToken=abc123&param2=bar',
+        hash: '#wildfragment',
+        protocol: undefined,
+        relative: '/path/to/happiness?auhtToken=abc123&param2=bar#wildfragment',
+      },
+    ],
+    ['', {}],
+    [
+      '\n',
+      {
+        hash: '',
+        host: undefined,
+        path: '\n',
+        protocol: undefined,
+        relative: '\n',
+        search: '',
+      },
+    ],
+    [
+      'somerandomString',
+      {
+        hash: '',
+        host: undefined,
+        path: 'somerandomString',
+        protocol: undefined,
+        relative: 'somerandomString',
+        search: '',
+      },
+    ],
+    [
+      'somedomain.com',
+      {
+        host: undefined,
+        path: 'somedomain.com',
+        search: '',
+        hash: '',
+        protocol: undefined,
+        relative: 'somedomain.com',
+      },
+    ],
+    [
+      'somedomain.com/path/?q=1#fragment',
+      {
+        host: undefined,
+        path: 'somedomain.com/path/',
+        search: '?q=1',
+        hash: '#fragment',
+        protocol: undefined,
+        relative: 'somedomain.com/path/?q=1#fragment',
+      },
+    ],
+  ])('returns parsed partial URL object for %s', (url: string, expected: any) => {
+    expect(parseUrl(url)).toEqual(expected);
+  });
+});
