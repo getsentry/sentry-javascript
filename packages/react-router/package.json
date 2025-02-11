@@ -1,6 +1,6 @@
 {
   "name": "@sentry/react-router",
-  "version": "9.0.0-alpha.2",
+  "version": "9.0.1",
   "description": "Official Sentry SDK for React Router (Framework)",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/react-router",
@@ -34,9 +34,9 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "9.0.0-alpha.2",
-    "@sentry/browser": "9.0.0-alpha.2",
-    "@sentry/node": "9.0.0-alpha.2"
+    "@sentry/browser": "9.0.1",
+    "@sentry/core": "9.0.1",
+    "@sentry/node": "9.0.1"
   },
   "devDependencies": {
     "@react-router/node": "^7.1.5",
@@ -44,8 +44,8 @@
   },
   "peerDependencies": {
     "@react-router/node": "7.x",
-    "react-router": "7.x",
-    "react": ">=18"
+    "react": ">=18",
+    "react-router": "7.x"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
