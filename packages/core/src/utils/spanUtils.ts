@@ -158,7 +158,7 @@ export function spanToJSON(span: Span): SpanJSON {
       status: getStatusMessage(status),
       op: attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP],
       origin: attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined,
-      links: links ? convertSpanLinksForEnvelope(links) : undefined,
+      links: convertSpanLinksForEnvelope(links),
     });
   }
 

@@ -348,7 +348,7 @@ function createAndFinishSpanForOtelSpan(node: SpanNode, spans: SpanJSON[], sentS
     op,
     origin,
     measurements: timedEventsToMeasurements(span.events),
-    links: links ? convertSpanLinksForEnvelope(links) : undefined,
+    links: convertSpanLinksForEnvelope(links),
   });
 
   spans.push(spanJSON);
