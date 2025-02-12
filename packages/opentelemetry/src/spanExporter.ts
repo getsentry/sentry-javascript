@@ -11,6 +11,7 @@ import type {
   TransactionEvent,
   TransactionSource,
 } from '@sentry/core';
+import { convertSpanLinksForEnvelope } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -322,7 +323,7 @@ function createAndFinishSpanForOtelSpan(node: SpanNode, spans: SpanJSON[], sentS
   const span_id = span.spanContext().spanId;
   const trace_id = span.spanContext().traceId;
 
-  const { attributes, startTime, endTime, parentSpanId } = span;
+  const { attributes, startTime, endTime, parentSpanId, links } = span;
 
   const { op, description, data, origin = 'manual' } = getSpanData(span);
   const allData = dropUndefinedKeys({
@@ -347,6 +348,7 @@ function createAndFinishSpanForOtelSpan(node: SpanNode, spans: SpanJSON[], sentS
     op,
     origin,
     measurements: timedEventsToMeasurements(span.events),
+    links: links ? convertSpanLinksForEnvelope(links) : undefined,
   });
 
   spans.push(spanJSON);
