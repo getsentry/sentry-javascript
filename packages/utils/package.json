@@ -1,6 +1,6 @@
 {
   "name": "@sentry/utils",
-  "version": "8.54.0",
+  "version": "8.55.0",
   "description": "Utilities for all Sentry JavaScript SDKs",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/utils",
@@ -40,7 +40,7 @@
     "tag": "latest"
   },
   "dependencies": {
-    "@sentry/core": "8.54.0"
+    "@sentry/core": "8.55.0"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
