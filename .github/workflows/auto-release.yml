@@ -9,7 +9,7 @@ on:
 # This workflow tirggers a release when merging a branch with the pattern `prepare-release/VERSION` into master.
 jobs:
   release:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-20.04
     name: 'Prepare a new version'
 
     steps:
@@ -40,6 +40,11 @@ jobs:
           version=${{ steps.version-regex.outputs.match }}
           version=${version/'prepare-release/'/''}
           echo "version=$version" >> $GITHUB_OUTPUT
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: 'package.json'
 
       - name: Prepare release
         uses: getsentry/action-prepare-release@v1

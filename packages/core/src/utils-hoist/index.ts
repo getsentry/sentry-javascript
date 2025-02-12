@@ -38,6 +38,8 @@ export {
 } from './is';
 export { isBrowser } from './isBrowser';
 export { CONSOLE_LEVELS, consoleSandbox, logger, originalConsoleMethods } from './logger';
+export type { Logger } from './logger';
+
 export {
   addContextToFrame,
   addExceptionMechanism,
@@ -128,6 +130,7 @@ export {
   baggageHeaderToDynamicSamplingContext,
   dynamicSamplingContextToSentryBaggageHeader,
   parseBaggageHeader,
+  objectToBaggageHeader,
 } from './baggage';
 
 export { getSanitizedUrlString, parseUrl, stripUrlQueryAndFragment } from './url';

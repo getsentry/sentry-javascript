@@ -10,6 +10,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 9.0.1
+
+- ref(flags): rename unleash integration param ([#15343](https://github.com/getsentry/sentry-javascript/pull/15343))
+
 ## 9.0.0
 
 Version `9.0.0` marks a release of the Sentry JavaScript SDKs that contains breaking changes.
@@ -153,7 +157,6 @@ A comprehensive migration guide outlining all changes for all the frameworks can
 - fix(nextjs): Flush with `waitUntil` in `captureRequestError` (#15146)
 - fix(nextjs): Use batched devserver symbolication endpoint (#15335)
 - fix(node): Don't leak `__span` property into breadcrumbs (#14798)
-- fix(node): Ensure `httpIntegration` propagates traces (#15233)
 - fix(node): Fix sample rand propagation for negative sampling decisions (#15045)
 - fix(node): Missing `release` from ANR sessions (#15138)
 - fix(node): Set the correct fallback URL fields for outgoing https requests if they are not defined (#15316)

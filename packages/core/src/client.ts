@@ -14,6 +14,7 @@ import type {
   EventHint,
   EventProcessor,
   FeedbackEvent,
+  FetchBreadcrumbHint,
   Integration,
   MonitorConfig,
   Outcome,
@@ -30,6 +31,7 @@ import type {
   TransactionEvent,
   Transport,
   TransportMakeRequestResponse,
+  XhrBreadcrumbHint,
 } from './types-hoist';
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
@@ -585,6 +587,24 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public on(hook: 'startNavigationSpan', callback: (options: StartSpanOptions) => void): () => void;
 
   /**
+   * A hook for GraphQL client integration to enhance a span with request data.
+   * @returns A function that, when executed, removes the registered callback.
+   */
+  public on(
+    hook: 'beforeOutgoingRequestSpan',
+    callback: (span: Span, hint: XhrBreadcrumbHint | FetchBreadcrumbHint) => void,
+  ): () => void;
+
+  /**
+   * A hook for GraphQL client integration to enhance a breadcrumb with request data.
+   * @returns A function that, when executed, removes the registered callback.
+   */
+  public on(
+    hook: 'beforeOutgoingRequestBreadcrumb',
+    callback: (breadcrumb: Breadcrumb, hint: XhrBreadcrumbHint | FetchBreadcrumbHint) => void,
+  ): () => void;
+
+  /**
    * A hook that is called when the client is flushing
    * @returns {() => void} A function that, when executed, removes the registered callback.
    */
@@ -718,6 +738,20 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * Emit a hook event for browser tracing integrations to trigger a span for a navigation.
    */
   public emit(hook: 'startNavigationSpan', options: StartSpanOptions): void;
+
+  /**
+   * Emit a hook event for GraphQL client integration to enhance a span with request data.
+   */
+  public emit(hook: 'beforeOutgoingRequestSpan', span: Span, hint: XhrBreadcrumbHint | FetchBreadcrumbHint): void;
+
+  /**
+   * Emit a hook event for GraphQL client integration to enhance a breadcrumb with request data.
+   */
+  public emit(
+    hook: 'beforeOutgoingRequestBreadcrumb',
+    breadcrumb: Breadcrumb,
+    hint: XhrBreadcrumbHint | FetchBreadcrumbHint,
+  ): void;
 
   /**
    * Emit a hook event for client flush

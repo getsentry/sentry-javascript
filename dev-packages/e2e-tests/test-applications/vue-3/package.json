@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@sentry/vue": "latest || *",
-    "pinia": "^2.2.3",
+    "pinia": "^3.0.0",
     "vue": "^3.4.15",
     "vue-router": "^4.2.5"
   },
