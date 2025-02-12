@@ -56,7 +56,7 @@ export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
       trpcContext,
       '__sentry_override_normalization_depth__',
       1 + // 1 for context.input + the normal normalization depth
-        (clientOptions?.normalizeDepth ?? 3),
+        (clientOptions?.normalizeDepth ?? 5), // 5 is a sane depth
     );
 
     if (options.attachRpcInput !== undefined ? options.attachRpcInput : clientOptions?.sendDefaultPii) {
