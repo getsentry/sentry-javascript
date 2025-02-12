@@ -108,4 +108,31 @@ test.describe('client-side errors', () => {
       transaction: '/errors/client-loader',
     });
   });
+
+  test('captures error thrown in a clientAction', async ({ page }) => {
+    const errorMessage = 'Madonna mia! Che casino nella Client Action!';
+    const errorPromise = waitForError(APP_NAME, async errorEvent => {
+      return errorEvent?.exception?.values?.[0]?.value === errorMessage;
+    });
+
+    await page.goto('/errors/client-action');
+    await page.locator('#submit').click();
+
+    const error = await errorPromise;
+
+    expect(error).toMatchObject({
+      exception: {
+        values: [
+          {
+            type: 'Error',
+            value: errorMessage,
+            mechanism: {
+              handled: true,
+            },
+          },
+        ],
+      },
+      transaction: '/errors/client-action',
+    });
+  });
 });
