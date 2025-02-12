@@ -1,4 +1,5 @@
 import type * as http from 'node:http';
+import type { Span } from '@opentelemetry/api';
 import type { ExpressRequestInfo } from '@opentelemetry/instrumentation-express';
 import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
 import type { IntegrationFn } from '@sentry/core';
@@ -15,7 +16,6 @@ import { DEBUG_BUILD } from '../../debug-build';
 import { generateInstrumentOnce } from '../../otel/instrument';
 import { addOriginToSpan } from '../../utils/addOriginToSpan';
 import { ensureIsWrapped } from '../../utils/ensureIsWrapped';
-import type { Span } from '@opentelemetry/api';
 import { ExpressInstrumentationV5 } from './express-v5/instrumentation';
 
 const INTEGRATION_NAME = 'Express';

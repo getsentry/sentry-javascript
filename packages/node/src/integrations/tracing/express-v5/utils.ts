@@ -19,11 +19,11 @@
  */
 
 import type { Attributes } from '@opentelemetry/api';
-import type { IgnoreMatcher, ExpressInstrumentationConfig, LayerPathSegment } from './types';
-import { ExpressLayerType } from './enums/ExpressLayerType';
 import { AttributeNames } from './enums/AttributeNames';
+import { ExpressLayerType } from './enums/ExpressLayerType';
 import type { ExpressLayer, PatchedRequest } from './internal-types';
 import { _LAYERS_STORE_PROPERTY } from './internal-types';
+import type { ExpressInstrumentationConfig, IgnoreMatcher, LayerPathSegment } from './types';
 
 /**
  * Store layers path in the request to be able to construct route later

@@ -25,14 +25,9 @@
  * limitations under the License.
  */
 
-import { getRPCMetadata, RPCType } from '@opentelemetry/core';
 import type { Attributes } from '@opentelemetry/api';
-import { trace, context, diag, SpanStatusCode } from '@opentelemetry/api';
-import type * as express from 'express';
-import type { ExpressInstrumentationConfig, ExpressRequestInfo } from './types';
-import { ExpressLayerType } from './enums/ExpressLayerType';
-import { AttributeNames } from './enums/AttributeNames';
-import { asErrorAndMessage, getLayerMetadata, getLayerPath, isLayerIgnored, storeLayerPath } from './utils';
+import { SpanStatusCode, context, diag, trace } from '@opentelemetry/api';
+import { RPCType, getRPCMetadata } from '@opentelemetry/core';
 import {
   InstrumentationBase,
   InstrumentationNodeModuleDefinition,
@@ -40,8 +35,13 @@ import {
   safeExecuteInTheMiddle,
 } from '@opentelemetry/instrumentation';
 import { SEMATTRS_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
+import type * as express from 'express';
+import { AttributeNames } from './enums/AttributeNames';
+import { ExpressLayerType } from './enums/ExpressLayerType';
 import type { ExpressLayer, ExpressRouter, PatchedRequest } from './internal-types';
-import { kLayerPatched, _LAYERS_STORE_PROPERTY } from './internal-types';
+import { _LAYERS_STORE_PROPERTY, kLayerPatched } from './internal-types';
+import type { ExpressInstrumentationConfig, ExpressRequestInfo } from './types';
+import { asErrorAndMessage, getLayerMetadata, getLayerPath, isLayerIgnored, storeLayerPath } from './utils';
 
 export const PACKAGE_VERSION = '0.1.0';
 export const PACKAGE_NAME = '@sentry/instrumentation-express-v5';
