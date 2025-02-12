@@ -404,7 +404,7 @@ describe('startSpan', () => {
     const rawSpan1 = startInactiveSpan({ name: 'pageload_span' });
 
     // @ts-expect-error links exists on span
-    expect(rawSpan1?.links).toEqual([]);
+    expect(rawSpan1?.links).toEqual(undefined);
 
     const span1JSON = spanToJSON(rawSpan1);
 
@@ -939,7 +939,7 @@ describe('startSpanManual', () => {
     const rawSpan1 = startInactiveSpan({ name: 'pageload_span' });
 
     // @ts-expect-error links exists on span
-    expect(rawSpan1?.links).toEqual([]);
+    expect(rawSpan1?.links).toEqual(undefined);
 
     const span1JSON = spanToJSON(rawSpan1);
 
@@ -1393,7 +1393,7 @@ describe('startInactiveSpan', () => {
         origin: 'manual',
       },
     });
-    expect(innerTransaction?.spans).toEqual([]);
+    expect(innerTransaction?.spans).toEqual(undefined);
     expect(innerTransaction?.transaction).toEqual('inner transaction');
     expect(innerTransaction?.sdkProcessingMetadata).toEqual({
       dynamicSamplingContext: {
