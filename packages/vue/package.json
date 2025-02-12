@@ -44,7 +44,7 @@
     "@sentry/core": "8.54.0"
   },
   "peerDependencies": {
-    "pinia": "2.x",
+    "pinia": "2.x || 3.x",
     "vue": "2.x || 3.x"
   },
   "peerDependenciesMeta": {
