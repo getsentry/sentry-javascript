@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
-import { APP_NAME } from './constants';
+import { APP_NAME } from '../constants';
 
 test.describe('client-side errors', () => {
   const errorMessage = '¡Madre mía!';

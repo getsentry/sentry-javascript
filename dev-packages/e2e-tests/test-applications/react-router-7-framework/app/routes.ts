@@ -10,4 +10,9 @@ export default [
     route('client-action', 'routes/errors/client-action.tsx'),
     route('server-action', 'routes/errors/server-action.tsx'),
   ]),
+  ...prefix('performance', [
+    index('routes/performance/index.tsx'),
+    route('with/:param', 'routes/performance/dynamic-param.tsx'),
+    route('static', 'routes/performance/static.tsx'),
+  ]),
 ] satisfies RouteConfig;

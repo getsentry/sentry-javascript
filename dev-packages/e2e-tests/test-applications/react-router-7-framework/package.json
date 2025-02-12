@@ -19,9 +19,6 @@
     "@react-router/dev": "^7.1.5",
     "@playwright/test": "~1.50.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
-    "autoprefixer": "^10.4.20",
-    "postcss": "^8.4.49",
-    "tailwindcss": "^3.4.15",
     "typescript": "^5.6.3",
     "vite": "^5.4.11"
   },
