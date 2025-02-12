@@ -1,11 +1,12 @@
+import { getClient } from './currentScopes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from './semanticAttributes';
 import { SPAN_STATUS_ERROR, setHttpStatus, startInactiveSpan } from './tracing';
 import { SentryNonRecordingSpan } from './tracing/sentryNonRecordingSpan';
-import type { HandlerDataFetch, Span, SpanOrigin } from './types-hoist';
+import type { FetchBreadcrumbHint, HandlerDataFetch, Span, SpanOrigin } from './types-hoist';
 import { SENTRY_BAGGAGE_KEY_PREFIX } from './utils-hoist/baggage';
 import { isInstanceOf } from './utils-hoist/is';
 import { parseUrl } from './utils-hoist/url';
-import { hasTracingEnabled } from './utils/hasTracingEnabled';
+import { hasSpansEnabled } from './utils/hasSpansEnabled';
 import { getActiveSpan } from './utils/spanUtils';
 import { getTraceData } from './utils/traceData';
 
@@ -34,7 +35,7 @@ export function instrumentFetchRequest(
     return undefined;
   }
 
-  const shouldCreateSpanResult = hasTracingEnabled() && shouldCreateSpan(handlerData.fetchData.url);
+  const shouldCreateSpanResult = hasSpansEnabled() && shouldCreateSpan(handlerData.fetchData.url);
 
   if (handlerData.endTimestamp && shouldCreateSpanResult) {
     const spanId = handlerData.fetchData.__span;
@@ -87,13 +88,26 @@ export function instrumentFetchRequest(
       // If performance is disabled (TWP) or there's no active root span (pageload/navigation/interaction),
       // we do not want to use the span as base for the trace headers,
       // which means that the headers will be generated from the scope and the sampling decision is deferred
-      hasTracingEnabled() && hasParent ? span : undefined,
+      hasSpansEnabled() && hasParent ? span : undefined,
     );
     if (headers) {
       // Ensure this is actually set, if no options have been passed previously
       handlerData.args[1] = options;
       options.headers = headers;
     }
+  }
+
+  const client = getClient();
+
+  if (client) {
+    const fetchHint = {
+      input: handlerData.args,
+      response: handlerData.response,
+      startTimestamp: handlerData.startTimestamp,
+      endTimestamp: handlerData.endTimestamp,
+    } satisfies FetchBreadcrumbHint;
+
+    client.emit('beforeOutgoingRequestSpan', span, fetchHint);
   }
 
   return span;

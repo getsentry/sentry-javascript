@@ -19,6 +19,7 @@ interface FeedbackContext extends Record<string, unknown> {
   replay_id?: string;
   url?: string;
   associated_event_id?: string;
+  source?: string;
 }
 
 /**

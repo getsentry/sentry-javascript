@@ -2,11 +2,15 @@ import { existsSync } from 'fs';
 import { hostname } from 'os';
 import { basename, resolve } from 'path';
 import { types } from 'util';
-import type { Integration, Options, Scope, SdkMetadata, Span } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, logger } from '@sentry/core';
+import type { Integration, Options, Scope, Span } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  applySdkMetadata,
+  logger,
+} from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import {
-  SDK_VERSION,
   captureException,
   captureMessage,
   continueTrace,
@@ -73,22 +77,11 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
  */
 export function init(options: NodeOptions = {}): NodeClient | undefined {
   const opts = {
-    _metadata: {} as SdkMetadata,
     defaultIntegrations: getDefaultIntegrations(options),
     ...options,
   };
 
-  opts._metadata.sdk = opts._metadata.sdk || {
-    name: 'sentry.javascript.aws-serverless',
-    integrations: ['AWSLambda'],
-    packages: [
-      {
-        name: 'npm:@sentry/aws-serverless',
-        version: SDK_VERSION,
-      },
-    ],
-    version: SDK_VERSION,
-  };
+  applySdkMetadata(opts, 'aws-serverless');
 
   return initWithoutDefaultIntegrations(opts);
 }

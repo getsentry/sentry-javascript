@@ -1,21 +1,19 @@
+/* eslint-disable max-lines */
 import type * as http from 'node:http';
 import type { IncomingMessage, RequestOptions } from 'node:http';
 import type * as https from 'node:https';
 import type { EventEmitter } from 'node:stream';
-/* eslint-disable max-lines */
 import { VERSION } from '@opentelemetry/core';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
 import type { AggregationCounts, Client, RequestEventData, SanitizedRequestData, Scope } from '@sentry/core';
 import {
-  LRUMap,
   addBreadcrumb,
   generateSpanId,
   getBreadcrumbLogLevelFromHttpStatusCode,
   getClient,
   getIsolationScope,
   getSanitizedUrlString,
-  getTraceData,
   httpRequestToRequestData,
   logger,
   parseUrl,
@@ -23,20 +21,12 @@ import {
   withIsolationScope,
   withScope,
 } from '@sentry/core';
-import { shouldPropagateTraceForUrl } from '@sentry/opentelemetry';
 import { DEBUG_BUILD } from '../../debug-build';
-import { mergeBaggageHeaders } from '../../utils/baggage';
 import { getRequestUrl } from '../../utils/getRequestUrl';
 import { getRequestInfo } from './vendor/getRequestInfo';
 
 type Http = typeof http;
 type Https = typeof https;
-
-type RequestArgs =
-  // eslint-disable-next-line @typescript-eslint/ban-types
-  | [url: string | URL, options?: RequestOptions, callback?: Function]
-  // eslint-disable-next-line @typescript-eslint/ban-types
-  | [options: RequestOptions, callback?: Function];
 
 type SentryHttpInstrumentationOptions = InstrumentationConfig & {
   /**
@@ -90,11 +80,8 @@ const MAX_BODY_BYTE_LENGTH = 1024 * 1024;
  * https://github.com/open-telemetry/opentelemetry-js/blob/f8ab5592ddea5cba0a3b33bf8d74f27872c0367f/experimental/packages/opentelemetry-instrumentation-http/src/http.ts
  */
 export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpInstrumentationOptions> {
-  private _propagationDecisionMap: LRUMap<string, boolean>;
-
   public constructor(config: SentryHttpInstrumentationOptions = {}) {
     super('@sentry/instrumentation-http', VERSION, config);
-    this._propagationDecisionMap = new LRUMap<string, boolean>(100);
   }
 
   /** @inheritdoc */
@@ -221,21 +208,22 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
       return function outgoingRequest(this: unknown, ...args: unknown[]): http.ClientRequest {
         instrumentation._diag.debug('http instrumentation for outgoing requests');
 
+        // Making a copy to avoid mutating the original args array
         // We need to access and reconstruct the request options object passed to `ignoreOutgoingRequests`
         // so that it matches what Otel instrumentation passes to `ignoreOutgoingRequestHook`.
         // @see https://github.com/open-telemetry/opentelemetry-js/blob/7293e69c1e55ca62e15d0724d22605e61bd58952/experimental/packages/opentelemetry-instrumentation-http/src/http.ts#L756-L789
-        const requestArgs = [...args] as RequestArgs;
-        const options = requestArgs[0];
-        const extraOptions = typeof requestArgs[1] === 'object' ? requestArgs[1] : undefined;
+        const argsCopy = [...args];
 
-        const { optionsParsed, origin, pathname } = getRequestInfo(instrumentation._diag, options, extraOptions);
-        const url = getAbsoluteUrl(origin, pathname);
+        const options = argsCopy.shift() as URL | http.RequestOptions | string;
 
-        addSentryHeadersToRequestOptions(url, optionsParsed, instrumentation._propagationDecisionMap);
+        const extraOptions =
+          typeof argsCopy[0] === 'object' && (typeof options === 'string' || options instanceof URL)
+            ? (argsCopy.shift() as http.RequestOptions)
+            : undefined;
 
-        const request = original.apply(this, [optionsParsed, ...requestArgs.slice(1)]) as ReturnType<
-          typeof http.request
-        >;
+        const { optionsParsed } = getRequestInfo(instrumentation._diag, options, extraOptions);
+
+        const request = original.apply(this, args) as ReturnType<typeof http.request>;
 
         request.prependListener('response', (response: http.IncomingMessage) => {
           const _breadcrumbs = instrumentation.getConfig().breadcrumbs;
@@ -470,44 +458,6 @@ function patchRequestToCaptureBody(req: IncomingMessage, isolationScope: Scope):
 }
 
 /**
- * Mutates the passed in `options` and adds `sentry-trace` / `baggage` headers, if they are not already set.
- */
-function addSentryHeadersToRequestOptions(
-  url: string,
-  options: RequestOptions,
-  propagationDecisionMap: LRUMap<string, boolean>,
-): void {
-  // Manually add the trace headers, if it applies
-  // Note: We do not use `propagation.inject()` here, because our propagator relies on an active span
-  // Which we do not have in this case
-  const tracePropagationTargets = getClient()?.getOptions().tracePropagationTargets;
-  const addedHeaders = shouldPropagateTraceForUrl(url, tracePropagationTargets, propagationDecisionMap)
-    ? getTraceData()
-    : undefined;
-
-  if (!addedHeaders) {
-    return;
-  }
-
-  if (!options.headers) {
-    options.headers = {};
-  }
-  const headers = options.headers;
-
-  const { 'sentry-trace': sentryTrace, baggage } = addedHeaders;
-
-  // We do not want to overwrite existing header here, if it was already set
-  if (sentryTrace && !headers['sentry-trace']) {
-    headers['sentry-trace'] = sentryTrace;
-  }
-
-  // For baggage, we make sure to merge this into a possibly existing header
-  if (baggage) {
-    headers['baggage'] = mergeBaggageHeaders(headers['baggage'], baggage);
-  }
-}
-
-/**
  * Starts a session and tracks it in the context of a given isolation scope.
  * When the passed response is finished, the session is put into a task and is
  * aggregated with other sessions that may happen in a certain time window
@@ -581,23 +531,3 @@ const clientToRequestSessionAggregatesMap = new Map<
   Client,
   { [timestampRoundedToSeconds: string]: { exited: number; crashed: number; errored: number } }
 >();
-
-function getAbsoluteUrl(origin: string, path: string = '/'): string {
-  try {
-    const url = new URL(path, origin);
-    return url.toString();
-  } catch {
-    // fallback: Construct it on our own
-    const url = `${origin}`;
-
-    if (url.endsWith('/') && path.startsWith('/')) {
-      return `${url}${path.slice(1)}`;
-    }
-
-    if (!url.endsWith('/') && !path.startsWith('/')) {
-      return `${url}/${path.slice(1)}`;
-    }
-
-    return `${url}${path}`;
-  }
-}

@@ -92,7 +92,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
             component: '@nestjs/core',
             'nestjs.version': expect.any(String),
             'nestjs.type': 'request_context',
-            'http.method': 'GET',
+            'http.request.method': 'GET',
             'http.url': '/test-transaction',
             'http.route': '/test-transaction',
             'nestjs.controller': 'AppController',

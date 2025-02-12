@@ -1,6 +1,7 @@
+import { hasSpansEnabled } from '../../../src';
 import { hasTracingEnabled } from '../../../src';
 
-describe('hasTracingEnabled', () => {
+describe('hasSpansEnabled', () => {
   const tracesSampler = () => 1;
   const tracesSampleRate = 1;
   it.each([
@@ -12,10 +13,9 @@ describe('hasTracingEnabled', () => {
     ['With tracesSampleRate=0', { tracesSampleRate: 0 }, true],
     ['With tracesSampler=undefined', { tracesSampler: undefined }, false],
     ['With tracesSampler and tracesSampleRate', { tracesSampler, tracesSampleRate }, true],
-  ])(
-    '%s',
-    (_: string, input: Parameters<typeof hasTracingEnabled>[0], output: ReturnType<typeof hasTracingEnabled>) => {
-      expect(hasTracingEnabled(input)).toBe(output);
-    },
-  );
+  ])('%s', (_: string, input: Parameters<typeof hasSpansEnabled>[0], output: ReturnType<typeof hasSpansEnabled>) => {
+    expect(hasSpansEnabled(input)).toBe(output);
+    // eslint-disable-next-line deprecation/deprecation
+    expect(hasTracingEnabled(input)).toBe(output);
+  });
 });

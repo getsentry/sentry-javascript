@@ -23,7 +23,7 @@ concurrency:
 
 jobs:
   flaky-detector:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-20.04
     timeout-minutes: 60
     name: 'Check tests for flakiness'
     # Also skip if PR is from master -> develop
@@ -51,6 +51,8 @@ jobs:
 
       - name: Install Playwright
         uses: ./.github/actions/install-playwright
+        with:
+          browsers: 'chromium'
 
       - name: Determine changed tests
         uses: dorny/paths-filter@v3.0.1

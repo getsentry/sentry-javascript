@@ -6,6 +6,7 @@ import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-
 import type * as Hooks from 'preact/hooks';
 import { DOCUMENT, WINDOW } from '../../constants';
 import CropCornerFactory from './CropCorner';
+import CropIconFactory from './CropIcon';
 import PenIconFactory from './PenIcon';
 import { createScreenshotInputStyles } from './ScreenshotInput.css';
 import { useTakeScreenshotFactory } from './useTakeScreenshot';
@@ -75,6 +76,7 @@ export function ScreenshotEditorFactory({
   const useTakeScreenshot = useTakeScreenshotFactory({ hooks });
   const CropCorner = CropCornerFactory({ h });
   const PenIcon = PenIconFactory({ h });
+  const CropIcon = CropIconFactory({ h });
 
   return function ScreenshotEditor({ onError }: Props): VNode {
     const styles = hooks.useMemo(() => ({ __html: createScreenshotInputStyles(options.styleNonce).innerText }), []);
@@ -86,6 +88,7 @@ export function ScreenshotEditorFactory({
     const [croppingRect, setCroppingRect] = hooks.useState<Box>({ startX: 0, startY: 0, endX: 0, endY: 0 });
     const [confirmCrop, setConfirmCrop] = hooks.useState(false);
     const [isResizing, setIsResizing] = hooks.useState(false);
+    const [isCropping, setIsCropping] = hooks.useState(true);
     const [isAnnotating, setIsAnnotating] = hooks.useState(false);
 
     hooks.useEffect(() => {
@@ -142,6 +145,10 @@ export function ScreenshotEditorFactory({
       const croppingBox = constructRect(croppingRect);
       ctx.clearRect(0, 0, imageDimensions.width, imageDimensions.height);
 
+      if (!isCropping) {
+        return;
+      }
+
       // draw gray overlay around the selection
       ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
       ctx.fillRect(0, 0, imageDimensions.width, imageDimensions.height);
@@ -154,7 +161,7 @@ export function ScreenshotEditorFactory({
       ctx.strokeStyle = '#000000';
       ctx.lineWidth = 1;
       ctx.strokeRect(croppingBox.x + 3, croppingBox.y + 3, croppingBox.width - 6, croppingBox.height - 6);
-    }, [croppingRect]);
+    }, [croppingRect, isCropping]);
 
     function onGrabButton(e: Event, corner: string): void {
       setIsAnnotating(false);
@@ -398,102 +405,115 @@ export function ScreenshotEditorFactory({
     return (
       <div class="editor">
         <style nonce={options.styleNonce} dangerouslySetInnerHTML={styles} />
+        <div class="editor__image-container">
+          <div class="editor__canvas-container" ref={canvasContainerRef}>
+            <div
+              class={`editor__crop-container ${isAnnotating ? 'editor__crop-container--inactive' : ''}
+              ${confirmCrop ? 'editor__crop-container--move' : ''}`}
+              ref={cropContainerRef}
+            >
+              <canvas onMouseDown={onDragStart} ref={croppingRef}></canvas>
+              {isCropping && (
+                <div>
+                  <CropCorner
+                    left={croppingRect.startX - CROP_BUTTON_BORDER}
+                    top={croppingRect.startY - CROP_BUTTON_BORDER}
+                    onGrabButton={onGrabButton}
+                    corner="top-left"
+                  ></CropCorner>
+                  <CropCorner
+                    left={croppingRect.endX - CROP_BUTTON_SIZE + CROP_BUTTON_BORDER}
+                    top={croppingRect.startY - CROP_BUTTON_BORDER}
+                    onGrabButton={onGrabButton}
+                    corner="top-right"
+                  ></CropCorner>
+                  <CropCorner
+                    left={croppingRect.startX - CROP_BUTTON_BORDER}
+                    top={croppingRect.endY - CROP_BUTTON_SIZE + CROP_BUTTON_BORDER}
+                    onGrabButton={onGrabButton}
+                    corner="bottom-left"
+                  ></CropCorner>
+                  <CropCorner
+                    left={croppingRect.endX - CROP_BUTTON_SIZE + CROP_BUTTON_BORDER}
+                    top={croppingRect.endY - CROP_BUTTON_SIZE + CROP_BUTTON_BORDER}
+                    onGrabButton={onGrabButton}
+                    corner="bottom-right"
+                  ></CropCorner>
+                </div>
+              )}
+              {isCropping && (
+                <div
+                  style={{
+                    left: Math.max(0, croppingRect.endX - 191),
+                    top: Math.max(0, croppingRect.endY + 8),
+                  }}
+                  class={`editor__crop-btn-group ${confirmCrop ? 'editor__crop-btn-group--active' : ''}`}
+                >
+                  <button
+                    onClick={e => {
+                      e.preventDefault();
+                      if (croppingRef.current) {
+                        setCroppingRect({
+                          startX: 0,
+                          startY: 0,
+                          endX: croppingRef.current.width / DPI,
+                          endY: croppingRef.current.height / DPI,
+                        });
+                      }
+                      setConfirmCrop(false);
+                    }}
+                    class="btn btn--default"
+                  >
+                    {options.cancelButtonLabel}
+                  </button>
+                  <button
+                    onClick={e => {
+                      e.preventDefault();
+                      applyCrop();
+                      setConfirmCrop(false);
+                    }}
+                    class="btn btn--primary"
+                  >
+                    {options.confirmButtonLabel}
+                  </button>
+                </div>
+              )}
+            </div>
+            <canvas
+              class={`editor__annotation ${isAnnotating ? 'editor__annotation--active' : ''}`}
+              onMouseDown={onAnnotateStart}
+              ref={annotatingRef}
+            ></canvas>
+          </div>
+        </div>
         {options._experiments.annotations && (
           <div class="editor__tool-container">
-            <button
-              class="editor__pen-tool"
-              style={{
-                background: isAnnotating
-                  ? 'var(--button-primary-background, var(--accent-background))'
-                  : 'var(--button-background, var(--background))',
-                color: isAnnotating
-                  ? 'var(--button-primary-foreground, var(--accent-foreground))'
-                  : 'var(--button-foreground, var(--foreground))',
-              }}
-              onClick={e => {
-                e.preventDefault();
-                setIsAnnotating(!isAnnotating);
-              }}
-            >
-              <PenIcon />
-            </button>
-          </div>
-        )}
-        <div class="editor__canvas-container" ref={canvasContainerRef}>
-          <div class="editor__crop-container" style={{ zIndex: isAnnotating ? 1 : 2 }} ref={cropContainerRef}>
-            <canvas
-              onMouseDown={onDragStart}
-              style={{ cursor: confirmCrop ? 'move' : 'auto' }}
-              ref={croppingRef}
-            ></canvas>
-            <CropCorner
-              left={croppingRect.startX - CROP_BUTTON_BORDER}
-              top={croppingRect.startY - CROP_BUTTON_BORDER}
-              onGrabButton={onGrabButton}
-              corner="top-left"
-            ></CropCorner>
-            <CropCorner
-              left={croppingRect.endX - CROP_BUTTON_SIZE + CROP_BUTTON_BORDER}
-              top={croppingRect.startY - CROP_BUTTON_BORDER}
-              onGrabButton={onGrabButton}
-              corner="top-right"
-            ></CropCorner>
-            <CropCorner
-              left={croppingRect.startX - CROP_BUTTON_BORDER}
-              top={croppingRect.endY - CROP_BUTTON_SIZE + CROP_BUTTON_BORDER}
-              onGrabButton={onGrabButton}
-              corner="bottom-left"
-            ></CropCorner>
-            <CropCorner
-              left={croppingRect.endX - CROP_BUTTON_SIZE + CROP_BUTTON_BORDER}
-              top={croppingRect.endY - CROP_BUTTON_SIZE + CROP_BUTTON_BORDER}
-              onGrabButton={onGrabButton}
-              corner="bottom-right"
-            ></CropCorner>
-            <div
-              style={{
-                left: Math.max(0, croppingRect.endX - 191),
-                top: Math.max(0, croppingRect.endY + 8),
-                display: confirmCrop ? 'flex' : 'none',
-              }}
-              class="editor__crop-btn-group"
-            >
+            <div />
+            <div class="editor__tool-bar">
               <button
+                class={`editor__tool ${isCropping ? 'editor__tool--active' : ''}`}
                 onClick={e => {
                   e.preventDefault();
-                  if (croppingRef.current) {
-                    setCroppingRect({
-                      startX: 0,
-                      startY: 0,
-                      endX: croppingRef.current.width / DPI,
-                      endY: croppingRef.current.height / DPI,
-                    });
-                  }
-                  setConfirmCrop(false);
+                  setIsCropping(!isCropping);
+                  setIsAnnotating(false);
                 }}
-                class="btn btn--default"
               >
-                {options.cancelButtonLabel}
+                <CropIcon />
               </button>
               <button
+                class={`editor__tool ${isAnnotating ? 'editor__tool--active' : ''}`}
                 onClick={e => {
                   e.preventDefault();
-                  applyCrop();
-                  setConfirmCrop(false);
+                  setIsAnnotating(!isAnnotating);
+                  setIsCropping(false);
                 }}
-                class="btn btn--primary"
               >
-                {options.confirmButtonLabel}
+                <PenIcon />
               </button>
             </div>
+            <div />
           </div>
-          <canvas
-            class="editor__annotation"
-            onMouseDown={onAnnotateStart}
-            style={{ zIndex: isAnnotating ? '2' : '1' }}
-            ref={annotatingRef}
-          ></canvas>
-        </div>
+        )}
       </div>
     );
   };

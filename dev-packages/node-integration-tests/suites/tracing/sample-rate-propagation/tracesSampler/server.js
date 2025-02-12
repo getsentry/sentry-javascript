@@ -4,12 +4,8 @@ const Sentry = require('@sentry/node');
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   transport: loggingTransport,
-  tracesSampler: ({ parentSampleRate }) => {
-    if (parentSampleRate) {
-      return parentSampleRate;
-    }
-
-    return 0.69;
+  tracesSampler: ({ inheritOrSampleWith }) => {
+    return inheritOrSampleWith(0.69);
   },
 });
 
