@@ -3,7 +3,7 @@ import { waitForError } from '@sentry-internal/test-utils';
 import { APP_NAME } from './constants';
 
 test.describe('server-side errors', () => {
-  test.only('captures error thrown in server loader', async ({ page }) => {
+  test('captures error thrown in server loader', async ({ page }) => {
     const errorPromise = waitForError(APP_NAME, async errorEvent => {
       return errorEvent?.exception?.values?.[0]?.value === '¡Madre mía del server!';
     });
