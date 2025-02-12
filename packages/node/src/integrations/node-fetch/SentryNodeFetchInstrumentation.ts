@@ -13,6 +13,9 @@ import type { UndiciRequest, UndiciResponse } from './types';
 const SENTRY_TRACE_HEADER = 'sentry-trace';
 const SENTRY_BAGGAGE_HEADER = 'baggage';
 
+// For baggage, we make sure to merge this into a possibly existing header
+const BAGGAGE_HEADER_REGEX = /baggage: (.*)\r\n/;
+
 export type SentryNodeFetchInstrumentationOptions = InstrumentationConfig & {
   /**
    * Whether breadcrumbs should be recorded for requests.
@@ -161,15 +164,13 @@ export class SentryNodeFetchInstrumentation extends InstrumentationBase<SentryNo
         request.headers += `${SENTRY_TRACE_HEADER}: ${sentryTrace}\r\n`;
       }
 
-      // For baggage, we make sure to merge this into a possibly existing header
-      const baggageHeaderRegex = /baggage: (.*)\r\n/;
-      const existingBaggage = request.headers.match(baggageHeaderRegex)?.[1];
+      const existingBaggage = request.headers.match(BAGGAGE_HEADER_REGEX)?.[1];
       if (baggage && !existingBaggage) {
         request.headers += `${SENTRY_BAGGAGE_HEADER}: ${baggage}\r\n`;
       } else if (baggage) {
         const merged = mergeBaggageHeaders(existingBaggage, baggage);
         if (merged) {
-          request.headers = request.headers.replace(baggageHeaderRegex, `baggage: ${merged}\r\n`);
+          request.headers = request.headers.replace(BAGGAGE_HEADER_REGEX, `baggage: ${merged}\r\n`);
         }
       }
     }
