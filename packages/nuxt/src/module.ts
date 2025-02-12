@@ -18,7 +18,7 @@ export default defineNuxtModule<ModuleOptions>({
   },
   defaults: {},
   setup(moduleOptionsParam, nuxt) {
-    if (moduleOptionsParam?.enabled === false) {
+    if ('enabled' in moduleOptionsParam && moduleOptionsParam.enabled === false) {
       return;
     }
 
