@@ -76,6 +76,7 @@ export { handleCallbackErrors } from './utils/handleCallbackErrors';
 export { parameterize } from './utils/parameterize';
 export { addAutoIpAddressToSession, addAutoIpAddressToUser } from './utils/ipAddress';
 export {
+  convertSpanLinksForEnvelope,
   spanToTraceHeader,
   spanToJSON,
   spanIsSampled,
