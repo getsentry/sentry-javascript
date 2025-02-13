@@ -1,6 +1,36 @@
 import { createRunner } from '../../../utils/runner';
 
 describe('span links', () => {
+  test('should link spans by adding "links" to span options', done => {
+    let span1_traceId: string, span1_spanId: string;
+
+    createRunner(__dirname, 'scenario-span-options.ts')
+      .expect({
+        transaction: event => {
+          expect(event.transaction).toBe('parent1');
+
+          const traceContext = event.contexts?.trace;
+          span1_traceId = traceContext?.trace_id as string;
+          span1_spanId = traceContext?.span_id as string;
+        },
+      })
+      .expect({
+        transaction: event => {
+          expect(event.transaction).toBe('parent2');
+
+          const traceContext = event.contexts?.trace;
+          expect(traceContext).toBeDefined();
+          expect(traceContext?.links).toEqual([
+            expect.objectContaining({
+              trace_id: expect.stringMatching(span1_traceId),
+              span_id: expect.stringMatching(span1_spanId),
+            }),
+          ]);
+        },
+      })
+      .start(done);
+  });
+
   test('should link spans with addLink() in trace context', done => {
     let span1_traceId: string, span1_spanId: string;
 
@@ -143,12 +173,8 @@ describe('span links', () => {
                 span_id: expect.stringMatching(parent1_spanId),
               }),
             expect.objectContaining({
-              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-              // @ts-expect-error traceID is defined
-              trace_id: expect.stringMatching(child1_1?.trace_id),
-              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-              // @ts-expect-error spanID is defined
-              span_id: expect.stringMatching(child1_1?.span_id),
+              trace_id: expect.stringMatching(child1_1?.trace_id as string),
+              span_id: expect.stringMatching(child1_1?.span_id as string),
               attributes: expect.objectContaining({
                 'sentry.link.type': 'previous_trace',
               }),
