@@ -254,16 +254,18 @@ export interface Span {
    * Associates this span with a related span. Links can reference spans from the same or different trace
    * and are typically used for batch operations, cross-trace scenarios, or scatter/gather patterns.
    *
-   * Prefer setting links during span creation when possible to support sampling decisions.
+   * Prefer setting links directly when starting a span (e.g. `Sentry.startSpan()`) as some context information is only available during span creation.
    * @param link - The link containing the context of the span to link to and optional attributes
    */
-  addLink(link: SpanLink): this;
+  addLink(link: SpanLink | unknown): this;
 
   /**
    * Associates this span with multiple related spans. See {@link addLink} for more details.
+   *
+   * Prefer setting links directly when starting a span (e.g. `Sentry.startSpan()`) as some context information is only available during span creation.
    * @param links - Array of links to associate with this span
    */
-  addLinks(links: SpanLink[]): this;
+  addLinks(links: SpanLink[] | unknown): this;
 
   /**
    * NOT USED IN SENTRY, only added for compliance with OTEL Span interface

@@ -113,7 +113,6 @@ export type {
   SpanContextData,
   TraceFlag,
 } from './span';
-export type { SpanLink, SpanLinkJSON } from './link';
 export type { SpanStatus } from './spanStatus';
 export type { TimedEvent } from './timedEvent';
 export type { StackFrame } from './stackframe';

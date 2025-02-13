@@ -14,13 +14,12 @@ import type {
   Span,
   SpanAttributes,
   SpanJSON,
-  SpanLink,
-  SpanLinkJSON,
   SpanOrigin,
   SpanStatus,
   SpanTimeInput,
   TraceContext,
 } from '../types-hoist';
+import type { SpanLink, SpanLinkJSON } from '../types-hoist/link';
 import { consoleSandbox } from '../utils-hoist/logger';
 import { addNonEnumerableProperty, dropUndefinedKeys } from '../utils-hoist/object';
 import { generateSpanId } from '../utils-hoist/propagationContext';
@@ -84,16 +83,22 @@ export function spanToTraceHeader(span: Span): string {
 }
 
 /**
- *  Converts the span links array to a flattened version to be sent within an envelope
+ *  Converts the span links array to a flattened version to be sent within an envelope.
+ *
+ *  If the links array is empty, it returns `undefined` so the empty value can be dropped before it's sent.
  */
-export function convertSpanLinksForEnvelope(links: SpanLink[]): SpanLinkJSON[] {
-  return links.map(({ context: { spanId, traceId, traceFlags, ...restContext }, attributes }) => ({
-    span_id: spanId,
-    trace_id: traceId,
-    sampled: traceFlags === TRACE_FLAG_SAMPLED,
-    attributes,
-    ...restContext,
-  }));
+export function convertSpanLinksForEnvelope(links?: SpanLink[]): SpanLinkJSON[] | undefined {
+  if (links && links.length > 0) {
+    return links.map(({ context: { spanId, traceId, traceFlags, ...restContext }, attributes }) => ({
+      span_id: spanId,
+      trace_id: traceId,
+      sampled: traceFlags === TRACE_FLAG_SAMPLED,
+      attributes,
+      ...restContext,
+    }));
+  } else {
+    return undefined;
+  }
 }
 
 /**
@@ -195,7 +200,7 @@ function spanIsSentrySpan(span: Span): span is SentrySpan {
  * However, this has a slightly different semantic, as it also returns false if the span is finished.
  * So in the case where this distinction is important, use this method.
  */
-export function spanIsSampled(span: { spanContext: Span['spanContext'] }): boolean {
+export function spanIsSampled(span: Span): boolean {
   // We align our trace flags with the ones OpenTelemetry use
   // So we also check for sampled the same way they do.
   const { traceFlags } = span.spanContext();
