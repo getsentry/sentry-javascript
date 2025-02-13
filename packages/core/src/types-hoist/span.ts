@@ -257,7 +257,7 @@ export interface Span {
    * Prefer setting links directly when starting a span (e.g. `Sentry.startSpan()`) as some context information is only available during span creation.
    * @param link - The link containing the context of the span to link to and optional attributes
    */
-  addLink(link: SpanLink | unknown): this;
+  addLink(link: SpanLink): this;
 
   /**
    * Associates this span with multiple related spans. See {@link addLink} for more details.
@@ -265,7 +265,7 @@ export interface Span {
    * Prefer setting links directly when starting a span (e.g. `Sentry.startSpan()`) as some context information is only available during span creation.
    * @param links - Array of links to associate with this span
    */
-  addLinks(links: SpanLink[] | unknown): this;
+  addLinks(links: SpanLink[]): this;
 
   /**
    * NOT USED IN SENTRY, only added for compliance with OTEL Span interface
