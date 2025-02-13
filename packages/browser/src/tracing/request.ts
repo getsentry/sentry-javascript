@@ -16,7 +16,6 @@ import {
   getActiveSpan,
   getClient,
   getLocationHref,
-  getSanitizedUrlString,
   getTraceData,
   hasSpansEnabled,
   instrumentFetchRequest,
