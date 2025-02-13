@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { spawn, spawnSync } from 'child_process';
+import { execSync, spawn, spawnSync } from 'child_process';
 import { existsSync } from 'fs';
 import { join } from 'path';
 import { normalize } from '@sentry/core';
@@ -60,6 +60,10 @@ interface DockerOptions {
    * The strings to look for in the output to know that the docker compose is ready for the test to be run
    */
   readyMatches: string[];
+  /**
+   * The command to run after docker compose is up
+   */
+  setupCommand?: string;
 }
 
 /**
@@ -96,6 +100,9 @@ async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
         if (text.includes(match)) {
           child.stdout.removeAllListeners();
           clearTimeout(timeout);
+          if (options.setupCommand) {
+            execSync(options.setupCommand, { cwd, stdio: 'inherit' });
+          }
           resolve(close);
         }
       }
