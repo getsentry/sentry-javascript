@@ -1,4 +1,4 @@
-import { createRunner, cleanupChildProcesses } from '../../../utils/runner';
+import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
 afterAll(() => {
   cleanupChildProcesses();
