@@ -32,6 +32,12 @@ function retrieveStringValue(formData: FormData, key: string): string {
   return '';
 }
 
+function waitForSec(seconds: number): Promise<void> {
+  return new Promise(resolve => {
+    setTimeout(resolve, seconds * 1000);
+  });
+}
+
 export function Form({
   options,
   defaultEmail,
@@ -114,6 +120,8 @@ export function Form({
           attachments: attachment ? [attachment] : undefined,
         };
 
+        await waitForSec(5);
+
         if (!hasAllRequiredFields(data)) {
           return;
         }
@@ -148,7 +156,7 @@ export function Form({
         <ScreenshotInputComponent onError={onScreenshotError} />
       ) : null}
 
-      <div class="form__right" data-sentry-feedback={true}>
+      <fieldset class="form__right" data-sentry-feedback={true} disabled={isSubmitting}>
         <div class="form__top">
           {error ? <div class="form__error-container">{error}</div> : null}
 
@@ -203,6 +211,7 @@ export function Form({
             <label for="screenshot" class="form__label">
               <button
                 class="btn btn--default"
+                disabled={isSubmitting}
                 type="button"
                 onClick={() => {
                   setScreenshotError(null);
@@ -216,14 +225,14 @@ export function Form({
           ) : null}
         </div>
         <div class="btn-group">
-          <button class="btn btn--primary" type="submit" disabled={isSubmitting}>
+          <button class="btn btn--primary" disabled={isSubmitting} type="submit">
             {submitButtonLabel}
           </button>
-          <button class="btn btn--default" type="button" disabled={isSubmitting} onClick={onFormClose}>
+          <button class="btn btn--default" disabled={isSubmitting} type="button" onClick={onFormClose}>
             {cancelButtonLabel}
           </button>
         </div>
-      </div>
+      </fieldset>
     </form>
   );
 }
