@@ -20,7 +20,7 @@ import {
   suppressTracing,
   withScope,
 } from '@sentry/core';
-import type { Event, Scope, SpanLink } from '@sentry/core';
+import type { Event, Scope } from '@sentry/core';
 
 import { SEMATTRS_HTTP_METHOD } from '@opentelemetry/semantic-conventions';
 import { continueTrace, startInactiveSpan, startSpan, startSpanManual } from '../src/trace';
@@ -377,15 +377,15 @@ describe('trace', () => {
         expect(span2LinkJSON?.attributes?.['sentry.link.type']).toBe('previous_trace');
 
         // @ts-expect-error links and _spanContext exist on span
-        expect((rawSpan2?.links as SpanLink[])?.[0].context.traceId).toEqual(rawSpan1._spanContext.traceId);
+        expect(rawSpan2?.links?.[0].context.traceId).toEqual(rawSpan1._spanContext.traceId);
         // @ts-expect-error links and _spanContext exist on span
-        expect((rawSpan2?.links as SpanLink[])?.[0].context.traceId).toEqual(span1JSON.trace_id);
+        expect(rawSpan2?.links?.[0].context.traceId).toEqual(span1JSON.trace_id);
         expect(span2LinkJSON?.trace_id).toBe(span1JSON.trace_id);
 
         // @ts-expect-error links and _spanContext exist on span
-        expect((rawSpan2?.links as SpanLink[])?.[0].context.spanId).toEqual(rawSpan1?._spanContext.spanId);
+        expect(rawSpan2?.links?.[0].context.spanId).toEqual(rawSpan1?._spanContext.spanId);
         // @ts-expect-error links and _spanContext exist on span
-        expect((rawSpan2?.links as SpanLink[])?.[0].context.spanId).toEqual(span1JSON.span_id);
+        expect(rawSpan2?.links?.[0].context.spanId).toEqual(span1JSON.span_id);
         expect(span2LinkJSON?.span_id).toBe(span1JSON.span_id);
       });
     });
@@ -961,15 +961,15 @@ describe('trace', () => {
         expect(span2LinkJSON?.attributes?.['sentry.link.type']).toBe('previous_trace');
 
         // @ts-expect-error links and _spanContext exist on span
-        expect((rawSpan2?.links as SpanLink[])?.[0].context.traceId).toEqual(rawSpan1._spanContext.traceId);
+        expect(rawSpan2?.links?.[0].context.traceId).toEqual(rawSpan1._spanContext.traceId);
         // @ts-expect-error links and _spanContext exist on span
-        expect((rawSpan2?.links as SpanLink[])?.[0].context.traceId).toEqual(span1JSON.trace_id);
+        expect(rawSpan2?.links?.[0].context.traceId).toEqual(span1JSON.trace_id);
         expect(span2LinkJSON?.trace_id).toBe(span1JSON.trace_id);
 
         // @ts-expect-error links and _spanContext exist on span
-        expect((rawSpan2?.links as SpanLink[])?.[0].context.spanId).toEqual(rawSpan1?._spanContext.spanId);
+        expect(rawSpan2?.links?.[0].context.spanId).toEqual(rawSpan1?._spanContext.spanId);
         // @ts-expect-error links and _spanContext exist on span
-        expect((rawSpan2?.links as SpanLink[])?.[0].context.spanId).toEqual(span1JSON.span_id);
+        expect(rawSpan2?.links?.[0].context.spanId).toEqual(span1JSON.span_id);
         expect(span2LinkJSON?.span_id).toBe(span1JSON.span_id);
       });
     });

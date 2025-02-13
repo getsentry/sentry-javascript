@@ -248,6 +248,7 @@ export function createTransactionForOtelSpan(span: ReadableSpan): TransactionEve
     ...removeSentryAttributes(span.attributes),
   });
 
+  const { links } = span;
   const { traceId: trace_id, spanId: span_id } = span.spanContext();
 
   // If parentSpanIdFromTraceState is defined at all, we want it to take precedence
@@ -267,6 +268,7 @@ export function createTransactionForOtelSpan(span: ReadableSpan): TransactionEve
     origin,
     op,
     status: getStatusMessage(status), // As per protocol, span status is allowed to be undefined
+    links: convertSpanLinksForEnvelope(links),
   });
 
   const statusCode = attributes[ATTR_HTTP_RESPONSE_STATUS_CODE];

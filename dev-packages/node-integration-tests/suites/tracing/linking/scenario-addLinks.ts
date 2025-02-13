@@ -9,23 +9,18 @@ Sentry.init({
   transport: loggingTransport,
 });
 
-// eslint-disable-next-line @typescript-eslint/no-floating-promises
-Sentry.startSpan({ name: 'parent1' }, async parentSpan1 => {
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
-  Sentry.startSpan({ name: 'child1.1' }, async childSpan1 => {
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    Sentry.startSpan({ name: 'child2.1' }, async childSpan2 => {
-      childSpan2.addLinks([
-        { context: parentSpan1.spanContext() },
-        {
-          context: childSpan1.spanContext(),
-          attributes: { 'sentry.link.type': 'previous_trace' },
-        },
-      ]);
+const span1 = Sentry.startInactiveSpan({ name: 'span1' });
+span1.end();
 
-      childSpan2.end();
-    });
+const span2 = Sentry.startInactiveSpan({ name: 'span2' });
+span2.end();
 
-    childSpan1.end();
-  });
+Sentry.startSpan({ name: 'rootSpan' }, rootSpan => {
+  rootSpan.addLinks([
+    { context: span1.spanContext() },
+    {
+      context: span2.spanContext(),
+      attributes: { 'sentry.link.type': 'previous_trace' },
+    },
+  ]);
 });
