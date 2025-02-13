@@ -143,12 +143,8 @@ describe('span links', () => {
                 span_id: expect.stringMatching(parent1_spanId),
               }),
             expect.objectContaining({
-              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-              // @ts-expect-error traceID is defined
-              trace_id: expect.stringMatching(child1_1?.trace_id),
-              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-              // @ts-expect-error spanID is defined
-              span_id: expect.stringMatching(child1_1?.span_id),
+              trace_id: expect.stringMatching(child1_1?.trace_id || 'non-existent-id-fallback'),
+              span_id: expect.stringMatching(child1_1?.span_id || 'non-existent-id-fallback'),
               attributes: expect.objectContaining({
                 'sentry.link.type': 'previous_trace',
               }),
