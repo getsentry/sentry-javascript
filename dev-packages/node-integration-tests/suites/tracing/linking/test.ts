@@ -9,9 +9,8 @@ describe('span links', () => {
         transaction: event => {
           expect(event.transaction).toBe('span1');
 
-          // assigning a string to prevent "might be undefined"
-          span1_traceId = event.contexts?.trace?.trace_id || 'non-existent-trace-id';
-          span1_spanId = event.contexts?.trace?.span_id || 'non-existent-span-id';
+          span1_traceId = event.contexts?.trace?.trace_id as string;
+          span1_spanId = event.contexts?.trace?.span_id as string;
 
           expect(event.spans).toEqual([]);
         },
@@ -42,9 +41,8 @@ describe('span links', () => {
         transaction: event => {
           expect(event.transaction).toBe('span1');
 
-          // assigning a string to prevent "might be undefined"
-          span1_traceId = event.contexts?.trace?.trace_id || 'non-existent-trace-id';
-          span1_spanId = event.contexts?.trace?.span_id || 'non-existent-span-id';
+          span1_traceId = event.contexts?.trace?.trace_id as string;
+          span1_spanId = event.contexts?.trace?.span_id as string;
 
           expect(event.spans).toEqual([]);
         },
@@ -53,9 +51,8 @@ describe('span links', () => {
         transaction: event => {
           expect(event.transaction).toBe('span2');
 
-          // assigning a string to prevent "might be undefined"
-          span2_traceId = event.contexts?.trace?.trace_id || 'non-existent-trace-id';
-          span2_spanId = event.contexts?.trace?.span_id || 'non-existent-span-id';
+          span2_traceId = event.contexts?.trace?.trace_id as string;
+          span2_spanId = event.contexts?.trace?.span_id as string;
 
           expect(event.spans).toEqual([]);
         },
@@ -89,9 +86,8 @@ describe('span links', () => {
         transaction: event => {
           expect(event.transaction).toBe('parent1');
 
-          // assigning a string to prevent "might be undefined"
-          const parent1_traceId = event.contexts?.trace?.trace_id || 'non-existent-span-id';
-          const parent1_spanId = event.contexts?.trace?.span_id || 'non-existent-span-id';
+          const parent1_traceId = event.contexts?.trace?.trace_id as string;
+          const parent1_spanId = event.contexts?.trace?.span_id as string;
 
           const spans = event.spans || [];
           const child1_1 = spans.find(span => span.description === 'child1.1');
@@ -129,9 +125,8 @@ describe('span links', () => {
         transaction: event => {
           expect(event.transaction).toBe('parent1');
 
-          // assigning a string to prevent "might be undefined"
-          const parent1_traceId = event.contexts?.trace?.trace_id || 'non-existent-span-id';
-          const parent1_spanId = event.contexts?.trace?.span_id || 'non-existent-span-id';
+          const parent1_traceId = event.contexts?.trace?.trace_id as string;
+          const parent1_spanId = event.contexts?.trace?.span_id as string;
 
           const spans = event.spans || [];
           const child1_1 = spans.find(span => span.description === 'child1.1');
