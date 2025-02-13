@@ -130,6 +130,7 @@ export {
   baggageHeaderToDynamicSamplingContext,
   dynamicSamplingContextToSentryBaggageHeader,
   parseBaggageHeader,
+  objectToBaggageHeader,
 } from './baggage';
 
 export { getSanitizedUrlString, parseUrl, stripUrlQueryAndFragment } from './url';
