@@ -61,6 +61,7 @@ export function Form({
     submitButtonLabel,
     isRequiredLabel,
   } = options;
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   // TODO: set a ref on the form, and whenever an input changes call processForm() and setError()
   const [error, setError] = useState<null | string>(null);
 
@@ -97,6 +98,7 @@ export function Form({
 
   const handleSubmit = useCallback(
     async (e: JSX.TargetedSubmitEvent<HTMLFormElement>) => {
+      setIsSubmitting(true);
       try {
         e.preventDefault();
         if (!(e.target instanceof HTMLFormElement)) {
@@ -133,8 +135,8 @@ export function Form({
           setError(error as string);
           onSubmitError(error as Error);
         }
-      } catch {
-        // pass
+      } finally {
+        setIsSubmitting(false);
       }
     },
     [screenshotInput && showScreenshotInput, onSubmitSuccess, onSubmitError],
@@ -214,10 +216,10 @@ export function Form({
           ) : null}
         </div>
         <div class="btn-group">
-          <button class="btn btn--primary" type="submit">
+          <button class="btn btn--primary" type="submit" disabled={isSubmitting}>
             {submitButtonLabel}
           </button>
-          <button class="btn btn--default" type="button" onClick={onFormClose}>
+          <button class="btn btn--default" type="button" disabled={isSubmitting} onClick={onFormClose}>
             {cancelButtonLabel}
           </button>
         </div>
