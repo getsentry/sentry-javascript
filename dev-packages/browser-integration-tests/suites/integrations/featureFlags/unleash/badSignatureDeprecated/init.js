@@ -7,7 +7,7 @@ window.UnleashClient = class {
 };
 
 window.Sentry = Sentry;
-window.sentryUnleashIntegration = Sentry.unleashIntegration({ featureFlagClientClass: window.UnleashClient });
+window.sentryUnleashIntegration = Sentry.unleashIntegration({ unleashClientClass: window.UnleashClient });
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
