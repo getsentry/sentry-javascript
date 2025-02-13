@@ -32,12 +32,6 @@ function retrieveStringValue(formData: FormData, key: string): string {
   return '';
 }
 
-function waitForSec(seconds: number): Promise<void> {
-  return new Promise(resolve => {
-    setTimeout(resolve, seconds * 1000);
-  });
-}
-
 export function Form({
   options,
   defaultEmail,
@@ -119,8 +113,6 @@ export function Form({
           message: retrieveStringValue(formData, 'message'),
           attachments: attachment ? [attachment] : undefined,
         };
-
-        await waitForSec(5);
 
         if (!hasAllRequiredFields(data)) {
           return;
