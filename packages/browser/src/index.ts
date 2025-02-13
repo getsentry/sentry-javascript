@@ -3,6 +3,7 @@ export * from './exports';
 export { reportingObserverIntegration } from './integrations/reportingobserver';
 export { httpClientIntegration } from './integrations/httpclient';
 export { contextLinesIntegration } from './integrations/contextlines';
+export { graphqlClientIntegration } from './integrations/graphqlClient';
 
 export {
   captureConsoleIntegration,

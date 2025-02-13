@@ -19,6 +19,7 @@ import type {
   SpanTimeInput,
   TraceContext,
 } from '../types-hoist';
+import type { SpanLink, SpanLinkJSON } from '../types-hoist/link';
 import { consoleSandbox } from '../utils-hoist/logger';
 import { addNonEnumerableProperty, dropUndefinedKeys } from '../utils-hoist/object';
 import { generateSpanId } from '../utils-hoist/propagationContext';
@@ -79,6 +80,25 @@ export function spanToTraceHeader(span: Span): string {
   const { traceId, spanId } = span.spanContext();
   const sampled = spanIsSampled(span);
   return generateSentryTraceHeader(traceId, spanId, sampled);
+}
+
+/**
+ *  Converts the span links array to a flattened version to be sent within an envelope.
+ *
+ *  If the links array is empty, it returns `undefined` so the empty value can be dropped before it's sent.
+ */
+export function convertSpanLinksForEnvelope(links?: SpanLink[]): SpanLinkJSON[] | undefined {
+  if (links && links.length > 0) {
+    return links.map(({ context: { spanId, traceId, traceFlags, ...restContext }, attributes }) => ({
+      span_id: spanId,
+      trace_id: traceId,
+      sampled: traceFlags === TRACE_FLAG_SAMPLED,
+      attributes,
+      ...restContext,
+    }));
+  } else {
+    return undefined;
+  }
 }
 
 /**

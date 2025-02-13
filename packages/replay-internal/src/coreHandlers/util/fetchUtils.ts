@@ -1,10 +1,9 @@
-import { setTimeout } from '@sentry-internal/browser-utils';
+import { getBodyString, getFetchRequestArgBody, setTimeout } from '@sentry-internal/browser-utils';
+import type { FetchHint, NetworkMetaWarning } from '@sentry-internal/browser-utils';
 import type { Breadcrumb, FetchBreadcrumbData } from '@sentry/core';
 
 import { DEBUG_BUILD } from '../../debug-build';
 import type {
-  FetchHint,
-  NetworkMetaWarning,
   ReplayContainer,
   ReplayNetworkOptions,
   ReplayNetworkRequestData,
@@ -17,7 +16,6 @@ import {
   buildSkippedNetworkRequestOrResponse,
   getAllowedHeaders,
   getBodySize,
-  getBodyString,
   makeNetworkReplayBreadcrumb,
   mergeWarning,
   parseContentLengthHeader,
@@ -57,7 +55,7 @@ export function enrichFetchBreadcrumb(
 ): void {
   const { input, response } = hint;
 
-  const body = input ? _getFetchRequestArgBody(input) : undefined;
+  const body = input ? getFetchRequestArgBody(input) : undefined;
   const reqSize = getBodySize(body);
 
   const resSize = response ? parseContentLengthHeader(response.headers.get('content-length')) : undefined;
@@ -117,8 +115,8 @@ function _getRequestInfo(
   }
 
   // We only want to transmit string or string-like bodies
-  const requestBody = _getFetchRequestArgBody(input);
-  const [bodyStr, warning] = getBodyString(requestBody);
+  const requestBody = getFetchRequestArgBody(input);
+  const [bodyStr, warning] = getBodyString(requestBody, logger);
   const data = buildNetworkRequestOrResponse(headers, requestBodySize, bodyStr);
 
   if (warning) {
@@ -216,15 +214,6 @@ async function _parseFetchResponseBody(response: Response): Promise<[string | un
     DEBUG_BUILD && logger.exception(error, 'Failed to get text body from response');
     return [undefined, 'BODY_PARSE_ERROR'];
   }
-}
-
-function _getFetchRequestArgBody(fetchArgs: unknown[] = []): RequestInit['body'] | undefined {
-  // We only support getting the body from the fetch options
-  if (fetchArgs.length !== 2 || typeof fetchArgs[1] !== 'object') {
-    return undefined;
-  }
-
-  return (fetchArgs[1] as RequestInit).body;
 }
 
 function getAllHeaders(headers: Headers, allowedHeaders: string[]): Record<string, string> {

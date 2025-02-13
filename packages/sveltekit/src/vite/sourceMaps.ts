@@ -6,7 +6,7 @@ import { consoleSandbox, escapeStringForRegex, uuid4 } from '@sentry/core';
 import { getSentryRelease } from '@sentry/node';
 import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
-import { type Plugin, type UserConfig, loadConfigFromFile } from 'vite';
+import type { Plugin, UserConfig } from 'vite';
 
 import MagicString from 'magic-string';
 import { WRAPPED_MODULE_SUFFIX } from './autoInstrument';
@@ -76,7 +76,26 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
   const defaultFileDeletionGlob = ['./.*/**/*.map', `./${adapterOutputDir}/**/*.map`];
 
   if (!globalWithSourceMapSetting._sentry_sourceMapSetting) {
-    const configFile = await loadConfigFromFile({ command: 'build', mode: 'production' });
+    let configFile: {
+      path: string;
+      config: UserConfig;
+      dependencies: string[];
+    } | null = null;
+
+    try {
+      // @ts-expect-error - the dynamic import here works fine
+      const Vite = await import('vite');
+      configFile = await Vite.loadConfigFromFile({ command: 'build', mode: 'production' });
+    } catch {
+      if (options?.debug) {
+        consoleSandbox(() => {
+          // eslint-disable-next-line no-console
+          console.warn(
+            '[Sentry] Could not import Vite to load your vite config. Please set `build.sourcemap` to `true` or `hidden` to enable source map generation.',
+          );
+        });
+      }
+    }
 
     if (configFile) {
       globalWithSourceMapSetting._sentry_sourceMapSetting = getUpdatedSourceMapSetting(configFile.config);

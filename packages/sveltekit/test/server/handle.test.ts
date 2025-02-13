@@ -46,8 +46,6 @@ function mockEvent(override: Record<string, unknown> = {}): Parameters<Handle>[0
     ...override,
   };
 
-  event.request.clone = () => event.request;
-
   return event;
 }
 
