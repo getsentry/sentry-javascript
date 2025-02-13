@@ -11,7 +11,7 @@ describe('Prisma ORM v6 Tests', () => {
       .withDockerCompose({
         workingDirectory: [__dirname],
         readyMatches: ['port 5432'],
-        setupCommand: 'yarn setup',
+        setupCommand: 'yarn && yarn setup',
       })
       .expect({
         transaction: transaction => {
