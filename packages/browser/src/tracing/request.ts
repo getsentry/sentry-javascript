@@ -349,7 +349,7 @@ export function xhrCallback(
   const fullUrl = getFullURL(url);
   const parsedUrl = fullUrl ? parseUrl(fullUrl) : parseUrl(url);
 
-  const urlForSpanName = parsedUrl ? getSanitizedUrlString(parsedUrl) : stripUrlQueryAndFragment(url);
+  const urlForSpanName = stripUrlQueryAndFragment(url);
 
   const hasParent = !!getActiveSpan();
 

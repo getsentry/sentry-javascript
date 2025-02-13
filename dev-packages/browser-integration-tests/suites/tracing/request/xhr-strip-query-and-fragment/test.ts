@@ -149,7 +149,7 @@ sentryTest(
     const requestSpan = transactionEvent.spans?.find(({ op }) => op === 'http.client');
 
     expect(requestSpan).toMatchObject({
-      description: 'GET http://sentry-test.io/api/users',
+      description: 'GET /api/users',
       parent_span_id: transactionEvent.contexts?.trace?.span_id,
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       start_timestamp: expect.any(Number),

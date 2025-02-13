@@ -56,14 +56,12 @@ export function instrumentFetchRequest(
   const fullUrl = getFullURL(url);
   const parsedUrl = fullUrl ? parseUrl(fullUrl) : parseUrl(url);
 
-  const urlForSpanName = parsedUrl ? getSanitizedUrlString(parsedUrl) : stripUrlQueryAndFragment(url);
-
   const hasParent = !!getActiveSpan();
 
   const span =
     shouldCreateSpanResult && hasParent
       ? startInactiveSpan({
-          name: `${method} ${urlForSpanName}`,
+          name: `${method} ${stripUrlQueryAndFragment(url)}`,
           attributes: {
             url,
             type: 'fetch',
