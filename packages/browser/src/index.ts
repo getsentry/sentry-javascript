@@ -3,6 +3,7 @@ export * from './exports';
 export { reportingObserverIntegration } from './integrations/reportingobserver';
 export { httpClientIntegration } from './integrations/httpclient';
 export { contextLinesIntegration } from './integrations/contextlines';
+export { graphqlClientIntegration } from './integrations/graphqlClient';
 
 export {
   captureConsoleIntegration,
@@ -68,3 +69,4 @@ export {
 export { launchDarklyIntegration, buildLaunchDarklyFlagUsedHandler } from './integrations/featureFlags/launchdarkly';
 export { openFeatureIntegration, OpenFeatureIntegrationHook } from './integrations/featureFlags/openfeature';
 export { unleashIntegration } from './integrations/featureFlags/unleash';
+export { statsigIntegration } from './integrations/featureFlags/statsig';

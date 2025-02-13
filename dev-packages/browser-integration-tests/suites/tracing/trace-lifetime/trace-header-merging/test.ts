@@ -50,15 +50,27 @@ sentryTest(
     await page.goto(url);
 
     await sentryTest.step('fetch with POJO', () =>
-      assertRequests({ page, buttonSelector: '#fetchPojo', requestMatcher: 'http://example.com/fetch-pojo' }),
+      assertRequests({
+        page,
+        buttonSelector: '#fetchPojo',
+        requestMatcher: 'http://sentry-test-site.example/fetch-pojo',
+      }),
     );
 
     await sentryTest.step('fetch with array', () =>
-      assertRequests({ page, buttonSelector: '#fetchArray', requestMatcher: 'http://example.com/fetch-array' }),
+      assertRequests({
+        page,
+        buttonSelector: '#fetchArray',
+        requestMatcher: 'http://sentry-test-site.example/fetch-array',
+      }),
     );
 
     await sentryTest.step('fetch with Headers instance', () =>
-      assertRequests({ page, buttonSelector: '#fetchHeaders', requestMatcher: 'http://example.com/fetch-headers' }),
+      assertRequests({
+        page,
+        buttonSelector: '#fetchHeaders',
+        requestMatcher: 'http://sentry-test-site.example/fetch-headers',
+      }),
     );
   },
 );

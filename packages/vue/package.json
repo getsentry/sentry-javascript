@@ -1,6 +1,6 @@
 {
   "name": "@sentry/vue",
-  "version": "9.0.0-alpha.2",
+  "version": "9.0.1",
   "description": "Official Sentry SDK for Vue.js",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/vue",
@@ -39,11 +39,11 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/browser": "9.0.0-alpha.2",
-    "@sentry/core": "9.0.0-alpha.2"
+    "@sentry/browser": "9.0.1",
+    "@sentry/core": "9.0.1"
   },
   "peerDependencies": {
-    "pinia": "2.x",
+    "pinia": "2.x || 3.x",
     "vue": "2.x || 3.x"
   },
   "peerDependenciesMeta": {

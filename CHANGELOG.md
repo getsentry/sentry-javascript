@@ -2,7 +2,7 @@
 
 <!-- prettier-ignore-start -->
 > [!IMPORTANT]
-> If you are upgrading to the `8.x` versions of the SDK from `7.x` or below, make sure you follow our
+> If you are upgrading to the `9.x` versions of the SDK from `8.x` or below, make sure you follow our
 > [migration guide](https://docs.sentry.io/platforms/javascript/migration/) first.
 <!-- prettier-ignore-end -->
 
@@ -10,19 +10,25 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-### 9.0.0
+Work in this release was contributed by @filips-alpe. Thank you for your contribution!
+
+## 9.0.1
+
+- ref(flags): rename unleash integration param ([#15343](https://github.com/getsentry/sentry-javascript/pull/15343))
+
+## 9.0.0
 
 Version `9.0.0` marks a release of the Sentry JavaScript SDKs that contains breaking changes.
 The goal of this release is to trim down on unused and potentially confusing APIs, prepare the SDKs for future framework versions to build deeper instrumentation, and remove old polyfills to reduce the packages' size.
 
-#### How To Upgrade
+### How To Upgrade
 
 Please carefully read through the migration guide in the Sentry docs on how to upgrade from version 8 to version 9.
 Make sure to select your specific platform/framework in the top left corner: https://docs.sentry.io/platforms/javascript/migration/v8-to-v9/
 
 A comprehensive migration guide outlining all changes for all the frameworks can be found within the Sentry JavaScript SDK Repository: https://github.com/getsentry/sentry-javascript/blob/develop/MIGRATION.md
 
-#### Breaking Changes
+### Breaking Changes
 
 - doc(deno)!: Make Deno v2 the minimum supported version (#15085)
 - feat!: Bump typescript to `~5.0.0` (#14758)
@@ -101,7 +107,7 @@ A comprehensive migration guide outlining all changes for all the frameworks can
 - ref(core)!: Remove `Scope` type interface in favor of using `Scope` class (#14721)
 - ref(core)!: Remove backwards compatible SentryCarrier type (#14697)
 
-#### Other Changes
+### Other Changes
 
 - chore(browser): Export ipAddress helpers for use in other SDKs (#15079)
 - deps(node): Bump `import-in-the-middle` to `1.12.0` (#14796)
@@ -126,11 +132,14 @@ A comprehensive migration guide outlining all changes for all the frameworks can
 - feat(deps): bump @opentelemetry/instrumentation-mongodb from 0.50.0 to 0.51.0 (#14871)
 - feat(deps): bump @opentelemetry/instrumentation-tedious from 0.17.0 to 0.18.0 (#14868)
 - feat(deps): bump @sentry/cli from 2.39.1 to 2.41.1 (#15173)
+- feat(flags): Add Statsig browser integration (#15319)
 - feat(gatsby): Preserve user-provided source map settings (#15006)
 - feat(nestjs): Remove `SentryTracingInterceptor`, `SentryGlobalGraphQLFilter`, `SentryGlobalGenericFilter` (#14761)
 - feat(nextjs): Directly forward `sourcemaps.disable` to webpack plugin (#15109)
 - feat(node): Add `processSessionIntegration` (#15081)
+- feat(node): Add missing `vercelAIIntegration` export (#15318)
 - feat(node): Capture exceptions from `worker_threads` (#15105)
+- feat(nuxt): Add enabled to disable Sentry module (#15337)
 - feat(nuxt): add `silent`, `errorHandler`, `release` to `SourceMapsOptions` (#15246)
 - feat(profiling-node): Use `@sentry-internal/node-cpu-profiler` (#15208)
 - feat(replay): Update fflate to 0.8.2 (#14867)
@@ -150,7 +159,6 @@ A comprehensive migration guide outlining all changes for all the frameworks can
 - fix(nextjs): Flush with `waitUntil` in `captureRequestError` (#15146)
 - fix(nextjs): Use batched devserver symbolication endpoint (#15335)
 - fix(node): Don't leak `__span` property into breadcrumbs (#14798)
-- fix(node): Ensure `httpIntegration` propagates traces (#15233)
 - fix(node): Fix sample rand propagation for negative sampling decisions (#15045)
 - fix(node): Missing `release` from ANR sessions (#15138)
 - fix(node): Set the correct fallback URL fields for outgoing https requests if they are not defined (#15316)
@@ -171,7 +179,7 @@ A comprehensive migration guide outlining all changes for all the frameworks can
 - ref(svelte): Remove SvelteKit detection (#15313)
 - ref(sveltekit): Clean up sub-request check (#15251)
 
-Work in this release was contributed by @tjhiggins, @chris-basebone, @GrizliK1988, @davidturissini, @nwalters512, @aloisklink, @arturovt, @benjick, @maximepvrt, @mstrokin, @kunal-511, @jahands, @jrandolf, @tannerlinsley, @Zen-cronic, @maxmaxme and @nathankleyn. Thank you for your contributions!
+Work in this release was contributed by @aloisklink, @arturovt, @aryanvdesh, @benjick, @chris-basebone, @davidturissini, @GrizliK1988, @jahands, @jrandolf, @kunal-511, @maximepvrt, @maxmaxme, @mstrokin, @nathankleyn, @nwalters512, @tannerlinsley, @tjhiggins, and @Zen-cronic. Thank you for your contributions!
 
 ## 9.0.0-alpha.2
 
