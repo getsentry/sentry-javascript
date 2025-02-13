@@ -1324,7 +1324,7 @@ describe('startInactiveSpan', () => {
         origin: 'manual',
       },
     });
-    expect(innerTransaction?.spans).toEqual(undefined);
+    expect(innerTransaction?.spans).toEqual([]);
     expect(innerTransaction?.transaction).toEqual('inner transaction');
     expect(innerTransaction?.sdkProcessingMetadata).toEqual({
       dynamicSamplingContext: {
