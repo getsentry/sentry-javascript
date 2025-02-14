@@ -14,10 +14,14 @@ export const nextjsClientStackFrameNormalizationIntegration = defineIntegration(
         }
 
         if (assetPrefix) {
+          // If the user defined an asset prefix, we need to strip it so that we can match it with uploaded sourcemaps.
+          // assetPrefix always takes priority over basePath.
           if (frame.filename?.startsWith(assetPrefix)) {
             frame.filename = frame.filename.replace(assetPrefix, 'app://');
           }
         } else if (basePath) {
+          // If the user defined a base path, we need to strip it to match with uploaded sourcemaps.
+          // We should only do this for same-origin filenames though, so that third party assets are not rewritten.
           try {
             const { origin: frameOrigin } = new URL(frame.filename as string);
             if (frameOrigin === windowOrigin) {
