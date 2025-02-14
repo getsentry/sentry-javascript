@@ -29,6 +29,9 @@ export {
   endSession,
   captureSession,
   addEventProcessor,
+  _experimentalLogError,
+  _experimentalLogInfo,
+  _experimentalLogWarning
 } from './exports';
 export {
   getCurrentScope,
