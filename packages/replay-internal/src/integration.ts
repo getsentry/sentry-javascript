@@ -150,12 +150,9 @@ export class Replay implements Integration {
           // this can happen if the error is frozen or does not allow mutation for other reasons
         }
       },
+      // experimental support for recording iframes from different origins
+      recordCrossOriginIframes: Boolean(_experiments.recordCrossOriginIframes),
     };
-
-    // experimental support for recording iframes from different origins
-    if (_experiments.recordCrossOriginIframes) {
-      this._recordingOptions.recordCrossOriginIframes = true;
-    }
 
     this._initialOptions = {
       flushMinDelay,
