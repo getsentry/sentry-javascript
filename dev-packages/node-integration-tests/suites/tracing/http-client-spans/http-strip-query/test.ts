@@ -17,7 +17,7 @@ test('strips and handles query params in spans of outgoing http requests', done 
           transaction: txn => {
             expect(txn.transaction).toEqual('test_transaction');
             expect(txn.spans).toHaveLength(1);
-            expect(txn.spans?.at(0)).toMatchObject({
+            expect(txn.spans?.[0]).toMatchObject({
               data: {
                 url: `${SERVER_URL}/api/v0/users`,
                 'http.url': `${SERVER_URL}/api/v0/users?id=1`,
