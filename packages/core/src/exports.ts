@@ -24,6 +24,7 @@ import { timestampInSeconds } from './utils-hoist/time';
 import { GLOBAL_OBJ } from './utils-hoist/worldwide';
 import type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
 import { parseEventHintOrCaptureContext } from './utils/prepareEvent';
+import { captureLog } from './ourlogs';
 
 /**
  * Captures an exception event and sends it to Sentry.
@@ -334,3 +335,28 @@ export function captureSession(end: boolean = false): void {
   // only send the update
   _sendSessionUpdate();
 }
+
+
+/**
+ * A utility to record a log with level 'INFO' and send it to sentry.
+ *
+ * Logs represent a message and some parameters which provide context for a trace or error.
+ * Ex: sentry.logInfo`user ${username} just bought ${item}!`
+ */
+export const _experimentalLogInfo = captureLog.bind(null, 'info');
+
+/**
+ * A utility to record a log with level 'ERROR' and send it to sentry.
+ *
+ * Logs represent a message and some parameters which provide context for a trace or error.
+ * Ex: sentry.logError`user ${username} just bought ${item}!`
+ */
+export const _experimentalLogError = captureLog.bind(null, 'error');
+
+/**
+ * A utility to record a log with level 'WARNING' and send it to sentry.
+ *
+ * Logs represent a message and some parameters which provide context for a trace or error.
+ * Ex: sentry.logWarning`user ${username} just bought ${item}!`
+ */
+export const _experimentalLogWarning = captureLog.bind(null, 'warning');

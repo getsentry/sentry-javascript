@@ -223,6 +223,7 @@ const ITEM_TYPE_TO_DATA_CATEGORY_MAP: Record<EnvelopeItemType, DataCategory> = {
   feedback: 'feedback',
   span: 'span',
   raw_security: 'security',
+  otel_log: 'log_item',
 };
 
 /**
