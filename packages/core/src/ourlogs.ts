@@ -55,57 +55,60 @@ function addLog(log: Log): void {
   client.sendEnvelope(envelope).then(null, ex => console.error(ex));
 }
 
+function valueToAttribute(key: string, value: unknown): LogAttribute {
+  if (typeof value === 'number') {
+    if(Number.isInteger(value)) {
+      return {
+        key,
+        value: {
+          intValue: value
+        }
+      }
+    }
+    return {
+      key,
+      value: {
+        doubleValue: value
+      }
+    }
+  } else if (typeof value === 'boolean') {
+    return {
+      key,
+      value: {
+        boolValue: value
+      }
+    }
+  } else if (typeof value === 'string') {
+    return {
+      key,
+      value: {
+        stringValue: value
+      }
+    }
+  } else {
+    return {
+      key,
+      value: {
+        stringValue: JSON.stringify(value)
+      }
+    }
+  }
+}
+
 /**
- * A utility function to be able to create methods like Sentry.info(...)
+ * A utility function to be able to create methods like Sentry.info`...`
  *
  * The first parameter is bound with, e.g., const info = captureLog.bind(null, 'info')
  * The other parameters are in the format to be passed a template, Sentry.info`hello ${world}`
  */
-export function captureLog(level: LogSeverityLevel, strings: string[], ...values: unknown[]): void {
+export function captureLog(level: LogSeverityLevel, messages: string[] | string, ...values: unknown[]): void {
+  const message = Array.isArray(messages) ? messages.reduce((acc, str, i) => acc + str + (values[i] ?? ''), '') : messages;
+
   addLog({
     severityText: level,
     body: {
-      stringValue: strings.reduce((acc, str, i) => acc + str + (values[i] ?? ''), '' ),
+      stringValue: message,
     },
-    attributes: values.map<LogAttribute>((value, index) => {
-      const key = `param${index}`;
-      if (typeof value === 'number') {
-        if(Number.isInteger(value)) {
-          return {
-            key,
-            value: {
-              intValue: value
-            }
-          }
-        }
-        return {
-          key,
-          value: {
-            doubleValue: value
-          }
-        }
-      } else if (typeof value === 'boolean') {
-        return {
-          key,
-          value: {
-            boolValue: value
-          }
-        }
-      } else if (typeof value === 'string') {
-        return {
-          key,
-          value: {
-            stringValue: value
-          }
-        }
-      } else {
-        return {
-          key,
-          value: {
-            stringValue: JSON.stringify(value)
-          }
-        }
-      }
-    }, {})
+    attributes: values.map<LogAttribute>((value, index) => valueToAttribute(`param${index}`, value)),
   })
 }
