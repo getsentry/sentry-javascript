@@ -3,7 +3,6 @@ export type { AsyncContextStrategy } from './asyncContext/types';
 export type { Carrier } from './carrier';
 export type { OfflineStore, OfflineTransportOptions } from './transports/offline';
 export type { ServerRuntimeClientOptions } from './server-runtime-client';
-export type { RequestDataIntegrationOptions } from './integrations/requestdata';
 export type { IntegrationIndex } from './integration';
 
 export * from './tracing';
@@ -51,7 +50,11 @@ export { Scope } from './scope';
 export type { CaptureContext, ScopeContext, ScopeData } from './scope';
 export { notifyEventProcessors } from './eventProcessors';
 export { getEnvelopeEndpointWithUrlEncodedAuth, getReportDialogEndpoint } from './api';
-export { BaseClient } from './baseclient';
+export {
+  Client,
+  // eslint-disable-next-line deprecation/deprecation
+  BaseClient,
+} from './client';
 export { ServerRuntimeClient } from './server-runtime-client';
 export { initAndBind, setCurrentClient } from './sdk';
 export { createTransport } from './transports/base';
@@ -65,11 +68,15 @@ export {
 export { applyScopeDataToEvent, mergeScopeData } from './utils/applyScopeDataToEvent';
 export { prepareEvent } from './utils/prepareEvent';
 export { createCheckInEnvelope } from './checkin';
-export { hasTracingEnabled } from './utils/hasTracingEnabled';
+// eslint-disable-next-line deprecation/deprecation
+export { hasTracingEnabled } from './utils/hasSpansEnabled';
+export { hasSpansEnabled } from './utils/hasSpansEnabled';
 export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
 export { handleCallbackErrors } from './utils/handleCallbackErrors';
 export { parameterize } from './utils/parameterize';
+export { addAutoIpAddressToSession, addAutoIpAddressToUser } from './utils/ipAddress';
 export {
+  convertSpanLinksForEnvelope,
   spanToTraceHeader,
   spanToJSON,
   spanIsSampled,
@@ -86,6 +93,13 @@ export { parseSampleRate } from './utils/parseSampleRate';
 export { applySdkMetadata } from './utils/sdkMetadata';
 export { getTraceData } from './utils/traceData';
 export { getTraceMetaTags } from './utils/meta';
+export {
+  winterCGHeadersToDict,
+  winterCGRequestToRequestData,
+  httpRequestToRequestData,
+  extractQueryParamsFromUrl,
+  headersToDict,
+} from './utils/request';
 export { DEFAULT_ENVIRONMENT } from './constants';
 export { addBreadcrumb } from './breadcrumbs';
 export { functionToStringIntegration } from './integrations/functiontostring';
@@ -100,20 +114,14 @@ export { rewriteFramesIntegration } from './integrations/rewriteframes';
 export { zodErrorsIntegration } from './integrations/zoderrors';
 export { thirdPartyErrorFilterIntegration } from './integrations/third-party-errors-filter';
 export { profiler } from './profiling';
-export {
-  // eslint-disable-next-line deprecation/deprecation
-  addTracingHeadersToFetchRequest,
-  instrumentFetchRequest,
-} from './fetch';
+export { instrumentFetchRequest } from './fetch';
 export { trpcMiddleware } from './trpc';
 export { captureFeedback } from './feedback';
+export type { ReportDialogOptions } from './report-dialog';
 
-// eslint-disable-next-line deprecation/deprecation
-export { getCurrentHubShim, getCurrentHub } from './getCurrentHubShim';
-
-// TODO(v9): Make this structure pretty again and don't do "export *"
+// TODO: Make this structure pretty again and don't do "export *"
 export * from './utils-hoist/index';
-// TODO(v9): Make this structure pretty again and don't do "export *"
+// TODO: Make this structure pretty again and don't do "export *"
 export * from './types-hoist/index';
 
 export type { FeatureFlag } from './featureFlags';

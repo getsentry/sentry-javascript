@@ -14,7 +14,7 @@
   },
   "devDependencies": {
     "@sentry-internal/test-utils": "link:../../../test-utils",
-    "@playwright/test": "^1.41.1"
+    "@playwright/test": "~1.50.0"
   },
   "volta": {
     "extends": "../../package.json"

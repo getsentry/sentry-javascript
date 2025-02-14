@@ -9,9 +9,8 @@ setTimeout(() => {
 
 Sentry.init({
   dsn: process.env.SENTRY_DSN,
-  release: '1.0',
+  release: '1.0.0',
   integrations: [Sentry.anrIntegration({ captureStackTrace: true, anrThreshold: 100 })],
-  autoSessionTracking: true,
 });
 
 Sentry.setUser({ email: 'person@home.com' });

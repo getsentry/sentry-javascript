@@ -1,10 +1,10 @@
 import { startInactiveSpan } from '@sentry/browser';
 import type { Span } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, spanToJSON, timestampInSeconds, withActiveSpan } from '@sentry/core';
-import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
 
 import { REACT_MOUNT_OP, REACT_RENDER_OP, REACT_UPDATE_OP } from './constants';
+import { hoistNonReactStatics } from './hoist-non-react-statics';
 
 export const UNKNOWN_COMPONENT = 'unknown';
 
@@ -158,7 +158,7 @@ function withProfiler<P extends Record<string, any>>(
   options?: Pick<Partial<ProfilerProps>, Exclude<keyof ProfilerProps, 'updateProps' | 'children'>>,
 ): React.FC<P> {
   const componentDisplayName =
-    (options && options.name) || WrappedComponent.displayName || WrappedComponent.name || UNKNOWN_COMPONENT;
+    options?.name || WrappedComponent.displayName || WrappedComponent.name || UNKNOWN_COMPONENT;
 
   const Wrapped: React.FC<P> = (props: P) => (
     <Profiler {...options} name={componentDisplayName} updateProps={props}>
@@ -189,7 +189,7 @@ function useProfiler(
   },
 ): void {
   const [mountSpan] = React.useState(() => {
-    if (options && options.disabled) {
+    if (options?.disabled) {
       return undefined;
     }
 
@@ -236,4 +236,4 @@ function useProfiler(
   }, []);
 }
 
-export { withProfiler, Profiler, useProfiler };
+export { Profiler, useProfiler, withProfiler };

@@ -2,6 +2,7 @@ import { getClient, withScope } from './currentScopes';
 import { captureException } from './exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from './semanticAttributes';
 import { startSpanManual } from './tracing';
+import { addNonEnumerableProperty } from './utils-hoist';
 import { normalize } from './utils-hoist/normalize';
 
 interface SentryTrpcMiddlewareOptions {
@@ -44,14 +45,21 @@ export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
     const { path, type, next, rawInput, getRawInput } = opts;
 
     const client = getClient();
-    const clientOptions = client && client.getOptions();
+    const clientOptions = client?.getOptions();
 
     const trpcContext: Record<string, unknown> = {
       procedure_path: path,
       procedure_type: type,
     };
 
-    if (options.attachRpcInput !== undefined ? options.attachRpcInput : clientOptions && clientOptions.sendDefaultPii) {
+    addNonEnumerableProperty(
+      trpcContext,
+      '__sentry_override_normalization_depth__',
+      1 + // 1 for context.input + the normal normalization depth
+        (clientOptions?.normalizeDepth ?? 5), // 5 is a sane depth
+    );
+
+    if (options.attachRpcInput !== undefined ? options.attachRpcInput : clientOptions?.sendDefaultPii) {
       if (rawInput !== undefined) {
         trpcContext.input = normalize(rawInput);
       }

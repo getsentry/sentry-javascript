@@ -1,3 +1,7 @@
+import { getClient, getCurrentScope, getIsolationScope, withIsolationScope } from './currentScopes';
+import { DEBUG_BUILD } from './debug-build';
+import type { CaptureContext } from './scope';
+import { closeSession, makeSession, updateSession } from './session';
 import type {
   CheckIn,
   Event,
@@ -13,11 +17,6 @@ import type {
   SeverityLevel,
   User,
 } from './types-hoist';
-
-import { getClient, getCurrentScope, getIsolationScope, withIsolationScope } from './currentScopes';
-import { DEBUG_BUILD } from './debug-build';
-import type { CaptureContext } from './scope';
-import { closeSession, makeSession, updateSession } from './session';
 import { isThenable } from './utils-hoist/is';
 import { logger } from './utils-hoist/logger';
 import { uuid4 } from './utils-hoist/misc';
@@ -244,7 +243,7 @@ export function isInitialized(): boolean {
 /** If the SDK is initialized & enabled. */
 export function isEnabled(): boolean {
   const client = getClient();
-  return !!client && client.getOptions().enabled !== false && !!client.getTransport();
+  return client?.getOptions().enabled !== false && !!client?.getTransport();
 }
 
 /**
@@ -278,7 +277,7 @@ export function startSession(context?: SessionContext): Session {
 
   // End existing session if there's one
   const currentSession = isolationScope.getSession();
-  if (currentSession && currentSession.status === 'ok') {
+  if (currentSession?.status === 'ok') {
     updateSession(currentSession, { status: 'exited' });
   }
 

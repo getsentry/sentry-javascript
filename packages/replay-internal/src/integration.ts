@@ -285,7 +285,7 @@ export class Replay implements Integration {
    * Get the current session ID.
    */
   public getReplayId(): string | undefined {
-    if (!this._replay || !this._replay.isEnabled()) {
+    if (!this._replay?.isEnabled()) {
       return;
     }
 
@@ -301,7 +301,7 @@ export class Replay implements Integration {
    *   - or calling `flush()` to send the replay
    */
   public getRecordingMode(): ReplayRecordingMode | undefined {
-    if (!this._replay || !this._replay.isEnabled()) {
+    if (!this._replay?.isEnabled()) {
       return;
     }
 

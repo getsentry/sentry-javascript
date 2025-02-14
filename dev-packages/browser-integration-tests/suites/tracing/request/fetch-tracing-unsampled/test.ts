@@ -13,7 +13,7 @@ sentryTest('should attach `sentry-trace` header to unsampled fetch requests', as
   const requests = (
     await Promise.all([
       page.goto(url),
-      Promise.all([0, 1, 2].map(idx => page.waitForRequest(`http://example.com/${idx}`))),
+      Promise.all([0, 1, 2].map(idx => page.waitForRequest(`http://sentry-test-site.example/${idx}`))),
     ])
   )[1];
 

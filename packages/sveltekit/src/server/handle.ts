@@ -3,7 +3,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   continueTrace,
-  getActiveSpan,
   getCurrentScope,
   getDefaultIsolationScope,
   getIsolationScope,
@@ -43,15 +42,6 @@ export type SentryHandleOptions = {
    * @default true
    */
   injectFetchProxyScript?: boolean;
-
-  /**
-   * If this option is set, the `sentryHandle` handler will add a nonce attribute to the script
-   * tag it injects into the page. This script is used to enable instrumentation of `fetch` calls
-   * in `load` functions.
-   *
-   * Use this if your CSP policy blocks the fetch proxy script injected by `sentryHandle`.
-   */
-  fetchProxyScriptNonce?: string;
 };
 
 /**
@@ -68,21 +58,17 @@ export const FETCH_PROXY_SCRIPT = `
 /**
  * Adds Sentry tracing <meta> tags to the returned html page.
  * Adds Sentry fetch proxy script to the returned html page if enabled in options.
- * Also adds a nonce attribute to the script tag if users specified one for CSP.
  *
  * Exported only for testing
  */
-export function addSentryCodeToPage(options: SentryHandleOptions): NonNullable<ResolveOptions['transformPageChunk']> {
-  const { fetchProxyScriptNonce, injectFetchProxyScript } = options;
-  // if injectFetchProxyScript is not set, we default to true
-  const shouldInjectScript = injectFetchProxyScript !== false;
-  const nonce = fetchProxyScriptNonce ? `nonce="${fetchProxyScriptNonce}"` : '';
-
+export function addSentryCodeToPage(options: { injectFetchProxyScript: boolean }): NonNullable<
+  ResolveOptions['transformPageChunk']
+> {
   return ({ html }) => {
     const metaTags = getTraceMetaTags();
     const headWithMetaTags = metaTags ? `<head>\n${metaTags}` : '<head>';
 
-    const headWithFetchScript = shouldInjectScript ? `\n<script ${nonce}>${FETCH_PROXY_SCRIPT}</script>` : '';
+    const headWithFetchScript = options.injectFetchProxyScript ? `\n<script>${FETCH_PROXY_SCRIPT}</script>` : '';
 
     const modifiedHead = `${headWithMetaTags}${headWithFetchScript}`;
 
@@ -106,26 +92,20 @@ export function addSentryCodeToPage(options: SentryHandleOptions): NonNullable<R
  * ```
  */
 export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
+  const { handleUnknownRoutes, ...rest } = handlerOptions ?? {};
   const options = {
-    handleUnknownRoutes: false,
-    injectFetchProxyScript: true,
-    ...handlerOptions,
+    handleUnknownRoutes: handleUnknownRoutes ?? false,
+    ...rest,
   };
 
   const sentryRequestHandler: Handle = input => {
-    // event.isSubRequest was added in SvelteKit 1.21.0 and we can use it to check
-    // if we should create a new execution context or not.
     // In case of a same-origin `fetch` call within a server`load` function,
     // SvelteKit will actually just re-enter the `handle` function and set `isSubRequest`
     // to `true` so that no additional network call is made.
     // We want the `http.server` span of that nested call to be a child span of the
     // currently active span instead of a new root span to correctly reflect this
     // behavior.
-    // As a fallback for Kit < 1.21.0, we check if there is an active span only if there's none,
-    // we create a new execution context.
-    const isSubRequest = typeof input.event.isSubRequest === 'boolean' ? input.event.isSubRequest : !!getActiveSpan();
-
-    if (isSubRequest) {
+    if (input.event.isSubRequest) {
       return instrumentHandle(input, options);
     }
 
@@ -133,7 +113,11 @@ export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
       // We only call continueTrace in the initial top level request to avoid
       // creating a new root span for the sub request.
       isolationScope.setSDKProcessingMetadata({
-        normalizedRequest: winterCGRequestToRequestData(input.event.request.clone()),
+        // We specifically avoid cloning the request here to avoid double read errors.
+        // We only read request headers so we're not consuming the body anyway.
+        // Note to future readers: This sounds counter-intuitive but please read
+        // https://github.com/getsentry/sentry-javascript/issues/14583
+        normalizedRequest: winterCGRequestToRequestData(input.event.request),
       });
       return continueTrace(getTracePropagationData(input.event), () => instrumentHandle(input, options));
     });
@@ -148,6 +132,18 @@ async function instrumentHandle(
 ): Promise<Response> {
   if (!event.route?.id && !options.handleUnknownRoutes) {
     return resolve(event);
+  }
+
+  // caching the result of the version check in `options.injectFetchProxyScript`
+  // to avoid doing the dynamic import on every request
+  if (options.injectFetchProxyScript == null) {
+    try {
+      // @ts-expect-error - the dynamic import is fine here
+      const { VERSION } = await import('@sveltejs/kit');
+      options.injectFetchProxyScript = isFetchProxyRequired(VERSION);
+    } catch {
+      options.injectFetchProxyScript = true;
+    }
   }
 
   const routeName = `${event.request.method} ${event.route?.id || event.url.pathname}`;
@@ -171,10 +167,14 @@ async function instrumentHandle(
       },
       async (span?: Span) => {
         getCurrentScope().setSDKProcessingMetadata({
-          normalizedRequest: winterCGRequestToRequestData(event.request.clone()),
+          // We specifically avoid cloning the request here to avoid double read errors.
+          // We only read request headers so we're not consuming the body anyway.
+          // Note to future readers: This sounds counter-intuitive but please read
+          // https://github.com/getsentry/sentry-javascript/issues/14583
+          normalizedRequest: winterCGRequestToRequestData(event.request),
         });
         const res = await resolve(event, {
-          transformPageChunk: addSentryCodeToPage(options),
+          transformPageChunk: addSentryCodeToPage({ injectFetchProxyScript: options.injectFetchProxyScript ?? true }),
         });
         if (span) {
           setHttpStatus(span, res.status);
@@ -189,4 +189,20 @@ async function instrumentHandle(
   } finally {
     await flushIfServerless();
   }
+}
+
+/**
+ * We only need to inject the fetch proxy script for SvelteKit versions < 2.16.0.
+ * Exported only for testing.
+ */
+export function isFetchProxyRequired(version: string): boolean {
+  try {
+    const [major, minor] = version.trim().replace(/-.*/, '').split('.').map(Number);
+    if (major != null && minor != null && (major > 2 || (major === 2 && minor >= 16))) {
+      return false;
+    }
+  } catch {
+    // ignore
+  }
+  return true;
 }

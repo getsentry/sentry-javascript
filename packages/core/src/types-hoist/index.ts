@@ -7,7 +7,6 @@ export type {
   FetchBreadcrumbHint,
   XhrBreadcrumbHint,
 } from './breadcrumb';
-export type { Client } from './client';
 export type { ClientReport, Outcome, EventDropReason } from './clientreport';
 export type {
   Context,
@@ -56,8 +55,6 @@ export type { Event, EventHint, EventType, ErrorEvent, TransactionEvent } from '
 export type { EventProcessor } from './eventprocessor';
 export type { Exception } from './exception';
 export type { Extra, Extras } from './extra';
-// eslint-disable-next-line deprecation/deprecation
-export type { Hub } from './hub';
 export type { Integration, IntegrationFn } from './integration';
 export type { Mechanism } from './mechanism';
 export type { ExtractedNodeRequestData, HttpHeaderValue, Primitive, WorkerLocation } from './misc';

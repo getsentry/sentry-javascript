@@ -24,7 +24,7 @@ describe('registerErrorHandlers()', () => {
   beforeEach(() => {
     mockAddGlobalErrorInstrumentationHandler.mockClear();
     mockAddGlobalUnhandledRejectionInstrumentationHandler.mockClear();
-    const options = getDefaultTestClientOptions({ enableTracing: true });
+    const options = getDefaultTestClientOptions({ tracesSampleRate: 1 });
     const client = new TestClient(options);
     setCurrentClient(client);
     client.init();

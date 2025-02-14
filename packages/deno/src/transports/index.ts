@@ -31,7 +31,7 @@ export function makeFetchTransport(options: DenoTransportOptions): Transport {
     const requestOptions: RequestInit = {
       body: request.body,
       method: 'POST',
-      referrerPolicy: 'origin',
+      referrerPolicy: 'strict-origin',
       headers: options.headers,
     };
 

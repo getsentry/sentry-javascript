@@ -11,7 +11,7 @@
     "react-router": "^7.0.1"
   },
   "devDependencies": {
-    "@playwright/test": "^1.44.1",
+    "@playwright/test": "~1.50.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "vite": "^6.0.1",
     "@vitejs/plugin-react": "^4.3.4",

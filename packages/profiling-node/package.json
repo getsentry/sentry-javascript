@@ -1,12 +1,13 @@
 {
   "name": "@sentry/profiling-node",
-  "version": "8.45.0",
+  "version": "9.1.0",
   "description": "Official Sentry SDK for Node.js Profiling",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/profiling-node",
   "author": "Sentry",
   "license": "MIT",
   "main": "lib/cjs/index.js",
+  "module": "lib/esm/index.js",
   "types": "lib/types/index.d.ts",
   "exports": {
     "./package.json": "./package.json",
@@ -39,53 +40,34 @@
   },
   "files": [
     "/lib",
-    "/bindings",
-    "/binding.gyp",
     "package.json",
-    "/scripts/binaries.js",
-    "/scripts/check-build.js",
-    "/scripts/copy-target.js",
     "/scripts/prune-profiler-binaries.js"
   ],
   "scripts": {
-    "install": "node scripts/check-build.js",
     "clean": "rm -rf build && rm -rf lib",
-    "lint": "yarn lint:eslint && yarn lint:clang",
-    "lint:eslint": "eslint . --format stylish",
-    "lint:clang": "node clang-format.js",
+    "lint": "eslint . --format stylish",
     "fix": "eslint . --format stylish --fix",
-    "lint:fix": "yarn fix:eslint && yarn fix:clang",
-    "lint:fix:clang": "node clang-format.js --fix",
-    "build": "yarn build:lib && yarn build:bindings:configure && yarn build:bindings",
+    "build": "yarn build:lib",
     "build:lib": "yarn build:types && rollup -c rollup.npm.config.mjs",
-    "build:transpile": "yarn build:bindings:configure && yarn build:bindings && yarn build:lib",
+    "build:transpile": "yarn build:lib",
     "build:types:downlevel": "yarn downlevel-dts lib/types lib/types-ts3.8 --to ts3.8",
     "build:types": "tsc -p tsconfig.types.json && yarn build:types:downlevel",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:bindings:configure": "node-gyp configure",
-    "build:bindings:configure:arm64": "node-gyp configure --arch=arm64 --target_arch=arm64",
-    "build:bindings": "node-gyp build && node scripts/copy-target.js",
-    "build:bindings:arm64": "node-gyp build --arch=arm64 && node scripts/copy-target.js",
-    "build:dev": "yarn clean && yarn build:bindings:configure && yarn build",
+    "build:dev": "yarn clean && yarn build",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:watch": "run-p build:transpile:watch build:types:watch",
     "build:tarball": "npm pack",
-    "test:watch": "cross-env SENTRY_PROFILER_BINARY_DIR=build jest --watch",
+    "test:watch": "jest --watch",
     "test:bundle": "node test-binaries.esbuild.js",
-    "test": "cross-env SENTRY_PROFILER_BINARY_DIR=lib jest --config jest.config.js"
+    "test": "jest --config jest.config.js"
   },
   "dependencies": {
-    "@sentry/core": "8.45.0",
-    "@sentry/node": "8.45.0",
-    "detect-libc": "^2.0.2",
-    "node-abi": "^3.61.0"
+    "@sentry-internal/node-cpu-profiler": "^2.0.0",
+    "@sentry/core": "9.1.0",
+    "@sentry/node": "9.1.0"
   },
   "devDependencies": {
-    "@types/node": "^18.19.1",
-    "@types/node-abi": "^3.0.3",
-    "clang-format": "^1.8.0",
-    "cross-env": "^7.0.3",
-    "node-gyp": "^9.4.1"
+    "@types/node": "^18.19.1"
   },
   "volta": {
     "extends": "../../package.json"

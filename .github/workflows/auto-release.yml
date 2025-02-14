@@ -41,6 +41,11 @@ jobs:
           version=${version/'prepare-release/'/''}
           echo "version=$version" >> $GITHUB_OUTPUT
 
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: 'package.json'
+
       - name: Prepare release
         uses: getsentry/action-prepare-release@v1
         if: github.event.pull_request.merged == true && steps.version-regex.outputs.match != '' && steps.get_version.outputs.version != ''

@@ -1,5 +1,6 @@
 /* eslint-disable max-lines */
 
+import { CpuProfilerBindings } from '@sentry-internal/node-cpu-profiler';
 import type { Event, IntegrationFn, Profile, ProfileChunk, ProfilingIntegration, Span } from '@sentry/core';
 import {
   LRUMap,
@@ -14,7 +15,6 @@ import {
   uuid4,
 } from '@sentry/core';
 import type { NodeClient } from '@sentry/node';
-import { CpuProfilerBindings } from './cpu_profiler';
 import { DEBUG_BUILD } from './debug-build';
 import { NODE_MAJOR, NODE_VERSION } from './nodeVersion';
 import { MAX_PROFILE_DURATION_MS, maybeProfileSpan, stopSpanProfile } from './spanProfileUtils';
@@ -62,8 +62,7 @@ function setupAutomatedSpanProfiling(client: NodeClient): void {
       const options = client.getOptions();
       // Not intended for external use, hence missing types, but we want to profile a couple of things at Sentry that
       // currently exceed the default timeout set by the SDKs.
-      const maxProfileDurationMs =
-        (options._experiments && options._experiments['maxProfileDurationMs']) || MAX_PROFILE_DURATION_MS;
+      const maxProfileDurationMs = options._experiments?.maxProfileDurationMs || MAX_PROFILE_DURATION_MS;
 
       if (PROFILE_TIMEOUTS[profile_id]) {
         global.clearTimeout(PROFILE_TIMEOUTS[profile_id]);
@@ -121,8 +120,8 @@ function setupAutomatedSpanProfiling(client: NodeClient): void {
     const profilesToAddToEnvelope: Profile[] = [];
 
     for (const profiledTransaction of profiledTransactionEvents) {
-      const profileContext = profiledTransaction.contexts?.['profile'];
-      const profile_id = profileContext?.['profile_id'];
+      const profileContext = profiledTransaction.contexts?.profile;
+      const profile_id = profileContext?.profile_id;
 
       if (!profile_id) {
         throw new TypeError('[Profiling] cannot find profile for a transaction without a profile context');
@@ -130,7 +129,7 @@ function setupAutomatedSpanProfiling(client: NodeClient): void {
 
       // Remove the profile from the transaction context before sending, relay will take care of the rest.
       if (profileContext) {
-        delete profiledTransaction.contexts?.['profile'];
+        delete profiledTransaction.contexts?.profile;
       }
 
       const cpuProfile = takeFromProfileQueue(profile_id);
@@ -146,6 +145,11 @@ function setupAutomatedSpanProfiling(client: NodeClient): void {
 
       // @ts-expect-error profile does not inherit from Event
       client.emit('preprocessEvent', profile, {
+        event_id: profiledTransaction.event_id,
+      });
+
+      // @ts-expect-error profile does not inherit from Event
+      client.emit('postprocessEvent', profile, {
         event_id: profiledTransaction.event_id,
       });
     }
@@ -396,7 +400,7 @@ class ContinuousProfiler {
    * Assigns thread_id and thread name context to a profiled event.
    */
   private _assignThreadIdContext(event: Event): void {
-    if (!event?.['contexts']?.['profile']) {
+    if (!event?.contexts?.profile) {
       return;
     }
 
@@ -406,10 +410,10 @@ class ContinuousProfiler {
 
     // @ts-expect-error the trace fallback value is wrong, though it should never happen
     // and in case it does, we dont want to override whatever was passed initially.
-    event.contexts['trace'] = {
-      ...(event.contexts?.['trace'] ?? {}),
+    event.contexts.trace = {
+      ...(event.contexts?.trace ?? {}),
       data: {
-        ...(event.contexts?.['trace']?.['data'] ?? {}),
+        ...(event.contexts?.trace?.data ?? {}),
         ['thread.id']: PROFILER_THREAD_ID_STRING,
         ['thread.name']: PROFILER_THREAD_NAME,
       },

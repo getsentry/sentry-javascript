@@ -1,0 +1,22 @@
+{
+  "name": "node-profiling-cjs",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node dist/cjs/index.js",
+    "clean": "npx rimraf node_modules dist",
+    "test:build": "pnpm install && node build-cjs.mjs",
+    "test:assert": "pnpm run typecheck && pnpm run test"
+  },
+  "dependencies": {
+    "@playwright/test": "~1.50.0",
+    "@sentry/node": "latest || *",
+    "@sentry/profiling-node": "latest || *",
+    "esbuild": "0.20.0",
+    "typescript": "^5.7.3"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

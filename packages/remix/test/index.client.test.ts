@@ -2,6 +2,13 @@ import * as SentryReact from '@sentry/react';
 
 import { init } from '../src/index.client';
 
+jest.mock('@sentry/react', () => {
+  return {
+    __esModule: true,
+    ...jest.requireActual('@sentry/react'),
+  };
+});
+
 const reactInit = jest.spyOn(SentryReact, 'init');
 
 describe('Client init()', () => {

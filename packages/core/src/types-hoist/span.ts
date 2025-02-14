@@ -1,3 +1,4 @@
+import type { SpanLink, SpanLinkJSON } from './link';
 import type { Measurements } from './measurement';
 import type { HrTime } from './opentelemetry';
 import type { SpanStatus } from './spanStatus';
@@ -50,6 +51,7 @@ export interface SpanJSON {
   measurements?: Measurements;
   is_segment?: boolean;
   segment_id?: string;
+  links?: SpanLinkJSON[];
 }
 
 // These are aligned with OpenTelemetry trace flags
@@ -249,14 +251,21 @@ export interface Span {
   addEvent(name: string, attributesOrStartTime?: SpanAttributes | SpanTimeInput, startTime?: SpanTimeInput): this;
 
   /**
-   * NOT USED IN SENTRY, only added for compliance with OTEL Span interface
+   * Associates this span with a related span. Links can reference spans from the same or different trace
+   * and are typically used for batch operations, cross-trace scenarios, or scatter/gather patterns.
+   *
+   * Prefer setting links directly when starting a span (e.g. `Sentry.startSpan()`) as some context information is only available during span creation.
+   * @param link - The link containing the context of the span to link to and optional attributes
    */
-  addLink(link: unknown): this;
+  addLink(link: SpanLink): this;
 
   /**
-   * NOT USED IN SENTRY, only added for compliance with OTEL Span interface
+   * Associates this span with multiple related spans. See {@link addLink} for more details.
+   *
+   * Prefer setting links directly when starting a span (e.g. `Sentry.startSpan()`) as some context information is only available during span creation.
+   * @param links - Array of links to associate with this span
    */
-  addLinks(links: unknown): this;
+  addLinks(links: SpanLink[]): this;
 
   /**
    * NOT USED IN SENTRY, only added for compliance with OTEL Span interface

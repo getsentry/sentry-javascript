@@ -15,7 +15,7 @@ import {
   functionToStringIntegration,
   getCurrentScope,
   getIntegrationsToSetup,
-  hasTracingEnabled,
+  hasSpansEnabled,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
   logger,
@@ -85,21 +85,11 @@ export function init(options: VercelEdgeOptions = {}): Client | undefined {
     const detectedRelease = getSentryRelease();
     if (detectedRelease !== undefined) {
       options.release = detectedRelease;
-    } else {
-      // If release is not provided, then we should disable autoSessionTracking
-      // eslint-disable-next-line deprecation/deprecation
-      options.autoSessionTracking = false;
     }
   }
 
   options.environment =
     options.environment || process.env.SENTRY_ENVIRONMENT || getVercelEnv(false) || process.env.NODE_ENV;
-
-  // eslint-disable-next-line deprecation/deprecation
-  if (options.autoSessionTracking === undefined && options.dsn !== undefined) {
-    // eslint-disable-next-line deprecation/deprecation
-    options.autoSessionTracking = true;
-  }
 
   const client = new VercelEdgeClient({
     ...options,
@@ -134,7 +124,7 @@ function validateOpenTelemetrySetup(): void {
 
   const required: ReturnType<typeof openTelemetrySetupCheck> = ['SentryContextManager', 'SentryPropagator'];
 
-  if (hasTracingEnabled()) {
+  if (hasSpansEnabled()) {
     required.push('SentrySpanProcessor');
   }
 
@@ -215,7 +205,7 @@ export function getSentryRelease(fallback?: string): string | undefined {
   }
 
   // This supports the variable that sentry-webpack-plugin injects
-  if (GLOBAL_OBJ.SENTRY_RELEASE && GLOBAL_OBJ.SENTRY_RELEASE.id) {
+  if (GLOBAL_OBJ.SENTRY_RELEASE?.id) {
     return GLOBAL_OBJ.SENTRY_RELEASE.id;
   }
 

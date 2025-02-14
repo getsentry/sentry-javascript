@@ -27,8 +27,8 @@ export default defineNitroPlugin(nitroApp => {
     }
 
     const { method, path } = {
-      method: errorContext.event && errorContext.event._method ? errorContext.event._method : '',
-      path: errorContext.event && errorContext.event._path ? errorContext.event._path : null,
+      method: errorContext.event?._method ? errorContext.event._method : '',
+      path: errorContext.event?._path ? errorContext.event._path : null,
     };
 
     if (path) {
@@ -52,7 +52,11 @@ export default defineNitroPlugin(nitroApp => {
 });
 
 async function flushIfServerless(): Promise<void> {
-  const isServerless = !!process.env.LAMBDA_TASK_ROOT || !!process.env.VERCEL || !!process.env.NETLIFY;
+  const isServerless =
+    !!process.env.FUNCTIONS_WORKER_RUNTIME || // Azure Functions
+    !!process.env.LAMBDA_TASK_ROOT || // AWS Lambda
+    !!process.env.VERCEL ||
+    !!process.env.NETLIFY;
 
   // @ts-expect-error This is not typed
   if (GLOBAL_OBJ[Symbol.for('@vercel/request-context')]) {
@@ -75,7 +79,6 @@ async function flushWithTimeout(): Promise<void> {
   }
 }
 
-// copied from '@sentry-internal/nitro-utils' - the nuxt-module-builder does not inline devDependencies
 function patchEventHandler(handler: EventHandler): EventHandler {
   return new Proxy(handler, {
     async apply(handlerTarget, handlerThisArg, handlerArgs: Parameters<EventHandler>) {

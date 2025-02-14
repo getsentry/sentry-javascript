@@ -22,7 +22,7 @@
     "zod": "~3.22.4"
   },
   "devDependencies": {
-    "@playwright/test": "^1.44.1",
+    "@playwright/test": "~1.50.0",
     "@sentry-internal/test-utils": "link:../../../test-utils"
   },
   "volta": {

@@ -6,8 +6,6 @@ import {
   SPAN_STATUS_OK,
   Scope,
   captureException,
-  generateSpanId,
-  generateTraceId,
   getActiveSpan,
   getCapturedScopesOnSpan,
   getRootSpan,
@@ -65,13 +63,12 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
           if (process.env.NEXT_RUNTIME === 'edge') {
             const propagationContext = commonObjectToPropagationContext(
               context.headers,
-              headersDict?.['sentry-trace']
-                ? propagationContextFromHeaders(headersDict['sentry-trace'], headersDict['baggage'])
-                : {
-                    traceId: requestTraceId || generateTraceId(),
-                    spanId: generateSpanId(),
-                  },
+              propagationContextFromHeaders(headersDict?.['sentry-trace'], headersDict?.['baggage']),
             );
+
+            if (requestTraceId) {
+              propagationContext.traceId = requestTraceId;
+            }
 
             scope.setPropagationContext(propagationContext);
           }

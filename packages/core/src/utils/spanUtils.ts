@@ -9,6 +9,7 @@ import {
 } from '../semanticAttributes';
 import type { SentrySpan } from '../tracing/sentrySpan';
 import { SPAN_STATUS_OK, SPAN_STATUS_UNSET } from '../tracing/spanstatus';
+import { getCapturedScopesOnSpan } from '../tracing/utils';
 import type {
   Span,
   SpanAttributes,
@@ -18,6 +19,7 @@ import type {
   SpanTimeInput,
   TraceContext,
 } from '../types-hoist';
+import type { SpanLink, SpanLinkJSON } from '../types-hoist/link';
 import { consoleSandbox } from '../utils-hoist/logger';
 import { addNonEnumerableProperty, dropUndefinedKeys } from '../utils-hoist/object';
 import { generateSpanId } from '../utils-hoist/propagationContext';
@@ -29,7 +31,6 @@ import { _getSpanForScope } from './spanOnScope';
 export const TRACE_FLAG_NONE = 0x0;
 export const TRACE_FLAG_SAMPLED = 0x1;
 
-// todo(v9): Remove this once we've stopped dropping spans via `beforeSendSpan`
 let hasShownSpanDropWarning = false;
 
 /**
@@ -61,7 +62,9 @@ export function spanToTraceContext(span: Span): TraceContext {
   // If the span is remote, we use a random/virtual span as span_id to the trace context,
   // and the remote span as parent_span_id
   const parent_span_id = isRemote ? spanId : spanToJSON(span).parent_span_id;
-  const span_id = isRemote ? generateSpanId() : spanId;
+  const scope = getCapturedScopesOnSpan(span).scope;
+
+  const span_id = isRemote ? scope?.getPropagationContext().propagationSpanId || generateSpanId() : spanId;
 
   return dropUndefinedKeys({
     parent_span_id,
@@ -77,6 +80,25 @@ export function spanToTraceHeader(span: Span): string {
   const { traceId, spanId } = span.spanContext();
   const sampled = spanIsSampled(span);
   return generateSentryTraceHeader(traceId, spanId, sampled);
+}
+
+/**
+ *  Converts the span links array to a flattened version to be sent within an envelope.
+ *
+ *  If the links array is empty, it returns `undefined` so the empty value can be dropped before it's sent.
+ */
+export function convertSpanLinksForEnvelope(links?: SpanLink[]): SpanLinkJSON[] | undefined {
+  if (links && links.length > 0) {
+    return links.map(({ context: { spanId, traceId, traceFlags, ...restContext }, attributes }) => ({
+      span_id: spanId,
+      trace_id: traceId,
+      sampled: traceFlags === TRACE_FLAG_SAMPLED,
+      attributes,
+      ...restContext,
+    }));
+  } else {
+    return undefined;
+  }
 }
 
 /**
@@ -278,15 +300,13 @@ export function getActiveSpan(): Span | undefined {
 
 /**
  * Logs a warning once if `beforeSendSpan` is used to drop spans.
- *
- * todo(v9): Remove this once we've stopped dropping spans via `beforeSendSpan`.
  */
 export function showSpanDropWarning(): void {
   if (!hasShownSpanDropWarning) {
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.warn(
-        '[Sentry] Deprecation warning: Returning null from `beforeSendSpan` will be disallowed from SDK version 9.0.0 onwards. The callback will only support mutating spans. To drop certain spans, configure the respective integrations directly.',
+        '[Sentry] Returning null from `beforeSendSpan` is disallowed. To drop certain spans, configure the respective integrations directly.',
       );
     });
     hasShownSpanDropWarning = true;

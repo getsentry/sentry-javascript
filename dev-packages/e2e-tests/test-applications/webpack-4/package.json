@@ -1,5 +1,5 @@
 {
-  "name": "webpack-4-test",
+  "name": "webpack-4",
   "version": "1.0.0",
   "scripts": {
     "start": "serve -s build",
@@ -8,9 +8,12 @@
     "test:assert": "playwright test"
   },
   "devDependencies": {
-    "@playwright/test": "^1.44.1",
+    "@playwright/test": "~1.50.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@sentry/browser": "latest || *",
+    "babel-loader": "^8.0.0",
+    "@babel/core": "^7.0.0",
+    "@babel/preset-env": "^7.0.0",
     "webpack": "^4.47.0",
     "terser-webpack-plugin": "^4.2.3",
     "html-webpack-plugin": "^4.5.2",

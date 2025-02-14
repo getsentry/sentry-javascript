@@ -26,7 +26,6 @@ describe('WinterCGFetch instrumentation', () => {
 
     client = new FakeClient({
       dsn: 'https://public@dsn.ingest.sentry.io/1337',
-      enableTracing: true,
       tracesSampleRate: 1,
       integrations: [],
       transport: () => ({

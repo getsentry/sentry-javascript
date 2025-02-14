@@ -2,7 +2,7 @@ import type { CaptureContext } from '../scope';
 import type { Breadcrumb, BreadcrumbHint } from './breadcrumb';
 import type { ErrorEvent, EventHint, TransactionEvent } from './event';
 import type { Integration } from './integration';
-import type { SamplingContext } from './samplingcontext';
+import type { TracesSamplerSamplingContext } from './samplingcontext';
 import type { SdkMetadata } from './sdkmetadata';
 import type { SpanJSON } from './span';
 import type { StackLineParser, StackParser } from './stacktrace';
@@ -23,16 +23,6 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
 
   /** Attaches stacktraces to pure capture message / log integrations */
   attachStacktrace?: boolean;
-
-  /**
-   * A flag enabling Sessions Tracking feature.
-   * By default, Session Tracking is enabled.
-   *
-   * @deprecated Setting the `autoSessionTracking` option is deprecated.
-   * To enable session tracking, it is recommended to unset `autoSessionTracking` and ensure that either, in browser environments the `browserSessionIntegration` is added, or in server environments the `httpIntegration` is added.
-   * To disable session tracking, it is recommended unset `autoSessionTracking` and to remove the `browserSessionIntegration` in browser environments, or in server environments configure the `httpIntegration` with the `trackIncomingRequestsAsSessions` option set to `false`.
-   */
-  autoSessionTracking?: boolean;
 
   /**
    * Send SDK Client Reports. When calling `Sentry.init()`, this option defaults to `true`.
@@ -92,17 +82,6 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   tracesSampleRate?: number;
 
   /**
-   * If this is enabled, spans and trace data will be generated and captured.
-   * This will set the `tracesSampleRate` to the recommended default of `1.0` if `tracesSampleRate` is undefined.
-   * Note that `tracesSampleRate` and `tracesSampler` take precedence over this option.
-   *
-   * @deprecated This option is deprecated and will be removed in the next major version. If you want to enable performance
-   * monitoring, please use the `tracesSampleRate` or `tracesSampler` options instead. If you wan't to disable performance
-   * monitoring, remove the `tracesSampler` and `tracesSampleRate` options.
-   */
-  enableTracing?: boolean;
-
-  /**
    * If this is enabled, any spans started will always have their parent be the active root span,
    * if there is any active span.
    *
@@ -158,15 +137,6 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * Defaults to `1000`
    */
   normalizeMaxBreadth?: number;
-
-  /**
-   * Controls how many milliseconds to wait before shutting down. The default is
-   * SDK-specific but typically around 2 seconds. Setting this too low can cause
-   * problems for sending events from command line applications. Setting it too
-   * high can cause the application to block for users with network connectivity
-   * problems.
-   */
-  shutdownTimeout?: number;
 
   /**
    * A pattern for error messages which should not be sent to Sentry.
@@ -268,13 +238,12 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * Tracing is enabled if either this or `tracesSampleRate` is defined. If both are defined, `tracesSampleRate` is
    * ignored.
    *
-   * Will automatically be passed a context object of default and optional custom data. See
-   * {@link Transaction.samplingContext} and {@link Hub.startTransaction}.
+   * Will automatically be passed a context object of default and optional custom data.
    *
    * @returns A sample rate between 0 and 1 (0 drops the trace, 1 guarantees it will be sent). Returning `true` is
    * equivalent to returning 1 and returning `false` is equivalent to returning 0.
    */
-  tracesSampler?: (samplingContext: SamplingContext) => number | boolean;
+  tracesSampler?: (samplingContext: TracesSamplerSamplingContext) => number | boolean;
 
   /**
    * An event-processing callback for error and message events, guaranteed to be invoked after all other event
@@ -300,7 +269,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    *
    * @returns A new span that will be sent or null if the span should not be sent.
    */
-  beforeSendSpan?: (span: SpanJSON) => SpanJSON | null;
+  beforeSendSpan?: (span: SpanJSON) => SpanJSON;
 
   /**
    * An event-processing callback for transaction events, guaranteed to be invoked after all other event

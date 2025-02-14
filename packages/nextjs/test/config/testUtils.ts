@@ -69,6 +69,7 @@ export async function materializeFinalWebpackConfig(options: {
   const webpackConfigFunction = constructWebpackConfigFunction(
     materializedUserNextConfig,
     options.sentryBuildTimeOptions,
+    undefined,
   );
 
   // call it to get concrete values for comparison

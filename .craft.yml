@@ -5,7 +5,6 @@ targets:
   # NPM Targets
   ## 1. Base Packages, node or browser SDKs depend on
   ## 1.1 Types
-  # TODO(v9): Remove
   - name: npm
     id: '@sentry/types'
     includeNames: /^sentry-types-\d.*\.tgz$/
@@ -78,14 +77,6 @@ targets:
   - name: npm
     id: '@sentry/deno'
     includeNames: /^sentry-deno-\d.*\.tgz$/
-  - name: commit-on-git-repository
-    # This will publish on the Deno registry
-    id: getsentry/deno
-    archive: /^sentry-deno-\d.*\.tgz$/
-    repositoryUrl: https://github.com/getsentry/sentry-deno.git
-    stripComponents: 1
-    branch: main
-    createTag: true
 
   ## 5. Node-based Packages
   - name: npm
@@ -138,20 +129,19 @@ targets:
     includeNames: /^sentry-internal-eslint-config-sdk-\d.*\.tgz$/
 
   # AWS Lambda Layer target
-  # TODO(v9): Once stable, re-add this target to publish the AWS Lambda layer
-  # - name: aws-lambda-layer
-  #   includeNames: /^sentry-node-serverless-\d+.\d+.\d+(-(beta|alpha|rc)\.\d+)?\.zip$/
-  #   layerName: SentryNodeServerlessSDK
-  #   compatibleRuntimes:
-  #     - name: node
-  #       versions:
-  #         - nodejs10.x
-  #         - nodejs12.x
-  #         - nodejs14.x
-  #         - nodejs16.x
-  #         - nodejs18.x
-  #         - nodejs20.x
-  #   license: MIT
+  - name: aws-lambda-layer
+    includeNames: /^sentry-node-serverless-\d+.\d+.\d+(-(beta|alpha|rc)\.\d+)?\.zip$/
+    layerName: SentryNodeServerlessSDKv9
+    compatibleRuntimes:
+      - name: node
+        versions:
+          - nodejs10.x
+          - nodejs12.x
+          - nodejs14.x
+          - nodejs16.x
+          - nodejs18.x
+          - nodejs20.x
+    license: MIT
 
   # CDN Bundle Target
   - name: gcs

@@ -109,30 +109,6 @@ test.describe('client-specific performance events', () => {
           op: 'ui.svelte.init',
           origin: 'auto.ui.svelte',
         }),
-        expect.objectContaining({
-          data: { 'sentry.op': 'ui.svelte.update', 'sentry.origin': 'auto.ui.svelte' },
-          description: '<components/+page>',
-          op: 'ui.svelte.update',
-          origin: 'auto.ui.svelte',
-        }),
-        expect.objectContaining({
-          data: { 'sentry.op': 'ui.svelte.update', 'sentry.origin': 'auto.ui.svelte' },
-          description: '<Component1>',
-          op: 'ui.svelte.update',
-          origin: 'auto.ui.svelte',
-        }),
-        expect.objectContaining({
-          data: { 'sentry.op': 'ui.svelte.update', 'sentry.origin': 'auto.ui.svelte' },
-          description: '<Component2>',
-          op: 'ui.svelte.update',
-          origin: 'auto.ui.svelte',
-        }),
-        expect.objectContaining({
-          data: { 'sentry.op': 'ui.svelte.update', 'sentry.origin': 'auto.ui.svelte' },
-          description: '<Component3>',
-          op: 'ui.svelte.update',
-          origin: 'auto.ui.svelte',
-        }),
       ]),
     );
   });

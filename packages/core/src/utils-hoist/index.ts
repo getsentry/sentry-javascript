@@ -38,6 +38,8 @@ export {
 } from './is';
 export { isBrowser } from './isBrowser';
 export { CONSOLE_LEVELS, consoleSandbox, logger, originalConsoleMethods } from './logger';
+export type { Logger } from './logger';
+
 export {
   addContextToFrame,
   addExceptionMechanism,
@@ -47,8 +49,7 @@ export {
   parseSemver,
   uuid4,
 } from './misc';
-// eslint-disable-next-line deprecation/deprecation
-export { dynamicRequire, isNodeEnv, loadModule } from './node';
+export { isNodeEnv, loadModule } from './node';
 export { normalize, normalizeToSize, normalizeUrlToBase } from './normalize';
 export {
   addNonEnumerableProperty,
@@ -63,18 +64,6 @@ export {
 export { basename, dirname, isAbsolute, join, normalizePath, relative, resolve } from './path';
 export { makePromiseBuffer } from './promisebuffer';
 export type { PromiseBuffer } from './promisebuffer';
-
-// TODO: Remove requestdata export once equivalent integration is used everywhere
-export {
-  DEFAULT_USER_INCLUDES,
-  addNormalizedRequestDataToEvent,
-  winterCGHeadersToDict,
-  winterCGRequestToRequestData,
-  httpRequestToRequestData,
-  extractQueryParamsFromUrl,
-  headersToDict,
-} from './requestdata';
-export type { AddRequestDataToEventOptions } from './requestdata';
 
 export { severityLevelFromString } from './severity';
 export {
@@ -100,8 +89,6 @@ export {
 } from './supports';
 export { SyncPromise, rejectedSyncPromise, resolvedSyncPromise } from './syncpromise';
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  _browserPerformanceTimeOriginMode,
   browserPerformanceTimeOrigin,
   dateTimestampInSeconds,
   timestampInSeconds,
@@ -143,6 +130,7 @@ export {
   baggageHeaderToDynamicSamplingContext,
   dynamicSamplingContextToSentryBaggageHeader,
   parseBaggageHeader,
+  objectToBaggageHeader,
 } from './baggage';
 
 export { getSanitizedUrlString, parseUrl, stripUrlQueryAndFragment } from './url';
@@ -150,8 +138,6 @@ export { eventFromMessage, eventFromUnknownInput, exceptionFromError, parseStack
 export { callFrameToStackFrame, watchdogTimer } from './anr';
 export { LRUMap } from './lru';
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  generatePropagationContext,
   generateTraceId,
   generateSpanId,
 } from './propagationContext';

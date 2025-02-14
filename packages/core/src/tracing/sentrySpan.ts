@@ -109,24 +109,12 @@ export class SentrySpan implements Span {
     }
   }
 
-  /**
-   * This should generally not be used,
-   * but it is needed for being compliant with the OTEL Span interface.
-   *
-   * @hidden
-   * @internal
-   */
+  /** @inheritDoc */
   public addLink(_link: unknown): this {
     return this;
   }
 
-  /**
-   * This should generally not be used,
-   * but it is needed for being compliant with the OTEL Span interface.
-   *
-   * @hidden
-   * @internal
-   */
+  /** @inheritDoc */
   public addLinks(_links: unknown[]): this {
     return this;
   }
@@ -333,17 +321,8 @@ export class SentrySpan implements Span {
     }
 
     const { scope: capturedSpanScope, isolationScope: capturedSpanIsolationScope } = getCapturedScopesOnSpan(this);
-    const scope = capturedSpanScope || getCurrentScope();
-    const client = scope.getClient() || getClient();
 
     if (this._sampled !== true) {
-      // At this point if `sampled !== true` we want to discard the transaction.
-      DEBUG_BUILD && logger.log('[Tracing] Discarding transaction because its trace was not chosen to be sampled.');
-
-      if (client) {
-        client.recordDroppedEvent('sample_rate', 'transaction');
-      }
-
       return undefined;
     }
 
@@ -358,7 +337,7 @@ export class SentrySpan implements Span {
     /* eslint-disable @typescript-eslint/no-dynamic-delete */
     delete this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME];
     spans.forEach(span => {
-      span.data && delete span.data[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME];
+      delete span.data[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME];
     });
     // eslint-enabled-next-line @typescript-eslint/no-dynamic-delete
 

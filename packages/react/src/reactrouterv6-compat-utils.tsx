@@ -22,8 +22,8 @@ import {
 } from '@sentry/core';
 import * as React from 'react';
 
-import hoistNonReactStatics from 'hoist-non-react-statics';
 import { DEBUG_BUILD } from './debug-build';
+import { hoistNonReactStatics } from './hoist-non-react-statics';
 import type {
   Action,
   AgnosticDataRouteMatch,
@@ -61,6 +61,9 @@ export interface ReactRouterOptions {
 
 type V6CompatibleVersion = '6' | '7';
 
+// Keeping as a global variable for cross-usage in multiple functions
+const allRoutes = new Set<RouteObject>();
+
 /**
  * Creates a wrapCreateBrowserRouter function that can be used with all React Router v6 compatible versions.
  */
@@ -80,12 +83,13 @@ export function createV6CompatibleWrapCreateBrowserRouter<
     return createRouterFunction;
   }
 
-  // `opts` for createBrowserHistory and createMemoryHistory are different, but also not relevant for us at the moment.
-  // `basename` is the only option that is relevant for us, and it is the same for all.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return function (routes: RouteObject[], opts?: Record<string, any> & { basename?: string }): TRouter {
+  return function (routes: RouteObject[], opts?: Record<string, unknown> & { basename?: string }): TRouter {
+    routes.forEach(route => {
+      allRoutes.add(route);
+    });
+
     const router = createRouterFunction(routes, opts);
-    const basename = opts && opts.basename;
+    const basename = opts?.basename;
 
     const activeRootSpan = getActiveRootSpan();
 
@@ -93,7 +97,104 @@ export function createV6CompatibleWrapCreateBrowserRouter<
     // This is the earliest convenient time to update the transaction name.
     // Callbacks to `router.subscribe` are not called for the initial load.
     if (router.state.historyAction === 'POP' && activeRootSpan) {
-      updatePageloadTransaction(activeRootSpan, router.state.location, routes, undefined, basename);
+      updatePageloadTransaction(
+        activeRootSpan,
+        router.state.location,
+        routes,
+        undefined,
+        basename,
+        Array.from(allRoutes),
+      );
+    }
+
+    router.subscribe((state: RouterState) => {
+      if (state.historyAction === 'PUSH' || state.historyAction === 'POP') {
+        // Wait for the next render if loading an unsettled route
+        if (state.navigation.state !== 'idle') {
+          requestAnimationFrame(() => {
+            handleNavigation({
+              location: state.location,
+              routes,
+              navigationType: state.historyAction,
+              version,
+              basename,
+              allRoutes: Array.from(allRoutes),
+            });
+          });
+        } else {
+          handleNavigation({
+            location: state.location,
+            routes,
+            navigationType: state.historyAction,
+            version,
+            basename,
+            allRoutes: Array.from(allRoutes),
+          });
+        }
+      }
+    });
+
+    return router;
+  };
+}
+
+/**
+ * Creates a wrapCreateMemoryRouter function that can be used with all React Router v6 compatible versions.
+ */
+export function createV6CompatibleWrapCreateMemoryRouter<
+  TState extends RouterState = RouterState,
+  TRouter extends Router<TState> = Router<TState>,
+>(
+  createRouterFunction: CreateRouterFunction<TState, TRouter>,
+  version: V6CompatibleVersion,
+): CreateRouterFunction<TState, TRouter> {
+  if (!_useEffect || !_useLocation || !_useNavigationType || !_matchRoutes) {
+    DEBUG_BUILD &&
+      logger.warn(
+        `reactRouterV${version}Instrumentation was unable to wrap the \`createMemoryRouter\` function because of one or more missing parameters.`,
+      );
+
+    return createRouterFunction;
+  }
+
+  return function (
+    routes: RouteObject[],
+    opts?: Record<string, unknown> & {
+      basename?: string;
+      initialEntries?: (string | { pathname: string })[];
+      initialIndex?: number;
+    },
+  ): TRouter {
+    routes.forEach(route => {
+      allRoutes.add(route);
+    });
+
+    const router = createRouterFunction(routes, opts);
+    const basename = opts?.basename;
+
+    const activeRootSpan = getActiveRootSpan();
+    let initialEntry = undefined;
+
+    const initialEntries = opts?.initialEntries;
+    const initialIndex = opts?.initialIndex;
+
+    const hasOnlyOneInitialEntry = initialEntries && initialEntries.length === 1;
+    const hasIndexedEntry = initialIndex !== undefined && initialEntries && initialEntries[initialIndex];
+
+    initialEntry = hasOnlyOneInitialEntry
+      ? initialEntries[0]
+      : hasIndexedEntry
+        ? initialEntries[initialIndex]
+        : undefined;
+
+    const location = initialEntry
+      ? typeof initialEntry === 'string'
+        ? { pathname: initialEntry }
+        : initialEntry
+      : router.state.location;
+
+    if (router.state.historyAction === 'POP' && activeRootSpan) {
+      updatePageloadTransaction(activeRootSpan, location, routes, undefined, basename, Array.from(allRoutes));
     }
 
     router.subscribe((state: RouterState) => {
@@ -105,6 +206,7 @@ export function createV6CompatibleWrapCreateBrowserRouter<
           navigationType: state.historyAction,
           version,
           basename,
+          allRoutes: Array.from(allRoutes),
         });
       }
     });
@@ -150,7 +252,7 @@ export function createReactRouterV6CompatibleTracingIntegration(
     afterAllSetup(client) {
       integration.afterAllSetup(client);
 
-      const initPathName = WINDOW && WINDOW.location && WINDOW.location.pathname;
+      const initPathName = WINDOW.location?.pathname;
       if (instrumentPageLoad && initPathName) {
         startBrowserTracingPageLoadSpan(client, {
           name: initPathName,
@@ -179,8 +281,6 @@ export function createV6CompatibleWrapUseRoutes(origUseRoutes: UseRoutes, versio
     return origUseRoutes;
   }
 
-  const allRoutes: Set<RouteObject> = new Set();
-
   const SentryRoutes: React.FC<{
     children?: React.ReactNode;
     routes: RouteObject[];
@@ -196,9 +296,7 @@ export function createV6CompatibleWrapUseRoutes(origUseRoutes: UseRoutes, versio
 
     // A value with stable identity to either pick `locationArg` if available or `location` if not
     const stableLocationParam =
-      typeof locationArg === 'string' || (locationArg && locationArg.pathname)
-        ? (locationArg as { pathname: string })
-        : location;
+      typeof locationArg === 'string' || locationArg?.pathname ? (locationArg as { pathname: string }) : location;
 
     _useEffect(() => {
       const normalizedLocation =
@@ -252,7 +350,6 @@ export function handleNavigation(opts: {
   allRoutes?: RouteObject[];
 }): void {
   const { location, routes, navigationType, version, matches, basename, allRoutes } = opts;
-
   const branches = Array.isArray(matches) ? matches : _matchRoutes(routes, location, basename);
 
   const client = getClient();
@@ -332,11 +429,11 @@ function pathEndsWithWildcard(path: string): boolean {
 }
 
 function pathIsWildcardAndHasChildren(path: string, branch: RouteMatch<string>): boolean {
-  return (pathEndsWithWildcard(path) && branch.route.children && branch.route.children.length > 0) || false;
+  return (pathEndsWithWildcard(path) && !!branch.route.children?.length) || false;
 }
 
 function routeIsDescendant(route: RouteObject): boolean {
-  return !!(!route.children && route.element && route.path && route.path.endsWith('/*'));
+  return !!(!route.children && route.element && route.path?.endsWith('/*'));
 }
 
 function locationIsInsideDescendantRoute(location: Location, routes: RouteObject[]): boolean {
@@ -486,7 +583,7 @@ function updatePageloadTransaction(
 ): void {
   const branches = Array.isArray(matches)
     ? matches
-    : (_matchRoutes(routes, location, basename) as unknown as RouteMatch[]);
+    : (_matchRoutes(allRoutes || routes, location, basename) as unknown as RouteMatch[]);
 
   if (branches) {
     let name,
@@ -502,7 +599,7 @@ function updatePageloadTransaction(
       [name, source] = getNormalizedName(routes, location, branches, basename);
     }
 
-    getCurrentScope().setTransactionName(name);
+    getCurrentScope().setTransactionName(name || '/');
 
     if (activeRootSpan) {
       activeRootSpan.updateName(name);
@@ -524,8 +621,6 @@ export function createV6CompatibleWithSentryReactRouterRouting<P extends Record<
 
     return Routes;
   }
-
-  const allRoutes: Set<RouteObject> = new Set();
 
   const SentryRoutes: React.FC<P> = (props: P) => {
     const isMountRenderPass = React.useRef(true);

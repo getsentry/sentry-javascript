@@ -2,7 +2,9 @@ import {
   SENTRY_XHR_DATA_KEY,
   addPerformanceInstrumentationHandler,
   addXhrInstrumentationHandler,
+  extractNetworkProtocol,
 } from '@sentry-internal/browser-utils';
+import type { XhrHint } from '@sentry-internal/browser-utils';
 import type { Client, HandlerDataXhr, SentryWrappedXMLHttpRequest, Span } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -12,8 +14,10 @@ import {
   addFetchInstrumentationHandler,
   browserPerformanceTimeOrigin,
   getActiveSpan,
+  getClient,
+  getLocationHref,
   getTraceData,
-  hasTracingEnabled,
+  hasSpansEnabled,
   instrumentFetchRequest,
   parseUrl,
   setHttpStatus,
@@ -227,39 +231,8 @@ function addHTTPTimings(span: Span): void {
   });
 }
 
-/**
- * Converts ALPN protocol ids to name and version.
- *
- * (https://www.iana.org/assignments/tls-extensiontype-values/tls-extensiontype-values.xhtml#alpn-protocol-ids)
- * @param nextHopProtocol PerformanceResourceTiming.nextHopProtocol
- */
-export function extractNetworkProtocol(nextHopProtocol: string): { name: string; version: string } {
-  let name = 'unknown';
-  let version = 'unknown';
-  let _name = '';
-  for (const char of nextHopProtocol) {
-    // http/1.1 etc.
-    if (char === '/') {
-      [name, version] = nextHopProtocol.split('/') as [string, string];
-      break;
-    }
-    // h2, h3 etc.
-    if (!isNaN(Number(char))) {
-      name = _name === 'h' ? 'http' : _name;
-      version = nextHopProtocol.split(_name)[1] as string;
-      break;
-    }
-    _name += char;
-  }
-  if (_name === nextHopProtocol) {
-    // webrtc, ftp, etc.
-    name = _name;
-  }
-  return { name, version };
-}
-
 function getAbsoluteTime(time: number = 0): number {
-  return ((browserPerformanceTimeOrigin || performance.timeOrigin) + time) / 1000;
+  return ((browserPerformanceTimeOrigin() || performance.timeOrigin) + time) / 1000;
 }
 
 function resourceTimingEntryToSpanData(resourceTiming: PerformanceResourceTiming): [string, string | number][] {
@@ -269,7 +242,7 @@ function resourceTimingEntryToSpanData(resourceTiming: PerformanceResourceTiming
 
   timingSpanData.push(['network.protocol.version', version], ['network.protocol.name', name]);
 
-  if (!browserPerformanceTimeOrigin) {
+  if (!browserPerformanceTimeOrigin()) {
     return timingSpanData;
   }
   return [
@@ -297,7 +270,7 @@ export function shouldAttachHeaders(
 ): boolean {
   // window.location.href not being defined is an edge case in the browser but we need to handle it.
   // Potentially dangerous situations where it may not be defined: Browser Extensions, Web Workers, patching of the location obj
-  const href: string | undefined = WINDOW.location && WINDOW.location.href;
+  const href = getLocationHref();
 
   if (!href) {
     // If there is no window.location.origin, we default to only attaching tracing headers to relative requests, i.e. ones that start with `/`
@@ -345,13 +318,13 @@ export function xhrCallback(
   spans: Record<string, Span>,
 ): Span | undefined {
   const xhr = handlerData.xhr;
-  const sentryXhrData = xhr && xhr[SENTRY_XHR_DATA_KEY];
+  const sentryXhrData = xhr?.[SENTRY_XHR_DATA_KEY];
 
   if (!xhr || xhr.__sentry_own_request__ || !sentryXhrData) {
     return undefined;
   }
 
-  const shouldCreateSpanResult = hasTracingEnabled() && shouldCreateSpan(sentryXhrData.url);
+  const shouldCreateSpanResult = hasSpansEnabled() && shouldCreateSpan(sentryXhrData.url);
 
   // check first if the request has finished and is tracked by an existing span which should now end
   if (handlerData.endTimestamp && shouldCreateSpanResult) {
@@ -399,8 +372,13 @@ export function xhrCallback(
       // If performance is disabled (TWP) or there's no active root span (pageload/navigation/interaction),
       // we do not want to use the span as base for the trace headers,
       // which means that the headers will be generated from the scope and the sampling decision is deferred
-      hasTracingEnabled() && hasParent ? span : undefined,
+      hasSpansEnabled() && hasParent ? span : undefined,
     );
+  }
+
+  const client = getClient();
+  if (client) {
+    client.emit('beforeOutgoingRequestSpan', span, handlerData as XhrHint);
   }
 
   return span;

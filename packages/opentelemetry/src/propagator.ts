@@ -2,62 +2,28 @@ import type { Baggage, Context, Span, SpanContext, TextMapGetter, TextMapSetter 
 import { INVALID_TRACEID, TraceFlags, context, propagation, trace } from '@opentelemetry/api';
 import { W3CBaggagePropagator, isTracingSuppressed } from '@opentelemetry/core';
 import { ATTR_URL_FULL, SEMATTRS_HTTP_URL } from '@opentelemetry/semantic-conventions';
-import type { DynamicSamplingContext, Options, PropagationContext, continueTrace } from '@sentry/core';
+import type { DynamicSamplingContext, Options, continueTrace } from '@sentry/core';
 import {
   LRUMap,
   SENTRY_BAGGAGE_KEY_PREFIX,
-  baggageHeaderToDynamicSamplingContext,
   generateSentryTraceHeader,
-  generateSpanId,
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromScope,
   getDynamicSamplingContextFromSpan,
   getIsolationScope,
-  getRootSpan,
   logger,
   parseBaggageHeader,
   propagationContextFromHeaders,
   spanToJSON,
   stringMatchesSomePattern,
 } from '@sentry/core';
-import {
-  SENTRY_BAGGAGE_HEADER,
-  SENTRY_TRACE_HEADER,
-  SENTRY_TRACE_STATE_DSC,
-  SENTRY_TRACE_STATE_URL,
-} from './constants';
+import { SENTRY_BAGGAGE_HEADER, SENTRY_TRACE_HEADER, SENTRY_TRACE_STATE_URL } from './constants';
 import { DEBUG_BUILD } from './debug-build';
 import { getScopesFromContext, setScopesOnContext } from './utils/contextData';
 import { getSamplingDecision } from './utils/getSamplingDecision';
 import { makeTraceState } from './utils/makeTraceState';
 import { setIsSetup } from './utils/setupCheck';
-import { spanHasParentId } from './utils/spanTypes';
-
-/** Get the Sentry propagation context from a span context. */
-export function getPropagationContextFromSpan(span: Span): PropagationContext {
-  const spanContext = span.spanContext();
-  const { traceId, spanId, traceState } = spanContext;
-
-  // When we have a dsc trace state, it means this came from the incoming trace
-  // Then this takes presedence over the root span
-  const dscString = traceState ? traceState.get(SENTRY_TRACE_STATE_DSC) : undefined;
-  const traceStateDsc = dscString ? baggageHeaderToDynamicSamplingContext(dscString) : undefined;
-
-  const parentSpanId = spanHasParentId(span) ? span.parentSpanId : undefined;
-  const sampled = getSamplingDecision(spanContext);
-
-  // No trace state? --> Take DSC from root span
-  const dsc = traceStateDsc || getDynamicSamplingContextFromSpan(getRootSpan(span));
-
-  return {
-    traceId,
-    spanId,
-    sampled,
-    parentSpanId,
-    dsc,
-  };
-}
 
 /**
  * Injects and extracts `sentry-trace` and `baggage` headers from carriers.
@@ -197,17 +163,15 @@ export function getInjectionData(context: Context): {
 
   // If we have a remote span, the spanId should be considered as the parentSpanId, not spanId itself
   // Instead, we use a virtual (generated) spanId for propagation
-  if (span && span.spanContext().isRemote) {
+  if (span?.spanContext().isRemote) {
     const spanContext = span.spanContext();
     const dynamicSamplingContext = getDynamicSamplingContextFromSpan(span);
 
     return {
       dynamicSamplingContext,
       traceId: spanContext.traceId,
-      // Because this is a remote span, we do not want to propagate this directly
-      // As otherwise things may be attached "directly" to an unrelated span
-      spanId: generateSpanId(),
-      sampled: getSamplingDecision(spanContext),
+      spanId: undefined,
+      sampled: getSamplingDecision(spanContext), // TODO: Do we need to change something here?
     };
   }
 
@@ -220,7 +184,7 @@ export function getInjectionData(context: Context): {
       dynamicSamplingContext,
       traceId: spanContext.traceId,
       spanId: spanContext.spanId,
-      sampled: getSamplingDecision(spanContext),
+      sampled: getSamplingDecision(spanContext), // TODO: Do we need to change something here?
     };
   }
 
@@ -234,9 +198,7 @@ export function getInjectionData(context: Context): {
   return {
     dynamicSamplingContext,
     traceId: propagationContext.traceId,
-    // TODO(v9): Use generateSpanId() instead
-    // eslint-disable-next-line deprecation/deprecation
-    spanId: propagationContext.spanId,
+    spanId: propagationContext.propagationSpanId,
     sampled: propagationContext.sampled,
   };
 }

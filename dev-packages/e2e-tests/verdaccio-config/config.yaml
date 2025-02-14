@@ -122,6 +122,12 @@ packages:
     unpublish: $all
     # proxy: npmjs # Don't proxy for E2E tests!
 
+  '@sentry/react-router':
+    access: $all
+    publish: $all
+    unpublish: $all
+    # proxy: npmjs # Don't proxy for E2E tests!
+
   '@sentry/remix':
     access: $all
     publish: $all
@@ -164,7 +170,6 @@ packages:
     unpublish: $all
     # proxy: npmjs # Don't proxy for E2E tests!
 
-  # TODO(v9): Remove
   '@sentry/types':
     access: $all
     publish: $all

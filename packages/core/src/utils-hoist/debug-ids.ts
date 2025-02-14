@@ -42,7 +42,7 @@ export function getFilenameToDebugIdMap(stackParser: StackParser): Record<string
 
       for (let i = parsedStack.length - 1; i >= 0; i--) {
         const stackFrame = parsedStack[i];
-        const filename = stackFrame && stackFrame.filename;
+        const filename = stackFrame?.filename;
         const debugId = debugIdMap[stackKey];
 
         if (filename && debugId) {

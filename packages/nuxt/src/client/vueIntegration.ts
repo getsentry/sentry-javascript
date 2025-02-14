@@ -1,17 +1,7 @@
 import { GLOBAL_OBJ, defineIntegration } from '@sentry/core';
 import type { VueIntegrationOptions } from '@sentry/vue';
 
-type Options = Omit<
-  VueIntegrationOptions,
-  | 'app'
-  | 'Vue'
-  // TODO(v9): Should be removed from parent type so we can remove it here
-  | 'hooks'
-  // TODO(v9): Should be removed from parent type so we can remove it here
-  | 'timeout'
-  // TODO(v9): Should be removed from parent type so we can remove it here
-  | 'trackComponents'
->;
+type Options = Omit<VueIntegrationOptions, 'app' | 'Vue'>;
 
 // Since the options object needs to cross the boundary between some builds (i.e. the nuxt module build and our client
 // SDK build) we cannot use a getter that is exported from here. Instead we'll pass the options object through a global

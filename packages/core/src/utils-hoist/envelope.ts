@@ -234,7 +234,7 @@ export function envelopeItemTypeToDataCategory(type: EnvelopeItemType): DataCate
 
 /** Extracts the minimal SDK info from the metadata or an events */
 export function getSdkMetadataForEnvelopeHeader(metadataOrEvent?: SdkMetadata | Event): SdkInfo | undefined {
-  if (!metadataOrEvent || !metadataOrEvent.sdk) {
+  if (!metadataOrEvent?.sdk) {
     return;
   }
   const { name, version } = metadataOrEvent.sdk;
@@ -251,7 +251,7 @@ export function createEventEnvelopeHeaders(
   tunnel: string | undefined,
   dsn?: DsnComponents,
 ): EventEnvelopeHeaders {
-  const dynamicSamplingContext = event.sdkProcessingMetadata && event.sdkProcessingMetadata.dynamicSamplingContext;
+  const dynamicSamplingContext = event.sdkProcessingMetadata?.dynamicSamplingContext;
   return {
     event_id: event.event_id as string,
     sent_at: new Date().toISOString(),

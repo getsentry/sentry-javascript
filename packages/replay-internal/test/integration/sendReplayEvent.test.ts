@@ -78,7 +78,7 @@ describe('Integration | sendReplayEvent', () => {
   });
 
   afterAll(() => {
-    replay && replay.stop();
+    replay?.stop();
   });
 
   it('uploads a replay event when document becomes hidden', async () => {

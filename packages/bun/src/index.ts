@@ -16,7 +16,6 @@ export type {
   Thread,
   User,
 } from '@sentry/core';
-export type { AddRequestDataToEventOptions } from '@sentry/core';
 
 export {
   addEventProcessor,
@@ -32,8 +31,6 @@ export {
   endSession,
   withMonitor,
   createTransport,
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub,
   getClient,
   isInitialized,
   generateInstrumentOnce,
@@ -62,7 +59,6 @@ export {
   flush,
   close,
   getSentryRelease,
-  DEFAULT_USER_INCLUDES,
   createGetModuleFromFilename,
   anrIntegration,
   disableAnrDetectionForCallback,
@@ -133,6 +129,7 @@ export {
   zodErrorsIntegration,
   profiler,
   amqplibIntegration,
+  vercelAIIntegration,
 } from '@sentry/node';
 
 export {

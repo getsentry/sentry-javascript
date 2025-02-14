@@ -1,14 +1,6 @@
-import type { ScopeContext } from '../../src';
+import type { Client, ScopeContext } from '../../src';
 import { GLOBAL_OBJ, createStackParser, getGlobalScope, getIsolationScope } from '../../src';
-import type {
-  Attachment,
-  Breadcrumb,
-  Client,
-  ClientOptions,
-  Event,
-  EventHint,
-  EventProcessor,
-} from '../../src/types-hoist';
+import type { Attachment, Breadcrumb, ClientOptions, Event, EventHint, EventProcessor } from '../../src/types-hoist';
 
 import { Scope } from '../../src/scope';
 import {
@@ -79,6 +71,45 @@ describe('applyDebugIds', () => {
       }),
     );
   });
+
+  it('handles multiple exception values where not all events have valid stack traces', () => {
+    GLOBAL_OBJ._sentryDebugIds = {
+      'filename1.js\nfilename1.js': 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa',
+      'filename2.js\nfilename2.js': 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb',
+    };
+    const stackParser = createStackParser([0, line => ({ filename: line })]);
+
+    const event: Event = {
+      exception: {
+        values: [
+          {
+            value: 'first exception without stack trace',
+          },
+          {
+            stacktrace: {
+              frames: [{ filename: 'filename1.js' }, { filename: 'filename2.js' }],
+            },
+          },
+        ],
+      },
+    };
+
+    applyDebugIds(event, stackParser);
+
+    expect(event.exception?.values?.[0]).toEqual({
+      value: 'first exception without stack trace',
+    });
+
+    expect(event.exception?.values?.[1]?.stacktrace?.frames).toContainEqual({
+      filename: 'filename1.js',
+      debug_id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa',
+    });
+
+    expect(event.exception?.values?.[1]?.stacktrace?.frames).toContainEqual({
+      filename: 'filename2.js',
+      debug_id: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb',
+    });
+  });
 });
 
 describe('applyDebugMeta', () => {
@@ -107,6 +138,49 @@ describe('applyDebugMeta', () => {
       { filename: 'filename2.js' },
       { filename: 'filename1.js' },
       { filename: 'filename3.js' },
+    ]);
+
+    expect(event.debug_meta?.images).toContainEqual({
+      type: 'sourcemap',
+      code_file: 'filename1.js',
+      debug_id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa',
+    });
+
+    expect(event.debug_meta?.images).toContainEqual({
+      type: 'sourcemap',
+      code_file: 'filename2.js',
+      debug_id: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb',
+    });
+  });
+
+  it('handles multiple exception values where not all events have valid stack traces', () => {
+    const event: Event = {
+      exception: {
+        values: [
+          {
+            value: 'first exception without stack trace',
+          },
+          {
+            stacktrace: {
+              frames: [
+                { filename: 'filename1.js', debug_id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa' },
+                { filename: 'filename2.js', debug_id: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb' },
+              ],
+            },
+          },
+        ],
+      },
+    };
+
+    applyDebugMeta(event);
+
+    expect(event.exception?.values?.[0]).toEqual({
+      value: 'first exception without stack trace',
+    });
+
+    expect(event.exception?.values?.[1]?.stacktrace?.frames).toEqual([
+      { filename: 'filename1.js' },
+      { filename: 'filename2.js' },
     ]);
 
     expect(event.debug_meta?.images).toContainEqual({
@@ -164,7 +238,7 @@ describe('parseEventHintOrCaptureContext', () => {
       fingerprint: ['xx', 'yy'],
       propagationContext: {
         traceId: 'xxx',
-        spanId: 'yyy',
+        sampleRand: Math.random(),
       },
     };
 
@@ -255,7 +329,7 @@ describe('prepareEvent', () => {
       tags: { tag1: 'aa', tag2: 'aa' },
       extra: { extra1: 'aa', extra2: 'aa' },
       contexts: { os: { name: 'os1' }, culture: { display_name: 'name1' } },
-      propagationContext: { spanId: '1', traceId: '1' },
+      propagationContext: { traceId: '1', sampleRand: 0.42 },
       fingerprint: ['aa'],
     });
     scope.addBreadcrumb(breadcrumb1);

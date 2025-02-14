@@ -1,7 +1,9 @@
 /* eslint-disable complexity */
 import { isThenable, parseSemver } from '@sentry/core';
 
+import * as childProcess from 'child_process';
 import * as fs from 'fs';
+import { getSentryRelease } from '@sentry/node';
 import { sync as resolveSync } from 'resolve';
 import type {
   ExportedNextConfig as NextConfig,
@@ -20,7 +22,6 @@ let showedExportModeTunnelWarning = false;
  * @param sentryBuildOptions Additional options to configure instrumentation and
  * @returns The modified config to be exported
  */
-// TODO(v9): Always return an async function here to allow us to do async things like grabbing a deterministic build ID.
 export function withSentryConfig<C>(nextConfig?: C, sentryBuildOptions: SentryBuildOptions = {}): C {
   const castNextConfig = (nextConfig as NextConfig) || {};
   if (typeof castNextConfig === 'function') {
@@ -49,17 +50,6 @@ function getFinalConfigObject(
   incomingUserNextConfigObject: NextConfigObject,
   userSentryOptions: SentryBuildOptions,
 ): NextConfigObject {
-  // TODO(v9): Remove this check for the Sentry property
-  if ('sentry' in incomingUserNextConfigObject) {
-    // eslint-disable-next-line no-console
-    console.warn(
-      '[@sentry/nextjs] Setting a `sentry` property on the Next.js config object as a means of configuration is no longer supported. Please use the `sentryBuildOptions` argument of of the `withSentryConfig()` function instead.',
-    );
-
-    // Next 12.2.3+ warns about non-canonical properties on `userNextConfig`.
-    delete incomingUserNextConfigObject.sentry;
-  }
-
   if (userSentryOptions?.tunnelRoute) {
     if (incomingUserNextConfigObject.output === 'export') {
       if (!showedExportModeTunnelWarning) {
@@ -174,9 +164,11 @@ function getFinalConfigObject(
     );
   }
 
+  const releaseName = userSentryOptions.release?.name ?? getSentryRelease() ?? getGitRevision();
+
   return {
     ...incomingUserNextConfigObject,
-    webpack: constructWebpackConfigFunction(incomingUserNextConfigObject, userSentryOptions),
+    webpack: constructWebpackConfigFunction(incomingUserNextConfigObject, userSentryOptions, releaseName),
   };
 }
 
@@ -256,9 +248,7 @@ function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: s
   };
 }
 
-// TODO(v9): Inject the release into all the bundles. This is breaking because grabbing the build ID if the user provides
-// it in `generateBuildId` (https://nextjs.org/docs/app/api-reference/next-config-js/generateBuildId) is async but we do
-// not turn the next config function in the type it was passed.
+// TODO: For Turbopack we need to pass the release name here and pick it up in the SDK
 function setUpBuildTimeVariables(userNextConfig: NextConfigObject, userSentryOptions: SentryBuildOptions): void {
   const assetPrefix = userNextConfig.assetPrefix || userNextConfig.basePath || '';
   const basePath = userNextConfig.basePath ?? '';
@@ -315,4 +305,17 @@ function resolveNextjsPackageJson(): string | undefined {
   } catch {
     return undefined;
   }
+}
+
+function getGitRevision(): string | undefined {
+  let gitRevision: string | undefined;
+  try {
+    gitRevision = childProcess
+      .execSync('git rev-parse HEAD', { stdio: ['ignore', 'pipe', 'ignore'] })
+      .toString()
+      .trim();
+  } catch (e) {
+    // noop
+  }
+  return gitRevision;
 }

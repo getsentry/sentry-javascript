@@ -11,8 +11,8 @@ Sentry.init({
 Sentry.withScope(scope => {
   scope.setPropagationContext({
     parentSpanId: '1234567890123456',
-    spanId: '123456789012345x',
     traceId: '12345678901234567890123456789012',
+    sampleRand: Math.random(),
   });
 
   const spanIdTraceId = Sentry.startSpan(

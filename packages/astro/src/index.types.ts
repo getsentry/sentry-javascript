@@ -24,9 +24,6 @@ export declare const defaultStackParser: StackParser;
 export declare function close(timeout?: number | undefined): PromiseLike<boolean>;
 export declare function flush(timeout?: number | undefined): PromiseLike<boolean>;
 
-// eslint-disable-next-line deprecation/deprecation
-export declare const getCurrentHub: typeof clientSdk.getCurrentHub;
-
 export declare const Span: clientSdk.Span;
 
 export default sentryAstro;

@@ -15,7 +15,7 @@ import type { VendoredTanstackRouter, VendoredTanstackRouterRouteMatch } from '.
 /**
  * A custom browser tracing integration for TanStack Router.
  *
- * The minimum compatible version of `@tanstack/router` is `1.34.5`.
+ * The minimum compatible version of `@tanstack/react-router` is `1.64.0`.
  *
  * @param router A TanStack Router `Router` instance that should be used for routing instrumentation.
  * @param options Sentry browser tracing configuration.
@@ -65,7 +65,7 @@ export function tanstackRouterBrowserTracingIntegration(
         // The onBeforeNavigate hook is called at the very beginning of a navigation and is only called once per navigation, even when the user is redirected
         castRouterInstance.subscribe('onBeforeNavigate', onBeforeNavigateArgs => {
           // onBeforeNavigate is called during pageloads. We can avoid creating navigation spans by comparing the states of the to and from arguments.
-          if (onBeforeNavigateArgs.toLocation.state === onBeforeNavigateArgs.fromLocation.state) {
+          if (onBeforeNavigateArgs.toLocation.state === onBeforeNavigateArgs.fromLocation?.state) {
             return;
           }
 

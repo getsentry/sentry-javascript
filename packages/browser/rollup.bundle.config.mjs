@@ -6,12 +6,13 @@ const browserPluggableIntegrationFiles = ['contextlines', 'httpclient', 'reporti
 
 const reexportedPluggableIntegrationFiles = [
   'captureconsole',
-  'debug',
   'dedupe',
   'extraerrordata',
   'rewriteframes',
   'feedback',
   'modulemetadata',
+  'graphqlclient',
+  'spotlight',
 ];
 
 browserPluggableIntegrationFiles.forEach(integrationName => {
@@ -35,6 +36,19 @@ reexportedPluggableIntegrationFiles.forEach(integrationName => {
 
   builds.push(...makeBundleConfigVariants(integrationsBundleConfig));
 });
+
+// Bundle config for additional exports we don't want to include in the main SDK bundle
+// if we need more of these, we can generalize the config as for pluggable integrations
+builds.push(
+  ...makeBundleConfigVariants(
+    makeBaseBundleConfig({
+      bundleType: 'addon',
+      entrypoints: ['src/pluggable-exports-bundle/index.multiplexedtransport.ts'],
+      licenseTitle: '@sentry/browser - multiplexedtransport',
+      outputFileBase: () => 'bundles/multiplexedtransport',
+    }),
+  ),
+);
 
 const baseBundleConfig = makeBaseBundleConfig({
   bundleType: 'standalone',

@@ -141,7 +141,7 @@ describe('sendFeedback', () => {
   });
 
   it('applies active span data to feedback', async () => {
-    mockSdk({ sentryOptions: { enableTracing: true } });
+    mockSdk({ sentryOptions: { tracesSampleRate: 1 } });
     const mockTransport = jest.spyOn(getClient()!.getTransport()!, 'send');
 
     await startSpan({ name: 'test span' }, () => {
@@ -163,6 +163,7 @@ describe('sendFeedback', () => {
           sample_rate: '1',
           sampled: 'true',
           transaction: 'test span',
+          sample_rand: expect.any(String),
         },
       },
       [
@@ -195,7 +196,7 @@ describe('sendFeedback', () => {
   });
 
   it('applies scope data to feedback', async () => {
-    mockSdk({ sentryOptions: { enableTracing: true } });
+    mockSdk({ sentryOptions: { tracesSampleRate: 1 } });
     const mockTransport = jest.spyOn(getClient()!.getTransport()!, 'send');
 
     await withIsolationScope(isolationScope => {

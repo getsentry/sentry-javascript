@@ -1,7 +1,6 @@
 import * as os from 'os';
 import type {
   Client,
-  Context,
   ContinuousThreadCpuProfile,
   DebugImage,
   DsnComponents,
@@ -14,6 +13,7 @@ import type {
   ProfileChunkItem,
   SdkInfo,
   ThreadCpuProfile,
+  TransactionEvent,
 } from '@sentry/core';
 import {
   createEnvelope,
@@ -99,7 +99,7 @@ export function createProfilingEvent(client: Client, profile: RawThreadCpuProfil
     event_id: event.event_id ?? '',
     transaction: event.transaction ?? '',
     start_timestamp: event.start_timestamp ? event.start_timestamp * 1000 : Date.now(),
-    trace_id: event.contexts?.['trace']?.['trace_id'] ?? '',
+    trace_id: event.contexts?.trace?.trace_id ?? '',
     profile_id: profile.profile_id,
   });
 }
@@ -134,7 +134,7 @@ function createProfilePayload(
   // Log a warning if the profile has an invalid traceId (should be uuidv4).
   // All profiles and transactions are rejected if this is the case and we want to
   // warn users that this is happening if they enable debug flag
-  if (trace_id && trace_id.length !== 32) {
+  if (trace_id?.length !== 32) {
     DEBUG_BUILD && logger.log(`[Profiling] Invalid traceId: ${trace_id} on profiled event`);
   }
 
@@ -207,7 +207,7 @@ function createProfileChunkPayload(
   // Log a warning if the profile has an invalid traceId (should be uuidv4).
   // All profiles and transactions are rejected if this is the case and we want to
   // warn users that this is happening if they enable debug flag
-  if (trace_id && trace_id.length !== 32) {
+  if (trace_id?.length !== 32) {
     DEBUG_BUILD && logger.log(`[Profiling] Invalid traceId: ${trace_id} on profiled event`);
   }
 
@@ -352,7 +352,7 @@ export function addProfilesToEnvelope(envelope: Envelope, profiles: Profile[]): 
  * @returns {Event[]}
  */
 export function findProfiledTransactionsFromEnvelope(envelope: Envelope): Event[] {
-  const events: Event[] = [];
+  const events: TransactionEvent[] = [];
 
   forEachEnvelopeItem(envelope, (item, type) => {
     if (type !== 'transaction') {
@@ -361,18 +361,17 @@ export function findProfiledTransactionsFromEnvelope(envelope: Envelope): Event[
 
     // First item is the type, so we can skip it, everything else is an event
     for (let j = 1; j < item.length; j++) {
-      const event = item[j];
+      const event = item[j] as TransactionEvent;
 
       if (!event) {
         // Shouldn't happen, but lets be safe
         continue;
       }
 
-      // @ts-expect-error profile_id is not part of the metadata type
-      const profile_id = (event.contexts as Context)?.['profile']?.['profile_id'];
+      const profile_id = event.contexts?.profile?.profile_id;
 
       if (event && profile_id) {
-        events.push(item[j] as Event);
+        events.push(event);
       }
     }
   });
@@ -423,7 +422,7 @@ export function makeProfileChunkEnvelope(
 export function applyDebugMetadata(client: Client, resource_paths: ReadonlyArray<string>): DebugImage[] {
   const options = client.getOptions();
 
-  if (!options || !options.stackParser) {
+  if (!options?.stackParser) {
     return [];
   }
 

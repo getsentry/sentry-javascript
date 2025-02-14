@@ -18,6 +18,7 @@ const mockScope = {
   setTag: jest.fn(),
   setContext: jest.fn(),
   addEventProcessor: jest.fn(),
+  setTransactionName: jest.fn(),
 };
 
 jest.mock('@sentry/node', () => {
@@ -81,12 +82,8 @@ const fakeCallback: Callback = (err, result) => {
 };
 
 function expectScopeSettings() {
-  expect(mockScope.addEventProcessor).toBeCalledTimes(1);
-  // Test than an event processor to add `transaction` is registered for the scope
-  const eventProcessor = mockScope.addEventProcessor.mock.calls[0][0];
-  const event: Event = {};
-  eventProcessor(event);
-  expect(event).toEqual({ transaction: 'functionName' });
+  expect(mockScope.setTransactionName).toBeCalledTimes(1);
+  expect(mockScope.setTransactionName).toBeCalledWith('functionName');
 
   expect(mockScope.setTag).toBeCalledWith('server_name', expect.anything());
 
@@ -518,7 +515,6 @@ describe('AWSLambda', () => {
           _metadata: {
             sdk: {
               name: 'sentry.javascript.aws-serverless',
-              integrations: ['AWSLambda'],
               packages: [
                 {
                   name: 'npm:@sentry/aws-serverless',

@@ -1,4 +1,7 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { AstroConfig } from 'astro';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { getUpdatedSourceMapSettings } from '../../src/integration/index';
+import type { SentryOptions } from '../../src/integration/types';
 
 import { sentryAstro } from '../../src/integration';
 
@@ -31,7 +34,7 @@ describe('sentryAstro integration', () => {
     expect(integration.name).toBe('@sentry/astro');
   });
 
-  it('enables source maps and adds the sentry vite plugin if an auth token is detected', async () => {
+  it('enables "hidden" source maps, adds filesToDeleteAfterUpload and adds the sentry vite plugin if an auth token is detected', async () => {
     const integration = sentryAstro({
       sourceMapsUploadOptions: { enabled: true, org: 'my-org', project: 'my-project', telemetry: false },
     });
@@ -44,7 +47,7 @@ describe('sentryAstro integration', () => {
     expect(updateConfig).toHaveBeenCalledWith({
       vite: {
         build: {
-          sourcemap: true,
+          sourcemap: 'hidden',
         },
         plugins: ['sentryVitePlugin'],
       },
@@ -60,6 +63,7 @@ describe('sentryAstro integration', () => {
       bundleSizeOptimizations: {},
       sourcemaps: {
         assets: ['out/**/*'],
+        filesToDeleteAfterUpload: ['./dist/**/client/**/*.map', './dist/**/server/**/*.map'],
       },
       _metaOptions: {
         telemetry: {
@@ -86,6 +90,7 @@ describe('sentryAstro integration', () => {
       bundleSizeOptimizations: {},
       sourcemaps: {
         assets: ['dist/**/*'],
+        filesToDeleteAfterUpload: ['./dist/**/client/**/*.map', './dist/**/server/**/*.map'],
       },
       _metaOptions: {
         telemetry: {
@@ -119,6 +124,7 @@ describe('sentryAstro integration', () => {
       bundleSizeOptimizations: {},
       sourcemaps: {
         assets: ['{.vercel,dist}/**/*'],
+        filesToDeleteAfterUpload: ['./dist/**/client/**/*.map', './dist/**/server/**/*.map'],
       },
       _metaOptions: {
         telemetry: {
@@ -157,6 +163,7 @@ describe('sentryAstro integration', () => {
       bundleSizeOptimizations: {},
       sourcemaps: {
         assets: ['dist/server/**/*, dist/client/**/*'],
+        filesToDeleteAfterUpload: ['./dist/**/client/**/*.map', './dist/**/server/**/*.map'],
       },
       _metaOptions: {
         telemetry: {
@@ -164,6 +171,35 @@ describe('sentryAstro integration', () => {
         },
       },
     });
+  });
+
+  it('prefers user-specified filesToDeleteAfterUpload over the default values', async () => {
+    const integration = sentryAstro({
+      sourceMapsUploadOptions: {
+        enabled: true,
+        org: 'my-org',
+        project: 'my-project',
+        filesToDeleteAfterUpload: ['./custom/path/**/*'],
+      },
+    });
+    // @ts-expect-error - the hook exists, and we only need to pass what we actually use
+    await integration.hooks['astro:config:setup']({
+      updateConfig,
+      injectScript,
+      // @ts-expect-error - only passing in partial config
+      config: {
+        outDir: new URL('file://path/to/project/build'),
+      },
+    });
+
+    expect(sentryVitePluginSpy).toHaveBeenCalledTimes(1);
+    expect(sentryVitePluginSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sourcemaps: expect.objectContaining({
+          filesToDeleteAfterUpload: ['./custom/path/**/*'],
+        }),
+      }),
+    );
   });
 
   it("doesn't enable source maps if `sourceMapsUploadOptions.enabled` is `false`", async () => {
@@ -371,5 +407,62 @@ describe('sentryAstro integration', () => {
     });
 
     expect(addMiddleware).toHaveBeenCalledTimes(0);
+  });
+});
+
+describe('getUpdatedSourceMapSettings', () => {
+  let astroConfig: Omit<AstroConfig, 'vite'> & { vite: { build: { sourcemap?: any } } };
+  let sentryOptions: SentryOptions;
+
+  beforeEach(() => {
+    astroConfig = { vite: { build: {} } } as Omit<AstroConfig, 'vite'> & { vite: { build: { sourcemap?: any } } };
+    sentryOptions = {};
+  });
+
+  it('should keep explicitly disabled source maps disabled', () => {
+    astroConfig.vite.build.sourcemap = false;
+    const result = getUpdatedSourceMapSettings(astroConfig, sentryOptions);
+    expect(result.previousUserSourceMapSetting).toBe('disabled');
+    expect(result.updatedSourceMapSetting).toBe(false);
+  });
+
+  it('should keep explicitly enabled source maps enabled', () => {
+    const cases = [
+      { sourcemap: true, expected: true },
+      { sourcemap: 'hidden', expected: 'hidden' },
+      { sourcemap: 'inline', expected: 'inline' },
+    ];
+
+    cases.forEach(({ sourcemap, expected }) => {
+      astroConfig.vite.build.sourcemap = sourcemap;
+      const result = getUpdatedSourceMapSettings(astroConfig, sentryOptions);
+      expect(result.previousUserSourceMapSetting).toBe('enabled');
+      expect(result.updatedSourceMapSetting).toBe(expected);
+    });
+  });
+
+  it('should enable "hidden" source maps when unset', () => {
+    astroConfig.vite.build.sourcemap = undefined;
+    const result = getUpdatedSourceMapSettings(astroConfig, sentryOptions);
+    expect(result.previousUserSourceMapSetting).toBe('unset');
+    expect(result.updatedSourceMapSetting).toBe('hidden');
+  });
+
+  it('should log warnings and messages when debug is enabled', () => {
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    sentryOptions = { debug: true };
+
+    astroConfig.vite.build.sourcemap = false;
+    getUpdatedSourceMapSettings(astroConfig, sentryOptions);
+    expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('Source map generation is currently disabled'));
+
+    astroConfig.vite.build.sourcemap = 'hidden';
+    getUpdatedSourceMapSettings(astroConfig, sentryOptions);
+    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Sentry will keep this source map setting'));
+
+    consoleWarnSpy.mockRestore();
+    consoleLogSpy.mockRestore();
   });
 });

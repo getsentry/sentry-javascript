@@ -4,9 +4,10 @@ import * as path from 'path';
 
 const UNIT_TEST_ENV = process.env.UNIT_TEST_ENV as 'node' | 'browser' | undefined;
 const RUN_AFFECTED = process.argv.includes('--affected');
+const NODE_VERSION = process.env.NODE_VERSION as '18' | '20' | '22';
 
 // These packages are tested separately in CI, so no need to run them here
-const DEFAULT_SKIP_PACKAGES = ['@sentry/profiling-node', '@sentry/bun', '@sentry/deno'];
+const DEFAULT_SKIP_PACKAGES = ['@sentry/bun', '@sentry/deno'];
 
 // All other packages are run for multiple node versions
 const BROWSER_TEST_PACKAGES = [
@@ -17,7 +18,6 @@ const BROWSER_TEST_PACKAGES = [
   '@sentry/angular',
   '@sentry/solid',
   '@sentry/svelte',
-  '@sentry/profiling-node',
   '@sentry-internal/browser-utils',
   '@sentry-internal/replay',
   '@sentry-internal/replay-canvas',
@@ -25,6 +25,9 @@ const BROWSER_TEST_PACKAGES = [
   '@sentry-internal/feedback',
   '@sentry/wasm',
 ];
+
+// Packages that cannot run in Node 18
+const SKIP_NODE_18_PACKAGES = ['@sentry/react-router'];
 
 function getAllPackages(): string[] {
   const { workspaces }: { workspaces: string[] } = JSON.parse(
@@ -56,6 +59,10 @@ function runTests(): void {
     });
   } else if (UNIT_TEST_ENV === 'node') {
     BROWSER_TEST_PACKAGES.forEach(pkg => ignores.add(pkg));
+
+    if (NODE_VERSION === '18') {
+      SKIP_NODE_18_PACKAGES.forEach(pkg => ignores.add(pkg));
+    }
   }
 
   if (RUN_AFFECTED) {

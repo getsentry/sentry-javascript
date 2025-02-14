@@ -3,9 +3,9 @@
   "version": "0.0.0",
   "scripts": {
     "clean": "pnpx rimraf node_modules pnpm-lock.yaml .vinxi .output",
-    "dev": "NODE_OPTIONS='--import ./src/instrument.server.mjs' vinxi dev",
-    "build": "vinxi build && sh ./post_build.sh",
-    "preview": "HOST=localhost PORT=3030 NODE_OPTIONS='--import ./src/instrument.server.mjs' vinxi start",
+    "build": "vinxi build && sh post_build.sh",
+    "preview": "HOST=localhost PORT=3030 vinxi start",
+    "start:import": "HOST=localhost PORT=3030 node --import ./.output/server/instrument.server.mjs .output/server/index.mjs",
     "test:prod": "TEST_ENV=production playwright test",
     "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm test:prod"
@@ -15,7 +15,7 @@
     "@sentry/solidstart": "latest || *"
   },
   "devDependencies": {
-    "@playwright/test": "^1.44.1",
+    "@playwright/test": "~1.50.0",
     "@solidjs/meta": "^0.29.4",
     "@solidjs/router": "^0.13.4",
     "@solidjs/start": "^1.0.2",
@@ -27,7 +27,7 @@
     "solid-js": "1.8.17",
     "typescript": "^5.4.5",
     "vinxi": "^0.4.0",
-    "vite": "^5.4.10",
+    "vite": "^5.4.11",
     "vite-plugin-solid": "^2.10.2",
     "vitest": "^1.5.0"
   },

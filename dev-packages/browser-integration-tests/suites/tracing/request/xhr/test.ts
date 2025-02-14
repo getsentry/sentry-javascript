@@ -9,6 +9,8 @@ sentryTest('should create spans for XHR requests', async ({ getLocalTestUrl, pag
     sentryTest.skip();
   }
 
+  await page.route('http://sentry-test-site.example/*', route => route.fulfill({ body: 'ok' }));
+
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
@@ -18,7 +20,7 @@ sentryTest('should create spans for XHR requests', async ({ getLocalTestUrl, pag
 
   requestSpans?.forEach((span, index) =>
     expect(span).toMatchObject({
-      description: `GET http://example.com/${index}`,
+      description: `GET http://sentry-test-site.example/${index}`,
       parent_span_id: eventData.contexts?.trace?.span_id,
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       start_timestamp: expect.any(Number),
@@ -26,9 +28,9 @@ sentryTest('should create spans for XHR requests', async ({ getLocalTestUrl, pag
       trace_id: eventData.contexts?.trace?.trace_id,
       data: {
         'http.method': 'GET',
-        'http.url': `http://example.com/${index}`,
-        url: `http://example.com/${index}`,
-        'server.address': 'example.com',
+        'http.url': `http://sentry-test-site.example/${index}`,
+        url: `http://sentry-test-site.example/${index}`,
+        'server.address': 'sentry-test-site.example',
         type: 'xhr',
       },
     }),
@@ -45,7 +47,7 @@ sentryTest('should attach `sentry-trace` header to XHR requests', async ({ getLo
   const requests = (
     await Promise.all([
       page.goto(url),
-      Promise.all([0, 1, 2].map(idx => page.waitForRequest(`http://example.com/${idx}`))),
+      Promise.all([0, 1, 2].map(idx => page.waitForRequest(`http://sentry-test-site.example/${idx}`))),
     ])
   )[1];
 

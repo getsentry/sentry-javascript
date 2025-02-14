@@ -28,7 +28,7 @@ export function captureFeedback(
     tags,
   };
 
-  const client = (scope && scope.getClient()) || getClient();
+  const client = scope?.getClient() || getClient();
 
   if (client) {
     client.emit('beforeSendFeedback', feedbackEvent, hint);
