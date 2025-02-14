@@ -16,6 +16,7 @@ export function createScreenshotInputStyles(styleNonce?: string): HTMLStyleEleme
   flex-direction: column;
 }
 .editor__image-container {
+  justify-items: center;
   padding: 10px;
   padding-top: 65px;
   padding-bottom: 65px;
@@ -137,6 +138,14 @@ export function createScreenshotInputStyles(styleNonce?: string): HTMLStyleEleme
 .editor__tool--active {
   background: var(--button-primary-background, var(--accent-background));
   color: var(--button-primary-foreground, var(--accent-foreground));
+}
+
+.rect:hover button{
+  opacity: 1;
+}
+.rect button{
+  opacity: 0;
+  display: flex;
 }
 `;
 
