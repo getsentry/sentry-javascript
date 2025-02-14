@@ -1,15 +1,17 @@
 import { WINDOW, rewriteFramesIntegration } from '@sentry/browser';
 import { defineIntegration } from '@sentry/core';
 
-const windowOrigin = WINDOW.location.origin;
-
 export const nextjsClientStackFrameNormalizationIntegration = defineIntegration(
   ({ assetPrefix, basePath }: { assetPrefix?: string; basePath?: string }) => {
+    const windowOrigin = WINDOW.location.origin;
+
     const rewriteFramesInstance = rewriteFramesIntegration({
       // Turn `<origin>/<path>/_next/static/...` into `app:///_next/static/...`
       iteratee: frame => {
         if (assetPrefix) {
-          frame.filename = frame.filename?.replace(assetPrefix, 'app://');
+          if (frame.filename?.startsWith(assetPrefix)) {
+            frame.filename = frame.filename.replace(assetPrefix, 'app://');
+          }
         } else if (basePath) {
           try {
             const { origin: frameOrigin } = new URL(frame.filename as string);
