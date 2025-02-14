@@ -1,16 +1,24 @@
-import { rewriteFramesIntegration } from '@sentry/browser';
+import { WINDOW, rewriteFramesIntegration } from '@sentry/browser';
 import { defineIntegration } from '@sentry/core';
 
+const windowOrigin = WINDOW.location.origin;
+
 export const nextjsClientStackFrameNormalizationIntegration = defineIntegration(
-  ({ assetPrefixPath }: { assetPrefixPath: string }) => {
+  ({ assetPrefix, basePath }: { assetPrefix?: string; basePath?: string }) => {
     const rewriteFramesInstance = rewriteFramesIntegration({
       // Turn `<origin>/<path>/_next/static/...` into `app:///_next/static/...`
       iteratee: frame => {
-        try {
-          const { origin } = new URL(frame.filename as string);
-          frame.filename = frame.filename?.replace(origin, 'app://').replace(assetPrefixPath, '');
-        } catch (err) {
-          // Filename wasn't a properly formed URL, so there's nothing we can do
+        if (assetPrefix) {
+          frame.filename = frame.filename?.replace(assetPrefix, 'app://');
+        } else if (basePath) {
+          try {
+            const { origin: frameOrigin } = new URL(frame.filename as string);
+            if (frameOrigin === windowOrigin) {
+              frame.filename = frame.filename?.replace(frameOrigin, 'app://').replace(basePath, '');
+            }
+          } catch (err) {
+            // Filename wasn't a properly formed URL, so there's nothing we can do
+          }
         }
 
         // We need to URI-decode the filename because Next.js has wildcard routes like "/users/[id].js" which show up as "/users/%5id%5.js" in Error stacktraces.

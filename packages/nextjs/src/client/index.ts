@@ -16,7 +16,8 @@ export { captureUnderscoreErrorException } from '../common/pages-router-instrume
 export { browserTracingIntegration } from './browserTracingIntegration';
 
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
-  _sentryRewriteFramesAssetPrefixPath: string;
+  _sentryAssetPrefix?: string;
+  _sentryBasePath?: string;
 };
 
 // Treeshakable guard to remove all code related to tracing
@@ -67,13 +68,11 @@ function getDefaultIntegrations(options: BrowserOptions): Integration[] {
     customDefaultIntegrations.push(browserTracingIntegration());
   }
 
-  // This value is injected at build time, based on the output directory specified in the build config. Though a default
+  // These values are injected at build time, based on the output directory specified in the build config. Though a default
   // is set there, we set it here as well, just in case something has gone wrong with the injection.
-  const assetPrefixPath =
-    process.env._sentryRewriteFramesAssetPrefixPath ||
-    globalWithInjectedValues._sentryRewriteFramesAssetPrefixPath ||
-    '';
-  customDefaultIntegrations.push(nextjsClientStackFrameNormalizationIntegration({ assetPrefixPath }));
+  const assetPrefix = process.env._sentryAssetPrefix || globalWithInjectedValues._sentryAssetPrefix;
+  const basePath = process.env._sentryBasePath || globalWithInjectedValues._sentryBasePath;
+  customDefaultIntegrations.push(nextjsClientStackFrameNormalizationIntegration({ assetPrefix, basePath }));
 
   return customDefaultIntegrations;
 }
