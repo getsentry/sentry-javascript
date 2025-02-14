@@ -150,6 +150,8 @@ export class Replay implements Integration {
           // this can happen if the error is frozen or does not allow mutation for other reasons
         }
       },
+
+      recordCrossOriginIframes: Boolean(_experiments.recordCrossOriginIframes),
     };
 
     this._initialOptions = {
