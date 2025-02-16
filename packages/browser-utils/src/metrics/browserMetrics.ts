@@ -425,7 +425,7 @@ export function _addMeasureSpans(
   startTime: number,
   duration: number,
   timeOrigin: number,
-): number {
+): void {
   const navEntry = getNavigationEntry(false);
   const requestTime = msToSec(navEntry ? navEntry.requestStart : 0);
   // Because performance.measure accepts arbitrary timestamps it can produce
@@ -450,13 +450,14 @@ export function _addMeasureSpans(
     attributes['sentry.browser.measure_start_time'] = measureStartTimestamp;
   }
 
-  startAndEndSpan(span, measureStartTimestamp, measureEndTimestamp, {
-    name: entry.name as string,
-    op: entry.entryType as string,
-    attributes,
-  });
-
-  return measureStartTimestamp;
+  // Measurements from third parties can be off, which would create invalid spans, dropping transactions in the process.
+  if (measureStartTimestamp <= measureEndTimestamp) {
+    startAndEndSpan(span, measureStartTimestamp, measureEndTimestamp, {
+      name: entry.name as string,
+      op: entry.entryType as string,
+      attributes,
+    });
+  }
 }
 
 /** Instrument navigation entries */
