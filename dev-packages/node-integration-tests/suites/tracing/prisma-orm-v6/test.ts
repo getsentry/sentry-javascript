@@ -1,9 +1,21 @@
 import type { SpanJSON } from '@sentry/core';
-import { createRunner } from '../../../utils/runner';
+import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
-describe('Prisma ORM Tests', () => {
+// When running docker compose, we need a larger timeout, as this takes some time...
+jest.setTimeout(75000);
+
+afterAll(() => {
+  cleanupChildProcesses();
+});
+
+describe('Prisma ORM v6 Tests', () => {
   test('CJS - should instrument PostgreSQL queries from Prisma ORM', done => {
     createRunner(__dirname, 'scenario.js')
+      .withDockerCompose({
+        workingDirectory: [__dirname],
+        readyMatches: ['port 5432'],
+        setupCommand: 'yarn && yarn setup',
+      })
       .expect({
         transaction: transaction => {
           expect(transaction.transaction).toBe('Test Transaction');

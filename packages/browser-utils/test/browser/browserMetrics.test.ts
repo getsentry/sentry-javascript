@@ -92,6 +92,29 @@ describe('_addMeasureSpans', () => {
       }),
     );
   });
+
+  it('drops measurement spans with negative duration', () => {
+    const spans: Span[] = [];
+
+    getClient()?.on('spanEnd', span => {
+      spans.push(span);
+    });
+
+    const entry = {
+      entryType: 'measure',
+      name: 'measure-1',
+      duration: 10,
+      startTime: 12,
+    } as PerformanceEntry;
+
+    const timeOrigin = 100;
+    const startTime = 23;
+    const duration = -50;
+
+    _addMeasureSpans(span, entry, startTime, duration, timeOrigin);
+
+    expect(spans).toHaveLength(0);
+  });
 });
 
 describe('_addResourceSpans', () => {
