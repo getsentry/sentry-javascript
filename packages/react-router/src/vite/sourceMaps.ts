@@ -1,6 +1,6 @@
+import { consoleSandbox } from '@sentry/core';
 import type { Plugin, UserConfig } from 'vite';
 import type { SentryReactRouterPluginOptions } from './types';
-import { consoleSandbox } from '@sentry/core';
 
 /**
  * A Sentry plugin for React Router to enable "hidden" source maps if they are unset.
