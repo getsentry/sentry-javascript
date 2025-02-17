@@ -39,7 +39,8 @@
     "access": "public"
   },
   "peerDependencies": {
-    "nuxt": ">=3.7.0 || 4.x"
+    "nuxt": ">=3.7.0 || 4.x",
+    "require-in-the-middle": "<=7.4.0"
   },
   "dependencies": {
     "@nuxt/kit": "^3.13.2",
