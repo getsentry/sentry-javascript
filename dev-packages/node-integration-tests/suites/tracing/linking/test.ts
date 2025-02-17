@@ -173,8 +173,8 @@ describe('span links', () => {
                 span_id: expect.stringMatching(parent1_spanId),
               }),
             expect.objectContaining({
-              trace_id: expect.stringMatching(child1_1?.trace_id as string),
-              span_id: expect.stringMatching(child1_1?.span_id as string),
+              trace_id: expect.stringMatching(child1_1?.trace_id || 'non-existent-id-fallback'),
+              span_id: expect.stringMatching(child1_1?.span_id || 'non-existent-id-fallback'),
               attributes: expect.objectContaining({
                 'sentry.link.type': 'previous_trace',
               }),
