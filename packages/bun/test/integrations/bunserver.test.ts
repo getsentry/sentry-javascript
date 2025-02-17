@@ -41,17 +41,26 @@ describe('Bun Serve Integration', () => {
       },
       port,
     });
-    await fetch(`http://localhost:${port}/`);
+    await fetch(`http://localhost:${port}/users?id=123`);
     server.stop();
 
     if (!generatedSpan) {
       throw 'No span was generated in the test';
     }
 
-    expect(spanToJSON(generatedSpan).status).toBe('ok');
-    expect(spanToJSON(generatedSpan).data?.['http.response.status_code']).toEqual(200);
-    expect(spanToJSON(generatedSpan).op).toEqual('http.server');
-    expect(spanToJSON(generatedSpan).description).toEqual('GET /');
+    const spanJson = spanToJSON(generatedSpan);
+    expect(spanJson.status).toBe('ok');
+    expect(spanJson.op).toEqual('http.server');
+    expect(spanJson.description).toEqual('GET /users');
+    expect(spanJson.data).toEqual({
+      'http.query': '?id=123',
+      'http.request.method': 'GET',
+      'http.response.status_code': 200,
+      'sentry.op': 'http.server',
+      'sentry.origin': 'auto.http.bun.serve',
+      'sentry.sample_rate': 1,
+      'sentry.source': 'url',
+    });
   });
 
   test('generates a post transaction', async () => {
