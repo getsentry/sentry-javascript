@@ -281,6 +281,17 @@ const CEFSHARP_EVENT: Event = {
   },
 };
 
+const FB_MOBILE_BROWSER_EVENT: Event = {
+  exception: {
+    values: [
+      {
+        type: 'Error',
+        value: 'Java exception was raised during method invocation',
+      },
+    ],
+  },
+};
+
 const MALFORMED_EVENT: Event = {
   exception: {
     values: [
@@ -400,6 +411,11 @@ describe('InboundFilters', () => {
     it('uses default filters (CEFSharp)', () => {
       const eventProcessor = createInboundFiltersEventProcessor();
       expect(eventProcessor(CEFSHARP_EVENT, {})).toBe(null);
+    });
+
+    it('uses default filters (FB Mobile Browser)', () => {
+      const eventProcessor = createInboundFiltersEventProcessor();
+      expect(eventProcessor(FB_MOBILE_BROWSER_EVENT, {})).toBe(null);
     });
 
     it('filters on last exception when multiple present', () => {
