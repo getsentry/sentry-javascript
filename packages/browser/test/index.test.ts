@@ -10,7 +10,7 @@ import {
   getGlobalScope,
   getIsolationScope,
   getReportDialogEndpoint,
-  inboundFiltersIntegration,
+  eventFiltersIntegration,
   lastEventId,
 } from '@sentry/core';
 import * as utils from '@sentry/core';
@@ -304,12 +304,12 @@ describe('SentryBrowser', () => {
       expect(localBeforeSend).toHaveBeenCalledTimes(2);
     });
 
-    it('should use inboundfilter rules of bound client', async () => {
+    it('should use eventFilters rules of bound client', async () => {
       const localBeforeSend = vi.fn();
       const options = getDefaultBrowserClientOptions({
         beforeSend: localBeforeSend,
         dsn,
-        integrations: [inboundFiltersIntegration({ ignoreErrors: ['capture'] })],
+        integrations: [eventFiltersIntegration({ ignoreErrors: ['capture'] })],
       });
       const client = new BrowserClient(options);
       setCurrentClient(client);
