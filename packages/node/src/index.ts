@@ -75,7 +75,9 @@ export {
   withMonitor,
   requestDataIntegration,
   functionToStringIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   inboundFiltersIntegration,
+  eventFiltersIntegration,
   linkedErrorsIntegration,
   addEventProcessor,
   setContext,

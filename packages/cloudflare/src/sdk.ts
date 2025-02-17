@@ -20,6 +20,8 @@ export function getDefaultIntegrations(options: CloudflareOptions): Integration[
   const sendDefaultPii = options.sendDefaultPii ?? false;
   return [
     dedupeIntegration(),
+    // TODO(v10): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
+    // eslint-disable-next-line deprecation/deprecation
     inboundFiltersIntegration(),
     functionToStringIntegration(),
     linkedErrorsIntegration(),
