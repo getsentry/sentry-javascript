@@ -269,6 +269,12 @@ const GOOGLETAG_EVENT: Event = {
   },
 };
 
+const GOOGLE_APP_GMO: Event = {
+  exception: {
+    values: [{ type: 'ReferenceError', value: "Can't find variable: gmo" }],
+  },
+};
+
 const CEFSHARP_EVENT: Event = {
   exception: {
     values: [
@@ -395,6 +401,11 @@ describe('InboundFilters', () => {
     it('uses default filters (googletag)', () => {
       const eventProcessor = createInboundFiltersEventProcessor();
       expect(eventProcessor(GOOGLETAG_EVENT, {})).toBe(null);
+    });
+
+    it('uses default filters (Google App "gmo")', () => {
+      const eventProcessor = createInboundFiltersEventProcessor();
+      expect(eventProcessor(GOOGLE_APP_GMO, {})).toBe(null);
     });
 
     it('uses default filters (CEFSharp)', () => {
