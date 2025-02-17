@@ -1,7 +1,7 @@
-import { createRunner } from '../../../utils/runner';
-import { createTestServer } from '../../../utils/server';
+import { createRunner } from '../../../../utils/runner';
+import { createTestServer } from '../../../../utils/server';
 
-test('should capture spans for outgoing http requests', done => {
+test('captures spans for outgoing fetch requests', done => {
   expect.assertions(3);
 
   createTestServer(done)
@@ -28,13 +28,13 @@ test('should capture spans for outgoing http requests', done => {
               expect.objectContaining({
                 description: expect.stringMatching(/GET .*\/api\/v0/),
                 op: 'http.client',
-                origin: 'auto.http.otel.http',
+                origin: 'auto.http.otel.node_fetch',
                 status: 'ok',
               }),
               expect.objectContaining({
                 description: expect.stringMatching(/GET .*\/api\/v1/),
                 op: 'http.client',
-                origin: 'auto.http.otel.http',
+                origin: 'auto.http.otel.node_fetch',
                 status: 'not_found',
                 data: expect.objectContaining({
                   'http.response.status_code': 404,
