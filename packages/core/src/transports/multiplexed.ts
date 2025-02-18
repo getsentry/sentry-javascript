@@ -158,3 +158,28 @@ export function makeMultiplexedTransport<TO extends BaseTransportOptions>(
     };
   };
 }
+
+export const SIMPLE_MULTIPLEXED_TRANSPORT_EXTRA_ROUTING_KEY = 'SIMPLE_MULTIPLEXED_TRANSPORT_ROUTE_TO';
+
+/**
+ * Creates a transport that will send events to all DSNs provided in `event.extra[SIMPLE_MULTIPLEXED_TRANSPORT_EXTRA_ROUTING_KEY]`,
+ * which should contain values in the format of `Array<{ dsn: string;, release: string; }>`.
+ *
+ * If the value is `undefined` or `[]`, the event will be sent to the `dsn` value provided in your Sentry SDK initialization options as a fallback mechanism.
+ */
+export function makeSimpleMultiplexedTransport<TO extends BaseTransportOptions>(
+  transportGenerator: (options: TO) => Transport,
+): (options: TO) => Transport {
+  return makeMultiplexedTransport(transportGenerator, args => {
+    const event = args.getEvent();
+    if (
+      event &&
+      event.extra &&
+      SIMPLE_MULTIPLEXED_TRANSPORT_EXTRA_ROUTING_KEY in event.extra &&
+      Array.isArray(event.extra[SIMPLE_MULTIPLEXED_TRANSPORT_EXTRA_ROUTING_KEY])
+    ) {
+      return event.extra[SIMPLE_MULTIPLEXED_TRANSPORT_EXTRA_ROUTING_KEY];
+    }
+    return [];
+  });
+}
