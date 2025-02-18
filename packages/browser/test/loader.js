@@ -97,7 +97,6 @@
         console.error(o_O);
       }
     });
-
     _currentScriptTag.parentNode.insertBefore(_newScriptTag, _currentScriptTag);
   }
 
