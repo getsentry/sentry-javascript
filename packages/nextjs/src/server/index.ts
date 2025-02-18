@@ -6,24 +6,27 @@ import {
   SEMATTRS_HTTP_METHOD,
   SEMATTRS_HTTP_TARGET,
 } from '@opentelemetry/semantic-conventions';
+import type { EventProcessor, Integration } from '@sentry/core';
 import {
+  GLOBAL_OBJ,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   applySdkMetadata,
+  extractTraceparentData,
   getCapturedScopesOnSpan,
   getClient,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
   getRootSpan,
+  logger,
   setCapturedScopesOnSpan,
   spanToJSON,
+  stripUrlQueryAndFragment,
 } from '@sentry/core';
-import { GLOBAL_OBJ, extractTraceparentData, logger, stripUrlQueryAndFragment } from '@sentry/core';
-import type { EventProcessor } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
-import { getDefaultIntegrations, httpIntegration, init as nodeInit } from '@sentry/node';
+import { getDefaultIntegrations, httpIntegration, initWithDefaultIntegrations } from '@sentry/node';
 import { getScopesFromContext } from '@sentry/opentelemetry';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
@@ -37,8 +40,9 @@ import { isBuild } from '../common/utils/isBuild';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
 
 export * from '@sentry/node';
-
+export * from '../common';
 export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';
+export { wrapApiHandlerWithSentry } from '../common/pages-router-instrumentation/wrapApiHandlerWithSentry';
 
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryRewriteFramesDistDir?: string;
@@ -93,29 +97,8 @@ export function init(options: NodeOptions): NodeClient | undefined {
     return;
   }
 
-  const customDefaultIntegrations = getDefaultIntegrations(options)
-    .filter(integration => integration.name !== 'Http')
-    .concat(
-      // We are using the HTTP integration without instrumenting incoming HTTP requests because Next.js does that by itself.
-      httpIntegration({
-        disableIncomingRequestSpans: true,
-      }),
-    );
-
-  // Turn off Next.js' own fetch instrumentation
-  // https://github.com/lforst/nextjs-fork/blob/1994fd186defda77ad971c36dc3163db263c993f/packages/next/src/server/lib/patch-fetch.ts#L245
-  process.env.NEXT_OTEL_FETCH_DISABLED = '1';
-
-  // This value is injected at build time, based on the output directory specified in the build config. Though a default
-  // is set there, we set it here as well, just in case something has gone wrong with the injection.
-  const distDirName = process.env._sentryRewriteFramesDistDir || globalWithInjectedValues._sentryRewriteFramesDistDir;
-  if (distDirName) {
-    customDefaultIntegrations.push(distDirRewriteFramesIntegration({ distDirName }));
-  }
-
   const opts: NodeOptions = {
     environment: process.env.SENTRY_ENVIRONMENT || getVercelEnv(false) || process.env.NODE_ENV,
-    defaultIntegrations: customDefaultIntegrations,
     ...options,
   };
 
@@ -132,7 +115,11 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
   applySdkMetadata(opts, 'nextjs', ['nextjs', 'node']);
 
-  const client = nodeInit(opts);
+  // Turn off Next.js' own fetch instrumentation
+  // https://github.com/lforst/nextjs-fork/blob/1994fd186defda77ad971c36dc3163db263c993f/packages/next/src/server/lib/patch-fetch.ts#L245
+  process.env.NEXT_OTEL_FETCH_DISABLED = '1';
+
+  const client = initWithDefaultIntegrations(opts, getNextDefaultIntegrations);
   client?.on('beforeSampling', ({ spanAttributes }, samplingDecision) => {
     // There are situations where the Next.js Node.js server forwards requests for the Edge Runtime server (e.g. in
     // middleware) and this causes spans for Sentry ingest requests to be created. These are not exempt from our tracing
@@ -366,6 +353,22 @@ function sdkAlreadyInitialized(): boolean {
   return !!getClient();
 }
 
-export * from '../common';
+function getNextDefaultIntegrations(options: NodeOptions): Integration[] {
+  const customDefaultIntegrations = getDefaultIntegrations(options)
+    .filter(integration => integration.name !== 'Http')
+    .concat(
+      // We are using the HTTP integration without instrumenting incoming HTTP requests because Next.js does that by itself.
+      httpIntegration({
+        disableIncomingRequestSpans: true,
+      }),
+    );
 
-export { wrapApiHandlerWithSentry } from '../common/pages-router-instrumentation/wrapApiHandlerWithSentry';
+  // This value is injected at build time, based on the output directory specified in the build config. Though a default
+  // is set there, we set it here as well, just in case something has gone wrong with the injection.
+  const distDirName = process.env._sentryRewriteFramesDistDir || globalWithInjectedValues._sentryRewriteFramesDistDir;
+  if (distDirName) {
+    customDefaultIntegrations.push(distDirRewriteFramesIntegration({ distDirName }));
+  }
+
+  return customDefaultIntegrations;
+}

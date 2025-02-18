@@ -14,10 +14,7 @@ export type ClientClass<F extends Client, O extends ClientOptions> = new (option
  * @param clientClass The client class to instantiate.
  * @param options Options to pass to the client.
  */
-export function initAndBind<F extends Client, O extends ClientOptions>(
-  clientClass: ClientClass<F, O>,
-  options: O,
-): Client {
+export function initAndBind<F extends Client, O extends ClientOptions>(clientClass: ClientClass<F, O>, options: O): F {
   if (options.debug === true) {
     if (DEBUG_BUILD) {
       logger.enable();

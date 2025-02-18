@@ -30,7 +30,13 @@ module.exports = [
       );
 
       config.optimization.minimize = true;
-      config.optimization.minimizer = [new TerserPlugin()];
+      config.optimization.minimizer = [
+        new TerserPlugin({
+          terserOptions: {
+            ecma: 'es2020',
+          },
+        }),
+      ];
 
       return config;
     },
@@ -69,7 +75,13 @@ module.exports = [
       );
 
       config.optimization.minimize = true;
-      config.optimization.minimizer = [new TerserPlugin()];
+      config.optimization.minimizer = [
+        new TerserPlugin({
+          terserOptions: {
+            ecma: 'es2020',
+          },
+        }),
+      ];
 
       return config;
     },
@@ -248,7 +260,13 @@ module.exports = [
       );
 
       config.optimization.minimize = true;
-      config.optimization.minimizer = [new TerserPlugin()];
+      config.optimization.minimizer = [
+        new TerserPlugin({
+          terserOptions: {
+            ecma: 'es2020',
+          },
+        }),
+      ];
 
       return config;
     },

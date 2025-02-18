@@ -5,7 +5,7 @@ import * as SentryNode from '@sentry/node';
 
 import { init as nestInit } from '../src/sdk';
 
-const nodeInit = vi.spyOn(SentryNode, 'init');
+const nodeInit = vi.spyOn(SentryNode, 'initWithDefaultIntegrations');
 const PUBLIC_DSN = 'https://username@domain/123';
 
 describe('Initialize Nest SDK', () => {
@@ -30,6 +30,6 @@ describe('Initialize Nest SDK', () => {
 
     expect(client).not.toBeUndefined();
     expect(nodeInit).toHaveBeenCalledTimes(1);
-    expect(nodeInit).toHaveBeenLastCalledWith(expect.objectContaining(expectedMetadata));
+    expect(nodeInit).toHaveBeenLastCalledWith(expect.objectContaining(expectedMetadata), expect.any(Function));
   });
 });

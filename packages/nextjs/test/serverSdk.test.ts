@@ -1,5 +1,4 @@
 import { GLOBAL_OBJ } from '@sentry/core';
-import type { Integration } from '@sentry/core';
 import { getCurrentScope } from '@sentry/node';
 import * as SentryNode from '@sentry/node';
 
@@ -8,11 +7,7 @@ import { init } from '../src/server';
 // normally this is set as part of the build process, so mock it here
 (GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryRewriteFramesDistDir: string })._sentryRewriteFramesDistDir = '.next';
 
-const nodeInit = jest.spyOn(SentryNode, 'init');
-
-function findIntegrationByName(integrations: Integration[] = [], name: string): Integration | undefined {
-  return integrations.find(integration => integration.name === name);
-}
+const nodeInit = jest.spyOn(SentryNode, 'initWithDefaultIntegrations');
 
 describe('Server init()', () => {
   afterEach(() => {
@@ -49,15 +44,8 @@ describe('Server init()', () => {
           },
         },
         environment: 'test',
-
-        // Integrations are tested separately, and we can't be more specific here without depending on the order in
-        // which integrations appear in the array, which we can't guarantee.
-        //
-        // TODO: If we upgrade to Jest 28+, we can follow Jest's example matcher and create an
-        // `expect.ArrayContainingInAnyOrder`. See
-        // https://github.com/facebook/jest/blob/main/examples/expect-extend/toBeWithinRange.ts.
-        defaultIntegrations: expect.any(Array),
       }),
+      expect.any(Function),
     );
   });
 
@@ -85,29 +73,23 @@ describe('Server init()', () => {
   });
 
   describe('integrations', () => {
-    // Options passed by `@sentry/nextjs`'s `init` to `@sentry/node`'s `init` after modifying them
-    type ModifiedInitOptions = { integrations: Integration[]; defaultIntegrations: Integration[] };
-
     it('adds default integrations', () => {
-      init({});
+      const client = init({ dsn: 'http://examplePublicKey@localhost/1' });
 
-      const nodeInitOptions = nodeInit.mock.calls[0]?.[0] as ModifiedInitOptions;
-      const integrationNames = nodeInitOptions.defaultIntegrations.map(integration => integration.name);
-      const onUncaughtExceptionIntegration = findIntegrationByName(
-        nodeInitOptions.defaultIntegrations,
-        'OnUncaughtException',
-      );
+      const onUncaughtExceptionIntegration = client?.getIntegrationByName('OnUncaughtException');
+      const rewriteFramesIntegration = client?.getIntegrationByName('DistDirRewriteFrames');
 
-      expect(integrationNames).toContain('DistDirRewriteFrames');
+      expect(rewriteFramesIntegration).toBeDefined();
       expect(onUncaughtExceptionIntegration).toBeDefined();
     });
 
     it('supports passing unrelated integrations through options', () => {
-      init({ integrations: [SentryNode.consoleIntegration()] });
+      const client = init({
+        dsn: 'http://examplePublicKey@localhost/1',
+        integrations: [SentryNode.consoleIntegration()],
+      });
 
-      const nodeInitOptions = nodeInit.mock.calls[0]?.[0] as ModifiedInitOptions;
-      const consoleIntegration = findIntegrationByName(nodeInitOptions.integrations, 'Console');
-
+      const consoleIntegration = client?.getIntegrationByName('Console');
       expect(consoleIntegration).toBeDefined();
     });
   });

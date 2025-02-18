@@ -1,12 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import type { BrowserClient } from '@sentry/svelte';
 import * as SentrySvelte from '@sentry/svelte';
-import { SDK_VERSION, getClient, getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/svelte';
+import { SDK_VERSION, getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/svelte';
 
 import { init } from '../../src/client';
 
-const svelteInit = vi.spyOn(SentrySvelte, 'init');
+const svelteInit = vi.spyOn(SentrySvelte, 'initWithDefaultIntegrations');
 
 describe('Sentry client SDK', () => {
   describe('init', () => {
@@ -38,6 +37,7 @@ describe('Sentry client SDK', () => {
             },
           },
         }),
+        expect.any(Function),
       );
     });
 
@@ -47,12 +47,12 @@ describe('Sentry client SDK', () => {
         ['tracesSampler', { tracesSampler: () => 1.0 }],
         ['no tracing option set', {}],
       ])('adds a browserTracingIntegration if tracing is enabled via %s', (_, tracingOptions) => {
-        init({
+        const client = init({
           dsn: 'https://public@dsn.ingest.sentry.io/1337',
           ...tracingOptions,
         });
 
-        const browserTracing = getClient<BrowserClient>()?.getIntegrationByName('BrowserTracing');
+        const browserTracing = client?.getIntegrationByName('BrowserTracing');
         expect(browserTracing).toBeDefined();
       });
 
@@ -62,12 +62,12 @@ describe('Sentry client SDK', () => {
 
         globalThis.__SENTRY_TRACING__ = false;
 
-        init({
+        const client = init({
           dsn: 'https://public@dsn.ingest.sentry.io/1337',
           tracesSampleRate: 1,
         });
 
-        const browserTracing = getClient<BrowserClient>()?.getIntegrationByName('BrowserTracing');
+        const browserTracing = client?.getIntegrationByName('BrowserTracing');
         expect(browserTracing).toBeUndefined();
 
         delete globalThis.__SENTRY_TRACING__;

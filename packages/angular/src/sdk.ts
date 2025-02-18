@@ -5,7 +5,7 @@ import {
   browserSessionIntegration,
   globalHandlersIntegration,
   httpContextIntegration,
-  init as browserInit,
+  initWithDefaultIntegrations,
   linkedErrorsIntegration,
   setContext,
 } from '@sentry/browser';
@@ -49,14 +49,14 @@ export function getDefaultIntegrations(_options: BrowserOptions = {}): Integrati
  */
 export function init(options: BrowserOptions): Client | undefined {
   const opts = {
-    defaultIntegrations: getDefaultIntegrations(),
     ...options,
   };
 
   applySdkMetadata(opts, 'angular');
 
   checkAndSetAngularVersion();
-  return browserInit(opts);
+
+  return initWithDefaultIntegrations(opts, getDefaultIntegrations);
 }
 
 function checkAndSetAngularVersion(): void {

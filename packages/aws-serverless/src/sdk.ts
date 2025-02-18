@@ -17,7 +17,7 @@ import {
   flush,
   getCurrentScope,
   getDefaultIntegrationsWithoutPerformance,
-  initWithoutDefaultIntegrations,
+  initWithDefaultIntegrations,
   startSpanManual,
   withScope,
 } from '@sentry/node';
@@ -77,13 +77,12 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
  */
 export function init(options: NodeOptions = {}): NodeClient | undefined {
   const opts = {
-    defaultIntegrations: getDefaultIntegrations(options),
     ...options,
   };
 
   applySdkMetadata(opts, 'aws-serverless');
 
-  return initWithoutDefaultIntegrations(opts);
+  return initWithDefaultIntegrations(opts, getDefaultIntegrations);
 }
 
 /** */

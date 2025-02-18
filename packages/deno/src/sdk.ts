@@ -84,14 +84,12 @@ const defaultStackParser: StackParser = createStackParser(nodeStackLineParser())
  * @see {@link DenoOptions} for documentation on configuration options.
  */
 export function init(options: DenoOptions = {}): Client {
-  if (options.defaultIntegrations === undefined) {
-    options.defaultIntegrations = getDefaultIntegrations(options);
-  }
+  const defaultIntegrations = getDefaultIntegrations(options);
 
   const clientOptions: ServerRuntimeClientOptions = {
     ...options,
     stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
-    integrations: getIntegrationsToSetup(options),
+    integrations: getIntegrationsToSetup(options, defaultIntegrations),
     transport: options.transport || makeFetchTransport,
   };
 

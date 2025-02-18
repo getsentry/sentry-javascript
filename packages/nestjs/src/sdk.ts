@@ -1,12 +1,12 @@
+import type { Integration } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   applySdkMetadata,
   spanToJSON,
 } from '@sentry/core';
-import type { Integration } from '@sentry/core';
 import type { NodeClient, NodeOptions, Span } from '@sentry/node';
-import { getDefaultIntegrations as getDefaultNodeIntegrations, init as nodeInit } from '@sentry/node';
+import { getDefaultIntegrations as getDefaultNodeIntegrations, initWithDefaultIntegrations } from '@sentry/node';
 import { nestIntegration } from './integrations/nest';
 
 /**
@@ -14,13 +14,12 @@ import { nestIntegration } from './integrations/nest';
  */
 export function init(options: NodeOptions | undefined = {}): NodeClient | undefined {
   const opts: NodeOptions = {
-    defaultIntegrations: getDefaultIntegrations(options),
     ...options,
   };
 
   applySdkMetadata(opts, 'nestjs');
 
-  const client = nodeInit(opts);
+  const client = initWithDefaultIntegrations(opts, getDefaultIntegrations);
 
   if (client) {
     client.on('spanStart', span => {
@@ -33,7 +32,7 @@ export function init(options: NodeOptions | undefined = {}): NodeClient | undefi
 }
 
 /** Get the default integrations for the NestJS SDK. */
-export function getDefaultIntegrations(options: NodeOptions): Integration[] | undefined {
+export function getDefaultIntegrations(options: NodeOptions): Integration[] {
   return [nestIntegration(), ...getDefaultNodeIntegrations(options)];
 }
 

@@ -6,7 +6,7 @@ import { SDK_VERSION, getClient } from '@sentry/node';
 
 import { init } from '../../src/server/sdk';
 
-const nodeInit = vi.spyOn(SentryNode, 'init');
+const nodeInit = vi.spyOn(SentryNode, 'initWithDefaultIntegrations');
 
 describe('Sentry server SDK', () => {
   describe('init', () => {
@@ -38,6 +38,7 @@ describe('Sentry server SDK', () => {
             },
           },
         }),
+        expect.any(Function),
       );
     });
 
