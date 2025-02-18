@@ -29,9 +29,9 @@ function addLog(log: Log): void {
     return;
   }
 
-  // if (!client.getOptions()._experiments?.logSupport) {
-  //   return;
-  // }
+  if (!client.getOptions()._experiments?.logSupport) {
+    return;
+  }
 
   const globalScope = getGlobalScope();
   const dsn = client.getDsn();
@@ -41,57 +41,59 @@ function addLog(log: Log): void {
       trace_id: globalScope.getPropagationContext().traceId,
       public_key: dsn?.publicKey,
     },
-    ...(dsn ? {dsn: dsnToString(dsn)} : {}),
-  }
-  if(!log.traceId) {
+    ...(dsn ? { dsn: dsnToString(dsn) } : {}),
+  };
+  if (!log.traceId) {
     log.traceId = globalScope.getPropagationContext().traceId || '00000000-0000-0000-0000-000000000000';
   }
-  if(!log.timeUnixNano) {
-    log.timeUnixNano = `${(new Date()).getTime().toString()}000000`;
+  if (!log.timeUnixNano) {
+    log.timeUnixNano = `${new Date().getTime().toString()}000000`;
   }
 
   const envelope = createEnvelope<LogEnvelope>(headers, [createLogEnvelopeItem(log)]);
 
-  client.sendEnvelope(envelope).then(null, ex => console.error(ex));
+  // sendEnvelope should not throw
+  // eslint-disable-next-line @typescript-eslint/no-floating-promises
+  client.sendEnvelope(envelope);
 }
 
 function valueToAttribute(key: string, value: unknown): LogAttribute {
   if (typeof value === 'number') {
-    if(Number.isInteger(value)) {
+    if (Number.isInteger(value)) {
       return {
         key,
         value: {
-          intValue: value
-        }
-      }
+          intValue: value,
+        },
+      };
     }
     return {
       key,
       value: {
-        doubleValue: value
-      }
-    }
+        doubleValue: value,
+      },
+    };
   } else if (typeof value === 'boolean') {
     return {
       key,
       value: {
-        boolValue: value
-      }
-    }
+        boolValue: value,
+      },
+    };
   } else if (typeof value === 'string') {
     return {
       key,
       value: {
-        stringValue: value
-      }
-    }
+        stringValue: value,
+      },
+    };
   } else {
     return {
       key,
       value: {
-        stringValue: JSON.stringify(value)
-      }
-    }
+        stringValue: JSON.stringify(value),
+      },
+    };
   }
 }
 
@@ -99,16 +101,26 @@ function valueToAttribute(key: string, value: unknown): LogAttribute {
  * A utility function to be able to create methods like Sentry.info`...`
  *
  * The first parameter is bound with, e.g., const info = captureLog.bind(null, 'info')
- * The other parameters are in the format to be passed a template, Sentry.info`hello ${world}`
+ * The other parameters are in the format to be passed a tagged template, Sentry.info`hello ${world}`
  */
 export function captureLog(level: LogSeverityLevel, messages: string[] | string, ...values: unknown[]): void {
-  const message = Array.isArray(messages) ? messages.reduce((acc, str, i) => acc + str + (values[i] ?? ''), '') : messages;
-
+  const message = Array.isArray(messages)
+    ? messages.reduce((acc, str, i) => acc + str + (values[i] ?? ''), '')
+    : messages;
+  const attributes = values.map<LogAttribute>((value, index) => valueToAttribute(`param${index}`, value));
+  if (Array.isArray(messages)) {
+    attributes.push({
+      key: 'sentry.template',
+      value: {
+        stringValue: messages.map((s, i) => s + (i < messages.length - 1 ? `$param${i}` : '')).join(''),
+      },
+    });
+  }
   addLog({
     severityText: level,
     body: {
       stringValue: message,
     },
-    attributes: values.map<LogAttribute>((value, index) => valueToAttribute(`param${index}`, value)),
-  })
+    attributes: attributes,
+  });
 }
