@@ -3,9 +3,9 @@ import type { SentryRollupPluginOptions } from '@sentry/rollup-plugin';
 import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
 import type { init as initVue } from '@sentry/vue';
 
-// Omitting 'app' as the Nuxt SDK will add the app instance in the client plugin (users do not have to provide this)
+// Omitting Vue 'app' as the Nuxt SDK will add the app instance in the client plugin (users do not have to provide this)
 export type SentryNuxtClientOptions = Omit<Parameters<typeof initVue>[0] & object, 'app'>;
-export type SentryNuxtServerOptions = Omit<Parameters<typeof initNode>[0] & object, 'app'>;
+export type SentryNuxtServerOptions = Parameters<typeof initNode>[0];
 
 type SourceMapsOptions = {
   /**
