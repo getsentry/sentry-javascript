@@ -5,7 +5,7 @@ export default [
     makeBaseNPMConfig({
       entrypoints: ['src/index.server.ts', 'src/index.client.ts'],
       packageSpecificConfig: {
-        external: ['react-router', 'react-router-dom', 'react', 'react/jsx-runtime'],
+        external: ['react-router', 'react-router-dom', 'react', 'react/jsx-runtime', 'vite'],
         output: {
           // make it so Rollup calms down about the fact that we're combining default and named exports
           exports: 'named',

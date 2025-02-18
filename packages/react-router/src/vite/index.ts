@@ -1,0 +1,1 @@
+export { sentryReactRouter } from './plugin';
