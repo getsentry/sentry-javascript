@@ -62,7 +62,7 @@ const getContainedSize = (measurementDiv: HTMLDivElement, imageSource: HTMLCanva
   return { action: '', x: x, y: y, width: width, height: height };
 };
 
-function drawRect(rect: Rect, ctx: CanvasRenderingContext2D, scaleFactor: number): void {
+function drawRect(rect: Rect, ctx: CanvasRenderingContext2D): void {
   // creates a shadow around
   ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
   ctx.shadowBlur = 50; // Amount of blur for the shadow
@@ -71,14 +71,14 @@ function drawRect(rect: Rect, ctx: CanvasRenderingContext2D, scaleFactor: number
     case 'highlight':
       // draws a rectangle first so that the shadow is visible before clearing
       ctx.fillStyle = 'rgb(0, 0, 0)';
-      ctx.fillRect(rect.x * scaleFactor, rect.y * scaleFactor, rect.width * scaleFactor, rect.height * scaleFactor);
+      ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
 
-      ctx.clearRect(rect.x * scaleFactor, rect.y * scaleFactor, rect.width * scaleFactor, rect.height * scaleFactor);
+      ctx.clearRect(rect.x, rect.y, rect.width, rect.height);
 
       break;
     case 'hide':
       ctx.fillStyle = 'rgb(0, 0, 0)';
-      ctx.fillRect(rect.x * scaleFactor, rect.y * scaleFactor, rect.width * scaleFactor, rect.height * scaleFactor);
+      ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
 
       break;
     default:
@@ -87,12 +87,7 @@ function drawRect(rect: Rect, ctx: CanvasRenderingContext2D, scaleFactor: number
 
   ctx.strokeStyle = '#ff0000';
   ctx.lineWidth = 2;
-  ctx.strokeRect(
-    (rect.x + 1) * scaleFactor,
-    (rect.y + 1) * scaleFactor,
-    (rect.width - 2) * scaleFactor,
-    (rect.height - 2) * scaleFactor,
-  );
+  ctx.strokeRect(rect.x + 1, rect.y + 1, rect.width - 2, rect.height - 2);
 }
 
 function resizeCanvas(canvas: HTMLCanvasElement, imageDimensions: Rect): void {
@@ -128,68 +123,60 @@ export function ScreenshotEditorFactoryv2({
     const rectDivRef = hooks.useRef<HTMLDivElement>(null);
     const [imageSource, setImageSource] = hooks.useState<HTMLCanvasElement | null>(null);
     const [isShown, setIsShown] = hooks.useState<boolean>(true);
+    const [scaleFactor, setScaleFactor] = hooks.useState<number>(1);
 
     const resize = hooks.useCallback((): void => {
       const screenshotCanvas = screenshotRef.current;
-      if (!screenshotCanvas) {
-        throw new Error('Could not get canvas');
-      }
-
       const graywashCanvas = graywashRef.current;
-      if (!graywashCanvas) {
+      const measurementDiv = measurementRef.current;
+      if (!screenshotCanvas || !graywashCanvas || !imageSource || !measurementDiv) {
         return;
       }
 
-      if (!imageSource) {
-        return;
-      }
-      const measurementDiv = measurementRef.current;
-      if (!measurementDiv) {
-        return;
-      }
       const imageDimensions = getContainedSize(measurementDiv, imageSource);
+
       resizeCanvas(screenshotCanvas, imageDimensions);
+      const scale = screenshotCanvas.width / graywashCanvas.width;
       resizeCanvas(graywashCanvas, imageDimensions);
+
+      if (scale !== 1 && scale !== scaleFactor) {
+        const scaledCommands = drawCommands.map(rect => {
+          return {
+            ...rect,
+            x: rect.x * scaleFactor,
+            y: rect.y * scaleFactor,
+            width: rect.width * scaleFactor,
+            height: rect.height * scaleFactor,
+          };
+        });
+
+        setDrawCommands(scaledCommands);
+      }
+      setScaleFactor(scale);
+
+      const screenshotContext = screenshotCanvas.getContext('2d', { alpha: false });
+      if (!screenshotContext) {
+        return;
+      }
+
+      screenshotContext.drawImage(imageSource, 0, 0, imageDimensions.width, imageDimensions.height);
+      drawScene();
+
       const rectDiv = rectDivRef.current;
       if (!rectDiv) {
         return;
       }
       rectDiv.style.width = `${imageDimensions.width}px`;
       rectDiv.style.height = `${imageDimensions.height}px`;
+    }, [imageSource, isShown, drawCommands]);
 
-      drawScene();
-    }, [imageSource]);
+    hooks.useEffect(() => {
+      WINDOW.addEventListener('resize', resize);
 
-    hooks.useLayoutEffect(() => {
-      const screenshotCanvas = screenshotRef.current;
-      if (!screenshotCanvas) {
-        throw new Error('Could not get canvas');
-      }
-
-      const graywashCanvas = graywashRef.current;
-      if (!graywashCanvas) {
-        return;
-      }
-
-      if (!imageSource) {
-        return;
-      }
-      const measurementDiv = measurementRef.current;
-      if (!measurementDiv) {
-        return;
-      }
-
-      resize();
-      const imageDimensions = getContainedSize(measurementDiv, imageSource);
-
-      const screenshotContext = screenshotCanvas.getContext('2d', { alpha: false });
-
-      if (!screenshotContext) {
-        return;
-      }
-
-      screenshotContext.drawImage(imageSource, 0, 0, imageDimensions.width, imageDimensions.height);
-    }, [imageSource, isShown]);
+      return () => {
+        WINDOW.removeEventListener('resize', resize);
+      };
+    }, [resize]);
 
     hooks.useEffect(() => {
       const graywashCanvas = graywashRef.current;
@@ -206,41 +193,14 @@ export function ScreenshotEditorFactoryv2({
     }, [currentRect]);
 
     function drawBuffer(): void {
-      if (!imageBuffer) {
-        return;
-      }
-
       const ctx = imageBuffer.getContext('2d', { alpha: false });
-      if (!ctx) {
-        return;
-      }
-      if (!imageSource) {
+      const graywashCanvas = graywashRef.current;
+      if (!imageBuffer || !ctx || !imageSource || !graywashCanvas) {
         return;
       }
 
       ctx.drawImage(imageSource, 0, 0);
-
-      const grayWashBufferBig = DOCUMENT.createElement('canvas');
-      grayWashBufferBig.width = imageBuffer.width;
-      grayWashBufferBig.height = imageBuffer.height;
-
-      const grayCtx = grayWashBufferBig.getContext('2d');
-      if (!grayCtx) {
-        return;
-      }
-
-      // applies the graywash if there's any boxes drawn
-      if (drawCommands.length || currentRect) {
-        grayCtx.fillStyle = 'rgba(0, 0, 0, 0.25)';
-        grayCtx.fillRect(0, 0, imageBuffer.width, imageBuffer.height);
-      }
-
-      const scale = imageBuffer.width / measurementRef.current!.clientWidth;
-
-      for (const rect of drawCommands) {
-        drawRect(rect, grayCtx, scale);
-      }
-      ctx.drawImage(grayWashBufferBig, 0, 0);
+      ctx.drawImage(graywashCanvas, 0, 0, imageBuffer.width, imageBuffer.height);
     }
 
     function drawScene(): void {
@@ -262,12 +222,12 @@ export function ScreenshotEditorFactoryv2({
         ctx.fillRect(0, 0, graywashCanvas.width, graywashCanvas.height);
       }
 
-      for (const rect of drawCommands) {
-        drawRect(rect, ctx, 1);
-      }
+      drawCommands.forEach(rect => {
+        drawRect(rect, ctx);
+      });
 
       if (currentRect) {
-        drawRect(currentRect, ctx, 1);
+        drawRect(currentRect, ctx);
         setCurrentRect(undefined);
       }
     }
