@@ -285,7 +285,9 @@ export class ReplayContainer implements ReplayContainerInterface {
       handleKeyboardEvent(this, event);
     };
 
-    this._lastMutationMap = new WeakMap();
+    if (options._experiments.dropRepetitiveMutations) {
+      this._lastMutationMap = new WeakMap();
+    }
   }
 
   /** Get the event context. */
