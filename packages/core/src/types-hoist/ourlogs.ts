@@ -2,19 +2,23 @@ import type { SeverityLevel } from './severity';
 
 export type LogSeverityLevel = SeverityLevel | 'critical' | 'trace';
 
-export type LogAttributeValueType = {
-  stringValue: string
-} | {
-  intValue: number
-} | {
-  boolValue: boolean
-} | {
-  doubleValue: number
-}
+export type LogAttributeValueType =
+  | {
+      stringValue: string;
+    }
+  | {
+      intValue: number;
+    }
+  | {
+      boolValue: boolean;
+    }
+  | {
+      doubleValue: number;
+    };
 
 export type LogAttribute = {
-  key: string,
-  value: LogAttributeValueType
+  key: string;
+  value: LogAttributeValueType;
 };
 
 export interface Log {
@@ -48,7 +52,7 @@ export interface Log {
    * The message to be logged - for example, 'hello world' would become a log like '[INFO] hello world'
    */
   body: {
-    stringValue: string,
+    stringValue: string;
   };
 
   /**

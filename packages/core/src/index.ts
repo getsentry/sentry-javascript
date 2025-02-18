@@ -31,7 +31,7 @@ export {
   addEventProcessor,
   _experimentalLogError,
   _experimentalLogInfo,
-  _experimentalLogWarning
+  _experimentalLogWarning,
 } from './exports';
 export {
   getCurrentScope,

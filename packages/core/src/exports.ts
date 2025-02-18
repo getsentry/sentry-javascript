@@ -1,5 +1,6 @@
 import { getClient, getCurrentScope, getIsolationScope, withIsolationScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
+import { captureLog } from './ourlogs';
 import type { CaptureContext } from './scope';
 import { closeSession, makeSession, updateSession } from './session';
 import type {
@@ -24,7 +25,6 @@ import { timestampInSeconds } from './utils-hoist/time';
 import { GLOBAL_OBJ } from './utils-hoist/worldwide';
 import type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
 import { parseEventHintOrCaptureContext } from './utils/prepareEvent';
-import { captureLog } from './ourlogs';
 
 /**
  * Captures an exception event and sends it to Sentry.
@@ -335,7 +335,6 @@ export function captureSession(end: boolean = false): void {
   // only send the update
   _sendSessionUpdate();
 }
-
 
 /**
  * A utility to record a log with level 'INFO' and send it to sentry.
