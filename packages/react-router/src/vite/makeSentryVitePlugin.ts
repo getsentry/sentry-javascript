@@ -1,12 +1,12 @@
 import { consoleSandbox } from '@sentry/core';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
-import type { Plugin, UserConfig } from 'vite';
+import { loadConfigFromFile, type Plugin, type UserConfig } from 'vite';
 import type { SentryReactRouterPluginOptions } from './types';
 
 /**
  * Creates sentry's vite plugins
  */
-export function makeSentryVitePlugins(options: SentryReactRouterPluginOptions, viteConfig: UserConfig): Plugin[] {
+export async function makeSentryVitePlugins(options: SentryReactRouterPluginOptions): Promise<Plugin[]> {
   const {
     debug,
     sourceMapsUploadOptions,
@@ -19,11 +19,24 @@ export function makeSentryVitePlugins(options: SentryReactRouterPluginOptions, v
 
   let updatedFilesToDeleteAfterUpload: string[] | undefined = undefined;
 
+  let loadedConfig: { path: string; config: UserConfig; dependencies: string[] } | null = null;
+
+  try {
+    loadedConfig = await loadConfigFromFile({ mode: 'production', command: 'build' });
+  } catch (error) {
+    if (debug) {
+      consoleSandbox(() => {
+        // eslint-disable-next-line no-console
+        console.log('[Sentry] could not load Vite config during build');
+      });
+    }
+  }
+
   if (
     typeof sourceMapsUploadOptions?.filesToDeleteAfterUpload === 'undefined' &&
     typeof unstable_sentryVitePluginOptions?.sourcemaps?.filesToDeleteAfterUpload === 'undefined' &&
     // Only if source maps were previously not set, we update the "filesToDeleteAfterUpload" (as we override the setting with "hidden")
-    typeof viteConfig.build?.sourcemap === 'undefined'
+    typeof loadedConfig?.config.build?.sourcemap === 'undefined'
   ) {
     // For .output, .vercel, .netlify etc.
     updatedFilesToDeleteAfterUpload = ['.*/**/*.map'];
@@ -58,6 +71,7 @@ export function makeSentryVitePlugins(options: SentryReactRouterPluginOptions, v
           metaFramework: 'react-router',
         },
       },
+
       ...unstable_sentryVitePluginOptions,
     }),
   ];
