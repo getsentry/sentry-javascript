@@ -9,6 +9,7 @@ import {
   SLOW_CLICK_SCROLL_TIMEOUT,
   SLOW_CLICK_THRESHOLD,
   WINDOW,
+  MUTATION_DEBOUNCE_TIME,
 } from './constants';
 import { ClickDetector } from './coreHandlers/handleClick';
 import { handleKeyboardEvent } from './coreHandlers/handleKeyboardEvent';
@@ -169,6 +170,17 @@ export class ReplayContainer implements ReplayContainerInterface {
   /** Ensure page remains active when a key is pressed. */
   private _handleKeyboardEvent: (event: KeyboardEvent) => void;
 
+  /**
+   * Map to track the history for DOM node mutations
+   */
+  private _lastMutationMap: WeakMap<
+    Node,
+    {
+      timestamp: number;
+      fingerprint: string;
+    }
+  >;
+
   public constructor({
     options,
     recordingOptions,
@@ -272,6 +284,8 @@ export class ReplayContainer implements ReplayContainerInterface {
     this._handleKeyboardEvent = (event: KeyboardEvent) => {
       handleKeyboardEvent(this, event);
     };
+
+    this._lastMutationMap = new WeakMap();
   }
 
   /** Get the event context. */
@@ -1303,9 +1317,59 @@ export class ReplayContainer implements ReplayContainerInterface {
     }
   }
 
+  /**
+   * Heuristically create an identifier for a mutation record.
+   * This is used for checking on repeated mutations on the same target.
+   */
+  private _getMutationFingerprint(mutation: MutationRecord): string {
+    if (mutation.type === 'attributes') {
+      return `attr:${mutation.attributeName}`;
+    }
+    // For other mutation types, return empty string
+    // TODO: Should be extended to handle other mutation types
+    return '';
+  }
+
   /** Handler for rrweb.record.onMutation */
   private _onMutationHandler(mutations: unknown[]): boolean {
     const count = mutations.length;
+
+    if (this._options._experiments.dropRepetitiveMutations) {
+      const now = Date.now();
+
+      // Filter out repeated mutations
+      const uniqueMutations = (mutations as MutationRecord[]).filter(mutation => {
+        const target = mutation.target;
+        const lastMutation = this._lastMutationMap.get(target);
+
+        // Create a fingerprint of this mutation
+        const fingerprint = this._getMutationFingerprint(mutation);
+
+        // Check if this is a repeated mutation within our debounce window
+        if (
+          fingerprint &&
+          lastMutation &&
+          lastMutation.fingerprint === fingerprint &&
+          now - lastMutation.timestamp < MUTATION_DEBOUNCE_TIME
+        ) {
+          return false; // Skip this mutation
+        }
+
+        // Update mutation tracking for this target
+        this._lastMutationMap.set(target, {
+          timestamp: now,
+          fingerprint,
+        });
+
+        return true;
+      });
+
+      // All mutations are repetitions, do not process in rrweb
+      if (uniqueMutations.length === 0) {
+        // todo: maybe create a new breadcrumb here?
+        return false;
+      }
+    }
 
     const mutationLimit = this._options.mutationLimit;
     const mutationBreadcrumbLimit = this._options.mutationBreadcrumbLimit;
