@@ -229,6 +229,10 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
     captureExceptions: boolean;
     traceInternals: boolean;
     continuousCheckout: number;
+    /**
+     * Before enabling, please read the security considerations:
+     * https://github.com/rrweb-io/rrweb/blob/master/docs/recipes/cross-origin-iframes.md#considerations
+     */
     recordCrossOriginIframes: boolean;
     autoFlushOnFeedback: boolean;
   }>;
