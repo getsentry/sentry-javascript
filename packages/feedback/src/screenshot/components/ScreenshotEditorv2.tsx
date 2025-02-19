@@ -62,7 +62,12 @@ const getContainedSize = (measurementDiv: HTMLDivElement, imageSource: HTMLCanva
   return { action: '', x: x, y: y, width: width, height: height };
 };
 
-function drawRect(rect: Rect, ctx: CanvasRenderingContext2D): void {
+function drawRect(rect: Rect, ctx: CanvasRenderingContext2D, scale: number = 1): void {
+  const scaledX = rect.x * scale;
+  const scaledY = rect.y * scale;
+  const scaledWidth = rect.width * scale;
+  const scaledHeight = rect.height * scale;
+
   // creates a shadow around
   ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
   ctx.shadowBlur = 50; // Amount of blur for the shadow
@@ -71,14 +76,14 @@ function drawRect(rect: Rect, ctx: CanvasRenderingContext2D): void {
     case 'highlight':
       // draws a rectangle first so that the shadow is visible before clearing
       ctx.fillStyle = 'rgb(0, 0, 0)';
-      ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
+      ctx.fillRect(scaledX, scaledY, scaledWidth, scaledHeight);
 
-      ctx.clearRect(rect.x, rect.y, rect.width, rect.height);
+      ctx.clearRect(scaledX, scaledY, scaledWidth, scaledHeight);
 
       break;
     case 'hide':
       ctx.fillStyle = 'rgb(0, 0, 0)';
-      ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
+      ctx.fillRect(scaledX, scaledY, scaledWidth, scaledHeight);
 
       break;
     default:
@@ -87,7 +92,7 @@ function drawRect(rect: Rect, ctx: CanvasRenderingContext2D): void {
 
   ctx.strokeStyle = '#ff0000';
   ctx.lineWidth = 2;
-  ctx.strokeRect(rect.x + 1, rect.y + 1, rect.width - 2, rect.height - 2);
+  ctx.strokeRect(scaledX + 1, scaledY + 1, scaledWidth - 2, scaledHeight - 2);
 }
 
 function resizeCanvas(canvas: HTMLCanvasElement, imageDimensions: Rect): void {
@@ -137,22 +142,8 @@ export function ScreenshotEditorFactoryv2({
 
       resizeCanvas(screenshotCanvas, imageDimensions);
       const scale = screenshotCanvas.width / graywashCanvas.width;
-      resizeCanvas(graywashCanvas, imageDimensions);
-
-      if (scale !== 1 && scale !== scaleFactor) {
-        const scaledCommands = drawCommands.map(rect => {
-          return {
-            ...rect,
-            x: rect.x * scaleFactor,
-            y: rect.y * scaleFactor,
-            width: rect.width * scaleFactor,
-            height: rect.height * scaleFactor,
-          };
-        });
-
-        setDrawCommands(scaledCommands);
-      }
       setScaleFactor(scale);
+      resizeCanvas(graywashCanvas, imageDimensions);
 
       const screenshotContext = screenshotCanvas.getContext('2d', { alpha: false });
       if (!screenshotContext) {
@@ -192,15 +183,50 @@ export function ScreenshotEditorFactoryv2({
       }
     }, [currentRect]);
 
+    hooks.useEffect(() => {
+      const scaledCommands = drawCommands.map(rect => {
+        return {
+          action: rect.action,
+          x: rect.x * scaleFactor,
+          y: rect.y * scaleFactor,
+          width: rect.width * scaleFactor,
+          height: rect.height * scaleFactor,
+        };
+      });
+
+      setDrawCommands(scaledCommands);
+    }, [scaleFactor]);
+
     function drawBuffer(): void {
       const ctx = imageBuffer.getContext('2d', { alpha: false });
-      const graywashCanvas = graywashRef.current;
-      if (!imageBuffer || !ctx || !imageSource || !graywashCanvas) {
+      const measurementDiv = measurementRef.current;
+      if (!imageBuffer || !ctx || !imageSource || !measurementDiv) {
         return;
       }
 
       ctx.drawImage(imageSource, 0, 0);
-      ctx.drawImage(graywashCanvas, 0, 0, imageBuffer.width, imageBuffer.height);
+
+      const grayWashBufferBig = DOCUMENT.createElement('canvas');
+      grayWashBufferBig.width = imageBuffer.width;
+      grayWashBufferBig.height = imageBuffer.height;
+
+      const grayCtx = grayWashBufferBig.getContext('2d');
+      if (!grayCtx) {
+        return;
+      }
+
+      // applies the graywash if there's any boxes drawn
+      if (drawCommands.length || currentRect) {
+        grayCtx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+        grayCtx.fillRect(0, 0, imageBuffer.width, imageBuffer.height);
+      }
+
+      const scale = imageBuffer.width / measurementDiv.clientWidth;
+
+      drawCommands.forEach(rect => {
+        drawRect(rect, grayCtx, scale);
+      });
+      ctx.drawImage(grayWashBufferBig, 0, 0);
     }
 
     function drawScene(): void {
