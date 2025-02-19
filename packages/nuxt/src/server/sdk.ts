@@ -16,9 +16,13 @@ import type { SentryNuxtServerOptions } from '../common/types';
  * @param options Configuration options for the SDK.
  */
 export function init(options: SentryNuxtServerOptions): Client | undefined {
+  console.log(options)
+  console.log(import.meta.dev)
+
   const sentryOptions = {
-    ...options,
     defaultIntegrations: getNuxtDefaultIntegrations(options),
+    environment: import.meta.dev ? 'development' : 'production',
+    ...options,
   };
 
   applySdkMetadata(sentryOptions, 'nuxt', ['nuxt', 'node']);
