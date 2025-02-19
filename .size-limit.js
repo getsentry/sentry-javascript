@@ -204,14 +204,14 @@ module.exports = [
     limit: '264 KB',
   },
   // Next.js SDK (ESM)
-  // {
-  //   name: '@sentry/nextjs (client)',
-  //   path: 'packages/nextjs/build/esm/client/index.js',
-  //   import: createImport('init'),
-  //   ignore: ['next/router', 'next/constants'],
-  //   gzip: true,
-  //   limit: '40 KB',
-  // },
+  {
+    name: '@sentry/nextjs (client)',
+    path: 'packages/nextjs/build/esm/client/index.js',
+    import: createImport('init'),
+    ignore: ['next/router', 'next/constants'],
+    gzip: true,
+    limit: '40 KB',
+  },
   // SvelteKit SDK (ESM)
   {
     name: '@sentry/sveltekit (client)',
