@@ -10,6 +10,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 9.1.1-alpha.0
+
+This is an alpha release with version 2.32.0 of the rrweb package.
+
 ## 9.1.0
 
 - feat(browser): Add `graphqlClientIntegration` ([#13783](https://github.com/getsentry/sentry-javascript/pull/13783))
