@@ -7,10 +7,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   SDK_VERSION,
+  eventFiltersIntegration,
   getGlobalScope,
   getIsolationScope,
   getReportDialogEndpoint,
-  eventFiltersIntegration,
   lastEventId,
 } from '@sentry/core';
 import * as utils from '@sentry/core';
