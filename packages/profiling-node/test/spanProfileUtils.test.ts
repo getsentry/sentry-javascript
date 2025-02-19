@@ -501,7 +501,7 @@ describe('continuous profiling', () => {
     expect(startProfilingSpy).not.toHaveBeenCalledTimes(1);
     Sentry.profiler.startProfiler();
 
-    jest.advanceTimersByTime(5001);
+    jest.advanceTimersByTime(60_001);
     expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
     expect(startProfilingSpy).toHaveBeenCalledTimes(2);
   });
@@ -518,7 +518,7 @@ describe('continuous profiling', () => {
     Sentry.profiler.startProfiler();
     const profilerId = getProfilerId();
 
-    jest.advanceTimersByTime(5001);
+    jest.advanceTimersByTime(60_001);
     expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
     expect(startProfilingSpy).toHaveBeenCalledTimes(2);
     expect(getProfilerId()).toBe(profilerId);
@@ -552,7 +552,7 @@ describe('continuous profiling', () => {
     expect(startProfilingSpy).not.toHaveBeenCalledTimes(1);
     Sentry.profiler.startProfiler();
 
-    jest.advanceTimersByTime(5001);
+    jest.advanceTimersByTime(60_001);
     expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
   });
 
