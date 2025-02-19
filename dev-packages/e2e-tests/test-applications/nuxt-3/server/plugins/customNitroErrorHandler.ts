@@ -7,17 +7,6 @@ import { defineNitroPlugin } from '#imports';
 // Copy from SDK-internal error handler (nuxt/src/runtime/plugins/sentry.server.ts)
 export default defineNitroPlugin(nitroApp => {
   nitroApp.hooks.hook('error', async (error, errorContext) => {
-    const sentryClient = SentryNode.getClient();
-    const sentryClientOptions = sentryClient?.getOptions();
-
-    if (
-      sentryClientOptions &&
-      'enableNitroErrorHandler' in sentryClientOptions &&
-      sentryClientOptions.enableNitroErrorHandler === false
-    ) {
-      return;
-    }
-
     // Do not handle 404 and 422
     if (error instanceof H3Error) {
       // Do not report if status code is 3xx or 4xx
