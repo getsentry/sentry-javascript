@@ -595,6 +595,8 @@ function addValueInjectionLoader(
   buildContext: BuildContext,
   releaseName: string | undefined,
 ): void {
+  const assetPrefix = userNextConfig.assetPrefix || userNextConfig.basePath || '';
+
   const isomorphicValues = {
     // `rewritesTunnel` set by the user in Next.js config
     _sentryRewritesTunnelPath:
@@ -617,7 +619,15 @@ function addValueInjectionLoader(
 
   const clientValues = {
     ...isomorphicValues,
+    // Get the path part of `assetPrefix`, minus any trailing slash. (We use a placeholder for the origin if
+    // `assetPrefix` doesn't include one. Since we only care about the path, it doesn't matter what it is.)
+    _sentryRewriteFramesAssetPrefixPath: assetPrefix
+      ? new URL(assetPrefix, 'http://dogs.are.great').pathname.replace(/\/$/, '')
+      : '',
     _sentryAssetPrefix: userNextConfig.assetPrefix,
+    _sentryExperimentalThirdPartyOriginStackFrames: userSentryOptions._experimental?.thirdPartyOriginStackFrames
+      ? 'true'
+      : undefined,
   };
 
   if (buildContext.isServer) {

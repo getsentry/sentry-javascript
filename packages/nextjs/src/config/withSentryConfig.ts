@@ -250,6 +250,7 @@ function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: s
 
 // TODO: For Turbopack we need to pass the release name here and pick it up in the SDK
 function setUpBuildTimeVariables(userNextConfig: NextConfigObject, userSentryOptions: SentryBuildOptions): void {
+  const assetPrefix = userNextConfig.assetPrefix || userNextConfig.basePath || '';
   const basePath = userNextConfig.basePath ?? '';
   const rewritesTunnelPath =
     userSentryOptions.tunnelRoute !== undefined && userNextConfig.output !== 'export'
@@ -260,7 +261,20 @@ function setUpBuildTimeVariables(userNextConfig: NextConfigObject, userSentryOpt
     // Make sure that if we have a windows path, the backslashes are interpreted as such (rather than as escape
     // characters)
     _sentryRewriteFramesDistDir: userNextConfig.distDir?.replace(/\\/g, '\\\\') || '.next',
+    // Get the path part of `assetPrefix`, minus any trailing slash. (We use a placeholder for the origin if
+    // `assetPrefix` doesn't include one. Since we only care about the path, it doesn't matter what it is.)
+    _sentryRewriteFramesAssetPrefixPath: assetPrefix
+      ? new URL(assetPrefix, 'http://dogs.are.great').pathname.replace(/\/$/, '')
+      : '',
   };
+
+  if (userNextConfig.assetPrefix) {
+    buildTimeVariables._assetsPrefix = userNextConfig.assetPrefix;
+  }
+
+  if (userSentryOptions._experimental?.thirdPartyOriginStackFrames) {
+    buildTimeVariables._experimentalThirdPartyOriginStackFrames = 'true';
+  }
 
   if (rewritesTunnelPath) {
     buildTimeVariables._sentryRewritesTunnelPath = rewritesTunnelPath;
@@ -272,6 +286,10 @@ function setUpBuildTimeVariables(userNextConfig: NextConfigObject, userSentryOpt
 
   if (userNextConfig.assetPrefix) {
     buildTimeVariables._sentryAssetPrefix = userNextConfig.assetPrefix;
+  }
+
+  if (userSentryOptions._experimental?.thirdPartyOriginStackFrames) {
+    buildTimeVariables._experimentalThirdPartyOriginStackFrames = 'true';
   }
 
   if (typeof userNextConfig.env === 'object') {
