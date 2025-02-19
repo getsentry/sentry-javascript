@@ -61,7 +61,7 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
     },
   };
 
-  const { promise: filesToDeleteAfterUpload, resolve: reportFilesToDeleteAfterUpload } =
+  const { promise: filesToDeleteAfterUpload, resolve: resolveFilesToDeleteAfterUpload } =
     createFilesToDeleteAfterUploadPromise();
 
   const mergedOptions = {
@@ -99,6 +99,10 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
       console.warn(
         'sentry-vite-debug-id-upload-plugin not found in sentryPlugins! Cannot modify plugin - returning default Sentry Vite plugins',
       );
+
+    // resolving filesToDeleteAfterUpload here, because we return the original deletion plugin which awaits the promise
+    resolveFilesToDeleteAfterUpload(undefined);
+
     return sentryPlugins;
   }
 
@@ -108,6 +112,10 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
       console.warn(
         'sentry-file-deletion-plugin not found in sentryPlugins! Cannot modify plugin - returning default Sentry Vite plugins',
       );
+
+    // resolving filesToDeleteAfterUpload here, because we return the original deletion plugin which awaits the promise
+    resolveFilesToDeleteAfterUpload(undefined);
+
     return sentryPlugins;
   }
 
@@ -117,6 +125,10 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
       console.warn(
         'sentry-release-management-plugin not found in sentryPlugins! Cannot modify plugin - returning default Sentry Vite plugins',
       );
+
+    // resolving filesToDeleteAfterUpload here, because we return the original deletion plugin which awaits the promise
+    resolveFilesToDeleteAfterUpload(undefined);
+
     return sentryPlugins;
   }
 
@@ -141,10 +153,12 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
   const sourceMapSettingsPlugin: Plugin = {
     name: 'sentry-sveltekit-update-source-map-setting-plugin',
     apply: 'build', // only apply this plugin at build time
-    config: (config: UserConfig) => {
+    config: async (config: UserConfig) => {
       const settingKey = 'build.sourcemap';
 
       const { updatedSourceMapSetting, previousSourceMapSetting } = getUpdatedSourceMapSetting(config);
+
+      const userProvidedFilesToDeleteAfterUpload = await options?.sourcemaps?.filesToDeleteAfterUpload;
 
       if (previousSourceMapSetting === 'unset') {
         consoleSandbox(() => {
@@ -157,24 +171,30 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
         // dir which could be a non-hidden directory, like `build` for the Node adapter.
         const defaultFileDeletionGlob = ['./.*/**/*.map', `./${adapterOutputDir}/**/*.map`];
 
-        consoleSandbox(() => {
-          // eslint-disable-next-line no-console
-          console.warn(
-            `[Sentry] Automatically setting \`sourceMapsUploadOptions.sourcemaps.filesToDeleteAfterUpload: [${defaultFileDeletionGlob
-              .map(file => `"${file}"`)
-              .join(', ')}]\` to delete generated source maps after they were uploaded to Sentry.`,
-          );
-        });
+        if (userProvidedFilesToDeleteAfterUpload) {
+          resolveFilesToDeleteAfterUpload(userProvidedFilesToDeleteAfterUpload);
+        } else {
+          consoleSandbox(() => {
+            // eslint-disable-next-line no-console
+            console.warn(
+              `[Sentry] Automatically setting \`sourceMapsUploadOptions.sourcemaps.filesToDeleteAfterUpload: [${defaultFileDeletionGlob
+                .map(file => `"${file}"`)
+                .join(', ')}]\` to delete generated source maps after they were uploaded to Sentry.`,
+            );
+          });
 
-        // In case we enabled source map, we also want to delete them.
-        // So either use the glob(s) that users specified, or the default one!
-        reportFilesToDeleteAfterUpload(options?.sourcemaps?.filesToDeleteAfterUpload ?? defaultFileDeletionGlob);
+          // In case we enabled source map, we also want to delete them.
+          // So either use the glob(s) that users specified, or the default one!
+          resolveFilesToDeleteAfterUpload(defaultFileDeletionGlob);
+        }
 
         return {
           ...config,
           build: { ...config.build, sourcemap: updatedSourceMapSetting },
         };
-      } else if (previousSourceMapSetting === 'disabled') {
+      }
+
+      if (previousSourceMapSetting === 'disabled') {
         consoleSandbox(() => {
           //  eslint-disable-next-line no-console
           console.warn(
@@ -186,13 +206,13 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
           consoleSandbox(() => {
             // eslint-disable-next-line no-console
             console.log(
-              `[Sentry] We discovered you enabled source map generation in  your Vite configuration (\`${settingKey}\`). Sentry will keep this source map setting. This will un-minify the code snippet on the Sentry Issue page.`,
+              `[Sentry] We discovered you enabled source map generation in your Vite configuration (\`${settingKey}\`). Sentry will keep this source map setting. This will un-minify the code snippet on the Sentry Issue page.`,
             );
           });
         }
       }
 
-      reportFilesToDeleteAfterUpload(options?.sourcemaps?.filesToDeleteAfterUpload);
+      resolveFilesToDeleteAfterUpload(userProvidedFilesToDeleteAfterUpload);
 
       return config;
     },
@@ -345,7 +365,7 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
         const outDir = path.resolve(process.cwd(), adapterOutputDir);
         try {
           // @ts-expect-error - the writeBundle hook expects two args we can't pass in here (they're only available in `writeBundle`)
-          await writeBundleFn({ dir: outDir, _sentryFilesToDelete });
+          await writeBundleFn({ dir: outDir });
         } catch (e) {
           // eslint-disable-next-line no-console
           console.warn('Failed to delete source maps:', e);
@@ -381,7 +401,7 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
 /**
  * Whether the user enabled (true, 'hidden', 'inline') or disabled (false) source maps
  */
-export type UserSourceMapSetting = 'enabled' | 'disabled' | 'unset' | undefined;
+type UserSourceMapSetting = 'enabled' | 'disabled' | 'unset' | undefined;
 
 /** There are 3 ways to set up source map generation (https://github.com/getsentry/sentry-javascript/issues/13993)
  *
@@ -403,25 +423,25 @@ export function getUpdatedSourceMapSetting(viteConfig: {
     sourcemap?: boolean | 'inline' | 'hidden';
   };
 }): { updatedSourceMapSetting: boolean | 'inline' | 'hidden'; previousSourceMapSetting: UserSourceMapSetting } {
-  let previousSourceMapSetting: UserSourceMapSetting;
-  let updatedSourceMapSetting: boolean | 'inline' | 'hidden' | undefined;
-
   viteConfig.build = viteConfig.build || {};
 
-  const viteSourceMap = viteConfig.build.sourcemap;
+  const originalSourcemapSetting = viteConfig.build.sourcemap;
 
-  if (viteSourceMap === false) {
-    previousSourceMapSetting = 'disabled';
-    updatedSourceMapSetting = viteSourceMap;
-  } else if (viteSourceMap && ['hidden', 'inline', true].includes(viteSourceMap)) {
-    previousSourceMapSetting = 'enabled';
-    updatedSourceMapSetting = viteSourceMap;
-  } else {
-    previousSourceMapSetting = 'unset';
-    updatedSourceMapSetting = 'hidden';
+  if (originalSourcemapSetting === false) {
+    return {
+      previousSourceMapSetting: 'disabled',
+      updatedSourceMapSetting: originalSourcemapSetting,
+    };
   }
 
-  return { previousSourceMapSetting, updatedSourceMapSetting };
+  if (originalSourcemapSetting && ['hidden', 'inline', true].includes(originalSourcemapSetting)) {
+    return { previousSourceMapSetting: 'enabled', updatedSourceMapSetting: originalSourcemapSetting };
+  }
+
+  return {
+    previousSourceMapSetting: 'unset',
+    updatedSourceMapSetting: 'hidden',
+  };
 }
 
 function getFiles(dir: string): string[] {

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { makeCustomSentryVitePlugins } from '../../src/vite/sourceMaps';
+import { getUpdatedSourceMapSetting, makeCustomSentryVitePlugins } from '../../src/vite/sourceMaps';
 
 import type { Plugin } from 'vite';
 
@@ -113,7 +113,7 @@ describe('makeCustomSentryVitePlugins()', () => {
       const plugin = await getSentryViteSubPlugin('sentry-sveltekit-update-source-map-setting-plugin');
 
       // @ts-expect-error this function exists!
-      const sentryConfig = plugin.config(originalConfig);
+      const sentryConfig = await plugin.config(originalConfig);
 
       expect(sentryConfig).toEqual(originalConfig);
     });
@@ -132,7 +132,7 @@ describe('makeCustomSentryVitePlugins()', () => {
       const plugin = await getSentryViteSubPlugin('sentry-sveltekit-update-source-map-setting-plugin');
 
       // @ts-expect-error this function exists!
-      const sentryConfig = plugin.config(originalConfig);
+      const sentryConfig = await plugin.config(originalConfig);
 
       expect(sentryConfig).toEqual({
         build: {
@@ -155,7 +155,7 @@ describe('makeCustomSentryVitePlugins()', () => {
 
       const plugin = await getSentryViteSubPlugin('sentry-sveltekit-update-source-map-setting-plugin');
       // @ts-expect-error this function exists!
-      const sentryConfig = plugin.config(originalConfig);
+      const sentryConfig = await plugin.config(originalConfig);
       expect(sentryConfig).toEqual({
         ...originalConfig,
         build: {
@@ -320,22 +320,23 @@ describe('makeCustomSentryVitePlugins()', () => {
 describe('changeViteSourceMapSettings()', () => {
   const cases = [
     { sourcemap: false, expectedSourcemap: false, expectedPrevious: 'disabled' },
-    { sourcemap: 'hidden', expectedSourcemap: 'hidden', expectedPrevious: 'enabled' },
-    { sourcemap: 'inline', expectedSourcemap: 'inline', expectedPrevious: 'enabled' },
+    { sourcemap: 'hidden' as const, expectedSourcemap: 'hidden', expectedPrevious: 'enabled' },
+    { sourcemap: 'inline' as const, expectedSourcemap: 'inline', expectedPrevious: 'enabled' },
     { sourcemap: true, expectedSourcemap: true, expectedPrevious: 'enabled' },
     { sourcemap: undefined, expectedSourcemap: 'hidden', expectedPrevious: 'unset' },
   ];
 
-  it.each(cases)('handles vite source map settings $1', async ({ sourcemap, expectedSourcemap, expectedPrevious }) => {
-    const viteConfig = { build: { sourcemap } };
+  it.each(cases)(
+    'handles vite source map setting `build.sourcemap: $sourcemap`',
+    async ({ sourcemap, expectedSourcemap, expectedPrevious }) => {
+      const viteConfig = { build: { sourcemap } };
 
-    const { getUpdatedSourceMapSetting } = await import('../../src/vite/sourceMaps');
+      const result = getUpdatedSourceMapSetting(viteConfig);
 
-    const result = getUpdatedSourceMapSetting(viteConfig);
-
-    expect(result).toEqual({
-      updatedSourceMapSetting: expectedSourcemap,
-      previousSourceMapSetting: expectedPrevious,
-    });
-  });
+      expect(result).toEqual({
+        updatedSourceMapSetting: expectedSourcemap,
+        previousSourceMapSetting: expectedPrevious,
+      });
+    },
+  );
 });
