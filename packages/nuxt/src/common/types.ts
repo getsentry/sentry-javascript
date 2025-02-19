@@ -4,8 +4,9 @@ import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
 import type { init as initVue } from '@sentry/vue';
 
 // Omitting Vue 'app' as the Nuxt SDK will add the app instance in the client plugin (users do not have to provide this)
+// Adding `& object` helps TS with inferring that this is not `undefined` but an object type
 export type SentryNuxtClientOptions = Omit<Parameters<typeof initVue>[0] & object, 'app'>;
-export type SentryNuxtServerOptions = Parameters<typeof initNode>[0];
+export type SentryNuxtServerOptions = Parameters<typeof initNode>[0] & object;
 
 type SourceMapsOptions = {
   /**
