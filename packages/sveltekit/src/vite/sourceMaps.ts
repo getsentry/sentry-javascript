@@ -166,14 +166,14 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
           console.log(`[Sentry] Enabled source map generation in the build options with \`${settingKey}: "hidden"\`.`);
         });
 
-        // Including all hidden (`.*`) directories by default so that folders like .vercel,
-        // .netlify, etc are also cleaned up. Additionally, we include the adapter output
-        // dir which could be a non-hidden directory, like `build` for the Node adapter.
-        const defaultFileDeletionGlob = ['./.*/**/*.map', `./${adapterOutputDir}/**/*.map`];
-
         if (userProvidedFilesToDeleteAfterUpload) {
           resolveFilesToDeleteAfterUpload(userProvidedFilesToDeleteAfterUpload);
         } else {
+          // Including all hidden (`.*`) directories by default so that folders like .vercel,
+          // .netlify, etc are also cleaned up. Additionally, we include the adapter output
+          // dir which could be a non-hidden directory, like `build` for the Node adapter.
+          const defaultFileDeletionGlob = ['./.*/**/*.map', `./${adapterOutputDir}/**/*.map`];
+
           consoleSandbox(() => {
             // eslint-disable-next-line no-console
             console.warn(
@@ -183,8 +183,7 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
             );
           });
 
-          // In case we enabled source map, we also want to delete them.
-          // So either use the glob(s) that users specified, or the default one!
+          // In case we enabled source maps and users didn't specify a glob patter to delete, we set a default pattern:
           resolveFilesToDeleteAfterUpload(defaultFileDeletionGlob);
         }
 
