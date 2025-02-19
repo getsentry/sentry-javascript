@@ -183,20 +183,6 @@ export function ScreenshotEditorFactoryv2({
       }
     }, [currentRect]);
 
-    hooks.useEffect(() => {
-      const scaledCommands = drawCommands.map(rect => {
-        return {
-          action: rect.action,
-          x: rect.x * scaleFactor,
-          y: rect.y * scaleFactor,
-          width: rect.width * scaleFactor,
-          height: rect.height * scaleFactor,
-        };
-      });
-
-      setDrawCommands(scaledCommands);
-    }, [scaleFactor]);
-
     function drawBuffer(): void {
       const ctx = imageBuffer.getContext('2d', { alpha: false });
       const measurementDiv = measurementRef.current;
@@ -221,10 +207,8 @@ export function ScreenshotEditorFactoryv2({
         grayCtx.fillRect(0, 0, imageBuffer.width, imageBuffer.height);
       }
 
-      const scale = imageBuffer.width / measurementDiv.clientWidth;
-
       drawCommands.forEach(rect => {
-        drawRect(rect, grayCtx, scale);
+        drawRect(rect, grayCtx);
       });
       ctx.drawImage(grayWashBufferBig, 0, 0);
     }
@@ -248,8 +232,13 @@ export function ScreenshotEditorFactoryv2({
         ctx.fillRect(0, 0, graywashCanvas.width, graywashCanvas.height);
       }
 
+      const measurementDiv = measurementRef.current;
+      if (!measurementDiv) {
+        return;
+      }
+      const scale = measurementDiv.clientWidth / imageBuffer.width;
       drawCommands.forEach(rect => {
-        drawRect(rect, ctx);
+        drawRect(rect, ctx, scale);
       });
 
       if (currentRect) {
@@ -315,7 +304,19 @@ export function ScreenshotEditorFactoryv2({
         const endY = Math.max(0, Math.min(e.clientY - boundingRect.top, graywashCanvas.height / DPI));
         // prevent drawing rect when clicking on the canvas (ie clicking delete)
         if (startX != endX && startY != endY) {
-          const rect = constructRect({ action, startX, startY, endX, endY });
+          // scale to image buffer
+          const measurementDiv = measurementRef.current;
+          if (!measurementDiv) {
+            return;
+          }
+          const scale = imageBuffer.width / measurementDiv.clientWidth;
+          const rect = constructRect({
+            action,
+            startX: startX * scale,
+            startY: startY * scale,
+            endX: endX * scale,
+            endY: endY * scale,
+          });
           setDrawCommands(prev => [...prev, rect]);
         }
 
