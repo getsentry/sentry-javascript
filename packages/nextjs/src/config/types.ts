@@ -444,7 +444,6 @@ export type SentryBuildOptions = {
    * Contains a set of experimental flags that might change in future releases. These flags enable
    * features that are still in development and may be modified, renamed, or removed without notice.
    * Use with caution in production environments.
-   *
    */
   _experimental?: Partial<{
     thirdPartyOriginStackFrames: boolean;
