@@ -3,7 +3,7 @@ import type { Attachment } from '@sentry/core';
 import type { h as hType } from 'preact';
 import type * as Hooks from 'preact/hooks';
 import { DOCUMENT } from '../constants';
-import { ScreenshotEditorFactory } from './components/ScreenshotEditor';
+import { ScreenshotEditorFactoryv2 } from './components/ScreenshotEditorv2';
 
 export const feedbackScreenshotIntegration = ((): FeedbackScreenshotIntegration => {
   return {
@@ -14,7 +14,7 @@ export const feedbackScreenshotIntegration = ((): FeedbackScreenshotIntegration 
       const imageBuffer = DOCUMENT.createElement('canvas');
 
       return {
-        input: ScreenshotEditorFactory({
+        input: ScreenshotEditorFactoryv2({
           h: h as typeof hType,
           hooks: hooks as typeof Hooks,
           imageBuffer,
