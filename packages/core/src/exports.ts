@@ -367,6 +367,13 @@ export const _experiment_log = {
    */
   info: sendLog.bind(null, 'info') as OmitFirstArg<typeof sendLog>,
   /**
+   * A utility to record a log with level 'INFO' and send it to sentry.
+   *
+   * Logs represent a message and some parameters which provide context for a trace or error.
+   * Ex: Sentry._experiment_log.log`user ${username} just bought ${item}!`
+   */
+  log: sendLog.bind(null, 'log') as OmitFirstArg<typeof sendLog>,
+  /**
    * A utility to record a log with level 'ERROR' and send it to sentry.
    *
    * Logs represent a message and some parameters which provide context for a trace or error.
