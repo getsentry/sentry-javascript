@@ -7,6 +7,20 @@ import type { DynamicSamplingContext, LogEnvelope, LogItem } from './types-hoist
 import type { Log, LogAttribute, LogSeverityLevel } from './types-hoist/log';
 import { createEnvelope, dropUndefinedKeys, dsnToString, logger } from './utils-hoist';
 
+const LOG_BUFFER_MAX_LENGTH = 25;
+
+let GLOBAL_LOG_BUFFER: Log[] = [];
+
+let isFlushingLogs = false;
+
+const SEVERITY_TEXT_TO_SEVERITY_NUMBER: Partial<Record<LogSeverityLevel, number>> = {
+  debug: 10,
+  info: 20,
+  warning: 30,
+  error: 40,
+  critical: 50,
+};
+
 /**
  * Creates envelope item for a single log
  */
@@ -63,12 +77,6 @@ function valueToAttribute(key: string, value: unknown): LogAttribute {
       };
   }
 }
-
-const LOG_BUFFER_MAX_LENGTH = 25;
-
-let GLOBAL_LOG_BUFFER: Log[] = [];
-
-let isFlushingLogs = false;
 
 function addToLogBuffer(client: Client, log: Log, scope: Scope): void {
   function sendLogs(flushedLogs: Log[]): void {
@@ -160,6 +168,11 @@ export function captureLog(level: LogSeverityLevel, messages: string[] | string,
     timeUnixNano: `${new Date().getTime().toString()}000000`,
     traceId: scope.getPropagationContext().traceId,
   };
+
+  const maybeSeverityNumber = SEVERITY_TEXT_TO_SEVERITY_NUMBER[level];
+  if (maybeSeverityNumber !== undefined) {
+    log.severityNumber = maybeSeverityNumber;
+  }
 
   addToLogBuffer(client, log, scope);
 }

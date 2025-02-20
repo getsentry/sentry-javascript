@@ -1,6 +1,4 @@
-import type { SeverityLevel } from './severity';
-
-export type LogSeverityLevel = SeverityLevel | 'critical' | 'trace';
+export type LogSeverityLevel = 'trace' | 'debug' | 'info' | 'warning' | 'error' | 'fatal' | 'critical';
 
 export type LogAttributeValueType =
   | {
