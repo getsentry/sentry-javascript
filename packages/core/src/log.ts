@@ -13,8 +13,9 @@ let GLOBAL_LOG_BUFFER: Log[] = [];
 
 let isFlushingLogs = false;
 
-const SEVERITY_TEXT_TO_SEVERITY_NUMBER: Partial<Record<LogSeverityLevel, number>> = {
+const SEVERITY_TEXT_TO_SEVERITY_NUMBER: Partial<Record<LogSeverityLevel | 'log', number>> = {
   trace: 1,
+  log: 2,
   debug: 5,
   info: 9,
   warn: 13,
