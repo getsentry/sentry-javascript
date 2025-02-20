@@ -1,4 +1,4 @@
-export type LogSeverityLevel = 'trace' | 'debug' | 'info' | 'warning' | 'error' | 'fatal' | 'critical';
+export type LogSeverityLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal' | 'critical';
 
 export type LogAttributeValueType =
   | {
@@ -22,7 +22,7 @@ export type LogAttribute = {
 export interface Log {
   /**
    * Allowed values are, from highest to lowest:
-   * `critical`, `fatal`, `error`, `warning`, `info`, `debug`, `trace`.
+   * `critical`, `fatal`, `error`, `warn`, `info`, `debug`, `trace`.
    *
    * The log level changes how logs are filtered and displayed.
    * Critical level logs are emphasized more than trace level logs.
