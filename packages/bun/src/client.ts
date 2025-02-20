@@ -5,8 +5,7 @@ import { ServerRuntimeClient, applySdkMetadata } from '@sentry/core';
 import type { BunClientOptions } from './types';
 
 /**
- * @deprecated This client is no longer used in v9
- * It was likely mistakenly left after a refactor.
+ * @deprecated This client is no longer used in v9.
  */
 export class BunClient extends ServerRuntimeClient<BunClientOptions> {
   /**
