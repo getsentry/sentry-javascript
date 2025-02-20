@@ -30,7 +30,7 @@ import {
   makeProfileChunkEnvelope,
 } from './utils';
 
-const CHUNK_INTERVAL_MS = 5000;
+const CHUNK_INTERVAL_MS = 1000 * 60;
 const PROFILE_MAP = new LRUMap<string, RawThreadCpuProfile>(50);
 const PROFILE_TIMEOUTS: Record<string, NodeJS.Timeout> = {};
 

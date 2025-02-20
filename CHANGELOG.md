@@ -10,7 +10,18 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-Work in this release was contributed by @filips-alpe. Thank you for your contribution!
+## 9.1.0
+
+- feat(browser): Add `graphqlClientIntegration` ([#13783](https://github.com/getsentry/sentry-javascript/pull/13783))
+- feat(core): Allow for nested trpc context ([#15379](https://github.com/getsentry/sentry-javascript/pull/15379))
+- feat(core): Create types and utilities for span links ([#15375](https://github.com/getsentry/sentry-javascript/pull/15375))
+- feat(deps): bump @opentelemetry/instrumentation-pg from 0.50.0 to 0.51.0 ([#15273](https://github.com/getsentry/sentry-javascript/pull/15273))
+- feat(node): Extract Sentry-specific node-fetch instrumentation ([#15231](https://github.com/getsentry/sentry-javascript/pull/15231))
+- feat(vue): Support Pinia v3 ([#15383](https://github.com/getsentry/sentry-javascript/pull/15383))
+- fix(sveltekit): Avoid request body double read errors ([#15368](https://github.com/getsentry/sentry-javascript/pull/15368))
+- fix(sveltekit): Avoid top-level `vite` import ([#15371](https://github.com/getsentry/sentry-javascript/pull/15371))
+
+Work in this release was contributed by @Zen-cronic and @filips-alpe. Thank you for your contribution!
 
 ## 9.0.1
 

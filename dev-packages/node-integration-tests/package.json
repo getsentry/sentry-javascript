@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/node-integration-tests",
-  "version": "9.0.1",
+  "version": "9.1.0",
   "license": "MIT",
   "engines": {
     "node": ">=18"
@@ -21,6 +21,7 @@
     "fix": "eslint . --format stylish --fix",
     "type-check": "tsc",
     "test": "jest --config ./jest.config.js",
+    "test:no-prisma": "jest --config ./jest.config.js",
     "test:watch": "yarn test --watch"
   },
   "dependencies": {
@@ -29,9 +30,9 @@
     "@nestjs/common": "10.4.6",
     "@nestjs/core": "10.4.6",
     "@nestjs/platform-express": "10.4.6",
-    "@sentry/aws-serverless": "9.0.1",
-    "@sentry/core": "9.0.1",
-    "@sentry/node": "9.0.1",
+    "@sentry/aws-serverless": "9.1.0",
+    "@sentry/core": "9.1.0",
+    "@sentry/node": "9.1.0",
     "@types/mongodb": "^3.6.20",
     "@types/mysql": "^2.15.21",
     "@types/pg": "^8.6.5",
