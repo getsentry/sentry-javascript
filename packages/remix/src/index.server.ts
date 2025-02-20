@@ -126,10 +126,7 @@ export {
 // Keeping the `*` exports for backwards compatibility and types
 export * from '@sentry/node';
 
-export {
-  sentryHandleError,
-  wrapHandleErrorWithSentry,
-} from './utils/instrumentServer';
+export { sentryHandleError, wrapHandleErrorWithSentry } from './utils/instrumentServer';
 
 export { captureRemixServerException } from './utils/errors';
 
