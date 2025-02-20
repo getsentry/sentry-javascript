@@ -193,7 +193,7 @@ export function ScreenshotEditorFactoryv2({
       }
     }, [currentRect]);
 
-    function drawBuffer(): void {
+    const drawBuffer = hooks.useCallback((): void => {
       const ctx = imageBuffer.getContext('2d', { alpha: false });
       const measurementDiv = measurementRef.current;
       if (!imageBuffer || !ctx || !imageSource || !measurementDiv) {
@@ -222,7 +222,7 @@ export function ScreenshotEditorFactoryv2({
         drawRect(rect, grayCtx);
       });
       ctx.drawImage(grayWashBufferBig, 0, 0);
-    }
+    }, [drawCommands]);
 
     const drawScene = hooks.useCallback((): void => {
       const graywashCanvas = graywashRef.current;
