@@ -127,6 +127,26 @@ export function captureLog(level: LogSeverityLevel, messages: string[] | string,
     });
   }
 
+  const { release, environment } = client.getOptions();
+
+  if (release) {
+    attributes.push({
+      key: 'sentry.release',
+      value: {
+        stringValue: release,
+      },
+    });
+  }
+
+  if (environment) {
+    attributes.push({
+      key: 'sentry.environment',
+      value: {
+        stringValue: environment,
+      },
+    });
+  }
+
   const scope = getCurrentScope();
 
   const log: Log = {
