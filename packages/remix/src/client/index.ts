@@ -6,6 +6,7 @@ export * from '@sentry/react';
 export { init } from './sdk';
 export { captureRemixErrorBoundaryError } from './errors';
 export { withSentry } from './performance';
+export { browserTracingIntegration } from './browserTracingIntegration';
 
 // This is a no-op function that does nothing. It's here to make sure that the
 // function signature is the same as in the server SDK.
