@@ -1,19 +1,28 @@
-import type { RequestEventData, WrappedFunction } from '@sentry/core';
+/* eslint-disable max-lines */
+import type { RequestEventData, Span, TransactionSource, WrappedFunction } from '@sentry/core';
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   continueTrace,
   fill,
+  getActiveSpan,
   getClient,
+  getRootSpan,
   getTraceData,
   hasSpansEnabled,
   isNodeEnv,
   loadModule,
   logger,
+  setHttpStatus,
+  spanToJSON,
+  startSpan,
   winterCGRequestToRequestData,
   withIsolationScope,
 } from '@sentry/core';
-import { DEBUG_BUILD } from './debug-build';
-import { captureRemixServerException, errorHandleDataFunction, errorHandleDocumentRequestFunction } from './errors';
-import { extractData, isDeferredData, isResponse, isRouteErrorResponse, json } from './vendor/response';
+import { DEBUG_BUILD } from '../utils/debug-build';
+import { createRoutes, getTransactionName } from '../utils/utils';
+import { extractData, isDeferredData, isResponse, isRouteErrorResponse, json } from '../utils/vendor/response';
 import type {
   AppData,
   AppLoadContext,
@@ -25,8 +34,10 @@ import type {
   RemixRequest,
   RequestHandler,
   ServerBuild,
+  ServerRoute,
   ServerRouteManifest,
-} from './vendor/types';
+} from '../utils/vendor/types';
+import { captureRemixServerException, errorHandleDataFunction, errorHandleDocumentRequestFunction } from './errors';
 
 const redirectStatusCodes = new Set([301, 302, 303, 307, 308]);
 function isRedirectResponse(response: Response): boolean {
@@ -77,11 +88,16 @@ export function wrapHandleErrorWithSentry(
   };
 }
 
+function isCloudflareEnv(): boolean {
+  // eslint-disable-next-line no-restricted-globals
+  return navigator?.userAgent?.includes('Cloudflare');
+}
+
 function getTraceAndBaggage(): {
   sentryTrace?: string;
   sentryBaggage?: string;
 } {
-  if (isNodeEnv()) {
+  if (isNodeEnv() || isCloudflareEnv()) {
     const traceData = getTraceData();
 
     return {
@@ -93,7 +109,7 @@ function getTraceAndBaggage(): {
   return {};
 }
 
-function makeWrappedDocumentRequestFunction() {
+function makeWrappedDocumentRequestFunction(instrumentTracing?: boolean) {
   return function (origDocumentRequestFunction: HandleDocumentRequestFunction): HandleDocumentRequestFunction {
     return async function (
       this: unknown,
@@ -103,33 +119,81 @@ function makeWrappedDocumentRequestFunction() {
       context: EntryContext,
       loadContext?: Record<string, unknown>,
     ): Promise<Response> {
-      return errorHandleDocumentRequestFunction.call(this, origDocumentRequestFunction, {
+      const documentRequestContext = {
         request,
         responseStatusCode,
         responseHeaders,
         context,
         loadContext,
-      });
+      };
+
+      if (instrumentTracing) {
+        const activeSpan = getActiveSpan();
+        const rootSpan = activeSpan && getRootSpan(activeSpan);
+
+        const name = rootSpan ? spanToJSON(rootSpan).description : undefined;
+
+        return startSpan(
+          {
+            // If we don't have a root span, `onlyIfParent` will lead to the span not being created anyhow
+            // So we don't need to care too much about the fallback name, it's just for typing purposes....
+            name: name || '<unknown>',
+            onlyIfParent: true,
+            attributes: {
+              method: request.method,
+              url: request.url,
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.remix',
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.remix.document_request',
+            },
+          },
+          () => {
+            return errorHandleDocumentRequestFunction.call(this, origDocumentRequestFunction, documentRequestContext);
+          },
+        );
+      } else {
+        return errorHandleDocumentRequestFunction.call(this, origDocumentRequestFunction, documentRequestContext);
+      }
     };
   };
 }
 
-function makeWrappedDataFunction(origFn: DataFunction, id: string, name: 'action' | 'loader'): DataFunction {
+function makeWrappedDataFunction(
+  origFn: DataFunction,
+  id: string,
+  name: 'action' | 'loader',
+  instrumentTracing?: boolean,
+): DataFunction {
   return async function (this: unknown, args: DataFunctionArgs): Promise<Response | AppData> {
-    return errorHandleDataFunction.call(this, origFn, name, args);
+    if (instrumentTracing) {
+      return startSpan(
+        {
+          op: `function.remix.${name}`,
+          name: id,
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.remix',
+            name,
+          },
+        },
+        (span: Span) => {
+          return errorHandleDataFunction.call(this, origFn, name, args, span);
+        },
+      );
+    } else {
+      return errorHandleDataFunction.call(this, origFn, name, args);
+    }
   };
 }
 
 const makeWrappedAction =
-  (id: string) =>
+  (id: string, instrumentTracing?: boolean) =>
   (origAction: DataFunction): DataFunction => {
-    return makeWrappedDataFunction(origAction, id, 'action');
+    return makeWrappedDataFunction(origAction, id, 'action', instrumentTracing);
   };
 
 const makeWrappedLoader =
-  (id: string) =>
+  (id: string, instrumentTracing?: boolean) =>
   (origLoader: DataFunction): DataFunction => {
-    return makeWrappedDataFunction(origLoader, id, 'loader');
+    return makeWrappedDataFunction(origLoader, id, 'loader', instrumentTracing);
   };
 
 function makeWrappedRootLoader() {
@@ -176,7 +240,20 @@ function makeWrappedRootLoader() {
   };
 }
 
-function wrapRequestHandler(origRequestHandler: RequestHandler): RequestHandler {
+function wrapRequestHandler(
+  origRequestHandler: RequestHandler,
+  build:
+    | ServerBuild
+    | { build: ServerBuild }
+    | (() => ServerBuild | { build: ServerBuild } | Promise<ServerBuild | { build: ServerBuild }>),
+  options?: {
+    instrumentTracing?: boolean;
+  },
+): RequestHandler {
+  let resolvedBuild: ServerBuild | { build: ServerBuild };
+  let name: string;
+  let source: TransactionSource;
+
   return async function (this: unknown, request: RemixRequest, loadContext?: AppLoadContext): Promise<Response> {
     const upperCaseMethod = request.method.toUpperCase();
     // We don't want to wrap OPTIONS and HEAD requests
@@ -184,8 +261,25 @@ function wrapRequestHandler(origRequestHandler: RequestHandler): RequestHandler 
       return origRequestHandler.call(this, request, loadContext);
     }
 
+    let resolvedRoutes: ServerRoute[] | undefined;
+
+    if (options?.instrumentTracing) {
+      if (typeof build === 'function') {
+        resolvedBuild = await build();
+      } else {
+        resolvedBuild = build;
+      }
+
+      // check if the build is nested under `build` key
+      if ('build' in resolvedBuild) {
+        resolvedRoutes = createRoutes(resolvedBuild.build.routes);
+      } else {
+        resolvedRoutes = createRoutes(resolvedBuild.routes);
+      }
+    }
+
     return withIsolationScope(async isolationScope => {
-      const options = getClient()?.getOptions();
+      const clientOptions = getClient()?.getOptions();
 
       let normalizedRequest: RequestEventData = {};
 
@@ -195,9 +289,16 @@ function wrapRequestHandler(origRequestHandler: RequestHandler): RequestHandler 
         DEBUG_BUILD && logger.warn('Failed to normalize Remix request');
       }
 
+      if (options?.instrumentTracing && resolvedRoutes) {
+        const url = new URL(request.url);
+        [name, source] = getTransactionName(resolvedRoutes, url);
+
+        isolationScope.setTransactionName(name);
+      }
+
       isolationScope.setSDKProcessingMetadata({ normalizedRequest });
 
-      if (!options || !hasSpansEnabled(options)) {
+      if (!clientOptions || !hasSpansEnabled(clientOptions)) {
         return origRequestHandler.call(this, request, loadContext);
       }
 
@@ -207,6 +308,33 @@ function wrapRequestHandler(origRequestHandler: RequestHandler): RequestHandler 
           baggage: request.headers.get('baggage') || '',
         },
         async () => {
+          if (options?.instrumentTracing) {
+            const parentSpan = getActiveSpan();
+            const rootSpan = parentSpan && getRootSpan(parentSpan);
+            rootSpan?.updateName(name);
+
+            return startSpan(
+              {
+                name,
+                attributes: {
+                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.remix',
+                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+                  method: request.method,
+                },
+              },
+              async span => {
+                const res = (await origRequestHandler.call(this, request, loadContext)) as Response;
+
+                if (isResponse(res)) {
+                  setHttpStatus(span, res.status);
+                }
+
+                return res;
+              },
+            );
+          }
+
           return (await origRequestHandler.call(this, request, loadContext)) as Response;
         },
       );
@@ -214,9 +342,17 @@ function wrapRequestHandler(origRequestHandler: RequestHandler): RequestHandler 
   };
 }
 
-function instrumentBuildCallback(build: ServerBuild): ServerBuild {
-  const routes: ServerRouteManifest = {};
+function instrumentBuildCallback(
+  build: ServerBuild,
+  options?: {
+    instrumentTracing?: boolean;
+  },
+): ServerBuild {
+  const routes: ServerRouteManifest = build.routes;
+
   const wrappedEntry = { ...build.entry, module: { ...build.entry.module } };
+
+  // Add warning?
 
   // Not keeping boolean flags like it's done for `requestHandler` functions,
   // Because the build can change between build and runtime.
@@ -224,7 +360,7 @@ function instrumentBuildCallback(build: ServerBuild): ServerBuild {
   // We should be able to wrap them, as they may not be wrapped before.
   const defaultExport = wrappedEntry.module.default as undefined | WrappedFunction;
   if (defaultExport && !defaultExport.__sentry_original__) {
-    fill(wrappedEntry.module, 'default', makeWrappedDocumentRequestFunction());
+    fill(wrappedEntry.module, 'default', makeWrappedDocumentRequestFunction(options?.instrumentTracing));
   }
 
   for (const [id, route] of Object.entries(build.routes)) {
@@ -232,12 +368,12 @@ function instrumentBuildCallback(build: ServerBuild): ServerBuild {
 
     const routeAction = wrappedRoute.module.action as undefined | WrappedFunction;
     if (routeAction && !routeAction.__sentry_original__) {
-      fill(wrappedRoute.module, 'action', makeWrappedAction(id));
+      fill(wrappedRoute.module, 'action', makeWrappedAction(id, options?.instrumentTracing));
     }
 
     const routeLoader = wrappedRoute.module.loader as undefined | WrappedFunction;
     if (routeLoader && !routeLoader.__sentry_original__) {
-      fill(wrappedRoute.module, 'loader', makeWrappedLoader(id));
+      fill(wrappedRoute.module, 'loader', makeWrappedLoader(id, options?.instrumentTracing));
     }
 
     // Entry module should have a loader function to provide `sentry-trace` and `baggage`
@@ -254,7 +390,13 @@ function instrumentBuildCallback(build: ServerBuild): ServerBuild {
     routes[id] = wrappedRoute;
   }
 
-  return { ...build, routes, entry: wrappedEntry };
+  const instrumentedBuild = { ...build, routes };
+
+  if (wrappedEntry) {
+    instrumentedBuild.entry = wrappedEntry;
+  }
+
+  return instrumentedBuild;
 }
 
 /**
@@ -262,6 +404,9 @@ function instrumentBuildCallback(build: ServerBuild): ServerBuild {
  */
 export function instrumentBuild(
   build: ServerBuild | (() => ServerBuild | Promise<ServerBuild>),
+  options?: {
+    instrumentTracing?: boolean;
+  },
 ): ServerBuild | (() => ServerBuild | Promise<ServerBuild>) {
   if (typeof build === 'function') {
     return function () {
@@ -269,28 +414,28 @@ export function instrumentBuild(
 
       if (resolvedBuild instanceof Promise) {
         return resolvedBuild.then(build => {
-          return instrumentBuildCallback(build);
+          return instrumentBuildCallback(build, options);
         });
       } else {
-        return instrumentBuildCallback(resolvedBuild);
+        return instrumentBuildCallback(resolvedBuild, options);
       }
     };
   } else {
-    return instrumentBuildCallback(build);
+    return instrumentBuildCallback(build, options);
   }
 }
 
-const makeWrappedCreateRequestHandler = () =>
+export const makeWrappedCreateRequestHandler = (options?: { instrumentTracing?: boolean }) =>
   function (origCreateRequestHandler: CreateRequestHandlerFunction): CreateRequestHandlerFunction {
     return function (
       this: unknown,
       build: ServerBuild | (() => Promise<ServerBuild>),
       ...args: unknown[]
     ): RequestHandler {
-      const newBuild = instrumentBuild(build);
+      const newBuild = instrumentBuild(build, options);
       const requestHandler = origCreateRequestHandler.call(this, newBuild, ...args);
 
-      return wrapRequestHandler(requestHandler);
+      return wrapRequestHandler(requestHandler, newBuild, options);
     };
   };
 
@@ -298,7 +443,7 @@ const makeWrappedCreateRequestHandler = () =>
  * Monkey-patch Remix's `createRequestHandler` from `@remix-run/server-runtime`
  * which Remix Adapters (https://remix.run/docs/en/v1/api/remix) use underneath.
  */
-export function instrumentServer(): void {
+export function instrumentServer(options?: { instrumentTracing?: boolean }): void {
   const pkg = loadModule<{
     createRequestHandler: CreateRequestHandlerFunction;
   }>('@remix-run/server-runtime', module);
@@ -309,5 +454,5 @@ export function instrumentServer(): void {
     return;
   }
 
-  fill(pkg, 'createRequestHandler', makeWrappedCreateRequestHandler());
+  fill(pkg, 'createRequestHandler', makeWrappedCreateRequestHandler(options));
 }
