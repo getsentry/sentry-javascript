@@ -85,9 +85,6 @@ export {
 } from '@sentry/core';
 
 export { VercelEdgeClient } from './client';
-export {
-  getDefaultIntegrations,
-  init,
-} from './sdk';
+export { getDefaultIntegrations, init } from './sdk';
 
 export { winterCGFetchIntegration } from './integrations/wintercg-fetch';

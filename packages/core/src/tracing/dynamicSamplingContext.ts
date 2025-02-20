@@ -128,9 +128,7 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
       // The Sentry OTEL SpanSampler takes care of writing the sample rand on the root span
       traceState?.get('sentry.sample_rand') ??
       // On all other platforms we can actually get the scopes from a root span (we use this as a fallback)
-      getCapturedScopesOnSpan(rootSpan)
-        .scope?.getPropagationContext()
-        .sampleRand.toString();
+      getCapturedScopesOnSpan(rootSpan).scope?.getPropagationContext().sampleRand.toString();
   }
 
   applyLocalSampleRateToDsc(dsc);

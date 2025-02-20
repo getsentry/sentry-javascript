@@ -18,12 +18,8 @@ import type { OpenTelemetryClient as OpenTelemetryClientInterface } from '../typ
  * const client = new OpenTelemetryClient(options);
  */
 export function wrapClientClass<
-  ClassConstructor extends new (
-    ...args: any[]
-  ) => Client,
-  WrappedClassConstructor extends new (
-    ...args: any[]
-  ) => Client & OpenTelemetryClientInterface,
+  ClassConstructor extends new (...args: any[]) => Client,
+  WrappedClassConstructor extends new (...args: any[]) => Client & OpenTelemetryClientInterface,
 >(ClientClass: ClassConstructor): WrappedClassConstructor {
   // @ts-expect-error We just assume that this is non-abstract, if you pass in an abstract class this would make it non-abstract
   class OpenTelemetryClient extends ClientClass implements OpenTelemetryClientInterface {

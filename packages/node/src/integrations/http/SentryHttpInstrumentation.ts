@@ -471,7 +471,11 @@ export function recordRequestSession({
   requestIsolationScope,
   response,
   sessionFlushingDelayMS,
-}: { requestIsolationScope: Scope; response: EventEmitter; sessionFlushingDelayMS?: number }): void {
+}: {
+  requestIsolationScope: Scope;
+  response: EventEmitter;
+  sessionFlushingDelayMS?: number;
+}): void {
   requestIsolationScope.setSDKProcessingMetadata({
     requestSession: { status: 'ok' },
   });

@@ -8,7 +8,8 @@ describe('getTraceMetaTags', () => {
       baggage: 'sentry-environment=production',
     });
 
-    expect(getTraceMetaTags()).toBe(`<meta name="sentry-trace" content="12345678901234567890123456789012-1234567890123456-1"/>
+    expect(getTraceMetaTags())
+      .toBe(`<meta name="sentry-trace" content="12345678901234567890123456789012-1234567890123456-1"/>
 <meta name="baggage" content="sentry-environment=production"/>`);
   });
 
