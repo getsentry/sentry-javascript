@@ -1,6 +1,5 @@
 /* eslint-disable max-lines */
-
-import { CpuProfilerBindings } from '@sentry-internal/node-cpu-profiler';
+import { CpuProfilerBindings, ProfileFormat, type RawThreadCpuProfile } from '@sentry-internal/node-cpu-profiler';
 import type { Event, IntegrationFn, Profile, ProfileChunk, ProfilingIntegration, Span } from '@sentry/core';
 import {
   LRUMap,
@@ -18,8 +17,6 @@ import type { NodeClient } from '@sentry/node';
 import { DEBUG_BUILD } from './debug-build';
 import { NODE_MAJOR, NODE_VERSION } from './nodeVersion';
 import { MAX_PROFILE_DURATION_MS, maybeProfileSpan, stopSpanProfile } from './spanProfileUtils';
-import type { RawThreadCpuProfile } from './types';
-import { ProfileFormat } from './types';
 import {
   PROFILER_THREAD_ID_STRING,
   PROFILER_THREAD_NAME,
@@ -30,7 +27,7 @@ import {
   makeProfileChunkEnvelope,
 } from './utils';
 
-const CHUNK_INTERVAL_MS = 5000;
+const CHUNK_INTERVAL_MS = 1000 * 60;
 const PROFILE_MAP = new LRUMap<string, RawThreadCpuProfile>(50);
 const PROFILE_TIMEOUTS: Record<string, NodeJS.Timeout> = {};
 

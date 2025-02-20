@@ -107,6 +107,12 @@ describe('getFilenameFromPath', () => {
     const filename = getFilenameFromNodeStartCommand(path);
     expect(filename).toBeNull();
   });
+
+  it('should return null for commands without file extensions', () => {
+    const path = 'npx @azure/static-web-apps-cli start .output/public --api-location .output/server';
+    const filename = getFilenameFromNodeStartCommand(path);
+    expect(filename).toBeNull();
+  });
 });
 
 describe('removeSentryQueryFromPath', () => {

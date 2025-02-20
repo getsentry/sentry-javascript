@@ -5,7 +5,7 @@ import { SentryNonRecordingSpan } from './tracing/sentryNonRecordingSpan';
 import type { FetchBreadcrumbHint, HandlerDataFetch, Span, SpanOrigin } from './types-hoist';
 import { SENTRY_BAGGAGE_KEY_PREFIX } from './utils-hoist/baggage';
 import { isInstanceOf } from './utils-hoist/is';
-import { parseUrl } from './utils-hoist/url';
+import { parseUrl, stripUrlQueryAndFragment } from './utils-hoist/url';
 import { hasSpansEnabled } from './utils/hasSpansEnabled';
 import { getActiveSpan } from './utils/spanUtils';
 import { getTraceData } from './utils/traceData';
@@ -35,7 +35,9 @@ export function instrumentFetchRequest(
     return undefined;
   }
 
-  const shouldCreateSpanResult = hasSpansEnabled() && shouldCreateSpan(handlerData.fetchData.url);
+  const { method, url } = handlerData.fetchData;
+
+  const shouldCreateSpanResult = hasSpansEnabled() && shouldCreateSpan(url);
 
   if (handlerData.endTimestamp && shouldCreateSpanResult) {
     const spanId = handlerData.fetchData.__span;
@@ -51,25 +53,25 @@ export function instrumentFetchRequest(
     return undefined;
   }
 
-  const { method, url } = handlerData.fetchData;
-
   const fullUrl = getFullURL(url);
-  const host = fullUrl ? parseUrl(fullUrl).host : undefined;
+  const parsedUrl = fullUrl ? parseUrl(fullUrl) : parseUrl(url);
 
   const hasParent = !!getActiveSpan();
 
   const span =
     shouldCreateSpanResult && hasParent
       ? startInactiveSpan({
-          name: `${method} ${url}`,
+          name: `${method} ${stripUrlQueryAndFragment(url)}`,
           attributes: {
             url,
             type: 'fetch',
             'http.method': method,
             'http.url': fullUrl,
-            'server.address': host,
+            'server.address': parsedUrl?.host,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
+            ...(parsedUrl?.search && { 'http.query': parsedUrl?.search }),
+            ...(parsedUrl?.hash && { 'http.fragment': parsedUrl?.hash }),
           },
         })
       : new SentryNonRecordingSpan();

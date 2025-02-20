@@ -1,6 +1,5 @@
 import type { ClientOptions, Options, TracePropagationTargets } from '@sentry/core';
 
-import type { BunClient } from './client';
 import type { BunTransportOptions } from './transports';
 
 export interface BaseBunOptions {
@@ -24,14 +23,6 @@ export interface BaseBunOptions {
 
   /** Sets an optional server name (device name) */
   serverName?: string;
-
-  /**
-   * Specify a custom BunClient to be used. Must extend BunClient!
-   * This is not a public, supported API, but used internally only.
-   *
-   * @hidden
-   *  */
-  clientClass?: typeof BunClient;
 
   /** Callback that is executed when a fatal global error occurs. */
   onFatalError?(this: void, error: Error): void;

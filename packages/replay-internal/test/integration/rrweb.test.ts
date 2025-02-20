@@ -40,6 +40,7 @@ describe('Integration | rrweb', () => {
         "maskTextFn": undefined,
         "maskTextSelector": ".sentry-mask,[data-sentry-mask]",
         "onMutation": [Function],
+        "recordCrossOriginIframes": false,
         "slimDOMOptions": "all",
         "unblockSelector": "",
         "unmaskTextSelector": "",
@@ -80,6 +81,7 @@ describe('Integration | rrweb', () => {
         "maskTextFn": undefined,
         "maskTextSelector": ".sentry-mask,[data-sentry-mask]",
         "onMutation": [Function],
+        "recordCrossOriginIframes": false,
         "slimDOMOptions": "all",
         "unblockSelector": "",
         "unmaskTextSelector": "",
@@ -131,6 +133,7 @@ describe('Integration | rrweb', () => {
         "maskTextFn": undefined,
         "maskTextSelector": ".sentry-mask,[data-sentry-mask]",
         "onMutation": [Function],
+        "recordCrossOriginIframes": false,
         "sampling": {
           "mousemove": false,
         },

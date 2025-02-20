@@ -50,13 +50,11 @@ test('Does not send HttpExceptions to Sentry', async ({ baseURL }) => {
   });
 
   const transactionEventPromise400 = waitForTransaction('nestjs-11', transactionEvent => {
-    // todo(express-5): parametrize /test-expected-400-exception/:id
-    return transactionEvent?.transaction === 'GET /test-expected-400-exception/123';
+    return transactionEvent?.transaction === 'GET /test-expected-400-exception/:id';
   });
 
   const transactionEventPromise500 = waitForTransaction('nestjs-11', transactionEvent => {
-    // todo(express-5): parametrize /test-expected-500-exception/:id
-    return transactionEvent?.transaction === 'GET /test-expected-500-exception/123';
+    return transactionEvent?.transaction === 'GET /test-expected-500-exception/:id';
   });
 
   const response400 = await fetch(`${baseURL}/test-expected-400-exception/123`);
@@ -81,13 +79,11 @@ test('Does not send RpcExceptions to Sentry', async ({ baseURL }) => {
       errorEventOccurred = true;
     }
 
-    // todo(express-5): parametrize /test-expected-rpc-exception/:id
-    return event?.transaction === 'GET /test-expected-rpc-exception/123';
+    return event?.transaction === 'GET /test-expected-rpc-exception/:id';
   });
 
   const transactionEventPromise = waitForTransaction('nestjs-11', transactionEvent => {
-    // todo(express-5): parametrize /test-expected-rpc-exception/:id
-    return transactionEvent?.transaction === 'GET /test-expected-rpc-exception/123';
+    return transactionEvent?.transaction === 'GET /test-expected-rpc-exception/:id';
   });
 
   const response = await fetch(`${baseURL}/test-expected-rpc-exception/123`);

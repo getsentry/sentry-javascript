@@ -160,7 +160,7 @@ function getTracer(): Tracer {
 }
 
 function getSpanOptions(options: OpenTelemetrySpanContext): SpanOptions {
-  const { startTime, attributes, kind, op } = options;
+  const { startTime, attributes, kind, op, links } = options;
 
   // OTEL expects timestamps in ms, not seconds
   const fixedStartTime = typeof startTime === 'number' ? ensureTimestampInMilliseconds(startTime) : startTime;
@@ -173,6 +173,7 @@ function getSpanOptions(options: OpenTelemetrySpanContext): SpanOptions {
         }
       : attributes,
     kind,
+    links,
     startTime: fixedStartTime,
   };
 }

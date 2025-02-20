@@ -13,7 +13,6 @@
 ## Links
 
 - [Official SDK Docs](https://docs.sentry.io/platforms/javascript/angular/)
-- [TypeDoc](http://getsentry.github.io/sentry-javascript/)
 
 ## Angular Version Compatibility
 

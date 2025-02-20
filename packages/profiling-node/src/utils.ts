@@ -27,8 +27,8 @@ import {
 import { env, versions } from 'process';
 import { isMainThread, threadId } from 'worker_threads';
 
+import type { RawChunkCpuProfile, RawThreadCpuProfile } from '@sentry-internal/node-cpu-profiler';
 import { DEBUG_BUILD } from './debug-build';
-import type { RawChunkCpuProfile, RawThreadCpuProfile } from './types';
 
 // We require the file because if we import it, it will be included in the bundle.
 // I guess tsc does not check file contents when it's imported.

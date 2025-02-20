@@ -1,4 +1,5 @@
 import type { Scope } from '../scope';
+import type { SpanLink } from './link';
 import type { Span, SpanAttributes, SpanTimeInput } from './span';
 
 export interface StartSpanOptions {
@@ -43,6 +44,12 @@ export interface StartSpanOptions {
 
   /** Attributes for the span. */
   attributes?: SpanAttributes;
+
+  /**
+   * Links to associate with the new span. Setting links here is preferred over addLink()
+   * as it allows sampling decisions to consider the link information.
+   */
+  links?: SpanLink[];
 
   /**
    * Experimental options without any stability guarantees. Use with caution!

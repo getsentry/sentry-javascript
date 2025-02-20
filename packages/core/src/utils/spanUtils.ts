@@ -19,6 +19,7 @@ import type {
   SpanTimeInput,
   TraceContext,
 } from '../types-hoist';
+import type { SpanLink, SpanLinkJSON } from '../types-hoist/link';
 import { consoleSandbox } from '../utils-hoist/logger';
 import { addNonEnumerableProperty, dropUndefinedKeys } from '../utils-hoist/object';
 import { generateSpanId } from '../utils-hoist/propagationContext';
@@ -82,6 +83,25 @@ export function spanToTraceHeader(span: Span): string {
 }
 
 /**
+ *  Converts the span links array to a flattened version to be sent within an envelope.
+ *
+ *  If the links array is empty, it returns `undefined` so the empty value can be dropped before it's sent.
+ */
+export function convertSpanLinksForEnvelope(links?: SpanLink[]): SpanLinkJSON[] | undefined {
+  if (links && links.length > 0) {
+    return links.map(({ context: { spanId, traceId, traceFlags, ...restContext }, attributes }) => ({
+      span_id: spanId,
+      trace_id: traceId,
+      sampled: traceFlags === TRACE_FLAG_SAMPLED,
+      attributes,
+      ...restContext,
+    }));
+  } else {
+    return undefined;
+  }
+}
+
+/**
  * Convert a span time input into a timestamp in seconds.
  */
 export function spanTimeInputToSeconds(input: SpanTimeInput | undefined): number {
@@ -124,7 +144,7 @@ export function spanToJSON(span: Span): SpanJSON {
 
   // Handle a span from @opentelemetry/sdk-base-trace's `Span` class
   if (spanIsOpenTelemetrySdkTraceBaseSpan(span)) {
-    const { attributes, startTime, name, endTime, parentSpanId, status } = span;
+    const { attributes, startTime, name, endTime, parentSpanId, status, links } = span;
 
     return dropUndefinedKeys({
       span_id,
@@ -138,6 +158,7 @@ export function spanToJSON(span: Span): SpanJSON {
       status: getStatusMessage(status),
       op: attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP],
       origin: attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined,
+      links: convertSpanLinksForEnvelope(links),
     });
   }
 
@@ -164,6 +185,7 @@ export interface OpenTelemetrySdkTraceBaseSpan extends Span {
   status: SpanStatus;
   endTime: SpanTimeInput;
   parentSpanId?: string;
+  links?: SpanLink[];
 }
 
 /**

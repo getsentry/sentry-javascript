@@ -43,6 +43,7 @@ export type RrwebRecordOptions = {
   maskTextSelector?: string;
   blockSelector?: string;
   maskInputOptions?: Record<string, boolean>;
+  recordCrossOriginIframes?: boolean;
 } & Record<string, unknown>;
 
 export interface CanvasManagerInterface {

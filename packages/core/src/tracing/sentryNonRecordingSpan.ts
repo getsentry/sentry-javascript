@@ -69,24 +69,12 @@ export class SentryNonRecordingSpan implements Span {
     return this;
   }
 
-  /**
-   * This should generally not be used,
-   * but we need it for being compliant with the OTEL Span interface.
-   *
-   * @hidden
-   * @internal
-   */
+  /** @inheritDoc */
   public addLink(_link: unknown): this {
     return this;
   }
 
-  /**
-   * This should generally not be used,
-   * but we need it for being compliant with the OTEL Span interface.
-   *
-   * @hidden
-   * @internal
-   */
+  /** @inheritDoc */
   public addLinks(_links: unknown[]): this {
     return this;
   }
