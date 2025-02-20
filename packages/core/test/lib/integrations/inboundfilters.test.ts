@@ -269,6 +269,12 @@ const GOOGLETAG_EVENT: Event = {
   },
 };
 
+const GOOGLE_APP_GMO: Event = {
+  exception: {
+    values: [{ type: 'ReferenceError', value: "Can't find variable: gmo" }],
+  },
+};
+
 const CEFSHARP_EVENT: Event = {
   exception: {
     values: [
@@ -276,6 +282,17 @@ const CEFSHARP_EVENT: Event = {
         type: 'TypeError',
         value:
           'Non-Error promise rejection captured with value: Object Not Found Matching Id:3, MethodName:simulateEvent, ParamCount:1',
+      },
+    ],
+  },
+};
+
+const FB_MOBILE_BROWSER_EVENT: Event = {
+  exception: {
+    values: [
+      {
+        type: 'Error',
+        value: 'Java exception was raised during method invocation',
       },
     ],
   },
@@ -397,9 +414,19 @@ describe('InboundFilters', () => {
       expect(eventProcessor(GOOGLETAG_EVENT, {})).toBe(null);
     });
 
+    it('uses default filters (Google App "gmo")', () => {
+      const eventProcessor = createInboundFiltersEventProcessor();
+      expect(eventProcessor(GOOGLE_APP_GMO, {})).toBe(null);
+    });
+
     it('uses default filters (CEFSharp)', () => {
       const eventProcessor = createInboundFiltersEventProcessor();
       expect(eventProcessor(CEFSHARP_EVENT, {})).toBe(null);
+    });
+
+    it('uses default filters (FB Mobile Browser)', () => {
+      const eventProcessor = createInboundFiltersEventProcessor();
+      expect(eventProcessor(FB_MOBILE_BROWSER_EVENT, {})).toBe(null);
     });
 
     it('filters on last exception when multiple present', () => {
