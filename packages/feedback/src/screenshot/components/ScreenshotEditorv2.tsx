@@ -62,7 +62,7 @@ const getContainedSize = (measurementDiv: HTMLDivElement, imageSource: HTMLCanva
   return { action: '', x: x, y: y, width: width, height: height };
 };
 
-function drawRect(rect: Rect, ctx: CanvasRenderingContext2D, scale: number = 1): void {
+function drawRect(rect: Rect, ctx: CanvasRenderingContext2D, scale: number = 1, lineWidth: number = 4): void {
   const scaledX = rect.x * scale;
   const scaledY = rect.y * scale;
   const scaledWidth = rect.width * scale;
@@ -90,8 +90,12 @@ function drawRect(rect: Rect, ctx: CanvasRenderingContext2D, scale: number = 1):
       break;
   }
 
+  // Disable shadow after the action is drawn
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
+
   ctx.strokeStyle = '#ff0000';
-  ctx.lineWidth = 2;
+  ctx.lineWidth = lineWidth;
   ctx.strokeRect(scaledX + 1, scaledY + 1, scaledWidth - 2, scaledHeight - 2);
 }
 
@@ -100,10 +104,6 @@ function resizeCanvas(canvas: HTMLCanvasElement, imageDimensions: Rect): void {
   canvas.height = imageDimensions.height * DPI;
   canvas.style.width = `${imageDimensions.width}px`;
   canvas.style.height = `${imageDimensions.height}px`;
-  const ctx = canvas.getContext('2d', { alpha: false });
-  if (ctx) {
-    ctx.scale(DPI, DPI);
-  }
 }
 
 export function ScreenshotEditorFactoryv2({
@@ -126,15 +126,16 @@ export function ScreenshotEditorFactoryv2({
     const screenshotRef = hooks.useRef<HTMLCanvasElement>(null);
     const graywashRef = hooks.useRef<HTMLCanvasElement>(null);
     const rectDivRef = hooks.useRef<HTMLDivElement>(null);
-    const [imageSource, setImageSource] = hooks.useState<HTMLCanvasElement | null>(null);
-    const [isShown, setIsShown] = hooks.useState<boolean>(true);
+    const [imageSource, setimageSource] = hooks.useState<HTMLCanvasElement | null>(null);
+    const [displayEditor, setdisplayEditor] = hooks.useState<boolean>(true);
     const [scaleFactor, setScaleFactor] = hooks.useState<number>(1);
 
     const resize = hooks.useCallback((): void => {
       const screenshotCanvas = screenshotRef.current;
       const graywashCanvas = graywashRef.current;
       const measurementDiv = measurementRef.current;
-      if (!screenshotCanvas || !graywashCanvas || !imageSource || !measurementDiv) {
+      const rectDiv = rectDivRef.current;
+      if (!screenshotCanvas || !graywashCanvas || !imageSource || !measurementDiv || !rectDiv) {
         return;
       }
 
@@ -143,6 +144,9 @@ export function ScreenshotEditorFactoryv2({
       resizeCanvas(screenshotCanvas, imageDimensions);
       resizeCanvas(graywashCanvas, imageDimensions);
 
+      rectDiv.style.width = `${imageDimensions.width}px`;
+      rectDiv.style.height = `${imageDimensions.height}px`;
+
       const scale = graywashCanvas.clientWidth / imageBuffer.width;
       setScaleFactor(scale);
 
@@ -150,17 +154,9 @@ export function ScreenshotEditorFactoryv2({
       if (!screenshotContext) {
         return;
       }
-
       screenshotContext.drawImage(imageSource, 0, 0, imageDimensions.width, imageDimensions.height);
       drawScene();
-
-      const rectDiv = rectDivRef.current;
-      if (!rectDiv) {
-        return;
-      }
-      rectDiv.style.width = `${imageDimensions.width}px`;
-      rectDiv.style.height = `${imageDimensions.height}px`;
-    }, [imageSource, isShown, drawCommands]);
+    }, [imageSource, drawCommands]);
 
     hooks.useEffect(() => {
       WINDOW.addEventListener('resize', resize);
@@ -170,12 +166,13 @@ export function ScreenshotEditorFactoryv2({
       };
     }, [resize]);
 
+    hooks.useLayoutEffect(() => {
+      resize();
+    }, [displayEditor]);
+
     hooks.useEffect(() => {
-      const graywashCanvas = graywashRef.current;
-      if (graywashCanvas) {
-        drawScene();
-        drawBuffer();
-      }
+      drawScene();
+      drawBuffer();
     }, [drawCommands]);
 
     hooks.useEffect(() => {
@@ -235,11 +232,11 @@ export function ScreenshotEditorFactoryv2({
 
       const scale = graywashCanvas.clientWidth / imageBuffer.width;
       drawCommands.forEach(rect => {
-        drawRect(rect, ctx, scale);
+        drawRect(rect, ctx, scale, 2);
       });
 
       if (currentRect) {
-        drawRect(currentRect, ctx);
+        drawRect(currentRect, ctx, 1, 2);
         setCurrentRect(undefined);
       }
     }
@@ -247,35 +244,32 @@ export function ScreenshotEditorFactoryv2({
     useTakeScreenshot({
       onBeforeScreenshot: hooks.useCallback(() => {
         (dialog.el as HTMLElement).style.display = 'none';
-        setIsShown(false);
+        setdisplayEditor(false);
       }, []),
       onScreenshot: hooks.useCallback((imageSource: HTMLVideoElement) => {
         const bufferCanvas = DOCUMENT.createElement('canvas');
         bufferCanvas.width = imageSource.videoWidth;
         bufferCanvas.height = imageSource.videoHeight;
         bufferCanvas.getContext('2d', { alpha: false })?.drawImage(imageSource, 0, 0);
-        setImageSource(bufferCanvas);
+        setimageSource(bufferCanvas);
+
         imageBuffer.width = imageSource.videoWidth;
         imageBuffer.height = imageSource.videoHeight;
       }, []),
       onAfterScreenshot: hooks.useCallback(() => {
         (dialog.el as HTMLElement).style.display = 'block';
-        setIsShown(true);
+        setdisplayEditor(true);
       }, []),
       onError: hooks.useCallback(error => {
         (dialog.el as HTMLElement).style.display = 'block';
-        setIsShown(true);
+        setdisplayEditor(true);
         onError(error);
       }, []),
     });
 
     const onDraw = (e: MouseEvent): void => {
-      if (!action) {
-        return;
-      }
-
       const graywashCanvas = graywashRef.current;
-      if (!graywashCanvas) {
+      if (!action || !graywashCanvas) {
         return;
       }
 
@@ -299,7 +293,7 @@ export function ScreenshotEditorFactoryv2({
       const handleMouseUp = (e: MouseEvent): void => {
         const endX = Math.max(0, Math.min(e.clientX - boundingRect.left, graywashCanvas.width / DPI));
         const endY = Math.max(0, Math.min(e.clientY - boundingRect.top, graywashCanvas.height / DPI));
-        // prevent drawing rect when clicking on the canvas (ie clicking delete)
+        // prevent drawing rect when clicking on the canvas (ie. clicking delete)
         if (startX != endX && startY != endY) {
           // scale to image buffer
           const scale = imageBuffer.width / graywashCanvas.clientWidth;
@@ -331,51 +325,23 @@ export function ScreenshotEditorFactoryv2({
       <div class="editor">
         <style nonce={options.styleNonce} dangerouslySetInnerHTML={styles} />
         <div class="editor__image-container">
-          <div class="editor__canvas-container">
-            <div ref={measurementRef} style={{ position: 'absolute', width: '100%', height: '100%' }}></div>
-            <canvas style={{ position: 'absolute', zIndex: '1', objectFit: 'contain' }} ref={screenshotRef}></canvas>
-            <canvas
-              style={{ position: 'absolute', zIndex: '2', objectFit: 'contain' }}
-              ref={graywashRef}
-              onMouseDown={onDraw}
-            ></canvas>
-            <div
-              ref={rectDivRef}
-              style={{ position: 'absolute', zIndex: '2', objectFit: 'contain' }}
-              onMouseDown={onDraw}
-            >
+          <div class="editor__canvas-container" ref={measurementRef}>
+            <canvas ref={screenshotRef}></canvas>
+            <canvas class="editor__canvas-annotate" ref={graywashRef} onMouseDown={onDraw}></canvas>
+            <div class="editor__rect-container" ref={rectDivRef} onMouseDown={onDraw}>
               {drawCommands.map((rect, index) => (
                 <div
                   key={index}
-                  class="rect"
+                  class="editor__rect"
                   style={{
-                    position: 'absolute',
                     top: `${rect.y * scaleFactor}px`,
                     left: `${rect.x * scaleFactor}px`,
                     width: `${rect.width * scaleFactor}px`,
                     height: `${rect.height * scaleFactor}px`,
-                    zIndex: 2,
                   }}
                   onMouseDown={onDraw}
                 >
-                  <button
-                    type="button"
-                    style={{
-                      position: 'absolute',
-                      top: '-12px',
-                      right: '-12px',
-                      width: '25px',
-                      height: '25px',
-                      cursor: 'pointer',
-                      borderRadius: 999999,
-                      padding: 0,
-                      placeContent: 'center',
-                      zIndex: 3,
-                      border: 'none',
-                      background: 'none',
-                    }}
-                    onClick={() => handleDeleteRect(index)}
-                  >
+                  <button type="button" onClick={() => handleDeleteRect(index)}>
                     <IconClose />
                   </button>
                 </div>

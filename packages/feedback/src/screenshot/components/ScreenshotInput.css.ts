@@ -17,9 +17,7 @@ export function createScreenshotInputStyles(styleNonce?: string): HTMLStyleEleme
 }
 .editor__image-container {
   justify-items: center;
-  padding: 10px;
-  padding-top: 65px;
-  padding-bottom: 65px;
+  padding: 15px;
   position: relative;
   height: 100%;
   border-radius: var(--menu-border-radius, 6px);
@@ -61,7 +59,9 @@ export function createScreenshotInputStyles(styleNonce?: string): HTMLStyleEleme
   object-fit: contain;
   position: absolute;
 }
-
+.editor__canvas-annotate {
+  z-index: 2;
+}
 .editor__crop-container {
   custor: auto;
   position: absolute;
@@ -140,12 +140,26 @@ export function createScreenshotInputStyles(styleNonce?: string): HTMLStyleEleme
   color: var(--button-primary-foreground, var(--accent-foreground));
 }
 
-.rect:hover button{
-  opacity: 1;
+.editor__rect-container {
+  position: absolute;
+  z-index: 2;
 }
-.rect button{
+.editor__rect {
+  position: absolute;
+}
+.editor__rect button{
   opacity: 0;
-  display: flex;
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  cursor: pointer;
+  padding: 0;
+  z-index: 3;
+  border: none;
+  background: none;
+}
+.editor__rect:hover button{
+  opacity: 1;
 }
 `;
 
