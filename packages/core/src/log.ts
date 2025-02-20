@@ -14,11 +14,12 @@ let GLOBAL_LOG_BUFFER: Log[] = [];
 let isFlushingLogs = false;
 
 const SEVERITY_TEXT_TO_SEVERITY_NUMBER: Partial<Record<LogSeverityLevel, number>> = {
-  debug: 10,
-  info: 20,
-  warning: 30,
-  error: 40,
-  critical: 50,
+  trace: 1,
+  debug: 5,
+  info: 9,
+  warn: 13,
+  error: 17,
+  fatal: 21,
 };
 
 /**
@@ -106,12 +107,36 @@ function addToLogBuffer(client: Client, log: Log, scope: Scope): void {
 }
 
 /**
- * A utility function to be able to create methods like Sentry.info`...`
+ * A utility function to be able to create methods like Sentry.info`...` that use tagged template functions.
  *
  * The first parameter is bound with, e.g., const info = captureLog.bind(null, 'info')
  * The other parameters are in the format to be passed a tagged template, Sentry.info`hello ${world}`
  */
-export function captureLog(level: LogSeverityLevel, messages: string[] | string, ...values: unknown[]): void {
+export function sendLog(level: LogSeverityLevel, messageArr: TemplateStringsArray, ...values: unknown[]): void {
+  const message = messageArr.reduce((acc, str, i) => acc + str + (values[i] ?? ''), '');
+
+  const attributes = values.reduce<Record<string, unknown>>(
+    (acc, value, index) => {
+      acc[`param${index}`] = value;
+      return acc;
+    },
+    {
+      'sentry.template': messageArr.map((s, i) => s + (i < messageArr.length - 1 ? `$param${i}` : '')).join(''),
+    },
+  );
+
+  captureLog(level, message, attributes);
+}
+
+/**
+ * Sends a log to Sentry.
+ */
+export function captureLog(
+  level: LogSeverityLevel,
+  message: string,
+  customAttributes: Record<string, unknown> = {},
+  severityNumber?: number,
+): void {
   const client = getClient();
 
   if (!client) {
@@ -124,53 +149,37 @@ export function captureLog(level: LogSeverityLevel, messages: string[] | string,
     return;
   }
 
-  const message = Array.isArray(messages)
-    ? messages.reduce((acc, str, i) => acc + str + (values[i] ?? ''), '')
-    : messages;
-  const attributes = values.map<LogAttribute>((value, index) => valueToAttribute(`param${index}`, value));
-  if (Array.isArray(messages)) {
-    attributes.push({
-      key: 'sentry.template',
-      value: {
-        stringValue: messages.map((s, i) => s + (i < messages.length - 1 ? `$param${i}` : '')).join(''),
-      },
-    });
-  }
-
   const { release, environment } = client.getOptions();
 
+  const logAttributes = {
+    ...customAttributes,
+  };
+
   if (release) {
-    attributes.push({
-      key: 'sentry.release',
-      value: {
-        stringValue: release,
-      },
-    });
+    logAttributes['sentry.release'] = release;
   }
 
   if (environment) {
-    attributes.push({
-      key: 'sentry.environment',
-      value: {
-        stringValue: environment,
-      },
-    });
+    logAttributes['sentry.environment'] = environment;
   }
 
   const scope = getCurrentScope();
+
+  const attributes = Object.entries(logAttributes).map<LogAttribute>(([key, value]) => valueToAttribute(key, value));
 
   const log: Log = {
     severityText: level,
     body: {
       stringValue: message,
     },
-    attributes: attributes,
+    attributes,
     timeUnixNano: `${new Date().getTime().toString()}000000`,
     traceId: scope.getPropagationContext().traceId,
+    severityNumber,
   };
 
   const maybeSeverityNumber = SEVERITY_TEXT_TO_SEVERITY_NUMBER[level];
-  if (maybeSeverityNumber !== undefined) {
+  if (maybeSeverityNumber !== undefined && log.severityNumber === undefined) {
     log.severityNumber = maybeSeverityNumber;
   }
 
