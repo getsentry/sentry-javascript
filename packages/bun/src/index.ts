@@ -141,6 +141,7 @@ export {
 
 export type { BunOptions } from './types';
 
+// eslint-disable-next-line deprecation/deprecation
 export { BunClient } from './client';
 export { getDefaultIntegrations, init } from './sdk';
 export { bunServerIntegration } from './integrations/bunserver';

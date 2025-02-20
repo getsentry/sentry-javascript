@@ -1,13 +1,14 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import type { Span } from '@sentry/core';
-import { getDynamicSamplingContextFromSpan, setCurrentClient, spanIsSampled, spanToJSON } from '@sentry/core';
+import { getDynamicSamplingContextFromSpan, spanIsSampled, spanToJSON } from '@sentry/core';
 
-import { BunClient } from '../../src/client';
+import { init } from '../../src';
+import type { NodeClient } from '../../src';
 import { instrumentBunServe } from '../../src/integrations/bunserver';
 import { getDefaultBunClientOptions } from '../helpers';
 
 describe('Bun Serve Integration', () => {
-  let client: BunClient;
+  let client: NodeClient | undefined;
   // Fun fact: Bun = 2 21 14 :)
   let port: number = 22114;
 
@@ -17,9 +18,7 @@ describe('Bun Serve Integration', () => {
 
   beforeEach(() => {
     const options = getDefaultBunClientOptions({ tracesSampleRate: 1 });
-    client = new BunClient(options);
-    setCurrentClient(client);
-    client.init();
+    client = init(options);
   });
 
   afterEach(() => {
@@ -31,7 +30,7 @@ describe('Bun Serve Integration', () => {
   test('generates a transaction around a request', async () => {
     let generatedSpan: Span | undefined;
 
-    client.on('spanEnd', span => {
+    client?.on('spanEnd', span => {
       generatedSpan = span;
     });
 
@@ -66,7 +65,7 @@ describe('Bun Serve Integration', () => {
   test('generates a post transaction', async () => {
     let generatedSpan: Span | undefined;
 
-    client.on('spanEnd', span => {
+    client?.on('spanEnd', span => {
       generatedSpan = span;
     });
 
@@ -103,7 +102,7 @@ describe('Bun Serve Integration', () => {
 
     let generatedSpan: Span | undefined;
 
-    client.on('spanEnd', span => {
+    client?.on('spanEnd', span => {
       generatedSpan = span;
     });
 
@@ -139,7 +138,7 @@ describe('Bun Serve Integration', () => {
   test('does not create transactions for OPTIONS or HEAD requests', async () => {
     let generatedSpan: Span | undefined;
 
-    client.on('spanEnd', span => {
+    client?.on('spanEnd', span => {
       generatedSpan = span;
     });
 
@@ -165,7 +164,7 @@ describe('Bun Serve Integration', () => {
 
   test('intruments the server again if it is reloaded', async () => {
     let serverWasInstrumented = false;
-    client.on('spanEnd', () => {
+    client?.on('spanEnd', () => {
       serverWasInstrumented = true;
     });
 
