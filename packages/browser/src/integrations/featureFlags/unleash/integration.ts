@@ -39,7 +39,7 @@ type UnleashIntegrationOptions = {
 export const unleashIntegration = defineIntegration(
   // eslint-disable-next-line deprecation/deprecation
   ({ featureFlagClientClass, unleashClientClass }: UnleashIntegrationOptions) => {
-    const _unleashClientClass = featureFlagClientClass ?? unleashClientClass;
+    const _unleashClientClass = featureFlagClientClass ? featureFlagClientClass : unleashClientClass;
     if (!_unleashClientClass) {
       throw new Error('featureFlagClientClass option is required');
     }
