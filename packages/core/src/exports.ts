@@ -344,21 +344,21 @@ export const _experiment_log = {
    * A utility to record a log with level 'INFO' and send it to sentry.
    *
    * Logs represent a message and some parameters which provide context for a trace or error.
-   * Ex: sentry.logInfo`user ${username} just bought ${item}!`
+   * Ex: Sentry._experiment_log.info`user ${username} just bought ${item}!`
    */
   info: captureLog.bind(null, 'info'),
   /**
    * A utility to record a log with level 'ERROR' and send it to sentry.
    *
    * Logs represent a message and some parameters which provide context for a trace or error.
-   * Ex: sentry.logError`user ${username} just bought ${item}!`
+   * Ex: Sentry._experiment_log.error`user ${username} just bought ${item}!`
    */
   error: captureLog.bind(null, 'error'),
   /**
-   * A utility to record a log with level 'WARNING' and send it to sentry.
+   * A utility to record a log with level 'WARN' and send it to sentry.
    *
    * Logs represent a message and some parameters which provide context for a trace or error.
-   * Ex: sentry.logWarning`user ${username} just bought ${item}!`
+   * Ex: Sentry._experiment_log.warn`user ${username} just bought ${item}!`
    */
-  warning: captureLog.bind(null, 'warning'),
+  warn: captureLog.bind(null, 'warn'),
 };
