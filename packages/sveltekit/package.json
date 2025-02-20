@@ -18,6 +18,10 @@
     "./package.json": "./package.json",
     ".": {
       "types": "./build/types/index.types.d.ts",
+      "worker": {
+        "import": "./build/esm/index.worker.js",
+        "require": "./build/cjs/index.worker.js"
+      },
       "browser": {
         "import": "./build/esm/index.client.js",
         "require": "./build/cjs/index.client.js"
@@ -38,6 +42,7 @@
     }
   },
   "dependencies": {
+    "@sentry/cloudflare": "9.1.0",
     "@sentry/core": "9.1.0",
     "@sentry/node": "9.1.0",
     "@sentry/opentelemetry": "9.1.0",

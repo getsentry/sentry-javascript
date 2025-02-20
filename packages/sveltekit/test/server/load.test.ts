@@ -6,15 +6,15 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
 import type { Event } from '@sentry/core';
+import * as SentryCore from '@sentry/core';
 import { NodeClient, getCurrentScope, getIsolationScope, setCurrentClient } from '@sentry/node';
-import * as SentryNode from '@sentry/node';
 import type { Load, ServerLoad } from '@sveltejs/kit';
 import { error, redirect } from '@sveltejs/kit';
 
-import { wrapLoadWithSentry, wrapServerLoadWithSentry } from '../../src/server/load';
+import { wrapLoadWithSentry, wrapServerLoadWithSentry } from '../../src/server-common/load';
 import { getDefaultNodeClientOptions } from '../utils';
 
-const mockCaptureException = vi.spyOn(SentryNode, 'captureException').mockImplementation(() => 'xx');
+const mockCaptureException = vi.spyOn(SentryCore, 'captureException').mockImplementation(() => 'xx');
 
 const mockStartSpan = vi.fn();
 

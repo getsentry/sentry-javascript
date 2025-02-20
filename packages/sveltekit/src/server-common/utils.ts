@@ -1,5 +1,4 @@
-import { logger, objectify } from '@sentry/core';
-import { captureException, flush } from '@sentry/node';
+import { captureException, flush, logger, objectify } from '@sentry/core';
 import type { RequestEvent } from '@sveltejs/kit';
 
 import { DEBUG_BUILD } from '../common/debug-build';
