@@ -94,7 +94,14 @@ function drawRect(rect: Rect, ctx: CanvasRenderingContext2D, scale: number = 1, 
   ctx.shadowColor = 'transparent';
   ctx.shadowBlur = 0;
 
-  ctx.strokeStyle = '#ff0000';
+  let strokeColor;
+  const sentryFeedback = DOCUMENT.getElementById('sentry-feedback');
+  if (sentryFeedback) {
+    strokeColor =
+      getComputedStyle(sentryFeedback).getPropertyValue('--button-primary-background') ||
+      getComputedStyle(sentryFeedback).getPropertyValue('--accent-background');
+  }
+  ctx.strokeStyle = strokeColor || 'white';
   ctx.lineWidth = lineWidth;
   ctx.strokeRect(scaledX + 1, scaledY + 1, scaledWidth - 2, scaledHeight - 2);
 }

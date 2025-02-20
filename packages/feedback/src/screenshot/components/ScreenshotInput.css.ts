@@ -132,12 +132,12 @@ export function createScreenshotInputStyles(styleNonce?: string): HTMLStyleEleme
   border: var(--button-border, var(--border));
   border-radius: var(--button-border-radius, 6px);
   background: var(--button-background, var(--background));
-  color: var(--button-foreground, var(--foreground));
+  color: var(--button-color, var(--foreground));
 }
 
 .editor__tool--active {
   background: var(--button-primary-background, var(--accent-background));
-  color: var(--button-primary-foreground, var(--accent-foreground));
+  color: var(--button-primary-color, var(--accent-foreground));
 }
 
 .editor__rect-container {
