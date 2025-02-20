@@ -146,8 +146,7 @@ targets:
   # whenever we release a new v8 version—otherwise we would overwrite the current major lambda layer.
   - name: aws-lambda-layer
     includeNames: /^sentry-node-serverless-\d+.\d+.\d+(-(beta|alpha|rc)\.\d+)?\.zip$/
-    # TODO(v9): change to `SentryNodeServerlessSDKv8` once v9 is released
-    layerName: SentryNodeServerlessSDK
+    layerName: SentryNodeServerlessSDKv8
     compatibleRuntimes:
       - name: node
         versions:

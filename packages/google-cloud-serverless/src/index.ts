@@ -127,6 +127,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   processThreadBreadcrumbIntegration,
   childProcessIntegration,
+  vercelAIIntegration,
 } from '@sentry/node';
 
 export {

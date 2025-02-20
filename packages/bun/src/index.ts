@@ -147,6 +147,7 @@ export {
   zodErrorsIntegration,
   profiler,
   amqplibIntegration,
+  vercelAIIntegration,
 } from '@sentry/node';
 
 export {

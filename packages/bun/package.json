@@ -1,6 +1,6 @@
 {
   "name": "@sentry/bun",
-  "version": "8.54.0",
+  "version": "8.55.0",
   "description": "Official Sentry SDK for bun",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/bun",
@@ -36,12 +36,13 @@
     }
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "tag": "v8"
   },
   "dependencies": {
-    "@sentry/core": "8.54.0",
-    "@sentry/node": "8.54.0",
-    "@sentry/opentelemetry": "8.54.0"
+    "@sentry/core": "8.55.0",
+    "@sentry/node": "8.55.0",
+    "@sentry/opentelemetry": "8.55.0"
   },
   "devDependencies": {
     "bun-types": "latest"

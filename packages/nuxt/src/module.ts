@@ -18,6 +18,10 @@ export default defineNuxtModule<ModuleOptions>({
   },
   defaults: {},
   setup(moduleOptionsParam, nuxt) {
+    if ('enabled' in moduleOptionsParam && moduleOptionsParam.enabled === false) {
+      return;
+    }
+
     const moduleOptions = {
       ...moduleOptionsParam,
       autoInjectServerSentry: moduleOptionsParam.autoInjectServerSentry,

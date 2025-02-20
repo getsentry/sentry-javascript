@@ -1,13 +1,14 @@
 {
   "name": "@sentry-internal/typescript",
-  "version": "8.54.0",
+  "version": "8.55.0",
   "description": "Typescript configuration used at Sentry",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/typescript",
   "author": "Sentry",
   "license": "MIT",
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "tag": "v8"
   },
   "files": [
     "tsconfig.json"

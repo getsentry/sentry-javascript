@@ -16,6 +16,9 @@ const Index = () => {
       <Link to="/user/5" id="navigation">
         navigate
       </Link>
+      <Link to="/lazy-loaded-user/5/foo" id="lazy-navigation">
+        lazy navigate
+      </Link>
     </>
   );
 };

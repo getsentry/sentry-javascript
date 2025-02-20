@@ -10,6 +10,29 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.55.0
+
+### Important Changes
+
+- **chore(ci/v8): Switch lambda layer name to `SentryNodeServerlessSDKv8` ([#15351](https://github.com/getsentry/sentry-javascript/pull/15351))**
+
+The `SentryNodeServerlessSDK` AWS Lambda Layer will stop receiving updates.
+If you intend to stay on `v8` and receive updates use `SentryNodeServerlessSDKv8` instead.
+
+### Other Changes
+
+- feat(flags/v8): add Statsig browser integration ([#15347](https://github.com/getsentry/sentry-javascript/pull/15347))
+- feat(v8/node): Add missing `vercelAIIntegration` export ([#15339](https://github.com/getsentry/sentry-javascript/pull/15339))
+- feat(v8/nuxt): Add `enabled` to disable Sentry module ([#15337](https://github.com/getsentry/sentry-javascript/pull/15337)) (#15381)
+- feat(v8/vue): Support Pinia v3 ([#15384](https://github.com/getsentry/sentry-javascript/pull/15384))
+- fix(astro): Add vue to `registerEsmLoaderHooks` ([#15352](https://github.com/getsentry/sentry-javascript/pull/15352))
+- fix(react/v8): Support lazy-loaded routes and components ([#15281](https://github.com/getsentry/sentry-javascript/pull/15281))
+- fix(v8/nuxt): Detect Azure Function runtime for flushing with timeout ([#15297](https://github.com/getsentry/sentry-javascript/pull/15297))
+- fix(v8/solidstart): Do not copy release-injection map file ([#15304](https://github.com/getsentry/sentry-javascript/pull/15304))
+- fix(v8/svelte): Guard component tracking `beforeUpdate` call ([#15262](https://github.com/getsentry/sentry-javascript/pull/15262))
+
+Work in this release was contributed by @aryanvdesh. Thank you for your contribution!
+
 ## 8.54.0
 
 - feat(v8/deps): Upgrade all OpenTelemetry dependencies ([#15098](https://github.com/getsentry/sentry-javascript/pull/15098))
