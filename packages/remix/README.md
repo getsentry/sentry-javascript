@@ -48,7 +48,7 @@ import * as Sentry from '@sentry/remix';
 Sentry.init({
   dsn: '__DSN__',
   tracesSampleRate: 1,
-  integrations: [new Sentry.Integrations.Prisma({ client: prisma })],
+  integrations: [Sentry.prismaIntegration()],
   // ...
 });
 ```
