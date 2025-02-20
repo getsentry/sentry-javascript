@@ -59,6 +59,7 @@ export {
   hapiIntegration,
   httpIntegration,
   inboundFiltersIntegration,
+  eventFiltersIntegration,
   initOpenTelemetry,
   isInitialized,
   kafkaIntegration,
