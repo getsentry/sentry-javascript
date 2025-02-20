@@ -713,6 +713,10 @@ jobs:
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
+      - name: Build `libpq`
+        run: yarn libpq:build
+        working-directory: dev-packages/node-integration-tests
+
       - name: Overwrite typescript version
         if: matrix.typescript == '3.8'
         run: node ./scripts/use-ts-3_8.js
