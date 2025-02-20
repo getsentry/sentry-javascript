@@ -5,6 +5,7 @@ import type { LegacyCSPReport } from './csp';
 import type { DsnComponents } from './dsn';
 import type { Event } from './event';
 import type { FeedbackEvent, UserFeedback } from './feedback';
+import type { Log } from './log';
 import type { Profile, ProfileChunk } from './profiling';
 import type { ReplayEvent, ReplayRecordingData } from './replay';
 import type { SdkInfo } from './sdkinfo';
@@ -43,6 +44,7 @@ export type EnvelopeItemType =
   | 'replay_recording'
   | 'check_in'
   | 'span'
+  | 'otel_log'
   | 'raw_security';
 
 export type BaseEnvelopeHeaders = {
@@ -85,6 +87,7 @@ type CheckInItemHeaders = { type: 'check_in' };
 type ProfileItemHeaders = { type: 'profile' };
 type ProfileChunkItemHeaders = { type: 'profile_chunk' };
 type SpanItemHeaders = { type: 'span' };
+type LogItemHeaders = { type: 'otel_log' };
 type RawSecurityHeaders = { type: 'raw_security'; sentry_release?: string; sentry_environment?: string };
 
 export type EventItem = BaseEnvelopeItem<EventItemHeaders, Event>;
@@ -101,6 +104,7 @@ export type FeedbackItem = BaseEnvelopeItem<FeedbackItemHeaders, FeedbackEvent>;
 export type ProfileItem = BaseEnvelopeItem<ProfileItemHeaders, Profile>;
 export type ProfileChunkItem = BaseEnvelopeItem<ProfileChunkItemHeaders, ProfileChunk>;
 export type SpanItem = BaseEnvelopeItem<SpanItemHeaders, Partial<SpanJSON>>;
+export type LogItem = BaseEnvelopeItem<LogItemHeaders, Log>;
 export type RawSecurityItem = BaseEnvelopeItem<RawSecurityHeaders, LegacyCSPReport>;
 
 export type EventEnvelopeHeaders = { event_id: string; sent_at: string; trace?: Partial<DynamicSamplingContext> };
@@ -109,6 +113,7 @@ type CheckInEnvelopeHeaders = { trace?: DynamicSamplingContext };
 type ClientReportEnvelopeHeaders = BaseEnvelopeHeaders;
 type ReplayEnvelopeHeaders = BaseEnvelopeHeaders;
 type SpanEnvelopeHeaders = BaseEnvelopeHeaders & { trace?: DynamicSamplingContext };
+type LogEnvelopeHeaders = BaseEnvelopeHeaders & { trace?: DynamicSamplingContext };
 
 export type EventEnvelope = BaseEnvelope<
   EventEnvelopeHeaders,
@@ -121,6 +126,7 @@ export type CheckInEnvelope = BaseEnvelope<CheckInEnvelopeHeaders, CheckInItem>;
 export type SpanEnvelope = BaseEnvelope<SpanEnvelopeHeaders, SpanItem>;
 export type ProfileChunkEnvelope = BaseEnvelope<BaseEnvelopeHeaders, ProfileChunkItem>;
 export type RawSecurityEnvelope = BaseEnvelope<BaseEnvelopeHeaders, RawSecurityItem>;
+export type LogEnvelope = BaseEnvelope<LogEnvelopeHeaders, LogItem>;
 
 export type Envelope =
   | EventEnvelope
@@ -130,6 +136,7 @@ export type Envelope =
   | ReplayEnvelope
   | CheckInEnvelope
   | SpanEnvelope
-  | RawSecurityEnvelope;
+  | RawSecurityEnvelope
+  | LogEnvelope;
 
 export type EnvelopeItem = Envelope[1][number];
