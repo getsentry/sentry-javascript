@@ -1,7 +1,9 @@
-import { getClient, getGlobalScope } from './currentScopes';
-import type { LogEnvelope, LogItem } from './types-hoist/envelope';
+import { getClient, getCurrentScope } from './currentScopes';
+import { DEBUG_BUILD } from './debug-build';
+import { getDynamicSamplingContextFromScope } from './tracing';
+import type { DynamicSamplingContext, LogEnvelope, LogItem } from './types-hoist/envelope';
 import type { Log, LogAttribute, LogSeverityLevel } from './types-hoist/log';
-import { createEnvelope, dsnToString } from './utils-hoist';
+import { createEnvelope, dropUndefinedKeys, dsnToString, logger } from './utils-hoist';
 
 /**
  * Creates envelope item for a single log
@@ -26,25 +28,26 @@ function addLog(log: Log): void {
   const client = getClient();
 
   if (!client) {
+    DEBUG_BUILD && logger.warn('No client available, log will not be captured.');
     return;
   }
 
-  if (!client.getOptions()._experiments?.logSupport) {
+  if (!client.getOptions()._experiments?.enableLogs) {
+    DEBUG_BUILD && logger.warn('logging option not enabled, log will not be captured.');
     return;
   }
 
-  const globalScope = getGlobalScope();
+  const scope = getCurrentScope();
+  const dsc = getDynamicSamplingContextFromScope(client, scope);
+
   const dsn = client.getDsn();
 
   const headers: LogEnvelope[0] = {
-    trace: {
-      trace_id: globalScope.getPropagationContext().traceId,
-      public_key: dsn?.publicKey,
-    },
+    trace: dropUndefinedKeys(dsc) as DynamicSamplingContext,
     ...(dsn ? { dsn: dsnToString(dsn) } : {}),
   };
   if (!log.traceId) {
-    log.traceId = globalScope.getPropagationContext().traceId || '00000000-0000-0000-0000-000000000000';
+    log.traceId = dsc.trace_id;
   }
   if (!log.timeUnixNano) {
     log.timeUnixNano = `${new Date().getTime().toString()}000000`;
@@ -52,48 +55,32 @@ function addLog(log: Log): void {
 
   const envelope = createEnvelope<LogEnvelope>(headers, [createLogEnvelopeItem(log)]);
 
-  // sendEnvelope should not throw
   // eslint-disable-next-line @typescript-eslint/no-floating-promises
-  client.sendEnvelope(envelope);
+  void client.sendEnvelope(envelope);
 }
 
 function valueToAttribute(key: string, value: unknown): LogAttribute {
-  if (typeof value === 'number') {
-    if (Number.isInteger(value)) {
+  switch (typeof value) {
+    case 'number':
       return {
         key,
-        value: {
-          intValue: value,
-        },
+        value: { doubleValue: value },
       };
-    }
-    return {
-      key,
-      value: {
-        doubleValue: value,
-      },
-    };
-  } else if (typeof value === 'boolean') {
-    return {
-      key,
-      value: {
-        boolValue: value,
-      },
-    };
-  } else if (typeof value === 'string') {
-    return {
-      key,
-      value: {
-        stringValue: value,
-      },
-    };
-  } else {
-    return {
-      key,
-      value: {
-        stringValue: JSON.stringify(value),
-      },
-    };
+    case 'boolean':
+      return {
+        key,
+        value: { boolValue: value },
+      };
+    case 'string':
+      return {
+        key,
+        value: { stringValue: value },
+      };
+    default:
+      return {
+        key,
+        value: { stringValue: JSON.stringify(value) },
+      };
   }
 }
 
