@@ -5,23 +5,21 @@ import type { SentryReactRouterPluginOptions } from './types';
 /**
  * A Sentry plugin for React Router to enable "hidden" source maps if they are unset.
  */
-export function makeEnableSourceMapsVitePlugins(options: SentryReactRouterPluginOptions): Plugin[] {
-  return [
-    {
-      name: 'sentry-react-router-update-source-map-setting',
-      apply: 'build',
-      enforce: 'post',
-      config(viteConfig) {
-        return {
-          ...viteConfig,
-          build: {
-            ...viteConfig.build,
-            sourcemap: getUpdatedSourceMapSettings(viteConfig, options),
-          },
-        };
-      },
+export function makeEnableSourceMapsVitePlugin(options: SentryReactRouterPluginOptions): Plugin {
+  return {
+    name: 'sentry-react-router-update-source-map-setting',
+    apply: 'build',
+    enforce: 'post',
+    config(viteConfig) {
+      return {
+        ...viteConfig,
+        build: {
+          ...viteConfig.build,
+          sourcemap: getUpdatedSourceMapSettings(viteConfig, options),
+        },
+      };
     },
-  ];
+  };
 }
 
 /** There are 3 ways to set up source map generation

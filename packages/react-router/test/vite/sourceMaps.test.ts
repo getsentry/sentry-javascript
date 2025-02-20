@@ -1,6 +1,6 @@
 import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getUpdatedSourceMapSettings, makeEnableSourceMapsVitePlugins } from '../../src/vite/sourceMaps';
+import { getUpdatedSourceMapSettings, makeEnableSourceMapsVitePlugin } from '../../src/vite/sourceMaps';
 
 const mockedSentryVitePlugin = {
   name: 'sentry-vite-debug-id-upload-plugin',
@@ -24,14 +24,12 @@ beforeEach(() => {
 
 describe('makeEnableSourceMapsVitePlugin()', () => {
   it('returns a plugin to set `sourcemaps` to `true`', () => {
-    const sourceMapPlugins = makeEnableSourceMapsVitePlugins({});
-    const enableSourceMapPlugin = sourceMapPlugins[0];
+    const enableSourceMapPlugin = makeEnableSourceMapsVitePlugin({});
 
     expect(enableSourceMapPlugin?.name).toEqual('sentry-react-router-update-source-map-setting');
     expect(enableSourceMapPlugin?.apply).toEqual('build');
     expect(enableSourceMapPlugin?.enforce).toEqual('post');
     expect(enableSourceMapPlugin?.config).toEqual(expect.any(Function));
-    expect(sourceMapPlugins).toHaveLength(1);
   });
 });
 

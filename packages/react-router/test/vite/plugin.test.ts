@@ -9,7 +9,7 @@ vi.spyOn(console, 'warn').mockImplementation(() => {
   /* noop */
 });
 
-function getSentryReactRouterVitePlugins(options?: Parameters<typeof sentryReactRouter>[0]): Plugin[] {
+async function getSentryReactRouterVitePlugins(options?: Parameters<typeof sentryReactRouter>[0]): Promise<Plugin[]> {
   return sentryReactRouter(
     {
       project: 'project',
@@ -17,22 +17,23 @@ function getSentryReactRouterVitePlugins(options?: Parameters<typeof sentryReact
       authToken: 'token',
       ...options,
     },
-    {},
+    {
+      command: 'build',
+      mode: 'production',
+    },
   );
 }
 
 describe('sentryReactRouter()', () => {
-  it('returns an array of vite plugins', () => {
-    const plugins = getSentryReactRouterVitePlugins();
+  it('returns an array of vite plugins', async () => {
+    const plugins = await getSentryReactRouterVitePlugins();
+    expect(plugins).toBeDefined();
     const names = plugins.map(plugin => plugin.name);
     expect(names).toEqual([
+      'sentry-react-router-update-source-map-setting',
       'sentry-telemetry-plugin',
       'sentry-vite-release-injection-plugin',
-      'sentry-release-management-plugin',
       'sentry-vite-debug-id-injection-plugin',
-      'sentry-vite-debug-id-upload-plugin',
-      'sentry-file-deletion-plugin',
-      'sentry-react-router-update-source-map-setting',
     ]);
   });
 });

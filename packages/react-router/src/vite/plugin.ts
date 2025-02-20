@@ -1,7 +1,7 @@
 import type { ConfigEnv } from 'vite';
 import { type Plugin } from 'vite';
-import { makeSentryVitePlugins } from './makeSentryVitePlugin';
-import { makeEnableSourceMapsVitePlugins } from './sourceMaps';
+import { makeCustomSentryVitePlugins } from './makeCustomSentryVitePlugins';
+import { makeEnableSourceMapsVitePlugin } from './sourceMaps';
 import type { SentryReactRouterPluginOptions } from './types';
 
 /**
@@ -17,13 +17,9 @@ export async function sentryReactRouter(
 ): Promise<Plugin[]> {
   const plugins: Plugin[] = [];
 
-  if (process.env.NODE_ENV !== 'development') {
-    if (options.sourceMapsUploadOptions?.enabled ?? true) {
-      if (config.command === 'build' && config.isSsrBuild && config.mode === 'production') {
-        plugins.push(...makeEnableSourceMapsVitePlugins(options));
-        plugins.push(...(await makeSentryVitePlugins(options)));
-      }
-    }
+  if (process.env.NODE_ENV !== 'development' && config.command === 'build') {
+    plugins.push(makeEnableSourceMapsVitePlugin(options));
+    plugins.push(...(await makeCustomSentryVitePlugins(options)));
   }
 
   return plugins;
