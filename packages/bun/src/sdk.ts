@@ -1,3 +1,4 @@
+import * as os from 'node:os';
 import {
   applySdkMetadata,
   functionToStringIntegration,
@@ -18,7 +19,6 @@ import {
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
 } from '@sentry/node';
-import * as os from 'node:os';
 
 import { bunServerIntegration } from './integrations/bunserver';
 import { makeFetchTransport } from './transports';

@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 
+import type { BaseTransportOptions, Envelope, Event, Transport, TransportMakeRequestResponse } from '@sentry/core';
 import type { NodeClient } from '../src/index';
 import { init } from '../src/index';
-import type { BaseTransportOptions, Envelope, Transport, TransportMakeRequestResponse, Event } from '@sentry/core';
 
 const envelopes: Envelope[] = [];
 
