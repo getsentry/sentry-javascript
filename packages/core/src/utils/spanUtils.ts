@@ -40,7 +40,7 @@ let hasShownSpanDropWarning = false;
  */
 export function spanToTransactionTraceContext(span: Span): TraceContext {
   const { spanId: span_id, traceId: trace_id } = span.spanContext();
-  const { data, op, parent_span_id, status, origin } = spanToJSON(span);
+  const { data, op, parent_span_id, status, origin, links } = spanToJSON(span);
 
   return dropUndefinedKeys({
     parent_span_id,
@@ -50,6 +50,7 @@ export function spanToTransactionTraceContext(span: Span): TraceContext {
     op,
     status,
     origin,
+    links,
   });
 }
 

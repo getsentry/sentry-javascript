@@ -24,6 +24,7 @@ import type {
   TransactionEvent,
   TransactionSource,
 } from '../types-hoist';
+import type { SpanLink } from '../types-hoist/link';
 import { logger } from '../utils-hoist/logger';
 import { dropUndefinedKeys } from '../utils-hoist/object';
 import { generateSpanId, generateTraceId } from '../utils-hoist/propagationContext';
@@ -31,6 +32,7 @@ import { timestampInSeconds } from '../utils-hoist/time';
 import {
   TRACE_FLAG_NONE,
   TRACE_FLAG_SAMPLED,
+  convertSpanLinksForEnvelope,
   getRootSpan,
   getSpanDescendants,
   getStatusMessage,
@@ -55,6 +57,7 @@ export class SentrySpan implements Span {
   protected _sampled: boolean | undefined;
   protected _name?: string | undefined;
   protected _attributes: SpanAttributes;
+  protected _links?: SpanLink[];
   /** Epoch timestamp in seconds when the span started. */
   protected _startTime: number;
   /** Epoch timestamp in seconds when the span ended. */
@@ -110,12 +113,22 @@ export class SentrySpan implements Span {
   }
 
   /** @inheritDoc */
-  public addLink(_link: unknown): this {
+  public addLink(link: SpanLink): this {
+    if (this._links) {
+      this._links.push(link);
+    } else {
+      this._links = [link];
+    }
     return this;
   }
 
   /** @inheritDoc */
-  public addLinks(_links: unknown[]): this {
+  public addLinks(links: SpanLink[]): this {
+    if (this._links) {
+      this._links.push(...links);
+    } else {
+      this._links = links;
+    }
     return this;
   }
 
@@ -225,6 +238,7 @@ export class SentrySpan implements Span {
       measurements: timedEventsToMeasurements(this._events),
       is_segment: (this._isStandaloneSpan && getRootSpan(this) === this) || undefined,
       segment_id: this._isStandaloneSpan ? getRootSpan(this).spanContext().spanId : undefined,
+      links: convertSpanLinksForEnvelope(this._links),
     });
   }
 
