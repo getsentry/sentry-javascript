@@ -1,5 +1,7 @@
+import type { Client } from './client';
 import { getClient, getCurrentScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
+import type { Scope } from './scope';
 import { getDynamicSamplingContextFromScope } from './tracing';
 import type { DynamicSamplingContext, LogEnvelope, LogItem } from './types-hoist/envelope';
 import type { Log, LogAttribute, LogSeverityLevel } from './types-hoist/log';
@@ -24,20 +26,7 @@ export function createLogEnvelopeItem(log: Log): LogItem {
  *
  * @params log - the log object which will be sent
  */
-function addLog(log: Log): void {
-  const client = getClient();
-
-  if (!client) {
-    DEBUG_BUILD && logger.warn('No client available, log will not be captured.');
-    return;
-  }
-
-  if (!client.getOptions()._experiments?.enableLogs) {
-    DEBUG_BUILD && logger.warn('logging option not enabled, log will not be captured.');
-    return;
-  }
-
-  const scope = getCurrentScope();
+function createLogEnvelope(logs: Log[], client: Client, scope: Scope): LogEnvelope {
   const dsc = getDynamicSamplingContextFromScope(client, scope);
 
   const dsn = client.getDsn();
@@ -46,17 +35,8 @@ function addLog(log: Log): void {
     trace: dropUndefinedKeys(dsc) as DynamicSamplingContext,
     ...(dsn ? { dsn: dsnToString(dsn) } : {}),
   };
-  if (!log.traceId) {
-    log.traceId = dsc.trace_id;
-  }
-  if (!log.timeUnixNano) {
-    log.timeUnixNano = `${new Date().getTime().toString()}000000`;
-  }
 
-  const envelope = createEnvelope<LogEnvelope>(headers, [createLogEnvelopeItem(log)]);
-
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
-  void client.sendEnvelope(envelope);
+  return createEnvelope<LogEnvelope>(headers, logs.map(createLogEnvelopeItem));
 }
 
 function valueToAttribute(key: string, value: unknown): LogAttribute {
@@ -84,6 +64,37 @@ function valueToAttribute(key: string, value: unknown): LogAttribute {
   }
 }
 
+let GLOBAL_LOG_BUFFER: Log[] = [];
+
+let isFlushingLogs = false;
+
+function addToLogBuffer(client: Client, log: Log, scope: Scope): void {
+  function sendLogs(flushedLogs: Log[]): void {
+    const envelope = createLogEnvelope(flushedLogs, client, scope);
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    void client.sendEnvelope(envelope);
+  }
+
+  if (GLOBAL_LOG_BUFFER.length >= 100) {
+    sendLogs(GLOBAL_LOG_BUFFER);
+    GLOBAL_LOG_BUFFER = [];
+  } else {
+    GLOBAL_LOG_BUFFER.push(log);
+  }
+
+  // this is the first time logs have been enabled, let's kick off an interval to flush them
+  // we should only do this once.
+  if (!isFlushingLogs) {
+    setInterval(() => {
+      if (GLOBAL_LOG_BUFFER.length > 0) {
+        sendLogs(GLOBAL_LOG_BUFFER);
+        GLOBAL_LOG_BUFFER = [];
+      }
+    }, 5000);
+  }
+  isFlushingLogs = true;
+}
+
 /**
  * A utility function to be able to create methods like Sentry.info`...`
  *
@@ -91,6 +102,18 @@ function valueToAttribute(key: string, value: unknown): LogAttribute {
  * The other parameters are in the format to be passed a tagged template, Sentry.info`hello ${world}`
  */
 export function captureLog(level: LogSeverityLevel, messages: string[] | string, ...values: unknown[]): void {
+  const client = getClient();
+
+  if (!client) {
+    DEBUG_BUILD && logger.warn('No client available, log will not be captured.');
+    return;
+  }
+
+  if (!client.getOptions()._experiments?.enableLogs) {
+    DEBUG_BUILD && logger.warn('logging option not enabled, log will not be captured.');
+    return;
+  }
+
   const message = Array.isArray(messages)
     ? messages.reduce((acc, str, i) => acc + str + (values[i] ?? ''), '')
     : messages;
@@ -103,11 +126,18 @@ export function captureLog(level: LogSeverityLevel, messages: string[] | string,
       },
     });
   }
-  addLog({
+
+  const scope = getCurrentScope();
+
+  const log: Log = {
     severityText: level,
     body: {
       stringValue: message,
     },
     attributes: attributes,
-  });
+    timeUnixNano: `${new Date().getTime().toString()}000000`,
+    traceId: scope.getPropagationContext().traceId,
+  };
+
+  addToLogBuffer(client, log, scope);
 }
