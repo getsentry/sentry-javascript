@@ -9,9 +9,7 @@
   "engines": {
     "node": ">=18"
   },
-  "files": [
-    "/build"
-  ],
+  "files": ["/build"],
   "main": "build/cjs/index.server.js",
   "module": "build/esm/index.server.js",
   "browser": "build/esm/index.client.js",
@@ -44,7 +42,7 @@
     "@sentry/node": "9.1.0",
     "@sentry/opentelemetry": "9.1.0",
     "@sentry/svelte": "9.1.0",
-    "@sentry/vite-plugin": "2.22.6",
+    "@sentry/vite-plugin": "3.2.0",
     "magic-string": "0.30.7",
     "magicast": "0.2.8",
     "sorcery": "1.0.0"
