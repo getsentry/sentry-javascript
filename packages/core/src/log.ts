@@ -15,9 +15,9 @@ let isFlushingLogs = false;
 
 const SEVERITY_TEXT_TO_SEVERITY_NUMBER: Partial<Record<LogSeverityLevel | 'log', number>> = {
   trace: 1,
-  log: 2,
   debug: 5,
   info: 9,
+  log: 10,
   warn: 13,
   error: 17,
   fatal: 21,
