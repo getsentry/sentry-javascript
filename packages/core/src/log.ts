@@ -64,6 +64,8 @@ function valueToAttribute(key: string, value: unknown): LogAttribute {
   }
 }
 
+const LOG_BUFFER_MAX_LENGTH = 25;
+
 let GLOBAL_LOG_BUFFER: Log[] = [];
 
 let isFlushingLogs = false;
@@ -75,7 +77,7 @@ function addToLogBuffer(client: Client, log: Log, scope: Scope): void {
     void client.sendEnvelope(envelope);
   }
 
-  if (GLOBAL_LOG_BUFFER.length >= 100) {
+  if (GLOBAL_LOG_BUFFER.length >= LOG_BUFFER_MAX_LENGTH) {
     sendLogs(GLOBAL_LOG_BUFFER);
     GLOBAL_LOG_BUFFER = [];
   } else {
