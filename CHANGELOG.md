@@ -25,7 +25,7 @@ Sentry.init({
   _experiments: {
     enableLogs: true,
   },
-})
+});
 ```
 
 These API are exposed in the `Sentry._experiment_log` namespace.
