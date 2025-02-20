@@ -5,6 +5,15 @@ import { DEBUG_BUILD } from '../../../debug-build';
 import { copyFlagsFromScopeToEvent, insertFlagToScope } from '../../../utils/featureFlags';
 import type { UnleashClient, UnleashClientClass } from './types';
 
+type UnleashIntegrationOptions = {
+  featureFlagClientClass?: UnleashClientClass;
+
+  /**
+   * @deprecated Use `featureFlagClientClass` instead.
+   */
+  unleashClientClass?: UnleashClientClass;
+};
+
 /**
  * Sentry integration for capturing feature flag evaluations from the Unleash SDK.
  *
@@ -17,19 +26,24 @@ import type { UnleashClient, UnleashClientClass } from './types';
  *
  * Sentry.init({
  *   dsn: '___PUBLIC_DSN___',
- *   integrations: [Sentry.unleashIntegration({unleashClientClass: UnleashClient})],
+ *   integrations: [Sentry.unleashIntegration({featureFlagClientClass: UnleashClient})],
  * });
  *
  * const unleash = new UnleashClient(...);
  * unleash.start();
  *
  * unleash.isEnabled('my-feature');
- * unleash.getVariant('other-feature');
  * Sentry.captureException(new Error('something went wrong'));
  * ```
  */
 export const unleashIntegration = defineIntegration(
-  ({ unleashClientClass }: { unleashClientClass: UnleashClientClass }) => {
+  // eslint-disable-next-line deprecation/deprecation
+  ({ featureFlagClientClass, unleashClientClass }: UnleashIntegrationOptions) => {
+    const _unleashClientClass = featureFlagClientClass ? featureFlagClientClass : unleashClientClass;
+    if (!_unleashClientClass) {
+      throw new Error('featureFlagClientClass option is required');
+    }
+
     return {
       name: 'Unleash',
 
@@ -38,7 +52,7 @@ export const unleashIntegration = defineIntegration(
       },
 
       setupOnce() {
-        const unleashClientPrototype = unleashClientClass.prototype as UnleashClient;
+        const unleashClientPrototype = _unleashClientClass.prototype as UnleashClient;
         fill(unleashClientPrototype, 'isEnabled', _wrappedIsEnabled);
       },
     };
