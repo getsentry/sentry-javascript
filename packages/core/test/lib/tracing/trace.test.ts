@@ -402,8 +402,8 @@ describe('startSpan', () => {
   it('allows to pass span links', () => {
     const rawSpan1 = startInactiveSpan({ name: 'pageload_span' });
 
-    // @ts-expect-error links exists on span
-    expect(rawSpan1?.links).toEqual(undefined);
+    // @ts-expect-error _links exists on span
+    expect(rawSpan1?._links).toEqual(undefined);
 
     const span1JSON = spanToJSON(rawSpan1);
 
@@ -937,8 +937,8 @@ describe('startSpanManual', () => {
   it('allows to pass span links', () => {
     const rawSpan1 = startInactiveSpan({ name: 'pageload_span' });
 
-    // @ts-expect-error links exists on span
-    expect(rawSpan1?.links).toEqual(undefined);
+    // @ts-expect-error _links exists on span
+    expect(rawSpan1?._links).toEqual(undefined);
 
     const span1JSON = spanToJSON(rawSpan1);
 

@@ -9,8 +9,7 @@ sentryTest('should link spans with addLinks() in trace context', async ({ getLoc
   }
 
   const url = await getLocalTestUrl({ testDir: __dirname });
-  const events = await getMultipleSentryEnvelopeRequests<Event>(page, 3, { url });
-  const [rootSpan1, rootSpan2, rootSpan3] = events;
+  const [rootSpan1, rootSpan2, rootSpan3] = await getMultipleSentryEnvelopeRequests<Event>(page, 3, { url });
 
   const rootSpan1_traceId = rootSpan1.contexts?.trace?.trace_id as string;
   const rootSpan1_spanId = rootSpan1.contexts?.trace?.span_id as string;
