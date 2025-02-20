@@ -141,9 +141,10 @@ export function ScreenshotEditorFactoryv2({
       const imageDimensions = getContainedSize(measurementDiv, imageSource);
 
       resizeCanvas(screenshotCanvas, imageDimensions);
-      const scale = screenshotCanvas.width / graywashCanvas.width;
-      setScaleFactor(scale);
       resizeCanvas(graywashCanvas, imageDimensions);
+
+      const scale = graywashCanvas.clientWidth / imageBuffer.width;
+      setScaleFactor(scale);
 
       const screenshotContext = screenshotCanvas.getContext('2d', { alpha: false });
       if (!screenshotContext) {
@@ -232,11 +233,7 @@ export function ScreenshotEditorFactoryv2({
         ctx.fillRect(0, 0, graywashCanvas.width, graywashCanvas.height);
       }
 
-      const measurementDiv = measurementRef.current;
-      if (!measurementDiv) {
-        return;
-      }
-      const scale = measurementDiv.clientWidth / imageBuffer.width;
+      const scale = graywashCanvas.clientWidth / imageBuffer.width;
       drawCommands.forEach(rect => {
         drawRect(rect, ctx, scale);
       });
@@ -305,11 +302,7 @@ export function ScreenshotEditorFactoryv2({
         // prevent drawing rect when clicking on the canvas (ie clicking delete)
         if (startX != endX && startY != endY) {
           // scale to image buffer
-          const measurementDiv = measurementRef.current;
-          if (!measurementDiv) {
-            return;
-          }
-          const scale = imageBuffer.width / measurementDiv.clientWidth;
+          const scale = imageBuffer.width / graywashCanvas.clientWidth;
           const rect = constructRect({
             action,
             startX: startX * scale,
@@ -357,10 +350,10 @@ export function ScreenshotEditorFactoryv2({
                   class="rect"
                   style={{
                     position: 'absolute',
-                    top: `${rect.y}px`,
-                    left: `${rect.x}px`,
-                    width: `${rect.width}px`,
-                    height: `${rect.height}px`,
+                    top: `${rect.y * scaleFactor}px`,
+                    left: `${rect.x * scaleFactor}px`,
+                    width: `${rect.width * scaleFactor}px`,
+                    height: `${rect.height * scaleFactor}px`,
                     zIndex: 2,
                   }}
                   onMouseDown={onDraw}
