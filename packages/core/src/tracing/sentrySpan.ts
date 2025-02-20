@@ -81,6 +81,7 @@ export class SentrySpan implements Span {
     this._traceId = spanContext.traceId || generateTraceId();
     this._spanId = spanContext.spanId || generateSpanId();
     this._startTime = spanContext.startTimestamp || timestampInSeconds();
+    this._links = spanContext.links;
 
     this._attributes = {};
     this.setAttributes({
