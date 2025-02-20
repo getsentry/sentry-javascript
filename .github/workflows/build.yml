@@ -849,6 +849,8 @@ jobs:
       REACT_APP_E2E_TEST_DSN: 'https://username@domain/123'
       E2E_TEST_SENTRY_ORG_SLUG: 'sentry-javascript-sdks'
       E2E_TEST_SENTRY_PROJECT: 'sentry-javascript-e2e-tests'
+      # This is required for Remix Hydrogen test app to build
+      SESSION_SECRET: "foo"
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.job_e2e_prepare.outputs.matrix) }}
