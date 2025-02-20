@@ -14,11 +14,11 @@ import {
   winterCGRequestToRequestData,
 } from '@sentry/core';
 import type { RequestEventData, Span } from '@sentry/core';
-import { DEBUG_BUILD } from './debug-build';
-import type { RemixOptions } from './remixOptions';
-import { storeFormDataKeys } from './utils';
-import { extractData, isResponse, isRouteErrorResponse } from './vendor/response';
-import type { DataFunction, RemixRequest } from './vendor/types';
+import { DEBUG_BUILD } from '../utils/debug-build';
+import type { RemixOptions } from '../utils/remixOptions';
+import { storeFormDataKeys } from '../utils/utils';
+import { extractData, isResponse, isRouteErrorResponse } from '../utils/vendor/response';
+import type { DataFunction, RemixRequest } from '../utils/vendor/types';
 
 /**
  * Captures an exception happened in the Remix server.
