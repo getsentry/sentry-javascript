@@ -6,3 +6,4 @@ node_modules
 /.mf
 .env
 .shopify
+storefrontapi.generated.d.ts
