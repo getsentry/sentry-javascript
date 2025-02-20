@@ -118,7 +118,7 @@ export type {
   LogAttribute,
   LogSeverityLevel,
   LogAttributeValueType,
-} from './ourlogs';
+} from './log';
 export type { SpanStatus } from './spanStatus';
 export type { TimedEvent } from './timedEvent';
 export type { StackFrame } from './stackframe';

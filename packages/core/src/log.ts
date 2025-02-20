@@ -1,6 +1,6 @@
 import { getClient, getGlobalScope } from './currentScopes';
 import type { LogEnvelope, LogItem } from './types-hoist/envelope';
-import type { Log, LogAttribute, LogSeverityLevel } from './types-hoist/ourlogs';
+import type { Log, LogAttribute, LogSeverityLevel } from './types-hoist/log';
 import { createEnvelope, dsnToString } from './utils-hoist';
 
 /**

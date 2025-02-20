@@ -1,6 +1,6 @@
 import { getClient, getCurrentScope, getIsolationScope, withIsolationScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
-import { captureLog } from './ourlogs';
+import { captureLog } from './log';
 import type { CaptureContext } from './scope';
 import { closeSession, makeSession, updateSession } from './session';
 import type {

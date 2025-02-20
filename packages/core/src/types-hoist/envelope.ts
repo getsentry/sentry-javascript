@@ -5,7 +5,7 @@ import type { LegacyCSPReport } from './csp';
 import type { DsnComponents } from './dsn';
 import type { Event } from './event';
 import type { FeedbackEvent, UserFeedback } from './feedback';
-import type { Log } from './ourlogs';
+import type { Log } from './log';
 import type { Profile, ProfileChunk } from './profiling';
 import type { ReplayEvent, ReplayRecordingData } from './replay';
 import type { SdkInfo } from './sdkinfo';
