@@ -17,9 +17,11 @@
     "clean": "rimraf -g **/node_modules && run-p clean:script",
     "clean:script": "node scripts/clean.js",
     "libpq:build": "npm rebuild libpq",
+    "express-v5-install": "cd suites/express-v5 && yarn --no-lockfile",
     "lint": "eslint . --format stylish",
     "fix": "eslint . --format stylish --fix",
     "type-check": "tsc",
+    "pretest": "yarn express-v5-install",
     "test": "jest --config ./jest.config.js",
     "test:no-prisma": "jest --config ./jest.config.js",
     "test:watch": "yarn test --watch"
