@@ -624,6 +624,10 @@ function addValueInjectionLoader(
     _sentryRewriteFramesAssetPrefixPath: assetPrefix
       ? new URL(assetPrefix, 'http://dogs.are.great').pathname.replace(/\/$/, '')
       : '',
+    _sentryAssetPrefix: userNextConfig.assetPrefix,
+    _sentryExperimentalThirdPartyOriginStackFrames: userSentryOptions._experimental?.thirdPartyOriginStackFrames
+      ? 'true'
+      : undefined,
   };
 
   if (buildContext.isServer) {
