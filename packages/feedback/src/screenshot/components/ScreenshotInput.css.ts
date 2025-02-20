@@ -118,7 +118,7 @@ export function createScreenshotInputStyles(styleNonce?: string): HTMLStyleEleme
 .editor__tool-container {
   padding-top: 8px;
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
 }
 .editor__tool-bar {
   display: flex;
@@ -147,7 +147,7 @@ export function createScreenshotInputStyles(styleNonce?: string): HTMLStyleEleme
 .editor__rect {
   position: absolute;
 }
-.editor__rect button{
+.editor__rect button {
   opacity: 0;
   position: absolute;
   top: -12px;
@@ -158,7 +158,7 @@ export function createScreenshotInputStyles(styleNonce?: string): HTMLStyleEleme
   border: none;
   background: none;
 }
-.editor__rect:hover button{
+.editor__rect:hover button {
   opacity: 1;
 }
 `;

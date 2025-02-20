@@ -17,17 +17,12 @@ export default function ToolbarFactoryv2({
   }): VNode {
     return (
       <div class="editor__tool-container">
-        <div />
         <div class="editor__tool-bar">
           <button
             type="button"
             class={`editor__tool ${action === 'highlight' ? 'editor__tool--active' : ''}`}
             onClick={() => {
-              if (action === 'highlight') {
-                setAction('');
-              } else {
-                setAction('highlight');
-              }
+              setAction(action === 'highlight' ? '' : 'highlight');
             }}
           >
             Highlight
@@ -36,17 +31,12 @@ export default function ToolbarFactoryv2({
             type="button"
             class={`editor__tool ${action === 'hide' ? 'editor__tool--active' : ''}`}
             onClick={() => {
-              if (action === 'hide') {
-                setAction('');
-              } else {
-                setAction('hide');
-              }
+              setAction(action === 'hide' ? '' : 'hide');
             }}
           >
             Hide
           </button>
         </div>
-        <div />
       </div>
     );
   };

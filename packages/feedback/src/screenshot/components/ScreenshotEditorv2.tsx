@@ -62,7 +62,7 @@ const getContainedSize = (measurementDiv: HTMLDivElement, imageSource: HTMLCanva
   return { action: '', x: x, y: y, width: width, height: height };
 };
 
-function drawRect(rect: Rect, ctx: CanvasRenderingContext2D, scale: number = 1, lineWidth: number = 4): void {
+function drawRect(rect: Rect, ctx: CanvasRenderingContext2D, scale: number = 1): void {
   const scaledX = rect.x * scale;
   const scaledY = rect.y * scale;
   const scaledWidth = rect.width * scale;
@@ -97,12 +97,13 @@ function drawRect(rect: Rect, ctx: CanvasRenderingContext2D, scale: number = 1, 
   let strokeColor;
   const sentryFeedback = DOCUMENT.getElementById('sentry-feedback');
   if (sentryFeedback) {
+    const computedStyle = getComputedStyle(sentryFeedback);
     strokeColor =
-      getComputedStyle(sentryFeedback).getPropertyValue('--button-primary-background') ||
-      getComputedStyle(sentryFeedback).getPropertyValue('--accent-background');
+      computedStyle.getPropertyValue('--button-primary-background') ||
+      computedStyle.getPropertyValue('--accent-background');
   }
   ctx.strokeStyle = strokeColor || 'white';
-  ctx.lineWidth = lineWidth;
+  ctx.lineWidth = 2;
   ctx.strokeRect(scaledX + 1, scaledY + 1, scaledWidth - 2, scaledHeight - 2);
 }
 
@@ -138,6 +139,10 @@ export function ScreenshotEditorFactoryv2({
     const [scaleFactor, setScaleFactor] = hooks.useState<number>(1);
 
     const resize = hooks.useCallback((): void => {
+      if (!displayEditor) {
+        return;
+      }
+
       const screenshotCanvas = screenshotRef.current;
       const graywashCanvas = graywashRef.current;
       const measurementDiv = measurementRef.current;
@@ -163,7 +168,7 @@ export function ScreenshotEditorFactoryv2({
       }
       screenshotContext.drawImage(imageSource, 0, 0, imageDimensions.width, imageDimensions.height);
       drawScene();
-    }, [imageSource, drawCommands]);
+    }, [imageSource, drawCommands, displayEditor]);
 
     hooks.useEffect(() => {
       WINDOW.addEventListener('resize', resize);
@@ -175,7 +180,7 @@ export function ScreenshotEditorFactoryv2({
 
     hooks.useLayoutEffect(() => {
       resize();
-    }, [displayEditor]);
+    }, [resize]);
 
     hooks.useEffect(() => {
       drawScene();
@@ -212,13 +217,14 @@ export function ScreenshotEditorFactoryv2({
         grayCtx.fillRect(0, 0, imageBuffer.width, imageBuffer.height);
       }
 
+      grayCtx.lineWidth = 4;
       drawCommands.forEach(rect => {
         drawRect(rect, grayCtx);
       });
       ctx.drawImage(grayWashBufferBig, 0, 0);
     }
 
-    function drawScene(): void {
+    const drawScene = hooks.useCallback((): void => {
       const graywashCanvas = graywashRef.current;
       if (!graywashCanvas) {
         return;
@@ -239,14 +245,13 @@ export function ScreenshotEditorFactoryv2({
 
       const scale = graywashCanvas.clientWidth / imageBuffer.width;
       drawCommands.forEach(rect => {
-        drawRect(rect, ctx, scale, 2);
+        drawRect(rect, ctx, scale);
       });
 
       if (currentRect) {
-        drawRect(currentRect, ctx, 1, 2);
-        setCurrentRect(undefined);
+        drawRect(currentRect, ctx, 1);
       }
-    }
+    }, [drawCommands, currentRect]);
 
     useTakeScreenshot({
       onBeforeScreenshot: hooks.useCallback(() => {
@@ -274,7 +279,7 @@ export function ScreenshotEditorFactoryv2({
       }, []),
     });
 
-    const onDraw = (e: MouseEvent): void => {
+    const handleMouseDown = (e: MouseEvent): void => {
       const graywashCanvas = graywashRef.current;
       if (!action || !graywashCanvas) {
         return;
@@ -298,6 +303,7 @@ export function ScreenshotEditorFactoryv2({
       };
 
       const handleMouseUp = (e: MouseEvent): void => {
+        setCurrentRect(undefined);
         const endX = Math.max(0, Math.min(e.clientX - boundingRect.left, graywashCanvas.width / DPI));
         const endY = Math.max(0, Math.min(e.clientY - boundingRect.top, graywashCanvas.height / DPI));
         // prevent drawing rect when clicking on the canvas (ie. clicking delete)
@@ -334,8 +340,8 @@ export function ScreenshotEditorFactoryv2({
         <div class="editor__image-container">
           <div class="editor__canvas-container" ref={measurementRef}>
             <canvas ref={screenshotRef}></canvas>
-            <canvas class="editor__canvas-annotate" ref={graywashRef} onMouseDown={onDraw}></canvas>
-            <div class="editor__rect-container" ref={rectDivRef} onMouseDown={onDraw}>
+            <canvas class="editor__canvas-annotate" ref={graywashRef} onMouseDown={handleMouseDown}></canvas>
+            <div class="editor__rect-container" ref={rectDivRef} onMouseDown={handleMouseDown}>
               {drawCommands.map((rect, index) => (
                 <div
                   key={index}
@@ -346,7 +352,7 @@ export function ScreenshotEditorFactoryv2({
                     width: `${rect.width * scaleFactor}px`,
                     height: `${rect.height * scaleFactor}px`,
                   }}
-                  onMouseDown={onDraw}
+                  onMouseDown={handleMouseDown}
                 >
                   <button type="button" onClick={() => handleDeleteRect(index)}>
                     <IconClose />
