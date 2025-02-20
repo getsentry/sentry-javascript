@@ -5,7 +5,7 @@ import type { SentryReactRouterPluginOptions } from './types';
 /**
  * A Sentry plugin for React Router to enable "hidden" source maps if they are unset.
  */
-export function makeEnableSourceMapsVitePlugin(options: SentryReactRouterPluginOptions): Plugin {
+export function makeEnableSourceMapsPlugin(options: SentryReactRouterPluginOptions): Plugin {
   return {
     name: 'sentry-react-router-update-source-map-setting',
     apply: 'build',

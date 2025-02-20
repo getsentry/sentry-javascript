@@ -1,7 +1,7 @@
 import type { ConfigEnv } from 'vite';
 import { type Plugin } from 'vite';
 import { makeCustomSentryVitePlugins } from './makeCustomSentryVitePlugins';
-import { makeEnableSourceMapsVitePlugin } from './sourceMaps';
+import { makeEnableSourceMapsPlugin } from './makeEnableSourceMapsPlugin';
 import type { SentryReactRouterPluginOptions } from './types';
 
 /**
@@ -18,7 +18,7 @@ export async function sentryReactRouter(
   const plugins: Plugin[] = [];
 
   if (process.env.NODE_ENV !== 'development' && config.command === 'build') {
-    plugins.push(makeEnableSourceMapsVitePlugin(options));
+    plugins.push(makeEnableSourceMapsPlugin(options));
     plugins.push(...(await makeCustomSentryVitePlugins(options)));
   }
 

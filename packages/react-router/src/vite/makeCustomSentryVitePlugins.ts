@@ -38,7 +38,6 @@ export async function makeCustomSentryVitePlugins(options: SentryReactRouterPlug
       return [
         'sentry-telemetry-plugin',
         'sentry-vite-release-injection-plugin',
-        'sentry-release-management-plugin',
         'sentry-vite-debug-id-injection-plugin',
       ].includes(plugin.name);
     }),
