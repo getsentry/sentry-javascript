@@ -10,9 +10,7 @@ export {
   extraErrorDataIntegration,
   rewriteFramesIntegration,
   captureFeedback,
-  _experimentalLogError,
-  _experimentalLogInfo,
-  _experimentalLogWarning,
+  _experiment_log,
 } from '@sentry/core';
 
 export { replayIntegration, getReplay } from '@sentry-internal/replay';

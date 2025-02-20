@@ -337,25 +337,28 @@ export function captureSession(end: boolean = false): void {
 }
 
 /**
- * A utility to record a log with level 'INFO' and send it to sentry.
- *
- * Logs represent a message and some parameters which provide context for a trace or error.
- * Ex: sentry.logInfo`user ${username} just bought ${item}!`
+ * A namespace for experimental logging functions.
  */
-export const _experimentalLogInfo = captureLog.bind(null, 'info');
-
-/**
- * A utility to record a log with level 'ERROR' and send it to sentry.
- *
- * Logs represent a message and some parameters which provide context for a trace or error.
- * Ex: sentry.logError`user ${username} just bought ${item}!`
- */
-export const _experimentalLogError = captureLog.bind(null, 'error');
-
-/**
- * A utility to record a log with level 'WARNING' and send it to sentry.
- *
- * Logs represent a message and some parameters which provide context for a trace or error.
- * Ex: sentry.logWarning`user ${username} just bought ${item}!`
- */
-export const _experimentalLogWarning = captureLog.bind(null, 'warning');
+export const _experiment_log = {
+  /**
+   * A utility to record a log with level 'INFO' and send it to sentry.
+   *
+   * Logs represent a message and some parameters which provide context for a trace or error.
+   * Ex: sentry.logInfo`user ${username} just bought ${item}!`
+   */
+  info: captureLog.bind(null, 'info'),
+  /**
+   * A utility to record a log with level 'ERROR' and send it to sentry.
+   *
+   * Logs represent a message and some parameters which provide context for a trace or error.
+   * Ex: sentry.logError`user ${username} just bought ${item}!`
+   */
+  error: captureLog.bind(null, 'error'),
+  /**
+   * A utility to record a log with level 'WARNING' and send it to sentry.
+   *
+   * Logs represent a message and some parameters which provide context for a trace or error.
+   * Ex: sentry.logWarning`user ${username} just bought ${item}!`
+   */
+  warning: captureLog.bind(null, 'warning'),
+};
