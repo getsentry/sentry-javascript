@@ -26,6 +26,6 @@
     "svelte-check": "^4.1.4",
     "typescript": "^5.0.0",
     "vite": "^6.1.1",
-    "wrangler": "^3.109.2"
+    "wrangler": "3.105.0"
   }
 }
