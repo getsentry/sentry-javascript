@@ -1,4 +1,5 @@
-import { WINDOW, rewriteFramesIntegration } from '@sentry/browser';
+// import { WINDOW, rewriteFramesIntegration } from '@sentry/browser';
+import { rewriteFramesIntegration } from '@sentry/browser';
 import { defineIntegration } from '@sentry/core';
 
 export const nextjsClientStackFrameNormalizationIntegration = defineIntegration(
@@ -17,11 +18,11 @@ export const nextjsClientStackFrameNormalizationIntegration = defineIntegration(
       // Turn `<origin>/<path>/_next/static/...` into `app:///_next/static/...`
       iteratee: frame => {
         if (experimentalThirdPartyOriginStackFrames) {
-          const windowOrigin = WINDOW.location.origin;
+          // const windowOrigin = WINDOW.location.origin;
           // A filename starting with the local origin and not ending with JS is most likely JS in HTML which we do not want to rewrite
-          if (frame.filename?.startsWith(windowOrigin) && !frame.filename.endsWith('.js')) {
-            return frame;
-          }
+          // if (frame.filename?.startsWith(windowOrigin) && !frame.filename.endsWith('.js')) {
+          //   return frame;
+          // }
 
           if (assetPrefix) {
             // If the user defined an asset prefix, we need to strip it so that we can match it with uploaded sourcemaps.
@@ -33,10 +34,10 @@ export const nextjsClientStackFrameNormalizationIntegration = defineIntegration(
             // If the user defined a base path, we need to strip it to match with uploaded sourcemaps.
             // We should only do this for same-origin filenames though, so that third party assets are not rewritten.
             try {
-              const { origin: frameOrigin } = new URL(frame.filename as string);
-              if (frameOrigin === windowOrigin) {
-                frame.filename = frame.filename?.replace(frameOrigin, 'app://').replace(basePath, '');
-              }
+              // const { origin: frameOrigin } = new URL(frame.filename as string);
+              // if (frameOrigin === windowOrigin) {
+              //   frame.filename = frame.filename?.replace(frameOrigin, 'app://').replace(basePath, '');
+              // }
             } catch (err) {
               // Filename wasn't a properly formed URL, so there's nothing we can do
             }
