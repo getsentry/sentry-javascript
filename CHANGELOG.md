@@ -12,6 +12,12 @@
 
 Work in this release was contributed by @6farer. Thank you for your contribution!
 
+## 9.2.0-beta.0
+
+This is a beta release that replaces the user feedback screenshot cropping and annotating capabilities with the highlight and hide annotation boxes.
+
+- feat(feedback): Revamp of user feedback screenshot editing ([#15424](https://github.com/getsentry/sentry-javascript/pull/15424))
+
 ## 9.1.0
 
 - feat(browser): Add `graphqlClientIntegration` ([#13783](https://github.com/getsentry/sentry-javascript/pull/13783))
