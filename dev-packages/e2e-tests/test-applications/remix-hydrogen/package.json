@@ -4,8 +4,8 @@
   "type": "module",
   "scripts": {
     "build": "shopify hydrogen build --codegen",
-    "dev": "shopify hydrogen dev --codegen --verbose",
-    "preview": "shopify hydrogen preview --build --verbose",
+    "dev": "shopify hydrogen dev --codegen",
+    "preview": "shopify hydrogen preview",
     "lint": "eslint --no-error-on-unmatched-pattern --ext .js,.ts,.jsx,.tsx .",
     "typecheck": "tsc --noEmit",
     "codegen": "shopify hydrogen codegen",
