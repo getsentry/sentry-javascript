@@ -17,7 +17,7 @@ export async function sentryReactRouter(
 ): Promise<Plugin[]> {
   const plugins: Plugin[] = [];
 
-  if (process.env.NODE_ENV !== 'development' && config.command === 'build') {
+  if (process.env.NODE_ENV !== 'development' && config.command === 'build' && config.mode !== 'development') {
     plugins.push(makeEnableSourceMapsPlugin(options));
     plugins.push(...(await makeCustomSentryVitePlugins(options)));
   }

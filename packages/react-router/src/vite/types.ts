@@ -26,6 +26,26 @@ type SourceMapsOptions = {
    * The globbing patterns follow the implementation of the glob package. (https://www.npmjs.com/package/glob)
    */
   filesToDeleteAfterUpload?: string | Array<string>;
+
+  /**
+   * Options related to managing the Sentry releases for a build.
+   *
+   * More info: https://docs.sentry.io/product/releases/
+   */
+  release?: {
+    /**
+     * Unique identifier for the release you want to create.
+     *
+     * This value can also be specified via the `SENTRY_RELEASE` environment variable.
+     *
+     * Defaults to automatically detecting a value for your environment.
+     * This includes values for Cordova, Heroku, AWS CodeBuild, CircleCI, Xcode, and Gradle, and otherwise uses the git `HEAD`'s commit SHA.
+     * (the latter requires access to git CLI and for the root directory to be a valid repository)
+     *
+     * If you didn't provide a value and the plugin can't automatically detect one, no release will be created.
+     */
+    name?: string;
+  };
 };
 
 type BundleSizeOptimizationOptions = {

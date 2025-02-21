@@ -28,7 +28,10 @@ export async function makeCustomSentryVitePlugins(options: SentryReactRouterPlug
         metaFramework: 'react-router',
       },
     },
-
+    sourcemaps: {
+      ...sourceMapsUploadOptions,
+      ...unstable_sentryVitePluginOptions?.sourcemaps,
+    },
     ...unstable_sentryVitePluginOptions,
   }) as Plugin[];
 
