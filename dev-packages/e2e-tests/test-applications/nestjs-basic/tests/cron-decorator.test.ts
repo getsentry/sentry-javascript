@@ -1,13 +1,21 @@
 import { expect, test } from '@playwright/test';
-import { waitForEnvelopeItem } from '@sentry-internal/test-utils';
+import { waitForEnvelopeItem, waitForError } from '@sentry-internal/test-utils';
 
 test('Cron job triggers send of in_progress envelope', async ({ baseURL }) => {
   const inProgressEnvelopePromise = waitForEnvelopeItem('nestjs-basic', envelope => {
-    return envelope[0].type === 'check_in' && envelope[1]['status'] === 'in_progress';
+    return (
+      envelope[0].type === 'check_in' &&
+      envelope[1]['monitor_slug'] === 'test-cron-slug' &&
+      envelope[1]['status'] === 'in_progress'
+    );
   });
 
   const okEnvelopePromise = waitForEnvelopeItem('nestjs-basic', envelope => {
-    return envelope[0].type === 'check_in' && envelope[1]['status'] === 'ok';
+    return (
+      envelope[0].type === 'check_in' &&
+      envelope[1]['monitor_slug'] === 'test-cron-slug' &&
+      envelope[1]['status'] === 'ok'
+    );
   });
 
   const inProgressEnvelope = await inProgressEnvelopePromise;
@@ -27,8 +35,8 @@ test('Cron job triggers send of in_progress envelope', async ({ baseURL }) => {
       },
       contexts: {
         trace: {
-          span_id: expect.any(String),
-          trace_id: expect.any(String),
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
         },
       },
     }),
@@ -43,13 +51,31 @@ test('Cron job triggers send of in_progress envelope', async ({ baseURL }) => {
       duration: expect.any(Number),
       contexts: {
         trace: {
-          span_id: expect.any(String),
-          trace_id: expect.any(String),
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
         },
       },
     }),
   );
 
   // kill cron so tests don't get stuck
-  await fetch(`${baseURL}/kill-test-cron`);
+  await fetch(`${baseURL}/kill-test-cron/test-cron-job`);
+});
+
+test('Sends exceptions to Sentry on error in cron job', async ({ baseURL }) => {
+  const errorEventPromise = waitForError('nestjs-basic', event => {
+    return !event.type && event.exception?.values?.[0]?.value === 'Test error from cron job';
+  });
+
+  const errorEvent = await errorEventPromise;
+
+  expect(errorEvent.exception?.values).toHaveLength(1);
+  expect(errorEvent.exception?.values?.[0]?.value).toBe('Test error from cron job');
+  expect(errorEvent.contexts?.trace).toEqual({
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
+  });
+
+  // kill cron so tests don't get stuck
+  await fetch(`${baseURL}/kill-test-cron/test-cron-error`);
 });

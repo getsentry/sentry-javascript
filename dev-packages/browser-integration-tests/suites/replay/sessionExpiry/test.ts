@@ -14,15 +14,15 @@ import {
 // Session should expire after 2s - keep in sync with init.js
 const SESSION_TIMEOUT = 2000;
 
-sentryTest('handles an expired session', async ({ browserName, forceFlushReplay, getLocalTestPath, page }) => {
-  if (shouldSkipReplayTest() || browserName === 'webkit') {
+sentryTest('handles an expired session', async ({ browserName, forceFlushReplay, getLocalTestUrl, page }) => {
+  if (shouldSkipReplayTest() || browserName !== 'chromium') {
     sentryTest.skip();
   }
 
   const reqPromise0 = waitForReplayRequest(page, 0);
   const reqPromise1 = waitForReplayRequest(page, 1);
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   await page.goto(url);
   const req0 = await reqPromise0;

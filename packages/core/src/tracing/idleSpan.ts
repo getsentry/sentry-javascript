@@ -1,10 +1,11 @@
-import type { Span, SpanAttributes, StartSpanOptions } from '@sentry/types';
-import { logger, timestampInSeconds } from '@sentry/utils';
 import { getClient, getCurrentScope } from '../currentScopes';
+import type { DynamicSamplingContext, Span, StartSpanOptions } from '../types-hoist';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON } from '../semanticAttributes';
-import { hasTracingEnabled } from '../utils/hasTracingEnabled';
+import { logger } from '../utils-hoist/logger';
+import { timestampInSeconds } from '../utils-hoist/time';
+import { hasSpansEnabled } from '../utils/hasSpansEnabled';
 import { _setSpanForScope } from '../utils/spanOnScope';
 import {
   getActiveSpan,
@@ -13,6 +14,7 @@ import {
   spanTimeInputToSeconds,
   spanToJSON,
 } from '../utils/spanUtils';
+import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
 import { SPAN_STATUS_ERROR } from './spanstatus';
 import { startInactiveSpan } from './trace';
@@ -32,7 +34,7 @@ const FINISH_REASON_CANCELLED = 'cancelled';
 // unused
 const FINISH_REASON_DOCUMENT_HIDDEN = 'documentHidden';
 
-// unusued in this file, but used in BrowserTracing
+// unused in this file, but used in BrowserTracing
 const FINISH_REASON_INTERRUPTED = 'interactionInterrupted';
 
 type IdleSpanFinishReason =
@@ -107,8 +109,17 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
 
   const client = getClient();
 
-  if (!client || !hasTracingEnabled()) {
-    return new SentryNonRecordingSpan();
+  if (!client || !hasSpansEnabled()) {
+    const span = new SentryNonRecordingSpan();
+
+    const dsc = {
+      sample_rate: '0',
+      sampled: 'false',
+      ...getDynamicSamplingContextFromSpan(span),
+    } satisfies Partial<DynamicSamplingContext>;
+    freezeDscOnSpan(span, dsc);
+
+    return span;
   }
 
   const scope = getCurrentScope();
@@ -121,6 +132,12 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
     apply(target, thisArg, args: Parameters<Span['end']>) {
       if (beforeSpanEnd) {
         beforeSpanEnd(span);
+      }
+
+      // If the span is non-recording, nothing more to do here...
+      // This is the case if tracing is enabled but this specific span was not sampled
+      if (thisArg instanceof SentryNonRecordingSpan) {
+        return;
       }
 
       // Just ensuring that this keeps working, even if we ever have more arguments here
@@ -254,7 +271,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
       return;
     }
 
-    const attributes: SpanAttributes = spanJSON.data || {};
+    const attributes = spanJSON.data;
     if (!attributes[SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON]) {
       span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON, _finishReason);
     }

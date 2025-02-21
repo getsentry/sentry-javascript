@@ -9,21 +9,20 @@
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "test:prod": "TEST_ENV=production playwright test",
-    "test:build": "pnpm install && npx playwright install && pnpm build",
+    "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm test:prod"
   },
   "devDependencies": {
-    "@playwright/test": "^1.44.1",
+    "@playwright/test": "~1.50.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
-    "@sentry/types": "latest || *",
-    "@sentry/utils": "latest || *",
+    "@sentry/core": "latest || *",
     "@sveltejs/vite-plugin-svelte": "^3.0.2",
     "@tsconfig/svelte": "^5.0.2",
     "svelte": "^5.0.0-next.115",
     "svelte-check": "^3.6.7",
     "tslib": "^2.6.2",
     "typescript": "^5.2.2",
-    "vite": "^5.4.10"
+    "vite": "^5.4.11"
   },
   "dependencies": {
     "@sentry/svelte": "latest || *"

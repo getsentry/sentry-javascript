@@ -1,6 +1,6 @@
 {
   "name": "@sentry/astro",
-  "version": "8.35.0",
+  "version": "9.1.0",
   "description": "Official Sentry SDK for Astro",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/astro",
@@ -14,7 +14,7 @@
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=18.14.1"
+    "node": ">=18.19.1"
   },
   "type": "module",
   "files": [
@@ -53,19 +53,17 @@
     "access": "public"
   },
   "peerDependencies": {
-    "astro": ">=3.x || >=4.0.0-beta"
+    "astro": ">=3.x || >=4.0.0-beta || >=5.x"
   },
   "dependencies": {
-    "@sentry/browser": "8.35.0",
-    "@sentry/core": "8.35.0",
-    "@sentry/node": "8.35.0",
-    "@sentry/types": "8.35.0",
-    "@sentry/utils": "8.35.0",
+    "@sentry/browser": "9.1.0",
+    "@sentry/core": "9.1.0",
+    "@sentry/node": "9.1.0",
     "@sentry/vite-plugin": "^2.22.6"
   },
   "devDependencies": {
     "astro": "^3.5.0",
-    "vite": "^5.4.10"
+    "vite": "^5.4.11"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",

@@ -1,6 +1,4 @@
-import { GLOBAL_OBJ } from '@sentry/utils';
-
-import { captureEvent, getCurrentScope } from '../../src';
+import { GLOBAL_OBJ, captureEvent, getCurrentScope } from '../../src';
 import { initAndBind } from '../../src/sdk';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 import { AddAttachmentTestIntegration } from '../mocks/integration';
@@ -16,7 +14,6 @@ describe('Hint', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    // @ts-expect-error for testing
     delete GLOBAL_OBJ.__SENTRY__;
   });
 

@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/types';
+import type { Event } from '@sentry/core';
 
 import { sentryTest } from '../../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest } from '../../../../../utils/helpers';
@@ -11,8 +11,8 @@ import { getFirstSentryEnvelopeRequest } from '../../../../../utils/helpers';
 // https://github.com/getsentry/sentry-javascript/issues/2380
 sentryTest(
   'should capture PromiseRejectionEvent cast to CustomEvent with type unhandledrejection',
-  async ({ getLocalTestPath, page }) => {
-    const url = await getLocalTestPath({ testDir: __dirname });
+  async ({ getLocalTestUrl, page }) => {
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
 

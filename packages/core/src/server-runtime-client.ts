@@ -10,22 +10,24 @@ import type {
   SerializedCheckIn,
   SeverityLevel,
   TraceContext,
-} from '@sentry/types';
-import { eventFromMessage, eventFromUnknownInput, logger, resolvedSyncPromise, uuid4 } from '@sentry/utils';
+} from './types-hoist';
 
-import { BaseClient } from './baseclient';
 import { createCheckInEnvelope } from './checkin';
-import { getIsolationScope } from './currentScopes';
+import { Client } from './client';
+import { getIsolationScope, getTraceContextFromScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import type { Scope } from './scope';
-import { SessionFlusher } from './sessionflusher';
 import {
-  getDynamicSamplingContextFromClient,
+  getDynamicSamplingContextFromScope,
   getDynamicSamplingContextFromSpan,
   registerSpanErrorInstrumentation,
 } from './tracing';
+import { eventFromMessage, eventFromUnknownInput } from './utils-hoist/eventbuilder';
+import { logger } from './utils-hoist/logger';
+import { uuid4 } from './utils-hoist/misc';
+import { resolvedSyncPromise } from './utils-hoist/syncpromise';
 import { _getSpanForScope } from './utils/spanOnScope';
-import { getRootSpan, spanToTraceContext } from './utils/spanUtils';
+import { spanToTraceContext } from './utils/spanUtils';
 
 export interface ServerRuntimeClientOptions extends ClientOptions<BaseTransportOptions> {
   platform?: string;
@@ -38,9 +40,7 @@ export interface ServerRuntimeClientOptions extends ClientOptions<BaseTransportO
  */
 export class ServerRuntimeClient<
   O extends ClientOptions & ServerRuntimeClientOptions = ServerRuntimeClientOptions,
-> extends BaseClient<O> {
-  protected _sessionFlusher: SessionFlusher | undefined;
-
+> extends Client<O> {
   /**
    * Creates a new Edge SDK instance.
    * @param options Configuration options for this SDK.
@@ -56,7 +56,10 @@ export class ServerRuntimeClient<
    * @inheritDoc
    */
   public eventFromException(exception: unknown, hint?: EventHint): PromiseLike<Event> {
-    return resolvedSyncPromise(eventFromUnknownInput(this, this._options.stackParser, exception, hint));
+    const event = eventFromUnknownInput(this, this._options.stackParser, exception, hint);
+    event.level = 'error';
+
+    return resolvedSyncPromise(event);
   }
 
   /**
@@ -75,21 +78,8 @@ export class ServerRuntimeClient<
   /**
    * @inheritDoc
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public captureException(exception: any, hint?: EventHint, scope?: Scope): string {
-    // Check if the flag `autoSessionTracking` is enabled, and if `_sessionFlusher` exists because it is initialised only
-    // when the `requestHandler` middleware is used, and hence the expectation is to have SessionAggregates payload
-    // sent to the Server only when the `requestHandler` middleware is used
-    if (this._options.autoSessionTracking && this._sessionFlusher) {
-      const requestSession = getIsolationScope().getRequestSession();
-
-      // Necessary checks to ensure this is code block is executed only within a request
-      // Should override the status only if `requestSession.status` is `Ok`, which is its initial stage
-      if (requestSession && requestSession.status === 'ok') {
-        requestSession.status = 'errored';
-      }
-    }
-
+  public captureException(exception: unknown, hint?: EventHint, scope?: Scope): string {
+    setCurrentRequestSessionErroredOrCrashed(hint);
     return super.captureException(exception, hint, scope);
   }
 
@@ -97,51 +87,13 @@ export class ServerRuntimeClient<
    * @inheritDoc
    */
   public captureEvent(event: Event, hint?: EventHint, scope?: Scope): string {
-    // Check if the flag `autoSessionTracking` is enabled, and if `_sessionFlusher` exists because it is initialised only
-    // when the `requestHandler` middleware is used, and hence the expectation is to have SessionAggregates payload
-    // sent to the Server only when the `requestHandler` middleware is used
-    if (this._options.autoSessionTracking && this._sessionFlusher) {
-      const eventType = event.type || 'exception';
-      const isException =
-        eventType === 'exception' && event.exception && event.exception.values && event.exception.values.length > 0;
-
-      // If the event is of type Exception, then a request session should be captured
-      if (isException) {
-        const requestSession = getIsolationScope().getRequestSession();
-
-        // Ensure that this is happening within the bounds of a request, and make sure not to override
-        // Session Status if Errored / Crashed
-        if (requestSession && requestSession.status === 'ok') {
-          requestSession.status = 'errored';
-        }
-      }
+    // If the event is of type Exception, then a request session should be captured
+    const isException = !event.type && event.exception?.values && event.exception.values.length > 0;
+    if (isException) {
+      setCurrentRequestSessionErroredOrCrashed(hint);
     }
 
     return super.captureEvent(event, hint, scope);
-  }
-
-  /**
-   *
-   * @inheritdoc
-   */
-  public close(timeout?: number): PromiseLike<boolean> {
-    if (this._sessionFlusher) {
-      this._sessionFlusher.close();
-    }
-    return super.close(timeout);
-  }
-
-  /** Method that initialises an instance of SessionFlusher on Client */
-  public initSessionFlusher(): void {
-    const { release, environment } = this._options;
-    if (!release) {
-      DEBUG_BUILD && logger.warn('Cannot initialise an instance of SessionFlusher if no release is provided!');
-    } else {
-      this._sessionFlusher = new SessionFlusher(this, {
-        release,
-        environment,
-      });
-    }
   }
 
   /**
@@ -154,7 +106,7 @@ export class ServerRuntimeClient<
   public captureCheckIn(checkIn: CheckIn, monitorConfig?: MonitorConfig, scope?: Scope): string {
     const id = 'checkInId' in checkIn && checkIn.checkInId ? checkIn.checkInId : uuid4();
     if (!this._isEnabled()) {
-      DEBUG_BUILD && logger.warn('SDK not enabled, will not capture checkin.');
+      DEBUG_BUILD && logger.warn('SDK not enabled, will not capture check-in.');
       return id;
     }
 
@@ -209,25 +161,13 @@ export class ServerRuntimeClient<
   }
 
   /**
-   * Method responsible for capturing/ending a request session by calling `incrementSessionStatusCount` to increment
-   * appropriate session aggregates bucket
-   */
-  protected _captureRequestSession(): void {
-    if (!this._sessionFlusher) {
-      DEBUG_BUILD && logger.warn('Discarded request mode session because autoSessionTracking option was disabled');
-    } else {
-      this._sessionFlusher.incrementSessionStatusCount();
-    }
-  }
-
-  /**
    * @inheritDoc
    */
   protected _prepareEvent(
     event: Event,
     hint: EventHint,
-    scope?: Scope,
-    isolationScope?: Scope,
+    currentScope: Scope,
+    isolationScope: Scope,
   ): PromiseLike<Event | null> {
     if (this._options.platform) {
       event.platform = event.platform || this._options.platform;
@@ -236,7 +176,7 @@ export class ServerRuntimeClient<
     if (this._options.runtime) {
       event.contexts = {
         ...event.contexts,
-        runtime: (event.contexts || {}).runtime || this._options.runtime,
+        runtime: event.contexts?.runtime || this._options.runtime,
       };
     }
 
@@ -244,11 +184,11 @@ export class ServerRuntimeClient<
       event.server_name = event.server_name || this._options.serverName;
     }
 
-    return super._prepareEvent(event, hint, scope, isolationScope);
+    return super._prepareEvent(event, hint, currentScope, isolationScope);
   }
 
   /** Extract trace information from scope */
-  private _getTraceInfoFromScope(
+  protected _getTraceInfoFromScope(
     scope: Scope | undefined,
   ): [dynamicSamplingContext: Partial<DynamicSamplingContext> | undefined, traceContext: TraceContext | undefined] {
     if (!scope) {
@@ -256,22 +196,28 @@ export class ServerRuntimeClient<
     }
 
     const span = _getSpanForScope(scope);
-    if (span) {
-      const rootSpan = getRootSpan(span);
-      const samplingContext = getDynamicSamplingContextFromSpan(rootSpan);
-      return [samplingContext, spanToTraceContext(rootSpan)];
-    }
 
-    const { traceId, spanId, parentSpanId, dsc } = scope.getPropagationContext();
-    const traceContext: TraceContext = {
-      trace_id: traceId,
-      span_id: spanId,
-      parent_span_id: parentSpanId,
-    };
-    if (dsc) {
-      return [dsc, traceContext];
-    }
+    const traceContext = span ? spanToTraceContext(span) : getTraceContextFromScope(scope);
+    const dynamicSamplingContext = span
+      ? getDynamicSamplingContextFromSpan(span)
+      : getDynamicSamplingContextFromScope(this, scope);
+    return [dynamicSamplingContext, traceContext];
+  }
+}
 
-    return [getDynamicSamplingContextFromClient(traceId, this), traceContext];
+function setCurrentRequestSessionErroredOrCrashed(eventHint?: EventHint): void {
+  const requestSession = getIsolationScope().getScopeData().sdkProcessingMetadata.requestSession;
+  if (requestSession) {
+    // We mutate instead of doing `setSdkProcessingMetadata` because the http integration stores away a particular
+    // isolationScope. If that isolation scope is forked, setting the processing metadata here will not mutate the
+    // original isolation scope that the http integration stored away.
+    const isHandledException = eventHint?.mechanism?.handled ?? true;
+    // A request session can go from "errored" -> "crashed" but not "crashed" -> "errored".
+    // Crashed (unhandled exception) is worse than errored (handled exception).
+    if (isHandledException && requestSession.status !== 'crashed') {
+      requestSession.status = 'errored';
+    } else if (!isHandledException) {
+      requestSession.status = 'crashed';
+    }
   }
 }

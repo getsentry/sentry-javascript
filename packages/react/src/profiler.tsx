@@ -1,11 +1,10 @@
 import { startInactiveSpan } from '@sentry/browser';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, spanToJSON, withActiveSpan } from '@sentry/core';
-import type { Span } from '@sentry/types';
-import { timestampInSeconds } from '@sentry/utils';
-import hoistNonReactStatics from 'hoist-non-react-statics';
+import type { Span } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, spanToJSON, timestampInSeconds, withActiveSpan } from '@sentry/core';
 import * as React from 'react';
 
 import { REACT_MOUNT_OP, REACT_RENDER_OP, REACT_UPDATE_OP } from './constants';
+import { hoistNonReactStatics } from './hoist-non-react-statics';
 
 export const UNKNOWN_COMPONENT = 'unknown';
 
@@ -40,13 +39,6 @@ class Profiler extends React.Component<ProfilerProps> {
    */
   protected _updateSpan: Span | undefined;
 
-  // eslint-disable-next-line @typescript-eslint/member-ordering
-  public static defaultProps: Partial<ProfilerProps> = {
-    disabled: false,
-    includeRender: true,
-    includeUpdates: true,
-  };
-
   public constructor(props: ProfilerProps) {
     super(props);
     const { name, disabled = false } = this.props;
@@ -78,8 +70,8 @@ class Profiler extends React.Component<ProfilerProps> {
     // and if the updateProps have changed. It is ok to not do a deep equality check here as it is expensive.
     // We are just trying to give baseline clues for further investigation.
     if (includeUpdates && this._mountSpan && updateProps !== this.props.updateProps) {
-      // See what props haved changed between the previous props, and the current props. This is
-      // set as data on the span. We just store the prop keys as the values could be potenially very large.
+      // See what props have changed between the previous props, and the current props. This is
+      // set as data on the span. We just store the prop keys as the values could be potentially very large.
       const changedProps = Object.keys(updateProps).filter(k => updateProps[k] !== this.props.updateProps[k]);
       if (changedProps.length > 0) {
         const now = timestampInSeconds();
@@ -142,6 +134,15 @@ class Profiler extends React.Component<ProfilerProps> {
   }
 }
 
+// React.Component default props are defined as static property on the class
+Object.assign(Profiler, {
+  defaultProps: {
+    disabled: false,
+    includeRender: true,
+    includeUpdates: true,
+  },
+});
+
 /**
  * withProfiler is a higher order component that wraps a
  * component in a {@link Profiler} component. It is recommended that
@@ -157,7 +158,7 @@ function withProfiler<P extends Record<string, any>>(
   options?: Pick<Partial<ProfilerProps>, Exclude<keyof ProfilerProps, 'updateProps' | 'children'>>,
 ): React.FC<P> {
   const componentDisplayName =
-    (options && options.name) || WrappedComponent.displayName || WrappedComponent.name || UNKNOWN_COMPONENT;
+    options?.name || WrappedComponent.displayName || WrappedComponent.name || UNKNOWN_COMPONENT;
 
   const Wrapped: React.FC<P> = (props: P) => (
     <Profiler {...options} name={componentDisplayName} updateProps={props}>
@@ -188,7 +189,7 @@ function useProfiler(
   },
 ): void {
   const [mountSpan] = React.useState(() => {
-    if (options && options.disabled) {
+    if (options?.disabled) {
       return undefined;
     }
 
@@ -235,4 +236,4 @@ function useProfiler(
   }, []);
 }
 
-export { withProfiler, Profiler, useProfiler };
+export { Profiler, useProfiler, withProfiler };

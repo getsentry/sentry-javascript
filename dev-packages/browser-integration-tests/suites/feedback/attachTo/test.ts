@@ -23,10 +23,10 @@ sentryTest('should capture feedback with custom button', async ({ getLocalTestUr
     }
   });
 
-  const url = await getLocalTestUrl({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname, handleLazyLoadedFeedback: true });
 
   await page.goto(url);
-  await page.locator('#custom-feedback-buttom').click();
+  await page.locator('#custom-feedback-button').click();
   await page.waitForSelector(':visible:text-is("Report a Bug")');
 
   expect(await page.locator(':visible:text-is("Report a Bug")').count()).toEqual(1);

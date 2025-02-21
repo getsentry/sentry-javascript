@@ -1,8 +1,8 @@
 import * as http from 'http';
 import { createGunzip } from 'zlib';
 import { createTransport } from '@sentry/core';
-import type { EventEnvelope, EventItem } from '@sentry/types';
-import { addItemToEnvelope, createAttachmentEnvelopeItem, createEnvelope, serializeEnvelope } from '@sentry/utils';
+import { addItemToEnvelope, createAttachmentEnvelopeItem, createEnvelope, serializeEnvelope } from '@sentry/core';
+import type { EventEnvelope, EventItem } from '@sentry/core';
 
 import { makeNodeTransport } from '../../src/transports';
 
@@ -83,7 +83,7 @@ const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
 afterEach(done => {
   jest.clearAllMocks();
 
-  if (testServer && testServer.listening) {
+  if (testServer?.listening) {
     testServer.close(done);
   } else {
     done();

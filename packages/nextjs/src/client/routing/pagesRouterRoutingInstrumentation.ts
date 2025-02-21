@@ -1,21 +1,24 @@
 import type { ParsedUrlQuery } from 'querystring';
+import type { Client, TransactionSource } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  browserPerformanceTimeOrigin,
+  logger,
+  parseBaggageHeader,
+  stripUrlQueryAndFragment,
 } from '@sentry/core';
 import { WINDOW, startBrowserTracingNavigationSpan, startBrowserTracingPageLoadSpan } from '@sentry/react';
-import type { Client, TransactionSource } from '@sentry/types';
-import { browserPerformanceTimeOrigin, logger, parseBaggageHeader, stripUrlQueryAndFragment } from '@sentry/utils';
-
 import type { NEXT_DATA } from 'next/dist/shared/lib/utils';
 import RouterImport from 'next/router';
 
 // next/router v10 is CJS
 //
 // For ESM/CJS interoperability 'reasons', depending on how this file is loaded, Router might be on the default export
-// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-const Router: typeof RouterImport = RouterImport.events ? RouterImport : (RouterImport as any).default;
+const Router: typeof RouterImport = RouterImport.events
+  ? RouterImport
+  : (RouterImport as unknown as { default: typeof RouterImport }).default;
 
 import { DEBUG_BUILD } from '../../common/debug-build';
 
@@ -64,7 +67,7 @@ function extractNextDataTagInformation(): NextDataTagInfo {
   // Let's be on the safe side and actually check first if there is really a __NEXT_DATA__ script tag on the page.
   // Theoretically this should always be the case though.
   const nextDataTag = globalObject.document.getElementById('__NEXT_DATA__');
-  if (nextDataTag && nextDataTag.innerHTML) {
+  if (nextDataTag?.innerHTML) {
     try {
       nextData = JSON.parse(nextDataTag.innerHTML);
     } catch (e) {
@@ -88,7 +91,7 @@ function extractNextDataTagInformation(): NextDataTagInfo {
   nextDataTagInfo.route = page;
   nextDataTagInfo.params = query;
 
-  if (props && props.pageProps) {
+  if (props?.pageProps) {
     nextDataTagInfo.sentryTrace = props.pageProps._sentryTraceData;
     nextDataTagInfo.baggage = props.pageProps._sentryBaggage;
   }
@@ -110,18 +113,19 @@ export function pagesRouterInstrumentPageLoad(client: Client): void {
   let name = route || globalObject.location.pathname;
 
   // /_error is the fallback page for all errors. If there is a transaction name for /_error, use that instead
-  if (parsedBaggage && parsedBaggage['sentry-transaction'] && name === '/_error') {
+  if (parsedBaggage?.['sentry-transaction'] && name === '/_error') {
     name = parsedBaggage['sentry-transaction'];
     // Strip any HTTP method from the span name
     name = name.replace(/^(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS|TRACE|CONNECT)\s+/i, '');
   }
 
+  const origin = browserPerformanceTimeOrigin();
   startBrowserTracingPageLoadSpan(
     client,
     {
       name,
       // pageload should always start at timeOrigin (and needs to be in s, not ms)
-      startTime: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
+      startTime: origin ? origin / 1000 : undefined,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.nextjs.pages_router_instrumentation',
@@ -169,7 +173,7 @@ export function pagesRouterInstrumentNavigation(client: Client): void {
 }
 
 function getNextRouteFromPathname(pathname: string): string | undefined {
-  const pageRoutes = (globalObject.__BUILD_MANIFEST || {}).sortedPages;
+  const pageRoutes = globalObject.__BUILD_MANIFEST?.sortedPages;
 
   // Page route should in 99.999% of the cases be defined by now but just to be sure we make a check here
   if (!pageRoutes) {

@@ -1,4 +1,5 @@
 import {
+  GLOBAL_OBJ,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -6,22 +7,24 @@ import {
   getRootSpan,
   registerSpanErrorInstrumentation,
   spanToJSON,
+  stripUrlQueryAndFragment,
+  vercelWaitUntil,
 } from '@sentry/core';
-
-import { GLOBAL_OBJ, stripUrlQueryAndFragment, vercelWaitUntil } from '@sentry/utils';
 import type { VercelEdgeOptions } from '@sentry/vercel-edge';
 import { getDefaultIntegrations, init as vercelEdgeInit } from '@sentry/vercel-edge';
-
 import { isBuild } from '../common/utils/isBuild';
 import { flushSafelyWithTimeout } from '../common/utils/responseEnd';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
 
+export * from '@sentry/vercel-edge';
+export * from '../common';
 export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';
+export { wrapApiHandlerWithSentry } from './wrapApiHandlerWithSentry';
 
 export type EdgeOptions = VercelEdgeOptions;
 
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
-  __rewriteFramesDistDir__?: string;
+  _sentryRewriteFramesDistDir?: string;
 };
 
 /** Inits the Sentry NextJS SDK on the Edge Runtime. */
@@ -36,7 +39,7 @@ export function init(options: VercelEdgeOptions = {}): void {
 
   // This value is injected at build time, based on the output directory specified in the build config. Though a default
   // is set there, we set it here as well, just in case something has gone wrong with the injection.
-  const distDirName = globalWithInjectedValues.__rewriteFramesDistDir__;
+  const distDirName = process.env._sentryRewriteFramesDistDir || globalWithInjectedValues._sentryRewriteFramesDistDir;
 
   if (distDirName) {
     customDefaultIntegrations.push(distDirRewriteFramesIntegration({ distDirName }));
@@ -95,9 +98,3 @@ export function init(options: VercelEdgeOptions = {}): void {
 export function withSentryConfig<T>(exportedUserNextConfig: T): T {
   return exportedUserNextConfig;
 }
-
-export * from '@sentry/vercel-edge';
-
-export * from '../common';
-
-export { wrapApiHandlerWithSentry } from './wrapApiHandlerWithSentry';

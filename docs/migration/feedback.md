@@ -1,6 +1,6 @@
 # End of Feedback Beta
 
-With the release of 8.0.0, Sentry Feedback is now out of Beta. This means that the usual stabilty guarantees apply.
+With the release of 8.0.0, Sentry Feedback is now out of Beta. This means that the usual stability guarantees apply.
 
 Feedback 8.0.0 requires server version 24.4.2 and above.
 
@@ -89,7 +89,7 @@ function attachTo(button: HTMLElement) {
       onFormClose: () => {
         widget.close();
       },
-      onFormSubmited: () => {
+      onFormSubmitted: () => {
         widget.removeFromDom();
       }
     });

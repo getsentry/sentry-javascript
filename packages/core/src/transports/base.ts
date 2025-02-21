@@ -1,30 +1,24 @@
+import { DEBUG_BUILD } from '../debug-build';
 import type {
   Envelope,
   EnvelopeItem,
-  EnvelopeItemType,
-  Event,
   EventDropReason,
-  EventItem,
   InternalBaseTransportOptions,
   Transport,
   TransportMakeRequestResponse,
   TransportRequestExecutor,
-} from '@sentry/types';
-import type { PromiseBuffer, RateLimits } from '@sentry/utils';
+} from '../types-hoist';
 import {
-  SentryError,
   createEnvelope,
   envelopeItemTypeToDataCategory,
   forEachEnvelopeItem,
-  isRateLimited,
-  logger,
-  makePromiseBuffer,
-  resolvedSyncPromise,
   serializeEnvelope,
-  updateRateLimits,
-} from '@sentry/utils';
-
-import { DEBUG_BUILD } from '../debug-build';
+} from '../utils-hoist/envelope';
+import { SentryError } from '../utils-hoist/error';
+import { logger } from '../utils-hoist/logger';
+import { type PromiseBuffer, makePromiseBuffer } from '../utils-hoist/promisebuffer';
+import { type RateLimits, isRateLimited, updateRateLimits } from '../utils-hoist/ratelimit';
+import { resolvedSyncPromise } from '../utils-hoist/syncpromise';
 
 export const DEFAULT_TRANSPORT_BUFFER_SIZE = 64;
 
@@ -51,8 +45,7 @@ export function createTransport(
     forEachEnvelopeItem(envelope, (item, type) => {
       const dataCategory = envelopeItemTypeToDataCategory(type);
       if (isRateLimited(rateLimits, dataCategory)) {
-        const event: Event | undefined = getEventForEnvelopeItem(item, type);
-        options.recordDroppedEvent('ratelimit_backoff', dataCategory, event);
+        options.recordDroppedEvent('ratelimit_backoff', dataCategory);
       } else {
         filteredEnvelopeItems.push(item);
       }
@@ -63,14 +56,12 @@ export function createTransport(
       return resolvedSyncPromise({});
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const filteredEnvelope: Envelope = createEnvelope(envelope[0], filteredEnvelopeItems as any);
+    const filteredEnvelope: Envelope = createEnvelope(envelope[0], filteredEnvelopeItems as (typeof envelope)[1]);
 
     // Creates client report for each item in an envelope
     const recordEnvelopeLoss = (reason: EventDropReason): void => {
       forEachEnvelopeItem(filteredEnvelope, (item, type) => {
-        const event: Event | undefined = getEventForEnvelopeItem(item, type);
-        options.recordDroppedEvent(reason, envelopeItemTypeToDataCategory(type), event);
+        options.recordDroppedEvent(reason, envelopeItemTypeToDataCategory(type));
       });
     };
 
@@ -109,12 +100,4 @@ export function createTransport(
     send,
     flush,
   };
-}
-
-function getEventForEnvelopeItem(item: Envelope[1][number], type: EnvelopeItemType): Event | undefined {
-  if (type !== 'event' && type !== 'transaction') {
-    return undefined;
-  }
-
-  return Array.isArray(item) ? (item as EventItem)[1] : undefined;
 }

@@ -1,24 +1,32 @@
-import type { CaptureContext, IntegrationFn } from '@sentry/types';
-import {
-  CONSOLE_LEVELS,
-  GLOBAL_OBJ,
-  addConsoleInstrumentationHandler,
-  addExceptionMechanism,
-  safeJoin,
-  severityLevelFromString,
-} from '@sentry/utils';
 import { getClient, withScope } from '../currentScopes';
 import { captureException, captureMessage } from '../exports';
 import { defineIntegration } from '../integration';
+import type { CaptureContext } from '../scope';
+import type { IntegrationFn } from '../types-hoist';
+import { addConsoleInstrumentationHandler } from '../utils-hoist/instrument/console';
+import { CONSOLE_LEVELS } from '../utils-hoist/logger';
+import { addExceptionMechanism } from '../utils-hoist/misc';
+import { severityLevelFromString } from '../utils-hoist/severity';
+import { safeJoin } from '../utils-hoist/string';
+import { GLOBAL_OBJ } from '../utils-hoist/worldwide';
 
 interface CaptureConsoleOptions {
   levels?: string[];
+
+  /**
+   * By default, Sentry will mark captured console messages as handled.
+   * Set this to `false` if you want to mark them as unhandled instead.
+   *
+   * @default true
+   */
+  handled?: boolean;
 }
 
 const INTEGRATION_NAME = 'CaptureConsole';
 
 const _captureConsoleIntegration = ((options: CaptureConsoleOptions = {}) => {
   const levels = options.levels || CONSOLE_LEVELS;
+  const handled = options.handled ?? true;
 
   return {
     name: INTEGRATION_NAME,
@@ -32,7 +40,7 @@ const _captureConsoleIntegration = ((options: CaptureConsoleOptions = {}) => {
           return;
         }
 
-        consoleHandler(args, level);
+        consoleHandler(args, level, handled);
       });
     },
   };
@@ -43,7 +51,7 @@ const _captureConsoleIntegration = ((options: CaptureConsoleOptions = {}) => {
  */
 export const captureConsoleIntegration = defineIntegration(_captureConsoleIntegration);
 
-function consoleHandler(args: unknown[], level: string): void {
+function consoleHandler(args: unknown[], level: string, handled: boolean): void {
   const captureContext: CaptureContext = {
     level: severityLevelFromString(level),
     extra: {
@@ -56,7 +64,7 @@ function consoleHandler(args: unknown[], level: string): void {
       event.logger = 'console';
 
       addExceptionMechanism(event, {
-        handled: false,
+        handled,
         type: 'console',
       });
 

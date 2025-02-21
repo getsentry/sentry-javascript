@@ -4,13 +4,13 @@ import { sentryTest } from '../../../utils/fixtures';
 import { expectedFetchPerformanceSpan, expectedXHRPerformanceSpan } from '../../../utils/replayEventTemplates';
 import { getReplayRecordingContent, shouldSkipReplayTest, waitForReplayRequest } from '../../../utils/replayHelpers';
 
-sentryTest('replay recording should contain fetch request span', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('replay recording should contain fetch request span', async ({ getLocalTestUrl, page, browserName }) => {
   // Possibly related: https://github.com/microsoft/playwright/issues/11390
   if (shouldSkipReplayTest() || browserName === 'webkit') {
     sentryTest.skip();
   }
 
-  await page.route('https://example.com', route => {
+  await page.route('https://sentry-test-site.example', route => {
     return route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -21,13 +21,13 @@ sentryTest('replay recording should contain fetch request span', async ({ getLoc
   const reqPromise0 = waitForReplayRequest(page, 0);
   const reqPromise1 = waitForReplayRequest(page, 1);
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   const [req0] = await Promise.all([reqPromise0, page.goto(url), page.locator('#go-background').click()]);
 
   const { performanceSpans: spans0 } = getReplayRecordingContent(req0);
 
-  await Promise.all([page.waitForResponse('https://example.com'), page.locator('#fetch').click()]);
+  await Promise.all([page.waitForResponse('https://sentry-test-site.example'), page.locator('#fetch').click()]);
 
   const { performanceSpans: spans1 } = getReplayRecordingContent(await reqPromise1);
 
@@ -35,12 +35,12 @@ sentryTest('replay recording should contain fetch request span', async ({ getLoc
   expect(performanceSpans).toContainEqual(expectedFetchPerformanceSpan);
 });
 
-sentryTest('replay recording should contain XHR request span', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('replay recording should contain XHR request span', async ({ getLocalTestUrl, page, browserName }) => {
   if (shouldSkipReplayTest() || browserName === 'webkit') {
     sentryTest.skip();
   }
 
-  await page.route('https://example.com', route => {
+  await page.route('https://sentry-test-site.example', route => {
     return route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -51,13 +51,13 @@ sentryTest('replay recording should contain XHR request span', async ({ getLocal
   const reqPromise0 = waitForReplayRequest(page, 0);
   const reqPromise1 = waitForReplayRequest(page, 1);
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   const [req0] = await Promise.all([reqPromise0, page.goto(url), page.locator('#go-background').click()]);
 
   const { performanceSpans: spans0 } = getReplayRecordingContent(req0);
 
-  await Promise.all([page.waitForResponse('https://example.com'), page.locator('#xhr').click()]);
+  await Promise.all([page.waitForResponse('https://sentry-test-site.example'), page.locator('#xhr').click()]);
 
   const { performanceSpans: spans1 } = getReplayRecordingContent(await reqPromise1);
 

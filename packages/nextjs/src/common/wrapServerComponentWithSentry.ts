@@ -1,4 +1,6 @@
+import type { RequestEventData } from '@sentry/core';
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
@@ -8,14 +10,14 @@ import {
   getCapturedScopesOnSpan,
   getRootSpan,
   handleCallbackErrors,
+  propagationContextFromHeaders,
   setCapturedScopesOnSpan,
   startSpanManual,
+  vercelWaitUntil,
+  winterCGHeadersToDict,
   withIsolationScope,
   withScope,
 } from '@sentry/core';
-import { propagationContextFromHeaders, uuid4, vercelWaitUntil, winterCGHeadersToDict } from '@sentry/utils';
-
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { isNotFoundNavigationError, isRedirectNavigationError } from '../common/nextNavigationErrorUtils';
 import type { ServerComponentContext } from '../common/types';
 import { TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL } from './span-attributes-with-logic-attached';
@@ -49,9 +51,9 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
       const headersDict = context.headers ? winterCGHeadersToDict(context.headers) : undefined;
 
       isolationScope.setSDKProcessingMetadata({
-        request: {
+        normalizedRequest: {
           headers: headersDict,
-        },
+        } satisfies RequestEventData,
       });
 
       return withIsolationScope(isolationScope, () => {
@@ -61,13 +63,12 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
           if (process.env.NEXT_RUNTIME === 'edge') {
             const propagationContext = commonObjectToPropagationContext(
               context.headers,
-              headersDict?.['sentry-trace']
-                ? propagationContextFromHeaders(headersDict['sentry-trace'], headersDict['baggage'])
-                : {
-                    traceId: requestTraceId || uuid4(),
-                    spanId: uuid4().substring(16),
-                  },
+              propagationContextFromHeaders(headersDict?.['sentry-trace'], headersDict?.['baggage']),
             );
+
+            if (requestTraceId) {
+              propagationContext.traceId = requestTraceId;
+            }
 
             scope.setPropagationContext(propagationContext);
           }

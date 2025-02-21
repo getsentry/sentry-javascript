@@ -7,10 +7,9 @@ export {
   addBreadcrumb,
   addEventProcessor,
   addIntegration,
-  addOpenTelemetryInstrumentation,
-  addRequestDataToEvent,
   amqplibIntegration,
   anrIntegration,
+  disableAnrDetectionForCallback,
   captureCheckIn,
   captureConsoleIntegration,
   captureEvent,
@@ -26,14 +25,11 @@ export {
   createGetModuleFromFilename,
   createTransport,
   cron,
-  debugIntegration,
   dedupeIntegration,
-  DEFAULT_USER_INCLUDES,
   defaultStackParser,
   endSession,
   expressErrorHandler,
   expressIntegration,
-  extractRequestData,
   extraErrorDataIntegration,
   fastifyIntegration,
   flush,
@@ -43,8 +39,6 @@ export {
   getActiveSpan,
   getAutoPerformanceIntegrations,
   getClient,
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub,
   getCurrentScope,
   getDefaultIntegrations,
   getGlobalScope,
@@ -61,20 +55,19 @@ export {
   inboundFiltersIntegration,
   initOpenTelemetry,
   isInitialized,
+  knexIntegration,
   kafkaIntegration,
   koaIntegration,
   lastEventId,
   linkedErrorsIntegration,
   localVariablesIntegration,
   makeNodeTransport,
-  metrics,
   modulesIntegration,
   mongoIntegration,
   mongooseIntegration,
   mysql2Integration,
   mysqlIntegration,
   nativeNodeFetchIntegration,
-  nestIntegration,
   NodeClient,
   nodeContextIntegration,
   onUncaughtExceptionIntegration,
@@ -91,7 +84,6 @@ export {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  sessionTimingIntegration,
   setContext,
   setCurrentClient,
   setExtra,
@@ -104,7 +96,6 @@ export {
   setupExpressErrorHandler,
   setupHapiErrorHandler,
   setupKoaErrorHandler,
-  setupNestErrorHandler,
   setUser,
   spanToBaggageHeader,
   spanToJSON,
@@ -116,7 +107,9 @@ export {
   startSession,
   startSpan,
   startSpanManual,
+  tediousIntegration,
   trpcMiddleware,
+  updateSpanName,
   withActiveSpan,
   withIsolationScope,
   withMonitor,
@@ -130,10 +123,11 @@ export * from '@sentry/node';
 // -------------------------
 // SvelteKit SDK exports:
 export { init } from './sdk';
-export { handleErrorWithSentry } from './handleError';
-export { wrapLoadWithSentry, wrapServerLoadWithSentry } from './load';
-export { sentryHandle } from './handle';
-export { wrapServerRouteWithSentry } from './serverRoute';
+export { handleErrorWithSentry } from '../server-common/handleError';
+export { wrapLoadWithSentry, wrapServerLoadWithSentry } from '../server-common/load';
+export { sentryHandle } from '../server-common/handle';
+export { initCloudflareSentryHandle } from './handle';
+export { wrapServerRouteWithSentry } from '../server-common/serverRoute';
 
 /**
  * Tracks the Svelte component's initialization and mounting operation as well as

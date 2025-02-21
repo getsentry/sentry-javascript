@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import type { Event as SentryEvent, SpanEnvelope } from '@sentry/types';
+import type { Event as SentryEvent, SpanEnvelope } from '@sentry/core';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import {
@@ -9,14 +9,14 @@ import {
   shouldSkipTracingTest,
 } from '../../../../utils/helpers';
 
-sentryTest('should capture an INP click event span after pageload', async ({ browserName, getLocalTestPath, page }) => {
+sentryTest('should capture an INP click event span after pageload', async ({ browserName, getLocalTestUrl, page }) => {
   const supportedBrowsers = ['chromium'];
 
   if (shouldSkipTracingTest() || !supportedBrowsers.includes(browserName)) {
     sentryTest.skip();
   }
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   await page.goto(url);
   await getFirstSentryEnvelopeRequest<SentryEvent>(page); // wait for page load
@@ -55,6 +55,7 @@ sentryTest('should capture an INP click event span after pageload', async ({ bro
       sample_rate: '1',
       sampled: 'true',
       trace_id: traceId,
+      sample_rand: expect.any(String),
     },
   });
 
@@ -66,7 +67,6 @@ sentryTest('should capture an INP click event span after pageload', async ({ bro
       'sentry.exclusive_time': inpValue,
       'sentry.op': 'ui.interaction.click',
       'sentry.origin': 'auto.http.browser.inp',
-      'sentry.sample_rate': 1,
       'sentry.source': 'custom',
       transaction: 'test-url',
       'user_agent.original': expect.stringContaining('Chrome'),

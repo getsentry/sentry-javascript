@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import * as sentryCore from '@sentry/core';
-import type { HandlerDataFetch, Integration } from '@sentry/types';
-import * as sentryUtils from '@sentry/utils';
-import { createStackParser } from '@sentry/utils';
+import * as sentryUtils from '@sentry/core';
+import { createStackParser } from '@sentry/core';
+import type { HandlerDataFetch, Integration } from '@sentry/core';
 
 import { CloudflareClient } from '../../src/client';
 import { fetchIntegration } from '../../src/integrations/fetch';
@@ -26,7 +26,6 @@ describe('WinterCGFetch instrumentation', () => {
 
     client = new FakeClient({
       dsn: 'https://public@dsn.ingest.sentry.io/1337',
-      enableTracing: true,
       tracesSampleRate: 1,
       integrations: [],
       transport: () => ({
@@ -171,7 +170,6 @@ describe('WinterCGFetch instrumentation', () => {
           method: 'POST',
           status_code: 201,
           url: 'http://my-website.com/',
-          __span: expect.any(String),
         },
         type: 'http',
       },

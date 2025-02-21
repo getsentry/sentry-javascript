@@ -1,25 +1,26 @@
-import { getCurrentScope } from '@sentry/core';
-import { functionToStringIntegration, inboundFiltersIntegration } from '@sentry/core';
+import type { Client, Integration, Options, ReportDialogOptions } from '@sentry/core';
 import {
-  captureSession,
-  getClient,
+  consoleSandbox,
+  dedupeIntegration,
+  functionToStringIntegration,
+  getCurrentScope,
   getIntegrationsToSetup,
+  getLocationHref,
   getReportDialogEndpoint,
+  inboundFiltersIntegration,
   initAndBind,
   lastEventId,
-  startSession,
+  logger,
+  stackParserFromStackParserOptions,
+  supportsFetch,
 } from '@sentry/core';
-import type { Client, DsnLike, Integration, Options, UserFeedback } from '@sentry/types';
-import { consoleSandbox, logger, stackParserFromStackParserOptions, supportsFetch } from '@sentry/utils';
-
-import { addHistoryInstrumentationHandler } from '@sentry-internal/browser-utils';
-import { dedupeIntegration } from '@sentry/core';
 import type { BrowserClientOptions, BrowserOptions } from './client';
 import { BrowserClient } from './client';
 import { DEBUG_BUILD } from './debug-build';
 import { WINDOW } from './helpers';
 import { breadcrumbsIntegration } from './integrations/breadcrumbs';
 import { browserApiErrorsIntegration } from './integrations/browserapierrors';
+import { browserSessionIntegration } from './integrations/browsersession';
 import { globalHandlersIntegration } from './integrations/globalhandlers';
 import { httpContextIntegration } from './integrations/httpcontext';
 import { linkedErrorsIntegration } from './integrations/linkederrors';
@@ -41,31 +42,42 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     linkedErrorsIntegration(),
     dedupeIntegration(),
     httpContextIntegration(),
+    browserSessionIntegration(),
   ];
 }
 
-function applyDefaultOptions(optionsArg: BrowserOptions = {}): BrowserOptions {
+/** Exported only for tests. */
+export function applyDefaultOptions(optionsArg: BrowserOptions = {}): BrowserOptions {
   const defaultOptions: BrowserOptions = {
     defaultIntegrations: getDefaultIntegrations(optionsArg),
     release:
       typeof __SENTRY_RELEASE__ === 'string' // This allows build tooling to find-and-replace __SENTRY_RELEASE__ to inject a release value
         ? __SENTRY_RELEASE__
-        : WINDOW.SENTRY_RELEASE && WINDOW.SENTRY_RELEASE.id // This supports the variable that sentry-webpack-plugin injects
-          ? WINDOW.SENTRY_RELEASE.id
-          : undefined,
-    autoSessionTracking: true,
+        : WINDOW.SENTRY_RELEASE?.id, // This supports the variable that sentry-webpack-plugin injects
     sendClientReports: true,
   };
 
-  // TODO: Instead of dropping just `defaultIntegrations`, we should simply
-  // call `dropUndefinedKeys` on the entire `optionsArg`.
-  // However, for this to work we need to adjust the `hasTracingEnabled()` logic
-  // first as it differentiates between `undefined` and the key not being in the object.
-  if (optionsArg.defaultIntegrations == null) {
-    delete optionsArg.defaultIntegrations;
+  return {
+    ...defaultOptions,
+    ...dropTopLevelUndefinedKeys(optionsArg),
+  };
+}
+
+/**
+ * In contrast to the regular `dropUndefinedKeys` method,
+ * this one does not deep-drop keys, but only on the top level.
+ */
+function dropTopLevelUndefinedKeys<T extends object>(obj: T): Partial<T> {
+  const mutatetedObj: Partial<T> = {};
+
+  for (const k of Object.getOwnPropertyNames(obj)) {
+    const key = k as keyof T;
+    if (obj[key] !== undefined) {
+      mutatetedObj[key] = obj[key];
+    }
   }
 
-  return { ...defaultOptions, ...optionsArg };
+  return mutatetedObj;
 }
 
 type ExtensionProperties = {
@@ -90,8 +102,8 @@ function shouldShowBrowserExtensionError(): boolean {
   const extensionKey = windowWithMaybeExtension.chrome ? 'chrome' : 'browser';
   const extensionObject = windowWithMaybeExtension[extensionKey];
 
-  const runtimeId = extensionObject && extensionObject.runtime && extensionObject.runtime.id;
-  const href = (WINDOW.location && WINDOW.location.href) || '';
+  const runtimeId = extensionObject?.runtime?.id;
+  const href = getLocationHref() || '';
 
   const extensionProtocols = ['chrome-extension:', 'moz-extension:', 'ms-browser-extension:', 'safari-web-extension:'];
 
@@ -160,22 +172,22 @@ declare const __SENTRY_RELEASE__: string | undefined;
 export function init(browserOptions: BrowserOptions = {}): Client | undefined {
   const options = applyDefaultOptions(browserOptions);
 
-  if (shouldShowBrowserExtensionError()) {
-    consoleSandbox(() => {
-      // eslint-disable-next-line no-console
-      console.error(
-        '[Sentry] You cannot run Sentry this way in a browser extension, check: https://docs.sentry.io/platforms/javascript/best-practices/browser-extensions/',
-      );
-    });
+  if (!options.skipBrowserExtensionCheck && shouldShowBrowserExtensionError()) {
+    if (DEBUG_BUILD) {
+      consoleSandbox(() => {
+        // eslint-disable-next-line no-console
+        console.error(
+          '[Sentry] You cannot run Sentry this way in a browser extension, check: https://docs.sentry.io/platforms/javascript/best-practices/browser-extensions/',
+        );
+      });
+    }
     return;
   }
 
-  if (DEBUG_BUILD) {
-    if (!supportsFetch()) {
-      logger.warn(
-        'No Fetch API detected. The Sentry SDK requires a Fetch API compatible environment to send events. Please add a Fetch API polyfill.',
-      );
-    }
+  if (DEBUG_BUILD && !supportsFetch()) {
+    logger.warn(
+      'No Fetch API detected. The Sentry SDK requires a Fetch API compatible environment to send events. Please add a Fetch API polyfill.',
+    );
   }
   const clientOptions: BrowserClientOptions = {
     ...options,
@@ -184,43 +196,7 @@ export function init(browserOptions: BrowserOptions = {}): Client | undefined {
     transport: options.transport || makeFetchTransport,
   };
 
-  const client = initAndBind(BrowserClient, clientOptions);
-
-  if (options.autoSessionTracking) {
-    startSessionTracking();
-  }
-
-  return client;
-}
-
-/**
- * All properties the report dialog supports
- */
-export interface ReportDialogOptions {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any;
-  eventId?: string;
-  dsn?: DsnLike;
-  user?: {
-    email?: string;
-    name?: string;
-  };
-  lang?: string;
-  title?: string;
-  subtitle?: string;
-  subtitle2?: string;
-  labelName?: string;
-  labelEmail?: string;
-  labelComments?: string;
-  labelClose?: string;
-  labelSubmit?: string;
-  errorGeneric?: string;
-  errorFormEntry?: string;
-  successMessage?: string;
-  /** Callback after reportDialog showed up */
-  onLoad?(this: void): void;
-  /** Callback after reportDialog closed */
-  onClose?(this: void): void;
+  return initAndBind(BrowserClient, clientOptions);
 }
 
 /**
@@ -237,7 +213,7 @@ export function showReportDialog(options: ReportDialogOptions = {}): void {
 
   const scope = getCurrentScope();
   const client = scope.getClient();
-  const dsn = client && client.getDsn();
+  const dsn = client?.getDsn();
 
   if (!dsn) {
     DEBUG_BUILD && logger.error('DSN not configured for showReportDialog call');
@@ -303,43 +279,4 @@ export function forceLoad(): void {
  */
 export function onLoad(callback: () => void): void {
   callback();
-}
-
-/**
- * Enable automatic Session Tracking for the initial page load.
- */
-function startSessionTracking(): void {
-  if (typeof WINDOW.document === 'undefined') {
-    DEBUG_BUILD && logger.warn('Session tracking in non-browser environment with @sentry/browser is not supported.');
-    return;
-  }
-
-  // The session duration for browser sessions does not track a meaningful
-  // concept that can be used as a metric.
-  // Automatically captured sessions are akin to page views, and thus we
-  // discard their duration.
-  startSession({ ignoreDuration: true });
-  captureSession();
-
-  // We want to create a session for every navigation as well
-  addHistoryInstrumentationHandler(({ from, to }) => {
-    // Don't create an additional session for the initial route or if the location did not change
-    if (from !== undefined && from !== to) {
-      startSession({ ignoreDuration: true });
-      captureSession();
-    }
-  });
-}
-
-/**
- * Captures user feedback and sends it to Sentry.
- *
- * @deprecated Use `captureFeedback` instead.
- */
-export function captureUserFeedback(feedback: UserFeedback): void {
-  const client = getClient<BrowserClient>();
-  if (client) {
-    // eslint-disable-next-line deprecation/deprecation
-    client.captureUserFeedback(feedback);
-  }
 }

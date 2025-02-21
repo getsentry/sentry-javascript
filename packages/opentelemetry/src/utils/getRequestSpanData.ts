@@ -6,8 +6,8 @@ import {
   SEMATTRS_HTTP_METHOD,
   SEMATTRS_HTTP_URL,
 } from '@opentelemetry/semantic-conventions';
-import type { SanitizedRequestData } from '@sentry/types';
-import { getSanitizedUrlString, parseUrl } from '@sentry/utils';
+import { getSanitizedUrlString, parseUrl } from '@sentry/core';
+import type { SanitizedRequestData } from '@sentry/core';
 
 import { spanHasAttributes } from './spanTypes';
 

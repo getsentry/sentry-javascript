@@ -1,4 +1,4 @@
-import { getFunctionName, logger } from '@sentry/utils';
+import { getFunctionName, logger } from '@sentry/core';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { onCLS } from './web-vitals/getCLS';
@@ -201,7 +201,7 @@ export function addPerformanceInstrumentationHandler(
 function triggerHandlers(type: InstrumentHandlerType, data: unknown): void {
   const typeHandlers = handlers[type];
 
-  if (!typeHandlers || !typeHandlers.length) {
+  if (!typeHandlers?.length) {
     return;
   }
 

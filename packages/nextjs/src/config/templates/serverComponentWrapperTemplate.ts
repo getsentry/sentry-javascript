@@ -1,5 +1,5 @@
+import type { WebFetchHeaders } from '@sentry/core';
 import * as Sentry from '@sentry/nextjs';
-import type { WebFetchHeaders } from '@sentry/types';
 // @ts-expect-error Because we cannot be sure if the RequestAsyncStorage module exists (it is not part of the Next.js public
 // API) we use a shim if it doesn't exist. The logic for this is in the wrapping loader.
 import * as origModule from '__SENTRY_NEXTJS_REQUEST_ASYNC_STORAGE_SHIM__';
@@ -41,14 +41,13 @@ if (typeof serverComponent === 'function') {
   // Current assumption is that Next.js applies some loader magic to userfiles, but not files in node_modules. This file
   // is technically a userfile so it gets the loader magic applied.
   wrappedServerComponent = new Proxy(serverComponent, {
-    apply: (originalFunction, thisArg, args) => {
+    apply: (originalFunction: (...args: unknown[]) => unknown, thisArg, args) => {
       let sentryTraceHeader: string | undefined | null = undefined;
       let baggageHeader: string | undefined | null = undefined;
       let headers: WebFetchHeaders | undefined = undefined;
 
       // We try-catch here just in `requestAsyncStorage` is undefined since it may not be defined
       try {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         const requestAsyncStore = requestAsyncStorage?.getStore() as ReturnType<RequestAsyncStorage['getStore']>;
         sentryTraceHeader = requestAsyncStore?.headers.get('sentry-trace') ?? undefined;
         baggageHeader = requestAsyncStore?.headers.get('baggage') ?? undefined;
@@ -57,8 +56,7 @@ if (typeof serverComponent === 'function') {
         /** empty */
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      return Sentry.wrapServerComponentWithSentry(originalFunction as any, {
+      return Sentry.wrapServerComponentWithSentry(originalFunction, {
         componentRoute: '__ROUTE__',
         componentType: '__COMPONENT_TYPE__',
         sentryTraceHeader,
@@ -99,7 +97,7 @@ export const generateViewport = serverComponentModule.generateViewport
   : undefined;
 
 // Re-export anything exported by the page module we're wrapping. When processing this code, Rollup is smart enough to
-// not include anything whose name matchs something we've explicitly exported above.
+// not include anything whose name matches something we've explicitly exported above.
 // @ts-expect-error See above
 export * from '__SENTRY_WRAPPING_TARGET_FILE__';
 

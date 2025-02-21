@@ -1,8 +1,8 @@
-import type { Integration } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import { logger } from '@sentry/core';
+import type { Integration } from '@sentry/core';
 
 import * as SentryOpentelemetry from '@sentry/opentelemetry';
-import { getClient, getIsolationScope } from '../../src/';
+import { getClient } from '../../src/';
 import * as auto from '../../src/integrations/tracing';
 import { init, validateOpenTelemetrySetup } from '../../src/sdk';
 import { NodeClient } from '../../src/sdk/client';
@@ -108,7 +108,7 @@ describe('init()', () => {
       init({
         dsn: PUBLIC_DSN,
         integrations: mockIntegrations,
-        enableTracing: true,
+        tracesSampleRate: 1,
       });
 
       expect(mockIntegrations[0]?.setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
@@ -143,56 +143,10 @@ describe('init()', () => {
     });
   });
 
-  it('returns intiated client', () => {
+  it('returns initialized client', () => {
     const client = init({ dsn: PUBLIC_DSN, skipOpenTelemetrySetup: true });
 
     expect(client).toBeInstanceOf(NodeClient);
-  });
-
-  describe('autoSessionTracking', () => {
-    it('does not track session by default if no release is set', () => {
-      // On CI, we always infer the release, so this does not work
-      if (process.env.CI) {
-        return;
-      }
-      init({ dsn: PUBLIC_DSN });
-
-      const session = getIsolationScope().getSession();
-      expect(session).toBeUndefined();
-    });
-
-    it('tracks session by default if release is set', () => {
-      init({ dsn: PUBLIC_DSN, release: '1.2.3' });
-
-      const session = getIsolationScope().getSession();
-      expect(session).toBeDefined();
-    });
-
-    it('does not track session if no release is set even if autoSessionTracking=true', () => {
-      // On CI, we always infer the release, so this does not work
-      if (process.env.CI) {
-        return;
-      }
-
-      init({ dsn: PUBLIC_DSN, autoSessionTracking: true });
-
-      const session = getIsolationScope().getSession();
-      expect(session).toBeUndefined();
-    });
-
-    it('does not track session if autoSessionTracking=false', () => {
-      init({ dsn: PUBLIC_DSN, autoSessionTracking: false, release: '1.2.3' });
-
-      const session = getIsolationScope().getSession();
-      expect(session).toBeUndefined();
-    });
-
-    it('tracks session by default if autoSessionTracking=true & release is set', () => {
-      init({ dsn: PUBLIC_DSN, release: '1.2.3', autoSessionTracking: true });
-
-      const session = getIsolationScope().getSession();
-      expect(session).toBeDefined();
-    });
   });
 });
 

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
   <head>
     <meta charset="utf-8" />
@@ -27,6 +27,7 @@
     <input type="button" id="inputButton" value="Input button" />
     <input type="submit" id="inputSubmit" value="Input submit" />
     <input type="text" id="inputText" />
+    <input type="file" id="inputFile" />
 
     <h1 id="h1">Heading</h1>
 
@@ -75,7 +76,7 @@
         document.getElementById('out').innerHTML += 'mutationButton clicked<br>';
       });
       document.getElementById('windowOpenButton').addEventListener('click', () => {
-        window.open('https://example.com/', '_blank');
+        window.open('https://github.com/', '_blank');
       });
 
       // Do nothing on these elements

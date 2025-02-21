@@ -3,6 +3,8 @@ const assert = require('assert');
 
 const Sentry = require('@sentry/node');
 
+global._sentryDebugIds = { [new Error().stack]: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa' };
+
 setTimeout(() => {
   process.exit();
 }, 10000);
@@ -10,7 +12,6 @@ setTimeout(() => {
 Sentry.init({
   dsn: process.env.SENTRY_DSN,
   release: '1.0',
-  autoSessionTracking: false,
   integrations: [Sentry.anrIntegration({ captureStackTrace: true, anrThreshold: 100 })],
 });
 

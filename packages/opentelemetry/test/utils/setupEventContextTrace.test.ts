@@ -18,7 +18,7 @@ describe('setupEventContextTrace', () => {
     client = new TestClient(
       getDefaultTestClientOptions({
         sampleRate: 1,
-        enableTracing: true,
+        tracesSampleRate: 1,
         beforeSend,
         debug: true,
         dsn: PUBLIC_DSN,
@@ -51,8 +51,8 @@ describe('setupEventContextTrace', () => {
       expect.objectContaining({
         contexts: expect.objectContaining({
           trace: {
-            span_id: expect.any(String),
-            trace_id: expect.any(String),
+            span_id: expect.stringMatching(/[a-f0-9]{16}/),
+            trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           },
         }),
       }),

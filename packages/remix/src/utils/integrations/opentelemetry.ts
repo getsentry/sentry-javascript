@@ -1,8 +1,8 @@
 import { RemixInstrumentation } from 'opentelemetry-instrumentation-remix';
 
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, defineIntegration } from '@sentry/core';
+import type { Client, IntegrationFn, Span } from '@sentry/core';
 import { generateInstrumentOnce, getClient, spanToJSON } from '@sentry/node';
-import type { Client, IntegrationFn, Span } from '@sentry/types';
 import type { RemixOptions } from '../remixOptions';
 
 const INTEGRATION_NAME = 'Remix';
@@ -34,7 +34,7 @@ const _remixIntegration = (() => {
 }) satisfies IntegrationFn;
 
 const addRemixSpanAttributes = (span: Span): void => {
-  const attributes = spanToJSON(span).data || {};
+  const attributes = spanToJSON(span).data;
 
   // this is one of: loader, action, requestHandler
   const type = attributes['code.function'];

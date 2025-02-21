@@ -20,7 +20,7 @@ export type ReplayEventType =
 
 /**
  * This is a partial copy of rrweb's eventWithTime type which only contains the properties
- * we specifcally need in the SDK.
+ * we specifically need in the SDK.
  */
 export type ReplayEventWithTime = {
   type: ReplayEventType;
@@ -43,6 +43,7 @@ export type RrwebRecordOptions = {
   maskTextSelector?: string;
   blockSelector?: string;
   maskInputOptions?: Record<string, boolean>;
+  recordCrossOriginIframes?: boolean;
 } & Record<string, unknown>;
 
 export interface CanvasManagerInterface {

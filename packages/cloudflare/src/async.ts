@@ -1,5 +1,5 @@
 import { getDefaultCurrentScope, getDefaultIsolationScope, setAsyncContextStrategy } from '@sentry/core';
-import type { Scope } from '@sentry/types';
+import type { Scope } from '@sentry/core';
 
 // Need to use node: prefix for cloudflare workers compatibility
 // Note: Because we are using node:async_hooks, we need to set `node_compat` in the wrangler.toml
@@ -8,7 +8,7 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 /**
  * Sets the async context strategy to use AsyncLocalStorage.
  *
- * AsyncLocalStorage is only avalaible in the cloudflare workers runtime if you set
+ * AsyncLocalStorage is only available in the cloudflare workers runtime if you set
  * compatibility_flags = ["nodejs_compat"] or compatibility_flags = ["nodejs_als"]
  */
 export function setAsyncLocalStorageAsyncContextStrategy(): void {

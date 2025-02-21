@@ -9,7 +9,6 @@
 ## Links
 
 - [Official SDK Docs](https://docs.sentry.io/platforms/javascript/guides/react/)
-- [TypeDoc](http://getsentry.github.io/sentry-javascript/)
 
 ## General
 
@@ -75,7 +74,7 @@ import React from 'react';
 import * as Sentry from '@sentry/react';
 
 function FallbackComponent() {
-  return <div>An error has occured</div>;
+  return <div>An error has occurred</div>;
 }
 
 class App extends React.Component {

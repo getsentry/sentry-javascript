@@ -1,7 +1,6 @@
 import type { Context } from '@opentelemetry/api';
-import type { Scope } from '@sentry/types';
-import { addNonEnumerableProperty } from '@sentry/utils';
-
+import type { Scope } from '@sentry/core';
+import { addNonEnumerableProperty } from '@sentry/core';
 import { SENTRY_SCOPES_CONTEXT_KEY } from '../constants';
 import type { CurrentScopes } from '../types';
 
@@ -33,8 +32,7 @@ export function setContextOnScope(scope: Scope, context: Context): void {
 
 /**
  * Get the context related to a scope.
- * TODO v8: Use this for the `trace` functions.
- * */
+ */
 export function getContextFromScope(scope: Scope): Context | undefined {
   return (scope as { [SCOPE_CONTEXT_FIELD]?: Context })[SCOPE_CONTEXT_FIELD];
 }

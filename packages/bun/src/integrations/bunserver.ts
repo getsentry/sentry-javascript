@@ -1,3 +1,4 @@
+import type { IntegrationFn, RequestEventData, SpanAttributes } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -5,12 +6,13 @@ import {
   captureException,
   continueTrace,
   defineIntegration,
+  extractQueryParamsFromUrl,
+  getSanitizedUrlString,
+  parseUrl,
   setHttpStatus,
   startSpan,
   withIsolationScope,
 } from '@sentry/core';
-import type { IntegrationFn, SpanAttributes } from '@sentry/types';
-import { getSanitizedUrlString, parseUrl } from '@sentry/utils';
 
 const INTEGRATION_NAME = 'BunServer';
 
@@ -45,7 +47,18 @@ export function instrumentBunServe(): void {
   Bun.serve = new Proxy(Bun.serve, {
     apply(serveTarget, serveThisArg, serveArgs: Parameters<typeof Bun.serve>) {
       instrumentBunServeOptions(serveArgs[0]);
-      return serveTarget.apply(serveThisArg, serveArgs);
+      const server: ReturnType<typeof Bun.serve> = serveTarget.apply(serveThisArg, serveArgs);
+
+      // A Bun server can be reloaded, re-wrap any fetch function passed to it
+      // We can't use a Proxy for this as Bun does `instanceof` checks internally that fail if we
+      // wrap the Server instance.
+      const originalReload: typeof server.reload = server.reload.bind(server);
+      server.reload = (serveOptions: Parameters<typeof Bun.serve>[0]) => {
+        instrumentBunServeOptions(serveOptions);
+        return originalReload(serveOptions);
+      };
+
+      return server;
     },
   });
 }
@@ -76,11 +89,12 @@ function instrumentBunServeOptions(serveOptions: Parameters<typeof Bun.serve>[0]
         const url = getSanitizedUrlString(parsedUrl);
 
         isolationScope.setSDKProcessingMetadata({
-          request: {
+          normalizedRequest: {
             url,
             method: request.method,
             headers: request.headers.toJSON(),
-          },
+            query_string: extractQueryParamsFromUrl(url),
+          } satisfies RequestEventData,
         });
 
         return continueTrace(
@@ -97,7 +111,7 @@ function instrumentBunServeOptions(serveOptions: Parameters<typeof Bun.serve>[0]
                   const response = await (fetchTarget.apply(fetchThisArg, fetchArgs) as ReturnType<
                     typeof serveOptions.fetch
                   >);
-                  if (response && response.status) {
+                  if (response?.status) {
                     setHttpStatus(span, response.status);
                     isolationScope.setContext('response', {
                       headers: response.headers.toJSON(),

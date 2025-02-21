@@ -1,11 +1,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
-/* eslint-disable @sentry-internal/sdk/no-optional-chaining */
 import type { ExportNamedDeclaration } from '@babel/types';
 import { parseModule } from 'magicast';
 import type { Plugin } from 'vite';
-
-export const WRAPPED_MODULE_SUFFIX = '?sentry-auto-wrap';
+import { WRAPPED_MODULE_SUFFIX } from '../common/utils';
 
 export type AutoInstrumentSelection = {
   /**
@@ -78,7 +76,7 @@ export function makeAutoInstrumentationPlugin(options: AutoInstrumentPluginOptio
 /**
  * We only want to apply our wrapper to files that
  *
- *  - Have no Sentry code yet in them. This is to avoid double-wrapping or interferance with custom
+ *  - Have no Sentry code yet in them. This is to avoid double-wrapping or interfering with custom
  *    Sentry calls.
  *  - Actually declare a `load` function. The second check of course is not 100% accurate, but it's good enough.
  *    Injecting our wrapper into files that don't declare a `load` function would result in a build-time warning
@@ -116,13 +114,13 @@ export async function canWrapLoad(id: string, debug: boolean): Promise<boolean> 
     .filter((statement): statement is ExportNamedDeclaration => statement.type === 'ExportNamedDeclaration')
     .find(exportDecl => {
       // find `export const load = ...`
-      if (exportDecl.declaration && exportDecl.declaration.type === 'VariableDeclaration') {
+      if (exportDecl.declaration?.type === 'VariableDeclaration') {
         const variableDeclarations = exportDecl.declaration.declarations;
         return variableDeclarations.find(decl => decl.id.type === 'Identifier' && decl.id.name === 'load');
       }
 
       // find `export function load = ...`
-      if (exportDecl.declaration && exportDecl.declaration.type === 'FunctionDeclaration') {
+      if (exportDecl.declaration?.type === 'FunctionDeclaration') {
         const functionId = exportDecl.declaration.id;
         return functionId?.name === 'load';
       }

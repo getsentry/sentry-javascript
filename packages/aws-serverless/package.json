@@ -1,13 +1,13 @@
 {
   "name": "@sentry/aws-serverless",
-  "version": "8.35.0",
+  "version": "9.1.0",
   "description": "Official Sentry SDK for AWS Lambda and AWS Serverless Environments",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/serverless",
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=14.18"
+    "node": ">=18"
   },
   "files": [
     "/build/npm",
@@ -54,7 +54,7 @@
     }
   },
   "typesVersions": {
-    "<4.9": {
+    "<5.0": {
       "build/npm/types/index.d.ts": [
         "build/npm/types-ts3.8/index.d.ts"
       ]
@@ -64,16 +64,16 @@
     "access": "public"
   },
   "dependencies": {
-    "@opentelemetry/instrumentation-aws-lambda": "0.44.0",
-    "@opentelemetry/instrumentation-aws-sdk": "0.45.0",
-    "@sentry/core": "8.35.0",
-    "@sentry/node": "8.35.0",
-    "@sentry/types": "8.35.0",
-    "@sentry/utils": "8.35.0",
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/instrumentation": "^0.57.1",
+    "@opentelemetry/instrumentation-aws-lambda": "0.50.2",
+    "@opentelemetry/instrumentation-aws-sdk": "0.49.0",
+    "@sentry/core": "9.1.0",
+    "@sentry/node": "9.1.0",
     "@types/aws-lambda": "^8.10.62"
   },
   "devDependencies": {
-    "@types/node": "^14.18.0"
+    "@types/node": "^18.19.1"
   },
   "scripts": {
     "build": "run-p build:transpile build:types build:bundle",

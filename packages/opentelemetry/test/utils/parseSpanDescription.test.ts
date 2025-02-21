@@ -15,7 +15,13 @@ import {
   SEMATTRS_RPC_SERVICE,
 } from '@opentelemetry/semantic-conventions';
 
-import { descriptionForHttpMethod, getSanitizedUrl, parseSpanDescription } from '../../src/utils/parseSpanDescription';
+import { SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import {
+  descriptionForHttpMethod,
+  getSanitizedUrl,
+  getUserUpdatedNameAndSource,
+  parseSpanDescription,
+} from '../../src/utils/parseSpanDescription';
 
 describe('parseSpanDescription', () => {
   it.each([
@@ -82,6 +88,53 @@ describe('parseSpanDescription', () => {
       },
     ],
     [
+      'works with db system and custom source',
+      {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+        [SEMATTRS_DB_SYSTEM]: 'mysql',
+        [SEMATTRS_DB_STATEMENT]: 'SELECT * from users',
+      },
+      'test name',
+      SpanKind.CLIENT,
+      {
+        description: 'test name',
+        op: 'db',
+        source: 'custom',
+      },
+    ],
+    [
+      'works with db system and custom source and custom name',
+      {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+        [SEMATTRS_DB_SYSTEM]: 'mysql',
+        [SEMATTRS_DB_STATEMENT]: 'SELECT * from users',
+        [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
+      },
+      'test name',
+      SpanKind.CLIENT,
+      {
+        description: 'custom name',
+        op: 'db',
+        source: 'custom',
+      },
+    ],
+    [
+      'works with db system and component source and custom name',
+      {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+        [SEMATTRS_DB_SYSTEM]: 'mysql',
+        [SEMATTRS_DB_STATEMENT]: 'SELECT * from users',
+        [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
+      },
+      'test name',
+      SpanKind.CLIENT,
+      {
+        description: 'custom name',
+        op: 'db',
+        source: 'component',
+      },
+    ],
+    [
       'works with db system without statement',
       {
         [SEMATTRS_DB_SYSTEM]: 'mysql',
@@ -108,6 +161,50 @@ describe('parseSpanDescription', () => {
       },
     ],
     [
+      'works with rpc service and custom source',
+      {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+        [SEMATTRS_RPC_SERVICE]: 'rpc-test-service',
+      },
+      'test name',
+      undefined,
+      {
+        description: 'test name',
+        op: 'rpc',
+        source: 'custom',
+      },
+    ],
+    [
+      'works with rpc service and custom source and custom name',
+      {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+        [SEMATTRS_RPC_SERVICE]: 'rpc-test-service',
+        [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
+      },
+      'test name',
+      undefined,
+      {
+        description: 'custom name',
+        op: 'rpc',
+        source: 'custom',
+      },
+    ],
+    [
+      'works with rpc service and component source and custom name',
+      {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+        [SEMATTRS_RPC_SERVICE]: 'rpc-test-service',
+        [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
+      },
+      'test name',
+      undefined,
+      {
+        description: 'custom name',
+        op: 'rpc',
+        source: 'component',
+      },
+    ],
+    [
       'works with messaging system',
       {
         [SEMATTRS_MESSAGING_SYSTEM]: 'test-messaging-system',
@@ -118,6 +215,50 @@ describe('parseSpanDescription', () => {
         description: 'test name',
         op: 'message',
         source: 'route',
+      },
+    ],
+    [
+      'works with messaging system and custom source',
+      {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+        [SEMATTRS_MESSAGING_SYSTEM]: 'test-messaging-system',
+      },
+      'test name',
+      undefined,
+      {
+        description: 'test name',
+        op: 'message',
+        source: 'custom',
+      },
+    ],
+    [
+      'works with messaging system and custom source and custom name',
+      {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+        [SEMATTRS_MESSAGING_SYSTEM]: 'test-messaging-system',
+        [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
+      },
+      'test name',
+      undefined,
+      {
+        description: 'custom name',
+        op: 'message',
+        source: 'custom',
+      },
+    ],
+    [
+      'works with messaging system and component source and custom name',
+      {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+        [SEMATTRS_MESSAGING_SYSTEM]: 'test-messaging-system',
+        [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
+      },
+      'test name',
+      undefined,
+      {
+        description: 'custom name',
+        op: 'message',
+        source: 'component',
       },
     ],
     [
@@ -133,6 +274,50 @@ describe('parseSpanDescription', () => {
         source: 'route',
       },
     ],
+    [
+      'works with faas trigger and custom source',
+      {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+        [SEMATTRS_FAAS_TRIGGER]: 'test-faas-trigger',
+      },
+      'test name',
+      undefined,
+      {
+        description: 'test name',
+        op: 'test-faas-trigger',
+        source: 'custom',
+      },
+    ],
+    [
+      'works with faas trigger and custom source and custom name',
+      {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+        [SEMATTRS_FAAS_TRIGGER]: 'test-faas-trigger',
+        [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
+      },
+      'test name',
+      undefined,
+      {
+        description: 'custom name',
+        op: 'test-faas-trigger',
+        source: 'custom',
+      },
+    ],
+    [
+      'works with faas trigger and component source and custom name',
+      {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+        [SEMATTRS_FAAS_TRIGGER]: 'test-faas-trigger',
+        [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
+      },
+      'test name',
+      undefined,
+      {
+        description: 'custom name',
+        op: 'test-faas-trigger',
+        source: 'component',
+      },
+    ],
   ])('%s', (_, attributes, name, kind, expected) => {
     const actual = parseSpanDescription({ attributes, kind, name } as unknown as Span);
     expect(actual).toEqual(expected);
@@ -142,7 +327,7 @@ describe('parseSpanDescription', () => {
 describe('descriptionForHttpMethod', () => {
   it.each([
     [
-      'works withhout attributes',
+      'works without attributes',
       'GET',
       {},
       'test name',
@@ -165,6 +350,26 @@ describe('descriptionForHttpMethod', () => {
       SpanKind.CLIENT,
       {
         op: 'http.client',
+        description: 'GET https://www.example.com/my-path',
+        data: {
+          url: 'https://www.example.com/my-path',
+        },
+        source: 'url',
+      },
+    ],
+    [
+      'works with prefetch request',
+      'GET',
+      {
+        [SEMATTRS_HTTP_METHOD]: 'GET',
+        [SEMATTRS_HTTP_URL]: 'https://www.example.com/my-path',
+        [SEMATTRS_HTTP_TARGET]: '/my-path',
+        'sentry.http.prefetch': true,
+      },
+      'test name',
+      SpanKind.CLIENT,
+      {
+        op: 'http.client.prefetch',
         description: 'GET https://www.example.com/my-path',
         data: {
           url: 'https://www.example.com/my-path',
@@ -228,6 +433,71 @@ describe('descriptionForHttpMethod', () => {
           url: 'https://www.example.com/my-path',
         },
         source: 'custom',
+      },
+    ],
+    [
+      "doesn't overwrite span name with source custom",
+      'GET',
+      {
+        [SEMATTRS_HTTP_METHOD]: 'GET',
+        [SEMATTRS_HTTP_URL]: 'https://www.example.com/my-path/123',
+        [SEMATTRS_HTTP_TARGET]: '/my-path/123',
+        [ATTR_HTTP_ROUTE]: '/my-path/:id',
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+      },
+      'test name',
+      SpanKind.CLIENT,
+      {
+        op: 'http.client',
+        description: 'test name',
+        data: {
+          url: 'https://www.example.com/my-path/123',
+        },
+        source: 'custom',
+      },
+    ],
+    [
+      'takes user-passed span name (with source custom)',
+      'GET',
+      {
+        [SEMATTRS_HTTP_METHOD]: 'GET',
+        [SEMATTRS_HTTP_URL]: 'https://www.example.com/my-path/123',
+        [SEMATTRS_HTTP_TARGET]: '/my-path/123',
+        [ATTR_HTTP_ROUTE]: '/my-path/:id',
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+        [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
+      },
+      'test name',
+      SpanKind.CLIENT,
+      {
+        op: 'http.client',
+        description: 'custom name',
+        data: {
+          url: 'https://www.example.com/my-path/123',
+        },
+        source: 'custom',
+      },
+    ],
+    [
+      'takes user-passed span name (with source component)',
+      'GET',
+      {
+        [SEMATTRS_HTTP_METHOD]: 'GET',
+        [SEMATTRS_HTTP_URL]: 'https://www.example.com/my-path/123',
+        [SEMATTRS_HTTP_TARGET]: '/my-path/123',
+        [ATTR_HTTP_ROUTE]: '/my-path/:id',
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+        [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
+      },
+      'test name',
+      SpanKind.CLIENT,
+      {
+        op: 'http.client',
+        description: 'custom name',
+        data: {
+          url: 'https://www.example.com/my-path/123',
+        },
+        source: 'component',
       },
     ],
   ])('%s', (_, httpMethod, attributes, name, kind, expected) => {
@@ -382,4 +652,39 @@ describe('getSanitizedUrl', () => {
 
     expect(actual).toEqual(expected);
   });
+});
+
+describe('getUserUpdatedNameAndSource', () => {
+  it('returns param name if `SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME` attribute is not set', () => {
+    expect(getUserUpdatedNameAndSource('base name', {})).toEqual({ description: 'base name', source: 'custom' });
+  });
+
+  it('returns param name with custom fallback source if `SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME` attribute is not set', () => {
+    expect(getUserUpdatedNameAndSource('base name', {}, 'route')).toEqual({
+      description: 'base name',
+      source: 'route',
+    });
+  });
+
+  it('returns param name if `SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME` attribute is not a string', () => {
+    expect(getUserUpdatedNameAndSource('base name', { [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 123 })).toEqual({
+      description: 'base name',
+      source: 'custom',
+    });
+  });
+
+  it.each(['custom', 'task', 'url', 'route'])(
+    'returns `SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME` attribute if is a string and source is %s',
+    source => {
+      expect(
+        getUserUpdatedNameAndSource('base name', {
+          [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+        }),
+      ).toEqual({
+        description: 'custom name',
+        source,
+      });
+    },
+  );
 });

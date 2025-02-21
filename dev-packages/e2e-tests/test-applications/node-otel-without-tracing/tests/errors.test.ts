@@ -20,12 +20,12 @@ test('Sends correct error event', async ({ baseURL }) => {
     url: 'http://localhost:3030/test-exception/123',
   });
 
-  // This is unparametrized here because we do not have the express instrumentation
+  // This is unparameterized here because we do not have the express instrumentation
   expect(errorEvent.transaction).toEqual('GET /test-exception/123');
 
   expect(errorEvent.contexts?.trace).toEqual({
-    trace_id: expect.any(String),
-    span_id: expect.any(String),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
   });
 });
 

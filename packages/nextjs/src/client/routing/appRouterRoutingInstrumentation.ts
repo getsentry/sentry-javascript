@@ -3,18 +3,19 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
+import { GLOBAL_OBJ, browserPerformanceTimeOrigin } from '@sentry/core';
+import type { Client, Span } from '@sentry/core';
 import { WINDOW, startBrowserTracingNavigationSpan, startBrowserTracingPageLoadSpan } from '@sentry/react';
-import type { Client, Span } from '@sentry/types';
-import { GLOBAL_OBJ, browserPerformanceTimeOrigin } from '@sentry/utils';
 
 export const INCOMPLETE_APP_ROUTER_INSTRUMENTATION_TRANSACTION_NAME = 'incomplete-app-router-transaction';
 
 /** Instruments the Next.js app router for pageloads. */
 export function appRouterInstrumentPageLoad(client: Client): void {
+  const origin = browserPerformanceTimeOrigin();
   startBrowserTracingPageLoadSpan(client, {
     name: WINDOW.location.pathname,
     // pageload should always start at timeOrigin (and needs to be in s, not ms)
-    startTime: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
+    startTime: origin ? origin / 1000 : undefined,
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.nextjs.app_router_instrumentation',
@@ -36,7 +37,7 @@ const GLOBAL_OBJ_WITH_NEXT_ROUTER = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   nd?: {
     router?: NextRouter;
   };
-  // Avalable from 13.4.4-canary.4 - https://github.com/vercel/next.js/pull/50210
+  // Available from 13.4.4-canary.4 - https://github.com/vercel/next.js/pull/50210
   next?: {
     router?: NextRouter;
   };
@@ -59,8 +60,9 @@ export function appRouterInstrumentNavigation(client: Client): void {
   let currentNavigationSpan: Span | undefined = undefined;
 
   WINDOW.addEventListener('popstate', () => {
-    if (currentNavigationSpan && currentNavigationSpan.isRecording()) {
+    if (currentNavigationSpan?.isRecording()) {
       currentNavigationSpan.updateName(WINDOW.location.pathname);
+      currentNavigationSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'url');
     } else {
       currentNavigationSpan = startBrowserTracingNavigationSpan(client, {
         name: WINDOW.location.pathname,
@@ -105,9 +107,11 @@ export function appRouterInstrumentNavigation(client: Client): void {
 
               if (routerFunctionName === 'push') {
                 span?.updateName(transactionNameifyRouterArgument(argArray[0]));
+                span?.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'url');
                 span?.setAttribute('navigation.type', 'router.push');
               } else if (routerFunctionName === 'replace') {
                 span?.updateName(transactionNameifyRouterArgument(argArray[0]));
+                span?.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'url');
                 span?.setAttribute('navigation.type', 'router.replace');
               } else if (routerFunctionName === 'back') {
                 span?.setAttribute('navigation.type', 'router.back');
@@ -126,7 +130,8 @@ export function appRouterInstrumentNavigation(client: Client): void {
 
 function transactionNameifyRouterArgument(target: string): string {
   try {
-    return new URL(target, 'http://some-random-base.com/').pathname;
+    // We provide an arbitrary base because we only care about the pathname and it makes URL parsing more resilient.
+    return new URL(target, 'http://example.com/').pathname;
   } catch {
     return '/';
   }

@@ -1,7 +1,7 @@
 // PUBLIC APIS
 
-import type { StackParser } from '@sentry/types';
-import { GLOBAL_OBJ, createStackParser, nodeStackLineParser } from '@sentry/utils';
+import type { StackParser } from '@sentry/core';
+import { GLOBAL_OBJ, createStackParser, nodeStackLineParser } from '@sentry/core';
 import { createGetModuleFromFilename } from '../utils/module';
 
 /**
@@ -15,7 +15,7 @@ export function getSentryRelease(fallback?: string): string | undefined {
   }
 
   // This supports the variable that sentry-webpack-plugin injects
-  if (GLOBAL_OBJ.SENTRY_RELEASE && GLOBAL_OBJ.SENTRY_RELEASE.id) {
+  if (GLOBAL_OBJ.SENTRY_RELEASE?.id) {
     return GLOBAL_OBJ.SENTRY_RELEASE.id;
   }
 
@@ -68,6 +68,8 @@ export function getSentryRelease(fallback?: string): string | undefined {
     process.env['HEROKU_TEST_RUN_COMMIT_VERSION'] ||
     // Heroku #2 https://docs.sentry.io/product/integrations/deployment/heroku/#configure-releases
     process.env['HEROKU_SLUG_COMMIT'] ||
+    // Railway - https://docs.railway.app/reference/variables#git-variables
+    process.env['RAILWAY_GIT_COMMIT_SHA'] ||
     // Render - https://render.com/docs/environment-variables
     process.env['RENDER_GIT_COMMIT'] ||
     // Semaphore CI - https://docs.semaphoreci.com/ci-cd-environment/environment-variables

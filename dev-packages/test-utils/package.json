@@ -1,6 +1,6 @@
 {
   "private": true,
-  "version": "8.35.0",
+  "version": "9.1.0",
   "name": "@sentry-internal/test-utils",
   "author": "Sentry",
   "license": "MIT",
@@ -28,7 +28,7 @@
   },
   "sideEffects": false,
   "engines": {
-    "node": ">=14.18"
+    "node": ">=18"
   },
   "scripts": {
     "fix": "eslint . --format stylish --fix",
@@ -41,12 +41,11 @@
     "clean": "rimraf -g ./node_modules ./build"
   },
   "peerDependencies": {
-    "@playwright/test": "^1.44.1"
+    "@playwright/test": "~1.50.0"
   },
   "devDependencies": {
-    "@playwright/test": "^1.44.1",
-    "@sentry/types": "8.35.0",
-    "@sentry/utils": "8.35.0"
+    "@playwright/test": "~1.50.0",
+    "@sentry/core": "9.1.0"
   },
   "volta": {
     "extends": "../../package.json"

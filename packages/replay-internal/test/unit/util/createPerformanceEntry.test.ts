@@ -5,9 +5,9 @@ import { useFakeTimers } from '../../utils/use-fake-timers';
 useFakeTimers();
 vi.setSystemTime(new Date('2023-01-01'));
 
-vi.mock('@sentry/utils', async () => ({
-  ...(await vi.importActual('@sentry/utils')),
-  browserPerformanceTimeOrigin: new Date('2023-01-01').getTime(),
+vi.mock('@sentry/core', async () => ({
+  ...(await vi.importActual('@sentry/core')),
+  browserPerformanceTimeOrigin: () => new Date('2023-01-01').getTime(),
 }));
 
 import { WINDOW } from '../../../src/constants';

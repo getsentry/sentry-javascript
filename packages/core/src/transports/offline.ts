@@ -1,7 +1,9 @@
-import type { Envelope, InternalBaseTransportOptions, Transport, TransportMakeRequestResponse } from '@sentry/types';
-import { envelopeContainsItemType, logger, parseRetryAfterHeader } from '@sentry/utils';
+import type { Envelope, InternalBaseTransportOptions, Transport, TransportMakeRequestResponse } from '../types-hoist';
 
 import { DEBUG_BUILD } from '../debug-build';
+import { envelopeContainsItemType } from '../utils-hoist/envelope';
+import { logger } from '../utils-hoist/logger';
+import { parseRetryAfterHeader } from '../utils-hoist/ratelimit';
 
 export const MIN_DELAY = 100; // 100 ms
 export const START_DELAY = 5_000; // 5 seconds
@@ -132,9 +134,9 @@ export function makeOfflineTransport<TO>(
 
         if (result) {
           // If there's a retry-after header, use that as the next delay.
-          if (result.headers && result.headers['retry-after']) {
+          if (result.headers?.['retry-after']) {
             delay = parseRetryAfterHeader(result.headers['retry-after']);
-          } else if (result.headers && result.headers['x-sentry-rate-limits']) {
+          } else if (result.headers?.['x-sentry-rate-limits']) {
             delay = 60_000; // 60 seconds
           } // If we have a server error, return now so we don't flush the queue.
           else if ((result.statusCode || 0) >= 400) {
@@ -168,7 +170,15 @@ export function makeOfflineTransport<TO>(
 
     return {
       send,
-      flush: t => transport.flush(t),
+      flush: timeout => {
+        // If there's no timeout, we should attempt to flush the offline queue.
+        if (timeout === undefined) {
+          retryDelay = START_DELAY;
+          flushIn(MIN_DELAY);
+        }
+
+        return transport.flush(timeout);
+      },
     };
   };
 }

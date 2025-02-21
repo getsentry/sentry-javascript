@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { escapeStringForRegex } from '@sentry/utils';
+import { escapeStringForRegex } from '@sentry/core';
 
 import type { LoaderThis } from './types';
 
@@ -24,7 +24,7 @@ export default function prefixLoader(this: LoaderThis<LoaderOptions>, userCode: 
   const { templatePrefix, replacements } = 'getOptions' in this ? this.getOptions() : this.query;
 
   const templatePath = path.resolve(__dirname, `../templates/${templatePrefix}PrefixLoaderTemplate.js`);
-  // make sure the template is included when runing `webpack watch`
+  // make sure the template is included when running `webpack watch`
   this.addDependency(templatePath);
 
   // Fill in placeholders

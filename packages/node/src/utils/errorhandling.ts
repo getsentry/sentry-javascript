@@ -1,5 +1,4 @@
-import { getClient } from '@sentry/core';
-import { consoleSandbox, logger } from '@sentry/utils';
+import { consoleSandbox, getClient, logger } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import type { NodeClient } from '../sdk/client';
 
@@ -8,7 +7,7 @@ const DEFAULT_SHUTDOWN_TIMEOUT = 2000;
 /**
  * @hidden
  */
-export function logAndExitProcess(error: Error): void {
+export function logAndExitProcess(error: unknown): void {
   consoleSandbox(() => {
     // eslint-disable-next-line no-console
     console.error(error);
@@ -24,8 +23,7 @@ export function logAndExitProcess(error: Error): void {
 
   const options = client.getOptions();
   const timeout =
-    (options && options.shutdownTimeout && options.shutdownTimeout > 0 && options.shutdownTimeout) ||
-    DEFAULT_SHUTDOWN_TIMEOUT;
+    options?.shutdownTimeout && options.shutdownTimeout > 0 ? options.shutdownTimeout : DEFAULT_SHUTDOWN_TIMEOUT;
   client.close(timeout).then(
     (result: boolean) => {
       if (!result) {

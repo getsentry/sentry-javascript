@@ -4,7 +4,7 @@
 import { beforeAll, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import * as SentryCore from '@sentry/core';
-import type { Event } from '@sentry/types';
+import type { Event } from '@sentry/core';
 import { setAsyncLocalStorageAsyncContextStrategy } from '../src/async';
 import type { CloudflareOptions } from '../src/client';
 import { CloudflareClient } from '../src/client';
@@ -109,7 +109,7 @@ describe('withSentry', () => {
         },
       );
 
-      expect(sentryEvent.sdkProcessingMetadata?.request).toEqual({
+      expect(sentryEvent.sdkProcessingMetadata?.normalizedRequest).toEqual({
         headers: {},
         url: 'https://example.com/',
         method: 'GET',
@@ -217,7 +217,7 @@ describe('withSentry', () => {
       );
       expect(sentryEvent.contexts?.trace).toEqual({
         parent_span_id: '1121201211212012',
-        span_id: expect.any(String),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: '12312012123120121231201212312012',
       });
     });
@@ -267,9 +267,9 @@ describe('withSentry', () => {
         },
         op: 'http.server',
         origin: 'auto.http.cloudflare',
-        span_id: expect.any(String),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
         status: 'ok',
-        trace_id: expect.any(String),
+        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       });
     });
   });

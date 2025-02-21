@@ -1,7 +1,9 @@
 /* eslint-disable complexity */
-import { isThenable, parseSemver } from '@sentry/utils';
+import { isThenable, parseSemver } from '@sentry/core';
 
+import * as childProcess from 'child_process';
 import * as fs from 'fs';
+import { getSentryRelease } from '@sentry/node';
 import { sync as resolveSync } from 'resolve';
 import type {
   ExportedNextConfig as NextConfig,
@@ -48,17 +50,6 @@ function getFinalConfigObject(
   incomingUserNextConfigObject: NextConfigObject,
   userSentryOptions: SentryBuildOptions,
 ): NextConfigObject {
-  // TODO(v9): Remove this check for the Sentry property
-  if ('sentry' in incomingUserNextConfigObject) {
-    // eslint-disable-next-line no-console
-    console.warn(
-      '[@sentry/nextjs] Setting a `sentry` property on the Next.js config object as a means of configuration is no longer supported. Please use the `sentryBuildOptions` argument of of the `withSentryConfig()` function instead.',
-    );
-
-    // Next 12.2.3+ warns about non-canonical properties on `userNextConfig`.
-    delete incomingUserNextConfigObject.sentry;
-  }
-
   if (userSentryOptions?.tunnelRoute) {
     if (incomingUserNextConfigObject.output === 'export') {
       if (!showedExportModeTunnelWarning) {
@@ -72,6 +63,8 @@ function getFinalConfigObject(
       setUpTunnelRewriteRules(incomingUserNextConfigObject, userSentryOptions.tunnelRoute);
     }
   }
+
+  setUpBuildTimeVariables(incomingUserNextConfigObject, userSentryOptions);
 
   const nextJsVersion = getNextjsVersion();
 
@@ -171,9 +164,11 @@ function getFinalConfigObject(
     );
   }
 
+  const releaseName = userSentryOptions.release?.name ?? getSentryRelease() ?? getGitRevision();
+
   return {
     ...incomingUserNextConfigObject,
-    webpack: constructWebpackConfigFunction(incomingUserNextConfigObject, userSentryOptions),
+    webpack: constructWebpackConfigFunction(incomingUserNextConfigObject, userSentryOptions, releaseName),
   };
 }
 
@@ -253,6 +248,41 @@ function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: s
   };
 }
 
+// TODO: For Turbopack we need to pass the release name here and pick it up in the SDK
+function setUpBuildTimeVariables(userNextConfig: NextConfigObject, userSentryOptions: SentryBuildOptions): void {
+  const assetPrefix = userNextConfig.assetPrefix || userNextConfig.basePath || '';
+  const basePath = userNextConfig.basePath ?? '';
+  const rewritesTunnelPath =
+    userSentryOptions.tunnelRoute !== undefined && userNextConfig.output !== 'export'
+      ? `${basePath}${userSentryOptions.tunnelRoute}`
+      : undefined;
+
+  const buildTimeVariables: Record<string, string> = {
+    // Make sure that if we have a windows path, the backslashes are interpreted as such (rather than as escape
+    // characters)
+    _sentryRewriteFramesDistDir: userNextConfig.distDir?.replace(/\\/g, '\\\\') || '.next',
+    // Get the path part of `assetPrefix`, minus any trailing slash. (We use a placeholder for the origin if
+    // `assetPrefix` doesn't include one. Since we only care about the path, it doesn't matter what it is.)
+    _sentryRewriteFramesAssetPrefixPath: assetPrefix
+      ? new URL(assetPrefix, 'http://dogs.are.great').pathname.replace(/\/$/, '')
+      : '',
+  };
+
+  if (rewritesTunnelPath) {
+    buildTimeVariables._sentryRewritesTunnelPath = rewritesTunnelPath;
+  }
+
+  if (basePath) {
+    buildTimeVariables._sentryBasePath = basePath;
+  }
+
+  if (typeof userNextConfig.env === 'object') {
+    userNextConfig.env = { ...buildTimeVariables, ...userNextConfig.env };
+  } else if (userNextConfig.env === undefined) {
+    userNextConfig.env = buildTimeVariables;
+  }
+}
+
 function getNextjsVersion(): string | undefined {
   const nextjsPackageJsonPath = resolveNextjsPackageJson();
   if (nextjsPackageJsonPath) {
@@ -275,4 +305,17 @@ function resolveNextjsPackageJson(): string | undefined {
   } catch {
     return undefined;
   }
+}
+
+function getGitRevision(): string | undefined {
+  let gitRevision: string | undefined;
+  try {
+    gitRevision = childProcess
+      .execSync('git rev-parse HEAD', { stdio: ['ignore', 'pipe', 'ignore'] })
+      .toString()
+      .trim();
+  } catch (e) {
+    // noop
+  }
+  return gitRevision;
 }

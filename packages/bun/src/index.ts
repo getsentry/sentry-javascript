@@ -2,7 +2,7 @@ export type {
   Breadcrumb,
   BreadcrumbHint,
   PolymorphicRequest,
-  Request,
+  RequestEventData,
   SdkInfo,
   Event,
   EventHint,
@@ -15,8 +15,7 @@ export type {
   Stacktrace,
   Thread,
   User,
-} from '@sentry/types';
-export type { AddRequestDataToEventOptions } from '@sentry/utils';
+} from '@sentry/core';
 
 export {
   addEventProcessor,
@@ -32,8 +31,6 @@ export {
   endSession,
   withMonitor,
   createTransport,
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub,
   getClient,
   isInitialized,
   generateInstrumentOnce,
@@ -62,11 +59,9 @@ export {
   flush,
   close,
   getSentryRelease,
-  addRequestDataToEvent,
-  DEFAULT_USER_INCLUDES,
-  extractRequestData,
   createGetModuleFromFilename,
   anrIntegration,
+  disableAnrDetectionForCallback,
   consoleIntegration,
   httpIntegration,
   nativeNodeFetchIntegration,
@@ -94,7 +89,6 @@ export {
   continueTrace,
   getAutoPerformanceIntegrations,
   cron,
-  metrics,
   parameterize,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -112,6 +106,7 @@ export {
   setupConnectErrorHandler,
   genericPoolIntegration,
   graphqlIntegration,
+  knexIntegration,
   kafkaIntegration,
   lruMemoizerIntegration,
   mongoIntegration,
@@ -119,8 +114,7 @@ export {
   mysqlIntegration,
   mysql2Integration,
   redisIntegration,
-  nestIntegration,
-  setupNestErrorHandler,
+  tediousIntegration,
   postgresIntegration,
   prismaIntegration,
   hapiIntegration,
@@ -131,23 +125,23 @@ export {
   spanToTraceHeader,
   spanToBaggageHeader,
   trpcMiddleware,
-  addOpenTelemetryInstrumentation,
+  updateSpanName,
   zodErrorsIntegration,
   profiler,
   amqplibIntegration,
+  vercelAIIntegration,
 } from '@sentry/node';
 
 export {
   captureConsoleIntegration,
-  debugIntegration,
   dedupeIntegration,
   extraErrorDataIntegration,
   rewriteFramesIntegration,
-  sessionTimingIntegration,
 } from '@sentry/core';
 
 export type { BunOptions } from './types';
 
+// eslint-disable-next-line deprecation/deprecation
 export { BunClient } from './client';
 export { getDefaultIntegrations, init } from './sdk';
 export { bunServerIntegration } from './integrations/bunserver';

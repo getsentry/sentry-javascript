@@ -12,8 +12,9 @@ Sentry.init({
   debug: !!process.env.DEBUG,
   tunnel: `http://localhost:3031/`, // proxy server
   skipOpenTelemetrySetup: true,
-  // By defining _any_ sample rate, tracing intergations will be added by default
+  // By defining _any_ sample rate, tracing integrations will be added by default
   tracesSampleRate: 0,
+  integrations: [Sentry.httpIntegration({ spans: true })],
 });
 
 const provider = new NodeTracerProvider({

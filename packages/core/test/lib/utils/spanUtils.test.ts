@@ -1,20 +1,70 @@
-import type { Span, SpanAttributes, SpanStatus, SpanTimeInput } from '@sentry/types';
-import { TRACEPARENT_REGEXP, timestampInSeconds } from '@sentry/utils';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
   SPAN_STATUS_UNSET,
   SentrySpan,
+  TRACEPARENT_REGEXP,
+  convertSpanLinksForEnvelope,
   setCurrentClient,
   spanToTraceHeader,
   startInactiveSpan,
   startSpan,
+  timestampInSeconds,
 } from '../../../src';
+import type { Span, SpanAttributes, SpanStatus, SpanTimeInput } from '../../../src/types-hoist';
+import type { SpanLink } from '../../../src/types-hoist/link';
 import type { OpenTelemetrySdkTraceBaseSpan } from '../../../src/utils/spanUtils';
-import { getRootSpan, spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../../../src/utils/spanUtils';
+import { TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED } from '../../../src/utils/spanUtils';
+import {
+  getRootSpan,
+  spanIsSampled,
+  spanTimeInputToSeconds,
+  spanToJSON,
+  spanToTraceContext,
+  updateSpanName,
+} from '../../../src/utils/spanUtils';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
+
+function createMockedOtelSpan({
+  spanId,
+  traceId,
+  isRemote,
+  attributes = {},
+  startTime = Date.now(),
+  name = 'test span',
+  status = { code: SPAN_STATUS_UNSET },
+  endTime = Date.now(),
+  parentSpanId,
+}: {
+  spanId: string;
+  traceId: string;
+  attributes?: SpanAttributes;
+  startTime?: SpanTimeInput;
+  isRemote?: boolean;
+  name?: string;
+  status?: SpanStatus;
+  endTime?: SpanTimeInput;
+  parentSpanId?: string;
+}): Span {
+  return {
+    spanContext: () => {
+      return {
+        spanId,
+        traceId,
+        isRemote,
+      };
+    },
+    attributes,
+    startTime,
+    name,
+    status,
+    endTime,
+    parentSpanId,
+  } as OpenTelemetrySdkTraceBaseSpan;
+}
 
 describe('spanToTraceHeader', () => {
   test('simple', () => {
@@ -24,6 +74,197 @@ describe('spanToTraceHeader', () => {
   test('with sample', () => {
     const span = new SentrySpan({ sampled: true });
     expect(spanToTraceHeader(span)).toMatch(TRACEPARENT_REGEXP);
+  });
+});
+
+describe('spanToTraceContext', () => {
+  it('works with a minimal span', () => {
+    const span = new SentrySpan({ spanId: '1234', traceId: 'ABCD' });
+
+    expect(spanToTraceContext(span)).toEqual({
+      span_id: '1234',
+      trace_id: 'ABCD',
+    });
+  });
+
+  it('works with a span with parentSpanId', () => {
+    const span = new SentrySpan({
+      spanId: '1234',
+      traceId: 'ABCD',
+      parentSpanId: '5678',
+    });
+
+    expect(spanToTraceContext(span)).toEqual({
+      span_id: '1234',
+      trace_id: 'ABCD',
+      parent_span_id: '5678',
+    });
+  });
+
+  it('works with a local OTEL span', () => {
+    const span = createMockedOtelSpan({
+      spanId: '1234',
+      traceId: 'ABCD',
+      isRemote: false,
+    });
+
+    expect(spanToTraceContext(span)).toEqual({
+      span_id: '1234',
+      trace_id: 'ABCD',
+    });
+  });
+
+  it('works with a local OTEL span with parentSpanId', () => {
+    const span = createMockedOtelSpan({
+      spanId: '1234',
+      traceId: 'ABCD',
+      isRemote: false,
+      parentSpanId: 'XYZ',
+    });
+
+    expect(spanToTraceContext(span)).toEqual({
+      parent_span_id: 'XYZ',
+      span_id: '1234',
+      trace_id: 'ABCD',
+    });
+  });
+
+  it('works with a remote OTEL span', () => {
+    const span = createMockedOtelSpan({
+      spanId: '1234',
+      traceId: 'ABCD',
+      isRemote: true,
+    });
+
+    expect(spanToTraceContext(span)).toEqual({
+      parent_span_id: '1234',
+      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+      trace_id: 'ABCD',
+    });
+  });
+
+  it('works with a remote OTEL span with parentSpanId', () => {
+    const span = createMockedOtelSpan({
+      spanId: '1234',
+      traceId: 'ABCD',
+      isRemote: true,
+      parentSpanId: 'XYZ',
+    });
+
+    expect(spanToTraceContext(span)).toEqual({
+      parent_span_id: '1234',
+      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+      trace_id: 'ABCD',
+    });
+  });
+});
+
+describe('convertSpanLinksForEnvelope', () => {
+  it('returns undefined for undefined input', () => {
+    expect(convertSpanLinksForEnvelope(undefined)).toBeUndefined();
+  });
+
+  it('returns undefined for empty array input', () => {
+    expect(convertSpanLinksForEnvelope([])).toBeUndefined();
+  });
+
+  it('converts a single span link to a flattened envelope item', () => {
+    const links: SpanLink[] = [
+      {
+        context: {
+          spanId: 'span1',
+          traceId: 'trace1',
+          traceFlags: TRACE_FLAG_SAMPLED,
+        },
+        attributes: {
+          'sentry.link.type': 'previous_trace',
+        },
+      },
+    ];
+
+    const result = convertSpanLinksForEnvelope(links);
+
+    result?.forEach(item => expect(item).not.toHaveProperty('context'));
+    expect(result).toEqual([
+      {
+        span_id: 'span1',
+        trace_id: 'trace1',
+        sampled: true,
+        attributes: {
+          'sentry.link.type': 'previous_trace',
+        },
+      },
+    ]);
+  });
+
+  it('converts multiple span links to a flattened envelope item', () => {
+    const links: SpanLink[] = [
+      {
+        context: {
+          spanId: 'span1',
+          traceId: 'trace1',
+          traceFlags: TRACE_FLAG_SAMPLED,
+        },
+        attributes: {
+          'sentry.link.type': 'previous_trace',
+        },
+      },
+      {
+        context: {
+          spanId: 'span2',
+          traceId: 'trace2',
+          traceFlags: TRACE_FLAG_NONE,
+        },
+        attributes: {
+          'sentry.link.type': 'another_trace',
+        },
+      },
+    ];
+
+    const result = convertSpanLinksForEnvelope(links);
+
+    result?.forEach(item => expect(item).not.toHaveProperty('context'));
+    expect(result).toEqual([
+      {
+        span_id: 'span1',
+        trace_id: 'trace1',
+        sampled: true,
+        attributes: {
+          'sentry.link.type': 'previous_trace',
+        },
+      },
+      {
+        span_id: 'span2',
+        trace_id: 'trace2',
+        sampled: false,
+        attributes: {
+          'sentry.link.type': 'another_trace',
+        },
+      },
+    ]);
+  });
+
+  it('handles span links without attributes', () => {
+    const links: SpanLink[] = [
+      {
+        context: {
+          spanId: 'span1',
+          traceId: 'trace1',
+          traceFlags: TRACE_FLAG_SAMPLED,
+        },
+      },
+    ];
+
+    const result = convertSpanLinksForEnvelope(links);
+
+    result?.forEach(item => expect(item).not.toHaveProperty('context'));
+    expect(result).toEqual([
+      {
+        span_id: 'span1',
+        trace_id: 'trace1',
+        sampled: true,
+      },
+    ]);
   });
 });
 
@@ -110,41 +351,6 @@ describe('spanToJSON', () => {
   });
 
   describe('OpenTelemetry Span', () => {
-    function createMockedOtelSpan({
-      spanId,
-      traceId,
-      attributes,
-      startTime,
-      name,
-      status,
-      endTime,
-      parentSpanId,
-    }: {
-      spanId: string;
-      traceId: string;
-      attributes: SpanAttributes;
-      startTime: SpanTimeInput;
-      name: string;
-      status: SpanStatus;
-      endTime: SpanTimeInput;
-      parentSpanId?: string;
-    }): Span {
-      return {
-        spanContext: () => {
-          return {
-            spanId,
-            traceId,
-          };
-        },
-        attributes,
-        startTime,
-        name,
-        status,
-        endTime,
-        parentSpanId,
-      } as OpenTelemetrySdkTraceBaseSpan;
-    }
-
     it('works with a simple span', () => {
       const span = createMockedOtelSpan({
         spanId: 'SPAN-1',
@@ -200,10 +406,21 @@ describe('spanToJSON', () => {
     });
   });
 
-  it('returns empty object for unknown span implementation', () => {
-    const span = { other: 'other' };
+  it('returns minimal object for unknown span implementation', () => {
+    const span = {
+      // This is the minimal interface we require from a span
+      spanContext: () => ({
+        spanId: 'SPAN-1',
+        traceId: 'TRACE-1',
+      }),
+    };
 
-    expect(spanToJSON(span as unknown as Span)).toEqual({});
+    expect(spanToJSON(span as unknown as Span)).toEqual({
+      span_id: 'SPAN-1',
+      trace_id: 'TRACE-1',
+      start_timestamp: 0,
+      data: {},
+    });
   });
 });
 
@@ -238,10 +455,20 @@ describe('getRootSpan', () => {
         startSpan({ name: 'inner2' }, inner2 => {
           expect(getRootSpan(inner2)).toBe(root);
 
-          const inactiveSpan = startInactiveSpan({ name: 'inactived' });
+          const inactiveSpan = startInactiveSpan({ name: 'inactive' });
           expect(getRootSpan(inactiveSpan)).toBe(root);
         });
       });
     });
+  });
+});
+
+describe('updateSpanName', () => {
+  it('updates the span name and source', () => {
+    const span = new SentrySpan({ name: 'old-name', attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' } });
+    updateSpanName(span, 'new-name');
+    const spanJSON = spanToJSON(span);
+    expect(spanJSON.description).toBe('new-name');
+    expect(spanJSON.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('custom');
   });
 });

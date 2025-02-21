@@ -64,7 +64,7 @@ export type UseLocation = () => Location;
 export type UseNavigationType = () => Action;
 
 // For both of these types, use `any` instead of `RouteObject[]` or `RouteMatch[]`.
-// Have to do this so we maintain backwards compatability between
+// Have to do this so we maintain backwards compatibility between
 // react-router > 6.0.0 and >= 6.4.2.
 export type RouteObjectArrayAlias = any;
 export type RouteMatchAlias = any;
@@ -182,10 +182,14 @@ export interface RouterInit {
   hydrationData?: HydrationState;
 }
 
+export type NavigationState = {
+  state: 'idle' | 'loading' | 'submitting';
+};
+
 export type NavigationStates = {
-  Idle: any;
-  Loading: any;
-  Submitting: any;
+  Idle: NavigationState;
+  Loading: NavigationState;
+  Submitting: NavigationState;
 };
 
 export type Navigation = NavigationStates[keyof NavigationStates];
@@ -202,6 +206,7 @@ export declare enum HistoryAction {
 export interface RouterState {
   historyAction: Action | HistoryAction | any;
   location: Location;
+  navigation: Navigation;
 }
 export interface Router<TState extends RouterState = RouterState> {
   state: TState;

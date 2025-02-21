@@ -1,4 +1,4 @@
-import type { Envelope, Transport, TransportMakeRequestResponse } from '@sentry/types';
+import type { Envelope, Transport, TransportMakeRequestResponse } from '@sentry/core';
 
 import type { TestClientOptions } from './TestClient';
 import { getDefaultClientOptions, init } from './TestClient';
@@ -46,7 +46,6 @@ export async function mockSdk({ sentryOptions }: MockSdkParams = {}): Promise<vo
   init({
     ...getDefaultClientOptions(),
     dsn: 'https://dsn@ingest.f00.f00/1',
-    autoSessionTracking: false,
     sendClientReports: false,
     transport: () => new MockTransport(),
     replaysSessionSampleRate: 0.0,

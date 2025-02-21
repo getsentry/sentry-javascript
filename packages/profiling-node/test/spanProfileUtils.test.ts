@@ -1,11 +1,11 @@
 import * as Sentry from '@sentry/node';
 
+import { CpuProfilerBindings } from '@sentry-internal/node-cpu-profiler';
 import { getMainCarrier } from '@sentry/core';
+import { GLOBAL_OBJ, createEnvelope, logger } from '@sentry/core';
+import type { ProfilingIntegration } from '@sentry/core';
+import type { ProfileChunk, Transport } from '@sentry/core';
 import type { NodeClientOptions } from '@sentry/node/build/types/types';
-import type { ProfilingIntegration } from '@sentry/types';
-import type { ProfileChunk, Transport } from '@sentry/types';
-import { GLOBAL_OBJ, createEnvelope, logger } from '@sentry/utils';
-import { CpuProfilerBindings } from '../src/cpu_profiler';
 import { _nodeProfilingIntegration } from '../src/integration';
 
 function makeClientWithHooks(): [Sentry.NodeClient, Transport] {
@@ -501,7 +501,7 @@ describe('continuous profiling', () => {
     expect(startProfilingSpy).not.toHaveBeenCalledTimes(1);
     Sentry.profiler.startProfiler();
 
-    jest.advanceTimersByTime(5001);
+    jest.advanceTimersByTime(60_001);
     expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
     expect(startProfilingSpy).toHaveBeenCalledTimes(2);
   });
@@ -518,7 +518,7 @@ describe('continuous profiling', () => {
     Sentry.profiler.startProfiler();
     const profilerId = getProfilerId();
 
-    jest.advanceTimersByTime(5001);
+    jest.advanceTimersByTime(60_001);
     expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
     expect(startProfilingSpy).toHaveBeenCalledTimes(2);
     expect(getProfilerId()).toBe(profilerId);
@@ -552,11 +552,11 @@ describe('continuous profiling', () => {
     expect(startProfilingSpy).not.toHaveBeenCalledTimes(1);
     Sentry.profiler.startProfiler();
 
-    jest.advanceTimersByTime(5001);
+    jest.advanceTimersByTime(60_001);
     expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('manullly stopping a chunk doesnt restart the profiler', async () => {
+  it('manually stopping a chunk doesnt restart the profiler', async () => {
     const startProfilingSpy = jest.spyOn(CpuProfilerBindings, 'startProfiling');
     const stopProfilingSpy = jest.spyOn(CpuProfilerBindings, 'stopProfiling');
 

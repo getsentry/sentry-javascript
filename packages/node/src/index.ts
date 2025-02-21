@@ -9,7 +9,7 @@ export { localVariablesIntegration } from './integrations/local-variables';
 export { modulesIntegration } from './integrations/modules';
 export { onUncaughtExceptionIntegration } from './integrations/onuncaughtexception';
 export { onUnhandledRejectionIntegration } from './integrations/onunhandledrejection';
-export { anrIntegration } from './integrations/anr';
+export { anrIntegration, disableAnrDetectionForCallback } from './integrations/anr';
 
 export { expressIntegration, expressErrorHandler, setupExpressErrorHandler } from './integrations/tracing/express';
 export { fastifyIntegration, setupFastifyErrorHandler } from './integrations/tracing/fastify';
@@ -21,17 +21,19 @@ export { mongooseIntegration } from './integrations/tracing/mongoose';
 export { mysqlIntegration } from './integrations/tracing/mysql';
 export { mysql2Integration } from './integrations/tracing/mysql2';
 export { redisIntegration } from './integrations/tracing/redis';
-export { nestIntegration, setupNestErrorHandler } from './integrations/tracing/nest/nest';
 export { postgresIntegration } from './integrations/tracing/postgres';
 export { prismaIntegration } from './integrations/tracing/prisma';
 export { hapiIntegration, setupHapiErrorHandler } from './integrations/tracing/hapi';
 export { koaIntegration, setupKoaErrorHandler } from './integrations/tracing/koa';
 export { connectIntegration, setupConnectErrorHandler } from './integrations/tracing/connect';
 export { spotlightIntegration } from './integrations/spotlight';
+export { knexIntegration } from './integrations/tracing/knex';
+export { tediousIntegration } from './integrations/tracing/tedious';
 export { genericPoolIntegration } from './integrations/tracing/genericPool';
 export { dataloaderIntegration } from './integrations/tracing/dataloader';
 export { amqplibIntegration } from './integrations/tracing/amqplib';
-export { processThreadBreadcrumbIntegration } from './integrations/processThread';
+export { vercelAIIntegration } from './integrations/tracing/vercelai';
+export { childProcessIntegration } from './integrations/childProcess';
 
 export { SentryContextManager } from './otel/contextManager';
 export { generateInstrumentOnce } from './otel/instrument';
@@ -53,13 +55,7 @@ export { cron } from './cron';
 
 export type { NodeOptions } from './types';
 
-export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from '@sentry/utils';
-
 export {
-  addOpenTelemetryInstrumentation,
-  // These are custom variants that need to be used instead of the core one
-  // As they have slightly different implementations
-  continueTrace,
   // This needs exporting so the NodeClient can be used without calling init
   setOpenTelemetryContextAsyncContextStrategy as setNodeAsyncContextStrategy,
 } from '@sentry/opentelemetry';
@@ -98,12 +94,11 @@ export {
   getSpanDescendants,
   parameterize,
   getClient,
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub,
   getCurrentScope,
   getIsolationScope,
   getTraceData,
   getTraceMetaTags,
+  continueTrace,
   withScope,
   withIsolationScope,
   captureException,
@@ -111,12 +106,9 @@ export {
   captureMessage,
   captureFeedback,
   captureConsoleIntegration,
-  debugIntegration,
   dedupeIntegration,
   extraErrorDataIntegration,
   rewriteFramesIntegration,
-  sessionTimingIntegration,
-  metricsDefault as metrics,
   startSession,
   captureSession,
   endSession,
@@ -133,6 +125,7 @@ export {
   spanToTraceHeader,
   spanToBaggageHeader,
   trpcMiddleware,
+  updateSpanName,
   zodErrorsIntegration,
   profiler,
 } from '@sentry/core';
@@ -141,7 +134,7 @@ export type {
   Breadcrumb,
   BreadcrumbHint,
   PolymorphicRequest,
-  Request,
+  RequestEventData,
   SdkInfo,
   Event,
   EventHint,
@@ -154,4 +147,4 @@ export type {
   Thread,
   User,
   Span,
-} from '@sentry/types';
+} from '@sentry/core';

@@ -1,10 +1,8 @@
 import type { Tracer } from '@opentelemetry/api';
 import { trace } from '@opentelemetry/api';
 import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
-import type { BaseClient } from '@sentry/core';
+import type { Client } from '@sentry/core';
 import { SDK_VERSION } from '@sentry/core';
-import type { Client } from '@sentry/types';
-
 import type { OpenTelemetryClient as OpenTelemetryClientInterface } from '../types';
 
 // Typescript complains if we do not use `...args: any[]` for the mixin, with:
@@ -12,7 +10,8 @@ import type { OpenTelemetryClient as OpenTelemetryClientInterface } from '../typ
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 /**
- * Wrap an Client with things we need for OpenTelemetry support.
+ * Wrap an Client class with things we need for OpenTelemetry support.
+ * Make sure that the Client class passed in is non-abstract!
  *
  * Usage:
  * const OpenTelemetryClient = getWrappedClientClass(NodeClient);
@@ -21,11 +20,12 @@ import type { OpenTelemetryClient as OpenTelemetryClientInterface } from '../typ
 export function wrapClientClass<
   ClassConstructor extends new (
     ...args: any[]
-  ) => Client & BaseClient<any>,
+  ) => Client,
   WrappedClassConstructor extends new (
     ...args: any[]
-  ) => Client & BaseClient<any> & OpenTelemetryClientInterface,
+  ) => Client & OpenTelemetryClientInterface,
 >(ClientClass: ClassConstructor): WrappedClassConstructor {
+  // @ts-expect-error We just assume that this is non-abstract, if you pass in an abstract class this would make it non-abstract
   class OpenTelemetryClient extends ClientClass implements OpenTelemetryClientInterface {
     public traceProvider: BasicTracerProvider | undefined;
     private _tracer: Tracer | undefined;

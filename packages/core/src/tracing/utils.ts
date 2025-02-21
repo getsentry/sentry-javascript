@@ -1,9 +1,6 @@
-import type { Span } from '@sentry/types';
-import type { Scope } from '@sentry/types';
-import { addNonEnumerableProperty } from '@sentry/utils';
-
-// so it can be used in manual instrumentation without necessitating a hard dependency on @sentry/utils
-export { stripUrlQueryAndFragment } from '@sentry/utils';
+import type { Scope } from '../scope';
+import type { Span } from '../types-hoist';
+import { addNonEnumerableProperty } from '../utils-hoist/object';
 
 const SCOPE_ON_START_SPAN_FIELD = '_sentryScope';
 const ISOLATION_SCOPE_ON_START_SPAN_FIELD = '_sentryIsolationScope';

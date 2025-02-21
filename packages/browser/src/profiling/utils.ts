@@ -1,26 +1,16 @@
 /* eslint-disable max-lines */
-
-import { DEFAULT_ENVIRONMENT, getClient, spanToJSON } from '@sentry/core';
-import type {
-  DebugImage,
-  Envelope,
-  Event,
-  EventEnvelope,
-  Profile,
-  Span,
-  StackFrame,
-  StackParser,
-  ThreadCpuProfile,
-} from '@sentry/types';
+import type { DebugImage, Envelope, Event, EventEnvelope, Profile, Span, ThreadCpuProfile } from '@sentry/core';
 import {
-  GLOBAL_OBJ,
+  DEFAULT_ENVIRONMENT,
   browserPerformanceTimeOrigin,
   forEachEnvelopeItem,
+  getClient,
+  getDebugImagesForResources,
   logger,
+  spanToJSON,
   timestampInSeconds,
   uuid4,
-} from '@sentry/utils';
-
+} from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 import type { JSSelfProfile, JSSelfProfileStack, JSSelfProfiler, JSSelfProfilerConstructor } from './jsSelfProfiling';
@@ -31,16 +21,16 @@ const MS_TO_NS = 1e6;
 const THREAD_ID_STRING = String(0);
 const THREAD_NAME = 'main';
 
+// We force make this optional to be on the safe side...
+const navigator = WINDOW.navigator as typeof WINDOW.navigator | undefined;
+
 // Machine properties (eval only once)
 let OS_PLATFORM = '';
 let OS_PLATFORM_VERSION = '';
 let OS_ARCH = '';
-let OS_BROWSER = (WINDOW.navigator && WINDOW.navigator.userAgent) || '';
+let OS_BROWSER = navigator?.userAgent || '';
 let OS_MODEL = '';
-const OS_LOCALE =
-  (WINDOW.navigator && WINDOW.navigator.language) ||
-  (WINDOW.navigator && WINDOW.navigator.languages && WINDOW.navigator.languages[0]) ||
-  '';
+const OS_LOCALE = navigator?.language || navigator?.languages?.[0] || '';
 
 type UAData = {
   platform?: string;
@@ -62,7 +52,7 @@ function isUserAgentData(data: unknown): data is UserAgentData {
 }
 
 // @ts-expect-error userAgentData is not part of the navigator interface yet
-const userAgentData = WINDOW.navigator && WINDOW.navigator.userAgentData;
+const userAgentData = navigator?.userAgentData;
 
 if (isUserAgentData(userAgentData)) {
   userAgentData
@@ -73,7 +63,7 @@ if (isUserAgentData(userAgentData)) {
       OS_MODEL = ua.model || '';
       OS_PLATFORM_VERSION = ua.platformVersion || '';
 
-      if (ua.fullVersionList && ua.fullVersionList.length > 0) {
+      if (ua.fullVersionList?.length) {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const firstUa = ua.fullVersionList[ua.fullVersionList.length - 1]!;
         OS_BROWSER = `${firstUa.brand} ${firstUa.version}`;
@@ -108,7 +98,7 @@ export interface ProfiledEvent extends Event {
 }
 
 function getTraceId(event: Event): string {
-  const traceId: unknown = event && event.contexts && event.contexts['trace'] && event.contexts['trace']['trace_id'];
+  const traceId: unknown = event.contexts?.trace?.['trace_id'];
   // Log a warning if the profile has an invalid traceId (should be uuidv4).
   // All profiles and transactions are rejected if this is the case and we want to
   // warn users that this is happening if they enable debug flag
@@ -209,7 +199,7 @@ export function createProfilePayload(
  *
  */
 export function isProfiledTransactionEvent(event: Event): event is ProfiledEvent {
-  return !!(event.sdkProcessingMetadata && event.sdkProcessingMetadata['profile']);
+  return !!event.sdkProcessingMetadata?.profile;
 }
 
 /*
@@ -251,9 +241,9 @@ export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): Profi
   // when that happens, we need to ensure we are correcting the profile timings so the two timelines stay in sync.
   // Since JS self profiling time origin is always initialized to performance.timeOrigin, we need to adjust for
   // the drift between the SDK selected value and our profile time origin.
-  const origin =
-    typeof performance.timeOrigin === 'number' ? performance.timeOrigin : browserPerformanceTimeOrigin || 0;
-  const adjustForOriginChange = origin - (browserPerformanceTimeOrigin || origin);
+  const perfOrigin = browserPerformanceTimeOrigin();
+  const origin = typeof performance.timeOrigin === 'number' ? performance.timeOrigin : perfOrigin || 0;
+  const adjustForOriginChange = origin - (perfOrigin || origin);
 
   input.samples.forEach((jsSample, i) => {
     // If sample has no stack, add an empty sample
@@ -343,7 +333,7 @@ export function findProfiledTransactionsFromEnvelope(envelope: Envelope): Event[
     for (let j = 1; j < item.length; j++) {
       const event = item[j] as Event;
 
-      if (event && event.contexts && event.contexts['profile'] && event.contexts['profile']['profile_id']) {
+      if (event?.contexts && event.contexts['profile'] && event.contexts['profile']['profile_id']) {
         events.push(item[j] as Event);
       }
     }
@@ -352,70 +342,19 @@ export function findProfiledTransactionsFromEnvelope(envelope: Envelope): Event[
   return events;
 }
 
-const debugIdStackParserCache = new WeakMap<StackParser, Map<string, StackFrame[]>>();
 /**
  * Applies debug meta data to an event from a list of paths to resources (sourcemaps)
  */
 export function applyDebugMetadata(resource_paths: ReadonlyArray<string>): DebugImage[] {
-  const debugIdMap = GLOBAL_OBJ._sentryDebugIds;
-
-  if (!debugIdMap) {
-    return [];
-  }
-
   const client = getClient();
-  const options = client && client.getOptions();
-  const stackParser = options && options.stackParser;
+  const options = client?.getOptions();
+  const stackParser = options?.stackParser;
 
   if (!stackParser) {
     return [];
   }
 
-  let debugIdStackFramesCache: Map<string, StackFrame[]>;
-  const cachedDebugIdStackFrameCache = debugIdStackParserCache.get(stackParser);
-  if (cachedDebugIdStackFrameCache) {
-    debugIdStackFramesCache = cachedDebugIdStackFrameCache;
-  } else {
-    debugIdStackFramesCache = new Map<string, StackFrame[]>();
-    debugIdStackParserCache.set(stackParser, debugIdStackFramesCache);
-  }
-
-  // Build a map of filename -> debug_id
-  const filenameDebugIdMap = Object.keys(debugIdMap).reduce<Record<string, string>>((acc, debugIdStackTrace) => {
-    let parsedStack: StackFrame[];
-
-    const cachedParsedStack = debugIdStackFramesCache.get(debugIdStackTrace);
-    if (cachedParsedStack) {
-      parsedStack = cachedParsedStack;
-    } else {
-      parsedStack = stackParser(debugIdStackTrace);
-      debugIdStackFramesCache.set(debugIdStackTrace, parsedStack);
-    }
-
-    for (let i = parsedStack.length - 1; i >= 0; i--) {
-      const stackFrame = parsedStack[i];
-      const file = stackFrame && stackFrame.filename;
-
-      if (stackFrame && file) {
-        acc[file] = debugIdMap[debugIdStackTrace] as string;
-        break;
-      }
-    }
-    return acc;
-  }, {});
-
-  const images: DebugImage[] = [];
-  for (const path of resource_paths) {
-    if (path && filenameDebugIdMap[path]) {
-      images.push({
-        type: 'sourcemap',
-        code_file: path,
-        debug_id: filenameDebugIdMap[path] as string,
-      });
-    }
-  }
-
-  return images;
+  return getDebugImagesForResources(stackParser, resource_paths);
 }
 
 /**
@@ -539,7 +478,7 @@ export function shouldProfileSpan(span: Span): boolean {
   }
 
   const client = getClient();
-  const options = client && client.getOptions();
+  const options = client?.getOptions();
   if (!options) {
     DEBUG_BUILD && logger.log('[Profiling] Profiling disabled, no options found.');
     return false;
@@ -601,7 +540,7 @@ export function createProfilingEvent(
 
 // TODO (v8): We need to obtain profile ids in @sentry-internal/tracing,
 // but we don't have access to this map because importing this map would
-// cause a circular dependancy. We need to resolve this in v8.
+// cause a circular dependency. We need to resolve this in v8.
 const PROFILE_MAP: Map<string, JSSelfProfile> = new Map();
 /**
  *

@@ -1,87 +1,56 @@
-import type { IntegrationFn } from '@sentry/types';
-import type { AddRequestDataToEventOptions, TransactionNamingScheme } from '@sentry/utils';
-import { addRequestDataToEvent } from '@sentry/utils';
 import { defineIntegration } from '../integration';
+import type { Event, IntegrationFn, RequestEventData } from '../types-hoist';
+import { parseCookie } from '../utils/cookie';
+import { getClientIPAddress, ipHeaderNames } from '../vendor/getIpAddress';
 
-export type RequestDataIntegrationOptions = {
+interface RequestDataIncludeOptions {
+  cookies?: boolean;
+  data?: boolean;
+  headers?: boolean;
+  ip?: boolean;
+  query_string?: boolean;
+  url?: boolean;
+}
+
+type RequestDataIntegrationOptions = {
   /**
-   * Controls what data is pulled from the request and added to the event
+   * Controls what data is pulled from the request and added to the event.
    */
-  include?: {
-    cookies?: boolean;
-    data?: boolean;
-    headers?: boolean;
-    ip?: boolean;
-    query_string?: boolean;
-    url?: boolean;
-    user?:
-      | boolean
-      | {
-          id?: boolean;
-          username?: boolean;
-          email?: boolean;
-        };
-  };
-
-  /** Whether to identify transactions by parameterized path, parameterized path with method, or handler name */
-  transactionNamingScheme?: TransactionNamingScheme;
+  include?: RequestDataIncludeOptions;
 };
 
-const DEFAULT_OPTIONS = {
-  include: {
-    cookies: true,
-    data: true,
-    headers: true,
-    ip: false,
-    query_string: true,
-    url: true,
-    user: {
-      id: true,
-      username: true,
-      email: true,
-    },
-  },
-  transactionNamingScheme: 'methodPath' as const,
+const DEFAULT_INCLUDE: RequestDataIncludeOptions = {
+  cookies: true,
+  data: true,
+  headers: true,
+  query_string: true,
+  url: true,
 };
 
 const INTEGRATION_NAME = 'RequestData';
 
 const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) => {
-  const _options: Required<RequestDataIntegrationOptions> = {
-    ...DEFAULT_OPTIONS,
-    ...options,
-    include: {
-      ...DEFAULT_OPTIONS.include,
-      ...options.include,
-      user:
-        options.include && typeof options.include.user === 'boolean'
-          ? options.include.user
-          : {
-              ...DEFAULT_OPTIONS.include.user,
-              // Unclear why TS still thinks `options.include.user` could be a boolean at this point
-              ...((options.include || {}).user as Record<string, boolean>),
-            },
-    },
+  const include = {
+    ...DEFAULT_INCLUDE,
+    ...options.include,
   };
 
   return {
     name: INTEGRATION_NAME,
-    processEvent(event) {
-      // Note: In the long run, most of the logic here should probably move into the request data utility functions. For
-      // the moment it lives here, though, until https://github.com/getsentry/sentry-javascript/issues/5718 is addressed.
-      // (TL;DR: Those functions touch many parts of the repo in many different ways, and need to be cleaned up. Once
-      // that's happened, it will be easier to add this logic in without worrying about unexpected side effects.)
-
+    processEvent(event, _hint, client) {
       const { sdkProcessingMetadata = {} } = event;
-      const req = sdkProcessingMetadata.request;
+      const { normalizedRequest, ipAddress } = sdkProcessingMetadata;
 
-      if (!req) {
-        return event;
+      const includeWithDefaultPiiApplied: RequestDataIncludeOptions = {
+        ...include,
+        ip: include.ip ?? client.getOptions().sendDefaultPii,
+      };
+
+      if (normalizedRequest) {
+        addNormalizedRequestDataToEvent(event, normalizedRequest, { ipAddress }, includeWithDefaultPiiApplied);
       }
 
-      const addRequestDataOptions = convertReqDataIntegrationOptsToAddReqDataOpts(_options);
-
-      return addRequestDataToEvent(event, req, addRequestDataOptions);
+      return event;
     },
   };
 }) satisfies IntegrationFn;
@@ -92,44 +61,75 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
  */
 export const requestDataIntegration = defineIntegration(_requestDataIntegration);
 
-/** Convert this integration's options to match what `addRequestDataToEvent` expects */
-/** TODO: Can possibly be deleted once https://github.com/getsentry/sentry-javascript/issues/5718 is fixed */
-function convertReqDataIntegrationOptsToAddReqDataOpts(
-  integrationOptions: Required<RequestDataIntegrationOptions>,
-): AddRequestDataToEventOptions {
-  const {
-    transactionNamingScheme,
-    include: { ip, user, ...requestOptions },
-  } = integrationOptions;
-
-  const requestIncludeKeys: string[] = ['method'];
-  for (const [key, value] of Object.entries(requestOptions)) {
-    if (value) {
-      requestIncludeKeys.push(key);
-    }
-  }
-
-  let addReqDataUserOpt;
-  if (user === undefined) {
-    addReqDataUserOpt = true;
-  } else if (typeof user === 'boolean') {
-    addReqDataUserOpt = user;
-  } else {
-    const userIncludeKeys: string[] = [];
-    for (const [key, value] of Object.entries(user)) {
-      if (value) {
-        userIncludeKeys.push(key);
-      }
-    }
-    addReqDataUserOpt = userIncludeKeys;
-  }
-
-  return {
-    include: {
-      ip,
-      user: addReqDataUserOpt,
-      request: requestIncludeKeys.length !== 0 ? requestIncludeKeys : undefined,
-      transaction: transactionNamingScheme,
-    },
+/**
+ * Add already normalized request data to an event.
+ * This mutates the passed in event.
+ */
+function addNormalizedRequestDataToEvent(
+  event: Event,
+  req: RequestEventData,
+  // Data that should not go into `event.request` but is somehow related to requests
+  additionalData: { ipAddress?: string },
+  include: RequestDataIncludeOptions,
+): void {
+  event.request = {
+    ...event.request,
+    ...extractNormalizedRequestData(req, include),
   };
+
+  if (include.ip) {
+    const ip = (req.headers && getClientIPAddress(req.headers)) || additionalData.ipAddress;
+    if (ip) {
+      event.user = {
+        ...event.user,
+        ip_address: ip,
+      };
+    }
+  }
+}
+
+function extractNormalizedRequestData(
+  normalizedRequest: RequestEventData,
+  include: RequestDataIncludeOptions,
+): RequestEventData {
+  const requestData: RequestEventData = {};
+  const headers = { ...normalizedRequest.headers };
+
+  if (include.headers) {
+    requestData.headers = headers;
+
+    // Remove the Cookie header in case cookie data should not be included in the event
+    if (!include.cookies) {
+      delete (headers as { cookie?: string }).cookie;
+    }
+
+    // Remove IP headers in case IP data should not be included in the event
+    if (!include.ip) {
+      ipHeaderNames.forEach(ipHeaderName => {
+        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+        delete (headers as Record<string, unknown>)[ipHeaderName];
+      });
+    }
+  }
+
+  requestData.method = normalizedRequest.method;
+
+  if (include.url) {
+    requestData.url = normalizedRequest.url;
+  }
+
+  if (include.cookies) {
+    const cookies = normalizedRequest.cookies || (headers?.cookie ? parseCookie(headers.cookie) : undefined);
+    requestData.cookies = cookies || {};
+  }
+
+  if (include.query_string) {
+    requestData.query_string = normalizedRequest.query_string;
+  }
+
+  if (include.data) {
+    requestData.data = normalizedRequest.data;
+  }
+
+  return requestData;
 }

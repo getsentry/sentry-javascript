@@ -1,8 +1,8 @@
 import { getGlobalScope, getIsolationScope } from '@sentry/core';
+import { logger } from '@sentry/core';
+import type { Integration } from '@sentry/core';
 import * as SentryReact from '@sentry/react';
 import { WINDOW, getClient, getCurrentScope } from '@sentry/react';
-import type { Integration } from '@sentry/types';
-import { logger } from '@sentry/utils';
 import { JSDOM } from 'jsdom';
 
 import { breadcrumbsIntegration, browserTracingIntegration, init } from '../src/client';

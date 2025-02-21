@@ -7,17 +7,18 @@ import {
   spanIsSampled,
   spanToJSON,
 } from '@sentry/core';
+import type { EventEnvelopeHeaders, Span } from '@sentry/core';
+import * as SentryCore from '@sentry/core';
 import { NodeClient, setCurrentClient } from '@sentry/node';
-import * as SentryNode from '@sentry/node';
-import type { EventEnvelopeHeaders, Span } from '@sentry/types';
 import type { Handle } from '@sveltejs/kit';
 import { redirect } from '@sveltejs/kit';
 import { vi } from 'vitest';
 
-import { FETCH_PROXY_SCRIPT, addSentryCodeToPage, sentryHandle } from '../../src/server/handle';
+import { FETCH_PROXY_SCRIPT, addSentryCodeToPage, isFetchProxyRequired } from '../../src/server-common/handle';
+import { sentryHandle } from '../../src/server-common/handle';
 import { getDefaultNodeClientOptions } from '../utils';
 
-const mockCaptureException = vi.spyOn(SentryNode, 'captureException').mockImplementation(() => 'xx');
+const mockCaptureException = vi.spyOn(SentryCore, 'captureException').mockImplementation(() => 'xx');
 
 function mockEvent(override: Record<string, unknown> = {}): Parameters<Handle>[0]['event'] {
   const event: Parameters<Handle>[0]['event'] = {
@@ -45,8 +46,6 @@ function mockEvent(override: Record<string, unknown> = {}): Parameters<Handle>[0
 
     ...override,
   };
-
-  event.request.clone = () => event.request;
 
   return event;
 }
@@ -100,6 +99,7 @@ beforeEach(() => {
   client.init();
 
   mockCaptureException.mockClear();
+  vi.clearAllMocks();
 });
 
 describe('sentryHandle', () => {
@@ -149,53 +149,6 @@ describe('sentryHandle', () => {
       expect(spans).toHaveLength(1);
     });
 
-    it('[kit>=1.21.0] creates a child span for nested server calls (i.e. if there is an active span)', async () => {
-      let _span: Span | undefined = undefined;
-      let txnCount = 0;
-      client.on('spanEnd', span => {
-        if (span === getRootSpan(span)) {
-          _span = span;
-          ++txnCount;
-        }
-      });
-
-      try {
-        await sentryHandle()({
-          event: mockEvent(),
-          resolve: async _ => {
-            // simulateing a nested load call:
-            await sentryHandle()({
-              event: mockEvent({ route: { id: 'api/users/details/[id]', isSubRequest: true } }),
-              resolve: resolve(type, isError),
-            });
-            return mockResponse;
-          },
-        });
-      } catch (e) {
-        //
-      }
-
-      expect(txnCount).toEqual(1);
-      expect(_span!).toBeDefined();
-
-      expect(spanToJSON(_span!).description).toEqual('GET /users/[id]');
-      expect(spanToJSON(_span!).op).toEqual('http.server');
-      expect(spanToJSON(_span!).status).toEqual(isError ? 'internal_error' : 'ok');
-      expect(spanToJSON(_span!).data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('route');
-
-      expect(spanToJSON(_span!).timestamp).toBeDefined();
-
-      const spans = getSpanDescendants(_span!).map(spanToJSON);
-
-      expect(spans).toHaveLength(2);
-      expect(spans).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ op: 'http.server', description: 'GET /users/[id]' }),
-          expect.objectContaining({ op: 'http.server', description: 'GET api/users/details/[id]' }),
-        ]),
-      );
-    });
-
     it('creates a child span for nested server calls (i.e. if there is an active span)', async () => {
       let _span: Span | undefined = undefined;
       let txnCount = 0;
@@ -210,9 +163,9 @@ describe('sentryHandle', () => {
         await sentryHandle()({
           event: mockEvent(),
           resolve: async _ => {
-            // simulateing a nested load call:
+            // simulating a nested load call:
             await sentryHandle()({
-              event: mockEvent({ route: { id: 'api/users/details/[id]' } }),
+              event: mockEvent({ route: { id: 'api/users/details/[id]', isSubRequest: true } }),
               resolve: resolve(type, isError),
             });
             return mockResponse;
@@ -296,7 +249,8 @@ describe('sentryHandle', () => {
                 return (
                   'sentry-environment=production,sentry-release=1.0.0,sentry-transaction=dogpark,' +
                   'sentry-public_key=dogsarebadatkeepingsecrets,' +
-                  'sentry-trace_id=1234567890abcdef1234567890abcdef,sentry-sample_rate=1'
+                  'sentry-trace_id=1234567890abcdef1234567890abcdef,sentry-sample_rate=1,' +
+                  'sentry-sample_rand=0.42'
                 );
               }
 
@@ -332,6 +286,7 @@ describe('sentryHandle', () => {
         sample_rate: '1',
         trace_id: '1234567890abcdef1234567890abcdef',
         transaction: 'dogpark',
+        sample_rand: '0.42',
       });
     });
 
@@ -413,6 +368,23 @@ describe('sentryHandle', () => {
 
       expect(_span!).toBeDefined();
     });
+
+    it("doesn't create an isolation scope when the `_sentrySkipRequestIsolation` local is set", async () => {
+      const withIsolationScopeSpy = vi.spyOn(SentryCore, 'withIsolationScope');
+      const continueTraceSpy = vi.spyOn(SentryCore, 'continueTrace');
+
+      try {
+        await sentryHandle({ handleUnknownRoutes: true })({
+          event: { ...mockEvent({ route: undefined }), locals: { _sentrySkipRequestIsolation: true } },
+          resolve: resolve(type, isError),
+        });
+      } catch {
+        //
+      }
+
+      expect(withIsolationScopeSpy).not.toHaveBeenCalled();
+      expect(continueTraceSpy).not.toHaveBeenCalled();
+    });
   });
 });
 
@@ -430,36 +402,24 @@ describe('addSentryCodeToPage', () => {
   </html>`;
 
   it("Adds add meta tags and fetch proxy script if there's no active transaction", () => {
-    const transformPageChunk = addSentryCodeToPage({});
+    const transformPageChunk = addSentryCodeToPage({ injectFetchProxyScript: true });
     const transformed = transformPageChunk({ html, done: true });
 
     expect(transformed).toContain('<meta name="sentry-trace"');
     expect(transformed).toContain('<meta name="baggage"');
     expect(transformed).not.toContain('sentry-transaction=');
-    expect(transformed).toContain(`<script >${FETCH_PROXY_SCRIPT}</script>`);
+    expect(transformed).toContain(`<script>${FETCH_PROXY_SCRIPT}</script>`);
   });
 
   it('adds meta tags and the fetch proxy script if there is an active transaction', () => {
-    const transformPageChunk = addSentryCodeToPage({});
-    SentryNode.startSpan({ name: 'test' }, () => {
+    const transformPageChunk = addSentryCodeToPage({ injectFetchProxyScript: true });
+    SentryCore.startSpan({ name: 'test' }, () => {
       const transformed = transformPageChunk({ html, done: true }) as string;
 
       expect(transformed).toContain('<meta name="sentry-trace"');
       expect(transformed).toContain('<meta name="baggage"');
       expect(transformed).toContain('sentry-transaction=test');
-      expect(transformed).toContain(`<script >${FETCH_PROXY_SCRIPT}</script>`);
-    });
-  });
-
-  it('adds a nonce attribute to the script if the `fetchProxyScriptNonce` option is specified', () => {
-    const transformPageChunk = addSentryCodeToPage({ fetchProxyScriptNonce: '123abc' });
-    SentryNode.startSpan({ name: 'test' }, () => {
-      const transformed = transformPageChunk({ html, done: true }) as string;
-
-      expect(transformed).toContain('<meta name="sentry-trace"');
-      expect(transformed).toContain('<meta name="baggage"');
-      expect(transformed).toContain('sentry-transaction=test');
-      expect(transformed).toContain(`<script nonce="123abc">${FETCH_PROXY_SCRIPT}</script>`);
+      expect(transformed).toContain(`<script>${FETCH_PROXY_SCRIPT}</script>`);
     });
   });
 
@@ -470,5 +430,22 @@ describe('addSentryCodeToPage', () => {
     expect(transformed).toContain('<meta name="sentry-trace"');
     expect(transformed).toContain('<meta name="baggage"');
     expect(transformed).not.toContain(`<script >${FETCH_PROXY_SCRIPT}</script>`);
+  });
+});
+
+describe('isFetchProxyRequired', () => {
+  it.each(['2.16.0', '2.16.1', '2.17.0', '3.0.0', '3.0.0-alpha.0'])(
+    'returns false if the version is greater than or equal to 2.16.0 (%s)',
+    version => {
+      expect(isFetchProxyRequired(version)).toBe(false);
+    },
+  );
+
+  it.each(['2.15.0', '2.15.1', '1.30.0', '1.0.0'])('returns true if the version is lower than 2.16.0 (%s)', version => {
+    expect(isFetchProxyRequired(version)).toBe(true);
+  });
+
+  it.each(['invalid', 'a.b.c'])('returns true for an invalid version (%s)', version => {
+    expect(isFetchProxyRequired(version)).toBe(true);
   });
 });

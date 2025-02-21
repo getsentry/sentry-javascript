@@ -1,5 +1,4 @@
-import { defineIntegration, rewriteFramesIntegration } from '@sentry/core';
-import { escapeStringForRegex } from '@sentry/utils';
+import { defineIntegration, escapeStringForRegex, rewriteFramesIntegration } from '@sentry/core';
 
 export const distDirRewriteFramesIntegration = defineIntegration(({ distDirName }: { distDirName: string }) => {
   const distDirAbsPath = distDirName.replace(/(\/|\\)$/, ''); // We strip trailing slashes because "app:///_next" also doesn't have one

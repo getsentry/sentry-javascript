@@ -1,5 +1,5 @@
-import type { EventEnvelope, EventItem } from '@sentry/types';
-import { createEnvelope, serializeEnvelope } from '@sentry/utils';
+import { createEnvelope, serializeEnvelope } from '@sentry/core';
+import type { EventEnvelope, EventItem } from '@sentry/core';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 
 import type { CloudflareTransportOptions } from '../src/transport';

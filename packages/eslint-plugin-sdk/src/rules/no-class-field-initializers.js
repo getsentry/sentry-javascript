@@ -29,14 +29,7 @@ module.exports = {
   create(context) {
     return {
       'ClassProperty, PropertyDefinition'(node) {
-        // We do allow arrow functions being initialized directly
-        if (
-          !node.static &&
-          node.value !== null &&
-          node.value.type !== 'ArrowFunctionExpression' &&
-          node.value.type !== 'FunctionExpression' &&
-          node.value.type !== 'CallExpression'
-        ) {
+        if (node.value !== null) {
           context.report({
             node,
             message: `Avoid class field initializers. Property "${node.key.name}" should be initialized in the constructor.`,

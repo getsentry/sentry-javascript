@@ -1,10 +1,5 @@
 {
-  "editor.formatOnType": true,
-  "editor.formatOnPaste": false,
-  "editor.formatOnSave": true,
-  "editor.rulers": [120],
   "editor.tabSize": 2,
-  "files.autoSave": "onWindowChange",
   "files.trimTrailingWhitespace": true,
   "files.insertFinalNewline": true,
   "search.exclude": {
@@ -15,11 +10,6 @@
     "**/yarn-error.log": true
   },
   "typescript.tsdk": "./node_modules/typescript/lib",
-  "[json]": {
-    "editor.formatOnType": false,
-    "editor.formatOnPaste": false,
-    "editor.formatOnSave": false
-  },
   "[markdown]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
@@ -35,12 +25,8 @@
     }
   ],
   "deno.enablePaths": ["packages/deno/test"],
-  "editor.codeActionsOnSave": {
-    "source.organizeImports.biome": "explicit"
-  },
   "editor.defaultFormatter": "biomejs.biome",
   "[typescript]": {
     "editor.defaultFormatter": "biomejs.biome"
-  },
-  "cSpell.words": ["arrayify", "OTEL"]
+  }
 }

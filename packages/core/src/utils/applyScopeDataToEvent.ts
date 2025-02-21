@@ -1,6 +1,8 @@
-import type { Breadcrumb, Event, ScopeData, Span } from '@sentry/types';
-import { arrayify, dropUndefinedKeys } from '@sentry/utils';
+import type { ScopeData } from '../scope';
 import { getDynamicSamplingContextFromSpan } from '../tracing/dynamicSamplingContext';
+import type { Breadcrumb, Event, Span } from '../types-hoist';
+import { dropUndefinedKeys } from '../utils-hoist/object';
+import { merge } from './merge';
 import { getRootSpan, spanToJSON, spanToTraceContext } from './spanUtils';
 
 /**
@@ -46,7 +48,8 @@ export function mergeScopeData(data: ScopeData, mergeData: ScopeData): void {
   mergeAndOverwriteScopeData(data, 'tags', tags);
   mergeAndOverwriteScopeData(data, 'user', user);
   mergeAndOverwriteScopeData(data, 'contexts', contexts);
-  mergeAndOverwriteScopeData(data, 'sdkProcessingMetadata', sdkProcessingMetadata);
+
+  data.sdkProcessingMetadata = merge(data.sdkProcessingMetadata, sdkProcessingMetadata, 2);
 
   if (level) {
     data.level = level;
@@ -87,15 +90,7 @@ export function mergeAndOverwriteScopeData<
   Prop extends 'extra' | 'tags' | 'user' | 'contexts' | 'sdkProcessingMetadata',
   Data extends ScopeData,
 >(data: Data, prop: Prop, mergeVal: Data[Prop]): void {
-  if (mergeVal && Object.keys(mergeVal).length) {
-    // Clone object
-    data[prop] = { ...data[prop] };
-    for (const key in mergeVal) {
-      if (Object.prototype.hasOwnProperty.call(mergeVal, key)) {
-        data[prop][key] = mergeVal[key];
-      }
-    }
-  }
+  data[prop] = merge(data[prop], mergeVal, 1);
 }
 
 /** Exported only for tests */
@@ -119,22 +114,22 @@ function applyDataToEvent(event: Event, data: ScopeData): void {
   const { extra, tags, user, contexts, level, transactionName } = data;
 
   const cleanedExtra = dropUndefinedKeys(extra);
-  if (cleanedExtra && Object.keys(cleanedExtra).length) {
+  if (Object.keys(cleanedExtra).length) {
     event.extra = { ...cleanedExtra, ...event.extra };
   }
 
   const cleanedTags = dropUndefinedKeys(tags);
-  if (cleanedTags && Object.keys(cleanedTags).length) {
+  if (Object.keys(cleanedTags).length) {
     event.tags = { ...cleanedTags, ...event.tags };
   }
 
   const cleanedUser = dropUndefinedKeys(user);
-  if (cleanedUser && Object.keys(cleanedUser).length) {
+  if (Object.keys(cleanedUser).length) {
     event.user = { ...cleanedUser, ...event.user };
   }
 
   const cleanedContexts = dropUndefinedKeys(contexts);
-  if (cleanedContexts && Object.keys(cleanedContexts).length) {
+  if (Object.keys(cleanedContexts).length) {
     event.contexts = { ...cleanedContexts, ...event.contexts };
   }
 
@@ -184,7 +179,11 @@ function applySpanToEvent(event: Event, span: Span): void {
  */
 function applyFingerprintToEvent(event: Event, fingerprint: ScopeData['fingerprint'] | undefined): void {
   // Make sure it's an array first and we actually have something in place
-  event.fingerprint = event.fingerprint ? arrayify(event.fingerprint) : [];
+  event.fingerprint = event.fingerprint
+    ? Array.isArray(event.fingerprint)
+      ? event.fingerprint
+      : [event.fingerprint]
+    : [];
 
   // If we have something on the scope, then merge it with event
   if (fingerprint) {
@@ -192,7 +191,7 @@ function applyFingerprintToEvent(event: Event, fingerprint: ScopeData['fingerpri
   }
 
   // If we have no data at all, remove empty array default
-  if (event.fingerprint && !event.fingerprint.length) {
+  if (!event.fingerprint.length) {
     delete event.fingerprint;
   }
 }

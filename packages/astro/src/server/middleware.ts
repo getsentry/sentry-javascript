@@ -1,8 +1,19 @@
 import {
+  addNonEnumerableProperty,
+  extractQueryParamsFromUrl,
+  logger,
+  objectify,
+  stripUrlQueryAndFragment,
+  vercelWaitUntil,
+  winterCGRequestToRequestData,
+} from '@sentry/core';
+import type { RequestEventData, Scope, SpanAttributes } from '@sentry/core';
+import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   captureException,
   continueTrace,
+  flush,
   getActiveSpan,
   getClient,
   getCurrentScope,
@@ -11,13 +22,6 @@ import {
   startSpan,
   withIsolationScope,
 } from '@sentry/node';
-import type { Scope, SpanAttributes } from '@sentry/types';
-import {
-  addNonEnumerableProperty,
-  objectify,
-  stripUrlQueryAndFragment,
-  winterCGRequestToRequestData,
-} from '@sentry/utils';
 import type { APIContext, MiddlewareResponseHandler } from 'astro';
 
 type MiddlewareOptions = {
@@ -83,11 +87,13 @@ async function instrumentRequest(
   isolationScope?: Scope,
 ): Promise<Response> {
   // Make sure we don't accidentally double wrap (e.g. user added middleware and integration auto added it)
-  const locals = ctx.locals as AstroLocalsWithSentry;
-  if (locals && locals.__sentry_wrapped__) {
+  const locals = ctx.locals as AstroLocalsWithSentry | undefined;
+  if (locals?.__sentry_wrapped__) {
     return next();
   }
-  addNonEnumerableProperty(locals, '__sentry_wrapped__', true);
+  if (locals) {
+    addNonEnumerableProperty(locals, '__sentry_wrapped__', true);
+  }
 
   const isDynamicPageRequest = checkIsDynamicPageRequest(ctx);
 
@@ -108,7 +114,13 @@ async function instrumentRequest(
       getCurrentScope().setSDKProcessingMetadata({
         // We store the request on the current scope, not isolation scope,
         // because we may have multiple requests nested inside each other
-        request: isDynamicPageRequest ? winterCGRequestToRequestData(request) : { method, url: request.url },
+        normalizedRequest: (isDynamicPageRequest
+          ? winterCGRequestToRequestData(request)
+          : {
+              method,
+              url: request.url,
+              query_string: extractQueryParamsFromUrl(request.url),
+            }) satisfies RequestEventData,
       });
 
       if (options.trackClientIp && isDynamicPageRequest) {
@@ -145,49 +157,61 @@ async function instrumentRequest(
             op: 'http.server',
           },
           async span => {
-            const originalResponse = await next();
+            try {
+              const originalResponse = await next();
+              if (originalResponse.status) {
+                setHttpStatus(span, originalResponse.status);
+              }
 
-            if (originalResponse.status) {
-              setHttpStatus(span, originalResponse.status);
+              const client = getClient();
+              const contentType = originalResponse.headers.get('content-type');
+
+              const isPageloadRequest = contentType?.startsWith('text/html');
+              if (!isPageloadRequest || !client) {
+                return originalResponse;
+              }
+
+              // Type case necessary b/c the body's ReadableStream type doesn't include
+              // the async iterator that is actually available in Node
+              // We later on use the async iterator to read the body chunks
+              // see https://github.com/microsoft/TypeScript/issues/39051
+              const originalBody = originalResponse.body as NodeJS.ReadableStream | null;
+              if (!originalBody) {
+                return originalResponse;
+              }
+
+              const decoder = new TextDecoder();
+
+              const newResponseStream = new ReadableStream({
+                start: async controller => {
+                  for await (const chunk of originalBody) {
+                    const html = typeof chunk === 'string' ? chunk : decoder.decode(chunk, { stream: true });
+                    const modifiedHtml = addMetaTagToHead(html);
+                    controller.enqueue(new TextEncoder().encode(modifiedHtml));
+                  }
+                  controller.close();
+                },
+              });
+
+              return new Response(newResponseStream, originalResponse);
+            } catch (e) {
+              sendErrorToSentry(e);
+              throw e;
             }
-
-            const client = getClient();
-            const contentType = originalResponse.headers.get('content-type');
-
-            const isPageloadRequest = contentType && contentType.startsWith('text/html');
-            if (!isPageloadRequest || !client) {
-              return originalResponse;
-            }
-
-            // Type case necessary b/c the body's ReadableStream type doesn't include
-            // the async iterator that is actually available in Node
-            // We later on use the async iterator to read the body chunks
-            // see https://github.com/microsoft/TypeScript/issues/39051
-            const originalBody = originalResponse.body as NodeJS.ReadableStream | null;
-            if (!originalBody) {
-              return originalResponse;
-            }
-
-            const decoder = new TextDecoder();
-
-            const newResponseStream = new ReadableStream({
-              start: async controller => {
-                for await (const chunk of originalBody) {
-                  const html = typeof chunk === 'string' ? chunk : decoder.decode(chunk, { stream: true });
-                  const modifiedHtml = addMetaTagToHead(html);
-                  controller.enqueue(new TextEncoder().encode(modifiedHtml));
-                }
-                controller.close();
-              },
-            });
-
-            return new Response(newResponseStream, originalResponse);
           },
         );
         return res;
-      } catch (e) {
-        sendErrorToSentry(e);
-        throw e;
+      } finally {
+        vercelWaitUntil(
+          (async () => {
+            // Flushes pending Sentry events with a 2-second timeout and in a way that cannot create unhandled promise rejections.
+            try {
+              await flush(2000);
+            } catch (e) {
+              logger.log('Error while flushing events:\n', e);
+            }
+          })(),
+        );
       }
       // TODO: flush if serverless (first extract function)
     },

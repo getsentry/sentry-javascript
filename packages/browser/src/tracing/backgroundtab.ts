@@ -1,7 +1,4 @@
-import { SPAN_STATUS_ERROR, getActiveSpan, getRootSpan } from '@sentry/core';
-import { spanToJSON } from '@sentry/core';
-import { logger } from '@sentry/utils';
-
+import { SPAN_STATUS_ERROR, getActiveSpan, getRootSpan, logger, spanToJSON } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 
@@ -10,7 +7,7 @@ import { WINDOW } from '../helpers';
  * document is hidden.
  */
 export function registerBackgroundTabDetection(): void {
-  if (WINDOW && WINDOW.document) {
+  if (WINDOW.document) {
     WINDOW.document.addEventListener('visibilitychange', () => {
       const activeSpan = getActiveSpan();
       if (!activeSpan) {

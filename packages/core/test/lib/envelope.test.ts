@@ -1,5 +1,4 @@
-import type { Client, DsnComponents, DynamicSamplingContext, Event } from '@sentry/types';
-
+import type { Client } from '../../src';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SentrySpan,
@@ -9,6 +8,7 @@ import {
   setCurrentClient,
 } from '../../src';
 import { createEventEnvelope, createSpanEnvelope } from '../../src/envelope';
+import type { DsnComponents, DynamicSamplingContext, Event } from '../../src/types-hoist';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 
 const testDsn: DsnComponents = { protocol: 'https', projectId: 'abc', host: 'testry.io', publicKey: 'pubKey123' };
@@ -95,6 +95,13 @@ describe('createSpanEnvelope', () => {
     client = new TestClient(options);
     setCurrentClient(client);
     client.init();
+
+    // We want to avoid console errors in the tests
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    jest.resetAllMocks();
   });
 
   it('creates a span envelope', () => {
@@ -109,7 +116,7 @@ describe('createSpanEnvelope', () => {
 
     const spanEnvelope = createSpanEnvelope([span]);
 
-    const spanItem = spanEnvelope[1]?.[0]?.[1];
+    const spanItem = spanEnvelope[1][0]?.[1];
     expect(spanItem).toEqual({
       data: {
         'sentry.origin': 'manual',
@@ -200,7 +207,7 @@ describe('createSpanEnvelope', () => {
 
     expect(beforeSendSpan).toHaveBeenCalled();
 
-    const spanItem = spanEnvelope[1]?.[0]?.[1];
+    const spanItem = spanEnvelope[1][0]?.[1];
     expect(spanItem).toEqual({
       data: {
         'sentry.origin': 'manual',
@@ -235,7 +242,7 @@ describe('createSpanEnvelope', () => {
 
     expect(beforeSendSpan).toHaveBeenCalled();
 
-    const spanItem = spanEnvelope[1]?.[0]?.[1];
+    const spanItem = spanEnvelope[1][0]?.[1];
     expect(spanItem).toEqual({
       data: {
         'sentry.origin': 'manual',

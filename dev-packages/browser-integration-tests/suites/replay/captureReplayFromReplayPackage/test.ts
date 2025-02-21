@@ -1,10 +1,10 @@
 import { expect } from '@playwright/test';
 import { SDK_VERSION } from '@sentry/browser';
 
-import { sentryTest } from '../../../utils/fixtures';
+import { TEST_HOST, sentryTest } from '../../../utils/fixtures';
 import { getReplayEvent, shouldSkipReplayTest, waitForReplayRequest } from '../../../utils/replayHelpers';
 
-sentryTest('should capture replays (@sentry-internal/replay export)', async ({ getLocalTestPath, page }) => {
+sentryTest('should capture replays (@sentry-internal/replay export)', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
@@ -12,7 +12,7 @@ sentryTest('should capture replays (@sentry-internal/replay export)', async ({ g
   const reqPromise0 = waitForReplayRequest(page, 0);
   const reqPromise1 = waitForReplayRequest(page, 1);
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   await page.goto(url);
   const replayEvent0 = getReplayEvent(await reqPromise0);
@@ -26,7 +26,7 @@ sentryTest('should capture replays (@sentry-internal/replay export)', async ({ g
     timestamp: expect.any(Number),
     error_ids: [],
     trace_ids: [],
-    urls: [expect.stringMatching(/\/dist\/([\w-]+)\/index\.html$/)],
+    urls: [`${TEST_HOST}/index.html`],
     replay_id: expect.stringMatching(/\w{32}/),
     replay_start_timestamp: expect.any(Number),
     segment_id: 0,
@@ -34,7 +34,7 @@ sentryTest('should capture replays (@sentry-internal/replay export)', async ({ g
     event_id: expect.stringMatching(/\w{32}/),
     environment: 'production',
     sdk: {
-      integrations: [
+      integrations: expect.arrayContaining([
         'InboundFilters',
         'FunctionToString',
         'BrowserApiErrors',
@@ -43,13 +43,14 @@ sentryTest('should capture replays (@sentry-internal/replay export)', async ({ g
         'LinkedErrors',
         'Dedupe',
         'HttpContext',
+        'BrowserSession',
         'Replay',
-      ],
+      ]),
       version: SDK_VERSION,
       name: 'sentry.javascript.browser',
     },
     request: {
-      url: expect.stringMatching(/\/dist\/([\w-]+)\/index\.html$/),
+      url: `${TEST_HOST}/index.html`,
       headers: {
         'User-Agent': expect.stringContaining(''),
       },
@@ -71,7 +72,7 @@ sentryTest('should capture replays (@sentry-internal/replay export)', async ({ g
     event_id: expect.stringMatching(/\w{32}/),
     environment: 'production',
     sdk: {
-      integrations: [
+      integrations: expect.arrayContaining([
         'InboundFilters',
         'FunctionToString',
         'BrowserApiErrors',
@@ -80,13 +81,14 @@ sentryTest('should capture replays (@sentry-internal/replay export)', async ({ g
         'LinkedErrors',
         'Dedupe',
         'HttpContext',
+        'BrowserSession',
         'Replay',
-      ],
+      ]),
       version: SDK_VERSION,
       name: 'sentry.javascript.browser',
     },
     request: {
-      url: expect.stringMatching(/\/dist\/([\w-]+)\/index\.html$/),
+      url: `${TEST_HOST}/index.html`,
       headers: {
         'User-Agent': expect.stringContaining(''),
       },

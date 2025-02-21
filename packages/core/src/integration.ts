@@ -1,14 +1,8 @@
-import type { Client, Event, EventHint, Integration, IntegrationFn, Options } from '@sentry/types';
-import { arrayify, logger } from '@sentry/utils';
+import type { Client } from './client';
 import { getClient } from './currentScopes';
-
 import { DEBUG_BUILD } from './debug-build';
-
-declare module '@sentry/types' {
-  interface Integration {
-    isDefaultInstance?: boolean;
-  }
-}
+import type { Event, EventHint, Integration, IntegrationFn, Options } from './types-hoist';
+import { logger } from './utils-hoist/logger';
 
 export const installedIntegrations: string[] = [];
 
@@ -16,6 +10,8 @@ export const installedIntegrations: string[] = [];
 export type IntegrationIndex = {
   [key: string]: Integration;
 };
+
+type IntegrationWithDefaultInstance = Integration & { isDefaultInstance?: true };
 
 /**
  * Remove duplicates from the given array, preferring the last instance of any duplicate. Not guaranteed to
@@ -26,10 +22,10 @@ export type IntegrationIndex = {
 function filterDuplicates(integrations: Integration[]): Integration[] {
   const integrationsByName: { [key: string]: Integration } = {};
 
-  integrations.forEach(currentInstance => {
+  integrations.forEach((currentInstance: IntegrationWithDefaultInstance) => {
     const { name } = currentInstance;
 
-    const existingInstance = integrationsByName[name];
+    const existingInstance: IntegrationWithDefaultInstance | undefined = integrationsByName[name];
 
     // We want integrations later in the array to overwrite earlier ones of the same type, except that we never want a
     // default instance to overwrite an existing user instance
@@ -49,7 +45,7 @@ export function getIntegrationsToSetup(options: Pick<Options, 'defaultIntegratio
   const userIntegrations = options.integrations;
 
   // We flag default instances, so that later we can tell them apart from any user-created instances of the same class
-  defaultIntegrations.forEach(integration => {
+  defaultIntegrations.forEach((integration: IntegrationWithDefaultInstance) => {
     integration.isDefaultInstance = true;
   });
 
@@ -58,24 +54,13 @@ export function getIntegrationsToSetup(options: Pick<Options, 'defaultIntegratio
   if (Array.isArray(userIntegrations)) {
     integrations = [...defaultIntegrations, ...userIntegrations];
   } else if (typeof userIntegrations === 'function') {
-    integrations = arrayify(userIntegrations(defaultIntegrations));
+    const resolvedUserIntegrations = userIntegrations(defaultIntegrations);
+    integrations = Array.isArray(resolvedUserIntegrations) ? resolvedUserIntegrations : [resolvedUserIntegrations];
   } else {
     integrations = defaultIntegrations;
   }
 
-  const finalIntegrations = filterDuplicates(integrations);
-
-  // The `Debug` integration prints copies of the `event` and `hint` which will be passed to `beforeSend` or
-  // `beforeSendTransaction`. It therefore has to run after all other integrations, so that the changes of all event
-  // processors will be reflected in the printed values. For lack of a more elegant way to guarantee that, we therefore
-  // locate it and, assuming it exists, pop it out of its current spot and shove it onto the end of the array.
-  const debugIndex = finalIntegrations.findIndex(integration => integration.name === 'Debug');
-  if (debugIndex > -1) {
-    const [debugInstance] = finalIntegrations.splice(debugIndex, 1) as [Integration];
-    finalIntegrations.push(debugInstance);
-  }
-
-  return finalIntegrations;
+  return filterDuplicates(integrations);
 }
 
 /**
@@ -87,7 +72,7 @@ export function getIntegrationsToSetup(options: Pick<Options, 'defaultIntegratio
 export function setupIntegrations(client: Client, integrations: Integration[]): IntegrationIndex {
   const integrationIndex: IntegrationIndex = {};
 
-  integrations.forEach(integration => {
+  integrations.forEach((integration: Integration | undefined) => {
     // guard against empty provided integrations
     if (integration) {
       setupIntegration(client, integration, integrationIndex);
@@ -103,7 +88,7 @@ export function setupIntegrations(client: Client, integrations: Integration[]): 
 export function afterSetupIntegrations(client: Client, integrations: Integration[]): void {
   for (const integration of integrations) {
     // guard against empty provided integrations
-    if (integration && integration.afterAllSetup) {
+    if (integration?.afterAllSetup) {
       integration.afterAllSetup(client);
     }
   }

@@ -6,8 +6,8 @@ import * as os from 'os';
 import * as path from 'path';
 import * as util from 'util';
 import * as zlib from 'zlib';
-import type { Envelope, EnvelopeItem, Event, SerializedSession } from '@sentry/types';
-import { parseEnvelope } from '@sentry/utils';
+import { parseEnvelope } from '@sentry/core';
+import type { Envelope, EnvelopeItem, Event, SerializedSession } from '@sentry/core';
 
 const readFile = util.promisify(fs.readFile);
 const writeFile = util.promisify(fs.writeFile);

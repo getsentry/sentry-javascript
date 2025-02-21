@@ -18,15 +18,11 @@
       ],
     }
   },
-  "include": [
-    "app/**/*",
-    "types/**/*"
-  ],
+  "include": ["app/**/*", "types/**/*"],
   "exclude": ["tests/**/*"],
   "ts-node": {
     "compilerOptions": {
       "module": "CommonJS"
     }
   }
-
 }

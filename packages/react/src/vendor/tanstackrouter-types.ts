@@ -29,6 +29,10 @@ SOFTWARE.
 export interface VendoredTanstackRouter {
   history: VendoredTanstackRouterHistory;
   state: VendoredTanstackRouterState;
+  options: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    parseSearch: (search: string) => Record<string, any>;
+  };
   matchRoutes: (
     pathname: string,
     // eslint-disable-next-line @typescript-eslint/ban-types
@@ -42,7 +46,7 @@ export interface VendoredTanstackRouter {
     eventType: 'onResolved' | 'onBeforeNavigate',
     callback: (stateUpdate: {
       toLocation: VendoredTanstackRouterLocation;
-      fromLocation: VendoredTanstackRouterLocation;
+      fromLocation?: VendoredTanstackRouterLocation;
     }) => void,
   ): () => void;
 }

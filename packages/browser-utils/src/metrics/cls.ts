@@ -10,8 +10,8 @@ import {
   getRootSpan,
   spanToJSON,
 } from '@sentry/core';
-import type { SpanAttributes } from '@sentry/types';
-import { browserPerformanceTimeOrigin, dropUndefinedKeys, htmlTreeAsString, logger } from '@sentry/utils';
+import { browserPerformanceTimeOrigin, dropUndefinedKeys, htmlTreeAsString, logger } from '@sentry/core';
+import type { SpanAttributes } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { addClsInstrumentationHandler } from './instrument';
 import { msToSec, startStandaloneWebVitalSpan } from './utils';
@@ -67,16 +67,22 @@ export function trackClsAsStandaloneSpan(): void {
   setTimeout(() => {
     const client = getClient();
 
-    const unsubscribeStartNavigation = client?.on('startNavigationSpan', () => {
+    if (!client) {
+      return;
+    }
+
+    const unsubscribeStartNavigation = client.on('startNavigationSpan', () => {
       _collectClsOnce();
-      unsubscribeStartNavigation && unsubscribeStartNavigation();
+      unsubscribeStartNavigation?.();
     });
 
     const activeSpan = getActiveSpan();
-    const rootSpan = activeSpan && getRootSpan(activeSpan);
-    const spanJSON = rootSpan && spanToJSON(rootSpan);
-    if (spanJSON && spanJSON.op === 'pageload') {
-      pageloadSpanId = rootSpan.spanContext().spanId;
+    if (activeSpan) {
+      const rootSpan = getRootSpan(activeSpan);
+      const spanJSON = spanToJSON(rootSpan);
+      if (spanJSON.op === 'pageload') {
+        pageloadSpanId = rootSpan.spanContext().spanId;
+      }
     }
   }, 0);
 }
@@ -84,7 +90,7 @@ export function trackClsAsStandaloneSpan(): void {
 function sendStandaloneClsSpan(clsValue: number, entry: LayoutShift | undefined, pageloadSpanId: string) {
   DEBUG_BUILD && logger.log(`Sending CLS span (${clsValue})`);
 
-  const startTime = msToSec((browserPerformanceTimeOrigin || 0) + (entry?.startTime || 0));
+  const startTime = msToSec((browserPerformanceTimeOrigin() || 0) + (entry?.startTime || 0));
   const routeName = getCurrentScope().getScopeData().transactionName;
 
   const name = entry ? htmlTreeAsString(entry.sources[0]?.node) : 'Layout shift';
@@ -104,19 +110,21 @@ function sendStandaloneClsSpan(clsValue: number, entry: LayoutShift | undefined,
     startTime,
   });
 
-  span?.addEvent('cls', {
-    [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT]: '',
-    [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE]: clsValue,
-  });
+  if (span) {
+    span.addEvent('cls', {
+      [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT]: '',
+      [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE]: clsValue,
+    });
 
-  // LayoutShift performance entries always have a duration of 0, so we don't need to add `entry.duration` here
-  // see: https://developer.mozilla.org/en-US/docs/Web/API/PerformanceEntry/duration
-  span?.end(startTime);
+    // LayoutShift performance entries always have a duration of 0, so we don't need to add `entry.duration` here
+    // see: https://developer.mozilla.org/en-US/docs/Web/API/PerformanceEntry/duration
+    span.end(startTime);
+  }
 }
 
 function supportsLayoutShift(): boolean {
   try {
-    return PerformanceObserver.supportedEntryTypes?.includes('layout-shift');
+    return PerformanceObserver.supportedEntryTypes.includes('layout-shift');
   } catch {
     return false;
   }

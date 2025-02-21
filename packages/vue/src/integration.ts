@@ -1,7 +1,4 @@
-import { defineIntegration, hasTracingEnabled } from '@sentry/core';
-import type { Client, IntegrationFn } from '@sentry/types';
-import { GLOBAL_OBJ, arrayify, consoleSandbox } from '@sentry/utils';
-
+import { GLOBAL_OBJ, consoleSandbox, defineIntegration, hasSpansEnabled } from '@sentry/core';
 import { DEFAULT_HOOKS } from './constants';
 import { DEBUG_BUILD } from './debug-build';
 import { attachErrorHandler } from './errorhandler';
@@ -13,47 +10,42 @@ const globalWithVue = GLOBAL_OBJ as typeof GLOBAL_OBJ & { Vue: Vue };
 const DEFAULT_CONFIG: VueOptions = {
   Vue: globalWithVue.Vue,
   attachProps: true,
-  logErrors: true,
   attachErrorHandler: true,
-  hooks: DEFAULT_HOOKS,
-  timeout: 2000,
-  trackComponents: false,
+  tracingOptions: {
+    hooks: DEFAULT_HOOKS,
+    timeout: 2000,
+    trackComponents: false,
+  },
 };
 
 const INTEGRATION_NAME = 'Vue';
 
-const _vueIntegration = ((integrationOptions: Partial<VueOptions> = {}) => {
+export type VueIntegrationOptions = Partial<VueOptions>;
+
+export const vueIntegration = defineIntegration((integrationOptions: Partial<VueOptions> = {}) => {
   return {
     name: INTEGRATION_NAME,
     setup(client) {
-      _setupIntegration(client, integrationOptions);
+      const options: Options = { ...DEFAULT_CONFIG, ...client.getOptions(), ...integrationOptions };
+      if (!options.Vue && !options.app) {
+        consoleSandbox(() => {
+          // eslint-disable-next-line no-console
+          console.warn(
+            '[@sentry/vue]: Misconfigured SDK. Vue specific errors will not be captured. Update your `Sentry.init` call with an appropriate config option: `app` (Application Instance - Vue 3) or `Vue` (Vue Constructor - Vue 2).',
+          );
+        });
+        return;
+      }
+
+      if (options.app) {
+        const apps = Array.isArray(options.app) ? options.app : [options.app];
+        apps.forEach(app => vueInit(app, options));
+      } else if (options.Vue) {
+        vueInit(options.Vue, options);
+      }
     },
   };
-}) satisfies IntegrationFn;
-
-export const vueIntegration = defineIntegration(_vueIntegration);
-
-function _setupIntegration(client: Client, integrationOptions: Partial<VueOptions>): void {
-  const options: Options = { ...DEFAULT_CONFIG, ...client.getOptions(), ...integrationOptions };
-  if (!options.Vue && !options.app) {
-    consoleSandbox(() => {
-      // eslint-disable-next-line no-console
-      console.warn(
-        `[@sentry/vue]: Misconfigured SDK. Vue specific errors will not be captured.
-Update your \`Sentry.init\` call with an appropriate config option:
-\`app\` (Application Instance - Vue 3) or \`Vue\` (Vue Constructor - Vue 2).`,
-      );
-    });
-    return;
-  }
-
-  if (options.app) {
-    const apps = arrayify(options.app);
-    apps.forEach(app => vueInit(app, options));
-  } else if (options.Vue) {
-    vueInit(options.Vue, options);
-  }
-}
+});
 
 const vueInit = (app: Vue, options: Options): void => {
   if (DEBUG_BUILD) {
@@ -66,7 +58,7 @@ const vueInit = (app: Vue, options: Options): void => {
       };
     };
 
-    const isMounted = appWithInstance._instance && appWithInstance._instance.isMounted;
+    const isMounted = appWithInstance._instance?.isMounted;
     if (isMounted === true) {
       consoleSandbox(() => {
         // eslint-disable-next-line no-console
@@ -81,12 +73,7 @@ const vueInit = (app: Vue, options: Options): void => {
     attachErrorHandler(app, options);
   }
 
-  if (hasTracingEnabled(options)) {
-    app.mixin(
-      createTracingMixins({
-        ...options,
-        ...options.tracingOptions,
-      }),
-    );
+  if (hasSpansEnabled(options)) {
+    app.mixin(createTracingMixins(options.tracingOptions));
   }
 };

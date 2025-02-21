@@ -1,21 +1,20 @@
 import { Session as InspectorSession } from 'node:inspector';
 import { parentPort, workerData } from 'node:worker_threads';
+import type { DebugImage, Event, ScopeData, Session, StackFrame } from '@sentry/core';
+import { generateSpanId } from '@sentry/core';
 import {
   applyScopeDataToEvent,
+  callFrameToStackFrame,
   createEventEnvelope,
   createSessionEnvelope,
   getEnvelopeEndpointWithUrlEncodedAuth,
   makeSession,
-  updateSession,
-} from '@sentry/core';
-import type { Event, ScopeData, Session, StackFrame } from '@sentry/types';
-import {
-  callFrameToStackFrame,
   normalizeUrlToBase,
   stripSentryFramesAndReverse,
+  updateSession,
   uuid4,
   watchdogTimer,
-} from '@sentry/utils';
+} from '@sentry/core';
 
 import { makeNodeTransport } from '../../transports';
 import { createGetModuleFromFilename } from '../../utils/module';
@@ -25,7 +24,8 @@ type VoidFunction = () => void;
 
 const options: WorkerStartData = workerData;
 let session: Session | undefined;
-let hasSentAnrEvent = false;
+let sentAnrEvents = 0;
+let mainDebugImages: Record<string, string> = {};
 
 function log(msg: string): void {
   if (options.debug) {
@@ -46,7 +46,13 @@ async function sendAbnormalSession(): Promise<void> {
   // of we have an existing session passed from the main thread, send it as abnormal
   if (session) {
     log('Sending abnormal session');
-    updateSession(session, { status: 'abnormal', abnormal_mechanism: 'anr_foreground' });
+
+    updateSession(session, {
+      status: 'abnormal',
+      abnormal_mechanism: 'anr_foreground',
+      release: options.release,
+      environment: options.environment,
+    });
 
     const envelope = createSessionEnvelope(session, options.dsn, options.sdkMetadata, options.tunnel);
     // Log the envelope so to aid in testing
@@ -87,15 +93,51 @@ function prepareStackFrames(stackFrames: StackFrame[] | undefined): StackFrame[]
   return strippedFrames;
 }
 
+function applyDebugMeta(event: Event): void {
+  if (Object.keys(mainDebugImages).length === 0) {
+    return;
+  }
+
+  const normalisedDebugImages = options.appRootPath ? {} : mainDebugImages;
+  if (options.appRootPath) {
+    for (const [path, debugId] of Object.entries(mainDebugImages)) {
+      normalisedDebugImages[normalizeUrlToBase(path, options.appRootPath)] = debugId;
+    }
+  }
+
+  const filenameToDebugId = new Map<string, string>();
+
+  for (const exception of event.exception?.values || []) {
+    for (const frame of exception.stacktrace?.frames || []) {
+      const filename = frame.abs_path || frame.filename;
+      if (filename && normalisedDebugImages[filename]) {
+        filenameToDebugId.set(filename, normalisedDebugImages[filename] as string);
+      }
+    }
+  }
+
+  if (filenameToDebugId.size > 0) {
+    const images: DebugImage[] = [];
+    for (const [code_file, debug_id] of filenameToDebugId.entries()) {
+      images.push({
+        type: 'sourcemap',
+        code_file,
+        debug_id,
+      });
+    }
+    event.debug_meta = { images };
+  }
+}
+
 function applyScopeToEvent(event: Event, scope: ScopeData): void {
   applyScopeDataToEvent(event, scope);
 
   if (!event.contexts?.trace) {
-    const { traceId, spanId, parentSpanId } = scope.propagationContext;
+    const { traceId, parentSpanId, propagationSpanId } = scope.propagationContext;
     event.contexts = {
       trace: {
         trace_id: traceId,
-        span_id: spanId,
+        span_id: propagationSpanId || generateSpanId(),
         parent_span_id: parentSpanId,
       },
       ...event.contexts,
@@ -104,11 +146,11 @@ function applyScopeToEvent(event: Event, scope: ScopeData): void {
 }
 
 async function sendAnrEvent(frames?: StackFrame[], scope?: ScopeData): Promise<void> {
-  if (hasSentAnrEvent) {
+  if (sentAnrEvents >= options.maxAnrEvents) {
     return;
   }
 
-  hasSentAnrEvent = true;
+  sentAnrEvents += 1;
 
   await sendAbnormalSession();
 
@@ -140,6 +182,8 @@ async function sendAnrEvent(frames?: StackFrame[], scope?: ScopeData): Promise<v
     applyScopeToEvent(event, scope);
   }
 
+  applyDebugMeta(event);
+
   const envelope = createEventEnvelope(event, options.dsn, options.sdkMetadata, options.tunnel);
   // Log the envelope to aid in testing
   log(JSON.stringify(envelope));
@@ -147,11 +191,13 @@ async function sendAnrEvent(frames?: StackFrame[], scope?: ScopeData): Promise<v
   await transport.send(envelope);
   await transport.flush(2000);
 
-  // Delay for 5 seconds so that stdio can flush if the main event loop ever restarts.
-  // This is mainly for the benefit of logging or debugging.
-  setTimeout(() => {
-    process.exit(0);
-  }, 5_000);
+  if (sentAnrEvents >= options.maxAnrEvents) {
+    // Delay for 5 seconds so that stdio can flush if the main event loop ever restarts.
+    // This is mainly for the benefit of logging or debugging.
+    setTimeout(() => {
+      process.exit(0);
+    }, 5_000);
+  }
 }
 
 let debuggerPause: VoidFunction | undefined;
@@ -213,7 +259,7 @@ if (options.captureStackTrace) {
 
           clearTimeout(getScopeTimeout);
 
-          const scopes = param && param.result ? (param.result.value as ScopeData) : undefined;
+          const scopes = param?.result ? (param.result.value as ScopeData) : undefined;
 
           session.post('Debugger.resume');
           session.post('Debugger.disable');
@@ -272,9 +318,13 @@ function watchdogTimeout(): void {
 
 const { poll } = watchdogTimer(createHrTimer, options.pollInterval, options.anrThreshold, watchdogTimeout);
 
-parentPort?.on('message', (msg: { session: Session | undefined }) => {
+parentPort?.on('message', (msg: { session: Session | undefined; debugImages?: Record<string, string> }) => {
   if (msg.session) {
     session = makeSession(msg.session);
+  }
+
+  if (msg.debugImages) {
+    mainDebugImages = msg.debugImages;
   }
 
   poll();

@@ -1,6 +1,6 @@
 import type { AddressInfo } from 'net';
-import type { Envelope } from '@sentry/types';
-import { parseEnvelope } from '@sentry/utils';
+import { parseEnvelope } from '@sentry/core';
+import type { Envelope } from '@sentry/core';
 import express from 'express';
 
 /**

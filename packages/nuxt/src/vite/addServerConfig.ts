@@ -1,15 +1,18 @@
 import * as fs from 'fs';
 import { createResolver } from '@nuxt/kit';
 import type { Nuxt } from '@nuxt/schema';
-import { consoleSandbox, flatten } from '@sentry/utils';
+import { consoleSandbox } from '@sentry/core';
 import type { Nitro } from 'nitropack';
 import type { InputPluginOption } from 'rollup';
 import type { SentryNuxtModuleOptions } from '../common/types';
 import {
   QUERY_END_INDICATOR,
-  SENTRY_FUNCTIONS_REEXPORT,
+  SENTRY_REEXPORTED_FUNCTIONS,
   SENTRY_WRAPPED_ENTRY,
+  SENTRY_WRAPPED_FUNCTIONS,
   constructFunctionReExport,
+  constructWrappedFunctionExportQuery,
+  getFilenameFromNodeStartCommand,
   removeSentryQueryFromPath,
 } from './utils';
 
@@ -36,41 +39,90 @@ export function addServerConfigToBuild(
       (viteInlineConfig.build.rollupOptions.input as { [entryName: string]: string })[SERVER_CONFIG_FILENAME] =
         createResolver(nuxt.options.srcDir).resolve(`/${serverConfigFile}`);
     }
+  });
 
-    /**
-     * When the build process is finished, copy the `sentry.server.config` file to the `.output` directory.
-     * This is necessary because we need to reference this file path in the node --import option.
-     */
-    nitro.hooks.hook('close', async () => {
-      const buildDirResolver = createResolver(nitro.options.buildDir);
-      const serverDirResolver = createResolver(nitro.options.output.serverDir);
-      const source = buildDirResolver.resolve(`dist/server/${SERVER_CONFIG_FILENAME}.mjs`);
-      const destination = serverDirResolver.resolve(`${SERVER_CONFIG_FILENAME}.mjs`);
+  /**
+   * When the build process is finished, copy the `sentry.server.config` file to the `.output` directory.
+   * This is necessary because we need to reference this file path in the node --import option.
+   */
+  nitro.hooks.hook('close', async () => {
+    const buildDirResolver = createResolver(nitro.options.buildDir);
+    const serverDirResolver = createResolver(nitro.options.output.serverDir);
+    const source = buildDirResolver.resolve(`dist/server/${SERVER_CONFIG_FILENAME}.mjs`);
+    const destination = serverDirResolver.resolve(`${SERVER_CONFIG_FILENAME}.mjs`);
 
-      try {
-        await fs.promises.access(source, fs.constants.F_OK);
-        await fs.promises.copyFile(source, destination);
+    try {
+      await fs.promises.access(source, fs.constants.F_OK);
+      await fs.promises.copyFile(source, destination);
 
-        if (moduleOptions.debug) {
-          consoleSandbox(() => {
+      if (moduleOptions.debug) {
+        consoleSandbox(() => {
+          // eslint-disable-next-line no-console
+          console.log(
+            `[Sentry] Successfully added the content of the \`${serverConfigFile}\` file to \`${destination}\``,
+          );
+        });
+      }
+    } catch (error) {
+      if (moduleOptions.debug) {
+        consoleSandbox(() => {
+          // eslint-disable-next-line no-console
+          console.warn(
+            `[Sentry] An error occurred when trying to add the \`${serverConfigFile}\` file to the \`.output\` directory`,
+            error,
+          );
+        });
+      }
+    }
+  });
+}
+
+/**
+ *  Adds the Sentry server config import at the top of the server entry file to load the SDK on the server.
+ *  This is necessary for environments where modifying the node option `--import` is not possible.
+ *  However, only limited tracing instrumentation is supported when doing this.
+ */
+export function addSentryTopImport(moduleOptions: SentryNuxtModuleOptions, nitro: Nitro): void {
+  nitro.hooks.hook('close', async () => {
+    const fileNameFromCommand =
+      nitro.options.commands.preview && getFilenameFromNodeStartCommand(nitro.options.commands.preview);
+
+    // other presets ('node-server' or 'vercel') have an index.mjs
+    const presetsWithServerFile = ['netlify'];
+
+    const entryFileName = fileNameFromCommand
+      ? fileNameFromCommand
+      : typeof nitro.options.rollupConfig?.output.entryFileNames === 'string'
+        ? nitro.options.rollupConfig?.output.entryFileNames
+        : presetsWithServerFile.includes(nitro.options.preset)
+          ? 'server.mjs'
+          : 'index.mjs';
+
+    const serverDirResolver = createResolver(nitro.options.output.serverDir);
+    const entryFilePath = serverDirResolver.resolve(entryFileName);
+
+    try {
+      fs.readFile(entryFilePath, 'utf8', (err, data) => {
+        const updatedContent = `import './${SERVER_CONFIG_FILENAME}.mjs';\n${data}`;
+
+        fs.writeFile(entryFilePath, updatedContent, 'utf8', () => {
+          if (moduleOptions.debug) {
             // eslint-disable-next-line no-console
             console.log(
-              `[Sentry] Successfully added the content of the \`${serverConfigFile}\` file to \`${destination}\``,
+              `[Sentry] Successfully added the Sentry import to the server entry file "\`${entryFilePath}\`"`,
             );
-          });
-        }
-      } catch (error) {
-        if (moduleOptions.debug) {
-          consoleSandbox(() => {
-            // eslint-disable-next-line no-console
-            console.warn(
-              `[Sentry] An error occurred when trying to add the \`${serverConfigFile}\` file to the \`.output\` directory`,
-              error,
-            );
-          });
-        }
+          }
+        });
+      });
+    } catch (err) {
+      if (moduleOptions.debug) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[Sentry] An error occurred when trying to add the Sentry import to the server entry file "\`${entryFilePath}\`":`,
+          err,
+        );
       }
-    });
+    }
   });
 }
 
@@ -81,7 +133,12 @@ export function addServerConfigToBuild(
  * With this, the Sentry server config can be loaded before all other modules of the application (which is needed for import-in-the-middle).
  * See: https://nodejs.org/api/module.html#enabling
  */
-export function addDynamicImportEntryFileWrapper(nitro: Nitro, serverConfigFile: string): void {
+export function addDynamicImportEntryFileWrapper(
+  nitro: Nitro,
+  serverConfigFile: string,
+  moduleOptions: Omit<SentryNuxtModuleOptions, 'experimental_entrypointWrappedFunctions'> &
+    Required<Pick<SentryNuxtModuleOptions, 'experimental_entrypointWrappedFunctions'>>,
+): void {
   if (!nitro.options.rollupConfig) {
     nitro.options.rollupConfig = { output: {} };
   }
@@ -94,7 +151,10 @@ export function addDynamicImportEntryFileWrapper(nitro: Nitro, serverConfigFile:
   }
 
   nitro.options.rollupConfig.plugins.push(
-    wrapEntryWithDynamicImport(createResolver(nitro.options.srcDir).resolve(`/${serverConfigFile}`)),
+    wrapEntryWithDynamicImport({
+      resolvedSentryConfigPath: createResolver(nitro.options.srcDir).resolve(`/${serverConfigFile}`),
+      experimental_entrypointWrappedFunctions: moduleOptions.experimental_entrypointWrappedFunctions,
+    }),
   );
 }
 
@@ -103,7 +163,21 @@ export function addDynamicImportEntryFileWrapper(nitro: Nitro, serverConfigFile:
  * by using a regular `import` and load the server after that.
  * This also works with serverless `handler` functions, as it re-exports the `handler`.
  */
-function wrapEntryWithDynamicImport(resolvedSentryConfigPath: string): InputPluginOption {
+function wrapEntryWithDynamicImport({
+  resolvedSentryConfigPath,
+  experimental_entrypointWrappedFunctions,
+  debug,
+}: {
+  resolvedSentryConfigPath: string;
+  experimental_entrypointWrappedFunctions: string[];
+  debug?: boolean;
+}): InputPluginOption {
+  // In order to correctly import the server config file
+  // and dynamically import the nitro runtime, we need to
+  // mark the resolutionId with '\0raw' to fall into the
+  // raw chunk group, c.f. https://github.com/nitrojs/nitro/commit/8b4a408231bdc222569a32ce109796a41eac4aa6#diff-e58102d2230f95ddeef2662957b48d847a6e891e354cfd0ae6e2e03ce848d1a2R142
+  const resolutionIdPrefix = '\0raw';
+
   return {
     name: 'sentry-wrap-entry-with-dynamic-import',
     async resolveId(source, importer, options) {
@@ -129,29 +203,32 @@ function wrapEntryWithDynamicImport(resolvedSentryConfigPath: string): InputPlug
 
         moduleInfo.moduleSideEffects = true;
 
-        // `exportedBindings` can look like this:  `{ '.': [ 'handler' ], './firebase-gen-1.mjs': [ 'server' ] }`
-        // The key `.` refers to exports within the current file, while other keys show from where exports were imported first.
-        const exportedFunctions = flatten(Object.values(moduleInfo.exportedBindings || {}));
-
         // The enclosing `if` already checks for the suffix in `source`, but a check in `resolution.id` is needed as well to prevent multiple attachment of the suffix
         return resolution.id.includes(`.mjs${SENTRY_WRAPPED_ENTRY}`)
           ? resolution.id
-          : resolution.id
+          : `${resolutionIdPrefix}${resolution.id
               // Concatenates the query params to mark the file (also attaches names of re-exports - this is needed for serverless functions to re-export the handler)
               .concat(SENTRY_WRAPPED_ENTRY)
-              .concat(exportedFunctions?.length ? SENTRY_FUNCTIONS_REEXPORT.concat(exportedFunctions.join(',')) : '')
-              .concat(QUERY_END_INDICATOR);
+              .concat(
+                constructWrappedFunctionExportQuery(
+                  moduleInfo.exportedBindings,
+                  experimental_entrypointWrappedFunctions,
+                  debug,
+                ),
+              )
+              .concat(QUERY_END_INDICATOR)}`;
       }
       return null;
     },
     load(id: string) {
       if (id.includes(`.mjs${SENTRY_WRAPPED_ENTRY}`)) {
-        const entryId = removeSentryQueryFromPath(id);
+        const entryId = removeSentryQueryFromPath(id).slice(resolutionIdPrefix.length);
 
         // Mostly useful for serverless `handler` functions
-        const reExportedFunctions = id.includes(SENTRY_FUNCTIONS_REEXPORT)
-          ? constructFunctionReExport(id, entryId)
-          : '';
+        const reExportedFunctions =
+          id.includes(SENTRY_WRAPPED_FUNCTIONS) || id.includes(SENTRY_REEXPORTED_FUNCTIONS)
+            ? constructFunctionReExport(id, entryId)
+            : '';
 
         return (
           // Regular `import` of the Sentry config

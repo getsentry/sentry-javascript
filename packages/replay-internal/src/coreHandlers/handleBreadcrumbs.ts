@@ -1,7 +1,5 @@
-import { getClient } from '@sentry/core';
-import type { Breadcrumb } from '@sentry/types';
-import { normalize } from '@sentry/utils';
-
+import type { Breadcrumb } from '@sentry/core';
+import { getClient, normalize } from '@sentry/core';
 import { CONSOLE_ARG_MAX_SIZE } from '../constants';
 import type { ReplayContainer } from '../types';
 import type { ReplayFrame } from '../types/replayFrame';
@@ -63,7 +61,7 @@ export function normalizeBreadcrumb(breadcrumb: Breadcrumb): Breadcrumb | null {
 export function normalizeConsoleBreadcrumb(
   breadcrumb: Omit<Breadcrumb, 'category'> & BreadcrumbWithCategory,
 ): ReplayFrame {
-  const args = breadcrumb.data && breadcrumb.data.arguments;
+  const args = breadcrumb.data?.arguments;
 
   if (!Array.isArray(args) || args.length === 0) {
     return createBreadcrumb(breadcrumb);

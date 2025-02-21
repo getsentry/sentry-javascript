@@ -1,6 +1,6 @@
 import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/types';
+import type { Event } from '@sentry/core';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -12,7 +12,7 @@ import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../.
  * The problem is: We don't always get valid TTFB from the web-vitals library, so we skip the test if that's the case.
  * Note: There is another test that covers that we actually report TTFB if it is valid (@see ../web-vitals-lcp/test.ts).
  */
-sentryTest('paint web vitals values are greater than TTFB', async ({ browserName, getLocalTestPath, page }) => {
+sentryTest('paint web vitals values are greater than TTFB', async ({ browserName, getLocalTestUrl, page }) => {
   // Only run in chromium to ensure all vitals are present
   if (shouldSkipTracingTest() || browserName !== 'chromium') {
     sentryTest.skip();
@@ -23,7 +23,7 @@ sentryTest('paint web vitals values are greater than TTFB', async ({ browserName
     return route.fulfill({ path: `${__dirname}/assets/sentry-logo-600x179.png` });
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   const [eventData] = await Promise.all([
     getFirstSentryEnvelopeRequest<Event>(page),
     page.goto(url),
@@ -61,13 +61,13 @@ sentryTest('paint web vitals values are greater than TTFB', async ({ browserName
 
 sentryTest(
   'captures time origin and navigation activationStart as span attributes',
-  async ({ getLocalTestPath, page }) => {
+  async ({ getLocalTestUrl, page }) => {
     // Only run in chromium to ensure all vitals are present
     if (shouldSkipTracingTest()) {
       sentryTest.skip();
     }
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
     const [eventData] = await Promise.all([getFirstSentryEnvelopeRequest<Event>(page), page.goto(url)]);
 
     const timeOriginAttribute = eventData.contexts?.trace?.data?.['performance.timeOrigin'];

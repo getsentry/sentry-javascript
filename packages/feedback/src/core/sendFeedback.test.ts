@@ -49,7 +49,7 @@ describe('sendFeedback', () => {
         event_id: expect.any(String),
         sent_at: expect.any(String),
         trace: {
-          trace_id: expect.any(String),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           environment: 'production',
           public_key: 'dsn',
         },
@@ -61,8 +61,8 @@ describe('sendFeedback', () => {
             breadcrumbs: undefined,
             contexts: {
               trace: {
-                span_id: expect.any(String),
-                trace_id: expect.any(String),
+                span_id: expect.stringMatching(/[a-f0-9]{16}/),
+                trace_id: expect.stringMatching(/[a-f0-9]{32}/),
               },
               feedback: {
                 message: 'mi',
@@ -105,7 +105,7 @@ describe('sendFeedback', () => {
         event_id: expect.any(String),
         sent_at: expect.any(String),
         trace: {
-          trace_id: expect.any(String),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           environment: 'production',
           public_key: 'dsn',
         },
@@ -117,8 +117,8 @@ describe('sendFeedback', () => {
             breadcrumbs: undefined,
             contexts: {
               trace: {
-                span_id: expect.any(String),
-                trace_id: expect.any(String),
+                span_id: expect.stringMatching(/[a-f0-9]{16}/),
+                trace_id: expect.stringMatching(/[a-f0-9]{32}/),
               },
               feedback: {
                 name: 'doe',
@@ -141,7 +141,7 @@ describe('sendFeedback', () => {
   });
 
   it('applies active span data to feedback', async () => {
-    mockSdk({ sentryOptions: { enableTracing: true } });
+    mockSdk({ sentryOptions: { tracesSampleRate: 1 } });
     const mockTransport = jest.spyOn(getClient()!.getTransport()!, 'send');
 
     await startSpan({ name: 'test span' }, () => {
@@ -157,12 +157,13 @@ describe('sendFeedback', () => {
         event_id: expect.any(String),
         sent_at: expect.any(String),
         trace: {
-          trace_id: expect.any(String),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           environment: 'production',
           public_key: 'dsn',
           sample_rate: '1',
           sampled: 'true',
           transaction: 'test span',
+          sample_rand: expect.any(String),
         },
       },
       [
@@ -172,8 +173,8 @@ describe('sendFeedback', () => {
             breadcrumbs: undefined,
             contexts: {
               trace: {
-                span_id: expect.any(String),
-                trace_id: expect.any(String),
+                span_id: expect.stringMatching(/[a-f0-9]{16}/),
+                trace_id: expect.stringMatching(/[a-f0-9]{32}/),
               },
               feedback: {
                 contact_email: 're@example.org',
@@ -195,7 +196,7 @@ describe('sendFeedback', () => {
   });
 
   it('applies scope data to feedback', async () => {
-    mockSdk({ sentryOptions: { enableTracing: true } });
+    mockSdk({ sentryOptions: { tracesSampleRate: 1 } });
     const mockTransport = jest.spyOn(getClient()!.getTransport()!, 'send');
 
     await withIsolationScope(isolationScope => {
@@ -221,7 +222,7 @@ describe('sendFeedback', () => {
         event_id: expect.any(String),
         sent_at: expect.any(String),
         trace: {
-          trace_id: expect.any(String),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           environment: 'production',
           public_key: 'dsn',
         },
@@ -233,8 +234,8 @@ describe('sendFeedback', () => {
             breadcrumbs: [{ message: 'test breadcrumb', timestamp: 12345 }],
             contexts: {
               trace: {
-                span_id: expect.any(String),
-                trace_id: expect.any(String),
+                span_id: expect.stringMatching(/[a-f0-9]{16}/),
+                trace_id: expect.stringMatching(/[a-f0-9]{32}/),
               },
               feedback: {
                 contact_email: 're@example.org',
@@ -374,7 +375,7 @@ describe('sendFeedback', () => {
         event_id: eventId,
         sent_at: expect.any(String),
         trace: {
-          trace_id: expect.any(String),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           environment: 'production',
           public_key: 'dsn',
         },
@@ -386,8 +387,8 @@ describe('sendFeedback', () => {
             breadcrumbs: undefined,
             contexts: {
               trace: {
-                span_id: expect.any(String),
-                trace_id: expect.any(String),
+                span_id: expect.stringMatching(/[a-f0-9]{16}/),
+                trace_id: expect.stringMatching(/[a-f0-9]{32}/),
               },
               feedback: {
                 contact_email: 're@example.org',

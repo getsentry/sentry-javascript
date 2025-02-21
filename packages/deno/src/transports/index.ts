@@ -1,6 +1,5 @@
-import { createTransport, suppressTracing } from '@sentry/core';
-import type { BaseTransportOptions, Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/types';
-import { consoleSandbox, logger, rejectedSyncPromise } from '@sentry/utils';
+import type { BaseTransportOptions, Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/core';
+import { consoleSandbox, createTransport, logger, rejectedSyncPromise, suppressTracing } from '@sentry/core';
 
 export interface DenoTransportOptions extends BaseTransportOptions {
   /** Custom headers for the transport. Used by the XHRTransport and FetchTransport */
@@ -32,7 +31,7 @@ export function makeFetchTransport(options: DenoTransportOptions): Transport {
     const requestOptions: RequestInit = {
       body: request.body,
       method: 'POST',
-      referrerPolicy: 'origin',
+      referrerPolicy: 'strict-origin',
       headers: options.headers,
     };
 

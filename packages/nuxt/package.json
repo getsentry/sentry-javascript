@@ -1,13 +1,13 @@
 {
   "name": "@sentry/nuxt",
-  "version": "8.35.0",
+  "version": "9.1.0",
   "description": "Official Sentry SDK for Nuxt (EXPERIMENTAL)",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/nuxt",
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=16"
+    "node": ">=18.19.1"
   },
   "files": [
     "/build"
@@ -39,19 +39,17 @@
     "access": "public"
   },
   "peerDependencies": {
-    "nuxt": "3.x"
+    "nuxt": ">=3.7.0 || 4.x"
   },
   "dependencies": {
     "@nuxt/kit": "^3.13.2",
-    "@sentry/browser": "8.35.0",
-    "@sentry/core": "8.35.0",
-    "@sentry/node": "8.35.0",
-    "@sentry/opentelemetry": "8.35.0",
-    "@sentry/rollup-plugin": "2.22.6",
-    "@sentry/types": "8.35.0",
-    "@sentry/utils": "8.35.0",
+    "@sentry/browser": "9.1.0",
+    "@sentry/core": "9.1.0",
+    "@sentry/node": "9.1.0",
+    "@sentry/opentelemetry": "9.1.0",
+    "@sentry/rollup-plugin": "3.1.2",
     "@sentry/vite-plugin": "2.22.6",
-    "@sentry/vue": "8.35.0"
+    "@sentry/vue": "9.1.0"
   },
   "devDependencies": {
     "@nuxt/module-builder": "^0.8.4",
@@ -60,7 +58,7 @@
   "scripts": {
     "build": "run-s build:types build:transpile",
     "build:dev": "yarn build",
-    "build:nuxt-module": "nuxt-module-build build --outDir build/module",
+    "build:nuxt-module": "bash ./generate-build-stubs.bash && nuxt-module-build build --outDir build/module",
     "build:transpile": "rollup -c rollup.npm.config.mjs && yarn build:nuxt-module",
     "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch build:types:watch",

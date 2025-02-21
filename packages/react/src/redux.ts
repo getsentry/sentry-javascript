@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { addBreadcrumb, getClient, getCurrentScope, getGlobalScope } from '@sentry/core';
-import type { Scope } from '@sentry/types';
-import { addNonEnumerableProperty } from '@sentry/utils';
+import type { Scope } from '@sentry/core';
+import { addBreadcrumb, addNonEnumerableProperty, getClient, getCurrentScope, getGlobalScope } from '@sentry/core';
 
 interface Action<T = any> {
   type: T;
@@ -132,8 +131,8 @@ function createReduxEnhancer(enhancerOptions?: Partial<SentryEnhancerOptions>): 
         const transformedState = options.stateTransformer(newState);
         if (typeof transformedState !== 'undefined' && transformedState !== null) {
           const client = getClient();
-          const options = client && client.getOptions();
-          const normalizationDepth = (options && options.normalizeDepth) || 3; // default state normalization depth to 3
+          const options = client?.getOptions();
+          const normalizationDepth = options?.normalizeDepth || 3; // default state normalization depth to 3
 
           // Set the normalization depth of the redux state to the configured `normalizeDepth` option or a sane number as a fallback
           const newStateContext = { state: { type: 'redux', value: transformedState } };

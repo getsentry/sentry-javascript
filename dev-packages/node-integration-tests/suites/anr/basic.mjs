@@ -3,6 +3,8 @@ import * as crypto from 'crypto';
 
 import * as Sentry from '@sentry/node';
 
+global._sentryDebugIds = { [new Error().stack]: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa' };
+
 setTimeout(() => {
   process.exit();
 }, 10000);
@@ -10,7 +12,6 @@ setTimeout(() => {
 Sentry.init({
   dsn: process.env.SENTRY_DSN,
   release: '1.0',
-  autoSessionTracking: false,
   integrations: [Sentry.anrIntegration({ captureStackTrace: true, anrThreshold: 100 })],
 });
 
@@ -28,3 +29,8 @@ function longWork() {
 setTimeout(() => {
   longWork();
 }, 1000);
+
+// Ensure we only send one event even with multiple blocking events
+setTimeout(() => {
+  longWork();
+}, 4000);

@@ -1,4 +1,4 @@
-import type { Breadcrumb, Client, Event, RequestSessionStatus } from '@sentry/types';
+import type { Client } from '../../src';
 import {
   applyScopeDataToEvent,
   getCurrentScope,
@@ -7,8 +7,8 @@ import {
   withIsolationScope,
   withScope,
 } from '../../src';
-
 import { Scope } from '../../src/scope';
+import type { Breadcrumb, Event } from '../../src/types-hoist';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 import { clearGlobalScope } from './clear-global-scope';
 
@@ -32,7 +32,7 @@ describe('Scope', () => {
       eventProcessors: [],
       propagationContext: {
         traceId: expect.any(String),
-        spanId: expect.any(String),
+        sampleRand: expect.any(Number),
       },
       sdkProcessingMetadata: {},
     });
@@ -58,7 +58,7 @@ describe('Scope', () => {
       eventProcessors: [],
       propagationContext: {
         traceId: expect.any(String),
-        spanId: expect.any(String),
+        sampleRand: expect.any(Number),
       },
       sdkProcessingMetadata: {},
     });
@@ -92,7 +92,7 @@ describe('Scope', () => {
       eventProcessors: [],
       propagationContext: {
         traceId: expect.any(String),
-        spanId: expect.any(String),
+        sampleRand: expect.any(Number),
       },
       sdkProcessingMetadata: {},
     });
@@ -104,7 +104,7 @@ describe('Scope', () => {
 
       expect(scope.getScopeData().propagationContext).toEqual({
         traceId: expect.any(String),
-        spanId: expect.any(String),
+        sampleRand: expect.any(Number),
         sampled: undefined,
         dsc: undefined,
         parentSpanId: undefined,
@@ -204,10 +204,27 @@ describe('Scope', () => {
       expect(scope['_user']).toEqual({});
     });
 
-    test('setProcessingMetadata', () => {
-      const scope = new Scope();
-      scope.setSDKProcessingMetadata({ dogs: 'are great!' });
-      expect(scope['_sdkProcessingMetadata'].dogs).toEqual('are great!');
+    describe('setProcessingMetadata', () => {
+      test('it works with no initial data', () => {
+        const scope = new Scope();
+        scope.setSDKProcessingMetadata({ dogs: 'are great!' });
+        expect(scope['_sdkProcessingMetadata'].dogs).toEqual('are great!');
+      });
+
+      test('it overwrites data', () => {
+        const scope = new Scope();
+        scope.setSDKProcessingMetadata({ dogs: 'are great!' });
+        scope.setSDKProcessingMetadata({ dogs: 'are really great!' });
+        scope.setSDKProcessingMetadata({ cats: 'are also great!' });
+        scope.setSDKProcessingMetadata({ obj: { nested1: 'value1', nested: 'value1' } });
+        scope.setSDKProcessingMetadata({ obj: { nested2: 'value2', nested: 'value2' } });
+
+        expect(scope['_sdkProcessingMetadata']).toEqual({
+          dogs: 'are really great!',
+          cats: 'are also great!',
+          obj: { nested2: 'value2', nested: 'value2', nested1: 'value1' },
+        });
+      });
     });
 
     test('set and get propagation context', () => {
@@ -215,14 +232,14 @@ describe('Scope', () => {
       const oldPropagationContext = scope.getPropagationContext();
       scope.setPropagationContext({
         traceId: '86f39e84263a4de99c326acab3bfe3bd',
-        spanId: '6e0c63257de34c92',
+        sampleRand: 0.42,
         sampled: true,
       });
       expect(scope.getPropagationContext()).not.toEqual(oldPropagationContext);
       expect(scope.getPropagationContext()).toEqual({
         traceId: '86f39e84263a4de99c326acab3bfe3bd',
-        spanId: '6e0c63257de34c92',
         sampled: true,
+        sampleRand: 0.42,
       });
     });
 
@@ -240,13 +257,6 @@ describe('Scope', () => {
       parentScope.setExtra('a', 1);
       const scope = parentScope.clone();
       expect(parentScope['_extra']).toEqual(scope['_extra']);
-    });
-
-    test('_requestSession clone', () => {
-      const parentScope = new Scope();
-      parentScope.setRequestSession({ status: 'errored' });
-      const scope = parentScope.clone();
-      expect(parentScope.getRequestSession()).toEqual(scope.getRequestSession());
     });
 
     test('parent changed inheritance', () => {
@@ -267,22 +277,6 @@ describe('Scope', () => {
       expect(scope['_extra']).toEqual({ a: 2 });
     });
 
-    test('child override should set the value of parent _requestSession', () => {
-      // Test that ensures if the status value of `status` of `_requestSession` is changed in a child scope
-      // that it should also change in parent scope because we are copying the reference to the object
-      const parentScope = new Scope();
-      parentScope.setRequestSession({ status: 'errored' });
-
-      const scope = parentScope.clone();
-      const requestSession = scope.getRequestSession();
-      if (requestSession) {
-        requestSession.status = 'ok';
-      }
-
-      expect(parentScope.getRequestSession()).toEqual({ status: 'ok' });
-      expect(scope.getRequestSession()).toEqual({ status: 'ok' });
-    });
-
     test('should clone propagation context', () => {
       const parentScope = new Scope();
       const scope = parentScope.clone();
@@ -299,15 +293,13 @@ describe('Scope', () => {
     scope.setUser({ id: '1' });
     scope.setFingerprint(['abcd']);
     scope.addBreadcrumb({ message: 'test' });
-    scope.setRequestSession({ status: 'ok' });
     expect(scope['_extra']).toEqual({ a: 2 });
     scope.clear();
     expect(scope['_extra']).toEqual({});
-    expect(scope['_requestSession']).toEqual(undefined);
     expect(scope['_propagationContext']).toEqual({
       traceId: expect.any(String),
-      spanId: expect.any(String),
       sampled: undefined,
+      sampleRand: expect.any(Number),
     });
     expect(scope['_propagationContext']).not.toEqual(oldPropagationContext);
   });
@@ -332,7 +324,6 @@ describe('Scope', () => {
       scope.setUser({ id: '1337' });
       scope.setLevel('info');
       scope.setFingerprint(['foo']);
-      scope.setRequestSession({ status: 'ok' });
     });
 
     test('given no data, returns the original scope', () => {
@@ -380,7 +371,6 @@ describe('Scope', () => {
       localScope.setUser({ id: '42' });
       localScope.setLevel('warning');
       localScope.setFingerprint(['bar']);
-      (localScope as any)._requestSession = { status: 'ok' };
 
       const updatedScope = scope.update(localScope) as any;
 
@@ -402,7 +392,6 @@ describe('Scope', () => {
       expect(updatedScope._user).toEqual({ id: '42' });
       expect(updatedScope._level).toEqual('warning');
       expect(updatedScope._fingerprint).toEqual(['bar']);
-      expect(updatedScope._requestSession.status).toEqual('ok');
       // @ts-expect-error accessing private property for test
       expect(updatedScope._propagationContext).toEqual(localScope._propagationContext);
     });
@@ -425,7 +414,6 @@ describe('Scope', () => {
       expect(updatedScope._user).toEqual({ id: '1337' });
       expect(updatedScope._level).toEqual('info');
       expect(updatedScope._fingerprint).toEqual(['foo']);
-      expect(updatedScope._requestSession.status).toEqual('ok');
     });
 
     test('given a plain object, it should merge two together, with the passed object having priority', () => {
@@ -436,11 +424,10 @@ describe('Scope', () => {
         level: 'warning' as const,
         tags: { bar: '3', baz: '4' },
         user: { id: '42' },
-        requestSession: { status: 'errored' as RequestSessionStatus },
         propagationContext: {
           traceId: '8949daf83f4a4a70bee4c1eb9ab242ed',
-          spanId: 'a024ad8fea82680e',
           sampled: true,
+          sampleRand: 0.42,
         },
       };
 
@@ -464,11 +451,10 @@ describe('Scope', () => {
       expect(updatedScope._user).toEqual({ id: '42' });
       expect(updatedScope._level).toEqual('warning');
       expect(updatedScope._fingerprint).toEqual(['bar']);
-      expect(updatedScope._requestSession).toEqual({ status: 'errored' });
       expect(updatedScope._propagationContext).toEqual({
         traceId: '8949daf83f4a4a70bee4c1eb9ab242ed',
-        spanId: 'a024ad8fea82680e',
         sampled: true,
+        sampleRand: 0.42,
       });
     });
   });
@@ -516,7 +502,7 @@ describe('Scope', () => {
         tags: { tag1: 'aa', tag2: 'aa' },
         extra: { extra1: 'aa', extra2: 'aa' },
         contexts: { os: { name: 'os1' }, culture: { display_name: 'name1' } },
-        propagationContext: { spanId: '1', traceId: '1' },
+        propagationContext: { traceId: '1', sampleRand: 0.42 },
         fingerprint: ['aa'],
       });
       scope.addBreadcrumb(breadcrumb1);
@@ -984,16 +970,5 @@ describe('withIsolationScope()', () => {
       expect(scope).toBe(isolationScope);
       done();
     });
-  });
-
-  it('Scope type is equal to Scope from @sentry/types', () => {
-    // We pass the Scope _class_ here to the callback,
-    // Which actually is typed as using the Scope from @sentry/types
-    // This should not TS-error, as we export the type from core as well
-    const scope = withScope((scope: Scope) => {
-      return scope;
-    });
-
-    expect(scope).toBeDefined();
   });
 });

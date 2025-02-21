@@ -1,13 +1,13 @@
 {
   "name": "@sentry/browser",
-  "version": "8.35.0",
+  "version": "9.1.0",
   "description": "Official Sentry SDK for browsers",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/browser",
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=14.18"
+    "node": ">=18"
   },
   "files": [
     "/build/npm"
@@ -29,7 +29,7 @@
     }
   },
   "typesVersions": {
-    "<4.9": {
+    "<5.0": {
       "build/npm/types/index.d.ts": [
         "build/npm/types-ts3.8/index.d.ts"
       ]
@@ -39,21 +39,19 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry-internal/browser-utils": "8.35.0",
-    "@sentry-internal/feedback": "8.35.0",
-    "@sentry-internal/replay": "8.35.0",
-    "@sentry-internal/replay-canvas": "8.35.0",
-    "@sentry/core": "8.35.0",
-    "@sentry/types": "8.35.0",
-    "@sentry/utils": "8.35.0"
+    "@sentry-internal/browser-utils": "9.1.0",
+    "@sentry-internal/feedback": "9.1.0",
+    "@sentry-internal/replay": "9.1.0",
+    "@sentry-internal/replay-canvas": "9.1.0",
+    "@sentry/core": "9.1.0"
   },
   "devDependencies": {
-    "@sentry-internal/integration-shims": "8.35.0",
+    "@sentry-internal/integration-shims": "9.1.0",
     "fake-indexeddb": "^4.0.1"
   },
   "scripts": {
     "build": "run-p build:transpile build:bundle build:types",
-    "build:dev": "yarn build",
+    "build:dev": "run-p build:transpile build:types",
     "build:bundle": "rollup -c rollup.bundle.config.mjs",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
     "build:types": "run-s build:types:core build:types:downlevel",

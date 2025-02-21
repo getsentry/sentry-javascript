@@ -2,10 +2,10 @@ import * as http from 'http';
 import { AddressInfo } from 'net';
 import * as path from 'path';
 import { createRequestHandler } from '@remix-run/express';
+import { logger } from '@sentry/core';
+import type { EnvelopeItemType, Event, TransactionEvent } from '@sentry/core';
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import * as Sentry from '@sentry/node';
-import type { EnvelopeItemType } from '@sentry/types';
-import { logger } from '@sentry/utils';
 import type { AxiosRequestConfig } from 'axios';
 import axios from 'axios';
 import express from 'express';
@@ -13,8 +13,6 @@ import type { Express } from 'express';
 import type { HttpTerminator } from 'http-terminator';
 import { createHttpTerminator } from 'http-terminator';
 import nock from 'nock';
-
-export * from '../../../../../../../dev-packages/node-integration-tests/utils';
 
 type DataCollectorOptions = {
   // Optional custom URL
@@ -56,7 +54,10 @@ class TestEnv {
   private _axiosConfig: AxiosRequestConfig | undefined = undefined;
   private _terminator: HttpTerminator;
 
-  public constructor(public readonly server: http.Server, public readonly url: string) {
+  public constructor(
+    public readonly server: http.Server,
+    public readonly url: string,
+  ) {
     this.server = server;
     this.url = url;
     this._terminator = createHttpTerminator({ server: this.server, gracefulTerminationTimeout: 0 });
@@ -73,13 +74,13 @@ class TestEnv {
   public static async init(testDir: string, serverPath?: string, scenarioPath?: string): Promise<TestEnv> {
     const defaultServerPath = path.resolve(process.cwd(), 'utils', 'defaults', 'server');
 
-    const [server, url] = await new Promise<[http.Server, string]>(resolve => {
+    const [server, url] = await new Promise<[http.Server, string]>(async resolve => {
       // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-member-access
-      const app = require(serverPath || defaultServerPath).default as Express;
+      const { default: app } = (await import(serverPath || defaultServerPath)) as { default: Express };
 
-      app.get('/test', (_req, res) => {
+      app.get('/test', async (_req, res) => {
         try {
-          require(scenarioPath || `${testDir}/scenario`);
+          await import(scenarioPath || `${testDir}/scenario`);
         } finally {
           res.status(200).end();
         }
@@ -238,19 +239,16 @@ class TestEnv {
           return false;
         });
 
-      setTimeout(
-        () => {
-          nock.removeInterceptor(mock);
+      setTimeout(() => {
+        nock.removeInterceptor(mock);
 
-          nock.cleanAll();
+        nock.cleanAll();
 
-          // eslint-disable-next-line @typescript-eslint/no-floating-promises
-          this._closeServer().then(() => {
-            resolve(reqCount);
-          });
-        },
-        options.timeout || 1000,
-      );
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        this._closeServer().then(() => {
+          resolve(reqCount);
+        });
+      }, options.timeout || 1000);
     });
   }
 
@@ -260,16 +258,19 @@ class TestEnv {
 }
 
 export class RemixTestEnv extends TestEnv {
-  private constructor(public readonly server: http.Server, public readonly url: string) {
+  private constructor(
+    public readonly server: http.Server,
+    public readonly url: string,
+  ) {
     super(server, url);
   }
 
   public static async init(): Promise<RemixTestEnv> {
     let serverPort;
-    const server = await new Promise<http.Server>(resolve => {
+    const server = await new Promise<http.Server>(async resolve => {
       const app = express();
 
-      app.all('*', createRequestHandler({ build: require('../../../build') }));
+      app.all('*', createRequestHandler({ build: await import('../../../build') }));
 
       const server = app.listen(0, () => {
         serverPort = (server.address() as AddressInfo).port;
@@ -283,4 +284,34 @@ export class RemixTestEnv extends TestEnv {
 
 const parseEnvelope = (body: string): Array<Record<string, unknown>> => {
   return body.split('\n').map(e => JSON.parse(e));
+};
+
+/**
+ * Asserts against a Sentry Event ignoring non-deterministic properties
+ *
+ * @param {Record<string, unknown>} actual
+ * @param {Record<string, unknown>} expected
+ */
+export const assertSentryEvent = (actual: Event, expected: Record<string, unknown>): void => {
+  expect(actual).toMatchObject({
+    event_id: expect.any(String),
+    ...expected,
+  });
+};
+
+/**
+ * Asserts against a Sentry Transaction ignoring non-deterministic properties
+ *
+ * @param {Record<string, unknown>} actual
+ * @param {Record<string, unknown>} expected
+ */
+export const assertSentryTransaction = (actual: TransactionEvent, expected: Record<string, unknown>): void => {
+  expect(actual).toMatchObject({
+    event_id: expect.any(String),
+    timestamp: expect.anything(),
+    start_timestamp: expect.anything(),
+    spans: expect.any(Array),
+    type: 'transaction',
+    ...expected,
+  });
 };

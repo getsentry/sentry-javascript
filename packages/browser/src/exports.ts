@@ -1,7 +1,7 @@
 export type {
   Breadcrumb,
   BreadcrumbHint,
-  Request,
+  RequestEventData,
   SdkInfo,
   Event,
   EventHint,
@@ -13,11 +13,10 @@ export type {
   Thread,
   User,
   Session,
-} from '@sentry/types';
+  ReportDialogOptions,
+} from '@sentry/core';
 
 export type { BrowserOptions } from './client';
-
-export type { ReportDialogOptions } from './sdk';
 
 export {
   addEventProcessor,
@@ -25,13 +24,12 @@ export {
   addIntegration,
   captureException,
   captureEvent,
+  captureFeedback,
   captureMessage,
   close,
   createTransport,
   lastEventId,
   flush,
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub,
   getClient,
   isInitialized,
   getCurrentScope,
@@ -60,6 +58,7 @@ export {
   spanToJSON,
   spanToTraceHeader,
   spanToBaggageHeader,
+  updateSpanName,
 } from '@sentry/core';
 
 export {
@@ -89,8 +88,6 @@ export {
   init,
   onLoad,
   showReportDialog,
-  // eslint-disable-next-line deprecation/deprecation
-  captureUserFeedback,
 } from './sdk';
 
 export { breadcrumbsIntegration } from './integrations/breadcrumbs';

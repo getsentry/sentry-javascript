@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 import { expect } from '@playwright/test';
 import { SDK_VERSION } from '@sentry/browser';
-import type { ReplayEvent } from '@sentry/types';
+import type { ReplayEvent } from '@sentry/core';
 
 const DEFAULT_REPLAY_EVENT = {
   type: 'replay_event',
@@ -16,7 +16,7 @@ const DEFAULT_REPLAY_EVENT = {
   event_id: expect.stringMatching(/\w{32}/),
   environment: 'production',
   sdk: {
-    integrations: [
+    integrations: expect.arrayContaining([
       'InboundFilters',
       'FunctionToString',
       'BrowserApiErrors',
@@ -25,15 +25,16 @@ const DEFAULT_REPLAY_EVENT = {
       'LinkedErrors',
       'Dedupe',
       'HttpContext',
+      'BrowserSession',
       'Replay',
-    ],
+    ]),
     version: SDK_VERSION,
     name: 'sentry.javascript.browser',
   },
   request: {
     url: expect.stringContaining('/index.html'),
     headers: {
-      'User-Agent': expect.stringContaining(''),
+      'User-Agent': expect.any(String),
     },
   },
   platform: 'javascript',
@@ -44,7 +45,7 @@ const DEFAULT_REPLAY_EVENT = {
  * This is useful for testing multi-segment replays to not repeat most of the properties that don't change
  * throughout the replay segments.
  *
- * Note: The benfit of this approach over expect.objectContaining is that,
+ * Note: The benefit of this approach over expect.objectContaining is that,
  *       we'll catch if properties we expect to stay the same actually change.
  *
  * @param customExpectedReplayEvent overwrite the default values with custom values (e.g. segment_id)
@@ -189,7 +190,7 @@ export const expectedFPPerformanceSpan = {
 
 export const expectedFetchPerformanceSpan = {
   op: 'resource.fetch',
-  description: 'https://example.com',
+  description: 'https://sentry-test-site.example',
   startTimestamp: expect.any(Number),
   endTimestamp: expect.any(Number),
   data: {
@@ -214,7 +215,7 @@ export const expectedFetchPerformanceSpan = {
 
 export const expectedXHRPerformanceSpan = {
   op: 'resource.xhr',
-  description: 'https://example.com',
+  description: 'https://sentry-test-site.example',
   startTimestamp: expect.any(Number),
   endTimestamp: expect.any(Number),
   data: {

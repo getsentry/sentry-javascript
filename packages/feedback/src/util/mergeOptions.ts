@@ -1,4 +1,4 @@
-import type { FeedbackFormData, FeedbackInternalOptions } from '@sentry/types';
+import type { FeedbackFormData, FeedbackInternalOptions } from '@sentry/core';
 import type { OptionalFeedbackConfiguration } from '../core/types';
 
 /**
@@ -16,24 +16,24 @@ export function mergeOptions(
       ...optionOverrides.tags,
     },
     onFormOpen: () => {
-      optionOverrides.onFormOpen && optionOverrides.onFormOpen();
-      defaultOptions.onFormOpen && defaultOptions.onFormOpen();
+      optionOverrides.onFormOpen?.();
+      defaultOptions.onFormOpen?.();
     },
     onFormClose: () => {
-      optionOverrides.onFormClose && optionOverrides.onFormClose();
-      defaultOptions.onFormClose && defaultOptions.onFormClose();
+      optionOverrides.onFormClose?.();
+      defaultOptions.onFormClose?.();
     },
     onSubmitSuccess: (data: FeedbackFormData) => {
-      optionOverrides.onSubmitSuccess && optionOverrides.onSubmitSuccess(data);
-      defaultOptions.onSubmitSuccess && defaultOptions.onSubmitSuccess(data);
+      optionOverrides.onSubmitSuccess?.(data);
+      defaultOptions.onSubmitSuccess?.(data);
     },
     onSubmitError: (error: Error) => {
-      optionOverrides.onSubmitError && optionOverrides.onSubmitError(error);
-      defaultOptions.onSubmitError && defaultOptions.onSubmitError(error);
+      optionOverrides.onSubmitError?.(error);
+      defaultOptions.onSubmitError?.(error);
     },
     onFormSubmitted: () => {
-      optionOverrides.onFormSubmitted && optionOverrides.onFormSubmitted();
-      defaultOptions.onFormSubmitted && defaultOptions.onFormSubmitted();
+      optionOverrides.onFormSubmitted?.();
+      defaultOptions.onFormSubmitted?.();
     },
     themeDark: {
       ...defaultOptions.themeDark,

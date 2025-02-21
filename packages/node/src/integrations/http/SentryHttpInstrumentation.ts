@@ -1,20 +1,29 @@
+/* eslint-disable max-lines */
 import type * as http from 'node:http';
-import type { RequestOptions } from 'node:http';
+import type { IncomingMessage, RequestOptions } from 'node:http';
 import type * as https from 'node:https';
+import type { EventEmitter } from 'node:stream';
 import { VERSION } from '@opentelemetry/core';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
-import { getRequestInfo } from '@opentelemetry/instrumentation-http';
-import { addBreadcrumb, getClient, getIsolationScope, withIsolationScope } from '@sentry/core';
-import type { SanitizedRequestData } from '@sentry/types';
+import type { AggregationCounts, Client, RequestEventData, SanitizedRequestData, Scope } from '@sentry/core';
 import {
+  addBreadcrumb,
+  generateSpanId,
   getBreadcrumbLogLevelFromHttpStatusCode,
+  getClient,
+  getIsolationScope,
   getSanitizedUrlString,
+  httpRequestToRequestData,
+  logger,
   parseUrl,
   stripUrlQueryAndFragment,
-} from '@sentry/utils';
-import type { NodeClient } from '../../sdk/client';
+  withIsolationScope,
+  withScope,
+} from '@sentry/core';
+import { DEBUG_BUILD } from '../../debug-build';
 import { getRequestUrl } from '../../utils/getRequestUrl';
+import { getRequestInfo } from './vendor/getRequestInfo';
 
 type Http = typeof http;
 type Https = typeof https;
@@ -37,7 +46,25 @@ type SentryHttpInstrumentationOptions = InstrumentationConfig & {
    * @param request Contains the {@type RequestOptions} object used to make the outgoing request.
    */
   ignoreOutgoingRequests?: (url: string, request: RequestOptions) => boolean;
+
+  /**
+   * Whether the integration should create [Sessions](https://docs.sentry.io/product/releases/health/#sessions) for incoming requests to track the health and crash-free rate of your releases in Sentry.
+   * Read more about Release Health: https://docs.sentry.io/product/releases/health/
+   *
+   * Defaults to `true`.
+   */
+  trackIncomingRequestsAsSessions?: boolean;
+
+  /**
+   * Number of milliseconds until sessions tracked with `trackIncomingRequestsAsSessions` will be flushed as a session aggregate.
+   *
+   * Defaults to `60000` (60s).
+   */
+  sessionFlushingDelayMS?: number;
 };
+
+// We only want to capture request bodies up to 1mb.
+const MAX_BODY_BYTE_LENGTH = 1024 * 1024;
 
 /**
  * This custom HTTP instrumentation is used to isolate incoming requests and annotate them with additional information.
@@ -124,17 +151,19 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
 
         instrumentation._diag.debug('http instrumentation for incoming request');
 
-        const request = args[0] as http.IncomingMessage;
-
         const isolationScope = getIsolationScope().clone();
+        const request = args[0] as http.IncomingMessage;
+        const response = args[1] as http.OutgoingMessage;
+
+        const normalizedRequest = httpRequestToRequestData(request);
+
+        // request.ip is non-standard but some frameworks set this
+        const ipAddress = (request as { ip?: string }).ip || request.socket?.remoteAddress;
+
+        patchRequestToCaptureBody(request, isolationScope);
 
         // Update the isolation scope, isolate this request
-        isolationScope.setSDKProcessingMetadata({ request });
-
-        const client = getClient<NodeClient>();
-        if (client && client.getOptions().autoSessionTracking) {
-          isolationScope.setRequestSession({ status: 'ok' });
-        }
+        isolationScope.setSDKProcessingMetadata({ normalizedRequest, ipAddress });
 
         // attempt to update the scope's `transactionName` based on the request URL
         // Ideally, framework instrumentations coming after the HttpInstrumentation
@@ -146,8 +175,20 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
 
         isolationScope.setTransactionName(bestEffortTransactionName);
 
+        if (instrumentation.getConfig().trackIncomingRequestsAsSessions !== false) {
+          recordRequestSession({
+            requestIsolationScope: isolationScope,
+            response,
+            sessionFlushingDelayMS: instrumentation.getConfig().sessionFlushingDelayMS ?? 60_000,
+          });
+        }
+
         return withIsolationScope(isolationScope, () => {
-          return original.apply(this, [event, ...args]);
+          return withScope(scope => {
+            // Set a new propagationSpanId for this request
+            scope.getPropagationContext().propagationSpanId = generateSpanId();
+            return original.apply(this, [event, ...args]);
+          });
         });
       };
     };
@@ -180,7 +221,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
             ? (argsCopy.shift() as http.RequestOptions)
             : undefined;
 
-        const { optionsParsed } = getRequestInfo(options, extraOptions);
+        const { optionsParsed } = getRequestInfo(instrumentation._diag, options, extraOptions);
 
         const request = original.apply(this, args) as ReturnType<typeof http.request>;
 
@@ -316,3 +357,177 @@ function getBreadcrumbData(request: http.ClientRequest): Partial<SanitizedReques
     return {};
   }
 }
+
+/**
+ * This method patches the request object to capture the body.
+ * Instead of actually consuming the streamed body ourselves, which has potential side effects,
+ * we monkey patch `req.on('data')` to intercept the body chunks.
+ * This way, we only read the body if the user also consumes the body, ensuring we do not change any behavior in unexpected ways.
+ */
+function patchRequestToCaptureBody(req: IncomingMessage, isolationScope: Scope): void {
+  const chunks: Buffer[] = [];
+
+  function getChunksSize(): number {
+    return chunks.reduce((acc, chunk) => acc + chunk.byteLength, 0);
+  }
+
+  /**
+   * We need to keep track of the original callbacks, in order to be able to remove listeners again.
+   * Since `off` depends on having the exact same function reference passed in, we need to be able to map
+   * original listeners to our wrapped ones.
+   */
+  const callbackMap = new WeakMap();
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    req.on = new Proxy(req.on, {
+      apply: (target, thisArg, args: Parameters<typeof req.on>) => {
+        const [event, listener, ...restArgs] = args;
+
+        if (event === 'data') {
+          const callback = new Proxy(listener, {
+            apply: (target, thisArg, args: Parameters<typeof listener>) => {
+              // If we have already read more than the max body length, we stop adding chunks
+              // To avoid growing the memory indefinitely if a response is e.g. streamed
+              if (getChunksSize() < MAX_BODY_BYTE_LENGTH) {
+                const chunk = args[0] as Buffer;
+                chunks.push(chunk);
+              } else if (DEBUG_BUILD) {
+                logger.log(
+                  `Dropping request body chunk because it maximum body length of ${MAX_BODY_BYTE_LENGTH}b is exceeded.`,
+                );
+              }
+
+              return Reflect.apply(target, thisArg, args);
+            },
+          });
+
+          callbackMap.set(listener, callback);
+
+          return Reflect.apply(target, thisArg, [event, callback, ...restArgs]);
+        }
+
+        if (event === 'end') {
+          const callback = new Proxy(listener, {
+            apply: (target, thisArg, args) => {
+              try {
+                const body = Buffer.concat(chunks).toString('utf-8');
+
+                if (body) {
+                  const normalizedRequest = { data: body } satisfies RequestEventData;
+                  isolationScope.setSDKProcessingMetadata({ normalizedRequest });
+                }
+              } catch {
+                // ignore errors here
+              }
+
+              return Reflect.apply(target, thisArg, args);
+            },
+          });
+
+          callbackMap.set(listener, callback);
+
+          return Reflect.apply(target, thisArg, [event, callback, ...restArgs]);
+        }
+
+        return Reflect.apply(target, thisArg, args);
+      },
+    });
+
+    // Ensure we also remove callbacks correctly
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    req.off = new Proxy(req.off, {
+      apply: (target, thisArg, args: Parameters<typeof req.off>) => {
+        const [, listener] = args;
+
+        const callback = callbackMap.get(listener);
+        if (callback) {
+          callbackMap.delete(listener);
+
+          const modifiedArgs = args.slice();
+          modifiedArgs[1] = callback;
+          return Reflect.apply(target, thisArg, modifiedArgs);
+        }
+
+        return Reflect.apply(target, thisArg, args);
+      },
+    });
+  } catch {
+    // ignore errors if we can't patch stuff
+  }
+}
+
+/**
+ * Starts a session and tracks it in the context of a given isolation scope.
+ * When the passed response is finished, the session is put into a task and is
+ * aggregated with other sessions that may happen in a certain time window
+ * (sessionFlushingDelayMs).
+ *
+ * The sessions are always aggregated by the client that is on the current scope
+ * at the time of ending the response (if there is one).
+ */
+// Exported for unit tests
+export function recordRequestSession({
+  requestIsolationScope,
+  response,
+  sessionFlushingDelayMS,
+}: { requestIsolationScope: Scope; response: EventEmitter; sessionFlushingDelayMS?: number }): void {
+  requestIsolationScope.setSDKProcessingMetadata({
+    requestSession: { status: 'ok' },
+  });
+  response.once('close', () => {
+    // We need to grab the client off the current scope instead of the isolation scope because the isolation scope doesn't hold any client out of the box.
+    const client = getClient();
+    const requestSession = requestIsolationScope.getScopeData().sdkProcessingMetadata.requestSession;
+
+    if (client && requestSession) {
+      DEBUG_BUILD && logger.debug(`Recorded request session with status: ${requestSession.status}`);
+
+      const roundedDate = new Date();
+      roundedDate.setSeconds(0, 0);
+      const dateBucketKey = roundedDate.toISOString();
+
+      const existingClientAggregate = clientToRequestSessionAggregatesMap.get(client);
+      const bucket = existingClientAggregate?.[dateBucketKey] || { exited: 0, crashed: 0, errored: 0 };
+      bucket[({ ok: 'exited', crashed: 'crashed', errored: 'errored' } as const)[requestSession.status]]++;
+
+      if (existingClientAggregate) {
+        existingClientAggregate[dateBucketKey] = bucket;
+      } else {
+        DEBUG_BUILD && logger.debug('Opened new request session aggregate.');
+        const newClientAggregate = { [dateBucketKey]: bucket };
+        clientToRequestSessionAggregatesMap.set(client, newClientAggregate);
+
+        const flushPendingClientAggregates = (): void => {
+          clearTimeout(timeout);
+          unregisterClientFlushHook();
+          clientToRequestSessionAggregatesMap.delete(client);
+
+          const aggregatePayload: AggregationCounts[] = Object.entries(newClientAggregate).map(
+            ([timestamp, value]) => ({
+              started: timestamp,
+              exited: value.exited,
+              errored: value.errored,
+              crashed: value.crashed,
+            }),
+          );
+          client.sendSession({ aggregates: aggregatePayload });
+        };
+
+        const unregisterClientFlushHook = client.on('flush', () => {
+          DEBUG_BUILD && logger.debug('Sending request session aggregate due to client flush');
+          flushPendingClientAggregates();
+        });
+        const timeout = setTimeout(() => {
+          DEBUG_BUILD && logger.debug('Sending request session aggregate due to flushing schedule');
+          flushPendingClientAggregates();
+        }, sessionFlushingDelayMS).unref();
+      }
+    }
+  });
+}
+
+const clientToRequestSessionAggregatesMap = new Map<
+  Client,
+  { [timestampRoundedToSeconds: string]: { exited: number; crashed: number; errored: number } }
+>();

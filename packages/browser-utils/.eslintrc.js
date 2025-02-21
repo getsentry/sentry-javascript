@@ -6,9 +6,7 @@ module.exports = {
   overrides: [
     {
       files: ['src/**'],
-      rules: {
-        '@sentry-internal/sdk/no-optional-chaining': 'off',
-      },
+      rules: {},
     },
     {
       files: ['src/metrics/**'],

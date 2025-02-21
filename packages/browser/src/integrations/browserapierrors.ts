@@ -1,6 +1,5 @@
-import { defineIntegration } from '@sentry/core';
-import type { IntegrationFn, WrappedFunction } from '@sentry/types';
-import { fill, getFunctionName, getOriginalFunction } from '@sentry/utils';
+import type { IntegrationFn, WrappedFunction } from '@sentry/core';
+import { defineIntegration, fill, getFunctionName, getOriginalFunction } from '@sentry/core';
 
 import { WINDOW, wrap } from '../helpers';
 
@@ -96,8 +95,7 @@ const _browserApiErrorsIntegration = ((options: Partial<BrowserApiErrorsOptions>
 export const browserApiErrorsIntegration = defineIntegration(_browserApiErrorsIntegration);
 
 function _wrapTimeFunction(original: () => void): () => number {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return function (this: any, ...args: any[]): number {
+  return function (this: unknown, ...args: unknown[]): number {
     const originalCallback = args[0];
     args[0] = wrap(originalCallback, {
       mechanism: {
@@ -110,11 +108,8 @@ function _wrapTimeFunction(original: () => void): () => number {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function _wrapRAF(original: any): (callback: () => void) => any {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return function (this: any, callback: () => void): () => void {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+function _wrapRAF(original: () => void): (callback: () => void) => unknown {
+  return function (this: unknown, callback: () => void): () => void {
     return original.apply(this, [
       wrap(callback, {
         mechanism: {
@@ -131,16 +126,14 @@ function _wrapRAF(original: any): (callback: () => void) => any {
 }
 
 function _wrapXHR(originalSend: () => void): () => void {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return function (this: XMLHttpRequest, ...args: any[]): void {
+  return function (this: XMLHttpRequest, ...args: unknown[]): void {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const xhr = this;
     const xmlHttpRequestProps: XMLHttpRequestProp[] = ['onload', 'onerror', 'onprogress', 'onreadystatechange'];
 
     xmlHttpRequestProps.forEach(prop => {
       if (prop in xhr && typeof xhr[prop] === 'function') {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        fill(xhr, prop, function (original: WrappedFunction): () => any {
+        fill(xhr, prop, function (original) {
           const wrapOptions = {
             mechanism: {
               data: {
@@ -169,30 +162,20 @@ function _wrapXHR(originalSend: () => void): () => void {
 }
 
 function _wrapEventTarget(target: string): void {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const globalObject = WINDOW as { [key: string]: any };
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  const proto = globalObject[target] && globalObject[target].prototype;
+  const globalObject = WINDOW as unknown as Record<string, { prototype?: object }>;
+  const proto = globalObject[target]?.prototype;
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, no-prototype-builtins
-  if (!proto || !proto.hasOwnProperty || !proto.hasOwnProperty('addEventListener')) {
+  // eslint-disable-next-line no-prototype-builtins
+  if (!proto?.hasOwnProperty?.('addEventListener')) {
     return;
   }
 
-  fill(proto, 'addEventListener', function (original: VoidFunction,): (
-    eventName: string,
-    fn: EventListenerObject,
-    options?: boolean | AddEventListenerOptions,
-  ) => void {
-    return function (
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      this: any,
-      eventName: string,
-      fn: EventListenerObject,
-      options?: boolean | AddEventListenerOptions,
-    ): (eventName: string, fn: EventListenerObject, capture?: boolean, secure?: boolean) => void {
+  fill(proto, 'addEventListener', function (original: VoidFunction): (
+    ...args: Parameters<typeof WINDOW.addEventListener>
+  ) => ReturnType<typeof WINDOW.addEventListener> {
+    return function (this: unknown, eventName, fn, options): VoidFunction {
       try {
-        if (typeof fn.handleEvent === 'function') {
+        if (isEventListenerObject(fn)) {
           // ESlint disable explanation:
           //  First, it is generally safe to call `wrap` with an unbound function. Furthermore, using `.bind()` would
           //  introduce a bug here, because bind returns a new function that doesn't have our
@@ -211,14 +194,13 @@ function _wrapEventTarget(target: string): void {
             },
           });
         }
-      } catch (err) {
+      } catch {
         // can sometimes get 'Permission denied to access property "handle Event'
       }
 
       return original.apply(this, [
         eventName,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        wrap(fn as any as WrappedFunction, {
+        wrap(fn, {
           mechanism: {
             data: {
               function: 'addEventListener',
@@ -234,48 +216,41 @@ function _wrapEventTarget(target: string): void {
     };
   });
 
-  fill(
-    proto,
-    'removeEventListener',
-    function (
-      originalRemoveEventListener: () => void,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ): (this: any, eventName: string, fn: EventListenerObject, options?: boolean | EventListenerOptions) => () => void {
-      return function (
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        this: any,
-        eventName: string,
-        fn: EventListenerObject,
-        options?: boolean | EventListenerOptions,
-      ): () => void {
-        /**
-         * There are 2 possible scenarios here:
-         *
-         * 1. Someone passes a callback, which was attached prior to Sentry initialization, or by using unmodified
-         * method, eg. `document.addEventListener.call(el, name, handler). In this case, we treat this function
-         * as a pass-through, and call original `removeEventListener` with it.
-         *
-         * 2. Someone passes a callback, which was attached after Sentry was initialized, which means that it was using
-         * our wrapped version of `addEventListener`, which internally calls `wrap` helper.
-         * This helper "wraps" whole callback inside a try/catch statement, and attached appropriate metadata to it,
-         * in order for us to make a distinction between wrapped/non-wrapped functions possible.
-         * If a function was wrapped, it has additional property of `__sentry_wrapped__`, holding the handler.
-         *
-         * When someone adds a handler prior to initialization, and then do it again, but after,
-         * then we have to detach both of them. Otherwise, if we'd detach only wrapped one, it'd be impossible
-         * to get rid of the initial handler and it'd stick there forever.
-         */
-        const wrappedEventHandler = fn as unknown as WrappedFunction;
-        try {
-          const originalEventHandler = wrappedEventHandler && wrappedEventHandler.__sentry_wrapped__;
-          if (originalEventHandler) {
-            originalRemoveEventListener.call(this, eventName, originalEventHandler, options);
-          }
-        } catch (e) {
-          // ignore, accessing __sentry_wrapped__ will throw in some Selenium environments
+  fill(proto, 'removeEventListener', function (originalRemoveEventListener: VoidFunction): (
+    this: unknown,
+    ...args: Parameters<typeof WINDOW.removeEventListener>
+  ) => ReturnType<typeof WINDOW.removeEventListener> {
+    return function (this: unknown, eventName, fn, options): VoidFunction {
+      /**
+       * There are 2 possible scenarios here:
+       *
+       * 1. Someone passes a callback, which was attached prior to Sentry initialization, or by using unmodified
+       * method, eg. `document.addEventListener.call(el, name, handler). In this case, we treat this function
+       * as a pass-through, and call original `removeEventListener` with it.
+       *
+       * 2. Someone passes a callback, which was attached after Sentry was initialized, which means that it was using
+       * our wrapped version of `addEventListener`, which internally calls `wrap` helper.
+       * This helper "wraps" whole callback inside a try/catch statement, and attached appropriate metadata to it,
+       * in order for us to make a distinction between wrapped/non-wrapped functions possible.
+       * If a function was wrapped, it has additional property of `__sentry_wrapped__`, holding the handler.
+       *
+       * When someone adds a handler prior to initialization, and then do it again, but after,
+       * then we have to detach both of them. Otherwise, if we'd detach only wrapped one, it'd be impossible
+       * to get rid of the initial handler and it'd stick there forever.
+       */
+      try {
+        const originalEventHandler = (fn as WrappedFunction).__sentry_wrapped__;
+        if (originalEventHandler) {
+          originalRemoveEventListener.call(this, eventName, originalEventHandler, options);
         }
-        return originalRemoveEventListener.call(this, eventName, wrappedEventHandler, options);
-      };
-    },
-  );
+      } catch (e) {
+        // ignore, accessing __sentry_wrapped__ will throw in some Selenium environments
+      }
+      return originalRemoveEventListener.call(this, eventName, fn, options);
+    };
+  });
+}
+
+function isEventListenerObject(obj: unknown): obj is EventListenerObject {
+  return typeof (obj as EventListenerObject).handleEvent === 'function';
 }

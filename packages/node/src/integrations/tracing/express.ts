@@ -1,52 +1,73 @@
 import type * as http from 'node:http';
+import type { Span } from '@opentelemetry/api';
+import type { ExpressRequestInfo } from '@opentelemetry/instrumentation-express';
 import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, defineIntegration, getDefaultIsolationScope, spanToJSON } from '@sentry/core';
-import { captureException, getClient, getIsolationScope } from '@sentry/core';
-import type { IntegrationFn } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import type { IntegrationFn } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  captureException,
+  defineIntegration,
+  getDefaultIsolationScope,
+  getIsolationScope,
+  logger,
+  spanToJSON,
+} from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import { generateInstrumentOnce } from '../../otel/instrument';
-import type { NodeClient } from '../../sdk/client';
 import { addOriginToSpan } from '../../utils/addOriginToSpan';
 import { ensureIsWrapped } from '../../utils/ensureIsWrapped';
+import { ExpressInstrumentationV5 } from './express-v5/instrumentation';
 
 const INTEGRATION_NAME = 'Express';
+const INTEGRATION_NAME_V5 = 'Express-V5';
+
+function requestHook(span: Span): void {
+  addOriginToSpan(span, 'auto.http.otel.express');
+
+  const attributes = spanToJSON(span).data;
+  // this is one of: middleware, request_handler, router
+  const type = attributes['express.type'];
+
+  if (type) {
+    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, `${type}.express`);
+  }
+
+  // Also update the name, we don't need to "middleware - " prefix
+  const name = attributes['express.name'];
+  if (typeof name === 'string') {
+    span.updateName(name);
+  }
+}
+
+function spanNameHook(info: ExpressRequestInfo<unknown>, defaultName: string): string {
+  if (getIsolationScope() === getDefaultIsolationScope()) {
+    DEBUG_BUILD && logger.warn('Isolation scope is still default isolation scope - skipping setting transactionName');
+    return defaultName;
+  }
+  if (info.layerType === 'request_handler') {
+    // type cast b/c Otel unfortunately types info.request as any :(
+    const req = info.request as { method?: string };
+    const method = req.method ? req.method.toUpperCase() : 'GET';
+    getIsolationScope().setTransactionName(`${method} ${info.route}`);
+  }
+  return defaultName;
+}
 
 export const instrumentExpress = generateInstrumentOnce(
   INTEGRATION_NAME,
   () =>
     new ExpressInstrumentation({
-      requestHook(span) {
-        addOriginToSpan(span, 'auto.http.otel.express');
+      requestHook: span => requestHook(span),
+      spanNameHook: (info, defaultName) => spanNameHook(info, defaultName),
+    }),
+);
 
-        const attributes = spanToJSON(span).data || {};
-        // this is one of: middleware, request_handler, router
-        const type = attributes['express.type'];
-
-        if (type) {
-          span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, `${type}.express`);
-        }
-
-        // Also update the name, we don't need to "middleware - " prefix
-        const name = attributes['express.name'];
-        if (typeof name === 'string') {
-          span.updateName(name);
-        }
-      },
-      spanNameHook(info, defaultName) {
-        if (getIsolationScope() === getDefaultIsolationScope()) {
-          DEBUG_BUILD &&
-            logger.warn('Isolation scope is still default isolation scope - skipping setting transactionName');
-          return defaultName;
-        }
-        if (info.layerType === 'request_handler') {
-          // type cast b/c Otel unfortunately types info.request as any :(
-          const req = info.request as { method?: string };
-          const method = req.method ? req.method.toUpperCase() : 'GET';
-          getIsolationScope().setTransactionName(`${method} ${info.route}`);
-        }
-        return defaultName;
-      },
+export const instrumentExpressV5 = generateInstrumentOnce(
+  INTEGRATION_NAME_V5,
+  () =>
+    new ExpressInstrumentationV5({
+      requestHook: span => requestHook(span),
+      spanNameHook: (info, defaultName) => spanNameHook(info, defaultName),
     }),
 );
 
@@ -55,15 +76,26 @@ const _expressIntegration = (() => {
     name: INTEGRATION_NAME,
     setupOnce() {
       instrumentExpress();
+      instrumentExpressV5();
     },
   };
 }) satisfies IntegrationFn;
 
 /**
- * Express integration
+ * Adds Sentry tracing instrumentation for [Express](https://expressjs.com/).
  *
- * Capture tracing data for express.
- * In order to capture exceptions, you have to call `setupExpressErrorHandler(app)` before any other middleware and after all controllers.
+ * If you also want to capture errors, you need to call `setupExpressErrorHandler(app)` after you set up your Express server.
+ *
+ * For more information, see the [express documentation](https://docs.sentry.io/platforms/javascript/guides/express/).
+ *
+ * @example
+ * ```javascript
+ * const Sentry = require('@sentry/node');
+ *
+ * Sentry.init({
+ *   integrations: [Sentry.expressIntegration()],
+ * })
+ * ```
  */
 export const expressIntegration = defineIntegration(_expressIntegration);
 
@@ -76,7 +108,9 @@ interface MiddlewareError extends Error {
   };
 }
 
-type ExpressMiddleware = (
+type ExpressMiddleware = (req: http.IncomingMessage, res: http.ServerResponse, next: () => void) => void;
+
+type ExpressErrorMiddleware = (
   error: MiddlewareError,
   req: http.IncomingMessage,
   res: http.ServerResponse,
@@ -94,59 +128,76 @@ interface ExpressHandlerOptions {
 /**
  * An Express-compatible error handler.
  */
-export function expressErrorHandler(options?: ExpressHandlerOptions): ExpressMiddleware {
+export function expressErrorHandler(options?: ExpressHandlerOptions): ExpressErrorMiddleware {
   return function sentryErrorMiddleware(
     error: MiddlewareError,
-    _req: http.IncomingMessage,
+    request: http.IncomingMessage,
     res: http.ServerResponse,
     next: (error: MiddlewareError) => void,
   ): void {
+    // Ensure we use the express-enhanced request here, instead of the plain HTTP one
+    // When an error happens, the `expressRequestHandler` middleware does not run, so we set it here too
+    getIsolationScope().setSDKProcessingMetadata({ request });
+
     const shouldHandleError = options?.shouldHandleError || defaultShouldHandleError;
 
     if (shouldHandleError(error)) {
-      const client = getClient<NodeClient>();
-      if (client && client.getOptions().autoSessionTracking) {
-        // Check if the `SessionFlusher` is instantiated on the client to go into this branch that marks the
-        // `requestSession.status` as `Crashed`, and this check is necessary because the `SessionFlusher` is only
-        // instantiated when the the`requestHandler` middleware is initialised, which indicates that we should be
-        // running in SessionAggregates mode
-        const isSessionAggregatesMode = client['_sessionFlusher'] !== undefined;
-        if (isSessionAggregatesMode) {
-          const requestSession = getIsolationScope().getRequestSession();
-          // If an error bubbles to the `errorHandler`, then this is an unhandled error, and should be reported as a
-          // Crashed session. The `_requestSession.status` is checked to ensure that this error is happening within
-          // the bounds of a request, and if so the status is updated
-          if (requestSession && requestSession.status !== undefined) {
-            requestSession.status = 'crashed';
-          }
-        }
-      }
-
       const eventId = captureException(error, { mechanism: { type: 'middleware', handled: false } });
       (res as { sentry?: string }).sentry = eventId;
-      next(error);
-
-      return;
     }
 
     next(error);
   };
 }
 
+function expressRequestHandler(): ExpressMiddleware {
+  return function sentryRequestMiddleware(
+    request: http.IncomingMessage,
+    _res: http.ServerResponse,
+    next: () => void,
+  ): void {
+    // Ensure we use the express-enhanced request here, instead of the plain HTTP one
+    getIsolationScope().setSDKProcessingMetadata({ request });
+
+    next();
+  };
+}
+
 /**
- * Setup an error handler for Express.
+ * Add an Express error handler to capture errors to Sentry.
+ *
  * The error handler must be before any other middleware and after all controllers.
+ *
+ * @param app The Express instances
+ * @param options {ExpressHandlerOptions} Configuration options for the handler
+ *
+ * @example
+ * ```javascript
+ * const Sentry = require('@sentry/node');
+ * const express = require("express");
+ *
+ * const app = express();
+ *
+ * // Add your routes, etc.
+ *
+ * // Add this after all routes,
+ * // but before any and other error-handling middlewares are defined
+ * Sentry.setupExpressErrorHandler(app);
+ *
+ * app.listen(3000);
+ * ```
  */
 export function setupExpressErrorHandler(
-  app: { use: (middleware: ExpressMiddleware) => unknown },
+  app: { use: (middleware: ExpressMiddleware | ExpressErrorMiddleware) => unknown },
   options?: ExpressHandlerOptions,
 ): void {
+  app.use(expressRequestHandler());
   app.use(expressErrorHandler(options));
   ensureIsWrapped(app.use, 'express');
 }
 
 function getStatusCodeFromResponse(error: MiddlewareError): number {
-  const statusCode = error.status || error.statusCode || error.status_code || (error.output && error.output.statusCode);
+  const statusCode = error.status || error.statusCode || error.status_code || error.output?.statusCode;
   return statusCode ? parseInt(statusCode as string, 10) : 500;
 }
 

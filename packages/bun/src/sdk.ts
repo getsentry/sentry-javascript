@@ -1,9 +1,12 @@
+import * as os from 'node:os';
 import {
+  applySdkMetadata,
   functionToStringIntegration,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
   requestDataIntegration,
 } from '@sentry/core';
+import type { Integration, Options } from '@sentry/core';
 import type { NodeClient } from '@sentry/node';
 import {
   consoleIntegration,
@@ -16,9 +19,7 @@ import {
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
 } from '@sentry/node';
-import type { Integration, Options } from '@sentry/types';
 
-import { BunClient } from './client';
 import { bunServerIntegration } from './integrations/bunserver';
 import { makeFetchTransport } from './transports';
 import type { BunOptions } from './types';
@@ -92,8 +93,16 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
  *
  * @see {@link BunOptions} for documentation on configuration options.
  */
-export function init(options: BunOptions = {}): NodeClient | undefined {
-  options.clientClass = BunClient;
+export function init(userOptions: BunOptions = {}): NodeClient | undefined {
+  applySdkMetadata(userOptions, 'bun');
+
+  const options = {
+    ...userOptions,
+    platform: 'javascript',
+    runtime: { name: 'bun', version: Bun.version },
+    serverName: userOptions.serverName || global.process.env.SENTRY_NAME || os.hostname(),
+  };
+
   options.transport = options.transport || makeFetchTransport;
 
   if (options.defaultIntegrations === undefined) {

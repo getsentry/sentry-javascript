@@ -1,37 +1,31 @@
-/* eslint-disable max-lines */
 import {
   SENTRY_XHR_DATA_KEY,
   addPerformanceInstrumentationHandler,
   addXhrInstrumentationHandler,
+  extractNetworkProtocol,
 } from '@sentry-internal/browser-utils';
+import type { XhrHint } from '@sentry-internal/browser-utils';
+import type { Client, HandlerDataXhr, SentryWrappedXMLHttpRequest, Span } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SentryNonRecordingSpan,
-  getActiveSpan,
-  getClient,
-  getCurrentScope,
-  getDynamicSamplingContextFromClient,
-  getDynamicSamplingContextFromSpan,
-  getIsolationScope,
-  hasTracingEnabled,
-  instrumentFetchRequest,
-  setHttpStatus,
-  spanToJSON,
-  spanToTraceHeader,
-  startInactiveSpan,
-} from '@sentry/core';
-import type { Client, HandlerDataXhr, SentryWrappedXMLHttpRequest, Span } from '@sentry/types';
-import {
-  BAGGAGE_HEADER_NAME,
   addFetchEndInstrumentationHandler,
   addFetchInstrumentationHandler,
   browserPerformanceTimeOrigin,
-  dynamicSamplingContextToSentryBaggageHeader,
-  generateSentryTraceHeader,
+  getActiveSpan,
+  getClient,
+  getLocationHref,
+  getTraceData,
+  hasSpansEnabled,
+  instrumentFetchRequest,
   parseUrl,
+  setHttpStatus,
+  spanToJSON,
+  startInactiveSpan,
   stringMatchesSomePattern,
-} from '@sentry/utils';
+  stripUrlQueryAndFragment,
+} from '@sentry/core';
 import { WINDOW } from '../helpers';
 
 /** Options for Request Instrumentation */
@@ -77,7 +71,9 @@ export interface RequestInstrumentationOptions {
    *
    * Default: true
    */
-  traceXHR: boolean /**
+  traceXHR: boolean;
+
+  /**
    * Flag to disable tracking of long-lived streams, like server-sent events (SSE) via fetch.
    * Do not enable this in case you have live streams or very long running streams.
    *
@@ -85,7 +81,7 @@ export interface RequestInstrumentationOptions {
    * (https://github.com/getsentry/sentry-javascript/issues/13950)
    *
    * Default: false
-   */;
+   */
   trackFetchStreamPerformance: boolean;
 
   /**
@@ -138,7 +134,7 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
   const spans: Record<string, Span> = {};
 
   if (traceFetch) {
-    // Keeping track of http requests, whose body payloads resolved later than the intial resolved request
+    // Keeping track of http requests, whose body payloads resolved later than the initial resolved request
     // e.g. streaming using server sent events (SSE)
     client.addEventProcessor(event => {
       if (event.type === 'transaction' && event.spans) {
@@ -217,7 +213,7 @@ function isPerformanceResourceTiming(entry: PerformanceEntry): entry is Performa
  * @param span A span that has yet to be finished, must contain `url` on data.
  */
 function addHTTPTimings(span: Span): void {
-  const { url } = spanToJSON(span).data || {};
+  const { url } = spanToJSON(span).data;
 
   if (!url || typeof url !== 'string') {
     return;
@@ -236,39 +232,8 @@ function addHTTPTimings(span: Span): void {
   });
 }
 
-/**
- * Converts ALPN protocol ids to name and version.
- *
- * (https://www.iana.org/assignments/tls-extensiontype-values/tls-extensiontype-values.xhtml#alpn-protocol-ids)
- * @param nextHopProtocol PerformanceResourceTiming.nextHopProtocol
- */
-export function extractNetworkProtocol(nextHopProtocol: string): { name: string; version: string } {
-  let name = 'unknown';
-  let version = 'unknown';
-  let _name = '';
-  for (const char of nextHopProtocol) {
-    // http/1.1 etc.
-    if (char === '/') {
-      [name, version] = nextHopProtocol.split('/') as [string, string];
-      break;
-    }
-    // h2, h3 etc.
-    if (!isNaN(Number(char))) {
-      name = _name === 'h' ? 'http' : _name;
-      version = nextHopProtocol.split(_name)[1] as string;
-      break;
-    }
-    _name += char;
-  }
-  if (_name === nextHopProtocol) {
-    // webrtc, ftp, etc.
-    name = _name;
-  }
-  return { name, version };
-}
-
 function getAbsoluteTime(time: number = 0): number {
-  return ((browserPerformanceTimeOrigin || performance.timeOrigin) + time) / 1000;
+  return ((browserPerformanceTimeOrigin() || performance.timeOrigin) + time) / 1000;
 }
 
 function resourceTimingEntryToSpanData(resourceTiming: PerformanceResourceTiming): [string, string | number][] {
@@ -278,7 +243,7 @@ function resourceTimingEntryToSpanData(resourceTiming: PerformanceResourceTiming
 
   timingSpanData.push(['network.protocol.version', version], ['network.protocol.name', name]);
 
-  if (!browserPerformanceTimeOrigin) {
+  if (!browserPerformanceTimeOrigin()) {
     return timingSpanData;
   }
   return [
@@ -306,7 +271,7 @@ export function shouldAttachHeaders(
 ): boolean {
   // window.location.href not being defined is an edge case in the browser but we need to handle it.
   // Potentially dangerous situations where it may not be defined: Browser Extensions, Web Workers, patching of the location obj
-  const href: string | undefined = WINDOW.location && WINDOW.location.href;
+  const href = getLocationHref();
 
   if (!href) {
     // If there is no window.location.origin, we default to only attaching tracing headers to relative requests, i.e. ones that start with `/`
@@ -354,13 +319,15 @@ export function xhrCallback(
   spans: Record<string, Span>,
 ): Span | undefined {
   const xhr = handlerData.xhr;
-  const sentryXhrData = xhr && xhr[SENTRY_XHR_DATA_KEY];
+  const sentryXhrData = xhr?.[SENTRY_XHR_DATA_KEY];
 
   if (!xhr || xhr.__sentry_own_request__ || !sentryXhrData) {
     return undefined;
   }
 
-  const shouldCreateSpanResult = hasTracingEnabled() && shouldCreateSpan(sentryXhrData.url);
+  const { url, method } = sentryXhrData;
+
+  const shouldCreateSpanResult = hasSpansEnabled() && shouldCreateSpan(url);
 
   // check first if the request has finished and is tracked by an existing span which should now end
   if (handlerData.endTimestamp && shouldCreateSpanResult) {
@@ -378,23 +345,27 @@ export function xhrCallback(
     return undefined;
   }
 
-  const fullUrl = getFullURL(sentryXhrData.url);
-  const host = fullUrl ? parseUrl(fullUrl).host : undefined;
+  const fullUrl = getFullURL(url);
+  const parsedUrl = fullUrl ? parseUrl(fullUrl) : parseUrl(url);
+
+  const urlForSpanName = stripUrlQueryAndFragment(url);
 
   const hasParent = !!getActiveSpan();
 
   const span =
     shouldCreateSpanResult && hasParent
       ? startInactiveSpan({
-          name: `${sentryXhrData.method} ${sentryXhrData.url}`,
+          name: `${method} ${urlForSpanName}`,
           attributes: {
+            url,
             type: 'xhr',
-            'http.method': sentryXhrData.method,
+            'http.method': method,
             'http.url': fullUrl,
-            url: sentryXhrData.url,
-            'server.address': host,
+            'server.address': parsedUrl?.host,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser',
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
+            ...(parsedUrl?.search && { 'http.query': parsedUrl?.search }),
+            ...(parsedUrl?.hash && { 'http.fragment': parsedUrl?.hash }),
           },
         })
       : new SentryNonRecordingSpan();
@@ -402,38 +373,30 @@ export function xhrCallback(
   xhr.__sentry_xhr_span_id__ = span.spanContext().spanId;
   spans[xhr.__sentry_xhr_span_id__] = span;
 
-  const client = getClient();
-
-  if (xhr.setRequestHeader && shouldAttachHeaders(sentryXhrData.url) && client) {
+  if (shouldAttachHeaders(url)) {
     addTracingHeadersToXhrRequest(
       xhr,
-      client,
       // If performance is disabled (TWP) or there's no active root span (pageload/navigation/interaction),
       // we do not want to use the span as base for the trace headers,
       // which means that the headers will be generated from the scope and the sampling decision is deferred
-      hasTracingEnabled() && hasParent ? span : undefined,
+      hasSpansEnabled() && hasParent ? span : undefined,
     );
+  }
+
+  const client = getClient();
+  if (client) {
+    client.emit('beforeOutgoingRequestSpan', span, handlerData as XhrHint);
   }
 
   return span;
 }
 
-function addTracingHeadersToXhrRequest(xhr: SentryWrappedXMLHttpRequest, client: Client, span?: Span): void {
-  const scope = getCurrentScope();
-  const isolationScope = getIsolationScope();
-  const { traceId, spanId, sampled, dsc } = {
-    ...isolationScope.getPropagationContext(),
-    ...scope.getPropagationContext(),
-  };
+function addTracingHeadersToXhrRequest(xhr: SentryWrappedXMLHttpRequest, span?: Span): void {
+  const { 'sentry-trace': sentryTrace, baggage } = getTraceData({ span });
 
-  const sentryTraceHeader =
-    span && hasTracingEnabled() ? spanToTraceHeader(span) : generateSentryTraceHeader(traceId, spanId, sampled);
-
-  const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(
-    dsc || (span ? getDynamicSamplingContextFromSpan(span) : getDynamicSamplingContextFromClient(traceId, client)),
-  );
-
-  setHeaderOnXhr(xhr, sentryTraceHeader, sentryBaggageHeader);
+  if (sentryTrace) {
+    setHeaderOnXhr(xhr, sentryTrace, baggage);
+  }
 }
 
 function setHeaderOnXhr(
@@ -449,7 +412,7 @@ function setHeaderOnXhr(
       // We can therefore simply set a baggage header without checking what was there before
       // https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/setRequestHeader
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      xhr.setRequestHeader!(BAGGAGE_HEADER_NAME, sentryBaggageHeader);
+      xhr.setRequestHeader!('baggage', sentryBaggageHeader);
     }
   } catch (_) {
     // Error: InvalidStateError: Failed to execute 'setRequestHeader' on 'XMLHttpRequest': The object's state must be OPENED.

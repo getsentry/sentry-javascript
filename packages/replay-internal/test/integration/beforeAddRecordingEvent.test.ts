@@ -7,7 +7,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 
 import * as SentryBrowserUtils from '@sentry-internal/browser-utils';
 import * as SentryCore from '@sentry/core';
-import type { Transport } from '@sentry/types';
+import type { Transport } from '@sentry/core';
 
 import type { Replay } from '../../src/integration';
 import type { ReplayContainer } from '../../src/replay';
@@ -99,7 +99,7 @@ describe('Integration | beforeAddRecordingEvent', () => {
   });
 
   afterAll(() => {
-    integration && integration.stop();
+    integration?.stop();
   });
 
   it('changes click breadcrumbs message', async () => {

@@ -1,10 +1,15 @@
+import type { Client } from './client';
+import { getDynamicSamplingContextFromSpan } from './tracing/dynamicSamplingContext';
+import type { SentrySpan } from './tracing/sentrySpan';
 import type {
-  Client,
   DsnComponents,
   DynamicSamplingContext,
   Event,
   EventEnvelope,
   EventItem,
+  LegacyCSPReport,
+  RawSecurityEnvelope,
+  RawSecurityItem,
   SdkInfo,
   SdkMetadata,
   Session,
@@ -13,18 +18,16 @@ import type {
   SessionItem,
   SpanEnvelope,
   SpanItem,
-  SpanJSON,
-} from '@sentry/types';
+} from './types-hoist';
+import { dsnToString } from './utils-hoist/dsn';
 import {
   createEnvelope,
   createEventEnvelopeHeaders,
-  dsnToString,
+  createSpanEnvelopeItem,
   getSdkMetadataForEnvelopeHeader,
-} from '@sentry/utils';
-import { createSpanEnvelopeItem } from '@sentry/utils';
-import { getDynamicSamplingContextFromSpan } from './tracing/dynamicSamplingContext';
-import type { SentrySpan } from './tracing/sentrySpan';
-import { spanToJSON } from './utils/spanUtils';
+} from './utils-hoist/envelope';
+import { uuid4 } from './utils-hoist/misc';
+import { showSpanDropWarning, spanToJSON } from './utils/spanUtils';
 
 /**
  * Apply SdkInfo (name, version, packages, integrations) to the corresponding event key.
@@ -76,13 +79,13 @@ export function createEventEnvelope(
   /*
     Note: Due to TS, event.type may be `replay_event`, theoretically.
     In practice, we never call `createEventEnvelope` with `replay_event` type,
-    and we'd have to adjut a looot of types to make this work properly.
+    and we'd have to adjust a looot of types to make this work properly.
     We want to avoid casting this around, as that could lead to bugs (e.g. when we add another type)
     So the safe choice is to really guard against the replay_event type here.
   */
   const eventType = event.type && event.type !== 'replay_event' ? event.type : 'event';
 
-  enhanceEventWithSdkInfo(event, metadata && metadata.sdk);
+  enhanceEventWithSdkInfo(event, metadata?.sdk);
 
   const envelopeHeaders = createEventEnvelopeHeaders(event, sdkInfo, tunnel, dsn);
 
@@ -111,8 +114,8 @@ export function createSpanEnvelope(spans: [SentrySpan, ...SentrySpan[]], client?
   // different segments in one envelope
   const dsc = getDynamicSamplingContextFromSpan(spans[0]);
 
-  const dsn = client && client.getDsn();
-  const tunnel = client && client.getOptions().tunnel;
+  const dsn = client?.getDsn();
+  const tunnel = client?.getOptions().tunnel;
 
   const headers: SpanEnvelope[0] = {
     sent_at: new Date().toISOString(),
@@ -120,10 +123,20 @@ export function createSpanEnvelope(spans: [SentrySpan, ...SentrySpan[]], client?
     ...(!!tunnel && dsn && { dsn: dsnToString(dsn) }),
   };
 
-  const beforeSendSpan = client && client.getOptions().beforeSendSpan;
+  const beforeSendSpan = client?.getOptions().beforeSendSpan;
   const convertToSpanJSON = beforeSendSpan
-    ? (span: SentrySpan) => beforeSendSpan(spanToJSON(span) as SpanJSON)
-    : (span: SentrySpan) => spanToJSON(span);
+    ? (span: SentrySpan) => {
+        const spanJson = spanToJSON(span);
+        const processedSpan = beforeSendSpan(spanJson);
+
+        if (!processedSpan) {
+          showSpanDropWarning();
+          return spanJson;
+        }
+
+        return processedSpan;
+      }
+    : spanToJSON;
 
   const items: SpanItem[] = [];
   for (const span of spans) {
@@ -134,4 +147,27 @@ export function createSpanEnvelope(spans: [SentrySpan, ...SentrySpan[]], client?
   }
 
   return createEnvelope<SpanEnvelope>(headers, items);
+}
+
+/**
+ * Create an Envelope from a CSP report.
+ */
+export function createRawSecurityEnvelope(
+  report: LegacyCSPReport,
+  dsn: DsnComponents,
+  tunnel?: string,
+  release?: string,
+  environment?: string,
+): RawSecurityEnvelope {
+  const envelopeHeaders = {
+    event_id: uuid4(),
+    ...(!!tunnel && dsn && { dsn: dsnToString(dsn) }),
+  };
+
+  const eventItem: RawSecurityItem = [
+    { type: 'raw_security', sentry_release: release, sentry_environment: environment },
+    report,
+  ];
+
+  return createEnvelope<RawSecurityEnvelope>(envelopeHeaders, [eventItem]);
 }

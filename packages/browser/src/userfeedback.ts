@@ -1,5 +1,5 @@
-import type { DsnComponents, EventEnvelope, SdkMetadata, UserFeedback, UserFeedbackItem } from '@sentry/types';
-import { createEnvelope, dsnToString } from '@sentry/utils';
+import { createEnvelope, dsnToString } from '@sentry/core';
+import type { DsnComponents, EventEnvelope, SdkMetadata, UserFeedback, UserFeedbackItem } from '@sentry/core';
 
 /**
  * Creates an envelope from a user feedback.
@@ -19,13 +19,12 @@ export function createUserFeedbackEnvelope(
   const headers: EventEnvelope[0] = {
     event_id: feedback.event_id,
     sent_at: new Date().toISOString(),
-    ...(metadata &&
-      metadata.sdk && {
-        sdk: {
-          name: metadata.sdk.name,
-          version: metadata.sdk.version,
-        },
-      }),
+    ...(metadata?.sdk && {
+      sdk: {
+        name: metadata.sdk.name,
+        version: metadata.sdk.version,
+      },
+    }),
     ...(!!tunnel && !!dsn && { dsn: dsnToString(dsn) }),
   };
   const item = createUserFeedbackEnvelopeItem(feedback);

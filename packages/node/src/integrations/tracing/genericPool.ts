@@ -1,6 +1,6 @@
 import { GenericPoolInstrumentation } from '@opentelemetry/instrumentation-generic-pool';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, defineIntegration, spanToJSON } from '@sentry/core';
-import type { IntegrationFn } from '@sentry/types';
+import type { IntegrationFn } from '@sentry/core';
 import { generateInstrumentOnce } from '../../otel/instrument';
 
 const INTEGRATION_NAME = 'GenericPool';
@@ -33,8 +33,17 @@ const _genericPoolIntegration = (() => {
 }) satisfies IntegrationFn;
 
 /**
- * GenericPool integration
+ * Adds Sentry tracing instrumentation for the [generic-pool](https://www.npmjs.com/package/generic-pool) library.
  *
- * Capture tracing data for GenericPool.
+ * For more information, see the [`genericPoolIntegration` documentation](https://docs.sentry.io/platforms/javascript/guides/node/configuration/integrations/genericpool/).
+ *
+ * @example
+ * ```javascript
+ * const Sentry = require('@sentry/node');
+ *
+ * Sentry.init({
+ *  integrations: [Sentry.genericPoolIntegration()],
+ * });
+ * ```
  */
 export const genericPoolIntegration = defineIntegration(_genericPoolIntegration);

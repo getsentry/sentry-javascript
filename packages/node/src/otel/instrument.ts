@@ -1,5 +1,4 @@
-import type { Instrumentation } from '@opentelemetry/instrumentation';
-import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
+import { type Instrumentation, registerInstrumentations } from '@opentelemetry/instrumentation';
 
 /** Exported only for tests. */
 export const INSTRUMENTED: Record<string, Instrumentation> = {};
@@ -26,7 +25,9 @@ export function generateInstrumentOnce<Options = unknown>(
       const instrumentation = creator(options);
       INSTRUMENTED[name] = instrumentation;
 
-      addOpenTelemetryInstrumentation(instrumentation);
+      registerInstrumentations({
+        instrumentations: [instrumentation],
+      });
     },
     { id: name },
   );

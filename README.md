@@ -79,6 +79,8 @@ package. Please refer to the README and instructions of those SDKs for more deta
 The current version of the SDK is 8.x. Version 7.x of the SDK will continue to receive critical bugfixes until end
 of 2024.
 
+All SDKs require Node v18+ to run. ESM-only SDKs require Node v18.19.1+ to run.
+
 ## Installation and Usage
 
 To install a SDK, simply add the high-level package, for example:
@@ -111,10 +113,6 @@ below:
   Provides the integration for Session Replay.
 - [`@sentry/core`](https://github.com/getsentry/sentry-javascript/tree/master/packages/core): The base for all
   JavaScript SDKs with interfaces, type definitions and base classes.
-- [`@sentry/utils`](https://github.com/getsentry/sentry-javascript/tree/master/packages/utils): A set of helpers and
-  utility functions useful for various SDKs.
-- [`@sentry/types`](https://github.com/getsentry/sentry-javascript/tree/master/packages/types): Types used in all
-  packages.
 
 ## Bug Bounty Program
 

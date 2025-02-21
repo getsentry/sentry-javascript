@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import type { SpanEnvelope } from '@sentry/types';
+import type { SpanEnvelope } from '@sentry/core';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import {
@@ -10,14 +10,14 @@ import {
 
 sentryTest(
   'should capture an INP click event span during pageload for a parametrized transaction',
-  async ({ browserName, getLocalTestPath, page }) => {
+  async ({ browserName, getLocalTestUrl, page }) => {
     const supportedBrowsers = ['chromium'];
 
     if (shouldSkipTracingTest() || !supportedBrowsers.includes(browserName)) {
       sentryTest.skip();
     }
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     await page.goto(url);
 
@@ -56,6 +56,7 @@ sentryTest(
         sampled: 'true',
         trace_id: traceId,
         transaction: 'test-route',
+        sample_rand: expect.any(String),
       },
     });
 

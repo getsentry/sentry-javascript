@@ -29,14 +29,13 @@ test('Sends a pageload transaction', async ({ page }) => {
           // Next.js >= 15 propagates a trace ID to the client via a meta tag. Also, only dev mode emits a meta tag because
           // the requested page is static and only in dev mode SSR is kicked off.
           parent_span_id: nextjsMajor >= 15 && isDevMode ? expect.any(String) : undefined,
-          span_id: expect.any(String),
-          trace_id: expect.any(String),
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           op: 'pageload',
           origin: 'auto.pageload.nextjs.app_router_instrumentation',
           data: expect.objectContaining({
             'sentry.op': 'pageload',
             'sentry.origin': 'auto.pageload.nextjs.app_router_instrumentation',
-            'sentry.sample_rate': 1,
             'sentry.source': 'url',
           }),
         },
@@ -125,13 +124,14 @@ test('Should set not_found status for server actions calling notFound()', async 
 test('Will not include spans in pageload transaction with faulty timestamps for slow loading pages', async ({
   page,
 }) => {
+  test.slow();
   const pageloadTransactionEventPromise = waitForTransaction('nextjs-app-dir', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'pageload' && transactionEvent?.transaction === '/very-slow-component'
     );
   });
 
-  await page.goto('/very-slow-component');
+  await page.goto('/very-slow-component', { timeout: 11000 });
 
   const pageLoadTransaction = await pageloadTransactionEventPromise;
 

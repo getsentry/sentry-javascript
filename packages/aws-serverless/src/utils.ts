@@ -1,8 +1,8 @@
 import type { TextMapGetter } from '@opentelemetry/api';
 import type { Context as OtelContext } from '@opentelemetry/api';
 import { context as otelContext, propagation } from '@opentelemetry/api';
-import type { Scope } from '@sentry/types';
-import { addExceptionMechanism, isString } from '@sentry/utils';
+import { addExceptionMechanism, isString } from '@sentry/core';
+import type { Scope } from '@sentry/core';
 import type { Handler } from 'aws-lambda';
 import type { APIGatewayProxyEventHeaders } from 'aws-lambda';
 
@@ -53,7 +53,7 @@ export function getAwsTraceData(event: HandlerEvent, context?: HandlerContext): 
     baggage: headers.baggage,
   };
 
-  if (context && context.clientContext && context.clientContext.Custom) {
+  if (context?.clientContext?.Custom) {
     const customContext: Record<string, unknown> = context.clientContext.Custom;
     const sentryTrace = isString(customContext['sentry-trace']) ? customContext['sentry-trace'] : undefined;
 

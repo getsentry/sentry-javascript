@@ -1,6 +1,6 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, getActiveSpan, startInactiveSpan } from '@sentry/browser';
-import type { Span } from '@sentry/types';
-import { logger, timestampInSeconds } from '@sentry/utils';
+import { logger, timestampInSeconds } from '@sentry/core';
+import type { Span } from '@sentry/core';
 
 import { DEFAULT_HOOKS } from './constants';
 import { DEBUG_BUILD } from './debug-build';
@@ -39,7 +39,7 @@ function finishRootSpan(vm: VueSentry, timestamp: number, timeout: number): void
   }
 
   vm.$_sentryRootSpanTimer = setTimeout(() => {
-    if (vm.$root && vm.$root.$_sentryRootSpan) {
+    if (vm.$root?.$_sentryRootSpan) {
       vm.$root.$_sentryRootSpan.end(timestamp);
       vm.$root.$_sentryRootSpan = undefined;
     }
@@ -59,7 +59,7 @@ export function findTrackComponent(trackComponents: string[], formattedName: str
   return isMatched;
 }
 
-export const createTracingMixins = (options: TracingOptions): Mixins => {
+export const createTracingMixins = (options: Partial<TracingOptions> = {}): Mixins => {
   const hooks = (options.hooks || [])
     .concat(DEFAULT_HOOKS)
     // Removing potential duplicates
@@ -81,18 +81,16 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
         const isRoot = this.$root === this;
 
         if (isRoot) {
-          const activeSpan = getActiveSpan();
-          if (activeSpan) {
-            this.$_sentryRootSpan =
-              this.$_sentryRootSpan ||
-              startInactiveSpan({
-                name: 'Application Render',
-                op: `${VUE_OP}.render`,
-                attributes: {
-                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.vue',
-                },
-              });
-          }
+          this.$_sentryRootSpan =
+            this.$_sentryRootSpan ||
+            startInactiveSpan({
+              name: 'Application Render',
+              op: `${VUE_OP}.render`,
+              attributes: {
+                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.vue',
+              },
+              onlyIfParent: true,
+            });
         }
 
         // Skip components that we don't want to track to minimize the noise and give a more granular control to the user
@@ -112,7 +110,7 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
         // Start a new span if current hook is a 'before' hook.
         // Otherwise, retrieve the current span and finish it.
         if (internalHook == internalHooks[0]) {
-          const activeSpan = (this.$root && this.$root.$_sentryRootSpan) || getActiveSpan();
+          const activeSpan = this.$root?.$_sentryRootSpan || getActiveSpan();
           if (activeSpan) {
             // Cancel old span for this hook operation in case it didn't get cleaned up. We're not actually sure if it
             // will ever be the case that cleanup hooks re not called, but we had users report that spans didn't get
@@ -140,7 +138,7 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
           if (!span) return;
           span.end();
 
-          finishRootSpan(this, timestampInSeconds(), options.timeout);
+          finishRootSpan(this, timestampInSeconds(), options.timeout || 2000);
         }
       };
     }

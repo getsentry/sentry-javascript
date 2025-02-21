@@ -1,8 +1,9 @@
-import type { Event, Exception, IntegrationFn, StackFrame } from '@sentry/types';
-import { getFramesFromEvent, logger } from '@sentry/utils';
 import { defineIntegration } from '../integration';
+import type { Event, Exception, IntegrationFn, StackFrame } from '../types-hoist';
 
 import { DEBUG_BUILD } from '../debug-build';
+import { logger } from '../utils-hoist/logger';
+import { getFramesFromEvent } from '../utils-hoist/stacktrace';
 
 const INTEGRATION_NAME = 'Dedupe';
 
@@ -173,5 +174,5 @@ function _isSameFingerprint(currentEvent: Event, previousEvent: Event): boolean 
 }
 
 function _getExceptionFromEvent(event: Event): Exception | undefined {
-  return event.exception && event.exception.values && event.exception.values[0];
+  return event.exception?.values && event.exception.values[0];
 }

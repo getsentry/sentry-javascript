@@ -1,6 +1,5 @@
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
-import type { Event, Span } from '@sentry/types';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
   SentryNonRecordingSpan,
@@ -8,6 +7,7 @@ import {
   getActiveSpan,
   getClient,
   getCurrentScope,
+  getDynamicSamplingContextFromSpan,
   getGlobalScope,
   getIsolationScope,
   setCurrentClient,
@@ -17,6 +17,7 @@ import {
   startSpanManual,
 } from '../../../src';
 import { TRACING_DEFAULTS, startIdleSpan } from '../../../src/tracing/idleSpan';
+import type { Event, Span } from '../../../src/types-hoist';
 
 const dsn = 'https://123@sentry.io/42';
 
@@ -60,6 +61,14 @@ describe('startIdleSpan', () => {
     const idleSpan = startIdleSpan({ name: 'foo' });
     expect(idleSpan).toBeDefined();
     expect(idleSpan).toBeInstanceOf(SentryNonRecordingSpan);
+    // DSC is still correctly set on the span
+    expect(getDynamicSamplingContextFromSpan(idleSpan)).toEqual({
+      environment: 'production',
+      public_key: '123',
+      sample_rate: '0',
+      sampled: 'false',
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    });
 
     // not set as active span, though
     expect(getActiveSpan()).toBe(undefined);
@@ -115,7 +124,7 @@ describe('startIdleSpan', () => {
     setCurrentClient(client);
     client.init();
 
-    // We want to accomodate a bit of drift there, so we ensure this starts earlier...
+    // We want to accommodate a bit of drift there, so we ensure this starts earlier...
     const baseTimeInSeconds = Math.floor(Date.now() / 1000) - 9999;
 
     const beforeSpanEnd = jest.fn((span: Span) => {
@@ -169,7 +178,7 @@ describe('startIdleSpan', () => {
     setCurrentClient(client);
     client.init();
 
-    // We want to accomodate a bit of drift there, so we ensure this starts earlier...
+    // We want to accommodate a bit of drift there, so we ensure this starts earlier...
     const baseTimeInSeconds = Math.floor(Date.now() / 1000) - 9999;
 
     const idleSpan = startIdleSpan({ name: 'idle span', startTime: baseTimeInSeconds });
@@ -249,7 +258,7 @@ describe('startIdleSpan', () => {
     setCurrentClient(client);
     client.init();
 
-    // We want to accomodate a bit of drift there, so we ensure this starts earlier...
+    // We want to accommodate a bit of drift there, so we ensure this starts earlier...
     const finalTimeout = 99_999;
     const baseTimeInSeconds = Math.floor(Date.now() / 1000) - 9999;
 

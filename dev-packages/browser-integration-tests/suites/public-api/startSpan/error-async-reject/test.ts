@@ -1,17 +1,17 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/types';
+import type { Event } from '@sentry/core';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import { getMultipleSentryEnvelopeRequests, shouldSkipTracingTest } from '../../../../utils/helpers';
 
 sentryTest(
   'should capture a promise rejection within an async startSpan callback',
-  async ({ getLocalTestPath, page }) => {
+  async ({ getLocalTestUrl, page }) => {
     if (shouldSkipTracingTest()) {
       sentryTest.skip();
     }
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
     const envelopePromise = getMultipleSentryEnvelopeRequests<Event>(page, 2);
 
     await page.goto(url);

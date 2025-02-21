@@ -1,3 +1,11 @@
+import { context } from '@opentelemetry/api';
+import {
+  ATTR_HTTP_REQUEST_METHOD,
+  ATTR_HTTP_ROUTE,
+  ATTR_URL_QUERY,
+  SEMATTRS_HTTP_METHOD,
+  SEMATTRS_HTTP_TARGET,
+} from '@opentelemetry/semantic-conventions';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -12,20 +20,11 @@ import {
   setCapturedScopesOnSpan,
   spanToJSON,
 } from '@sentry/core';
+import { GLOBAL_OBJ, extractTraceparentData, logger, stripUrlQueryAndFragment } from '@sentry/core';
+import type { EventProcessor } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrations, httpIntegration, init as nodeInit } from '@sentry/node';
-import { GLOBAL_OBJ, extractTraceparentData, logger, stripUrlQueryAndFragment } from '@sentry/utils';
-
-import { context } from '@opentelemetry/api';
-import {
-  ATTR_HTTP_REQUEST_METHOD,
-  ATTR_HTTP_ROUTE,
-  ATTR_URL_QUERY,
-  SEMATTRS_HTTP_METHOD,
-  SEMATTRS_HTTP_TARGET,
-} from '@opentelemetry/semantic-conventions';
 import { getScopesFromContext } from '@sentry/opentelemetry';
-import type { EventProcessor } from '@sentry/types';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
@@ -42,8 +41,8 @@ export * from '@sentry/node';
 export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';
 
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
-  __rewriteFramesDistDir__?: string;
-  __sentryRewritesTunnelPath__?: string;
+  _sentryRewriteFramesDistDir?: string;
+  _sentryRewritesTunnelPath?: string;
 };
 
 /**
@@ -109,7 +108,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
   // This value is injected at build time, based on the output directory specified in the build config. Though a default
   // is set there, we set it here as well, just in case something has gone wrong with the injection.
-  const distDirName = globalWithInjectedValues.__rewriteFramesDistDir__;
+  const distDirName = process.env._sentryRewriteFramesDistDir || globalWithInjectedValues._sentryRewriteFramesDistDir;
   if (distDirName) {
     customDefaultIntegrations.push(distDirRewriteFramesIntegration({ distDirName }));
   }
@@ -118,8 +117,6 @@ export function init(options: NodeOptions): NodeClient | undefined {
     environment: process.env.SENTRY_ENVIRONMENT || getVercelEnv(false) || process.env.NODE_ENV,
     defaultIntegrations: customDefaultIntegrations,
     ...options,
-    // Right now we only capture frontend sessions for Next.js
-    autoSessionTracking: false,
   };
 
   if (DEBUG_BUILD && opts.debug) {
@@ -212,8 +209,10 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
           // Filter out transactions for requests to the tunnel route
           if (
-            globalWithInjectedValues.__sentryRewritesTunnelPath__ &&
-            event.transaction === `POST ${globalWithInjectedValues.__sentryRewritesTunnelPath__}`
+            (globalWithInjectedValues._sentryRewritesTunnelPath &&
+              event.transaction === `POST ${globalWithInjectedValues._sentryRewritesTunnelPath}`) ||
+            (process.env._sentryRewritesTunnelPath &&
+              event.transaction === `POST ${process.env._sentryRewritesTunnelPath}`)
           ) {
             return null;
           }
@@ -307,7 +306,6 @@ export function init(options: NodeOptions): NodeClient | undefined {
       event.type === 'transaction' &&
       event.contexts?.trace?.data?.['next.span_type'] === 'BaseServer.handleRequest'
     ) {
-      event.contexts.trace.data = event.contexts.trace.data || {};
       event.contexts.trace.data[SEMANTIC_ATTRIBUTE_SENTRY_OP] = 'http.server';
       event.contexts.trace.op = 'http.server';
 

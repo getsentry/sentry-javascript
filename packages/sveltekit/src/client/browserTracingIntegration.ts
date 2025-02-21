@@ -1,5 +1,6 @@
 import { navigating, page } from '$app/stores';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import type { Client, Integration, Span } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, dropUndefinedKeys } from '@sentry/core';
 import {
   WINDOW,
   browserTracingIntegration as originalBrowserTracingIntegration,
@@ -8,8 +9,6 @@ import {
   startBrowserTracingPageLoadSpan,
   startInactiveSpan,
 } from '@sentry/svelte';
-import type { Client, Integration, Span } from '@sentry/types';
-import { dropUndefinedKeys } from '@sentry/utils';
 
 /**
  * A custom `BrowserTracing` integration for SvelteKit.
@@ -42,7 +41,7 @@ export function browserTracingIntegration(
 }
 
 function _instrumentPageload(client: Client): void {
-  const initialPath = WINDOW && WINDOW.location && WINDOW.location.pathname;
+  const initialPath = WINDOW.location?.pathname;
 
   const pageloadSpan = startBrowserTracingPageLoadSpan(client, {
     name: initialPath,
@@ -61,7 +60,7 @@ function _instrumentPageload(client: Client): void {
       return;
     }
 
-    const routeId = page.route && page.route.id;
+    const routeId = page.route?.id;
 
     if (routeId) {
       pageloadSpan.updateName(routeId);
@@ -93,9 +92,9 @@ function _instrumentNavigations(client: Client): void {
     const to = navigation.to;
 
     // for the origin we can fall back to window.location.pathname because in this emission, it still is set to the origin path
-    const rawRouteOrigin = (from && from.url.pathname) || (WINDOW && WINDOW.location && WINDOW.location.pathname);
+    const rawRouteOrigin = from?.url.pathname || WINDOW.location?.pathname;
 
-    const rawRouteDestination = to && to.url.pathname;
+    const rawRouteDestination = to?.url.pathname;
 
     // We don't want to create transactions for navigations of same origin and destination.
     // We need to look at the raw URL here because parameterized routes can still differ in their raw parameters.
@@ -103,8 +102,8 @@ function _instrumentNavigations(client: Client): void {
       return;
     }
 
-    const parameterizedRouteOrigin = from && from.route.id;
-    const parameterizedRouteDestination = to && to.route.id;
+    const parameterizedRouteOrigin = from?.route.id;
+    const parameterizedRouteDestination = to?.route.id;
 
     if (routingSpan) {
       // If a routing span is still open from a previous navigation, we finish it.

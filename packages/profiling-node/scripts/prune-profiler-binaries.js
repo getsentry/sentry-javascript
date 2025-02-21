@@ -1,6 +1,6 @@
 #! /usr/bin/env node
 
-// This is a build scripts, so some logging is desireable as it allows
+// This is a build script, so some logging is desirable as it allows
 // us to follow the code path that triggered the error.
 /* eslint-disable no-console */
 const fs = require('fs');
@@ -62,6 +62,7 @@ const NODE_TO_ABI = {
   16: '93',
   18: '108',
   20: '115',
+  22: '127',
 };
 
 if (NODE) {
@@ -73,9 +74,13 @@ if (NODE) {
     NODE = NODE_TO_ABI['18'];
   } else if (NODE.startsWith('20')) {
     NODE = NODE_TO_ABI['20'];
+  } else if (NODE.startsWith('22')) {
+    NODE = NODE_TO_ABI['22'];
   } else {
     ARGV_ERRORS.push(
-      '❌ Sentry: Invalid node version passed as argument, please make sure --target_node is a valid major node version. Supported versions are 16, 18 and 20.',
+      `❌ Sentry: Invalid node version passed as argument, please make sure --target_node is a valid major node version. Supported versions are ${Object.keys(
+        NODE_TO_ABI,
+      ).join(', ')}.`,
     );
   }
 }
@@ -88,7 +93,7 @@ if (!SOURCE_DIR) {
 
 if (!PLATFORM && !ARCH && !STDLIB) {
   ARGV_ERRORS.push(
-    `❌ Sentry: Missing argument values, pruning requires either --target_platform, --target_arch or --targer_stdlib to be passed as argument values.\n Example: sentry-prune-profiler-binaries --target_platform=linux --target_arch=x64 --target_stdlib=glibc\n
+    `❌ Sentry: Missing argument values, pruning requires either --target_platform, --target_arch or --target_stdlib to be passed as argument values.\n Example: sentry-prune-profiler-binaries --target_platform=linux --target_arch=x64 --target_stdlib=glibc\n
 If you are unsure about the execution environment, you can opt to skip some values, but at least one value must be passed.`,
   );
 }

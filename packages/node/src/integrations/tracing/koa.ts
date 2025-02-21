@@ -1,5 +1,6 @@
 import { KoaInstrumentation } from '@opentelemetry/instrumentation-koa';
 import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
+import type { IntegrationFn, Span } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -7,10 +8,9 @@ import {
   defineIntegration,
   getDefaultIsolationScope,
   getIsolationScope,
+  logger,
   spanToJSON,
 } from '@sentry/core';
-import type { IntegrationFn, Span } from '@sentry/types';
-import { logger } from '@sentry/utils';
 import { DEBUG_BUILD } from '../../debug-build';
 import { generateInstrumentOnce } from '../../otel/instrument';
 import { ensureIsWrapped } from '../../utils/ensureIsWrapped';
@@ -29,9 +29,9 @@ export const instrumentKoa = generateInstrumentOnce(
           return;
         }
         const attributes = spanToJSON(span).data;
-        const route = attributes && attributes[ATTR_HTTP_ROUTE];
+        const route = attributes[ATTR_HTTP_ROUTE];
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        const method: string = info?.context?.request?.method?.toUpperCase() || 'GET';
+        const method = info.context?.request?.method?.toUpperCase() || 'GET';
         if (route) {
           getIsolationScope().setTransactionName(`${method} ${route}`);
         }
@@ -48,8 +48,46 @@ const _koaIntegration = (() => {
   };
 }) satisfies IntegrationFn;
 
+/**
+ * Adds Sentry tracing instrumentation for [Koa](https://koajs.com/).
+ *
+ * If you also want to capture errors, you need to call `setupKoaErrorHandler(app)` after you set up your Koa server.
+ *
+ * For more information, see the [koa documentation](https://docs.sentry.io/platforms/javascript/guides/koa/).
+ *
+ * @example
+ * ```javascript
+ * const Sentry = require('@sentry/node');
+ *
+ * Sentry.init({
+ *   integrations: [Sentry.koaIntegration()],
+ * })
+ * ```
+ */
 export const koaIntegration = defineIntegration(_koaIntegration);
 
+/**
+ * Add an Koa error handler to capture errors to Sentry.
+ *
+ * The error handler must be before any other middleware and after all controllers.
+ *
+ * @param app The Express instances
+ * @param options {ExpressHandlerOptions} Configuration options for the handler
+ *
+ * @example
+ * ```javascript
+ * const Sentry = require('@sentry/node');
+ * const Koa = require("koa");
+ *
+ * const app = new Koa();
+ *
+ * Sentry.setupKoaErrorHandler(app);
+ *
+ * // Add your routes, etc.
+ *
+ * app.listen(3000);
+ * ```
+ */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const setupKoaErrorHandler = (app: { use: (arg0: (ctx: any, next: any) => Promise<void>) => void }): void => {
   app.use(async (ctx, next) => {
@@ -67,7 +105,7 @@ export const setupKoaErrorHandler = (app: { use: (arg0: (ctx: any, next: any) =>
 function addKoaSpanAttributes(span: Span): void {
   span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.http.otel.koa');
 
-  const attributes = spanToJSON(span).data || {};
+  const attributes = spanToJSON(span).data;
 
   // this is one of: middleware, router
   const type = attributes['koa.type'];

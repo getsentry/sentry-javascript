@@ -37,12 +37,12 @@
     if (
       ('e' in content ||
         'p' in content ||
-        (content.f && content.f.indexOf('capture') > -1) ||
-        (content.f && content.f.indexOf('showReportDialog') > -1)) &&
+        (content.f?.indexOf('capture') > -1) ||
+        (content.f?.indexOf('showReportDialog') > -1)) &&
       lazy
     ) {
       // We only want to lazy inject/load the sdk bundle if
-      // an error or promise rejection occured
+      // an error or promise rejection occurred
       // OR someone called `capture...` on the SDK
       injectSdk(onLoadCallbacks);
     }
@@ -115,7 +115,7 @@
       var initAlreadyCalled = false;
       var __sentry = _window['__SENTRY__'];
       // If there is a global __SENTRY__ that means that in any of the callbacks init() was already invoked
-      if (!(typeof __sentry === 'undefined') && __sentry.hub && __sentry.hub.getClient()) {
+      if (!(typeof __sentry === 'undefined') && __sentry.hub?.getClient()) {
         initAlreadyCalled = true;
       }
 
@@ -127,7 +127,7 @@
           calledSentry = true;
           var call = data[i];
           if (initAlreadyCalled === false && call.f !== 'init') {
-            // First call always has to be init, this is a conveniece for the user so call to init is optional
+            // First call always has to be init, this is a convenience for the user so call to init is optional
             SDK.init();
           }
           initAlreadyCalled = true;

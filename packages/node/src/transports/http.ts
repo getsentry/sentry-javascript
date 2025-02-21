@@ -2,15 +2,14 @@ import * as http from 'node:http';
 import * as https from 'node:https';
 import { Readable } from 'node:stream';
 import { createGzip } from 'node:zlib';
-import { createTransport, suppressTracing } from '@sentry/core';
 import type {
   BaseTransportOptions,
   Transport,
   TransportMakeRequestResponse,
   TransportRequest,
   TransportRequestExecutor,
-} from '@sentry/types';
-import { consoleSandbox } from '@sentry/utils';
+} from '@sentry/core';
+import { consoleSandbox, createTransport, suppressTracing } from '@sentry/core';
 import { HttpsProxyAgent } from '../proxy';
 import type { HTTPModule } from './http-module';
 
@@ -73,7 +72,7 @@ export function makeNodeTransport(options: NodeTransportOptions): Transport {
   const nativeHttpModule = isHttps ? https : http;
   const keepAlive = options.keepAlive === undefined ? false : options.keepAlive;
 
-  // TODO(v9): Evaluate if we can set keepAlive to true. This would involve testing for memory leaks in older node
+  // TODO(v10): Evaluate if we can set keepAlive to true. This would involve testing for memory leaks in older node
   // versions(>= 8) as they had memory leaks when using it: #2555
   const agent = proxy
     ? (new HttpsProxyAgent(proxy) as http.Agent)
@@ -93,13 +92,11 @@ export function makeNodeTransport(options: NodeTransportOptions): Transport {
 function applyNoProxyOption(transportUrlSegments: URL, proxy: string | undefined): string | undefined {
   const { no_proxy } = process.env;
 
-  const urlIsExemptFromProxy =
-    no_proxy &&
-    no_proxy
-      .split(',')
-      .some(
-        exemption => transportUrlSegments.host.endsWith(exemption) || transportUrlSegments.hostname.endsWith(exemption),
-      );
+  const urlIsExemptFromProxy = no_proxy
+    ?.split(',')
+    .some(
+      exemption => transportUrlSegments.host.endsWith(exemption) || transportUrlSegments.hostname.endsWith(exemption),
+    );
 
   if (urlIsExemptFromProxy) {
     return undefined;

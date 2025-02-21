@@ -30,7 +30,7 @@
 /* eslint-disable jsdoc/require-jsdoc */
 import type { IncomingHttpHeaders } from 'node:http';
 import type { Readable } from 'node:stream';
-import { logger } from '@sentry/utils';
+import { logger } from '@sentry/core';
 
 function debug(...args: unknown[]): void {
   logger.log('[https-proxy-agent:parse-proxy-response]', ...args);
@@ -89,7 +89,7 @@ export function parseProxyResponse(socket: Readable): Promise<{ connect: Connect
         return;
       }
 
-      const headerParts = buffered.slice(0, endOfHeaders).toString('ascii').split('\r\n');
+      const headerParts = buffered.subarray(0, endOfHeaders).toString('ascii').split('\r\n');
       const firstLine = headerParts.shift();
       if (!firstLine) {
         socket.destroy();

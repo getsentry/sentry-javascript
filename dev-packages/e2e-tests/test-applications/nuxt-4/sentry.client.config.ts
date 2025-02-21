@@ -1,10 +1,23 @@
 import * as Sentry from '@sentry/nuxt';
-import { useRuntimeConfig } from '#imports';
+import { usePinia, useRuntimeConfig } from '#imports';
 
 Sentry.init({
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: useRuntimeConfig().public.sentry.dsn,
   tunnel: `http://localhost:3031/`, // proxy server
   tracesSampleRate: 1.0,
-  trackComponents: true,
+  integrations: [
+    Sentry.piniaIntegration(usePinia(), {
+      actionTransformer: action => `${action}.transformed`,
+      stateTransformer: state => ({
+        transformed: true,
+        ...state,
+      }),
+    }),
+    Sentry.vueIntegration({
+      tracingOptions: {
+        trackComponents: true,
+      },
+    }),
+  ],
 });

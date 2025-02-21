@@ -1,11 +1,12 @@
 /* eslint-disable max-lines */
+import type { Client } from './client';
+import { updateSession } from './session';
 import type {
   Attachment,
   Breadcrumb,
-  CaptureContext,
-  Client,
   Context,
   Contexts,
+  DynamicSamplingContext,
   Event,
   EventHint,
   EventProcessor,
@@ -13,17 +14,18 @@ import type {
   Extras,
   Primitive,
   PropagationContext,
-  RequestSession,
-  Scope as ScopeInterface,
-  ScopeContext,
-  ScopeData,
+  RequestEventData,
   Session,
   SeverityLevel,
+  Span,
   User,
-} from '@sentry/types';
-import { dateTimestampInSeconds, generatePropagationContext, isPlainObject, logger, uuid4 } from '@sentry/utils';
-
-import { updateSession } from './session';
+} from './types-hoist';
+import { isPlainObject } from './utils-hoist/is';
+import { logger } from './utils-hoist/logger';
+import { uuid4 } from './utils-hoist/misc';
+import { generateTraceId } from './utils-hoist/propagationContext';
+import { dateTimestampInSeconds } from './utils-hoist/time';
+import { merge } from './utils/merge';
 import { _getSpanForScope, _setSpanForScope } from './utils/spanOnScope';
 
 /**
@@ -32,9 +34,61 @@ import { _getSpanForScope, _setSpanForScope } from './utils/spanOnScope';
 const DEFAULT_MAX_BREADCRUMBS = 100;
 
 /**
+ * A context to be used for capturing an event.
+ * This can either be a Scope, or a partial ScopeContext,
+ * or a callback that receives the current scope and returns a new scope to use.
+ */
+export type CaptureContext = Scope | Partial<ScopeContext> | ((scope: Scope) => Scope);
+
+/**
+ * Data that can be converted to a Scope.
+ */
+export interface ScopeContext {
+  user: User;
+  level: SeverityLevel;
+  extra: Extras;
+  contexts: Contexts;
+  tags: { [key: string]: Primitive };
+  fingerprint: string[];
+  propagationContext: PropagationContext;
+}
+
+export interface SdkProcessingMetadata {
+  [key: string]: unknown;
+  requestSession?: {
+    status: 'ok' | 'errored' | 'crashed';
+  };
+  normalizedRequest?: RequestEventData;
+  dynamicSamplingContext?: Partial<DynamicSamplingContext>;
+  capturedSpanScope?: Scope;
+  capturedSpanIsolationScope?: Scope;
+  spanCountBeforeProcessing?: number;
+  ipAddress?: string;
+}
+
+/**
+ * Normalized data of the Scope, ready to be used.
+ */
+export interface ScopeData {
+  eventProcessors: EventProcessor[];
+  breadcrumbs: Breadcrumb[];
+  user: User;
+  tags: { [key: string]: Primitive };
+  extra: Extras;
+  contexts: Contexts;
+  attachments: Attachment[];
+  propagationContext: PropagationContext;
+  sdkProcessingMetadata: SdkProcessingMetadata;
+  fingerprint: string[];
+  level?: SeverityLevel;
+  transactionName?: string;
+  span?: Span;
+}
+
+/**
  * Holds additional event information.
  */
-class ScopeClass implements ScopeInterface {
+export class Scope {
   /** Flag if notifying is happening. */
   protected _notifyingListeners: boolean;
 
@@ -69,7 +123,7 @@ class ScopeClass implements ScopeInterface {
    * A place to stash data which is needed at some point in the SDK's event processing pipeline but which shouldn't get
    * sent to Sentry
    */
-  protected _sdkProcessingMetadata: { [key: string]: unknown };
+  protected _sdkProcessingMetadata: SdkProcessingMetadata;
 
   /** Fingerprint */
   protected _fingerprint?: string[];
@@ -87,9 +141,6 @@ class ScopeClass implements ScopeInterface {
 
   /** Session */
   protected _session?: Session;
-
-  /** Request Mode Session Status */
-  protected _requestSession?: RequestSession;
 
   /** The client on this scope */
   protected _client?: Client;
@@ -110,25 +161,35 @@ class ScopeClass implements ScopeInterface {
     this._extra = {};
     this._contexts = {};
     this._sdkProcessingMetadata = {};
-    this._propagationContext = generatePropagationContext();
+    this._propagationContext = {
+      traceId: generateTraceId(),
+      sampleRand: Math.random(),
+    };
   }
 
   /**
-   * @inheritDoc
+   * Clone all data from this scope into a new scope.
    */
-  public clone(): ScopeClass {
-    const newScope = new ScopeClass();
+  public clone(): Scope {
+    const newScope = new Scope();
     newScope._breadcrumbs = [...this._breadcrumbs];
     newScope._tags = { ...this._tags };
     newScope._extra = { ...this._extra };
     newScope._contexts = { ...this._contexts };
+    if (this._contexts.flags) {
+      // We need to copy the `values` array so insertions on a cloned scope
+      // won't affect the original array.
+      newScope._contexts.flags = {
+        values: [...this._contexts.flags.values],
+      };
+    }
+
     newScope._user = this._user;
     newScope._level = this._level;
     newScope._session = this._session;
     newScope._transactionName = this._transactionName;
     newScope._fingerprint = this._fingerprint;
     newScope._eventProcessors = [...this._eventProcessors];
-    newScope._requestSession = this._requestSession;
     newScope._attachments = [...this._attachments];
     newScope._sdkProcessingMetadata = { ...this._sdkProcessingMetadata };
     newScope._propagationContext = { ...this._propagationContext };
@@ -141,28 +202,32 @@ class ScopeClass implements ScopeInterface {
   }
 
   /**
-   * @inheritDoc
+   * Update the client assigned to this scope.
+   * Note that not every scope will have a client assigned - isolation scopes & the global scope will generally not have a client,
+   * as well as manually created scopes.
    */
   public setClient(client: Client | undefined): void {
     this._client = client;
   }
 
   /**
-   * @inheritDoc
+   * Set the ID of the last captured error event.
+   * This is generally only captured on the isolation scope.
    */
   public setLastEventId(lastEventId: string | undefined): void {
     this._lastEventId = lastEventId;
   }
 
   /**
-   * @inheritDoc
+   * Get the client assigned to this scope.
    */
   public getClient<C extends Client>(): C | undefined {
     return this._client as C | undefined;
   }
 
   /**
-   * @inheritDoc
+   * Get the ID of the last captured error event.
+   * This is generally only available on the isolation scope.
    */
   public lastEventId(): string | undefined {
     return this._lastEventId;
@@ -176,7 +241,7 @@ class ScopeClass implements ScopeInterface {
   }
 
   /**
-   * @inheritDoc
+   * Add an event processor that will be called before an event is sent.
    */
   public addEventProcessor(callback: EventProcessor): this {
     this._eventProcessors.push(callback);
@@ -184,7 +249,8 @@ class ScopeClass implements ScopeInterface {
   }
 
   /**
-   * @inheritDoc
+   * Set the user for this scope.
+   * Set to `null` to unset the user.
    */
   public setUser(user: User | null): this {
     // If null is passed we want to unset everything, but still define keys,
@@ -205,29 +271,15 @@ class ScopeClass implements ScopeInterface {
   }
 
   /**
-   * @inheritDoc
+   * Get the user from this scope.
    */
   public getUser(): User | undefined {
     return this._user;
   }
 
   /**
-   * @inheritDoc
-   */
-  public getRequestSession(): RequestSession | undefined {
-    return this._requestSession;
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public setRequestSession(requestSession?: RequestSession): this {
-    this._requestSession = requestSession;
-    return this;
-  }
-
-  /**
-   * @inheritDoc
+   * Set an object that will be merged into existing tags on the scope,
+   * and will be sent as tags data with the event.
    */
   public setTags(tags: { [key: string]: Primitive }): this {
     this._tags = {
@@ -239,7 +291,7 @@ class ScopeClass implements ScopeInterface {
   }
 
   /**
-   * @inheritDoc
+   * Set a single tag that will be sent as tags data with the event.
    */
   public setTag(key: string, value: Primitive): this {
     this._tags = { ...this._tags, [key]: value };
@@ -248,7 +300,8 @@ class ScopeClass implements ScopeInterface {
   }
 
   /**
-   * @inheritDoc
+   * Set an object that will be merged into existing extra on the scope,
+   * and will be sent as extra data with the event.
    */
   public setExtras(extras: Extras): this {
     this._extra = {
@@ -260,7 +313,7 @@ class ScopeClass implements ScopeInterface {
   }
 
   /**
-   * @inheritDoc
+   * Set a single key:value extra entry that will be sent as extra data with the event.
    */
   public setExtra(key: string, extra: Extra): this {
     this._extra = { ...this._extra, [key]: extra };
@@ -269,7 +322,8 @@ class ScopeClass implements ScopeInterface {
   }
 
   /**
-   * @inheritDoc
+   * Sets the fingerprint on the scope to send with the events.
+   * @param {string[]} fingerprint Fingerprint to group events in Sentry.
    */
   public setFingerprint(fingerprint: string[]): this {
     this._fingerprint = fingerprint;
@@ -278,7 +332,7 @@ class ScopeClass implements ScopeInterface {
   }
 
   /**
-   * @inheritDoc
+   * Sets the level on the scope for future events.
    */
   public setLevel(level: SeverityLevel): this {
     this._level = level;
@@ -287,7 +341,15 @@ class ScopeClass implements ScopeInterface {
   }
 
   /**
-   * @inheritDoc
+   * Sets the transaction name on the scope so that the name of e.g. taken server route or
+   * the page location is attached to future events.
+   *
+   * IMPORTANT: Calling this function does NOT change the name of the currently active
+   * root span. If you want to change the name of the active root span, use
+   * `Sentry.updateSpanName(rootSpan, 'new name')` instead.
+   *
+   * By default, the SDK updates the scope's transaction name automatically on sensible
+   * occasions, such as a page navigation or when handling a new request on the server.
    */
   public setTransactionName(name?: string): this {
     this._transactionName = name;
@@ -296,7 +358,9 @@ class ScopeClass implements ScopeInterface {
   }
 
   /**
-   * @inheritDoc
+   * Sets context data with the given name.
+   * Data passed as context will be normalized. You can also pass `null` to unset the context.
+   * Note that context data will not be merged - calling `setContext` will overwrite an existing context with the same key.
    */
   public setContext(key: string, context: Context | null): this {
     if (context === null) {
@@ -311,7 +375,7 @@ class ScopeClass implements ScopeInterface {
   }
 
   /**
-   * @inheritDoc
+   * Set the session for the scope.
    */
   public setSession(session?: Session): this {
     if (!session) {
@@ -324,14 +388,17 @@ class ScopeClass implements ScopeInterface {
   }
 
   /**
-   * @inheritDoc
+   * Get the session from the scope.
    */
   public getSession(): Session | undefined {
     return this._session;
   }
 
   /**
-   * @inheritDoc
+   * Updates the scope with provided data. Can work in three variations:
+   * - plain object containing updatable attributes
+   * - Scope instance that'll extract the attributes from
+   * - callback function that'll receive the current scope as an argument and allow for modifications
    */
   public update(captureContext?: CaptureContext): this {
     if (!captureContext) {
@@ -340,12 +407,12 @@ class ScopeClass implements ScopeInterface {
 
     const scopeToMerge = typeof captureContext === 'function' ? captureContext(this) : captureContext;
 
-    const [scopeInstance, requestSession] =
+    const scopeInstance =
       scopeToMerge instanceof Scope
-        ? [scopeToMerge.getScopeData(), scopeToMerge.getRequestSession()]
+        ? scopeToMerge.getScopeData()
         : isPlainObject(scopeToMerge)
-          ? [captureContext as ScopeContext, (captureContext as ScopeContext).requestSession]
-          : [];
+          ? (captureContext as ScopeContext)
+          : undefined;
 
     const { tags, extra, user, contexts, level, fingerprint = [], propagationContext } = scopeInstance || {};
 
@@ -369,15 +436,12 @@ class ScopeClass implements ScopeInterface {
       this._propagationContext = propagationContext;
     }
 
-    if (requestSession) {
-      this._requestSession = requestSession;
-    }
-
     return this;
   }
 
   /**
-   * @inheritDoc
+   * Clears the current scope and resets its properties.
+   * Note: The client will not be cleared.
    */
   public clear(): this {
     // client is not cleared here on purpose!
@@ -389,18 +453,18 @@ class ScopeClass implements ScopeInterface {
     this._level = undefined;
     this._transactionName = undefined;
     this._fingerprint = undefined;
-    this._requestSession = undefined;
     this._session = undefined;
     _setSpanForScope(this, undefined);
     this._attachments = [];
-    this._propagationContext = generatePropagationContext();
+    this.setPropagationContext({ traceId: generateTraceId(), sampleRand: Math.random() });
 
     this._notifyScopeListeners();
     return this;
   }
 
   /**
-   * @inheritDoc
+   * Adds a breadcrumb to the scope.
+   * By default, the last 100 breadcrumbs are kept.
    */
   public addBreadcrumb(breadcrumb: Breadcrumb, maxBreadcrumbs?: number): this {
     const maxCrumbs = typeof maxBreadcrumbs === 'number' ? maxBreadcrumbs : DEFAULT_MAX_BREADCRUMBS;
@@ -415,9 +479,11 @@ class ScopeClass implements ScopeInterface {
       ...breadcrumb,
     };
 
-    const breadcrumbs = this._breadcrumbs;
-    breadcrumbs.push(mergedBreadcrumb);
-    this._breadcrumbs = breadcrumbs.length > maxCrumbs ? breadcrumbs.slice(-maxCrumbs) : breadcrumbs;
+    this._breadcrumbs.push(mergedBreadcrumb);
+    if (this._breadcrumbs.length > maxCrumbs) {
+      this._breadcrumbs = this._breadcrumbs.slice(-maxCrumbs);
+      this._client?.recordDroppedEvent('buffer_overflow', 'log_item');
+    }
 
     this._notifyScopeListeners();
 
@@ -425,14 +491,14 @@ class ScopeClass implements ScopeInterface {
   }
 
   /**
-   * @inheritDoc
+   * Get the last breadcrumb of the scope.
    */
   public getLastBreadcrumb(): Breadcrumb | undefined {
     return this._breadcrumbs[this._breadcrumbs.length - 1];
   }
 
   /**
-   * @inheritDoc
+   * Clear all breadcrumbs from the scope.
    */
   public clearBreadcrumbs(): this {
     this._breadcrumbs = [];
@@ -441,7 +507,7 @@ class ScopeClass implements ScopeInterface {
   }
 
   /**
-   * @inheritDoc
+   * Add an attachment to the scope.
    */
   public addAttachment(attachment: Attachment): this {
     this._attachments.push(attachment);
@@ -449,14 +515,16 @@ class ScopeClass implements ScopeInterface {
   }
 
   /**
-   * @inheritDoc
+   * Clear all attachments from the scope.
    */
   public clearAttachments(): this {
     this._attachments = [];
     return this;
   }
 
-  /** @inheritDoc */
+  /**
+   * Get the data of this scope, which should be applied to an event during processing.
+   */
   public getScopeData(): ScopeData {
     return {
       breadcrumbs: this._breadcrumbs,
@@ -476,16 +544,15 @@ class ScopeClass implements ScopeInterface {
   }
 
   /**
-   * @inheritDoc
+   * Add data which will be accessible during event processing but won't get sent to Sentry.
    */
-  public setSDKProcessingMetadata(newData: { [key: string]: unknown }): this {
-    this._sdkProcessingMetadata = { ...this._sdkProcessingMetadata, ...newData };
-
+  public setSDKProcessingMetadata(newData: SdkProcessingMetadata): this {
+    this._sdkProcessingMetadata = merge(this._sdkProcessingMetadata, newData, 2);
     return this;
   }
 
   /**
-   * @inheritDoc
+   * Add propagation context to the scope, used for distributed tracing
    */
   public setPropagationContext(context: PropagationContext): this {
     this._propagationContext = context;
@@ -493,17 +560,19 @@ class ScopeClass implements ScopeInterface {
   }
 
   /**
-   * @inheritDoc
+   * Get propagation context from the scope, used for distributed tracing
    */
   public getPropagationContext(): PropagationContext {
     return this._propagationContext;
   }
 
   /**
-   * @inheritDoc
+   * Capture an exception for this scope.
+   *
+   * @returns {string} The id of the captured Sentry event.
    */
   public captureException(exception: unknown, hint?: EventHint): string {
-    const eventId = hint && hint.event_id ? hint.event_id : uuid4();
+    const eventId = hint?.event_id || uuid4();
 
     if (!this._client) {
       logger.warn('No client configured on scope - will not capture exception!');
@@ -527,10 +596,12 @@ class ScopeClass implements ScopeInterface {
   }
 
   /**
-   * @inheritDoc
+   * Capture a message for this scope.
+   *
+   * @returns {string} The id of the captured message.
    */
   public captureMessage(message: string, level?: SeverityLevel, hint?: EventHint): string {
-    const eventId = hint && hint.event_id ? hint.event_id : uuid4();
+    const eventId = hint?.event_id || uuid4();
 
     if (!this._client) {
       logger.warn('No client configured on scope - will not capture message!');
@@ -555,10 +626,12 @@ class ScopeClass implements ScopeInterface {
   }
 
   /**
-   * @inheritDoc
+   * Capture a Sentry event for this scope.
+   *
+   * @returns {string} The id of the captured event.
    */
   public captureEvent(event: Event, hint?: EventHint): string {
-    const eventId = hint && hint.event_id ? hint.event_id : uuid4();
+    const eventId = hint?.event_id || uuid4();
 
     if (!this._client) {
       logger.warn('No client configured on scope - will not capture event!');
@@ -586,17 +659,3 @@ class ScopeClass implements ScopeInterface {
     }
   }
 }
-
-// NOTE: By exporting this here as const & type, instead of doing `export class`,
-// We can get the correct class when importing from `@sentry/core`, but the original type (from `@sentry/types`)
-// This is helpful for interop, e.g. when doing `import type { Scope } from '@sentry/node';` (which re-exports this)
-
-/**
- * Holds additional event information.
- */
-export const Scope = ScopeClass;
-
-/**
- * Holds additional event information.
- */
-export type Scope = ScopeInterface;

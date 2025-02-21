@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
-import { SpanJSON } from '@sentry/types';
+import { SpanJSON } from '@sentry/core';
 
 test('Waits for sse streaming when creating spans', async ({ page }) => {
   await page.goto('/sse');
@@ -65,9 +65,13 @@ test('Waits for sse streaming when sse has been explicitly aborted', async ({ pa
   expect(resolveDuration).toBe(0);
   expect(resolveBodyDuration).toBe(0);
 
-  // validate abort eror was thrown by inspecting console
-  const consoleBreadcrumb = rootSpan.breadcrumbs?.find(breadcrumb => breadcrumb.category === 'console');
-  expect(consoleBreadcrumb?.message).toBe('Could not fetch sse AbortError: BodyStreamBuffer was aborted');
+  // validate abort error was thrown by inspecting console
+  expect(rootSpan.breadcrumbs).toContainEqual(
+    expect.objectContaining({
+      category: 'console',
+      message: 'Could not fetch sse AbortError: BodyStreamBuffer was aborted',
+    }),
+  );
 });
 
 test('Aborts when stream takes longer than 5s, by not updating the span duration', async ({ page }) => {

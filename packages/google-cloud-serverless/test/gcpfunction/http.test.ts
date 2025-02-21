@@ -1,6 +1,4 @@
-import * as domain from 'domain';
-
-import type { Integration } from '@sentry/types';
+import type { Integration } from '@sentry/core';
 
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 
@@ -58,7 +56,6 @@ describe('GCPFunction', () => {
       headers = { ...headers, ...trace_headers };
     }
     return new Promise((resolve, _reject) => {
-      const d = domain.create();
       const req = {
         method: 'POST',
         url: '/path?q=query',
@@ -66,8 +63,12 @@ describe('GCPFunction', () => {
         body: { foo: 'bar' },
       } as Request;
       const res = { end: resolve } as Response;
-      d.on('error', () => res.end());
-      d.run(() => process.nextTick(fn, req, res));
+
+      try {
+        fn(req, res);
+      } catch (error) {
+        res.end();
+      }
     });
   }
 
@@ -176,11 +177,12 @@ describe('GCPFunction', () => {
     expect(defaultIntegrations).toContain('RequestData');
 
     expect(mockScope.setSDKProcessingMetadata).toHaveBeenCalledWith({
-      request: {
+      normalizedRequest: {
         method: 'POST',
-        url: '/path?q=query',
+        url: 'http://hostname/path?q=query',
         headers: { host: 'hostname', 'content-type': 'application/json' },
-        body: { foo: 'bar' },
+        query_string: 'q=query',
+        data: { foo: 'bar' },
       },
     });
   });

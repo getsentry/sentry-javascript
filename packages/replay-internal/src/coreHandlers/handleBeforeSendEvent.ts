@@ -1,5 +1,5 @@
-import type { ErrorEvent, Event } from '@sentry/types';
-import { getLocationHref } from '@sentry/utils';
+import { getLocationHref } from '@sentry/core';
+import type { ErrorEvent, Event } from '@sentry/core';
 
 import type { ReplayContainer } from '../types';
 import { createBreadcrumb } from '../util/createBreadcrumb';
@@ -22,8 +22,7 @@ export function handleBeforeSendEvent(replay: ReplayContainer): BeforeSendEventC
 }
 
 function handleHydrationError(replay: ReplayContainer, event: ErrorEvent): void {
-  const exceptionValue =
-    event.exception && event.exception.values && event.exception.values[0] && event.exception.values[0].value;
+  const exceptionValue = event.exception?.values?.[0]?.value;
   if (typeof exceptionValue !== 'string') {
     return;
   }

@@ -6,8 +6,8 @@ import type {
   SpanContextData,
   SpanStatus,
   SpanTimeInput,
-} from '@sentry/types';
-import { uuid4 } from '@sentry/utils';
+} from '../types-hoist';
+import { generateSpanId, generateTraceId } from '../utils-hoist/propagationContext';
 import { TRACE_FLAG_NONE } from '../utils/spanUtils';
 
 /**
@@ -18,8 +18,8 @@ export class SentryNonRecordingSpan implements Span {
   private _spanId: string;
 
   public constructor(spanContext: SentrySpanArguments = {}) {
-    this._traceId = spanContext.traceId || uuid4();
-    this._spanId = spanContext.spanId || uuid4().substring(16);
+    this._traceId = spanContext.traceId || generateTraceId();
+    this._spanId = spanContext.spanId || generateSpanId();
   }
 
   /** @inheritdoc */
@@ -69,31 +69,19 @@ export class SentryNonRecordingSpan implements Span {
     return this;
   }
 
-  /**
-   * This should generally not be used,
-   * but we need it for being comliant with the OTEL Span interface.
-   *
-   * @hidden
-   * @internal
-   */
+  /** @inheritDoc */
   public addLink(_link: unknown): this {
     return this;
   }
 
-  /**
-   * This should generally not be used,
-   * but we need it for being comliant with the OTEL Span interface.
-   *
-   * @hidden
-   * @internal
-   */
+  /** @inheritDoc */
   public addLinks(_links: unknown[]): this {
     return this;
   }
 
   /**
    * This should generally not be used,
-   * but we need it for being comliant with the OTEL Span interface.
+   * but we need it for being compliant with the OTEL Span interface.
    *
    * @hidden
    * @internal

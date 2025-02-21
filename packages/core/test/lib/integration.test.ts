@@ -1,9 +1,9 @@
-import type { Integration, Options } from '@sentry/types';
-import { logger } from '@sentry/utils';
 import { getCurrentScope } from '../../src/currentScopes';
+import type { Integration, Options } from '../../src/types-hoist';
 
 import { addIntegration, getIntegrationsToSetup, installedIntegrations, setupIntegration } from '../../src/integration';
 import { setCurrentClient } from '../../src/sdk';
+import { logger } from '../../src/utils-hoist/logger';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 
 function getTestClient(): TestClient {
@@ -35,7 +35,7 @@ type TestCase = [
   string, // test name
   Options['defaultIntegrations'], // default integrations
   Options['integrations'], // user-provided integrations
-  Array<string | string[]>, // expected resulst
+  Array<string | string[]>, // expected results
 ];
 
 describe('getIntegrationsToSetup', () => {
@@ -189,29 +189,6 @@ describe('getIntegrationsToSetup', () => {
     });
   });
 
-  describe('puts `Debug` integration last', () => {
-    // No variations here (default vs user, duplicates, user array vs user function, etc) because by the time we're
-    // dealing with the `Debug` integration, all of the combining and deduping has already been done
-    const noDebug = [new MockIntegration('ChaseSquirrels')];
-    const debugNotLast = [new MockIntegration('Debug'), new MockIntegration('CatchTreats')];
-    const debugAlreadyLast = [new MockIntegration('ChaseSquirrels'), new MockIntegration('Debug')];
-
-    const testCases: TestCase[] = [
-      // each test case is [testName, defaultIntegrations, userIntegrations, expectedResult]
-      ['`Debug` not present', false, noDebug, ['ChaseSquirrels']],
-      ['`Debug` not originally last', false, debugNotLast, ['CatchTreats', 'Debug']],
-      ['`Debug` already last', false, debugAlreadyLast, ['ChaseSquirrels', 'Debug']],
-    ];
-
-    test.each(testCases)('%s', (_, defaultIntegrations, userIntegrations, expected) => {
-      const integrations = getIntegrationsToSetup({
-        defaultIntegrations,
-        integrations: userIntegrations,
-      });
-      expect(integrations.map(i => i.name)).toEqual(expected);
-    });
-  });
-
   it('works with empty array', () => {
     const integrations = getIntegrationsToSetup({
       integrations: [],
@@ -304,29 +281,6 @@ describe('getIntegrationsToSetup', () => {
     expect(integrations.map(i => i.name)).toEqual(['foo', 'bar']);
     expect((integrations[0] as any).order).toEqual('firstUser');
     expect((integrations[1] as any).order).toEqual('secondUser');
-  });
-
-  it('always moves Debug integration to the end of the list', () => {
-    let integrations = getIntegrationsToSetup({
-      defaultIntegrations: [new MockIntegration('Debug'), new MockIntegration('foo')],
-      integrations: [new MockIntegration('bar')],
-    });
-
-    expect(integrations.map(i => i.name)).toEqual(['foo', 'bar', 'Debug']);
-
-    integrations = getIntegrationsToSetup({
-      defaultIntegrations: [new MockIntegration('foo')],
-      integrations: [new MockIntegration('Debug'), new MockIntegration('bar')],
-    });
-
-    expect(integrations.map(i => i.name)).toEqual(['foo', 'bar', 'Debug']);
-
-    integrations = getIntegrationsToSetup({
-      defaultIntegrations: [new MockIntegration('Debug')],
-      integrations: [new MockIntegration('foo')],
-    });
-
-    expect(integrations.map(i => i.name)).toEqual(['foo', 'Debug']);
   });
 });
 

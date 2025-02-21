@@ -1,6 +1,5 @@
-import { captureException, getClient, getTraceMetaTags } from '@sentry/core';
-import type { ClientOptions, Context } from '@sentry/types';
-import { dropUndefinedKeys } from '@sentry/utils';
+import type { ClientOptions, Context } from '@sentry/core';
+import { captureException, dropUndefinedKeys, getClient, getTraceMetaTags } from '@sentry/core';
 import type { VueOptions } from '@sentry/vue/src/types';
 import type { CapturedErrorContext } from 'nitropack';
 import type { NuxtRenderHTMLContext } from 'nuxt/app';
@@ -62,12 +61,12 @@ export function reportNuxtError(options: {
     // todo: add component name and trace (like in the vue integration)
   };
 
-  if (instance && instance.$props) {
+  if (instance?.$props) {
     const sentryClient = getClient();
     const sentryOptions = sentryClient ? (sentryClient.getOptions() as ClientOptions & VueOptions) : null;
 
     // `attachProps` is enabled by default and props should only not be attached if explicitly disabled (see DEFAULT_CONFIG in `vueIntegration`).
-    if (sentryOptions && sentryOptions.attachProps && instance.$props !== false) {
+    if (sentryOptions?.attachProps && instance.$props !== false) {
       metadata.propsData = instance.$props;
     }
   }

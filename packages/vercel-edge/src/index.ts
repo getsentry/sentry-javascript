@@ -2,7 +2,7 @@ export type {
   Breadcrumb,
   BreadcrumbHint,
   PolymorphicRequest,
-  Request,
+  RequestEventData,
   SdkInfo,
   Event,
   EventHint,
@@ -15,8 +15,7 @@ export type {
   Stacktrace,
   Thread,
   User,
-} from '@sentry/types';
-export type { AddRequestDataToEventOptions } from '@sentry/utils';
+} from '@sentry/core';
 
 export type { VercelEdgeOptions } from './types';
 
@@ -65,13 +64,11 @@ export {
   withActiveSpan,
   getSpanDescendants,
   continueTrace,
-  metrics,
   functionToStringIntegration,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
   requestDataIntegration,
   extraErrorDataIntegration,
-  debugIntegration,
   dedupeIntegration,
   rewriteFramesIntegration,
   captureConsoleIntegration,

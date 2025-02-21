@@ -5,17 +5,17 @@ import { shouldSkipTracingTest } from '../../../../utils/helpers';
 
 sentryTest(
   'should not attach `sentry-trace` header to fetch requests without tracing',
-  async ({ getLocalTestPath, page }) => {
+  async ({ getLocalTestUrl, page }) => {
     if (shouldSkipTracingTest()) {
       sentryTest.skip();
     }
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     const requests = (
       await Promise.all([
         page.goto(url),
-        Promise.all([0, 1, 2].map(idx => page.waitForRequest(`http://example.com/${idx}`))),
+        Promise.all([0, 1, 2].map(idx => page.waitForRequest(`http://sentry-test-site.example/${idx}`))),
       ])
     )[1];
 

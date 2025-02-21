@@ -1,8 +1,7 @@
-import { applySdkMetadata } from '@sentry/core';
+import { applySdkMetadata, logger } from '@sentry/core';
+import type { Integration } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrations as getDefaultNodeIntegrations, init as nodeInit, isInitialized } from '@sentry/node';
-import type { Integration } from '@sentry/types';
-import { logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './utils/debug-build';
 import { instrumentServer } from './utils/instrumentServer';
@@ -16,10 +15,9 @@ export {
   addBreadcrumb,
   addEventProcessor,
   addIntegration,
-  addOpenTelemetryInstrumentation,
-  addRequestDataToEvent,
   amqplibIntegration,
   anrIntegration,
+  disableAnrDetectionForCallback,
   captureCheckIn,
   captureConsoleIntegration,
   captureEvent,
@@ -35,14 +33,11 @@ export {
   createGetModuleFromFilename,
   createTransport,
   cron,
-  debugIntegration,
   dedupeIntegration,
-  DEFAULT_USER_INCLUDES,
   defaultStackParser,
   endSession,
   expressErrorHandler,
   expressIntegration,
-  extractRequestData,
   extraErrorDataIntegration,
   fastifyIntegration,
   flush,
@@ -52,8 +47,6 @@ export {
   getActiveSpan,
   getAutoPerformanceIntegrations,
   getClient,
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub,
   getCurrentScope,
   getDefaultIntegrations,
   getGlobalScope,
@@ -68,20 +61,19 @@ export {
   inboundFiltersIntegration,
   initOpenTelemetry,
   isInitialized,
+  knexIntegration,
   kafkaIntegration,
   koaIntegration,
   lastEventId,
   linkedErrorsIntegration,
   localVariablesIntegration,
   makeNodeTransport,
-  metrics,
   modulesIntegration,
   mongoIntegration,
   mongooseIntegration,
   mysql2Integration,
   mysqlIntegration,
   nativeNodeFetchIntegration,
-  nestIntegration,
   NodeClient,
   nodeContextIntegration,
   onUncaughtExceptionIntegration,
@@ -98,7 +90,6 @@ export {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  sessionTimingIntegration,
   setContext,
   setCurrentClient,
   setExtra,
@@ -111,7 +102,6 @@ export {
   setupExpressErrorHandler,
   setupHapiErrorHandler,
   setupKoaErrorHandler,
-  setupNestErrorHandler,
   setUser,
   spanToBaggageHeader,
   spanToJSON,
@@ -123,7 +113,9 @@ export {
   startSession,
   startSpan,
   startSpanManual,
+  tediousIntegration,
   trpcMiddleware,
+  updateSpanName,
   withActiveSpan,
   withIsolationScope,
   withMonitor,
@@ -135,8 +127,6 @@ export {
 export * from '@sentry/node';
 
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  wrapRemixHandleError,
   sentryHandleError,
   wrapHandleErrorWithSentry,
 } from './utils/instrumentServer';
@@ -159,22 +149,8 @@ export function getRemixDefaultIntegrations(options: RemixOptions): Integration[
   return [
     ...getDefaultNodeIntegrations(options as NodeOptions).filter(integration => integration.name !== 'Http'),
     httpIntegration(),
-    options.autoInstrumentRemix ? remixIntegration() : undefined,
+    remixIntegration(),
   ].filter(int => int) as Integration[];
-}
-
-/**
- * Returns the given Express createRequestHandler function.
- * This function is no-op and only returns the given function.
- *
- * @deprecated No need to wrap the Express request handler.
- * @param createRequestHandlerFn The Remix Express `createRequestHandler`.
- * @returns `createRequestHandler` function.
- */
-export function wrapExpressCreateRequestHandler(createRequestHandlerFn: unknown): unknown {
-  DEBUG_BUILD && logger.warn('wrapExpressCreateRequestHandler is deprecated and no longer needed.');
-
-  return createRequestHandlerFn;
 }
 
 /** Initializes Sentry Remix SDK on Node. */
@@ -191,7 +167,7 @@ export function init(options: RemixOptions): NodeClient | undefined {
 
   const client = nodeInit(options as NodeOptions);
 
-  instrumentServer(options);
+  instrumentServer();
 
   return client;
 }

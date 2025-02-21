@@ -17,8 +17,8 @@ test('Sends thrown error to Sentry', async ({ baseURL }) => {
 
   expect(transactionEvent.transaction).toBe('GET /test-failure');
   expect(transactionEvent.contexts?.trace).toMatchObject({
-    trace_id: expect.any(String),
-    span_id: expect.any(String),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
   });
 
   expect(errorEvent.exception?.values).toHaveLength(1);
@@ -34,8 +34,8 @@ test('Sends thrown error to Sentry', async ({ baseURL }) => {
   expect(errorEvent.transaction).toEqual('GET /test-failure');
 
   expect(errorEvent.contexts?.trace).toEqual({
-    trace_id: expect.any(String),
-    span_id: expect.any(String),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
   });
 
   expect(errorEvent.contexts?.trace?.trace_id).toBe(transactionEvent.contexts?.trace?.trace_id);

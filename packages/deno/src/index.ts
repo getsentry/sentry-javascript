@@ -2,7 +2,7 @@ export type {
   Breadcrumb,
   BreadcrumbHint,
   PolymorphicRequest,
-  Request,
+  RequestEventData,
   SdkInfo,
   Event,
   EventHint,
@@ -15,8 +15,7 @@ export type {
   Stacktrace,
   Thread,
   User,
-} from '@sentry/types';
-export type { AddRequestDataToEventOptions } from '@sentry/utils';
+} from '@sentry/core';
 
 export type { DenoOptions } from './types';
 
@@ -62,17 +61,14 @@ export {
   startSpanManual,
   startNewTrace,
   suppressTracing,
-  metricsDefault as metrics,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
   functionToStringIntegration,
   requestDataIntegration,
   captureConsoleIntegration,
-  debugIntegration,
   dedupeIntegration,
   extraErrorDataIntegration,
   rewriteFramesIntegration,
-  sessionTimingIntegration,
   zodErrorsIntegration,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -84,6 +80,7 @@ export {
   spanToJSON,
   spanToTraceHeader,
   spanToBaggageHeader,
+  updateSpanName,
 } from '@sentry/core';
 
 export { DenoClient } from './client';

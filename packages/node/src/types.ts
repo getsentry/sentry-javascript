@@ -1,24 +1,9 @@
 import type { Span as WriteableSpan } from '@opentelemetry/api';
-import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
-import type { ClientOptions, Options, SamplingContext, Scope, Span, TracePropagationTargets } from '@sentry/types';
+import type { Instrumentation } from '@opentelemetry/instrumentation';
+import type { ReadableSpan, SpanProcessor } from '@opentelemetry/sdk-trace-base';
+import type { ClientOptions, Options, SamplingContext, Scope, Span, TracePropagationTargets } from '@sentry/core';
 
 import type { NodeTransportOptions } from './transports';
-
-export interface EsmLoaderHookOptions {
-  include?: Array<string | RegExp>;
-  exclude?: Array<string | RegExp> /**
-   * When set to `true`, `import-in-the-middle` will only wrap ESM modules that are specifically instrumented by
-   * OpenTelemetry plugins. This is useful to avoid issues where `import-in-the-middle` is not compatible with some of
-   * your dependencies.
-   *
-   * **Note**: This feature will only work if you `Sentry.init()` the SDK before the instrumented modules are loaded.
-   * This can be achieved via the Node `--import` CLI flag or by loading your app via async `import()` after calling
-   * `Sentry.init()`.
-   *
-   * Defaults to `false`.
-   */;
-  onlyIncludeInstrumentedModules?: boolean;
-}
 
 export interface BaseNodeOptions {
   /**
@@ -50,8 +35,7 @@ export interface BaseNodeOptions {
    * Profiling is enabled if either this or `profilesSampleRate` is defined. If both are defined, `profilesSampleRate` is
    * ignored.
    *
-   * Will automatically be passed a context object of default and optional custom data. See
-   * {@link Transaction.samplingContext} and {@link Hub.startTransaction}.
+   * Will automatically be passed a context object of default and optional custom data.
    *
    * @returns A sample rate between 0 and 1 (0 drops the profile, 1 guarantees it will be sent). Returning `true` is
    * equivalent to returning 1 and returning `false` is equivalent to returning 0.
@@ -87,8 +71,22 @@ export interface BaseNodeOptions {
    * * The `SentryPropagator`
    * * The `SentryContextManager`
    * * The `SentrySampler`
+   *
+   * If you are registering your own OpenTelemetry Loader Hooks (or `import-in-the-middle` hooks), it is also recommended to set the `registerEsmLoaderHooks` option to false.
    */
   skipOpenTelemetrySetup?: boolean;
+
+  /**
+   * Provide an array of OpenTelemetry Instrumentations that should be registered.
+   *
+   * Use this option if you want to register OpenTelemetry instrumentation that the Sentry SDK does not yet have support for.
+   */
+  openTelemetryInstrumentations?: Instrumentation[];
+
+  /**
+   * Provide an array of additional OpenTelemetry SpanProcessors that should be registered.
+   */
+  openTelemetrySpanProcessors?: SpanProcessor[];
 
   /**
    * The max. duration in seconds that the SDK will wait for parent spans to be finished before discarding a span.
@@ -107,18 +105,9 @@ export interface BaseNodeOptions {
    * with certain libraries. If you run into problems running your app with this enabled,
    * please raise an issue in https://github.com/getsentry/sentry-javascript.
    *
-   * You can optionally exclude specific modules or only include specific modules from being instrumented by providing
-   * an object with `include` or `exclude` properties.
-   *
-   * ```js
-   * registerEsmLoaderHooks: {
-   *   exclude: ['openai'],
-   * }
-   * ```
-   *
    * Defaults to `true`.
    */
-  registerEsmLoaderHooks?: boolean | EsmLoaderHookOptions;
+  registerEsmLoaderHooks?: boolean;
 
   /**
    * Configures in which interval client reports will be flushed. Defaults to `60_000` (milliseconds).
@@ -131,13 +120,21 @@ export interface BaseNodeOptions {
    */
   disableInstrumentationWarnings?: boolean;
 
+  /**
+   * Controls how many milliseconds to wait before shutting down. The default is 2 seconds. Setting this too low can cause
+   * problems for sending events from command line applications. Setting it too
+   * high can cause the application to block for users with network connectivity
+   * problems.
+   */
+  shutdownTimeout?: number;
+
   /** Callback that is executed when a fatal global error occurs. */
   onFatalError?(this: void, error: Error): void;
 }
 
 /**
  * Configuration options for the Sentry Node SDK
- * @see @sentry/types Options for more information.
+ * @see @sentry/core Options for more information.
  */
 export interface NodeOptions extends Options<NodeTransportOptions>, BaseNodeOptions {}
 
@@ -156,9 +153,9 @@ export interface CurrentScopes {
  * The base `Span` type is basically a `WriteableSpan`.
  * There are places where we basically want to allow passing _any_ span,
  * so in these cases we type this as `AbstractSpan` which could be either a regular `Span` or a `ReadableSpan`.
- * You'll have to make sur to check revelant fields before accessing them.
+ * You'll have to make sur to check relevant fields before accessing them.
  *
- * Note that technically, the `Span` exported from `@opentelemwetry/sdk-trace-base` matches this,
+ * Note that technically, the `Span` exported from `@opentelemetry/sdk-trace-base` matches this,
  * but we cannot be 100% sure that we are actually getting such a span, so this type is more defensive.
  */
 export type AbstractSpan = WriteableSpan | ReadableSpan | Span;

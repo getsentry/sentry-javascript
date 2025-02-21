@@ -1,5 +1,5 @@
 import { defineIntegration } from '@sentry/core';
-import type { Event, IntegrationFn, StackFrame } from '@sentry/types';
+import type { Event, IntegrationFn, StackFrame } from '@sentry/core';
 
 import { patchWebAssembly } from './patchWebAssembly';
 import { getImage, getImages } from './registry';
@@ -15,9 +15,9 @@ const _wasmIntegration = (() => {
     processEvent(event: Event): Event {
       let hasAtLeastOneWasmFrameWithImage = false;
 
-      if (event.exception && event.exception.values) {
+      if (event.exception?.values) {
         event.exception.values.forEach(exception => {
-          if (exception.stacktrace && exception.stacktrace.frames) {
+          if (exception.stacktrace?.frames) {
             hasAtLeastOneWasmFrameWithImage =
               hasAtLeastOneWasmFrameWithImage || patchFrames(exception.stacktrace.frames);
           }

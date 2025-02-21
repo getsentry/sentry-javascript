@@ -1,24 +1,22 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/types';
-
 import { sentryTest } from '../../../../utils/fixtures';
-import { getMultipleSentryEnvelopeRequests, shouldSkipTracingTest } from '../../../../utils/helpers';
+import {
+  envelopeRequestParser,
+  shouldSkipTracingTest,
+  waitForTransactionRequestOnUrl,
+} from '../../../../utils/helpers';
 
-sentryTest('should create spans for fetch requests', async ({ getLocalTestPath, page }) => {
+sentryTest('should create spans for fetch requests', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  await page.route('http://sentry-test-site.example/*', route => route.fulfill({ body: 'ok' }));
 
-  // Because we fetch from http://example.com, fetch will throw a CORS error in firefox and webkit.
-  // Chromium does not throw for cors errors.
-  // This means that we will intercept a dynamic amount of envelopes here.
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
-  // We will wait 500ms for all envelopes to be sent. Generally, in all browsers, the last sent
-  // envelope contains tracing data.
-  const envelopes = await getMultipleSentryEnvelopeRequests<Event>(page, 4, { url, timeout: 10000 });
-  const tracingEvent = envelopes.find(event => event.type === 'transaction')!; // last envelope contains tracing data on all browsers
+  const req = await waitForTransactionRequestOnUrl(page, url);
+  const tracingEvent = envelopeRequestParser(req);
 
   const requestSpans = tracingEvent.spans?.filter(({ op }) => op === 'http.client');
 
@@ -26,34 +24,36 @@ sentryTest('should create spans for fetch requests', async ({ getLocalTestPath, 
 
   requestSpans?.forEach((span, index) =>
     expect(span).toMatchObject({
-      description: `GET http://example.com/${index}`,
+      description: `GET http://sentry-test-site.example/${index}`,
       parent_span_id: tracingEvent.contexts?.trace?.span_id,
-      span_id: expect.any(String),
+      span_id: expect.stringMatching(/[a-f0-9]{16}/),
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
       trace_id: tracingEvent.contexts?.trace?.trace_id,
       data: {
         'http.method': 'GET',
-        'http.url': `http://example.com/${index}`,
-        url: `http://example.com/${index}`,
-        'server.address': 'example.com',
+        'http.url': `http://sentry-test-site.example/${index}`,
+        url: `http://sentry-test-site.example/${index}`,
+        'server.address': 'sentry-test-site.example',
         type: 'fetch',
       },
     }),
   );
 });
 
-sentryTest('should attach `sentry-trace` header to fetch requests', async ({ getLocalTestPath, page }) => {
+sentryTest('should attach `sentry-trace` header to fetch requests', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  await page.route('http://sentry-test-site.example/*', route => route.fulfill({ body: 'ok' }));
+
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   const requests = (
     await Promise.all([
       page.goto(url),
-      Promise.all([0, 1, 2].map(idx => page.waitForRequest(`http://example.com/${idx}`))),
+      Promise.all([0, 1, 2].map(idx => page.waitForRequest(`http://sentry-test-site.example/${idx}`))),
     ])
   )[1];
 

@@ -26,7 +26,7 @@ export type ViewModel = {
   };
 };
 
-export interface VueOptions extends TracingOptions {
+export interface VueOptions {
   /** Vue constructor to be used inside the integration (as imported by `import Vue from 'vue'` in Vue2) */
   Vue?: Vue;
 
@@ -40,12 +40,6 @@ export interface VueOptions extends TracingOptions {
    * from your Vue components for privacy concerns.
    */
   attachProps: boolean;
-
-  /**
-   * When set to `true`, original Vue's `logError` will be called as well.
-   * https://github.com/vuejs/vue/blob/c2b1cfe9ccd08835f2d99f6ce60f67b4de55187f/src/core/util/error.js#L38-L48
-   */
-  logErrors: boolean;
 
   /**
    *  By default, Sentry attaches an error handler to capture exceptions and report them to Sentry.
@@ -62,7 +56,7 @@ export interface VueOptions extends TracingOptions {
   tracingOptions?: Partial<TracingOptions>;
 }
 
-export interface Options extends BrowserOptions, VueOptions {}
+export type Options = BrowserOptions & VueOptions;
 
 /** Vue specific configuration for Tracing Integration  */
 export interface TracingOptions {

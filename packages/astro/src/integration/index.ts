@@ -3,7 +3,7 @@ import * as path from 'path';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 import type { AstroConfig, AstroIntegration } from 'astro';
 
-import { dropUndefinedKeys } from '@sentry/utils';
+import { consoleSandbox, dropUndefinedKeys } from '@sentry/core';
 import { buildClientSnippet, buildSdkInitFileImportSnippet, buildServerSnippet } from './snippets';
 import type { SentryOptions } from './types';
 
@@ -35,10 +35,31 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
 
         // We don't need to check for AUTH_TOKEN here, because the plugin will pick it up from the env
         if (shouldUploadSourcemaps && command !== 'dev') {
+          const computedSourceMapSettings = getUpdatedSourceMapSettings(config, options);
+
+          let updatedFilesToDeleteAfterUpload: string[] | undefined = undefined;
+
+          if (
+            typeof uploadOptions?.filesToDeleteAfterUpload === 'undefined' &&
+            computedSourceMapSettings.previousUserSourceMapSetting === 'unset'
+          ) {
+            // This also works for adapters, as the source maps are also copied to e.g. the .vercel folder
+            updatedFilesToDeleteAfterUpload = ['./dist/**/client/**/*.map', './dist/**/server/**/*.map'];
+
+            consoleSandbox(() => {
+              // eslint-disable-next-line no-console
+              console.log(
+                `[Sentry] Automatically setting \`sourceMapsUploadOptions.filesToDeleteAfterUpload: ${JSON.stringify(
+                  updatedFilesToDeleteAfterUpload,
+                )}\` to delete generated source maps after they were uploaded to Sentry.`,
+              );
+            });
+          }
+
           updateConfig({
             vite: {
               build: {
-                sourcemap: true,
+                sourcemap: computedSourceMapSettings.updatedSourceMapSetting,
               },
               plugins: [
                 sentryVitePlugin(
@@ -49,6 +70,8 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
                     telemetry: uploadOptions.telemetry ?? true,
                     sourcemaps: {
                       assets: uploadOptions.assets ?? [getSourcemapsAssetsGlob(config)],
+                      filesToDeleteAfterUpload:
+                        uploadOptions?.filesToDeleteAfterUpload ?? updatedFilesToDeleteAfterUpload,
                     },
                     bundleSizeOptimizations: {
                       ...options.bundleSizeOptimizations,
@@ -161,4 +184,74 @@ function getSourcemapsAssetsGlob(config: AstroConfig): string {
 
   // fallback to default output dir
   return 'dist/**/*';
+}
+
+/**
+ * Whether the user enabled (true, 'hidden', 'inline') or disabled (false) source maps
+ */
+export type UserSourceMapSetting = 'enabled' | 'disabled' | 'unset' | undefined;
+
+/** There are 3 ways to set up source map generation (https://github.com/getsentry/sentry-javascript/issues/13993)
+ *
+ *     1. User explicitly disabled source maps
+ *       - keep this setting (emit a warning that errors won't be unminified in Sentry)
+ *       - We won't upload anything
+ *
+ *     2. Users enabled source map generation (true, 'hidden', 'inline').
+ *       - keep this setting (don't do anything - like deletion - besides uploading)
+ *
+ *     3. Users didn't set source maps generation
+ *       - we enable 'hidden' source maps generation
+ *       - configure `filesToDeleteAfterUpload` to delete all .map files (we emit a log about this)
+ *
+ * --> only exported for testing
+ */
+export function getUpdatedSourceMapSettings(
+  astroConfig: AstroConfig,
+  sentryOptions?: SentryOptions,
+): { previousUserSourceMapSetting: UserSourceMapSetting; updatedSourceMapSetting: boolean | 'inline' | 'hidden' } {
+  let previousUserSourceMapSetting: UserSourceMapSetting = undefined;
+
+  astroConfig.build = astroConfig.build || {};
+
+  const viteSourceMap = astroConfig?.vite?.build?.sourcemap;
+  let updatedSourceMapSetting = viteSourceMap;
+
+  const settingKey = 'vite.build.sourcemap';
+
+  if (viteSourceMap === false) {
+    previousUserSourceMapSetting = 'disabled';
+    updatedSourceMapSetting = viteSourceMap;
+
+    consoleSandbox(() => {
+      //  eslint-disable-next-line no-console
+      console.warn(
+        `[Sentry] Source map generation is currently disabled in your Astro configuration (\`${settingKey}: false\`). This setting is either a default setting or was explicitly set in your configuration. Sentry won't override this setting. Without source maps, code snippets on the Sentry Issues page will remain minified. To show unminified code, enable source maps in \`${settingKey}\` (e.g. by setting them to \`hidden\`).`,
+      );
+    });
+  } else if (viteSourceMap && ['hidden', 'inline', true].includes(viteSourceMap)) {
+    previousUserSourceMapSetting = 'enabled';
+    updatedSourceMapSetting = viteSourceMap;
+
+    if (sentryOptions?.debug) {
+      consoleSandbox(() => {
+        // eslint-disable-next-line no-console
+        console.log(
+          `[Sentry] We discovered \`${settingKey}\` is set to \`${viteSourceMap.toString()}\`. Sentry will keep this source map setting. This will un-minify the code snippet on the Sentry Issue page.`,
+        );
+      });
+    }
+  } else {
+    previousUserSourceMapSetting = 'unset';
+    updatedSourceMapSetting = 'hidden';
+
+    consoleSandbox(() => {
+      //  eslint-disable-next-line no-console
+      console.log(
+        `[Sentry] Enabled source map generation in the build options with \`${settingKey}: 'hidden'\`. The source maps will be deleted after they were uploaded to Sentry.`,
+      );
+    });
+  }
+
+  return { previousUserSourceMapSetting, updatedSourceMapSetting };
 }

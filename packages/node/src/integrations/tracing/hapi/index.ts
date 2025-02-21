@@ -1,4 +1,5 @@
 import { HapiInstrumentation } from '@opentelemetry/instrumentation-hapi';
+import type { IntegrationFn, Span } from '@sentry/core';
 import {
   SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -8,10 +9,9 @@ import {
   getClient,
   getDefaultIsolationScope,
   getIsolationScope,
+  logger,
   spanToJSON,
 } from '@sentry/core';
-import type { IntegrationFn, Span } from '@sentry/types';
-import { logger } from '@sentry/utils';
 import { DEBUG_BUILD } from '../../../debug-build';
 import { generateInstrumentOnce } from '../../../otel/instrument';
 import { ensureIsWrapped } from '../../../utils/ensureIsWrapped';
@@ -31,15 +31,25 @@ const _hapiIntegration = (() => {
 }) satisfies IntegrationFn;
 
 /**
- * Hapi integration
+ * Adds Sentry tracing instrumentation for [Hapi](https://hapi.dev/).
  *
- * Capture tracing data for Hapi.
  * If you also want to capture errors, you need to call `setupHapiErrorHandler(server)` after you set up your server.
+ *
+ * For more information, see the [hapi documentation](https://docs.sentry.io/platforms/javascript/guides/hapi/).
+ *
+ * @example
+ * ```javascript
+ * const Sentry = require('@sentry/node');
+ *
+ * Sentry.init({
+ *   integrations: [Sentry.hapiIntegration()],
+ * })
+ * ```
  */
 export const hapiIntegration = defineIntegration(_hapiIntegration);
 
-function isErrorEvent(event: RequestEvent): event is RequestEvent {
-  return event && (event as RequestEvent).error !== undefined;
+function isErrorEvent(event: unknown): event is RequestEvent {
+  return !!(event && typeof event === 'object' && 'error' in event && event.error);
 }
 
 function sendErrorToSentry(errorData: object): void {
@@ -64,8 +74,8 @@ export const hapiErrorPlugin = {
     server.events.on({ name: 'request', channels: ['error'] }, (request: Request, event: RequestEvent) => {
       if (getIsolationScope() !== getDefaultIsolationScope()) {
         const route = request.route;
-        if (route && route.path) {
-          getIsolationScope().setTransactionName(`${route.method?.toUpperCase() || 'GET'} ${route.path}`);
+        if (route.path) {
+          getIsolationScope().setTransactionName(`${route.method.toUpperCase()} ${route.path}`);
         }
       } else {
         DEBUG_BUILD &&
@@ -81,6 +91,24 @@ export const hapiErrorPlugin = {
 
 /**
  * Add a Hapi plugin to capture errors to Sentry.
+ *
+ * @param server The Hapi server to attach the error handler to
+ *
+ * @example
+ * ```javascript
+ * const Sentry = require('@sentry/node');
+ * const Hapi = require('@hapi/hapi');
+ *
+ * const init = async () => {
+ *   const server = Hapi.server();
+ *
+ *   // all your routes here
+ *
+ *   await Sentry.setupHapiErrorHandler(server);
+ *
+ *   await server.start();
+ * };
+ * ```
  */
 export async function setupHapiErrorHandler(server: Server): Promise<void> {
   await server.register(hapiErrorPlugin);
@@ -100,7 +128,7 @@ export async function setupHapiErrorHandler(server: Server): Promise<void> {
 }
 
 function addHapiSpanAttributes(span: Span): void {
-  const attributes = spanToJSON(span).data || {};
+  const attributes = spanToJSON(span).data;
 
   // this is one of: router, plugin, server.ext
   const type = attributes['hapi.type'];

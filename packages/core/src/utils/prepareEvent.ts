@@ -1,20 +1,15 @@
-import type {
-  CaptureContext,
-  Client,
-  ClientOptions,
-  Event,
-  EventHint,
-  Scope as ScopeInterface,
-  ScopeContext,
-  StackFrame,
-  StackParser,
-} from '@sentry/types';
-import { GLOBAL_OBJ, addExceptionMechanism, dateTimestampInSeconds, normalize, truncate, uuid4 } from '@sentry/utils';
-
+import type { Client } from '../client';
 import { DEFAULT_ENVIRONMENT } from '../constants';
 import { getGlobalScope } from '../currentScopes';
 import { notifyEventProcessors } from '../eventProcessors';
+import type { CaptureContext, ScopeContext } from '../scope';
 import { Scope } from '../scope';
+import type { ClientOptions, Event, EventHint, StackParser } from '../types-hoist';
+import { getFilenameToDebugIdMap } from '../utils-hoist/debug-ids';
+import { addExceptionMechanism, uuid4 } from '../utils-hoist/misc';
+import { normalize } from '../utils-hoist/normalize';
+import { truncate } from '../utils-hoist/string';
+import { dateTimestampInSeconds } from '../utils-hoist/time';
 import { applyScopeDataToEvent, mergeScopeData } from './applyScopeDataToEvent';
 
 /**
@@ -45,9 +40,9 @@ export function prepareEvent(
   options: ClientOptions,
   event: Event,
   hint: EventHint,
-  scope?: ScopeInterface,
+  scope?: Scope,
   client?: Client,
-  isolationScope?: ScopeInterface,
+  isolationScope?: Scope,
 ): PromiseLike<Event | null> {
   const { normalizeDepth = 3, normalizeMaxBreadth = 1_000 } = options;
   const prepared: Event = {
@@ -126,23 +121,26 @@ export function prepareEvent(
 }
 
 /**
- *  Enhances event using the client configuration.
- *  It takes care of all "static" values like environment, release and `dist`,
- *  as well as truncating overly long values.
+ * Enhances event using the client configuration.
+ * It takes care of all "static" values like environment, release and `dist`,
+ * as well as truncating overly long values.
+ *
+ * Only exported for tests.
+ *
  * @param event event instance to be enhanced
  */
-function applyClientOptions(event: Event, options: ClientOptions): void {
+export function applyClientOptions(event: Event, options: ClientOptions): void {
   const { environment, release, dist, maxValueLength = 250 } = options;
 
-  if (!('environment' in event)) {
-    event.environment = 'environment' in options ? environment : DEFAULT_ENVIRONMENT;
-  }
+  // empty strings do not make sense for environment, release, and dist
+  // so we handle them the same as if they were not provided
+  event.environment = event.environment || environment || DEFAULT_ENVIRONMENT;
 
-  if (event.release === undefined && release !== undefined) {
+  if (!event.release && release) {
     event.release = release;
   }
 
-  if (event.dist === undefined && dist !== undefined) {
+  if (!event.dist && dist) {
     event.dist = dist;
   }
 
@@ -150,76 +148,31 @@ function applyClientOptions(event: Event, options: ClientOptions): void {
     event.message = truncate(event.message, maxValueLength);
   }
 
-  const exception = event.exception && event.exception.values && event.exception.values[0];
-  if (exception && exception.value) {
+  const exception = event.exception?.values?.[0];
+  if (exception?.value) {
     exception.value = truncate(exception.value, maxValueLength);
   }
 
   const request = event.request;
-  if (request && request.url) {
+  if (request?.url) {
     request.url = truncate(request.url, maxValueLength);
   }
 }
-
-const debugIdStackParserCache = new WeakMap<StackParser, Map<string, StackFrame[]>>();
 
 /**
  * Puts debug IDs into the stack frames of an error event.
  */
 export function applyDebugIds(event: Event, stackParser: StackParser): void {
-  const debugIdMap = GLOBAL_OBJ._sentryDebugIds;
-
-  if (!debugIdMap) {
-    return;
-  }
-
-  let debugIdStackFramesCache: Map<string, StackFrame[]>;
-  const cachedDebugIdStackFrameCache = debugIdStackParserCache.get(stackParser);
-  if (cachedDebugIdStackFrameCache) {
-    debugIdStackFramesCache = cachedDebugIdStackFrameCache;
-  } else {
-    debugIdStackFramesCache = new Map<string, StackFrame[]>();
-    debugIdStackParserCache.set(stackParser, debugIdStackFramesCache);
-  }
-
   // Build a map of filename -> debug_id
-  const filenameDebugIdMap = Object.entries(debugIdMap).reduce<Record<string, string>>(
-    (acc, [debugIdStackTrace, debugIdValue]) => {
-      let parsedStack: StackFrame[];
-      const cachedParsedStack = debugIdStackFramesCache.get(debugIdStackTrace);
-      if (cachedParsedStack) {
-        parsedStack = cachedParsedStack;
-      } else {
-        parsedStack = stackParser(debugIdStackTrace);
-        debugIdStackFramesCache.set(debugIdStackTrace, parsedStack);
-      }
+  const filenameDebugIdMap = getFilenameToDebugIdMap(stackParser);
 
-      for (let i = parsedStack.length - 1; i >= 0; i--) {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        const stackFrame = parsedStack[i]!;
-        if (stackFrame.filename) {
-          acc[stackFrame.filename] = debugIdValue;
-          break;
-        }
+  event.exception?.values?.forEach(exception => {
+    exception.stacktrace?.frames?.forEach(frame => {
+      if (frame.filename) {
+        frame.debug_id = filenameDebugIdMap[frame.filename];
       }
-      return acc;
-    },
-    {},
-  );
-
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    event!.exception!.values!.forEach(exception => {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      exception.stacktrace!.frames!.forEach(frame => {
-        if (frame.filename) {
-          frame.debug_id = filenameDebugIdMap[frame.filename];
-        }
-      });
     });
-  } catch (e) {
-    // To save bundle size we're just try catching here instead of checking for the existence of all the different objects.
-  }
+  });
 }
 
 /**
@@ -228,24 +181,18 @@ export function applyDebugIds(event: Event, stackParser: StackParser): void {
 export function applyDebugMeta(event: Event): void {
   // Extract debug IDs and filenames from the stack frames on the event.
   const filenameDebugIdMap: Record<string, string> = {};
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    event.exception!.values!.forEach(exception => {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      exception.stacktrace!.frames!.forEach(frame => {
-        if (frame.debug_id) {
-          if (frame.abs_path) {
-            filenameDebugIdMap[frame.abs_path] = frame.debug_id;
-          } else if (frame.filename) {
-            filenameDebugIdMap[frame.filename] = frame.debug_id;
-          }
-          delete frame.debug_id;
+  event.exception?.values?.forEach(exception => {
+    exception.stacktrace?.frames?.forEach(frame => {
+      if (frame.debug_id) {
+        if (frame.abs_path) {
+          filenameDebugIdMap[frame.abs_path] = frame.debug_id;
+        } else if (frame.filename) {
+          filenameDebugIdMap[frame.filename] = frame.debug_id;
         }
-      });
+        delete frame.debug_id;
+      }
     });
-  } catch (e) {
-    // To save bundle size we're just try catching here instead of checking for the existence of all the different objects.
-  }
+  });
 
   if (Object.keys(filenameDebugIdMap).length === 0) {
     return;
@@ -318,7 +265,7 @@ function normalizeEvent(event: Event | null, depth: number, maxBreadth: number):
   // For now the decision is to skip normalization of Transactions and Spans,
   // so this block overwrites the normalized event to add back the original
   // Transaction information prior to normalization.
-  if (event.contexts && event.contexts.trace && normalized.contexts) {
+  if (event.contexts?.trace && normalized.contexts) {
     normalized.contexts.trace = event.contexts.trace;
 
     // event.contexts.trace.data may contain circular/dangerous data so we need to normalize it
@@ -339,13 +286,18 @@ function normalizeEvent(event: Event | null, depth: number, maxBreadth: number):
     });
   }
 
+  // event.contexts.flags (FeatureFlagContext) stores context for our feature
+  // flag integrations. It has a greater nesting depth than our other typed
+  // Contexts, so we re-normalize with a fixed depth of 3 here. We do not want
+  // to skip this in case of conflicting, user-provided context.
+  if (event.contexts?.flags && normalized.contexts) {
+    normalized.contexts.flags = normalize(event.contexts.flags, 3, maxBreadth);
+  }
+
   return normalized;
 }
 
-function getFinalScope(
-  scope: ScopeInterface | undefined,
-  captureContext: CaptureContext | undefined,
-): ScopeInterface | undefined {
+function getFinalScope(scope: Scope | undefined, captureContext: CaptureContext | undefined): Scope | undefined {
   if (!captureContext) {
     return scope;
   }
@@ -380,9 +332,7 @@ export function parseEventHintOrCaptureContext(
   return hint;
 }
 
-function hintIsScopeOrFunction(
-  hint: CaptureContext | EventHint,
-): hint is ScopeInterface | ((scope: ScopeInterface) => ScopeInterface) {
+function hintIsScopeOrFunction(hint: CaptureContext | EventHint): hint is Scope | ((scope: Scope) => Scope) {
   return hint instanceof Scope || typeof hint === 'function';
 }
 
@@ -394,7 +344,6 @@ const captureContextKeys: readonly ScopeContextProperty[] = [
   'contexts',
   'tags',
   'fingerprint',
-  'requestSession',
   'propagationContext',
 ] as const;
 

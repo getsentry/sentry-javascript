@@ -1,13 +1,26 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { defineIntegration } from '@sentry/core';
-import type { IntegrationFn } from '@sentry/types';
+import type { IntegrationFn } from '@sentry/core';
+import { defineIntegration, logger } from '@sentry/core';
+import { DEBUG_BUILD } from '../debug-build';
+import { isCjs } from '../utils/commonjs';
 
 let moduleCache: { [key: string]: string };
 
 const INTEGRATION_NAME = 'Modules';
 
 const _modulesIntegration = (() => {
+  // This integration only works in CJS contexts
+  if (!isCjs()) {
+    DEBUG_BUILD &&
+      logger.warn(
+        'modulesIntegration only works in CommonJS (CJS) environments. Remove this integration if you are using ESM.',
+      );
+    return {
+      name: INTEGRATION_NAME,
+    };
+  }
+
   return {
     name: INTEGRATION_NAME,
     processEvent(event) {
@@ -23,6 +36,8 @@ const _modulesIntegration = (() => {
 
 /**
  * Add node modules / packages to the event.
+ *
+ * Only works in CommonJS (CJS) environments.
  */
 export const modulesIntegration = defineIntegration(_modulesIntegration);
 
@@ -39,7 +54,7 @@ function getPaths(): string[] {
 function collectModules(): {
   [name: string]: string;
 } {
-  const mainPaths = (require.main && require.main.paths) || [];
+  const mainPaths = require.main?.paths || [];
   const paths = getPaths();
   const infos: {
     [name: string]: string;

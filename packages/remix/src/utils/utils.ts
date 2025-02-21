@@ -1,6 +1,6 @@
-import type { DataFunctionArgs } from '@remix-run/node';
-import type { Span, TransactionSource } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import type { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node';
+import { logger } from '@sentry/core';
+import type { Span, TransactionSource } from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
 import { getRequestMatch, matchServerRoutes } from './vendor/response';
 import type { ServerRoute, ServerRouteManifest } from './vendor/types';
@@ -8,7 +8,7 @@ import type { ServerRoute, ServerRouteManifest } from './vendor/types';
 /**
  *
  */
-export async function storeFormDataKeys(args: DataFunctionArgs, span: Span): Promise<void> {
+export async function storeFormDataKeys(args: LoaderFunctionArgs | ActionFunctionArgs, span: Span): Promise<void> {
   try {
     // We clone the request for Remix be able to read the FormData later.
     const clonedRequest = args.request.clone();

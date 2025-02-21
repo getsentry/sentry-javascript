@@ -5,8 +5,10 @@ import type {
   DynamicSamplingContext,
   SdkMetadata,
   SerializedCheckIn,
-} from '@sentry/types';
-import { createEnvelope, dropUndefinedKeys, dsnToString } from '@sentry/utils';
+} from './types-hoist';
+import { dsnToString } from './utils-hoist/dsn';
+import { createEnvelope } from './utils-hoist/envelope';
+import { dropUndefinedKeys } from './utils-hoist/object';
 
 /**
  * Create envelope from check in item.
@@ -22,7 +24,7 @@ export function createCheckInEnvelope(
     sent_at: new Date().toISOString(),
   };
 
-  if (metadata && metadata.sdk) {
+  if (metadata?.sdk) {
     headers.sdk = {
       name: metadata.sdk.name,
       version: metadata.sdk.version,

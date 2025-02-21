@@ -1,0 +1,29 @@
+{
+  "name": "nuxt-3-dynamic-import",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build && bash ./copyIITM.bash",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "start": "node .output/server/index.mjs",
+    "clean": "npx nuxi cleanup",
+    "test": "playwright test",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm test"
+  },
+  "dependencies": {
+    "@sentry/nuxt": "latest || *",
+    "nuxt": "^3.14.0"
+  },
+  "devDependencies": {
+    "@nuxt/test-utils": "^3.14.1",
+    "@playwright/test": "~1.50.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils"
+  },
+  "overrides": {
+    "nitropack": "~2.9.7",
+    "ofetch": "^1.4.0"
+  }
+}

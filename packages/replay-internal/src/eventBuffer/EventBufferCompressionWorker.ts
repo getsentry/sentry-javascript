@@ -1,4 +1,4 @@
-import type { ReplayRecordingData } from '@sentry/types';
+import type { ReplayRecordingData } from '@sentry/core';
 
 import { REPLAY_MAX_EVENT_BUFFER_SIZE } from '../constants';
 import { DEBUG_BUILD } from '../debug-build';
@@ -16,6 +16,9 @@ export class EventBufferCompressionWorker implements EventBuffer {
   /** @inheritdoc */
   public hasCheckout: boolean;
 
+  /** @inheritdoc */
+  public waitForCheckout: boolean;
+
   private _worker: WorkerHandler;
   private _earliestTimestamp: number | null;
   private _totalSize;
@@ -25,6 +28,7 @@ export class EventBufferCompressionWorker implements EventBuffer {
     this._earliestTimestamp = null;
     this._totalSize = 0;
     this.hasCheckout = false;
+    this.waitForCheckout = false;
   }
 
   /** @inheritdoc */
@@ -39,7 +43,7 @@ export class EventBufferCompressionWorker implements EventBuffer {
 
   /**
    * Ensure the worker is ready (or not).
-   * This will either resolve when the worker is ready, or reject if an error occured.
+   * This will either resolve when the worker is ready, or reject if an error occurred.
    */
   public ensureReady(): Promise<void> {
     return this._worker.ensureReady();
@@ -55,7 +59,7 @@ export class EventBufferCompressionWorker implements EventBuffer {
   /**
    * Add an event to the event buffer.
    *
-   * Returns true if event was successfuly received and processed by worker.
+   * Returns true if event was successfully received and processed by worker.
    */
   public addEvent(event: RecordingEvent): Promise<AddEventResult> {
     const timestamp = timestampToMs(event.timestamp);

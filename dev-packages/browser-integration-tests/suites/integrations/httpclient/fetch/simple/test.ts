@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/types';
+import type { Event } from '@sentry/core';
 
 import { sentryTest } from '../../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest } from '../../../../../utils/helpers';
@@ -8,8 +8,8 @@ import { getFirstSentryEnvelopeRequest } from '../../../../../utils/helpers';
 // https://github.com/microsoft/playwright/issues/10376
 sentryTest(
   'should assign request and response context from a failed 500 fetch request',
-  async ({ getLocalTestPath, page }) => {
-    const url = await getLocalTestPath({ testDir: __dirname });
+  async ({ getLocalTestUrl, page }) => {
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     await page.route('**/foo', route => {
       return route.fulfill({
@@ -41,6 +41,15 @@ sentryTest(
             mechanism: {
               type: 'http.client',
               handled: false,
+            },
+            stacktrace: {
+              frames: expect.arrayContaining([
+                expect.objectContaining({
+                  filename: 'http://sentry-test.io/subject.bundle.js',
+                  function: '?',
+                  in_app: true,
+                }),
+              ]),
             },
           },
         ],

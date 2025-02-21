@@ -1,4 +1,4 @@
-import type { GLOBAL_OBJ } from '@sentry/utils';
+import type { GLOBAL_OBJ } from '@sentry/core';
 import type { SentryWebpackPluginOptions } from '@sentry/webpack-plugin';
 
 // The first argument to `withSentryConfig` (which is the user's next config).
@@ -47,6 +47,8 @@ export type NextConfigObject = {
     clientTraceMetadata?: string[];
   };
   productionBrowserSourceMaps?: boolean;
+  // https://nextjs.org/docs/pages/api-reference/next-config-js/env
+  env?: Record<string, string>;
 };
 
 export type SentryBuildOptions = {
@@ -120,7 +122,7 @@ export type SentryBuildOptions = {
    */
   sourcemaps?: {
     /**
-     * Disable any functionality related to source maps upload.
+     * Disable any functionality related to source maps.
      */
     disable?: boolean;
 
@@ -361,6 +363,11 @@ export type SentryBuildOptions = {
      * Whether the component name annotate plugin should be enabled or not.
      */
     enabled?: boolean;
+
+    /**
+     * A list of strings representing the names of components to ignore. The plugin will not apply `data-sentry` annotations on the DOM element for these components.
+     */
+    ignoredComponents?: string[];
   };
 
   /**
@@ -370,12 +377,6 @@ export type SentryBuildOptions = {
    * Please note that this option is unstable and may change in a breaking way in any release.
    */
   unstable_sentryWebpackPluginOptions?: SentryWebpackPluginOptions;
-
-  /**
-   * Use `hidden-source-map` for webpack `devtool` option, which strips the `sourceMappingURL` from the bottom of built
-   * JS files.
-   */
-  hideSourceMaps?: boolean;
 
   /**
    * Include Next.js-internal code and code from dependencies when uploading source maps.
@@ -468,7 +469,7 @@ export type IgnoreWarningsOption = (
 // The two possible formats for providing custom webpack config in `next.config.js`
 export type WebpackConfigFunction = (config: WebpackConfigObject, options: BuildContext) => WebpackConfigObject;
 export type WebpackConfigObject = {
-  devtool?: string;
+  devtool?: string | boolean;
   plugins?: Array<WebpackPluginInstance>;
   entry: WebpackEntryProperty;
   output: { filename: string; path: string };
@@ -548,7 +549,7 @@ export type ModuleRuleUseProperty = {
  * Global with values we add when we inject code into people's pages, for use at runtime.
  */
 export type EnhancedGlobal = typeof GLOBAL_OBJ & {
-  __rewriteFramesDistDir__?: string;
+  _sentryRewriteFramesDistDir?: string;
   SENTRY_RELEASE?: { id: string };
   SENTRY_RELEASES?: { [key: string]: { id: string } };
 };

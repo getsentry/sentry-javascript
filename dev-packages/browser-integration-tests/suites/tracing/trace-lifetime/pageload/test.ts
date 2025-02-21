@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/types';
+import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import type { EventAndTraceHeader } from '../../../../utils/helpers';
 import { shouldSkipFeedbackTest } from '../../../../utils/helpers';
@@ -49,6 +49,7 @@ sentryTest(
       sample_rate: '1',
       sampled: 'true',
       trace_id: pageloadTraceContext?.trace_id,
+      sample_rand: expect.any(String),
     });
 
     expect(navigationTraceContext).toMatchObject({
@@ -64,6 +65,7 @@ sentryTest(
       sample_rate: '1',
       sampled: 'true',
       trace_id: navigationTraceContext?.trace_id,
+      sample_rand: expect.any(String),
     });
 
     expect(pageloadTraceContext?.span_id).not.toEqual(navigationTraceContext?.span_id);
@@ -98,6 +100,7 @@ sentryTest('error after pageload has pageload traceId', async ({ getLocalTestUrl
     sample_rate: '1',
     sampled: 'true',
     trace_id: pageloadTraceContext?.trace_id,
+    sample_rand: expect.any(String),
   });
 
   const errorEventPromise = getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
@@ -122,6 +125,7 @@ sentryTest('error after pageload has pageload traceId', async ({ getLocalTestUrl
     sample_rate: '1',
     sampled: 'true',
     trace_id: pageloadTraceContext?.trace_id,
+    sample_rand: expect.any(String),
   });
 });
 
@@ -163,6 +167,7 @@ sentryTest('error during pageload has pageload traceId', async ({ getLocalTestUr
     sample_rate: '1',
     sampled: 'true',
     trace_id: pageloadTraceContext?.trace_id,
+    sample_rand: expect.any(String),
   });
 
   const errorTraceContext = errorEvent?.contexts?.trace;
@@ -179,6 +184,7 @@ sentryTest('error during pageload has pageload traceId', async ({ getLocalTestUr
     sample_rate: '1',
     sampled: 'true',
     trace_id: pageloadTraceContext?.trace_id,
+    sample_rand: expect.any(String),
   });
 });
 
@@ -191,7 +197,7 @@ sentryTest(
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 
-    await page.route('http://example.com/**', route => {
+    await page.route('http://sentry-test-site.example/**', route => {
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -204,7 +210,7 @@ sentryTest(
       undefined,
       eventAndTraceHeaderRequestParser,
     );
-    const requestPromise = page.waitForRequest('http://example.com/*');
+    const requestPromise = page.waitForRequest('http://sentry-test-site.example/*');
     await page.goto(url);
     await page.locator('#fetchBtn').click();
     const [[pageloadEvent, pageloadTraceHeader], request] = await Promise.all([pageloadEventPromise, requestPromise]);
@@ -226,14 +232,15 @@ sentryTest(
       sample_rate: '1',
       sampled: 'true',
       trace_id: pageloadTraceId,
+      sample_rand: expect.any(String),
     });
 
     const headers = request.headers();
 
     // sampling decision is propagated from active span sampling decision
     expect(headers['sentry-trace']).toMatch(new RegExp(`^${pageloadTraceId}-[0-9a-f]{16}-1$`));
-    expect(headers['baggage']).toEqual(
-      `sentry-environment=production,sentry-public_key=public,sentry-trace_id=${pageloadTraceId},sentry-sample_rate=1,sentry-sampled=true`,
+    expect(headers['baggage']).toBe(
+      `sentry-environment=production,sentry-public_key=public,sentry-trace_id=${pageloadTraceId},sentry-sampled=true,sentry-sample_rand=${pageloadTraceHeader?.sample_rand},sentry-sample_rate=1`,
     );
   },
 );
@@ -247,7 +254,7 @@ sentryTest(
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 
-    await page.route('http://example.com/**', route => {
+    await page.route('http://sentry-test-site.example/**', route => {
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -260,7 +267,7 @@ sentryTest(
       undefined,
       eventAndTraceHeaderRequestParser,
     );
-    const requestPromise = page.waitForRequest('http://example.com/*');
+    const requestPromise = page.waitForRequest('http://sentry-test-site.example/*');
     await page.goto(url);
     await page.locator('#xhrBtn').click();
     const [[pageloadEvent, pageloadTraceHeader], request] = await Promise.all([pageloadEventPromise, requestPromise]);
@@ -282,14 +289,15 @@ sentryTest(
       sample_rate: '1',
       sampled: 'true',
       trace_id: pageloadTraceId,
+      sample_rand: expect.any(String),
     });
 
     const headers = request.headers();
 
     // sampling decision is propagated from active span sampling decision
     expect(headers['sentry-trace']).toMatch(new RegExp(`^${pageloadTraceId}-[0-9a-f]{16}-1$`));
-    expect(headers['baggage']).toEqual(
-      `sentry-environment=production,sentry-public_key=public,sentry-trace_id=${pageloadTraceId},sentry-sample_rate=1,sentry-sampled=true`,
+    expect(headers['baggage']).toBe(
+      `sentry-environment=production,sentry-public_key=public,sentry-trace_id=${pageloadTraceId},sentry-sampled=true,sentry-sample_rand=${pageloadTraceHeader?.sample_rand},sentry-sample_rate=1`,
     );
   },
 );
@@ -303,7 +311,7 @@ sentryTest(
 
 //     const url = await getLocalTestUrl({ testDir: __dirname });
 
-//     await page.route('http://example.com/**', route => {
+//     await page.route('http://sentry-test-site.example/**', route => {
 //       return route.fulfill({
 //         status: 200,
 //         contentType: 'application/json',
@@ -338,7 +346,7 @@ sentryTest(
 //       trace_id: pageloadTraceId,
 //     });
 
-//     const requestPromise = page.waitForRequest('http://example.com/*');
+//     const requestPromise = page.waitForRequest('http://sentry-test-site.example/*');
 //     await page.locator('#xhrBtn').click();
 //     const request = await requestPromise;
 
@@ -361,7 +369,7 @@ sentryTest(
 
 //     const url = await getLocalTestUrl({ testDir: __dirname });
 
-//     await page.route('http://example.com/**', route => {
+//     await page.route('http://sentry-test-site.example/**', route => {
 //       return route.fulfill({
 //         status: 200,
 //         contentType: 'application/json',
@@ -398,7 +406,7 @@ sentryTest(
 //       trace_id: pageloadTraceId,
 //     });
 
-//     const requestPromise = page.waitForRequest('http://example.com/**');
+//     const requestPromise = page.waitForRequest('http://sentry-test-site.example/**');
 //     const customTransactionEventPromise = getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
 //       page,
 //       undefined,
@@ -442,7 +450,7 @@ sentryTest('user feedback event after pageload has pageload traceId in headers',
     sentryTest.skip();
   }
 
-  const url = await getLocalTestUrl({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname, handleLazyLoadedFeedback: true });
 
   const pageloadEvent = await getFirstSentryEnvelopeRequest<Event>(page, url);
   const pageloadTraceContext = pageloadEvent.contexts?.trace;

@@ -1,16 +1,15 @@
-import { dropUndefinedKeys, stringMatchesSomePattern } from '@sentry/utils';
+import { serializeFormData } from '@sentry-internal/browser-utils';
+import type { NetworkMetaWarning } from '@sentry-internal/browser-utils';
+import { dropUndefinedKeys, stringMatchesSomePattern } from '@sentry/core';
 
 import { NETWORK_BODY_MAX_SIZE, WINDOW } from '../../constants';
-import { DEBUG_BUILD } from '../../debug-build';
 import type {
   NetworkBody,
-  NetworkMetaWarning,
   NetworkRequestData,
   ReplayNetworkRequestData,
   ReplayNetworkRequestOrResponse,
   ReplayPerformanceEntry,
 } from '../../types';
-import { logger } from '../../util/logger';
 
 /** Get the size of a body. */
 export function getBodySize(body: RequestInit['body']): number | undefined {
@@ -30,7 +29,7 @@ export function getBodySize(body: RequestInit['body']): number | undefined {
     }
 
     if (body instanceof FormData) {
-      const formDataStr = _serializeFormData(body);
+      const formDataStr = serializeFormData(body);
       return textEncoder.encode(formDataStr).length;
     }
 
@@ -58,34 +57,6 @@ export function parseContentLengthHeader(header: string | null | undefined): num
 
   const size = parseInt(header, 10);
   return isNaN(size) ? undefined : size;
-}
-
-/** Get the string representation of a body. */
-export function getBodyString(body: unknown): [string | undefined, NetworkMetaWarning?] {
-  try {
-    if (typeof body === 'string') {
-      return [body];
-    }
-
-    if (body instanceof URLSearchParams) {
-      return [body.toString()];
-    }
-
-    if (body instanceof FormData) {
-      return [_serializeFormData(body)];
-    }
-
-    if (!body) {
-      return [undefined];
-    }
-  } catch (error) {
-    DEBUG_BUILD && logger.exception(error, 'Failed to serialize body', body);
-    return [undefined, 'BODY_PARSE_ERROR'];
-  }
-
-  DEBUG_BUILD && logger.info('Skipping network body because of body type', body);
-
-  return [undefined, 'UNPARSEABLE_BODY_TYPE'];
 }
 
 /** Merge a warning into an existing network request/response. */
@@ -179,7 +150,7 @@ export function buildNetworkRequestOrResponse(
 
   const { body: normalizedBody, warnings } = normalizeNetworkBody(body);
   info.body = normalizedBody;
-  if (warnings && warnings.length > 0) {
+  if (warnings?.length) {
     info._meta = {
       warnings,
     };
@@ -198,13 +169,6 @@ export function getAllowedHeaders(headers: Record<string, string>, allowedHeader
     }
     return filteredHeaders;
   }, {});
-}
-
-function _serializeFormData(formData: FormData): string {
-  // This is a bit simplified, but gives us a decent estimate
-  // This converts e.g. { name: 'Anne Smith', age: 13 } to 'name=Anne+Smith&age=13'
-  // @ts-expect-error passing FormData to URLSearchParams actually works
-  return new URLSearchParams(formData).toString();
 }
 
 function normalizeNetworkBody(body: string | undefined): {

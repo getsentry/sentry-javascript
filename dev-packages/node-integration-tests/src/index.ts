@@ -1,5 +1,5 @@
 import type { AddressInfo } from 'net';
-import type { BaseTransportOptions, Envelope, Transport, TransportMakeRequestResponse } from '@sentry/types';
+import type { BaseTransportOptions, Envelope, Transport, TransportMakeRequestResponse } from '@sentry/core';
 import type { Express } from 'express';
 
 /**
@@ -32,7 +32,10 @@ export function startExpressServerAndSendPortToRunner(
 ): void {
   const server = app.listen(port || 0, () => {
     const address = server.address() as AddressInfo;
-    const actualPort = port || address.port;
+
+    // @ts-expect-error If we write the port to the app we can read it within route handlers in tests
+    const actualPort = app.port = port || address.port;
+
     // eslint-disable-next-line no-console
     console.log(`{"port":${actualPort}}`);
     if (onPort) onPort(actualPort);
@@ -45,4 +48,12 @@ export function startExpressServerAndSendPortToRunner(
 export function sendPortToRunner(port: number): void {
   // eslint-disable-next-line no-console
   console.log(`{"port":${port}}`);
+}
+
+/**
+ * Can be used to get the port of a running app, so requests can be sent to a server from within the server.
+ */
+export function getPortAppIsRunningOn(app: Express): number | undefined {
+  // @ts-expect-error It's not defined in the types but we'd like to read it.
+  return app.port;
 }

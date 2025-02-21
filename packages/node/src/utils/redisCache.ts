@@ -1,5 +1,4 @@
 import type { CommandArgs as IORedisCommandArgs } from '@opentelemetry/instrumentation-ioredis';
-import { flatten } from '@sentry/utils';
 
 const SINGLE_ARG_COMMANDS = ['get', 'set', 'setex'];
 
@@ -94,4 +93,23 @@ export function calculateCacheItemSize(response: unknown): number | undefined {
         return typeof size === 'number' ? (acc !== undefined ? acc + size : size) : acc;
       }, 0)
     : getSize(response);
+}
+
+type NestedArray<T> = Array<NestedArray<T> | T>;
+
+function flatten<T>(input: NestedArray<T>): T[] {
+  const result: T[] = [];
+
+  const flattenHelper = (input: NestedArray<T>): void => {
+    input.forEach((el: T | NestedArray<T>) => {
+      if (Array.isArray(el)) {
+        flattenHelper(el as NestedArray<T>);
+      } else {
+        result.push(el as T);
+      }
+    });
+  };
+
+  flattenHelper(input);
+  return result;
 }

@@ -8,21 +8,19 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "start": "node .output/server/index.mjs",
+    "start:import": "node --import ./.output/server/sentry.server.config.mjs .output/server/index.mjs",
     "clean": "npx nuxi cleanup",
     "test": "playwright test",
-    "test:build": "pnpm install && npx playwright install && pnpm build",
+    "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm test"
   },
   "dependencies": {
     "@sentry/nuxt": "latest || *",
-    "nuxt": "3.13.1"
+    "nuxt": "^3.14.0"
   },
   "devDependencies": {
     "@nuxt/test-utils": "^3.14.1",
-    "@playwright/test": "^1.44.1",
+    "@playwright/test": "~1.50.0",
     "@sentry-internal/test-utils": "link:../../../test-utils"
-  },
-  "overrides": {
-    "@vercel/nft": "0.27.4"
   }
 }

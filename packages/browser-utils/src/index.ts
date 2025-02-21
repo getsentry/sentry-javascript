@@ -17,6 +17,8 @@ export {
   registerInpInteractionListener,
 } from './metrics/browserMetrics';
 
+export { extractNetworkProtocol } from './metrics/utils';
+
 export { addClickKeypressInstrumentationHandler } from './instrument/dom';
 
 export { addHistoryInstrumentationHandler } from './instrument/history';
@@ -24,3 +26,7 @@ export { addHistoryInstrumentationHandler } from './instrument/history';
 export { fetch, setTimeout, clearCachedImplementation, getNativeImplementation } from './getNativeImplementation';
 
 export { addXhrInstrumentationHandler, SENTRY_XHR_DATA_KEY } from './instrument/xhr';
+
+export { getBodyString, getFetchRequestArgBody, serializeFormData } from './networkUtils';
+
+export type { FetchHint, NetworkMetaWarning, XhrHint } from './types';

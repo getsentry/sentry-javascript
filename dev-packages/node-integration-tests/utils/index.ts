@@ -1,6 +1,6 @@
 import type * as http from 'http';
-import type { EnvelopeItemType } from '@sentry/types';
-import { parseSemver } from '@sentry/utils';
+import { parseSemver } from '@sentry/core';
+import type { EnvelopeItemType } from '@sentry/core';
 
 const NODE_VERSION = parseSemver(process.versions.node).major;
 
@@ -41,37 +41,6 @@ export const conditionalTest = (allowedVersion: { min?: number; max?: number }):
   return NODE_VERSION < (allowedVersion.min || -Infinity) || NODE_VERSION > (allowedVersion.max || Infinity)
     ? describe.skip
     : describe;
-};
-
-/**
- * Asserts against a Sentry Event ignoring non-deterministic properties
- *
- * @param {Record<string, unknown>} actual
- * @param {Record<string, unknown>} expected
- */
-export const assertSentryEvent = (actual: Record<string, unknown>, expected: Record<string, unknown>): void => {
-  expect(actual).toMatchObject({
-    event_id: expect.any(String),
-    timestamp: expect.anything(),
-    ...expected,
-  });
-};
-
-/**
- * Asserts against a Sentry Transaction ignoring non-deterministic properties
- *
- * @param {Record<string, unknown>} actual
- * @param {Record<string, unknown>} expected
- */
-export const assertSentryTransaction = (actual: Record<string, unknown>, expected: Record<string, unknown>): void => {
-  expect(actual).toMatchObject({
-    event_id: expect.any(String),
-    timestamp: expect.anything(),
-    start_timestamp: expect.anything(),
-    spans: expect.any(Array),
-    type: 'transaction',
-    ...expected,
-  });
 };
 
 /**

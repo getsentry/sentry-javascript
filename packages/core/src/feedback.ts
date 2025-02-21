@@ -1,6 +1,6 @@
-import type { EventHint, FeedbackEvent, SendFeedbackParams } from '@sentry/types';
-import { dropUndefinedKeys } from '@sentry/utils';
 import { getClient, getCurrentScope } from './currentScopes';
+import type { EventHint, FeedbackEvent, SendFeedbackParams } from './types-hoist';
+import { dropUndefinedKeys } from './utils-hoist/object';
 
 /**
  * Send user feedback to Sentry.
@@ -28,7 +28,7 @@ export function captureFeedback(
     tags,
   };
 
-  const client = (scope && scope.getClient()) || getClient();
+  const client = scope?.getClient() || getClient();
 
   if (client) {
     client.emit('beforeSendFeedback', feedbackEvent, hint);

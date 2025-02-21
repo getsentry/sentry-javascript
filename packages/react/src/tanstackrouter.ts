@@ -1,18 +1,21 @@
-import { WINDOW, startBrowserTracingNavigationSpan, startBrowserTracingPageLoadSpan } from '@sentry/browser';
+import {
+  WINDOW,
+  browserTracingIntegration as originalBrowserTracingIntegration,
+  startBrowserTracingNavigationSpan,
+  startBrowserTracingPageLoadSpan,
+} from '@sentry/browser';
+import type { Integration } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
-
-import { browserTracingIntegration as originalBrowserTracingIntegration } from '@sentry/browser';
-import type { Integration } from '@sentry/types';
 import type { VendoredTanstackRouter, VendoredTanstackRouterRouteMatch } from './vendor/tanstackrouter-types';
 
 /**
  * A custom browser tracing integration for TanStack Router.
  *
- * The minimum compatible version of `@tanstack/router` is `1.34.5`.
+ * The minimum compatible version of `@tanstack/react-router` is `1.64.0`.
  *
  * @param router A TanStack Router `Router` instance that should be used for routing instrumentation.
  * @param options Sentry browser tracing configuration.
@@ -41,7 +44,7 @@ export function tanstackRouterBrowserTracingIntegration(
       if (instrumentPageLoad && initialWindowLocation) {
         const matchedRoutes = castRouterInstance.matchRoutes(
           initialWindowLocation.pathname,
-          initialWindowLocation.search,
+          castRouterInstance.options.parseSearch(initialWindowLocation.search),
           { preload: false, throwOnError: false },
         );
 
@@ -62,7 +65,7 @@ export function tanstackRouterBrowserTracingIntegration(
         // The onBeforeNavigate hook is called at the very beginning of a navigation and is only called once per navigation, even when the user is redirected
         castRouterInstance.subscribe('onBeforeNavigate', onBeforeNavigateArgs => {
           // onBeforeNavigate is called during pageloads. We can avoid creating navigation spans by comparing the states of the to and from arguments.
-          if (onBeforeNavigateArgs.toLocation.state === onBeforeNavigateArgs.fromLocation.state) {
+          if (onBeforeNavigateArgs.toLocation.state === onBeforeNavigateArgs.fromLocation?.state) {
             return;
           }
 

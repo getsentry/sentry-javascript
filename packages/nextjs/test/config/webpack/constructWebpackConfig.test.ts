@@ -1,6 +1,7 @@
 // mock helper functions not tested directly in this file
 import '../mocks';
 
+import * as getWebpackPluginOptionsModule from '../../../src/config/webpackPluginOptions';
 import {
   CLIENT_SDK_CONFIG_FILE,
   clientBuildContext,
@@ -27,6 +28,48 @@ describe('constructWebpackConfigFunction()', () => {
         plugins: expect.arrayContaining([expect.objectContaining({ _name: 'sentry-webpack-plugin' })]),
       }),
     );
+  });
+
+  it('preserves existing devtool setting', async () => {
+    const customDevtool = 'eval-source-map';
+    const finalWebpackConfig = await materializeFinalWebpackConfig({
+      exportedNextConfig,
+      incomingWebpackConfig: {
+        ...serverWebpackConfig,
+        devtool: customDevtool,
+      },
+      incomingWebpackBuildContext: serverBuildContext,
+      sentryBuildTimeOptions: {},
+    });
+
+    expect(finalWebpackConfig.devtool).toEqual(customDevtool);
+  });
+
+  it('automatically enables deleteSourcemapsAfterUpload for client builds when not explicitly set', async () => {
+    const getWebpackPluginOptionsSpy = jest.spyOn(getWebpackPluginOptionsModule, 'getWebpackPluginOptions');
+
+    await materializeFinalWebpackConfig({
+      exportedNextConfig,
+      incomingWebpackConfig: clientWebpackConfig,
+      incomingWebpackBuildContext: clientBuildContext,
+      sentryBuildTimeOptions: {
+        sourcemaps: {},
+      },
+    });
+
+    expect(getWebpackPluginOptionsSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        isServer: false,
+      }),
+      expect.objectContaining({
+        sourcemaps: {
+          deleteSourcemapsAfterUpload: true,
+        },
+      }),
+      undefined,
+    );
+
+    getWebpackPluginOptionsSpy.mockRestore();
   });
 
   it('preserves unrelated webpack config options', async () => {
@@ -68,19 +111,19 @@ describe('constructWebpackConfigFunction()', () => {
     expect(finalWebpackConfig?.devtool).not.toEqual('source-map');
   });
 
-  it('allows for the use of `hidden-source-map` as `devtool` value for client-side builds', async () => {
+  it('uses `hidden-source-map` as `devtool` value for client-side builds', async () => {
     const finalClientWebpackConfig = await materializeFinalWebpackConfig({
       exportedNextConfig: exportedNextConfig,
       incomingWebpackConfig: clientWebpackConfig,
       incomingWebpackBuildContext: clientBuildContext,
-      sentryBuildTimeOptions: { hideSourceMaps: true },
+      sentryBuildTimeOptions: {},
     });
 
     const finalServerWebpackConfig = await materializeFinalWebpackConfig({
       exportedNextConfig: exportedNextConfig,
       incomingWebpackConfig: serverWebpackConfig,
       incomingWebpackBuildContext: serverBuildContext,
-      sentryBuildTimeOptions: { hideSourceMaps: true },
+      sentryBuildTimeOptions: {},
     });
 
     expect(finalClientWebpackConfig.devtool).toEqual('hidden-source-map');

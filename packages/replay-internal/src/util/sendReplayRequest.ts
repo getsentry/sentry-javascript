@@ -1,9 +1,5 @@
-import { getClient, getCurrentScope } from '@sentry/core';
-import type { ReplayEvent, TransportMakeRequestResponse } from '@sentry/types';
-import type { RateLimits } from '@sentry/utils';
-import { resolvedSyncPromise } from '@sentry/utils';
-import { isRateLimited, updateRateLimits } from '@sentry/utils';
-
+import type { RateLimits, ReplayEvent, TransportMakeRequestResponse } from '@sentry/core';
+import { getClient, getCurrentScope, isRateLimited, resolvedSyncPromise, updateRateLimits } from '@sentry/core';
 import { REPLAY_EVENT_NAME, UNABLE_TO_SEND_REPLAY } from '../constants';
 import { DEBUG_BUILD } from '../debug-build';
 import type { SendReplayData } from '../types';
@@ -34,8 +30,8 @@ export async function sendReplayRequest({
 
   const client = getClient();
   const scope = getCurrentScope();
-  const transport = client && client.getTransport();
-  const dsn = client && client.getDsn();
+  const transport = client?.getTransport();
+  const dsn = client?.getDsn();
 
   if (!client || !transport || !dsn || !session.sampled) {
     return resolvedSyncPromise({});
@@ -57,7 +53,7 @@ export async function sendReplayRequest({
 
   if (!replayEvent) {
     // Taken from baseclient's `_processEvent` method, where this is handled for errors/transactions
-    client.recordDroppedEvent('event_processor', 'replay', baseEvent);
+    client.recordDroppedEvent('event_processor', 'replay');
     DEBUG_BUILD && logger.info('An event processor returned `null`, will not send event.');
     return resolvedSyncPromise({});
   }

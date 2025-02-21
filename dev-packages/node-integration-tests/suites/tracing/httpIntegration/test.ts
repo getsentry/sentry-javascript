@@ -1,4 +1,5 @@
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
+import { createTestServer } from '../../../utils/server';
 
 describe('httpIntegration', () => {
   afterAll(() => {
@@ -18,8 +19,8 @@ describe('httpIntegration', () => {
         transaction: {
           contexts: {
             trace: {
-              span_id: expect.any(String),
-              trace_id: expect.any(String),
+              span_id: expect.stringMatching(/[a-f0-9]{16}/),
+              trace_id: expect.stringMatching(/[a-f0-9]{32}/),
               data: {
                 url: expect.stringMatching(/\/test$/),
                 'http.response.status_code': 200,
@@ -59,8 +60,8 @@ describe('httpIntegration', () => {
         transaction: {
           contexts: {
             trace: {
-              span_id: expect.any(String),
-              trace_id: expect.any(String),
+              span_id: expect.stringMatching(/[a-f0-9]{16}/),
+              trace_id: expect.stringMatching(/[a-f0-9]{32}/),
               data: {
                 url: expect.stringMatching(/\/test$/),
                 'http.response.status_code': 200,
@@ -83,8 +84,8 @@ describe('httpIntegration', () => {
           transaction: {
             contexts: {
               trace: {
-                span_id: expect.any(String),
-                trace_id: expect.any(String),
+                span_id: expect.stringMatching(/[a-f0-9]{16}/),
+                trace_id: expect.stringMatching(/[a-f0-9]{32}/),
                 data: {
                   url: expect.stringMatching(/\/test$/),
                   'http.response.status_code': 200,
@@ -108,8 +109,8 @@ describe('httpIntegration', () => {
           transaction: {
             contexts: {
               trace: {
-                span_id: expect.any(String),
-                trace_id: expect.any(String),
+                span_id: expect.stringMatching(/[a-f0-9]{16}/),
+                trace_id: expect.stringMatching(/[a-f0-9]{32}/),
                 data: {
                   url: expect.stringMatching(/\/test$/),
                   'http.response.status_code': 200,
@@ -130,43 +131,55 @@ describe('httpIntegration', () => {
 
   describe("doesn't create child spans or breadcrumbs for outgoing requests ignored via `ignoreOutgoingRequests`", () => {
     test('via the url param', done => {
-      const runner = createRunner(__dirname, 'server-ignoreOutgoingRequests.js')
-        .expect({
-          transaction: event => {
-            expect(event.transaction).toBe('GET /testUrl');
+      createTestServer(done)
+        .get('/blockUrl', () => {}, 200)
+        .get('/pass', () => {}, 200)
+        .start()
+        .then(([SERVER_URL, closeTestServer]) => {
+          createRunner(__dirname, 'server-ignoreOutgoingRequests.js')
+            .withEnv({ SERVER_URL })
+            .expect({
+              transaction: event => {
+                expect(event.transaction).toBe('GET /testUrl');
 
-            const requestSpans = event.spans?.filter(span => span.op === 'http.client');
-            expect(requestSpans).toHaveLength(1);
-            expect(requestSpans![0]?.description).toBe('GET http://example.com/pass');
+                const requestSpans = event.spans?.filter(span => span.op === 'http.client');
+                expect(requestSpans).toHaveLength(1);
+                expect(requestSpans![0]?.description).toBe(`GET ${SERVER_URL}/pass`);
 
-            const breadcrumbs = event.breadcrumbs?.filter(b => b.category === 'http');
-            expect(breadcrumbs).toHaveLength(1);
-            expect(breadcrumbs![0]?.data?.url).toEqual('http://example.com/pass');
-          },
-        })
-        .start(done);
-
-      runner.makeRequest('get', '/testUrl');
+                const breadcrumbs = event.breadcrumbs?.filter(b => b.category === 'http');
+                expect(breadcrumbs).toHaveLength(1);
+                expect(breadcrumbs![0]?.data?.url).toEqual(`${SERVER_URL}/pass`);
+              },
+            })
+            .start(closeTestServer)
+            .makeRequest('get', '/testUrl');
+        });
     });
 
     test('via the request param', done => {
-      const runner = createRunner(__dirname, 'server-ignoreOutgoingRequests.js')
-        .expect({
-          transaction: event => {
-            expect(event.transaction).toBe('GET /testRequest');
+      createTestServer(done)
+        .get('/blockUrl', () => {}, 200)
+        .get('/pass', () => {}, 200)
+        .start()
+        .then(([SERVER_URL, closeTestServer]) => {
+          createRunner(__dirname, 'server-ignoreOutgoingRequests.js')
+            .withEnv({ SERVER_URL })
+            .expect({
+              transaction: event => {
+                expect(event.transaction).toBe('GET /testRequest');
 
-            const requestSpans = event.spans?.filter(span => span.op === 'http.client');
-            expect(requestSpans).toHaveLength(1);
-            expect(requestSpans![0]?.description).toBe('GET http://example.com/pass');
+                const requestSpans = event.spans?.filter(span => span.op === 'http.client');
+                expect(requestSpans).toHaveLength(1);
+                expect(requestSpans![0]?.description).toBe(`GET ${SERVER_URL}/pass`);
 
-            const breadcrumbs = event.breadcrumbs?.filter(b => b.category === 'http');
-            expect(breadcrumbs).toHaveLength(1);
-            expect(breadcrumbs![0]?.data?.url).toEqual('http://example.com/pass');
-          },
-        })
-        .start(done);
-
-      runner.makeRequest('get', '/testRequest');
+                const breadcrumbs = event.breadcrumbs?.filter(b => b.category === 'http');
+                expect(breadcrumbs).toHaveLength(1);
+                expect(breadcrumbs![0]?.data?.url).toEqual(`${SERVER_URL}/pass`);
+              },
+            })
+            .start(closeTestServer)
+            .makeRequest('get', '/testRequest');
+        });
     });
   });
 });
