@@ -94,7 +94,6 @@ function drawRect(rect: Rect, ctx: CanvasRenderingContext2D, scale: number = 1):
           computedStyle.getPropertyValue('--accent-background');
       }
       ctx.strokeStyle = strokeColor || 'white';
-      ctx.lineWidth = 2;
       ctx.strokeRect(scaledX + 1, scaledY + 1, scaledWidth - 2, scaledHeight - 2);
 
       break;
@@ -249,6 +248,7 @@ export function ScreenshotEditorFactory({
         ctx.fillRect(0, 0, graywashCanvas.width, graywashCanvas.height);
       }
 
+      ctx.lineWidth = 2;
       const scale = graywashCanvas.clientWidth / imageBuffer.width;
       drawCommands.forEach(rect => {
         drawRect(rect, ctx, scale);
