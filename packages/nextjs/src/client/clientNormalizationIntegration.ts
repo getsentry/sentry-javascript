@@ -1,4 +1,4 @@
-import { WINDOW, rewriteFramesIntegration } from '@sentry/browser';
+import { rewriteFramesIntegration } from '@sentry/browser';
 import { defineIntegration } from '@sentry/core';
 
 export const nextjsClientStackFrameNormalizationIntegration = defineIntegration(
@@ -18,7 +18,8 @@ export const nextjsClientStackFrameNormalizationIntegration = defineIntegration(
       iteratee: frame => {
         if (experimentalThirdPartyOriginStackFrames) {
           // Unguarded access to window causes hideous ci errors
-          const windowOrigin = typeof WINDOW !== 'undefined' && WINDOW.location ? WINDOW.location.origin : '';
+          // eslint-disable-next-line no-restricted-globals
+          const windowOrigin = typeof window !== 'undefined' && window.location ? window.location.origin : '';
           // A filename starting with the local origin and not ending with JS is most likely JS in HTML which we do not want to rewrite
           if (frame.filename?.startsWith(windowOrigin) && !frame.filename.endsWith('.js')) {
             return frame;
