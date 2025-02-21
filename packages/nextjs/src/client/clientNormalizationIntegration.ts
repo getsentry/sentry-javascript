@@ -1,4 +1,4 @@
-import { rewriteFramesIntegration, WINDOW } from '@sentry/browser';
+import { WINDOW, rewriteFramesIntegration } from '@sentry/browser';
 import { defineIntegration } from '@sentry/core';
 
 export const nextjsClientStackFrameNormalizationIntegration = defineIntegration(
