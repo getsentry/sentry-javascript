@@ -18,7 +18,7 @@ export const nextjsClientStackFrameNormalizationIntegration = defineIntegration(
       iteratee: frame => {
         if (experimentalThirdPartyOriginStackFrames) {
           // Unguarded access to window causes hideous ci errors
-          const windowOrigin = typeof WINDOW !== 'undefined' ? WINDOW.location.origin : '';
+          const windowOrigin = typeof WINDOW !== 'undefined' && WINDOW.location ? WINDOW.location.origin : '';
           // A filename starting with the local origin and not ending with JS is most likely JS in HTML which we do not want to rewrite
           if (frame.filename?.startsWith(windowOrigin) && !frame.filename.endsWith('.js')) {
             return frame;
