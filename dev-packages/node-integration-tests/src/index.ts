@@ -34,7 +34,7 @@ export function startExpressServerAndSendPortToRunner(
     const address = server.address() as AddressInfo;
 
     // @ts-expect-error If we write the port to the app we can read it within route handlers in tests
-    const actualPort = app.port = port || address.port;
+    const actualPort = (app.port = port || address.port);
 
     // eslint-disable-next-line no-console
     console.log(`{"port":${actualPort}}`);

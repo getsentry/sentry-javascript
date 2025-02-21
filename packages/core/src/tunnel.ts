@@ -1,7 +1,9 @@
-import type { Client, Transport } from '@sentry/types';
-import { createEnvelope, dsnFromString, parseEnvelope } from '@sentry/utils';
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
+import type { Client } from './client';
 import { getClient } from './currentScopes';
+import type { Transport } from './types-hoist/transport';
+import { dsnFromString } from './utils-hoist/dsn';
+import { createEnvelope, parseEnvelope } from './utils-hoist/envelope';
 
 interface HandleTunnelOptions {
   /**
@@ -27,7 +29,7 @@ export async function handleTunnelEnvelope(
   envelopeBytes: Uint8Array,
   options: HandleTunnelOptions = {},
 ): Promise<void> {
-  const client = (options && options.client) || getClient();
+  const client = options?.client || getClient();
 
   if (!client) {
     throw new Error('No server client');
@@ -46,7 +48,7 @@ export async function handleTunnelEnvelope(
     return;
   }
 
-  if (!options.dsnAllowList || !options.dsnAllowList.includes(headers.dsn)) {
+  if (!options.dsnAllowList?.includes(headers.dsn)) {
     throw new Error('DSN does not match server DSN or allow list');
   }
 
