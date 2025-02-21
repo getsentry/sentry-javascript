@@ -15,6 +15,7 @@ export function createScreenshotInputStyles(styleNonce?: string): HTMLStyleEleme
   flex-grow: 1;
   flex-direction: column;
 }
+
 .editor__image-container {
   justify-items: center;
   padding: 15px;
@@ -39,13 +40,6 @@ export function createScreenshotInputStyles(styleNonce?: string): HTMLStyleEleme
     );
 }
 
-.editor__annotation {
-  z-index: 1;
-}
-.editor__annotation--active {
-  z-index: 2;
-}
-
 .editor__canvas-container {
   width: 100%;
   height: 100%;
@@ -59,71 +53,22 @@ export function createScreenshotInputStyles(styleNonce?: string): HTMLStyleEleme
   object-fit: contain;
   position: absolute;
 }
+
 .editor__canvas-annotate {
   z-index: 2;
 }
-.editor__crop-container {
-  custor: auto;
-  position: absolute;
-  z-index: 2;
-}
-.editor__crop-container--inactive {
-  z-index: 1;
-}
-.editor__crop-container--move {
-  cursor: move;
-}
 
-.editor__crop-btn-group {
-  padding: 8px;
-  gap: 8px;
-  border-radius: var(--menu-border-radius, 6px);
-  background: var(--button-background, var(--background));
-  width: 175px;
-  position: absolute;
-  display: none;
-}
-.editor__crop-btn-group--active {
-  display: flex;
-}
-
-.editor__crop-corner {
-  width: 30px;
-  height: 30px;
-  position: absolute;
-  background: none;
-  border: 3px solid #ffffff;
-}
-
-.editor__crop-corner--top-left {
-  cursor: nwse-resize;
-  border-right: none;
-  border-bottom: none;
-}
-.editor__crop-corner--top-right {
-  cursor: nesw-resize;
-  border-left: none;
-  border-bottom: none;
-}
-.editor__crop-corner--bottom-left {
-  cursor: nesw-resize;
-  border-right: none;
-  border-top: none;
-}
-.editor__crop-corner--bottom-right {
-  cursor: nwse-resize;
-  border-left: none;
-  border-top: none;
-}
 .editor__tool-container {
   padding-top: 8px;
   display: flex;
   justify-content: center;
 }
+
 .editor__tool-bar {
   display: flex;
   gap: 8px;
 }
+
 .editor__tool {
   display: flex;
   padding: 8px 12px;
@@ -144,9 +89,11 @@ export function createScreenshotInputStyles(styleNonce?: string): HTMLStyleEleme
   position: absolute;
   z-index: 2;
 }
+
 .editor__rect {
   position: absolute;
 }
+
 .editor__rect button {
   opacity: 0;
   position: absolute;
@@ -158,6 +105,7 @@ export function createScreenshotInputStyles(styleNonce?: string): HTMLStyleEleme
   border: none;
   background: none;
 }
+
 .editor__rect:hover button {
   opacity: 1;
 }

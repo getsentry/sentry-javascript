@@ -68,19 +68,36 @@ function drawRect(rect: Rect, ctx: CanvasRenderingContext2D, scale: number = 1):
   const scaledWidth = rect.width * scale;
   const scaledHeight = rect.height * scale;
 
-  // creates a shadow around
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
-  ctx.shadowBlur = 50; // Amount of blur for the shadow
-
   switch (rect.action) {
-    case 'highlight':
+    case 'highlight': {
+      // creates a shadow around
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+      ctx.shadowBlur = 50;
+
       // draws a rectangle first so that the shadow is visible before clearing
       ctx.fillStyle = 'rgb(0, 0, 0)';
       ctx.fillRect(scaledX, scaledY, scaledWidth, scaledHeight);
-
       ctx.clearRect(scaledX, scaledY, scaledWidth, scaledHeight);
 
+      // Disable shadow after the action is drawn
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+
+      // draws outline around rectangle in the same colour as the submit button
+      let strokeColor;
+      const sentryFeedback = DOCUMENT.getElementById('sentry-feedback');
+      if (sentryFeedback) {
+        const computedStyle = getComputedStyle(sentryFeedback);
+        strokeColor =
+          computedStyle.getPropertyValue('--button-primary-background') ||
+          computedStyle.getPropertyValue('--accent-background');
+      }
+      ctx.strokeStyle = strokeColor || 'white';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(scaledX + 1, scaledY + 1, scaledWidth - 2, scaledHeight - 2);
+
       break;
+    }
     case 'hide':
       ctx.fillStyle = 'rgb(0, 0, 0)';
       ctx.fillRect(scaledX, scaledY, scaledWidth, scaledHeight);
@@ -89,22 +106,6 @@ function drawRect(rect: Rect, ctx: CanvasRenderingContext2D, scale: number = 1):
     default:
       break;
   }
-
-  // Disable shadow after the action is drawn
-  ctx.shadowColor = 'transparent';
-  ctx.shadowBlur = 0;
-
-  let strokeColor;
-  const sentryFeedback = DOCUMENT.getElementById('sentry-feedback');
-  if (sentryFeedback) {
-    const computedStyle = getComputedStyle(sentryFeedback);
-    strokeColor =
-      computedStyle.getPropertyValue('--button-primary-background') ||
-      computedStyle.getPropertyValue('--accent-background');
-  }
-  ctx.strokeStyle = strokeColor || 'white';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(scaledX + 1, scaledY + 1, scaledWidth - 2, scaledHeight - 2);
 }
 
 function resizeCanvas(canvas: HTMLCanvasElement, imageDimensions: Rect): void {
