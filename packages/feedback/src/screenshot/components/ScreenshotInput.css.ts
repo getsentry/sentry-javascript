@@ -87,11 +87,11 @@ export function createScreenshotInputStyles(styleNonce?: string): HTMLStyleEleme
 
 .editor__rect-container {
   position: absolute;
-  z-index: 2;
 }
 
 .editor__rect {
   position: absolute;
+  z-index: 2;
 }
 
 .editor__rect button {
