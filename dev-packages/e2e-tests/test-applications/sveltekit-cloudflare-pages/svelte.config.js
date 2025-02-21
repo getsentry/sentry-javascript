@@ -13,9 +13,7 @@ const config = {
     // See https://svelte.dev/docs/kit/adapters for more information about adapters.
     adapter: adapter(),
     prerender: {
-      handleHttpError: err => {
-        console.log(JSON.stringify(err, null, 2));
-      },
+      handleHttpError: 'ignore',
     },
   },
 };
