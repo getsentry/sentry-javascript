@@ -1,13 +1,14 @@
 /* eslint-disable max-lines */
+import type { FeedbackInternalOptions, FeedbackModalIntegration } from '@sentry/core';
 import type { ComponentType, VNode, h as hType } from 'preact';
+// biome-ignore lint/nursery/noUnusedImports: need Preact import for JSX
 import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
 import type * as Hooks from 'preact/hooks';
-import { useTakeScreenshotFactory } from './useTakeScreenshot';
-import type { FeedbackInternalOptions, FeedbackModalIntegration } from '@sentry/core';
 import { DOCUMENT, WINDOW } from '../../constants';
+import IconCloseFactory from './IconClose';
 import { createScreenshotInputStyles } from './ScreenshotInput.css';
 import ToolbarFactory from './Toolbar';
-import IconCloseFactory from './IconClose';
+import { useTakeScreenshotFactory } from './useTakeScreenshot';
 
 interface FactoryParams {
   h: typeof hType;
