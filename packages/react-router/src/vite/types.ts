@@ -89,7 +89,17 @@ type BundleSizeOptimizationOptions = {
   excludeReplayWorker?: boolean;
 };
 
-export type SentryReactRouterPluginOptions = {
+export type SentryReactRouterBuildOptions = {
+  /**
+   * Options for configuring the Sentry release.
+   */
+  release?: {
+    /**
+     * The name of the release to create in Sentry
+     */
+    name?: string;
+  };
+
   /**
    * The auth token to use when uploading source maps to Sentry.
    *

@@ -38,7 +38,8 @@
     "@sentry/core": "9.1.0",
     "@sentry/node": "9.1.0",
     "@sentry/vite-plugin": "^3.2.0",
-    "@sentry/cli": "^2.42.1"
+    "@sentry/cli": "^2.42.1",
+    "glob": "11.0.1"
   },
   "devDependencies": {
     "@react-router/node": "^7.1.5",

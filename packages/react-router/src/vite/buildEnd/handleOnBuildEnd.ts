@@ -1,39 +1,40 @@
 import type { Config } from '@react-router/dev/dist/config';
 import SentryCli from '@sentry/cli';
-import glob from 'glob';
-import * as fs from 'fs';
+import { glob } from 'glob';
+import { rm } from 'node:fs/promises';
+import type { SentryReactRouterBuildOptions } from '../types';
 
-type ExtendedBuildEndArgs = Parameters<NonNullable<Config['buildEnd']>>[0] & {
-  sentryConfig: {
-    authToken?: string;
-    org?: string;
-    project?: string;
-    sourceMapsUploadOptions?: {
-      enabled?: boolean;
-      filesToDeleteAfterUpload?: string | string[] | false;
-    };
-    release?: {
-      name?: string;
-    };
-    debug?: boolean;
-  };
-};
+type BuildEndHook = NonNullable<Config['buildEnd']>;
 
-type ExtendedBuildEndHook = (args: ExtendedBuildEndArgs) => void | Promise<void>;
+function getSentryConfig(viteConfig: unknown): SentryReactRouterBuildOptions {
+  if (!viteConfig || typeof viteConfig !== 'object' || !('sentryConfig' in viteConfig)) {
+    // eslint-disable-next-line no-console
+    console.error('[Sentry] sentryConfig not found - it needs to be passed to vite.config.ts');
+  }
+
+  return (viteConfig as { sentryConfig: SentryReactRouterBuildOptions }).sentryConfig;
+}
 
 /**
  * A build end hook that handles Sentry release creation and source map uploads.
  * It creates a new Sentry release if configured, uploads source maps to Sentry,
  * and optionally deletes the source map files after upload.
  */
-export const sentryOnBuildEnd: ExtendedBuildEndHook = async ({ reactRouterConfig, viteConfig, sentryConfig }) => {
-  const { authToken, org, project, release, sourceMapsUploadOptions, debug } = sentryConfig;
+export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteConfig }) => {
+  const {
+    authToken = 'test-token',
+    org = 'test-org',
+    project = 'test-project',
+    release = { name: 'test-release' },
+    sourceMapsUploadOptions = { enabled: true },
+    debug = false,
+  } = getSentryConfig(viteConfig);
+
   const cliInstance = new SentryCli(null, {
     authToken,
     org,
     project,
   });
-
   // check if release should be created
   if (release?.name) {
     try {
@@ -43,7 +44,6 @@ export const sentryOnBuildEnd: ExtendedBuildEndHook = async ({ reactRouterConfig
       console.error('[Sentry] Could not create release', error);
     }
   }
-
   // upload sourcemaps
   if (sourceMapsUploadOptions?.enabled ?? (true && viteConfig.build.sourcemap !== false)) {
     try {
@@ -59,14 +59,11 @@ export const sentryOnBuildEnd: ExtendedBuildEndHook = async ({ reactRouterConfig
       console.error('[Sentry] Could not upload sourcemaps', error);
     }
   }
-
   // delete sourcemaps after upload
   let updatedFilesToDeleteAfterUpload = sourceMapsUploadOptions?.filesToDeleteAfterUpload;
-
   // set a default value no option was set
   if (typeof sourceMapsUploadOptions?.filesToDeleteAfterUpload === 'undefined') {
     updatedFilesToDeleteAfterUpload = [`${reactRouterConfig.buildDirectory}/**/*.map`];
-
     if (debug) {
       // eslint-disable-next-line no-console
       console.info(
@@ -76,24 +73,21 @@ export const sentryOnBuildEnd: ExtendedBuildEndHook = async ({ reactRouterConfig
       );
     }
   }
-
   if (updatedFilesToDeleteAfterUpload) {
     try {
       const filePathsToDelete = await glob(updatedFilesToDeleteAfterUpload, {
         absolute: true,
         nodir: true,
       });
-
       if (debug) {
         filePathsToDelete.forEach(filePathToDelete => {
           // eslint-disable-next-line no-console
           console.info(`Deleting asset after upload: ${filePathToDelete}`);
         });
       }
-
       await Promise.all(
         filePathsToDelete.map(filePathToDelete =>
-          fs.promises.rm(filePathToDelete, { force: true }).catch((e: unknown) => {
+          rm(filePathToDelete, { force: true }).catch((e: unknown) => {
             if (debug) {
               // This is allowed to fail - we just don't do anything
               // eslint-disable-next-line no-console

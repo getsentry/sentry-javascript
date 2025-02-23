@@ -1,11 +1,11 @@
 import { consoleSandbox } from '@sentry/core';
 import type { Plugin, UserConfig } from 'vite';
-import type { SentryReactRouterPluginOptions } from './types';
+import type { SentryReactRouterBuildOptions } from './types';
 
 /**
  * A Sentry plugin for React Router to enable "hidden" source maps if they are unset.
  */
-export function makeEnableSourceMapsPlugin(options: SentryReactRouterPluginOptions): Plugin {
+export function makeEnableSourceMapsPlugin(options: SentryReactRouterBuildOptions): Plugin {
   return {
     name: 'sentry-react-router-update-source-map-setting',
     apply: 'build',
@@ -39,7 +39,7 @@ export function makeEnableSourceMapsPlugin(options: SentryReactRouterPluginOptio
  */
 export function getUpdatedSourceMapSettings(
   viteConfig: UserConfig,
-  sentryPluginOptions?: SentryReactRouterPluginOptions,
+  sentryPluginOptions?: SentryReactRouterBuildOptions,
 ): boolean | 'inline' | 'hidden' {
   viteConfig.build = viteConfig.build || {};
 

@@ -1,11 +1,11 @@
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 import { type Plugin } from 'vite';
-import type { SentryReactRouterPluginOptions } from './types';
+import type { SentryReactRouterBuildOptions } from './types';
 
 /**
  * Create a custom subset of sentry's vite plugins
  */
-export async function makeCustomSentryVitePlugins(options: SentryReactRouterPluginOptions): Promise<Plugin[]> {
+export async function makeCustomSentryVitePlugins(options: SentryReactRouterBuildOptions): Promise<Plugin[]> {
   const {
     debug,
     sourceMapsUploadOptions,

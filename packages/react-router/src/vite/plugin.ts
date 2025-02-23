@@ -2,7 +2,7 @@ import type { ConfigEnv } from 'vite';
 import { type Plugin } from 'vite';
 import { makeCustomSentryVitePlugins } from './makeCustomSentryVitePlugins';
 import { makeEnableSourceMapsPlugin } from './makeEnableSourceMapsPlugin';
-import type { SentryReactRouterPluginOptions } from './types';
+import type { SentryReactRouterBuildOptions } from './types';
 
 /**
  * A Vite plugin for Sentry that handles source map uploads and bundle size optimizations.
@@ -12,7 +12,7 @@ import type { SentryReactRouterPluginOptions } from './types';
  * @returns An array of Vite plugins
  */
 export async function sentryReactRouter(
-  options: SentryReactRouterPluginOptions = {},
+  options: SentryReactRouterBuildOptions = {},
   config: ConfigEnv,
 ): Promise<Plugin[]> {
   const plugins: Plugin[] = [];
