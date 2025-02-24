@@ -1,4 +1,5 @@
-import { FastifyInstrumentation } from '@opentelemetry/instrumentation-fastify';
+import { FastifyInstrumentation as FastifyInstrumentationV3V4 } from './fastify-v3-v4/instrumentation';
+import { FastifyOtelInstrumentation } from '@fastify/otel';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -34,23 +35,31 @@ interface FastifyRequestRouteInfo {
 }
 
 const INTEGRATION_NAME = 'Fastify';
+const INTEGRATION_NAME_V3_V4 = 'Fastify-V3-V4';
 
 export const instrumentFastify = generateInstrumentOnce(
   INTEGRATION_NAME,
   () =>
-    // eslint-disable-next-line deprecation/deprecation
-    new FastifyInstrumentation({
+    new FastifyOtelInstrumentation(),
+);
+
+export const instrumentFastifyV3V4 = generateInstrumentOnce(
+  INTEGRATION_NAME_V3_V4,
+  () =>
+    new FastifyInstrumentationV3V4({
       requestHook(span) {
         addFastifySpanAttributes(span);
       },
     }),
 );
 
+
 const _fastifyIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
       instrumentFastify();
+      instrumentFastifyV3V4();
     },
   };
 }) satisfies IntegrationFn;
