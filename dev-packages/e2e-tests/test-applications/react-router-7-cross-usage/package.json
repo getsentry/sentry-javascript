@@ -1,5 +1,5 @@
 {
-  "name": "react-router-6-cross-usage",
+  "name": "react-router-7-cross-usage",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
@@ -9,15 +9,13 @@
     "express": "4.20.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "react-router-dom": "^6.28.0",
+    "react-router-dom": "^7.2.0",
     "react-scripts": "5.0.1",
     "typescript": "~5.0.0"
   },
   "scripts": {
     "build": "react-scripts build",
-    "start": "run-p start:client start:server",
-    "start:client": "node server/app.js",
-    "start:server": "serve -s build",
+    "start": "serve -s build",
     "test": "playwright test",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install && npx playwright install && pnpm build",

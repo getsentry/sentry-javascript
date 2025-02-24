@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('sends a pageload transaction with a parameterized URL', async ({ page }) => {
-  const transactionPromise = waitForTransaction('react-router-6-cross-usage', async transactionEvent => {
+  const transactionPromise = waitForTransaction('react-router-7-cross-usage', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
@@ -15,7 +15,7 @@ test('sends a pageload transaction with a parameterized URL', async ({ page }) =
     contexts: {
       trace: {
         op: 'pageload',
-        origin: 'auto.pageload.react.reactrouter_v6',
+        origin: 'auto.pageload.react.reactrouter_v7',
       },
     },
     transaction: '/projects/:projectId/views/:viewId/:detailId',
@@ -26,7 +26,7 @@ test('sends a pageload transaction with a parameterized URL', async ({ page }) =
 });
 
 test('sends a pageload transaction with a parameterized URL - alternative route', async ({ page }) => {
-  const transactionPromise = waitForTransaction('react-router-6-cross-usage', async transactionEvent => {
+  const transactionPromise = waitForTransaction('react-router-7-cross-usage', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
@@ -39,7 +39,7 @@ test('sends a pageload transaction with a parameterized URL - alternative route'
     contexts: {
       trace: {
         op: 'pageload',
-        origin: 'auto.pageload.react.reactrouter_v6',
+        origin: 'auto.pageload.react.reactrouter_v7',
       },
     },
     transaction: '/projects/:projectId/old-views/:viewId/:detailId',
@@ -50,11 +50,11 @@ test('sends a pageload transaction with a parameterized URL - alternative route'
 });
 
 test('sends a navigation transaction with a parameterized URL', async ({ page }) => {
-  const pageloadTxnPromise = waitForTransaction('react-router-6-cross-usage', async transactionEvent => {
+  const pageloadTxnPromise = waitForTransaction('react-router-7-cross-usage', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
-  const navigationTxnPromise = waitForTransaction('react-router-6-cross-usage', async transactionEvent => {
+  const navigationTxnPromise = waitForTransaction('react-router-7-cross-usage', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
   });
 
@@ -65,7 +65,7 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
     contexts: {
       trace: {
         op: 'pageload',
-        origin: 'auto.pageload.react.reactrouter_v6',
+        origin: 'auto.pageload.react.reactrouter_v7',
       },
     },
     transaction: '/',
@@ -83,7 +83,7 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
     contexts: {
       trace: {
         op: 'navigation',
-        origin: 'auto.navigation.react.reactrouter_v6',
+        origin: 'auto.navigation.react.reactrouter_v7',
       },
     },
     transaction: '/projects/:projectId/views/:viewId/:detailId',
@@ -94,11 +94,11 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
 });
 
 test('sends a navigation transaction with a parameterized URL - alternative route', async ({ page }) => {
-  const pageloadTxnPromise = waitForTransaction('react-router-6-cross-usage', async transactionEvent => {
+  const pageloadTxnPromise = waitForTransaction('react-router-7-cross-usage', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
-  const navigationTxnPromise = waitForTransaction('react-router-6-cross-usage', async transactionEvent => {
+  const navigationTxnPromise = waitForTransaction('react-router-7-cross-usage', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
   });
 
@@ -109,7 +109,7 @@ test('sends a navigation transaction with a parameterized URL - alternative rout
     contexts: {
       trace: {
         op: 'pageload',
-        origin: 'auto.pageload.react.reactrouter_v6',
+        origin: 'auto.pageload.react.reactrouter_v7',
       },
     },
     transaction: '/',
@@ -127,7 +127,7 @@ test('sends a navigation transaction with a parameterized URL - alternative rout
     contexts: {
       trace: {
         op: 'navigation',
-        origin: 'auto.navigation.react.reactrouter_v6',
+        origin: 'auto.navigation.react.reactrouter_v7',
       },
     },
     transaction: '/projects/:projectId/old-views/:viewId/:detailId',
