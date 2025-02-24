@@ -13,18 +13,19 @@ interface CryptoInternal {
 interface CryptoGlobal {
   msCrypto?: CryptoInternal;
   crypto?: CryptoInternal;
-  cryptoTest?: CryptoInternal;
+}
+
+function getCrypto(): CryptoInternal | undefined {
+  const gbl = GLOBAL_OBJ as typeof GLOBAL_OBJ & CryptoGlobal;
+  return gbl.crypto || gbl.msCrypto;
 }
 
 /**
  * UUID4 generator
- *
+ * @param crypto Object that provides the crypto API.
  * @returns string Generated UUID4.
  */
-export function uuid4(): string {
-  const gbl = GLOBAL_OBJ as typeof GLOBAL_OBJ & CryptoGlobal;
-  const crypto = gbl.cryptoTest || gbl.crypto || gbl.msCrypto;
-
+export function uuid4(crypto = getCrypto()): string {
   let getRandomByte = (): number => Math.random() * 16;
   try {
     if (crypto?.randomUUID) {

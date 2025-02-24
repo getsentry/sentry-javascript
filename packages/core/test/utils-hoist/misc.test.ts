@@ -303,10 +303,10 @@ describe('uuid4 generation', () => {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const cryptoMod = require('crypto');
 
-    (global as any).cryptoTest = { getRandomValues: cryptoMod.getRandomValues };
+    const crypto = { getRandomValues: cryptoMod.getRandomValues };
 
     for (let index = 0; index < 1_000; index++) {
-      expect(uuid4()).toMatch(uuid4Regex);
+      expect(uuid4(crypto)).toMatch(uuid4Regex);
     }
   });
 
@@ -314,23 +314,23 @@ describe('uuid4 generation', () => {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const cryptoMod = require('crypto');
 
-    (global as any).cryptoTest = { randomUUID: cryptoMod.randomUUID };
+    const crypto = { getRandomValues: cryptoMod.getRandomValues, randomUUID: cryptoMod.randomUUID };
 
     for (let index = 0; index < 1_000; index++) {
-      expect(uuid4()).toMatch(uuid4Regex);
+      expect(uuid4(crypto)).toMatch(uuid4Regex);
     }
   });
 
   it("return valid uuid v4 even if crypto doesn't exists", () => {
-    (global as any).cryptoTest = { getRandomValues: undefined, randomUUID: undefined };
+    const crypto = { getRandomValues: undefined, randomUUID: undefined };
 
     for (let index = 0; index < 1_000; index++) {
-      expect(uuid4()).toMatch(uuid4Regex);
+      expect(uuid4(crypto)).toMatch(uuid4Regex);
     }
   });
 
   it('return valid uuid v4 even if crypto invoked causes an error', () => {
-    (global as any).cryptoTest = {
+    const crypto = {
       getRandomValues: () => {
         throw new Error('yo');
       },
@@ -340,7 +340,7 @@ describe('uuid4 generation', () => {
     };
 
     for (let index = 0; index < 1_000; index++) {
-      expect(uuid4()).toMatch(uuid4Regex);
+      expect(uuid4(crypto)).toMatch(uuid4Regex);
     }
   });
 
@@ -356,10 +356,12 @@ describe('uuid4 generation', () => {
       }
     };
 
-    (global as any).cryptoTest = { getRandomValues };
+    const crypto = { getRandomValues };
 
     for (let index = 0; index < 1_000; index++) {
-      expect(uuid4()).toMatch(uuid4Regex);
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore - we are testing a corner case
+      expect(uuid4(crypto)).toMatch(uuid4Regex);
     }
   });
 });
