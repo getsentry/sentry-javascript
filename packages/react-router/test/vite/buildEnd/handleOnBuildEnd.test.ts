@@ -1,5 +1,5 @@
-import SentryCli from '@sentry/cli';
 import * as fs from 'fs';
+import SentryCli from '@sentry/cli';
 import glob from 'glob';
 import type { ResolvedConfig } from 'vite';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
