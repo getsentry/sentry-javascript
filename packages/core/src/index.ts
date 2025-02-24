@@ -118,6 +118,7 @@ export { instrumentFetchRequest } from './fetch';
 export { trpcMiddleware } from './trpc';
 export { captureFeedback } from './feedback';
 export type { ReportDialogOptions } from './report-dialog';
+export { handleTunnelEnvelope } from './tunnel';
 
 // TODO: Make this structure pretty again and don't do "export *"
 export * from './utils-hoist/index';
