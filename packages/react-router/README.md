@@ -144,3 +144,41 @@ Update the `start` and `dev` script to include the instrumentation file:
   "start": "NODE_OPTIONS='--import ./instrument.server.mjs' react-router-serve ./build/server/index.js",
 }
 ```
+
+## Build-time Config
+
+Update your vite.config.ts file to include the `sentryReactRouter` plugin and also add the your config options to the vite config (this is required for uploading sourcemaps at the end of the build):
+
+```ts
+import { reactRouter } from '@react-router/dev/vite';
+import { sentryReactRouter } from '@sentry/react-router';
+import tailwindcss from '@tailwindcss/vite';
+import { defineConfig } from 'vite';
+import tsconfigPaths from 'vite-tsconfig-paths';
+
+const sentryConfig = {
+  authToken: '...',
+  org: '...',
+  project: '...',
+  // rest of your config
+};
+
+export default defineConfig(config => {
+  return {
+    plugins: [reactRouter(), sentryReactRouter(sentryConfig, config)],
+    sentryConfig,
+  };
+});
+```
+
+Next, in your `react-router.config.ts` file, include the `sentryOnBuildEnd` hook:
+
+```ts
+import type { Config } from '@react-router/dev/config';
+import { sentryOnBuildEnd } from '@sentry/react-router';
+
+export default {
+  ssr: true,
+  buildEnd: sentryOnBuildEnd,
+} satisfies Config;
+```
