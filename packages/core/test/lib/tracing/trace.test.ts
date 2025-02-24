@@ -399,7 +399,7 @@ describe('startSpan', () => {
     });
   });
 
-  it('allows to pass span links', () => {
+  it('allows to add span links', () => {
     const rawSpan1 = startInactiveSpan({ name: 'pageload_span' });
 
     // @ts-expect-error _links exists on span
@@ -934,7 +934,7 @@ describe('startSpanManual', () => {
     });
   });
 
-  it('allows to pass span links', () => {
+  it('allows to add span links', () => {
     const rawSpan1 = startInactiveSpan({ name: 'pageload_span' });
 
     // @ts-expect-error _links exists on span
