@@ -1,5 +1,6 @@
 import type { Event, Mechanism, StackFrame } from '../../src/types-hoist';
 
+import { describe, expect, it, test } from 'vitest';
 import {
   addContextToFrame,
   addExceptionMechanism,
@@ -302,7 +303,7 @@ describe('uuid4 generation', () => {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const cryptoMod = require('crypto');
 
-    (global as any).crypto = { getRandomValues: cryptoMod.getRandomValues };
+    (global as any).cryptoTest = { getRandomValues: cryptoMod.getRandomValues };
 
     for (let index = 0; index < 1_000; index++) {
       expect(uuid4()).toMatch(uuid4Regex);
@@ -313,7 +314,7 @@ describe('uuid4 generation', () => {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const cryptoMod = require('crypto');
 
-    (global as any).crypto = { randomUUID: cryptoMod.randomUUID };
+    (global as any).cryptoTest = { randomUUID: cryptoMod.randomUUID };
 
     for (let index = 0; index < 1_000; index++) {
       expect(uuid4()).toMatch(uuid4Regex);
@@ -321,7 +322,7 @@ describe('uuid4 generation', () => {
   });
 
   it("return valid uuid v4 even if crypto doesn't exists", () => {
-    (global as any).crypto = { getRandomValues: undefined, randomUUID: undefined };
+    (global as any).cryptoTest = { getRandomValues: undefined, randomUUID: undefined };
 
     for (let index = 0; index < 1_000; index++) {
       expect(uuid4()).toMatch(uuid4Regex);
@@ -329,7 +330,7 @@ describe('uuid4 generation', () => {
   });
 
   it('return valid uuid v4 even if crypto invoked causes an error', () => {
-    (global as any).crypto = {
+    (global as any).cryptoTest = {
       getRandomValues: () => {
         throw new Error('yo');
       },
@@ -355,7 +356,7 @@ describe('uuid4 generation', () => {
       }
     };
 
-    (global as any).crypto = { getRandomValues };
+    (global as any).cryptoTest = { getRandomValues };
 
     for (let index = 0; index < 1_000; index++) {
       expect(uuid4()).toMatch(uuid4Regex);

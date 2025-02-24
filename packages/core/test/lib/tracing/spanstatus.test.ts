@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { SentrySpan, setHttpStatus, spanToJSON } from '../../../src/index';
 
 describe('setHttpStatus', () => {

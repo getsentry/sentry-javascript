@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { getSanitizedUrlString, parseUrl, stripUrlQueryAndFragment } from '../../src/utils-hoist/url';
 
 describe('stripQueryStringAndFragment', () => {
