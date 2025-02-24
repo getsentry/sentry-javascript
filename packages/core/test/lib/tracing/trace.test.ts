@@ -399,6 +399,40 @@ describe('startSpan', () => {
     });
   });
 
+  it('allows to add span links', () => {
+    const rawSpan1 = startInactiveSpan({ name: 'pageload_span' });
+
+    // @ts-expect-error _links exists on span
+    expect(rawSpan1?._links).toEqual(undefined);
+
+    const span1JSON = spanToJSON(rawSpan1);
+
+    startSpan({ name: '/users/:id' }, rawSpan2 => {
+      rawSpan2.addLink({
+        context: rawSpan1.spanContext(),
+        attributes: {
+          'sentry.link.type': 'previous_trace',
+        },
+      });
+
+      const span2LinkJSON = spanToJSON(rawSpan2).links?.[0];
+
+      expect(span2LinkJSON?.attributes?.['sentry.link.type']).toBe('previous_trace');
+
+      // @ts-expect-error _links and _traceId exist on SentrySpan
+      expect(rawSpan2._links?.[0].context.traceId).toEqual(rawSpan1._traceId);
+      // @ts-expect-error _links and _traceId exist on SentrySpan
+      expect(rawSpan2?._links?.[0].context.traceId).toEqual(span1JSON.trace_id);
+      expect(span2LinkJSON?.trace_id).toBe(span1JSON.trace_id);
+
+      // @ts-expect-error _links and _traceId exist on SentrySpan
+      expect(rawSpan2?._links?.[0].context.spanId).toEqual(rawSpan1?._spanId);
+      // @ts-expect-error _links and _traceId exist on SentrySpan
+      expect(rawSpan2?._links?.[0].context.spanId).toEqual(span1JSON.span_id);
+      expect(span2LinkJSON?.span_id).toBe(span1JSON.span_id);
+    });
+  });
+
   it('allows to force a transaction with forceTransaction=true', async () => {
     const options = getDefaultTestClientOptions({ tracesSampleRate: 1.0 });
     client = new TestClient(options);
@@ -897,6 +931,40 @@ describe('startSpanManual', () => {
         expect(spanToJSON(span).parent_span_id).toBe(undefined);
         span.end();
       });
+    });
+  });
+
+  it('allows to add span links', () => {
+    const rawSpan1 = startInactiveSpan({ name: 'pageload_span' });
+
+    // @ts-expect-error _links exists on span
+    expect(rawSpan1?._links).toEqual(undefined);
+
+    const span1JSON = spanToJSON(rawSpan1);
+
+    startSpanManual({ name: '/users/:id' }, rawSpan2 => {
+      rawSpan2.addLink({
+        context: rawSpan1.spanContext(),
+        attributes: {
+          'sentry.link.type': 'previous_trace',
+        },
+      });
+
+      const span2LinkJSON = spanToJSON(rawSpan2).links?.[0];
+
+      expect(span2LinkJSON?.attributes?.['sentry.link.type']).toBe('previous_trace');
+
+      // @ts-expect-error _links and _traceId exist on SentrySpan
+      expect(rawSpan2?._links?.[0].context.traceId).toEqual(rawSpan1._traceId);
+      // @ts-expect-error _links and _traceId exist on SentrySpan
+      expect(rawSpan2?._links?.[0].context.traceId).toEqual(span1JSON.trace_id);
+      expect(span2LinkJSON?.trace_id).toBe(span1JSON.trace_id);
+
+      // @ts-expect-error _links and _traceId exist on SentrySpan
+      expect(rawSpan2?._links?.[0].context.spanId).toEqual(rawSpan1?._spanId);
+      // @ts-expect-error _links and _traceId exist on SentrySpan
+      expect(rawSpan2?._links?.[0].context.spanId).toEqual(span1JSON.span_id);
+      expect(span2LinkJSON?.span_id).toBe(span1JSON.span_id);
     });
   });
 
