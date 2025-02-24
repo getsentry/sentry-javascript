@@ -1,6 +1,6 @@
 {
   "name": "@sentry/nestjs",
-  "version": "9.0.1",
+  "version": "9.1.0",
   "description": "Official Sentry SDK for NestJS",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/nestjs",
@@ -46,11 +46,11 @@
   "dependencies": {
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/core": "^1.30.1",
-    "@opentelemetry/instrumentation": "^0.57.1",
+    "@opentelemetry/instrumentation": "0.57.1",
     "@opentelemetry/instrumentation-nestjs-core": "0.44.0",
     "@opentelemetry/semantic-conventions": "^1.27.0",
-    "@sentry/core": "9.0.1",
-    "@sentry/node": "9.0.1"
+    "@sentry/core": "9.1.0",
+    "@sentry/node": "9.1.0"
   },
   "devDependencies": {
     "@nestjs/common": "^10.0.0",

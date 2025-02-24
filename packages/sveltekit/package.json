@@ -1,6 +1,6 @@
 {
   "name": "@sentry/sveltekit",
-  "version": "9.0.1",
+  "version": "9.1.0",
   "description": "Official Sentry SDK for SvelteKit",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/sveltekit",
@@ -9,9 +9,7 @@
   "engines": {
     "node": ">=18"
   },
-  "files": [
-    "/build"
-  ],
+  "files": ["/build"],
   "main": "build/cjs/index.server.js",
   "module": "build/esm/index.server.js",
   "browser": "build/esm/index.client.js",
@@ -20,6 +18,10 @@
     "./package.json": "./package.json",
     ".": {
       "types": "./build/types/index.types.d.ts",
+      "worker": {
+        "import": "./build/esm/index.worker.js",
+        "require": "./build/cjs/index.worker.js"
+      },
       "browser": {
         "import": "./build/esm/index.client.js",
         "require": "./build/cjs/index.client.js"
@@ -40,11 +42,12 @@
     }
   },
   "dependencies": {
-    "@sentry/core": "9.0.1",
-    "@sentry/node": "9.0.1",
-    "@sentry/opentelemetry": "9.0.1",
-    "@sentry/svelte": "9.0.1",
-    "@sentry/vite-plugin": "2.22.6",
+    "@sentry/cloudflare": "9.1.0",
+    "@sentry/core": "9.1.0",
+    "@sentry/node": "9.1.0",
+    "@sentry/opentelemetry": "9.1.0",
+    "@sentry/svelte": "9.1.0",
+    "@sentry/vite-plugin": "3.2.0",
     "magic-string": "0.30.7",
     "magicast": "0.2.8",
     "sorcery": "1.0.0"
