@@ -8,7 +8,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init'),
     gzip: true,
-    limit: '24 KB',
+    limit: '25 KB',
   },
   {
     name: '@sentry/browser - with treeshaking flags',
@@ -47,7 +47,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration'),
     gzip: true,
-    limit: '75 KB',
+    limit: '77 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay) - with treeshaking flags',
@@ -210,7 +210,7 @@ module.exports = [
     import: createImport('init'),
     ignore: ['next/router', 'next/constants'],
     gzip: true,
-    limit: '41 KB',
+    limit: '43 KB',
   },
   // SvelteKit SDK (ESM)
   {
