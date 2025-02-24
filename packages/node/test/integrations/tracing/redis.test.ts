@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import {
   GET_COMMANDS,
   SET_COMMANDS,

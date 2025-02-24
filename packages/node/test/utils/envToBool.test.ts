@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { envToBool } from '../../src/utils/envToBool';
 
 describe('envToBool', () => {

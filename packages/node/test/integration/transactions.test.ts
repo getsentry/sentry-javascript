@@ -5,18 +5,19 @@ import { logger } from '@sentry/core';
 import type { TransactionEvent } from '@sentry/core';
 import { SentrySpanProcessor } from '@sentry/opentelemetry';
 
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as Sentry from '../../src';
 import { cleanupOtel, getProvider, mockSdkInit } from '../helpers/mockSdkInit';
 
 describe('Integration | Transactions', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
     cleanupOtel();
   });
 
   it('correctly creates transaction & spans', async () => {
     const transactions: TransactionEvent[] = [];
-    const beforeSendTransaction = jest.fn(event => {
+    const beforeSendTransaction = vi.fn(event => {
       transactions.push(event);
       return null;
     });
@@ -162,7 +163,7 @@ describe('Integration | Transactions', () => {
   });
 
   it('correctly creates concurrent transaction & spans', async () => {
-    const beforeSendTransaction = jest.fn(() => null);
+    const beforeSendTransaction = vi.fn(() => null);
 
     mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
 
@@ -307,7 +308,7 @@ describe('Integration | Transactions', () => {
   });
 
   it('correctly creates concurrent transaction & spans when using native OTEL tracer', async () => {
-    const beforeSendTransaction = jest.fn(() => null);
+    const beforeSendTransaction = vi.fn(() => null);
 
     mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
 
@@ -444,7 +445,7 @@ describe('Integration | Transactions', () => {
   });
 
   it('correctly creates transaction & spans with a trace header data', async () => {
-    const beforeSendTransaction = jest.fn(() => null);
+    const beforeSendTransaction = vi.fn(() => null);
 
     const traceId = 'd4cda95b652f4a1592b449d5929fda1b';
     const parentSpanId = '6e0c63257de34c92';
@@ -552,14 +553,14 @@ describe('Integration | Transactions', () => {
   });
 
   it('cleans up spans that are not flushed for over 5 mins', async () => {
-    const beforeSendTransaction = jest.fn(() => null);
+    const beforeSendTransaction = vi.fn(() => null);
 
     const now = Date.now();
-    jest.useFakeTimers();
-    jest.setSystemTime(now);
+    vi.useFakeTimers();
+    vi.setSystemTime(now);
 
     const logs: unknown[] = [];
-    jest.spyOn(logger, 'log').mockImplementation(msg => logs.push(msg));
+    vi.spyOn(logger, 'log').mockImplementation(msg => logs.push(msg));
 
     mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
 
@@ -585,7 +586,7 @@ describe('Integration | Transactions', () => {
       await new Promise(resolve => setTimeout(resolve, 10 * 60 * 1000));
     });
 
-    jest.advanceTimersByTime(1);
+    vi.advanceTimersByTime(1);
 
     // Child-spans have been added to the exporter, but they are pending since they are waiting for their parent
     const finishedSpans1 = [];
@@ -598,12 +599,12 @@ describe('Integration | Transactions', () => {
     expect(beforeSendTransaction).toHaveBeenCalledTimes(0);
 
     // Now wait for 5 mins
-    jest.advanceTimersByTime(5 * 60 * 1_000 + 1);
+    vi.advanceTimersByTime(5 * 60 * 1_000 + 1);
 
     // Adding another span will trigger the cleanup
     Sentry.startSpan({ name: 'other span' }, () => {});
 
-    jest.advanceTimersByTime(1);
+    vi.advanceTimersByTime(1);
 
     // Old spans have been cleared away
     const finishedSpans2 = [];
@@ -627,17 +628,17 @@ describe('Integration | Transactions', () => {
 
   it('allows to configure `maxSpanWaitDuration` to capture long running spans', async () => {
     const transactions: TransactionEvent[] = [];
-    const beforeSendTransaction = jest.fn(event => {
+    const beforeSendTransaction = vi.fn(event => {
       transactions.push(event);
       return null;
     });
 
     const now = Date.now();
-    jest.useFakeTimers();
-    jest.setSystemTime(now);
+    vi.useFakeTimers();
+    vi.setSystemTime(now);
 
     const logs: unknown[] = [];
-    jest.spyOn(logger, 'log').mockImplementation(msg => logs.push(msg));
+    vi.spyOn(logger, 'log').mockImplementation(msg => logs.push(msg));
 
     mockSdkInit({
       tracesSampleRate: 1,
@@ -669,7 +670,7 @@ describe('Integration | Transactions', () => {
     });
 
     // Now wait for 100 mins
-    jest.advanceTimersByTime(100 * 60 * 1_000);
+    vi.advanceTimersByTime(100 * 60 * 1_000);
 
     expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
     expect(transactions).toHaveLength(1);

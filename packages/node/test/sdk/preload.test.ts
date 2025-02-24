@@ -1,18 +1,19 @@
 import { logger } from '@sentry/core';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 describe('preload', () => {
   afterEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
     logger.disable();
 
     delete process.env.SENTRY_DEBUG;
     delete process.env.SENTRY_PRELOAD_INTEGRATIONS;
 
-    jest.resetModules();
+    vi.resetModules();
   });
 
   it('works without env vars', async () => {
-    const logSpy = jest.spyOn(console, 'log');
+    const logSpy = vi.spyOn(console, 'log');
 
     await import('../../src/preload');
 
@@ -20,9 +21,9 @@ describe('preload', () => {
   });
 
   it('works with SENTRY_DEBUG set', async () => {
-    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     // We want to swallow these logs
-    jest.spyOn(console, 'debug').mockImplementation(() => {});
+    vi.spyOn(console, 'debug').mockImplementation(() => {});
 
     process.env.SENTRY_DEBUG = '1';
 
@@ -34,9 +35,9 @@ describe('preload', () => {
   });
 
   it('works with SENTRY_DEBUG & SENTRY_PRELOAD_INTEGRATIONS set', async () => {
-    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     // We want to swallow these logs
-    jest.spyOn(console, 'debug').mockImplementation(() => {});
+    vi.spyOn(console, 'debug').mockImplementation(() => {});
 
     process.env.SENTRY_DEBUG = '1';
     process.env.SENTRY_PRELOAD_INTEGRATIONS = 'Http,Express';
