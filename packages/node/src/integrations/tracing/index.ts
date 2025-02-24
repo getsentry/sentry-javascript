@@ -9,6 +9,7 @@ import { genericPoolIntegration, instrumentGenericPool } from './genericPool';
 import { graphqlIntegration, instrumentGraphql } from './graphql';
 import { hapiIntegration, instrumentHapi } from './hapi';
 import { instrumentKafka, kafkaIntegration } from './kafka';
+import { knexIntegration } from './knex';
 import { instrumentKoa, koaIntegration } from './koa';
 import { instrumentLruMemoizer, lruMemoizerIntegration } from './lrumemoizer';
 import { instrumentMongo, mongoIntegration } from './mongo';
@@ -34,6 +35,7 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     mysql2Integration(),
     redisIntegration(),
     postgresIntegration(),
+    knexIntegration(),
     // For now, we do not include prisma by default because it has ESM issues
     // See https://github.com/prisma/prisma/issues/23410
     // TODO v8: Figure out a better solution for this, maybe only disable in ESM mode?
