@@ -1,4 +1,6 @@
 import type * as http from 'node:http';
+import type { Span } from '@opentelemetry/api';
+import type { ExpressRequestInfo } from '@opentelemetry/instrumentation-express';
 import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
 import type { IntegrationFn } from '@sentry/core';
 import {
@@ -14,44 +16,58 @@ import { DEBUG_BUILD } from '../../debug-build';
 import { generateInstrumentOnce } from '../../otel/instrument';
 import { addOriginToSpan } from '../../utils/addOriginToSpan';
 import { ensureIsWrapped } from '../../utils/ensureIsWrapped';
+import { ExpressInstrumentationV5 } from './express-v5/instrumentation';
 
 const INTEGRATION_NAME = 'Express';
+const INTEGRATION_NAME_V5 = 'Express-V5';
+
+function requestHook(span: Span): void {
+  addOriginToSpan(span, 'auto.http.otel.express');
+
+  const attributes = spanToJSON(span).data;
+  // this is one of: middleware, request_handler, router
+  const type = attributes['express.type'];
+
+  if (type) {
+    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, `${type}.express`);
+  }
+
+  // Also update the name, we don't need to "middleware - " prefix
+  const name = attributes['express.name'];
+  if (typeof name === 'string') {
+    span.updateName(name);
+  }
+}
+
+function spanNameHook(info: ExpressRequestInfo<unknown>, defaultName: string): string {
+  if (getIsolationScope() === getDefaultIsolationScope()) {
+    DEBUG_BUILD && logger.warn('Isolation scope is still default isolation scope - skipping setting transactionName');
+    return defaultName;
+  }
+  if (info.layerType === 'request_handler') {
+    // type cast b/c Otel unfortunately types info.request as any :(
+    const req = info.request as { method?: string };
+    const method = req.method ? req.method.toUpperCase() : 'GET';
+    getIsolationScope().setTransactionName(`${method} ${info.route}`);
+  }
+  return defaultName;
+}
 
 export const instrumentExpress = generateInstrumentOnce(
   INTEGRATION_NAME,
   () =>
     new ExpressInstrumentation({
-      requestHook(span) {
-        addOriginToSpan(span, 'auto.http.otel.express');
+      requestHook: span => requestHook(span),
+      spanNameHook: (info, defaultName) => spanNameHook(info, defaultName),
+    }),
+);
 
-        const attributes = spanToJSON(span).data;
-        // this is one of: middleware, request_handler, router
-        const type = attributes['express.type'];
-
-        if (type) {
-          span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, `${type}.express`);
-        }
-
-        // Also update the name, we don't need to "middleware - " prefix
-        const name = attributes['express.name'];
-        if (typeof name === 'string') {
-          span.updateName(name);
-        }
-      },
-      spanNameHook(info, defaultName) {
-        if (getIsolationScope() === getDefaultIsolationScope()) {
-          DEBUG_BUILD &&
-            logger.warn('Isolation scope is still default isolation scope - skipping setting transactionName');
-          return defaultName;
-        }
-        if (info.layerType === 'request_handler') {
-          // type cast b/c Otel unfortunately types info.request as any :(
-          const req = info.request as { method?: string };
-          const method = req.method ? req.method.toUpperCase() : 'GET';
-          getIsolationScope().setTransactionName(`${method} ${info.route}`);
-        }
-        return defaultName;
-      },
+export const instrumentExpressV5 = generateInstrumentOnce(
+  INTEGRATION_NAME_V5,
+  () =>
+    new ExpressInstrumentationV5({
+      requestHook: span => requestHook(span),
+      spanNameHook: (info, defaultName) => spanNameHook(info, defaultName),
     }),
 );
 
@@ -60,6 +76,7 @@ const _expressIntegration = (() => {
     name: INTEGRATION_NAME,
     setupOnce() {
       instrumentExpress();
+      instrumentExpressV5();
     },
   };
 }) satisfies IntegrationFn;

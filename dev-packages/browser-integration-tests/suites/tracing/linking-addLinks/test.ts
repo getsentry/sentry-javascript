@@ -1,16 +1,23 @@
 import { expect } from '@playwright/test';
-import type { Event, SpanJSON } from '@sentry/core';
+import type { SpanJSON, TransactionEvent } from '@sentry/core';
 import { sentryTest } from '../../../utils/fixtures';
-import { getMultipleSentryEnvelopeRequests, shouldSkipTracingTest } from '../../../utils/helpers';
+import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../utils/helpers';
 
 sentryTest('should link spans with addLinks() in trace context', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
 
+  const rootSpan1Promise = waitForTransactionRequest(page, event => event.transaction === 'rootSpan1');
+  const rootSpan2Promise = waitForTransactionRequest(page, event => event.transaction === 'rootSpan2');
+  const rootSpan3Promise = waitForTransactionRequest(page, event => event.transaction === 'rootSpan3');
+
   const url = await getLocalTestUrl({ testDir: __dirname });
-  const events = await getMultipleSentryEnvelopeRequests<Event>(page, 3, { url });
-  const [rootSpan1, rootSpan2, rootSpan3] = events;
+  await page.goto(url);
+
+  const rootSpan1 = envelopeRequestParser<TransactionEvent>(await rootSpan1Promise);
+  const rootSpan2 = envelopeRequestParser<TransactionEvent>(await rootSpan2Promise);
+  const rootSpan3 = envelopeRequestParser<TransactionEvent>(await rootSpan3Promise);
 
   const rootSpan1_traceId = rootSpan1.contexts?.trace?.trace_id as string;
   const rootSpan1_spanId = rootSpan1.contexts?.trace?.span_id as string;
@@ -47,9 +54,14 @@ sentryTest('should link spans with addLinks() in nested startSpan() calls', asyn
     sentryTest.skip();
   }
 
+  const rootSpan2Promise = waitForTransactionRequest(page, event => event.transaction === 'rootSpan2');
+  const rootSpan4Promise = waitForTransactionRequest(page, event => event.transaction === 'rootSpan4');
+
   const url = await getLocalTestUrl({ testDir: __dirname });
-  const events = await getMultipleSentryEnvelopeRequests<Event>(page, 4, { url });
-  const [/* rootSpan1 */ , rootSpan2, /* rootSpan3 */ , rootSpan4] = events;
+  await page.goto(url);
+
+  const rootSpan2 = envelopeRequestParser<TransactionEvent>(await rootSpan2Promise);
+  const rootSpan4 = envelopeRequestParser<TransactionEvent>(await rootSpan4Promise);
 
   const rootSpan2_traceId = rootSpan2.contexts?.trace?.trace_id as string;
   const rootSpan2_spanId = rootSpan2.contexts?.trace?.span_id as string;
