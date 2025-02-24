@@ -1,4 +1,4 @@
-import * as SentryNode from '@sentry/node';
+import * as SentryCore from '@sentry/core';
 import type { NumericRange } from '@sveltejs/kit';
 import { type RequestEvent, error, redirect } from '@sveltejs/kit';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -26,7 +26,7 @@ describe('wrapServerRouteWithSentry', () => {
   });
 
   describe('wraps a server route span around the original server route handler', () => {
-    const startSpanSpy = vi.spyOn(SentryNode, 'startSpan');
+    const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
 
     it('assigns the route id as name if available', () => {
       const wrappedRouteHandler = wrapServerRouteWithSentry(originalRouteHandler);
@@ -71,7 +71,7 @@ describe('wrapServerRouteWithSentry', () => {
     });
   });
 
-  const captureExceptionSpy = vi.spyOn(SentryNode, 'captureException');
+  const captureExceptionSpy = vi.spyOn(SentryCore, 'captureException');
   describe('captures server route errors', () => {
     it('captures and rethrows normal server route error', async () => {
       const error = new Error('Server Route Error');

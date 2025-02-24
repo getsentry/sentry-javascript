@@ -1,5 +1,7 @@
 import type { HttpError, Redirect } from '@sveltejs/kit';
 
+export const WRAPPED_MODULE_SUFFIX = '?sentry-auto-wrap';
+
 export type SentryWrappedFlag = {
   /**
    * If this flag is set, we know that the load event was already wrapped once

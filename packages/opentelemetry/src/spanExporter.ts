@@ -11,6 +11,7 @@ import type {
   TransactionEvent,
   TransactionSource,
 } from '@sentry/core';
+import { convertSpanLinksForEnvelope } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -247,6 +248,7 @@ export function createTransactionForOtelSpan(span: ReadableSpan): TransactionEve
     ...removeSentryAttributes(span.attributes),
   });
 
+  const { links } = span;
   const { traceId: trace_id, spanId: span_id } = span.spanContext();
 
   // If parentSpanIdFromTraceState is defined at all, we want it to take precedence
@@ -266,6 +268,7 @@ export function createTransactionForOtelSpan(span: ReadableSpan): TransactionEve
     origin,
     op,
     status: getStatusMessage(status), // As per protocol, span status is allowed to be undefined
+    links: convertSpanLinksForEnvelope(links),
   });
 
   const statusCode = attributes[ATTR_HTTP_RESPONSE_STATUS_CODE];
@@ -322,7 +325,7 @@ function createAndFinishSpanForOtelSpan(node: SpanNode, spans: SpanJSON[], sentS
   const span_id = span.spanContext().spanId;
   const trace_id = span.spanContext().traceId;
 
-  const { attributes, startTime, endTime, parentSpanId } = span;
+  const { attributes, startTime, endTime, parentSpanId, links } = span;
 
   const { op, description, data, origin = 'manual' } = getSpanData(span);
   const allData = dropUndefinedKeys({
@@ -347,6 +350,7 @@ function createAndFinishSpanForOtelSpan(node: SpanNode, spans: SpanJSON[], sentS
     op,
     origin,
     measurements: timedEventsToMeasurements(span.events),
+    links: convertSpanLinksForEnvelope(links),
   });
 
   spans.push(spanJSON);

@@ -1,13 +1,14 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import type { Span } from '@sentry/core';
-import { getDynamicSamplingContextFromSpan, setCurrentClient, spanIsSampled, spanToJSON } from '@sentry/core';
+import { getDynamicSamplingContextFromSpan, spanIsSampled, spanToJSON } from '@sentry/core';
 
-import { BunClient } from '../../src/client';
+import { init } from '../../src';
+import type { NodeClient } from '../../src';
 import { instrumentBunServe } from '../../src/integrations/bunserver';
 import { getDefaultBunClientOptions } from '../helpers';
 
 describe('Bun Serve Integration', () => {
-  let client: BunClient;
+  let client: NodeClient | undefined;
   // Fun fact: Bun = 2 21 14 :)
   let port: number = 22114;
 
@@ -17,9 +18,7 @@ describe('Bun Serve Integration', () => {
 
   beforeEach(() => {
     const options = getDefaultBunClientOptions({ tracesSampleRate: 1 });
-    client = new BunClient(options);
-    setCurrentClient(client);
-    client.init();
+    client = init(options);
   });
 
   afterEach(() => {
@@ -31,7 +30,7 @@ describe('Bun Serve Integration', () => {
   test('generates a transaction around a request', async () => {
     let generatedSpan: Span | undefined;
 
-    client.on('spanEnd', span => {
+    client?.on('spanEnd', span => {
       generatedSpan = span;
     });
 
@@ -41,23 +40,32 @@ describe('Bun Serve Integration', () => {
       },
       port,
     });
-    await fetch(`http://localhost:${port}/`);
+    await fetch(`http://localhost:${port}/users?id=123`);
     server.stop();
 
     if (!generatedSpan) {
       throw 'No span was generated in the test';
     }
 
-    expect(spanToJSON(generatedSpan).status).toBe('ok');
-    expect(spanToJSON(generatedSpan).data?.['http.response.status_code']).toEqual(200);
-    expect(spanToJSON(generatedSpan).op).toEqual('http.server');
-    expect(spanToJSON(generatedSpan).description).toEqual('GET /');
+    const spanJson = spanToJSON(generatedSpan);
+    expect(spanJson.status).toBe('ok');
+    expect(spanJson.op).toEqual('http.server');
+    expect(spanJson.description).toEqual('GET /users');
+    expect(spanJson.data).toEqual({
+      'http.query': '?id=123',
+      'http.request.method': 'GET',
+      'http.response.status_code': 200,
+      'sentry.op': 'http.server',
+      'sentry.origin': 'auto.http.bun.serve',
+      'sentry.sample_rate': 1,
+      'sentry.source': 'url',
+    });
   });
 
   test('generates a post transaction', async () => {
     let generatedSpan: Span | undefined;
 
-    client.on('spanEnd', span => {
+    client?.on('spanEnd', span => {
       generatedSpan = span;
     });
 
@@ -94,7 +102,7 @@ describe('Bun Serve Integration', () => {
 
     let generatedSpan: Span | undefined;
 
-    client.on('spanEnd', span => {
+    client?.on('spanEnd', span => {
       generatedSpan = span;
     });
 
@@ -130,7 +138,7 @@ describe('Bun Serve Integration', () => {
   test('does not create transactions for OPTIONS or HEAD requests', async () => {
     let generatedSpan: Span | undefined;
 
-    client.on('spanEnd', span => {
+    client?.on('spanEnd', span => {
       generatedSpan = span;
     });
 
@@ -156,7 +164,7 @@ describe('Bun Serve Integration', () => {
 
   test('intruments the server again if it is reloaded', async () => {
     let serverWasInstrumented = false;
-    client.on('spanEnd', () => {
+    client?.on('spanEnd', () => {
       serverWasInstrumented = true;
     });
 

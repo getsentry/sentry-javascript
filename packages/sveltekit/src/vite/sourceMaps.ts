@@ -9,7 +9,7 @@ import { sentryVitePlugin } from '@sentry/vite-plugin';
 import type { Plugin, UserConfig } from 'vite';
 
 import MagicString from 'magic-string';
-import { WRAPPED_MODULE_SUFFIX } from './autoInstrument';
+import { WRAPPED_MODULE_SUFFIX } from '../common/utils';
 import type { GlobalSentryValues } from './injectGlobalValues';
 import { VIRTUAL_GLOBAL_VALUES_FILE, getGlobalValueInjectionCode } from './injectGlobalValues';
 import { getAdapterOutputDir, getHooksFileName, loadSvelteConfig } from './svelteConfig';
@@ -22,13 +22,6 @@ type Chain = {
 };
 type Sorcery = {
   load(filepath: string): Promise<Chain>;
-};
-
-type GlobalWithSourceMapSetting = typeof globalThis & {
-  _sentry_sourceMapSetting?: {
-    updatedSourceMapSetting?: boolean | 'inline' | 'hidden';
-    previousSourceMapSetting?: UserSourceMapSetting;
-  };
 };
 
 // storing this in the module scope because `makeCustomSentryVitePlugin` is called multiple times
@@ -57,8 +50,6 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
   const usedAdapter = options?.adapter || 'other';
   const adapterOutputDir = await getAdapterOutputDir(svelteConfig, usedAdapter);
 
-  const globalWithSourceMapSetting = globalThis as GlobalWithSourceMapSetting;
-
   const defaultPluginOptions: SentryVitePluginOptions = {
     release: {
       name: releaseName,
@@ -70,61 +61,8 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
     },
   };
 
-  // Including all hidden (`.*`) directories by default so that folders like .vercel,
-  // .netlify, etc are also cleaned up. Additionally, we include the adapter output
-  // dir which could be a non-hidden directory, like `build` for the Node adapter.
-  const defaultFileDeletionGlob = ['./.*/**/*.map', `./${adapterOutputDir}/**/*.map`];
-
-  if (!globalWithSourceMapSetting._sentry_sourceMapSetting) {
-    let configFile: {
-      path: string;
-      config: UserConfig;
-      dependencies: string[];
-    } | null = null;
-
-    try {
-      // @ts-expect-error - the dynamic import here works fine
-      const Vite = await import('vite');
-      configFile = await Vite.loadConfigFromFile({ command: 'build', mode: 'production' });
-    } catch {
-      if (options?.debug) {
-        consoleSandbox(() => {
-          // eslint-disable-next-line no-console
-          console.warn(
-            '[Sentry] Could not import Vite to load your vite config. Please set `build.sourcemap` to `true` or `hidden` to enable source map generation.',
-          );
-        });
-      }
-    }
-
-    if (configFile) {
-      globalWithSourceMapSetting._sentry_sourceMapSetting = getUpdatedSourceMapSetting(configFile.config);
-    } else {
-      if (options?.debug) {
-        consoleSandbox(() => {
-          // eslint-disable-next-line no-console
-          console.warn(
-            '[Sentry] Could not load Vite config with Vite "production" mode. This is needed for Sentry to automatically update source map settings.',
-          );
-        });
-      }
-    }
-
-    if (options?.debug && globalWithSourceMapSetting._sentry_sourceMapSetting?.previousSourceMapSetting === 'unset') {
-      consoleSandbox(() => {
-        // eslint-disable-next-line no-console
-        console.warn(
-          `[Sentry] Automatically setting \`sourceMapsUploadOptions.sourcemaps.filesToDeleteAfterUpload: [${defaultFileDeletionGlob
-            .map(file => `"${file}"`)
-            .join(', ')}]\` to delete generated source maps after they were uploaded to Sentry.`,
-        );
-      });
-    }
-  }
-
-  const shouldDeleteDefaultSourceMaps =
-    globalWithSourceMapSetting._sentry_sourceMapSetting?.previousSourceMapSetting === 'unset' &&
-    !options?.sourcemaps?.filesToDeleteAfterUpload;
+  const { promise: filesToDeleteAfterUpload, resolve: resolveFilesToDeleteAfterUpload } =
+    createFilesToDeleteAfterUploadPromise();
 
   const mergedOptions = {
     ...defaultPluginOptions,
@@ -135,9 +73,7 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
     },
     sourcemaps: {
       ...options?.sourcemaps,
-      filesToDeleteAfterUpload: shouldDeleteDefaultSourceMaps
-        ? defaultFileDeletionGlob
-        : options?.sourcemaps?.filesToDeleteAfterUpload,
+      filesToDeleteAfterUpload,
     },
   };
 
@@ -163,6 +99,10 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
       console.warn(
         'sentry-vite-debug-id-upload-plugin not found in sentryPlugins! Cannot modify plugin - returning default Sentry Vite plugins',
       );
+
+    // resolving filesToDeleteAfterUpload here, because we return the original deletion plugin which awaits the promise
+    resolveFilesToDeleteAfterUpload(undefined);
+
     return sentryPlugins;
   }
 
@@ -172,6 +112,10 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
       console.warn(
         'sentry-file-deletion-plugin not found in sentryPlugins! Cannot modify plugin - returning default Sentry Vite plugins',
       );
+
+    // resolving filesToDeleteAfterUpload here, because we return the original deletion plugin which awaits the promise
+    resolveFilesToDeleteAfterUpload(undefined);
+
     return sentryPlugins;
   }
 
@@ -181,6 +125,10 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
       console.warn(
         'sentry-release-management-plugin not found in sentryPlugins! Cannot modify plugin - returning default Sentry Vite plugins',
       );
+
+    // resolving filesToDeleteAfterUpload here, because we return the original deletion plugin which awaits the promise
+    resolveFilesToDeleteAfterUpload(undefined);
+
     return sentryPlugins;
   }
 
@@ -205,36 +153,65 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
   const sourceMapSettingsPlugin: Plugin = {
     name: 'sentry-sveltekit-update-source-map-setting-plugin',
     apply: 'build', // only apply this plugin at build time
-    config: (config: UserConfig) => {
+    config: async (config: UserConfig) => {
       const settingKey = 'build.sourcemap';
 
-      if (globalWithSourceMapSetting._sentry_sourceMapSetting?.previousSourceMapSetting === 'unset') {
+      const { updatedSourceMapSetting, previousSourceMapSetting } = getUpdatedSourceMapSetting(config);
+
+      const userProvidedFilesToDeleteAfterUpload = await options?.sourcemaps?.filesToDeleteAfterUpload;
+
+      if (previousSourceMapSetting === 'unset') {
         consoleSandbox(() => {
           //  eslint-disable-next-line no-console
           console.log(`[Sentry] Enabled source map generation in the build options with \`${settingKey}: "hidden"\`.`);
         });
 
+        if (userProvidedFilesToDeleteAfterUpload) {
+          resolveFilesToDeleteAfterUpload(userProvidedFilesToDeleteAfterUpload);
+        } else {
+          // Including all hidden (`.*`) directories by default so that folders like .vercel,
+          // .netlify, etc are also cleaned up. Additionally, we include the adapter output
+          // dir which could be a non-hidden directory, like `build` for the Node adapter.
+          const defaultFileDeletionGlob = ['./.*/**/*.map', `./${adapterOutputDir}/**/*.map`];
+
+          consoleSandbox(() => {
+            // eslint-disable-next-line no-console
+            console.warn(
+              `[Sentry] Automatically setting \`sourceMapsUploadOptions.sourcemaps.filesToDeleteAfterUpload: [${defaultFileDeletionGlob
+                .map(file => `"${file}"`)
+                .join(', ')}]\` to delete generated source maps after they were uploaded to Sentry.`,
+            );
+          });
+
+          // In case we enabled source maps and users didn't specify a glob patter to delete, we set a default pattern:
+          resolveFilesToDeleteAfterUpload(defaultFileDeletionGlob);
+        }
+
         return {
           ...config,
-          build: { ...config.build, sourcemap: 'hidden' },
+          build: { ...config.build, sourcemap: updatedSourceMapSetting },
         };
-      } else if (globalWithSourceMapSetting._sentry_sourceMapSetting?.previousSourceMapSetting === 'disabled') {
+      }
+
+      if (previousSourceMapSetting === 'disabled') {
         consoleSandbox(() => {
           //  eslint-disable-next-line no-console
           console.warn(
             `[Sentry] Parts of source map generation are currently disabled in your Vite configuration (\`${settingKey}: false\`). This setting is either a default setting or was explicitly set in your configuration. Sentry won't override this setting. Without source maps, code snippets on the Sentry Issues page will remain minified. To show unminified code, enable source maps in \`${settingKey}\` (e.g. by setting them to \`hidden\`).`,
           );
         });
-      } else if (globalWithSourceMapSetting._sentry_sourceMapSetting?.previousSourceMapSetting === 'enabled') {
+      } else if (previousSourceMapSetting === 'enabled') {
         if (mergedOptions?.debug) {
           consoleSandbox(() => {
             // eslint-disable-next-line no-console
             console.log(
-              `[Sentry] We discovered you enabled source map generation in  your Vite configuration (\`${settingKey}\`). Sentry will keep this source map setting. This will un-minify the code snippet on the Sentry Issue page.`,
+              `[Sentry] We discovered you enabled source map generation in your Vite configuration (\`${settingKey}\`). Sentry will keep this source map setting. This will un-minify the code snippet on the Sentry Issue page.`,
             );
           });
         }
       }
+
+      resolveFilesToDeleteAfterUpload(userProvidedFilesToDeleteAfterUpload);
 
       return config;
     },
@@ -423,7 +400,7 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
 /**
  * Whether the user enabled (true, 'hidden', 'inline') or disabled (false) source maps
  */
-export type UserSourceMapSetting = 'enabled' | 'disabled' | 'unset' | undefined;
+type UserSourceMapSetting = 'enabled' | 'disabled' | 'unset' | undefined;
 
 /** There are 3 ways to set up source map generation (https://github.com/getsentry/sentry-javascript/issues/13993)
  *
@@ -445,25 +422,25 @@ export function getUpdatedSourceMapSetting(viteConfig: {
     sourcemap?: boolean | 'inline' | 'hidden';
   };
 }): { updatedSourceMapSetting: boolean | 'inline' | 'hidden'; previousSourceMapSetting: UserSourceMapSetting } {
-  let previousSourceMapSetting: UserSourceMapSetting;
-  let updatedSourceMapSetting: boolean | 'inline' | 'hidden' | undefined;
-
   viteConfig.build = viteConfig.build || {};
 
-  const viteSourceMap = viteConfig.build.sourcemap;
+  const originalSourcemapSetting = viteConfig.build.sourcemap;
 
-  if (viteSourceMap === false) {
-    previousSourceMapSetting = 'disabled';
-    updatedSourceMapSetting = viteSourceMap;
-  } else if (viteSourceMap && ['hidden', 'inline', true].includes(viteSourceMap)) {
-    previousSourceMapSetting = 'enabled';
-    updatedSourceMapSetting = viteSourceMap;
-  } else {
-    previousSourceMapSetting = 'unset';
-    updatedSourceMapSetting = 'hidden';
+  if (originalSourcemapSetting === false) {
+    return {
+      previousSourceMapSetting: 'disabled',
+      updatedSourceMapSetting: originalSourcemapSetting,
+    };
   }
 
-  return { previousSourceMapSetting, updatedSourceMapSetting };
+  if (originalSourcemapSetting && ['hidden', 'inline', true].includes(originalSourcemapSetting)) {
+    return { previousSourceMapSetting: 'enabled', updatedSourceMapSetting: originalSourcemapSetting };
+  }
+
+  return {
+    previousSourceMapSetting: 'unset',
+    updatedSourceMapSetting: 'hidden',
+  };
 }
 
 function getFiles(dir: string): string[] {
@@ -498,4 +475,23 @@ function detectSentryRelease(): string {
   const release = getSentryRelease() || releaseFallback;
 
   return release;
+}
+
+/**
+ * Creates a deferred promise that can be resolved/rejected by calling the
+ * `resolve` or `reject` function.
+ * Inspired by: https://stackoverflow.com/a/69027809
+ */
+function createFilesToDeleteAfterUploadPromise(): {
+  promise: Promise<string | string[] | undefined>;
+  resolve: (value: string | string[] | undefined) => void;
+  reject: (reason?: unknown) => void;
+} {
+  let resolve!: (value: string | string[] | undefined) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<string | string[] | undefined>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { resolve, reject, promise };
 }
