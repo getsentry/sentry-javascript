@@ -16,13 +16,13 @@
     "build:types": "tsc -p tsconfig.types.json",
     "clean": "rimraf -g **/node_modules && run-p clean:script",
     "clean:script": "node scripts/clean.js",
-    "prisma-v5:init": "cd suites/tracing/prisma-orm-v5 && yarn && yarn setup",
-    "prisma-v6:init": "cd suites/tracing/prisma-orm-v6 && yarn && yarn setup",
+    "express-v5-install": "cd suites/express-v5 && yarn --no-lockfile",
     "lint": "eslint . --format stylish",
     "fix": "eslint . --format stylish --fix",
     "type-check": "tsc",
-    "pretest": "run-s --silent prisma-v5:init prisma-v6:init",
+    "pretest": "yarn express-v5-install",
     "test": "jest --config ./jest.config.js",
+    "test:no-prisma": "jest --config ./jest.config.js",
     "test:watch": "yarn test --watch"
   },
   "dependencies": {

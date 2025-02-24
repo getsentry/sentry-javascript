@@ -7,10 +7,9 @@
     "node": ">=18"
   },
   "scripts": {
-    "db-up": "docker compose up -d",
     "generate": "prisma generate",
     "migrate": "prisma migrate dev -n sentry-test",
-    "setup": "run-s --silent db-up generate migrate"
+    "setup": "run-s --silent generate migrate"
   },
   "keywords": [],
   "author": "",

@@ -40,7 +40,7 @@ let hasShownSpanDropWarning = false;
  */
 export function spanToTransactionTraceContext(span: Span): TraceContext {
   const { spanId: span_id, traceId: trace_id } = span.spanContext();
-  const { data, op, parent_span_id, status, origin } = spanToJSON(span);
+  const { data, op, parent_span_id, status, origin, links } = spanToJSON(span);
 
   return dropUndefinedKeys({
     parent_span_id,
@@ -50,6 +50,7 @@ export function spanToTransactionTraceContext(span: Span): TraceContext {
     op,
     status,
     origin,
+    links,
   });
 }
 
@@ -144,7 +145,7 @@ export function spanToJSON(span: Span): SpanJSON {
 
   // Handle a span from @opentelemetry/sdk-base-trace's `Span` class
   if (spanIsOpenTelemetrySdkTraceBaseSpan(span)) {
-    const { attributes, startTime, name, endTime, parentSpanId, status } = span;
+    const { attributes, startTime, name, endTime, parentSpanId, status, links } = span;
 
     return dropUndefinedKeys({
       span_id,
@@ -158,6 +159,7 @@ export function spanToJSON(span: Span): SpanJSON {
       status: getStatusMessage(status),
       op: attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP],
       origin: attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined,
+      links: convertSpanLinksForEnvelope(links),
     });
   }
 
@@ -184,6 +186,7 @@ export interface OpenTelemetrySdkTraceBaseSpan extends Span {
   status: SpanStatus;
   endTime: SpanTimeInput;
   parentSpanId?: string;
+  links?: SpanLink[];
 }
 
 /**

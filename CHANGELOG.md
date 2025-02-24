@@ -10,6 +10,46 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 9.2.0
+
+### Important Changes
+
+- **feat(node): Support Express v5 ([#15380](https://github.com/getsentry/sentry-javascript/pull/15380))**
+
+This release adds full tracing support for Express v5, and improves tracing support for Nest.js 11 (which uses Express v5) in the Nest.js SDK.
+
+- **feat(sveltekit): Add Support for Cloudflare ([#14672](https://github.com/getsentry/sentry-javascript/pull/14672))**
+
+This release adds support for deploying SvelteKit applications to Cloudflare Pages.
+A docs update with updated instructions will follow shortly.
+Until then, you can give this a try by setting up the SvelteKit SDK as usual and then following the instructions outlined in the PR.
+
+Thank you @SG60 for contributing this feature!
+
+### Other Changes
+
+- feat(core): Add `addLink(s)` to Sentry span ([#15452](https://github.com/getsentry/sentry-javascript/pull/15452))
+- feat(core): Add links to span options ([#15453](https://github.com/getsentry/sentry-javascript/pull/15453))
+- feat(deps): Bump @sentry/webpack-plugin from 2.22.7 to 3.1.2 ([#15328](https://github.com/getsentry/sentry-javascript/pull/15328))
+- feat(feedback): Disable Feedback submit & cancel buttons while submitting ([#15408](https://github.com/getsentry/sentry-javascript/pull/15408))
+- feat(nextjs): Add experimental flag to not strip origin information from different origin stack frames ([#15418](https://github.com/getsentry/sentry-javascript/pull/15418))
+- feat(nuxt): Add `enableNitroErrorHandler` to server options ([#15444](https://github.com/getsentry/sentry-javascript/pull/15444))
+- feat(opentelemetry): Add `addLink(s)` to span ([#15387](https://github.com/getsentry/sentry-javascript/pull/15387))
+- feat(opentelemetry): Add `links` to span options ([#15403](https://github.com/getsentry/sentry-javascript/pull/15403))
+- feat(replay): Expose rrweb recordCrossOriginIframes under \_experiments ([#14916](https://github.com/getsentry/sentry-javascript/pull/14916))
+- fix(browser): Ensure that `performance.measure` spans have a positive duration ([#15415](https://github.com/getsentry/sentry-javascript/pull/15415))
+- fix(bun): Includes correct sdk metadata ([#15459](https://github.com/getsentry/sentry-javascript/pull/15459))
+- fix(core): Add Google `gmo` error to Inbound Filters ([#15432](https://github.com/getsentry/sentry-javascript/pull/15432))
+- fix(core): Ensure `http.client` span descriptions don't contain query params or fragments ([#15404](https://github.com/getsentry/sentry-javascript/pull/15404))
+- fix(core): Filter out unactionable Facebook Mobile browser error ([#15430](https://github.com/getsentry/sentry-javascript/pull/15430))
+- fix(nestjs): Pin dependency on `@opentelemetry/instrumentation` ([#15419](https://github.com/getsentry/sentry-javascript/pull/15419))
+- fix(nuxt): Only use filename with file extension from command ([#15445](https://github.com/getsentry/sentry-javascript/pull/15445))
+- fix(nuxt): Use `SentryNuxtServerOptions` type for server init ([#15441](https://github.com/getsentry/sentry-javascript/pull/15441))
+- fix(sveltekit): Avoid loading vite config to determine source maps setting ([#15440](https://github.com/getsentry/sentry-javascript/pull/15440))
+- ref(profiling-node): Bump chunk interval to 60s ([#15361](https://github.com/getsentry/sentry-javascript/pull/15361))
+
+Work in this release was contributed by @6farer, @dgavranic and @SG60. Thank you for your contributions!
+
 ## 9.1.0
 
 - feat(browser): Add `graphqlClientIntegration` ([#13783](https://github.com/getsentry/sentry-javascript/pull/13783))

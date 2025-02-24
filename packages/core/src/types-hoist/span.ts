@@ -183,6 +183,12 @@ export interface SentrySpanArguments {
   endTimestamp?: number | undefined;
 
   /**
+   * Links to associate with the new span. Setting links here is preferred over addLink()
+   * as certain context information is only available during span creation.
+   */
+  links?: SpanLink[];
+
+  /**
    * Set to `true` if this span should be sent as a standalone segment span
    * as opposed to a transaction.
    *
