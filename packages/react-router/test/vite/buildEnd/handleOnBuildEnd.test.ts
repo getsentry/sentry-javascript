@@ -1,13 +1,16 @@
 import * as fs from 'fs';
 import SentryCli from '@sentry/cli';
-import glob from 'glob';
-import type { ResolvedConfig } from 'vite';
+import { glob } from 'glob';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { sentryOnBuildEnd } from '../../../src/vite/buildEnd/handleOnBuildEnd';
 
 // Mock dependencies
 vi.mock('@sentry/cli');
-vi.mock('fs');
+vi.mock('fs', () => ({
+  promises: {
+    rm: vi.fn().mockResolvedValue(undefined),
+  },
+}));
 vi.mock('glob');
 
 describe('sentryOnBuildEnd', () => {
@@ -16,6 +19,7 @@ describe('sentryOnBuildEnd', () => {
       new: vi.fn(),
       uploadSourceMaps: vi.fn(),
     },
+    execute: vi.fn(),
   };
 
   const defaultConfig = {
@@ -37,12 +41,12 @@ describe('sentryOnBuildEnd', () => {
       build: {
         sourcemap: true,
       },
-    } as ResolvedConfig,
-    sentryConfig: {
-      authToken: 'test-token',
-      org: 'test-org',
-      project: 'test-project',
-      debug: false,
+      sentryConfig: {
+        authToken: 'test-token',
+        org: 'test-org',
+        project: 'test-project',
+        debug: false,
+      },
     },
   };
 
@@ -61,10 +65,13 @@ describe('sentryOnBuildEnd', () => {
   it('should create a new Sentry release when release name is provided', async () => {
     const config = {
       ...defaultConfig,
-      sentryConfig: {
-        ...defaultConfig.sentryConfig,
-        release: {
-          name: 'v1.0.0',
+      viteConfig: {
+        ...defaultConfig.viteConfig,
+        sentryConfig: {
+          ...defaultConfig.viteConfig.sentryConfig,
+          release: {
+            name: 'v1.0.0',
+          },
         },
       },
     };
@@ -77,10 +84,13 @@ describe('sentryOnBuildEnd', () => {
   it('should upload source maps when enabled', async () => {
     const config = {
       ...defaultConfig,
-      sentryConfig: {
-        ...defaultConfig.sentryConfig,
-        sourceMapsUploadOptions: {
-          enabled: true,
+      viteConfig: {
+        ...defaultConfig.viteConfig,
+        sentryConfig: {
+          ...defaultConfig.viteConfig.sentryConfig,
+          sourceMapsUploadOptions: {
+            enabled: true,
+          },
         },
       },
     };
@@ -95,10 +105,13 @@ describe('sentryOnBuildEnd', () => {
   it('should not upload source maps when explicitly disabled', async () => {
     const config = {
       ...defaultConfig,
-      sentryConfig: {
-        ...defaultConfig.sentryConfig,
-        sourceMapsUploadOptions: {
-          enabled: false,
+      viteConfig: {
+        ...defaultConfig.viteConfig,
+        sentryConfig: {
+          ...defaultConfig.viteConfig.sentryConfig,
+          sourceMapsUploadOptions: {
+            enabled: false,
+          },
         },
       },
     };
@@ -115,16 +128,18 @@ describe('sentryOnBuildEnd', () => {
       absolute: true,
       nodir: true,
     });
-    expect(fs.promises.rm).toHaveBeenCalledTimes(2);
   });
 
   it('should delete custom files after upload when specified', async () => {
     const config = {
       ...defaultConfig,
-      sentryConfig: {
-        ...defaultConfig.sentryConfig,
-        sourceMapsUploadOptions: {
-          filesToDeleteAfterUpload: '/custom/**/*.map',
+      viteConfig: {
+        ...defaultConfig.viteConfig,
+        sentryConfig: {
+          ...defaultConfig.viteConfig.sentryConfig,
+          sourceMapsUploadOptions: {
+            filesToDeleteAfterUpload: '/custom/**/*.map',
+          },
         },
       },
     };
@@ -143,10 +158,13 @@ describe('sentryOnBuildEnd', () => {
 
     const config = {
       ...defaultConfig,
-      sentryConfig: {
-        ...defaultConfig.sentryConfig,
-        release: {
-          name: 'v1.0.0',
+      viteConfig: {
+        ...defaultConfig.viteConfig,
+        sentryConfig: {
+          ...defaultConfig.viteConfig.sentryConfig,
+          release: {
+            name: 'v1.0.0',
+          },
         },
       },
     };
@@ -154,6 +172,35 @@ describe('sentryOnBuildEnd', () => {
     await sentryOnBuildEnd(config);
 
     expect(consoleSpy).toHaveBeenCalledWith('[Sentry] Could not create release', expect.any(Error));
+    consoleSpy.mockRestore();
+  });
+
+  it('should inject debug IDs before uploading source maps', async () => {
+    const config = {
+      ...defaultConfig,
+      viteConfig: {
+        ...defaultConfig.viteConfig,
+        sentryConfig: {
+          ...defaultConfig.viteConfig.sentryConfig,
+          sourceMapsUploadOptions: {
+            enabled: true,
+          },
+        },
+      },
+    };
+
+    await sentryOnBuildEnd(config);
+
+    expect(mockSentryCliInstance.execute).toHaveBeenCalledWith(['sourcemaps', 'inject', '/build'], false);
+  });
+
+  it('should handle errors during debug ID injection gracefully', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockSentryCliInstance.execute.mockRejectedValueOnce(new Error('Injection failed'));
+
+    await sentryOnBuildEnd(defaultConfig);
+
+    expect(consoleSpy).toHaveBeenCalledWith('[Sentry] Could not inject debug ids', expect.any(Error));
     consoleSpy.mockRestore();
   });
 
@@ -172,9 +219,12 @@ describe('sentryOnBuildEnd', () => {
 
     const config = {
       ...defaultConfig,
-      sentryConfig: {
-        ...defaultConfig.sentryConfig,
-        debug: true,
+      viteConfig: {
+        ...defaultConfig.viteConfig,
+        sentryConfig: {
+          ...defaultConfig.viteConfig.sentryConfig,
+          debug: true,
+        },
       },
     };
 

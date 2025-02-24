@@ -33,7 +33,6 @@ describe('sentryReactRouter()', () => {
       'sentry-react-router-update-source-map-setting',
       'sentry-telemetry-plugin',
       'sentry-vite-release-injection-plugin',
-      'sentry-vite-debug-id-injection-plugin',
     ]);
   });
 });

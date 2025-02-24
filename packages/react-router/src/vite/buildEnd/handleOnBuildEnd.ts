@@ -22,10 +22,10 @@ function getSentryConfig(viteConfig: unknown): SentryReactRouterBuildOptions {
  */
 export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteConfig }) => {
   const {
-    authToken = 'test-token',
-    org = 'test-org',
-    project = 'test-project',
-    release = { name: 'test-release' },
+    authToken,
+    org,
+    project,
+    release,
     sourceMapsUploadOptions = { enabled: true },
     debug = false,
   } = getSentryConfig(viteConfig);
@@ -44,8 +44,17 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
       console.error('[Sentry] Could not create release', error);
     }
   }
-  // upload sourcemaps
+
   if (sourceMapsUploadOptions?.enabled ?? (true && viteConfig.build.sourcemap !== false)) {
+    // inject debugIds
+    try {
+      await cliInstance.execute(['sourcemaps', 'inject', reactRouterConfig.buildDirectory], debug);
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('[Sentry] Could not inject debug ids', error);
+    }
+
+    // upload sourcemaps
     try {
       await cliInstance.releases.uploadSourceMaps(release?.name || 'undefined', {
         include: [

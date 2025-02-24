@@ -28,9 +28,9 @@ export async function makeCustomSentryVitePlugins(options: SentryReactRouterBuil
         metaFramework: 'react-router',
       },
     },
+    // will be handled in buildEnd hook
     sourcemaps: {
-      ...sourceMapsUploadOptions,
-      ...unstable_sentryVitePluginOptions?.sourcemaps,
+      disable: true,
     },
     ...unstable_sentryVitePluginOptions,
   }) as Plugin[];
@@ -38,11 +38,7 @@ export async function makeCustomSentryVitePlugins(options: SentryReactRouterBuil
   // only use a subset of the plugins as all upload and file deletion tasks will be handled in the buildEnd hook
   return [
     ...sentryVitePlugins.filter(plugin => {
-      return [
-        'sentry-telemetry-plugin',
-        'sentry-vite-release-injection-plugin',
-        'sentry-vite-debug-id-injection-plugin',
-      ].includes(plugin.name);
+      return ['sentry-telemetry-plugin', 'sentry-vite-release-injection-plugin'].includes(plugin.name);
     }),
   ];
 }
