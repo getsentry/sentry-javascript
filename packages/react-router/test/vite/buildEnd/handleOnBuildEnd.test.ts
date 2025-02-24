@@ -1,9 +1,9 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { sentryOnBuildEnd } from '../../../src/vite/buildEnd/handleOnBuildEnd';
 import SentryCli from '@sentry/cli';
 import * as fs from 'fs';
 import glob from 'glob';
 import type { ResolvedConfig } from 'vite';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { sentryOnBuildEnd } from '../../../src/vite/buildEnd/handleOnBuildEnd';
 
 // Mock dependencies
 vi.mock('@sentry/cli');

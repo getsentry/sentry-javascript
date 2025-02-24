@@ -1,7 +1,7 @@
+import { rm } from 'node:fs/promises';
 import type { Config } from '@react-router/dev/dist/config';
 import SentryCli from '@sentry/cli';
 import { glob } from 'glob';
-import { rm } from 'node:fs/promises';
 import type { SentryReactRouterBuildOptions } from '../types';
 
 type BuildEndHook = NonNullable<Config['buildEnd']>;
