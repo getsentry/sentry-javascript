@@ -97,7 +97,7 @@
     "@opentelemetry/semantic-conventions": "^1.30.0",
     "@prisma/instrumentation": "6.2.1",
     "@sentry/core": "9.2.0",
-    "@sentry/opentelemetry": "9.1.0",
+    "@sentry/opentelemetry": "9.2.0",
     "import-in-the-middle": "^1.13.0"
   },
   "devDependencies": {
