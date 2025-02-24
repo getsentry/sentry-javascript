@@ -23,7 +23,7 @@ interface CryptoGlobal {
  */
 export function uuid4(): string {
   const gbl = GLOBAL_OBJ as typeof GLOBAL_OBJ & CryptoGlobal;
-  const crypto = gbl.cryptoTest|| gbl.crypto || gbl.msCrypto;
+  const crypto = gbl.cryptoTest || gbl.crypto || gbl.msCrypto;
 
   let getRandomByte = (): number => Math.random() * 16;
   try {
