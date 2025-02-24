@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { getTracePropagationData } from '../../src/server/utils';
+import { getTracePropagationData } from '../../src/server-common/utils';
 
 const MOCK_REQUEST_EVENT: any = {
   request: {

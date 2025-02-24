@@ -268,12 +268,28 @@ function setUpBuildTimeVariables(userNextConfig: NextConfigObject, userSentryOpt
       : '',
   };
 
+  if (userNextConfig.assetPrefix) {
+    buildTimeVariables._assetsPrefix = userNextConfig.assetPrefix;
+  }
+
+  if (userSentryOptions._experimental?.thirdPartyOriginStackFrames) {
+    buildTimeVariables._experimentalThirdPartyOriginStackFrames = 'true';
+  }
+
   if (rewritesTunnelPath) {
     buildTimeVariables._sentryRewritesTunnelPath = rewritesTunnelPath;
   }
 
   if (basePath) {
     buildTimeVariables._sentryBasePath = basePath;
+  }
+
+  if (userNextConfig.assetPrefix) {
+    buildTimeVariables._sentryAssetPrefix = userNextConfig.assetPrefix;
+  }
+
+  if (userSentryOptions._experimental?.thirdPartyOriginStackFrames) {
+    buildTimeVariables._experimentalThirdPartyOriginStackFrames = 'true';
   }
 
   if (typeof userNextConfig.env === 'object') {
