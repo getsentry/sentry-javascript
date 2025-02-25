@@ -1,13 +1,13 @@
+import { describe, expect, test, vi } from 'vitest';
 import { createRunner } from '../../../utils/runner';
 
-// When running docker compose, we need a larger timeout, as this takes some time...
-jest.setTimeout(90000);
+vi.setConfig({ testTimeout: 90_000 });
 
 describe('knex auto instrumentation', () => {
   // Update this if another knex version is installed
   const KNEX_VERSION = '2.5.1';
 
-  test('should auto-instrument `knex` package when using `pg` client', done => {
+  test('should auto-instrument `knex` package when using `pg` client', async () => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Transaction',
       spans: expect.arrayContaining([
@@ -60,13 +60,14 @@ describe('knex auto instrumentation', () => {
       ]),
     };
 
-    createRunner(__dirname, 'scenario-withPostgres.js')
+    await createRunner(__dirname, 'scenario-withPostgres.js')
       .withDockerCompose({ workingDirectory: [__dirname], readyMatches: ['port 5432'] })
       .expect({ transaction: EXPECTED_TRANSACTION })
-      .start(done);
+      .start()
+      .completed();
   });
 
-  test('should auto-instrument `knex` package when using `mysql2` client', done => {
+  test('should auto-instrument `knex` package when using `mysql2` client', async () => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Transaction',
       spans: expect.arrayContaining([
@@ -121,9 +122,10 @@ describe('knex auto instrumentation', () => {
       ]),
     };
 
-    createRunner(__dirname, 'scenario-withMysql2.js')
+    await createRunner(__dirname, 'scenario-withMysql2.js')
       .withDockerCompose({ workingDirectory: [__dirname], readyMatches: ['port: 3306'] })
       .expect({ transaction: EXPECTED_TRANSACTION })
-      .start(done);
+      .start()
+      .completed();
   });
 });

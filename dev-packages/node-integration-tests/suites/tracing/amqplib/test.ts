@@ -1,8 +1,9 @@
 import type { TransactionEvent } from '@sentry/core';
+import { afterAll, describe, expect, test, vi } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
 // When running docker compose, we need a larger timeout, as this takes some time.
-jest.setTimeout(90_000);
+vi.setConfig({ testTimeout: 90_000 });
 
 const EXPECTED_MESSAGE_SPAN_PRODUCER = expect.objectContaining({
   op: 'message',
@@ -31,8 +32,8 @@ describe('amqplib auto-instrumentation', () => {
     cleanupChildProcesses();
   });
 
-  test('should be able to send and receive messages', done => {
-    createRunner(__dirname, 'scenario-message.ts')
+  test('should be able to send and receive messages', async () => {
+    await createRunner(__dirname, 'scenario-message.ts')
       .withDockerCompose({
         workingDirectory: [__dirname],
         readyMatches: ['Time to start RabbitMQ'],
@@ -50,6 +51,7 @@ describe('amqplib auto-instrumentation', () => {
           expect(transaction.contexts?.trace).toMatchObject(EXPECTED_MESSAGE_SPAN_CONSUMER);
         },
       })
-      .start(done);
+      .start()
+      .completed();
   });
 });

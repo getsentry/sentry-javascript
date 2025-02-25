@@ -1,14 +1,15 @@
+import { afterAll, describe, expect, test, vi } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
 // When running docker compose, we need a larger timeout, as this takes some time...
-jest.setTimeout(75000);
+vi.setConfig({ testTimeout: 75_000 });
 
 describe('redis auto instrumentation', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
 
-  test('should auto-instrument `ioredis` package when using redis.set() and redis.get()', done => {
+  test('should auto-instrument `ioredis` package when using redis.set() and redis.get()', async () => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Span',
       spans: expect.arrayContaining([
@@ -41,9 +42,10 @@ describe('redis auto instrumentation', () => {
       ]),
     };
 
-    createRunner(__dirname, 'scenario-ioredis.js')
+    await createRunner(__dirname, 'scenario-ioredis.js')
       .withDockerCompose({ workingDirectory: [__dirname], readyMatches: ['port=6379'] })
       .expect({ transaction: EXPECTED_TRANSACTION })
-      .start(done);
+      .start()
+      .completed();
   });
 });

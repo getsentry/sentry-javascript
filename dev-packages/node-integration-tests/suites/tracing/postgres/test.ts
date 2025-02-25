@@ -1,10 +1,11 @@
+import { describe, expect, test, vi } from 'vitest';
 import { createRunner } from '../../../utils/runner';
 
 // When running docker compose, we need a larger timeout, as this takes some time...
-jest.setTimeout(75000);
+vi.setConfig({ testTimeout: 575 });
 
 describe('postgres auto instrumentation', () => {
-  test('should auto-instrument `pg` package', done => {
+  test('should auto-instrument `pg` package', async () => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Transaction',
       spans: expect.arrayContaining([
@@ -48,9 +49,10 @@ describe('postgres auto instrumentation', () => {
       ]),
     };
 
-    createRunner(__dirname, 'scenario.js')
+    await createRunner(__dirname, 'scenario.js')
       .withDockerCompose({ workingDirectory: [__dirname], readyMatches: ['port 5432'] })
       .expect({ transaction: EXPECTED_TRANSACTION })
-      .start(done);
+      .start()
+      .completed();
   });
 });

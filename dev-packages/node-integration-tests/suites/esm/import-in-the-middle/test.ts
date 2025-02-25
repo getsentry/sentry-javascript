@@ -1,5 +1,6 @@
 import { spawnSync } from 'child_process';
 import { join } from 'path';
+import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses } from '../../../utils/runner';
 
 afterAll(() => {

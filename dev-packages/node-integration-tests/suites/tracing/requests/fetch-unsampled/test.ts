@@ -1,11 +1,12 @@
+import { describe, expect, test } from 'vitest';
 import { createRunner } from '../../../../utils/runner';
 import { createTestServer } from '../../../../utils/server';
 
 describe('outgoing fetch', () => {
-  test('outgoing fetch requests are correctly instrumented when not sampled', done => {
+  test('outgoing fetch requests are correctly instrumented when not sampled', async () => {
     expect.assertions(11);
 
-    createTestServer(done)
+    const [SERVER_URL, closeTestServer] = await createTestServer()
       .get('/api/v0', headers => {
         expect(headers['baggage']).toEqual(expect.any(String));
         expect(headers['sentry-trace']).toEqual(expect.stringMatching(/^([a-f0-9]{32})-([a-f0-9]{16})-0$/));
@@ -24,23 +25,24 @@ describe('outgoing fetch', () => {
         expect(headers['baggage']).toBeUndefined();
         expect(headers['sentry-trace']).toBeUndefined();
       })
-      .start()
-      .then(([SERVER_URL, closeTestServer]) => {
-        createRunner(__dirname, 'scenario.ts')
-          .withEnv({ SERVER_URL })
-          .expect({
-            event: {
-              exception: {
-                values: [
-                  {
-                    type: 'Error',
-                    value: 'foo',
-                  },
-                ],
+      .start();
+
+    await createRunner(__dirname, 'scenario.ts')
+      .withEnv({ SERVER_URL })
+      .expect({
+        event: {
+          exception: {
+            values: [
+              {
+                type: 'Error',
+                value: 'foo',
               },
-            },
-          })
-          .start(closeTestServer);
-      });
+            ],
+          },
+        },
+      })
+      .start()
+      .completed();
+    closeTestServer();
   });
 });

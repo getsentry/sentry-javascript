@@ -146,6 +146,17 @@ type ExpectedEnvelopeHeader =
   | { session: Partial<Envelope[0]> }
   | { sessions: Partial<Envelope[0]> };
 
+type StartResult = {
+  completed(): Promise<void>;
+  childHasExited(): boolean;
+  getLogs(): string[];
+  makeRequest<T>(
+    method: 'get' | 'post',
+    path: string,
+    options?: { headers?: Record<string, string>; data?: unknown; expectError?: boolean },
+  ): Promise<T | undefined>;
+};
+
 /** Creates a test runner */
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function createRunner(...paths: string[]) {
@@ -219,7 +230,13 @@ export function createRunner(...paths: string[]) {
       ensureNoErrorOutput = true;
       return this;
     },
-    start: function (done?: (e?: unknown) => void) {
+    start: function (done?: (e?: unknown) => void): StartResult {
+      let resolve: (value: void) => void;
+      let reject: (reason?: unknown) => void;
+      const completePromise = new Promise<void>((res, rej) => {
+        resolve = res;
+        reject = rej;
+      });
       const expectedEnvelopeCount = Math.max(expectedEnvelopes.length, (expectedEnvelopeHeaders || []).length);
 
       let envelopeCount = 0;
@@ -230,6 +247,11 @@ export function createRunner(...paths: string[]) {
       function complete(error?: Error): void {
         child?.kill();
         done?.(normalize(error));
+        if (error) {
+          reject(error);
+        } else {
+          resolve();
+        }
       }
 
       /** Called after each expect callback to check if we're complete */
@@ -415,6 +437,9 @@ export function createRunner(...paths: string[]) {
         .catch(e => complete(e));
 
       return {
+        completed: function (): Promise<void> {
+          return completePromise;
+        },
         childHasExited: function (): boolean {
           return hasExited;
         },

@@ -1,3 +1,4 @@
+import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
 const EXPECTED_TRANSCATION = {
@@ -26,7 +27,11 @@ describe('awsIntegration', () => {
     cleanupChildProcesses();
   });
 
-  test('should auto-instrument aws-sdk v2 package.', done => {
-    createRunner(__dirname, 'scenario.js').ignore('event').expect({ transaction: EXPECTED_TRANSCATION }).start(done);
+  test('should auto-instrument aws-sdk v2 package.', async () => {
+    await createRunner(__dirname, 'scenario.js')
+      .ignore('event')
+      .expect({ transaction: EXPECTED_TRANSCATION })
+      .start()
+      .completed();
   });
 });

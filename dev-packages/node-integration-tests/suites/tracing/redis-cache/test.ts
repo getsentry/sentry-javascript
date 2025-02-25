@@ -1,14 +1,15 @@
+import { afterAll, describe, expect, test, vi } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
 // When running docker compose, we need a larger timeout, as this takes some time...
-jest.setTimeout(90000);
+vi.setConfig({ testTimeout: 90_000 });
 
 describe('redis cache auto instrumentation', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
 
-  test('should not add cache spans when key is not prefixed', done => {
+  test('should not add cache spans when key is not prefixed', async () => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Span',
       spans: expect.arrayContaining([
@@ -39,13 +40,14 @@ describe('redis cache auto instrumentation', () => {
       ]),
     };
 
-    createRunner(__dirname, 'scenario-ioredis.js')
+    await createRunner(__dirname, 'scenario-ioredis.js')
       .withDockerCompose({ workingDirectory: [__dirname], readyMatches: ['port=6379'] })
       .expect({ transaction: EXPECTED_TRANSACTION })
-      .start(done);
+      .start()
+      .completed();
   });
 
-  test('should create cache spans for prefixed keys (ioredis)', done => {
+  test('should create cache spans for prefixed keys (ioredis)', async () => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Span',
       spans: expect.arrayContaining([
@@ -137,13 +139,14 @@ describe('redis cache auto instrumentation', () => {
       ]),
     };
 
-    createRunner(__dirname, 'scenario-ioredis.js')
+    await createRunner(__dirname, 'scenario-ioredis.js')
       .withDockerCompose({ workingDirectory: [__dirname], readyMatches: ['port=6379'] })
       .expect({ transaction: EXPECTED_TRANSACTION })
-      .start(done);
+      .start()
+      .completed();
   });
 
-  test('should create cache spans for prefixed keys (redis-4)', done => {
+  test('should create cache spans for prefixed keys (redis-4)', async () => {
     const EXPECTED_REDIS_CONNECT = {
       transaction: 'redis-connect',
     };
@@ -227,10 +230,11 @@ describe('redis cache auto instrumentation', () => {
       ]),
     };
 
-    createRunner(__dirname, 'scenario-redis-4.js')
+    await createRunner(__dirname, 'scenario-redis-4.js')
       .withDockerCompose({ workingDirectory: [__dirname], readyMatches: ['port=6379'] })
       .expect({ transaction: EXPECTED_REDIS_CONNECT })
       .expect({ transaction: EXPECTED_TRANSACTION })
-      .start(done);
+      .start()
+      .completed();
   });
 });

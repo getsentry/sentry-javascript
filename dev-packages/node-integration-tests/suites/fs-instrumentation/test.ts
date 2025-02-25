@@ -1,11 +1,12 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/node';
+import { afterAll, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../utils/runner';
 
 afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('should create spans for fs operations that take target argument', done => {
+test('should create spans for fs operations that take target argument', async () => {
   const runner = createRunner(__dirname, 'server.ts')
     .expect({
       transaction: {
@@ -25,12 +26,13 @@ test('should create spans for fs operations that take target argument', done => 
         ]),
       },
     })
-    .start(done);
+    .start();
 
   expect(runner.makeRequest('get', '/readFile-error')).resolves.toBe('done');
+  await runner.completed();
 });
 
-test('should create spans for fs operations that take one path', done => {
+test('should create spans for fs operations that take one path', async () => {
   const runner = createRunner(__dirname, 'server.ts')
     .expect({
       transaction: {
@@ -69,12 +71,13 @@ test('should create spans for fs operations that take one path', done => {
         ]),
       },
     })
-    .start(done);
+    .start();
 
   expect(runner.makeRequest('get', '/readFile')).resolves.toBe('done');
+  await runner.completed();
 });
 
-test('should create spans for fs operations that take src and dest arguments', done => {
+test('should create spans for fs operations that take src and dest arguments', async () => {
   const runner = createRunner(__dirname, 'server.ts')
     .expect({
       transaction: {
@@ -116,12 +119,13 @@ test('should create spans for fs operations that take src and dest arguments', d
         ]),
       },
     })
-    .start(done);
+    .start();
 
   expect(runner.makeRequest('get', '/copyFile')).resolves.toBe('done');
+  await runner.completed();
 });
 
-test('should create spans for fs operations that take existing path and new path arguments', done => {
+test('should create spans for fs operations that take existing path and new path arguments', async () => {
   const runner = createRunner(__dirname, 'server.ts')
     .expect({
       transaction: {
@@ -163,12 +167,13 @@ test('should create spans for fs operations that take existing path and new path
         ]),
       },
     })
-    .start(done);
+    .start();
 
   expect(runner.makeRequest('get', '/link')).resolves.toBe('done');
+  await runner.completed();
 });
 
-test('should create spans for fs operations that take prefix argument', done => {
+test('should create spans for fs operations that take prefix argument', async () => {
   const runner = createRunner(__dirname, 'server.ts')
     .expect({
       transaction: {
@@ -207,12 +212,13 @@ test('should create spans for fs operations that take prefix argument', done => 
         ]),
       },
     })
-    .start(done);
+    .start();
 
   expect(runner.makeRequest('get', '/mkdtemp')).resolves.toBe('done');
+  await runner.completed();
 });
 
-test('should create spans for fs operations that take target argument', done => {
+test('should create spans for fs operations that take target argument', async () => {
   const runner = createRunner(__dirname, 'server.ts')
     .expect({
       transaction: {
@@ -254,7 +260,8 @@ test('should create spans for fs operations that take target argument', done => 
         ]),
       },
     })
-    .start(done);
+    .start();
 
   expect(runner.makeRequest('get', '/symlink')).resolves.toBe('done');
+  await runner.completed();
 });
