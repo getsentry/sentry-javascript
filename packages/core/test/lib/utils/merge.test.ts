@@ -1,5 +1,7 @@
 import { merge } from '../../../src/utils/merge';
 
+import { describe, expect, it } from 'vitest';
+
 describe('merge', () => {
   it('works with empty objects', () => {
     const oldData = {};

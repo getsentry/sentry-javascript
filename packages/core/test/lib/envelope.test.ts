@@ -1,3 +1,4 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Client } from '../../src';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -97,11 +98,11 @@ describe('createSpanEnvelope', () => {
     client.init();
 
     // We want to avoid console errors in the tests
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   it('creates a span envelope', () => {
@@ -192,7 +193,7 @@ describe('createSpanEnvelope', () => {
   });
 
   it('calls `beforeSendSpan` and uses original span without any changes', () => {
-    const beforeSendSpan = jest.fn(span => span);
+    const beforeSendSpan = vi.fn(span => span);
     const options = getDefaultTestClientOptions({ dsn: 'https://domain/123', beforeSendSpan });
     const client = new TestClient(options);
 
@@ -224,7 +225,7 @@ describe('createSpanEnvelope', () => {
   });
 
   it('calls `beforeSendSpan` and uses the modified span', () => {
-    const beforeSendSpan = jest.fn(span => {
+    const beforeSendSpan = vi.fn(span => {
       span.description = `mutated description: ${span.description}`;
       return span;
     });

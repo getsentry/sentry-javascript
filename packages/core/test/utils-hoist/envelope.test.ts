@@ -7,6 +7,7 @@ import {
   spanToJSON,
 } from '@sentry/core';
 import { SentrySpan } from '@sentry/core';
+import { describe, expect, it, test, vi } from 'vitest';
 import { getSentryCarrier } from '../../src/carrier';
 import {
   addItemToEnvelope,
@@ -110,10 +111,10 @@ describe('envelope', () => {
         before: () => {
           GLOBAL_OBJ.__SENTRY__ = {};
 
-          getSentryCarrier(GLOBAL_OBJ).encodePolyfill = jest.fn<Uint8Array, [string]>((input: string) =>
+          getSentryCarrier(GLOBAL_OBJ).encodePolyfill = vi.fn<Uint8Array, [string]>((input: string) =>
             new TextEncoder().encode(input),
           );
-          getSentryCarrier(GLOBAL_OBJ).decodePolyfill = jest.fn<string, [Uint8Array]>((input: Uint8Array) =>
+          getSentryCarrier(GLOBAL_OBJ).decodePolyfill = vi.fn<string, [Uint8Array]>((input: Uint8Array) =>
             new TextDecoder().decode(input),
           );
         },

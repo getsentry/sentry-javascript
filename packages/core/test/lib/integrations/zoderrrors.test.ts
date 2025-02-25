@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { Event, EventHint } from '../../../src/types-hoist';
 
+import { describe, expect, it, test } from 'vitest';
 import {
   applyZodErrorsToEvent,
   flattenIssue,
@@ -168,27 +169,27 @@ describe('applyZodErrorsToEvent()', () => {
     }
     expect(attachment.filename).toBe('zod_issues.json');
     expect(JSON.parse(attachment.data.toString())).toMatchInlineSnapshot(`
-Object {
-  "issues": Array [
-    Object {
-      "code": "invalid_type",
-      "expected": "string",
-      "keys": "[\\"extra\\"]",
-      "message": "Invalid input: expected string, received number",
-      "path": "names.1",
-      "received": "number",
-    },
-    Object {
-      "code": "invalid_type",
-      "expected": "string",
-      "keys": "[\\"extra2\\"]",
-      "message": "Invalid input: expected string, received number",
-      "path": "foo.1",
-      "received": "number",
-    },
-  ],
-}
-`);
+      {
+        "issues": [
+          {
+            "code": "invalid_type",
+            "expected": "string",
+            "keys": "["extra"]",
+            "message": "Invalid input: expected string, received number",
+            "path": "names.1",
+            "received": "number",
+          },
+          {
+            "code": "invalid_type",
+            "expected": "string",
+            "keys": "["extra2"]",
+            "message": "Invalid input: expected string, received number",
+            "path": "foo.1",
+            "received": "number",
+          },
+        ],
+      }
+    `);
   });
 });
 
@@ -213,91 +214,91 @@ describe('flattenIssue()', () => {
 
     // Original zod error
     expect(zodError.issues).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "code": "too_small",
-    "exact": false,
-    "inclusive": true,
-    "message": "String must contain at least 1 character(s)",
-    "minimum": 1,
-    "path": Array [
-      "foo",
-    ],
-    "type": "string",
-  },
-  Object {
-    "code": "invalid_literal",
-    "expected": "baz",
-    "message": "Invalid literal value, expected \\"baz\\"",
-    "path": Array [
-      "nested",
-      "bar",
-    ],
-    "received": "not-baz",
-  },
-]
-`);
+      [
+        {
+          "code": "too_small",
+          "exact": false,
+          "inclusive": true,
+          "message": "String must contain at least 1 character(s)",
+          "minimum": 1,
+          "path": [
+            "foo",
+          ],
+          "type": "string",
+        },
+        {
+          "code": "invalid_literal",
+          "expected": "baz",
+          "message": "Invalid literal value, expected "baz"",
+          "path": [
+            "nested",
+            "bar",
+          ],
+          "received": "not-baz",
+        },
+      ]
+    `);
 
     const issues = zodError.issues;
     expect(issues.length).toBe(2);
 
     // Format it for use in Sentry
     expect(issues.map(flattenIssue)).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "code": "too_small",
-    "exact": false,
-    "inclusive": true,
-    "keys": undefined,
-    "message": "String must contain at least 1 character(s)",
-    "minimum": 1,
-    "path": "foo",
-    "type": "string",
-    "unionErrors": undefined,
-  },
-  Object {
-    "code": "invalid_literal",
-    "expected": "baz",
-    "keys": undefined,
-    "message": "Invalid literal value, expected \\"baz\\"",
-    "path": "nested.bar",
-    "received": "not-baz",
-    "unionErrors": undefined,
-  },
-]
-`);
+      [
+        {
+          "code": "too_small",
+          "exact": false,
+          "inclusive": true,
+          "keys": undefined,
+          "message": "String must contain at least 1 character(s)",
+          "minimum": 1,
+          "path": "foo",
+          "type": "string",
+          "unionErrors": undefined,
+        },
+        {
+          "code": "invalid_literal",
+          "expected": "baz",
+          "keys": undefined,
+          "message": "Invalid literal value, expected "baz"",
+          "path": "nested.bar",
+          "received": "not-baz",
+          "unionErrors": undefined,
+        },
+      ]
+    `);
 
     expect(zodError.flatten(flattenIssue)).toMatchInlineSnapshot(`
-Object {
-  "fieldErrors": Object {
-    "foo": Array [
-      Object {
-        "code": "too_small",
-        "exact": false,
-        "inclusive": true,
-        "keys": undefined,
-        "message": "String must contain at least 1 character(s)",
-        "minimum": 1,
-        "path": "foo",
-        "type": "string",
-        "unionErrors": undefined,
-      },
-    ],
-    "nested": Array [
-      Object {
-        "code": "invalid_literal",
-        "expected": "baz",
-        "keys": undefined,
-        "message": "Invalid literal value, expected \\"baz\\"",
-        "path": "nested.bar",
-        "received": "not-baz",
-        "unionErrors": undefined,
-      },
-    ],
-  },
-  "formErrors": Array [],
-}
-`);
+      {
+        "fieldErrors": {
+          "foo": [
+            {
+              "code": "too_small",
+              "exact": false,
+              "inclusive": true,
+              "keys": undefined,
+              "message": "String must contain at least 1 character(s)",
+              "minimum": 1,
+              "path": "foo",
+              "type": "string",
+              "unionErrors": undefined,
+            },
+          ],
+          "nested": [
+            {
+              "code": "invalid_literal",
+              "expected": "baz",
+              "keys": undefined,
+              "message": "Invalid literal value, expected "baz"",
+              "path": "nested.bar",
+              "received": "not-baz",
+              "unionErrors": undefined,
+            },
+          ],
+        },
+        "formErrors": [],
+      }
+    `);
   });
 
   it('flattens keys field to string', () => {
@@ -317,18 +318,18 @@ Object {
 
     // Original zod error
     expect(zodError.issues).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "code": "unrecognized_keys",
-    "keys": Array [
-      "extra_key_abc",
-      "extra_key_def",
-    ],
-    "message": "Unrecognized key(s) in object: 'extra_key_abc', 'extra_key_def'",
-    "path": Array [],
-  },
-]
-`);
+      [
+        {
+          "code": "unrecognized_keys",
+          "keys": [
+            "extra_key_abc",
+            "extra_key_def",
+          ],
+          "message": "Unrecognized key(s) in object: 'extra_key_abc', 'extra_key_def'",
+          "path": [],
+        },
+      ]
+    `);
 
     const issues = zodError.issues;
     expect(issues.length).toBe(1);
@@ -344,14 +345,14 @@ Array [
     // Note: path is an empty string because the issue is at the root.
     // TODO: Maybe somehow make it clearer that this is at the root?
     expect(formattedIssue).toMatchInlineSnapshot(`
-Object {
-  "code": "unrecognized_keys",
-  "keys": "[\\"extra_key_abc\\",\\"extra_key_def\\"]",
-  "message": "Unrecognized key(s) in object: 'extra_key_abc', 'extra_key_def'",
-  "path": "",
-  "unionErrors": undefined,
-}
-`);
+      {
+        "code": "unrecognized_keys",
+        "keys": "["extra_key_abc","extra_key_def"]",
+        "message": "Unrecognized key(s) in object: 'extra_key_abc', 'extra_key_def'",
+        "path": "",
+        "unionErrors": undefined,
+      }
+    `);
     expect(typeof formattedIssue.keys === 'string').toBe(true);
   });
 });
@@ -406,16 +407,16 @@ describe('formatIssueMessage()', () => {
 
       // Original zod error
       expect(zodError.issues).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "code": "invalid_type",
-    "expected": "object",
-    "message": "Expected object, received number",
-    "path": Array [],
-    "received": "number",
-  },
-]
-`);
+        [
+          {
+            "code": "invalid_type",
+            "expected": "object",
+            "message": "Expected object, received number",
+            "path": [],
+            "received": "number",
+          },
+        ]
+      `);
 
       const message = formatIssueMessage(zodError);
       expect(message).toMatchInlineSnapshot('"Failed to validate object"');
@@ -429,16 +430,16 @@ Array [
 
       // Original zod error
       expect(zodError.issues).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "code": "invalid_type",
-    "expected": "number",
-    "message": "Expected number, received string",
-    "path": Array [],
-    "received": "string",
-  },
-]
-`);
+        [
+          {
+            "code": "invalid_type",
+            "expected": "number",
+            "message": "Expected number, received string",
+            "path": [],
+            "received": "string",
+          },
+        ]
+      `);
 
       const message = formatIssueMessage(zodError);
       expect(message).toMatchInlineSnapshot('"Failed to validate number"');
@@ -452,16 +453,16 @@ Array [
 
       // Original zod error
       expect(zodError.issues).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "code": "invalid_type",
-    "expected": "string",
-    "message": "Expected string, received number",
-    "path": Array [],
-    "received": "number",
-  },
-]
-`);
+        [
+          {
+            "code": "invalid_type",
+            "expected": "string",
+            "message": "Expected string, received number",
+            "path": [],
+            "received": "number",
+          },
+        ]
+      `);
 
       const message = formatIssueMessage(zodError);
       expect(message).toMatchInlineSnapshot('"Failed to validate string"');
@@ -475,16 +476,16 @@ Array [
 
       // Original zod error
       expect(zodError.issues).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "code": "invalid_type",
-    "expected": "array",
-    "message": "Expected array, received string",
-    "path": Array [],
-    "received": "string",
-  },
-]
-`);
+        [
+          {
+            "code": "invalid_type",
+            "expected": "array",
+            "message": "Expected array, received string",
+            "path": [],
+            "received": "string",
+          },
+        ]
+      `);
 
       const message = formatIssueMessage(zodError);
       expect(message).toMatchInlineSnapshot('"Failed to validate array"');
@@ -498,18 +499,18 @@ Array [
 
       // Original zod error
       expect(zodError.issues).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "code": "invalid_type",
-    "expected": "string",
-    "message": "Expected string, received number",
-    "path": Array [
-      0,
-    ],
-    "received": "number",
-  },
-]
-`);
+        [
+          {
+            "code": "invalid_type",
+            "expected": "string",
+            "message": "Expected string, received number",
+            "path": [
+              0,
+            ],
+            "received": "number",
+          },
+        ]
+      `);
 
       const message = formatIssueMessage(zodError);
       expect(message).toMatchInlineSnapshot('"Failed to validate keys: <array>"');

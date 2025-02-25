@@ -2,6 +2,7 @@
  * @jest-environment jsdom
  */
 
+import { describe, expect, test, vi } from 'vitest';
 import { addNonEnumerableProperty, normalize } from '../../src';
 import * as isModule from '../../src/utils-hoist/is';
 import * as stacktraceModule from '../../src/utils-hoist/stacktrace';
@@ -48,8 +49,8 @@ describe('normalize()', () => {
       });
     });
 
-    describe('extracts data from `Event` objects', () => {
-      const isElement = jest.spyOn(isModule, 'isElement').mockReturnValue(true);
+    test('extracts data from `Event` objects', () => {
+      const isElement = vi.spyOn(isModule, 'isElement').mockReturnValue(true);
       const getAttribute = () => undefined;
 
       const parkElement = { tagName: 'PARK', getAttribute };
@@ -594,7 +595,7 @@ describe('normalize()', () => {
 
   describe('handles serialization errors', () => {
     test('restricts effect of error to problematic node', () => {
-      jest.spyOn(stacktraceModule, 'getFunctionName').mockImplementationOnce(() => {
+      vi.spyOn(stacktraceModule, 'getFunctionName').mockImplementationOnce(() => {
         throw new Error('Nope');
       });
 
