@@ -1,17 +1,27 @@
-import * as http from 'http';
+import * as http from 'node:http';
 import { createEnvelope, logger } from '@sentry/core';
 import type { Envelope, EventEnvelope } from '@sentry/core';
 
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { spotlightIntegration } from '../../src/integrations/spotlight';
 import { NodeClient } from '../../src/sdk/client';
 import { getDefaultNodeClientOptions } from '../helpers/getDefaultNodeClientOptions';
 
+vi.mock('node:http', async () => {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-imports
+  const original = (await vi.importActual('node:http')) as typeof import('node:http');
+  return {
+    ...original,
+    request: original.request,
+  };
+});
+
 describe('Spotlight', () => {
-  const loggerSpy = jest.spyOn(logger, 'warn');
+  const loggerSpy = vi.spyOn(logger, 'warn');
 
   afterEach(() => {
     loggerSpy.mockClear();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   const options = getDefaultNodeClientOptions();
@@ -25,7 +35,7 @@ describe('Spotlight', () => {
   it('registers a callback on the `beforeEnvelope` hook', () => {
     const clientWithSpy = {
       ...client,
-      on: jest.fn(),
+      on: vi.fn(),
     };
     const integration = spotlightIntegration();
     // @ts-expect-error - this is fine in tests
@@ -34,18 +44,18 @@ describe('Spotlight', () => {
   });
 
   it('sends an envelope POST request to the sidecar url', () => {
-    const httpSpy = jest.spyOn(http, 'request').mockImplementationOnce(() => {
+    const httpSpy = vi.spyOn(http, 'request').mockImplementationOnce(() => {
       return {
-        on: jest.fn(),
-        write: jest.fn(),
-        end: jest.fn(),
+        on: vi.fn(),
+        write: vi.fn(),
+        end: vi.fn(),
       } as any;
     });
 
     let callback: (envelope: Envelope) => void = () => {};
     const clientWithSpy = {
       ...client,
-      on: jest.fn().mockImplementationOnce((_, cb) => (callback = cb)),
+      on: vi.fn().mockImplementationOnce((_, cb) => (callback = cb)),
     };
 
     const integration = spotlightIntegration();
@@ -73,18 +83,18 @@ describe('Spotlight', () => {
   });
 
   it('sends an envelope POST request to a custom sidecar url', () => {
-    const httpSpy = jest.spyOn(http, 'request').mockImplementationOnce(() => {
+    const httpSpy = vi.spyOn(http, 'request').mockImplementationOnce(() => {
       return {
-        on: jest.fn(),
-        write: jest.fn(),
-        end: jest.fn(),
+        on: vi.fn(),
+        write: vi.fn(),
+        end: vi.fn(),
       } as any;
     });
 
     let callback: (envelope: Envelope) => void = () => {};
     const clientWithSpy = {
       ...client,
-      on: jest.fn().mockImplementationOnce((_, cb) => (callback = cb)),
+      on: vi.fn().mockImplementationOnce((_, cb) => (callback = cb)),
     };
 
     const integration = spotlightIntegration({ sidecarUrl: 'http://mylocalhost:8888/abcd' });

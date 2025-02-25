@@ -4,13 +4,24 @@ import { createTransport } from '@sentry/core';
 import { addItemToEnvelope, createAttachmentEnvelopeItem, createEnvelope, serializeEnvelope } from '@sentry/core';
 import type { EventEnvelope, EventItem } from '@sentry/core';
 
+import { type Mock, afterEach, describe, expect, it, vi } from 'vitest';
 import { makeNodeTransport } from '../../src/transports';
 
-jest.mock('@sentry/core', () => {
-  const actualCore = jest.requireActual('@sentry/core');
+vi.mock('@sentry/core', async () => {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-imports
+  const actualCore = (await vi.importActual('@sentry/core')) as typeof import('@sentry/core');
   return {
     ...actualCore,
-    createTransport: jest.fn().mockImplementation(actualCore.createTransport),
+    createTransport: vi.fn().mockImplementation(actualCore.createTransport),
+  };
+});
+
+vi.mock('node:http', async () => {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-imports
+  const original = (await vi.importActual('node:http')) as typeof import('node:http');
+  return {
+    ...original,
+    request: original.request,
   };
 });
 
@@ -78,17 +89,20 @@ const defaultOptions = {
 };
 
 // empty function to keep test output clean
-const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-afterEach(done => {
-  jest.clearAllMocks();
+afterEach(
+  () =>
+    new Promise<void>(done => {
+      vi.clearAllMocks();
 
-  if (testServer?.listening) {
-    testServer.close(done);
-  } else {
-    done();
-  }
-});
+      if (testServer?.listening) {
+        testServer.close(() => done());
+      } else {
+        done();
+      }
+    }),
+);
 
 describe('makeNewHttpTransport()', () => {
   describe('.send()', () => {
@@ -206,7 +220,7 @@ describe('makeNewHttpTransport()', () => {
   });
 
   describe('proxy', () => {
-    const proxyAgentSpy = jest
+    const proxyAgentSpy = vi
       .spyOn(httpProxyAgent, 'HttpsProxyAgent')
       // @ts-expect-error using http agent as https proxy agent
       .mockImplementation(() => new http.Agent({ keepAlive: false, maxSockets: 30, timeout: 2000 }));
@@ -299,7 +313,7 @@ describe('makeNewHttpTransport()', () => {
       });
 
       makeNodeTransport(defaultOptions);
-      const registeredRequestExecutor = (createTransport as jest.Mock).mock.calls[0][1];
+      const registeredRequestExecutor = (createTransport as Mock).mock.calls[0]?.[1];
 
       const executorResult = registeredRequestExecutor({
         body: serializeEnvelope(EVENT_ENVELOPE),
@@ -319,7 +333,7 @@ describe('makeNewHttpTransport()', () => {
       });
 
       makeNodeTransport(defaultOptions);
-      const registeredRequestExecutor = (createTransport as jest.Mock).mock.calls[0][1];
+      const registeredRequestExecutor = (createTransport as Mock).mock.calls[0]?.[1];
 
       const executorResult = registeredRequestExecutor({
         body: serializeEnvelope(EVENT_ENVELOPE),
@@ -347,7 +361,7 @@ describe('makeNewHttpTransport()', () => {
       });
 
       makeNodeTransport(defaultOptions);
-      const registeredRequestExecutor = (createTransport as jest.Mock).mock.calls[0][1];
+      const registeredRequestExecutor = (createTransport as Mock).mock.calls[0]?.[1];
 
       const executorResult = registeredRequestExecutor({
         body: serializeEnvelope(EVENT_ENVELOPE),
@@ -375,7 +389,7 @@ describe('makeNewHttpTransport()', () => {
       });
 
       makeNodeTransport(defaultOptions);
-      const registeredRequestExecutor = (createTransport as jest.Mock).mock.calls[0][1];
+      const registeredRequestExecutor = (createTransport as Mock).mock.calls[0]?.[1];
 
       const executorResult = registeredRequestExecutor({
         body: serializeEnvelope(EVENT_ENVELOPE),
@@ -395,7 +409,7 @@ describe('makeNewHttpTransport()', () => {
   });
 
   it('should create a noop transport if an invalid url is passed', async () => {
-    const requestSpy = jest.spyOn(http, 'request');
+    const requestSpy = vi.spyOn(http, 'request');
     const transport = makeNodeTransport({ ...defaultOptions, url: 'foo' });
     await transport.send(EVENT_ENVELOPE);
     expect(requestSpy).not.toHaveBeenCalled();

@@ -1,5 +1,6 @@
 import type { RequestOptions } from 'http';
 
+import { describe, expect, it } from 'vitest';
 import { getRequestUrl } from '../../src/utils/getRequestUrl';
 
 describe('getRequestUrl', () => {

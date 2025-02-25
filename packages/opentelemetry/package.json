@@ -53,9 +53,9 @@
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/context-async-hooks": "^1.30.1",
     "@opentelemetry/core": "^1.30.1",
-    "@opentelemetry/instrumentation": "^0.57.1",
+    "@opentelemetry/instrumentation": "^0.57.2",
     "@opentelemetry/sdk-trace-base": "^1.30.1",
-    "@opentelemetry/semantic-conventions": "^1.28.0"
+    "@opentelemetry/semantic-conventions": "^1.30.0"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",

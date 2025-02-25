@@ -3,10 +3,11 @@ import { startSpan } from '@sentry/opentelemetry';
 import { getClient } from '../../src/';
 import type { NodeClient } from '../../src/sdk/client';
 
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
 
 describe('Integration | breadcrumbs', () => {
-  const beforeSendTransaction = jest.fn(() => null);
+  const beforeSendTransaction = vi.fn(() => null);
 
   afterEach(() => {
     cleanupOtel();
@@ -14,8 +15,8 @@ describe('Integration | breadcrumbs', () => {
 
   describe('without tracing', () => {
     it('correctly adds & retrieves breadcrumbs', async () => {
-      const beforeSend = jest.fn(() => null);
-      const beforeBreadcrumb = jest.fn(breadcrumb => breadcrumb);
+      const beforeSend = vi.fn(() => null);
+      const beforeBreadcrumb = vi.fn(breadcrumb => breadcrumb);
 
       mockSdkInit({ beforeSend, beforeBreadcrumb });
 
@@ -50,8 +51,8 @@ describe('Integration | breadcrumbs', () => {
     });
 
     it('handles parallel scopes', async () => {
-      const beforeSend = jest.fn(() => null);
-      const beforeBreadcrumb = jest.fn(breadcrumb => breadcrumb);
+      const beforeSend = vi.fn(() => null);
+      const beforeBreadcrumb = vi.fn(breadcrumb => breadcrumb);
 
       mockSdkInit({ beforeSend, beforeBreadcrumb });
 
@@ -96,8 +97,8 @@ describe('Integration | breadcrumbs', () => {
   });
 
   it('correctly adds & retrieves breadcrumbs', async () => {
-    const beforeSend = jest.fn(() => null);
-    const beforeBreadcrumb = jest.fn(breadcrumb => breadcrumb);
+    const beforeSend = vi.fn(() => null);
+    const beforeBreadcrumb = vi.fn(breadcrumb => breadcrumb);
 
     mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, tracesSampleRate: 1 });
 
@@ -141,8 +142,8 @@ describe('Integration | breadcrumbs', () => {
   });
 
   it('correctly adds & retrieves breadcrumbs for the current isolation span only', async () => {
-    const beforeSend = jest.fn(() => null);
-    const beforeBreadcrumb = jest.fn(breadcrumb => breadcrumb);
+    const beforeSend = vi.fn(() => null);
+    const beforeBreadcrumb = vi.fn(breadcrumb => breadcrumb);
 
     mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, tracesSampleRate: 1 });
 
@@ -193,8 +194,8 @@ describe('Integration | breadcrumbs', () => {
   });
 
   it('ignores scopes inside of root span', async () => {
-    const beforeSend = jest.fn(() => null);
-    const beforeBreadcrumb = jest.fn(breadcrumb => breadcrumb);
+    const beforeSend = vi.fn(() => null);
+    const beforeBreadcrumb = vi.fn(breadcrumb => breadcrumb);
 
     mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, tracesSampleRate: 1 });
 
@@ -234,8 +235,8 @@ describe('Integration | breadcrumbs', () => {
   });
 
   it('handles deep nesting of scopes', async () => {
-    const beforeSend = jest.fn(() => null);
-    const beforeBreadcrumb = jest.fn(breadcrumb => breadcrumb);
+    const beforeSend = vi.fn(() => null);
+    const beforeBreadcrumb = vi.fn(breadcrumb => breadcrumb);
 
     mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, tracesSampleRate: 1 });
 
@@ -292,8 +293,8 @@ describe('Integration | breadcrumbs', () => {
   });
 
   it('correctly adds & retrieves breadcrumbs in async spans', async () => {
-    const beforeSend = jest.fn(() => null);
-    const beforeBreadcrumb = jest.fn(breadcrumb => breadcrumb);
+    const beforeSend = vi.fn(() => null);
+    const beforeBreadcrumb = vi.fn(breadcrumb => breadcrumb);
 
     mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, tracesSampleRate: 1 });
 
