@@ -11,4 +11,8 @@ function ensurePluginTypes(): void {
   }
 }
 
-ensurePluginTypes();
+import type { GlobalSetupContext } from 'vitest/node';
+
+export default function setup(_: GlobalSetupContext) {
+  ensurePluginTypes();
+}
