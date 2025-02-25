@@ -1,8 +1,10 @@
 import { eventContextExtractor, getAwsTraceData } from '../src/utils';
+import { vi, expect, describe, test, afterEach } from 'vitest';
 
-const mockExtractContext = jest.fn();
-jest.mock('@opentelemetry/api', () => {
-  const actualApi = jest.requireActual('@opentelemetry/api');
+const mockExtractContext = vi.fn();
+vi.mock('@opentelemetry/api', async () => {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-imports
+  const actualApi =await  vi.importActual('@opentelemetry/api') as typeof import('@opentelemetry/api');
   return {
     ...actualApi,
     propagation: {
@@ -63,7 +65,7 @@ describe('getTraceData', () => {
 
 describe('eventContextExtractor', () => {
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   test('passes sentry trace data to the propagation extractor', () => {
