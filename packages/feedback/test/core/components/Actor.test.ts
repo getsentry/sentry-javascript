@@ -1,12 +1,17 @@
-import { TRIGGER_LABEL } from '../../constants';
-import { getFeedback } from '../getFeedback';
-import { buildFeedbackIntegration } from '../integration';
+/**
+ * @vitest-environment jsdom
+ */
+import { vi, describe, it, expect } from 'vitest';
+
+import { TRIGGER_LABEL } from '../../../src/constants';
+import { getFeedback } from '../../../src/core/getFeedback';
+import { buildFeedbackIntegration } from '../../../src/core/integration';
 import { mockSdk } from '../mockSdk';
 
 describe('Actor', () => {
   it('renders the actor button', () => {
     const feedbackIntegration = buildFeedbackIntegration({
-      lazyLoadIntegration: jest.fn(),
+      lazyLoadIntegration: vi.fn(),
     });
 
     const configuredIntegration = feedbackIntegration({});
@@ -27,7 +32,7 @@ describe('Actor', () => {
 
   it('renders the correct aria label for the button', () => {
     const feedbackIntegration = buildFeedbackIntegration({
-      lazyLoadIntegration: jest.fn(),
+      lazyLoadIntegration: vi.fn(),
     });
 
     const configuredIntegration = feedbackIntegration({});

@@ -1,7 +1,9 @@
+import { vi } from 'vitest';
+
 import type { Envelope, Transport, TransportMakeRequestResponse } from '@sentry/core';
 
-import type { TestClientOptions } from './TestClient';
-import { getDefaultClientOptions, init } from './TestClient';
+import type { TestClientOptions } from '../../src/core/TestClient';
+import { getDefaultClientOptions, init } from '../../src/core/TestClient';
 
 export interface MockSdkParams {
   sentryOptions?: Partial<TestClientOptions>;
@@ -11,7 +13,7 @@ class MockTransport implements Transport {
   public send: (request: Envelope) => PromiseLike<TransportMakeRequestResponse>;
 
   public constructor() {
-    this.send = jest.fn(async () => {
+    this.send = vi.fn(async () => {
       return {
         statusCode: 200,
       };
