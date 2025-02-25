@@ -1,5 +1,6 @@
 import { getClient, getCurrentScope, getIsolationScope, withIsolationScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
+import { captureLog, sendLog } from './log';
 import type { CaptureContext } from './scope';
 import { closeSession, makeSession, updateSession } from './session';
 import type {
@@ -10,6 +11,7 @@ import type {
   Extra,
   Extras,
   FinishedCheckIn,
+  LogSeverityLevel,
   MonitorConfig,
   Primitive,
   Session,
@@ -334,3 +336,68 @@ export function captureSession(end: boolean = false): void {
   // only send the update
   _sendSessionUpdate();
 }
+
+type OmitFirstArg<F> = F extends (x: LogSeverityLevel, ...args: infer P) => infer R ? (...args: P) => R : never;
+
+/**
+ * A namespace for experimental logging functions.
+ *
+ * @experimental Will be removed in future versions. Do not use.
+ */
+export const _experiment_log = {
+  /**
+   * A utility to record a log with level 'TRACE' and send it to sentry.
+   *
+   * Logs represent a message and some parameters which provide context for a trace or error.
+   * Ex: Sentry._experiment_log.trace`user ${username} just bought ${item}!`
+   */
+  trace: sendLog.bind(null, 'trace') as OmitFirstArg<typeof sendLog>,
+  /**
+   * A utility to record a log with level 'DEBUG' and send it to sentry.
+   *
+   * Logs represent a message and some parameters which provide context for a trace or error.
+   * Ex: Sentry._experiment_log.debug`user ${username} just bought ${item}!`
+   */
+  debug: sendLog.bind(null, 'debug') as OmitFirstArg<typeof sendLog>,
+  /**
+   * A utility to record a log with level 'INFO' and send it to sentry.
+   *
+   * Logs represent a message and some parameters which provide context for a trace or error.
+   * Ex: Sentry._experiment_log.info`user ${username} just bought ${item}!`
+   */
+  info: sendLog.bind(null, 'info') as OmitFirstArg<typeof sendLog>,
+  /**
+   * A utility to record a log with level 'INFO' and send it to sentry.
+   *
+   * Logs represent a message and some parameters which provide context for a trace or error.
+   * Ex: Sentry._experiment_log.log`user ${username} just bought ${item}!`
+   */
+  log: sendLog.bind(null, 'log') as OmitFirstArg<typeof sendLog>,
+  /**
+   * A utility to record a log with level 'ERROR' and send it to sentry.
+   *
+   * Logs represent a message and some parameters which provide context for a trace or error.
+   * Ex: Sentry._experiment_log.error`user ${username} just bought ${item}!`
+   */
+  error: sendLog.bind(null, 'error') as OmitFirstArg<typeof sendLog>,
+  /**
+   * A utility to record a log with level 'WARN' and send it to sentry.
+   *
+   * Logs represent a message and some parameters which provide context for a trace or error.
+   * Ex: Sentry._experiment_log.warn`user ${username} just bought ${item}!`
+   */
+  warn: sendLog.bind(null, 'warn') as OmitFirstArg<typeof sendLog>,
+  /**
+   * A utility to record a log with level 'FATAL' and send it to sentry.
+   *
+   * Logs represent a message and some parameters which provide context for a trace or error.
+   * Ex: Sentry._experiment_log.warn`user ${username} just bought ${item}!`
+   */
+  fatal: sendLog.bind(null, 'fatal') as OmitFirstArg<typeof sendLog>,
+  /**
+   * A flexible utility to record a log with a custom level and send it to sentry.
+   *
+   * You can optionally pass in custom attributes and a custom severity number to be attached to the log.
+   */
+  captureLog,
+};
