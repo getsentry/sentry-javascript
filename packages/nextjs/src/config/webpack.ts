@@ -56,6 +56,7 @@ export function constructWebpackConfigFunction(
 
     if (runtime !== 'client') {
       warnAboutDeprecatedConfigFiles(projectDir, runtime);
+      warnAboutMissingonRequestErrorHandler(projectDir);
     }
 
     let rawNewConfig = { ...incomingConfig };
@@ -433,6 +434,33 @@ async function addSentryToClientEntryProperty(
   }
 
   return newEntryProperty;
+}
+
+/**
+ * Make sure the instrumentation file has a `onRequestError` Handler
+ *
+ * @param projectDir The root directory of the project, where config files would be located
+ */
+function warnAboutMissingonRequestErrorHandler(projectDir: string): void {
+  const instrumentationPaths = [
+    ['src', 'instrumentation.ts'],
+    ['src', 'instrumentation.js'],
+    ['instrumentation.ts'],
+    ['instrumentation.js'],
+  ];
+  function hasOnRequestErrorHandler(pathSegments: string[]): boolean {
+    const filePath = path.resolve(projectDir, ...pathSegments);
+    try {
+      const content = fs.readFileSync(filePath, 'utf8');
+      return content.includes('export const onRequestError');
+    } catch (error) {
+      return false;
+    }
+  }
+  if (!instrumentationPaths.some(hasOnRequestErrorHandler)) {
+    // eslint-disable-next-line no-console
+    console.warn(`${chalk.yellow('[@sentry/nextjs]')} Missing 'onRequestError' handler in instrumentation file.`);
+  }
 }
 
 /**
