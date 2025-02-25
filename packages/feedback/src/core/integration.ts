@@ -84,7 +84,6 @@ export const buildFeedbackIntegration = ({
       email: 'email',
       name: 'username',
     },
-    _experiments = {},
     tags,
     styleNonce,
     scriptNonce,
@@ -159,8 +158,6 @@ export const buildFeedbackIntegration = ({
       onSubmitError,
       onSubmitSuccess,
       onFormSubmitted,
-
-      _experiments,
     };
 
     let _shadow: ShadowRoot | null = null;
