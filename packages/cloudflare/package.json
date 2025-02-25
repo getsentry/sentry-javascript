@@ -26,6 +26,16 @@
         "types": "./build/types/index.d.ts",
         "default": "./build/cjs/index.js"
       }
+    },
+    "./request": {
+      "import": {
+        "types": "./build/types/request.d.ts",
+        "default": "./build/esm/request.js"
+      },
+      "require": {
+        "types": "./build/types/request.d.ts",
+        "default": "./build/cjs/request.js"
+      }
     }
   },
   "typesVersions": {

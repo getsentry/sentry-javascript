@@ -1,6 +1,5 @@
 import type { Agent } from 'https';
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable max-lines */
 /* eslint-disable @typescript-eslint/ban-types */
 // Types vendored from @remix-run/server-runtime@1.6.0:
 // https://github.com/remix-run/remix/blob/f3691d51027b93caa3fd2cdfe146d7b62a6eb8f2/packages/remix-server-runtime/server.ts

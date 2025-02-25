@@ -838,7 +838,7 @@ jobs:
     # See: https://github.com/actions/runner/issues/2205
     if: always() && needs.job_e2e_prepare.result == 'success' && needs.job_e2e_prepare.outputs.matrix != '{"include":[]}'
     needs: [job_get_metadata, job_build, job_e2e_prepare]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     timeout-minutes: 15
     env:
       # We just use a dummy DSN here, only send to the tunnel anyhow
