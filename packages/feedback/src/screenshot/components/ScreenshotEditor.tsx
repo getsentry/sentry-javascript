@@ -22,8 +22,10 @@ interface Props {
   onError: (error: Error) => void;
 }
 
+type Action = 'highlight' | 'hide' | '';
+
 interface Box {
-  action: 'highlight' | 'hide' | '';
+  action: Action;
   startX: number;
   startY: number;
   endX: number;
@@ -31,7 +33,7 @@ interface Box {
 }
 
 interface Rect {
-  action: 'highlight' | 'hide' | '';
+  action: Action;
   x: number;
   y: number;
   height: number;
@@ -63,7 +65,7 @@ const getContainedSize = (measurementDiv: HTMLDivElement, imageSource: HTMLCanva
   return { action: '', x: x, y: y, width: width, height: height };
 };
 
-function drawRect(rect: Rect, ctx: CanvasRenderingContext2D, feedbackId: string, scale: number = 1): void {
+function drawRect(rect: Rect, ctx: CanvasRenderingContext2D, color: string, scale: number = 1): void {
   const scaledX = rect.x * scale;
   const scaledY = rect.y * scale;
   const scaledWidth = rect.width * scale;
@@ -84,16 +86,7 @@ function drawRect(rect: Rect, ctx: CanvasRenderingContext2D, feedbackId: string,
       ctx.shadowColor = 'transparent';
       ctx.shadowBlur = 0;
 
-      // draws outline around rectangle in the same colour as the submit button
-      let strokeColor;
-      const sentryFeedback = DOCUMENT.getElementById(feedbackId);
-      if (sentryFeedback) {
-        const computedStyle = getComputedStyle(sentryFeedback);
-        strokeColor =
-          computedStyle.getPropertyValue('--button-primary-background') ||
-          computedStyle.getPropertyValue('--accent-background');
-      }
-      ctx.strokeStyle = strokeColor || 'white';
+      ctx.strokeStyle = color;
       ctx.strokeRect(scaledX + 1, scaledY + 1, scaledWidth - 2, scaledHeight - 2);
 
       break;
@@ -129,19 +122,40 @@ export function ScreenshotEditorFactory({
   const useTakeScreenshot = useTakeScreenshotFactory({ hooks });
   const Toolbar = ToolbarFactory({ h });
   const IconClose = IconCloseFactory({ h });
-  return function ScreenshotEditor({ onError }: Props): VNode {
-    const styles = hooks.useMemo(() => ({ __html: createScreenshotInputStyles(options.styleNonce).innerText }), []);
+  const styles = { __html: createScreenshotInputStyles(options.styleNonce).innerText };
 
+  return function ScreenshotEditor({ onError }: Props): VNode {
+    // Data for rendering:
     const [action, setAction] = hooks.useState<'highlight' | 'hide' | ''>('');
     const [drawRects, setDrawRects] = hooks.useState<Rect[]>([]);
     const [currentRect, setCurrentRect] = hooks.useState<Rect | undefined>(undefined);
+
+    // Refs to our html components:
     const measurementRef = hooks.useRef<HTMLDivElement>(null);
     const screenshotRef = hooks.useRef<HTMLCanvasElement>(null);
     const annotatingRef = hooks.useRef<HTMLCanvasElement>(null);
     const rectContainerRef = hooks.useRef<HTMLDivElement>(null);
+
+    // The canvas that contains the original screenshot
     const [imageSource, setImageSource] = hooks.useState<HTMLCanvasElement | null>(null);
+
+    // Hide the whole feedback widget when we take the screenshot
     const [displayEditor, setDisplayEditor] = hooks.useState<boolean>(true);
+
+    // The size of our window, relative to the imageSource
     const [scaleFactor, setScaleFactor] = hooks.useState<number>(1);
+
+    const strokeColor = hooks.useMemo((): string => {
+      const sentryFeedback = DOCUMENT.getElementById(options.id);
+      if (!sentryFeedback) {
+        return 'white';
+      }
+      const computedStyle = getComputedStyle(sentryFeedback);
+      return (
+        computedStyle.getPropertyValue('--button-primary-background') ||
+        computedStyle.getPropertyValue('--accent-background')
+      );
+    }, [options.id]);
 
     const resize = hooks.useCallback((): void => {
       if (!displayEditor) {
@@ -225,10 +239,10 @@ export function ScreenshotEditorFactory({
 
       grayCtx.lineWidth = 4;
       drawRects.forEach(rect => {
-        drawRect(rect, grayCtx, options.id);
+        drawRect(rect, grayCtx, strokeColor);
       });
       ctx.drawImage(annotatingBufferBig, 0, 0);
-    }, [drawRects]);
+    }, [drawRects, strokeColor]);
 
     const drawScene = hooks.useCallback((): void => {
       const annotatingCanvas = annotatingRef.current;
@@ -252,13 +266,13 @@ export function ScreenshotEditorFactory({
       ctx.lineWidth = 2;
       const scale = annotatingCanvas.clientWidth / imageBuffer.width;
       drawRects.forEach(rect => {
-        drawRect(rect, ctx, options.id, scale);
+        drawRect(rect, ctx, strokeColor, scale);
       });
 
       if (currentRect) {
-        drawRect(currentRect, ctx, options.id);
+        drawRect(currentRect, ctx, strokeColor);
       }
-    }, [drawRects, currentRect]);
+    }, [drawRects, currentRect, strokeColor]);
 
     useTakeScreenshot({
       onBeforeScreenshot: hooks.useCallback(() => {
