@@ -1,7 +1,7 @@
 {
   "extends": "./tsconfig.json",
 
-  "include": ["suites/**/*.ts", "vitest.config.ts"],
+  "include": ["suites/**/*.ts", "vite.config.ts"],
 
   "compilerOptions": {
     // Although this seems wrong to include `DOM` here, it's necessary to make

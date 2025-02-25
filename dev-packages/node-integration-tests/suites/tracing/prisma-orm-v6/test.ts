@@ -1,5 +1,5 @@
 import type { SpanJSON } from '@sentry/core';
-import { afterAll, describe, expect, test, vi } from 'vitest';
+import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
 afterAll(() => {
