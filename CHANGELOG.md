@@ -12,6 +12,12 @@
 
 Work in this release was contributed by @6farer. Thank you for your contribution!
 
+## 9.2.0-alpha.1
+
+Alpha release of User Feedback's new annotation editor that allows you to highlight (or redact) specific parts of a screenshot.
+
+- feat(feedback): Allowing annotation via highlighting & masking (#15484)
+
 ## 9.2.0-alpha.0
 
 This is an alpha release that includes experimental functionality for the new logs API in Sentry. Support for these methods are only avaliable in the browser and core SDKs.
