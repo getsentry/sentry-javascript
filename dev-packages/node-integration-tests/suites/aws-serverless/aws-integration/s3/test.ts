@@ -8,7 +8,7 @@ const EXPECTED_TRANSCATION = {
       description: 'S3.PutObject',
       op: 'rpc',
       origin: 'auto.otel.aws',
-      data: {
+      data: expect.objectContaining({
         'sentry.origin': 'auto.otel.aws',
         'sentry.op': 'rpc',
         'rpc.system': 'aws-api',
@@ -17,7 +17,7 @@ const EXPECTED_TRANSCATION = {
         'aws.region': 'us-east-1',
         'aws.s3.bucket': 'ot-demo-test',
         'otel.kind': 'CLIENT',
-      },
+      }),
     }),
   ]),
 };

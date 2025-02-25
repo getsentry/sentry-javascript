@@ -1,15 +1,12 @@
 import { afterAll, describe, expect, test, vi } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
-// When running docker compose, we need a larger timeout, as this takes some time...
-vi.setConfig({ testTimeout: 75_000 });
-
 describe('mysql2 auto instrumentation', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
 
-  test('should auto-instrument `mysql` package without connection.connect()', async () => {
+  test('should auto-instrument `mysql` package without connection.connect()', { timeout: 75_000 }, async () => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Transaction',
       spans: expect.arrayContaining([

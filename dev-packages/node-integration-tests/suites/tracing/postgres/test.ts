@@ -1,11 +1,8 @@
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import { createRunner } from '../../../utils/runner';
 
-// When running docker compose, we need a larger timeout, as this takes some time...
-vi.setConfig({ testTimeout: 575 });
-
 describe('postgres auto instrumentation', () => {
-  test('should auto-instrument `pg` package', async () => {
+  test('should auto-instrument `pg` package', { timeout: 60_000 }, async () => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Transaction',
       spans: expect.arrayContaining([

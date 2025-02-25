@@ -28,7 +28,8 @@ test('should create spans for fs operations that take target argument', async ()
     })
     .start();
 
-  expect(runner.makeRequest('get', '/readFile-error')).resolves.toBe('done');
+  const result = await runner.makeRequest('get', '/readFile-error');
+  expect(result).toEqual('done');
   await runner.completed();
 });
 
@@ -73,7 +74,8 @@ test('should create spans for fs operations that take one path', async () => {
     })
     .start();
 
-  expect(runner.makeRequest('get', '/readFile')).resolves.toBe('done');
+  const result = await runner.makeRequest('get', '/readFile');
+  expect(result).toEqual('done');
   await runner.completed();
 });
 
@@ -121,7 +123,8 @@ test('should create spans for fs operations that take src and dest arguments', a
     })
     .start();
 
-  expect(runner.makeRequest('get', '/copyFile')).resolves.toBe('done');
+  const result = await runner.makeRequest('get', '/copyFile');
+  expect(result).toEqual('done');
   await runner.completed();
 });
 
@@ -169,7 +172,8 @@ test('should create spans for fs operations that take existing path and new path
     })
     .start();
 
-  expect(runner.makeRequest('get', '/link')).resolves.toBe('done');
+  const result = await runner.makeRequest('get', '/link');
+  expect(result).toEqual('done');
   await runner.completed();
 });
 
@@ -214,7 +218,8 @@ test('should create spans for fs operations that take prefix argument', async ()
     })
     .start();
 
-  expect(runner.makeRequest('get', '/mkdtemp')).resolves.toBe('done');
+  const result = await runner.makeRequest('get', '/mkdtemp');
+  expect(result).toEqual('done');
   await runner.completed();
 });
 
@@ -262,6 +267,7 @@ test('should create spans for fs operations that take target argument', async ()
     })
     .start();
 
-  expect(runner.makeRequest('get', '/symlink')).resolves.toBe('done');
+  const result = await runner.makeRequest('get', '/symlink');
+  expect(result).toEqual('done');
   await runner.completed();
 });

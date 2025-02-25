@@ -1,15 +1,12 @@
-import { afterAll, describe, expect, test, vi } from 'vitest';
+import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
-
-// When running docker compose, we need a larger timeout, as this takes some time...
-vi.setConfig({ testTimeout: 75_000 });
 
 afterAll(() => {
   cleanupChildProcesses();
 });
 
 describe('Prisma ORM v5 Tests', () => {
-  test('CJS - should instrument PostgreSQL queries from Prisma ORM', async () => {
+  test('CJS - should instrument PostgreSQL queries from Prisma ORM', { timeout: 75_000 }, async () => {
     await createRunner(__dirname, 'scenario.js')
       .withDockerCompose({
         workingDirectory: [__dirname],

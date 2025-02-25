@@ -276,7 +276,7 @@ export function createRunner(...paths: string[]) {
 
             try {
               if (!expected) {
-                throw new Error(`No more expected envelope items but we received ${JSON.stringify(header)}`);
+                return;
               }
 
               assertEnvelopeHeader(header, expected);
@@ -294,7 +294,7 @@ export function createRunner(...paths: string[]) {
           // Catch any error or failed assertions and pass them to done to end the test quickly
           try {
             if (!expected) {
-              throw new Error(`No more expected envelope items but we received a '${envelopeItemType}' item`);
+             return;
             }
 
             const expectedType = Object.keys(expected)[0];

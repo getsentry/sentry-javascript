@@ -1,15 +1,12 @@
-import { afterAll, describe, expect, test, vi } from 'vitest';
+import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
-
-// When running docker compose, we need a larger timeout, as this takes some time...
-vi.setConfig({ testTimeout: 90_000 });
 
 describe('redis cache auto instrumentation', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
 
-  test('should not add cache spans when key is not prefixed', async () => {
+  test('should not add cache spans when key is not prefixed', { timeout: 60_000 }, async () => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Span',
       spans: expect.arrayContaining([
@@ -47,7 +44,7 @@ describe('redis cache auto instrumentation', () => {
       .completed();
   });
 
-  test('should create cache spans for prefixed keys (ioredis)', async () => {
+  test('should create cache spans for prefixed keys (ioredis)', { timeout: 60_000 }, async () => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Span',
       spans: expect.arrayContaining([

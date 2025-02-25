@@ -5,7 +5,10 @@ export default defineConfig({
   ...baseConfig,
   test: {
     ...baseConfig.test,
-    maxConcurrency: 4,
+    isolate: false,
+    coverage: {
+      enabled: false,
+    },
     include: ['./**/test.ts'],
     testTimeout: 15000,
   },

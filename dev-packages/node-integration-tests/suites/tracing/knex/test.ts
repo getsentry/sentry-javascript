@@ -1,13 +1,11 @@
 import { describe, expect, test, vi } from 'vitest';
 import { createRunner } from '../../../utils/runner';
 
-vi.setConfig({ testTimeout: 90_000 });
-
 describe('knex auto instrumentation', () => {
   // Update this if another knex version is installed
   const KNEX_VERSION = '2.5.1';
 
-  test('should auto-instrument `knex` package when using `pg` client', async () => {
+  test('should auto-instrument `knex` package when using `pg` client', { timeout: 60_000 }, async () => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Transaction',
       spans: expect.arrayContaining([
@@ -67,7 +65,7 @@ describe('knex auto instrumentation', () => {
       .completed();
   });
 
-  test('should auto-instrument `knex` package when using `mysql2` client', async () => {
+  test('should auto-instrument `knex` package when using `mysql2` client', { timeout: 60_000 }, async () => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Transaction',
       spans: expect.arrayContaining([

@@ -1,11 +1,7 @@
-import { afterAll, describe, expect, test, vi } from 'vitest';
+import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
-vi.setConfig({ testTimeout: 75_000 });
-
-// Tedious version we are testing against only supports Node 18+
-// https://github.com/tediousjs/tedious/blob/8310c455a2cc1cba83c1ca3c16677da4f83e12a9/package.json#L38
-describe('tedious auto instrumentation', () => {
+describe('tedious auto instrumentation', {timeout: 75_000}, () => {
   afterAll(() => {
     cleanupChildProcesses();
   });

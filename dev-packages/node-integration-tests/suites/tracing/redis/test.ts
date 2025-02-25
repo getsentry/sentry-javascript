@@ -1,15 +1,12 @@
-import { afterAll, describe, expect, test, vi } from 'vitest';
+import { afterAll, describe, expect, test} from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
-
-// When running docker compose, we need a larger timeout, as this takes some time...
-vi.setConfig({ testTimeout: 75_000 });
 
 describe('redis auto instrumentation', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
 
-  test('should auto-instrument `ioredis` package when using redis.set() and redis.get()', async () => {
+  test('should auto-instrument `ioredis` package when using redis.set() and redis.get()', { timeout: 75_000 }, async () => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Span',
       spans: expect.arrayContaining([
