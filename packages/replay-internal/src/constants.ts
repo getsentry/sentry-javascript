@@ -53,3 +53,6 @@ export const MAX_REPLAY_DURATION = 3_600_000; // 60 minutes in ms;
 
 /** Default attributes to be ignored when `maskAllText` is enabled */
 export const DEFAULT_IGNORED_ATTRIBUTES = ['title', 'placeholder'];
+
+// Time window in which to check for repeated DOM mutations
+export const MUTATION_DEBOUNCE_TIME = 100; // ms
