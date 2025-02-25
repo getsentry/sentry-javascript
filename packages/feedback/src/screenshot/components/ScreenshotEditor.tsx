@@ -22,35 +22,37 @@ interface Props {
   onError: (error: Error) => void;
 }
 
-type Action = 'highlight' | 'hide' | '';
+type Action = 'highlight' | 'hide';
 
 interface Box {
-  action: Action;
   startX: number;
   startY: number;
   endX: number;
   endY: number;
 }
 
-interface Rect {
-  action: Action;
+interface Dimensions {
   x: number;
   y: number;
   height: number;
   width: number;
 }
 
+interface Rect extends Dimensions {
+  action: Action;
+}
+
 const DPI = WINDOW.devicePixelRatio;
 
-const constructRect = (box: Box): Rect => ({
-  action: box.action,
+const constructRect = (action: Action, box: Box): Rect => ({
+  action,
   x: Math.min(box.startX, box.endX),
   y: Math.min(box.startY, box.endY),
   width: Math.abs(box.startX - box.endX),
   height: Math.abs(box.startY - box.endY),
 });
 
-const getContainedSize = (measurementDiv: HTMLDivElement, imageSource: HTMLCanvasElement): Rect => {
+const getContainedSize = (measurementDiv: HTMLDivElement, imageSource: HTMLCanvasElement): Dimensions => {
   const imgClientHeight = measurementDiv.clientHeight;
   const imgClientWidth = measurementDiv.clientWidth;
   const ratio = imageSource.width / imageSource.height;
@@ -62,7 +64,7 @@ const getContainedSize = (measurementDiv: HTMLDivElement, imageSource: HTMLCanva
   }
   const x = (imgClientWidth - width) / 2;
   const y = (imgClientHeight - height) / 2;
-  return { action: '', x: x, y: y, width: width, height: height };
+  return { x: x, y: y, width: width, height: height };
 };
 
 function drawRect(rect: Rect, ctx: CanvasRenderingContext2D, color: string, scale: number = 1): void {
@@ -101,7 +103,7 @@ function drawRect(rect: Rect, ctx: CanvasRenderingContext2D, color: string, scal
   }
 }
 
-function resizeCanvas(canvas: HTMLCanvasElement, imageDimensions: Rect): void {
+function resizeCanvas(canvas: HTMLCanvasElement, imageDimensions: Dimensions): void {
   canvas.width = imageDimensions.width * DPI;
   canvas.height = imageDimensions.height * DPI;
   canvas.style.width = `${imageDimensions.width}px`;
@@ -126,7 +128,7 @@ export function ScreenshotEditorFactory({
 
   return function ScreenshotEditor({ onError }: Props): VNode {
     // Data for rendering:
-    const [action, setAction] = hooks.useState<'highlight' | 'hide' | ''>('');
+    const [action, setAction] = hooks.useState<Action>('highlight');
     const [drawRects, setDrawRects] = hooks.useState<Rect[]>([]);
     const [currentRect, setCurrentRect] = hooks.useState<Rect | undefined>(undefined);
 
@@ -314,7 +316,7 @@ export function ScreenshotEditorFactory({
       const handleMouseMove = (e: MouseEvent): void => {
         const endX = e.clientX - boundingRect.left;
         const endY = e.clientY - boundingRect.top;
-        const rect = constructRect({ action, startX, startY, endX, endY });
+        const rect = constructRect(action, { startX, startY, endX, endY });
         // prevent drawing when just clicking (not dragging) on the canvas
         if (startX != endX && startY != endY) {
           setCurrentRect(rect);
@@ -330,8 +332,7 @@ export function ScreenshotEditorFactory({
         if (startX != endX && startY != endY) {
           // scale to image buffer
           const scale = imageBuffer.width / annotatingCanvas.clientWidth;
-          const rect = constructRect({
-            action,
+          const rect = constructRect(action, {
             startX: startX * scale,
             startY: startY * scale,
             endX: endX * scale,
@@ -360,8 +361,8 @@ export function ScreenshotEditorFactory({
         <div class="editor__image-container">
           <div class="editor__canvas-container" ref={measurementRef}>
             <canvas ref={screenshotRef}></canvas>
-            <canvas class="editor__canvas-annotate" ref={annotatingRef} onMouseDown={handleMouseDown}></canvas>
-            <div class="editor__rect-container" ref={rectContainerRef}>
+            <canvas ref={annotatingRef}></canvas>
+            <div class="editor__rect-container" ref={rectContainerRef} onMouseDown={handleMouseDown}>
               {drawRects.map((rect, index) => (
                 <div
                   key={index}
@@ -372,7 +373,6 @@ export function ScreenshotEditorFactory({
                     width: `${rect.width * scaleFactor}px`,
                     height: `${rect.height * scaleFactor}px`,
                   }}
-                  onMouseDown={handleMouseDown}
                 >
                   <button type="button" onClick={() => handleDeleteRect(index)}>
                     <IconClose />

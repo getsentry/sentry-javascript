@@ -12,8 +12,8 @@ export default function ToolbarFactory({
     action,
     setAction,
   }: {
-    action: 'highlight' | 'hide' | '';
-    setAction: Hooks.StateUpdater<'highlight' | 'hide' | ''>;
+    action: 'highlight' | 'hide';
+    setAction: Hooks.StateUpdater<'highlight' | 'hide'>;
   }): VNode {
     return (
       <div class="editor__tool-container">
@@ -22,7 +22,7 @@ export default function ToolbarFactory({
             type="button"
             class={`editor__tool ${action === 'highlight' ? 'editor__tool--active' : ''}`}
             onClick={() => {
-              setAction(action === 'highlight' ? '' : 'highlight');
+              setAction('highlight');
             }}
           >
             Highlight
@@ -31,7 +31,7 @@ export default function ToolbarFactory({
             type="button"
             class={`editor__tool ${action === 'hide' ? 'editor__tool--active' : ''}`}
             onClick={() => {
-              setAction(action === 'hide' ? '' : 'hide');
+              setAction('hide');
             }}
           >
             Hide

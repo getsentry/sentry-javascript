@@ -54,10 +54,6 @@ export function createScreenshotInputStyles(styleNonce?: string): HTMLStyleEleme
   position: absolute;
 }
 
-.editor__canvas-annotate {
-  z-index: 2;
-}
-
 .editor__tool-container {
   padding-top: 8px;
   display: flex;
@@ -79,6 +75,7 @@ export function createScreenshotInputStyles(styleNonce?: string): HTMLStyleEleme
 }
 
 .editor__tool--active {
+  cursor: default;
   background: var(--button-primary-background, var(--accent-background));
   color: var(--button-primary-color, var(--accent-foreground));
 }
@@ -89,7 +86,6 @@ export function createScreenshotInputStyles(styleNonce?: string): HTMLStyleEleme
 
 .editor__rect {
   position: absolute;
-  z-index: 2;
 }
 
 .editor__rect button {
