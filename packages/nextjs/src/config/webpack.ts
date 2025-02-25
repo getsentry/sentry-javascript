@@ -475,7 +475,7 @@ function warnAboutMissingonRequestErrorHandler(projectDir: string): void {
     return console.warn(
       `${chalk.yellow(
         '[@sentry/nextjs]',
-      )} Could not find instrumentation file: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#create-initialization-config-files`,
+      )} Could not find a Next.js instrumentation file. This indicates an incomplete configuration of the Sentry SDK. An instrumentation file is required for the Sentry SDK to be initialized on the server: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#create-initialization-config-files`,
     );
   }
 
