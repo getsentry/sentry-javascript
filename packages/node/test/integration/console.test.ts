@@ -1,17 +1,18 @@
 import * as SentryCore from '@sentry/core';
 import { resetInstrumentationHandlers } from '@sentry/core';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { getClient } from '../../src';
 import type { NodeClient } from '../../src';
 import { consoleIntegration } from '../../src/integrations/console';
 
-const addBreadcrumbSpy = jest.spyOn(SentryCore, 'addBreadcrumb');
+const addBreadcrumbSpy = vi.spyOn(SentryCore, 'addBreadcrumb');
 
-jest.spyOn(console, 'log').mockImplementation(() => {
+vi.spyOn(console, 'log').mockImplementation(() => {
   // noop so that we don't spam the logs
 });
 
 afterEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   resetInstrumentationHandlers();
 });
 

@@ -1,5 +1,6 @@
 import type { AttachmentItem, EventEnvelope, EventItem, TransportMakeRequestResponse } from '../../../src/types-hoist';
 
+import { describe, expect, it, vi } from 'vitest';
 import { createTransport } from '../../../src/transports/base';
 import { createEnvelope, serializeEnvelope } from '../../../src/utils-hoist/envelope';
 import type { PromiseBuffer } from '../../../src/utils-hoist/promisebuffer';
@@ -38,8 +39,8 @@ describe('createTransport', () => {
   it('flushes the buffer', async () => {
     const mockBuffer: PromiseBuffer<TransportMakeRequestResponse> = {
       $: [],
-      add: jest.fn(),
-      drain: jest.fn(),
+      add: vi.fn(),
+      drain: vi.fn(),
     };
     const transport = createTransport(transportOptions, _ => resolvedSyncPromise({}), mockBuffer);
     /* eslint-disable @typescript-eslint/unbound-method */
@@ -94,11 +95,11 @@ describe('createTransport', () => {
           transportResponse = res;
         }
 
-        const mockRequestExecutor = jest.fn(_ => {
+        const mockRequestExecutor = vi.fn(_ => {
           return resolvedSyncPromise(transportResponse);
         });
 
-        const mockRecordDroppedEventCallback = jest.fn();
+        const mockRecordDroppedEventCallback = vi.fn();
 
         const transport = createTransport({ recordDroppedEvent: mockRecordDroppedEventCallback }, mockRequestExecutor);
 
@@ -109,7 +110,7 @@ describe('createTransport', () => {
         const { retryAfterSeconds, beforeLimit, withinLimit, afterLimit } = setRateLimitTimes();
         const [transport, setTransportResponse, requestExecutor, recordDroppedEventCallback] = createTestTransport({});
 
-        const dateNowSpy = jest.spyOn(Date, 'now').mockImplementation(() => beforeLimit);
+        const dateNowSpy = vi.spyOn(Date, 'now').mockImplementation(() => beforeLimit);
 
         await transport.send(ERROR_ENVELOPE);
         expect(requestExecutor).toHaveBeenCalledTimes(1);
@@ -156,7 +157,7 @@ describe('createTransport', () => {
           },
         });
 
-        const dateNowSpy = jest.spyOn(Date, 'now').mockImplementation(() => beforeLimit);
+        const dateNowSpy = vi.spyOn(Date, 'now').mockImplementation(() => beforeLimit);
 
         await transport.send(ERROR_ENVELOPE);
         expect(requestExecutor).toHaveBeenCalledTimes(1);
@@ -204,7 +205,7 @@ describe('createTransport', () => {
           },
         });
 
-        const dateNowSpy = jest.spyOn(Date, 'now').mockImplementation(() => beforeLimit);
+        const dateNowSpy = vi.spyOn(Date, 'now').mockImplementation(() => beforeLimit);
 
         await transport.send(ERROR_ENVELOPE);
         expect(requestExecutor).toHaveBeenCalledTimes(1);
@@ -264,7 +265,7 @@ describe('createTransport', () => {
           },
         });
 
-        const dateNowSpy = jest.spyOn(Date, 'now').mockImplementation(() => beforeLimit);
+        const dateNowSpy = vi.spyOn(Date, 'now').mockImplementation(() => beforeLimit);
 
         await transport.send(ERROR_ENVELOPE);
         expect(requestExecutor).toHaveBeenCalledTimes(1);

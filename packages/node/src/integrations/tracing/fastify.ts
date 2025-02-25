@@ -38,6 +38,7 @@ const INTEGRATION_NAME = 'Fastify';
 export const instrumentFastify = generateInstrumentOnce(
   INTEGRATION_NAME,
   () =>
+    // eslint-disable-next-line deprecation/deprecation
     new FastifyInstrumentation({
       requestHook(span) {
         addFastifySpanAttributes(span);

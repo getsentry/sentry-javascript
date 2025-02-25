@@ -1,5 +1,6 @@
 import type { Event, EventProcessor } from '../../../src/types-hoist';
 
+import { describe, expect, it } from 'vitest';
 import type { InboundFiltersOptions } from '../../../src/integrations/inboundfilters';
 import { inboundFiltersIntegration } from '../../../src/integrations/inboundfilters';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
