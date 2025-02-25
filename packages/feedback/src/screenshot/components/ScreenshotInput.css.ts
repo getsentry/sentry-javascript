@@ -70,10 +70,8 @@ export function createScreenshotInputStyles(styleNonce?: string): HTMLStyleEleme
 }
 
 .editor__tool {
-  display: flex;
+  cursor: pointer;
   padding: 8px 12px;
-  justify-content: center;
-  align-items: center;
   border: var(--button-border, var(--border));
   border-radius: var(--button-border-radius, 6px);
   background: var(--button-background, var(--background));
