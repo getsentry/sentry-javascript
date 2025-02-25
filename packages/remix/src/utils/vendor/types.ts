@@ -1,6 +1,5 @@
 import type { Agent } from 'https';
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable max-lines */
 /* eslint-disable @typescript-eslint/ban-types */
 // Types vendored from @remix-run/server-runtime@1.6.0:
 // https://github.com/remix-run/remix/blob/f3691d51027b93caa3fd2cdfe146d7b62a6eb8f2/packages/remix-server-runtime/server.ts
@@ -108,12 +107,7 @@ export type DeferredData = {
 };
 
 export interface MetaFunction {
-  (args: {
-    data: AppData;
-    parentsData: RouteData;
-    params: Params;
-    location: Location;
-  }): HtmlMetaDescriptor;
+  (args: { data: AppData; parentsData: RouteData; params: Params; location: Location }): HtmlMetaDescriptor;
 }
 
 export interface HtmlMetaDescriptor {
@@ -148,11 +142,7 @@ export interface LoaderFunction {
 }
 
 export interface HeadersFunction {
-  (args: {
-    loaderHeaders: Headers;
-    parentHeaders: Headers;
-    actionHeaders: Headers;
-  }): Headers | HeadersInit;
+  (args: { loaderHeaders: Headers; parentHeaders: Headers; actionHeaders: Headers }): Headers | HeadersInit;
 }
 
 export interface ServerRouteModule extends EntryRouteModule {

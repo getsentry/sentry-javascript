@@ -15,7 +15,6 @@ import { defineConfig } from 'rollup';
 import {
   makeCleanupPlugin,
   makeDebugBuildStatementReplacePlugin,
-  makeImportMetaUrlReplacePlugin,
   makeNodeResolvePlugin,
   makeRrwebBuildPlugin,
   makeSucrasePlugin,
@@ -39,7 +38,6 @@ export function makeBaseNPMConfig(options = {}) {
   const nodeResolvePlugin = makeNodeResolvePlugin();
   const sucrasePlugin = makeSucrasePlugin({}, sucrase);
   const debugBuildStatementReplacePlugin = makeDebugBuildStatementReplacePlugin();
-  const importMetaUrlReplacePlugin = makeImportMetaUrlReplacePlugin();
   const cleanupPlugin = makeCleanupPlugin();
   const rrwebBuildPlugin = makeRrwebBuildPlugin({
     excludeShadowDom: undefined,
@@ -85,14 +83,7 @@ export function makeBaseNPMConfig(options = {}) {
       interop: 'esModule',
     },
 
-    plugins: [
-      nodeResolvePlugin,
-      sucrasePlugin,
-      debugBuildStatementReplacePlugin,
-      importMetaUrlReplacePlugin,
-      rrwebBuildPlugin,
-      cleanupPlugin,
-    ],
+    plugins: [nodeResolvePlugin, sucrasePlugin, debugBuildStatementReplacePlugin, rrwebBuildPlugin, cleanupPlugin],
 
     // don't include imported modules from outside the package in the final output
     external: [

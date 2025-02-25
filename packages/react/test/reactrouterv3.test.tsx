@@ -1,3 +1,8 @@
+/**
+ * @vitest-environment jsdom
+ */
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { BrowserClient } from '@sentry/browser';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -13,18 +18,18 @@ import * as React from 'react';
 import { IndexRoute, Route, Router, createMemoryHistory, createRoutes, match } from 'react-router-3';
 import { reactRouterV3BrowserTracingIntegration } from '../src/reactrouterv3';
 
-const mockStartBrowserTracingPageLoadSpan = jest.fn();
-const mockStartBrowserTracingNavigationSpan = jest.fn();
+const mockStartBrowserTracingPageLoadSpan = vi.fn();
+const mockStartBrowserTracingNavigationSpan = vi.fn();
 
 const mockRootSpan = {
-  setAttribute: jest.fn(),
+  setAttribute: vi.fn(),
   getSpanJSON() {
     return { op: 'pageload' };
   },
 };
 
-jest.mock('@sentry/browser', () => {
-  const actual = jest.requireActual('@sentry/browser');
+vi.mock('@sentry/browser', async requireActual => {
+  const actual = (await requireActual()) as any;
   return {
     ...actual,
     startBrowserTracingNavigationSpan: (...args: unknown[]) => {
@@ -38,10 +43,9 @@ jest.mock('@sentry/browser', () => {
   };
 });
 
-jest.mock('@sentry/core', () => {
-  const actual = jest.requireActual('@sentry/core');
+vi.mock('@sentry/core', async requireActual => {
   return {
-    ...actual,
+    ...(await requireActual()),
     getRootSpan: () => {
       return mockRootSpan;
     },
@@ -78,7 +82,7 @@ describe('browserTracingReactRouterV3', () => {
   }
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     getCurrentScope().setClient(undefined);
   });
 

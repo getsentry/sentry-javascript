@@ -1,3 +1,4 @@
+/* eslint-disable complexity */
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -182,6 +183,24 @@ async function run() {
     }
 
     if (status > 0) {
+      try {
+        const results = limit.parseResults(output);
+        const failedResults = results
+          .filter(result => result.passed || false)
+          .map(result => ({
+            name: result.name,
+            size: +result.size,
+            sizeLimit: +result.sizeLimit,
+          }));
+
+        if (failedResults.length > 0) {
+          // eslint-disable-next-line no-console
+          console.log('Exceeded size-limits:', failedResults);
+        }
+      } catch {
+        // noop
+      }
+
       setFailed('Size limit has been exceeded.');
     }
   } catch (error) {

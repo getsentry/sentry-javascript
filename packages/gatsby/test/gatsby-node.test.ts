@@ -1,13 +1,31 @@
-import { sentryWebpackPlugin } from '@sentry/webpack-plugin';
+import { describe, afterAll, afterEach, beforeEach, beforeAll, vi, it, expect } from 'vitest';
+
+vi.hoisted(
+  () =>
+    void mock('@sentry/webpack-plugin', {
+      sentryWebpackPlugin: vi.fn().mockReturnValue({}),
+    }),
+);
+
+// Need to override mock because `gatsby-node.js` loads `@sentry/webpack-plugin` as a CJS file.
+async function mock(mockedUri: string, stub: any) {
+  const { Module } = await import('module');
+
+  // @ts-expect-error test
+  Module._load_original = Module._load;
+  // @ts-expect-error test
+  Module._load = (uri, parent) => {
+    if (uri === mockedUri) return stub;
+    // @ts-expect-error test
+    return Module._load_original(uri, parent);
+  };
+}
+
 import { onCreateWebpackConfig } from '../gatsby-node';
 
-jest.mock('@sentry/webpack-plugin', () => ({
-  sentryWebpackPlugin: jest.fn().mockReturnValue({
-    apply: jest.fn(),
-  }),
-}));
-
 describe('onCreateWebpackConfig', () => {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { sentryWebpackPlugin } = require('@sentry/webpack-plugin');
   let originalNodeEnv: string | undefined;
 
   beforeAll(() => {
@@ -20,15 +38,15 @@ describe('onCreateWebpackConfig', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('sets a webpack config', () => {
     const actions = {
-      setWebpackConfig: jest.fn(),
+      setWebpackConfig: vi.fn(),
     };
 
-    const getConfig = jest.fn().mockReturnValue({ devtool: 'source-map' });
+    const getConfig = vi.fn().mockReturnValue({ devtool: 'source-map' });
 
     onCreateWebpackConfig({ actions, getConfig }, {});
 
@@ -38,10 +56,10 @@ describe('onCreateWebpackConfig', () => {
 
   it('does not set a webpack config if enableClientWebpackPlugin is false', () => {
     const actions = {
-      setWebpackConfig: jest.fn(),
+      setWebpackConfig: vi.fn(),
     };
 
-    const getConfig = jest.fn().mockReturnValue({ devtool: 'source-map' });
+    const getConfig = vi.fn().mockReturnValue({ devtool: 'source-map' });
 
     onCreateWebpackConfig({ actions, getConfig }, { enableClientWebpackPlugin: false });
 
@@ -50,21 +68,21 @@ describe('onCreateWebpackConfig', () => {
 
   describe('delete source maps after upload', () => {
     beforeEach(() => {
-      jest.clearAllMocks();
+      vi.clearAllMocks();
     });
 
     const actions = {
-      setWebpackConfig: jest.fn(),
+      setWebpackConfig: vi.fn(),
     };
 
-    const getConfig = jest.fn();
+    const getConfig = vi.fn();
 
     it('sets sourceMapFilesToDeleteAfterUpload when provided in options', () => {
       const actions = {
-        setWebpackConfig: jest.fn(),
+        setWebpackConfig: vi.fn(),
       };
 
-      const getConfig = jest.fn().mockReturnValue({ devtool: 'source-map' });
+      const getConfig = vi.fn().mockReturnValue({ devtool: 'source-map' });
 
       onCreateWebpackConfig({ actions, getConfig }, { deleteSourcemapsAfterUpload: true });
 
@@ -79,7 +97,7 @@ describe('onCreateWebpackConfig', () => {
       );
     });
 
-    test.each([
+    it.each([
       {
         name: 'without provided options: sets hidden source maps and deletes source maps',
         initialConfig: undefined,

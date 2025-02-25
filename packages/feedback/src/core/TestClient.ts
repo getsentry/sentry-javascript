@@ -14,6 +14,7 @@ export class TestClient extends Client<TestClientOptions> {
   /**
    *
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public eventFromException(exception: any): PromiseLike<Event> {
     return resolvedSyncPromise({
       exception: {

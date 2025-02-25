@@ -1,5 +1,6 @@
 import { JSDOM } from 'jsdom';
 
+import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { htmlTreeAsString } from '../../src/utils-hoist/browser';
 
 beforeAll(() => {

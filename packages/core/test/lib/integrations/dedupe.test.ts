@@ -2,6 +2,8 @@ import type { Event as SentryEvent, Exception, StackFrame, Stacktrace } from '..
 
 import { _shouldDropEvent, dedupeIntegration } from '../../../src/integrations/dedupe';
 
+import { describe, expect, it } from 'vitest';
+
 type EventWithException = SentryEvent & {
   exception: {
     values: ExceptionWithStacktrace[];

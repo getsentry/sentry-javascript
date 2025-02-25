@@ -263,8 +263,6 @@ jobs:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Lint source files
         run: yarn lint:lerna
-      - name: Lint C++ files
-        run: yarn lint:clang
       - name: Lint for ES compatibility
         run: yarn lint:es-compatibility
 
@@ -289,7 +287,7 @@ jobs:
         id: install_dependencies
 
       - name: Check file formatting
-        run: yarn lint:prettier && yarn lint:biome
+        run: yarn lint:prettier
 
   job_circular_dep_check:
     name: Circular Dependency Check
@@ -439,7 +437,7 @@ jobs:
         with:
           node-version-file: 'package.json'
       - name: Set up Deno
-        uses: denoland/setup-deno@v2.0.1
+        uses: denoland/setup-deno@v2.0.2
         with:
           deno-version: v2.1.5
       - name: Restore caches
@@ -838,7 +836,7 @@ jobs:
     # See: https://github.com/actions/runner/issues/2205
     if: always() && needs.job_e2e_prepare.result == 'success' && needs.job_e2e_prepare.outputs.matrix != '{"include":[]}'
     needs: [job_get_metadata, job_build, job_e2e_prepare]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     timeout-minutes: 15
     env:
       # We just use a dummy DSN here, only send to the tunnel anyhow
