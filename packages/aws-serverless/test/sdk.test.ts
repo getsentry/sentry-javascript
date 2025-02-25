@@ -2,7 +2,7 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } fr
 
 import type { Event } from '@sentry/core';
 import type { Callback, Handler } from 'aws-lambda';
-import { vi, expect, describe, test, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { init, wrapHandler } from '../src/sdk';
 
@@ -24,7 +24,7 @@ const mockScope = {
 
 vi.mock('@sentry/node', async () => {
   // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-  const original = await vi.importActual('@sentry/node') as typeof import('@sentry/node');
+  const original = (await vi.importActual('@sentry/node')) as typeof import('@sentry/node');
   return {
     ...original,
     initWithoutDefaultIntegrations: (options: unknown) => {

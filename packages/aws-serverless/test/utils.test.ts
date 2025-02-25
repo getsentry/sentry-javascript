@@ -1,10 +1,10 @@
+import { afterEach, describe, expect, test, vi } from 'vitest';
 import { eventContextExtractor, getAwsTraceData } from '../src/utils';
-import { vi, expect, describe, test, afterEach } from 'vitest';
 
 const mockExtractContext = vi.fn();
 vi.mock('@opentelemetry/api', async () => {
   // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-  const actualApi =await  vi.importActual('@opentelemetry/api') as typeof import('@opentelemetry/api');
+  const actualApi = (await vi.importActual('@opentelemetry/api')) as typeof import('@opentelemetry/api');
   return {
     ...actualApi,
     propagation: {
