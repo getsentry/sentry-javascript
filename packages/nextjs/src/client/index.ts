@@ -51,7 +51,9 @@ export function init(options: BrowserOptions): Client | undefined {
   addEventProcessor(filterIncompleteNavigationTransactions);
 
   const filterNextRedirectError: EventProcessor = (event, hint) =>
-    isRedirectNavigationError(hint?.originalException) ? null : event;
+    isRedirectNavigationError(hint?.originalException) || event.exception?.values?.[0]?.value === 'NEXT_REDIRECT'
+      ? null
+      : event;
   filterNextRedirectError.id = 'NextRedirectErrorFilter';
   addEventProcessor(filterNextRedirectError);
 
