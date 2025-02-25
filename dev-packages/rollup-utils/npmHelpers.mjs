@@ -83,13 +83,7 @@ export function makeBaseNPMConfig(options = {}) {
       interop: 'esModule',
     },
 
-    plugins: [
-      nodeResolvePlugin,
-      sucrasePlugin,
-      debugBuildStatementReplacePlugin,
-      rrwebBuildPlugin,
-      cleanupPlugin,
-    ],
+    plugins: [nodeResolvePlugin, sucrasePlugin, debugBuildStatementReplacePlugin, rrwebBuildPlugin, cleanupPlugin],
 
     // don't include imported modules from outside the package in the final output
     external: [
