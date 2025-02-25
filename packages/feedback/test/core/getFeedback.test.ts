@@ -1,6 +1,8 @@
+import { vi, describe, it, expect } from 'vitest';
+
 import { getCurrentScope } from '@sentry/core';
-import { getFeedback } from './getFeedback';
-import { buildFeedbackIntegration } from './integration';
+import { getFeedback } from '../../src/core/getFeedback';
+import { buildFeedbackIntegration } from '../../src/core/integration';
 import { mockSdk } from './mockSdk';
 
 describe('getFeedback', () => {
@@ -26,7 +28,7 @@ describe('getFeedback', () => {
 
   it('works with a client with Feedback', () => {
     const feedbackIntegration = buildFeedbackIntegration({
-      lazyLoadIntegration: jest.fn(),
+      lazyLoadIntegration: vi.fn(),
     });
 
     const configuredIntegration = feedbackIntegration({});

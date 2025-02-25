@@ -1,3 +1,8 @@
+/**
+ * @vitest-environment jsdom
+ */
+import { vi, describe, it, expect } from 'vitest';
+
 import {
   addBreadcrumb,
   getClient,
@@ -9,7 +14,7 @@ import {
 } from '@sentry/core';
 
 import { mockSdk } from './mockSdk';
-import { sendFeedback } from './sendFeedback';
+import { sendFeedback } from '../../src/core/sendFeedback';
 
 import { TextDecoder, TextEncoder } from 'util';
 const patchedEncoder = (!global.window.TextEncoder && (global.window.TextEncoder = TextEncoder)) || true;
@@ -20,7 +25,7 @@ describe('sendFeedback', () => {
   beforeEach(() => {
     getIsolationScope().clear();
     getCurrentScope().clear();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   afterAll(() => {
@@ -32,7 +37,7 @@ describe('sendFeedback', () => {
 
   it('sends feedback with minimal options', async () => {
     mockSdk();
-    const mockTransport = jest.spyOn(getClient()!.getTransport()!, 'send');
+    const mockTransport = vi.spyOn(getClient()!.getTransport()!, 'send');
 
     const promise = sendFeedback({
       message: 'mi',
@@ -67,7 +72,7 @@ describe('sendFeedback', () => {
               feedback: {
                 message: 'mi',
                 source: 'api',
-                url: 'http://localhost/',
+                url: 'http://localhost:3000/',
               },
             },
             level: 'info',
@@ -83,7 +88,7 @@ describe('sendFeedback', () => {
 
   it('sends feedback with full options', async () => {
     mockSdk();
-    const mockTransport = jest.spyOn(getClient()!.getTransport()!, 'send');
+    const mockTransport = vi.spyOn(getClient()!.getTransport()!, 'send');
 
     const promise = sendFeedback({
       name: 'doe',
@@ -142,7 +147,7 @@ describe('sendFeedback', () => {
 
   it('applies active span data to feedback', async () => {
     mockSdk({ sentryOptions: { tracesSampleRate: 1 } });
-    const mockTransport = jest.spyOn(getClient()!.getTransport()!, 'send');
+    const mockTransport = vi.spyOn(getClient()!.getTransport()!, 'send');
 
     await startSpan({ name: 'test span' }, () => {
       return sendFeedback({
@@ -181,7 +186,7 @@ describe('sendFeedback', () => {
                 message: 'mi',
                 name: 'doe',
                 source: 'api',
-                url: 'http://localhost/',
+                url: 'http://localhost:3000/',
               },
             },
             level: 'info',
@@ -197,7 +202,7 @@ describe('sendFeedback', () => {
 
   it('applies scope data to feedback', async () => {
     mockSdk({ sentryOptions: { tracesSampleRate: 1 } });
-    const mockTransport = jest.spyOn(getClient()!.getTransport()!, 'send');
+    const mockTransport = vi.spyOn(getClient()!.getTransport()!, 'send');
 
     await withIsolationScope(isolationScope => {
       isolationScope.setTag('test-1', 'tag');
@@ -242,7 +247,7 @@ describe('sendFeedback', () => {
                 message: 'mi',
                 name: 'doe',
                 source: 'api',
-                url: 'http://localhost/',
+                url: 'http://localhost:3000/',
               },
             },
             extra: {
@@ -266,7 +271,7 @@ describe('sendFeedback', () => {
 
   it('handles 400 transport error', async () => {
     mockSdk();
-    jest.spyOn(getClient()!.getTransport()!, 'send').mockImplementation(() => {
+    vi.spyOn(getClient()!.getTransport()!, 'send').mockImplementation(() => {
       return Promise.resolve({ statusCode: 400 });
     });
 
@@ -283,7 +288,7 @@ describe('sendFeedback', () => {
 
   it('handles 0 transport error', async () => {
     mockSdk();
-    jest.spyOn(getClient()!.getTransport()!, 'send').mockImplementation(() => {
+    vi.spyOn(getClient()!.getTransport()!, 'send').mockImplementation(() => {
       return Promise.resolve({ statusCode: 0 });
     });
 
@@ -300,7 +305,7 @@ describe('sendFeedback', () => {
 
   it('handles 200 transport response', async () => {
     mockSdk();
-    jest.spyOn(getClient()!.getTransport()!, 'send').mockImplementation(() => {
+    vi.spyOn(getClient()!.getTransport()!, 'send').mockImplementation(() => {
       return Promise.resolve({ statusCode: 200 });
     });
 
@@ -314,10 +319,10 @@ describe('sendFeedback', () => {
   });
 
   it('handles timeout', async () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
 
     mockSdk();
-    jest.spyOn(getClient()!.getTransport()!, 'send').mockImplementation(() => {
+    vi.spyOn(getClient()!.getTransport()!, 'send').mockImplementation(() => {
       return new Promise(resolve => setTimeout(resolve, 10_000));
     });
 
@@ -327,16 +332,16 @@ describe('sendFeedback', () => {
       message: 'mi',
     });
 
-    jest.advanceTimersByTime(5_000);
+    vi.advanceTimersByTime(5_000);
 
     await expect(promise).rejects.toMatch('Unable to determine if Feedback was correctly sent.');
 
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it('sends attachments', async () => {
     mockSdk();
-    const mockTransport = jest.spyOn(getClient()!.getTransport()!, 'send');
+    const mockTransport = vi.spyOn(getClient()!.getTransport()!, 'send');
 
     const attachment1 = new Uint8Array([1, 2, 3, 4, 5]);
     const attachment2 = new Uint8Array([6, 7, 8, 9]);
@@ -395,7 +400,7 @@ describe('sendFeedback', () => {
                 message: 'mi',
                 name: 'doe',
                 source: 'api',
-                url: 'http://localhost/',
+                url: 'http://localhost:3000/',
               },
             },
             level: 'info',

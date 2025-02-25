@@ -5,11 +5,4 @@
 
 module.exports = {
   extends: ['../../.eslintrc.js'],
-  overrides: [
-    {
-      parserOptions: {
-        project: ['tsconfig.test.json'],
-      },
-    },
-  ],
 };
