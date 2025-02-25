@@ -459,7 +459,7 @@ function warnAboutMissingonRequestErrorHandler(projectDir: string): void {
   }
   if (!instrumentationPaths.some(hasOnRequestErrorHandler)) {
     // eslint-disable-next-line no-console
-    console.warn(`${chalk.yellow('[@sentry/nextjs]')} Missing 'onRequestError' handler in instrumentation file.`);
+    console.warn(`${chalk.yellow('[@sentry/nextjs]')} Could not find \`onRequestError\` hook in instrumentation file. This indicates outdated configuration of the Sentry SDK. Use \`Sentry.captureRequestError\` to instrument the \`onRequestError\` hook: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#errors-from-nested-react-server-components`);
   }
 }
 
