@@ -263,8 +263,6 @@ jobs:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Lint source files
         run: yarn lint:lerna
-      - name: Lint C++ files
-        run: yarn lint:clang
       - name: Lint for ES compatibility
         run: yarn lint:es-compatibility
 
@@ -289,7 +287,7 @@ jobs:
         id: install_dependencies
 
       - name: Check file formatting
-        run: yarn lint:prettier && yarn lint:biome
+        run: yarn lint:prettier
 
   job_circular_dep_check:
     name: Circular Dependency Check

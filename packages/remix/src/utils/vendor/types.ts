@@ -107,12 +107,7 @@ export type DeferredData = {
 };
 
 export interface MetaFunction {
-  (args: {
-    data: AppData;
-    parentsData: RouteData;
-    params: Params;
-    location: Location;
-  }): HtmlMetaDescriptor;
+  (args: { data: AppData; parentsData: RouteData; params: Params; location: Location }): HtmlMetaDescriptor;
 }
 
 export interface HtmlMetaDescriptor {
@@ -147,11 +142,7 @@ export interface LoaderFunction {
 }
 
 export interface HeadersFunction {
-  (args: {
-    loaderHeaders: Headers;
-    parentHeaders: Headers;
-    actionHeaders: Headers;
-  }): Headers | HeadersInit;
+  (args: { loaderHeaders: Headers; parentHeaders: Headers; actionHeaders: Headers }): Headers | HeadersInit;
 }
 
 export interface ServerRouteModule extends EntryRouteModule {
