@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/nextjs';
 import { headers } from 'next/headers';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 
 export default function ServerComponent() {
   async function myServerAction(formData: FormData) {
@@ -26,6 +26,17 @@ export default function ServerComponent() {
     );
   }
 
+  async function redirectServerAction(formData: FormData) {
+    'use server';
+    return await Sentry.withServerActionInstrumentation(
+      'redirectServerAction',
+      { formData, headers: headers(), recordResponse: true },
+      () => {
+        redirect('/');
+      },
+    );
+  }
+
   return (
     <>
       {/* @ts-ignore */}
@@ -37,6 +48,11 @@ export default function ServerComponent() {
       <form action={notFoundServerAction}>
         <input type="text" defaultValue={'some-default-value'} name="some-text-value" />
         <button type="submit">Run NotFound Action</button>
+      </form>
+      {/* @ts-ignore */}
+      <form action={redirectServerAction}>
+        <input type="text" defaultValue={'some-default-value'} name="some-text-value" />
+        <button type="submit">Run Redirect Action</button>
       </form>
     </>
   );
