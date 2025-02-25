@@ -1,3 +1,5 @@
+import { describe, expect, test } from 'vitest';
+
 import { isAtLeastReact17 } from '../src/error';
 
 describe('isAtLeastReact17', () => {
