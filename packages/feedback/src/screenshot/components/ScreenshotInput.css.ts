@@ -49,13 +49,9 @@ export function createScreenshotInputStyles(styleNonce?: string): HTMLStyleEleme
   justify-content: center;
 }
 
-.editor__canvas-container canvas {
+.editor__canvas-container > * {
   object-fit: contain;
   position: absolute;
-}
-
-.editor__canvas-annotate {
-  z-index: 2;
 }
 
 .editor__tool-container {
@@ -83,10 +79,6 @@ export function createScreenshotInputStyles(styleNonce?: string): HTMLStyleEleme
 .editor__tool--active {
   background: var(--button-primary-background, var(--accent-background));
   color: var(--button-primary-color, var(--accent-foreground));
-}
-
-.editor__rect-container {
-  position: absolute;
 }
 
 .editor__rect {
