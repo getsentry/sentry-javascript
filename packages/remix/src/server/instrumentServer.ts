@@ -352,8 +352,6 @@ function instrumentBuildCallback(
 
   const wrappedEntry = { ...build.entry, module: { ...build.entry.module } };
 
-  // Add warning?
-
   // Not keeping boolean flags like it's done for `requestHandler` functions,
   // Because the build can change between build and runtime.
   // So if there is a new `loader` or`action` or `documentRequest` after build.
