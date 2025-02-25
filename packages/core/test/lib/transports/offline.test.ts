@@ -9,6 +9,7 @@ import type {
   TransportMakeRequestResponse,
 } from '../../../src/types-hoist';
 
+import { describe, expect, it } from 'vitest';
 import {
   createClientReportEnvelope,
   createEnvelope,
