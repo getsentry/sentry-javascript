@@ -57,9 +57,9 @@
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:watch": "run-p build:transpile:watch build:types:watch",
     "build:tarball": "npm pack",
-    "test:watch": "jest --watch",
     "test:bundle": "node test-binaries.esbuild.js",
-    "test": "jest --config jest.config.js"
+    "test": "vitest run",
+    "test:watch": "vitest --watch"
   },
   "dependencies": {
     "@sentry-internal/node-cpu-profiler": "^2.0.0",
