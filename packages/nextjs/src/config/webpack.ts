@@ -56,6 +56,8 @@ export function constructWebpackConfigFunction(
 
     if (runtime !== 'client') {
       warnAboutDeprecatedConfigFiles(projectDir, runtime);
+    }
+    if (runtime === 'server') {
       warnAboutMissingonRequestErrorHandler(projectDir);
     }
 
@@ -462,7 +464,7 @@ function warnAboutMissingonRequestErrorHandler(projectDir: string): void {
   function hasOnRequestErrorHandler(absolutePath: string): boolean {
     try {
       const content = fs.readFileSync(absolutePath, 'utf8');
-      return content.includes('export const onRequestError');
+      return content.includes('onRequestError');
     } catch (error) {
       return false;
     }
