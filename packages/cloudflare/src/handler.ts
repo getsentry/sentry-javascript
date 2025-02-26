@@ -18,11 +18,6 @@ import { addCloudResourceContext } from './scope-utils';
 import { init } from './sdk';
 
 /**
- * Extract environment generic from exported handler.
- */
-type ExtractEnv<P> = P extends ExportedHandler<infer Env> ? Env : never;
-
-/**
  * Wrapper for Cloudflare handlers.
  *
  * Initializes the SDK and wraps the handler with Sentry instrumentation.
@@ -33,16 +28,15 @@ type ExtractEnv<P> = P extends ExportedHandler<infer Env> ? Env : never;
  * @param handler {ExportedHandler} The handler to wrap.
  * @returns The wrapped handler.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function withSentry<E extends ExportedHandler<any>>(
-  optionsCallback: (env: ExtractEnv<E>) => CloudflareOptions,
-  handler: E,
-): E {
+export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostMetadata = unknown>(
+  optionsCallback: (env: Env) => CloudflareOptions,
+  handler: ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata>,
+): ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata> {
   setAsyncLocalStorageAsyncContextStrategy();
 
   if ('fetch' in handler && typeof handler.fetch === 'function' && !isInstrumented(handler.fetch)) {
     handler.fetch = new Proxy(handler.fetch, {
-      apply(target, thisArg, args: Parameters<ExportedHandlerFetchHandler<ExtractEnv<E>>>) {
+      apply(target, thisArg, args: Parameters<ExportedHandlerFetchHandler<Env, CfHostMetadata>>) {
         const [request, env, context] = args;
         const options = optionsCallback(env);
         return wrapRequestHandler({ options, request, context }, () => target.apply(thisArg, args));
@@ -54,7 +48,7 @@ export function withSentry<E extends ExportedHandler<any>>(
 
   if ('scheduled' in handler && typeof handler.scheduled === 'function' && !isInstrumented(handler.scheduled)) {
     handler.scheduled = new Proxy(handler.scheduled, {
-      apply(target, thisArg, args: Parameters<ExportedHandlerScheduledHandler<ExtractEnv<E>>>) {
+      apply(target, thisArg, args: Parameters<ExportedHandlerScheduledHandler<Env>>) {
         const [event, env, context] = args;
         return withIsolationScope(isolationScope => {
           const options = optionsCallback(env);
