@@ -1,5 +1,5 @@
 import type { MockInstance } from 'vitest';
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi, afterEach } from 'vitest';
 
 import * as browserUtils from '@sentry-internal/browser-utils';
 import * as utils from '@sentry/core';

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi, afterEach } from 'vitest';
 
 import * as core from '@sentry/core';
 import { isPatched } from '../../src/integrations/helpers';
