@@ -99,7 +99,6 @@ jobs:
             any_code:
               - '!**/*.md'
 
-
       - name: Get PR labels
         id: pr-labels
         uses: mydea/pr-labels-action@fn/bump-node20
@@ -107,7 +106,8 @@ jobs:
     outputs:
       commit_label: '${{ env.COMMIT_SHA }}: ${{ env.COMMIT_MESSAGE }}'
       # Note: These next three have to be checked as strings ('true'/'false')!
-      is_base_branch: ${{ github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/v9' || github.ref == 'refs/heads/v8'}}
+      is_base_branch:
+        ${{ github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/v9' || github.ref == 'refs/heads/v8'}}
       is_release: ${{ startsWith(github.ref, 'refs/heads/release/') }}
       changed_ci: ${{ steps.changed.outputs.workflow == 'true' }}
       changed_any_code: ${{ steps.changed.outputs.any_code == 'true' }}
@@ -172,7 +172,8 @@ jobs:
           key: nx-Linux-${{ github.ref }}-${{ env.HEAD_COMMIT || github.sha }}
           # On develop branch, we want to _store_ the cache (so it can be used by other branches), but never _restore_ from it
           restore-keys:
-            ${{needs.job_get_metadata.outputs.is_base_branch == 'false' && env.NX_CACHE_RESTORE_KEYS || 'nx-never-restore'}}
+            ${{needs.job_get_metadata.outputs.is_base_branch == 'false' && env.NX_CACHE_RESTORE_KEYS ||
+            'nx-never-restore'}}
 
       - name: Build packages
         # Set the CODECOV_TOKEN for Bundle Analysis
@@ -191,12 +192,24 @@ jobs:
 
     outputs:
       dependency_cache_key: ${{ steps.install_dependencies.outputs.cache_key }}
-      changed_node_integration: ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected, '@sentry-internal/node-integration-tests') }}
-      changed_remix: ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected, '@sentry/remix') }}
-      changed_node: ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected, '@sentry/node') }}
-      changed_deno: ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected, '@sentry/deno') }}
-      changed_bun: ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected, '@sentry/bun') }}
-      changed_browser_integration: ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected, '@sentry-internal/browser-integration-tests') }}
+      changed_node_integration:
+        ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
+        '@sentry-internal/node-integration-tests') }}
+      changed_remix:
+        ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
+        '@sentry/remix') }}
+      changed_node:
+        ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
+        '@sentry/node') }}
+      changed_deno:
+        ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
+        '@sentry/deno') }}
+      changed_bun:
+        ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
+        '@sentry/bun') }}
+      changed_browser_integration:
+        ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
+        '@sentry-internal/browser-integration-tests') }}
 
   job_check_branches:
     name: Check PR branches
@@ -504,7 +517,9 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
 
   job_browser_playwright_tests:
-    name: Playwright ${{ matrix.bundle }}${{ matrix.project && matrix.project != 'chromium' && format(' {0}', matrix.project) || ''}}${{ matrix.shard && format(' ({0}/{1})', matrix.shard, matrix.shards) || ''}} Tests
+    name:
+      Playwright ${{ matrix.bundle }}${{ matrix.project && matrix.project != 'chromium' && format(' {0}',
+      matrix.project) || ''}}${{ matrix.shard && format(' ({0}/{1})', matrix.shard, matrix.shards) || ''}} Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04-large-js
@@ -574,13 +589,17 @@ jobs:
         env:
           PW_BUNDLE: ${{ matrix.bundle }}
         working-directory: dev-packages/browser-integration-tests
-        run: yarn test:all${{ matrix.project && format(' --project={0}', matrix.project) || '' }}${{ matrix.shard && format(' --shard={0}/{1}', matrix.shard, matrix.shards) || '' }}
+        run:
+          yarn test:all${{ matrix.project && format(' --project={0}', matrix.project) || '' }}${{ matrix.shard &&
+          format(' --shard={0}/{1}', matrix.shard, matrix.shards) || '' }}
 
       - name: Upload Playwright Traces
         uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: playwright-traces-job_browser_playwright_tests-${{ matrix.bundle}}-${{matrix.project}}-${{matrix.shard || '0'}}
+          name:
+            playwright-traces-job_browser_playwright_tests-${{ matrix.bundle}}-${{matrix.project}}-${{matrix.shard ||
+            '0'}}
           path: dev-packages/browser-integration-tests/test-results
           overwrite: true
           retention-days: 7
@@ -822,19 +841,24 @@ jobs:
 
       - name: Determine which E2E test applications should be run
         id: matrix
-        run: yarn --silent ci:build-matrix --base=${{ (github.event_name == 'pull_request' && github.event.pull_request.base.sha) || '' }} >> $GITHUB_OUTPUT
+        run:
+          yarn --silent ci:build-matrix --base=${{ (github.event_name == 'pull_request' &&
+          github.event.pull_request.base.sha) || '' }} >> $GITHUB_OUTPUT
         working-directory: dev-packages/e2e-tests
 
       - name: Determine which optional E2E test applications should be run
         id: matrix-optional
-        run: yarn --silent ci:build-matrix-optional --base=${{ (github.event_name == 'pull_request' && github.event.pull_request.base.sha) || '' }} >> $GITHUB_OUTPUT
+        run:
+          yarn --silent ci:build-matrix-optional --base=${{ (github.event_name == 'pull_request' &&
+          github.event.pull_request.base.sha) || '' }} >> $GITHUB_OUTPUT
         working-directory: dev-packages/e2e-tests
 
   job_e2e_tests:
     name: E2E ${{ matrix.label || matrix.test-application }} Test
     # We need to add the `always()` check here because the previous step has this as well :(
     # See: https://github.com/actions/runner/issues/2205
-    if: always() && needs.job_e2e_prepare.result == 'success' && needs.job_e2e_prepare.outputs.matrix != '{"include":[]}'
+    if:
+      always() && needs.job_e2e_prepare.result == 'success' && needs.job_e2e_prepare.outputs.matrix != '{"include":[]}'
     needs: [job_get_metadata, job_build, job_e2e_prepare]
     runs-on: ubuntu-22.04
     timeout-minutes: 15
@@ -951,12 +975,9 @@ jobs:
     # We need to add the `always()` check here because the previous step has this as well :(
     # See: https://github.com/actions/runner/issues/2205
     if:
-      always() &&
-      needs.job_get_metadata.outputs.is_release != 'true' &&
-      needs.job_e2e_prepare.result == 'success' &&
-      needs.job_e2e_prepare.outputs.matrix-optional != '{"include":[]}' &&
-      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
-      github.actor != 'dependabot[bot]'
+      always() && needs.job_get_metadata.outputs.is_release != 'true' && needs.job_e2e_prepare.result == 'success' &&
+      needs.job_e2e_prepare.outputs.matrix-optional != '{"include":[]}' && (github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository) && github.actor != 'dependabot[bot]'
     needs: [job_get_metadata, job_build, job_e2e_prepare]
     runs-on: ubuntu-20.04
     timeout-minutes: 15

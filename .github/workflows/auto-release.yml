@@ -1,4 +1,4 @@
-name: "Gitflow: Auto prepare release"
+name: 'Gitflow: Auto prepare release'
 on:
   pull_request:
     types:
@@ -48,7 +48,9 @@ jobs:
 
       - name: Prepare release
         uses: getsentry/action-prepare-release@v1
-        if: github.event.pull_request.merged == true && steps.version-regex.outputs.match != '' && steps.get_version.outputs.version != ''
+        if:
+          github.event.pull_request.merged == true && steps.version-regex.outputs.match != '' &&
+          steps.get_version.outputs.version != ''
         env:
           GITHUB_TOKEN: ${{ steps.token.outputs.token }}
         with:

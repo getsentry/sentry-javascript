@@ -35,7 +35,6 @@ import {
   wrapUseRoutesV6,
 } from '../src/reactrouterv6';
 
-
 const mockStartBrowserTracingPageLoadSpan = vi.fn();
 const mockStartBrowserTracingNavigationSpan = vi.fn();
 
@@ -75,7 +74,6 @@ vi.mock('@sentry/core', async requireActual => {
     },
   };
 });
-
 
 vi.mock('@sentry/core', async requireActual => {
   const actual = (await requireActual()) as any;
