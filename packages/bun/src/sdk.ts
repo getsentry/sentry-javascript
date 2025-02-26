@@ -29,6 +29,8 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
   // We return a copy of the defaultIntegrations here to avoid mutating this
   return [
     // Common
+    // TODO(v10): Replace with eventFiltersIntegration once we remove the deprecated `inboundFiltersIntegration`
+    // eslint-disable-next-line deprecation/deprecation
     inboundFiltersIntegration(),
     functionToStringIntegration(),
     linkedErrorsIntegration(),

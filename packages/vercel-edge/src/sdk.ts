@@ -51,6 +51,8 @@ const nodeStackParser = createStackParser(nodeStackLineParser());
 export function getDefaultIntegrations(options: Options): Integration[] {
   return [
     dedupeIntegration(),
+    // TODO(v10): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
+    // eslint-disable-next-line deprecation/deprecation
     inboundFiltersIntegration(),
     functionToStringIntegration(),
     linkedErrorsIntegration(),
