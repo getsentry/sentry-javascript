@@ -1928,5 +1928,5 @@ function getSpanAttributes(span: AbstractSpan): Record<string, unknown> | undefi
 }
 
 function getSpanParentSpanId(span: AbstractSpan): string | undefined {
-  return (span as ReadableSpan).parentSpanId;
+  return (span as ReadableSpan).parentSpanContext?.spanId;
 }

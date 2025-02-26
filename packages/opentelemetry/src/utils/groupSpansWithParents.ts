@@ -33,7 +33,7 @@ export function getLocalParentId(span: ReadableSpan): string | undefined {
   const parentIsRemote = span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_PARENT_IS_REMOTE] === true;
   // If the parentId is the trace parent ID, we pretend it's undefined
   // As this means the parent exists somewhere else
-  return !parentIsRemote ? span.parentSpanId : undefined;
+  return !parentIsRemote ? span.parentSpanContext?.spanId : undefined;
 }
 
 function createOrUpdateSpanNodeAndRefs(nodeMap: SpanMap, span: ReadableSpan): void {
