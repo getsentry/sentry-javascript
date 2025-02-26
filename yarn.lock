@@ -27228,15 +27228,25 @@ serialize-javascript@^6.0.0, serialize-javascript@^6.0.1:
   dependencies:
     randombytes "^2.1.0"
 
-seroval-plugins@^1.0.2, seroval-plugins@^1.0.3:
+seroval-plugins@^1.0.2:
   version "1.0.7"
   resolved "https://registry.yarnpkg.com/seroval-plugins/-/seroval-plugins-1.0.7.tgz#c02511a1807e9bc8f68a91fbec13474fa9cea670"
   integrity sha512-GO7TkWvodGp6buMEX9p7tNyIkbwlyuAWbI6G9Ec5bhcm7mQdu3JOK1IXbEUwb3FVzSc363GraG/wLW23NSavIw==
 
-seroval@^1.0.2, seroval@^1.0.4:
+seroval-plugins@^1.1.0:
+  version "1.2.1"
+  resolved "https://registry.yarnpkg.com/seroval-plugins/-/seroval-plugins-1.2.1.tgz#fa535e70ade8af553634b2b5c80d8a6fd8c2ff72"
+  integrity sha512-H5vs53+39+x4Udwp4J5rNZfgFuA+Lt+uU+09w1gYBVWomtAl98B+E9w7yC05Xc81/HgLvJdlyqJbU0fJCKCmdw==
+
+seroval@^1.0.2:
   version "1.0.7"
   resolved "https://registry.yarnpkg.com/seroval/-/seroval-1.0.7.tgz#ee48ad8ba69f1595bdd5c55d1a0d1da29dee7455"
   integrity sha512-n6ZMQX5q0Vn19Zq7CIKNIo7E75gPkGCFUEqDpa8jgwpYr/vScjqnQ6H09t1uIiZ0ZSK0ypEGvrYK2bhBGWsGdw==
+
+seroval@^1.1.0:
+  version "1.2.1"
+  resolved "https://registry.yarnpkg.com/seroval/-/seroval-1.2.1.tgz#fc671d63445923ab64f7abaf3967c83901382f40"
+  integrity sha512-yBxFFs3zmkvKNmR0pFSU//rIsYjuX418TnlDmc2weaq5XFDqDIV/NOMPBoLrbxjLH42p4UzRuXHryXh9dYcKcw==
 
 serve-index@^1.9.1:
   version "1.9.1"
@@ -27685,13 +27695,13 @@ socks@^2.6.2:
     smart-buffer "^4.2.0"
 
 solid-js@^1.8.11:
-  version "1.8.17"
-  resolved "https://registry.yarnpkg.com/solid-js/-/solid-js-1.8.17.tgz#780ed6f0fd8633009d1b3c29d56bf6b6bb33bd50"
-  integrity sha512-E0FkUgv9sG/gEBWkHr/2XkBluHb1fkrHywUgA6o6XolPDCJ4g1HaLmQufcBBhiF36ee40q+HpG/vCZu7fLpI3Q==
+  version "1.9.5"
+  resolved "https://registry.yarnpkg.com/solid-js/-/solid-js-1.9.5.tgz#168ae067c27d3d437c868484d21751335ec16063"
+  integrity sha512-ogI3DaFcyn6UhYhrgcyRAMbu/buBJitYQASZz5WzfQVPP10RD2AbCoRZ517psnezrasyCbWzIxZ6kVqet768xw==
   dependencies:
     csstype "^3.1.0"
-    seroval "^1.0.4"
-    seroval-plugins "^1.0.3"
+    seroval "^1.1.0"
+    seroval-plugins "^1.1.0"
 
 solid-refresh@^0.6.3:
   version "0.6.3"
@@ -28443,7 +28453,6 @@ stylus@0.59.0, stylus@^0.59.0:
 
 sucrase@^3.27.0, sucrase@^3.35.0, sucrase@getsentry/sucrase#es2020-polyfills:
   version "3.36.0"
-  uid fd682f6129e507c00bb4e6319cc5d6b767e36061
   resolved "https://codeload.github.com/getsentry/sucrase/tar.gz/fd682f6129e507c00bb4e6319cc5d6b767e36061"
   dependencies:
     "@jridgewell/gen-mapping" "^0.3.2"
