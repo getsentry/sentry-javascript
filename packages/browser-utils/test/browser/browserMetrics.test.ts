@@ -9,10 +9,11 @@ import {
   spanToJSON,
 } from '@sentry/core';
 import type { Span } from '@sentry/core';
+import { describe, beforeEach, it, expect, beforeAll, afterAll } from 'vitest';
+
 import { _addMeasureSpans, _addResourceSpans } from '../../src/metrics/browserMetrics';
 import { WINDOW } from '../../src/types';
 import { TestClient, getDefaultClientOptions } from '../utils/TestClient';
-import { describe, beforeEach, it, expect, beforeAll, afterAll } from 'vitest';
 
 const mockWindowLocation = {
   ancestorOrigins: {},
