@@ -152,9 +152,7 @@ Update your vite.config.ts file to include the `sentryReactRouter` plugin and al
 ```ts
 import { reactRouter } from '@react-router/dev/vite';
 import { sentryReactRouter } from '@sentry/react-router';
-import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
-import tsconfigPaths from 'vite-tsconfig-paths';
 
 const sentryConfig = {
   authToken: '...',
