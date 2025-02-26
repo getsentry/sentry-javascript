@@ -147,7 +147,7 @@ Update the `start` and `dev` script to include the instrumentation file:
 
 ## Build-time Config
 
-Update your vite.config.ts file to include the `sentryReactRouter` plugin and also add the your config options to the vite config (this is required for uploading sourcemaps at the end of the build):
+Update your vite.config.ts file to include the `sentryReactRouter` plugin and also add your config options to the vite config (this is required for uploading sourcemaps at the end of the build):
 
 ```ts
 import { reactRouter } from '@react-router/dev/vite';
