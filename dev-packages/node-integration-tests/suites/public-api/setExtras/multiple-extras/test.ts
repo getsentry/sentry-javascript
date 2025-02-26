@@ -1,11 +1,12 @@
+import { afterAll, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
 afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('should record an extras object', done => {
-  createRunner(__dirname, 'scenario.ts')
+test('should record an extras object', async () => {
+  await createRunner(__dirname, 'scenario.ts')
     .expect({
       event: {
         message: 'multiple_extras',
@@ -17,5 +18,6 @@ test('should record an extras object', done => {
         },
       },
     })
-    .start(done);
+    .start()
+    .completed();
 });

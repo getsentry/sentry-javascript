@@ -1,3 +1,4 @@
+import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
 describe('genericPool auto instrumentation', () => {
@@ -5,7 +6,7 @@ describe('genericPool auto instrumentation', () => {
     cleanupChildProcesses();
   });
 
-  test('should auto-instrument `genericPool` package when calling pool.require()', done => {
+  test('should auto-instrument `genericPool` package when calling pool.require()', async () => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Transaction',
       spans: expect.arrayContaining([
@@ -29,6 +30,6 @@ describe('genericPool auto instrumentation', () => {
       ]),
     };
 
-    createRunner(__dirname, 'scenario.js').expect({ transaction: EXPECTED_TRANSACTION }).start(done);
+    await createRunner(__dirname, 'scenario.js').expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
   });
 });

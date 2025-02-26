@@ -1,3 +1,4 @@
+import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
 describe('connect auto-instrumentation', () => {
@@ -35,26 +36,27 @@ describe('connect auto-instrumentation', () => {
     },
   };
 
-  test('CJS - should auto-instrument `connect` package.', done => {
-    createRunner(__dirname, 'scenario.js')
-      .expect({ transaction: EXPECTED_TRANSACTION })
-      .start(done)
-      .makeRequest('get', '/');
+  test('CJS - should auto-instrument `connect` package.', async () => {
+    const runner = createRunner(__dirname, 'scenario.js').expect({ transaction: EXPECTED_TRANSACTION }).start();
+    runner.makeRequest('get', '/');
+    await runner.completed();
   });
 
-  test('CJS - should capture errors in `connect` middleware.', done => {
-    createRunner(__dirname, 'scenario.js')
+  test('CJS - should capture errors in `connect` middleware.', async () => {
+    const runner = createRunner(__dirname, 'scenario.js')
       .ignore('transaction')
       .expect({ event: EXPECTED_EVENT })
-      .start(done)
-      .makeRequest('get', '/error');
+      .start();
+    runner.makeRequest('get', '/error');
+    await runner.completed();
   });
 
-  test('CJS - should report errored transactions.', done => {
-    createRunner(__dirname, 'scenario.js')
+  test('CJS - should report errored transactions.', async () => {
+    const runner = createRunner(__dirname, 'scenario.js')
       .ignore('event')
       .expect({ transaction: { transaction: 'GET /error' } })
-      .start(done)
-      .makeRequest('get', '/error');
+      .start();
+    runner.makeRequest('get', '/error');
+    await runner.completed();
   });
 });

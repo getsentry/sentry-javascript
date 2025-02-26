@@ -1,4 +1,4 @@
-name: "Automation: Notify issues for release"
+name: 'Automation: Notify issues for release'
 on:
   release:
     types:

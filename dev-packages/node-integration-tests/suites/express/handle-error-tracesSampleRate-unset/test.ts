@@ -1,11 +1,12 @@
+import { afterAll, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
 afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('should capture and send Express controller error if tracesSampleRate is not set.', done => {
-  createRunner(__dirname, 'server.ts')
+test('should capture and send Express controller error if tracesSampleRate is not set.', async () => {
+  const runner = createRunner(__dirname, 'server.ts')
     .ignore('transaction')
     .expect({
       event: {
@@ -32,6 +33,8 @@ test('should capture and send Express controller error if tracesSampleRate is no
         },
       },
     })
-    .start(done)
-    .makeRequest('get', '/test/express/123', { expectError: true });
+    .start();
+
+  runner.makeRequest('get', '/test/express/123', { expectError: true });
+  await runner.completed();
 });

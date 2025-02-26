@@ -1,4 +1,4 @@
-name: "Automation: Add size info to release"
+name: 'Automation: Add size info to release'
 on:
   release:
     types:

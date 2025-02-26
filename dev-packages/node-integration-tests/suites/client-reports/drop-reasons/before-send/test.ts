@@ -1,11 +1,12 @@
+import { afterAll, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
 afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('should record client report for beforeSend', done => {
-  createRunner(__dirname, 'scenario.ts')
+test('should record client report for beforeSend', async () => {
+  await createRunner(__dirname, 'scenario.ts')
     .unignore('client_report')
     .expect({
       client_report: {
@@ -29,5 +30,6 @@ test('should record client report for beforeSend', done => {
         ],
       },
     })
-    .start(done);
+    .start()
+    .completed();
 });

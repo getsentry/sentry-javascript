@@ -1,11 +1,12 @@
+import { afterAll, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
 afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('should unset user', done => {
-  createRunner(__dirname, 'scenario.ts')
+test('should unset user', async () => {
+  await createRunner(__dirname, 'scenario.ts')
     .expect({ event: { message: 'no_user' } })
     .expect({
       event: {
@@ -18,5 +19,6 @@ test('should unset user', done => {
       },
     })
     .expect({ event: { message: 'unset_user' } })
-    .start(done);
+    .start()
+    .completed();
 });
