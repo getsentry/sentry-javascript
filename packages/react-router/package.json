@@ -34,13 +34,18 @@
     "access": "public"
   },
   "dependencies": {
+    "@sentry/vite-plugin": "^3.2.0",
+    "@sentry/cli": "^2.42.1",
+    "glob": "11.0.1",
     "@sentry/browser": "9.2.0",
     "@sentry/core": "9.2.0",
     "@sentry/node": "9.2.0"
   },
   "devDependencies": {
     "@react-router/node": "^7.1.5",
-    "react-router": "^7.1.5"
+    "@react-router/dev": "^7.1.5",
+    "react-router": "^7.1.5",
+    "vite": "^6.1.0"
   },
   "peerDependencies": {
     "@react-router/node": "7.x",

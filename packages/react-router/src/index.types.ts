@@ -2,6 +2,7 @@
 
 export * from './client';
 export * from './server';
+export * from './vite';
 
 import type { Integration, Options, StackParser } from '@sentry/core';
 import type * as clientSdk from './client';
