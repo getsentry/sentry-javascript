@@ -1,7 +1,8 @@
+import { expect, test } from 'vitest';
 import { createRunner } from '../../../../utils/runner';
 
-test('envelope header for error event during active unsampled span is correct', done => {
-  createRunner(__dirname, 'scenario.ts')
+test('envelope header for error event during active unsampled span is correct', async () => {
+  await createRunner(__dirname, 'scenario.ts')
     .ignore('transaction')
     .expectHeader({
       event: {
@@ -16,5 +17,6 @@ test('envelope header for error event during active unsampled span is correct', 
         },
       },
     })
-    .start(done);
+    .start()
+    .completed();
 });

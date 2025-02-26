@@ -1,12 +1,13 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/node';
+import { afterAll, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
 afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('sends a manually started root span with source custom', done => {
-  createRunner(__dirname, 'scenario.ts')
+test('sends a manually started root span with source custom', async () => {
+  await createRunner(__dirname, 'scenario.ts')
     .expect({
       transaction: {
         transaction: 'test_span',
@@ -20,11 +21,12 @@ test('sends a manually started root span with source custom', done => {
         },
       },
     })
-    .start(done);
+    .start()
+    .completed();
 });
 
-test("doesn't change the name for manually started spans even if attributes triggering inference are set", done => {
-  createRunner(__dirname, 'scenario.ts')
+test("doesn't change the name for manually started spans even if attributes triggering inference are set", async () => {
+  await createRunner(__dirname, 'scenario.ts')
     .expect({
       transaction: {
         transaction: 'test_span',
@@ -38,5 +40,6 @@ test("doesn't change the name for manually started spans even if attributes trig
         },
       },
     })
-    .start(done);
+    .start()
+    .completed();
 });

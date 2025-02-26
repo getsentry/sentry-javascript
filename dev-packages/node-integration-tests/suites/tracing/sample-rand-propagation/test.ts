@@ -1,3 +1,4 @@
+import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
 describe('sample_rand propagation', () => {

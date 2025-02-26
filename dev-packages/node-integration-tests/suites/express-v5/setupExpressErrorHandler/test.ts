@@ -1,3 +1,4 @@
+import { afterAll, describe, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
 describe('express setupExpressErrorHandler', () => {
@@ -6,7 +7,7 @@ describe('express setupExpressErrorHandler', () => {
   });
 
   describe('CJS', () => {
-    test('allows to pass options to setupExpressErrorHandler', done => {
+    test('allows to pass options to setupExpressErrorHandler', async () => {
       const runner = createRunner(__dirname, 'server.js')
         .expect({
           event: {
@@ -19,12 +20,13 @@ describe('express setupExpressErrorHandler', () => {
             },
           },
         })
-        .start(done);
+        .start();
 
       // this error is filtered & ignored
       runner.makeRequest('get', '/test1', { expectError: true });
       // this error is actually captured
       runner.makeRequest('get', '/test2', { expectError: true });
+      await runner.completed();
     });
   });
 });

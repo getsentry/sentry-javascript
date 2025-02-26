@@ -1,11 +1,12 @@
+import { afterAll, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
 afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('correctly applies isolation scope to span', done => {
-  createRunner(__dirname, 'server.ts')
+test('correctly applies isolation scope to span', async () => {
+  const runner = createRunner(__dirname, 'server.ts')
     .expect({
       transaction: {
         transaction: 'GET /test/isolationScope',
@@ -33,6 +34,7 @@ test('correctly applies isolation scope to span', done => {
         },
       },
     })
-    .start(done)
-    .makeRequest('get', '/test/isolationScope');
+    .start();
+  runner.makeRequest('get', '/test/isolationScope');
+  await runner.completed();
 });

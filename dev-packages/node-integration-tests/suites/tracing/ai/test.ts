@@ -1,3 +1,4 @@
+import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
 // `ai` SDK only support Node 18+
@@ -6,7 +7,7 @@ describe('ai', () => {
     cleanupChildProcesses();
   });
 
-  test('creates ai related spans', done => {
+  test('creates ai related spans', async () => {
     const EXPECTED_TRANSACTION = {
       transaction: 'main',
       spans: expect.arrayContaining([
@@ -125,6 +126,6 @@ describe('ai', () => {
       ]),
     };
 
-    createRunner(__dirname, 'scenario.js').expect({ transaction: EXPECTED_TRANSACTION }).start(done);
+    await createRunner(__dirname, 'scenario.js').expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
   });
 });
