@@ -356,7 +356,7 @@ describe('trace', () => {
       });
     });
 
-    it('allows to pass span links', () => {
+    it('allows to add span links', () => {
       const rawSpan1 = startInactiveSpan({ name: 'pageload_span' });
 
       // @ts-expect-error links exists on span
@@ -1016,7 +1016,7 @@ describe('trace', () => {
       });
     });
 
-    it('allows to pass span links', () => {
+    it('allows to add span links', () => {
       const rawSpan1 = startInactiveSpan({ name: 'pageload_span' });
 
       // @ts-expect-error links exists on span

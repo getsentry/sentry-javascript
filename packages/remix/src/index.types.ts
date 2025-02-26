@@ -12,6 +12,7 @@ import type { RemixOptions } from './utils/remixOptions';
 /** Initializes Sentry Remix SDK */
 export declare function init(options: RemixOptions): Client | undefined;
 
+export declare const browserTracingIntegration: typeof clientSdk.browserTracingIntegration;
 export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;
 export declare const contextLinesIntegration: typeof clientSdk.contextLinesIntegration;
 

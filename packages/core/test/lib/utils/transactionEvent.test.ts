@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME, SEMANTIC_ATTRIBUTE_PROFILE_ID } from '../../../src/semanticAttributes';
 import type { SpanJSON, TransactionEvent } from '../../../src/types-hoist';
 import {} from '../../../src/types-hoist';

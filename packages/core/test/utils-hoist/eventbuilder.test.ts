@@ -1,3 +1,4 @@
+import { describe, expect, it, test } from 'vitest';
 import type { Client } from '../../src/client';
 import { eventFromMessage, eventFromUnknownInput } from '../../src/utils-hoist/eventbuilder';
 import { nodeStackLineParser } from '../../src/utils-hoist/node-stack-trace';

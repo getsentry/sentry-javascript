@@ -57,9 +57,9 @@ export const FETCH_PROXY_SCRIPT = `
  *
  * Exported only for testing
  */
-export function addSentryCodeToPage(options: { injectFetchProxyScript: boolean }): NonNullable<
-  ResolveOptions['transformPageChunk']
-> {
+export function addSentryCodeToPage(options: {
+  injectFetchProxyScript: boolean;
+}): NonNullable<ResolveOptions['transformPageChunk']> {
   return ({ html }) => {
     const metaTags = getTraceMetaTags();
     const headWithMetaTags = metaTags ? `<head>\n${metaTags}` : '<head>';

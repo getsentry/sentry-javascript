@@ -1,3 +1,8 @@
+/**
+ * @vitest-environment jsdom
+ */
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
 import { Scope, getClient, setCurrentClient } from '@sentry/browser';
 import type { Client } from '@sentry/core';
 import { fireEvent, render, screen } from '@testing-library/react';
@@ -7,15 +12,14 @@ import { useState } from 'react';
 import type { ErrorBoundaryProps, FallbackRender } from '../src/errorboundary';
 import { ErrorBoundary, UNKNOWN_COMPONENT, withErrorBoundary } from '../src/errorboundary';
 
-const mockCaptureException = jest.fn();
-const mockShowReportDialog = jest.fn();
-const mockClientOn = jest.fn();
+const mockCaptureException = vi.fn();
+const mockShowReportDialog = vi.fn();
+const mockClientOn = vi.fn();
 const EVENT_ID = 'test-id-123';
 
-jest.mock('@sentry/browser', () => {
-  const actual = jest.requireActual('@sentry/browser');
+vi.mock('@sentry/browser', async requireActual => {
   return {
-    ...actual,
+    ...(await requireActual()),
     captureException: (...args: unknown[]) => {
       mockCaptureException(...args);
       return EVENT_ID;
@@ -92,7 +96,7 @@ describe('withErrorBoundary', () => {
 });
 
 describe('ErrorBoundary', () => {
-  jest.spyOn(console, 'error').mockImplementation();
+  vi.spyOn(console, 'error').mockImplementation(() => {});
 
   afterEach(() => {
     mockCaptureException.mockClear();
@@ -141,7 +145,7 @@ describe('ErrorBoundary', () => {
   });
 
   it('calls `onMount` when mounted', () => {
-    const mockOnMount = jest.fn();
+    const mockOnMount = vi.fn();
     render(
       <ErrorBoundary fallback={<h1>Error Component</h1>} onMount={mockOnMount}>
         <h1>children</h1>
@@ -152,7 +156,7 @@ describe('ErrorBoundary', () => {
   });
 
   it('calls `onUnmount` when unmounted', () => {
-    const mockOnUnmount = jest.fn();
+    const mockOnUnmount = vi.fn();
     const { unmount } = render(
       <ErrorBoundary fallback={<h1>Error Component</h1>} onUnmount={mockOnUnmount}>
         <h1>children</h1>
@@ -243,7 +247,7 @@ describe('ErrorBoundary', () => {
 
   describe('error', () => {
     it('calls `componentDidCatch() when an error occurs`', () => {
-      const mockOnError = jest.fn();
+      const mockOnError = vi.fn();
       render(
         <TestApp fallback={<p>You have hit an error</p>} onError={mockOnError}>
           <h1>children</h1>
@@ -267,12 +271,14 @@ describe('ErrorBoundary', () => {
         mechanism: { handled: true },
       });
 
-      expect(mockOnError.mock.calls[0][0]).toEqual(mockCaptureException.mock.calls[0][0]);
+      expect(mockOnError.mock.calls[0]?.[0]).toEqual(mockCaptureException.mock.calls[0]?.[0]);
 
       // Check if error.cause -> react component stack
-      const error = mockCaptureException.mock.calls[0][0];
+      const error = mockCaptureException.mock.calls[0]?.[0];
       const cause = error.cause;
-      expect(cause.stack).toEqual(mockCaptureException.mock.calls[0][1]?.captureContext.contexts.react.componentStack);
+      expect(cause.stack).toEqual(
+        mockCaptureException.mock.calls[0]?.[1]?.captureContext.contexts.react.componentStack,
+      );
       expect(cause.name).toContain('React ErrorBoundary');
       expect(cause.message).toEqual(error.message);
     });
@@ -326,12 +332,12 @@ describe('ErrorBoundary', () => {
       });
 
       // Check if error.cause -> react component stack
-      const error = mockCaptureException.mock.calls[0][0];
+      const error = mockCaptureException.mock.calls[0]?.[0];
       expect(error.cause).not.toBeDefined();
     });
 
     it('handles when `error.cause` is nested', () => {
-      const mockOnError = jest.fn();
+      const mockOnError = vi.fn();
 
       function CustomBam(): JSX.Element {
         const firstError = new Error('bam');
@@ -364,19 +370,21 @@ describe('ErrorBoundary', () => {
         mechanism: { handled: true },
       });
 
-      expect(mockOnError.mock.calls[0][0]).toEqual(mockCaptureException.mock.calls[0][0]);
+      expect(mockOnError.mock.calls[0]?.[0]).toEqual(mockCaptureException.mock.calls[0]?.[0]);
 
-      const thirdError = mockCaptureException.mock.calls[0][0];
+      const thirdError = mockCaptureException.mock.calls[0]?.[0];
       const secondError = thirdError.cause;
       const firstError = secondError.cause;
       const cause = firstError.cause;
-      expect(cause.stack).toEqual(mockCaptureException.mock.calls[0][1]?.captureContext.contexts.react.componentStack);
+      expect(cause.stack).toEqual(
+        mockCaptureException.mock.calls[0]?.[1]?.captureContext.contexts.react.componentStack,
+      );
       expect(cause.name).toContain('React ErrorBoundary');
       expect(cause.message).toEqual(thirdError.message);
     });
 
     it('handles when `error.cause` is recursive', () => {
-      const mockOnError = jest.fn();
+      const mockOnError = vi.fn();
 
       function CustomBam(): JSX.Element {
         const firstError = new Error('bam');
@@ -408,19 +416,19 @@ describe('ErrorBoundary', () => {
         mechanism: { handled: true },
       });
 
-      expect(mockOnError.mock.calls[0][0]).toEqual(mockCaptureException.mock.calls[0][0]);
+      expect(mockOnError.mock.calls[0]?.[0]).toEqual(mockCaptureException.mock.calls[0]?.[0]);
 
-      const error = mockCaptureException.mock.calls[0][0];
+      const error = mockCaptureException.mock.calls[0]?.[0];
       const cause = error.cause;
       // We need to make sure that recursive error.cause does not cause infinite loop
       expect(cause.stack).not.toEqual(
-        mockCaptureException.mock.calls[0][1]?.captureContext.contexts.react.componentStack,
+        mockCaptureException.mock.calls[0]?.[1]?.captureContext.contexts.react.componentStack,
       );
       expect(cause.name).not.toContain('React ErrorBoundary');
     });
 
     it('calls `beforeCapture()` when an error occurs', () => {
-      const mockBeforeCapture = jest.fn();
+      const mockBeforeCapture = vi.fn();
 
       const testBeforeCapture = (...args: any[]) => {
         expect(mockCaptureException).toHaveBeenCalledTimes(0);
@@ -516,7 +524,7 @@ describe('ErrorBoundary', () => {
     });
 
     it('calls `onReset()` when reset', () => {
-      const mockOnReset = jest.fn();
+      const mockOnReset = vi.fn();
       render(
         <TestApp
           onReset={mockOnReset}

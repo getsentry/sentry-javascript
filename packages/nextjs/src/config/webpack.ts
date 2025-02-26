@@ -57,6 +57,9 @@ export function constructWebpackConfigFunction(
     if (runtime !== 'client') {
       warnAboutDeprecatedConfigFiles(projectDir, runtime);
     }
+    if (runtime === 'server') {
+      warnAboutMissingonRequestErrorHandler(projectDir);
+    }
 
     let rawNewConfig = { ...incomingConfig };
 
@@ -436,6 +439,57 @@ async function addSentryToClientEntryProperty(
 }
 
 /**
+ * Make sure the instrumentation file has a `onRequestError` Handler
+ *
+ * @param projectDir The root directory of the project, where config files would be located
+ */
+function warnAboutMissingonRequestErrorHandler(projectDir: string): void {
+  const instrumentationPaths = [
+    ['src', 'instrumentation.ts'],
+    ['src', 'instrumentation.js'],
+    ['instrumentation.ts'],
+    ['instrumentation.js'],
+  ];
+  const instrumentationFile = instrumentationPaths
+    .map(pathSegments => path.resolve(projectDir, ...pathSegments))
+    .find(function exists(filePath: string): string | null {
+      try {
+        fs.accessSync(filePath, fs.constants.F_OK);
+        return filePath;
+      } catch (error) {
+        return null;
+      }
+    });
+
+  function hasOnRequestErrorHandler(absolutePath: string): boolean {
+    try {
+      const content = fs.readFileSync(absolutePath, 'utf8');
+      return content.includes('onRequestError');
+    } catch (error) {
+      return false;
+    }
+  }
+
+  if (!instrumentationFile) {
+    // eslint-disable-next-line no-console
+    return console.warn(
+      `${chalk.yellow(
+        '[@sentry/nextjs]',
+      )} Could not find a Next.js instrumentation file. This indicates an incomplete configuration of the Sentry SDK. An instrumentation file is required for the Sentry SDK to be initialized on the server: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#create-initialization-config-files`,
+    );
+  }
+
+  if (!hasOnRequestErrorHandler(instrumentationFile)) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `${chalk.yellow(
+        '[@sentry/nextjs]',
+      )} Could not find \`onRequestError\` hook in instrumentation file. This indicates outdated configuration of the Sentry SDK. Use \`Sentry.captureRequestError\` to instrument the \`onRequestError\` hook: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#errors-from-nested-react-server-components`,
+    );
+  }
+}
+
+/**
  * Searches for old `sentry.(server|edge).config.ts` files and Next.js instrumentation hooks and warns if there are "old"
  * config files and no signs of them inside the instrumentation hook.
  *
@@ -624,6 +678,10 @@ function addValueInjectionLoader(
     _sentryRewriteFramesAssetPrefixPath: assetPrefix
       ? new URL(assetPrefix, 'http://dogs.are.great').pathname.replace(/\/$/, '')
       : '',
+    _sentryAssetPrefix: userNextConfig.assetPrefix,
+    _sentryExperimentalThirdPartyOriginStackFrames: userSentryOptions._experimental?.thirdPartyOriginStackFrames
+      ? 'true'
+      : undefined,
   };
 
   if (buildContext.isServer) {
