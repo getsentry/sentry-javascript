@@ -8,8 +8,8 @@ services:
       - RABBITMQ_DEFAULT_USER=sentry
       - RABBITMQ_DEFAULT_PASS=sentry
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - '5672:5672'
+      - '15672:15672'
 
 networks:
   default:

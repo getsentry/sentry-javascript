@@ -1,4 +1,4 @@
-name: "Action: Clear all GHA caches"
+name: 'Action: Clear all GHA caches'
 on:
   workflow_dispatch:
     inputs:
