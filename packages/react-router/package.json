@@ -36,7 +36,7 @@
   "dependencies": {
     "@sentry/vite-plugin": "^3.2.0",
     "@sentry/cli": "^2.42.1",
-    "glob": "11.0.1"
+    "glob": "11.0.1",
     "@sentry/browser": "9.2.0",
     "@sentry/core": "9.2.0",
     "@sentry/node": "9.2.0"
