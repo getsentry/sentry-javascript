@@ -1,5 +1,6 @@
 import { instrumentXHR } from '../../src/instrument/xhr';
 import { WINDOW } from '../../src/types';
+import { describe, expect, it } from 'vitest';
 
 // @ts-expect-error - idk
 WINDOW.XMLHttpRequest = undefined;

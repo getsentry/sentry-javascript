@@ -1,7 +1,7 @@
 import type { FeatureFlag } from '@sentry/core';
 
 import { getCurrentScope, logger } from '@sentry/core';
-import { vi } from 'vitest';
+import { vi, describe, it, afterEach, expect } from 'vitest';
 import { insertFlagToScope, insertToFlagBuffer } from '../../src/utils/featureFlags';
 
 describe('flags', () => {

@@ -1,6 +1,7 @@
 import { SentrySpan, getCurrentScope, getIsolationScope, setCurrentClient, spanToJSON } from '@sentry/core';
 import { extractNetworkProtocol, startAndEndSpan } from '../../src/metrics/utils';
 import { TestClient, getDefaultClientOptions } from '../utils/TestClient';
+import { describe, beforeEach, it, expect, test } from 'vitest';
 
 describe('startAndEndSpan()', () => {
   beforeEach(() => {
