@@ -6,15 +6,8 @@ import type { SentryReactRouterBuildOptions } from './types';
  * Create a custom subset of sentry's vite plugins
  */
 export async function makeCustomSentryVitePlugins(options: SentryReactRouterBuildOptions): Promise<Plugin[]> {
-  const {
-    debug,
-    sourceMapsUploadOptions,
-    unstable_sentryVitePluginOptions,
-    bundleSizeOptimizations,
-    authToken,
-    org,
-    project,
-  } = options;
+  const { debug, unstable_sentryVitePluginOptions, bundleSizeOptimizations, authToken, org, project, telemetry } =
+    options;
 
   const sentryVitePlugins = sentryVitePlugin({
     authToken: authToken ?? process.env.SENTRY_AUTH_TOKEN,
@@ -22,7 +15,7 @@ export async function makeCustomSentryVitePlugins(options: SentryReactRouterBuil
     debug: debug ?? false,
     org: org ?? process.env.SENTRY_ORG,
     project: project ?? process.env.SENTRY_PROJECT,
-    telemetry: sourceMapsUploadOptions?.telemetry ?? true,
+    telemetry: telemetry ?? true,
     _metaOptions: {
       telemetry: {
         metaFramework: 'react-router',

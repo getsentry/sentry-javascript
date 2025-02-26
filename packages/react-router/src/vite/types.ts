@@ -10,14 +10,6 @@ type SourceMapsOptions = {
   enabled?: boolean;
 
   /**
-   * If this flag is `true`, the Sentry plugin will collect some telemetry data and send it to Sentry.
-   * It will not collect any sensitive or user-specific data.
-   *
-   * @default true
-   */
-  telemetry?: boolean;
-
-  /**
    * A glob or an array of globs that specifies the build artifacts that should be deleted after the artifact
    * upload to Sentry has been completed.
    *
@@ -138,6 +130,14 @@ export type SentryReactRouterBuildOptions = {
    *
    */
   sourceMapsUploadOptions?: SourceMapsOptions;
+
+  /**
+   * If this flag is `true`, the Sentry plugin will collect some telemetry data and send it to Sentry.
+   * It will not collect any sensitive or user-specific data.
+   *
+   * @default true
+   */
+  telemetry?: boolean;
 
   /**
    * Options to further customize the Sentry Vite Plugin (@sentry/vite-plugin) behavior directly.
