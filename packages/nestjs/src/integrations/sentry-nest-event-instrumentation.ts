@@ -1,9 +1,9 @@
-import { isWrapped } from '@opentelemetry/core';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import {
   InstrumentationBase,
   InstrumentationNodeModuleDefinition,
   InstrumentationNodeModuleFile,
+  isWrapped,
 } from '@opentelemetry/instrumentation';
 import { SDK_VERSION, captureException, startSpan } from '@sentry/core';
 import { getEventSpanOptions } from './helpers';

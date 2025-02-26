@@ -10,7 +10,7 @@ import type { OpenTelemetryClient as OpenTelemetryClientInterface } from '../typ
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 /**
- * Wrap an Client class with things we need for OpenTelemetry support.
+ * Wrap a Client class with things we need for OpenTelemetry support.
  * Make sure that the Client class passed in is non-abstract!
  *
  * Usage:
@@ -49,10 +49,9 @@ export function wrapClientClass<
      */
     public async flush(timeout?: number): Promise<boolean> {
       const provider = this.traceProvider;
-      const spanProcessor = provider?.activeSpanProcessor;
 
-      if (spanProcessor) {
-        await spanProcessor.forceFlush();
+      if (provider) {
+        await provider.forceFlush();
       }
 
       return super.flush(timeout);

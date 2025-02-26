@@ -1,6 +1,5 @@
 /* eslint-disable max-lines */
 import { context, propagation } from '@opentelemetry/api';
-import { VERSION } from '@opentelemetry/core';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
 import type { AggregationCounts, Client, RequestEventData, SanitizedRequestData, Scope } from '@sentry/core';
@@ -92,7 +91,7 @@ const MAX_BODY_BYTE_LENGTH = 1024 * 1024;
  */
 export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpInstrumentationOptions> {
   public constructor(config: SentryHttpInstrumentationOptions = {}) {
-    super('@sentry/instrumentation-http', VERSION, config);
+    super('@sentry/instrumentation-http', '2.0.0-dev.0', config);
   }
 
   /** @inheritdoc */

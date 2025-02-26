@@ -255,7 +255,7 @@ export function createTransactionForOtelSpan(span: ReadableSpan): TransactionEve
   // even if `span.parentSpanId` is set
   // this is the case when we are starting a new trace, where we have a virtual span based on the propagationContext
   // We only want to continue the traceId in this case, but ignore the parent span
-  const parent_span_id = span.parentSpanId;
+  const parent_span_id = span.parentSpanContext?.spanId;
 
   const status = mapStatus(span);
 
@@ -321,8 +321,9 @@ function createAndFinishSpanForOtelSpan(node: SpanNode, spans: SpanJSON[], sentS
 
   const span_id = span.spanContext().spanId;
   const trace_id = span.spanContext().traceId;
+  const parent_span_id = span.parentSpanContext?.spanId;
 
-  const { attributes, startTime, endTime, parentSpanId, links } = span;
+  const { attributes, startTime, endTime, links } = span;
 
   const { op, description, data, origin = 'manual' } = getSpanData(span);
   const allData = {
@@ -339,7 +340,7 @@ function createAndFinishSpanForOtelSpan(node: SpanNode, spans: SpanJSON[], sentS
     trace_id,
     data: allData,
     description,
-    parent_span_id: parentSpanId,
+    parent_span_id,
     start_timestamp: spanTimeInputToSeconds(startTime),
     // This is [0,0] by default in OTEL, in which case we want to interpret this as no end time
     timestamp: spanTimeInputToSeconds(endTime) || undefined,

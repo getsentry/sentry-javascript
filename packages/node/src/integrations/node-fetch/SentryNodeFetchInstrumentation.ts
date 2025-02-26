@@ -1,4 +1,3 @@
-import { VERSION } from '@opentelemetry/core';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase } from '@opentelemetry/instrumentation';
 import type { SanitizedRequestData } from '@sentry/core';
@@ -56,7 +55,7 @@ export class SentryNodeFetchInstrumentation extends InstrumentationBase<SentryNo
   private _propagationDecisionMap: LRUMap<string, boolean>;
 
   public constructor(config: SentryNodeFetchInstrumentationOptions = {}) {
-    super('@sentry/instrumentation-node-fetch', VERSION, config);
+    super('@sentry/instrumentation-node-fetch', '2.0.0-dev.0', config);
     this._channelSubs = [];
     this._propagationDecisionMap = new LRUMap<string, boolean>(100);
   }
