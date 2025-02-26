@@ -10,7 +10,7 @@ import {
 import type { MemoryHistory } from '@solidjs/router';
 import { MemoryRouter, Navigate, Route, createMemoryHistory } from '@solidjs/router';
 import { render } from '@solidjs/testing-library';
-import { vi } from 'vitest';
+import { vi, describe, it, beforeEach } from 'vitest';
 
 import { BrowserClient } from '../../src/client';
 import { solidRouterBrowserTracingIntegration, withSentryRouterRouting } from '../../src/client/solidrouter';
