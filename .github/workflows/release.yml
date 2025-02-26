@@ -1,4 +1,4 @@
-name: "Action: Prepare Release"
+name: 'Action: Prepare Release'
 on:
   workflow_dispatch:
     inputs:
@@ -14,7 +14,7 @@ on:
         default: master
 jobs:
   release:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     name: 'Release a new version'
     steps:
       - name: Get auth token
@@ -40,4 +40,3 @@ jobs:
           force: ${{ github.event.inputs.force }}
           merge_target: ${{ github.event.inputs.merge_target }}
           craft_config_from_merge_target: true
-
