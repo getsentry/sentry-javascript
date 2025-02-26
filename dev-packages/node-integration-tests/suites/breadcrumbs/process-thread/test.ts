@@ -1,4 +1,5 @@
 import type { Event } from '@sentry/core';
+import { afterAll, expect, test } from 'vitest';
 import { conditionalTest } from '../../../utils';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
@@ -39,10 +40,11 @@ conditionalTest({ min: 20 })('should capture process and thread breadcrumbs', ()
     cleanupChildProcesses();
   });
 
-  test('ESM', done => {
-    createRunner(__dirname, 'app.mjs')
+  test('ESM', async () => {
+    await createRunner(__dirname, 'app.mjs')
       .withMockSentryServer()
       .expect({ event: EVENT as Event })
-      .start(done);
+      .start()
+      .completed();
   });
 });

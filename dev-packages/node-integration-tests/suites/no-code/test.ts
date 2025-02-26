@@ -1,3 +1,4 @@
+import { afterAll, describe, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../utils/runner';
 
 const EVENT = {
@@ -16,21 +17,23 @@ describe('no-code init', () => {
     cleanupChildProcesses();
   });
 
-  test('CJS', done => {
-    createRunner(__dirname, 'app.js')
+  test('CJS', async () => {
+    await createRunner(__dirname, 'app.js')
       .withFlags('--require=@sentry/node/init')
       .withMockSentryServer()
       .expect({ event: EVENT })
-      .start(done);
+      .start()
+      .completed();
   });
 
   describe('--import', () => {
-    test('ESM', done => {
-      createRunner(__dirname, 'app.mjs')
+    test('ESM', async () => {
+      await createRunner(__dirname, 'app.mjs')
         .withFlags('--import=@sentry/node/init')
         .withMockSentryServer()
         .expect({ event: EVENT })
-        .start(done);
+        .start()
+        .completed();
     });
   });
 });

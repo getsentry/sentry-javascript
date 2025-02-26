@@ -85,9 +85,9 @@ body:
     attributes:
       label: Reproduction Example/SDK Setup
       description:
-        To ensure that we can help you as fast as possible, please share a link to a reproduction example (GitHub repo or online code editor).
-        This enables us to quickly understand and address your issue.
-        If you do not post a link, kindly paste your `Sentry.init` code, so we can see how you set up Sentry.
+        To ensure that we can help you as fast as possible, please share a link to a reproduction example (GitHub repo
+        or online code editor). This enables us to quickly understand and address your issue. If you do not post a link,
+        kindly paste your `Sentry.init` code, so we can see how you set up Sentry.
       placeholder: |-
         https://some-JS-online-code-editor.com/my-example
 

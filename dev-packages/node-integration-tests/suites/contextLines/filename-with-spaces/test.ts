@@ -1,12 +1,13 @@
 import { join } from 'path';
+import { describe, expect, test } from 'vitest';
 import { createRunner } from '../../../utils/runner';
 
 describe('ContextLines integration in ESM', () => {
-  test('reads encoded context lines from filenames with spaces', done => {
+  test('reads encoded context lines from filenames with spaces', async () => {
     expect.assertions(1);
     const instrumentPath = join(__dirname, 'instrument.mjs');
 
-    createRunner(__dirname, 'scenario with space.mjs')
+    await createRunner(__dirname, 'scenario with space.mjs')
       .withFlags('--import', instrumentPath)
       .expect({
         event: {
@@ -34,15 +35,16 @@ describe('ContextLines integration in ESM', () => {
           },
         },
       })
-      .start(done);
+      .start()
+      .completed();
   });
 });
 
 describe('ContextLines integration in CJS', () => {
-  test('reads context lines from filenames with spaces', done => {
+  test('reads context lines from filenames with spaces', async () => {
     expect.assertions(1);
 
-    createRunner(__dirname, 'scenario with space.cjs')
+    await createRunner(__dirname, 'scenario with space.cjs')
       .expect({
         event: {
           exception: {
@@ -77,6 +79,7 @@ describe('ContextLines integration in CJS', () => {
           },
         },
       })
-      .start(done);
+      .start()
+      .completed();
   });
 });

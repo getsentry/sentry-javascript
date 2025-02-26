@@ -1,10 +1,11 @@
+import { afterAll, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
 afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('allows to call init multiple times', done => {
+test('allows to call init multiple times', async () => {
   const runner = createRunner(__dirname, 'server.ts')
     .expect({
       event: {
@@ -59,7 +60,7 @@ test('allows to call init multiple times', done => {
         },
       },
     })
-    .start(done);
+    .start();
 
   runner
     .makeRequest('get', '/test/no-init')
@@ -67,4 +68,6 @@ test('allows to call init multiple times', done => {
     .then(() => runner.makeRequest('get', '/test/init'))
     .then(() => runner.makeRequest('get', '/test/error/2'))
     .then(() => runner.makeRequest('get', '/test/error/3'));
+
+  await runner.completed();
 });

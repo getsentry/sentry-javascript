@@ -1,12 +1,13 @@
+import { expect, test } from 'vitest';
 import { createRunner } from '../../../utils/runner';
 import { createTestServer } from '../../../utils/server';
 
-test('adds current transaction name to baggage when the txn name is high-quality', done => {
+test('adds current transaction name to baggage when the txn name is high-quality', async () => {
   expect.assertions(5);
 
   let traceId: string | undefined;
 
-  createTestServer(done)
+  const [SERVER_URL, closeTestServer] = await createTestServer()
     .get('/api/v0', headers => {
       const baggageItems = getBaggageHeaderItems(headers);
       traceId = baggageItems.find(item => item.startsWith('sentry-trace_id='))?.split('=')[1] as string;
@@ -47,21 +48,22 @@ test('adds current transaction name to baggage when the txn name is high-quality
         'sentry-transaction=updated-name-2',
       ]);
     })
+    .start();
+
+  await createRunner(__dirname, 'scenario-headers.ts')
+    .withEnv({ SERVER_URL })
+    .expect({
+      transaction: {},
+    })
     .start()
-    .then(([SERVER_URL, closeTestServer]) => {
-      createRunner(__dirname, 'scenario-headers.ts')
-        .withEnv({ SERVER_URL })
-        .expect({
-          transaction: {},
-        })
-        .start(closeTestServer);
-    });
+    .completed();
+  closeTestServer();
 });
 
-test('adds current transaction name to trace envelope header when the txn name is high-quality', done => {
+test('adds current transaction name to trace envelope header when the txn name is high-quality', async () => {
   expect.assertions(4);
 
-  createRunner(__dirname, 'scenario-events.ts')
+  await createRunner(__dirname, 'scenario-events.ts')
     .expectHeader({
       event: {
         trace: {
@@ -117,7 +119,8 @@ test('adds current transaction name to trace envelope header when the txn name i
         },
       },
     })
-    .start(done);
+    .start()
+    .completed();
 });
 
 function getBaggageHeaderItems(headers: Record<string, string | string[] | undefined>) {
