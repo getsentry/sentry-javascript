@@ -2,7 +2,7 @@ import * as os from 'node:os';
 import type { Tracer } from '@opentelemetry/api';
 import { trace } from '@opentelemetry/api';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
-import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
+import type { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import type { DynamicSamplingContext, Scope, ServerRuntimeClientOptions, TraceContext } from '@sentry/core';
 import { SDK_VERSION, ServerRuntimeClient, applySdkMetadata, logger } from '@sentry/core';
 import { getTraceContextForScope } from '@sentry/opentelemetry';
@@ -14,7 +14,7 @@ const DEFAULT_CLIENT_REPORT_FLUSH_INTERVAL_MS = 60_000; // 60s was chosen arbitr
 
 /** A client for using Sentry with Node & OpenTelemetry. */
 export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
-  public traceProvider: BasicTracerProvider | undefined;
+  public traceProvider: NodeTracerProvider | undefined;
   private _tracer: Tracer | undefined;
   private _clientReportInterval: NodeJS.Timeout | undefined;
   private _clientReportOnExitFlushListener: (() => void) | undefined;
@@ -60,10 +60,9 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
   // eslint-disable-next-line jsdoc/require-jsdoc
   public async flush(timeout?: number): Promise<boolean> {
     const provider = this.traceProvider;
-    const spanProcessor = provider?.activeSpanProcessor;
 
-    if (spanProcessor) {
-      await spanProcessor.forceFlush();
+    if (provider) {
+      await provider.forceFlush();
     }
 
     if (this.getOptions().sendClientReports) {

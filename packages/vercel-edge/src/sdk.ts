@@ -1,6 +1,6 @@
 import { DiagLogLevel, diag } from '@opentelemetry/api';
-import { Resource } from '@opentelemetry/resources';
-import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
+import { resourceFromAttributes } from '@opentelemetry/resources';
+import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import {
   ATTR_SERVICE_NAME,
   ATTR_SERVICE_VERSION,
@@ -151,9 +151,9 @@ export function setupOtel(client: VercelEdgeClient): void {
   }
 
   // Create and configure NodeTracerProvider
-  const provider = new BasicTracerProvider({
+  const provider = new NodeTracerProvider({
     sampler: new SentrySampler(client),
-    resource: new Resource({
+    resource: resourceFromAttributes({
       [ATTR_SERVICE_NAME]: 'edge',
       // eslint-disable-next-line deprecation/deprecation
       [SEMRESATTRS_SERVICE_NAMESPACE]: 'sentry',
