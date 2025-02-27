@@ -1,5 +1,5 @@
 import { trace } from '@opentelemetry/api';
-import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
+import type { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { getRootSpan } from '@sentry/core';
 
 import { getActiveSpan } from '../../src/utils/getActiveSpan';
@@ -8,7 +8,7 @@ import { setupOtel } from '../helpers/initOtel';
 import { cleanupOtel } from '../helpers/mockSdkInit';
 
 describe('getActiveSpan', () => {
-  let provider: BasicTracerProvider | undefined;
+  let provider: NodeTracerProvider | undefined;
 
   beforeEach(() => {
     const client = new TestClient(getDefaultTestClientOptions());
@@ -93,7 +93,7 @@ describe('getActiveSpan', () => {
 });
 
 describe('getRootSpan', () => {
-  let provider: BasicTracerProvider | undefined;
+  let provider: NodeTracerProvider | undefined;
 
   beforeEach(() => {
     const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));

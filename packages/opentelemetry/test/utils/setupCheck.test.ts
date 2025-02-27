@@ -1,4 +1,4 @@
-import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
+import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 
 import { SentrySampler } from '../../src/sampler';
 import { SentrySpanProcessor } from '../../src/spanProcessor';
@@ -8,7 +8,7 @@ import { setupOtel } from '../helpers/initOtel';
 import { cleanupOtel } from '../helpers/mockSdkInit';
 
 describe('openTelemetrySetupCheck', () => {
-  let provider: BasicTracerProvider | undefined;
+  let provider: NodeTracerProvider | undefined;
 
   beforeEach(() => {
     cleanupOtel(provider);
@@ -33,7 +33,7 @@ describe('openTelemetrySetupCheck', () => {
 
   it('returns partial setup parts', () => {
     const client = new TestClient(getDefaultTestClientOptions());
-    provider = new BasicTracerProvider({
+    provider = new NodeTracerProvider({
       sampler: new SentrySampler(client),
     });
     // We want to test this deprecated case also works

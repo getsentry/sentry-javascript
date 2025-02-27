@@ -5857,7 +5857,7 @@
     "@opentelemetry/api" "^0.12.0"
     "@opentelemetry/core" "^0.12.0"
 
-"@opentelemetry/sdk-trace-base@2.0.0-dev.0", "@opentelemetry/sdk-trace-base@^2.0.0-dev.0":
+"@opentelemetry/sdk-trace-base@2.0.0-dev.0":
   version "2.0.0-dev.0"
   resolved "https://registry.yarnpkg.com/@opentelemetry/sdk-trace-base/-/sdk-trace-base-2.0.0-dev.0.tgz#320a259ea4332b4d9452e6bd309862c4c2d08e9e"
   integrity sha512-zULpgNZNGS6LM+rI6fw2fraAVvIm3aI/DfcuwxRvPa6Yqf9kR7FQk1EdB8Tf2AJm+UWakGPpRbEhkv1KqPVu2w==
