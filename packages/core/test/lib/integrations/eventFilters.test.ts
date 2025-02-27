@@ -445,7 +445,7 @@ describe.each([
       expect(eventProcessor(FB_MOBILE_BROWSER_EVENT, {})).toBe(null);
     });
 
-    it("uses default filters (undefined is not an object (evaluating 'a.K'))", () => {
+    it("uses default filters (undefined is not an object (evaluating 'a.L'))", () => {
       const eventProcessor = createEventFiltersEventProcessor(integrationFn);
       expect(eventProcessor(UNDEFINED_IS_NOT_AN_OBJECT_EVENT, {})).toBe(null);
     });
