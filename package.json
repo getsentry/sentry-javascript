@@ -79,6 +79,7 @@
     "packages/solidstart",
     "packages/svelte",
     "packages/sveltekit",
+    "packages/tanstackstart",
     "packages/types",
     "packages/typescript",
     "packages/vercel-edge",
