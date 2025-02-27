@@ -1,4 +1,4 @@
-import type { SpanContext, TimeInput } from '@opentelemetry/api';
+import type { TimeInput } from '@opentelemetry/api';
 import { context, trace, SpanKind } from '@opentelemetry/api';
 import type { SpanProcessor } from '@opentelemetry/sdk-trace-node';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
