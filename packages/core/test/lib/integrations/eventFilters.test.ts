@@ -332,6 +332,12 @@ const TRANSACTION_EVENT_3: Event = {
   type: 'transaction',
 };
 
+const UNDEFINED_IS_NOT_AN_OBJECT_EVENT: Event = {
+  exception: {
+    values: [{ type: 'TypeError', value: "undefined is not an object (evaluating 'a.L')" }],
+  },
+};
+
 describe.each([
   // eslint-disable-next-line deprecation/deprecation
   ['InboundFilters', inboundFiltersIntegration],
@@ -437,6 +443,11 @@ describe.each([
     it('uses default filters (FB Mobile Browser)', () => {
       const eventProcessor = createEventFiltersEventProcessor(integrationFn);
       expect(eventProcessor(FB_MOBILE_BROWSER_EVENT, {})).toBe(null);
+    });
+
+    it("uses default filters (undefined is not an object (evaluating 'a.K'))", () => {
+      const eventProcessor = createEventFiltersEventProcessor(integrationFn);
+      expect(eventProcessor(UNDEFINED_IS_NOT_AN_OBJECT_EVENT, {})).toBe(null);
     });
 
     it('filters on last exception when multiple present', () => {
