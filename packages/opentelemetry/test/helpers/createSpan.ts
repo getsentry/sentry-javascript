@@ -1,5 +1,5 @@
 import type { SpanContext, TimeInput } from '@opentelemetry/api';
-import { SpanKind } from '@opentelemetry/api';
+import { context, trace, SpanKind } from '@opentelemetry/api';
 import type { SpanProcessor } from '@opentelemetry/sdk-trace-node';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { uuid4 } from '@sentry/core';
@@ -31,36 +31,29 @@ export function createSpan(
   });
 
   const tracer = provider.getTracer('test-instrumentation-library');
-
-  // const tracer = {
-  //   resource: 'test-resource',
-  //   instrumentationLibrary: 'test-instrumentation-library',
-  //   getSpanLimits: () => ({}),
-  //   getActiveSpanProcessor: () => spanProcessor,
-  // } as unknown as Tracer;
-
   const tId = traceId || uuid4();
 
-  const parentSpanContext: SpanContext = {
-    spanId: parentSpanId || uuid4(),
-    traceId: tId,
-    traceFlags: 0,
-  };
+  const parentSpan = tracer.startSpan(name || 'test', {
+    kind: SpanKind.INTERNAL,
+    links: [],
+    startTime,
+  });
 
-  const spanContext: SpanContext = {
-    spanId: spanId || uuid4(),
-    traceId: tId,
-    traceFlags: 0,
-  };
+  parentSpan.spanContext().spanId = parentSpanId || uuid4();
+  parentSpan.spanContext().traceId = tId;
+  parentSpan.spanContext().traceFlags = 0;
 
-  return tracer.startSpan(
-    name || 'test',
-    {
-      kind: SpanKind.INTERNAL,
-      links: [],
-      spanContext,
-      startTime,
-    },
-    parentSpanContext,
-  );
+  trace.setSpan(context.active(), parentSpan);
+
+  const childSpan = tracer.startSpan(name || 'test', {
+    kind: SpanKind.INTERNAL,
+    links: [],
+    startTime,
+  });
+
+  childSpan.spanContext().spanId = spanId || uuid4();
+  childSpan.spanContext().traceId = tId;
+  childSpan.spanContext().traceFlags = 0;
+
+  return childSpan;
 }
