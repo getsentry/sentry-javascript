@@ -7,7 +7,7 @@
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=20"
+    "node": ">=18"
   },
   "main": "build/cjs/index.server.js",
   "module": "build/esm/index.server.js",
