@@ -38,7 +38,6 @@ function createEventFiltersEventProcessor(
       dsn: PUBLIC_DSN,
       ...clientOptions,
       defaultIntegrations: false,
-      // eslint-disable-next-line deprecation/deprecation
       integrations: [integration],
     }),
   );
@@ -707,28 +706,28 @@ describe.each([
     });
 
     it('should apply denyUrls to the "root" error of a linked exception', () => {
-      const eventProcessor = createInboundFiltersEventProcessor({
+      const eventProcessor = createEventFiltersEventProcessor(integrationFn, {
         denyUrls: ['https://main-error.com'],
       });
       expect(eventProcessor(EXCEPTION_EVENT_WITH_LINKED_ERRORS, {})).toBe(null);
     });
 
     it('should apply denyUrls to the "root" error of an aggregate exception', () => {
-      const eventProcessor = createInboundFiltersEventProcessor({
+      const eventProcessor = createEventFiltersEventProcessor(integrationFn, {
         denyUrls: ['https://main-error.com'],
       });
       expect(eventProcessor(EXCEPTION_EVENT_WITH_AGGREGATE_ERRORS, {})).toBe(null);
     });
 
     it('should apply allowUrls to the "most root" exception in the event if there are exceptions without stacktrace', () => {
-      const eventProcessor = createInboundFiltersEventProcessor({
+      const eventProcessor = createEventFiltersEventProcessor(integrationFn, {
         allowUrls: ['https://some-error-that-is-not-main-error.com'],
       });
       expect(eventProcessor(EXCEPTION_EVENT_WITH_LINKED_ERRORS_WITHOUT_STACKTRACE, {})).toBe(null);
     });
 
     it('should not apply allowUrls to the event when the "root" exception of an aggregate error doesn\'t have a stacktrace', () => {
-      const eventProcessor = createInboundFiltersEventProcessor({
+      const eventProcessor = createEventFiltersEventProcessor(integrationFn, {
         allowUrls: ['https://some-error-that-doesnt-match-anything.com'],
       });
       expect(eventProcessor(EXCEPTION_EVENT_WITH_AGGREGATE_ERRORS_WITHOUT_STACKTRACE, {})).toBe(
