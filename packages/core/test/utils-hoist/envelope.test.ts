@@ -7,7 +7,7 @@ import {
   spanToJSON,
 } from '@sentry/core';
 import { SentrySpan } from '@sentry/core';
-import { describe, expect, it, test, vi } from 'vitest';
+import { describe, expect, it, test, vi, afterEach } from 'vitest';
 import { getSentryCarrier } from '../../src/carrier';
 import {
   addItemToEnvelope,
