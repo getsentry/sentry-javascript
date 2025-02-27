@@ -157,10 +157,91 @@ const EXCEPTION_EVENT_WITH_LINKED_ERRORS: Event = {
       {
         type: 'ReferenceError',
         value: '`tooManyTreats` is not defined',
+        stacktrace: {
+          frames: [{ filename: 'https://secondary-error.com/' }],
+        },
       },
       {
         type: 'TypeError',
         value: 'incorrect type given for parameter `chewToy`: Shoe',
+        stacktrace: {
+          frames: [{ filename: 'https://main-error.com/' }],
+        },
+      },
+    ],
+  },
+};
+
+const EXCEPTION_EVENT_WITH_AGGREGATE_ERRORS: Event = {
+  exception: {
+    values: [
+      {
+        type: 'ReferenceError',
+        value: '`tooManyTreats` is not defined',
+        stacktrace: {
+          frames: [{ filename: 'https://secondary-error.com/' }],
+        },
+        mechanism: {
+          type: 'generic',
+          exception_id: 1,
+          parent_id: 0,
+        },
+      },
+      {
+        type: 'TypeError',
+        value: 'incorrect type given for parameter `chewToy`: Shoe',
+        stacktrace: {
+          frames: [{ filename: 'https://main-error.com/' }],
+        },
+        mechanism: {
+          type: 'generic',
+          exception_id: 0,
+        },
+      },
+    ],
+  },
+};
+
+const EXCEPTION_EVENT_WITH_LINKED_ERRORS_WITHOUT_STACKTRACE: Event = {
+  exception: {
+    values: [
+      {
+        type: 'ReferenceError',
+        value: '`tooManyTreats` is not defined',
+        stacktrace: {
+          frames: [{ filename: 'https://main-error.com/' }],
+        },
+      },
+      {
+        type: 'TypeError',
+        value: 'incorrect type given for parameter `chewToy`: Shoe',
+      },
+    ],
+  },
+};
+
+const EXCEPTION_EVENT_WITH_AGGREGATE_ERRORS_WITHOUT_STACKTRACE: Event = {
+  exception: {
+    values: [
+      {
+        type: 'ReferenceError',
+        value: '`tooManyTreats` is not defined',
+        stacktrace: {
+          frames: [{ filename: 'https://secondary-error.com/' }],
+        },
+        mechanism: {
+          type: 'generic',
+          exception_id: 1,
+          parent_id: 0,
+        },
+      },
+      {
+        type: 'TypeError',
+        value: 'incorrect type given for parameter `chewToy`: Shoe',
+        mechanism: {
+          type: 'generic',
+          exception_id: 0,
+        },
       },
     ],
   },
@@ -614,6 +695,36 @@ describe('InboundFilters', () => {
         denyUrls: ['https://awesome-analytics.io/some/file.js'],
       });
       expect(eventProcessor(MESSAGE_EVENT_WITH_NATIVE_LAST_FRAME, {})).toBe(null);
+    });
+
+    it('should apply denyUrls to the "root" error of a linked exception', () => {
+      const eventProcessor = createInboundFiltersEventProcessor({
+        denyUrls: ['https://main-error.com'],
+      });
+      expect(eventProcessor(EXCEPTION_EVENT_WITH_LINKED_ERRORS, {})).toBe(null);
+    });
+
+    it('should apply denyUrls to the "root" error of an aggregate exception', () => {
+      const eventProcessor = createInboundFiltersEventProcessor({
+        denyUrls: ['https://main-error.com'],
+      });
+      expect(eventProcessor(EXCEPTION_EVENT_WITH_AGGREGATE_ERRORS, {})).toBe(null);
+    });
+
+    it('should apply allowUrls to the "most root" exception in the event if there are exceptions without stacktrace', () => {
+      const eventProcessor = createInboundFiltersEventProcessor({
+        allowUrls: ['https://some-error-that-is-not-main-error.com'],
+      });
+      expect(eventProcessor(EXCEPTION_EVENT_WITH_LINKED_ERRORS_WITHOUT_STACKTRACE, {})).toBe(null);
+    });
+
+    it('should not apply allowUrls to the event when the "root" exception of an aggregate error doesn\'t have a stacktrace', () => {
+      const eventProcessor = createInboundFiltersEventProcessor({
+        allowUrls: ['https://some-error-that-doesnt-match-anything.com'],
+      });
+      expect(eventProcessor(EXCEPTION_EVENT_WITH_AGGREGATE_ERRORS_WITHOUT_STACKTRACE, {})).toBe(
+        EXCEPTION_EVENT_WITH_AGGREGATE_ERRORS_WITHOUT_STACKTRACE,
+      );
     });
   });
 
