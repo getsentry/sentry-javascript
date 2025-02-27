@@ -8,6 +8,7 @@ import { normalize } from './utils-hoist/normalize';
 interface SentryTrpcMiddlewareOptions {
   /** Whether to include procedure inputs in reported events. Defaults to `false`. */
   attachRpcInput?: boolean;
+  forceTransaction?: boolean;
 }
 
 export interface SentryTrpcMiddlewareArguments<T> {
@@ -85,6 +86,7 @@ export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.rpc.trpc',
           },
+          forceTransaction: !!options.forceTransaction,
         },
         async span => {
           try {
