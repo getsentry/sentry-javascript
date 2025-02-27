@@ -209,13 +209,12 @@ function _getLastValidUrl(frames: StackFrame[] = []): string | null {
 
 function _getEventFilterUrl(event: Event): string | null {
   try {
-    let frames;
-    try {
-      // @ts-expect-error we only care about frames if the whole thing here is defined
-      frames = event.exception.values[0].stacktrace.frames;
-    } catch (e) {
-      // ignore
-    }
+    // If there are linked exceptions or exception aggregates we only want to match against the top frame of the "root" (the main exception)
+    // The root always comes last in linked exceptions
+    const rootException = [...(event.exception?.values ?? []).reverse()]?.find(
+      value => value.mechanism?.parent_id === undefined && value.stacktrace?.frames?.length,
+    );
+    const frames = rootException?.stacktrace?.frames;
     return frames ? _getLastValidUrl(frames) : null;
   } catch (oO) {
     DEBUG_BUILD && logger.error(`Cannot extract url for event ${getEventDescription(event)}`);
