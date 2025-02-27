@@ -1,11 +1,11 @@
-import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
+import {NodeTracerProvider} from '@opentelemetry/sdk-trace-node';
 
-import { SentrySampler } from '../../src/sampler';
-import { SentrySpanProcessor } from '../../src/spanProcessor';
-import { openTelemetrySetupCheck } from '../../src/utils/setupCheck';
-import { TestClient, getDefaultTestClientOptions } from '../helpers/TestClient';
-import { setupOtel } from '../helpers/initOtel';
-import { cleanupOtel } from '../helpers/mockSdkInit';
+import {SentrySampler} from '../../src/sampler';
+import {SentrySpanProcessor} from '../../src/spanProcessor';
+import {openTelemetrySetupCheck} from '../../src/utils/setupCheck';
+import {TestClient, getDefaultTestClientOptions} from '../helpers/TestClient';
+import {setupOtel} from '../helpers/initOtel';
+import {cleanupOtel} from '../helpers/mockSdkInit';
 
 describe('openTelemetrySetupCheck', () => {
   let provider: NodeTracerProvider | undefined;
@@ -35,10 +35,8 @@ describe('openTelemetrySetupCheck', () => {
     const client = new TestClient(getDefaultTestClientOptions());
     provider = new NodeTracerProvider({
       sampler: new SentrySampler(client),
+      spanProcessors: [new SentrySpanProcessor()],
     });
-    // We want to test this deprecated case also works
-    // eslint-disable-next-line deprecation/deprecation
-    provider.addSpanProcessor(new SentrySpanProcessor());
 
     const setup = openTelemetrySetupCheck();
     expect(setup).toEqual(['SentrySampler', 'SentrySpanProcessor']);
