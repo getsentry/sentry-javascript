@@ -294,13 +294,17 @@ export function createRunner(...paths: string[]) {
           // Catch any error or failed assertions and pass them to done to end the test quickly
           try {
             if (!expected) {
-             return;
+              return;
             }
 
             const expectedType = Object.keys(expected)[0];
 
             if (expectedType !== envelopeItemType) {
-              throw new Error(`Expected envelope item type '${expectedType}' but got '${envelopeItemType}'`);
+              throw new Error(
+                `Expected envelope item type '${expectedType}' but got '${envelopeItemType}'. \nItem: ${JSON.stringify(
+                  item,
+                )}`,
+              );
             }
 
             if ('event' in expected) {
@@ -322,7 +326,9 @@ export function createRunner(...paths: string[]) {
               expectClientReport(item[1] as ClientReport, expected.client_report);
               expectCallbackCalled();
             } else {
-              throw new Error(`Unhandled expected envelope item type: ${JSON.stringify(expected)}`);
+              throw new Error(
+                `Unhandled expected envelope item type: ${JSON.stringify(expected)}\nItem: ${JSON.stringify(item)}`,
+              );
             }
           } catch (e) {
             complete(e as Error);
