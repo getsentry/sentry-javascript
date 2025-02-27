@@ -17,6 +17,7 @@ import type {
   SpanOrigin,
   SpanStatus,
   SpanTimeInput,
+  SpanContextData,
   TraceContext,
 } from '../types-hoist';
 import type { SpanLink, SpanLinkJSON } from '../types-hoist/link';
@@ -145,14 +146,15 @@ export function spanToJSON(span: Span): SpanJSON {
 
   // Handle a span from @opentelemetry/sdk-base-trace's `Span` class
   if (spanIsOpenTelemetrySdkTraceBaseSpan(span)) {
-    const { attributes, startTime, name, endTime, parentSpanId, status, links } = span;
+    const { attributes, startTime, name, endTime, status, links } = span;
+    const parent_span_id = span.parentSpanContext?.spanId
 
     return {
       span_id,
       trace_id,
       data: attributes,
       description: name,
-      parent_span_id: parentSpanId,
+      parent_span_id,
       start_timestamp: spanTimeInputToSeconds(startTime),
       // This is [0,0] by default in OTEL, in which case we want to interpret this as no end time
       timestamp: spanTimeInputToSeconds(endTime) || undefined,
@@ -185,7 +187,7 @@ export interface OpenTelemetrySdkTraceBaseSpan extends Span {
   name: string;
   status: SpanStatus;
   endTime: SpanTimeInput;
-  parentSpanId?: string;
+  parentSpanContext?: SpanContextData;
   links?: SpanLink[];
 }
 
