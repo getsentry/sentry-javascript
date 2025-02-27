@@ -107,7 +107,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
 Create an `instrument.server.mjs` file in the root of your app:
 
 ```js
-import * as Sentry from '@sentry/node';
+import * as Sentry from '@sentry/react-router';
 
 Sentry.init({
   dsn: '___PUBLIC_DSN___',
@@ -118,7 +118,7 @@ Sentry.init({
 In your `entry.server.tsx` file, export the `handleError` function:
 
 ```tsx
-import * as Sentry from '@sentry/node';
+import * as Sentry from '@sentry/react-router';
 import { type HandleErrorFunction } from 'react-router';
 
 export const handleError: HandleErrorFunction = (error, { request }) => {
