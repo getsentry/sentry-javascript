@@ -1,7 +1,7 @@
 import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
-describe('tedious auto instrumentation', {timeout: 75_000}, () => {
+describe('tedious auto instrumentation', { timeout: 75_000 }, () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
@@ -20,7 +20,7 @@ describe('tedious auto instrumentation', {timeout: 75_000}, () => {
             'db.system': 'mssql',
             'db.user': 'sa',
             'net.peer.name': '127.0.0.1',
-            'net.peer.port': 1433,
+            'net.peer.port': 1338,
           }),
           status: 'ok',
         }),
@@ -34,7 +34,7 @@ describe('tedious auto instrumentation', {timeout: 75_000}, () => {
             'db.system': 'mssql',
             'db.user': 'sa',
             'net.peer.name': '127.0.0.1',
-            'net.peer.port': 1433,
+            'net.peer.port': 1338,
           }),
           status: 'ok',
         }),
@@ -42,7 +42,7 @@ describe('tedious auto instrumentation', {timeout: 75_000}, () => {
     };
 
     await createRunner(__dirname, 'scenario.js')
-      .withDockerCompose({ workingDirectory: [__dirname], readyMatches: ['1433'] })
+      .withDockerCompose({ workingDirectory: [__dirname], readyMatches: ['1338'] })
       .expect({ transaction: EXPECTED_TRANSACTION })
       .start()
       .completed();

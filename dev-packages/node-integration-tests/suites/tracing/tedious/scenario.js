@@ -10,7 +10,7 @@ Sentry.init({
 
 const { Connection, Request } = require('tedious');
 
-const config = {
+const connection = new Connection({
   server: '127.0.0.1',
   authentication: {
     type: 'default',
@@ -20,12 +20,10 @@ const config = {
     },
   },
   options: {
-    port: 1433,
+    port: 1338,
     encrypt: false,
   },
-};
-
-const connection = new Connection(config);
+});
 
 function executeAllStatements(span) {
   executeStatement('SELECT 1 + 1 AS solution', () => {

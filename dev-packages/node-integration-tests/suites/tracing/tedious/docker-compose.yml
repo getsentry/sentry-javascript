@@ -6,7 +6,7 @@ services:
     restart: always
     container_name: integration-tests-tedious
     ports:
-      - '1433:1433'
+      - '1338:1338'
     environment:
       ACCEPT_EULA: 'Y'
       MSSQL_SA_PASSWORD: 'TESTing123'
