@@ -332,11 +332,13 @@ const TRANSACTION_EVENT_3: Event = {
   type: 'transaction',
 };
 
-const UNDEFINED_IS_NOT_AN_OBJECT_EVENT: Event = {
-  exception: {
-    values: [{ type: 'TypeError', value: "undefined is not an object (evaluating 'a.L')" }],
-  },
-};
+function createUndefinedIsNotAnObjectEvent(evaluatingStr: string): Event {
+  return {
+    exception: {
+      values: [{ type: 'TypeError', value: `undefined is not an object (evaluating '${evaluatingStr}')` }],
+    },
+  };
+}
 
 describe.each([
   // eslint-disable-next-line deprecation/deprecation
@@ -447,7 +449,24 @@ describe.each([
 
     it("uses default filters (undefined is not an object (evaluating 'a.L'))", () => {
       const eventProcessor = createEventFiltersEventProcessor(integrationFn);
-      expect(eventProcessor(UNDEFINED_IS_NOT_AN_OBJECT_EVENT, {})).toBe(null);
+      expect(eventProcessor(createUndefinedIsNotAnObjectEvent('a.L'), {})).toBe(null);
+    });
+
+    it("uses default filters (undefined is not an object (evaluating 'a.K'))", () => {
+      const eventProcessor = createEventFiltersEventProcessor(integrationFn);
+      expect(eventProcessor(createUndefinedIsNotAnObjectEvent('a.K'), {})).toBe(null);
+    });
+
+    it("doesn't use default filters for (undefined is not an object (evaluating 'a.store'))", () => {
+      const eventProcessor = createEventFiltersEventProcessor(integrationFn);
+      const event = createUndefinedIsNotAnObjectEvent('a.store');
+      expect(eventProcessor(event, {})).toBe(event);
+    });
+
+    it("doesn't use default filters for (undefined is not an object (evaluating 'this._perf.domInteractive'))", () => {
+      const eventProcessor = createEventFiltersEventProcessor(integrationFn);
+      const event = createUndefinedIsNotAnObjectEvent('a.store');
+      expect(eventProcessor(event, {})).toBe(event);
     });
 
     it('filters on last exception when multiple present', () => {
