@@ -1,5 +1,5 @@
 import type { Span } from '@opentelemetry/api';
-import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
+import type { ReadableSpan } from '@opentelemetry/sdk-trace-node';
 import {
   ATTR_HTTP_REQUEST_METHOD,
   ATTR_URL_FULL,

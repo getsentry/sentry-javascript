@@ -1,10 +1,10 @@
 import type { Span as WriteableSpan, SpanKind, Tracer } from '@opentelemetry/api';
-import type { BasicTracerProvider, ReadableSpan } from '@opentelemetry/sdk-trace-base';
+import type { NodeTracerProvider, ReadableSpan } from '@opentelemetry/sdk-trace-node';
 import type { Scope, Span, StartSpanOptions } from '@sentry/core';
 
 export interface OpenTelemetryClient {
   tracer: Tracer;
-  traceProvider: BasicTracerProvider | undefined;
+  traceProvider: NodeTracerProvider | undefined;
 }
 
 export interface OpenTelemetrySpanContext extends StartSpanOptions {

@@ -1,5 +1,5 @@
-import type {SpanContext, SpanKind, SpanStatus} from '@opentelemetry/api';
-import type { ReadableSpan, TimedEvent } from '@opentelemetry/sdk-trace-base';
+import type { SpanContext, SpanKind, SpanStatus } from '@opentelemetry/api';
+import type { ReadableSpan, TimedEvent } from '@opentelemetry/sdk-trace-node';
 
 import type { AbstractSpan } from '../types';
 

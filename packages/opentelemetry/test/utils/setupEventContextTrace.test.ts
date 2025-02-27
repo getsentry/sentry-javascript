@@ -1,4 +1,4 @@
-import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
+import type { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { captureException, setCurrentClient } from '@sentry/core';
 import { describe, afterEach, beforeEach, expect, it, vi, afterAll } from 'vitest';
 
@@ -13,7 +13,7 @@ const PUBLIC_DSN = 'https://username@domain/123';
 describe('setupEventContextTrace', () => {
   const beforeSend = vi.fn(() => null);
   let client: TestClientInterface;
-  let provider: BasicTracerProvider | undefined;
+  let provider: NodeTracerProvider | undefined;
 
   beforeEach(() => {
     client = new TestClient(
