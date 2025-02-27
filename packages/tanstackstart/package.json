@@ -68,7 +68,7 @@
     "build:transpile:watch": "nodemon --ext ts --watch src scripts/buildRollup.ts",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:tarball": "npm pack",
-    "circularDepCheck": "madge --circular src/index.client.ts madge --circular src/index.server.ts && madge --circular src/index.types.ts",
+    "circularDepCheck": "madge --circular src/index.client.ts && madge --circular src/index.server.ts && madge --circular src/index.types.ts",
     "clean": "rimraf build coverage sentry-tanstackstart-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
