@@ -1,7 +1,7 @@
-import type { Context, SpanContext, TimeInput } from '@opentelemetry/api';
+import type { SpanContext, TimeInput } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
-import type { Tracer } from '@opentelemetry/sdk-trace-base';
-import { Span } from '@opentelemetry/sdk-trace-base';
+import type { SpanProcessor } from '@opentelemetry/sdk-trace-node';
+import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { uuid4 } from '@sentry/core';
 
 export function createSpan(
@@ -17,24 +17,50 @@ export function createSpan(
     traceId?: string;
     startTime?: TimeInput;
   } = {},
-): Span {
-  const spanProcessor = {
+) {
+  const spanProcessor: SpanProcessor = {
     onStart: () => {},
     onEnd: () => {},
+    forceFlush: (() => {}) as () => Promise<void>,
+    shutdown: (() => {}) as () => Promise<void>,
   };
-  const tracer = {
-    resource: 'test-resource',
-    instrumentationLibrary: 'test-instrumentation-library',
-    getSpanLimits: () => ({}),
-    getActiveSpanProcessor: () => spanProcessor,
-  } as unknown as Tracer;
 
-  const spanContext: SpanContext = {
-    spanId: spanId || uuid4(),
-    traceId: traceId || uuid4(),
+  const provider = new NodeTracerProvider({
+    spanLimits: {},
+    spanProcessors: [spanProcessor],
+  });
+
+  const tracer = provider.getTracer('test-instrumentation-library');
+
+  // const tracer = {
+  //   resource: 'test-resource',
+  //   instrumentationLibrary: 'test-instrumentation-library',
+  //   getSpanLimits: () => ({}),
+  //   getActiveSpanProcessor: () => spanProcessor,
+  // } as unknown as Tracer;
+
+  const tId = traceId || uuid4();
+
+  const parentSpanContext: SpanContext = {
+    spanId: parentSpanId || uuid4(),
+    traceId: tId,
     traceFlags: 0,
   };
 
-  // eslint-disable-next-line deprecation/deprecation
-  return new Span(tracer, {} as Context, name || 'test', spanContext, SpanKind.INTERNAL, parentSpanId, [], startTime);
+  const spanContext: SpanContext = {
+    spanId: spanId || uuid4(),
+    traceId: tId,
+    traceFlags: 0,
+  };
+
+  return tracer.startSpan(
+    name || 'test',
+    {
+      kind: SpanKind.INTERNAL,
+      links: [],
+      spanContext,
+      startTime,
+    },
+    parentSpanContext,
+  );
 }

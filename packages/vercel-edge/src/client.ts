@@ -2,7 +2,7 @@ import type { ServerRuntimeClientOptions } from '@sentry/core';
 import { applySdkMetadata } from '@sentry/core';
 import { ServerRuntimeClient } from '@sentry/core';
 
-import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
+import type { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import type { VercelEdgeClientOptions } from './types';
 
 declare const process: {
@@ -16,7 +16,7 @@ declare const process: {
  * @see ServerRuntimeClient for usage documentation.
  */
 export class VercelEdgeClient extends ServerRuntimeClient<VercelEdgeClientOptions> {
-  public traceProvider: BasicTracerProvider | undefined;
+  public traceProvider: NodeTracerProvider | undefined;
 
   /**
    * Creates a new Vercel Edge Runtime SDK instance.

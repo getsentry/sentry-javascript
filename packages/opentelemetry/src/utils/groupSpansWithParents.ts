@@ -1,4 +1,4 @@
-import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
+import type { ReadableSpan } from '@opentelemetry/sdk-trace-node';
 import { SEMANTIC_ATTRIBUTE_SENTRY_PARENT_IS_REMOTE } from '../semanticAttributes';
 
 export interface SpanNode {
