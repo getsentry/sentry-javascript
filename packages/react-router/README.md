@@ -4,7 +4,7 @@
   </a>
 </p>
 
-# Official Sentry SDK for React Router (Framework) (EXPERIMENTAL)
+# Official Sentry SDK for React Router Framework (EXPERIMENTAL)
 
 [![npm version](https://img.shields.io/npm/v/@sentry/react-router.svg)](https://www.npmjs.com/package/@sentry/react-router)
 [![npm dm](https://img.shields.io/npm/dm/@sentry/react-router.svg)](https://www.npmjs.com/package/@sentry/react-router)
