@@ -119,7 +119,7 @@ export const instrumentFastify = generateInstrumentOnce(INTEGRATION_NAME, () => 
   // FastifyOtelInstrumentation does not have a `requestHook`
   // so we can't use `addFastifySpanAttributes` here for now
   fastifyOtelInstrumentationInstance = new FastifyOtelInstrumentation({
-    // registerOnInitialization: true,
+    registerOnInitialization: true,
   });
   return fastifyOtelInstrumentationInstance;
 });
@@ -227,29 +227,6 @@ export function setupFastifyErrorHandler(fastify: Fastify, options?: Partial<Fas
       addFastifySpanAttributes(span);
     });
   }
-
-  // // Need to check because the @fastify/otel's plugin crashes the app in the runtime
-  // // if the version is not supported
-  // let fastifyVersion = fastify.version ? parseSemver(fastify.version) : undefined;
-
-  // if (!fastifyVersion) {
-  //   // try reading the version from the package.json
-  //   try {
-  //     // eslint-disable-next-line @typescript-eslint/no-var-requires
-  //     const pkg = require('fastify/package.json');
-  //     if (pkg?.version) {
-  //       fastifyVersion = parseSemver(pkg.version);
-  //     }
-  //   } catch {
-  //     // ignore
-  //   }
-  // }
-
-  // if (fastifyOtelInstrumentationInstance?.isEnabled() && fastifyVersion?.major && fastifyVersion.major >= 4) {
-  //   // Can't use `await` here
-  //   // eslint-disable-next-line @typescript-eslint/no-floating-promises
-  //   fastify.register(fastifyOtelInstrumentationInstance?.plugin());
-  // }
 
   // eslint-disable-next-line @typescript-eslint/no-floating-promises
   fastify.register(plugin);
