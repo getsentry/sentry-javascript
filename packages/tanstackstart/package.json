@@ -54,7 +54,8 @@
     "@sentry/core": "9.2.0",
     "@sentry/node": "9.2.0",
     "@sentry/opentelemetry": "9.2.0",
-    "@sentry/react": "9.2.0"
+    "@sentry/react": "9.2.0",
+    "import-in-the-middle": "^1.13.0"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",

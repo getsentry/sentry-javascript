@@ -10,6 +10,9 @@ export default [
         'src/server/index.ts',
         'src/config/index.ts',
       ],
+      packageSpecificConfig: {
+        external: ['import-in-the-middle/hook.mjs'],
+      },
     }),
   ),
   ...makeOtelLoaders('./build', 'sentry-node'),
