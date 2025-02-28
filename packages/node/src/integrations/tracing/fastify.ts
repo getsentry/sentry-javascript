@@ -1,4 +1,4 @@
-import { FastifyInstrumentation } from '@opentelemetry/instrumentation-fastify';
+import { FastifyOtelInstrumentation } from '@fastify/otel';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -6,23 +6,18 @@ import {
   defineIntegration,
   getClient,
   getIsolationScope,
+  parseSemver,
   spanToJSON,
 } from '@sentry/core';
 import type { IntegrationFn, Span } from '@sentry/core';
 import { generateInstrumentOnce } from '../../otel/instrument';
-import { ensureIsWrapped } from '../../utils/ensureIsWrapped';
+import { FastifyInstrumentationV3 } from './fastify-v3/instrumentation';
 
-// We inline the types we care about here
-interface Fastify {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  register: (plugin: any) => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  addHook: (hook: string, handler: (request: any, reply: any, error: Error) => void) => void;
-}
+import type { FastifyInstance } from 'fastify';
 
 /**
  * Minimal request type containing properties around route information.
- * Works for Fastify 3, 4 and presumably 5.
+ * Works for Fastify 3, 4 and 5.
  */
 interface FastifyRequestRouteInfo {
   method?: string;
@@ -34,23 +29,45 @@ interface FastifyRequestRouteInfo {
 }
 
 const INTEGRATION_NAME = 'Fastify';
+const INTEGRATION_NAME_V3 = 'Fastify-V3';
 
-export const instrumentFastify = generateInstrumentOnce(
-  INTEGRATION_NAME,
+export const instrumentFastifyV3 = generateInstrumentOnce(
+  INTEGRATION_NAME_V3,
   () =>
-    // eslint-disable-next-line deprecation/deprecation
-    new FastifyInstrumentation({
+    new FastifyInstrumentationV3({
       requestHook(span) {
         addFastifySpanAttributes(span);
       },
     }),
 );
 
+let fastifyOtelInstrumentationInstance: FastifyOtelInstrumentation | undefined;
+
+function checkFastifyVersion(): ReturnType<typeof parseSemver> | undefined {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const pkg = require('fastify/package.json') as { version?: string };
+  return pkg?.version ? parseSemver(pkg.version) : undefined;
+}
+
+export const instrumentFastify = generateInstrumentOnce(INTEGRATION_NAME, () => {
+  // FastifyOtelInstrumentation does not have a `requestHook`
+  // so we can't use `addFastifySpanAttributes` here for now
+  fastifyOtelInstrumentationInstance = new FastifyOtelInstrumentation({
+    // registerOnInitialization: true,
+  });
+  return fastifyOtelInstrumentationInstance;
+});
+
 const _fastifyIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
-      instrumentFastify();
+      instrumentFastifyV3();
+
+      const fastifyVersion = checkFastifyVersion();
+      if (fastifyVersion?.major && fastifyVersion.major >= 4) {
+        instrumentFastify();
+      }
     },
   };
 }) satisfies IntegrationFn;
@@ -92,9 +109,9 @@ export const fastifyIntegration = defineIntegration(_fastifyIntegration);
  * app.listen({ port: 3000 });
  * ```
  */
-export function setupFastifyErrorHandler(fastify: Fastify): void {
+export function setupFastifyErrorHandler(fastify: FastifyInstance): void {
   const plugin = Object.assign(
-    function (fastify: Fastify, _options: unknown, done: () => void): void {
+    function (fastify: FastifyInstance, _options: unknown, done: () => void): void {
       fastify.addHook('onError', async (_request, _reply, error) => {
         captureException(error);
       });
@@ -121,8 +138,6 @@ export function setupFastifyErrorHandler(fastify: Fastify): void {
     },
   );
 
-  fastify.register(plugin);
-
   // Sadly, middleware spans do not go through `requestHook`, so we handle those here
   // We register this hook in this method, because if we register it in the integration `setup`,
   // it would always run even for users that are not even using fastify
@@ -133,7 +148,31 @@ export function setupFastifyErrorHandler(fastify: Fastify): void {
     });
   }
 
-  ensureIsWrapped(fastify.addHook, 'fastify');
+  // // Need to check because the @fastify/otel's plugin crashes the app in the runtime
+  // // if the version is not supported
+  // let fastifyVersion = fastify.version ? parseSemver(fastify.version) : undefined;
+
+  // if (!fastifyVersion) {
+  //   // try reading the version from the package.json
+  //   try {
+  //     // eslint-disable-next-line @typescript-eslint/no-var-requires
+  //     const pkg = require('fastify/package.json');
+  //     if (pkg?.version) {
+  //       fastifyVersion = parseSemver(pkg.version);
+  //     }
+  //   } catch {
+  //     // ignore
+  //   }
+  // }
+
+  // if (fastifyOtelInstrumentationInstance?.isEnabled() && fastifyVersion?.major && fastifyVersion.major >= 4) {
+  //   // Can't use `await` here
+  //   // eslint-disable-next-line @typescript-eslint/no-floating-promises
+  //   fastify.register(fastifyOtelInstrumentationInstance?.plugin());
+  // }
+
+  // eslint-disable-next-line @typescript-eslint/no-floating-promises
+  fastify.register(plugin);
 }
 
 function addFastifySpanAttributes(span: Span): void {
@@ -155,7 +194,11 @@ function addFastifySpanAttributes(span: Span): void {
   // Also update the name, we don't need to "middleware - " prefix
   const name = attributes['fastify.name'] || attributes['plugin.name'] || attributes['hook.name'];
   if (typeof name === 'string') {
-    // Also remove `fastify -> ` prefix
-    span.updateName(name.replace(/^fastify -> /, ''));
+    // Try removing `fastify -> ` and `@fastify/otel -> ` prefixes
+    // This is a bit of a hack, and not always working for all spans
+    // But it's the best we can do without a proper API
+    const updatedName = name.replace(/^fastify -> /, '').replace(/^@fastify\/otel -> /, '');
+
+    span.updateName(updatedName);
   }
 }
