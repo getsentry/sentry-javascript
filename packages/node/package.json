@@ -101,8 +101,7 @@
     "import-in-the-middle": "^1.13.0"
   },
   "devDependencies": {
-    "@types/node": "^18.19.1",
-    "fastify": "4.18.0"
+    "@types/node": "^18.19.1"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",

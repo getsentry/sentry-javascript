@@ -12,6 +12,7 @@ import {
 } from '@sentry/core';
 import { generateInstrumentOnce } from '../../otel/instrument';
 import { FastifyInstrumentationV3 } from './fastify-v3/instrumentation';
+import type { FastifyInstance } from './fastify-v3/internal-types';
 
 /**
  * Minimal request type containing properties around route information.
@@ -105,9 +106,13 @@ export const instrumentFastifyV3 = generateInstrumentOnce(
 let fastifyOtelInstrumentationInstance: FastifyOtelInstrumentation | undefined;
 
 function checkFastifyVersion(): ReturnType<typeof parseSemver> | undefined {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const pkg = require('fastify/package.json') as { version?: string };
-  return pkg?.version ? parseSemver(pkg.version) : undefined;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const pkg = require('fastify/package.json') as { version?: string };
+    return pkg?.version ? parseSemver(pkg.version) : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 export const instrumentFastify = generateInstrumentOnce(INTEGRATION_NAME, () => {

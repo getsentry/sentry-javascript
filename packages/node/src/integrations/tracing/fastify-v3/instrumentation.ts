@@ -30,9 +30,16 @@ import { SEMATTRS_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
 
 import { AttributeNames, FastifyNames, FastifyTypes } from './enums/AttributeNames';
 
-import type { FastifyErrorCodes, FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import type {
+  FastifyErrorCodes,
+  FastifyInstance,
+  FastifyReply,
+  FastifyRequest,
+  HandlerOriginal,
+  HookHandlerDoneFunction,
+  PluginFastifyReply,
+} from './internal-types';
 
-import type { HandlerOriginal, HookHandlerDoneFunction, PluginFastifyReply } from './internal-types';
 import type { FastifyInstrumentationConfig } from './types';
 import { endSpan, safeExecuteInTheMiddleMaybePromise, startSpan } from './utils';
 /** @knipignore */
@@ -99,7 +106,7 @@ export class FastifyInstrumentationV3 extends InstrumentationBase<FastifyInstrum
   private _wrapHandler(
     pluginName: string,
     hookName: string,
-    original: (...args: unknown[]) => Promise<unknown>,
+    original: HandlerOriginal,
     syncFunctionWithDone: boolean,
   ): () => Promise<unknown> {
     const instrumentation = this;
@@ -156,6 +163,7 @@ export class FastifyInstrumentationV3 extends InstrumentationBase<FastifyInstrum
     const instrumentation = this;
     this._diag.debug('Patching fastify server.addHook function');
 
+    // biome-ignore lint/complexity/useArrowFunction: <explanation>
     return function (original: FastifyInstance['addHook']): () => FastifyInstance {
       return function wrappedAddHook(this: any, ...args: any) {
         const name = args[0] as string;

@@ -62,6 +62,7 @@ export function endSpan(reply: PluginFastifyReply, err?: any) {
   if (!spans.length) {
     return;
   }
+  // biome-ignore lint/complexity/noForEach: <explanation>
   spans.forEach((span: Span) => {
     if (err) {
       span.setStatus({
