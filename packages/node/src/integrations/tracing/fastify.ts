@@ -1,5 +1,5 @@
 import type { IntegrationFn, Span } from '@sentry/core';
-import { FastifyOtelInstrumentation } from '@fastify/otel';
+import FastifyOtelInstrumentation from '@fastify/otel';
 import {
   captureException,
   defineIntegration,
