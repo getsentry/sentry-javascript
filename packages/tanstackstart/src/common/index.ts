@@ -7,3 +7,10 @@ export function sentryGlobalServerMiddlewareHandler() {
     return server.next();
   };
 }
+
+/**
+ * Wraps a TanStack Start stream handler with Sentry instrumentation that can be passed to `createStartHandler(...)`.
+ */
+export function wrapStreamHandlerWithSentry<H>(handler: H): H {
+  return handler;
+}
