@@ -1,8 +1,8 @@
 import moduleModule from 'module';
 import { DiagLogLevel, diag } from '@opentelemetry/api';
-import { Resource } from '@opentelemetry/resources';
-import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
-import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
+import { resourceFromAttributes } from '@opentelemetry/resources';
+import type { SpanProcessor } from '@opentelemetry/sdk-trace-node';
+import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import {
   ATTR_SERVICE_NAME,
   ATTR_SERVICE_VERSION,
@@ -108,11 +108,11 @@ function getPreloadMethods(integrationNames?: string[]): ((() => void) & { id: s
 }
 
 /** Just exported for tests. */
-export function setupOtel(client: NodeClient, options: AdditionalOpenTelemetryOptions = {}): BasicTracerProvider {
+export function setupOtel(client: NodeClient, options: AdditionalOpenTelemetryOptions = {}): NodeTracerProvider {
   // Create and configure NodeTracerProvider
-  const provider = new BasicTracerProvider({
+  const provider = new NodeTracerProvider({
     sampler: new SentrySampler(client),
-    resource: new Resource({
+    resource: resourceFromAttributes({
       [ATTR_SERVICE_NAME]: 'node',
       // eslint-disable-next-line deprecation/deprecation
       [SEMRESATTRS_SERVICE_NAMESPACE]: 'sentry',

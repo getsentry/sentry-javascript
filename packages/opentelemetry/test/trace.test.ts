@@ -3,8 +3,8 @@ import type { Span, TimeInput } from '@opentelemetry/api';
 import { ROOT_CONTEXT } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import { TraceFlags, context, trace } from '@opentelemetry/api';
-import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
-import { Span as SpanClass } from '@opentelemetry/sdk-trace-base';
+import type { ReadableSpan } from '@opentelemetry/sdk-trace-node';
+import { Span as SpanClass } from '@opentelemetry/sdk-trace-node';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -1927,5 +1927,5 @@ function getSpanAttributes(span: AbstractSpan): Record<string, unknown> | undefi
 }
 
 function getSpanParentSpanId(span: AbstractSpan): string | undefined {
-  return (span as ReadableSpan).parentSpanId;
+  return (span as ReadableSpan).parentSpanContext?.spanId;
 }
