@@ -109,11 +109,17 @@ targets:
     id: '@sentry/sveltekit'
     includeNames: /^sentry-sveltekit-\d.*\.tgz$/
   - name: npm
+    id: '@sentry/tanstackstart'
+    includeNames: /^sentry-tanstackstart-\d.*\.tgz$/
+  - name: npm
     id: '@sentry/gatsby'
     includeNames: /^sentry-gatsby-\d.*\.tgz$/
   - name: npm
     id: '@sentry/astro'
     includeNames: /^sentry-astro-\d.*\.tgz$/
+  - name: npm
+    id: '@sentry/react-router'
+    includeNames: /^sentry-react-router-\d.*\.tgz$/
 
   ## 7. Other Packages
   ## 7.1

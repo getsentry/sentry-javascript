@@ -1,16 +1,17 @@
+import type { Transport } from '@sentry/core';
+import { type ProfilingIntegration } from '@sentry/core';
+import * as Sentry from '@sentry/node';
+import { expect, it, vi } from 'vitest';
+import { _nodeProfilingIntegration } from '../src/integration';
+
 // Mock the modules before the import, so that the value is initialized before the module is loaded
-jest.mock('worker_threads', () => {
+vi.mock('worker_threads', () => {
   return {
     isMainThread: false,
     threadId: 9999,
   };
 });
-jest.setTimeout(10000);
-
-import type { Transport } from '@sentry/core';
-import { type ProfilingIntegration } from '@sentry/core';
-import * as Sentry from '@sentry/node';
-import { _nodeProfilingIntegration } from '../src/integration';
+vi.setConfig({ testTimeout: 10_000 });
 
 function makeContinuousProfilingClient(): [Sentry.NodeClient, Transport] {
   const integration = _nodeProfilingIntegration();
@@ -39,7 +40,7 @@ it('worker threads context', () => {
   Sentry.setCurrentClient(client);
   client.init();
 
-  const transportSpy = jest.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
+  const transportSpy = vi.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
 
   const nonProfiledTransaction = Sentry.startInactiveSpan({ forceTransaction: true, name: 'profile_hub' });
   nonProfiledTransaction.end();

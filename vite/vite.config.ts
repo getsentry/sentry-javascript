@@ -5,7 +5,6 @@ export default defineConfig({
     __DEBUG_BUILD__: true,
   },
   test: {
-    globals: true,
     coverage: {
       enabled: true,
       reportsDirectory: './coverage',

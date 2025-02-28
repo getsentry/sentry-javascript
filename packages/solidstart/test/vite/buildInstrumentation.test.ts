@@ -1,5 +1,5 @@
 import type { UserConfig } from 'vite';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { makeBuildInstrumentationFilePlugin } from '../../src/vite/buildInstrumentationFile';
 
 const fsAccessMock = vi.fn();

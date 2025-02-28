@@ -1,11 +1,12 @@
+import { afterAll, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
 afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('should record multiple contexts', done => {
-  createRunner(__dirname, 'scenario.ts')
+test('should record multiple contexts', async () => {
+  await createRunner(__dirname, 'scenario.ts')
     .expect({
       event: {
         message: 'multiple_contexts',
@@ -18,5 +19,6 @@ test('should record multiple contexts', done => {
         },
       },
     })
-    .start(done);
+    .start()
+    .completed();
 });

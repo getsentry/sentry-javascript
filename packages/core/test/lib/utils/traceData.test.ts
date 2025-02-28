@@ -1,3 +1,4 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Client } from '../../../src/';
 import {
   SentrySpan,
@@ -48,7 +49,7 @@ describe('getTraceData', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('uses the ACS implementation, if available', () => {
@@ -56,7 +57,7 @@ describe('getTraceData', () => {
 
     const carrier = getMainCarrier();
 
-    const customFn = jest.fn((options?: { span?: Span }) => {
+    const customFn = vi.fn((options?: { span?: Span }) => {
       expect(options).toEqual({ span: undefined });
       return {
         'sentry-trace': 'abc',
@@ -97,7 +98,7 @@ describe('getTraceData', () => {
       sampled: true,
     });
 
-    const customFn = jest.fn((options?: { span?: Span }) => {
+    const customFn = vi.fn((options?: { span?: Span }) => {
       expect(options).toEqual({ span });
       return {
         'sentry-trace': 'abc',

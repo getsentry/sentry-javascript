@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { SPAN_STATUS_ERROR } from '../../../src/tracing';
 import { SentryNonRecordingSpan } from '../../../src/tracing/sentryNonRecordingSpan';
 import type { Span } from '../../../src/types-hoist';

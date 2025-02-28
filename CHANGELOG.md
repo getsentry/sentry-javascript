@@ -10,6 +10,42 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 9.3.0
+
+### Important Changes
+
+With this release we're publishing two new SDKs in **experimental alpha** stage:
+
+- **feat(tanstackstart): Add TanStack Start SDK ([#15523](https://github.com/getsentry/sentry-javascript/pull/15523))**
+
+For details please refer to the [README](https://github.com/getsentry/sentry-javascript/tree/develop/packages/tanstackstart)
+
+- **feat(react-router): Add React Router SDK ([#15524](https://github.com/getsentry/sentry-javascript/pull/15524))**
+
+For details please refer to the [README](https://github.com/getsentry/sentry-javascript/tree/develop/packages/react-router)
+
+- **feat(remix): Add support for Hydrogen ([#15450](https://github.com/getsentry/sentry-javascript/pull/15450))**
+
+This PR adds support for Shopify Hydrogen applications running on MiniOxygen runtime.
+
+### Other Changes
+
+- feat(core): Add `forceTransaction` to trpc middleware options ([#15519](https://github.com/getsentry/sentry-javascript/pull/15519))
+- feat(core): Default filter unactionable error ([#15527](https://github.com/getsentry/sentry-javascript/pull/15527))
+- feat(core): Rename `inboundFiltersIntegration` to `eventFiltersIntegration` ([#15434](https://github.com/getsentry/sentry-javascript/pull/15434))
+- feat(deps): bump @prisma/instrumentation from 6.2.1 to 6.4.1 ([#15480](https://github.com/getsentry/sentry-javascript/pull/15480))
+- feat(react-router): Add build-time config ([#15406](https://github.com/getsentry/sentry-javascript/pull/15406))
+- feat(replay): Bump rrweb to 2.33.0 ([#15514](https://github.com/getsentry/sentry-javascript/pull/15514))
+- fix(core): Fix `allowUrls` and `denyUrls` for linked and aggregate exceptions ([#15521](https://github.com/getsentry/sentry-javascript/pull/15521))
+- fix(nextjs): Don't capture devmode server-action redirect errors ([#15485](https://github.com/getsentry/sentry-javascript/pull/15485))
+- fix(nextjs): warn about missing onRequestError handler [#15488](https://github.com/getsentry/sentry-javascript/pull/15488))
+- fix(nextjs): Prevent wrong culprit from showing up for clientside error events [#15475](https://github.com/getsentry/sentry-javascript/pull/15475))
+- fix(nuxt): Ignore 300-400 status codes on app errors in Nuxt ([#15473](https://github.com/getsentry/sentry-javascript/pull/15473))
+- fix(react): Add support for cross-usage of React Router instrumentations ([#15283](https://github.com/getsentry/sentry-javascript/pull/15283))
+- fix(sveltekit): Guard `process` check when flushing events ([#15516](https://github.com/getsentry/sentry-javascript/pull/15516))
+
+Work in this release was contributed by @GerryWilko and @leoambio. Thank you for your contributions!
+
 ## 9.2.0
 
 ### Important Changes

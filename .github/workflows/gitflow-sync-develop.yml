@@ -1,4 +1,4 @@
-name: "Gitflow: Sync master into develop"
+name: 'Gitflow: Sync master into develop'
 on:
   push:
     branches:

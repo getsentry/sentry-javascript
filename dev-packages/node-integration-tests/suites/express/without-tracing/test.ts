@@ -1,3 +1,4 @@
+import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
 afterAll(() => {
@@ -5,7 +6,7 @@ afterAll(() => {
 });
 
 describe('express without tracing', () => {
-  test('correctly applies isolation scope even without tracing', done => {
+  test('correctly applies isolation scope even without tracing', async () => {
     const runner = createRunner(__dirname, 'server.ts')
       .expect({
         event: {
@@ -25,13 +26,14 @@ describe('express without tracing', () => {
           },
         },
       })
-      .start(done);
+      .start();
 
     runner.makeRequest('get', '/test/isolationScope/1');
+    await runner.completed();
   });
 
   describe('request data', () => {
-    test('correctly captures JSON request data', done => {
+    test('correctly captures JSON request data', async () => {
       const runner = createRunner(__dirname, 'server.ts')
         .expect({
           event: {
@@ -50,12 +52,13 @@ describe('express without tracing', () => {
             },
           },
         })
-        .start(done);
+        .start();
 
       runner.makeRequest('post', '/test-post', { data: { foo: 'bar', other: 1 } });
+      await runner.completed();
     });
 
-    test('correctly captures plain text request data', done => {
+    test('correctly captures plain text request data', async () => {
       const runner = createRunner(__dirname, 'server.ts')
         .expect({
           event: {
@@ -71,7 +74,7 @@ describe('express without tracing', () => {
             },
           },
         })
-        .start(done);
+        .start();
 
       runner.makeRequest('post', '/test-post', {
         headers: {
@@ -79,9 +82,10 @@ describe('express without tracing', () => {
         },
         data: 'some plain text',
       });
+      await runner.completed();
     });
 
-    test('correctly captures text buffer request data', done => {
+    test('correctly captures text buffer request data', async () => {
       const runner = createRunner(__dirname, 'server.ts')
         .expect({
           event: {
@@ -97,15 +101,16 @@ describe('express without tracing', () => {
             },
           },
         })
-        .start(done);
+        .start();
 
       runner.makeRequest('post', '/test-post', {
         headers: { 'Content-Type': 'application/octet-stream' },
         data: Buffer.from('some plain text in buffer'),
       });
+      await runner.completed();
     });
 
-    test('correctly captures non-text buffer request data', done => {
+    test('correctly captures non-text buffer request data', async () => {
       const runner = createRunner(__dirname, 'server.ts')
         .expect({
           event: {
@@ -122,11 +127,12 @@ describe('express without tracing', () => {
             },
           },
         })
-        .start(done);
+        .start();
 
       const body = new Uint8Array([1, 2, 3, 4, 5]).buffer;
 
       runner.makeRequest('post', '/test-post', { headers: { 'Content-Type': 'application/octet-stream' }, data: body });
+      await runner.completed();
     });
   });
 });

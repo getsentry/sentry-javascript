@@ -1,7 +1,8 @@
+import { expect, test } from 'vitest';
 import { createRunner } from '../../../../utils/runner';
 
-test('envelope header for error events is correct', done => {
-  createRunner(__dirname, 'scenario.ts')
+test('envelope header for error events is correct', async () => {
+  await createRunner(__dirname, 'scenario.ts')
     .expectHeader({
       event: {
         trace: {
@@ -12,5 +13,6 @@ test('envelope header for error events is correct', done => {
         },
       },
     })
-    .start(done);
+    .start()
+    .completed();
 });

@@ -1,4 +1,4 @@
-name: "Automation: Add size info to release"
+name: 'Automation: Add size info to release'
 on:
   release:
     types:
@@ -19,7 +19,10 @@ jobs:
     steps:
       - name: Get version
         id: get_version
-        run: echo "version=${{ github.event.inputs.version || github.event.release.tag_name }}" >> $GITHUB_OUTPUT
+        env:
+          INPUTS_VERSION: ${{ github.event.inputs.version }}
+          RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
+        run: echo "version=${INPUTS_VERSION:-$RELEASE_TAG_NAME}" >> "$GITHUB_OUTPUT"
 
       - name: Update Github Release
         if: steps.get_version.outputs.version != ''

@@ -1,6 +1,7 @@
 import { setCurrentClient, spanToJSON, startInactiveSpan, startSpan } from '../../../src';
 import type { HandlerDataError, HandlerDataUnhandledRejection } from '../../../src/types-hoist';
 
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { _resetErrorsInstrumented, registerSpanErrorInstrumentation } from '../../../src/tracing/errors';
 import * as globalErrorModule from '../../../src/utils-hoist/instrument/globalError';
 import * as globalUnhandledRejectionModule from '../../../src/utils-hoist/instrument/globalUnhandledRejection';
@@ -9,12 +10,12 @@ import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 let mockErrorCallback: (data: HandlerDataError) => void = () => {};
 let mockUnhandledRejectionCallback: (data: HandlerDataUnhandledRejection) => void = () => {};
 
-const mockAddGlobalErrorInstrumentationHandler = jest
+const mockAddGlobalErrorInstrumentationHandler = vi
   .spyOn(globalErrorModule, 'addGlobalErrorInstrumentationHandler')
   .mockImplementation(callback => {
     mockErrorCallback = callback;
   });
-const mockAddGlobalUnhandledRejectionInstrumentationHandler = jest
+const mockAddGlobalUnhandledRejectionInstrumentationHandler = vi
   .spyOn(globalUnhandledRejectionModule, 'addGlobalUnhandledRejectionInstrumentationHandler')
   .mockImplementation(callback => {
     mockUnhandledRejectionCallback = callback;

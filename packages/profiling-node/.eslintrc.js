@@ -4,7 +4,7 @@ module.exports = {
   },
   extends: ['../../.eslintrc.js'],
 
-  ignorePatterns: ['lib/**/*', 'examples/**/*', 'jest.co'],
+  ignorePatterns: ['lib/**/*', 'examples/**/*', 'vitest.config.ts'],
   rules: {
     '@sentry-internal/sdk/no-class-field-initializers': 'off',
   },

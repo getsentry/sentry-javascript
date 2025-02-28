@@ -61,7 +61,9 @@ export {
   startSpanManual,
   startNewTrace,
   suppressTracing,
+  // eslint-disable-next-line deprecation/deprecation
   inboundFiltersIntegration,
+  eventFiltersIntegration,
   linkedErrorsIntegration,
   functionToStringIntegration,
   requestDataIntegration,
@@ -85,10 +87,7 @@ export {
 
 export { DenoClient } from './client';
 
-export {
-  getDefaultIntegrations,
-  init,
-} from './sdk';
+export { getDefaultIntegrations, init } from './sdk';
 
 export { denoContextIntegration } from './integrations/context';
 export { globalHandlersIntegration } from './integrations/globalhandlers';
