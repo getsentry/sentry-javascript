@@ -1,11 +1,15 @@
 {
   "extends": "./tsconfig.json",
 
-  "include": ["test/**/*", "vitest.config.ts"],
+  "include": ["test/**/*", "vitest.config.integration.ts", "vitest.config.unit.ts"],
 
   "compilerOptions": {
     "lib": ["DOM", "ES2018"],
-    "types": ["node", "jest"],
+    "types": ["node"],
+    // Required for top-level await in tests
+    "module": "Node16",
+    "target": "ES2017",
+
     "esModuleInterop": true
   }
 }
