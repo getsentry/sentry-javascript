@@ -8,11 +8,13 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   parseSemver,
+  logger,
   spanToJSON,
 } from '@sentry/core';
 import { generateInstrumentOnce } from '../../otel/instrument';
 import { FastifyInstrumentationV3 } from './fastify-v3/instrumentation';
 import type { FastifyInstance } from './fastify-v3/internal-types';
+import { DEBUG_BUILD } from '../../debug-build';
 
 /**
  * Minimal request type containing properties around route information.
@@ -105,22 +107,10 @@ export const instrumentFastifyV3 = generateInstrumentOnce(
 
 let fastifyOtelInstrumentationInstance: FastifyOtelInstrumentation | undefined;
 
-function checkFastifyVersion(): ReturnType<typeof parseSemver> | undefined {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const pkg = require('fastify/package.json') as { version?: string };
-    return pkg?.version ? parseSemver(pkg.version) : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
 export const instrumentFastify = generateInstrumentOnce(INTEGRATION_NAME, () => {
   // FastifyOtelInstrumentation does not have a `requestHook`
   // so we can't use `addFastifySpanAttributes` here for now
-  fastifyOtelInstrumentationInstance = new FastifyOtelInstrumentation({
-    registerOnInitialization: true,
-  });
+  fastifyOtelInstrumentationInstance = new FastifyOtelInstrumentation();
   return fastifyOtelInstrumentationInstance;
 });
 
@@ -129,11 +119,7 @@ const _fastifyIntegration = (() => {
     name: INTEGRATION_NAME,
     setupOnce() {
       instrumentFastifyV3();
-
-      const fastifyVersion = checkFastifyVersion();
-      if (fastifyVersion?.major && fastifyVersion.major >= 4) {
-        instrumentFastify();
-      }
+      instrumentFastify();
     },
   };
 }) satisfies IntegrationFn;
@@ -228,6 +214,15 @@ export function setupFastifyErrorHandler(fastify: Fastify, options?: Partial<Fas
     });
   }
 
+  if (fastifyOtelInstrumentationInstance) {
+    // Setting after callback to prevent this plugin from throwing version mismatch errors
+    fastify.register(fastifyOtelInstrumentationInstance.plugin()).after(err => {
+      if (err) {
+        // eslint-disable-next-line no-console
+        DEBUG_BUILD && logger.warn('Failed to register Fastify Otel instrumentation plugin', err);
+      }
+    });
+  }
   // eslint-disable-next-line @typescript-eslint/no-floating-promises
   fastify.register(plugin);
 }
