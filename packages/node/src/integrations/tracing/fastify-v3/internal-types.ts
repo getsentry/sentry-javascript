@@ -24,7 +24,6 @@ export type FastifyErrorCodes = any;
 export type FastifyPlugin = any;
 
 export interface FastifyInstance {
-  pluginName: string;
   register: (plugin: FastifyPlugin) => void;
   addHook(
     name:
