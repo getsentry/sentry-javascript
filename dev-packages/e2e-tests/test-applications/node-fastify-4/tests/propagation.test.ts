@@ -6,14 +6,14 @@ import { SpanJSON } from '@sentry/core';
 test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
   const id = crypto.randomUUID();
 
-  const inboundTransactionPromise = waitForTransaction('node-fastify', transactionEvent => {
+  const inboundTransactionPromise = waitForTransaction('node-fastify-4', transactionEvent => {
     return (
       transactionEvent.contexts?.trace?.op === 'http.server' &&
       transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-inbound-headers/${id}`
     );
   });
 
-  const outboundTransactionPromise = waitForTransaction('node-fastify', transactionEvent => {
+  const outboundTransactionPromise = waitForTransaction('node-fastify-4', transactionEvent => {
     return (
       transactionEvent.contexts?.trace?.op === 'http.server' &&
       transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-outgoing-http/${id}`
@@ -120,14 +120,14 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
 test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
   const id = crypto.randomUUID();
 
-  const inboundTransactionPromise = waitForTransaction('node-fastify', transactionEvent => {
+  const inboundTransactionPromise = waitForTransaction('node-fastify-4', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-inbound-headers/${id}`
     );
   });
 
-  const outboundTransactionPromise = waitForTransaction('node-fastify', transactionEvent => {
+  const outboundTransactionPromise = waitForTransaction('node-fastify-4', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-outgoing-fetch/${id}`
@@ -232,7 +232,7 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
 });
 
 test('Propagates trace for outgoing external http requests', async ({ baseURL }) => {
-  const inboundTransactionPromise = waitForTransaction('node-fastify', transactionEvent => {
+  const inboundTransactionPromise = waitForTransaction('node-fastify-4', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-outgoing-http-external-allowed`
@@ -269,7 +269,7 @@ test('Propagates trace for outgoing external http requests', async ({ baseURL })
 });
 
 test('Does not propagate outgoing http requests not covered by tracePropagationTargets', async ({ baseURL }) => {
-  const inboundTransactionPromise = waitForTransaction('node-fastify', transactionEvent => {
+  const inboundTransactionPromise = waitForTransaction('node-fastify-4', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-outgoing-http-external-disallowed`
@@ -293,7 +293,7 @@ test('Does not propagate outgoing http requests not covered by tracePropagationT
 });
 
 test('Propagates trace for outgoing external fetch requests', async ({ baseURL }) => {
-  const inboundTransactionPromise = waitForTransaction('node-fastify', transactionEvent => {
+  const inboundTransactionPromise = waitForTransaction('node-fastify-4', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-outgoing-fetch-external-allowed`
@@ -330,7 +330,7 @@ test('Propagates trace for outgoing external fetch requests', async ({ baseURL }
 });
 
 test('Does not propagate outgoing fetch requests not covered by tracePropagationTargets', async ({ baseURL }) => {
-  const inboundTransactionPromise = waitForTransaction('node-fastify', transactionEvent => {
+  const inboundTransactionPromise = waitForTransaction('node-fastify-4', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-outgoing-fetch-external-disallowed`

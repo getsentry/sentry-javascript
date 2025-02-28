@@ -55,7 +55,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
           data: {
             'sentry.origin': 'manual',
             'fastify.type': 'middleware',
-            'plugin.name': 'fastify -> @fastify/middie',
+            'plugin.name': '@fastify/middie',
             'hook.name': 'onRequest',
           },
           description: 'middleware - runMiddie',
@@ -71,7 +71,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
           data: {
             'sentry.origin': 'auto.http.otel.fastify',
             'sentry.op': 'request_handler.fastify',
-            'plugin.name': 'fastify -> @fastify/middie',
+            'plugin.name': '@fastify/middie',
             'fastify.type': 'request_handler',
             'http.route': '/test-transaction',
           },

@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Sends an API route transaction', async ({ baseURL }) => {
-  const pageloadTransactionEventPromise = waitForTransaction('node-fastify-5', transactionEvent => {
+  const pageloadTransactionEventPromise = waitForTransaction('node-fastify-3', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent?.transaction === 'GET /test-transaction'
@@ -60,15 +60,14 @@ test('Sends an API route transaction', async ({ baseURL }) => {
 
   expect(spans).toContainEqual({
     data: {
-      'fastify.type': 'hook',
-      'hook.callback.name': 'anonymous',
-      'hook.name': 'fastify -> @fastify/otel -> sentry-fastify-error-handler - onRequest',
-      'sentry.op': 'hook.fastify',
+      'plugin.name': 'sentry-fastify-error-handler',
+      'fastify.type': 'middleware',
+      'hook.name': 'onRequest',
       'sentry.origin': 'auto.http.otel.fastify',
-      'service.name': 'fastify',
+      'sentry.op': 'middleware.fastify',
     },
-    description: 'sentry-fastify-error-handler - onRequest',
-    op: 'hook.fastify',
+    description: 'sentry-fastify-error-handler',
+    op: 'middleware.fastify',
     parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     start_timestamp: expect.any(Number),
@@ -78,6 +77,24 @@ test('Sends an API route transaction', async ({ baseURL }) => {
     origin: 'auto.http.otel.fastify',
   });
 
+  expect(spans).toContainEqual({
+    data: {
+      'plugin.name': 'sentry-fastify-error-handler',
+      'fastify.type': 'request_handler',
+      'http.route': '/test-transaction',
+      'sentry.op': 'request_handler.fastify',
+      'sentry.origin': 'auto.http.otel.fastify',
+    },
+    description: 'sentry-fastify-error-handler',
+    op: 'request_handler.fastify',
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    start_timestamp: expect.any(Number),
+    status: 'ok',
+    timestamp: expect.any(Number),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    origin: 'auto.http.otel.fastify',
+  });
 
   expect(spans).toContainEqual({
     data: {
@@ -106,4 +123,41 @@ test('Sends an API route transaction', async ({ baseURL }) => {
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     origin: 'manual',
   });
+});
+
+test('Captures request metadata', async ({ baseURL }) => {
+  const transactionEventPromise = waitForTransaction('node-fastify', transactionEvent => {
+    return (
+      transactionEvent?.contexts?.trace?.op === 'http.server' && transactionEvent?.transaction === 'POST /test-post'
+    );
+  });
+
+  const res = await fetch(`${baseURL}/test-post`, {
+    method: 'POST',
+    body: JSON.stringify({ foo: 'bar', other: 1 }),
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+  const resBody = await res.json();
+
+  expect(resBody).toEqual({ status: 'ok', body: { foo: 'bar', other: 1 } });
+
+  const transactionEvent = await transactionEventPromise;
+
+  expect(transactionEvent.request).toEqual({
+    cookies: {},
+    url: expect.stringMatching(/^http:\/\/localhost:(\d+)\/test-post$/),
+    method: 'POST',
+    headers: expect.objectContaining({
+      'user-agent': expect.stringContaining(''),
+      'content-type': 'application/json',
+    }),
+    data: JSON.stringify({
+      foo: 'bar',
+      other: 1,
+    }),
+  });
+
+  expect(transactionEvent.user).toEqual(undefined);
 });
