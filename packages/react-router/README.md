@@ -4,7 +4,7 @@
   </a>
 </p>
 
-# Official Sentry SDK for React Router (Framework) (EXPERIMENTAL)
+# Official Sentry SDK for React Router Framework (EXPERIMENTAL)
 
 [![npm version](https://img.shields.io/npm/v/@sentry/react-router.svg)](https://www.npmjs.com/package/@sentry/react-router)
 [![npm dm](https://img.shields.io/npm/dm/@sentry/react-router.svg)](https://www.npmjs.com/package/@sentry/react-router)
@@ -107,7 +107,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
 Create an `instrument.server.mjs` file in the root of your app:
 
 ```js
-import * as Sentry from '@sentry/node';
+import * as Sentry from '@sentry/react-router';
 
 Sentry.init({
   dsn: '___PUBLIC_DSN___',
@@ -118,7 +118,7 @@ Sentry.init({
 In your `entry.server.tsx` file, export the `handleError` function:
 
 ```tsx
-import * as Sentry from '@sentry/node';
+import * as Sentry from '@sentry/react-router';
 import { type HandleErrorFunction } from 'react-router';
 
 export const handleError: HandleErrorFunction = (error, { request }) => {
@@ -143,4 +143,40 @@ Update the `start` and `dev` script to include the instrumentation file:
   "dev": "NODE_OPTIONS='--import ./instrument.server.mjs' react-router dev",
   "start": "NODE_OPTIONS='--import ./instrument.server.mjs' react-router-serve ./build/server/index.js",
 }
+```
+
+## Build-time Config
+
+Update your vite.config.ts file to include the `sentryReactRouter` plugin and also add your config options to the vite config (this is required for uploading sourcemaps at the end of the build):
+
+```ts
+import { reactRouter } from '@react-router/dev/vite';
+import { sentryReactRouter } from '@sentry/react-router';
+import { defineConfig } from 'vite';
+
+const sentryConfig = {
+  authToken: '...',
+  org: '...',
+  project: '...',
+  // rest of your config
+};
+
+export default defineConfig(config => {
+  return {
+    plugins: [reactRouter(), sentryReactRouter(sentryConfig, config)],
+    sentryConfig,
+  };
+});
+```
+
+Next, in your `react-router.config.ts` file, include the `sentryOnBuildEnd` hook:
+
+```ts
+import type { Config } from '@react-router/dev/config';
+import { sentryOnBuildEnd } from '@sentry/react-router';
+
+export default {
+  ssr: true,
+  buildEnd: sentryOnBuildEnd,
+} satisfies Config;
 ```
