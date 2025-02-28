@@ -73,9 +73,9 @@
     "clean": "rimraf build coverage sentry-opentelemetry-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
-    "test": "yarn test:jest",
-    "test:jest": "jest",
-    "test:watch": "jest --watch",
+    "test": "yarn test:unit",
+    "test:unit": "vitest run",
+    "test:watch": "vitest --watch",
     "yalc:publish": "yalc publish --push --sig"
   },
   "volta": {
