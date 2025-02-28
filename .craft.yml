@@ -196,6 +196,8 @@ targets:
         onlyIfPresent: /^sentry-node-\d.*\.tgz$/
       'npm:@sentry/react':
         onlyIfPresent: /^sentry-react-\d.*\.tgz$/
+      'npm:@sentry/react-router':
+        onlyIfPresent: /^sentry-react-router-\d.*\.tgz$/
       'npm:@sentry/remix':
         onlyIfPresent: /^sentry-remix-\d.*\.tgz$/
       'npm:@sentry/solid':
