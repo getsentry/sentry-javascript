@@ -9,6 +9,7 @@ import {
 } from '@opentelemetry/api';
 import { suppressTracing } from '@opentelemetry/core';
 import { getCurrentScope, withScope } from '@sentry/core';
+import { describe, beforeEach, afterEach, expect, it } from 'vitest';
 
 import { SENTRY_BAGGAGE_HEADER, SENTRY_SCOPES_CONTEXT_KEY, SENTRY_TRACE_HEADER } from '../src/constants';
 import { SentryPropagator } from '../src/propagator';
@@ -30,8 +31,8 @@ describe('SentryPropagator', () => {
     });
   });
 
-  afterEach(() => {
-    cleanupOtel();
+  afterEach(async () => {
+    await cleanupOtel();
   });
 
   it('returns fields set', () => {

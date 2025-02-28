@@ -8,14 +8,15 @@ import {
   withIsolationScope,
   withScope,
 } from '@sentry/core';
+import { describe, afterEach, expect, it, vi } from 'vitest';
 
 import { startSpan } from '../../src/trace';
 import type { TestClientInterface } from '../helpers/TestClient';
 import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
 
 describe('Integration | Scope', () => {
-  afterEach(() => {
-    cleanupOtel();
+  afterEach(async () => {
+    await cleanupOtel();
   });
 
   describe.each([
@@ -23,8 +24,8 @@ describe('Integration | Scope', () => {
     ['without tracing', false],
   ])('%s', (_name, tracingEnabled) => {
     it('correctly syncs OTEL context & Sentry hub/scope', async () => {
-      const beforeSend = jest.fn(() => null);
-      const beforeSendTransaction = jest.fn(() => null);
+      const beforeSend = vi.fn(() => null);
+      const beforeSendTransaction = vi.fn(() => null);
 
       mockSdkInit({
         tracesSampleRate: tracingEnabled ? 1 : 0,
@@ -141,8 +142,8 @@ describe('Integration | Scope', () => {
     });
 
     it('isolates parallel scopes', async () => {
-      const beforeSend = jest.fn(() => null);
-      const beforeSendTransaction = jest.fn(() => null);
+      const beforeSend = vi.fn(() => null);
+      const beforeSendTransaction = vi.fn(() => null);
 
       mockSdkInit({ tracesSampleRate: tracingEnabled ? 1 : 0, beforeSend, beforeSendTransaction });
 
@@ -259,8 +260,8 @@ describe('Integration | Scope', () => {
     });
 
     it('isolates parallel isolation scopes', async () => {
-      const beforeSend = jest.fn(() => null);
-      const beforeSendTransaction = jest.fn(() => null);
+      const beforeSend = vi.fn(() => null);
+      const beforeSendTransaction = vi.fn(() => null);
 
       mockSdkInit({ tracesSampleRate: tracingEnabled ? 1 : 0, beforeSend, beforeSendTransaction });
 

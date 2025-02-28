@@ -2,6 +2,7 @@
 import { SEMATTRS_HTTP_STATUS_CODE, SEMATTRS_RPC_GRPC_STATUS_CODE } from '@opentelemetry/semantic-conventions';
 import { SPAN_STATUS_ERROR, SPAN_STATUS_OK } from '@sentry/core';
 import type { SpanStatus } from '@sentry/core';
+import { describe, expect, it } from 'vitest';
 
 import { mapStatus } from '../../src/utils/mapStatus';
 import { createSpan } from '../helpers/createSpan';

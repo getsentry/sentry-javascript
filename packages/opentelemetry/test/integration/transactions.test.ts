@@ -13,6 +13,7 @@ import {
 } from '@sentry/core';
 import { logger } from '@sentry/core';
 import type { Event, TransactionEvent } from '@sentry/core';
+import { describe, afterEach, expect, it, vi } from 'vitest';
 
 import { TraceState } from '@opentelemetry/core';
 import { SENTRY_TRACE_STATE_DSC } from '../../src/constants';
@@ -23,15 +24,15 @@ import type { TestClientInterface } from '../helpers/TestClient';
 import { cleanupOtel, getProvider, mockSdkInit } from '../helpers/mockSdkInit';
 
 describe('Integration | Transactions', () => {
-  afterEach(() => {
-    jest.restoreAllMocks();
-    jest.useRealTimers();
-    cleanupOtel();
+  afterEach(async () => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+    await cleanupOtel();
   });
 
   it('correctly creates transaction & spans', async () => {
     const transactions: TransactionEvent[] = [];
-    const beforeSendTransaction = jest.fn(event => {
+    const beforeSendTransaction = vi.fn(event => {
       transactions.push(event);
       return null;
     });
@@ -177,7 +178,7 @@ describe('Integration | Transactions', () => {
   });
 
   it('correctly creates concurrent transaction & spans', async () => {
-    const beforeSendTransaction = jest.fn(() => null);
+    const beforeSendTransaction = vi.fn(() => null);
 
     mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
 
@@ -322,7 +323,7 @@ describe('Integration | Transactions', () => {
   });
 
   it('correctly creates transaction & spans with a trace header data', async () => {
-    const beforeSendTransaction = jest.fn(() => null);
+    const beforeSendTransaction = vi.fn(() => null);
 
     const traceId = 'd4cda95b652f4a1592b449d5929fda1b';
     const parentSpanId = '6e0c63257de34c92';
@@ -434,14 +435,14 @@ describe('Integration | Transactions', () => {
   });
 
   it('cleans up spans that are not flushed for over 5 mins', async () => {
-    const beforeSendTransaction = jest.fn(() => null);
+    const beforeSendTransaction = vi.fn(() => null);
 
     const now = Date.now();
-    jest.useFakeTimers();
-    jest.setSystemTime(now);
+    vi.useFakeTimers();
+    vi.setSystemTime(now);
 
     const logs: unknown[] = [];
-    jest.spyOn(logger, 'log').mockImplementation(msg => logs.push(msg));
+    vi.spyOn(logger, 'log').mockImplementation(msg => logs.push(msg));
 
     mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
 
@@ -478,12 +479,12 @@ describe('Integration | Transactions', () => {
     expect(beforeSendTransaction).toHaveBeenCalledTimes(0);
 
     // Now wait for 5 mins
-    jest.advanceTimersByTime(5 * 60 * 1_000 + 1);
+    vi.advanceTimersByTime(5 * 60 * 1_000 + 1);
 
     // Adding another span will trigger the cleanup
     startSpan({ name: 'other span' }, () => {});
 
-    jest.advanceTimersByTime(1);
+    vi.advanceTimersByTime(1);
 
     // Old spans have been cleared away
     const finishedSpans2 = [];
@@ -507,11 +508,11 @@ describe('Integration | Transactions', () => {
 
   it('includes child spans that are finished in the same tick but after their parent span', async () => {
     const now = Date.now();
-    jest.useFakeTimers();
-    jest.setSystemTime(now);
+    vi.useFakeTimers();
+    vi.setSystemTime(now);
 
     const logs: unknown[] = [];
-    jest.spyOn(logger, 'log').mockImplementation(msg => logs.push(msg));
+    vi.spyOn(logger, 'log').mockImplementation(msg => logs.push(msg));
 
     const transactions: Event[] = [];
 
@@ -547,7 +548,7 @@ describe('Integration | Transactions', () => {
       subSpan2.end();
     });
 
-    jest.advanceTimersByTime(1);
+    vi.advanceTimersByTime(1);
 
     expect(transactions).toHaveLength(1);
     expect(transactions[0]?.spans).toHaveLength(2);
@@ -564,11 +565,11 @@ describe('Integration | Transactions', () => {
 
   it('discards child spans that are finished after their parent span', async () => {
     const now = Date.now();
-    jest.useFakeTimers();
-    jest.setSystemTime(now);
+    vi.useFakeTimers();
+    vi.setSystemTime(now);
 
     const logs: unknown[] = [];
-    jest.spyOn(logger, 'log').mockImplementation(msg => logs.push(msg));
+    vi.spyOn(logger, 'log').mockImplementation(msg => logs.push(msg));
 
     const transactions: Event[] = [];
 
@@ -607,7 +608,7 @@ describe('Integration | Transactions', () => {
       }, 1);
     });
 
-    jest.advanceTimersByTime(2);
+    vi.advanceTimersByTime(2);
 
     expect(transactions).toHaveLength(1);
     expect(transactions[0]?.spans).toHaveLength(1);
@@ -625,7 +626,7 @@ describe('Integration | Transactions', () => {
 
   it('uses & inherits DSC on span trace state', async () => {
     const transactionEvents: Event[] = [];
-    const beforeSendTransaction = jest.fn(event => {
+    const beforeSendTransaction = vi.fn(event => {
       transactionEvents.push(event);
       return null;
     });
