@@ -35,7 +35,7 @@
   },
   "dependencies": {
     "@sentry/browser": "9.3.0",
-    "@sentry/cli": "^2.42.1",
+    "@sentry/cli": "^2.42.2",
     "@sentry/core": "9.3.0",
     "@sentry/node": "9.3.0",
     "@sentry/vite-plugin": "^3.2.0",
