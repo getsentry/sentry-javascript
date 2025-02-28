@@ -1,25 +1,28 @@
-jest.mock('dns');
-
 import * as dns from 'dns';
 import { EventEmitter } from 'events';
 import * as fs from 'fs';
 import * as path from 'path';
 import { PubSub } from '@google-cloud/pubsub';
 import * as http2 from 'http2';
-import * as nock from 'nock';
+import nock from 'nock';
+import { describe, vi, beforeEach, test, expect, type Mock, afterAll, afterEach } from 'vitest';
 
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { NodeClient, createTransport, setCurrentClient } from '@sentry/node';
 import { googleCloudGrpcIntegration } from '../../src/integrations/google-cloud-grpc';
 
-const spyConnect = jest.spyOn(http2, 'connect');
+vi.mock('dns');
+vi.mock('http2');
 
-const mockSpanEnd = jest.fn();
-const mockStartInactiveSpan = jest.fn(spanArgs => ({ ...spanArgs }));
+const spyConnect = vi.spyOn(http2, 'connect');
+const mockSpanEnd = vi.fn();
+const mockStartInactiveSpan = vi.fn(spanArgs => ({ ...spanArgs }));
 
-jest.mock('@sentry/node', () => {
+vi.mock('@sentry/node', async () => {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-imports
+  const original = await vi.importActual('@sentry/node') as typeof import('@sentry/node');
   return {
-    ...jest.requireActual('@sentry/node'),
+    ...original,
     startInactiveSpan: (ctx: unknown) => {
       mockStartInactiveSpan(ctx);
       return { end: mockSpanEnd };
@@ -45,7 +48,7 @@ class FakeStream extends EventEmitter {
 /** Fake HTTP2 session for GRPC */
 class FakeSession extends EventEmitter {
   public socket: EventEmitter = new EventEmitter();
-  public request: jest.Mock = jest.fn();
+  public request: Mock = vi.fn();
   ping() {}
   mockRequest(fn: (stream: FakeStream) => void): FakeStream {
     const stream = new FakeStream();
@@ -110,9 +113,9 @@ describe('GoogleCloudGrpc tracing', () => {
   // We use google cloud pubsub as an example of grpc service for which we can trace requests.
   describe('pubsub', () => {
     // @ts-expect-error see "Why @ts-expect-error" note
-    const dnsLookup = dns.lookup as jest.Mock;
+    const dnsLookup = dns.lookup as Mock;
     // @ts-expect-error see "Why @ts-expect-error" note
-    const resolveTxt = dns.resolveTxt as jest.Mock;
+    const resolveTxt = dns.resolveTxt as Mock;
     dnsLookup.mockImplementation((hostname, ...args) => {
       expect(hostname).toEqual('pubsub.googleapis.com');
       process.nextTick(args[args.length - 1], null, [{ address: '0.0.0.0', family: 4 }]);
