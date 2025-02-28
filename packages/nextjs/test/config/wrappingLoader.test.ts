@@ -1,9 +1,12 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { describe, vi, it, expect } from 'vitest';
+
+vi.mock('fs', {spy: true});
 
 const originalReadfileSync = fs.readFileSync;
 
-jest.spyOn(fs, 'readFileSync').mockImplementation((filePath, options) => {
+vi.spyOn(fs, 'readFileSync').mockImplementation((filePath, options) => {
   if (filePath.toString().endsWith('/config/templates/apiWrapperTemplate.js')) {
     return originalReadfileSync(
       path.join(__dirname, '../../build/cjs/config/templates/apiWrapperTemplate.js'),
@@ -51,7 +54,7 @@ jest.spyOn(fs, 'readFileSync').mockImplementation((filePath, options) => {
 
 import type { LoaderThis } from '../../src/config/loaders/types';
 import type { WrappingLoaderOptions } from '../../src/config/loaders/wrappingLoader';
-import wrappingLoader from '../../src/config/loaders/wrappingLoader';
+const { default: wrappingLoader } = await import('../../src/config/loaders/wrappingLoader');
 
 const DEFAULT_PAGE_EXTENSION_REGEX = ['tsx', 'ts', 'jsx', 'js'].join('|');
 
@@ -63,7 +66,7 @@ const defaultLoaderThis = {
 
 describe('wrappingLoader', () => {
   it('should correctly wrap API routes on unix', async () => {
-    const callback = jest.fn();
+    const callback = vi.fn();
 
     const userCode = `
       export default function handler(req, res) {
