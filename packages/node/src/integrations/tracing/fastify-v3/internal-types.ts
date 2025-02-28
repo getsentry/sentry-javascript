@@ -14,15 +14,49 @@
  * limitations under the License.
  */
 import type { Span } from '@opentelemetry/api';
-import type { FastifyReply } from 'fastify';
 
-export interface HookHandlerDoneFunction {
-  (): void;
+export type FastifyError = any;
+
+export type HookHandlerDoneFunction = <TError extends Error = FastifyError>(err?: TError) => void;
+
+export type FastifyErrorCodes = any;
+
+export type FastifyPlugin = any;
+
+export interface FastifyInstance {
+  pluginName: string;
+  register: (plugin: FastifyPlugin) => void;
+  addHook(
+    name:
+      | 'onRequest'
+      | 'preHandler'
+      | 'preParsing'
+      | 'preValidation'
+      | 'preSerialization'
+      | 'preHandler'
+      | 'onSend'
+      | 'onResponse'
+      | 'onError'
+      | 'onTimeout',
+    handler: HandlerOriginal,
+  ): FastifyInstance;
 }
-// biome-ignore lint/nursery/noUnusedImports:
+
+export interface FastifyReply {
+  send: () => FastifyReply;
+}
+export interface FastifyRequest {
+  routeOptions?: {
+    url?: string;
+  };
+  routerPath?: string;
+}
+
 import type { spanRequestSymbol } from './constants';
 
-export type HandlerOriginal = (() => Promise<unknown>) & (() => void);
+export type HandlerOriginal =
+  | ((request: FastifyRequest, reply: FastifyReply, done: HookHandlerDoneFunction) => Promise<void>)
+  | ((request: FastifyRequest, reply: FastifyReply, done: HookHandlerDoneFunction) => void);
 
 export type PluginFastifyReply = FastifyReply & {
   [spanRequestSymbol]?: Span[];
