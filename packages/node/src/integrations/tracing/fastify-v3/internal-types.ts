@@ -21,10 +21,21 @@ export type HookHandlerDoneFunction = <TError extends Error = FastifyError>(err?
 
 export type FastifyErrorCodes = any;
 
-export type FastifyPlugin = any;
+export type FastifyPlugin = (
+  instance: FastifyInstance,
+  opts: any,
+  done: HookHandlerDoneFunction,
+) => unknown | Promise<unknown>;
 
 export interface FastifyInstance {
-  register: (plugin: FastifyPlugin) => void;
+  version: string;
+  register: (
+    plugin: FastifyPlugin,
+    opts?: {
+      throw?: boolean;
+    },
+  ) => FastifyInstance;
+  after: (listener?: (err: Error) => void) => FastifyInstance;
   addHook(
     name:
       | 'onRequest'
