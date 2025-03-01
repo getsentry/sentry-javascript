@@ -13,6 +13,7 @@ import {
 } from '@sentry/core';
 import { generateInstrumentOnce } from '../../otel/instrument';
 import { FastifyInstrumentationV3 } from './fastify-v3/instrumentation';
+import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { FastifyInstance } from './fastify-v3/internal-types';
 import { DEBUG_BUILD } from '../../debug-build';
 
@@ -105,12 +106,22 @@ export const instrumentFastifyV3 = generateInstrumentOnce(
     }),
 );
 
-let fastifyOtelInstrumentationInstance: FastifyOtelInstrumentation | undefined;
-
 export const instrumentFastify = generateInstrumentOnce(INTEGRATION_NAME, () => {
   // FastifyOtelInstrumentation does not have a `requestHook`
   // so we can't use `addFastifySpanAttributes` here for now
-  fastifyOtelInstrumentationInstance = new FastifyOtelInstrumentation();
+  const fastifyOtelInstrumentationInstance = new FastifyOtelInstrumentation();
+  const plugin = fastifyOtelInstrumentationInstance.plugin();
+
+  diagnosticsChannel.subscribe('fastify.initialization', message => {
+    const fastifyInstance = (message as { fastify?: FastifyInstance }).fastify;
+
+    fastifyInstance?.register(plugin).after(err => {
+      if (err) {
+        DEBUG_BUILD && logger.error('Failed to setup Fastify instrumentation', err);
+      }
+    });
+  });
+
   return fastifyOtelInstrumentationInstance;
 });
 
@@ -214,16 +225,6 @@ export function setupFastifyErrorHandler(fastify: Fastify, options?: Partial<Fas
     });
   }
 
-  if (fastifyOtelInstrumentationInstance) {
-    // Setting after callback to prevent this plugin from throwing version mismatch errors
-    fastify.register(fastifyOtelInstrumentationInstance.plugin()).after(err => {
-      if (err) {
-        // eslint-disable-next-line no-console
-        DEBUG_BUILD && logger.warn('Failed to register Fastify Otel instrumentation plugin', err);
-      }
-    });
-  }
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
   fastify.register(plugin);
 }
 
