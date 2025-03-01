@@ -31,9 +31,6 @@ export interface FastifyInstance {
   version: string;
   register: (
     plugin: FastifyPlugin,
-    opts?: {
-      throw?: boolean;
-    },
   ) => FastifyInstance;
   after: (listener?: (err: Error) => void) => FastifyInstance;
   addHook(
