@@ -1,3 +1,5 @@
+import { describe, expect, it, vi } from 'vitest';
+
 // mock helper functions not tested directly in this file
 import '../mocks';
 
@@ -46,7 +48,7 @@ describe('constructWebpackConfigFunction()', () => {
   });
 
   it('automatically enables deleteSourcemapsAfterUpload for client builds when not explicitly set', async () => {
-    const getWebpackPluginOptionsSpy = jest.spyOn(getWebpackPluginOptionsModule, 'getWebpackPluginOptions');
+    const getWebpackPluginOptionsSpy = vi.spyOn(getWebpackPluginOptionsModule, 'getWebpackPluginOptions');
 
     await materializeFinalWebpackConfig({
       exportedNextConfig,
