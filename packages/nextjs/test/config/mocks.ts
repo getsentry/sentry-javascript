@@ -17,7 +17,7 @@ import { CLIENT_SDK_CONFIG_FILE, EDGE_SDK_CONFIG_FILE, SERVER_SDK_CONFIG_FILE } 
 // function also lets us restore the original when we do want to test
 // `getUserConfigFile()`.
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-const fsReal = await vi.importActual('fs') as typeof import('fs');
+const fsReal = (await vi.importActual('fs')) as typeof import('fs');
 export const realExistsSync = fsReal.existsSync;
 export const mockExistsSync = (path: fs.PathLike): ReturnType<typeof realExistsSync> => {
   if (
@@ -38,7 +38,7 @@ export const exitsSync = vi.spyOn(fs, 'existsSync').mockImplementation(mockExist
 // Make it so that all temporary folders, either created directly by tests or by the code they're testing, will go into
 // one spot that we know about, which we can then clean up when we're done
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-const osReal = await vi.importActual('os') as typeof import('os');
+const osReal = (await vi.importActual('os')) as typeof import('os');
 const realTmpdir = osReal.tmpdir;
 
 // Including the random number ensures that even if multiple test files using these mocks are running at once, they have

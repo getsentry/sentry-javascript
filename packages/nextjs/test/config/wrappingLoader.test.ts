@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { describe, vi, it, expect } from 'vitest';
 
-vi.mock('fs', {spy: true});
+vi.mock('fs', { spy: true });
 
 const originalReadfileSync = fs.readFileSync;
 
