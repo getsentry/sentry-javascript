@@ -3,7 +3,7 @@ import { describe, vi, it, expect, afterEach, type Mock } from 'vitest';
 
 import { init } from '../src/index.server';
 
-vi.mock('@sentry/node', {spy: true});
+vi.mock('@sentry/node', { spy: true });
 
 const nodeInit = SentryNode.init as Mock;
 

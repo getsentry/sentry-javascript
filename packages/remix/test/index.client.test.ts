@@ -3,7 +3,7 @@ import { describe, vi, it, expect, afterEach, type Mock } from 'vitest';
 
 import { init } from '../src/index.client';
 
-vi.mock('@sentry/react', {spy: true});
+vi.mock('@sentry/react', { spy: true });
 
 const reactInit = SentryReact.init as Mock;
 
