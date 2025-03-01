@@ -25,15 +25,20 @@ export function loggingTransport(_options: BaseTransportOptions): Transport {
  * Setting this port to something specific is useful for local debugging but dangerous for
  * CI/CD environments where port collisions can cause flakes!
  */
-export function startExpressServerAndSendPortToRunner(app: Express, port: number | undefined = undefined): void {
+export function startExpressServerAndSendPortToRunner(
+  app: Express,
+  port: number | undefined = undefined,
+  onPort?: (port: number) => void,
+): void {
   const server = app.listen(port || 0, () => {
     const address = server.address() as AddressInfo;
 
     // @ts-expect-error If we write the port to the app we can read it within route handlers in tests
-    app.port = port || address.port;
+    const actualPort = (app.port = port || address.port);
 
     // eslint-disable-next-line no-console
-    console.log(`{"port":${port || address.port}}`);
+    console.log(`{"port":${actualPort}}`);
+    if (onPort) onPort(actualPort);
   });
 }
 
