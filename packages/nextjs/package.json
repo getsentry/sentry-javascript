@@ -117,8 +117,8 @@
     "lint": "eslint . --format stylish",
     "test": "yarn test:unit",
     "test:all": "run-s test:unit",
-    "test:unit": "jest",
-    "test:watch": "jest --watch",
+    "test:unit": "vitest run",
+    "test:watch": "vitest --watch",
     "vercel:branch": "source vercel/set-up-branch-for-test-app-use.sh",
     "vercel:project": "source vercel/make-project-use-current-branch.sh",
     "yalc:publish": "yalc publish --push --sig"
