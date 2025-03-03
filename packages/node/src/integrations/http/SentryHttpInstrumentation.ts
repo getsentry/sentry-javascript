@@ -183,6 +183,12 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
           });
         }
 
+        response.once('close', () => {
+          // Remove normalized request from the scope after the response is finished
+          // This is to avoid keeping the request body in memory for too long.
+          isolationScope.setSDKProcessingMetadata({ normalizedRequest: undefined });
+        });
+
         return withIsolationScope(isolationScope, () => {
           return withScope(scope => {
             // Set a new propagationSpanId for this request
