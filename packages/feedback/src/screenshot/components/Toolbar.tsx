@@ -34,7 +34,7 @@ export default function ToolbarFactory({
               setAction('hide');
             }}
           >
-            Hide
+            Redact
           </button>
         </div>
       </div>
