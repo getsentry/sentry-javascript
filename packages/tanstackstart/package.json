@@ -23,8 +23,10 @@
         "import": "./build/esm/index.client.js",
         "require": "./build/cjs/index.client.js"
       },
-      "node": "./build/cjs/index.server.js",
-      "import": "./build/esm/index.server.js"
+      "node": {
+        "import": "./build/esm/index.server.js",
+        "require": "./build/cjs/index.server.js"
+      }
     },
     "./import": {
       "import": {
