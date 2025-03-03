@@ -3,7 +3,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { escapeStringForRegex, loadModule, logger } from '@sentry/core';
+import { escapeStringForRegex, loadModule, logger, parseSemver } from '@sentry/core';
 import * as chalk from 'chalk';
 import { sync as resolveSync } from 'resolve';
 
@@ -22,6 +22,7 @@ import type {
   WebpackEntryProperty,
 } from './types';
 import { getWebpackPluginOptions } from './webpackPluginOptions';
+import { getNextjsVersion } from './util';
 
 // Next.js runs webpack 3 times, once for the client, the server, and for edge. Because we don't want to print certain
 // warnings 3 times, we keep track of them here.
@@ -58,7 +59,12 @@ export function constructWebpackConfigFunction(
       warnAboutDeprecatedConfigFiles(projectDir, runtime);
     }
     if (runtime === 'server') {
-      warnAboutMissingonRequestErrorHandler(projectDir);
+      const nextJsVersion = getNextjsVersion();
+      const { major } = parseSemver(nextJsVersion || '');
+      // was added in v15 (https://github.com/vercel/next.js/pull/67539)
+      if (major && major >= 15) {
+        warnAboutMissingOnRequestErrorHandler(projectDir);
+      }
     }
 
     let rawNewConfig = { ...incomingConfig };
@@ -443,7 +449,7 @@ async function addSentryToClientEntryProperty(
  *
  * @param projectDir The root directory of the project, where config files would be located
  */
-function warnAboutMissingonRequestErrorHandler(projectDir: string): void {
+function warnAboutMissingOnRequestErrorHandler(projectDir: string): void {
   const instrumentationPaths = [
     ['src', 'instrumentation.ts'],
     ['src', 'instrumentation.js'],
