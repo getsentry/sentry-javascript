@@ -1,5 +1,7 @@
 import { context, trace } from '@opentelemetry/api';
 import { getCurrentScope, setAsyncContextStrategy } from '@sentry/core';
+import { describe, afterEach, beforeEach, expect, it, vi } from 'vitest';
+
 import { getTraceData } from '../../src/utils/getTraceData';
 import { makeTraceState } from '../../src/utils/makeTraceState';
 import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
@@ -10,9 +12,9 @@ describe('getTraceData', () => {
     mockSdkInit();
   });
 
-  afterEach(() => {
-    cleanupOtel();
-    jest.clearAllMocks();
+  afterEach(async () => {
+    await cleanupOtel();
+    vi.clearAllMocks();
   });
 
   it('returns the tracing data from the span, if a span is available', () => {
