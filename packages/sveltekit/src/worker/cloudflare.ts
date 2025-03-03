@@ -1,4 +1,8 @@
-import { type CloudflareOptions, wrapRequestHandler } from '@sentry/cloudflare';
+import {
+  type CloudflareOptions,
+  wrapRequestHandler,
+  setAsyncLocalStorageAsyncContextStrategy,
+} from '@sentry/cloudflare';
 import { getDefaultIntegrations as getDefaultCloudflareIntegrations } from '@sentry/cloudflare';
 import type { Handle } from '@sveltejs/kit';
 
@@ -16,6 +20,8 @@ export function initCloudflareSentryHandle(options: CloudflareOptions): Handle {
     defaultIntegrations: [...getDefaultCloudflareIntegrations(options), rewriteFramesIntegration()],
     ...options,
   };
+
+  setAsyncLocalStorageAsyncContextStrategy();
 
   const handleInitSentry: Handle = ({ event, resolve }) => {
     // if event.platform exists (should be there in a cloudflare worker), then do the cloudflare sentry init
