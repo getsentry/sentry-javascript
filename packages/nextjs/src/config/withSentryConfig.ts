@@ -2,9 +2,8 @@
 import { isThenable, parseSemver } from '@sentry/core';
 
 import * as childProcess from 'child_process';
-import * as fs from 'fs';
 import { getSentryRelease } from '@sentry/node';
-import { sync as resolveSync } from 'resolve';
+
 import type {
   ExportedNextConfig as NextConfig,
   NextConfigFunction,
@@ -12,6 +11,7 @@ import type {
   SentryBuildOptions,
 } from './types';
 import { constructWebpackConfigFunction } from './webpack';
+import { getNextjsVersion } from './util';
 
 let showedExportModeTunnelWarning = false;
 
@@ -296,30 +296,6 @@ function setUpBuildTimeVariables(userNextConfig: NextConfigObject, userSentryOpt
     userNextConfig.env = { ...buildTimeVariables, ...userNextConfig.env };
   } else if (userNextConfig.env === undefined) {
     userNextConfig.env = buildTimeVariables;
-  }
-}
-
-function getNextjsVersion(): string | undefined {
-  const nextjsPackageJsonPath = resolveNextjsPackageJson();
-  if (nextjsPackageJsonPath) {
-    try {
-      const nextjsPackageJson: { version: string } = JSON.parse(
-        fs.readFileSync(nextjsPackageJsonPath, { encoding: 'utf-8' }),
-      );
-      return nextjsPackageJson.version;
-    } catch {
-      // noop
-    }
-  }
-
-  return undefined;
-}
-
-function resolveNextjsPackageJson(): string | undefined {
-  try {
-    return resolveSync('next/package.json', { basedir: process.cwd() });
-  } catch {
-    return undefined;
   }
 }
 
