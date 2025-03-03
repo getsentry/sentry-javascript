@@ -477,20 +477,23 @@ function warnAboutMissingOnRequestErrorHandler(projectDir: string): void {
   }
 
   if (!instrumentationFile) {
-    // eslint-disable-next-line no-console
-    return console.warn(
-      `${chalk.yellow(
-        '[@sentry/nextjs]',
-      )} Could not find a Next.js instrumentation file. This indicates an incomplete configuration of the Sentry SDK. An instrumentation file is required for the Sentry SDK to be initialized on the server: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#create-initialization-config-files`,
-    );
+    if (!process.env.SENTRY_SUPPRESS_INSTRUMENTATION_FILE_WARNING) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        chalk.yellow(
+          '[@sentry/nextjs] Could not find a Next.js instrumentation file. This indicates an incomplete configuration of the Sentry SDK. An instrumentation file is required for the Sentry SDK to be initialized on the server: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#create-initialization-config-files (you can suppress this warning by setting SENTRY_SUPPRESS_INSTRUMENTATION_FILE_WARNING=1 as environment variable)',
+        ),
+      );
+    }
+    return;
   }
 
   if (!hasOnRequestErrorHandler(instrumentationFile)) {
     // eslint-disable-next-line no-console
     console.warn(
-      `${chalk.yellow(
-        '[@sentry/nextjs]',
-      )} Could not find \`onRequestError\` hook in instrumentation file. This indicates outdated configuration of the Sentry SDK. Use \`Sentry.captureRequestError\` to instrument the \`onRequestError\` hook: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#errors-from-nested-react-server-components`,
+      chalk.yellow(
+        '[@sentry/nextjs] Could not find `onRequestError` hook in instrumentation file. This indicates outdated configuration of the Sentry SDK. Use `Sentry.captureRequestError` to instrument the `onRequestError` hook: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#errors-from-nested-react-server-components',
+      ),
     );
   }
 }
