@@ -4,6 +4,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { PubSub } from '@google-cloud/pubsub';
 import * as http2 from 'http2';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore ESM/CJS interop issue
 import nock from 'nock';
 import { describe, vi, beforeEach, test, expect, type Mock, afterAll, afterEach } from 'vitest';
 

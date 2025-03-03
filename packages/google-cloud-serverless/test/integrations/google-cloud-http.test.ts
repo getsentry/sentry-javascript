@@ -1,6 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { BigQuery } from '@google-cloud/bigquery';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore ESM/CJS interop issue
 import nock from 'nock';
 import { describe, vi, beforeEach, test, expect, afterAll } from 'vitest';
 
