@@ -140,6 +140,11 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const instrumentation = this;
 
+    // @ts-expect-error: FinalizationRegistry is not yet in the Node types
+    const finalizationRegistry = new FinalizationRegistry((isolationScope: Scope) => {
+      isolationScope.setSDKProcessingMetadata({ normalizedRequest: undefined });
+    });
+
     return (
       original: (event: string, ...args: unknown[]) => boolean,
     ): ((this: unknown, event: string, ...args: unknown[]) => boolean) => {
@@ -183,11 +188,8 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
           });
         }
 
-        response.once('close', () => {
-          // Remove normalized request from the scope after the response is finished
-          // This is to avoid keeping the request body in memory for too long.
-          isolationScope.setSDKProcessingMetadata({ normalizedRequest: undefined });
-        });
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        finalizationRegistry.register(response, isolationScope);
 
         return withIsolationScope(isolationScope, () => {
           return withScope(scope => {
