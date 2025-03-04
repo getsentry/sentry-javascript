@@ -41,15 +41,27 @@ export const wasmIntegration = defineIntegration(_wasmIntegration);
  * if applicable. Returns true if the provided list of stack frames had at least one
  * matching registered image.
  */
-function patchFrames(frames: Array<StackFrame>): boolean {
+// Only exported for tests
+export function patchFrames(frames: Array<StackFrame>): boolean {
   let hasAtLeastOneWasmFrameWithImage = false;
   frames.forEach(frame => {
     if (!frame.filename) {
       return;
     }
-    const match = frame.filename.match(/^(.*?):wasm-function\[\d+\]:(0x[a-fA-F0-9]+)$/) as
+
+    // I will call this first match a "messy match".
+    // The browser stacktrace parser spits out frames that have a filename like this: "int) const (http://localhost:8001/main.wasm:wasm-function[190]:0x5aeb"
+    // It contains some leftover mess because wasm stackframes are more complicated than our parser can handle: "at MyClass::bar(int) const (http://localhost:8001/main.wasm:wasm-function[190]:0x5aeb)"
+    // This first match simply tries to mitigate the mess up until the first opening parens.
+    // The match afterwards is a sensible fallback
+    let match = frame.filename.match(/^.*\((.*?):wasm-function\[\d+\]:(0x[a-fA-F0-9]+)$/) as
       | null
       | [string, string, string];
+
+    if (!match) {
+      match = frame.filename.match(/^(.*?):wasm-function\[\d+\]:(0x[a-fA-F0-9]+)$/) as null | [string, string, string];
+    }
+
     if (match) {
       const index = getImage(match[1]);
       frame.instruction_addr = match[2];
@@ -62,5 +74,6 @@ function patchFrames(frames: Array<StackFrame>): boolean {
       }
     }
   });
+
   return hasAtLeastOneWasmFrameWithImage;
 }
