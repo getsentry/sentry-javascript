@@ -65,6 +65,9 @@ export interface SdkProcessingMetadata {
   spanCountBeforeProcessing?: number;
   ipAddress?: string;
   [SUPPRESS_TRACING_KEY]?: boolean;
+  // Used by profiling integrations. The profiling integrations refine this type to ensure
+  // type safety (for ex. see `isProfiledTransactionEvent` function in `@sentry/browser`).
+  profile?: unknown;
 }
 
 /**
