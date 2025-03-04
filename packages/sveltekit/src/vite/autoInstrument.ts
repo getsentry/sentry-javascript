@@ -2,10 +2,9 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as recast from 'recast';
 import t = recast.types.namedTypes;
-import type { ParserPlugin } from '@babel/parser';
-import { parse as babelParse } from '@babel/parser';
 import type { Plugin } from 'vite';
 import { WRAPPED_MODULE_SUFFIX } from '../common/utils';
+import { parser } from './recastTypescriptParser';
 
 export type AutoInstrumentSelection = {
   /**
@@ -102,56 +101,6 @@ export async function canWrapLoad(id: string, debug: boolean): Promise<boolean> 
   }
 
   const code = (await fs.promises.readFile(id, 'utf8')).toString();
-
-  // Taken from recast's typescript parser config, minus the JSX plugin
-  // see: https://github.com/benjamn/recast/blob/master/parsers/_babel_options.ts
-  // see: https://github.com/benjamn/recast/blob/master/parsers/babel-ts.ts
-  const parser = {
-    parse: (source: string) =>
-      babelParse(source, {
-        plugins: [
-          'typescript',
-          'asyncGenerators',
-          'bigInt',
-          'classPrivateMethods',
-          'classPrivateProperties',
-          'classProperties',
-          'classStaticBlock',
-          'decimal',
-          'decorators-legacy',
-          'doExpressions',
-          'dynamicImport',
-          'exportDefaultFrom',
-          'exportNamespaceFrom',
-          'functionBind',
-          'functionSent',
-          'importAssertions',
-          'exportExtensions' as ParserPlugin,
-          'importMeta',
-          'nullishCoalescingOperator',
-          'numericSeparator',
-          'objectRestSpread',
-          'optionalCatchBinding',
-          'optionalChaining',
-          [
-            'pipelineOperator',
-            {
-              proposal: 'minimal',
-            },
-          ],
-          [
-            'recordAndTuple',
-            {
-              syntaxType: 'hash',
-            },
-          ],
-          'throwExpressions',
-          'topLevelAwait',
-          'v8intrinsic',
-        ],
-        sourceType: 'module',
-      }),
-  };
 
   const ast = recast.parse(code, {
     parser,
