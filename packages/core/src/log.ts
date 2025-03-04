@@ -114,7 +114,7 @@ function addToLogBuffer(client: Client, log: Log, scope: Scope): void {
  * The other parameters are in the format to be passed a tagged template, Sentry.info`hello ${world}`
  */
 export function sendLog(level: LogSeverityLevel, messageArr: TemplateStringsArray, ...values: unknown[]): void {
-  const message = messageArr.reduce((acc, str, i) => acc + str + (values[i] ?? ''), '');
+  const message = messageArr.reduce((acc, str, i) => acc + str + (JSON.stringify(values[i]) ?? ''), '');
 
   const attributes = values.reduce<Record<string, unknown>>(
     (acc, value, index) => {
