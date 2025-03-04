@@ -32,8 +32,7 @@ import { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
 import { SentrySpan } from './sentrySpan';
 import { SPAN_STATUS_ERROR } from './spanstatus';
 import { setCapturedScopesOnSpan } from './utils';
-
-const SUPPRESS_TRACING_KEY = '__SENTRY_SUPPRESS_TRACING__';
+import { SUPPRESS_TRACING_KEY } from '../constants';
 
 /**
  * Wraps a function with a transaction/span and finishes the span after the function is done.

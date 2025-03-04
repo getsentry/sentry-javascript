@@ -1,5 +1,6 @@
 /* eslint-disable max-lines */
 import type { Client } from './client';
+import type { SUPPRESS_TRACING_KEY } from './constants';
 import { updateSession } from './session';
 import type {
   Attachment,
@@ -54,7 +55,6 @@ export interface ScopeContext {
 }
 
 export interface SdkProcessingMetadata {
-  [key: string]: unknown;
   requestSession?: {
     status: 'ok' | 'errored' | 'crashed';
   };
@@ -64,6 +64,7 @@ export interface SdkProcessingMetadata {
   capturedSpanIsolationScope?: Scope;
   spanCountBeforeProcessing?: number;
   ipAddress?: string;
+  [SUPPRESS_TRACING_KEY]?: boolean;
 }
 
 /**
