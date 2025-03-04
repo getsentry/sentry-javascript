@@ -18,7 +18,7 @@ const mockSpan = {
 
 vi.mock('@sentry/node', async () => {
   // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-  const original = await vi.importActual('@sentry/node') as typeof import('@sentry/node');
+  const original = (await vi.importActual('@sentry/node')) as typeof import('@sentry/node');
   return {
     ...original,
     startSpanManual: (...args: unknown[]) => {
