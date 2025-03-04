@@ -1,5 +1,6 @@
 import type { Span } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
+import { describe, expect, it } from 'vitest';
 
 import { getSpanKind } from '../../src/utils/getSpanKind';
 

@@ -96,7 +96,9 @@ export {
 export { DEFAULT_ENVIRONMENT } from './constants';
 export { addBreadcrumb } from './breadcrumbs';
 export { functionToStringIntegration } from './integrations/functiontostring';
-export { inboundFiltersIntegration } from './integrations/inboundfilters';
+// eslint-disable-next-line deprecation/deprecation
+export { inboundFiltersIntegration } from './integrations/eventFilters';
+export { eventFiltersIntegration } from './integrations/eventFilters';
 export { linkedErrorsIntegration } from './integrations/linkederrors';
 export { moduleMetadataIntegration } from './integrations/metadata';
 export { requestDataIntegration } from './integrations/requestdata';

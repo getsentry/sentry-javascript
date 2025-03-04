@@ -1,12 +1,14 @@
 import { ProxyTracerProvider, context, propagation, trace } from '@opentelemetry/api';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import type { ClientOptions, Options } from '@sentry/core';
+import { getClient } from '@sentry/core';
 
-import { getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/core';
+import { getCurrentScope, getGlobalScope, getIsolationScope, flush } from '@sentry/core';
 import { setOpenTelemetryContextAsyncContextStrategy } from '../../src/asyncContextStrategy';
 import { clearOpenTelemetrySetupCheck } from '../../src/utils/setupCheck';
 import { init as initTestClient } from './TestClient';
 import { initOtel } from './initOtel';
+import type { OpenTelemetryClient } from '../../src/types';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 
@@ -24,6 +26,7 @@ function resetGlobals(): void {
   getCurrentScope().setClient(undefined);
   getIsolationScope().clear();
   getGlobalScope().clear();
+  delete (global as any).__SENTRY__;
 }
 
 export function mockSdkInit(options?: Partial<ClientOptions>) {
@@ -32,25 +35,26 @@ export function mockSdkInit(options?: Partial<ClientOptions>) {
   init({ dsn: PUBLIC_DSN, ...options });
 }
 
-export function cleanupOtel(_provider?: BasicTracerProvider): void {
+export async function cleanupOtel(_provider?: BasicTracerProvider): Promise<void> {
   clearOpenTelemetrySetupCheck();
+
   const provider = getProvider(_provider);
 
-  if (!provider) {
-    return;
+  if (provider) {
+    await provider.forceFlush();
+    await provider.shutdown();
   }
-
-  void provider.forceFlush();
-  void provider.shutdown();
 
   // Disable all globally registered APIs
   trace.disable();
   context.disable();
   propagation.disable();
+
+  await flush();
 }
 
 export function getProvider(_provider?: BasicTracerProvider): BasicTracerProvider | undefined {
-  let provider = _provider || trace.getTracerProvider();
+  let provider = _provider || getClient<OpenTelemetryClient>()?.traceProvider || trace.getTracerProvider();
 
   if (provider instanceof ProxyTracerProvider) {
     provider = provider.getDelegate();

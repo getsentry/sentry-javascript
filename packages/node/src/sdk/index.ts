@@ -51,6 +51,8 @@ function getCjsOnlyIntegrations(): Integration[] {
 export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
   return [
     // Common
+    // TODO(v10): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
+    // eslint-disable-next-line deprecation/deprecation
     inboundFiltersIntegration(),
     functionToStringIntegration(),
     linkedErrorsIntegration(),
@@ -212,7 +214,6 @@ function getClientOptions(
   const tracesSampleRate = getTracesSampleRate(options.tracesSampleRate);
 
   const baseOptions = dropUndefinedKeys({
-    transport: makeNodeTransport,
     dsn: process.env.SENTRY_DSN,
     environment: process.env.SENTRY_ENVIRONMENT,
     sendClientReports: true,
@@ -221,6 +222,7 @@ function getClientOptions(
   const overwriteOptions = dropUndefinedKeys({
     release,
     tracesSampleRate,
+    transport: options.transport || makeNodeTransport,
   });
 
   const mergedOptions = {

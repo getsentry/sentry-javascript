@@ -1,11 +1,12 @@
+import { afterAll, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
 afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('should send manually started parallel root spans outside of root context with parentSpanId', done => {
-  createRunner(__dirname, 'scenario.ts')
+test('should send manually started parallel root spans outside of root context with parentSpanId', async () => {
+  await createRunner(__dirname, 'scenario.ts')
     .expect({ transaction: { transaction: 'test_span_1' } })
     .expect({
       transaction: transaction => {
@@ -21,5 +22,6 @@ test('should send manually started parallel root spans outside of root context w
         expect(trace1Id).not.toBe(traceId);
       },
     })
-    .start(done);
+    .start()
+    .completed();
 });

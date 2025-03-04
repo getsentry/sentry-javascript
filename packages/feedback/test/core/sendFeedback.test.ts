@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { vi, describe, it, expect } from 'vitest';
+import { vi, describe, it, expect, beforeEach, afterAll } from 'vitest';
 
 import {
   addBreadcrumb,

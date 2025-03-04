@@ -1,6 +1,6 @@
 {
   "name": "@sentry/react-router",
-  "version": "9.2.0",
+  "version": "9.3.0",
   "description": "Official Sentry SDK for React Router (Framework)",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/react-router",
@@ -34,13 +34,18 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/browser": "9.2.0",
-    "@sentry/core": "9.2.0",
-    "@sentry/node": "9.2.0"
+    "@sentry/browser": "9.3.0",
+    "@sentry/cli": "^2.42.2",
+    "@sentry/core": "9.3.0",
+    "@sentry/node": "9.3.0",
+    "@sentry/vite-plugin": "^3.2.0",
+    "glob": "11.0.1"
   },
   "devDependencies": {
+    "@react-router/dev": "^7.1.5",
     "@react-router/node": "^7.1.5",
-    "react-router": "^7.1.5"
+    "react-router": "^7.1.5",
+    "vite": "^6.1.0"
   },
   "peerDependencies": {
     "@react-router/node": "7.x",

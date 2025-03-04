@@ -13,7 +13,6 @@ import {
   setCurrentClient,
 } from '@sentry/core';
 import { act, render } from '@testing-library/react';
-// biome-ignore lint/nursery/noUnusedImports: <explanation>
 import * as React from 'react';
 import { IndexRoute, Route, Router, createMemoryHistory, createRoutes, match } from 'react-router-3';
 import { reactRouterV3BrowserTracingIntegration } from '../src/reactrouterv3';
