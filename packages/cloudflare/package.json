@@ -60,7 +60,7 @@
     }
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20240725.0",
+    "@cloudflare/workers-types": "4.20240722.0",
     "@types/node": "^18.19.1",
     "wrangler": "^3.67.1"
   },
