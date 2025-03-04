@@ -1,6 +1,6 @@
 {
   "name": "@sentry/nuxt",
-  "version": "9.1.0",
+  "version": "9.3.0",
   "description": "Official Sentry SDK for Nuxt (EXPERIMENTAL)",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/nuxt",
@@ -43,13 +43,13 @@
   },
   "dependencies": {
     "@nuxt/kit": "^3.13.2",
-    "@sentry/browser": "9.1.0",
-    "@sentry/core": "9.1.0",
-    "@sentry/node": "9.1.0",
-    "@sentry/opentelemetry": "9.1.0",
+    "@sentry/browser": "9.3.0",
+    "@sentry/core": "9.3.0",
+    "@sentry/node": "9.3.0",
+    "@sentry/opentelemetry": "9.3.0",
     "@sentry/rollup-plugin": "3.1.2",
     "@sentry/vite-plugin": "2.22.6",
-    "@sentry/vue": "9.1.0"
+    "@sentry/vue": "9.3.0"
   },
   "devDependencies": {
     "@nuxt/module-builder": "^0.8.4",

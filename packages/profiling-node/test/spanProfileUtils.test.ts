@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/node';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CpuProfilerBindings } from '@sentry-internal/node-cpu-profiler';
 import { getMainCarrier } from '@sentry/core';
@@ -80,14 +81,14 @@ const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 describe('automated span instrumentation', () => {
   beforeEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
     // We will mock the carrier as if it has been initialized by the SDK, else everything is short circuited
     getMainCarrier().__SENTRY__ = {};
     GLOBAL_OBJ._sentryDebugIds = undefined as any;
   });
   afterEach(() => {
-    jest.clearAllMocks();
-    jest.restoreAllMocks();
+    vi.clearAllMocks();
+    vi.restoreAllMocks();
     delete getMainCarrier().__SENTRY__;
   });
 
@@ -96,7 +97,7 @@ describe('automated span instrumentation', () => {
     Sentry.setCurrentClient(client);
     client.init();
 
-    const transportSpy = jest.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
+    const transportSpy = vi.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
 
     const transaction = Sentry.startInactiveSpan({ forceTransaction: true, name: 'profile_hub' });
     await wait(500);
@@ -107,14 +108,14 @@ describe('automated span instrumentation', () => {
   });
 
   it('logger warns user if there are insufficient samples and discards the profile', async () => {
-    const logSpy = jest.spyOn(logger, 'log');
+    const logSpy = vi.spyOn(logger, 'log');
 
     const [client, transport] = makeClientWithHooks();
     Sentry.setCurrentClient(client);
     client.init();
 
     // @ts-expect-error we just mock the return type and ignore the signature
-    jest.spyOn(CpuProfilerBindings, 'stopProfiling').mockImplementation(() => {
+    vi.spyOn(CpuProfilerBindings, 'stopProfiling').mockImplementation(() => {
       return {
         samples: [
           {
@@ -131,7 +132,7 @@ describe('automated span instrumentation', () => {
       };
     });
 
-    jest.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
+    vi.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
 
     const transaction = Sentry.startInactiveSpan({ forceTransaction: true, name: 'profile_hub' });
     transaction.end();
@@ -146,14 +147,14 @@ describe('automated span instrumentation', () => {
   });
 
   it('logger warns user if traceId is invalid', async () => {
-    const logSpy = jest.spyOn(logger, 'log');
+    const logSpy = vi.spyOn(logger, 'log');
 
     const [client, transport] = makeClientWithHooks();
     Sentry.setCurrentClient(client);
     client.init();
 
     // @ts-expect-error we just mock the return type and ignore the signature
-    jest.spyOn(CpuProfilerBindings, 'stopProfiling').mockImplementation(() => {
+    vi.spyOn(CpuProfilerBindings, 'stopProfiling').mockImplementation(() => {
       return {
         samples: [
           {
@@ -175,7 +176,7 @@ describe('automated span instrumentation', () => {
       };
     });
 
-    jest.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
+    vi.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
 
     Sentry.getCurrentScope().getPropagationContext().traceId = 'boop';
     const transaction = Sentry.startInactiveSpan({
@@ -196,10 +197,10 @@ describe('automated span instrumentation', () => {
       Sentry.setCurrentClient(client);
       client.init();
 
-      const startProfilingSpy = jest.spyOn(CpuProfilerBindings, 'startProfiling');
-      const stopProfilingSpy = jest.spyOn(CpuProfilerBindings, 'stopProfiling');
+      const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
+      const stopProfilingSpy = vi.spyOn(CpuProfilerBindings, 'stopProfiling');
 
-      jest.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
+      vi.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
 
       const transaction = Sentry.startInactiveSpan({ forceTransaction: true, name: 'profile_hub' });
       await wait(500);
@@ -216,7 +217,7 @@ describe('automated span instrumentation', () => {
       Sentry.setCurrentClient(client);
       client.init();
 
-      const transportSpy = jest.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
+      const transportSpy = vi.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
 
       const transaction = Sentry.startInactiveSpan({ forceTransaction: true, name: 'profile_hub' });
       await wait(500);
@@ -258,9 +259,9 @@ describe('automated span instrumentation', () => {
       Sentry.setCurrentClient(client);
       client.init();
 
-      jest.spyOn(CpuProfilerBindings, 'stopProfiling').mockReturnValue(null);
+      vi.spyOn(CpuProfilerBindings, 'stopProfiling').mockReturnValue(null);
       // Emit is sync, so we can just assert that we got here
-      const transportSpy = jest.spyOn(transport, 'send').mockImplementation(() => {
+      const transportSpy = vi.spyOn(transport, 'send').mockImplementation(() => {
         // Do nothing so we don't send events to Sentry
         return Promise.resolve({});
       });
@@ -281,7 +282,7 @@ describe('automated span instrumentation', () => {
       Sentry.setCurrentClient(client);
       client.init();
 
-      const onPreprocessEvent = jest.fn();
+      const onPreprocessEvent = vi.fn();
 
       client.on('preprocessEvent', onPreprocessEvent);
 
@@ -291,7 +292,7 @@ describe('automated span instrumentation', () => {
 
       await Sentry.flush(1000);
 
-      expect(onPreprocessEvent.mock.calls[1][0]).toMatchObject({
+      expect(onPreprocessEvent.mock.calls[1]?.[0]).toMatchObject({
         profile: {
           samples: expect.arrayContaining([expect.anything()]),
           stacks: expect.arrayContaining([expect.anything()]),
@@ -300,7 +301,7 @@ describe('automated span instrumentation', () => {
     });
 
     it('automated span instrumentation does not support continuous profiling', () => {
-      const startProfilingSpy = jest.spyOn(CpuProfilerBindings, 'startProfiling');
+      const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
 
       const [client] = makeClientWithHooks();
       Sentry.setCurrentClient(client);
@@ -316,7 +317,7 @@ describe('automated span instrumentation', () => {
   });
 
   it('does not crash if stop is called multiple times', async () => {
-    const stopProfilingSpy = jest.spyOn(CpuProfilerBindings, 'stopProfiling');
+    const stopProfilingSpy = vi.spyOn(CpuProfilerBindings, 'stopProfiling');
 
     const [client] = makeClientWithHooks();
     Sentry.setCurrentClient(client);
@@ -335,7 +336,7 @@ describe('automated span instrumentation', () => {
     };
 
     // @ts-expect-error we just mock the return type and ignore the signature
-    jest.spyOn(CpuProfilerBindings, 'stopProfiling').mockImplementation(() => {
+    vi.spyOn(CpuProfilerBindings, 'stopProfiling').mockImplementation(() => {
       return {
         samples: [
           {
@@ -361,7 +362,7 @@ describe('automated span instrumentation', () => {
     Sentry.setCurrentClient(client);
     client.init();
 
-    const transportSpy = jest.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
+    const transportSpy = vi.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
 
     const transaction = Sentry.startInactiveSpan({ forceTransaction: true, name: 'profile_hub' });
     await wait(500);
@@ -390,7 +391,7 @@ describe('automated span instrumentation', () => {
 
 describe('continuous profiling', () => {
   beforeEach(() => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     // We will mock the carrier as if it has been initialized by the SDK, else everything is short circuited
     getMainCarrier().__SENTRY__ = {};
     GLOBAL_OBJ._sentryDebugIds = undefined as any;
@@ -403,15 +404,15 @@ describe('continuous profiling', () => {
       Sentry.profiler.stopProfiler();
     }
 
-    jest.clearAllMocks();
-    jest.restoreAllMocks();
-    jest.runAllTimers();
+    vi.clearAllMocks();
+    vi.restoreAllMocks();
+    vi.runAllTimers();
     delete getMainCarrier().__SENTRY__;
   });
 
   it('attaches sdk metadata to chunks', () => {
     // @ts-expect-error we just mock the return type and ignore the signature
-    jest.spyOn(CpuProfilerBindings, 'stopProfiling').mockImplementation(() => {
+    vi.spyOn(CpuProfilerBindings, 'stopProfiling').mockImplementation(() => {
       return {
         samples: [
           {
@@ -437,11 +438,11 @@ describe('continuous profiling', () => {
     Sentry.setCurrentClient(client);
     client.init();
 
-    const transportSpy = jest.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
+    const transportSpy = vi.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
     Sentry.profiler.startProfiler();
-    jest.advanceTimersByTime(1000);
+    vi.advanceTimersByTime(1000);
     Sentry.profiler.stopProfiler();
-    jest.advanceTimersByTime(1000);
+    vi.advanceTimersByTime(1000);
 
     const profile = transportSpy.mock.calls?.[0]?.[0]?.[1]?.[0]?.[1] as ProfileChunk;
     expect(profile.client_sdk.name).toBe('sentry.javascript.node');
@@ -449,7 +450,7 @@ describe('continuous profiling', () => {
   });
 
   it('initializes the continuous profiler', () => {
-    const startProfilingSpy = jest.spyOn(CpuProfilerBindings, 'startProfiling');
+    const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
 
     const [client] = makeContinuousProfilingClient();
     Sentry.setCurrentClient(client);
@@ -463,7 +464,7 @@ describe('continuous profiling', () => {
   });
 
   it('starts a continuous profile', () => {
-    const startProfilingSpy = jest.spyOn(CpuProfilerBindings, 'startProfiling');
+    const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
 
     const [client] = makeContinuousProfilingClient();
     Sentry.setCurrentClient(client);
@@ -475,8 +476,8 @@ describe('continuous profiling', () => {
   });
 
   it('multiple calls to start abort previous profile', () => {
-    const startProfilingSpy = jest.spyOn(CpuProfilerBindings, 'startProfiling');
-    const stopProfilingSpy = jest.spyOn(CpuProfilerBindings, 'stopProfiling');
+    const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
+    const stopProfilingSpy = vi.spyOn(CpuProfilerBindings, 'stopProfiling');
 
     const [client] = makeContinuousProfilingClient();
     Sentry.setCurrentClient(client);
@@ -491,8 +492,8 @@ describe('continuous profiling', () => {
   });
 
   it('restarts a new chunk after previous', async () => {
-    const startProfilingSpy = jest.spyOn(CpuProfilerBindings, 'startProfiling');
-    const stopProfilingSpy = jest.spyOn(CpuProfilerBindings, 'stopProfiling');
+    const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
+    const stopProfilingSpy = vi.spyOn(CpuProfilerBindings, 'stopProfiling');
 
     const [client] = makeContinuousProfilingClient();
     Sentry.setCurrentClient(client);
@@ -501,14 +502,14 @@ describe('continuous profiling', () => {
     expect(startProfilingSpy).not.toHaveBeenCalledTimes(1);
     Sentry.profiler.startProfiler();
 
-    jest.advanceTimersByTime(60_001);
+    vi.advanceTimersByTime(60_001);
     expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
     expect(startProfilingSpy).toHaveBeenCalledTimes(2);
   });
 
   it('chunks share the same profilerId', async () => {
-    const startProfilingSpy = jest.spyOn(CpuProfilerBindings, 'startProfiling');
-    const stopProfilingSpy = jest.spyOn(CpuProfilerBindings, 'stopProfiling');
+    const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
+    const stopProfilingSpy = vi.spyOn(CpuProfilerBindings, 'stopProfiling');
 
     const [client] = makeContinuousProfilingClient();
     Sentry.setCurrentClient(client);
@@ -518,14 +519,14 @@ describe('continuous profiling', () => {
     Sentry.profiler.startProfiler();
     const profilerId = getProfilerId();
 
-    jest.advanceTimersByTime(60_001);
+    vi.advanceTimersByTime(60_001);
     expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
     expect(startProfilingSpy).toHaveBeenCalledTimes(2);
     expect(getProfilerId()).toBe(profilerId);
   });
 
   it('explicit calls to stop clear profilerId', async () => {
-    const startProfilingSpy = jest.spyOn(CpuProfilerBindings, 'startProfiling');
+    const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
 
     const [client] = makeContinuousProfilingClient();
     Sentry.setCurrentClient(client);
@@ -542,8 +543,8 @@ describe('continuous profiling', () => {
   });
 
   it('stops a continuous profile after interval', async () => {
-    const startProfilingSpy = jest.spyOn(CpuProfilerBindings, 'startProfiling');
-    const stopProfilingSpy = jest.spyOn(CpuProfilerBindings, 'stopProfiling');
+    const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
+    const stopProfilingSpy = vi.spyOn(CpuProfilerBindings, 'stopProfiling');
 
     const [client] = makeContinuousProfilingClient();
     Sentry.setCurrentClient(client);
@@ -552,13 +553,13 @@ describe('continuous profiling', () => {
     expect(startProfilingSpy).not.toHaveBeenCalledTimes(1);
     Sentry.profiler.startProfiler();
 
-    jest.advanceTimersByTime(60_001);
+    vi.advanceTimersByTime(60_001);
     expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
   });
 
   it('manually stopping a chunk doesnt restart the profiler', async () => {
-    const startProfilingSpy = jest.spyOn(CpuProfilerBindings, 'startProfiling');
-    const stopProfilingSpy = jest.spyOn(CpuProfilerBindings, 'stopProfiling');
+    const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
+    const stopProfilingSpy = vi.spyOn(CpuProfilerBindings, 'stopProfiling');
 
     const [client] = makeContinuousProfilingClient();
     Sentry.setCurrentClient(client);
@@ -567,17 +568,17 @@ describe('continuous profiling', () => {
     expect(startProfilingSpy).not.toHaveBeenCalledTimes(1);
     Sentry.profiler.startProfiler();
 
-    jest.advanceTimersByTime(1000);
+    vi.advanceTimersByTime(1000);
 
     Sentry.profiler.stopProfiler();
     expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
 
-    jest.advanceTimersByTime(1000);
+    vi.advanceTimersByTime(1000);
     expect(startProfilingSpy).toHaveBeenCalledTimes(1);
   });
 
   it('continuous mode does not instrument spans', () => {
-    const startProfilingSpy = jest.spyOn(CpuProfilerBindings, 'startProfiling');
+    const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
 
     const [client] = makeContinuousProfilingClient();
     Sentry.setCurrentClient(client);
@@ -589,7 +590,7 @@ describe('continuous profiling', () => {
 
   it('sends as profile_chunk envelope type', async () => {
     // @ts-expect-error we just mock the return type and ignore the signature
-    jest.spyOn(CpuProfilerBindings, 'stopProfiling').mockImplementation(() => {
+    vi.spyOn(CpuProfilerBindings, 'stopProfiling').mockImplementation(() => {
       return {
         samples: [
           {
@@ -615,11 +616,11 @@ describe('continuous profiling', () => {
     Sentry.setCurrentClient(client);
     client.init();
 
-    const transportSpy = jest.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
+    const transportSpy = vi.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
     Sentry.profiler.startProfiler();
-    jest.advanceTimersByTime(1000);
+    vi.advanceTimersByTime(1000);
     Sentry.profiler.stopProfiler();
-    jest.advanceTimersByTime(1000);
+    vi.advanceTimersByTime(1000);
 
     expect(transportSpy.mock.calls?.[0]?.[0]?.[1]?.[0]?.[0]?.type).toBe('profile_chunk');
   });
@@ -629,7 +630,7 @@ describe('continuous profiling', () => {
     Sentry.setCurrentClient(client);
     client.init();
 
-    const transportSpy = jest.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
+    const transportSpy = vi.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
 
     const nonProfiledTransaction = Sentry.startInactiveSpan({ forceTransaction: true, name: 'profile_hub' });
     nonProfiledTransaction.end();
@@ -671,7 +672,7 @@ describe('continuous profiling does not start in span profiling mode', () => {
     ['profilesSampleRate=1', makeClientOptions({ profilesSampleRate: 1 })],
     ['profilesSampler is defined', makeClientOptions({ profilesSampler: () => 1 })],
   ])('%s', async (_label, options) => {
-    const logSpy = jest.spyOn(logger, 'log');
+    const logSpy = vi.spyOn(logger, 'log');
     const client = new Sentry.NodeClient({
       ...options,
       dsn: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
@@ -689,14 +690,14 @@ describe('continuous profiling does not start in span profiling mode', () => {
     Sentry.setCurrentClient(client);
     client.init();
 
-    const startProfilingSpy = jest.spyOn(CpuProfilerBindings, 'startProfiling');
+    const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
     const transport = client.getTransport();
 
     if (!transport) {
       throw new Error('Transport not found');
     }
 
-    jest.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
+    vi.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
     Sentry.startInactiveSpan({ forceTransaction: true, name: 'profile_hub' });
 
     expect(startProfilingSpy).toHaveBeenCalled();
@@ -714,7 +715,7 @@ describe('continuous profiling does not start in span profiling mode', () => {
 });
 describe('continuous profiling mode', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it.each([
@@ -744,14 +745,14 @@ describe('continuous profiling mode', () => {
     Sentry.setCurrentClient(client);
     client.init();
 
-    const startProfilingSpy = jest.spyOn(CpuProfilerBindings, 'startProfiling');
+    const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
     const transport = client.getTransport();
 
     if (!transport) {
       throw new Error('Transport not found');
     }
 
-    jest.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
+    vi.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
     Sentry.profiler.startProfiler();
     const callCount = startProfilingSpy.mock.calls.length;
     expect(startProfilingSpy).toHaveBeenCalled();
@@ -778,8 +779,8 @@ describe('continuous profiling mode', () => {
     Sentry.setCurrentClient(client);
     client.init();
 
-    const startProfilingSpy = jest.spyOn(CpuProfilerBindings, 'startProfiling');
-    const stopProfilingSpy = jest.spyOn(CpuProfilerBindings, 'stopProfiling');
+    const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
+    const stopProfilingSpy = vi.spyOn(CpuProfilerBindings, 'stopProfiling');
 
     Sentry.profiler.startProfiler();
     expect(startProfilingSpy).toHaveBeenCalledTimes(1);

@@ -1,3 +1,4 @@
+import { describe, expect, it, test, vi } from 'vitest';
 import type { SpanJSON } from '../../../src';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, getCurrentScope, setCurrentClient, timestampInSeconds } from '../../../src';
 import { SentrySpan } from '../../../src/tracing/sentrySpan';
@@ -130,7 +131,7 @@ describe('SentrySpan', () => {
       setCurrentClient(client);
 
       // @ts-expect-error Accessing private transport API
-      const mockSend = jest.spyOn(client._transport, 'send');
+      const mockSend = vi.spyOn(client._transport, 'send');
 
       const notSampledSpan = new SentrySpan({
         name: 'not-sampled',
@@ -154,7 +155,7 @@ describe('SentrySpan', () => {
     });
 
     test('sends the span if `beforeSendSpan` does not modify the span', () => {
-      const beforeSendSpan = jest.fn(span => span);
+      const beforeSendSpan = vi.fn(span => span);
       const client = new TestClient(
         getDefaultTestClientOptions({
           dsn: 'https://username@domain/123',
@@ -165,7 +166,7 @@ describe('SentrySpan', () => {
       setCurrentClient(client);
 
       // @ts-expect-error Accessing private transport API
-      const mockSend = jest.spyOn(client._transport, 'send');
+      const mockSend = vi.spyOn(client._transport, 'send');
       const span = new SentrySpan({
         name: 'test',
         isStandalone: true,
@@ -178,9 +179,9 @@ describe('SentrySpan', () => {
     });
 
     test('does not drop the span if `beforeSendSpan` returns null', () => {
-      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
-      const beforeSendSpan = jest.fn(() => null as unknown as SpanJSON);
+      const beforeSendSpan = vi.fn(() => null as unknown as SpanJSON);
       const client = new TestClient(
         getDefaultTestClientOptions({
           dsn: 'https://username@domain/123',
@@ -190,9 +191,9 @@ describe('SentrySpan', () => {
       );
       setCurrentClient(client);
 
-      const recordDroppedEventSpy = jest.spyOn(client, 'recordDroppedEvent');
+      const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
       // @ts-expect-error Accessing private transport API
-      const mockSend = jest.spyOn(client._transport, 'send');
+      const mockSend = vi.spyOn(client._transport, 'send');
       const span = new SentrySpan({
         name: 'test',
         isStandalone: true,
@@ -220,7 +221,7 @@ describe('SentrySpan', () => {
       setCurrentClient(client);
 
       const scope = getCurrentScope();
-      const captureEventSpy = jest.spyOn(scope, 'captureEvent').mockImplementation(() => 'testId');
+      const captureEventSpy = vi.spyOn(scope, 'captureEvent').mockImplementation(() => 'testId');
 
       const span = new SentrySpan({
         name: 'test',

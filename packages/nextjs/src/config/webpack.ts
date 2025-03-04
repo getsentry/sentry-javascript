@@ -3,7 +3,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { escapeStringForRegex, loadModule, logger } from '@sentry/core';
+import { escapeStringForRegex, loadModule, logger, parseSemver } from '@sentry/core';
 import * as chalk from 'chalk';
 import { sync as resolveSync } from 'resolve';
 
@@ -22,6 +22,7 @@ import type {
   WebpackEntryProperty,
 } from './types';
 import { getWebpackPluginOptions } from './webpackPluginOptions';
+import { getNextjsVersion } from './util';
 
 // Next.js runs webpack 3 times, once for the client, the server, and for edge. Because we don't want to print certain
 // warnings 3 times, we keep track of them here.
@@ -56,6 +57,14 @@ export function constructWebpackConfigFunction(
 
     if (runtime !== 'client') {
       warnAboutDeprecatedConfigFiles(projectDir, runtime);
+    }
+    if (runtime === 'server') {
+      const nextJsVersion = getNextjsVersion();
+      const { major } = parseSemver(nextJsVersion || '');
+      // was added in v15 (https://github.com/vercel/next.js/pull/67539)
+      if (major && major >= 15) {
+        warnAboutMissingOnRequestErrorHandler(projectDir);
+      }
     }
 
     let rawNewConfig = { ...incomingConfig };
@@ -433,6 +442,60 @@ async function addSentryToClientEntryProperty(
   }
 
   return newEntryProperty;
+}
+
+/**
+ * Make sure the instrumentation file has a `onRequestError` Handler
+ *
+ * @param projectDir The root directory of the project, where config files would be located
+ */
+function warnAboutMissingOnRequestErrorHandler(projectDir: string): void {
+  const instrumentationPaths = [
+    ['src', 'instrumentation.ts'],
+    ['src', 'instrumentation.js'],
+    ['instrumentation.ts'],
+    ['instrumentation.js'],
+  ];
+  const instrumentationFile = instrumentationPaths
+    .map(pathSegments => path.resolve(projectDir, ...pathSegments))
+    .find(function exists(filePath: string): string | null {
+      try {
+        fs.accessSync(filePath, fs.constants.F_OK);
+        return filePath;
+      } catch (error) {
+        return null;
+      }
+    });
+
+  function hasOnRequestErrorHandler(absolutePath: string): boolean {
+    try {
+      const content = fs.readFileSync(absolutePath, 'utf8');
+      return content.includes('onRequestError');
+    } catch (error) {
+      return false;
+    }
+  }
+
+  if (!instrumentationFile) {
+    if (!process.env.SENTRY_SUPPRESS_INSTRUMENTATION_FILE_WARNING) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        chalk.yellow(
+          '[@sentry/nextjs] Could not find a Next.js instrumentation file. This indicates an incomplete configuration of the Sentry SDK. An instrumentation file is required for the Sentry SDK to be initialized on the server: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#create-initialization-config-files (you can suppress this warning by setting SENTRY_SUPPRESS_INSTRUMENTATION_FILE_WARNING=1 as environment variable)',
+        ),
+      );
+    }
+    return;
+  }
+
+  if (!hasOnRequestErrorHandler(instrumentationFile)) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      chalk.yellow(
+        '[@sentry/nextjs] Could not find `onRequestError` hook in instrumentation file. This indicates outdated configuration of the Sentry SDK. Use `Sentry.captureRequestError` to instrument the `onRequestError` hook: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#errors-from-nested-react-server-components',
+      ),
+    );
+  }
 }
 
 /**

@@ -65,7 +65,9 @@ export {
   getSpanDescendants,
   continueTrace,
   functionToStringIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   inboundFiltersIntegration,
+  eventFiltersIntegration,
   linkedErrorsIntegration,
   requestDataIntegration,
   extraErrorDataIntegration,
@@ -85,9 +87,6 @@ export {
 } from '@sentry/core';
 
 export { VercelEdgeClient } from './client';
-export {
-  getDefaultIntegrations,
-  init,
-} from './sdk';
+export { getDefaultIntegrations, init } from './sdk';
 
 export { winterCGFetchIntegration } from './integrations/wintercg-fetch';

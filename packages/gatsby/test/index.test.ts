@@ -1,3 +1,5 @@
+import { describe, it, expect } from 'vitest';
+
 import * as GatsbyIntegration from '../src/index';
 
 describe('package', () => {

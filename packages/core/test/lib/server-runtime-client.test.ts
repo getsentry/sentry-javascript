@@ -1,5 +1,6 @@
 import type { Event, EventHint } from '../../src/types-hoist';
 
+import { describe, expect, it, test, vi } from 'vitest';
 import { Scope, createTransport } from '../../src';
 import type { ServerRuntimeClientOptions } from '../../src/server-runtime-client';
 import { ServerRuntimeClient } from '../../src/server-runtime-client';
@@ -80,7 +81,7 @@ describe('ServerRuntimeClient', () => {
       });
       client = new ServerRuntimeClient(options);
 
-      const sendEnvelopeSpy = jest.spyOn(client, 'sendEnvelope');
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
 
       const id = client.captureCheckIn(
         { monitorSlug: 'foo', status: 'in_progress' },
@@ -150,7 +151,7 @@ describe('ServerRuntimeClient', () => {
       const options = getDefaultClientOptions({ dsn: PUBLIC_DSN, serverName: 'bar', enabled: false });
       client = new ServerRuntimeClient(options);
 
-      const sendEnvelopeSpy = jest.spyOn(client, 'sendEnvelope');
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
 
       client.captureCheckIn({ monitorSlug: 'foo', status: 'in_progress' });
 
@@ -163,7 +164,7 @@ describe('ServerRuntimeClient', () => {
       const options = getDefaultClientOptions({ dsn: PUBLIC_DSN });
       client = new ServerRuntimeClient(options);
 
-      const sendEnvelopeSpy = jest.spyOn(client, 'sendEnvelope');
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
 
       client.captureException(new Error('foo'));
 
@@ -187,7 +188,7 @@ describe('ServerRuntimeClient', () => {
       const options = getDefaultClientOptions({ dsn: PUBLIC_DSN });
       client = new ServerRuntimeClient(options);
 
-      const sendEnvelopeSpy = jest.spyOn(client, 'sendEnvelope');
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
 
       client.captureMessage('foo');
 

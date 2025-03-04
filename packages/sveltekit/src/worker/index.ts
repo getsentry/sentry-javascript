@@ -43,6 +43,7 @@ export {
   getSpanStatusFromHttpCode,
   getTraceData,
   getTraceMetaTags,
+  // eslint-disable-next-line deprecation/deprecation
   inboundFiltersIntegration,
   isInitialized,
   lastEventId,

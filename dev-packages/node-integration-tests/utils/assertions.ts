@@ -8,6 +8,7 @@ import type {
   SessionAggregates,
   TransactionEvent,
 } from '@sentry/core';
+import { expect } from 'vitest';
 
 /**
  * Asserts against a Sentry Event ignoring non-deterministic properties

@@ -1,6 +1,6 @@
 {
   "name": "@sentry/cloudflare",
-  "version": "9.1.0",
+  "version": "9.3.0",
   "description": "Official Sentry SDK for Cloudflare Workers and Pages",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/cloudflare",
@@ -26,6 +26,16 @@
         "types": "./build/types/index.d.ts",
         "default": "./build/cjs/index.js"
       }
+    },
+    "./request": {
+      "import": {
+        "types": "./build/types/request.d.ts",
+        "default": "./build/esm/request.js"
+      },
+      "require": {
+        "types": "./build/types/request.d.ts",
+        "default": "./build/cjs/request.js"
+      }
     }
   },
   "typesVersions": {
@@ -39,13 +49,18 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "9.1.0"
+    "@sentry/core": "9.3.0"
   },
-  "optionalDependencies": {
+  "peerDependencies": {
     "@cloudflare/workers-types": "^4.x"
   },
+  "peerDependenciesMeta": {
+    "@cloudflare/workers-types": {
+      "optional": true
+    }
+  },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20240725.0",
+    "@cloudflare/workers-types": "4.20240725.0",
     "@types/node": "^18.19.1",
     "wrangler": "^3.67.1"
   },

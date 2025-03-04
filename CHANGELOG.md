@@ -10,7 +10,81 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-Work in this release was contributed by @6farer. Thank you for your contribution!
+## 9.3.0
+
+### Important Changes
+
+With this release we're publishing two new SDKs in **experimental alpha** stage:
+
+- **feat(tanstackstart): Add TanStack Start SDK ([#15523](https://github.com/getsentry/sentry-javascript/pull/15523))**
+
+For details please refer to the [README](https://github.com/getsentry/sentry-javascript/tree/develop/packages/tanstackstart)
+
+- **feat(react-router): Add React Router SDK ([#15524](https://github.com/getsentry/sentry-javascript/pull/15524))**
+
+For details please refer to the [README](https://github.com/getsentry/sentry-javascript/tree/develop/packages/react-router)
+
+- **feat(remix): Add support for Hydrogen ([#15450](https://github.com/getsentry/sentry-javascript/pull/15450))**
+
+This PR adds support for Shopify Hydrogen applications running on MiniOxygen runtime.
+
+### Other Changes
+
+- feat(core): Add `forceTransaction` to trpc middleware options ([#15519](https://github.com/getsentry/sentry-javascript/pull/15519))
+- feat(core): Default filter unactionable error ([#15527](https://github.com/getsentry/sentry-javascript/pull/15527))
+- feat(core): Rename `inboundFiltersIntegration` to `eventFiltersIntegration` ([#15434](https://github.com/getsentry/sentry-javascript/pull/15434))
+- feat(deps): bump @prisma/instrumentation from 6.2.1 to 6.4.1 ([#15480](https://github.com/getsentry/sentry-javascript/pull/15480))
+- feat(react-router): Add build-time config ([#15406](https://github.com/getsentry/sentry-javascript/pull/15406))
+- feat(replay): Bump rrweb to 2.33.0 ([#15514](https://github.com/getsentry/sentry-javascript/pull/15514))
+- fix(core): Fix `allowUrls` and `denyUrls` for linked and aggregate exceptions ([#15521](https://github.com/getsentry/sentry-javascript/pull/15521))
+- fix(nextjs): Don't capture devmode server-action redirect errors ([#15485](https://github.com/getsentry/sentry-javascript/pull/15485))
+- fix(nextjs): warn about missing onRequestError handler [#15488](https://github.com/getsentry/sentry-javascript/pull/15488))
+- fix(nextjs): Prevent wrong culprit from showing up for clientside error events [#15475](https://github.com/getsentry/sentry-javascript/pull/15475))
+- fix(nuxt): Ignore 300-400 status codes on app errors in Nuxt ([#15473](https://github.com/getsentry/sentry-javascript/pull/15473))
+- fix(react): Add support for cross-usage of React Router instrumentations ([#15283](https://github.com/getsentry/sentry-javascript/pull/15283))
+- fix(sveltekit): Guard `process` check when flushing events ([#15516](https://github.com/getsentry/sentry-javascript/pull/15516))
+
+Work in this release was contributed by @GerryWilko and @leoambio. Thank you for your contributions!
+
+## 9.2.0
+
+### Important Changes
+
+- **feat(node): Support Express v5 ([#15380](https://github.com/getsentry/sentry-javascript/pull/15380))**
+
+This release adds full tracing support for Express v5, and improves tracing support for Nest.js 11 (which uses Express v5) in the Nest.js SDK.
+
+- **feat(sveltekit): Add Support for Cloudflare ([#14672](https://github.com/getsentry/sentry-javascript/pull/14672))**
+
+This release adds support for deploying SvelteKit applications to Cloudflare Pages.
+A docs update with updated instructions will follow shortly.
+Until then, you can give this a try by setting up the SvelteKit SDK as usual and then following the instructions outlined in the PR.
+
+Thank you @SG60 for contributing this feature!
+
+### Other Changes
+
+- feat(core): Add `addLink(s)` to Sentry span ([#15452](https://github.com/getsentry/sentry-javascript/pull/15452))
+- feat(core): Add links to span options ([#15453](https://github.com/getsentry/sentry-javascript/pull/15453))
+- feat(deps): Bump @sentry/webpack-plugin from 2.22.7 to 3.1.2 ([#15328](https://github.com/getsentry/sentry-javascript/pull/15328))
+- feat(feedback): Disable Feedback submit & cancel buttons while submitting ([#15408](https://github.com/getsentry/sentry-javascript/pull/15408))
+- feat(nextjs): Add experimental flag to not strip origin information from different origin stack frames ([#15418](https://github.com/getsentry/sentry-javascript/pull/15418))
+- feat(nuxt): Add `enableNitroErrorHandler` to server options ([#15444](https://github.com/getsentry/sentry-javascript/pull/15444))
+- feat(opentelemetry): Add `addLink(s)` to span ([#15387](https://github.com/getsentry/sentry-javascript/pull/15387))
+- feat(opentelemetry): Add `links` to span options ([#15403](https://github.com/getsentry/sentry-javascript/pull/15403))
+- feat(replay): Expose rrweb recordCrossOriginIframes under \_experiments ([#14916](https://github.com/getsentry/sentry-javascript/pull/14916))
+- fix(browser): Ensure that `performance.measure` spans have a positive duration ([#15415](https://github.com/getsentry/sentry-javascript/pull/15415))
+- fix(bun): Includes correct sdk metadata ([#15459](https://github.com/getsentry/sentry-javascript/pull/15459))
+- fix(core): Add Google `gmo` error to Inbound Filters ([#15432](https://github.com/getsentry/sentry-javascript/pull/15432))
+- fix(core): Ensure `http.client` span descriptions don't contain query params or fragments ([#15404](https://github.com/getsentry/sentry-javascript/pull/15404))
+- fix(core): Filter out unactionable Facebook Mobile browser error ([#15430](https://github.com/getsentry/sentry-javascript/pull/15430))
+- fix(nestjs): Pin dependency on `@opentelemetry/instrumentation` ([#15419](https://github.com/getsentry/sentry-javascript/pull/15419))
+- fix(nuxt): Only use filename with file extension from command ([#15445](https://github.com/getsentry/sentry-javascript/pull/15445))
+- fix(nuxt): Use `SentryNuxtServerOptions` type for server init ([#15441](https://github.com/getsentry/sentry-javascript/pull/15441))
+- fix(sveltekit): Avoid loading vite config to determine source maps setting ([#15440](https://github.com/getsentry/sentry-javascript/pull/15440))
+- ref(profiling-node): Bump chunk interval to 60s ([#15361](https://github.com/getsentry/sentry-javascript/pull/15361))
+
+Work in this release was contributed by @6farer, @dgavranic and @SG60. Thank you for your contributions!
 
 ## 9.1.0
 

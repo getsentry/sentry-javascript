@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it } from 'vitest';
 import type { Client } from '../../../src/client';
 import { thirdPartyErrorFilterIntegration } from '../../../src/integrations/third-party-errors-filter';
 import { addMetadataToStackFrames } from '../../../src/metadata';

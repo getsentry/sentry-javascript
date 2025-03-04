@@ -19,6 +19,10 @@ export function getTracePropagationData(event: RequestEvent): { sentryTrace: str
 
 /** Flush the event queue to ensure that events get sent to Sentry before the response is finished and the lambda ends */
 export async function flushIfServerless(): Promise<void> {
+  if (!process) {
+    return;
+  }
+
   const platformSupportsStreaming = !process.env.LAMBDA_TASK_ROOT && !process.env.VERCEL;
 
   if (!platformSupportsStreaming) {

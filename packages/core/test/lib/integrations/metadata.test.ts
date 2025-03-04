@@ -1,5 +1,6 @@
 import type { Event } from '../../../src/types-hoist';
 
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import {
   GLOBAL_OBJ,
   captureException,
@@ -26,49 +27,50 @@ describe('ModuleMetadata integration', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
-  test('Adds and removes metadata from stack frames', done => {
-    const options = getDefaultTestClientOptions({
-      dsn: 'https://username@domain/123',
-      enableSend: true,
-      stackParser,
-      integrations: [moduleMetadataIntegration()],
-      beforeSend: (event, _hint) => {
-        // copy the frames since reverse in in-place
-        const lastFrame = [...(event.exception?.values?.[0]?.stacktrace?.frames || [])].reverse()[0];
-        // Ensure module_metadata is populated in beforeSend callback
-        expect(lastFrame?.module_metadata).toEqual({ team: 'frontend' });
-        return event;
-      },
-      transport: () =>
-        createTransport({ recordDroppedEvent: () => undefined }, async req => {
-          const [, items] = parseEnvelope(req.body);
+  test('Adds and removes metadata from stack frames', () =>
+    new Promise<void>(done => {
+      const options = getDefaultTestClientOptions({
+        dsn: 'https://username@domain/123',
+        enableSend: true,
+        stackParser,
+        integrations: [moduleMetadataIntegration()],
+        beforeSend: (event, _hint) => {
+          // copy the frames since reverse in in-place
+          const lastFrame = [...(event.exception?.values?.[0]?.stacktrace?.frames || [])].reverse()[0];
+          // Ensure module_metadata is populated in beforeSend callback
+          expect(lastFrame?.module_metadata).toEqual({ team: 'frontend' });
+          return event;
+        },
+        transport: () =>
+          createTransport({ recordDroppedEvent: () => undefined }, async req => {
+            const [, items] = parseEnvelope(req.body);
 
-          expect(items[0][1]).toBeDefined();
-          const event = items[0][1] as Event;
-          const error = event.exception?.values?.[0];
+            expect(items[0][1]).toBeDefined();
+            const event = items[0][1] as Event;
+            const error = event.exception?.values?.[0];
 
-          // Ensure we're looking at the same error we threw
-          expect(error?.value).toEqual('Some error');
+            // Ensure we're looking at the same error we threw
+            expect(error?.value).toEqual('Some error');
 
-          const lastFrame = [...(error?.stacktrace?.frames || [])].reverse()[0];
-          // Ensure the last frame is in fact for this file
-          expect(lastFrame?.filename).toEqual(__filename);
+            const lastFrame = [...(error?.stacktrace?.frames || [])].reverse()[0];
+            // Ensure the last frame is in fact for this file
+            expect(lastFrame?.filename).toEqual(__filename);
 
-          // Ensure module_metadata has been stripped from the event
-          expect(lastFrame?.module_metadata).toBeUndefined();
+            // Ensure module_metadata has been stripped from the event
+            expect(lastFrame?.module_metadata).toBeUndefined();
 
-          done();
-          return {};
-        }),
-    });
+            done();
+            return {};
+          }),
+      });
 
-    const client = new TestClient(options);
-    setCurrentClient(client);
-    client.init();
+      const client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
 
-    captureException(new Error('Some error'));
-  });
+      captureException(new Error('Some error'));
+    }));
 });

@@ -21,13 +21,13 @@ export type LogAttribute = {
 
 export interface Log {
   /**
+   * The severity level of the log.
+   *
    * Allowed values are, from highest to lowest:
    * `critical`, `fatal`, `error`, `warn`, `info`, `debug`, `trace`.
    *
    * The log level changes how logs are filtered and displayed.
    * Critical level logs are emphasized more than trace level logs.
-   *
-   * @summary The severity level of the log.
    */
   severityText?: LogSeverityLevel;
 
@@ -35,11 +35,6 @@ export interface Log {
    * The severity number - generally higher severity are levels like 'error' and lower are levels like 'debug'
    */
   severityNumber?: number;
-
-  /**
-   * OTEL trace flags (bitmap) - currently 1 means sampled, 0 means unsampled - for sentry always set to 0
-   */
-  traceFlags?: number;
 
   /**
    * The trace ID for this log

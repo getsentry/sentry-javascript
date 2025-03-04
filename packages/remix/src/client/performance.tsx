@@ -103,8 +103,16 @@ function startNavigationSpan(matches: RouteMatch<string>[]): void {
  * @param OrigApp The Remix root to wrap
  * @param options The options for ErrorBoundary wrapper.
  */
-export function withSentry<P extends Record<string, unknown>, R extends React.ComponentType<P>>(OrigApp: R): R {
+export function withSentry<P extends Record<string, unknown>, R extends React.ComponentType<P>>(
+  OrigApp: R,
+  useEffect?: UseEffect,
+  useLocation?: UseLocation,
+  useMatches?: UseMatches,
+  instrumentNavigation?: boolean,
+): R {
   const SentryRoot: React.FC<P> = (props: P) => {
+    setGlobals({ useEffect, useLocation, useMatches, instrumentNavigation: instrumentNavigation || true });
+
     // Early return when any of the required functions is not available.
     if (!_useEffect || !_useLocation || !_useMatches) {
       DEBUG_BUILD &&
@@ -184,8 +192,8 @@ export function setGlobals({
   useMatches?: UseMatches;
   instrumentNavigation?: boolean;
 }): void {
-  _useEffect = useEffect;
-  _useLocation = useLocation;
-  _useMatches = useMatches;
-  _instrumentNavigation = instrumentNavigation;
+  _useEffect = useEffect || _useEffect;
+  _useLocation = useLocation || _useLocation;
+  _useMatches = useMatches || _useMatches;
+  _instrumentNavigation = instrumentNavigation ?? _instrumentNavigation;
 }

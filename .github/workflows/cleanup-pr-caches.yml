@@ -1,4 +1,4 @@
-name: "Automation: Cleanup PR caches"
+name: 'Automation: Cleanup PR caches'
 on:
   pull_request:
     types:

@@ -1,10 +1,11 @@
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { GLOBAL_OBJ, captureEvent, getCurrentScope } from '../../src';
 import { initAndBind } from '../../src/sdk';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 import { AddAttachmentTestIntegration } from '../mocks/integration';
 
 const PUBLIC_DSN = 'https://username@domain/123';
-const sendEvent = jest.spyOn(TestClient.prototype, 'sendEvent');
+const sendEvent = vi.spyOn(TestClient.prototype, 'sendEvent');
 
 describe('Hint', () => {
   beforeEach(() => {
@@ -13,7 +14,7 @@ describe('Hint', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     delete GLOBAL_OBJ.__SENTRY__;
   });
 
