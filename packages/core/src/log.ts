@@ -118,11 +118,11 @@ export function sendLog(level: LogSeverityLevel, messageArr: TemplateStringsArra
 
   const attributes = values.reduce<Record<string, unknown>>(
     (acc, value, index) => {
-      acc[`param.${index}`] = value;
+      acc[`sentry.message.parameters.${index}`] = value;
       return acc;
     },
     {
-      'sentry.template': messageArr.map((s, i) => s + (i < messageArr.length - 1 ? `$param.${i}` : '')).join(''),
+      'sentry.message.template': messageArr.map((s, i) => s + (i < messageArr.length - 1 ? `$param.${i}` : '')).join(''),
     },
   );
 
