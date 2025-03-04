@@ -4,7 +4,7 @@ import { isSyntheticEvent, isVueViewModel } from './is';
 import { convertToPlainObject } from './object';
 import { getFunctionName } from './stacktrace';
 
-type Prototype = { constructor: (...args: unknown[]) => unknown };
+type Prototype = { constructor?: (...args: unknown[]) => unknown };
 // This is a hack to placate TS, relying on the fact that technically, arrays are objects with integer keys. Normally we
 // think of those keys as actual numbers, but `arr['0']` turns out to work just as well as `arr[0]`, and doing it this
 // way lets us use a single type in the places where behave as if we are only dealing with objects, even if some of them
@@ -264,7 +264,7 @@ function stringifyValue(
 function getConstructorName(value: unknown): string {
   const prototype: Prototype | null = Object.getPrototypeOf(value);
 
-  return prototype ? prototype.constructor.name : 'null prototype';
+  return prototype?.constructor ? prototype.constructor.name : 'null prototype';
 }
 
 /** Calculates bytes size of input string */
