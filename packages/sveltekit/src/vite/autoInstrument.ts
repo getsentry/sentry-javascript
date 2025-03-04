@@ -1,7 +1,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import type { ExportNamedDeclaration } from '@babel/types';
-import { parseModule } from 'magicast';
+import * as recast from 'recast';
+import t = recast.types.namedTypes;
+import { parse as babelParse } from '@babel/parser';
 import type { Plugin } from 'vite';
 import { WRAPPED_MODULE_SUFFIX } from '../common/utils';
 
@@ -101,9 +103,59 @@ export async function canWrapLoad(id: string, debug: boolean): Promise<boolean> 
 
   const code = (await fs.promises.readFile(id, 'utf8')).toString();
 
-  const mod = parseModule(code);
+  // Taken from recast's typescript parser config
+  const parser = {
+    parse: (source: string) =>
+      babelParse(source, {
+        plugins: [
+          'typescript',
+          'asyncGenerators',
+          'bigInt',
+          'classPrivateMethods',
+          'classPrivateProperties',
+          'classProperties',
+          'classStaticBlock',
+          'decimal',
+          'decorators-legacy',
+          'doExpressions',
+          'dynamicImport',
+          'exportDefaultFrom',
+          'exportNamespaceFrom',
+          'functionBind',
+          'functionSent',
+          'importAssertions',
+          'importMeta',
+          'nullishCoalescingOperator',
+          'numericSeparator',
+          'objectRestSpread',
+          'optionalCatchBinding',
+          'optionalChaining',
+          [
+            'pipelineOperator',
+            {
+              proposal: 'minimal',
+            },
+          ],
+          [
+            'recordAndTuple',
+            {
+              syntaxType: 'hash',
+            },
+          ],
+          'throwExpressions',
+          'topLevelAwait',
+          'v8intrinsic',
+        ],
+        sourceType: 'module',
+      }),
+  };
 
-  const program = mod.$ast.type === 'Program' && mod.$ast;
+  const ast = recast.parse(code, {
+    parser,
+  });
+
+  const program = (ast as { program?: t.Program }).program;
+
   if (!program) {
     // eslint-disable-next-line no-console
     debug && console.log(`Skipping wrapping ${id} because it doesn't contain valid JavaScript or TypeScript`);
@@ -111,12 +163,17 @@ export async function canWrapLoad(id: string, debug: boolean): Promise<boolean> 
   }
 
   const hasLoadDeclaration = program.body
-    .filter((statement): statement is ExportNamedDeclaration => statement.type === 'ExportNamedDeclaration')
+    .filter(
+      (statement): statement is recast.types.namedTypes.ExportNamedDeclaration =>
+        statement.type === 'ExportNamedDeclaration',
+    )
     .find(exportDecl => {
       // find `export const load = ...`
       if (exportDecl.declaration?.type === 'VariableDeclaration') {
         const variableDeclarations = exportDecl.declaration.declarations;
-        return variableDeclarations.find(decl => decl.id.type === 'Identifier' && decl.id.name === 'load');
+        return variableDeclarations.find(
+          decl => decl.type === 'VariableDeclarator' && decl.id.type === 'Identifier' && decl.id.name === 'load',
+        );
       }
 
       // find `export function load = ...`
@@ -130,7 +187,11 @@ export async function canWrapLoad(id: string, debug: boolean): Promise<boolean> 
         return exportDecl.specifiers.find(specifier => {
           return (
             (specifier.exported.type === 'Identifier' && specifier.exported.name === 'load') ||
-            (specifier.exported.type === 'StringLiteral' && specifier.exported.value === 'load')
+            // Type casting here because babel by default doesn't include the 'exportExtensions' plugin
+            // This plugin adds support for exporting something as a string literal (see comment above)
+            // Doing this to avoid adding another babel plugin dependency
+            ((specifier.exported.type as 'StringLiteral' | '') === 'StringLiteral' &&
+              (specifier.exported as unknown as t.StringLiteral).value === 'load')
           );
         });
       }
