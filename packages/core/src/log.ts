@@ -75,7 +75,7 @@ function valueToAttribute(key: string, value: unknown): LogAttribute {
     default:
       return {
         key,
-        value: { stringValue: JSON.stringify(value) ?? "" },
+        value: { stringValue: JSON.stringify(value) ?? '' },
       };
   }
 }
@@ -118,11 +118,11 @@ export function sendLog(level: LogSeverityLevel, messageArr: TemplateStringsArra
 
   const attributes = values.reduce<Record<string, unknown>>(
     (acc, value, index) => {
-      acc[`param${index}`] = value;
+      acc[`param.${index}`] = value;
       return acc;
     },
     {
-      'sentry.template': messageArr.map((s, i) => s + (i < messageArr.length - 1 ? `$param${i}` : '')).join(''),
+      'sentry.template': messageArr.map((s, i) => s + (i < messageArr.length - 1 ? `$param.${i}` : '')).join(''),
     },
   );
 
