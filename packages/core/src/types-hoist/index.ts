@@ -109,12 +109,6 @@ export type {
   SpanContextData,
   TraceFlag,
 } from './span';
-export type {
-  Log,
-  LogAttribute,
-  LogSeverityLevel,
-  LogAttributeValueType,
-} from './log';
 export type { SpanStatus } from './spanStatus';
 export type { Log, LogAttribute, LogSeverityLevel, LogAttributeValueType } from './log';
 export type { TimedEvent } from './timedEvent';
