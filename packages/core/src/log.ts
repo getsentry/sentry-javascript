@@ -3,9 +3,10 @@ import { getClient, getCurrentScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import type { Scope } from './scope';
 import { getDynamicSamplingContextFromScope } from './tracing';
+import type { ParameterizedString } from './types-hoist';
 import type { DynamicSamplingContext, LogEnvelope, LogItem } from './types-hoist/envelope';
 import type { Log, LogAttribute, LogSeverityLevel } from './types-hoist/log';
-import { createEnvelope, dropUndefinedKeys, dsnToString, logger } from './utils-hoist';
+import { createEnvelope, dropUndefinedKeys, dsnToString, isParameterizedString, logger } from './utils-hoist';
 
 const LOG_BUFFER_MAX_LENGTH = 25;
 
@@ -108,36 +109,30 @@ function addToLogBuffer(client: Client, log: Log, scope: Scope): void {
 }
 
 /**
- * A utility function to be able to create methods like Sentry.info`...` that use tagged template functions.
- *
- * The first parameter is bound with, e.g., const info = captureLog.bind(null, 'info')
- * The other parameters are in the format to be passed a tagged template, Sentry.info`hello ${world}`
+ * A utility function to be able to create methods like Sentry.info(...).
  */
-export function sendLog(level: LogSeverityLevel, messageArr: TemplateStringsArray, ...values: unknown[]): void {
-  const message = messageArr.reduce((acc, str, i) => acc + str + (JSON.stringify(values[i]) ?? ''), '');
-
-  const attributes = values.reduce<Record<string, unknown>>(
-    (acc, value, index) => {
-      acc[`sentry.message.parameters.${index}`] = value;
-      return acc;
-    },
-    {
-      'sentry.message.template': messageArr.map((s, i) => s + (i < messageArr.length - 1 ? `$param.${i}` : '')).join(''),
-    },
-  );
-
-  captureLog(level, message, attributes);
+export function sendLog(
+  level: LogSeverityLevel,
+  severityNumber?: number,
+): (message: ParameterizedString | string, customAttributes?: Record<string, unknown>) => void {
+  return (message: ParameterizedString | string, attributes: Record<string, unknown> = {}): void =>
+    captureLog({ level, message, attributes, severityNumber });
 }
 
 /**
  * Sends a log to Sentry.
  */
-export function captureLog(
-  level: LogSeverityLevel,
-  message: string,
-  customAttributes: Record<string, unknown> = {},
-  severityNumber?: number,
-): void {
+export function captureLog({
+  level,
+  message,
+  attributes,
+  severityNumber,
+}: {
+  level: LogSeverityLevel;
+  message: ParameterizedString | string;
+  attributes?: Record<string, unknown>;
+  severityNumber?: number;
+}): void {
   const client = getClient();
 
   if (!client) {
@@ -153,8 +148,18 @@ export function captureLog(
   const { release, environment } = client.getOptions();
 
   const logAttributes = {
-    ...customAttributes,
+    ...attributes,
   };
+
+  if (isParameterizedString(message)) {
+    const { __sentry_template_string__ = '', __sentry_template_values__ = [] } = message;
+    if (__sentry_template_string__) {
+      logAttributes['sentry.message.template'] = __sentry_template_string__;
+      __sentry_template_values__.forEach((value, index) => {
+        logAttributes[`sentry.message.parameters.${index}`] = value;
+      });
+    }
+  }
 
   if (release) {
     logAttributes['sentry.release'] = release;
@@ -166,14 +171,16 @@ export function captureLog(
 
   const scope = getCurrentScope();
 
-  const attributes = Object.entries(logAttributes).map<LogAttribute>(([key, value]) => valueToAttribute(key, value));
+  const finalAttributes = Object.entries(logAttributes).map<LogAttribute>(([key, value]) =>
+    valueToAttribute(key, value),
+  );
 
   const log: Log = {
     severityText: level,
     body: {
       stringValue: message,
     },
-    attributes,
+    attributes: finalAttributes,
     timeUnixNano: `${new Date().getTime().toString()}000000`,
     traceId: scope.getPropagationContext().traceId,
     severityNumber,

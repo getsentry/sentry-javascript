@@ -11,7 +11,6 @@ import type {
   Extra,
   Extras,
   FinishedCheckIn,
-  LogSeverityLevel,
   MonitorConfig,
   Primitive,
   Session,
@@ -24,6 +23,7 @@ import { logger } from './utils-hoist/logger';
 import { uuid4 } from './utils-hoist/misc';
 import { timestampInSeconds } from './utils-hoist/time';
 import { GLOBAL_OBJ } from './utils-hoist/worldwide';
+import { parameterize } from './utils/parameterize';
 import type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
 import { parseEventHintOrCaptureContext } from './utils/prepareEvent';
 
@@ -337,8 +337,6 @@ export function captureSession(end: boolean = false): void {
   _sendSessionUpdate();
 }
 
-type OmitFirstArg<F> = F extends (x: LogSeverityLevel, ...args: infer P) => infer R ? (...args: P) => R : never;
-
 /**
  * A namespace for experimental logging functions.
  *
@@ -349,55 +347,106 @@ export const _experiment_log = {
    * A utility to record a log with level 'TRACE' and send it to sentry.
    *
    * Logs represent a message and some parameters which provide context for a trace or error.
-   * Ex: Sentry._experiment_log.trace`user ${username} just bought ${item}!`
+   *
+   * @example
+   * ```js
+   * const { trace, fmt } = Sentry._experiment_log;
+   * trace(fmt`user ${username} just bought ${item}!`);
+   * ```
    */
-  trace: sendLog.bind(null, 'trace') as OmitFirstArg<typeof sendLog>,
+  trace: sendLog('trace'),
   /**
    * A utility to record a log with level 'DEBUG' and send it to sentry.
    *
    * Logs represent a message and some parameters which provide context for a trace or error.
-   * Ex: Sentry._experiment_log.debug`user ${username} just bought ${item}!`
+   *
+   * @example
+   * ```js
+   * const { debug, fmt } = Sentry._experiment_log;
+   * debug(fmt`user ${username} just bought ${item}!`);
+   * ```
    */
-  debug: sendLog.bind(null, 'debug') as OmitFirstArg<typeof sendLog>,
+  debug: sendLog('debug'),
   /**
    * A utility to record a log with level 'INFO' and send it to sentry.
    *
    * Logs represent a message and some parameters which provide context for a trace or error.
-   * Ex: Sentry._experiment_log.info`user ${username} just bought ${item}!`
+   *
+   * @example
+   * ```js
+   * const { info, fmt } = Sentry._experiment_log;
+   * info(fmt`user ${username} just bought ${item}!`);
+   * ```
    */
-  info: sendLog.bind(null, 'info') as OmitFirstArg<typeof sendLog>,
+  info: sendLog('info'),
   /**
    * A utility to record a log with level 'INFO' and send it to sentry.
    *
    * Logs represent a message and some parameters which provide context for a trace or error.
-   * Ex: Sentry._experiment_log.log`user ${username} just bought ${item}!`
+   *
+   * @example
+   * ```js
+   * const { log, fmt } = Sentry._experiment_log;
+   * log(fmt`user ${username} just bought ${item}!`);
+   * ```
    */
-  log: sendLog.bind(null, 'log') as OmitFirstArg<typeof sendLog>,
+  log: sendLog('info', 10),
   /**
    * A utility to record a log with level 'ERROR' and send it to sentry.
    *
    * Logs represent a message and some parameters which provide context for a trace or error.
-   * Ex: Sentry._experiment_log.error`user ${username} just bought ${item}!`
+   *
+   * @example
+   * ```js
+   * const { error, fmt } = Sentry._experiment_log;
+   * error(fmt`user ${username} just bought ${item}!`);
+   * ```
    */
-  error: sendLog.bind(null, 'error') as OmitFirstArg<typeof sendLog>,
+  error: sendLog('error'),
   /**
    * A utility to record a log with level 'WARN' and send it to sentry.
    *
    * Logs represent a message and some parameters which provide context for a trace or error.
-   * Ex: Sentry._experiment_log.warn`user ${username} just bought ${item}!`
+   *
+   * @example
+   * ```js
+   * const { warn, fmt } = Sentry._experiment_log;
+   * warn(fmt`user ${username} just bought ${item}!`);
+   * ```
    */
-  warn: sendLog.bind(null, 'warn') as OmitFirstArg<typeof sendLog>,
+  warn: sendLog('warn'),
   /**
    * A utility to record a log with level 'FATAL' and send it to sentry.
    *
    * Logs represent a message and some parameters which provide context for a trace or error.
-   * Ex: Sentry._experiment_log.warn`user ${username} just bought ${item}!`
+   *
+   * @example
+   * ```js
+   * const { fatal, fmt } = Sentry._experiment_log;
+   * fatal(fmt`user ${username} just bought ${item}!`);
+   * ```
    */
-  fatal: sendLog.bind(null, 'fatal') as OmitFirstArg<typeof sendLog>,
+  fatal: sendLog('fatal'),
+
+  /**
+   * Tagged template function which returns parameterized representation of the message
+   *
+   * @example
+   * ```js
+   * Sentry._experiment_log.fmt`This is a log statement with ${x} and ${y} params`
+   * ```
+   */
+  fmt: parameterize,
+
   /**
    * A flexible utility to record a log with a custom level and send it to sentry.
    *
    * You can optionally pass in custom attributes and a custom severity number to be attached to the log.
+   *
+   * @example
+   * ```js
+   * Sentry._experiment_log.emit({ level: 'info', message: Sentry._experiment_log.fmt`user ${username }just bought ${item}`, attributes: { extra: 123 } })
+   * ```
    */
-  captureLog,
+  emit: captureLog,
 };
