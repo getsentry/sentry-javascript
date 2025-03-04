@@ -75,7 +75,7 @@ function valueToAttribute(key: string, value: unknown): LogAttribute {
     default:
       return {
         key,
-        value: { stringValue: JSON.stringify(value) },
+        value: { stringValue: JSON.stringify(value) ?? "" },
       };
   }
 }
