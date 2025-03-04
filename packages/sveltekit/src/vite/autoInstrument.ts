@@ -1,8 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import type { ExportNamedDeclaration } from '@babel/types';
 import * as recast from 'recast';
 import t = recast.types.namedTypes;
+import type { ParserPlugin } from '@babel/parser';
 import { parse as babelParse } from '@babel/parser';
 import type { Plugin } from 'vite';
 import { WRAPPED_MODULE_SUFFIX } from '../common/utils';
@@ -103,7 +103,9 @@ export async function canWrapLoad(id: string, debug: boolean): Promise<boolean> 
 
   const code = (await fs.promises.readFile(id, 'utf8')).toString();
 
-  // Taken from recast's typescript parser config
+  // Taken from recast's typescript parser config, minus the JSX plugin
+  // see: https://github.com/benjamn/recast/blob/master/parsers/_babel_options.ts
+  // see: https://github.com/benjamn/recast/blob/master/parsers/babel-ts.ts
   const parser = {
     parse: (source: string) =>
       babelParse(source, {
@@ -124,6 +126,7 @@ export async function canWrapLoad(id: string, debug: boolean): Promise<boolean> 
           'functionBind',
           'functionSent',
           'importAssertions',
+          'exportExtensions' as ParserPlugin,
           'importMeta',
           'nullishCoalescingOperator',
           'numericSeparator',
@@ -187,7 +190,7 @@ export async function canWrapLoad(id: string, debug: boolean): Promise<boolean> 
         return exportDecl.specifiers.find(specifier => {
           return (
             (specifier.exported.type === 'Identifier' && specifier.exported.name === 'load') ||
-            // Type casting here because babel by default doesn't include the 'exportExtensions' plugin
+            // Type casting here because somehow the 'exportExtensions' plugin isn't reflected in the possible types
             // This plugin adds support for exporting something as a string literal (see comment above)
             // Doing this to avoid adding another babel plugin dependency
             ((specifier.exported.type as 'StringLiteral' | '') === 'StringLiteral' &&
