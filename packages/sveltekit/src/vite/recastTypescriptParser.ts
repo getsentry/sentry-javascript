@@ -41,6 +41,11 @@ import type { Options } from 'recast';
 export const parser: Options['parser'] = {
   parse: (source: string) =>
     babelParse(source, {
+      strictMode: false,
+      allowImportExportEverywhere: true,
+      allowReturnOutsideFunction: true,
+      startLine: 1,
+      tokens: true,
       plugins: [
         'typescript',
         'asyncGenerators',
