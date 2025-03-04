@@ -203,6 +203,16 @@ describe('browserTracingIntegration', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
       },
+      links: [
+        {
+          attributes: {
+            'sentry.link.type': 'previous_trace',
+          },
+          sampled: true,
+          span_id: span?.spanContext().spanId,
+          trace_id: span?.spanContext().traceId,
+        },
+      ],
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       start_timestamp: expect.any(Number),
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
@@ -230,6 +240,16 @@ describe('browserTracingIntegration', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
       },
+      links: [
+        {
+          attributes: {
+            'sentry.link.type': 'previous_trace',
+          },
+          sampled: true,
+          span_id: span2?.spanContext().spanId,
+          trace_id: span2?.spanContext().traceId,
+        },
+      ],
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       start_timestamp: expect.any(Number),
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
@@ -483,6 +503,16 @@ describe('browserTracingIntegration', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
         },
+        links: [
+          {
+            attributes: {
+              'sentry.link.type': 'previous_trace',
+            },
+            sampled: true,
+            span_id: expect.stringMatching(/[a-f0-9]{16}/),
+            trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+          },
+        ],
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         start_timestamp: expect.any(Number),
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
@@ -494,7 +524,13 @@ describe('browserTracingIntegration', () => {
       const client = new BrowserClient(
         getDefaultBrowserClientOptions({
           tracesSampleRate: 1,
-          integrations: [browserTracingIntegration({ instrumentNavigation: false })],
+          integrations: [
+            browserTracingIntegration({
+              instrumentNavigation: false,
+              // disabling previous trace b/c not relevant for this test
+              enablePreviousTrace: false,
+            }),
+          ],
         }),
       );
       setCurrentClient(client);

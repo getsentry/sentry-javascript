@@ -35,6 +35,12 @@ import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 import { registerBackgroundTabDetection } from './backgroundtab';
 import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './request';
+import type { PreviousTraceInfo } from './previousTrace';
+import {
+  addPreviousTraceSpanLink,
+  getPreviousTraceFromSessionStorage,
+  storePreviousTraceInSessionStorage,
+} from './previousTrace';
 
 export const BROWSER_TRACING_INTEGRATION_ID = 'BrowserTracing';
 
@@ -143,6 +149,25 @@ export interface BrowserTracingOptions {
   enableHTTPTimings: boolean;
 
   /**
+   * If enabled, previously started traces (e.g. pageload or navigation spans) will be linked
+   * to the current trace. This lets you navigate across traces within a user journey in the
+   * Sentry UI.
+   *
+   * Set `persistPreviousTrace` to `true` to connect traces across hard page reloads.
+   *
+   * @default true, this is turned on by default.
+   */
+  enablePreviousTrace?: boolean;
+
+  /**
+   * If set to true, the previous trace will be stored in `sessionStorage`, so that
+   * traces can be linked across hard page refreshes.
+   *
+   * @default false, by default, previous trace data is only stored in-memory.
+   */
+  persistPreviousTrace?: boolean;
+
+  /**
    * _experiments allows the user to send options to define how this integration works.
    *
    * Default: undefined
@@ -175,6 +200,8 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   enableLongTask: true,
   enableLongAnimationFrame: true,
   enableInp: true,
+  enablePreviousTrace: true,
+  persistPreviousTrace: false,
   _experiments: {},
   ...defaultRequestInstrumentationOptions,
 };
@@ -214,6 +241,8 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     enableHTTPTimings,
     instrumentPageLoad,
     instrumentNavigation,
+    enablePreviousTrace,
+    persistPreviousTrace,
   } = {
     ...DEFAULT_BROWSER_TRACING_OPTIONS,
     ..._options,
@@ -245,9 +274,18 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     source: undefined,
   };
 
+  let previousTraceInfo: PreviousTraceInfo | undefined;
+  if (enablePreviousTrace && persistPreviousTrace) {
+    previousTraceInfo = getPreviousTraceFromSessionStorage();
+  }
+
   /** Create routing idle transaction. */
   function _createRouteSpan(client: Client, startSpanOptions: StartSpanOptions): void {
     const isPageloadTransaction = startSpanOptions.op === 'pageload';
+
+    if (enablePreviousTrace && previousTraceInfo) {
+      previousTraceInfo = addPreviousTraceSpanLink(previousTraceInfo, startSpanOptions);
+    }
 
     const finalStartSpanOptions: StartSpanOptions = beforeStartSpan
       ? beforeStartSpan(startSpanOptions)
@@ -291,6 +329,16 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       },
     });
     setActiveIdleSpan(client, idleSpan);
+
+    if (enablePreviousTrace) {
+      previousTraceInfo = {
+        spanContext: idleSpan.spanContext(),
+        startTimestamp: spanToJSON(idleSpan).start_timestamp,
+      };
+      if (persistPreviousTrace) {
+        storePreviousTraceInSessionStorage(previousTraceInfo);
+      }
+    }
 
     function emitFinish(): void {
       if (optionalWindowDocument && ['interactive', 'complete'].includes(optionalWindowDocument.readyState)) {
