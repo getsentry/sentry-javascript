@@ -36,8 +36,9 @@
 
 import type { ParserPlugin } from '@babel/parser';
 import { parse as babelParse } from '@babel/parser';
+import type { Options } from 'recast';
 
-export const parser = {
+export const parser: Options['parser'] = {
   parse: (source: string) =>
     babelParse(source, {
       plugins: [
