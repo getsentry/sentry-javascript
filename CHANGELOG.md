@@ -28,16 +28,18 @@ Sentry.init({
 
 These API are exposed in the `Sentry._experiment_log` namespace.
 
-On the high level, there are functions for each of the logging severity levels `critical`, `fatal`, `error`, `warn`, `info`, `debug`, `trace`. These functions are tagged template functions, so they use a special string template syntax that we use to parameterize functions accordingly.
+On the high level, there are functions for each of the logging severity levels `fatal`, `error`, `warn`, `info`, `debug`, `trace`. There is also a `log` function that is an alias to `info`.
 
 ```js
-Sentry._experiment_log.info`user ${username} just bought ${item}!`;
+Sentry._experiment_log.info('Adding item to cart', { item: 'sneakers' });
 ```
 
-If you want more custom usage, we also expose a `captureLog` method that allows you to pass custom attributes, but it's less easy to use than the tagged template functions.
+If you want to do structured logging, you'll need to use the `fmt` helper exposed in the `Sentry._experiment_log` namespace.
 
 ```js
-Sentry._experiment_log.captureLog('error', 'Hello world!', { 'user.id': 123 });
+const { fmt } = Sentry._experiment_log;
+
+Sentry._experiment_log.info(fmt`user ${username} just bought ${item}!`);
 ```
 
 ## 9.4.0
