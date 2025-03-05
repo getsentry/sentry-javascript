@@ -33,6 +33,10 @@
       "types": "./build/module/types.d.ts",
       "import": "./build/module/module.mjs",
       "require": "./build/module/module.cjs"
+    },
+    "./module/plugins": {
+      "types": "./build/module/runtime/plugins/index.d.ts",
+      "import": "./build/module/runtime/plugins/index.js"
     }
   },
   "publishConfig": {
@@ -45,6 +49,7 @@
     "@nuxt/kit": "^3.13.2",
     "@sentry/browser": "9.30.0",
     "@sentry/core": "9.30.0",
+    "@sentry/cloudflare": "9.26.0",
     "@sentry/node": "9.30.0",
     "@sentry/rollup-plugin": "^3.5.0",
     "@sentry/vite-plugin": "^3.5.0",
