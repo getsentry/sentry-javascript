@@ -1,9 +1,11 @@
 import type { ClientOptions, Context } from '@sentry/core';
+import { flush, GLOBAL_OBJ, logger, vercelWaitUntil } from '@sentry/core';
 import { captureException, getClient, getTraceMetaTags, logger } from '@sentry/core';
 import type { VueOptions } from '@sentry/vue/src/types';
 import type { CapturedErrorContext } from 'nitropack';
 import type { NuxtRenderHTMLContext } from 'nuxt/app';
 import type { ComponentPublicInstance } from 'vue';
+import * as SentryNode from '@sentry/node';
 
 /**
  *  Extracts the relevant context information from the error context (H3Event in Nitro Error)
@@ -77,4 +79,36 @@ export function reportNuxtError(options: {
       mechanism: { handled: false },
     });
   });
+}
+
+async function flushWithTimeout(): Promise<void> {
+  const sentryClient = SentryNode.getClient();
+  const isDebug = sentryClient ? sentryClient.getOptions().debug : false;
+
+  try {
+    isDebug && logger.log('Flushing events...');
+    await flush(2000);
+    isDebug && logger.log('Done flushing events');
+  } catch (e) {
+    isDebug && logger.log('Error while flushing events:\n', e);
+  }
+}
+
+/**
+ *  Flushes if in a serverless environment
+ */
+export async function flushIfServerless(): Promise<void> {
+  const isServerless =
+    !!process.env.FUNCTIONS_WORKER_RUNTIME || // Azure Functions
+    !!process.env.LAMBDA_TASK_ROOT || // AWS Lambda
+    !!process.env.CF_PAGES || // Cloudflare
+    !!process.env.VERCEL ||
+    !!process.env.NETLIFY;
+
+  // @ts-expect-error This is not typed
+  if (GLOBAL_OBJ[Symbol.for('@vercel/request-context')]) {
+    vercelWaitUntil(flushWithTimeout());
+  } else if (isServerless) {
+    await flushWithTimeout();
+  }
 }
