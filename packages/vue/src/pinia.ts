@@ -45,13 +45,20 @@ export const createSentryPiniaPlugin: (options?: SentryPiniaPluginOptions) => Pi
           const timestamp = new Date().toTimeString().split(' ')[0];
           const filename = `pinia_state_all_stores_${timestamp}.json`;
 
-          hint.attachments = [
-            ...(hint.attachments || []),
-            {
-              filename,
-              data: JSON.stringify(getAllStoreStates()),
-            },
-          ];
+          // event processor runs for each pinia store - attachment should only be added once per event
+          const hasExistingPiniaStateAttachment = hint.attachments?.some(attachment =>
+            attachment.filename.startsWith('pinia_state_all_stores_'),
+          );
+
+          if (!hasExistingPiniaStateAttachment) {
+            hint.attachments = [
+              ...(hint.attachments || []),
+              {
+                filename,
+                data: JSON.stringify(getAllStoreStates()),
+              },
+            ];
+          }
         } catch (_) {
           // empty
         }
