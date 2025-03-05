@@ -51,7 +51,7 @@ function instrumentHistory(): void {
         lastHref = to;
 
         if (from === to) {
-          return;
+          return originalHistoryFunction.apply(this, args);
         }
 
         const handlerData = { from, to } satisfies HandlerDataHistory;
