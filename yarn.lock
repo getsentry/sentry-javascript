@@ -2882,10 +2882,10 @@
   resolved "https://registry.yarnpkg.com/@cloudflare/workerd-windows-64/-/workerd-windows-64-1.20240718.0.tgz#940893e62df7f5a8ec895572b834c95c1e256fbd"
   integrity sha512-YpCRvvT47XanFum7C3SedOZKK6BfVhqmwdAAVAQFyc4gsCdegZo0JkUkdloC/jwuWlbCACOG2HTADHOqyeolzQ==
 
-"@cloudflare/workers-types@^4.x":
-  version "4.20240722.0"
-  resolved "https://registry.yarnpkg.com/@cloudflare/workers-types/-/workers-types-4.20240722.0.tgz#f5b9579fe5ff14077ae425208af6dea74249d130"
-  integrity sha512-/N072r7w7jNCgciRtImOQnHODn8CNwl3NHGO2lmC5bCsgevTRNeNj6B2IjS+OgEfo0qFoBgLejISl6ot9QvGvA==
+"@cloudflare/workers-types@4.20240725.0":
+  version "4.20240725.0"
+  resolved "https://registry.yarnpkg.com/@cloudflare/workers-types/-/workers-types-4.20240725.0.tgz#e151e0c069c0070b4d7168c7b0d4ae6c50d3f237"
+  integrity sha512-L6T/Bg50zm9IIACQVQ0CdVcQL+2nLkRXdPz6BsXF3SlzgjyWR5ndVctAbfr/HLV7aKYxWnnEZsIORsTWb+FssA==
 
 "@cnakazawa/watch@^1.0.3":
   version "1.0.4"
@@ -6762,6 +6762,11 @@
   resolved "https://registry.yarnpkg.com/@rollup/rollup-android-arm-eabi/-/rollup-android-arm-eabi-4.34.8.tgz#731df27dfdb77189547bcef96ada7bf166bbb2fb"
   integrity sha512-q217OSE8DTp8AFHuNHXo0Y86e1wtlfVrXiAlwkIvGRQv9zbc6mE3sjIVfwI8sYUyNxwOg0j/Vm1RKM04JcWLJw==
 
+"@rollup/rollup-android-arm-eabi@4.34.9":
+  version "4.34.9"
+  resolved "https://registry.yarnpkg.com/@rollup/rollup-android-arm-eabi/-/rollup-android-arm-eabi-4.34.9.tgz#661a45a4709c70e59e596ec78daa9cb8b8d27604"
+  integrity sha512-qZdlImWXur0CFakn2BJ2znJOdqYZKiedEPEVNTBrpfPjc/YuTGcaYZcdmNFTkUj3DU0ZM/AElcM8Ybww3xVLzA==
+
 "@rollup/rollup-android-arm64@4.30.1":
   version "4.30.1"
   resolved "https://registry.yarnpkg.com/@rollup/rollup-android-arm64/-/rollup-android-arm64-4.30.1.tgz#9d81ea54fc5650eb4ebbc0a7d84cee331bfa30ad"
@@ -6771,6 +6776,11 @@
   version "4.34.8"
   resolved "https://registry.yarnpkg.com/@rollup/rollup-android-arm64/-/rollup-android-arm64-4.34.8.tgz#4bea6db78e1f6927405df7fe0faf2f5095e01343"
   integrity sha512-Gigjz7mNWaOL9wCggvoK3jEIUUbGul656opstjaUSGC3eT0BM7PofdAJaBfPFWWkXNVAXbaQtC99OCg4sJv70Q==
+
+"@rollup/rollup-android-arm64@4.34.9":
+  version "4.34.9"
+  resolved "https://registry.yarnpkg.com/@rollup/rollup-android-arm64/-/rollup-android-arm64-4.34.9.tgz#128fe8dd510d880cf98b4cb6c7add326815a0c4b"
+  integrity sha512-4KW7P53h6HtJf5Y608T1ISKvNIYLWRKMvfnG0c44M6In4DQVU58HZFEVhWINDZKp7FZps98G3gxwC1sb0wXUUg==
 
 "@rollup/rollup-darwin-arm64@4.30.1":
   version "4.30.1"
@@ -6782,6 +6792,11 @@
   resolved "https://registry.yarnpkg.com/@rollup/rollup-darwin-arm64/-/rollup-darwin-arm64-4.34.8.tgz#a7aab77d44be3c44a20f946e10160f84e5450e7f"
   integrity sha512-02rVdZ5tgdUNRxIUrFdcMBZQoaPMrxtwSb+/hOfBdqkatYHR3lZ2A2EGyHq2sGOd0Owk80oV3snlDASC24He3Q==
 
+"@rollup/rollup-darwin-arm64@4.34.9":
+  version "4.34.9"
+  resolved "https://registry.yarnpkg.com/@rollup/rollup-darwin-arm64/-/rollup-darwin-arm64-4.34.9.tgz#363467bc49fd0b1e17075798ac8e9ad1e1e29535"
+  integrity sha512-0CY3/K54slrzLDjOA7TOjN1NuLKERBgk9nY5V34mhmuu673YNb+7ghaDUs6N0ujXR7fz5XaS5Aa6d2TNxZd0OQ==
+
 "@rollup/rollup-darwin-x64@4.30.1":
   version "4.30.1"
   resolved "https://registry.yarnpkg.com/@rollup/rollup-darwin-x64/-/rollup-darwin-x64-4.30.1.tgz#0ca99741c3ed096700557a43bb03359450c7857d"
@@ -6791,6 +6806,11 @@
   version "4.34.8"
   resolved "https://registry.yarnpkg.com/@rollup/rollup-darwin-x64/-/rollup-darwin-x64-4.34.8.tgz#c572c024b57ee8ddd1b0851703ace9eb6cc0dd82"
   integrity sha512-qIP/elwR/tq/dYRx3lgwK31jkZvMiD6qUtOycLhTzCvrjbZ3LjQnEM9rNhSGpbLXVJYQ3rq39A6Re0h9tU2ynw==
+
+"@rollup/rollup-darwin-x64@4.34.9":
+  version "4.34.9"
+  resolved "https://registry.yarnpkg.com/@rollup/rollup-darwin-x64/-/rollup-darwin-x64-4.34.9.tgz#c2fe3d85fffe47f0ed0f076b3563ada22c8af19c"
+  integrity sha512-eOojSEAi/acnsJVYRxnMkPFqcxSMFfrw7r2iD9Q32SGkb/Q9FpUY1UlAu1DH9T7j++gZ0lHjnm4OyH2vCI7l7Q==
 
 "@rollup/rollup-freebsd-arm64@4.30.1":
   version "4.30.1"
@@ -6802,6 +6822,11 @@
   resolved "https://registry.yarnpkg.com/@rollup/rollup-freebsd-arm64/-/rollup-freebsd-arm64-4.34.8.tgz#cf74f8113b5a83098a5c026c165742277cbfb88b"
   integrity sha512-IQNVXL9iY6NniYbTaOKdrlVP3XIqazBgJOVkddzJlqnCpRi/yAeSOa8PLcECFSQochzqApIOE1GHNu3pCz+BDA==
 
+"@rollup/rollup-freebsd-arm64@4.34.9":
+  version "4.34.9"
+  resolved "https://registry.yarnpkg.com/@rollup/rollup-freebsd-arm64/-/rollup-freebsd-arm64-4.34.9.tgz#d95bd8f6eaaf829781144fc8bd2d5d71d9f6a9f5"
+  integrity sha512-2lzjQPJbN5UnHm7bHIUKFMulGTQwdvOkouJDpPysJS+QFBGDJqcfh+CxxtG23Ik/9tEvnebQiylYoazFMAgrYw==
+
 "@rollup/rollup-freebsd-x64@4.30.1":
   version "4.30.1"
   resolved "https://registry.yarnpkg.com/@rollup/rollup-freebsd-x64/-/rollup-freebsd-x64-4.30.1.tgz#dfba762a023063dc901610722995286df4a48360"
@@ -6811,6 +6836,11 @@
   version "4.34.8"
   resolved "https://registry.yarnpkg.com/@rollup/rollup-freebsd-x64/-/rollup-freebsd-x64-4.34.8.tgz#39561f3a2f201a4ad6a01425b1ff5928154ecd7c"
   integrity sha512-TYXcHghgnCqYFiE3FT5QwXtOZqDj5GmaFNTNt3jNC+vh22dc/ukG2cG+pi75QO4kACohZzidsq7yKTKwq/Jq7Q==
+
+"@rollup/rollup-freebsd-x64@4.34.9":
+  version "4.34.9"
+  resolved "https://registry.yarnpkg.com/@rollup/rollup-freebsd-x64/-/rollup-freebsd-x64-4.34.9.tgz#c3576c6011656e4966ded29f051edec636b44564"
+  integrity sha512-SLl0hi2Ah2H7xQYd6Qaiu01kFPzQ+hqvdYSoOtHYg/zCIFs6t8sV95kaoqjzjFwuYQLtOI0RZre/Ke0nPaQV+g==
 
 "@rollup/rollup-linux-arm-gnueabihf@4.30.1":
   version "4.30.1"
@@ -6822,6 +6852,11 @@
   resolved "https://registry.yarnpkg.com/@rollup/rollup-linux-arm-gnueabihf/-/rollup-linux-arm-gnueabihf-4.34.8.tgz#980d6061e373bfdaeb67925c46d2f8f9b3de537f"
   integrity sha512-A4iphFGNkWRd+5m3VIGuqHnG3MVnqKe7Al57u9mwgbyZ2/xF9Jio72MaY7xxh+Y87VAHmGQr73qoKL9HPbXj1g==
 
+"@rollup/rollup-linux-arm-gnueabihf@4.34.9":
+  version "4.34.9"
+  resolved "https://registry.yarnpkg.com/@rollup/rollup-linux-arm-gnueabihf/-/rollup-linux-arm-gnueabihf-4.34.9.tgz#48c87d0dee4f8dc9591a416717f91b4a89d77e3d"
+  integrity sha512-88I+D3TeKItrw+Y/2ud4Tw0+3CxQ2kLgu3QvrogZ0OfkmX/DEppehus7L3TS2Q4lpB+hYyxhkQiYPJ6Mf5/dPg==
+
 "@rollup/rollup-linux-arm-musleabihf@4.30.1":
   version "4.30.1"
   resolved "https://registry.yarnpkg.com/@rollup/rollup-linux-arm-musleabihf/-/rollup-linux-arm-musleabihf-4.30.1.tgz#b9db69b3f85f5529eb992936d8f411ee6d04297b"
@@ -6831,6 +6866,11 @@
   version "4.34.8"
   resolved "https://registry.yarnpkg.com/@rollup/rollup-linux-arm-musleabihf/-/rollup-linux-arm-musleabihf-4.34.8.tgz#f91a90f30dc00d5a64ac2d9bbedc829cd3cfaa78"
   integrity sha512-S0lqKLfTm5u+QTxlFiAnb2J/2dgQqRy/XvziPtDd1rKZFXHTyYLoVL58M/XFwDI01AQCDIevGLbQrMAtdyanpA==
+
+"@rollup/rollup-linux-arm-musleabihf@4.34.9":
+  version "4.34.9"
+  resolved "https://registry.yarnpkg.com/@rollup/rollup-linux-arm-musleabihf/-/rollup-linux-arm-musleabihf-4.34.9.tgz#f4c4e7c03a7767f2e5aa9d0c5cfbf5c0f59f2d41"
+  integrity sha512-3qyfWljSFHi9zH0KgtEPG4cBXHDFhwD8kwg6xLfHQ0IWuH9crp005GfoUUh/6w9/FWGBwEHg3lxK1iHRN1MFlA==
 
 "@rollup/rollup-linux-arm64-gnu@4.30.1":
   version "4.30.1"
@@ -6842,6 +6882,11 @@
   resolved "https://registry.yarnpkg.com/@rollup/rollup-linux-arm64-gnu/-/rollup-linux-arm64-gnu-4.34.8.tgz#fac700fa5c38bc13a0d5d34463133093da4c92a0"
   integrity sha512-jpz9YOuPiSkL4G4pqKrus0pn9aYwpImGkosRKwNi+sJSkz+WU3anZe6hi73StLOQdfXYXC7hUfsQlTnjMd3s1A==
 
+"@rollup/rollup-linux-arm64-gnu@4.34.9":
+  version "4.34.9"
+  resolved "https://registry.yarnpkg.com/@rollup/rollup-linux-arm64-gnu/-/rollup-linux-arm64-gnu-4.34.9.tgz#1015c9d07a99005025d13b8622b7600029d0b52f"
+  integrity sha512-6TZjPHjKZUQKmVKMUowF3ewHxctrRR09eYyvT5eFv8w/fXarEra83A2mHTVJLA5xU91aCNOUnM+DWFMSbQ0Nxw==
+
 "@rollup/rollup-linux-arm64-musl@4.30.1":
   version "4.30.1"
   resolved "https://registry.yarnpkg.com/@rollup/rollup-linux-arm64-musl/-/rollup-linux-arm64-musl-4.30.1.tgz#9d06b26d286c7dded6336961a2f83e48330e0c80"
@@ -6851,6 +6896,11 @@
   version "4.34.8"
   resolved "https://registry.yarnpkg.com/@rollup/rollup-linux-arm64-musl/-/rollup-linux-arm64-musl-4.34.8.tgz#f50ecccf8c78841ff6df1706bc4782d7f62bf9c3"
   integrity sha512-KdSfaROOUJXgTVxJNAZ3KwkRc5nggDk+06P6lgi1HLv1hskgvxHUKZ4xtwHkVYJ1Rep4GNo+uEfycCRRxht7+Q==
+
+"@rollup/rollup-linux-arm64-musl@4.34.9":
+  version "4.34.9"
+  resolved "https://registry.yarnpkg.com/@rollup/rollup-linux-arm64-musl/-/rollup-linux-arm64-musl-4.34.9.tgz#8f895eb5577748fc75af21beae32439626e0a14c"
+  integrity sha512-LD2fytxZJZ6xzOKnMbIpgzFOuIKlxVOpiMAXawsAZ2mHBPEYOnLRK5TTEsID6z4eM23DuO88X0Tq1mErHMVq0A==
 
 "@rollup/rollup-linux-loongarch64-gnu@4.30.1":
   version "4.30.1"
@@ -6862,6 +6912,11 @@
   resolved "https://registry.yarnpkg.com/@rollup/rollup-linux-loongarch64-gnu/-/rollup-linux-loongarch64-gnu-4.34.8.tgz#5869dc0b28242da6553e2b52af41374f4038cd6e"
   integrity sha512-NyF4gcxwkMFRjgXBM6g2lkT58OWztZvw5KkV2K0qqSnUEqCVcqdh2jN4gQrTn/YUpAcNKyFHfoOZEer9nwo6uQ==
 
+"@rollup/rollup-linux-loongarch64-gnu@4.34.9":
+  version "4.34.9"
+  resolved "https://registry.yarnpkg.com/@rollup/rollup-linux-loongarch64-gnu/-/rollup-linux-loongarch64-gnu-4.34.9.tgz#c9cd5dbbdc6b3ca4dbeeb0337498cf31949004a0"
+  integrity sha512-dRAgTfDsn0TE0HI6cmo13hemKpVHOEyeciGtvlBTkpx/F65kTvShtY/EVyZEIfxFkV5JJTuQ9tP5HGBS0hfxIg==
+
 "@rollup/rollup-linux-powerpc64le-gnu@4.30.1":
   version "4.30.1"
   resolved "https://registry.yarnpkg.com/@rollup/rollup-linux-powerpc64le-gnu/-/rollup-linux-powerpc64le-gnu-4.30.1.tgz#e8585075ddfb389222c5aada39ea62d6d2511ccc"
@@ -6871,6 +6926,11 @@
   version "4.34.8"
   resolved "https://registry.yarnpkg.com/@rollup/rollup-linux-powerpc64le-gnu/-/rollup-linux-powerpc64le-gnu-4.34.8.tgz#5cdd9f851ce1bea33d6844a69f9574de335f20b1"
   integrity sha512-LMJc999GkhGvktHU85zNTDImZVUCJ1z/MbAJTnviiWmmjyckP5aQsHtcujMjpNdMZPT2rQEDBlJfubhs3jsMfw==
+
+"@rollup/rollup-linux-powerpc64le-gnu@4.34.9":
+  version "4.34.9"
+  resolved "https://registry.yarnpkg.com/@rollup/rollup-linux-powerpc64le-gnu/-/rollup-linux-powerpc64le-gnu-4.34.9.tgz#7ebb5b4441faa17843a210f7d0583a20c93b40e4"
+  integrity sha512-PHcNOAEhkoMSQtMf+rJofwisZqaU8iQ8EaSps58f5HYll9EAY5BSErCZ8qBDMVbq88h4UxaNPlbrKqfWP8RfJA==
 
 "@rollup/rollup-linux-riscv64-gnu@4.30.1":
   version "4.30.1"
@@ -6882,6 +6942,11 @@
   resolved "https://registry.yarnpkg.com/@rollup/rollup-linux-riscv64-gnu/-/rollup-linux-riscv64-gnu-4.34.8.tgz#ef5dc37f4388f5253f0def43e1440ec012af204d"
   integrity sha512-xAQCAHPj8nJq1PI3z8CIZzXuXCstquz7cIOL73HHdXiRcKk8Ywwqtx2wrIy23EcTn4aZ2fLJNBB8d0tQENPCmw==
 
+"@rollup/rollup-linux-riscv64-gnu@4.34.9":
+  version "4.34.9"
+  resolved "https://registry.yarnpkg.com/@rollup/rollup-linux-riscv64-gnu/-/rollup-linux-riscv64-gnu-4.34.9.tgz#10f5d7349fbd2fe78f9e36ecc90aab3154435c8d"
+  integrity sha512-Z2i0Uy5G96KBYKjeQFKbbsB54xFOL5/y1P5wNBsbXB8yE+At3oh0DVMjQVzCJRJSfReiB2tX8T6HUFZ2k8iaKg==
+
 "@rollup/rollup-linux-s390x-gnu@4.30.1":
   version "4.30.1"
   resolved "https://registry.yarnpkg.com/@rollup/rollup-linux-s390x-gnu/-/rollup-linux-s390x-gnu-4.30.1.tgz#c2dcd8a4b08b2f2778eceb7a5a5dfde6240ebdea"
@@ -6891,6 +6956,11 @@
   version "4.34.8"
   resolved "https://registry.yarnpkg.com/@rollup/rollup-linux-s390x-gnu/-/rollup-linux-s390x-gnu-4.34.8.tgz#7dbc3ccbcbcfb3e65be74538dfb6e8dd16178fde"
   integrity sha512-DdePVk1NDEuc3fOe3dPPTb+rjMtuFw89gw6gVWxQFAuEqqSdDKnrwzZHrUYdac7A7dXl9Q2Vflxpme15gUWQFA==
+
+"@rollup/rollup-linux-s390x-gnu@4.34.9":
+  version "4.34.9"
+  resolved "https://registry.yarnpkg.com/@rollup/rollup-linux-s390x-gnu/-/rollup-linux-s390x-gnu-4.34.9.tgz#196347d2fa20593ab09d0b7e2589fb69bdf742c6"
+  integrity sha512-U+5SwTMoeYXoDzJX5dhDTxRltSrIax8KWwfaaYcynuJw8mT33W7oOgz0a+AaXtGuvhzTr2tVKh5UO8GVANTxyQ==
 
 "@rollup/rollup-linux-x64-gnu@4.30.1":
   version "4.30.1"
@@ -6902,6 +6972,11 @@
   resolved "https://registry.yarnpkg.com/@rollup/rollup-linux-x64-gnu/-/rollup-linux-x64-gnu-4.34.8.tgz#5783fc0adcab7dc069692056e8ca8d83709855ce"
   integrity sha512-8y7ED8gjxITUltTUEJLQdgpbPh1sUQ0kMTmufRF/Ns5tI9TNMNlhWtmPKKHCU0SilX+3MJkZ0zERYYGIVBYHIA==
 
+"@rollup/rollup-linux-x64-gnu@4.34.9":
+  version "4.34.9"
+  resolved "https://registry.yarnpkg.com/@rollup/rollup-linux-x64-gnu/-/rollup-linux-x64-gnu-4.34.9.tgz#7193cbd8d128212b8acda37e01b39d9e96259ef8"
+  integrity sha512-FwBHNSOjUTQLP4MG7y6rR6qbGw4MFeQnIBrMe161QGaQoBQLqSUEKlHIiVgF3g/mb3lxlxzJOpIBhaP+C+KP2A==
+
 "@rollup/rollup-linux-x64-musl@4.30.1":
   version "4.30.1"
   resolved "https://registry.yarnpkg.com/@rollup/rollup-linux-x64-musl/-/rollup-linux-x64-musl-4.30.1.tgz#036a4c860662519f1f9453807547fd2a11d5bb01"
@@ -6911,6 +6986,11 @@
   version "4.34.8"
   resolved "https://registry.yarnpkg.com/@rollup/rollup-linux-x64-musl/-/rollup-linux-x64-musl-4.34.8.tgz#00b6c29b298197a384e3c659910b47943003a678"
   integrity sha512-SCXcP0ZpGFIe7Ge+McxY5zKxiEI5ra+GT3QRxL0pMMtxPfpyLAKleZODi1zdRHkz5/BhueUrYtYVgubqe9JBNQ==
+
+"@rollup/rollup-linux-x64-musl@4.34.9":
+  version "4.34.9"
+  resolved "https://registry.yarnpkg.com/@rollup/rollup-linux-x64-musl/-/rollup-linux-x64-musl-4.34.9.tgz#29a6867278ca0420b891574cfab98ecad70c59d1"
+  integrity sha512-cYRpV4650z2I3/s6+5/LONkjIz8MBeqrk+vPXV10ORBnshpn8S32bPqQ2Utv39jCiDcO2eJTuSlPXpnvmaIgRA==
 
 "@rollup/rollup-win32-arm64-msvc@4.30.1":
   version "4.30.1"
@@ -6922,6 +7002,11 @@
   resolved "https://registry.yarnpkg.com/@rollup/rollup-win32-arm64-msvc/-/rollup-win32-arm64-msvc-4.34.8.tgz#cbfee01f1fe73791c35191a05397838520ca3cdd"
   integrity sha512-YHYsgzZgFJzTRbth4h7Or0m5O74Yda+hLin0irAIobkLQFRQd1qWmnoVfwmKm9TXIZVAD0nZ+GEb2ICicLyCnQ==
 
+"@rollup/rollup-win32-arm64-msvc@4.34.9":
+  version "4.34.9"
+  resolved "https://registry.yarnpkg.com/@rollup/rollup-win32-arm64-msvc/-/rollup-win32-arm64-msvc-4.34.9.tgz#89427dcac0c8e3a6d32b13a03a296a275d0de9a9"
+  integrity sha512-z4mQK9dAN6byRA/vsSgQiPeuO63wdiDxZ9yg9iyX2QTzKuQM7T4xlBoeUP/J8uiFkqxkcWndWi+W7bXdPbt27Q==
+
 "@rollup/rollup-win32-ia32-msvc@4.30.1":
   version "4.30.1"
   resolved "https://registry.yarnpkg.com/@rollup/rollup-win32-ia32-msvc/-/rollup-win32-ia32-msvc-4.30.1.tgz#661c8b3e4cd60f51deaa39d153aac4566e748e5e"
@@ -6932,6 +7017,11 @@
   resolved "https://registry.yarnpkg.com/@rollup/rollup-win32-ia32-msvc/-/rollup-win32-ia32-msvc-4.34.8.tgz#95cdbdff48fe6c948abcf6a1d500b2bd5ce33f62"
   integrity sha512-r3NRQrXkHr4uWy5TOjTpTYojR9XmF0j/RYgKCef+Ag46FWUTltm5ziticv8LdNsDMehjJ543x/+TJAek/xBA2w==
 
+"@rollup/rollup-win32-ia32-msvc@4.34.9":
+  version "4.34.9"
+  resolved "https://registry.yarnpkg.com/@rollup/rollup-win32-ia32-msvc/-/rollup-win32-ia32-msvc-4.34.9.tgz#ecb9711ba2b6d2bf6ee51265abe057ab90913deb"
+  integrity sha512-KB48mPtaoHy1AwDNkAJfHXvHp24H0ryZog28spEs0V48l3H1fr4i37tiyHsgKZJnCmvxsbATdZGBpbmxTE3a9w==
+
 "@rollup/rollup-win32-x64-msvc@4.30.1":
   version "4.30.1"
   resolved "https://registry.yarnpkg.com/@rollup/rollup-win32-x64-msvc/-/rollup-win32-x64-msvc-4.30.1.tgz#73bf1885ff052b82fbb0f82f8671f73c36e9137c"
@@ -6941,6 +7031,11 @@
   version "4.34.8"
   resolved "https://registry.yarnpkg.com/@rollup/rollup-win32-x64-msvc/-/rollup-win32-x64-msvc-4.34.8.tgz#4cdb2cfae69cdb7b1a3cc58778e820408075e928"
   integrity sha512-U0FaE5O1BCpZSeE6gBl3c5ObhePQSfk9vDRToMmTkbhCOgW4jqvtS5LGyQ76L1fH8sM0keRp4uDTsbjiUyjk0g==
+
+"@rollup/rollup-win32-x64-msvc@4.34.9":
+  version "4.34.9"
+  resolved "https://registry.yarnpkg.com/@rollup/rollup-win32-x64-msvc/-/rollup-win32-x64-msvc-4.34.9.tgz#1973871850856ae72bc678aeb066ab952330e923"
+  integrity sha512-AyleYRPU7+rgkMWbEh71fQlrzRfeP6SyMnRf9XX4fCdDPAJumdSBqYEcWPMzVQ4ScAl7E4oFfK0GUVn77xSwbw==
 
 "@schematics/angular@14.2.13":
   version "14.2.13"
@@ -6959,34 +7054,34 @@
     detect-libc "^2.0.2"
     node-abi "^3.61.0"
 
-"@sentry-internal/rrdom@2.33.0":
-  version "2.33.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/rrdom/-/rrdom-2.33.0.tgz#16231b907e7d8a30d2c8a4de247bf87f272ded02"
-  integrity sha512-amTHYKq0u1FBC3lu6MM2Jnx04xIyDpsPcCJ8Pvi1sTyA/+mkDvGYXHWyjxVVWvhIOT6dVhuvWD82KW1gksrJcg==
+"@sentry-internal/rrdom@2.34.0":
+  version "2.34.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrdom/-/rrdom-2.34.0.tgz#fccc9fe211c3995d4200abafbe8d75b671961ee9"
+  integrity sha512-NFGNzI9iGYpJ1D7j8qLu4pFMGDMumQzM9/wMPQpmDQTCZYV25To5lxT7z5K1huPAIyh5NLW+hQlMx/hXxXwJ6w==
   dependencies:
-    "@sentry-internal/rrweb-snapshot" "2.33.0"
+    "@sentry-internal/rrweb-snapshot" "2.34.0"
 
-"@sentry-internal/rrweb-snapshot@2.33.0":
-  version "2.33.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-snapshot/-/rrweb-snapshot-2.33.0.tgz#2b984757bd44e1d89022875f79ae16162cea78a6"
-  integrity sha512-sDg+i4QQ/nq97S4dyzMG0kbcQDbhHWFaoT8UXDODle9HpfeyoKuLF9d+JcHRZq0PID3/EIsWztTKw/xk96H8wQ==
+"@sentry-internal/rrweb-snapshot@2.34.0":
+  version "2.34.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-snapshot/-/rrweb-snapshot-2.34.0.tgz#79c2049b6c887e3c128d5fa80d6f745a61dd0e68"
+  integrity sha512-9Tb8jwVufn5GLV0d/CTuoZWo2O06ZB+xWeTJdEkbtJ6PAmO/Q7GQI3uNIx0pfFEnXP+0Km8CKKxpwkEM0z2m6w==
 
-"@sentry-internal/rrweb-types@2.33.0":
-  version "2.33.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-types/-/rrweb-types-2.33.0.tgz#10593725dac929a9e19b6071c516faff4c0a20d8"
-  integrity sha512-lxwBh+bqnKf2gOj2tX2fbgVk/njlNIQuM19FsRSqi+KIHY7F9RLEC/N7chtCMFbckex6kljKM4RIa4DfKLkHDA==
+"@sentry-internal/rrweb-types@2.34.0":
+  version "2.34.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-types/-/rrweb-types-2.34.0.tgz#32b853d93d1d9a1ae1888b17d84b24e674fadee0"
+  integrity sha512-6g5TN8YjqxrZOSQZGMLeZ2XYXdmqaKzPdIzKRySK+rKT/1fJE2gcefJEPDxiix0z/6/v5hGu/Ia8+wbJ7ACHwQ==
   dependencies:
-    "@sentry-internal/rrweb-snapshot" "2.33.0"
+    "@sentry-internal/rrweb-snapshot" "2.34.0"
     "@types/css-font-loading-module" "0.0.7"
 
-"@sentry-internal/rrweb@2.33.0":
-  version "2.33.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb/-/rrweb-2.33.0.tgz#f1de2a7aca1a739acdfe91983b679c3bc3a448af"
-  integrity sha512-vjc+duxt3dxz6KVR6p+/kNl9AukMXmb7i6MMUZDn1TKfdeP9tGJprWl9fTkAmwkyQjm8VEWULs/3JK/u9dou5g==
+"@sentry-internal/rrweb@2.34.0":
+  version "2.34.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb/-/rrweb-2.34.0.tgz#a32945504f1ba2ba60f2ebd7a17d2df5e1aa010d"
+  integrity sha512-NAzpnMOvsIV8o6rEvJ7SDs/TwuHXSrRmuAYYedrOQyJoLq00HF+6wQGe6SAyXv/bkumXmQfjyJ6bv4XNtC4S6g==
   dependencies:
-    "@sentry-internal/rrdom" "2.33.0"
-    "@sentry-internal/rrweb-snapshot" "2.33.0"
-    "@sentry-internal/rrweb-types" "2.33.0"
+    "@sentry-internal/rrdom" "2.34.0"
+    "@sentry-internal/rrweb-snapshot" "2.34.0"
+    "@sentry-internal/rrweb-types" "2.34.0"
     "@types/css-font-loading-module" "0.0.7"
     "@xstate/fsm" "^1.4.0"
     base64-arraybuffer "^1.0.1"
@@ -7007,6 +7102,11 @@
   version "3.2.0"
   resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-3.2.0.tgz#17c000cf6cc315bb620eddbd95c88dfb2471cfb9"
   integrity sha512-Sg7nLRP1yiJYl/KdGGxYGbjvLq5rswyeB5yESgfWX34XUNZaFgmNvw4pU/QEKVeYgcPyOulgJ+y80ewujyffTA==
+
+"@sentry/babel-plugin-component-annotate@3.2.1":
+  version "3.2.1"
+  resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-3.2.1.tgz#90e40750a63ef5ce3d67498ed0cfccc587ab4cd8"
+  integrity sha512-tUp2e+CERpRFzTftjPxt7lg4BF0R3K+wGfeJyIqrc0tbJ2y6duT8OD0ArWoOi1g8xQ73NDn1/mEeS8pC+sbjTQ==
 
 "@sentry/bundler-plugin-core@2.22.6":
   version "2.22.6"
@@ -7050,77 +7150,91 @@
     magic-string "0.30.8"
     unplugin "1.0.1"
 
+"@sentry/bundler-plugin-core@3.2.1":
+  version "3.2.1"
+  resolved "https://registry.yarnpkg.com/@sentry/bundler-plugin-core/-/bundler-plugin-core-3.2.1.tgz#9c1c8b9acaca3ae5eeae2a04529f70212dd2937e"
+  integrity sha512-1wId05LXf6LyTeNwqyhSDSWYbYtFT/NQRqq3sW7hcL4nZuAgzT82PSvxeeCgR/D2qXOj7RCYXXZtyWzzo3wtXA==
+  dependencies:
+    "@babel/core" "^7.18.5"
+    "@sentry/babel-plugin-component-annotate" "3.2.1"
+    "@sentry/cli" "2.42.2"
+    dotenv "^16.3.1"
+    find-up "^5.0.0"
+    glob "^9.3.2"
+    magic-string "0.30.8"
+    unplugin "1.0.1"
+
 "@sentry/cli-darwin@2.41.1":
   version "2.41.1"
   resolved "https://registry.yarnpkg.com/@sentry/cli-darwin/-/cli-darwin-2.41.1.tgz#ca7e12bf1ad59bc2df35868ae98abc8869108efa"
   integrity sha512-7pS3pu/SuhE6jOn3wptstAg6B5nUP878O6s+2svT7b5fKNfYUi/6NPK6dAveh2Ca0rwVq40TO4YFJabWMgTpdQ==
 
-"@sentry/cli-darwin@2.42.1":
-  version "2.42.1"
-  resolved "https://registry.yarnpkg.com/@sentry/cli-darwin/-/cli-darwin-2.42.1.tgz#ad4323091e2bc530907b3018fea3d4e2b6d0516f"
-  integrity sha512-WZFsrzSWtsRK24SiTa+Xod+4Hjlw7xaggmM4lbuo0lISO1EQj+K29jyGX+Ku0qflO1qp1z32bSP/RlWx/1rBjg==
+"@sentry/cli-darwin@2.42.2":
+  version "2.42.2"
+  resolved "https://registry.yarnpkg.com/@sentry/cli-darwin/-/cli-darwin-2.42.2.tgz#a32a4f226e717122b37d9969e8d4d0e14779f720"
+  integrity sha512-GtJSuxER7Vrp1IpxdUyRZzcckzMnb4N5KTW7sbTwUiwqARRo+wxS+gczYrS8tdgtmXs5XYhzhs+t4d52ITHMIg==
 
 "@sentry/cli-linux-arm64@2.41.1":
   version "2.41.1"
   resolved "https://registry.yarnpkg.com/@sentry/cli-linux-arm64/-/cli-linux-arm64-2.41.1.tgz#948e8af8290418b1562db3531db08e69e39d74bb"
   integrity sha512-EzYCEnnENBnS5kpNW+2dBcrPZn1MVfywh2joGVQZTpmgDL5YFJ59VOd+K0XuEwqgFI8BSNI14KXZ75s4DD1/Vw==
 
-"@sentry/cli-linux-arm64@2.42.1":
-  version "2.42.1"
-  resolved "https://registry.yarnpkg.com/@sentry/cli-linux-arm64/-/cli-linux-arm64-2.42.1.tgz#5f30014bb316da5e68c16a0b7bbccba48c1626f4"
-  integrity sha512-8A43bLvDIzquCXblHNadaRm109ANw1Q9VRXg5qLYv7DrPkUm2oQP+oRnuNUgOJ3W/8QQSvANpG9pPko+mJs4xw==
+"@sentry/cli-linux-arm64@2.42.2":
+  version "2.42.2"
+  resolved "https://registry.yarnpkg.com/@sentry/cli-linux-arm64/-/cli-linux-arm64-2.42.2.tgz#1c06c83ff21f51ec23acf5be3b1f8c7553bf86b1"
+  integrity sha512-BOxzI7sgEU5Dhq3o4SblFXdE9zScpz6EXc5Zwr1UDZvzgXZGosUtKVc7d1LmkrHP8Q2o18HcDWtF3WvJRb5Zpw==
 
 "@sentry/cli-linux-arm@2.41.1":
   version "2.41.1"
   resolved "https://registry.yarnpkg.com/@sentry/cli-linux-arm/-/cli-linux-arm-2.41.1.tgz#1e5fa971ae8dfb3ea5564c8503b4e635ae6aed8a"
   integrity sha512-wNUvquD6qjOCczvuBGf9OiD29nuQ6yf8zzfyPJa5Bdx1QXuteKsKb6HBrMwuIR3liyuu0duzHd+H/+p1n541Hg==
 
-"@sentry/cli-linux-arm@2.42.1":
-  version "2.42.1"
-  resolved "https://registry.yarnpkg.com/@sentry/cli-linux-arm/-/cli-linux-arm-2.42.1.tgz#4dfd3bcc5d40da8a45a045ccc178ed1ee1fe16f2"
-  integrity sha512-3xR2B9v8e7NjB6U9+oMu2puR3xOv/Axd7qNuUrZxQnNZYtgtnAqIDgSmFTWHOOoged1+AZXe+xDWLN0Y11Q03Q==
+"@sentry/cli-linux-arm@2.42.2":
+  version "2.42.2"
+  resolved "https://registry.yarnpkg.com/@sentry/cli-linux-arm/-/cli-linux-arm-2.42.2.tgz#00cadc359ae3c051efb3e63873c033c61dbd1ca1"
+  integrity sha512-7udCw+YL9lwq+9eL3WLspvnuG+k5Icg92YE7zsteTzWLwgPVzaxeZD2f8hwhsu+wmL+jNqbpCRmktPteh3i2mg==
 
 "@sentry/cli-linux-i686@2.41.1":
   version "2.41.1"
   resolved "https://registry.yarnpkg.com/@sentry/cli-linux-i686/-/cli-linux-i686-2.41.1.tgz#3f01aff314f2ad8fd761f3e6e807a5ec09ae4eb4"
   integrity sha512-urpQCWrdYnSAsZY3udttuMV88wTJzKZL10xsrp7sjD/Hd+O6qSLVLkxebIlxts70jMLLFHYrQ2bkRg5kKuX6Fg==
 
-"@sentry/cli-linux-i686@2.42.1":
-  version "2.42.1"
-  resolved "https://registry.yarnpkg.com/@sentry/cli-linux-i686/-/cli-linux-i686-2.42.1.tgz#b7646f19c922834c775f699b8acd320e11449735"
-  integrity sha512-YBz6prKqh1i0gzTg3Rus8ALQWmAk5Acap2U2dGuVYgTt7Bbu6SJbxNC9d8j3RUGu7ylupofUEMqKd391mTHf7g==
+"@sentry/cli-linux-i686@2.42.2":
+  version "2.42.2"
+  resolved "https://registry.yarnpkg.com/@sentry/cli-linux-i686/-/cli-linux-i686-2.42.2.tgz#3b817b715dd806c20dfbffd539725ad8089c310a"
+  integrity sha512-Sw/dQp5ZPvKnq3/y7wIJyxTUJYPGoTX/YeMbDs8BzDlu9to2LWV3K3r7hE7W1Lpbaw4tSquUHiQjP5QHCOS7aQ==
 
 "@sentry/cli-linux-x64@2.41.1":
   version "2.41.1"
   resolved "https://registry.yarnpkg.com/@sentry/cli-linux-x64/-/cli-linux-x64-2.41.1.tgz#30dbf966a4b4c1721ffccd901dfcb6f967db073d"
   integrity sha512-ZqpYwHXAaK4MMEFlyaLYr6mJTmpy9qP6n30jGhLTW7kHKS3s6GPLCSlNmIfeClrInEt0963fM633ZRnXa04VPw==
 
-"@sentry/cli-linux-x64@2.42.1":
-  version "2.42.1"
-  resolved "https://registry.yarnpkg.com/@sentry/cli-linux-x64/-/cli-linux-x64-2.42.1.tgz#6ecb98811b351993cfb38afb7ae2c0ed6a23e0f2"
-  integrity sha512-Rvc6Jy3kLZrcyO7Ysy1gj0iQi0nGVUN79VqC3OO9JDV44aDtKBDYuBkeFKE3gd1SL8EvPetKH85en2u2wdWxYg==
+"@sentry/cli-linux-x64@2.42.2":
+  version "2.42.2"
+  resolved "https://registry.yarnpkg.com/@sentry/cli-linux-x64/-/cli-linux-x64-2.42.2.tgz#ddf906bc3071cc79ce6e633eddcb76bb9068e688"
+  integrity sha512-mU4zUspAal6TIwlNLBV5oq6yYqiENnCWSxtSQVzWs0Jyq97wtqGNG9U+QrnwjJZ+ta/hvye9fvL2X25D/RxHQw==
 
 "@sentry/cli-win32-i686@2.41.1":
   version "2.41.1"
   resolved "https://registry.yarnpkg.com/@sentry/cli-win32-i686/-/cli-win32-i686-2.41.1.tgz#f88eeb5d2d4ee46c38d8616ae1eb484108ea71c2"
   integrity sha512-AuRimCeVsx99DIOr9cwdYBHk39tlmAuPDdy2r16iNzY0InXs4xOys4gGzM7N4vlFQvFkzuc778Su0HkfasgprA==
 
-"@sentry/cli-win32-i686@2.42.1":
-  version "2.42.1"
-  resolved "https://registry.yarnpkg.com/@sentry/cli-win32-i686/-/cli-win32-i686-2.42.1.tgz#fd2b6d990ef514844fd8416556cbf035cc67926b"
-  integrity sha512-FC8FE6dk+G83PCO09Ux/9NJNouF5yXKhpzLV5BZkqQye39hV9GDrFTu+VWTnwI1P77fnaJkPEEKRkjwNiPGjLA==
+"@sentry/cli-win32-i686@2.42.2":
+  version "2.42.2"
+  resolved "https://registry.yarnpkg.com/@sentry/cli-win32-i686/-/cli-win32-i686-2.42.2.tgz#9036085c7c6ce455ad45fda411c55ff39c06eb95"
+  integrity sha512-iHvFHPGqgJMNqXJoQpqttfsv2GI3cGodeTq4aoVLU/BT3+hXzbV0x1VpvvEhncJkDgDicJpFLM8sEPHb3b8abw==
 
 "@sentry/cli-win32-x64@2.41.1":
   version "2.41.1"
   resolved "https://registry.yarnpkg.com/@sentry/cli-win32-x64/-/cli-win32-x64-2.41.1.tgz#eefd95a2aa184adb464334e265b55a9142070f6f"
   integrity sha512-6JcPvXGye61+wPp0xdzfc2YLE/Dcud8JdaK8VxLM3b/8+Em7E+UyliDu3uF8+YGUqizY5JYTd3fs17DC8DZhLw==
 
-"@sentry/cli-win32-x64@2.42.1":
-  version "2.42.1"
-  resolved "https://registry.yarnpkg.com/@sentry/cli-win32-x64/-/cli-win32-x64-2.42.1.tgz#acc8ff57802186f1e8686d82122f2a6a13ec5076"
-  integrity sha512-1595wD7JQSu5J9pA4m/B3WrjjIXltSV9VzuErehvanBvfusQ/YgBcvsNzgIf8aJsgSAYGbpR3Zqu81pjohdjgA==
+"@sentry/cli-win32-x64@2.42.2":
+  version "2.42.2"
+  resolved "https://registry.yarnpkg.com/@sentry/cli-win32-x64/-/cli-win32-x64-2.42.2.tgz#7d6464b63f32c9f97fff428f246b1f039b402233"
+  integrity sha512-vPPGHjYoaGmfrU7xhfFxG7qlTBacroz5NdT+0FmDn6692D8IvpNXl1K+eV3Kag44ipJBBeR8g1HRJyx/F/9ACw==
 
-"@sentry/cli@2.41.1", "@sentry/cli@^2.36.1", "@sentry/cli@^2.41.1":
+"@sentry/cli@2.41.1":
   version "2.41.1"
   resolved "https://registry.yarnpkg.com/@sentry/cli/-/cli-2.41.1.tgz#a9467ca3ff4acfcdedec1565c9ff726b93758d29"
   integrity sha512-0GVmDiTV7R1492wkVY4bGcfC0fSmRmQjuxaaPI8CIV9B2VP9pBVCUizi1mevXaaE4I3fM60LI+XYrKFEneuVog==
@@ -7139,10 +7253,10 @@
     "@sentry/cli-win32-i686" "2.41.1"
     "@sentry/cli-win32-x64" "2.41.1"
 
-"@sentry/cli@^2.42.1":
-  version "2.42.1"
-  resolved "https://registry.yarnpkg.com/@sentry/cli/-/cli-2.42.1.tgz#f3d09eadd19ed5fe268bc06f507a08e2b544f350"
-  integrity sha512-3fonGZoGwlze/iGYDdCJXpG5skXc6j/yYom+k6TqVvJJqSct1RgLJHjCw1P0IxHsR8pNz9f1H85OdLXKxrc6sw==
+"@sentry/cli@2.42.2", "@sentry/cli@^2.36.1", "@sentry/cli@^2.42.2":
+  version "2.42.2"
+  resolved "https://registry.yarnpkg.com/@sentry/cli/-/cli-2.42.2.tgz#8173df4d057d600a9ef0cf1e9b42b0c6607b46e4"
+  integrity sha512-spb7S/RUumCGyiSTg8DlrCX4bivCNmU/A1hcfkwuciTFGu8l5CDc2I6jJWWZw8/0enDGxuj5XujgXvU5tr4bxg==
   dependencies:
     https-proxy-agent "^5.0.0"
     node-fetch "^2.6.7"
@@ -7150,13 +7264,13 @@
     proxy-from-env "^1.1.0"
     which "^2.0.2"
   optionalDependencies:
-    "@sentry/cli-darwin" "2.42.1"
-    "@sentry/cli-linux-arm" "2.42.1"
-    "@sentry/cli-linux-arm64" "2.42.1"
-    "@sentry/cli-linux-i686" "2.42.1"
-    "@sentry/cli-linux-x64" "2.42.1"
-    "@sentry/cli-win32-i686" "2.42.1"
-    "@sentry/cli-win32-x64" "2.42.1"
+    "@sentry/cli-darwin" "2.42.2"
+    "@sentry/cli-linux-arm" "2.42.2"
+    "@sentry/cli-linux-arm64" "2.42.2"
+    "@sentry/cli-linux-i686" "2.42.2"
+    "@sentry/cli-linux-x64" "2.42.2"
+    "@sentry/cli-win32-i686" "2.42.2"
+    "@sentry/cli-win32-x64" "2.42.2"
 
 "@sentry/rollup-plugin@3.1.2":
   version "3.1.2"
@@ -7182,12 +7296,12 @@
     "@sentry/bundler-plugin-core" "3.2.0"
     unplugin "1.0.1"
 
-"@sentry/webpack-plugin@3.1.2":
-  version "3.1.2"
-  resolved "https://registry.yarnpkg.com/@sentry/webpack-plugin/-/webpack-plugin-3.1.2.tgz#e7cf2b10b6d2fb2d6106e692469d02b6ab684bba"
-  integrity sha512-BTG1m+5c3PcuzjUphB7vQESo91VdT8FT+Ngzbf58OOTtiMDEJ35FtJX1ww36QE7G6vlSpdT/NyZKsY6t+mgJfg==
+"@sentry/webpack-plugin@3.2.1":
+  version "3.2.1"
+  resolved "https://registry.yarnpkg.com/@sentry/webpack-plugin/-/webpack-plugin-3.2.1.tgz#83756c64c59a2be39e05beda30b08753f7b80780"
+  integrity sha512-wP/JDljhB9pCFc62rSwWbIglF2Os8FLV68pQuyJnmImM9cjGjlK6UO+qKa2pOLYsmAcnn+t3Bhu77bbzPIStCg==
   dependencies:
-    "@sentry/bundler-plugin-core" "3.1.2"
+    "@sentry/bundler-plugin-core" "3.2.1"
     unplugin "1.0.1"
     uuid "^9.0.0"
 
@@ -26862,17 +26976,45 @@ rollup-pluginutils@^2.8.1, rollup-pluginutils@^2.8.2:
   dependencies:
     estree-walker "^0.6.1"
 
-rollup@3.29.5, rollup@^3.27.1, rollup@^3.28.1:
-  version "3.29.5"
-  resolved "https://registry.yarnpkg.com/rollup/-/rollup-3.29.5.tgz#8a2e477a758b520fb78daf04bca4c522c1da8a54"
-  integrity sha512-GVsDdsbJzzy4S/v3dqWPJ7EfvZJfCHiDqe80IyrF59LYuP+e6U1LJoUqeuqRbwAWoMNoXivMNeNAOf5E22VA1w==
+rollup@4.34.9:
+  version "4.34.9"
+  resolved "https://registry.yarnpkg.com/rollup/-/rollup-4.34.9.tgz#e1eb397856476778aeb6ac2ac3d09b2ce177a558"
+  integrity sha512-nF5XYqWWp9hx/LrpC8sZvvvmq0TeTjQgaZHYmAgwysT9nh8sWnZhBnM8ZyVbbJFIQBLwHDNoMqsBZBbUo4U8sQ==
+  dependencies:
+    "@types/estree" "1.0.6"
   optionalDependencies:
+    "@rollup/rollup-android-arm-eabi" "4.34.9"
+    "@rollup/rollup-android-arm64" "4.34.9"
+    "@rollup/rollup-darwin-arm64" "4.34.9"
+    "@rollup/rollup-darwin-x64" "4.34.9"
+    "@rollup/rollup-freebsd-arm64" "4.34.9"
+    "@rollup/rollup-freebsd-x64" "4.34.9"
+    "@rollup/rollup-linux-arm-gnueabihf" "4.34.9"
+    "@rollup/rollup-linux-arm-musleabihf" "4.34.9"
+    "@rollup/rollup-linux-arm64-gnu" "4.34.9"
+    "@rollup/rollup-linux-arm64-musl" "4.34.9"
+    "@rollup/rollup-linux-loongarch64-gnu" "4.34.9"
+    "@rollup/rollup-linux-powerpc64le-gnu" "4.34.9"
+    "@rollup/rollup-linux-riscv64-gnu" "4.34.9"
+    "@rollup/rollup-linux-s390x-gnu" "4.34.9"
+    "@rollup/rollup-linux-x64-gnu" "4.34.9"
+    "@rollup/rollup-linux-x64-musl" "4.34.9"
+    "@rollup/rollup-win32-arm64-msvc" "4.34.9"
+    "@rollup/rollup-win32-ia32-msvc" "4.34.9"
+    "@rollup/rollup-win32-x64-msvc" "4.34.9"
     fsevents "~2.3.2"
 
 rollup@^2.70.0:
   version "2.79.2"
   resolved "https://registry.yarnpkg.com/rollup/-/rollup-2.79.2.tgz#f150e4a5db4b121a21a747d762f701e5e9f49090"
   integrity sha512-fS6iqSPZDs3dr/y7Od6y5nha8dW1YnbgtsyotCVvoFGKbERG++CVRFv1meyGDE1SNItQA8BrnCw7ScdAhRJ3XQ==
+  optionalDependencies:
+    fsevents "~2.3.2"
+
+rollup@^3.27.1, rollup@^3.28.1:
+  version "3.29.5"
+  resolved "https://registry.yarnpkg.com/rollup/-/rollup-3.29.5.tgz#8a2e477a758b520fb78daf04bca4c522c1da8a54"
+  integrity sha512-GVsDdsbJzzy4S/v3dqWPJ7EfvZJfCHiDqe80IyrF59LYuP+e6U1LJoUqeuqRbwAWoMNoXivMNeNAOf5E22VA1w==
   optionalDependencies:
     fsevents "~2.3.2"
 

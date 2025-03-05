@@ -1,6 +1,6 @@
 {
   "name": "@sentry/remix",
-  "version": "9.3.0",
+  "version": "9.4.0",
   "description": "Official Sentry SDK for Remix",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/remix",
@@ -60,11 +60,11 @@
   "dependencies": {
     "@opentelemetry/api": "^1.9.0",
     "@remix-run/router": "1.x",
-    "@sentry/cli": "^2.41.1",
-    "@sentry/core": "9.3.0",
-    "@sentry/node": "9.3.0",
-    "@sentry/opentelemetry": "9.3.0",
-    "@sentry/react": "9.3.0",
+    "@sentry/cli": "^2.42.2",
+    "@sentry/core": "9.4.0",
+    "@sentry/node": "9.4.0",
+    "@sentry/opentelemetry": "9.4.0",
+    "@sentry/react": "9.4.0",
     "glob": "^10.3.4",
     "opentelemetry-instrumentation-remix": "0.8.0",
     "yargs": "^17.6.0"
@@ -104,8 +104,8 @@
     "test:integration:client": "yarn playwright install-deps && yarn playwright test test/integration/test/client/ --project='chromium'",
     "test:integration:client:ci": "yarn test:integration:client",
     "test:integration:server": "export NODE_OPTIONS='--stack-trace-limit=25' && vitest run",
-    "test:unit": "jest",
-    "test:watch": "jest --watch",
+    "test:unit": "vitest run --config vitest.config.unit.ts",
+    "test:watch": "vitest --watch --config vitest.config.unit.ts",
     "yalc:publish": "yalc publish --push --sig"
   },
   "volta": {

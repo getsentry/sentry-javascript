@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/replay-canvas",
-  "version": "9.3.0",
+  "version": "9.4.0",
   "description": "Replay canvas integration",
   "main": "build/npm/cjs/index.js",
   "module": "build/npm/esm/index.js",
@@ -65,11 +65,11 @@
   },
   "homepage": "https://docs.sentry.io/platforms/javascript/session-replay/",
   "devDependencies": {
-    "@sentry-internal/rrweb": "2.33.0"
+    "@sentry-internal/rrweb": "2.34.0"
   },
   "dependencies": {
-    "@sentry-internal/replay": "9.3.0",
-    "@sentry/core": "9.3.0"
+    "@sentry-internal/replay": "9.4.0",
+    "@sentry/core": "9.4.0"
   },
   "engines": {
     "node": ">=18"

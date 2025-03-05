@@ -4,6 +4,7 @@ import type { ExpressRequestInfo } from '@opentelemetry/instrumentation-express'
 import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
 import type { IntegrationFn } from '@sentry/core';
 import {
+  httpRequestToRequestData,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   captureException,
   defineIntegration,
@@ -135,9 +136,10 @@ export function expressErrorHandler(options?: ExpressHandlerOptions): ExpressErr
     res: http.ServerResponse,
     next: (error: MiddlewareError) => void,
   ): void {
+    const normalizedRequest = httpRequestToRequestData(request);
     // Ensure we use the express-enhanced request here, instead of the plain HTTP one
     // When an error happens, the `expressRequestHandler` middleware does not run, so we set it here too
-    getIsolationScope().setSDKProcessingMetadata({ request });
+    getIsolationScope().setSDKProcessingMetadata({ normalizedRequest });
 
     const shouldHandleError = options?.shouldHandleError || defaultShouldHandleError;
 
@@ -156,8 +158,9 @@ function expressRequestHandler(): ExpressMiddleware {
     _res: http.ServerResponse,
     next: () => void,
   ): void {
+    const normalizedRequest = httpRequestToRequestData(request);
     // Ensure we use the express-enhanced request here, instead of the plain HTTP one
-    getIsolationScope().setSDKProcessingMetadata({ request });
+    getIsolationScope().setSDKProcessingMetadata({ normalizedRequest });
 
     next();
   };

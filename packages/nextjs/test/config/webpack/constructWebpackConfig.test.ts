@@ -1,3 +1,5 @@
+import { describe, expect, it, vi } from 'vitest';
+
 // mock helper functions not tested directly in this file
 import '../mocks';
 
@@ -12,9 +14,16 @@ import {
   userNextConfig,
 } from '../fixtures';
 import { materializeFinalNextConfig, materializeFinalWebpackConfig } from '../testUtils';
+import * as core from '@sentry/core';
 
 describe('constructWebpackConfigFunction()', () => {
   it('includes expected properties', async () => {
+    vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+      sentryWebpackPlugin: () => ({
+        _name: 'sentry-webpack-plugin',
+      }),
+    }));
+
     const finalWebpackConfig = await materializeFinalWebpackConfig({
       exportedNextConfig,
       incomingWebpackConfig: serverWebpackConfig,
@@ -46,7 +55,12 @@ describe('constructWebpackConfigFunction()', () => {
   });
 
   it('automatically enables deleteSourcemapsAfterUpload for client builds when not explicitly set', async () => {
-    const getWebpackPluginOptionsSpy = jest.spyOn(getWebpackPluginOptionsModule, 'getWebpackPluginOptions');
+    const getWebpackPluginOptionsSpy = vi.spyOn(getWebpackPluginOptionsModule, 'getWebpackPluginOptions');
+    vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+      sentryWebpackPlugin: () => ({
+        _name: 'sentry-webpack-plugin',
+      }),
+    }));
 
     await materializeFinalWebpackConfig({
       exportedNextConfig,
@@ -112,6 +126,12 @@ describe('constructWebpackConfigFunction()', () => {
   });
 
   it('uses `hidden-source-map` as `devtool` value for client-side builds', async () => {
+    vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+      sentryWebpackPlugin: () => ({
+        _name: 'sentry-webpack-plugin',
+      }),
+    }));
+
     const finalClientWebpackConfig = await materializeFinalWebpackConfig({
       exportedNextConfig: exportedNextConfig,
       incomingWebpackConfig: clientWebpackConfig,
