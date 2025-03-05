@@ -10,6 +10,23 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 9.4.0
+
+- feat(core): Add types for logs protocol and envelope ([#15530](https://github.com/getsentry/sentry-javascript/pull/15530))
+- feat(deps): Bump `@sentry/cli` from 2.41.1 to 2.42.2 ([#15510](https://github.com/getsentry/sentry-javascript/pull/15510))
+- feat(deps): Bump `@sentry/webpack-plugin` from 3.1.2 to 3.2.1 ([#15512](https://github.com/getsentry/sentry-javascript/pull/15512))
+- feat(feedback) Allowing annotation via highlighting & masking ([#15484](https://github.com/getsentry/sentry-javascript/pull/15484))
+- feat(nextjs): Add `use client` directive to client SDK entrypoints ([#15575](https://github.com/getsentry/sentry-javascript/pull/15575))
+- feat(nextjs): Allow silencing of instrumentation warning ([#15555](https://github.com/getsentry/sentry-javascript/pull/15555))
+- feat(sveltekit): Ensure `AsyncLocalStorage` async context strategy is used in Cloudflare Pages ([#15557](https://github.com/getsentry/sentry-javascript/pull/15557))
+- fix(cloudflare): Make `@cloudflare/workers-types` an optional peer dependency ([#15554](https://github.com/getsentry/sentry-javascript/pull/15554))
+- fix(core): Don't reverse values in event filters ([#15584](https://github.com/getsentry/sentry-javascript/pull/15584))
+- fix(core): Handle normalization of null prototypes correctly ([#15556](https://github.com/getsentry/sentry-javascript/pull/15556))
+- fix(nextjs): Only warn on missing `onRequestError` in version 15 ([#15553](https://github.com/getsentry/sentry-javascript/pull/15553))
+- fix(node): Allow for `undefined` transport to be passed in ([#15560](https://github.com/getsentry/sentry-javascript/pull/15560))
+- fix(wasm): Fix wasm integration stacktrace parsing for filename ([#15572](https://github.com/getsentry/sentry-javascript/pull/15572))
+- perf(node): Store normalized request for processing ([#15570](https://github.com/getsentry/sentry-javascript/pull/15570))
+
 ## 9.3.0
 
 ### Important Changes
