@@ -29,9 +29,7 @@ export type FastifyPlugin = (
 
 export interface FastifyInstance {
   version: string;
-  register: (
-    plugin: FastifyPlugin,
-  ) => FastifyInstance;
+  register: (plugin: FastifyPlugin) => FastifyInstance;
   after: (listener?: (err: Error) => void) => FastifyInstance;
   addHook(
     name:
