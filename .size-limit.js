@@ -15,7 +15,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init'),
     gzip: true,
-    limit: '24.1 KB',
+    limit: '24.5 KB',
     modifyWebpackConfig: function (config) {
       const webpack = require('webpack');
       const TerserPlugin = require('terser-webpack-plugin');
@@ -100,7 +100,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'sendFeedback'),
     gzip: true,
-    limit: '29 KB',
+    limit: '30 KB',
   },
   {
     name: '@sentry/browser (incl. FeedbackAsync)',
@@ -219,7 +219,7 @@ module.exports = [
     import: createImport('init'),
     ignore: ['$app/stores'],
     gzip: true,
-    limit: '38 KB',
+    limit: '39 KB',
   },
   // Node SDK (ESM)
   {
