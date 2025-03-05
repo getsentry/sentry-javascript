@@ -274,9 +274,9 @@ jobs:
         uses: ./.github/actions/restore-cache
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check for duplicate dependencies
-        # Run `npx yarn-deduplicate yarn.lock` locally to resolve any duplicates.
-        run: npx yarn-deduplicate yarn.lock --list --fail
+      - name: Check for duplicate dependencies in lockfile
+        # Run `yarn dedupe-deps:fix` locally to resolve any duplicates.
+        run: yarn dedupe-deps:check
       - name: Lint source files
         run: yarn lint:lerna
       - name: Lint for ES compatibility
