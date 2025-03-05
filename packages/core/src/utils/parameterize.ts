@@ -8,7 +8,6 @@ import type { ParameterizedAnyValueString } from '../types-hoist';
  * @param strings An array of string values splitted between expressions
  * @param values Expressions extracted from template string
  * @returns String with template information in __sentry_template_string__ and __sentry_template_values__ properties
- * @deprecated Use parameterizeAny instead
  */
 export const parameterize = parameterizeAny<string>;
 
