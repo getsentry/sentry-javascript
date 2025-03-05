@@ -67,7 +67,8 @@ export { hasTracingEnabled } from './utils/hasSpansEnabled';
 export { hasSpansEnabled } from './utils/hasSpansEnabled';
 export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
 export { handleCallbackErrors } from './utils/handleCallbackErrors';
-export { parameterize } from './utils/parameterize';
+export {  parameterize } from './utils/parameterize';
+
 export { addAutoIpAddressToSession, addAutoIpAddressToUser } from './utils/ipAddress';
 export {
   convertSpanLinksForEnvelope,

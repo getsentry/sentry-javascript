@@ -153,7 +153,7 @@ export type {
 
 export type { BrowserClientReplayOptions, BrowserClientProfilingOptions } from './browseroptions';
 export type { CheckIn, MonitorConfig, FinishedCheckIn, InProgressCheckIn, SerializedCheckIn } from './checkin';
-export type { ParameterizedString } from './parameterize';
+export type { ParameterizedString, ParameterizedAnyValueString } from './parameterize';
 export type { ContinuousProfiler, ProfilingIntegration, Profiler } from './profiling';
 export type { ViewHierarchyData, ViewHierarchyWindow } from './view-hierarchy';
 export type { LegacyCSPReport } from './csp';

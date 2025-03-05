@@ -23,7 +23,7 @@ import { logger } from './utils-hoist/logger';
 import { uuid4 } from './utils-hoist/misc';
 import { timestampInSeconds } from './utils-hoist/time';
 import { GLOBAL_OBJ } from './utils-hoist/worldwide';
-import { parameterize } from './utils/parameterize';
+import { parameterizeAny } from './utils/parameterize';
 import type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
 import { parseEventHintOrCaptureContext } from './utils/prepareEvent';
 
@@ -436,7 +436,7 @@ export const _experiment_log = {
    * Sentry._experiment_log.fmt`This is a log statement with ${x} and ${y} params`
    * ```
    */
-  fmt: parameterize,
+  fmt: parameterizeAny<string | number | null | object>,
 
   /**
    * A flexible utility to record a log with a custom level and send it to sentry.
