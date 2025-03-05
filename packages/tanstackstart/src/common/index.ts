@@ -14,3 +14,10 @@ export function sentryGlobalServerMiddlewareHandler() {
 export function wrapStreamHandlerWithSentry<H>(handler: H): H {
   return handler;
 }
+
+/**
+ * Wraps the create root route function with Sentry for server-client tracing with SSR.
+ */
+export function wrapCreateRootRouteWithSentry<F>(createRootRoute: F): F {
+  return createRootRoute;
+}
