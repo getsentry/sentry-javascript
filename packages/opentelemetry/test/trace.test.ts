@@ -21,6 +21,7 @@ import {
   withScope,
 } from '@sentry/core';
 import type { Event, Scope } from '@sentry/core';
+import { describe, afterEach, beforeEach, expect, it, vi } from 'vitest';
 
 import { SEMATTRS_HTTP_METHOD } from '@opentelemetry/semantic-conventions';
 import { continueTrace, startInactiveSpan, startSpan, startSpanManual } from '../src/trace';
@@ -37,8 +38,8 @@ describe('trace', () => {
     mockSdkInit({ tracesSampleRate: 1 });
   });
 
-  afterEach(() => {
-    cleanupOtel();
+  afterEach(async () => {
+    await cleanupOtel();
   });
 
   describe('startSpan', () => {
@@ -843,7 +844,7 @@ describe('trace', () => {
     });
 
     it('includes the scope at the time the span was started when finished', async () => {
-      const beforeSendTransaction = jest.fn(event => event);
+      const beforeSendTransaction = vi.fn(event => event);
 
       const client = getClient()!;
 
@@ -1351,8 +1352,8 @@ describe('trace (tracing disabled)', () => {
     mockSdkInit({ tracesSampleRate: 0 });
   });
 
-  afterEach(() => {
-    cleanupOtel();
+  afterEach(async () => {
+    await cleanupOtel();
   });
 
   it('startSpan calls callback without span', () => {
@@ -1375,13 +1376,13 @@ describe('trace (tracing disabled)', () => {
 });
 
 describe('trace (sampling)', () => {
-  afterEach(() => {
-    cleanupOtel();
-    jest.clearAllMocks();
+  afterEach(async () => {
+    await cleanupOtel();
+    vi.clearAllMocks();
   });
 
   it('samples with a tracesSampleRate, when Math.random() > tracesSampleRate', () => {
-    jest.spyOn(Math, 'random').mockImplementation(() => 0.6);
+    vi.spyOn(Math, 'random').mockImplementation(() => 0.6);
 
     mockSdkInit({ tracesSampleRate: 0.5 });
 
@@ -1397,7 +1398,7 @@ describe('trace (sampling)', () => {
   });
 
   it('samples with a tracesSampleRate, when Math.random() < tracesSampleRate', () => {
-    jest.spyOn(Math, 'random').mockImplementation(() => 0.4);
+    vi.spyOn(Math, 'random').mockImplementation(() => 0.4);
 
     mockSdkInit({ tracesSampleRate: 0.5 });
 
@@ -1416,7 +1417,7 @@ describe('trace (sampling)', () => {
   });
 
   it('positive parent sampling takes precedence over tracesSampleRate', () => {
-    jest.spyOn(Math, 'random').mockImplementation(() => 0.6);
+    vi.spyOn(Math, 'random').mockImplementation(() => 0.6);
 
     mockSdkInit({ tracesSampleRate: 1 });
 
@@ -1440,7 +1441,7 @@ describe('trace (sampling)', () => {
   });
 
   it('negative parent sampling takes precedence over tracesSampleRate', () => {
-    jest.spyOn(Math, 'random').mockImplementation(() => 0.6);
+    vi.spyOn(Math, 'random').mockImplementation(() => 0.6);
 
     mockSdkInit({ tracesSampleRate: 0.5 });
 
@@ -1462,7 +1463,7 @@ describe('trace (sampling)', () => {
   });
 
   it('positive remote parent sampling takes precedence over tracesSampleRate', () => {
-    jest.spyOn(Math, 'random').mockImplementation(() => 0.6);
+    vi.spyOn(Math, 'random').mockImplementation(() => 0.6);
 
     mockSdkInit({ tracesSampleRate: 0.5 });
 
@@ -1489,7 +1490,7 @@ describe('trace (sampling)', () => {
   });
 
   it('negative remote parent sampling takes precedence over tracesSampleRate', () => {
-    jest.spyOn(Math, 'random').mockImplementation(() => 0.6);
+    vi.spyOn(Math, 'random').mockImplementation(() => 0.6);
 
     mockSdkInit({ tracesSampleRate: 0.5 });
 
@@ -1517,7 +1518,7 @@ describe('trace (sampling)', () => {
   it('samples with a tracesSampler returning a boolean', () => {
     let tracesSamplerResponse: boolean = true;
 
-    const tracesSampler = jest.fn(() => {
+    const tracesSampler = vi.fn(() => {
       return tracesSamplerResponse;
     });
 
@@ -1569,11 +1570,11 @@ describe('trace (sampling)', () => {
   });
 
   it('samples with a tracesSampler returning a number', () => {
-    jest.spyOn(Math, 'random').mockImplementation(() => 0.6);
+    vi.spyOn(Math, 'random').mockImplementation(() => 0.6);
 
     let tracesSamplerResponse: number = 1;
 
-    const tracesSampler = jest.fn(() => {
+    const tracesSampler = vi.fn(() => {
       return tracesSamplerResponse;
     });
 
@@ -1646,7 +1647,7 @@ describe('trace (sampling)', () => {
   });
 
   it('samples with a tracesSampler even if parent is remotely sampled', () => {
-    const tracesSampler = jest.fn(() => {
+    const tracesSampler = vi.fn(() => {
       return false;
     });
 
@@ -1706,8 +1707,8 @@ describe('HTTP methods (sampling)', () => {
     mockSdkInit({ tracesSampleRate: 1 });
   });
 
-  afterEach(() => {
-    cleanupOtel();
+  afterEach(async () => {
+    await cleanupOtel();
   });
 
   it('does sample when HTTP method is other than OPTIONS or HEAD', () => {
@@ -1761,8 +1762,8 @@ describe('continueTrace', () => {
     mockSdkInit({ tracesSampleRate: 1 });
   });
 
-  afterEach(() => {
-    cleanupOtel();
+  afterEach(async () => {
+    await cleanupOtel();
   });
 
   it('works without trace & baggage data', () => {
@@ -1863,8 +1864,8 @@ describe('suppressTracing', () => {
     mockSdkInit({ tracesSampleRate: 1 });
   });
 
-  afterEach(() => {
-    cleanupOtel();
+  afterEach(async () => {
+    await cleanupOtel();
   });
 
   it('works for a root span', () => {

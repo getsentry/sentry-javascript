@@ -1,21 +1,40 @@
-const newMock = jest.fn();
-const uploadSourceMapsMock = jest.fn();
-const finalizeMock = jest.fn();
-const proposeVersionMock = jest.fn(() => '0.1.2.3.4');
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 
-jest.mock('@sentry/cli', () => {
-  return jest.fn().mockImplementation(() => {
-    return {
-      execute: jest.fn(),
-      releases: {
-        new: newMock,
-        uploadSourceMaps: uploadSourceMapsMock,
-        finalize: finalizeMock,
-        proposeVersion: proposeVersionMock,
-      },
-    };
-  });
-});
+const newMock = vi.fn();
+const uploadSourceMapsMock = vi.fn();
+const finalizeMock = vi.fn();
+const proposeVersionMock = vi.fn(() => '0.1.2.3.4');
+
+// The createRelease script requires the Sentry CLI, which we need to mock so we
+// hook require to do this
+async function mock(mockedUri: string, stub: any) {
+  const { Module } = await import('module');
+  // @ts-expect-error test
+  Module._load_original = Module._load;
+  // @ts-expect-error test
+  Module._load = (uri, parent) => {
+    if (uri === mockedUri) return stub;
+    // @ts-expect-error test
+    return Module._load_original(uri, parent);
+  };
+}
+
+await vi.hoisted(async () =>
+  mock(
+    '@sentry/cli',
+    vi.fn().mockImplementation(() => {
+      return {
+        execute: vi.fn(),
+        releases: {
+          new: newMock,
+          uploadSourceMaps: uploadSourceMapsMock,
+          finalize: finalizeMock,
+          proposeVersion: proposeVersionMock,
+        },
+      };
+    }),
+  ),
+);
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { createRelease } = require('../../scripts/createRelease');

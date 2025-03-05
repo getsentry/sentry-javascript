@@ -56,6 +56,8 @@
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:tarball": "npm pack",
+    "test": "vitest run",
+    "test:watch": "vitest --watch",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage sentry-wasm-*.tgz",
     "fix": "eslint . --format stylish --fix",

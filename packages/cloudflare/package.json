@@ -51,11 +51,16 @@
   "dependencies": {
     "@sentry/core": "9.3.0"
   },
-  "optionalDependencies": {
+  "peerDependencies": {
     "@cloudflare/workers-types": "^4.x"
   },
+  "peerDependenciesMeta": {
+    "@cloudflare/workers-types": {
+      "optional": true
+    }
+  },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20240725.0",
+    "@cloudflare/workers-types": "4.20240725.0",
     "@types/node": "^18.19.1",
     "wrangler": "^3.67.1"
   },

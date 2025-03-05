@@ -12,7 +12,7 @@ jobs:
     permissions:
       pull-requests: write
       contents: write
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     if: |
       github.event.pull_request.merged == true
       && github.event.pull_request.author_association != 'COLLABORATOR'
@@ -36,7 +36,7 @@ jobs:
           author_association: ${{ github.event.pull_request.author_association }}
 
       - name: Create PR with changes
-        uses: peter-evans/create-pull-request@67ccf781d68cd99b580ae25a5c18a1cc84ffff1f
+        uses: peter-evans/create-pull-request@dd2324fc52d5d43c699a5636bcf19fceaa70c284
         with:
           # This token is scoped to Daniel Griesser
           # If we used the default GITHUB_TOKEN, the resulting PR would not trigger CI :(

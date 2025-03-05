@@ -3,6 +3,7 @@
 export * from './config';
 export * from './client';
 export * from './server';
+export * from './common';
 
 import type { Client, Integration, Options, StackParser } from '@sentry/core';
 

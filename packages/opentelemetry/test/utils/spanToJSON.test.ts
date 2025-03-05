@@ -1,4 +1,6 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, spanToJSON } from '@sentry/core';
+import { describe, expect, it } from 'vitest';
+
 import { createSpan } from '../helpers/createSpan';
 
 describe('spanToJSON', () => {
