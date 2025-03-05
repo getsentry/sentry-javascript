@@ -85,8 +85,8 @@ function copyFunctionNameAndMetadata({
   originalMethod,
   descriptor,
 }: {
-  originalMethod: (...args: unknown[]) => Promise<unknown> | unknown;
   descriptor: PropertyDescriptor;
+  originalMethod: (...args: unknown[]) => unknown;
 }): void {
   // preserve the original name on the decorated function
   Object.defineProperty(descriptor.value, 'name', {
