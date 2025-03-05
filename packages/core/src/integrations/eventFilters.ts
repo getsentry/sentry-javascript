@@ -213,7 +213,7 @@ function _getEventFilterUrl(event: Event): string | null {
     // The root always comes last in linked exceptions
     const rootException = [...(event.exception?.values ?? [])]
       .reverse()
-      ?.find(value => value.mechanism?.parent_id === undefined && value.stacktrace?.frames?.length);
+      .find(value => value.mechanism?.parent_id === undefined && value.stacktrace?.frames?.length);
     const frames = rootException?.stacktrace?.frames;
     return frames ? _getLastValidUrl(frames) : null;
   } catch (oO) {
