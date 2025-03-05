@@ -20,6 +20,9 @@ export const SentryCron = (monitorSlug: string, monitorConfig?: MonitorConfig): 
         monitorConfig,
       );
     };
+
+    copyFunctionNameAndMetadata({ originalMethod, descriptor });
+
     return descriptor;
   };
 };
@@ -28,7 +31,7 @@ export const SentryCron = (monitorSlug: string, monitorConfig?: MonitorConfig): 
  * A decorator usable to wrap arbitrary functions with spans.
  */
 export function SentryTraced(op: string = 'function') {
-  return function (target: unknown, propertyKey: string, descriptor: PropertyDescriptor) {
+  return function (_target: unknown, propertyKey: string, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value as (...args: unknown[]) => Promise<unknown> | unknown; // function can be sync or async
 
     descriptor.value = function (...args: unknown[]) {
@@ -43,13 +46,7 @@ export function SentryTraced(op: string = 'function') {
       );
     };
 
-    // preserve the original name on the decorated function
-    Object.defineProperty(descriptor.value, 'name', {
-      value: originalMethod.name,
-      configurable: true,
-      enumerable: true,
-      writable: true,
-    });
+    copyFunctionNameAndMetadata({ originalMethod, descriptor });
 
     return descriptor;
   };
@@ -71,6 +68,40 @@ export function SentryExceptionCaptured() {
       return originalCatch.apply(this, [exception, host, ...args]);
     };
 
+    copyFunctionNameAndMetadata({ originalMethod: originalCatch, descriptor });
+
     return descriptor;
   };
+}
+
+/**
+ * Copies the function name and metadata from the original method to the decorated method.
+ * This ensures that the decorated method maintains the same name and metadata as the original.
+ *
+ * @param {Function} params.originalMethod - The original method being decorated
+ * @param {PropertyDescriptor} params.descriptor - The property descriptor containing the decorated method
+ */
+function copyFunctionNameAndMetadata({
+  originalMethod,
+  descriptor,
+}: {
+  originalMethod: (...args: unknown[]) => Promise<unknown> | unknown;
+  descriptor: PropertyDescriptor;
+}): void {
+  // preserve the original name on the decorated function
+  Object.defineProperty(descriptor.value, 'name', {
+    value: originalMethod.name,
+    configurable: true,
+    enumerable: true,
+    writable: true,
+  });
+
+  // copy metadata
+  if (typeof Reflect !== 'undefined' && typeof Reflect.getMetadataKeys === 'function') {
+    const originalMetaData = Reflect.getMetadataKeys(originalMethod);
+    for (const key of originalMetaData) {
+      const value = Reflect.getMetadata(key, originalMethod);
+      Reflect.defineMetadata(key, value, descriptor.value);
+    }
+  }
 }
