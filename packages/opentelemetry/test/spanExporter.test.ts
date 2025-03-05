@@ -1,5 +1,7 @@
 import { ATTR_HTTP_RESPONSE_STATUS_CODE } from '@opentelemetry/semantic-conventions';
-import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_OP, startInactiveSpan } from '@sentry/core';
+import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_OP, startInactiveSpan, startSpanManual } from '@sentry/core';
+import { describe, afterEach, beforeEach, expect, it } from 'vitest';
+
 import { createTransactionForOtelSpan } from '../src/spanExporter';
 import { cleanupOtel, mockSdkInit } from './helpers/mockSdkInit';
 
@@ -10,8 +12,8 @@ describe('createTransactionForOtelSpan', () => {
     });
   });
 
-  afterEach(() => {
-    cleanupOtel();
+  afterEach(async () => {
+    await cleanupOtel();
   });
 
   it('works with a basic span', () => {
@@ -107,5 +109,62 @@ describe('createTransactionForOtelSpan', () => {
       type: 'transaction',
       transaction_info: { source: 'custom' },
     });
+  });
+
+  it('adds span link to the trace context when adding with addLink()', () => {
+    const span = startInactiveSpan({ name: 'parent1' });
+    span.end();
+
+    startSpanManual({ name: 'rootSpan' }, rootSpan => {
+      rootSpan.addLink({ context: span.spanContext(), attributes: { 'sentry.link.type': 'previous_trace' } });
+      rootSpan.end();
+
+      const prevTraceId = span.spanContext().traceId;
+      const prevSpanId = span.spanContext().spanId;
+      const event = createTransactionForOtelSpan(rootSpan as any);
+
+      expect(event.contexts?.trace).toEqual(
+        expect.objectContaining({
+          links: [
+            expect.objectContaining({
+              attributes: { 'sentry.link.type': 'previous_trace' },
+              sampled: true,
+              trace_id: expect.stringMatching(prevTraceId),
+              span_id: expect.stringMatching(prevSpanId),
+            }),
+          ],
+        }),
+      );
+    });
+  });
+
+  it('adds span link to the trace context when linked in span options', () => {
+    const span = startInactiveSpan({ name: 'parent1' });
+
+    const prevTraceId = span.spanContext().traceId;
+    const prevSpanId = span.spanContext().spanId;
+
+    const linkedSpan = startInactiveSpan({
+      name: 'parent2',
+      links: [{ context: span.spanContext(), attributes: { 'sentry.link.type': 'previous_trace' } }],
+    });
+
+    span.end();
+    linkedSpan.end();
+
+    const event = createTransactionForOtelSpan(linkedSpan as any);
+
+    expect(event.contexts?.trace).toEqual(
+      expect.objectContaining({
+        links: [
+          expect.objectContaining({
+            attributes: { 'sentry.link.type': 'previous_trace' },
+            sampled: true,
+            trace_id: expect.stringMatching(prevTraceId),
+            span_id: expect.stringMatching(prevSpanId),
+          }),
+        ],
+      }),
+    );
   });
 });

@@ -1,5 +1,6 @@
 /* eslint-disable deprecation/deprecation */
 import { SEMATTRS_HTTP_METHOD, SEMATTRS_HTTP_URL } from '@opentelemetry/semantic-conventions';
+import { describe, expect, it } from 'vitest';
 
 import { getRequestSpanData } from '../../src/utils/getRequestSpanData';
 import { createSpan } from '../helpers/createSpan';

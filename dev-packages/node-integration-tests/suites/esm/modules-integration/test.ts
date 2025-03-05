@@ -1,3 +1,4 @@
+import { afterAll, describe, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
 afterAll(() => {
@@ -5,7 +6,7 @@ afterAll(() => {
 });
 
 describe('modulesIntegration', () => {
-  test('does not crash ESM setups', done => {
-    createRunner(__dirname, 'app.mjs').ensureNoErrorOutput().start(done);
+  test('does not crash ESM setups', async () => {
+    await createRunner(__dirname, 'app.mjs').ensureNoErrorOutput().start().completed();
   });
 });

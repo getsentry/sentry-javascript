@@ -1,3 +1,5 @@
+import { describe, expect, it } from 'vitest';
+
 import { groupSpansWithParents } from '../../src/utils/groupSpansWithParents';
 import { createSpan } from '../helpers/createSpan';
 

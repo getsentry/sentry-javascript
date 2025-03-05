@@ -1,4 +1,5 @@
 import type { Span } from '@opentelemetry/api';
+import { describe, expect, it } from 'vitest';
 
 import { spanHasAttributes, spanHasEvents, spanHasKind, spanHasParentId } from '../../src/utils/spanTypes';
 

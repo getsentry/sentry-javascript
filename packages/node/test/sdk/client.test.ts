@@ -4,6 +4,7 @@ import * as opentelemetryInstrumentationPackage from '@opentelemetry/instrumenta
 import type { Event, EventHint } from '@sentry/core';
 import { SDK_VERSION, Scope, getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/core';
 import { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
+import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
 import { NodeClient } from '../../src';
 import { getDefaultNodeClientOptions } from '../helpers/getDefaultNodeClientOptions';
 import { cleanupOtel } from '../helpers/mockSdkInit';
@@ -18,7 +19,7 @@ describe('NodeClient', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
     cleanupOtel();
   });
 
@@ -162,7 +163,7 @@ describe('NodeClient', () => {
       });
       const client = new NodeClient(options);
 
-      const sendEnvelopeSpy = jest.spyOn(client, 'sendEnvelope');
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
 
       const id = client.captureCheckIn(
         { monitorSlug: 'foo', status: 'in_progress' },
@@ -232,7 +233,7 @@ describe('NodeClient', () => {
       });
       const client = new NodeClient(options);
 
-      const sendEnvelopeSpy = jest.spyOn(client, 'sendEnvelope');
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
 
       const id = client.captureCheckIn({ monitorSlug: 'heartbeat-monitor', status: 'ok' });
 
@@ -258,7 +259,7 @@ describe('NodeClient', () => {
       const options = getDefaultNodeClientOptions({ serverName: 'bar', enabled: false });
       const client = new NodeClient(options);
 
-      const sendEnvelopeSpy = jest.spyOn(client, 'sendEnvelope');
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
 
       client.captureCheckIn({ monitorSlug: 'foo', status: 'in_progress' });
 
@@ -267,7 +268,7 @@ describe('NodeClient', () => {
   });
 
   it('registers instrumentations provided with `openTelemetryInstrumentations`', () => {
-    const registerInstrumentationsSpy = jest
+    const registerInstrumentationsSpy = vi
       .spyOn(opentelemetryInstrumentationPackage, 'registerInstrumentations')
       .mockImplementationOnce(() => () => undefined);
     const instrumentationsArray = ['foobar'] as unknown as opentelemetryInstrumentationPackage.Instrumentation[];

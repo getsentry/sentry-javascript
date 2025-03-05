@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 const packageJson = require('../package.json');
 
@@ -108,17 +108,47 @@ test('Should set not_found status for server actions calling notFound()', async 
   const nextjsMajor = Number(nextjsVersion.split('.')[0]);
   test.skip(!isNaN(nextjsMajor) && nextjsMajor < 14, 'only applies to nextjs apps >= version 14');
 
-  const serverComponentTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
+  const serverActionTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
     return transactionEvent?.transaction === 'serverAction/notFoundServerAction';
   });
 
   await page.goto('/server-action');
   await page.getByText('Run NotFound Action').click();
 
-  const transactionEvent = await serverComponentTransactionPromise;
+  const transactionEvent = await serverActionTransactionPromise;
 
   expect(transactionEvent).toBeDefined();
   expect(transactionEvent.contexts?.trace?.status).toBe('not_found');
+});
+
+test('Should not capture "NEXT_REDIRECT" control-flow errors for server actions calling redirect()', async ({
+  page,
+}) => {
+  const nextjsVersion = packageJson.dependencies.next;
+  const nextjsMajor = Number(nextjsVersion.split('.')[0]);
+  test.skip(!isNaN(nextjsMajor) && nextjsMajor < 14, 'only applies to nextjs apps >= version 14');
+
+  const serverActionTransactionPromise = waitForTransaction('nextjs-app-dir', transactionEvent => {
+    return transactionEvent?.transaction === 'serverAction/redirectServerAction';
+  });
+
+  let controlFlowErrorCaptured = false;
+  waitForError('nextjs-app-dir', errorEvent => {
+    if (errorEvent.exception?.values?.[0].value === 'NEXT_REDIRECT') {
+      controlFlowErrorCaptured = true;
+    }
+
+    return false;
+  });
+
+  await page.goto('/server-action');
+  await page.getByText('Run Redirect Action').click();
+
+  const serverActionTransactionEvent = await serverActionTransactionPromise;
+  expect(serverActionTransactionEvent).toBeDefined();
+
+  // By the time the server action span finishes the error should already have been sent
+  expect(controlFlowErrorCaptured).toBe(false);
 });
 
 test('Will not include spans in pageload transaction with faulty timestamps for slow loading pages', async ({

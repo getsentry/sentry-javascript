@@ -5,7 +5,7 @@ import {
   functionToStringIntegration,
   getCurrentScope,
   getIntegrationsToSetup,
-  hasTracingEnabled,
+  hasSpansEnabled,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
   logger,
@@ -51,6 +51,8 @@ function getCjsOnlyIntegrations(): Integration[] {
 export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
   return [
     // Common
+    // TODO(v10): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
+    // eslint-disable-next-line deprecation/deprecation
     inboundFiltersIntegration(),
     functionToStringIntegration(),
     linkedErrorsIntegration(),
@@ -80,7 +82,7 @@ export function getDefaultIntegrations(options: Options): Integration[] {
     // Note that this means that without tracing enabled, e.g. `expressIntegration()` will not be added
     // This means that generally request isolation will work (because that is done by httpIntegration)
     // But `transactionName` will not be set automatically
-    ...(hasTracingEnabled(options) ? getAutoPerformanceIntegrations() : []),
+    ...(hasSpansEnabled(options) ? getAutoPerformanceIntegrations() : []),
   ];
 }
 
@@ -175,7 +177,7 @@ export function validateOpenTelemetrySetup(): void {
 
   const required: ReturnType<typeof openTelemetrySetupCheck> = ['SentryContextManager', 'SentryPropagator'];
 
-  if (hasTracingEnabled()) {
+  if (hasSpansEnabled()) {
     required.push('SentrySpanProcessor');
   }
 
@@ -212,7 +214,6 @@ function getClientOptions(
   const tracesSampleRate = getTracesSampleRate(options.tracesSampleRate);
 
   const baseOptions = dropUndefinedKeys({
-    transport: makeNodeTransport,
     dsn: process.env.SENTRY_DSN,
     environment: process.env.SENTRY_ENVIRONMENT,
     sendClientReports: true,
@@ -221,6 +222,7 @@ function getClientOptions(
   const overwriteOptions = dropUndefinedKeys({
     release,
     tracesSampleRate,
+    transport: options.transport || makeNodeTransport,
   });
 
   const mergedOptions = {

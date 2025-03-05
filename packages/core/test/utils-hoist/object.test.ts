@@ -4,6 +4,7 @@
 
 import type { WrappedFunction } from '../../src/types-hoist';
 
+import { describe, expect, it, test, vi } from 'vitest';
 import {
   addNonEnumerableProperty,
   dropUndefinedKeys,
@@ -22,7 +23,7 @@ describe('fill()', () => {
       },
     };
     const name = 'foo';
-    const replacement = jest.fn().mockImplementationOnce(cb => cb);
+    const replacement = vi.fn().mockImplementationOnce(cb => cb);
 
     fill(source, name, replacement);
 
@@ -43,7 +44,7 @@ describe('fill()', () => {
 
     expect(source.prop()).toEqual(41);
 
-    const replacement = jest.fn().mockImplementation(() => {
+    const replacement = vi.fn().mockImplementation(() => {
       return () => 42;
     });
     fill(source, 'prop', replacement);
@@ -58,7 +59,7 @@ describe('fill()', () => {
       foo: (): number => 42,
     };
     const name = 'foo';
-    const replacement = jest.fn().mockImplementationOnce(cb => {
+    const replacement = vi.fn().mockImplementationOnce(cb => {
       expect(cb).toBe(source.foo);
       return () => 1337;
     });
@@ -75,12 +76,12 @@ describe('fill()', () => {
       foo: (): number => 42,
     };
     const name = 'foo';
-    const replacement = jest.fn().mockImplementationOnce(cb => {
+    const replacement = vi.fn().mockImplementationOnce(cb => {
       expect(cb).toBe(source.foo);
       return () => 1337;
     });
 
-    const replacement2 = jest.fn().mockImplementationOnce(cb => {
+    const replacement2 = vi.fn().mockImplementationOnce(cb => {
       expect(cb).toBe(source.foo);
       return () => 1338;
     });
@@ -374,7 +375,7 @@ describe('addNonEnumerableProperty', () => {
   });
 
   it('works with a function', () => {
-    const func = jest.fn();
+    const func = vi.fn();
     addNonEnumerableProperty(func as any, 'foo', 'bar');
     expect((func as any).foo).toBe('bar');
     func();
@@ -409,8 +410,8 @@ describe('addNonEnumerableProperty', () => {
 
 describe('markFunctionWrapped', () => {
   it('works with a function', () => {
-    const originalFunc = jest.fn();
-    const wrappedFunc = jest.fn();
+    const originalFunc = vi.fn();
+    const wrappedFunc = vi.fn();
     markFunctionWrapped(wrappedFunc, originalFunc);
 
     expect((wrappedFunc as WrappedFunction).__sentry_original__).toBe(originalFunc);
@@ -422,8 +423,8 @@ describe('markFunctionWrapped', () => {
   });
 
   it('works with a frozen original function', () => {
-    const originalFunc = Object.freeze(jest.fn());
-    const wrappedFunc = jest.fn();
+    const originalFunc = Object.freeze(vi.fn());
+    const wrappedFunc = vi.fn();
     markFunctionWrapped(wrappedFunc, originalFunc);
 
     // cannot wrap because it is frozen, but we do not error!
@@ -436,8 +437,8 @@ describe('markFunctionWrapped', () => {
   });
 
   it('works with a frozen wrapped function', () => {
-    const originalFunc = Object.freeze(jest.fn());
-    const wrappedFunc = Object.freeze(jest.fn());
+    const originalFunc = Object.freeze(vi.fn());
+    const wrappedFunc = Object.freeze(vi.fn());
     markFunctionWrapped(wrappedFunc, originalFunc);
 
     // Skips adding the property, but also doesn't error

@@ -74,7 +74,9 @@ export {
   requestDataIntegration,
   fsIntegration,
   functionToStringIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   inboundFiltersIntegration,
+  eventFiltersIntegration,
   linkedErrorsIntegration,
   setMeasurement,
   getActiveSpan,
@@ -129,6 +131,7 @@ export {
   zodErrorsIntegration,
   profiler,
   amqplibIntegration,
+  vercelAIIntegration,
 } from '@sentry/node';
 
 export {
@@ -140,6 +143,7 @@ export {
 
 export type { BunOptions } from './types';
 
+// eslint-disable-next-line deprecation/deprecation
 export { BunClient } from './client';
 export { getDefaultIntegrations, init } from './sdk';
 export { bunServerIntegration } from './integrations/bunserver';

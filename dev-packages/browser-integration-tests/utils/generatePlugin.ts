@@ -36,6 +36,7 @@ const IMPORTED_INTEGRATION_CDN_BUNDLE_PATHS: Record<string, string> = {
   reportingObserverIntegration: 'reportingobserver',
   feedbackIntegration: 'feedback',
   moduleMetadataIntegration: 'modulemetadata',
+  graphqlClientIntegration: 'graphqlclient',
   // technically, this is not an integration, but let's add it anyway for simplicity
   makeMultiplexedTransport: 'multiplexedtransport',
 };

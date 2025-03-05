@@ -11,7 +11,7 @@ sentryTest('should create spans for fetch requests', async ({ getLocalTestUrl, p
     sentryTest.skip();
   }
 
-  await page.route('http://example.com/*', route => route.fulfill({ body: 'ok' }));
+  await page.route('http://sentry-test-site.example/*', route => route.fulfill({ body: 'ok' }));
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
@@ -24,7 +24,7 @@ sentryTest('should create spans for fetch requests', async ({ getLocalTestUrl, p
 
   requestSpans?.forEach((span, index) =>
     expect(span).toMatchObject({
-      description: `GET http://example.com/${index}`,
+      description: `GET http://sentry-test-site.example/${index}`,
       parent_span_id: tracingEvent.contexts?.trace?.span_id,
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       start_timestamp: expect.any(Number),
@@ -32,9 +32,9 @@ sentryTest('should create spans for fetch requests', async ({ getLocalTestUrl, p
       trace_id: tracingEvent.contexts?.trace?.trace_id,
       data: {
         'http.method': 'GET',
-        'http.url': `http://example.com/${index}`,
-        url: `http://example.com/${index}`,
-        'server.address': 'example.com',
+        'http.url': `http://sentry-test-site.example/${index}`,
+        url: `http://sentry-test-site.example/${index}`,
+        'server.address': 'sentry-test-site.example',
         type: 'fetch',
       },
     }),
@@ -46,14 +46,14 @@ sentryTest('should attach `sentry-trace` header to fetch requests', async ({ get
     sentryTest.skip();
   }
 
-  await page.route('http://example.com/*', route => route.fulfill({ body: 'ok' }));
+  await page.route('http://sentry-test-site.example/*', route => route.fulfill({ body: 'ok' }));
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   const requests = (
     await Promise.all([
       page.goto(url),
-      Promise.all([0, 1, 2].map(idx => page.waitForRequest(`http://example.com/${idx}`))),
+      Promise.all([0, 1, 2].map(idx => page.waitForRequest(`http://sentry-test-site.example/${idx}`))),
     ])
   )[1];
 

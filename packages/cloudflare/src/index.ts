@@ -65,7 +65,9 @@ export {
   getSpanDescendants,
   continueTrace,
   functionToStringIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   inboundFiltersIntegration,
+  eventFiltersIntegration,
   linkedErrorsIntegration,
   requestDataIntegration,
   extraErrorDataIntegration,
@@ -96,3 +98,5 @@ export { getDefaultIntegrations } from './sdk';
 export { fetchIntegration } from './integrations/fetch';
 
 export { instrumentD1WithSentry } from './d1';
+
+export { setAsyncLocalStorageAsyncContextStrategy } from './async';

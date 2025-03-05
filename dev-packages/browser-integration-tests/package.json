@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/browser-integration-tests",
-  "version": "9.0.0-alpha.1",
+  "version": "9.3.0",
   "main": "index.js",
   "license": "MIT",
   "engines": {
@@ -41,8 +41,8 @@
   "dependencies": {
     "@babel/preset-typescript": "^7.16.7",
     "@playwright/test": "~1.50.0",
-    "@sentry-internal/rrweb": "2.31.0",
-    "@sentry/browser": "9.0.0-alpha.1",
+    "@sentry-internal/rrweb": "2.34.0",
+    "@sentry/browser": "9.3.0",
     "axios": "1.7.7",
     "babel-loader": "^8.2.2",
     "fflate": "0.8.2",

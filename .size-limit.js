@@ -47,14 +47,14 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration'),
     gzip: true,
-    limit: '75 KB',
+    limit: '75.2 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay) - with treeshaking flags',
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration'),
     gzip: true,
-    limit: '68 KB',
+    limit: '70 KB',
     modifyWebpackConfig: function (config) {
       const webpack = require('webpack');
       const TerserPlugin = require('terser-webpack-plugin');
@@ -210,7 +210,7 @@ module.exports = [
     import: createImport('init'),
     ignore: ['next/router', 'next/constants'],
     gzip: true,
-    limit: '40 KB',
+    limit: '41 KB',
   },
   // SvelteKit SDK (ESM)
   {

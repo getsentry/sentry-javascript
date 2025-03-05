@@ -1,11 +1,12 @@
+import { afterAll, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
 afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('should flush client reports automatically after the timeout interval', done => {
-  createRunner(__dirname, 'scenario.ts')
+test('should flush client reports automatically after the timeout interval', async () => {
+  await createRunner(__dirname, 'scenario.ts')
     .unignore('client_report')
     .expect({
       client_report: {
@@ -18,5 +19,6 @@ test('should flush client reports automatically after the timeout interval', don
         ],
       },
     })
-    .start(done);
+    .start()
+    .completed();
 });

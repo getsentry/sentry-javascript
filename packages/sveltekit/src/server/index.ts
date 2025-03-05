@@ -52,7 +52,9 @@ export {
   graphqlIntegration,
   hapiIntegration,
   httpIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   inboundFiltersIntegration,
+  eventFiltersIntegration,
   initOpenTelemetry,
   isInitialized,
   knexIntegration,
@@ -123,10 +125,11 @@ export * from '@sentry/node';
 // -------------------------
 // SvelteKit SDK exports:
 export { init } from './sdk';
-export { handleErrorWithSentry } from './handleError';
-export { wrapLoadWithSentry, wrapServerLoadWithSentry } from './load';
-export { sentryHandle } from './handle';
-export { wrapServerRouteWithSentry } from './serverRoute';
+export { handleErrorWithSentry } from '../server-common/handleError';
+export { wrapLoadWithSentry, wrapServerLoadWithSentry } from '../server-common/load';
+export { sentryHandle } from '../server-common/handle';
+export { initCloudflareSentryHandle } from './handle';
+export { wrapServerRouteWithSentry } from '../server-common/serverRoute';
 
 /**
  * Tracks the Svelte component's initialization and mounting operation as well as

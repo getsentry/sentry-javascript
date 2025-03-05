@@ -19,6 +19,7 @@ import type {
   SpanTimeInput,
   TraceContext,
 } from '../types-hoist';
+import type { SpanLink, SpanLinkJSON } from '../types-hoist/link';
 import { consoleSandbox } from '../utils-hoist/logger';
 import { addNonEnumerableProperty, dropUndefinedKeys } from '../utils-hoist/object';
 import { generateSpanId } from '../utils-hoist/propagationContext';
@@ -39,7 +40,7 @@ let hasShownSpanDropWarning = false;
  */
 export function spanToTransactionTraceContext(span: Span): TraceContext {
   const { spanId: span_id, traceId: trace_id } = span.spanContext();
-  const { data, op, parent_span_id, status, origin } = spanToJSON(span);
+  const { data, op, parent_span_id, status, origin, links } = spanToJSON(span);
 
   return dropUndefinedKeys({
     parent_span_id,
@@ -49,6 +50,7 @@ export function spanToTransactionTraceContext(span: Span): TraceContext {
     op,
     status,
     origin,
+    links,
   });
 }
 
@@ -79,6 +81,25 @@ export function spanToTraceHeader(span: Span): string {
   const { traceId, spanId } = span.spanContext();
   const sampled = spanIsSampled(span);
   return generateSentryTraceHeader(traceId, spanId, sampled);
+}
+
+/**
+ *  Converts the span links array to a flattened version to be sent within an envelope.
+ *
+ *  If the links array is empty, it returns `undefined` so the empty value can be dropped before it's sent.
+ */
+export function convertSpanLinksForEnvelope(links?: SpanLink[]): SpanLinkJSON[] | undefined {
+  if (links && links.length > 0) {
+    return links.map(({ context: { spanId, traceId, traceFlags, ...restContext }, attributes }) => ({
+      span_id: spanId,
+      trace_id: traceId,
+      sampled: traceFlags === TRACE_FLAG_SAMPLED,
+      attributes,
+      ...restContext,
+    }));
+  } else {
+    return undefined;
+  }
 }
 
 /**
@@ -124,7 +145,7 @@ export function spanToJSON(span: Span): SpanJSON {
 
   // Handle a span from @opentelemetry/sdk-base-trace's `Span` class
   if (spanIsOpenTelemetrySdkTraceBaseSpan(span)) {
-    const { attributes, startTime, name, endTime, parentSpanId, status } = span;
+    const { attributes, startTime, name, endTime, parentSpanId, status, links } = span;
 
     return dropUndefinedKeys({
       span_id,
@@ -138,6 +159,7 @@ export function spanToJSON(span: Span): SpanJSON {
       status: getStatusMessage(status),
       op: attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP],
       origin: attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined,
+      links: convertSpanLinksForEnvelope(links),
     });
   }
 
@@ -164,6 +186,7 @@ export interface OpenTelemetrySdkTraceBaseSpan extends Span {
   status: SpanStatus;
   endTime: SpanTimeInput;
   parentSpanId?: string;
+  links?: SpanLink[];
 }
 
 /**

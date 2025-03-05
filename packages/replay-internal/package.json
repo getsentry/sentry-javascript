@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/replay",
-  "version": "9.0.0-alpha.1",
+  "version": "9.3.0",
   "description": "User replays for Sentry",
   "main": "build/npm/cjs/index.js",
   "module": "build/npm/esm/index.js",
@@ -48,10 +48,12 @@
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build sentry-replay-*.tgz",
-    "fix": "run-s fix:biome fix:eslint",
+    "fix": "run-s fix:prettier fix:eslint",
     "fix:eslint": "eslint . --format stylish --fix",
-    "fix:biome": "biome check --apply .",
-    "lint": "eslint . --format stylish",
+    "fix:prettier": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "lint": "run-s lint:prettier lint:eslint",
+    "lint:eslint": "eslint . --format stylish",
+    "lint:prettier": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
     "test": "vitest run",
     "test:watch": "vitest --watch",
     "yalc:publish": "yalc publish --push --sig"
@@ -68,16 +70,16 @@
   "homepage": "https://docs.sentry.io/platforms/javascript/session-replay/",
   "devDependencies": {
     "@babel/core": "^7.17.5",
-    "@sentry-internal/replay-worker": "9.0.0-alpha.1",
-    "@sentry-internal/rrweb": "2.31.0",
-    "@sentry-internal/rrweb-snapshot": "2.31.0",
+    "@sentry-internal/replay-worker": "9.3.0",
+    "@sentry-internal/rrweb": "2.34.0",
+    "@sentry-internal/rrweb-snapshot": "2.34.0",
     "fflate": "0.8.2",
     "jest-matcher-utils": "^29.0.0",
     "jsdom-worker": "^0.2.1"
   },
   "dependencies": {
-    "@sentry-internal/browser-utils": "9.0.0-alpha.1",
-    "@sentry/core": "9.0.0-alpha.1"
+    "@sentry-internal/browser-utils": "9.3.0",
+    "@sentry/core": "9.3.0"
   },
   "engines": {
     "node": ">=18"

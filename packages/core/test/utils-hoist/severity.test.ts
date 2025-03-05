@@ -1,3 +1,4 @@
+import { describe, expect, test } from 'vitest';
 import { severityLevelFromString } from '../../src/utils-hoist/severity';
 
 describe('severityLevelFromString()', () => {

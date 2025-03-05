@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import type { ScopeData } from '../../../src';
 import { startInactiveSpan } from '../../../src';
 import type { Attachment, Breadcrumb, Event, EventProcessor, EventType } from '../../../src/types-hoist';

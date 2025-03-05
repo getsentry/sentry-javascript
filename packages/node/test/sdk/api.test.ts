@@ -1,9 +1,10 @@
 import type { Event } from '@sentry/core';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { getActiveSpan, getClient, startInactiveSpan, startSpan, withActiveSpan } from '../../src';
 import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
 
 afterEach(() => {
-  jest.restoreAllMocks();
+  vi.restoreAllMocks();
   cleanupOtel();
 });
 
@@ -21,7 +22,7 @@ describe('withActiveSpan()', () => {
   });
 
   it('should create child spans when calling startSpan within the callback', async () => {
-    const beforeSendTransaction = jest.fn(() => null);
+    const beforeSendTransaction = vi.fn(() => null);
     mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
     const client = getClient();
 
@@ -66,7 +67,7 @@ describe('withActiveSpan()', () => {
 
   it('when `null` is passed, should start a new trace for new spans', async () => {
     const transactions: Event[] = [];
-    const beforeSendTransaction = jest.fn((event: Event) => {
+    const beforeSendTransaction = vi.fn((event: Event) => {
       transactions.push(event);
       return null;
     });

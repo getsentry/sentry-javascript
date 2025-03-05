@@ -1,11 +1,12 @@
+import { afterAll, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
 afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('should capture an empty object', done => {
-  createRunner(__dirname, 'scenario.ts')
+test('should capture an empty object', async () => {
+  await createRunner(__dirname, 'scenario.ts')
     .expect({
       event: {
         exception: {
@@ -22,5 +23,6 @@ test('should capture an empty object', done => {
         },
       },
     })
-    .start(done);
+    .start()
+    .completed();
 });

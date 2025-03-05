@@ -122,6 +122,12 @@ packages:
     unpublish: $all
     # proxy: npmjs # Don't proxy for E2E tests!
 
+  '@sentry/react-router':
+    access: $all
+    publish: $all
+    unpublish: $all
+    # proxy: npmjs # Don't proxy for E2E tests!
+
   '@sentry/remix':
     access: $all
     publish: $all
@@ -159,6 +165,12 @@ packages:
     # proxy: npmjs # Don't proxy for E2E tests!
 
   '@sentry/sveltekit':
+    access: $all
+    publish: $all
+    unpublish: $all
+    # proxy: npmjs # Don't proxy for E2E tests!
+
+  '@sentry/tanstackstart':
     access: $all
     publish: $all
     unpublish: $all

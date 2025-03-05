@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { getClientIPAddress } from '../../../src/vendor/getIpAddress';
 
 describe('getClientIPAddress', () => {

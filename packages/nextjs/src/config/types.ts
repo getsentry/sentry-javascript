@@ -363,6 +363,11 @@ export type SentryBuildOptions = {
      * Whether the component name annotate plugin should be enabled or not.
      */
     enabled?: boolean;
+
+    /**
+     * A list of strings representing the names of components to ignore. The plugin will not apply `data-sentry` annotations on the DOM element for these components.
+     */
+    ignoredComponents?: string[];
   };
 
   /**
@@ -434,6 +439,15 @@ export type SentryBuildOptions = {
    * Defaults to `false`.
    */
   automaticVercelMonitors?: boolean;
+
+  /**
+   * Contains a set of experimental flags that might change in future releases. These flags enable
+   * features that are still in development and may be modified, renamed, or removed without notice.
+   * Use with caution in production environments.
+   */
+  _experimental?: Partial<{
+    thirdPartyOriginStackFrames: boolean;
+  }>;
 };
 
 export type NextConfigFunction = (
