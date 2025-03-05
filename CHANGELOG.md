@@ -10,6 +10,36 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 9.5.0-alpha.0
+
+This is an alpha release that includes experimental functionality for the new logs API in Sentry. Support for these methods are only avaliable in the browser and core SDKs.
+
+- feat(logs): Add experimental user-callable logging methods (#15442)
+
+Logging is gated by an experimental option, `_experiments.enableLogs`.
+
+```js
+Sentry.init({
+  _experiments: {
+    enableLogs: true,
+  },
+});
+```
+
+These API are exposed in the `Sentry._experiment_log` namespace.
+
+On the high level, there are functions for each of the logging severity levels `critical`, `fatal`, `error`, `warn`, `info`, `debug`, `trace`. These functions are tagged template functions, so they use a special string template syntax that we use to parameterize functions accordingly.
+
+```js
+Sentry._experiment_log.info`user ${username} just bought ${item}!`;
+```
+
+If you want more custom usage, we also expose a `captureLog` method that allows you to pass custom attributes, but it's less easy to use than the tagged template functions.
+
+```js
+Sentry._experiment_log.captureLog('error', 'Hello world!', { 'user.id': 123 });
+```
+
 ## 9.4.0
 
 - feat(core): Add types for logs protocol and envelope ([#15530](https://github.com/getsentry/sentry-javascript/pull/15530))
