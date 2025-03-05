@@ -33,7 +33,7 @@
     "./cloudflare": {
       "import": "./build/esm/cloudflare/index.js",
       "require": "./build/cjs/cloudflare/index.js",
-      "types": "./build/types/cloudflare/index.types.d.ts",
+      "types": "./build/types/cloudflare/index.d.ts",
       "default": "./build/esm/cloudflare/index.js"
     },
     "./import": {
