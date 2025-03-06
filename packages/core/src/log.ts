@@ -7,7 +7,7 @@ import type { ParameterizedString } from './types-hoist';
 import type { DynamicSamplingContext, LogEnvelope, LogItem } from './types-hoist/envelope';
 import type { Log, LogAttribute, LogSeverityLevel } from './types-hoist/log';
 import { createEnvelope, dropUndefinedKeys, dsnToString, isParameterizedString, logger } from './utils-hoist';
-import { getActiveSpan, spanToJSON } from './utils/spanUtils';
+import { getActiveSpan } from './utils/spanUtils';
 
 const LOG_BUFFER_MAX_LENGTH = 25;
 
@@ -89,9 +89,15 @@ function addToLogBuffer(client: Client, log: Log, scope: Scope): void {
     void client.sendEnvelope(envelope);
   }
 
+  function sendAndClearLogs(): void {
+    if (GLOBAL_LOG_BUFFER.length > 0) {
+      sendLogs(GLOBAL_LOG_BUFFER);
+      GLOBAL_LOG_BUFFER = [];
+    }
+  }
+
   if (GLOBAL_LOG_BUFFER.length >= LOG_BUFFER_MAX_LENGTH) {
-    sendLogs(GLOBAL_LOG_BUFFER);
-    GLOBAL_LOG_BUFFER = [];
+    sendAndClearLogs();
   } else {
     GLOBAL_LOG_BUFFER.push(log);
   }
@@ -99,12 +105,18 @@ function addToLogBuffer(client: Client, log: Log, scope: Scope): void {
   // this is the first time logs have been enabled, let's kick off an interval to flush them
   // we should only do this once.
   if (!isFlushingLogs) {
-    setInterval(() => {
-      if (GLOBAL_LOG_BUFFER.length > 0) {
-        sendLogs(GLOBAL_LOG_BUFFER);
-        GLOBAL_LOG_BUFFER = [];
-      }
+    client.on('flush', () => {
+      sendAndClearLogs();
+    });
+
+    const flushTimer = setInterval(() => {
+      sendAndClearLogs();
     }, 5000);
+
+    // We need to unref the timer in node.js, otherwise the node process never exit.
+    if (typeof flushTimer !== 'number' && flushTimer.unref) {
+      flushTimer.unref();
+    }
   }
   isFlushingLogs = true;
 }
@@ -164,7 +176,7 @@ export function captureLog({
 
   const span = getActiveSpan();
   if (span) {
-    logAttributes['sentry.trace.parent_span_id'] = spanToJSON(span).parent_span_id;
+    logAttributes['sentry.trace.parent_span_id'] = span.spanContext().spanId;
   }
 
   if (release) {
