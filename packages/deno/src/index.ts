@@ -83,6 +83,7 @@ export {
   spanToTraceHeader,
   spanToBaggageHeader,
   updateSpanName,
+  _experiment_log,
 } from '@sentry/core';
 
 export { DenoClient } from './client';

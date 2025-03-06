@@ -12,7 +12,6 @@ import type {
   Extras,
   FinishedCheckIn,
   MonitorConfig,
-  ParameterizedString,
   Primitive,
   Session,
   SessionContext,
@@ -341,7 +340,7 @@ export function captureSession(end: boolean = false): void {
 /**
  * A namespace for experimental logging functions.
  *
- * @experimental Will be removed in future versions. Do not use.
+ * @experimental Will be removed in future versions. Use with caution.
  */
 export const _experiment_log = {
   /**

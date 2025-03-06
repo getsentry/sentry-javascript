@@ -82,11 +82,22 @@ function valueToAttribute(key: string, value: unknown): LogAttribute {
   }
 }
 
+let hasRegisteredFlushHook = false;
+
 function addToLogBuffer(client: Client, log: Log, scope: Scope): void {
   function sendLogs(flushedLogs: Log[]): void {
     const envelope = createLogEnvelope(flushedLogs, client, scope);
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
     void client.sendEnvelope(envelope);
+  }
+
+  // Only register the hook once
+  if (!hasRegisteredFlushHook) {
+    client.on('flush', () => {
+      sendLogs(GLOBAL_LOG_BUFFER);
+      GLOBAL_LOG_BUFFER = [];
+    });
+    hasRegisteredFlushHook = true;
   }
 
   if (GLOBAL_LOG_BUFFER.length >= LOG_BUFFER_MAX_LENGTH) {
@@ -99,12 +110,17 @@ function addToLogBuffer(client: Client, log: Log, scope: Scope): void {
   // this is the first time logs have been enabled, let's kick off an interval to flush them
   // we should only do this once.
   if (!isFlushingLogs) {
-    setInterval(() => {
+    const flushTimer = setInterval(() => {
       if (GLOBAL_LOG_BUFFER.length > 0) {
         sendLogs(GLOBAL_LOG_BUFFER);
         GLOBAL_LOG_BUFFER = [];
       }
     }, 5000);
+
+    // We need to unref the timer in node.js, otherwise the node process never exit.
+    if (typeof flushTimer !== 'number' && flushTimer.unref) {
+      flushTimer.unref();
+    }
   }
   isFlushingLogs = true;
 }
