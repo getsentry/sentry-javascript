@@ -7,6 +7,7 @@ import type { ParameterizedString } from './types-hoist';
 import type { DynamicSamplingContext, LogEnvelope, LogItem } from './types-hoist/envelope';
 import type { Log, LogAttribute, LogSeverityLevel } from './types-hoist/log';
 import { createEnvelope, dropUndefinedKeys, dsnToString, isParameterizedString, logger } from './utils-hoist';
+import { getActiveSpan, spanToJSON } from './utils/spanUtils';
 
 const LOG_BUFFER_MAX_LENGTH = 25;
 
@@ -159,6 +160,11 @@ export function captureLog({
         logAttributes[`sentry.message.parameters.${index}`] = value;
       });
     }
+  }
+
+  const span = getActiveSpan();
+  if (span) {
+    logAttributes['sentry.trace.parent_span_id'] = spanToJSON(span).parent_span_id;
   }
 
   if (release) {
