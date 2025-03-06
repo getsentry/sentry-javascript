@@ -81,8 +81,6 @@ describe('getAdapterOutputDir', () => {
     },
   );
 
-
-
   it('falls back to the default out dir for all other adapters if outdir is not specified in the config', async () => {
     const outputDir = await getAdapterOutputDir({ kit: {} }, 'vercel');
     expect(outputDir).toEqual('.svelte-kit/output');
