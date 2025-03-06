@@ -11,6 +11,7 @@ import type { NodeClientOptions } from '../../types';
 import { addOriginToSpan } from '../../utils/addOriginToSpan';
 import { getRequestUrl } from '../../utils/getRequestUrl';
 import { SentryHttpInstrumentation } from './SentryHttpInstrumentation';
+import { SentryHttpInstrumentationBeforeOtel } from './SentryHttpInstrumentationBeforeOtel';
 
 const INTEGRATION_NAME = 'Http';
 
@@ -97,6 +98,10 @@ interface HttpOptions {
   };
 }
 
+const instrumentSentryHttpBeforeOtel = generateInstrumentOnce(`${INTEGRATION_NAME}.sentry-before-otel`, () => {
+  return new SentryHttpInstrumentationBeforeOtel();
+});
+
 const instrumentSentryHttp = generateInstrumentOnce<{
   breadcrumbs?: HttpOptions['breadcrumbs'];
   ignoreOutgoingRequests?: HttpOptions['ignoreOutgoingRequests'];
@@ -143,6 +148,8 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
+      instrumentSentryHttpBeforeOtel();
+
       const instrumentSpans = _shouldInstrumentSpans(options, getClient<NodeClient>()?.getOptions());
 
       // This is the "regular" OTEL instrumentation that emits spans
