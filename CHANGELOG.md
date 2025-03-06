@@ -10,6 +10,66 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 9.6.0-alpha.0
+
+This is an alpha release that includes experimental functionality for the new logs API in Sentry. All experimental features are subject to breaking changes.
+
+- feat(logs): Add experimental user-callable logging methods (#15442)
+
+Logging is gated by an experimental option, `_experiments.enableLogs`.
+
+```js
+Sentry.init({
+  _experiments: {
+    // Enable logs to be sent to Sentry.
+    enableLogs: true,
+  },
+});
+```
+
+These API are exposed in the `Sentry._experiment_log` namespace. In the future the `_experiment_log` namespace will be removed and logging functions will be moved into a more stable namespace.
+
+There are functions for each of the logging severity levels `fatal`, `error`, `warn`, `info`, `debug`, `trace`. There is also a `log` function that is an alias to `info`.
+
+```js
+Sentry._experiment_log.info('Adding item to cart', { item: 'sneakers' });
+
+Sentry._experiment_log.warn('User performed invalid operation', { userId: '23423874', operation: 'open-file' });
+```
+
+If you want to do structured logging, you'll need to use the `fmt` helper exposed in the `Sentry._experiment_log` namespace.
+
+```js
+const { fmt } = Sentry._experiment_log;
+
+Sentry._experiment_log.info(fmt`user ${username} just bought ${item}!`);
+```
+
+SDKs that support the Alpha Logging APIs:
+
+- `@sentry/astro`
+- `@sentry/aws-serverless`
+- `@sentry/browser`
+- `@sentry/bun`
+- `@sentry/cloudflare`
+- `@sentry/core`
+- `@sentry/deno`
+- `@sentry/ember`
+- `@sentry/gatsby`
+- `@sentry/google-cloud-serverless`
+- `@sentry/nestjs`
+- `@sentry/nextjs`
+- `@sentry/node`
+- `@sentry/nuxt`
+- `@sentry/react`
+- `@sentry/remix`
+- `@sentry/solid`
+- `@sentry/solidstart`
+- `@sentry/svelte`
+- `@sentry/sveltekit`
+- `@sentry/vercel-edge`
+- `@sentry/vue`
+
 ## 9.5.0
 
 ### Important Changes
