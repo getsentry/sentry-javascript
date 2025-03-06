@@ -114,8 +114,8 @@ function addToLogBuffer(client: Client, log: Log, scope: Scope): void {
 export function sendLog(
   level: LogSeverityLevel,
   severityNumber?: number,
-): (message: ParameterizedString | string, customAttributes?: Record<string, unknown>) => void {
-  return (message: ParameterizedString | string, attributes: Record<string, unknown> = {}): void =>
+): (message: ParameterizedString<unknown[]> | string, customAttributes?: Record<string, unknown>) => void {
+  return (message: ParameterizedString<unknown[]> | string, attributes: Record<string, unknown> = {}): void =>
     captureLog({ level, message, attributes, severityNumber });
 }
 
@@ -129,7 +129,7 @@ export function captureLog({
   severityNumber,
 }: {
   level: LogSeverityLevel;
-  message: ParameterizedString | string;
+  message: ParameterizedString<unknown[]> | string;
   attributes?: Record<string, unknown>;
   severityNumber?: number;
 }): void {
