@@ -20,8 +20,8 @@ export const NAME_PLACEHOLDER = 'Your Name';
 export const NAME_LABEL = 'Name';
 export const SUCCESS_MESSAGE_TEXT = 'Thank you for your report!';
 export const IS_REQUIRED_LABEL = '(required)';
-export const ADD_SCREENSHOT_LABEL = 'Capture Screenshot';
-export const REMOVE_SCREENSHOT_LABEL = 'Remove Screenshot';
+export const ADD_SCREENSHOT_LABEL = 'Add a screenshot';
+export const REMOVE_SCREENSHOT_LABEL = 'Remove screenshot';
 
 export const FEEDBACK_WIDGET_SOURCE = 'widget';
 export const FEEDBACK_API_SOURCE = 'api';

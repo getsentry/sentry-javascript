@@ -10,6 +10,28 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 9.5.0
+
+### Important Changes
+
+We found some issues with the new feedback screenshot annotation where screenshots are not being generated properly. Due to this issue, we are reverting the feature.
+
+- Revert "feat(feedback) Allowing annotation via highlighting & masking ([#15484](https://github.com/getsentry/sentry-javascript/pull/15484))" (#15609)
+
+### Other Changes
+
+- Add cloudflare adapter detection and path generation ([#15603](https://github.com/getsentry/sentry-javascript/pull/15603))
+- deps(nextjs): Bump rollup to `4.34.9` ([#15589](https://github.com/getsentry/sentry-javascript/pull/15589))
+- feat(bun): Automatically add performance integrations ([#15586](https://github.com/getsentry/sentry-javascript/pull/15586))
+- feat(replay): Bump rrweb to 2.34.0 ([#15580](https://github.com/getsentry/sentry-javascript/pull/15580))
+- fix(browser): Call original function on early return from patched history API ([#15576](https://github.com/getsentry/sentry-javascript/pull/15576))
+- fix(nestjs): Copy metadata in custom decorators ([#15598](https://github.com/getsentry/sentry-javascript/pull/15598))
+- fix(react-router): Fix config type import ([#15583](https://github.com/getsentry/sentry-javascript/pull/15583))
+- fix(remix): Use correct types export for `@sentry/remix/cloudflare` ([#15599](https://github.com/getsentry/sentry-javascript/pull/15599))
+- fix(vue): Attach Pinia state only once per event ([#15588](https://github.com/getsentry/sentry-javascript/pull/15588))
+
+Work in this release was contributed by @msurdi-a8c, @namoscato, and @rileyg98. Thank you for your contributions!
+
 ## 9.4.0
 
 - feat(core): Add types for logs protocol and envelope ([#15530](https://github.com/getsentry/sentry-javascript/pull/15530))
