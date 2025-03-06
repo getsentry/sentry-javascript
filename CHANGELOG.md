@@ -10,6 +10,39 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 9.5.0-alpha.1
+
+This is an alpha release that includes experimental functionality for the new logs API in Sentry.
+
+- feat(logs): Add experimental user-callable logging methods (#15442)
+
+Logging is gated by an experimental option, `_experiments.enableLogs`.
+
+```js
+Sentry.init({
+  _experiments: {
+    // Enable logs to be sent to Sentry.
+    enableLogs: true,
+  },
+});
+```
+
+These API are exposed in the `Sentry._experiment_log` namespace.
+
+On the high level, there are functions for each of the logging severity levels `fatal`, `error`, `warn`, `info`, `debug`, `trace`. There is also a `log` function that is an alias to `info`.
+
+```js
+Sentry._experiment_log.info('Adding item to cart', { item: 'sneakers' });
+```
+
+If you want to do structured logging, you'll need to use the `fmt` helper exposed in the `Sentry._experiment_log` namespace.
+
+```js
+const { fmt } = Sentry._experiment_log;
+
+Sentry._experiment_log.info(fmt`user ${username} just bought ${item}!`);
+```
+
 ## 9.5.0-alpha.0
 
 This is an alpha release that includes experimental functionality for the new logs API in Sentry. Support for these methods are only avaliable in the browser and core SDKs.
