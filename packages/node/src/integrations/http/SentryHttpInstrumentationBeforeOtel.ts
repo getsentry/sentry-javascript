@@ -84,6 +84,7 @@ function patchResponseToFlushOnServerlessPlatforms(res: http.OutgoingMessage): v
       apply(target, thisArg, argArray) {
         vercelWaitUntil(
           new Promise<void>(finishWaitUntil => {
+            // Define a timeout that unblocks the lambda just to be safe so we're not indefinitely keeping it alive, exploding server bills
             const timeout = setTimeout(() => {
               finishWaitUntil();
             }, 2000);
