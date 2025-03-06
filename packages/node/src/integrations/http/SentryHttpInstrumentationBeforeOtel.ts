@@ -70,7 +70,7 @@ export class SentryHttpInstrumentationBeforeOtel extends InstrumentationBase {
 function patchResponseToFlushOnServerlessPlatforms(res: http.OutgoingMessage): void {
   // Freely extend this function with other platforms if necessary
   if (process.env.VERCEL) {
-    let markOnEndDone: () => void;
+    let markOnEndDone = (): void => undefined;
     const onEndDonePromise = new Promise<void>(res => {
       markOnEndDone = res;
     });
