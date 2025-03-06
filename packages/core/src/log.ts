@@ -82,8 +82,6 @@ function valueToAttribute(key: string, value: unknown): LogAttribute {
   }
 }
 
-let hasRegisteredFlushHook = false;
-
 function addToLogBuffer(client: Client, log: Log, scope: Scope): void {
   function sendLogs(flushedLogs: Log[]): void {
     const envelope = createLogEnvelope(flushedLogs, client, scope);
@@ -91,18 +89,15 @@ function addToLogBuffer(client: Client, log: Log, scope: Scope): void {
     void client.sendEnvelope(envelope);
   }
 
-  // Only register the hook once
-  if (!hasRegisteredFlushHook) {
-    client.on('flush', () => {
+  function sendAndClearLogs(): void {
+    if (GLOBAL_LOG_BUFFER.length > 0) {
       sendLogs(GLOBAL_LOG_BUFFER);
       GLOBAL_LOG_BUFFER = [];
-    });
-    hasRegisteredFlushHook = true;
+    }
   }
 
   if (GLOBAL_LOG_BUFFER.length >= LOG_BUFFER_MAX_LENGTH) {
-    sendLogs(GLOBAL_LOG_BUFFER);
-    GLOBAL_LOG_BUFFER = [];
+    sendAndClearLogs();
   } else {
     GLOBAL_LOG_BUFFER.push(log);
   }
@@ -110,11 +105,12 @@ function addToLogBuffer(client: Client, log: Log, scope: Scope): void {
   // this is the first time logs have been enabled, let's kick off an interval to flush them
   // we should only do this once.
   if (!isFlushingLogs) {
+    client.on('flush', () => {
+      sendAndClearLogs();
+    });
+
     const flushTimer = setInterval(() => {
-      if (GLOBAL_LOG_BUFFER.length > 0) {
-        sendLogs(GLOBAL_LOG_BUFFER);
-        GLOBAL_LOG_BUFFER = [];
-      }
+      sendAndClearLogs();
     }, 5000);
 
     // We need to unref the timer in node.js, otherwise the node process never exit.
@@ -180,7 +176,7 @@ export function captureLog({
 
   const span = getActiveSpan();
   if (span) {
-    logAttributes['sentry.trace.parent_span_id'] = spanToJSON(span).parent_span_id;
+    logAttributes['sentry.trace.parent_span_id'] = span.spanContext().spanId;
   }
 
   if (release) {
