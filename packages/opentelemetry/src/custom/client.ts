@@ -1,6 +1,6 @@
 import type { Tracer } from '@opentelemetry/api';
 import { trace } from '@opentelemetry/api';
-import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
+import type { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import type { Client } from '@sentry/core';
 import { SDK_VERSION } from '@sentry/core';
 import type { OpenTelemetryClient as OpenTelemetryClientInterface } from '../types';
@@ -10,7 +10,7 @@ import type { OpenTelemetryClient as OpenTelemetryClientInterface } from '../typ
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 /**
- * Wrap an Client class with things we need for OpenTelemetry support.
+ * Wrap a Client class with things we need for OpenTelemetry support.
  * Make sure that the Client class passed in is non-abstract!
  *
  * Usage:
@@ -23,7 +23,7 @@ export function wrapClientClass<
 >(ClientClass: ClassConstructor): WrappedClassConstructor {
   // @ts-expect-error We just assume that this is non-abstract, if you pass in an abstract class this would make it non-abstract
   class OpenTelemetryClient extends ClientClass implements OpenTelemetryClientInterface {
-    public traceProvider: BasicTracerProvider | undefined;
+    public traceProvider: NodeTracerProvider | undefined;
     private _tracer: Tracer | undefined;
 
     public constructor(...args: any[]) {
@@ -49,10 +49,9 @@ export function wrapClientClass<
      */
     public async flush(timeout?: number): Promise<boolean> {
       const provider = this.traceProvider;
-      const spanProcessor = provider?.activeSpanProcessor;
 
-      if (spanProcessor) {
-        await spanProcessor.forceFlush();
+      if (provider) {
+        await provider.forceFlush();
       }
 
       return super.flush(timeout);

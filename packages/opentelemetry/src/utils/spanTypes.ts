@@ -1,5 +1,5 @@
-import type { SpanKind, SpanStatus } from '@opentelemetry/api';
-import type { ReadableSpan, TimedEvent } from '@opentelemetry/sdk-trace-base';
+import type { SpanContext, SpanKind, SpanStatus } from '@opentelemetry/api';
+import type { ReadableSpan, TimedEvent } from '@opentelemetry/sdk-trace-node';
 
 import type { AbstractSpan } from '../types';
 
@@ -54,9 +54,9 @@ export function spanHasName<SpanType extends AbstractSpan>(span: SpanType): span
  */
 export function spanHasParentId<SpanType extends AbstractSpan>(
   span: SpanType,
-): span is SpanType & { parentSpanId: string } {
+): span is SpanType & { spanContext?: SpanContext } {
   const castSpan = span as ReadableSpan;
-  return !!castSpan.parentSpanId;
+  return !!castSpan.parentSpanContext?.spanId;
 }
 
 /**

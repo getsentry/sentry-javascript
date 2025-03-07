@@ -1,5 +1,5 @@
 import { ProxyTracerProvider, context, propagation, trace } from '@opentelemetry/api';
-import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
+import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import type { ClientOptions, Options } from '@sentry/core';
 import { getClient } from '@sentry/core';
 
@@ -35,7 +35,7 @@ export function mockSdkInit(options?: Partial<ClientOptions>) {
   init({ dsn: PUBLIC_DSN, ...options });
 }
 
-export async function cleanupOtel(_provider?: BasicTracerProvider): Promise<void> {
+export async function cleanupOtel(_provider?: NodeTracerProvider): Promise<void> {
   clearOpenTelemetrySetupCheck();
 
   const provider = getProvider(_provider);
@@ -53,14 +53,14 @@ export async function cleanupOtel(_provider?: BasicTracerProvider): Promise<void
   await flush();
 }
 
-export function getProvider(_provider?: BasicTracerProvider): BasicTracerProvider | undefined {
+export function getProvider(_provider?: NodeTracerProvider): NodeTracerProvider | undefined {
   let provider = _provider || getClient<OpenTelemetryClient>()?.traceProvider || trace.getTracerProvider();
 
   if (provider instanceof ProxyTracerProvider) {
     provider = provider.getDelegate();
   }
 
-  if (!(provider instanceof BasicTracerProvider)) {
+  if (!(provider instanceof NodeTracerProvider)) {
     return undefined;
   }
 
