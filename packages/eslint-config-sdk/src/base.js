@@ -84,7 +84,7 @@ module.exports = {
         // Make sure all expressions are used. Turned off in tests
         // Must disable base rule to prevent false positives
         'no-unused-expressions': 'off',
-        '@typescript-eslint/no-unused-expressions': ['error', { allowShortCircuit: true }],
+        '@typescript-eslint/no-unused-expressions': ['error', { allowShortCircuit: true, allowTaggedTemplates: true }],
 
         // Make sure Promises are handled appropriately
         '@typescript-eslint/no-floating-promises': ['error', { ignoreVoid: false }],

@@ -182,7 +182,12 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * Options which are in beta, or otherwise not guaranteed to be stable.
    */
   _experiments?: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [key: string]: any;
+    /**
+     * If logs support should be enabled. Defaults to false.
+     */
+    enableLogs?: boolean;
   };
 
   /**
