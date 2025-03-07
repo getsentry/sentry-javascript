@@ -108,6 +108,7 @@ export { extraErrorDataIntegration } from './integrations/extraerrordata';
 export { rewriteFramesIntegration } from './integrations/rewriteframes';
 export { zodErrorsIntegration } from './integrations/zoderrors';
 export { thirdPartyErrorFilterIntegration } from './integrations/third-party-errors-filter';
+export { _experimentalDomainBasedErrorsFilterIntegration } from './integrations/domain-based-errors-filter';
 export { profiler } from './profiling';
 export { instrumentFetchRequest } from './fetch';
 export { trpcMiddleware } from './trpc';
