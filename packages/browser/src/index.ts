@@ -56,6 +56,7 @@ export {
   moduleMetadataIntegration,
   zodErrorsIntegration,
   thirdPartyErrorFilterIntegration,
+  _experimentalDomainBasedErrorsFilterIntegration,
 } from '@sentry/core';
 export type { Span } from '@sentry/core';
 export { makeBrowserOfflineTransport } from './transports/offline';
