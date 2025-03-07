@@ -84,6 +84,7 @@ export {
   spanToJSON,
   spanToTraceHeader,
   spanToBaggageHeader,
+  _experiment_log,
 } from '@sentry/core';
 
 export { VercelEdgeClient } from './client';

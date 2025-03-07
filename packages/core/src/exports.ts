@@ -1,5 +1,6 @@
 import { getClient, getCurrentScope, getIsolationScope, withIsolationScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
+import { captureLog, sendLog } from './log';
 import type { CaptureContext } from './scope';
 import { closeSession, makeSession, updateSession } from './session';
 import type {
@@ -22,6 +23,7 @@ import { logger } from './utils-hoist/logger';
 import { uuid4 } from './utils-hoist/misc';
 import { timestampInSeconds } from './utils-hoist/time';
 import { GLOBAL_OBJ } from './utils-hoist/worldwide';
+import { parameterizeStringTemplate } from './utils/parameterize';
 import type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
 import { parseEventHintOrCaptureContext } from './utils/prepareEvent';
 
@@ -334,3 +336,117 @@ export function captureSession(end: boolean = false): void {
   // only send the update
   _sendSessionUpdate();
 }
+
+/**
+ * A namespace for experimental logging functions.
+ *
+ * @experimental Will be removed in future versions. Use with caution.
+ */
+export const _experiment_log = {
+  /**
+   * A utility to record a log with level 'TRACE' and send it to sentry.
+   *
+   * Logs represent a message and some parameters which provide context for a trace or error.
+   *
+   * @example
+   * ```js
+   * const { trace, fmt } = Sentry._experiment_log;
+   * trace(fmt`user ${username} just bought ${item}!`);
+   * ```
+   */
+  trace: sendLog('trace'),
+  /**
+   * A utility to record a log with level 'DEBUG' and send it to sentry.
+   *
+   * Logs represent a message and some parameters which provide context for a trace or error.
+   *
+   * @example
+   * ```js
+   * const { debug, fmt } = Sentry._experiment_log;
+   * debug(fmt`user ${username} just bought ${item}!`);
+   * ```
+   */
+  debug: sendLog('debug'),
+  /**
+   * A utility to record a log with level 'INFO' and send it to sentry.
+   *
+   * Logs represent a message and some parameters which provide context for a trace or error.
+   *
+   * @example
+   * ```js
+   * const { info, fmt } = Sentry._experiment_log;
+   * info(fmt`user ${username} just bought ${item}!`);
+   * ```
+   */
+  info: sendLog('info'),
+  /**
+   * A utility to record a log with level 'INFO' and send it to sentry.
+   *
+   * Logs represent a message and some parameters which provide context for a trace or error.
+   *
+   * @example
+   * ```js
+   * const { log, fmt } = Sentry._experiment_log;
+   * log(fmt`user ${username} just bought ${item}!`);
+   * ```
+   */
+  log: sendLog('info', 10),
+  /**
+   * A utility to record a log with level 'ERROR' and send it to sentry.
+   *
+   * Logs represent a message and some parameters which provide context for a trace or error.
+   *
+   * @example
+   * ```js
+   * const { error, fmt } = Sentry._experiment_log;
+   * error(fmt`user ${username} just bought ${item}!`);
+   * ```
+   */
+  error: sendLog('error'),
+  /**
+   * A utility to record a log with level 'WARN' and send it to sentry.
+   *
+   * Logs represent a message and some parameters which provide context for a trace or error.
+   *
+   * @example
+   * ```js
+   * const { warn, fmt } = Sentry._experiment_log;
+   * warn(fmt`user ${username} just bought ${item}!`);
+   * ```
+   */
+  warn: sendLog('warn'),
+  /**
+   * A utility to record a log with level 'FATAL' and send it to sentry.
+   *
+   * Logs represent a message and some parameters which provide context for a trace or error.
+   *
+   * @example
+   * ```js
+   * const { fatal, fmt } = Sentry._experiment_log;
+   * fatal(fmt`user ${username} just bought ${item}!`);
+   * ```
+   */
+  fatal: sendLog('fatal'),
+
+  /**
+   * Tagged template function which returns parameterized representation of the message
+   *
+   * @example
+   * ```js
+   * Sentry._experiment_log.fmt`This is a log statement with ${x} and ${y} params`
+   * ```
+   */
+  fmt: parameterizeStringTemplate,
+
+  /**
+   * A flexible utility to record a log with a custom level and send it to sentry.
+   *
+   * You can optionally pass in custom attributes and a custom severity number to be attached to the log.
+   *
+   * @example
+   * ```js
+   * Sentry._experiment_log.emit({ level: 'info', message: Sentry._experiment_log.fmt`user ${username }just bought ${item}`, attributes: { extra: 123 } })
+   * ```
+   */
+  emit: captureLog,
+};
