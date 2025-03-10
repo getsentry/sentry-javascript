@@ -1,6 +1,6 @@
 {
   "name": "@sentry/gatsby",
-  "version": "9.3.0",
+  "version": "9.5.0",
   "description": "Official Sentry SDK for Gatsby.js",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/gatsby",
@@ -45,8 +45,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "9.3.0",
-    "@sentry/react": "9.3.0",
+    "@sentry/core": "9.5.0",
+    "@sentry/react": "9.5.0",
     "@sentry/webpack-plugin": "3.2.1"
   },
   "peerDependencies": {

@@ -1,5 +1,5 @@
 import { rm } from 'node:fs/promises';
-import type { Config } from '@react-router/dev/dist/config';
+import type { Config } from '@react-router/dev/config';
 import SentryCli from '@sentry/cli';
 import { glob } from 'glob';
 import type { SentryReactRouterBuildOptions } from '../types';
