@@ -154,10 +154,6 @@ module.exports = {
       },
     },
     {
-      // Configuration for files in test directories
-      env: {
-        jest: true,
-      },
       files: [
         'test.ts',
         '*.test.ts',
