@@ -1,4 +1,4 @@
-import type { Event, IntegrationFn, StackFrame } from '../types-hoist';
+import type { Event, IntegrationFn, StackFrame, TracePropagationTargets } from '../types-hoist';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { defineIntegration } from '../integration';
@@ -6,6 +6,7 @@ import { logger } from '../utils-hoist/logger';
 import { getEventDescription } from '../utils-hoist/misc';
 import { stringMatchesSomePattern } from '../utils-hoist/string';
 import { getPossibleEventMessages } from '../utils/eventUtils';
+import { getFramesFromEvent, GLOBAL_OBJ, isErrorEvent } from '../utils-hoist';
 
 // "Script error." is hard coded into browsers for errors that it can't read.
 // this is the result of a script being pulled in from an external domain and CORS.
@@ -31,7 +32,10 @@ export interface EventFiltersOptions {
   ignoreTransactions: Array<string | RegExp>;
   ignoreInternal: boolean;
   disableErrorDefaults: boolean;
+  disablePrioritization?: boolean;
 }
+
+type EventPriority = 'low' | 'medium' | 'high';
 
 const INTEGRATION_NAME = 'EventFilters';
 
@@ -41,7 +45,19 @@ const _eventFiltersIntegration = ((options: Partial<EventFiltersOptions> = {}) =
     processEvent(event, _hint, client) {
       const clientOptions = client.getOptions();
       const mergedOptions = _mergeOptions(options, clientOptions);
-      return _shouldDropEvent(event, mergedOptions) ? null : event;
+      if (_shouldDropEvent(event, mergedOptions)) {
+        return null;
+      }
+
+      if (!options.disablePrioritization) {
+        const updatePrio = _shouldUpdatePrioritization(event, clientOptions.tracePropagationTargets || []);
+        if (updatePrio) {
+          // todo: handle prio update on the event(?)
+          // e.g. event.prio = updatePrio;
+        }
+      }
+
+      return event;
     },
   };
 }) satisfies IntegrationFn;
@@ -58,6 +74,8 @@ const _eventFiltersIntegration = ((options: Partial<EventFiltersOptions> = {}) =
  *   - The same option passed to the integration directly via @param options
  *
  * Events filtered by this integration will not be sent to Sentry.
+ *
+ * The integration is additionally used for prioritizing error events.
  */
 export const eventFiltersIntegration = defineIntegration(_eventFiltersIntegration);
 
@@ -73,6 +91,7 @@ export const eventFiltersIntegration = defineIntegration(_eventFiltersIntegratio
  *   - The same option passed to the integration directly via @param options
  *
  * Events filtered by this integration will not be sent to Sentry.
+ *
  *
  * @deprecated this integration was renamed and will be removed in a future major version.
  * Use `eventFiltersIntegration` instead.
@@ -239,4 +258,71 @@ function _isUselessError(event: Event): boolean {
     // There are no exception values that have a stacktrace, a non-generic-Error type or value
     !event.exception.values.some(value => value.stacktrace || (value.type && value.type !== 'Error') || value.value)
   );
+}
+
+function _shouldUpdatePrioritization(event: Event, tracePropagation: TracePropagationTargets): EventPriority | false {
+  if (!isErrorEvent(event)) {
+    return false;
+  }
+
+  if (getPossibleEventMessages(event).some(message => stringMatchesSomePattern(message, FAILED_TO_FETCH_MATCHERS))) {
+    const failedToFetchUpdate = _getFailedToFetchPrio(event, tracePropagation);
+    if (failedToFetchUpdate) {
+      return failedToFetchUpdate;
+    }
+  }
+
+  return false;
+}
+
+const FAILED_TO_FETCH_MATCHERS = [
+  /^Failed to fetch\.?$/,
+  /^Load failed\.?$/, // safari
+];
+
+function _getFailedToFetchPrio(event: Event, tracePropagation: TracePropagationTargets): EventPriority | false {
+  const frames = getFramesFromEvent(event);
+
+  // most likely un-actionable
+  if (!frames) {
+    return 'low';
+  }
+
+  for (const frame of frames.filter(frame => !!frame.abs_path)) {
+    if (frame.abs_path) {
+      const domain = new URL(frame.abs_path).hostname;
+      if (!_isHighPrioDomain(domain, tracePropagation)) {
+        return 'low';
+      }
+    }
+  }
+
+  return false;
+}
+
+function _isHighPrioDomain(domain: string, tracePropagationTargets: TracePropagationTargets): boolean {
+  try {
+    // Check if the error comes from our current domain
+    const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
+
+    if (WINDOW?.location?.href) {
+      if (domain.endsWith(new URL(WINDOW.location.href).hostname)) {
+        // Frame originates from current url or sub-domain
+        return true;
+      }
+    } else {
+      // Do not de-prioritize on server
+      return true;
+    }
+
+    if (stringMatchesSomePattern(domain, tracePropagationTargets)) {
+      // Frame matches tracePropagationTargets
+      return true;
+    }
+
+    // Most likely 3rd-party at this point, marking as low prio
+    return false;
+  } catch (error) {
+    return true;
+  }
 }
