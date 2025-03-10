@@ -24,6 +24,7 @@ import {
   getDynamicSamplingContextFromSpan,
   getIsolationScope,
   getLocationHref,
+  getRootSpan,
   logger,
   propagationContextFromHeaders,
   registerSpanErrorInstrumentation,
@@ -35,7 +36,6 @@ import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 import { registerBackgroundTabDetection } from './backgroundtab';
 import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './request';
-import type { PreviousTraceInfo } from './previousTrace';
 import {
   addPreviousTraceSpanLink,
   getPreviousTraceFromSessionStorage,
@@ -274,18 +274,9 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     source: undefined,
   };
 
-  let previousTraceInfo: PreviousTraceInfo | undefined;
-  if (enablePreviousTrace && persistPreviousTrace) {
-    previousTraceInfo = getPreviousTraceFromSessionStorage();
-  }
-
   /** Create routing idle transaction. */
   function _createRouteSpan(client: Client, startSpanOptions: StartSpanOptions): void {
     const isPageloadTransaction = startSpanOptions.op === 'pageload';
-
-    if (enablePreviousTrace && previousTraceInfo) {
-      previousTraceInfo = addPreviousTraceSpanLink(previousTraceInfo, startSpanOptions);
-    }
 
     const finalStartSpanOptions: StartSpanOptions = beforeStartSpan
       ? beforeStartSpan(startSpanOptions)
@@ -329,16 +320,6 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       },
     });
     setActiveIdleSpan(client, idleSpan);
-
-    if (enablePreviousTrace) {
-      previousTraceInfo = {
-        spanContext: idleSpan.spanContext(),
-        startTimestamp: spanToJSON(idleSpan).start_timestamp,
-      };
-      if (persistPreviousTrace) {
-        storePreviousTraceInSessionStorage(previousTraceInfo);
-      }
-    }
 
     function emitFinish(): void {
       if (optionalWindowDocument && ['interactive', 'complete'].includes(optionalWindowDocument.readyState)) {
@@ -468,6 +449,22 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         shouldCreateSpanForRequest,
         enableHTTPTimings,
       });
+
+      if (enablePreviousTrace) {
+        let previousTraceInfo = persistPreviousTrace ? getPreviousTraceFromSessionStorage() : undefined;
+
+        client.on('spanStart', span => {
+          if (getRootSpan(span) !== span) {
+            return;
+          }
+
+          previousTraceInfo = addPreviousTraceSpanLink(previousTraceInfo, span);
+
+          if (persistPreviousTrace) {
+            storePreviousTraceInSessionStorage(previousTraceInfo);
+          }
+        });
+      }
     },
   };
 }) satisfies IntegrationFn;

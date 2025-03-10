@@ -1,4 +1,5 @@
-import { logger, SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE, type SpanContextData, type StartSpanOptions } from '@sentry/core';
+import type { Span } from '@sentry/core';
+import { logger, SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE, spanToJSON, type SpanContextData } from '@sentry/core';
 import { WINDOW } from '../exports';
 import { DEBUG_BUILD } from '../debug-build';
 
@@ -25,23 +26,22 @@ const PREVIOUS_TRACE_KEY = 'sentry_previous_trace';
  * Returns @param previousTraceInfo if the previous trace is still valid, otherwise returns undefined.
  */
 export function addPreviousTraceSpanLink(
-  previousTraceInfo: PreviousTraceInfo,
-  startSpanOptions: StartSpanOptions,
-): PreviousTraceInfo | undefined {
-  if (Date.now() / 1000 - previousTraceInfo.startTimestamp <= PREVIOUS_TRACE_MAX_DURATION) {
-    startSpanOptions.links = [
-      ...(startSpanOptions.links || []),
-      {
-        context: previousTraceInfo.spanContext,
-        attributes: {
-          [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: 'previous_trace',
-        },
+  previousTraceInfo: PreviousTraceInfo | undefined,
+  span: Span,
+): PreviousTraceInfo {
+  if (previousTraceInfo && Date.now() / 1000 - previousTraceInfo.startTimestamp <= PREVIOUS_TRACE_MAX_DURATION) {
+    span.addLink({
+      context: previousTraceInfo.spanContext,
+      attributes: {
+        [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: 'previous_trace',
       },
-    ];
-  } else if (previousTraceInfo) {
-    return undefined;
+    });
   }
-  return previousTraceInfo;
+
+  return {
+    spanContext: span.spanContext(),
+    startTimestamp: spanToJSON(span).start_timestamp,
+  };
 }
 
 /**
