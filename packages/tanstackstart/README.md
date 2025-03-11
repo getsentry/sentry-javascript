@@ -4,48 +4,18 @@
   </a>
 </p>
 
-# Official Sentry SDK for TanStack Start (Alpha)
+# Utilities for the Sentry TanStack Start SDKs
 
 [![npm version](https://img.shields.io/npm/v/@sentry/tanstackstart.svg)](https://www.npmjs.com/package/@sentry/tanstackstart)
 [![npm dm](https://img.shields.io/npm/dm/@sentry/tanstackstart.svg)](https://www.npmjs.com/package/@sentry/tanstackstart)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/tanstackstart.svg)](https://www.npmjs.com/package/@sentry/tanstackstart)
 
-> NOTICE: This package is in alpha state and may be subject to breaking changes.
+> NOTICE: This package is a package that contains SDK internals and does not follow semantic versioning. Use with caution.
 
-## Getting Started
-
-This SDK does not have docs yet. Stay tuned.
-
-## Compatibility
-
-The minimum supported version of TanStack Start is `1.111.12`.
-
-## Custom Usage
-
-To set context information or to send manual events, you can use `@sentry/tanstackstart` as follows:
-
-```ts
-import * as Sentry from '@sentry/tanstackstart';
-
-// Set user information, as well as tags and further extras
-Sentry.setTag('user_mode', 'admin');
-Sentry.setUser({ id: '4711' });
-Sentry.setContext('application_area', { location: 'checkout' });
-
-// Add a breadcrumb for future events
-Sentry.addBreadcrumb({
-  message: '"Add to cart" clicked',
-  // ...
-});
-
-// Capture exceptions or messages
-Sentry.captureException(new Error('Oh no.'));
-Sentry.captureMessage('Hello, world!');
-```
+This package contains shared utilities for Sentry TanStack Start SDKs.
+If you are looking for the actual TanStack Start React SDK package, see: https://www.npmjs.com/package/@sentry/tanstackstart-react
 
 ## Links
-
-<!-- - [Official SDK Docs](https://docs.sentry.io/platforms/javascript/guides/tanstackstart/) -->
 
 - [Sentry.io](https://sentry.io/?utm_source=github&utm_medium=npm_tanstackstart)
 - [Sentry Discord Server](https://discord.gg/Ww9hbqr)

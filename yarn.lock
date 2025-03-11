@@ -1574,7 +1574,7 @@
     js-tokens "^4.0.0"
     picocolors "^1.0.0"
 
-"@babel/parser@^7.1.0", "@babel/parser@^7.14.7", "@babel/parser@^7.16.4", "@babel/parser@^7.18.10", "@babel/parser@^7.20.7", "@babel/parser@^7.21.8", "@babel/parser@^7.21.9", "@babel/parser@^7.22.10", "@babel/parser@^7.22.16", "@babel/parser@^7.23.5", "@babel/parser@^7.23.6", "@babel/parser@^7.23.9", "@babel/parser@^7.25.3", "@babel/parser@^7.25.4", "@babel/parser@^7.25.6", "@babel/parser@^7.26.9", "@babel/parser@^7.4.5", "@babel/parser@^7.7.0":
+"@babel/parser@7.26.9", "@babel/parser@^7.1.0", "@babel/parser@^7.14.7", "@babel/parser@^7.16.4", "@babel/parser@^7.18.10", "@babel/parser@^7.20.7", "@babel/parser@^7.21.8", "@babel/parser@^7.22.10", "@babel/parser@^7.22.16", "@babel/parser@^7.23.5", "@babel/parser@^7.23.6", "@babel/parser@^7.23.9", "@babel/parser@^7.25.3", "@babel/parser@^7.25.4", "@babel/parser@^7.25.6", "@babel/parser@^7.26.9", "@babel/parser@^7.4.5", "@babel/parser@^7.7.0":
   version "7.26.9"
   resolved "https://registry.yarnpkg.com/@babel/parser/-/parser-7.26.9.tgz#d9e78bee6dc80f9efd8f2349dcfbbcdace280fd5"
   integrity sha512-81NWa1njQblgZbQHxWHpxxCzNsa3ZwvFqpUg7P+NNUU6f3UU2jBEg4OlF/J6rl8+PQGh1q6/zWScd001YwcA5A==
@@ -2636,7 +2636,7 @@
     debug "^4.3.1"
     globals "^11.1.0"
 
-"@babel/types@^7.0.0", "@babel/types@^7.18.10", "@babel/types@^7.18.6", "@babel/types@^7.20.7", "@babel/types@^7.21.5", "@babel/types@^7.22.10", "@babel/types@^7.22.15", "@babel/types@^7.22.17", "@babel/types@^7.22.19", "@babel/types@^7.22.5", "@babel/types@^7.23.6", "@babel/types@^7.23.9", "@babel/types@^7.24.7", "@babel/types@^7.25.4", "@babel/types@^7.25.6", "@babel/types@^7.25.9", "@babel/types@^7.26.3", "@babel/types@^7.26.9", "@babel/types@^7.3.0", "@babel/types@^7.3.3", "@babel/types@^7.4.4", "@babel/types@^7.7.0", "@babel/types@^7.7.2":
+"@babel/types@^7.0.0", "@babel/types@^7.18.10", "@babel/types@^7.18.6", "@babel/types@^7.20.7", "@babel/types@^7.22.10", "@babel/types@^7.22.15", "@babel/types@^7.22.17", "@babel/types@^7.22.19", "@babel/types@^7.22.5", "@babel/types@^7.23.6", "@babel/types@^7.23.9", "@babel/types@^7.24.7", "@babel/types@^7.25.4", "@babel/types@^7.25.6", "@babel/types@^7.25.9", "@babel/types@^7.26.3", "@babel/types@^7.26.9", "@babel/types@^7.3.0", "@babel/types@^7.3.3", "@babel/types@^7.4.4", "@babel/types@^7.7.0", "@babel/types@^7.7.2":
   version "7.26.9"
   resolved "https://registry.yarnpkg.com/@babel/types/-/types-7.26.9.tgz#08b43dec79ee8e682c2ac631c010bdcac54a21ce"
   integrity sha512-Y3IR1cRnOxOCDvMmNiym7XpXQ93iGDDPHx+Zj+NM+rg0fBaShfQLkg+hKPaZCEvg5N/LeCo4+Rj/i3FuJsIQaw==
@@ -6702,10 +6702,10 @@
   resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-3.2.0.tgz#17c000cf6cc315bb620eddbd95c88dfb2471cfb9"
   integrity sha512-Sg7nLRP1yiJYl/KdGGxYGbjvLq5rswyeB5yESgfWX34XUNZaFgmNvw4pU/QEKVeYgcPyOulgJ+y80ewujyffTA==
 
-"@sentry/babel-plugin-component-annotate@3.2.1":
-  version "3.2.1"
-  resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-3.2.1.tgz#90e40750a63ef5ce3d67498ed0cfccc587ab4cd8"
-  integrity sha512-tUp2e+CERpRFzTftjPxt7lg4BF0R3K+wGfeJyIqrc0tbJ2y6duT8OD0ArWoOi1g8xQ73NDn1/mEeS8pC+sbjTQ==
+"@sentry/babel-plugin-component-annotate@3.2.2":
+  version "3.2.2"
+  resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-3.2.2.tgz#0c5f26e417b8f524924fa4531b82ad5603216e90"
+  integrity sha512-D+SKQ266ra/wo87s9+UI/rKQi3qhGPCR8eSCDe0VJudhjHsqyNU+JJ5lnIGCgmZaWFTXgdBP/gdr1Iz1zqGs4Q==
 
 "@sentry/bundler-plugin-core@2.22.6":
   version "2.22.6"
@@ -6749,13 +6749,13 @@
     magic-string "0.30.8"
     unplugin "1.0.1"
 
-"@sentry/bundler-plugin-core@3.2.1":
-  version "3.2.1"
-  resolved "https://registry.yarnpkg.com/@sentry/bundler-plugin-core/-/bundler-plugin-core-3.2.1.tgz#9c1c8b9acaca3ae5eeae2a04529f70212dd2937e"
-  integrity sha512-1wId05LXf6LyTeNwqyhSDSWYbYtFT/NQRqq3sW7hcL4nZuAgzT82PSvxeeCgR/D2qXOj7RCYXXZtyWzzo3wtXA==
+"@sentry/bundler-plugin-core@3.2.2":
+  version "3.2.2"
+  resolved "https://registry.yarnpkg.com/@sentry/bundler-plugin-core/-/bundler-plugin-core-3.2.2.tgz#c9193b0c97acf0097fdb820d86eaaad9c9b6b2c4"
+  integrity sha512-YGrtmqQ2jMixccX2slVG/Lw7pCGJL3DGB3clmY9mO8QBEBIN3/gEANiHJVWwRidpUOS/0b7yVVGAdwZ87oPwTg==
   dependencies:
     "@babel/core" "^7.18.5"
-    "@sentry/babel-plugin-component-annotate" "3.2.1"
+    "@sentry/babel-plugin-component-annotate" "3.2.2"
     "@sentry/cli" "2.42.2"
     dotenv "^16.3.1"
     find-up "^5.0.0"
@@ -6895,12 +6895,12 @@
     "@sentry/bundler-plugin-core" "3.2.0"
     unplugin "1.0.1"
 
-"@sentry/webpack-plugin@3.2.1":
-  version "3.2.1"
-  resolved "https://registry.yarnpkg.com/@sentry/webpack-plugin/-/webpack-plugin-3.2.1.tgz#83756c64c59a2be39e05beda30b08753f7b80780"
-  integrity sha512-wP/JDljhB9pCFc62rSwWbIglF2Os8FLV68pQuyJnmImM9cjGjlK6UO+qKa2pOLYsmAcnn+t3Bhu77bbzPIStCg==
+"@sentry/webpack-plugin@3.2.2":
+  version "3.2.2"
+  resolved "https://registry.yarnpkg.com/@sentry/webpack-plugin/-/webpack-plugin-3.2.2.tgz#716ab462279c25cea17490d02cb1d22b00f3f661"
+  integrity sha512-6OkVKNOjKk8P9j7oh6svZ+kEP1i9YIHBC2aGWL2XsgeZTIrMBxJAXtOf+qSrfMAxEtibSroGVOMQc/y3WJTQtg==
   dependencies:
-    "@sentry/bundler-plugin-core" "3.2.1"
+    "@sentry/bundler-plugin-core" "3.2.2"
     unplugin "1.0.1"
     uuid "^9.0.0"
 
@@ -10476,10 +10476,10 @@ aws-ssl-profiles@^1.1.1:
   resolved "https://registry.yarnpkg.com/aws-ssl-profiles/-/aws-ssl-profiles-1.1.2.tgz#157dd77e9f19b1d123678e93f120e6f193022641"
   integrity sha512-NZKeq9AfyQvEeNlN0zSYAaWrmBffJh3IELMZfRpJVWgrpEbtEpnjvzqBPf+mxoI287JohRDoa+/nsfqqiZmF6g==
 
-axios@1.7.7, axios@^1.0.0, axios@^1.7.7:
-  version "1.7.7"
-  resolved "https://registry.yarnpkg.com/axios/-/axios-1.7.7.tgz#2f554296f9892a72ac8d8e4c5b79c14a91d0a47f"
-  integrity sha512-S4kL7XrjgBmvdGut0sN3yJxqYzrDOnivkBiN0OFs6hLiUam3UPvswUo0kqGyhqUZGEOytHyumEdXsAkgCOUf3Q==
+axios@1.8.2, axios@^1.0.0, axios@^1.7.7:
+  version "1.8.2"
+  resolved "https://registry.yarnpkg.com/axios/-/axios-1.8.2.tgz#fabe06e241dfe83071d4edfbcaa7b1c3a40f7979"
+  integrity sha512-ls4GYBm5aig9vWx8AWDSGLpnpDQRtWAfrjU+EuytuODrFBkqesN2RkOQCBzrA1RQNHw1SmRMSDDDSwzNAYQ6Rg==
   dependencies:
     follow-redirects "^1.15.6"
     form-data "^4.0.0"
@@ -20889,15 +20889,6 @@ magic-string@^0.30.0, magic-string@^0.30.10, magic-string@^0.30.11, magic-string
   dependencies:
     "@jridgewell/sourcemap-codec" "^1.5.0"
 
-magicast@0.2.8:
-  version "0.2.8"
-  resolved "https://registry.yarnpkg.com/magicast/-/magicast-0.2.8.tgz#02b298c65fbc5b7d1fce52ef779c59caf68cc9cf"
-  integrity sha512-zEnqeb3E6TfMKYXGyHv3utbuHNixr04o3/gVGviSzVQkbFiU46VZUd+Ea/1npKfvEsEWxBYuIksKzoztTDPg0A==
-  dependencies:
-    "@babel/parser" "^7.21.9"
-    "@babel/types" "^7.21.5"
-    recast "^0.23.2"
-
 magicast@^0.2.10:
   version "0.2.11"
   resolved "https://registry.yarnpkg.com/magicast/-/magicast-0.2.11.tgz#d5d9339ec59e5322cf331460d8e3db2f6585f5d5"
@@ -25781,6 +25772,17 @@ realistic-structured-clone@^3.0.0:
     typeson "^6.1.0"
     typeson-registry "^1.0.0-alpha.20"
 
+recast@0.23.11, recast@^0.23.4:
+  version "0.23.11"
+  resolved "https://registry.yarnpkg.com/recast/-/recast-0.23.11.tgz#8885570bb28cf773ba1dc600da7f502f7883f73f"
+  integrity sha512-YTUo+Flmw4ZXiWfQKGcwwc11KnoRAYgzAE2E7mXKCjSviTKShtxBsN6YUUBB2gtaBzKzeKunxhUwNHQuRryhWA==
+  dependencies:
+    ast-types "^0.16.1"
+    esprima "~4.0.0"
+    source-map "~0.6.1"
+    tiny-invariant "^1.3.3"
+    tslib "^2.0.1"
+
 recast@^0.18.1:
   version "0.18.10"
   resolved "https://registry.yarnpkg.com/recast/-/recast-0.18.10.tgz#605ebbe621511eb89b6356a7e224bff66ed91478"
@@ -25799,17 +25801,6 @@ recast@^0.20.5:
     ast-types "0.14.2"
     esprima "~4.0.0"
     source-map "~0.6.1"
-    tslib "^2.0.1"
-
-recast@^0.23.2, recast@^0.23.4:
-  version "0.23.9"
-  resolved "https://registry.yarnpkg.com/recast/-/recast-0.23.9.tgz#587c5d3a77c2cfcb0c18ccce6da4361528c2587b"
-  integrity sha512-Hx/BGIbwj+Des3+xy5uAtAbdCyqK9y9wbBcDFDYanLS9JnMqf7OeF87HQwUimE87OEc72mr6tkKUKMBBL+hF9Q==
-  dependencies:
-    ast-types "^0.16.1"
-    esprima "~4.0.0"
-    source-map "~0.6.1"
-    tiny-invariant "^1.3.3"
     tslib "^2.0.1"
 
 rechoir@^0.6.2:
