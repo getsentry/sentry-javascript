@@ -93,14 +93,11 @@ async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
           port: port,
           isReachable: (
             await waitPort({
-              host: 'localhost',
               port,
-              timeout: 20_000,
+              host: 'localhost',
+              timeout: 75_000,
               interval: 1_000,
               output: 'silent',
-              protocol: undefined,
-              path: undefined,
-              waitForDns: false,
             })
           ).open,
         };
