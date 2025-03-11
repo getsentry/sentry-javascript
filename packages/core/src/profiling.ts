@@ -68,7 +68,21 @@ function stopProfiler(): void {
   integration._profiler.stop();
 }
 
+/**
+ * Starts a new profiler session.
+ */
+function startProfilerSession(): void {
+}
+
+/**
+ * Stops the current profiler session.
+ */
+function stopProfilerSession(): void {
+}
+
 export const profiler: Profiler = {
   startProfiler,
   stopProfiler,
+  startProfilerSession,
+  stopProfilerSession,
 };
