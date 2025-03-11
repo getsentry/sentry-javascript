@@ -80,6 +80,7 @@
     "packages/svelte",
     "packages/sveltekit",
     "packages/tanstackstart",
+    "packages/tanstackstart-react",
     "packages/types",
     "packages/typescript",
     "packages/vercel-edge",
