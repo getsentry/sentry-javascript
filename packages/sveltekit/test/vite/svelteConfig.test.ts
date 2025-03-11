@@ -68,6 +68,11 @@ describe('getAdapterOutputDir', () => {
     expect(outputDir).toEqual('customBuildDir');
   });
 
+  it('returns the output directory of the Cloudflare adapter', async () => {
+    const outputDir = await getAdapterOutputDir({ kit: { outDir: 'customOutDir' } }, 'cloudflare');
+    expect(outputDir).toEqual('customOutDir/cloudflare');
+  });
+
   it.each(['vercel', 'auto', 'other'] as SupportedSvelteKitAdapters[])(
     'returns the config.kit.outdir directory for adapter-%s',
     async adapter => {

@@ -52,6 +52,10 @@ export async function getAdapterOutputDir(svelteConfig: Config, adapter: Support
   if (adapter === 'node') {
     return getNodeAdapterOutputDir(svelteConfig);
   }
+  if (adapter === 'cloudflare') {
+    // Cloudflare outputs to outDir\cloudflare as the output dir
+    return path.join(svelteConfig.kit?.outDir || '.svelte-kit', 'cloudflare');
+  }
 
   // Auto and Vercel adapters simply use config.kit.outDir
   // Let's also use this directory for the 'other' case

@@ -1,11 +1,12 @@
 import * as SentryCore from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { describe, vi, beforeEach, afterEach, it, expect } from 'vitest';
 
 import type { AugmentedNextApiResponse, NextApiHandler } from '../../src/common/types';
 import { wrapApiHandlerWithSentry } from '../../src/server';
 
-const startSpanManualSpy = jest.spyOn(SentryCore, 'startSpanManual');
+const startSpanManualSpy = vi.spyOn(SentryCore, 'startSpanManual');
 
 describe('withSentry', () => {
   let req: NextApiRequest, res: NextApiResponse;
@@ -32,7 +33,7 @@ describe('withSentry', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('tracing', () => {

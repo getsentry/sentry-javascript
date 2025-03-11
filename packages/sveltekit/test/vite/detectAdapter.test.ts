@@ -27,7 +27,7 @@ describe('detectAdapter', () => {
   const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
   const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
-  it.each(['auto', 'vercel', 'node'])(
+  it.each(['auto', 'vercel', 'node', 'cloudflare'])(
     'returns the adapter name (adapter %s) and logs it to the console',
     async adapter => {
       pkgJson.dependencies[`@sveltejs/adapter-${adapter}`] = '1.0.0';
@@ -68,6 +68,7 @@ describe('detectAdapter', () => {
     pkgJson.dependencies['@sveltejs/adapter-auto'] = '1.0.0';
     pkgJson.dependencies['@sveltejs/adapter-vercel'] = '1.0.0';
     pkgJson.dependencies['@sveltejs/adapter-node'] = '1.0.0';
+    pkgJson.dependencies['@sveltejs/adapter-cloudflare'] = '1.0.0';
 
     const detectedAdapter = await detectAdapter();
     expect(detectedAdapter).toEqual('vercel');
@@ -75,5 +76,8 @@ describe('detectAdapter', () => {
     delete pkgJson.dependencies['@sveltejs/adapter-vercel'];
     const detectedAdapter2 = await detectAdapter();
     expect(detectedAdapter2).toEqual('node');
+    delete pkgJson.dependencies['@sveltejs/adapter-node'];
+    const detectedAdapter3 = await detectAdapter();
+    expect(detectedAdapter3).toEqual('cloudflare');
   });
 });

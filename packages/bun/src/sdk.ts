@@ -2,6 +2,7 @@ import * as os from 'node:os';
 import {
   applySdkMetadata,
   functionToStringIntegration,
+  hasSpansEnabled,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
   requestDataIntegration,
@@ -11,6 +12,7 @@ import type { NodeClient } from '@sentry/node';
 import {
   consoleIntegration,
   contextLinesIntegration,
+  getAutoPerformanceIntegrations,
   httpIntegration,
   init as initNode,
   modulesIntegration,
@@ -48,6 +50,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     modulesIntegration(),
     // Bun Specific
     bunServerIntegration(),
+    ...(hasSpansEnabled(_options) ? getAutoPerformanceIntegrations() : []),
   ];
 }
 
