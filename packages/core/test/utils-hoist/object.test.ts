@@ -63,7 +63,7 @@ describe('fill()', () => {
 
     fill(source, name, replacement);
 
-    expect(source.foo).toEqual(propValue);
+    expect(source.foo).toBe(propValue);
     expect(replacement).not.toBeCalled();
   });
 

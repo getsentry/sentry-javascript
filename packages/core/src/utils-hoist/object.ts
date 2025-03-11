@@ -25,7 +25,9 @@ export function fill(source: { [key: string]: any }, name: string, replacementFa
     return;
   }
 
-  const original = source[name];
+  // explicitly casting to unknown because we don't know the type of the method initially at all
+  const original = source[name] as unknown;
+
   if (typeof original !== 'function') {
     return;
   }
