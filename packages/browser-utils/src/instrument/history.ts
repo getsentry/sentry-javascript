@@ -18,7 +18,10 @@ export function addHistoryInstrumentationHandler(handler: (data: HandlerDataHist
   maybeInstrument(type, instrumentHistory);
 }
 
-function instrumentHistory(): void {
+/**
+ * Exported just for testing
+ */
+export function instrumentHistory(): void {
   // The `popstate` event may also be triggered on `pushState`, but it may not always reliably be emitted by the browser
   // Which is why we also monkey-patch methods below, in addition to this
   WINDOW.addEventListener('popstate', () => {
@@ -61,6 +64,10 @@ function instrumentHistory(): void {
     };
   }
 
-  fill(WINDOW.history, 'pushState', historyReplacementFunction);
-  fill(WINDOW.history, 'replaceState', historyReplacementFunction);
+  if (typeof WINDOW.history.pushState === 'function') {
+    fill(WINDOW.history, 'pushState', historyReplacementFunction);
+  }
+  if (typeof WINDOW.history.replaceState === 'function') {
+    fill(WINDOW.history, 'replaceState', historyReplacementFunction);
+  }
 }

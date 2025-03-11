@@ -61,7 +61,7 @@ export function supportsDOMException(): boolean {
  * @returns Answer to the given question.
  */
 export function supportsHistory(): boolean {
-  return 'history' in WINDOW;
+  return 'history' in WINDOW && !!WINDOW.history;
 }
 
 /**
