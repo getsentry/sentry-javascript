@@ -18,6 +18,7 @@ function isProfilingIntegrationWithProfiler(
  * Starts the Sentry continuous profiler.
  * This mode is exclusive with the transaction profiler and will only work if the profilesSampleRate is set to a falsy value.
  * In continuous profiling mode, the profiler will keep reporting profile chunks to Sentry until it is stopped, which allows for continuous profiling of the application.
+ * @deprecated Use `startProfilerSession()` instead.
  */
 function startProfiler(): void {
   const client = getClient();
@@ -44,6 +45,7 @@ function startProfiler(): void {
 /**
  * Stops the Sentry continuous profiler.
  * Calls to stop will stop the profiler and flush the currently collected profile data to Sentry.
+ * @deprecated Use `stopProfilerSession()` instead.
  */
 function stopProfiler(): void {
   const client = getClient();

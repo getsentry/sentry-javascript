@@ -14,8 +14,27 @@ export interface ProfilingIntegration<T extends Client> extends Integration {
 }
 
 export interface Profiler {
+  /**
+   * Starts the profiler.
+   * @deprecated Use `startProfilerSession()` instead.
+   */
   startProfiler(): void;
+
+  /**
+   * Stops the profiler.
+   * @deprecated Use `stopProfilerSession()` instead.
+   */
   stopProfiler(): void;
+
+  /**
+   * Starts a new profiler session.
+   */
+  startProfilerSession(): void;
+
+  /**
+   * Stops the current profiler session.
+   */
+  stopProfilerSession(): void;
 }
 
 export type ThreadId = string;
