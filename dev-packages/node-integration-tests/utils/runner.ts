@@ -25,7 +25,7 @@ import {
   assertSentryTransaction,
 } from './assertions';
 import { createBasicSentryServer } from './server';
-import isPortReachable from 'is-port-reachable';
+import waitPort from 'wait-port';
 
 const CLEANUP_STEPS = new Set<VoidFunction>();
 
@@ -91,10 +91,18 @@ async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
       (options.waitForPorts ?? []).map(async port => {
         return {
           port: port,
-          isReachable: await isPortReachable(port, {
-            host: 'localhost',
-            timeout: 75_000,
-          }),
+          isReachable: (
+            await waitPort({
+              host: 'localhost',
+              port,
+              timeout: 20_000,
+              interval: 1_000,
+              output: 'silent',
+              protocol: undefined,
+              path: undefined,
+              waitForDns: false,
+            })
+          ).open,
         };
       }),
     ).then(
