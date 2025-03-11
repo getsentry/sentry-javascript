@@ -71,14 +71,12 @@ function stopProfiler(): void {
 /**
  * Starts a new profiler session.
  */
-function startProfilerSession(): void {
-}
+function startProfilerSession(): void {}
 
 /**
  * Stops the current profiler session.
  */
-function stopProfilerSession(): void {
-}
+function stopProfilerSession(): void {}
 
 export const profiler: Profiler = {
   startProfiler,

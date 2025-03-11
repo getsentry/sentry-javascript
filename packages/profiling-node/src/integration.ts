@@ -447,9 +447,8 @@ export const _nodeProfilingIntegration = ((): ProfilingIntegration<NodeClient> =
       const options = client.getOptions();
       const profilingAPIVersion = getProfilingMode(options);
 
-      
       if (profilingAPIVersion === 'legacy') {
-        const mode = ('profilesSampleRate' in options || 'profilesSampler' in options) ? 'span' : 'continuous';
+        const mode = 'profilesSampleRate' in options || 'profilesSampler' in options ? 'span' : 'continuous';
 
         switch (mode) {
           case 'continuous': {
@@ -468,15 +467,14 @@ export const _nodeProfilingIntegration = ((): ProfilingIntegration<NodeClient> =
             DEBUG_BUILD && logger.warn(`[Profiling] Unknown profiler mode: ${mode}, profiler was not initialized`);
           }
         }
-      }
-
-      else if(profilingAPIVersion === 'current') {
+      } else if (profilingAPIVersion === 'current') {
         DEBUG_BUILD && logger.log('[Profiling] Continuous profiler mode enabled.');
         this._profiler.initialize(client);
         return;
       }
 
-      DEBUG_BUILD && logger.log(['[Profiling] Profiling integration is added, but not enabled due to lack of SDK.init options.'])
+      DEBUG_BUILD &&
+        logger.log(['[Profiling] Profiling integration is added, but not enabled due to lack of SDK.init options.']);
       return;
     },
   };
@@ -492,7 +490,7 @@ function getProfilingMode(options: NodeOptions): 'legacy' | 'current' | null {
     return 'legacy';
   }
 
-  if('profileSessionSampleRate' in options || 'profileLifecycle' in options){
+  if ('profileSessionSampleRate' in options || 'profileLifecycle' in options) {
     return 'current';
   }
 
