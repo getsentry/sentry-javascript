@@ -26,6 +26,8 @@ export interface BaseNodeOptions {
 
   /**
    * Sets profiling sample rate when @sentry/profiling-node is installed
+   *
+   * @deprecated
    */
   profilesSampleRate?: number;
 
@@ -39,6 +41,8 @@ export interface BaseNodeOptions {
    *
    * @returns A sample rate between 0 and 1 (0 drops the profile, 1 guarantees it will be sent). Returning `true` is
    * equivalent to returning 1 and returning `false` is equivalent to returning 0.
+   *
+   * @deprecated
    */
   profilesSampler?: (samplingContext: SamplingContext) => number | boolean;
 
