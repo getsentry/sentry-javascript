@@ -64,10 +64,6 @@ export function instrumentHistory(): void {
     };
   }
 
-  if (typeof WINDOW.history.pushState === 'function') {
-    fill(WINDOW.history, 'pushState', historyReplacementFunction);
-  }
-  if (typeof WINDOW.history.replaceState === 'function') {
-    fill(WINDOW.history, 'replaceState', historyReplacementFunction);
-  }
+  fill(WINDOW.history, 'pushState', historyReplacementFunction);
+  fill(WINDOW.history, 'replaceState', historyReplacementFunction);
 }
