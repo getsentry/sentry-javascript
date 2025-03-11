@@ -13,7 +13,7 @@ import {
   spanToJSON,
   uuid4,
 } from '@sentry/core';
-import type { NodeClient } from '@sentry/node';
+import type { NodeClient, NodeOptions } from '@sentry/node';
 import { DEBUG_BUILD } from './debug-build';
 import { NODE_MAJOR, NODE_VERSION } from './nodeVersion';
 import { MAX_PROFILE_DURATION_MS, maybeProfileSpan, stopSpanProfile } from './spanProfileUtils';
@@ -445,33 +445,50 @@ export const _nodeProfilingIntegration = ((): ProfilingIntegration<NodeClient> =
       DEBUG_BUILD && logger.log('[Profiling] Profiling integration setup.');
       const options = client.getOptions();
 
-      const mode =
-        (options.profilesSampleRate === undefined ||
-          options.profilesSampleRate === null ||
-          options.profilesSampleRate === 0) &&
-        !options.profilesSampler
-          ? 'continuous'
-          : 'span';
-      switch (mode) {
-        case 'continuous': {
-          DEBUG_BUILD && logger.log('[Profiling] Continuous profiler mode enabled.');
-          this._profiler.initialize(client);
-          break;
-        }
-        // Default to span profiling when no mode profiler mode is set
-        case 'span':
-        case undefined: {
-          DEBUG_BUILD && logger.log('[Profiling] Span profiler mode enabled.');
-          setupAutomatedSpanProfiling(client);
-          break;
-        }
-        default: {
-          DEBUG_BUILD && logger.warn(`[Profiling] Unknown profiler mode: ${mode}, profiler was not initialized`);
+      const profilingAPIVersion = getProfilingMode(options);
+
+      if (profilingAPIVersion === 'legacy') {
+        const mode =
+          (options.profilesSampleRate === undefined ||
+            options.profilesSampleRate === null ||
+            options.profilesSampleRate === 0) &&
+          !options.profilesSampler
+            ? 'continuous'
+            : 'span';
+        switch (mode) {
+          case 'continuous': {
+            DEBUG_BUILD && logger.log('[Profiling] Continuous profiler mode enabled.');
+            this._profiler.initialize(client);
+            break;
+          }
+          // Default to span profiling when no mode profiler mode is set
+          case 'span':
+          case undefined: {
+            DEBUG_BUILD && logger.log('[Profiling] Span profiler mode enabled.');
+            setupAutomatedSpanProfiling(client);
+            break;
+          }
+          default: {
+            DEBUG_BUILD && logger.warn(`[Profiling] Unknown profiler mode: ${mode}, profiler was not initialized`);
+          }
         }
       }
     },
   };
 }) satisfies IntegrationFn;
+
+/**
+ * Determines the profiling mode based on the options.
+ * @param options
+ * @returns 'legacy' if the options are using the legacy profiling API, 'current' if the options are using the current profiling API
+ */
+function getProfilingMode(options: NodeOptions): 'legacy' | 'current' {
+  if ('profilesSampleRate' in options || 'profilesSampler' in options) {
+    return 'legacy';
+  }
+
+  return 'current';
+}
 
 /**
  * We need this integration in order to send data to Sentry. We hook into the event processor
