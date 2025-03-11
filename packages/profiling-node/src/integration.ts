@@ -235,7 +235,12 @@ class ContinuousProfiler {
       return;
     }
 
-    // @TODO: Implement
+    // @TODO:
+    // - no-op if not sampled
+    // - no-op if already running and sampled
+    // - no-op if lifecycle is set to trace
+
+    // - start profiling
   }
   public stopProfileSession(): void {
     if (this._mode !== 'current') {
@@ -244,6 +249,9 @@ class ContinuousProfiler {
     }
 
     // @TODO: Implement
+    // - no-op if lifecycle is set to trace
+
+    // - stop profiling
   }
 
   /**
