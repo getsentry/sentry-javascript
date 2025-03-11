@@ -448,13 +448,8 @@ export const _nodeProfilingIntegration = ((): ProfilingIntegration<NodeClient> =
       const profilingAPIVersion = getProfilingMode(options);
 
       if (profilingAPIVersion === 'legacy') {
-        const mode =
-          (options.profilesSampleRate === undefined ||
-            options.profilesSampleRate === null ||
-            options.profilesSampleRate === 0) &&
-          !options.profilesSampler
-            ? 'continuous'
-            : 'span';
+        const mode = !('profileSessionSampleRate' in options) && !options.profilesSampler ? 'continuous' : 'span';
+
         switch (mode) {
           case 'continuous': {
             DEBUG_BUILD && logger.log('[Profiling] Continuous profiler mode enabled.');
