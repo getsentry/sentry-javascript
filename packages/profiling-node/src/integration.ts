@@ -165,7 +165,9 @@ class ContinuousProfiler {
   private _profilerId: string | undefined;
   private _client: NodeClient | undefined = undefined;
   private _chunkData: ChunkData | undefined = undefined;
-
+  private _mode: 'legacy' | 'current' | undefined = undefined;
+  private _profileLifecycle: 'manual' | 'trace' | undefined = undefined;
+  private _sessionSamplingRate: number | undefined;
   /**
    * Called when the profiler is attached to the client (continuous mode is enabled). If of the profiler
    * methods called before the profiler is initialized will result in a noop action with debug logs.
@@ -173,6 +175,11 @@ class ContinuousProfiler {
    */
   public initialize(client: NodeClient): void {
     this._client = client;
+    const options = client.getOptions();
+
+    this._mode = getProfilingMode(options);
+    this._sessionSamplingRate = Math.random();
+    this._profileLifecycle = options.profileLifecycle ?? 'manual';
 
     // Attaches a listener to beforeSend which will add the threadId data to the event being sent.
     // This adds a constant overhead to all events being sent which could be improved to only attach
@@ -187,6 +194,11 @@ class ContinuousProfiler {
   public start(): void {
     if (!this._client) {
       DEBUG_BUILD && logger.log('[Profiling] Failed to start, sentry client was never attached to the profiler.');
+      return;
+    }
+
+    if (this._mode !== 'legacy') {
+      DEBUG_BUILD && logger.log('[Profiling] Continuous profiling is not supported in the current mode.');
       return;
     }
 
@@ -207,9 +219,18 @@ class ContinuousProfiler {
       DEBUG_BUILD && logger.log('[Profiling] Failed to stop, sentry client was never attached to the profiler.');
       return;
     }
+
+    if (this._mode !== 'legacy') {
+      DEBUG_BUILD && logger.log('[Profiling] Continuous profiling is not supported in the current mode.');
+      return;
+    }
+
     this._chunkStop();
     this._teardownSpanChunkInstrumentation();
   }
+
+  public startProfileSession(): void {}
+  public stopProfileSession(): void {}
 
   /**
    * Stop profiler and initializes profiling of the next chunk
@@ -485,7 +506,7 @@ export const _nodeProfilingIntegration = ((): ProfilingIntegration<NodeClient> =
  * @param options
  * @returns 'legacy' if the options are using the legacy profiling API, 'current' if the options are using the current profiling API
  */
-function getProfilingMode(options: NodeOptions): 'legacy' | 'current' | null {
+function getProfilingMode(options: NodeOptions): 'legacy' | 'current' {
   if ('profilesSampleRate' in options || 'profilesSampler' in options) {
     return 'legacy';
   }
