@@ -12,6 +12,7 @@
     "clean": "npx nuxi cleanup",
     "test": "playwright test",
     "test:build": "pnpm install && pnpm build",
+    "test:build-nightly": "pnpm install && pnpm rm nuxt && pnpm add nuxt-nightly@latest && pnpm build",
     "test:assert": "pnpm test"
   },
   "dependencies": {
@@ -25,5 +26,13 @@
   },
   "overrides": {
     "@vercel/nft": "0.27.4"
+  },
+  "sentryTest": {
+    "optionalVariants": [
+      {
+        "build-command": "test:build-nightly",
+        "label": "nuxt-4 (nightly)"
+      }
+    ]
   }
 }
