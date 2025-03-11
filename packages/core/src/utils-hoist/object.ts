@@ -10,6 +10,8 @@ import { truncate } from './string';
 /**
  * Replace a method in an object with a wrapped version of itself.
  *
+ * If the method on the passed object is not a function, the wrapper will not be applied.
+ *
  * @param source An object that contains a method to be wrapped.
  * @param name The name of the method to be wrapped.
  * @param replacementFactory A higher-order function that takes the original version of the given method and returns a
@@ -23,7 +25,13 @@ export function fill(source: { [key: string]: any }, name: string, replacementFa
     return;
   }
 
-  const original = source[name] as () => any;
+  // explicitly casting to unknown because we don't know the type of the method initially at all
+  const original = source[name] as unknown;
+
+  if (typeof original !== 'function') {
+    return;
+  }
+
   const wrapped = replacementFactory(original) as WrappedFunction;
 
   // Make sure it's a function first, as we need to attach an empty prototype for `defineProperties` to work

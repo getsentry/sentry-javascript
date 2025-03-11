@@ -127,9 +127,9 @@ export async function errorHandleDataFunction(
   return handleCallbackErrors(
     async () => {
       if (name === 'action' && span) {
-        const options = getClient()?.getOptions() as RemixOptions;
+        const options = getClient()?.getOptions() as RemixOptions | undefined;
 
-        if (options.sendDefaultPii && options.captureActionFormDataKeys) {
+        if (options?.sendDefaultPii && options.captureActionFormDataKeys) {
           await storeFormDataKeys(args, span);
         }
       }
