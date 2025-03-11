@@ -445,30 +445,39 @@ export const _nodeProfilingIntegration = ((): ProfilingIntegration<NodeClient> =
     setup(client: NodeClient) {
       DEBUG_BUILD && logger.log('[Profiling] Profiling integration setup.');
       const options = client.getOptions();
-
       const profilingAPIVersion = getProfilingMode(options);
 
+      
       if (profilingAPIVersion === 'legacy') {
-        const mode = !('profileSessionSampleRate' in options) && !options.profilesSampler ? 'continuous' : 'span';
+        const mode = ('profilesSampleRate' in options || 'profilesSampler' in options) ? 'span' : 'continuous';
 
         switch (mode) {
           case 'continuous': {
             DEBUG_BUILD && logger.log('[Profiling] Continuous profiler mode enabled.');
             this._profiler.initialize(client);
-            break;
+            return;
           }
           // Default to span profiling when no mode profiler mode is set
           case 'span':
           case undefined: {
             DEBUG_BUILD && logger.log('[Profiling] Span profiler mode enabled.');
             setupAutomatedSpanProfiling(client);
-            break;
+            return;
           }
           default: {
             DEBUG_BUILD && logger.warn(`[Profiling] Unknown profiler mode: ${mode}, profiler was not initialized`);
           }
         }
       }
+
+      else if(profilingAPIVersion === 'current') {
+        DEBUG_BUILD && logger.log('[Profiling] Continuous profiler mode enabled.');
+        this._profiler.initialize(client);
+        return;
+      }
+
+      DEBUG_BUILD && logger.log(['[Profiling] Profiling integration is added, but not enabled due to lack of SDK.init options.'])
+      return;
     },
   };
 }) satisfies IntegrationFn;
@@ -478,12 +487,17 @@ export const _nodeProfilingIntegration = ((): ProfilingIntegration<NodeClient> =
  * @param options
  * @returns 'legacy' if the options are using the legacy profiling API, 'current' if the options are using the current profiling API
  */
-function getProfilingMode(options: NodeOptions): 'legacy' | 'current' {
+function getProfilingMode(options: NodeOptions): 'legacy' | 'current' | null {
   if ('profilesSampleRate' in options || 'profilesSampler' in options) {
     return 'legacy';
   }
 
-  return 'current';
+  if('profileSessionSampleRate' in options || 'profileLifecycle' in options){
+    return 'current';
+  }
+
+  // If neither are set, we are in the legacy continuous profiling mode
+  return 'legacy';
 }
 
 /**
