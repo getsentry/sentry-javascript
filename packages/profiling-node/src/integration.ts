@@ -140,6 +140,7 @@ function setupAutomatedSpanProfiling(client: NodeClient): void {
 
       profilesToAddToEnvelope.push(profile);
 
+      // @ts-expect-error profile does not inherit from Event
       client.emit('preprocessEvent', profile, {
         event_id: profiledTransaction.event_id,
       });
