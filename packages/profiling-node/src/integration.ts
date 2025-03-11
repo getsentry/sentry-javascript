@@ -229,8 +229,22 @@ class ContinuousProfiler {
     this._teardownSpanChunkInstrumentation();
   }
 
-  public startProfileSession(): void {}
-  public stopProfileSession(): void {}
+  public startProfileSession(): void {
+    if (this._mode !== 'current') {
+      DEBUG_BUILD && logger.log('[Profiling] Continuous profiling is not supported in the current mode.');
+      return;
+    }
+
+    // @TODO: Implement
+  }
+  public stopProfileSession(): void {
+    if (this._mode !== 'current') {
+      DEBUG_BUILD && logger.log('[Profiling] Continuous profiling is not supported in the current mode.');
+      return;
+    }
+
+    // @TODO: Implement
+  }
 
   /**
    * Stop profiler and initializes profiling of the next chunk
