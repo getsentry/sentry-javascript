@@ -1,7 +1,7 @@
 import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
-describe('tedious auto instrumentation', {timeout: 75_000}, () => {
+describe('tedious auto instrumentation', { timeout: 75_000 }, () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
@@ -42,7 +42,7 @@ describe('tedious auto instrumentation', {timeout: 75_000}, () => {
     };
 
     await createRunner(__dirname, 'scenario.js')
-      .withDockerCompose({ workingDirectory: [__dirname], readyMatches: ['1433'] })
+      .withDockerCompose({ workingDirectory: [__dirname], waitForPorts: [1433] })
       .expect({ transaction: EXPECTED_TRANSACTION })
       .start()
       .completed();

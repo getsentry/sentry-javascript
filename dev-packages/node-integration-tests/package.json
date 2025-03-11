@@ -50,6 +50,7 @@
     "graphql": "^16.3.0",
     "http-terminator": "^3.2.0",
     "ioredis": "^5.4.1",
+    "is-port-reachable": "^4.0.0",
     "kafkajs": "2.2.4",
     "knex": "^2.5.1",
     "lru-memoizer": "2.3.0",

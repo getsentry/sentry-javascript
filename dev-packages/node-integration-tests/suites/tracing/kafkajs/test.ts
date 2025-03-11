@@ -10,7 +10,7 @@ describe('kafkajs', () => {
     await createRunner(__dirname, 'scenario.js')
       .withDockerCompose({
         workingDirectory: [__dirname],
-        readyMatches: ['9092'],
+        waitForPorts: [9092],
       })
       .expect({
         transaction: {

@@ -59,7 +59,7 @@ describe('knex auto instrumentation', () => {
     };
 
     await createRunner(__dirname, 'scenario-withPostgres.js')
-      .withDockerCompose({ workingDirectory: [__dirname], readyMatches: ['port 5432'] })
+      .withDockerCompose({ workingDirectory: [__dirname], waitForPorts: [5432] })
       .expect({ transaction: EXPECTED_TRANSACTION })
       .start()
       .completed();
@@ -121,7 +121,7 @@ describe('knex auto instrumentation', () => {
     };
 
     await createRunner(__dirname, 'scenario-withMysql2.js')
-      .withDockerCompose({ workingDirectory: [__dirname], readyMatches: ['port: 3306'] })
+      .withDockerCompose({ workingDirectory: [__dirname], waitForPorts: [3306] })
       .expect({ transaction: EXPECTED_TRANSACTION })
       .start()
       .completed();

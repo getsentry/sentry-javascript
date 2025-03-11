@@ -40,7 +40,7 @@ describe('redis auto instrumentation', () => {
     };
 
     await createRunner(__dirname, 'scenario-ioredis.js')
-      .withDockerCompose({ workingDirectory: [__dirname], readyMatches: ['port=6379'] })
+      .withDockerCompose({ workingDirectory: [__dirname], waitForPorts: [6379] })
       .expect({ transaction: EXPECTED_TRANSACTION })
       .start()
       .completed();

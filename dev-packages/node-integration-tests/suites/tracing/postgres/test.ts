@@ -47,7 +47,7 @@ describe('postgres auto instrumentation', () => {
     };
 
     await createRunner(__dirname, 'scenario.js')
-      .withDockerCompose({ workingDirectory: [__dirname], readyMatches: ['port 5432'] })
+      .withDockerCompose({ workingDirectory: [__dirname], waitForPorts: [5432] })
       .expect({ transaction: EXPECTED_TRANSACTION })
       .start()
       .completed();

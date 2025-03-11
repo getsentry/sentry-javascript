@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { execSync, spawn, spawnSync } from 'child_process';
+import { spawn, spawnSync } from 'child_process';
 import { existsSync } from 'fs';
 import { join } from 'path';
 import { normalize } from '@sentry/core';
@@ -25,6 +25,7 @@ import {
   assertSentryTransaction,
 } from './assertions';
 import { createBasicSentryServer } from './server';
+import isPortReachable from 'is-port-reachable';
 
 const CLEANUP_STEPS = new Set<VoidFunction>();
 
@@ -57,13 +58,13 @@ interface DockerOptions {
    */
   workingDirectory: string[];
   /**
-   * The strings to look for in the output to know that the docker compose is ready for the test to be run
-   */
-  readyMatches: string[];
-  /**
    * The command to run after docker compose is up
    */
   setupCommand?: string;
+  /**
+   * Ports to watch until proceeding to know that the containers are ready for the tests to be run
+   */
+  waitForPorts: number[];
 }
 
 /**
@@ -84,32 +85,32 @@ async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
     // ensure we're starting fresh
     close();
 
-    const child = spawn('docker', ['compose', 'up'], { cwd });
+    spawn('docker', ['compose', 'up'], { cwd });
 
-    const timeout = setTimeout(() => {
-      close();
-      reject(new Error('Timed out waiting for docker-compose'));
-    }, 75_000);
-
-    function newData(data: Buffer): void {
-      const text = data.toString('utf8');
-
-      if (process.env.DEBUG) log(text);
-
-      for (const match of options.readyMatches) {
-        if (text.includes(match)) {
-          child.stdout.removeAllListeners();
-          clearTimeout(timeout);
-          if (options.setupCommand) {
-            execSync(options.setupCommand, { cwd, stdio: 'inherit' });
-          }
+    Promise.all(
+      (options.waitForPorts ?? []).map(async port => {
+        return {
+          port: port,
+          isReachable: await isPortReachable(port, {
+            host: 'localhost',
+            timeout: 75_000,
+          }),
+        };
+      }),
+    ).then(
+      isReachableResults => {
+        if (isReachableResults.some(({ isReachable }) => !isReachable)) {
+          close();
+          reject(`Timed out waiting for docker-compose ${JSON.stringify(isReachableResults)}`);
+        } else {
           resolve(close);
         }
-      }
-    }
-
-    child.stdout.on('data', newData);
-    child.stderr.on('data', newData);
+      },
+      e => {
+        close();
+        reject(e);
+      },
+    );
   });
 }
 

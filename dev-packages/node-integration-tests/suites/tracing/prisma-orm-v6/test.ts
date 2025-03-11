@@ -11,7 +11,7 @@ describe('Prisma ORM v6 Tests', () => {
     await createRunner(__dirname, 'scenario.js')
       .withDockerCompose({
         workingDirectory: [__dirname],
-        readyMatches: ['port 5432'],
+        waitForPorts: [5432],
         setupCommand: 'yarn && yarn setup',
       })
       .expect({

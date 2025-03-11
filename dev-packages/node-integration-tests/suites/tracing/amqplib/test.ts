@@ -33,7 +33,7 @@ describe('amqplib auto-instrumentation', () => {
     await createRunner(__dirname, 'scenario-message.ts')
       .withDockerCompose({
         workingDirectory: [__dirname],
-        readyMatches: ['Time to start RabbitMQ'],
+        waitForPorts: [5672],
       })
       .expect({
         transaction: (transaction: TransactionEvent) => {
