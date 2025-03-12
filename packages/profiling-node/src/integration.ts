@@ -9,6 +9,7 @@ import {
   getGlobalScope,
   getIsolationScope,
   getRootSpan,
+  spanIsSampled,
   logger,
   spanToJSON,
   uuid4,
@@ -242,6 +243,11 @@ class ContinuousProfiler {
 
     let activeSpanCounter = 0;
     this._client.on('spanStart', _span => {
+      // We only want to profile spans that are sampled.
+      if (!spanIsSampled(_span)) {
+        return;
+      }
+
       if (activeSpanCounter === 0) {
         this._startChunkProfiling();
       }
@@ -249,6 +255,11 @@ class ContinuousProfiler {
     });
 
     this._client.on('spanEnd', _span => {
+      // We only want to profile spans that are sampled.
+      if (!spanIsSampled(_span)) {
+        return;
+      }
+
       if (activeSpanCounter === 1) {
         this._stopChunkProfiling();
       }
