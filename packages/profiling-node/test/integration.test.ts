@@ -9,7 +9,7 @@ import type { ProfileChunk, Transport } from '@sentry/core';
 import type { NodeClientOptions } from '@sentry/node/build/types/types';
 import { _nodeProfilingIntegration } from '../src/integration';
 
-function makeClientWithHooks(): [Sentry.NodeClient, Transport] {
+function makeLegacySpanProfilingClient(): [Sentry.NodeClient, Transport] {
   const integration = _nodeProfilingIntegration();
   const client = new Sentry.NodeClient({
     stackParser: Sentry.defaultStackParser,
@@ -31,7 +31,7 @@ function makeClientWithHooks(): [Sentry.NodeClient, Transport] {
   return [client, client.getTransport() as Transport];
 }
 
-function makeContinuousProfilingClient(): [Sentry.NodeClient, Transport] {
+function makeLegacyContinuousProfilingClient(): [Sentry.NodeClient, Transport] {
   const integration = _nodeProfilingIntegration();
   const client = new Sentry.NodeClient({
     stackParser: Sentry.defaultStackParser,
@@ -47,6 +47,28 @@ function makeContinuousProfilingClient(): [Sentry.NodeClient, Transport] {
           return undefined;
         },
       }),
+  });
+
+  return [client, client.getTransport() as Transport];
+}
+
+function makeCurrentSpanProfilingClient(options: Partial<NodeClientOptions> = {}): [Sentry.NodeClient, Transport] {
+  const integration = _nodeProfilingIntegration();
+  const client = new Sentry.NodeClient({
+    stackParser: Sentry.defaultStackParser,
+    tracesSampleRate: 1,
+    debug: true,
+    environment: 'test-environment',
+    dsn: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
+    integrations: [integration],
+    transport: _opts =>
+      Sentry.makeNodeTransport({
+        url: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
+        recordDroppedEvent: () => {
+          return undefined;
+        },
+      }),
+    ...options,
   });
 
   return [client, client.getTransport() as Transport];
@@ -79,7 +101,7 @@ function makeClientOptions(
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 describe('ProfilingIntegration', () => {
-  describe('automated span instrumentation', () => {
+  describe('legacy automated span instrumentation', () => {
     beforeEach(() => {
       vi.useRealTimers();
       // We will mock the carrier as if it has been initialized by the SDK, else everything is short circuited
@@ -93,7 +115,7 @@ describe('ProfilingIntegration', () => {
     });
 
     it('pulls environment from sdk init', async () => {
-      const [client, transport] = makeClientWithHooks();
+      const [client, transport] = makeLegacySpanProfilingClient();
       Sentry.setCurrentClient(client);
       client.init();
 
@@ -110,7 +132,7 @@ describe('ProfilingIntegration', () => {
     it('logger warns user if there are insufficient samples and discards the profile', async () => {
       const logSpy = vi.spyOn(logger, 'log');
 
-      const [client, transport] = makeClientWithHooks();
+      const [client, transport] = makeLegacySpanProfilingClient();
       Sentry.setCurrentClient(client);
       client.init();
 
@@ -149,7 +171,7 @@ describe('ProfilingIntegration', () => {
     it('logger warns user if traceId is invalid', async () => {
       const logSpy = vi.spyOn(logger, 'log');
 
-      const [client, transport] = makeClientWithHooks();
+      const [client, transport] = makeLegacySpanProfilingClient();
       Sentry.setCurrentClient(client);
       client.init();
 
@@ -191,175 +213,28 @@ describe('ProfilingIntegration', () => {
       expect(logSpy).toHaveBeenCalledWith('[Profiling] Invalid traceId: ' + 'boop' + ' on profiled event');
     });
 
-    describe('with hooks', () => {
-      it('calls profiler when transaction is started/stopped', async () => {
-        const [client, transport] = makeClientWithHooks();
-        Sentry.setCurrentClient(client);
-        client.init();
-
-        const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
-        const stopProfilingSpy = vi.spyOn(CpuProfilerBindings, 'stopProfiling');
-
-        vi.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
-
-        const transaction = Sentry.startInactiveSpan({ forceTransaction: true, name: 'profile_hub' });
-        await wait(500);
-        transaction.end();
-
-        await Sentry.flush(1000);
-
-        expect(startProfilingSpy).toHaveBeenCalledTimes(1);
-        expect((stopProfilingSpy.mock.calls[stopProfilingSpy.mock.calls.length - 1]?.[0] as string).length).toBe(32);
-      });
-
-      it('sends profile in the same envelope as transaction', async () => {
-        const [client, transport] = makeClientWithHooks();
-        Sentry.setCurrentClient(client);
-        client.init();
-
-        const transportSpy = vi.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
-
-        const transaction = Sentry.startInactiveSpan({ forceTransaction: true, name: 'profile_hub' });
-        await wait(500);
-        transaction.end();
-
-        await Sentry.flush(1000);
-
-        // One for profile, the other for transaction
-        expect(transportSpy).toHaveBeenCalledTimes(1);
-        expect(transportSpy.mock.calls?.[0]?.[0]?.[1]?.[1]?.[0]).toMatchObject({ type: 'profile' });
-      });
-
-      it('does not crash if transaction has no profile context or it is invalid', async () => {
-        const [client] = makeClientWithHooks();
-        Sentry.setCurrentClient(client);
-        client.init();
-
-        // @ts-expect-error transaction is partial
-        client.emit('beforeEnvelope', createEnvelope({ type: 'transaction' }, { type: 'transaction' }));
-        // @ts-expect-error transaction is partial
-        client.emit('beforeEnvelope', createEnvelope({ type: 'transaction' }, { type: 'transaction', contexts: {} }));
-        client.emit(
-          'beforeEnvelope',
-          // @ts-expect-error transaction is partial
-          createEnvelope({ type: 'transaction' }, { type: 'transaction', contexts: { profile: {} } }),
-        );
-        client.emit(
-          'beforeEnvelope',
-          // @ts-expect-error transaction is partial
-          createEnvelope({ type: 'transaction' }, { type: 'transaction', contexts: { profile: { profile_id: null } } }),
-        );
-
-        // Emit is sync, so we can just assert that we got here
-        expect(true).toBe(true);
-      });
-
-      it('if transaction was profiled, but profiler returned null', async () => {
-        const [client, transport] = makeClientWithHooks();
-        Sentry.setCurrentClient(client);
-        client.init();
-
-        vi.spyOn(CpuProfilerBindings, 'stopProfiling').mockReturnValue(null);
-        // Emit is sync, so we can just assert that we got here
-        const transportSpy = vi.spyOn(transport, 'send').mockImplementation(() => {
-          // Do nothing so we don't send events to Sentry
-          return Promise.resolve({});
-        });
-
-        const transaction = Sentry.startInactiveSpan({ forceTransaction: true, name: 'profile_hub' });
-        await wait(500);
-        transaction.end();
-
-        await Sentry.flush(1000);
-
-        // Only transaction is sent
-        expect(transportSpy.mock.calls?.[0]?.[0]?.[1]?.[0]?.[0]).toMatchObject({ type: 'transaction' });
-        expect(transportSpy.mock.calls?.[0]?.[0]?.[1][1]).toBeUndefined();
-      });
-
-      it('emits preprocessEvent for profile', async () => {
-        const [client] = makeClientWithHooks();
-        Sentry.setCurrentClient(client);
-        client.init();
-
-        const onPreprocessEvent = vi.fn();
-
-        client.on('preprocessEvent', onPreprocessEvent);
-
-        const transaction = Sentry.startInactiveSpan({ forceTransaction: true, name: 'profile_hub' });
-        await wait(500);
-        transaction.end();
-
-        await Sentry.flush(1000);
-
-        expect(onPreprocessEvent.mock.calls[1]?.[0]).toMatchObject({
-          profile: {
-            samples: expect.arrayContaining([expect.anything()]),
-            stacks: expect.arrayContaining([expect.anything()]),
-          },
-        });
-      });
-
-      it('automated span instrumentation does not support continuous profiling', () => {
-        const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
-
-        const [client] = makeClientWithHooks();
-        Sentry.setCurrentClient(client);
-        client.init();
-
-        const integration =
-          client.getIntegrationByName<ProfilingIntegration<Sentry.NodeClient>>('ProfilingIntegration');
-        if (!integration) {
-          throw new Error('Profiling integration not found');
-        }
-        integration._profiler.start();
-        expect(startProfilingSpy).not.toHaveBeenCalled();
-      });
-    });
-
-    it('does not crash if stop is called multiple times', async () => {
-      const stopProfilingSpy = vi.spyOn(CpuProfilerBindings, 'stopProfiling');
-
-      const [client] = makeClientWithHooks();
+    it('calls profiler when transaction is started/stopped', async () => {
+      const [client, transport] = makeLegacySpanProfilingClient();
       Sentry.setCurrentClient(client);
       client.init();
 
-      const transaction = Sentry.startInactiveSpan({ forceTransaction: true, name: 'txn' });
+      const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
+      const stopProfilingSpy = vi.spyOn(CpuProfilerBindings, 'stopProfiling');
+
+      vi.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
+
+      const transaction = Sentry.startInactiveSpan({ forceTransaction: true, name: 'profile_hub' });
+      await wait(500);
       transaction.end();
-      transaction.end();
-      expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
+
+      await Sentry.flush(1000);
+
+      expect(startProfilingSpy).toHaveBeenCalledTimes(1);
+      expect((stopProfilingSpy.mock.calls[stopProfilingSpy.mock.calls.length - 1]?.[0] as string).length).toBe(32);
     });
-    it('enriches profile with debug_id', async () => {
-      GLOBAL_OBJ._sentryDebugIds = {
-        'Error\n    at filename.js (filename.js:36:15)': 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa',
-        'Error\n    at filename2.js (filename2.js:36:15)': 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb',
-        'Error\n    at filename3.js (filename3.js:36:15)': 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb',
-      };
 
-      // @ts-expect-error we just mock the return type and ignore the signature
-      vi.spyOn(CpuProfilerBindings, 'stopProfiling').mockImplementation(() => {
-        return {
-          samples: [
-            {
-              stack_id: 0,
-              thread_id: '0',
-              elapsed_since_start_ns: '10',
-            },
-            {
-              stack_id: 0,
-              thread_id: '0',
-              elapsed_since_start_ns: '10',
-            },
-          ],
-          measurements: {},
-          resources: ['filename.js', 'filename2.js'],
-          stacks: [[0]],
-          frames: [],
-          profiler_logging_mode: 'lazy',
-        };
-      });
-
-      const [client, transport] = makeClientWithHooks();
+    it('sends profile in the same envelope as transaction', async () => {
+      const [client, transport] = makeLegacySpanProfilingClient();
       Sentry.setCurrentClient(client);
       client.init();
 
@@ -371,54 +246,171 @@ describe('ProfilingIntegration', () => {
 
       await Sentry.flush(1000);
 
-      expect(transportSpy.mock.calls?.[0]?.[0]?.[1]?.[1]?.[1]).toMatchObject({
-        debug_meta: {
-          images: [
-            {
-              type: 'sourcemap',
-              debug_id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa',
-              code_file: 'filename.js',
-            },
-            {
-              type: 'sourcemap',
-              debug_id: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb',
-              code_file: 'filename2.js',
-            },
-          ],
+      // One for profile, the other for transaction
+      expect(transportSpy).toHaveBeenCalledTimes(1);
+      expect(transportSpy.mock.calls?.[0]?.[0]?.[1]?.[1]?.[0]).toMatchObject({ type: 'profile' });
+    });
+
+    it('does not crash if transaction has no profile context or it is invalid', async () => {
+      const [client] = makeLegacySpanProfilingClient();
+      Sentry.setCurrentClient(client);
+      client.init();
+
+      // @ts-expect-error transaction is partial
+      client.emit('beforeEnvelope', createEnvelope({ type: 'transaction' }, { type: 'transaction' }));
+      // @ts-expect-error transaction is partial
+      client.emit('beforeEnvelope', createEnvelope({ type: 'transaction' }, { type: 'transaction', contexts: {} }));
+      client.emit(
+        'beforeEnvelope',
+        // @ts-expect-error transaction is partial
+        createEnvelope({ type: 'transaction' }, { type: 'transaction', contexts: { profile: {} } }),
+      );
+      client.emit(
+        'beforeEnvelope',
+        // @ts-expect-error transaction is partial
+        createEnvelope({ type: 'transaction' }, { type: 'transaction', contexts: { profile: { profile_id: null } } }),
+      );
+
+      // Emit is sync, so we can just assert that we got here
+      expect(true).toBe(true);
+    });
+
+    it('if transaction was profiled, but profiler returned null', async () => {
+      const [client, transport] = makeLegacySpanProfilingClient();
+      Sentry.setCurrentClient(client);
+      client.init();
+
+      vi.spyOn(CpuProfilerBindings, 'stopProfiling').mockReturnValue(null);
+      // Emit is sync, so we can just assert that we got here
+      const transportSpy = vi.spyOn(transport, 'send').mockImplementation(() => {
+        // Do nothing so we don't send events to Sentry
+        return Promise.resolve({});
+      });
+
+      const transaction = Sentry.startInactiveSpan({ forceTransaction: true, name: 'profile_hub' });
+      await wait(500);
+      transaction.end();
+
+      await Sentry.flush(1000);
+
+      // Only transaction is sent
+      expect(transportSpy.mock.calls?.[0]?.[0]?.[1]?.[0]?.[0]).toMatchObject({ type: 'transaction' });
+      expect(transportSpy.mock.calls?.[0]?.[0]?.[1][1]).toBeUndefined();
+    });
+
+    it('emits preprocessEvent for profile', async () => {
+      const [client] = makeLegacySpanProfilingClient();
+      Sentry.setCurrentClient(client);
+      client.init();
+
+      const onPreprocessEvent = vi.fn();
+
+      client.on('preprocessEvent', onPreprocessEvent);
+
+      const transaction = Sentry.startInactiveSpan({ forceTransaction: true, name: 'profile_hub' });
+      await wait(500);
+      transaction.end();
+
+      await Sentry.flush(1000);
+
+      expect(onPreprocessEvent.mock.calls[1]?.[0]).toMatchObject({
+        profile: {
+          samples: expect.arrayContaining([expect.anything()]),
+          stacks: expect.arrayContaining([expect.anything()]),
         },
       });
     });
+
+    it('automated span instrumentation does not support continuous profiling', () => {
+      const [client] = makeLegacySpanProfilingClient();
+      Sentry.setCurrentClient(client);
+      client.init();
+
+      const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
+      const integration = client.getIntegrationByName<ProfilingIntegration<Sentry.NodeClient>>('ProfilingIntegration');
+      if (!integration) {
+        throw new Error('Profiling integration not found');
+      }
+
+      Sentry.profiler.startProfiler();
+      expect(startProfilingSpy).not.toHaveBeenCalled();
+    });
   });
 
-  it('top level methods do not proxy to integration', () => {
-    const client = new Sentry.NodeClient({
-      ...makeClientOptions({ profilesSampleRate: undefined }),
-      dsn: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
-      tracesSampleRate: 1,
-      profilesSampleRate: 1,
-      transport: _opts =>
-        Sentry.makeNodeTransport({
-          url: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
-          recordDroppedEvent: () => {
-            return undefined;
-          },
-        }),
-      integrations: [_nodeProfilingIntegration()],
-    });
+  it('does not crash if stop is called multiple times', async () => {
+    const stopProfilingSpy = vi.spyOn(CpuProfilerBindings, 'stopProfiling');
 
+    const [client] = makeLegacySpanProfilingClient();
     Sentry.setCurrentClient(client);
     client.init();
 
-    const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
-    const stopProfilingSpy = vi.spyOn(CpuProfilerBindings, 'stopProfiling');
-
-    Sentry.profiler.startProfiler();
-    expect(startProfilingSpy).not.toHaveBeenCalled();
-    Sentry.profiler.stopProfiler();
-    expect(stopProfilingSpy).not.toHaveBeenCalled();
+    const transaction = Sentry.startInactiveSpan({ forceTransaction: true, name: 'txn' });
+    transaction.end();
+    transaction.end();
+    expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
   });
 
-  describe('continuous profiling', () => {
+  it('enriches profile with debug_id', async () => {
+    GLOBAL_OBJ._sentryDebugIds = {
+      'Error\n    at filename.js (filename.js:36:15)': 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa',
+      'Error\n    at filename2.js (filename2.js:36:15)': 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb',
+      'Error\n    at filename3.js (filename3.js:36:15)': 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb',
+    };
+
+    // @ts-expect-error we just mock the return type and ignore the signature
+    vi.spyOn(CpuProfilerBindings, 'stopProfiling').mockImplementation(() => {
+      return {
+        samples: [
+          {
+            stack_id: 0,
+            thread_id: '0',
+            elapsed_since_start_ns: '10',
+          },
+          {
+            stack_id: 0,
+            thread_id: '0',
+            elapsed_since_start_ns: '10',
+          },
+        ],
+        measurements: {},
+        resources: ['filename.js', 'filename2.js'],
+        stacks: [[0]],
+        frames: [],
+        profiler_logging_mode: 'lazy',
+      };
+    });
+
+    const [client, transport] = makeLegacySpanProfilingClient();
+    Sentry.setCurrentClient(client);
+    client.init();
+
+    const transportSpy = vi.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
+
+    const transaction = Sentry.startInactiveSpan({ forceTransaction: true, name: 'profile_hub' });
+    await wait(500);
+    transaction.end();
+
+    await Sentry.flush(1000);
+
+    expect(transportSpy.mock.calls?.[0]?.[0]?.[1]?.[1]?.[1]).toMatchObject({
+      debug_meta: {
+        images: [
+          {
+            type: 'sourcemap',
+            debug_id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa',
+            code_file: 'filename.js',
+          },
+          {
+            type: 'sourcemap',
+            debug_id: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb',
+            code_file: 'filename2.js',
+          },
+        ],
+      },
+    });
+  });
+
+  describe('legacy continuous profiling', () => {
     beforeEach(() => {
       vi.useFakeTimers();
       // We will mock the carrier as if it has been initialized by the SDK, else everything is short circuited
@@ -463,7 +455,7 @@ describe('ProfilingIntegration', () => {
         };
       });
 
-      const [client, transport] = makeContinuousProfilingClient();
+      const [client, transport] = makeLegacyContinuousProfilingClient();
       Sentry.setCurrentClient(client);
       client.init();
 
@@ -481,7 +473,7 @@ describe('ProfilingIntegration', () => {
     it('initializes the continuous profiler', () => {
       const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
 
-      const [client] = makeContinuousProfilingClient();
+      const [client] = makeLegacyContinuousProfilingClient();
       Sentry.setCurrentClient(client);
       client.init();
 
@@ -495,7 +487,7 @@ describe('ProfilingIntegration', () => {
     it('starts a continuous profile', () => {
       const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
 
-      const [client] = makeContinuousProfilingClient();
+      const [client] = makeLegacyContinuousProfilingClient();
       Sentry.setCurrentClient(client);
       client.init();
 
@@ -508,7 +500,7 @@ describe('ProfilingIntegration', () => {
       const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
       const stopProfilingSpy = vi.spyOn(CpuProfilerBindings, 'stopProfiling');
 
-      const [client] = makeContinuousProfilingClient();
+      const [client] = makeLegacyContinuousProfilingClient();
       Sentry.setCurrentClient(client);
       client.init();
 
@@ -524,7 +516,7 @@ describe('ProfilingIntegration', () => {
       const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
       const stopProfilingSpy = vi.spyOn(CpuProfilerBindings, 'stopProfiling');
 
-      const [client] = makeContinuousProfilingClient();
+      const [client] = makeLegacyContinuousProfilingClient();
       Sentry.setCurrentClient(client);
       client.init();
 
@@ -540,7 +532,7 @@ describe('ProfilingIntegration', () => {
       const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
       const stopProfilingSpy = vi.spyOn(CpuProfilerBindings, 'stopProfiling');
 
-      const [client] = makeContinuousProfilingClient();
+      const [client] = makeLegacyContinuousProfilingClient();
       Sentry.setCurrentClient(client);
       client.init();
 
@@ -557,7 +549,7 @@ describe('ProfilingIntegration', () => {
     it('explicit calls to stop clear profilerId', async () => {
       const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
 
-      const [client] = makeContinuousProfilingClient();
+      const [client] = makeLegacyContinuousProfilingClient();
       Sentry.setCurrentClient(client);
       client.init();
 
@@ -575,7 +567,7 @@ describe('ProfilingIntegration', () => {
       const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
       const stopProfilingSpy = vi.spyOn(CpuProfilerBindings, 'stopProfiling');
 
-      const [client] = makeContinuousProfilingClient();
+      const [client] = makeLegacyContinuousProfilingClient();
       Sentry.setCurrentClient(client);
       client.init();
 
@@ -590,7 +582,7 @@ describe('ProfilingIntegration', () => {
       const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
       const stopProfilingSpy = vi.spyOn(CpuProfilerBindings, 'stopProfiling');
 
-      const [client] = makeContinuousProfilingClient();
+      const [client] = makeLegacyContinuousProfilingClient();
       Sentry.setCurrentClient(client);
       client.init();
 
@@ -609,7 +601,7 @@ describe('ProfilingIntegration', () => {
     it('continuous mode does not instrument spans', () => {
       const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
 
-      const [client] = makeContinuousProfilingClient();
+      const [client] = makeLegacyContinuousProfilingClient();
       Sentry.setCurrentClient(client);
       client.init();
 
@@ -641,7 +633,7 @@ describe('ProfilingIntegration', () => {
         };
       });
 
-      const [client, transport] = makeContinuousProfilingClient();
+      const [client, transport] = makeLegacyContinuousProfilingClient();
       Sentry.setCurrentClient(client);
       client.init();
 
@@ -655,7 +647,7 @@ describe('ProfilingIntegration', () => {
     });
 
     it('sets global profile context', async () => {
-      const [client, transport] = makeContinuousProfilingClient();
+      const [client, transport] = makeLegacyContinuousProfilingClient();
       Sentry.setCurrentClient(client);
       client.init();
 
@@ -694,58 +686,6 @@ describe('ProfilingIntegration', () => {
         },
       });
     });
-  });
-
-  describe('continuous profiling does not start in span profiling mode', () => {
-    it.each([
-      ['profilesSampleRate=1', makeClientOptions({ profilesSampleRate: 1 })],
-      ['profilesSampler is defined', makeClientOptions({ profilesSampler: () => 1 })],
-    ])('%s', async (_label, options) => {
-      const logSpy = vi.spyOn(logger, 'log');
-      const client = new Sentry.NodeClient({
-        ...options,
-        dsn: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
-        tracesSampleRate: 1,
-        transport: _opts =>
-          Sentry.makeNodeTransport({
-            url: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
-            recordDroppedEvent: () => {
-              return undefined;
-            },
-          }),
-        integrations: [_nodeProfilingIntegration()],
-      });
-
-      Sentry.setCurrentClient(client);
-      client.init();
-
-      const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
-      const transport = client.getTransport();
-
-      if (!transport) {
-        throw new Error('Transport not found');
-      }
-
-      vi.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
-      Sentry.startInactiveSpan({ forceTransaction: true, name: 'profile_hub' });
-
-      expect(startProfilingSpy).toHaveBeenCalled();
-      const integration = client.getIntegrationByName<ProfilingIntegration<Sentry.NodeClient>>('ProfilingIntegration');
-
-      if (!integration) {
-        throw new Error('Profiling integration not found');
-      }
-
-      integration._profiler.start();
-      expect(logSpy).toHaveBeenLastCalledWith(
-        '[Profiling] Failed to start, sentry client was never attached to the profiler.',
-      );
-    });
-  });
-  describe('continuous profiling mode', () => {
-    beforeEach(() => {
-      vi.clearAllMocks();
-    });
 
     it.each([['no option is set', makeClientOptions({})]])('%s', async (_label, options) => {
       const client = new Sentry.NodeClient({
@@ -780,32 +720,272 @@ describe('ProfilingIntegration', () => {
       Sentry.startInactiveSpan({ forceTransaction: true, name: 'profile_hub' });
       expect(startProfilingSpy).toHaveBeenCalledTimes(callCount);
     });
+  });
+});
 
-    it('top level methods proxy to integration', () => {
-      const client = new Sentry.NodeClient({
-        ...makeClientOptions({}),
-        dsn: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
-        tracesSampleRate: 1,
-        transport: _opts =>
-          Sentry.makeNodeTransport({
-            url: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
-            recordDroppedEvent: () => {
-              return undefined;
-            },
-          }),
-        integrations: [_nodeProfilingIntegration()],
+describe('current manual continuous profiling', () => {
+  it('start and stops a profile session', () => {
+    const [client] = makeCurrentSpanProfilingClient({
+      profileLifecycle: 'manual',
+      profileSessionSampleRate: 1,
+    });
+    Sentry.setCurrentClient(client);
+    client.init();
+
+    const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
+    const stopProfilingSpy = vi.spyOn(CpuProfilerBindings, 'stopProfiling');
+
+    Sentry.profiler.startProfileSession();
+    Sentry.profiler.stopProfileSession();
+
+    expect(startProfilingSpy).toHaveBeenCalled();
+    expect(stopProfilingSpy).toHaveBeenCalled();
+  });
+
+  it('calling start and stop while profile session is running does nothing', () => {
+    const [client] = makeCurrentSpanProfilingClient({
+      profileLifecycle: 'manual',
+      profileSessionSampleRate: 1,
+    });
+    Sentry.setCurrentClient(client);
+    client.init();
+
+    const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
+    const stopProfilingSpy = vi.spyOn(CpuProfilerBindings, 'stopProfiling');
+
+    Sentry.profiler.startProfileSession();
+    Sentry.profiler.startProfileSession();
+
+    expect(startProfilingSpy).toHaveBeenCalledTimes(1);
+
+    Sentry.profiler.stopProfileSession();
+    Sentry.profiler.stopProfileSession();
+
+    expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('profileSessionSamplingRate is respected', () => {
+    const [client] = makeCurrentSpanProfilingClient({
+      profileSessionSampleRate: 0,
+      profileLifecycle: 'manual',
+    });
+    Sentry.setCurrentClient(client);
+    client.init();
+
+    const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
+    const stopProfilingSpy = vi.spyOn(CpuProfilerBindings, 'stopProfiling');
+
+    Sentry.profiler.startProfileSession();
+    Sentry.profiler.stopProfileSession();
+
+    expect(startProfilingSpy).not.toHaveBeenCalled();
+    expect(stopProfilingSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe('trace profile lifecycle', () => {
+  it('trace profile lifecycle ignores manual calls to start and stop', () => {
+    const [client] = makeCurrentSpanProfilingClient({
+      profileLifecycle: 'trace',
+    });
+
+    Sentry.setCurrentClient(client);
+    client.init();
+
+    const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
+    const stopProfilingSpy = vi.spyOn(CpuProfilerBindings, 'stopProfiling');
+
+    Sentry.profiler.startProfileSession();
+    Sentry.profiler.stopProfileSession();
+
+    expect(startProfilingSpy).not.toHaveBeenCalled();
+    expect(stopProfilingSpy).not.toHaveBeenCalled();
+  });
+
+  it('starts profiler when first span is created', () => {
+    const [client] = makeCurrentSpanProfilingClient({
+      profileLifecycle: 'trace',
+    });
+
+    Sentry.setCurrentClient(client);
+    client.init();
+
+    const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
+    const stopProfilingSpy = vi.spyOn(CpuProfilerBindings, 'stopProfiling');
+
+    const span = Sentry.startInactiveSpan({ forceTransaction: true, name: 'test' });
+
+    expect(startProfilingSpy).toHaveBeenCalled();
+    expect(stopProfilingSpy).not.toHaveBeenCalled();
+
+    span.end();
+    expect(stopProfilingSpy).toHaveBeenCalled();
+  });
+
+  it('waits for the tail span to end before stopping the profiler', () => {
+    const [client] = makeCurrentSpanProfilingClient({
+      profileLifecycle: 'trace',
+    });
+
+    Sentry.setCurrentClient(client);
+    client.init();
+
+    const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
+    const stopProfilingSpy = vi.spyOn(CpuProfilerBindings, 'stopProfiling');
+
+    const first = Sentry.startInactiveSpan({ forceTransaction: true, name: 'test' });
+    const second = Sentry.startInactiveSpan({ forceTransaction: true, name: 'child' });
+
+    expect(startProfilingSpy).toHaveBeenCalled();
+    expect(stopProfilingSpy).not.toHaveBeenCalled();
+
+    first.end();
+    expect(stopProfilingSpy).not.toHaveBeenCalled();
+
+    second.end();
+    expect(stopProfilingSpy).toHaveBeenCalled();
+  });
+
+  it('ending last span does not stop the profiler if first span is not ended', () => {
+    const [client] = makeCurrentSpanProfilingClient({
+      profileLifecycle: 'trace',
+    });
+
+    Sentry.setCurrentClient(client);
+    client.init();
+
+    const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
+    const stopProfilingSpy = vi.spyOn(CpuProfilerBindings, 'stopProfiling');
+
+    const first = Sentry.startInactiveSpan({ forceTransaction: true, name: 'test' });
+    const second = Sentry.startInactiveSpan({ forceTransaction: true, name: 'child' });
+
+    expect(startProfilingSpy).toHaveBeenCalled();
+
+    second.end();
+    expect(stopProfilingSpy).not.toHaveBeenCalled();
+
+    first.end();
+    expect(stopProfilingSpy).toHaveBeenCalled();
+  });
+  it('multiple calls to span.end do not restart the profiler', () => {
+    const [client] = makeCurrentSpanProfilingClient({
+      profileLifecycle: 'trace',
+    });
+
+    Sentry.setCurrentClient(client);
+    client.init();
+
+    const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
+    const stopProfilingSpy = vi.spyOn(CpuProfilerBindings, 'stopProfiling');
+
+    const first = Sentry.startInactiveSpan({ forceTransaction: true, name: 'test' });
+    const second = Sentry.startInactiveSpan({ forceTransaction: true, name: 'child' });
+
+    expect(startProfilingSpy).toHaveBeenCalled();
+
+    first.end();
+    first.end();
+    expect(stopProfilingSpy).not.toHaveBeenCalled();
+
+    second.end();
+    expect(stopProfilingSpy).toHaveBeenCalled();
+  });
+});
+
+describe('Legacy vs Current API compat', () => {
+  describe('legacy', () => {
+    describe('span profiling', () => {
+      it('profiler.start, profiler.stop, profiler.startProfileSession, profiler.stopProfileSession void in automated span profiling mode', () => {
+        const [client] = makeLegacySpanProfilingClient();
+        Sentry.setCurrentClient(client);
+        client.init();
+
+        const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
+        const stopProfilingSpy = vi.spyOn(CpuProfilerBindings, 'stopProfiling');
+
+        // Profiler calls void
+        Sentry.profiler.startProfiler();
+        Sentry.profiler.stopProfiler();
+
+        expect(startProfilingSpy).not.toHaveBeenCalled();
+        expect(stopProfilingSpy).not.toHaveBeenCalled();
+
+        // This API is not supported in legacy mode
+        Sentry.profiler.startProfileSession();
+        Sentry.profiler.stopProfileSession();
+
+        expect(startProfilingSpy).not.toHaveBeenCalled();
+        expect(stopProfilingSpy).not.toHaveBeenCalled();
+
+        // Only starting and stopping the profiler is supported in legacy mode
+        const span = Sentry.startInactiveSpan({ forceTransaction: true, name: 'profile_hub' });
+        span.end();
+
+        expect(startProfilingSpy).toHaveBeenCalled();
+        expect(stopProfilingSpy).toHaveBeenCalled();
       });
+    });
 
-      Sentry.setCurrentClient(client);
-      client.init();
+    describe('continuous profiling', () => {
+      it('profiler.start and profiler.stop start and stop the profiler, calls to profiler.startProfileSession and profiler.stopProfileSession are ignored', () => {
+        const [client] = makeLegacyContinuousProfilingClient();
+        Sentry.setCurrentClient(client);
+        client.init();
 
-      const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
-      const stopProfilingSpy = vi.spyOn(CpuProfilerBindings, 'stopProfiling');
+        const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
+        const stopProfilingSpy = vi.spyOn(CpuProfilerBindings, 'stopProfiling');
 
-      Sentry.profiler.startProfiler();
-      expect(startProfilingSpy).toHaveBeenCalledTimes(1);
-      Sentry.profiler.stopProfiler();
-      expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
+        // Creating a span will not invoke the profiler
+        const span = Sentry.startInactiveSpan({ forceTransaction: true, name: 'profile_hub' });
+        span.end();
+
+        expect(startProfilingSpy).not.toHaveBeenCalled();
+        expect(stopProfilingSpy).not.toHaveBeenCalled();
+
+        // This API is not supported in legacy mode
+        Sentry.profiler.startProfileSession();
+        Sentry.profiler.stopProfileSession();
+
+        expect(startProfilingSpy).not.toHaveBeenCalled();
+        expect(stopProfilingSpy).not.toHaveBeenCalled();
+
+        // Only the old signature is supported
+        Sentry.profiler.startProfiler();
+        Sentry.profiler.stopProfiler();
+
+        expect(startProfilingSpy).toHaveBeenCalled();
+        expect(stopProfilingSpy).toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe('current', () => {
+    describe('span profiling', () => {
+      it('profiler.start, profiler.stop, profiler.startProfileSession, profiler.stopProfileSession void in automated span profiling mode', () => {
+        const [client] = makeCurrentSpanProfilingClient({
+          profileLifecycle: 'trace',
+        });
+        Sentry.setCurrentClient(client);
+        client.init();
+
+        const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
+        const stopProfilingSpy = vi.spyOn(CpuProfilerBindings, 'stopProfiling');
+
+        // Legacy mode is not supported under the new API
+        Sentry.profiler.startProfiler();
+        Sentry.profiler.stopProfiler();
+
+        expect(startProfilingSpy).not.toHaveBeenCalled();
+        expect(stopProfilingSpy).not.toHaveBeenCalled();
+
+        // This API is not supported in trace mode
+        Sentry.profiler.startProfileSession();
+        Sentry.profiler.stopProfileSession();
+
+        expect(startProfilingSpy).not.toHaveBeenCalled();
+        expect(stopProfilingSpy).not.toHaveBeenCalled();
+      });
     });
   });
 });
