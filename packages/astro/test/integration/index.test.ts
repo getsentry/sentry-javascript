@@ -205,7 +205,7 @@ describe('sentryAstro integration', () => {
   it('prefers user-specified unstable vite plugin options and merges them with default values', async () => {
     const integration = sentryAstro({
       bundleSizeOptimizations: {
-        excludeReplayShadowDom: true
+        excludeReplayShadowDom: true,
       },
       sourceMapsUploadOptions: {
         enabled: true,
@@ -221,9 +221,9 @@ describe('sentryAstro integration', () => {
             ignore: ['bar/*.js'],
           },
           bundleSizeOptimizations: {
-            excludeReplayIframe: true
-          }
-        }
+            excludeReplayIframe: true,
+          },
+        },
       },
     });
     // @ts-expect-error - the hook exists, and we only need to pass what we actually use
@@ -249,8 +249,8 @@ describe('sentryAstro integration', () => {
         },
         bundleSizeOptimizations: {
           excludeReplayShadowDom: true,
-          excludeReplayIframe: true
-        }
+          excludeReplayIframe: true,
+        },
       }),
     );
   });

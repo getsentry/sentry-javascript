@@ -97,7 +97,7 @@ type SourceMapsOptions = {
    *
    * Furthermore, some options are untested with Astro specifically. Use with caution.
    */
-  unstable_sentryVitePluginOptions?: Partial<SentryVitePluginOptions>
+  unstable_sentryVitePluginOptions?: Partial<SentryVitePluginOptions>;
 };
 
 type BundleSizeOptimizationOptions = {
