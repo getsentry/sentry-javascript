@@ -7,6 +7,8 @@ export interface ContinuousProfiler<T extends Client> {
   initialize(client: T): void;
   start(): void;
   stop(): void;
+  startProfileSession(): void;
+  stopProfileSession(): void;
 }
 
 export interface ProfilingIntegration<T extends Client> extends Integration {
@@ -16,7 +18,7 @@ export interface ProfilingIntegration<T extends Client> extends Integration {
 export interface Profiler {
   /**
    * Starts the profiler.
-   * @deprecated Use `startProfilerSession()` instead.
+   * @deprecated Use `startProfileSession()` instead.
    */
   startProfiler(): void;
 
@@ -29,12 +31,12 @@ export interface Profiler {
   /**
    * Starts a new profiler session.
    */
-  startProfilerSession(): void;
+  startProfileSession(): void;
 
   /**
    * Stops the current profiler session.
    */
-  stopProfilerSession(): void;
+  stopProfileSession(): void;
 }
 
 export type ThreadId = string;

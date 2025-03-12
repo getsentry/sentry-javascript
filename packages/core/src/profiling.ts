@@ -18,7 +18,7 @@ function isProfilingIntegrationWithProfiler(
  * Starts the Sentry continuous profiler.
  * This mode is exclusive with the transaction profiler and will only work if the profilesSampleRate is set to a falsy value.
  * In continuous profiling mode, the profiler will keep reporting profile chunks to Sentry until it is stopped, which allows for continuous profiling of the application.
- * @deprecated Use `startProfilerSession()` instead.
+ * @deprecated Use `startProfileSession()` instead.
  */
 function startProfiler(): void {
   const client = getClient();
@@ -71,16 +71,54 @@ function stopProfiler(): void {
 /**
  * Starts a new profiler session.
  */
-function startProfilerSession(): void {}
+function startProfileSession(): void {
+  const client = getClient();
+  if (!client) {
+    DEBUG_BUILD && logger.warn('No Sentry client available, profiling is not started');
+    return;
+  }
+
+  const integration = client.getIntegrationByName<ProfilingIntegration<any>>('ProfilingIntegration');
+  if (!integration) {
+    DEBUG_BUILD && logger.warn('ProfilingIntegration is not available');
+    return;
+  }
+
+  if (!isProfilingIntegrationWithProfiler(integration)) {
+    DEBUG_BUILD && logger.warn('Profiler is not available on profiling integration.');
+    return;
+  }
+
+  integration._profiler.startProfileSession();
+}
 
 /**
  * Stops the current profiler session.
  */
-function stopProfilerSession(): void {}
+function stopProfileSession(): void {
+    const client = getClient();
+    if (!client) {
+      DEBUG_BUILD && logger.warn('No Sentry client available, profiling is not started');
+      return;
+    }
+
+    const integration = client.getIntegrationByName<ProfilingIntegration<any>>('ProfilingIntegration');
+    if (!integration) {
+      DEBUG_BUILD && logger.warn('ProfilingIntegration is not available');
+      return;
+    }
+
+    if (!isProfilingIntegrationWithProfiler(integration)) {
+      DEBUG_BUILD && logger.warn('Profiler is not available on profiling integration.');
+      return;
+    }
+
+    integration._profiler.stopProfileSession();
+}
 
 export const profiler: Profiler = {
   startProfiler,
   stopProfiler,
-  startProfilerSession,
-  stopProfilerSession,
+  startProfileSession,
+  stopProfileSession,
 };
