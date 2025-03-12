@@ -275,6 +275,7 @@ class ContinuousProfiler {
       const profile_id = maybeProfileSpan(this._client, span);
 
       if (profile_id) {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const options = this._client!.getOptions();
         // Not intended for external use, hence missing types, but we want to profile a couple of things at Sentry that
         // currently exceed the default timeout set by the SDKs.
@@ -357,17 +358,20 @@ class ContinuousProfiler {
           continue;
         }
 
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const profile = createProfilingEvent(this._client!, cpuProfile, profiledTransaction);
         if (!profile) return;
 
         profilesToAddToEnvelope.push(profile);
 
         // @ts-expect-error profile does not inherit from Event
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         this._client!.emit('preprocessEvent', profile, {
           event_id: profiledTransaction.event_id,
         });
 
         // @ts-expect-error profile does not inherit from Event
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         this._client!.emit('postprocessEvent', profile, {
           event_id: profiledTransaction.event_id,
         });
