@@ -202,23 +202,27 @@ describe('sentryAstro integration', () => {
     );
   });
 
-  it('prefers user-specified unstable vite plugin options over everything else', async () => {
+  it('prefers user-specified unstable vite plugin options and merges them with default values', async () => {
     const integration = sentryAstro({
+      bundleSizeOptimizations: {
+        excludeReplayShadowDom: true
+      },
       sourceMapsUploadOptions: {
         enabled: true,
         org: 'my-org',
         project: 'my-project',
         assets: ['dist/server/**/*, dist/client/**/*'],
-        debug: true,
         unstable_sentryVitePluginOptions: {
           org: 'my-other-org',
           project: 'my-other-project',
           applicationKey: 'my-application-key',
-          debug: false,
           sourcemaps: {
             assets: ['foo/*.js'],
             ignore: ['bar/*.js'],
           },
+          bundleSizeOptimizations: {
+            excludeReplayIframe: true
+          }
         }
       },
     });
@@ -238,11 +242,15 @@ describe('sentryAstro integration', () => {
         org: 'my-other-org',
         project: 'my-other-project',
         applicationKey: 'my-application-key',
-        debug: false,
         sourcemaps: {
           assets: ['foo/*.js'],
           ignore: ['bar/*.js'],
+          filesToDeleteAfterUpload: ['./dist/**/client/**/*.map', './dist/**/server/**/*.map'],
         },
+        bundleSizeOptimizations: {
+          excludeReplayShadowDom: true,
+          excludeReplayIframe: true
+        }
       }),
     );
   });

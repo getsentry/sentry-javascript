@@ -68,24 +68,26 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
                     project: uploadOptions.project ?? env.SENTRY_PROJECT,
                     authToken: uploadOptions.authToken ?? env.SENTRY_AUTH_TOKEN,
                     telemetry: uploadOptions.telemetry ?? true,
+                    _metaOptions: {
+                      telemetry: {
+                        metaFramework: 'astro',
+                      },
+                    },
+                    ...unstable_sentryVitePluginOptions,
+                    debug: options.debug ?? false,
                     sourcemaps: {
                       assets: uploadOptions.assets ?? [getSourcemapsAssetsGlob(config)],
                       filesToDeleteAfterUpload:
                         uploadOptions?.filesToDeleteAfterUpload ?? updatedFilesToDeleteAfterUpload,
+                      ...unstable_sentryVitePluginOptions?.sourcemaps
                     },
                     bundleSizeOptimizations: {
                       ...options.bundleSizeOptimizations,
                       // TODO: with a future version of the vite plugin (probably 2.22.0) this re-mapping is not needed anymore
                       // ref: https://github.com/getsentry/sentry-javascript-bundler-plugins/pull/582
                       excludePerformanceMonitoring: options.bundleSizeOptimizations?.excludeTracing,
+                      ...unstable_sentryVitePluginOptions?.bundleSizeOptimizations
                     },
-                    _metaOptions: {
-                      telemetry: {
-                        metaFramework: 'astro',
-                      },
-                    },
-                    debug: options.debug ?? false,
-                    ...unstable_sentryVitePluginOptions
                   }),
                 ),
               ],
