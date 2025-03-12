@@ -1,3 +1,4 @@
+/* eslint-disable deprecation/deprecation */
 import * as Sentry from '@sentry/node';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 

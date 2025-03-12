@@ -1,3 +1,4 @@
+/* eslint-disable deprecation/deprecation */
 import { CpuProfilerBindings, type RawThreadCpuProfile } from '@sentry-internal/node-cpu-profiler';
 import type { CustomSamplingContext, Span } from '@sentry/core';
 import { logger, spanIsSampled, spanToJSON, uuid4 } from '@sentry/core';
