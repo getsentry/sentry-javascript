@@ -30,7 +30,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
         };
 
         const sourceMapsNeeded = sdkEnabled.client || sdkEnabled.server;
-        const uploadOptions = options.sourceMapsUploadOptions || {};
+        const { unstable_sentryVitePluginOptions, ...uploadOptions } = options.sourceMapsUploadOptions || {};
         const shouldUploadSourcemaps = (sourceMapsNeeded && uploadOptions?.enabled) ?? true;
 
         // We don't need to check for AUTH_TOKEN here, because the plugin will pick it up from the env
@@ -85,6 +85,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
                       },
                     },
                     debug: options.debug ?? false,
+                    ...unstable_sentryVitePluginOptions
                   }),
                 ),
               ],

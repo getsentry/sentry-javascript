@@ -1,5 +1,6 @@
 import type { BrowserOptions } from '@sentry/browser';
 import type { Options } from '@sentry/core';
+import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
 
 type SdkInitPaths = {
   /**
@@ -83,6 +84,20 @@ type SourceMapsOptions = {
    * The globbing patterns follow the implementation of the glob package. (https://www.npmjs.com/package/glob)
    */
   filesToDeleteAfterUpload?: string | Array<string>;
+
+  /**
+   * Options to further customize the Sentry Vite Plugin (@sentry/vite-plugin) behavior directly.
+   * Options specified in this object take precedence over all other options.
+   *
+   * @see https://www.npmjs.com/package/@sentry/vite-plugin/v/2.14.2#options which lists all available options.
+   *
+   * Warning: Options within this object are subject to change at any time.
+   * We DO NOT guarantee semantic versioning for these options, meaning breaking
+   * changes can occur at any time within a major SDK version.
+   *
+   * Furthermore, some options are untested with Astro specifically. Use with caution.
+   */
+  unstable_sentryVitePluginOptions?: Partial<SentryVitePluginOptions>
 };
 
 type BundleSizeOptimizationOptions = {
