@@ -12,6 +12,7 @@ import { getActiveSpan } from './utils/spanUtils';
 const LOG_BUFFER_MAX_LENGTH = 25;
 
 let GLOBAL_LOG_BUFFER: Log[] = [];
+let GLOBAL_LOG_BUFFER_INDEX = 0;
 
 let isFlushingLogs = false;
 
@@ -89,15 +90,16 @@ function addToLogBuffer(client: Client, log: Log, scope: Scope): void {
     void client.sendEnvelope(envelope);
   }
 
-  function sendAndClearLogs(): void {
-    if (GLOBAL_LOG_BUFFER.length > 0) {
-      sendLogs(GLOBAL_LOG_BUFFER);
-      GLOBAL_LOG_BUFFER = [];
-    }
-  }
-
   if (GLOBAL_LOG_BUFFER.length >= LOG_BUFFER_MAX_LENGTH) {
-    sendAndClearLogs();
+    const shouldSendLogs = client.getOptions()?._experiments?.shouldSendLogs;
+    if(!shouldSendLogs || shouldSendLogs?.(GLOBAL_LOG_BUFFER, true)) { // TODO: implement error tracking
+      sendLogs(GLOBAL_LOG_BUFFER);
+      GLOBAL_LOG_BUFFER.length = 0;
+    } else {
+      // we should not send the logs buffer, evict a single log to make space for this one.
+      GLOBAL_LOG_BUFFER[GLOBAL_LOG_BUFFER_INDEX] = log;
+      GLOBAL_LOG_BUFFER_INDEX = (GLOBAL_LOG_BUFFER_INDEX + 1) % LOG_BUFFER_MAX_LENGTH;
+    }
   } else {
     GLOBAL_LOG_BUFFER.push(log);
   }
@@ -105,12 +107,19 @@ function addToLogBuffer(client: Client, log: Log, scope: Scope): void {
   // this is the first time logs have been enabled, let's kick off an interval to flush them
   // we should only do this once.
   if (!isFlushingLogs) {
+    const tryFlushLogs = (): void => {
+      const shouldSendLogs = client.getOptions()?._experiments?.shouldSendLogs;
+      if (!shouldSendLogs || shouldSendLogs?.(GLOBAL_LOG_BUFFER, true)) { // TODO: implement error tracking
+        sendLogs(GLOBAL_LOG_BUFFER);
+        GLOBAL_LOG_BUFFER.length = 0;
+      }
+    }
     client.on('flush', () => {
-      sendAndClearLogs();
+      tryFlushLogs();
     });
 
     const flushTimer = setInterval(() => {
-      sendAndClearLogs();
+      tryFlushLogs();
     }, 5000);
 
     // We need to unref the timer in node.js, otherwise the node process never exit.
