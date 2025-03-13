@@ -110,7 +110,7 @@ function addToLogBuffer(client: Client, log: Log, scope: Scope, isolationScope: 
   if (!isFlushingLogs) {
     const tryFlushLogs = (): void => {
       const beforeSendLogs = client.getOptions()?._experiments?.beforeSendLogs;
-      if (!beforeSendLogs || beforeSendLogs?.(GLOBAL_LOG_BUFFER, isolationScope.lastEventId())) { // TODO: implement error tracking
+      if (!beforeSendLogs || beforeSendLogs?.(GLOBAL_LOG_BUFFER, isolationScope.lastEventId())) {
         sendLogs(GLOBAL_LOG_BUFFER);
         GLOBAL_LOG_BUFFER.length = 0;
         globalLogBufferIndex = 0;
