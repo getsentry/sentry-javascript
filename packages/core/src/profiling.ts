@@ -96,24 +96,24 @@ function startProfileSession(): void {
  * Stops the current profiler session.
  */
 function stopProfileSession(): void {
-    const client = getClient();
-    if (!client) {
-      DEBUG_BUILD && logger.warn('No Sentry client available, profiling is not started');
-      return;
-    }
+  const client = getClient();
+  if (!client) {
+    DEBUG_BUILD && logger.warn('No Sentry client available, profiling is not started');
+    return;
+  }
 
-    const integration = client.getIntegrationByName<ProfilingIntegration<any>>('ProfilingIntegration');
-    if (!integration) {
-      DEBUG_BUILD && logger.warn('ProfilingIntegration is not available');
-      return;
-    }
+  const integration = client.getIntegrationByName<ProfilingIntegration<any>>('ProfilingIntegration');
+  if (!integration) {
+    DEBUG_BUILD && logger.warn('ProfilingIntegration is not available');
+    return;
+  }
 
-    if (!isProfilingIntegrationWithProfiler(integration)) {
-      DEBUG_BUILD && logger.warn('Profiler is not available on profiling integration.');
-      return;
-    }
+  if (!isProfilingIntegrationWithProfiler(integration)) {
+    DEBUG_BUILD && logger.warn('Profiler is not available on profiling integration.');
+    return;
+  }
 
-    integration._profiler.stopProfileSession();
+  integration._profiler.stopProfileSession();
 }
 
 export const profiler: Profiler = {
