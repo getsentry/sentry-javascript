@@ -202,6 +202,59 @@ describe('sentryAstro integration', () => {
     );
   });
 
+  it('prefers user-specified unstable vite plugin options and merges them with default values', async () => {
+    const integration = sentryAstro({
+      bundleSizeOptimizations: {
+        excludeReplayShadowDom: true,
+      },
+      sourceMapsUploadOptions: {
+        enabled: true,
+        org: 'my-org',
+        project: 'my-project',
+        assets: ['dist/server/**/*, dist/client/**/*'],
+        unstable_sentryVitePluginOptions: {
+          org: 'my-other-org',
+          project: 'my-other-project',
+          applicationKey: 'my-application-key',
+          sourcemaps: {
+            assets: ['foo/*.js'],
+            ignore: ['bar/*.js'],
+          },
+          bundleSizeOptimizations: {
+            excludeReplayIframe: true,
+          },
+        },
+      },
+    });
+    // @ts-expect-error - the hook exists, and we only need to pass what we actually use
+    await integration.hooks['astro:config:setup']({
+      updateConfig,
+      injectScript,
+      // @ts-expect-error - only passing in partial config
+      config: {
+        outDir: new URL('file://path/to/project/build'),
+      },
+    });
+
+    expect(sentryVitePluginSpy).toHaveBeenCalledTimes(1);
+    expect(sentryVitePluginSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        org: 'my-other-org',
+        project: 'my-other-project',
+        applicationKey: 'my-application-key',
+        sourcemaps: {
+          assets: ['foo/*.js'],
+          ignore: ['bar/*.js'],
+          filesToDeleteAfterUpload: ['./dist/**/client/**/*.map', './dist/**/server/**/*.map'],
+        },
+        bundleSizeOptimizations: {
+          excludeReplayShadowDom: true,
+          excludeReplayIframe: true,
+        },
+      }),
+    );
+  });
+
   it("doesn't enable source maps if `sourceMapsUploadOptions.enabled` is `false`", async () => {
     const integration = sentryAstro({
       sourceMapsUploadOptions: { enabled: false },
