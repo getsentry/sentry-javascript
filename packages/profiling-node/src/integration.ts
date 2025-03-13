@@ -96,6 +96,8 @@ class ContinuousProfiler {
       }
 
       case 'current': {
+        this._setupSpanChunkInstrumentation();
+
         switch (this._profileLifecycle) {
           case 'trace': {
             this._startTraceLifecycleProfiling();
