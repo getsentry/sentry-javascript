@@ -148,6 +148,7 @@ class ContinuousProfiler {
     }
 
     // Flush any existing chunks before starting a new one.
+
     this._stopChunkProfiling();
 
     // Restart the profiler session
@@ -427,6 +428,7 @@ class ContinuousProfiler {
       this._resetChunkData();
       return;
     }
+
     if (!this._chunkData?.id) {
       DEBUG_BUILD &&
         logger.log(`[Profiling] Failed to collect profile for: ${this._chunkData?.id}, the chunk_id is missing.`);
@@ -441,6 +443,7 @@ class ContinuousProfiler {
       this._resetChunkData();
       return;
     }
+
     if (!this._profilerId) {
       DEBUG_BUILD &&
         logger.log('[Profiling] Profile chunk does not contain a valid profiler_id, this is a bug in the SDK');
