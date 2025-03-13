@@ -1,5 +1,5 @@
 import type { Client } from './client';
-import { getClient, getCurrentScope } from './currentScopes';
+import { getClient, getCurrentScope, getIsolationScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import type { Scope } from './scope';
 import { getDynamicSamplingContextFromScope } from './tracing';
@@ -11,8 +11,8 @@ import { getActiveSpan } from './utils/spanUtils';
 
 const LOG_BUFFER_MAX_LENGTH = 25;
 
-let GLOBAL_LOG_BUFFER: Log[] = [];
-let GLOBAL_LOG_BUFFER_INDEX = 0;
+const GLOBAL_LOG_BUFFER: Log[] = [];
+let globalLogBufferIndex = 0;
 
 let isFlushingLogs = false;
 
@@ -83,7 +83,7 @@ function valueToAttribute(key: string, value: unknown): LogAttribute {
   }
 }
 
-function addToLogBuffer(client: Client, log: Log, scope: Scope): void {
+function addToLogBuffer(client: Client, log: Log, scope: Scope, isolationScope: Scope): void {
   function sendLogs(flushedLogs: Log[]): void {
     const envelope = createLogEnvelope(flushedLogs, client, scope);
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
@@ -91,14 +91,15 @@ function addToLogBuffer(client: Client, log: Log, scope: Scope): void {
   }
 
   if (GLOBAL_LOG_BUFFER.length >= LOG_BUFFER_MAX_LENGTH) {
-    const shouldSendLogs = client.getOptions()?._experiments?.shouldSendLogs;
-    if(!shouldSendLogs || shouldSendLogs?.(GLOBAL_LOG_BUFFER, true)) { // TODO: implement error tracking
+    const beforeSendLogs = client.getOptions()?._experiments?.beforeSendLogs;
+    if(!beforeSendLogs || beforeSendLogs?.(GLOBAL_LOG_BUFFER, isolationScope.lastEventId())) {
       sendLogs(GLOBAL_LOG_BUFFER);
       GLOBAL_LOG_BUFFER.length = 0;
+      globalLogBufferIndex = 0;
     } else {
       // we should not send the logs buffer, evict a single log to make space for this one.
-      GLOBAL_LOG_BUFFER[GLOBAL_LOG_BUFFER_INDEX] = log;
-      GLOBAL_LOG_BUFFER_INDEX = (GLOBAL_LOG_BUFFER_INDEX + 1) % LOG_BUFFER_MAX_LENGTH;
+      GLOBAL_LOG_BUFFER[globalLogBufferIndex] = log;
+      globalLogBufferIndex = (globalLogBufferIndex + 1) % LOG_BUFFER_MAX_LENGTH;
     }
   } else {
     GLOBAL_LOG_BUFFER.push(log);
@@ -108,10 +109,11 @@ function addToLogBuffer(client: Client, log: Log, scope: Scope): void {
   // we should only do this once.
   if (!isFlushingLogs) {
     const tryFlushLogs = (): void => {
-      const shouldSendLogs = client.getOptions()?._experiments?.shouldSendLogs;
-      if (!shouldSendLogs || shouldSendLogs?.(GLOBAL_LOG_BUFFER, true)) { // TODO: implement error tracking
+      const beforeSendLogs = client.getOptions()?._experiments?.beforeSendLogs;
+      if (!beforeSendLogs || beforeSendLogs?.(GLOBAL_LOG_BUFFER, isolationScope.lastEventId())) { // TODO: implement error tracking
         sendLogs(GLOBAL_LOG_BUFFER);
         GLOBAL_LOG_BUFFER.length = 0;
+        globalLogBufferIndex = 0;
       }
     }
     client.on('flush', () => {
@@ -197,6 +199,7 @@ export function captureLog({
   }
 
   const scope = getCurrentScope();
+  const isolationScope = getIsolationScope();
 
   const finalAttributes = Object.entries(logAttributes).map<LogAttribute>(([key, value]) =>
     valueToAttribute(key, value),
@@ -218,5 +221,5 @@ export function captureLog({
     log.severityNumber = maybeSeverityNumber;
   }
 
-  addToLogBuffer(client, log, scope);
+  addToLogBuffer(client, log, scope, isolationScope);
 }
