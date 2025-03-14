@@ -821,7 +821,6 @@ describe('ProfilingIntegration', () => {
 
         await Sentry.flush(1000);
 
-        console.log(JSON.stringify(transportSpy.mock.calls[0], null, 2));
         expect(transportSpy.mock.calls?.[0]?.[0]?.[1]?.[0]?.[0]).toMatchObject({
           type: 'profile_chunk',
         });
