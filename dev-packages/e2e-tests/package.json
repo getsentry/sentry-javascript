@@ -23,7 +23,7 @@
     "@types/glob": "8.0.0",
     "@types/node": "^18.19.1",
     "dotenv": "16.0.3",
-    "esbuild": "0.20.0",
+    "esbuild": "0.25.0",
     "glob": "8.0.3",
     "rimraf": "^5.0.10",
     "ts-node": "10.9.1",
