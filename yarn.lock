@@ -5685,6 +5685,13 @@
   dependencies:
     "@opentelemetry/semantic-conventions" "1.28.0"
 
+"@opentelemetry/core@2.0.0":
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/@opentelemetry/core/-/core-2.0.0.tgz#37e9f0e9ddec4479b267aca6f32d88757c941b3a"
+  integrity sha512-SLX36allrcnVaPYG3R78F/UZZsBsvbc7lMCLx37LyH5MJ1KAAZ2E3mW9OAD3zGz0G8q/BtoS5VUrjzDydhD6LQ==
+  dependencies:
+    "@opentelemetry/semantic-conventions" "^1.29.0"
+
 "@opentelemetry/core@^0.12.0":
   version "0.12.0"
   resolved "https://registry.yarnpkg.com/@opentelemetry/core/-/core-0.12.0.tgz#a888badc9a408fa1f13976a574e69d14be32488e"
@@ -5955,7 +5962,7 @@
   resolved "https://registry.yarnpkg.com/@opentelemetry/redis-common/-/redis-common-0.36.2.tgz#906ac8e4d804d4109f3ebd5c224ac988276fdc47"
   integrity sha512-faYX1N0gpLhej/6nyp6bgRjzAKXn5GOEMYY7YhciSfCoITAktLUtQ36d24QEWNA1/WA1y6qQunCe0OhHRkVl9g==
 
-"@opentelemetry/resources@1.30.1", "@opentelemetry/resources@^1.30.1":
+"@opentelemetry/resources@1.30.1":
   version "1.30.1"
   resolved "https://registry.yarnpkg.com/@opentelemetry/resources/-/resources-1.30.1.tgz#a4eae17ebd96947fdc7a64f931ca4b71e18ce964"
   integrity sha512-5UxZqiAgLYGFjS4s9qm5mBVo433u+dSPUFWVWXmLAD4wB65oMCoXaJP1KJa9DIYYMeHu3z4BZcStG3LC593cWA==
@@ -5970,6 +5977,14 @@
   dependencies:
     "@opentelemetry/api" "^0.12.0"
     "@opentelemetry/core" "^0.12.0"
+
+"@opentelemetry/resources@^2.0.0":
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/@opentelemetry/resources/-/resources-2.0.0.tgz#15c04794c32b7d0b3c7589225ece6ae9bba25989"
+  integrity sha512-rnZr6dML2z4IARI4zPGQV4arDikF/9OXZQzrC01dLmn0CZxU5U5OLd/m1T7YkGRj5UitjeoCtg/zorlgMQcdTg==
+  dependencies:
+    "@opentelemetry/core" "2.0.0"
+    "@opentelemetry/semantic-conventions" "^1.29.0"
 
 "@opentelemetry/sdk-trace-base@^1.30.1":
   version "1.30.1"
@@ -5990,7 +6005,7 @@
   resolved "https://registry.yarnpkg.com/@opentelemetry/semantic-conventions/-/semantic-conventions-0.12.0.tgz#7e392aecdbdbd5d737d3995998b120dc17589ab0"
   integrity sha512-BuCcDW0uLNYYTns0/LwXkJ8lp8aDm7kpS+WunEmPAPRSCe6ciOYRvzn5reqJfX93rf+6A3U2SgrBnCTH+0qoQQ==
 
-"@opentelemetry/semantic-conventions@^1.25.1", "@opentelemetry/semantic-conventions@^1.27.0", "@opentelemetry/semantic-conventions@^1.28.0", "@opentelemetry/semantic-conventions@^1.30.0":
+"@opentelemetry/semantic-conventions@^1.25.1", "@opentelemetry/semantic-conventions@^1.27.0", "@opentelemetry/semantic-conventions@^1.28.0", "@opentelemetry/semantic-conventions@^1.29.0", "@opentelemetry/semantic-conventions@^1.30.0":
   version "1.30.0"
   resolved "https://registry.yarnpkg.com/@opentelemetry/semantic-conventions/-/semantic-conventions-1.30.0.tgz#3a42c4c475482f2ec87c12aad98832dc0087dc9a"
   integrity sha512-4VlGgo32k2EQ2wcCY3vEU28A0O13aOtHz3Xt2/2U5FAh9EfhD6t6DqL5Z6yAnRCntbTFDU4YfbpyzSlHNWycPw==
@@ -28099,6 +28114,7 @@ stylus@0.59.0, stylus@^0.59.0:
 
 sucrase@^3.27.0, sucrase@^3.35.0, sucrase@getsentry/sucrase#es2020-polyfills:
   version "3.36.0"
+  uid fd682f6129e507c00bb4e6319cc5d6b767e36061
   resolved "https://codeload.github.com/getsentry/sucrase/tar.gz/fd682f6129e507c00bb4e6319cc5d6b767e36061"
   dependencies:
     "@jridgewell/gen-mapping" "^0.3.2"
