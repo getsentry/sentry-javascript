@@ -54,16 +54,22 @@ export function constructWebpackConfigFunction(
   ): WebpackConfigObject {
     const { isServer, dev: isDev, dir: projectDir } = buildContext;
     const runtime = isServer ? (buildContext.nextRuntime === 'edge' ? 'edge' : 'server') : 'client';
+    // Default page extensions per https://github.com/vercel/next.js/blob/f1dbc9260d48c7995f6c52f8fbcc65f08e627992/packages/next/server/config-shared.ts#L161
+    const pageExtensions = userNextConfig.pageExtensions || ['tsx', 'ts', 'jsx', 'js'];
+    const dotPrefixedPageExtensions = pageExtensions.map(ext => `.${ext}`);
+    const pageExtensionRegex = pageExtensions.map(escapeStringForRegex).join('|');
+
+    const instrumentationFile = getInstrumentationFile(projectDir, dotPrefixedPageExtensions.concat('.ts', '.js'));
 
     if (runtime !== 'client') {
-      warnAboutDeprecatedConfigFiles(projectDir, runtime);
+      warnAboutDeprecatedConfigFiles(projectDir, instrumentationFile, runtime);
     }
     if (runtime === 'server') {
       const nextJsVersion = getNextjsVersion();
       const { major } = parseSemver(nextJsVersion || '');
       // was added in v15 (https://github.com/vercel/next.js/pull/67539)
       if (major && major >= 15) {
-        warnAboutMissingOnRequestErrorHandler(projectDir);
+        warnAboutMissingOnRequestErrorHandler(instrumentationFile);
       }
     }
 
@@ -109,11 +115,6 @@ export function constructWebpackConfigFunction(
       : appDirPath
         ? path.join(appDirPath, '..')
         : projectDir;
-
-    // Default page extensions per https://github.com/vercel/next.js/blob/f1dbc9260d48c7995f6c52f8fbcc65f08e627992/packages/next/server/config-shared.ts#L161
-    const pageExtensions = userNextConfig.pageExtensions || ['tsx', 'ts', 'jsx', 'js'];
-    const dotPrefixedPageExtensions = pageExtensions.map(ext => `.${ext}`);
-    const pageExtensionRegex = pageExtensions.map(escapeStringForRegex).join('|');
 
     const staticWrappingLoaderOptions = {
       appDir: appDirPath,
@@ -445,37 +446,29 @@ async function addSentryToClientEntryProperty(
 }
 
 /**
- * Make sure the instrumentation file has a `onRequestError` Handler
- *
- * @param projectDir The root directory of the project, where config files would be located
+ * Gets the content of the user's instrumentation file
  */
-function warnAboutMissingOnRequestErrorHandler(projectDir: string): void {
-  const instrumentationPaths = [
-    ['src', 'instrumentation.ts'],
-    ['src', 'instrumentation.js'],
-    ['instrumentation.ts'],
-    ['instrumentation.js'],
-  ];
-  const instrumentationFile = instrumentationPaths
-    .map(pathSegments => path.resolve(projectDir, ...pathSegments))
-    .find(function exists(filePath: string): string | null {
-      try {
-        fs.accessSync(filePath, fs.constants.F_OK);
-        return filePath;
-      } catch (error) {
-        return null;
-      }
-    });
+function getInstrumentationFile(projectDir: string, dotPrefixedExtensions: string[]): string | null {
+  const paths = dotPrefixedExtensions.flatMap(extension => [
+    ['src', `instrumentation${extension}`],
+    [`instrumentation${extension}`],
+  ]);
 
-  function hasOnRequestErrorHandler(absolutePath: string): boolean {
+  for (const pathSegments of paths) {
     try {
-      const content = fs.readFileSync(absolutePath, 'utf8');
-      return content.includes('onRequestError');
-    } catch (error) {
-      return false;
+      return fs.readFileSync(path.resolve(projectDir, ...pathSegments), { encoding: 'utf-8' });
+    } catch (e) {
+      // no-op
     }
   }
 
+  return null;
+}
+
+/**
+ * Make sure the instrumentation file has a `onRequestError` Handler
+ */
+function warnAboutMissingOnRequestErrorHandler(instrumentationFile: string | null): void {
   if (!instrumentationFile) {
     if (!process.env.SENTRY_SUPPRESS_INSTRUMENTATION_FILE_WARNING) {
       // eslint-disable-next-line no-console
@@ -488,7 +481,7 @@ function warnAboutMissingOnRequestErrorHandler(projectDir: string): void {
     return;
   }
 
-  if (!hasOnRequestErrorHandler(instrumentationFile)) {
+  if (!instrumentationFile.includes('onRequestError')) {
     // eslint-disable-next-line no-console
     console.warn(
       chalk.yellow(
@@ -505,27 +498,15 @@ function warnAboutMissingOnRequestErrorHandler(projectDir: string): void {
  * @param projectDir The root directory of the project, where config files would be located
  * @param platform Either "server" or "edge", so that we know which file to look for
  */
-function warnAboutDeprecatedConfigFiles(projectDir: string, platform: 'server' | 'edge'): void {
-  const hasInstrumentationHookWithIndicationsOfSentry = [
-    ['src', 'instrumentation.ts'],
-    ['src', 'instrumentation.js'],
-    ['instrumentation.ts'],
-    ['instrumentation.js'],
-  ].some(potentialInstrumentationHookPathSegments => {
-    try {
-      const instrumentationHookContent = fs.readFileSync(
-        path.resolve(projectDir, ...potentialInstrumentationHookPathSegments),
-        { encoding: 'utf-8' },
-      );
-
-      return (
-        instrumentationHookContent.includes('@sentry/') ||
-        instrumentationHookContent.match(/sentry\.(server|edge)\.config(\.(ts|js))?/)
-      );
-    } catch (e) {
-      return false;
-    }
-  });
+function warnAboutDeprecatedConfigFiles(
+  projectDir: string,
+  instrumentationFile: string | null,
+  platform: 'server' | 'edge',
+): void {
+  const hasInstrumentationHookWithIndicationsOfSentry =
+    instrumentationFile &&
+    (instrumentationFile.includes('@sentry/') ||
+      instrumentationFile.match(/sentry\.(server|edge)\.config(\.(ts|js))?/));
 
   if (hasInstrumentationHookWithIndicationsOfSentry) {
     return;
@@ -535,7 +516,7 @@ function warnAboutDeprecatedConfigFiles(projectDir: string, platform: 'server' |
     if (fs.existsSync(path.resolve(projectDir, filename))) {
       // eslint-disable-next-line no-console
       console.warn(
-        `[@sentry/nextjs] It appears you've configured a \`${filename}\` file. Please ensure to put this file's content into the \`register()\` function of a Next.js instrumentation hook instead. To ensure correct functionality of the SDK, \`Sentry.init\` must be called inside \`instrumentation.ts\`. Learn more about setting up an instrumentation hook in Next.js: https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation. You can safely delete the \`${filename}\` file afterward.`,
+        `[@sentry/nextjs] It appears you've configured a \`${filename}\` file. Please ensure to put this file's content into the \`register()\` function of a Next.js instrumentation hook instead. To ensure correct functionality of the SDK, \`Sentry.init\` must be called inside the instrumentation file. Learn more about setting up an instrumentation hook in Next.js: https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation. You can safely delete the \`${filename}\` file afterward.`,
       );
     }
   }
