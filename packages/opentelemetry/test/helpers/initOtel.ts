@@ -1,6 +1,6 @@
 import { DiagLogLevel, context, diag, propagation, trace } from '@opentelemetry/api';
 import { AsyncLocalStorageContextManager } from '@opentelemetry/context-async-hooks';
-import { resourceFromAttributes } from '@opentelemetry/resources';
+import { defaultResource, resourceFromAttributes } from '@opentelemetry/resources';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import {
   ATTR_SERVICE_NAME,
@@ -56,12 +56,14 @@ export function setupOtel(client: TestClientInterface): NodeTracerProvider {
   // Create and configure NodeTracerProvider
   const provider = new NodeTracerProvider({
     sampler: new SentrySampler(client),
-    resource: resourceFromAttributes({
-      [ATTR_SERVICE_NAME]: 'opentelemetry-test',
-      // eslint-disable-next-line deprecation/deprecation
-      [SEMRESATTRS_SERVICE_NAMESPACE]: 'sentry',
-      [ATTR_SERVICE_VERSION]: SDK_VERSION,
-    }),
+    resource: defaultResource().merge(
+      resourceFromAttributes({
+        [ATTR_SERVICE_NAME]: 'opentelemetry-test',
+        // eslint-disable-next-line deprecation/deprecation
+        [SEMRESATTRS_SERVICE_NAMESPACE]: 'sentry',
+        [ATTR_SERVICE_VERSION]: SDK_VERSION,
+      }),
+    ),
     forceFlushTimeoutMillis: 500,
     spanProcessors: [new SentrySpanProcessor()],
   });
