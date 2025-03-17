@@ -59,7 +59,10 @@ export function constructWebpackConfigFunction(
     const dotPrefixedPageExtensions = pageExtensions.map(ext => `.${ext}`);
     const pageExtensionRegex = pageExtensions.map(escapeStringForRegex).join('|');
 
-    const instrumentationFile = getInstrumentationFile(projectDir, dotPrefixedPageExtensions.concat('.ts', '.js'));
+    // We add `.ts` and `.js` back in because `pageExtensions` might not be relevant to the instrumentation file
+    // e.g. user's setting `.mdx`. In that case we still want to default look up
+    // `instrumentation.ts` and `instrumentation.js`
+    const instrumentationFile = getInstrumentationFile(projectDir, dotPrefixedPageExtensions.concat(['.ts', '.js']));
 
     if (runtime !== 'client') {
       warnAboutDeprecatedConfigFiles(projectDir, instrumentationFile, runtime);
