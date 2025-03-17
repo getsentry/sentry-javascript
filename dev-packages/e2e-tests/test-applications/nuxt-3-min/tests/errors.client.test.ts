@@ -1,4 +1,4 @@
-import { expect, test } from '@nuxt/test-utils/playwright';
+import { expect, test } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
 
 test.describe('client-side errors', async () => {
