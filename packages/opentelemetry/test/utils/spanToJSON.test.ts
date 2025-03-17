@@ -1,32 +1,45 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, spanToJSON } from '@sentry/core';
-import { describe, expect, it } from 'vitest';
-
-import { createSpan } from '../helpers/createSpan';
+import { trace } from '@opentelemetry/api';
+import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  spanToJSON,
+} from '@sentry/core';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { TestClient, getDefaultTestClientOptions } from '../helpers/TestClient';
+import { setupOtel } from '../helpers/initOtel';
+import { cleanupOtel } from '../helpers/mockSdkInit';
 
 describe('spanToJSON', () => {
   describe('OpenTelemetry Span', () => {
+    let provider: BasicTracerProvider | undefined;
+
+    beforeEach(() => {
+      const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
+      provider = setupOtel(client);
+    });
+
+    afterEach(() => {
+      cleanupOtel(provider);
+    });
+
     it('works with a simple span', () => {
-      const span = createSpan('test span', {
-        spanId: 'SPAN-1',
-        traceId: 'TRACE-1',
-        startTime: [123, 0],
-      });
+      const span = trace.getTracer('test').startSpan('test span', { startTime: [123, 0] });
 
       expect(spanToJSON(span)).toEqual({
-        span_id: 'SPAN-1',
-        trace_id: 'TRACE-1',
+        span_id: span.spanContext().spanId,
+        trace_id: span.spanContext().traceId,
         start_timestamp: 123,
         description: 'test span',
-        data: {},
+        data: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
+        },
       });
     });
 
     it('works with a full span', () => {
-      const span = createSpan('test span', {
-        spanId: 'SPAN-1',
-        traceId: 'TRACE-1',
-        startTime: [123, 0],
-      });
+      const span = trace.getTracer('test').startSpan('test span', { startTime: [123, 0] });
 
       span.setAttributes({
         attr1: 'value1',
@@ -39,8 +52,8 @@ describe('spanToJSON', () => {
       span.end([456, 0]);
 
       expect(spanToJSON(span)).toEqual({
-        span_id: 'SPAN-1',
-        trace_id: 'TRACE-1',
+        span_id: span.spanContext().spanId,
+        trace_id: span.spanContext().traceId,
         start_timestamp: 123,
         timestamp: 456,
         description: 'test span',
@@ -51,6 +64,7 @@ describe('spanToJSON', () => {
           attr2: 2,
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'test op',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
         },
         status: 'unknown_error',
       });
