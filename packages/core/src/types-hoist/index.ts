@@ -110,7 +110,12 @@ export type {
   TraceFlag,
 } from './span';
 export type { SpanStatus } from './spanStatus';
-export type { SerializedOtelLog, LogAttribute, LogSeverityLevel, LogAttributeValueType } from './log';
+export type {
+  LogSeverityLevel,
+  SerializedOtelLog,
+  SerializedLogAttribute,
+  SerializedLogAttributeValueType,
+} from './log';
 export type { TimedEvent } from './timedEvent';
 export type { StackFrame } from './stackframe';
 export type { Stacktrace, StackParser, StackLineParser, StackLineParserFn } from './stacktrace';

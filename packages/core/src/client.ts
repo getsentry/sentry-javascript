@@ -28,6 +28,7 @@ import type {
   SpanContextData,
   SpanJSON,
   StartSpanOptions,
+  TraceContext,
   TransactionEvent,
   Transport,
   TransportMakeRequestResponse,
@@ -44,7 +45,10 @@ import { afterSetupIntegrations } from './integration';
 import { setupIntegration, setupIntegrations } from './integration';
 import type { Scope } from './scope';
 import { updateSession } from './session';
-import { getDynamicSamplingContextFromScope } from './tracing/dynamicSamplingContext';
+import {
+  getDynamicSamplingContextFromScope,
+  getDynamicSamplingContextFromSpan,
+} from './tracing/dynamicSamplingContext';
 import { createClientReportEnvelope } from './utils-hoist/clientreport';
 import { dsnToString, makeDsn } from './utils-hoist/dsn';
 import { addItemToEnvelope, createAttachmentEnvelopeItem } from './utils-hoist/envelope';
@@ -57,11 +61,15 @@ import { getPossibleEventMessages } from './utils/eventUtils';
 import { merge } from './utils/merge';
 import { parseSampleRate } from './utils/parseSampleRate';
 import { prepareEvent } from './utils/prepareEvent';
-import { showSpanDropWarning } from './utils/spanUtils';
+import { showSpanDropWarning, spanToTraceContext } from './utils/spanUtils';
 import { convertSpanJsonToTransactionEvent, convertTransactionEventToSpanJson } from './utils/transactionEvent';
+import type { Log, SerializedOtelLog } from './types-hoist/log';
+import { SEVERITY_TEXT_TO_SEVERITY_NUMBER, createOtelLogEnvelope, logAttributeToSerializedLogAttribute } from './log';
+import { _getSpanForScope } from './utils/spanOnScope';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
 const MISSING_RELEASE_FOR_SESSION_ERROR = 'Discarded session because of missing or non-string release';
+const MAX_LOG_BUFFER_SIZE = 100;
 
 /**
  * Base implementation for all JavaScript SDK clients.
@@ -117,6 +125,8 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   // eslint-disable-next-line @typescript-eslint/ban-types
   private _hooks: Record<string, Function[]>;
 
+  private _logsBuffer: Array<SerializedOtelLog>;
+
   /**
    * Initializes this client instance.
    *
@@ -129,6 +139,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     this._outcomes = {};
     this._hooks = {};
     this._eventProcessors = [];
+    this._logsBuffer = [];
 
     if (options.dsn) {
       this._dsn = makeDsn(options.dsn);
@@ -257,6 +268,58 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public captureCheckIn?(checkIn: CheckIn, monitorConfig?: MonitorConfig, scope?: Scope): string;
 
   /**
+   * Captures a log event and sends it to Sentry.
+   *
+   * @param log The log event to capture.
+   *
+   * @experimental This method will experience breaking changes. This is not yet part of
+   * the stable Sentry SDK API and can be changed or removed without warning.
+   */
+  public captureLog({ level, message, attributes, severityNumber }: Log, currentScope = getCurrentScope()): void {
+    const { _experiments, release, environment } = this.getOptions();
+    if (!_experiments?.enableLogs) {
+      DEBUG_BUILD && logger.warn('logging option not enabled, log will not be captured.');
+      return;
+    }
+
+    const [, traceContext] = _getTraceInfoFromScope(this, currentScope);
+
+    const logAttributes = {
+      ...attributes,
+    };
+
+    if (release) {
+      logAttributes.release = release;
+    }
+
+    if (environment) {
+      logAttributes.environment = environment;
+    }
+
+    const span = _getSpanForScope(currentScope);
+    if (span) {
+      // Add the parent span ID to the log attributes for trace context
+      logAttributes['sentry.trace.parent_span_id'] = span.spanContext().spanId;
+    }
+
+    const serializedLog: SerializedOtelLog = {
+      severityText: level,
+      body: {
+        stringValue: message,
+      },
+      attributes: Object.entries(logAttributes).map(([key, value]) => logAttributeToSerializedLogAttribute(key, value)),
+      timeUnixNano: `${new Date().getTime().toString()}000000`,
+      traceId: traceContext?.trace_id,
+      severityNumber: severityNumber ?? SEVERITY_TEXT_TO_SEVERITY_NUMBER[level],
+    };
+
+    this._logsBuffer.push(serializedLog);
+    if (this._logsBuffer.length > MAX_LOG_BUFFER_SIZE) {
+      this._flushLogsBuffer();
+    }
+  }
+
+  /**
    * Get the current Dsn.
    */
   public getDsn(): DsnComponents | undefined {
@@ -295,6 +358,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * still events in the queue when the timeout is reached.
    */
   public flush(timeout?: number): PromiseLike<boolean> {
+    this._flushLogsBuffer();
     const transport = this._transport;
     if (transport) {
       this.emit('flush');
@@ -1137,6 +1201,21 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   }
 
   /**
+   * Flushes the logs buffer to Sentry.
+   */
+  protected _flushLogsBuffer(): void {
+    if (this._logsBuffer.length === 0) {
+      return;
+    }
+
+    const envelope = createOtelLogEnvelope(this._logsBuffer, this._options._metadata, this._options.tunnel, this._dsn);
+    this._logsBuffer = [];
+    // sendEnvelope should not throw
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    this.sendEnvelope(envelope);
+  }
+
+  /**
    * Creates an {@link Event} from all inputs to `captureException` and non-primitive inputs to `captureMessage`.
    */
   public abstract eventFromException(_exception: unknown, _hint?: EventHint): PromiseLike<Event>;
@@ -1255,4 +1334,21 @@ function isErrorEvent(event: Event): event is ErrorEvent {
 
 function isTransactionEvent(event: Event): event is TransactionEvent {
   return event.type === 'transaction';
+}
+
+/** Extract trace information from scope */
+export function _getTraceInfoFromScope(
+  client: Client,
+  scope: Scope | undefined,
+): [dynamicSamplingContext: Partial<DynamicSamplingContext> | undefined, traceContext: TraceContext | undefined] {
+  if (!scope) {
+    return [undefined, undefined];
+  }
+
+  const span = _getSpanForScope(scope);
+  const traceContext = span ? spanToTraceContext(span) : getTraceContextFromScope(scope);
+  const dynamicSamplingContext = span
+    ? getDynamicSamplingContextFromSpan(span)
+    : getDynamicSamplingContextFromScope(client, scope);
+  return [dynamicSamplingContext, traceContext];
 }
