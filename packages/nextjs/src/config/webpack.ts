@@ -531,7 +531,12 @@ function warnAboutDeprecatedConfigFiles(
  * @param projectDir The root directory of the project, where config files would be located
  */
 export function getClientSentryConfigFile(projectDir: string): string | void {
-  const possibilities = ['sentry.client.config.ts', 'sentry.client.config.js'];
+  const possibilities = [
+    'sentry.client.config.ts',
+    'sentry.client.config.js',
+    'instrumentation-client.ts',
+    'src/instrumentation-client.ts',
+  ];
 
   for (const filename of possibilities) {
     if (fs.existsSync(path.resolve(projectDir, filename))) {
