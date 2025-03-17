@@ -1,7 +1,6 @@
 import * as fs from 'fs';
 import { createResolver } from '@nuxt/kit';
-import type { Nuxt } from '@nuxt/schema';
-import { consoleSandbox } from '@sentry/core';
+import { consoleSandbox, logger } from '@sentry/core';
 import type { Nitro } from 'nitropack';
 import type { InputPluginOption } from 'rollup';
 import type { SentryNuxtModuleOptions } from '../common/types';
@@ -15,6 +14,7 @@ import {
   getFilenameFromNodeStartCommand,
   removeSentryQueryFromPath,
 } from './utils';
+import { existsSync } from 'node:fs';
 
 const SERVER_CONFIG_FILENAME = 'sentry.server.config';
 
@@ -26,19 +26,18 @@ const SERVER_CONFIG_FILENAME = 'sentry.server.config';
  */
 export function addServerConfigToBuild(
   moduleOptions: SentryNuxtModuleOptions,
-  nuxt: Nuxt,
   nitro: Nitro,
   serverConfigFile: string,
 ): void {
-  nuxt.hook('vite:extendConfig', async (viteInlineConfig, _env) => {
-    if (
-      typeof viteInlineConfig?.build?.rollupOptions?.input === 'object' &&
-      'server' in viteInlineConfig.build.rollupOptions.input
-    ) {
-      // Create a rollup entry for the server config to add it as `sentry.server.config.mjs` to the build
-      (viteInlineConfig.build.rollupOptions.input as { [entryName: string]: string })[SERVER_CONFIG_FILENAME] =
-        createResolver(nuxt.options.srcDir).resolve(`/${serverConfigFile}`);
+  nitro.hooks.hook('rollup:before', (nitro, rollupConfig) => {
+    if (rollupConfig?.plugins === null || rollupConfig?.plugins === undefined) {
+      rollupConfig.plugins = [];
+    } else if (!Array.isArray(rollupConfig.plugins)) {
+      // `rollupConfig.plugins` can be a single plugin, so we want to put it into an array so that we can push our own plugin
+      rollupConfig.plugins = [rollupConfig.plugins];
     }
+
+    rollupConfig.plugins.push(injectServerConfigPlugin(nitro, serverConfigFile, moduleOptions.debug));
   });
 
   /**
@@ -156,6 +155,45 @@ export function addDynamicImportEntryFileWrapper(
       experimental_entrypointWrappedFunctions: moduleOptions.experimental_entrypointWrappedFunctions,
     }),
   );
+}
+
+/**
+ * Rollup plugin to include the Sentry server configuration file to the server build output.
+ */
+function injectServerConfigPlugin(nitro: Nitro, serverConfigFile: string, debug?: boolean): InputPluginOption {
+  const filePrefix = '\0virtual:sentry-server-config:';
+
+  return {
+    name: 'rollup-plugin-inject-sentry-server-config',
+
+    buildStart() {
+      const configPath = createResolver(nitro.options.srcDir).resolve(`/${serverConfigFile}`);
+
+      if (!existsSync(configPath)) {
+        if (debug) {
+          logger.log(`[Sentry] Sentry server config file not found: ${configPath}`);
+        }
+        return;
+      }
+
+      // Emitting a file adds it to the build output (Rollup is aware of the file, and we can later return the code in resolveId)
+      this.emitFile({
+        type: 'chunk',
+        id: `${filePrefix}${serverConfigFile}`,
+        fileName: `${SERVER_CONFIG_FILENAME}.mjs`,
+      });
+    },
+
+    resolveId(source) {
+      if (source.startsWith(filePrefix)) {
+        const originalFilePath = source.replace(filePrefix, '');
+        const configPath = createResolver(nitro.options.rootDir).resolve(`/${originalFilePath}`);
+
+        return { id: configPath };
+      }
+      return null;
+    },
+  };
 }
 
 /**

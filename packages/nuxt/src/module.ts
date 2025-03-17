@@ -113,7 +113,7 @@ export default defineNuxtModule<ModuleOptions>({
         });
 
         if (moduleOptions.autoInjectServerSentry !== 'experimental_dynamic-import') {
-          addServerConfigToBuild(moduleOptions, nuxt, nitro, serverConfigFile);
+          addServerConfigToBuild(moduleOptions, nitro, serverConfigFile);
 
           if (moduleOptions.debug) {
             const serverDirResolver = createResolver(nitro.options.output.serverDir);
