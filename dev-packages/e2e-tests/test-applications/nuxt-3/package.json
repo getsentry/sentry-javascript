@@ -12,7 +12,7 @@
     "clean": "npx nuxi cleanup",
     "test": "playwright test",
     "test:build": "pnpm install && pnpm build",
-    "test:build-nightly": "pnpm install && pnpm rm nuxt && pnpm add nuxt-nightly@3x && pnpm build",
+    "test:build-canary": "pnpm install && pnpm rm nuxt && pnpm add nuxt-nightly@3x && pnpm build",
     "test:assert": "pnpm test"
   },
   "dependencies": {
@@ -26,8 +26,8 @@
   "sentryTest": {
     "optionalVariants": [
       {
-        "build-command": "test:build-nightly",
-        "label": "nuxt-3 (nightly)"
+        "build-command": "test:build-canary",
+        "label": "nuxt-3 (canary)"
       }
     ]
   }

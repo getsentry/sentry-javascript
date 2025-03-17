@@ -109,11 +109,11 @@ jobs:
             build-command: 'test:build-canary'
             label: 'react-router-6 (canary)'
           - test-application: 'nuxt-3'
-            build-command: 'test:build-nightly'
-            label: 'nuxt-3 (nightly)'
+            build-command: 'test:build-canary'
+            label: 'nuxt-3 (canary)'
           - test-application: 'nuxt-4'
-            build-command: 'test:build-nightly'
-            label: 'nuxt-4 (nightly)'
+            build-command: 'test:build-canary'
+            label: 'nuxt-4 (canary)'
 
     steps:
       - name: Check out current commit
