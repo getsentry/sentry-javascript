@@ -91,7 +91,7 @@ const MAX_BODY_BYTE_LENGTH = 1024 * 1024;
  */
 export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpInstrumentationOptions> {
   public constructor(config: SentryHttpInstrumentationOptions = {}) {
-    super('@sentry/instrumentation-http', '2.0.0-dev.0', config);
+    super('@sentry/instrumentation-http', '2.0.0-rc.1', config);
   }
 
   /** @inheritdoc */
