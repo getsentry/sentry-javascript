@@ -1,4 +1,5 @@
 /* eslint-disable deprecation/deprecation */
+import type { Span} from '@opentelemetry/api';
 import { trace } from '@opentelemetry/api';
 import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import { SEMATTRS_HTTP_STATUS_CODE, SEMATTRS_RPC_GRPC_STATUS_CODE } from '@opentelemetry/semantic-conventions';
@@ -21,6 +22,10 @@ describe('mapStatus', () => {
   afterEach(() => {
     cleanupOtel(provider);
   });
+
+  function createSpan(name: string): Span {
+    return trace.getTracer('test').startSpan(name);
+  }
 
   const statusTestTable: [undefined | number | string, undefined | string, SpanStatus][] = [
     // http codes
@@ -61,7 +66,7 @@ describe('mapStatus', () => {
   ];
 
   it.each(statusTestTable)('works with httpCode=%s, grpcCode=%s', (httpCode, grpcCode, expected) => {
-    const span = trace.getTracer('test').startSpan('test-span');
+    const span = createSpan('test-span');
     span.setStatus({ code: 0 }); // UNSET
 
     if (httpCode) {
@@ -77,7 +82,7 @@ describe('mapStatus', () => {
   });
 
   it('works with string SEMATTRS_HTTP_STATUS_CODE xxx', () => {
-    const span = trace.getTracer('test').startSpan('test-span');
+    const span = createSpan('test-span');
 
     span.setStatus({ code: 0 }); // UNSET
     span.setAttribute(SEMATTRS_HTTP_STATUS_CODE, '400');
@@ -87,38 +92,38 @@ describe('mapStatus', () => {
   });
 
   it('returns ok span status when is UNSET present on span', () => {
-    const span = trace.getTracer('test').startSpan('test-span');
+    const span = createSpan('test-span');
     span.setStatus({ code: 0 }); // UNSET
     expect(mapStatus(span)).toEqual({ code: SPAN_STATUS_OK });
   });
 
   it('returns ok span status when already present on span', () => {
-    const span = trace.getTracer('test').startSpan('test-span');
+    const span = createSpan('test-span');
     span.setStatus({ code: 1 }); // OK
     expect(mapStatus(span)).toEqual({ code: SPAN_STATUS_OK });
   });
 
   it('returns error status when span already has error status', () => {
-    const span = trace.getTracer('test').startSpan('test-span');
+    const span = createSpan('test-span');
     span.setStatus({ code: 2, message: 'invalid_argument' }); // ERROR
     expect(mapStatus(span)).toEqual({ code: SPAN_STATUS_ERROR, message: 'invalid_argument' });
   });
 
   it('returns error status when span already has error status without message', () => {
-    const span = trace.getTracer('test').startSpan('test-span');
+    const span = createSpan('test-span');
     span.setStatus({ code: 2 }); // ERROR
     expect(mapStatus(span)).toEqual({ code: SPAN_STATUS_ERROR, message: 'unknown_error' });
   });
 
   it('infers error status form attributes when span already has error status without message', () => {
-    const span = trace.getTracer('test').startSpan('test-span');
+    const span = createSpan('test-span');
     span.setAttribute(SEMATTRS_HTTP_STATUS_CODE, 500);
     span.setStatus({ code: 2 }); // ERROR
     expect(mapStatus(span)).toEqual({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
   });
 
   it('returns unknown error status when code is unknown', () => {
-    const span = trace.getTracer('test').startSpan('test-span');
+    const span = createSpan('test-span');
     span.setStatus({ code: -1 as 0 });
     expect(mapStatus(span)).toEqual({ code: SPAN_STATUS_ERROR, message: 'unknown_error' });
   });

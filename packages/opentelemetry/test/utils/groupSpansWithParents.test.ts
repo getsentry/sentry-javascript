@@ -73,6 +73,8 @@ describe('groupSpansWithParents', () => {
 
   it('works with a spans with missing root span', () => {
     const tracer = trace.getTracer('test');
+
+    // We create this root span here, but we do not pass it to `groupSpansWithParents` below
     const rootSpan = tracer.startSpan('root') as unknown as ReadableSpan;
     const parentSpan1 = withActiveSpan(
       rootSpan as unknown as Span,

@@ -1,3 +1,4 @@
+import type { Span, SpanOptions} from '@opentelemetry/api';
 import { trace } from '@opentelemetry/api';
 import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import {
@@ -24,8 +25,12 @@ describe('spanToJSON', () => {
       cleanupOtel(provider);
     });
 
+    function createSpan(name: string, params?: SpanOptions): Span {
+      return trace.getTracer('test').startSpan(name, params);
+    }
+
     it('works with a simple span', () => {
-      const span = trace.getTracer('test').startSpan('test span', { startTime: [123, 0] });
+      const span = createSpan('test span', { startTime: [123, 0] });
 
       expect(spanToJSON(span)).toEqual({
         span_id: span.spanContext().spanId,
@@ -39,7 +44,7 @@ describe('spanToJSON', () => {
     });
 
     it('works with a full span', () => {
-      const span = trace.getTracer('test').startSpan('test span', { startTime: [123, 0] });
+      const span = createSpan('test span', { startTime: [123, 0] });
 
       span.setAttributes({
         attr1: 'value1',
