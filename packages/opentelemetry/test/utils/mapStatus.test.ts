@@ -1,5 +1,5 @@
 /* eslint-disable deprecation/deprecation */
-import type { Span} from '@opentelemetry/api';
+import type { Span } from '@opentelemetry/api';
 import { trace } from '@opentelemetry/api';
 import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import { SEMATTRS_HTTP_STATUS_CODE, SEMATTRS_RPC_GRPC_STATUS_CODE } from '@opentelemetry/semantic-conventions';

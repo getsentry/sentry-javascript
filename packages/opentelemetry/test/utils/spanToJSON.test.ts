@@ -1,4 +1,4 @@
-import type { Span, SpanOptions} from '@opentelemetry/api';
+import type { Span, SpanOptions } from '@opentelemetry/api';
 import { trace } from '@opentelemetry/api';
 import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import {
