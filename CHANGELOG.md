@@ -21,7 +21,6 @@
 
 ### Other Changes
 
-- chore(ci): Remove `type` from canary failure template ([#15698](https://github.com/getsentry/sentry-javascript/pull/15698))
 - feat(astro): Accept all vite-plugin options ([#15638](https://github.com/getsentry/sentry-javascript/pull/15638))
 - feat(deps): bump @sentry/webpack-plugin from 3.2.1 to 3.2.2 ([#15627](https://github.com/getsentry/sentry-javascript/pull/15627))
 - feat(tanstackstart): Refine initial API ([#15574](https://github.com/getsentry/sentry-javascript/pull/15574))
