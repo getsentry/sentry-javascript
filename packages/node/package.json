@@ -78,7 +78,7 @@
     "@opentelemetry/instrumentation-generic-pool": "0.43.1",
     "@opentelemetry/instrumentation-graphql": "0.47.1",
     "@opentelemetry/instrumentation-hapi": "0.45.2",
-    "@opentelemetry/instrumentation-http": "0.57.2",
+    "@opentelemetry/instrumentation-http": "0.200.0",
     "@opentelemetry/instrumentation-ioredis": "0.47.1",
     "@opentelemetry/instrumentation-kafkajs": "0.7.1",
     "@opentelemetry/instrumentation-knex": "0.44.1",
