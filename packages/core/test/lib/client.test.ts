@@ -31,7 +31,7 @@ declare var global: any;
 const clientEventFromException = vi.spyOn(TestClient.prototype, 'eventFromException');
 const clientProcess = vi.spyOn(TestClient.prototype as any, '_process');
 
-const uuid4Spy = vi.spyOn(miscModule, 'uuid4').mockImplementation(() => '12312012123120121231201212312012');
+vi.spyOn(miscModule, 'uuid4').mockImplementation(() => '12312012123120121231201212312012');
 vi.spyOn(loggerModule, 'consoleSandbox').mockImplementation(cb => cb());
 vi.spyOn(stringModule, 'truncate').mockImplementation(str => str);
 vi.spyOn(timeModule, 'dateTimestampInSeconds').mockImplementation(() => 2020);
@@ -1720,131 +1720,6 @@ describe('Client', () => {
       expect(logSpy).toBeCalledWith('Captured error event `hello`');
 
       logSpy.mockRestore();
-    });
-  });
-
-  describe('captureLog', () => {
-    test('captures and sends logs', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableLogs: true } });
-      const client = new TestClient(options);
-
-      client.captureLog({ level: 'info', message: 'test log message' });
-
-      expect((client as any)._logsBuffer).toHaveLength(1);
-      expect((client as any)._logsBuffer[0]).toEqual(
-        expect.objectContaining({
-          severityText: 'info',
-          body: {
-            stringValue: 'test log message',
-          },
-          timeUnixNano: expect.any(String),
-        }),
-      );
-    });
-
-    test('does not capture logs when enableLogs experiment is not enabled', () => {
-      const logWarnSpy = vi.spyOn(loggerModule.logger, 'warn').mockImplementation(() => undefined);
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
-      const client = new TestClient(options);
-
-      client.captureLog({ level: 'info', message: 'test log message' });
-
-      expect(logWarnSpy).toHaveBeenCalledWith('logging option not enabled, log will not be captured.');
-      expect((client as any)._logsBuffer).toHaveLength(0);
-
-      logWarnSpy.mockRestore();
-    });
-
-    test('includes trace context when available', () => {
-      // Temporarily restore the original uuid4 implementation
-      const originalMock = uuid4Spy.getMockImplementation();
-      uuid4Spy.mockRestore();
-
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableLogs: true } });
-      const client = new TestClient(options);
-      const scope = new Scope();
-      scope.setPropagationContext({
-        traceId: '3d9355f71e9c444b81161599adac6e29',
-        sampleRand: 1,
-      });
-
-      client.captureLog({ level: 'error', message: 'test log with trace' }, scope);
-
-      expect((client as any)._logsBuffer[0]).toEqual(
-        expect.objectContaining({
-          traceId: '3d9355f71e9c444b81161599adac6e29',
-        }),
-      );
-
-      // Restore the test-wide mock implementation
-      uuid4Spy.mockImplementation(originalMock!);
-    });
-
-    test('includes release and environment in log attributes when available', () => {
-      const options = getDefaultTestClientOptions({
-        dsn: PUBLIC_DSN,
-        _experiments: { enableLogs: true },
-        release: '1.0.0',
-        environment: 'test',
-      });
-      const client = new TestClient(options);
-
-      client.captureLog({ level: 'info', message: 'test log with metadata' });
-
-      const logAttributes = (client as any)._logsBuffer[0].attributes;
-      expect(logAttributes).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ key: 'release', value: { stringValue: '1.0.0' } }),
-          expect.objectContaining({ key: 'environment', value: { stringValue: 'test' } }),
-        ]),
-      );
-    });
-
-    test('includes custom attributes in log', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableLogs: true } });
-      const client = new TestClient(options);
-
-      client.captureLog({
-        level: 'info',
-        message: 'test log with custom attributes',
-        attributes: { userId: '123', component: 'auth' },
-      });
-
-      const logAttributes = (client as any)._logsBuffer[0].attributes;
-      expect(logAttributes).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ key: 'userId', value: { stringValue: '123' } }),
-          expect.objectContaining({ key: 'component', value: { stringValue: 'auth' } }),
-        ]),
-      );
-    });
-
-    test('flushes logs buffer when it reaches max size', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableLogs: true } });
-      const client = new TestClient(options);
-      const mockFlushLogsBuffer = vi.spyOn(client as any, '_flushLogsBuffer').mockImplementation(() => {});
-
-      // Fill the buffer to max size (100 is the MAX_LOG_BUFFER_SIZE constant in client.ts)
-      for (let i = 0; i < 100; i++) {
-        client.captureLog({ level: 'info', message: `log message ${i}` });
-      }
-
-      expect(mockFlushLogsBuffer).not.toHaveBeenCalled();
-
-      // Add one more to trigger flush
-      client.captureLog({ level: 'info', message: 'trigger flush' });
-
-      expect(mockFlushLogsBuffer).toHaveBeenCalledTimes(1);
-
-      mockFlushLogsBuffer.mockRestore();
-    });
-
-    test('does not flush logs buffer when it is empty', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableLogs: true } });
-      const client = new TestClient(options);
-      const mockSendEnvelope = vi.spyOn(client as any, 'sendEnvelope').mockImplementation(() => {});
-      client['_flushLogsBuffer']();
-      expect(mockSendEnvelope).not.toHaveBeenCalled();
     });
   });
 

@@ -15,6 +15,7 @@ import {
   addAutoIpAddressToUser,
   applySdkMetadata,
   getSDKSource,
+  _INTERNAL_flushLogsBuffer,
 } from '@sentry/core';
 import { eventFromException, eventFromMessage } from './eventbuilder';
 import { WINDOW } from './helpers';
@@ -85,14 +86,21 @@ export class BrowserClient extends Client<BrowserClientOptions> {
       WINDOW.document.addEventListener('visibilitychange', () => {
         if (WINDOW.document.visibilityState === 'hidden') {
           this._flushOutcomes();
+          if (this._options._experiments?.enableLogs) {
+            _INTERNAL_flushLogsBuffer(this);
+          }
         }
       });
     }
 
     if (opts._experiments?.enableLogs) {
       setInterval(() => {
-        this._flushLogsBuffer();
+        _INTERNAL_flushLogsBuffer(this);
       }, 5000);
+
+      this.on('flush', () => {
+        _INTERNAL_flushLogsBuffer(this);
+      });
     }
 
     if (this._options.sendDefaultPii) {
