@@ -5,7 +5,9 @@ export type LogAttributeValueType =
       stringValue: string;
     }
   | {
-      intValue: number;
+      // integers must be represented as a string
+      // because JSON cannot differentiate between integers and floats
+      intValue: string;
     }
   | {
       boolValue: boolean;
@@ -19,7 +21,7 @@ export type LogAttribute = {
   value: LogAttributeValueType;
 };
 
-export interface Log {
+export interface SerializedOtelLog {
   /**
    * The severity level of the log.
    *
