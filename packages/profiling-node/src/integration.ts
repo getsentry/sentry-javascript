@@ -108,7 +108,7 @@ class ContinuousProfiler {
             break;
           }
           case 'manual': {
-            // Manual mode requires manual calls to profiler.startProfileSession() and profiler.stopProfileSession()
+            // Manual mode requires manual calls to profiler.startProfiler() and profiler.stopProfiler()
             break;
           }
           default: {
@@ -136,6 +136,11 @@ class ContinuousProfiler {
    * @returns void
    */
   public start(): void {
+    if (this._mode === 'current') {
+      this.startProfiler();
+      return;
+    }
+
     if (!this._client) {
       DEBUG_BUILD && logger.log('[Profiling] Failed to start, sentry client was never attached to the profiler.');
       return;
@@ -165,6 +170,11 @@ class ContinuousProfiler {
    * @returns void
    */
   public stop(): void {
+    if (this._mode === 'current') {
+      this.stopProfiler();
+      return;
+    }
+
     if (!this._client) {
       DEBUG_BUILD && logger.log('[Profiling] Failed to stop, sentry client was never attached to the profiler.');
       return;
@@ -184,7 +194,7 @@ class ContinuousProfiler {
     this._teardownSpanChunkInstrumentation();
   }
 
-  public startProfileSession(): void {
+  private startProfiler(): void {
     if (this._mode !== 'current') {
       DEBUG_BUILD && logger.log('[Profiling] Continuous profiling is not supported in the current mode.');
       return;
@@ -205,7 +215,7 @@ class ContinuousProfiler {
     if (this._profileLifecycle === 'trace') {
       DEBUG_BUILD &&
         logger.log(
-          '[Profiling] You are using the trace profile lifecycle, manual calls to profiler.startProfileSession() and profiler.stopProfileSession() will be ignored.',
+          '[Profiling] You are using the trace profile lifecycle, manual calls to profiler.startProfiler() and profiler.stopProfiler() will be ignored.',
         );
       return;
     }
@@ -213,7 +223,7 @@ class ContinuousProfiler {
     this._startChunkProfiling();
   }
 
-  public stopProfileSession(): void {
+  private stopProfiler(): void {
     if (this._mode !== 'current') {
       DEBUG_BUILD && logger.log('[Profiling] Continuous profiling is not supported in the current mode.');
       return;
@@ -222,7 +232,7 @@ class ContinuousProfiler {
     if (this._profileLifecycle === 'trace') {
       DEBUG_BUILD &&
         logger.log(
-          '[Profiling] You are using the trace profile lifecycle, manual calls to profiler.startProfileSession() and profiler.stopProfileSession() will be ignored.',
+          '[Profiling] You are using the trace profile lifecycle, manual calls to profiler.startProfiler() and profiler.stopProfiler() will be ignored.',
         );
       return;
     }

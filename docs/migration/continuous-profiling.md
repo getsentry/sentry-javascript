@@ -17,8 +17,8 @@ Previously, the profiling mode was implicitly determined by initialization optio
 
 The main profiling control methods have been renamed to better reflect their purpose:
 
-- `Sentry.profiler.start()` → `Sentry.profiler.startProfileSession()`
-- `Sentry.profiler.stop()` → `Sentry.profiler.stopProfileSession()`
+- `Sentry.profiler.start()` → `Sentry.profiler.startProfiler()`
+- `Sentry.profiler.stop()` → `Sentry.profiler.stopProfiler()`
 
 The new names emphasize that these methods control profiling sessions and are subject to session sampling.
 

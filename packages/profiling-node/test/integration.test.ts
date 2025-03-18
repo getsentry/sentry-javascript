@@ -735,8 +735,8 @@ describe('ProfilingIntegration', () => {
       const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
       const stopProfilingSpy = vi.spyOn(CpuProfilerBindings, 'stopProfiling');
 
-      Sentry.profiler.startProfileSession();
-      Sentry.profiler.stopProfileSession();
+      Sentry.profiler.startProfiler();
+      Sentry.profiler.stopProfiler();
 
       expect(startProfilingSpy).toHaveBeenCalled();
       expect(stopProfilingSpy).toHaveBeenCalled();
@@ -753,13 +753,13 @@ describe('ProfilingIntegration', () => {
       const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
       const stopProfilingSpy = vi.spyOn(CpuProfilerBindings, 'stopProfiling');
 
-      Sentry.profiler.startProfileSession();
-      Sentry.profiler.startProfileSession();
+      Sentry.profiler.startProfiler();
+      Sentry.profiler.startProfiler();
 
       expect(startProfilingSpy).toHaveBeenCalledTimes(1);
 
-      Sentry.profiler.stopProfileSession();
-      Sentry.profiler.stopProfileSession();
+      Sentry.profiler.stopProfiler();
+      Sentry.profiler.stopProfiler();
 
       expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
     });
@@ -774,8 +774,8 @@ describe('ProfilingIntegration', () => {
       const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
       const stopProfilingSpy = vi.spyOn(CpuProfilerBindings, 'stopProfiling');
 
-      Sentry.profiler.startProfileSession();
-      Sentry.profiler.stopProfileSession();
+      Sentry.profiler.startProfiler();
+      Sentry.profiler.stopProfiler();
 
       expect(startProfilingSpy).not.toHaveBeenCalled();
       expect(stopProfilingSpy).not.toHaveBeenCalled();
@@ -792,8 +792,8 @@ describe('ProfilingIntegration', () => {
       const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
       const stopProfilingSpy = vi.spyOn(CpuProfilerBindings, 'stopProfiling');
 
-      Sentry.profiler.startProfileSession();
-      Sentry.profiler.stopProfileSession();
+      Sentry.profiler.startProfiler();
+      Sentry.profiler.stopProfiler();
 
       expect(startProfilingSpy).not.toHaveBeenCalled();
       expect(stopProfilingSpy).not.toHaveBeenCalled();
@@ -815,9 +815,9 @@ describe('ProfilingIntegration', () => {
 
         const transportSpy = vi.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
 
-        Sentry.profiler.startProfileSession();
+        Sentry.profiler.startProfiler();
         await wait(1000);
-        Sentry.profiler.stopProfileSession();
+        Sentry.profiler.stopProfiler();
 
         await Sentry.flush(1000);
 
@@ -848,8 +848,8 @@ describe('ProfilingIntegration', () => {
       const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
       const stopProfilingSpy = vi.spyOn(CpuProfilerBindings, 'stopProfiling');
 
-      Sentry.profiler.startProfileSession();
-      Sentry.profiler.stopProfileSession();
+      Sentry.profiler.startProfiler();
+      Sentry.profiler.stopProfiler();
 
       expect(startProfilingSpy).not.toHaveBeenCalled();
       expect(stopProfilingSpy).not.toHaveBeenCalled();
@@ -989,7 +989,7 @@ describe('ProfilingIntegration', () => {
 describe('Legacy vs Current API compat', () => {
   describe('legacy', () => {
     describe('span profiling', () => {
-      it('profiler.start, profiler.stop, profiler.startProfileSession, profiler.stopProfileSession void in automated span profiling mode', () => {
+      it('profiler.start, profiler.stop, profiler.startProfiler, profiler.stopProfiler void in automated span profiling mode', () => {
         const [client] = makeLegacySpanProfilingClient();
         Sentry.setCurrentClient(client);
         client.init();
@@ -1005,8 +1005,8 @@ describe('Legacy vs Current API compat', () => {
         expect(stopProfilingSpy).not.toHaveBeenCalled();
 
         // This API is not supported in legacy mode
-        Sentry.profiler.startProfileSession();
-        Sentry.profiler.stopProfileSession();
+        Sentry.profiler.startProfiler();
+        Sentry.profiler.stopProfiler();
 
         expect(startProfilingSpy).not.toHaveBeenCalled();
         expect(stopProfilingSpy).not.toHaveBeenCalled();
@@ -1021,7 +1021,7 @@ describe('Legacy vs Current API compat', () => {
     });
 
     describe('continuous profiling', () => {
-      it('profiler.start and profiler.stop start and stop the profiler, calls to profiler.startProfileSession and profiler.stopProfileSession are ignored', () => {
+      it('profiler.start and profiler.stop start and stop the profiler, calls to profiler.startProfiler and profiler.stopProfiler are ignored', () => {
         const [client] = makeLegacyContinuousProfilingClient();
         Sentry.setCurrentClient(client);
         client.init();
@@ -1037,8 +1037,8 @@ describe('Legacy vs Current API compat', () => {
         expect(stopProfilingSpy).not.toHaveBeenCalled();
 
         // This API is not supported in legacy mode
-        Sentry.profiler.startProfileSession();
-        Sentry.profiler.stopProfileSession();
+        Sentry.profiler.startProfiler();
+        Sentry.profiler.stopProfiler();
 
         expect(startProfilingSpy).not.toHaveBeenCalled();
         expect(stopProfilingSpy).not.toHaveBeenCalled();
@@ -1055,7 +1055,7 @@ describe('Legacy vs Current API compat', () => {
 
   describe('current', () => {
     describe('span profiling', () => {
-      it('profiler.start, profiler.stop, profiler.startProfileSession, profiler.stopProfileSession void in automated span profiling mode', () => {
+      it('profiler.start, profiler.stop, profiler.startProfiler, profiler.stopProfiler void in automated span profiling mode', () => {
         const [client] = makeCurrentSpanProfilingClient({
           profileLifecycle: 'trace',
         });
@@ -1073,8 +1073,8 @@ describe('Legacy vs Current API compat', () => {
         expect(stopProfilingSpy).not.toHaveBeenCalled();
 
         // This API is not supported in trace mode
-        Sentry.profiler.startProfileSession();
-        Sentry.profiler.stopProfileSession();
+        Sentry.profiler.startProfiler();
+        Sentry.profiler.stopProfiler();
 
         expect(startProfilingSpy).not.toHaveBeenCalled();
         expect(stopProfilingSpy).not.toHaveBeenCalled();
