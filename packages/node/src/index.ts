@@ -129,6 +129,7 @@ export {
   trpcMiddleware,
   updateSpanName,
   zodErrorsIntegration,
+  supabaseIntegration,
   profiler,
 } from '@sentry/core';
 

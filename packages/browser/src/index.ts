@@ -55,6 +55,7 @@ export {
   makeMultiplexedTransport,
   moduleMetadataIntegration,
   zodErrorsIntegration,
+  supabaseIntegration,
   thirdPartyErrorFilterIntegration,
 } from '@sentry/core';
 export type { Span } from '@sentry/core';
