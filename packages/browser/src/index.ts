@@ -59,10 +59,11 @@ export {
   setHttpStatus,
   makeMultiplexedTransport,
   moduleMetadataIntegration,
-  zodErrorsIntegration,
   supabaseIntegration,
+  zodErrorsIntegration,
   thirdPartyErrorFilterIntegration,
 } from '@sentry/core';
+
 export type { Span } from '@sentry/core';
 export { makeBrowserOfflineTransport } from './transports/offline';
 export { browserProfilingIntegration } from './profiling/integration';
