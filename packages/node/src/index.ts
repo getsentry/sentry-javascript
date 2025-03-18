@@ -128,8 +128,8 @@ export {
   spanToBaggageHeader,
   trpcMiddleware,
   updateSpanName,
+  supabseIntegration,
   zodErrorsIntegration,
-  supabaseIntegration,
   profiler,
 } from '@sentry/core';
 
