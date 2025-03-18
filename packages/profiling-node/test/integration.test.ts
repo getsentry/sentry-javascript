@@ -1004,13 +1004,6 @@ describe('Legacy vs Current API compat', () => {
         expect(startProfilingSpy).not.toHaveBeenCalled();
         expect(stopProfilingSpy).not.toHaveBeenCalled();
 
-        // This API is not supported in legacy mode
-        Sentry.profiler.startProfiler();
-        Sentry.profiler.stopProfiler();
-
-        expect(startProfilingSpy).not.toHaveBeenCalled();
-        expect(stopProfilingSpy).not.toHaveBeenCalled();
-
         // Only starting and stopping the profiler is supported in legacy mode
         const span = Sentry.startInactiveSpan({ forceTransaction: true, name: 'profile_hub' });
         span.end();
@@ -1036,14 +1029,6 @@ describe('Legacy vs Current API compat', () => {
         expect(startProfilingSpy).not.toHaveBeenCalled();
         expect(stopProfilingSpy).not.toHaveBeenCalled();
 
-        // This API is not supported in legacy mode
-        Sentry.profiler.startProfiler();
-        Sentry.profiler.stopProfiler();
-
-        expect(startProfilingSpy).not.toHaveBeenCalled();
-        expect(stopProfilingSpy).not.toHaveBeenCalled();
-
-        // Only the old signature is supported
         Sentry.profiler.startProfiler();
         Sentry.profiler.stopProfiler();
 
