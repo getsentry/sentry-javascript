@@ -10,6 +10,15 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 9.7.0
+
+- feat(deps): bump @prisma/instrumentation from 6.4.1 to 6.5.0 ([#15714](https://github.com/getsentry/sentry-javascript/pull/15714))
+- feat(deps): bump @sentry/cli from 2.42.2 to 2.42.3 ([#15711](https://github.com/getsentry/sentry-javascript/pull/15711))
+- fix(nextjs): Re-patch router if it is overriden by Next.js ([#15721](https://github.com/getsentry/sentry-javascript/pull/15721))
+- fix(nuxt): Add Nitro Rollup plugin to inject Sentry server config ([#15710](https://github.com/getsentry/sentry-javascript/pull/15710))
+- chore(deps): Bump rollup to 4.35.0 ([#15651](https://github.com/getsentry/sentry-javascript/pull/15651))
+- chore(deps): Bump rollup to 4.35.0 ([#15651](https://github.com/getsentry/sentry-javascript/pull/15651))
+
 ## 9.6.0
 
 ### Important Changes
