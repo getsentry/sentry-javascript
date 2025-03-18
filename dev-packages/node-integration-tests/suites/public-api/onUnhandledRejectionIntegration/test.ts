@@ -65,7 +65,7 @@ test rejection`);
 
       const testScriptPath = path.resolve(__dirname, 'mode-none.js');
 
-      childProcess.exec(`node ${testScriptPath}`, { encoding: 'utf8' }, (err, stdout, stderr) => {
+      childProcess.execFile('node', [testScriptPath], { encoding: 'utf8' }, (err, stdout, stderr) => {
         expect(err).toBeNull();
         expect(stdout).toBe("I'm alive!");
         expect(stderr).toBe('');
