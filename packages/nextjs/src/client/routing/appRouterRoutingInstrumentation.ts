@@ -2,7 +2,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  addNonEnumerableProperty,
 } from '@sentry/core';
 import { GLOBAL_OBJ, browserPerformanceTimeOrigin } from '@sentry/core';
 import type { Client, Span } from '@sentry/core';
@@ -127,12 +126,13 @@ function transactionNameifyRouterArgument(target: string): string {
   }
 }
 
+const patchedRouters = new WeakSet<NextRouter>();
+
 function patchRouter(client: Client, router: NextRouter, currentNavigationSpanRef: NavigationSpanRef): void {
-  if ('_sentryPatched' in router) {
+  if (patchedRouters.has(router)) {
     return;
   }
-
-  addNonEnumerableProperty(router, '_sentryPatched', true);
+  patchedRouters.add(router);
 
   (['back', 'forward', 'push', 'replace'] as const).forEach(routerFunctionName => {
     if (router?.[routerFunctionName]) {
