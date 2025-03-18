@@ -47,6 +47,15 @@ function getNormalizedDependencies(packageJson, workspacePackageNames) {
     ...dependencies,
   };
 
+  // Add a representation of version overrides to the hash parts
+  let overridesString = '';
+  if (packageJson?.overrides) {
+    overridesString = JSON.stringify(packageJson.overrides);
+  }
+  if (packageJson?.pnpm && packageJson.pnpm.overrides) {
+    overridesString += JSON.stringify(packageJson.pnpm.overrides);
+  }
+
   const normalizedDependencies = {};
 
   // Sort the keys to ensure a consistent order
@@ -59,7 +68,7 @@ function getNormalizedDependencies(packageJson, workspacePackageNames) {
       normalizedDependencies[key] = version;
     });
 
-  return JSON.stringify(normalizedDependencies);
+  return JSON.stringify(normalizedDependencies) + overridesString;
 }
 
 function getWorkspacePackageNames(workspacePackages) {
