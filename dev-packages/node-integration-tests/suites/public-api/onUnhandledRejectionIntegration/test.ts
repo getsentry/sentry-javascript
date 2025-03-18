@@ -15,7 +15,7 @@ describe('onUnhandledRejectionIntegration', () => {
 
       const testScriptPath = path.resolve(__dirname, 'mode-warn-string.js');
 
-      childProcess.exec(`node ${testScriptPath}`, { encoding: 'utf8' }, (err, stdout, stderr) => {
+      childProcess.execFile('node', [testScriptPath], { encoding: 'utf8' }, (err, stdout, stderr) => {
         expect(err).toBeNull();
         expect(stdout).toBe("I'm alive!");
         expect(stderr.trim())
@@ -31,7 +31,7 @@ test rejection`);
 
       const testScriptPath = path.resolve(__dirname, 'mode-warn-error.js');
 
-      childProcess.exec(`node ${testScriptPath}`, { encoding: 'utf8' }, (err, stdout, stderr) => {
+      childProcess.execFile('node', [testScriptPath], { encoding: 'utf8' }, (err, stdout, stderr) => {
         expect(err).toBeNull();
         expect(stdout).toBe("I'm alive!");
         expect(stderr)
@@ -48,7 +48,7 @@ Error: test rejection
 
       const testScriptPath = path.resolve(__dirname, 'mode-strict.js');
 
-      childProcess.exec(`node ${testScriptPath}`, { encoding: 'utf8' }, (err, stdout, stderr) => {
+      childProcess.execFile('node', [testScriptPath], { encoding: 'utf8' }, (err, stdout, stderr) => {
         expect(err).not.toBeNull();
         expect(err?.code).toBe(1);
         expect(stdout).not.toBe("I'm alive!");
