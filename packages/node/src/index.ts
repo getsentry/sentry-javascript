@@ -128,6 +128,7 @@ export {
   trpcMiddleware,
   updateSpanName,
   zodErrorsIntegration,
+  supabaseIntegration,
   profiler,
   consoleLoggingIntegration,
   consoleIntegration,
