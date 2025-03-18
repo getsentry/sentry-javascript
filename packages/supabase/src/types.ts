@@ -1,4 +1,3 @@
-
 export interface SupabaseClient {
   prototype: {
     from: (table: string) => PostgrestQueryBuilder;
