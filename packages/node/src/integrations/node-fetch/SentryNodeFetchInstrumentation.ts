@@ -55,7 +55,7 @@ export class SentryNodeFetchInstrumentation extends InstrumentationBase<SentryNo
   private _propagationDecisionMap: LRUMap<string, boolean>;
 
   public constructor(config: SentryNodeFetchInstrumentationOptions = {}) {
-    super('@sentry/instrumentation-node-fetch', '2.0.0-rc.1', config);
+    super('@sentry/instrumentation-node-fetch', '2.0.0', config);
     this._channelSubs = [];
     this._propagationDecisionMap = new LRUMap<string, boolean>(100);
   }
