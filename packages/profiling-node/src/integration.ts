@@ -75,6 +75,8 @@ class ContinuousProfiler {
         this._legacyProfilerMode =
           'profilesSampleRate' in options || 'profilesSampler' in options ? 'span' : 'continuous';
 
+        DEBUG_BUILD && logger.log(`[Profiling] Profiling mode is ${this._legacyProfilerMode}.`);
+
         switch (this._legacyProfilerMode) {
           case 'span': {
             this._setupAutomaticSpanProfiling();
@@ -97,6 +99,8 @@ class ContinuousProfiler {
 
       case 'current': {
         this._setupSpanChunkInstrumentation();
+
+        DEBUG_BUILD && logger.log(`[Profiling] Profiling mode is ${this._profileLifecycle}.`);
 
         switch (this._profileLifecycle) {
           case 'trace': {
