@@ -107,6 +107,7 @@ export { dedupeIntegration } from './integrations/dedupe';
 export { extraErrorDataIntegration } from './integrations/extraerrordata';
 export { rewriteFramesIntegration } from './integrations/rewriteframes';
 export { zodErrorsIntegration } from './integrations/zoderrors';
+export { supabaseIntegration } from './integrations/supabase';
 export { thirdPartyErrorFilterIntegration } from './integrations/third-party-errors-filter';
 export { profiler } from './profiling';
 export { instrumentFetchRequest } from './fetch';
