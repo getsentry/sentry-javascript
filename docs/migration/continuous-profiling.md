@@ -13,15 +13,6 @@ We've introduced a new `profileLifecycle` option that allows you to explicitly s
 
 Previously, the profiling mode was implicitly determined by initialization options. Now you can clearly specify your intended behavior.
 
-## Renamed API Methods
-
-The main profiling control methods have been renamed to better reflect their purpose:
-
-- `Sentry.profiler.start()` → `Sentry.profiler.startProfiler()`
-- `Sentry.profiler.stop()` → `Sentry.profiler.stopProfiler()`
-
-The new names emphasize that these methods control profiling sessions and are subject to session sampling.
-
 ## New Sampling Controls
 
 ### profileSessionSampleRate
