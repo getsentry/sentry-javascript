@@ -32,17 +32,7 @@ function outputDependencyCacheKey() {
     hashParts.push(getNormalizedDependencies(packageJson, workspacePackageNames));
   });
 
-  // Create a truncated version of the raw data for debugging
-  // We don't want to output the full content as it could be very large
-  const rawData = hashParts.join('\n');
-  const truncatedRawData =
-    rawData.length > 500 ? rawData.substring(0, 250) + '...' + rawData.substring(rawData.length - 250) : rawData;
-
-  const hash = crypto.createHash('md5').update(rawData).digest('hex');
-
-  // Output both the hash and the raw data (truncated)
   console.log(`hash=dependencies-${hash}`);
-  console.log(`nohash=${encodeURIComponent(truncatedRawData)}`);
 }
 
 function getNormalizedDependencies(packageJson, workspacePackageNames) {
@@ -52,15 +42,6 @@ function getNormalizedDependencies(packageJson, workspacePackageNames) {
     ...devDependencies,
     ...dependencies,
   };
-
-  // Add a representation of version overrides to the hash parts
-  let overridesString = '';
-  if (packageJson?.overrides) {
-    overridesString = JSON.stringify(packageJson.overrides);
-  }
-  if (packageJson?.pnpm && packageJson.pnpm.overrides) {
-    overridesString += JSON.stringify(packageJson.pnpm.overrides);
-  }
 
   const normalizedDependencies = {};
 
@@ -74,7 +55,7 @@ function getNormalizedDependencies(packageJson, workspacePackageNames) {
       normalizedDependencies[key] = version;
     });
 
-  return JSON.stringify(normalizedDependencies) + overridesString;
+  return JSON.stringify(normalizedDependencies);
 }
 
 function getWorkspacePackageNames(workspacePackages) {
