@@ -43,8 +43,8 @@ describe('spanTypes', () => {
   describe('spanHasParentId', () => {
     it.each([
       [{}, false],
-      [{ parentSpanId: null }, false],
-      [{ parentSpanId: 'TEST_PARENT_ID' }, true],
+      [{ parentSpanContext: { spanId: null } }, false],
+      [{ parentSpanContext: { spanId: 'TEST_PARENT_ID' } }, true],
     ])('works with %p', (span, expected) => {
       const castSpan = span as unknown as Span;
       const actual = spanHasParentId(castSpan);
@@ -52,7 +52,7 @@ describe('spanTypes', () => {
       expect(actual).toBe(expected);
 
       if (actual) {
-        expect(castSpan.parentSpanId).toBeDefined();
+        expect(castSpan.parentSpanContext?.spanId).toBeDefined();
       }
     });
   });
