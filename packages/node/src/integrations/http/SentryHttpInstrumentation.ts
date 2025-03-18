@@ -24,7 +24,7 @@ import {
 import { DEBUG_BUILD } from '../../debug-build';
 import { getRequestUrl } from '../../utils/getRequestUrl';
 import { getRequestInfo } from './vendor/getRequestInfo';
-import { stealthWrap } from './shared';
+import { stealthWrap } from './utils';
 
 type Http = typeof http;
 type Https = typeof https;
