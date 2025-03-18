@@ -16,11 +16,6 @@ const CLIENT_TO_LOG_BUFFER_MAP = new WeakMap<Client, Array<SerializedOtelLog>>()
 /**
  * Converts a log attribute to a serialized log attribute.
  *
- * If the value is a number, it is converted to a double value.
- * If the value is a boolean, it is converted to a boolean value.
- * If the value is a string, it is converted to a string value.
- * Otherwise, the value is converted to a string value using JSON.stringify.
- *
  * @param key - The key of the log attribute.
  * @param value - The value of the log attribute.
  * @returns The serialized log attribute.
