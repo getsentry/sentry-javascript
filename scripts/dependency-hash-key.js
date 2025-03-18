@@ -32,6 +32,10 @@ function outputDependencyCacheKey() {
     hashParts.push(getNormalizedDependencies(packageJson, workspacePackageNames));
   });
 
+  const hash = crypto.createHash('md5').update(hashParts.join('\n')).digest('hex');
+  // We log the output in a way that the GitHub Actions can append it to the output
+  // We prefix it with `dependencies-` so it is easier to identify in the logs
+  // eslint-disable-next-line no-console
   console.log(`hash=dependencies-${hash}`);
 }
 
