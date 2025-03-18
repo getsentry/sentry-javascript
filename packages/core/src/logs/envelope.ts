@@ -5,23 +5,28 @@ import type { OtelLogEnvelope, OtelLogItem } from '../types-hoist/envelope';
 import { dsnToString } from '../utils-hoist';
 
 /**
- * Creates envelope item for a single log
+ * Creates OTEL log envelope item for a serialized OTEL log.
+ *
+ * @param log - The serialized OTEL log to include in the envelope.
+ * @returns The created OTEL log envelope item.
  */
 export function createOtelLogEnvelopeItem(log: SerializedOtelLog): OtelLogItem {
-  const headers: OtelLogItem[0] = {
-    type: 'otel_log',
-  };
-
-  return [headers, log];
+  return [
+    {
+      type: 'otel_log',
+    },
+    log,
+  ];
 }
 
 /**
- * Records a log and sends it to sentry.
+ * Creates an envelope for a list of logs.
  *
- * Logs represent a message (and optionally some structured data) which provide context for a trace or error.
- * Ex: sentry.addLog({level: 'warning', message: `user ${user} just bought ${item}`, attributes: {user, item}}
- *
- * @params log - the log object which will be sent
+ * @param logs - The logs to include in the envelope.
+ * @param metadata - The metadata to include in the envelope.
+ * @param tunnel - The tunnel to include in the envelope.
+ * @param dsn - The DSN to include in the envelope.
+ * @returns The created envelope.
  */
 export function createOtelLogEnvelope(
   logs: Array<SerializedOtelLog>,

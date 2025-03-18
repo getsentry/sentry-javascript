@@ -14,11 +14,16 @@ const MAX_LOG_BUFFER_SIZE = 100;
 const CLIENT_TO_LOG_BUFFER_MAP = new WeakMap<Client, Array<SerializedOtelLog>>();
 
 /**
- * Convert a log attribute to a serialized log attribute
+ * Converts a log attribute to a serialized log attribute.
  *
- * @param key - The key of the log attribute
- * @param value - The value of the log attribute
- * @returns The serialized log attribute
+ * If the value is a number, it is converted to a double value.
+ * If the value is a boolean, it is converted to a boolean value.
+ * If the value is a string, it is converted to a string value.
+ * Otherwise, the value is converted to a string value using JSON.stringify.
+ *
+ * @param key - The key of the log attribute.
+ * @param value - The value of the log attribute.
+ * @returns The serialized log attribute.
  */
 export function logAttributeToSerializedLogAttribute(key: string, value: unknown): SerializedLogAttribute {
   switch (typeof value) {
@@ -48,14 +53,16 @@ export function logAttributeToSerializedLogAttribute(key: string, value: unknown
 /**
  * Captures a log event and sends it to Sentry.
  *
- * @param log The log event to capture.
+ * @param log - The log event to capture.
+ * @param scope - A scope. Uses the current scope if not provided.
+ * @param client - A client. Uses the current client if not provided.
  *
  * @experimental This method will experience breaking changes. This is not yet part of
  * the stable Sentry SDK API and can be changed or removed without warning.
  */
 export function captureLog(
   { level, message, attributes, severityNumber }: Log,
-  currentScope = getCurrentScope(),
+  scope = getCurrentScope(),
   client = getClient(),
 ): void {
   if (!client) {
@@ -69,7 +76,7 @@ export function captureLog(
     return;
   }
 
-  const [, traceContext] = _getTraceInfoFromScope(client, currentScope);
+  const [, traceContext] = _getTraceInfoFromScope(client, scope);
 
   const logAttributes = {
     ...attributes,
@@ -83,7 +90,7 @@ export function captureLog(
     logAttributes.environment = environment;
   }
 
-  const span = _getSpanForScope(currentScope);
+  const span = _getSpanForScope(scope);
   if (span) {
     // Add the parent span ID to the log attributes for trace context
     logAttributes['sentry.trace.parent_span_id'] = span.spanContext().spanId;
@@ -115,6 +122,9 @@ export function captureLog(
 
 /**
  * Flushes the logs buffer to Sentry.
+ *
+ * @param client - A client.
+ * @param maybeLogBuffer - A log buffer. Uses the log buffer for the given client if not provided.
  */
 export function _INTERNAL_flushLogsBuffer(client: Client, maybeLogBuffer?: Array<SerializedOtelLog>): void {
   const logBuffer = maybeLogBuffer ?? CLIENT_TO_LOG_BUFFER_MAP.get(client) ?? [];
@@ -134,7 +144,9 @@ export function _INTERNAL_flushLogsBuffer(client: Client, maybeLogBuffer?: Array
 }
 
 /**
- * Returns the log buffer for a given client. Exported for testing purposes.
+ * Returns the log buffer for a given client.
+ *
+ * Exported for testing purposes.
  *
  * @param client - The client to get the log buffer for.
  * @returns The log buffer for the given client.
