@@ -12,7 +12,7 @@
     "clean": "npx nuxi cleanup",
     "test": "playwright test",
     "test:build": "pnpm install && pnpm build",
-    "test:build-canary": "pnpm install && pnpm rm nuxt && pnpm add nuxt@npm:nuxt-nightly@3x && pnpm build",
+    "test:build-canary": "echo \"Lock file location1: $(pwd)/pnpm-lock.yaml\" && pnpm add nuxt@npm:nuxt-nightly@latest && echo \"Lock file location2: $(pwd)/pnpm-lock.yaml\" && grep -i 'nitro' pnpm-lock.yaml && pnpm install --force && pnpm dedupe && grep -i 'nitro' pnpm-lock.yaml && pnpm build",
     "test:assert": "pnpm test"
   },
   "dependencies": {
