@@ -137,7 +137,7 @@ class ContinuousProfiler {
    */
   public start(): void {
     if (this._mode === 'current') {
-      this.startProfiler();
+      this._startProfiler();
       return;
     }
 
@@ -171,7 +171,7 @@ class ContinuousProfiler {
    */
   public stop(): void {
     if (this._mode === 'current') {
-      this.stopProfiler();
+      this._stopProfiler();
       return;
     }
 
@@ -194,7 +194,7 @@ class ContinuousProfiler {
     this._teardownSpanChunkInstrumentation();
   }
 
-  private startProfiler(): void {
+  private _startProfiler(): void {
     if (this._mode !== 'current') {
       DEBUG_BUILD && logger.log('[Profiling] Continuous profiling is not supported in the current mode.');
       return;
@@ -223,7 +223,7 @@ class ContinuousProfiler {
     this._startChunkProfiling();
   }
 
-  private stopProfiler(): void {
+  private _stopProfiler(): void {
     if (this._mode !== 'current') {
       DEBUG_BUILD && logger.log('[Profiling] Continuous profiling is not supported in the current mode.');
       return;
