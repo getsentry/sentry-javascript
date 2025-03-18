@@ -61,6 +61,7 @@ export {
   spanToTraceHeader,
   spanToBaggageHeader,
   updateSpanName,
+  supabaseIntegration,
 } from '@sentry/core';
 
 export {
