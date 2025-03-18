@@ -32,7 +32,6 @@ targets:
   - name: npm
     id: '@sentry-internal/replay-canvas'
     includeNames: /^sentry-internal-replay-canvas-\d.*\.tgz$/
-
   ## 2. Browser & Node SDKs
   - name: npm
     id: '@sentry/browser'
