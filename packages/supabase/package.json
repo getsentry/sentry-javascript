@@ -57,8 +57,6 @@
     "clean": "rimraf build sentry-internal-supabase-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
-    "test": "vitest run",
-    "test:watch": "vitest --watch",
     "yalc:publish": "yalc publish --push --sig"
   },
   "volta": {
