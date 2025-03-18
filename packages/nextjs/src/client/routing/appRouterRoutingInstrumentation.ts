@@ -2,6 +2,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  addNonEnumerableProperty,
 } from '@sentry/core';
 import { GLOBAL_OBJ, browserPerformanceTimeOrigin } from '@sentry/core';
 import type { Client, Span } from '@sentry/core';
@@ -22,6 +23,10 @@ export function appRouterInstrumentPageLoad(client: Client): void {
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
     },
   });
+}
+
+interface NavigationSpanRef {
+  current: Span | undefined;
 }
 
 interface NextRouter {
@@ -57,14 +62,14 @@ const GLOBAL_OBJ_WITH_NEXT_ROUTER = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
 
 /** Instruments the Next.js app router for navigation. */
 export function appRouterInstrumentNavigation(client: Client): void {
-  let currentNavigationSpan: Span | undefined = undefined;
+  const currentNavigationSpanRef: NavigationSpanRef = { current: undefined };
 
   WINDOW.addEventListener('popstate', () => {
-    if (currentNavigationSpan?.isRecording()) {
-      currentNavigationSpan.updateName(WINDOW.location.pathname);
-      currentNavigationSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'url');
+    if (currentNavigationSpanRef.current?.isRecording()) {
+      currentNavigationSpanRef.current.updateName(WINDOW.location.pathname);
+      currentNavigationSpanRef.current.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'url');
     } else {
-      currentNavigationSpan = startBrowserTracingNavigationSpan(client, {
+      currentNavigationSpanRef.current = startBrowserTracingNavigationSpan(client, {
         name: WINDOW.location.pathname,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
@@ -89,38 +94,22 @@ export function appRouterInstrumentNavigation(client: Client): void {
     } else if (router) {
       clearInterval(checkForRouterAvailabilityInterval);
       routerPatched = true;
-      (['back', 'forward', 'push', 'replace'] as const).forEach(routerFunctionName => {
-        if (router?.[routerFunctionName]) {
-          // @ts-expect-error Weird type error related to not knowing how to associate return values with the individual functions - we can just ignore
-          router[routerFunctionName] = new Proxy(router[routerFunctionName], {
-            apply(target, thisArg, argArray) {
-              let transactionName = INCOMPLETE_APP_ROUTER_INSTRUMENTATION_TRANSACTION_NAME;
-              const transactionAttributes: Record<string, string> = {
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
-                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-              };
 
-              if (routerFunctionName === 'push') {
-                transactionName = transactionNameifyRouterArgument(argArray[0]);
-                transactionAttributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'url';
-                transactionAttributes['navigation.type'] = 'router.push';
-              } else if (routerFunctionName === 'replace') {
-                transactionName = transactionNameifyRouterArgument(argArray[0]);
-                transactionAttributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'url';
-                transactionAttributes['navigation.type'] = 'router.replace';
-              } else if (routerFunctionName === 'back') {
-                transactionAttributes['navigation.type'] = 'router.back';
-              } else if (routerFunctionName === 'forward') {
-                transactionAttributes['navigation.type'] = 'router.forward';
+      patchRouter(client, router, currentNavigationSpanRef);
+
+      // If the router at any point gets overridden - patch again
+      (['nd', 'next'] as const).forEach(globalValueName => {
+        const globalValue = GLOBAL_OBJ_WITH_NEXT_ROUTER[globalValueName];
+        if (globalValue) {
+          GLOBAL_OBJ_WITH_NEXT_ROUTER[globalValueName] = new Proxy(globalValue, {
+            set(target, p, newValue) {
+              if (p === 'router' && typeof newValue === 'object' && newValue !== null) {
+                patchRouter(client, newValue, currentNavigationSpanRef);
               }
 
-              currentNavigationSpan = startBrowserTracingNavigationSpan(client, {
-                name: transactionName,
-                attributes: transactionAttributes,
-              });
-
-              return target.apply(thisArg, argArray);
+              // @ts-expect-error we cannot possibly type this
+              target[p] = newValue;
+              return true;
             },
           });
         }
@@ -136,4 +125,49 @@ function transactionNameifyRouterArgument(target: string): string {
   } catch {
     return '/';
   }
+}
+
+function patchRouter(client: Client, router: NextRouter, currentNavigationSpanRef: NavigationSpanRef): void {
+  if ('_sentryPatched' in router) {
+    return;
+  }
+
+  addNonEnumerableProperty(router, '_sentryPatched', true);
+
+  (['back', 'forward', 'push', 'replace'] as const).forEach(routerFunctionName => {
+    if (router?.[routerFunctionName]) {
+      // @ts-expect-error Weird type error related to not knowing how to associate return values with the individual functions - we can just ignore
+      router[routerFunctionName] = new Proxy(router[routerFunctionName], {
+        apply(target, thisArg, argArray) {
+          let transactionName = INCOMPLETE_APP_ROUTER_INSTRUMENTATION_TRANSACTION_NAME;
+          const transactionAttributes: Record<string, string> = {
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+          };
+
+          if (routerFunctionName === 'push') {
+            transactionName = transactionNameifyRouterArgument(argArray[0]);
+            transactionAttributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'url';
+            transactionAttributes['navigation.type'] = 'router.push';
+          } else if (routerFunctionName === 'replace') {
+            transactionName = transactionNameifyRouterArgument(argArray[0]);
+            transactionAttributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'url';
+            transactionAttributes['navigation.type'] = 'router.replace';
+          } else if (routerFunctionName === 'back') {
+            transactionAttributes['navigation.type'] = 'router.back';
+          } else if (routerFunctionName === 'forward') {
+            transactionAttributes['navigation.type'] = 'router.forward';
+          }
+
+          currentNavigationSpanRef.current = startBrowserTracingNavigationSpan(client, {
+            name: transactionName,
+            attributes: transactionAttributes,
+          });
+
+          return target.apply(thisArg, argArray);
+        },
+      });
+    }
+  });
 }
