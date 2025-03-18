@@ -28,7 +28,4 @@ Sentry.init({
     // We expect the app to send a lot of events in a short time
     bufferSize: 1000,
   },
-
-  // Setting this option to true will print useful information to the console while you're setting up Sentry.
-  debug: true,
 });
