@@ -20,15 +20,15 @@ Sentry.init({
 });
 
 // Create and configure NodeTracerProvider
-const provider = new NodeTracerProvider({
-  spanProcessors: [
-    new BatchSpanProcessor(
-      new OTLPTraceExporter({
-        url: 'http://localhost:3032/',
-      }),
-    ),
-  ],
-});
+const provider = new NodeTracerProvider({});
+
+provider.addSpanProcessor(
+  new BatchSpanProcessor(
+    new OTLPTraceExporter({
+      url: 'http://localhost:3032/',
+    }),
+  ),
+);
 
 // Initialize the provider
 provider.register({
