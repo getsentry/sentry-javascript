@@ -61,8 +61,9 @@ export {
   spanToTraceHeader,
   spanToBaggageHeader,
   updateSpanName,
-  supabaseIntegration,
 } from '@sentry/core';
+
+export { supabaseIntegration } from '@sentry-internal/supabase';
 
 export {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,

@@ -1,160 +1,28 @@
-/* eslint-disable @typescript-eslint/ban-types */
+import {
+  addBreadcrumb,
+  captureException,
+  defineIntegration,
+  startInactiveSpan,
+  setHttpStatus,
+  logger,
+  isPlainObject,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+} from '@sentry/core';
 
-import { addBreadcrumb } from '../breadcrumbs';
-import { captureException } from '../exports';
-import { defineIntegration } from '../integration';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_OP } from '../semanticAttributes';
-import { startInactiveSpan, setHttpStatus } from '../tracing';
-import type { Span, IntegrationFn } from '../types-hoist';
-import { logger, isPlainObject } from '../utils-hoist';
-
-/* eslint-disable max-lines */
-export const AVAILABLE_OPERATIONS = ['select', 'insert', 'upsert', 'update', 'delete'];
-
-export const FILTER_MAPPINGS = {
-  eq: 'eq',
-  neq: 'neq',
-  gt: 'gt',
-  gte: 'gte',
-  lt: 'lt',
-  lte: 'lte',
-  like: 'like',
-  'like(all)': 'likeAllOf',
-  'like(any)': 'likeAnyOf',
-  ilike: 'ilike',
-  'ilike(all)': 'ilikeAllOf',
-  'ilike(any)': 'ilikeAnyOf',
-  is: 'is',
-  in: 'in',
-  cs: 'contains',
-  cd: 'containedBy',
-  sr: 'rangeGt',
-  nxl: 'rangeGte',
-  sl: 'rangeLt',
-  nxr: 'rangeLte',
-  adj: 'rangeAdjacent',
-  ov: 'overlaps',
-  fts: '',
-  plfts: 'plain',
-  phfts: 'phrase',
-  wfts: 'websearch',
-  not: 'not',
-};
-/**
- * Translates Supabase filter parameters into readable method names for tracing
- * @param key - The filter key from the URL search parameters
- * @param query - The filter value from the URL search parameters
- * @returns A string representation of the filter as a method call
- */
-export function translateFiltersIntoMethods(key: string, query: string): string {
-  if (query === '' || query === '*') {
-    return 'select(*)';
-  }
-
-  if (key === 'select') {
-    return `select(${query})`;
-  }
-
-  if (key === 'or' || key.endsWith('.or')) {
-    return `${key}${query}`;
-  }
-
-  const [filter, ...value] = query.split('.');
-
-  let method;
-  // Handle optional `configPart` of the filter
-  if (filter?.startsWith('fts')) {
-    method = 'textSearch';
-  } else if (filter?.startsWith('plfts')) {
-    method = 'textSearch[plain]';
-  } else if (filter?.startsWith('phfts')) {
-    method = 'textSearch[phrase]';
-  } else if (filter?.startsWith('wfts')) {
-    method = 'textSearch[websearch]';
-  } else {
-    method = (filter && FILTER_MAPPINGS[filter as keyof typeof FILTER_MAPPINGS]) || 'filter';
-  }
-
-  return `${method}(${key}, ${value.join('.')})`;
-}
-
-interface SupabaseClient {
-  prototype: {
-    from: (table: string) => PostgrestQueryBuilder;
-  };
-}
-
-interface PostgrestQueryBuilder {
-  select: (...args: unknown[]) => PostgrestFilterBuilder;
-  insert: (...args: unknown[]) => PostgrestFilterBuilder;
-  upsert: (...args: unknown[]) => PostgrestFilterBuilder;
-  update: (...args: unknown[]) => PostgrestFilterBuilder;
-  delete: (...args: unknown[]) => PostgrestFilterBuilder;
-}
-
-interface PostgrestFilterBuilder {
-  method: string;
-  headers: Record<string, string>;
-  url: URL;
-  schema: string;
-  body: any;
-}
-
-interface SupabaseResponse {
-  status?: number;
-  error?: {
-    message: string;
-    code?: string;
-    details?: unknown;
-  };
-}
-
-interface SupabaseError extends Error {
-  code?: string;
-  details?: unknown;
-}
-
-interface SupabaseBreadcrumb {
-  type: string;
-  category: string;
-  message: string;
-  data?: {
-    query?: string[];
-    body?: Record<string, unknown>;
-  };
-}
+import type { Span, IntegrationFn } from '@sentry/core';
+import type {
+  SupabaseBreadcrumb,
+  SupabaseError,
+  SupabaseResponse,
+  SupabaseClient,
+  PostgrestQueryBuilder,
+  PostgrestFilterBuilder,
+} from './types';
+import { AVAILABLE_OPERATIONS } from './constants';
+import { extractOperation, translateFiltersIntoMethods } from './utils';
 
 const instrumented = new Map();
-
-/**
- * Extracts the database operation type from the HTTP method and headers
- * @param method - The HTTP method of the request
- * @param headers - The request headers
- * @returns The database operation type ('select', 'insert', 'upsert', 'update', or 'delete')
- */
-export function extractOperation(method: string, headers: Record<string, string> = {}): string {
-  switch (method) {
-    case 'GET': {
-      return 'select';
-    }
-    case 'POST': {
-      if (headers['Prefer']?.includes('resolution=')) {
-        return 'upsert';
-      } else {
-        return 'insert';
-      }
-    }
-    case 'PATCH': {
-      return 'update';
-    }
-    case 'DELETE': {
-      return 'delete';
-    }
-    default: {
-      return '<unknown-op>';
-    }
-  }
-}
 
 function instrumentSupabaseClient(SupabaseClient: unknown): void {
   if (instrumented.has(SupabaseClient)) {

@@ -98,6 +98,7 @@
     "@prisma/instrumentation": "6.5.0",
     "@sentry/core": "9.6.1",
     "@sentry/opentelemetry": "9.6.1",
+    "@sentry-internal/supabase": "9.6.1",
     "import-in-the-middle": "^1.13.0"
   },
   "devDependencies": {
