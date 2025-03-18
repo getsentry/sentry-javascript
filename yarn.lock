@@ -6692,11 +6692,6 @@
   resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-2.22.6.tgz#829d6caf2c95c1c46108336de4e1049e6521435e"
   integrity sha512-V2g1Y1I5eSe7dtUVMBvAJr8BaLRr4CLrgNgtPaZyMT4Rnps82SrZ5zqmEkLXPumlXhLUWR6qzoMNN2u+RXVXfQ==
 
-"@sentry/babel-plugin-component-annotate@3.1.2":
-  version "3.1.2"
-  resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-3.1.2.tgz#5497ca5adbe775955e96c566511a0bed3ab0a3ce"
-  integrity sha512-5h2WXRJ6swKA0TwxHHryC8M2QyOfS9QhTAL6ElPfkEYe9HhJieXmxsDpyspbqAa26ccnCUcmwE5vL34jAjt4sQ==
-
 "@sentry/babel-plugin-component-annotate@3.2.0":
   version "3.2.0"
   resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-3.2.0.tgz#17c000cf6cc315bb620eddbd95c88dfb2471cfb9"
@@ -6715,20 +6710,6 @@
     "@babel/core" "^7.18.5"
     "@sentry/babel-plugin-component-annotate" "2.22.6"
     "@sentry/cli" "^2.36.1"
-    dotenv "^16.3.1"
-    find-up "^5.0.0"
-    glob "^9.3.2"
-    magic-string "0.30.8"
-    unplugin "1.0.1"
-
-"@sentry/bundler-plugin-core@3.1.2":
-  version "3.1.2"
-  resolved "https://registry.yarnpkg.com/@sentry/bundler-plugin-core/-/bundler-plugin-core-3.1.2.tgz#29e4e686c5893b41a0d98a1bef6f0315a610bd59"
-  integrity sha512-lqOCvmOPzKiQenIMhmm5/mwCntwFy0dPZbVD28Dnr3MXpT1rIBg1HXjfnqQWFlMRbL9haSsWiY/TQyR/6b30YA==
-  dependencies:
-    "@babel/core" "^7.18.5"
-    "@sentry/babel-plugin-component-annotate" "3.1.2"
-    "@sentry/cli" "2.41.1"
     dotenv "^16.3.1"
     find-up "^5.0.0"
     glob "^9.3.2"
@@ -6871,12 +6852,12 @@
     "@sentry/cli-win32-i686" "2.42.2"
     "@sentry/cli-win32-x64" "2.42.2"
 
-"@sentry/rollup-plugin@3.1.2":
-  version "3.1.2"
-  resolved "https://registry.yarnpkg.com/@sentry/rollup-plugin/-/rollup-plugin-3.1.2.tgz#d1ed4eeb558e10260bf0e7f292f9ad6baf22a98c"
-  integrity sha512-CVUsfQkL8REOGuyaPX7BzccZoq+wce05gQW3dG4PcXNPQeKTPRpC89NLcCDJijJa08yvC0DF0wsWRhlFWM89kQ==
+"@sentry/rollup-plugin@3.2.1":
+  version "3.2.1"
+  resolved "https://registry.yarnpkg.com/@sentry/rollup-plugin/-/rollup-plugin-3.2.1.tgz#105c2d0b8907bf81bfc0fccc027c9c80f6793b2e"
+  integrity sha512-5FaBB6xR0M1E7iEQG+cmQAD7KeDW6j32NckwWlk84einv59Mu/wG4bLuCeZBLsWl5nQJz655BKf+Moem8Od6Zw==
   dependencies:
-    "@sentry/bundler-plugin-core" "3.1.2"
+    "@sentry/bundler-plugin-core" "3.2.1"
     unplugin "1.0.1"
 
 "@sentry/vite-plugin@2.22.6", "@sentry/vite-plugin@^2.22.6":
