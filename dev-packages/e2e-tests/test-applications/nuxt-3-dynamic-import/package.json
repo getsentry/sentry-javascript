@@ -21,8 +21,10 @@
     "@playwright/test": "~1.50.0",
     "@sentry-internal/test-utils": "link:../../../test-utils"
   },
-  "overrides": {
-    "nitropack": "~2.9.7",
-    "ofetch": "^1.4.0"
+  "pnpm": {
+    "overrides": {
+      "nitropack": "~2.9.7",
+      "ofetch": "^1.4.0"
+    }
   }
 }
