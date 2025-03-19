@@ -12,6 +12,7 @@
     "clean": "npx nuxi cleanup",
     "test": "playwright test",
     "test:build": "pnpm install && pnpm build",
+    "test:build-canary": "pnpm add nuxt@npm:nuxt-nightly@3x && pnpm add nitropack@npm:nitropack-nightly@latest && pnpm install --force && pnpm build",
     "test:assert": "pnpm test"
   },
   "dependencies": {
@@ -21,5 +22,13 @@
   "devDependencies": {
     "@playwright/test": "~1.50.0",
     "@sentry-internal/test-utils": "link:../../../test-utils"
+  },
+  "sentryTest": {
+    "optionalVariants": [
+      {
+        "build-command": "test:build-canary",
+        "label": "nuxt-3 (canary)"
+      }
+    ]
   }
 }
