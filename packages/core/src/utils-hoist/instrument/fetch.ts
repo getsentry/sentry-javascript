@@ -107,6 +107,28 @@ function instrumentFetch(onFetchResolved?: (response: Response) => void, skipNat
             addNonEnumerableProperty(error, 'framesToPop', 1);
           }
 
+          // We enhance the not-so-helpful "Failed to fetch" error messages with the host
+          // Possible messages we handle here:
+          // * "Failed to fetch" (chromium)
+          // * "Load failed" (webkit)
+          // * "NetworkError when attempting to fetch resource." (firefox)
+          if (
+            error instanceof TypeError &&
+            (error.message === 'Failed to fetch' ||
+              error.message === 'Load failed' ||
+              error.message === 'NetworkError when attempting to fetch resource.')
+          ) {
+            try {
+              const url = new URL(handlerData.fetchData.url);
+              // We only want to take the top-level domain, e.g. xxx.sentry.io should become sentry.io
+              // We do this to avoid noise when there may be dynamic subdomains
+              const host = url.host.split('.').slice(-2).join('.');
+              error.message = `${error.message} (${host})`;
+            } catch {
+              // ignore it if errors happen here
+            }
+          }
+
           // NOTE: If you are a Sentry user, and you are seeing this stack frame,
           //       it means the sentry.javascript SDK caught an error invoking your application code.
           //       This is expected behavior and NOT indicative of a bug with sentry.javascript.
