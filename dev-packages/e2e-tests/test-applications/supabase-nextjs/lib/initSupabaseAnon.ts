@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import * as Sentry from '@sentry/nextjs';
+import { supabaseIntegration } from '@sentry/supabase';
 
 // These are the default development keys for a local Supabase instance
 const NEXT_PUBLIC_SUPABASE_URL = 'http://localhost:54321';
@@ -9,7 +10,7 @@ const NEXT_PUBLIC_SUPABASE_ANON_KEY =
 export const supabase = createClient(NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
 Sentry.addIntegration(
-  Sentry.supabaseIntegration({
+  supabaseIntegration({
     supabaseClient: supabase,
   }),
 );
