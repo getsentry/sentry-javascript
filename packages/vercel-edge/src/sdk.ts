@@ -1,4 +1,4 @@
-import { DiagLogLevel, diag } from '@opentelemetry/api';
+import { DiagLogLevel, context, diag, propagation, trace } from '@opentelemetry/api';
 import { Resource } from '@opentelemetry/resources';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import {
@@ -171,11 +171,9 @@ export function setupOtel(client: VercelEdgeClient): void {
 
   const SentryContextManager = wrapContextManagerClass(AsyncLocalStorageContextManager);
 
-  // Initialize the provider
-  provider.register({
-    propagator: new SentryPropagator(),
-    contextManager: new SentryContextManager(),
-  });
+  trace.setGlobalTracerProvider(provider);
+  propagation.setGlobalPropagator(new SentryPropagator());
+  context.setGlobalContextManager(new SentryContextManager());
 
   client.traceProvider = provider;
 }

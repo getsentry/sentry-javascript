@@ -60,6 +60,7 @@ import {
   setOpenTelemetryContextAsyncContextStrategy,
 } from '@sentry/opentelemetry';
 import { AsyncLocalStorageContextManager } from '@opentelemetry/context-async-hooks';
+import { context, propagation, trace } from '@opentelemetry/api';
 
 function setupSentry() {
   Sentry.init({
@@ -77,10 +78,9 @@ function setupSentry() {
   const SentryContextManager = wrapContextManagerClass(AsyncLocalStorageContextManager);
 
   // Initialize the provider
-  provider.register({
-    propagator: new SentryPropagator(),
-    contextManager: new SentryContextManager(),
-  });
+  trace.setGlobalTracerProvider(provider);
+  propagation.setGlobalPropagator(new SentryPropagator());
+  context.setGlobalContextManager(new SentryContextManager());
 
   setOpenTelemetryContextAsyncContextStrategy();
 }
