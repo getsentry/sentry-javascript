@@ -5,6 +5,7 @@ import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
 import type { AggregationCounts, Client, RequestEventData, SanitizedRequestData, Scope } from '@sentry/core';
 import {
+  LRUMap,
   addBreadcrumb,
   generateSpanId,
   getBreadcrumbLogLevelFromHttpStatusCode,
@@ -12,12 +13,16 @@ import {
   getCurrentScope,
   getIsolationScope,
   getSanitizedUrlString,
+  getTraceData,
   httpRequestToRequestData,
   logger,
+  objectToBaggageHeader,
+  parseBaggageHeader,
   parseUrl,
   stripUrlQueryAndFragment,
   withIsolationScope,
 } from '@sentry/core';
+import { shouldPropagateTraceForUrl } from '@sentry/opentelemetry';
 import type * as http from 'node:http';
 import type { IncomingMessage, RequestOptions } from 'node:http';
 import type * as https from 'node:https';
@@ -29,6 +34,12 @@ import { getRequestInfo } from './vendor/getRequestInfo';
 
 type Http = typeof http;
 type Https = typeof https;
+
+type RequestArgs =
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  | [url: string | URL, options?: RequestOptions, callback?: Function]
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  | [options: RequestOptions, callback?: Function];
 
 export type SentryHttpInstrumentationOptions = InstrumentationConfig & {
   /**
@@ -46,6 +57,15 @@ export type SentryHttpInstrumentationOptions = InstrumentationConfig & {
    * @default `false`
    */
   extractIncomingTraceFromHeader?: boolean;
+
+  /**
+   * Whether to propagate Sentry trace headers in ougoing requests.
+   * By default this is done by the HttpInstrumentation, but if that is not added (e.g. because tracing is disabled, ...)
+   * then this instrumentation can take over.
+   *
+   * @default `false`
+   */
+  propagateTraceInOutgoingRequests?: boolean;
 
   /**
    * Do not capture breadcrumbs for outgoing HTTP requests to URLs where the given callback returns `true`.
@@ -91,8 +111,11 @@ const MAX_BODY_BYTE_LENGTH = 1024 * 1024;
  * https://github.com/open-telemetry/opentelemetry-js/blob/f8ab5592ddea5cba0a3b33bf8d74f27872c0367f/experimental/packages/opentelemetry-instrumentation-http/src/http.ts
  */
 export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpInstrumentationOptions> {
+  private _propagationDecisionMap: LRUMap<string, boolean>;
+
   public constructor(config: SentryHttpInstrumentationOptions = {}) {
     super('@sentry/instrumentation-http', VERSION, config);
+    this._propagationDecisionMap = new LRUMap<string, boolean>(100);
   }
 
   /** @inheritdoc */
@@ -232,18 +255,25 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
         // We need to access and reconstruct the request options object passed to `ignoreOutgoingRequests`
         // so that it matches what Otel instrumentation passes to `ignoreOutgoingRequestHook`.
         // @see https://github.com/open-telemetry/opentelemetry-js/blob/7293e69c1e55ca62e15d0724d22605e61bd58952/experimental/packages/opentelemetry-instrumentation-http/src/http.ts#L756-L789
-        const argsCopy = [...args];
+        const argsCopy = [...args] as RequestArgs;
 
-        const options = argsCopy.shift() as URL | http.RequestOptions | string;
+        const options = argsCopy[0];
+        const extraOptions = typeof argsCopy[1] === 'object' ? argsCopy[1] : undefined;
 
-        const extraOptions =
-          typeof argsCopy[0] === 'object' && (typeof options === 'string' || options instanceof URL)
-            ? (argsCopy.shift() as http.RequestOptions)
-            : undefined;
+        const { optionsParsed, origin, pathname } = getRequestInfo(instrumentation._diag, options, extraOptions);
+        const url = getAbsoluteUrl(origin, pathname);
 
-        const { optionsParsed } = getRequestInfo(instrumentation._diag, options, extraOptions);
+        // This will be undefined if there are no changed headers
+        const mergedHeaders = instrumentation.getConfig().propagateTraceInOutgoingRequests
+          ? getMergedHeadersForRequestOptions(url, optionsParsed, instrumentation._propagationDecisionMap)
+          : undefined;
 
-        const request = original.apply(this, args) as ReturnType<typeof http.request>;
+          // If we are not proapgating traces, we skip touching the args for the request at all
+        const request = mergedHeaders
+          ? (original.apply(this, getOutgoingRequestArgsWithHeaders(argsCopy, mergedHeaders)) as ReturnType<
+              typeof http.request
+            >)
+          : (original.apply(this, args) as ReturnType<typeof http.request>);
 
         request.prependListener('response', (response: http.IncomingMessage) => {
           const _breadcrumbs = instrumentation.getConfig().breadcrumbs;
@@ -515,3 +545,118 @@ const clientToRequestSessionAggregatesMap = new Map<
   Client,
   { [timestampRoundedToSeconds: string]: { exited: number; crashed: number; errored: number } }
 >();
+
+/**
+ * If there are any headers to be added for this request, this will return the full merged headers object.
+ * Else, it will return void.
+ */
+function getMergedHeadersForRequestOptions(
+  url: string,
+  options: RequestOptions,
+  propagationDecisionMap: LRUMap<string, boolean>,
+): void | http.OutgoingHttpHeaders {
+  // Manually add the trace headers, if it applies
+  // Note: We do not use `propagation.inject()` here, because our propagator relies on an active span
+  // Which we do not have in this case
+  const tracePropagationTargets = getClient()?.getOptions().tracePropagationTargets;
+  const addedHeaders = shouldPropagateTraceForUrl(url, tracePropagationTargets, propagationDecisionMap)
+    ? getTraceData()
+    : undefined;
+
+  if (!addedHeaders) {
+    return;
+  }
+
+  const headers = options.headers || {};
+
+  const { 'sentry-trace': sentryTrace, baggage } = addedHeaders;
+
+  // We do not want to overwrite existing header here, if it was already set
+  if (sentryTrace && !headers['sentry-trace']) {
+    headers['sentry-trace'] = sentryTrace;
+  }
+
+  // For baggage, we make sure to merge this into a possibly existing header
+  if (baggage) {
+    headers['baggage'] = mergeBaggageHeaders(headers['baggage'], baggage);
+  }
+
+  return headers;
+}
+
+function getAbsoluteUrl(origin: string, path: string = '/'): string {
+  try {
+    const url = new URL(path, origin);
+    return url.toString();
+  } catch {
+    // fallback: Construct it on our own
+    const url = `${origin}`;
+
+    if (url.endsWith('/') && path.startsWith('/')) {
+      return `${url}${path.slice(1)}`;
+    }
+
+    if (!url.endsWith('/') && !path.startsWith('/')) {
+      return `${url}/${path.slice(1)}`;
+    }
+
+    return `${url}${path}`;
+  }
+}
+
+function mergeBaggageHeaders(
+  existing: string | string[] | number | undefined,
+  baggage: string,
+): string | string[] | number | undefined {
+  if (!existing) {
+    return baggage;
+  }
+
+  const existingBaggageEntries = parseBaggageHeader(existing);
+  const newBaggageEntries = parseBaggageHeader(baggage);
+
+  if (!newBaggageEntries) {
+    return existing;
+  }
+
+  // Existing entries take precedence, ensuring order remains stable for minimal changes
+  const mergedBaggageEntries = { ...existingBaggageEntries };
+  Object.entries(newBaggageEntries).forEach(([key, value]) => {
+    if (!mergedBaggageEntries[key]) {
+      mergedBaggageEntries[key] = value;
+    }
+  });
+
+  return objectToBaggageHeader(mergedBaggageEntries);
+}
+
+function getOutgoingRequestArgsWithHeaders(originalArgs: RequestArgs, headers: http.OutgoingHttpHeaders): RequestArgs {
+  const argsCopy = [...originalArgs] as RequestArgs;
+
+  const arg1 = argsCopy[0];
+
+  // If the first argument is a string or URL, we need to merge the headers into the options object, which is optional
+  if (typeof arg1 === 'string' || arg1 instanceof URL) {
+    const arg2 = argsCopy[1];
+
+    // If the second argument is an object, we just overwrite the headers there
+    if (typeof arg2 === 'object') {
+      argsCopy[1] = {
+        ...arg2,
+        headers,
+      };
+      return argsCopy;
+    }
+
+    // Else, we need to insert a new object as second argument and insert the headers there
+    argsCopy.splice(1, 0, { headers });
+    return argsCopy;
+  }
+
+  // If the first argument is an object, we just overwrite the headers there
+  argsCopy[0] = {
+    ...arg1,
+    headers,
+  };
+  return argsCopy;
+}
