@@ -130,7 +130,6 @@ export {
   updateSpanName,
   zodErrorsIntegration,
   profiler,
-  supabaseIntegration,
   amqplibIntegration,
   vercelAIIntegration,
   logger,
