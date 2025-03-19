@@ -153,69 +153,49 @@ function getFinalConfigObject(
     }
   }
 
-  if (process.env.TURBOPACK) {
-    // TODO: Emit different warning when on Next.js version that supports instrumentation-client.ts
-    if (nextJsVersion) {
-      const { major, minor, patch, prerelease } = parseSemver(nextJsVersion);
-      const isSupportedVersion =
-        major !== undefined &&
-        minor !== undefined &&
-        patch !== undefined &&
-        (major > 15 ||
-          (major === 15 && minor > 3) ||
-          (major === 15 && minor === 3 && patch > 0 && prerelease === undefined));
-      const isSupportedCanary =
-        major !== undefined &&
-        minor !== undefined &&
-        patch !== undefined &&
-        prerelease !== undefined &&
-        major === 15 &&
-        minor === 3 &&
-        patch === 0 &&
-        prerelease.startsWith('canary.') &&
-        parseInt(prerelease.split('.')[1] || '', 10) >= 8;
-      const supportsClientInstrumentation = isSupportedCanary || isSupportedVersion;
+  if (nextJsVersion) {
+    const { major, minor, patch, prerelease } = parseSemver(nextJsVersion);
+    const isSupportedVersion =
+      major !== undefined &&
+      minor !== undefined &&
+      patch !== undefined &&
+      (major > 15 ||
+        (major === 15 && minor > 3) ||
+        (major === 15 && minor === 3 && patch > 0 && prerelease === undefined));
+    const isSupportedCanary =
+      major !== undefined &&
+      minor !== undefined &&
+      patch !== undefined &&
+      prerelease !== undefined &&
+      major === 15 &&
+      minor === 3 &&
+      patch === 0 &&
+      prerelease.startsWith('canary.') &&
+      parseInt(prerelease.split('.')[1] || '', 10) >= 8;
+    const supportsClientInstrumentation = isSupportedCanary || isSupportedVersion;
 
-      if (supportsClientInstrumentation) {
-        incomingUserNextConfigObject.experimental = {
-          clientInstrumentationHook: true,
-          ...incomingUserNextConfigObject.experimental,
-        };
-
-        if (process.env.NODE_ENV === 'production' && !process.env.SENTRY_SUPPRESS_TURBOPACK_WARNING) {
-          // eslint-disable-next-line no-console
-          console.warn(
-            '[@sentry/nextjs] WARNING: You are using the Sentry SDK with TurboPack (`next build --turbo`). Note that as TurboPack is still experimental for production builds, some of the Sentry SDK features like source maps will not work. Follow this issue for progress on Sentry + Turbopack: https://github.com/getsentry/sentry-javascript/issues/8105. (You can suppress this warning by setting SENTRY_SUPPRESS_TURBOPACK_WARNING=1 as environment variable)',
-          );
-        }
-      } else if (process.env.NODE_ENV === 'development') {
-        // eslint-disable-next-line no-console
-        console.warn(
-          `[@sentry/nextjs] WARNING: You are using the Sentry SDK with TurboPack (\`next dev --turbo\`). The Sentry SDK is compatible with TurboPack on Next.js version 15.3.0 or later. You are currently on ${nextJsVersion}. Please upgrade to a newer Next.js version to use the Sentry SDK with TurboPack. Note that the SDK will continue to work for non-TurboPack production builds. This warning is only about dev-mode.`,
-        );
-      } else if (process.env.NODE_ENV === 'production') {
-        // eslint-disable-next-line no-console
-        console.warn(
-          `[@sentry/nextjs] WARNING: You are using the Sentry SDK with TurboPack (\`next build --turbo\`). The Sentry SDK is compatible with TurboPack on Next.js version 15.3.0 or later. You are currently on ${nextJsVersion}. Please upgrade to a newer Next.js version to use the Sentry SDK with TurboPack. Note that as TurboPack is still experimental for production builds, some of the Sentry SDK features like source maps will not work. Follow this issue for progress on Sentry + Turbopack: https://github.com/getsentry/sentry-javascript/issues/8105.`,
-        );
-      }
-    } else {
-      if (
-        !(
-          incomingUserNextConfigObject.experimental &&
-          'clientInstrumentationHook' in incomingUserNextConfigObject.experimental
-        )
-      ) {
-        // eslint-disable-next-line no-console
-        console.log(
-          '[@sentry/nextjs] The Sentry SDK was not able to determine your Next.js version. If you are using Next.js versions earlier than 15.3.0, Next.js will probably show you a warning about the `experimental.clientInstrumentationHook` being set. To silence the warning, explicitly set the `experimental.clientInstrumentationHook` option in your `next.config.(js|mjs|ts)` to `undefined`.',
-        );
-      }
+    if (supportsClientInstrumentation) {
       incomingUserNextConfigObject.experimental = {
-        instrumentationHook: true,
+        clientInstrumentationHook: true,
         ...incomingUserNextConfigObject.experimental,
       };
     }
+  } else {
+    if (
+      !(
+        incomingUserNextConfigObject.experimental &&
+        'clientInstrumentationHook' in incomingUserNextConfigObject.experimental
+      )
+    ) {
+      // eslint-disable-next-line no-console
+      console.log(
+        '[@sentry/nextjs] The Sentry SDK was not able to determine your Next.js version. If you are using Next.js versions earlier than 15.3.0, Next.js will probably show you a warning about the `experimental.clientInstrumentationHook` being set. To silence the warning, explicitly set the `experimental.clientInstrumentationHook` option in your `next.config.(js|mjs|ts)` to `undefined`.',
+      );
+    }
+    incomingUserNextConfigObject.experimental = {
+      clientInstrumentationHook: true,
+      ...incomingUserNextConfigObject.experimental,
+    };
   }
 
   if (incomingUserNextConfigObject.experimental?.clientInstrumentationHook === false) {

@@ -339,6 +339,14 @@ export function constructWebpackConfigFunction(
       // be fixed by using `bind`, but this is way simpler.)
       const origEntryProperty = newConfig.entry;
       newConfig.entry = async () => addSentryToClientEntryProperty(origEntryProperty, buildContext);
+
+      const clientSentryConfigFileName = getClientSentryConfigFile(projectDir);
+      if (clientSentryConfigFileName?.includes('sentry.client.config')) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[@sentry/nextjs] DEPRECATION WARNING: It is recommended renaming your \`${clientSentryConfigFileName}\` file, or moving its content to \`instrumentation-client.ts\`. When using Turbopack \`${clientSentryConfigFileName}\` will no longer work. Read more about the \`instrumentation-client.ts\` file: https://nextjs.org/docs/app/api-reference/config/next-config-js/clientInstrumentationHook`,
+        );
+      }
     }
 
     // We don't want to do any webpack plugin stuff OR any source maps stuff in dev mode.
@@ -430,9 +438,17 @@ async function addSentryToClientEntryProperty(
     typeof currentEntryProperty === 'function' ? await currentEntryProperty() : { ...currentEntryProperty };
 
   const clientSentryConfigFileName = getClientSentryConfigFile(projectDir);
+  const instrumentationClientFileName = getInstrumentationClientFile(projectDir);
 
-  // we need to turn the filename into a path so webpack can find it
-  const filesToInject = clientSentryConfigFileName ? [`./${clientSentryConfigFileName}`] : [];
+  const filesToInject = [];
+  if (clientSentryConfigFileName) {
+    // we need to turn the filename into a path so webpack can find it
+    filesToInject.push(`./${clientSentryConfigFileName}`);
+  }
+  if (instrumentationClientFileName) {
+    // we need to turn the filename into a path so webpack can find it
+    filesToInject.push(`./${instrumentationClientFileName}`);
+  }
 
   // inject into all entry points which might contain user's code
   for (const entryPointName in newEntryProperty) {
@@ -526,18 +542,31 @@ function warnAboutDeprecatedConfigFiles(
 }
 
 /**
- * Searches for a `instrumentation-client.ts|js` or `sentry.client.config.ts|js` file and returns its file name if it finds one. (ts being prioritized)
+ * Searches for a `sentry.client.config.ts|js` file and returns its file name if it finds one. (ts being prioritized)
  *
  * @param projectDir The root directory of the project, where config files would be located
  */
 function getClientSentryConfigFile(projectDir: string): string | void {
+  const possibilities = ['sentry.client.config.ts', 'sentry.client.config.js'];
+
+  for (const filename of possibilities) {
+    if (fs.existsSync(path.resolve(projectDir, filename))) {
+      return filename;
+    }
+  }
+}
+
+/**
+ * Searches for a `instrumentation-client.ts|js` file and returns its file name if it finds one. (ts being prioritized)
+ *
+ * @param projectDir The root directory of the project, where config files would be located
+ */
+function getInstrumentationClientFile(projectDir: string): string | void {
   const possibilities = [
-    ['instrumentation-client.ts'],
+    ['src', 'instrumentation-client.js'],
     ['src', 'instrumentation-client.ts'],
     ['instrumentation-client.js'],
-    ['src', 'instrumentation-client.js'],
-    ['sentry.client.config.ts'],
-    ['sentry.client.config.js'],
+    ['instrumentation-client.ts'],
   ];
 
   for (const pathParts of possibilities) {
