@@ -51,17 +51,17 @@ export class SentryHttpInstrumentationBeforeOtel extends InstrumentationBase {
     return (
       original: (event: string, ...args: unknown[]) => boolean,
     ): ((this: unknown, event: string, ...args: unknown[]) => boolean) => {
-      return function incomingRequest(this: unknown, event: string, ...args: unknown[]): boolean {
+      return function incomingRequest(this: unknown, ...args: [event: string, ...args: unknown[]]): boolean {
         // Only traces request events
-        if (event !== 'request') {
-          return original.apply(this, [event, ...args]);
+        if (args[0] !== 'request') {
+          return original.apply(this, args);
         }
 
         const response = args[1] as http.OutgoingMessage;
 
         patchResponseToFlushOnServerlessPlatforms(response);
 
-        return original.apply(this, [event, ...args]);
+        return original.apply(this, args);
       };
     };
   }

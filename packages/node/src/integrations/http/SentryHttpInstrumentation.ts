@@ -153,7 +153,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
 
     return (
       original: (event: string, ...args: unknown[]) => boolean,
-    ): ((this: unknown, ...args: [event: string, ...args: unknown[]]) => boolean) => {
+    ): ((this: unknown, event: string, ...args: unknown[]) => boolean) => {
       return function incomingRequest(this: unknown, ...args: [event: string, ...args: unknown[]]): boolean {
         // Only traces request events
         if (args[0] !== 'request') {
