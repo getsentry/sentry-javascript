@@ -9,6 +9,17 @@ import { stealthWrap } from './utils';
 type Http = typeof http;
 type Https = typeof https;
 
+// The reason this "before OTEL" integration even exists is due to timing reasons. We need to be able to register a
+// `res.on('close')` handler **after** OTEL registers its own handler (which it uses to end spans), so that we can do
+// something (ie. flush) after OTEL has ended a span for a request. If you think about it like an onion:
+//
+// (Sentry after OTEL instrumentation
+//   (OTEL instrumentation
+//     (Sentry before OTEL instrumentation
+//       (orig HTTP request handler))))
+//
+// registering an instrumentation before OTEL allows us to do this for incoming requests.
+
 /**
  * A Sentry specific http instrumentation that is applied before the otel instrumentation.
  */
