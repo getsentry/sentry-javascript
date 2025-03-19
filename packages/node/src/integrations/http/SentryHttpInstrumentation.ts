@@ -205,6 +205,14 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const instrumentation = this;
 
+    const _breadcrumbs = instrumentation.getConfig().breadcrumbs;
+    const breadcrumbsEnabled = typeof _breadcrumbs === 'undefined' ? true : _breadcrumbs;
+
+    // Skip work here when breadcrumbs are disabled
+    if (!breadcrumbsEnabled) {
+      return original => original;
+    }
+
     return (original: (...args: unknown[]) => http.ClientRequest): ((...args: unknown[]) => http.ClientRequest) => {
       return function outgoingRequest(this: unknown, ...args: unknown[]): http.ClientRequest {
         instrumentation._diag.debug('http instrumentation for outgoing requests');
@@ -227,16 +235,13 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
         const request = original.apply(this, args) as ReturnType<typeof http.request>;
 
         request.prependListener('response', (response: http.IncomingMessage) => {
-          const _breadcrumbs = instrumentation.getConfig().breadcrumbs;
-          const breadCrumbsEnabled = typeof _breadcrumbs === 'undefined' ? true : _breadcrumbs;
-
           const _ignoreOutgoingRequests = instrumentation.getConfig().ignoreOutgoingRequests;
           const shouldCreateBreadcrumb =
             typeof _ignoreOutgoingRequests === 'function'
               ? !_ignoreOutgoingRequests(getRequestUrl(request), optionsParsed)
               : true;
 
-          if (breadCrumbsEnabled && shouldCreateBreadcrumb) {
+          if (shouldCreateBreadcrumb) {
             addRequestBreadcrumb(request, response);
           }
         });
