@@ -29,6 +29,34 @@ sentryTest('handles fetch network errors @firefox', async ({ getLocalTestUrl, pa
   });
 });
 
+
+sentryTest('handles fetch network errors on subdomains @firefox', async ({ getLocalTestUrl, page, browserName }) => {
+  const url = await getLocalTestUrl({ testDir: __dirname });
+  const reqPromise = waitForErrorRequest(page);
+  await page.goto(url);
+  await page.evaluate('networkErrorSubdomain()');
+
+  const eventData = envelopeRequestParser(await reqPromise);
+
+  const errorMap: Record<string, string> = {
+    chromium: 'Failed to fetch (sentry-test-external.io)',
+    webkit: 'Load failed (sentry-test-external.io)',
+    firefox: 'NetworkError when attempting to fetch resource. (sentry-test-external.io)',
+  };
+
+  const error = errorMap[browserName];
+
+  expect(eventData.exception?.values).toHaveLength(1);
+  expect(eventData.exception?.values?.[0]).toMatchObject({
+    type: 'TypeError',
+    value: error,
+    mechanism: {
+      handled: false,
+      type: 'onunhandledrejection',
+    },
+  });
+});
+
 sentryTest('handles fetch invalid header name errors @firefox', async ({ getLocalTestUrl, page, browserName }) => {
   const url = await getLocalTestUrl({ testDir: __dirname });
   const reqPromise = waitForErrorRequest(page);
