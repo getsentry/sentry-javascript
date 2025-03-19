@@ -268,12 +268,10 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
           ? getMergedHeadersForRequestOptions(url, optionsParsed, instrumentation._propagationDecisionMap)
           : undefined;
 
-          // If we are not proapgating traces, we skip touching the args for the request at all
-        const request = mergedHeaders
-          ? (original.apply(this, getOutgoingRequestArgsWithHeaders(argsCopy, mergedHeaders)) as ReturnType<
-              typeof http.request
-            >)
-          : (original.apply(this, args) as ReturnType<typeof http.request>);
+        // If we are not proapgating traces, we skip touching the args for the request at all
+        const request: ReturnType<typeof http.request> = mergedHeaders
+          ? original.apply(this, getOutgoingRequestArgsWithHeaders(argsCopy, mergedHeaders))
+          : original.apply(this, args);
 
         request.prependListener('response', (response: http.IncomingMessage) => {
           const _breadcrumbs = instrumentation.getConfig().breadcrumbs;
