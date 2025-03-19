@@ -1,7 +1,7 @@
 import { DiagLogLevel, context, diag, propagation, trace } from '@opentelemetry/api';
 import { AsyncLocalStorageContextManager } from '@opentelemetry/context-async-hooks';
 import { defaultResource, resourceFromAttributes } from '@opentelemetry/resources';
-import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
+import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import {
   ATTR_SERVICE_NAME,
   ATTR_SERVICE_VERSION,
@@ -52,9 +52,9 @@ export function initOtel(): void {
 }
 
 /** Just exported for tests. */
-export function setupOtel(client: TestClientInterface): NodeTracerProvider {
+export function setupOtel(client: TestClientInterface): BasicTracerProvider {
   // Create and configure NodeTracerProvider
-  const provider = new NodeTracerProvider({
+  const provider = new BasicTracerProvider({
     sampler: new SentrySampler(client),
     resource: defaultResource().merge(
       resourceFromAttributes({

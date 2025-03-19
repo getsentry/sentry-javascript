@@ -5446,7 +5446,7 @@
   resolved "https://registry.yarnpkg.com/@opentelemetry/api/-/api-1.9.0.tgz#d03eba68273dc0f7509e2a3d5cba21eae10379fe"
   integrity sha512-3giAOQvZiH5F9bMlMiv8+GSPMeqg0dbaeo58/0SlA9sxSqZhnUtxzX9/2FzyhS9sWQf5S0GJE0AKBrFqjpeYcg==
 
-"@opentelemetry/context-async-hooks@2.0.0", "@opentelemetry/context-async-hooks@^2.0.0":
+"@opentelemetry/context-async-hooks@^2.0.0":
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/@opentelemetry/context-async-hooks/-/context-async-hooks-2.0.0.tgz#c98a727238ca199cda943780acf6124af8d8cd80"
   integrity sha512-IEkJGzK1A9v3/EHjXh3s2IiFc6L4jfK+lNgKVgUjeUJQRRhnVFMIO3TAvKwonm9O1HebCuoOt98v8bZW7oVQHA==
@@ -5744,7 +5744,7 @@
     "@opentelemetry/core" "2.0.0"
     "@opentelemetry/semantic-conventions" "^1.29.0"
 
-"@opentelemetry/sdk-trace-base@2.0.0", "@opentelemetry/sdk-trace-base@^2.0.0":
+"@opentelemetry/sdk-trace-base@^2.0.0":
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/@opentelemetry/sdk-trace-base/-/sdk-trace-base-2.0.0.tgz#ebc06ea7537dea62f3882f8236c1234f4faf6b23"
   integrity sha512-qQnYdX+ZCkonM7tA5iU4fSRsVxbFGml8jbxOgipRGMFHKaXKHQ30js03rTobYjKjIfnOsZSbHKWF0/0v0OQGfw==
@@ -5752,15 +5752,6 @@
     "@opentelemetry/core" "2.0.0"
     "@opentelemetry/resources" "2.0.0"
     "@opentelemetry/semantic-conventions" "^1.29.0"
-
-"@opentelemetry/sdk-trace-node@^2.0.0":
-  version "2.0.0"
-  resolved "https://registry.yarnpkg.com/@opentelemetry/sdk-trace-node/-/sdk-trace-node-2.0.0.tgz#ef9f8ab77ccb41a9c9ff272f6bf4bb6999491f5b"
-  integrity sha512-omdilCZozUjQwY3uZRBwbaRMJ3p09l4t187Lsdf0dGMye9WKD4NGcpgZRvqhI1dwcH6og+YXQEtoO9Wx3ykilg==
-  dependencies:
-    "@opentelemetry/context-async-hooks" "2.0.0"
-    "@opentelemetry/core" "2.0.0"
-    "@opentelemetry/sdk-trace-base" "2.0.0"
 
 "@opentelemetry/semantic-conventions@1.28.0":
   version "1.28.0"
