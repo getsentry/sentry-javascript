@@ -117,7 +117,6 @@ export {
   startSession,
   startSpan,
   startSpanManual,
-  supabaseIntegration,
   tediousIntegration,
   trpcMiddleware,
   updateSpanName,
