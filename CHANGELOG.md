@@ -10,6 +10,13 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 9.7.0-alpha
+
+This is an alpha release that includes experimental features which are subject to breaking changes.
+
+- fix(node): Ensure httpIntegration propagates traces #15735
+- feat(browser): Attach top-level domain to "Failed to fetch" errors #15729
+
 ## 9.6.1
 
 - feat(deps): bump @prisma/instrumentation from 6.4.1 to 6.5.0 ([#15714](https://github.com/getsentry/sentry-javascript/pull/15714))
