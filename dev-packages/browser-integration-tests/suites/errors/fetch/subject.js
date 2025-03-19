@@ -5,6 +5,10 @@ window.networkError = () => {
   fetch('http://sentry-test-external.io/does-not-exist');
 };
 
+window.networkErrorSubdomain = () => {
+  fetch('http://subdomain.sentry-test-external.io/does-not-exist');
+};
+
 // Invalid header also produces TypeError
 window.invalidHeaderName = () => {
   fetch('http://sentry-test-external.io/invalid-header-name', { headers: { 'C ontent-Type': 'text/xml' } });
