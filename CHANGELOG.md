@@ -10,7 +10,7 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-## 9.7.0-alpha
+## 9.7.0-alpha.0
 
 This is an alpha release that includes experimental features which are subject to breaking changes.
 
