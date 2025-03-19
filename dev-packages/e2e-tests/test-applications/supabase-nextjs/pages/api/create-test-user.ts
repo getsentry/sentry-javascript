@@ -1,6 +1,6 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { supabase } from '@/lib/initSupabase';
+import { supabase } from '@/lib/initSupabaseAdmin';
 
 type Data = {
   data: any;
