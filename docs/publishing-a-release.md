@@ -20,9 +20,9 @@ _These steps are only relevant to Sentry employees when preparing and publishing
    [@getsentry/releases-approvers](https://github.com/orgs/getsentry/teams/release-approvers) to approve the release. a.
    Once the release is completed, a sync from `master` ->` develop` will be automatically triggered
 
-## Publishing a release for previous majors
+## Publishing a release for previous majors or alpha versions
 
-1. Run `yarn changelog` on a previous major branch (e.g. `v8`) and determine what version will be released (we use
+1. Run `yarn changelog` on a previous major branch (e.g. `v8` or `9.7.0-alpha`) and determine what version will be released (we use
    [semver](https://semver.org))
 2. Create a branch, e.g. `changelog-8.45.1`, off a previous major branch (e.g. `v8`)
 3. Update `CHANGELOG.md` to add an entry for the next release number and a list of changes since the
@@ -32,9 +32,9 @@ _These steps are only relevant to Sentry employees when preparing and publishing
    (as the commits already exist on this branch).
 6. Once the PR is merged, open the [Prepare Release workflow](https://github.com/getsentry/sentry-javascript/actions/workflows/release.yml) and
    fill in ![run-release-workflow.png](./assets/run-release-workflow.png)
-   1. The major branch you want to release for, e.g. `v8`
-   2. The version you want to release, e.g. `8.45.1`
-   3. The major branch to merge into, e.g. `v8`
+   1. The major branch you want to release for, e.g. `v8` or `9.7.0-alpha`
+   2. The version you want to release, e.g. `8.45.1` `9.7.0-alpha.1`
+   3. The major branch to merge into, e.g. `v8` `9.7.0-alpha`
 7. Run the release workflow
 
 ## Updating the Changelog
