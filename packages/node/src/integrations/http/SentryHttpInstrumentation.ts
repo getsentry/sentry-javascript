@@ -153,18 +153,18 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
 
     return (
       original: (event: string, ...args: unknown[]) => boolean,
-    ): ((this: unknown, event: string, ...args: unknown[]) => boolean) => {
-      return function incomingRequest(this: unknown, event: string, ...args: unknown[]): boolean {
+    ): ((this: unknown, ...args: [event: string, ...args: unknown[]]) => boolean) => {
+      return function incomingRequest(this: unknown, ...args: [event: string, ...args: unknown[]]): boolean {
         // Only traces request events
-        if (event !== 'request') {
-          return original.apply(this, [event, ...args]);
+        if (args[0] !== 'request') {
+          return original.apply(this, args);
         }
 
         instrumentation._diag.debug('http instrumentation for incoming request');
 
         const isolationScope = getIsolationScope().clone();
-        const request = args[0] as http.IncomingMessage;
-        const response = args[1] as http.OutgoingMessage;
+        const request = args[1] as http.IncomingMessage;
+        const response = args[2] as http.OutgoingMessage;
 
         const normalizedRequest = httpRequestToRequestData(request);
 
@@ -202,12 +202,12 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
 
           // If we don't want to extract the trace from the header, we can skip this
           if (!instrumentation.getConfig().extractIncomingTraceFromHeader) {
-            return original.apply(this, [event, ...args]);
+            return original.apply(this, args);
           }
 
           const ctx = propagation.extract(context.active(), normalizedRequest.headers);
           return context.with(ctx, () => {
-            return original.apply(this, [event, ...args]);
+            return original.apply(this, args);
           });
         });
       };
