@@ -22,8 +22,10 @@ export const PREVIOUS_TRACE_MAX_DURATION = 216_000;
 const PREVIOUS_TRACE_KEY = 'sentry_previous_trace';
 
 /**
- * Adds a previous_trace span link to @param startSpanOptions if the previous trace from @param previousTraceInfo is still valid.
- * Returns @param previousTraceInfo if the previous trace is still valid, otherwise returns undefined.
+ * Adds a previous_trace span link to the passed span if the passed
+ * previousTraceInfo is still valid.
+ *
+ * @returns the updated previous trace info (based on the current span/trace) or `undefined` the
  */
 export function addPreviousTraceSpanLink(
   previousTraceInfo: PreviousTraceInfo | undefined,
@@ -31,10 +33,27 @@ export function addPreviousTraceSpanLink(
 ): PreviousTraceInfo {
   const spanJson = spanToJSON(span);
 
-  if (previousTraceInfo && Date.now() / 1000 - previousTraceInfo.startTimestamp <= PREVIOUS_TRACE_MAX_DURATION) {
+  if (!previousTraceInfo) {
+    return {
+      spanContext: span.spanContext(),
+      startTimestamp: spanJson.start_timestamp,
+    };
+  }
+
+  if (previousTraceInfo.spanContext.traceId === spanJson.trace_id) {
+    // This means, we're still in the same trace so let's not update the previous trace info
+    // or add a link to the current span.
+    // Once we move away from the long-lived, route-based trace model, we can remove this cases
+    return previousTraceInfo;
+  }
+
+  if (Date.now() / 1000 - previousTraceInfo.startTimestamp <= PREVIOUS_TRACE_MAX_DURATION) {
     if (DEBUG_BUILD) {
       logger.info(
-        `Adding previous_trace ${previousTraceInfo.spanContext} to span ${{ op: spanJson.op, ...span.spanContext() }}`,
+        `Adding previous_trace ${previousTraceInfo.spanContext} link to span ${{
+          op: spanJson.op,
+          ...span.spanContext(),
+        }}`,
       );
     }
 
