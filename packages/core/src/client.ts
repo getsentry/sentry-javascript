@@ -773,8 +773,8 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    */
   public emit(hook: string, ...rest: unknown[]): void {
     const callbacks = this._hooks[hook];
-    for (const callback of callbacks || []) {
-      callback(...rest);
+    if (callbacks) {
+      callbacks.forEach(callback => callback(...rest));
     }
   }
 
