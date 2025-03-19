@@ -4,7 +4,6 @@ import { ROOT_CONTEXT } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import { TraceFlags, context, trace } from '@opentelemetry/api';
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
-import { Span as SpanClass } from '@opentelemetry/sdk-trace-base';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -32,6 +31,7 @@ import { getSpanKind } from '../src/utils/getSpanKind';
 import { makeTraceState } from '../src/utils/makeTraceState';
 import { spanHasAttributes, spanHasName } from '../src/utils/spanTypes';
 import { cleanupOtel, mockSdkInit } from './helpers/mockSdkInit';
+import { isSpan } from './helpers/isSpan';
 
 describe('trace', () => {
   beforeEach(() => {
@@ -537,7 +537,7 @@ describe('trace', () => {
           return span;
         });
 
-        expect(span).not.toBeInstanceOf(SpanClass);
+        expect(isSpan(span)).toEqual(false);
       });
 
       it('creates a span if there is a parent', () => {
@@ -549,7 +549,7 @@ describe('trace', () => {
           return span;
         });
 
-        expect(span).toBeInstanceOf(SpanClass);
+        expect(isSpan(span)).toEqual(true);
       });
     });
   });
@@ -829,7 +829,7 @@ describe('trace', () => {
       it('does not create a span if there is no parent', () => {
         const span = startInactiveSpan({ name: 'test span', onlyIfParent: true });
 
-        expect(span).not.toBeInstanceOf(SpanClass);
+        expect(isSpan(span)).toEqual(false);
       });
 
       it('creates a span if there is a parent', () => {
@@ -839,7 +839,7 @@ describe('trace', () => {
           return span;
         });
 
-        expect(span).toBeInstanceOf(SpanClass);
+        expect(isSpan(span)).toEqual(true);
       });
     });
 
@@ -1199,7 +1199,7 @@ describe('trace', () => {
           return span;
         });
 
-        expect(span).not.toBeInstanceOf(SpanClass);
+        expect(isSpan(span)).toEqual(false);
       });
 
       it('creates a span if there is a parent', () => {
@@ -1211,7 +1211,7 @@ describe('trace', () => {
           return span;
         });
 
-        expect(span).toBeInstanceOf(SpanClass);
+        expect(isSpan(span)).toEqual(true);
       });
     });
   });
