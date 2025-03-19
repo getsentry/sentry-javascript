@@ -193,17 +193,7 @@ function getFinalConfigObject(
       }
     }
   } else {
-    if (
-      !(
-        incomingUserNextConfigObject.experimental &&
-        'clientInstrumentationHook' in incomingUserNextConfigObject.experimental
-      )
-    ) {
-      // eslint-disable-next-line no-console
-      console.log(
-        '[@sentry/nextjs] The Sentry SDK was not able to determine your Next.js version. If you are using Next.js versions earlier than 15.3.0, Next.js will probably show you a warning about the `experimental.clientInstrumentationHook` being set. To silence the warning, explicitly set the `experimental.clientInstrumentationHook` option in your `next.config.(js|mjs|ts)` to `undefined`.',
-      );
-    }
+    // If we cannot detect a Next.js version for whatever reason, the sensible default is still to set the `experimental.instrumentationHook`.
     incomingUserNextConfigObject.experimental = {
       clientInstrumentationHook: true,
       ...incomingUserNextConfigObject.experimental,
