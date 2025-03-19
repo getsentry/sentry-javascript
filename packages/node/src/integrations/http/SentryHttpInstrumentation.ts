@@ -1,8 +1,5 @@
 /* eslint-disable max-lines */
-import type * as http from 'node:http';
-import type { IncomingMessage, RequestOptions } from 'node:http';
-import type * as https from 'node:https';
-import type { EventEmitter } from 'node:stream';
+import { context, propagation } from '@opentelemetry/api';
 import { VERSION } from '@opentelemetry/core';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
@@ -12,6 +9,7 @@ import {
   generateSpanId,
   getBreadcrumbLogLevelFromHttpStatusCode,
   getClient,
+  getCurrentScope,
   getIsolationScope,
   getSanitizedUrlString,
   httpRequestToRequestData,
@@ -19,23 +17,35 @@ import {
   parseUrl,
   stripUrlQueryAndFragment,
   withIsolationScope,
-  withScope,
 } from '@sentry/core';
+import type * as http from 'node:http';
+import type { IncomingMessage, RequestOptions } from 'node:http';
+import type * as https from 'node:https';
+import type { EventEmitter } from 'node:stream';
 import { DEBUG_BUILD } from '../../debug-build';
 import { getRequestUrl } from '../../utils/getRequestUrl';
-import { getRequestInfo } from './vendor/getRequestInfo';
 import { stealthWrap } from './utils';
+import { getRequestInfo } from './vendor/getRequestInfo';
 
 type Http = typeof http;
 type Https = typeof https;
 
-type SentryHttpInstrumentationOptions = InstrumentationConfig & {
+export type SentryHttpInstrumentationOptions = InstrumentationConfig & {
   /**
    * Whether breadcrumbs should be recorded for requests.
    *
    * @default `true`
    */
   breadcrumbs?: boolean;
+
+  /**
+   * Whether to extract the trace ID from the `sentry-trace` header for incoming requests.
+   * By default this is done by the HttpInstrumentation, but if that is not added (e.g. because tracing is disabled, ...)
+   * then this instrumentation can take over.
+   *
+   * @default `false`
+   */
+  extractIncomingTraceFromHeader?: boolean;
 
   /**
    * Do not capture breadcrumbs for outgoing HTTP requests to URLs where the given callback returns `true`.
@@ -185,9 +195,18 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
         }
 
         return withIsolationScope(isolationScope, () => {
-          return withScope(scope => {
-            // Set a new propagationSpanId for this request
-            scope.getPropagationContext().propagationSpanId = generateSpanId();
+          // Set a new propagationSpanId for this request
+          // We rely on the fact that `withIsolationScope()` will implicitly also fork the current scope
+          // This way we can save an "unnecessary" `withScope()` invocation
+          getCurrentScope().getPropagationContext().propagationSpanId = generateSpanId();
+
+          // If we don't want to extract the trace from the header, we can skip this
+          if (!instrumentation.getConfig().extractIncomingTraceFromHeader) {
+            return original.apply(this, [event, ...args]);
+          }
+
+          const ctx = propagation.extract(context.active(), normalizedRequest.headers);
+          return context.with(ctx, () => {
             return original.apply(this, [event, ...args]);
           });
         });
