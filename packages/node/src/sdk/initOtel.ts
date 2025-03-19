@@ -1,5 +1,5 @@
 import moduleModule from 'module';
-import { DiagLogLevel, diag } from '@opentelemetry/api';
+import { DiagLogLevel, context, diag, propagation, trace } from '@opentelemetry/api';
 import { Resource } from '@opentelemetry/resources';
 import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
@@ -127,11 +127,10 @@ export function setupOtel(client: NodeClient, options: AdditionalOpenTelemetryOp
     ],
   });
 
-  // Initialize the provider
-  provider.register({
-    propagator: new SentryPropagator(),
-    contextManager: new SentryContextManager(),
-  });
+  // Register as globals
+  trace.setGlobalTracerProvider(provider);
+  propagation.setGlobalPropagator(new SentryPropagator());
+  context.setGlobalContextManager(new SentryContextManager());
 
   return provider;
 }
