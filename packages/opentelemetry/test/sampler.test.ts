@@ -1,6 +1,6 @@
 import { SpanKind, context, trace } from '@opentelemetry/api';
 import { TraceState } from '@opentelemetry/core';
-import { SamplingDecision } from '@opentelemetry/sdk-trace-node';
+import { SamplingDecision } from '@opentelemetry/sdk-trace-base';
 import { ATTR_HTTP_REQUEST_METHOD } from '@opentelemetry/semantic-conventions';
 import { generateSpanId, generateTraceId } from '@sentry/core';
 import { describe, afterEach, vi, expect, it } from 'vitest';

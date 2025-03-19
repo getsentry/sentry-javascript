@@ -2,8 +2,8 @@
 import type { Context, Span, TraceState as TraceStateInterface } from '@opentelemetry/api';
 import { SpanKind, isSpanContextValid, trace } from '@opentelemetry/api';
 import { TraceState } from '@opentelemetry/core';
-import type { Sampler, SamplingResult } from '@opentelemetry/sdk-trace-node';
-import { SamplingDecision } from '@opentelemetry/sdk-trace-node';
+import type { Sampler, SamplingResult } from '@opentelemetry/sdk-trace-base';
+import { SamplingDecision } from '@opentelemetry/sdk-trace-base';
 import {
   ATTR_HTTP_REQUEST_METHOD,
   ATTR_URL_FULL,

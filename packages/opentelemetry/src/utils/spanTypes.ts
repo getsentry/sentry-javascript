@@ -1,5 +1,5 @@
 import type { SpanKind, SpanStatus } from '@opentelemetry/api';
-import type { ReadableSpan, TimedEvent } from '@opentelemetry/sdk-trace-node';
+import type { ReadableSpan, TimedEvent } from '@opentelemetry/sdk-trace-base';
 
 import type { AbstractSpan } from '../types';
 
@@ -52,9 +52,7 @@ export function spanHasName<SpanType extends AbstractSpan>(span: SpanType): span
  * This is necessary because the base `Span` type does not have a kind,
  * so in places where we are passed a generic span, we need to check if we want to access it.
  */
-export function spanHasParentId<SpanType extends AbstractSpan>(
-  span: SpanType,
-): span is SpanType {
+export function spanHasParentId<SpanType extends AbstractSpan>(span: SpanType): span is SpanType {
   const castSpan = span as ReadableSpan;
   return !!castSpan.parentSpanContext?.spanId;
 }

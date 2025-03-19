@@ -1,4 +1,4 @@
-import type { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
+import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import {
   Scope as ScopeClass,
   getCurrentScope,
@@ -16,7 +16,7 @@ import { setupOtel } from './helpers/initOtel';
 import { cleanupOtel } from './helpers/mockSdkInit';
 
 describe('asyncContextStrategy', () => {
-  let provider: NodeTracerProvider | undefined;
+  let provider: BasicTracerProvider | undefined;
 
   beforeEach(() => {
     getCurrentScope().clear();

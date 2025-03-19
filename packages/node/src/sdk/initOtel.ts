@@ -108,7 +108,7 @@ function getPreloadMethods(integrationNames?: string[]): ((() => void) & { id: s
 }
 
 /** Just exported for tests. */
-export function setupOtel(client: NodeClient, options: AdditionalOpenTelemetryOptions = {}): NodeTracerProvider {
+export function setupOtel(client: NodeClient, options: AdditionalOpenTelemetryOptions = {}): BasicTracerProvider {
   // Create and configure NodeTracerProvider
   const provider = new BasicTracerProvider({
     sampler: new SentrySampler(client),

@@ -1,4 +1,4 @@
-import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
+import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import { describe, afterEach, beforeEach, expect, it } from 'vitest';
 
 import { SentrySampler } from '../../src/sampler';
@@ -9,7 +9,7 @@ import { setupOtel } from '../helpers/initOtel';
 import { cleanupOtel } from '../helpers/mockSdkInit';
 
 describe('openTelemetrySetupCheck', () => {
-  let provider: NodeTracerProvider | undefined;
+  let provider: BasicTracerProvider | undefined;
 
   beforeEach(() => {
     cleanupOtel(provider);
@@ -34,7 +34,7 @@ describe('openTelemetrySetupCheck', () => {
 
   it('returns partial setup parts', () => {
     const client = new TestClient(getDefaultTestClientOptions());
-    provider = new NodeTracerProvider({
+    provider = new BasicTracerProvider({
       sampler: new SentrySampler(client),
       spanProcessors: [new SentrySpanProcessor()],
     });

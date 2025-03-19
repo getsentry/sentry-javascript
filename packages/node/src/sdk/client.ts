@@ -2,7 +2,7 @@ import * as os from 'node:os';
 import type { Tracer } from '@opentelemetry/api';
 import { trace } from '@opentelemetry/api';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
-import type { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
+import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import type { DynamicSamplingContext, Scope, ServerRuntimeClientOptions, TraceContext } from '@sentry/core';
 import { SDK_VERSION, ServerRuntimeClient, applySdkMetadata, logger } from '@sentry/core';
 import { getTraceContextForScope } from '@sentry/opentelemetry';
@@ -14,7 +14,7 @@ const DEFAULT_CLIENT_REPORT_FLUSH_INTERVAL_MS = 60_000; // 60s was chosen arbitr
 
 /** A client for using Sentry with Node & OpenTelemetry. */
 export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
-  public traceProvider: NodeTracerProvider | undefined;
+  public traceProvider: BasicTracerProvider | undefined;
   private _tracer: Tracer | undefined;
   private _clientReportInterval: NodeJS.Timeout | undefined;
   private _clientReportOnExitFlushListener: (() => void) | undefined;
