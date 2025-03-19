@@ -1,5 +1,5 @@
 import { ProxyTracerProvider, context, propagation, trace } from '@opentelemetry/api';
-import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
+import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import type { ClientOptions, Options } from '@sentry/core';
 import { getClient } from '@sentry/core';
 
@@ -7,8 +7,8 @@ import { getCurrentScope, getGlobalScope, getIsolationScope, flush } from '@sent
 import { setOpenTelemetryContextAsyncContextStrategy } from '../../src/asyncContextStrategy';
 import { clearOpenTelemetrySetupCheck } from '../../src/utils/setupCheck';
 import { init as initTestClient } from './TestClient';
+import type { TestClientInterface } from './TestClient';
 import { initOtel } from './initOtel';
-import type { OpenTelemetryClient } from '../../src/types';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 
@@ -35,7 +35,7 @@ export function mockSdkInit(options?: Partial<ClientOptions>) {
   init({ dsn: PUBLIC_DSN, ...options });
 }
 
-export async function cleanupOtel(_provider?: NodeTracerProvider): Promise<void> {
+export async function cleanupOtel(_provider?: BasicTracerProvider): Promise<void> {
   clearOpenTelemetrySetupCheck();
 
   const provider = getProvider(_provider);
@@ -53,14 +53,14 @@ export async function cleanupOtel(_provider?: NodeTracerProvider): Promise<void>
   await flush();
 }
 
-export function getProvider(_provider?: NodeTracerProvider): NodeTracerProvider | undefined {
-  let provider = _provider || getClient<OpenTelemetryClient>()?.traceProvider || trace.getTracerProvider();
+export function getProvider(_provider?: BasicTracerProvider): BasicTracerProvider | undefined {
+  let provider = _provider || getClient<TestClientInterface>()?.traceProvider || trace.getTracerProvider();
 
   if (provider instanceof ProxyTracerProvider) {
     provider = provider.getDelegate();
   }
 
-  if (!(provider instanceof NodeTracerProvider)) {
+  if (!(provider instanceof BasicTracerProvider)) {
     return undefined;
   }
 

@@ -1,7 +1,7 @@
 import type { SpanContext } from '@opentelemetry/api';
 import { ROOT_CONTEXT } from '@opentelemetry/api';
 import { TraceFlags, context, trace } from '@opentelemetry/api';
-import type { SpanProcessor } from '@opentelemetry/sdk-trace-node';
+import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
