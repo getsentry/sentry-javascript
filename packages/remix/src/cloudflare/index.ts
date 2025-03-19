@@ -3,8 +3,12 @@ export * from '@sentry/react';
 export { captureRemixErrorBoundaryError } from '../client/errors';
 export { withSentry } from '../client/performance';
 
-import { instrumentBuild as instrumentRemixBuild, makeWrappedCreateRequestHandler } from '../server/instrumentServer';
-export { makeWrappedCreateRequestHandler };
+import {
+  instrumentBuild as instrumentRemixBuild,
+  makeWrappedCreateRequestHandler,
+  sentryHandleError,
+} from '../server/instrumentServer';
+export { makeWrappedCreateRequestHandler, sentryHandleError };
 
 /**
  * Instruments a Remix build to capture errors and performance data.
