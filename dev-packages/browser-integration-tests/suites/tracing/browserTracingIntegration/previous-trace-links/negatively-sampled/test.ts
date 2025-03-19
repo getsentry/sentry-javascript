@@ -1,8 +1,8 @@
 import { expect } from '@playwright/test';
-import { SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE, type Event } from '@sentry/core';
+import { SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE } from '@sentry/core';
 
 import { sentryTest } from '../../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../../utils/helpers';
+import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../../utils/helpers';
 
 sentryTest('includes a span link to a previously negatively sampled span', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
@@ -11,26 +11,29 @@ sentryTest('includes a span link to a previously negatively sampled span', async
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  await page.goto(url);
+  await sentryTest.step('Initial pageload', async () => {
+    // No event to check for an event here because this pageload span is sampled negatively!
+    await page.goto(url);
+  });
 
-  const navigationRequest = await getFirstSentryEnvelopeRequest<Event>(page, `${url}#foo`);
+  await sentryTest.step('Navigation', async () => {
+    const navigationRequestPromise = waitForTransactionRequest(page, evt => evt.contexts?.trace?.op === 'navigation');
+    await page.goto(`${url}#foo`);
+    const navigationEvent = envelopeRequestParser(await navigationRequestPromise);
+    const navigationTraceContext = navigationEvent.contexts?.trace;
 
-  const navigationTraceContext = navigationRequest.contexts?.trace;
-
-  const navigationTraceId = navigationTraceContext?.trace_id;
-
-  expect(navigationTraceContext?.op).toBe('navigation');
-
-  expect(navigationTraceContext?.links).toEqual([
-    {
-      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-      span_id: expect.stringMatching(/[a-f0-9]{16}/),
-      sampled: false,
-      attributes: {
-        [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: 'previous_trace',
+    expect(navigationTraceContext?.op).toBe('navigation');
+    expect(navigationTraceContext?.links).toEqual([
+      {
+        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        sampled: false,
+        attributes: {
+          [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: 'previous_trace',
+        },
       },
-    },
-  ]);
+    ]);
 
-  expect(navigationTraceId).not.toEqual(navigationTraceContext?.links![0].trace_id);
+    expect(navigationTraceContext?.trace_id).not.toEqual(navigationTraceContext?.links![0].trace_id);
+  });
 });

@@ -1,8 +1,8 @@
 import { expect } from '@playwright/test';
-import { SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE, type Event } from '@sentry/core';
+import { SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE } from '@sentry/core';
 
 import { sentryTest } from '../../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../../utils/helpers';
+import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../../utils/helpers';
 
 sentryTest(
   "links back to previous trace's local root span if continued from meta tags",
@@ -13,22 +13,31 @@ sentryTest(
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 
-    const pageloadRequest = await getFirstSentryEnvelopeRequest<Event>(page, url);
-    const navigationRequest = await getFirstSentryEnvelopeRequest<Event>(page, `${url}#foo`);
-
-    const pageloadTraceContext = pageloadRequest.contexts?.trace;
-    const navigationTraceContext = navigationRequest.contexts?.trace;
-
     const metaTagTraceId = '12345678901234567890123456789012';
 
+    const pageloadTraceContext = await sentryTest.step('Initial pageload', async () => {
+      const pageloadRequestPromise = waitForTransactionRequest(page, evt => evt.contexts?.trace?.op === 'pageload');
+      await page.goto(url);
+      const pageloadRequest = envelopeRequestParser(await pageloadRequestPromise);
+
+      const traceContext = pageloadRequest.contexts?.trace;
+
+      // sanity check
+      expect(traceContext?.trace_id).toBe(metaTagTraceId);
+
+      expect(traceContext?.links).toBeUndefined();
+
+      return traceContext;
+    });
+
+    const navigationTraceContext = await sentryTest.step('Navigation', async () => {
+      const navigationRequestPromise = waitForTransactionRequest(page, evt => evt.contexts?.trace?.op === 'navigation');
+      await page.goto(`${url}#foo`);
+      const navigationRequest = envelopeRequestParser(await navigationRequestPromise);
+      return navigationRequest.contexts?.trace;
+    });
+
     const navigationTraceId = navigationTraceContext?.trace_id;
-
-    expect(pageloadTraceContext?.op).toBe('pageload');
-    expect(navigationTraceContext?.op).toBe('navigation');
-
-    // sanity check
-    expect(pageloadTraceContext?.trace_id).toBe(metaTagTraceId);
-    expect(pageloadTraceContext?.links).toBeUndefined();
 
     expect(navigationTraceContext?.links).toEqual([
       {

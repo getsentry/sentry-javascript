@@ -385,6 +385,22 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         });
       });
 
+      if (enablePreviousTrace) {
+        let previousTraceInfo = persistPreviousTrace ? getPreviousTraceFromSessionStorage() : undefined;
+
+        client.on('spanStart', span => {
+          if (getRootSpan(span) !== span) {
+            return;
+          }
+
+          previousTraceInfo = addPreviousTraceSpanLink(previousTraceInfo, span);
+
+          if (persistPreviousTrace) {
+            storePreviousTraceInSessionStorage(previousTraceInfo);
+          }
+        });
+      }
+
       if (WINDOW.location) {
         if (instrumentPageLoad) {
           const origin = browserPerformanceTimeOrigin();
@@ -449,22 +465,6 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         shouldCreateSpanForRequest,
         enableHTTPTimings,
       });
-
-      if (enablePreviousTrace) {
-        let previousTraceInfo = persistPreviousTrace ? getPreviousTraceFromSessionStorage() : undefined;
-
-        client.on('spanStart', span => {
-          if (getRootSpan(span) !== span) {
-            return;
-          }
-
-          previousTraceInfo = addPreviousTraceSpanLink(previousTraceInfo, span);
-
-          if (persistPreviousTrace) {
-            storePreviousTraceInSessionStorage(previousTraceInfo);
-          }
-        });
-      }
     },
   };
 }) satisfies IntegrationFn;

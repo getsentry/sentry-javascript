@@ -29,7 +29,15 @@ export function addPreviousTraceSpanLink(
   previousTraceInfo: PreviousTraceInfo | undefined,
   span: Span,
 ): PreviousTraceInfo {
+  const spanJson = spanToJSON(span);
+
   if (previousTraceInfo && Date.now() / 1000 - previousTraceInfo.startTimestamp <= PREVIOUS_TRACE_MAX_DURATION) {
+    if (DEBUG_BUILD) {
+      logger.info(
+        `Adding previous_trace ${previousTraceInfo.spanContext} to span ${{ op: spanJson.op, ...span.spanContext() }}`,
+      );
+    }
+
     span.addLink({
       context: previousTraceInfo.spanContext,
       attributes: {
@@ -61,7 +69,7 @@ export function storePreviousTraceInSessionStorage(previousTraceInfo: PreviousTr
  */
 export function getPreviousTraceFromSessionStorage(): PreviousTraceInfo | undefined {
   try {
-    const previousTraceInfo = WINDOW.sessionStorage.getItem(PREVIOUS_TRACE_KEY);
+    const previousTraceInfo = WINDOW.sessionStorage?.getItem(PREVIOUS_TRACE_KEY);
     // @ts-expect-error - intentionally risking JSON.parse throwing when previousTraceInfo is null to save bundle size
     return JSON.parse(previousTraceInfo);
   } catch (e) {
