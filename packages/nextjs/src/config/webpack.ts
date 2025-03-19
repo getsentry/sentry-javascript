@@ -526,21 +526,23 @@ function warnAboutDeprecatedConfigFiles(
 }
 
 /**
- * Searches for a `sentry.client.config.ts|js` file and returns its file name if it finds one. (ts being prioritized)
+ * Searches for a `instrumentation-client.ts|js` or `sentry.client.config.ts|js` file and returns its file name if it finds one. (ts being prioritized)
  *
  * @param projectDir The root directory of the project, where config files would be located
  */
-export function getClientSentryConfigFile(projectDir: string): string | void {
+function getClientSentryConfigFile(projectDir: string): string | void {
   const possibilities = [
-    'sentry.client.config.ts',
-    'sentry.client.config.js',
-    'instrumentation-client.ts',
-    'src/instrumentation-client.ts',
+    ['instrumentation-client.ts'],
+    ['src', 'instrumentation-client.ts'],
+    ['instrumentation-client.js'],
+    ['src', 'instrumentation-client.js'],
+    ['sentry.client.config.ts'],
+    ['sentry.client.config.js'],
   ];
 
-  for (const filename of possibilities) {
-    if (fs.existsSync(path.resolve(projectDir, filename))) {
-      return filename;
+  for (const pathParts of possibilities) {
+    if (fs.existsSync(path.resolve(projectDir, ...pathParts))) {
+      return path.join(...pathParts);
     }
   }
 }
