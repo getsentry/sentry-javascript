@@ -160,6 +160,9 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
         // If spans are not instrumented, it means the HttpInstrumentation has not been added
         // In that case, we want to handle incoming trace extraction ourselves
         extractIncomingTraceFromHeader: !instrumentSpans,
+        // If spans are not instrumented, it means the HttpInstrumentation has not been added
+        // In that case, we want to handle trace propagation ourselves
+        propagateTraceInOutgoingRequests: !instrumentSpans,
       });
     },
   };
