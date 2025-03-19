@@ -148,6 +148,7 @@ function _shouldDropEvent(event: Event, options: Partial<EventFiltersOptions>): 
       );
     return true;
   }
+
   return false;
 }
 
