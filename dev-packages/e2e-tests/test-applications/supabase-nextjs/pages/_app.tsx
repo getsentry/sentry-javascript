@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/initSupabase'
+import { supabase } from '@/lib/initSupabaseAnon'
 import { SessionContextProvider } from '@supabase/auth-helpers-react'
 import type { AppProps } from 'next/app'
 
