@@ -10,7 +10,7 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-## 9.7.0
+## 9.6.1
 
 - feat(deps): bump @prisma/instrumentation from 6.4.1 to 6.5.0 ([#15714](https://github.com/getsentry/sentry-javascript/pull/15714))
 - feat(deps): bump @sentry/cli from 2.42.2 to 2.42.3 ([#15711](https://github.com/getsentry/sentry-javascript/pull/15711))
