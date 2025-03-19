@@ -20,7 +20,7 @@ _These steps are only relevant to Sentry employees when preparing and publishing
    [@getsentry/releases-approvers](https://github.com/orgs/getsentry/teams/release-approvers) to approve the release. a.
    Once the release is completed, a sync from `master` ->` develop` will be automatically triggered
 
-## Publishing a release for previous majors or alpha versions
+## Publishing a release for previous majors or prerelease (alpha, beta) versions
 
 1. Run `yarn changelog` on a previous major branch (e.g. `v8` or `9.7.0-alpha`) and determine what version will be released (we use
    [semver](https://semver.org))
