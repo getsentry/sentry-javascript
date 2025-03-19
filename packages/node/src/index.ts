@@ -37,7 +37,6 @@ export { childProcessIntegration } from './integrations/childProcess';
 
 export { SentryContextManager } from './otel/contextManager';
 export { generateInstrumentOnce } from './otel/instrument';
-export { supabaseIntegration } from '@sentry-internal/supabase';
 
 export {
   init,

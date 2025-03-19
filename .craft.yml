@@ -32,10 +32,10 @@ targets:
   - name: npm
     id: '@sentry-internal/replay-canvas'
     includeNames: /^sentry-internal-replay-canvas-\d.*\.tgz$/
-  ## 1.8 Supabase package (browser and node)
+## 1.8 Supabase package (browser and node)
   - name: npm
-    id: '@sentry-internal/supabase'
-    includeNames: /^sentry-internal-supabase-\d.*\.tgz$/
+    id: '@sentry/supabase'
+    includeNames: /^sentry-supabase-\d.*\.tgz$/
 
   ## 2. Browser & Node SDKs
   - name: npm
