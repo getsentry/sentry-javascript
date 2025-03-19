@@ -12,6 +12,7 @@ import {
   generateSpanId,
   getBreadcrumbLogLevelFromHttpStatusCode,
   getClient,
+  getCurrentScope,
   getIsolationScope,
   getSanitizedUrlString,
   httpRequestToRequestData,
@@ -19,7 +20,6 @@ import {
   parseUrl,
   stripUrlQueryAndFragment,
   withIsolationScope,
-  withScope,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import { getRequestUrl } from '../../utils/getRequestUrl';
@@ -185,11 +185,9 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
         }
 
         return withIsolationScope(isolationScope, () => {
-          return withScope(scope => {
-            // Set a new propagationSpanId for this request
-            scope.getPropagationContext().propagationSpanId = generateSpanId();
-            return original.apply(this, [event, ...args]);
-          });
+          // Set a new propagationSpanId for this request
+          getCurrentScope().getPropagationContext().propagationSpanId = generateSpanId();
+          return original.apply(this, [event, ...args]);
         });
       };
     };
