@@ -40,7 +40,7 @@ export function logAttributeToSerializedLogAttribute(key: string, value: unknown
     default: {
       let stringValue = '';
       try {
-        stringValue = JSON.stringify(value);
+        stringValue = JSON.stringify(value) ?? '';
       } catch (_) {
         // Do nothing
       }
