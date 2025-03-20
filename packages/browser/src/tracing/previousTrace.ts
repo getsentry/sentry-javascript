@@ -19,7 +19,7 @@ export interface PreviousTraceInfo {
 export const PREVIOUS_TRACE_MAX_DURATION = 216_000;
 
 // session storage key
-const PREVIOUS_TRACE_KEY = 'sentry_previous_trace';
+export const PREVIOUS_TRACE_KEY = 'sentry_previous_trace';
 
 /**
  * Adds a previous_trace span link to the passed span if the passed
