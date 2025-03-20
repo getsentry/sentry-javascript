@@ -1,8 +1,5 @@
 /* eslint-disable max-lines */
-import type * as http from 'node:http';
-import type { IncomingMessage, RequestOptions } from 'node:http';
-import type * as https from 'node:https';
-import type { EventEmitter } from 'node:stream';
+import { context, propagation } from '@opentelemetry/api';
 import { VERSION } from '@opentelemetry/core';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
@@ -12,6 +9,7 @@ import {
   generateSpanId,
   getBreadcrumbLogLevelFromHttpStatusCode,
   getClient,
+  getCurrentScope,
   getIsolationScope,
   getSanitizedUrlString,
   httpRequestToRequestData,
@@ -19,22 +17,35 @@ import {
   parseUrl,
   stripUrlQueryAndFragment,
   withIsolationScope,
-  withScope,
 } from '@sentry/core';
+import type * as http from 'node:http';
+import type { IncomingMessage, RequestOptions } from 'node:http';
+import type * as https from 'node:https';
+import type { EventEmitter } from 'node:stream';
 import { DEBUG_BUILD } from '../../debug-build';
 import { getRequestUrl } from '../../utils/getRequestUrl';
+import { stealthWrap } from './utils';
 import { getRequestInfo } from './vendor/getRequestInfo';
 
 type Http = typeof http;
 type Https = typeof https;
 
-type SentryHttpInstrumentationOptions = InstrumentationConfig & {
+export type SentryHttpInstrumentationOptions = InstrumentationConfig & {
   /**
    * Whether breadcrumbs should be recorded for requests.
    *
    * @default `true`
    */
   breadcrumbs?: boolean;
+
+  /**
+   * Whether to extract the trace ID from the `sentry-trace` header for incoming requests.
+   * By default this is done by the HttpInstrumentation, but if that is not added (e.g. because tracing is disabled, ...)
+   * then this instrumentation can take over.
+   *
+   * @default `false`
+   */
+  extractIncomingTraceFromHeader?: boolean;
 
   /**
    * Do not capture breadcrumbs for outgoing HTTP requests to URLs where the given callback returns `true`.
@@ -143,17 +154,17 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
     return (
       original: (event: string, ...args: unknown[]) => boolean,
     ): ((this: unknown, event: string, ...args: unknown[]) => boolean) => {
-      return function incomingRequest(this: unknown, event: string, ...args: unknown[]): boolean {
+      return function incomingRequest(this: unknown, ...args: [event: string, ...args: unknown[]]): boolean {
         // Only traces request events
-        if (event !== 'request') {
-          return original.apply(this, [event, ...args]);
+        if (args[0] !== 'request') {
+          return original.apply(this, args);
         }
 
         instrumentation._diag.debug('http instrumentation for incoming request');
 
         const isolationScope = getIsolationScope().clone();
-        const request = args[0] as http.IncomingMessage;
-        const response = args[1] as http.OutgoingMessage;
+        const request = args[1] as http.IncomingMessage;
+        const response = args[2] as http.OutgoingMessage;
 
         const normalizedRequest = httpRequestToRequestData(request);
 
@@ -184,10 +195,19 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
         }
 
         return withIsolationScope(isolationScope, () => {
-          return withScope(scope => {
-            // Set a new propagationSpanId for this request
-            scope.getPropagationContext().propagationSpanId = generateSpanId();
-            return original.apply(this, [event, ...args]);
+          // Set a new propagationSpanId for this request
+          // We rely on the fact that `withIsolationScope()` will implicitly also fork the current scope
+          // This way we can save an "unnecessary" `withScope()` invocation
+          getCurrentScope().getPropagationContext().propagationSpanId = generateSpanId();
+
+          // If we don't want to extract the trace from the header, we can skip this
+          if (!instrumentation.getConfig().extractIncomingTraceFromHeader) {
+            return original.apply(this, args);
+          }
+
+          const ctx = propagation.extract(context.active(), normalizedRequest.headers);
+          return context.with(ctx, () => {
+            return original.apply(this, args);
           });
         });
       };
@@ -266,46 +286,6 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
       };
     };
   }
-}
-
-/**
- * This is a minimal version of `wrap` from shimmer:
- * https://github.com/othiym23/shimmer/blob/master/index.js
- *
- * In contrast to the original implementation, this version does not allow to unwrap,
- * and does not make it clear that the method is wrapped.
- * This is necessary because we want to wrap the http module with our own code,
- * while still allowing to use the HttpInstrumentation from OTEL.
- *
- * Without this, if we'd just use `wrap` from shimmer, the OTEL instrumentation would remove our wrapping,
- * because it only allows any module to be wrapped a single time.
- */
-function stealthWrap<Nodule extends object, FieldName extends keyof Nodule>(
-  nodule: Nodule,
-  name: FieldName,
-  wrapper: (original: Nodule[FieldName]) => Nodule[FieldName],
-): Nodule[FieldName] {
-  const original = nodule[name];
-  const wrapped = wrapper(original);
-
-  defineProperty(nodule, name, wrapped);
-  return wrapped;
-}
-
-// Sets a property on an object, preserving its enumerability.
-function defineProperty<Nodule extends object, FieldName extends keyof Nodule>(
-  obj: Nodule,
-  name: FieldName,
-  value: Nodule[FieldName],
-): void {
-  const enumerable = !!obj[name] && Object.prototype.propertyIsEnumerable.call(obj, name);
-
-  Object.defineProperty(obj, name, {
-    configurable: true,
-    enumerable: enumerable,
-    writable: true,
-    value: value,
-  });
 }
 
 /** Add a breadcrumb for outgoing requests. */
