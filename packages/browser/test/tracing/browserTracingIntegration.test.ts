@@ -29,7 +29,6 @@ import {
   spanIsSampled,
   spanToJSON,
   startInactiveSpan,
-  withScope,
 } from '@sentry/core';
 import type { Span, StartSpanOptions } from '@sentry/core';
 import { JSDOM } from 'jsdom';
