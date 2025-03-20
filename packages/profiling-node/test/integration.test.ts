@@ -645,7 +645,7 @@ describe('ProfilingIntegration', () => {
 
       const envelopeHeaders = transportSpy.mock.calls?.[0]?.[0]?.[1]?.[0]?.[0];
       expect(envelopeHeaders?.type).toBe('profile_chunk');
-      expect(envelopeHeaders?.platform).toBe('node');
+      expect(envelopeHeaders?.platform).toBe('javascript.node');
     });
 
     it('sets global profile context', async () => {
