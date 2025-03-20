@@ -341,9 +341,11 @@ export function constructWebpackConfigFunction(
       newConfig.entry = async () => addSentryToClientEntryProperty(origEntryProperty, buildContext);
     }
 
-    // We don't want to do any webpack plugin stuff OR any source maps stuff in dev mode.
+    const isStaticExport = userNextConfig?.output === 'export';
+
+    // We don't want to do any webpack plugin stuff OR any source maps stuff in dev mode or for the server on static-only builds.
     // Symbolication for dev-mode errors is done elsewhere.
-    if (!isDev) {
+    if (!isDev || !(isStaticExport && isServer)) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { sentryWebpackPlugin } = loadModule<{ sentryWebpackPlugin: any }>('@sentry/webpack-plugin', module) ?? {};
 
