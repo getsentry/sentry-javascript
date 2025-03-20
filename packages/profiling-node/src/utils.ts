@@ -400,7 +400,7 @@ export function createEventEnvelopeHeaders(
  * Creates a standalone profile_chunk envelope.
  */
 export function makeProfileChunkEnvelope(
-  platform: 'javascript.node',
+  platform: 'node',
   chunk: ProfileChunk,
   sdkInfo: SdkInfo | undefined,
   tunnel: string | undefined,

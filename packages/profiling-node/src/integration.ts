@@ -516,7 +516,7 @@ class ContinuousProfiler {
     const metadata = this._client.getSdkMetadata();
     const tunnel = this._client.getOptions().tunnel;
 
-    const envelope = makeProfileChunkEnvelope('javascript.node', chunk, metadata?.sdk, tunnel, dsn);
+    const envelope = makeProfileChunkEnvelope('node', chunk, metadata?.sdk, tunnel, dsn);
     transport.send(envelope).then(null, reason => {
       DEBUG_BUILD && logger.error('Error while sending profile chunk envelope:', reason);
     });
