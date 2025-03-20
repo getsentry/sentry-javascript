@@ -93,16 +93,6 @@ export class BrowserClient extends Client<BrowserClientOptions> {
       });
     }
 
-    if (opts._experiments?.enableLogs) {
-      setInterval(() => {
-        _INTERNAL_flushLogsBuffer(this);
-      }, 5000);
-
-      this.on('flush', () => {
-        _INTERNAL_flushLogsBuffer(this);
-      });
-    }
-
     if (this._options.sendDefaultPii) {
       this.on('postprocessEvent', addAutoIpAddressToUser);
       this.on('beforeSendSession', addAutoIpAddressToSession);

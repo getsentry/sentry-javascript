@@ -4,6 +4,6 @@
   "include": ["src/**/*", "test/loader.js"],
 
   "compilerOptions": {
-    "lib": ["DOM", "ES2018"],
+    "lib": ["DOM", "ES2020"]
   }
 }

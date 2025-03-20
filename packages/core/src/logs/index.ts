@@ -37,11 +37,18 @@ export function logAttributeToSerializedLogAttribute(key: string, value: unknown
         key,
         value: { stringValue: value },
       };
-    default:
+    default: {
+      let stringValue = '';
+      try {
+        stringValue = JSON.stringify(value);
+      } catch (_) {
+        // Do nothing
+      }
       return {
         key,
-        value: { stringValue: JSON.stringify(value) ?? '' },
+        value: { stringValue },
       };
+    }
   }
 }
 
@@ -55,11 +62,7 @@ export function logAttributeToSerializedLogAttribute(key: string, value: unknown
  * @experimental This method will experience breaking changes. This is not yet part of
  * the stable Sentry SDK API and can be changed or removed without warning.
  */
-export function captureLog(
-  { level, message, attributes, severityNumber }: Log,
-  scope = getCurrentScope(),
-  client = getClient(),
-): void {
+export function captureLog(log: Log, scope = getCurrentScope(), client = getClient()): void {
   if (!client) {
     DEBUG_BUILD && logger.warn('No client available to capture log.');
     return;
@@ -72,6 +75,8 @@ export function captureLog(
   }
 
   const [, traceContext] = _getTraceInfoFromScope(client, scope);
+
+  const { level, message, attributes, severityNumber } = log;
 
   const logAttributes = {
     ...attributes,

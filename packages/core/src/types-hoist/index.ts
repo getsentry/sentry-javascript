@@ -111,6 +111,7 @@ export type {
 } from './span';
 export type { SpanStatus } from './spanStatus';
 export type {
+  Log,
   LogSeverityLevel,
   SerializedOtelLog,
   SerializedLogAttribute,
