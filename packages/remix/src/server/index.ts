@@ -112,6 +112,7 @@ export {
   withMonitor,
   withScope,
   zodErrorsIntegration,
+  logger,
 } from '@sentry/node';
 
 // Keeping the `*` exports for backwards compatibility and types

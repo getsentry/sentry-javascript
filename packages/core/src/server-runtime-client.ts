@@ -4,8 +4,10 @@ import type {
   ClientOptions,
   Event,
   EventHint,
+  Log,
   MonitorConfig,
   ParameterizedString,
+  Primitive,
   SerializedCheckIn,
   SeverityLevel,
 } from './types-hoist';
@@ -20,6 +22,8 @@ import { eventFromMessage, eventFromUnknownInput } from './utils-hoist/eventbuil
 import { logger } from './utils-hoist/logger';
 import { uuid4 } from './utils-hoist/misc';
 import { resolvedSyncPromise } from './utils-hoist/syncpromise';
+import { _INTERNAL_flushLogsBuffer } from './logs';
+import { isPrimitive } from './utils-hoist';
 
 export interface ServerRuntimeClientOptions extends ClientOptions<BaseTransportOptions> {
   platform?: string;
@@ -33,6 +37,8 @@ export interface ServerRuntimeClientOptions extends ClientOptions<BaseTransportO
 export class ServerRuntimeClient<
   O extends ClientOptions & ServerRuntimeClientOptions = ServerRuntimeClientOptions,
 > extends Client<O> {
+  private _logWeight: number;
+
   /**
    * Creates a new Edge SDK instance.
    * @param options Configuration options for this SDK.
@@ -42,6 +48,26 @@ export class ServerRuntimeClient<
     registerSpanErrorInstrumentation();
 
     super(options);
+
+    this._logWeight = 0;
+
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const client = this;
+    this.on('flush', () => {
+      _INTERNAL_flushLogsBuffer(client);
+    });
+
+    this.on('beforeCaptureLog', log => {
+      client._logWeight += estimateLogSizeInBytes(log);
+
+      // We flush the logs buffer if it exceeds 0.8 MB
+      // The log weight is a rough estimate, so we flush way before
+      // the payload gets too big.
+      if (client._logWeight > 800_000) {
+        _INTERNAL_flushLogsBuffer(client);
+        client._logWeight = 0;
+      }
+    });
   }
 
   /**
@@ -195,4 +221,46 @@ function setCurrentRequestSessionErroredOrCrashed(eventHint?: EventHint): void {
       requestSession.status = 'crashed';
     }
   }
+}
+
+/**
+ * Estimate the size of a log in bytes.
+ *
+ * @param log - The log to estimate the size of.
+ * @returns The estimated size of the log in bytes.
+ */
+function estimateLogSizeInBytes(log: Log): number {
+  let weight = 0;
+
+  // Estimate byte size of 2 bytes per character. This is a rough estimate JS strings are stored as UTF-16.
+  if (log.message) {
+    weight += log.message.length * 2;
+  }
+
+  if (log.attributes) {
+    Object.values(log.attributes).forEach(value => {
+      if (Array.isArray(value)) {
+        weight += value.length * estimatePrimitiveSizeInBytes(value[0]);
+      } else if (isPrimitive(value)) {
+        weight += estimatePrimitiveSizeInBytes(value);
+      } else {
+        // For objects values, we estimate the size of the object as 100 bytes
+        weight += 100;
+      }
+    });
+  }
+
+  return weight;
+}
+
+function estimatePrimitiveSizeInBytes(value: Primitive): number {
+  if (typeof value === 'string') {
+    return value.length * 2;
+  } else if (typeof value === 'number') {
+    return 8;
+  } else if (typeof value === 'boolean') {
+    return 4;
+  }
+
+  return 0;
 }

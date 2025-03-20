@@ -127,6 +127,7 @@ export {
   withScope,
   zodErrorsIntegration,
   profiler,
+  logger,
 } from '@sentry/node';
 
 export { init } from './server/sdk';

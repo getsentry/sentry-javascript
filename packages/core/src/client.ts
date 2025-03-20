@@ -16,6 +16,7 @@ import type {
   FeedbackEvent,
   FetchBreadcrumbHint,
   Integration,
+  Log,
   MonitorConfig,
   Outcome,
   ParameterizedString,
@@ -622,6 +623,13 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public on(hook: 'close', callback: () => void): () => void;
 
   /**
+   * A hook that is called before a log is captured
+   *
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'beforeCaptureLog', callback: (log: Log) => void): () => void;
+
+  /**
    * Register a hook on this client.
    */
   public on(hook: string, callback: unknown): () => void {
@@ -767,6 +775,11 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * Emit a hook event for client close
    */
   public emit(hook: 'close'): void;
+
+  /**
+   * Emit a hook event for client before capturing a log
+   */
+  public emit(hook: 'beforeCaptureLog', log: Log): void;
 
   /**
    * Emit a hook that was previously registered via `on()`.

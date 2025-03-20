@@ -41,7 +41,7 @@ export interface Log {
   /**
    * Arbitrary structured data that stores information about the log - e.g., userId: 100.
    */
-  attributes?: Record<string, string | number | boolean | Array<string | number | boolean>>;
+  attributes?: Record<string, unknown>;
 
   /**
    * The severity number - generally higher severity are levels like 'error' and lower are levels like 'debug'
