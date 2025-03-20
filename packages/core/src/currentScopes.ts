@@ -4,7 +4,6 @@ import type { Client } from './client';
 import { Scope } from './scope';
 import type { TraceContext } from './types-hoist';
 import { generateSpanId } from './utils-hoist';
-import { dropUndefinedKeys } from './utils-hoist/object';
 
 /**
  * Get the currently active scope.
@@ -130,11 +129,14 @@ export function getTraceContextFromScope(scope: Scope): TraceContext {
 
   const { traceId, parentSpanId, propagationSpanId } = propagationContext;
 
-  const traceContext: TraceContext = dropUndefinedKeys({
+  const traceContext: TraceContext = {
     trace_id: traceId,
     span_id: propagationSpanId || generateSpanId(),
-    parent_span_id: parentSpanId,
-  });
+  };
+
+  if (parentSpanId) {
+    traceContext.parent_span_id = parentSpanId;
+  }
 
   return traceContext;
 }

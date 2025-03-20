@@ -259,7 +259,7 @@ export function createEventEnvelopeHeaders(
     ...(sdkInfo && { sdk: sdkInfo }),
     ...(!!tunnel && dsn && { dsn: dsnToString(dsn) }),
     ...(dynamicSamplingContext && {
-      trace: dropUndefinedKeys({ ...dynamicSamplingContext }),
+      trace: dynamicSamplingContext,
     }),
   };
 }
