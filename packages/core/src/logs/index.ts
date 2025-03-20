@@ -62,7 +62,7 @@ export function logAttributeToSerializedLogAttribute(key: string, value: unknown
  * @experimental This method will experience breaking changes. This is not yet part of
  * the stable Sentry SDK API and can be changed or removed without warning.
  */
-export function captureLog(log: Log, scope = getCurrentScope(), client = getClient()): void {
+export function _INTERNAL_captureLog(log: Log, client = getClient(), scope = getCurrentScope()): void {
   if (!client) {
     DEBUG_BUILD && logger.warn('No client available to capture log.');
     return;

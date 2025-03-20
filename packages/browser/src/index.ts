@@ -1,5 +1,9 @@
 export * from './exports';
 
+import * as logger from './log';
+
+export { logger };
+
 export { reportingObserverIntegration } from './integrations/reportingobserver';
 export { httpClientIntegration } from './integrations/httpclient';
 export { contextLinesIntegration } from './integrations/contextlines';
