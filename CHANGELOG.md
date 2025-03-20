@@ -10,6 +10,15 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 9.7.0
+
+- feat(core): Add `captureLog` method ([#15717](https://github.com/getsentry/sentry-javascript/pull/15717))
+- feat(remix/cloudflare): Export `sentryHandleError` ([#15726](https://github.com/getsentry/sentry-javascript/pull/15726))
+- fix(node): Always flush on Vercel before Lambda freeze ([#15602](https://github.com/getsentry/sentry-javascript/pull/15602))
+- fix(node): Ensure incoming traces are propagated without HttpInstrumentation ([#15732](https://github.com/getsentry/sentry-javascript/pull/15732))
+- fix(node): Use `fatal` level for unhandled rejections in `strict` mode ([#15720](https://github.com/getsentry/sentry-javascript/pull/15720))
+- fix(nuxt): Delete Nuxt server template injection ([#15749](https://github.com/getsentry/sentry-javascript/pull/15749))
+
 ## 9.6.1
 
 - feat(deps): bump @prisma/instrumentation from 6.4.1 to 6.5.0 ([#15714](https://github.com/getsentry/sentry-javascript/pull/15714))
