@@ -2,32 +2,24 @@ import type {
   BaseTransportOptions,
   CheckIn,
   ClientOptions,
-  DynamicSamplingContext,
   Event,
   EventHint,
   MonitorConfig,
   ParameterizedString,
   SerializedCheckIn,
   SeverityLevel,
-  TraceContext,
 } from './types-hoist';
 
 import { createCheckInEnvelope } from './checkin';
-import { Client } from './client';
-import { getIsolationScope, getTraceContextFromScope } from './currentScopes';
+import { Client, _getTraceInfoFromScope } from './client';
+import { getIsolationScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import type { Scope } from './scope';
-import {
-  getDynamicSamplingContextFromScope,
-  getDynamicSamplingContextFromSpan,
-  registerSpanErrorInstrumentation,
-} from './tracing';
+import { registerSpanErrorInstrumentation } from './tracing';
 import { eventFromMessage, eventFromUnknownInput } from './utils-hoist/eventbuilder';
 import { logger } from './utils-hoist/logger';
 import { uuid4 } from './utils-hoist/misc';
 import { resolvedSyncPromise } from './utils-hoist/syncpromise';
-import { _getSpanForScope } from './utils/spanOnScope';
-import { spanToTraceContext } from './utils/spanUtils';
 
 export interface ServerRuntimeClientOptions extends ClientOptions<BaseTransportOptions> {
   platform?: string;
@@ -136,7 +128,7 @@ export class ServerRuntimeClient<
       };
     }
 
-    const [dynamicSamplingContext, traceContext] = this._getTraceInfoFromScope(scope);
+    const [dynamicSamplingContext, traceContext] = _getTraceInfoFromScope(this, scope);
     if (traceContext) {
       serializedCheckIn.contexts = {
         trace: traceContext,
@@ -185,23 +177,6 @@ export class ServerRuntimeClient<
     }
 
     return super._prepareEvent(event, hint, currentScope, isolationScope);
-  }
-
-  /** Extract trace information from scope */
-  protected _getTraceInfoFromScope(
-    scope: Scope | undefined,
-  ): [dynamicSamplingContext: Partial<DynamicSamplingContext> | undefined, traceContext: TraceContext | undefined] {
-    if (!scope) {
-      return [undefined, undefined];
-    }
-
-    const span = _getSpanForScope(scope);
-
-    const traceContext = span ? spanToTraceContext(span) : getTraceContextFromScope(scope);
-    const dynamicSamplingContext = span
-      ? getDynamicSamplingContextFromSpan(span)
-      : getDynamicSamplingContextFromScope(this, scope);
-    return [dynamicSamplingContext, traceContext];
   }
 }
 
