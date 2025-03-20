@@ -107,7 +107,7 @@ function _mergeOptions(
 }
 
 function _shouldDropEvent(event: Event, options: Partial<EventFiltersOptions>): boolean {
-  if (event.type === undefined) {
+  if (!event.type) {
     // Filter errors
 
     if (options.ignoreInternal && _isSentryError(event)) {
