@@ -25,7 +25,8 @@ export const PREVIOUS_TRACE_KEY = 'sentry_previous_trace';
  * Adds a previous_trace span link to the passed span if the passed
  * previousTraceInfo is still valid.
  *
- * @returns the updated previous trace info (based on the current span/trace) or `undefined` the
+ * @returns the updated previous trace info (based on the current span/trace) to
+ * be used on the next call
  */
 export function addPreviousTraceSpanLink(
   previousTraceInfo: PreviousTraceInfo | undefined,
