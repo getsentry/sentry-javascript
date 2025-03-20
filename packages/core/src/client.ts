@@ -28,6 +28,7 @@ import type {
   SpanContextData,
   SpanJSON,
   StartSpanOptions,
+  TraceContext,
   TransactionEvent,
   Transport,
   TransportMakeRequestResponse,
@@ -44,7 +45,10 @@ import { afterSetupIntegrations } from './integration';
 import { setupIntegration, setupIntegrations } from './integration';
 import type { Scope } from './scope';
 import { updateSession } from './session';
-import { getDynamicSamplingContextFromScope } from './tracing/dynamicSamplingContext';
+import {
+  getDynamicSamplingContextFromScope,
+  getDynamicSamplingContextFromSpan,
+} from './tracing/dynamicSamplingContext';
 import { createClientReportEnvelope } from './utils-hoist/clientreport';
 import { dsnToString, makeDsn } from './utils-hoist/dsn';
 import { addItemToEnvelope, createAttachmentEnvelopeItem } from './utils-hoist/envelope';
@@ -57,8 +61,9 @@ import { getPossibleEventMessages } from './utils/eventUtils';
 import { merge } from './utils/merge';
 import { parseSampleRate } from './utils/parseSampleRate';
 import { prepareEvent } from './utils/prepareEvent';
-import { showSpanDropWarning } from './utils/spanUtils';
+import { showSpanDropWarning, spanToTraceContext } from './utils/spanUtils';
 import { convertSpanJsonToTransactionEvent, convertTransactionEventToSpanJson } from './utils/transactionEvent';
+import { _getSpanForScope } from './utils/spanOnScope';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
 const MISSING_RELEASE_FOR_SESSION_ERROR = 'Discarded session because of missing or non-string release';
@@ -617,7 +622,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public on(hook: 'close', callback: () => void): () => void;
 
   /**
-   * Register a hook oin this client.
+   * Register a hook on this client.
    */
   public on(hook: string, callback: unknown): () => void {
     const hooks = (this._hooks[hook] = this._hooks[hook] || []);
@@ -1255,4 +1260,21 @@ function isErrorEvent(event: Event): event is ErrorEvent {
 
 function isTransactionEvent(event: Event): event is TransactionEvent {
   return event.type === 'transaction';
+}
+
+/** Extract trace information from scope */
+export function _getTraceInfoFromScope(
+  client: Client,
+  scope: Scope | undefined,
+): [dynamicSamplingContext: Partial<DynamicSamplingContext> | undefined, traceContext: TraceContext | undefined] {
+  if (!scope) {
+    return [undefined, undefined];
+  }
+
+  const span = _getSpanForScope(scope);
+  const traceContext = span ? spanToTraceContext(span) : getTraceContextFromScope(scope);
+  const dynamicSamplingContext = span
+    ? getDynamicSamplingContextFromSpan(span)
+    : getDynamicSamplingContextFromScope(client, scope);
+  return [dynamicSamplingContext, traceContext];
 }
