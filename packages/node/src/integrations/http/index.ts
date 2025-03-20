@@ -154,7 +154,11 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
       // _after_ we apply OTEL instrumentation (e.g. for isolation scope handling and breadcrumbs).
 
       // This is Sentry-specific instrumentation that is applied _before_ any OTEL instrumentation.
-      instrumentSentryHttpBeforeOtel();
+      if (process.env.VERCEL) {
+        // Currently this instrumentation only does something when deployed on Vercel, so to save some overhead, we short circuit adding it here only for Vercel.
+        // If it's functionality is extended in the future, feel free to remove the if statement and this comment.
+        instrumentSentryHttpBeforeOtel();
+      }
 
       const instrumentSpans = _shouldInstrumentSpans(options, getClient<NodeClient>()?.getOptions());
 
