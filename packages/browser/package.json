@@ -43,8 +43,7 @@
     "@sentry-internal/feedback": "9.6.1",
     "@sentry-internal/replay": "9.6.1",
     "@sentry-internal/replay-canvas": "9.6.1",
-    "@sentry/core": "9.6.1",
-    "@sentry/supabase": "9.6.1"
+    "@sentry/core": "9.6.1"
   },
   "devDependencies": {
     "@sentry-internal/integration-shims": "9.6.1",
