@@ -3,7 +3,7 @@ import type { WrappedFunction } from '../types-hoist';
 
 import { htmlTreeAsString } from './browser';
 import { DEBUG_BUILD } from './debug-build';
-import { isElement, isError, isEvent, isInstanceOf, isPlainObject, isPrimitive } from './is';
+import { isElement, isError, isEvent, isInstanceOf, isPrimitive } from './is';
 import { logger } from './logger';
 import { truncate } from './string';
 
@@ -212,6 +212,11 @@ export function extractExceptionKeysForMessage(exception: Record<string, unknown
  * Attention: This function keeps circular references in the returned object.
  */
 export function dropUndefinedKeys<T>(inputValue: T): T {
+  // Early return for primitive values
+  if (inputValue === null || typeof inputValue !== 'object') {
+    return inputValue;
+  }
+
   // This map keeps track of what already visited nodes map to.
   // Our Set - based memoBuilder doesn't work here because we want to the output object to have the same circular
   // references as the input object.
@@ -222,58 +227,60 @@ export function dropUndefinedKeys<T>(inputValue: T): T {
 }
 
 function _dropUndefinedKeys<T>(inputValue: T, memoizationMap: Map<unknown, unknown>): T {
-  if (isPojo(inputValue)) {
-    // If this node has already been visited due to a circular reference, return the object it was mapped to in the new object
-    const memoVal = memoizationMap.get(inputValue);
-    if (memoVal !== undefined) {
-      return memoVal as T;
-    }
+  // Early return for primitive values
+  if (inputValue === null || typeof inputValue !== 'object') {
+    return inputValue;
+  }
 
-    const returnValue: { [key: string]: unknown } = {};
-    // Store the mapping of this value in case we visit it again, in case of circular data
+  // Check memo map first for all object types
+  const memoVal = memoizationMap.get(inputValue);
+  if (memoVal !== undefined) {
+    return memoVal as T;
+  }
+
+  // handle arrays
+  if (Array.isArray(inputValue)) {
+    const returnValue: unknown[] = [];
+    // Store mapping to handle circular references
     memoizationMap.set(inputValue, returnValue);
 
-    for (const key of Object.getOwnPropertyNames(inputValue)) {
-      if (typeof inputValue[key] !== 'undefined') {
-        returnValue[key] = _dropUndefinedKeys(inputValue[key], memoizationMap);
+    // Use direct indexing instead of forEach for better performance
+    // eslint-disable-next-line @typescript-eslint/prefer-for-of
+    for (let i = 0; i < inputValue.length; i++) {
+      returnValue.push(_dropUndefinedKeys(inputValue[i], memoizationMap));
+    }
+
+    return returnValue as unknown as T;
+  }
+
+  if (isPojo(inputValue)) {
+    const returnValue: { [key: string]: unknown } = {};
+    // Store mapping to handle circular references
+    memoizationMap.set(inputValue, returnValue);
+
+    const keys = Object.keys(inputValue);
+
+    // Use direct indexing instead of forEach for better performance
+    // eslint-disable-next-line @typescript-eslint/prefer-for-of
+    for (let i = 0; i < keys.length; i++) {
+      const key = keys[i] as string;
+      const val = inputValue[key];
+      if (val !== undefined) {
+        returnValue[key] = _dropUndefinedKeys(val, memoizationMap);
       }
     }
 
     return returnValue as T;
   }
 
-  if (Array.isArray(inputValue)) {
-    // If this node has already been visited due to a circular reference, return the array it was mapped to in the new object
-    const memoVal = memoizationMap.get(inputValue);
-    if (memoVal !== undefined) {
-      return memoVal as T;
-    }
-
-    const returnValue: unknown[] = [];
-    // Store the mapping of this value in case we visit it again, in case of circular data
-    memoizationMap.set(inputValue, returnValue);
-
-    inputValue.forEach((item: unknown) => {
-      returnValue.push(_dropUndefinedKeys(item, memoizationMap));
-    });
-
-    return returnValue as unknown as T;
-  }
-
+  // For other object types, return as is
   return inputValue;
 }
 
 function isPojo(input: unknown): input is Record<string, unknown> {
-  if (!isPlainObject(input)) {
-    return false;
-  }
-
-  try {
-    const name = (Object.getPrototypeOf(input) as { constructor: { name: string } }).constructor.name;
-    return !name || name === 'Object';
-  } catch {
-    return true;
-  }
+  // Plain objects have Object as constructor or no constructor
+  const constructor = (input as object).constructor;
+  return constructor === Object || constructor === undefined;
 }
 
 /**
