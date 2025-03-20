@@ -6,9 +6,8 @@ import {
   PREVIOUS_TRACE_KEY,
   PREVIOUS_TRACE_MAX_DURATION,
 } from '../../src/tracing/previousTrace';
-import { SentrySpan, spanToJSON, timestampInSeconds, type StartSpanOptions } from '@sentry/core';
+import { SentrySpan, spanToJSON, timestampInSeconds } from '@sentry/core';
 import { storePreviousTraceInSessionStorage } from '../../src/tracing/previousTrace';
-import { get } from 'http';
 
 describe('addPreviousTraceSpanLink', () => {
   it(`adds a previous_trace span link to startSpanOptions if the previous trace was created within ${PREVIOUS_TRACE_MAX_DURATION}s`, () => {
