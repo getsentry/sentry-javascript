@@ -150,3 +150,7 @@ export type {
   User,
   Span,
 } from '@sentry/core';
+
+import * as logger from './log';
+
+export { logger };
