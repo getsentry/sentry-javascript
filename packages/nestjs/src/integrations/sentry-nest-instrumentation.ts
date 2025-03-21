@@ -91,7 +91,7 @@ export class SentryNestInstrumentation extends InstrumentationBase {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _createWrapInjectable(): (original: any) => (options?: unknown) => (target: InjectableTarget) => any {
-    const SeenNestjsContextSet = new Set<MinimalNestJsExecutionContext>();
+    const SeenNestjsContextSet = new WeakSet<MinimalNestJsExecutionContext>();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return function wrapInjectable(original: any) {
       return function wrappedInjectable(options?: unknown) {
