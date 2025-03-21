@@ -21,7 +21,7 @@ import type {
 } from '../types-hoist';
 import type { SpanLink, SpanLinkJSON } from '../types-hoist/link';
 import { consoleSandbox } from '../utils-hoist/logger';
-import { addNonEnumerableProperty, dropUndefinedKeys } from '../utils-hoist/object';
+import { dropUndefinedKeys } from '../utils-hoist/object';
 import { generateSpanId } from '../utils-hoist/propagationContext';
 import { timestampInSeconds } from '../utils-hoist/time';
 import { generateSentryTraceHeader } from '../utils-hoist/tracing';
@@ -223,55 +223,54 @@ export function getStatusMessage(status: SpanStatus | undefined): string | undef
   return status.message || 'unknown_error';
 }
 
-const CHILD_SPANS_FIELD = '_sentryChildSpans';
-const ROOT_SPAN_FIELD = '_sentryRootSpan';
-
-type SpanWithPotentialChildren = Span & {
-  [CHILD_SPANS_FIELD]?: Set<Span>;
-  [ROOT_SPAN_FIELD]?: Span;
-};
+const SPAN_TO_ROOT_SPAN_MAP = new WeakMap<Span, Span>();
+const SPAN_TO_CHILD_SPANS_MAP = new WeakMap<Span, Set<Span>>();
 
 /**
  * Adds an opaque child span reference to a span.
  */
-export function addChildSpanToSpan(span: SpanWithPotentialChildren, childSpan: Span): void {
+export function addChildSpanToSpan(span: Span, childSpan: Span): void {
   // We store the root span reference on the child span
   // We need this for `getRootSpan()` to work
-  const rootSpan = span[ROOT_SPAN_FIELD] || span;
-  addNonEnumerableProperty(childSpan as SpanWithPotentialChildren, ROOT_SPAN_FIELD, rootSpan);
+  const rootSpan = SPAN_TO_ROOT_SPAN_MAP.get(span) || span;
+  SPAN_TO_ROOT_SPAN_MAP.set(childSpan, rootSpan);
 
   // We store a list of child spans on the parent span
   // We need this for `getSpanDescendants()` to work
-  if (span[CHILD_SPANS_FIELD]) {
-    span[CHILD_SPANS_FIELD].add(childSpan);
+  const childSpans = SPAN_TO_CHILD_SPANS_MAP.get(span);
+  if (childSpans) {
+    childSpans.add(childSpan);
   } else {
-    addNonEnumerableProperty(span, CHILD_SPANS_FIELD, new Set([childSpan]));
+    SPAN_TO_CHILD_SPANS_MAP.set(span, new Set([childSpan]));
   }
 }
 
 /** This is only used internally by Idle Spans. */
-export function removeChildSpanFromSpan(span: SpanWithPotentialChildren, childSpan: Span): void {
-  if (span[CHILD_SPANS_FIELD]) {
-    span[CHILD_SPANS_FIELD].delete(childSpan);
+export function removeChildSpanFromSpan(span: Span, childSpan: Span): void {
+  const childSpans = SPAN_TO_CHILD_SPANS_MAP.get(span);
+  if (childSpans) {
+    childSpans.delete(childSpan);
   }
 }
 
 /**
  * Returns an array of the given span and all of its descendants.
  */
-export function getSpanDescendants(span: SpanWithPotentialChildren): Span[] {
+export function getSpanDescendants(span: Span): Span[] {
   const resultSet = new Set<Span>();
 
-  function addSpanChildren(span: SpanWithPotentialChildren): void {
+  function addSpanChildren(span: Span): void {
     // This exit condition is required to not infinitely loop in case of a circular dependency.
     if (resultSet.has(span)) {
       return;
       // We want to ignore unsampled spans (e.g. non recording spans)
     } else if (spanIsSampled(span)) {
       resultSet.add(span);
-      const childSpans = span[CHILD_SPANS_FIELD] ? Array.from(span[CHILD_SPANS_FIELD]) : [];
-      for (const childSpan of childSpans) {
-        addSpanChildren(childSpan);
+      const childSpans = SPAN_TO_CHILD_SPANS_MAP.get(span);
+      if (childSpans) {
+        for (const childSpan of childSpans) {
+          addSpanChildren(childSpan);
+        }
       }
     }
   }
@@ -284,8 +283,8 @@ export function getSpanDescendants(span: SpanWithPotentialChildren): Span[] {
 /**
  * Returns the root span of a given span.
  */
-export function getRootSpan(span: SpanWithPotentialChildren): Span {
-  return span[ROOT_SPAN_FIELD] || span;
+export function getRootSpan(span: Span): Span {
+  return SPAN_TO_ROOT_SPAN_MAP.get(span) || span;
 }
 
 /**
