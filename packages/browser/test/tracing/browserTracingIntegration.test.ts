@@ -1028,7 +1028,7 @@ describe('browserTracingIntegration', () => {
     });
   });
 
-  describe('enablePreviousTrace', () => {
+  describe('linkPreviousTrace', () => {
     it('registers the previous trace listener on span start by default', () => {
       const client = new BrowserClient(
         getDefaultBrowserClientOptions({
