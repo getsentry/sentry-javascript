@@ -212,11 +212,6 @@ export function extractExceptionKeysForMessage(exception: Record<string, unknown
  * Attention: This function keeps circular references in the returned object.
  */
 export function dropUndefinedKeys<T>(inputValue: T): T {
-  // Early return for primitive values
-  if (inputValue === null || typeof inputValue !== 'object') {
-    return inputValue;
-  }
-
   // This map keeps track of what already visited nodes map to.
   // Our Set - based memoBuilder doesn't work here because we want to the output object to have the same circular
   // references as the input object.
