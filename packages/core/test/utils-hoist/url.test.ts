@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getSanitizedUrlString, parseUrl, stripUrlQueryAndFragment } from '../../src/utils-hoist/url';
+import { getSanitizedUrlString, parseStringToURL, parseUrl, stripUrlQueryAndFragment } from '../../src/utils-hoist/url';
 
 describe('stripQueryStringAndFragment', () => {
   const urlString = 'http://dogs.are.great:1231/yay/';
@@ -194,5 +194,22 @@ describe('parseUrl', () => {
     ],
   ])('returns parsed partial URL object for %s', (url: string, expected: any) => {
     expect(parseUrl(url)).toEqual(expected);
+  });
+});
+
+describe('parseStringToURL', () => {
+  it('returns undefined for invalid URLs', () => {
+    expect(parseStringToURL('invalid-url')).toBeUndefined();
+  });
+
+  it('returns a URL object for valid URLs', () => {
+    expect(parseStringToURL('https://somedomain.com')).toBeInstanceOf(URL);
+  });
+
+  it('does not throw an error if URl.canParse is not defined', () => {
+    const canParse = (URL as any).canParse;
+    delete (URL as any).canParse;
+    expect(parseStringToURL('https://somedomain.com')).toBeInstanceOf(URL);
+    (URL as any).canParse = canParse;
   });
 });
