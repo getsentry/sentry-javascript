@@ -16,7 +16,7 @@ export interface PreviousTraceInfo {
 }
 
 // 1h in seconds
-export const PREVIOUS_TRACE_MAX_DURATION = 216_000;
+export const PREVIOUS_TRACE_MAX_DURATION = 3600;
 
 // session storage key
 export const PREVIOUS_TRACE_KEY = 'sentry_previous_trace';
