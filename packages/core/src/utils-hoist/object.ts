@@ -239,11 +239,9 @@ function _dropUndefinedKeys<T>(inputValue: T, memoizationMap: Map<unknown, unkno
     // Store mapping to handle circular references
     memoizationMap.set(inputValue, returnValue);
 
-    // Use direct indexing instead of forEach for better performance
-    // eslint-disable-next-line @typescript-eslint/prefer-for-of
-    for (let i = 0; i < inputValue.length; i++) {
-      returnValue.push(_dropUndefinedKeys(inputValue[i], memoizationMap));
-    }
+    inputValue.forEach(value => {
+      returnValue.push(_dropUndefinedKeys(value, memoizationMap));
+    });
 
     return returnValue as unknown as T;
   }
@@ -255,15 +253,12 @@ function _dropUndefinedKeys<T>(inputValue: T, memoizationMap: Map<unknown, unkno
 
     const keys = Object.keys(inputValue);
 
-    // Use direct indexing instead of forEach for better performance
-    // eslint-disable-next-line @typescript-eslint/prefer-for-of
-    for (let i = 0; i < keys.length; i++) {
-      const key = keys[i] as string;
+    keys.forEach(key => {
       const val = inputValue[key];
       if (val !== undefined) {
         returnValue[key] = _dropUndefinedKeys(val, memoizationMap);
       }
-    }
+    });
 
     return returnValue as T;
   }
