@@ -18,7 +18,8 @@ import { ensureIsWrapped } from '../../utils/ensureIsWrapped';
  *
  * Based on https://github.com/fastify/fastify/blob/ce3811f5f718be278bbcd4392c615d64230065a6/types/request.d.ts
  */
-interface MinimalFastifyRequest {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+interface MinimalFastifyRequest extends Record<string, any> {
   method?: string;
   // since fastify@4.10.0
   routeOptions?: {
@@ -32,7 +33,8 @@ interface MinimalFastifyRequest {
  *
  * Based on https://github.com/fastify/fastify/blob/ce3811f5f718be278bbcd4392c615d64230065a6/types/reply.d.ts
  */
-interface MinimalFastifyReply {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+interface MinimalFastifyReply extends Record<string, any> {
   statusCode: number;
 }
 
@@ -40,6 +42,10 @@ interface MinimalFastifyReply {
 interface Fastify {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   register: (plugin: any) => void;
+  addHook: (hook: string, handler: (...params: unknown[]) => void) => void;
+}
+
+interface FastifyWithHooks extends Omit<Fastify, 'addHook'> {
   addHook(
     hook: 'onError',
     handler: (request: MinimalFastifyRequest, reply: MinimalFastifyReply, error: Error) => void,
@@ -52,8 +58,8 @@ interface FastifyHandlerOptions {
    * Callback method deciding whether error should be captured and sent to Sentry
    *
    * @param error Captured Fastify error
-   * @param request Fastify request
-   * @param reply Fastify reply
+   * @param request Fastify request (or any object containing at least method, routeOptions.url, and routerPath)
+   * @param reply Fastify reply (or any object containing at least statusCode)
    *
    * @example
    *
@@ -65,24 +71,21 @@ interface FastifyHandlerOptions {
    * });
    * ```
    *
-   * If using TypeScript, pass in the `FastifyRequest` and `FastifyReply` types to get type safety.
+   * If using TypeScript, you can cast the request and reply to get full type safety.
    *
    * ```typescript
    * import type { FastifyRequest, FastifyReply } from 'fastify';
    *
    * setupFastifyErrorHandler(app, {
-   *   shouldHandleError<FastifyRequest, FastifyReply>(error, request, reply) {
+   *   shouldHandleError(error, minimalRequest, minimalReply) {
+   *     const request = minimalRequest as FastifyRequest;
+   *     const reply = minimalReply as FastifyReply;
    *     return reply.statusCode >= 500;
    *   },
    * });
    * ```
    */
-  shouldHandleError<FastifyRequest extends MinimalFastifyRequest, FastifyReply extends MinimalFastifyReply>(
-    this: void,
-    error: Error,
-    request: FastifyRequest,
-    reply: FastifyReply,
-  ): boolean;
+  shouldHandleError: (error: Error, request: MinimalFastifyRequest, reply: MinimalFastifyReply) => boolean;
 }
 
 const INTEGRATION_NAME = 'Fastify';
@@ -127,11 +130,13 @@ export const fastifyIntegration = defineIntegration(_fastifyIntegration);
 
 /**
  * Default function to determine if an error should be sent to Sentry
- * Only sends 5xx errors by default
+ *
+ * 3xx and 4xx errors are not sent by default.
  */
 function defaultShouldHandleError(_error: Error, _request: MinimalFastifyRequest, reply: MinimalFastifyReply): boolean {
   const statusCode = reply.statusCode;
-  return statusCode >= 500;
+  // 3xx and 4xx errors are not sent by default.
+  return statusCode >= 500 || statusCode <= 299;
 }
 
 /**
@@ -158,7 +163,7 @@ export function setupFastifyErrorHandler(fastify: Fastify, options?: Partial<Fas
   const shouldHandleError = options?.shouldHandleError || defaultShouldHandleError;
 
   const plugin = Object.assign(
-    function (fastify: Fastify, _options: unknown, done: () => void): void {
+    function (fastify: FastifyWithHooks, _options: unknown, done: () => void): void {
       fastify.addHook('onError', async (request, reply, error) => {
         if (shouldHandleError(error, request, reply)) {
           captureException(error);
@@ -197,7 +202,6 @@ export function setupFastifyErrorHandler(fastify: Fastify, options?: Partial<Fas
     });
   }
 
-  // eslint-disable-next-line @typescript-eslint/unbound-method
   ensureIsWrapped(fastify.addHook, 'fastify');
 }
 
