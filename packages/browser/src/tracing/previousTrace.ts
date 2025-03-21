@@ -48,6 +48,11 @@ export function addPreviousTraceSpanLink(
     return previousTraceInfo;
   }
 
+  // Only add the link if the startTimeStamp of the previous trace's root span is within
+  // PREVIOUS_TRACE_MAX_DURATION (1h) of the current root span's startTimestamp
+  // This is done to
+  // - avoid adding links to "stale" traces
+  // - enable more efficient querying for previous/next traces in Sentry
   if (Date.now() / 1000 - previousTraceInfo.startTimestamp <= PREVIOUS_TRACE_MAX_DURATION) {
     if (DEBUG_BUILD) {
       logger.info(
