@@ -36,6 +36,7 @@ import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 import { registerBackgroundTabDetection } from './backgroundtab';
 import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './request';
+import type { PreviousTraceInfo } from './previousTrace';
 import {
   addPreviousTraceSpanLink,
   getPreviousTraceFromSessionStorage,
@@ -149,23 +150,27 @@ export interface BrowserTracingOptions {
   enableHTTPTimings: boolean;
 
   /**
-   * If enabled, previously started traces (e.g. pageload or navigation spans) will be linked
-   * to the current trace. This lets you navigate across traces within a user journey in the
-   * Sentry UI.
+   * Link the currently started trace to a previous trace (e.g. a prior pageload, navigation or
+   * manually started span). When enabled, this option will allow you to navigate between traces
+   * in the Sentry UI.
    *
-   * Set `persistPreviousTrace` to `true` to connect traces across hard page reloads.
+   * You can set this option to the following values:
    *
-   * @default true, this is turned on by default.
+   * - `'in-memory'`: The previous trace data will be stored in memory.
+   *   This is useful for single-page applications and enabled by default.
+   *
+   * - `'session-storage'`: The previous trace data will be stored in the `sessionStorage`.
+   *   This is useful for multi-page applications or static sites but it means that the
+   *   Sentry SDK writes to the browser's `sessionStorage`.
+   *
+   * - `'off'`: The previous trace data will not be stored or linked.
+   *
+   * Note that your `tracesSampleRate` or `tracesSampler` config significantly influences
+   * how often traces will be linked.
+   *
+   * @default 'in-memory' - see explanation above
    */
-  enablePreviousTrace?: boolean;
-
-  /**
-   * If set to true, the previous trace will be stored in `sessionStorage`, so that
-   * traces can be linked across hard page refreshes.
-   *
-   * @default false, by default, previous trace data is only stored in-memory.
-   */
-  persistPreviousTrace?: boolean;
+  linkPreviousTrace: 'in-memory' | 'session-storage' | 'off';
 
   /**
    * _experiments allows the user to send options to define how this integration works.
@@ -200,8 +205,7 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   enableLongTask: true,
   enableLongAnimationFrame: true,
   enableInp: true,
-  enablePreviousTrace: true,
-  persistPreviousTrace: false,
+  linkPreviousTrace: 'in-memory',
   _experiments: {},
   ...defaultRequestInstrumentationOptions,
 };
@@ -241,8 +245,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     enableHTTPTimings,
     instrumentPageLoad,
     instrumentNavigation,
-    enablePreviousTrace,
-    persistPreviousTrace,
+    linkPreviousTrace,
   } = {
     ...DEFAULT_BROWSER_TRACING_OPTIONS,
     ..._options,
@@ -385,18 +388,19 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         });
       });
 
-      if (enablePreviousTrace) {
-        let previousTraceInfo = persistPreviousTrace ? getPreviousTraceFromSessionStorage() : undefined;
+      if (linkPreviousTrace !== 'off') {
+        let inMemoryPreviousTraceInfo: PreviousTraceInfo | undefined = undefined;
 
         client.on('spanStart', span => {
           if (getRootSpan(span) !== span) {
             return;
           }
 
-          previousTraceInfo = addPreviousTraceSpanLink(previousTraceInfo, span);
-
-          if (persistPreviousTrace) {
-            storePreviousTraceInSessionStorage(previousTraceInfo);
+          if (linkPreviousTrace === 'session-storage') {
+            const updatedPreviousTraceInfo = addPreviousTraceSpanLink(getPreviousTraceFromSessionStorage(), span);
+            storePreviousTraceInSessionStorage(updatedPreviousTraceInfo);
+          } else {
+            inMemoryPreviousTraceInfo = addPreviousTraceSpanLink(inMemoryPreviousTraceInfo, span);
           }
         });
       }

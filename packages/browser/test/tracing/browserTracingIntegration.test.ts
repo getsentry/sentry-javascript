@@ -528,7 +528,7 @@ describe('browserTracingIntegration', () => {
             browserTracingIntegration({
               instrumentNavigation: false,
               // disabling previous trace b/c not relevant for this test
-              enablePreviousTrace: false,
+              linkPreviousTrace: 'off',
             }),
           ],
         }),
@@ -1072,7 +1072,7 @@ describe('browserTracingIntegration', () => {
             browserTracingIntegration({
               instrumentPageLoad: false,
               instrumentNavigation: false,
-              enablePreviousTrace: false,
+              linkPreviousTrace: 'off',
             }),
           ],
         }),
