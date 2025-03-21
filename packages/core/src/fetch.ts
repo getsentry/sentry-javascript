@@ -1,3 +1,4 @@
+/* eslint-disable complexity */
 import { getClient } from './currentScopes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from './semanticAttributes';
 import { SPAN_STATUS_ERROR, setHttpStatus, startInactiveSpan } from './tracing';
@@ -5,7 +6,7 @@ import { SentryNonRecordingSpan } from './tracing/sentryNonRecordingSpan';
 import type { FetchBreadcrumbHint, HandlerDataFetch, Span, SpanOrigin } from './types-hoist';
 import { SENTRY_BAGGAGE_KEY_PREFIX } from './utils-hoist/baggage';
 import { isInstanceOf } from './utils-hoist/is';
-import { parseUrl, stripUrlQueryAndFragment } from './utils-hoist/url';
+import { parseStringToURL, stripUrlQueryAndFragment } from './utils-hoist/url';
 import { hasSpansEnabled } from './utils/hasSpansEnabled';
 import { getActiveSpan } from './utils/spanUtils';
 import { getTraceData } from './utils/traceData';
@@ -53,8 +54,20 @@ export function instrumentFetchRequest(
     return undefined;
   }
 
-  const fullUrl = getFullURL(url);
-  const parsedUrl = fullUrl ? parseUrl(fullUrl) : parseUrl(url);
+  // Curious about `thismessage:/`? See: https://www.rfc-editor.org/rfc/rfc2557.html
+  //  > When the methods above do not yield an absolute URI, a base URL
+  //  > of "thismessage:/" MUST be employed. This base URL has been
+  //  > defined for the sole purpose of resolving relative references
+  //  > within a multipart/related structure when no other base URI is
+  //  > specified.
+  //
+  // We need to provide a base URL to `parseStringToURL` because the fetch API gives us a
+  // relative URL sometimes.
+  //
+  // This is the only case where we need to provide a base URL to `parseStringToURL`
+  // because the relative URL is not valid on its own.
+  const parsedUrl = url.startsWith('/') ? parseStringToURL(url, 'thismessage:/') : parseStringToURL(url);
+  const fullUrl = url.startsWith('/') ? undefined : parsedUrl?.href;
 
   const hasParent = !!getActiveSpan();
 
@@ -66,12 +79,13 @@ export function instrumentFetchRequest(
             url,
             type: 'fetch',
             'http.method': method,
-            'http.url': fullUrl,
-            'server.address': parsedUrl?.host,
+            'http.url': parsedUrl?.href,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
-            ...(parsedUrl?.search && { 'http.query': parsedUrl?.search }),
-            ...(parsedUrl?.hash && { 'http.fragment': parsedUrl?.hash }),
+            ...(fullUrl && { 'http.url': fullUrl }),
+            ...(fullUrl && parsedUrl?.host && { 'server.address': parsedUrl.host }),
+            ...(parsedUrl?.search && { 'http.query': parsedUrl.search }),
+            ...(parsedUrl?.hash && { 'http.fragment': parsedUrl.hash }),
           },
         })
       : new SentryNonRecordingSpan();
@@ -212,15 +226,6 @@ function _addTracingHeadersToFetchRequest(
       'sentry-trace': sentryTrace,
       baggage: newBaggageHeaders.length > 0 ? newBaggageHeaders.join(',') : undefined,
     };
-  }
-}
-
-function getFullURL(url: string): string | undefined {
-  try {
-    const parsed = new URL(url);
-    return parsed.href;
-  } catch {
-    return undefined;
   }
 }
 
