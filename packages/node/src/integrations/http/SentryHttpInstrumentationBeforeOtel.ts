@@ -70,46 +70,50 @@ export class SentryHttpInstrumentationBeforeOtel extends InstrumentationBase {
 function patchResponseToFlushOnServerlessPlatforms(res: http.OutgoingMessage): void {
   // Freely extend this function with other platforms if necessary
   if (process.env.VERCEL) {
-    let markOnEndDone = (): void => undefined;
-    const onEndDonePromise = new Promise<void>(res => {
-      markOnEndDone = res;
-    });
+    // In some cases res.end does not seem to be defined leading to errors if passed to Proxy
+    // https://github.com/getsentry/sentry-javascript/issues/15759
+    if (typeof res.end === 'function') {
+      let markOnEndDone = (): void => undefined;
+      const onEndDonePromise = new Promise<void>(res => {
+        markOnEndDone = res;
+      });
 
-    res.on('close', () => {
-      markOnEndDone();
-    });
+      res.on('close', () => {
+        markOnEndDone();
+      });
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    res.end = new Proxy(res.end, {
-      apply(target, thisArg, argArray) {
-        vercelWaitUntil(
-          new Promise<void>(finishWaitUntil => {
-            // Define a timeout that unblocks the lambda just to be safe so we're not indefinitely keeping it alive, exploding server bills
-            const timeout = setTimeout(() => {
-              finishWaitUntil();
-            }, 2000);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      res.end = new Proxy(res.end, {
+        apply(target, thisArg, argArray) {
+          vercelWaitUntil(
+            new Promise<void>(finishWaitUntil => {
+              // Define a timeout that unblocks the lambda just to be safe so we're not indefinitely keeping it alive, exploding server bills
+              const timeout = setTimeout(() => {
+                finishWaitUntil();
+              }, 2000);
 
-            onEndDonePromise
-              .then(() => {
-                DEBUG_BUILD && logger.log('Flushing events before Vercel Lambda freeze');
-                return flush(2000);
-              })
-              .then(
-                () => {
-                  clearTimeout(timeout);
-                  finishWaitUntil();
-                },
-                e => {
-                  clearTimeout(timeout);
-                  DEBUG_BUILD && logger.log('Error while flushing events for Vercel:\n', e);
-                  finishWaitUntil();
-                },
-              );
-          }),
-        );
+              onEndDonePromise
+                .then(() => {
+                  DEBUG_BUILD && logger.log('Flushing events before Vercel Lambda freeze');
+                  return flush(2000);
+                })
+                .then(
+                  () => {
+                    clearTimeout(timeout);
+                    finishWaitUntil();
+                  },
+                  e => {
+                    clearTimeout(timeout);
+                    DEBUG_BUILD && logger.log('Error while flushing events for Vercel:\n', e);
+                    finishWaitUntil();
+                  },
+                );
+            }),
+          );
 
-        return target.apply(thisArg, argArray);
-      },
-    });
+          return target.apply(thisArg, argArray);
+        },
+      });
+    }
   }
 }
