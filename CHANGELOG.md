@@ -10,6 +10,15 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 9.8.0
+
+- feat(node): Implement new continuous profiling API spec ([#15635](https://github.com/getsentry/sentry-javascript/pull/15635))
+- feat(profiling): Add platform to chunk envelope ([#15758](https://github.com/getsentry/sentry-javascript/pull/15758))
+- feat(react): Export captureReactException method ([#15746](https://github.com/getsentry/sentry-javascript/pull/15746))
+- fix(node): Check for `res.end` before passing to Proxy ([#15776](https://github.com/getsentry/sentry-javascript/pull/15776))
+- perf(core): Add short-circuits to `eventFilters` integration ([#15752](https://github.com/getsentry/sentry-javascript/pull/15752))
+- perf(node): Short circuit flushing on Vercel only for Vercel ([#15734](https://github.com/getsentry/sentry-javascript/pull/15734))
+
 ## 9.7.0
 
 - feat(core): Add `captureLog` method ([#15717](https://github.com/getsentry/sentry-javascript/pull/15717))

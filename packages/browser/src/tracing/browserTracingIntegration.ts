@@ -24,6 +24,7 @@ import {
   getDynamicSamplingContextFromSpan,
   getIsolationScope,
   getLocationHref,
+  getRootSpan,
   logger,
   propagationContextFromHeaders,
   registerSpanErrorInstrumentation,
@@ -35,6 +36,12 @@ import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 import { registerBackgroundTabDetection } from './backgroundtab';
 import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './request';
+import type { PreviousTraceInfo } from './previousTrace';
+import {
+  addPreviousTraceSpanLink,
+  getPreviousTraceFromSessionStorage,
+  storePreviousTraceInSessionStorage,
+} from './previousTrace';
 
 export const BROWSER_TRACING_INTEGRATION_ID = 'BrowserTracing';
 
@@ -143,6 +150,29 @@ export interface BrowserTracingOptions {
   enableHTTPTimings: boolean;
 
   /**
+   * Link the currently started trace to a previous trace (e.g. a prior pageload, navigation or
+   * manually started span). When enabled, this option will allow you to navigate between traces
+   * in the Sentry UI.
+   *
+   * You can set this option to the following values:
+   *
+   * - `'in-memory'`: The previous trace data will be stored in memory.
+   *   This is useful for single-page applications and enabled by default.
+   *
+   * - `'session-storage'`: The previous trace data will be stored in the `sessionStorage`.
+   *   This is useful for multi-page applications or static sites but it means that the
+   *   Sentry SDK writes to the browser's `sessionStorage`.
+   *
+   * - `'off'`: The previous trace data will not be stored or linked.
+   *
+   * Note that your `tracesSampleRate` or `tracesSampler` config significantly influences
+   * how often traces will be linked.
+   *
+   * @default 'in-memory' - see explanation above
+   */
+  linkPreviousTrace: 'in-memory' | 'session-storage' | 'off';
+
+  /**
    * _experiments allows the user to send options to define how this integration works.
    *
    * Default: undefined
@@ -175,6 +205,7 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   enableLongTask: true,
   enableLongAnimationFrame: true,
   enableInp: true,
+  linkPreviousTrace: 'in-memory',
   _experiments: {},
   ...defaultRequestInstrumentationOptions,
 };
@@ -214,6 +245,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     enableHTTPTimings,
     instrumentPageLoad,
     instrumentNavigation,
+    linkPreviousTrace,
   } = {
     ...DEFAULT_BROWSER_TRACING_OPTIONS,
     ..._options,
@@ -355,6 +387,23 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
           ...startSpanOptions,
         });
       });
+
+      if (linkPreviousTrace !== 'off') {
+        let inMemoryPreviousTraceInfo: PreviousTraceInfo | undefined = undefined;
+
+        client.on('spanStart', span => {
+          if (getRootSpan(span) !== span) {
+            return;
+          }
+
+          if (linkPreviousTrace === 'session-storage') {
+            const updatedPreviousTraceInfo = addPreviousTraceSpanLink(getPreviousTraceFromSessionStorage(), span);
+            storePreviousTraceInSessionStorage(updatedPreviousTraceInfo);
+          } else {
+            inMemoryPreviousTraceInfo = addPreviousTraceSpanLink(inMemoryPreviousTraceInfo, span);
+          }
+        });
+      }
 
       if (WINDOW.location) {
         if (instrumentPageLoad) {
