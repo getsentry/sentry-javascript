@@ -8,7 +8,7 @@ type PartialURL = {
 };
 
 interface URLwithCanParse extends URL {
-  canParse: (url: string) => boolean;
+  canParse: (url: string, base?: string | URL | undefined) => boolean;
 }
 
 /**
@@ -17,16 +17,16 @@ interface URLwithCanParse extends URL {
  * @param url - The URL to parse
  * @returns The parsed URL object or undefined if the URL is invalid
  */
-export function parseStringToURL(url: string): URL | undefined {
+export function parseStringToURL(url: string, base?: string | URL | undefined): URL | undefined {
   try {
+    // Use `canParse` to short-circuit the URL constructor if it's not a valid URL
+    // This is faster than trying to construct the URL and catching the error
     // Node 20+, Chrome 120+, Firefox 115+, Safari 17+
-    if ('canParse' in URL) {
-      // Use `canParse` to short-circuit the URL constructor if it's not a valid URL
-      // This is faster than trying to construct the URL and catching the error
-      return (URL as unknown as URLwithCanParse).canParse(url) ? new URL(url) : undefined;
-    } else {
-      return new URL(url);
+    if ('canParse' in URL && !(URL as unknown as URLwithCanParse).canParse(url, base)) {
+      return undefined;
     }
+
+    return new URL(url, base);
   } catch {
     // empty body
   }
