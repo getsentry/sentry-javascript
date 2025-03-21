@@ -1,3 +1,4 @@
+import { GLOBAL_OBJ } from '@sentry/core';
 import * as fs from 'fs';
 import { sync as resolveSync } from 'resolve';
 
@@ -26,4 +27,22 @@ function resolveNextjsPackageJson(): string | undefined {
   } catch {
     return undefined;
   }
+}
+
+/**
+ * TODO
+ */
+export function setWebpackBuildFunctionCalled(): void {
+  // Let the rest of the execution context know that we are using Webpack to build.
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+  (GLOBAL_OBJ as any)._sentryWebpackBuildFunctionCalled = true;
+}
+
+/**
+ * TODO
+ */
+export function getWebpackBuildFunctionCalled(): boolean {
+  // Let the rest of the execution context know that we are using Webpack to build.
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+  return !!(GLOBAL_OBJ as any)._sentryWebpackBuildFunctionCalled;
 }
