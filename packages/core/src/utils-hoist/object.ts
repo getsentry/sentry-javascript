@@ -211,17 +211,22 @@ export function extractExceptionKeysForMessage(exception: Record<string, unknown
  *
  * Attention: This function keeps circular references in the returned object.
  */
-export function dropUndefinedKeys<T>(inputValue: T): T {
+export function dropUndefinedKeys<T>(inputValue: T, depth = Infinity): T {
   // This map keeps track of what already visited nodes map to.
   // Our Set - based memoBuilder doesn't work here because we want to the output object to have the same circular
   // references as the input object.
   const memoizationMap = new Map<unknown, unknown>();
 
   // This function just proxies `_dropUndefinedKeys` to keep the `memoBuilder` out of this function's API
-  return _dropUndefinedKeys(inputValue, memoizationMap);
+  return _dropUndefinedKeys(inputValue, memoizationMap, depth);
 }
 
-function _dropUndefinedKeys<T>(inputValue: T, memoizationMap: Map<unknown, unknown>): T {
+function _dropUndefinedKeys<T>(inputValue: T, memoizationMap: Map<unknown, unknown>, depth: number): T {
+  // If the max. depth is reached, return the input value as is
+  if (!depth) {
+    return inputValue;
+  }
+
   if (isPojo(inputValue)) {
     // If this node has already been visited due to a circular reference, return the object it was mapped to in the new object
     const memoVal = memoizationMap.get(inputValue);
@@ -235,7 +240,7 @@ function _dropUndefinedKeys<T>(inputValue: T, memoizationMap: Map<unknown, unkno
 
     for (const key of Object.getOwnPropertyNames(inputValue)) {
       if (typeof inputValue[key] !== 'undefined') {
-        returnValue[key] = _dropUndefinedKeys(inputValue[key], memoizationMap);
+        returnValue[key] = _dropUndefinedKeys(inputValue[key], memoizationMap, depth - 1);
       }
     }
 
@@ -254,7 +259,7 @@ function _dropUndefinedKeys<T>(inputValue: T, memoizationMap: Map<unknown, unkno
     memoizationMap.set(inputValue, returnValue);
 
     inputValue.forEach((item: unknown) => {
-      returnValue.push(_dropUndefinedKeys(item, memoizationMap));
+      returnValue.push(_dropUndefinedKeys(item, memoizationMap, depth - 1));
     });
 
     return returnValue as unknown as T;
