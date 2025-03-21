@@ -223,24 +223,27 @@ export class SentrySpan implements Span {
    * use `spanToJSON(span)` instead.
    */
   public getSpanJSON(): SpanJSON {
-    return dropUndefinedKeys({
-      data: this._attributes,
-      description: this._name,
-      op: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP],
-      parent_span_id: this._parentSpanId,
-      span_id: this._spanId,
-      start_timestamp: this._startTime,
-      status: getStatusMessage(this._status),
-      timestamp: this._endTime,
-      trace_id: this._traceId,
-      origin: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined,
-      profile_id: this._attributes[SEMANTIC_ATTRIBUTE_PROFILE_ID] as string | undefined,
-      exclusive_time: this._attributes[SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME] as number | undefined,
-      measurements: timedEventsToMeasurements(this._events),
-      is_segment: (this._isStandaloneSpan && getRootSpan(this) === this) || undefined,
-      segment_id: this._isStandaloneSpan ? getRootSpan(this).spanContext().spanId : undefined,
-      links: convertSpanLinksForEnvelope(this._links),
-    });
+    return dropUndefinedKeys(
+      {
+        data: this._attributes,
+        description: this._name,
+        op: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP],
+        parent_span_id: this._parentSpanId,
+        span_id: this._spanId,
+        start_timestamp: this._startTime,
+        status: getStatusMessage(this._status),
+        timestamp: this._endTime,
+        trace_id: this._traceId,
+        origin: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined,
+        profile_id: this._attributes[SEMANTIC_ATTRIBUTE_PROFILE_ID] as string | undefined,
+        exclusive_time: this._attributes[SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME] as number | undefined,
+        measurements: timedEventsToMeasurements(this._events),
+        is_segment: (this._isStandaloneSpan && getRootSpan(this) === this) || undefined,
+        segment_id: this._isStandaloneSpan ? getRootSpan(this).spanContext().spanId : undefined,
+        links: convertSpanLinksForEnvelope(this._links),
+      },
+      1,
+    );
   }
 
   /** @inheritdoc */

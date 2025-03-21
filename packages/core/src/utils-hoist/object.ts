@@ -211,17 +211,22 @@ export function extractExceptionKeysForMessage(exception: Record<string, unknown
  *
  * Attention: This function keeps circular references in the returned object.
  */
-export function dropUndefinedKeys<T>(inputValue: T): T {
+export function dropUndefinedKeys<T>(inputValue: T, depth = Infinity): T {
   // This map keeps track of what already visited nodes map to.
   // Our Set - based memoBuilder doesn't work here because we want to the output object to have the same circular
   // references as the input object.
   const memoizationMap = new Map<unknown, unknown>();
 
   // This function just proxies `_dropUndefinedKeys` to keep the `memoBuilder` out of this function's API
-  return _dropUndefinedKeys(inputValue, memoizationMap);
+  return _dropUndefinedKeys(inputValue, memoizationMap, depth);
 }
 
-function _dropUndefinedKeys<T>(inputValue: T, memoizationMap: Map<unknown, unknown>): T {
+function _dropUndefinedKeys<T>(inputValue: T, memoizationMap: Map<unknown, unknown>, depth: number): T {
+  // If the max. depth is reached, return the input value as is
+  if (!depth) {
+    return inputValue;
+  }
+
   // Early return for primitive values
   if (inputValue === null || typeof inputValue !== 'object') {
     return inputValue;

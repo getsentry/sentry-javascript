@@ -208,6 +208,33 @@ describe('dropUndefinedKeys()', () => {
     });
   });
 
+  test('arrays with depth=1', () => {
+    expect(
+      dropUndefinedKeys(
+        {
+          a: [
+            1,
+            undefined,
+            {
+              a: 1,
+              b: undefined,
+            },
+          ],
+        },
+        1,
+      ),
+    ).toStrictEqual({
+      a: [
+        1,
+        undefined,
+        {
+          a: 1,
+          b: undefined,
+        },
+      ],
+    });
+  });
+
   test('nested objects', () => {
     expect(
       dropUndefinedKeys({
@@ -227,6 +254,65 @@ describe('dropUndefinedKeys()', () => {
         c: 2,
         e: {
           f: 3,
+        },
+      },
+    });
+  });
+
+  test('nested objects with depth=1', () => {
+    expect(
+      dropUndefinedKeys(
+        {
+          a: 1,
+          b: {
+            c: 2,
+            d: undefined,
+            e: {
+              f: 3,
+              g: undefined,
+            },
+          },
+          c: undefined,
+        },
+        1,
+      ),
+    ).toStrictEqual({
+      a: 1,
+      b: {
+        c: 2,
+        d: undefined,
+        e: {
+          f: 3,
+          g: undefined,
+        },
+      },
+    });
+  });
+
+  test('nested objects with depth=2', () => {
+    expect(
+      dropUndefinedKeys(
+        {
+          a: 1,
+          b: {
+            c: 2,
+            d: undefined,
+            e: {
+              f: 3,
+              g: undefined,
+            },
+          },
+          c: undefined,
+        },
+        2,
+      ),
+    ).toStrictEqual({
+      a: 1,
+      b: {
+        c: 2,
+        e: {
+          f: 3,
+          g: undefined,
         },
       },
     });

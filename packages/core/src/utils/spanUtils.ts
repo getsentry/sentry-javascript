@@ -42,16 +42,19 @@ export function spanToTransactionTraceContext(span: Span): TraceContext {
   const { spanId: span_id, traceId: trace_id } = span.spanContext();
   const { data, op, parent_span_id, status, origin, links } = spanToJSON(span);
 
-  return dropUndefinedKeys({
-    parent_span_id,
-    span_id,
-    trace_id,
-    data,
-    op,
-    status,
-    origin,
-    links,
-  });
+  return dropUndefinedKeys(
+    {
+      parent_span_id,
+      span_id,
+      trace_id,
+      data,
+      op,
+      status,
+      origin,
+      links,
+    },
+    1,
+  );
 }
 
 /**
@@ -147,20 +150,23 @@ export function spanToJSON(span: Span): SpanJSON {
   if (spanIsOpenTelemetrySdkTraceBaseSpan(span)) {
     const { attributes, startTime, name, endTime, parentSpanId, status, links } = span;
 
-    return dropUndefinedKeys({
-      span_id,
-      trace_id,
-      data: attributes,
-      description: name,
-      parent_span_id: parentSpanId,
-      start_timestamp: spanTimeInputToSeconds(startTime),
-      // This is [0,0] by default in OTEL, in which case we want to interpret this as no end time
-      timestamp: spanTimeInputToSeconds(endTime) || undefined,
-      status: getStatusMessage(status),
-      op: attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP],
-      origin: attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined,
-      links: convertSpanLinksForEnvelope(links),
-    });
+    return dropUndefinedKeys(
+      {
+        span_id,
+        trace_id,
+        data: attributes,
+        description: name,
+        parent_span_id: parentSpanId,
+        start_timestamp: spanTimeInputToSeconds(startTime),
+        // This is [0,0] by default in OTEL, in which case we want to interpret this as no end time
+        timestamp: spanTimeInputToSeconds(endTime) || undefined,
+        status: getStatusMessage(status),
+        op: attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP],
+        origin: attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined,
+        links: convertSpanLinksForEnvelope(links),
+      },
+      1,
+    );
   }
 
   // Finally, at least we have `spanContext()`....
