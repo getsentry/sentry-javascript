@@ -36,17 +36,17 @@ test('Does not send 4xx errors by default', async ({ baseURL }) => {
   // Create a promise to wait for the 500 error
   const serverErrorPromise = waitForError('node-fastify', event => {
     // Looking for a 500 error that should be captured
-    return !!event.exception?.values?.[0]?.value?.includes('Internal Server Error');
+    return !!event.exception?.values?.[0]?.value?.includes('This is a 5xx error');
   });
 
-  // Make a request that will trigger a 404 error
-  const notFoundResponse = await fetch(`${baseURL}/non-existent-route`);
-  expect(notFoundResponse.status).toBe(404);
+  // Make a request that will trigger a 400 error
+  const notFoundResponse = await fetch(`${baseURL}/test-4xx-error`);
+  expect(notFoundResponse.status).toBe(400);
 
   // Make a request that will trigger a 500 error
-  await fetch(`${baseURL}/test-server-error`);
+  await fetch(`${baseURL}/test-5xx-error`);
 
   // Verify we receive the 500 error
   const errorEvent = await serverErrorPromise;
-  expect(errorEvent.exception?.values?.[0]?.value).toContain('Internal Server Error');
+  expect(errorEvent.exception?.values?.[0]?.value).toContain('This is a 5xx error');
 });
