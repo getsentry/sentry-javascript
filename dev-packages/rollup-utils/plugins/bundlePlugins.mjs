@@ -126,12 +126,6 @@ export function makeTerserPlugin() {
           '_sentryId',
           // Keeps the frozen DSC on a Sentry Span
           '_frozenDsc',
-          // These are used to keep span & scope relationships
-          '_sentryRootSpan',
-          '_sentryChildSpans',
-          '_sentrySpan',
-          '_sentryScope',
-          '_sentryIsolationScope',
           // require-in-the-middle calls `Module._resolveFilename`. We cannot mangle this (AWS lambda layer bundle).
           '_resolveFilename',
           // Set on e.g. the shim feedbackIntegration to be able to detect it

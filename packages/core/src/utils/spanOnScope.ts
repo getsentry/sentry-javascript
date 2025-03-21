@@ -1,12 +1,7 @@
 import type { Scope } from '../scope';
 import type { Span } from '../types-hoist';
-import { addNonEnumerableProperty } from '../utils-hoist/object';
 
-const SCOPE_SPAN_FIELD = '_sentrySpan';
-
-type ScopeWithMaybeSpan = Scope & {
-  [SCOPE_SPAN_FIELD]?: Span;
-};
+const SCOPE_TO_SPAN_MAP = new WeakMap<Scope, Span>();
 
 /**
  * Set the active span for a given scope.
@@ -14,10 +9,9 @@ type ScopeWithMaybeSpan = Scope & {
  */
 export function _setSpanForScope(scope: Scope, span: Span | undefined): void {
   if (span) {
-    addNonEnumerableProperty(scope as ScopeWithMaybeSpan, SCOPE_SPAN_FIELD, span);
+    SCOPE_TO_SPAN_MAP.set(scope, span);
   } else {
-    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-    delete (scope as ScopeWithMaybeSpan)[SCOPE_SPAN_FIELD];
+    SCOPE_TO_SPAN_MAP.delete(scope);
   }
 }
 
@@ -25,6 +19,6 @@ export function _setSpanForScope(scope: Scope, span: Span | undefined): void {
  * Get the active span for a given scope.
  * NOTE: This should NOT be used directly, but is only used internally by the trace methods.
  */
-export function _getSpanForScope(scope: ScopeWithMaybeSpan): Span | undefined {
-  return scope[SCOPE_SPAN_FIELD];
+export function _getSpanForScope(scope: Scope): Span | undefined {
+  return SCOPE_TO_SPAN_MAP.get(scope);
 }
