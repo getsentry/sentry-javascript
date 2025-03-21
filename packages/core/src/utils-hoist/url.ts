@@ -7,6 +7,33 @@ type PartialURL = {
   hash?: string;
 };
 
+interface URLwithCanParse extends URL {
+  canParse: (url: string) => boolean;
+}
+
+/**
+ * Parses string to a URL object
+ *
+ * @param url - The URL to parse
+ * @returns The parsed URL object or undefined if the URL is invalid
+ */
+export function parseStringToURL(url: string): URL | undefined {
+  try {
+    // Node 20+, Chrome 120+, Firefox 115+, Safari 17+
+    if ('canParse' in URL) {
+      // Use `canParse` to short-circuit the URL constructor if it's not a valid URL
+      // This is faster than trying to construct the URL and catching the error
+      return (URL as unknown as URLwithCanParse).canParse(url) ? new URL(url) : undefined;
+    } else {
+      return new URL(url);
+    }
+  } catch {
+    // empty body
+  }
+
+  return undefined;
+}
+
 /**
  * Parses string form of URL into an object
  * // borrowed from https://tools.ietf.org/html/rfc3986#appendix-B

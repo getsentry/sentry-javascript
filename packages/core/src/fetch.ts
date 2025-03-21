@@ -5,7 +5,7 @@ import { SentryNonRecordingSpan } from './tracing/sentryNonRecordingSpan';
 import type { FetchBreadcrumbHint, HandlerDataFetch, Span, SpanOrigin } from './types-hoist';
 import { SENTRY_BAGGAGE_KEY_PREFIX } from './utils-hoist/baggage';
 import { isInstanceOf } from './utils-hoist/is';
-import { parseUrl, stripUrlQueryAndFragment } from './utils-hoist/url';
+import { parseStringToURL, stripUrlQueryAndFragment } from './utils-hoist/url';
 import { hasSpansEnabled } from './utils/hasSpansEnabled';
 import { getActiveSpan } from './utils/spanUtils';
 import { getTraceData } from './utils/traceData';
@@ -53,8 +53,7 @@ export function instrumentFetchRequest(
     return undefined;
   }
 
-  const fullUrl = getFullURL(url);
-  const parsedUrl = fullUrl ? parseUrl(fullUrl) : parseUrl(url);
+  const parsedUrl = parseStringToURL(url);
 
   const hasParent = !!getActiveSpan();
 
@@ -66,12 +65,12 @@ export function instrumentFetchRequest(
             url,
             type: 'fetch',
             'http.method': method,
-            'http.url': fullUrl,
-            'server.address': parsedUrl?.host,
+            'http.url': parsedUrl?.href || url,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
-            ...(parsedUrl?.search && { 'http.query': parsedUrl?.search }),
-            ...(parsedUrl?.hash && { 'http.fragment': parsedUrl?.hash }),
+            ...(parsedUrl?.host && { 'server.address': parsedUrl.host }),
+            ...(parsedUrl?.search && { 'http.query': parsedUrl.search }),
+            ...(parsedUrl?.hash && { 'http.fragment': parsedUrl.hash }),
           },
         })
       : new SentryNonRecordingSpan();
@@ -212,15 +211,6 @@ function _addTracingHeadersToFetchRequest(
       'sentry-trace': sentryTrace,
       baggage: newBaggageHeaders.length > 0 ? newBaggageHeaders.join(',') : undefined,
     };
-  }
-}
-
-function getFullURL(url: string): string | undefined {
-  try {
-    const parsed = new URL(url);
-    return parsed.href;
-  } catch {
-    return undefined;
   }
 }
 
