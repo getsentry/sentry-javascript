@@ -57,3 +57,15 @@ export const SEMANTIC_ATTRIBUTE_CACHE_ITEM_SIZE = 'cache.item_size';
 /** TODO: Remove these once we update to latest semantic conventions */
 export const SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD = 'http.request.method';
 export const SEMANTIC_ATTRIBUTE_URL_FULL = 'url.full';
+
+/**
+ * A span link attribute to mark the link as a special span link.
+ *
+ * Known values:
+ * - `previous_trace`: The span links to the frontend root span of the previous trace.
+ * - `next_trace`: The span links to the frontend root span of the next trace. (Not set by the SDK)
+ *
+ * Other values may be set as appropriate.
+ * @see https://develop.sentry.dev/sdk/telemetry/traces/span-links/#link-types
+ */
+export const SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE = 'sentry.link.type';
