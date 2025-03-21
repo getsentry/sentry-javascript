@@ -373,9 +373,7 @@ export class SentrySpan implements Span {
       sdkProcessingMetadata: {
         capturedSpanScope,
         capturedSpanIsolationScope,
-        ...dropUndefinedKeys({
-          dynamicSamplingContext: getDynamicSamplingContextFromSpan(this),
-        }),
+        dynamicSamplingContext: getDynamicSamplingContextFromSpan(this),
       },
       ...(source && {
         transaction_info: {

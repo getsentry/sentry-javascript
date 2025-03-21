@@ -1,6 +1,6 @@
 {
   "name": "@sentry/svelte",
-  "version": "9.7.0",
+  "version": "9.8.0",
   "description": "Official Sentry SDK for Svelte",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/svelte",
@@ -39,8 +39,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/browser": "9.7.0",
-    "@sentry/core": "9.7.0",
+    "@sentry/browser": "9.8.0",
+    "@sentry/core": "9.8.0",
     "magic-string": "^0.30.0"
   },
   "peerDependencies": {

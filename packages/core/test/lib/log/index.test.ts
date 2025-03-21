@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   _INTERNAL_flushLogsBuffer,
   _INTERNAL_getLogBuffer,
-  captureLog,
+  _INTERNAL_captureLog,
   logAttributeToSerializedLogAttribute,
 } from '../../../src/logs';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
@@ -71,12 +71,12 @@ describe('logAttributeToSerializedLogAttribute', () => {
   });
 });
 
-describe('captureLog', () => {
+describe('_INTERNAL_captureLog', () => {
   it('captures and sends logs', () => {
     const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableLogs: true } });
     const client = new TestClient(options);
 
-    captureLog({ level: 'info', message: 'test log message' }, undefined, client);
+    _INTERNAL_captureLog({ level: 'info', message: 'test log message' }, client, undefined);
     expect(_INTERNAL_getLogBuffer(client)).toHaveLength(1);
     expect(_INTERNAL_getLogBuffer(client)?.[0]).toEqual(
       expect.objectContaining({
@@ -94,7 +94,7 @@ describe('captureLog', () => {
     const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
     const client = new TestClient(options);
 
-    captureLog({ level: 'info', message: 'test log message' }, undefined, client);
+    _INTERNAL_captureLog({ level: 'info', message: 'test log message' }, client, undefined);
 
     expect(logWarnSpy).toHaveBeenCalledWith('logging option not enabled, log will not be captured.');
     expect(_INTERNAL_getLogBuffer(client)).toBeUndefined();
@@ -111,7 +111,7 @@ describe('captureLog', () => {
       sampleRand: 1,
     });
 
-    captureLog({ level: 'error', message: 'test log with trace' }, scope, client);
+    _INTERNAL_captureLog({ level: 'error', message: 'test log with trace' }, client, scope);
 
     expect(_INTERNAL_getLogBuffer(client)?.[0]).toEqual(
       expect.objectContaining({
@@ -129,7 +129,7 @@ describe('captureLog', () => {
     });
     const client = new TestClient(options);
 
-    captureLog({ level: 'info', message: 'test log with metadata' }, undefined, client);
+    _INTERNAL_captureLog({ level: 'info', message: 'test log with metadata' }, client, undefined);
 
     const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
     expect(logAttributes).toEqual(
@@ -144,14 +144,14 @@ describe('captureLog', () => {
     const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableLogs: true } });
     const client = new TestClient(options);
 
-    captureLog(
+    _INTERNAL_captureLog(
       {
         level: 'info',
         message: 'test log with custom attributes',
         attributes: { userId: '123', component: 'auth' },
       },
-      undefined,
       client,
+      undefined,
     );
 
     const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
@@ -169,13 +169,13 @@ describe('captureLog', () => {
 
     // Fill the buffer to max size (100 is the MAX_LOG_BUFFER_SIZE constant in client.ts)
     for (let i = 0; i < 100; i++) {
-      captureLog({ level: 'info', message: `log message ${i}` }, undefined, client);
+      _INTERNAL_captureLog({ level: 'info', message: `log message ${i}` }, client, undefined);
     }
 
     expect(_INTERNAL_getLogBuffer(client)).toHaveLength(100);
 
     // Add one more to trigger flush
-    captureLog({ level: 'info', message: 'trigger flush' }, undefined, client);
+    _INTERNAL_captureLog({ level: 'info', message: 'trigger flush' }, client, undefined);
 
     expect(_INTERNAL_getLogBuffer(client)).toEqual([]);
   });

@@ -10,7 +10,7 @@ import {
   getRootSpan,
   spanToJSON,
 } from '@sentry/core';
-import { browserPerformanceTimeOrigin, dropUndefinedKeys, htmlTreeAsString, logger } from '@sentry/core';
+import { browserPerformanceTimeOrigin, htmlTreeAsString, logger } from '@sentry/core';
 import type { SpanAttributes } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { addClsInstrumentationHandler } from './instrument';
@@ -95,13 +95,13 @@ function sendStandaloneClsSpan(clsValue: number, entry: LayoutShift | undefined,
 
   const name = entry ? htmlTreeAsString(entry.sources[0]?.node) : 'Layout shift';
 
-  const attributes: SpanAttributes = dropUndefinedKeys({
+  const attributes: SpanAttributes = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser.cls',
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.webvital.cls',
     [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: entry?.duration || 0,
     // attach the pageload span id to the CLS span so that we can link them in the UI
     'sentry.pageload.span_id': pageloadSpanId,
-  });
+  };
 
   const span = startStandaloneWebVitalSpan({
     name,

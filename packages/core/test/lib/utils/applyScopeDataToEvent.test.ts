@@ -194,6 +194,54 @@ describe('mergeScopeData', () => {
 });
 
 describe('applyScopeDataToEvent', () => {
+  it('should correctly merge nested event and scope data with undefined values', () => {
+    const eventData: Event = {
+      user: {
+        name: 'John',
+        age: undefined,
+        location: 'New York',
+        newThing: undefined,
+      },
+      extra: {},
+    };
+
+    const scopeData: ScopeData = {
+      eventProcessors: [],
+      breadcrumbs: [],
+      user: {
+        name: 'John',
+        age: 30,
+        location: 'Vienna',
+        role: 'developer',
+        thing: undefined,
+      },
+      tags: {},
+      extra: {},
+      contexts: {},
+      attachments: [],
+      propagationContext: { traceId: '1', sampleRand: 0.42 },
+      sdkProcessingMetadata: {},
+      fingerprint: [],
+    };
+
+    applyScopeDataToEvent(eventData, scopeData);
+
+    // Verify merged data structure
+    expect(eventData).toEqual({
+      user: {
+        name: 'John',
+        age: undefined,
+        location: 'New York',
+        role: 'developer',
+        thing: undefined,
+        newThing: undefined,
+      },
+      extra: {},
+      breadcrumbs: undefined,
+      sdkProcessingMetadata: {},
+    });
+  });
+
   it("doesn't apply scope.transactionName to transaction events", () => {
     const data: ScopeData = {
       eventProcessors: [],
