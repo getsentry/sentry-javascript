@@ -1,6 +1,6 @@
 import { navigating, page } from '$app/stores';
 import type { Client, Integration, Span } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, dropUndefinedKeys } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import {
   WINDOW,
   browserTracingIntegration as originalBrowserTracingIntegration,
@@ -113,7 +113,7 @@ function _instrumentNavigations(client: Client): void {
       routingSpan.end();
     }
 
-    const navigationInfo = dropUndefinedKeys({
+    const navigationInfo = {
       //  `navigation.type` denotes the origin of the navigation. e.g.:
       //   - link (clicking on a link)
       //   - goto (programmatic via goto() or redirect())
@@ -121,7 +121,7 @@ function _instrumentNavigations(client: Client): void {
       'sentry.sveltekit.navigation.type': navigation.type,
       'sentry.sveltekit.navigation.from': parameterizedRouteOrigin || undefined,
       'sentry.sveltekit.navigation.to': parameterizedRouteDestination || undefined,
-    });
+    };
 
     startBrowserTracingNavigationSpan(client, {
       name: parameterizedRouteDestination || rawRouteDestination || 'unknown',

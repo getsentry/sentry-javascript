@@ -6,7 +6,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   browserPerformanceTimeOrigin,
-  dropUndefinedKeys,
   getActiveSpan,
   getCurrentScope,
   getRootSpan,
@@ -101,11 +100,11 @@ function _trackINP(): () => void {
     const routeName = spanToUse ? spanToJSON(spanToUse).description : getCurrentScope().getScopeData().transactionName;
 
     const name = htmlTreeAsString(entry.target);
-    const attributes: SpanAttributes = dropUndefinedKeys({
+    const attributes: SpanAttributes = {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser.inp',
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `ui.interaction.${interactionType}`,
       [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: entry.duration,
-    });
+    };
 
     const span = startStandaloneWebVitalSpan({
       name,

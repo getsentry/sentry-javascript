@@ -1,5 +1,5 @@
 import type { SerializedSession, Session, SessionContext, SessionStatus } from './types-hoist';
-import { dropUndefinedKeys, timestampInSeconds, uuid4 } from './utils-hoist';
+import { timestampInSeconds, uuid4 } from './utils-hoist';
 
 /**
  * Creates a new `Session` object by setting certain default parameters. If optional @param context
@@ -137,7 +137,7 @@ export function closeSession(session: Session, status?: Exclude<SessionStatus, '
  * @returns a JSON object of the passed session
  */
 function sessionToJSON(session: Session): SerializedSession {
-  return dropUndefinedKeys({
+  return {
     sid: `${session.sid}`,
     init: session.init,
     // Make sure that sec is converted to ms for date constructor
@@ -154,5 +154,5 @@ function sessionToJSON(session: Session): SerializedSession {
       ip_address: session.ipAddress,
       user_agent: session.userAgent,
     },
-  });
+  };
 }
