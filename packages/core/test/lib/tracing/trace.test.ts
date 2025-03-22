@@ -687,7 +687,7 @@ describe('startSpan', () => {
     expect.assertions(1);
     startSpan({ name: 'outer' }, (outerSpan: any) => {
       startSpan({ name: 'inner' }, innerSpan => {
-        const childSpans = Array.from(outerSpan._sentryChildSpans);
+        const childSpans = getSpanDescendants(outerSpan);
         expect(childSpans).toContain(innerSpan);
       });
     });
@@ -1178,7 +1178,7 @@ describe('startSpanManual', () => {
     expect.assertions(1);
     startSpan({ name: 'outer' }, (outerSpan: any) => {
       startSpanManual({ name: 'inner' }, innerSpan => {
-        const childSpans = Array.from(outerSpan._sentryChildSpans);
+        const childSpans = getSpanDescendants(outerSpan);
         expect(childSpans).toContain(innerSpan);
       });
     });
@@ -1591,7 +1591,7 @@ describe('startInactiveSpan', () => {
     expect.assertions(1);
     startSpan({ name: 'outer' }, (outerSpan: any) => {
       const innerSpan = startInactiveSpan({ name: 'inner' });
-      const childSpans = Array.from(outerSpan._sentryChildSpans);
+      const childSpans = getSpanDescendants(outerSpan);
       expect(childSpans).toContain(innerSpan);
     });
   });
