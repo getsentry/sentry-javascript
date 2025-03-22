@@ -1,9 +1,9 @@
-import type { ClientRequest, IncomingMessage, RequestOptions, ServerResponse } from 'node:http';
 import { diag } from '@opentelemetry/api';
 import type { HttpInstrumentationConfig } from '@opentelemetry/instrumentation-http';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import type { Span } from '@sentry/core';
-import { defineIntegration, getClient } from '@sentry/core';
+import { defineIntegration, getClient, hasSpansEnabled } from '@sentry/core';
+import type { ClientRequest, IncomingMessage, RequestOptions, ServerResponse } from 'node:http';
 import { generateInstrumentOnce } from '../../otel/instrument';
 import type { NodeClient } from '../../sdk/client';
 import type { HTTPModuleRequestIncomingMessage } from '../../transports/http-module';
@@ -130,8 +130,10 @@ export const instrumentOtelHttp = generateInstrumentOnce<HttpInstrumentationConf
 /** Exported only for tests. */
 export function _shouldInstrumentSpans(options: HttpOptions, clientOptions: Partial<NodeClientOptions> = {}): boolean {
   // If `spans` is passed in, it takes precedence
-  // Else, we by default emit spans, unless `skipOpenTelemetrySetup` is set to `true`
-  return typeof options.spans === 'boolean' ? options.spans : !clientOptions.skipOpenTelemetrySetup;
+  // Else, we by default emit spans, unless `skipOpenTelemetrySetup` is set to `true` or spans are not enabled
+  return typeof options.spans === 'boolean'
+    ? options.spans
+    : !clientOptions.skipOpenTelemetrySetup && hasSpansEnabled(clientOptions);
 }
 
 /**
