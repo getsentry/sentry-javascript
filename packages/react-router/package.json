@@ -39,6 +39,7 @@
     "@sentry/core": "9.8.0",
     "@sentry/node": "9.8.0",
     "@sentry/vite-plugin": "^3.2.0",
+    "@opentelemetry/semantic-conventions": "^1.30.0",
     "glob": "11.0.1"
   },
   "devDependencies": {
