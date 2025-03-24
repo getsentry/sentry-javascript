@@ -147,7 +147,7 @@ export function spanToJSON(span: Span): SpanJSON {
   if (spanIsOpenTelemetrySdkTraceBaseSpan(span)) {
     const { attributes, startTime, name, endTime, parentSpanId, status, links } = span;
 
-    return dropUndefinedKeys({
+    return {
       span_id,
       trace_id,
       data: attributes,
@@ -160,7 +160,7 @@ export function spanToJSON(span: Span): SpanJSON {
       op: attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP],
       origin: attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined,
       links: convertSpanLinksForEnvelope(links),
-    });
+    };
   }
 
   // Finally, at least we have `spanContext()`....
