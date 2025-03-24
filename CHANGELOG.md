@@ -10,6 +10,66 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 9.9.0
+
+### Important Changes
+
+- **feat(nextjs): Support `instrumentation-client.ts` ([#15705](https://github.com/getsentry/sentry-javascript/pull/15705))**
+
+  Next.js recently added a feature to support [client-side (browser) instrumentation via the `experimental.clientInstrumentationHook` flag and the `instrumentation-client.ts` file](https://nextjs.org/docs/app/api-reference/config/next-config-js/clientInstrumentationHook).
+
+  To be forwards compatible, the Sentry Next.js SDK will now pick up `instrumentation-client.ts` files even on older Next.js versions and add them to your client bundles.
+  It is suggested that you either rename your `sentry.client.config.ts` file to `instrumentation-client.ts`, or if you already happen to have a `instrumentation-client.ts` file move the contents of `sentry.client.config.ts` to `instrumentation-client.ts`.
+
+- **feat(browser): Add `previous_trace` span links ([#15569](https://github.com/getsentry/sentry-javascript/pull/15569))**
+
+  The `@sentry/browser` SDK and SDKs based on `@sentry/browser` now emits a link from the first root span of a newly started trace to the root span of a previously started trace. You can control this feature via an option in `browserTracingIntegration()`:
+
+  ```js
+  Sentry.init({
+    dsn: 'your-dsn-here'
+    integrations: [
+      Sentry.browserTracingIntegration({
+        // Available settings:
+        // - 'in-memory' (default): Stores previous trace information in memory
+        // - 'session-storage': Stores previous trace information in the browser's `sessionStorage`
+        // - 'off': Disable storing and sending previous trace information
+        linkPreviousTrace: 'in-memory',
+      }),
+    ],
+  });
+  ```
+
+- **feat(browser): Add `logger.X` methods to browser SDK ([#15763](https://github.com/getsentry/sentry-javascript/pull/15763))**
+
+  For Sentry's [upcoming logging product](https://github.com/getsentry/sentry/discussions/86804), the SDK now supports sending logs via dedicated
+
+  ```js
+  Sentry.init({
+    dsn: 'your-dsn-here',
+    _experiments: {
+      enableLogs: true, // This is required to use the logging features
+    },
+  });
+
+  Sentry.logger.info('This is a trace message', { userId: 123 });
+  // See PR for better documentation
+  ```
+
+  Please note that the logs product is still in early access. See the link above for more information.
+
+### Other Changes
+
+- feat(browser): Attach host as part of error message to "Failed to fetch" errors ([#15729](https://github.com/getsentry/sentry-javascript/pull/15729))
+- feat(core): Add `parseStringToURL` method ([#15768](https://github.com/getsentry/sentry-javascript/pull/15768))
+- feat(core): Optimize `dropUndefinedKeys` ([#15760](https://github.com/getsentry/sentry-javascript/pull/15760))
+- feat(node): Add fastify `shouldHandleError` ([#15771](https://github.com/getsentry/sentry-javascript/pull/15771))
+- fix(nuxt): Delete no longer needed Nitro 'close' hook ([#15790](https://github.com/getsentry/sentry-javascript/pull/15790))
+- perf(nestjs): Remove usage of `addNonEnumerableProperty` ([#15766](https://github.com/getsentry/sentry-javascript/pull/15766))
+- ref: Avoid some usage of `dropUndefinedKeys()` ([#15757](https://github.com/getsentry/sentry-javascript/pull/15757))
+- ref: Remove some usages of `dropUndefinedKeys()` ([#15781](https://github.com/getsentry/sentry-javascript/pull/15781))
+- ref(nextjs): Fix Next.js vercel-edge runtime package information ([#15789](https://github.com/getsentry/sentry-javascript/pull/15789))
+
 ## 9.8.0
 
 - feat(node): Implement new continuous profiling API spec ([#15635](https://github.com/getsentry/sentry-javascript/pull/15635))
