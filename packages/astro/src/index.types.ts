@@ -10,6 +10,7 @@ import type { NodeOptions } from '@sentry/node';
 import type { Client, Integration, Options, StackParser } from '@sentry/core';
 
 import type * as clientSdk from './index.client';
+import type * as serverSdk from './index.server';
 import sentryAstro from './index.server';
 
 /** Initializes Sentry Astro SDK */
@@ -25,5 +26,7 @@ export declare function close(timeout?: number | undefined): PromiseLike<boolean
 export declare function flush(timeout?: number | undefined): PromiseLike<boolean>;
 
 export declare const Span: clientSdk.Span;
+
+export declare const logger: typeof clientSdk.logger | typeof serverSdk.logger;
 
 export default sentryAstro;

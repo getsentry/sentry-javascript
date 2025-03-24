@@ -15,3 +15,5 @@ export declare const contextLinesIntegration: typeof clientSdk.contextLinesInteg
 export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;
 export declare const defaultStackParser: StackParser;
 export declare const getDefaultIntegrations: (options: Options) => Integration[];
+
+export declare const logger: typeof clientSdk.logger | typeof serverSdk.logger;

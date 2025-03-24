@@ -110,14 +110,14 @@ export function _INTERNAL_captureLog(log: Log, client = getClient(), scope = get
   const logBuffer = CLIENT_TO_LOG_BUFFER_MAP.get(client);
   if (logBuffer === undefined) {
     CLIENT_TO_LOG_BUFFER_MAP.set(client, [serializedLog]);
-    // Every time we initialize a new log buffer, we start a new interval to flush the buffer
-    return;
+  } else {
+    logBuffer.push(serializedLog);
+    if (logBuffer.length > MAX_LOG_BUFFER_SIZE) {
+      _INTERNAL_flushLogsBuffer(client, logBuffer);
+    }
   }
 
-  logBuffer.push(serializedLog);
-  if (logBuffer.length > MAX_LOG_BUFFER_SIZE) {
-    _INTERNAL_flushLogsBuffer(client, logBuffer);
-  }
+  client.emit('beforeCaptureLog', log);
 }
 
 /**
