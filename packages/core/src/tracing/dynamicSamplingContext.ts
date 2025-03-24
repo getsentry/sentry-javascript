@@ -8,27 +8,18 @@ import {
   baggageHeaderToDynamicSamplingContext,
   dynamicSamplingContextToSentryBaggageHeader,
 } from '../utils-hoist/baggage';
-import { addNonEnumerableProperty, dropUndefinedKeys } from '../utils-hoist/object';
+import { dropUndefinedKeys } from '../utils-hoist/object';
 import { hasSpansEnabled } from '../utils/hasSpansEnabled';
 import { getRootSpan, spanIsSampled, spanToJSON } from '../utils/spanUtils';
 import { getCapturedScopesOnSpan } from './utils';
 
-/**
- * If you change this value, also update the terser plugin config to
- * avoid minification of the object property!
- */
-const FROZEN_DSC_FIELD = '_frozenDsc';
-
-type SpanWithMaybeDsc = Span & {
-  [FROZEN_DSC_FIELD]?: Partial<DynamicSamplingContext> | undefined;
-};
+const SPAN_TO_DSC_MAP = new WeakMap<Span, Partial<DynamicSamplingContext>>();
 
 /**
  * Freeze the given DSC on the given span.
  */
 export function freezeDscOnSpan(span: Span, dsc: Partial<DynamicSamplingContext>): void {
-  const spanWithMaybeDsc = span as SpanWithMaybeDsc;
-  addNonEnumerableProperty(spanWithMaybeDsc, FROZEN_DSC_FIELD, dsc);
+  SPAN_TO_DSC_MAP.set(span, dsc);
 }
 
 /**
@@ -91,7 +82,7 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
   }
 
   // For core implementation, we freeze the DSC onto the span as a non-enumerable property
-  const frozenDsc = (rootSpan as SpanWithMaybeDsc)[FROZEN_DSC_FIELD];
+  const frozenDsc = SPAN_TO_DSC_MAP.get(rootSpan);
   if (frozenDsc) {
     return applyLocalSampleRateToDsc(frozenDsc);
   }
