@@ -79,7 +79,6 @@
     "packages/replay-worker",
     "packages/solid",
     "packages/solidstart",
-    "packages/supabase",
     "packages/svelte",
     "packages/sveltekit",
     "packages/tanstackstart",

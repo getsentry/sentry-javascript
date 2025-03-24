@@ -8,14 +8,13 @@
     "start": "next start",
     "clean": "npx rimraf node_modules pnpm-lock.yaml .next",
     "start-local-supabase": "supabase init --force --workdir . && supabase start -o env",
-    "test:prod": "TEST_ENV=production playwright test",
+    "test:prod": "TEST_ENV=production playwright test --ui",
     "test:build": "pnpm install && pnpm start-local-supabase && pnpm build",
     "test:assert": "pnpm test:prod"
   },
   "dependencies": {
-    "@next/font": "14.2.15",
+    "@next/font": "14.2.25",
     "@sentry/nextjs": "latest || *",
-    "@sentry/supabase": "latest || *",
     "@supabase/auth-helpers-react": "0.5.0",
     "@supabase/auth-ui-react": "0.4.7",
     "@supabase/supabase-js": "2.49.1",
@@ -23,7 +22,7 @@
     "@types/react": "18.0.28",
     "@types/react-dom": "18.0.11",
     "concurrently": "7.6.0",
-    "next": "14.2.15",
+    "next": "14.2.25",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "supabase": "2.19.7",
@@ -33,7 +32,7 @@
     "@playwright/test": "~1.50.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "eslint": "8.34.0",
-    "eslint-config-next": "14.2.15"
+    "eslint-config-next": "14.2.25"
   },
   "volta": {
     "extends": "../../package.json"
