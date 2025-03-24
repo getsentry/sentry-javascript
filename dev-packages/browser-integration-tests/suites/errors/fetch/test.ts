@@ -39,9 +39,9 @@ sentryTest('handles fetch network errors on subdomains @firefox', async ({ getLo
   const eventData = envelopeRequestParser(await reqPromise);
 
   const errorMap: Record<string, string> = {
-    chromium: 'Failed to fetch (sentry-test-external.io)',
-    webkit: 'Load failed (sentry-test-external.io)',
-    firefox: 'NetworkError when attempting to fetch resource. (sentry-test-external.io)',
+    chromium: 'Failed to fetch (subdomain.sentry-test-external.io)',
+    webkit: 'Load failed (subdomain.sentry-test-external.io)',
+    firefox: 'NetworkError when attempting to fetch resource. (subdomain.sentry-test-external.io)',
   };
 
   const error = errorMap[browserName];

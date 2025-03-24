@@ -120,10 +120,7 @@ function instrumentFetch(onFetchResolved?: (response: Response) => void, skipNat
           ) {
             try {
               const url = new URL(handlerData.fetchData.url);
-              // We only want to take the top-level domain, e.g. xxx.sentry.io should become sentry.io
-              // We do this to avoid noise when there may be dynamic subdomains
-              const host = url.host.split('.').slice(-2).join('.');
-              error.message = `${error.message} (${host})`;
+              error.message = `${error.message} (${url.host})`;
             } catch {
               // ignore it if errors happen here
             }
