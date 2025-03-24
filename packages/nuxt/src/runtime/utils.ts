@@ -9,16 +9,23 @@ import type { ComponentPublicInstance } from 'vue';
  *  Extracts the relevant context information from the error context (H3Event in Nitro Error)
  *  and created a structured context object.
  */
-export function extractErrorContext(errorContext: CapturedErrorContext): Context {
-  if (!errorContext.event) {
-    return {};
+export function extractErrorContext(errorContext: CapturedErrorContext | undefined): Context {
+  const ctx: Context = {};
+
+  if (!errorContext) {
+    return ctx;
   }
 
-  return {
-    method: errorContext.event._method,
-    path: errorContext.event._path,
-    tags: Array.isArray(errorContext.tags) ? errorContext.tags : undefined,
-  };
+  if (errorContext.event) {
+    ctx.method = errorContext.event._method;
+    ctx.path = errorContext.event._path;
+  }
+
+  if (Array.isArray(errorContext.tags)) {
+    ctx.tags = errorContext.tags;
+  }
+
+  return ctx;
 }
 
 /**

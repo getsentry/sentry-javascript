@@ -21,7 +21,7 @@ import type {
 } from '../types-hoist';
 import type { SpanLink, SpanLinkJSON } from '../types-hoist/link';
 import { consoleSandbox } from '../utils-hoist/logger';
-import { addNonEnumerableProperty, dropUndefinedKeys } from '../utils-hoist/object';
+import { addNonEnumerableProperty } from '../utils-hoist/object';
 import { generateSpanId } from '../utils-hoist/propagationContext';
 import { timestampInSeconds } from '../utils-hoist/time';
 import { generateSentryTraceHeader } from '../utils-hoist/tracing';
