@@ -46,7 +46,7 @@ export function getDynamicSamplingContextFromClient(trace_id: string, client: Cl
     release: options.release,
     public_key,
     trace_id,
-  }) as DynamicSamplingContext;
+  }) satisfies DynamicSamplingContext;
 
   client.emit('createDsc', dsc);
 
