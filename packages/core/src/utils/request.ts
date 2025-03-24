@@ -1,6 +1,5 @@
 import type { PolymorphicRequest, RequestEventData } from '../types-hoist';
 import type { WebFetchHeaders, WebFetchRequest } from '../types-hoist/webfetchapi';
-import { dropUndefinedKeys } from '../utils-hoist/object';
 
 /**
  * Transforms a `Headers` object that implements the `Web Fetch API` (https://developer.mozilla.org/en-US/docs/Web/API/Headers) into a simple key-value dict.

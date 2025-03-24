@@ -1,4 +1,4 @@
-import { Context, GLOBAL_OBJ, dropUndefinedKeys, flush, logger, vercelWaitUntil } from '@sentry/core';
+import { Context, GLOBAL_OBJ, flush, logger, vercelWaitUntil } from '@sentry/core';
 import * as SentryNode from '@sentry/node';
 import { H3Error } from 'h3';
 import type { CapturedErrorContext } from 'nitropack';
@@ -36,24 +36,22 @@ export default defineNitroPlugin(nitroApp => {
 });
 
 function extractErrorContext(errorContext: CapturedErrorContext): Context {
-  const structuredContext: Context = {
-    method: undefined,
-    path: undefined,
-    tags: undefined,
-  };
+  const ctx: Context = {};
 
-  if (errorContext) {
-    if (errorContext.event) {
-      structuredContext.method = errorContext.event._method || undefined;
-      structuredContext.path = errorContext.event._path || undefined;
-    }
-
-    if (Array.isArray(errorContext.tags)) {
-      structuredContext.tags = errorContext.tags || undefined;
-    }
+  if (!errorContext) {
+    return ctx;
   }
 
-  return dropUndefinedKeys(structuredContext);
+  if (errorContext.event) {
+    ctx.method = errorContext.event._method;
+    ctx.path = errorContext.event._path;
+  }
+
+  if (Array.isArray(errorContext.tags)) {
+    ctx.tags = errorContext.tags;
+  }
+
+  return ctx;
 }
 
 async function flushIfServerless(): Promise<void> {

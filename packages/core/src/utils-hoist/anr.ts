@@ -1,6 +1,5 @@
 import type { StackFrame } from '../types-hoist';
 import { filenameIsInApp } from './node-stack-trace';
-import { dropUndefinedKeys } from './object';
 import { UNKNOWN_FUNCTION } from './stacktrace';
 
 type WatchdogReturn = {

@@ -18,7 +18,6 @@ import type {
 
 import { dsnToString } from './dsn';
 import { normalize } from './normalize';
-import { dropUndefinedKeys } from './object';
 import { GLOBAL_OBJ } from './worldwide';
 
 /**

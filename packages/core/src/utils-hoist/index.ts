@@ -45,6 +45,7 @@ export { normalize, normalizeToSize, normalizeUrlToBase } from './normalize';
 export {
   addNonEnumerableProperty,
   convertToPlainObject,
+  // eslint-disable-next-line deprecation/deprecation
   dropUndefinedKeys,
   extractExceptionKeysForMessage,
   fill,
