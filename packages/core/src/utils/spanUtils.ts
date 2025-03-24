@@ -42,7 +42,7 @@ export function spanToTransactionTraceContext(span: Span): TraceContext {
   const { spanId: span_id, traceId: trace_id } = span.spanContext();
   const { data, op, parent_span_id, status, origin, links } = spanToJSON(span);
 
-  return dropUndefinedKeys({
+  return {
     parent_span_id,
     span_id,
     trace_id,
@@ -51,7 +51,7 @@ export function spanToTransactionTraceContext(span: Span): TraceContext {
     status,
     origin,
     links,
-  });
+  };
 }
 
 /**
@@ -67,11 +67,11 @@ export function spanToTraceContext(span: Span): TraceContext {
 
   const span_id = isRemote ? scope?.getPropagationContext().propagationSpanId || generateSpanId() : spanId;
 
-  return dropUndefinedKeys({
+  return {
     parent_span_id,
     span_id,
     trace_id,
-  });
+  };
 }
 
 /**

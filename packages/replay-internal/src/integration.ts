@@ -356,7 +356,7 @@ function loadReplayOptionsFromClient(initialOptions: InitialReplayPluginOptions,
   const finalOptions: ReplayPluginOptions = {
     sessionSampleRate: 0,
     errorSampleRate: 0,
-    ...dropUndefinedKeys(initialOptions),
+    ...initialOptions,
   };
 
   const replaysSessionSampleRate = parseSampleRate(opt.replaysSessionSampleRate);

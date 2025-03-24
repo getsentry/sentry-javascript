@@ -91,14 +91,14 @@ export function httpRequestToRequestData(request: {
   // This is non-standard, but may be set on e.g. Next.js or Express requests
   const cookies = (request as PolymorphicRequest).cookies;
 
-  return dropUndefinedKeys({
+  return {
     url: absoluteUrl,
     method: request.method,
     query_string: extractQueryParamsFromUrl(url),
     headers: headersToDict(headers),
     cookies,
     data,
-  });
+  };
 }
 
 function getAbsoluteUrl({

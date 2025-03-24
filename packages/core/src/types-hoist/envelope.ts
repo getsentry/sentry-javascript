@@ -17,7 +17,7 @@ import type { SpanJSON } from './span';
 // Based on https://github.com/getsentry/relay/blob/b23b8d3b2360a54aaa4d19ecae0231201f31df5e/relay-sampling/src/lib.rs#L685-L707
 export type DynamicSamplingContext = {
   trace_id: string;
-  public_key: DsnComponents['publicKey'];
+  public_key?: DsnComponents['publicKey'];
   sample_rate?: string;
   release?: string;
   environment?: string;
