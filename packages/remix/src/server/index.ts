@@ -111,6 +111,7 @@ export {
   withIsolationScope,
   withMonitor,
   withScope,
+  supabaseIntegration,
   zodErrorsIntegration,
   logger,
 } from '@sentry/node';
