@@ -124,8 +124,6 @@ export function makeTerserPlugin() {
           // These are used by instrument.ts in utils for identifying HTML elements & events
           '_sentryCaptured',
           '_sentryId',
-          // Keeps the frozen DSC on a Sentry Span
-          '_frozenDsc',
           // These are used to keep span & scope relationships
           '_sentryScope',
           '_sentryIsolationScope',
