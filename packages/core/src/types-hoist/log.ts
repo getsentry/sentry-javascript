@@ -1,3 +1,5 @@
+import type { ParameterizedString } from './parameterize';
+
 export type LogSeverityLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal' | 'critical';
 
 export type SerializedLogAttributeValueType =
@@ -36,7 +38,7 @@ export interface Log {
   /**
    * The message to be logged - for example, 'hello world' would become a log like '[INFO] hello world'
    */
-  message: string;
+  message: ParameterizedString;
 
   /**
    * Arbitrary structured data that stores information about the log - e.g., userId: 100.

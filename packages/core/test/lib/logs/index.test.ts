@@ -8,6 +8,7 @@ import {
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 import * as loggerModule from '../../../src/utils-hoist/logger';
 import { Scope } from '../../../src';
+import { parameterize } from '../../../src/utils/parameterize';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 
@@ -116,6 +117,7 @@ describe('_INTERNAL_captureLog', () => {
     expect(_INTERNAL_getLogBuffer(client)?.[0]).toEqual(
       expect.objectContaining({
         traceId: '3d9355f71e9c444b81161599adac6e29',
+        severityNumber: 17, // error level maps to 17
       }),
     );
   });
@@ -186,5 +188,32 @@ describe('_INTERNAL_captureLog', () => {
     const mockSendEnvelope = vi.spyOn(client as any, 'sendEnvelope').mockImplementation(() => {});
     _INTERNAL_flushLogsBuffer(client);
     expect(mockSendEnvelope).not.toHaveBeenCalled();
+  });
+
+  it('handles parameterized strings correctly', () => {
+    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableLogs: true } });
+    const client = new TestClient(options);
+
+    const parameterizedMessage = parameterize`Hello ${'John'}, welcome to ${'Sentry'}`;
+
+    _INTERNAL_captureLog({ level: 'info', message: parameterizedMessage }, client, undefined);
+
+    const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+    expect(logAttributes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          key: 'sentry.message.template',
+          value: { stringValue: 'Hello %s, welcome to %s' },
+        }),
+        expect.objectContaining({
+          key: 'sentry.message.param.0',
+          value: { stringValue: 'John' },
+        }),
+        expect.objectContaining({
+          key: 'sentry.message.param.1',
+          value: { stringValue: 'Sentry' },
+        }),
+      ]),
+    );
   });
 });

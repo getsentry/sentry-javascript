@@ -5,7 +5,7 @@ import { DEBUG_BUILD } from '../debug-build';
 import { SEVERITY_TEXT_TO_SEVERITY_NUMBER } from './constants';
 import type { SerializedLogAttribute, SerializedOtelLog } from '../types-hoist';
 import type { Log } from '../types-hoist/log';
-import { logger } from '../utils-hoist';
+import { isParameterizedString, logger } from '../utils-hoist';
 import { _getSpanForScope } from '../utils/spanOnScope';
 import { createOtelLogEnvelope } from './envelope';
 
@@ -88,6 +88,14 @@ export function _INTERNAL_captureLog(log: Log, client = getClient(), scope = get
 
   if (environment) {
     logAttributes.environment = environment;
+  }
+
+  if (isParameterizedString(message)) {
+    const { __sentry_template_string__, __sentry_template_values__ = [] } = message;
+    logAttributes['sentry.message.template'] = __sentry_template_string__;
+    __sentry_template_values__.forEach((param, index) => {
+      logAttributes[`sentry.message.param.${index}`] = param;
+    });
   }
 
   const span = _getSpanForScope(scope);
