@@ -50,13 +50,6 @@ export function getDynamicSamplingContextFromClient(trace_id: string, client: Cl
     trace_id,
   };
 
-  if (!dsc.release) {
-    delete dsc.release;
-  }
-  if (!dsc.public_key) {
-    delete dsc.public_key;
-  }
-
   client.emit('createDsc', dsc);
 
   return dsc;
