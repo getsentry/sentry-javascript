@@ -99,143 +99,30 @@ describe('Node Logger', () => {
     });
   });
 
-  describe('Formatted logging methods', () => {
-    it('should export all formatted log methods', () => {
-      expect(nodeLogger.traceFmt).toBeTypeOf('function');
-      expect(nodeLogger.debugFmt).toBeTypeOf('function');
-      expect(nodeLogger.infoFmt).toBeTypeOf('function');
-      expect(nodeLogger.warnFmt).toBeTypeOf('function');
-      expect(nodeLogger.errorFmt).toBeTypeOf('function');
-      expect(nodeLogger.fatalFmt).toBeTypeOf('function');
-      expect(nodeLogger.criticalFmt).toBeTypeOf('function');
-    });
-
-    it('should format the message with trace level', () => {
-      nodeLogger.traceFmt('Hello %s', ['world'], { key: 'value' });
-
-      expect(mockCaptureLog).toHaveBeenCalledWith({
-        level: 'trace',
-        message: 'Hello world',
-        attributes: {
-          key: 'value',
-          'sentry.message.template': 'Hello %s',
-          'sentry.message.param.0': 'world',
-        },
-      });
-    });
-
-    it('should format the message with debug level', () => {
-      nodeLogger.debugFmt('Count: %d', [42], { key: 'value' });
-
-      expect(mockCaptureLog).toHaveBeenCalledWith({
-        level: 'debug',
-        message: 'Count: 42',
-        attributes: {
-          key: 'value',
-          'sentry.message.template': 'Count: %d',
-          'sentry.message.param.0': 42,
-        },
-      });
-    });
-
-    it('should format the message with info level', () => {
-      nodeLogger.infoFmt('User %s logged in from %s', ['John', 'Paris'], { userId: 123 });
-
+  describe('Template string logging', () => {
+    it('should handle template strings with parameters', () => {
+      nodeLogger.info('Hello %s, your balance is %d', ['John', 100], { userId: 123 });
       expect(mockCaptureLog).toHaveBeenCalledWith({
         level: 'info',
-        message: 'User John logged in from Paris',
+        message: 'Hello John, your balance is 100',
         attributes: {
           userId: 123,
-          'sentry.message.template': 'User %s logged in from %s',
+          'sentry.message.template': 'Hello %s, your balance is %d',
           'sentry.message.param.0': 'John',
-          'sentry.message.param.1': 'Paris',
+          'sentry.message.param.1': 100,
         },
       });
     });
 
-    it('should format the message with warn level', () => {
-      nodeLogger.warnFmt('Usage at %d%%', [95], { resource: 'CPU' });
-
+    it('should handle template strings without additional attributes', () => {
+      nodeLogger.debug('User %s logged in from %s', ['Alice', 'mobile']);
       expect(mockCaptureLog).toHaveBeenCalledWith({
-        level: 'warn',
-        message: 'Usage at 95%',
+        level: 'debug',
+        message: 'User Alice logged in from mobile',
         attributes: {
-          resource: 'CPU',
-          'sentry.message.template': 'Usage at %d%%',
-          'sentry.message.param.0': 95,
-        },
-      });
-    });
-
-    it('should format the message with error level', () => {
-      nodeLogger.errorFmt('Failed to process %s: %s', ['payment', 'timeout'], { orderId: 'ORD-123' });
-
-      expect(mockCaptureLog).toHaveBeenCalledWith({
-        level: 'error',
-        message: 'Failed to process payment: timeout',
-        attributes: {
-          orderId: 'ORD-123',
-          'sentry.message.template': 'Failed to process %s: %s',
-          'sentry.message.param.0': 'payment',
-          'sentry.message.param.1': 'timeout',
-        },
-      });
-    });
-
-    it('should format the message with fatal level', () => {
-      nodeLogger.fatalFmt('System crash in module %s', ['auth'], { shutdown: true });
-
-      expect(mockCaptureLog).toHaveBeenCalledWith({
-        level: 'fatal',
-        message: 'System crash in module auth',
-        attributes: {
-          shutdown: true,
-          'sentry.message.template': 'System crash in module %s',
-          'sentry.message.param.0': 'auth',
-        },
-      });
-    });
-
-    it('should format the message with critical level', () => {
-      nodeLogger.criticalFmt('Database %s is down for %d minutes', ['customers', 30], { impact: 'high' });
-
-      expect(mockCaptureLog).toHaveBeenCalledWith({
-        level: 'critical',
-        message: 'Database customers is down for 30 minutes',
-        attributes: {
-          impact: 'high',
-          'sentry.message.template': 'Database %s is down for %d minutes',
-          'sentry.message.param.0': 'customers',
-          'sentry.message.param.1': 30,
-        },
-      });
-    });
-
-    it('should handle complex formatting with multiple types', () => {
-      const obj = { name: 'test' };
-      nodeLogger.infoFmt('Values: %s, %d, %j', ['string', 42, obj]);
-
-      expect(mockCaptureLog).toHaveBeenCalledWith({
-        level: 'info',
-        message: `Values: string, 42, ${JSON.stringify(obj)}`,
-        attributes: {
-          'sentry.message.template': 'Values: %s, %d, %j',
-          'sentry.message.param.0': 'string',
-          'sentry.message.param.1': 42,
-          'sentry.message.param.2': obj,
-        },
-      });
-    });
-
-    it('should use empty object as default for attributes', () => {
-      nodeLogger.infoFmt('Hello %s', ['world']);
-
-      expect(mockCaptureLog).toHaveBeenCalledWith({
-        level: 'info',
-        message: 'Hello world',
-        attributes: {
-          'sentry.message.template': 'Hello %s',
-          'sentry.message.param.0': 'world',
+          'sentry.message.template': 'User %s logged in from %s',
+          'sentry.message.param.0': 'Alice',
+          'sentry.message.param.1': 'mobile',
         },
       });
     });
