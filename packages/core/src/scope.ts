@@ -477,9 +477,9 @@ export class Scope {
 
     const mergedBreadcrumb: Breadcrumb = {
       timestamp: dateTimestampInSeconds(),
+      ...breadcrumb,
       // Breadcrumb messages can theoretically be infinitely large and they're held in memory so we truncate them not to leak (too much) memory
       message: breadcrumb.message ? truncate(breadcrumb.message, 2048) : breadcrumb.message,
-      ...breadcrumb,
     };
 
     this._breadcrumbs.push(mergedBreadcrumb);
