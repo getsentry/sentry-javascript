@@ -62,15 +62,25 @@ export function logAttributeToSerializedLogAttribute(key: string, value: unknown
  * @experimental This method will experience breaking changes. This is not yet part of
  * the stable Sentry SDK API and can be changed or removed without warning.
  */
-export function _INTERNAL_captureLog(log: Log, client = getClient(), scope = getCurrentScope()): void {
+export function _INTERNAL_captureLog(beforeLog: Log, client = getClient(), scope = getCurrentScope()): void {
   if (!client) {
     DEBUG_BUILD && logger.warn('No client available to capture log.');
     return;
   }
 
   const { _experiments, release, environment } = client.getOptions();
-  if (!_experiments?.enableLogs) {
+  const { enableLogs = false, beforeSendLog } = _experiments ?? {};
+  if (!enableLogs) {
     DEBUG_BUILD && logger.warn('logging option not enabled, log will not be captured.');
+    return;
+  }
+
+  client.emit('beforeCaptureLog', beforeLog);
+
+  const log = beforeSendLog ? beforeSendLog(beforeLog) : beforeLog;
+  if (!log) {
+    client.recordDroppedEvent('before_send', 'log_item', 1);
+    DEBUG_BUILD && logger.warn('beforeSendLog returned null, log will not be captured.');
     return;
   }
 
@@ -125,7 +135,7 @@ export function _INTERNAL_captureLog(log: Log, client = getClient(), scope = get
     }
   }
 
-  client.emit('beforeCaptureLog', log);
+  client.emit('afterCaptureLog', log);
 }
 
 /**
