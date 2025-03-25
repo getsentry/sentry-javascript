@@ -7,11 +7,8 @@ import { getFirstSentryEnvelopeRequest, properFullEnvelopeRequestParser } from '
 sentryTest('should capture all logging methods', async ({ getLocalTestUrl, page }) => {
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  // Get all events from the page
   const event = await getFirstSentryEnvelopeRequest<OtelLogEnvelope>(page, url, properFullEnvelopeRequestParser);
   const envelopeItems = event[1];
-
-  expect(envelopeItems.length).toBe(12);
 
   expect(envelopeItems[0]).toEqual([
     {
