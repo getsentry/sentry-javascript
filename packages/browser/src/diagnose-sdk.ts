@@ -1,4 +1,4 @@
-import { getCurrentScope } from '@sentry/core';
+import { getClient } from '@sentry/core';
 
 /**
  * A function to diagnose why the SDK might not be successfully sending data.
@@ -10,9 +10,7 @@ import { getCurrentScope } from '@sentry/core';
  * If the function doesn't detect an issue it resolves to `undefined`.
  */
 export async function diagnoseSdk(): Promise<'no-client-active' | 'sentry-unreachable' | void> {
-  const client = getCurrentScope().getClient();
-
-  if (!client) {
+  if (!getClient()) {
     return 'no-client-active';
   }
 
