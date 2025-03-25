@@ -34,7 +34,7 @@ test('Does not send 4xx errors by default', async ({ baseURL }) => {
   // We should only see the 5xx error captured due to shouldHandleError's default behavior
 
   // Create a promise to wait for the 500 error
-  const serverErrorPromise = waitForError('node-fastify', event => {
+  const serverErrorPromise = waitForError('node-fastify-4', event => {
     // Looking for a 500 error that should be captured
     return !!event.exception?.values?.[0]?.value?.includes('This is a 5xx error');
   });
