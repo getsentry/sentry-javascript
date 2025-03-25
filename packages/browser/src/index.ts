@@ -1,8 +1,8 @@
 export * from './exports';
 
-import * as logger from './log';
-
+import * as logger from './logs/exports';
 export { logger };
+export { consoleLoggingIntegration } from './logs/console-integration';
 
 export { reportingObserverIntegration } from './integrations/reportingobserver';
 export { httpClientIntegration } from './integrations/httpclient';

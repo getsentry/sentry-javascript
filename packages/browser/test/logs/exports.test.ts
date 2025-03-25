@@ -7,8 +7,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as sentryCore from '@sentry/core';
 import { getGlobalScope, getCurrentScope, getIsolationScope } from '@sentry/core';
 
-import { init, logger } from '../src';
-import { makeSimpleTransport } from './mocks/simpletransport';
+import { init, logger } from '../../src';
+import { makeSimpleTransport } from '../mocks/simpletransport';
 
 const dsn = 'https://53039209a22b4ec1bcc296a3c9fdecd6@sentry.io/4291';
 
