@@ -1,3 +1,4 @@
+// Vendored from https://github.com/open-telemetry/opentelemetry-js-contrib/blob/407f61591ba69a39a6908264379d4d98a48dbec4/plugins/node/opentelemetry-instrumentation-fastify/src/constants.ts
 /*
  * Copyright The OpenTelemetry Authors
  *
