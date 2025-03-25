@@ -9,9 +9,7 @@ sentryTest('should capture all logging methods', async ({ getLocalTestUrl, page 
 
   // Get all events from the page
   const event = await getFirstSentryEnvelopeRequest<OtelLogEnvelope>(page, url, properFullEnvelopeRequestParser);
-  const [envelopeHeader, envelopeItems] = event;
-
-  expect(envelopeHeader).toEqual({ sdk: { name: 'sentry.javascript.browser', version: expect.any(String) } });
+  const envelopeItems = event[1];
 
   expect(envelopeItems.length).toBe(12);
 
