@@ -1292,9 +1292,7 @@ describe('Client', () => {
 
         expect(beforeSend).toHaveBeenCalled();
         expect(TestClient.instance!.event).toBeUndefined();
-        expect(loggerWarnSpy).toBeCalledWith(
-          'before send for type `error` must return `null` or a valid event.',
-        );
+        expect(loggerWarnSpy).toBeCalledWith('before send for type `error` must return `null` or a valid event.');
       }
     });
 
@@ -1313,9 +1311,7 @@ describe('Client', () => {
 
         expect(beforeSendTransaction).toHaveBeenCalled();
         expect(TestClient.instance!.event).toBeUndefined();
-        expect(loggerWarnSpy).toBeCalledWith(
-          'before send for type `transaction` must return `null` or a valid event.',
-        );
+        expect(loggerWarnSpy).toBeCalledWith('before send for type `transaction` must return `null` or a valid event.');
       }
     });
 
@@ -1687,9 +1683,7 @@ describe('Client', () => {
         originalException: exception,
       });
       expect(loggerWarnSpy).toBeCalledWith(
-
-          `Event processing pipeline threw an error, original event will not be sent. Details have been sent as a new event.\nReason: ${exception}`,
-        ,
+        `Event processing pipeline threw an error, original event will not be sent. Details have been sent as a new event.\nReason: ${exception}`,
       );
     });
 
