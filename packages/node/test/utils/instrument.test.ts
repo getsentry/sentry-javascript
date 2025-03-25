@@ -65,10 +65,11 @@ describe('instrumentWhenWrapped', () => {
       _wrap: originalWrap,
     } as any;
 
+    const registerCallback = instrumentWhenWrapped(instrumentation);
+
     // Call _wrap first
     instrumentation._wrap();
 
-    const registerCallback = instrumentWhenWrapped(instrumentation);
     registerCallback(callback);
 
     // Callback should be called immediately
