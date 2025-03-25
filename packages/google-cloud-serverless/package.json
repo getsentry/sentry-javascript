@@ -55,10 +55,7 @@
   "devDependencies": {
     "@google-cloud/bigquery": "^5.3.0",
     "@google-cloud/common": "^3.4.1",
-    "@google-cloud/functions-framework": "^1.7.1",
-    "@google-cloud/pubsub": "^2.5.0",
     "@types/node": "^18.19.1",
-    "google-gax": "^2.9.0",
     "nock": "^13.5.5"
   },
   "scripts": {
@@ -77,8 +74,8 @@
     "clean": "rimraf build coverage sentry-google-cloud-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
-    "test": "jest",
-    "test:watch": "jest --watch",
+    "test": "vitest run",
+    "test:watch": "vitest --watch",
     "yalc:publish": "yalc publish --push --sig"
   },
   "volta": {
