@@ -16,6 +16,7 @@ export const envelopeUrlRegex = /\.sentry\.io\/api\/\d+\/envelope\//;
 export const envelopeParser = (request: Request | null): unknown[] => {
   // https://develop.sentry.dev/sdk/envelopes/
   const envelope = request?.postData() || '';
+  console.log(envelope);
 
   // Third row of the envelop is the event payload.
   return envelope.split('\n').map(line => {
@@ -135,10 +136,13 @@ export const countEnvelopes = async (
 
     page.on('request', requestHandler);
 
-    setTimeout(() => {
-      page.off('request', requestHandler);
-      resolve(reqCount);
-    }, options?.timeout || 1000);
+    setTimeout(
+      () => {
+        page.off('request', requestHandler);
+        resolve(reqCount);
+      },
+      options?.timeout || 1000,
+    );
   });
 
   if (options?.url) {

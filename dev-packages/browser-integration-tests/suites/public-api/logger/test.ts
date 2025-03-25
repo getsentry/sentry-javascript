@@ -1,38 +1,148 @@
 import { expect } from '@playwright/test';
-import type { SerializedOtelLog } from '@sentry/core';
+import type { OtelLogEnvelope } from '@sentry/core';
 
 import { sentryTest } from '../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest } from '../../../utils/helpers';
+import { getFirstSentryEnvelopeRequest, properFullEnvelopeRequestParser } from '../../../utils/helpers';
 
 sentryTest('should capture all logging methods', async ({ getLocalTestUrl, page }) => {
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   // Get all events from the page
-  const events = await Promise.all([
-    getFirstSentryEnvelopeRequest<SerializedOtelLog>(page, url),
-    getFirstSentryEnvelopeRequest<SerializedOtelLog>(page, url),
-    getFirstSentryEnvelopeRequest<SerializedOtelLog>(page, url),
-    getFirstSentryEnvelopeRequest<SerializedOtelLog>(page, url),
-    getFirstSentryEnvelopeRequest<SerializedOtelLog>(page, url),
-    getFirstSentryEnvelopeRequest<SerializedOtelLog>(page, url),
+  const event = await getFirstSentryEnvelopeRequest<OtelLogEnvelope>(page, url, properFullEnvelopeRequestParser);
+  const [envelopeHeader, envelopeItems] = event;
+
+  expect(envelopeHeader).toEqual({ sdk: { name: 'sentry.javascript.browser', version: expect.any(String) } });
+
+  expect(envelopeItems.length).toBe(14);
+
+  expect(envelopeItems[0]).toEqual([
+    {
+      type: 'otel_log',
+    },
+    {
+      severityText: 'trace',
+      body: { stringValue: 'test trace' },
+      attributes: [],
+      timeUnixNano: expect.any(String),
+      traceId: expect.any(String),
+      severityNumber: 1,
+    },
   ]);
 
-  // Verify each log level
-  expect(events[0].severityText).toBe('info');
-  expect(events[0].body.stringValue).toBe('test info');
+  expect(envelopeItems[1]).toEqual([
+    {
+      type: 'otel_log',
+    },
+    {
+      severityText: 'debug',
+      body: { stringValue: 'test debug' },
+      attributes: [],
+      timeUnixNano: expect.any(String),
+      traceId: expect.any(String),
+      severityNumber: 5,
+    },
+  ]);
 
-  expect(events[1].severityText).toBe('debug');
-  expect(events[1].body.stringValue).toBe('test debug');
+  expect(envelopeItems[2]).toEqual([
+    {
+      type: 'otel_log',
+    },
+    {
+      severityText: 'info',
+      body: { stringValue: 'test info' },
+      attributes: [],
+      timeUnixNano: expect.any(String),
+      traceId: expect.any(String),
+      severityNumber: 1,
+    },
+  ]);
 
-  expect(events[2].severityText).toBe('warning');
-  expect(events[2].body.stringValue).toBe('test warn');
+  expect(envelopeItems[3]).toEqual([
+    {
+      type: 'otel_log',
+    },
+    {
+      severityText: 'warn',
+      body: { stringValue: 'test warn' },
+      attributes: [],
+      timeUnixNano: expect.any(String),
+      traceId: expect.any(String),
+      severityNumber: 1,
+    },
+  ]);
 
-  expect(events[3].severityText).toBe('error');
-  expect(events[3].body.stringValue).toBe('test error');
+  expect(envelopeItems[4]).toEqual([
+    {
+      type: 'otel_log',
+    },
+    {
+      severityText: 'error',
+      body: { stringValue: 'test error' },
+      attributes: [],
+      timeUnixNano: expect.any(String),
+      traceId: expect.any(String),
+      severityNumber: 1,
+    },
+  ]);
 
-  expect(events[4].severityText).toBe('fatal');
-  expect(events[4].body.stringValue).toBe('test fatal');
+  expect(envelopeItems[5]).toEqual([
+    {
+      type: 'otel_log',
+    },
+    {
+      severityText: 'fatal',
+      body: { stringValue: 'test fatal' },
+      attributes: [],
+      timeUnixNano: expect.any(String),
+      traceId: expect.any(String),
+      severityNumber: 1,
+    },
+  ]);
 
-  expect(events[5].severityText).toBe('critical');
-  expect(events[5].body.stringValue).toBe('test critical');
+  expect(envelopeItems[6]).toEqual([
+    {
+      type: 'otel_log',
+    },
+    {
+      severityText: 'critical',
+      body: { stringValue: 'test critical' },
+      attributes: [],
+      timeUnixNano: expect.any(String),
+      traceId: expect.any(String),
+      severityNumber: 1,
+    },
+  ]);
+
+  expect(envelopeItems[7]).toEqual([
+    {
+      type: 'otel_log',
+    },
+    {
+      severityText: 'trace',
+      body: { stringValue: 'test trace stringArg 123' },
+      attributes: [
+        {
+          key: 'sentry.message.template',
+          value: {
+            stringValue: 'test %s %s',
+          },
+        },
+        {
+          key: 'sentry.message.params.0',
+          value: {
+            stringValue: 'stringArg',
+          },
+        },
+        {
+          key: 'sentry.message.params.1',
+          value: {
+            doubleValue: 123,
+          },
+        },
+      ],
+      timeUnixNano: expect.any(String),
+      traceId: expect.any(String),
+      severityNumber: 1,
+    },
+  ]);
 });
