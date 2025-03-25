@@ -32,7 +32,6 @@ describe('Node Logger', () => {
       expect(nodeLogger.warn).toBeTypeOf('function');
       expect(nodeLogger.error).toBeTypeOf('function');
       expect(nodeLogger.fatal).toBeTypeOf('function');
-      expect(nodeLogger.critical).toBeTypeOf('function');
     });
 
     it('should call _INTERNAL_captureLog with trace level', () => {

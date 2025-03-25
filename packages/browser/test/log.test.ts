@@ -64,7 +64,6 @@ describe('Logger', () => {
       expect(logger.warn).toBeTypeOf('function');
       expect(logger.error).toBeTypeOf('function');
       expect(logger.fatal).toBeTypeOf('function');
-      expect(logger.critical).toBeTypeOf('function');
     });
 
     it('should call _INTERNAL_captureLog with trace level', () => {
