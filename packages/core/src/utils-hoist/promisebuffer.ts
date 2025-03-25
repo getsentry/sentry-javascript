@@ -8,7 +8,7 @@ export interface PromiseBuffer<T> {
   drain(timeout?: number): PromiseLike<boolean>;
 }
 
-export const SENTRY_BUFFER_FULL_ERROR = Symbol('SentryBufferFullError');
+export const SENTRY_BUFFER_FULL_ERROR = Symbol.for('SentryBufferFullError');
 
 /**
  * Creates an new PromiseBuffer object with the specified limit
