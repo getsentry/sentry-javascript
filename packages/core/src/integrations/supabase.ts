@@ -1,4 +1,4 @@
-// eslint-disable max-lines
+/* eslint-disable max-lines */
 import { logger, isPlainObject } from '../utils-hoist';
 
 import type { Span, IntegrationFn } from '../types-hoist';
