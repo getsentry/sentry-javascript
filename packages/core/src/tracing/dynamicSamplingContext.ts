@@ -8,7 +8,7 @@ import {
   baggageHeaderToDynamicSamplingContext,
   dynamicSamplingContextToSentryBaggageHeader,
 } from '../utils-hoist/baggage';
-import { addNonEnumerableProperty, dropUndefinedKeys } from '../utils-hoist/object';
+import { addNonEnumerableProperty } from '../utils-hoist/object';
 import { hasSpansEnabled } from '../utils/hasSpansEnabled';
 import { getRootSpan, spanIsSampled, spanToJSON } from '../utils/spanUtils';
 import { getCapturedScopesOnSpan } from './utils';
@@ -41,12 +41,14 @@ export function getDynamicSamplingContextFromClient(trace_id: string, client: Cl
 
   const { publicKey: public_key } = client.getDsn() || {};
 
-  const dsc = dropUndefinedKeys({
+  // Instead of conditionally adding non-undefined values, we add them and then remove them if needed
+  // otherwise, the order of baggage entries changes, which "breaks" a bunch of tests etc.
+  const dsc: DynamicSamplingContext = {
     environment: options.environment || DEFAULT_ENVIRONMENT,
     release: options.release,
     public_key,
     trace_id,
-  }) satisfies DynamicSamplingContext;
+  };
 
   client.emit('createDsc', dsc);
 

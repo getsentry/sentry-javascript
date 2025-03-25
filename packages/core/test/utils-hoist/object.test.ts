@@ -169,6 +169,7 @@ describe('extractExceptionKeysForMessage()', () => {
   });
 });
 
+/* eslint-disable deprecation/deprecation */
 describe('dropUndefinedKeys()', () => {
   test('simple case', () => {
     expect(
@@ -314,6 +315,7 @@ describe('dropUndefinedKeys()', () => {
     expect(droppedChicken.lays[0] === droppedChicken).toBe(true);
   });
 });
+/* eslint-enable deprecation/deprecation */
 
 describe('objectify()', () => {
   describe('stringifies nullish values', () => {
