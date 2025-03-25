@@ -12,5 +12,4 @@ export const SEVERITY_TEXT_TO_SEVERITY_NUMBER: Partial<Record<LogSeverityLevel, 
   warn: 13,
   error: 17,
   fatal: 21,
-  critical: 25,
 };
