@@ -1,6 +1,6 @@
 import type { ParameterizedString } from './parameterize';
 
-export type LogSeverityLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal' | 'critical';
+export type LogSeverityLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
 
 export type SerializedLogAttributeValueType =
   | {
