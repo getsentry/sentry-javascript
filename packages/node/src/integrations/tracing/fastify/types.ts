@@ -23,9 +23,7 @@ export interface FastifyInstance {
     hook: 'onError',
     handler: (request: FastifyRequest, reply: FastifyReply, error: Error) => void,
   ): FastifyInstance;
-  addHook(
-    hook: 'onRequest', handler: (request: FastifyRequest, reply: FastifyReply) => void): FastifyInstance;
-
+  addHook(hook: 'onRequest', handler: (request: FastifyRequest, reply: FastifyReply) => void): FastifyInstance;
 }
 
 export interface FastifyReply {

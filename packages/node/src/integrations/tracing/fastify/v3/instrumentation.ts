@@ -31,9 +31,7 @@ import { SEMATTRS_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
 
 import { AttributeNames, FastifyNames, FastifyTypes } from './enums/AttributeNames';
 
-import type {
-  PluginFastifyReply,
-} from './internal-types';
+import type { PluginFastifyReply } from './internal-types';
 
 import type {
   FastifyErrorCodes,
