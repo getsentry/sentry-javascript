@@ -1,4 +1,5 @@
-import { Page, expect } from '@playwright/test';
+import type { Page} from '@playwright/test';
+import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
 
 import { sentryTest } from '../../../../utils/fixtures';
@@ -63,7 +64,7 @@ sentryTest('should include correct data payload in Supabase breadcrumbs', async 
   expect(supabaseBreadcrumb).toBeDefined();
   expect(supabaseBreadcrumb?.data).toMatchObject({
     query: expect.arrayContaining([
-      "filter(columns, )"
+      'filter(columns, )'
     ]),
   });
 });
