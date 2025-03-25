@@ -71,4 +71,4 @@ export { launchDarklyIntegration, buildLaunchDarklyFlagUsedHandler } from './int
 export { openFeatureIntegration, OpenFeatureIntegrationHook } from './integrations/featureFlags/openfeature';
 export { unleashIntegration } from './integrations/featureFlags/unleash';
 export { statsigIntegration } from './integrations/featureFlags/statsig';
-export { diagnoseSdk } from './diagnose-sdk';
+export { diagnoseSdkConnectivity } from './diagnose-sdk';
