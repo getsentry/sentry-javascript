@@ -53,7 +53,7 @@ export {
   objectify,
 } from './object';
 export { basename, dirname, isAbsolute, join, normalizePath, relative, resolve } from './path';
-export { makePromiseBuffer } from './promisebuffer';
+export { makePromiseBuffer, SENTRY_BUFFER_FULL_ERROR } from './promisebuffer';
 export type { PromiseBuffer } from './promisebuffer';
 
 export { severityLevelFromString } from './severity';
