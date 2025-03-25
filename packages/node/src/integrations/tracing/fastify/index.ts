@@ -12,51 +12,45 @@ import {
   spanToJSON,
 } from '@sentry/core';
 import { generateInstrumentOnce } from '../../otel/instrument';
-import { FastifyInstrumentationV3 } from './fastify-v3/instrumentation';
+import { FastifyInstrumentationV3 } from './v3/instrumentation';
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import type { FastifyInstance } from './fastify-v3/internal-types';
-import { DEBUG_BUILD } from '../../debug-build';
+import { DEBUG_BUILD } from '../../../debug-build';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from './types';
 
-/**
- * Minimal request type containing properties around route information.
- * Works for Fastify 3, 4 and presumably 5.
- *
- * Based on https://github.com/fastify/fastify/blob/ce3811f5f718be278bbcd4392c615d64230065a6/types/request.d.ts
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-interface MinimalFastifyRequest extends Record<string, any> {
-  method?: string;
-  // since fastify@4.10.0
-  routeOptions?: {
-    url?: string;
-  };
-  routerPath?: string;
-}
+// /**
+//  * Minimal request type containing properties around route information.
+//  * Works for Fastify 3, 4 and presumably 5.
+//  *
+//  * Based on https://github.com/fastify/fastify/blob/ce3811f5f718be278bbcd4392c615d64230065a6/types/request.d.ts
+//  */
+// // eslint-disable-next-line @typescript-eslint/no-explicit-any
+// interface MinimalFastifyRequest extends Record<string, any> {
+//   method?: string;
+//   // since fastify@4.10.0
+//   routeOptions?: {
+//     url?: string;
+//   };
+//   routerPath?: string;
+// }
 
-/**
- * Minimal reply type containing properties needed for error handling.
- *
- * Based on https://github.com/fastify/fastify/blob/ce3811f5f718be278bbcd4392c615d64230065a6/types/reply.d.ts
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-interface MinimalFastifyReply extends Record<string, any> {
-  statusCode: number;
-}
+// /**
+//  * Minimal reply type containing properties needed for error handling.
+//  *
+//  * Based on https://github.com/fastify/fastify/blob/ce3811f5f718be278bbcd4392c615d64230065a6/types/reply.d.ts
+//  */
+// // eslint-disable-next-line @typescript-eslint/no-explicit-any
+// interface MinimalFastifyReply extends Record<string, any> {
+//   statusCode: number;
+// }
 
-// We inline the types we care about here
-interface Fastify {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  register: (plugin: any) => void;
-  addHook: (hook: string, handler: (...params: unknown[]) => void) => void;
-}
-
-interface FastifyWithHooks extends Omit<Fastify, 'addHook'> {
-  addHook(
-    hook: 'onError',
-    handler: (request: MinimalFastifyRequest, reply: MinimalFastifyReply, error: Error) => void,
-  ): void;
-  addHook(hook: 'onRequest', handler: (request: MinimalFastifyRequest, reply: MinimalFastifyReply) => void): void;
-}
+// // We inline the types we care about here
+// interface Fastify {
+//   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+//   version: string;
+//   register: (plugin: any) => Fastify;
+//   after: (listener?: (err: Error) => void) => Fastify;
+//   addHook: (name: string, handler: (...params: unknown[]) => void) => Fastify;
+// }
 
 interface FastifyHandlerOptions {
   /**
@@ -90,7 +84,7 @@ interface FastifyHandlerOptions {
    * });
    * ```
    */
-  shouldHandleError: (error: Error, request: MinimalFastifyRequest, reply: MinimalFastifyReply) => boolean;
+  shouldHandleError: (error: Error, request: FastifyRequest, reply: FastifyReply) => boolean;
 }
 
 const INTEGRATION_NAME = 'Fastify';
@@ -158,7 +152,7 @@ export const fastifyIntegration = defineIntegration(_fastifyIntegration);
  *
  * 3xx and 4xx errors are not sent by default.
  */
-function defaultShouldHandleError(_error: Error, _request: MinimalFastifyRequest, reply: MinimalFastifyReply): boolean {
+function defaultShouldHandleError(_error: Error, _request: FastifyRequest, reply: FastifyReply): boolean {
   const statusCode = reply.statusCode;
   // 3xx and 4xx errors are not sent by default.
   return statusCode >= 500 || statusCode <= 299;
@@ -184,11 +178,11 @@ function defaultShouldHandleError(_error: Error, _request: MinimalFastifyRequest
  * app.listen({ port: 3000 });
  * ```
  */
-export function setupFastifyErrorHandler(fastify: Fastify, options?: Partial<FastifyHandlerOptions>): void {
+export function setupFastifyErrorHandler(fastify: FastifyInstance, options?: Partial<FastifyHandlerOptions>): void {
   const shouldHandleError = options?.shouldHandleError || defaultShouldHandleError;
 
   const plugin = Object.assign(
-    function (fastify: FastifyWithHooks, _options: unknown, done: () => void): void {
+    function (fastify: FastifyInstance, _options: unknown, done: () => void): void {
       fastify.addHook('onError', async (request, reply, error) => {
         if (shouldHandleError(error, request, reply)) {
           captureException(error);
