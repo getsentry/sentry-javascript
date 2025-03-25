@@ -29,7 +29,7 @@ export async function diagnoseSdkConnectivity(): Promise<
       // We are using the "sentry-sdks" org with id 447951 not to pollute any actual organizations.
       'https://o447951.ingest.sentry.io/api/1337/envelope/?sentry_version=7&sentry_key=1337&sentry_client=sentry.javascript.react%2F1.33.7',
       {
-        body: '',
+        body: '{}',
         method: 'POST',
         mode: 'cors',
         credentials: 'omit',
