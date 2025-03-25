@@ -81,16 +81,14 @@ interface DoNotSendEventError {
   [DO_NOT_SEND_EVENT_SYMBOL]: true;
 }
 
-/** Exported for tests only. */
-export function _makeInternalError(message: string): InternalError {
+function _makeInternalError(message: string): InternalError {
   return {
     message,
     [INTERNAL_ERROR_SYMBOL]: true,
   };
 }
 
-/** Exported for tests only. */
-export function _makeDoNotSendEventError(message: string): DoNotSendEventError {
+function _makeDoNotSendEventError(message: string): DoNotSendEventError {
   return {
     message,
     [DO_NOT_SEND_EVENT_SYMBOL]: true,

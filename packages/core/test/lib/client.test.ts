@@ -12,7 +12,6 @@ import {
   withMonitor,
 } from '../../src';
 import type { BaseClient, Client } from '../../src/client';
-import { _makeInternalError } from '../../src/client';
 import * as integrationModule from '../../src/integration';
 import type { Envelope, ErrorEvent, Event, SpanJSON, TransactionEvent } from '../../src/types-hoist';
 import * as loggerModule from '../../src/utils-hoist/logger';
@@ -1294,7 +1293,7 @@ describe('Client', () => {
         expect(beforeSend).toHaveBeenCalled();
         expect(TestClient.instance!.event).toBeUndefined();
         expect(loggerWarnSpy).toBeCalledWith(
-          _makeInternalError('before send for type `error` must return `null` or a valid event.').message,
+          'before send for type `error` must return `null` or a valid event.',
         );
       }
     });
@@ -1315,7 +1314,7 @@ describe('Client', () => {
         expect(beforeSendTransaction).toHaveBeenCalled();
         expect(TestClient.instance!.event).toBeUndefined();
         expect(loggerWarnSpy).toBeCalledWith(
-          _makeInternalError('before send for type `transaction` must return `null` or a valid event.').message,
+          'before send for type `transaction` must return `null` or a valid event.',
         );
       }
     });
@@ -1688,9 +1687,9 @@ describe('Client', () => {
         originalException: exception,
       });
       expect(loggerWarnSpy).toBeCalledWith(
-        _makeInternalError(
+
           `Event processing pipeline threw an error, original event will not be sent. Details have been sent as a new event.\nReason: ${exception}`,
-        ).message,
+        ,
       );
     });
 
