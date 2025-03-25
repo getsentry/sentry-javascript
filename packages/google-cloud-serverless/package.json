@@ -58,7 +58,6 @@
     "@google-cloud/functions-framework": "^1.7.1",
     "@google-cloud/pubsub": "^2.5.0",
     "@types/node": "^18.19.1",
-    "google-gax": "^2.9.0",
     "nock": "^13.5.5"
   },
   "scripts": {

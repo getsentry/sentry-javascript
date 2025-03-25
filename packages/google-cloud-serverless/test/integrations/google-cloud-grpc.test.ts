@@ -1,28 +1,30 @@
-import * as dns from 'dns';
-import { EventEmitter } from 'events';
-import * as fs from 'fs';
-import * as path from 'path';
-import { PubSub } from '@google-cloud/pubsub';
-import * as http2 from 'http2';
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore ESM/CJS interop issue
-import nock from 'nock';
-import { describe, vi, beforeEach, test, expect, type Mock, afterAll, afterEach } from 'vitest';
+import { vi, describe, beforeEach, test, expect } from 'vitest';
+import { NodeClient } from '@sentry/node';
+import { createTransport } from '@sentry/core';
+import { setCurrentClient, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { googleCloudGrpcIntegration, fillGrpcFunction } from '../../src/integrations/google-cloud-grpc';
+import type { GrpcFunctionObject, Stub, GrpcFunction } from '../../src/integrations/google-cloud-grpc';
 
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
-import { NodeClient, createTransport, setCurrentClient } from '@sentry/node';
-import { googleCloudGrpcIntegration } from '../../src/integrations/google-cloud-grpc';
-
-vi.mock('dns');
-vi.mock('http2');
-
-const spyConnect = vi.spyOn(http2, 'connect');
 const mockSpanEnd = vi.fn();
-const mockStartInactiveSpan = vi.fn(spanArgs => ({ ...spanArgs }));
+const mockStartInactiveSpan = vi.fn();
+const mockFill = vi.fn();
+
+let mockClient: NodeClient;
+
+vi.mock('@sentry/core', async () => {
+  const original = await vi.importActual('@sentry/core');
+  return {
+    ...original,
+    fill: (obj: any, name: string, replacement: any) => {
+      mockFill(obj, name, replacement);
+      obj[name] = replacement(obj[name]);
+    },
+    getClient: () => mockClient,
+  };
+});
 
 vi.mock('@sentry/node', async () => {
-  // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-  const original = (await vi.importActual('@sentry/node')) as typeof import('@sentry/node');
+  const original = await vi.importActual('@sentry/node');
   return {
     ...original,
     startInactiveSpan: (ctx: unknown) => {
@@ -32,130 +34,177 @@ vi.mock('@sentry/node', async () => {
   };
 });
 
-/** Fake HTTP2 stream */
-class FakeStream extends EventEmitter {
-  public rstCode: number = 0;
-  close() {
-    this.emit('end');
-    this.emit('close');
-  }
-  end() {}
-  pause() {}
-  resume() {}
-  write(_data: Buffer, cb: CallableFunction) {
-    process.nextTick(cb, null);
-  }
+// Need to override mock because the integration loads google-gax as a CJS file
+async function mock(mockedUri: string, stub: any) {
+  // @ts-expect-error we are using import on purpose
+  const { Module } = await import('module');
+
+  // @ts-expect-error test
+  Module._load_original = Module._load;
+  // @ts-expect-error test
+  Module._load = (uri, parent) => {
+    if (uri === mockedUri) return stub;
+    // @ts-expect-error test
+    return Module._load_original(uri, parent);
+  };
 }
 
-/** Fake HTTP2 session for GRPC */
-class FakeSession extends EventEmitter {
-  public socket: EventEmitter = new EventEmitter();
-  public request: Mock = vi.fn();
-  ping() {}
-  mockRequest(fn: (stream: FakeStream) => void): FakeStream {
-    const stream = new FakeStream();
-    this.request.mockImplementationOnce(() => {
-      process.nextTick(fn, stream);
-      return stream;
-    });
-    return stream;
-  }
-  mockUnaryRequest(responseData: Buffer) {
-    this.mockRequest(stream => {
-      stream.emit(
-        'response',
-        { ':status': 200, 'content-type': 'application/grpc', 'content-disposition': 'attachment' },
-        4,
-      );
-      stream.emit('data', responseData);
-      stream.emit('trailers', { 'grpc-status': '0', 'content-disposition': 'attachment' });
-    });
-  }
-  close() {
-    this.emit('close');
-    this.socket.emit('close');
-  }
-  ref() {}
-  unref() {}
-}
-
-function mockHttp2Session(): FakeSession {
-  const session = new FakeSession();
-  spyConnect.mockImplementationOnce(() => {
-    process.nextTick(() => session.emit('connect'));
-    return session as unknown as http2.ClientHttp2Session;
-  });
-  return session;
-}
+vi.hoisted(
+  () =>
+    void mock('google-gax', {
+      GrpcClient: {
+        prototype: {
+          createStub: vi.fn(),
+        },
+      },
+    }),
+);
 
 describe('GoogleCloudGrpc tracing', () => {
-  const mockClient = new NodeClient({
-    tracesSampleRate: 1.0,
-    integrations: [],
-    dsn: 'https://withAWSServices@domain/123',
-    transport: () => createTransport({ recordDroppedEvent: () => undefined }, _ => Promise.resolve({})),
-    stackParser: () => [],
-  });
-
-  const integration = googleCloudGrpcIntegration();
-  mockClient.addIntegration(integration);
-
   beforeEach(() => {
-    nock('https://www.googleapis.com').post('/oauth2/v4/token').reply(200, []);
+    mockClient = new NodeClient({
+      tracesSampleRate: 1.0,
+      integrations: [],
+      dsn: 'https://withAWSServices@domain/123',
+      transport: () => createTransport({ recordDroppedEvent: () => undefined }, _ => Promise.resolve({})),
+      stackParser: () => [],
+    });
+
+    const integration = googleCloudGrpcIntegration();
+    mockClient.addIntegration(integration);
+    integration.setup?.(mockClient);
+
     setCurrentClient(mockClient);
     mockSpanEnd.mockClear();
     mockStartInactiveSpan.mockClear();
+    mockFill.mockClear();
   });
 
-  afterAll(() => {
-    nock.restore();
-    spyConnect.mockRestore();
+  describe('setup', () => {
+    test('integration name is correct', () => {
+      const integration = googleCloudGrpcIntegration();
+      expect(integration.name).toBe('GoogleCloudGrpc');
+    });
+
+    test('setupOnce patches GrpcClient.createStub', () => {
+      const mockCreateStub = vi.fn();
+      const mockGrpcClient = {
+        prototype: {
+          createStub: mockCreateStub,
+        },
+      };
+
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      require('google-gax').GrpcClient = mockGrpcClient;
+
+      const integration = googleCloudGrpcIntegration();
+      integration.setupOnce?.();
+      expect(mockCreateStub).toBeDefined();
+    });
+
+    test('setupOnce throws when google-gax is not available and not optional', () => {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      require('google-gax').GrpcClient = undefined;
+
+      const integration = googleCloudGrpcIntegration();
+      expect(() => integration.setupOnce?.()).toThrow();
+    });
+
+    test('setupOnce does not throw when google-gax is not available and optional', () => {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      require('google-gax').GrpcClient = undefined;
+
+      const optionalIntegration = googleCloudGrpcIntegration({ optional: true });
+      expect(() => optionalIntegration.setupOnce?.()).not.toThrow();
+    });
   });
 
-  // We use google cloud pubsub as an example of grpc service for which we can trace requests.
-  describe('pubsub', () => {
-    // @ts-expect-error see "Why @ts-expect-error" note
-    const dnsLookup = dns.lookup as Mock;
-    // @ts-expect-error see "Why @ts-expect-error" note
-    const resolveTxt = dns.resolveTxt as Mock;
-    dnsLookup.mockImplementation((hostname, ...args) => {
-      expect(hostname).toEqual('pubsub.googleapis.com');
-      process.nextTick(args[args.length - 1], null, [{ address: '0.0.0.0', family: 4 }]);
-    });
-    resolveTxt.mockImplementation((hostname, cb) => {
-      expect(hostname).toEqual('pubsub.googleapis.com');
-      process.nextTick(cb, null, []);
-    });
+  describe('fillGrpcFunction', () => {
+    test('patches unary call methods with tracing', () => {
+      const mockStub: Stub = {
+        unaryMethod: Object.assign(vi.fn(), {
+          requestStream: false,
+          responseStream: false,
+          originalName: 'unaryMethod',
+        } as GrpcFunctionObject),
+      };
 
-    const pubsub = new PubSub({
-      credentials: {
-        client_email: 'client@email',
-        private_key: fs.readFileSync(path.resolve(__dirname, 'private.pem')).toString(),
-      },
-      projectId: 'project-id',
-    });
+      const mockEventEmitter = {
+        on: vi.fn(),
+      };
 
-    afterEach(() => {
-      dnsLookup.mockReset();
-      resolveTxt.mockReset();
-    });
+      (mockStub.unaryMethod as any).apply = vi.fn().mockReturnValue(mockEventEmitter);
 
-    afterAll(async () => {
-      await pubsub.close();
-    });
+      fillGrpcFunction(mockStub, 'test-service', 'unaryMethod');
 
-    test('publish', async () => {
-      mockHttp2Session().mockUnaryRequest(Buffer.from('00000000120a1031363337303834313536363233383630', 'hex'));
-      const resp = await pubsub.topic('nicetopic').publish(Buffer.from('data'));
-      expect(resp).toEqual('1637084156623860');
-      expect(mockStartInactiveSpan).toBeCalledWith({
-        op: 'grpc.pubsub',
+      const result = (mockStub.unaryMethod as GrpcFunction)();
+      expect(result).toBe(mockEventEmitter);
+      expect(mockEventEmitter.on).toHaveBeenCalledWith('status', expect.any(Function));
+      expect(mockStartInactiveSpan).toHaveBeenCalledWith({
+        name: 'unary call unaryMethod',
+        onlyIfParent: true,
+        op: 'grpc.test-service',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.grpc.serverless',
         },
-        name: 'unary call publish',
-        onlyIfParent: true,
       });
+    });
+
+    test('does not patch non-unary call methods', () => {
+      const mockStub: Stub = {
+        clientStreamMethod: Object.assign(vi.fn(), {
+          requestStream: true,
+          responseStream: false,
+          originalName: 'clientStreamMethod',
+        } as GrpcFunctionObject),
+        serverStreamMethod: Object.assign(vi.fn(), {
+          requestStream: false,
+          responseStream: true,
+          originalName: 'serverStreamMethod',
+        } as GrpcFunctionObject),
+        bidiStreamMethod: Object.assign(vi.fn(), {
+          requestStream: true,
+          responseStream: true,
+          originalName: 'bidiStreamMethod',
+        } as GrpcFunctionObject),
+      };
+
+      fillGrpcFunction(mockStub, 'test-service', 'clientStreamMethod');
+      fillGrpcFunction(mockStub, 'test-service', 'serverStreamMethod');
+      fillGrpcFunction(mockStub, 'test-service', 'bidiStreamMethod');
+
+      expect(mockStartInactiveSpan).not.toHaveBeenCalled();
+    });
+
+    test('does not patch non-function properties', () => {
+      const mockStub: Stub = {
+        nonFunction: Object.assign(vi.fn(), {
+          requestStream: false,
+          responseStream: false,
+          originalName: 'nonFunction',
+        } as GrpcFunctionObject),
+      };
+
+      fillGrpcFunction(mockStub, 'test-service', 'nonFunction');
+      expect(mockStartInactiveSpan).not.toHaveBeenCalled();
+    });
+
+    test('does not patch methods when return value is not an EventEmitter', () => {
+      const mockStub: Stub = {
+        unaryMethod: Object.assign(vi.fn(), {
+          requestStream: false,
+          responseStream: false,
+          originalName: 'unaryMethod',
+        } as GrpcFunctionObject),
+      };
+
+      (mockStub.unaryMethod as any).apply = vi.fn().mockReturnValue({ notAnEventEmitter: true });
+
+      fillGrpcFunction(mockStub, 'test-service', 'unaryMethod');
+
+      const result = (mockStub.unaryMethod as GrpcFunction)();
+      expect(result).toEqual({ notAnEventEmitter: true });
+      expect(mockStartInactiveSpan).not.toHaveBeenCalled();
     });
   });
 });
