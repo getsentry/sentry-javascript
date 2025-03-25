@@ -9,9 +9,17 @@ import { getClient } from '@sentry/core';
  *
  * If the function doesn't detect an issue it resolves to `undefined`.
  */
-export async function diagnoseSdk(): Promise<'no-client-active' | 'sentry-unreachable' | void> {
-  if (!getClient()) {
+export async function diagnoseSdkConnectivity(): Promise<
+  'no-client-active' | 'sentry-unreachable' | 'no-dsn-configured' | void
+> {
+  const client = getClient();
+
+  if (!client) {
     return 'no-client-active';
+  }
+
+  if (!client.getDsn()) {
+    return 'no-dsn-configured';
   }
 
   try {
