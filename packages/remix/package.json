@@ -96,6 +96,7 @@
     "clean": "rimraf build coverage sentry-remix-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
+    "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module",
     "test": "yarn test:unit",
     "test:integration": "run-s test:integration:clean test:integration:prepare test:integration:client test:integration:server",
     "test:integration:ci": "run-s test:integration:clean test:integration:prepare test:integration:client:ci test:integration:server",

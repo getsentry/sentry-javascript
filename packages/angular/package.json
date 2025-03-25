@@ -53,6 +53,7 @@
     "clean": "rimraf build coverage sentry-angular-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
+    "lint:es-compatibility": "es-check es2020 ./build/{esm2020,fesm2015,fesm2020}/*.mjs --module",
     "test": "yarn test:unit",
     "test:unit": "vitest run",
     "test:unit:watch": "vitest --watch",

@@ -74,6 +74,7 @@
     "clean": "rimraf build coverage sentry-tanstackstart-react-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
+    "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module",
     "test": "yarn test:unit",
     "test:unit": "vitest run",
     "test:watch": "vitest --watch",

@@ -46,6 +46,7 @@
   "scripts": {
     "clean": "rm -rf build && rm -rf lib",
     "lint": "eslint . --format stylish",
+    "lint:es-compatibility": "es-check es2020 ./lib/cjs/*.js && es-check es2020 ./lib/esm/*.js --module",
     "fix": "eslint . --format stylish --fix",
     "build": "yarn build:lib",
     "build:lib": "yarn build:types && rollup -c rollup.npm.config.mjs",

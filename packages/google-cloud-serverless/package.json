@@ -77,6 +77,7 @@
     "clean": "rimraf build coverage sentry-google-cloud-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
+    "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module",
     "test": "jest",
     "test:watch": "jest --watch",
     "yalc:publish": "yalc publish --push --sig"
