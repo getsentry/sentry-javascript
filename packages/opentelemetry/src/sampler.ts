@@ -72,13 +72,11 @@ export class SentrySampler implements Sampler {
     // We only sample based on parameters (like tracesSampleRate or tracesSampler) for root spans (which is done in sampleSpan).
     // Non-root-spans simply inherit the sampling decision from their parent.
     if (!isRootSpan) {
-      return {
-        ...wrapSamplingDecision({
-          decision: parentSampled ? SamplingDecision.RECORD_AND_SAMPLED : SamplingDecision.NOT_RECORD,
-          context,
-          spanAttributes,
-        }),
-      };
+      return wrapSamplingDecision({
+        decision: parentSampled ? SamplingDecision.RECORD_AND_SAMPLED : SamplingDecision.NOT_RECORD,
+        context,
+        spanAttributes,
+      });
     }
 
     // We want to pass the inferred name & attributes to the sampler method
@@ -135,15 +133,13 @@ export class SentrySampler implements Sampler {
     if (method === 'OPTIONS' || method === 'HEAD') {
       DEBUG_BUILD && logger.log(`[Tracing] Not sampling span because HTTP method is '${method}' for ${spanName}`);
 
-      return {
-        ...wrapSamplingDecision({
-          decision: SamplingDecision.NOT_RECORD,
-          context,
-          spanAttributes,
-          sampleRand,
-          downstreamTraceSampleRate: 0, // we don't want to sample anything in the downstream trace either
-        }),
-      };
+      return wrapSamplingDecision({
+        decision: SamplingDecision.NOT_RECORD,
+        context,
+        spanAttributes,
+        sampleRand,
+        downstreamTraceSampleRate: 0, // we don't want to sample anything in the downstream trace either
+      });
     }
 
     if (
