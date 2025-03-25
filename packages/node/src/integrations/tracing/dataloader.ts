@@ -3,11 +3,10 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   defineIntegration,
-  getClient,
   spanToJSON,
 } from '@sentry/core';
 import type { IntegrationFn } from '@sentry/core';
-import { callWhenWrapped, generateInstrumentOnce } from '../../otel/instrument';
+import { instrumentWhenWrapped, generateInstrumentOnce } from '../../otel/instrument';
 
 const INTEGRATION_NAME = 'Dataloader';
 
@@ -20,20 +19,19 @@ export const instrumentDataloader = generateInstrumentOnce(
 );
 
 const _dataloaderIntegration = (() => {
-  let hookCallback: undefined | (() => void);
+  let instrumentationWrappedCallback: undefined | ((callback: () => void) => void);
 
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
       const instrumentation = instrumentDataloader();
+      instrumentationWrappedCallback = instrumentWhenWrapped(instrumentation);
+    },
 
-      callWhenWrapped(instrumentation, () => {
-        const client = getClient();
-        if (hookCallback || !client) {
-          return;
-        }
-
-        hookCallback = client.on('spanStart', span => {
+    setup(client) {
+      // This is called either immediately or when the instrumentation is wrapped
+      instrumentationWrappedCallback?.(() => {
+        client.on('spanStart', span => {
           const spanJSON = spanToJSON(span);
           if (spanJSON.description?.startsWith('dataloader')) {
             span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.db.otel.dataloader');

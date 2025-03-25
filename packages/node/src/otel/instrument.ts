@@ -41,21 +41,41 @@ export function generateInstrumentOnce<
 /**
  * Ensure a given callback is called when the instrumentation is actually wrapping something.
  * This can be used to ensure some logic is only called when the instrumentation is actually active.
- * This depends on wrapping `_wrap` (inception!). If this is not possible (e.g. the property name is mangled, ...)
- * the callback will be called immediately.
+ *
+ * This function returns a function that can be invoked with a callback.
+ * This callback will either be invoked immediately
+ * (e.g. if the instrumentation was already wrapped, or if _wrap could not be patched),
+ * or once the instrumentation is actually wrapping something.
+ *
+ * Make sure to call this function right after adding the instrumentation, otherwise it may be too late!
+ * The returned callback can be used any time, and also multiple times.
  */
-export function callWhenWrapped<T extends Instrumentation>(instrumentation: T, callback: () => void): void {
+export function instrumentWhenWrapped<T extends Instrumentation>(instrumentation: T): (callback: () => void) => void {
+  let isWrapped = false;
+  let callbacks: (() => void)[] = [];
+
   if (!hasWrap(instrumentation)) {
-    callback();
-    return;
+    isWrapped = true;
+  } else {
+    const originalWrap = instrumentation['_wrap'];
+
+    instrumentation['_wrap'] = (...args: Parameters<typeof originalWrap>) => {
+      isWrapped = true;
+      callbacks.forEach(callback => callback());
+      callbacks = [];
+      return originalWrap(...args);
+    };
   }
 
-  const originalWrap = instrumentation['_wrap'];
-
-  instrumentation['_wrap'] = (...args: Parameters<typeof originalWrap>) => {
-    callback();
-    return originalWrap(...args);
+  const registerCallback = (callback: () => void): void => {
+    if (isWrapped) {
+      callback();
+    } else {
+      callbacks.push(callback);
+    }
   };
+
+  return registerCallback;
 }
 
 function hasWrap<T extends Instrumentation>(

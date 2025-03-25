@@ -2,7 +2,7 @@ import type { Instrumentation } from '@opentelemetry/instrumentation';
 // When importing CJS modules into an ESM module, we cannot import the named exports directly.
 import * as prismaInstrumentation from '@prisma/instrumentation';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, consoleSandbox, defineIntegration, spanToJSON } from '@sentry/core';
-import { generateInstrumentOnce } from '../../otel/instrument';
+import { generateInstrumentOnce, instrumentWhenWrapped } from '../../otel/instrument';
 import type { PrismaV5TracingHelper } from './prisma/vendor/v5-tracing-helper';
 import type { PrismaV6TracingHelper } from './prisma/vendor/v6-tracing-helper';
 
@@ -113,29 +113,34 @@ export const prismaIntegration = defineIntegration(
      */
     prismaInstrumentation?: Instrumentation;
   } = {}) => {
+    let instrumentationWrappedCallback: undefined | ((callback: () => void) => void);
+
     return {
       name: INTEGRATION_NAME,
       setupOnce() {
-        instrumentPrisma({ prismaInstrumentation });
+        const instrumentation = instrumentPrisma({ prismaInstrumentation });
+        instrumentationWrappedCallback = instrumentWhenWrapped(instrumentation);
       },
       setup(client) {
-        client.on('spanStart', span => {
-          const spanJSON = spanToJSON(span);
-          if (spanJSON.description?.startsWith('prisma:')) {
-            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.db.otel.prisma');
-          }
+        instrumentationWrappedCallback?.(() =>
+          client.on('spanStart', span => {
+            const spanJSON = spanToJSON(span);
+            if (spanJSON.description?.startsWith('prisma:')) {
+              span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.db.otel.prisma');
+            }
 
-          // Make sure we use the query text as the span name, for ex. SELECT * FROM "User" WHERE "id" = $1
-          if (spanJSON.description === 'prisma:engine:db_query' && spanJSON.data['db.query.text']) {
-            span.updateName(spanJSON.data['db.query.text'] as string);
-          }
+            // Make sure we use the query text as the span name, for ex. SELECT * FROM "User" WHERE "id" = $1
+            if (spanJSON.description === 'prisma:engine:db_query' && spanJSON.data['db.query.text']) {
+              span.updateName(spanJSON.data['db.query.text'] as string);
+            }
 
-          // In Prisma v5.22+, the `db.system` attribute is automatically set
-          // On older versions, this is missing, so we add it here
-          if (spanJSON.description === 'prisma:engine:db_query' && !spanJSON.data['db.system']) {
-            span.setAttribute('db.system', 'prisma');
-          }
-        });
+            // In Prisma v5.22+, the `db.system` attribute is automatically set
+            // On older versions, this is missing, so we add it here
+            if (spanJSON.description === 'prisma:engine:db_query' && !spanJSON.data['db.system']) {
+              span.setAttribute('db.system', 'prisma');
+            }
+          }),
+        );
       },
     };
   },
