@@ -1,10 +1,10 @@
 import { format } from 'node:util';
 
-import type { LogSeverityLevel, Log } from '@sentry/core';
+import type { LogSeverityLevel, Log, ParameterizedString } from '@sentry/core';
 import { _INTERNAL_captureLog } from '@sentry/core';
 
 type CaptureLogArgs =
-  | [message: string, attributes?: Log['attributes']]
+  | [message: ParameterizedString, attributes?: Log['attributes']]
   | [messageTemplate: string, messageParams: Array<unknown>, attributes?: Log['attributes']];
 
 /**
@@ -221,3 +221,5 @@ export function fatal(...args: CaptureLogArgs): void {
 export function critical(...args: CaptureLogArgs): void {
   captureLog('critical', ...args);
 }
+
+export { fmt } from '@sentry/core';

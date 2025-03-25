@@ -126,5 +126,30 @@ describe('Node Logger', () => {
         },
       });
     });
+
+    it('should handle parameterized strings with parameters', () => {
+      nodeLogger.info(nodeLogger.fmt`Hello ${'John'}, your balance is ${100}`, { userId: 123 });
+      expect(mockCaptureLog).toHaveBeenCalledWith({
+        level: 'info',
+        message: expect.objectContaining({
+          __sentry_template_string__: 'Hello %s, your balance is %s',
+          __sentry_template_values__: ['John', 100],
+        }),
+        attributes: {
+          userId: 123,
+        },
+      });
+    });
+
+    it('should handle parameterized strings without additional attributes', () => {
+      nodeLogger.debug(nodeLogger.fmt`User ${'Alice'} logged in from ${'mobile'}`);
+      expect(mockCaptureLog).toHaveBeenCalledWith({
+        level: 'debug',
+        message: expect.objectContaining({
+          __sentry_template_string__: 'User %s logged in from %s',
+          __sentry_template_values__: ['Alice', 'mobile'],
+        }),
+      });
+    });
   });
 });

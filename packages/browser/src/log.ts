@@ -1,4 +1,4 @@
-import type { LogSeverityLevel, Log, Client } from '@sentry/core';
+import type { LogSeverityLevel, Log, Client, ParameterizedString } from '@sentry/core';
 import { getClient, _INTERNAL_captureLog, _INTERNAL_flushLogsBuffer } from '@sentry/core';
 
 import { WINDOW } from './helpers';
@@ -59,7 +59,7 @@ function addFlushingListeners(client: Client): void {
  */
 function captureLog(
   level: LogSeverityLevel,
-  message: string,
+  message: ParameterizedString,
   attributes?: Log['attributes'],
   severityNumber?: Log['severityNumber'],
 ): void {
@@ -77,15 +77,28 @@ function captureLog(
  * @summary Capture a log with the `trace` level. Requires `_experiments.enableLogs` to be enabled.
  *
  * @param message - The message to log.
- * @param attributes - Arbitrary structured data that stores information about the log - e.g., userId: 100.
+ * @param attributes - Arbitrary structured data that stores information about the log - e.g., { userId: 100, route: '/dashboard' }.
  *
  * @example
  *
  * ```
- * Sentry.logger.trace('Hello world', { userId: 100 });
+ * Sentry.logger.trace('User clicked submit button', {
+ *   buttonId: 'submit-form',
+ *   formId: 'user-profile',
+ *   timestamp: Date.now()
+ * });
+ * ```
+ *
+ * @example With template strings
+ *
+ * ```
+ * Sentry.logger.trace(Sentry.logger.fmt`User ${user} navigated to ${page}`, {
+ *   userId: '123',
+ *   sessionId: 'abc-xyz'
+ * });
  * ```
  */
-export function trace(message: string, attributes?: Log['attributes']): void {
+export function trace(message: ParameterizedString, attributes?: Log['attributes']): void {
   captureLog('trace', message, attributes);
 }
 
@@ -93,15 +106,29 @@ export function trace(message: string, attributes?: Log['attributes']): void {
  * @summary Capture a log with the `debug` level. Requires `_experiments.enableLogs` to be enabled.
  *
  * @param message - The message to log.
- * @param attributes - Arbitrary structured data that stores information about the log - e.g., userId: 100.
+ * @param attributes - Arbitrary structured data that stores information about the log - e.g., { component: 'Header', state: 'loading' }.
  *
  * @example
  *
  * ```
- * Sentry.logger.debug('Hello world', { userId: 100 });
+ * Sentry.logger.debug('Component mounted', {
+ *   component: 'UserProfile',
+ *   props: { userId: 123 },
+ *   renderTime: 150
+ * });
+ * ```
+ *
+ * @example With template strings
+ *
+ * ```
+ * Sentry.logger.debug(Sentry.logger.fmt`API request to ${endpoint} failed`, {
+ *   statusCode: 404,
+ *   requestId: 'req-123',
+ *   duration: 250
+ * });
  * ```
  */
-export function debug(message: string, attributes?: Log['attributes']): void {
+export function debug(message: ParameterizedString, attributes?: Log['attributes']): void {
   captureLog('debug', message, attributes);
 }
 
@@ -109,15 +136,29 @@ export function debug(message: string, attributes?: Log['attributes']): void {
  * @summary Capture a log with the `info` level. Requires `_experiments.enableLogs` to be enabled.
  *
  * @param message - The message to log.
- * @param attributes - Arbitrary structured data that stores information about the log - e.g., userId: 100.
+ * @param attributes - Arbitrary structured data that stores information about the log - e.g., { feature: 'checkout', status: 'completed' }.
  *
  * @example
  *
  * ```
- * Sentry.logger.info('Hello world', { userId: 100 });
+ * Sentry.logger.info('User completed checkout', {
+ *   orderId: 'order-123',
+ *   amount: 99.99,
+ *   paymentMethod: 'credit_card'
+ * });
+ * ```
+ *
+ * @example With template strings
+ *
+ * ```
+ * Sentry.logger.info(Sentry.logger.fmt`User ${user} updated profile picture`, {
+ *   userId: 'user-123',
+ *   imageSize: '2.5MB',
+ *   timestamp: Date.now()
+ * });
  * ```
  */
-export function info(message: string, attributes?: Log['attributes']): void {
+export function info(message: ParameterizedString, attributes?: Log['attributes']): void {
   captureLog('info', message, attributes);
 }
 
@@ -125,15 +166,30 @@ export function info(message: string, attributes?: Log['attributes']): void {
  * @summary Capture a log with the `warn` level. Requires `_experiments.enableLogs` to be enabled.
  *
  * @param message - The message to log.
- * @param attributes - Arbitrary structured data that stores information about the log - e.g., userId: 100.
+ * @param attributes - Arbitrary structured data that stores information about the log - e.g., { browser: 'Chrome', version: '91.0' }.
  *
  * @example
  *
  * ```
- * Sentry.logger.warn('Hello world', { userId: 100 });
+ * Sentry.logger.warn('Browser compatibility issue detected', {
+ *   browser: 'Safari',
+ *   version: '14.0',
+ *   feature: 'WebRTC',
+ *   fallback: 'enabled'
+ * });
+ * ```
+ *
+ * @example With template strings
+ *
+ * ```
+ * Sentry.logger.warn(Sentry.logger.fmt`API endpoint ${endpoint} is deprecated`, {
+ *   recommendedEndpoint: '/api/v2/users',
+ *   sunsetDate: '2024-12-31',
+ *   clientVersion: '1.2.3'
+ * });
  * ```
  */
-export function warn(message: string, attributes?: Log['attributes']): void {
+export function warn(message: ParameterizedString, attributes?: Log['attributes']): void {
   captureLog('warn', message, attributes);
 }
 
@@ -141,15 +197,31 @@ export function warn(message: string, attributes?: Log['attributes']): void {
  * @summary Capture a log with the `error` level. Requires `_experiments.enableLogs` to be enabled.
  *
  * @param message - The message to log.
- * @param attributes - Arbitrary structured data that stores information about the log - e.g., userId: 100.
+ * @param attributes - Arbitrary structured data that stores information about the log - e.g., { error: 'NetworkError', url: '/api/data' }.
  *
  * @example
  *
  * ```
- * Sentry.logger.error('Hello world', { userId: 100 });
+ * Sentry.logger.error('Failed to load user data', {
+ *   error: 'NetworkError',
+ *   url: '/api/users/123',
+ *   statusCode: 500,
+ *   retryCount: 3
+ * });
+ * ```
+ *
+ * @example With template strings
+ *
+ * ```
+ * Sentry.logger.error(Sentry.logger.fmt`Payment processing failed for order ${orderId}`, {
+ *   error: 'InsufficientFunds',
+ *   amount: 100.00,
+ *   currency: 'USD',
+ *   userId: 'user-456'
+ * });
  * ```
  */
-export function error(message: string, attributes?: Log['attributes']): void {
+export function error(message: ParameterizedString, attributes?: Log['attributes']): void {
   captureLog('error', message, attributes);
 }
 
@@ -157,15 +229,31 @@ export function error(message: string, attributes?: Log['attributes']): void {
  * @summary Capture a log with the `fatal` level. Requires `_experiments.enableLogs` to be enabled.
  *
  * @param message - The message to log.
- * @param attributes - Arbitrary structured data that stores information about the log - e.g., userId: 100.
+ * @param attributes - Arbitrary structured data that stores information about the log - e.g., { appState: 'corrupted', sessionId: 'abc-123' }.
  *
  * @example
  *
  * ```
- * Sentry.logger.fatal('Hello world', { userId: 100 });
+ * Sentry.logger.fatal('Application state corrupted', {
+ *   lastKnownState: 'authenticated',
+ *   sessionId: 'session-123',
+ *   timestamp: Date.now(),
+ *   recoveryAttempted: true
+ * });
+ * ```
+ *
+ * @example With template strings
+ *
+ * ```
+ * Sentry.logger.fatal(Sentry.logger.fmt`Critical system failure in ${service}`, {
+ *   service: 'payment-processor',
+ *   errorCode: 'CRITICAL_FAILURE',
+ *   affectedUsers: 150,
+ *   timestamp: Date.now()
+ * });
  * ```
  */
-export function fatal(message: string, attributes?: Log['attributes']): void {
+export function fatal(message: ParameterizedString, attributes?: Log['attributes']): void {
   captureLog('fatal', message, attributes);
 }
 
@@ -173,14 +261,32 @@ export function fatal(message: string, attributes?: Log['attributes']): void {
  * @summary Capture a log with the `critical` level. Requires `_experiments.enableLogs` to be enabled.
  *
  * @param message - The message to log.
- * @param attributes - Arbitrary structured data that stores information about the log - e.g., userId: 100.
+ * @param attributes - Arbitrary structured data that stores information about the log - e.g., { security: 'breach', severity: 'high' }.
  *
  * @example
  *
  * ```
- * Sentry.logger.critical('Hello world', { userId: 100 });
+ * Sentry.logger.critical('Security breach detected', {
+ *   type: 'unauthorized_access',
+ *   user: '132123',
+ *   endpoint: '/api/admin',
+ *   timestamp: Date.now()
+ * });
+ * ```
+ *
+ * @example With template strings
+ *
+ * ```
+ * Sentry.logger.critical(Sentry.logger.fmt`Multiple failed login attempts from user ${user}`, {
+ *   attempts: 10,
+ *   timeWindow: '5m',
+ *   blocked: true,
+ *   timestamp: Date.now()
+ * });
  * ```
  */
-export function critical(message: string, attributes?: Log['attributes']): void {
+export function critical(message: ParameterizedString, attributes?: Log['attributes']): void {
   captureLog('critical', message, attributes);
 }
+
+export { fmt } from '@sentry/core';

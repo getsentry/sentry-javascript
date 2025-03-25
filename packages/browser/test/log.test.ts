@@ -196,5 +196,38 @@ describe('Logger', () => {
       vi.advanceTimersByTime(2000);
       expect(mockFlushLogsBuffer).toHaveBeenCalledTimes(1);
     });
+
+    it('should handle parameterized strings with parameters', () => {
+      logger.info(logger.fmt`Hello ${'John'}, your balance is ${100}`, { userId: 123 });
+      expect(mockCaptureLog).toHaveBeenCalledWith(
+        {
+          level: 'info',
+          message: expect.objectContaining({
+            __sentry_template_string__: 'Hello %s, your balance is %s',
+            __sentry_template_values__: ['John', 100],
+          }),
+          attributes: {
+            userId: 123,
+          },
+        },
+        expect.any(Object),
+        undefined,
+      );
+    });
+
+    it('should handle parameterized strings without additional attributes', () => {
+      logger.debug(logger.fmt`User ${'Alice'} logged in from ${'mobile'}`);
+      expect(mockCaptureLog).toHaveBeenCalledWith(
+        {
+          level: 'debug',
+          message: expect.objectContaining({
+            __sentry_template_string__: 'User %s logged in from %s',
+            __sentry_template_values__: ['Alice', 'mobile'],
+          }),
+        },
+        expect.any(Object),
+        undefined,
+      );
+    });
   });
 });
