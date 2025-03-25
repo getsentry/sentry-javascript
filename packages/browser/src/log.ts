@@ -257,36 +257,4 @@ export function fatal(message: ParameterizedString, attributes?: Log['attributes
   captureLog('fatal', message, attributes);
 }
 
-/**
- * @summary Capture a log with the `critical` level. Requires `_experiments.enableLogs` to be enabled.
- *
- * @param message - The message to log.
- * @param attributes - Arbitrary structured data that stores information about the log - e.g., { security: 'breach', severity: 'high' }.
- *
- * @example
- *
- * ```
- * Sentry.logger.critical('Security breach detected', {
- *   type: 'unauthorized_access',
- *   user: '132123',
- *   endpoint: '/api/admin',
- *   timestamp: Date.now()
- * });
- * ```
- *
- * @example With template strings
- *
- * ```
- * Sentry.logger.critical(Sentry.logger.fmt`Multiple failed login attempts from user ${user}`, {
- *   attempts: 10,
- *   timeWindow: '5m',
- *   blocked: true,
- *   timestamp: Date.now()
- * });
- * ```
- */
-export function critical(message: ParameterizedString, attributes?: Log['attributes']): void {
-  captureLog('critical', message, attributes);
-}
-
 export { fmt } from '@sentry/core';

@@ -88,15 +88,6 @@ describe('Node Logger', () => {
         attributes: { key: 'value' },
       });
     });
-
-    it('should call _INTERNAL_captureLog with critical level', () => {
-      nodeLogger.critical('Test critical message', { key: 'value' });
-      expect(mockCaptureLog).toHaveBeenCalledWith({
-        level: 'critical',
-        message: 'Test critical message',
-        attributes: { key: 'value' },
-      });
-    });
   });
 
   describe('Template string logging', () => {

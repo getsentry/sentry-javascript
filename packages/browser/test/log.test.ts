@@ -150,20 +150,6 @@ describe('Logger', () => {
         undefined,
       );
     });
-
-    it('should call _INTERNAL_captureLog with critical level', () => {
-      logger.critical('Test critical message', { key: 'value' });
-      expect(mockCaptureLog).toHaveBeenCalledWith(
-        {
-          level: 'critical',
-          message: 'Test critical message',
-          attributes: { key: 'value' },
-          severityNumber: undefined,
-        },
-        expect.any(Object),
-        undefined,
-      );
-    });
   });
 
   describe('Automatic flushing', () => {

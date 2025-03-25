@@ -194,32 +194,4 @@ export function fatal(...args: CaptureLogArgs): void {
   captureLog('fatal', ...args);
 }
 
-/**
- * @summary Capture a log with the `critical` level. Requires `_experiments.enableLogs` to be enabled.
- *
- * You can either pass a message and attributes or a message template, params and attributes.
- *
- * @example
- *
- * ```
- * Sentry.logger.critical('Service health check failed', {
- *   service: 'payment-gateway',
- *   status: 'DOWN',
- *   lastHealthy: '2024-03-20T09:55:00Z'
- * });
- * ```
- *
- * @example With template strings
- *
- * ```
- * Sentry.logger.critical('Service %s is %s',
- *   ['payment-gateway', 'DOWN'],
- *   { lastHealthy: '2024-03-20T09:55:00Z' }
- * );
- * ```
- */
-export function critical(...args: CaptureLogArgs): void {
-  captureLog('critical', ...args);
-}
-
 export { fmt } from '@sentry/core';
