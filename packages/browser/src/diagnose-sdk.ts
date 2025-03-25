@@ -6,6 +6,8 @@ import { getCurrentScope } from '@sentry/core';
  * Possible return values wrapped in a Promise:
  * - `"no-client-active"` - There was no active client when the function was called. This possibly means that the SDK was not initialized yet.
  * - `"sentry-unreachable"` - There was no active client when the function was called. This possibly means that the SDK was not initialized yet.
+ *
+ * If the function doesn't detect an issue it resolves to `undefined`.
  */
 export async function diagnoseSdk(): Promise<'no-client-active' | 'sentry-unreachable' | void> {
   const client = getCurrentScope().getClient();
