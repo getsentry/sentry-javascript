@@ -19,7 +19,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   captureEvent,
-  dropUndefinedKeys,
   getCapturedScopesOnSpan,
   getDynamicSamplingContextFromSpan,
   getStatusMessage,
@@ -239,14 +238,14 @@ export function createTransactionForOtelSpan(span: ReadableSpan): TransactionEve
 
   const sampleRate = span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE] as number | undefined;
 
-  const attributes: SpanAttributes = dropUndefinedKeys({
+  const attributes: SpanAttributes = {
     [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
     [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: sampleRate,
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin,
     ...data,
     ...removeSentryAttributes(span.attributes),
-  });
+  };
 
   const { links } = span;
   const { traceId: trace_id, spanId: span_id } = span.spanContext();
@@ -260,7 +259,7 @@ export function createTransactionForOtelSpan(span: ReadableSpan): TransactionEve
 
   const status = mapStatus(span);
 
-  const traceContext: TraceContext = dropUndefinedKeys({
+  const traceContext: TraceContext = {
     parent_span_id,
     span_id,
     trace_id,
@@ -269,12 +268,12 @@ export function createTransactionForOtelSpan(span: ReadableSpan): TransactionEve
     op,
     status: getStatusMessage(status), // As per protocol, span status is allowed to be undefined
     links: convertSpanLinksForEnvelope(links),
-  });
+  };
 
   const statusCode = attributes[ATTR_HTTP_RESPONSE_STATUS_CODE];
   const responseContext = typeof statusCode === 'number' ? { response: { status_code: statusCode } } : undefined;
 
-  const transactionEvent: TransactionEvent = dropUndefinedKeys({
+  const transactionEvent: TransactionEvent = {
     contexts: {
       trace: traceContext,
       otel: {
@@ -288,19 +287,17 @@ export function createTransactionForOtelSpan(span: ReadableSpan): TransactionEve
     transaction: description,
     type: 'transaction',
     sdkProcessingMetadata: {
-      ...dropUndefinedKeys({
-        capturedSpanScope: capturedSpanScopes.scope,
-        capturedSpanIsolationScope: capturedSpanScopes.isolationScope,
-        sampleRate,
-        dynamicSamplingContext: getDynamicSamplingContextFromSpan(span as unknown as Span),
-      }),
+      capturedSpanScope: capturedSpanScopes.scope,
+      capturedSpanIsolationScope: capturedSpanScopes.isolationScope,
+      sampleRate,
+      dynamicSamplingContext: getDynamicSamplingContextFromSpan(span as unknown as Span),
     },
     ...(source && {
       transaction_info: {
         source,
       },
     }),
-  });
+  };
 
   return transactionEvent;
 }
@@ -328,16 +325,16 @@ function createAndFinishSpanForOtelSpan(node: SpanNode, spans: SpanJSON[], sentS
   const { attributes, startTime, endTime, parentSpanId, links } = span;
 
   const { op, description, data, origin = 'manual' } = getSpanData(span);
-  const allData = dropUndefinedKeys({
+  const allData = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin,
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
     ...removeSentryAttributes(attributes),
     ...data,
-  });
+  };
 
   const status = mapStatus(span);
 
-  const spanJSON: SpanJSON = dropUndefinedKeys({
+  const spanJSON: SpanJSON = {
     span_id,
     trace_id,
     data: allData,
@@ -351,7 +348,7 @@ function createAndFinishSpanForOtelSpan(node: SpanNode, spans: SpanJSON[], sentS
     origin,
     measurements: timedEventsToMeasurements(span.events),
     links: convertSpanLinksForEnvelope(links),
-  });
+  };
 
   spans.push(spanJSON);
 

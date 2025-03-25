@@ -1,1 +1,1 @@
-export * from '@sentry/node';
+export {};

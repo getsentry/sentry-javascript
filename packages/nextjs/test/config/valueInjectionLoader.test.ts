@@ -1,3 +1,5 @@
+import { describe, it, expect } from 'vitest';
+
 import type { LoaderThis } from '../../src/config/loaders/types';
 import type { ValueInjectionLoaderOptions } from '../../src/config/loaders/valueInjectionLoader';
 import valueInjectionLoader from '../../src/config/loaders/valueInjectionLoader';

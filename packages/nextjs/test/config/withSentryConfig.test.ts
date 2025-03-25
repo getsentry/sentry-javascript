@@ -1,3 +1,5 @@
+import { describe, vi, it, expect } from 'vitest';
+
 import { defaultRuntimePhase, defaultsObject, exportedNextConfig, userNextConfig } from './fixtures';
 import { materializeFinalNextConfig } from './testUtils';
 
@@ -43,7 +45,7 @@ describe('withSentryConfig', () => {
   });
 
   it('correctly passes `phase` and `defaultConfig` through to functional `userNextConfig`', () => {
-    const exportedNextConfigFunction = jest.fn().mockReturnValue(userNextConfig);
+    const exportedNextConfigFunction = vi.fn().mockReturnValue(userNextConfig);
 
     materializeFinalNextConfig(exportedNextConfigFunction);
 

@@ -3,24 +3,4 @@
 export * from './config';
 export * from './client';
 export * from './server';
-
-import type { Client, Integration, Options, StackParser } from '@sentry/core';
-
-import type * as clientSdk from './client';
-import type * as serverSdk from './server';
-
-/** Initializes Sentry TanStack Start SDK */
-export declare function init(options: Options | clientSdk.BrowserOptions | serverSdk.NodeOptions): Client | undefined;
-
-export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;
-export declare const contextLinesIntegration: typeof clientSdk.contextLinesIntegration;
-
-export declare const getDefaultIntegrations: (options: Options) => Integration[];
-export declare const defaultStackParser: StackParser;
-
-export declare function getSentryRelease(fallback?: string): string | undefined;
-
-export declare const ErrorBoundary: typeof clientSdk.ErrorBoundary;
-export declare const createReduxEnhancer: typeof clientSdk.createReduxEnhancer;
-export declare const showReportDialog: typeof clientSdk.showReportDialog;
-export declare const withErrorBoundary: typeof clientSdk.withErrorBoundary;
+export * from './common';

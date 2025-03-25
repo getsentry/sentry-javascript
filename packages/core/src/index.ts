@@ -66,7 +66,7 @@ export { hasTracingEnabled } from './utils/hasSpansEnabled';
 export { hasSpansEnabled } from './utils/hasSpansEnabled';
 export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
 export { handleCallbackErrors } from './utils/handleCallbackErrors';
-export { parameterize } from './utils/parameterize';
+export { parameterize, fmt } from './utils/parameterize';
 export { addAutoIpAddressToSession, addAutoIpAddressToUser } from './utils/ipAddress';
 export {
   convertSpanLinksForEnvelope,
@@ -113,6 +113,7 @@ export { instrumentFetchRequest } from './fetch';
 export { trpcMiddleware } from './trpc';
 export { captureFeedback } from './feedback';
 export type { ReportDialogOptions } from './report-dialog';
+export { _INTERNAL_captureLog, _INTERNAL_flushLogsBuffer } from './logs';
 
 // TODO: Make this structure pretty again and don't do "export *"
 export * from './utils-hoist/index';

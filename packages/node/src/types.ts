@@ -26,6 +26,8 @@ export interface BaseNodeOptions {
 
   /**
    * Sets profiling sample rate when @sentry/profiling-node is installed
+   *
+   * @deprecated
    */
   profilesSampleRate?: number;
 
@@ -39,8 +41,26 @@ export interface BaseNodeOptions {
    *
    * @returns A sample rate between 0 and 1 (0 drops the profile, 1 guarantees it will be sent). Returning `true` is
    * equivalent to returning 1 and returning `false` is equivalent to returning 0.
+   *
+   * @deprecated
    */
   profilesSampler?: (samplingContext: SamplingContext) => number | boolean;
+
+  /**
+   * Sets profiling session sample rate - only evaluated once per SDK initialization.
+   * @default 0
+   */
+  profileSessionSampleRate?: number;
+
+  /**
+   * Set the lifecycle of the profiler.
+   *
+   * - `manual`: The profiler will be manually started and stopped.
+   * - `trace`: The profiler will be automatically started when when a span is sampled and stopped when there are no more sampled spans.
+   *
+   * @default 'manual'
+   */
+  profileLifecycle?: 'manual' | 'trace';
 
   /** Sets an optional server name (device name) */
   serverName?: string;

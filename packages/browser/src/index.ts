@@ -1,5 +1,9 @@
 export * from './exports';
 
+import * as logger from './log';
+
+export { logger };
+
 export { reportingObserverIntegration } from './integrations/reportingobserver';
 export { httpClientIntegration } from './integrations/httpclient';
 export { contextLinesIntegration } from './integrations/contextlines';
@@ -67,3 +71,4 @@ export { launchDarklyIntegration, buildLaunchDarklyFlagUsedHandler } from './int
 export { openFeatureIntegration, OpenFeatureIntegrationHook } from './integrations/featureFlags/openfeature';
 export { unleashIntegration } from './integrations/featureFlags/unleash';
 export { statsigIntegration } from './integrations/featureFlags/statsig';
+export { diagnoseSdkConnectivity } from './diagnose-sdk';

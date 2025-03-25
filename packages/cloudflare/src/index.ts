@@ -98,3 +98,5 @@ export { getDefaultIntegrations } from './sdk';
 export { fetchIntegration } from './integrations/fetch';
 
 export { instrumentD1WithSentry } from './d1';
+
+export { setAsyncLocalStorageAsyncContextStrategy } from './async';

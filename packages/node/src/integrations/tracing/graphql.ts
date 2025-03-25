@@ -55,9 +55,6 @@ export const instrumentGraphql = generateInstrumentOnce<GraphqlOptions>(
 
         if (options.useOperationNameForRootSpan && operationType) {
           const rootSpan = getRootSpan(span);
-
-          // We guard to only do this on http.server spans
-
           const rootSpanAttributes = spanToJSON(rootSpan).data;
 
           const existingOperations = rootSpanAttributes[SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION] || [];

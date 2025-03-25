@@ -54,6 +54,19 @@ describe('fill()', () => {
     expect(source.prop()).toEqual(41);
   });
 
+  test.each([42, null, undefined, {}])("does't throw if the property is not a function but %s", (propValue: any) => {
+    const source = {
+      foo: propValue,
+    };
+    const name = 'foo';
+    const replacement = vi.fn().mockImplementationOnce(cb => cb);
+
+    fill(source, name, replacement);
+
+    expect(source.foo).toBe(propValue);
+    expect(replacement).not.toBeCalled();
+  });
+
   test('can do anything inside replacement function', () => {
     const source = {
       foo: (): number => 42,
@@ -156,6 +169,7 @@ describe('extractExceptionKeysForMessage()', () => {
   });
 });
 
+/* eslint-disable deprecation/deprecation */
 describe('dropUndefinedKeys()', () => {
   test('simple case', () => {
     expect(
@@ -301,6 +315,7 @@ describe('dropUndefinedKeys()', () => {
     expect(droppedChicken.lays[0] === droppedChicken).toBe(true);
   });
 });
+/* eslint-enable deprecation/deprecation */
 
 describe('objectify()', () => {
   describe('stringifies nullish values', () => {

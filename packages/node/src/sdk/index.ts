@@ -1,7 +1,6 @@
 import type { Integration, Options } from '@sentry/core';
 import {
   consoleSandbox,
-  dropUndefinedKeys,
   functionToStringIntegration,
   getCurrentScope,
   getIntegrationsToSetup,
@@ -201,50 +200,32 @@ function getClientOptions(
   getDefaultIntegrationsImpl: (options: Options) => Integration[],
 ): NodeClientOptions {
   const release = getRelease(options.release);
-
-  if (options.spotlight == null) {
-    const spotlightEnv = envToBool(process.env.SENTRY_SPOTLIGHT, { strict: true });
-    if (spotlightEnv == null) {
-      options.spotlight = process.env.SENTRY_SPOTLIGHT;
-    } else {
-      options.spotlight = spotlightEnv;
-    }
-  }
-
+  const spotlight =
+    options.spotlight ?? envToBool(process.env.SENTRY_SPOTLIGHT, { strict: true }) ?? process.env.SENTRY_SPOTLIGHT;
   const tracesSampleRate = getTracesSampleRate(options.tracesSampleRate);
 
-  const baseOptions = dropUndefinedKeys({
-    transport: makeNodeTransport,
-    dsn: process.env.SENTRY_DSN,
-    environment: process.env.SENTRY_ENVIRONMENT,
-    sendClientReports: true,
-  });
-
-  const overwriteOptions = dropUndefinedKeys({
+  const mergedOptions = {
+    ...options,
+    dsn: options.dsn ?? process.env.SENTRY_DSN,
+    environment: options.environment ?? process.env.SENTRY_ENVIRONMENT,
+    sendClientReports: options.sendClientReports ?? true,
+    transport: options.transport ?? makeNodeTransport,
+    stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
     release,
     tracesSampleRate,
-  });
-
-  const mergedOptions = {
-    ...baseOptions,
-    ...options,
-    ...overwriteOptions,
+    spotlight,
   };
 
-  if (options.defaultIntegrations === undefined) {
-    options.defaultIntegrations = getDefaultIntegrationsImpl(mergedOptions);
-  }
+  const integrations = options.integrations;
+  const defaultIntegrations = options.defaultIntegrations ?? getDefaultIntegrationsImpl(mergedOptions);
 
-  const clientOptions: NodeClientOptions = {
+  return {
     ...mergedOptions,
-    stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
     integrations: getIntegrationsToSetup({
-      defaultIntegrations: options.defaultIntegrations,
-      integrations: options.integrations,
+      defaultIntegrations,
+      integrations,
     }),
   };
-
-  return clientOptions;
 }
 
 function getRelease(release: NodeOptions['release']): string | undefined {

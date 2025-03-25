@@ -60,6 +60,7 @@ package. Please refer to the README and instructions of those SDKs for more deta
 - [`@sentry/nestjs`](https://github.com/getsentry/sentry-javascript/tree/master/packages/nestjs): SDK for NestJS
 - [`@sentry/nextjs`](https://github.com/getsentry/sentry-javascript/tree/master/packages/nextjs): SDK for Next.js
 - [`@sentry/remix`](https://github.com/getsentry/sentry-javascript/tree/master/packages/remix): SDK for Remix
+- [`@sentry/tanstackstart-react`](https://github.com/getsentry/sentry-javascript/tree/master/packages/tanstackstart-react): SDK for TanStack Start React
 - [`@sentry/aws-serverless`](https://github.com/getsentry/sentry-javascript/tree/master/packages/aws-serverless): SDK
   for AWS Lambda Functions
 - [`@sentry/google-cloud-serverless`](https://github.com/getsentry/sentry-javascript/tree/master/packages/google-cloud-serverless):
@@ -76,10 +77,8 @@ package. Please refer to the README and instructions of those SDKs for more deta
 
 ## Version Support Policy
 
-The current version of the SDK is 8.x. Version 7.x of the SDK will continue to receive critical bugfixes until end
-of 2024.
-
-All SDKs require Node v18+ to run. ESM-only SDKs require Node v18.19.1+ to run.
+We recognize the importance of continued support for our SDK across different versions.
+Our commitment is to provide bug fixes and feature updates for older versions based on community demand and usage.
 
 ## Installation and Usage
 

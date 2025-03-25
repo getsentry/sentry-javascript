@@ -1,4 +1,4 @@
-import { DiagLogLevel, diag } from '@opentelemetry/api';
+import { DiagLogLevel, context, diag, propagation, trace } from '@opentelemetry/api';
 import { AsyncLocalStorageContextManager } from '@opentelemetry/context-async-hooks';
 import { Resource } from '@opentelemetry/resources';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
@@ -69,11 +69,9 @@ export function setupOtel(client: TestClientInterface): BasicTracerProvider {
   // We use a custom context manager to keep context in sync with sentry scope
   const SentryContextManager = wrapContextManagerClass(AsyncLocalStorageContextManager);
 
-  // Initialize the provider
-  provider.register({
-    propagator: new SentryPropagator(),
-    contextManager: new SentryContextManager(),
-  });
+  trace.setGlobalTracerProvider(provider);
+  propagation.setGlobalPropagator(new SentryPropagator());
+  context.setGlobalContextManager(new SentryContextManager());
 
   return provider;
 }

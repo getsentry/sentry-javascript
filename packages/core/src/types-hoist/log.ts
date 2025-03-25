@@ -1,11 +1,15 @@
-export type LogSeverityLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal' | 'critical';
+import type { ParameterizedString } from './parameterize';
 
-export type LogAttributeValueType =
+export type LogSeverityLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
+
+export type SerializedLogAttributeValueType =
   | {
       stringValue: string;
     }
   | {
-      intValue: number;
+      // integers must be represented as a string
+      // because JSON cannot differentiate between integers and floats
+      intValue: string;
     }
   | {
       boolValue: boolean;
@@ -14,9 +18,9 @@ export type LogAttributeValueType =
       doubleValue: number;
     };
 
-export type LogAttribute = {
+export type SerializedLogAttribute = {
   key: string;
-  value: LogAttributeValueType;
+  value: SerializedLogAttributeValueType;
 };
 
 export interface Log {
@@ -29,29 +33,42 @@ export interface Log {
    * The log level changes how logs are filtered and displayed.
    * Critical level logs are emphasized more than trace level logs.
    */
-  severityText?: LogSeverityLevel;
+  level: LogSeverityLevel;
+
+  /**
+   * The message to be logged - for example, 'hello world' would become a log like '[INFO] hello world'
+   */
+  message: ParameterizedString;
+
+  /**
+   * Arbitrary structured data that stores information about the log - e.g., userId: 100.
+   */
+  attributes?: Record<string, unknown>;
 
   /**
    * The severity number - generally higher severity are levels like 'error' and lower are levels like 'debug'
    */
   severityNumber?: number;
+}
+
+export interface SerializedOtelLog {
+  severityText?: Log['level'];
 
   /**
    * The trace ID for this log
    */
   traceId?: string;
 
-  /**
-   * The message to be logged - for example, 'hello world' would become a log like '[INFO] hello world'
-   */
+  severityNumber?: Log['severityNumber'];
+
   body: {
-    stringValue: string;
+    stringValue: Log['message'];
   };
 
   /**
    * Arbitrary structured data that stores information about the log - e.g., userId: 100.
    */
-  attributes?: LogAttribute[];
+  attributes?: SerializedLogAttribute[];
 
   /**
    * This doesn't have to be explicitly specified most of the time. If you need to set it, the value

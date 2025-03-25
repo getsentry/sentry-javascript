@@ -142,7 +142,6 @@ export function changeNuxtSourceMapSettings(
   nuxt: Nuxt,
   sentryModuleOptions: SentryNuxtModuleOptions,
 ): { client: UserSourceMapSetting; server: UserSourceMapSetting } {
-  nuxt.options = nuxt.options || {};
   nuxt.options.sourcemap = nuxt.options.sourcemap ?? { server: undefined, client: undefined };
 
   let previousUserSourceMapSetting: { client: UserSourceMapSetting; server: UserSourceMapSetting } = {
