@@ -67,6 +67,19 @@ export class SentrySampler implements Sampler {
     }
 
     const parentSampled = parentSpan ? getParentSampled(parentSpan, traceId, spanName) : undefined;
+    const isRootSpan = !parentSpan || parentContext?.isRemote;
+
+    // We only sample based on parameters (like tracesSampleRate or tracesSampler) for root spans (which is done in sampleSpan).
+    // Non-root-spans simply inherit the sampling decision from their parent.
+    if (!isRootSpan) {
+      return {
+        ...wrapSamplingDecision({
+          decision: parentSampled ? SamplingDecision.RECORD_AND_SAMPLED : SamplingDecision.NOT_RECORD,
+          context,
+          spanAttributes,
+        }),
+      };
+    }
 
     // We want to pass the inferred name & attributes to the sampler method
     const {
@@ -99,76 +112,62 @@ export class SentrySampler implements Sampler {
       return wrapSamplingDecision({ decision: undefined, context, spanAttributes });
     }
 
-    const isRootSpan = !parentSpan || parentContext?.isRemote;
+    const { isolationScope } = getScopesFromContext(context) ?? {};
 
-    // We only sample based on parameters (like tracesSampleRate or tracesSampler) for root spans (which is done in sampleSpan).
-    // Non-root-spans simply inherit the sampling decision from their parent.
-    if (isRootSpan) {
-      const { isolationScope } = getScopesFromContext(context) ?? {};
+    const dscString = parentContext?.traceState ? parentContext.traceState.get(SENTRY_TRACE_STATE_DSC) : undefined;
+    const dsc = dscString ? baggageHeaderToDynamicSamplingContext(dscString) : undefined;
 
-      const dscString = parentContext?.traceState ? parentContext.traceState.get(SENTRY_TRACE_STATE_DSC) : undefined;
-      const dsc = dscString ? baggageHeaderToDynamicSamplingContext(dscString) : undefined;
+    const sampleRand = parseSampleRate(dsc?.sample_rand) ?? Math.random();
 
-      const sampleRand = parseSampleRate(dsc?.sample_rand) ?? Math.random();
+    const [sampled, sampleRate, localSampleRateWasApplied] = sampleSpan(
+      options,
+      {
+        name: inferredSpanName,
+        attributes: mergedAttributes,
+        normalizedRequest: isolationScope?.getScopeData().sdkProcessingMetadata.normalizedRequest,
+        parentSampled,
+        parentSampleRate: parseSampleRate(dsc?.sample_rate),
+      },
+      sampleRand,
+    );
 
-      const [sampled, sampleRate, localSampleRateWasApplied] = sampleSpan(
-        options,
-        {
-          name: inferredSpanName,
-          attributes: mergedAttributes,
-          normalizedRequest: isolationScope?.getScopeData().sdkProcessingMetadata.normalizedRequest,
-          parentSampled,
-          parentSampleRate: parseSampleRate(dsc?.sample_rate),
-        },
-        sampleRand,
-      );
-
-      const method = `${maybeSpanHttpMethod}`.toUpperCase();
-      if (method === 'OPTIONS' || method === 'HEAD') {
-        DEBUG_BUILD && logger.log(`[Tracing] Not sampling span because HTTP method is '${method}' for ${spanName}`);
-
-        return {
-          ...wrapSamplingDecision({
-            decision: SamplingDecision.NOT_RECORD,
-            context,
-            spanAttributes,
-            sampleRand,
-            downstreamTraceSampleRate: 0, // we don't want to sample anything in the downstream trace either
-          }),
-        };
-      }
-
-      if (
-        !sampled &&
-        // We check for `parentSampled === undefined` because we only want to record client reports for spans that are trace roots (ie. when there was incoming trace)
-        parentSampled === undefined
-      ) {
-        DEBUG_BUILD && logger.log('[Tracing] Discarding root span because its trace was not chosen to be sampled.');
-        this._client.recordDroppedEvent('sample_rate', 'transaction');
-      }
+    const method = `${maybeSpanHttpMethod}`.toUpperCase();
+    if (method === 'OPTIONS' || method === 'HEAD') {
+      DEBUG_BUILD && logger.log(`[Tracing] Not sampling span because HTTP method is '${method}' for ${spanName}`);
 
       return {
         ...wrapSamplingDecision({
-          decision: sampled ? SamplingDecision.RECORD_AND_SAMPLED : SamplingDecision.NOT_RECORD,
+          decision: SamplingDecision.NOT_RECORD,
           context,
           spanAttributes,
           sampleRand,
-          downstreamTraceSampleRate: localSampleRateWasApplied ? sampleRate : undefined,
-        }),
-        attributes: {
-          // We set the sample rate on the span when a local sample rate was applied to better understand how traces were sampled in Sentry
-          [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: localSampleRateWasApplied ? sampleRate : undefined,
-        },
-      };
-    } else {
-      return {
-        ...wrapSamplingDecision({
-          decision: parentSampled ? SamplingDecision.RECORD_AND_SAMPLED : SamplingDecision.NOT_RECORD,
-          context,
-          spanAttributes,
+          downstreamTraceSampleRate: 0, // we don't want to sample anything in the downstream trace either
         }),
       };
     }
+
+    if (
+      !sampled &&
+      // We check for `parentSampled === undefined` because we only want to record client reports for spans that are trace roots (ie. when there was incoming trace)
+      parentSampled === undefined
+    ) {
+      DEBUG_BUILD && logger.log('[Tracing] Discarding root span because its trace was not chosen to be sampled.');
+      this._client.recordDroppedEvent('sample_rate', 'transaction');
+    }
+
+    return {
+      ...wrapSamplingDecision({
+        decision: sampled ? SamplingDecision.RECORD_AND_SAMPLED : SamplingDecision.NOT_RECORD,
+        context,
+        spanAttributes,
+        sampleRand,
+        downstreamTraceSampleRate: localSampleRateWasApplied ? sampleRate : undefined,
+      }),
+      attributes: {
+        // We set the sample rate on the span when a local sample rate was applied to better understand how traces were sampled in Sentry
+        [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: localSampleRateWasApplied ? sampleRate : undefined,
+      },
+    };
   }
 
   /** Returns the sampler name or short description with the configuration. */
