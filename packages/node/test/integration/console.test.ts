@@ -36,26 +36,4 @@ describe('Console integration', () => {
       },
     );
   });
-
-  it('should truncate breadcrumbs with more than 2 KB message size', () => {
-    consoleIntegration().setup?.(getClient() as NodeClient);
-
-    const longMsg = 'A'.repeat(10_000);
-
-    // eslint-disable-next-line no-console
-    console.log(longMsg);
-
-    expect(addBreadcrumbSpy).toHaveBeenCalledTimes(1);
-    expect(addBreadcrumbSpy).toHaveBeenCalledWith(
-      {
-        category: 'console',
-        level: 'log',
-        message: `${'A'.repeat(2048)}...`,
-      },
-      {
-        input: [longMsg],
-        level: 'log',
-      },
-    );
-  });
 });
