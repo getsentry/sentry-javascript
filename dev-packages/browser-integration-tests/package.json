@@ -43,6 +43,7 @@
     "@playwright/test": "~1.50.0",
     "@sentry-internal/rrweb": "2.34.0",
     "@sentry/browser": "9.10.1",
+    "@supabase/supabase-js": "2.49.3",
     "axios": "1.8.2",
     "babel-loader": "^8.2.2",
     "fflate": "0.8.2",

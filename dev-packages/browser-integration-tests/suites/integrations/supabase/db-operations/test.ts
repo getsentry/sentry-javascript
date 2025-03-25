@@ -1,10 +1,26 @@
-import { expect } from '@playwright/test';
+import { Page, expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, getMultipleSentryEnvelopeRequests } from '../../../../utils/helpers';
 
+async function mockSupabaseRoute(page: Page) {
+  await page.route('**/rest/v1/todos**', route => {
+    return route.fulfill({
+      status: 200,
+      body: JSON.stringify({
+        userNames: ['John', 'Jane'],
+      }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+  });
+}
+
 sentryTest('should capture Supabase database operation breadcrumbs', async ({ getLocalTestUrl, page }) => {
+  await mockSupabaseRoute(page);
+
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
@@ -20,6 +36,8 @@ sentryTest('should capture Supabase database operation breadcrumbs', async ({ ge
 });
 
 sentryTest('should capture multiple Supabase operations in sequence', async ({ getLocalTestUrl, page }) => {
+  await mockSupabaseRoute(page);
+
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   const events = await getMultipleSentryEnvelopeRequests<Event>(page, 2, { url });
@@ -34,16 +52,18 @@ sentryTest('should capture multiple Supabase operations in sequence', async ({ g
 });
 
 sentryTest('should include correct data payload in Supabase breadcrumbs', async ({ getLocalTestUrl, page }) => {
+  await mockSupabaseRoute(page);
+
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
 
-  const supaBreadcrumb = eventData.breadcrumbs?.find(b => b.type === 'supabase');
+  const supabaseBreadcrumb = eventData.breadcrumbs?.find(b => b.type === 'supabase');
 
-  expect(supaBreadcrumb).toBeDefined();
-  expect(supaBreadcrumb?.data).toMatchObject({
-    table: expect.any(String),
-    operation: expect.any(String),
-    timestamp: expect.any(Number),
+  expect(supabaseBreadcrumb).toBeDefined();
+  expect(supabaseBreadcrumb?.data).toMatchObject({
+    query: expect.arrayContaining([
+      "filter(columns, )"
+    ]),
   });
 });

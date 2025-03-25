@@ -416,7 +416,7 @@ const instrumentSupabase = (supabaseClient: unknown): void => {
 
 const INTEGRATION_NAME = 'Supabase';
 
-const _supabaseIntegration = (({ supabaseClient } = {}) => {
+const _supabaseIntegration = ((supabaseClient) => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
