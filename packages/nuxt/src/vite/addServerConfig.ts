@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import { createResolver } from '@nuxt/kit';
-import { consoleSandbox, logger } from '@sentry/core';
+import { logger } from '@sentry/core';
 import type { Nitro } from 'nitropack';
 import type { InputPluginOption } from 'rollup';
 import type { SentryNuxtModuleOptions } from '../common/types';
@@ -21,8 +21,7 @@ const SERVER_CONFIG_FILENAME = 'sentry.server.config';
 /**
  *  Adds the `sentry.server.config.ts` file as `sentry.server.config.mjs` to the `.output` directory to be able to reference this file in the node --import option.
  *
- *  1. Adding the file as a rollup import, so it is included in the build (automatically transpiles the file).
- *  2. Copying the file to the `.output` directory after the build process is finished.
+ *  By adding a Rollup plugin to the Nitro Rollup options, the Sentry server config is transpiled and emitted to the server build.
  */
 export function addServerConfigToBuild(
   moduleOptions: SentryNuxtModuleOptions,
@@ -38,41 +37,6 @@ export function addServerConfigToBuild(
     }
 
     rollupConfig.plugins.push(injectServerConfigPlugin(nitro, serverConfigFile, moduleOptions.debug));
-  });
-
-  /**
-   * When the build process is finished, copy the `sentry.server.config` file to the `.output` directory.
-   * This is necessary because we need to reference this file path in the node --import option.
-   */
-  nitro.hooks.hook('close', async () => {
-    const buildDirResolver = createResolver(nitro.options.buildDir);
-    const serverDirResolver = createResolver(nitro.options.output.serverDir);
-    const source = buildDirResolver.resolve(`dist/server/${SERVER_CONFIG_FILENAME}.mjs`);
-    const destination = serverDirResolver.resolve(`${SERVER_CONFIG_FILENAME}.mjs`);
-
-    try {
-      await fs.promises.access(source, fs.constants.F_OK);
-      await fs.promises.copyFile(source, destination);
-
-      if (moduleOptions.debug) {
-        consoleSandbox(() => {
-          // eslint-disable-next-line no-console
-          console.log(
-            `[Sentry] Successfully added the content of the \`${serverConfigFile}\` file to \`${destination}\``,
-          );
-        });
-      }
-    } catch (error) {
-      if (moduleOptions.debug) {
-        consoleSandbox(() => {
-          // eslint-disable-next-line no-console
-          console.warn(
-            `[Sentry] An error occurred when trying to add the \`${serverConfigFile}\` file to the \`.output\` directory`,
-            error,
-          );
-        });
-      }
-    }
   });
 }
 

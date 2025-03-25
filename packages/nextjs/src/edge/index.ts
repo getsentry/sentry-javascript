@@ -50,7 +50,7 @@ export function init(options: VercelEdgeOptions = {}): void {
     ...options,
   };
 
-  applySdkMetadata(opts, 'nextjs');
+  applySdkMetadata(opts, 'nextjs', ['nextjs', 'vercel-edge']);
 
   const client = vercelEdgeInit(opts);
 

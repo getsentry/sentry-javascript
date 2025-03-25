@@ -210,6 +210,8 @@ export function extractExceptionKeysForMessage(exception: Record<string, unknown
  * Works recursively on objects and arrays.
  *
  * Attention: This function keeps circular references in the returned object.
+ *
+ * @deprecated This function is no longer used by the SDK and will be removed in a future major version.
  */
 export function dropUndefinedKeys<T>(inputValue: T): T {
   // This map keeps track of what already visited nodes map to.

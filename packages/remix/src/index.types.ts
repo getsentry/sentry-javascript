@@ -21,6 +21,8 @@ export declare const defaultStackParser: StackParser;
 
 export declare function captureRemixServerException(err: unknown, name: string, request: Request): Promise<void>;
 
+export declare const logger: typeof clientSdk.logger | typeof serverSdk.logger;
+
 // This variable is not a runtime variable but just a type to tell typescript that the methods below can either come
 // from the client SDK or from the server SDK. TypeScript is smart enough to understand that these resolve to the same
 // methods from `@sentry/core`.

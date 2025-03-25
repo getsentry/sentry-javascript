@@ -113,6 +113,7 @@ export {
   profiler,
   amqplibIntegration,
   vercelAIIntegration,
+  logger,
 } from '@sentry/node';
 
 export {

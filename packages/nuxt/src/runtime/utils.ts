@@ -1,5 +1,5 @@
 import type { ClientOptions, Context } from '@sentry/core';
-import { captureException, dropUndefinedKeys, getClient, getTraceMetaTags } from '@sentry/core';
+import { captureException, getClient, getTraceMetaTags } from '@sentry/core';
 import type { VueOptions } from '@sentry/vue/src/types';
 import type { CapturedErrorContext } from 'nitropack';
 import type { NuxtRenderHTMLContext } from 'nuxt/app';
@@ -9,25 +9,23 @@ import type { ComponentPublicInstance } from 'vue';
  *  Extracts the relevant context information from the error context (H3Event in Nitro Error)
  *  and created a structured context object.
  */
-export function extractErrorContext(errorContext: CapturedErrorContext): Context {
-  const structuredContext: Context = {
-    method: undefined,
-    path: undefined,
-    tags: undefined,
-  };
+export function extractErrorContext(errorContext: CapturedErrorContext | undefined): Context {
+  const ctx: Context = {};
 
-  if (errorContext) {
-    if (errorContext.event) {
-      structuredContext.method = errorContext.event._method || undefined;
-      structuredContext.path = errorContext.event._path || undefined;
-    }
-
-    if (Array.isArray(errorContext.tags)) {
-      structuredContext.tags = errorContext.tags || undefined;
-    }
+  if (!errorContext) {
+    return ctx;
   }
 
-  return dropUndefinedKeys(structuredContext);
+  if (errorContext.event) {
+    ctx.method = errorContext.event._method;
+    ctx.path = errorContext.event._path;
+  }
+
+  if (Array.isArray(errorContext.tags)) {
+    ctx.tags = errorContext.tags;
+  }
+
+  return ctx;
 }
 
 /**

@@ -8,7 +8,6 @@ import type {
 } from './types-hoist';
 import { dsnToString } from './utils-hoist/dsn';
 import { createEnvelope } from './utils-hoist/envelope';
-import { dropUndefinedKeys } from './utils-hoist/object';
 
 /**
  * Create envelope from check in item.
@@ -36,7 +35,7 @@ export function createCheckInEnvelope(
   }
 
   if (dynamicSamplingContext) {
-    headers.trace = dropUndefinedKeys(dynamicSamplingContext) as DynamicSamplingContext;
+    headers.trace = dynamicSamplingContext as DynamicSamplingContext;
   }
 
   const item = createCheckInEnvelopeItem(checkIn);

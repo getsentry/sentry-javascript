@@ -18,7 +18,6 @@ import type {
 
 import { dsnToString } from './dsn';
 import { normalize } from './normalize';
-import { dropUndefinedKeys } from './object';
 import { GLOBAL_OBJ } from './worldwide';
 
 /**
@@ -196,13 +195,13 @@ export function createAttachmentEnvelopeItem(attachment: Attachment): Attachment
   const buffer = typeof attachment.data === 'string' ? encodeUTF8(attachment.data) : attachment.data;
 
   return [
-    dropUndefinedKeys({
+    {
       type: 'attachment',
       length: buffer.length,
       filename: attachment.filename,
       content_type: attachment.contentType,
       attachment_type: attachment.attachmentType,
-    }),
+    },
     buffer,
   ];
 }

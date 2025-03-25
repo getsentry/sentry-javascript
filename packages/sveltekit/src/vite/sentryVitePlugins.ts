@@ -1,4 +1,3 @@
-import { dropUndefinedKeys } from '@sentry/core';
 import type { Plugin } from 'vite';
 import type { AutoInstrumentSelection } from './autoInstrument';
 import { makeAutoInstrumentationPlugin } from './autoInstrument';
@@ -104,5 +103,5 @@ export function generateVitePluginOptions(
     }
   }
 
-  return dropUndefinedKeys(sentryVitePluginsOptions);
+  return sentryVitePluginsOptions;
 }

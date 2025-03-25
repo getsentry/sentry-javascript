@@ -26,7 +26,6 @@ import type {
 } from '../types-hoist';
 import type { SpanLink } from '../types-hoist/link';
 import { logger } from '../utils-hoist/logger';
-import { dropUndefinedKeys } from '../utils-hoist/object';
 import { generateSpanId, generateTraceId } from '../utils-hoist/propagationContext';
 import { timestampInSeconds } from '../utils-hoist/time';
 import {
@@ -223,7 +222,7 @@ export class SentrySpan implements Span {
    * use `spanToJSON(span)` instead.
    */
   public getSpanJSON(): SpanJSON {
-    return dropUndefinedKeys({
+    return {
       data: this._attributes,
       description: this._name,
       op: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP],
@@ -240,7 +239,7 @@ export class SentrySpan implements Span {
       is_segment: (this._isStandaloneSpan && getRootSpan(this) === this) || undefined,
       segment_id: this._isStandaloneSpan ? getRootSpan(this).spanContext().spanId : undefined,
       links: convertSpanLinksForEnvelope(this._links),
-    });
+    };
   }
 
   /** @inheritdoc */
