@@ -1,30 +1,25 @@
 /* eslint-disable complexity */
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, defineIntegration, spanToJSON } from '@sentry/core';
 import type { IntegrationFn } from '@sentry/core';
-import { generateInstrumentOnce, instrumentWhenWrapped } from '../../../otel/instrument';
+import { generateInstrumentOnce } from '../../../otel/instrument';
 import { addOriginToSpan } from '../../../utils/addOriginToSpan';
-import { SentryVercelAiInstrumentation, sentryVercelAiPatched } from './instrumentation';
+import { SentryVercelAiInstrumentation } from './instrumentation';
 
 const INTEGRATION_NAME = 'VercelAI';
 
 export const instrumentVercelAi = generateInstrumentOnce(INTEGRATION_NAME, () => new SentryVercelAiInstrumentation({}));
 
 const _vercelAIIntegration = (() => {
-  let instrumentationWrappedCallback: undefined | ((callback: () => void) => void);
+  let instrumentation: undefined | SentryVercelAiInstrumentation;
 
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
-      const instrumentation = instrumentVercelAi();
-      instrumentationWrappedCallback = instrumentWhenWrapped(instrumentation);
+      instrumentation = instrumentVercelAi();
     },
     setup(client) {
-      instrumentationWrappedCallback?.(() => {
+      instrumentation?.callWhenPatched(() => {
         client.on('spanStart', span => {
-          if (!sentryVercelAiPatched) {
-            return;
-          }
-
           const { data: attributes, description: name } = spanToJSON(span);
 
           if (!name) {
