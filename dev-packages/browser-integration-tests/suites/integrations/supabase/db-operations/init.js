@@ -1,7 +1,6 @@
 import * as Sentry from '@sentry/browser';
+
 import { createClient } from '@supabase/supabase-js';
-
-
 window.Sentry = Sentry;
 
 const supabase = createClient(
@@ -12,9 +11,7 @@ const supabase = createClient(
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   integrations: [
-    new Sentry.BrowserTracing({
-      tracingOrigins: ['localhost', 'my.supabase.co'],
-    }),
+    Sentry.browserTracingIntegration(),
     Sentry.supabaseIntegration(supabase)
   ],
   tracesSampleRate: 1.0,
