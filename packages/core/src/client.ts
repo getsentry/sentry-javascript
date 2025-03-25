@@ -81,25 +81,27 @@ interface DoNotSendEventError {
   [DO_NOT_SEND_EVENT_SYMBOL]: true;
 }
 
-function makeInternalError(message: string): InternalError {
+/** Exported for tests only. */
+export function _makeInternalError(message: string): InternalError {
   return {
     message,
     [INTERNAL_ERROR_SYMBOL]: true,
   };
 }
 
-function makeDoNotSendEventError(message: string): DoNotSendEventError {
+/** Exported for tests only. */
+export function _makeDoNotSendEventError(message: string): DoNotSendEventError {
   return {
     message,
     [DO_NOT_SEND_EVENT_SYMBOL]: true,
   };
 }
 
-function isInternalError(error: unknown): error is InternalError {
+function _isInternalError(error: unknown): error is InternalError {
   return !!error && typeof error === 'object' && INTERNAL_ERROR_SYMBOL in error;
 }
 
-function isDoNotSendEventError(error: unknown): error is DoNotSendEventError {
+function _isDoNotSendEventError(error: unknown): error is DoNotSendEventError {
   return !!error && typeof error === 'object' && DO_NOT_SEND_EVENT_SYMBOL in error;
 }
 
@@ -1009,9 +1011,9 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       },
       reason => {
         if (DEBUG_BUILD) {
-          if (isDoNotSendEventError(reason)) {
+          if (_isDoNotSendEventError(reason)) {
             logger.log(reason.message);
-          } else if (isInternalError(reason)) {
+          } else if (_isInternalError(reason)) {
             logger.warn(reason.message);
           } else {
             logger.warn(reason);
@@ -1056,7 +1058,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     if (isError && typeof parsedSampleRate === 'number' && Math.random() > parsedSampleRate) {
       this.recordDroppedEvent('sample_rate', 'error');
       return rejectedSyncPromise(
-        makeDoNotSendEventError(
+        _makeDoNotSendEventError(
           `Discarding event because it's not included in the random sample (sampling rate = ${sampleRate})`,
         ),
       );
@@ -1068,7 +1070,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       .then(prepared => {
         if (prepared === null) {
           this.recordDroppedEvent('event_processor', dataCategory);
-          throw makeDoNotSendEventError('An event processor returned `null`, will not send event.');
+          throw _makeDoNotSendEventError('An event processor returned `null`, will not send event.');
         }
 
         const isInternalException = hint.data && (hint.data as { __sentry__: boolean }).__sentry__ === true;
@@ -1088,7 +1090,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
             const spanCount = 1 + spans.length;
             this.recordDroppedEvent('before_send', 'span', spanCount);
           }
-          throw makeDoNotSendEventError(`${beforeSendLabel} returned \`null\`, will not send event.`);
+          throw _makeDoNotSendEventError(`${beforeSendLabel} returned \`null\`, will not send event.`);
         }
 
         const session = currentScope.getSession() || isolationScope.getSession();
@@ -1122,7 +1124,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
         return processedEvent;
       })
       .then(null, reason => {
-        if (isDoNotSendEventError(reason) || isInternalError(reason)) {
+        if (_isDoNotSendEventError(reason) || _isInternalError(reason)) {
           throw reason;
         }
 
@@ -1132,7 +1134,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
           },
           originalException: reason,
         });
-        throw makeInternalError(
+        throw _makeInternalError(
           `Event processing pipeline threw an error, original event will not be sent. Details have been sent as a new event.\nReason: ${reason}`,
         );
       });
@@ -1237,17 +1239,17 @@ function _validateBeforeSendResult(
   if (isThenable(beforeSendResult)) {
     return beforeSendResult.then(
       event => {
-        if (!isPlainObject(event) && event) {
-          throw makeInternalError(invalidValueError);
+        if (!isPlainObject(event) && event !== null) {
+          throw _makeInternalError(invalidValueError);
         }
         return event;
       },
       e => {
-        throw makeInternalError(`${beforeSendLabel} rejected with ${e}`);
+        throw _makeInternalError(`${beforeSendLabel} rejected with ${e}`);
       },
     );
-  } else if (!isPlainObject(beforeSendResult) && beforeSendResult) {
-    throw makeInternalError(invalidValueError);
+  } else if (!isPlainObject(beforeSendResult) && beforeSendResult !== null) {
+    throw _makeInternalError(invalidValueError);
   }
   return beforeSendResult;
 }
