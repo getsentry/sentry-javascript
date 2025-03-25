@@ -27,7 +27,7 @@ export async function diagnoseSdkConnectivity(): Promise<
     await fetch(
       // We want this to be as close as possible to an actual ingest URL so that ad blockers will actually block the request
       // We are using the "sentry-sdks" org with id 447951 not to pollute any actual organizations.
-      'https://o447951.ingest.sentry.io/api/1337/envelope/?sentry_version=7&sentry_key=1337&sentry_client=sentry.javascript.react%2F1.33.7',
+      'https://o447951.ingest.sentry.io/api/1337/envelope/?sentry_version=7&sentry_key=1337&sentry_client=sentry.javascript.browser%2F1.33.7',
       {
         body: '{}',
         method: 'POST',
