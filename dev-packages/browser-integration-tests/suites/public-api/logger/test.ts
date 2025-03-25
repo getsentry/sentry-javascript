@@ -5,6 +5,12 @@ import { sentryTest } from '../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, properFullEnvelopeRequestParser } from '../../../utils/helpers';
 
 sentryTest('should capture all logging methods', async ({ getLocalTestUrl, page }) => {
+  const bundle = process.env.PW_BUNDLE || '';
+  // Only run this for npm package exports
+  if (bundle.startsWith('bundle') || bundle.startsWith('loader')) {
+    sentryTest.skip();
+  }
+
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   const event = await getFirstSentryEnvelopeRequest<OtelLogEnvelope>(page, url, properFullEnvelopeRequestParser);
