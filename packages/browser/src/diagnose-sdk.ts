@@ -17,7 +17,9 @@ export async function diagnoseSdk(): Promise<'no-client-active' | 'sentry-unreac
   }
 
   try {
+    // If fetch throws, there is likely an ad blocker active or there are other connective issues.
     await fetch(
+      // We want this to be as close as possible to an actual ingest URL so that ad blockers will actually block the request
       'https://o1337.ingest.sentry.io/api/1337/envelope/?sentry_version=7&sentry_key=1337&sentry_client=sentry.javascript.react%2F1.33.7',
       {
         body: '',
