@@ -425,9 +425,9 @@ const _supabaseIntegration = (supabaseClient => {
   };
 }) satisfies IntegrationFn;
 
-export const supabaseIntegration = defineIntegration((options: { supabaseClient: unknown }) => {
+export const supabaseIntegration = defineIntegration((supabaseClient: unknown) => {
   return {
-    ..._supabaseIntegration(options),
+    ..._supabaseIntegration(supabaseClient),
     name: INTEGRATION_NAME,
   };
 }) satisfies IntegrationFn;
