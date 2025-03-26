@@ -76,6 +76,7 @@
     "@solidjs/router": "^0.13.4",
     "@solidjs/start": "^1.0.0",
     "@solidjs/testing-library": "0.8.5",
+    "@testing-library/jest-dom": "^6.4.5",
     "@testing-library/user-event": "^14.5.2",
     "vite-plugin-solid": "^2.8.2"
   },
