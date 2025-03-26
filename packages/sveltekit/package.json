@@ -50,7 +50,7 @@
     "@sentry/node": "9.9.0",
     "@sentry/opentelemetry": "9.9.0",
     "@sentry/svelte": "9.9.0",
-    "@sentry/vite-plugin": "3.2.0",
+    "@sentry/vite-plugin": "3.2.3",
     "magic-string": "0.30.7",
     "recast": "0.23.11",
     "sorcery": "1.0.0"
