@@ -3,152 +3,153 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_OP, defineIntegration, spanToJSON } from '@se
 import type { IntegrationFn } from '@sentry/core';
 import { generateInstrumentOnce } from '../../../otel/instrument';
 import { addOriginToSpan } from '../../../utils/addOriginToSpan';
-import { SentryVercelAiInstrumentation, sentryVercelAiPatched } from './instrumentation';
+import { SentryVercelAiInstrumentation } from './instrumentation';
 
 const INTEGRATION_NAME = 'VercelAI';
 
 export const instrumentVercelAi = generateInstrumentOnce(INTEGRATION_NAME, () => new SentryVercelAiInstrumentation({}));
 
 const _vercelAIIntegration = (() => {
+  let instrumentation: undefined | SentryVercelAiInstrumentation;
+
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
-      instrumentVercelAi();
-    },
-    processEvent(event) {
-      if (event.type === 'transaction' && event.spans?.length) {
-        for (const span of event.spans) {
-          const { data: attributes, description: name } = span;
-
-          if (!name || span.origin !== 'auto.vercelai.otel') {
-            continue;
-          }
-
-          if (attributes['ai.usage.completionTokens'] != undefined) {
-            attributes['ai.completion_tokens.used'] = attributes['ai.usage.completionTokens'];
-          }
-          if (attributes['ai.usage.promptTokens'] != undefined) {
-            attributes['ai.prompt_tokens.used'] = attributes['ai.usage.promptTokens'];
-          }
-          if (
-            typeof attributes['ai.usage.completionTokens'] == 'number' &&
-            typeof attributes['ai.usage.promptTokens'] == 'number'
-          ) {
-            attributes['ai.total_tokens.used'] =
-              attributes['ai.usage.completionTokens'] + attributes['ai.usage.promptTokens'];
-          }
-        }
-      }
-
-      return event;
+      instrumentation = instrumentVercelAi();
     },
     setup(client) {
-      client.on('spanStart', span => {
-        if (!sentryVercelAiPatched) {
-          return;
-        }
+      instrumentation?.callWhenPatched(() => {
+        client.on('spanStart', span => {
+          const { data: attributes, description: name } = spanToJSON(span);
 
-        const { data: attributes, description: name } = spanToJSON(span);
+          if (!name) {
+            return;
+          }
 
-        if (!name) {
-          return;
-        }
+          // The id of the model
+          const aiModelId = attributes['ai.model.id'];
 
-        // The id of the model
-        const aiModelId = attributes['ai.model.id'];
+          // the provider of the model
+          const aiModelProvider = attributes['ai.model.provider'];
 
-        // the provider of the model
-        const aiModelProvider = attributes['ai.model.provider'];
+          // both of these must be defined for the integration to work
+          if (typeof aiModelId !== 'string' || typeof aiModelProvider !== 'string' || !aiModelId || !aiModelProvider) {
+            return;
+          }
 
-        // both of these must be defined for the integration to work
-        if (typeof aiModelId !== 'string' || typeof aiModelProvider !== 'string' || !aiModelId || !aiModelProvider) {
-          return;
-        }
+          let isPipelineSpan = false;
 
-        let isPipelineSpan = false;
+          switch (name) {
+            case 'ai.generateText': {
+              span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.pipeline.generateText');
+              isPipelineSpan = true;
+              break;
+            }
+            case 'ai.generateText.doGenerate': {
+              span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.run.doGenerate');
+              break;
+            }
+            case 'ai.streamText': {
+              span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.pipeline.streamText');
+              isPipelineSpan = true;
+              break;
+            }
+            case 'ai.streamText.doStream': {
+              span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.run.doStream');
+              break;
+            }
+            case 'ai.generateObject': {
+              span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.pipeline.generateObject');
+              isPipelineSpan = true;
+              break;
+            }
+            case 'ai.generateObject.doGenerate': {
+              span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.run.doGenerate');
+              break;
+            }
+            case 'ai.streamObject': {
+              span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.pipeline.streamObject');
+              isPipelineSpan = true;
+              break;
+            }
+            case 'ai.streamObject.doStream': {
+              span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.run.doStream');
+              break;
+            }
+            case 'ai.embed': {
+              span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.pipeline.embed');
+              isPipelineSpan = true;
+              break;
+            }
+            case 'ai.embed.doEmbed': {
+              span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.embeddings');
+              break;
+            }
+            case 'ai.embedMany': {
+              span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.pipeline.embedMany');
+              isPipelineSpan = true;
+              break;
+            }
+            case 'ai.embedMany.doEmbed': {
+              span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.embeddings');
+              break;
+            }
+            case 'ai.toolCall':
+            case 'ai.stream.firstChunk':
+            case 'ai.stream.finish':
+              span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.run');
+              break;
+          }
 
-        switch (name) {
-          case 'ai.generateText': {
-            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.pipeline.generateText');
-            isPipelineSpan = true;
-            break;
-          }
-          case 'ai.generateText.doGenerate': {
-            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.run.doGenerate');
-            break;
-          }
-          case 'ai.streamText': {
-            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.pipeline.streamText');
-            isPipelineSpan = true;
-            break;
-          }
-          case 'ai.streamText.doStream': {
-            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.run.doStream');
-            break;
-          }
-          case 'ai.generateObject': {
-            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.pipeline.generateObject');
-            isPipelineSpan = true;
-            break;
-          }
-          case 'ai.generateObject.doGenerate': {
-            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.run.doGenerate');
-            break;
-          }
-          case 'ai.streamObject': {
-            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.pipeline.streamObject');
-            isPipelineSpan = true;
-            break;
-          }
-          case 'ai.streamObject.doStream': {
-            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.run.doStream');
-            break;
-          }
-          case 'ai.embed': {
-            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.pipeline.embed');
-            isPipelineSpan = true;
-            break;
-          }
-          case 'ai.embed.doEmbed': {
-            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.embeddings');
-            break;
-          }
-          case 'ai.embedMany': {
-            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.pipeline.embedMany');
-            isPipelineSpan = true;
-            break;
-          }
-          case 'ai.embedMany.doEmbed': {
-            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.embeddings');
-            break;
-          }
-          case 'ai.toolCall':
-          case 'ai.stream.firstChunk':
-          case 'ai.stream.finish':
-            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.run');
-            break;
-        }
+          addOriginToSpan(span, 'auto.vercelai.otel');
 
-        addOriginToSpan(span, 'auto.vercelai.otel');
+          const nameWthoutAi = name.replace('ai.', '');
+          span.setAttribute('ai.pipeline.name', nameWthoutAi);
+          span.updateName(nameWthoutAi);
 
-        const nameWthoutAi = name.replace('ai.', '');
-        span.setAttribute('ai.pipeline.name', nameWthoutAi);
-        span.updateName(nameWthoutAi);
+          // If a Telemetry name is set and it is a pipeline span, use that as the operation name
+          const functionId = attributes['ai.telemetry.functionId'];
+          if (functionId && typeof functionId === 'string' && isPipelineSpan) {
+            span.updateName(functionId);
+            span.setAttribute('ai.pipeline.name', functionId);
+          }
 
-        // If a Telemetry name is set and it is a pipeline span, use that as the operation name
-        const functionId = attributes['ai.telemetry.functionId'];
-        if (functionId && typeof functionId === 'string' && isPipelineSpan) {
-          span.updateName(functionId);
-          span.setAttribute('ai.pipeline.name', functionId);
-        }
+          if (attributes['ai.prompt']) {
+            span.setAttribute('ai.input_messages', attributes['ai.prompt']);
+          }
+          if (attributes['ai.model.id']) {
+            span.setAttribute('ai.model_id', attributes['ai.model.id']);
+          }
+          span.setAttribute('ai.streaming', name.includes('stream'));
+        });
 
-        if (attributes['ai.prompt']) {
-          span.setAttribute('ai.input_messages', attributes['ai.prompt']);
-        }
-        if (attributes['ai.model.id']) {
-          span.setAttribute('ai.model_id', attributes['ai.model.id']);
-        }
-        span.setAttribute('ai.streaming', name.includes('stream'));
+        client.addEventProcessor(event => {
+          if (event.type === 'transaction' && event.spans?.length) {
+            for (const span of event.spans) {
+              const { data: attributes, description: name } = span;
+
+              if (!name || span.origin !== 'auto.vercelai.otel') {
+                continue;
+              }
+
+              if (attributes['ai.usage.completionTokens'] != undefined) {
+                attributes['ai.completion_tokens.used'] = attributes['ai.usage.completionTokens'];
+              }
+              if (attributes['ai.usage.promptTokens'] != undefined) {
+                attributes['ai.prompt_tokens.used'] = attributes['ai.usage.promptTokens'];
+              }
+              if (
+                typeof attributes['ai.usage.completionTokens'] == 'number' &&
+                typeof attributes['ai.usage.promptTokens'] == 'number'
+              ) {
+                attributes['ai.total_tokens.used'] =
+                  attributes['ai.usage.completionTokens'] + attributes['ai.usage.promptTokens'];
+              }
+            }
+          }
+
+          return event;
+        });
       });
     },
   };
