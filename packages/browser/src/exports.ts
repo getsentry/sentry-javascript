@@ -60,7 +60,6 @@ export {
   spanToJSON,
   spanToTraceHeader,
   spanToBaggageHeader,
-  supabaseIntegration,
   updateSpanName,
 } from '@sentry/core';
 
