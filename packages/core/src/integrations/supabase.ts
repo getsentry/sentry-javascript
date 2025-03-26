@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { isPlainObject } from '../utils-hoist';
+import { logger, isPlainObject } from '../utils-hoist';
 
 import type { Span, IntegrationFn } from '../types-hoist';
 import { setHttpStatus, startInactiveSpan } from '../tracing';
@@ -57,10 +57,20 @@ export interface SupabaseBreadcrumb {
 export const AVAILABLE_OPERATIONS = ['select', 'insert', 'upsert', 'update', 'delete'];
 
 export const FILTER_MAPPINGS = {
+  eq: 'eq',
+  neq: 'neq',
+  gt: 'gt',
+  gte: 'gte',
+  lt: 'lt',
+  lte: 'lte',
+  like: 'like',
   'like(all)': 'likeAllOf',
   'like(any)': 'likeAnyOf',
+  ilike: 'ilike',
   'ilike(all)': 'ilikeAllOf',
   'ilike(any)': 'ilikeAnyOf',
+  is: 'is',
+  in: 'in',
   cs: 'contains',
   cd: 'containedBy',
   sr: 'rangeGt',
@@ -69,6 +79,11 @@ export const FILTER_MAPPINGS = {
   nxr: 'rangeLte',
   adj: 'rangeAdjacent',
   ov: 'overlaps',
+  fts: '',
+  plfts: 'plain',
+  phfts: 'phrase',
+  wfts: 'websearch',
+  not: 'not',
 };
 
 const instrumented = new Map();
@@ -135,7 +150,7 @@ export function translateFiltersIntoMethods(key: string, query: string): string 
   } else if (filter?.startsWith('wfts')) {
     method = 'textSearch[websearch]';
   } else {
-    method = (filter && FILTER_MAPPINGS[filter as keyof typeof FILTER_MAPPINGS]) || filter || 'filter';
+    method = (filter && FILTER_MAPPINGS[filter as keyof typeof FILTER_MAPPINGS]) || 'filter';
   }
 
   return `${method}(${key}, ${value.join('.')})`;
@@ -358,6 +373,8 @@ function instrumentPostgrestQueryBuilder(PostgrestQueryBuilder: new () => Postgr
         apply(target, thisArg, argumentsList) {
           const rv = Reflect.apply(target, thisArg, argumentsList);
           const PostgrestFilterBuilder = (rv as PostgrestFilterBuilder).constructor;
+
+          logger.log(`Instrumenting ${operation} operation's PostgrestFilterBuilder`);
 
           instrumentPostgrestFilterBuilder(PostgrestFilterBuilder);
 
