@@ -22,7 +22,7 @@ import { eventFromMessage, eventFromUnknownInput } from './utils-hoist/eventbuil
 import { logger } from './utils-hoist/logger';
 import { uuid4 } from './utils-hoist/misc';
 import { resolvedSyncPromise } from './utils-hoist/syncpromise';
-import { _INTERNAL_flushLogsBuffer } from './logs';
+import { _INTERNAL_flushLogsBuffer } from './logs/exports';
 import { isPrimitive } from './utils-hoist';
 
 export interface ServerRuntimeClientOptions extends ClientOptions<BaseTransportOptions> {
@@ -51,23 +51,26 @@ export class ServerRuntimeClient<
 
     this._logWeight = 0;
 
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const client = this;
-    this.on('flush', () => {
-      _INTERNAL_flushLogsBuffer(client);
-    });
-
-    this.on('afterCaptureLog', log => {
-      client._logWeight += estimateLogSizeInBytes(log);
-
-      // We flush the logs buffer if it exceeds 0.8 MB
-      // The log weight is a rough estimate, so we flush way before
-      // the payload gets too big.
-      if (client._logWeight > 800_000) {
+    if (this._options._experiments?.enableLogs) {
+      // eslint-disable-next-line @typescript-eslint/no-this-alias
+      const client = this;
+      client.on('flush', () => {
         _INTERNAL_flushLogsBuffer(client);
         client._logWeight = 0;
-      }
-    });
+      });
+
+      client.on('afterCaptureLog', log => {
+        client._logWeight += estimateLogSizeInBytes(log);
+
+        // We flush the logs buffer if it exceeds 0.8 MB
+        // The log weight is a rough estimate, so we flush way before
+        // the payload gets too big.
+        if (client._logWeight >= 800_000) {
+          _INTERNAL_flushLogsBuffer(client);
+          client._logWeight = 0;
+        }
+      });
+    }
   }
 
   /**

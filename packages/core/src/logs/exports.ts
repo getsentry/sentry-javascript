@@ -41,7 +41,7 @@ export function logAttributeToSerializedLogAttribute(key: string, value: unknown
       let stringValue = '';
       try {
         stringValue = JSON.stringify(value) ?? '';
-      } catch (_) {
+      } catch {
         // Do nothing
       }
       return {
@@ -62,7 +62,11 @@ export function logAttributeToSerializedLogAttribute(key: string, value: unknown
  * @experimental This method will experience breaking changes. This is not yet part of
  * the stable Sentry SDK API and can be changed or removed without warning.
  */
-export function _INTERNAL_captureLog(beforeLog: Log, client = getClient(), scope = getCurrentScope()): void {
+export function _INTERNAL_captureLog(
+  beforeLog: Log,
+  client: Client | undefined = getClient(),
+  scope = getCurrentScope(),
+): void {
   if (!client) {
     DEBUG_BUILD && logger.warn('No client available to capture log.');
     return;
@@ -143,6 +147,9 @@ export function _INTERNAL_captureLog(beforeLog: Log, client = getClient(), scope
  *
  * @param client - A client.
  * @param maybeLogBuffer - A log buffer. Uses the log buffer for the given client if not provided.
+ *
+ * @experimental This method will experience breaking changes. This is not yet part of
+ * the stable Sentry SDK API and can be changed or removed without warning.
  */
 export function _INTERNAL_flushLogsBuffer(client: Client, maybeLogBuffer?: Array<SerializedOtelLog>): void {
   const logBuffer = maybeLogBuffer ?? CLIENT_TO_LOG_BUFFER_MAP.get(client) ?? [];
