@@ -1,6 +1,5 @@
 import type { StackFrame } from '../types-hoist';
 import { filenameIsInApp } from './node-stack-trace';
-import { dropUndefinedKeys } from './object';
 import { UNKNOWN_FUNCTION } from './stacktrace';
 
 type WatchdogReturn = {
@@ -81,12 +80,12 @@ export function callFrameToStackFrame(
   const colno = frame.location.columnNumber ? frame.location.columnNumber + 1 : undefined;
   const lineno = frame.location.lineNumber ? frame.location.lineNumber + 1 : undefined;
 
-  return dropUndefinedKeys({
+  return {
     filename,
     module: getModuleFromFilename(filename),
     function: frame.functionName || UNKNOWN_FUNCTION,
     colno,
     lineno,
     in_app: filename ? filenameIsInApp(filename) : undefined,
-  });
+  };
 }

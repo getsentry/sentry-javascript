@@ -53,7 +53,6 @@ import {
 import { createClientReportEnvelope } from './utils-hoist/clientreport';
 import { dsnToString, makeDsn } from './utils-hoist/dsn';
 import { addItemToEnvelope, createAttachmentEnvelopeItem } from './utils-hoist/envelope';
-import { SentryError } from './utils-hoist/error';
 import { isParameterizedString, isPlainObject, isPrimitive, isThenable } from './utils-hoist/is';
 import { logger } from './utils-hoist/logger';
 import { checkOrSetAlreadyCaught, uuid4 } from './utils-hoist/misc';
@@ -68,6 +67,41 @@ import { _getSpanForScope } from './utils/spanOnScope';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
 const MISSING_RELEASE_FOR_SESSION_ERROR = 'Discarded session because of missing or non-string release';
+
+const INTERNAL_ERROR_SYMBOL = Symbol.for('SentryInternalError');
+const DO_NOT_SEND_EVENT_SYMBOL = Symbol.for('SentryDoNotSendEventError');
+
+interface InternalError {
+  message: string;
+  [INTERNAL_ERROR_SYMBOL]: true;
+}
+
+interface DoNotSendEventError {
+  message: string;
+  [DO_NOT_SEND_EVENT_SYMBOL]: true;
+}
+
+function _makeInternalError(message: string): InternalError {
+  return {
+    message,
+    [INTERNAL_ERROR_SYMBOL]: true,
+  };
+}
+
+function _makeDoNotSendEventError(message: string): DoNotSendEventError {
+  return {
+    message,
+    [DO_NOT_SEND_EVENT_SYMBOL]: true,
+  };
+}
+
+function _isInternalError(error: unknown): error is InternalError {
+  return !!error && typeof error === 'object' && INTERNAL_ERROR_SYMBOL in error;
+}
+
+function _isDoNotSendEventError(error: unknown): error is DoNotSendEventError {
+  return !!error && typeof error === 'object' && DO_NOT_SEND_EVENT_SYMBOL in error;
+}
 
 /**
  * Base implementation for all JavaScript SDK clients.
@@ -623,11 +657,18 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public on(hook: 'close', callback: () => void): () => void;
 
   /**
-   * A hook that is called before a log is captured
+   * A hook that is called before a log is captured. This hooks runs before `beforeSendLog` is fired.
    *
    * @returns {() => void} A function that, when executed, removes the registered callback.
    */
   public on(hook: 'beforeCaptureLog', callback: (log: Log) => void): () => void;
+
+  /**
+   * A hook that is called after a log is captured
+   *
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'afterCaptureLog', callback: (log: Log) => void): () => void;
 
   /**
    * Register a hook on this client.
@@ -777,9 +818,14 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public emit(hook: 'close'): void;
 
   /**
-   * Emit a hook event for client before capturing a log
+   * Emit a hook event for client before capturing a log. This hooks runs before `beforeSendLog` is fired.
    */
   public emit(hook: 'beforeCaptureLog', log: Log): void;
+
+  /**
+   * Emit a hook event for client after capturing a log.
+   */
+  public emit(hook: 'afterCaptureLog', log: Log): void;
 
   /**
    * Emit a hook that was previously registered via `on()`.
@@ -963,10 +1009,10 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       },
       reason => {
         if (DEBUG_BUILD) {
-          // If something's gone wrong, log the error as a warning. If it's just us having used a `SentryError` for
-          // control flow, log just the message (no stack) as a log-level log.
-          if (reason instanceof SentryError && reason.logLevel === 'log') {
+          if (_isDoNotSendEventError(reason)) {
             logger.log(reason.message);
+          } else if (_isInternalError(reason)) {
+            logger.warn(reason.message);
           } else {
             logger.warn(reason);
           }
@@ -1010,9 +1056,8 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     if (isError && typeof parsedSampleRate === 'number' && Math.random() > parsedSampleRate) {
       this.recordDroppedEvent('sample_rate', 'error');
       return rejectedSyncPromise(
-        new SentryError(
+        _makeDoNotSendEventError(
           `Discarding event because it's not included in the random sample (sampling rate = ${sampleRate})`,
-          'log',
         ),
       );
     }
@@ -1023,7 +1068,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       .then(prepared => {
         if (prepared === null) {
           this.recordDroppedEvent('event_processor', dataCategory);
-          throw new SentryError('An event processor returned `null`, will not send event.', 'log');
+          throw _makeDoNotSendEventError('An event processor returned `null`, will not send event.');
         }
 
         const isInternalException = hint.data && (hint.data as { __sentry__: boolean }).__sentry__ === true;
@@ -1043,7 +1088,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
             const spanCount = 1 + spans.length;
             this.recordDroppedEvent('before_send', 'span', spanCount);
           }
-          throw new SentryError(`${beforeSendLabel} returned \`null\`, will not send event.`, 'log');
+          throw _makeDoNotSendEventError(`${beforeSendLabel} returned \`null\`, will not send event.`);
         }
 
         const session = currentScope.getSession() || isolationScope.getSession();
@@ -1077,7 +1122,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
         return processedEvent;
       })
       .then(null, reason => {
-        if (reason instanceof SentryError) {
+        if (_isDoNotSendEventError(reason) || _isInternalError(reason)) {
           throw reason;
         }
 
@@ -1087,7 +1132,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
           },
           originalException: reason,
         });
-        throw new SentryError(
+        throw _makeInternalError(
           `Event processing pipeline threw an error, original event will not be sent. Details have been sent as a new event.\nReason: ${reason}`,
         );
       });
@@ -1193,16 +1238,16 @@ function _validateBeforeSendResult(
     return beforeSendResult.then(
       event => {
         if (!isPlainObject(event) && event !== null) {
-          throw new SentryError(invalidValueError);
+          throw _makeInternalError(invalidValueError);
         }
         return event;
       },
       e => {
-        throw new SentryError(`${beforeSendLabel} rejected with ${e}`);
+        throw _makeInternalError(`${beforeSendLabel} rejected with ${e}`);
       },
     );
   } else if (!isPlainObject(beforeSendResult) && beforeSendResult !== null) {
-    throw new SentryError(invalidValueError);
+    throw _makeInternalError(invalidValueError);
   }
   return beforeSendResult;
 }

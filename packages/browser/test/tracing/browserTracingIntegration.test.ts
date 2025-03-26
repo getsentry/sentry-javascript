@@ -728,6 +728,7 @@ describe('browserTracingIntegration', () => {
         sampled: true,
         sampleRand: expect.any(Number),
         dsc: {
+          release: undefined,
           environment: 'production',
           public_key: 'examplePublicKey',
           sample_rate: '1',
@@ -768,6 +769,7 @@ describe('browserTracingIntegration', () => {
         sampled: false,
         sampleRand: expect.any(Number),
         dsc: {
+          release: undefined,
           environment: 'production',
           public_key: 'examplePublicKey',
           sample_rate: '0',
@@ -892,6 +894,7 @@ describe('browserTracingIntegration', () => {
 
       expect(dynamicSamplingContext).toBeDefined();
       expect(dynamicSamplingContext).toStrictEqual({
+        release: undefined,
         environment: 'production',
         public_key: 'examplePublicKey',
         sample_rate: '1',

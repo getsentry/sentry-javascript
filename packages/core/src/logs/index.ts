@@ -5,7 +5,7 @@ import { DEBUG_BUILD } from '../debug-build';
 import { SEVERITY_TEXT_TO_SEVERITY_NUMBER } from './constants';
 import type { SerializedLogAttribute, SerializedOtelLog } from '../types-hoist';
 import type { Log } from '../types-hoist/log';
-import { logger } from '../utils-hoist';
+import { isParameterizedString, logger } from '../utils-hoist';
 import { _getSpanForScope } from '../utils/spanOnScope';
 import { createOtelLogEnvelope } from './envelope';
 
@@ -62,15 +62,25 @@ export function logAttributeToSerializedLogAttribute(key: string, value: unknown
  * @experimental This method will experience breaking changes. This is not yet part of
  * the stable Sentry SDK API and can be changed or removed without warning.
  */
-export function _INTERNAL_captureLog(log: Log, client = getClient(), scope = getCurrentScope()): void {
+export function _INTERNAL_captureLog(beforeLog: Log, client = getClient(), scope = getCurrentScope()): void {
   if (!client) {
     DEBUG_BUILD && logger.warn('No client available to capture log.');
     return;
   }
 
   const { _experiments, release, environment } = client.getOptions();
-  if (!_experiments?.enableLogs) {
+  const { enableLogs = false, beforeSendLog } = _experiments ?? {};
+  if (!enableLogs) {
     DEBUG_BUILD && logger.warn('logging option not enabled, log will not be captured.');
+    return;
+  }
+
+  client.emit('beforeCaptureLog', beforeLog);
+
+  const log = beforeSendLog ? beforeSendLog(beforeLog) : beforeLog;
+  if (!log) {
+    client.recordDroppedEvent('before_send', 'log_item', 1);
+    DEBUG_BUILD && logger.warn('beforeSendLog returned null, log will not be captured.');
     return;
   }
 
@@ -88,6 +98,14 @@ export function _INTERNAL_captureLog(log: Log, client = getClient(), scope = get
 
   if (environment) {
     logAttributes.environment = environment;
+  }
+
+  if (isParameterizedString(message)) {
+    const { __sentry_template_string__, __sentry_template_values__ = [] } = message;
+    logAttributes['sentry.message.template'] = __sentry_template_string__;
+    __sentry_template_values__.forEach((param, index) => {
+      logAttributes[`sentry.message.param.${index}`] = param;
+    });
   }
 
   const span = _getSpanForScope(scope);
@@ -117,7 +135,7 @@ export function _INTERNAL_captureLog(log: Log, client = getClient(), scope = get
     }
   }
 
-  client.emit('beforeCaptureLog', log);
+  client.emit('afterCaptureLog', log);
 }
 
 /**

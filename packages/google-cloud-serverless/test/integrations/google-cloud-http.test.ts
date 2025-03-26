@@ -1,18 +1,23 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { BigQuery } from '@google-cloud/bigquery';
-import * as nock from 'nock';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore ESM/CJS interop issue
+import nock from 'nock';
+import { describe, vi, beforeEach, test, expect, afterAll } from 'vitest';
 
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { NodeClient, createTransport, setCurrentClient } from '@sentry/node';
 import { googleCloudHttpIntegration } from '../../src/integrations/google-cloud-http';
 
-const mockSpanEnd = jest.fn();
-const mockStartInactiveSpan = jest.fn(spanArgs => ({ ...spanArgs }));
+const mockSpanEnd = vi.fn();
+const mockStartInactiveSpan = vi.fn(spanArgs => ({ ...spanArgs }));
 
-jest.mock('@sentry/node', () => {
+vi.mock('@sentry/node', async () => {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-imports
+  const original = (await vi.importActual('@sentry/node')) as typeof import('@sentry/node');
   return {
-    ...jest.requireActual('@sentry/node'),
+    ...original,
     startInactiveSpan: (ctx: unknown) => {
       mockStartInactiveSpan(ctx);
       return { end: mockSpanEnd };

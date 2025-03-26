@@ -32,7 +32,6 @@ describe('Node Logger', () => {
       expect(nodeLogger.warn).toBeTypeOf('function');
       expect(nodeLogger.error).toBeTypeOf('function');
       expect(nodeLogger.fatal).toBeTypeOf('function');
-      expect(nodeLogger.critical).toBeTypeOf('function');
     });
 
     it('should call _INTERNAL_captureLog with trace level', () => {
@@ -88,15 +87,6 @@ describe('Node Logger', () => {
         attributes: { key: 'value' },
       });
     });
-
-    it('should call _INTERNAL_captureLog with critical level', () => {
-      nodeLogger.critical('Test critical message', { key: 'value' });
-      expect(mockCaptureLog).toHaveBeenCalledWith({
-        level: 'critical',
-        message: 'Test critical message',
-        attributes: { key: 'value' },
-      });
-    });
   });
 
   describe('Template string logging', () => {
@@ -124,6 +114,31 @@ describe('Node Logger', () => {
           'sentry.message.param.0': 'Alice',
           'sentry.message.param.1': 'mobile',
         },
+      });
+    });
+
+    it('should handle parameterized strings with parameters', () => {
+      nodeLogger.info(nodeLogger.fmt`Hello ${'John'}, your balance is ${100}`, { userId: 123 });
+      expect(mockCaptureLog).toHaveBeenCalledWith({
+        level: 'info',
+        message: expect.objectContaining({
+          __sentry_template_string__: 'Hello %s, your balance is %s',
+          __sentry_template_values__: ['John', 100],
+        }),
+        attributes: {
+          userId: 123,
+        },
+      });
+    });
+
+    it('should handle parameterized strings without additional attributes', () => {
+      nodeLogger.debug(nodeLogger.fmt`User ${'Alice'} logged in from ${'mobile'}`);
+      expect(mockCaptureLog).toHaveBeenCalledWith({
+        level: 'debug',
+        message: expect.objectContaining({
+          __sentry_template_string__: 'User %s logged in from %s',
+          __sentry_template_values__: ['Alice', 'mobile'],
+        }),
       });
     });
   });

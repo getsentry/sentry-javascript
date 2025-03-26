@@ -57,7 +57,7 @@ export class ServerRuntimeClient<
       _INTERNAL_flushLogsBuffer(client);
     });
 
-    this.on('beforeCaptureLog', log => {
+    this.on('afterCaptureLog', log => {
       client._logWeight += estimateLogSizeInBytes(log);
 
       // We flush the logs buffer if it exceeds 0.8 MB

@@ -65,7 +65,7 @@
   },
   "homepage": "https://docs.sentry.io/platforms/javascript/session-replay/",
   "devDependencies": {
-    "@sentry-internal/rrweb": "2.34.0"
+    "@sentry-internal/rrweb": "2.35.0"
   },
   "dependencies": {
     "@sentry-internal/replay": "9.9.0",

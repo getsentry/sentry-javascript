@@ -70,6 +70,7 @@ describe('getDynamicSamplingContextFromSpan', () => {
     const dynamicSamplingContext = getDynamicSamplingContextFromSpan(rootSpan);
 
     expect(dynamicSamplingContext).toStrictEqual({
+      public_key: undefined,
       release: '1.0.1',
       environment: 'production',
       sampled: 'true',
@@ -88,6 +89,7 @@ describe('getDynamicSamplingContextFromSpan', () => {
     const dynamicSamplingContext = getDynamicSamplingContextFromSpan(rootSpan);
 
     expect(dynamicSamplingContext).toStrictEqual({
+      public_key: undefined,
       release: '1.0.1',
       environment: 'production',
       sampled: 'true',
@@ -111,6 +113,7 @@ describe('getDynamicSamplingContextFromSpan', () => {
     const dynamicSamplingContext = getDynamicSamplingContextFromSpan(rootSpan);
 
     expect(dynamicSamplingContext).toStrictEqual({
+      public_key: undefined,
       release: '1.0.1',
       environment: 'production',
       sampled: 'true',
@@ -166,6 +169,7 @@ describe('getDynamicSamplingContextFromSpan', () => {
     const dynamicSamplingContext = getDynamicSamplingContextFromSpan(rootSpan);
 
     expect(dynamicSamplingContext).toStrictEqual({
+      public_key: undefined,
       release: '1.0.1',
       environment: 'production',
       trace_id: expect.stringMatching(/^[a-f0-9]{32}$/),

@@ -334,7 +334,6 @@ describe('SentryBrowser', () => {
       expect(logger.warn).toBeDefined();
       expect(logger.error).toBeDefined();
       expect(logger.fatal).toBeDefined();
-      expect(logger.critical).toBeDefined();
     });
   });
 });
