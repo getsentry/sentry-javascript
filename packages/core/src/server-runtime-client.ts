@@ -2,32 +2,28 @@ import type {
   BaseTransportOptions,
   CheckIn,
   ClientOptions,
-  DynamicSamplingContext,
   Event,
   EventHint,
+  Log,
   MonitorConfig,
   ParameterizedString,
+  Primitive,
   SerializedCheckIn,
   SeverityLevel,
-  TraceContext,
 } from './types-hoist';
 
 import { createCheckInEnvelope } from './checkin';
-import { Client } from './client';
-import { getIsolationScope, getTraceContextFromScope } from './currentScopes';
+import { Client, _getTraceInfoFromScope } from './client';
+import { getIsolationScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import type { Scope } from './scope';
-import {
-  getDynamicSamplingContextFromScope,
-  getDynamicSamplingContextFromSpan,
-  registerSpanErrorInstrumentation,
-} from './tracing';
+import { registerSpanErrorInstrumentation } from './tracing';
 import { eventFromMessage, eventFromUnknownInput } from './utils-hoist/eventbuilder';
 import { logger } from './utils-hoist/logger';
 import { uuid4 } from './utils-hoist/misc';
 import { resolvedSyncPromise } from './utils-hoist/syncpromise';
-import { _getSpanForScope } from './utils/spanOnScope';
-import { spanToTraceContext } from './utils/spanUtils';
+import { _INTERNAL_flushLogsBuffer } from './logs';
+import { isPrimitive } from './utils-hoist';
 
 export interface ServerRuntimeClientOptions extends ClientOptions<BaseTransportOptions> {
   platform?: string;
@@ -41,6 +37,8 @@ export interface ServerRuntimeClientOptions extends ClientOptions<BaseTransportO
 export class ServerRuntimeClient<
   O extends ClientOptions & ServerRuntimeClientOptions = ServerRuntimeClientOptions,
 > extends Client<O> {
+  private _logWeight: number;
+
   /**
    * Creates a new Edge SDK instance.
    * @param options Configuration options for this SDK.
@@ -50,6 +48,26 @@ export class ServerRuntimeClient<
     registerSpanErrorInstrumentation();
 
     super(options);
+
+    this._logWeight = 0;
+
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const client = this;
+    this.on('flush', () => {
+      _INTERNAL_flushLogsBuffer(client);
+    });
+
+    this.on('afterCaptureLog', log => {
+      client._logWeight += estimateLogSizeInBytes(log);
+
+      // We flush the logs buffer if it exceeds 0.8 MB
+      // The log weight is a rough estimate, so we flush way before
+      // the payload gets too big.
+      if (client._logWeight > 800_000) {
+        _INTERNAL_flushLogsBuffer(client);
+        client._logWeight = 0;
+      }
+    });
   }
 
   /**
@@ -136,7 +154,7 @@ export class ServerRuntimeClient<
       };
     }
 
-    const [dynamicSamplingContext, traceContext] = this._getTraceInfoFromScope(scope);
+    const [dynamicSamplingContext, traceContext] = _getTraceInfoFromScope(this, scope);
     if (traceContext) {
       serializedCheckIn.contexts = {
         trace: traceContext,
@@ -186,23 +204,6 @@ export class ServerRuntimeClient<
 
     return super._prepareEvent(event, hint, currentScope, isolationScope);
   }
-
-  /** Extract trace information from scope */
-  protected _getTraceInfoFromScope(
-    scope: Scope | undefined,
-  ): [dynamicSamplingContext: Partial<DynamicSamplingContext> | undefined, traceContext: TraceContext | undefined] {
-    if (!scope) {
-      return [undefined, undefined];
-    }
-
-    const span = _getSpanForScope(scope);
-
-    const traceContext = span ? spanToTraceContext(span) : getTraceContextFromScope(scope);
-    const dynamicSamplingContext = span
-      ? getDynamicSamplingContextFromSpan(span)
-      : getDynamicSamplingContextFromScope(this, scope);
-    return [dynamicSamplingContext, traceContext];
-  }
 }
 
 function setCurrentRequestSessionErroredOrCrashed(eventHint?: EventHint): void {
@@ -220,4 +221,46 @@ function setCurrentRequestSessionErroredOrCrashed(eventHint?: EventHint): void {
       requestSession.status = 'crashed';
     }
   }
+}
+
+/**
+ * Estimate the size of a log in bytes.
+ *
+ * @param log - The log to estimate the size of.
+ * @returns The estimated size of the log in bytes.
+ */
+function estimateLogSizeInBytes(log: Log): number {
+  let weight = 0;
+
+  // Estimate byte size of 2 bytes per character. This is a rough estimate JS strings are stored as UTF-16.
+  if (log.message) {
+    weight += log.message.length * 2;
+  }
+
+  if (log.attributes) {
+    Object.values(log.attributes).forEach(value => {
+      if (Array.isArray(value)) {
+        weight += value.length * estimatePrimitiveSizeInBytes(value[0]);
+      } else if (isPrimitive(value)) {
+        weight += estimatePrimitiveSizeInBytes(value);
+      } else {
+        // For objects values, we estimate the size of the object as 100 bytes
+        weight += 100;
+      }
+    });
+  }
+
+  return weight;
+}
+
+function estimatePrimitiveSizeInBytes(value: Primitive): number {
+  if (typeof value === 'string') {
+    return value.length * 2;
+  } else if (typeof value === 'number') {
+    return 8;
+  } else if (typeof value === 'boolean') {
+    return 4;
+  }
+
+  return 0;
 }

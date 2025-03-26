@@ -484,6 +484,17 @@ describe('normalize()', () => {
         foo: '[VueViewModel]',
       });
     });
+
+    test('null prototype', () => {
+      const obj = Object.create(null);
+      expect(normalize(obj, 0)).toEqual('[null prototype]');
+    });
+
+    test('null prototype base', () => {
+      const base = Object.create(null);
+      const obj = Object.create(base);
+      expect(normalize(obj, 0)).toEqual('[null prototype]');
+    });
   });
 
   describe('can limit object to depth', () => {

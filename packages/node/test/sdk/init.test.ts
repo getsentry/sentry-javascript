@@ -211,4 +211,9 @@ describe('validateOpenTelemetrySetup', () => {
     expect(errorSpy).toBeCalledWith(expect.stringContaining('You have to set up the SentrySpanProcessor.'));
     expect(warnSpy).toBeCalledWith(expect.stringContaining('You have to set up the SentrySampler.'));
   });
+
+  // Regression test for https://github.com/getsentry/sentry-javascript/issues/15558
+  it('accepts an undefined transport', () => {
+    init({ dsn: PUBLIC_DSN, transport: undefined });
+  });
 });

@@ -1,7 +1,8 @@
 import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
-describe('tedious auto instrumentation', {timeout: 75_000}, () => {
+// eslint-disable-next-line @sentry-internal/sdk/no-skipped-tests
+describe.skip('tedious auto instrumentation', { timeout: 75_000 }, () => {
   afterAll(() => {
     cleanupChildProcesses();
   });

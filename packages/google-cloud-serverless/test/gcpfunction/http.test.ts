@@ -1,28 +1,27 @@
 import type { Integration } from '@sentry/core';
-
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { describe, vi, beforeEach, test, expect, type MockInstance } from 'vitest';
 
 import { wrapHttpFunction } from '../../src/gcpfunction/http';
-
 import type { HttpFunction, Request, Response } from '../../src/gcpfunction/general';
-
 import { init } from '../../src/sdk';
 
-const mockStartSpanManual = jest.fn((...spanArgs) => ({ ...spanArgs }));
-const mockFlush = jest.fn((...args) => Promise.resolve(args));
-const mockCaptureException = jest.fn();
-const mockInit = jest.fn();
+const mockStartSpanManual = vi.fn((...spanArgs) => ({ ...spanArgs }));
+const mockFlush = vi.fn((...args) => Promise.resolve(args));
+const mockCaptureException = vi.fn();
+const mockInit = vi.fn();
 
 const mockScope = {
-  setSDKProcessingMetadata: jest.fn(),
+  setSDKProcessingMetadata: vi.fn(),
 };
 
 const mockSpan = {
-  end: jest.fn(),
+  end: vi.fn(),
 };
 
-jest.mock('@sentry/node', () => {
-  const original = jest.requireActual('@sentry/node');
+vi.mock('@sentry/node', async () => {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-imports
+  const original = (await vi.importActual('@sentry/node')) as typeof import('@sentry/node');
   return {
     ...original,
     init: (options: unknown) => {
@@ -47,7 +46,7 @@ jest.mock('@sentry/node', () => {
 
 describe('GCPFunction', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   async function handleHttp(fn: HttpFunction, trace_headers: { [key: string]: string } | null = null): Promise<void> {
@@ -146,7 +145,7 @@ describe('GCPFunction', () => {
         body: { foo: 'bar' },
       } as Request;
 
-      const mockEnd = jest.fn();
+      const mockEnd = vi.fn();
       const response = { end: mockEnd } as unknown as Response;
 
       mockFlush.mockImplementationOnce(async () => {
@@ -171,8 +170,8 @@ describe('GCPFunction', () => {
 
     await handleHttp(wrappedHandler);
 
-    const initOptions = (mockInit as unknown as jest.SpyInstance).mock.calls[0];
-    const defaultIntegrations = initOptions[0]?.defaultIntegrations.map((i: Integration) => i.name);
+    const initOptions = (mockInit as unknown as MockInstance).mock.calls[0];
+    const defaultIntegrations = initOptions?.[0]?.defaultIntegrations.map((i: Integration) => i.name);
 
     expect(defaultIntegrations).toContain('RequestData');
 

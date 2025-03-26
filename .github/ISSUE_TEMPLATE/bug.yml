@@ -50,6 +50,7 @@ body:
         - '@sentry/solidstart'
         - '@sentry/svelte'
         - '@sentry/sveltekit'
+        - '@sentry/tanstackstart-react'
         - '@sentry/vue'
         - '@sentry/wasm'
         - Sentry Browser Loader

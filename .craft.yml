@@ -112,6 +112,9 @@ targets:
     id: '@sentry/tanstackstart'
     includeNames: /^sentry-tanstackstart-\d.*\.tgz$/
   - name: npm
+    id: '@sentry/tanstackstart-react'
+    includeNames: /^sentry-tanstackstart-react-\d.*\.tgz$/
+  - name: npm
     id: '@sentry/gatsby'
     includeNames: /^sentry-gatsby-\d.*\.tgz$/
   - name: npm
@@ -196,6 +199,8 @@ targets:
         onlyIfPresent: /^sentry-node-\d.*\.tgz$/
       'npm:@sentry/react':
         onlyIfPresent: /^sentry-react-\d.*\.tgz$/
+      'npm:@sentry/react-router':
+        onlyIfPresent: /^sentry-react-router-\d.*\.tgz$/
       'npm:@sentry/remix':
         onlyIfPresent: /^sentry-remix-\d.*\.tgz$/
       'npm:@sentry/solid':

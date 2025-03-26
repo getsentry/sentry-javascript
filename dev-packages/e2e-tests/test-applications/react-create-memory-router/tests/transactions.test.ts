@@ -55,6 +55,16 @@ test('Captures a navigation transaction', async ({ page }) => {
       'sentry.sample_rate': 1,
       'sentry.source': 'route',
     }),
+    links: [
+      {
+        attributes: {
+          'sentry.link.type': 'previous_trace',
+        },
+        sampled: true,
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      },
+    ],
     op: 'navigation',
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),

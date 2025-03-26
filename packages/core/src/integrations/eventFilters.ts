@@ -35,17 +35,6 @@ export interface EventFiltersOptions {
 
 const INTEGRATION_NAME = 'EventFilters';
 
-const _eventFiltersIntegration = ((options: Partial<EventFiltersOptions> = {}) => {
-  return {
-    name: INTEGRATION_NAME,
-    processEvent(event, _hint, client) {
-      const clientOptions = client.getOptions();
-      const mergedOptions = _mergeOptions(options, clientOptions);
-      return _shouldDropEvent(event, mergedOptions) ? null : event;
-    },
-  };
-}) satisfies IntegrationFn;
-
 /**
  * An integration that filters out events (errors and transactions) based on:
  *
@@ -59,7 +48,23 @@ const _eventFiltersIntegration = ((options: Partial<EventFiltersOptions> = {}) =
  *
  * Events filtered by this integration will not be sent to Sentry.
  */
-export const eventFiltersIntegration = defineIntegration(_eventFiltersIntegration);
+export const eventFiltersIntegration = defineIntegration((options: Partial<EventFiltersOptions> = {}) => {
+  let mergedOptions: Partial<EventFiltersOptions> | undefined;
+  return {
+    name: INTEGRATION_NAME,
+    setup(client) {
+      const clientOptions = client.getOptions();
+      mergedOptions = _mergeOptions(options, clientOptions);
+    },
+    processEvent(event, _hint, client) {
+      if (!mergedOptions) {
+        const clientOptions = client.getOptions();
+        mergedOptions = _mergeOptions(options, clientOptions);
+      }
+      return _shouldDropEvent(event, mergedOptions) ? null : event;
+    },
+  };
+});
 
 /**
  * An integration that filters out events (errors and transactions) based on:
@@ -97,63 +102,62 @@ function _mergeOptions(
       ...(internalOptions.disableErrorDefaults ? [] : DEFAULT_IGNORE_ERRORS),
     ],
     ignoreTransactions: [...(internalOptions.ignoreTransactions || []), ...(clientOptions.ignoreTransactions || [])],
-    ignoreInternal: internalOptions.ignoreInternal !== undefined ? internalOptions.ignoreInternal : true,
   };
 }
 
 function _shouldDropEvent(event: Event, options: Partial<EventFiltersOptions>): boolean {
-  if (options.ignoreInternal && _isSentryError(event)) {
-    DEBUG_BUILD &&
-      logger.warn(`Event dropped due to being internal Sentry Error.\nEvent: ${getEventDescription(event)}`);
-    return true;
-  }
-  if (_isIgnoredError(event, options.ignoreErrors)) {
-    DEBUG_BUILD &&
-      logger.warn(
-        `Event dropped due to being matched by \`ignoreErrors\` option.\nEvent: ${getEventDescription(event)}`,
-      );
-    return true;
-  }
-  if (_isUselessError(event)) {
-    DEBUG_BUILD &&
-      logger.warn(
-        `Event dropped due to not having an error message, error type or stacktrace.\nEvent: ${getEventDescription(
-          event,
-        )}`,
-      );
-    return true;
-  }
-  if (_isIgnoredTransaction(event, options.ignoreTransactions)) {
-    DEBUG_BUILD &&
-      logger.warn(
-        `Event dropped due to being matched by \`ignoreTransactions\` option.\nEvent: ${getEventDescription(event)}`,
-      );
-    return true;
-  }
-  if (_isDeniedUrl(event, options.denyUrls)) {
-    DEBUG_BUILD &&
-      logger.warn(
-        `Event dropped due to being matched by \`denyUrls\` option.\nEvent: ${getEventDescription(
-          event,
-        )}.\nUrl: ${_getEventFilterUrl(event)}`,
-      );
-    return true;
-  }
-  if (!_isAllowedUrl(event, options.allowUrls)) {
-    DEBUG_BUILD &&
-      logger.warn(
-        `Event dropped due to not being matched by \`allowUrls\` option.\nEvent: ${getEventDescription(
-          event,
-        )}.\nUrl: ${_getEventFilterUrl(event)}`,
-      );
-    return true;
+  if (!event.type) {
+    // Filter errors
+    if (_isIgnoredError(event, options.ignoreErrors)) {
+      DEBUG_BUILD &&
+        logger.warn(
+          `Event dropped due to being matched by \`ignoreErrors\` option.\nEvent: ${getEventDescription(event)}`,
+        );
+      return true;
+    }
+    if (_isUselessError(event)) {
+      DEBUG_BUILD &&
+        logger.warn(
+          `Event dropped due to not having an error message, error type or stacktrace.\nEvent: ${getEventDescription(
+            event,
+          )}`,
+        );
+      return true;
+    }
+    if (_isDeniedUrl(event, options.denyUrls)) {
+      DEBUG_BUILD &&
+        logger.warn(
+          `Event dropped due to being matched by \`denyUrls\` option.\nEvent: ${getEventDescription(
+            event,
+          )}.\nUrl: ${_getEventFilterUrl(event)}`,
+        );
+      return true;
+    }
+    if (!_isAllowedUrl(event, options.allowUrls)) {
+      DEBUG_BUILD &&
+        logger.warn(
+          `Event dropped due to not being matched by \`allowUrls\` option.\nEvent: ${getEventDescription(
+            event,
+          )}.\nUrl: ${_getEventFilterUrl(event)}`,
+        );
+      return true;
+    }
+  } else if (event.type === 'transaction') {
+    // Filter transactions
+
+    if (_isIgnoredTransaction(event, options.ignoreTransactions)) {
+      DEBUG_BUILD &&
+        logger.warn(
+          `Event dropped due to being matched by \`ignoreTransactions\` option.\nEvent: ${getEventDescription(event)}`,
+        );
+      return true;
+    }
   }
   return false;
 }
 
 function _isIgnoredError(event: Event, ignoreErrors?: Array<string | RegExp>): boolean {
-  // If event.type, this is not an error
-  if (event.type || !ignoreErrors || !ignoreErrors.length) {
+  if (!ignoreErrors?.length) {
     return false;
   }
 
@@ -161,7 +165,7 @@ function _isIgnoredError(event: Event, ignoreErrors?: Array<string | RegExp>): b
 }
 
 function _isIgnoredTransaction(event: Event, ignoreTransactions?: Array<string | RegExp>): boolean {
-  if (event.type !== 'transaction' || !ignoreTransactions || !ignoreTransactions.length) {
+  if (!ignoreTransactions?.length) {
     return false;
   }
 
@@ -185,16 +189,6 @@ function _isAllowedUrl(event: Event, allowUrls?: Array<string | RegExp>): boolea
   return !url ? true : stringMatchesSomePattern(url, allowUrls);
 }
 
-function _isSentryError(event: Event): boolean {
-  try {
-    // @ts-expect-error can't be a sentry error if undefined
-    return event.exception.values[0].type === 'SentryError';
-  } catch (e) {
-    // ignore
-  }
-  return false;
-}
-
 function _getLastValidUrl(frames: StackFrame[] = []): string | null {
   for (let i = frames.length - 1; i >= 0; i--) {
     const frame = frames[i];
@@ -211,9 +205,9 @@ function _getEventFilterUrl(event: Event): string | null {
   try {
     // If there are linked exceptions or exception aggregates we only want to match against the top frame of the "root" (the main exception)
     // The root always comes last in linked exceptions
-    const rootException = [...(event.exception?.values ?? []).reverse()]?.find(
-      value => value.mechanism?.parent_id === undefined && value.stacktrace?.frames?.length,
-    );
+    const rootException = [...(event.exception?.values ?? [])]
+      .reverse()
+      .find(value => value.mechanism?.parent_id === undefined && value.stacktrace?.frames?.length);
     const frames = rootException?.stacktrace?.frames;
     return frames ? _getLastValidUrl(frames) : null;
   } catch (oO) {
@@ -223,11 +217,6 @@ function _getEventFilterUrl(event: Event): string | null {
 }
 
 function _isUselessError(event: Event): boolean {
-  if (event.type) {
-    // event is not an error
-    return false;
-  }
-
   // We only want to consider events for dropping that actually have recorded exception values.
   if (!event.exception?.values?.length) {
     return false;

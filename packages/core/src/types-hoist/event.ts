@@ -22,7 +22,7 @@ export interface Event {
   message?: string;
   logentry?: {
     message?: string;
-    params?: string[];
+    params?: unknown[];
   };
   timestamp?: number;
   start_timestamp?: number;
