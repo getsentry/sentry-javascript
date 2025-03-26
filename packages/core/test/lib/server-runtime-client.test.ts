@@ -4,7 +4,7 @@ import { describe, expect, it, test, vi } from 'vitest';
 import { Scope, createTransport } from '../../src';
 import type { ServerRuntimeClientOptions } from '../../src/server-runtime-client';
 import { ServerRuntimeClient } from '../../src/server-runtime-client';
-import { _INTERNAL_captureLog } from '../../src/logs';
+import { _INTERNAL_captureLog } from '../../src/logs/exports';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 
