@@ -3,7 +3,7 @@ import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, getMultipleSentryEnvelopeRequests } from '../../../../utils/helpers';
+import { getFirstSentryEnvelopeRequest, getMultipleSentryEnvelopeRequests, shouldSkipTracingTest } from '../../../../utils/helpers';
 
 async function mockSupabaseRoute(page: Page) {
   await page.route('**/rest/v1/todos**', route => {
@@ -20,6 +20,10 @@ async function mockSupabaseRoute(page: Page) {
 }
 
 sentryTest('should capture Supabase database operation breadcrumbs', async ({ getLocalTestUrl, page }) => {
+  if (shouldSkipTracingTest()) {
+    return;
+  }
+
   await mockSupabaseRoute(page);
 
   const url = await getLocalTestUrl({ testDir: __dirname });
@@ -37,6 +41,10 @@ sentryTest('should capture Supabase database operation breadcrumbs', async ({ ge
 });
 
 sentryTest('should capture multiple Supabase operations in sequence', async ({ getLocalTestUrl, page }) => {
+  if (shouldSkipTracingTest()) {
+    return;
+  }
+
   await mockSupabaseRoute(page);
 
   const url = await getLocalTestUrl({ testDir: __dirname });
@@ -53,6 +61,10 @@ sentryTest('should capture multiple Supabase operations in sequence', async ({ g
 });
 
 sentryTest('should include correct data payload in Supabase breadcrumbs', async ({ getLocalTestUrl, page }) => {
+  if (shouldSkipTracingTest()) {
+    return;
+  }
+
   await mockSupabaseRoute(page);
 
   const url = await getLocalTestUrl({ testDir: __dirname });
