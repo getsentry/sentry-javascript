@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Creates a pageload transaction for app router routes', async ({ page }) => {
+  test.slow();
   const randomRoute = String(Math.random());
 
   const clientPageloadTransactionPromise = waitForTransaction('nextjs-app-dir', transactionEvent => {
@@ -134,6 +135,8 @@ test('Creates a navigation transaction for `router.forward()`', async ({ page })
 });
 
 test('Creates a navigation transaction for `<Link />`', async ({ page }) => {
+  test.slow();
+
   const navigationTransactionPromise = waitForTransaction('nextjs-app-dir', transactionEvent => {
     return (
       transactionEvent?.transaction === `/navigation/42/link` &&
@@ -149,6 +152,8 @@ test('Creates a navigation transaction for `<Link />`', async ({ page }) => {
 });
 
 test('Creates a navigation transaction for `<Link replace />`', async ({ page }) => {
+  test.slow();
+
   const navigationTransactionPromise = waitForTransaction('nextjs-app-dir', transactionEvent => {
     return (
       transactionEvent?.transaction === `/navigation/42/link-replace` &&
