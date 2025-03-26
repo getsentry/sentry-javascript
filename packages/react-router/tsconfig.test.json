@@ -4,6 +4,6 @@
   "include": ["test/**/*", "vite.config.ts"],
 
   "compilerOptions": {
-    "types": ["node", "vitest/globals"],
+    "types": ["node"],
   }
 }
