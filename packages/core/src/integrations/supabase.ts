@@ -1,42 +1,54 @@
-// Ported from Kamil Ogórek's work on:
+// Based on Kamil Ogórek's work on:
 // https://github.com/supabase-community/sentry-integration-js
-
-// MIT License
-
-// Copyright (c) 2024 Supabase
-
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
-
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-// SOFTWARE.
 
 /* eslint-disable max-lines */
 import { logger, isPlainObject } from '../utils-hoist';
 
 import type { IntegrationFn } from '../types-hoist';
-import { setHttpStatus, startInactiveSpan } from '../tracing';
+import { setHttpStatus, startInactiveSpan, startSpan } from '../tracing';
 import { addBreadcrumb } from '../breadcrumbs';
 import { defineIntegration } from '../integration';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import { captureException } from '../exports';
+import { SPAN_STATUS_ERROR, SPAN_STATUS_OK } from '../tracing';
 
-export interface SupabaseClient {
+export interface SupabaseClientConstructor {
   prototype: {
     from: (table: string) => PostgrestQueryBuilder;
   };
+}
+
+const AUTH_OPERATIONS_TO_INSTRUMENT = [
+  'reauthenticate',
+  'signInAnonymously',
+  'signInWithOAuth',
+  'signInWithIdToken',
+  'signInWithOtp',
+  'signInWithPassword',
+  'signInWithSSO',
+  'signOut',
+  'signUp',
+  'verifyOtp',
+];
+
+const AUTH_ADMIN_OPERATIONS_TO_INSTRUMENT = [
+  'createUser',
+  'deleteUser',
+  'listUsers',
+  'getUserById',
+  'updateUserById',
+  'inviteUserByEmail',
+  'signOut',
+];
+
+type AuthOperationFn = (...args: unknown[]) => Promise<unknown>;
+type AuthOperationName = (typeof AUTH_OPERATIONS_TO_INSTRUMENT)[number];
+type AuthAdminOperationName = (typeof AUTH_ADMIN_OPERATIONS_TO_INSTRUMENT)[number];
+
+export interface SupabaseClientInstance {
+  auth: {
+    admin: Record<AuthAdminOperationName, AuthOperationFn>;
+  } & Record<AuthOperationName, AuthOperationFn>;
 }
 
 export interface PostgrestQueryBuilder {
@@ -181,17 +193,65 @@ export function translateFiltersIntoMethods(key: string, query: string): string 
   return `${method}(${key}, ${value.join('.')})`;
 }
 
-function instrumentSupabaseClient(SupabaseClient: unknown): void {
+function instrumentAuthOperation(operation: AuthOperationFn, isAdmin = false): AuthOperationFn {
+  return new Proxy(operation, {
+    apply(target, thisArg, argumentsList) {
+      startSpan(
+        {
+          name: operation.name,
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase',
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `db.supabase.auth.${isAdmin ? 'admin.' : ''}${operation.name}`,
+          },
+        },
+        span => {
+          return Reflect.apply(target, thisArg, argumentsList).then((res: unknown) => {
+            debugger;
+            if (res && typeof res === 'object' && 'error' in res && res.error) {
+              span.setStatus({ code: SPAN_STATUS_ERROR });
+            } else {
+              span.setStatus({ code: SPAN_STATUS_OK });
+            }
+
+            span.end();
+            debugger;
+            return res;
+          });
+        },
+      );
+    },
+  });
+}
+
+function instrumentSupabaseAuthClient(supabaseClientInstance: SupabaseClientInstance): void {
+  const auth = supabaseClientInstance.auth;
+
+  if (!auth) {
+    return;
+  }
+
+  AUTH_OPERATIONS_TO_INSTRUMENT.forEach((operation: AuthOperationName) => {
+    const authOperation = auth[operation];
+    if (typeof authOperation === 'function') {
+      auth[operation] = instrumentAuthOperation(authOperation);
+    }
+  });
+
+  AUTH_ADMIN_OPERATIONS_TO_INSTRUMENT.forEach((operation: AuthAdminOperationName) => {
+    const authAdminOperation = auth.admin[operation];
+    if (typeof authAdminOperation === 'function') {
+      auth.admin[operation] = instrumentAuthOperation(authAdminOperation);
+    }
+  });
+}
+
+function instrumentSupabaseClientConstructor(SupabaseClient: unknown): void {
   if (instrumented.has(SupabaseClient)) {
     return;
   }
 
-  instrumented.set(SupabaseClient, {
-    from: (SupabaseClient as unknown as SupabaseClient).prototype.from,
-  });
-
-  (SupabaseClient as unknown as SupabaseClient).prototype.from = new Proxy(
-    (SupabaseClient as unknown as SupabaseClient).prototype.from,
+  (SupabaseClient as unknown as SupabaseClientConstructor).prototype.from = new Proxy(
+    (SupabaseClient as unknown as SupabaseClientConstructor).prototype.from,
     {
       apply(target, thisArg, argumentsList) {
         const rv = Reflect.apply(target, thisArg, argumentsList);
@@ -398,31 +458,15 @@ function instrumentPostgrestQueryBuilder(PostgrestQueryBuilder: new () => Postgr
   }
 }
 
-export const patchCreateClient = (moduleExports: { createClient?: (...args: unknown[]) => unknown }): void => {
-  const originalCreateClient = moduleExports.createClient;
-  if (!originalCreateClient) {
-    return;
+const instrumentSupabase = (supabaseClientInstance: unknown): void => {
+  if (!supabaseClientInstance) {
+    throw new Error('Supabase client instance is not defined.');
   }
+  const SupabaseClientConstructor =
+    supabaseClientInstance.constructor === Function ? supabaseClientInstance : supabaseClientInstance.constructor;
 
-  moduleExports.createClient = function wrappedCreateClient(...args: any[]) {
-    const client = originalCreateClient.apply(this, args);
-
-    instrumentSupabaseClient(client);
-
-    return client;
-  };
-};
-
-const instrumentSupabase = (supabaseClient: unknown): void => {
-  if (!supabaseClient) {
-    throw new Error('SupabaseClient class constructor is required');
-  }
-
-  // We want to allow passing either `SupabaseClient` constructor
-  // or an instance returned from `createClient()`.
-  const SupabaseClient = supabaseClient.constructor === Function ? supabaseClient : supabaseClient.constructor;
-
-  instrumentSupabaseClient(SupabaseClient);
+  instrumentSupabaseClientConstructor(SupabaseClientConstructor);
+  instrumentSupabaseAuthClient(supabaseClientInstance as SupabaseClientInstance);
 };
 
 const INTEGRATION_NAME = 'Supabase';
