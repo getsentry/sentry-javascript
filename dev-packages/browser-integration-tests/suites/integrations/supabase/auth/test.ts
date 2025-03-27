@@ -9,7 +9,7 @@ import {
   shouldSkipTracingTest,
 } from '../../../../utils/helpers';
 
-async function mockSupabaseAuthRoutes(page: Page) {
+async function mockSupabaseAuthRoutesSuccess(page: Page) {
   await page.route('**/auth/v1/token?grant_type=password**', route => {
     return route.fulfill({
       status: 200,
@@ -38,12 +38,40 @@ async function mockSupabaseAuthRoutes(page: Page) {
   });
 }
 
+async function mockSupabaseAuthRoutesFailure(page: Page) {
+  await page.route('**/auth/v1/token?grant_type=password**', route => {
+    return route.fulfill({
+      status: 400,
+      body: JSON.stringify({
+        error_description: 'Invalid email or password',
+        error: 'invalid_grant',
+      }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+  });
+
+  await page.route('**/auth/v1/logout**', route => {
+    return route.fulfill({
+      status: 400,
+      body: JSON.stringify({
+        error_description: 'Invalid refresh token',
+        error: 'invalid_grant',
+      }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+  });
+}
+
 sentryTest('should capture Supabase authentication spans', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     return;
   }
 
-  await mockSupabaseAuthRoutes(page);
+  await mockSupabaseAuthRoutesSuccess(page);
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
@@ -75,6 +103,37 @@ sentryTest('should capture Supabase authentication spans', async ({ getLocalTest
     status: 'ok',
     data: expect.objectContaining({
       'sentry.op': 'db.supabase.auth.signOut',
+      'sentry.origin': 'auto.db.supabase',
+    }),
+  });
+});
+
+sentryTest('should capture Supabase authentication errors', async ({ getLocalTestUrl, page }) => {
+  if (shouldSkipTracingTest()) {
+    return;
+  }
+
+  await mockSupabaseAuthRoutesFailure(page);
+
+  const url = await getLocalTestUrl({ testDir: __dirname });
+
+  const [errorEvent, transactionEvent] = await getMultipleSentryEnvelopeRequests<Event>(page, 2, { url });
+
+  const supabaseSpans = transactionEvent.spans?.filter(({ op }) => op?.startsWith('db.supabase.auth'));
+
+  expect(errorEvent.exception?.values?.[0].value).toBe('Invalid email or password');
+
+  expect(supabaseSpans).toHaveLength(2);
+  expect(supabaseSpans![0]).toMatchObject({
+    description: 'signInWithPassword',
+    parent_span_id: transactionEvent.contexts?.trace?.span_id,
+    span_id: expect.any(String),
+    start_timestamp: expect.any(Number),
+    timestamp: expect.any(Number),
+    trace_id: transactionEvent.contexts?.trace?.trace_id,
+    status: 'unknown_error',
+    data: expect.objectContaining({
+      'sentry.op': 'db.supabase.auth.signInWithPassword',
       'sentry.origin': 'auto.db.supabase',
     }),
   });
