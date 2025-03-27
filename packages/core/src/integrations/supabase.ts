@@ -196,7 +196,7 @@ export function translateFiltersIntoMethods(key: string, query: string): string 
 function instrumentAuthOperation(operation: AuthOperationFn, isAdmin = false): AuthOperationFn {
   return new Proxy(operation, {
     apply(target, thisArg, argumentsList) {
-      startSpan(
+      return startSpan(
         {
           name: operation.name,
           attributes: {
@@ -204,19 +204,36 @@ function instrumentAuthOperation(operation: AuthOperationFn, isAdmin = false): A
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `db.supabase.auth.${isAdmin ? 'admin.' : ''}${operation.name}`,
           },
         },
-        span => {
-          return Reflect.apply(target, thisArg, argumentsList).then((res: unknown) => {
-            debugger;
-            if (res && typeof res === 'object' && 'error' in res && res.error) {
-              span.setStatus({ code: SPAN_STATUS_ERROR });
-            } else {
-              span.setStatus({ code: SPAN_STATUS_OK });
-            }
+        async span => {
+          return Reflect.apply(target, thisArg, argumentsList)
+            .then((res: unknown) => {
+              if (res && typeof res === 'object' && 'error' in res && res.error) {
+                span.setStatus({ code: SPAN_STATUS_ERROR });
 
-            span.end();
-            debugger;
-            return res;
-          });
+                captureException(res.error, {
+                  mechanism: {
+                    handled: false,
+                  },
+                });
+              } else {
+                span.setStatus({ code: SPAN_STATUS_OK });
+              }
+
+              span.end();
+              return res;
+            })
+            .catch((err: unknown) => {
+              span.setStatus({ code: SPAN_STATUS_ERROR });
+              span.end();
+
+              captureException(err, {
+                mechanism: {
+                  handled: false,
+                },
+              });
+
+              throw err;
+            });
         },
       );
     },
@@ -460,7 +477,7 @@ function instrumentPostgrestQueryBuilder(PostgrestQueryBuilder: new () => Postgr
 
 const instrumentSupabase = (supabaseClientInstance: unknown): void => {
   if (!supabaseClientInstance) {
-    throw new Error('Supabase client instance is not defined.');
+    throw new Error('Supabase client instance is not available.');
   }
   const SupabaseClientConstructor =
     supabaseClientInstance.constructor === Function ? supabaseClientInstance : supabaseClientInstance.constructor;
