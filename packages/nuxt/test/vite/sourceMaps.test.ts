@@ -1,11 +1,12 @@
 import type { Nuxt } from '@nuxt/schema';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SentryNuxtModuleOptions } from '../../src/common/types';
-import type { UserSourceMapSetting } from '../../src/vite/sourceMaps';
+import type { SourceMapSetting, UserSourceMapSetting } from '../../src/vite/sourceMaps';
+import { getNuxtSourceMapSetting } from '../../src/vite/sourceMaps';
 import {
   changeNuxtSourceMapSettings,
-  changeRollupSourceMapSettings,
-  changeViteSourceMapSettings,
+  changeNitroSourceMapSettings,
+  getViteSourceMapSettingDefinition,
   getPluginOptions,
 } from '../../src/vite/sourceMaps';
 
@@ -175,7 +176,7 @@ describe('change sourcemap settings', () => {
 
       cases.forEach(({ sourcemap, expectedSourcemap, expectedReturn }) => {
         viteConfig.build = { sourcemap };
-        const previousUserSourcemapSetting = changeViteSourceMapSettings(viteConfig, sentryModuleOptions);
+        const previousUserSourcemapSetting = getViteSourceMapSettingDefinition(viteConfig, sentryModuleOptions);
         expect(viteConfig.build.sourcemap).toBe(expectedSourcemap);
         expect(previousUserSourcemapSetting).toBe(expectedReturn);
       });
@@ -193,7 +194,7 @@ describe('change sourcemap settings', () => {
       sentryModuleOptions = {};
     });
 
-    it('should handle  nitroConfig.rollupConfig.output.sourcemap settings', () => {
+    it('should handle nitroConfig.rollupConfig.output.sourcemap settings', () => {
       const cases: {
         output?: { sourcemap?: boolean | 'hidden' | 'inline' };
         expectedSourcemap: boolean | string;
@@ -209,11 +210,138 @@ describe('change sourcemap settings', () => {
 
       cases.forEach(({ output, expectedSourcemap, expectedReturn }) => {
         nitroConfig.rollupConfig = { output };
-        const previousUserSourceMapSetting = changeRollupSourceMapSettings(nitroConfig, sentryModuleOptions);
+        const previousUserSourceMapSetting = changeNitroSourceMapSettings(nitroConfig, sentryModuleOptions);
         expect(nitroConfig.rollupConfig?.output?.sourcemap).toBe(expectedSourcemap);
         expect(previousUserSourceMapSetting).toBe(expectedReturn);
         expect(nitroConfig.rollupConfig?.output?.sourcemapExcludeSources).toBe(false);
       });
+    });
+
+    describe('should handle nitroConfig.rollupConfig.output.sourcemap settings 2', () => {
+      type MinimalNitroConfig = {
+        sourceMap?: SourceMapSetting;
+        rollupConfig?: {
+          output?: { sourcemap?: SourceMapSetting; sourcemapExcludeSources?: boolean };
+        };
+      };
+      type MinimalNuxtConfig = { options: { sourcemap?: SourceMapSetting | { server?: SourceMapSetting } } };
+
+      const getNitroConfig = (
+        nitroSourceMap?: SourceMapSetting,
+        rollupSourceMap?: SourceMapSetting,
+      ): MinimalNitroConfig => ({
+        sourceMap: nitroSourceMap,
+        rollupConfig: { output: { sourcemap: rollupSourceMap } },
+      });
+
+      const getNuxtConfig = (nuxtSourceMap?: SourceMapSetting): MinimalNuxtConfig => ({
+        options: { sourcemap: { server: nuxtSourceMap } },
+      });
+
+      const testCases: {
+        name: string;
+        nuxt: MinimalNuxtConfig;
+        nitroConfig: MinimalNitroConfig;
+        expectedNuxtSourcemap: boolean | string;
+        expectedNitroSourcemap: boolean | string | undefined;
+        expectedReturn: UserSourceMapSetting;
+      }[] = [
+        {
+          name: 'Default case - Nuxt source map enabled, Nitro source map settings unset',
+          nuxt: getNuxtConfig(true),
+          nitroConfig: getNitroConfig(),
+          expectedNuxtSourcemap: true,
+          expectedNitroSourcemap: undefined, // in real-life Nitro, this value gets overwritten with the Nuxt setting
+          expectedReturn: 'enabled',
+        },
+        {
+          name: 'Nuxt source map disabled',
+          nuxt: getNuxtConfig(false),
+          nitroConfig: getNitroConfig(),
+          expectedNuxtSourcemap: false,
+          expectedNitroSourcemap: undefined, // in real-life Nitro, this value gets overwritten with the Nuxt setting
+          expectedReturn: 'disabled',
+        },
+        {
+          name: 'Nuxt source map disabled, Nitro source map enabled',
+          nuxt: getNuxtConfig(false),
+          nitroConfig: getNitroConfig(true),
+          expectedNuxtSourcemap: false,
+          expectedNitroSourcemap: true, // in real-life Nitro, this takes precedence over nuxt.sourcemap
+          expectedReturn: 'enabled',
+        },
+        {
+          name: 'Nuxt and Nitro sourcemap inline',
+          nuxt: getNuxtConfig(true),
+          nitroConfig: getNitroConfig('inline', 'inline'),
+          expectedNuxtSourcemap: true,
+          expectedNitroSourcemap: 'inline',
+          expectedReturn: 'enabled',
+        },
+        {
+          name: 'Both Nuxt and Nitro sourcemap explicitly true',
+          nuxt: getNuxtConfig(true),
+          nitroConfig: getNitroConfig(true, true),
+          expectedNuxtSourcemap: true,
+          expectedNitroSourcemap: true,
+          expectedReturn: 'enabled',
+        },
+        {
+          name: 'Nuxt sourcemap enabled, Nitro sourcemap undefined',
+          nuxt: getNuxtConfig(true),
+          nitroConfig: getNitroConfig(undefined, undefined),
+          expectedNuxtSourcemap: true,
+          expectedNitroSourcemap: undefined, // in real-life Nitro, this value gets overwritten with the Nuxt setting
+          expectedReturn: 'enabled',
+        },
+        {
+          name: 'Nuxt sourcemap enabled, Nitro config without output',
+          nuxt: getNuxtConfig(true),
+          nitroConfig: { sourceMap: undefined, rollupConfig: { output: undefined } },
+          expectedNuxtSourcemap: true,
+          expectedNitroSourcemap: undefined, // in real-life Nitro, this value gets overwritten with the Nuxt setting
+          expectedReturn: 'enabled',
+        },
+        {
+          name: 'Nuxt and Nitro source map undefined',
+          nuxt: getNuxtConfig(),
+          nitroConfig: getNitroConfig(),
+          expectedNuxtSourcemap: 'hidden',
+          expectedNitroSourcemap: undefined, // in real-life Nitro, this value gets overwritten with the Nuxt setting
+          expectedReturn: 'unset',
+        },
+        {
+          name: 'Edge case - Nuxt sourcemap as boolean',
+          nuxt: { options: { sourcemap: true } },
+          nitroConfig: getNitroConfig(),
+          expectedNuxtSourcemap: true,
+          expectedNitroSourcemap: undefined, // in real-life Nitro, this value gets overwritten with the Nuxt setting
+          expectedReturn: 'enabled',
+        },
+        {
+          name: 'Edge case - Nuxt sourcemap as string',
+          nuxt: { options: { sourcemap: 'hidden' } },
+          nitroConfig: getNitroConfig(),
+          expectedNuxtSourcemap: 'hidden',
+          expectedNitroSourcemap: undefined, // in real-life Nitro, this value gets overwritten with the Nuxt setting
+          expectedReturn: 'enabled',
+        },
+      ];
+      it.each(testCases)(
+        '$name',
+        ({ nuxt, nitroConfig, expectedNuxtSourcemap, expectedNitroSourcemap, expectedReturn }) => {
+          const previousUserSourceMapSetting = changeNitroSourceMapSettings(nuxt, nitroConfig, sentryModuleOptions);
+
+          const nuxtSourceMap = getNuxtSourceMapSetting(nuxt, 'server');
+
+          expect(nuxtSourceMap).toBe(expectedNuxtSourcemap);
+          expect(nitroConfig.sourceMap).toBe(expectedNitroSourcemap);
+
+          expect(previousUserSourceMapSetting).toBe(expectedReturn);
+
+          expect(nitroConfig.rollupConfig?.output?.sourcemapExcludeSources).toBe(false);
+        },
+      );
     });
   });
 
