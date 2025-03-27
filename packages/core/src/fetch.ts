@@ -1,12 +1,11 @@
-/* eslint-disable complexity */
 import { getClient } from './currentScopes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from './semanticAttributes';
 import { SPAN_STATUS_ERROR, setHttpStatus, startInactiveSpan } from './tracing';
 import { SentryNonRecordingSpan } from './tracing/sentryNonRecordingSpan';
-import type { FetchBreadcrumbHint, HandlerDataFetch, Span, SpanOrigin } from './types-hoist';
+import type { FetchBreadcrumbHint, HandlerDataFetch, Span, SpanAttributes, SpanOrigin } from './types-hoist';
 import { SENTRY_BAGGAGE_KEY_PREFIX } from './utils-hoist/baggage';
 import { isInstanceOf } from './utils-hoist/is';
-import { parseStringToURL, stripUrlQueryAndFragment } from './utils-hoist/url';
+import { isURLObjectRelative, parseStringToURLObject } from './utils-hoist/url';
 import { hasSpansEnabled } from './utils/hasSpansEnabled';
 import { getActiveSpan } from './utils/spanUtils';
 import { getTraceData } from './utils/traceData';
@@ -54,40 +53,11 @@ export function instrumentFetchRequest(
     return undefined;
   }
 
-  // Curious about `thismessage:/`? See: https://www.rfc-editor.org/rfc/rfc2557.html
-  //  > When the methods above do not yield an absolute URI, a base URL
-  //  > of "thismessage:/" MUST be employed. This base URL has been
-  //  > defined for the sole purpose of resolving relative references
-  //  > within a multipart/related structure when no other base URI is
-  //  > specified.
-  //
-  // We need to provide a base URL to `parseStringToURL` because the fetch API gives us a
-  // relative URL sometimes.
-  //
-  // This is the only case where we need to provide a base URL to `parseStringToURL`
-  // because the relative URL is not valid on its own.
-  const parsedUrl = url.startsWith('/') ? parseStringToURL(url, 'thismessage:/') : parseStringToURL(url);
-  const fullUrl = url.startsWith('/') ? undefined : parsedUrl?.href;
-
   const hasParent = !!getActiveSpan();
 
   const span =
     shouldCreateSpanResult && hasParent
-      ? startInactiveSpan({
-          name: `${method} ${stripUrlQueryAndFragment(url)}`,
-          attributes: {
-            url,
-            type: 'fetch',
-            'http.method': method,
-            'http.url': parsedUrl?.href,
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
-            ...(fullUrl && { 'http.url': fullUrl }),
-            ...(fullUrl && parsedUrl?.host && { 'server.address': parsedUrl.host }),
-            ...(parsedUrl?.search && { 'http.query': parsedUrl.search }),
-            ...(parsedUrl?.hash && { 'http.fragment': parsedUrl.hash }),
-          },
-        })
+      ? startInactiveSpan(getSpanStartOptions(url, method, spanOrigin))
       : new SentryNonRecordingSpan();
 
   handlerData.fetchData.__span = span.spanContext().spanId;
@@ -263,4 +233,40 @@ function isRequest(request: unknown): request is Request {
 
 function isHeaders(headers: unknown): headers is Headers {
   return typeof Headers !== 'undefined' && isInstanceOf(headers, Headers);
+}
+
+function getSpanStartOptions(
+  url: string,
+  method: string,
+  spanOrigin: SpanOrigin,
+): Parameters<typeof startInactiveSpan>[0] {
+  const parsedUrl = parseStringToURLObject(url);
+  return {
+    name: parsedUrl ? `${method} ${parsedUrl.pathname}` : method,
+    attributes: getFetchSpanAttributes(url, parsedUrl, method, spanOrigin),
+  };
+}
+
+function getFetchSpanAttributes(
+  url: string,
+  parsedUrl: ReturnType<typeof parseStringToURLObject>,
+  method: string,
+  spanOrigin: SpanOrigin,
+): SpanAttributes {
+  const attributes: SpanAttributes = {
+    url,
+    type: 'fetch',
+    'http.method': method,
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
+    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
+  };
+  if (parsedUrl) {
+    if (!isURLObjectRelative(parsedUrl)) {
+      attributes['http.url'] = parsedUrl.href;
+      attributes['server.address'] = parsedUrl.host;
+    }
+    attributes['http.query'] = parsedUrl.search;
+    attributes['http.fragment'] = parsedUrl.hash;
+  }
+  return attributes;
 }

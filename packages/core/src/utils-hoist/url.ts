@@ -11,13 +11,50 @@ interface URLwithCanParse extends URL {
   canParse: (url: string, base?: string | URL | undefined) => boolean;
 }
 
+// A subset of the URL object that is valid for relative URLs
+// The URL object cannot handle relative URLs, so we need to handle them separately
+type RelativeURL = {
+  isRelative: true;
+  pathname: URL['pathname'];
+  search: URL['search'];
+  hash: URL['hash'];
+};
+
+type URLObject = RelativeURL | URL;
+
+// Curious about `thismessage:/`? See: https://www.rfc-editor.org/rfc/rfc2557.html
+//  > When the methods above do not yield an absolute URI, a base URL
+//  > of "thismessage:/" MUST be employed. This base URL has been
+//  > defined for the sole purpose of resolving relative references
+//  > within a multipart/related structure when no other base URI is
+//  > specified.
+//
+// We need to provide a base URL to `parseStringToURLObject` because the fetch API gives us a
+// relative URL sometimes.
+//
+// This is the only case where we need to provide a base URL to `parseStringToURLObject`
+// because the relative URL is not valid on its own.
+const DEFAULT_BASE_URL = 'thismessage:/';
+
+/**
+ * Checks if the URL object is relative
+ *
+ * @param url - The URL object to check
+ * @returns True if the URL object is relative, false otherwise
+ */
+export function isURLObjectRelative(url: URLObject): url is RelativeURL {
+  return 'isRelative' in url;
+}
+
 /**
  * Parses string to a URL object
  *
  * @param url - The URL to parse
  * @returns The parsed URL object or undefined if the URL is invalid
  */
-export function parseStringToURL(url: string, base?: string | URL | undefined): URL | undefined {
+export function parseStringToURLObject(url: string, urlBase?: string | URL | undefined): URLObject | undefined {
+  const isRelative = url.startsWith('/');
+  const base = urlBase ?? (isRelative ? DEFAULT_BASE_URL : undefined);
   try {
     // Use `canParse` to short-circuit the URL constructor if it's not a valid URL
     // This is faster than trying to construct the URL and catching the error
@@ -26,12 +63,47 @@ export function parseStringToURL(url: string, base?: string | URL | undefined): 
       return undefined;
     }
 
-    return new URL(url, base);
+    const fullUrlObject = new URL(url, base);
+    if (isRelative) {
+      // Because we used a fake base URL, we need to return a relative URL object
+      return {
+        isRelative,
+        pathname: fullUrlObject.pathname,
+        search: fullUrlObject.search,
+        hash: fullUrlObject.hash,
+      };
+    }
+    return fullUrlObject;
   } catch {
     // empty body
   }
 
   return undefined;
+}
+
+/**
+ * Takes a URL object and returns a sanitized string which is safe to use as span name
+ * see: https://develop.sentry.dev/sdk/data-handling/#structuring-data
+ */
+export function getSanitizedUrlStringFromUrlObject(url: URLObject): string {
+  if (isURLObjectRelative(url)) {
+    return url.pathname;
+  }
+
+  const newUrl = new URL(url);
+  newUrl.search = '';
+  newUrl.hash = '';
+  if (['80', '443'].includes(newUrl.port)) {
+    newUrl.port = '';
+  }
+  if (newUrl.password) {
+    newUrl.password = '%filtered%';
+  }
+  if (newUrl.username) {
+    newUrl.username = '%filtered%';
+  }
+
+  return newUrl.toString();
 }
 
 /**
