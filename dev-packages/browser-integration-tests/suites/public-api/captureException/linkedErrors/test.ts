@@ -12,10 +12,11 @@ sentryTest('should capture a linked error with messages', async ({ getLocalTestU
   expect(eventData.exception?.values).toHaveLength(2);
   expect(eventData.exception?.values?.[0]).toMatchObject({
     type: 'Error',
-    value: `This is a very long message that should be truncated and hopefully will be,
-this is a very long message that should be truncated and hopefully will be,
-this is a very long message that should be truncated and hopefully will be,
-this is a very long me...`,
+    value: `This is a very long message that should not be truncated and hopefully won't be,
+this is a very long message that should not be truncated and hopefully won't be,
+this is a very long message that should not be truncated and hopefully won't be,
+this is a very long message that should not be truncated and hopefully won't be,
+this is a very long message that should not be truncated and hopefully won't be`,
     mechanism: {
       type: 'chained',
       handled: true,
@@ -26,10 +27,11 @@ this is a very long me...`,
   });
   expect(eventData.exception?.values?.[1]).toMatchObject({
     type: 'Error',
-    value: `This is a very long message that should be truncated and will be,
-this is a very long message that should be truncated and will be,
-this is a very long message that should be truncated and will be,
-this is a very long message that should be truncated...`,
+    value: `This is a very long message that should not be truncated and won't be,
+this is a very long message that should not be truncated and won't be,
+this is a very long message that should not be truncated and won't be,
+this is a very long message that should not be truncated and won't be,
+this is a very long message that should not be truncated and won't be,`,
     mechanism: {
       type: 'generic',
       handled: true,
