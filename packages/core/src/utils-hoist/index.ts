@@ -2,6 +2,7 @@ export { applyAggregateErrorsToEvent } from './aggregate-errors';
 export { getBreadcrumbLogLevelFromHttpStatusCode } from './breadcrumb-log-level';
 export { getComponentName, getLocationHref, htmlTreeAsString } from './browser';
 export { dsnFromString, dsnToString, makeDsn } from './dsn';
+// eslint-disable-next-line deprecation/deprecation
 export { SentryError } from './error';
 export { GLOBAL_OBJ } from './worldwide';
 export type { InternalGlobal } from './worldwide';
@@ -45,6 +46,7 @@ export { normalize, normalizeToSize, normalizeUrlToBase } from './normalize';
 export {
   addNonEnumerableProperty,
   convertToPlainObject,
+  // eslint-disable-next-line deprecation/deprecation
   dropUndefinedKeys,
   extractExceptionKeysForMessage,
   fill,
@@ -53,7 +55,7 @@ export {
   objectify,
 } from './object';
 export { basename, dirname, isAbsolute, join, normalizePath, relative, resolve } from './path';
-export { makePromiseBuffer } from './promisebuffer';
+export { makePromiseBuffer, SENTRY_BUFFER_FULL_ERROR } from './promisebuffer';
 export type { PromiseBuffer } from './promisebuffer';
 
 export { severityLevelFromString } from './severity';

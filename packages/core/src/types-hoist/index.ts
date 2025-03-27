@@ -49,6 +49,8 @@ export type {
   ProfileChunkItem,
   SpanEnvelope,
   SpanItem,
+  OtelLogEnvelope,
+  OtelLogItem,
 } from './envelope';
 export type { ExtendedError } from './error';
 export type { Event, EventHint, EventType, ErrorEvent, TransactionEvent } from './event';

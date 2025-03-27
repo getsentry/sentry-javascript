@@ -186,6 +186,12 @@ describe('Scope', () => {
       expect(scope['_breadcrumbs']).toHaveLength(111);
     });
 
+    test('addBreadcrumb will truncate the stored messages', () => {
+      const scope = new Scope();
+      scope.addBreadcrumb({ message: 'A'.repeat(10_000) });
+      expect(scope['_breadcrumbs'][0]?.message).toBe(`${'A'.repeat(2048)}...`);
+    });
+
     test('setLevel', () => {
       const scope = new Scope();
       scope.setLevel('fatal');

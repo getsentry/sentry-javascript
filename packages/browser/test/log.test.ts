@@ -64,7 +64,6 @@ describe('Logger', () => {
       expect(logger.warn).toBeTypeOf('function');
       expect(logger.error).toBeTypeOf('function');
       expect(logger.fatal).toBeTypeOf('function');
-      expect(logger.critical).toBeTypeOf('function');
     });
 
     it('should call _INTERNAL_captureLog with trace level', () => {
@@ -150,20 +149,6 @@ describe('Logger', () => {
         undefined,
       );
     });
-
-    it('should call _INTERNAL_captureLog with critical level', () => {
-      logger.critical('Test critical message', { key: 'value' });
-      expect(mockCaptureLog).toHaveBeenCalledWith(
-        {
-          level: 'critical',
-          message: 'Test critical message',
-          attributes: { key: 'value' },
-          severityNumber: undefined,
-        },
-        expect.any(Object),
-        undefined,
-      );
-    });
   });
 
   describe('Automatic flushing', () => {
@@ -195,6 +180,39 @@ describe('Logger', () => {
       // Advance time to complete the 5000ms after the second message
       vi.advanceTimersByTime(2000);
       expect(mockFlushLogsBuffer).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle parameterized strings with parameters', () => {
+      logger.info(logger.fmt`Hello ${'John'}, your balance is ${100}`, { userId: 123 });
+      expect(mockCaptureLog).toHaveBeenCalledWith(
+        {
+          level: 'info',
+          message: expect.objectContaining({
+            __sentry_template_string__: 'Hello %s, your balance is %s',
+            __sentry_template_values__: ['John', 100],
+          }),
+          attributes: {
+            userId: 123,
+          },
+        },
+        expect.any(Object),
+        undefined,
+      );
+    });
+
+    it('should handle parameterized strings without additional attributes', () => {
+      logger.debug(logger.fmt`User ${'Alice'} logged in from ${'mobile'}`);
+      expect(mockCaptureLog).toHaveBeenCalledWith(
+        {
+          level: 'debug',
+          message: expect.objectContaining({
+            __sentry_template_string__: 'User %s logged in from %s',
+            __sentry_template_values__: ['Alice', 'mobile'],
+          }),
+        },
+        expect.any(Object),
+        undefined,
+      );
     });
   });
 });

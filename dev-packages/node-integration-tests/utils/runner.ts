@@ -10,6 +10,7 @@ import type {
   Event,
   EventEnvelope,
   SerializedCheckIn,
+  SerializedOtelLog,
   SerializedSession,
   SessionAggregates,
   TransactionEvent,
@@ -20,6 +21,7 @@ import {
   assertSentryCheckIn,
   assertSentryClientReport,
   assertSentryEvent,
+  assertSentryOtelLog,
   assertSentrySession,
   assertSentrySessions,
   assertSentryTransaction,
@@ -119,6 +121,7 @@ type ExpectedSession = Partial<SerializedSession> | ((event: SerializedSession) 
 type ExpectedSessions = Partial<SessionAggregates> | ((event: SessionAggregates) => void);
 type ExpectedCheckIn = Partial<SerializedCheckIn> | ((event: SerializedCheckIn) => void);
 type ExpectedClientReport = Partial<ClientReport> | ((event: ClientReport) => void);
+type ExpectedOtelLog = Partial<SerializedOtelLog> | ((event: SerializedOtelLog) => void);
 
 type Expected =
   | {
@@ -138,13 +141,17 @@ type Expected =
     }
   | {
       client_report: ExpectedClientReport;
+    }
+  | {
+      otel_log: ExpectedOtelLog;
     };
 
 type ExpectedEnvelopeHeader =
   | { event: Partial<EventEnvelope[0]> }
   | { transaction: Partial<Envelope[0]> }
   | { session: Partial<Envelope[0]> }
-  | { sessions: Partial<Envelope[0]> };
+  | { sessions: Partial<Envelope[0]> }
+  | { otel_log: Partial<Envelope[0]> };
 
 type StartResult = {
   completed(): Promise<void>;
@@ -324,6 +331,9 @@ export function createRunner(...paths: string[]) {
               expectCallbackCalled();
             } else if ('client_report' in expected) {
               expectClientReport(item[1] as ClientReport, expected.client_report);
+              expectCallbackCalled();
+            } else if ('otel_log' in expected) {
+              expectOtelLog(item[1] as SerializedOtelLog, expected.otel_log);
               expectCallbackCalled();
             } else {
               throw new Error(
@@ -545,5 +555,13 @@ function expectClientReport(item: ClientReport, expected: ExpectedClientReport):
     expected(item);
   } else {
     assertSentryClientReport(item, expected);
+  }
+}
+
+function expectOtelLog(item: SerializedOtelLog, expected: ExpectedOtelLog): void {
+  if (typeof expected === 'function') {
+    expected(item);
+  } else {
+    assertSentryOtelLog(item, expected);
   }
 }
