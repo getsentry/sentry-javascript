@@ -21,6 +21,19 @@ export type ExclusiveEventHintOrCaptureContext =
   | (CaptureContext & Partial<{ [key in keyof EventHint]: never }>)
   | (EventHint & Partial<{ [key in keyof ScopeContext]: never }>);
 
+const errorScopeMap = new WeakMap<Error, Scope>();
+
+/**
+ * Add a scope that should be applied to the given error, if it is captured by Sentry.
+ */
+export function addScopeDataToError(error: Error, scope: Scope): void {
+  try {
+    errorScopeMap.set(error, scope);
+  } catch {
+    // ignore it if errors happen here, e.g. if `error` is not an object
+  }
+}
+
 /**
  * Adds common information to events.
  *
@@ -82,6 +95,16 @@ export function prepareEvent(
   if (isolationScope) {
     const isolationData = isolationScope.getScopeData();
     mergeScopeData(data, isolationData);
+  }
+
+  // In some cases, additional scope data may be attached to an error
+  // We also merge this data into the event scope data, if available
+  const originalException = hint.originalException;
+  if (originalException instanceof Error) {
+    const additionalErrorScope = errorScopeMap.get(originalException);
+    if (additionalErrorScope) {
+      mergeScopeData(data, additionalErrorScope.getScopeData());
+    }
   }
 
   if (finalScope) {
