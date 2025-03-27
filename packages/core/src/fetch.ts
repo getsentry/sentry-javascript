@@ -5,7 +5,7 @@ import { SentryNonRecordingSpan } from './tracing/sentryNonRecordingSpan';
 import type { FetchBreadcrumbHint, HandlerDataFetch, Span, SpanAttributes, SpanOrigin } from './types-hoist';
 import { SENTRY_BAGGAGE_KEY_PREFIX } from './utils-hoist/baggage';
 import { isInstanceOf } from './utils-hoist/is';
-import { isURLObjectRelative, parseStringToURLObject } from './utils-hoist/url';
+import { getSanitizedUrlStringFromUrlObject, isURLObjectRelative, parseStringToURLObject } from './utils-hoist/url';
 import { hasSpansEnabled } from './utils/hasSpansEnabled';
 import { getActiveSpan } from './utils/spanUtils';
 import { getTraceData } from './utils/traceData';
@@ -242,7 +242,7 @@ function getSpanStartOptions(
 ): Parameters<typeof startInactiveSpan>[0] {
   const parsedUrl = parseStringToURLObject(url);
   return {
-    name: parsedUrl ? `${method} ${isURLObjectRelative(parsedUrl) ? parsedUrl.pathname : parsedUrl.href}` : method,
+    name: parsedUrl ? `${method} ${getSanitizedUrlStringFromUrlObject(parsedUrl)}` : method,
     attributes: getFetchSpanAttributes(url, parsedUrl, method, spanOrigin),
   };
 }
