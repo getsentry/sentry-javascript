@@ -5,7 +5,7 @@ import type { SourceMapSetting, UserSourceMapSetting } from '../../src/vite/sour
 import { getNuxtSourceMapSetting } from '../../src/vite/sourceMaps';
 import {
   changeNuxtSourceMapSettings,
-  changeNitroSourceMapSettings,
+  validateNitroSourceMapSettings,
   getViteSourceMapSettingDefinition,
   getPluginOptions,
 } from '../../src/vite/sourceMaps';
@@ -210,7 +210,7 @@ describe('change sourcemap settings', () => {
 
       cases.forEach(({ output, expectedSourcemap, expectedReturn }) => {
         nitroConfig.rollupConfig = { output };
-        const previousUserSourceMapSetting = changeNitroSourceMapSettings(nitroConfig, sentryModuleOptions);
+        const previousUserSourceMapSetting = validateNitroSourceMapSettings(nitroConfig, sentryModuleOptions);
         expect(nitroConfig.rollupConfig?.output?.sourcemap).toBe(expectedSourcemap);
         expect(previousUserSourceMapSetting).toBe(expectedReturn);
         expect(nitroConfig.rollupConfig?.output?.sourcemapExcludeSources).toBe(false);
@@ -330,7 +330,7 @@ describe('change sourcemap settings', () => {
       it.each(testCases)(
         '$name',
         ({ nuxt, nitroConfig, expectedNuxtSourcemap, expectedNitroSourcemap, expectedReturn }) => {
-          const previousUserSourceMapSetting = changeNitroSourceMapSettings(nuxt, nitroConfig, sentryModuleOptions);
+          const previousUserSourceMapSetting = validateNitroSourceMapSettings(nuxt, nitroConfig, sentryModuleOptions);
 
           const nuxtSourceMap = getNuxtSourceMapSetting(nuxt, 'server');
 
