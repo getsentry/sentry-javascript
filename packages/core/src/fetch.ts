@@ -242,7 +242,7 @@ function getSpanStartOptions(
 ): Parameters<typeof startInactiveSpan>[0] {
   const parsedUrl = parseStringToURLObject(url);
   return {
-    name: parsedUrl ? `${method} ${parsedUrl.pathname}` : method,
+    name: parsedUrl ? `${method} ${isURLObjectRelative(parsedUrl) ? parsedUrl.pathname : parsedUrl.href}` : method,
     attributes: getFetchSpanAttributes(url, parsedUrl, method, spanOrigin),
   };
 }
