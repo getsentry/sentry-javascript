@@ -26,7 +26,7 @@
 /* eslint-disable max-lines */
 import { logger, isPlainObject } from '../utils-hoist';
 
-import type { Span, IntegrationFn } from '../types-hoist';
+import type { IntegrationFn } from '../types-hoist';
 import { setHttpStatus, startInactiveSpan } from '../tracing';
 import { addBreadcrumb } from '../breadcrumbs';
 import { defineIntegration } from '../integration';
@@ -271,34 +271,27 @@ function instrumentPostgrestFilterBuilder(PostgrestFilterBuilder: PostgrestFilte
           }
         }
 
-        // TODO / Should?
-        const shouldCreateSpan = true;
+        const attributes: Record<string, any> = {
+          'db.table': table,
+          'db.schema': typedThis.schema,
+          'db.url': typedThis.url.origin,
+          'db.sdk': typedThis.headers['X-Client-Info'],
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `db.${operation}`,
+        };
 
-        let span: Span | undefined;
-
-        if (shouldCreateSpan) {
-          const attributes: Record<string, any> = {
-            'db.table': table,
-            'db.schema': typedThis.schema,
-            'db.url': typedThis.url.origin,
-            'db.sdk': typedThis.headers['X-Client-Info'],
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase',
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `db.${operation}`,
-          };
-
-          if (query.length) {
-            attributes['db.query'] = query;
-          }
-
-          if (Object.keys(body).length) {
-            attributes['db.body'] = body;
-          }
-
-          span = startInactiveSpan({
-            name: description,
-            attributes,
-          });
+        if (query.length) {
+          attributes['db.query'] = query;
         }
+
+        if (Object.keys(body).length) {
+          attributes['db.body'] = body;
+        }
+
+        const span = startInactiveSpan({
+          name: description,
+          attributes,
+        });
 
         return (Reflect.apply(target, thisArg, []) as Promise<SupabaseResponse>)
           .then(
@@ -334,32 +327,27 @@ function instrumentPostgrestFilterBuilder(PostgrestFilterBuilder: PostgrestFilte
                 });
               }
 
-              // Todo / Should?
-              const shouldCreateBreadcrumb = true;
+              const breadcrumb: SupabaseBreadcrumb = {
+                type: 'supabase',
+                category: `db.${operation}`,
+                message: description,
+              };
 
-              if (shouldCreateBreadcrumb) {
-                const breadcrumb: SupabaseBreadcrumb = {
-                  type: 'supabase',
-                  category: `db.${operation}`,
-                  message: description,
-                };
+              const data: Record<string, unknown> = {};
 
-                const data: Record<string, unknown> = {};
-
-                if (query.length) {
-                  data.query = query;
-                }
-
-                if (Object.keys(body).length) {
-                  data.body = body;
-                }
-
-                if (Object.keys(data).length) {
-                  breadcrumb.data = data;
-                }
-
-                addBreadcrumb(breadcrumb);
+              if (query.length) {
+                data.query = query;
               }
+
+              if (Object.keys(body).length) {
+                data.body = body;
+              }
+
+              if (Object.keys(data).length) {
+                breadcrumb.data = data;
+              }
+
+              addBreadcrumb(breadcrumb);
 
               return res;
             },
