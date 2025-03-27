@@ -38,7 +38,6 @@ const AUTH_ADMIN_OPERATIONS_TO_INSTRUMENT = [
   'getUserById',
   'updateUserById',
   'inviteUserByEmail',
-  'signOut',
 ];
 
 type AuthOperationFn = (...args: unknown[]) => Promise<unknown>;
