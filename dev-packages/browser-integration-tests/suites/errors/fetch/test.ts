@@ -27,6 +27,10 @@ sentryTest('handles fetch network errors @firefox', async ({ getLocalTestUrl, pa
       type: 'onunhandledrejection',
     },
   });
+  expect(eventData.contexts?.outgoingRequest).toEqual({
+    method: 'GET',
+    url: 'http://sentry-test-external.io/does-not-exist',
+  });
 });
 
 
@@ -54,6 +58,10 @@ sentryTest('handles fetch network errors on subdomains @firefox', async ({ getLo
       handled: false,
       type: 'onunhandledrejection',
     },
+  });
+  expect(eventData.contexts?.outgoingRequest).toEqual({
+    method: 'GET',
+    url: 'http://subdomain.sentry-test-external.io/does-not-exist',
   });
 });
 
@@ -84,6 +92,10 @@ sentryTest('handles fetch invalid header name errors @firefox', async ({ getLoca
     stacktrace: {
       frames: expect.any(Array),
     },
+  });
+  expect(eventData.contexts?.outgoingRequest).toEqual({
+    method: 'GET',
+    url: 'http://sentry-test-external.io/invalid-header-name',
   });
 });
 
@@ -116,6 +128,10 @@ sentryTest('handles fetch invalid header value errors @firefox', async ({ getLoc
     stacktrace: {
       frames: expect.any(Array),
     },
+  });
+  expect(eventData.contexts?.outgoingRequest).toEqual({
+    method: 'GET',
+    url: 'http://sentry-test-external.io/invalid-header-value',
   });
 });
 
@@ -159,6 +175,10 @@ sentryTest('handles fetch invalid URL scheme errors @firefox', async ({ getLocal
       frames: expect.any(Array),
     },
   });
+  expect(eventData.contexts?.outgoingRequest).toEqual({
+    method: 'GET',
+    url: 'blub://sentry-test-external.io/invalid-scheme',
+  });
 });
 
 sentryTest('handles fetch credentials in url errors @firefox', async ({ getLocalTestUrl, page, browserName }) => {
@@ -191,6 +211,10 @@ sentryTest('handles fetch credentials in url errors @firefox', async ({ getLocal
       frames: expect.any(Array),
     },
   });
+  expect(eventData.contexts?.outgoingRequest).toEqual({
+    method: 'GET',
+    url: 'https://user:password@sentry-test-external.io/credentials-in-url',
+  });
 });
 
 sentryTest('handles fetch invalid mode errors @firefox', async ({ getLocalTestUrl, page, browserName }) => {
@@ -222,6 +246,10 @@ sentryTest('handles fetch invalid mode errors @firefox', async ({ getLocalTestUr
       frames: expect.any(Array),
     },
   });
+  expect(eventData.contexts?.outgoingRequest).toEqual({
+    method: 'GET',
+    url: 'http://sentry-test-external.io/invalid-mode',
+  });
 });
 
 sentryTest('handles fetch invalid request method errors @firefox', async ({ getLocalTestUrl, page, browserName }) => {
@@ -251,6 +279,10 @@ sentryTest('handles fetch invalid request method errors @firefox', async ({ getL
     stacktrace: {
       frames: expect.any(Array),
     },
+  });
+  expect(eventData.contexts?.outgoingRequest).toEqual({
+    method: 'CONNECT',
+    url: 'http://sentry-test-external.io/invalid-method',
   });
 });
 
@@ -283,6 +315,10 @@ sentryTest(
       stacktrace: {
         frames: expect.any(Array),
       },
+    });
+    expect(eventData.contexts?.outgoingRequest).toEqual({
+      method: 'PUT',
+      url: 'http://sentry-test-external.io/no-cors-method',
     });
   },
 );
