@@ -65,7 +65,8 @@ export function parseStringToURLObject(url: string, urlBase?: string | URL | und
 
     const fullUrlObject = new URL(url, base);
     if (isRelative) {
-      // Because we used a fake base URL, we need to return a relative URL object
+      // Because we used a fake base URL, we need to return a relative URL object.
+      // We cannot return anything about the origin, host, etc. because it will refer to the fake base URL.
       return {
         isRelative,
         pathname: fullUrlObject.pathname,
