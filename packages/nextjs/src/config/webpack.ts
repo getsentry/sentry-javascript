@@ -3,7 +3,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { escapeStringForRegex, loadModule, logger, parseSemver } from '@sentry/core';
+import { GLOBAL_OBJ, escapeStringForRegex, loadModule, logger, parseSemver } from '@sentry/core';
 import * as chalk from 'chalk';
 import { sync as resolveSync } from 'resolve';
 
@@ -22,7 +22,7 @@ import type {
   WebpackEntryProperty,
 } from './types';
 import { getWebpackPluginOptions } from './webpackPluginOptions';
-import { getNextjsVersion } from './util';
+import { getNextjsVersion, setWebpackBuildFunctionCalled } from './util';
 
 // Next.js runs webpack 3 times, once for the client, the server, and for edge. Because we don't want to print certain
 // warnings 3 times, we keep track of them here.
@@ -52,6 +52,8 @@ export function constructWebpackConfigFunction(
     incomingConfig: WebpackConfigObject,
     buildContext: BuildContext,
   ): WebpackConfigObject {
+    setWebpackBuildFunctionCalled();
+
     const { isServer, dev: isDev, dir: projectDir } = buildContext;
     const runtime = isServer ? (buildContext.nextRuntime === 'edge' ? 'edge' : 'server') : 'client';
     // Default page extensions per https://github.com/vercel/next.js/blob/f1dbc9260d48c7995f6c52f8fbcc65f08e627992/packages/next/server/config-shared.ts#L161
