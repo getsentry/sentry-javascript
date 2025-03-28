@@ -1,30 +1,17 @@
 import type { Nuxt } from '@nuxt/schema';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import type { SentryNuxtModuleOptions } from '../../src/common/types';
-import type { SourceMapSetting, UserSourceMapSetting } from '../../src/vite/sourceMaps';
-import { getNuxtSourceMapSetting } from '../../src/vite/sourceMaps';
+import type { SourceMapSetting } from '../../src/vite/sourceMaps';
 import {
   changeNuxtSourceMapSettings,
   validateNitroSourceMapSettings,
   validateViteSourceMapSettings,
   getPluginOptions,
 } from '../../src/vite/sourceMaps';
-import { warnDifferentSourceMapSettings } from '../../src/vite/sourceMaps';
 
 vi.mock('@sentry/core', () => ({
   consoleSandbox: (callback: () => void) => callback(),
 }));
-
-/*
-vi.mock('../../src/vite/sourceMaps', async importOriginal => {
-  const originalModule = await vi.importActual('../../src/vite/sourceMaps');
-  return {
-    ...originalModule,
-    warnDifferentSourceMapSettings: vi.fn(),
-  };
-});
-
- */
 
 describe('getPluginOptions', () => {
   beforeEach(() => {
@@ -168,19 +155,25 @@ describe('getPluginOptions', () => {
 });
 
 describe('validate sourcemap settings', () => {
+  const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+  beforeEach(() => {
+    consoleLogSpy.mockClear();
+    consoleWarnSpy.mockClear();
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
   describe('validateViteSourceMapSettings', () => {
     let viteConfig: { build?: { sourcemap?: SourceMapSetting } };
     let sentryModuleOptions: SentryNuxtModuleOptions;
 
-    const consoleLogSpy = vi.spyOn(console, 'log');
-    const consoleWarnSpy = vi.spyOn(console, 'warn');
-
     beforeEach(() => {
       viteConfig = {};
       sentryModuleOptions = {};
-
-      consoleLogSpy.mockClear();
-      consoleWarnSpy.mockClear();
     });
 
     afterEach(() => {
@@ -199,7 +192,7 @@ describe('validate sourcemap settings', () => {
       { viteSourcemap: 'hidden', nuxtSourcemap: 'hidden' },
       { viteSourcemap: 'inline', nuxtSourcemap: 'inline' },
       { viteSourcemap: false, nuxtSourcemap: false },
-    ])(
+    ] as { viteSourcemap?: SourceMapSetting; nuxtSourcemap?: SourceMapSetting }[])(
       'does not warn when source map settings match ($viteSourcemap, $nuxtSourcemap)',
       ({ viteSourcemap, nuxtSourcemap }) => {
         viteConfig = { ...viteConfig, build: { sourcemap: viteSourcemap as SourceMapSetting } };
@@ -251,6 +244,10 @@ describe('validate sourcemap settings', () => {
   });
 
   describe('should handle nitroConfig.rollupConfig.output.sourcemap settings', () => {
+    afterEach(() => {
+      vi.clearAllMocks();
+    });
+
     type MinimalNitroConfig = {
       sourceMap?: SourceMapSetting;
       rollupConfig?: {
@@ -273,93 +270,30 @@ describe('validate sourcemap settings', () => {
       options: { sourcemap: { server: nuxtSourceMap } },
     });
 
-    const testCases: {
-      name: string;
-      nuxt: MinimalNuxtConfig;
-      nitroConfig: MinimalNitroConfig;
-      expectedNuxtSourcemap: boolean | string;
-      expectedNitroSourcemap: boolean | string | undefined;
-    }[] = [
-      {
-        name: 'Default case - Nuxt source map enabled, Nitro source map settings unset',
-        nuxt: getNuxtConfig(true),
-        nitroConfig: getNitroConfig(),
-        expectedNuxtSourcemap: true,
-        expectedNitroSourcemap: undefined, // in real-life Nitro, this value gets overwritten with the Nuxt setting
-      },
-      {
-        name: 'Nuxt source map disabled',
-        nuxt: getNuxtConfig(false),
-        nitroConfig: getNitroConfig(),
-        expectedNuxtSourcemap: false,
-        expectedNitroSourcemap: undefined, // in real-life Nitro, this value gets overwritten with the Nuxt setting
-      },
-      {
-        name: 'Nuxt source map disabled, Nitro source map enabled',
-        nuxt: getNuxtConfig(false),
-        nitroConfig: getNitroConfig(true),
-        expectedNuxtSourcemap: false,
-        expectedNitroSourcemap: true, // in real-life Nitro, this takes precedence over nuxt.sourcemap
-      },
-      {
-        name: 'Nuxt and Nitro sourcemap inline',
-        nuxt: getNuxtConfig(true),
-        nitroConfig: getNitroConfig('inline', 'inline'),
-        expectedNuxtSourcemap: true,
-        expectedNitroSourcemap: 'inline',
-      },
-      {
-        name: 'Both Nuxt and Nitro sourcemap explicitly true',
-        nuxt: getNuxtConfig(true),
-        nitroConfig: getNitroConfig(true, true),
-        expectedNuxtSourcemap: true,
-        expectedNitroSourcemap: true,
-      },
-      {
-        name: 'Nuxt sourcemap enabled, Nitro sourcemap undefined',
-        nuxt: getNuxtConfig(true),
-        nitroConfig: getNitroConfig(undefined, undefined),
-        expectedNuxtSourcemap: true,
-        expectedNitroSourcemap: undefined, // in real-life Nitro, this value gets overwritten with the Nuxt setting
-      },
-      {
-        name: 'Nuxt sourcemap enabled, Nitro config without output',
-        nuxt: getNuxtConfig(true),
-        nitroConfig: { sourceMap: undefined, rollupConfig: { output: undefined } },
-        expectedNuxtSourcemap: true,
-        expectedNitroSourcemap: undefined, // in real-life Nitro, this value gets overwritten with the Nuxt setting
-      },
-      {
-        name: 'Nuxt and Nitro source map undefined',
-        nuxt: getNuxtConfig(),
-        nitroConfig: getNitroConfig(),
-        expectedNitroSourcemap: undefined, // in real-life Nitro, this value gets overwritten with the Nuxt setting
-        expectedNitroSourcemap: undefined, // in real-life Nitro, this value gets overwritten with the Nuxt setting
-      },
-      {
-        name: 'Edge case - Nuxt sourcemap as boolean',
-        nuxt: { options: { sourcemap: true } },
-        nitroConfig: getNitroConfig(),
-        expectedNuxtSourcemap: true,
-        expectedNitroSourcemap: undefined, // in real-life Nitro, this value gets overwritten with the Nuxt setting
-      },
-      {
-        name: 'Edge case - Nuxt sourcemap as string',
-        nuxt: { options: { sourcemap: 'hidden' } },
-        nitroConfig: getNitroConfig(),
-        expectedNuxtSourcemap: 'hidden',
-        expectedNitroSourcemap: undefined, // in real-life Nitro, this value gets overwritten with the Nuxt setting
-      },
-    ];
-    it.each(testCases)('$name', ({ nuxt, nitroConfig, expectedNuxtSourcemap, expectedNitroSourcemap }) => {
-      validateNitroSourceMapSettings(nuxt, nitroConfig, {});
+    it('should log a warning when Nuxt and Nitro source map settings differ', () => {
+      const nuxt = getNuxtConfig(true);
+      const nitroConfig = getNitroConfig(false);
 
-      const nuxtSourceMap = getNuxtSourceMapSetting(nuxt, 'server');
+      validateNitroSourceMapSettings(nuxt, nitroConfig, { debug: true });
 
-      expect(nuxtSourceMap).toBe(expectedNuxtSourcemap);
-      expect(nitroConfig.sourceMap).toBe(expectedNitroSourcemap);
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        "[Sentry] Source map generation settings are conflicting. Sentry uses `sourcemap.server: true`. However, a conflicting setting was discovered (`nitro.sourceMap: false`). This setting was probably explicitly set in your configuration. Sentry won't override this setting but it may affect source maps generation and upload. Without source maps, code snippets on the Sentry Issues page will remain minified.",
+      );
+    });
 
-      expect(nitroConfig.rollupConfig?.output?.sourcemapExcludeSources).toBe(false);
+    it('should set sourcemapExcludeSources to false', () => {
+      const nitroConfig = getNitroConfig(true);
+      validateNitroSourceMapSettings(getNuxtConfig(true), nitroConfig, { debug: true });
+
+      expect(nitroConfig?.rollupConfig?.output?.sourcemapExcludeSources).toBe(false);
+    });
+
+    it('should not show console.warn when rollup sourcemap is undefined', () => {
+      const nitroConfig = getNitroConfig(true);
+
+      validateNitroSourceMapSettings(getNuxtConfig(true), nitroConfig, { debug: true });
+
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
     });
   });
 });
@@ -376,8 +310,8 @@ describe('change Nuxt source map settings', () => {
 
   it('should handle nuxt.options.sourcemap.client settings', () => {
     const cases = [
-      // { clientSourcemap: false, expectedSourcemap: false, expectedReturn: 'disabled' },
-      // { clientSourcemap: 'hidden', expectedSourcemap: 'hidden', expectedReturn: 'enabled' },
+      { clientSourcemap: false, expectedSourcemap: false, expectedReturn: 'disabled' },
+      { clientSourcemap: 'hidden', expectedSourcemap: 'hidden', expectedReturn: 'enabled' },
       { clientSourcemap: true, expectedSourcemap: true, expectedReturn: 'enabled' },
       { clientSourcemap: undefined, expectedSourcemap: 'hidden', expectedReturn: 'unset' },
     ];

@@ -55,7 +55,7 @@ export function setupSourceMaps(moduleOptions: SentryNuxtModuleOptions, nuxt: Nu
   nuxt.hook('vite:extendConfig', async (viteConfig, env) => {
     if (sourceMapsEnabled && viteConfig.mode !== 'development') {
       const runtime = env.isServer ? 'server' : env.isClient ? 'client' : undefined;
-      const nuxtSourceMapSetting = getNuxtSourceMapSetting(nuxt, runtime);
+      const nuxtSourceMapSetting = extractNuxtSourceMapSetting(nuxt, runtime);
 
       viteConfig.build = viteConfig.build || {};
       const viteSourceMap = viteConfig.build.sourcemap;
@@ -67,17 +67,15 @@ export function setupSourceMaps(moduleOptions: SentryNuxtModuleOptions, nuxt: Nu
             console.log("[Sentry] Cannot detect runtime (client/server) inside hook 'vite:extendConfig'.");
           } else {
             // Vite source map options are the same as the Nuxt source map config options (unless overwritten)
-            if (nuxtSourceMapSetting !== viteSourceMap) {
-              warnDifferentSourceMapSettings({
-                nuxtSettingKey: `sourcemap.${runtime}`,
-                nuxtSettingValue: nuxtSourceMapSetting,
-                otherSettingKey: 'viteConfig.build.sourcemap',
-                otherSettingValue: viteSourceMap,
-              });
+            validateDifferentSourceMapSettings({
+              nuxtSettingKey: `sourcemap.${runtime}`,
+              nuxtSettingValue: nuxtSourceMapSetting,
+              otherSettingKey: 'viteConfig.build.sourcemap',
+              otherSettingValue: viteSourceMap,
+            });
 
-              // eslint-disable-next-line no-console
-              console.log(`[Sentry] Adding Sentry Vite plugin to the ${runtime} runtime.`);
-            }
+            // eslint-disable-next-line no-console
+            console.log(`[Sentry] Adding Sentry Vite plugin to the ${runtime} runtime.`);
           }
         });
       }
@@ -122,16 +120,10 @@ function normalizePath(path: string): string {
   return path.replace(/^(\.\.\/)+/, './');
 }
 
-//  todo: use this path
-const defaultClientFilesToDeletePaths = ['.*/**/public/**/*.map'];
-const defaultServerFilesToDeletePaths = ['.*/**/server/**/*.map', '.*/**/output/**/*.map', '.*/**/function/**/*.map'];
 /**
  *  Generates source maps upload options for the Sentry Vite and Rollup plugin.
  *
  *  Only exported for Testing purposes.
- */
-/**
- *
  */
 export function getPluginOptions(
   moduleOptions: SentryNuxtModuleOptions,
@@ -141,8 +133,10 @@ export function getPluginOptions(
 
   const shouldDeleteFilesAfterUpload = shouldDeleteFilesFallback?.client || shouldDeleteFilesFallback?.server;
   const fallbackFilesToDelete = [
-    ...(shouldDeleteFilesFallback?.client ? defaultClientFilesToDeletePaths : []),
-    ...(shouldDeleteFilesFallback?.server ? defaultServerFilesToDeletePaths : []),
+    ...(shouldDeleteFilesFallback?.client ? ['.*/**/public/**/*.map'] : []),
+    ...(shouldDeleteFilesFallback?.server
+      ? ['.*/**/server/**/*.map', '.*/**/output/**/*.map', '.*/**/function/**/*.map']
+      : []),
   ];
 
   if (
@@ -211,7 +205,7 @@ export function getPluginOptions(
  */
 
 /** only exported for tests */
-export function getNuxtSourceMapSetting(
+export function extractNuxtSourceMapSetting(
   nuxt: { options: { sourcemap?: SourceMapSetting | { server?: SourceMapSetting; client?: SourceMapSetting } } },
   runtime: 'client' | 'server' | undefined,
 ): SourceMapSetting | undefined {
@@ -296,21 +290,12 @@ export function validateViteSourceMapSettings(
   viteConfig.build = viteConfig.build || {};
   const viteSourceMap = viteConfig.build.sourcemap;
 
-  console.log({
+  validateDifferentSourceMapSettings({
     nuxtSettingKey: `sourcemap.${nuxtRuntime}`,
     nuxtSettingValue: nuxtSourceMapSettingForRuntime,
     otherSettingKey: 'viteConfig.build.sourcemap',
-    otherSettingValue: viteConfig.build.sourcemap,
+    otherSettingValue: viteSourceMap,
   });
-
-  if (nuxtSourceMapSettingForRuntime !== viteSourceMap) {
-    warnDifferentSourceMapSettings({
-      nuxtSettingKey: `sourcemap.${nuxtRuntime}`,
-      nuxtSettingValue: nuxtSourceMapSettingForRuntime,
-      otherSettingKey: 'viteConfig.build.sourcemap',
-      otherSettingValue: viteConfig.build.sourcemap,
-    });
-  }
 }
 
 export type SourceMapSetting = boolean | 'hidden' | 'inline';
@@ -326,23 +311,16 @@ export function validateNitroSourceMapSettings(
   sentryModuleOptions: SentryNuxtModuleOptions,
 ): void {
   const isDebug = sentryModuleOptions.debug;
+  const nuxtSourceMap = extractNuxtSourceMapSetting(nuxt, 'server');
 
   // NITRO CONFIG ---
 
-  const nitroSourceMap = nitroConfig.sourceMap;
-  const nuxtSourceMap =
-    typeof nuxt.options?.sourcemap === 'boolean' || typeof nuxt.options?.sourcemap === 'string'
-      ? nuxt.options.sourcemap
-      : nuxt.options?.sourcemap?.server;
-
-  if (nuxtSourceMap !== nitroSourceMap) {
-    warnDifferentSourceMapSettings({
-      nuxtSettingKey: 'sourcemap.server',
-      nuxtSettingValue: nuxtSourceMap,
-      otherSettingKey: 'nitro.sourceMap',
-      otherSettingValue: nitroConfig.sourceMap,
-    });
-  }
+  validateDifferentSourceMapSettings({
+    nuxtSettingKey: 'sourcemap.server',
+    nuxtSettingValue: nuxtSourceMap,
+    otherSettingKey: 'nitro.sourceMap',
+    otherSettingValue: nitroConfig.sourceMap,
+  });
 
   // ROLLUP CONFIG ---
 
@@ -354,7 +332,7 @@ export function validateNitroSourceMapSettings(
   if (typeof nitroRollupSourceMap !== 'undefined' && ['hidden', 'inline', true, false].includes(nitroRollupSourceMap)) {
     const settingKey = 'nitro.rollupConfig.output.sourcemap';
 
-    warnDifferentSourceMapSettings({
+    validateDifferentSourceMapSettings({
       nuxtSettingKey: 'sourcemap.server',
       nuxtSettingValue: nuxtSourceMap,
       otherSettingKey: settingKey,
@@ -400,7 +378,7 @@ function warnExplicitlyDisabledSourceMap(settingKey: string): void {
 /**
  *
  */
-export function warnDifferentSourceMapSettings({
+export function validateDifferentSourceMapSettings({
   nuxtSettingKey,
   nuxtSettingValue,
   otherSettingKey,
@@ -411,12 +389,14 @@ export function warnDifferentSourceMapSettings({
   otherSettingKey: string;
   otherSettingValue?: SourceMapSetting;
 }): void {
-  consoleSandbox(() => {
-    //  eslint-disable-next-line no-console
-    console.warn(
-      `[Sentry] Source map generation settings are conflicting. Sentry uses \`${nuxtSettingKey}: ${nuxtSettingValue}\`. However, a conflicting setting was discovered (\`${otherSettingKey}: ${otherSettingValue}\`). This setting was probably explicitly set in your configuration. Sentry won't override this setting but it may affect source maps generation and upload. Without source maps, code snippets on the Sentry Issues page will remain minified.`,
-    );
-  });
+  if (nuxtSettingValue !== otherSettingValue) {
+    consoleSandbox(() => {
+      //  eslint-disable-next-line no-console
+      console.warn(
+        `[Sentry] Source map generation settings are conflicting. Sentry uses \`${nuxtSettingKey}: ${nuxtSettingValue}\`. However, a conflicting setting was discovered (\`${otherSettingKey}: ${otherSettingValue}\`). This setting was probably explicitly set in your configuration. Sentry won't override this setting but it may affect source maps generation and upload. Without source maps, code snippets on the Sentry Issues page will remain minified.`,
+      );
+    });
+  }
 }
 
 function logSentryEnablesSourceMap(settingKey: string, settingValue: string): void {
