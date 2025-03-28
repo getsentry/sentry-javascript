@@ -1,9 +1,8 @@
-import type { Nuxt, NuxtOptions } from '@nuxt/schema';
+import type { Nuxt } from '@nuxt/schema';
 import { consoleSandbox } from '@sentry/core';
 import { type SentryRollupPluginOptions, sentryRollupPlugin } from '@sentry/rollup-plugin';
 import { type SentryVitePluginOptions, sentryVitePlugin } from '@sentry/vite-plugin';
 import type { NitroConfig } from 'nitropack';
-import type { OutputOptions } from 'rollup';
 import type { SentryNuxtModuleOptions } from '../common/types';
 
 /**
@@ -21,7 +20,7 @@ export function setupSourceMaps(moduleOptions: SentryNuxtModuleOptions, nuxt: Nu
   const sourceMapsEnabled = sourceMapsUploadOptions.enabled ?? true;
 
   // In case we overwrite the source map settings, we default to deleting the files
-  let deleteFilesAfterUploadFallback = { client: true, server: true };
+  let shouldDeleteFilesFallback = { client: true, server: true };
 
   nuxt.hook('modules:done', () => {
     if (sourceMapsEnabled && !nuxt.options.dev) {
@@ -33,7 +32,7 @@ export function setupSourceMaps(moduleOptions: SentryNuxtModuleOptions, nuxt: Nu
       // ONLY THIS nuxt.sourcemap.(server/client) setting is the one Sentry will eventually overwrite with 'hidden'
       const previousSourceMapSettings = changeNuxtSourceMapSettings(nuxt, moduleOptions);
 
-      deleteFilesAfterUploadFallback = {
+      shouldDeleteFilesFallback = {
         client: previousSourceMapSettings.client === 'unset',
         server: previousSourceMapSettings.server === 'unset',
       };
@@ -41,7 +40,7 @@ export function setupSourceMaps(moduleOptions: SentryNuxtModuleOptions, nuxt: Nu
       if (
         isDebug &&
         !sourceMapsUploadOptions.sourcemaps?.filesToDeleteAfterUpload &&
-        (deleteFilesAfterUploadFallback.client || deleteFilesAfterUploadFallback.server)
+        (shouldDeleteFilesFallback.client || shouldDeleteFilesFallback.server)
       ) {
         consoleSandbox(() =>
           // eslint-disable-next-line no-console
@@ -55,10 +54,6 @@ export function setupSourceMaps(moduleOptions: SentryNuxtModuleOptions, nuxt: Nu
 
   nuxt.hook('vite:extendConfig', async (viteConfig, env) => {
     if (sourceMapsEnabled && viteConfig.mode !== 'development') {
-      console.log('viteConfig?.build?.sourcemap', viteConfig?.build?.sourcemap);
-      console.log('nuxt sourcemap (vite)', nuxt.options.sourcemap);
-      console.log('deleteFilesAfterUploadFallback:', deleteFilesAfterUploadFallback);
-
       const runtime = env.isServer ? 'server' : env.isClient ? 'client' : undefined;
       const nuxtSourceMapSetting = getNuxtSourceMapSetting(nuxt, runtime);
 
@@ -91,7 +86,7 @@ export function setupSourceMaps(moduleOptions: SentryNuxtModuleOptions, nuxt: Nu
       // Vite plugin is added on the client and server side (hook runs twice)
       // Nuxt client source map is 'false' by default. Warning about this will be shown already in an earlier step, and it's also documented that `nuxt.sourcemap.client` needs to be enabled.
       viteConfig.plugins = viteConfig.plugins || [];
-      viteConfig.plugins.push(sentryVitePlugin(getPluginOptions(moduleOptions, false, deleteFilesAfterUploadFallback)));
+      viteConfig.plugins.push(sentryVitePlugin(getPluginOptions(moduleOptions, shouldDeleteFilesFallback)));
     }
   });
 
@@ -114,7 +109,7 @@ export function setupSourceMaps(moduleOptions: SentryNuxtModuleOptions, nuxt: Nu
       //  Add Sentry plugin
       //  Runs only on server-side (Nitro)
       nitroConfig.rollupConfig.plugins.push(
-        sentryRollupPlugin(getPluginOptions(moduleOptions, false, deleteFilesAfterUploadFallback)),
+        sentryRollupPlugin(getPluginOptions(moduleOptions, shouldDeleteFilesFallback)),
       );
     }
   });
@@ -140,29 +135,24 @@ const defaultServerFilesToDeletePaths = ['.*/**/server/**/*.map', '.*/**/output/
  */
 export function getPluginOptions(
   moduleOptions: SentryNuxtModuleOptions,
-  deleteFilesAfterUpload: boolean, // todo: delete this argument
-  deleteFilesAfterUploadFallback?: { client: boolean; server: boolean },
+  shouldDeleteFilesFallback?: { client: boolean; server: boolean },
 ): SentryVitePluginOptions | SentryRollupPluginOptions {
   const sourceMapsUploadOptions = moduleOptions.sourceMapsUploadOptions || {};
 
-  // todo: rename - or extra function??
-  const defaultfiles = [
-    ...(deleteFilesAfterUploadFallback?.client ? defaultClientFilesToDeletePaths : []),
-    ...(deleteFilesAfterUploadFallback?.server ? defaultServerFilesToDeletePaths : []),
+  const shouldDeleteFilesAfterUpload = shouldDeleteFilesFallback?.client || shouldDeleteFilesFallback?.server;
+  const fallbackFilesToDelete = [
+    ...(shouldDeleteFilesFallback?.client ? defaultClientFilesToDeletePaths : []),
+    ...(shouldDeleteFilesFallback?.server ? defaultServerFilesToDeletePaths : []),
   ];
 
-  const shouldDeleteFilesAfterUpload = deleteFilesAfterUploadFallback?.client || deleteFilesAfterUploadFallback?.server;
-
-  // todo: better log about deleting source maps
   if (
     typeof sourceMapsUploadOptions.sourcemaps?.filesToDeleteAfterUpload === 'undefined' &&
     shouldDeleteFilesAfterUpload
   ) {
-    // todo: file path
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.log(
-        `[Sentry] Setting \`sentry.sourceMapsUploadOptions.sourcemaps.filesToDeleteAfterUpload: [${defaultfiles
+        `[Sentry] Setting \`sentry.sourceMapsUploadOptions.sourcemaps.filesToDeleteAfterUpload: [${fallbackFilesToDelete
           // Logging it as strings in the array
           .map(path => `"${path}"`)
           .join(', ')}]\` to delete generated source maps after they were uploaded to Sentry.`,
@@ -198,8 +188,8 @@ export function getPluginOptions(
       ignore: sourceMapsUploadOptions.sourcemaps?.ignore ?? undefined,
       filesToDeleteAfterUpload: sourceMapsUploadOptions.sourcemaps?.filesToDeleteAfterUpload
         ? sourceMapsUploadOptions.sourcemaps?.filesToDeleteAfterUpload
-        : deleteFilesAfterUploadFallback?.server || deleteFilesAfterUploadFallback?.client
-          ? defaultfiles
+        : shouldDeleteFilesFallback?.server || shouldDeleteFilesFallback?.client
+          ? fallbackFilesToDelete
           : undefined,
       rewriteSources: (source: string) => normalizePath(source),
       ...moduleOptions?.unstable_sentryBundlerPluginOptions?.sourcemaps,
@@ -222,7 +212,7 @@ export function getPluginOptions(
 
 /** only exported for tests */
 export function getNuxtSourceMapSetting(
-  nuxt: Nuxt,
+  nuxt: { options: { sourcemap?: SourceMapSetting | { server?: SourceMapSetting; client?: SourceMapSetting } } },
   runtime: 'client' | 'server' | undefined,
 ): SourceMapSetting | undefined {
   if (!runtime) {
@@ -297,7 +287,7 @@ export function changeNuxtSourceMapSettings(
 }
 
 /** only exported for testing  */ // todo: delete this function?
-export function getViteSourceMapSettingDefinition(
+export function validateViteSourceMapSettings(
   viteConfig: { build?: { sourcemap?: boolean | 'inline' | 'hidden' } },
   sentryModuleOptions: SentryNuxtModuleOptions,
   nuxtRuntime?: 'client' | 'server',
@@ -306,8 +296,12 @@ export function getViteSourceMapSettingDefinition(
   viteConfig.build = viteConfig.build || {};
   const viteSourceMap = viteConfig.build.sourcemap;
 
-  console.log('[Sentry] vite source map', nuxtRuntime, viteConfig.build.sourcemap);
-  console.log('[Sentry] nuxt sourcema', nuxtSourceMapSettingForRuntime);
+  console.log({
+    nuxtSettingKey: `sourcemap.${nuxtRuntime}`,
+    nuxtSettingValue: nuxtSourceMapSettingForRuntime,
+    otherSettingKey: 'viteConfig.build.sourcemap',
+    otherSettingValue: viteConfig.build.sourcemap,
+  });
 
   if (nuxtSourceMapSettingForRuntime !== viteSourceMap) {
     warnDifferentSourceMapSettings({
@@ -403,7 +397,10 @@ function warnExplicitlyDisabledSourceMap(settingKey: string): void {
   });
 }
 
-function warnDifferentSourceMapSettings({
+/**
+ *
+ */
+export function warnDifferentSourceMapSettings({
   nuxtSettingKey,
   nuxtSettingValue,
   otherSettingKey,
