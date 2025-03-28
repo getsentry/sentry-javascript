@@ -265,8 +265,12 @@ function getFetchSpanAttributes(
       attributes['http.url'] = parsedUrl.href;
       attributes['server.address'] = parsedUrl.host;
     }
-    attributes['http.query'] = parsedUrl.search;
-    attributes['http.fragment'] = parsedUrl.hash;
+    if (parsedUrl.search) {
+      attributes['http.query'] = parsedUrl.search;
+    }
+    if (parsedUrl.hash) {
+      attributes['http.fragment'] = parsedUrl.hash;
+    }
   }
   return attributes;
 }
