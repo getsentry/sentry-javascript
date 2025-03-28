@@ -10,6 +10,11 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 9.10.1
+
+- fix: Correct @sentry-internal/feedback docs to match the code ([#15874](https://github.com/getsentry/sentry-javascript/pull/15874))
+- deps: Bump bundler plugins to version `3.2.4` ([#15909](https://github.com/getsentry/sentry-javascript/pull/15909))
+
 ## 9.10.0
 
 ### Important Changes
