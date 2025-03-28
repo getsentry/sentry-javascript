@@ -74,7 +74,7 @@ export function setupSourceMaps(moduleOptions: SentryNuxtModuleOptions, nuxt: Nu
       if (isDebug) {
         consoleSandbox(() => {
           if (!runtime) {
-            //  eslint-disable-next-line no-console
+            // eslint-disable-next-line no-console
             console.log("[Sentry] Cannot detect runtime (client/server) inside hook 'vite:extendConfig'.");
           } else {
             // eslint-disable-next-line no-console
@@ -100,14 +100,14 @@ export function setupSourceMaps(moduleOptions: SentryNuxtModuleOptions, nuxt: Nu
       if (nitroConfig.rollupConfig.plugins === null || nitroConfig.rollupConfig.plugins === undefined) {
         nitroConfig.rollupConfig.plugins = [];
       } else if (!Array.isArray(nitroConfig.rollupConfig.plugins)) {
-        //  `rollupConfig.plugins` can be a single plugin, so we want to put it into an array so that we can push our own plugin
+        // `rollupConfig.plugins` can be a single plugin, so we want to put it into an array so that we can push our own plugin
         nitroConfig.rollupConfig.plugins = [nitroConfig.rollupConfig.plugins];
       }
 
       validateNitroSourceMapSettings(nuxt, nitroConfig, moduleOptions);
 
-      //  Add Sentry plugin
-      //  Runs only on server-side (Nitro)
+      // Add Sentry plugin
+      // Runs only on server-side (Nitro)
       nitroConfig.rollupConfig.plugins.push(
         sentryRollupPlugin(getPluginOptions(moduleOptions, shouldDeleteFilesFallback)),
       );
@@ -177,9 +177,9 @@ export function getPluginOptions(
     ...moduleOptions?.unstable_sentryBundlerPluginOptions,
 
     sourcemaps: {
-      //  The server/client files are in different places depending on the nitro preset (e.g. '.output/server' or '.netlify/functions-internal/server')
-      //  We cannot determine automatically how the build folder looks like (depends on the preset), so we have to accept that source maps are uploaded multiple times (with the vitePlugin for Nuxt and the rollupPlugin for Nitro).
-      //  If we could know where the server/client assets are located, we could do something like this (based on the Nitro preset): isNitro ? ['./.output/server/**/*'] : ['./.output/public/**/*'],
+      // The server/client files are in different places depending on the nitro preset (e.g. '.output/server' or '.netlify/functions-internal/server')
+      // We cannot determine automatically how the build folder looks like (depends on the preset), so we have to accept that source maps are uploaded multiple times (with the vitePlugin for Nuxt and the rollupPlugin for Nitro).
+      // If we could know where the server/client assets are located, we could do something like this (based on the Nitro preset): isNitro ? ['./.output/server/**/*'] : ['./.output/public/**/*'],
       assets: sourceMapsUploadOptions.sourcemaps?.assets ?? undefined,
       ignore: sourceMapsUploadOptions.sourcemaps?.ignore ?? undefined,
       filesToDeleteAfterUpload: sourceMapsUploadOptions.sourcemaps?.filesToDeleteAfterUpload
@@ -247,7 +247,7 @@ export function changeNuxtSourceMapSettings(
         previousUserSourceMapSetting = { client: 'enabled', server: 'enabled' };
         break;
       case undefined:
-        nuxt.options.sourcemap = { server: 'hidden', client: 'hidden' }; //  todo: here, it's overwritten
+        nuxt.options.sourcemap = { server: 'hidden', client: 'hidden' };
         logSentryEnablesSourceMap('sourcemap.client', 'hidden');
         logSentryEnablesSourceMap('sourcemap.server', 'hidden');
         previousUserSourceMapSetting = { client: 'unset', server: 'unset' };
@@ -273,7 +273,7 @@ export function changeNuxtSourceMapSettings(
       logKeepEnabledSourceMapSetting(sentryModuleOptions, 'sourcemap.server', nuxtSourceMap.server.toString());
       previousUserSourceMapSetting.server = 'enabled';
     } else {
-      nuxt.options.sourcemap.server = 'hidden'; //  todo here it's overwritten
+      nuxt.options.sourcemap.server = 'hidden';
       logSentryEnablesSourceMap('sourcemap.server', 'hidden');
       previousUserSourceMapSetting.server = 'unset';
     }
@@ -310,7 +310,7 @@ export function validateNitroSourceMapSettings(
   nitroConfig.rollupConfig.output = nitroConfig.rollupConfig.output || { sourcemap: undefined };
   const nitroRollupSourceMap = nitroConfig.rollupConfig.output.sourcemap;
 
-  //  We don't override nitro.rollupConfig.output.sourcemap (undefined by default, but overrides all other server-side source map settings)
+  // We don't override nitro.rollupConfig.output.sourcemap (undefined by default, but overrides all other server-side source map settings)
   if (typeof nitroRollupSourceMap !== 'undefined' && ['hidden', 'inline', true, false].includes(nitroRollupSourceMap)) {
     const settingKey = 'nitro.rollupConfig.output.sourcemap';
 
@@ -346,7 +346,7 @@ function validateDifferentSourceMapSettings({
 }): void {
   if (nuxtSettingValue !== otherSettingValue) {
     consoleSandbox(() => {
-      //  eslint-disable-next-line no-console
+      // eslint-disable-next-line no-console
       console.warn(
         `[Sentry] Source map generation settings are conflicting. Sentry uses \`${nuxtSettingKey}: ${nuxtSettingValue}\`. However, a conflicting setting was discovered (\`${otherSettingKey}: ${otherSettingValue}\`). This setting was probably explicitly set in your configuration. Sentry won't override this setting but it may affect source maps generation and upload. Without source maps, code snippets on the Sentry Issues page will remain minified.`,
       );
@@ -361,7 +361,7 @@ function logKeepEnabledSourceMapSetting(
 ): void {
   if (sentryNuxtModuleOptions.debug) {
     consoleSandbox(() => {
-      //  eslint-disable-next-line no-console
+      // eslint-disable-next-line no-console
       console.log(
         `[Sentry] We discovered \`${settingKey}\` is set to \`${settingValue}\`. This will un-minify the code snippet on the Sentry Issue page. Be aware that there might be other source map settings in your config which could overwrite this setting.`,
       );
@@ -371,7 +371,7 @@ function logKeepEnabledSourceMapSetting(
 
 function warnExplicitlyDisabledSourceMap(settingKey: string): void {
   consoleSandbox(() => {
-    //  eslint-disable-next-line no-console
+    // eslint-disable-next-line no-console
     console.warn(
       `[Sentry] We discovered \`${settingKey}\` is set to \`false\`. This setting is either a default setting or was explicitly set in your configuration. Sentry won't override this setting. Without source maps, code snippets on the Sentry Issues page will remain minified. To show unminified code, enable source maps in \`${settingKey}\` (e.g. by setting them to \`'hidden'\`).`,
     );
@@ -380,7 +380,7 @@ function warnExplicitlyDisabledSourceMap(settingKey: string): void {
 
 function logSentryEnablesSourceMap(settingKey: string, settingValue: string): void {
   consoleSandbox(() => {
-    //  eslint-disable-next-line no-console
+    // eslint-disable-next-line no-console
     console.log(`[Sentry] Enabled source map generation in the build options with \`${settingKey}: ${settingValue}\`.`);
   });
 }
