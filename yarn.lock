@@ -6459,10 +6459,10 @@
   resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-2.22.6.tgz#829d6caf2c95c1c46108336de4e1049e6521435e"
   integrity sha512-V2g1Y1I5eSe7dtUVMBvAJr8BaLRr4CLrgNgtPaZyMT4Rnps82SrZ5zqmEkLXPumlXhLUWR6qzoMNN2u+RXVXfQ==
 
-"@sentry/babel-plugin-component-annotate@3.2.3":
-  version "3.2.3"
-  resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-3.2.3.tgz#2ec2ca459fe4087924dda5c54bd8a734fccba3bf"
-  integrity sha512-nbFvTHD7wOfxsqsbkyDVxxi1XMv6j54TW6i0vwLnzq3uwsSno/bs2Xzdc+mzXyMmji1b27kpOPiI2fKBi3XXVQ==
+"@sentry/babel-plugin-component-annotate@3.2.4":
+  version "3.2.4"
+  resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-3.2.4.tgz#c0877df6e5ce227bf51754bf27da2fa5227af847"
+  integrity sha512-yBzRn3GEUSv1RPtE4xB4LnuH74ZxtdoRJ5cmQ9i6mzlmGDxlrnKuvem5++AolZTE9oJqAD3Tx2rd1PqmpWnLoA==
 
 "@sentry/bundler-plugin-core@2.22.6":
   version "2.22.6"
@@ -6478,13 +6478,13 @@
     magic-string "0.30.8"
     unplugin "1.0.1"
 
-"@sentry/bundler-plugin-core@3.2.3":
-  version "3.2.3"
-  resolved "https://registry.yarnpkg.com/@sentry/bundler-plugin-core/-/bundler-plugin-core-3.2.3.tgz#2d88a3bcae74299aa9969725fd80484847d2ff02"
-  integrity sha512-efg4F0ia1eO0GdWF9a/9tyKQaP5eHABBU8v/zFTmdw6WCPozFH+aRvfXOVSLGoII/sduRamW9BiUlE4NxrWPqQ==
+"@sentry/bundler-plugin-core@3.2.4":
+  version "3.2.4"
+  resolved "https://registry.yarnpkg.com/@sentry/bundler-plugin-core/-/bundler-plugin-core-3.2.4.tgz#4d892490be3cbb127c7c4ed00fcd1b525129fb1e"
+  integrity sha512-YMj9XW5W2JA89EeweE7CPKLDz245LBsI1JhCmqpt/bjSvmsSIAAPsLYnvIJBS3LQFm0OhtG8NB54PTi96dAcMA==
   dependencies:
     "@babel/core" "^7.18.5"
-    "@sentry/babel-plugin-component-annotate" "3.2.3"
+    "@sentry/babel-plugin-component-annotate" "3.2.4"
     "@sentry/cli" "2.42.2"
     dotenv "^16.3.1"
     find-up "^5.0.0"
@@ -6600,12 +6600,12 @@
     "@sentry/cli-win32-i686" "2.42.3"
     "@sentry/cli-win32-x64" "2.42.3"
 
-"@sentry/rollup-plugin@3.2.3":
-  version "3.2.3"
-  resolved "https://registry.yarnpkg.com/@sentry/rollup-plugin/-/rollup-plugin-3.2.3.tgz#df931a1858d8d4cbdb7714793f76eaf2e7f34b2d"
-  integrity sha512-00WQUYvJ/X5WlfI+MK/Wf+hXroafFw4kEae0/ToAYTnpOIp7twQ/ULBhsGmyzOLSzxnv3CtkhxbOz7sUPdmWvQ==
+"@sentry/rollup-plugin@3.2.4":
+  version "3.2.4"
+  resolved "https://registry.yarnpkg.com/@sentry/rollup-plugin/-/rollup-plugin-3.2.4.tgz#aa07424b3ffc582e471f9af5d933e663b7ba3ff5"
+  integrity sha512-ZWTT1mc1OiROdRbXX9zTGXvdWpHwMyPJjKsI4+sT/ohwTU3/nh8yGw6+VTxOkrsZj72+p2OcAfpO7Yv/gUP9Yg==
   dependencies:
-    "@sentry/bundler-plugin-core" "3.2.3"
+    "@sentry/bundler-plugin-core" "3.2.4"
     unplugin "1.0.1"
 
 "@sentry/vite-plugin@2.22.6", "@sentry/vite-plugin@^2.22.6":
@@ -6616,20 +6616,20 @@
     "@sentry/bundler-plugin-core" "2.22.6"
     unplugin "1.0.1"
 
-"@sentry/vite-plugin@3.2.3", "@sentry/vite-plugin@^3.2.3":
-  version "3.2.3"
-  resolved "https://registry.yarnpkg.com/@sentry/vite-plugin/-/vite-plugin-3.2.3.tgz#3e51bcd7ee37b5b84177637df4d66dbed953a5f5"
-  integrity sha512-7znFCOi60tTr5LjVnsP9Bb1kXfYHUz2ylueBT6bY5pu9xO5C3D0wpSodY8X7AiqLKWOc5wPbHMSIxNOWp6in3g==
+"@sentry/vite-plugin@3.2.4", "@sentry/vite-plugin@^3.2.4":
+  version "3.2.4"
+  resolved "https://registry.yarnpkg.com/@sentry/vite-plugin/-/vite-plugin-3.2.4.tgz#da87534d645c116ef579161d44636a34eee41a25"
+  integrity sha512-ZRn5TLlq5xtwKOqaWP+XqS1PYVfbBCgsbMk7wW2Ly6EgF9wYePvtLqKgYnE3hwPg2LpBnRPR2ti1ohlUkR+wXA==
   dependencies:
-    "@sentry/bundler-plugin-core" "3.2.3"
+    "@sentry/bundler-plugin-core" "3.2.4"
     unplugin "1.0.1"
 
-"@sentry/webpack-plugin@3.2.3":
-  version "3.2.3"
-  resolved "https://registry.yarnpkg.com/@sentry/webpack-plugin/-/webpack-plugin-3.2.3.tgz#80fbb39045dc54e81ca8df4aac1d4e61c2b729df"
-  integrity sha512-uBRJO54wOqZ2csi/JT0kLeNpjClypwYBsyrqKgDSp04N2oEnt1eZr4L4yS4kNShI/ZrkA5Q4VWuFk5cCB2f/ew==
+"@sentry/webpack-plugin@3.2.4":
+  version "3.2.4"
+  resolved "https://registry.yarnpkg.com/@sentry/webpack-plugin/-/webpack-plugin-3.2.4.tgz#f9016aa30be87d196aaa35cd9fdf9d5f5f0d0c91"
+  integrity sha512-LCuNu5LXPSCq2BNke1zvEW8CXL4SPBsCjYexAx51PZ6Lp87VxWcCxGqXhr37MGpYwY10A1r31/XOe69iXHJjGA==
   dependencies:
-    "@sentry/bundler-plugin-core" "3.2.3"
+    "@sentry/bundler-plugin-core" "3.2.4"
     unplugin "1.0.1"
     uuid "^9.0.0"
 
