@@ -27,8 +27,8 @@ import {
 import { env, versions } from 'process';
 import { isMainThread, threadId } from 'worker_threads';
 
+import type { RawChunkCpuProfile, RawThreadCpuProfile } from '@sentry-internal/node-cpu-profiler';
 import { DEBUG_BUILD } from './debug-build';
-import type { RawChunkCpuProfile, RawThreadCpuProfile } from './types';
 
 // We require the file because if we import it, it will be included in the bundle.
 // I guess tsc does not check file contents when it's imported.
@@ -400,6 +400,7 @@ export function createEventEnvelopeHeaders(
  * Creates a standalone profile_chunk envelope.
  */
 export function makeProfileChunkEnvelope(
+  platform: 'node',
   chunk: ProfileChunk,
   sdkInfo: SdkInfo | undefined,
   tunnel: string | undefined,
@@ -407,6 +408,7 @@ export function makeProfileChunkEnvelope(
 ): ProfileChunkEnvelope {
   const profileChunkHeader: ProfileChunkItem[0] = {
     type: 'profile_chunk',
+    platform,
   };
 
   return createEnvelope<ProfileChunkEnvelope>(createEventEnvelopeHeaders(sdkInfo, tunnel, dsn), [

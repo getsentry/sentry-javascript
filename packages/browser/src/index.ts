@@ -1,8 +1,13 @@
 export * from './exports';
 
+import * as logger from './log';
+
+export { logger };
+
 export { reportingObserverIntegration } from './integrations/reportingobserver';
 export { httpClientIntegration } from './integrations/httpclient';
 export { contextLinesIntegration } from './integrations/contextlines';
+export { graphqlClientIntegration } from './integrations/graphqlClient';
 
 export {
   captureConsoleIntegration,
@@ -61,10 +66,9 @@ export { makeBrowserOfflineTransport } from './transports/offline';
 export { browserProfilingIntegration } from './profiling/integration';
 export { spotlightBrowserIntegration } from './integrations/spotlight';
 export { browserSessionIntegration } from './integrations/browsersession';
-export {
-  featureFlagsIntegration,
-  type FeatureFlagsIntegration,
-} from './integrations/featureFlags';
+export { featureFlagsIntegration, type FeatureFlagsIntegration } from './integrations/featureFlags';
 export { launchDarklyIntegration, buildLaunchDarklyFlagUsedHandler } from './integrations/featureFlags/launchdarkly';
 export { openFeatureIntegration, OpenFeatureIntegrationHook } from './integrations/featureFlags/openfeature';
 export { unleashIntegration } from './integrations/featureFlags/unleash';
+export { statsigIntegration } from './integrations/featureFlags/statsig';
+export { diagnoseSdkConnectivity } from './diagnose-sdk';

@@ -39,10 +39,7 @@ export {
   getClient,
   getTraceContextFromScope,
 } from './currentScopes';
-export {
-  getDefaultCurrentScope,
-  getDefaultIsolationScope,
-} from './defaultScopes';
+export { getDefaultCurrentScope, getDefaultIsolationScope } from './defaultScopes';
 export { setAsyncContextStrategy } from './asyncContext';
 export { getGlobalSingleton, getMainCarrier } from './carrier';
 export { makeSession, closeSession, updateSession } from './session';
@@ -60,19 +57,19 @@ export { initAndBind, setCurrentClient } from './sdk';
 export { createTransport } from './transports/base';
 export { makeOfflineTransport } from './transports/offline';
 export { makeMultiplexedTransport } from './transports/multiplexed';
-export {
-  getIntegrationsToSetup,
-  addIntegration,
-  defineIntegration,
-} from './integration';
+export { getIntegrationsToSetup, addIntegration, defineIntegration } from './integration';
 export { applyScopeDataToEvent, mergeScopeData } from './utils/applyScopeDataToEvent';
 export { prepareEvent } from './utils/prepareEvent';
 export { createCheckInEnvelope } from './checkin';
-export { hasTracingEnabled } from './utils/hasTracingEnabled';
+// eslint-disable-next-line deprecation/deprecation
+export { hasTracingEnabled } from './utils/hasSpansEnabled';
+export { hasSpansEnabled } from './utils/hasSpansEnabled';
 export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
 export { handleCallbackErrors } from './utils/handleCallbackErrors';
-export { parameterize } from './utils/parameterize';
+export { parameterize, fmt } from './utils/parameterize';
+export { addAutoIpAddressToSession, addAutoIpAddressToUser } from './utils/ipAddress';
 export {
+  convertSpanLinksForEnvelope,
   spanToTraceHeader,
   spanToJSON,
   spanIsSampled,
@@ -99,7 +96,9 @@ export {
 export { DEFAULT_ENVIRONMENT } from './constants';
 export { addBreadcrumb } from './breadcrumbs';
 export { functionToStringIntegration } from './integrations/functiontostring';
-export { inboundFiltersIntegration } from './integrations/inboundfilters';
+// eslint-disable-next-line deprecation/deprecation
+export { inboundFiltersIntegration } from './integrations/eventFilters';
+export { eventFiltersIntegration } from './integrations/eventFilters';
 export { linkedErrorsIntegration } from './integrations/linkederrors';
 export { moduleMetadataIntegration } from './integrations/metadata';
 export { requestDataIntegration } from './integrations/requestdata';
@@ -114,6 +113,7 @@ export { instrumentFetchRequest } from './fetch';
 export { trpcMiddleware } from './trpc';
 export { captureFeedback } from './feedback';
 export type { ReportDialogOptions } from './report-dialog';
+export { _INTERNAL_captureLog, _INTERNAL_flushLogsBuffer } from './logs';
 
 // TODO: Make this structure pretty again and don't do "export *"
 export * from './utils-hoist/index';

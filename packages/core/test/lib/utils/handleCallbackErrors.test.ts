@@ -1,10 +1,11 @@
+import { describe, expect, it, vi } from 'vitest';
 import { handleCallbackErrors } from '../../../src/utils/handleCallbackErrors';
 
 describe('handleCallbackErrors', () => {
   it('works with a simple callback', () => {
-    const onError = jest.fn();
+    const onError = vi.fn();
 
-    const fn = jest.fn(() => 'aa');
+    const fn = vi.fn(() => 'aa');
 
     const res = handleCallbackErrors(fn, onError);
 
@@ -16,9 +17,9 @@ describe('handleCallbackErrors', () => {
   it('triggers onError when callback has sync error', () => {
     const error = new Error('test error');
 
-    const onError = jest.fn();
+    const onError = vi.fn();
 
-    const fn = jest.fn(() => {
+    const fn = vi.fn(() => {
       throw error;
     });
 
@@ -30,9 +31,9 @@ describe('handleCallbackErrors', () => {
   });
 
   it('works with an async callback', async () => {
-    const onError = jest.fn();
+    const onError = vi.fn();
 
-    const fn = jest.fn(async () => 'aa');
+    const fn = vi.fn(async () => 'aa');
 
     const res = handleCallbackErrors(fn, onError);
 
@@ -46,11 +47,11 @@ describe('handleCallbackErrors', () => {
   });
 
   it('triggers onError when callback returns promise that rejects', async () => {
-    const onError = jest.fn();
+    const onError = vi.fn();
 
     const error = new Error('test error');
 
-    const fn = jest.fn(async () => {
+    const fn = vi.fn(async () => {
       await new Promise(resolve => setTimeout(resolve, 10));
       throw error;
     });
@@ -70,10 +71,10 @@ describe('handleCallbackErrors', () => {
 
   describe('onFinally', () => {
     it('triggers after successful sync callback', () => {
-      const onError = jest.fn();
-      const onFinally = jest.fn();
+      const onError = vi.fn();
+      const onFinally = vi.fn();
 
-      const fn = jest.fn(() => 'aa');
+      const fn = vi.fn(() => 'aa');
 
       const res = handleCallbackErrors(fn, onError, onFinally);
 
@@ -86,10 +87,10 @@ describe('handleCallbackErrors', () => {
     it('triggers after error in sync callback', () => {
       const error = new Error('test error');
 
-      const onError = jest.fn();
-      const onFinally = jest.fn();
+      const onError = vi.fn();
+      const onFinally = vi.fn();
 
-      const fn = jest.fn(() => {
+      const fn = vi.fn(() => {
         throw error;
       });
 
@@ -102,10 +103,10 @@ describe('handleCallbackErrors', () => {
     });
 
     it('triggers after successful async callback', async () => {
-      const onError = jest.fn();
-      const onFinally = jest.fn();
+      const onError = vi.fn();
+      const onFinally = vi.fn();
 
-      const fn = jest.fn(async () => 'aa');
+      const fn = vi.fn(async () => 'aa');
 
       const res = handleCallbackErrors(fn, onError, onFinally);
 
@@ -122,12 +123,12 @@ describe('handleCallbackErrors', () => {
     });
 
     it('triggers after error in async callback', async () => {
-      const onError = jest.fn();
-      const onFinally = jest.fn();
+      const onError = vi.fn();
+      const onFinally = vi.fn();
 
       const error = new Error('test error');
 
-      const fn = jest.fn(async () => {
+      const fn = vi.fn(async () => {
         await new Promise(resolve => setTimeout(resolve, 10));
         throw error;
       });

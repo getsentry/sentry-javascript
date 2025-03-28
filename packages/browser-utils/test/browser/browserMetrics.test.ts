@@ -9,6 +9,8 @@ import {
   spanToJSON,
 } from '@sentry/core';
 import type { Span } from '@sentry/core';
+import { describe, beforeEach, it, expect, beforeAll, afterAll } from 'vitest';
+
 import { _addMeasureSpans, _addResourceSpans } from '../../src/metrics/browserMetrics';
 import { WINDOW } from '../../src/types';
 import { TestClient, getDefaultClientOptions } from '../utils/TestClient';
@@ -91,6 +93,29 @@ describe('_addMeasureSpans', () => {
         },
       }),
     );
+  });
+
+  it('drops measurement spans with negative duration', () => {
+    const spans: Span[] = [];
+
+    getClient()?.on('spanEnd', span => {
+      spans.push(span);
+    });
+
+    const entry = {
+      entryType: 'measure',
+      name: 'measure-1',
+      duration: 10,
+      startTime: 12,
+    } as PerformanceEntry;
+
+    const timeOrigin = 100;
+    const startTime = 23;
+    const duration = -50;
+
+    _addMeasureSpans(span, entry, startTime, duration, timeOrigin);
+
+    expect(spans).toHaveLength(0);
   });
 });
 

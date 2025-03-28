@@ -14,7 +14,9 @@ import type {
   EventHint,
   EventProcessor,
   FeedbackEvent,
+  FetchBreadcrumbHint,
   Integration,
+  Log,
   MonitorConfig,
   Outcome,
   ParameterizedString,
@@ -27,9 +29,11 @@ import type {
   SpanContextData,
   SpanJSON,
   StartSpanOptions,
+  TraceContext,
   TransactionEvent,
   Transport,
   TransportMakeRequestResponse,
+  XhrBreadcrumbHint,
 } from './types-hoist';
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
@@ -42,11 +46,13 @@ import { afterSetupIntegrations } from './integration';
 import { setupIntegration, setupIntegrations } from './integration';
 import type { Scope } from './scope';
 import { updateSession } from './session';
-import { getDynamicSamplingContextFromScope } from './tracing/dynamicSamplingContext';
+import {
+  getDynamicSamplingContextFromScope,
+  getDynamicSamplingContextFromSpan,
+} from './tracing/dynamicSamplingContext';
 import { createClientReportEnvelope } from './utils-hoist/clientreport';
 import { dsnToString, makeDsn } from './utils-hoist/dsn';
 import { addItemToEnvelope, createAttachmentEnvelopeItem } from './utils-hoist/envelope';
-import { SentryError } from './utils-hoist/error';
 import { isParameterizedString, isPlainObject, isPrimitive, isThenable } from './utils-hoist/is';
 import { logger } from './utils-hoist/logger';
 import { checkOrSetAlreadyCaught, uuid4 } from './utils-hoist/misc';
@@ -55,11 +61,47 @@ import { getPossibleEventMessages } from './utils/eventUtils';
 import { merge } from './utils/merge';
 import { parseSampleRate } from './utils/parseSampleRate';
 import { prepareEvent } from './utils/prepareEvent';
-import { showSpanDropWarning } from './utils/spanUtils';
+import { showSpanDropWarning, spanToTraceContext } from './utils/spanUtils';
 import { convertSpanJsonToTransactionEvent, convertTransactionEventToSpanJson } from './utils/transactionEvent';
+import { _getSpanForScope } from './utils/spanOnScope';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
 const MISSING_RELEASE_FOR_SESSION_ERROR = 'Discarded session because of missing or non-string release';
+
+const INTERNAL_ERROR_SYMBOL = Symbol.for('SentryInternalError');
+const DO_NOT_SEND_EVENT_SYMBOL = Symbol.for('SentryDoNotSendEventError');
+
+interface InternalError {
+  message: string;
+  [INTERNAL_ERROR_SYMBOL]: true;
+}
+
+interface DoNotSendEventError {
+  message: string;
+  [DO_NOT_SEND_EVENT_SYMBOL]: true;
+}
+
+function _makeInternalError(message: string): InternalError {
+  return {
+    message,
+    [INTERNAL_ERROR_SYMBOL]: true,
+  };
+}
+
+function _makeDoNotSendEventError(message: string): DoNotSendEventError {
+  return {
+    message,
+    [DO_NOT_SEND_EVENT_SYMBOL]: true,
+  };
+}
+
+function _isInternalError(error: unknown): error is InternalError {
+  return !!error && typeof error === 'object' && INTERNAL_ERROR_SYMBOL in error;
+}
+
+function _isDoNotSendEventError(error: unknown): error is DoNotSendEventError {
+  return !!error && typeof error === 'object' && DO_NOT_SEND_EVENT_SYMBOL in error;
+}
 
 /**
  * Base implementation for all JavaScript SDK clients.
@@ -562,6 +604,11 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   ): () => void;
 
   /**
+   * Register a callback when the feedback widget is opened in a user's browser
+   */
+  public on(hook: 'openFeedbackWidget', callback: () => void): () => void;
+
+  /**
    * A hook for the browser tracing integrations to trigger a span start for a page load.
    * @returns {() => void} A function that, when executed, removes the registered callback.
    */
@@ -580,6 +627,24 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public on(hook: 'startNavigationSpan', callback: (options: StartSpanOptions) => void): () => void;
 
   /**
+   * A hook for GraphQL client integration to enhance a span with request data.
+   * @returns A function that, when executed, removes the registered callback.
+   */
+  public on(
+    hook: 'beforeOutgoingRequestSpan',
+    callback: (span: Span, hint: XhrBreadcrumbHint | FetchBreadcrumbHint) => void,
+  ): () => void;
+
+  /**
+   * A hook for GraphQL client integration to enhance a breadcrumb with request data.
+   * @returns A function that, when executed, removes the registered callback.
+   */
+  public on(
+    hook: 'beforeOutgoingRequestBreadcrumb',
+    callback: (breadcrumb: Breadcrumb, hint: XhrBreadcrumbHint | FetchBreadcrumbHint) => void,
+  ): () => void;
+
+  /**
    * A hook that is called when the client is flushing
    * @returns {() => void} A function that, when executed, removes the registered callback.
    */
@@ -592,7 +657,21 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public on(hook: 'close', callback: () => void): () => void;
 
   /**
-   * Register a hook oin this client.
+   * A hook that is called before a log is captured. This hooks runs before `beforeSendLog` is fired.
+   *
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'beforeCaptureLog', callback: (log: Log) => void): () => void;
+
+  /**
+   * A hook that is called after a log is captured
+   *
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'afterCaptureLog', callback: (log: Log) => void): () => void;
+
+  /**
+   * Register a hook on this client.
    */
   public on(hook: string, callback: unknown): () => void {
     const hooks = (this._hooks[hook] = this._hooks[hook] || []);
@@ -696,6 +775,11 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public emit(hook: 'beforeSendFeedback', feedback: FeedbackEvent, options?: { includeReplay?: boolean }): void;
 
   /**
+   * Fire a hook event for when the feedback widget is opened in a user's browser
+   */
+  public emit(hook: 'openFeedbackWidget'): void;
+
+  /**
    * Emit a hook event for browser tracing integrations to trigger a span start for a page load.
    */
   public emit(
@@ -710,6 +794,20 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public emit(hook: 'startNavigationSpan', options: StartSpanOptions): void;
 
   /**
+   * Emit a hook event for GraphQL client integration to enhance a span with request data.
+   */
+  public emit(hook: 'beforeOutgoingRequestSpan', span: Span, hint: XhrBreadcrumbHint | FetchBreadcrumbHint): void;
+
+  /**
+   * Emit a hook event for GraphQL client integration to enhance a breadcrumb with request data.
+   */
+  public emit(
+    hook: 'beforeOutgoingRequestBreadcrumb',
+    breadcrumb: Breadcrumb,
+    hint: XhrBreadcrumbHint | FetchBreadcrumbHint,
+  ): void;
+
+  /**
    * Emit a hook event for client flush
    */
   public emit(hook: 'flush'): void;
@@ -718,6 +816,16 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * Emit a hook event for client close
    */
   public emit(hook: 'close'): void;
+
+  /**
+   * Emit a hook event for client before capturing a log. This hooks runs before `beforeSendLog` is fired.
+   */
+  public emit(hook: 'beforeCaptureLog', log: Log): void;
+
+  /**
+   * Emit a hook event for client after capturing a log.
+   */
+  public emit(hook: 'afterCaptureLog', log: Log): void;
 
   /**
    * Emit a hook that was previously registered via `on()`.
@@ -901,10 +1009,10 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       },
       reason => {
         if (DEBUG_BUILD) {
-          // If something's gone wrong, log the error as a warning. If it's just us having used a `SentryError` for
-          // control flow, log just the message (no stack) as a log-level log.
-          if (reason instanceof SentryError && reason.logLevel === 'log') {
+          if (_isDoNotSendEventError(reason)) {
             logger.log(reason.message);
+          } else if (_isInternalError(reason)) {
+            logger.warn(reason.message);
           } else {
             logger.warn(reason);
           }
@@ -948,9 +1056,8 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     if (isError && typeof parsedSampleRate === 'number' && Math.random() > parsedSampleRate) {
       this.recordDroppedEvent('sample_rate', 'error');
       return rejectedSyncPromise(
-        new SentryError(
+        _makeDoNotSendEventError(
           `Discarding event because it's not included in the random sample (sampling rate = ${sampleRate})`,
-          'log',
         ),
       );
     }
@@ -961,7 +1068,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       .then(prepared => {
         if (prepared === null) {
           this.recordDroppedEvent('event_processor', dataCategory);
-          throw new SentryError('An event processor returned `null`, will not send event.', 'log');
+          throw _makeDoNotSendEventError('An event processor returned `null`, will not send event.');
         }
 
         const isInternalException = hint.data && (hint.data as { __sentry__: boolean }).__sentry__ === true;
@@ -981,7 +1088,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
             const spanCount = 1 + spans.length;
             this.recordDroppedEvent('before_send', 'span', spanCount);
           }
-          throw new SentryError(`${beforeSendLabel} returned \`null\`, will not send event.`, 'log');
+          throw _makeDoNotSendEventError(`${beforeSendLabel} returned \`null\`, will not send event.`);
         }
 
         const session = currentScope.getSession() || isolationScope.getSession();
@@ -1015,7 +1122,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
         return processedEvent;
       })
       .then(null, reason => {
-        if (reason instanceof SentryError) {
+        if (_isDoNotSendEventError(reason) || _isInternalError(reason)) {
           throw reason;
         }
 
@@ -1025,7 +1132,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
           },
           originalException: reason,
         });
-        throw new SentryError(
+        throw _makeInternalError(
           `Event processing pipeline threw an error, original event will not be sent. Details have been sent as a new event.\nReason: ${reason}`,
         );
       });
@@ -1131,16 +1238,16 @@ function _validateBeforeSendResult(
     return beforeSendResult.then(
       event => {
         if (!isPlainObject(event) && event !== null) {
-          throw new SentryError(invalidValueError);
+          throw _makeInternalError(invalidValueError);
         }
         return event;
       },
       e => {
-        throw new SentryError(`${beforeSendLabel} rejected with ${e}`);
+        throw _makeInternalError(`${beforeSendLabel} rejected with ${e}`);
       },
     );
   } else if (!isPlainObject(beforeSendResult) && beforeSendResult !== null) {
-    throw new SentryError(invalidValueError);
+    throw _makeInternalError(invalidValueError);
   }
   return beforeSendResult;
 }
@@ -1211,4 +1318,21 @@ function isErrorEvent(event: Event): event is ErrorEvent {
 
 function isTransactionEvent(event: Event): event is TransactionEvent {
   return event.type === 'transaction';
+}
+
+/** Extract trace information from scope */
+export function _getTraceInfoFromScope(
+  client: Client,
+  scope: Scope | undefined,
+): [dynamicSamplingContext: Partial<DynamicSamplingContext> | undefined, traceContext: TraceContext | undefined] {
+  if (!scope) {
+    return [undefined, undefined];
+  }
+
+  const span = _getSpanForScope(scope);
+  const traceContext = span ? spanToTraceContext(span) : getTraceContextFromScope(scope);
+  const dynamicSamplingContext = span
+    ? getDynamicSamplingContextFromSpan(span)
+    : getDynamicSamplingContextFromScope(client, scope);
+  return [dynamicSamplingContext, traceContext];
 }

@@ -3,7 +3,7 @@ import * as path from 'path';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 import type { AstroConfig, AstroIntegration } from 'astro';
 
-import { consoleSandbox, dropUndefinedKeys } from '@sentry/core';
+import { consoleSandbox } from '@sentry/core';
 import { buildClientSnippet, buildSdkInitFileImportSnippet, buildServerSnippet } from './snippets';
 import type { SentryOptions } from './types';
 
@@ -30,7 +30,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
         };
 
         const sourceMapsNeeded = sdkEnabled.client || sdkEnabled.server;
-        const uploadOptions = options.sourceMapsUploadOptions || {};
+        const { unstable_sentryVitePluginOptions, ...uploadOptions } = options.sourceMapsUploadOptions || {};
         const shouldUploadSourcemaps = (sourceMapsNeeded && uploadOptions?.enabled) ?? true;
 
         // We don't need to check for AUTH_TOKEN here, because the plugin will pick it up from the env
@@ -62,31 +62,32 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
                 sourcemap: computedSourceMapSettings.updatedSourceMapSetting,
               },
               plugins: [
-                sentryVitePlugin(
-                  dropUndefinedKeys({
-                    org: uploadOptions.org ?? env.SENTRY_ORG,
-                    project: uploadOptions.project ?? env.SENTRY_PROJECT,
-                    authToken: uploadOptions.authToken ?? env.SENTRY_AUTH_TOKEN,
-                    telemetry: uploadOptions.telemetry ?? true,
-                    sourcemaps: {
-                      assets: uploadOptions.assets ?? [getSourcemapsAssetsGlob(config)],
-                      filesToDeleteAfterUpload:
-                        uploadOptions?.filesToDeleteAfterUpload ?? updatedFilesToDeleteAfterUpload,
+                sentryVitePlugin({
+                  org: uploadOptions.org ?? env.SENTRY_ORG,
+                  project: uploadOptions.project ?? env.SENTRY_PROJECT,
+                  authToken: uploadOptions.authToken ?? env.SENTRY_AUTH_TOKEN,
+                  telemetry: uploadOptions.telemetry ?? true,
+                  _metaOptions: {
+                    telemetry: {
+                      metaFramework: 'astro',
                     },
-                    bundleSizeOptimizations: {
-                      ...options.bundleSizeOptimizations,
-                      // TODO: with a future version of the vite plugin (probably 2.22.0) this re-mapping is not needed anymore
-                      // ref: https://github.com/getsentry/sentry-javascript-bundler-plugins/pull/582
-                      excludePerformanceMonitoring: options.bundleSizeOptimizations?.excludeTracing,
-                    },
-                    _metaOptions: {
-                      telemetry: {
-                        metaFramework: 'astro',
-                      },
-                    },
-                    debug: options.debug ?? false,
-                  }),
-                ),
+                  },
+                  ...unstable_sentryVitePluginOptions,
+                  debug: options.debug ?? false,
+                  sourcemaps: {
+                    assets: uploadOptions.assets ?? [getSourcemapsAssetsGlob(config)],
+                    filesToDeleteAfterUpload:
+                      uploadOptions?.filesToDeleteAfterUpload ?? updatedFilesToDeleteAfterUpload,
+                    ...unstable_sentryVitePluginOptions?.sourcemaps,
+                  },
+                  bundleSizeOptimizations: {
+                    ...options.bundleSizeOptimizations,
+                    // TODO: with a future version of the vite plugin (probably 2.22.0) this re-mapping is not needed anymore
+                    // ref: https://github.com/getsentry/sentry-javascript-bundler-plugins/pull/582
+                    excludePerformanceMonitoring: options.bundleSizeOptimizations?.excludeTracing,
+                    ...unstable_sentryVitePluginOptions?.bundleSizeOptimizations,
+                  },
+                }),
               ],
             },
           });

@@ -1,22 +1,24 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { describe, vi, beforeEach, test, expect } from 'vitest';
 
 import { wrapCloudEventFunction } from '../../src/gcpfunction/cloud_events';
 import type { CloudEventFunction, CloudEventFunctionWithCallback } from '../../src/gcpfunction/general';
 
-const mockStartSpanManual = jest.fn((...spanArgs) => ({ ...spanArgs }));
-const mockFlush = jest.fn((...args) => Promise.resolve(args));
-const mockCaptureException = jest.fn();
+const mockStartSpanManual = vi.fn((...spanArgs) => ({ ...spanArgs }));
+const mockFlush = vi.fn((...args) => Promise.resolve(args));
+const mockCaptureException = vi.fn();
 
 const mockScope = {
-  setContext: jest.fn(),
+  setContext: vi.fn(),
 };
 
 const mockSpan = {
-  end: jest.fn(),
+  end: vi.fn(),
 };
 
-jest.mock('@sentry/node', () => {
-  const original = jest.requireActual('@sentry/node');
+vi.mock('@sentry/node', async () => {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-imports
+  const original = (await vi.importActual('@sentry/node')) as typeof import('@sentry/node');
   return {
     ...original,
     startSpanManual: (...args: unknown[]) => {
@@ -38,7 +40,7 @@ jest.mock('@sentry/node', () => {
 
 describe('wrapCloudEventFunction', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   function handleCloudEvent(fn: CloudEventFunctionWithCallback): Promise<any> {

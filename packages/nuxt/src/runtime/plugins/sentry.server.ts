@@ -1,14 +1,13 @@
 import {
   GLOBAL_OBJ,
   flush,
-  getClient,
   getDefaultIsolationScope,
   getIsolationScope,
   logger,
   vercelWaitUntil,
   withIsolationScope,
 } from '@sentry/core';
-import * as Sentry from '@sentry/node';
+import * as SentryNode from '@sentry/node';
 import { type EventHandler, H3Error } from 'h3';
 import { defineNitroPlugin } from 'nitropack/runtime';
 import type { NuxtRenderHTMLContext } from 'nuxt/app';
@@ -18,6 +17,17 @@ export default defineNitroPlugin(nitroApp => {
   nitroApp.h3App.handler = patchEventHandler(nitroApp.h3App.handler);
 
   nitroApp.hooks.hook('error', async (error, errorContext) => {
+    const sentryClient = SentryNode.getClient();
+    const sentryClientOptions = sentryClient?.getOptions();
+
+    if (
+      sentryClientOptions &&
+      'enableNitroErrorHandler' in sentryClientOptions &&
+      sentryClientOptions.enableNitroErrorHandler === false
+    ) {
+      return;
+    }
+
     // Do not handle 404 and 422
     if (error instanceof H3Error) {
       // Do not report if status code is 3xx or 4xx
@@ -32,12 +42,12 @@ export default defineNitroPlugin(nitroApp => {
     };
 
     if (path) {
-      Sentry.getCurrentScope().setTransactionName(`${method} ${path}`);
+      SentryNode.getCurrentScope().setTransactionName(`${method} ${path}`);
     }
 
     const structuredContext = extractErrorContext(errorContext);
 
-    Sentry.captureException(error, {
+    SentryNode.captureException(error, {
       captureContext: { contexts: { nuxt: structuredContext } },
       mechanism: { handled: false },
     });
@@ -52,7 +62,11 @@ export default defineNitroPlugin(nitroApp => {
 });
 
 async function flushIfServerless(): Promise<void> {
-  const isServerless = !!process.env.LAMBDA_TASK_ROOT || !!process.env.VERCEL || !!process.env.NETLIFY;
+  const isServerless =
+    !!process.env.FUNCTIONS_WORKER_RUNTIME || // Azure Functions
+    !!process.env.LAMBDA_TASK_ROOT || // AWS Lambda
+    !!process.env.VERCEL ||
+    !!process.env.NETLIFY;
 
   // @ts-expect-error This is not typed
   if (GLOBAL_OBJ[Symbol.for('@vercel/request-context')]) {
@@ -63,7 +77,7 @@ async function flushIfServerless(): Promise<void> {
 }
 
 async function flushWithTimeout(): Promise<void> {
-  const sentryClient = getClient();
+  const sentryClient = SentryNode.getClient();
   const isDebug = sentryClient ? sentryClient.getOptions().debug : false;
 
   try {

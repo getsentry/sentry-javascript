@@ -54,7 +54,9 @@ export {
   localVariablesIntegration,
   requestDataIntegration,
   functionToStringIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   inboundFiltersIntegration,
+  eventFiltersIntegration,
   linkedErrorsIntegration,
   setMeasurement,
   getActiveSpan,
@@ -110,6 +112,8 @@ export {
   zodErrorsIntegration,
   profiler,
   amqplibIntegration,
+  vercelAIIntegration,
+  logger,
 } from '@sentry/node';
 
 export {

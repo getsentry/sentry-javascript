@@ -135,10 +135,13 @@ export const countEnvelopes = async (
 
     page.on('request', requestHandler);
 
-    setTimeout(() => {
-      page.off('request', requestHandler);
-      resolve(reqCount);
-    }, options?.timeout || 1000);
+    setTimeout(
+      () => {
+        page.off('request', requestHandler);
+        resolve(reqCount);
+      },
+      options?.timeout || 1000,
+    );
   });
 
   if (options?.url) {
@@ -300,6 +303,14 @@ export function shouldSkipFeedbackTest(): boolean {
 export function shouldSkipFeatureFlagsTest(): boolean {
   const bundle = process.env.PW_BUNDLE as string | undefined;
   return bundle != null && !bundle.includes('esm') && !bundle.includes('cjs');
+}
+
+/**
+ * Returns true if the current bundle has debug logs.
+ */
+export function hasDebugLogs(): boolean {
+  const bundle = process.env.PW_BUNDLE;
+  return !bundle?.includes('min');
 }
 
 /**

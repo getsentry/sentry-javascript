@@ -1,5 +1,5 @@
 import moduleModule from 'module';
-import { DiagLogLevel, diag } from '@opentelemetry/api';
+import { DiagLogLevel, context, diag, propagation, trace } from '@opentelemetry/api';
 import { Resource } from '@opentelemetry/resources';
 import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
@@ -16,8 +16,6 @@ import { getOpenTelemetryInstrumentationToPreload } from '../integrations/tracin
 import { SentryContextManager } from '../otel/contextManager';
 import { isCjs } from '../utils/commonjs';
 import type { NodeClient } from './client';
-
-declare const __IMPORT_META_URL_REPLACEMENT__: string;
 
 // About 277h - this must fit into new Array(len)!
 const MAX_MAX_SPAN_WAIT_DURATION = 1_000_000;
@@ -45,15 +43,11 @@ export function maybeInitializeEsmLoader(): void {
 
   // Register hook was added in v20.6.0 and v18.19.0
   if (nodeMajor >= 22 || (nodeMajor === 20 && nodeMinor >= 6) || (nodeMajor === 18 && nodeMinor >= 19)) {
-    // We need to work around using import.meta.url directly because jest complains about it.
-    const importMetaUrl =
-      typeof __IMPORT_META_URL_REPLACEMENT__ !== 'undefined' ? __IMPORT_META_URL_REPLACEMENT__ : undefined;
-
-    if (!GLOBAL_OBJ._sentryEsmLoaderHookRegistered && importMetaUrl) {
+    if (!GLOBAL_OBJ._sentryEsmLoaderHookRegistered) {
       try {
         const { addHookMessagePort } = createAddHookMessageChannel();
         // @ts-expect-error register is available in these versions
-        moduleModule.register('import-in-the-middle/hook.mjs', importMetaUrl, {
+        moduleModule.register('import-in-the-middle/hook.mjs', import.meta.url, {
           data: { addHookMessagePort, include: [] },
           transferList: [addHookMessagePort],
         });
@@ -133,11 +127,10 @@ export function setupOtel(client: NodeClient, options: AdditionalOpenTelemetryOp
     ],
   });
 
-  // Initialize the provider
-  provider.register({
-    propagator: new SentryPropagator(),
-    contextManager: new SentryContextManager(),
-  });
+  // Register as globals
+  trace.setGlobalTracerProvider(provider);
+  propagation.setGlobalPropagator(new SentryPropagator());
+  context.setGlobalContextManager(new SentryContextManager());
 
   return provider;
 }

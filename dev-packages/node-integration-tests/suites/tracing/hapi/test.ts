@@ -1,3 +1,4 @@
+import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
 describe('hapi auto-instrumentation', () => {
@@ -35,27 +36,27 @@ describe('hapi auto-instrumentation', () => {
     },
   };
 
-  test('CJS - should auto-instrument `@hapi/hapi` package.', done => {
-    createRunner(__dirname, 'scenario.js')
-      .expect({ transaction: EXPECTED_TRANSACTION })
-      .start(done)
-      .makeRequest('get', '/');
+  test('CJS - should auto-instrument `@hapi/hapi` package.', async () => {
+    const runner = createRunner(__dirname, 'scenario.js').expect({ transaction: EXPECTED_TRANSACTION }).start();
+    runner.makeRequest('get', '/');
+    await runner.completed();
   });
 
-  test('CJS - should handle returned plain errors in routes.', done => {
-    createRunner(__dirname, 'scenario.js')
+  test('CJS - should handle returned plain errors in routes.', async () => {
+    const runner = createRunner(__dirname, 'scenario.js')
       .expect({
         transaction: {
           transaction: 'GET /error',
         },
       })
       .expect({ event: EXPECTED_ERROR_EVENT })
-      .start(done)
-      .makeRequest('get', '/error', { expectError: true });
+      .start();
+    runner.makeRequest('get', '/error', { expectError: true });
+    await runner.completed();
   });
 
-  test('CJS - should assign parameterized transactionName to error.', done => {
-    createRunner(__dirname, 'scenario.js')
+  test('CJS - should assign parameterized transactionName to error.', async () => {
+    const runner = createRunner(__dirname, 'scenario.js')
       .expect({
         event: {
           ...EXPECTED_ERROR_EVENT,
@@ -63,31 +64,34 @@ describe('hapi auto-instrumentation', () => {
         },
       })
       .ignore('transaction')
-      .start(done)
-      .makeRequest('get', '/error/123', { expectError: true });
+      .start();
+    runner.makeRequest('get', '/error/123', { expectError: true });
+    await runner.completed();
   });
 
-  test('CJS - should handle returned Boom errors in routes.', done => {
-    createRunner(__dirname, 'scenario.js')
+  test('CJS - should handle returned Boom errors in routes.', async () => {
+    const runner = createRunner(__dirname, 'scenario.js')
       .expect({
         transaction: {
           transaction: 'GET /boom-error',
         },
       })
       .expect({ event: EXPECTED_ERROR_EVENT })
-      .start(done)
-      .makeRequest('get', '/boom-error', { expectError: true });
+      .start();
+    runner.makeRequest('get', '/boom-error', { expectError: true });
+    await runner.completed();
   });
 
-  test('CJS - should handle promise rejections in routes.', done => {
-    createRunner(__dirname, 'scenario.js')
+  test('CJS - should handle promise rejections in routes.', async () => {
+    const runner = createRunner(__dirname, 'scenario.js')
       .expect({
         transaction: {
           transaction: 'GET /promise-error',
         },
       })
       .expect({ event: EXPECTED_ERROR_EVENT })
-      .start(done)
-      .makeRequest('get', '/promise-error', { expectError: true });
+      .start();
+    runner.makeRequest('get', '/promise-error', { expectError: true });
+    await runner.completed();
   });
 });

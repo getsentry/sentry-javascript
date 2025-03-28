@@ -1,3 +1,4 @@
+import { describe, expect, it, vi } from 'vitest';
 import { vercelWaitUntil } from '../../src/utils-hoist/vercelWaitUntil';
 import { GLOBAL_OBJ } from '../../src/utils-hoist/worldwide';
 
@@ -27,7 +28,7 @@ describe('vercelWaitUntil', () => {
   });
 
   it('should call waitUntil method if it is defined', () => {
-    const waitUntilMock = jest.fn();
+    const waitUntilMock = vi.fn();
     // @ts-expect-error - Not typed
     GLOBAL_OBJ[Symbol.for('@vercel/request-context')] = {
       get: () => ({ waitUntil: waitUntilMock }),

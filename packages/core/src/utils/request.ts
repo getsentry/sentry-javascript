@@ -1,6 +1,5 @@
 import type { PolymorphicRequest, RequestEventData } from '../types-hoist';
 import type { WebFetchHeaders, WebFetchRequest } from '../types-hoist/webfetchapi';
-import { dropUndefinedKeys } from '../utils-hoist/object';
 
 /**
  * Transforms a `Headers` object that implements the `Web Fetch API` (https://developer.mozilla.org/en-US/docs/Web/API/Headers) into a simple key-value dict.
@@ -91,21 +90,25 @@ export function httpRequestToRequestData(request: {
   // This is non-standard, but may be set on e.g. Next.js or Express requests
   const cookies = (request as PolymorphicRequest).cookies;
 
-  return dropUndefinedKeys({
+  return {
     url: absoluteUrl,
     method: request.method,
     query_string: extractQueryParamsFromUrl(url),
     headers: headersToDict(headers),
     cookies,
     data,
-  });
+  };
 }
 
 function getAbsoluteUrl({
   url,
   protocol,
   host,
-}: { url?: string; protocol: string; host?: string }): string | undefined {
+}: {
+  url?: string;
+  protocol: string;
+  host?: string;
+}): string | undefined {
   if (url?.startsWith('http')) {
     return url;
   }

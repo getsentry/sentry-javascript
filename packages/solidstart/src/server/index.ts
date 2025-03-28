@@ -50,7 +50,9 @@ export {
   graphqlIntegration,
   hapiIntegration,
   httpIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   inboundFiltersIntegration,
+  eventFiltersIntegration,
   initOpenTelemetry,
   isInitialized,
   knexIntegration,
@@ -113,6 +115,7 @@ export {
   withMonitor,
   withScope,
   zodErrorsIntegration,
+  logger,
 } from '@sentry/node';
 
 // We can still leave this for the carrier init and type exports

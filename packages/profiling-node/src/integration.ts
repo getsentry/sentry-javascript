@@ -1,6 +1,5 @@
 /* eslint-disable max-lines */
-
-import { CpuProfilerBindings } from '@sentry-internal/node-cpu-profiler';
+import { CpuProfilerBindings, ProfileFormat, type RawThreadCpuProfile } from '@sentry-internal/node-cpu-profiler';
 import type { Event, IntegrationFn, Profile, ProfileChunk, ProfilingIntegration, Span } from '@sentry/core';
 import {
   LRUMap,
@@ -14,12 +13,10 @@ import {
   spanToJSON,
   uuid4,
 } from '@sentry/core';
-import type { NodeClient } from '@sentry/node';
+import type { NodeClient, NodeOptions } from '@sentry/node';
 import { DEBUG_BUILD } from './debug-build';
 import { NODE_MAJOR, NODE_VERSION } from './nodeVersion';
 import { MAX_PROFILE_DURATION_MS, maybeProfileSpan, stopSpanProfile } from './spanProfileUtils';
-import type { RawThreadCpuProfile } from './types';
-import { ProfileFormat } from './types';
 import {
   PROFILER_THREAD_ID_STRING,
   PROFILER_THREAD_NAME,
@@ -30,7 +27,7 @@ import {
   makeProfileChunkEnvelope,
 } from './utils';
 
-const CHUNK_INTERVAL_MS = 5000;
+const CHUNK_INTERVAL_MS = 1000 * 60;
 const PROFILE_MAP = new LRUMap<string, RawThreadCpuProfile>(50);
 const PROFILE_TIMEOUTS: Record<string, NodeJS.Timeout> = {};
 
@@ -44,120 +41,6 @@ function takeFromProfileQueue(profile_id: string): RawThreadCpuProfile | undefin
   return profile;
 }
 
-/**
- * Instruments the client to automatically invoke the profiler on span start and stop events.
- * @param client
- */
-function setupAutomatedSpanProfiling(client: NodeClient): void {
-  const spanToProfileIdMap = new WeakMap<Span, string>();
-
-  client.on('spanStart', span => {
-    if (span !== getRootSpan(span)) {
-      return;
-    }
-
-    const profile_id = maybeProfileSpan(client, span);
-
-    if (profile_id) {
-      const options = client.getOptions();
-      // Not intended for external use, hence missing types, but we want to profile a couple of things at Sentry that
-      // currently exceed the default timeout set by the SDKs.
-      const maxProfileDurationMs = options._experiments?.maxProfileDurationMs || MAX_PROFILE_DURATION_MS;
-
-      if (PROFILE_TIMEOUTS[profile_id]) {
-        global.clearTimeout(PROFILE_TIMEOUTS[profile_id]);
-        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-        delete PROFILE_TIMEOUTS[profile_id];
-      }
-
-      // Enqueue a timeout to prevent profiles from running over max duration.
-      const timeout = global.setTimeout(() => {
-        DEBUG_BUILD &&
-          logger.log('[Profiling] max profile duration elapsed, stopping profiling for:', spanToJSON(span).description);
-
-        const profile = stopSpanProfile(span, profile_id);
-        if (profile) {
-          addToProfileQueue(profile_id, profile);
-        }
-      }, maxProfileDurationMs);
-
-      // Unref timeout so it doesn't keep the process alive.
-      timeout.unref();
-
-      getIsolationScope().setContext('profile', { profile_id });
-      spanToProfileIdMap.set(span, profile_id);
-    }
-  });
-
-  client.on('spanEnd', span => {
-    const profile_id = spanToProfileIdMap.get(span);
-
-    if (profile_id) {
-      if (PROFILE_TIMEOUTS[profile_id]) {
-        global.clearTimeout(PROFILE_TIMEOUTS[profile_id]);
-        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-        delete PROFILE_TIMEOUTS[profile_id];
-      }
-      const profile = stopSpanProfile(span, profile_id);
-
-      if (profile) {
-        addToProfileQueue(profile_id, profile);
-      }
-    }
-  });
-
-  client.on('beforeEnvelope', (envelope): void => {
-    // if not profiles are in queue, there is nothing to add to the envelope.
-    if (!PROFILE_MAP.size) {
-      return;
-    }
-
-    const profiledTransactionEvents = findProfiledTransactionsFromEnvelope(envelope);
-    if (!profiledTransactionEvents.length) {
-      return;
-    }
-
-    const profilesToAddToEnvelope: Profile[] = [];
-
-    for (const profiledTransaction of profiledTransactionEvents) {
-      const profileContext = profiledTransaction.contexts?.profile;
-      const profile_id = profileContext?.profile_id;
-
-      if (!profile_id) {
-        throw new TypeError('[Profiling] cannot find profile for a transaction without a profile context');
-      }
-
-      // Remove the profile from the transaction context before sending, relay will take care of the rest.
-      if (profileContext) {
-        delete profiledTransaction.contexts?.profile;
-      }
-
-      const cpuProfile = takeFromProfileQueue(profile_id);
-      if (!cpuProfile) {
-        DEBUG_BUILD && logger.log(`[Profiling] Could not retrieve profile for transaction: ${profile_id}`);
-        continue;
-      }
-
-      const profile = createProfilingEvent(client, cpuProfile, profiledTransaction);
-      if (!profile) return;
-
-      profilesToAddToEnvelope.push(profile);
-
-      // @ts-expect-error profile does not inherit from Event
-      client.emit('preprocessEvent', profile, {
-        event_id: profiledTransaction.event_id,
-      });
-
-      // @ts-expect-error profile does not inherit from Event
-      client.emit('postprocessEvent', profile, {
-        event_id: profiledTransaction.event_id,
-      });
-    }
-
-    addProfilesToEnvelope(envelope, profilesToAddToEnvelope);
-  });
-}
-
 interface ChunkData {
   id: string;
   timer: NodeJS.Timeout | undefined;
@@ -168,7 +51,11 @@ class ContinuousProfiler {
   private _profilerId: string | undefined;
   private _client: NodeClient | undefined = undefined;
   private _chunkData: ChunkData | undefined = undefined;
-
+  private _mode: 'legacy' | 'current' | undefined = undefined;
+  private _legacyProfilerMode: 'span' | 'continuous' | undefined = undefined;
+  private _profileLifecycle: 'manual' | 'trace' | undefined = undefined;
+  private _sampled: boolean | undefined = undefined;
+  private _sessionSamplingRate: number | undefined = undefined;
   /**
    * Called when the profiler is attached to the client (continuous mode is enabled). If of the profiler
    * methods called before the profiler is initialized will result in a noop action with debug logs.
@@ -176,6 +63,67 @@ class ContinuousProfiler {
    */
   public initialize(client: NodeClient): void {
     this._client = client;
+    const options = client.getOptions();
+
+    this._mode = getProfilingMode(options);
+    this._sessionSamplingRate = Math.random();
+    this._sampled = this._sessionSamplingRate < (options.profileSessionSampleRate ?? 0);
+    this._profileLifecycle = options.profileLifecycle ?? 'manual';
+
+    switch (this._mode) {
+      case 'legacy': {
+        this._legacyProfilerMode =
+          'profilesSampleRate' in options || 'profilesSampler' in options ? 'span' : 'continuous';
+
+        DEBUG_BUILD && logger.log(`[Profiling] Profiling mode is ${this._legacyProfilerMode}.`);
+
+        switch (this._legacyProfilerMode) {
+          case 'span': {
+            this._setupAutomaticSpanProfiling();
+            break;
+          }
+          case 'continuous': {
+            // Continous mode requires manual calls to profiler.start() and profiler.stop()
+            break;
+          }
+          default: {
+            DEBUG_BUILD &&
+              logger.warn(
+                `[Profiling] Unknown profiler mode: ${this._legacyProfilerMode}, profiler was not initialized`,
+              );
+            break;
+          }
+        }
+        break;
+      }
+
+      case 'current': {
+        this._setupSpanChunkInstrumentation();
+
+        DEBUG_BUILD && logger.log(`[Profiling] Profiling mode is ${this._profileLifecycle}.`);
+
+        switch (this._profileLifecycle) {
+          case 'trace': {
+            this._startTraceLifecycleProfiling();
+            break;
+          }
+          case 'manual': {
+            // Manual mode requires manual calls to profiler.startProfiler() and profiler.stopProfiler()
+            break;
+          }
+          default: {
+            DEBUG_BUILD &&
+              logger.warn(`[Profiling] Unknown profiler mode: ${this._profileLifecycle}, profiler was not initialized`);
+            break;
+          }
+        }
+        break;
+      }
+      default: {
+        DEBUG_BUILD && logger.warn(`[Profiling] Unknown profiler mode: ${this._mode}, profiler was not initialized`);
+        break;
+      }
+    }
 
     // Attaches a listener to beforeSend which will add the threadId data to the event being sent.
     // This adds a constant overhead to all events being sent which could be improved to only attach
@@ -188,17 +136,33 @@ class ContinuousProfiler {
    * @returns void
    */
   public start(): void {
+    if (this._mode === 'current') {
+      this._startProfiler();
+      return;
+    }
+
     if (!this._client) {
       DEBUG_BUILD && logger.log('[Profiling] Failed to start, sentry client was never attached to the profiler.');
       return;
     }
 
+    if (this._mode !== 'legacy') {
+      DEBUG_BUILD && logger.log('[Profiling] Continuous profiling is not supported in the current mode.');
+      return;
+    }
+
+    if (this._legacyProfilerMode === 'span') {
+      DEBUG_BUILD && logger.log('[Profiling] Calls to profiler.start() are not supported in span profiling mode.');
+      return;
+    }
+
     // Flush any existing chunks before starting a new one.
-    this._chunkStop();
+
+    this._stopChunkProfiling();
 
     // Restart the profiler session
     this._setupSpanChunkInstrumentation();
-    this._chunkStart();
+    this._restartChunkProfiling();
   }
 
   /**
@@ -206,18 +170,238 @@ class ContinuousProfiler {
    * @returns void
    */
   public stop(): void {
+    if (this._mode === 'current') {
+      this._stopProfiler();
+      return;
+    }
+
     if (!this._client) {
       DEBUG_BUILD && logger.log('[Profiling] Failed to stop, sentry client was never attached to the profiler.');
       return;
     }
-    this._chunkStop();
+
+    if (this._mode !== 'legacy') {
+      DEBUG_BUILD && logger.log('[Profiling] Continuous profiling is not supported in the current mode.');
+      return;
+    }
+
+    if (this._legacyProfilerMode === 'span') {
+      DEBUG_BUILD && logger.log('[Profiling] Calls to profiler.stop() are not supported in span profiling mode.');
+      return;
+    }
+
+    this._stopChunkProfiling();
     this._teardownSpanChunkInstrumentation();
+  }
+
+  private _startProfiler(): void {
+    if (this._mode !== 'current') {
+      DEBUG_BUILD && logger.log('[Profiling] Continuous profiling is not supported in the current mode.');
+      return;
+    }
+
+    if (this._chunkData !== undefined) {
+      DEBUG_BUILD && logger.log('[Profiling] Profile session already running, no-op.');
+      return;
+    }
+
+    if (this._mode === 'current') {
+      if (!this._sampled) {
+        DEBUG_BUILD && logger.log('[Profiling] Profile session not sampled, no-op.');
+        return;
+      }
+    }
+
+    if (this._profileLifecycle === 'trace') {
+      DEBUG_BUILD &&
+        logger.log(
+          '[Profiling] You are using the trace profile lifecycle, manual calls to profiler.startProfiler() and profiler.stopProfiler() will be ignored.',
+        );
+      return;
+    }
+
+    this._startChunkProfiling();
+  }
+
+  private _stopProfiler(): void {
+    if (this._mode !== 'current') {
+      DEBUG_BUILD && logger.log('[Profiling] Continuous profiling is not supported in the current mode.');
+      return;
+    }
+
+    if (this._profileLifecycle === 'trace') {
+      DEBUG_BUILD &&
+        logger.log(
+          '[Profiling] You are using the trace profile lifecycle, manual calls to profiler.startProfiler() and profiler.stopProfiler() will be ignored.',
+        );
+      return;
+    }
+
+    if (!this._chunkData) {
+      DEBUG_BUILD && logger.log('[Profiling] No profile session running, no-op.');
+      return;
+    }
+
+    this._stopChunkProfiling();
+  }
+
+  /**
+   * Starts trace lifecycle profiling. Profiling will remain active as long as there is an active span.
+   */
+  private _startTraceLifecycleProfiling(): void {
+    if (!this._client) {
+      DEBUG_BUILD &&
+        logger.log(
+          '[Profiling] Failed to start trace lifecycle profiling, sentry client was never attached to the profiler.',
+        );
+      return;
+    }
+
+    let activeSpanCounter = 0;
+    this._client.on('spanStart', _span => {
+      if (activeSpanCounter === 0) {
+        this._startChunkProfiling();
+      }
+      activeSpanCounter++;
+    });
+
+    this._client.on('spanEnd', _span => {
+      if (activeSpanCounter === 1) {
+        this._stopChunkProfiling();
+      }
+      activeSpanCounter--;
+    });
+  }
+
+  private _setupAutomaticSpanProfiling(): void {
+    if (!this._client) {
+      DEBUG_BUILD &&
+        logger.log(
+          '[Profiling] Failed to setup automatic span profiling, sentry client was never attached to the profiler.',
+        );
+      return;
+    }
+
+    const spanToProfileIdMap = new WeakMap<Span, string>();
+
+    this._client.on('spanStart', span => {
+      if (span !== getRootSpan(span)) {
+        return;
+      }
+
+      const profile_id = maybeProfileSpan(this._client, span);
+
+      if (profile_id) {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        const options = this._client!.getOptions();
+        // Not intended for external use, hence missing types, but we want to profile a couple of things at Sentry that
+        // currently exceed the default timeout set by the SDKs.
+        const maxProfileDurationMs = options._experiments?.maxProfileDurationMs || MAX_PROFILE_DURATION_MS;
+
+        if (PROFILE_TIMEOUTS[profile_id]) {
+          global.clearTimeout(PROFILE_TIMEOUTS[profile_id]);
+          // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+          delete PROFILE_TIMEOUTS[profile_id];
+        }
+
+        // Enqueue a timeout to prevent profiles from running over max duration.
+        const timeout = global.setTimeout(() => {
+          DEBUG_BUILD &&
+            logger.log(
+              '[Profiling] max profile duration elapsed, stopping profiling for:',
+              spanToJSON(span).description,
+            );
+
+          const profile = stopSpanProfile(span, profile_id);
+          if (profile) {
+            addToProfileQueue(profile_id, profile);
+          }
+        }, maxProfileDurationMs);
+
+        // Unref timeout so it doesn't keep the process alive.
+        timeout.unref();
+
+        getIsolationScope().setContext('profile', { profile_id });
+        spanToProfileIdMap.set(span, profile_id);
+      }
+    });
+
+    this._client.on('spanEnd', span => {
+      const profile_id = spanToProfileIdMap.get(span);
+
+      if (profile_id) {
+        if (PROFILE_TIMEOUTS[profile_id]) {
+          global.clearTimeout(PROFILE_TIMEOUTS[profile_id]);
+          // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+          delete PROFILE_TIMEOUTS[profile_id];
+        }
+        const profile = stopSpanProfile(span, profile_id);
+
+        if (profile) {
+          addToProfileQueue(profile_id, profile);
+        }
+      }
+    });
+
+    this._client.on('beforeEnvelope', (envelope): void => {
+      // if not profiles are in queue, there is nothing to add to the envelope.
+      if (!PROFILE_MAP.size) {
+        return;
+      }
+
+      const profiledTransactionEvents = findProfiledTransactionsFromEnvelope(envelope);
+      if (!profiledTransactionEvents.length) {
+        return;
+      }
+
+      const profilesToAddToEnvelope: Profile[] = [];
+
+      for (const profiledTransaction of profiledTransactionEvents) {
+        const profileContext = profiledTransaction.contexts?.profile;
+        const profile_id = profileContext?.profile_id;
+
+        if (!profile_id) {
+          throw new TypeError('[Profiling] cannot find profile for a transaction without a profile context');
+        }
+
+        // Remove the profile from the transaction context before sending, relay will take care of the rest.
+        if (profileContext) {
+          delete profiledTransaction.contexts?.profile;
+        }
+
+        const cpuProfile = takeFromProfileQueue(profile_id);
+        if (!cpuProfile) {
+          DEBUG_BUILD && logger.log(`[Profiling] Could not retrieve profile for transaction: ${profile_id}`);
+          continue;
+        }
+
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        const profile = createProfilingEvent(this._client!, cpuProfile, profiledTransaction);
+        if (!profile) return;
+
+        profilesToAddToEnvelope.push(profile);
+
+        // @ts-expect-error profile does not inherit from Event
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        this._client!.emit('preprocessEvent', profile, {
+          event_id: profiledTransaction.event_id,
+        });
+
+        // @ts-expect-error profile does not inherit from Event
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        this._client!.emit('postprocessEvent', profile, {
+          event_id: profiledTransaction.event_id,
+        });
+      }
+
+      addProfilesToEnvelope(envelope, profilesToAddToEnvelope);
+    });
   }
 
   /**
    * Stop profiler and initializes profiling of the next chunk
    */
-  private _chunkStart(): void {
+  private _restartChunkProfiling(): void {
     if (!this._client) {
       // The client is not attached to the profiler if the user has not enabled continuous profiling.
       // In this case, calling start() and stop() is a noop action.The reason this exists is because
@@ -225,12 +409,13 @@ class ContinuousProfiler {
       DEBUG_BUILD && logger.log('[Profiling] Profiler was never attached to the client.');
       return;
     }
+
     if (this._chunkData) {
       DEBUG_BUILD &&
         logger.log(
           `[Profiling] Chunk with chunk_id ${this._chunkData.id} is still running, current chunk will be stopped a new chunk will be started.`,
         );
-      this._chunkStop();
+      this._stopChunkProfiling();
     }
 
     this._startChunkProfiling();
@@ -239,32 +424,44 @@ class ContinuousProfiler {
   /**
    * Stops profiling of the current chunks and flushes the profile to Sentry
    */
-  private _chunkStop(): void {
+  private _stopChunkProfiling(): void {
+    if (!this._chunkData) {
+      DEBUG_BUILD && logger.log('[Profiling] No chunk data found, no-op.');
+      return;
+    }
+
     if (this._chunkData?.timer) {
       global.clearTimeout(this._chunkData.timer);
       this._chunkData.timer = undefined;
       DEBUG_BUILD && logger.log(`[Profiling] Stopping profiling chunk: ${this._chunkData.id}`);
     }
+
     if (!this._client) {
       DEBUG_BUILD &&
         logger.log('[Profiling] Failed to collect profile, sentry client was never attached to the profiler.');
+      this._resetChunkData();
       return;
     }
+
     if (!this._chunkData?.id) {
       DEBUG_BUILD &&
         logger.log(`[Profiling] Failed to collect profile for: ${this._chunkData?.id}, the chunk_id is missing.`);
+      this._resetChunkData();
       return;
     }
 
     const profile = CpuProfilerBindings.stopProfiling(this._chunkData.id, ProfileFormat.CHUNK);
 
     if (!profile) {
-      DEBUG_BUILD && logger.log(`[Profiling] _chunkiledStartTraceID to collect profile for: ${this._chunkData.id}`);
+      DEBUG_BUILD && logger.log(`[Profiling] Failed to collect profile for: ${this._chunkData.id}`);
+      this._resetChunkData();
       return;
     }
+
     if (!this._profilerId) {
       DEBUG_BUILD &&
         logger.log('[Profiling] Profile chunk does not contain a valid profiler_id, this is a bug in the SDK');
+      this._resetChunkData();
       return;
     }
     if (profile) {
@@ -319,7 +516,7 @@ class ContinuousProfiler {
     const metadata = this._client.getSdkMetadata();
     const tunnel = this._client.getOptions().tunnel;
 
-    const envelope = makeProfileChunkEnvelope(chunk, metadata?.sdk, tunnel, dsn);
+    const envelope = makeProfileChunkEnvelope('node', chunk, metadata?.sdk, tunnel, dsn);
     transport.send(envelope).then(null, reason => {
       DEBUG_BUILD && logger.error('Error while sending profile chunk envelope:', reason);
     });
@@ -330,6 +527,11 @@ class ContinuousProfiler {
    * @param chunk
    */
   private _startChunkProfiling(): void {
+    if (this._chunkData) {
+      DEBUG_BUILD && logger.log('[Profiling] Chunk is already running, no-op.');
+      return;
+    }
+
     const traceId =
       getCurrentScope().getPropagationContext().traceId || getIsolationScope().getPropagationContext().traceId;
     const chunk = this._initializeChunk(traceId);
@@ -339,9 +541,9 @@ class ContinuousProfiler {
 
     chunk.timer = global.setTimeout(() => {
       DEBUG_BUILD && logger.log(`[Profiling] Stopping profiling chunk: ${chunk.id}`);
-      this._chunkStop();
+      this._stopChunkProfiling();
       DEBUG_BUILD && logger.log('[Profiling] Starting new profiling chunk.');
-      setImmediate(this._chunkStart.bind(this));
+      setImmediate(this._restartChunkProfiling.bind(this));
     }, CHUNK_INTERVAL_MS);
 
     // Unref timeout so it doesn't keep the process alive.
@@ -447,35 +649,30 @@ export const _nodeProfilingIntegration = ((): ProfilingIntegration<NodeClient> =
     _profiler: new ContinuousProfiler(),
     setup(client: NodeClient) {
       DEBUG_BUILD && logger.log('[Profiling] Profiling integration setup.');
-      const options = client.getOptions();
-
-      const mode =
-        (options.profilesSampleRate === undefined ||
-          options.profilesSampleRate === null ||
-          options.profilesSampleRate === 0) &&
-        !options.profilesSampler
-          ? 'continuous'
-          : 'span';
-      switch (mode) {
-        case 'continuous': {
-          DEBUG_BUILD && logger.log('[Profiling] Continuous profiler mode enabled.');
-          this._profiler.initialize(client);
-          break;
-        }
-        // Default to span profiling when no mode profiler mode is set
-        case 'span':
-        case undefined: {
-          DEBUG_BUILD && logger.log('[Profiling] Span profiler mode enabled.');
-          setupAutomatedSpanProfiling(client);
-          break;
-        }
-        default: {
-          DEBUG_BUILD && logger.warn(`[Profiling] Unknown profiler mode: ${mode}, profiler was not initialized`);
-        }
-      }
+      this._profiler.initialize(client);
+      return;
     },
   };
 }) satisfies IntegrationFn;
+
+/**
+ * Determines the profiling mode based on the options.
+ * @param options
+ * @returns 'legacy' if the options are using the legacy profiling API, 'current' if the options are using the current profiling API
+ */
+function getProfilingMode(options: NodeOptions): 'legacy' | 'current' {
+  // Legacy mode takes precedence over current mode
+  if ('profilesSampleRate' in options || 'profilesSampler' in options) {
+    return 'legacy';
+  }
+
+  if ('profileSessionSampleRate' in options || 'profileLifecycle' in options) {
+    return 'current';
+  }
+
+  // If neither are set, we are in the legacy continuous profiling mode
+  return 'legacy';
+}
 
 /**
  * We need this integration in order to send data to Sentry. We hook into the event processor

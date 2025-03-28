@@ -1,9 +1,9 @@
-import { CpuProfilerBindings } from '@sentry-internal/node-cpu-profiler';
+/* eslint-disable deprecation/deprecation */
+import { CpuProfilerBindings, type RawThreadCpuProfile } from '@sentry-internal/node-cpu-profiler';
 import type { CustomSamplingContext, Span } from '@sentry/core';
 import { logger, spanIsSampled, spanToJSON, uuid4 } from '@sentry/core';
 import type { NodeClient } from '@sentry/node';
 import { DEBUG_BUILD } from './debug-build';
-import type { RawThreadCpuProfile } from './types';
 import { isValidSampleRate } from './utils';
 
 export const MAX_PROFILE_DURATION_MS = 30 * 1000;

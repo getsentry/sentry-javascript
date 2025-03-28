@@ -18,6 +18,10 @@ export default defineNuxtModule<ModuleOptions>({
   },
   defaults: {},
   setup(moduleOptionsParam, nuxt) {
+    if (moduleOptionsParam?.enabled === false) {
+      return;
+    }
+
     const moduleOptions = {
       ...moduleOptionsParam,
       autoInjectServerSentry: moduleOptionsParam.autoInjectServerSentry,
@@ -58,18 +62,6 @@ export default defineNuxtModule<ModuleOptions>({
     const serverConfigFile = findDefaultSdkInitFile('server');
 
     if (serverConfigFile) {
-      if (moduleOptions.autoInjectServerSentry !== 'experimental_dynamic-import') {
-        addPluginTemplate({
-          mode: 'server',
-          filename: 'sentry-server-config.mjs',
-          getContents: () =>
-            // This won't actually import the server config in the build output (so no double init call). The import here is only needed for correctly resolving the Sentry release injection.
-            `import "${buildDirResolver.resolve(`/${serverConfigFile}`)}";
-            import { defineNuxtPlugin } from "#imports";
-            export default defineNuxtPlugin(() => {});`,
-        });
-      }
-
       addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/sentry.server'));
     }
 
@@ -109,7 +101,7 @@ export default defineNuxtModule<ModuleOptions>({
         });
 
         if (moduleOptions.autoInjectServerSentry !== 'experimental_dynamic-import') {
-          addServerConfigToBuild(moduleOptions, nuxt, nitro, serverConfigFile);
+          addServerConfigToBuild(moduleOptions, nitro, serverConfigFile);
 
           if (moduleOptions.debug) {
             const serverDirResolver = createResolver(nitro.options.output.serverDir);

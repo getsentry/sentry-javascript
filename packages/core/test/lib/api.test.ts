@@ -1,3 +1,4 @@
+import { describe, expect, it, test } from 'vitest';
 import { getEnvelopeEndpointWithUrlEncodedAuth, getReportDialogEndpoint } from '../../src/api';
 import type { DsnComponents, SdkInfo } from '../../src/types-hoist';
 import { makeDsn } from '../../src/utils-hoist/dsn';

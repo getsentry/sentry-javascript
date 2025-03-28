@@ -5,7 +5,7 @@
   import Component2 from "./Component2.svelte";
   import Component3 from "./Component3.svelte";
 
-  Sentry.trackComponent({componentName: 'components/+page'})
+  Sentry.trackComponent({componentName: 'components/+page', trackUpdates: true})
 
 </script>
 <h2>Demonstrating Component Tracking</h2>

@@ -2,11 +2,13 @@ import { getClient, withScope } from './currentScopes';
 import { captureException } from './exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from './semanticAttributes';
 import { startSpanManual } from './tracing';
+import { addNonEnumerableProperty } from './utils-hoist';
 import { normalize } from './utils-hoist/normalize';
 
 interface SentryTrpcMiddlewareOptions {
   /** Whether to include procedure inputs in reported events. Defaults to `false`. */
   attachRpcInput?: boolean;
+  forceTransaction?: boolean;
 }
 
 export interface SentryTrpcMiddlewareArguments<T> {
@@ -51,6 +53,13 @@ export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
       procedure_type: type,
     };
 
+    addNonEnumerableProperty(
+      trpcContext,
+      '__sentry_override_normalization_depth__',
+      1 + // 1 for context.input + the normal normalization depth
+        (clientOptions?.normalizeDepth ?? 5), // 5 is a sane depth
+    );
+
     if (options.attachRpcInput !== undefined ? options.attachRpcInput : clientOptions?.sendDefaultPii) {
       if (rawInput !== undefined) {
         trpcContext.input = normalize(rawInput);
@@ -77,6 +86,7 @@ export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.rpc.trpc',
           },
+          forceTransaction: !!options.forceTransaction,
         },
         async span => {
           try {

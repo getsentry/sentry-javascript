@@ -9,7 +9,13 @@ import type {
   Scope,
   SeverityLevel,
 } from '@sentry/core';
-import { Client, applySdkMetadata, getSDKSource } from '@sentry/core';
+import {
+  Client,
+  addAutoIpAddressToSession,
+  addAutoIpAddressToUser,
+  applySdkMetadata,
+  getSDKSource,
+} from '@sentry/core';
 import { eventFromException, eventFromMessage } from './eventbuilder';
 import { WINDOW } from './helpers';
 import type { BrowserTransportOptions } from './transports/types';
@@ -84,29 +90,8 @@ export class BrowserClient extends Client<BrowserClientOptions> {
     }
 
     if (this._options.sendDefaultPii) {
-      this.on('postprocessEvent', event => {
-        if (event.user?.ip_address === undefined) {
-          event.user = {
-            ...event.user,
-            ip_address: '{{auto}}',
-          };
-        }
-      });
-
-      this.on('beforeSendSession', session => {
-        if ('aggregates' in session) {
-          if (session.attrs?.['ip_address'] === undefined) {
-            session.attrs = {
-              ...session.attrs,
-              ip_address: '{{auto}}',
-            };
-          }
-        } else {
-          if (session.ipAddress === undefined) {
-            session.ipAddress = '{{auto}}';
-          }
-        }
-      });
+      this.on('postprocessEvent', addAutoIpAddressToUser);
+      this.on('beforeSendSession', addAutoIpAddressToSession);
     }
   }
 

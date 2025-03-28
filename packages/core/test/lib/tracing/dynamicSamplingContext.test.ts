@@ -1,3 +1,4 @@
+import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -18,7 +19,7 @@ describe('getDynamicSamplingContextFromSpan', () => {
   });
 
   afterEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   test('uses frozen DSC from span', () => {
@@ -69,6 +70,7 @@ describe('getDynamicSamplingContextFromSpan', () => {
     const dynamicSamplingContext = getDynamicSamplingContextFromSpan(rootSpan);
 
     expect(dynamicSamplingContext).toStrictEqual({
+      public_key: undefined,
       release: '1.0.1',
       environment: 'production',
       sampled: 'true',
@@ -87,6 +89,7 @@ describe('getDynamicSamplingContextFromSpan', () => {
     const dynamicSamplingContext = getDynamicSamplingContextFromSpan(rootSpan);
 
     expect(dynamicSamplingContext).toStrictEqual({
+      public_key: undefined,
       release: '1.0.1',
       environment: 'production',
       sampled: 'true',
@@ -110,6 +113,7 @@ describe('getDynamicSamplingContextFromSpan', () => {
     const dynamicSamplingContext = getDynamicSamplingContextFromSpan(rootSpan);
 
     expect(dynamicSamplingContext).toStrictEqual({
+      public_key: undefined,
       release: '1.0.1',
       environment: 'production',
       sampled: 'true',
@@ -165,6 +169,7 @@ describe('getDynamicSamplingContextFromSpan', () => {
     const dynamicSamplingContext = getDynamicSamplingContextFromSpan(rootSpan);
 
     expect(dynamicSamplingContext).toStrictEqual({
+      public_key: undefined,
       release: '1.0.1',
       environment: 'production',
       trace_id: expect.stringMatching(/^[a-f0-9]{32}$/),

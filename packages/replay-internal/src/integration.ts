@@ -1,5 +1,5 @@
 import type { BrowserClientReplayOptions, Client, Integration, IntegrationFn, ReplayRecordingMode } from '@sentry/core';
-import { consoleSandbox, dropUndefinedKeys, isBrowser, parseSampleRate } from '@sentry/core';
+import { consoleSandbox, isBrowser, parseSampleRate } from '@sentry/core';
 import {
   DEFAULT_FLUSH_MAX_DELAY,
   DEFAULT_FLUSH_MIN_DELAY,
@@ -150,6 +150,8 @@ export class Replay implements Integration {
           // this can happen if the error is frozen or does not allow mutation for other reasons
         }
       },
+      // experimental support for recording iframes from different origins
+      recordCrossOriginIframes: Boolean(_experiments.recordCrossOriginIframes),
     };
 
     this._initialOptions = {
@@ -354,7 +356,7 @@ function loadReplayOptionsFromClient(initialOptions: InitialReplayPluginOptions,
   const finalOptions: ReplayPluginOptions = {
     sessionSampleRate: 0,
     errorSampleRate: 0,
-    ...dropUndefinedKeys(initialOptions),
+    ...initialOptions,
   };
 
   const replaysSessionSampleRate = parseSampleRate(opt.replaysSessionSampleRate);

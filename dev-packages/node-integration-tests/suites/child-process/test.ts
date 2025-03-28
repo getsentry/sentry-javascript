@@ -1,4 +1,5 @@
 import type { Event } from '@sentry/core';
+import { afterAll, describe, expect, test } from 'vitest';
 import { conditionalTest } from '../../utils';
 import { cleanupChildProcesses, createRunner } from '../../utils/runner';
 
@@ -44,22 +45,22 @@ describe('should capture child process events', () => {
   });
 
   conditionalTest({ min: 20 })('worker', () => {
-    test('ESM', done => {
-      createRunner(__dirname, 'worker.mjs').expect({ event: WORKER_EVENT }).start(done);
+    test('ESM', async () => {
+      await createRunner(__dirname, 'worker.mjs').expect({ event: WORKER_EVENT }).start().completed();
     });
 
-    test('CJS', done => {
-      createRunner(__dirname, 'worker.js').expect({ event: WORKER_EVENT }).start(done);
+    test('CJS', async () => {
+      await createRunner(__dirname, 'worker.js').expect({ event: WORKER_EVENT }).start().completed();
     });
   });
 
   conditionalTest({ min: 20 })('fork', () => {
-    test('ESM', done => {
-      createRunner(__dirname, 'fork.mjs').expect({ event: CHILD_EVENT }).start(done);
+    test('ESM', async () => {
+      await createRunner(__dirname, 'fork.mjs').expect({ event: CHILD_EVENT }).start().completed();
     });
 
-    test('CJS', done => {
-      createRunner(__dirname, 'fork.js').expect({ event: CHILD_EVENT }).start(done);
+    test('CJS', async () => {
+      await createRunner(__dirname, 'fork.js').expect({ event: CHILD_EVENT }).start().completed();
     });
   });
 });

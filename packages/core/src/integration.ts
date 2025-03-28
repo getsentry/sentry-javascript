@@ -60,19 +60,7 @@ export function getIntegrationsToSetup(options: Pick<Options, 'defaultIntegratio
     integrations = defaultIntegrations;
   }
 
-  const finalIntegrations = filterDuplicates(integrations);
-
-  // The `Debug` integration prints copies of the `event` and `hint` which will be passed to `beforeSend` or
-  // `beforeSendTransaction`. It therefore has to run after all other integrations, so that the changes of all event
-  // processors will be reflected in the printed values. For lack of a more elegant way to guarantee that, we therefore
-  // locate it and, assuming it exists, pop it out of its current spot and shove it onto the end of the array.
-  const debugIndex = finalIntegrations.findIndex(integration => integration.name === 'Debug');
-  if (debugIndex > -1) {
-    const [debugInstance] = finalIntegrations.splice(debugIndex, 1) as [Integration];
-    finalIntegrations.push(debugInstance);
-  }
-
-  return finalIntegrations;
+  return filterDuplicates(integrations);
 }
 
 /**

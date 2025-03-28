@@ -84,9 +84,7 @@ export function createV6CompatibleWrapCreateBrowserRouter<
   }
 
   return function (routes: RouteObject[], opts?: Record<string, unknown> & { basename?: string }): TRouter {
-    routes.forEach(route => {
-      allRoutes.add(route);
-    });
+    addRoutesToAllRoutes(routes);
 
     const router = createRouterFunction(routes, opts);
     const basename = opts?.basename;
@@ -165,9 +163,7 @@ export function createV6CompatibleWrapCreateMemoryRouter<
       initialIndex?: number;
     },
   ): TRouter {
-    routes.forEach(route => {
-      allRoutes.add(route);
-    });
+    addRoutesToAllRoutes(routes);
 
     const router = createRouterFunction(routes, opts);
     const basename = opts?.basename;
@@ -303,13 +299,7 @@ export function createV6CompatibleWrapUseRoutes(origUseRoutes: UseRoutes, versio
         typeof stableLocationParam === 'string' ? { pathname: stableLocationParam } : stableLocationParam;
 
       if (isMountRenderPass.current) {
-        routes.forEach(route => {
-          const extractedChildRoutes = getChildRoutesRecursively(route);
-
-          extractedChildRoutes.forEach(r => {
-            allRoutes.add(r);
-          });
-        });
+        addRoutesToAllRoutes(routes);
 
         updatePageloadTransaction(
           getActiveRootSpan(),
@@ -371,14 +361,23 @@ export function handleNavigation(opts: {
       [name, source] = getNormalizedName(routes, location, branches, basename);
     }
 
-    startBrowserTracingNavigationSpan(client, {
-      name,
-      attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.react.reactrouter_v${version}`,
-      },
-    });
+    const activeSpan = getActiveSpan();
+    const isAlreadyInNavigationSpan = activeSpan && spanToJSON(activeSpan).op === 'navigation';
+
+    // Cross usage can result in multiple navigation spans being created without this check
+    if (isAlreadyInNavigationSpan) {
+      activeSpan?.updateName(name);
+      activeSpan?.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
+    } else {
+      startBrowserTracingNavigationSpan(client, {
+        name,
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.react.reactrouter_v${version}`,
+        },
+      });
+    }
   }
 }
 
@@ -450,6 +449,16 @@ function locationIsInsideDescendantRoute(location: Location, routes: RouteObject
   return false;
 }
 
+function addRoutesToAllRoutes(routes: RouteObject[]): void {
+  routes.forEach(route => {
+    const extractedChildRoutes = getChildRoutesRecursively(route);
+
+    extractedChildRoutes.forEach(r => {
+      allRoutes.add(r);
+    });
+  });
+}
+
 function getChildRoutesRecursively(route: RouteObject, allRoutes: Set<RouteObject> = new Set()): Set<RouteObject> {
   if (!allRoutes.has(route)) {
     allRoutes.add(route);
@@ -458,7 +467,9 @@ function getChildRoutesRecursively(route: RouteObject, allRoutes: Set<RouteObjec
       route.children.forEach(child => {
         const childRoutes = getChildRoutesRecursively(child, allRoutes);
 
-        childRoutes.forEach(r => allRoutes.add(r));
+        childRoutes.forEach(r => {
+          allRoutes.add(r);
+        });
       });
     }
   }
@@ -497,6 +508,10 @@ function rebuildRoutePathFromAllRoutes(allRoutes: RouteObject[], location: Locat
     if (match.route.path && match.route.path !== '*') {
       const path = pickPath(match);
       const strippedPath = stripBasenameFromPathname(location.pathname, prefixWithSlash(match.pathnameBase));
+
+      if (location.pathname === strippedPath) {
+        return trimSlash(strippedPath);
+      }
 
       return trimSlash(
         trimSlash(path || '') +
@@ -588,6 +603,7 @@ function updatePageloadTransaction(
   if (branches) {
     let name,
       source: TransactionSource = 'url';
+
     const isInDescendantRoute = locationIsInsideDescendantRoute(location, allRoutes || routes);
 
     if (isInDescendantRoute) {
@@ -633,13 +649,7 @@ export function createV6CompatibleWithSentryReactRouterRouting<P extends Record<
         const routes = _createRoutesFromChildren(props.children) as RouteObject[];
 
         if (isMountRenderPass.current) {
-          routes.forEach(route => {
-            const extractedChildRoutes = getChildRoutesRecursively(route);
-
-            extractedChildRoutes.forEach(r => {
-              allRoutes.add(r);
-            });
-          });
+          addRoutesToAllRoutes(routes);
 
           updatePageloadTransaction(getActiveRootSpan(), location, routes, undefined, undefined, Array.from(allRoutes));
           isMountRenderPass.current = false;

@@ -4,6 +4,12 @@
 export * from './client';
 export * from './vite';
 export * from './server';
+export * from './worker';
+
+// Use the ./server version of some functions that are also exported from ./worker
+export { sentryHandle } from './server';
+// Use the ./worker version of some functions that are also exported from ./server
+export { initCloudflareSentryHandle } from './worker';
 
 import type { Client, Integration, Options, StackParser } from '@sentry/core';
 import type { HandleClientError, HandleServerError } from '@sveltejs/kit';
@@ -47,3 +53,5 @@ export declare function flush(timeout?: number | undefined): PromiseLike<boolean
 export declare function lastEventId(): string | undefined;
 
 export declare function trackComponent(options: clientSdk.TrackingOptions): ReturnType<typeof clientSdk.trackComponent>;
+
+export declare const logger: typeof clientSdk.logger | typeof serverSdk.logger;

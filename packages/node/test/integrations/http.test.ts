@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { _shouldInstrumentSpans } from '../../src/integrations/http';
 
 describe('httpIntegration', () => {

@@ -1,6 +1,5 @@
 import { getClient, getCurrentScope } from './currentScopes';
 import type { EventHint, FeedbackEvent, SendFeedbackParams } from './types-hoist';
-import { dropUndefinedKeys } from './utils-hoist/object';
 
 /**
  * Send user feedback to Sentry.
@@ -14,14 +13,14 @@ export function captureFeedback(
 
   const feedbackEvent: FeedbackEvent = {
     contexts: {
-      feedback: dropUndefinedKeys({
+      feedback: {
         contact_email: email,
         name,
         message,
         url,
         source,
         associated_event_id: associatedEventId,
-      }),
+      },
     },
     type: 'feedback',
     level: 'info',

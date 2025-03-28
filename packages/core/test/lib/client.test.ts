@@ -1,6 +1,6 @@
+import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
 import {
   Scope,
-  SentryError,
   SyncPromise,
   addBreadcrumb,
   dsnToString,
@@ -27,13 +27,13 @@ const PUBLIC_DSN = 'https://username@domain/123';
 // eslint-disable-next-line no-var
 declare var global: any;
 
-const clientEventFromException = jest.spyOn(TestClient.prototype, 'eventFromException');
-const clientProcess = jest.spyOn(TestClient.prototype as any, '_process');
+const clientEventFromException = vi.spyOn(TestClient.prototype, 'eventFromException');
+const clientProcess = vi.spyOn(TestClient.prototype as any, '_process');
 
-jest.spyOn(miscModule, 'uuid4').mockImplementation(() => '12312012123120121231201212312012');
-jest.spyOn(loggerModule, 'consoleSandbox').mockImplementation(cb => cb());
-jest.spyOn(stringModule, 'truncate').mockImplementation(str => str);
-jest.spyOn(timeModule, 'dateTimestampInSeconds').mockImplementation(() => 2020);
+vi.spyOn(miscModule, 'uuid4').mockImplementation(() => '12312012123120121231201212312012');
+vi.spyOn(loggerModule, 'consoleSandbox').mockImplementation(cb => cb());
+vi.spyOn(stringModule, 'truncate').mockImplementation(str => str);
+vi.spyOn(timeModule, 'dateTimestampInSeconds').mockImplementation(() => 2020);
 
 describe('Client', () => {
   beforeEach(() => {
@@ -46,7 +46,7 @@ describe('Client', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('constructor() / getDsn()', () => {
@@ -68,7 +68,7 @@ describe('Client', () => {
 
     test('handles being passed an invalid Dsn', () => {
       // Hide warning logs in the test
-      jest.spyOn(console, 'error').mockImplementation(() => {});
+      vi.spyOn(console, 'error').mockImplementation(() => {});
 
       const options = getDefaultTestClientOptions({ dsn: 'abc' });
       const client = new TestClient(options);
@@ -80,7 +80,7 @@ describe('Client', () => {
 
   describe('constructor() / warnings', () => {
     test('does not warn for defaults', () => {
-      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       new TestClient(options);
@@ -167,7 +167,7 @@ describe('Client', () => {
     test('it records `buffer_overflow` client discard reason when buffer overflows', () => {
       const options = getDefaultTestClientOptions({ maxBreadcrumbs: 1 });
       const client = new TestClient(options);
-      const recordLostEventSpy = jest.spyOn(client, 'recordDroppedEvent');
+      const recordLostEventSpy = vi.spyOn(client, 'recordDroppedEvent');
       setCurrentClient(client);
       getIsolationScope().setClient(client);
       client.init();
@@ -181,7 +181,7 @@ describe('Client', () => {
     });
 
     test('calls `beforeBreadcrumb` and adds the breadcrumb without any changes', () => {
-      const beforeBreadcrumb = jest.fn(breadcrumb => breadcrumb);
+      const beforeBreadcrumb = vi.fn(breadcrumb => breadcrumb);
       const options = getDefaultTestClientOptions({ beforeBreadcrumb });
       const client = new TestClient(options);
       setCurrentClient(client);
@@ -194,7 +194,7 @@ describe('Client', () => {
     });
 
     test('calls `beforeBreadcrumb` and uses the new one', () => {
-      const beforeBreadcrumb = jest.fn(() => ({ message: 'changed' }));
+      const beforeBreadcrumb = vi.fn(() => ({ message: 'changed' }));
       const options = getDefaultTestClientOptions({ beforeBreadcrumb });
       const client = new TestClient(options);
       setCurrentClient(client);
@@ -207,7 +207,7 @@ describe('Client', () => {
     });
 
     test('calls `beforeBreadcrumb` and discards the breadcrumb when returned `null`', () => {
-      const beforeBreadcrumb = jest.fn(() => null);
+      const beforeBreadcrumb = vi.fn(() => null);
       const options = getDefaultTestClientOptions({ beforeBreadcrumb });
       const client = new TestClient(options);
       setCurrentClient(client);
@@ -220,7 +220,7 @@ describe('Client', () => {
     });
 
     test('`beforeBreadcrumb` gets an access to a hint as a second argument', () => {
-      const beforeBreadcrumb = jest.fn((breadcrumb, hint) => ({ ...breadcrumb, data: hint.data }));
+      const beforeBreadcrumb = vi.fn((breadcrumb, hint) => ({ ...breadcrumb, data: hint.data }));
       const options = getDefaultTestClientOptions({ beforeBreadcrumb });
       const client = new TestClient(options);
       setCurrentClient(client);
@@ -347,7 +347,7 @@ describe('Client', () => {
     });
 
     test('captures logger message', () => {
-      const logSpy = jest.spyOn(loggerModule.logger, 'log').mockImplementation(() => undefined);
+      const logSpy = vi.spyOn(loggerModule.logger, 'log').mockImplementation(() => undefined);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
@@ -392,7 +392,7 @@ describe('Client', () => {
     test('should call `eventFromException` if input to `captureMessage` is not a primitive', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
-      const spy = jest.spyOn(TestClient.instance!, 'eventFromException');
+      const spy = vi.spyOn(TestClient.instance!, 'eventFromException');
 
       client.captureMessage('foo');
       client.captureMessage(null as any);
@@ -439,7 +439,7 @@ describe('Client', () => {
     });
 
     test('captures logger message', () => {
-      const logSpy = jest.spyOn(loggerModule.logger, 'log').mockImplementation(() => undefined);
+      const logSpy = vi.spyOn(loggerModule.logger, 'log').mockImplementation(() => undefined);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
@@ -532,7 +532,7 @@ describe('Client', () => {
       );
     });
 
-    test('it adds a trace context to all events xxx', () => {
+    test('it adds a trace context to all events', () => {
       expect.assertions(1);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
@@ -987,7 +987,7 @@ describe('Client', () => {
     test('calls `beforeSend` and uses original event without any changes', () => {
       expect.assertions(2);
 
-      const beforeSend = jest.fn(event => event);
+      const beforeSend = vi.fn(event => event);
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSend });
       const client = new TestClient(options);
 
@@ -1000,7 +1000,7 @@ describe('Client', () => {
     test('calls `beforeSendTransaction` and uses original event without any changes', () => {
       expect.assertions(2);
 
-      const beforeSendTransaction = jest.fn(event => event);
+      const beforeSendTransaction = vi.fn(event => event);
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendTransaction });
       const client = new TestClient(options);
 
@@ -1013,7 +1013,7 @@ describe('Client', () => {
     test('calls `beforeSendSpan` and uses original spans without any changes', () => {
       expect.assertions(3);
 
-      const beforeSendSpan = jest.fn(span => span);
+      const beforeSendSpan = vi.fn(span => span);
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendSpan });
       const client = new TestClient(options);
 
@@ -1046,7 +1046,7 @@ describe('Client', () => {
     });
 
     test('does not modify existing contexts for root span in `beforeSendSpan`', () => {
-      const beforeSendSpan = jest.fn((span: SpanJSON) => {
+      const beforeSendSpan = vi.fn((span: SpanJSON) => {
         return {
           ...span,
           data: {
@@ -1119,7 +1119,7 @@ describe('Client', () => {
     test('calls `beforeSendTransaction` and uses the modified event', () => {
       expect.assertions(2);
 
-      const beforeSendTransaction = jest.fn(event => {
+      const beforeSendTransaction = vi.fn(event => {
         event.transaction = '/adopt/dont/shop';
         return event;
       });
@@ -1133,7 +1133,7 @@ describe('Client', () => {
     });
 
     test('calls `beforeSendTransaction` and drops spans', () => {
-      const beforeSendTransaction = jest.fn(event => {
+      const beforeSendTransaction = vi.fn(event => {
         event.spans = [{ span_id: 'span5', trace_id: 'trace1', start_timestamp: 1234 }];
         return event;
       });
@@ -1159,7 +1159,7 @@ describe('Client', () => {
     test('calls `beforeSendSpan` and uses the modified spans', () => {
       expect.assertions(4);
 
-      const beforeSendSpan = jest.fn(span => {
+      const beforeSendSpan = vi.fn(span => {
         span.data = { version: 'bravo' };
         return span;
       });
@@ -1201,11 +1201,11 @@ describe('Client', () => {
     test('calls `beforeSend` and discards the event', () => {
       expect.assertions(4);
 
-      const beforeSend = jest.fn(() => null);
+      const beforeSend = vi.fn(() => null);
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSend });
       const client = new TestClient(options);
-      const captureExceptionSpy = jest.spyOn(client, 'captureException');
-      const loggerWarnSpy = jest.spyOn(loggerModule.logger, 'log');
+      const captureExceptionSpy = vi.spyOn(client, 'captureException');
+      const loggerLogSpy = vi.spyOn(loggerModule.logger, 'log');
 
       client.captureEvent({ message: 'hello' });
 
@@ -1214,17 +1214,17 @@ describe('Client', () => {
       // This proves that the reason the event didn't send/didn't get set on the test client is not because there was an
       // error, but because `beforeSend` returned `null`
       expect(captureExceptionSpy).not.toBeCalled();
-      expect(loggerWarnSpy).toBeCalledWith('before send for type `error` returned `null`, will not send event.');
+      expect(loggerLogSpy).toBeCalledWith('before send for type `error` returned `null`, will not send event.');
     });
 
     test('calls `beforeSendTransaction` and discards the event', () => {
       expect.assertions(4);
 
-      const beforeSendTransaction = jest.fn(() => null);
+      const beforeSendTransaction = vi.fn(() => null);
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendTransaction });
       const client = new TestClient(options);
-      const captureExceptionSpy = jest.spyOn(client, 'captureException');
-      const loggerWarnSpy = jest.spyOn(loggerModule.logger, 'log');
+      const captureExceptionSpy = vi.spyOn(client, 'captureException');
+      const loggerLogSpy = vi.spyOn(loggerModule.logger, 'log');
 
       client.captureEvent({ transaction: '/dogs/are/great', type: 'transaction' });
 
@@ -1233,13 +1233,13 @@ describe('Client', () => {
       // This proves that the reason the event didn't send/didn't get set on the test client is not because there was an
       // error, but because `beforeSendTransaction` returned `null`
       expect(captureExceptionSpy).not.toBeCalled();
-      expect(loggerWarnSpy).toBeCalledWith('before send for type `transaction` returned `null`, will not send event.');
+      expect(loggerLogSpy).toBeCalledWith('before send for type `transaction` returned `null`, will not send event.');
     });
 
     test('does not discard span and warn when returning null from `beforeSendSpan', () => {
-      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
-      const beforeSendSpan = jest.fn(() => null as unknown as SpanJSON);
+      const beforeSendSpan = vi.fn(() => null as unknown as SpanJSON);
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendSpan });
       const client = new TestClient(options);
 
@@ -1282,19 +1282,17 @@ describe('Client', () => {
       expect.assertions(invalidValues.length * 3);
 
       for (const val of invalidValues) {
-        const beforeSend = jest.fn(() => val);
+        const beforeSend = vi.fn(() => val);
         // @ts-expect-error we need to test regular-js behavior
         const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSend });
         const client = new TestClient(options);
-        const loggerWarnSpy = jest.spyOn(loggerModule.logger, 'warn');
+        const loggerWarnSpy = vi.spyOn(loggerModule.logger, 'warn');
 
         client.captureEvent({ message: 'hello' });
 
         expect(beforeSend).toHaveBeenCalled();
         expect(TestClient.instance!.event).toBeUndefined();
-        expect(loggerWarnSpy).toBeCalledWith(
-          new SentryError('before send for type `error` must return `null` or a valid event.'),
-        );
+        expect(loggerWarnSpy).toBeCalledWith('before send for type `error` must return `null` or a valid event.');
       }
     });
 
@@ -1303,147 +1301,137 @@ describe('Client', () => {
       expect.assertions(invalidValues.length * 3);
 
       for (const val of invalidValues) {
-        const beforeSendTransaction = jest.fn(() => val);
+        const beforeSendTransaction = vi.fn(() => val);
         // @ts-expect-error we need to test regular-js behavior
         const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendTransaction });
         const client = new TestClient(options);
-        const loggerWarnSpy = jest.spyOn(loggerModule.logger, 'warn');
+        const loggerWarnSpy = vi.spyOn(loggerModule.logger, 'warn');
 
         client.captureEvent({ transaction: '/dogs/are/great', type: 'transaction' });
 
         expect(beforeSendTransaction).toHaveBeenCalled();
         expect(TestClient.instance!.event).toBeUndefined();
-        expect(loggerWarnSpy).toBeCalledWith(
-          new SentryError('before send for type `transaction` must return `null` or a valid event.'),
-        );
+        expect(loggerWarnSpy).toBeCalledWith('before send for type `transaction` must return `null` or a valid event.');
       }
     });
 
-    test('calls async `beforeSend` and uses original event without any changes', done => {
-      jest.useFakeTimers();
-      expect.assertions(2);
+    test('calls async `beforeSend` and uses original event without any changes', () =>
+      new Promise<void>(done => {
+        vi.useFakeTimers();
+        expect.assertions(2);
 
-      const beforeSend = jest.fn(
-        async event =>
-          new Promise<ErrorEvent>(resolve => {
+        const beforeSend = vi.fn(
+          async event =>
+            new Promise<ErrorEvent>(resolve => {
+              setTimeout(() => {
+                resolve(event);
+              }, 1);
+            }),
+        );
+        const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSend });
+        const client = new TestClient(options);
+
+        client.captureEvent({ message: 'hello' });
+        vi.runOnlyPendingTimers();
+
+        TestClient.sendEventCalled = (event: Event) => {
+          expect(beforeSend).toHaveBeenCalled();
+          expect(event.message).toEqual('hello');
+          done();
+        };
+
+        vi.runOnlyPendingTimers();
+      }));
+
+    test('calls async `beforeSendTransaction` and uses original event without any changes', () =>
+      new Promise<void>(done => {
+        vi.useFakeTimers();
+        expect.assertions(2);
+
+        const beforeSendTransaction = vi.fn(
+          async event =>
+            new Promise<TransactionEvent>(resolve => {
+              setTimeout(() => {
+                resolve(event);
+              }, 1);
+            }),
+        );
+        const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendTransaction });
+        const client = new TestClient(options);
+
+        client.captureEvent({ transaction: '/dogs/are/great', type: 'transaction' });
+        vi.runOnlyPendingTimers();
+
+        TestClient.sendEventCalled = (event: Event) => {
+          expect(beforeSendTransaction).toHaveBeenCalled();
+          expect(event.transaction).toBe('/dogs/are/great');
+          done();
+        };
+
+        vi.runOnlyPendingTimers();
+      }));
+
+    test('calls async `beforeSend` and uses the modified event', () =>
+      new Promise<void>(done => {
+        vi.useFakeTimers();
+        expect.assertions(2);
+
+        const beforeSend = vi.fn(async event => {
+          event.message = 'changed2';
+          return new Promise<ErrorEvent>(resolve => {
             setTimeout(() => {
               resolve(event);
             }, 1);
-          }),
-      );
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSend });
-      const client = new TestClient(options);
+          });
+        });
+        const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSend });
+        const client = new TestClient(options);
 
-      client.captureEvent({ message: 'hello' });
-      jest.runOnlyPendingTimers();
+        client.captureEvent({ message: 'hello' });
+        vi.runOnlyPendingTimers();
 
-      TestClient.sendEventCalled = (event: Event) => {
-        expect(beforeSend).toHaveBeenCalled();
-        expect(event.message).toEqual('hello');
-      };
+        TestClient.sendEventCalled = (event: Event) => {
+          expect(beforeSend).toHaveBeenCalled();
+          expect(event.message).toEqual('changed2');
+          done();
+        };
 
-      setTimeout(() => {
-        done();
-      }, 5);
+        vi.runOnlyPendingTimers();
+      }));
 
-      jest.runOnlyPendingTimers();
-    });
+    test('calls async `beforeSendTransaction` and uses the modified event', () =>
+      new Promise<void>(done => {
+        vi.useFakeTimers();
+        expect.assertions(2);
 
-    test('calls async `beforeSendTransaction` and uses original event without any changes', done => {
-      jest.useFakeTimers();
-      expect.assertions(2);
-
-      const beforeSendTransaction = jest.fn(
-        async event =>
-          new Promise<TransactionEvent>(resolve => {
+        const beforeSendTransaction = vi.fn(async event => {
+          event.transaction = '/adopt/dont/shop';
+          return new Promise<TransactionEvent>(resolve => {
             setTimeout(() => {
               resolve(event);
             }, 1);
-          }),
-      );
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendTransaction });
-      const client = new TestClient(options);
-
-      client.captureEvent({ transaction: '/dogs/are/great', type: 'transaction' });
-      jest.runOnlyPendingTimers();
-
-      TestClient.sendEventCalled = (event: Event) => {
-        expect(beforeSendTransaction).toHaveBeenCalled();
-        expect(event.transaction).toBe('/dogs/are/great');
-      };
-
-      setTimeout(() => {
-        done();
-      }, 5);
-
-      jest.runOnlyPendingTimers();
-    });
-
-    test('calls async `beforeSend` and uses the modified event', done => {
-      jest.useFakeTimers();
-      expect.assertions(2);
-
-      const beforeSend = jest.fn(async event => {
-        event.message = 'changed2';
-        return new Promise<ErrorEvent>(resolve => {
-          setTimeout(() => {
-            resolve(event);
-          }, 1);
+          });
         });
-      });
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSend });
-      const client = new TestClient(options);
+        const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendTransaction });
+        const client = new TestClient(options);
 
-      client.captureEvent({ message: 'hello' });
-      jest.runOnlyPendingTimers();
+        client.captureEvent({ transaction: '/dogs/are/great', type: 'transaction' });
+        vi.runOnlyPendingTimers();
 
-      TestClient.sendEventCalled = (event: Event) => {
-        expect(beforeSend).toHaveBeenCalled();
-        expect(event.message).toEqual('changed2');
-      };
+        TestClient.sendEventCalled = (event: Event) => {
+          expect(beforeSendTransaction).toHaveBeenCalled();
+          expect(event.transaction).toBe('/adopt/dont/shop');
+          done();
+        };
 
-      setTimeout(() => {
-        done();
-      }, 5);
-
-      jest.runOnlyPendingTimers();
-    });
-
-    test('calls async `beforeSendTransaction` and uses the modified event', done => {
-      jest.useFakeTimers();
-      expect.assertions(2);
-
-      const beforeSendTransaction = jest.fn(async event => {
-        event.transaction = '/adopt/dont/shop';
-        return new Promise<TransactionEvent>(resolve => {
-          setTimeout(() => {
-            resolve(event);
-          }, 1);
-        });
-      });
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendTransaction });
-      const client = new TestClient(options);
-
-      client.captureEvent({ transaction: '/dogs/are/great', type: 'transaction' });
-      jest.runOnlyPendingTimers();
-
-      TestClient.sendEventCalled = (event: Event) => {
-        expect(beforeSendTransaction).toHaveBeenCalled();
-        expect(event.transaction).toBe('/adopt/dont/shop');
-      };
-
-      setTimeout(() => {
-        done();
-      }, 5);
-
-      jest.runOnlyPendingTimers();
-    });
+        vi.runOnlyPendingTimers();
+      }));
 
     test('calls async `beforeSend` and discards the event', () => {
-      jest.useFakeTimers();
+      vi.useFakeTimers();
       expect.assertions(2);
 
-      const beforeSend = jest.fn(
+      const beforeSend = vi.fn(
         async () =>
           new Promise<null>(resolve => {
             setTimeout(() => {
@@ -1455,17 +1443,17 @@ describe('Client', () => {
       const client = new TestClient(options);
 
       client.captureEvent({ message: 'hello' });
-      jest.runAllTimers();
+      vi.runAllTimers();
 
       expect(beforeSend).toHaveBeenCalled();
       expect(TestClient.instance!.event).toBeUndefined();
     });
 
     test('calls async `beforeSendTransaction` and discards the event', () => {
-      jest.useFakeTimers();
+      vi.useFakeTimers();
       expect.assertions(2);
 
-      const beforeSendTransaction = jest.fn(
+      const beforeSendTransaction = vi.fn(
         async () =>
           new Promise<null>(resolve => {
             setTimeout(() => {
@@ -1477,7 +1465,7 @@ describe('Client', () => {
       const client = new TestClient(options);
 
       client.captureEvent({ transaction: '/dogs/are/great', type: 'transaction' });
-      jest.runAllTimers();
+      vi.runAllTimers();
 
       expect(beforeSendTransaction).toHaveBeenCalled();
       expect(TestClient.instance!.event).toBeUndefined();
@@ -1486,7 +1474,7 @@ describe('Client', () => {
     test('`beforeSend` gets access to a hint as a second argument', () => {
       expect.assertions(3);
 
-      const beforeSend = jest.fn((event, hint) => ({ ...event, data: hint.data }));
+      const beforeSend = vi.fn((event, hint) => ({ ...event, data: hint.data }));
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSend });
       const client = new TestClient(options);
 
@@ -1500,7 +1488,7 @@ describe('Client', () => {
     test('`beforeSendTransaction` gets access to a hint as a second argument', () => {
       expect.assertions(3);
 
-      const beforeSendTransaction = jest.fn((event, hint) => ({ ...event, data: hint.data }));
+      const beforeSendTransaction = vi.fn((event, hint) => ({ ...event, data: hint.data }));
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendTransaction });
       const client = new TestClient(options);
 
@@ -1520,7 +1508,7 @@ describe('Client', () => {
     test('`beforeSend` records dropped events', () => {
       expect.assertions(2);
 
-      const beforeSend = jest.fn(() => null);
+      const beforeSend = vi.fn(() => null);
       const client = new TestClient(
         getDefaultTestClientOptions({
           dsn: PUBLIC_DSN,
@@ -1528,7 +1516,7 @@ describe('Client', () => {
         }),
       );
 
-      const recordLostEventSpy = jest.spyOn(client, 'recordDroppedEvent');
+      const recordLostEventSpy = vi.spyOn(client, 'recordDroppedEvent');
 
       client.captureEvent({ message: 'hello' }, {});
 
@@ -1539,7 +1527,7 @@ describe('Client', () => {
     test('`beforeSendTransaction` records dropped events', () => {
       expect.assertions(2);
 
-      const beforeSendTransaction = jest.fn(() => null);
+      const beforeSendTransaction = vi.fn(() => null);
 
       const client = new TestClient(
         getDefaultTestClientOptions({
@@ -1548,7 +1536,7 @@ describe('Client', () => {
         }),
       );
 
-      const recordLostEventSpy = jest.spyOn(client, 'recordDroppedEvent');
+      const recordLostEventSpy = vi.spyOn(client, 'recordDroppedEvent');
 
       client.captureEvent({ transaction: '/dogs/are/great', type: 'transaction' });
 
@@ -1560,8 +1548,8 @@ describe('Client', () => {
       expect.assertions(3);
 
       const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
-      const captureExceptionSpy = jest.spyOn(client, 'captureException');
-      const loggerLogSpy = jest.spyOn(loggerModule.logger, 'log');
+      const captureExceptionSpy = vi.spyOn(client, 'captureException');
+      const loggerLogSpy = vi.spyOn(loggerModule.logger, 'log');
       const scope = new Scope();
       scope.addEventProcessor(() => null);
 
@@ -1578,8 +1566,8 @@ describe('Client', () => {
       expect.assertions(3);
 
       const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
-      const captureExceptionSpy = jest.spyOn(client, 'captureException');
-      const loggerLogSpy = jest.spyOn(loggerModule.logger, 'log');
+      const captureExceptionSpy = vi.spyOn(client, 'captureException');
+      const loggerLogSpy = vi.spyOn(loggerModule.logger, 'log');
       const scope = new Scope();
       scope.addEventProcessor(() => null);
 
@@ -1598,7 +1586,7 @@ describe('Client', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
 
-      const recordLostEventSpy = jest.spyOn(client, 'recordDroppedEvent');
+      const recordLostEventSpy = vi.spyOn(client, 'recordDroppedEvent');
 
       const scope = new Scope();
       scope.addEventProcessor(() => null);
@@ -1614,7 +1602,7 @@ describe('Client', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
 
-      const recordLostEventSpy = jest.spyOn(client, 'recordDroppedEvent');
+      const recordLostEventSpy = vi.spyOn(client, 'recordDroppedEvent');
 
       const scope = new Scope();
       scope.addEventProcessor(() => null);
@@ -1650,7 +1638,7 @@ describe('Client', () => {
     });
 
     test('mutating transaction name with `beforeSendTransaction` sets transaction-name-change metadata', () => {
-      const beforeSendTransaction = jest.fn(event => {
+      const beforeSendTransaction = vi.fn(event => {
         event.transaction = '/adopt/dont/shop';
         return event;
       });
@@ -1677,8 +1665,8 @@ describe('Client', () => {
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
-      const captureExceptionSpy = jest.spyOn(client, 'captureException');
-      const loggerWarnSpy = jest.spyOn(loggerModule.logger, 'warn');
+      const captureExceptionSpy = vi.spyOn(client, 'captureException');
+      const loggerWarnSpy = vi.spyOn(loggerModule.logger, 'warn');
       const scope = new Scope();
       const exception = new Error('sorry');
       scope.addEventProcessor(() => {
@@ -1695,9 +1683,7 @@ describe('Client', () => {
         originalException: exception,
       });
       expect(loggerWarnSpy).toBeCalledWith(
-        new SentryError(
-          `Event processing pipeline threw an error, original event will not be sent. Details have been sent as a new event.\nReason: ${exception}`,
-        ),
+        `Event processing pipeline threw an error, original event will not be sent. Details have been sent as a new event.\nReason: ${exception}`,
       );
     });
 
@@ -1707,14 +1693,14 @@ describe('Client', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, sampleRate: 0 });
       const client = new TestClient(options);
 
-      const recordLostEventSpy = jest.spyOn(client, 'recordDroppedEvent');
+      const recordLostEventSpy = vi.spyOn(client, 'recordDroppedEvent');
 
       client.captureEvent({ message: 'hello' }, {});
       expect(recordLostEventSpy).toHaveBeenCalledWith('sample_rate', 'error');
     });
 
     test('captures logger message', () => {
-      const logSpy = jest.spyOn(loggerModule.logger, 'log').mockImplementation(() => undefined);
+      const logSpy = vi.spyOn(loggerModule.logger, 'log').mockImplementation(() => undefined);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
@@ -1776,7 +1762,7 @@ describe('Client', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, integrations: [new TestIntegration()] });
       const client = new TestClient(options);
       // note: not the `Client` method `setupIntegrations`, but the free-standing function which that method calls
-      const setupIntegrationsHelper = jest.spyOn(integrationModule, 'setupIntegrations');
+      const setupIntegrationsHelper = vi.spyOn(integrationModule, 'setupIntegrations');
 
       // it should install the first time, because integrations aren't yet installed...
       client.init();
@@ -1797,7 +1783,7 @@ describe('Client', () => {
 
   describe('flush/close', () => {
     test('flush', async () => {
-      jest.useRealTimers();
+      vi.useRealTimers();
       expect.assertions(4);
 
       const { makeTransport, getSendCalled, getSentCount, delay } = makeFakeTransport(1);
@@ -1822,7 +1808,7 @@ describe('Client', () => {
     });
 
     test('flush with some events being processed async', async () => {
-      jest.useRealTimers();
+      vi.useRealTimers();
       expect.assertions(4);
 
       const { makeTransport, getSendCalled, getSentCount, delay } = makeFakeTransport(300);
@@ -1835,7 +1821,7 @@ describe('Client', () => {
         }),
       );
 
-      const spy = jest.spyOn(TestClient.instance!, 'eventFromMessage');
+      const spy = vi.spyOn(TestClient.instance!, 'eventFromMessage');
       spy.mockImplementationOnce(
         (message, level) =>
           new SyncPromise(resolve => {
@@ -1857,7 +1843,7 @@ describe('Client', () => {
     });
 
     test('close', async () => {
-      jest.useRealTimers();
+      vi.useRealTimers();
       expect.assertions(4);
 
       const { makeTransport, delay, getSentCount } = makeFakeTransport(300);
@@ -1881,7 +1867,7 @@ describe('Client', () => {
     });
 
     test('multiple concurrent flush calls should just work', async () => {
-      jest.useRealTimers();
+      vi.useRealTimers();
       expect.assertions(3);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
@@ -1903,11 +1889,11 @@ describe('Client', () => {
 
   describe('sendEvent', () => {
     beforeEach(() => {
-      jest.useFakeTimers();
+      vi.useFakeTimers();
     });
 
     afterEach(() => {
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
 
     it('emits `afterSendEvent` when sending an error', async () => {
@@ -1919,15 +1905,15 @@ describe('Client', () => {
       );
 
       // @ts-expect-error Accessing private transport API
-      const mockSend = jest.spyOn(client._transport, 'send');
+      const mockSend = vi.spyOn(client._transport, 'send');
 
       const errorEvent: Event = { message: 'error' };
 
-      const callback = jest.fn();
+      const callback = vi.fn();
       client.on('afterSendEvent', callback);
 
       client.sendEvent(errorEvent);
-      jest.runAllTimers();
+      vi.runAllTimers();
       // Wait for two ticks
       // note that for whatever reason, await new Promise(resolve => setTimeout(resolve, 0)) causes the test to hang
       await undefined;
@@ -1947,15 +1933,15 @@ describe('Client', () => {
       );
 
       // @ts-expect-error Accessing private transport API
-      const mockSend = jest.spyOn(client._transport, 'send');
+      const mockSend = vi.spyOn(client._transport, 'send');
 
       const transactionEvent: Event = { type: 'transaction', event_id: 'tr1' };
 
-      const callback = jest.fn();
+      const callback = vi.fn();
       client.on('afterSendEvent', callback);
 
       client.sendEvent(transactionEvent);
-      jest.runAllTimers();
+      vi.runAllTimers();
       // Wait for two ticks
       // note that for whatever reason, await new Promise(resolve => setTimeout(resolve, 0)) causes the test to hang
       await undefined;
@@ -1977,17 +1963,17 @@ describe('Client', () => {
       );
 
       // @ts-expect-error Accessing private transport API
-      const mockSend = jest.spyOn(client._transport, 'send').mockImplementation(() => {
+      const mockSend = vi.spyOn(client._transport, 'send').mockImplementation(() => {
         return Promise.reject('send error');
       });
 
       const errorEvent: Event = { message: 'error' };
 
-      const callback = jest.fn();
+      const callback = vi.fn();
       client.on('afterSendEvent', callback);
 
       client.sendEvent(errorEvent);
-      jest.runAllTimers();
+      vi.runAllTimers();
       // Wait for two ticks
       // note that for whatever reason, await new Promise(resolve => setTimeout(resolve, 0)) causes the test to hang
       await undefined;
@@ -2009,17 +1995,17 @@ describe('Client', () => {
       );
 
       // @ts-expect-error Accessing private transport API
-      const mockSend = jest.spyOn(client._transport, 'send').mockImplementation(() => {
+      const mockSend = vi.spyOn(client._transport, 'send').mockImplementation(() => {
         return Promise.resolve({ statusCode: 200 });
       });
 
       const errorEvent: Event = { message: 'error' };
 
-      const callback = jest.fn();
+      const callback = vi.fn();
       client.on('afterSendEvent', callback);
 
       client.sendEvent(errorEvent);
-      jest.runAllTimers();
+      vi.runAllTimers();
       // Wait for two ticks
       // note that for whatever reason, await new Promise(resolve => setTimeout(resolve, 0)) causes the test to hang
       await undefined;
@@ -2148,7 +2134,7 @@ describe('Client', () => {
 
   describe('hook removal with `on`', () => {
     it('should return a cleanup function that, when executed, unregisters a hook', async () => {
-      jest.useFakeTimers();
+      vi.useFakeTimers();
       expect.assertions(8);
 
       const client = new TestClient(
@@ -2158,19 +2144,19 @@ describe('Client', () => {
         }),
       );
 
-      const mockSend = jest.spyOn(client.getTransport()!, 'send').mockImplementation(() => {
+      const mockSend = vi.spyOn(client.getTransport()!, 'send').mockImplementation(() => {
         return Promise.resolve({ statusCode: 200 });
       });
 
       const errorEvent: Event = { message: 'error' };
 
-      const callback = jest.fn();
+      const callback = vi.fn();
       const removeAfterSendEventListenerFn = client.on('afterSendEvent', callback);
 
       expect(client['_hooks']['afterSendEvent']).toEqual([callback]);
 
       client.sendEvent(errorEvent);
-      jest.runAllTimers();
+      vi.runAllTimers();
       // Wait for two ticks
       // note that for whatever reason, await new Promise(resolve => setTimeout(resolve, 0)) causes the test to hang
       await undefined;
@@ -2185,7 +2171,7 @@ describe('Client', () => {
       expect(client['_hooks']['afterSendEvent']).toEqual([]);
 
       client.sendEvent(errorEvent);
-      jest.runAllTimers();
+      vi.runAllTimers();
       // Wait for two ticks
       // note that for whatever reason, await new Promise(resolve => setTimeout(resolve, 0)) causes the test to hang
       await undefined;
@@ -2202,7 +2188,7 @@ describe('Client', () => {
   describe('withMonitor', () => {
     test('handles successful synchronous operations', () => {
       const result = 'foo';
-      const callback = jest.fn().mockReturnValue(result);
+      const callback = vi.fn().mockReturnValue(result);
 
       const returnedResult = withMonitor('test-monitor', callback);
 
@@ -2212,7 +2198,7 @@ describe('Client', () => {
 
     test('handles synchronous errors', () => {
       const error = new Error('Test error');
-      const callback = jest.fn().mockImplementation(() => {
+      const callback = vi.fn().mockImplementation(() => {
         throw error;
       });
 
@@ -2221,7 +2207,7 @@ describe('Client', () => {
 
     test('handles successful asynchronous operations', async () => {
       const result = 'foo';
-      const callback = jest.fn().mockResolvedValue(result);
+      const callback = vi.fn().mockResolvedValue(result);
 
       const promise = withMonitor('test-monitor', callback);
       await expect(promise).resolves.toEqual(result);
@@ -2236,7 +2222,7 @@ describe('Client', () => {
     // eslint-disable-next-line @sentry-internal/sdk/no-skipped-tests
     test.skip('handles asynchronous errors', async () => {
       const error = new Error('Test error');
-      const callback = jest.fn().mockRejectedValue(error);
+      const callback = vi.fn().mockRejectedValue(error);
 
       const promise = await withMonitor('test-monitor', callback);
       await expect(promise).rejects.toThrowError(error);

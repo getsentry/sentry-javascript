@@ -1,4 +1,3 @@
-import { SentryError } from './error';
 import { SyncPromise, rejectedSyncPromise, resolvedSyncPromise } from './syncpromise';
 
 export interface PromiseBuffer<T> {
@@ -8,6 +7,8 @@ export interface PromiseBuffer<T> {
   add(taskProducer: () => PromiseLike<T>): PromiseLike<T>;
   drain(timeout?: number): PromiseLike<boolean>;
 }
+
+export const SENTRY_BUFFER_FULL_ERROR = Symbol.for('SentryBufferFullError');
 
 /**
  * Creates an new PromiseBuffer object with the specified limit
@@ -42,7 +43,7 @@ export function makePromiseBuffer<T>(limit?: number): PromiseBuffer<T> {
    */
   function add(taskProducer: () => PromiseLike<T>): PromiseLike<T> {
     if (!isReady()) {
-      return rejectedSyncPromise(new SentryError('Not adding Promise because buffer limit was reached.'));
+      return rejectedSyncPromise(SENTRY_BUFFER_FULL_ERROR);
     }
 
     // start the task and add its promise to the queue

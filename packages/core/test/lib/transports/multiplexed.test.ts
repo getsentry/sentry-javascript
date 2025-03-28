@@ -8,6 +8,7 @@ import type {
   Transport,
 } from '../../../src/types-hoist';
 
+import { describe, expect, it, vi } from 'vitest';
 import {
   createClientReportEnvelope,
   createEnvelope,
@@ -95,7 +96,7 @@ describe('makeMultiplexedTransport', () => {
 
   it('Falls back to options DSN when a matched DSN is invalid', async () => {
     // Hide warning logs in the test
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
 
     expect.assertions(1);
 
@@ -109,7 +110,7 @@ describe('makeMultiplexedTransport', () => {
     const transport = makeTransport({ url: DSN1_URL, ...transportOptions });
     await transport.send(ERROR_ENVELOPE);
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('DSN can be overridden via match callback', async () => {

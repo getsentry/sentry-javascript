@@ -1,3 +1,4 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -54,7 +55,7 @@ describe('startSpan', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe.each([
@@ -399,6 +400,40 @@ describe('startSpan', () => {
     });
   });
 
+  it('allows to add span links', () => {
+    const rawSpan1 = startInactiveSpan({ name: 'pageload_span' });
+
+    // @ts-expect-error _links exists on span
+    expect(rawSpan1?._links).toEqual(undefined);
+
+    const span1JSON = spanToJSON(rawSpan1);
+
+    startSpan({ name: '/users/:id' }, rawSpan2 => {
+      rawSpan2.addLink({
+        context: rawSpan1.spanContext(),
+        attributes: {
+          'sentry.link.type': 'previous_trace',
+        },
+      });
+
+      const span2LinkJSON = spanToJSON(rawSpan2).links?.[0];
+
+      expect(span2LinkJSON?.attributes?.['sentry.link.type']).toBe('previous_trace');
+
+      // @ts-expect-error _links and _traceId exist on SentrySpan
+      expect(rawSpan2._links?.[0].context.traceId).toEqual(rawSpan1._traceId);
+      // @ts-expect-error _links and _traceId exist on SentrySpan
+      expect(rawSpan2?._links?.[0].context.traceId).toEqual(span1JSON.trace_id);
+      expect(span2LinkJSON?.trace_id).toBe(span1JSON.trace_id);
+
+      // @ts-expect-error _links and _traceId exist on SentrySpan
+      expect(rawSpan2?._links?.[0].context.spanId).toEqual(rawSpan1?._spanId);
+      // @ts-expect-error _links and _traceId exist on SentrySpan
+      expect(rawSpan2?._links?.[0].context.spanId).toEqual(span1JSON.span_id);
+      expect(span2LinkJSON?.span_id).toBe(span1JSON.span_id);
+    });
+  });
+
   it('allows to force a transaction with forceTransaction=true', async () => {
     const options = getDefaultTestClientOptions({ tracesSampleRate: 1.0 });
     client = new TestClient(options);
@@ -586,7 +621,7 @@ describe('startSpan', () => {
   });
 
   it('samples with a tracesSampler', () => {
-    const tracesSampler = jest.fn(() => {
+    const tracesSampler = vi.fn(() => {
       return true;
     });
 
@@ -608,11 +643,12 @@ describe('startSpan', () => {
         test2: 'aa',
         test3: 'bb',
       },
+      inheritOrSampleWith: expect.any(Function),
     });
   });
 
   it('includes the scope at the time the span was started when finished', async () => {
-    const beforeSendTransaction = jest.fn(event => event);
+    const beforeSendTransaction = vi.fn(event => event);
 
     const client = new TestClient(
       getDefaultTestClientOptions({
@@ -662,7 +698,7 @@ describe('startSpan', () => {
 
     const carrier = getMainCarrier();
 
-    const customFn = jest.fn((_options: StartSpanOptions, callback: (span: Span) => string) => {
+    const customFn = vi.fn((_options: StartSpanOptions, callback: (span: Span) => string) => {
       callback(staticSpan);
       return 'aha';
     }) as typeof startSpan;
@@ -899,6 +935,40 @@ describe('startSpanManual', () => {
     });
   });
 
+  it('allows to add span links', () => {
+    const rawSpan1 = startInactiveSpan({ name: 'pageload_span' });
+
+    // @ts-expect-error _links exists on span
+    expect(rawSpan1?._links).toEqual(undefined);
+
+    const span1JSON = spanToJSON(rawSpan1);
+
+    startSpanManual({ name: '/users/:id' }, rawSpan2 => {
+      rawSpan2.addLink({
+        context: rawSpan1.spanContext(),
+        attributes: {
+          'sentry.link.type': 'previous_trace',
+        },
+      });
+
+      const span2LinkJSON = spanToJSON(rawSpan2).links?.[0];
+
+      expect(span2LinkJSON?.attributes?.['sentry.link.type']).toBe('previous_trace');
+
+      // @ts-expect-error _links and _traceId exist on SentrySpan
+      expect(rawSpan2?._links?.[0].context.traceId).toEqual(rawSpan1._traceId);
+      // @ts-expect-error _links and _traceId exist on SentrySpan
+      expect(rawSpan2?._links?.[0].context.traceId).toEqual(span1JSON.trace_id);
+      expect(span2LinkJSON?.trace_id).toBe(span1JSON.trace_id);
+
+      // @ts-expect-error _links and _traceId exist on SentrySpan
+      expect(rawSpan2?._links?.[0].context.spanId).toEqual(rawSpan1?._spanId);
+      // @ts-expect-error _links and _traceId exist on SentrySpan
+      expect(rawSpan2?._links?.[0].context.spanId).toEqual(span1JSON.span_id);
+      expect(span2LinkJSON?.span_id).toBe(span1JSON.span_id);
+    });
+  });
+
   it('allows to force a transaction with forceTransaction=true', async () => {
     const options = getDefaultTestClientOptions({ tracesSampleRate: 1.0 });
     client = new TestClient(options);
@@ -1119,7 +1189,7 @@ describe('startSpanManual', () => {
 
     const carrier = getMainCarrier();
 
-    const customFn = jest.fn((_options: StartSpanOptions, callback: (span: Span) => string) => {
+    const customFn = vi.fn((_options: StartSpanOptions, callback: (span: Span) => string) => {
       callback(staticSpan);
       return 'aha';
     }) as unknown as typeof startSpanManual;
@@ -1234,6 +1304,44 @@ describe('startInactiveSpan', () => {
       expect(spanToJSON(span).parent_span_id).toBe(undefined);
       span.end();
     });
+  });
+
+  it('allows to pass span links in span options', () => {
+    const rawSpan1 = startInactiveSpan({ name: 'pageload_span' });
+
+    // @ts-expect-error _links exists on span
+    expect(rawSpan1?._links).toEqual(undefined);
+
+    const rawSpan2 = startInactiveSpan({
+      name: 'GET users/[id]',
+      links: [
+        {
+          context: rawSpan1.spanContext(),
+          attributes: { 'sentry.link.type': 'previous_trace' },
+        },
+      ],
+    });
+
+    const span1JSON = spanToJSON(rawSpan1);
+    const span2JSON = spanToJSON(rawSpan2);
+    const span2LinkJSON = span2JSON.links?.[0];
+
+    expect(span2LinkJSON?.attributes?.['sentry.link.type']).toBe('previous_trace');
+
+    // @ts-expect-error _links and _traceId exist on SentrySpan
+    expect(rawSpan2?._links?.[0].context.traceId).toEqual(rawSpan1._traceId);
+    // @ts-expect-error _links and _traceId exist on SentrySpan
+    expect(rawSpan2?._links?.[0].context.traceId).toEqual(span1JSON.trace_id);
+    expect(span2LinkJSON?.trace_id).toBe(span1JSON.trace_id);
+
+    // @ts-expect-error _links and _traceId exist on SentrySpan
+    expect(rawSpan2?._links?.[0].context.spanId).toEqual(rawSpan1?._spanId);
+    // @ts-expect-error _links and _traceId exist on SentrySpan
+    expect(rawSpan2?._links?.[0].context.spanId).toEqual(span1JSON.span_id);
+    expect(span2LinkJSON?.span_id).toBe(span1JSON.span_id);
+
+    // sampling decision is inherited
+    expect(span2LinkJSON?.sampled).toBe(Boolean(spanToJSON(rawSpan1).data['sentry.sample_rate']));
   });
 
   it('allows to force a transaction with forceTransaction=true', async () => {
@@ -1436,7 +1544,7 @@ describe('startInactiveSpan', () => {
   });
 
   it('includes the scope at the time the span was started when finished', async () => {
-    const beforeSendTransaction = jest.fn(event => event);
+    const beforeSendTransaction = vi.fn(event => event);
 
     const client = new TestClient(
       getDefaultTestClientOptions({
@@ -1493,7 +1601,7 @@ describe('startInactiveSpan', () => {
 
     const carrier = getMainCarrier();
 
-    const customFn = jest.fn((_options: StartSpanOptions) => {
+    const customFn = vi.fn((_options: StartSpanOptions) => {
       return staticSpan;
     }) as unknown as typeof startInactiveSpan;
 
@@ -1658,7 +1766,7 @@ describe('getActiveSpan', () => {
 
     const carrier = getMainCarrier();
 
-    const customFn = jest.fn(() => {
+    const customFn = vi.fn(() => {
       return staticSpan;
     }) as typeof getActiveSpan;
 
@@ -1725,7 +1833,7 @@ describe('withActiveSpan()', () => {
 
     const carrier = getMainCarrier();
 
-    const customFn = jest.fn((_span: Span | null, callback: (scope: Scope) => string) => {
+    const customFn = vi.fn((_span: Span | null, callback: (scope: Scope) => string) => {
       callback(staticScope);
       return 'aha';
     }) as typeof withActiveSpan;
@@ -1757,7 +1865,7 @@ describe('span hooks', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('correctly emits span hooks', () => {
@@ -1808,7 +1916,7 @@ describe('suppressTracing', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('works for a root span', () => {

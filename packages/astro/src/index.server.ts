@@ -58,7 +58,9 @@ export {
   graphqlIntegration,
   hapiIntegration,
   httpIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   inboundFiltersIntegration,
+  eventFiltersIntegration,
   initOpenTelemetry,
   isInitialized,
   kafkaIntegration,
@@ -118,12 +120,14 @@ export {
   tediousIntegration,
   trpcMiddleware,
   updateSpanName,
+  vercelAIIntegration,
   withActiveSpan,
   withIsolationScope,
   withMonitor,
   withScope,
   zodErrorsIntegration,
   profiler,
+  logger,
 } from '@sentry/node';
 
 export { init } from './server/sdk';

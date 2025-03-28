@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { spawn, spawnSync } from 'child_process';
+import { execSync, spawn, spawnSync } from 'child_process';
 import { existsSync } from 'fs';
 import { join } from 'path';
 import { normalize } from '@sentry/core';
@@ -10,6 +10,7 @@ import type {
   Event,
   EventEnvelope,
   SerializedCheckIn,
+  SerializedOtelLog,
   SerializedSession,
   SessionAggregates,
   TransactionEvent,
@@ -20,6 +21,7 @@ import {
   assertSentryCheckIn,
   assertSentryClientReport,
   assertSentryEvent,
+  assertSentryOtelLog,
   assertSentrySession,
   assertSentrySessions,
   assertSentryTransaction,
@@ -60,6 +62,10 @@ interface DockerOptions {
    * The strings to look for in the output to know that the docker compose is ready for the test to be run
    */
   readyMatches: string[];
+  /**
+   * The command to run after docker compose is up
+   */
+  setupCommand?: string;
 }
 
 /**
@@ -96,6 +102,9 @@ async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
         if (text.includes(match)) {
           child.stdout.removeAllListeners();
           clearTimeout(timeout);
+          if (options.setupCommand) {
+            execSync(options.setupCommand, { cwd, stdio: 'inherit' });
+          }
           resolve(close);
         }
       }
@@ -112,6 +121,7 @@ type ExpectedSession = Partial<SerializedSession> | ((event: SerializedSession) 
 type ExpectedSessions = Partial<SessionAggregates> | ((event: SessionAggregates) => void);
 type ExpectedCheckIn = Partial<SerializedCheckIn> | ((event: SerializedCheckIn) => void);
 type ExpectedClientReport = Partial<ClientReport> | ((event: ClientReport) => void);
+type ExpectedOtelLog = Partial<SerializedOtelLog> | ((event: SerializedOtelLog) => void);
 
 type Expected =
   | {
@@ -131,13 +141,28 @@ type Expected =
     }
   | {
       client_report: ExpectedClientReport;
+    }
+  | {
+      otel_log: ExpectedOtelLog;
     };
 
 type ExpectedEnvelopeHeader =
   | { event: Partial<EventEnvelope[0]> }
   | { transaction: Partial<Envelope[0]> }
   | { session: Partial<Envelope[0]> }
-  | { sessions: Partial<Envelope[0]> };
+  | { sessions: Partial<Envelope[0]> }
+  | { otel_log: Partial<Envelope[0]> };
+
+type StartResult = {
+  completed(): Promise<void>;
+  childHasExited(): boolean;
+  getLogs(): string[];
+  makeRequest<T>(
+    method: 'get' | 'post',
+    path: string,
+    options?: { headers?: Record<string, string>; data?: unknown; expectError?: boolean },
+  ): Promise<T | undefined>;
+};
 
 /** Creates a test runner */
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
@@ -212,7 +237,13 @@ export function createRunner(...paths: string[]) {
       ensureNoErrorOutput = true;
       return this;
     },
-    start: function (done?: (e?: unknown) => void) {
+    start: function (done?: (e?: unknown) => void): StartResult {
+      let resolve: (value: void) => void;
+      let reject: (reason?: unknown) => void;
+      const completePromise = new Promise<void>((res, rej) => {
+        resolve = res;
+        reject = rej;
+      });
       const expectedEnvelopeCount = Math.max(expectedEnvelopes.length, (expectedEnvelopeHeaders || []).length);
 
       let envelopeCount = 0;
@@ -223,6 +254,11 @@ export function createRunner(...paths: string[]) {
       function complete(error?: Error): void {
         child?.kill();
         done?.(normalize(error));
+        if (error) {
+          reject(error);
+        } else {
+          resolve();
+        }
       }
 
       /** Called after each expect callback to check if we're complete */
@@ -247,7 +283,7 @@ export function createRunner(...paths: string[]) {
 
             try {
               if (!expected) {
-                throw new Error(`No more expected envelope items but we received ${JSON.stringify(header)}`);
+                return;
               }
 
               assertEnvelopeHeader(header, expected);
@@ -265,13 +301,17 @@ export function createRunner(...paths: string[]) {
           // Catch any error or failed assertions and pass them to done to end the test quickly
           try {
             if (!expected) {
-              throw new Error(`No more expected envelope items but we received a '${envelopeItemType}' item`);
+              return;
             }
 
             const expectedType = Object.keys(expected)[0];
 
             if (expectedType !== envelopeItemType) {
-              throw new Error(`Expected envelope item type '${expectedType}' but got '${envelopeItemType}'`);
+              throw new Error(
+                `Expected envelope item type '${expectedType}' but got '${envelopeItemType}'. \nItem: ${JSON.stringify(
+                  item,
+                )}`,
+              );
             }
 
             if ('event' in expected) {
@@ -292,8 +332,13 @@ export function createRunner(...paths: string[]) {
             } else if ('client_report' in expected) {
               expectClientReport(item[1] as ClientReport, expected.client_report);
               expectCallbackCalled();
+            } else if ('otel_log' in expected) {
+              expectOtelLog(item[1] as SerializedOtelLog, expected.otel_log);
+              expectCallbackCalled();
             } else {
-              throw new Error(`Unhandled expected envelope item type: ${JSON.stringify(expected)}`);
+              throw new Error(
+                `Unhandled expected envelope item type: ${JSON.stringify(expected)}\nItem: ${JSON.stringify(item)}`,
+              );
             }
           } catch (e) {
             complete(e as Error);
@@ -408,6 +453,9 @@ export function createRunner(...paths: string[]) {
         .catch(e => complete(e));
 
       return {
+        completed: function (): Promise<void> {
+          return completePromise;
+        },
         childHasExited: function (): boolean {
           return hasExited;
         },
@@ -507,5 +555,13 @@ function expectClientReport(item: ClientReport, expected: ExpectedClientReport):
     expected(item);
   } else {
     assertSentryClientReport(item, expected);
+  }
+}
+
+function expectOtelLog(item: SerializedOtelLog, expected: ExpectedOtelLog): void {
+  if (typeof expected === 'function') {
+    expected(item);
+  } else {
+    assertSentryOtelLog(item, expected);
   }
 }

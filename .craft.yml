@@ -109,11 +109,20 @@ targets:
     id: '@sentry/sveltekit'
     includeNames: /^sentry-sveltekit-\d.*\.tgz$/
   - name: npm
+    id: '@sentry/tanstackstart'
+    includeNames: /^sentry-tanstackstart-\d.*\.tgz$/
+  - name: npm
+    id: '@sentry/tanstackstart-react'
+    includeNames: /^sentry-tanstackstart-react-\d.*\.tgz$/
+  - name: npm
     id: '@sentry/gatsby'
     includeNames: /^sentry-gatsby-\d.*\.tgz$/
   - name: npm
     id: '@sentry/astro'
     includeNames: /^sentry-astro-\d.*\.tgz$/
+  - name: npm
+    id: '@sentry/react-router'
+    includeNames: /^sentry-react-router-\d.*\.tgz$/
 
   ## 7. Other Packages
   ## 7.1
@@ -129,20 +138,19 @@ targets:
     includeNames: /^sentry-internal-eslint-config-sdk-\d.*\.tgz$/
 
   # AWS Lambda Layer target
-  # TODO(v9): Once stable, re-add this target to publish the AWS Lambda layer
-  # - name: aws-lambda-layer
-  #   includeNames: /^sentry-node-serverless-\d+.\d+.\d+(-(beta|alpha|rc)\.\d+)?\.zip$/
-  #   layerName: SentryNodeServerlessSDKv9
-  #   compatibleRuntimes:
-  #     - name: node
-  #       versions:
-  #         - nodejs10.x
-  #         - nodejs12.x
-  #         - nodejs14.x
-  #         - nodejs16.x
-  #         - nodejs18.x
-  #         - nodejs20.x
-  #   license: MIT
+  - name: aws-lambda-layer
+    includeNames: /^sentry-node-serverless-\d+.\d+.\d+(-(beta|alpha|rc)\.\d+)?\.zip$/
+    layerName: SentryNodeServerlessSDKv9
+    compatibleRuntimes:
+      - name: node
+        versions:
+          - nodejs10.x
+          - nodejs12.x
+          - nodejs14.x
+          - nodejs16.x
+          - nodejs18.x
+          - nodejs20.x
+    license: MIT
 
   # CDN Bundle Target
   - name: gcs
@@ -191,6 +199,8 @@ targets:
         onlyIfPresent: /^sentry-node-\d.*\.tgz$/
       'npm:@sentry/react':
         onlyIfPresent: /^sentry-react-\d.*\.tgz$/
+      'npm:@sentry/react-router':
+        onlyIfPresent: /^sentry-react-router-\d.*\.tgz$/
       'npm:@sentry/remix':
         onlyIfPresent: /^sentry-remix-\d.*\.tgz$/
       'npm:@sentry/solid':

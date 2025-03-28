@@ -1,4 +1,4 @@
-import { DiagLogLevel, diag } from '@opentelemetry/api';
+import { DiagLogLevel, context, diag, propagation, trace } from '@opentelemetry/api';
 import { Resource } from '@opentelemetry/resources';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import {
@@ -15,7 +15,7 @@ import {
   functionToStringIntegration,
   getCurrentScope,
   getIntegrationsToSetup,
-  hasTracingEnabled,
+  hasSpansEnabled,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
   logger,
@@ -51,6 +51,8 @@ const nodeStackParser = createStackParser(nodeStackLineParser());
 export function getDefaultIntegrations(options: Options): Integration[] {
   return [
     dedupeIntegration(),
+    // TODO(v10): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
+    // eslint-disable-next-line deprecation/deprecation
     inboundFiltersIntegration(),
     functionToStringIntegration(),
     linkedErrorsIntegration(),
@@ -124,7 +126,7 @@ function validateOpenTelemetrySetup(): void {
 
   const required: ReturnType<typeof openTelemetrySetupCheck> = ['SentryContextManager', 'SentryPropagator'];
 
-  if (hasTracingEnabled()) {
+  if (hasSpansEnabled()) {
     required.push('SentrySpanProcessor');
   }
 
@@ -169,11 +171,9 @@ export function setupOtel(client: VercelEdgeClient): void {
 
   const SentryContextManager = wrapContextManagerClass(AsyncLocalStorageContextManager);
 
-  // Initialize the provider
-  provider.register({
-    propagator: new SentryPropagator(),
-    contextManager: new SentryContextManager(),
-  });
+  trace.setGlobalTracerProvider(provider);
+  propagation.setGlobalPropagator(new SentryPropagator());
+  context.setGlobalContextManager(new SentryContextManager());
 
   client.traceProvider = provider;
 }

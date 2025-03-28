@@ -59,10 +59,15 @@ env:
     nx-Linux-${{ github.ref }}
     nx-Linux
 
+  # https://bsky.app/profile/joyeecheung.bsky.social/post/3lhy6o54fo22h
+  # Apparently some of our CI failures are attributable to a corrupt v8 cache, causing v8 failures with: "Check failed: current == end_slot_index.".
+  # This option both controls the `v8-compile-cache-lib` and `v8-compile-cache` packages.
+  DISABLE_V8_COMPILE_CACHE: '1'
+
 jobs:
   job_get_metadata:
     name: Get Metadata
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       pull-requests: read
     steps:
@@ -94,7 +99,6 @@ jobs:
             any_code:
               - '!**/*.md'
 
-
       - name: Get PR labels
         id: pr-labels
         uses: mydea/pr-labels-action@fn/bump-node20
@@ -102,7 +106,8 @@ jobs:
     outputs:
       commit_label: '${{ env.COMMIT_SHA }}: ${{ env.COMMIT_MESSAGE }}'
       # Note: These next three have to be checked as strings ('true'/'false')!
-      is_base_branch: ${{ github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/v9' || github.ref == 'refs/heads/v8'}}
+      is_base_branch:
+        ${{ github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/v9' || github.ref == 'refs/heads/v8'}}
       is_release: ${{ startsWith(github.ref, 'refs/heads/release/') }}
       changed_ci: ${{ steps.changed.outputs.workflow == 'true' }}
       changed_any_code: ${{ steps.changed.outputs.any_code == 'true' }}
@@ -118,7 +123,7 @@ jobs:
   job_build:
     name: Build
     needs: job_get_metadata
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     if: |
       needs.job_get_metadata.outputs.changed_any_code == 'true' ||
@@ -167,7 +172,8 @@ jobs:
           key: nx-Linux-${{ github.ref }}-${{ env.HEAD_COMMIT || github.sha }}
           # On develop branch, we want to _store_ the cache (so it can be used by other branches), but never _restore_ from it
           restore-keys:
-            ${{needs.job_get_metadata.outputs.is_base_branch == 'false' && env.NX_CACHE_RESTORE_KEYS || 'nx-never-restore'}}
+            ${{needs.job_get_metadata.outputs.is_base_branch == 'false' && env.NX_CACHE_RESTORE_KEYS ||
+            'nx-never-restore'}}
 
       - name: Build packages
         # Set the CODECOV_TOKEN for Bundle Analysis
@@ -186,17 +192,29 @@ jobs:
 
     outputs:
       dependency_cache_key: ${{ steps.install_dependencies.outputs.cache_key }}
-      changed_node_integration: ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected, '@sentry-internal/node-integration-tests') }}
-      changed_remix: ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected, '@sentry/remix') }}
-      changed_node: ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected, '@sentry/node') }}
-      changed_deno: ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected, '@sentry/deno') }}
-      changed_bun: ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected, '@sentry/bun') }}
-      changed_browser_integration: ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected, '@sentry-internal/browser-integration-tests') }}
+      changed_node_integration:
+        ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
+        '@sentry-internal/node-integration-tests') }}
+      changed_remix:
+        ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
+        '@sentry/remix') }}
+      changed_node:
+        ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
+        '@sentry/node') }}
+      changed_deno:
+        ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
+        '@sentry/deno') }}
+      changed_bun:
+        ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
+        '@sentry/bun') }}
+      changed_browser_integration:
+        ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
+        '@sentry-internal/browser-integration-tests') }}
 
   job_check_branches:
     name: Check PR branches
     needs: job_get_metadata
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     if: github.event_name == 'pull_request'
     permissions:
       pull-requests: write
@@ -212,7 +230,7 @@ jobs:
     name: Size Check
     needs: [job_get_metadata, job_build]
     timeout-minutes: 15
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     if:
       github.event_name == 'pull_request' || needs.job_get_metadata.outputs.is_base_branch == 'true' ||
       needs.job_get_metadata.outputs.is_release == 'true'
@@ -242,7 +260,7 @@ jobs:
     # inter-package dependencies resolve cleanly.
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -256,10 +274,11 @@ jobs:
         uses: ./.github/actions/restore-cache
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Check for duplicate dependencies in lockfile
+        # Run `yarn dedupe-deps:fix` locally to resolve any duplicates.
+        run: yarn dedupe-deps:check
       - name: Lint source files
         run: yarn lint:lerna
-      - name: Lint C++ files
-        run: yarn lint:clang
       - name: Lint for ES compatibility
         run: yarn lint:es-compatibility
 
@@ -267,7 +286,7 @@ jobs:
     name: Check file formatting
     needs: [job_get_metadata]
     timeout-minutes: 10
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -284,13 +303,13 @@ jobs:
         id: install_dependencies
 
       - name: Check file formatting
-        run: yarn lint:prettier && yarn lint:biome
+        run: yarn lint:prettier
 
   job_circular_dep_check:
     name: Circular Dependency Check
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -310,7 +329,7 @@ jobs:
   job_artifacts:
     name: Upload Artifacts
     needs: [job_get_metadata, job_build]
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     # Build artifacts are only needed for releasing workflow.
     if: needs.job_get_metadata.outputs.is_release == 'true'
     steps:
@@ -347,7 +366,7 @@ jobs:
     name: Browser Unit Tests
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out base commit (${{ github.event.pull_request.base.sha }})
         uses: actions/checkout@v4
@@ -381,12 +400,20 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
+      - name: Upload test results to Codecov
+        if: cancelled() == false
+        continue-on-error: true
+        uses: codecov/test-results-action@v1
+        with:
+          files: packages/**/*.junit.xml
+          token: ${{ secrets.CODECOV_TOKEN }}
+
   job_bun_unit_tests:
     name: Bun Unit Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_bun == 'true' || github.event_name != 'pull_request'
     timeout-minutes: 10
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
     steps:
@@ -413,7 +440,7 @@ jobs:
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_deno == 'true' || github.event_name != 'pull_request'
     timeout-minutes: 10
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
     steps:
@@ -426,7 +453,7 @@ jobs:
         with:
           node-version-file: 'package.json'
       - name: Set up Deno
-        uses: denoland/setup-deno@v2.0.1
+        uses: denoland/setup-deno@v2.0.2
         with:
           deno-version: v2.1.5
       - name: Restore caches
@@ -443,7 +470,7 @@ jobs:
     name: Node (${{ matrix.node }}) Unit Tests
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -484,11 +511,21 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
+      - name: Upload test results to Codecov
+        if: cancelled() == false
+        continue-on-error: true
+        uses: codecov/test-results-action@v1
+        with:
+          files: packages/**/*.junit.xml
+          token: ${{ secrets.CODECOV_TOKEN }}
+
   job_browser_playwright_tests:
-    name: Playwright ${{ matrix.bundle }}${{ matrix.project && matrix.project != 'chromium' && format(' {0}', matrix.project) || ''}}${{ matrix.shard && format(' ({0}/{1})', matrix.shard, matrix.shards) || ''}} Tests
+    name:
+      Playwright ${{ matrix.bundle }}${{ matrix.project && matrix.project != 'chromium' && format(' {0}',
+      matrix.project) || ''}}${{ matrix.shard && format(' ({0}/{1})', matrix.shard, matrix.shards) || ''}} Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
-    runs-on: ubuntu-20.04-large-js
+    runs-on: ubuntu-24.04-large-js
     timeout-minutes: 25
     strategy:
       fail-fast: false
@@ -555,13 +592,17 @@ jobs:
         env:
           PW_BUNDLE: ${{ matrix.bundle }}
         working-directory: dev-packages/browser-integration-tests
-        run: yarn test:all${{ matrix.project && format(' --project={0}', matrix.project) || '' }}${{ matrix.shard && format(' --shard={0}/{1}', matrix.shard, matrix.shards) || '' }}
+        run:
+          yarn test:all${{ matrix.project && format(' --project={0}', matrix.project) || '' }}${{ matrix.shard &&
+          format(' --shard={0}/{1}', matrix.shard, matrix.shards) || '' }}
 
       - name: Upload Playwright Traces
         uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: playwright-traces-job_browser_playwright_tests-${{ matrix.bundle}}-${{matrix.project}}-${{matrix.shard || '0'}}
+          name:
+            playwright-traces-job_browser_playwright_tests-${{ matrix.bundle}}-${{matrix.project}}-${{matrix.shard ||
+            '0'}}
           path: dev-packages/browser-integration-tests/test-results
           overwrite: true
           retention-days: 7
@@ -578,7 +619,7 @@ jobs:
     name: PW ${{ matrix.bundle }} Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -638,7 +679,7 @@ jobs:
   job_check_for_faulty_dts:
     name: Check for faulty .d.ts files
     needs: [job_get_metadata, job_build]
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -666,7 +707,7 @@ jobs:
       Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_node_integration == 'true' || github.event_name != 'pull_request'
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -701,11 +742,19 @@ jobs:
         working-directory: dev-packages/node-integration-tests
         run: yarn test
 
+      - name: Upload test results to Codecov
+        if: cancelled() == false
+        continue-on-error: true
+        uses: codecov/test-results-action@v1
+        with:
+          directory: dev-packages/node-integration-tests
+          token: ${{ secrets.CODECOV_TOKEN }}
+
   job_remix_integration_tests:
     name: Remix (Node ${{ matrix.node }}) Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_remix == 'true' || github.event_name != 'pull_request'
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     strategy:
       fail-fast: false
@@ -737,6 +786,14 @@ jobs:
           cd packages/remix
           yarn test:integration:ci
 
+      - name: Upload test results to Codecov
+        if: cancelled() == false
+        continue-on-error: true
+        uses: codecov/test-results-action@v1
+        with:
+          directory: packages/remix
+          token: ${{ secrets.CODECOV_TOKEN }}
+
   job_e2e_prepare:
     name: Prepare E2E tests
     # We want to run this if:
@@ -745,7 +802,7 @@ jobs:
       always() &&
       needs.job_build.result == 'success'
     needs: [job_get_metadata, job_build]
-    runs-on: ubuntu-20.04-large-js
+    runs-on: ubuntu-24.04-large-js
     timeout-minutes: 15
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
@@ -787,21 +844,26 @@ jobs:
 
       - name: Determine which E2E test applications should be run
         id: matrix
-        run: yarn --silent ci:build-matrix --base=${{ (github.event_name == 'pull_request' && github.event.pull_request.base.sha) || '' }} >> $GITHUB_OUTPUT
+        run:
+          yarn --silent ci:build-matrix --base=${{ (github.event_name == 'pull_request' &&
+          github.event.pull_request.base.sha) || '' }} >> $GITHUB_OUTPUT
         working-directory: dev-packages/e2e-tests
 
       - name: Determine which optional E2E test applications should be run
         id: matrix-optional
-        run: yarn --silent ci:build-matrix-optional --base=${{ (github.event_name == 'pull_request' && github.event.pull_request.base.sha) || '' }} >> $GITHUB_OUTPUT
+        run:
+          yarn --silent ci:build-matrix-optional --base=${{ (github.event_name == 'pull_request' &&
+          github.event.pull_request.base.sha) || '' }} >> $GITHUB_OUTPUT
         working-directory: dev-packages/e2e-tests
 
   job_e2e_tests:
     name: E2E ${{ matrix.label || matrix.test-application }} Test
     # We need to add the `always()` check here because the previous step has this as well :(
     # See: https://github.com/actions/runner/issues/2205
-    if: always() && needs.job_e2e_prepare.result == 'success' && needs.job_e2e_prepare.outputs.matrix != '{"include":[]}'
+    if:
+      always() && needs.job_e2e_prepare.result == 'success' && needs.job_e2e_prepare.outputs.matrix != '{"include":[]}'
     needs: [job_get_metadata, job_build, job_e2e_prepare]
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
       # We just use a dummy DSN here, only send to the tunnel anyhow
@@ -916,14 +978,11 @@ jobs:
     # We need to add the `always()` check here because the previous step has this as well :(
     # See: https://github.com/actions/runner/issues/2205
     if:
-      always() &&
-      needs.job_get_metadata.outputs.is_release != 'true' &&
-      needs.job_e2e_prepare.result == 'success' &&
-      needs.job_e2e_prepare.outputs.matrix-optional != '{"include":[]}' &&
-      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
-      github.actor != 'dependabot[bot]'
+      always() && needs.job_get_metadata.outputs.is_release != 'true' && needs.job_e2e_prepare.result == 'success' &&
+      needs.job_e2e_prepare.outputs.matrix-optional != '{"include":[]}' && (github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository) && github.actor != 'dependabot[bot]'
     needs: [job_get_metadata, job_build, job_e2e_prepare]
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
       E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
@@ -1043,7 +1102,7 @@ jobs:
       ]
     # Always run this, even if a dependent job failed
     if: always()
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Check for failures
         if: contains(needs.*.result, 'failure')

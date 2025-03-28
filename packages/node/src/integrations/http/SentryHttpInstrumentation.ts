@@ -1,51 +1,51 @@
-import type * as http from 'node:http';
-import type { IncomingMessage, RequestOptions } from 'node:http';
-import type * as https from 'node:https';
-import type { EventEmitter } from 'node:stream';
 /* eslint-disable max-lines */
+import { context, propagation } from '@opentelemetry/api';
 import { VERSION } from '@opentelemetry/core';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
 import type { AggregationCounts, Client, RequestEventData, SanitizedRequestData, Scope } from '@sentry/core';
 import {
-  LRUMap,
   addBreadcrumb,
   generateSpanId,
   getBreadcrumbLogLevelFromHttpStatusCode,
   getClient,
+  getCurrentScope,
   getIsolationScope,
   getSanitizedUrlString,
-  getTraceData,
   httpRequestToRequestData,
   logger,
-  objectToBaggageHeader,
-  parseBaggageHeader,
   parseUrl,
   stripUrlQueryAndFragment,
   withIsolationScope,
-  withScope,
 } from '@sentry/core';
-import { shouldPropagateTraceForUrl } from '@sentry/opentelemetry';
+import type * as http from 'node:http';
+import type { IncomingMessage, RequestOptions } from 'node:http';
+import type * as https from 'node:https';
+import type { EventEmitter } from 'node:stream';
 import { DEBUG_BUILD } from '../../debug-build';
 import { getRequestUrl } from '../../utils/getRequestUrl';
+import { stealthWrap } from './utils';
 import { getRequestInfo } from './vendor/getRequestInfo';
 
 type Http = typeof http;
 type Https = typeof https;
 
-type RequestArgs =
-  // eslint-disable-next-line @typescript-eslint/ban-types
-  | [url: string | URL, options?: RequestOptions, callback?: Function]
-  // eslint-disable-next-line @typescript-eslint/ban-types
-  | [options: RequestOptions, callback?: Function];
-
-type SentryHttpInstrumentationOptions = InstrumentationConfig & {
+export type SentryHttpInstrumentationOptions = InstrumentationConfig & {
   /**
    * Whether breadcrumbs should be recorded for requests.
    *
    * @default `true`
    */
   breadcrumbs?: boolean;
+
+  /**
+   * Whether to extract the trace ID from the `sentry-trace` header for incoming requests.
+   * By default this is done by the HttpInstrumentation, but if that is not added (e.g. because tracing is disabled, ...)
+   * then this instrumentation can take over.
+   *
+   * @default `false`
+   */
+  extractIncomingTraceFromHeader?: boolean;
 
   /**
    * Do not capture breadcrumbs for outgoing HTTP requests to URLs where the given callback returns `true`.
@@ -91,11 +91,8 @@ const MAX_BODY_BYTE_LENGTH = 1024 * 1024;
  * https://github.com/open-telemetry/opentelemetry-js/blob/f8ab5592ddea5cba0a3b33bf8d74f27872c0367f/experimental/packages/opentelemetry-instrumentation-http/src/http.ts
  */
 export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpInstrumentationOptions> {
-  private _propagationDecisionMap: LRUMap<string, boolean>;
-
   public constructor(config: SentryHttpInstrumentationOptions = {}) {
     super('@sentry/instrumentation-http', VERSION, config);
-    this._propagationDecisionMap = new LRUMap<string, boolean>(100);
   }
 
   /** @inheritdoc */
@@ -157,17 +154,17 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
     return (
       original: (event: string, ...args: unknown[]) => boolean,
     ): ((this: unknown, event: string, ...args: unknown[]) => boolean) => {
-      return function incomingRequest(this: unknown, event: string, ...args: unknown[]): boolean {
+      return function incomingRequest(this: unknown, ...args: [event: string, ...args: unknown[]]): boolean {
         // Only traces request events
-        if (event !== 'request') {
-          return original.apply(this, [event, ...args]);
+        if (args[0] !== 'request') {
+          return original.apply(this, args);
         }
 
         instrumentation._diag.debug('http instrumentation for incoming request');
 
         const isolationScope = getIsolationScope().clone();
-        const request = args[0] as http.IncomingMessage;
-        const response = args[1] as http.OutgoingMessage;
+        const request = args[1] as http.IncomingMessage;
+        const response = args[2] as http.OutgoingMessage;
 
         const normalizedRequest = httpRequestToRequestData(request);
 
@@ -198,10 +195,19 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
         }
 
         return withIsolationScope(isolationScope, () => {
-          return withScope(scope => {
-            // Set a new propagationSpanId for this request
-            scope.getPropagationContext().propagationSpanId = generateSpanId();
-            return original.apply(this, [event, ...args]);
+          // Set a new propagationSpanId for this request
+          // We rely on the fact that `withIsolationScope()` will implicitly also fork the current scope
+          // This way we can save an "unnecessary" `withScope()` invocation
+          getCurrentScope().getPropagationContext().propagationSpanId = generateSpanId();
+
+          // If we don't want to extract the trace from the header, we can skip this
+          if (!instrumentation.getConfig().extractIncomingTraceFromHeader) {
+            return original.apply(this, args);
+          }
+
+          const ctx = propagation.extract(context.active(), normalizedRequest.headers);
+          return context.with(ctx, () => {
+            return original.apply(this, args);
           });
         });
       };
@@ -222,21 +228,22 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
       return function outgoingRequest(this: unknown, ...args: unknown[]): http.ClientRequest {
         instrumentation._diag.debug('http instrumentation for outgoing requests');
 
+        // Making a copy to avoid mutating the original args array
         // We need to access and reconstruct the request options object passed to `ignoreOutgoingRequests`
         // so that it matches what Otel instrumentation passes to `ignoreOutgoingRequestHook`.
         // @see https://github.com/open-telemetry/opentelemetry-js/blob/7293e69c1e55ca62e15d0724d22605e61bd58952/experimental/packages/opentelemetry-instrumentation-http/src/http.ts#L756-L789
-        const requestArgs = [...args] as RequestArgs;
-        const options = requestArgs[0];
-        const extraOptions = typeof requestArgs[1] === 'object' ? requestArgs[1] : undefined;
+        const argsCopy = [...args];
 
-        const { optionsParsed, origin, pathname } = getRequestInfo(instrumentation._diag, options, extraOptions);
-        const url = getAbsoluteUrl(origin, pathname);
+        const options = argsCopy.shift() as URL | http.RequestOptions | string;
 
-        addSentryHeadersToRequestOptions(url, optionsParsed, instrumentation._propagationDecisionMap);
+        const extraOptions =
+          typeof argsCopy[0] === 'object' && (typeof options === 'string' || options instanceof URL)
+            ? (argsCopy.shift() as http.RequestOptions)
+            : undefined;
 
-        const request = original.apply(this, [optionsParsed, ...requestArgs.slice(1)]) as ReturnType<
-          typeof http.request
-        >;
+        const { optionsParsed } = getRequestInfo(instrumentation._diag, options, extraOptions);
+
+        const request = original.apply(this, args) as ReturnType<typeof http.request>;
 
         request.prependListener('response', (response: http.IncomingMessage) => {
           const _breadcrumbs = instrumentation.getConfig().breadcrumbs;
@@ -279,46 +286,6 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
       };
     };
   }
-}
-
-/**
- * This is a minimal version of `wrap` from shimmer:
- * https://github.com/othiym23/shimmer/blob/master/index.js
- *
- * In contrast to the original implementation, this version does not allow to unwrap,
- * and does not make it clear that the method is wrapped.
- * This is necessary because we want to wrap the http module with our own code,
- * while still allowing to use the HttpInstrumentation from OTEL.
- *
- * Without this, if we'd just use `wrap` from shimmer, the OTEL instrumentation would remove our wrapping,
- * because it only allows any module to be wrapped a single time.
- */
-function stealthWrap<Nodule extends object, FieldName extends keyof Nodule>(
-  nodule: Nodule,
-  name: FieldName,
-  wrapper: (original: Nodule[FieldName]) => Nodule[FieldName],
-): Nodule[FieldName] {
-  const original = nodule[name];
-  const wrapped = wrapper(original);
-
-  defineProperty(nodule, name, wrapped);
-  return wrapped;
-}
-
-// Sets a property on an object, preserving its enumerability.
-function defineProperty<Nodule extends object, FieldName extends keyof Nodule>(
-  obj: Nodule,
-  name: FieldName,
-  value: Nodule[FieldName],
-): void {
-  const enumerable = !!obj[name] && Object.prototype.propertyIsEnumerable.call(obj, name);
-
-  Object.defineProperty(obj, name, {
-    configurable: true,
-    enumerable: enumerable,
-    writable: true,
-    value: value,
-  });
 }
 
 /** Add a breadcrumb for outgoing requests. */
@@ -471,44 +438,6 @@ function patchRequestToCaptureBody(req: IncomingMessage, isolationScope: Scope):
 }
 
 /**
- * Mutates the passed in `options` and adds `sentry-trace` / `baggage` headers, if they are not already set.
- */
-function addSentryHeadersToRequestOptions(
-  url: string,
-  options: RequestOptions,
-  propagationDecisionMap: LRUMap<string, boolean>,
-): void {
-  // Manually add the trace headers, if it applies
-  // Note: We do not use `propagation.inject()` here, because our propagator relies on an active span
-  // Which we do not have in this case
-  const tracePropagationTargets = getClient()?.getOptions().tracePropagationTargets;
-  const addedHeaders = shouldPropagateTraceForUrl(url, tracePropagationTargets, propagationDecisionMap)
-    ? getTraceData()
-    : undefined;
-
-  if (!addedHeaders) {
-    return;
-  }
-
-  if (!options.headers) {
-    options.headers = {};
-  }
-  const headers = options.headers;
-
-  const { 'sentry-trace': sentryTrace, baggage } = addedHeaders;
-
-  // We do not want to overwrite existing header here, if it was already set
-  if (sentryTrace && !headers['sentry-trace']) {
-    headers['sentry-trace'] = sentryTrace;
-  }
-
-  // For baggage, we make sure to merge this into a possibly existing header
-  if (baggage) {
-    headers['baggage'] = mergeBaggageHeaders(headers['baggage'], baggage);
-  }
-}
-
-/**
  * Starts a session and tracks it in the context of a given isolation scope.
  * When the passed response is finished, the session is put into a task and is
  * aggregated with other sessions that may happen in a certain time window
@@ -522,7 +451,11 @@ export function recordRequestSession({
   requestIsolationScope,
   response,
   sessionFlushingDelayMS,
-}: { requestIsolationScope: Scope; response: EventEmitter; sessionFlushingDelayMS?: number }): void {
+}: {
+  requestIsolationScope: Scope;
+  response: EventEmitter;
+  sessionFlushingDelayMS?: number;
+}): void {
   requestIsolationScope.setSDKProcessingMetadata({
     requestSession: { status: 'ok' },
   });
@@ -582,49 +515,3 @@ const clientToRequestSessionAggregatesMap = new Map<
   Client,
   { [timestampRoundedToSeconds: string]: { exited: number; crashed: number; errored: number } }
 >();
-
-function getAbsoluteUrl(origin: string, path: string = '/'): string {
-  try {
-    const url = new URL(path, origin);
-    return url.toString();
-  } catch {
-    // fallback: Construct it on our own
-    const url = `${origin}`;
-
-    if (url.endsWith('/') && path.startsWith('/')) {
-      return `${url}${path.slice(1)}`;
-    }
-
-    if (!url.endsWith('/') && !path.startsWith('/')) {
-      return `${url}/${path.slice(1)}`;
-    }
-
-    return `${url}${path}`;
-  }
-}
-
-function mergeBaggageHeaders(
-  existing: string | string[] | number | undefined,
-  baggage: string,
-): string | string[] | number | undefined {
-  if (!existing) {
-    return baggage;
-  }
-
-  const existingBaggageEntries = parseBaggageHeader(existing);
-  const newBaggageEntries = parseBaggageHeader(baggage);
-
-  if (!newBaggageEntries) {
-    return existing;
-  }
-
-  // Existing entries take precedence, ensuring order remains stable for minimal changes
-  const mergedBaggageEntries = { ...existingBaggageEntries };
-  Object.entries(newBaggageEntries).forEach(([key, value]) => {
-    if (!mergedBaggageEntries[key]) {
-      mergedBaggageEntries[key] = value;
-    }
-  });
-
-  return objectToBaggageHeader(mergedBaggageEntries);
-}

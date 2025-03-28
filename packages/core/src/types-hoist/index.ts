@@ -49,6 +49,8 @@ export type {
   ProfileChunkItem,
   SpanEnvelope,
   SpanItem,
+  OtelLogEnvelope,
+  OtelLogItem,
 } from './envelope';
 export type { ExtendedError } from './error';
 export type { Event, EventHint, EventType, ErrorEvent, TransactionEvent } from './event';
@@ -84,11 +86,7 @@ export type {
   SendFeedbackParams,
   UserFeedback,
 } from './feedback';
-export type {
-  QueryParams,
-  RequestEventData,
-  SanitizedRequestData,
-} from './request';
+export type { QueryParams, RequestEventData, SanitizedRequestData } from './request';
 export type { Runtime } from './runtime';
 export type { SdkInfo } from './sdkinfo';
 export type { SdkMetadata } from './sdkmetadata';
@@ -114,15 +112,19 @@ export type {
   TraceFlag,
 } from './span';
 export type { SpanStatus } from './spanStatus';
+export type {
+  Log,
+  LogSeverityLevel,
+  SerializedOtelLog,
+  SerializedLogAttribute,
+  SerializedLogAttributeValueType,
+} from './log';
 export type { TimedEvent } from './timedEvent';
 export type { StackFrame } from './stackframe';
 export type { Stacktrace, StackParser, StackLineParser, StackLineParserFn } from './stacktrace';
 export type { PropagationContext, TracePropagationTargets, SerializedTraceData } from './tracing';
 export type { StartSpanOptions } from './startSpanOptions';
-export type {
-  TraceparentData,
-  TransactionSource,
-} from './transaction';
+export type { TraceparentData, TransactionSource } from './transaction';
 export type { CustomSamplingContext, SamplingContext } from './samplingcontext';
 export type {
   DurationUnit,

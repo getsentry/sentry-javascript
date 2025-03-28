@@ -10,7 +10,9 @@ import type { HTTPModuleRequestIncomingMessage } from '../../transports/http-mod
 import type { NodeClientOptions } from '../../types';
 import { addOriginToSpan } from '../../utils/addOriginToSpan';
 import { getRequestUrl } from '../../utils/getRequestUrl';
+import type { SentryHttpInstrumentationOptions } from './SentryHttpInstrumentation';
 import { SentryHttpInstrumentation } from './SentryHttpInstrumentation';
+import { SentryHttpInstrumentationBeforeOtel } from './SentryHttpInstrumentationBeforeOtel';
 
 const INTEGRATION_NAME = 'Http';
 
@@ -97,19 +99,16 @@ interface HttpOptions {
   };
 }
 
-const instrumentSentryHttp = generateInstrumentOnce<{
-  breadcrumbs?: HttpOptions['breadcrumbs'];
-  ignoreOutgoingRequests?: HttpOptions['ignoreOutgoingRequests'];
-  trackIncomingRequestsAsSessions?: HttpOptions['trackIncomingRequestsAsSessions'];
-  sessionFlushingDelayMS?: HttpOptions['sessionFlushingDelayMS'];
-}>(`${INTEGRATION_NAME}.sentry`, options => {
-  return new SentryHttpInstrumentation({
-    breadcrumbs: options?.breadcrumbs,
-    ignoreOutgoingRequests: options?.ignoreOutgoingRequests,
-    trackIncomingRequestsAsSessions: options?.trackIncomingRequestsAsSessions,
-    sessionFlushingDelayMS: options?.sessionFlushingDelayMS,
-  });
+const instrumentSentryHttpBeforeOtel = generateInstrumentOnce(`${INTEGRATION_NAME}.sentry-before-otel`, () => {
+  return new SentryHttpInstrumentationBeforeOtel();
 });
+
+const instrumentSentryHttp = generateInstrumentOnce<SentryHttpInstrumentationOptions>(
+  `${INTEGRATION_NAME}.sentry`,
+  options => {
+    return new SentryHttpInstrumentation(options);
+  },
+);
 
 export const instrumentOtelHttp = generateInstrumentOnce<HttpInstrumentationConfig>(INTEGRATION_NAME, config => {
   const instrumentation = new HttpInstrumentation(config);
@@ -143,6 +142,18 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
+      // Below, we instrument the Node.js HTTP API three times. 2 times Sentry-specific, 1 time OTEL specific.
+      // Due to timing reasons, we sometimes need to apply Sentry instrumentation _before_ we apply the OTEL
+      // instrumentation (e.g. to flush on serverless platforms), and sometimes we need to apply Sentry instrumentation
+      // _after_ we apply OTEL instrumentation (e.g. for isolation scope handling and breadcrumbs).
+
+      // This is Sentry-specific instrumentation that is applied _before_ any OTEL instrumentation.
+      if (process.env.VERCEL) {
+        // Currently this instrumentation only does something when deployed on Vercel, so to save some overhead, we short circuit adding it here only for Vercel.
+        // If it's functionality is extended in the future, feel free to remove the if statement and this comment.
+        instrumentSentryHttpBeforeOtel();
+      }
+
       const instrumentSpans = _shouldInstrumentSpans(options, getClient<NodeClient>()?.getOptions());
 
       // This is the "regular" OTEL instrumentation that emits spans
@@ -151,10 +162,13 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
         instrumentOtelHttp(instrumentationConfig);
       }
 
-      // This is the Sentry-specific instrumentation that isolates requests & creates breadcrumbs
-      // Note that this _has_ to be wrapped after the OTEL instrumentation,
-      // otherwise the isolation will not work correctly
-      instrumentSentryHttp(options);
+      // This is Sentry-specific instrumentation that is applied _after_ any OTEL instrumentation.
+      instrumentSentryHttp({
+        ...options,
+        // If spans are not instrumented, it means the HttpInstrumentation has not been added
+        // In that case, we want to handle incoming trace extraction ourselves
+        extractIncomingTraceFromHeader: !instrumentSpans,
+      });
     },
   };
 });

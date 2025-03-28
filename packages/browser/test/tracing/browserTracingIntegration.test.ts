@@ -203,6 +203,16 @@ describe('browserTracingIntegration', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
       },
+      links: [
+        {
+          attributes: {
+            'sentry.link.type': 'previous_trace',
+          },
+          sampled: true,
+          span_id: span?.spanContext().spanId,
+          trace_id: span?.spanContext().traceId,
+        },
+      ],
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       start_timestamp: expect.any(Number),
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
@@ -230,6 +240,16 @@ describe('browserTracingIntegration', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
       },
+      links: [
+        {
+          attributes: {
+            'sentry.link.type': 'previous_trace',
+          },
+          sampled: true,
+          span_id: span2?.spanContext().spanId,
+          trace_id: span2?.spanContext().traceId,
+        },
+      ],
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       start_timestamp: expect.any(Number),
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
@@ -483,6 +503,16 @@ describe('browserTracingIntegration', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
         },
+        links: [
+          {
+            attributes: {
+              'sentry.link.type': 'previous_trace',
+            },
+            sampled: true,
+            span_id: expect.stringMatching(/[a-f0-9]{16}/),
+            trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+          },
+        ],
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         start_timestamp: expect.any(Number),
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
@@ -494,7 +524,13 @@ describe('browserTracingIntegration', () => {
       const client = new BrowserClient(
         getDefaultBrowserClientOptions({
           tracesSampleRate: 1,
-          integrations: [browserTracingIntegration({ instrumentNavigation: false })],
+          integrations: [
+            browserTracingIntegration({
+              instrumentNavigation: false,
+              // disabling previous trace b/c not relevant for this test
+              linkPreviousTrace: 'off',
+            }),
+          ],
         }),
       );
       setCurrentClient(client);
@@ -692,6 +728,7 @@ describe('browserTracingIntegration', () => {
         sampled: true,
         sampleRand: expect.any(Number),
         dsc: {
+          release: undefined,
           environment: 'production',
           public_key: 'examplePublicKey',
           sample_rate: '1',
@@ -732,6 +769,7 @@ describe('browserTracingIntegration', () => {
         sampled: false,
         sampleRand: expect.any(Number),
         dsc: {
+          release: undefined,
           environment: 'production',
           public_key: 'examplePublicKey',
           sample_rate: '0',
@@ -856,6 +894,7 @@ describe('browserTracingIntegration', () => {
 
       expect(dynamicSamplingContext).toBeDefined();
       expect(dynamicSamplingContext).toStrictEqual({
+        release: undefined,
         environment: 'production',
         public_key: 'examplePublicKey',
         sample_rate: '1',
@@ -989,6 +1028,75 @@ describe('browserTracingIntegration', () => {
       // there is also the `sentry-tracing-init` span included
       expect(spans).toHaveLength(3);
       expect(spans[2]).toBe(idleSpan);
+    });
+  });
+
+  describe('linkPreviousTrace', () => {
+    it('registers the previous trace listener on span start by default', () => {
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          tracesSampleRate: 1,
+          integrations: [browserTracingIntegration({ instrumentPageLoad: false, instrumentNavigation: false })],
+        }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      const span1 = startInactiveSpan({ name: 'test span 1', forceTransaction: true });
+      span1.end();
+      const span1Json = spanToJSON(span1);
+
+      expect(span1Json.links).toBeUndefined();
+
+      // ensure we start a new trace
+      getCurrentScope().setPropagationContext({ traceId: '123', sampleRand: 0.2 });
+
+      const span2 = startInactiveSpan({ name: 'test span 2', forceTransaction: true });
+      span2.end();
+      const spanJson2 = spanToJSON(span2);
+
+      expect(spanJson2.links).toEqual([
+        {
+          attributes: {
+            'sentry.link.type': 'previous_trace',
+          },
+          sampled: true,
+          span_id: span1Json.span_id,
+          trace_id: span1Json.trace_id,
+        },
+      ]);
+    });
+
+    it("doesn't register the previous trace listener on span start if disabled", () => {
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          tracesSampleRate: 1,
+          integrations: [
+            browserTracingIntegration({
+              instrumentPageLoad: false,
+              instrumentNavigation: false,
+              linkPreviousTrace: 'off',
+            }),
+          ],
+        }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      const span1 = startInactiveSpan({ name: 'test span 1', forceTransaction: true });
+      span1.end();
+      const span1Json = spanToJSON(span1);
+
+      expect(span1Json.links).toBeUndefined();
+
+      // ensure we start a new trace
+      getCurrentScope().setPropagationContext({ traceId: '123', sampleRand: 0.2 });
+
+      const span2 = startInactiveSpan({ name: 'test span 2', forceTransaction: true });
+      span2.end();
+      const spanJson2 = spanToJSON(span2);
+
+      expect(spanJson2.links).toBeUndefined();
     });
   });
 

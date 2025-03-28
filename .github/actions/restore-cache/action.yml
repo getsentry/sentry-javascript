@@ -1,27 +1,27 @@
-name: "Restore dependency & build cache"
-description: "Restore the dependency & build cache."
+name: 'Restore dependency & build cache'
+description: 'Restore the dependency & build cache.'
 
 inputs:
   dependency_cache_key:
-    description: "The dependency cache key"
+    description: 'The dependency cache key'
     required: true
 
 runs:
-  using: "composite"
+  using: 'composite'
   steps:
-      - name: Check dependency cache
-        id: dep-cache
-        uses: actions/cache/restore@v4
-        with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ inputs.dependency_cache_key }}
+    - name: Check dependency cache
+      id: dep-cache
+      uses: actions/cache/restore@v4
+      with:
+        path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+        key: ${{ inputs.dependency_cache_key }}
 
-      - name: Restore build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: build-output
+    - name: Restore build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: build-output
 
-      - name: Install dependencies
-        if: steps.dep-cache.outputs.cache-hit != 'true'
-        run: yarn install --ignore-engines --frozen-lockfile
-        shell: bash
+    - name: Install dependencies
+      if: steps.dep-cache.outputs.cache-hit != 'true'
+      run: yarn install --ignore-engines --frozen-lockfile
+      shell: bash

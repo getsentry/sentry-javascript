@@ -21,6 +21,7 @@ import {
   withScope,
 } from '@sentry/core';
 import type { Event, Scope } from '@sentry/core';
+import { describe, afterEach, beforeEach, expect, it, vi } from 'vitest';
 
 import { SEMATTRS_HTTP_METHOD } from '@opentelemetry/semantic-conventions';
 import { continueTrace, startInactiveSpan, startSpan, startSpanManual } from '../src/trace';
@@ -37,8 +38,8 @@ describe('trace', () => {
     mockSdkInit({ tracesSampleRate: 1 });
   });
 
-  afterEach(() => {
-    cleanupOtel();
+  afterEach(async () => {
+    await cleanupOtel();
   });
 
   describe('startSpan', () => {
@@ -356,6 +357,78 @@ describe('trace', () => {
       });
     });
 
+    it('allows to add span links', () => {
+      const rawSpan1 = startInactiveSpan({ name: 'pageload_span' });
+
+      // @ts-expect-error links exists on span
+      expect(rawSpan1?.links).toEqual([]);
+
+      const span1JSON = spanToJSON(rawSpan1);
+
+      startSpan({ name: '/users/:id' }, rawSpan2 => {
+        rawSpan2.addLink({
+          context: rawSpan1.spanContext(),
+          attributes: {
+            'sentry.link.type': 'previous_trace',
+          },
+        });
+
+        const span2LinkJSON = spanToJSON(rawSpan2).links?.[0];
+
+        expect(span2LinkJSON?.attributes?.['sentry.link.type']).toBe('previous_trace');
+
+        // @ts-expect-error links and _spanContext exist on span
+        expect(rawSpan2?.links?.[0].context.traceId).toEqual(rawSpan1._spanContext.traceId);
+        // @ts-expect-error links and _spanContext exist on span
+        expect(rawSpan2?.links?.[0].context.traceId).toEqual(span1JSON.trace_id);
+        expect(span2LinkJSON?.trace_id).toBe(span1JSON.trace_id);
+
+        // @ts-expect-error links and _spanContext exist on span
+        expect(rawSpan2?.links?.[0].context.spanId).toEqual(rawSpan1?._spanContext.spanId);
+        // @ts-expect-error links and _spanContext exist on span
+        expect(rawSpan2?.links?.[0].context.spanId).toEqual(span1JSON.span_id);
+        expect(span2LinkJSON?.span_id).toBe(span1JSON.span_id);
+      });
+    });
+
+    it('allows to pass span links in span options', () => {
+      const rawSpan1 = startInactiveSpan({ name: 'pageload_span' });
+
+      // @ts-expect-error links exists on span
+      expect(rawSpan1?.links).toEqual([]);
+
+      const span1JSON = spanToJSON(rawSpan1);
+
+      startSpan(
+        {
+          name: '/users/:id',
+          links: [
+            {
+              context: rawSpan1.spanContext(),
+              attributes: { 'sentry.link.type': 'previous_trace' },
+            },
+          ],
+        },
+        rawSpan2 => {
+          const span2LinkJSON = spanToJSON(rawSpan2).links?.[0];
+
+          expect(span2LinkJSON?.attributes?.['sentry.link.type']).toBe('previous_trace');
+
+          // @ts-expect-error links and _spanContext exist on span
+          expect(rawSpan2?.links?.[0].context.traceId).toEqual(rawSpan1._spanContext.traceId);
+          // @ts-expect-error links and _spanContext exist on span
+          expect(rawSpan2?.links?.[0].context.traceId).toEqual(span1JSON.trace_id);
+          expect(span2LinkJSON?.trace_id).toBe(span1JSON.trace_id);
+
+          // @ts-expect-error links and _spanContext exist on span
+          expect(rawSpan2?.links?.[0].context.spanId).toEqual(rawSpan1?._spanContext.spanId);
+          // @ts-expect-error links and _spanContext exist on span
+          expect(rawSpan2?.links?.[0].context.spanId).toEqual(span1JSON.span_id);
+          expect(span2LinkJSON?.span_id).toBe(span1JSON.span_id);
+        },
+      );
+    });
+
     it('allows to force a transaction with forceTransaction=true', async () => {
       const client = getClient()!;
       const transactionEvents: Event[] = [];
@@ -617,6 +690,44 @@ describe('trace', () => {
       });
     });
 
+    it('allows to pass span links in span options', () => {
+      const rawSpan1 = startInactiveSpan({ name: 'pageload_span' });
+
+      // @ts-expect-error links exists on span
+      expect(rawSpan1?.links).toEqual([]);
+
+      const rawSpan2 = startInactiveSpan({
+        name: 'GET users/[id]',
+        links: [
+          {
+            context: rawSpan1.spanContext(),
+            attributes: { 'sentry.link.type': 'previous_trace' },
+          },
+        ],
+      });
+
+      const span1JSON = spanToJSON(rawSpan1);
+      const span2JSON = spanToJSON(rawSpan2);
+      const span2LinkJSON = span2JSON.links?.[0];
+
+      expect(span2LinkJSON?.attributes?.['sentry.link.type']).toBe('previous_trace');
+
+      // @ts-expect-error links and _spanContext exist on span
+      expect(rawSpan2?.links?.[0].context.traceId).toEqual(rawSpan1._spanContext.traceId);
+      // @ts-expect-error links and _spanContext exist on span
+      expect(rawSpan2?.links?.[0].context.traceId).toEqual(span1JSON.trace_id);
+      expect(span2LinkJSON?.trace_id).toBe(span1JSON.trace_id);
+
+      // @ts-expect-error links and _spanContext exist on span
+      expect(rawSpan2?.links?.[0].context.spanId).toEqual(rawSpan1?._spanContext.spanId);
+      // @ts-expect-error links and _spanContext exist on span
+      expect(rawSpan2?.links?.[0].context.spanId).toEqual(span1JSON.span_id);
+      expect(span2LinkJSON?.span_id).toBe(span1JSON.span_id);
+
+      // sampling decision is inherited
+      expect(span2LinkJSON?.sampled).toBe(Boolean(spanToJSON(rawSpan1).data['sentry.sample_rate']));
+    });
+
     it('allows to force a transaction with forceTransaction=true', async () => {
       const client = getClient()!;
       const transactionEvents: Event[] = [];
@@ -733,7 +844,7 @@ describe('trace', () => {
     });
 
     it('includes the scope at the time the span was started when finished', async () => {
-      const beforeSendTransaction = jest.fn(event => event);
+      const beforeSendTransaction = vi.fn(event => event);
 
       const client = getClient()!;
 
@@ -904,6 +1015,78 @@ describe('trace', () => {
           span.end();
         });
       });
+    });
+
+    it('allows to add span links', () => {
+      const rawSpan1 = startInactiveSpan({ name: 'pageload_span' });
+
+      // @ts-expect-error links exists on span
+      expect(rawSpan1?.links).toEqual([]);
+
+      const span1JSON = spanToJSON(rawSpan1);
+
+      startSpanManual({ name: '/users/:id' }, rawSpan2 => {
+        rawSpan2.addLink({
+          context: rawSpan1.spanContext(),
+          attributes: {
+            'sentry.link.type': 'previous_trace',
+          },
+        });
+
+        const span2LinkJSON = spanToJSON(rawSpan2).links?.[0];
+
+        expect(span2LinkJSON?.attributes?.['sentry.link.type']).toBe('previous_trace');
+
+        // @ts-expect-error links and _spanContext exist on span
+        expect(rawSpan2?.links?.[0].context.traceId).toEqual(rawSpan1._spanContext.traceId);
+        // @ts-expect-error links and _spanContext exist on span
+        expect(rawSpan2?.links?.[0].context.traceId).toEqual(span1JSON.trace_id);
+        expect(span2LinkJSON?.trace_id).toBe(span1JSON.trace_id);
+
+        // @ts-expect-error links and _spanContext exist on span
+        expect(rawSpan2?.links?.[0].context.spanId).toEqual(rawSpan1?._spanContext.spanId);
+        // @ts-expect-error links and _spanContext exist on span
+        expect(rawSpan2?.links?.[0].context.spanId).toEqual(span1JSON.span_id);
+        expect(span2LinkJSON?.span_id).toBe(span1JSON.span_id);
+      });
+    });
+
+    it('allows to pass span links in span options', () => {
+      const rawSpan1 = startInactiveSpan({ name: 'pageload_span' });
+
+      // @ts-expect-error links exists on span
+      expect(rawSpan1?.links).toEqual([]);
+
+      const span1JSON = spanToJSON(rawSpan1);
+
+      startSpanManual(
+        {
+          name: '/users/:id',
+          links: [
+            {
+              context: rawSpan1.spanContext(),
+              attributes: { 'sentry.link.type': 'previous_trace' },
+            },
+          ],
+        },
+        rawSpan2 => {
+          const span2LinkJSON = spanToJSON(rawSpan2).links?.[0];
+
+          expect(span2LinkJSON?.attributes?.['sentry.link.type']).toBe('previous_trace');
+
+          // @ts-expect-error links and _spanContext exist on span
+          expect(rawSpan2?.links?.[0].context.traceId).toEqual(rawSpan1._spanContext.traceId);
+          // @ts-expect-error links and _spanContext exist on span
+          expect(rawSpan2?.links?.[0].context.traceId).toEqual(span1JSON.trace_id);
+          expect(span2LinkJSON?.trace_id).toBe(span1JSON.trace_id);
+
+          // @ts-expect-error links and _spanContext exist on span
+          expect(rawSpan2?.links?.[0].context.spanId).toEqual(rawSpan1?._spanContext.spanId);
+          // @ts-expect-error links and _spanContext exist on span
+          expect(rawSpan2?.links?.[0].context.spanId).toEqual(span1JSON.span_id);
+          expect(span2LinkJSON?.span_id).toBe(span1JSON.span_id);
+        },
+      );
     });
 
     it('allows to force a transaction with forceTransaction=true', async () => {
@@ -1169,8 +1352,8 @@ describe('trace (tracing disabled)', () => {
     mockSdkInit({ tracesSampleRate: 0 });
   });
 
-  afterEach(() => {
-    cleanupOtel();
+  afterEach(async () => {
+    await cleanupOtel();
   });
 
   it('startSpan calls callback without span', () => {
@@ -1193,13 +1376,13 @@ describe('trace (tracing disabled)', () => {
 });
 
 describe('trace (sampling)', () => {
-  afterEach(() => {
-    cleanupOtel();
-    jest.clearAllMocks();
+  afterEach(async () => {
+    await cleanupOtel();
+    vi.clearAllMocks();
   });
 
   it('samples with a tracesSampleRate, when Math.random() > tracesSampleRate', () => {
-    jest.spyOn(Math, 'random').mockImplementation(() => 0.6);
+    vi.spyOn(Math, 'random').mockImplementation(() => 0.6);
 
     mockSdkInit({ tracesSampleRate: 0.5 });
 
@@ -1215,7 +1398,7 @@ describe('trace (sampling)', () => {
   });
 
   it('samples with a tracesSampleRate, when Math.random() < tracesSampleRate', () => {
-    jest.spyOn(Math, 'random').mockImplementation(() => 0.4);
+    vi.spyOn(Math, 'random').mockImplementation(() => 0.4);
 
     mockSdkInit({ tracesSampleRate: 0.5 });
 
@@ -1234,7 +1417,7 @@ describe('trace (sampling)', () => {
   });
 
   it('positive parent sampling takes precedence over tracesSampleRate', () => {
-    jest.spyOn(Math, 'random').mockImplementation(() => 0.6);
+    vi.spyOn(Math, 'random').mockImplementation(() => 0.6);
 
     mockSdkInit({ tracesSampleRate: 1 });
 
@@ -1258,7 +1441,7 @@ describe('trace (sampling)', () => {
   });
 
   it('negative parent sampling takes precedence over tracesSampleRate', () => {
-    jest.spyOn(Math, 'random').mockImplementation(() => 0.6);
+    vi.spyOn(Math, 'random').mockImplementation(() => 0.6);
 
     mockSdkInit({ tracesSampleRate: 0.5 });
 
@@ -1280,7 +1463,7 @@ describe('trace (sampling)', () => {
   });
 
   it('positive remote parent sampling takes precedence over tracesSampleRate', () => {
-    jest.spyOn(Math, 'random').mockImplementation(() => 0.6);
+    vi.spyOn(Math, 'random').mockImplementation(() => 0.6);
 
     mockSdkInit({ tracesSampleRate: 0.5 });
 
@@ -1307,7 +1490,7 @@ describe('trace (sampling)', () => {
   });
 
   it('negative remote parent sampling takes precedence over tracesSampleRate', () => {
-    jest.spyOn(Math, 'random').mockImplementation(() => 0.6);
+    vi.spyOn(Math, 'random').mockImplementation(() => 0.6);
 
     mockSdkInit({ tracesSampleRate: 0.5 });
 
@@ -1335,7 +1518,7 @@ describe('trace (sampling)', () => {
   it('samples with a tracesSampler returning a boolean', () => {
     let tracesSamplerResponse: boolean = true;
 
-    const tracesSampler = jest.fn(() => {
+    const tracesSampler = vi.fn(() => {
       return tracesSamplerResponse;
     });
 
@@ -1350,6 +1533,7 @@ describe('trace (sampling)', () => {
       parentSampled: undefined,
       name: 'outer',
       attributes: {},
+      inheritOrSampleWith: expect.any(Function),
     });
 
     // Now return `false`, it should not sample
@@ -1386,11 +1570,11 @@ describe('trace (sampling)', () => {
   });
 
   it('samples with a tracesSampler returning a number', () => {
-    jest.spyOn(Math, 'random').mockImplementation(() => 0.6);
+    vi.spyOn(Math, 'random').mockImplementation(() => 0.6);
 
     let tracesSamplerResponse: number = 1;
 
-    const tracesSampler = jest.fn(() => {
+    const tracesSampler = vi.fn(() => {
       return tracesSamplerResponse;
     });
 
@@ -1416,6 +1600,7 @@ describe('trace (sampling)', () => {
         attr2: 1,
         'sentry.op': 'test.op',
       },
+      inheritOrSampleWith: expect.any(Function),
     });
 
     // Now return `0`, it should not sample
@@ -1457,11 +1642,12 @@ describe('trace (sampling)', () => {
       parentSampled: undefined,
       name: 'outer3',
       attributes: {},
+      inheritOrSampleWith: expect.any(Function),
     });
   });
 
   it('samples with a tracesSampler even if parent is remotely sampled', () => {
-    const tracesSampler = jest.fn(() => {
+    const tracesSampler = vi.fn(() => {
       return false;
     });
 
@@ -1490,6 +1676,7 @@ describe('trace (sampling)', () => {
       parentSampled: true,
       name: 'outer',
       attributes: {},
+      inheritOrSampleWith: expect.any(Function),
     });
   });
 
@@ -1520,8 +1707,8 @@ describe('HTTP methods (sampling)', () => {
     mockSdkInit({ tracesSampleRate: 1 });
   });
 
-  afterEach(() => {
-    cleanupOtel();
+  afterEach(async () => {
+    await cleanupOtel();
   });
 
   it('does sample when HTTP method is other than OPTIONS or HEAD', () => {
@@ -1575,8 +1762,8 @@ describe('continueTrace', () => {
     mockSdkInit({ tracesSampleRate: 1 });
   });
 
-  afterEach(() => {
-    cleanupOtel();
+  afterEach(async () => {
+    await cleanupOtel();
   });
 
   it('works without trace & baggage data', () => {
@@ -1677,8 +1864,8 @@ describe('suppressTracing', () => {
     mockSdkInit({ tracesSampleRate: 1 });
   });
 
-  afterEach(() => {
-    cleanupOtel();
+  afterEach(async () => {
+    await cleanupOtel();
   });
 
   it('works for a root span', () => {
