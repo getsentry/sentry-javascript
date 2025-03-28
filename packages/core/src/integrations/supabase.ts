@@ -12,6 +12,14 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '
 import { captureException } from '../exports';
 import { SPAN_STATUS_ERROR, SPAN_STATUS_OK } from '../tracing';
 
+export interface SupabaseClientConstructor {
+  prototype: {
+    from: (table: string) => PostgrestQueryBuilder;
+    schema: (schema: string) => { rpc: (...args: unknown[]) => Promise<unknown> };
+  };
+  rpc: (fn: string, params: Record<string, unknown>) => Promise<unknown>;
+}
+
 const AUTH_OPERATIONS_TO_INSTRUMENT = [
   'reauthenticate',
   'signInAnonymously',
@@ -114,12 +122,6 @@ export interface SupabaseBreadcrumb {
   };
 }
 
-export interface SupabaseClientConstructor {
-  prototype: {
-    from: (table: string) => PostgrestQueryBuilder;
-  };
-}
-
 export interface PostgrestProtoThenable {
   then: <T>(
     onfulfilled?: ((value: T) => T | PromiseLike<T>) | null,
@@ -197,6 +199,76 @@ export function translateFiltersIntoMethods(key: string, query: string): string 
   return `${method}(${key}, ${value.join('.')})`;
 }
 
+function instrumentRpcReturnedFromSchemaCall(SupabaseClient: unknown): void {
+  (SupabaseClient as unknown as SupabaseClientConstructor).prototype.schema = new Proxy(
+    (SupabaseClient as unknown as SupabaseClientConstructor).prototype.schema,
+    {
+      apply(target, thisArg, argumentsList) {
+        const rv = Reflect.apply(target, thisArg, argumentsList);
+
+        return instrumentRpc(rv);
+      },
+    },
+  );
+}
+
+function instrumentRpc(SupabaseClient: unknown): unknown {
+  (SupabaseClient as unknown as SupabaseClientConstructor).rpc = new Proxy(
+    (SupabaseClient as unknown as SupabaseClientConstructor).rpc,
+    {
+      apply(target, thisArg, argumentsList) {
+        const isProducerSpan = argumentsList[0] === 'enqueue';
+        const isConsumerSpan = argumentsList[0] === 'dequeue';
+
+        const maybeQueueParams = argumentsList[1];
+
+        // If the second argument is not an object, it's not a queue operation
+        if (!isPlainObject(maybeQueueParams)) {
+          return Reflect.apply(target, thisArg, argumentsList);
+        }
+
+        const msg = maybeQueueParams?.msg as { title: string };
+
+        const messageId = msg?.title;
+        const queueName = maybeQueueParams?.queue_name as string;
+
+        const op = isProducerSpan ? 'queue.publish' : isConsumerSpan ? 'queue.process' : '';
+
+        // If the operation is not a queue operation, return the original function
+        if (!op) {
+          return Reflect.apply(target, thisArg, argumentsList);
+        }
+
+        return startSpan(
+          {
+            name: 'supabase.db.rpc',
+            attributes: {
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase',
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
+            },
+          },
+          async span => {
+            return (Reflect.apply(target, thisArg, argumentsList) as Promise<unknown>).then((res: unknown) => {
+              if (messageId) {
+                span.setAttribute('messaging.message.id', messageId);
+              }
+
+              if (queueName) {
+                span.setAttribute('messaging.destination.name', queueName);
+              }
+
+              span.end();
+              return res;
+            });
+          },
+        );
+      },
+    },
+  );
+
+  return SupabaseClient;
+}
+
 function instrumentAuthOperation(operation: AuthOperationFn, isAdmin = false): AuthOperationFn {
   return new Proxy(operation, {
     apply(target, thisArg, argumentsList) {
@@ -266,13 +338,13 @@ function instrumentSupabaseAuthClient(supabaseClientInstance: SupabaseClientInst
   });
 }
 
-function instrumentSupabaseClientConstructor(SupabaseClient: unknown): void {
-  if (instrumented.has(SupabaseClient)) {
+function instrumentSupabaseClientConstructor(SupabaseClientConstructor: unknown): void {
+  if (instrumented.has(SupabaseClientConstructor)) {
     return;
   }
 
-  (SupabaseClient as unknown as SupabaseClientConstructor).prototype.from = new Proxy(
-    (SupabaseClient as unknown as SupabaseClientConstructor).prototype.from,
+  (SupabaseClientConstructor as unknown as SupabaseClientConstructor).prototype.from = new Proxy(
+    (SupabaseClientConstructor as unknown as SupabaseClientConstructor).prototype.from,
     {
       apply(target, thisArg, argumentsList) {
         const rv = Reflect.apply(target, thisArg, argumentsList);
@@ -466,6 +538,8 @@ const instrumentSupabase = (supabaseClientInstance: unknown): void => {
     supabaseClientInstance.constructor === Function ? supabaseClientInstance : supabaseClientInstance.constructor;
 
   instrumentSupabaseClientConstructor(SupabaseClientConstructor);
+  instrumentRpcReturnedFromSchemaCall(SupabaseClientConstructor);
+  instrumentRpc(supabaseClientInstance as SupabaseClientInstance);
   instrumentSupabaseAuthClient(supabaseClientInstance as SupabaseClientInstance);
 };
 
