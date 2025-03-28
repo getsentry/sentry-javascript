@@ -1,13 +1,13 @@
 {
   "name": "@sentry/types",
-  "version": "8.42.0",
+  "version": "9.10.0",
   "description": "Types for all Sentry JavaScript SDKs",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/types",
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=14.18"
+    "node": ">=18"
   },
   "files": [
     "/build"
@@ -29,7 +29,7 @@
     }
   },
   "typesVersions": {
-    "<4.9": {
+    "<5.0": {
       "build/types/index.d.ts": [
         "build/types-ts3.8/index.d.ts"
       ]
@@ -56,7 +56,7 @@
     "yalc:publish": "yalc publish --push --sig"
   },
   "dependencies": {
-    "@sentry/core": "8.42.0"
+    "@sentry/core": "9.10.0"
   },
   "volta": {
     "extends": "../../package.json"

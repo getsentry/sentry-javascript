@@ -9,6 +9,6 @@
     "lib": ["DOM", "ES2018"],
     // package-specific options
     "esModuleInterop": true,
-    "types": ["node", "jest"]
+    "types": ["node"]
   }
 }

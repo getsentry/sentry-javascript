@@ -3,14 +3,16 @@ import { diag } from '@opentelemetry/api';
 import type { HttpInstrumentationConfig } from '@opentelemetry/instrumentation-http';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import type { Span } from '@sentry/core';
-import { defineIntegration } from '@sentry/core';
-import { getClient } from '@sentry/opentelemetry';
+import { defineIntegration, getClient } from '@sentry/core';
 import { generateInstrumentOnce } from '../../otel/instrument';
 import type { NodeClient } from '../../sdk/client';
 import type { HTTPModuleRequestIncomingMessage } from '../../transports/http-module';
+import type { NodeClientOptions } from '../../types';
 import { addOriginToSpan } from '../../utils/addOriginToSpan';
 import { getRequestUrl } from '../../utils/getRequestUrl';
+import type { SentryHttpInstrumentationOptions } from './SentryHttpInstrumentation';
 import { SentryHttpInstrumentation } from './SentryHttpInstrumentation';
+import { SentryHttpInstrumentationBeforeOtel } from './SentryHttpInstrumentationBeforeOtel';
 
 const INTEGRATION_NAME = 'Http';
 
@@ -27,6 +29,8 @@ interface HttpOptions {
    * If set to false, do not emit any spans.
    * This will ensure that the default HttpInstrumentation from OpenTelemetry is not setup,
    * only the Sentry-specific instrumentation for request isolation is applied.
+   *
+   * If `skipOpenTelemetrySetup: true` is configured, this defaults to `false`, otherwise it defaults to `true`.
    */
   spans?: boolean;
 
@@ -35,10 +39,15 @@ interface HttpOptions {
    * Read more about Release Health: https://docs.sentry.io/product/releases/health/
    *
    * Defaults to `true`.
-   *
-   * Note: If `autoSessionTracking` is set to `false` in `Sentry.init()` or the Client owning this integration, this option will be ignored.
    */
   trackIncomingRequestsAsSessions?: boolean;
+
+  /**
+   * Number of milliseconds until sessions tracked with `trackIncomingRequestsAsSessions` will be flushed as a session aggregate.
+   *
+   * Defaults to `60000` (60s).
+   */
+  sessionFlushingDelayMS?: number;
 
   /**
    * Do not capture spans or breadcrumbs for outgoing HTTP requests to URLs where the given callback returns `true`.
@@ -90,15 +99,16 @@ interface HttpOptions {
   };
 }
 
-export const instrumentSentryHttp = generateInstrumentOnce<{
-  breadcrumbs?: HttpOptions['breadcrumbs'];
-  ignoreOutgoingRequests?: HttpOptions['ignoreOutgoingRequests'];
-}>(`${INTEGRATION_NAME}.sentry`, options => {
-  return new SentryHttpInstrumentation({
-    breadcrumbs: options?.breadcrumbs,
-    ignoreOutgoingRequests: options?.ignoreOutgoingRequests,
-  });
+const instrumentSentryHttpBeforeOtel = generateInstrumentOnce(`${INTEGRATION_NAME}.sentry-before-otel`, () => {
+  return new SentryHttpInstrumentationBeforeOtel();
 });
+
+const instrumentSentryHttp = generateInstrumentOnce<SentryHttpInstrumentationOptions>(
+  `${INTEGRATION_NAME}.sentry`,
+  options => {
+    return new SentryHttpInstrumentation(options);
+  },
+);
 
 export const instrumentOtelHttp = generateInstrumentOnce<HttpInstrumentationConfig>(INTEGRATION_NAME, config => {
   const instrumentation = new HttpInstrumentation(config);
@@ -117,21 +127,12 @@ export const instrumentOtelHttp = generateInstrumentOnce<HttpInstrumentationConf
   return instrumentation;
 });
 
-/**
- * Instrument the HTTP and HTTPS modules.
- */
-const instrumentHttp = (options: HttpOptions = {}): void => {
-  // This is the "regular" OTEL instrumentation that emits spans
-  if (options.spans !== false) {
-    const instrumentationConfig = getConfigWithDefaults(options);
-    instrumentOtelHttp(instrumentationConfig);
-  }
-
-  // This is the Sentry-specific instrumentation that isolates requests & creates breadcrumbs
-  // Note that this _has_ to be wrapped after the OTEL instrumentation,
-  // otherwise the isolation will not work correctly
-  instrumentSentryHttp(options);
-};
+/** Exported only for tests. */
+export function _shouldInstrumentSpans(options: HttpOptions, clientOptions: Partial<NodeClientOptions> = {}): boolean {
+  // If `spans` is passed in, it takes precedence
+  // Else, we by default emit spans, unless `skipOpenTelemetrySetup` is set to `true`
+  return typeof options.spans === 'boolean' ? options.spans : !clientOptions.skipOpenTelemetrySetup;
+}
 
 /**
  * The http integration instruments Node's internal http and https modules.
@@ -141,7 +142,33 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
-      instrumentHttp(options);
+      // Below, we instrument the Node.js HTTP API three times. 2 times Sentry-specific, 1 time OTEL specific.
+      // Due to timing reasons, we sometimes need to apply Sentry instrumentation _before_ we apply the OTEL
+      // instrumentation (e.g. to flush on serverless platforms), and sometimes we need to apply Sentry instrumentation
+      // _after_ we apply OTEL instrumentation (e.g. for isolation scope handling and breadcrumbs).
+
+      // This is Sentry-specific instrumentation that is applied _before_ any OTEL instrumentation.
+      if (process.env.VERCEL) {
+        // Currently this instrumentation only does something when deployed on Vercel, so to save some overhead, we short circuit adding it here only for Vercel.
+        // If it's functionality is extended in the future, feel free to remove the if statement and this comment.
+        instrumentSentryHttpBeforeOtel();
+      }
+
+      const instrumentSpans = _shouldInstrumentSpans(options, getClient<NodeClient>()?.getOptions());
+
+      // This is the "regular" OTEL instrumentation that emits spans
+      if (instrumentSpans) {
+        const instrumentationConfig = getConfigWithDefaults(options);
+        instrumentOtelHttp(instrumentationConfig);
+      }
+
+      // This is Sentry-specific instrumentation that is applied _after_ any OTEL instrumentation.
+      instrumentSentryHttp({
+        ...options,
+        // If spans are not instrumented, it means the HttpInstrumentation has not been added
+        // In that case, we want to handle incoming trace extraction ourselves
+        extractIncomingTraceFromHeader: !instrumentSpans,
+      });
     },
   };
 });
@@ -177,7 +204,7 @@ function getConfigWithDefaults(options: Partial<HttpOptions> = {}): HttpInstrume
       }
 
       const _ignoreOutgoingRequests = options.ignoreOutgoingRequests;
-      if (_ignoreOutgoingRequests && _ignoreOutgoingRequests(url, request)) {
+      if (_ignoreOutgoingRequests?.(url, request)) {
         return true;
       }
 
@@ -196,7 +223,7 @@ function getConfigWithDefaults(options: Partial<HttpOptions> = {}): HttpInstrume
       }
 
       const _ignoreIncomingRequests = options.ignoreIncomingRequests;
-      if (urlPath && _ignoreIncomingRequests && _ignoreIncomingRequests(urlPath, request)) {
+      if (urlPath && _ignoreIncomingRequests?.(urlPath, request)) {
         return true;
       }
 
@@ -214,18 +241,6 @@ function getConfigWithDefaults(options: Partial<HttpOptions> = {}): HttpInstrume
       options.instrumentation?.requestHook?.(span, req);
     },
     responseHook: (span, res) => {
-      const client = getClient<NodeClient>();
-
-      if (
-        client &&
-        client.getOptions().autoSessionTracking !== false &&
-        options.trackIncomingRequestsAsSessions !== false
-      ) {
-        setImmediate(() => {
-          client['_captureRequestSession']();
-        });
-      }
-
       options.instrumentation?.responseHook?.(span, res);
     },
     applyCustomAttributesOnSpan: (

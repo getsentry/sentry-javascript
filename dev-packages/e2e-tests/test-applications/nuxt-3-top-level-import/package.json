@@ -10,7 +10,7 @@
     "start": "node .output/server/index.mjs",
     "clean": "npx nuxi cleanup",
     "test": "playwright test",
-    "test:build": "pnpm install && npx playwright install && pnpm build",
+    "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm test"
   },
   "dependencies": {
@@ -18,8 +18,7 @@
     "nuxt": "^3.14.0"
   },
   "devDependencies": {
-    "@nuxt/test-utils": "^3.14.1",
-    "@playwright/test": "^1.44.1",
+    "@playwright/test": "~1.50.0",
     "@sentry-internal/test-utils": "link:../../../test-utils"
   }
 }

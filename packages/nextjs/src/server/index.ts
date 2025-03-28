@@ -117,8 +117,6 @@ export function init(options: NodeOptions): NodeClient | undefined {
     environment: process.env.SENTRY_ENVIRONMENT || getVercelEnv(false) || process.env.NODE_ENV,
     defaultIntegrations: customDefaultIntegrations,
     ...options,
-    // Right now we only capture frontend sessions for Next.js
-    autoSessionTracking: false,
   };
 
   if (DEBUG_BUILD && opts.debug) {
@@ -308,7 +306,6 @@ export function init(options: NodeOptions): NodeClient | undefined {
       event.type === 'transaction' &&
       event.contexts?.trace?.data?.['next.span_type'] === 'BaseServer.handleRequest'
     ) {
-      event.contexts.trace.data = event.contexts.trace.data || {};
       event.contexts.trace.data[SEMANTIC_ATTRIBUTE_SENTRY_OP] = 'http.server';
       event.contexts.trace.op = 'http.server';
 

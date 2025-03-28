@@ -1,11 +1,10 @@
 import * as fs from 'fs';
 import * as path from 'path';
-/* eslint-disable @sentry-internal/sdk/no-optional-chaining */
-import type { ExportNamedDeclaration } from '@babel/types';
-import { parseModule } from 'magicast';
+import * as recast from 'recast';
+import t = recast.types.namedTypes;
 import type { Plugin } from 'vite';
-
-export const WRAPPED_MODULE_SUFFIX = '?sentry-auto-wrap';
+import { WRAPPED_MODULE_SUFFIX } from '../common/utils';
+import { parser } from './recastTypescriptParser';
 
 export type AutoInstrumentSelection = {
   /**
@@ -103,9 +102,12 @@ export async function canWrapLoad(id: string, debug: boolean): Promise<boolean> 
 
   const code = (await fs.promises.readFile(id, 'utf8')).toString();
 
-  const mod = parseModule(code);
+  const ast = recast.parse(code, {
+    parser,
+  });
 
-  const program = mod.$ast.type === 'Program' && mod.$ast;
+  const program = (ast as { program?: t.Program }).program;
+
   if (!program) {
     // eslint-disable-next-line no-console
     debug && console.log(`Skipping wrapping ${id} because it doesn't contain valid JavaScript or TypeScript`);
@@ -113,16 +115,21 @@ export async function canWrapLoad(id: string, debug: boolean): Promise<boolean> 
   }
 
   const hasLoadDeclaration = program.body
-    .filter((statement): statement is ExportNamedDeclaration => statement.type === 'ExportNamedDeclaration')
+    .filter(
+      (statement): statement is recast.types.namedTypes.ExportNamedDeclaration =>
+        statement.type === 'ExportNamedDeclaration',
+    )
     .find(exportDecl => {
       // find `export const load = ...`
-      if (exportDecl.declaration && exportDecl.declaration.type === 'VariableDeclaration') {
+      if (exportDecl.declaration?.type === 'VariableDeclaration') {
         const variableDeclarations = exportDecl.declaration.declarations;
-        return variableDeclarations.find(decl => decl.id.type === 'Identifier' && decl.id.name === 'load');
+        return variableDeclarations.find(
+          decl => decl.type === 'VariableDeclarator' && decl.id.type === 'Identifier' && decl.id.name === 'load',
+        );
       }
 
       // find `export function load = ...`
-      if (exportDecl.declaration && exportDecl.declaration.type === 'FunctionDeclaration') {
+      if (exportDecl.declaration?.type === 'FunctionDeclaration') {
         const functionId = exportDecl.declaration.id;
         return functionId?.name === 'load';
       }
@@ -132,7 +139,11 @@ export async function canWrapLoad(id: string, debug: boolean): Promise<boolean> 
         return exportDecl.specifiers.find(specifier => {
           return (
             (specifier.exported.type === 'Identifier' && specifier.exported.name === 'load') ||
-            (specifier.exported.type === 'StringLiteral' && specifier.exported.value === 'load')
+            // Type casting here because somehow the 'exportExtensions' plugin isn't reflected in the possible types
+            // This plugin adds support for exporting something as a string literal (see comment above)
+            // Doing this to avoid adding another babel plugin dependency
+            ((specifier.exported.type as 'StringLiteral' | '') === 'StringLiteral' &&
+              (specifier.exported as unknown as t.StringLiteral).value === 'load')
           );
         });
       }

@@ -1,19 +1,20 @@
+import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
+import { createTestServer } from '../../../utils/server';
 
 describe('httpIntegration', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
 
-  test('allows to pass instrumentation options to integration', done => {
+  test('allows to pass instrumentation options to integration', async () => {
     // response shape seems different on Node 14, so we skip this there
     const nodeMajorVersion = Number(process.versions.node.split('.')[0]);
     if (nodeMajorVersion <= 14) {
-      done();
       return;
     }
 
-    createRunner(__dirname, 'server.js')
+    const runner = createRunner(__dirname, 'server.js')
       .expect({
         transaction: {
           contexts: {
@@ -49,12 +50,13 @@ describe('httpIntegration', () => {
           },
         },
       })
-      .start(done)
-      .makeRequest('get', '/test');
+      .start();
+    runner.makeRequest('get', '/test');
+    await runner.completed();
   });
 
-  test('allows to pass experimental config through to integration', done => {
-    createRunner(__dirname, 'server-experimental.js')
+  test('allows to pass experimental config through to integration', async () => {
+    const runner = createRunner(__dirname, 'server-experimental.js')
       .expect({
         transaction: {
           contexts: {
@@ -72,12 +74,13 @@ describe('httpIntegration', () => {
           },
         },
       })
-      .start(done)
-      .makeRequest('get', '/test');
+      .start();
+    runner.makeRequest('get', '/test');
+    await runner.completed();
   });
 
   describe("doesn't create a root span for incoming requests ignored via `ignoreIncomingRequests`", () => {
-    test('via the url param', done => {
+    test('via the url param', async () => {
       const runner = createRunner(__dirname, 'server-ignoreIncomingRequests.js')
         .expect({
           transaction: {
@@ -96,13 +99,14 @@ describe('httpIntegration', () => {
             transaction: 'GET /test',
           },
         })
-        .start(done);
+        .start();
 
       runner.makeRequest('get', '/liveness'); // should be ignored
       runner.makeRequest('get', '/test');
+      await runner.completed();
     });
 
-    test('via the request param', done => {
+    test('via the request param', async () => {
       const runner = createRunner(__dirname, 'server-ignoreIncomingRequests.js')
         .expect({
           transaction: {
@@ -121,52 +125,68 @@ describe('httpIntegration', () => {
             transaction: 'GET /test',
           },
         })
-        .start(done);
+        .start();
 
       runner.makeRequest('post', '/readiness'); // should be ignored
       runner.makeRequest('get', '/test');
+      await runner.completed();
     });
   });
 
   describe("doesn't create child spans or breadcrumbs for outgoing requests ignored via `ignoreOutgoingRequests`", () => {
-    test('via the url param', done => {
+    test('via the url param', async () => {
+      const [SERVER_URL, closeTestServer] = await createTestServer()
+        .get('/blockUrl', () => {}, 200)
+        .get('/pass', () => {}, 200)
+        .start();
+
       const runner = createRunner(__dirname, 'server-ignoreOutgoingRequests.js')
+        .withEnv({ SERVER_URL })
         .expect({
           transaction: event => {
             expect(event.transaction).toBe('GET /testUrl');
 
             const requestSpans = event.spans?.filter(span => span.op === 'http.client');
             expect(requestSpans).toHaveLength(1);
-            expect(requestSpans![0]?.description).toBe('GET http://example.com/pass');
+            expect(requestSpans![0]?.description).toBe(`GET ${SERVER_URL}/pass`);
 
             const breadcrumbs = event.breadcrumbs?.filter(b => b.category === 'http');
             expect(breadcrumbs).toHaveLength(1);
-            expect(breadcrumbs![0]?.data?.url).toEqual('http://example.com/pass');
+            expect(breadcrumbs![0]?.data?.url).toEqual(`${SERVER_URL}/pass`);
           },
         })
-        .start(done);
-
+        .start(closeTestServer);
       runner.makeRequest('get', '/testUrl');
+      await runner.completed();
+      closeTestServer();
     });
 
-    test('via the request param', done => {
+    test('via the request param', async () => {
+      const [SERVER_URL, closeTestServer] = await createTestServer()
+        .get('/blockUrl', () => {}, 200)
+        .get('/pass', () => {}, 200)
+        .start();
+
       const runner = createRunner(__dirname, 'server-ignoreOutgoingRequests.js')
+        .withEnv({ SERVER_URL })
         .expect({
           transaction: event => {
             expect(event.transaction).toBe('GET /testRequest');
 
             const requestSpans = event.spans?.filter(span => span.op === 'http.client');
             expect(requestSpans).toHaveLength(1);
-            expect(requestSpans![0]?.description).toBe('GET http://example.com/pass');
+            expect(requestSpans![0]?.description).toBe(`GET ${SERVER_URL}/pass`);
 
             const breadcrumbs = event.breadcrumbs?.filter(b => b.category === 'http');
             expect(breadcrumbs).toHaveLength(1);
-            expect(breadcrumbs![0]?.data?.url).toEqual('http://example.com/pass');
+            expect(breadcrumbs![0]?.data?.url).toEqual(`${SERVER_URL}/pass`);
           },
         })
-        .start(done);
-
+        .start();
       runner.makeRequest('get', '/testRequest');
+
+      await runner.completed();
+      closeTestServer();
     });
   });
 });

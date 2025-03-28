@@ -1,13 +1,13 @@
-import { conditionalTest } from '../../../utils';
+import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
 // `ai` SDK only support Node 18+
-conditionalTest({ min: 18 })('ai', () => {
+describe('ai', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
 
-  test('creates ai related spans', done => {
+  test('creates ai related spans', async () => {
     const EXPECTED_TRANSACTION = {
       transaction: 'main',
       spans: expect.arrayContaining([
@@ -126,6 +126,6 @@ conditionalTest({ min: 18 })('ai', () => {
       ]),
     };
 
-    createRunner(__dirname, 'scenario.js').expect({ transaction: EXPECTED_TRANSACTION }).start(done);
+    await createRunner(__dirname, 'scenario.js').expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
   });
 });

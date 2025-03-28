@@ -3,11 +3,11 @@ import type { Client, IntegrationFn } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, defineIntegration, fill, getClient } from '@sentry/core';
 import { startInactiveSpan } from '@sentry/node';
 
-interface GrpcFunction extends CallableFunction {
+export interface GrpcFunction extends CallableFunction {
   (...args: unknown[]): EventEmitter;
 }
 
-interface GrpcFunctionObject extends GrpcFunction {
+export interface GrpcFunctionObject extends GrpcFunction {
   requestStream: boolean;
   responseStream: boolean;
   originalName: string;
@@ -21,7 +21,7 @@ interface CreateStubFunc extends CallableFunction {
   (createStub: unknown, options: StubOptions): PromiseLike<Stub>;
 }
 
-interface Stub {
+export interface Stub {
   [key: string]: GrpcFunctionObject;
 }
 
@@ -78,7 +78,7 @@ function wrapCreateStub(origCreate: CreateStubFunc): CreateStubFunc {
 }
 
 /** Patches the function in grpc stub to enable tracing */
-function fillGrpcFunction(stub: Stub, serviceIdentifier: string, methodName: string): void {
+export function fillGrpcFunction(stub: Stub, serviceIdentifier: string, methodName: string): void {
   const funcObj = stub[methodName];
   if (typeof funcObj !== 'function') {
     return;
@@ -124,5 +124,5 @@ function fillGrpcFunction(stub: Stub, serviceIdentifier: string, methodName: str
 /** Identifies service by its address */
 function identifyService(servicePath: string): string {
   const match = servicePath.match(SERVICE_PATH_REGEX);
-  return match && match[1] ? match[1] : servicePath;
+  return match?.[1] || servicePath;
 }

@@ -1,8 +1,9 @@
 /* eslint-disable complexity */
 import { isThenable, parseSemver } from '@sentry/core';
 
-import * as fs from 'fs';
-import { sync as resolveSync } from 'resolve';
+import * as childProcess from 'child_process';
+import { getSentryRelease } from '@sentry/node';
+
 import type {
   ExportedNextConfig as NextConfig,
   NextConfigFunction,
@@ -10,6 +11,7 @@ import type {
   SentryBuildOptions,
 } from './types';
 import { constructWebpackConfigFunction } from './webpack';
+import { getNextjsVersion } from './util';
 
 let showedExportModeTunnelWarning = false;
 
@@ -20,7 +22,6 @@ let showedExportModeTunnelWarning = false;
  * @param sentryBuildOptions Additional options to configure instrumentation and
  * @returns The modified config to be exported
  */
-// TODO(v9): Always return an async function here to allow us to do async things like grabbing a deterministic build ID.
 export function withSentryConfig<C>(nextConfig?: C, sentryBuildOptions: SentryBuildOptions = {}): C {
   const castNextConfig = (nextConfig as NextConfig) || {};
   if (typeof castNextConfig === 'function') {
@@ -49,17 +50,6 @@ function getFinalConfigObject(
   incomingUserNextConfigObject: NextConfigObject,
   userSentryOptions: SentryBuildOptions,
 ): NextConfigObject {
-  // TODO(v9): Remove this check for the Sentry property
-  if ('sentry' in incomingUserNextConfigObject) {
-    // eslint-disable-next-line no-console
-    console.warn(
-      '[@sentry/nextjs] Setting a `sentry` property on the Next.js config object as a means of configuration is no longer supported. Please use the `sentryBuildOptions` argument of of the `withSentryConfig()` function instead.',
-    );
-
-    // Next 12.2.3+ warns about non-canonical properties on `userNextConfig`.
-    delete incomingUserNextConfigObject.sentry;
-  }
-
   if (userSentryOptions?.tunnelRoute) {
     if (incomingUserNextConfigObject.output === 'export') {
       if (!showedExportModeTunnelWarning) {
@@ -163,20 +153,65 @@ function getFinalConfigObject(
     }
   }
 
-  if (process.env.TURBOPACK && !process.env.SENTRY_SUPPRESS_TURBOPACK_WARNING) {
+  if (nextJsVersion) {
+    const { major, minor, patch, prerelease } = parseSemver(nextJsVersion);
+    const isSupportedVersion =
+      major !== undefined &&
+      minor !== undefined &&
+      patch !== undefined &&
+      (major > 15 ||
+        (major === 15 && minor > 3) ||
+        (major === 15 && minor === 3 && patch > 0 && prerelease === undefined));
+    const isSupportedCanary =
+      major !== undefined &&
+      minor !== undefined &&
+      patch !== undefined &&
+      prerelease !== undefined &&
+      major === 15 &&
+      minor === 3 &&
+      patch === 0 &&
+      prerelease.startsWith('canary.') &&
+      parseInt(prerelease.split('.')[1] || '', 10) >= 8;
+    const supportsClientInstrumentation = isSupportedCanary || isSupportedVersion;
+
+    if (supportsClientInstrumentation) {
+      incomingUserNextConfigObject.experimental = {
+        clientInstrumentationHook: true,
+        ...incomingUserNextConfigObject.experimental,
+      };
+    } else if (process.env.TURBOPACK) {
+      if (process.env.NODE_ENV === 'development') {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[@sentry/nextjs] WARNING: You are using the Sentry SDK with Turbopack (\`next dev --turbo\`). The Sentry SDK is compatible with Turbopack on Next.js version 15.3.0 or later. You are currently on ${nextJsVersion}. Please upgrade to a newer Next.js version to use the Sentry SDK with Turbopack. Note that the SDK will continue to work for non-Turbopack production builds. This warning is only about dev-mode.`,
+        );
+      } else if (process.env.NODE_ENV === 'production') {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[@sentry/nextjs] WARNING: You are using the Sentry SDK with Turbopack (\`next build --turbo\`). The Sentry SDK is compatible with Turbopack on Next.js version 15.3.0 or later. You are currently on ${nextJsVersion}. Please upgrade to a newer Next.js version to use the Sentry SDK with Turbopack. Note that as Turbopack is still experimental for production builds, some of the Sentry SDK features like source maps will not work. Follow this issue for progress on Sentry + Turbopack: https://github.com/getsentry/sentry-javascript/issues/8105.`,
+        );
+      }
+    }
+  } else {
+    // If we cannot detect a Next.js version for whatever reason, the sensible default is still to set the `experimental.instrumentationHook`.
+    incomingUserNextConfigObject.experimental = {
+      clientInstrumentationHook: true,
+      ...incomingUserNextConfigObject.experimental,
+    };
+  }
+
+  if (incomingUserNextConfigObject.experimental?.clientInstrumentationHook === false) {
     // eslint-disable-next-line no-console
     console.warn(
-      `[@sentry/nextjs] WARNING: You are using the Sentry SDK with \`next ${
-        process.env.NODE_ENV === 'development' ? 'dev' : 'build'
-      } --turbo\`. The Sentry SDK doesn't yet fully support Turbopack. The SDK will not be loaded in the browser, and serverside instrumentation will be inaccurate or incomplete. ${
-        process.env.NODE_ENV === 'development' ? 'Production builds without `--turbo` will still fully work. ' : ''
-      }If you are just trying out Sentry or attempting to configure the SDK, we recommend temporarily removing the \`--turbo\` flag while you are developing locally. Follow this issue for progress on Sentry + Turbopack: https://github.com/getsentry/sentry-javascript/issues/8105. (You can suppress this warning by setting SENTRY_SUPPRESS_TURBOPACK_WARNING=1 as environment variable)`,
+      '[@sentry/nextjs] WARNING: You set the `experimental.clientInstrumentationHook` option to `false`. Note that Sentry will not be initialized if you did not set it up inside `instrumentation-client.(js|ts)`.',
     );
   }
 
+  const releaseName = userSentryOptions.release?.name ?? getSentryRelease() ?? getGitRevision();
+
   return {
     ...incomingUserNextConfigObject,
-    webpack: constructWebpackConfigFunction(incomingUserNextConfigObject, userSentryOptions),
+    webpack: constructWebpackConfigFunction(incomingUserNextConfigObject, userSentryOptions, releaseName),
   };
 }
 
@@ -256,9 +291,7 @@ function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: s
   };
 }
 
-// TODO(v9): Inject the release into all the bundles. This is breaking because grabbing the build ID if the user provides
-// it in `generateBuildId` (https://nextjs.org/docs/app/api-reference/next-config-js/generateBuildId) is async but we do
-// not turn the next config function in the type it was passed.
+// TODO: For Turbopack we need to pass the release name here and pick it up in the SDK
 function setUpBuildTimeVariables(userNextConfig: NextConfigObject, userSentryOptions: SentryBuildOptions): void {
   const assetPrefix = userNextConfig.assetPrefix || userNextConfig.basePath || '';
   const basePath = userNextConfig.basePath ?? '';
@@ -278,12 +311,28 @@ function setUpBuildTimeVariables(userNextConfig: NextConfigObject, userSentryOpt
       : '',
   };
 
+  if (userNextConfig.assetPrefix) {
+    buildTimeVariables._assetsPrefix = userNextConfig.assetPrefix;
+  }
+
+  if (userSentryOptions._experimental?.thirdPartyOriginStackFrames) {
+    buildTimeVariables._experimentalThirdPartyOriginStackFrames = 'true';
+  }
+
   if (rewritesTunnelPath) {
     buildTimeVariables._sentryRewritesTunnelPath = rewritesTunnelPath;
   }
 
   if (basePath) {
     buildTimeVariables._sentryBasePath = basePath;
+  }
+
+  if (userNextConfig.assetPrefix) {
+    buildTimeVariables._sentryAssetPrefix = userNextConfig.assetPrefix;
+  }
+
+  if (userSentryOptions._experimental?.thirdPartyOriginStackFrames) {
+    buildTimeVariables._experimentalThirdPartyOriginStackFrames = 'true';
   }
 
   if (typeof userNextConfig.env === 'object') {
@@ -293,26 +342,15 @@ function setUpBuildTimeVariables(userNextConfig: NextConfigObject, userSentryOpt
   }
 }
 
-function getNextjsVersion(): string | undefined {
-  const nextjsPackageJsonPath = resolveNextjsPackageJson();
-  if (nextjsPackageJsonPath) {
-    try {
-      const nextjsPackageJson: { version: string } = JSON.parse(
-        fs.readFileSync(nextjsPackageJsonPath, { encoding: 'utf-8' }),
-      );
-      return nextjsPackageJson.version;
-    } catch {
-      // noop
-    }
-  }
-
-  return undefined;
-}
-
-function resolveNextjsPackageJson(): string | undefined {
+function getGitRevision(): string | undefined {
+  let gitRevision: string | undefined;
   try {
-    return resolveSync('next/package.json', { basedir: process.cwd() });
-  } catch {
-    return undefined;
+    gitRevision = childProcess
+      .execSync('git rev-parse HEAD', { stdio: ['ignore', 'pipe', 'ignore'] })
+      .toString()
+      .trim();
+  } catch (e) {
+    // noop
   }
+  return gitRevision;
 }

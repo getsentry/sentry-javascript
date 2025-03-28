@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { SPAN_STATUS_ERROR } from '../../../src/tracing';
 import { SentryNonRecordingSpan } from '../../../src/tracing/sentryNonRecordingSpan';
 import type { Span } from '../../../src/types-hoist';
@@ -18,6 +19,8 @@ describe('SentryNonRecordingSpan', () => {
     expect(spanToJSON(span)).toEqual({
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      data: {},
+      start_timestamp: 0,
     });
 
     // Ensure all methods work
@@ -32,6 +35,8 @@ describe('SentryNonRecordingSpan', () => {
     expect(spanToJSON(span)).toEqual({
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      data: {},
+      start_timestamp: 0,
     });
   });
 });

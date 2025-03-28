@@ -9,7 +9,8 @@ import {
   spanToJSON,
 } from '@sentry/core';
 import type { Span } from '@sentry/core';
-import type { ResourceEntry } from '../../src/metrics/browserMetrics';
+import { describe, beforeEach, it, expect, beforeAll, afterAll } from 'vitest';
+
 import { _addMeasureSpans, _addResourceSpans } from '../../src/metrics/browserMetrics';
 import { WINDOW } from '../../src/types';
 import { TestClient, getDefaultClientOptions } from '../utils/TestClient';
@@ -30,6 +31,17 @@ const mockWindowLocation = {
 const originalLocation = WINDOW.location;
 
 const resourceEntryName = 'https://example.com/assets/to/css';
+
+interface AdditionalPerformanceResourceTiming {
+  renderBlockingStatus?: 'non-blocking' | 'blocking' | '';
+  deliveryType?: 'cache' | 'navigational-prefetch' | '';
+}
+
+function mockPerformanceResourceTiming(
+  data: Partial<PerformanceResourceTiming> & AdditionalPerformanceResourceTiming,
+): PerformanceResourceTiming & AdditionalPerformanceResourceTiming {
+  return data as PerformanceResourceTiming & AdditionalPerformanceResourceTiming;
+}
 
 describe('_addMeasureSpans', () => {
   const span = new SentrySpan({ op: 'pageload', name: '/', sampled: true });
@@ -54,13 +66,12 @@ describe('_addMeasureSpans', () => {
       spans.push(span);
     });
 
-    const entry: Omit<PerformanceMeasure, 'toJSON'> = {
+    const entry = {
       entryType: 'measure',
       name: 'measure-1',
       duration: 10,
       startTime: 12,
-      detail: undefined,
-    };
+    } as PerformanceEntry;
 
     const timeOrigin = 100;
     const startTime = 23;
@@ -82,6 +93,29 @@ describe('_addMeasureSpans', () => {
         },
       }),
     );
+  });
+
+  it('drops measurement spans with negative duration', () => {
+    const spans: Span[] = [];
+
+    getClient()?.on('spanEnd', span => {
+      spans.push(span);
+    });
+
+    const entry = {
+      entryType: 'measure',
+      name: 'measure-1',
+      duration: 10,
+      startTime: 12,
+    } as PerformanceEntry;
+
+    const timeOrigin = 100;
+    const startTime = 23;
+    const duration = -50;
+
+    _addMeasureSpans(span, entry, startTime, duration, timeOrigin);
+
+    expect(spans).toHaveLength(0);
   });
 });
 
@@ -116,13 +150,14 @@ describe('_addResourceSpans', () => {
       spans.push(span);
     });
 
-    const entry: ResourceEntry = {
+    const entry = mockPerformanceResourceTiming({
       initiatorType: 'xmlhttprequest',
       transferSize: 256,
       encodedBodySize: 256,
       decodedBodySize: 256,
       renderBlockingStatus: 'non-blocking',
-    };
+      nextHopProtocol: 'http/1.1',
+    });
     _addResourceSpans(span, entry, resourceEntryName, 123, 456, 100);
 
     expect(spans).toHaveLength(0);
@@ -135,13 +170,14 @@ describe('_addResourceSpans', () => {
       spans.push(span);
     });
 
-    const entry: ResourceEntry = {
+    const entry = mockPerformanceResourceTiming({
       initiatorType: 'fetch',
       transferSize: 256,
       encodedBodySize: 256,
       decodedBodySize: 256,
       renderBlockingStatus: 'non-blocking',
-    };
+      nextHopProtocol: 'http/1.1',
+    });
     _addResourceSpans(span, entry, 'https://example.com/assets/to/me', 123, 456, 100);
 
     expect(spans).toHaveLength(0);
@@ -154,13 +190,14 @@ describe('_addResourceSpans', () => {
       spans.push(span);
     });
 
-    const entry: ResourceEntry = {
+    const entry = mockPerformanceResourceTiming({
       initiatorType: 'css',
       transferSize: 256,
       encodedBodySize: 456,
       decodedBodySize: 593,
       renderBlockingStatus: 'non-blocking',
-    };
+      nextHopProtocol: 'http/1.1',
+    });
 
     const timeOrigin = 100;
     const startTime = 23;
@@ -186,6 +223,8 @@ describe('_addResourceSpans', () => {
           ['url.scheme']: 'https',
           ['server.address']: 'example.com',
           ['url.same_origin']: true,
+          ['network.protocol.name']: 'http',
+          ['network.protocol.version']: '1.1',
         },
       }),
     );
@@ -222,9 +261,10 @@ describe('_addResourceSpans', () => {
     ];
     for (let i = 0; i < table.length; i++) {
       const { initiatorType, op } = table[i]!;
-      const entry: ResourceEntry = {
+      const entry = mockPerformanceResourceTiming({
         initiatorType,
-      };
+        nextHopProtocol: 'http/1.1',
+      });
       _addResourceSpans(span, entry, 'https://example.com/assets/to/me', 123, 234, 465);
 
       expect(spans).toHaveLength(i + 1);
@@ -239,13 +279,14 @@ describe('_addResourceSpans', () => {
       spans.push(span);
     });
 
-    const entry: ResourceEntry = {
+    const entry = mockPerformanceResourceTiming({
       initiatorType: 'css',
       transferSize: 0,
       encodedBodySize: 0,
       decodedBodySize: 0,
       renderBlockingStatus: 'non-blocking',
-    };
+      nextHopProtocol: 'h2',
+    });
 
     _addResourceSpans(span, entry, resourceEntryName, 100, 23, 345);
 
@@ -262,6 +303,8 @@ describe('_addResourceSpans', () => {
           ['url.scheme']: 'https',
           ['server.address']: 'example.com',
           ['url.same_origin']: true,
+          ['network.protocol.name']: 'http',
+          ['network.protocol.version']: '2',
         },
       }),
     );
@@ -274,12 +317,13 @@ describe('_addResourceSpans', () => {
       spans.push(span);
     });
 
-    const entry: ResourceEntry = {
+    const entry = mockPerformanceResourceTiming({
       initiatorType: 'css',
       transferSize: 2147483647,
       encodedBodySize: 2147483647,
       decodedBodySize: 2147483647,
-    };
+      nextHopProtocol: 'h3',
+    });
 
     _addResourceSpans(span, entry, resourceEntryName, 100, 23, 345);
 
@@ -292,6 +336,8 @@ describe('_addResourceSpans', () => {
           'server.address': 'example.com',
           'url.same_origin': true,
           'url.scheme': 'https',
+          ['network.protocol.name']: 'http',
+          ['network.protocol.version']: '3',
         },
         description: '/assets/to/css',
         timestamp: 468,
@@ -316,7 +362,8 @@ describe('_addResourceSpans', () => {
       transferSize: null,
       encodedBodySize: null,
       decodedBodySize: null,
-    } as unknown as ResourceEntry;
+      nextHopProtocol: 'h3',
+    } as unknown as PerformanceResourceTiming;
 
     _addResourceSpans(span, entry, resourceEntryName, 100, 23, 345);
 
@@ -329,6 +376,8 @@ describe('_addResourceSpans', () => {
           'server.address': 'example.com',
           'url.same_origin': true,
           'url.scheme': 'https',
+          ['network.protocol.name']: 'http',
+          ['network.protocol.version']: '3',
         },
         description: '/assets/to/css',
         timestamp: 468,
@@ -341,7 +390,7 @@ describe('_addResourceSpans', () => {
 
   // resource delivery types: https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming/deliveryType
   // i.e. better but not yet widely supported way to check for browser cache hit
-  it.each(['cache', 'navigational-prefetch', ''])(
+  it.each(['cache', 'navigational-prefetch', ''] as const)(
     'attaches delivery type ("%s") to resource spans if available',
     deliveryType => {
       const spans: Span[] = [];
@@ -350,13 +399,14 @@ describe('_addResourceSpans', () => {
         spans.push(span);
       });
 
-      const entry: ResourceEntry = {
+      const entry = mockPerformanceResourceTiming({
         initiatorType: 'css',
         transferSize: 0,
         encodedBodySize: 0,
         decodedBodySize: 0,
         deliveryType,
-      };
+        nextHopProtocol: 'h3',
+      });
 
       _addResourceSpans(span, entry, resourceEntryName, 100, 23, 345);
 

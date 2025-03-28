@@ -14,7 +14,6 @@
 ## Links
 
 - [Official SDK Docs](https://docs.sentry.io/quickstart/)
-- [TypeDoc](http://getsentry.github.io/sentry-javascript/)
 
 ## Usage
 

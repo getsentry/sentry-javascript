@@ -10,7 +10,7 @@ import {
   getRootSpan,
   spanToJSON,
 } from '@sentry/core';
-import { browserPerformanceTimeOrigin, dropUndefinedKeys, htmlTreeAsString, logger } from '@sentry/core';
+import { browserPerformanceTimeOrigin, htmlTreeAsString, logger } from '@sentry/core';
 import type { SpanAttributes } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { addClsInstrumentationHandler } from './instrument';
@@ -73,14 +73,16 @@ export function trackClsAsStandaloneSpan(): void {
 
     const unsubscribeStartNavigation = client.on('startNavigationSpan', () => {
       _collectClsOnce();
-      unsubscribeStartNavigation && unsubscribeStartNavigation();
+      unsubscribeStartNavigation?.();
     });
 
     const activeSpan = getActiveSpan();
-    const rootSpan = activeSpan && getRootSpan(activeSpan);
-    const spanJSON = rootSpan && spanToJSON(rootSpan);
-    if (spanJSON && spanJSON.op === 'pageload') {
-      pageloadSpanId = rootSpan.spanContext().spanId;
+    if (activeSpan) {
+      const rootSpan = getRootSpan(activeSpan);
+      const spanJSON = spanToJSON(rootSpan);
+      if (spanJSON.op === 'pageload') {
+        pageloadSpanId = rootSpan.spanContext().spanId;
+      }
     }
   }, 0);
 }
@@ -88,18 +90,18 @@ export function trackClsAsStandaloneSpan(): void {
 function sendStandaloneClsSpan(clsValue: number, entry: LayoutShift | undefined, pageloadSpanId: string) {
   DEBUG_BUILD && logger.log(`Sending CLS span (${clsValue})`);
 
-  const startTime = msToSec((browserPerformanceTimeOrigin || 0) + ((entry && entry.startTime) || 0));
+  const startTime = msToSec((browserPerformanceTimeOrigin() || 0) + (entry?.startTime || 0));
   const routeName = getCurrentScope().getScopeData().transactionName;
 
-  const name = entry ? htmlTreeAsString(entry.sources[0] && entry.sources[0].node) : 'Layout shift';
+  const name = entry ? htmlTreeAsString(entry.sources[0]?.node) : 'Layout shift';
 
-  const attributes: SpanAttributes = dropUndefinedKeys({
+  const attributes: SpanAttributes = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser.cls',
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.webvital.cls',
-    [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: (entry && entry.duration) || 0,
+    [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: entry?.duration || 0,
     // attach the pageload span id to the CLS span so that we can link them in the UI
     'sentry.pageload.span_id': pageloadSpanId,
-  });
+  };
 
   const span = startStandaloneWebVitalSpan({
     name,

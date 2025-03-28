@@ -11,7 +11,8 @@
     "start:import": "node --import ./.output/server/sentry.server.config.mjs .output/server/index.mjs",
     "clean": "npx nuxi cleanup",
     "test": "playwright test",
-    "test:build": "pnpm install && npx playwright install && pnpm build",
+    "test:build": "pnpm install && pnpm build",
+    "test:build-canary": "pnpm add nuxt@npm:nuxt-nightly@latest && pnpm add nitropack@npm:nitropack-nightly@latest && pnpm install --force && pnpm build",
     "test:assert": "pnpm test"
   },
   "dependencies": {
@@ -20,11 +21,18 @@
     "nuxt": "^3.13.2"
   },
   "devDependencies": {
-    "@nuxt/test-utils": "^3.14.2",
-    "@playwright/test": "^1.44.1",
+    "@playwright/test": "~1.50.0",
     "@sentry-internal/test-utils": "link:../../../test-utils"
   },
   "overrides": {
     "@vercel/nft": "0.27.4"
+  },
+  "sentryTest": {
+    "optionalVariants": [
+      {
+        "build-command": "test:build-canary",
+        "label": "nuxt-4 (canary)"
+      }
+    ]
   }
 }

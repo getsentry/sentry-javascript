@@ -191,7 +191,7 @@ test.describe('finish routing span', () => {
 });
 
 test.describe('TraceDirective', () => {
-  test('creates a child tracingSpan with component name as span name on ngOnInit', async ({ page }) => {
+  test('creates a child span with the component name as span name on ngOnInit', async ({ page }) => {
     const navigationTxnPromise = waitForTransaction('angular-18', async transactionEvent => {
       return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
     });
@@ -201,23 +201,36 @@ test.describe('TraceDirective', () => {
     // immediately navigate to a different route
     const [_, navigationTxn] = await Promise.all([page.locator('#componentTracking').click(), navigationTxnPromise]);
 
-    const traceDirectiveSpan = navigationTxn.spans?.find(
+    const traceDirectiveSpans = navigationTxn.spans?.filter(
       span => span?.data && span?.data[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] === 'auto.ui.angular.trace_directive',
     );
 
-    expect(traceDirectiveSpan).toBeDefined();
-    expect(traceDirectiveSpan).toEqual(
-      expect.objectContaining({
-        data: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.angular.init',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_directive',
-        },
-        description: '<sample-component>',
-        op: 'ui.angular.init',
-        origin: 'auto.ui.angular.trace_directive',
-        start_timestamp: expect.any(Number),
-        timestamp: expect.any(Number),
-      }),
+    expect(traceDirectiveSpans).toHaveLength(2);
+    expect(traceDirectiveSpans).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          data: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.angular.init',
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_directive',
+          },
+          description: '<sample-component>', // custom component name passed to trace directive
+          op: 'ui.angular.init',
+          origin: 'auto.ui.angular.trace_directive',
+          start_timestamp: expect.any(Number),
+          timestamp: expect.any(Number),
+        }),
+        expect.objectContaining({
+          data: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.angular.init',
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_directive',
+          },
+          description: '<app-sample-component>', // fallback selector name
+          op: 'ui.angular.init',
+          origin: 'auto.ui.angular.trace_directive',
+          start_timestamp: expect.any(Number),
+          timestamp: expect.any(Number),
+        }),
+      ]),
     );
   });
 });

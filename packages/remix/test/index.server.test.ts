@@ -1,12 +1,15 @@
 import * as SentryNode from '@sentry/node';
+import { describe, vi, it, expect, afterEach, type Mock } from 'vitest';
 
 import { init } from '../src/index.server';
 
-const nodeInit = jest.spyOn(SentryNode, 'init');
+vi.mock('@sentry/node', { spy: true });
+
+const nodeInit = SentryNode.init as Mock;
 
 describe('Server init()', () => {
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     SentryNode.getGlobalScope().clear();
     SentryNode.getIsolationScope().clear();

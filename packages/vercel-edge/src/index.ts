@@ -2,8 +2,6 @@ export type {
   Breadcrumb,
   BreadcrumbHint,
   PolymorphicRequest,
-  // eslint-disable-next-line deprecation/deprecation
-  Request,
   RequestEventData,
   SdkInfo,
   Event,
@@ -18,7 +16,6 @@ export type {
   Thread,
   User,
 } from '@sentry/core';
-export type { AddRequestDataToEventOptions } from '@sentry/core';
 
 export type { VercelEdgeOptions } from './types';
 
@@ -67,15 +64,13 @@ export {
   withActiveSpan,
   getSpanDescendants,
   continueTrace,
-  // eslint-disable-next-line deprecation/deprecation
-  metrics,
   functionToStringIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   inboundFiltersIntegration,
+  eventFiltersIntegration,
   linkedErrorsIntegration,
   requestDataIntegration,
   extraErrorDataIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  debugIntegration,
   dedupeIntegration,
   rewriteFramesIntegration,
   captureConsoleIntegration,
@@ -92,9 +87,6 @@ export {
 } from '@sentry/core';
 
 export { VercelEdgeClient } from './client';
-export {
-  getDefaultIntegrations,
-  init,
-} from './sdk';
+export { getDefaultIntegrations, init } from './sdk';
 
 export { winterCGFetchIntegration } from './integrations/wintercg-fetch';

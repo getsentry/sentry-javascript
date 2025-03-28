@@ -9,7 +9,7 @@
     "start": "cross-env NODE_ENV=production node ./server.mjs",
     "typecheck": "tsc",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
-    "test:build": "pnpm install && npx playwright install && pnpm build",
+    "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm playwright test"
   },
   "dependencies": {
@@ -28,7 +28,7 @@
     "source-map-support": "^0.5.21"
   },
   "devDependencies": {
-    "@playwright/test": "^1.44.1",
+    "@playwright/test": "~1.50.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@remix-run/dev": "^2.7.2",
     "@sentry/core": "latest || *",

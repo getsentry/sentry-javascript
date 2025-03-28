@@ -31,7 +31,6 @@ test.describe('tracing in dynamically rendered (ssr) routes', () => {
           data: expect.objectContaining({
             'sentry.op': 'pageload',
             'sentry.origin': 'auto.pageload.browser',
-            'sentry.sample_rate': 1,
             'sentry.source': 'url',
           }),
           op: 'pageload',

@@ -1,8 +1,6 @@
 export type {
   Breadcrumb,
   BreadcrumbHint,
-  // eslint-disable-next-line deprecation/deprecation
-  Request,
   RequestEventData,
   SdkInfo,
   Event,
@@ -15,11 +13,10 @@ export type {
   Thread,
   User,
   Session,
+  ReportDialogOptions,
 } from '@sentry/core';
 
 export type { BrowserOptions } from './client';
-
-export type { ReportDialogOptions } from './sdk';
 
 export {
   addEventProcessor,
@@ -27,13 +24,12 @@ export {
   addIntegration,
   captureException,
   captureEvent,
+  captureFeedback,
   captureMessage,
   close,
   createTransport,
   lastEventId,
   flush,
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub,
   getClient,
   isInitialized,
   getCurrentScope,
@@ -53,7 +49,9 @@ export {
   withScope,
   withIsolationScope,
   functionToStringIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   inboundFiltersIntegration,
+  eventFiltersIntegration,
   dedupeIntegration,
   parameterize,
   startSession,
@@ -62,6 +60,7 @@ export {
   spanToJSON,
   spanToTraceHeader,
   spanToBaggageHeader,
+  updateSpanName,
 } from '@sentry/core';
 
 export {
@@ -85,15 +84,7 @@ export {
 } from './stack-parsers';
 export { eventFromException, eventFromMessage, exceptionFromError } from './eventbuilder';
 export { createUserFeedbackEnvelope } from './userfeedback';
-export {
-  getDefaultIntegrations,
-  forceLoad,
-  init,
-  onLoad,
-  showReportDialog,
-  // eslint-disable-next-line deprecation/deprecation
-  captureUserFeedback,
-} from './sdk';
+export { getDefaultIntegrations, forceLoad, init, onLoad, showReportDialog } from './sdk';
 
 export { breadcrumbsIntegration } from './integrations/breadcrumbs';
 export { globalHandlersIntegration } from './integrations/globalhandlers';

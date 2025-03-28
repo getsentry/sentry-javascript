@@ -1,13 +1,13 @@
 {
   "name": "@sentry/angular",
-  "version": "8.42.0",
+  "version": "9.10.0",
   "description": "Official Sentry SDK for Angular",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/angular",
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=14.18"
+    "node": ">=18"
   },
   "type": "module",
   "module": "build/fesm2015/sentry-angular.mjs",
@@ -21,8 +21,8 @@
     "rxjs": "^6.5.5 || ^7.x"
   },
   "dependencies": {
-    "@sentry/browser": "8.42.0",
-    "@sentry/core": "8.42.0",
+    "@sentry/browser": "9.10.0",
+    "@sentry/core": "9.10.0",
     "tslib": "^2.4.1"
   },
   "devDependencies": {
@@ -35,6 +35,7 @@
     "@angular/platform-browser": "^14.3.0",
     "@angular/platform-browser-dynamic": "^14.3.0",
     "@angular/router": "^14.3.0",
+    "@types/node": "^14.8.0",
     "ng-packagr": "^14.2.2",
     "rxjs": "7.8.1",
     "typescript": "4.6.4",

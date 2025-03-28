@@ -1,3 +1,5 @@
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports
+import { ElementRef } from '@angular/core';
 import type { AfterViewInit, OnDestroy, OnInit } from '@angular/core';
 import { Directive, Injectable, Input, NgModule } from '@angular/core';
 import type { ActivatedRouteSnapshot, Event, RouterState } from '@angular/router';
@@ -235,10 +237,17 @@ export class TraceService implements OnDestroy {
   }
 }
 
-const UNKNOWN_COMPONENT = 'unknown';
-
 /**
- * A directive that can be used to capture initialization lifecycle of the whole component.
+ * Captures the initialization lifecycle of the component this directive is applied to.
+ * Specifically, this directive measures the time between `ngOnInit` and `ngAfterViewInit`
+ * of the component.
+ *
+ * Falls back to the component's selector if no name is provided.
+ *
+ * @example
+ * ```html
+ * <app-my-component trace="myComponent"></app-my-component>
+ * ```
  */
 @Directive({ selector: '[trace]' })
 export class TraceDirective implements OnInit, AfterViewInit {
@@ -246,13 +255,19 @@ export class TraceDirective implements OnInit, AfterViewInit {
 
   private _tracingSpan?: Span;
 
+  public constructor(private readonly _host: ElementRef<HTMLElement>) {}
+
   /**
    * Implementation of OnInit lifecycle method
    * @inheritdoc
    */
   public ngOnInit(): void {
     if (!this.componentName) {
-      this.componentName = UNKNOWN_COMPONENT;
+      // Technically, the `trace` binding should always be provided.
+      // However, if it is incorrectly declared on the element without a
+      // value (e.g., `<app-component trace />`), we fall back to using `tagName`
+      // (which is e.g. `APP-COMPONENT`).
+      this.componentName = this._host.nativeElement.tagName.toLowerCase();
     }
 
     if (getActiveSpan()) {
@@ -307,7 +322,7 @@ export function TraceClass(options?: TraceClassOptions): ClassDecorator {
       tracingSpan = runOutsideAngular(() =>
         startInactiveSpan({
           onlyIfParent: true,
-          name: `<${options && options.name ? options.name : 'unnamed'}>`,
+          name: `<${options?.name || 'unnamed'}>`,
           op: ANGULAR_INIT_OP,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_class_decorator',
@@ -352,7 +367,7 @@ export function TraceMethod(options?: TraceMethodOptions): MethodDecorator {
       runOutsideAngular(() => {
         startInactiveSpan({
           onlyIfParent: true,
-          name: `<${options && options.name ? options.name : 'unnamed'}>`,
+          name: `<${options?.name ? options.name : 'unnamed'}>`,
           op: `${ANGULAR_OP}.${String(propertyKey)}`,
           startTime: now,
           attributes: {
@@ -382,9 +397,9 @@ export function TraceMethod(options?: TraceMethodOptions): MethodDecorator {
 export function getParameterizedRouteFromSnapshot(route?: ActivatedRouteSnapshot | null): string {
   const parts: string[] = [];
 
-  let currentRoute = route && route.firstChild;
+  let currentRoute = route?.firstChild;
   while (currentRoute) {
-    const path = currentRoute && currentRoute.routeConfig && currentRoute.routeConfig.path;
+    const path = currentRoute?.routeConfig && currentRoute.routeConfig.path;
     if (path === null || path === undefined) {
       break;
     }

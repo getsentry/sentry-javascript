@@ -1,13 +1,13 @@
 {
   "name": "@sentry-internal/browser-utils",
-  "version": "8.42.0",
+  "version": "9.10.0",
   "description": "Browser Utilities for all Sentry JavaScript SDKs",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/browser-utils",
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=14.18"
+    "node": ">=18"
   },
   "files": [
     "/build"
@@ -29,7 +29,7 @@
     }
   },
   "typesVersions": {
-    "<4.9": {
+    "<5.0": {
       "build/types/index.d.ts": [
         "build/types-ts3.8/index.d.ts"
       ]
@@ -39,7 +39,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "8.42.0"
+    "@sentry/core": "9.10.0"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
@@ -56,9 +56,9 @@
     "clean": "rimraf build coverage sentry-internal-browser-utils-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
-    "test:unit": "jest",
-    "test": "jest",
-    "test:watch": "jest --watch",
+    "test:unit": "vitest run",
+    "test": "vitest run",
+    "test:watch": "vitest --watch",
     "yalc:publish": "yalc publish --push --sig"
   },
   "volta": {

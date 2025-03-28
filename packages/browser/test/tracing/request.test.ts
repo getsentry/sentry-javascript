@@ -1,11 +1,11 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { MockInstance } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi, afterEach } from 'vitest';
 
 import * as browserUtils from '@sentry-internal/browser-utils';
 import * as utils from '@sentry/core';
 import type { Client } from '@sentry/core';
-import { WINDOW } from '../../src/helpers';
 
-import { extractNetworkProtocol, instrumentOutgoingRequests, shouldAttachHeaders } from '../../src/tracing/request';
+import { instrumentOutgoingRequests, shouldAttachHeaders } from '../../src/tracing/request';
 
 beforeAll(() => {
   // @ts-expect-error need to override global Request because it's not in the vi environment (even with an
@@ -64,57 +64,6 @@ describe('instrumentOutgoingRequests', () => {
   });
 });
 
-interface ProtocolInfo {
-  name: string;
-  version: string;
-}
-
-describe('HTTPTimings', () => {
-  test('Extracting version from ALPN protocol', () => {
-    const nextHopToNetworkVersion: Record<string, ProtocolInfo> = {
-      'http/0.9': { name: 'http', version: '0.9' },
-      'http/1.0': { name: 'http', version: '1.0' },
-      'http/1.1': { name: 'http', version: '1.1' },
-      'spdy/1': { name: 'spdy', version: '1' },
-      'spdy/2': { name: 'spdy', version: '2' },
-      'spdy/3': { name: 'spdy', version: '3' },
-      'stun.turn': { name: 'stun.turn', version: 'unknown' },
-      'stun.nat-discovery': { name: 'stun.nat-discovery', version: 'unknown' },
-      h2: { name: 'http', version: '2' },
-      h2c: { name: 'http', version: '2c' },
-      webrtc: { name: 'webrtc', version: 'unknown' },
-      'c-webrtc': { name: 'c-webrtc', version: 'unknown' },
-      ftp: { name: 'ftp', version: 'unknown' },
-      imap: { name: 'imap', version: 'unknown' },
-      pop3: { name: 'pop', version: '3' },
-      managesieve: { name: 'managesieve', version: 'unknown' },
-      coap: { name: 'coap', version: 'unknown' },
-      'xmpp-client': { name: 'xmpp-client', version: 'unknown' },
-      'xmpp-server': { name: 'xmpp-server', version: 'unknown' },
-      'acme-tls/1': { name: 'acme-tls', version: '1' },
-      mqtt: { name: 'mqtt', version: 'unknown' },
-      dot: { name: 'dot', version: 'unknown' },
-      'ntske/1': { name: 'ntske', version: '1' },
-      sunrpc: { name: 'sunrpc', version: 'unknown' },
-      h3: { name: 'http', version: '3' },
-      smb: { name: 'smb', version: 'unknown' },
-      irc: { name: 'irc', version: 'unknown' },
-      nntp: { name: 'nntp', version: 'unknown' },
-      nnsp: { name: 'nnsp', version: 'unknown' },
-      doq: { name: 'doq', version: 'unknown' },
-      'sip/2': { name: 'sip', version: '2' },
-      'tds/8.0': { name: 'tds', version: '8.0' },
-      dicom: { name: 'dicom', version: 'unknown' },
-    };
-
-    const protocols = Object.keys(nextHopToNetworkVersion);
-    for (const protocol of protocols) {
-      const expected = nextHopToNetworkVersion[protocol]!;
-      expect(extractNetworkProtocol(protocol)).toMatchObject(expected);
-    }
-  });
-});
-
 describe('shouldAttachHeaders', () => {
   describe('should prefer `tracePropagationTargets` over defaults', () => {
     it('should return `true` if the url matches the new tracePropagationTargets', () => {
@@ -131,18 +80,14 @@ describe('shouldAttachHeaders', () => {
   });
 
   describe('with no defined `tracePropagationTargets`', () => {
-    let originalWindowLocation: Location;
+    let locationHrefSpy: MockInstance;
 
-    beforeAll(() => {
-      originalWindowLocation = WINDOW.location;
-      // @ts-expect-error Override delete
-      delete WINDOW.location;
-      // @ts-expect-error We are missing some fields of the Origin interface but it doesn't matter for these tests.
-      WINDOW.location = new URL('https://my-origin.com');
+    beforeEach(() => {
+      locationHrefSpy = vi.spyOn(utils, 'getLocationHref').mockImplementation(() => 'https://my-origin.com');
     });
 
-    afterAll(() => {
-      WINDOW.location = originalWindowLocation;
+    afterEach(() => {
+      locationHrefSpy.mockReset();
     });
 
     it.each([
@@ -173,18 +118,16 @@ describe('shouldAttachHeaders', () => {
   });
 
   describe('with `tracePropagationTargets`', () => {
-    let originalWindowLocation: Location;
+    let locationHrefSpy: MockInstance;
 
-    beforeAll(() => {
-      originalWindowLocation = WINDOW.location;
-      // @ts-expect-error Override delete
-      delete WINDOW.location;
-      // @ts-expect-error We are missing some fields of the Origin interface but it doesn't matter for these tests.
-      WINDOW.location = new URL('https://my-origin.com/api/my-route');
+    beforeEach(() => {
+      locationHrefSpy = vi
+        .spyOn(utils, 'getLocationHref')
+        .mockImplementation(() => 'https://my-origin.com/api/my-route');
     });
 
-    afterAll(() => {
-      WINDOW.location = originalWindowLocation;
+    afterEach(() => {
+      locationHrefSpy.mockReset();
     });
 
     it.each([
@@ -298,18 +241,14 @@ describe('shouldAttachHeaders', () => {
   });
 
   describe('when window.location.href is not available', () => {
-    let originalWindowLocation: Location;
+    let locationHrefSpy: MockInstance;
 
-    beforeAll(() => {
-      originalWindowLocation = WINDOW.location;
-      // @ts-expect-error Override delete
-      delete WINDOW.location;
-      // @ts-expect-error We need to simulate an edge-case
-      WINDOW.location = undefined;
+    beforeEach(() => {
+      locationHrefSpy = vi.spyOn(utils, 'getLocationHref').mockImplementation(() => '');
     });
 
-    afterAll(() => {
-      WINDOW.location = originalWindowLocation;
+    afterEach(() => {
+      locationHrefSpy.mockReset();
     });
 
     describe('with no defined `tracePropagationTargets`', () => {

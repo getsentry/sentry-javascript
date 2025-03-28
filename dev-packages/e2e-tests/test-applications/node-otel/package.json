@@ -1,0 +1,31 @@
+{
+  "name": "node-otel",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/app.js",
+    "test": "playwright test",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm test"
+  },
+  "dependencies": {
+    "@opentelemetry/sdk-node": "0.52.1",
+    "@opentelemetry/exporter-trace-otlp-http": "0.52.1",
+    "@sentry/core": "latest || *",
+    "@sentry/node": "latest || *",
+    "@sentry/opentelemetry": "latest || *",
+    "@types/express": "4.17.17",
+    "@types/node": "^18.19.1",
+    "express": "4.20.0",
+    "typescript": "~5.0.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.50.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

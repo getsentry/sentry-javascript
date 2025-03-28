@@ -1,5 +1,7 @@
+import { describe, expect, it } from 'vitest';
+import type { ScopeData } from '../../../src';
 import { startInactiveSpan } from '../../../src';
-import type { Attachment, Breadcrumb, Event, EventProcessor, EventType, ScopeData } from '../../../src/types-hoist';
+import type { Attachment, Breadcrumb, Event, EventProcessor, EventType } from '../../../src/types-hoist';
 import {
   applyScopeDataToEvent,
   mergeAndOverwriteScopeData,
@@ -81,7 +83,7 @@ describe('mergeScopeData', () => {
       extra: {},
       contexts: {},
       attachments: [],
-      propagationContext: { spanId: '1', traceId: '1' },
+      propagationContext: { traceId: '1', sampleRand: 0.42 },
       sdkProcessingMetadata: {},
       fingerprint: [],
     };
@@ -93,7 +95,7 @@ describe('mergeScopeData', () => {
       extra: {},
       contexts: {},
       attachments: [],
-      propagationContext: { spanId: '1', traceId: '1' },
+      propagationContext: { traceId: '1', sampleRand: 0.42 },
       sdkProcessingMetadata: {},
       fingerprint: [],
     };
@@ -106,7 +108,7 @@ describe('mergeScopeData', () => {
       extra: {},
       contexts: {},
       attachments: [],
-      propagationContext: { spanId: '1', traceId: '1' },
+      propagationContext: { traceId: '1', sampleRand: 0.42 },
       sdkProcessingMetadata: {},
       fingerprint: [],
     });
@@ -133,7 +135,7 @@ describe('mergeScopeData', () => {
       extra: { extra1: 'aa', extra2: 'aa' },
       contexts: { os: { name: 'os1' }, culture: { display_name: 'name1' } },
       attachments: [attachment1],
-      propagationContext: { spanId: '1', traceId: '1' },
+      propagationContext: { traceId: '1', sampleRand: 0.42 },
       sdkProcessingMetadata: {
         aa: 'aa',
         bb: 'aa',
@@ -153,7 +155,7 @@ describe('mergeScopeData', () => {
       extra: { extra2: 'bb', extra3: 'bb' },
       contexts: { os: { name: 'os2' } },
       attachments: [attachment2, attachment3],
-      propagationContext: { spanId: '2', traceId: '2' },
+      propagationContext: { traceId: '2', sampleRand: 0.42 },
       sdkProcessingMetadata: {
         bb: 'bb',
         cc: 'bb',
@@ -174,7 +176,7 @@ describe('mergeScopeData', () => {
       extra: { extra1: 'aa', extra2: 'bb', extra3: 'bb' },
       contexts: { os: { name: 'os2' }, culture: { display_name: 'name1' } },
       attachments: [attachment1, attachment2, attachment3],
-      propagationContext: { spanId: '2', traceId: '2' },
+      propagationContext: { traceId: '2', sampleRand: 0.42 },
       sdkProcessingMetadata: {
         aa: 'aa',
         bb: 'bb',
@@ -192,6 +194,54 @@ describe('mergeScopeData', () => {
 });
 
 describe('applyScopeDataToEvent', () => {
+  it('should correctly merge nested event and scope data with undefined values', () => {
+    const eventData: Event = {
+      user: {
+        name: 'John',
+        age: undefined,
+        location: 'New York',
+        newThing: undefined,
+      },
+      extra: {},
+    };
+
+    const scopeData: ScopeData = {
+      eventProcessors: [],
+      breadcrumbs: [],
+      user: {
+        name: 'John',
+        age: 30,
+        location: 'Vienna',
+        role: 'developer',
+        thing: undefined,
+      },
+      tags: {},
+      extra: {},
+      contexts: {},
+      attachments: [],
+      propagationContext: { traceId: '1', sampleRand: 0.42 },
+      sdkProcessingMetadata: {},
+      fingerprint: [],
+    };
+
+    applyScopeDataToEvent(eventData, scopeData);
+
+    // Verify merged data structure
+    expect(eventData).toEqual({
+      user: {
+        name: 'John',
+        age: undefined,
+        location: 'New York',
+        role: 'developer',
+        thing: undefined,
+        newThing: undefined,
+      },
+      extra: {},
+      breadcrumbs: undefined,
+      sdkProcessingMetadata: {},
+    });
+  });
+
   it("doesn't apply scope.transactionName to transaction events", () => {
     const data: ScopeData = {
       eventProcessors: [],
@@ -201,7 +251,7 @@ describe('applyScopeDataToEvent', () => {
       extra: {},
       contexts: {},
       attachments: [],
-      propagationContext: { spanId: '1', traceId: '1' },
+      propagationContext: { traceId: '1', sampleRand: 0.42 },
       sdkProcessingMetadata: {},
       fingerprint: [],
       transactionName: 'foo',
@@ -222,7 +272,7 @@ describe('applyScopeDataToEvent', () => {
       extra: {},
       contexts: {},
       attachments: [],
-      propagationContext: { spanId: '1', traceId: '1' },
+      propagationContext: { traceId: '1', sampleRand: 0.42 },
       sdkProcessingMetadata: {},
       fingerprint: [],
       transactionName: 'foo',
@@ -253,7 +303,7 @@ describe('applyScopeDataToEvent', () => {
       extra: {},
       contexts: {},
       attachments: [],
-      propagationContext: { spanId: '1', traceId: '1' },
+      propagationContext: { traceId: '1', sampleRand: 0.42 },
       sdkProcessingMetadata: {},
       fingerprint: [],
       transactionName: '/users/:id',
@@ -277,7 +327,7 @@ describe('applyScopeDataToEvent', () => {
         extra: {},
         contexts: {},
         attachments: [],
-        propagationContext: { spanId: '1', traceId: '1' },
+        propagationContext: { traceId: '1', sampleRand: 0.42 },
         sdkProcessingMetadata: {},
         fingerprint: [],
         transactionName: 'foo',

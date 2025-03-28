@@ -16,14 +16,14 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   TRACING_DEFAULTS,
+  addNonEnumerableProperty,
   browserPerformanceTimeOrigin,
   generateTraceId,
-  getActiveSpan,
   getClient,
   getCurrentScope,
-  getDomElement,
   getDynamicSamplingContextFromSpan,
   getIsolationScope,
+  getLocationHref,
   getRootSpan,
   logger,
   propagationContextFromHeaders,
@@ -36,6 +36,12 @@ import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 import { registerBackgroundTabDetection } from './backgroundtab';
 import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './request';
+import type { PreviousTraceInfo } from './previousTrace';
+import {
+  addPreviousTraceSpanLink,
+  getPreviousTraceFromSessionStorage,
+  storePreviousTraceInSessionStorage,
+} from './previousTrace';
 
 export const BROWSER_TRACING_INTEGRATION_ID = 'BrowserTracing';
 
@@ -144,6 +150,29 @@ export interface BrowserTracingOptions {
   enableHTTPTimings: boolean;
 
   /**
+   * Link the currently started trace to a previous trace (e.g. a prior pageload, navigation or
+   * manually started span). When enabled, this option will allow you to navigate between traces
+   * in the Sentry UI.
+   *
+   * You can set this option to the following values:
+   *
+   * - `'in-memory'`: The previous trace data will be stored in memory.
+   *   This is useful for single-page applications and enabled by default.
+   *
+   * - `'session-storage'`: The previous trace data will be stored in the `sessionStorage`.
+   *   This is useful for multi-page applications or static sites but it means that the
+   *   Sentry SDK writes to the browser's `sessionStorage`.
+   *
+   * - `'off'`: The previous trace data will not be stored or linked.
+   *
+   * Note that your `tracesSampleRate` or `tracesSampler` config significantly influences
+   * how often traces will be linked.
+   *
+   * @default 'in-memory' - see explanation above
+   */
+  linkPreviousTrace: 'in-memory' | 'session-storage' | 'off';
+
+  /**
    * _experiments allows the user to send options to define how this integration works.
    *
    * Default: undefined
@@ -176,6 +205,7 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   enableLongTask: true,
   enableLongAnimationFrame: true,
   enableInp: true,
+  linkPreviousTrace: 'in-memory',
   _experiments: {},
   ...defaultRequestInstrumentationOptions,
 };
@@ -190,6 +220,12 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
  * We explicitly export the proper type here, as this has to be extended in some cases.
  */
 export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptions> = {}) => {
+  /**
+   * This is just a small wrapper that makes `document` optional.
+   * We want to be extra-safe and always check that this exists, to ensure weird environments do not blow up.
+   */
+  const optionalWindowDocument = WINDOW.document as (typeof WINDOW)['document'] | undefined;
+
   registerSpanErrorInstrumentation();
 
   const {
@@ -209,6 +245,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     enableHTTPTimings,
     instrumentPageLoad,
     instrumentNavigation,
+    linkPreviousTrace,
   } = {
     ...DEFAULT_BROWSER_TRACING_OPTIONS,
     ..._options,
@@ -241,7 +278,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
   };
 
   /** Create routing idle transaction. */
-  function _createRouteSpan(client: Client, startSpanOptions: StartSpanOptions): Span {
+  function _createRouteSpan(client: Client, startSpanOptions: StartSpanOptions): void {
     const isPageloadTransaction = startSpanOptions.op === 'pageload';
 
     const finalStartSpanOptions: StartSpanOptions = beforeStartSpan
@@ -269,33 +306,47 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       beforeSpanEnd: span => {
         _collectWebVitals();
         addPerformanceEntries(span, { recordClsOnPageloadSpan: !enableStandaloneClsSpans });
+        setActiveIdleSpan(client, undefined);
+
+        // A trace should stay consistent over the entire timespan of one route - even after the pageload/navigation ended.
+        // Only when another navigation happens, we want to create a new trace.
+        // This way, e.g. errors that occur after the pageload span ended are still associated to the pageload trace.
+        const scope = getCurrentScope();
+        const oldPropagationContext = scope.getPropagationContext();
+
+        scope.setPropagationContext({
+          ...oldPropagationContext,
+          traceId: idleSpan.spanContext().traceId,
+          sampled: spanIsSampled(idleSpan),
+          dsc: getDynamicSamplingContextFromSpan(span),
+        });
       },
     });
+    setActiveIdleSpan(client, idleSpan);
 
     function emitFinish(): void {
-      if (['interactive', 'complete'].includes(WINDOW.document.readyState)) {
+      if (optionalWindowDocument && ['interactive', 'complete'].includes(optionalWindowDocument.readyState)) {
         client.emit('idleSpanEnableAutoFinish', idleSpan);
       }
     }
 
-    if (isPageloadTransaction && WINDOW.document) {
-      WINDOW.document.addEventListener('readystatechange', () => {
+    if (isPageloadTransaction && optionalWindowDocument) {
+      optionalWindowDocument.addEventListener('readystatechange', () => {
         emitFinish();
       });
 
       emitFinish();
     }
-
-    return idleSpan;
   }
 
   return {
     name: BROWSER_TRACING_INTEGRATION_ID,
     afterAllSetup(client) {
-      let activeSpan: Span | undefined;
-      let startingUrl: string | undefined = WINDOW.location && WINDOW.location.href;
+      let startingUrl: string | undefined = getLocationHref();
 
       function maybeEndActiveSpan(): void {
+        const activeSpan = getActiveIdleSpan(client);
+
         if (activeSpan && !spanToJSON(activeSpan).timestamp) {
           DEBUG_BUILD && logger.log(`[Tracing] Finishing current active span with op: ${spanToJSON(activeSpan).op}`);
           // If there's an open active span, we need to finish it before creating an new one.
@@ -310,7 +361,10 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
 
         maybeEndActiveSpan();
 
-        activeSpan = _createRouteSpan(client, {
+        getIsolationScope().setPropagationContext({ traceId: generateTraceId(), sampleRand: Math.random() });
+        getCurrentScope().setPropagationContext({ traceId: generateTraceId(), sampleRand: Math.random() });
+
+        _createRouteSpan(client, {
           op: 'navigation',
           ...startSpanOptions,
         });
@@ -328,39 +382,36 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         const propagationContext = propagationContextFromHeaders(sentryTrace, baggage);
         getCurrentScope().setPropagationContext(propagationContext);
 
-        activeSpan = _createRouteSpan(client, {
+        _createRouteSpan(client, {
           op: 'pageload',
           ...startSpanOptions,
         });
       });
 
-      // A trace should to stay the consistent over the entire time span of one route.
-      // Therefore, when the initial pageload or navigation root span ends, we update the
-      // scope's propagation context to keep span-specific attributes like the `sampled` decision and
-      // the dynamic sampling context valid, even after the root span has ended.
-      // This ensures that the trace data is consistent for the entire duration of the route.
-      client.on('spanEnd', span => {
-        const op = spanToJSON(span).op;
-        if (span !== getRootSpan(span) || (op !== 'navigation' && op !== 'pageload')) {
-          return;
-        }
+      if (linkPreviousTrace !== 'off') {
+        let inMemoryPreviousTraceInfo: PreviousTraceInfo | undefined = undefined;
 
-        const scope = getCurrentScope();
-        const oldPropagationContext = scope.getPropagationContext();
+        client.on('spanStart', span => {
+          if (getRootSpan(span) !== span) {
+            return;
+          }
 
-        scope.setPropagationContext({
-          ...oldPropagationContext,
-          sampled: oldPropagationContext.sampled !== undefined ? oldPropagationContext.sampled : spanIsSampled(span),
-          dsc: oldPropagationContext.dsc || getDynamicSamplingContextFromSpan(span),
+          if (linkPreviousTrace === 'session-storage') {
+            const updatedPreviousTraceInfo = addPreviousTraceSpanLink(getPreviousTraceFromSessionStorage(), span);
+            storePreviousTraceInSessionStorage(updatedPreviousTraceInfo);
+          } else {
+            inMemoryPreviousTraceInfo = addPreviousTraceSpanLink(inMemoryPreviousTraceInfo, span);
+          }
         });
-      });
+      }
 
       if (WINDOW.location) {
         if (instrumentPageLoad) {
+          const origin = browserPerformanceTimeOrigin();
           startBrowserTracingPageLoadSpan(client, {
             name: WINDOW.location.pathname,
             // pageload should always start at timeOrigin (and needs to be in s, not ms)
-            startTime: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
+            startTime: origin ? origin / 1000 : undefined,
             attributes: {
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
@@ -379,7 +430,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
              * only be caused in certain development environments where the usage of a hot module reloader is causing
              * errors.
              */
-            if (from === undefined && startingUrl && startingUrl.indexOf(to) !== -1) {
+            if (from === undefined && startingUrl?.indexOf(to) !== -1) {
               startingUrl = undefined;
               return;
             }
@@ -403,7 +454,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       }
 
       if (enableInteractions) {
-        registerInteractionListener(idleTimeout, finalTimeout, childSpanTimeout, latestRoute);
+        registerInteractionListener(client, idleTimeout, finalTimeout, childSpanTimeout, latestRoute);
       }
 
       if (enableInp) {
@@ -435,12 +486,9 @@ export function startBrowserTracingPageLoadSpan(
   traceOptions?: { sentryTrace?: string | undefined; baggage?: string | undefined },
 ): Span | undefined {
   client.emit('startPageLoadSpan', spanOptions, traceOptions);
-
   getCurrentScope().setTransactionName(spanOptions.name);
 
-  const span = getActiveSpan();
-  const op = span && spanToJSON(span).op;
-  return op === 'pageload' ? span : undefined;
+  return getActiveIdleSpan(client);
 }
 
 /**
@@ -448,43 +496,46 @@ export function startBrowserTracingPageLoadSpan(
  * This will only do something if a browser tracing integration has been setup.
  */
 export function startBrowserTracingNavigationSpan(client: Client, spanOptions: StartSpanOptions): Span | undefined {
-  getIsolationScope().setPropagationContext({ traceId: generateTraceId() });
-  getCurrentScope().setPropagationContext({ traceId: generateTraceId() });
-
   client.emit('startNavigationSpan', spanOptions);
 
   getCurrentScope().setTransactionName(spanOptions.name);
 
-  const span = getActiveSpan();
-  const op = span && spanToJSON(span).op;
-  return op === 'navigation' ? span : undefined;
+  return getActiveIdleSpan(client);
 }
 
 /** Returns the value of a meta tag */
 export function getMetaContent(metaName: string): string | undefined {
-  // Can't specify generic to `getDomElement` because tracing can be used
-  // in a variety of environments, have to disable `no-unsafe-member-access`
-  // as a result.
-  const metaTag = getDomElement(`meta[name=${metaName}]`);
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  return metaTag ? metaTag.getAttribute('content') : undefined;
+  /**
+   * This is just a small wrapper that makes `document` optional.
+   * We want to be extra-safe and always check that this exists, to ensure weird environments do not blow up.
+   */
+  const optionalWindowDocument = WINDOW.document as (typeof WINDOW)['document'] | undefined;
+
+  const metaTag = optionalWindowDocument?.querySelector(`meta[name=${metaName}]`);
+  return metaTag?.getAttribute('content') || undefined;
 }
 
 /** Start listener for interaction transactions */
 function registerInteractionListener(
+  client: Client,
   idleTimeout: BrowserTracingOptions['idleTimeout'],
   finalTimeout: BrowserTracingOptions['finalTimeout'],
   childSpanTimeout: BrowserTracingOptions['childSpanTimeout'],
   latestRoute: RouteInfo,
 ): void {
+  /**
+   * This is just a small wrapper that makes `document` optional.
+   * We want to be extra-safe and always check that this exists, to ensure weird environments do not blow up.
+   */
+  const optionalWindowDocument = WINDOW.document as (typeof WINDOW)['document'] | undefined;
+
   let inflightInteractionSpan: Span | undefined;
   const registerInteractionTransaction = (): void => {
     const op = 'ui.action.click';
 
-    const activeSpan = getActiveSpan();
-    const rootSpan = activeSpan && getRootSpan(activeSpan);
-    if (rootSpan) {
-      const currentRootSpanOp = spanToJSON(rootSpan).op;
+    const activeIdleSpan = getActiveIdleSpan(client);
+    if (activeIdleSpan) {
+      const currentRootSpanOp = spanToJSON(activeIdleSpan).op;
       if (['navigation', 'pageload'].includes(currentRootSpanOp as string)) {
         DEBUG_BUILD &&
           logger.warn(`[Tracing] Did not create ${op} span because a pageload or navigation span is in progress.`);
@@ -519,7 +570,17 @@ function registerInteractionListener(
     );
   };
 
-  if (WINDOW.document) {
+  if (optionalWindowDocument) {
     addEventListener('click', registerInteractionTransaction, { once: false, capture: true });
   }
+}
+
+// We store the active idle span on the client object, so we can access it from exported functions
+const ACTIVE_IDLE_SPAN_PROPERTY = '_sentry_idleSpan';
+function getActiveIdleSpan(client: Client): Span | undefined {
+  return (client as { [ACTIVE_IDLE_SPAN_PROPERTY]?: Span })[ACTIVE_IDLE_SPAN_PROPERTY];
+}
+
+function setActiveIdleSpan(client: Client, span: Span | undefined): void {
+  addNonEnumerableProperty(client, ACTIVE_IDLE_SPAN_PROPERTY, span);
 }

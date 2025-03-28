@@ -66,7 +66,7 @@ function createOrUpdateNode(nodeMap: SpanMap, spanNode: SpanNode): SpanNode {
   const existing = nodeMap.get(spanNode.id);
 
   // If span is already set, nothing to do here
-  if (existing && existing.span) {
+  if (existing?.span) {
     return existing;
   }
 

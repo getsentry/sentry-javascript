@@ -1,4 +1,4 @@
-name: "Gitflow: Auto prepare release"
+name: 'Gitflow: Auto prepare release'
 on:
   pull_request:
     types:
@@ -9,13 +9,20 @@ on:
 # This workflow tirggers a release when merging a branch with the pattern `prepare-release/VERSION` into master.
 jobs:
   release:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     name: 'Prepare a new version'
 
     steps:
+      - name: Get auth token
+        id: token
+        uses: actions/create-github-app-token@0d564482f06ca65fa9e77e2510873638c82206f2 # v1.11.5
+        with:
+          app-id: ${{ vars.SENTRY_RELEASE_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.SENTRY_RELEASE_BOT_PRIVATE_KEY }}
+
       - uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GH_RELEASE_PAT }}
+          token: ${{ steps.token.outputs.token }}
           fetch-depth: 0
 
       # https://github.com/actions-ecosystem/action-regex-match
@@ -34,11 +41,18 @@ jobs:
           version=${version/'prepare-release/'/''}
           echo "version=$version" >> $GITHUB_OUTPUT
 
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: 'package.json'
+
       - name: Prepare release
         uses: getsentry/action-prepare-release@v1
-        if: github.event.pull_request.merged == true && steps.version-regex.outputs.match != '' && steps.get_version.outputs.version != ''
+        if:
+          github.event.pull_request.merged == true && steps.version-regex.outputs.match != '' &&
+          steps.get_version.outputs.version != ''
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_RELEASE_PAT }}
+          GITHUB_TOKEN: ${{ steps.token.outputs.token }}
         with:
           version: ${{ steps.get_version.outputs.version }}
           force: false

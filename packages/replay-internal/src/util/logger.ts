@@ -1,4 +1,4 @@
-import type { ConsoleLevel, SeverityLevel } from '@sentry/core';
+import type { ConsoleLevel, Logger, SeverityLevel } from '@sentry/core';
 import { addBreadcrumb, captureException, logger as coreLogger, severityLevelFromString } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 
@@ -7,14 +7,13 @@ const CONSOLE_LEVELS: readonly ReplayConsoleLevels[] = ['info', 'warn', 'error',
 const PREFIX = '[Replay] ';
 
 type LoggerMethod = (...args: unknown[]) => void;
-type LoggerConsoleMethods = Record<ReplayConsoleLevels, LoggerMethod>;
 
 interface LoggerConfig {
   captureExceptions: boolean;
   traceInternals: boolean;
 }
 
-interface ReplayLogger extends LoggerConsoleMethods {
+interface ReplayLogger extends Logger {
   /**
    * Calls `logger.info` but saves breadcrumb in the next tick due to race
    * conditions before replay is initialized.
@@ -27,7 +26,7 @@ interface ReplayLogger extends LoggerConsoleMethods {
   /**
    * Configures the logger with additional debugging behavior
    */
-  setConfig(config: LoggerConfig): void;
+  setConfig(config: Partial<LoggerConfig>): void;
 }
 
 function _addBreadcrumb(message: unknown, level: SeverityLevel = 'info'): void {
@@ -51,9 +50,9 @@ function makeReplayLogger(): ReplayLogger {
   const _logger: Partial<ReplayLogger> = {
     exception: () => undefined,
     infoTick: () => undefined,
-    setConfig: (opts: LoggerConfig) => {
-      _capture = opts.captureExceptions;
-      _trace = opts.traceInternals;
+    setConfig: (opts: Partial<LoggerConfig>) => {
+      _capture = !!opts.captureExceptions;
+      _trace = !!opts.traceInternals;
     },
   };
 

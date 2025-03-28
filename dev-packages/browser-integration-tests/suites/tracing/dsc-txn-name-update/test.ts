@@ -16,6 +16,14 @@ sentryTest('updates the DSC when the txn name is updated and high-quality', asyn
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
+  await page.route('http://sentry-test-site.example/**/*', route => {
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({}),
+    });
+  });
+
   await page.goto(url);
 
   /*
@@ -48,6 +56,7 @@ sentryTest('updates the DSC when the txn name is updated and high-quality', asyn
     'sentry-environment=production',
     'sentry-public_key=public',
     'sentry-release=1.1.1',
+    expect.stringMatching(/sentry-sample_rand=0\.[0-9]+/),
     'sentry-sample_rate=1',
     'sentry-sampled=true',
     `sentry-trace_id=${traceId}`,
@@ -62,6 +71,7 @@ sentryTest('updates the DSC when the txn name is updated and high-quality', asyn
     sample_rate: '1',
     sampled: 'true',
     trace_id: traceId,
+    sample_rand: expect.any(String),
   });
 
   // 4
@@ -73,6 +83,7 @@ sentryTest('updates the DSC when the txn name is updated and high-quality', asyn
     'sentry-environment=production',
     'sentry-public_key=public',
     'sentry-release=1.1.1',
+    expect.stringMatching(/sentry-sample_rand=0\.[0-9]+/),
     'sentry-sample_rate=1',
     'sentry-sampled=true',
     `sentry-trace_id=${traceId}`,
@@ -89,6 +100,7 @@ sentryTest('updates the DSC when the txn name is updated and high-quality', asyn
     sampled: 'true',
     trace_id: traceId,
     transaction: 'updated-root-span-1',
+    sample_rand: expect.any(String),
   });
 
   // 7
@@ -100,6 +112,7 @@ sentryTest('updates the DSC when the txn name is updated and high-quality', asyn
     'sentry-environment=production',
     'sentry-public_key=public',
     'sentry-release=1.1.1',
+    expect.stringMatching(/sentry-sample_rand=0\.[0-9]+/),
     'sentry-sample_rate=1',
     'sentry-sampled=true',
     `sentry-trace_id=${traceId}`,
@@ -116,6 +129,7 @@ sentryTest('updates the DSC when the txn name is updated and high-quality', asyn
     sampled: 'true',
     trace_id: traceId,
     transaction: 'updated-root-span-2',
+    sample_rand: expect.any(String),
   });
 
   // 10
@@ -137,6 +151,7 @@ sentryTest('updates the DSC when the txn name is updated and high-quality', asyn
     sampled: 'true',
     trace_id: traceId,
     transaction: 'updated-root-span-2',
+    sample_rand: expect.any(String),
   });
 
   expect(txnEvent.transaction).toEqual('updated-root-span-2');
@@ -161,7 +176,7 @@ sentryTest('updates the DSC when the txn name is updated and high-quality', asyn
 });
 
 async function makeRequestAndGetBaggageItems(page: Page): Promise<string[]> {
-  const requestPromise = page.waitForRequest('https://example.com/*');
+  const requestPromise = page.waitForRequest('https://sentry-test-site.example/*');
   await page.locator('#btnMakeRequest').click();
   const request = await requestPromise;
 
@@ -181,5 +196,6 @@ async function captureErrorAndGetEnvelopeTraceHeader(page: Page): Promise<Partia
   await page.locator('#btnCaptureError').click();
 
   const [, errorEnvelopeTraceHeader] = (await errorEventPromise)[0];
+
   return errorEnvelopeTraceHeader;
 }

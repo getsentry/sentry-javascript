@@ -6,7 +6,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   browserPerformanceTimeOrigin,
-  dropUndefinedKeys,
   getActiveSpan,
   getCurrentScope,
   getRootSpan,
@@ -28,7 +27,7 @@ const INTERACTIONS_SPAN_MAP = new Map<number, Span>();
  */
 export function startTrackingINP(): () => void {
   const performance = getBrowserPerformanceAPI();
-  if (performance && browserPerformanceTimeOrigin) {
+  if (performance && browserPerformanceTimeOrigin()) {
     const inpCallback = _trackINP();
 
     return (): void => {
@@ -85,7 +84,7 @@ function _trackINP(): () => void {
     const interactionType = INP_ENTRY_MAP[entry.name];
 
     /** Build the INP span, create an envelope from the span, and then send the envelope */
-    const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
+    const startTime = msToSec((browserPerformanceTimeOrigin() as number) + entry.startTime);
     const duration = msToSec(metric.value);
     const activeSpan = getActiveSpan();
     const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
@@ -101,11 +100,11 @@ function _trackINP(): () => void {
     const routeName = spanToUse ? spanToJSON(spanToUse).description : getCurrentScope().getScopeData().transactionName;
 
     const name = htmlTreeAsString(entry.target);
-    const attributes: SpanAttributes = dropUndefinedKeys({
+    const attributes: SpanAttributes = {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser.inp',
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `ui.interaction.${interactionType}`,
       [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: entry.duration,
-    });
+    };
 
     const span = startStandaloneWebVitalSpan({
       name,
@@ -127,9 +126,8 @@ function _trackINP(): () => void {
 
 /**
  * Register a listener to cache route information for INP interactions.
- * TODO(v9): `latestRoute` no longer needs to be passed in and will be removed in v9.
  */
-export function registerInpInteractionListener(_latestRoute?: unknown): void {
+export function registerInpInteractionListener(): void {
   const handleEntries = ({ entries }: { entries: PerformanceEntry[] }): void => {
     const activeSpan = getActiveSpan();
     const activeRootSpan = activeSpan && getRootSpan(activeSpan);

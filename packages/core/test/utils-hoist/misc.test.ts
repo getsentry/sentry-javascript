@@ -1,9 +1,9 @@
 import type { Event, Mechanism, StackFrame } from '../../src/types-hoist';
 
+import { describe, expect, it, test } from 'vitest';
 import {
   addContextToFrame,
   addExceptionMechanism,
-  arrayify,
   checkOrSetAlreadyCaught,
   getEventDescription,
   uuid4,
@@ -215,7 +215,7 @@ describe('addExceptionMechanism', () => {
 
     addExceptionMechanism(event);
 
-    expect(event.exception.values[0]?.mechanism).toEqual(defaultMechanism);
+    expect(event.exception.values[0].mechanism).toEqual(defaultMechanism);
   });
 
   it('prefers current values to defaults', () => {
@@ -226,7 +226,7 @@ describe('addExceptionMechanism', () => {
 
     addExceptionMechanism(event);
 
-    expect(event.exception.values[0]?.mechanism).toEqual(nonDefaultMechanism);
+    expect(event.exception.values[0].mechanism).toEqual(nonDefaultMechanism);
   });
 
   it('prefers incoming values to current values', () => {
@@ -239,7 +239,7 @@ describe('addExceptionMechanism', () => {
     addExceptionMechanism(event, newMechanism);
 
     // the new `handled` value took precedence
-    expect(event.exception.values[0]?.mechanism).toEqual({ type: 'instrument', handled: true, synthetic: true });
+    expect(event.exception.values[0].mechanism).toEqual({ type: 'instrument', handled: true, synthetic: true });
   });
 
   it('merges data values', () => {
@@ -251,7 +251,7 @@ describe('addExceptionMechanism', () => {
 
     addExceptionMechanism(event, newMechanism);
 
-    expect(event.exception.values[0]?.mechanism.data).toEqual({
+    expect(event.exception.values[0].mechanism.data).toEqual({
       function: 'addEventListener',
       handler: 'organizeShoes',
       target: 'closet',
@@ -291,8 +291,6 @@ describe('checkOrSetAlreadyCaught()', () => {
 
 describe('uuid4 generation', () => {
   const uuid4Regex = /^[0-9A-F]{12}[4][0-9A-F]{3}[89AB][0-9A-F]{15}$/i;
-  // Jest messes with the global object, so there is no global crypto object in any node version
-  // For this reason we need to create our own crypto object for each test to cover all the code paths
   it('returns valid uuid v4 ids via Math.random', () => {
     for (let index = 0; index < 1_000; index++) {
       expect(uuid4()).toMatch(uuid4Regex);
@@ -303,10 +301,10 @@ describe('uuid4 generation', () => {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const cryptoMod = require('crypto');
 
-    (global as any).crypto = { getRandomValues: cryptoMod.getRandomValues };
+    const crypto = { getRandomValues: cryptoMod.getRandomValues };
 
     for (let index = 0; index < 1_000; index++) {
-      expect(uuid4()).toMatch(uuid4Regex);
+      expect(uuid4(crypto)).toMatch(uuid4Regex);
     }
   });
 
@@ -314,23 +312,23 @@ describe('uuid4 generation', () => {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const cryptoMod = require('crypto');
 
-    (global as any).crypto = { randomUUID: cryptoMod.randomUUID };
+    const crypto = { getRandomValues: cryptoMod.getRandomValues, randomUUID: cryptoMod.randomUUID };
 
     for (let index = 0; index < 1_000; index++) {
-      expect(uuid4()).toMatch(uuid4Regex);
+      expect(uuid4(crypto)).toMatch(uuid4Regex);
     }
   });
 
   it("return valid uuid v4 even if crypto doesn't exists", () => {
-    (global as any).crypto = { getRandomValues: undefined, randomUUID: undefined };
+    const crypto = { getRandomValues: undefined, randomUUID: undefined };
 
     for (let index = 0; index < 1_000; index++) {
-      expect(uuid4()).toMatch(uuid4Regex);
+      expect(uuid4(crypto)).toMatch(uuid4Regex);
     }
   });
 
   it('return valid uuid v4 even if crypto invoked causes an error', () => {
-    (global as any).crypto = {
+    const crypto = {
       getRandomValues: () => {
         throw new Error('yo');
       },
@@ -340,7 +338,7 @@ describe('uuid4 generation', () => {
     };
 
     for (let index = 0; index < 1_000; index++) {
-      expect(uuid4()).toMatch(uuid4Regex);
+      expect(uuid4(crypto)).toMatch(uuid4Regex);
     }
   });
 
@@ -356,34 +354,12 @@ describe('uuid4 generation', () => {
       }
     };
 
-    (global as any).crypto = { getRandomValues };
+    const crypto = { getRandomValues };
 
     for (let index = 0; index < 1_000; index++) {
-      expect(uuid4()).toMatch(uuid4Regex);
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore - we are testing a corner case
+      expect(uuid4(crypto)).toMatch(uuid4Regex);
     }
-  });
-});
-
-describe('arrayify()', () => {
-  it('returns arrays untouched', () => {
-    // eslint-disable-next-line deprecation/deprecation
-    expect(arrayify([])).toEqual([]);
-    // eslint-disable-next-line deprecation/deprecation
-    expect(arrayify(['dogs', 'are', 'great'])).toEqual(['dogs', 'are', 'great']);
-  });
-
-  it('wraps non-arrays with an array', () => {
-    // eslint-disable-next-line deprecation/deprecation
-    expect(arrayify(1231)).toEqual([1231]);
-    // eslint-disable-next-line deprecation/deprecation
-    expect(arrayify('dogs are great')).toEqual(['dogs are great']);
-    // eslint-disable-next-line deprecation/deprecation
-    expect(arrayify(true)).toEqual([true]);
-    // eslint-disable-next-line deprecation/deprecation
-    expect(arrayify({})).toEqual([{}]);
-    // eslint-disable-next-line deprecation/deprecation
-    expect(arrayify(null)).toEqual([null]);
-    // eslint-disable-next-line deprecation/deprecation
-    expect(arrayify(undefined)).toEqual([undefined]);
   });
 });

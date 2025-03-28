@@ -4,10 +4,8 @@ module.exports = {
   },
   extends: ['../../.eslintrc.js'],
 
-  ignorePatterns: ['lib/**/*', 'examples/**/*', 'jest.co'],
+  ignorePatterns: ['lib/**/*', 'examples/**/*', 'vitest.config.ts'],
   rules: {
-    '@sentry-internal/sdk/no-optional-chaining': 'off',
-    '@sentry-internal/sdk/no-nullish-coalescing': 'off',
     '@sentry-internal/sdk/no-class-field-initializers': 'off',
   },
 };

@@ -2,8 +2,6 @@ export type {
   Breadcrumb,
   BreadcrumbHint,
   PolymorphicRequest,
-  // eslint-disable-next-line deprecation/deprecation
-  Request,
   RequestEventData,
   SdkInfo,
   Event,
@@ -18,7 +16,6 @@ export type {
   Thread,
   User,
 } from '@sentry/core';
-export type { AddRequestDataToEventOptions } from '@sentry/core';
 
 export {
   addEventProcessor,
@@ -34,8 +31,6 @@ export {
   endSession,
   withMonitor,
   createTransport,
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub,
   getClient,
   isInitialized,
   generateInstrumentOnce,
@@ -64,11 +59,6 @@ export {
   flush,
   close,
   getSentryRelease,
-  // eslint-disable-next-line deprecation/deprecation
-  addRequestDataToEvent,
-  DEFAULT_USER_INCLUDES,
-  // eslint-disable-next-line deprecation/deprecation
-  extractRequestData,
   createGetModuleFromFilename,
   anrIntegration,
   disableAnrDetectionForCallback,
@@ -84,7 +74,9 @@ export {
   requestDataIntegration,
   fsIntegration,
   functionToStringIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   inboundFiltersIntegration,
+  eventFiltersIntegration,
   linkedErrorsIntegration,
   setMeasurement,
   getActiveSpan,
@@ -99,8 +91,6 @@ export {
   continueTrace,
   getAutoPerformanceIntegrations,
   cron,
-  // eslint-disable-next-line deprecation/deprecation
-  metrics,
   parameterize,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -127,10 +117,6 @@ export {
   mysql2Integration,
   redisIntegration,
   tediousIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  nestIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  setupNestErrorHandler,
   postgresIntegration,
   prismaIntegration,
   hapiIntegration,
@@ -141,26 +127,24 @@ export {
   spanToTraceHeader,
   spanToBaggageHeader,
   trpcMiddleware,
-  // eslint-disable-next-line deprecation/deprecation
-  addOpenTelemetryInstrumentation,
+  updateSpanName,
   zodErrorsIntegration,
   profiler,
   amqplibIntegration,
+  vercelAIIntegration,
+  logger,
 } from '@sentry/node';
 
 export {
   captureConsoleIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  debugIntegration,
   dedupeIntegration,
   extraErrorDataIntegration,
   rewriteFramesIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  sessionTimingIntegration,
 } from '@sentry/core';
 
 export type { BunOptions } from './types';
 
+// eslint-disable-next-line deprecation/deprecation
 export { BunClient } from './client';
 export { getDefaultIntegrations, init } from './sdk';
 export { bunServerIntegration } from './integrations/bunserver';

@@ -11,10 +11,6 @@ export {
   addBreadcrumb,
   addEventProcessor,
   addIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  addOpenTelemetryInstrumentation,
-  // eslint-disable-next-line deprecation/deprecation
-  addRequestDataToEvent,
   amqplibIntegration,
   anrIntegration,
   disableAnrDetectionForCallback,
@@ -34,16 +30,11 @@ export {
   createTransport,
   cron,
   dataloaderIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  debugIntegration,
   dedupeIntegration,
-  DEFAULT_USER_INCLUDES,
   defaultStackParser,
   endSession,
   expressErrorHandler,
   expressIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  extractRequestData,
   extraErrorDataIntegration,
   fastifyIntegration,
   flush,
@@ -54,8 +45,6 @@ export {
   getActiveSpan,
   getAutoPerformanceIntegrations,
   getClient,
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub,
   getCurrentScope,
   getDefaultIntegrations,
   getGlobalScope,
@@ -69,7 +58,9 @@ export {
   graphqlIntegration,
   hapiIntegration,
   httpIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   inboundFiltersIntegration,
+  eventFiltersIntegration,
   initOpenTelemetry,
   isInitialized,
   kafkaIntegration,
@@ -80,16 +71,12 @@ export {
   localVariablesIntegration,
   lruMemoizerIntegration,
   makeNodeTransport,
-  // eslint-disable-next-line deprecation/deprecation
-  metrics,
   modulesIntegration,
   mongoIntegration,
   mongooseIntegration,
   mysql2Integration,
   mysqlIntegration,
   nativeNodeFetchIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  nestIntegration,
   NodeClient,
   nodeContextIntegration,
   onUncaughtExceptionIntegration,
@@ -97,8 +84,6 @@ export {
   parameterize,
   postgresIntegration,
   prismaIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  processThreadBreadcrumbIntegration,
   childProcessIntegration,
   redisIntegration,
   requestDataIntegration,
@@ -109,8 +94,6 @@ export {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  // eslint-disable-next-line deprecation/deprecation
-  sessionTimingIntegration,
   setContext,
   setCurrentClient,
   setExtra,
@@ -123,8 +106,6 @@ export {
   setupExpressErrorHandler,
   setupHapiErrorHandler,
   setupKoaErrorHandler,
-  // eslint-disable-next-line deprecation/deprecation
-  setupNestErrorHandler,
   setUser,
   spanToBaggageHeader,
   spanToJSON,
@@ -138,12 +119,15 @@ export {
   startSpanManual,
   tediousIntegration,
   trpcMiddleware,
+  updateSpanName,
+  vercelAIIntegration,
   withActiveSpan,
   withIsolationScope,
   withMonitor,
   withScope,
   zodErrorsIntegration,
   profiler,
+  logger,
 } from '@sentry/node';
 
 export { init } from './server/sdk';

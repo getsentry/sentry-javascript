@@ -14,6 +14,7 @@ Sentry.init({
   skipOpenTelemetrySetup: true,
   // By defining _any_ sample rate, tracing integrations will be added by default
   tracesSampleRate: 0,
+  integrations: [Sentry.httpIntegration({ spans: true })],
 });
 
 const provider = new NodeTracerProvider({

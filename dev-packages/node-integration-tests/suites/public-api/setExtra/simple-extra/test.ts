@@ -1,11 +1,12 @@
+import { afterAll, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
 afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('should set a simple extra', done => {
-  createRunner(__dirname, 'scenario.ts')
+test('should set a simple extra', async () => {
+  await createRunner(__dirname, 'scenario.ts')
     .expect({
       event: {
         message: 'simple_extra',
@@ -19,5 +20,6 @@ test('should set a simple extra', done => {
         },
       },
     })
-    .start(done);
+    .start()
+    .completed();
 });

@@ -3,11 +3,69 @@ import type { SentryRollupPluginOptions } from '@sentry/rollup-plugin';
 import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
 import type { init as initVue } from '@sentry/vue';
 
-// Omitting 'app' as the Nuxt SDK will add the app instance in the client plugin (users do not have to provide this)
+// Omitting Vue 'app' as the Nuxt SDK will add the app instance in the client plugin (users do not have to provide this)
+// Adding `& object` helps TS with inferring that this is not `undefined` but an object type
 export type SentryNuxtClientOptions = Omit<Parameters<typeof initVue>[0] & object, 'app'>;
-export type SentryNuxtServerOptions = Omit<Parameters<typeof initNode>[0] & object, 'app'>;
+export type SentryNuxtServerOptions = Parameters<typeof initNode>[0] & {
+  /**
+   * Enables the Sentry error handler for the Nitro error hook.
+   *
+   * When enabled, exceptions are automatically sent to Sentry with additional data such as the transaction name and Nitro error context.
+   * It's recommended to keep this enabled unless you need to implement a custom error handler.
+   *
+   * If you need a custom implementation, disable this option and refer to the default handler as a reference:
+   * https://github.com/getsentry/sentry-javascript/blob/da8ba8d77a28b43da5014acc8dd98906d2180cc1/packages/nuxt/src/runtime/plugins/sentry.server.ts#L20-L46
+   *
+   * @default true
+   */
+  enableNitroErrorHandler?: boolean;
+};
 
 type SourceMapsOptions = {
+  /**
+   * Suppresses all logs.
+   *
+   * @default false
+   */
+  silent?: boolean;
+
+  /**
+   * When an error occurs during release creation or sourcemaps upload, the plugin will call this function.
+   *
+   * By default, the plugin will simply throw an error, thereby stopping the bundling process.
+   * If an `errorHandler` callback is provided, compilation will continue, unless an error is
+   * thrown in the provided callback.
+   *
+   * To allow compilation to continue but still emit a warning, set this option to the following:
+   *
+   * ```js
+   * (err) => {
+   *   console.warn(err);
+   * }
+   * ```
+   */
+  errorHandler?: (err: Error) => void;
+
+  /**
+   * Options related to managing the Sentry releases for a build.
+   *
+   * More info: https://docs.sentry.io/product/releases/
+   */
+  release?: {
+    /**
+     * Unique identifier for the release you want to create.
+     *
+     * This value can also be specified via the `SENTRY_RELEASE` environment variable.
+     *
+     * Defaults to automatically detecting a value for your environment.
+     * This includes values for Cordova, Heroku, AWS CodeBuild, CircleCI, Xcode, and Gradle, and otherwise uses the git `HEAD`'s commit SHA.
+     * (the latter requires access to git CLI and for the root directory to be a valid repository)
+     *
+     * If you didn't provide a value and the plugin can't automatically detect one, no release will be created.
+     */
+    name?: string;
+  };
+
   /**
    * If this flag is `true`, and an auth token is detected, the Sentry SDK will
    * automatically generate and upload source maps to Sentry during a production build.
@@ -31,6 +89,13 @@ type SourceMapsOptions = {
    * Instead of specifying this option, you can also set the `SENTRY_ORG` environment variable.
    */
   org?: string;
+
+  /**
+   * The URL of your Sentry instance if you're using self-hosted Sentry.
+   *
+   * @default https://sentry.io by default the plugin will point towards the Sentry SaaS URL
+   */
+  url?: string;
 
   /**
    * The project slug of your Sentry project.
@@ -88,6 +153,13 @@ type SourceMapsOptions = {
  *  Build options for the Sentry module. These options are used during build-time by the Sentry SDK.
  */
 export type SentryNuxtModuleOptions = {
+  /**
+   * Enable the Sentry Nuxt Module.
+   *
+   * @default true
+   */
+  enabled?: boolean;
+
   /**
    * Options for the Sentry Vite plugin to customize the source maps upload process.
    *

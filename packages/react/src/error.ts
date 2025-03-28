@@ -1,6 +1,5 @@
-import { captureException } from '@sentry/browser';
+import { captureException, withScope } from '@sentry/browser';
 import { isError } from '@sentry/core';
-import type { EventHint } from '@sentry/core';
 import { version } from 'react';
 import type { ErrorInfo } from 'react';
 
@@ -46,7 +45,7 @@ export function captureReactException(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   error: any,
   { componentStack }: ErrorInfo,
-  hint?: EventHint,
+  hint?: Parameters<typeof captureException>[1],
 ): string {
   // If on React version >= 17, create stack trace from componentStack param and links
   // to to the original error using `error.cause` otherwise relies on error param for stacktrace.
@@ -65,11 +64,9 @@ export function captureReactException(
     setCause(error, errorBoundaryError);
   }
 
-  return captureException(error, {
-    ...hint,
-    captureContext: {
-      contexts: { react: { componentStack } },
-    },
+  return withScope(scope => {
+    scope.setContext('react', { componentStack });
+    return captureException(error, hint);
   });
 }
 

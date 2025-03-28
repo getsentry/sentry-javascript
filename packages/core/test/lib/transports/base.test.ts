@@ -1,5 +1,6 @@
 import type { AttachmentItem, EventEnvelope, EventItem, TransportMakeRequestResponse } from '../../../src/types-hoist';
 
+import { describe, expect, it, vi } from 'vitest';
 import { createTransport } from '../../../src/transports/base';
 import { createEnvelope, serializeEnvelope } from '../../../src/utils-hoist/envelope';
 import type { PromiseBuffer } from '../../../src/utils-hoist/promisebuffer';
@@ -38,8 +39,8 @@ describe('createTransport', () => {
   it('flushes the buffer', async () => {
     const mockBuffer: PromiseBuffer<TransportMakeRequestResponse> = {
       $: [],
-      add: jest.fn(),
-      drain: jest.fn(),
+      add: vi.fn(),
+      drain: vi.fn(),
     };
     const transport = createTransport(transportOptions, _ => resolvedSyncPromise({}), mockBuffer);
     /* eslint-disable @typescript-eslint/unbound-method */
@@ -94,11 +95,11 @@ describe('createTransport', () => {
           transportResponse = res;
         }
 
-        const mockRequestExecutor = jest.fn(_ => {
+        const mockRequestExecutor = vi.fn(_ => {
           return resolvedSyncPromise(transportResponse);
         });
 
-        const mockRecordDroppedEventCallback = jest.fn();
+        const mockRecordDroppedEventCallback = vi.fn();
 
         const transport = createTransport({ recordDroppedEvent: mockRecordDroppedEventCallback }, mockRequestExecutor);
 
@@ -109,7 +110,7 @@ describe('createTransport', () => {
         const { retryAfterSeconds, beforeLimit, withinLimit, afterLimit } = setRateLimitTimes();
         const [transport, setTransportResponse, requestExecutor, recordDroppedEventCallback] = createTestTransport({});
 
-        const dateNowSpy = jest.spyOn(Date, 'now').mockImplementation(() => beforeLimit);
+        const dateNowSpy = vi.spyOn(Date, 'now').mockImplementation(() => beforeLimit);
 
         await transport.send(ERROR_ENVELOPE);
         expect(requestExecutor).toHaveBeenCalledTimes(1);
@@ -135,9 +136,7 @@ describe('createTransport', () => {
 
         await transport.send(ERROR_ENVELOPE);
         expect(requestExecutor).not.toHaveBeenCalled();
-        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'error', {
-          event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2',
-        });
+        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'error');
         requestExecutor.mockClear();
         recordDroppedEventCallback.mockClear();
 
@@ -158,7 +157,7 @@ describe('createTransport', () => {
           },
         });
 
-        const dateNowSpy = jest.spyOn(Date, 'now').mockImplementation(() => beforeLimit);
+        const dateNowSpy = vi.spyOn(Date, 'now').mockImplementation(() => beforeLimit);
 
         await transport.send(ERROR_ENVELOPE);
         expect(requestExecutor).toHaveBeenCalledTimes(1);
@@ -179,9 +178,7 @@ describe('createTransport', () => {
 
         await transport.send(ERROR_ENVELOPE); // Error envelope should not be sent because of pending rate limit
         expect(requestExecutor).not.toHaveBeenCalled();
-        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'error', {
-          event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2',
-        });
+        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'error');
         requestExecutor.mockClear();
         recordDroppedEventCallback.mockClear();
 
@@ -208,7 +205,7 @@ describe('createTransport', () => {
           },
         });
 
-        const dateNowSpy = jest.spyOn(Date, 'now').mockImplementation(() => beforeLimit);
+        const dateNowSpy = vi.spyOn(Date, 'now').mockImplementation(() => beforeLimit);
 
         await transport.send(ERROR_ENVELOPE);
         expect(requestExecutor).toHaveBeenCalledTimes(1);
@@ -223,23 +220,19 @@ describe('createTransport', () => {
 
         await transport.send(TRANSACTION_ENVELOPE); // Transaction envelope should not be sent because of pending rate limit
         expect(requestExecutor).not.toHaveBeenCalled();
-        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'transaction', {
-          event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2',
-        });
+        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'transaction');
         requestExecutor.mockClear();
         recordDroppedEventCallback.mockClear();
 
         await transport.send(ERROR_ENVELOPE); // Error envelope should not be sent because of pending rate limit
         expect(requestExecutor).not.toHaveBeenCalled();
-        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'error', {
-          event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2',
-        });
+        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'error');
         requestExecutor.mockClear();
         recordDroppedEventCallback.mockClear();
 
         await transport.send(ATTACHMENT_ENVELOPE); // Attachment envelope should not be sent because of pending rate limit
         expect(requestExecutor).not.toHaveBeenCalled();
-        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'attachment', undefined);
+        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'attachment');
         requestExecutor.mockClear();
         recordDroppedEventCallback.mockClear();
 
@@ -272,7 +265,7 @@ describe('createTransport', () => {
           },
         });
 
-        const dateNowSpy = jest.spyOn(Date, 'now').mockImplementation(() => beforeLimit);
+        const dateNowSpy = vi.spyOn(Date, 'now').mockImplementation(() => beforeLimit);
 
         await transport.send(ERROR_ENVELOPE);
         expect(requestExecutor).toHaveBeenCalledTimes(1);
@@ -287,17 +280,13 @@ describe('createTransport', () => {
 
         await transport.send(TRANSACTION_ENVELOPE); // Transaction envelope should not be sent because of pending rate limit
         expect(requestExecutor).not.toHaveBeenCalled();
-        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'transaction', {
-          event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2',
-        });
+        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'transaction');
         requestExecutor.mockClear();
         recordDroppedEventCallback.mockClear();
 
         await transport.send(ERROR_ENVELOPE); // Error envelope should not be sent because of pending rate limit
         expect(requestExecutor).not.toHaveBeenCalled();
-        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'error', {
-          event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2',
-        });
+        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'error');
         requestExecutor.mockClear();
         recordDroppedEventCallback.mockClear();
 

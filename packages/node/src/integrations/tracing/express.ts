@@ -1,11 +1,13 @@
 import type * as http from 'node:http';
+import type { Span } from '@opentelemetry/api';
+import type { ExpressRequestInfo } from '@opentelemetry/instrumentation-express';
 import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
 import type { IntegrationFn } from '@sentry/core';
 import {
+  httpRequestToRequestData,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   captureException,
   defineIntegration,
-  getClient,
   getDefaultIsolationScope,
   getIsolationScope,
   logger,
@@ -13,47 +15,60 @@ import {
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import { generateInstrumentOnce } from '../../otel/instrument';
-import type { NodeClient } from '../../sdk/client';
 import { addOriginToSpan } from '../../utils/addOriginToSpan';
 import { ensureIsWrapped } from '../../utils/ensureIsWrapped';
+import { ExpressInstrumentationV5 } from './express-v5/instrumentation';
 
 const INTEGRATION_NAME = 'Express';
+const INTEGRATION_NAME_V5 = 'Express-V5';
+
+function requestHook(span: Span): void {
+  addOriginToSpan(span, 'auto.http.otel.express');
+
+  const attributes = spanToJSON(span).data;
+  // this is one of: middleware, request_handler, router
+  const type = attributes['express.type'];
+
+  if (type) {
+    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, `${type}.express`);
+  }
+
+  // Also update the name, we don't need to "middleware - " prefix
+  const name = attributes['express.name'];
+  if (typeof name === 'string') {
+    span.updateName(name);
+  }
+}
+
+function spanNameHook(info: ExpressRequestInfo<unknown>, defaultName: string): string {
+  if (getIsolationScope() === getDefaultIsolationScope()) {
+    DEBUG_BUILD && logger.warn('Isolation scope is still default isolation scope - skipping setting transactionName');
+    return defaultName;
+  }
+  if (info.layerType === 'request_handler') {
+    // type cast b/c Otel unfortunately types info.request as any :(
+    const req = info.request as { method?: string };
+    const method = req.method ? req.method.toUpperCase() : 'GET';
+    getIsolationScope().setTransactionName(`${method} ${info.route}`);
+  }
+  return defaultName;
+}
 
 export const instrumentExpress = generateInstrumentOnce(
   INTEGRATION_NAME,
   () =>
     new ExpressInstrumentation({
-      requestHook(span) {
-        addOriginToSpan(span, 'auto.http.otel.express');
+      requestHook: span => requestHook(span),
+      spanNameHook: (info, defaultName) => spanNameHook(info, defaultName),
+    }),
+);
 
-        const attributes = spanToJSON(span).data || {};
-        // this is one of: middleware, request_handler, router
-        const type = attributes['express.type'];
-
-        if (type) {
-          span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, `${type}.express`);
-        }
-
-        // Also update the name, we don't need to "middleware - " prefix
-        const name = attributes['express.name'];
-        if (typeof name === 'string') {
-          span.updateName(name);
-        }
-      },
-      spanNameHook(info, defaultName) {
-        if (getIsolationScope() === getDefaultIsolationScope()) {
-          DEBUG_BUILD &&
-            logger.warn('Isolation scope is still default isolation scope - skipping setting transactionName');
-          return defaultName;
-        }
-        if (info.layerType === 'request_handler') {
-          // type cast b/c Otel unfortunately types info.request as any :(
-          const req = info.request as { method?: string };
-          const method = req.method ? req.method.toUpperCase() : 'GET';
-          getIsolationScope().setTransactionName(`${method} ${info.route}`);
-        }
-        return defaultName;
-      },
+export const instrumentExpressV5 = generateInstrumentOnce(
+  INTEGRATION_NAME_V5,
+  () =>
+    new ExpressInstrumentationV5({
+      requestHook: span => requestHook(span),
+      spanNameHook: (info, defaultName) => spanNameHook(info, defaultName),
     }),
 );
 
@@ -62,6 +77,7 @@ const _expressIntegration = (() => {
     name: INTEGRATION_NAME,
     setupOnce() {
       instrumentExpress();
+      instrumentExpressV5();
     },
   };
 }) satisfies IntegrationFn;
@@ -93,7 +109,9 @@ interface MiddlewareError extends Error {
   };
 }
 
-type ExpressMiddleware = (
+type ExpressMiddleware = (req: http.IncomingMessage, res: http.ServerResponse, next: () => void) => void;
+
+type ExpressErrorMiddleware = (
   error: MiddlewareError,
   req: http.IncomingMessage,
   res: http.ServerResponse,
@@ -111,43 +129,40 @@ interface ExpressHandlerOptions {
 /**
  * An Express-compatible error handler.
  */
-export function expressErrorHandler(options?: ExpressHandlerOptions): ExpressMiddleware {
+export function expressErrorHandler(options?: ExpressHandlerOptions): ExpressErrorMiddleware {
   return function sentryErrorMiddleware(
     error: MiddlewareError,
-    _req: http.IncomingMessage,
+    request: http.IncomingMessage,
     res: http.ServerResponse,
     next: (error: MiddlewareError) => void,
   ): void {
+    const normalizedRequest = httpRequestToRequestData(request);
+    // Ensure we use the express-enhanced request here, instead of the plain HTTP one
+    // When an error happens, the `expressRequestHandler` middleware does not run, so we set it here too
+    getIsolationScope().setSDKProcessingMetadata({ normalizedRequest });
+
     const shouldHandleError = options?.shouldHandleError || defaultShouldHandleError;
 
     if (shouldHandleError(error)) {
-      const client = getClient<NodeClient>();
-      if (client && client.getOptions().autoSessionTracking) {
-        // Check if the `SessionFlusher` is instantiated on the client to go into this branch that marks the
-        // `requestSession.status` as `Crashed`, and this check is necessary because the `SessionFlusher` is only
-        // instantiated when the the`requestHandler` middleware is initialised, which indicates that we should be
-        // running in SessionAggregates mode
-        const isSessionAggregatesMode = client['_sessionFlusher'] !== undefined;
-        if (isSessionAggregatesMode) {
-          // eslint-disable-next-line deprecation/deprecation
-          const requestSession = getIsolationScope().getRequestSession();
-          // If an error bubbles to the `errorHandler`, then this is an unhandled error, and should be reported as a
-          // Crashed session. The `_requestSession.status` is checked to ensure that this error is happening within
-          // the bounds of a request, and if so the status is updated
-          if (requestSession && requestSession.status !== undefined) {
-            requestSession.status = 'crashed';
-          }
-        }
-      }
-
       const eventId = captureException(error, { mechanism: { type: 'middleware', handled: false } });
       (res as { sentry?: string }).sentry = eventId;
-      next(error);
-
-      return;
     }
 
     next(error);
+  };
+}
+
+function expressRequestHandler(): ExpressMiddleware {
+  return function sentryRequestMiddleware(
+    request: http.IncomingMessage,
+    _res: http.ServerResponse,
+    next: () => void,
+  ): void {
+    const normalizedRequest = httpRequestToRequestData(request);
+    // Ensure we use the express-enhanced request here, instead of the plain HTTP one
+    getIsolationScope().setSDKProcessingMetadata({ normalizedRequest });
+
+    next();
   };
 }
 
@@ -176,15 +191,16 @@ export function expressErrorHandler(options?: ExpressHandlerOptions): ExpressMid
  * ```
  */
 export function setupExpressErrorHandler(
-  app: { use: (middleware: ExpressMiddleware) => unknown },
+  app: { use: (middleware: ExpressMiddleware | ExpressErrorMiddleware) => unknown },
   options?: ExpressHandlerOptions,
 ): void {
+  app.use(expressRequestHandler());
   app.use(expressErrorHandler(options));
   ensureIsWrapped(app.use, 'express');
 }
 
 function getStatusCodeFromResponse(error: MiddlewareError): number {
-  const statusCode = error.status || error.statusCode || error.status_code || (error.output && error.output.statusCode);
+  const statusCode = error.status || error.statusCode || error.status_code || error.output?.statusCode;
   return statusCode ? parseInt(statusCode as string, 10) : 500;
 }
 

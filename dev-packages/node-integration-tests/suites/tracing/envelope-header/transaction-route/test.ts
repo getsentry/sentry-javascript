@@ -1,7 +1,8 @@
+import { expect, test } from 'vitest';
 import { createRunner } from '../../../../utils/runner';
 
-test('envelope header for transaction event of route correct', done => {
-  createRunner(__dirname, 'scenario.ts')
+test('envelope header for transaction event of route correct', async () => {
+  await createRunner(__dirname, 'scenario.ts')
     .expectHeader({
       transaction: {
         trace: {
@@ -12,8 +13,10 @@ test('envelope header for transaction event of route correct', done => {
           release: '1.0',
           sample_rate: '1',
           sampled: 'true',
+          sample_rand: expect.any(String),
         },
       },
     })
-    .start(done);
+    .start()
+    .completed();
 });

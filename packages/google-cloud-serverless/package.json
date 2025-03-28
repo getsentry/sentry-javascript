@@ -1,13 +1,13 @@
 {
   "name": "@sentry/google-cloud-serverless",
-  "version": "8.42.0",
+  "version": "9.10.0",
   "description": "Official Sentry SDK for Google Cloud Functions",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
-  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/google-cloud",
+  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/google-cloud-serverless",
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=14.18"
+    "node": ">=18"
   },
   "files": [
     "/build"
@@ -38,7 +38,7 @@
     }
   },
   "typesVersions": {
-    "<4.9": {
+    "<5.0": {
       "build/types/index.d.ts": [
         "build/types-ts3.8/index.d.ts"
       ]
@@ -48,17 +48,14 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "8.42.0",
-    "@sentry/node": "8.42.0",
+    "@sentry/core": "9.10.0",
+    "@sentry/node": "9.10.0",
     "@types/express": "^4.17.14"
   },
   "devDependencies": {
     "@google-cloud/bigquery": "^5.3.0",
     "@google-cloud/common": "^3.4.1",
-    "@google-cloud/functions-framework": "^1.7.1",
-    "@google-cloud/pubsub": "^2.5.0",
-    "@types/node": "^14.18.0",
-    "google-gax": "^2.9.0",
+    "@types/node": "^18.19.1",
     "nock": "^13.5.5"
   },
   "scripts": {
@@ -77,8 +74,8 @@
     "clean": "rimraf build coverage sentry-google-cloud-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
-    "test": "jest",
-    "test:watch": "jest --watch",
+    "test": "vitest run",
+    "test:watch": "vitest --watch",
     "yalc:publish": "yalc publish --push --sig"
   },
   "volta": {

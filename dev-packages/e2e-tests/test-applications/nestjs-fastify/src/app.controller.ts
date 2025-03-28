@@ -1,4 +1,4 @@
-import { Controller, Get, Param, ParseIntPipe, UseFilters, UseGuards, UseInterceptors } from '@nestjs/common';
+import { All, Controller, Get, Param, ParseIntPipe, UseFilters, UseGuards, UseInterceptors } from '@nestjs/common';
 import { flush } from '@sentry/nestjs';
 import { AppService } from './app.service';
 import { AsyncInterceptor } from './async-example.interceptor';
@@ -120,5 +120,10 @@ export class AppController {
   @Get('test-function-name')
   testFunctionName() {
     return this.appService.getFunctionName();
+  }
+
+  @All('test-all')
+  testAll() {
+    return {};
   }
 }

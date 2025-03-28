@@ -1,15 +1,8 @@
+import type { Client, ScopeContext } from '../../src';
 import { GLOBAL_OBJ, createStackParser, getGlobalScope, getIsolationScope } from '../../src';
-import type {
-  Attachment,
-  Breadcrumb,
-  Client,
-  ClientOptions,
-  Event,
-  EventHint,
-  EventProcessor,
-  ScopeContext,
-} from '../../src/types-hoist';
+import type { Attachment, Breadcrumb, ClientOptions, Event, EventHint, EventProcessor } from '../../src/types-hoist';
 
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Scope } from '../../src/scope';
 import {
   applyClientOptions,
@@ -79,6 +72,45 @@ describe('applyDebugIds', () => {
       }),
     );
   });
+
+  it('handles multiple exception values where not all events have valid stack traces', () => {
+    GLOBAL_OBJ._sentryDebugIds = {
+      'filename1.js\nfilename1.js': 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa',
+      'filename2.js\nfilename2.js': 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb',
+    };
+    const stackParser = createStackParser([0, line => ({ filename: line })]);
+
+    const event: Event = {
+      exception: {
+        values: [
+          {
+            value: 'first exception without stack trace',
+          },
+          {
+            stacktrace: {
+              frames: [{ filename: 'filename1.js' }, { filename: 'filename2.js' }],
+            },
+          },
+        ],
+      },
+    };
+
+    applyDebugIds(event, stackParser);
+
+    expect(event.exception?.values?.[0]).toEqual({
+      value: 'first exception without stack trace',
+    });
+
+    expect(event.exception?.values?.[1]?.stacktrace?.frames).toContainEqual({
+      filename: 'filename1.js',
+      debug_id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa',
+    });
+
+    expect(event.exception?.values?.[1]?.stacktrace?.frames).toContainEqual({
+      filename: 'filename2.js',
+      debug_id: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb',
+    });
+  });
 });
 
 describe('applyDebugMeta', () => {
@@ -107,6 +139,49 @@ describe('applyDebugMeta', () => {
       { filename: 'filename2.js' },
       { filename: 'filename1.js' },
       { filename: 'filename3.js' },
+    ]);
+
+    expect(event.debug_meta?.images).toContainEqual({
+      type: 'sourcemap',
+      code_file: 'filename1.js',
+      debug_id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa',
+    });
+
+    expect(event.debug_meta?.images).toContainEqual({
+      type: 'sourcemap',
+      code_file: 'filename2.js',
+      debug_id: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb',
+    });
+  });
+
+  it('handles multiple exception values where not all events have valid stack traces', () => {
+    const event: Event = {
+      exception: {
+        values: [
+          {
+            value: 'first exception without stack trace',
+          },
+          {
+            stacktrace: {
+              frames: [
+                { filename: 'filename1.js', debug_id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa' },
+                { filename: 'filename2.js', debug_id: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb' },
+              ],
+            },
+          },
+        ],
+      },
+    };
+
+    applyDebugMeta(event);
+
+    expect(event.exception?.values?.[0]).toEqual({
+      value: 'first exception without stack trace',
+    });
+
+    expect(event.exception?.values?.[1]?.stacktrace?.frames).toEqual([
+      { filename: 'filename1.js' },
+      { filename: 'filename2.js' },
     ]);
 
     expect(event.debug_meta?.images).toContainEqual({
@@ -162,10 +237,9 @@ describe('parseEventHintOrCaptureContext', () => {
       contexts: { os: { name: 'linux' } },
       tags: { foo: 'bar' },
       fingerprint: ['xx', 'yy'],
-      requestSession: { status: 'ok' },
       propagationContext: {
         traceId: 'xxx',
-        spanId: 'yyy',
+        sampleRand: Math.random(),
       },
     };
 
@@ -175,9 +249,9 @@ describe('parseEventHintOrCaptureContext', () => {
 
   it('triggers a TS error if trying to mix ScopeContext & EventHint', () => {
     const actual = parseEventHintOrCaptureContext({
+      mechanism: { handled: false },
       // @ts-expect-error We are specifically testing that this errors!
       user: { id: 'xxx' },
-      mechanism: { handled: false },
     });
 
     // ScopeContext takes presedence in this case, but this is actually not supported
@@ -197,7 +271,7 @@ describe('prepareEvent', () => {
   });
 
   it('works without any scope data', async () => {
-    const eventProcessor = jest.fn((a: unknown) => a) as EventProcessor;
+    const eventProcessor = vi.fn((a: unknown) => a) as EventProcessor;
 
     const scope = new Scope();
 
@@ -242,9 +316,9 @@ describe('prepareEvent', () => {
     const breadcrumb3 = { message: '3', timestamp: 123 } as Breadcrumb;
     const breadcrumb4 = { message: '4', timestamp: 123 } as Breadcrumb;
 
-    const eventProcessor1 = jest.fn((a: unknown) => a) as EventProcessor;
-    const eventProcessor2 = jest.fn((b: unknown) => b) as EventProcessor;
-    const eventProcessor3 = jest.fn((b: unknown) => b) as EventProcessor;
+    const eventProcessor1 = vi.fn((a: unknown) => a) as EventProcessor;
+    const eventProcessor2 = vi.fn((b: unknown) => b) as EventProcessor;
+    const eventProcessor3 = vi.fn((b: unknown) => b) as EventProcessor;
 
     const attachment1 = { filename: '1' } as Attachment;
     const attachment2 = { filename: '2' } as Attachment;
@@ -256,7 +330,7 @@ describe('prepareEvent', () => {
       tags: { tag1: 'aa', tag2: 'aa' },
       extra: { extra1: 'aa', extra2: 'aa' },
       contexts: { os: { name: 'os1' }, culture: { display_name: 'name1' } },
-      propagationContext: { spanId: '1', traceId: '1' },
+      propagationContext: { traceId: '1', sampleRand: 0.42 },
       fingerprint: ['aa'],
     });
     scope.addBreadcrumb(breadcrumb1);
@@ -326,8 +400,8 @@ describe('prepareEvent', () => {
     const breadcrumb2 = { message: '2', timestamp: 222 } as Breadcrumb;
     const breadcrumb3 = { message: '3', timestamp: 333 } as Breadcrumb;
 
-    const eventProcessor1 = jest.fn((a: unknown) => a) as EventProcessor;
-    const eventProcessor2 = jest.fn((a: unknown) => a) as EventProcessor;
+    const eventProcessor1 = vi.fn((a: unknown) => a) as EventProcessor;
+    const eventProcessor2 = vi.fn((a: unknown) => a) as EventProcessor;
 
     const attachmentGlobal = { filename: 'global scope attachment' } as Attachment;
     const attachmentIsolation = { filename: 'isolation scope attachment' } as Attachment;
@@ -490,7 +564,7 @@ describe('prepareEvent', () => {
       const captureContextScope = new Scope();
       captureContextScope.setTags({ foo: 'bar' });
 
-      const captureContext = jest.fn(passedScope => {
+      const captureContext = vi.fn(passedScope => {
         expect(passedScope).toEqual(scope);
         return captureContextScope;
       });

@@ -1,6 +1,9 @@
+import { describe, expect, it, vi } from 'vitest';
+
 // mock helper functions not tested directly in this file
 import '../mocks';
 
+import * as getWebpackPluginOptionsModule from '../../../src/config/webpackPluginOptions';
 import {
   CLIENT_SDK_CONFIG_FILE,
   clientBuildContext,
@@ -11,9 +14,16 @@ import {
   userNextConfig,
 } from '../fixtures';
 import { materializeFinalNextConfig, materializeFinalWebpackConfig } from '../testUtils';
+import * as core from '@sentry/core';
 
 describe('constructWebpackConfigFunction()', () => {
   it('includes expected properties', async () => {
+    vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+      sentryWebpackPlugin: () => ({
+        _name: 'sentry-webpack-plugin',
+      }),
+    }));
+
     const finalWebpackConfig = await materializeFinalWebpackConfig({
       exportedNextConfig,
       incomingWebpackConfig: serverWebpackConfig,
@@ -27,6 +37,53 @@ describe('constructWebpackConfigFunction()', () => {
         plugins: expect.arrayContaining([expect.objectContaining({ _name: 'sentry-webpack-plugin' })]),
       }),
     );
+  });
+
+  it('preserves existing devtool setting', async () => {
+    const customDevtool = 'eval-source-map';
+    const finalWebpackConfig = await materializeFinalWebpackConfig({
+      exportedNextConfig,
+      incomingWebpackConfig: {
+        ...serverWebpackConfig,
+        devtool: customDevtool,
+      },
+      incomingWebpackBuildContext: serverBuildContext,
+      sentryBuildTimeOptions: {},
+    });
+
+    expect(finalWebpackConfig.devtool).toEqual(customDevtool);
+  });
+
+  it('automatically enables deleteSourcemapsAfterUpload for client builds when not explicitly set', async () => {
+    const getWebpackPluginOptionsSpy = vi.spyOn(getWebpackPluginOptionsModule, 'getWebpackPluginOptions');
+    vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+      sentryWebpackPlugin: () => ({
+        _name: 'sentry-webpack-plugin',
+      }),
+    }));
+
+    await materializeFinalWebpackConfig({
+      exportedNextConfig,
+      incomingWebpackConfig: clientWebpackConfig,
+      incomingWebpackBuildContext: clientBuildContext,
+      sentryBuildTimeOptions: {
+        sourcemaps: {},
+      },
+    });
+
+    expect(getWebpackPluginOptionsSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        isServer: false,
+      }),
+      expect.objectContaining({
+        sourcemaps: {
+          deleteSourcemapsAfterUpload: true,
+        },
+      }),
+      undefined,
+    );
+
+    getWebpackPluginOptionsSpy.mockRestore();
   });
 
   it('preserves unrelated webpack config options', async () => {
@@ -69,6 +126,12 @@ describe('constructWebpackConfigFunction()', () => {
   });
 
   it('uses `hidden-source-map` as `devtool` value for client-side builds', async () => {
+    vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+      sentryWebpackPlugin: () => ({
+        _name: 'sentry-webpack-plugin',
+      }),
+    }));
+
     const finalClientWebpackConfig = await materializeFinalWebpackConfig({
       exportedNextConfig: exportedNextConfig,
       incomingWebpackConfig: clientWebpackConfig,

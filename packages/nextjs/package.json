@@ -1,13 +1,13 @@
 {
   "name": "@sentry/nextjs",
-  "version": "8.42.0",
+  "version": "9.10.0",
   "description": "Official Sentry SDK for Next.js",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/nextjs",
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=14.18"
+    "node": ">=18"
   },
   "main": "build/cjs/index.server.js",
   "module": "build/esm/index.server.js",
@@ -66,7 +66,7 @@
     }
   },
   "typesVersions": {
-    "<4.9": {
+    "<5.0": {
       "build/npm/types/index.d.ts": [
         "build/npm/types-ts3.8/index.d.ts"
       ]
@@ -77,18 +77,18 @@
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.0",
-    "@opentelemetry/semantic-conventions": "^1.28.0",
+    "@opentelemetry/semantic-conventions": "^1.30.0",
     "@rollup/plugin-commonjs": "28.0.1",
-    "@sentry-internal/browser-utils": "8.42.0",
-    "@sentry/core": "8.42.0",
-    "@sentry/node": "8.42.0",
-    "@sentry/opentelemetry": "8.42.0",
-    "@sentry/react": "8.42.0",
-    "@sentry/vercel-edge": "8.42.0",
-    "@sentry/webpack-plugin": "2.22.6",
+    "@sentry-internal/browser-utils": "9.10.0",
+    "@sentry/core": "9.10.0",
+    "@sentry/node": "9.10.0",
+    "@sentry/opentelemetry": "9.10.0",
+    "@sentry/react": "9.10.0",
+    "@sentry/vercel-edge": "9.10.0",
+    "@sentry/webpack-plugin": "3.2.3",
     "chalk": "3.0.0",
     "resolve": "1.22.8",
-    "rollup": "3.29.5",
+    "rollup": "4.35.0",
     "stacktrace-parser": "^0.1.10"
   },
   "devDependencies": {
@@ -117,9 +117,8 @@
     "lint": "eslint . --format stylish",
     "test": "yarn test:unit",
     "test:all": "run-s test:unit",
-    "test:unit": "jest",
-    "test:types": "cd test/types && yarn test",
-    "test:watch": "jest --watch",
+    "test:unit": "vitest run",
+    "test:watch": "vitest --watch",
     "vercel:branch": "source vercel/set-up-branch-for-test-app-use.sh",
     "vercel:project": "source vercel/make-project-use-current-branch.sh",
     "yalc:publish": "yalc publish --push --sig"

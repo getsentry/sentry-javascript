@@ -1,6 +1,7 @@
 import { trace } from '@opentelemetry/api';
 import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import { getRootSpan } from '@sentry/core';
+import { describe, afterEach, beforeEach, expect, it } from 'vitest';
 
 import { getActiveSpan } from '../../src/utils/getActiveSpan';
 import { TestClient, getDefaultTestClientOptions } from '../helpers/TestClient';
@@ -96,7 +97,7 @@ describe('getRootSpan', () => {
   let provider: BasicTracerProvider | undefined;
 
   beforeEach(() => {
-    const client = new TestClient(getDefaultTestClientOptions());
+    const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
     provider = setupOtel(client);
   });
 

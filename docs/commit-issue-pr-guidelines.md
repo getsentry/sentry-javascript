@@ -34,6 +34,15 @@ and committed as such onto `develop`.
 Please note that we cannot _enforce_ Squash Merge due to the usage of Gitflow (see below). Github remembers the last
 used merge method, so you'll need to make sure to double check that you are using "Squash and Merge" correctly.
 
+## Backporting PRs/Commits
+
+If you want to backport a commit to a previous major version, make sure to reflect this in the PR/commit title.
+The name should have the backported major as a scope prefix. For example:
+
+```
+feat(v8/core): Set custom transaction source for event processors (#5722)
+```
+
 ## Gitflow
 
 We use [Gitflow](https://docs.github.com/en/get-started/quickstart/github-flow) as a branching model.

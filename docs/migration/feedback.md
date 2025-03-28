@@ -140,7 +140,7 @@ users.
 | `buttonLabel`    | `triggerLabel`          | `"Report a bug"`               |
 | `isRequiredText` | `isRequiredLabel`       | `"(required)"`                 |
 | -                | `addScreenshotLabel`    | `"Add a screenshot"`           |
-| -                | `removeScreenshotLabel` | `"Remove Screenshot"`          |
+| -                | `removeScreenshotLabel` | `"Remove screenshot"`          |
 | -                | `confirmButtonLabel`    | `"Confirm"`                    |
 | -                | `successMessageText`    | `"Thank you for your report!"` |
 

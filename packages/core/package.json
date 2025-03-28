@@ -1,13 +1,13 @@
 {
   "name": "@sentry/core",
-  "version": "8.42.0",
+  "version": "9.10.0",
   "description": "Base implementation for all Sentry JavaScript SDKs",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/core",
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=14.18"
+    "node": ">=18"
   },
   "files": [
     "/build"
@@ -29,7 +29,7 @@
     }
   },
   "typesVersions": {
-    "<4.9": {
+    "<5.0": {
       "build/types/index.d.ts": [
         "build/types-ts3.8/index.d.ts"
       ]
@@ -37,11 +37,6 @@
   },
   "publishConfig": {
     "access": "public"
-  },
-  "TODO(v9):": "Remove these dependencies",
-  "devDependencies": {
-    "@types/array.prototype.flat": "^1.2.1",
-    "array.prototype.flat": "^1.3.0"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
@@ -59,12 +54,15 @@
     "clean": "rimraf build coverage sentry-core-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
-    "test": "jest",
-    "test:watch": "jest --watch",
+    "test": "vitest run",
+    "test:watch": "vitest --watch",
     "yalc:publish": "yalc publish --push --sig"
   },
   "volta": {
     "extends": "../../package.json"
   },
-  "sideEffects": false
+  "sideEffects": false,
+  "devDependencies": {
+    "zod": "^3.24.1"
+  }
 }

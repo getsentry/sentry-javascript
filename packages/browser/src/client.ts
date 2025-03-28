@@ -8,14 +8,17 @@ import type {
   ParameterizedString,
   Scope,
   SeverityLevel,
-  UserFeedback,
 } from '@sentry/core';
-import { BaseClient, applySdkMetadata, getSDKSource, logger } from '@sentry/core';
-import { DEBUG_BUILD } from './debug-build';
+import {
+  Client,
+  addAutoIpAddressToSession,
+  addAutoIpAddressToUser,
+  applySdkMetadata,
+  getSDKSource,
+} from '@sentry/core';
 import { eventFromException, eventFromMessage } from './eventbuilder';
 import { WINDOW } from './helpers';
 import type { BrowserTransportOptions } from './transports/types';
-import { createUserFeedbackEnvelope } from './userfeedback';
 
 /**
  * Configuration options for the Sentry Browser SDK.
@@ -61,7 +64,7 @@ export type BrowserClientOptions = ClientOptions<BrowserTransportOptions> &
  * @see BrowserOptions for documentation on configuration options.
  * @see SentryClient for usage documentation.
  */
-export class BrowserClient extends BaseClient<BrowserClientOptions> {
+export class BrowserClient extends Client<BrowserClientOptions> {
   /**
    * Creates a new Browser SDK instance.
    *
@@ -85,6 +88,11 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
         }
       });
     }
+
+    if (this._options.sendDefaultPii) {
+      this.on('postprocessEvent', addAutoIpAddressToUser);
+      this.on('beforeSendSession', addAutoIpAddressToSession);
+    }
   }
 
   /**
@@ -106,32 +114,16 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
   }
 
   /**
-   * Sends user feedback to Sentry.
-   *
-   * @deprecated Use `captureFeedback` instead.
-   */
-  public captureUserFeedback(feedback: UserFeedback): void {
-    if (!this._isEnabled()) {
-      DEBUG_BUILD && logger.warn('SDK not enabled, will not capture user feedback.');
-      return;
-    }
-
-    const envelope = createUserFeedbackEnvelope(feedback, {
-      metadata: this.getSdkMetadata(),
-      dsn: this.getDsn(),
-      tunnel: this.getOptions().tunnel,
-    });
-
-    // sendEnvelope should not throw
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    this.sendEnvelope(envelope);
-  }
-
-  /**
    * @inheritDoc
    */
-  protected _prepareEvent(event: Event, hint: EventHint, scope?: Scope): PromiseLike<Event | null> {
+  protected _prepareEvent(
+    event: Event,
+    hint: EventHint,
+    currentScope: Scope,
+    isolationScope: Scope,
+  ): PromiseLike<Event | null> {
     event.platform = event.platform || 'javascript';
-    return super._prepareEvent(event, hint, scope);
+
+    return super._prepareEvent(event, hint, currentScope, isolationScope);
   }
 }

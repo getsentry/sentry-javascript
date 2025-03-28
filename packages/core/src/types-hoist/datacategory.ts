@@ -14,7 +14,7 @@ export type DataCategory =
   | 'replay'
   // Events with `event_type` csp, hpkp, expectct, expectstaple
   | 'security'
-  // Attachment bytes stored (unused for rate limiting
+  // Attachment bytes stored (unused for rate limiting)
   | 'attachment'
   // Session update events
   | 'session'
@@ -26,9 +26,11 @@ export type DataCategory =
   | 'monitor'
   // Feedback type event (v2)
   | 'feedback'
-  // Metrics sent via the statsd or metrics envelope items
-  | 'metric_bucket'
   // Span
   | 'span'
+  // Log event
+  | 'log_item'
+  // Log bytes stored (unused for rate limiting)
+  | 'log_byte'
   // Unknown data category
   | 'unknown';

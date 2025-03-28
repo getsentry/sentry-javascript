@@ -1,67 +1,95 @@
-import { beforeAll, beforeEach, describe, expect, test } from 'bun:test';
-import { getDynamicSamplingContextFromSpan, setCurrentClient, spanIsSampled, spanToJSON } from '@sentry/core';
+import { afterEach, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
+import type { Span } from '@sentry/core';
+import { getDynamicSamplingContextFromSpan, spanIsSampled, spanToJSON } from '@sentry/core';
 
-import { BunClient } from '../../src/client';
+import { init } from '../../src';
+import type { NodeClient } from '../../src';
 import { instrumentBunServe } from '../../src/integrations/bunserver';
 import { getDefaultBunClientOptions } from '../helpers';
 
-// Fun fact: Bun = 2 21 14 :)
-const DEFAULT_PORT = 22114;
-
 describe('Bun Serve Integration', () => {
-  let client: BunClient;
+  let client: NodeClient | undefined;
+  // Fun fact: Bun = 2 21 14 :)
+  let port: number = 22114;
 
   beforeAll(() => {
     instrumentBunServe();
   });
 
   beforeEach(() => {
-    const options = getDefaultBunClientOptions({ tracesSampleRate: 1, debug: true });
-    client = new BunClient(options);
-    setCurrentClient(client);
-    client.init();
+    const options = getDefaultBunClientOptions({ tracesSampleRate: 1 });
+    client = init(options);
+  });
+
+  afterEach(() => {
+    // Don't reuse the port; Bun server stops lazily so tests may accidentally hit a server still closing from a
+    // previous test
+    port += 1;
   });
 
   test('generates a transaction around a request', async () => {
-    client.on('spanEnd', span => {
-      expect(spanToJSON(span).status).toBe('ok');
-      expect(spanToJSON(span).data?.['http.response.status_code']).toEqual(200);
-      expect(spanToJSON(span).op).toEqual('http.server');
-      expect(spanToJSON(span).description).toEqual('GET /');
+    let generatedSpan: Span | undefined;
+
+    client?.on('spanEnd', span => {
+      generatedSpan = span;
     });
 
     const server = Bun.serve({
       async fetch(_req) {
         return new Response('Bun!');
       },
-      port: DEFAULT_PORT,
+      port,
     });
-
-    await fetch('http://localhost:22114/');
-
+    await fetch(`http://localhost:${port}/users?id=123`);
     server.stop();
+
+    if (!generatedSpan) {
+      throw 'No span was generated in the test';
+    }
+
+    const spanJson = spanToJSON(generatedSpan);
+    expect(spanJson.status).toBe('ok');
+    expect(spanJson.op).toEqual('http.server');
+    expect(spanJson.description).toEqual('GET /users');
+    expect(spanJson.data).toEqual({
+      'http.query': '?id=123',
+      'http.request.method': 'GET',
+      'http.response.status_code': 200,
+      'sentry.op': 'http.server',
+      'sentry.origin': 'auto.http.bun.serve',
+      'sentry.sample_rate': 1,
+      'sentry.source': 'url',
+    });
   });
 
   test('generates a post transaction', async () => {
-    client.on('spanEnd', span => {
-      expect(spanToJSON(span).status).toBe('ok');
-      expect(spanToJSON(span).data?.['http.response.status_code']).toEqual(200);
-      expect(spanToJSON(span).op).toEqual('http.server');
-      expect(spanToJSON(span).description).toEqual('POST /');
+    let generatedSpan: Span | undefined;
+
+    client?.on('spanEnd', span => {
+      generatedSpan = span;
     });
 
     const server = Bun.serve({
       async fetch(_req) {
         return new Response('Bun!');
       },
-      port: DEFAULT_PORT,
+      port,
     });
 
-    await fetch('http://localhost:22114/', {
+    await fetch(`http://localhost:${port}/`, {
       method: 'POST',
     });
 
     server.stop();
+
+    if (!generatedSpan) {
+      throw 'No span was generated in the test';
+    }
+
+    expect(spanToJSON(generatedSpan).status).toBe('ok');
+    expect(spanToJSON(generatedSpan).data?.['http.response.status_code']).toEqual(200);
+    expect(spanToJSON(generatedSpan).op).toEqual('http.server');
+    expect(spanToJSON(generatedSpan).description).toEqual('POST /');
   });
 
   test('continues a trace', async () => {
@@ -70,55 +98,93 @@ describe('Bun Serve Integration', () => {
     const PARENT_SAMPLED = '1';
 
     const SENTRY_TRACE_HEADER = `${TRACE_ID}-${PARENT_SPAN_ID}-${PARENT_SAMPLED}`;
-    const SENTRY_BAGGAGE_HEADER = 'sentry-version=1.0,sentry-environment=production';
+    const SENTRY_BAGGAGE_HEADER = 'sentry-version=1.0,sentry-sample_rand=0.42,sentry-environment=production';
 
-    client.on('spanEnd', span => {
-      expect(span.spanContext().traceId).toBe(TRACE_ID);
-      expect(spanToJSON(span).parent_span_id).toBe(PARENT_SPAN_ID);
-      expect(spanIsSampled(span)).toBe(true);
-      expect(span.isRecording()).toBe(false);
+    let generatedSpan: Span | undefined;
 
-      expect(getDynamicSamplingContextFromSpan(span)).toStrictEqual({
-        version: '1.0',
-        environment: 'production',
-      });
+    client?.on('spanEnd', span => {
+      generatedSpan = span;
     });
 
     const server = Bun.serve({
       async fetch(_req) {
         return new Response('Bun!');
       },
-      port: DEFAULT_PORT,
+      port,
     });
 
-    await fetch('http://localhost:22114/', {
+    await fetch(`http://localhost:${port}/`, {
       headers: { 'sentry-trace': SENTRY_TRACE_HEADER, baggage: SENTRY_BAGGAGE_HEADER },
     });
 
     server.stop();
+
+    if (!generatedSpan) {
+      throw 'No span was generated in the test';
+    }
+
+    expect(generatedSpan.spanContext().traceId).toBe(TRACE_ID);
+    expect(spanToJSON(generatedSpan).parent_span_id).toBe(PARENT_SPAN_ID);
+    expect(spanIsSampled(generatedSpan)).toBe(true);
+    expect(generatedSpan.isRecording()).toBe(false);
+
+    expect(getDynamicSamplingContextFromSpan(generatedSpan)).toStrictEqual({
+      version: '1.0',
+      sample_rand: '0.42',
+      environment: 'production',
+    });
   });
 
   test('does not create transactions for OPTIONS or HEAD requests', async () => {
-    client.on('spanEnd', () => {
-      // This will never run, but we want to make sure it doesn't run.
-      expect(false).toEqual(true);
+    let generatedSpan: Span | undefined;
+
+    client?.on('spanEnd', span => {
+      generatedSpan = span;
     });
 
     const server = Bun.serve({
       async fetch(_req) {
         return new Response('Bun!');
       },
-      port: DEFAULT_PORT,
+      port,
     });
 
-    await fetch('http://localhost:22114/', {
+    await fetch(`http://localhost:${port}/`, {
       method: 'OPTIONS',
     });
 
-    await fetch('http://localhost:22114/', {
+    await fetch(`http://localhost:${port}/`, {
       method: 'HEAD',
     });
 
     server.stop();
+
+    expect(generatedSpan).toBeUndefined();
+  });
+
+  test('intruments the server again if it is reloaded', async () => {
+    let serverWasInstrumented = false;
+    client?.on('spanEnd', () => {
+      serverWasInstrumented = true;
+    });
+
+    const server = Bun.serve({
+      async fetch(_req) {
+        return new Response('Bun!');
+      },
+      port,
+    });
+
+    server.reload({
+      async fetch(_req) {
+        return new Response('Reloaded Bun!');
+      },
+    });
+
+    await fetch(`http://localhost:${port}/`);
+
+    server.stop();
+
+    expect(serverWasInstrumented).toBeTrue();
   });
 });

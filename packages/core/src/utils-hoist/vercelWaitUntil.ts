@@ -1,9 +1,11 @@
 import { GLOBAL_OBJ } from './worldwide';
 
 interface VercelRequestContextGlobal {
-  get?(): {
-    waitUntil?: (task: Promise<unknown>) => void;
-  };
+  get?():
+    | {
+        waitUntil?: (task: Promise<unknown>) => void;
+      }
+    | undefined;
 }
 
 /**
@@ -17,11 +19,9 @@ export function vercelWaitUntil(task: Promise<unknown>): void {
     GLOBAL_OBJ[Symbol.for('@vercel/request-context')];
 
   const ctx =
-    vercelRequestContextGlobal && vercelRequestContextGlobal.get && vercelRequestContextGlobal.get()
-      ? vercelRequestContextGlobal.get()
-      : {};
+    vercelRequestContextGlobal?.get && vercelRequestContextGlobal.get() ? vercelRequestContextGlobal.get() : {};
 
-  if (ctx && ctx.waitUntil) {
+  if (ctx?.waitUntil) {
     ctx.waitUntil(task);
   }
 }

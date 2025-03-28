@@ -1,4 +1,4 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, hasTracingEnabled, spanToJSON } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, hasSpansEnabled, spanToJSON } from '@sentry/core';
 import type { Client } from '@sentry/core';
 import { getSamplingDecision } from './getSamplingDecision';
 import { parseSpanDescription } from './parseSpanDescription';
@@ -21,7 +21,7 @@ export function enhanceDscWithOpenTelemetryRootSpanName(client: Client): void {
     // This mutates the passed-in DSC
 
     const jsonSpan = spanToJSON(rootSpan);
-    const attributes = jsonSpan.data || {};
+    const attributes = jsonSpan.data;
     const source = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
 
     const { description } = spanHasName(rootSpan) ? parseSpanDescription(rootSpan) : { description: undefined };
@@ -32,7 +32,7 @@ export function enhanceDscWithOpenTelemetryRootSpanName(client: Client): void {
     // Also ensure sampling decision is correctly inferred
     // In core, we use `spanIsSampled`, which just looks at the trace flags
     // but in OTEL, we use a slightly more complex logic to be able to differntiate between unsampled and deferred sampling
-    if (hasTracingEnabled()) {
+    if (hasSpansEnabled()) {
       const sampled = getSamplingDecision(rootSpan.spanContext());
       dsc.sampled = sampled == undefined ? undefined : String(sampled);
     }

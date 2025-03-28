@@ -8,6 +8,7 @@ import type {
   Transport,
 } from '../../../src/types-hoist';
 
+import { describe, expect, it, vi } from 'vitest';
 import {
   createClientReportEnvelope,
   createEnvelope,
@@ -95,7 +96,7 @@ describe('makeMultiplexedTransport', () => {
 
   it('Falls back to options DSN when a matched DSN is invalid', async () => {
     // Hide warning logs in the test
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
 
     expect.assertions(1);
 
@@ -109,7 +110,7 @@ describe('makeMultiplexedTransport', () => {
     const transport = makeTransport({ url: DSN1_URL, ...transportOptions });
     await transport.send(ERROR_ENVELOPE);
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('DSN can be overridden via match callback', async () => {
@@ -118,7 +119,7 @@ describe('makeMultiplexedTransport', () => {
     const makeTransport = makeMultiplexedTransport(
       createTestTransport((url, _, env) => {
         expect(url).toBe(DSN2_URL);
-        expect(env[0]?.dsn).toBe(DSN2);
+        expect(env[0].dsn).toBe(DSN2);
       }),
       () => [DSN2],
     );
@@ -134,7 +135,7 @@ describe('makeMultiplexedTransport', () => {
       createTestTransport((url, release, env) => {
         expect(url).toBe(DSN2_URL);
         expect(release).toBe('something@1.0.0');
-        expect(env[0]?.dsn).toBe(DSN2);
+        expect(env[0].dsn).toBe(DSN2);
       }),
       () => [{ dsn: DSN2, release: 'something@1.0.0' }],
     );
@@ -150,7 +151,7 @@ describe('makeMultiplexedTransport', () => {
       createTestTransport((url, release, env) => {
         expect(url).toBe('http://google.com');
         expect(release).toBe('something@1.0.0');
-        expect(env[0]?.dsn).toBe(DSN2);
+        expect(env[0].dsn).toBe(DSN2);
       }),
       () => [{ dsn: DSN2, release: 'something@1.0.0' }],
     );

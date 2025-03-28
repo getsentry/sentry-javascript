@@ -20,7 +20,13 @@ import {
   addPerformanceInstrumentationHandler,
   addTtfbInstrumentationHandler,
 } from './instrument';
-import { getBrowserPerformanceAPI, isMeasurementValue, msToSec, startAndEndSpan } from './utils';
+import {
+  extractNetworkProtocol,
+  getBrowserPerformanceAPI,
+  isMeasurementValue,
+  msToSec,
+  startAndEndSpan,
+} from './utils';
 import { getActivationStart } from './web-vitals/lib/getActivationStart';
 import { getNavigationEntry } from './web-vitals/lib/getNavigationEntry';
 import { getVisibilityWatcher } from './web-vitals/lib/getVisibilityWatcher';
@@ -83,7 +89,7 @@ interface StartTrackingWebVitalsOptions {
  */
 export function startTrackingWebVitals({ recordClsStandaloneSpans }: StartTrackingWebVitalsOptions): () => void {
   const performance = getBrowserPerformanceAPI();
-  if (performance && browserPerformanceTimeOrigin) {
+  if (performance && browserPerformanceTimeOrigin()) {
     // @ts-expect-error we want to make sure all of these are available, even if TS is sure they are
     if (performance.mark) {
       WINDOW.performance.mark('sentry-tracing-init');
@@ -97,7 +103,7 @@ export function startTrackingWebVitals({ recordClsStandaloneSpans }: StartTracki
       fidCleanupCallback();
       lcpCleanupCallback();
       ttfbCleanupCallback();
-      clsCleanupCallback && clsCleanupCallback();
+      clsCleanupCallback?.();
     };
   }
 
@@ -117,7 +123,7 @@ export function startTrackingLongTasks(): void {
     const { op: parentOp, start_timestamp: parentStartTimestamp } = spanToJSON(parent);
 
     for (const entry of entries) {
-      const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
+      const startTime = msToSec((browserPerformanceTimeOrigin() as number) + entry.startTime);
       const duration = msToSec(entry.duration);
 
       if (parentOp === 'navigation' && parentStartTimestamp && startTime < parentStartTimestamp) {
@@ -156,7 +162,7 @@ export function startTrackingLongAnimationFrames(): void {
         continue;
       }
 
-      const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
+      const startTime = msToSec((browserPerformanceTimeOrigin() as number) + entry.startTime);
 
       const { start_timestamp: parentStartTimestamp, op: parentOp } = spanToJSON(parent);
 
@@ -167,7 +173,6 @@ export function startTrackingLongAnimationFrames(): void {
         // routing instrumentations
         continue;
       }
-
       const duration = msToSec(entry.duration);
 
       const attributes: SpanAttributes = {
@@ -210,7 +215,7 @@ export function startTrackingInteractions(): void {
     }
     for (const entry of entries) {
       if (entry.name === 'click') {
-        const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
+        const startTime = msToSec((browserPerformanceTimeOrigin() as number) + entry.startTime);
         const duration = msToSec(entry.duration);
 
         const spanOptions: StartSpanOptions & Required<Pick<StartSpanOptions, 'attributes'>> = {
@@ -271,7 +276,7 @@ function _trackFID(): () => void {
       return;
     }
 
-    const timeOrigin = msToSec(browserPerformanceTimeOrigin as number);
+    const timeOrigin = msToSec(browserPerformanceTimeOrigin() as number);
     const startTime = msToSec(entry.startTime);
     _measurements['fid'] = { value: metric.value, unit: 'millisecond' };
     _measurements['mark.fid'] = { value: timeOrigin + startTime, unit: 'second' };
@@ -300,19 +305,19 @@ interface AddPerformanceEntriesOptions {
 /** Add performance related spans to a transaction */
 export function addPerformanceEntries(span: Span, options: AddPerformanceEntriesOptions): void {
   const performance = getBrowserPerformanceAPI();
-  if (!performance || !WINDOW.performance.getEntries || !browserPerformanceTimeOrigin) {
+  const origin = browserPerformanceTimeOrigin();
+  if (!performance?.getEntries || !origin) {
     // Gatekeeper if performance API not available
     return;
   }
 
-  const timeOrigin = msToSec(browserPerformanceTimeOrigin);
+  const timeOrigin = msToSec(origin);
 
   const performanceEntries = performance.getEntries();
 
   const { op, start_timestamp: transactionStartTime } = spanToJSON(span);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  performanceEntries.slice(_performanceCursor).forEach((entry: Record<string, any>) => {
+  performanceEntries.slice(_performanceCursor).forEach(entry => {
     const startTime = msToSec(entry.startTime);
     const duration = msToSec(
       // Inexplicably, Chrome sometimes emits a negative duration. We need to work around this.
@@ -328,7 +333,7 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
 
     switch (entry.entryType) {
       case 'navigation': {
-        _addNavigationSpans(span, entry, timeOrigin);
+        _addNavigationSpans(span, entry as PerformanceNavigationTiming, timeOrigin);
         break;
       }
       case 'mark':
@@ -350,10 +355,9 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
         break;
       }
       case 'resource': {
-        _addResourceSpans(span, entry, entry.name as string, startTime, duration, timeOrigin);
+        _addResourceSpans(span, entry as PerformanceResourceTiming, entry.name, startTime, duration, timeOrigin);
         break;
       }
-      default:
       // Ignore other entry types.
     }
   });
@@ -411,15 +415,17 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
   _measurements = {};
 }
 
-/** Create measure related spans */
+/**
+ * Create measure related spans.
+ * Exported only for tests.
+ */
 export function _addMeasureSpans(
   span: Span,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  entry: Record<string, any>,
+  entry: PerformanceEntry,
   startTime: number,
   duration: number,
   timeOrigin: number,
-): number {
+): void {
   const navEntry = getNavigationEntry(false);
   const requestTime = msToSec(navEntry ? navEntry.requestStart : 0);
   // Because performance.measure accepts arbitrary timestamps it can produce
@@ -444,44 +450,64 @@ export function _addMeasureSpans(
     attributes['sentry.browser.measure_start_time'] = measureStartTimestamp;
   }
 
-  startAndEndSpan(span, measureStartTimestamp, measureEndTimestamp, {
-    name: entry.name as string,
-    op: entry.entryType as string,
-    attributes,
-  });
-
-  return measureStartTimestamp;
+  // Measurements from third parties can be off, which would create invalid spans, dropping transactions in the process.
+  if (measureStartTimestamp <= measureEndTimestamp) {
+    startAndEndSpan(span, measureStartTimestamp, measureEndTimestamp, {
+      name: entry.name as string,
+      op: entry.entryType as string,
+      attributes,
+    });
+  }
 }
 
 /** Instrument navigation entries */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function _addNavigationSpans(span: Span, entry: Record<string, any>, timeOrigin: number): void {
-  ['unloadEvent', 'redirect', 'domContentLoadedEvent', 'loadEvent', 'connect'].forEach(event => {
+function _addNavigationSpans(span: Span, entry: PerformanceNavigationTiming, timeOrigin: number): void {
+  (['unloadEvent', 'redirect', 'domContentLoadedEvent', 'loadEvent', 'connect'] as const).forEach(event => {
     _addPerformanceNavigationTiming(span, entry, event, timeOrigin);
   });
-  _addPerformanceNavigationTiming(span, entry, 'secureConnection', timeOrigin, 'TLS/SSL', 'connectEnd');
-  _addPerformanceNavigationTiming(span, entry, 'fetch', timeOrigin, 'cache', 'domainLookupStart');
+  _addPerformanceNavigationTiming(span, entry, 'secureConnection', timeOrigin, 'TLS/SSL');
+  _addPerformanceNavigationTiming(span, entry, 'fetch', timeOrigin, 'cache');
   _addPerformanceNavigationTiming(span, entry, 'domainLookup', timeOrigin, 'DNS');
+
   _addRequest(span, entry, timeOrigin);
 }
+
+type StartEventName =
+  | 'secureConnection'
+  | 'fetch'
+  | 'domainLookup'
+  | 'unloadEvent'
+  | 'redirect'
+  | 'connect'
+  | 'domContentLoadedEvent'
+  | 'loadEvent';
+
+type EndEventName =
+  | 'connectEnd'
+  | 'domainLookupStart'
+  | 'domainLookupEnd'
+  | 'unloadEventEnd'
+  | 'redirectEnd'
+  | 'connectEnd'
+  | 'domContentLoadedEventEnd'
+  | 'loadEventEnd';
 
 /** Create performance navigation related spans */
 function _addPerformanceNavigationTiming(
   span: Span,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  entry: Record<string, any>,
-  event: string,
+  entry: PerformanceNavigationTiming,
+  event: StartEventName,
   timeOrigin: number,
-  name?: string,
-  eventEnd?: string,
+  name: string = event,
 ): void {
-  const end = eventEnd ? (entry[eventEnd] as number | undefined) : (entry[`${event}End`] as number | undefined);
-  const start = entry[`${event}Start`] as number | undefined;
+  const eventEnd = _getEndPropertyNameForNavigationTiming(event) satisfies keyof PerformanceNavigationTiming;
+  const end = entry[eventEnd];
+  const start = entry[`${event}Start`];
   if (!start || !end) {
     return;
   }
   startAndEndSpan(span, timeOrigin + msToSec(start), timeOrigin + msToSec(end), {
-    op: `browser.${name || event}`,
+    op: `browser.${name}`,
     name: entry.name,
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
@@ -489,9 +515,18 @@ function _addPerformanceNavigationTiming(
   });
 }
 
+function _getEndPropertyNameForNavigationTiming(event: StartEventName): EndEventName {
+  if (event === 'secureConnection') {
+    return 'connectEnd';
+  }
+  if (event === 'fetch') {
+    return 'domainLookupStart';
+  }
+  return `${event}End`;
+}
+
 /** Create request and response related spans */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function _addRequest(span: Span, entry: Record<string, any>, timeOrigin: number): void {
+function _addRequest(span: Span, entry: PerformanceNavigationTiming, timeOrigin: number): void {
   const requestStartTimestamp = timeOrigin + msToSec(entry.requestStart as number);
   const responseEndTimestamp = timeOrigin + msToSec(entry.responseEnd as number);
   const responseStartTimestamp = timeOrigin + msToSec(entry.responseStart as number);
@@ -518,19 +553,13 @@ function _addRequest(span: Span, entry: Record<string, any>, timeOrigin: number)
   }
 }
 
-export interface ResourceEntry extends Record<string, unknown> {
-  initiatorType?: string;
-  transferSize?: number;
-  encodedBodySize?: number;
-  decodedBodySize?: number;
-  renderBlockingStatus?: string;
-  deliveryType?: string;
-}
-
-/** Create resource-related spans */
+/**
+ * Create resource-related spans.
+ * Exported only for tests.
+ */
 export function _addResourceSpans(
   span: Span,
-  entry: ResourceEntry,
+  entry: PerformanceResourceTiming,
   resourceUrl: string,
   startTime: number,
   duration: number,
@@ -551,13 +580,19 @@ export function _addResourceSpans(
   setResourceEntrySizeData(attributes, entry, 'encodedBodySize', 'http.response_content_length');
   setResourceEntrySizeData(attributes, entry, 'decodedBodySize', 'http.decoded_response_content_length');
 
-  if (entry.deliveryType != null) {
-    attributes['http.response_delivery_type'] = entry.deliveryType;
+  // `deliveryType` is experimental and does not exist everywhere
+  const deliveryType = (entry as { deliveryType?: 'cache' | 'navigational-prefetch' | '' }).deliveryType;
+  if (deliveryType != null) {
+    attributes['http.response_delivery_type'] = deliveryType;
   }
 
-  if ('renderBlockingStatus' in entry) {
-    attributes['resource.render_blocking_status'] = entry.renderBlockingStatus;
+  // Types do not reflect this property yet
+  const renderBlockingStatus = (entry as { renderBlockingStatus?: 'render-blocking' | 'non-render-blocking' })
+    .renderBlockingStatus;
+  if (renderBlockingStatus) {
+    attributes['resource.render_blocking_status'] = renderBlockingStatus;
   }
+
   if (parsedUrl.protocol) {
     attributes['url.scheme'] = parsedUrl.protocol.split(':').pop(); // the protocol returned by parseUrl includes a :, but OTEL spec does not, so we remove it.
   }
@@ -567,6 +602,10 @@ export function _addResourceSpans(
   }
 
   attributes['url.same_origin'] = resourceUrl.includes(WINDOW.location.origin);
+
+  const { name, version } = extractNetworkProtocol(entry.nextHopProtocol);
+  attributes['network.protocol.name'] = name;
+  attributes['network.protocol.version'] = version;
 
   const startTimestamp = timeOrigin + startTime;
   const endTimestamp = startTimestamp + duration;
@@ -646,7 +685,7 @@ function _setWebVitalAttributes(span: Span): void {
   }
 
   // See: https://developer.mozilla.org/en-US/docs/Web/API/LayoutShift
-  if (_clsEntry && _clsEntry.sources) {
+  if (_clsEntry?.sources) {
     _clsEntry.sources.forEach((source, index) =>
       span.setAttribute(`cls.source.${index + 1}`, htmlTreeAsString(source.node)),
     );
@@ -655,8 +694,8 @@ function _setWebVitalAttributes(span: Span): void {
 
 function setResourceEntrySizeData(
   attributes: SpanAttributes,
-  entry: ResourceEntry,
-  key: keyof Pick<ResourceEntry, 'transferSize' | 'encodedBodySize' | 'decodedBodySize'>,
+  entry: PerformanceResourceTiming,
+  key: keyof Pick<PerformanceResourceTiming, 'transferSize' | 'encodedBodySize' | 'decodedBodySize'>,
   dataKey: 'http.response_transfer_size' | 'http.response_content_length' | 'http.decoded_response_content_length',
 ): void {
   const entryVal = entry[key];

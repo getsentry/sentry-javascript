@@ -2,18 +2,27 @@
 
 import type { AsyncContextStrategy } from '../asyncContext/types';
 import { getMainCarrier } from '../carrier';
-import type { ClientOptions, Scope, SentrySpanArguments, Span, SpanTimeInput, StartSpanOptions } from '../types-hoist';
+import type {
+  ClientOptions,
+  DynamicSamplingContext,
+  SentrySpanArguments,
+  Span,
+  SpanTimeInput,
+  StartSpanOptions,
+} from '../types-hoist';
 
 import { getClient, getCurrentScope, getIsolationScope, withScope } from '../currentScopes';
 
 import { getAsyncContextStrategy } from '../asyncContext';
 import { DEBUG_BUILD } from '../debug-build';
+import type { Scope } from '../scope';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
 import { logger } from '../utils-hoist/logger';
 import { generateTraceId } from '../utils-hoist/propagationContext';
 import { propagationContextFromHeaders } from '../utils-hoist/tracing';
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
-import { hasTracingEnabled } from '../utils/hasTracingEnabled';
+import { hasSpansEnabled } from '../utils/hasSpansEnabled';
+import { parseSampleRate } from '../utils/parseSampleRate';
 import { _getSpanForScope, _setSpanForScope } from '../utils/spanOnScope';
 import { addChildSpanToSpan, getRootSpan, spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
 import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
@@ -43,9 +52,13 @@ export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) =
   }
 
   const spanArguments = parseSentrySpanArguments(options);
-  const { forceTransaction, parentSpan: customParentSpan } = options;
+  const { forceTransaction, parentSpan: customParentSpan, scope: customScope } = options;
 
-  return withScope(options.scope, () => {
+  // We still need to fork a potentially passed scope, as we set the active span on it
+  // and we need to ensure that it is cleaned up properly once the span ends.
+  const customForkedScope = customScope?.clone();
+
+  return withScope(customForkedScope, () => {
     // If `options.parentSpan` is defined, we want to wrap the callback in `withActiveSpan`
     const wrapper = getActiveSpanWrapper<T>(customParentSpan);
 
@@ -74,7 +87,9 @@ export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) =
             activeSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
           }
         },
-        () => activeSpan.end(),
+        () => {
+          activeSpan.end();
+        },
       );
     });
   });
@@ -82,7 +97,7 @@ export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) =
 
 /**
  * Similar to `Sentry.startSpan`. Wraps a function with a transaction/span, but does not finish the span
- * after the function is done automatically. You'll have to call `span.end()` manually.
+ * after the function is done automatically. Use `span.end()` to end the span.
  *
  * The created span is the active span and will be used as parent by other spans created inside the function
  * and can be accessed via `Sentry.getActiveSpan()`, as long as the function is executed while the scope is active.
@@ -97,9 +112,11 @@ export function startSpanManual<T>(options: StartSpanOptions, callback: (span: S
   }
 
   const spanArguments = parseSentrySpanArguments(options);
-  const { forceTransaction, parentSpan: customParentSpan } = options;
+  const { forceTransaction, parentSpan: customParentSpan, scope: customScope } = options;
 
-  return withScope(options.scope, () => {
+  const customForkedScope = customScope?.clone();
+
+  return withScope(customForkedScope, () => {
     // If `options.parentSpan` is defined, we want to wrap the callback in `withActiveSpan`
     const wrapper = getActiveSpanWrapper<T>(customParentSpan);
 
@@ -119,12 +136,12 @@ export function startSpanManual<T>(options: StartSpanOptions, callback: (span: S
 
       _setSpanForScope(scope, activeSpan);
 
-      function finishAndSetSpan(): void {
-        activeSpan.end();
-      }
-
       return handleCallbackErrors(
-        () => callback(activeSpan, finishAndSetSpan),
+        // We pass the `finish` function to the callback, so the user can finish the span manually
+        // this is mainly here for historic purposes because previously, we instructed users to call
+        // `finish` instead of `span.end()` to also clean up the scope. Nowadays, calling `span.end()`
+        // or `finish` has the same effect and we simply leave it here to avoid breaking user code.
+        () => callback(activeSpan, () => activeSpan.end()),
         () => {
           // Only update the span status if it hasn't been changed yet, and the span is not yet finished
           const { status } = spanToJSON(activeSpan);
@@ -191,15 +208,20 @@ export function startInactiveSpan(options: StartSpanOptions): Span {
  * be attached to the incoming trace.
  */
 export const continueTrace = <V>(
-  {
-    sentryTrace,
-    baggage,
-  }: {
+  options: {
     sentryTrace: Parameters<typeof propagationContextFromHeaders>[0];
     baggage: Parameters<typeof propagationContextFromHeaders>[1];
   },
   callback: () => V,
 ): V => {
+  const carrier = getMainCarrier();
+  const acs = getAsyncContextStrategy(carrier);
+  if (acs.continueTrace) {
+    return acs.continueTrace(options, callback);
+  }
+
+  const { sentryTrace, baggage } = options;
+
   return withScope(scope => {
     const propagationContext = propagationContextFromHeaders(sentryTrace, baggage);
     scope.setPropagationContext(propagationContext);
@@ -260,7 +282,10 @@ export function suppressTracing<T>(callback: () => T): T {
  */
 export function startNewTrace<T>(callback: () => T): T {
   return withScope(scope => {
-    scope.setPropagationContext({ traceId: generateTraceId() });
+    scope.setPropagationContext({
+      traceId: generateTraceId(),
+      sampleRand: Math.random(),
+    });
     DEBUG_BUILD && logger.info(`Starting a new trace with id ${scope.getPropagationContext().traceId}`);
     return withActiveSpan(null, callback);
   });
@@ -277,8 +302,22 @@ function createChildOrRootSpan({
   forceTransaction?: boolean;
   scope: Scope;
 }): Span {
-  if (!hasTracingEnabled()) {
-    return new SentryNonRecordingSpan();
+  if (!hasSpansEnabled()) {
+    const span = new SentryNonRecordingSpan();
+
+    // If this is a root span, we ensure to freeze a DSC
+    // So we can have at least partial data here
+    if (forceTransaction || !parentSpan) {
+      const dsc = {
+        sampled: 'false',
+        sample_rate: '0',
+        transaction: spanArguments.name,
+        ...getDynamicSamplingContextFromSpan(span),
+      } satisfies Partial<DynamicSamplingContext>;
+      freezeDscOnSpan(span, dsc);
+    }
+
+    return span;
   }
 
   const isolationScope = getIsolationScope();
@@ -366,31 +405,39 @@ function getAcs(): AsyncContextStrategy {
 
 function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parentSampled?: boolean): SentrySpan {
   const client = getClient();
-  const options: Partial<ClientOptions> = (client && client.getOptions()) || {};
+  const options: Partial<ClientOptions> = client?.getOptions() || {};
 
   const { name = '', attributes } = spanArguments;
-  const [sampled, sampleRate] = scope.getScopeData().sdkProcessingMetadata[SUPPRESS_TRACING_KEY]
+  const currentPropagationContext = scope.getPropagationContext();
+  const [sampled, sampleRate, localSampleRateWasApplied] = scope.getScopeData().sdkProcessingMetadata[
+    SUPPRESS_TRACING_KEY
+  ]
     ? [false]
-    : sampleSpan(options, {
-        name,
-        parentSampled,
-        attributes,
-        transactionContext: {
+    : sampleSpan(
+        options,
+        {
           name,
           parentSampled,
+          attributes,
+          parentSampleRate: parseSampleRate(currentPropagationContext.dsc?.sample_rate),
         },
-      });
+        currentPropagationContext.sampleRand,
+      );
 
   const rootSpan = new SentrySpan({
     ...spanArguments,
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+      [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]:
+        sampleRate !== undefined && localSampleRateWasApplied ? sampleRate : undefined,
       ...spanArguments.attributes,
     },
     sampled,
   });
-  if (sampleRate !== undefined) {
-    rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, sampleRate);
+
+  if (!sampled && client) {
+    DEBUG_BUILD && logger.log('[Tracing] Discarding root span because its trace was not chosen to be sampled.');
+    client.recordDroppedEvent('sample_rate', 'transaction');
   }
 
   if (client) {

@@ -1,14 +1,12 @@
+import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
-
-// When running docker compose, we need a larger timeout, as this takes some time...
-jest.setTimeout(75000);
 
 describe('mysql2 auto instrumentation', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
 
-  test('should auto-instrument `mysql` package without connection.connect()', done => {
+  test('should auto-instrument `mysql` package without connection.connect()', { timeout: 75_000 }, async () => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Transaction',
       spans: expect.arrayContaining([
@@ -35,9 +33,10 @@ describe('mysql2 auto instrumentation', () => {
       ]),
     };
 
-    createRunner(__dirname, 'scenario.js')
+    await createRunner(__dirname, 'scenario.js')
       .withDockerCompose({ workingDirectory: [__dirname], readyMatches: ['port: 3306'] })
       .expect({ transaction: EXPECTED_TRANSACTION })
-      .start(done);
+      .start()
+      .completed();
   });
 });

@@ -2,26 +2,29 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } fr
 
 import type { Event } from '@sentry/core';
 import type { Callback, Handler } from 'aws-lambda';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { init, wrapHandler } from '../src/sdk';
 
-const mockSpanEnd = jest.fn();
-const mockStartInactiveSpan = jest.fn((...spanArgs) => ({ ...spanArgs }));
-const mockStartSpanManual = jest.fn((...spanArgs) => ({ ...spanArgs }));
-const mockFlush = jest.fn((...args) => Promise.resolve(args));
-const mockWithScope = jest.fn();
-const mockCaptureMessage = jest.fn();
-const mockCaptureException = jest.fn();
-const mockInit = jest.fn();
+const mockSpanEnd = vi.fn();
+const mockStartInactiveSpan = vi.fn((...spanArgs) => ({ ...spanArgs }));
+const mockStartSpanManual = vi.fn((...spanArgs) => ({ ...spanArgs }));
+const mockFlush = vi.fn((...args) => Promise.resolve(args));
+const mockWithScope = vi.fn();
+const mockCaptureMessage = vi.fn();
+const mockCaptureException = vi.fn();
+const mockInit = vi.fn();
 
 const mockScope = {
-  setTag: jest.fn(),
-  setContext: jest.fn(),
-  addEventProcessor: jest.fn(),
+  setTag: vi.fn(),
+  setContext: vi.fn(),
+  addEventProcessor: vi.fn(),
+  setTransactionName: vi.fn(),
 };
 
-jest.mock('@sentry/node', () => {
-  const original = jest.requireActual('@sentry/node');
+vi.mock('@sentry/node', async () => {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-imports
+  const original = (await vi.importActual('@sentry/node')) as typeof import('@sentry/node');
   return {
     ...original,
     initWithoutDefaultIntegrations: (options: unknown) => {
@@ -81,12 +84,8 @@ const fakeCallback: Callback = (err, result) => {
 };
 
 function expectScopeSettings() {
-  expect(mockScope.addEventProcessor).toBeCalledTimes(1);
-  // Test than an event processor to add `transaction` is registered for the scope
-  const eventProcessor = mockScope.addEventProcessor.mock.calls[0][0];
-  const event: Event = {};
-  eventProcessor(event);
-  expect(event).toEqual({ transaction: 'functionName' });
+  expect(mockScope.setTransactionName).toBeCalledTimes(1);
+  expect(mockScope.setTransactionName).toBeCalledWith('functionName');
 
   expect(mockScope.setTag).toBeCalledWith('server_name', expect.anything());
 
@@ -118,7 +117,7 @@ describe('AWSLambda', () => {
       fortySix: 'o_O',
     };
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('wrapHandler() options', () => {
@@ -498,7 +497,7 @@ describe('AWSLambda', () => {
       const scopeFunction = mockCaptureException.mock.calls[0][1];
       const event: Event = { exception: { values: [{}] } };
       let evtProcessor: ((e: Event) => Event) | undefined = undefined;
-      scopeFunction({ addEventProcessor: jest.fn().mockImplementation(proc => (evtProcessor = proc)) });
+      scopeFunction({ addEventProcessor: vi.fn().mockImplementation(proc => (evtProcessor = proc)) });
 
       expect(evtProcessor).toBeInstanceOf(Function);
       // @ts-expect-error just mocking around...
@@ -518,7 +517,6 @@ describe('AWSLambda', () => {
           _metadata: {
             sdk: {
               name: 'sentry.javascript.aws-serverless',
-              integrations: ['AWSLambda'],
               packages: [
                 {
                   name: 'npm:@sentry/aws-serverless',

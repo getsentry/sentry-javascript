@@ -52,7 +52,7 @@ export const sendFeedback: SendFeedback = (
         response.statusCode >= 200 &&
         response.statusCode < 300
       ) {
-        resolve(eventId);
+        return resolve(eventId);
       }
 
       if (response && typeof response.statusCode === 'number' && response.statusCode === 0) {

@@ -41,7 +41,7 @@ Sentry.init({
   debug: !!process.env.DEBUG,
 });
 
-const sentryCreateHashRouter = Sentry.wrapCreateBrowserRouter(createHashRouter);
+const sentryCreateHashRouter = Sentry.wrapCreateBrowserRouterV6(createHashRouter);
 
 const router = sentryCreateHashRouter([
   {

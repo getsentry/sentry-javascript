@@ -12,9 +12,7 @@
 
 ## Links
 
-- [SDK on Deno registry](https://deno.land/x/sentry)
 - [Official SDK Docs](https://docs.sentry.io/quickstart/)
-- [TypeDoc](http://getsentry.github.io/sentry-javascript/)
 
 The Sentry Deno SDK is in beta. Please help us improve the SDK by
 [reporting any issues or giving us feedback](https://github.com/getsentry/sentry-javascript/issues).
@@ -25,10 +23,6 @@ To use this SDK, call `Sentry.init(options)` as early as possible in the main en
 and hook into the environment. Note that you can turn off almost all side effects using the respective options.
 
 ```javascript
-// Import from the Deno registry
-import * as Sentry from 'https://deno.land/x/sentry/index.mjs';
-
-// or import from npm registry
 import * as Sentry from 'npm:@sentry/deno';
 
 Sentry.init({

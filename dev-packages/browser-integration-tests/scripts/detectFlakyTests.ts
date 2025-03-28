@@ -4,14 +4,9 @@ import * as path from 'path';
 import * as glob from 'glob';
 
 /**
- * The number of browsers we run the tests in.
+ * Assume that each test runs for 3s.
  */
-const NUM_BROWSERS = 3;
-
-/**
- * Assume that each test runs for 2s.
- */
-const ASSUMED_TEST_DURATION_SECONDS = 2;
+const ASSUMED_TEST_DURATION_SECONDS = 3;
 
 /**
  * We keep the runtime of the detector if possible under 30min.
@@ -53,19 +48,11 @@ ${changedPaths.join('\n')}
       const cp = childProcess.spawn(
         `npx playwright test ${
           testPaths.length ? testPaths.join(' ') : './suites'
-        } --reporter='line' --repeat-each ${repeatEachCount}`,
-        { shell: true, cwd },
+        } --repeat-each ${repeatEachCount} --project=chromium`,
+        { shell: true, cwd, stdio: 'inherit' },
       );
 
       let error: Error | undefined;
-
-      cp.stdout.on('data', data => {
-        console.log(data ? (data as object).toString() : '');
-      });
-
-      cp.stderr.on('data', data => {
-        console.log(data ? (data as object).toString() : '');
-      });
 
       cp.on('error', e => {
         console.error(e);
@@ -107,15 +94,16 @@ function getPerTestRunCount(testPaths: string[]) {
     const estimatedNumberOfTests = testPaths.map(getApproximateNumberOfTests).reduce((a, b) => a + b);
     console.log(`Estimated number of tests: ${estimatedNumberOfTests}`);
 
-    // tests are usually run against all browsers we test with, so let's assume this
-    const testRunCount = estimatedNumberOfTests * NUM_BROWSERS;
+    const testRunCount = estimatedNumberOfTests;
     console.log(`Estimated test runs for one round: ${testRunCount}`);
 
     const estimatedTestRuntime = testRunCount * ASSUMED_TEST_DURATION_SECONDS;
     console.log(`Estimated test runtime: ${estimatedTestRuntime}s`);
 
     const expectedPerTestRunCount = Math.floor(MAX_TARGET_TEST_RUNTIME_SECONDS / estimatedTestRuntime);
-    console.log(`Expected per-test run count: ${expectedPerTestRunCount}`);
+    console.log(
+      `Calculated # of repetitions: ${expectedPerTestRunCount} (min ${MIN_PER_TEST_RUN_COUNT}, max ${MAX_PER_TEST_RUN_COUNT})`,
+    );
 
     return Math.min(MAX_PER_TEST_RUN_COUNT, Math.max(expectedPerTestRunCount, MIN_PER_TEST_RUN_COUNT));
   }
@@ -128,22 +116,7 @@ function getTestPaths(): string[] {
     cwd: path.join(__dirname, '../'),
   });
 
-  return paths.map(p => path.dirname(p));
-}
-
-function logError(error: unknown) {
-  if (process.env.CI) {
-    console.log('::group::Test failed');
-  } else {
-    console.error(' ⚠️ Test failed:');
-  }
-
-  console.log((error as any).stdout);
-  console.log((error as any).stderr);
-
-  if (process.env.CI) {
-    console.log('::endgroup::');
-  }
+  return paths.map(p => `${path.dirname(p)}/`);
 }
 
 /**
@@ -156,7 +129,7 @@ function logError(error: unknown) {
 function getApproximateNumberOfTests(testPath: string): number {
   try {
     const content = fs.readFileSync(path.join(process.cwd(), testPath, 'test.ts'), 'utf-8');
-    const matches = content.match(/it\(|test\(|sentryTest\(/g);
+    const matches = content.match(/sentryTest\(/g);
     return Math.max(matches ? matches.length : 1, 1);
   } catch (e) {
     console.error(`Could not read file ${testPath}`);

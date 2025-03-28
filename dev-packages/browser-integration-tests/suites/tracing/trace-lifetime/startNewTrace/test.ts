@@ -17,7 +17,7 @@ sentryTest(
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 
-    await page.route('http://example.com/**', route => {
+    await page.route('http://sentry-test-site.example/**', route => {
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -48,6 +48,7 @@ sentryTest(
       sample_rate: '1',
       sampled: 'true',
       trace_id: pageloadTraceContext?.trace_id,
+      sample_rand: expect.any(String),
     });
 
     const transactionPromises = getMultipleSentryEnvelopeRequests<EventAndTraceHeader>(
@@ -81,6 +82,7 @@ sentryTest(
       sampled: 'true',
       trace_id: newTraceTransactionTraceContext?.trace_id,
       transaction: 'new-trace',
+      sample_rand: expect.any(String),
     });
 
     const oldTraceTransactionEventTraceContext = oldTraceTransactionEvent.contexts?.trace;
@@ -96,6 +98,7 @@ sentryTest(
       sample_rate: '1',
       sampled: 'true',
       trace_id: oldTraceTransactionTraceHeaders?.trace_id,
+      sample_rand: expect.any(String),
       // transaction: 'old-trace', <-- this is not in the DSC because the DSC is continued from the pageload transaction
       // which does not have a `transaction` field because its source is URL.
     });

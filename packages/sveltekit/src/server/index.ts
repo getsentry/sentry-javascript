@@ -7,10 +7,6 @@ export {
   addBreadcrumb,
   addEventProcessor,
   addIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  addOpenTelemetryInstrumentation,
-  // eslint-disable-next-line deprecation/deprecation
-  addRequestDataToEvent,
   amqplibIntegration,
   anrIntegration,
   disableAnrDetectionForCallback,
@@ -29,16 +25,11 @@ export {
   createGetModuleFromFilename,
   createTransport,
   cron,
-  // eslint-disable-next-line deprecation/deprecation
-  debugIntegration,
   dedupeIntegration,
-  DEFAULT_USER_INCLUDES,
   defaultStackParser,
   endSession,
   expressErrorHandler,
   expressIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  extractRequestData,
   extraErrorDataIntegration,
   fastifyIntegration,
   flush,
@@ -48,8 +39,6 @@ export {
   getActiveSpan,
   getAutoPerformanceIntegrations,
   getClient,
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub,
   getCurrentScope,
   getDefaultIntegrations,
   getGlobalScope,
@@ -63,7 +52,9 @@ export {
   graphqlIntegration,
   hapiIntegration,
   httpIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   inboundFiltersIntegration,
+  eventFiltersIntegration,
   initOpenTelemetry,
   isInitialized,
   knexIntegration,
@@ -73,16 +64,12 @@ export {
   linkedErrorsIntegration,
   localVariablesIntegration,
   makeNodeTransport,
-  // eslint-disable-next-line deprecation/deprecation
-  metrics,
   modulesIntegration,
   mongoIntegration,
   mongooseIntegration,
   mysql2Integration,
   mysqlIntegration,
   nativeNodeFetchIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  nestIntegration,
   NodeClient,
   nodeContextIntegration,
   onUncaughtExceptionIntegration,
@@ -99,8 +86,6 @@ export {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  // eslint-disable-next-line deprecation/deprecation
-  sessionTimingIntegration,
   setContext,
   setCurrentClient,
   setExtra,
@@ -113,8 +98,6 @@ export {
   setupExpressErrorHandler,
   setupHapiErrorHandler,
   setupKoaErrorHandler,
-  // eslint-disable-next-line deprecation/deprecation
-  setupNestErrorHandler,
   setUser,
   spanToBaggageHeader,
   spanToJSON,
@@ -128,11 +111,13 @@ export {
   startSpanManual,
   tediousIntegration,
   trpcMiddleware,
+  updateSpanName,
   withActiveSpan,
   withIsolationScope,
   withMonitor,
   withScope,
   zodErrorsIntegration,
+  logger,
 } from '@sentry/node';
 
 // We can still leave this for the carrier init and type exports
@@ -141,10 +126,11 @@ export * from '@sentry/node';
 // -------------------------
 // SvelteKit SDK exports:
 export { init } from './sdk';
-export { handleErrorWithSentry } from './handleError';
-export { wrapLoadWithSentry, wrapServerLoadWithSentry } from './load';
-export { sentryHandle } from './handle';
-export { wrapServerRouteWithSentry } from './serverRoute';
+export { handleErrorWithSentry } from '../server-common/handleError';
+export { wrapLoadWithSentry, wrapServerLoadWithSentry } from '../server-common/load';
+export { sentryHandle } from '../server-common/handle';
+export { initCloudflareSentryHandle } from './handle';
+export { wrapServerRouteWithSentry } from '../server-common/serverRoute';
 
 /**
  * Tracks the Svelte component's initialization and mounting operation as well as

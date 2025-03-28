@@ -91,7 +91,14 @@ export function getPluginOptions(
     project: sourceMapsUploadOptions.project ?? process.env.SENTRY_PROJECT,
     authToken: sourceMapsUploadOptions.authToken ?? process.env.SENTRY_AUTH_TOKEN,
     telemetry: sourceMapsUploadOptions.telemetry ?? true,
+    url: sourceMapsUploadOptions.url ?? process.env.SENTRY_URL,
     debug: moduleOptions.debug ?? false,
+    silent: sourceMapsUploadOptions.silent ?? false,
+    errorHandler: sourceMapsUploadOptions.errorHandler,
+    release: {
+      name: sourceMapsUploadOptions.release?.name,
+      ...moduleOptions?.unstable_sentryBundlerPluginOptions?.release,
+    },
     _metaOptions: {
       telemetry: {
         metaFramework: 'nuxt',
@@ -135,7 +142,6 @@ export function changeNuxtSourceMapSettings(
   nuxt: Nuxt,
   sentryModuleOptions: SentryNuxtModuleOptions,
 ): { client: UserSourceMapSetting; server: UserSourceMapSetting } {
-  nuxt.options = nuxt.options || {};
   nuxt.options.sourcemap = nuxt.options.sourcemap ?? { server: undefined, client: undefined };
 
   let previousUserSourceMapSetting: { client: UserSourceMapSetting; server: UserSourceMapSetting } = {

@@ -1,13 +1,13 @@
 {
   "name": "@sentry/sveltekit",
-  "version": "8.42.0",
+  "version": "9.10.0",
   "description": "Official Sentry SDK for SvelteKit",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/sveltekit",
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=16"
+    "node": ">=18"
   },
   "files": [
     "/build"
@@ -20,6 +20,10 @@
     "./package.json": "./package.json",
     ".": {
       "types": "./build/types/index.types.d.ts",
+      "worker": {
+        "import": "./build/esm/index.worker.js",
+        "require": "./build/cjs/index.worker.js"
+      },
       "browser": {
         "import": "./build/esm/index.client.js",
         "require": "./build/cjs/index.client.js"
@@ -31,7 +35,7 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@sveltejs/kit": "1.x || 2.x",
+    "@sveltejs/kit": "2.x",
     "vite": "*"
   },
   "peerDependenciesMeta": {
@@ -40,20 +44,22 @@
     }
   },
   "dependencies": {
-    "@sentry/core": "8.42.0",
-    "@sentry/node": "8.42.0",
-    "@sentry/opentelemetry": "8.42.0",
-    "@sentry/svelte": "8.42.0",
-    "@sentry/vite-plugin": "2.22.6",
+    "@babel/parser": "7.26.9",
+    "@sentry/cloudflare": "9.10.0",
+    "@sentry/core": "9.10.0",
+    "@sentry/node": "9.10.0",
+    "@sentry/opentelemetry": "9.10.0",
+    "@sentry/svelte": "9.10.0",
+    "@sentry/vite-plugin": "3.2.3",
     "magic-string": "0.30.7",
-    "magicast": "0.2.8",
+    "recast": "0.23.11",
     "sorcery": "1.0.0"
   },
   "devDependencies": {
-    "@babel/types": "7.20.7",
+    "@babel/types": "^7.26.3",
     "@sveltejs/kit": "^2.0.2",
     "svelte": "^4.2.8",
-    "vite": "^5.4.10"
+    "vite": "^5.4.11"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",

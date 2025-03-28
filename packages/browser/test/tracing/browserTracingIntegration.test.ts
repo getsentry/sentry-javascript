@@ -203,6 +203,16 @@ describe('browserTracingIntegration', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
       },
+      links: [
+        {
+          attributes: {
+            'sentry.link.type': 'previous_trace',
+          },
+          sampled: true,
+          span_id: span?.spanContext().spanId,
+          trace_id: span?.spanContext().traceId,
+        },
+      ],
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       start_timestamp: expect.any(Number),
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
@@ -230,6 +240,16 @@ describe('browserTracingIntegration', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
       },
+      links: [
+        {
+          attributes: {
+            'sentry.link.type': 'previous_trace',
+          },
+          sampled: true,
+          span_id: span2?.spanContext().spanId,
+          trace_id: span2?.spanContext().traceId,
+        },
+      ],
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       start_timestamp: expect.any(Number),
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
@@ -426,7 +446,7 @@ describe('browserTracingIntegration', () => {
     const pageloadSpan = getActiveSpan();
 
     expect(spanToJSON(pageloadSpan!).description).toBe('changed');
-    expect(spanToJSON(pageloadSpan!).data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('custom');
+    expect(spanToJSON(pageloadSpan!).data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('custom');
   });
 
   describe('startBrowserTracingNavigationSpan', () => {
@@ -483,6 +503,16 @@ describe('browserTracingIntegration', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
         },
+        links: [
+          {
+            attributes: {
+              'sentry.link.type': 'previous_trace',
+            },
+            sampled: true,
+            span_id: expect.stringMatching(/[a-f0-9]{16}/),
+            trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+          },
+        ],
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         start_timestamp: expect.any(Number),
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
@@ -494,7 +524,13 @@ describe('browserTracingIntegration', () => {
       const client = new BrowserClient(
         getDefaultBrowserClientOptions({
           tracesSampleRate: 1,
-          integrations: [browserTracingIntegration({ instrumentNavigation: false })],
+          integrations: [
+            browserTracingIntegration({
+              instrumentNavigation: false,
+              // disabling previous trace b/c not relevant for this test
+              linkPreviousTrace: 'off',
+            }),
+          ],
         }),
       );
       setCurrentClient(client);
@@ -608,7 +644,7 @@ describe('browserTracingIntegration', () => {
       const pageloadSpan = getActiveSpan();
 
       expect(spanToJSON(pageloadSpan!).description).toBe('changed');
-      expect(spanToJSON(pageloadSpan!).data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('custom');
+      expect(spanToJSON(pageloadSpan!).data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('custom');
     });
 
     it('sets the navigation span name on `scope.transactionName`', () => {
@@ -643,20 +679,20 @@ describe('browserTracingIntegration', () => {
       const newCurrentScopePropCtx = getCurrentScope().getPropagationContext();
 
       expect(oldCurrentScopePropCtx).toEqual({
-        spanId: expect.stringMatching(/[a-f0-9]{16}/),
         traceId: expect.stringMatching(/[a-f0-9]{32}/),
+        sampleRand: expect.any(Number),
       });
       expect(oldIsolationScopePropCtx).toEqual({
-        spanId: expect.stringMatching(/[a-f0-9]{16}/),
         traceId: expect.stringMatching(/[a-f0-9]{32}/),
+        sampleRand: expect.any(Number),
       });
       expect(newCurrentScopePropCtx).toEqual({
-        spanId: expect.stringMatching(/[a-f0-9]{16}/),
         traceId: expect.stringMatching(/[a-f0-9]{32}/),
+        sampleRand: expect.any(Number),
       });
       expect(newIsolationScopePropCtx).toEqual({
-        spanId: expect.stringMatching(/[a-f0-9]{16}/),
         traceId: expect.stringMatching(/[a-f0-9]{32}/),
+        sampleRand: expect.any(Number),
       });
 
       expect(newIsolationScopePropCtx.traceId).not.toEqual(oldIsolationScopePropCtx.traceId);
@@ -680,7 +716,7 @@ describe('browserTracingIntegration', () => {
 
       const propCtxBeforeEnd = getCurrentScope().getPropagationContext();
       expect(propCtxBeforeEnd).toStrictEqual({
-        spanId: expect.stringMatching(/[a-f0-9]{16}/),
+        sampleRand: expect.any(Number),
         traceId: expect.stringMatching(/[a-f0-9]{32}/),
       });
 
@@ -688,17 +724,18 @@ describe('browserTracingIntegration', () => {
 
       const propCtxAfterEnd = getCurrentScope().getPropagationContext();
       expect(propCtxAfterEnd).toStrictEqual({
-        // eslint-disable-next-line deprecation/deprecation
-        spanId: propCtxBeforeEnd.spanId,
         traceId: propCtxBeforeEnd.traceId,
         sampled: true,
+        sampleRand: expect.any(Number),
         dsc: {
+          release: undefined,
           environment: 'production',
           public_key: 'examplePublicKey',
           sample_rate: '1',
           sampled: 'true',
           transaction: 'mySpan',
           trace_id: propCtxBeforeEnd.traceId,
+          sample_rand: expect.any(String),
         },
       });
     });
@@ -720,25 +757,26 @@ describe('browserTracingIntegration', () => {
 
       const propCtxBeforeEnd = getCurrentScope().getPropagationContext();
       expect(propCtxBeforeEnd).toStrictEqual({
-        spanId: expect.stringMatching(/[a-f0-9]{16}/),
         traceId: expect.stringMatching(/[a-f0-9]{32}/),
+        sampleRand: expect.any(Number),
       });
 
       navigationSpan!.end();
 
       const propCtxAfterEnd = getCurrentScope().getPropagationContext();
       expect(propCtxAfterEnd).toStrictEqual({
-        // eslint-disable-next-line deprecation/deprecation
-        spanId: propCtxBeforeEnd.spanId,
         traceId: propCtxBeforeEnd.traceId,
         sampled: false,
+        sampleRand: expect.any(Number),
         dsc: {
+          release: undefined,
           environment: 'production',
           public_key: 'examplePublicKey',
           sample_rate: '0',
           sampled: 'false',
           transaction: 'mySpan',
           trace_id: propCtxBeforeEnd.traceId,
+          sample_rand: expect.any(String),
         },
       });
     });
@@ -749,7 +787,7 @@ describe('browserTracingIntegration', () => {
       // make sampled false here, so we can see that it's being used rather than the tracesSampleRate-dictated one
       document.head.innerHTML =
         '<meta name="sentry-trace" content="12312012123120121231201212312012-1121201211212012-0">' +
-        '<meta name="baggage" content="sentry-release=2.1.14,foo=bar">';
+        '<meta name="baggage" content="sentry-release=2.1.14,foo=bar,sentry-sample_rand=0.123">';
 
       const client = new BrowserClient(
         getDefaultBrowserClientOptions({
@@ -775,11 +813,12 @@ describe('browserTracingIntegration', () => {
       expect(spanIsSampled(idleSpan)).toBe(false);
 
       expect(dynamicSamplingContext).toBeDefined();
-      expect(dynamicSamplingContext).toStrictEqual({ release: '2.1.14' });
+      expect(dynamicSamplingContext).toStrictEqual({ release: '2.1.14', sample_rand: '0.123' });
 
       // Propagation context keeps the meta tag trace data for later events on the same route to add them to the trace
       expect(propagationContext.traceId).toEqual('12312012123120121231201212312012');
       expect(propagationContext.parentSpanId).toEqual('1121201211212012');
+      expect(propagationContext.sampleRand).toBe(0.123);
     });
 
     it('puts frozen Dynamic Sampling Context on pageload span if sentry-trace data and only 3rd party baggage is present', () => {
@@ -855,10 +894,12 @@ describe('browserTracingIntegration', () => {
 
       expect(dynamicSamplingContext).toBeDefined();
       expect(dynamicSamplingContext).toStrictEqual({
+        release: undefined,
         environment: 'production',
         public_key: 'examplePublicKey',
         sample_rate: '1',
         sampled: 'true',
+        sample_rand: expect.any(String),
         trace_id: expect.not.stringContaining('12312012123120121231201212312012'),
       });
 
@@ -871,7 +912,7 @@ describe('browserTracingIntegration', () => {
       // make sampled false here, so we can see that it's being used rather than the tracesSampleRate-dictated one
       document.head.innerHTML =
         '<meta name="sentry-trace" content="12312012123120121231201212312012-1121201211212012-1">' +
-        '<meta name="baggage" content="sentry-release=2.1.14,foo=bar">';
+        '<meta name="baggage" content="sentry-release=2.1.14,foo=bar,sentry-sample_rand=0.555">';
 
       const client = new BrowserClient(
         getDefaultBrowserClientOptions({
@@ -891,7 +932,7 @@ describe('browserTracingIntegration', () => {
         },
         {
           sentryTrace: '12312012123120121231201212312011-1121201211212011-1',
-          baggage: 'sentry-release=2.2.14,foo=bar',
+          baggage: 'sentry-release=2.2.14,foo=bar,sentry-sample_rand=0.123',
         },
       );
 
@@ -908,11 +949,12 @@ describe('browserTracingIntegration', () => {
       expect(spanIsSampled(idleSpan)).toBe(true);
 
       expect(dynamicSamplingContext).toBeDefined();
-      expect(dynamicSamplingContext).toStrictEqual({ release: '2.2.14' });
+      expect(dynamicSamplingContext).toStrictEqual({ release: '2.2.14', sample_rand: '0.123' });
 
       // Propagation context keeps the custom trace data for later events on the same route to add them to the trace
       expect(propagationContext.traceId).toEqual('12312012123120121231201212312011');
       expect(propagationContext.parentSpanId).toEqual('1121201211212011');
+      expect(propagationContext.sampleRand).toEqual(0.123);
     });
   });
 
@@ -986,6 +1028,75 @@ describe('browserTracingIntegration', () => {
       // there is also the `sentry-tracing-init` span included
       expect(spans).toHaveLength(3);
       expect(spans[2]).toBe(idleSpan);
+    });
+  });
+
+  describe('linkPreviousTrace', () => {
+    it('registers the previous trace listener on span start by default', () => {
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          tracesSampleRate: 1,
+          integrations: [browserTracingIntegration({ instrumentPageLoad: false, instrumentNavigation: false })],
+        }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      const span1 = startInactiveSpan({ name: 'test span 1', forceTransaction: true });
+      span1.end();
+      const span1Json = spanToJSON(span1);
+
+      expect(span1Json.links).toBeUndefined();
+
+      // ensure we start a new trace
+      getCurrentScope().setPropagationContext({ traceId: '123', sampleRand: 0.2 });
+
+      const span2 = startInactiveSpan({ name: 'test span 2', forceTransaction: true });
+      span2.end();
+      const spanJson2 = spanToJSON(span2);
+
+      expect(spanJson2.links).toEqual([
+        {
+          attributes: {
+            'sentry.link.type': 'previous_trace',
+          },
+          sampled: true,
+          span_id: span1Json.span_id,
+          trace_id: span1Json.trace_id,
+        },
+      ]);
+    });
+
+    it("doesn't register the previous trace listener on span start if disabled", () => {
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          tracesSampleRate: 1,
+          integrations: [
+            browserTracingIntegration({
+              instrumentPageLoad: false,
+              instrumentNavigation: false,
+              linkPreviousTrace: 'off',
+            }),
+          ],
+        }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      const span1 = startInactiveSpan({ name: 'test span 1', forceTransaction: true });
+      span1.end();
+      const span1Json = spanToJSON(span1);
+
+      expect(span1Json.links).toBeUndefined();
+
+      // ensure we start a new trace
+      getCurrentScope().setPropagationContext({ traceId: '123', sampleRand: 0.2 });
+
+      const span2 = startInactiveSpan({ name: 'test span 2', forceTransaction: true });
+      span2.end();
+      const spanJson2 = spanToJSON(span2);
+
+      expect(spanJson2.links).toBeUndefined();
     });
   });
 

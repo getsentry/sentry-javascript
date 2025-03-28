@@ -23,10 +23,9 @@ export function isNodeEnv(): boolean {
  * Requires a module which is protected against bundler minification.
  *
  * @param request The module path to resolve
- * @deprecated This function will be removed in the next major version.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function dynamicRequire(mod: any, request: string): any {
+function dynamicRequire(mod: any, request: string): any {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   return mod.require(request);
 }
@@ -42,24 +41,23 @@ export function dynamicRequire(mod: any, request: string): any {
  * That is to mimic the behavior of `require.resolve` exactly.
  *
  * @param moduleName module name to require
+ * @param existingModule module to use for requiring
  * @returns possibly required module
  */
-export function loadModule<T>(moduleName: string): T | undefined {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function loadModule<T>(moduleName: string, existingModule: any = module): T | undefined {
   let mod: T | undefined;
 
   try {
-    // eslint-disable-next-line deprecation/deprecation
-    mod = dynamicRequire(module, moduleName);
+    mod = dynamicRequire(existingModule, moduleName);
   } catch (e) {
     // no-empty
   }
 
   if (!mod) {
     try {
-      // eslint-disable-next-line deprecation/deprecation
-      const { cwd } = dynamicRequire(module, 'process');
-      // eslint-disable-next-line deprecation/deprecation
-      mod = dynamicRequire(module, `${cwd()}/node_modules/${moduleName}`) as T;
+      const { cwd } = dynamicRequire(existingModule, 'process');
+      mod = dynamicRequire(existingModule, `${cwd()}/node_modules/${moduleName}`) as T;
     } catch (e) {
       // no-empty
     }

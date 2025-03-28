@@ -87,13 +87,22 @@ test('Should record transaction and error for a crashing trpc handler', async ({
     ],
   });
 
-  await expect(trpcClient.crashSomething.mutate()).rejects.toBeDefined();
+  await expect(trpcClient.crashSomething.mutate({ nested: { nested: { nested: 'foobar' } } })).rejects.toBeDefined();
 
   await expect(transactionEventPromise).resolves.toBeDefined();
   await expect(errorEventPromise).resolves.toBeDefined();
 
   expect((await errorEventPromise).contexts?.trpc?.['procedure_type']).toBe('mutation');
   expect((await errorEventPromise).contexts?.trpc?.['procedure_path']).toBe('crashSomething');
+
+  // Should record nested context
+  expect((await errorEventPromise).contexts?.trpc?.['input']).toEqual({
+    nested: {
+      nested: {
+        nested: 'foobar',
+      },
+    },
+  });
 });
 
 test('Should record transaction and error for a trpc handler that returns a status code', async ({ baseURL }) => {

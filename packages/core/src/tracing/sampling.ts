@@ -2,7 +2,7 @@ import type { Options, SamplingContext } from '../types-hoist';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { logger } from '../utils-hoist/logger';
-import { hasTracingEnabled } from '../utils/hasTracingEnabled';
+import { hasSpansEnabled } from '../utils/hasSpansEnabled';
 import { parseSampleRate } from '../utils/parseSampleRate';
 
 /**
@@ -12,26 +12,45 @@ import { parseSampleRate } from '../utils/parseSampleRate';
  * sent to Sentry.
  */
 export function sampleSpan(
-  options: Pick<Options, 'tracesSampleRate' | 'tracesSampler' | 'enableTracing'>,
+  options: Pick<Options, 'tracesSampleRate' | 'tracesSampler'>,
   samplingContext: SamplingContext,
-): [sampled: boolean, sampleRate?: number] {
-  // nothing to do if tracing is not enabled
-  if (!hasTracingEnabled(options)) {
+  sampleRand: number,
+): [sampled: boolean, sampleRate?: number, localSampleRateWasApplied?: boolean] {
+  // nothing to do if span recording is not enabled
+  if (!hasSpansEnabled(options)) {
     return [false];
   }
 
-  // we would have bailed already if neither `tracesSampler` nor `tracesSampleRate` nor `enableTracing` were defined, so one of these should
+  let localSampleRateWasApplied = undefined;
+
+  // we would have bailed already if neither `tracesSampler` nor `tracesSampleRate` were defined, so one of these should
   // work; prefer the hook if so
   let sampleRate;
   if (typeof options.tracesSampler === 'function') {
-    sampleRate = options.tracesSampler(samplingContext);
+    sampleRate = options.tracesSampler({
+      ...samplingContext,
+      inheritOrSampleWith: fallbackSampleRate => {
+        // If we have an incoming parent sample rate, we'll just use that one.
+        // The sampling decision will be inherited because of the sample_rand that was generated when the trace reached the incoming boundaries of the SDK.
+        if (typeof samplingContext.parentSampleRate === 'number') {
+          return samplingContext.parentSampleRate;
+        }
+
+        // Fallback if parent sample rate is not on the incoming trace (e.g. if there is no baggage)
+        // This is to provide backwards compatibility if there are incoming traces from older SDKs that don't send a parent sample rate or a sample rand. In these cases we just want to force either a sampling decision on the downstream traces via the sample rate.
+        if (typeof samplingContext.parentSampled === 'boolean') {
+          return Number(samplingContext.parentSampled);
+        }
+
+        return fallbackSampleRate;
+      },
+    });
+    localSampleRateWasApplied = true;
   } else if (samplingContext.parentSampled !== undefined) {
     sampleRate = samplingContext.parentSampled;
   } else if (typeof options.tracesSampleRate !== 'undefined') {
     sampleRate = options.tracesSampleRate;
-  } else {
-    // When `enableTracing === true`, we use a sample rate of 100%
-    sampleRate = 1;
+    localSampleRateWasApplied = true;
   }
 
   // Since this is coming from the user (or from a function provided by the user), who knows what we might get.
@@ -39,7 +58,12 @@ export function sampleSpan(
   const parsedSampleRate = parseSampleRate(sampleRate);
 
   if (parsedSampleRate === undefined) {
-    DEBUG_BUILD && logger.warn('[Tracing] Discarding transaction because of invalid sample rate.');
+    DEBUG_BUILD &&
+      logger.warn(
+        `[Tracing] Discarding root span because of invalid sample rate. Sample rate must be a boolean or a number between 0 and 1. Got ${JSON.stringify(
+          sampleRate,
+        )} of type ${JSON.stringify(typeof sampleRate)}.`,
+      );
     return [false];
   }
 
@@ -53,12 +77,12 @@ export function sampleSpan(
             : 'a negative sampling decision was inherited or tracesSampleRate is set to 0'
         }`,
       );
-    return [false, parsedSampleRate];
+    return [false, parsedSampleRate, localSampleRateWasApplied];
   }
 
-  // Now we roll the dice. Math.random is inclusive of 0, but not of 1, so strict < is safe here. In case sampleRate is
-  // a boolean, the < comparison will cause it to be automatically cast to 1 if it's true and 0 if it's false.
-  const shouldSample = Math.random() < parsedSampleRate;
+  // We always compare the sample rand for the current execution context against the chosen sample rate.
+  // Read more: https://develop.sentry.dev/sdk/telemetry/traces/#propagated-random-value
+  const shouldSample = sampleRand < parsedSampleRate;
 
   // if we're not going to keep it, we're done
   if (!shouldSample) {
@@ -68,8 +92,7 @@ export function sampleSpan(
           sampleRate,
         )})`,
       );
-    return [false, parsedSampleRate];
   }
 
-  return [true, parsedSampleRate];
+  return [shouldSample, parsedSampleRate, localSampleRateWasApplied];
 }

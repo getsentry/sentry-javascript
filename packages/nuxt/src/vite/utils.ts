@@ -30,7 +30,7 @@ export function findDefaultSdkInitFile(type: 'server' | 'client'): string | unde
  *  Extracts the filename from a node command with a path.
  */
 export function getFilenameFromNodeStartCommand(nodeCommand: string): string | null {
-  const regex = /[^/\\]+$/;
+  const regex = /[^/\\]+\.[^/\\]+$/;
   const match = nodeCommand.match(regex);
   return match ? match[0] : null;
 }
@@ -71,22 +71,18 @@ export function extractFunctionReexportQueryParameters(query: string): { wrap: s
   const reexportMatch = query.match(reexportRegex);
 
   const wrap =
-    wrapMatch && wrapMatch[1]
-      ? wrapMatch[1]
-          .split(',')
-          .filter(param => param !== '')
-          // Sanitize, as code could be injected with another rollup plugin
-          .map((str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-      : [];
+    wrapMatch?.[1]
+      ?.split(',')
+      .filter(param => param !== '')
+      // Sanitize, as code could be injected with another rollup plugin
+      .map((str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) || [];
 
   const reexport =
-    reexportMatch && reexportMatch[1]
-      ? reexportMatch[1]
-          .split(',')
-          .filter(param => param !== '' && param !== 'default')
-          // Sanitize, as code could be injected with another rollup plugin
-          .map((str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-      : [];
+    reexportMatch?.[1]
+      ?.split(',')
+      .filter(param => param !== '' && param !== 'default')
+      // Sanitize, as code could be injected with another rollup plugin
+      .map((str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) || [];
 
   return { wrap, reexport };
 }
