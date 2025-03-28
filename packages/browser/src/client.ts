@@ -15,10 +15,13 @@ import {
   addAutoIpAddressToUser,
   applySdkMetadata,
   getSDKSource,
+  _INTERNAL_flushLogsBuffer,
 } from '@sentry/core';
 import { eventFromException, eventFromMessage } from './eventbuilder';
 import { WINDOW } from './helpers';
 import type { BrowserTransportOptions } from './transports/types';
+
+const DEFAULT_FLUSH_INTERVAL = 5000;
 
 /**
  * Configuration options for the Sentry Browser SDK.
@@ -65,6 +68,7 @@ export type BrowserClientOptions = ClientOptions<BrowserTransportOptions> &
  * @see SentryClient for usage documentation.
  */
 export class BrowserClient extends Client<BrowserClientOptions> {
+  private _logFlushIdleTimeout: ReturnType<typeof setTimeout> | undefined;
   /**
    * Creates a new Browser SDK instance.
    *
@@ -81,17 +85,41 @@ export class BrowserClient extends Client<BrowserClientOptions> {
 
     super(opts);
 
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const client = this;
+    const { sendDefaultPii, _experiments } = client._options;
+    const enableLogs = _experiments?.enableLogs;
+
     if (opts.sendClientReports && WINDOW.document) {
       WINDOW.document.addEventListener('visibilitychange', () => {
         if (WINDOW.document.visibilityState === 'hidden') {
           this._flushOutcomes();
+          if (enableLogs) {
+            _INTERNAL_flushLogsBuffer(client);
+          }
         }
       });
     }
 
-    if (this._options.sendDefaultPii) {
-      this.on('postprocessEvent', addAutoIpAddressToUser);
-      this.on('beforeSendSession', addAutoIpAddressToSession);
+    if (enableLogs) {
+      client.on('flush', () => {
+        _INTERNAL_flushLogsBuffer(client);
+      });
+
+      client.on('afterCaptureLog', () => {
+        if (client._logFlushIdleTimeout) {
+          clearTimeout(client._logFlushIdleTimeout);
+        }
+
+        client._logFlushIdleTimeout = setTimeout(() => {
+          _INTERNAL_flushLogsBuffer(client);
+        }, DEFAULT_FLUSH_INTERVAL);
+      });
+    }
+
+    if (sendDefaultPii) {
+      client.on('postprocessEvent', addAutoIpAddressToUser);
+      client.on('beforeSendSession', addAutoIpAddressToSession);
     }
   }
 

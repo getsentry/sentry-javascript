@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/browser-integration-tests",
-  "version": "9.10.0",
+  "version": "9.10.1",
   "main": "index.js",
   "license": "MIT",
   "engines": {

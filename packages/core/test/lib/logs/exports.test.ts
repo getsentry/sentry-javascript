@@ -4,7 +4,7 @@ import {
   _INTERNAL_getLogBuffer,
   _INTERNAL_captureLog,
   logAttributeToSerializedLogAttribute,
-} from '../../../src/logs';
+} from '../../../src/logs/exports';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 import * as loggerModule from '../../../src/utils-hoist/logger';
 import { Scope, fmt } from '../../../src';
