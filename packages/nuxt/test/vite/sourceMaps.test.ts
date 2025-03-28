@@ -5,7 +5,6 @@ import type { SourceMapSetting } from '../../src/vite/sourceMaps';
 import {
   changeNuxtSourceMapSettings,
   validateNitroSourceMapSettings,
-  validateViteSourceMapSettings,
   getPluginOptions,
 } from '../../src/vite/sourceMaps';
 
@@ -152,6 +151,47 @@ describe('getPluginOptions', () => {
       }),
     );
   });
+
+  it('sets filesToDeleteAfterUpload correctly based on fallback options', () => {
+    // Scenario 1: Both client and server fallback are true
+    const optionsBothTrue = getPluginOptions({}, { client: true, server: true });
+    expect(optionsBothTrue?.sourcemaps?.filesToDeleteAfterUpload).toEqual([
+      '.*/**/public/**/*.map',
+      '.*/**/server/**/*.map',
+      '.*/**/output/**/*.map',
+      '.*/**/function/**/*.map',
+    ]);
+
+    // Scenario 2: Only client fallback is true
+    const optionsClientTrue = getPluginOptions({}, { client: true, server: false });
+    expect(optionsClientTrue?.sourcemaps?.filesToDeleteAfterUpload).toEqual(['.*/**/public/**/*.map']);
+
+    // Scenario 3: Only server fallback is true
+    const optionsServerTrue = getPluginOptions({}, { client: false, server: true });
+    expect(optionsServerTrue?.sourcemaps?.filesToDeleteAfterUpload).toEqual([
+      '.*/**/server/**/*.map',
+      '.*/**/output/**/*.map',
+      '.*/**/function/**/*.map',
+    ]);
+
+    // Scenario 4: No fallback, but custom filesToDeleteAfterUpload is provided
+    const customDeleteFiles = ['custom/path/**/*.map'];
+    const optionsWithCustomDelete = getPluginOptions(
+      {
+        sourceMapsUploadOptions: {
+          sourcemaps: {
+            filesToDeleteAfterUpload: customDeleteFiles,
+          },
+        },
+      },
+      { client: false, server: false },
+    );
+    expect(optionsWithCustomDelete?.sourcemaps?.filesToDeleteAfterUpload).toEqual(customDeleteFiles);
+
+    // Scenario 5: No fallback, both source maps explicitly false and no custom filesToDeleteAfterUpload
+    const optionsNoDelete = getPluginOptions({}, { client: false, server: false });
+    expect(optionsNoDelete?.sourcemaps?.filesToDeleteAfterUpload).toBeUndefined();
+  });
 });
 
 describe('validate sourcemap settings', () => {
@@ -165,82 +205,6 @@ describe('validate sourcemap settings', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
-  });
-
-  describe('validateViteSourceMapSettings', () => {
-    let viteConfig: { build?: { sourcemap?: SourceMapSetting } };
-    let sentryModuleOptions: SentryNuxtModuleOptions;
-
-    beforeEach(() => {
-      viteConfig = {};
-      sentryModuleOptions = {};
-    });
-
-    afterEach(() => {
-      vi.clearAllMocks();
-    });
-
-    it('initializes viteConfig.build if undefined', () => {
-      validateViteSourceMapSettings(viteConfig, sentryModuleOptions);
-
-      expect(viteConfig).toHaveProperty('build');
-      expect(viteConfig.build).toEqual({});
-    });
-
-    it.each([
-      { viteSourcemap: true, nuxtSourcemap: true },
-      { viteSourcemap: 'hidden', nuxtSourcemap: 'hidden' },
-      { viteSourcemap: 'inline', nuxtSourcemap: 'inline' },
-      { viteSourcemap: false, nuxtSourcemap: false },
-    ] as { viteSourcemap?: SourceMapSetting; nuxtSourcemap?: SourceMapSetting }[])(
-      'does not warn when source map settings match ($viteSourcemap, $nuxtSourcemap)',
-      ({ viteSourcemap, nuxtSourcemap }) => {
-        viteConfig = { ...viteConfig, build: { sourcemap: viteSourcemap as SourceMapSetting } };
-        const sentryModuleOptions: SentryNuxtModuleOptions = {};
-        const nuxtRuntime = 'server';
-
-        validateViteSourceMapSettings(viteConfig, sentryModuleOptions, nuxtRuntime, nuxtSourcemap);
-
-        expect(consoleWarnSpy).not.toHaveBeenCalled();
-      },
-    );
-
-    it.each([
-      {
-        viteSourcemap: true,
-        nuxtSourcemap: false,
-        expectedWarning:
-          "[Sentry] Source map generation settings are conflicting. Sentry uses `sourcemap.client: false`. However, a conflicting setting was discovered (`viteConfig.build.sourcemap: true`). This setting was probably explicitly set in your configuration. Sentry won't override this setting but it may affect source maps generation and upload. Without source maps, code snippets on the Sentry Issues page will remain minified.",
-      },
-      {
-        viteSourcemap: 'inline',
-        nuxtSourcemap: 'hidden',
-        expectedWarning:
-          "[Sentry] Source map generation settings are conflicting. Sentry uses `sourcemap.client: hidden`. However, a conflicting setting was discovered (`viteConfig.build.sourcemap: inline`). This setting was probably explicitly set in your configuration. Sentry won't override this setting but it may affect source maps generation and upload. Without source maps, code snippets on the Sentry Issues page will remain minified.",
-      },
-      {
-        viteSourcemap: 'hidden',
-        nuxtSourcemap: true,
-        expectedWarning:
-          "[Sentry] Source map generation settings are conflicting. Sentry uses `sourcemap.client: true`. However, a conflicting setting was discovered (`viteConfig.build.sourcemap: hidden`). This setting was probably explicitly set in your configuration. Sentry won't override this setting but it may affect source maps generation and upload. Without source maps, code snippets on the Sentry Issues page will remain minified.",
-      },
-      {
-        viteSourcemap: false,
-        nuxtSourcemap: 'inline',
-        expectedWarning:
-          "[Sentry] Source map generation settings are conflicting. Sentry uses `sourcemap.client: inline`. However, a conflicting setting was discovered (`viteConfig.build.sourcemap: false`). This setting was probably explicitly set in your configuration. Sentry won't override this setting but it may affect source maps generation and upload. Without source maps, code snippets on the Sentry Issues page will remain minified.",
-      },
-    ])(
-      'warns on different source map settings ($viteSourcemap, $nuxtSourcemap)',
-      ({ viteSourcemap, nuxtSourcemap, expectedWarning }) => {
-        viteConfig = { ...viteConfig, build: { sourcemap: viteSourcemap as SourceMapSetting } };
-        const nuxtRuntime = 'client';
-
-        validateViteSourceMapSettings(viteConfig, sentryModuleOptions, nuxtRuntime, nuxtSourcemap as SourceMapSetting);
-
-        expect(consoleWarnSpy).toHaveBeenCalledWith(expectedWarning);
-      },
-    );
   });
 
   describe('should handle nitroConfig.rollupConfig.output.sourcemap settings', () => {

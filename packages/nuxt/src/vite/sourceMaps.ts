@@ -10,6 +10,9 @@ import type { SentryNuxtModuleOptions } from '../common/types';
  */
 export type UserSourceMapSetting = 'enabled' | 'disabled' | 'unset' | undefined;
 
+/** A valid source map setting */
+export type SourceMapSetting = boolean | 'hidden' | 'inline';
+
 /**
  *  Setup source maps for Sentry inside the Nuxt module during build time (in Vite for Nuxt and Rollup for Nitro).
  */
@@ -60,20 +63,20 @@ export function setupSourceMaps(moduleOptions: SentryNuxtModuleOptions, nuxt: Nu
       viteConfig.build = viteConfig.build || {};
       const viteSourceMap = viteConfig.build.sourcemap;
 
+      // Vite source map options are the same as the Nuxt source map config options (unless overwritten)
+      validateDifferentSourceMapSettings({
+        nuxtSettingKey: `sourcemap.${runtime}`,
+        nuxtSettingValue: nuxtSourceMapSetting,
+        otherSettingKey: 'viteConfig.build.sourcemap',
+        otherSettingValue: viteSourceMap,
+      });
+
       if (isDebug) {
         consoleSandbox(() => {
           if (!runtime) {
             //  eslint-disable-next-line no-console
             console.log("[Sentry] Cannot detect runtime (client/server) inside hook 'vite:extendConfig'.");
           } else {
-            // Vite source map options are the same as the Nuxt source map config options (unless overwritten)
-            validateDifferentSourceMapSettings({
-              nuxtSettingKey: `sourcemap.${runtime}`,
-              nuxtSettingValue: nuxtSourceMapSetting,
-              otherSettingKey: 'viteConfig.build.sourcemap',
-              otherSettingValue: viteSourceMap,
-            });
-
             // eslint-disable-next-line no-console
             console.log(`[Sentry] Adding Sentry Vite plugin to the ${runtime} runtime.`);
           }
@@ -101,7 +104,6 @@ export function setupSourceMaps(moduleOptions: SentryNuxtModuleOptions, nuxt: Nu
         nitroConfig.rollupConfig.plugins = [nitroConfig.rollupConfig.plugins];
       }
 
-      //  todo: use other values as well to determine this
       validateNitroSourceMapSettings(nuxt, nitroConfig, moduleOptions);
 
       //  Add Sentry plugin
@@ -280,26 +282,6 @@ export function changeNuxtSourceMapSettings(
   return previousUserSourceMapSetting;
 }
 
-/** only exported for testing  */ // todo: delete this function?
-export function validateViteSourceMapSettings(
-  viteConfig: { build?: { sourcemap?: boolean | 'inline' | 'hidden' } },
-  sentryModuleOptions: SentryNuxtModuleOptions,
-  nuxtRuntime?: 'client' | 'server',
-  nuxtSourceMapSettingForRuntime?: SourceMapSetting,
-): void {
-  viteConfig.build = viteConfig.build || {};
-  const viteSourceMap = viteConfig.build.sourcemap;
-
-  validateDifferentSourceMapSettings({
-    nuxtSettingKey: `sourcemap.${nuxtRuntime}`,
-    nuxtSettingValue: nuxtSourceMapSettingForRuntime,
-    otherSettingKey: 'viteConfig.build.sourcemap',
-    otherSettingValue: viteSourceMap,
-  });
-}
-
-export type SourceMapSetting = boolean | 'hidden' | 'inline';
-
 /** Logs warnings about potentially conflicting source map settings.
  *  Configures `sourcemapExcludeSources` in Nitro to make source maps usable in Sentry.
  *
@@ -351,6 +333,27 @@ export function validateNitroSourceMapSettings(
   }
 }
 
+function validateDifferentSourceMapSettings({
+  nuxtSettingKey,
+  nuxtSettingValue,
+  otherSettingKey,
+  otherSettingValue,
+}: {
+  nuxtSettingKey: string;
+  nuxtSettingValue?: SourceMapSetting;
+  otherSettingKey: string;
+  otherSettingValue?: SourceMapSetting;
+}): void {
+  if (nuxtSettingValue !== otherSettingValue) {
+    consoleSandbox(() => {
+      //  eslint-disable-next-line no-console
+      console.warn(
+        `[Sentry] Source map generation settings are conflicting. Sentry uses \`${nuxtSettingKey}: ${nuxtSettingValue}\`. However, a conflicting setting was discovered (\`${otherSettingKey}: ${otherSettingValue}\`). This setting was probably explicitly set in your configuration. Sentry won't override this setting but it may affect source maps generation and upload. Without source maps, code snippets on the Sentry Issues page will remain minified.`,
+      );
+    });
+  }
+}
+
 function logKeepEnabledSourceMapSetting(
   sentryNuxtModuleOptions: SentryNuxtModuleOptions,
   settingKey: string,
@@ -373,30 +376,6 @@ function warnExplicitlyDisabledSourceMap(settingKey: string): void {
       `[Sentry] We discovered \`${settingKey}\` is set to \`false\`. This setting is either a default setting or was explicitly set in your configuration. Sentry won't override this setting. Without source maps, code snippets on the Sentry Issues page will remain minified. To show unminified code, enable source maps in \`${settingKey}\` (e.g. by setting them to \`'hidden'\`).`,
     );
   });
-}
-
-/**
- *
- */
-export function validateDifferentSourceMapSettings({
-  nuxtSettingKey,
-  nuxtSettingValue,
-  otherSettingKey,
-  otherSettingValue,
-}: {
-  nuxtSettingKey: string;
-  nuxtSettingValue?: SourceMapSetting;
-  otherSettingKey: string;
-  otherSettingValue?: SourceMapSetting;
-}): void {
-  if (nuxtSettingValue !== otherSettingValue) {
-    consoleSandbox(() => {
-      //  eslint-disable-next-line no-console
-      console.warn(
-        `[Sentry] Source map generation settings are conflicting. Sentry uses \`${nuxtSettingKey}: ${nuxtSettingValue}\`. However, a conflicting setting was discovered (\`${otherSettingKey}: ${otherSettingValue}\`). This setting was probably explicitly set in your configuration. Sentry won't override this setting but it may affect source maps generation and upload. Without source maps, code snippets on the Sentry Issues page will remain minified.`,
-      );
-    });
-  }
 }
 
 function logSentryEnablesSourceMap(settingKey: string, settingValue: string): void {
