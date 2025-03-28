@@ -4,7 +4,7 @@ import {
   breadcrumbsIntegration,
   browserSessionIntegration,
   globalHandlersIntegration,
-  httpContextIntegration,
+  pageInformationIntegration,
   init as browserInit,
   linkedErrorsIntegration,
   setContext,
@@ -41,7 +41,7 @@ export function getDefaultIntegrations(_options: BrowserOptions = {}): Integrati
     globalHandlersIntegration(),
     linkedErrorsIntegration(),
     dedupeIntegration(),
-    httpContextIntegration(),
+    pageInformationIntegration(),
     browserSessionIntegration(),
   ];
 }

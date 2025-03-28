@@ -5,7 +5,7 @@ import {
   dedupeIntegration,
   defaultStackParser,
   functionToStringIntegration,
-  httpContextIntegration,
+  pageInformationIntegration,
   eventFiltersIntegration,
   linkedErrorsIntegration,
   makeFetchTransport,
@@ -15,7 +15,7 @@ const integrations = [
   breadcrumbsIntegration(),
   functionToStringIntegration(),
   dedupeIntegration(),
-  httpContextIntegration(),
+  pageInformationIntegration(),
   eventFiltersIntegration(),
   linkedErrorsIntegration(),
 ];

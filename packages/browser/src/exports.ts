@@ -88,7 +88,8 @@ export { getDefaultIntegrations, forceLoad, init, onLoad, showReportDialog } fro
 
 export { breadcrumbsIntegration } from './integrations/breadcrumbs';
 export { globalHandlersIntegration } from './integrations/globalhandlers';
-export { httpContextIntegration } from './integrations/httpcontext';
+// eslint-disable-next-line deprecation/deprecation
+export { httpContextIntegration, pageInformationIntegration } from './integrations/pageinformation';
 export { linkedErrorsIntegration } from './integrations/linkederrors';
 export { browserApiErrorsIntegration } from './integrations/browserapierrors';
 
