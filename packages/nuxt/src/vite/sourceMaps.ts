@@ -106,6 +106,13 @@ export function setupSourceMaps(moduleOptions: SentryNuxtModuleOptions, nuxt: Nu
 
       validateNitroSourceMapSettings(nuxt, nitroConfig, moduleOptions);
 
+      if (isDebug) {
+        consoleSandbox(() => {
+          // eslint-disable-next-line no-console
+          console.log('[Sentry] Adding Sentry Rollup plugin to the server runtime.');
+        });
+      }
+
       // Add Sentry plugin
       // Runs only on server-side (Nitro)
       nitroConfig.rollupConfig.plugins.push(
