@@ -109,6 +109,7 @@ export {
   spanToBaggageHeader,
   trpcMiddleware,
   updateSpanName,
+  supabaseIntegration,
   zodErrorsIntegration,
   profiler,
   amqplibIntegration,
