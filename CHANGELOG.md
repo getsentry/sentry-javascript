@@ -10,6 +10,147 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 9.10.0
+
+### Important Changes
+
+- **feat: Add support for logs**
+
+  - feat(node): Add logging public APIs to Node SDKs ([#15764](https://github.com/getsentry/sentry-javascript/pull/15764))
+  - feat(core): Add support for `beforeSendLog` ([#15814](https://github.com/getsentry/sentry-javascript/pull/15814))
+  - feat(core): Add support for parameterizing logs ([#15812](https://github.com/getsentry/sentry-javascript/pull/15812))
+  - fix: Remove critical log severity level ([#15824](https://github.com/getsentry/sentry-javascript/pull/15824))
+
+  All JavaScript SDKs other than `@sentry/cloudflare` and `@sentry/deno` now support sending logs via dedicated methods as part of Sentry's [upcoming logging product](https://github.com/getsentry/sentry/discussions/86804).
+
+  Logging is gated by an experimental option, `_experiments.enableLogs`.
+
+  ```js
+  Sentry.init({
+    dsn: 'PUBLIC_DSN',
+    // `enableLogs` must be set to true to use the logging features
+    _experiments: { enableLogs: true },
+  });
+
+  const { trace, debug, info, warn, error, fatal, fmt } = Sentry.logger;
+
+  trace('Starting database connection', { database: 'users' });
+  debug('Cache miss for user', { userId: 123 });
+  error('Failed to process payment', { orderId: 'order_123', amount: 99.99 });
+  fatal('Database connection pool exhausted', { database: 'users', activeConnections: 100 });
+
+  // Structured logging via the `fmt` helper function. When you use `fmt`, the string template and parameters are sent separately so they can be queried independently in Sentry.
+
+  info(fmt(`Updated profile for user ${userId}`));
+  warn(fmt(`Rate limit approaching for endpoint ${endpoint}. Requests: ${requests}, Limit: ${limit}`));
+  ```
+
+  With server-side SDKs like `@sentry/node`, `@sentry/bun` or server-side of `@sentry/nextjs` or `@sentry/sveltekit`, you can do structured logging without needing the `fmt` helper function.
+
+  ```js
+  const { info, warn } = Sentry.logger;
+
+  info('User %s logged in successfully', [123]);
+  warn('Failed to load user %s data', [123], { errorCode: 404 });
+  ```
+
+  To filter logs, or update them before they are sent to Sentry, you can use the `_experiments.beforeSendLog` option.
+
+- **feat(browser): Add `diagnoseSdkConnectivity()` function to programmatically detect possible connectivity issues ([#15821](https://github.com/getsentry/sentry-javascript/pull/15821))**
+
+  The `diagnoseSdkConnectivity()` function can be used to programmatically detect possible connectivity issues with the Sentry SDK.
+
+  ```js
+  const result = await Sentry.diagnoseSdkConnectivity();
+  ```
+
+  The result will be an object with the following properties:
+
+  - `"no-client-active"`: There was no active client when the function was called. This possibly means that the SDK was not initialized yet.
+  - `"sentry-unreachable"`: The Sentry SaaS servers were not reachable. This likely means that there is an ad blocker active on the page or that there are other connection issues.
+  - `undefined`: The SDK is working as expected.
+
+- **SDK Tracing Performance Improvements for Node SDKs**
+
+  - feat: Stop using `dropUndefinedKeys` ([#15796](https://github.com/getsentry/sentry-javascript/pull/15796))
+  - feat(node): Only add span listeners for instrumentation when used ([#15802](https://github.com/getsentry/sentry-javascript/pull/15802))
+  - ref: Avoid `dropUndefinedKeys` for `spanToJSON` calls ([#15792](https://github.com/getsentry/sentry-javascript/pull/15792))
+  - ref: Avoid using `SentryError` for PromiseBuffer control flow ([#15822](https://github.com/getsentry/sentry-javascript/pull/15822))
+  - ref: Stop using `dropUndefinedKeys` in SpanExporter ([#15794](https://github.com/getsentry/sentry-javascript/pull/15794))
+  - ref(core): Avoid using `SentryError` for event processing control flow ([#15823](https://github.com/getsentry/sentry-javascript/pull/15823))
+  - ref(node): Avoid `dropUndefinedKeys` in Node SDK init ([#15797](https://github.com/getsentry/sentry-javascript/pull/15797))
+  - ref(opentelemetry): Avoid sampling work for non-root spans ([#15820](https://github.com/getsentry/sentry-javascript/pull/15820))
+
+  We've been hard at work making performance improvements to the Sentry Node SDKs (`@sentry/node`, `@sentry/aws-serverless`, `@sentry/nestjs`, etc.). We've seen that upgrading from `9.7.0` to `9.10.0` leads to 30-40% improvement in request latency for HTTP web-server applications that use tracing with high sample rates. Non web-server applications and non-tracing applications will see smaller improvements.
+
+### Other Changes
+
+- chore(deps): Bump `rrweb` to `2.35.0` ([#15825](https://github.com/getsentry/sentry-javascript/pull/15825))
+- deps: Bump bundler plugins to `3.2.3` ([#15829](https://github.com/getsentry/sentry-javascript/pull/15829))
+- feat: Always truncate stored breadcrumb messages to 2kb ([#15819](https://github.com/getsentry/sentry-javascript/pull/15819))
+- feat(nextjs): Disable server webpack-handling for static builds ([#15751](https://github.com/getsentry/sentry-javascript/pull/15751))
+- fix(nuxt): Don't override Nuxt options if undefined ([#15795](https://github.com/getsentry/sentry-javascript/pull/15795))
+
+## 9.9.0
+
+### Important Changes
+
+- **feat(nextjs): Support `instrumentation-client.ts` ([#15705](https://github.com/getsentry/sentry-javascript/pull/15705))**
+
+  Next.js recently added a feature to support [client-side (browser) instrumentation via the `experimental.clientInstrumentationHook` flag and the `instrumentation-client.ts` file](https://nextjs.org/docs/app/api-reference/config/next-config-js/clientInstrumentationHook).
+
+  To be forwards compatible, the Sentry Next.js SDK will now pick up `instrumentation-client.ts` files even on older Next.js versions and add them to your client bundles.
+  It is suggested that you either rename your `sentry.client.config.ts` file to `instrumentation-client.ts`, or if you already happen to have a `instrumentation-client.ts` file move the contents of `sentry.client.config.ts` to `instrumentation-client.ts`.
+
+- **feat(browser): Add `previous_trace` span links ([#15569](https://github.com/getsentry/sentry-javascript/pull/15569))**
+
+  The `@sentry/browser` SDK and SDKs based on `@sentry/browser` now emits a link from the first root span of a newly started trace to the root span of a previously started trace. You can control this feature via an option in `browserTracingIntegration()`:
+
+  ```js
+  Sentry.init({
+    dsn: 'your-dsn-here'
+    integrations: [
+      Sentry.browserTracingIntegration({
+        // Available settings:
+        // - 'in-memory' (default): Stores previous trace information in memory
+        // - 'session-storage': Stores previous trace information in the browser's `sessionStorage`
+        // - 'off': Disable storing and sending previous trace information
+        linkPreviousTrace: 'in-memory',
+      }),
+    ],
+  });
+  ```
+
+- **feat(browser): Add `logger.X` methods to browser SDK ([#15763](https://github.com/getsentry/sentry-javascript/pull/15763))**
+
+  For Sentry's [upcoming logging product](https://github.com/getsentry/sentry/discussions/86804), the SDK now supports sending logs via dedicated methods.
+
+  ```js
+  Sentry.init({
+    dsn: 'your-dsn-here',
+    _experiments: {
+      enableLogs: true, // This is required to use the logging features
+    },
+  });
+
+  Sentry.logger.info('This is a trace message', { userId: 123 });
+  // See PR for better documentation
+  ```
+
+  Please note that the logs product is still in early access. See the link above for more information.
+
+### Other Changes
+
+- feat(browser): Attach host as part of error message to "Failed to fetch" errors ([#15729](https://github.com/getsentry/sentry-javascript/pull/15729))
+- feat(core): Add `parseStringToURL` method ([#15768](https://github.com/getsentry/sentry-javascript/pull/15768))
+- feat(core): Optimize `dropUndefinedKeys` ([#15760](https://github.com/getsentry/sentry-javascript/pull/15760))
+- feat(node): Add fastify `shouldHandleError` ([#15771](https://github.com/getsentry/sentry-javascript/pull/15771))
+- fix(nuxt): Delete no longer needed Nitro 'close' hook ([#15790](https://github.com/getsentry/sentry-javascript/pull/15790))
+- perf(nestjs): Remove usage of `addNonEnumerableProperty` ([#15766](https://github.com/getsentry/sentry-javascript/pull/15766))
+- ref: Avoid some usage of `dropUndefinedKeys()` ([#15757](https://github.com/getsentry/sentry-javascript/pull/15757))
+- ref: Remove some usages of `dropUndefinedKeys()` ([#15781](https://github.com/getsentry/sentry-javascript/pull/15781))
+- ref(nextjs): Fix Next.js vercel-edge runtime package information ([#15789](https://github.com/getsentry/sentry-javascript/pull/15789))
+
 ## 9.8.0
 
 - feat(node): Implement new continuous profiling API spec ([#15635](https://github.com/getsentry/sentry-javascript/pull/15635))

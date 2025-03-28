@@ -102,19 +102,12 @@ function _mergeOptions(
       ...(internalOptions.disableErrorDefaults ? [] : DEFAULT_IGNORE_ERRORS),
     ],
     ignoreTransactions: [...(internalOptions.ignoreTransactions || []), ...(clientOptions.ignoreTransactions || [])],
-    ignoreInternal: internalOptions.ignoreInternal !== undefined ? internalOptions.ignoreInternal : true,
   };
 }
 
 function _shouldDropEvent(event: Event, options: Partial<EventFiltersOptions>): boolean {
   if (!event.type) {
     // Filter errors
-
-    if (options.ignoreInternal && _isSentryError(event)) {
-      DEBUG_BUILD &&
-        logger.warn(`Event dropped due to being internal Sentry Error.\nEvent: ${getEventDescription(event)}`);
-      return true;
-    }
     if (_isIgnoredError(event, options.ignoreErrors)) {
       DEBUG_BUILD &&
         logger.warn(
@@ -194,16 +187,6 @@ function _isAllowedUrl(event: Event, allowUrls?: Array<string | RegExp>): boolea
   }
   const url = _getEventFilterUrl(event);
   return !url ? true : stringMatchesSomePattern(url, allowUrls);
-}
-
-function _isSentryError(event: Event): boolean {
-  try {
-    // @ts-expect-error can't be a sentry error if undefined
-    return event.exception.values[0].type === 'SentryError';
-  } catch (e) {
-    // ignore
-  }
-  return false;
 }
 
 function _getLastValidUrl(frames: StackFrame[] = []): string | null {
