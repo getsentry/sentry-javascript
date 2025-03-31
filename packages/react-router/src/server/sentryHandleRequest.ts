@@ -35,6 +35,7 @@ export function sentryHandleRequest(originalHandle: OriginalHandleRequest): Orig
         rootSpan.setAttributes({
           [ATTR_HTTP_ROUTE]: `/${parameterizedPath}`,
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          foobar: 'baz',
         });
       }
     }
