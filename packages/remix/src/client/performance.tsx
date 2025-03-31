@@ -96,12 +96,14 @@ function startNavigationSpan(matches: RouteMatch<string>[]): void {
 }
 
 /**
- * Wraps a remix `root` (see: https://remix.run/docs/en/v1/guides/migrating-react-router-app#creating-the-root-route)
+ * Wraps a remix `root` (see: https://remix.run/docs/en/main/start/quickstart#the-root-route)
  * To enable pageload/navigation tracing on every route.
- * Also wraps the application with `ErrorBoundary`.
  *
  * @param OrigApp The Remix root to wrap
- * @param options The options for ErrorBoundary wrapper.
+ * @param useEffect The `useEffect` hook from `react`
+ * @param useLocation The `useLocation` hook from `@remix-run/react`
+ * @param useMatches The `useMatches` hook from `@remix-run/react`
+ * @param instrumentNavigation Whether to instrument navigation spans. Defaults to `true`.
  */
 export function withSentry<P extends Record<string, unknown>, R extends React.ComponentType<P>>(
   OrigApp: R,
