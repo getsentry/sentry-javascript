@@ -1,6 +1,6 @@
 {
   "name": "@sentry/browser",
-  "version": "9.9.0",
+  "version": "9.10.1",
   "description": "Official Sentry SDK for browsers",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/browser",
@@ -39,14 +39,14 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry-internal/browser-utils": "9.9.0",
-    "@sentry-internal/feedback": "9.9.0",
-    "@sentry-internal/replay": "9.9.0",
-    "@sentry-internal/replay-canvas": "9.9.0",
-    "@sentry/core": "9.9.0"
+    "@sentry-internal/browser-utils": "9.10.1",
+    "@sentry-internal/feedback": "9.10.1",
+    "@sentry-internal/replay": "9.10.1",
+    "@sentry-internal/replay-canvas": "9.10.1",
+    "@sentry/core": "9.10.1"
   },
   "devDependencies": {
-    "@sentry-internal/integration-shims": "9.9.0",
+    "@sentry-internal/integration-shims": "9.10.1",
     "fake-indexeddb": "^4.0.1"
   },
   "scripts": {
@@ -67,6 +67,7 @@
     "clean": "rimraf build coverage .rpt2_cache sentry-browser-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
+    "lint:es-compatibility": "es-check es2020 ./build/{bundles,npm/cjs}/*.js && es-check es2020 ./build/npm/esm/*.js --module",
     "size:check": "cat build/bundles/bundle.min.js | gzip -9 | wc -c | awk '{$1=$1/1024; print \"ES2017: \",$1,\"kB\";}'",
     "test": "vitest run",
     "test:watch": "vitest --watch",

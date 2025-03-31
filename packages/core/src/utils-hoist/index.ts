@@ -2,6 +2,7 @@ export { applyAggregateErrorsToEvent } from './aggregate-errors';
 export { getBreadcrumbLogLevelFromHttpStatusCode } from './breadcrumb-log-level';
 export { getComponentName, getLocationHref, htmlTreeAsString } from './browser';
 export { dsnFromString, dsnToString, makeDsn } from './dsn';
+// eslint-disable-next-line deprecation/deprecation
 export { SentryError } from './error';
 export { GLOBAL_OBJ } from './worldwide';
 export type { InternalGlobal } from './worldwide';

@@ -1,6 +1,6 @@
 {
   "name": "@sentry/nuxt",
-  "version": "9.9.0",
+  "version": "9.10.1",
   "description": "Official Sentry SDK for Nuxt (EXPERIMENTAL)",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/nuxt",
@@ -43,13 +43,13 @@
   },
   "dependencies": {
     "@nuxt/kit": "^3.13.2",
-    "@sentry/browser": "9.9.0",
-    "@sentry/core": "9.9.0",
-    "@sentry/node": "9.9.0",
-    "@sentry/opentelemetry": "9.9.0",
-    "@sentry/rollup-plugin": "3.1.2",
-    "@sentry/vite-plugin": "2.22.6",
-    "@sentry/vue": "9.9.0"
+    "@sentry/browser": "9.10.1",
+    "@sentry/core": "9.10.1",
+    "@sentry/node": "9.10.1",
+    "@sentry/opentelemetry": "9.10.1",
+    "@sentry/rollup-plugin": "3.2.4",
+    "@sentry/vite-plugin": "3.2.4",
+    "@sentry/vue": "9.10.1"
   },
   "devDependencies": {
     "@nuxt/module-builder": "^0.8.4",
@@ -70,6 +70,7 @@
     "clean": "rimraf build coverage sentry-nuxt-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
+    "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module && es-check es2020 ./build/module/*.cjs && es-check es2020 ./build/module/*.mjs --module",
     "test": "yarn test:unit",
     "test:unit": "vitest run",
     "test:watch": "vitest --watch",

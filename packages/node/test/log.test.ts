@@ -32,7 +32,6 @@ describe('Node Logger', () => {
       expect(nodeLogger.warn).toBeTypeOf('function');
       expect(nodeLogger.error).toBeTypeOf('function');
       expect(nodeLogger.fatal).toBeTypeOf('function');
-      expect(nodeLogger.critical).toBeTypeOf('function');
     });
 
     it('should call _INTERNAL_captureLog with trace level', () => {
@@ -85,15 +84,6 @@ describe('Node Logger', () => {
       expect(mockCaptureLog).toHaveBeenCalledWith({
         level: 'fatal',
         message: 'Test fatal message',
-        attributes: { key: 'value' },
-      });
-    });
-
-    it('should call _INTERNAL_captureLog with critical level', () => {
-      nodeLogger.critical('Test critical message', { key: 'value' });
-      expect(mockCaptureLog).toHaveBeenCalledWith({
-        level: 'critical',
-        message: 'Test critical message',
         attributes: { key: 'value' },
       });
     });

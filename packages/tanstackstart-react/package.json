@@ -1,6 +1,6 @@
 {
   "name": "@sentry/tanstackstart-react",
-  "version": "9.9.0",
+  "version": "9.10.1",
   "description": "Official Sentry SDK for TanStack Start React",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/tanstackstart-react",
@@ -52,11 +52,11 @@
   "dependencies": {
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/semantic-conventions": "^1.30.0",
-    "@sentry-internal/browser-utils": "9.9.0",
-    "@sentry/core": "9.9.0",
-    "@sentry/node": "9.9.0",
-    "@sentry/opentelemetry": "9.9.0",
-    "@sentry/react": "9.9.0"
+    "@sentry-internal/browser-utils": "9.10.1",
+    "@sentry/core": "9.10.1",
+    "@sentry/node": "9.10.1",
+    "@sentry/opentelemetry": "9.10.1",
+    "@sentry/react": "9.10.1"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
@@ -74,6 +74,7 @@
     "clean": "rimraf build coverage sentry-tanstackstart-react-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
+    "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module",
     "test": "yarn test:unit",
     "test:unit": "vitest run",
     "test:watch": "vitest --watch",
