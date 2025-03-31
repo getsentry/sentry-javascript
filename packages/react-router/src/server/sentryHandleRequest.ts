@@ -1,6 +1,6 @@
+import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
+import { getActiveSpan, getRootSpan } from '@sentry/core';
 import type { AppLoadContext, EntryContext } from 'react-router';
-import { SENTRY_PARAMETERIZED_ROUTE } from './attributes';
-import { getRootSpan, getActiveSpan } from '@sentry/core';
 
 type OriginalHandleRequest = (
   request: Request,
@@ -30,7 +30,8 @@ export function sentryHandleRequest(originalHandle: OriginalHandleRequest): Orig
       const activeSpan = getActiveSpan();
       if (activeSpan) {
         const rootSpan = getRootSpan(activeSpan);
-        rootSpan.setAttribute(SENTRY_PARAMETERIZED_ROUTE, parameterizedPath);
+        // The span exporter picks up the `http.route` (ATTR_HTTP_ROUTE) attribute to set the transaction name
+        rootSpan.setAttribute(ATTR_HTTP_ROUTE, `/${parameterizedPath}`);
       }
     }
     return originalHandle(request, responseStatusCode, responseHeaders, routerContext, loadContext);

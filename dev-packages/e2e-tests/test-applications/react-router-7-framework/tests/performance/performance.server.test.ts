@@ -5,7 +5,7 @@ import { APP_NAME } from '../constants';
 test.describe('servery - performance', () => {
   test('should send server transaction on pageload', async ({ page }) => {
     const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      return transactionEvent.transaction === 'GET performance';
+      return transactionEvent.transaction === 'GET /performance';
     });
 
     await page.goto(`/performance`);
@@ -29,7 +29,7 @@ test.describe('servery - performance', () => {
       spans: expect.any(Array),
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
-      transaction: 'GET performance',
+      transaction: 'GET /performance',
       type: 'transaction',
       transaction_info: { source: 'route' },
       platform: 'node',
@@ -56,7 +56,7 @@ test.describe('servery - performance', () => {
 
   test('should send server transaction on parameterized route', async ({ page }) => {
     const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      return transactionEvent.transaction === 'GET performance/with/:param';
+      return transactionEvent.transaction === 'GET /performance/with/:param';
     });
 
     await page.goto(`/performance/with/some-param`);
@@ -80,7 +80,7 @@ test.describe('servery - performance', () => {
       spans: expect.any(Array),
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
-      transaction: 'GET performance/with/:param',
+      transaction: 'GET /performance/with/:param',
       type: 'transaction',
       transaction_info: { source: 'route' },
       platform: 'node',
