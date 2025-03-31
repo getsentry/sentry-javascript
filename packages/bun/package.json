@@ -62,7 +62,7 @@
     "clean": "rimraf build coverage sentry-bun-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
-    "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module",
+    "lint:es-compatibility": "es-check es2022 ./build/cjs/*.js && es-check es2022 ./build/esm/*.js --module",
     "install:bun": "node ./scripts/install-bun.js",
     "test": "run-s install:bun test:bun",
     "test:bun": "bun test",
