@@ -5420,6 +5420,13 @@
   dependencies:
     "@octokit/openapi-types" "^18.0.0"
 
+"@opentelemetry/api-logs@0.200.0":
+  version "0.200.0"
+  resolved "https://registry.yarnpkg.com/@opentelemetry/api-logs/-/api-logs-0.200.0.tgz#f9015fd844920c13968715b3cdccf5a4d4ff907e"
+  integrity sha512-IKJBQxh91qJ+3ssRly5hYEJ8NDHu9oY/B1PXVSCWf7zytmYO9RNLB0Ox9XQ/fJ8m6gY6Q6NtBWlmXfaXt5Uc4Q==
+  dependencies:
+    "@opentelemetry/api" "^1.3.0"
+
 "@opentelemetry/api-logs@0.52.1":
   version "0.52.1"
   resolved "https://registry.yarnpkg.com/@opentelemetry/api-logs/-/api-logs-0.52.1.tgz#52906375da4d64c206b0c4cb8ffa209214654ecc"
@@ -5529,12 +5536,12 @@
   dependencies:
     "@opentelemetry/instrumentation" "^0.57.1"
 
-"@opentelemetry/instrumentation-graphql@0.47.1":
-  version "0.47.1"
-  resolved "https://registry.yarnpkg.com/@opentelemetry/instrumentation-graphql/-/instrumentation-graphql-0.47.1.tgz#1037bb546c82060d6d5d6f5dbd8765e31ccf6c26"
-  integrity sha512-EGQRWMGqwiuVma8ZLAZnExQ7sBvbOx0N/AE/nlafISPs8S+QtXX+Viy6dcQwVWwYHQPAcuY3bFt3xgoAwb4ZNQ==
+"@opentelemetry/instrumentation-graphql@0.48.0":
+  version "0.48.0"
+  resolved "https://registry.yarnpkg.com/@opentelemetry/instrumentation-graphql/-/instrumentation-graphql-0.48.0.tgz#8e068325633c2981cae9da3c1bc4775a46da1ecf"
+  integrity sha512-w1sbf9F9bQTpIWGnKWhH1A+9N9rKxS4eM+AzczgMWp272ZM9lQv4zLTrH5NRST2ltY3nmZ72wkfFrSR0rECi0g==
   dependencies:
-    "@opentelemetry/instrumentation" "^0.57.1"
+    "@opentelemetry/instrumentation" "^0.200.0"
 
 "@opentelemetry/instrumentation-hapi@0.45.2":
   version "0.45.2"
@@ -5688,6 +5695,17 @@
     import-in-the-middle "^1.8.1"
     require-in-the-middle "^7.1.1"
     semver "^7.5.2"
+    shimmer "^1.2.1"
+
+"@opentelemetry/instrumentation@^0.200.0":
+  version "0.200.0"
+  resolved "https://registry.yarnpkg.com/@opentelemetry/instrumentation/-/instrumentation-0.200.0.tgz#29d1d4f70cbf0cb1ca9f2f78966379b0be96bddc"
+  integrity sha512-pmPlzfJd+vvgaZd/reMsC8RWgTXn2WY1OWT5RT42m3aOn5532TozwXNDhg1vzqJ+jnvmkREcdLr27ebJEQt0Jg==
+  dependencies:
+    "@opentelemetry/api-logs" "0.200.0"
+    "@types/shimmer" "^1.2.0"
+    import-in-the-middle "^1.8.1"
+    require-in-the-middle "^7.1.1"
     shimmer "^1.2.1"
 
 "@opentelemetry/instrumentation@^0.52.1":
@@ -27011,6 +27029,7 @@ stylus@0.59.0, stylus@^0.59.0:
 
 sucrase@^3.27.0, sucrase@^3.35.0, sucrase@getsentry/sucrase#es2020-polyfills:
   version "3.36.0"
+  uid fd682f6129e507c00bb4e6319cc5d6b767e36061
   resolved "https://codeload.github.com/getsentry/sucrase/tar.gz/fd682f6129e507c00bb4e6319cc5d6b767e36061"
   dependencies:
     "@jridgewell/gen-mapping" "^0.3.2"
