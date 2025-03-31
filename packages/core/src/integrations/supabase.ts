@@ -12,12 +12,6 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '
 import { captureException } from '../exports';
 import { SPAN_STATUS_ERROR, SPAN_STATUS_OK } from '../tracing';
 
-export interface SupabaseClientConstructor {
-  prototype: {
-    from: (table: string) => PostgrestQueryBuilder;
-  };
-}
-
 const AUTH_OPERATIONS_TO_INSTRUMENT = [
   'reauthenticate',
   'signInAnonymously',
@@ -40,9 +34,43 @@ const AUTH_ADMIN_OPERATIONS_TO_INSTRUMENT = [
   'inviteUserByEmail',
 ];
 
+export const FILTER_MAPPINGS = {
+  eq: 'eq',
+  neq: 'neq',
+  gt: 'gt',
+  gte: 'gte',
+  lt: 'lt',
+  lte: 'lte',
+  like: 'like',
+  'like(all)': 'likeAllOf',
+  'like(any)': 'likeAnyOf',
+  ilike: 'ilike',
+  'ilike(all)': 'ilikeAllOf',
+  'ilike(any)': 'ilikeAnyOf',
+  is: 'is',
+  in: 'in',
+  cs: 'contains',
+  cd: 'containedBy',
+  sr: 'rangeGt',
+  nxl: 'rangeGte',
+  sl: 'rangeLt',
+  nxr: 'rangeLte',
+  adj: 'rangeAdjacent',
+  ov: 'overlaps',
+  fts: '',
+  plfts: 'plain',
+  phfts: 'phrase',
+  wfts: 'websearch',
+  not: 'not',
+};
+
+export const AVAILABLE_OPERATIONS = ['select', 'insert', 'upsert', 'update', 'delete'];
+
 type AuthOperationFn = (...args: unknown[]) => Promise<unknown>;
 type AuthOperationName = (typeof AUTH_OPERATIONS_TO_INSTRUMENT)[number];
 type AuthAdminOperationName = (typeof AUTH_ADMIN_OPERATIONS_TO_INSTRUMENT)[number];
+type PostgrestQueryOperationName = (typeof AVAILABLE_OPERATIONS)[number];
+type PostgrestQueryOperationFn = (...args: unknown[]) => PostgrestFilterBuilder;
 
 export interface SupabaseClientInstance {
   auth: {
@@ -51,11 +79,7 @@ export interface SupabaseClientInstance {
 }
 
 export interface PostgrestQueryBuilder {
-  select: (...args: unknown[]) => PostgrestFilterBuilder;
-  insert: (...args: unknown[]) => PostgrestFilterBuilder;
-  upsert: (...args: unknown[]) => PostgrestFilterBuilder;
-  update: (...args: unknown[]) => PostgrestFilterBuilder;
-  delete: (...args: unknown[]) => PostgrestFilterBuilder;
+  [key: PostgrestQueryOperationName]: PostgrestQueryOperationFn;
 }
 
 export interface PostgrestFilterBuilder {
@@ -90,37 +114,18 @@ export interface SupabaseBreadcrumb {
   };
 }
 
-export const AVAILABLE_OPERATIONS = ['select', 'insert', 'upsert', 'update', 'delete'];
+export interface SupabaseClientConstructor {
+  prototype: {
+    from: (table: string) => PostgrestQueryBuilder;
+  };
+}
 
-export const FILTER_MAPPINGS = {
-  eq: 'eq',
-  neq: 'neq',
-  gt: 'gt',
-  gte: 'gte',
-  lt: 'lt',
-  lte: 'lte',
-  like: 'like',
-  'like(all)': 'likeAllOf',
-  'like(any)': 'likeAnyOf',
-  ilike: 'ilike',
-  'ilike(all)': 'ilikeAllOf',
-  'ilike(any)': 'ilikeAnyOf',
-  is: 'is',
-  in: 'in',
-  cs: 'contains',
-  cd: 'containedBy',
-  sr: 'rangeGt',
-  nxl: 'rangeGte',
-  sl: 'rangeLt',
-  nxr: 'rangeLte',
-  adj: 'rangeAdjacent',
-  ov: 'overlaps',
-  fts: '',
-  plfts: 'plain',
-  phfts: 'phrase',
-  wfts: 'websearch',
-  not: 'not',
-};
+export interface PostgrestProtoThenable {
+  then: <T>(
+    onfulfilled?: ((value: T) => T | PromiseLike<T>) | null,
+    onrejected?: ((reason: any) => T | PromiseLike<T>) | null,
+  ) => Promise<T>;
+}
 
 const instrumented = new Map();
 
@@ -289,32 +294,11 @@ function instrumentPostgrestFilterBuilder(PostgrestFilterBuilder: PostgrestFilte
   }
 
   instrumented.set(PostgrestFilterBuilder, {
-    then: (
-      PostgrestFilterBuilder.prototype as unknown as {
-        then: <T>(
-          onfulfilled?: ((value: T) => T | PromiseLike<T>) | null,
-          onrejected?: ((reason: any) => T | PromiseLike<T>) | null,
-        ) => Promise<T>;
-      }
-    ).then,
+    then: (PostgrestFilterBuilder.prototype as unknown as PostgrestProtoThenable).then,
   });
 
-  (
-    PostgrestFilterBuilder.prototype as unknown as {
-      then: <T>(
-        onfulfilled?: ((value: T) => T | PromiseLike<T>) | null,
-        onrejected?: ((reason: any) => T | PromiseLike<T>) | null,
-      ) => Promise<T>;
-    }
-  ).then = new Proxy(
-    (
-      PostgrestFilterBuilder.prototype as unknown as {
-        then: <T>(
-          onfulfilled?: ((value: T) => T | PromiseLike<T>) | null,
-          onrejected?: ((reason: any) => T | PromiseLike<T>) | null,
-        ) => Promise<T>;
-      }
-    ).then,
+  (PostgrestFilterBuilder.prototype as unknown as PostgrestProtoThenable).then = new Proxy(
+    (PostgrestFilterBuilder.prototype as unknown as PostgrestProtoThenable).then,
     {
       apply(target, thisArg, argumentsList) {
         const operations = AVAILABLE_OPERATIONS;
