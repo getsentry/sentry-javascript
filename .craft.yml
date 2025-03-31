@@ -115,6 +115,9 @@ targets:
     id: '@sentry/tanstackstart-react'
     includeNames: /^sentry-tanstackstart-react-\d.*\.tgz$/
   - name: npm
+    id: '@sentry/tanstackstart-solid'
+    includeNames: /^sentry-tanstackstart-solid-\d.*\.tgz$/
+  - name: npm
     id: '@sentry/gatsby'
     includeNames: /^sentry-gatsby-\d.*\.tgz$/
   - name: npm

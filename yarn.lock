@@ -9808,6 +9808,20 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@sentry/tanstackstart-solid@workspace:packages/tanstackstart-solid":
+  version: 0.0.0-use.local
+  resolution: "@sentry/tanstackstart-solid@workspace:packages/tanstackstart-solid"
+  dependencies:
+    "@opentelemetry/api": "npm:^1.9.0"
+    "@opentelemetry/semantic-conventions": "npm:^1.30.0"
+    "@sentry-internal/browser-utils": "npm:9.10.1"
+    "@sentry/core": "npm:9.10.1"
+    "@sentry/node": "npm:9.10.1"
+    "@sentry/opentelemetry": "npm:9.10.1"
+    "@sentry/solid": "npm:9.10.1"
+  languageName: unknown
+  linkType: soft
+
 "@sentry/tanstackstart@workspace:packages/tanstackstart":
   version: 0.0.0-use.local
   resolution: "@sentry/tanstackstart@workspace:packages/tanstackstart"
