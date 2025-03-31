@@ -77,6 +77,7 @@
     "clean": "rimraf build coverage sentry-nestjs-*.tgz ./*.d.ts ./*.d.ts.map",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
+    "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module",
     "test": "vitest run",
     "test:watch": "vitest --watch",
     "yalc:publish": "yalc publish --push --sig"

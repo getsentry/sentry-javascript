@@ -115,6 +115,7 @@
     "clean": "rimraf build coverage sentry-nextjs-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
+    "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module",
     "test": "yarn test:unit",
     "test:all": "run-s test:unit",
     "test:unit": "vitest run",

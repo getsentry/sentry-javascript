@@ -39,6 +39,7 @@
     "fix": "eslint . --format stylish --fix",
     "prelint": "yarn deno-types",
     "lint": "eslint . --format stylish",
+    "lint:es-compatibility": "es-check es2020 ./build/esm/*.js --module",
     "install:deno": "node ./scripts/install-deno.mjs",
     "test": "run-s install:deno deno-types test:unit",
     "test:unit": "deno test --allow-read --allow-run --no-check",

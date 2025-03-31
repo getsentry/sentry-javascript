@@ -52,6 +52,7 @@
     "build:tarball": "npm pack",
     "clean": "rimraf build sentry-types-*.tgz",
     "lint": "eslint . --format stylish",
+    "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module",
     "fix": "eslint . --format stylish --fix",
     "yalc:publish": "yalc publish --push --sig"
   },
