@@ -30,6 +30,7 @@ export function sentryHandleRequest(originalHandle: OriginalHandleRequest): Orig
       const activeSpan = getActiveSpan();
       if (activeSpan) {
         const rootSpan = getRootSpan(activeSpan);
+        console.log('Setting route', parameterizedPath);
         // The span exporter picks up the `http.route` (ATTR_HTTP_ROUTE) attribute to set the transaction name
         rootSpan.setAttributes({
           [ATTR_HTTP_ROUTE]: `/${parameterizedPath}`,
