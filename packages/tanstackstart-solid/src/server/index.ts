@@ -29,9 +29,7 @@ export function createStoreEnhancer() {
  * A passthrough error boundary wrapper for the server that doesn't depend on any react. Error boundaries don't catch
  * SSR errors so they should simply be a passthrough.
  */
-export function withErrorBoundary<P extends Record<string, unknown>>(
-  WrappedComponent: Component<P>,
-): Component<P> {
+export function withErrorBoundary<P extends Record<string, unknown>>(WrappedComponent: Component<P>): Component<P> {
   return WrappedComponent;
 }
 
