@@ -6,9 +6,9 @@ import {
   captureException,
   continueTrace,
   defineIntegration,
-  extractQueryParamsFromUrl,
-  getSanitizedUrlString,
-  parseUrl,
+  isURLObjectRelative,
+  parseStringToURLObject,
+  getSanitizedUrlStringFromUrlObject,
   setHttpStatus,
   startSpan,
   withIsolationScope,
@@ -76,24 +76,15 @@ function instrumentBunServeOptions(serveOptions: Parameters<typeof Bun.serve>[0]
           return fetchTarget.apply(fetchThisArg, fetchArgs);
         }
 
-        const parsedUrl = parseUrl(request.url);
-        const attributes: SpanAttributes = {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.bun.serve',
-          [SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD]: request.method || 'GET',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-        };
-        if (parsedUrl.search) {
-          attributes['http.query'] = parsedUrl.search;
-        }
-
-        const url = getSanitizedUrlString(parsedUrl);
+        const parsedUrl = parseStringToURLObject(request.url);
+        const attributes = getBunServerSpanAttributes(request, parsedUrl);
 
         isolationScope.setSDKProcessingMetadata({
           normalizedRequest: {
-            url,
+            url: request.url,
             method: request.method,
             headers: request.headers.toJSON(),
-            query_string: extractQueryParamsFromUrl(url),
+            query_string: parsedUrl?.search,
           } satisfies RequestEventData,
         });
 
@@ -104,7 +95,9 @@ function instrumentBunServeOptions(serveOptions: Parameters<typeof Bun.serve>[0]
               {
                 attributes,
                 op: 'http.server',
-                name: `${request.method} ${parsedUrl.path || '/'}`,
+                name: parsedUrl
+                  ? `${request.method} ${getSanitizedUrlStringFromUrlObject(parsedUrl)}`
+                  : `${request.method} /`,
               },
               async span => {
                 try {
@@ -138,4 +131,29 @@ function instrumentBunServeOptions(serveOptions: Parameters<typeof Bun.serve>[0]
       });
     },
   });
+}
+
+function getBunServerSpanAttributes(
+  request: Request,
+  parsedUrl: ReturnType<typeof parseStringToURLObject>,
+): SpanAttributes {
+  const attributes: SpanAttributes = {
+    url: request.url,
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.bun.serve',
+    [SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD]: request.method || 'GET',
+    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+  };
+  if (parsedUrl) {
+    if (!isURLObjectRelative(parsedUrl)) {
+      attributes['http.url'] = parsedUrl.href;
+      attributes['server.address'] = parsedUrl.host;
+    }
+    if (parsedUrl.search) {
+      attributes['http.query'] = parsedUrl.search;
+    }
+    if (parsedUrl.hash) {
+      attributes['http.fragment'] = parsedUrl.hash;
+    }
+  }
+  return attributes;
 }
