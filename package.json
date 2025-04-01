@@ -28,7 +28,7 @@
     "lint": "run-s lint:prettier lint:lerna",
     "lint:lerna": "lerna run lint",
     "lint:prettier": "prettier \"**/*.{md,css,yml,yaml}\" \"packages/**/**.{ts,js,mjs,cjs,mts,cts,jsx,tsx,astro,vue}\" --check",
-    "lint:es-compatibility": "es-check es2020 ./packages/*/build/{bundles,npm/cjs,cjs}/*.js && es-check es2020 ./packages/*/build/{npm/esm,esm}/*.js --module",
+    "lint:es-compatibility": "lerna run lint:es-compatibility",
     "dedupe-deps:check": "yarn-deduplicate yarn.lock --list --fail",
     "dedupe-deps:fix": "yarn-deduplicate yarn.lock",
     "postpublish": "lerna run --stream --concurrency 1 postpublish",

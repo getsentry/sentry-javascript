@@ -35,6 +35,8 @@
       "outputs": [
         "{projectRoot}/build/esm",
         "{projectRoot}/build/cjs",
+        "{projectRoot}/build/lib/esm",
+        "{projectRoot}/build/lib/cjs",
         "{projectRoot}/build/npm/esm",
         "{projectRoot}/build/npm/cjs"
       ]
