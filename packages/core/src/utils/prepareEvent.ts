@@ -144,15 +144,6 @@ export function applyClientOptions(event: Event, options: ClientOptions): void {
     event.dist = dist;
   }
 
-  if (event.message) {
-    event.message = truncate(event.message, maxValueLength);
-  }
-
-  const exception = event.exception?.values?.[0];
-  if (exception?.value) {
-    exception.value = truncate(exception.value, maxValueLength);
-  }
-
   const request = event.request;
   if (request?.url) {
     request.url = truncate(request.url, maxValueLength);
