@@ -22,15 +22,7 @@ const _linkedErrorsIntegration = ((options: LinkedErrorsOptions = {}) => {
     preprocessEvent(event, hint, client) {
       const options = client.getOptions();
 
-      applyAggregateErrorsToEvent(
-        exceptionFromError,
-        options.stackParser,
-        options.maxValueLength,
-        key,
-        limit,
-        event,
-        hint,
-      );
+      applyAggregateErrorsToEvent(exceptionFromError, options.stackParser, key, limit, event, hint);
     },
   };
 }) satisfies IntegrationFn;
