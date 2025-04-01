@@ -8,7 +8,7 @@
     "start": "NODE_OPTIONS='--import=./instrument.server.mjs' remix-serve build/index.js"
   },
   "dependencies": {
-    "@remix-run/express": "2.15.2",
+    "@remix-run/express": "2.16.3",
     "@remix-run/node": "2.15.2",
     "@remix-run/react": "2.15.2",
     "@remix-run/serve": "2.15.2",
