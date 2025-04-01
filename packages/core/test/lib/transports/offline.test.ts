@@ -364,7 +364,7 @@ describe('makeOfflineTransport', () => {
       shouldStore: () => {
         queuedCount += 1;
         return true;
-      }
+      },
     });
     const result = transport.send(ERROR_ENVELOPE);
 
