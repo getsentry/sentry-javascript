@@ -24,4 +24,5 @@ test('Should record pageload transactions (this test verifies that the client SD
   const pageloadTransaction = await pageloadTransactionPromise;
 
   expect(pageloadTransaction).toBeDefined();
+  expect(pageloadTransaction.tags?.turbopack).toBe(true);
 });

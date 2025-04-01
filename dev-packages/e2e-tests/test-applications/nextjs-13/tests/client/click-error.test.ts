@@ -45,4 +45,8 @@ test('should send error for faulty click handlers', async ({ page }) => {
       );
     }
   });
+
+  await test.step('should not have turbopack tag', () => {
+    expect(errorEvent.tags?.turbopack).toBeUndefined();
+  });
 });
