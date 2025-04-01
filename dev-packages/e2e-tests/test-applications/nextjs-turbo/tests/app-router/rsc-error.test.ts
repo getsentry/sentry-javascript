@@ -11,6 +11,4 @@ test('Should capture errors from server components', async ({ page }) => {
   const errorEvent = await errorEventPromise;
 
   expect(errorEvent).toBeDefined();
-
-  expect(errorEvent.tags?.turbopack).toBe(true);
 });

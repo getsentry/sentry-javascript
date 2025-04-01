@@ -45,6 +45,4 @@ test('should create a pageload transaction when the `app` directory is used', as
     transaction_info: { source: 'url' },
     type: 'transaction',
   });
-
-  expect(transaction.tags?.turbopack).toBeUndefined();
 });

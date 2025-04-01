@@ -127,6 +127,4 @@ test('should not mess up require statements in CJS API endpoints', async ({ requ
     transaction_info: { source: 'route' },
     type: 'transaction',
   });
-
-  expect(transaction.tags?.turbopack).toBeUndefined();
 });

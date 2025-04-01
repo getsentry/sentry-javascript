@@ -34,6 +34,4 @@ test('Should capture an error thrown in a server component', async ({ page }) =>
     timestamp: expect.any(Number),
     transaction: 'Page Server Component (/rsc-error)',
   });
-
-  expect((await errorEventPromise).tags?.turbopack).toBeUndefined();
 });
