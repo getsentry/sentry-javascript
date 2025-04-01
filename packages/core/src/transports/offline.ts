@@ -38,8 +38,19 @@ export interface OfflineTransportOptions extends InternalBaseTransportOptions {
    * @param envelope The envelope that failed to send.
    * @param error The error that occurred.
    * @param retryDelay The current retry delay in milliseconds.
+   * @returns Whether the envelope should be stored.
    */
   shouldStore?: (envelope: Envelope, error: Error, retryDelay: number) => boolean | Promise<boolean>;
+
+  /**
+   * Should an attempt be made to send the envelope to Sentry.
+   *
+   * If this function is supplied and returns false, `shouldStore` will be called to determine if the envelope should be stored.
+   *
+   * @param envelope The envelope that will be sent.
+   * @returns Whether we should attempt to send the envelope
+   */
+  shouldSend?: (envelope: Envelope) => boolean | Promise<boolean>;
 }
 
 type Timer = number | { unref?: () => void };
@@ -128,6 +139,10 @@ export function makeOfflineTransport<TO>(
       }
 
       try {
+        if (options.shouldSend && (await options.shouldSend(envelope)) === false) {
+          throw new Error('Envelope not sent because `shouldSend` callback returned false');
+        }
+
         const result = await transport.send(envelope);
 
         let delay = MIN_DELAY;

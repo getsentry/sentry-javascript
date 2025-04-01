@@ -353,6 +353,27 @@ describe('makeOfflineTransport', () => {
     expect(getCalls()).toEqual([]);
   });
 
+  it('shouldSend can stop envelopes from being sent', async () => {
+    const { getCalls, store } = createTestStore();
+    const { getSendCount, baseTransport } = createTestTransport(new Error());
+    let queuedCount = 0;
+    const transport = makeOfflineTransport(baseTransport)({
+      ...transportOptions,
+      createStore: store,
+      shouldSend: () => false,
+      shouldStore: () => {
+        queuedCount += 1;
+        return true;
+      }
+    });
+    const result = transport.send(ERROR_ENVELOPE);
+
+    await expect(result).resolves.toEqual({});
+    expect(queuedCount).toEqual(1);
+    expect(getSendCount()).toEqual(0);
+    expect(getCalls()).toEqual(['push']);
+  });
+
   it('should not store client report envelopes on send failure', async () => {
     const { getCalls, store } = createTestStore();
     const { getSendCount, baseTransport } = createTestTransport(new Error());
