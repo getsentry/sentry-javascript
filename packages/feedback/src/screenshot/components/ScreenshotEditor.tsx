@@ -1,21 +1,35 @@
+/* eslint-disable max-lines */
 import type { FeedbackInternalOptions, FeedbackModalIntegration } from '@sentry/core';
 import type { ComponentType, VNode, h as hType } from 'preact';
+// biome-ignore lint/nursery/noUnusedImports: need Preact import for JSX
 import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
 import type * as Hooks from 'preact/hooks';
-import { WINDOW } from '../../constants';
-import AnnotationsFactory from './Annotations';
-import CropFactory from './Crop';
+import { DOCUMENT, WINDOW } from '../../constants';
+import IconCloseFactory from './IconClose';
 import { createScreenshotInputStyles } from './ScreenshotInput.css';
 import ToolbarFactory from './Toolbar';
 import { useTakeScreenshotFactory } from './useTakeScreenshot';
 
-const DPI = WINDOW.devicePixelRatio;
-
 interface FactoryParams {
   h: typeof hType;
   hooks: typeof Hooks;
-  imageBuffer: HTMLCanvasElement;
+
+  /**
+   * A ref to a Canvas Element that serves as our "value" or image output.
+   */
+  outputBuffer: HTMLCanvasElement;
+
+  /**
+   * A reference to the whole dialog (the parent of this component) so that we
+   * can show/hide it and take a clean screenshot of the webpage.
+   */
   dialog: ReturnType<FeedbackModalIntegration['createDialog']>;
+
+  /**
+   * The whole options object.
+   *
+   * Needed to set nonce and id values for editor specific styles
+   */
   options: FeedbackInternalOptions;
 }
 
@@ -23,150 +37,339 @@ interface Props {
   onError: (error: Error) => void;
 }
 
-interface Box {
-  startX: number;
-  startY: number;
-  endX: number;
-  endY: number;
-}
+type MaybeCanvas = HTMLCanvasElement | null;
+type Screenshot = { canvas: HTMLCanvasElement; dpi: number };
 
-interface Rect {
+
+type DrawType = 'highlight' | 'hide' | '';
+interface DrawCommand {
+  type: DrawType;
   x: number;
   y: number;
-  height: number;
-  width: number;
+  h: number;
+  w: number;
 }
 
-const getContainedSize = (img: HTMLCanvasElement): Rect => {
-  const imgClientHeight = img.clientHeight;
-  const imgClientWidth = img.clientWidth;
-  const ratio = img.width / img.height;
-  let width = imgClientHeight * ratio;
-  let height = imgClientHeight;
-  if (width > imgClientWidth) {
-    width = imgClientWidth;
-    height = imgClientWidth / ratio;
+function drawRect(command: DrawCommand, ctx: CanvasRenderingContext2D, color: string): void {
+  switch (command.type) {
+    case 'highlight': {
+      // creates a shadow around
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+      ctx.shadowBlur = 50;
+
+      // draws a rectangle first with a shadow
+      ctx.fillStyle = color;
+      ctx.fillRect(command.x - 1, command.y - 1, command.w + 2, command.h + 2);
+
+      // cut out the inside of the rectangle
+      ctx.clearRect(command.x, command.y, command.w, command.h);
+
+      break;
+    }
+    case 'hide':
+      ctx.fillStyle = 'rgb(0, 0, 0)';
+      ctx.fillRect(command.x, command.y, command.w, command.h);
+
+      break;
+    default:
+      break;
   }
-  const x = (imgClientWidth - width) / 2;
-  const y = (imgClientHeight - height) / 2;
-  return { x: x, y: y, width: width, height: height };
-};
+}
+
+function with2dContext(
+  canvas: MaybeCanvas,
+  options: CanvasRenderingContext2DSettings,
+  callback: (canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => void,
+): void {
+  if (!canvas) {
+    return;
+  }
+  const ctx = canvas.getContext('2d', options);
+  if (!ctx) {
+    return;
+  }
+  callback(canvas, ctx);
+}
+
+function paintImage(maybeDest: MaybeCanvas, source: HTMLCanvasElement): void {
+  with2dContext(maybeDest, { alpha: true }, (destCanvas, destCtx) => {
+    destCtx.drawImage(source, 0, 0, source.width, source.height, 0, 0, destCanvas.width, destCanvas.height);
+  });
+}
+
+// Paint the array of drawCommands into a canvas.
+// Assuming this is the canvas foreground, and the background is cleaned.
+function paintForeground(
+  maybeCanvas: MaybeCanvas,
+  strokeColor: string,
+  drawCommands: DrawCommand[],
+  currentDrawCommand: undefined | DrawCommand
+): void {
+  with2dContext(maybeCanvas, { alpha: true }, (canvas, ctx) => {
+    // If there's anything to draw, then we'll first clear the canvas with
+    // a transparent grey background
+    if (currentDrawCommand || drawCommands.length) {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    drawCommands.forEach(command => {
+      drawRect(command, ctx, strokeColor);
+    });
+
+    if (currentDrawCommand) {
+      drawRect(currentDrawCommand, ctx, strokeColor);
+    }
+  });
+}
 
 export function ScreenshotEditorFactory({
   h,
   hooks,
-  imageBuffer,
+  outputBuffer,
   dialog,
   options,
 }: FactoryParams): ComponentType<Props> {
   const useTakeScreenshot = useTakeScreenshotFactory({ hooks });
   const Toolbar = ToolbarFactory({ h });
-  const Annotations = AnnotationsFactory({ h });
-  const Crop = CropFactory({ h, hooks, options });
+  const IconClose = IconCloseFactory({ h });
+  const editorStyleInnerText = { __html: createScreenshotInputStyles(options.styleNonce).innerText };
 
-  return function ScreenshotEditor({ onError }: Props): VNode {
-    const styles = hooks.useMemo(() => ({ __html: createScreenshotInputStyles(options.styleNonce).innerText }), []);
+  const dialogStyle = (dialog.el as HTMLElement).style;
 
-    const canvasContainerRef = hooks.useRef<HTMLDivElement>(null);
-    const cropContainerRef = hooks.useRef<HTMLDivElement>(null);
-    const annotatingRef = hooks.useRef<HTMLCanvasElement>(null);
-    const croppingRef = hooks.useRef<HTMLCanvasElement>(null);
-    const [action, setAction] = hooks.useState<'annotate' | 'crop' | ''>('crop');
-    const [croppingRect, setCroppingRect] = hooks.useState<Box>({
-      startX: 0,
-      startY: 0,
-      endX: 0,
-      endY: 0,
-    });
+  const ScreenshotEditor = ({ screenshot }: { screenshot: Screenshot }): VNode => {
+    // Data for rendering:
+    const [action, setAction] = hooks.useState<DrawType>('highlight');
+    const [drawCommands, setDrawCommands] = hooks.useState<DrawCommand[]>([]);
 
-    hooks.useEffect(() => {
-      WINDOW.addEventListener('resize', resize);
+    // Refs to our html components:
+    const measurementRef = hooks.useRef<HTMLDivElement | null>(null);
+    const backgroundRef = hooks.useRef<MaybeCanvas>(null);
+    const foregroundRef = hooks.useRef<MaybeCanvas>(null);
+    const mouseRef = hooks.useRef<HTMLDivElement | null>(null);
 
-      return () => {
-        WINDOW.removeEventListener('resize', resize);
+    // The size of our window, relative to the imageSource
+    const [scaleFactor, setScaleFactor] = hooks.useState<number>(1);
+
+    const strokeColor = hooks.useMemo((): string => {
+      const sentryFeedback = DOCUMENT.getElementById(options.id);
+      if (!sentryFeedback) {
+        return 'white';
+      }
+      const computedStyle = getComputedStyle(sentryFeedback);
+      return (
+        computedStyle.getPropertyValue('--button-primary-background') ||
+        computedStyle.getPropertyValue('--accent-background')
+      );
+    }, [options.id]);
+
+    // The initial resize, to measure the area and set the children to the correct size
+    hooks.useLayoutEffect(() => {
+      const handleResize = (): void => {
+        const measurementDiv = measurementRef.current;
+        if (!measurementDiv) {
+          return;
+        }
+
+        with2dContext(screenshot.canvas, { alpha: false }, canvas => {
+          const scale = Math.min(
+            measurementDiv.clientWidth / canvas.width,
+            measurementDiv.clientHeight / canvas.height,
+          );
+          setScaleFactor(scale);
+        });
       };
-    }, []);
 
-    function resizeCanvas(canvasRef: Hooks.Ref<HTMLCanvasElement>, imageDimensions: Rect): void {
-      const canvas = canvasRef.current;
-      if (!canvas) {
+      handleResize();
+      WINDOW.addEventListener('resize', handleResize);
+      return () => {
+        WINDOW.removeEventListener('resize', handleResize);
+      };
+    }, [screenshot]);
+
+    // Set the size of the canvas element to match our screenshot
+    const setCanvasSize = hooks.useCallback(
+      (maybeCanvas: MaybeCanvas, scale: number): void => {
+        with2dContext(maybeCanvas, { alpha: true }, (canvas, ctx) => {
+          // Must call `scale()` before setting `width` & `height`
+          ctx.scale(scale, scale);
+          canvas.width = screenshot.canvas.width;
+          canvas.height = screenshot.canvas.height;
+        });
+      },
+      [screenshot],
+    );
+
+    // Draw the screenshot into the background
+    hooks.useEffect(() => {
+      setCanvasSize(backgroundRef.current, screenshot.dpi);
+      paintImage(backgroundRef.current, screenshot.canvas);
+    }, [screenshot]);
+
+    // Draw the commands into the foreground
+    hooks.useEffect(() => {
+      setCanvasSize(foregroundRef.current, screenshot.dpi);
+      with2dContext(foregroundRef.current, { alpha: true }, (canvas, ctx) => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      });
+      paintForeground(foregroundRef.current, strokeColor, drawCommands, undefined);
+    }, [drawCommands, strokeColor]);
+
+    // Draw into the output outputBuffer
+    hooks.useEffect(() => {
+      setCanvasSize(outputBuffer, screenshot.dpi);
+      paintImage(outputBuffer, screenshot.canvas);
+      with2dContext(DOCUMENT.createElement('canvas'), {alpha: true}, (foreground, ctx) => {
+        ctx.scale(screenshot.dpi, screenshot.dpi); // The scale needs to be set before we set the width/height and paint
+        foreground.width = screenshot.canvas.width;
+        foreground.height = screenshot.canvas.height;
+        paintForeground(foreground, strokeColor, drawCommands, undefined);
+        paintImage(outputBuffer, foreground);
+      });
+    }, [drawCommands, screenshot, strokeColor]);
+
+    const handleMouseDown = (e: MouseEvent): void => {
+      if (!action || !mouseRef.current) {
         return;
       }
 
-      canvas.width = imageDimensions.width * DPI;
-      canvas.height = imageDimensions.height * DPI;
-      canvas.style.width = `${imageDimensions.width}px`;
-      canvas.style.height = `${imageDimensions.height}px`;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.scale(DPI, DPI);
+      const boundingRect = mouseRef.current.getBoundingClientRect();
+      const startingPoint: DrawCommand = {
+        type: action,
+        x: e.offsetX / scaleFactor,
+        y: e.offsetY / scaleFactor,
+        w: 0,
+        h: 0,
+      };
+
+      const getDrawCommand = (startingPoint: DrawCommand, e: MouseEvent): DrawCommand => {
+        const x = (e.clientX - boundingRect.x) / scaleFactor;
+        const y = (e.clientY - boundingRect.y) / scaleFactor;
+        return {
+          type: startingPoint.type,
+          x: Math.min(startingPoint.x, x),
+          y: Math.min(startingPoint.y, y),
+          w: Math.abs(x - startingPoint.x),
+          h: Math.abs(y - startingPoint.y),
+        } as DrawCommand;
       }
+
+      const handleMouseMove = (e: MouseEvent): void => {
+        with2dContext(foregroundRef.current, { alpha: true }, (canvas, ctx) => {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        });
+        paintForeground(foregroundRef.current, strokeColor, drawCommands, getDrawCommand(startingPoint, e));
+      };
+
+      const handleMouseUp = (e: MouseEvent): void => {
+        const drawCommand = getDrawCommand(startingPoint, e);
+
+        // Prevent just clicking onto the canvas, mouse has to move at least 1 pixel
+        if (drawCommand.w * scaleFactor >= 1 && drawCommand.h * scaleFactor >= 1) {
+          setDrawCommands(prev => [...prev, drawCommand]);
+        }
+        DOCUMENT.removeEventListener('mousemove', handleMouseMove);
+        DOCUMENT.removeEventListener('mouseup', handleMouseUp);
+      };
+
+      DOCUMENT.addEventListener('mousemove', handleMouseMove);
+      DOCUMENT.addEventListener('mouseup', handleMouseUp);
+    };
+
+    const deleteRect = hooks.useCallback((index: number): hType.JSX.MouseEventHandler<HTMLButtonElement> => {
+      return (e: MouseEvent): void => {
+        e.preventDefault();
+        e.stopPropagation();
+        setDrawCommands(prev => {
+          const updatedRects = [...prev];
+          updatedRects.splice(index, 1);
+          return updatedRects;
+        });
+      };
+    }, []);
+
+    const dimensions = {
+      width: `${screenshot.canvas.width * scaleFactor}px`,
+      height: `${screenshot.canvas.height * scaleFactor}px`,
+    };
+
+    const handleStopPropagation = (e: MouseEvent): void => {
+      e.stopPropagation();
     }
 
-    function resize(): void {
-      const imageDimensions = getContainedSize(imageBuffer);
+    return (
+      <div class="editor">
+        <style nonce={options.styleNonce} dangerouslySetInnerHTML={editorStyleInnerText} />
+        <div class="editor__image-container">
+          <div class="editor__canvas-container" ref={measurementRef}>
+            <canvas ref={backgroundRef} id="background" style={dimensions} />
+            <canvas ref={foregroundRef} id="foreground" style={dimensions} />
+            <div ref={mouseRef} onMouseDown={handleMouseDown} style={dimensions}>
+              {drawCommands.map((rect, index) => (
+                <div
+                  key={index}
+                  class="editor__rect"
+                  style={{
+                    top: `${rect.y * scaleFactor}px`,
+                    left: `${rect.x * scaleFactor}px`,
+                    width: `${rect.w * scaleFactor}px`,
+                    height: `${rect.h * scaleFactor}px`,
+                  }}
+                >
+                  <button
+                    aria-label="Remove"
+                    onClick={deleteRect(index)}
+                    onMouseDown={handleStopPropagation}
+                    onMouseUp={handleStopPropagation}
+                    type="button"
+                  >
+                    <IconClose />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+        <Toolbar action={action} setAction={setAction} />
+      </div>
+    );
+  };
 
-      resizeCanvas(croppingRef, imageDimensions);
-      resizeCanvas(annotatingRef, imageDimensions);
-
-      const cropContainer = cropContainerRef.current;
-      if (cropContainer) {
-        cropContainer.style.width = `${imageDimensions.width}px`;
-        cropContainer.style.height = `${imageDimensions.height}px`;
-      }
-
-      setCroppingRect({ startX: 0, startY: 0, endX: imageDimensions.width, endY: imageDimensions.height });
-    }
+  return function Wrapper({ onError }: Props): VNode {
+    const [screenshot, setScreenshot] = hooks.useState<undefined | Screenshot>();
 
     useTakeScreenshot({
       onBeforeScreenshot: hooks.useCallback(() => {
-        (dialog.el as HTMLElement).style.display = 'none';
+        dialogStyle.display = 'none';
       }, []),
-      onScreenshot: hooks.useCallback(
-        (imageSource: HTMLVideoElement) => {
-          const context = imageBuffer.getContext('2d');
-          if (!context) {
-            throw new Error('Could not get canvas context');
-          }
-          imageBuffer.width = imageSource.videoWidth;
-          imageBuffer.height = imageSource.videoHeight;
-          imageBuffer.style.width = '100%';
-          imageBuffer.style.height = '100%';
-          context.drawImage(imageSource, 0, 0);
-        },
-        [imageBuffer],
-      ),
+      onScreenshot: hooks.useCallback((screenshotVideo: HTMLVideoElement, dpi: number) => {
+        // Stash the original screenshot image so we can (re)draw is multiple times
+        with2dContext(DOCUMENT.createElement('canvas'), { alpha: false }, (canvas, ctx) => {
+          ctx.scale(dpi, dpi); // The scale needs to be set before we set the width/height and paint
+          canvas.width = screenshotVideo.videoWidth;
+          canvas.height = screenshotVideo.videoHeight;
+          ctx.drawImage(screenshotVideo, 0, 0, canvas.width, canvas.height);
+
+          setScreenshot({ canvas, dpi });
+        });
+
+        // The output buffer, we only need to set the width/height on this once, it stays the same forever
+        outputBuffer.width = screenshotVideo.videoWidth;
+        outputBuffer.height = screenshotVideo.videoHeight;
+      }, []),
       onAfterScreenshot: hooks.useCallback(() => {
-        (dialog.el as HTMLElement).style.display = 'block';
-        const container = canvasContainerRef.current;
-        container?.appendChild(imageBuffer);
-        resize();
+        dialogStyle.display = 'block';
       }, []),
       onError: hooks.useCallback(error => {
-        (dialog.el as HTMLElement).style.display = 'block';
+        dialogStyle.display = 'block';
         onError(error);
       }, []),
     });
 
-    return (
-      <div class="editor">
-        <style nonce={options.styleNonce} dangerouslySetInnerHTML={styles} />
-        <div class="editor__image-container">
-          <div class="editor__canvas-container" ref={canvasContainerRef}>
-            <Crop
-              action={action}
-              imageBuffer={imageBuffer}
-              croppingRef={croppingRef}
-              cropContainerRef={cropContainerRef}
-              croppingRect={croppingRect}
-              setCroppingRect={setCroppingRect}
-              resize={resize}
-            />
-            <Annotations action={action} imageBuffer={imageBuffer} annotatingRef={annotatingRef} />
-          </div>
-        </div>
-        {options._experiments.annotations && <Toolbar action={action} setAction={setAction} />}
-      </div>
-    );
+    if (screenshot) {
+      return <ScreenshotEditor screenshot={screenshot} />
+    }
+
+    return <div />;
   };
 }
