@@ -24,6 +24,11 @@ Sentry.init({
     }),
     browserTracingIntegration({
       router,
+      instrumentPageLoad: false,
+      instrumentNavigation: false,
+      enableInp: false,
+      enableLongTask: false,
+      enableLongAnimationFrame: false,
     }),
   ],
   tunnel: `http://localhost:3031/`, // proxy server
