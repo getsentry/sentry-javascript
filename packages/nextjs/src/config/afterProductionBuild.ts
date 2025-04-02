@@ -1,12 +1,16 @@
+import type { SentryBuildOptions } from './types';
 import { getWebpackBuildFunctionCalled } from './util';
 
 /**
  * TODO
  */
-export async function afterProductionBuild(buildInfo: { distDir: string }, options: { debug: boolean }): Promise<void> {
-  // The afterProductionBuild function is only relevant if we are using Turbopack instead of Webpack, meaning we noop if we detect that we did any webpack logic
+export async function handleAfterProductionBuild(
+  buildInfo: { distDir: string; releaseName: string | undefined },
+  sentryBuildOptions: SentryBuildOptions,
+): Promise<void> {
+  // The handleAfterProductionBuild function is only relevant if we are using Turbopack instead of Webpack, meaning we noop if we detect that we did any webpack logic
   if (getWebpackBuildFunctionCalled()) {
-    if (options.debug) {
+    if (sentryBuildOptions.debug) {
       // eslint-disable-next-line no-console
       console.debug('[@sentry/nextjs] Not running afterProductionBuild logic because Webpack context was ran.');
     }
