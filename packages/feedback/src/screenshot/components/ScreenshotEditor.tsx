@@ -101,12 +101,11 @@ function paintForeground(
   maybeCanvas: MaybeCanvas,
   strokeColor: string,
   drawCommands: DrawCommand[],
-  currentDrawCommand: undefined | DrawCommand
 ): void {
   with2dContext(maybeCanvas, { alpha: true }, (canvas, ctx) => {
     // If there's anything to draw, then we'll first clear the canvas with
     // a transparent grey background
-    if (currentDrawCommand || drawCommands.length) {
+    if (drawCommands.length) {
       ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
@@ -114,10 +113,6 @@ function paintForeground(
     drawCommands.forEach(command => {
       drawRect(command, ctx, strokeColor);
     });
-
-    if (currentDrawCommand) {
-      drawRect(currentDrawCommand, ctx, strokeColor);
-    }
   });
 }
 
@@ -210,7 +205,7 @@ export function ScreenshotEditorFactory({
       with2dContext(foregroundRef.current, { alpha: true }, (canvas, ctx) => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
       });
-      paintForeground(foregroundRef.current, strokeColor, drawCommands, undefined);
+      paintForeground(foregroundRef.current, strokeColor, drawCommands);
     }, [drawCommands, strokeColor]);
 
     // Draw into the output outputBuffer
@@ -221,7 +216,7 @@ export function ScreenshotEditorFactory({
         ctx.scale(screenshot.dpi, screenshot.dpi); // The scale needs to be set before we set the width/height and paint
         foreground.width = screenshot.canvas.width;
         foreground.height = screenshot.canvas.height;
-        paintForeground(foreground, strokeColor, drawCommands, undefined);
+        paintForeground(foreground, strokeColor, drawCommands);
         paintImage(outputBuffer, foreground);
       });
     }, [drawCommands, screenshot, strokeColor]);
@@ -256,7 +251,7 @@ export function ScreenshotEditorFactory({
         with2dContext(foregroundRef.current, { alpha: true }, (canvas, ctx) => {
           ctx.clearRect(0, 0, canvas.width, canvas.height);
         });
-        paintForeground(foregroundRef.current, strokeColor, drawCommands, getDrawCommand(startingPoint, e));
+        paintForeground(foregroundRef.current, strokeColor, [...drawCommands, getDrawCommand(startingPoint, e)]);
       };
 
       const handleMouseUp = (e: MouseEvent): void => {
