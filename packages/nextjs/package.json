@@ -85,8 +85,10 @@
     "@sentry/opentelemetry": "9.7.0",
     "@sentry/react": "9.7.0",
     "@sentry/vercel-edge": "9.7.0",
-    "@sentry/webpack-plugin": "3.2.2",
+    "@sentry/webpack-plugin": "3.3.0-alpha.1",
+    "@sentry/bundler-plugin-core": "3.3.0-alpha.1",
     "chalk": "3.0.0",
+    "glob": "^9.3.2",
     "resolve": "1.22.8",
     "rollup": "4.35.0",
     "stacktrace-parser": "^0.1.10"

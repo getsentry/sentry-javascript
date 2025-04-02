@@ -1,8 +1,11 @@
 import type { SentryBuildOptions } from './types';
 import { getWebpackBuildFunctionCalled } from './util';
+import { createSentryBuildPluginManager } from '@sentry/bundler-plugin-core';
+import { getBuildPluginOptions } from './webpackPluginOptions';
+import { glob } from 'glob';
 
 /**
- * TODO
+ * A function to do Sentry stuff for the `afterProductionBuild` Next.js hook
  */
 export async function handleAfterProductionBuild(
   buildInfo: { distDir: string; releaseName: string | undefined },
@@ -17,9 +20,27 @@ export async function handleAfterProductionBuild(
     return;
   }
 
-  // Create release? Maybe before this hook? Add release info like env, commits etc.
-  // Finalize release?
-  // Upload everything in distDir (consider org, project, authToken, sentryUrl)
-  // Delete sourcemaps after upload?
-  // Emit telemetry?
+  const sentryBuildPluginManager = createSentryBuildPluginManager(
+    getBuildPluginOptions(sentryBuildOptions, buildInfo.releaseName, 'after-production-build', buildInfo.distDir),
+    {
+      buildTool: 'turbopack',
+      loggerPrefix: '[@sentry/nextjs]',
+    },
+  );
+
+  const buildArtifactsPromise = glob(
+    ['/**/*.js', '/**/*.mjs', '/**/*.cjs', '/**/*.js.map', '/**/*.mjs.map', '/**/*.cjs.map'].map(
+      q => `${q}?(\\?*)?(#*)`,
+    ), // We want to allow query and hashes strings at the end of files
+    {
+      root: buildInfo.distDir,
+      absolute: true,
+      nodir: true,
+    },
+  );
+
+  await sentryBuildPluginManager.telemetry.emitBundlerPluginExecutionSignal();
+  await sentryBuildPluginManager.createRelease();
+  await sentryBuildPluginManager.uploadSourcemaps(await buildArtifactsPromise);
+  await sentryBuildPluginManager.deleteArtifacts();
 }

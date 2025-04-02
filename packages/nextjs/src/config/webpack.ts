@@ -3,7 +3,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { GLOBAL_OBJ, escapeStringForRegex, loadModule, logger, parseSemver } from '@sentry/core';
+import { escapeStringForRegex, loadModule, logger, parseSemver } from '@sentry/core';
 import * as chalk from 'chalk';
 import { sync as resolveSync } from 'resolve';
 
@@ -21,7 +21,7 @@ import type {
   WebpackConfigObjectWithModuleRules,
   WebpackEntryProperty,
 } from './types';
-import { getWebpackPluginOptions } from './webpackPluginOptions';
+import { getBuildPluginOptions } from './webpackPluginOptions';
 import { getNextjsVersion, setWebpackBuildFunctionCalled } from './util';
 
 // Next.js runs webpack 3 times, once for the client, the server, and for edge. Because we don't want to print certain
@@ -385,8 +385,19 @@ export function constructWebpackConfigFunction(
         }
 
         newConfig.plugins = newConfig.plugins || [];
+
+        const mode = ({ client: 'webpack-client', server: 'webpack-nodejs', edge: 'webpack-edge' } as const)[runtime];
+
+        // We need to convert paths to posix because Glob patterns use `\` to escape
+        // glob characters. This clashes with Windows path separators.
+        // See: https://www.npmjs.com/package/glob
+        const projectDir = buildContext.dir.replace(/\\/g, '/');
+        // `.next` is the default directory
+        const distDir = (userNextConfig as NextConfigObject).distDir?.replace(/\\/g, '/') ?? '.next';
+        const distDirAbsPath = path.posix.join(projectDir, distDir);
+
         const sentryWebpackPluginInstance = sentryWebpackPlugin(
-          getWebpackPluginOptions(buildContext, userSentryOptions, releaseName),
+          getBuildPluginOptions(userSentryOptions, releaseName, mode, distDirAbsPath),
         );
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         sentryWebpackPluginInstance._name = 'sentry-webpack-plugin'; // For tests and debugging. Serves no other purpose.

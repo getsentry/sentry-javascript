@@ -6707,6 +6707,11 @@
   resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-3.2.2.tgz#0c5f26e417b8f524924fa4531b82ad5603216e90"
   integrity sha512-D+SKQ266ra/wo87s9+UI/rKQi3qhGPCR8eSCDe0VJudhjHsqyNU+JJ5lnIGCgmZaWFTXgdBP/gdr1Iz1zqGs4Q==
 
+"@sentry/babel-plugin-component-annotate@3.3.0-alpha.1":
+  version "3.3.0-alpha.1"
+  resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-3.3.0-alpha.1.tgz#4d839cfb7f313d93be88ccfce0a54b7c66fc1080"
+  integrity sha512-QtiIig59zHL1cVRoNaBikjF92UBpXxWq8tBe+OupP+W8U63IbLVv2C8pUPzz3QngtzzjnTY+lDFGi6LmQrmFJw==
+
 "@sentry/bundler-plugin-core@2.22.6":
   version "2.22.6"
   resolved "https://registry.yarnpkg.com/@sentry/bundler-plugin-core/-/bundler-plugin-core-2.22.6.tgz#a1ea1fd43700a3ece9e7db016997e79a2782b87d"
@@ -6756,6 +6761,20 @@
   dependencies:
     "@babel/core" "^7.18.5"
     "@sentry/babel-plugin-component-annotate" "3.2.2"
+    "@sentry/cli" "2.42.2"
+    dotenv "^16.3.1"
+    find-up "^5.0.0"
+    glob "^9.3.2"
+    magic-string "0.30.8"
+    unplugin "1.0.1"
+
+"@sentry/bundler-plugin-core@3.3.0-alpha.1":
+  version "3.3.0-alpha.1"
+  resolved "https://registry.yarnpkg.com/@sentry/bundler-plugin-core/-/bundler-plugin-core-3.3.0-alpha.1.tgz#356d343ec9c399416cf0c193621bc1871135279c"
+  integrity sha512-dIbwiiuTq9RJDbltl3jrPZRVyQ/BePuEhNiP2cZ0oiQPeM9SRiZcGRZ7nmG+DBlTPp+IM51R1hhskndrVg9R1Q==
+  dependencies:
+    "@babel/core" "^7.18.5"
+    "@sentry/babel-plugin-component-annotate" "3.3.0-alpha.1"
     "@sentry/cli" "2.42.2"
     dotenv "^16.3.1"
     find-up "^5.0.0"
@@ -6955,6 +6974,15 @@
   integrity sha512-6OkVKNOjKk8P9j7oh6svZ+kEP1i9YIHBC2aGWL2XsgeZTIrMBxJAXtOf+qSrfMAxEtibSroGVOMQc/y3WJTQtg==
   dependencies:
     "@sentry/bundler-plugin-core" "3.2.2"
+    unplugin "1.0.1"
+    uuid "^9.0.0"
+
+"@sentry/webpack-plugin@3.3.0-alpha.1":
+  version "3.3.0-alpha.1"
+  resolved "https://registry.yarnpkg.com/@sentry/webpack-plugin/-/webpack-plugin-3.3.0-alpha.1.tgz#6151b01ae51dfd0a7e724ea05b48c7e0090f70b0"
+  integrity sha512-173XxkdjL5La9KtdKxem1z2b+p6vK/ADbXy/yRIJc0q4Ayu9AVKnIQZ1GAQ4lGFxuEHgzc6eVSY+eDE6omxUxQ==
+  dependencies:
+    "@sentry/bundler-plugin-core" "3.3.0-alpha.1"
     unplugin "1.0.1"
     uuid "^9.0.0"
 
@@ -28153,7 +28181,6 @@ stylus@0.59.0, stylus@^0.59.0:
 
 sucrase@^3.27.0, sucrase@^3.35.0, sucrase@getsentry/sucrase#es2020-polyfills:
   version "3.36.0"
-  uid fd682f6129e507c00bb4e6319cc5d6b767e36061
   resolved "https://codeload.github.com/getsentry/sucrase/tar.gz/fd682f6129e507c00bb4e6319cc5d6b767e36061"
   dependencies:
     "@jridgewell/gen-mapping" "^0.3.2"
