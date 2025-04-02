@@ -1,6 +1,5 @@
 import type * as Hooks from 'preact/hooks';
 import { DOCUMENT, NAVIGATOR, WINDOW } from '../../constants';
-import { useDpiFactory } from './useDpiFactory';
 
 interface FactoryParams {
   hooks: typeof Hooks;
@@ -16,7 +15,21 @@ interface Props {
 type UseTakeScreenshot = ({ onBeforeScreenshot, onScreenshot, onAfterScreenshot, onError }: Props) => void;
 
 export function useTakeScreenshotFactory({ hooks }: FactoryParams): UseTakeScreenshot {
-  const useDpi = useDpiFactory({ hooks });
+  function useDpi(): number {
+    const [dpi, setDpi] = hooks.useState<number>(WINDOW.devicePixelRatio ?? 1);
+    hooks.useEffect(() => {
+      const onChange = (): void => {
+        setDpi(WINDOW.devicePixelRatio);
+      };
+      const media = matchMedia(`(resolution: ${WINDOW.devicePixelRatio}dppx)`);
+      media.addEventListener('change', onChange);
+      return () => {
+        media.removeEventListener('change', onChange);
+      };
+    }, []);
+
+    return dpi;
+  }
 
   return function useTakeScreenshot({ onBeforeScreenshot, onScreenshot, onAfterScreenshot, onError }: Props) {
     const dpi = useDpi();
