@@ -38,7 +38,6 @@ interface Props {
 type MaybeCanvas = HTMLCanvasElement | null;
 type Screenshot = { canvas: HTMLCanvasElement; dpi: number };
 
-
 type DrawType = 'highlight' | 'hide' | '';
 interface DrawCommand {
   type: DrawType;
@@ -97,11 +96,7 @@ function paintImage(maybeDest: MaybeCanvas, source: HTMLCanvasElement): void {
 
 // Paint the array of drawCommands into a canvas.
 // Assuming this is the canvas foreground, and the background is cleaned.
-function paintForeground(
-  maybeCanvas: MaybeCanvas,
-  strokeColor: string,
-  drawCommands: DrawCommand[],
-): void {
+function paintForeground(maybeCanvas: MaybeCanvas, strokeColor: string, drawCommands: DrawCommand[]): void {
   with2dContext(maybeCanvas, { alpha: true }, (canvas, ctx) => {
     // If there's anything to draw, then we'll first clear the canvas with
     // a transparent grey background
@@ -212,7 +207,7 @@ export function ScreenshotEditorFactory({
     hooks.useEffect(() => {
       setCanvasSize(outputBuffer, screenshot.dpi);
       paintImage(outputBuffer, screenshot.canvas);
-      with2dContext(DOCUMENT.createElement('canvas'), {alpha: true}, (foreground, ctx) => {
+      with2dContext(DOCUMENT.createElement('canvas'), { alpha: true }, (foreground, ctx) => {
         ctx.scale(screenshot.dpi, screenshot.dpi); // The scale needs to be set before we set the width/height and paint
         foreground.width = screenshot.canvas.width;
         foreground.height = screenshot.canvas.height;
@@ -245,7 +240,7 @@ export function ScreenshotEditorFactory({
           w: Math.abs(x - startingPoint.x),
           h: Math.abs(y - startingPoint.y),
         } as DrawCommand;
-      }
+      };
 
       const handleMouseMove = (e: MouseEvent): void => {
         with2dContext(foregroundRef.current, { alpha: true }, (canvas, ctx) => {
@@ -288,7 +283,7 @@ export function ScreenshotEditorFactory({
 
     const handleStopPropagation = (e: MouseEvent): void => {
       e.stopPropagation();
-    }
+    };
 
     return (
       <div class="editor">
@@ -360,7 +355,7 @@ export function ScreenshotEditorFactory({
     });
 
     if (screenshot) {
-      return <ScreenshotEditor screenshot={screenshot} />
+      return <ScreenshotEditor screenshot={screenshot} />;
     }
 
     return <div />;
