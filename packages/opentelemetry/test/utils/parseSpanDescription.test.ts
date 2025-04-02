@@ -6,9 +6,7 @@ import {
   SEMATTRS_DB_STATEMENT,
   SEMATTRS_DB_SYSTEM,
   SEMATTRS_FAAS_TRIGGER,
-  SEMATTRS_HTTP_HOST,
   SEMATTRS_HTTP_METHOD,
-  SEMATTRS_HTTP_STATUS_CODE,
   SEMATTRS_HTTP_TARGET,
   SEMATTRS_HTTP_URL,
   SEMATTRS_MESSAGING_SYSTEM,
@@ -19,7 +17,6 @@ import { describe, expect, it } from 'vitest';
 import { SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import {
   descriptionForHttpMethod,
-  getSanitizedUrl,
   getUserUpdatedNameAndSource,
   parseSpanDescription,
 } from '../../src/utils/parseSpanDescription';
@@ -390,7 +387,7 @@ describe('descriptionForHttpMethod', () => {
       SpanKind.SERVER,
       {
         op: 'http.server',
-        description: 'POST /my-path',
+        description: 'POST https://www.example.com/my-path',
         data: {
           url: 'https://www.example.com/my-path',
         },
@@ -503,154 +500,6 @@ describe('descriptionForHttpMethod', () => {
     ],
   ])('%s', (_, httpMethod, attributes, name, kind, expected) => {
     const actual = descriptionForHttpMethod({ attributes, kind, name }, httpMethod);
-    expect(actual).toEqual(expected);
-  });
-});
-
-describe('getSanitizedUrl', () => {
-  it.each([
-    [
-      'works without attributes',
-      {},
-      SpanKind.CLIENT,
-      {
-        urlPath: undefined,
-        url: undefined,
-        fragment: undefined,
-        query: undefined,
-        hasRoute: false,
-      },
-    ],
-    [
-      'uses url without query for client request',
-      {
-        [SEMATTRS_HTTP_URL]: 'http://example.com/?what=true',
-        [SEMATTRS_HTTP_METHOD]: 'GET',
-        [SEMATTRS_HTTP_TARGET]: '/?what=true',
-        [SEMATTRS_HTTP_HOST]: 'example.com:80',
-        [SEMATTRS_HTTP_STATUS_CODE]: 200,
-      },
-      SpanKind.CLIENT,
-      {
-        urlPath: 'http://example.com/',
-        url: 'http://example.com/',
-        fragment: undefined,
-        query: '?what=true',
-        hasRoute: false,
-      },
-    ],
-    [
-      'uses url without hash for client request',
-      {
-        [SEMATTRS_HTTP_URL]: 'http://example.com/sub#hash',
-        [SEMATTRS_HTTP_METHOD]: 'GET',
-        [SEMATTRS_HTTP_TARGET]: '/sub#hash',
-        [SEMATTRS_HTTP_HOST]: 'example.com:80',
-        [SEMATTRS_HTTP_STATUS_CODE]: 200,
-      },
-      SpanKind.CLIENT,
-      {
-        urlPath: 'http://example.com/sub',
-        url: 'http://example.com/sub',
-        fragment: '#hash',
-        query: undefined,
-        hasRoute: false,
-      },
-    ],
-    [
-      'uses route if available for client request',
-      {
-        [SEMATTRS_HTTP_URL]: 'http://example.com/?what=true',
-        [SEMATTRS_HTTP_METHOD]: 'GET',
-        [SEMATTRS_HTTP_TARGET]: '/?what=true',
-        [ATTR_HTTP_ROUTE]: '/my-route',
-        [SEMATTRS_HTTP_HOST]: 'example.com:80',
-        [SEMATTRS_HTTP_STATUS_CODE]: 200,
-      },
-      SpanKind.CLIENT,
-      {
-        urlPath: '/my-route',
-        url: 'http://example.com/',
-        fragment: undefined,
-        query: '?what=true',
-        hasRoute: true,
-      },
-    ],
-    [
-      'falls back to target for client request if url not available',
-      {
-        [SEMATTRS_HTTP_METHOD]: 'GET',
-        [SEMATTRS_HTTP_TARGET]: '/?what=true',
-        [SEMATTRS_HTTP_HOST]: 'example.com:80',
-        [SEMATTRS_HTTP_STATUS_CODE]: 200,
-      },
-      SpanKind.CLIENT,
-      {
-        urlPath: '/',
-        url: undefined,
-        fragment: undefined,
-        query: undefined,
-        hasRoute: false,
-      },
-    ],
-    [
-      'uses target without query for server request',
-      {
-        [SEMATTRS_HTTP_URL]: 'http://example.com/?what=true',
-        [SEMATTRS_HTTP_METHOD]: 'GET',
-        [SEMATTRS_HTTP_TARGET]: '/?what=true',
-        [SEMATTRS_HTTP_HOST]: 'example.com:80',
-        [SEMATTRS_HTTP_STATUS_CODE]: 200,
-      },
-      SpanKind.SERVER,
-      {
-        urlPath: '/',
-        url: 'http://example.com/',
-        fragment: undefined,
-        query: '?what=true',
-        hasRoute: false,
-      },
-    ],
-    [
-      'uses target without hash for server request',
-      {
-        [SEMATTRS_HTTP_URL]: 'http://example.com/?what=true',
-        [SEMATTRS_HTTP_METHOD]: 'GET',
-        [SEMATTRS_HTTP_TARGET]: '/sub#hash',
-        [SEMATTRS_HTTP_HOST]: 'example.com:80',
-        [SEMATTRS_HTTP_STATUS_CODE]: 200,
-      },
-      SpanKind.SERVER,
-      {
-        urlPath: '/sub',
-        url: 'http://example.com/',
-        fragment: undefined,
-        query: '?what=true',
-        hasRoute: false,
-      },
-    ],
-    [
-      'uses route for server request if available',
-      {
-        [SEMATTRS_HTTP_URL]: 'http://example.com/?what=true',
-        [SEMATTRS_HTTP_METHOD]: 'GET',
-        [SEMATTRS_HTTP_TARGET]: '/?what=true',
-        [ATTR_HTTP_ROUTE]: '/my-route',
-        [SEMATTRS_HTTP_HOST]: 'example.com:80',
-        [SEMATTRS_HTTP_STATUS_CODE]: 200,
-      },
-      SpanKind.SERVER,
-      {
-        urlPath: '/my-route',
-        url: 'http://example.com/',
-        fragment: undefined,
-        query: '?what=true',
-        hasRoute: true,
-      },
-    ],
-  ])('%s', (_, attributes, kind, expected) => {
-    const actual = getSanitizedUrl(attributes, kind);
-
     expect(actual).toEqual(expected);
   });
 });

@@ -6,7 +6,7 @@ import {
   SEMATTRS_HTTP_METHOD,
   SEMATTRS_HTTP_URL,
 } from '@opentelemetry/semantic-conventions';
-import { getSanitizedUrlString, parseUrl } from '@sentry/core';
+import { parseStringToURLObject, getSanitizedUrlStringFromUrlObject } from '@sentry/core';
 import type { SanitizedRequestData } from '@sentry/core';
 
 import { spanHasAttributes } from './spanTypes';
@@ -40,15 +40,15 @@ export function getRequestSpanData(span: Span | ReadableSpan): Partial<Sanitized
 
   try {
     if (typeof maybeUrlAttribute === 'string') {
-      const url = parseUrl(maybeUrlAttribute);
-
-      data.url = getSanitizedUrlString(url);
-
-      if (url.search) {
-        data['http.query'] = url.search;
-      }
-      if (url.hash) {
-        data['http.fragment'] = url.hash;
+      const parsedUrl = parseStringToURLObject(maybeUrlAttribute);
+      if (parsedUrl) {
+        data.url = getSanitizedUrlStringFromUrlObject(parsedUrl);
+        if (parsedUrl.search) {
+          data['http.query'] = parsedUrl.search;
+        }
+        if (parsedUrl.hash) {
+          data['http.fragment'] = parsedUrl.hash;
+        }
       }
     }
   } catch {

@@ -42,7 +42,7 @@ describe('getRequestSpanData', () => {
     const data = getRequestSpanData(span);
 
     expect(data).toEqual({
-      url: 'http://example.com',
+      url: 'http://example.com/',
       'http.method': 'GET',
       'http.query': '?foo=bar',
       'http.fragment': '#baz',
@@ -58,7 +58,7 @@ describe('getRequestSpanData', () => {
     const data = getRequestSpanData(span);
 
     expect(data).toEqual({
-      url: 'http://example.com',
+      url: 'http://example.com/',
       'http.method': 'GET',
     });
   });
