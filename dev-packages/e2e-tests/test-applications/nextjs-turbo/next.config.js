@@ -9,4 +9,7 @@ const nextConfig = {
 
 module.exports = withSentryConfig(nextConfig, {
   silent: true,
+  release: {
+    name: 'foobar123',
+  },
 });

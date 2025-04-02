@@ -20,6 +20,7 @@ const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryRewriteFramesAssetPrefixPath: string;
   _sentryAssetPrefix?: string;
   _sentryBasePath?: string;
+  _sentryRelease?: string;
   _experimentalThirdPartyOriginStackFrames?: string;
 };
 
@@ -31,6 +32,7 @@ export function init(options: BrowserOptions): Client | undefined {
   const opts = {
     environment: getVercelEnv(true) || process.env.NODE_ENV,
     defaultIntegrations: getDefaultIntegrations(options),
+    release: process.env._sentryRelease || globalWithInjectedValues._sentryRelease,
     ...options,
   } satisfies BrowserOptions;
 

@@ -26,6 +26,7 @@ export type EdgeOptions = VercelEdgeOptions;
 
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryRewriteFramesDistDir?: string;
+  _sentryRelease?: string;
 };
 
 /** Inits the Sentry NextJS SDK on the Edge Runtime. */
@@ -48,6 +49,7 @@ export function init(options: VercelEdgeOptions = {}): void {
 
   const opts = {
     defaultIntegrations: customDefaultIntegrations,
+    release: process.env._sentryRelease || globalWithInjectedValues._sentryRelease,
     ...options,
   };
 
