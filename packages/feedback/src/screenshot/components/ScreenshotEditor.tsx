@@ -1,4 +1,3 @@
-/* eslint-disable max-lines */
 import type { FeedbackInternalOptions, FeedbackModalIntegration } from '@sentry/core';
 import type { ComponentType, VNode, h as hType } from 'preact';
 import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
