@@ -341,7 +341,7 @@ export function ScreenshotEditorFactory({
         dialogStyle.display = 'none';
       }, []),
       onScreenshot: hooks.useCallback((screenshotVideo: HTMLVideoElement, dpi: number) => {
-        // Stash the original screenshot image so we can (re)draw is multiple times
+        // Stash the original screenshot image so we can (re)draw it multiple times
         with2dContext(DOCUMENT.createElement('canvas'), { alpha: false }, (canvas, ctx) => {
           ctx.scale(dpi, dpi); // The scale needs to be set before we set the width/height and paint
           canvas.width = screenshotVideo.videoWidth;
