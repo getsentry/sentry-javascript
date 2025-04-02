@@ -34,6 +34,10 @@ sentryTest('includes a span link to a previously negatively sampled span', async
       },
     ]);
 
+    expect(navigationTraceContext?.data).toMatchObject({
+      'sentry.previous_trace': expect.stringMatching(/[a-f0-9]{32}-[a-f0-9]{16}-0/),
+    });
+
     expect(navigationTraceContext?.trace_id).not.toEqual(navigationTraceContext?.links![0].trace_id);
   });
 });

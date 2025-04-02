@@ -43,7 +43,7 @@ test('should correctly instrument `fetch` for performance tracing', async ({ pag
           'sentry.op': 'http.client',
           'sentry.origin': 'auto.http.browser',
         },
-        description: 'GET https://example.com',
+        description: 'GET https://example.com/',
         op: 'http.client',
         parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
