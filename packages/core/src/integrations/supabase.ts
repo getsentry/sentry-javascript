@@ -5,7 +5,7 @@
 import { logger, isPlainObject } from '../utils-hoist';
 
 import type { IntegrationFn } from '../types-hoist';
-import { setHttpStatus, startInactiveSpan, startSpan } from '../tracing';
+import { setHttpStatus, startInactiveSpan } from '../tracing';
 import { addBreadcrumb } from '../breadcrumbs';
 import { defineIntegration } from '../integration';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
@@ -198,48 +198,52 @@ export function translateFiltersIntoMethods(key: string, query: string): string 
 }
 
 function instrumentAuthOperation(operation: AuthOperationFn, isAdmin = false): AuthOperationFn {
+  if (instrumented.has(operation)) {
+    return operation;
+  }
+
   return new Proxy(operation, {
     apply(target, thisArg, argumentsList) {
-      return startSpan(
-        {
-          name: operation.name,
-          attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase',
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `db.supabase.auth.${isAdmin ? 'admin.' : ''}${operation.name}`,
-          },
+      instrumented.set(operation, true);
+
+      const span = startInactiveSpan({
+        name: operation.name,
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `db.supabase.auth.${isAdmin ? 'admin.' : ''}${operation.name}`,
         },
-        async span => {
-          return Reflect.apply(target, thisArg, argumentsList)
-            .then((res: unknown) => {
-              if (res && typeof res === 'object' && 'error' in res && res.error) {
-                span.setStatus({ code: SPAN_STATUS_ERROR });
+      });
 
-                captureException(res.error, {
-                  mechanism: {
-                    handled: false,
-                  },
-                });
-              } else {
-                span.setStatus({ code: SPAN_STATUS_OK });
-              }
+      return Reflect.apply(target, thisArg, argumentsList)
+        .then((res: unknown) => {
+          if (res && typeof res === 'object' && 'error' in res && res.error) {
+            span.setStatus({ code: SPAN_STATUS_ERROR });
 
-              span.end();
-              return res;
-            })
-            .catch((err: unknown) => {
-              span.setStatus({ code: SPAN_STATUS_ERROR });
-              span.end();
-
-              captureException(err, {
-                mechanism: {
-                  handled: false,
-                },
-              });
-
-              throw err;
+            captureException(res.error, {
+              mechanism: {
+                handled: false,
+              },
             });
-        },
-      );
+          } else {
+            span.setStatus({ code: SPAN_STATUS_OK });
+          }
+
+          span.end();
+          return res;
+        })
+        .catch((err: unknown) => {
+          span.setStatus({ code: SPAN_STATUS_ERROR });
+          span.end();
+
+          captureException(err, {
+            mechanism: {
+              handled: false,
+            },
+          });
+
+          throw err;
+        })
+        .then(...argumentsList);
     },
   });
 }
@@ -254,14 +258,14 @@ function instrumentSupabaseAuthClient(supabaseClientInstance: SupabaseClientInst
   AUTH_OPERATIONS_TO_INSTRUMENT.forEach((operation: AuthOperationName) => {
     const authOperation = auth[operation];
     if (typeof authOperation === 'function') {
-      auth[operation] = instrumentAuthOperation(authOperation);
+      supabaseClientInstance.auth[operation] = instrumentAuthOperation(authOperation);
     }
   });
 
   AUTH_ADMIN_OPERATIONS_TO_INSTRUMENT.forEach((operation: AuthAdminOperationName) => {
     const authAdminOperation = auth.admin[operation];
     if (typeof authAdminOperation === 'function') {
-      auth.admin[operation] = instrumentAuthOperation(authAdminOperation);
+      supabaseClientInstance.auth.admin[operation] = instrumentAuthOperation(authAdminOperation, true);
     }
   });
 }
@@ -317,11 +321,11 @@ function instrumentPostgrestFilterBuilder(PostgrestFilterBuilder: PostgrestFilte
         const table = pathParts.length > 0 ? pathParts[pathParts.length - 1] : '';
         const description = `from(${table})`;
 
-        const query: string[] = [];
+        const queryItems: string[] = [];
         for (const [key, value] of typedThis.url.searchParams.entries()) {
           // It's possible to have multiple entries for the same key, eg. `id=eq.7&id=eq.3`,
           // so we need to use array instead of object to collect them.
-          query.push(translateFiltersIntoMethods(key, value));
+          queryItems.push(translateFiltersIntoMethods(key, value));
         }
 
         const body: Record<string, unknown> = {};
@@ -340,8 +344,8 @@ function instrumentPostgrestFilterBuilder(PostgrestFilterBuilder: PostgrestFilte
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `db.${operation}`,
         };
 
-        if (query.length) {
-          attributes['db.query'] = query;
+        if (queryItems.length) {
+          attributes['db.query'] = queryItems;
         }
 
         if (Object.keys(body).length) {
@@ -373,8 +377,8 @@ function instrumentPostgrestFilterBuilder(PostgrestFilterBuilder: PostgrestFilte
                 }
 
                 const supabaseContext: Record<string, unknown> = {};
-                if (query.length) {
-                  supabaseContext.query = query;
+                if (queryItems.length) {
+                  supabaseContext.query = queryItems;
                 }
                 if (Object.keys(body).length) {
                   supabaseContext.body = body;
@@ -395,8 +399,8 @@ function instrumentPostgrestFilterBuilder(PostgrestFilterBuilder: PostgrestFilte
 
               const data: Record<string, unknown> = {};
 
-              if (query.length) {
-                data.query = query;
+              if (queryItems.length) {
+                data.query = queryItems;
               }
 
               if (Object.keys(body).length) {
@@ -472,11 +476,12 @@ const instrumentSupabase = (supabaseClientInstance: unknown): void => {
 const INTEGRATION_NAME = 'Supabase';
 
 const _supabaseIntegration = (supabaseClient => {
+  // Instrumenting here instead of `setup` or `setupOnce` because we may need to instrument multiple clients.
+  // So we don't want the instrumentation is skipped because the integration is already installed.
+  instrumentSupabase(supabaseClient);
+
   return {
     name: INTEGRATION_NAME,
-    setupOnce() {
-      instrumentSupabase(supabaseClient);
-    },
   };
 }) satisfies IntegrationFn;
 

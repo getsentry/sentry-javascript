@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "clean": "npx rimraf node_modules pnpm-lock.yaml .next",
-    "start-local-supabase": "supabase init --force --workdir . && supabase start -o env",
+    "start-local-supabase": "supabase init --force --workdir . && supabase start -o env && supabase db reset",
     "test:prod": "TEST_ENV=production playwright test",
     "test:build": "pnpm install && pnpm start-local-supabase && pnpm build",
     "test:assert": "pnpm test:prod"
