@@ -370,7 +370,7 @@ function logKeepEnabledSourceMapSetting(
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.log(
-        `[Sentry] We discovered \`${settingKey}\` is set to \`${settingValue}\`. This will un-minify the code snippet on the Sentry Issue page. Be aware that there might be other source map settings in your config which could overwrite this setting.`,
+        `[Sentry] \`${settingKey}\` is enabled with \`${settingValue}\`. This will correctly un-minify the code snippet on the Sentry Issue Details page.`,
       );
     });
   }
