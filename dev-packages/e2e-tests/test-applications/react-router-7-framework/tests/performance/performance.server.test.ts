@@ -5,7 +5,6 @@ import { APP_NAME } from '../constants';
 test.describe('servery - performance', () => {
   test('should send server transaction on pageload', async ({ page }) => {
     const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      console.log('t', transactionEvent.transaction, transactionEvent.contexts?.trace?.data);
       return transactionEvent.transaction === 'GET /performance';
     });
 
