@@ -107,32 +107,7 @@ sentryTest('should capture console object calls', async ({ getLocalTestUrl, page
     {
       severityText: 'error',
       body: { stringValue: 'Assertion failed: console.assert 123 false' },
-      attributes: [
-        {
-          key: 'sentry.message.template',
-          value: {
-            stringValue: 'Assertion failed: %s %s %s',
-          },
-        },
-        {
-          key: 'sentry.message.param.0',
-          value: {
-            stringValue: 'console.assert',
-          },
-        },
-        {
-          key: 'sentry.message.param.1',
-          value: {
-            doubleValue: 123,
-          },
-        },
-        {
-          key: 'sentry.message.param.2',
-          value: {
-            boolValue: false,
-          },
-        },
-      ],
+      attributes: [],
       timeUnixNano: expect.any(String),
       traceId: expect.any(String),
       severityNumber: 17,

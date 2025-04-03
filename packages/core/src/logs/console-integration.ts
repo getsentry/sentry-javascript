@@ -1,7 +1,7 @@
 import { getClient } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { defineIntegration } from '../integration';
-import type { ConsoleLevel, IntegrationFn, ParameterizedString } from '../types-hoist';
+import type { ConsoleLevel, IntegrationFn } from '../types-hoist';
 import { CONSOLE_LEVELS, GLOBAL_OBJ, addConsoleInstrumentationHandler, logger, safeJoin } from '../utils-hoist';
 import { _INTERNAL_captureLog } from './exports';
 
@@ -35,13 +35,9 @@ const _consoleLoggingIntegration = ((options: Partial<CaptureConsoleOptions> = {
 
         if (level === 'assert') {
           if (!args[0]) {
-            let message: ParameterizedString = 'Assertion failed';
             const followingArgs = args.slice(1);
-            if (followingArgs.length > 0) {
-              message = new String(`Assertion failed: ${formatConsoleArgs(followingArgs)}`) as ParameterizedString;
-              message.__sentry_template_string__ = `Assertion failed: ${followingArgs.map(() => '%s').join(' ')}`;
-              message.__sentry_template_values__ = followingArgs;
-            }
+            const message =
+              followingArgs.length > 0 ? `Assertion failed: ${formatConsoleArgs(followingArgs)}` : 'Assertion failed';
             _INTERNAL_captureLog({ level: 'error', message });
           }
           return;
