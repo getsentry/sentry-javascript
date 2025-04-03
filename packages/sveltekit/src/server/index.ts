@@ -118,6 +118,7 @@ export {
   withScope,
   zodErrorsIntegration,
   logger,
+  consoleLoggingIntegration,
 } from '@sentry/node';
 
 // We can still leave this for the carrier init and type exports

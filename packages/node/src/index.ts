@@ -130,6 +130,7 @@ export {
   updateSpanName,
   zodErrorsIntegration,
   profiler,
+  consoleLoggingIntegration,
 } from '@sentry/core';
 
 export type {
