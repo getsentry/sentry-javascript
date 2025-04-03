@@ -5,7 +5,6 @@ import {
   defineIntegration,
   getClient,
   severityLevelFromString,
-  truncate,
 } from '@sentry/core';
 
 const INTEGRATION_NAME = 'Console';
@@ -26,7 +25,7 @@ export const consoleIntegration = defineIntegration(() => {
           {
             category: 'console',
             level: severityLevelFromString(level),
-            message: truncate(util.format.apply(undefined, args), 2048), // 2KB
+            message: util.format.apply(undefined, args),
           },
           {
             input: [...args],

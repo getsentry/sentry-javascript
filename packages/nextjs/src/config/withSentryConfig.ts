@@ -51,6 +51,8 @@ function getFinalConfigObject(
   incomingUserNextConfigObject: NextConfigObject,
   userSentryOptions: SentryBuildOptions,
 ): NextConfigObject {
+  const releaseName = userSentryOptions.release?.name ?? getSentryRelease() ?? getGitRevision();
+
   if (userSentryOptions?.tunnelRoute) {
     if (incomingUserNextConfigObject.output === 'export') {
       if (!showedExportModeTunnelWarning) {
@@ -65,7 +67,7 @@ function getFinalConfigObject(
     }
   }
 
-  setUpBuildTimeVariables(incomingUserNextConfigObject, userSentryOptions);
+  setUpBuildTimeVariables(incomingUserNextConfigObject, userSentryOptions, releaseName);
 
   const nextJsVersion = getNextjsVersion();
 
@@ -154,18 +156,59 @@ function getFinalConfigObject(
     }
   }
 
-  if (process.env.TURBOPACK && !process.env.SENTRY_SUPPRESS_TURBOPACK_WARNING) {
-    // eslint-disable-next-line no-console
-    console.warn(
-      `[@sentry/nextjs] WARNING: You are using the Sentry SDK with \`next ${
-        process.env.NODE_ENV === 'development' ? 'dev' : 'build'
-      } --turbo\`. The Sentry SDK doesn't yet fully support Turbopack. The SDK will not be loaded in the browser, and serverside instrumentation will be inaccurate or incomplete. ${
-        process.env.NODE_ENV === 'development' ? 'Production builds without `--turbo` will still fully work. ' : ''
-      }If you are just trying out Sentry or attempting to configure the SDK, we recommend temporarily removing the \`--turbo\` flag while you are developing locally. Follow this issue for progress on Sentry + Turbopack: https://github.com/getsentry/sentry-javascript/issues/8105. (You can suppress this warning by setting SENTRY_SUPPRESS_TURBOPACK_WARNING=1 as environment variable)`,
-    );
+  if (nextJsVersion) {
+    const { major, minor, patch, prerelease } = parseSemver(nextJsVersion);
+    const isSupportedVersion =
+      major !== undefined &&
+      minor !== undefined &&
+      patch !== undefined &&
+      (major > 15 ||
+        (major === 15 && minor > 3) ||
+        (major === 15 && minor === 3 && patch > 0 && prerelease === undefined));
+    const isSupportedCanary =
+      major !== undefined &&
+      minor !== undefined &&
+      patch !== undefined &&
+      prerelease !== undefined &&
+      major === 15 &&
+      minor === 3 &&
+      patch === 0 &&
+      prerelease.startsWith('canary.') &&
+      parseInt(prerelease.split('.')[1] || '', 10) >= 8;
+    const supportsClientInstrumentation = isSupportedCanary || isSupportedVersion;
+
+    if (supportsClientInstrumentation) {
+      incomingUserNextConfigObject.experimental = {
+        clientInstrumentationHook: true,
+        ...incomingUserNextConfigObject.experimental,
+      };
+    } else if (process.env.TURBOPACK) {
+      if (process.env.NODE_ENV === 'development') {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[@sentry/nextjs] WARNING: You are using the Sentry SDK with Turbopack (\`next dev --turbo\`). The Sentry SDK is compatible with Turbopack on Next.js version 15.3.0 or later. You are currently on ${nextJsVersion}. Please upgrade to a newer Next.js version to use the Sentry SDK with Turbopack. Note that the SDK will continue to work for non-Turbopack production builds. This warning is only about dev-mode.`,
+        );
+      } else if (process.env.NODE_ENV === 'production') {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[@sentry/nextjs] WARNING: You are using the Sentry SDK with Turbopack (\`next build --turbo\`). The Sentry SDK is compatible with Turbopack on Next.js version 15.3.0 or later. You are currently on ${nextJsVersion}. Please upgrade to a newer Next.js version to use the Sentry SDK with Turbopack. Note that as Turbopack is still experimental for production builds, some of the Sentry SDK features like source maps will not work. Follow this issue for progress on Sentry + Turbopack: https://github.com/getsentry/sentry-javascript/issues/8105.`,
+        );
+      }
+    }
+  } else {
+    // If we cannot detect a Next.js version for whatever reason, the sensible default is still to set the `experimental.instrumentationHook`.
+    incomingUserNextConfigObject.experimental = {
+      clientInstrumentationHook: true,
+      ...incomingUserNextConfigObject.experimental,
+    };
   }
 
-  const releaseName = userSentryOptions.release?.name ?? getSentryRelease() ?? getGitRevision();
+  if (incomingUserNextConfigObject.experimental?.clientInstrumentationHook === false) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[@sentry/nextjs] WARNING: You set the `experimental.clientInstrumentationHook` option to `false`. Note that Sentry will not be initialized if you did not set it up inside `instrumentation-client.(js|ts)`.',
+    );
+  }
 
   // Used for turbopack. Runs sourcemaps upload & release management via the `afterProductionBuild` hook.
   if (incomingUserNextConfigObject.afterProductionBuild === undefined) {
@@ -269,8 +312,11 @@ function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: s
   };
 }
 
-// TODO: For Turbopack we need to pass the release name here and pick it up in the SDK
-function setUpBuildTimeVariables(userNextConfig: NextConfigObject, userSentryOptions: SentryBuildOptions): void {
+function setUpBuildTimeVariables(
+  userNextConfig: NextConfigObject,
+  userSentryOptions: SentryBuildOptions,
+  releaseName: string | undefined,
+): void {
   const assetPrefix = userNextConfig.assetPrefix || userNextConfig.basePath || '';
   const basePath = userNextConfig.basePath ?? '';
   const rewritesTunnelPath =
@@ -311,6 +357,10 @@ function setUpBuildTimeVariables(userNextConfig: NextConfigObject, userSentryOpt
 
   if (userSentryOptions._experimental?.thirdPartyOriginStackFrames) {
     buildTimeVariables._experimentalThirdPartyOriginStackFrames = 'true';
+  }
+
+  if (releaseName) {
+    buildTimeVariables._sentryRelease = releaseName;
   }
 
   if (typeof userNextConfig.env === 'object') {

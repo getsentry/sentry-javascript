@@ -1,33 +1,38 @@
 import { GenericPoolInstrumentation } from '@opentelemetry/instrumentation-generic-pool';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, defineIntegration, spanToJSON } from '@sentry/core';
 import type { IntegrationFn } from '@sentry/core';
-import { generateInstrumentOnce } from '../../otel/instrument';
+import { generateInstrumentOnce, instrumentWhenWrapped } from '../../otel/instrument';
 
 const INTEGRATION_NAME = 'GenericPool';
 
 export const instrumentGenericPool = generateInstrumentOnce(INTEGRATION_NAME, () => new GenericPoolInstrumentation({}));
 
 const _genericPoolIntegration = (() => {
+  let instrumentationWrappedCallback: undefined | ((callback: () => void) => void);
+
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
-      instrumentGenericPool();
+      const instrumentation = instrumentGenericPool();
+      instrumentationWrappedCallback = instrumentWhenWrapped(instrumentation);
     },
 
     setup(client) {
-      client.on('spanStart', span => {
-        const spanJSON = spanToJSON(span);
+      instrumentationWrappedCallback?.(() =>
+        client.on('spanStart', span => {
+          const spanJSON = spanToJSON(span);
 
-        const spanDescription = spanJSON.description;
+          const spanDescription = spanJSON.description;
 
-        // typo in emitted span for version <= 0.38.0 of @opentelemetry/instrumentation-generic-pool
-        const isGenericPoolSpan =
-          spanDescription === 'generic-pool.aquire' || spanDescription === 'generic-pool.acquire';
+          // typo in emitted span for version <= 0.38.0 of @opentelemetry/instrumentation-generic-pool
+          const isGenericPoolSpan =
+            spanDescription === 'generic-pool.aquire' || spanDescription === 'generic-pool.acquire';
 
-        if (isGenericPoolSpan) {
-          span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.db.otel.generic_pool');
-        }
-      });
+          if (isGenericPoolSpan) {
+            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.db.otel.generic_pool');
+          }
+        }),
+      );
     },
   };
 }) satisfies IntegrationFn;

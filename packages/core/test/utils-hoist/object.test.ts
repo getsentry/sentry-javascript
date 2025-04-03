@@ -1,5 +1,5 @@
 /**
- * @jest-environment jsdom
+ * @vitest-environment jsdom
  */
 
 import type { WrappedFunction } from '../../src/types-hoist';
@@ -169,6 +169,7 @@ describe('extractExceptionKeysForMessage()', () => {
   });
 });
 
+/* eslint-disable deprecation/deprecation */
 describe('dropUndefinedKeys()', () => {
   test('simple case', () => {
     expect(
@@ -314,6 +315,7 @@ describe('dropUndefinedKeys()', () => {
     expect(droppedChicken.lays[0] === droppedChicken).toBe(true);
   });
 });
+/* eslint-enable deprecation/deprecation */
 
 describe('objectify()', () => {
   describe('stringifies nullish values', () => {
@@ -329,17 +331,10 @@ describe('objectify()', () => {
   });
 
   describe('wraps other primitives with their respective object wrapper classes', () => {
-    // TODO: There's currently a bug in Jest - if you give it the `Boolean` class, it runs `typeof received ===
-    // 'boolean'` but not `received instanceof Boolean` (the way it correctly does for other primitive wrappers, like
-    // `Number` and `String). (See https://github.com/facebook/jest/pull/11976.) Once that is fixed and we upgrade jest,
-    // we can comment the test below back in. (The tests for symbols and bigints are working only because our current
-    // version of jest is sufficiently old that they're not even considered in the relevant check and just fall to the
-    // default `instanceof` check jest uses for all unknown classes.)
-
     it.each([
       ['number', Number, 1121],
       ['string', String, 'Dogs are great!'],
-      // ["boolean", Boolean, true],
+      ['boolean', Boolean, true],
       ['symbol', Symbol, Symbol('Maisey')],
     ])('%s', (_caseName, wrapperClass, primitive) => {
       const objectifiedPrimitive = objectify(primitive);

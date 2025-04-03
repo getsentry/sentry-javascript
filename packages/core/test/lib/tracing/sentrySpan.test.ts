@@ -75,26 +75,6 @@ describe('SentrySpan', () => {
       expect(serialized).toHaveProperty('span_id', 'd');
       expect(serialized).toHaveProperty('trace_id', 'c');
     });
-
-    test('should drop all `undefined` values', () => {
-      const spanA = new SentrySpan({ traceId: 'a', spanId: 'b' });
-      const spanB = new SentrySpan({
-        parentSpanId: spanA.spanContext().spanId,
-        spanId: 'd',
-        traceId: 'c',
-      });
-      const serialized = spanToJSON(spanB);
-      expect(serialized).toStrictEqual({
-        start_timestamp: expect.any(Number),
-        parent_span_id: 'b',
-        span_id: 'd',
-        trace_id: 'c',
-        origin: 'manual',
-        data: {
-          'sentry.origin': 'manual',
-        },
-      });
-    });
   });
 
   describe('end', () => {

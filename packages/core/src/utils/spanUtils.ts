@@ -21,7 +21,7 @@ import type {
 } from '../types-hoist';
 import type { SpanLink, SpanLinkJSON } from '../types-hoist/link';
 import { consoleSandbox } from '../utils-hoist/logger';
-import { addNonEnumerableProperty, dropUndefinedKeys } from '../utils-hoist/object';
+import { addNonEnumerableProperty } from '../utils-hoist/object';
 import { generateSpanId } from '../utils-hoist/propagationContext';
 import { timestampInSeconds } from '../utils-hoist/time';
 import { generateSentryTraceHeader } from '../utils-hoist/tracing';
@@ -42,7 +42,7 @@ export function spanToTransactionTraceContext(span: Span): TraceContext {
   const { spanId: span_id, traceId: trace_id } = span.spanContext();
   const { data, op, parent_span_id, status, origin, links } = spanToJSON(span);
 
-  return dropUndefinedKeys({
+  return {
     parent_span_id,
     span_id,
     trace_id,
@@ -51,7 +51,7 @@ export function spanToTransactionTraceContext(span: Span): TraceContext {
     status,
     origin,
     links,
-  });
+  };
 }
 
 /**
@@ -67,11 +67,11 @@ export function spanToTraceContext(span: Span): TraceContext {
 
   const span_id = isRemote ? scope?.getPropagationContext().propagationSpanId || generateSpanId() : spanId;
 
-  return dropUndefinedKeys({
+  return {
     parent_span_id,
     span_id,
     trace_id,
-  });
+  };
 }
 
 /**
@@ -147,7 +147,7 @@ export function spanToJSON(span: Span): SpanJSON {
   if (spanIsOpenTelemetrySdkTraceBaseSpan(span)) {
     const { attributes, startTime, name, endTime, parentSpanId, status, links } = span;
 
-    return dropUndefinedKeys({
+    return {
       span_id,
       trace_id,
       data: attributes,
@@ -160,7 +160,7 @@ export function spanToJSON(span: Span): SpanJSON {
       op: attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP],
       origin: attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined,
       links: convertSpanLinksForEnvelope(links),
-    });
+    };
   }
 
   // Finally, at least we have `spanContext()`....

@@ -4,6 +4,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   applySdkMetadata,
+  getGlobalScope,
   getRootSpan,
   registerSpanErrorInstrumentation,
   spanToJSON,
@@ -25,6 +26,7 @@ export type EdgeOptions = VercelEdgeOptions;
 
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryRewriteFramesDistDir?: string;
+  _sentryRelease?: string;
 };
 
 /** Inits the Sentry NextJS SDK on the Edge Runtime. */
@@ -47,10 +49,11 @@ export function init(options: VercelEdgeOptions = {}): void {
 
   const opts = {
     defaultIntegrations: customDefaultIntegrations,
+    release: process.env._sentryRelease || globalWithInjectedValues._sentryRelease,
     ...options,
   };
 
-  applySdkMetadata(opts, 'nextjs');
+  applySdkMetadata(opts, 'nextjs', ['nextjs', 'vercel-edge']);
 
   const client = vercelEdgeInit(opts);
 
@@ -90,6 +93,16 @@ export function init(options: VercelEdgeOptions = {}): void {
       vercelWaitUntil(flushSafelyWithTimeout());
     }
   });
+
+  try {
+    // @ts-expect-error `process.turbopack` is a magic string that will be replaced by Next.js
+    if (process.turbopack) {
+      getGlobalScope().setTag('turbopack', true);
+    }
+  } catch {
+    // Noop
+    // The statement above can throw because process is not defined on the client
+  }
 }
 
 /**

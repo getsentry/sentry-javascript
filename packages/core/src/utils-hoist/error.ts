@@ -1,6 +1,9 @@
 import type { ConsoleLevel } from '../types-hoist';
 
-/** An error emitted by Sentry SDKs and related utilities. */
+/**
+ * An error emitted by Sentry SDKs and related utilities.
+ * @deprecated This class is no longer used and will be removed in a future version. Use `Error` instead.
+ */
 export class SentryError extends Error {
   public logLevel: ConsoleLevel;
 

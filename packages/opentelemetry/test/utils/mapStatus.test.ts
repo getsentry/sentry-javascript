@@ -81,7 +81,7 @@ describe('mapStatus', () => {
     expect(actual).toEqual(expected);
   });
 
-  it('works with string SEMATTRS_HTTP_STATUS_CODE xxx', () => {
+  it('works with string SEMATTRS_HTTP_STATUS_CODE', () => {
     const span = createSpan('test-span');
 
     span.setStatus({ code: 0 }); // UNSET

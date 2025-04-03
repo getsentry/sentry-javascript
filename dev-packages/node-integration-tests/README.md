@@ -23,7 +23,7 @@ folders containing test scenarios and assertions.
 `runServer` also accepts an optional `scenarioPath` argument for non-standard usage.
 
 `test.ts` is required for each test case, and contains the server runner logic, request interceptors for Sentry
-requests, and assertions. Test server, interceptors and assertions are all run on the same Jest thread.
+requests, and assertions. Test server, interceptors and assertions are all run on the same Vitest thread.
 
 ### Utilities
 
@@ -40,12 +40,10 @@ Tests can be run locally with:
 
 `yarn test`
 
-To run tests with Jest's watch mode:
+To run tests with Vitest's watch mode:
 
 `yarn test:watch`
 
 To filter tests by their title:
 
 `yarn test -t "set different properties of a scope"`
-
-You can refer to [Jest documentation](https://jestjs.io/docs/cli) for other CLI options.

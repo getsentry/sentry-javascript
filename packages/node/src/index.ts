@@ -130,6 +130,7 @@ export {
   updateSpanName,
   zodErrorsIntegration,
   profiler,
+  consoleLoggingIntegration,
 } from '@sentry/core';
 
 export type {
@@ -150,3 +151,7 @@ export type {
   User,
   Span,
 } from '@sentry/core';
+
+import * as logger from './log';
+
+export { logger };

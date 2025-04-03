@@ -2,12 +2,13 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   _INTERNAL_flushLogsBuffer,
   _INTERNAL_getLogBuffer,
-  captureLog,
+  _INTERNAL_captureLog,
   logAttributeToSerializedLogAttribute,
-} from '../../../src/logs';
+} from '../../../src/logs/exports';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 import * as loggerModule from '../../../src/utils-hoist/logger';
-import { Scope } from '../../../src';
+import { Scope, fmt } from '../../../src';
+import type { Log } from '../../../src/types-hoist/log';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 
@@ -71,12 +72,12 @@ describe('logAttributeToSerializedLogAttribute', () => {
   });
 });
 
-describe('captureLog', () => {
+describe('_INTERNAL_captureLog', () => {
   it('captures and sends logs', () => {
     const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableLogs: true } });
     const client = new TestClient(options);
 
-    captureLog({ level: 'info', message: 'test log message' }, undefined, client);
+    _INTERNAL_captureLog({ level: 'info', message: 'test log message' }, client, undefined);
     expect(_INTERNAL_getLogBuffer(client)).toHaveLength(1);
     expect(_INTERNAL_getLogBuffer(client)?.[0]).toEqual(
       expect.objectContaining({
@@ -94,7 +95,7 @@ describe('captureLog', () => {
     const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
     const client = new TestClient(options);
 
-    captureLog({ level: 'info', message: 'test log message' }, undefined, client);
+    _INTERNAL_captureLog({ level: 'info', message: 'test log message' }, client, undefined);
 
     expect(logWarnSpy).toHaveBeenCalledWith('logging option not enabled, log will not be captured.');
     expect(_INTERNAL_getLogBuffer(client)).toBeUndefined();
@@ -111,11 +112,12 @@ describe('captureLog', () => {
       sampleRand: 1,
     });
 
-    captureLog({ level: 'error', message: 'test log with trace' }, scope, client);
+    _INTERNAL_captureLog({ level: 'error', message: 'test log with trace' }, client, scope);
 
     expect(_INTERNAL_getLogBuffer(client)?.[0]).toEqual(
       expect.objectContaining({
         traceId: '3d9355f71e9c444b81161599adac6e29',
+        severityNumber: 17, // error level maps to 17
       }),
     );
   });
@@ -129,7 +131,7 @@ describe('captureLog', () => {
     });
     const client = new TestClient(options);
 
-    captureLog({ level: 'info', message: 'test log with metadata' }, undefined, client);
+    _INTERNAL_captureLog({ level: 'info', message: 'test log with metadata' }, client, undefined);
 
     const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
     expect(logAttributes).toEqual(
@@ -144,14 +146,14 @@ describe('captureLog', () => {
     const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableLogs: true } });
     const client = new TestClient(options);
 
-    captureLog(
+    _INTERNAL_captureLog(
       {
         level: 'info',
         message: 'test log with custom attributes',
         attributes: { userId: '123', component: 'auth' },
       },
-      undefined,
       client,
+      undefined,
     );
 
     const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
@@ -169,13 +171,13 @@ describe('captureLog', () => {
 
     // Fill the buffer to max size (100 is the MAX_LOG_BUFFER_SIZE constant in client.ts)
     for (let i = 0; i < 100; i++) {
-      captureLog({ level: 'info', message: `log message ${i}` }, undefined, client);
+      _INTERNAL_captureLog({ level: 'info', message: `log message ${i}` }, client, undefined);
     }
 
     expect(_INTERNAL_getLogBuffer(client)).toHaveLength(100);
 
     // Add one more to trigger flush
-    captureLog({ level: 'info', message: 'trigger flush' }, undefined, client);
+    _INTERNAL_captureLog({ level: 'info', message: 'trigger flush' }, client, undefined);
 
     expect(_INTERNAL_getLogBuffer(client)).toEqual([]);
   });
@@ -186,5 +188,122 @@ describe('captureLog', () => {
     const mockSendEnvelope = vi.spyOn(client as any, 'sendEnvelope').mockImplementation(() => {});
     _INTERNAL_flushLogsBuffer(client);
     expect(mockSendEnvelope).not.toHaveBeenCalled();
+  });
+
+  it('handles parameterized strings correctly', () => {
+    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableLogs: true } });
+    const client = new TestClient(options);
+
+    const parameterizedMessage = fmt`Hello ${'John'}, welcome to ${'Sentry'}`;
+
+    _INTERNAL_captureLog({ level: 'info', message: parameterizedMessage }, client, undefined);
+
+    const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+    expect(logAttributes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          key: 'sentry.message.template',
+          value: { stringValue: 'Hello %s, welcome to %s' },
+        }),
+        expect.objectContaining({
+          key: 'sentry.message.param.0',
+          value: { stringValue: 'John' },
+        }),
+        expect.objectContaining({
+          key: 'sentry.message.param.1',
+          value: { stringValue: 'Sentry' },
+        }),
+      ]),
+    );
+  });
+
+  it('processes logs through beforeSendLog when provided', () => {
+    const beforeSendLog = vi.fn().mockImplementation(log => ({
+      ...log,
+      message: `Modified: ${log.message}`,
+      attributes: { ...log.attributes, processed: true },
+    }));
+
+    const options = getDefaultTestClientOptions({
+      dsn: PUBLIC_DSN,
+      _experiments: { enableLogs: true, beforeSendLog },
+    });
+    const client = new TestClient(options);
+
+    _INTERNAL_captureLog(
+      {
+        level: 'info',
+        message: 'original message',
+        attributes: { original: true },
+      },
+      client,
+      undefined,
+    );
+
+    expect(beforeSendLog).toHaveBeenCalledWith({
+      level: 'info',
+      message: 'original message',
+      attributes: { original: true },
+    });
+
+    const logBuffer = _INTERNAL_getLogBuffer(client);
+    expect(logBuffer).toBeDefined();
+    expect(logBuffer?.[0]).toEqual(
+      expect.objectContaining({
+        body: {
+          stringValue: 'Modified: original message',
+        },
+        attributes: expect.arrayContaining([
+          expect.objectContaining({ key: 'processed', value: { boolValue: true } }),
+          expect.objectContaining({ key: 'original', value: { boolValue: true } }),
+        ]),
+      }),
+    );
+  });
+
+  it('drops logs when beforeSendLog returns null', () => {
+    const beforeSendLog = vi.fn().mockReturnValue(null);
+    const recordDroppedEventSpy = vi.spyOn(TestClient.prototype, 'recordDroppedEvent');
+    const loggerWarnSpy = vi.spyOn(loggerModule.logger, 'warn').mockImplementation(() => undefined);
+
+    const options = getDefaultTestClientOptions({
+      dsn: PUBLIC_DSN,
+      _experiments: { enableLogs: true, beforeSendLog },
+    });
+    const client = new TestClient(options);
+
+    _INTERNAL_captureLog(
+      {
+        level: 'info',
+        message: 'test message',
+      },
+      client,
+      undefined,
+    );
+
+    expect(beforeSendLog).toHaveBeenCalled();
+    expect(recordDroppedEventSpy).toHaveBeenCalledWith('before_send', 'log_item', 1);
+    expect(loggerWarnSpy).toHaveBeenCalledWith('beforeSendLog returned null, log will not be captured.');
+    expect(_INTERNAL_getLogBuffer(client)).toBeUndefined();
+
+    recordDroppedEventSpy.mockRestore();
+    loggerWarnSpy.mockRestore();
+  });
+
+  it('emits beforeCaptureLog and afterCaptureLog events', () => {
+    const beforeCaptureLogSpy = vi.spyOn(TestClient.prototype, 'emit');
+    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableLogs: true } });
+    const client = new TestClient(options);
+
+    const log: Log = {
+      level: 'info',
+      message: 'test message',
+    };
+
+    _INTERNAL_captureLog(log, client, undefined);
+
+    expect(beforeCaptureLogSpy).toHaveBeenCalledWith('beforeCaptureLog', log);
+    expect(beforeCaptureLogSpy).toHaveBeenCalledWith('afterCaptureLog', log);
+    beforeCaptureLogSpy.mockRestore();
   });
 });

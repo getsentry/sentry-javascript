@@ -14,9 +14,8 @@ import {
   forEachEnvelopeItem,
   serializeEnvelope,
 } from '../utils-hoist/envelope';
-import { SentryError } from '../utils-hoist/error';
 import { logger } from '../utils-hoist/logger';
-import { type PromiseBuffer, makePromiseBuffer } from '../utils-hoist/promisebuffer';
+import { type PromiseBuffer, makePromiseBuffer, SENTRY_BUFFER_FULL_ERROR } from '../utils-hoist/promisebuffer';
 import { type RateLimits, isRateLimited, updateRateLimits } from '../utils-hoist/ratelimit';
 import { resolvedSyncPromise } from '../utils-hoist/syncpromise';
 
@@ -85,7 +84,7 @@ export function createTransport(
     return buffer.add(requestTask).then(
       result => result,
       error => {
-        if (error instanceof SentryError) {
+        if (error === SENTRY_BUFFER_FULL_ERROR) {
           DEBUG_BUILD && logger.error('Skipped sending event because buffer is full.');
           recordEnvelopeLoss('queue_overflow');
           return resolvedSyncPromise({});

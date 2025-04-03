@@ -53,3 +53,5 @@ export declare function flush(timeout?: number | undefined): PromiseLike<boolean
 export declare function lastEventId(): string | undefined;
 
 export declare function trackComponent(options: clientSdk.TrackingOptions): ReturnType<typeof clientSdk.trackComponent>;
+
+export declare const logger: typeof clientSdk.logger | typeof serverSdk.logger;

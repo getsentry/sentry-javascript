@@ -1,6 +1,5 @@
 import { SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME, SEMANTIC_ATTRIBUTE_PROFILE_ID } from '../semanticAttributes';
 import type { SpanJSON, TransactionEvent } from '../types-hoist';
-import { dropUndefinedKeys } from '../utils-hoist';
 
 /**
  * Converts a transaction event to a span JSON object.
@@ -8,7 +7,7 @@ import { dropUndefinedKeys } from '../utils-hoist';
 export function convertTransactionEventToSpanJson(event: TransactionEvent): SpanJSON {
   const { trace_id, parent_span_id, span_id, status, origin, data, op } = event.contexts?.trace ?? {};
 
-  return dropUndefinedKeys({
+  return {
     data: data ?? {},
     description: event.transaction,
     op,
@@ -23,14 +22,14 @@ export function convertTransactionEventToSpanJson(event: TransactionEvent): Span
     exclusive_time: data?.[SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME] as number | undefined,
     measurements: event.measurements,
     is_segment: true,
-  });
+  };
 }
 
 /**
  * Converts a span JSON object to a transaction event.
  */
 export function convertSpanJsonToTransactionEvent(span: SpanJSON): TransactionEvent {
-  const event: TransactionEvent = {
+  return {
     type: 'transaction',
     timestamp: span.timestamp,
     start_timestamp: span.start_timestamp,
@@ -52,6 +51,4 @@ export function convertSpanJsonToTransactionEvent(span: SpanJSON): TransactionEv
     },
     measurements: span.measurements,
   };
-
-  return dropUndefinedKeys(event);
 }

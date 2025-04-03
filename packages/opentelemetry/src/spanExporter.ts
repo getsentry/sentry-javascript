@@ -19,7 +19,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   captureEvent,
-  dropUndefinedKeys,
   getCapturedScopesOnSpan,
   getDynamicSamplingContextFromSpan,
   getStatusMessage,
@@ -274,7 +273,7 @@ export function createTransactionForOtelSpan(span: ReadableSpan): TransactionEve
   const statusCode = attributes[ATTR_HTTP_RESPONSE_STATUS_CODE];
   const responseContext = typeof statusCode === 'number' ? { response: { status_code: statusCode } } : undefined;
 
-  const transactionEvent: TransactionEvent = dropUndefinedKeys({
+  const transactionEvent: TransactionEvent = {
     contexts: {
       trace: traceContext,
       otel: {
@@ -298,7 +297,7 @@ export function createTransactionForOtelSpan(span: ReadableSpan): TransactionEve
         source,
       },
     }),
-  });
+  };
 
   return transactionEvent;
 }
@@ -335,7 +334,7 @@ function createAndFinishSpanForOtelSpan(node: SpanNode, spans: SpanJSON[], sentS
 
   const status = mapStatus(span);
 
-  const spanJSON: SpanJSON = dropUndefinedKeys({
+  const spanJSON: SpanJSON = {
     span_id,
     trace_id,
     data: allData,
@@ -349,7 +348,7 @@ function createAndFinishSpanForOtelSpan(node: SpanNode, spans: SpanJSON[], sentS
     origin,
     measurements: timedEventsToMeasurements(span.events),
     links: convertSpanLinksForEnvelope(links),
-  });
+  };
 
   spans.push(spanJSON);
 

@@ -113,6 +113,8 @@ export {
   amqplibIntegration,
   childProcessIntegration,
   vercelAIIntegration,
+  logger,
+  consoleLoggingIntegration,
 } from '@sentry/node';
 
 export {

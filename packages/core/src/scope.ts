@@ -24,6 +24,7 @@ import { isPlainObject } from './utils-hoist/is';
 import { logger } from './utils-hoist/logger';
 import { uuid4 } from './utils-hoist/misc';
 import { generateTraceId } from './utils-hoist/propagationContext';
+import { truncate } from './utils-hoist/string';
 import { dateTimestampInSeconds } from './utils-hoist/time';
 import { merge } from './utils/merge';
 import { _getSpanForScope, _setSpanForScope } from './utils/spanOnScope';
@@ -474,9 +475,11 @@ export class Scope {
       return this;
     }
 
-    const mergedBreadcrumb = {
+    const mergedBreadcrumb: Breadcrumb = {
       timestamp: dateTimestampInSeconds(),
       ...breadcrumb,
+      // Breadcrumb messages can theoretically be infinitely large and they're held in memory so we truncate them not to leak (too much) memory
+      message: breadcrumb.message ? truncate(breadcrumb.message, 2048) : breadcrumb.message,
     };
 
     this._breadcrumbs.push(mergedBreadcrumb);

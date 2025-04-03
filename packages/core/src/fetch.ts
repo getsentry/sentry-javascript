@@ -2,10 +2,10 @@ import { getClient } from './currentScopes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from './semanticAttributes';
 import { SPAN_STATUS_ERROR, setHttpStatus, startInactiveSpan } from './tracing';
 import { SentryNonRecordingSpan } from './tracing/sentryNonRecordingSpan';
-import type { FetchBreadcrumbHint, HandlerDataFetch, Span, SpanOrigin } from './types-hoist';
+import type { FetchBreadcrumbHint, HandlerDataFetch, Span, SpanAttributes, SpanOrigin } from './types-hoist';
 import { SENTRY_BAGGAGE_KEY_PREFIX } from './utils-hoist/baggage';
 import { isInstanceOf } from './utils-hoist/is';
-import { parseUrl, stripUrlQueryAndFragment } from './utils-hoist/url';
+import { getSanitizedUrlStringFromUrlObject, isURLObjectRelative, parseStringToURLObject } from './utils-hoist/url';
 import { hasSpansEnabled } from './utils/hasSpansEnabled';
 import { getActiveSpan } from './utils/spanUtils';
 import { getTraceData } from './utils/traceData';
@@ -53,27 +53,11 @@ export function instrumentFetchRequest(
     return undefined;
   }
 
-  const fullUrl = getFullURL(url);
-  const parsedUrl = fullUrl ? parseUrl(fullUrl) : parseUrl(url);
-
   const hasParent = !!getActiveSpan();
 
   const span =
     shouldCreateSpanResult && hasParent
-      ? startInactiveSpan({
-          name: `${method} ${stripUrlQueryAndFragment(url)}`,
-          attributes: {
-            url,
-            type: 'fetch',
-            'http.method': method,
-            'http.url': fullUrl,
-            'server.address': parsedUrl?.host,
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
-            ...(parsedUrl?.search && { 'http.query': parsedUrl?.search }),
-            ...(parsedUrl?.hash && { 'http.fragment': parsedUrl?.hash }),
-          },
-        })
+      ? startInactiveSpan(getSpanStartOptions(url, method, spanOrigin))
       : new SentryNonRecordingSpan();
 
   handlerData.fetchData.__span = span.spanContext().spanId;
@@ -215,15 +199,6 @@ function _addTracingHeadersToFetchRequest(
   }
 }
 
-function getFullURL(url: string): string | undefined {
-  try {
-    const parsed = new URL(url);
-    return parsed.href;
-  } catch {
-    return undefined;
-  }
-}
-
 function endSpan(span: Span, handlerData: HandlerDataFetch): void {
   if (handlerData.response) {
     setHttpStatus(span, handlerData.response.status);
@@ -258,4 +233,44 @@ function isRequest(request: unknown): request is Request {
 
 function isHeaders(headers: unknown): headers is Headers {
   return typeof Headers !== 'undefined' && isInstanceOf(headers, Headers);
+}
+
+function getSpanStartOptions(
+  url: string,
+  method: string,
+  spanOrigin: SpanOrigin,
+): Parameters<typeof startInactiveSpan>[0] {
+  const parsedUrl = parseStringToURLObject(url);
+  return {
+    name: parsedUrl ? `${method} ${getSanitizedUrlStringFromUrlObject(parsedUrl)}` : method,
+    attributes: getFetchSpanAttributes(url, parsedUrl, method, spanOrigin),
+  };
+}
+
+function getFetchSpanAttributes(
+  url: string,
+  parsedUrl: ReturnType<typeof parseStringToURLObject>,
+  method: string,
+  spanOrigin: SpanOrigin,
+): SpanAttributes {
+  const attributes: SpanAttributes = {
+    url,
+    type: 'fetch',
+    'http.method': method,
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
+    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
+  };
+  if (parsedUrl) {
+    if (!isURLObjectRelative(parsedUrl)) {
+      attributes['http.url'] = parsedUrl.href;
+      attributes['server.address'] = parsedUrl.host;
+    }
+    if (parsedUrl.search) {
+      attributes['http.query'] = parsedUrl.search;
+    }
+    if (parsedUrl.hash) {
+      attributes['http.fragment'] = parsedUrl.hash;
+    }
+  }
+  return attributes;
 }

@@ -5,7 +5,7 @@ import { DEBUG_BUILD } from '../debug-build';
 import { SEVERITY_TEXT_TO_SEVERITY_NUMBER } from './constants';
 import type { SerializedLogAttribute, SerializedOtelLog } from '../types-hoist';
 import type { Log } from '../types-hoist/log';
-import { logger } from '../utils-hoist';
+import { isParameterizedString, logger } from '../utils-hoist';
 import { _getSpanForScope } from '../utils/spanOnScope';
 import { createOtelLogEnvelope } from './envelope';
 
@@ -41,7 +41,7 @@ export function logAttributeToSerializedLogAttribute(key: string, value: unknown
       let stringValue = '';
       try {
         stringValue = JSON.stringify(value) ?? '';
-      } catch (_) {
+      } catch {
         // Do nothing
       }
       return {
@@ -62,15 +62,29 @@ export function logAttributeToSerializedLogAttribute(key: string, value: unknown
  * @experimental This method will experience breaking changes. This is not yet part of
  * the stable Sentry SDK API and can be changed or removed without warning.
  */
-export function captureLog(log: Log, scope = getCurrentScope(), client = getClient()): void {
+export function _INTERNAL_captureLog(
+  beforeLog: Log,
+  client: Client | undefined = getClient(),
+  scope = getCurrentScope(),
+): void {
   if (!client) {
     DEBUG_BUILD && logger.warn('No client available to capture log.');
     return;
   }
 
   const { _experiments, release, environment } = client.getOptions();
-  if (!_experiments?.enableLogs) {
+  const { enableLogs = false, beforeSendLog } = _experiments ?? {};
+  if (!enableLogs) {
     DEBUG_BUILD && logger.warn('logging option not enabled, log will not be captured.');
+    return;
+  }
+
+  client.emit('beforeCaptureLog', beforeLog);
+
+  const log = beforeSendLog ? beforeSendLog(beforeLog) : beforeLog;
+  if (!log) {
+    client.recordDroppedEvent('before_send', 'log_item', 1);
+    DEBUG_BUILD && logger.warn('beforeSendLog returned null, log will not be captured.');
     return;
   }
 
@@ -88,6 +102,14 @@ export function captureLog(log: Log, scope = getCurrentScope(), client = getClie
 
   if (environment) {
     logAttributes.environment = environment;
+  }
+
+  if (isParameterizedString(message)) {
+    const { __sentry_template_string__, __sentry_template_values__ = [] } = message;
+    logAttributes['sentry.message.template'] = __sentry_template_string__;
+    __sentry_template_values__.forEach((param, index) => {
+      logAttributes[`sentry.message.param.${index}`] = param;
+    });
   }
 
   const span = _getSpanForScope(scope);
@@ -110,14 +132,14 @@ export function captureLog(log: Log, scope = getCurrentScope(), client = getClie
   const logBuffer = CLIENT_TO_LOG_BUFFER_MAP.get(client);
   if (logBuffer === undefined) {
     CLIENT_TO_LOG_BUFFER_MAP.set(client, [serializedLog]);
-    // Every time we initialize a new log buffer, we start a new interval to flush the buffer
-    return;
+  } else {
+    logBuffer.push(serializedLog);
+    if (logBuffer.length > MAX_LOG_BUFFER_SIZE) {
+      _INTERNAL_flushLogsBuffer(client, logBuffer);
+    }
   }
 
-  logBuffer.push(serializedLog);
-  if (logBuffer.length > MAX_LOG_BUFFER_SIZE) {
-    _INTERNAL_flushLogsBuffer(client, logBuffer);
-  }
+  client.emit('afterCaptureLog', log);
 }
 
 /**
@@ -125,6 +147,9 @@ export function captureLog(log: Log, scope = getCurrentScope(), client = getClie
  *
  * @param client - A client.
  * @param maybeLogBuffer - A log buffer. Uses the log buffer for the given client if not provided.
+ *
+ * @experimental This method will experience breaking changes. This is not yet part of
+ * the stable Sentry SDK API and can be changed or removed without warning.
  */
 export function _INTERNAL_flushLogsBuffer(client: Client, maybeLogBuffer?: Array<SerializedOtelLog>): void {
   const logBuffer = maybeLogBuffer ?? CLIENT_TO_LOG_BUFFER_MAP.get(client) ?? [];

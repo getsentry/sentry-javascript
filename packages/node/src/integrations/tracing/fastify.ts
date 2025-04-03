@@ -12,25 +12,80 @@ import type { IntegrationFn, Span } from '@sentry/core';
 import { generateInstrumentOnce } from '../../otel/instrument';
 import { ensureIsWrapped } from '../../utils/ensureIsWrapped';
 
-// We inline the types we care about here
-interface Fastify {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  register: (plugin: any) => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  addHook: (hook: string, handler: (request: any, reply: any, error: Error) => void) => void;
-}
-
 /**
  * Minimal request type containing properties around route information.
  * Works for Fastify 3, 4 and presumably 5.
+ *
+ * Based on https://github.com/fastify/fastify/blob/ce3811f5f718be278bbcd4392c615d64230065a6/types/request.d.ts
  */
-interface FastifyRequestRouteInfo {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+interface MinimalFastifyRequest extends Record<string, any> {
   method?: string;
   // since fastify@4.10.0
   routeOptions?: {
     url?: string;
   };
   routerPath?: string;
+}
+
+/**
+ * Minimal reply type containing properties needed for error handling.
+ *
+ * Based on https://github.com/fastify/fastify/blob/ce3811f5f718be278bbcd4392c615d64230065a6/types/reply.d.ts
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+interface MinimalFastifyReply extends Record<string, any> {
+  statusCode: number;
+}
+
+// We inline the types we care about here
+interface Fastify {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  register: (plugin: any) => void;
+  addHook: (hook: string, handler: (...params: unknown[]) => void) => void;
+}
+
+interface FastifyWithHooks extends Omit<Fastify, 'addHook'> {
+  addHook(
+    hook: 'onError',
+    handler: (request: MinimalFastifyRequest, reply: MinimalFastifyReply, error: Error) => void,
+  ): void;
+  addHook(hook: 'onRequest', handler: (request: MinimalFastifyRequest, reply: MinimalFastifyReply) => void): void;
+}
+
+interface FastifyHandlerOptions {
+  /**
+   * Callback method deciding whether error should be captured and sent to Sentry
+   *
+   * @param error Captured Fastify error
+   * @param request Fastify request (or any object containing at least method, routeOptions.url, and routerPath)
+   * @param reply Fastify reply (or any object containing at least statusCode)
+   *
+   * @example
+   *
+   * ```javascript
+   * setupFastifyErrorHandler(app, {
+   *   shouldHandleError(_error, _request, reply) {
+   *     return reply.statusCode >= 400;
+   *   },
+   * });
+   * ```
+   *
+   * If using TypeScript, you can cast the request and reply to get full type safety.
+   *
+   * ```typescript
+   * import type { FastifyRequest, FastifyReply } from 'fastify';
+   *
+   * setupFastifyErrorHandler(app, {
+   *   shouldHandleError(error, minimalRequest, minimalReply) {
+   *     const request = minimalRequest as FastifyRequest;
+   *     const reply = minimalReply as FastifyReply;
+   *     return reply.statusCode >= 500;
+   *   },
+   * });
+   * ```
+   */
+  shouldHandleError: (error: Error, request: MinimalFastifyRequest, reply: MinimalFastifyReply) => boolean;
 }
 
 const INTEGRATION_NAME = 'Fastify';
@@ -74,9 +129,21 @@ const _fastifyIntegration = (() => {
 export const fastifyIntegration = defineIntegration(_fastifyIntegration);
 
 /**
+ * Default function to determine if an error should be sent to Sentry
+ *
+ * 3xx and 4xx errors are not sent by default.
+ */
+function defaultShouldHandleError(_error: Error, _request: MinimalFastifyRequest, reply: MinimalFastifyReply): boolean {
+  const statusCode = reply.statusCode;
+  // 3xx and 4xx errors are not sent by default.
+  return statusCode >= 500 || statusCode <= 299;
+}
+
+/**
  * Add an Fastify error handler to capture errors to Sentry.
  *
  * @param fastify The Fastify instance to which to add the error handler
+ * @param options Configuration options for the handler
  *
  * @example
  * ```javascript
@@ -92,23 +159,25 @@ export const fastifyIntegration = defineIntegration(_fastifyIntegration);
  * app.listen({ port: 3000 });
  * ```
  */
-export function setupFastifyErrorHandler(fastify: Fastify): void {
+export function setupFastifyErrorHandler(fastify: Fastify, options?: Partial<FastifyHandlerOptions>): void {
+  const shouldHandleError = options?.shouldHandleError || defaultShouldHandleError;
+
   const plugin = Object.assign(
-    function (fastify: Fastify, _options: unknown, done: () => void): void {
-      fastify.addHook('onError', async (_request, _reply, error) => {
-        captureException(error);
+    function (fastify: FastifyWithHooks, _options: unknown, done: () => void): void {
+      fastify.addHook('onError', async (request, reply, error) => {
+        if (shouldHandleError(error, request, reply)) {
+          captureException(error);
+        }
       });
 
       // registering `onRequest` hook here instead of using Otel `onRequest` callback b/c `onRequest` hook
       // is ironically called in the fastify `preHandler` hook which is called later in the lifecycle:
       // https://fastify.dev/docs/latest/Reference/Lifecycle/
       fastify.addHook('onRequest', async (request, _reply) => {
-        const reqWithRouteInfo = request as FastifyRequestRouteInfo;
-
         // Taken from Otel Fastify instrumentation:
         // https://github.com/open-telemetry/opentelemetry-js-contrib/blob/main/plugins/node/opentelemetry-instrumentation-fastify/src/instrumentation.ts#L94-L96
-        const routeName = reqWithRouteInfo.routeOptions?.url || reqWithRouteInfo.routerPath;
-        const method = reqWithRouteInfo.method || 'GET';
+        const routeName = request.routeOptions?.url || request.routerPath;
+        const method = request.method || 'GET';
 
         getIsolationScope().setTransactionName(`${method} ${routeName}`);
       });
