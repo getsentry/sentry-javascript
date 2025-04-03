@@ -435,7 +435,7 @@ function instrumentPostgrestQueryBuilder(PostgrestQueryBuilder: new () => Postgr
   }
 
   // We need to wrap _all_ operations despite them sharing the same `PostgrestFilterBuilder`
-  // constructor, as we don't know which method will be called first, an we don't want to miss any calls.
+  // constructor, as we don't know which method will be called first, and we don't want to miss any calls.
   for (const operation of AVAILABLE_OPERATIONS) {
     instrumented.set(PostgrestQueryBuilder, {
       [operation]: (PostgrestQueryBuilder.prototype as Record<string, unknown>)[
