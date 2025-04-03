@@ -193,6 +193,8 @@ targets:
         onlyIfPresent: /^sentry-gatsby-\d.*\.tgz$/
       'npm:@sentry/google-cloud-serverless':
         onlyIfPresent: /^sentry-google-cloud-serverless-\d.*\.tgz$/
+      'npm:@sentry/nestjs':
+        onlyIfPresent: /^sentry-nestjs-\d.*\.tgz$/
       'npm:@sentry/nextjs':
         onlyIfPresent: /^sentry-nextjs-\d.*\.tgz$/
       'npm:@sentry/nuxt':
