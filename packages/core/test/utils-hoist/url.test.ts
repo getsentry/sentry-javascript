@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { getSanitizedUrlString, parseStringToURL, parseUrl, stripUrlQueryAndFragment } from '../../src/utils-hoist/url';
+import {
+  getSanitizedUrlString,
+  parseUrl,
+  stripUrlQueryAndFragment,
+  parseStringToURLObject,
+  isURLObjectRelative,
+  getSanitizedUrlStringFromUrlObject,
+} from '../../src/utils-hoist/url';
 
 describe('stripQueryStringAndFragment', () => {
   const urlString = 'http://dogs.are.great:1231/yay/';
@@ -62,8 +69,6 @@ describe('getSanitizedUrlString', () => {
       'https://[filtered]:[filtered]@somedomain.com',
     ],
     ['same-origin url', '/api/v4/users?id=123', '/api/v4/users'],
-    ['url without a protocol', 'example.com', 'example.com'],
-    ['url without a protocol with a path', 'example.com/sub/path?id=123', 'example.com/sub/path'],
     ['url with port 8080', 'http://172.31.12.144:8080/test', 'http://172.31.12.144:8080/test'],
     ['url with port 4433', 'http://172.31.12.144:4433/test', 'http://172.31.12.144:4433/test'],
     ['url with port 443', 'http://172.31.12.144:443/test', 'http://172.31.12.144/test'],
@@ -197,19 +202,95 @@ describe('parseUrl', () => {
   });
 });
 
-describe('parseStringToURL', () => {
+describe('parseStringToURLObject', () => {
   it('returns undefined for invalid URLs', () => {
-    expect(parseStringToURL('invalid-url')).toBeUndefined();
+    expect(parseStringToURLObject('invalid-url')).toBeUndefined();
   });
 
   it('returns a URL object for valid URLs', () => {
-    expect(parseStringToURL('https://somedomain.com')).toBeInstanceOf(URL);
+    expect(parseStringToURLObject('https://somedomain.com')).toBeInstanceOf(URL);
+  });
+
+  it('returns a URL object for valid URLs with a base URL', () => {
+    expect(parseStringToURLObject('https://somedomain.com', 'https://base.com')).toBeInstanceOf(URL);
+  });
+
+  it('returns a relative URL object for relative URLs', () => {
+    expect(parseStringToURLObject('/path/to/happiness')).toEqual({
+      isRelative: true,
+      pathname: '/path/to/happiness',
+      search: '',
+      hash: '',
+    });
   });
 
   it('does not throw an error if URl.canParse is not defined', () => {
     const canParse = (URL as any).canParse;
     delete (URL as any).canParse;
-    expect(parseStringToURL('https://somedomain.com')).toBeInstanceOf(URL);
+    expect(parseStringToURLObject('https://somedomain.com')).toBeInstanceOf(URL);
     (URL as any).canParse = canParse;
+  });
+});
+
+describe('isURLObjectRelative', () => {
+  it('returns true for relative URLs', () => {
+    expect(isURLObjectRelative(parseStringToURLObject('/path/to/happiness')!)).toBe(true);
+  });
+
+  it('returns false for absolute URLs', () => {
+    expect(isURLObjectRelative(parseStringToURLObject('https://somedomain.com')!)).toBe(false);
+  });
+});
+
+describe('getSanitizedUrlStringFromUrlObject', () => {
+  it.each([
+    ['regular url', 'https://somedomain.com', 'https://somedomain.com/'],
+    ['regular url with a path', 'https://somedomain.com/path/to/happiness', 'https://somedomain.com/path/to/happiness'],
+    [
+      'url with standard http port 80',
+      'http://somedomain.com:80/path/to/happiness',
+      'http://somedomain.com/path/to/happiness',
+    ],
+    [
+      'url with standard https port 443',
+      'https://somedomain.com:443/path/to/happiness',
+      'https://somedomain.com/path/to/happiness',
+    ],
+    [
+      'url with non-standard port',
+      'https://somedomain.com:4200/path/to/happiness',
+      'https://somedomain.com:4200/path/to/happiness',
+    ],
+    [
+      'url with query params',
+      'https://somedomain.com:4200/path/to/happiness?auhtToken=abc123&param2=bar',
+      'https://somedomain.com:4200/path/to/happiness',
+    ],
+    [
+      'url with a fragment',
+      'https://somedomain.com/path/to/happiness#somewildfragment123',
+      'https://somedomain.com/path/to/happiness',
+    ],
+    [
+      'url with a fragment and query params',
+      'https://somedomain.com/path/to/happiness#somewildfragment123?auhtToken=abc123&param2=bar',
+      'https://somedomain.com/path/to/happiness',
+    ],
+    [
+      'url with authorization',
+      'https://username:password@somedomain.com',
+      'https://%filtered%:%filtered%@somedomain.com/',
+    ],
+    ['same-origin url', '/api/v4/users?id=123', '/api/v4/users'],
+    ['url with port 8080', 'http://172.31.12.144:8080/test', 'http://172.31.12.144:8080/test'],
+    ['url with port 4433', 'http://172.31.12.144:4433/test', 'http://172.31.12.144:4433/test'],
+    ['url with port 443', 'http://172.31.12.144:443/test', 'http://172.31.12.144/test'],
+    ['url with IP and port 80', 'http://172.31.12.144:80/test', 'http://172.31.12.144/test'],
+  ])('returns a sanitized URL for a %s', (_, rawUrl: string, sanitizedURL: string) => {
+    const urlObject = parseStringToURLObject(rawUrl);
+    if (!urlObject) {
+      throw new Error('Invalid URL');
+    }
+    expect(getSanitizedUrlStringFromUrlObject(urlObject)).toEqual(sanitizedURL);
   });
 });

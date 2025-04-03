@@ -70,6 +70,7 @@
     "clean": "rimraf build coverage sentry-nuxt-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
+    "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module && es-check es2020 ./build/module/*.cjs && es-check es2020 ./build/module/*.mjs --module",
     "test": "yarn test:unit",
     "test:unit": "vitest run",
     "test:watch": "vitest --watch",
