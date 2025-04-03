@@ -203,7 +203,6 @@ function getClientOptions(
   const spotlight =
     options.spotlight ?? envToBool(process.env.SENTRY_SPOTLIGHT, { strict: true }) ?? process.env.SENTRY_SPOTLIGHT;
   const tracesSampleRate = getTracesSampleRate(options.tracesSampleRate);
-  const debug = envToBool(options.debug ?? process.env.SENTRY_DEBUG);
 
   const mergedOptions = {
     ...options,
@@ -215,7 +214,7 @@ function getClientOptions(
     release,
     tracesSampleRate,
     spotlight,
-    debug,
+    debug: envToBool(options.debug ?? process.env.SENTRY_DEBUG),
   };
 
   const integrations = options.integrations;
