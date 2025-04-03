@@ -215,6 +215,8 @@ targets:
         onlyIfPresent: /^sentry-svelte-\d.*\.tgz$/
       'npm:@sentry/sveltekit':
         onlyIfPresent: /^sentry-sveltekit-\d.*\.tgz$/
+      'npm:@sentry/tanstackstart-react':
+        onlyIfPresent: /^sentry-tanstackstart-react-\d.*\.tgz$/
       'npm:@sentry/vercel-edge':
         onlyIfPresent: /^sentry-vercel-edge-\d.*\.tgz$/
       'npm:@sentry/vue':
