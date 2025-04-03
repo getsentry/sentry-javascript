@@ -1,54 +1,75 @@
 import * as path from 'path';
 import type { SentryWebpackPluginOptions } from '@sentry/webpack-plugin';
-import type { BuildContext, NextConfigObject, SentryBuildOptions } from './types';
+import type { SentryBuildOptions } from './types';
 
 /**
  * Combine default and user-provided SentryWebpackPlugin options, accounting for whether we're building server files or
  * client files.
  */
-export function getWebpackPluginOptions(
-  buildContext: BuildContext,
+export function getBuildPluginOptions(
   sentryBuildOptions: SentryBuildOptions,
   releaseName: string | undefined,
+  mode: 'webpack-nodejs' | 'webpack-edge' | 'webpack-client' | 'after-production-build',
+  distDirAbsPath: string,
 ): SentryWebpackPluginOptions {
-  const { isServer, config: userNextConfig, dir, nextRuntime } = buildContext;
-
-  const prefixInsert = !isServer ? 'Client' : nextRuntime === 'edge' ? 'Edge' : 'Node.js';
-
-  // We need to convert paths to posix because Glob patterns use `\` to escape
-  // glob characters. This clashes with Windows path separators.
-  // See: https://www.npmjs.com/package/glob
-  const projectDir = dir.replace(/\\/g, '/');
-  // `.next` is the default directory
-  const distDir = (userNextConfig as NextConfigObject).distDir?.replace(/\\/g, '/') ?? '.next';
-  const distDirAbsPath = path.posix.join(projectDir, distDir);
+  const loggerPrefixOverride = {
+    'webpack-nodejs': '[@sentry/nextjs - Node.js]',
+    'webpack-edge': '[@sentry/nextjs - Edge]',
+    'webpack-client': '[@sentry/nextjs - Client]',
+    'after-production-build': '[@sentry/nextjs]',
+  }[mode];
 
   const sourcemapUploadAssets: string[] = [];
   const sourcemapUploadIgnore: string[] = [];
+  const filesToDeleteAfterUpload: string[] = [];
 
-  if (isServer) {
+  if (mode === 'after-production-build') {
     sourcemapUploadAssets.push(
-      path.posix.join(distDirAbsPath, 'server', '**'), // This is normally where Next.js outputs things
-      path.posix.join(distDirAbsPath, 'serverless', '**'), // This was the output location for serverless Next.js
+      path.posix.join(distDirAbsPath, '**'), // This is normally where Next.js outputs things
     );
+    if (sentryBuildOptions.sourcemaps?.deleteSourcemapsAfterUpload) {
+      filesToDeleteAfterUpload.push(
+        path.posix.join(distDirAbsPath, '**', '*.js.map'),
+        path.posix.join(distDirAbsPath, '**', '*.mjs.map'),
+        path.posix.join(distDirAbsPath, '**', '*.cjs.map'),
+      );
+    }
   } else {
-    if (sentryBuildOptions.widenClientFileUpload) {
-      sourcemapUploadAssets.push(path.posix.join(distDirAbsPath, 'static', 'chunks', '**'));
-    } else {
+    if (mode === 'webpack-nodejs' || mode === 'webpack-edge') {
       sourcemapUploadAssets.push(
-        path.posix.join(distDirAbsPath, 'static', 'chunks', 'pages', '**'),
-        path.posix.join(distDirAbsPath, 'static', 'chunks', 'app', '**'),
+        path.posix.join(distDirAbsPath, 'server', '**'), // This is normally where Next.js outputs things
+        path.posix.join(distDirAbsPath, 'serverless', '**'), // This was the output location for serverless Next.js
+      );
+    } else {
+      if (sentryBuildOptions.widenClientFileUpload) {
+        sourcemapUploadAssets.push(path.posix.join(distDirAbsPath, 'static', 'chunks', '**'));
+      } else {
+        sourcemapUploadAssets.push(
+          path.posix.join(distDirAbsPath, 'static', 'chunks', 'pages', '**'),
+          path.posix.join(distDirAbsPath, 'static', 'chunks', 'app', '**'),
+        );
+      }
+
+      // TODO: We should think about uploading these when `widenClientFileUpload` is `true`. They may be useful in some situations.
+      sourcemapUploadIgnore.push(
+        path.posix.join(distDirAbsPath, 'static', 'chunks', 'framework-*'),
+        path.posix.join(distDirAbsPath, 'static', 'chunks', 'framework.*'),
+        path.posix.join(distDirAbsPath, 'static', 'chunks', 'main-*'),
+        path.posix.join(distDirAbsPath, 'static', 'chunks', 'polyfills-*'),
+        path.posix.join(distDirAbsPath, 'static', 'chunks', 'webpack-*'),
       );
     }
 
-    // TODO: We should think about uploading these when `widenClientFileUpload` is `true`. They may be useful in some situations.
-    sourcemapUploadIgnore.push(
-      path.posix.join(distDirAbsPath, 'static', 'chunks', 'framework-*'),
-      path.posix.join(distDirAbsPath, 'static', 'chunks', 'framework.*'),
-      path.posix.join(distDirAbsPath, 'static', 'chunks', 'main-*'),
-      path.posix.join(distDirAbsPath, 'static', 'chunks', 'polyfills-*'),
-      path.posix.join(distDirAbsPath, 'static', 'chunks', 'webpack-*'),
-    );
+    if (sentryBuildOptions.sourcemaps?.deleteSourcemapsAfterUpload) {
+      filesToDeleteAfterUpload.push(
+        // We only care to delete client bundle source maps because they would be the ones being served.
+        // Removing the server source maps crashes Vercel builds for (thus far) unknown reasons:
+        // https://github.com/getsentry/sentry-javascript/issues/13099
+        path.posix.join(distDirAbsPath, 'static', '**', '*.js.map'),
+        path.posix.join(distDirAbsPath, 'static', '**', '*.mjs.map'),
+        path.posix.join(distDirAbsPath, 'static', '**', '*.cjs.map'),
+      );
+    }
   }
 
   return {
@@ -77,16 +98,7 @@ export function getWebpackPluginOptions(
       },
       assets: sentryBuildOptions.sourcemaps?.assets ?? sourcemapUploadAssets,
       ignore: sentryBuildOptions.sourcemaps?.ignore ?? sourcemapUploadIgnore,
-      filesToDeleteAfterUpload: sentryBuildOptions.sourcemaps?.deleteSourcemapsAfterUpload
-        ? [
-            // We only care to delete client bundle source maps because they would be the ones being served.
-            // Removing the server source maps crashes Vercel builds for (thus far) unknown reasons:
-            // https://github.com/getsentry/sentry-javascript/issues/13099
-            path.posix.join(distDirAbsPath, 'static', '**', '*.js.map'),
-            path.posix.join(distDirAbsPath, 'static', '**', '*.mjs.map'),
-            path.posix.join(distDirAbsPath, 'static', '**', '*.cjs.map'),
-          ]
-        : undefined,
+      filesToDeleteAfterUpload: filesToDeleteAfterUpload,
       ...sentryBuildOptions.unstable_sentryWebpackPluginOptions?.sourcemaps,
     },
     release:
@@ -111,7 +123,7 @@ export function getWebpackPluginOptions(
       ...sentryBuildOptions.bundleSizeOptimizations,
     },
     _metaOptions: {
-      loggerPrefixOverride: `[@sentry/nextjs - ${prefixInsert}]`,
+      loggerPrefixOverride,
       telemetry: {
         metaFramework: 'nextjs',
       },
