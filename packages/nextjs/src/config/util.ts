@@ -30,7 +30,7 @@ function resolveNextjsPackageJson(): string | undefined {
 }
 
 /**
- * TODO
+ * Leaves a mark on the global scope in the Next.js build context that webpack has been executed.
  */
 export function setWebpackBuildFunctionCalled(): void {
   // Let the rest of the execution context know that we are using Webpack to build.
@@ -39,7 +39,7 @@ export function setWebpackBuildFunctionCalled(): void {
 }
 
 /**
- * TODO
+ * Checks whether webpack has been executed fot the current Next.js build.
  */
 export function getWebpackBuildFunctionCalled(): boolean {
   // Let the rest of the execution context know that we are using Webpack to build.
