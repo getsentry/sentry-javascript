@@ -11,7 +11,7 @@ import {
 import type { Span } from '@sentry/core';
 import { describe, beforeEach, it, expect, beforeAll, afterAll } from 'vitest';
 
-import { _addMeasureSpans, _addResourceSpans } from '../../src/metrics/browserMetrics';
+import { _addMeasureSpans, _addNavigationSpans, _addResourceSpans } from '../../src/metrics/browserMetrics';
 import { WINDOW } from '../../src/types';
 import { TestClient, getDefaultClientOptions } from '../utils/TestClient';
 
@@ -414,6 +414,188 @@ describe('_addResourceSpans', () => {
       expect(spanToJSON(spans[0]!).data).toMatchObject({ 'http.response_delivery_type': deliveryType });
     },
   );
+});
+
+describe('_addNavigationSpans', () => {
+  const pageloadSpan = new SentrySpan({ op: 'pageload', name: '/', sampled: true });
+
+  beforeAll(() => {
+    setGlobalLocation(mockWindowLocation);
+  });
+
+  afterAll(() => {
+    resetGlobalLocation();
+  });
+
+  beforeEach(() => {
+    getCurrentScope().clear();
+    getIsolationScope().clear();
+
+    const client = new TestClient(
+      getDefaultClientOptions({
+        tracesSampleRate: 1,
+      }),
+    );
+    setCurrentClient(client);
+    client.init();
+  });
+
+  it('adds navigation spans based on the navigation performance entry', () => {
+    // entry taken from a real entry via browser dev tools
+    const entry: PerformanceNavigationTiming = {
+      name: 'https://santry.com/test',
+      entryType: 'navigation',
+      startTime: 0,
+      duration: 546.1000000014901,
+      initiatorType: 'navigation',
+      nextHopProtocol: 'h2',
+      workerStart: 0,
+      redirectStart: 7.5,
+      redirectEnd: 20.5,
+      redirectCount: 2,
+      fetchStart: 4.9000000059604645,
+      domainLookupStart: 4.9000000059604645,
+      domainLookupEnd: 4.9000000059604645,
+      connectStart: 4.9000000059604645,
+      secureConnectionStart: 4.9000000059604645,
+      connectEnd: 4.9000000059604645,
+      requestStart: 7.9000000059604645,
+      responseStart: 396.80000000447035,
+      responseEnd: 416.40000000596046,
+      transferSize: 14726,
+      encodedBodySize: 14426,
+      decodedBodySize: 67232,
+      responseStatus: 200,
+      serverTiming: [],
+      unloadEventStart: 0,
+      unloadEventEnd: 0,
+      domInteractive: 473.20000000298023,
+      domContentLoadedEventStart: 480.1000000014901,
+      domContentLoadedEventEnd: 480.30000000447035,
+      domComplete: 546,
+      loadEventStart: 546,
+      loadEventEnd: 546.1000000014901,
+      type: 'navigate',
+      activationStart: 0,
+      toJSON: () => ({}),
+    };
+    const spans: Span[] = [];
+
+    getClient()?.on('spanEnd', span => {
+      spans.push(span);
+    });
+
+    _addNavigationSpans(pageloadSpan, entry, 999);
+
+    const trace_id = pageloadSpan.spanContext().traceId;
+    const parent_span_id = pageloadSpan.spanContext().spanId;
+
+    expect(spans).toHaveLength(9);
+    expect(spans.map(spanToJSON)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          data: {
+            'sentry.op': 'browser.domContentLoadedEvent',
+            'sentry.origin': 'auto.ui.browser.metrics',
+          },
+          description: 'https://santry.com/test',
+          op: 'browser.domContentLoadedEvent',
+          origin: 'auto.ui.browser.metrics',
+          parent_span_id,
+          trace_id,
+        }),
+        expect.objectContaining({
+          data: {
+            'sentry.op': 'browser.loadEvent',
+            'sentry.origin': 'auto.ui.browser.metrics',
+          },
+          description: 'https://santry.com/test',
+          op: 'browser.loadEvent',
+          origin: 'auto.ui.browser.metrics',
+          parent_span_id,
+          trace_id,
+        }),
+        expect.objectContaining({
+          data: {
+            'sentry.op': 'browser.connect',
+            'sentry.origin': 'auto.ui.browser.metrics',
+          },
+          description: 'https://santry.com/test',
+          op: 'browser.connect',
+          origin: 'auto.ui.browser.metrics',
+          parent_span_id,
+          trace_id,
+        }),
+        expect.objectContaining({
+          data: {
+            'sentry.op': 'browser.TLS/SSL',
+            'sentry.origin': 'auto.ui.browser.metrics',
+          },
+          description: 'https://santry.com/test',
+          op: 'browser.TLS/SSL',
+          origin: 'auto.ui.browser.metrics',
+          parent_span_id,
+          trace_id,
+        }),
+        expect.objectContaining({
+          data: {
+            'sentry.op': 'browser.cache',
+            'sentry.origin': 'auto.ui.browser.metrics',
+          },
+          description: 'https://santry.com/test',
+          op: 'browser.cache',
+          origin: 'auto.ui.browser.metrics',
+          parent_span_id,
+          trace_id,
+        }),
+        expect.objectContaining({
+          data: {
+            'sentry.op': 'browser.DNS',
+            'sentry.origin': 'auto.ui.browser.metrics',
+          },
+          description: 'https://santry.com/test',
+          op: 'browser.DNS',
+          origin: 'auto.ui.browser.metrics',
+          parent_span_id,
+          trace_id,
+        }),
+        expect.objectContaining({
+          data: {
+            'sentry.op': 'browser.request',
+            'sentry.origin': 'auto.ui.browser.metrics',
+          },
+          description: 'https://santry.com/test',
+          op: 'browser.request',
+          origin: 'auto.ui.browser.metrics',
+          parent_span_id,
+          trace_id,
+        }),
+        expect.objectContaining({
+          data: {
+            'sentry.op': 'browser.response',
+            'sentry.origin': 'auto.ui.browser.metrics',
+          },
+          description: 'https://santry.com/test',
+          op: 'browser.response',
+          origin: 'auto.ui.browser.metrics',
+          parent_span_id,
+          trace_id,
+        }),
+        expect.objectContaining({
+          data: {
+            'http.redirect_count': 2,
+            'sentry.op': 'browser.redirect',
+            'sentry.origin': 'auto.ui.browser.metrics',
+          },
+          description: 'https://santry.com/test',
+          op: 'browser.redirect',
+          origin: 'auto.ui.browser.metrics',
+          parent_span_id,
+          trace_id,
+        }),
+      ]),
+    );
+  });
 });
 
 const setGlobalLocation = (location: Location) => {

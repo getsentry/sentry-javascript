@@ -36,7 +36,7 @@ export interface Log {
   level: LogSeverityLevel;
 
   /**
-   * The message to be logged - for example, 'hello world' would become a log like '[INFO] hello world'
+   * The message to be logged.
    */
   message: ParameterizedString;
 

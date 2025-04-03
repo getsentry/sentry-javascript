@@ -21,6 +21,8 @@ export const PREVIOUS_TRACE_MAX_DURATION = 3600;
 // session storage key
 export const PREVIOUS_TRACE_KEY = 'sentry_previous_trace';
 
+export const PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE = 'sentry.previous_trace';
+
 /**
  * Adds a previous_trace span link to the passed span if the passed
  * previousTraceInfo is still valid.
@@ -41,7 +43,8 @@ export function addPreviousTraceSpanLink(
     };
   }
 
-  if (previousTraceInfo.spanContext.traceId === spanJson.trace_id) {
+  const previousTraceSpanCtx = previousTraceInfo.spanContext;
+  if (previousTraceSpanCtx.traceId === spanJson.trace_id) {
     // This means, we're still in the same trace so let's not update the previous trace info
     // or add a link to the current span.
     // Once we move away from the long-lived, route-based trace model, we can remove this cases
@@ -56,7 +59,7 @@ export function addPreviousTraceSpanLink(
   if (Date.now() / 1000 - previousTraceInfo.startTimestamp <= PREVIOUS_TRACE_MAX_DURATION) {
     if (DEBUG_BUILD) {
       logger.info(
-        `Adding previous_trace ${previousTraceInfo.spanContext} link to span ${{
+        `Adding previous_trace ${previousTraceSpanCtx} link to span ${{
           op: spanJson.op,
           ...span.spanContext(),
         }}`,
@@ -64,11 +67,22 @@ export function addPreviousTraceSpanLink(
     }
 
     span.addLink({
-      context: previousTraceInfo.spanContext,
+      context: previousTraceSpanCtx,
       attributes: {
         [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: 'previous_trace',
       },
     });
+
+    // TODO: Remove this once EAP can store span links. We currently only set this attribute so that we
+    // can obtain the previous trace information from the EAP store. Long-term, EAP will handle
+    // span links and then we should remove this again. Also throwing in a TODO(v10), to remind us
+    // to check this at v10 time :)
+    span.setAttribute(
+      PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE,
+      `${previousTraceSpanCtx.traceId}-${previousTraceSpanCtx.spanId}-${
+        previousTraceSpanCtx.traceFlags === 0x1 ? 1 : 0
+      }`,
+    );
   }
 
   return {

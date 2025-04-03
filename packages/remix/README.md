@@ -90,23 +90,6 @@ function App() {
 export default withSentry(App);
 ```
 
-You can disable or configure `ErrorBoundary` using a second parameter to `withSentry`.
-
-```ts
-
-withSentry(App, {
-  wrapWithErrorBoundary: false
-});
-
-// or
-
-withSentry(App, {
-  errorBoundaryOptions: {
-    fallback: <p>An error has occurred</p>
-  }
-});
-```
-
 To set context information or send manual events, use the exported functions of `@sentry/remix`.
 
 ```ts

@@ -131,6 +131,7 @@ export {
   supabaseIntegration,
   zodErrorsIntegration,
   profiler,
+  consoleLoggingIntegration,
 } from '@sentry/core';
 
 export type {

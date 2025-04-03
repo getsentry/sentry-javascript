@@ -122,7 +122,14 @@ export {
   objectToBaggageHeader,
 } from './baggage';
 
-export { getSanitizedUrlString, parseUrl, stripUrlQueryAndFragment } from './url';
+export {
+  getSanitizedUrlString,
+  parseUrl,
+  stripUrlQueryAndFragment,
+  parseStringToURLObject,
+  isURLObjectRelative,
+  getSanitizedUrlStringFromUrlObject,
+} from './url';
 export { eventFromMessage, eventFromUnknownInput, exceptionFromError, parseStackFrames } from './eventbuilder';
 export { callFrameToStackFrame, watchdogTimer } from './anr';
 export { LRUMap } from './lru';

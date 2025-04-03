@@ -4,7 +4,7 @@ export default makeNPMConfigVariants(
   makeBaseNPMConfig({
     packageSpecificConfig: {
       output: {
-        dir: 'lib',
+        dir: 'build',
         // set exports to 'named' or 'auto' so that rollup doesn't warn
         exports: 'named',
         // set preserveModules to false because for profiling we actually want

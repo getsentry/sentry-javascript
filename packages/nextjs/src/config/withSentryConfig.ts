@@ -50,6 +50,8 @@ function getFinalConfigObject(
   incomingUserNextConfigObject: NextConfigObject,
   userSentryOptions: SentryBuildOptions,
 ): NextConfigObject {
+  const releaseName = userSentryOptions.release?.name ?? getSentryRelease() ?? getGitRevision();
+
   if (userSentryOptions?.tunnelRoute) {
     if (incomingUserNextConfigObject.output === 'export') {
       if (!showedExportModeTunnelWarning) {
@@ -64,7 +66,7 @@ function getFinalConfigObject(
     }
   }
 
-  setUpBuildTimeVariables(incomingUserNextConfigObject, userSentryOptions);
+  setUpBuildTimeVariables(incomingUserNextConfigObject, userSentryOptions, releaseName);
 
   const nextJsVersion = getNextjsVersion();
 
@@ -207,8 +209,6 @@ function getFinalConfigObject(
     );
   }
 
-  const releaseName = userSentryOptions.release?.name ?? getSentryRelease() ?? getGitRevision();
-
   return {
     ...incomingUserNextConfigObject,
     webpack: constructWebpackConfigFunction(incomingUserNextConfigObject, userSentryOptions, releaseName),
@@ -291,8 +291,11 @@ function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: s
   };
 }
 
-// TODO: For Turbopack we need to pass the release name here and pick it up in the SDK
-function setUpBuildTimeVariables(userNextConfig: NextConfigObject, userSentryOptions: SentryBuildOptions): void {
+function setUpBuildTimeVariables(
+  userNextConfig: NextConfigObject,
+  userSentryOptions: SentryBuildOptions,
+  releaseName: string | undefined,
+): void {
   const assetPrefix = userNextConfig.assetPrefix || userNextConfig.basePath || '';
   const basePath = userNextConfig.basePath ?? '';
   const rewritesTunnelPath =
@@ -333,6 +336,10 @@ function setUpBuildTimeVariables(userNextConfig: NextConfigObject, userSentryOpt
 
   if (userSentryOptions._experimental?.thirdPartyOriginStackFrames) {
     buildTimeVariables._experimentalThirdPartyOriginStackFrames = 'true';
+  }
+
+  if (releaseName) {
+    buildTimeVariables._sentryRelease = releaseName;
   }
 
   if (typeof userNextConfig.env === 'object') {

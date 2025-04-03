@@ -149,6 +149,113 @@ describe('init()', () => {
 
     expect(client).toBeInstanceOf(NodeClient);
   });
+
+  describe('environment variable options', () => {
+    const originalProcessEnv = { ...process.env };
+
+    afterEach(() => {
+      process.env = originalProcessEnv;
+      global.__SENTRY__ = {};
+      cleanupOtel();
+      vi.clearAllMocks();
+    });
+
+    it('sets debug from `SENTRY_DEBUG` env variable', () => {
+      process.env.SENTRY_DEBUG = '1';
+
+      const client = init({ dsn: PUBLIC_DSN });
+
+      expect(client?.getOptions()).toEqual(
+        expect.objectContaining({
+          debug: true,
+        }),
+      );
+    });
+
+    it('prefers `debug` option over `SENTRY_DEBUG` env variable', () => {
+      process.env.SENTRY_DEBUG = '1';
+
+      const client = init({ dsn: PUBLIC_DSN, debug: false });
+
+      expect(client?.getOptions()).toEqual(
+        expect.objectContaining({
+          debug: false,
+        }),
+      );
+    });
+
+    it('sets tracesSampleRate from `SENTRY_TRACES_SAMPLE_RATE` env variable', () => {
+      process.env.SENTRY_TRACES_SAMPLE_RATE = '0.5';
+
+      const client = init({ dsn: PUBLIC_DSN });
+
+      expect(client?.getOptions()).toEqual(
+        expect.objectContaining({
+          tracesSampleRate: 0.5,
+        }),
+      );
+    });
+
+    it('prefers `tracesSampleRate` option over `SENTRY_TRACES_SAMPLE_RATE` env variable', () => {
+      process.env.SENTRY_TRACES_SAMPLE_RATE = '0.5';
+
+      const client = init({ dsn: PUBLIC_DSN, tracesSampleRate: 0.1 });
+
+      expect(client?.getOptions()).toEqual(
+        expect.objectContaining({
+          tracesSampleRate: 0.1,
+        }),
+      );
+    });
+
+    it('sets release from `SENTRY_RELEASE` env variable', () => {
+      process.env.SENTRY_RELEASE = '1.0.0';
+
+      const client = init({ dsn: PUBLIC_DSN });
+
+      expect(client?.getOptions()).toEqual(
+        expect.objectContaining({
+          release: '1.0.0',
+        }),
+      );
+    });
+
+    it('prefers `release` option over `SENTRY_RELEASE` env variable', () => {
+      process.env.SENTRY_RELEASE = '1.0.0';
+
+      const client = init({ dsn: PUBLIC_DSN, release: '2.0.0' });
+
+      expect(client?.getOptions()).toEqual(
+        expect.objectContaining({
+          release: '2.0.0',
+        }),
+      );
+    });
+
+    it('sets environment from `SENTRY_ENVIRONMENT` env variable', () => {
+      process.env.SENTRY_ENVIRONMENT = 'production';
+
+      const client = init({ dsn: PUBLIC_DSN });
+
+      expect(client?.getOptions()).toEqual(
+        expect.objectContaining({
+          environment: 'production',
+        }),
+      );
+    });
+
+    it('prefers `environment` option over `SENTRY_ENVIRONMENT` env variable', () => {
+      process.env.SENTRY_ENVIRONMENT = 'production';
+
+      const client = init({ dsn: PUBLIC_DSN, environment: 'staging' });
+
+      expect(client?.getOptions()).toEqual(
+        expect.objectContaining({
+          environment: 'staging',
+        }),
+      );
+    });
+  });
 });
 
 describe('validateOpenTelemetrySetup', () => {

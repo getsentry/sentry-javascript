@@ -115,6 +115,7 @@ export {
   childProcessIntegration,
   vercelAIIntegration,
   logger,
+  consoleLoggingIntegration,
 } from '@sentry/node';
 
 export {

@@ -9,7 +9,7 @@ import type { AppLoadContext, EntryContext } from 'react-router';
 import { ServerRouter } from 'react-router';
 const ABORT_DELAY = 5_000;
 
-export default function handleRequest(
+function handleRequest(
   request: Request,
   responseStatusCode: number,
   responseHeaders: Headers,
@@ -59,6 +59,8 @@ export default function handleRequest(
     setTimeout(abort, ABORT_DELAY);
   });
 }
+
+export default Sentry.sentryHandleRequest(handleRequest);
 
 import { type HandleErrorFunction } from 'react-router';
 

@@ -2,5 +2,5 @@
 
 # compiled output
 /node_modules/
-/lib/
+/build/
 

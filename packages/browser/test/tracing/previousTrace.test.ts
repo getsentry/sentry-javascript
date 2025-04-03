@@ -5,6 +5,7 @@ import {
   getPreviousTraceFromSessionStorage,
   PREVIOUS_TRACE_KEY,
   PREVIOUS_TRACE_MAX_DURATION,
+  PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE,
 } from '../../src/tracing/previousTrace';
 import { SentrySpan, spanToJSON, timestampInSeconds } from '@sentry/core';
 import { storePreviousTraceInSessionStorage } from '../../src/tracing/previousTrace';
@@ -34,7 +35,9 @@ describe('addPreviousTraceSpanLink', () => {
 
     const updatedPreviousTraceInfo = addPreviousTraceSpanLink(previousTraceInfo, currentSpan);
 
-    expect(spanToJSON(currentSpan).links).toEqual([
+    const spanJson = spanToJSON(currentSpan);
+
+    expect(spanJson.links).toEqual([
       {
         attributes: {
           'sentry.link.type': 'previous_trace',
@@ -44,6 +47,10 @@ describe('addPreviousTraceSpanLink', () => {
         sampled: true,
       },
     ]);
+
+    expect(spanJson.data).toMatchObject({
+      [PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE]: '123-456-1',
+    });
 
     expect(updatedPreviousTraceInfo).toEqual({
       spanContext: currentSpan.spanContext(),
@@ -70,7 +77,11 @@ describe('addPreviousTraceSpanLink', () => {
 
     const updatedPreviousTraceInfo = addPreviousTraceSpanLink(previousTraceInfo, currentSpan);
 
-    expect(spanToJSON(currentSpan).links).toBeUndefined();
+    const spanJson = spanToJSON(currentSpan);
+
+    expect(spanJson.links).toBeUndefined();
+
+    expect(Object.keys(spanJson.data)).not.toContain(PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE);
 
     // but still updates the previousTraceInfo to the current span
     expect(updatedPreviousTraceInfo).toEqual({
@@ -141,7 +152,9 @@ describe('addPreviousTraceSpanLink', () => {
 
     const updatedPreviousTraceInfo = addPreviousTraceSpanLink(undefined, currentSpan);
 
-    expect(spanToJSON(currentSpan).links).toBeUndefined();
+    const spanJson = spanToJSON(currentSpan);
+    expect(spanJson.links).toBeUndefined();
+    expect(Object.keys(spanJson.data)).not.toContain(PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE);
 
     expect(updatedPreviousTraceInfo).toEqual({
       spanContext: currentSpan.spanContext(),
@@ -169,7 +182,9 @@ describe('addPreviousTraceSpanLink', () => {
 
     const updatedPreviousTraceInfo = addPreviousTraceSpanLink(previousTraceInfo, currentSpan);
 
-    expect(spanToJSON(currentSpan).links).toBeUndefined();
+    const spanJson = spanToJSON(currentSpan);
+    expect(spanJson.links).toBeUndefined();
+    expect(Object.keys(spanJson.data)).not.toContain(PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE);
 
     expect(updatedPreviousTraceInfo).toBe(previousTraceInfo);
   });

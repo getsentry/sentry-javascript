@@ -40,6 +40,7 @@ import {
   startBrowserTracingPageLoadSpan,
 } from '../../src/tracing/browserTracingIntegration';
 import { getDefaultBrowserClientOptions } from '../helper/browser-client-options';
+import { PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE } from '../../src/tracing/previousTrace';
 
 // We're setting up JSDom here because the Next.js routing instrumentations requires a few things to be present on pageload:
 // 1. Access to window.document API for `window.document.getElementById`
@@ -202,6 +203,7 @@ describe('browserTracingIntegration', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+        [PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE]: `${span?.spanContext().traceId}-${span?.spanContext().spanId}-1`,
       },
       links: [
         {
@@ -239,6 +241,7 @@ describe('browserTracingIntegration', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+        [PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE]: `${span2?.spanContext().traceId}-${span2?.spanContext().spanId}-1`,
       },
       links: [
         {
@@ -502,6 +505,7 @@ describe('browserTracingIntegration', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
           [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+          [PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE]: expect.stringMatching(/[a-f0-9]{32}-[a-f0-9]{16}-1/),
         },
         links: [
           {

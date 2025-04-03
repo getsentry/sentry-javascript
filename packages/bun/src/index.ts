@@ -134,6 +134,7 @@ export {
   amqplibIntegration,
   vercelAIIntegration,
   logger,
+  consoleLoggingIntegration,
 } from '@sentry/node';
 
 export {

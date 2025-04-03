@@ -3,7 +3,7 @@
   "compilerOptions": {
     "module": "esnext",
     "lib": ["es2018"],
-    "outDir": "lib",
+    "outDir": "build",
     "types": ["node"]
   },
   "include": ["src/**/*"]

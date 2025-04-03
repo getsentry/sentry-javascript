@@ -460,8 +460,11 @@ export function _addMeasureSpans(
   }
 }
 
-/** Instrument navigation entries */
-function _addNavigationSpans(span: Span, entry: PerformanceNavigationTiming, timeOrigin: number): void {
+/**
+ * Instrument navigation entries
+ * exported only for tests
+ */
+export function _addNavigationSpans(span: Span, entry: PerformanceNavigationTiming, timeOrigin: number): void {
   (['unloadEvent', 'redirect', 'domContentLoadedEvent', 'loadEvent', 'connect'] as const).forEach(event => {
     _addPerformanceNavigationTiming(span, entry, event, timeOrigin);
   });
@@ -511,6 +514,7 @@ function _addPerformanceNavigationTiming(
     name: entry.name,
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
+      ...(event === 'redirect' && entry.redirectCount != null ? { 'http.redirect_count': entry.redirectCount } : {}),
     },
   });
 }
