@@ -1,11 +1,12 @@
-// Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { supabaseClient } from '@/lib/initSupabaseAdmin';
+import { getSupabaseClient } from '@/lib/initSupabaseAdmin';
 
 type Data = {
   data: any;
   error: any;
 };
+
+const supabaseClient = getSupabaseClient();
 
 async function login() {
   const { data, error } = await supabaseClient.auth.signInWithPassword({
