@@ -195,6 +195,8 @@ targets:
         onlyIfPresent: /^sentry-google-cloud-serverless-\d.*\.tgz$/
       'npm:@sentry/nextjs':
         onlyIfPresent: /^sentry-nextjs-\d.*\.tgz$/
+      'npm:@sentry/nuxt':
+        onlyIfPresent: /^sentry-nuxt-\d.*\.tgz$/
       'npm:@sentry/node':
         onlyIfPresent: /^sentry-node-\d.*\.tgz$/
       'npm:@sentry/react':
