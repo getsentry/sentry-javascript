@@ -17,41 +17,6 @@ import * as diagnosticsChannel from 'node:diagnostics_channel';
 import { DEBUG_BUILD } from '../../../debug-build';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from './types';
 
-// /**
-//  * Minimal request type containing properties around route information.
-//  * Works for Fastify 3, 4 and presumably 5.
-//  *
-//  * Based on https://github.com/fastify/fastify/blob/ce3811f5f718be278bbcd4392c615d64230065a6/types/request.d.ts
-//  */
-// // eslint-disable-next-line @typescript-eslint/no-explicit-any
-// interface MinimalFastifyRequest extends Record<string, any> {
-//   method?: string;
-//   // since fastify@4.10.0
-//   routeOptions?: {
-//     url?: string;
-//   };
-//   routerPath?: string;
-// }
-
-// /**
-//  * Minimal reply type containing properties needed for error handling.
-//  *
-//  * Based on https://github.com/fastify/fastify/blob/ce3811f5f718be278bbcd4392c615d64230065a6/types/reply.d.ts
-//  */
-// // eslint-disable-next-line @typescript-eslint/no-explicit-any
-// interface MinimalFastifyReply extends Record<string, any> {
-//   statusCode: number;
-// }
-
-// // We inline the types we care about here
-// interface Fastify {
-//   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-//   version: string;
-//   register: (plugin: any) => Fastify;
-//   after: (listener?: (err: Error) => void) => Fastify;
-//   addHook: (name: string, handler: (...params: unknown[]) => void) => Fastify;
-// }
-
 interface FastifyHandlerOptions {
   /**
    * Callback method deciding whether error should be captured and sent to Sentry

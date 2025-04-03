@@ -3912,10 +3912,10 @@
   resolved "https://registry.yarnpkg.com/@fastify/busboy/-/busboy-2.0.0.tgz#f22824caff3ae506b18207bad4126dbc6ccdb6b8"
   integrity sha512-JUFJad5lv7jxj926GPgymrWQxxjPYuJNiNjNMzqT+HiuP6Vl3dk5xzG+8sTX96np0ZAluvaMzPsjhHZ5rNuNQQ==
 
-"@fastify/otel@0.5.0":
-  version "0.5.0"
-  resolved "https://registry.yarnpkg.com/@fastify/otel/-/otel-0.5.0.tgz#1b18e9623768ad6d8a20e95771dacca2783aa0ba"
-  integrity sha512-wZ2yl/2iuW6jerdktR/mpkkI83/qHhbRShQtNA3x+6+bQ/RKqmhifc5M29fmHbyIw+DF3SXJAKMSdURSQt4W0w==
+"@fastify/otel@0.5.1":
+  version "0.5.1"
+  resolved "https://registry.yarnpkg.com/@fastify/otel/-/otel-0.5.1.tgz#fc8e56fcbdeb693c1a44f2da071817bc600ae1f5"
+  integrity sha512-xDoDFQHRlgZ1Koe9fWzz4MqgrdW6u66bMPy+rOgoWg4cHyGFnmpcnUusKaFOyBsFhGtaH5dCLmLo3gCGoMnxYQ==
   dependencies:
     "@opentelemetry/core" "^1.29.0"
     "@opentelemetry/instrumentation" "^0.57.0"
