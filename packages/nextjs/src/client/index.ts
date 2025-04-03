@@ -1,4 +1,5 @@
 import type { Client, EventProcessor, Integration } from '@sentry/core';
+import { getGlobalScope } from '@sentry/core';
 import { GLOBAL_OBJ, addEventProcessor, applySdkMetadata } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/react';
 import { getDefaultIntegrations as getReactDefaultIntegrations, init as reactInit } from '@sentry/react';
@@ -19,6 +20,7 @@ const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryRewriteFramesAssetPrefixPath: string;
   _sentryAssetPrefix?: string;
   _sentryBasePath?: string;
+  _sentryRelease?: string;
   _experimentalThirdPartyOriginStackFrames?: string;
 };
 
@@ -30,6 +32,7 @@ export function init(options: BrowserOptions): Client | undefined {
   const opts = {
     environment: getVercelEnv(true) || process.env.NODE_ENV,
     defaultIntegrations: getDefaultIntegrations(options),
+    release: process.env._sentryRelease || globalWithInjectedValues._sentryRelease,
     ...options,
   } satisfies BrowserOptions;
 
@@ -59,6 +62,16 @@ export function init(options: BrowserOptions): Client | undefined {
 
   if (process.env.NODE_ENV === 'development') {
     addEventProcessor(devErrorSymbolicationEventProcessor);
+  }
+
+  try {
+    // @ts-expect-error `process.turbopack` is a magic string that will be replaced by Next.js
+    if (process.turbopack) {
+      getGlobalScope().setTag('turbopack', true);
+    }
+  } catch (e) {
+    // Noop
+    // The statement above can throw because process is not defined on the client
   }
 
   return client;
