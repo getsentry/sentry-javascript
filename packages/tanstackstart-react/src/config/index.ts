@@ -9,7 +9,7 @@ export function wrapVinxiConfigWithSentry<C>(
     org?: string;
     project?: string;
     silent?: boolean;
-    authToken?: boolean;
+    authToken?: string;
   } = {},
 ): C {
   return config;
