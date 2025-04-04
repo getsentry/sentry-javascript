@@ -235,6 +235,7 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
      */
     recordCrossOriginIframes: boolean;
     autoFlushOnFeedback: boolean;
+    dropRepetitiveMutations: boolean;
   }>;
 }
 
