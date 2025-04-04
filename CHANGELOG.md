@@ -10,6 +10,23 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+Work in this release was contributed by @Page-. Thank you for your contribution!
+
+## 9.11.0
+
+- feat(browser): Add `http.redirect_count` attribute to `browser.redirect` span ([#15943](https://github.com/getsentry/sentry-javascript/pull/15943))
+- feat(core): Add `consoleLoggingIntegration` for logs ([#15955](https://github.com/getsentry/sentry-javascript/pull/15955))
+- feat(core): Don't truncate error messages ([#15818](https://github.com/getsentry/sentry-javascript/pull/15818))
+- feat(nextjs): Add release injection in Turbopack ([#15958](https://github.com/getsentry/sentry-javascript/pull/15958))
+- feat(nextjs): Record `turbopack` as tag ([#15928](https://github.com/getsentry/sentry-javascript/pull/15928))
+- feat(nuxt): Base decision on source maps upload only on Nuxt source map settings ([#15859](https://github.com/getsentry/sentry-javascript/pull/15859))
+- feat(react-router): Add `sentryHandleRequest` ([#15787](https://github.com/getsentry/sentry-javascript/pull/15787))
+- fix(node): Use `module` instead of `require` for CJS check ([#15927](https://github.com/getsentry/sentry-javascript/pull/15927))
+- fix(remix): Remove mentions of deprecated `ErrorBoundary` wrapper ([#15930](https://github.com/getsentry/sentry-javascript/pull/15930))
+- ref(browser): Temporarily add `sentry.previous_trace` span attribute ([#15957](https://github.com/getsentry/sentry-javascript/pull/15957))
+- ref(browser/core): Move all log flushing logic into clients ([#15831](https://github.com/getsentry/sentry-javascript/pull/15831))
+- ref(core): Improve URL parsing utilities ([#15882](https://github.com/getsentry/sentry-javascript/pull/15882))
+
 ## 9.10.1
 
 - fix: Correct @sentry-internal/feedback docs to match the code ([#15874](https://github.com/getsentry/sentry-javascript/pull/15874))

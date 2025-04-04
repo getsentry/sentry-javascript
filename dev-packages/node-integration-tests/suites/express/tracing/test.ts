@@ -1,5 +1,6 @@
 import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
+import { assertSentryTransaction } from '../../../utils/assertions';
 
 describe('express tracing', () => {
   afterAll(() => {
@@ -241,6 +242,34 @@ describe('express tracing', () => {
         runner.makeRequest('post', '/test-post', {
           headers: { 'Content-Type': 'application/octet-stream' },
           data: body,
+        });
+        await runner.completed();
+      });
+
+      test('correctly ignores request data', async () => {
+        const runner = createRunner(__dirname, 'server.js')
+          .expect({
+            transaction: e => {
+              assertSentryTransaction(e, {
+                transaction: 'POST /test-post-ignore-body',
+                request: {
+                  url: expect.stringMatching(/^http:\/\/localhost:(\d+)\/test-post-ignore-body$/),
+                  method: 'POST',
+                  headers: {
+                    'user-agent': expect.stringContaining(''),
+                    'content-type': 'application/octet-stream',
+                  },
+                },
+              });
+              // Ensure the request body has been ignored
+              expect(e).have.property('request').that.does.not.have.property('data');
+            },
+          })
+          .start();
+
+        runner.makeRequest('post', '/test-post-ignore-body', {
+          headers: { 'Content-Type': 'application/octet-stream' },
+          data: Buffer.from('some plain text in buffer'),
         });
         await runner.completed();
       });
