@@ -1,30 +1,31 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import type { Span } from '@sentry/core';
 import { getDynamicSamplingContextFromSpan, spanIsSampled, spanToJSON } from '@sentry/core';
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 
-import { init } from '../../src';
 import type { NodeClient } from '../../src';
+import { init } from '../../src';
 import { instrumentBunServe } from '../../src/integrations/bunserver';
 import { getDefaultBunClientOptions } from '../helpers';
 
 describe('Bun Serve Integration', () => {
+  // Initialize client only once for all tests
   let client: NodeClient | undefined;
-  // Fun fact: Bun = 2 21 14 :)
-  let port: number = 22114;
 
   beforeAll(() => {
     instrumentBunServe();
   });
 
+  // Set up client before any tests run
   beforeEach(() => {
-    const options = getDefaultBunClientOptions({ tracesSampleRate: 1 });
-    client = init(options);
+    client = init(getDefaultBunClientOptions({ tracesSampleRate: 1 }));
   });
 
-  afterEach(() => {
-    // Don't reuse the port; Bun server stops lazily so tests may accidentally hit a server still closing from a
-    // previous test
-    port += 1;
+  // Clean up after all tests
+  afterAll(() => {
+    if (client) {
+      client.close();
+      client = undefined;
+    }
   });
 
   test('generates a transaction around a request', async () => {
@@ -38,9 +39,9 @@ describe('Bun Serve Integration', () => {
       async fetch(_req) {
         return new Response('Bun!');
       },
-      port,
+      port: 0,
     });
-    await fetch(`http://localhost:${port}/users?id=123`);
+    await fetch(`http://localhost:${server.port}/users?id=123`);
     server.stop();
 
     if (!generatedSpan) {
@@ -62,6 +63,100 @@ describe('Bun Serve Integration', () => {
     });
   });
 
+  test('generates a transaction for routes with a function handler', async () => {
+    let generatedSpan: Span | undefined;
+
+    client?.on('spanEnd', span => {
+      generatedSpan = span;
+    });
+
+    const server = Bun.serve({
+      routes: {
+        '/users': () => {
+          return new Response('Users Route');
+        },
+      },
+      port: 0,
+    });
+    await fetch(`http://localhost:${server.port}/users`);
+    server.stop();
+
+    if (!generatedSpan) {
+      throw 'No span was generated in the test';
+    }
+
+    const spanJson = spanToJSON(generatedSpan);
+    expect(spanJson.status).toBe('ok');
+    expect(spanJson.op).toEqual('http.server');
+    expect(spanJson.description).toEqual('GET /users');
+    expect(spanJson.data).toEqual({
+      'http.request.method': 'GET',
+      'http.response.status_code': 200,
+      'sentry.op': 'http.server',
+      'sentry.origin': 'auto.http.bun.serve.route',
+      'sentry.sample_rate': 1,
+      'sentry.source': 'url',
+    });
+  });
+
+  test('generates a transaction for routes with HTTP method handlers', async () => {
+    let generatedSpan: Span | undefined;
+
+    client?.on('spanEnd', span => {
+      generatedSpan = span;
+    });
+
+    const server = Bun.serve({
+      routes: {
+        '/api': {
+          GET: () => new Response('GET API'),
+          POST: () => new Response('POST API'),
+        },
+      },
+      port: 0,
+    });
+    await fetch(`http://localhost:${server.port}/api`, { method: 'POST' });
+    server.stop();
+
+    if (!generatedSpan) {
+      throw 'No span was generated in the test';
+    }
+
+    const spanJson = spanToJSON(generatedSpan);
+    expect(spanJson.status).toBe('ok');
+    expect(spanJson.op).toEqual('http.server');
+    expect(spanJson.description).toEqual('POST /api');
+    expect(spanJson.data).toEqual({
+      'http.request.method': 'POST',
+      'http.response.status_code': 200,
+      'sentry.op': 'http.server',
+      'sentry.origin': 'auto.http.bun.serve.route.method',
+      'sentry.sample_rate': 1,
+      'sentry.source': 'url',
+    });
+  });
+
+  test('does not capture Static Response objects in routes', async () => {
+    let generatedSpan: Span | undefined;
+
+    client?.on('spanEnd', span => {
+      generatedSpan = span;
+    });
+
+    const server = Bun.serve({
+      routes: {
+        '/static': new Response('Static Response'),
+      },
+      fetch: () => new Response('Default'),
+      port: 0,
+    });
+    await fetch(`http://localhost:${server.port}/static`);
+    server.stop();
+
+    // Static responses don't trigger spans
+    expect(generatedSpan).toBeUndefined();
+  });
+
   test('generates a post transaction', async () => {
     let generatedSpan: Span | undefined;
 
@@ -73,10 +168,10 @@ describe('Bun Serve Integration', () => {
       async fetch(_req) {
         return new Response('Bun!');
       },
-      port,
+      port: 0,
     });
 
-    await fetch(`http://localhost:${port}/`, {
+    await fetch(`http://localhost:${server.port}/`, {
       method: 'POST',
     });
 
@@ -110,10 +205,10 @@ describe('Bun Serve Integration', () => {
       async fetch(_req) {
         return new Response('Bun!');
       },
-      port,
+      port: 0,
     });
 
-    await fetch(`http://localhost:${port}/`, {
+    await fetch(`http://localhost:${server.port}/`, {
       headers: { 'sentry-trace': SENTRY_TRACE_HEADER, baggage: SENTRY_BAGGAGE_HEADER },
     });
 
@@ -146,14 +241,14 @@ describe('Bun Serve Integration', () => {
       async fetch(_req) {
         return new Response('Bun!');
       },
-      port,
+      port: 0,
     });
 
-    await fetch(`http://localhost:${port}/`, {
+    await fetch(`http://localhost:${server.port}/`, {
       method: 'OPTIONS',
     });
 
-    await fetch(`http://localhost:${port}/`, {
+    await fetch(`http://localhost:${server.port}/`, {
       method: 'HEAD',
     });
 
@@ -172,7 +267,7 @@ describe('Bun Serve Integration', () => {
       async fetch(_req) {
         return new Response('Bun!');
       },
-      port,
+      port: 0,
     });
 
     server.reload({
@@ -181,7 +276,7 @@ describe('Bun Serve Integration', () => {
       },
     });
 
-    await fetch(`http://localhost:${port}/`);
+    await fetch(`http://localhost:${server.port}/`);
 
     server.stop();
 
