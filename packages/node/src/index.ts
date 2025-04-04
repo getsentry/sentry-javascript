@@ -152,6 +152,6 @@ export type {
   Span,
 } from '@sentry/core';
 
-import * as logger from './log';
+import * as logger from './logs/exports';
 
 export { logger };
