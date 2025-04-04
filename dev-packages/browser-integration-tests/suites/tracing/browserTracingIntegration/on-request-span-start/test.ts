@@ -35,18 +35,18 @@ sentryTest('should call onRequestSpanStart hook', async ({ browserName, getLocal
   expect(tracingEvent.spans).toContainEqual(
     expect.objectContaining({
       op: 'http.client',
-      data: {
-        'hook.called.headers': 'fetch',
-      },
+      data: expect.objectContaining({
+        'hook.called.headers': 'xhr',
+      }),
     }),
   );
 
   expect(tracingEvent.spans).toContainEqual(
     expect.objectContaining({
       op: 'http.client',
-      data: {
-        'hook.called.headers': 'xhr',
-      },
+      data: expect.objectContaining({
+        'hook.called.headers': 'fetch',
+      }),
     }),
   );
 });

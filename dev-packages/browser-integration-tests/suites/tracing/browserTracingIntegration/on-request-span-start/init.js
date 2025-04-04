@@ -8,7 +8,9 @@ Sentry.init({
     Sentry.browserTracingIntegration({
       idleTimeout: 1000,
       onRequestSpanStart(span, { headers }) {
-        span.setAttribute('hook.called.headers', headers.get('foo'));
+        if (headers) {
+          span.setAttribute('hook.called.headers', headers.get('foo'));
+        }
       },
     }),
   ],
