@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { HandlerDataFetch } from '../../types-hoist';
+import type { HandlerDataFetch, WebFetchHeaders } from '../../types-hoist';
 
-import { isError } from '../is';
+import { isError, isRequest } from '../is';
 import { addNonEnumerableProperty, fill } from '../object';
 import { supportsNativeFetch } from '../supports';
 import { timestampInSeconds } from '../time';
@@ -67,6 +67,7 @@ function instrumentFetch(onFetchResolved?: (response: Response) => void, skipNat
         startTimestamp: timestampInSeconds() * 1000,
         // // Adding the error to be able to fingerprint the failed fetch event in HttpClient instrumentation
         virtualError,
+        headers: getHeadersFromFetchArgs(args),
       };
 
       // if there is no callback, fetch is instrumented directly
@@ -252,4 +253,27 @@ export function parseFetchArgs(fetchArgs: unknown[]): { method: string; url: str
     url: getUrlFromResource(arg as FetchResource),
     method: hasProp(arg, 'method') ? String(arg.method).toUpperCase() : 'GET',
   };
+}
+
+function getHeadersFromFetchArgs(fetchArgs: unknown[]): WebFetchHeaders | undefined {
+  const [requestArgument, optionsArgument] = fetchArgs;
+
+  try {
+    if (
+      typeof optionsArgument === 'object' &&
+      optionsArgument !== null &&
+      'headers' in optionsArgument &&
+      optionsArgument.headers
+    ) {
+      return new Headers(optionsArgument.headers as any);
+    }
+
+    if (isRequest(requestArgument)) {
+      return new Headers(requestArgument.headers);
+    }
+  } catch {
+    // noop
+  }
+
+  return;
 }

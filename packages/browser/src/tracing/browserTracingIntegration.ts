@@ -9,7 +9,7 @@ import {
   startTrackingLongTasks,
   startTrackingWebVitals,
 } from '@sentry-internal/browser-utils';
-import type { Client, IntegrationFn, Span, StartSpanOptions, TransactionSource } from '@sentry/core';
+import type { Client, IntegrationFn, Span, StartSpanOptions, TransactionSource, WebFetchHeaders } from '@sentry/core';
 import {
   GLOBAL_OBJ,
   SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
@@ -195,6 +195,13 @@ export interface BrowserTracingOptions {
    * Default: (url: string) => true
    */
   shouldCreateSpanForRequest?(this: void, url: string): boolean;
+
+  /**
+   * This callback is invoked directly after a span is started for an outgoing fetch or XHR request.
+   * You can use it to annotate the span with additional data or attributes, for example by setting
+   * attributes based on the passed request headers.
+   */
+  onRequestSpanStart?(span: Span, requestInformation: { headers?: WebFetchHeaders }): void;
 }
 
 const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
@@ -246,6 +253,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     instrumentPageLoad,
     instrumentNavigation,
     linkPreviousTrace,
+    onRequestSpanStart,
   } = {
     ...DEFAULT_BROWSER_TRACING_OPTIONS,
     ..._options,
@@ -468,6 +476,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         tracePropagationTargets: client.getOptions().tracePropagationTargets,
         shouldCreateSpanForRequest,
         enableHTTPTimings,
+        onRequestSpanStart,
       });
     },
   };
