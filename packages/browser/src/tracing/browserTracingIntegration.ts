@@ -201,7 +201,7 @@ export interface BrowserTracingOptions {
    * You can use it to annotate the span with additional data or attributes, for example by setting
    * attributes based on the passed request headers.
    */
-  onRequestSpanStart(span: Span, requestInformation: { headers?: WebFetchHeaders }): void;
+  onRequestSpanStart?(span: Span, requestInformation: { headers?: WebFetchHeaders }): void;
 }
 
 const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {

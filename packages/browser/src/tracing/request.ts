@@ -102,7 +102,7 @@ export interface RequestInstrumentationOptions {
   /**
    * Is called when spans are started for outgoing requests.
    */
-  onRequestSpanStart(span: Span, requestInformation: { headers?: WebFetchHeaders }): void;
+  onRequestSpanStart?(span: Span, requestInformation: { headers?: WebFetchHeaders }): void;
 }
 
 const responseToSpanId = new WeakMap<object, string>();
@@ -113,9 +113,6 @@ export const defaultRequestInstrumentationOptions: RequestInstrumentationOptions
   traceXHR: true,
   enableHTTPTimings: true,
   trackFetchStreamPerformance: false,
-  onRequestSpanStart() {
-    // noop
-  },
 };
 
 /** Registers span creators for xhr and fetch requests  */
@@ -191,7 +188,7 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
           addHTTPTimings(createdSpan);
         }
 
-        onRequestSpanStart(createdSpan, { headers: handlerData.headers });
+        onRequestSpanStart?.(createdSpan, { headers: handlerData.headers });
       }
     });
   }
@@ -210,7 +207,7 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
         } catch {
           // noop
         }
-        onRequestSpanStart(createdSpan, { headers });
+        onRequestSpanStart?.(createdSpan, { headers });
       }
     });
   }
