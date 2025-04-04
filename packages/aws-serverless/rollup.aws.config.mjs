@@ -19,7 +19,7 @@ export default [
     // We only need one copy of the SDK, and we pick the minified one because there's a cap on how big a lambda function
     // plus its dependencies can be, and we might as well take up as little of that space as is necessary. We'll rename
     // it to be `index.js` in the build script, since it's standing in for the index file of the npm package.
-    { variants: ['.min.js'] },
+    { variants: ['.debug.min.js'] },
   ),
   makeBaseNPMConfig({
     entrypoints: ['src/awslambda-auto.ts'],
