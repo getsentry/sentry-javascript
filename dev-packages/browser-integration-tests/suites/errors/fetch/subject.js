@@ -31,7 +31,7 @@ window.credentialsInUrl = () => {
 
 // Invalid mode
 window.invalidMode = () => {
-  fetch('https://sentry-test-external.io/invalid-mode', { mode: 'navigate' });
+  fetch('http://sentry-test-external.io/invalid-mode', { mode: 'navigate' });
 };
 
 // Invalid request method

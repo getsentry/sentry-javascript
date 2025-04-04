@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { Scope } from '../../scope';
 import type { HandlerDataFetch } from '../../types-hoist';
+import { addScopeDataToError } from '../../utils/prepareEvent';
 
 import { isError } from '../is';
 import { addNonEnumerableProperty, fill } from '../object';
@@ -125,6 +127,15 @@ function instrumentFetch(onFetchResolved?: (response: Response) => void, skipNat
               // ignore it if errors happen here
             }
           }
+
+          // We attach an additional scope to the error, which contains the outgoing request data
+          // If this error bubbles up and is captured by Sentry, the scope will be added to the event
+          const scope = new Scope();
+          scope.setContext('outgoingRequest', {
+            method,
+            url,
+          });
+          addScopeDataToError(error, scope);
 
           // NOTE: If you are a Sentry user, and you are seeing this stack frame,
           //       it means the sentry.javascript SDK caught an error invoking your application code.
