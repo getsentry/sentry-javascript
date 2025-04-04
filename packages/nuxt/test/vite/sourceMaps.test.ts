@@ -152,46 +152,64 @@ describe('getPluginOptions', () => {
     );
   });
 
-  it('sets filesToDeleteAfterUpload correctly based on fallback options', () => {
-    // Scenario 1: Both client and server fallback are true
-    const optionsBothTrue = getPluginOptions({}, { client: true, server: true });
-    expect(optionsBothTrue?.sourcemaps?.filesToDeleteAfterUpload).toEqual([
-      '.*/**/public/**/*.map',
-      '.*/**/server/**/*.map',
-      '.*/**/output/**/*.map',
-      '.*/**/function/**/*.map',
-    ]);
-
-    // Scenario 2: Only client fallback is true
-    const optionsClientTrue = getPluginOptions({}, { client: true, server: false });
-    expect(optionsClientTrue?.sourcemaps?.filesToDeleteAfterUpload).toEqual(['.*/**/public/**/*.map']);
-
-    // Scenario 3: Only server fallback is true
-    const optionsServerTrue = getPluginOptions({}, { client: false, server: true });
-    expect(optionsServerTrue?.sourcemaps?.filesToDeleteAfterUpload).toEqual([
-      '.*/**/server/**/*.map',
-      '.*/**/output/**/*.map',
-      '.*/**/function/**/*.map',
-    ]);
-
-    // Scenario 4: No fallback, but custom filesToDeleteAfterUpload is provided
-    const customDeleteFiles = ['custom/path/**/*.map'];
-    const optionsWithCustomDelete = getPluginOptions(
-      {
+  it.each([
+    {
+      name: 'both client and server fallback are true',
+      clientFallback: true,
+      serverFallback: true,
+      customOptions: {},
+      expectedFilesToDelete: [
+        '.*/**/public/**/*.map',
+        '.*/**/server/**/*.map',
+        '.*/**/output/**/*.map',
+        '.*/**/function/**/*.map',
+      ],
+    },
+    {
+      name: 'only client fallback is true',
+      clientFallback: true,
+      serverFallback: false,
+      customOptions: {},
+      expectedFilesToDelete: ['.*/**/public/**/*.map'],
+    },
+    {
+      name: 'only server fallback is true',
+      clientFallback: false,
+      serverFallback: true,
+      customOptions: {},
+      expectedFilesToDelete: ['.*/**/server/**/*.map', '.*/**/output/**/*.map', '.*/**/function/**/*.map'],
+    },
+    {
+      name: 'no fallback, but custom filesToDeleteAfterUpload is provided',
+      clientFallback: false,
+      serverFallback: false,
+      customOptions: {
         sourceMapsUploadOptions: {
           sourcemaps: {
-            filesToDeleteAfterUpload: customDeleteFiles,
+            filesToDeleteAfterUpload: ['custom/path/**/*.map'],
           },
         },
       },
-      { client: false, server: false },
-    );
-    expect(optionsWithCustomDelete?.sourcemaps?.filesToDeleteAfterUpload).toEqual(customDeleteFiles);
+      expectedFilesToDelete: ['custom/path/**/*.map'],
+    },
+    {
+      name: 'no fallback, both source maps explicitly false and no custom filesToDeleteAfterUpload',
+      clientFallback: false,
+      serverFallback: false,
+      customOptions: {},
+      expectedFilesToDelete: undefined,
+    },
+  ])(
+    'sets filesToDeleteAfterUpload correctly when $name',
+    ({ clientFallback, serverFallback, customOptions, expectedFilesToDelete }) => {
+      const options = getPluginOptions(customOptions as SentryNuxtModuleOptions, {
+        client: clientFallback,
+        server: serverFallback,
+      });
 
-    // Scenario 5: No fallback, both source maps explicitly false and no custom filesToDeleteAfterUpload
-    const optionsNoDelete = getPluginOptions({}, { client: false, server: false });
-    expect(optionsNoDelete?.sourcemaps?.filesToDeleteAfterUpload).toBeUndefined();
-  });
+      expect(options?.sourcemaps?.filesToDeleteAfterUpload).toEqual(expectedFilesToDelete);
+    },
+  );
 });
 
 describe('validate sourcemap settings', () => {
@@ -266,62 +284,61 @@ describe('change Nuxt source map settings', () => {
   let nuxt: { options: { sourcemap: { client: boolean | 'hidden'; server: boolean | 'hidden' } } };
   let sentryModuleOptions: SentryNuxtModuleOptions;
 
+  const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
   beforeEach(() => {
+    consoleLogSpy.mockClear();
+
     // @ts-expect-error - Nuxt types don't accept `undefined` but we want to test this case
     nuxt = { options: { sourcemap: { client: undefined } } };
     sentryModuleOptions = {};
   });
 
-  it('should handle nuxt.options.sourcemap.client settings', () => {
-    const cases = [
-      { clientSourcemap: false, expectedSourcemap: false, expectedReturn: 'disabled' },
-      { clientSourcemap: 'hidden', expectedSourcemap: 'hidden', expectedReturn: 'enabled' },
-      { clientSourcemap: true, expectedSourcemap: true, expectedReturn: 'enabled' },
-      { clientSourcemap: undefined, expectedSourcemap: 'hidden', expectedReturn: 'unset' },
-    ];
-
-    cases.forEach(({ clientSourcemap, expectedSourcemap, expectedReturn }) => {
+  it.each([
+    { clientSourcemap: false, expectedSourcemap: false, expectedReturn: 'disabled' },
+    { clientSourcemap: 'hidden', expectedSourcemap: 'hidden', expectedReturn: 'enabled' },
+    { clientSourcemap: true, expectedSourcemap: true, expectedReturn: 'enabled' },
+    { clientSourcemap: undefined, expectedSourcemap: 'hidden', expectedReturn: 'unset' },
+  ])(
+    'should handle client sourcemap setting: $clientSourcemap',
+    ({ clientSourcemap, expectedSourcemap, expectedReturn }) => {
       // @ts-expect-error - Nuxt types don't accept `undefined` but we want to test this case
       nuxt.options.sourcemap.client = clientSourcemap;
       const previousUserSourcemapSetting = changeNuxtSourceMapSettings(nuxt as Nuxt, sentryModuleOptions);
       expect(nuxt.options.sourcemap.client).toBe(expectedSourcemap);
       expect(previousUserSourcemapSetting.client).toBe(expectedReturn);
-    });
-  });
+    },
+  );
 
-  it('should handle nuxt.options.sourcemap.server settings', () => {
-    const cases = [
-      { serverSourcemap: false, expectedSourcemap: false, expectedReturn: 'disabled' },
-      { serverSourcemap: 'hidden', expectedSourcemap: 'hidden', expectedReturn: 'enabled' },
-      { serverSourcemap: true, expectedSourcemap: true, expectedReturn: 'enabled' },
-      { serverSourcemap: undefined, expectedSourcemap: 'hidden', expectedReturn: 'unset' },
-    ];
-
-    cases.forEach(({ serverSourcemap, expectedSourcemap, expectedReturn }) => {
+  it.each([
+    { serverSourcemap: false, expectedSourcemap: false, expectedReturn: 'disabled' },
+    { serverSourcemap: 'hidden', expectedSourcemap: 'hidden', expectedReturn: 'enabled' },
+    { serverSourcemap: true, expectedSourcemap: true, expectedReturn: 'enabled' },
+    { serverSourcemap: undefined, expectedSourcemap: 'hidden', expectedReturn: 'unset' },
+  ])(
+    'should handle server sourcemap setting: $serverSourcemap',
+    ({ serverSourcemap, expectedSourcemap, expectedReturn }) => {
       // @ts-expect-error server available
       nuxt.options.sourcemap.server = serverSourcemap;
       const previousUserSourcemapSetting = changeNuxtSourceMapSettings(nuxt as Nuxt, sentryModuleOptions);
       expect(nuxt.options.sourcemap.server).toBe(expectedSourcemap);
       expect(previousUserSourcemapSetting.server).toBe(expectedReturn);
-    });
-  });
+    },
+  );
 
   describe('should handle nuxt.options.sourcemap as a boolean', () => {
-    it('keeps setting of nuxt.options.sourcemap if it is set', () => {
-      const cases = [
-        { sourcemap: false, expectedSourcemap: false, expectedReturn: 'disabled' },
-        { sourcemap: true, expectedSourcemap: true, expectedReturn: 'enabled' },
-        { sourcemap: 'hidden', expectedSourcemap: 'hidden', expectedReturn: 'enabled' },
-      ];
+    it.each([
+      { sourcemap: false, expectedSourcemap: false, expectedReturn: 'disabled' },
+      { sourcemap: true, expectedSourcemap: true, expectedReturn: 'enabled' },
+      { sourcemap: 'hidden', expectedSourcemap: 'hidden', expectedReturn: 'enabled' },
+    ])('keeps nuxt.options.sourcemap setting: $sourcemap', ({ sourcemap, expectedSourcemap, expectedReturn }) => {
+      // @ts-expect-error string type is possible in Nuxt (but type says differently)
+      nuxt.options.sourcemap = sourcemap;
+      const previousUserSourcemapSetting = changeNuxtSourceMapSettings(nuxt as Nuxt, { debug: true });
 
-      cases.forEach(({ sourcemap, expectedSourcemap, expectedReturn }) => {
-        // @ts-expect-error string type is possible in Nuxt (but type says differently)
-        nuxt.options.sourcemap = sourcemap;
-        const previousUserSourcemapSetting = changeNuxtSourceMapSettings(nuxt as Nuxt, sentryModuleOptions);
-        expect(nuxt.options.sourcemap).toBe(expectedSourcemap);
-        expect(previousUserSourcemapSetting.client).toBe(expectedReturn);
-        expect(previousUserSourcemapSetting.server).toBe(expectedReturn);
-      });
+      expect(nuxt.options.sourcemap).toBe(expectedSourcemap);
+      expect(previousUserSourcemapSetting.client).toBe(expectedReturn);
+      expect(previousUserSourcemapSetting.server).toBe(expectedReturn);
     });
 
     it("sets client and server to 'hidden' if nuxt.options.sourcemap not set", () => {
@@ -332,6 +349,44 @@ describe('change Nuxt source map settings', () => {
       expect(nuxt.options.sourcemap.server).toBe('hidden');
       expect(previousUserSourcemapSetting.client).toBe('unset');
       expect(previousUserSourcemapSetting.server).toBe('unset');
+    });
+
+    it('should log a message when source maps are enabled and debug is true', () => {
+      const settingKey = 'sourcemap.client';
+      const settingValue = 'hidden';
+
+      nuxt.options.sourcemap.client = settingValue;
+
+      changeNuxtSourceMapSettings(nuxt as Nuxt, { debug: true });
+
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        `[Sentry] \`${settingKey}\` is enabled with \`${settingValue}\`. This will correctly un-minify the code snippet on the Sentry Issue Details page.`,
+      );
+    });
+
+    it('should log a message when debug is false and one of the source maps are unset', () => {
+      nuxt.options.sourcemap.server = true;
+
+      const { client, server } = changeNuxtSourceMapSettings(nuxt as Nuxt, { debug: false });
+
+      expect(client).toBe('unset');
+      expect(server).toBe('enabled');
+
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        '[Sentry] Enabled source map generation in the build options with `sourcemap.client: hidden`.',
+      );
+    });
+
+    it('should not log a message when debug is false and client/server source maps are defined', () => {
+      nuxt.options.sourcemap.client = false;
+      nuxt.options.sourcemap.server = true;
+
+      const { client, server } = changeNuxtSourceMapSettings(nuxt as Nuxt, { debug: false });
+
+      expect(client).toBe('disabled');
+      expect(server).toBe('enabled');
+
+      expect(consoleLogSpy).not.toHaveBeenCalled();
     });
   });
 });

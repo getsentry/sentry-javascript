@@ -253,6 +253,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     instrumentPageLoad,
     instrumentNavigation,
     linkPreviousTrace,
+    onRequestSpanStart,
   } = {
     ...DEFAULT_BROWSER_TRACING_OPTIONS,
     ..._options,
@@ -475,6 +476,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         tracePropagationTargets: client.getOptions().tracePropagationTargets,
         shouldCreateSpanForRequest,
         enableHTTPTimings,
+        onRequestSpanStart,
       });
     },
   };
