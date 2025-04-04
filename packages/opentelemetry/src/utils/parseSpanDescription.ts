@@ -19,9 +19,9 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  getSanitizedUrlString,
-  parseUrl,
-  stripUrlQueryAndFragment,
+  parseStringToURLObject,
+  getSanitizedUrlStringFromUrlObject,
+  isURLObjectRelative,
 } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION } from '../semanticAttributes';
 import type { AbstractSpan } from '../types';
@@ -156,16 +156,16 @@ export function descriptionForHttpMethod(
     opParts.push('prefetch');
   }
 
-  const { urlPath, url, query, fragment, hasRoute } = getSanitizedUrl(attributes, kind);
+  const [parsedUrl, httpRoute] = getParsedUrl(attributes);
 
-  if (!urlPath) {
+  if (!parsedUrl) {
     return { ...getUserUpdatedNameAndSource(name, attributes), op: opParts.join('.') };
   }
 
   const graphqlOperationsAttribute = attributes[SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION];
 
   // Ex. GET /api/users
-  const baseDescription = `${httpMethod} ${urlPath}`;
+  const baseDescription = `${httpMethod} ${httpRoute || getSanitizedUrlStringFromUrlObject(parsedUrl)}`;
 
   // When the http span has a graphql operation, append it to the description
   // We add these in the graphqlIntegration
@@ -174,18 +174,16 @@ export function descriptionForHttpMethod(
     : baseDescription;
 
   // If `httpPath` is a root path, then we can categorize the transaction source as route.
-  const inferredSource: TransactionSource = hasRoute || urlPath === '/' ? 'route' : 'url';
+  const inferredSource: TransactionSource = httpRoute || parsedUrl.pathname === '/' ? 'route' : 'url';
 
   const data: Record<string, string> = {};
 
-  if (url) {
-    data.url = url;
+  data.url = isURLObjectRelative(parsedUrl) ? parsedUrl.pathname : parsedUrl.toString();
+  if (parsedUrl.search) {
+    data['http.query'] = parsedUrl.search;
   }
-  if (query) {
-    data['http.query'] = query;
-  }
-  if (fragment) {
-    data['http.fragment'] = fragment;
+  if (parsedUrl.hash) {
+    data['http.fragment'] = parsedUrl.hash;
   }
 
   // If the span kind is neither client nor server, we use the original name
@@ -234,48 +232,31 @@ function getGraphqlOperationNamesFromAttribute(attr: AttributeValue): string {
 }
 
 /** Exported for tests only */
-export function getSanitizedUrl(
+export function getParsedUrl(
   attributes: Attributes,
-  kind: SpanKind,
-): {
-  url: string | undefined;
-  urlPath: string | undefined;
-  query: string | undefined;
-  fragment: string | undefined;
-  hasRoute: boolean;
-} {
+): [parsedUrl: ReturnType<typeof parseStringToURLObject>, httpRoute: string | undefined] {
   // This is the relative path of the URL, e.g. /sub
   // eslint-disable-next-line deprecation/deprecation
-  const httpTarget = attributes[SEMATTRS_HTTP_TARGET];
+  const possibleRelativeUrl = attributes[SEMATTRS_HTTP_TARGET];
   // This is the full URL, including host & query params etc., e.g. https://example.com/sub?foo=bar
   // eslint-disable-next-line deprecation/deprecation
-  const httpUrl = attributes[SEMATTRS_HTTP_URL] || attributes[ATTR_URL_FULL];
+  const possibleFullUrl = attributes[SEMATTRS_HTTP_URL] || attributes[ATTR_URL_FULL];
   // This is the normalized route name - may not always be available!
-  const httpRoute = attributes[ATTR_HTTP_ROUTE];
+  const httpRoute = attributes[ATTR_HTTP_ROUTE] as string | undefined;
 
-  const parsedUrl = typeof httpUrl === 'string' ? parseUrl(httpUrl) : undefined;
-  const url = parsedUrl ? getSanitizedUrlString(parsedUrl) : undefined;
-  const query = parsedUrl?.search || undefined;
-  const fragment = parsedUrl?.hash || undefined;
+  const parsedHttpUrl = typeof possibleFullUrl === 'string' ? parseStringToURLObject(possibleFullUrl) : undefined;
+  const parsedHttpTarget =
+    typeof possibleRelativeUrl === 'string' ? parseStringToURLObject(possibleRelativeUrl) : undefined;
 
-  if (typeof httpRoute === 'string') {
-    return { urlPath: httpRoute, url, query, fragment, hasRoute: true };
+  if (parsedHttpUrl) {
+    return [parsedHttpUrl, httpRoute];
   }
 
-  if (kind === SpanKind.SERVER && typeof httpTarget === 'string') {
-    return { urlPath: stripUrlQueryAndFragment(httpTarget), url, query, fragment, hasRoute: false };
+  if (parsedHttpTarget) {
+    return [parsedHttpTarget, httpRoute];
   }
 
-  if (parsedUrl) {
-    return { urlPath: url, url, query, fragment, hasRoute: false };
-  }
-
-  // fall back to target even for client spans, if no URL is present
-  if (typeof httpTarget === 'string') {
-    return { urlPath: stripUrlQueryAndFragment(httpTarget), url, query, fragment, hasRoute: false };
-  }
-
-  return { urlPath: undefined, url, query, fragment, hasRoute: false };
+  return [undefined, httpRoute];
 }
 
 /**
