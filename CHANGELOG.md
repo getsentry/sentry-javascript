@@ -10,6 +10,8 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+Work in this release was contributed by @Page-. Thank you for your contribution!
+
 ## 9.11.0
 
 - feat(browser): Add `http.redirect_count` attribute to `browser.redirect` span ([#15943](https://github.com/getsentry/sentry-javascript/pull/15943))
