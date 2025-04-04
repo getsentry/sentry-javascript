@@ -248,23 +248,23 @@ describe('express tracing', () => {
 
       test('correctly ignores request data', async () => {
         const runner = createRunner(__dirname, 'server.js')
-        .expect({
-          transaction: (e) => {
-            assertSentryTransaction(e, {
-              transaction: 'POST /test-post-ignore-body',
-              request: {
-                url: expect.stringMatching(/^http:\/\/localhost:(\d+)\/test-post-ignore-body$/),
-                method: 'POST',
-                headers: {
-                  'user-agent': expect.stringContaining(''),
-                  'content-type': 'application/octet-stream',
+          .expect({
+            transaction: e => {
+              assertSentryTransaction(e, {
+                transaction: 'POST /test-post-ignore-body',
+                request: {
+                  url: expect.stringMatching(/^http:\/\/localhost:(\d+)\/test-post-ignore-body$/),
+                  method: 'POST',
+                  headers: {
+                    'user-agent': expect.stringContaining(''),
+                    'content-type': 'application/octet-stream',
+                  },
                 },
-              },
-            });
-            // Ensure the request body has been ignored
-            expect(e).have.property('request').that.does.not.have.property('data');
-          },
-        })
+              });
+              // Ensure the request body has been ignored
+              expect(e).have.property('request').that.does.not.have.property('data');
+            },
+          })
           .start();
 
         runner.makeRequest('post', '/test-post-ignore-body', {
