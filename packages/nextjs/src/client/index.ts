@@ -16,6 +16,7 @@ export * from '@sentry/react';
 export * from '../common';
 export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';
 export { browserTracingIntegration } from './browserTracingIntegration';
+export { captureRouterTransitionStart } from './routing/appRouterRoutingInstrumentation';
 
 let clientIsInitialized = false;
 

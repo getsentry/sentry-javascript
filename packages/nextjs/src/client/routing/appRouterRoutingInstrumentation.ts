@@ -9,6 +9,9 @@ import { WINDOW, startBrowserTracingNavigationSpan, startBrowserTracingPageLoadS
 
 export const INCOMPLETE_APP_ROUTER_INSTRUMENTATION_TRANSACTION_NAME = 'incomplete-app-router-transaction';
 
+let navigationRoutingMode: 'router-patch' | 'transition-start-hook' = 'router-patch';
+const currentRouterPatchingNavigationSpanRef: NavigationSpanRef = { current: undefined };
+
 /** Instruments the Next.js app router for pageloads. */
 export function appRouterInstrumentPageLoad(client: Client): void {
   const origin = browserPerformanceTimeOrigin();
@@ -61,14 +64,39 @@ const GLOBAL_OBJ_WITH_NEXT_ROUTER = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
 
 /** Instruments the Next.js app router for navigation. */
 export function appRouterInstrumentNavigation(client: Client): void {
-  const currentNavigationSpanRef: NavigationSpanRef = { current: undefined };
+  routerTransitionHandler = (href, navigationType) => {
+    const pathname = new URL(href, WINDOW.location.href).pathname;
+
+    if (navigationRoutingMode === 'router-patch') {
+      navigationRoutingMode = 'transition-start-hook';
+    }
+
+    const currentNavigationSpan = currentRouterPatchingNavigationSpanRef.current;
+    if (currentNavigationSpan) {
+      currentNavigationSpan.updateName(pathname);
+      currentNavigationSpan.setAttributes({
+        'navigation.type': `router.${navigationType}`,
+      });
+      currentRouterPatchingNavigationSpanRef.current = undefined;
+    } else {
+      startBrowserTracingNavigationSpan(client, {
+        name: pathname,
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+          'navigation.type': `router.${navigationType}`,
+        },
+      });
+    }
+  };
 
   WINDOW.addEventListener('popstate', () => {
-    if (currentNavigationSpanRef.current?.isRecording()) {
-      currentNavigationSpanRef.current.updateName(WINDOW.location.pathname);
-      currentNavigationSpanRef.current.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'url');
+    if (currentRouterPatchingNavigationSpanRef.current?.isRecording()) {
+      currentRouterPatchingNavigationSpanRef.current.updateName(WINDOW.location.pathname);
+      currentRouterPatchingNavigationSpanRef.current.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'url');
     } else {
-      currentNavigationSpanRef.current = startBrowserTracingNavigationSpan(client, {
+      currentRouterPatchingNavigationSpanRef.current = startBrowserTracingNavigationSpan(client, {
         name: WINDOW.location.pathname,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
@@ -94,7 +122,7 @@ export function appRouterInstrumentNavigation(client: Client): void {
       clearInterval(checkForRouterAvailabilityInterval);
       routerPatched = true;
 
-      patchRouter(client, router, currentNavigationSpanRef);
+      patchRouter(client, router, currentRouterPatchingNavigationSpanRef);
 
       // If the router at any point gets overridden - patch again
       (['nd', 'next'] as const).forEach(globalValueName => {
@@ -103,7 +131,7 @@ export function appRouterInstrumentNavigation(client: Client): void {
           GLOBAL_OBJ_WITH_NEXT_ROUTER[globalValueName] = new Proxy(globalValue, {
             set(target, p, newValue) {
               if (p === 'router' && typeof newValue === 'object' && newValue !== null) {
-                patchRouter(client, newValue, currentNavigationSpanRef);
+                patchRouter(client, newValue, currentRouterPatchingNavigationSpanRef);
               }
 
               // @ts-expect-error we cannot possibly type this
@@ -139,6 +167,10 @@ function patchRouter(client: Client, router: NextRouter, currentNavigationSpanRe
       // @ts-expect-error Weird type error related to not knowing how to associate return values with the individual functions - we can just ignore
       router[routerFunctionName] = new Proxy(router[routerFunctionName], {
         apply(target, thisArg, argArray) {
+          if (navigationRoutingMode !== 'router-patch') {
+            return target.apply(thisArg, argArray);
+          }
+
           let transactionName = INCOMPLETE_APP_ROUTER_INSTRUMENTATION_TRANSACTION_NAME;
           const transactionAttributes: Record<string, string> = {
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
@@ -148,11 +180,9 @@ function patchRouter(client: Client, router: NextRouter, currentNavigationSpanRe
 
           if (routerFunctionName === 'push') {
             transactionName = transactionNameifyRouterArgument(argArray[0]);
-            transactionAttributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'url';
             transactionAttributes['navigation.type'] = 'router.push';
           } else if (routerFunctionName === 'replace') {
             transactionName = transactionNameifyRouterArgument(argArray[0]);
-            transactionAttributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'url';
             transactionAttributes['navigation.type'] = 'router.replace';
           } else if (routerFunctionName === 'back') {
             transactionAttributes['navigation.type'] = 'router.back';
@@ -170,4 +200,15 @@ function patchRouter(client: Client, router: NextRouter, currentNavigationSpanRe
       });
     }
   });
+}
+
+let routerTransitionHandler: undefined | ((href: string, navigationType: string) => void) = undefined;
+
+/**
+ * A handler for Next.js' `onRouterTransitionStart` hook in `instrumentation-client.ts` to record navigation spans in Sentry.
+ */
+export function captureRouterTransitionStart(href: string, navigationType: string): void {
+  if (routerTransitionHandler) {
+    routerTransitionHandler(href, navigationType);
+  }
 }
