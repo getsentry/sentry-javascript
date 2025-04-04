@@ -4,7 +4,7 @@ import { SPAN_STATUS_ERROR, setHttpStatus, startInactiveSpan } from './tracing';
 import { SentryNonRecordingSpan } from './tracing/sentryNonRecordingSpan';
 import type { FetchBreadcrumbHint, HandlerDataFetch, Span, SpanAttributes, SpanOrigin } from './types-hoist';
 import { SENTRY_BAGGAGE_KEY_PREFIX } from './utils-hoist/baggage';
-import { isInstanceOf } from './utils-hoist/is';
+import { isInstanceOf, isRequest } from './utils-hoist/is';
 import { getSanitizedUrlStringFromUrlObject, isURLObjectRelative, parseStringToURLObject } from './utils-hoist/url';
 import { hasSpansEnabled } from './utils/hasSpansEnabled';
 import { getActiveSpan } from './utils/spanUtils';
@@ -225,10 +225,6 @@ function stripBaggageHeaderOfSentryBaggageValues(baggageHeader: string): string 
       .filter(baggageEntry => !baggageEntry.split('=')[0]!.startsWith(SENTRY_BAGGAGE_KEY_PREFIX))
       .join(',')
   );
-}
-
-function isRequest(request: unknown): request is Request {
-  return typeof Request !== 'undefined' && isInstanceOf(request, Request);
 }
 
 function isHeaders(headers: unknown): headers is Headers {
