@@ -1,6 +1,7 @@
 import { getClient } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { defineIntegration } from '../integration';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import type { ConsoleLevel, IntegrationFn } from '../types-hoist';
 import { CONSOLE_LEVELS, GLOBAL_OBJ, addConsoleInstrumentationHandler, logger, safeJoin } from '../utils-hoist';
 import { _INTERNAL_captureLog } from './exports';
@@ -16,6 +17,10 @@ type GlobalObjectWithUtil = typeof GLOBAL_OBJ & {
 };
 
 const INTEGRATION_NAME = 'ConsoleLogs';
+
+const DEFAULT_ATTRIBUTES = {
+  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.console.logging',
+};
 
 const _consoleLoggingIntegration = ((options: Partial<CaptureConsoleOptions> = {}) => {
   const levels = options.levels || CONSOLE_LEVELS;
@@ -38,7 +43,7 @@ const _consoleLoggingIntegration = ((options: Partial<CaptureConsoleOptions> = {
             const followingArgs = args.slice(1);
             const message =
               followingArgs.length > 0 ? `Assertion failed: ${formatConsoleArgs(followingArgs)}` : 'Assertion failed';
-            _INTERNAL_captureLog({ level: 'error', message });
+            _INTERNAL_captureLog({ level: 'error', message, attributes: DEFAULT_ATTRIBUTES });
           }
           return;
         }
@@ -48,6 +53,7 @@ const _consoleLoggingIntegration = ((options: Partial<CaptureConsoleOptions> = {
           level: isLevelLog ? 'info' : level,
           message: formatConsoleArgs(args),
           severityNumber: isLevelLog ? 10 : undefined,
+          attributes: DEFAULT_ATTRIBUTES,
         });
       });
     },
