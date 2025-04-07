@@ -119,7 +119,7 @@ Work in this release was contributed by @Page-. Thank you for your contribution!
 
 - **feat(nextjs): Support `instrumentation-client.ts` ([#15705](https://github.com/getsentry/sentry-javascript/pull/15705))**
 
-  Next.js recently added a feature to support [client-side (browser) instrumentation via the `experimental.clientInstrumentationHook` flag and the `instrumentation-client.ts` file](https://nextjs.org/docs/app/api-reference/config/next-config-js/clientInstrumentationHook).
+  Next.js recently added a feature to support [client-side (browser) instrumentation via a `instrumentation-client.ts` file](https://nextjs.org/docs/app/api-reference/file-conventions/instrumentation-client).
 
   To be forwards compatible, the Sentry Next.js SDK will now pick up `instrumentation-client.ts` files even on older Next.js versions and add them to your client bundles.
   It is suggested that you either rename your `sentry.client.config.ts` file to `instrumentation-client.ts`, or if you already happen to have a `instrumentation-client.ts` file move the contents of `sentry.client.config.ts` to `instrumentation-client.ts`.
