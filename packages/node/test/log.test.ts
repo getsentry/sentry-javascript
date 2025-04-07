@@ -98,8 +98,8 @@ describe('Node Logger', () => {
         attributes: {
           userId: 123,
           'sentry.message.template': 'Hello %s, your balance is %d',
-          'sentry.message.param.0': 'John',
-          'sentry.message.param.1': 100,
+          'sentry.message.parameter.0': 'John',
+          'sentry.message.parameter.1': 100,
         },
       });
     });
@@ -111,8 +111,8 @@ describe('Node Logger', () => {
         message: 'User Alice logged in from mobile',
         attributes: {
           'sentry.message.template': 'User %s logged in from %s',
-          'sentry.message.param.0': 'Alice',
-          'sentry.message.param.1': 'mobile',
+          'sentry.message.parameter.0': 'Alice',
+          'sentry.message.parameter.1': 'mobile',
         },
       });
     });

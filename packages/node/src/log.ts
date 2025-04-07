@@ -20,7 +20,7 @@ function captureLog(level: LogSeverityLevel, ...args: CaptureLogArgs): void {
     const attributes = { ...maybeAttributes };
     attributes['sentry.message.template'] = messageOrMessageTemplate;
     paramsOrAttributes.forEach((param, index) => {
-      attributes[`sentry.message.param.${index}`] = param;
+      attributes[`sentry.message.parameter.${index}`] = param;
     });
     const message = format(messageOrMessageTemplate, ...paramsOrAttributes);
     _INTERNAL_captureLog({ level, message, attributes });
