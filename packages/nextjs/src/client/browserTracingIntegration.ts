@@ -1,5 +1,4 @@
 import type { Integration } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '@sentry/core';
 import { browserTracingIntegration as originalBrowserTracingIntegration } from '@sentry/react';
 import { nextRouterInstrumentNavigation, nextRouterInstrumentPageLoad } from './routing/nextRoutingInstrumentation';
 
@@ -18,7 +17,7 @@ export function browserTracingIntegration(
 
       // Next.js prefetch requests have a `next-router-prefetch` header
       if (headers?.get('next-router-prefetch')) {
-        span?.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'http.client.prefetch');
+        span?.setAttribute('http.request.prefetch', true);
       }
 
       return options.onRequestSpanStart?.(...args);

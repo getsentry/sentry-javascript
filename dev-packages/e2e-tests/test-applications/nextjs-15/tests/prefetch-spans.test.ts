@@ -13,7 +13,10 @@ test('Prefetch client spans should have the right op', async ({ page }) => {
 
   expect((await pageloadTransactionPromise).spans).toContainEqual(
     expect.objectContaining({
-      op: 'http.client.prefetch',
+      op: 'http.client',
+      data: expect.objectContaining({
+        'http.request.prefetch': true,
+      }),
     }),
   );
 });
