@@ -115,25 +115,25 @@ sentryTest('should capture all logging methods', async ({ getLocalTestUrl, page 
           },
         },
         {
-          key: 'sentry.message.param.0',
+          key: 'sentry.message.parameter.0',
           value: {
             stringValue: 'trace',
           },
         },
         {
-          key: 'sentry.message.param.1',
+          key: 'sentry.message.parameter.1',
           value: {
             stringValue: 'stringArg',
           },
         },
         {
-          key: 'sentry.message.param.2',
+          key: 'sentry.message.parameter.2',
           value: {
             boolValue: false,
           },
         },
         {
-          key: 'sentry.message.param.3',
+          key: 'sentry.message.parameter.3',
           value: {
             doubleValue: 123,
           },
@@ -160,25 +160,25 @@ sentryTest('should capture all logging methods', async ({ getLocalTestUrl, page 
           },
         },
         {
-          key: 'sentry.message.param.0',
+          key: 'sentry.message.parameter.0',
           value: {
             stringValue: 'debug',
           },
         },
         {
-          key: 'sentry.message.param.1',
+          key: 'sentry.message.parameter.1',
           value: {
             stringValue: 'stringArg',
           },
         },
         {
-          key: 'sentry.message.param.2',
+          key: 'sentry.message.parameter.2',
           value: {
             boolValue: false,
           },
         },
         {
-          key: 'sentry.message.param.3',
+          key: 'sentry.message.parameter.3',
           value: {
             doubleValue: 123,
           },
@@ -205,25 +205,25 @@ sentryTest('should capture all logging methods', async ({ getLocalTestUrl, page 
           },
         },
         {
-          key: 'sentry.message.param.0',
+          key: 'sentry.message.parameter.0',
           value: {
             stringValue: 'info',
           },
         },
         {
-          key: 'sentry.message.param.1',
+          key: 'sentry.message.parameter.1',
           value: {
             stringValue: 'stringArg',
           },
         },
         {
-          key: 'sentry.message.param.2',
+          key: 'sentry.message.parameter.2',
           value: {
             boolValue: false,
           },
         },
         {
-          key: 'sentry.message.param.3',
+          key: 'sentry.message.parameter.3',
           value: {
             doubleValue: 123,
           },
@@ -250,25 +250,25 @@ sentryTest('should capture all logging methods', async ({ getLocalTestUrl, page 
           },
         },
         {
-          key: 'sentry.message.param.0',
+          key: 'sentry.message.parameter.0',
           value: {
             stringValue: 'warn',
           },
         },
         {
-          key: 'sentry.message.param.1',
+          key: 'sentry.message.parameter.1',
           value: {
             stringValue: 'stringArg',
           },
         },
         {
-          key: 'sentry.message.param.2',
+          key: 'sentry.message.parameter.2',
           value: {
             boolValue: false,
           },
         },
         {
-          key: 'sentry.message.param.3',
+          key: 'sentry.message.parameter.3',
           value: {
             doubleValue: 123,
           },
@@ -295,25 +295,25 @@ sentryTest('should capture all logging methods', async ({ getLocalTestUrl, page 
           },
         },
         {
-          key: 'sentry.message.param.0',
+          key: 'sentry.message.parameter.0',
           value: {
             stringValue: 'error',
           },
         },
         {
-          key: 'sentry.message.param.1',
+          key: 'sentry.message.parameter.1',
           value: {
             stringValue: 'stringArg',
           },
         },
         {
-          key: 'sentry.message.param.2',
+          key: 'sentry.message.parameter.2',
           value: {
             boolValue: false,
           },
         },
         {
-          key: 'sentry.message.param.3',
+          key: 'sentry.message.parameter.3',
           value: {
             doubleValue: 123,
           },
@@ -340,25 +340,25 @@ sentryTest('should capture all logging methods', async ({ getLocalTestUrl, page 
           },
         },
         {
-          key: 'sentry.message.param.0',
+          key: 'sentry.message.parameter.0',
           value: {
             stringValue: 'fatal',
           },
         },
         {
-          key: 'sentry.message.param.1',
+          key: 'sentry.message.parameter.1',
           value: {
             stringValue: 'stringArg',
           },
         },
         {
-          key: 'sentry.message.param.2',
+          key: 'sentry.message.parameter.2',
           value: {
             boolValue: false,
           },
         },
         {
-          key: 'sentry.message.param.3',
+          key: 'sentry.message.parameter.3',
           value: {
             doubleValue: 123,
           },

@@ -206,11 +206,11 @@ describe('_INTERNAL_captureLog', () => {
           value: { stringValue: 'Hello %s, welcome to %s' },
         }),
         expect.objectContaining({
-          key: 'sentry.message.param.0',
+          key: 'sentry.message.parameter.0',
           value: { stringValue: 'John' },
         }),
         expect.objectContaining({
-          key: 'sentry.message.param.1',
+          key: 'sentry.message.parameter.1',
           value: { stringValue: 'Sentry' },
         }),
       ]),
