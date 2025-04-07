@@ -16,15 +16,6 @@ sentryTest('should capture console object calls', async ({ getLocalTestUrl, page
   const event = await getFirstSentryEnvelopeRequest<OtelLogEnvelope>(page, url, properFullEnvelopeRequestParser);
   const envelopeItems = event[1];
 
-  // -     "attributes": Array [],
-  // +     "attributes": Array [
-  // +       Object {
-  // +         "key": "sentry.origin",
-  // +         "value": Object {
-  // +           "stringValue": "auto.console.logging",
-  // +         },
-  // +       },
-  // +     ],
   expect(envelopeItems[0]).toEqual([
     {
       type: 'otel_log',
