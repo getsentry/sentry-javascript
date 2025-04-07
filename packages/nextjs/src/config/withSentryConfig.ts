@@ -176,12 +176,7 @@ function getFinalConfigObject(
       parseInt(prerelease.split('.')[1] || '', 10) >= 8;
     const supportsClientInstrumentation = isSupportedCanary || isSupportedVersion;
 
-    if (supportsClientInstrumentation) {
-      incomingUserNextConfigObject.experimental = {
-        clientInstrumentationHook: true,
-        ...incomingUserNextConfigObject.experimental,
-      };
-    } else if (process.env.TURBOPACK) {
+    if (!supportsClientInstrumentation && process.env.TURBOPACK) {
       if (process.env.NODE_ENV === 'development') {
         // eslint-disable-next-line no-console
         console.warn(
@@ -194,19 +189,6 @@ function getFinalConfigObject(
         );
       }
     }
-  } else {
-    // If we cannot detect a Next.js version for whatever reason, the sensible default is still to set the `experimental.instrumentationHook`.
-    incomingUserNextConfigObject.experimental = {
-      clientInstrumentationHook: true,
-      ...incomingUserNextConfigObject.experimental,
-    };
-  }
-
-  if (incomingUserNextConfigObject.experimental?.clientInstrumentationHook === false) {
-    // eslint-disable-next-line no-console
-    console.warn(
-      '[@sentry/nextjs] WARNING: You set the `experimental.clientInstrumentationHook` option to `false`. Note that Sentry will not be initialized if you did not set it up inside `instrumentation-client.(js|ts)`.',
-    );
   }
 
   return {
