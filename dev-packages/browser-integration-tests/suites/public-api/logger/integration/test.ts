@@ -16,6 +16,15 @@ sentryTest('should capture console object calls', async ({ getLocalTestUrl, page
   const event = await getFirstSentryEnvelopeRequest<OtelLogEnvelope>(page, url, properFullEnvelopeRequestParser);
   const envelopeItems = event[1];
 
+  // -     "attributes": Array [],
+  // +     "attributes": Array [
+  // +       Object {
+  // +         "key": "sentry.origin",
+  // +         "value": Object {
+  // +           "stringValue": "auto.console.logging",
+  // +         },
+  // +       },
+  // +     ],
   expect(envelopeItems[0]).toEqual([
     {
       type: 'otel_log',
@@ -23,7 +32,14 @@ sentryTest('should capture console object calls', async ({ getLocalTestUrl, page
     {
       severityText: 'trace',
       body: { stringValue: 'console.trace 123 false' },
-      attributes: [],
+      attributes: [
+        {
+          key: 'sentry.origin',
+          value: {
+            stringValue: 'auto.console.logging',
+          },
+        },
+      ],
       timeUnixNano: expect.any(String),
       traceId: expect.any(String),
       severityNumber: 1,
@@ -37,7 +53,14 @@ sentryTest('should capture console object calls', async ({ getLocalTestUrl, page
     {
       severityText: 'debug',
       body: { stringValue: 'console.debug 123 false' },
-      attributes: [],
+      attributes: [
+        {
+          key: 'sentry.origin',
+          value: {
+            stringValue: 'auto.console.logging',
+          },
+        },
+      ],
       timeUnixNano: expect.any(String),
       traceId: expect.any(String),
       severityNumber: 5,
@@ -51,7 +74,14 @@ sentryTest('should capture console object calls', async ({ getLocalTestUrl, page
     {
       severityText: 'info',
       body: { stringValue: 'console.log 123 false' },
-      attributes: [],
+      attributes: [
+        {
+          key: 'sentry.origin',
+          value: {
+            stringValue: 'auto.console.logging',
+          },
+        },
+      ],
       timeUnixNano: expect.any(String),
       traceId: expect.any(String),
       severityNumber: 10,
@@ -65,7 +95,14 @@ sentryTest('should capture console object calls', async ({ getLocalTestUrl, page
     {
       severityText: 'info',
       body: { stringValue: 'console.info 123 false' },
-      attributes: [],
+      attributes: [
+        {
+          key: 'sentry.origin',
+          value: {
+            stringValue: 'auto.console.logging',
+          },
+        },
+      ],
       timeUnixNano: expect.any(String),
       traceId: expect.any(String),
       severityNumber: 9,
@@ -79,7 +116,14 @@ sentryTest('should capture console object calls', async ({ getLocalTestUrl, page
     {
       severityText: 'warn',
       body: { stringValue: 'console.warn 123 false' },
-      attributes: [],
+      attributes: [
+        {
+          key: 'sentry.origin',
+          value: {
+            stringValue: 'auto.console.logging',
+          },
+        },
+      ],
       timeUnixNano: expect.any(String),
       traceId: expect.any(String),
       severityNumber: 13,
@@ -93,7 +137,14 @@ sentryTest('should capture console object calls', async ({ getLocalTestUrl, page
     {
       severityText: 'error',
       body: { stringValue: 'console.error 123 false' },
-      attributes: [],
+      attributes: [
+        {
+          key: 'sentry.origin',
+          value: {
+            stringValue: 'auto.console.logging',
+          },
+        },
+      ],
       timeUnixNano: expect.any(String),
       traceId: expect.any(String),
       severityNumber: 17,
@@ -107,7 +158,14 @@ sentryTest('should capture console object calls', async ({ getLocalTestUrl, page
     {
       severityText: 'error',
       body: { stringValue: 'Assertion failed: console.assert 123 false' },
-      attributes: [],
+      attributes: [
+        {
+          key: 'sentry.origin',
+          value: {
+            stringValue: 'auto.console.logging',
+          },
+        },
+      ],
       timeUnixNano: expect.any(String),
       traceId: expect.any(String),
       severityNumber: 17,
