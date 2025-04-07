@@ -173,7 +173,7 @@ function getFinalConfigObject(
       minor === 3 &&
       patch === 0 &&
       prerelease.startsWith('canary.') &&
-      parseInt(prerelease.split('.')[1] || '', 10) >= 8;
+      parseInt(prerelease.split('.')[1] || '', 10) >= 28;
     const supportsClientInstrumentation = isSupportedCanary || isSupportedVersion;
 
     if (!supportsClientInstrumentation && process.env.TURBOPACK) {
