@@ -4,7 +4,7 @@ import { trace } from '@opentelemetry/api';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import type { DynamicSamplingContext, Scope, ServerRuntimeClientOptions, TraceContext } from '@sentry/core';
-import { SDK_VERSION, ServerRuntimeClient, applySdkMetadata, logger } from '@sentry/core';
+import { _INTERNAL_flushLogsBuffer, SDK_VERSION, ServerRuntimeClient, applySdkMetadata, logger } from '@sentry/core';
 import { getTraceContextForScope } from '@sentry/opentelemetry';
 import { isMainThread, threadId } from 'worker_threads';
 import { DEBUG_BUILD } from '../debug-build';
@@ -18,6 +18,7 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
   private _tracer: Tracer | undefined;
   private _clientReportInterval: NodeJS.Timeout | undefined;
   private _clientReportOnExitFlushListener: (() => void) | undefined;
+  private _logOnExitFlushListener: (() => void) | undefined;
 
   public constructor(options: NodeClientOptions) {
     const clientOptions: ServerRuntimeClientOptions = {
@@ -40,6 +41,14 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
     );
 
     super(clientOptions);
+
+    if (this.getOptions()._experiments?.enableLogs) {
+      this._logOnExitFlushListener = () => {
+        _INTERNAL_flushLogsBuffer(this);
+      };
+
+      process.on('beforeExit', this._logOnExitFlushListener);
+    }
   }
 
   /** Get the OTEL tracer. */
@@ -82,6 +91,10 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
 
     if (this._clientReportOnExitFlushListener) {
       process.off('beforeExit', this._clientReportOnExitFlushListener);
+    }
+
+    if (this._logOnExitFlushListener) {
+      process.off('beforeExit', this._logOnExitFlushListener);
     }
 
     return super.close(timeout);
