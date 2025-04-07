@@ -4,7 +4,7 @@ import type { RequestAsyncStorage } from '../config/templates/requestAsyncStorag
 
 export type ServerComponentContext = {
   componentRoute: string;
-  componentType: 'Page' | 'Layout' | 'Head' | 'Not-found' | 'Loading' | 'Unknown';
+  componentType: 'Page' | 'Layout' | 'Head' | 'Not-found' | 'Loading' | 'Unknown' | 'Template' | 'Default';
   headers?: WebFetchHeaders;
 };
 
