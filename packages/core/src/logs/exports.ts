@@ -97,11 +97,11 @@ export function _INTERNAL_captureLog(
   };
 
   if (release) {
-    logAttributes.release = release;
+    logAttributes['sentry.release'] = release;
   }
 
   if (environment) {
-    logAttributes.environment = environment;
+    logAttributes['sentry.environment'] = environment;
   }
 
   if (isParameterizedString(message)) {
