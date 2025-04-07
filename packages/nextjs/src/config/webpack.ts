@@ -344,7 +344,7 @@ export function constructWebpackConfigFunction(
       if (clientSentryConfigFileName) {
         // eslint-disable-next-line no-console
         console.warn(
-          `[@sentry/nextjs] ACTION REQUIRED: It is recommended renaming your \`${clientSentryConfigFileName}\` file, or moving its content to \`instrumentation-client.ts\`. When using Turbopack \`${clientSentryConfigFileName}\` will no longer work. Read more about the \`instrumentation-client.ts\` file: https://nextjs.org/docs/app/api-reference/config/next-config-js/clientInstrumentationHook`,
+          `[@sentry/nextjs] DEPRECATION WARNING: It is recommended renaming your \`${clientSentryConfigFileName}\` file, or moving its content to \`instrumentation-client.ts\`. When using Turbopack \`${clientSentryConfigFileName}\` will no longer work. Read more about the \`instrumentation-client.ts\` file: https://nextjs.org/docs/app/api-reference/file-conventions/instrumentation-client`,
         );
       }
     }

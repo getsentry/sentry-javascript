@@ -108,7 +108,7 @@ export function _INTERNAL_captureLog(
     const { __sentry_template_string__, __sentry_template_values__ = [] } = message;
     logAttributes['sentry.message.template'] = __sentry_template_string__;
     __sentry_template_values__.forEach((param, index) => {
-      logAttributes[`sentry.message.param.${index}`] = param;
+      logAttributes[`sentry.message.parameter.${index}`] = param;
     });
   }
 

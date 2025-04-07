@@ -61,6 +61,8 @@ export interface HandlerDataFetch {
   error?: unknown;
   // This is to be consumed by the HttpClient integration
   virtualError?: unknown;
+  /** Headers that the user passed to the fetch request. */
+  headers?: WebFetchHeaders;
 }
 
 export interface HandlerDataDom {
