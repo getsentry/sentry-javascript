@@ -12,6 +12,16 @@ export function browserTracingIntegration(
     ...options,
     instrumentNavigation: false,
     instrumentPageLoad: false,
+    onRequestSpanStart(...args) {
+      const [span, { headers }] = args;
+
+      // Next.js prefetch requests have a `next-router-prefetch` header
+      if (headers?.get('next-router-prefetch')) {
+        span?.setAttribute('http.request.prefetch', true);
+      }
+
+      return options.onRequestSpanStart?.(...args);
+    },
   });
 
   const { instrumentPageLoad = true, instrumentNavigation = true } = options;
