@@ -99,7 +99,6 @@ export function appRouterInstrumentNavigation(client: Client): void {
       currentRouterPatchingNavigationSpanRef.current = startBrowserTracingNavigationSpan(client, {
         name: WINDOW.location.pathname,
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
           'navigation.type': 'browser.popstate',
