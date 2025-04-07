@@ -106,7 +106,7 @@ test('Creates a navigation transaction for `router.back()`', async ({ page }) =>
     contexts: {
       trace: {
         data: {
-          'navigation.type': expect.stringMatching(/router\.(back|traverse)/), // back is Next.js < 13.3.0, traverse >= 13.3.0
+          'navigation.type': expect.stringMatching(/router\.(back|traverse)/), // back is Next.js < 15.3.0, traverse >= 15.3.0
         },
       },
     },

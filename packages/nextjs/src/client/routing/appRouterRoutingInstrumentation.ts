@@ -9,7 +9,26 @@ import { WINDOW, startBrowserTracingNavigationSpan, startBrowserTracingPageLoadS
 
 export const INCOMPLETE_APP_ROUTER_INSTRUMENTATION_TRANSACTION_NAME = 'incomplete-app-router-transaction';
 
+/**
+ * This mutable keeps track of what router navigation instrumentation mechanism we are using.
+ *
+ * The default one is 'router-patch' which is a way of instrumenting that worked up until Next.js 15.3.0 was released.
+ * For this method we took the global router instance and simply monkey patched all the router methods like push(), replace(), and so on.
+ * This worked because Next.js itself called the router methods for things like the <Link /> component.
+ * Vercel decided that it is not good to call these public API methods from within the framework so they switched to an internal system that completely bypasses our monkey patching. This happened in 15.3.0.
+ *
+ * We raised with Vercel that this breaks our SDK so together with them we came up with an API for `instrumentation-client.ts` called `onRouterTransitionStart` that is called whenever a navigation is kicked off.
+ *
+ * Now we have the problem of version compatibility.
+ * For older Next.js versions we cannot use the new hook so we need to always patch the router.
+ * For newer Next.js versions we cannot know whether the user actually registered our handler for the `onRouterTransitionStart` hook, so we need to wait until it was called at least once before switching the instrumentation mechanism.
+ * The problem is, that the user may still have registered a hook and then call a patched router method.
+ * First, the monkey patched router method will be called, starting a navigation span, then the hook will also called.
+ * We need to handle this case and not create two separate navigation spans but instead update the current navigation span and then switch to the new instrumentation mode.
+ * This is all denoted by this `navigationRoutingMode` variable.
+ */
 let navigationRoutingMode: 'router-patch' | 'transition-start-hook' = 'router-patch';
+
 const currentRouterPatchingNavigationSpanRef: NavigationSpanRef = { current: undefined };
 
 /** Instruments the Next.js app router for pageloads. */
