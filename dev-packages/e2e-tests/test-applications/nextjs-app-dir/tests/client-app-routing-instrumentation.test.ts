@@ -106,7 +106,7 @@ test('Creates a navigation transaction for `router.back()`', async ({ page }) =>
     contexts: {
       trace: {
         data: {
-          'navigation.type': 'router.back',
+          'navigation.type': expect.stringMatching(/router\.(back|traverse)/), // back is Next.js < 15.3.0, traverse >= 15.3.0
         },
       },
     },
@@ -118,7 +118,8 @@ test('Creates a navigation transaction for `router.forward()`', async ({ page })
     return (
       transactionEvent?.transaction === `/navigation/42/router-push` &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
-      transactionEvent.contexts.trace.data?.['navigation.type'] === 'router.forward'
+      (transactionEvent.contexts.trace.data?.['navigation.type'] === 'router.forward' ||
+        transactionEvent.contexts.trace.data?.['navigation.type'] === 'router.traverse')
     );
   });
 
@@ -169,7 +170,8 @@ test('Creates a navigation transaction for browser-back', async ({ page }) => {
     return (
       transactionEvent?.transaction === `/navigation/42/browser-back` &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
-      transactionEvent.contexts.trace.data?.['navigation.type'] === 'browser.popstate'
+      (transactionEvent.contexts.trace.data?.['navigation.type'] === 'browser.popstate' ||
+        transactionEvent.contexts.trace.data?.['navigation.type'] === 'router.traverse')
     );
   });
 
@@ -187,7 +189,8 @@ test('Creates a navigation transaction for browser-forward', async ({ page }) =>
     return (
       transactionEvent?.transaction === `/navigation/42/router-push` &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
-      transactionEvent.contexts.trace.data?.['navigation.type'] === 'browser.popstate'
+      (transactionEvent.contexts.trace.data?.['navigation.type'] === 'browser.popstate' ||
+        transactionEvent.contexts.trace.data?.['navigation.type'] === 'router.traverse')
     );
   });
 
