@@ -23,7 +23,20 @@ sentryTest('should capture all logging methods', async ({ getLocalTestUrl, page 
     {
       severityText: 'trace',
       body: { stringValue: 'test trace' },
-      attributes: [],
+      attributes: [
+        {
+          key: 'sentry.sdk.name',
+          value: {
+            stringValue: 'sentry.javascript.browser',
+          },
+        },
+        {
+          key: 'sentry.sdk.version',
+          value: {
+            stringValue: expect.any(String),
+          },
+        },
+      ],
       timeUnixNano: expect.any(String),
       traceId: expect.any(String),
       severityNumber: 1,
@@ -37,7 +50,20 @@ sentryTest('should capture all logging methods', async ({ getLocalTestUrl, page 
     {
       severityText: 'debug',
       body: { stringValue: 'test debug' },
-      attributes: [],
+      attributes: [
+        {
+          key: 'sentry.sdk.name',
+          value: {
+            stringValue: 'sentry.javascript.browser',
+          },
+        },
+        {
+          key: 'sentry.sdk.version',
+          value: {
+            stringValue: expect.any(String),
+          },
+        },
+      ],
       timeUnixNano: expect.any(String),
       traceId: expect.any(String),
       severityNumber: 5,
@@ -51,7 +77,20 @@ sentryTest('should capture all logging methods', async ({ getLocalTestUrl, page 
     {
       severityText: 'info',
       body: { stringValue: 'test info' },
-      attributes: [],
+      attributes: [
+        {
+          key: 'sentry.sdk.name',
+          value: {
+            stringValue: 'sentry.javascript.browser',
+          },
+        },
+        {
+          key: 'sentry.sdk.version',
+          value: {
+            stringValue: expect.any(String),
+          },
+        },
+      ],
       timeUnixNano: expect.any(String),
       traceId: expect.any(String),
       severityNumber: 9,
@@ -65,7 +104,20 @@ sentryTest('should capture all logging methods', async ({ getLocalTestUrl, page 
     {
       severityText: 'warn',
       body: { stringValue: 'test warn' },
-      attributes: [],
+      attributes: [
+        {
+          key: 'sentry.sdk.name',
+          value: {
+            stringValue: 'sentry.javascript.browser',
+          },
+        },
+        {
+          key: 'sentry.sdk.version',
+          value: {
+            stringValue: expect.any(String),
+          },
+        },
+      ],
       timeUnixNano: expect.any(String),
       traceId: expect.any(String),
       severityNumber: 13,
@@ -79,7 +131,20 @@ sentryTest('should capture all logging methods', async ({ getLocalTestUrl, page 
     {
       severityText: 'error',
       body: { stringValue: 'test error' },
-      attributes: [],
+      attributes: [
+        {
+          key: 'sentry.sdk.name',
+          value: {
+            stringValue: 'sentry.javascript.browser',
+          },
+        },
+        {
+          key: 'sentry.sdk.version',
+          value: {
+            stringValue: expect.any(String),
+          },
+        },
+      ],
       timeUnixNano: expect.any(String),
       traceId: expect.any(String),
       severityNumber: 17,
@@ -93,7 +158,20 @@ sentryTest('should capture all logging methods', async ({ getLocalTestUrl, page 
     {
       severityText: 'fatal',
       body: { stringValue: 'test fatal' },
-      attributes: [],
+      attributes: [
+        {
+          key: 'sentry.sdk.name',
+          value: {
+            stringValue: 'sentry.javascript.browser',
+          },
+        },
+        {
+          key: 'sentry.sdk.version',
+          value: {
+            stringValue: expect.any(String),
+          },
+        },
+      ],
       timeUnixNano: expect.any(String),
       traceId: expect.any(String),
       severityNumber: 21,
@@ -108,6 +186,18 @@ sentryTest('should capture all logging methods', async ({ getLocalTestUrl, page 
       severityText: 'trace',
       body: { stringValue: 'test trace stringArg false 123' },
       attributes: [
+        {
+          key: 'sentry.sdk.name',
+          value: {
+            stringValue: 'sentry.javascript.browser',
+          },
+        },
+        {
+          key: 'sentry.sdk.version',
+          value: {
+            stringValue: expect.any(String),
+          },
+        },
         {
           key: 'sentry.message.template',
           value: {
@@ -154,6 +244,18 @@ sentryTest('should capture all logging methods', async ({ getLocalTestUrl, page 
       body: { stringValue: 'test debug stringArg false 123' },
       attributes: [
         {
+          key: 'sentry.sdk.name',
+          value: {
+            stringValue: 'sentry.javascript.browser',
+          },
+        },
+        {
+          key: 'sentry.sdk.version',
+          value: {
+            stringValue: expect.any(String),
+          },
+        },
+        {
           key: 'sentry.message.template',
           value: {
             stringValue: 'test %s %s %s %s',
@@ -198,6 +300,18 @@ sentryTest('should capture all logging methods', async ({ getLocalTestUrl, page 
       severityText: 'info',
       body: { stringValue: 'test info stringArg false 123' },
       attributes: [
+        {
+          key: 'sentry.sdk.name',
+          value: {
+            stringValue: 'sentry.javascript.browser',
+          },
+        },
+        {
+          key: 'sentry.sdk.version',
+          value: {
+            stringValue: expect.any(String),
+          },
+        },
         {
           key: 'sentry.message.template',
           value: {
@@ -244,6 +358,18 @@ sentryTest('should capture all logging methods', async ({ getLocalTestUrl, page 
       body: { stringValue: 'test warn stringArg false 123' },
       attributes: [
         {
+          key: 'sentry.sdk.name',
+          value: {
+            stringValue: 'sentry.javascript.browser',
+          },
+        },
+        {
+          key: 'sentry.sdk.version',
+          value: {
+            stringValue: expect.any(String),
+          },
+        },
+        {
           key: 'sentry.message.template',
           value: {
             stringValue: 'test %s %s %s %s',
@@ -289,6 +415,18 @@ sentryTest('should capture all logging methods', async ({ getLocalTestUrl, page 
       body: { stringValue: 'test error stringArg false 123' },
       attributes: [
         {
+          key: 'sentry.sdk.name',
+          value: {
+            stringValue: 'sentry.javascript.browser',
+          },
+        },
+        {
+          key: 'sentry.sdk.version',
+          value: {
+            stringValue: expect.any(String),
+          },
+        },
+        {
           key: 'sentry.message.template',
           value: {
             stringValue: 'test %s %s %s %s',
@@ -333,6 +471,18 @@ sentryTest('should capture all logging methods', async ({ getLocalTestUrl, page 
       severityText: 'fatal',
       body: { stringValue: 'test fatal stringArg false 123' },
       attributes: [
+        {
+          key: 'sentry.sdk.name',
+          value: {
+            stringValue: 'sentry.javascript.browser',
+          },
+        },
+        {
+          key: 'sentry.sdk.version',
+          value: {
+            stringValue: expect.any(String),
+          },
+        },
         {
           key: 'sentry.message.template',
           value: {
