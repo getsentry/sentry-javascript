@@ -30,6 +30,18 @@ sentryTest('should capture console object calls', async ({ getLocalTestUrl, page
             stringValue: 'auto.console.logging',
           },
         },
+        {
+          key: 'sentry.sdk.name',
+          value: {
+            stringValue: 'sentry.javascript.browser',
+          },
+        },
+        {
+          key: 'sentry.sdk.version',
+          value: {
+            stringValue: expect.any(String),
+          },
+        },
       ],
       timeUnixNano: expect.any(String),
       traceId: expect.any(String),
@@ -49,6 +61,18 @@ sentryTest('should capture console object calls', async ({ getLocalTestUrl, page
           key: 'sentry.origin',
           value: {
             stringValue: 'auto.console.logging',
+          },
+        },
+        {
+          key: 'sentry.sdk.name',
+          value: {
+            stringValue: 'sentry.javascript.browser',
+          },
+        },
+        {
+          key: 'sentry.sdk.version',
+          value: {
+            stringValue: expect.any(String),
           },
         },
       ],
@@ -72,6 +96,18 @@ sentryTest('should capture console object calls', async ({ getLocalTestUrl, page
             stringValue: 'auto.console.logging',
           },
         },
+        {
+          key: 'sentry.sdk.name',
+          value: {
+            stringValue: 'sentry.javascript.browser',
+          },
+        },
+        {
+          key: 'sentry.sdk.version',
+          value: {
+            stringValue: expect.any(String),
+          },
+        },
       ],
       timeUnixNano: expect.any(String),
       traceId: expect.any(String),
@@ -91,6 +127,18 @@ sentryTest('should capture console object calls', async ({ getLocalTestUrl, page
           key: 'sentry.origin',
           value: {
             stringValue: 'auto.console.logging',
+          },
+        },
+        {
+          key: 'sentry.sdk.name',
+          value: {
+            stringValue: 'sentry.javascript.browser',
+          },
+        },
+        {
+          key: 'sentry.sdk.version',
+          value: {
+            stringValue: expect.any(String),
           },
         },
       ],
@@ -114,6 +162,18 @@ sentryTest('should capture console object calls', async ({ getLocalTestUrl, page
             stringValue: 'auto.console.logging',
           },
         },
+        {
+          key: 'sentry.sdk.name',
+          value: {
+            stringValue: 'sentry.javascript.browser',
+          },
+        },
+        {
+          key: 'sentry.sdk.version',
+          value: {
+            stringValue: expect.any(String),
+          },
+        },
       ],
       timeUnixNano: expect.any(String),
       traceId: expect.any(String),
@@ -135,6 +195,18 @@ sentryTest('should capture console object calls', async ({ getLocalTestUrl, page
             stringValue: 'auto.console.logging',
           },
         },
+        {
+          key: 'sentry.sdk.name',
+          value: {
+            stringValue: 'sentry.javascript.browser',
+          },
+        },
+        {
+          key: 'sentry.sdk.version',
+          value: {
+            stringValue: expect.any(String),
+          },
+        },
       ],
       timeUnixNano: expect.any(String),
       traceId: expect.any(String),
@@ -154,6 +226,18 @@ sentryTest('should capture console object calls', async ({ getLocalTestUrl, page
           key: 'sentry.origin',
           value: {
             stringValue: 'auto.console.logging',
+          },
+        },
+        {
+          key: 'sentry.sdk.name',
+          value: {
+            stringValue: 'sentry.javascript.browser',
+          },
+        },
+        {
+          key: 'sentry.sdk.version',
+          value: {
+            stringValue: expect.any(String),
           },
         },
       ],

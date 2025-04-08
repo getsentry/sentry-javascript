@@ -104,6 +104,12 @@ export function _INTERNAL_captureLog(
     logAttributes['sentry.environment'] = environment;
   }
 
+  const { sdk } = client.getSdkMetadata() ?? {};
+  if (sdk) {
+    logAttributes['sentry.sdk.name'] = sdk.name;
+    logAttributes['sentry.sdk.version'] = sdk.version;
+  }
+
   if (isParameterizedString(message)) {
     const { __sentry_template_string__, __sentry_template_values__ = [] } = message;
     logAttributes['sentry.message.template'] = __sentry_template_string__;
