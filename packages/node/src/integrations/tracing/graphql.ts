@@ -73,9 +73,14 @@ export const instrumentGraphql = generateInstrumentOnce<GraphqlOptions>(
             rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION, newOperation);
           }
 
+          if (!spanToJSON(rootSpan).data['original-description']) {
+            rootSpan.setAttribute('original-description', spanToJSON(rootSpan).description);
+          }
           // Important for e.g. @sentry/aws-serverless because this would otherwise overwrite the name again
           rootSpan.updateName(
-            `${spanToJSON(rootSpan).description} (${getGraphqlOperationNamesFromAttribute(existingOperations)})`,
+            `${spanToJSON(rootSpan).data['original-description']} (${getGraphqlOperationNamesFromAttribute(
+              existingOperations,
+            )})`,
           );
         }
       },
