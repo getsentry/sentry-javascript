@@ -21,11 +21,12 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
   private _logOnExitFlushListener: (() => void) | undefined;
 
   public constructor(options: NodeClientOptions) {
+    const serverName = options.serverName || global.process.env.SENTRY_NAME || os.hostname();
     const clientOptions: ServerRuntimeClientOptions = {
       ...options,
       platform: 'node',
       runtime: { name: 'node', version: global.process.version },
-      serverName: options.serverName || global.process.env.SENTRY_NAME || os.hostname(),
+      serverName,
     };
 
     if (options.openTelemetryInstrumentations) {
@@ -46,6 +47,15 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
       this._logOnExitFlushListener = () => {
         _INTERNAL_flushLogsBuffer(this);
       };
+
+      if (serverName) {
+        this.on('beforeCaptureLog', log => {
+          log.attributes = {
+            ...log.attributes,
+            'server.address': serverName,
+          };
+        });
+      }
 
       process.on('beforeExit', this._logOnExitFlushListener);
     }
