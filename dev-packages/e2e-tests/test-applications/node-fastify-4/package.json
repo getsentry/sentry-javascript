@@ -1,5 +1,5 @@
 {
-  "name": "node-fastify-5",
+  "name": "node-fastify-4",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -15,7 +15,7 @@
     "@sentry/core": "latest || *",
     "@sentry/opentelemetry": "latest || *",
     "@types/node": "^18.19.1",
-    "fastify": "5.2.1",
+    "fastify": "4.29.0",
     "typescript": "5.6.3",
     "ts-node": "10.9.2"
   },
