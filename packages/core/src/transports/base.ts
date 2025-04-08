@@ -77,6 +77,7 @@ export function createTransport(
         },
         error => {
           recordEnvelopeLoss('network_error');
+          DEBUG_BUILD && logger.error('Encountered error running transport request:', error);
           throw error;
         },
       );
