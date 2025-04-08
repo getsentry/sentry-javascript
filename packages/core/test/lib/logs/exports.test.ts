@@ -136,8 +136,8 @@ describe('_INTERNAL_captureLog', () => {
     const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
     expect(logAttributes).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ key: 'release', value: { stringValue: '1.0.0' } }),
-        expect.objectContaining({ key: 'environment', value: { stringValue: 'test' } }),
+        expect.objectContaining({ key: 'sentry.release', value: { stringValue: '1.0.0' } }),
+        expect.objectContaining({ key: 'sentry.environment', value: { stringValue: 'test' } }),
       ]),
     );
   });
