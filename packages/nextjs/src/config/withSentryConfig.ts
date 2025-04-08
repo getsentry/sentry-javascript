@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 /* eslint-disable complexity */
 import { isThenable, parseSemver } from '@sentry/core';
 
@@ -12,6 +13,8 @@ import type {
 } from './types';
 import { constructWebpackConfigFunction } from './webpack';
 import { getNextjsVersion } from './util';
+import * as fs from 'fs';
+import * as path from 'path';
 
 let showedExportModeTunnelWarning = false;
 
@@ -155,6 +158,18 @@ function getFinalConfigObject(
     }
   }
 
+  // We wanna check whether the user added a `onRouterTransitionStart` handler to their client instrumentation file.
+  const instrumentationClientFileContents = getInstrumentationClientFileContents();
+  if (
+    instrumentationClientFileContents !== undefined &&
+    !instrumentationClientFileContents.includes('onRouterTransitionStart')
+  ) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[@sentry/nextjs] ACTION REQUIRED: To instrument navigations, the Sentry SDK requires you to export an `onRouterTransitionStart` hook from your `instrumentation-client.(js|ts)` file. You can do so by adding `export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;` to the file.',
+    );
+  }
+
   if (nextJsVersion) {
     const { major, minor, patch, prerelease } = parseSemver(nextJsVersion);
     const isSupportedVersion =
@@ -173,15 +188,10 @@ function getFinalConfigObject(
       minor === 3 &&
       patch === 0 &&
       prerelease.startsWith('canary.') &&
-      parseInt(prerelease.split('.')[1] || '', 10) >= 8;
+      parseInt(prerelease.split('.')[1] || '', 10) >= 28;
     const supportsClientInstrumentation = isSupportedCanary || isSupportedVersion;
 
-    if (supportsClientInstrumentation) {
-      incomingUserNextConfigObject.experimental = {
-        clientInstrumentationHook: true,
-        ...incomingUserNextConfigObject.experimental,
-      };
-    } else if (process.env.TURBOPACK) {
+    if (!supportsClientInstrumentation && process.env.TURBOPACK) {
       if (process.env.NODE_ENV === 'development') {
         // eslint-disable-next-line no-console
         console.warn(
@@ -194,19 +204,6 @@ function getFinalConfigObject(
         );
       }
     }
-  } else {
-    // If we cannot detect a Next.js version for whatever reason, the sensible default is still to set the `experimental.instrumentationHook`.
-    incomingUserNextConfigObject.experimental = {
-      clientInstrumentationHook: true,
-      ...incomingUserNextConfigObject.experimental,
-    };
-  }
-
-  if (incomingUserNextConfigObject.experimental?.clientInstrumentationHook === false) {
-    // eslint-disable-next-line no-console
-    console.warn(
-      '[@sentry/nextjs] WARNING: You set the `experimental.clientInstrumentationHook` option to `false`. Note that Sentry will not be initialized if you did not set it up inside `instrumentation-client.(js|ts)`.',
-    );
   }
 
   return {
@@ -360,4 +357,21 @@ function getGitRevision(): string | undefined {
     // noop
   }
   return gitRevision;
+}
+
+function getInstrumentationClientFileContents(): string | void {
+  const potentialInstrumentationClientFileLocations = [
+    ['src', 'instrumentation-client.ts'],
+    ['src', 'instrumentation-client.js'],
+    ['instrumentation-client.ts'],
+    ['instrumentation-client.ts'],
+  ];
+
+  for (const pathSegments of potentialInstrumentationClientFileLocations) {
+    try {
+      return fs.readFileSync(path.join(process.cwd(), ...pathSegments), 'utf-8');
+    } catch {
+      // noop
+    }
+  }
 }

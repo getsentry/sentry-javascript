@@ -214,6 +214,7 @@ function getClientOptions(
     release,
     tracesSampleRate,
     spotlight,
+    debug: envToBool(options.debug ?? process.env.SENTRY_DEBUG),
   };
 
   const integrations = options.integrations;

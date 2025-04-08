@@ -184,12 +184,18 @@ async function instrumentRequest(
 
               const newResponseStream = new ReadableStream({
                 start: async controller => {
-                  for await (const chunk of originalBody) {
-                    const html = typeof chunk === 'string' ? chunk : decoder.decode(chunk, { stream: true });
-                    const modifiedHtml = addMetaTagToHead(html);
-                    controller.enqueue(new TextEncoder().encode(modifiedHtml));
+                  try {
+                    for await (const chunk of originalBody) {
+                      const html = typeof chunk === 'string' ? chunk : decoder.decode(chunk, { stream: true });
+                      const modifiedHtml = addMetaTagToHead(html);
+                      controller.enqueue(new TextEncoder().encode(modifiedHtml));
+                    }
+                  } catch (e) {
+                    sendErrorToSentry(e);
+                    controller.error(e);
+                  } finally {
+                    controller.close();
                   }
-                  controller.close();
                 },
               });
 

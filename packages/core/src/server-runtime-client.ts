@@ -25,6 +25,9 @@ import { resolvedSyncPromise } from './utils-hoist/syncpromise';
 import { _INTERNAL_flushLogsBuffer } from './logs/exports';
 import { isPrimitive } from './utils-hoist';
 
+// TODO: Make this configurable
+const DEFAULT_LOG_FLUSH_INTERVAL = 5000;
+
 export interface ServerRuntimeClientOptions extends ClientOptions<BaseTransportOptions> {
   platform?: string;
   runtime?: { name: string; version?: string };
@@ -37,6 +40,7 @@ export interface ServerRuntimeClientOptions extends ClientOptions<BaseTransportO
 export class ServerRuntimeClient<
   O extends ClientOptions & ServerRuntimeClientOptions = ServerRuntimeClientOptions,
 > extends Client<O> {
+  private _logFlushIdleTimeout: ReturnType<typeof setTimeout> | undefined;
   private _logWeight: number;
 
   /**
@@ -54,9 +58,9 @@ export class ServerRuntimeClient<
     if (this._options._experiments?.enableLogs) {
       // eslint-disable-next-line @typescript-eslint/no-this-alias
       const client = this;
-      client.on('flush', () => {
-        _INTERNAL_flushLogsBuffer(client);
+      client.on('flushLogs', () => {
         client._logWeight = 0;
+        clearTimeout(client._logFlushIdleTimeout);
       });
 
       client.on('afterCaptureLog', log => {
@@ -67,7 +71,11 @@ export class ServerRuntimeClient<
         // the payload gets too big.
         if (client._logWeight >= 800_000) {
           _INTERNAL_flushLogsBuffer(client);
-          client._logWeight = 0;
+        } else {
+          // start an idle timeout to flush the logs buffer if no logs are captured for a while
+          client._logFlushIdleTimeout = setTimeout(() => {
+            _INTERNAL_flushLogsBuffer(client);
+          }, DEFAULT_LOG_FLUSH_INTERVAL);
         }
       });
     }

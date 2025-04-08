@@ -5,7 +5,7 @@ import {
   extractNetworkProtocol,
 } from '@sentry-internal/browser-utils';
 import type { XhrHint } from '@sentry-internal/browser-utils';
-import type { Client, HandlerDataXhr, SentryWrappedXMLHttpRequest, Span } from '@sentry/core';
+import type { Client, HandlerDataXhr, SentryWrappedXMLHttpRequest, Span, WebFetchHeaders } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -98,6 +98,11 @@ export interface RequestInstrumentationOptions {
    * Default: (url: string) => true
    */
   shouldCreateSpanForRequest?(this: void, url: string): boolean;
+
+  /**
+   * Is called when spans are started for outgoing requests.
+   */
+  onRequestSpanStart?(span: Span, requestInformation: { headers?: WebFetchHeaders }): void;
 }
 
 const responseToSpanId = new WeakMap<object, string>();
@@ -119,10 +124,9 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
     shouldCreateSpanForRequest,
     enableHTTPTimings,
     tracePropagationTargets,
+    onRequestSpanStart,
   } = {
-    traceFetch: defaultRequestInstrumentationOptions.traceFetch,
-    traceXHR: defaultRequestInstrumentationOptions.traceXHR,
-    trackFetchStreamPerformance: defaultRequestInstrumentationOptions.trackFetchStreamPerformance,
+    ...defaultRequestInstrumentationOptions,
     ..._options,
   };
 
@@ -179,10 +183,12 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
           'http.url': fullUrl,
           'server.address': host,
         });
-      }
 
-      if (enableHTTPTimings && createdSpan) {
-        addHTTPTimings(createdSpan);
+        if (enableHTTPTimings) {
+          addHTTPTimings(createdSpan);
+        }
+
+        onRequestSpanStart?.(createdSpan, { headers: handlerData.headers });
       }
     });
   }
@@ -190,8 +196,18 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
   if (traceXHR) {
     addXhrInstrumentationHandler(handlerData => {
       const createdSpan = xhrCallback(handlerData, shouldCreateSpan, shouldAttachHeadersWithTargets, spans);
-      if (enableHTTPTimings && createdSpan) {
-        addHTTPTimings(createdSpan);
+      if (createdSpan) {
+        if (enableHTTPTimings) {
+          addHTTPTimings(createdSpan);
+        }
+
+        let headers;
+        try {
+          headers = new Headers(handlerData.xhr.__sentry_xhr_v3__?.request_headers);
+        } catch {
+          // noop
+        }
+        onRequestSpanStart?.(createdSpan, { headers });
       }
     });
   }
