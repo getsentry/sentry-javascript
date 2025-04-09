@@ -73,7 +73,7 @@ export function _INTERNAL_captureLog(
   }
 
   const { _experiments, release, environment } = client.getOptions();
-  const { enableLogs = false, beforeSendLog } = _experiments ?? {};
+  const { enableLogs = false, beforeSendLog, scopeValuesAppliedToLogs = [] } = _experiments ?? {};
   if (!enableLogs) {
     DEBUG_BUILD && logger.warn('logging option not enabled, log will not be captured.');
     return;
@@ -117,6 +117,22 @@ export function _INTERNAL_captureLog(
       logAttributes[`sentry.message.parameter.${index}`] = param;
     });
   }
+
+  const { tags, user } = scope.getScopeData();
+  scopeValuesAppliedToLogs.forEach(scopeAttribute => {
+    switch (scopeAttribute) {
+      case 'tags':
+        Object.entries(tags).forEach(([key, value]) => {
+          logAttributes[`sentry.tag.${key}`] = value;
+        });
+        break;
+      case 'user':
+        logAttributes['user.id'] = user?.id;
+        logAttributes['user.email'] = user?.email;
+        logAttributes['user.name'] = user?.name;
+        break;
+    }
+  });
 
   const span = _getSpanForScope(scope);
   if (span) {

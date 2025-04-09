@@ -351,4 +351,102 @@ describe('_INTERNAL_captureLog', () => {
     expect(beforeCaptureLogSpy).toHaveBeenCalledWith('afterCaptureLog', log);
     beforeCaptureLogSpy.mockRestore();
   });
+
+  it('includes scope tags in log attributes when scopeValuesAppliedToLogs includes tags', () => {
+    const options = getDefaultTestClientOptions({
+      dsn: PUBLIC_DSN,
+      _experiments: { enableLogs: true, scopeValuesAppliedToLogs: ['tags'] },
+    });
+    const client = new TestClient(options);
+    const scope = new Scope();
+    scope.setTag('service', 'auth-service');
+    scope.setTag('region', 'us-east-1');
+    scope.setTag('deployment', 'blue');
+
+    _INTERNAL_captureLog({ level: 'info', message: 'test log with tags' }, client, scope);
+
+    const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+    expect(logAttributes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ key: 'sentry.tag.service', value: { stringValue: 'auth-service' } }),
+        expect.objectContaining({ key: 'sentry.tag.region', value: { stringValue: 'us-east-1' } }),
+        expect.objectContaining({ key: 'sentry.tag.deployment', value: { stringValue: 'blue' } }),
+      ]),
+    );
+  });
+
+  it('includes user data in log attributes when scopeValuesAppliedToLogs includes user', () => {
+    const options = getDefaultTestClientOptions({
+      dsn: PUBLIC_DSN,
+      _experiments: { enableLogs: true, scopeValuesAppliedToLogs: ['user'] },
+    });
+    const client = new TestClient(options);
+    const scope = new Scope();
+    scope.setUser({
+      id: '123',
+      email: 'test@example.com',
+      name: 'Test User',
+    });
+
+    _INTERNAL_captureLog({ level: 'info', message: 'test log with user data' }, client, scope);
+
+    const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+    expect(logAttributes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ key: 'user.id', value: { stringValue: '123' } }),
+        expect.objectContaining({ key: 'user.email', value: { stringValue: 'test@example.com' } }),
+        expect.objectContaining({ key: 'user.name', value: { stringValue: 'Test User' } }),
+      ]),
+    );
+  });
+
+  it('includes both tags and user data when scopeValuesAppliedToLogs includes both', () => {
+    const options = getDefaultTestClientOptions({
+      dsn: PUBLIC_DSN,
+      _experiments: { enableLogs: true, scopeValuesAppliedToLogs: ['tags', 'user'] },
+    });
+    const client = new TestClient(options);
+    const scope = new Scope();
+    scope.setTag('environment', 'production');
+    scope.setUser({
+      id: '123',
+      email: 'test@example.com',
+    });
+
+    _INTERNAL_captureLog({ level: 'info', message: 'test log with tags and user data' }, client, scope);
+
+    const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+    expect(logAttributes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ key: 'sentry.tag.environment', value: { stringValue: 'production' } }),
+        expect.objectContaining({ key: 'user.id', value: { stringValue: '123' } }),
+        expect.objectContaining({ key: 'user.email', value: { stringValue: 'test@example.com' } }),
+      ]),
+    );
+  });
+
+  it('does not include scope values when scopeValuesAppliedToLogs is empty', () => {
+    const options = getDefaultTestClientOptions({
+      dsn: PUBLIC_DSN,
+      _experiments: { enableLogs: true, scopeValuesAppliedToLogs: [] },
+    });
+    const client = new TestClient(options);
+    const scope = new Scope();
+    scope.setTag('environment', 'production');
+    scope.setUser({
+      id: '123',
+      email: 'test@example.com',
+    });
+
+    _INTERNAL_captureLog({ level: 'info', message: 'test log without scope values' }, client, scope);
+
+    const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+    expect(logAttributes).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ key: 'sentry.tag.environment' }),
+        expect.objectContaining({ key: 'user.id' }),
+        expect.objectContaining({ key: 'user.email' }),
+      ]),
+    );
+  });
 });
