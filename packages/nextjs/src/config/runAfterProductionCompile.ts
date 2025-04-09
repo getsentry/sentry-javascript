@@ -1,8 +1,9 @@
 import type { SentryBuildOptions } from './types';
 import { getWebpackBuildFunctionCalled } from './util';
-import { createSentryBuildPluginManager } from '@sentry/bundler-plugin-core';
 import { getBuildPluginOptions } from './webpackPluginOptions';
 import { glob } from 'glob';
+import { loadModule } from '@sentry/core';
+import type { createSentryBuildPluginManager as createSentryBuildPluginManagerType } from '@sentry/bundler-plugin-core';
 
 /**
  * A function to do Sentry stuff for the `runAfterProductionCompile` Next.js hook
@@ -17,6 +18,20 @@ export async function handleAfterProductionCompile(
       // eslint-disable-next-line no-console
       console.debug('[@sentry/nextjs] Not running runAfterProductionCompile logic because Webpack context was ran.');
     }
+    return;
+  }
+
+  const { createSentryBuildPluginManager } =
+    loadModule<{ createSentryBuildPluginManager: typeof createSentryBuildPluginManagerType }>(
+      '@sentry/bundler-plugin-core',
+      module,
+    ) ?? {};
+
+  if (!createSentryBuildPluginManager) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[@sentry/nextjs] Could not load build manager package. Will not run runAfterProductionCompile logic.',
+    );
     return;
   }
 
