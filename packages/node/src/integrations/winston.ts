@@ -1,9 +1,13 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-import { getClient } from '@sentry/core';
 import type { LogSeverityLevel } from '@sentry/core';
 import { captureLog } from '../logs/capture';
 
 const DEFAULT_CAPTURED_LEVELS: Array<LogSeverityLevel> = ['trace', 'debug', 'info', 'warn', 'error', 'fatal'];
+
+// See: https://github.com/winstonjs/triple-beam
+const LEVEL_SYMBOL = Symbol.for('level');
+const MESSAGE_SYMBOL = Symbol.for('message');
+const SPLAT_SYMBOL = Symbol.for('splat');
 
 /**
  * Options for the Sentry Winston transport.
@@ -25,6 +29,8 @@ interface WinstonTransportOptions {
 
 /**
  * Creates a new Sentry Winston transport that fowards logs to Sentry.
+ *
+ * Supports Winston 3.x.x
  *
  * @param TransportClass - The Winston transport class to extend.
  * @returns The extended transport class.
@@ -68,13 +74,26 @@ export function createSentryWinstonTransport<TransportStreamInstance extends obj
           this.emit('logged', info);
         });
 
+        if (!isObject(info)) {
+          return;
+        }
+
+        const levelFromSymbol = info[LEVEL_SYMBOL];
+
+        // See: https://github.com/winstonjs/winston?tab=readme-ov-file#streams-objectmode-and-info-objects
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { level, message, timestamp, ...attributes } = info as Record<string, unknown>;
-        const logSeverityLevel = WINSTON_LEVEL_TO_LOG_SEVERITY_LEVEL_MAP[level as string] ?? 'info';
+        const { level, message, timestamp, ...attributes } = info;
+        // Remove all symbols from the remaining attributes
+        attributes[LEVEL_SYMBOL] = undefined;
+        attributes[MESSAGE_SYMBOL] = undefined;
+        attributes[SPLAT_SYMBOL] = undefined;
+
+        const logSeverityLevel = WINSTON_LEVEL_TO_LOG_SEVERITY_LEVEL_MAP[levelFromSymbol as string] ?? 'info';
         if (this._levels.has(logSeverityLevel)) {
-          captureLog(logSeverityLevel, message as string, attributes);
-        } else {
-          getClient()?.recordDroppedEvent('event_processor', 'log_item', 1);
+          captureLog(logSeverityLevel, message as string, {
+            ...attributes,
+            'sentry.origin': 'auto.logging.winston',
+          });
         }
       } catch {
         // do nothing
@@ -87,6 +106,10 @@ export function createSentryWinstonTransport<TransportStreamInstance extends obj
   }
 
   return SentryWinstonTransport as typeof TransportClass;
+}
+
+function isObject(anything: unknown): anything is Record<string | symbol, unknown> {
+  return typeof anything === 'object' && anything != null;
 }
 
 // npm

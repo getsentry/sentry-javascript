@@ -67,6 +67,7 @@
     "reflect-metadata": "0.2.1",
     "rxjs": "^7.8.1",
     "tedious": "^18.6.1",
+    "winston": "^3.17.0",
     "yargs": "^16.2.0"
   },
   "devDependencies": {
