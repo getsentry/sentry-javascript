@@ -1,6 +1,6 @@
 import type { SentryBuildOptions } from './types';
 import { getWebpackBuildFunctionCalled } from './util';
-import { getBuildPluginOptions } from './webpackPluginOptions';
+import { getBuildPluginOptions } from './buildPluginOptions';
 import { glob } from 'glob';
 import { loadModule } from '@sentry/core';
 import type { createSentryBuildPluginManager as createSentryBuildPluginManagerType } from '@sentry/bundler-plugin-core';
