@@ -14,6 +14,7 @@ import { CloudflareClient } from './client';
 import { fetchIntegration } from './integrations/fetch';
 import { makeCloudflareTransport } from './transport';
 import { defaultStackParser } from './vendor/stacktrace';
+import { consoleIntegration } from './integrations/console';
 
 /** Get the default integrations for the Cloudflare SDK. */
 export function getDefaultIntegrations(options: CloudflareOptions): Integration[] {
@@ -27,6 +28,7 @@ export function getDefaultIntegrations(options: CloudflareOptions): Integration[
     linkedErrorsIntegration(),
     fetchIntegration(),
     requestDataIntegration(sendDefaultPii ? undefined : { include: { cookies: false } }),
+    consoleIntegration(),
   ];
 }
 
