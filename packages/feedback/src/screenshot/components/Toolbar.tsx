@@ -1,55 +1,42 @@
 import type { VNode, h as hType } from 'preact';
 import type * as Hooks from 'preact/hooks';
-import CropIconFactory from './CropIcon';
-import PenIconFactory from './PenIcon';
 
 interface FactoryParams {
   h: typeof hType;
 }
 
-export default function ToolbarFactory({ h }: FactoryParams) {
+export default function ToolbarFactory({
+  h, // eslint-disable-line @typescript-eslint/no-unused-vars
+}: FactoryParams) {
   return function Toolbar({
     action,
     setAction,
   }: {
-    action: 'crop' | 'annotate' | '';
-    setAction: Hooks.StateUpdater<'crop' | 'annotate' | ''>;
+    action: 'highlight' | 'hide' | '';
+    setAction: Hooks.StateUpdater<'highlight' | 'hide' | ''>;
   }): VNode {
-    const PenIcon = PenIconFactory({ h });
-    const CropIcon = CropIconFactory({ h });
-
     return (
       <div class="editor__tool-container">
-        <div />
         <div class="editor__tool-bar">
           <button
             type="button"
-            class={`editor__tool ${action === 'crop' ? 'editor__tool--active' : ''}`}
+            class={`editor__tool ${action === 'highlight' ? 'editor__tool--active' : ''}`}
             onClick={() => {
-              if (action === 'crop') {
-                setAction('');
-              } else {
-                setAction('crop');
-              }
+              setAction(action === 'highlight' ? '' : 'highlight');
             }}
           >
-            <CropIcon />
+            Highlight
           </button>
           <button
             type="button"
-            class={`editor__tool ${action === 'annotate' ? 'editor__tool--active' : ''}`}
+            class={`editor__tool ${action === 'hide' ? 'editor__tool--active' : ''}`}
             onClick={() => {
-              if (action === 'annotate') {
-                setAction('');
-              } else {
-                setAction('annotate');
-              }
+              setAction(action === 'hide' ? '' : 'hide');
             }}
           >
-            <PenIcon />
+            Hide
           </button>
         </div>
-        <div />
       </div>
     );
   };

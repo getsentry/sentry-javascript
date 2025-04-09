@@ -44,7 +44,6 @@ export type NextConfigObject = {
   // Next.js experimental options
   experimental?: {
     instrumentationHook?: boolean;
-    clientInstrumentationHook?: boolean;
     clientTraceMetadata?: string[];
   };
   productionBrowserSourceMaps?: boolean;

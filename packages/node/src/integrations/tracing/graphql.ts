@@ -37,12 +37,13 @@ interface GraphqlOptions {
 
 const INTEGRATION_NAME = 'Graphql';
 
-export const instrumentGraphql = generateInstrumentOnce<GraphqlOptions>(
+export const instrumentGraphql = generateInstrumentOnce(
   INTEGRATION_NAME,
-  (_options: GraphqlOptions = {}) => {
+  GraphQLInstrumentation,
+  (_options: GraphqlOptions) => {
     const options = getOptionsWithDefaults(_options);
 
-    return new GraphQLInstrumentation({
+    return {
       ...options,
       responseHook(span) {
         addOriginToSpan(span, 'auto.graphql.otel.graphql');
@@ -73,7 +74,7 @@ export const instrumentGraphql = generateInstrumentOnce<GraphqlOptions>(
           }
         }
       },
-    });
+    };
   },
 );
 

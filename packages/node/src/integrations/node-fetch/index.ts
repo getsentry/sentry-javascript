@@ -5,7 +5,6 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, defineIntegration, getClient } from '
 import { generateInstrumentOnce } from '../../otel/instrument';
 import type { NodeClient } from '../../sdk/client';
 import type { NodeClientOptions } from '../../types';
-import type { SentryNodeFetchInstrumentationOptions } from './SentryNodeFetchInstrumentation';
 import { SentryNodeFetchInstrumentation } from './SentryNodeFetchInstrumentation';
 
 const INTEGRATION_NAME = 'NodeFetch';
@@ -33,14 +32,19 @@ interface NodeFetchOptions {
   ignoreOutgoingRequests?: (url: string) => boolean;
 }
 
-const instrumentOtelNodeFetch = generateInstrumentOnce<UndiciInstrumentationConfig>(INTEGRATION_NAME, config => {
-  return new UndiciInstrumentation(config);
-});
+const instrumentOtelNodeFetch = generateInstrumentOnce(
+  INTEGRATION_NAME,
+  UndiciInstrumentation,
+  (options: NodeFetchOptions) => {
+    return getConfigWithDefaults(options);
+  },
+);
 
-const instrumentSentryNodeFetch = generateInstrumentOnce<SentryNodeFetchInstrumentationOptions>(
+const instrumentSentryNodeFetch = generateInstrumentOnce(
   `${INTEGRATION_NAME}.sentry`,
-  config => {
-    return new SentryNodeFetchInstrumentation(config);
+  SentryNodeFetchInstrumentation,
+  (options: NodeFetchOptions) => {
+    return options;
   },
 );
 
@@ -52,8 +56,7 @@ const _nativeNodeFetchIntegration = ((options: NodeFetchOptions = {}) => {
 
       // This is the "regular" OTEL instrumentation that emits spans
       if (instrumentSpans) {
-        const instrumentationConfig = getConfigWithDefaults(options);
-        instrumentOtelNodeFetch(instrumentationConfig);
+        instrumentOtelNodeFetch(options);
       }
 
       // This is the Sentry-specific instrumentation that creates breadcrumbs & propagates traces

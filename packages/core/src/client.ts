@@ -671,6 +671,13 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public on(hook: 'afterCaptureLog', callback: (log: Log) => void): () => void;
 
   /**
+   * A hook that is called when the client is flushing logs
+   *
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'flushLogs', callback: () => void): () => void;
+
+  /**
    * Register a hook on this client.
    */
   public on(hook: string, callback: unknown): () => void {
@@ -826,6 +833,11 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * Emit a hook event for client after capturing a log.
    */
   public emit(hook: 'afterCaptureLog', log: Log): void;
+
+  /**
+   * Emit a hook event for client flush logs
+   */
+  public emit(hook: 'flushLogs'): void;
 
   /**
    * Emit a hook that was previously registered via `on()`.

@@ -136,8 +136,53 @@ describe('_INTERNAL_captureLog', () => {
     const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
     expect(logAttributes).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ key: 'release', value: { stringValue: '1.0.0' } }),
-        expect.objectContaining({ key: 'environment', value: { stringValue: 'test' } }),
+        expect.objectContaining({ key: 'sentry.release', value: { stringValue: '1.0.0' } }),
+        expect.objectContaining({ key: 'sentry.environment', value: { stringValue: 'test' } }),
+      ]),
+    );
+  });
+
+  it('includes SDK metadata in log attributes when available', () => {
+    const options = getDefaultTestClientOptions({
+      dsn: PUBLIC_DSN,
+      _experiments: { enableLogs: true },
+    });
+    const client = new TestClient(options);
+    // Mock getSdkMetadata to return SDK info
+    vi.spyOn(client, 'getSdkMetadata').mockReturnValue({
+      sdk: {
+        name: 'sentry.javascript.node',
+        version: '7.0.0',
+      },
+    });
+
+    _INTERNAL_captureLog({ level: 'info', message: 'test log with SDK metadata' }, client, undefined);
+
+    const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+    expect(logAttributes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ key: 'sentry.sdk.name', value: { stringValue: 'sentry.javascript.node' } }),
+        expect.objectContaining({ key: 'sentry.sdk.version', value: { stringValue: '7.0.0' } }),
+      ]),
+    );
+  });
+
+  it('does not include SDK metadata in log attributes when not available', () => {
+    const options = getDefaultTestClientOptions({
+      dsn: PUBLIC_DSN,
+      _experiments: { enableLogs: true },
+    });
+    const client = new TestClient(options);
+    // Mock getSdkMetadata to return no SDK info
+    vi.spyOn(client, 'getSdkMetadata').mockReturnValue({});
+
+    _INTERNAL_captureLog({ level: 'info', message: 'test log without SDK metadata' }, client, undefined);
+
+    const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+    expect(logAttributes).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ key: 'sentry.sdk.name' }),
+        expect.objectContaining({ key: 'sentry.sdk.version' }),
       ]),
     );
   });
@@ -206,11 +251,11 @@ describe('_INTERNAL_captureLog', () => {
           value: { stringValue: 'Hello %s, welcome to %s' },
         }),
         expect.objectContaining({
-          key: 'sentry.message.param.0',
+          key: 'sentry.message.parameter.0',
           value: { stringValue: 'John' },
         }),
         expect.objectContaining({
-          key: 'sentry.message.param.1',
+          key: 'sentry.message.parameter.1',
           value: { stringValue: 'Sentry' },
         }),
       ]),

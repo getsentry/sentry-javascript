@@ -97,18 +97,24 @@ export function _INTERNAL_captureLog(
   };
 
   if (release) {
-    logAttributes.release = release;
+    logAttributes['sentry.release'] = release;
   }
 
   if (environment) {
-    logAttributes.environment = environment;
+    logAttributes['sentry.environment'] = environment;
+  }
+
+  const { sdk } = client.getSdkMetadata() ?? {};
+  if (sdk) {
+    logAttributes['sentry.sdk.name'] = sdk.name;
+    logAttributes['sentry.sdk.version'] = sdk.version;
   }
 
   if (isParameterizedString(message)) {
     const { __sentry_template_string__, __sentry_template_values__ = [] } = message;
     logAttributes['sentry.message.template'] = __sentry_template_string__;
     __sentry_template_values__.forEach((param, index) => {
-      logAttributes[`sentry.message.param.${index}`] = param;
+      logAttributes[`sentry.message.parameter.${index}`] = param;
     });
   }
 
@@ -162,6 +168,8 @@ export function _INTERNAL_flushLogsBuffer(client: Client, maybeLogBuffer?: Array
 
   // Clear the log buffer after envelopes have been constructed.
   logBuffer.length = 0;
+
+  client.emit('flushLogs');
 
   // sendEnvelope should not throw
   // eslint-disable-next-line @typescript-eslint/no-floating-promises
