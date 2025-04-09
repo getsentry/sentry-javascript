@@ -5,17 +5,17 @@ import { getBuildPluginOptions } from './webpackPluginOptions';
 import { glob } from 'glob';
 
 /**
- * A function to do Sentry stuff for the `afterProductionBuild` Next.js hook
+ * A function to do Sentry stuff for the `runAfterProductionCompile` Next.js hook
  */
-export async function handleAfterProductionBuild(
+export async function handleAfterProductionCompile(
   buildInfo: { distDir: string; releaseName: string | undefined },
   sentryBuildOptions: SentryBuildOptions,
 ): Promise<void> {
-  // The handleAfterProductionBuild function is only relevant if we are using Turbopack instead of Webpack, meaning we noop if we detect that we did any webpack logic
+  // The handleAfterProductionCompile function is only relevant if we are using Turbopack instead of Webpack, meaning we noop if we detect that we did any webpack logic
   if (getWebpackBuildFunctionCalled()) {
     if (sentryBuildOptions.debug) {
       // eslint-disable-next-line no-console
-      console.debug('[@sentry/nextjs] Not running afterProductionBuild logic because Webpack context was ran.');
+      console.debug('[@sentry/nextjs] Not running runAfterProductionCompile logic because Webpack context was ran.');
     }
     return;
   }
