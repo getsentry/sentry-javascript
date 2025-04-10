@@ -22,7 +22,7 @@ import { breadcrumbsIntegration } from './integrations/breadcrumbs';
 import { browserApiErrorsIntegration } from './integrations/browserapierrors';
 import { browserSessionIntegration } from './integrations/browsersession';
 import { globalHandlersIntegration } from './integrations/globalhandlers';
-import { httpContextIntegration } from './integrations/httpcontext';
+import { pageInformationIntegration } from './integrations/pageinformation';
 import { linkedErrorsIntegration } from './integrations/linkederrors';
 import { defaultStackParser } from './stack-parsers';
 import { makeFetchTransport } from './transports/fetch';
@@ -43,7 +43,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     globalHandlersIntegration(),
     linkedErrorsIntegration(),
     dedupeIntegration(),
-    httpContextIntegration(),
+    pageInformationIntegration(),
     browserSessionIntegration(),
   ];
 }
