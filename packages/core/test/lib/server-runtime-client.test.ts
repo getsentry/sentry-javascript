@@ -4,7 +4,7 @@ import { describe, expect, it, test, vi } from 'vitest';
 import { Scope, createTransport } from '../../src';
 import type { ServerRuntimeClientOptions } from '../../src/server-runtime-client';
 import { ServerRuntimeClient } from '../../src/server-runtime-client';
-import { _INTERNAL_captureLog } from '../../src/logs/exports';
+import { _INTERNAL_captureLog, _INTERNAL_flushLogsBuffer } from '../../src/logs/exports';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 
@@ -256,8 +256,8 @@ describe('ServerRuntimeClient', () => {
       _INTERNAL_captureLog({ message: 'test1', level: 'info' }, client);
       _INTERNAL_captureLog({ message: 'test2', level: 'info' }, client);
 
-      // Trigger flush event
-      client.emit('flush');
+      // Trigger flush directly
+      _INTERNAL_flushLogsBuffer(client);
 
       expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
       expect(client['_logWeight']).toBe(0); // Weight should be reset after flush

@@ -1,4 +1,6 @@
 import type { Client, EventProcessor, Integration } from '@sentry/core';
+import { consoleSandbox } from '@sentry/core';
+import { getGlobalScope } from '@sentry/core';
 import { GLOBAL_OBJ, addEventProcessor, applySdkMetadata } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/react';
 import { getDefaultIntegrations as getReactDefaultIntegrations, init as reactInit } from '@sentry/react';
@@ -14,11 +16,15 @@ export * from '@sentry/react';
 export * from '../common';
 export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';
 export { browserTracingIntegration } from './browserTracingIntegration';
+export { captureRouterTransitionStart } from './routing/appRouterRoutingInstrumentation';
+
+let clientIsInitialized = false;
 
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryRewriteFramesAssetPrefixPath: string;
   _sentryAssetPrefix?: string;
   _sentryBasePath?: string;
+  _sentryRelease?: string;
   _experimentalThirdPartyOriginStackFrames?: string;
 };
 
@@ -27,9 +33,20 @@ declare const __SENTRY_TRACING__: boolean;
 
 /** Inits the Sentry NextJS SDK on the browser with the React SDK. */
 export function init(options: BrowserOptions): Client | undefined {
+  if (clientIsInitialized) {
+    consoleSandbox(() => {
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[@sentry/nextjs] You are calling `Sentry.init()` more than once on the client. This can happen if you have both a `sentry.client.config.ts` and a `instrumentation-client.ts` file with `Sentry.init()` calls. It is recommended to call `Sentry.init()` once in `instrumentation-client.ts`.',
+      );
+    });
+  }
+  clientIsInitialized = true;
+
   const opts = {
     environment: getVercelEnv(true) || process.env.NODE_ENV,
     defaultIntegrations: getDefaultIntegrations(options),
+    release: process.env._sentryRelease || globalWithInjectedValues._sentryRelease,
     ...options,
   } satisfies BrowserOptions;
 
@@ -59,6 +76,16 @@ export function init(options: BrowserOptions): Client | undefined {
 
   if (process.env.NODE_ENV === 'development') {
     addEventProcessor(devErrorSymbolicationEventProcessor);
+  }
+
+  try {
+    // @ts-expect-error `process.turbopack` is a magic string that will be replaced by Next.js
+    if (process.turbopack) {
+      getGlobalScope().setTag('turbopack', true);
+    }
+  } catch (e) {
+    // Noop
+    // The statement above can throw because process is not defined on the client
   }
 
   return client;

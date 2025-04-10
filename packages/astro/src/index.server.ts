@@ -128,6 +128,7 @@ export {
   zodErrorsIntegration,
   profiler,
   logger,
+  consoleLoggingIntegration,
 } from '@sentry/node';
 
 export { init } from './server/sdk';

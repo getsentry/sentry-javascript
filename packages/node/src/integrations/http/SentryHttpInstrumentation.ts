@@ -59,6 +59,15 @@ export type SentryHttpInstrumentationOptions = InstrumentationConfig & {
   ignoreOutgoingRequests?: (url: string, request: RequestOptions) => boolean;
 
   /**
+   * Do not capture the request body for incoming HTTP requests to URLs where the given callback returns `true`.
+   * This can be useful for long running requests where the body is not needed and we want to avoid capturing it.
+   *
+   * @param url Contains the entire URL, including query string (if any), protocol, host, etc. of the outgoing request.
+   * @param request Contains the {@type RequestOptions} object used to make the outgoing request.
+   */
+  ignoreIncomingRequestBody?: (url: string, request: RequestOptions) => boolean;
+
+  /**
    * Whether the integration should create [Sessions](https://docs.sentry.io/product/releases/health/#sessions) for incoming requests to track the health and crash-free rate of your releases in Sentry.
    * Read more about Release Health: https://docs.sentry.io/product/releases/health/
    *
@@ -150,6 +159,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
   ) => (this: unknown, event: string, ...args: unknown[]) => boolean {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const instrumentation = this;
+    const { ignoreIncomingRequestBody } = instrumentation.getConfig();
 
     return (
       original: (event: string, ...args: unknown[]) => boolean,
@@ -171,7 +181,10 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
         // request.ip is non-standard but some frameworks set this
         const ipAddress = (request as { ip?: string }).ip || request.socket?.remoteAddress;
 
-        patchRequestToCaptureBody(request, isolationScope);
+        const url = request.url || '/';
+        if (!ignoreIncomingRequestBody?.(url, request)) {
+          patchRequestToCaptureBody(request, isolationScope);
+        }
 
         // Update the isolation scope, isolate this request
         isolationScope.setSDKProcessingMetadata({ normalizedRequest, ipAddress });
@@ -180,7 +193,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
         // Ideally, framework instrumentations coming after the HttpInstrumentation
         // update the transactionName once we get a parameterized route.
         const httpMethod = (request.method || 'GET').toUpperCase();
-        const httpTarget = stripUrlQueryAndFragment(request.url || '/');
+        const httpTarget = stripUrlQueryAndFragment(url);
 
         const bestEffortTransactionName = `${httpMethod} ${httpTarget}`;
 

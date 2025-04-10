@@ -11,6 +11,7 @@ import {
   propagationContextFromHeaders,
   requestDataIntegration,
   stackParserFromStackParserOptions,
+  consoleIntegration,
 } from '@sentry/core';
 import {
   enhanceDscWithOpenTelemetryRootSpanName,
@@ -20,7 +21,6 @@ import {
 } from '@sentry/opentelemetry';
 import { DEBUG_BUILD } from '../debug-build';
 import { childProcessIntegration } from '../integrations/childProcess';
-import { consoleIntegration } from '../integrations/console';
 import { nodeContextIntegration } from '../integrations/context';
 import { contextLinesIntegration } from '../integrations/contextlines';
 import { httpIntegration } from '../integrations/http';
@@ -214,6 +214,7 @@ function getClientOptions(
     release,
     tracesSampleRate,
     spotlight,
+    debug: envToBool(options.debug ?? process.env.SENTRY_DEBUG),
   };
 
   const integrations = options.integrations;

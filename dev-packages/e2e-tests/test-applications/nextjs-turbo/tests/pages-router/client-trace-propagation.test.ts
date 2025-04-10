@@ -28,4 +28,14 @@ test('Should propagate traces from server to client in pages router', async ({ p
 
   expect(serverTransaction.contexts?.trace?.trace_id).toBeDefined();
   expect(pageloadTransaction.contexts?.trace?.trace_id).toBe(serverTransaction.contexts?.trace?.trace_id);
+
+  await test.step('release was successfully injected on the serverside', () => {
+    // Release as defined in next.config.js
+    expect(serverTransaction.release).toBe('foobar123');
+  });
+
+  await test.step('release was successfully injected on the clientside', () => {
+    // Release as defined in next.config.js
+    expect(pageloadTransaction.release).toBe('foobar123');
+  });
 });
