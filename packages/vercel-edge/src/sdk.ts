@@ -22,6 +22,7 @@ import {
   nodeStackLineParser,
   requestDataIntegration,
   stackParserFromStackParserOptions,
+  consoleIntegration,
 } from '@sentry/core';
 import {
   SentryPropagator,
@@ -57,6 +58,7 @@ export function getDefaultIntegrations(options: Options): Integration[] {
     functionToStringIntegration(),
     linkedErrorsIntegration(),
     winterCGFetchIntegration(),
+    consoleIntegration(),
     ...(options.sendDefaultPii ? [requestDataIntegration()] : []),
   ];
 }

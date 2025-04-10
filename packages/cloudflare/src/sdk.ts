@@ -8,6 +8,7 @@ import {
   linkedErrorsIntegration,
   requestDataIntegration,
   stackParserFromStackParserOptions,
+  consoleIntegration,
 } from '@sentry/core';
 import type { CloudflareClientOptions, CloudflareOptions } from './client';
 import { CloudflareClient } from './client';
@@ -27,6 +28,7 @@ export function getDefaultIntegrations(options: CloudflareOptions): Integration[
     linkedErrorsIntegration(),
     fetchIntegration(),
     requestDataIntegration(sendDefaultPii ? undefined : { include: { cookies: false } }),
+    consoleIntegration(),
   ];
 }
 
