@@ -15,7 +15,7 @@ export const getSupabaseClient = () => {
     },
   });
 
-  Sentry.addIntegration(Sentry.supabaseIntegration(supabaseClient));
+  Sentry.instrumentSupabase({ supabaseClient });
 
   return supabaseClient;
 };

@@ -16,6 +16,7 @@ export {
   setMeasurement,
   captureFeedback,
   supabaseIntegration,
+  instrumentSupabase
 } from '@sentry/core';
 
 export {
