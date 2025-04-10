@@ -11,6 +11,7 @@ import { defineIntegration } from '../integration';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import { captureException } from '../exports';
 import { SPAN_STATUS_ERROR, SPAN_STATUS_OK } from '../tracing';
+import { DEBUG_BUILD } from '../debug-build';
 
 const AUTH_OPERATIONS_TO_INSTRUMENT = [
   'reauthenticate',
@@ -64,13 +65,13 @@ export const FILTER_MAPPINGS = {
   not: 'not',
 };
 
-export const AVAILABLE_OPERATIONS = ['select', 'insert', 'upsert', 'update', 'delete'];
+export const DB_OPERATIONS_TO_INSTRUMENT = ['select', 'insert', 'upsert', 'update', 'delete'];
 
 type AuthOperationFn = (...args: unknown[]) => Promise<unknown>;
 type AuthOperationName = (typeof AUTH_OPERATIONS_TO_INSTRUMENT)[number];
 type AuthAdminOperationName = (typeof AUTH_ADMIN_OPERATIONS_TO_INSTRUMENT)[number];
-type PostgrestQueryOperationName = (typeof AVAILABLE_OPERATIONS)[number];
-type PostgrestQueryOperationFn = (...args: unknown[]) => PostgrestFilterBuilder;
+type PostgRESTQueryOperationName = (typeof DB_OPERATIONS_TO_INSTRUMENT)[number];
+type PostgRESTQueryOperationFn = (...args: unknown[]) => PostgRESTFilterBuilder;
 
 export interface SupabaseClientInstance {
   auth: {
@@ -78,11 +79,11 @@ export interface SupabaseClientInstance {
   } & Record<AuthOperationName, AuthOperationFn>;
 }
 
-export interface PostgrestQueryBuilder {
-  [key: PostgrestQueryOperationName]: PostgrestQueryOperationFn;
+export interface PostgRESTQueryBuilder {
+  [key: PostgRESTQueryOperationName]: PostgRESTQueryOperationFn;
 }
 
-export interface PostgrestFilterBuilder {
+export interface PostgRESTFilterBuilder {
   method: string;
   headers: Record<string, string>;
   url: URL;
@@ -116,18 +117,36 @@ export interface SupabaseBreadcrumb {
 
 export interface SupabaseClientConstructor {
   prototype: {
-    from: (table: string) => PostgrestQueryBuilder;
+    from: (table: string) => PostgRESTQueryBuilder;
   };
 }
 
-export interface PostgrestProtoThenable {
+export interface PostgRESTProtoThenable {
   then: <T>(
     onfulfilled?: ((value: T) => T | PromiseLike<T>) | null,
     onrejected?: ((reason: any) => T | PromiseLike<T>) | null,
   ) => Promise<T>;
 }
 
-const instrumented = new Map();
+type SentryInstrumented<T> = T & {
+  __SENTRY_INSTRUMENTED__?: boolean;
+};
+
+function markAsInstrumented<T>(fn: T): void {
+  try {
+    (fn as SentryInstrumented<T>).__SENTRY_INSTRUMENTED__ = true;
+  } catch {
+    // ignore errors here
+  }
+}
+
+function isInstrumented<T>(fn: T): boolean | undefined {
+  try {
+    return (fn as SentryInstrumented<T>).__SENTRY_INSTRUMENTED__;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Extracts the database operation type from the HTTP method and headers
@@ -198,14 +217,8 @@ export function translateFiltersIntoMethods(key: string, query: string): string 
 }
 
 function instrumentAuthOperation(operation: AuthOperationFn, isAdmin = false): AuthOperationFn {
-  if (instrumented.has(operation)) {
-    return operation;
-  }
-
   return new Proxy(operation, {
     apply(target, thisArg, argumentsList) {
-      instrumented.set(operation, true);
-
       const span = startInactiveSpan({
         name: operation.name,
         attributes: {
@@ -255,23 +268,34 @@ function instrumentSupabaseAuthClient(supabaseClientInstance: SupabaseClientInst
     return;
   }
 
-  AUTH_OPERATIONS_TO_INSTRUMENT.forEach((operation: AuthOperationName) => {
+
+  for (const operation of AUTH_OPERATIONS_TO_INSTRUMENT) {
     const authOperation = auth[operation];
-    if (typeof authOperation === 'function') {
+
+    if (!authOperation) {
+      continue;
+    }
+
+    if ( typeof supabaseClientInstance.auth[operation] === 'function') {
       supabaseClientInstance.auth[operation] = instrumentAuthOperation(authOperation);
     }
-  });
+  }
 
-  AUTH_ADMIN_OPERATIONS_TO_INSTRUMENT.forEach((operation: AuthAdminOperationName) => {
-    const authAdminOperation = auth.admin[operation];
-    if (typeof authAdminOperation === 'function') {
-      supabaseClientInstance.auth.admin[operation] = instrumentAuthOperation(authAdminOperation, true);
+  for (const operation of AUTH_ADMIN_OPERATIONS_TO_INSTRUMENT) {
+    const authOperation = auth.admin[operation];
+
+    if (!authOperation) {
+      continue;
     }
-  });
+
+    if (typeof supabaseClientInstance.auth.admin[operation] === 'function') {
+      supabaseClientInstance.auth.admin[operation] = instrumentAuthOperation(authOperation, true);
+    }
+  }
 }
 
 function instrumentSupabaseClientConstructor(SupabaseClient: unknown): void {
-  if (instrumented.has(SupabaseClient)) {
+  if (isInstrumented((SupabaseClient as unknown as SupabaseClientConstructor).prototype.from)) {
     return;
   }
 
@@ -280,33 +304,29 @@ function instrumentSupabaseClientConstructor(SupabaseClient: unknown): void {
     {
       apply(target, thisArg, argumentsList) {
         const rv = Reflect.apply(target, thisArg, argumentsList);
-        const PostgrestQueryBuilder = (rv as PostgrestQueryBuilder).constructor;
+        const PostgRESTQueryBuilder = (rv as PostgRESTQueryBuilder).constructor;
 
-        instrumentPostgrestQueryBuilder(PostgrestQueryBuilder as unknown as new () => PostgrestQueryBuilder);
+        instrumentPostgRESTQueryBuilder(PostgRESTQueryBuilder as unknown as new () => PostgRESTQueryBuilder);
 
         return rv;
       },
     },
   );
+
+  markAsInstrumented((SupabaseClient as unknown as SupabaseClientConstructor).prototype.from);
 }
 
-// This is the only "instrumented" part of the SDK. The rest of instrumentation
-// methods are only used as a mean to get to the `PostgrestFilterBuilder` constructor itself.
-function instrumentPostgrestFilterBuilder(PostgrestFilterBuilder: PostgrestFilterBuilder['constructor']): void {
-  if (instrumented.has(PostgrestFilterBuilder)) {
+function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilterBuilder['constructor']): void {
+  if (isInstrumented((PostgRESTFilterBuilder.prototype as unknown as PostgRESTProtoThenable).then)) {
     return;
   }
 
-  instrumented.set(PostgrestFilterBuilder, {
-    then: (PostgrestFilterBuilder.prototype as unknown as PostgrestProtoThenable).then,
-  });
-
-  (PostgrestFilterBuilder.prototype as unknown as PostgrestProtoThenable).then = new Proxy(
-    (PostgrestFilterBuilder.prototype as unknown as PostgrestProtoThenable).then,
+  (PostgRESTFilterBuilder.prototype as unknown as PostgRESTProtoThenable).then = new Proxy(
+    (PostgRESTFilterBuilder.prototype as unknown as PostgRESTProtoThenable).then,
     {
       apply(target, thisArg, argumentsList) {
-        const operations = AVAILABLE_OPERATIONS;
-        const typedThis = thisArg as PostgrestFilterBuilder;
+        const operations = DB_OPERATIONS_TO_INSTRUMENT;
+        const typedThis = thisArg as PostgRESTFilterBuilder;
         const operation = extractOperation(typedThis.method, typedThis.headers);
 
         if (!operations.includes(operation)) {
@@ -427,44 +447,43 @@ function instrumentPostgrestFilterBuilder(PostgrestFilterBuilder: PostgrestFilte
       },
     },
   );
+
+  markAsInstrumented((PostgRESTFilterBuilder.prototype as unknown as PostgRESTProtoThenable).then);
 }
 
-function instrumentPostgrestQueryBuilder(PostgrestQueryBuilder: new () => PostgrestQueryBuilder): void {
-  if (instrumented.has(PostgrestQueryBuilder)) {
-    return;
-  }
-
-  // We need to wrap _all_ operations despite them sharing the same `PostgrestFilterBuilder`
+function instrumentPostgRESTQueryBuilder(PostgRESTQueryBuilder: new () => PostgRESTQueryBuilder): void {
+  // We need to wrap _all_ operations despite them sharing the same `PostgRESTFilterBuilder`
   // constructor, as we don't know which method will be called first, and we don't want to miss any calls.
-  for (const operation of AVAILABLE_OPERATIONS) {
-    instrumented.set(PostgrestQueryBuilder, {
-      [operation]: (PostgrestQueryBuilder.prototype as Record<string, unknown>)[
-        operation as 'select' | 'insert' | 'upsert' | 'update' | 'delete'
-      ] as (...args: unknown[]) => PostgrestFilterBuilder,
-    });
+  for (const operation of DB_OPERATIONS_TO_INSTRUMENT) {
+    if (isInstrumented((PostgRESTQueryBuilder.prototype as Record<string, any>)[operation])) {
+      continue;
+    }
 
-    type PostgrestOperation = keyof Pick<PostgrestQueryBuilder, 'select' | 'insert' | 'upsert' | 'update' | 'delete'>;
-    (PostgrestQueryBuilder.prototype as Record<string, any>)[operation as PostgrestOperation] = new Proxy(
-      (PostgrestQueryBuilder.prototype as Record<string, any>)[operation as PostgrestOperation],
+    type PostgRESTOperation = keyof Pick<PostgRESTQueryBuilder, 'select' | 'insert' | 'upsert' | 'update' | 'delete'>;
+    (PostgRESTQueryBuilder.prototype as Record<string, any>)[operation as PostgRESTOperation] = new Proxy(
+      (PostgRESTQueryBuilder.prototype as Record<string, any>)[operation as PostgRESTOperation],
       {
         apply(target, thisArg, argumentsList) {
           const rv = Reflect.apply(target, thisArg, argumentsList);
-          const PostgrestFilterBuilder = (rv as PostgrestFilterBuilder).constructor;
+          const PostgRESTFilterBuilder = (rv as PostgRESTFilterBuilder).constructor;
 
-          logger.log(`Instrumenting ${operation} operation's PostgrestFilterBuilder`);
+          DEBUG_BUILD && logger.log(`Instrumenting ${operation} operation's PostgRESTFilterBuilder`);
 
-          instrumentPostgrestFilterBuilder(PostgrestFilterBuilder);
+          instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder);
 
           return rv;
         },
       },
     );
+
+    markAsInstrumented((PostgRESTQueryBuilder.prototype as Record<string, any>)[operation]);
   }
 }
 
 const instrumentSupabase = (supabaseClientInstance: unknown): void => {
   if (!supabaseClientInstance) {
-    throw new Error('Supabase client instance is not available.');
+    DEBUG_BUILD && logger.warn('Supabase integration was not installed because no Supabase client was provided.');
+    return;
   }
   const SupabaseClientConstructor =
     supabaseClientInstance.constructor === Function ? supabaseClientInstance : supabaseClientInstance.constructor;
@@ -477,7 +496,7 @@ const INTEGRATION_NAME = 'Supabase';
 
 const _supabaseIntegration = (supabaseClient => {
   // Instrumenting here instead of `setup` or `setupOnce` because we may need to instrument multiple clients.
-  // So we don't want the instrumentation is skipped because the integration is already installed.
+  // So we don't want the instrumentation skipped because the integration is already installed.
   instrumentSupabase(supabaseClient);
 
   return {
