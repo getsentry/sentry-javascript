@@ -106,7 +106,7 @@ export { captureConsoleIntegration } from './integrations/captureconsole';
 export { dedupeIntegration } from './integrations/dedupe';
 export { extraErrorDataIntegration } from './integrations/extraerrordata';
 export { rewriteFramesIntegration } from './integrations/rewriteframes';
-export { supabaseIntegration } from './integrations/supabase';
+export { supabaseIntegration, instrumentSupabase } from './integrations/supabase';
 export { zodErrorsIntegration } from './integrations/zoderrors';
 export { thirdPartyErrorFilterIntegration } from './integrations/third-party-errors-filter';
 export { consoleIntegration } from './integrations/console';

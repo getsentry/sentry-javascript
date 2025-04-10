@@ -117,6 +117,7 @@ export {
   withMonitor,
   withScope,
   supabaseIntegration,
+  instrumentSupabase,
   zodErrorsIntegration,
   logger,
   consoleLoggingIntegration,

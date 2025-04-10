@@ -5,7 +5,7 @@
 import { logger, isPlainObject } from '../utils-hoist';
 
 import type { IntegrationFn } from '../types-hoist';
-import { setHttpStatus, startInactiveSpan } from '../tracing';
+import { setHttpStatus, startSpan } from '../tracing';
 import { addBreadcrumb } from '../breadcrumbs';
 import { defineIntegration } from '../integration';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
@@ -219,44 +219,47 @@ export function translateFiltersIntoMethods(key: string, query: string): string 
 function instrumentAuthOperation(operation: AuthOperationFn, isAdmin = false): AuthOperationFn {
   return new Proxy(operation, {
     apply(target, thisArg, argumentsList) {
-      const span = startInactiveSpan({
-        name: operation.name,
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `db.supabase.auth.${isAdmin ? 'admin.' : ''}${operation.name}`,
+      return startSpan(
+        {
+          name: operation.name,
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase',
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `db.supabase.auth.${isAdmin ? 'admin.' : ''}${operation.name}`,
+          },
         },
-      });
+        span => {
+          return Reflect.apply(target, thisArg, argumentsList)
+            .then((res: unknown) => {
+              if (res && typeof res === 'object' && 'error' in res && res.error) {
+                span.setStatus({ code: SPAN_STATUS_ERROR });
 
-      return Reflect.apply(target, thisArg, argumentsList)
-        .then((res: unknown) => {
-          if (res && typeof res === 'object' && 'error' in res && res.error) {
-            span.setStatus({ code: SPAN_STATUS_ERROR });
+                captureException(res.error, {
+                  mechanism: {
+                    handled: false,
+                  },
+                });
+              } else {
+                span.setStatus({ code: SPAN_STATUS_OK });
+              }
 
-            captureException(res.error, {
-              mechanism: {
-                handled: false,
-              },
-            });
-          } else {
-            span.setStatus({ code: SPAN_STATUS_OK });
-          }
+              span.end();
+              return res;
+            })
+            .catch((err: unknown) => {
+              span.setStatus({ code: SPAN_STATUS_ERROR });
+              span.end();
 
-          span.end();
-          return res;
-        })
-        .catch((err: unknown) => {
-          span.setStatus({ code: SPAN_STATUS_ERROR });
-          span.end();
+              captureException(err, {
+                mechanism: {
+                  handled: false,
+                },
+              });
 
-          captureException(err, {
-            mechanism: {
-              handled: false,
-            },
-          });
-
-          throw err;
-        })
-        .then(...argumentsList);
+              throw err;
+            })
+            .then(...argumentsList);
+        },
+      );
     },
   });
 }
@@ -268,7 +271,6 @@ function instrumentSupabaseAuthClient(supabaseClientInstance: SupabaseClientInst
     return;
   }
 
-
   for (const operation of AUTH_OPERATIONS_TO_INSTRUMENT) {
     const authOperation = auth[operation];
 
@@ -276,7 +278,7 @@ function instrumentSupabaseAuthClient(supabaseClientInstance: SupabaseClientInst
       continue;
     }
 
-    if ( typeof supabaseClientInstance.auth[operation] === 'function') {
+    if (typeof supabaseClientInstance.auth[operation] === 'function') {
       supabaseClientInstance.auth[operation] = instrumentAuthOperation(authOperation);
     }
   }
@@ -372,78 +374,81 @@ function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilte
           attributes['db.body'] = body;
         }
 
-        const span = startInactiveSpan({
-          name: description,
-          attributes,
-        });
+        return startSpan(
+          {
+            name: description,
+            attributes,
+          },
+          span => {
+            return (Reflect.apply(target, thisArg, []) as Promise<SupabaseResponse>)
+              .then(
+                (res: SupabaseResponse) => {
+                  if (span) {
+                    if (res && typeof res === 'object' && 'status' in res) {
+                      setHttpStatus(span, res.status || 500);
+                    }
+                    span.end();
+                  }
 
-        return (Reflect.apply(target, thisArg, []) as Promise<SupabaseResponse>)
-          .then(
-            (res: SupabaseResponse) => {
-              if (span) {
-                if (res && typeof res === 'object' && 'status' in res) {
-                  setHttpStatus(span, res.status || 500);
-                }
-                span.end();
-              }
+                  if (res.error) {
+                    const err = new Error(res.error.message) as SupabaseError;
+                    if (res.error.code) {
+                      err.code = res.error.code;
+                    }
+                    if (res.error.details) {
+                      err.details = res.error.details;
+                    }
 
-              if (res.error) {
-                const err = new Error(res.error.message) as SupabaseError;
-                if (res.error.code) {
-                  err.code = res.error.code;
-                }
-                if (res.error.details) {
-                  err.details = res.error.details;
-                }
+                    const supabaseContext: Record<string, unknown> = {};
+                    if (queryItems.length) {
+                      supabaseContext.query = queryItems;
+                    }
+                    if (Object.keys(body).length) {
+                      supabaseContext.body = body;
+                    }
 
-                const supabaseContext: Record<string, unknown> = {};
-                if (queryItems.length) {
-                  supabaseContext.query = queryItems;
-                }
-                if (Object.keys(body).length) {
-                  supabaseContext.body = body;
-                }
+                    captureException(err, {
+                      contexts: {
+                        supabase: supabaseContext,
+                      },
+                    });
+                  }
 
-                captureException(err, {
-                  contexts: {
-                    supabase: supabaseContext,
-                  },
-                });
-              }
+                  const breadcrumb: SupabaseBreadcrumb = {
+                    type: 'supabase',
+                    category: `db.${operation}`,
+                    message: description,
+                  };
 
-              const breadcrumb: SupabaseBreadcrumb = {
-                type: 'supabase',
-                category: `db.${operation}`,
-                message: description,
-              };
+                  const data: Record<string, unknown> = {};
 
-              const data: Record<string, unknown> = {};
+                  if (queryItems.length) {
+                    data.query = queryItems;
+                  }
 
-              if (queryItems.length) {
-                data.query = queryItems;
-              }
+                  if (Object.keys(body).length) {
+                    data.body = body;
+                  }
 
-              if (Object.keys(body).length) {
-                data.body = body;
-              }
+                  if (Object.keys(data).length) {
+                    breadcrumb.data = data;
+                  }
 
-              if (Object.keys(data).length) {
-                breadcrumb.data = data;
-              }
+                  addBreadcrumb(breadcrumb);
 
-              addBreadcrumb(breadcrumb);
-
-              return res;
-            },
-            (err: Error) => {
-              if (span) {
-                setHttpStatus(span, 500);
-                span.end();
-              }
-              throw err;
-            },
-          )
-          .then(...argumentsList);
+                  return res;
+                },
+                (err: Error) => {
+                  if (span) {
+                    setHttpStatus(span, 500);
+                    span.end();
+                  }
+                  throw err;
+                },
+              )
+              .then(...argumentsList);
+          },
+        );
       },
     },
   );
@@ -480,33 +485,29 @@ function instrumentPostgRESTQueryBuilder(PostgRESTQueryBuilder: new () => PostgR
   }
 }
 
-const instrumentSupabase = (supabaseClientInstance: unknown): void => {
-  if (!supabaseClientInstance) {
+export const instrumentSupabase = (options: { supabaseClient: unknown }): void => {
+  if (!options?.supabaseClient) {
     DEBUG_BUILD && logger.warn('Supabase integration was not installed because no Supabase client was provided.');
     return;
   }
   const SupabaseClientConstructor =
-    supabaseClientInstance.constructor === Function ? supabaseClientInstance : supabaseClientInstance.constructor;
+    options.supabaseClient.constructor === Function ? options.supabaseClient : options.supabaseClient.constructor;
 
   instrumentSupabaseClientConstructor(SupabaseClientConstructor);
-  instrumentSupabaseAuthClient(supabaseClientInstance as SupabaseClientInstance);
+  instrumentSupabaseAuthClient(options.supabaseClient as SupabaseClientInstance);
 };
 
 const INTEGRATION_NAME = 'Supabase';
 
-const _supabaseIntegration = (supabaseClient => {
-  // Instrumenting here instead of `setup` or `setupOnce` because we may need to instrument multiple clients.
-  // So we don't want the instrumentation skipped because the integration is already installed.
-  instrumentSupabase(supabaseClient);
-
+const _supabaseIntegration = ((options: { supabaseClient: unknown }) => {
   return {
+    setupOnce() {
+      instrumentSupabase(options);
+    },
     name: INTEGRATION_NAME,
   };
 }) satisfies IntegrationFn;
 
-export const supabaseIntegration = defineIntegration((supabaseClient: unknown) => {
-  return {
-    ..._supabaseIntegration(supabaseClient),
-    name: INTEGRATION_NAME,
-  };
+export const supabaseIntegration = defineIntegration((options: { supabaseClient: unknown }) => {
+  return _supabaseIntegration(options);
 }) satisfies IntegrationFn;

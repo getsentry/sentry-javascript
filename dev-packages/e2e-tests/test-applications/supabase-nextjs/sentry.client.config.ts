@@ -5,14 +5,14 @@
 import * as Sentry from "@sentry/nextjs";
 
 Sentry.init({
-  dsn: 'https://public@dsn.ingest.sentry.io/1337',
+  dsn: 'https://f183f54e7d7d4f018dddaaade1f8481a@o447951.ingest.us.sentry.io/5659328',
   environment: 'qa', // dynamic sampling bias to keep transactions
 
   // Add optional integrations for additional features
   integrations: [
     Sentry.replayIntegration(),
   ],
-  tunnel: 'http://localhost:3031/', // proxy server
+  // tunnel: 'http://localhost:3031/', // proxy server
 
   // Define how likely traces are sampled. Adjust this value in production, or use tracesSampler for greater control.
   tracesSampleRate: 1,
