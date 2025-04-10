@@ -31,9 +31,9 @@ export { tediousIntegration } from './integrations/tracing/tedious';
 export { genericPoolIntegration } from './integrations/tracing/genericPool';
 export { dataloaderIntegration } from './integrations/tracing/dataloader';
 export { amqplibIntegration } from './integrations/tracing/amqplib';
+export { vercelAIIntegration } from './integrations/tracing/vercelai';
 export { childProcessIntegration } from './integrations/childProcess';
 export { fetchBreadcrumbsIntegration } from './integrations/fetch-breadcrumbs';
-export { vercelAIIntegration } from './integrations/tracing/vercelai';
 
 export { SentryContextManager } from './otel/contextManager';
 export { generateInstrumentOnce } from './otel/instrument';
