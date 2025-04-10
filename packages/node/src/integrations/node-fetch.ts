@@ -7,7 +7,7 @@ import {
   defineIntegration,
   getClient,
   getTraceData,
-  hasTracingEnabled,
+  hasSpansEnabled
 } from '@sentry/core';
 import { shouldPropagateTraceForUrl } from '@sentry/opentelemetry';
 
@@ -54,7 +54,7 @@ const _nativeNodeFetchIntegration = ((options: NodeFetchOptions = {}) => {
 
           // If tracing is disabled, we still want to propagate traces
           // So we do that manually here, matching what the instrumentation does otherwise
-          if (!hasTracingEnabled()) {
+          if (!hasSpansEnabled()) {
             const tracePropagationTargets = getClient()?.getOptions().tracePropagationTargets;
             const addedHeaders = shouldPropagateTraceForUrl(url, tracePropagationTargets, propagationDecisionMap)
               ? getTraceData()

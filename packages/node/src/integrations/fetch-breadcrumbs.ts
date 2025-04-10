@@ -50,7 +50,6 @@ const _fetchBreadcrumbsIntegration = ((options: NodeFetchOptions = {}) => {
 
         diagnosticsChannel
           .channel('undici:request:headers')
-          // eslint-disable-next-line deprecation/deprecation
           .subscribe(onRequestHeaders as diagnosticsChannel.ChannelListener);
       });
     },

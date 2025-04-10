@@ -70,6 +70,7 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
     nodeContextIntegration(),
     childProcessIntegration(),
     fetchBreadcrumbsIntegration(),
+    processSessionIntegration(),
     ...getCjsOnlyIntegrations(),
   ];
 }
