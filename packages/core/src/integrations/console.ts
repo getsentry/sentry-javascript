@@ -23,7 +23,7 @@ type GlobalObjectWithUtil = typeof GLOBAL_OBJ & {
 const INTEGRATION_NAME = 'Console';
 
 /**
- * Captures calls to the `console` API as logs in Sentry.
+ * Captures calls to the `console` API as breadcrumbs in Sentry.
  *
  * By default the integration instruments `console.debug`, `console.info`, `console.warn`, `console.error`,
  * `console.log`, `console.trace`, and `console.assert`. You can use the `levels` option to customize which
