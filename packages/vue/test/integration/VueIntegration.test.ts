@@ -54,7 +54,6 @@ describe('Sentry.VueIntegration', () => {
     Sentry.init({
       dsn: PUBLIC_DSN,
       defaultIntegrations: false,
-      autoSessionTracking: false,
     });
 
     const el = document.createElement('div');
@@ -78,7 +77,6 @@ describe('Sentry.VueIntegration', () => {
     Sentry.init({
       dsn: PUBLIC_DSN,
       defaultIntegrations: false,
-      autoSessionTracking: false,
     });
 
     const el = document.createElement('div');

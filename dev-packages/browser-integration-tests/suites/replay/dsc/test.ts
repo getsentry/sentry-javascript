@@ -62,6 +62,7 @@ sentryTest(
       public_key: 'public',
       replay_id: replay.session?.id,
       sampled: 'true',
+      sample_rand: expect.any(String),
     });
   },
 );
@@ -108,6 +109,7 @@ sentryTest(
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       public_key: 'public',
       sampled: 'true',
+      sample_rand: expect.any(String),
     });
   },
 );
@@ -161,6 +163,7 @@ sentryTest(
       public_key: 'public',
       replay_id: replay.session?.id,
       sampled: 'true',
+      sample_rand: expect.any(String),
     });
   },
 );
@@ -202,6 +205,7 @@ sentryTest(
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       public_key: 'public',
       sampled: 'true',
+      sample_rand: expect.any(String),
     });
   },
 );
@@ -247,6 +251,7 @@ sentryTest('should add replay_id to error DSC while replay is active', async ({ 
       ? {
           sample_rate: '1',
           sampled: 'true',
+          sample_rand: expect.any(String),
         }
       : {}),
   });
@@ -267,6 +272,7 @@ sentryTest('should add replay_id to error DSC while replay is active', async ({ 
       ? {
           sample_rate: '1',
           sampled: 'true',
+          sample_rand: expect.any(String),
         }
       : {}),
   });

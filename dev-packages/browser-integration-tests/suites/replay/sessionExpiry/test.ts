@@ -15,7 +15,7 @@ import {
 const SESSION_TIMEOUT = 2000;
 
 sentryTest('handles an expired session', async ({ browserName, forceFlushReplay, getLocalTestUrl, page }) => {
-  if (shouldSkipReplayTest() || browserName === 'webkit') {
+  if (shouldSkipReplayTest() || browserName !== 'chromium') {
     sentryTest.skip();
   }
 

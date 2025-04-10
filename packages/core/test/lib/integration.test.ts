@@ -1,6 +1,7 @@
 import { getCurrentScope } from '../../src/currentScopes';
 import type { Integration, Options } from '../../src/types-hoist';
 
+import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
 import { addIntegration, getIntegrationsToSetup, installedIntegrations, setupIntegration } from '../../src/integration';
 import { setCurrentClient } from '../../src/sdk';
 import { logger } from '../../src/utils-hoist/logger';
@@ -189,29 +190,6 @@ describe('getIntegrationsToSetup', () => {
     });
   });
 
-  describe('puts `Debug` integration last', () => {
-    // No variations here (default vs user, duplicates, user array vs user function, etc) because by the time we're
-    // dealing with the `Debug` integration, all of the combining and deduping has already been done
-    const noDebug = [new MockIntegration('ChaseSquirrels')];
-    const debugNotLast = [new MockIntegration('Debug'), new MockIntegration('CatchTreats')];
-    const debugAlreadyLast = [new MockIntegration('ChaseSquirrels'), new MockIntegration('Debug')];
-
-    const testCases: TestCase[] = [
-      // each test case is [testName, defaultIntegrations, userIntegrations, expectedResult]
-      ['`Debug` not present', false, noDebug, ['ChaseSquirrels']],
-      ['`Debug` not originally last', false, debugNotLast, ['CatchTreats', 'Debug']],
-      ['`Debug` already last', false, debugAlreadyLast, ['ChaseSquirrels', 'Debug']],
-    ];
-
-    test.each(testCases)('%s', (_, defaultIntegrations, userIntegrations, expected) => {
-      const integrations = getIntegrationsToSetup({
-        defaultIntegrations,
-        integrations: userIntegrations,
-      });
-      expect(integrations.map(i => i.name)).toEqual(expected);
-    });
-  });
-
   it('works with empty array', () => {
     const integrations = getIntegrationsToSetup({
       integrations: [],
@@ -305,29 +283,6 @@ describe('getIntegrationsToSetup', () => {
     expect((integrations[0] as any).order).toEqual('firstUser');
     expect((integrations[1] as any).order).toEqual('secondUser');
   });
-
-  it('always moves Debug integration to the end of the list', () => {
-    let integrations = getIntegrationsToSetup({
-      defaultIntegrations: [new MockIntegration('Debug'), new MockIntegration('foo')],
-      integrations: [new MockIntegration('bar')],
-    });
-
-    expect(integrations.map(i => i.name)).toEqual(['foo', 'bar', 'Debug']);
-
-    integrations = getIntegrationsToSetup({
-      defaultIntegrations: [new MockIntegration('foo')],
-      integrations: [new MockIntegration('Debug'), new MockIntegration('bar')],
-    });
-
-    expect(integrations.map(i => i.name)).toEqual(['foo', 'bar', 'Debug']);
-
-    integrations = getIntegrationsToSetup({
-      defaultIntegrations: [new MockIntegration('Debug')],
-      integrations: [new MockIntegration('foo')],
-    });
-
-    expect(integrations.map(i => i.name)).toEqual(['foo', 'Debug']);
-  });
 });
 
 describe('setupIntegration', () => {
@@ -339,7 +294,7 @@ describe('setupIntegration', () => {
   it('works with a minimal integration', () => {
     class CustomIntegration implements Integration {
       name = 'test';
-      setupOnce = jest.fn();
+      setupOnce = vi.fn();
     }
 
     const client = getTestClient();
@@ -355,7 +310,7 @@ describe('setupIntegration', () => {
   it('only calls setupOnce a single time', () => {
     class CustomIntegration implements Integration {
       name = 'test';
-      setupOnce = jest.fn();
+      setupOnce = vi.fn();
     }
 
     const client1 = getTestClient();
@@ -382,8 +337,8 @@ describe('setupIntegration', () => {
   it('calls setup for each client', () => {
     class CustomIntegration implements Integration {
       name = 'test';
-      setupOnce = jest.fn();
-      setup = jest.fn();
+      setupOnce = vi.fn();
+      setup = vi.fn();
     }
 
     const client1 = getTestClient();
@@ -420,8 +375,8 @@ describe('setupIntegration', () => {
   it('binds preprocessEvent for each client', () => {
     class CustomIntegration implements Integration {
       name = 'test';
-      setupOnce = jest.fn();
-      preprocessEvent = jest.fn();
+      setupOnce = vi.fn();
+      preprocessEvent = vi.fn();
     }
 
     const client1 = getTestClient();
@@ -472,8 +427,8 @@ describe('setupIntegration', () => {
   it('allows to mutate events in preprocessEvent', async () => {
     class CustomIntegration implements Integration {
       name = 'test';
-      setupOnce = jest.fn();
-      preprocessEvent = jest.fn(event => {
+      setupOnce = vi.fn();
+      preprocessEvent = vi.fn(event => {
         event.event_id = 'mutated';
       });
     }
@@ -485,7 +440,7 @@ describe('setupIntegration', () => {
 
     setupIntegration(client, integration, integrationIndex);
 
-    const sendEvent = jest.fn();
+    const sendEvent = vi.fn();
     client.sendEvent = sendEvent;
 
     client.captureEvent({ event_id: '1a' });
@@ -500,8 +455,8 @@ describe('setupIntegration', () => {
   it('binds processEvent for each client', () => {
     class CustomIntegration implements Integration {
       name = 'test';
-      setupOnce = jest.fn();
-      processEvent = jest.fn(event => {
+      setupOnce = vi.fn();
+      processEvent = vi.fn(event => {
         return event;
       });
     }
@@ -554,8 +509,8 @@ describe('setupIntegration', () => {
   it('allows to mutate events in processEvent', async () => {
     class CustomIntegration implements Integration {
       name = 'test';
-      setupOnce = jest.fn();
-      processEvent = jest.fn(_event => {
+      setupOnce = vi.fn();
+      processEvent = vi.fn(_event => {
         return { event_id: 'mutated' };
       });
     }
@@ -567,7 +522,7 @@ describe('setupIntegration', () => {
 
     setupIntegration(client, integration, integrationIndex);
 
-    const sendEvent = jest.fn();
+    const sendEvent = vi.fn();
     client.sendEvent = sendEvent;
 
     client.captureEvent({ event_id: '1a' });
@@ -582,8 +537,8 @@ describe('setupIntegration', () => {
   it('allows to drop events in processEvent', async () => {
     class CustomIntegration implements Integration {
       name = 'test';
-      setupOnce = jest.fn();
-      processEvent = jest.fn(_event => {
+      setupOnce = vi.fn();
+      processEvent = vi.fn(_event => {
         return null;
       });
     }
@@ -595,7 +550,7 @@ describe('setupIntegration', () => {
 
     setupIntegration(client, integration, integrationIndex);
 
-    const sendEvent = jest.fn();
+    const sendEvent = vi.fn();
     client.sendEvent = sendEvent;
 
     client.captureEvent({ event_id: '1a' });
@@ -612,15 +567,15 @@ describe('addIntegration', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('works with a client setup', () => {
-    const warnings = jest.spyOn(logger, 'warn');
+    const warnings = vi.spyOn(logger, 'warn');
 
     class CustomIntegration implements Integration {
       name = 'test';
-      setupOnce = jest.fn();
+      setupOnce = vi.fn();
     }
 
     const client = getTestClient();
@@ -634,10 +589,10 @@ describe('addIntegration', () => {
   });
 
   it('works without a client setup', () => {
-    const warnings = jest.spyOn(logger, 'warn');
+    const warnings = vi.spyOn(logger, 'warn');
     class CustomIntegration implements Integration {
       name = 'test';
-      setupOnce = jest.fn();
+      setupOnce = vi.fn();
     }
 
     getCurrentScope().setClient(undefined);
@@ -651,9 +606,9 @@ describe('addIntegration', () => {
   });
 
   it('triggers all hooks', () => {
-    const setup = jest.fn();
-    const setupOnce = jest.fn();
-    const setupAfterAll = jest.fn();
+    const setup = vi.fn();
+    const setupOnce = vi.fn();
+    const setupAfterAll = vi.fn();
 
     class CustomIntegration implements Integration {
       name = 'test';
@@ -675,13 +630,13 @@ describe('addIntegration', () => {
   });
 
   it('does not trigger hooks if already installed', () => {
-    const logs = jest.spyOn(logger, 'log');
+    const logs = vi.spyOn(logger, 'log');
 
     class CustomIntegration implements Integration {
       name = 'test';
-      setupOnce = jest.fn();
-      setup = jest.fn();
-      afterAllSetup = jest.fn();
+      setupOnce = vi.fn();
+      setup = vi.fn();
+      afterAllSetup = vi.fn();
     }
 
     const client = getTestClient();

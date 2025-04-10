@@ -4,10 +4,12 @@ import type {
   Envelope,
   Event,
   SerializedCheckIn,
+  SerializedOtelLog,
   SerializedSession,
   SessionAggregates,
   TransactionEvent,
 } from '@sentry/core';
+import { expect } from 'vitest';
 
 /**
  * Asserts against a Sentry Event ignoring non-deterministic properties
@@ -60,6 +62,12 @@ export function assertSentryCheckIn(actual: SerializedCheckIn, expected: Partial
 }
 
 export function assertSentryClientReport(actual: ClientReport, expected: Partial<ClientReport>): void {
+  expect(actual).toMatchObject({
+    ...expected,
+  });
+}
+
+export function assertSentryOtelLog(actual: SerializedOtelLog, expected: Partial<SerializedOtelLog>): void {
   expect(actual).toMatchObject({
     ...expected,
   });

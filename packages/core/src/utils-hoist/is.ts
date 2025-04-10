@@ -155,7 +155,7 @@ export function isRegExp(wat: unknown): wat is RegExp {
  */
 export function isThenable(wat: any): wat is PromiseLike<any> {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  return Boolean(wat && wat.then && typeof wat.then === 'function');
+  return Boolean(wat?.then && typeof wat.then === 'function');
 }
 
 /**
@@ -200,4 +200,13 @@ interface VueViewModel {
 export function isVueViewModel(wat: unknown): boolean {
   // Not using Object.prototype.toString because in Vue 3 it would read the instance's Symbol(Symbol.toStringTag) property.
   return !!(typeof wat === 'object' && wat !== null && ((wat as VueViewModel).__isVue || (wat as VueViewModel)._isVue));
+}
+
+/**
+ * Checks whether the given parameter is a Standard Web API Request instance.
+ *
+ * Returns false if Request is not available in the current runtime.
+ */
+export function isRequest(request: unknown): request is Request {
+  return typeof Request !== 'undefined' && isInstanceOf(request, Request);
 }

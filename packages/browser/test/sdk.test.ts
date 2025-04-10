@@ -4,16 +4,16 @@
 
 /* eslint-disable @typescript-eslint/unbound-method */
 import type { Mock } from 'vitest';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, afterAll, test } from 'vitest';
 
 import * as SentryCore from '@sentry/core';
-import { Scope, createTransport } from '@sentry/core';
+import { createTransport } from '@sentry/core';
 import { resolvedSyncPromise } from '@sentry/core';
-import type { Client, Integration } from '@sentry/core';
+import type { Integration } from '@sentry/core';
 
 import type { BrowserOptions } from '../src';
 import { WINDOW } from '../src';
-import { init } from '../src/sdk';
+import { applyDefaultOptions, getDefaultIntegrations, init } from '../src/sdk';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 
@@ -33,30 +33,6 @@ export class MockIntegration implements Integration {
     this.name = name;
   }
 }
-
-vi.mock('@sentry/core', async requireActual => {
-  return {
-    ...((await requireActual()) as any),
-    getCurrentHub(): {
-      bindClient(client: Client): boolean;
-      getClient(): boolean;
-      getScope(): Scope;
-    } {
-      return {
-        getClient(): boolean {
-          return false;
-        },
-        getScope(): Scope {
-          return new Scope();
-        },
-        bindClient(client: Client): boolean {
-          client.init!();
-          return true;
-        },
-      };
-    },
-  };
-});
 
 describe('init', () => {
   beforeEach(() => {
@@ -89,7 +65,7 @@ describe('init', () => {
     expect(initAndBindSpy).toHaveBeenCalledTimes(1);
 
     const optionsPassed = initAndBindSpy.mock.calls[0]?.[1];
-    expect(optionsPassed?.integrations?.length).toBeGreaterThan(0);
+    expect(optionsPassed?.integrations.length).toBeGreaterThan(0);
   });
 
   test("doesn't install default integrations if told not to", () => {
@@ -154,8 +130,6 @@ describe('init', () => {
       new MockIntegration('MockIntegration 0.2'),
     ];
 
-    const originalLocation = WINDOW.location || {};
-
     const options = getDefaultBrowserOptions({ dsn: PUBLIC_DSN, defaultIntegrations: DEFAULT_INTEGRATIONS });
 
     afterEach(() => {
@@ -204,12 +178,9 @@ describe('init', () => {
       extensionProtocol => {
         const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-        // @ts-expect-error - this is a hack to simulate a dedicated page in a browser extension
-        delete WINDOW.location;
-        // @ts-expect-error - this is a hack to simulate a dedicated page in a browser extension
-        WINDOW.location = {
-          href: `${extensionProtocol}://mock-extension-id/dedicated-page.html`,
-        };
+        const locationHrefSpy = vi
+          .spyOn(SentryCore, 'getLocationHref')
+          .mockImplementation(() => `${extensionProtocol}://mock-extension-id/dedicated-page.html`);
 
         Object.defineProperty(WINDOW, 'browser', { value: { runtime: { id: 'mock-extension-id' } }, writable: true });
 
@@ -218,7 +189,7 @@ describe('init', () => {
         expect(consoleErrorSpy).toBeCalledTimes(0);
 
         consoleErrorSpy.mockRestore();
-        WINDOW.location = originalLocation;
+        locationHrefSpy.mockRestore();
       },
     );
 
@@ -275,5 +246,99 @@ describe('init', () => {
   it('returns a client from init', () => {
     const client = init();
     expect(client).not.toBeUndefined();
+  });
+});
+
+describe('applyDefaultOptions', () => {
+  test('it works with empty options', () => {
+    const options = {};
+    const actual = applyDefaultOptions(options);
+
+    expect(actual).toEqual({
+      defaultIntegrations: expect.any(Array),
+      release: undefined,
+      sendClientReports: true,
+    });
+
+    expect((actual.defaultIntegrations as { name: string }[]).map(i => i.name)).toEqual(
+      getDefaultIntegrations(options).map(i => i.name),
+    );
+  });
+
+  test('it works with options', () => {
+    const options = {
+      tracesSampleRate: 0.5,
+      release: '1.0.0',
+    };
+    const actual = applyDefaultOptions(options);
+
+    expect(actual).toEqual({
+      defaultIntegrations: expect.any(Array),
+      release: '1.0.0',
+      sendClientReports: true,
+      tracesSampleRate: 0.5,
+    });
+
+    expect((actual.defaultIntegrations as { name: string }[]).map(i => i.name)).toEqual(
+      getDefaultIntegrations(options).map(i => i.name),
+    );
+  });
+
+  test('it works with defaultIntegrations=false', () => {
+    const options = {
+      defaultIntegrations: false,
+    } as const;
+    const actual = applyDefaultOptions(options);
+
+    expect(actual.defaultIntegrations).toStrictEqual(false);
+  });
+
+  test('it works with defaultIntegrations=[]', () => {
+    const options = {
+      defaultIntegrations: [],
+    };
+    const actual = applyDefaultOptions(options);
+
+    expect(actual.defaultIntegrations).toEqual([]);
+  });
+
+  test('it works with tracesSampleRate=undefined', () => {
+    const options = {
+      tracesSampleRate: undefined,
+    } as const;
+    const actual = applyDefaultOptions(options);
+
+    // Not defined, not even undefined
+    expect('tracesSampleRate' in actual).toBe(false);
+  });
+
+  test('it works with tracesSampleRate=null', () => {
+    const options = {
+      tracesSampleRate: null,
+    } as any;
+    const actual = applyDefaultOptions(options);
+
+    expect(actual.tracesSampleRate).toStrictEqual(null);
+  });
+
+  test('it works with tracesSampleRate=0', () => {
+    const options = {
+      tracesSampleRate: 0,
+    } as const;
+    const actual = applyDefaultOptions(options);
+
+    expect(actual.tracesSampleRate).toStrictEqual(0);
+  });
+
+  test('it does not deep-drop undefined keys', () => {
+    const options = {
+      obj: {
+        prop: undefined,
+      },
+    } as any;
+    const actual = applyDefaultOptions(options) as any;
+
+    expect('prop' in actual.obj).toBe(true);
+    expect(actual.obj.prop).toStrictEqual(undefined);
   });
 });

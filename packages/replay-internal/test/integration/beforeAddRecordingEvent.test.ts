@@ -99,7 +99,7 @@ describe('Integration | beforeAddRecordingEvent', () => {
   });
 
   afterAll(() => {
-    integration && integration.stop();
+    integration?.stop();
   });
 
   it('changes click breadcrumbs message', async () => {

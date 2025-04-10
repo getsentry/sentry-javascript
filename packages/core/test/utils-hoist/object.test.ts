@@ -1,9 +1,10 @@
 /**
- * @jest-environment jsdom
+ * @vitest-environment jsdom
  */
 
 import type { WrappedFunction } from '../../src/types-hoist';
 
+import { describe, expect, it, test, vi } from 'vitest';
 import {
   addNonEnumerableProperty,
   dropUndefinedKeys,
@@ -11,7 +12,6 @@ import {
   fill,
   markFunctionWrapped,
   objectify,
-  urlEncode,
 } from '../../src/utils-hoist/object';
 import { testOnlyIfNodeVersionAtLeast } from './testutils';
 
@@ -23,7 +23,7 @@ describe('fill()', () => {
       },
     };
     const name = 'foo';
-    const replacement = jest.fn().mockImplementationOnce(cb => cb);
+    const replacement = vi.fn().mockImplementationOnce(cb => cb);
 
     fill(source, name, replacement);
 
@@ -44,7 +44,7 @@ describe('fill()', () => {
 
     expect(source.prop()).toEqual(41);
 
-    const replacement = jest.fn().mockImplementation(() => {
+    const replacement = vi.fn().mockImplementation(() => {
       return () => 42;
     });
     fill(source, 'prop', replacement);
@@ -54,12 +54,25 @@ describe('fill()', () => {
     expect(source.prop()).toEqual(41);
   });
 
+  test.each([42, null, undefined, {}])("does't throw if the property is not a function but %s", (propValue: any) => {
+    const source = {
+      foo: propValue,
+    };
+    const name = 'foo';
+    const replacement = vi.fn().mockImplementationOnce(cb => cb);
+
+    fill(source, name, replacement);
+
+    expect(source.foo).toBe(propValue);
+    expect(replacement).not.toBeCalled();
+  });
+
   test('can do anything inside replacement function', () => {
     const source = {
       foo: (): number => 42,
     };
     const name = 'foo';
-    const replacement = jest.fn().mockImplementationOnce(cb => {
+    const replacement = vi.fn().mockImplementationOnce(cb => {
       expect(cb).toBe(source.foo);
       return () => 1337;
     });
@@ -76,12 +89,12 @@ describe('fill()', () => {
       foo: (): number => 42,
     };
     const name = 'foo';
-    const replacement = jest.fn().mockImplementationOnce(cb => {
+    const replacement = vi.fn().mockImplementationOnce(cb => {
       expect(cb).toBe(source.foo);
       return () => 1337;
     });
 
-    const replacement2 = jest.fn().mockImplementationOnce(cb => {
+    const replacement2 = vi.fn().mockImplementationOnce(cb => {
       expect(cb).toBe(source.foo);
       return () => 1338;
     });
@@ -128,23 +141,6 @@ describe('fill()', () => {
   });
 });
 
-describe('urlEncode()', () => {
-  test('returns empty string for empty object input', () => {
-    // eslint-disable-next-line deprecation/deprecation
-    expect(urlEncode({})).toEqual('');
-  });
-
-  test('returns single key/value pair joined with = sign', () => {
-    // eslint-disable-next-line deprecation/deprecation
-    expect(urlEncode({ foo: 'bar' })).toEqual('foo=bar');
-  });
-
-  test('returns multiple key/value pairs joined together with & sign', () => {
-    // eslint-disable-next-line deprecation/deprecation
-    expect(urlEncode({ foo: 'bar', pickle: 'rick', morty: '4 2' })).toEqual('foo=bar&pickle=rick&morty=4%202');
-  });
-});
-
 describe('extractExceptionKeysForMessage()', () => {
   test('no keys', () => {
     expect(extractExceptionKeysForMessage({}, 10)).toEqual('[object has no keys]');
@@ -173,6 +169,7 @@ describe('extractExceptionKeysForMessage()', () => {
   });
 });
 
+/* eslint-disable deprecation/deprecation */
 describe('dropUndefinedKeys()', () => {
   test('simple case', () => {
     expect(
@@ -318,6 +315,7 @@ describe('dropUndefinedKeys()', () => {
     expect(droppedChicken.lays[0] === droppedChicken).toBe(true);
   });
 });
+/* eslint-enable deprecation/deprecation */
 
 describe('objectify()', () => {
   describe('stringifies nullish values', () => {
@@ -333,17 +331,10 @@ describe('objectify()', () => {
   });
 
   describe('wraps other primitives with their respective object wrapper classes', () => {
-    // TODO: There's currently a bug in Jest - if you give it the `Boolean` class, it runs `typeof received ===
-    // 'boolean'` but not `received instanceof Boolean` (the way it correctly does for other primitive wrappers, like
-    // `Number` and `String). (See https://github.com/facebook/jest/pull/11976.) Once that is fixed and we upgrade jest,
-    // we can comment the test below back in. (The tests for symbols and bigints are working only because our current
-    // version of jest is sufficiently old that they're not even considered in the relevant check and just fall to the
-    // default `instanceof` check jest uses for all unknown classes.)
-
     it.each([
       ['number', Number, 1121],
       ['string', String, 'Dogs are great!'],
-      // ["boolean", Boolean, true],
+      ['boolean', Boolean, true],
       ['symbol', Symbol, Symbol('Maisey')],
     ])('%s', (_caseName, wrapperClass, primitive) => {
       const objectifiedPrimitive = objectify(primitive);
@@ -392,7 +383,7 @@ describe('addNonEnumerableProperty', () => {
   });
 
   it('works with a function', () => {
-    const func = jest.fn();
+    const func = vi.fn();
     addNonEnumerableProperty(func as any, 'foo', 'bar');
     expect((func as any).foo).toBe('bar');
     func();
@@ -427,8 +418,8 @@ describe('addNonEnumerableProperty', () => {
 
 describe('markFunctionWrapped', () => {
   it('works with a function', () => {
-    const originalFunc = jest.fn();
-    const wrappedFunc = jest.fn();
+    const originalFunc = vi.fn();
+    const wrappedFunc = vi.fn();
     markFunctionWrapped(wrappedFunc, originalFunc);
 
     expect((wrappedFunc as WrappedFunction).__sentry_original__).toBe(originalFunc);
@@ -440,11 +431,12 @@ describe('markFunctionWrapped', () => {
   });
 
   it('works with a frozen original function', () => {
-    const originalFunc = Object.freeze(jest.fn());
-    const wrappedFunc = jest.fn();
+    const originalFunc = Object.freeze(vi.fn());
+    const wrappedFunc = vi.fn();
     markFunctionWrapped(wrappedFunc, originalFunc);
 
-    expect((wrappedFunc as WrappedFunction).__sentry_original__).toBe(originalFunc);
+    // cannot wrap because it is frozen, but we do not error!
+    expect((wrappedFunc as WrappedFunction).__sentry_original__).toBe(undefined);
 
     wrappedFunc();
 
@@ -453,8 +445,8 @@ describe('markFunctionWrapped', () => {
   });
 
   it('works with a frozen wrapped function', () => {
-    const originalFunc = Object.freeze(jest.fn());
-    const wrappedFunc = Object.freeze(jest.fn());
+    const originalFunc = Object.freeze(vi.fn());
+    const wrappedFunc = Object.freeze(vi.fn());
     markFunctionWrapped(wrappedFunc, originalFunc);
 
     // Skips adding the property, but also doesn't error

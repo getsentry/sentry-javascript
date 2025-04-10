@@ -1,4 +1,5 @@
 import type { BrowserOptions } from '@sentry/react';
+import { describe, vi, beforeEach, it, expect } from 'vitest';
 
 import { applyTunnelRouteOption } from '../../src/client/tunnelRoute';
 
@@ -35,7 +36,7 @@ describe('applyTunnelRouteOption()', () => {
 
   it("Doesn't apply `tunnelRoute` when DSN is invalid", () => {
     // Avoid polluting the test output with error messages
-    const mockConsoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const mockConsoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     globalWithInjectedValues._sentryRewritesTunnelPath = '/my-error-monitoring-route';
     const options: any = {

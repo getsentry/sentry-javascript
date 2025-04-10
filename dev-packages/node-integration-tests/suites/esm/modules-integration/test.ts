@@ -1,12 +1,12 @@
-import { conditionalTest } from '../../../utils';
+import { afterAll, describe, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
 afterAll(() => {
   cleanupChildProcesses();
 });
 
-conditionalTest({ min: 18 })('modulesIntegration', () => {
-  test('does not crash ESM setups', done => {
-    createRunner(__dirname, 'app.mjs').ensureNoErrorOutput().start(done);
+describe('modulesIntegration', () => {
+  test('does not crash ESM setups', async () => {
+    await createRunner(__dirname, 'app.mjs').ensureNoErrorOutput().start().completed();
   });
 });

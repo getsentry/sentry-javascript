@@ -1,5 +1,3 @@
-/* eslint-disable @sentry-internal/sdk/no-optional-chaining */
-
 import * as fs from 'fs';
 import * as path from 'path';
 import * as url from 'url';
@@ -53,6 +51,10 @@ export function getHooksFileName(svelteConfig: Config, hookType: 'client' | 'ser
 export async function getAdapterOutputDir(svelteConfig: Config, adapter: SupportedSvelteKitAdapters): Promise<string> {
   if (adapter === 'node') {
     return getNodeAdapterOutputDir(svelteConfig);
+  }
+  if (adapter === 'cloudflare') {
+    // Cloudflare outputs to outDir\cloudflare as the output dir
+    return path.join(svelteConfig.kit?.outDir || '.svelte-kit', 'cloudflare');
   }
 
   // Auto and Vercel adapters simply use config.kit.outDir

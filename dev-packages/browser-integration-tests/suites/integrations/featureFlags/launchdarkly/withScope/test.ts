@@ -22,8 +22,8 @@ sentryTest('Flag evaluations in forked scopes are stored separately.', async ({ 
   const url = await getLocalTestUrl({ testDir: __dirname, skipDsnRouteHandler: true });
   await page.goto(url);
 
-  const forkedReqPromise = waitForErrorRequest(page, event => !!event.tags && event.tags.isForked === true);
-  const mainReqPromise = waitForErrorRequest(page, event => !!event.tags && event.tags.isForked === false);
+  const forkedReqPromise = waitForErrorRequest(page, event => !!event.tags?.isForked === true);
+  const mainReqPromise = waitForErrorRequest(page, event => !!event.tags?.isForked === false);
 
   await page.evaluate(() => {
     const Sentry = (window as any).Sentry;

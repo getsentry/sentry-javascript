@@ -87,11 +87,13 @@ async function instrumentRequest(
   isolationScope?: Scope,
 ): Promise<Response> {
   // Make sure we don't accidentally double wrap (e.g. user added middleware and integration auto added it)
-  const locals = ctx.locals as AstroLocalsWithSentry;
-  if (locals && locals.__sentry_wrapped__) {
+  const locals = ctx.locals as AstroLocalsWithSentry | undefined;
+  if (locals?.__sentry_wrapped__) {
     return next();
   }
-  addNonEnumerableProperty(locals, '__sentry_wrapped__', true);
+  if (locals) {
+    addNonEnumerableProperty(locals, '__sentry_wrapped__', true);
+  }
 
   const isDynamicPageRequest = checkIsDynamicPageRequest(ctx);
 
@@ -164,7 +166,7 @@ async function instrumentRequest(
               const client = getClient();
               const contentType = originalResponse.headers.get('content-type');
 
-              const isPageloadRequest = contentType && contentType.startsWith('text/html');
+              const isPageloadRequest = contentType?.startsWith('text/html');
               if (!isPageloadRequest || !client) {
                 return originalResponse;
               }
@@ -182,12 +184,18 @@ async function instrumentRequest(
 
               const newResponseStream = new ReadableStream({
                 start: async controller => {
-                  for await (const chunk of originalBody) {
-                    const html = typeof chunk === 'string' ? chunk : decoder.decode(chunk, { stream: true });
-                    const modifiedHtml = addMetaTagToHead(html);
-                    controller.enqueue(new TextEncoder().encode(modifiedHtml));
+                  try {
+                    for await (const chunk of originalBody) {
+                      const html = typeof chunk === 'string' ? chunk : decoder.decode(chunk, { stream: true });
+                      const modifiedHtml = addMetaTagToHead(html);
+                      controller.enqueue(new TextEncoder().encode(modifiedHtml));
+                    }
+                  } catch (e) {
+                    sendErrorToSentry(e);
+                    controller.error(e);
+                  } finally {
+                    controller.close();
                   }
-                  controller.close();
                 },
               });
 

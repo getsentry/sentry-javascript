@@ -1,3 +1,5 @@
+import { beforeEach, describe, expect, it, test, vi } from 'vitest';
+import type { Client } from '../../src';
 import {
   applyScopeDataToEvent,
   getCurrentScope,
@@ -6,9 +8,8 @@ import {
   withIsolationScope,
   withScope,
 } from '../../src';
-import type { Breadcrumb, Client, Event, RequestSessionStatus } from '../../src/types-hoist';
-
 import { Scope } from '../../src/scope';
+import type { Breadcrumb, Event } from '../../src/types-hoist';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 import { clearGlobalScope } from './clear-global-scope';
 
@@ -32,7 +33,7 @@ describe('Scope', () => {
       eventProcessors: [],
       propagationContext: {
         traceId: expect.any(String),
-        spanId: expect.any(String),
+        sampleRand: expect.any(Number),
       },
       sdkProcessingMetadata: {},
     });
@@ -58,7 +59,7 @@ describe('Scope', () => {
       eventProcessors: [],
       propagationContext: {
         traceId: expect.any(String),
-        spanId: expect.any(String),
+        sampleRand: expect.any(Number),
       },
       sdkProcessingMetadata: {},
     });
@@ -92,7 +93,7 @@ describe('Scope', () => {
       eventProcessors: [],
       propagationContext: {
         traceId: expect.any(String),
-        spanId: expect.any(String),
+        sampleRand: expect.any(Number),
       },
       sdkProcessingMetadata: {},
     });
@@ -104,7 +105,7 @@ describe('Scope', () => {
 
       expect(scope.getScopeData().propagationContext).toEqual({
         traceId: expect.any(String),
-        spanId: expect.any(String),
+        sampleRand: expect.any(Number),
         sampled: undefined,
         dsc: undefined,
         parentSpanId: undefined,
@@ -185,6 +186,12 @@ describe('Scope', () => {
       expect(scope['_breadcrumbs']).toHaveLength(111);
     });
 
+    test('addBreadcrumb will truncate the stored messages', () => {
+      const scope = new Scope();
+      scope.addBreadcrumb({ message: 'A'.repeat(10_000) });
+      expect(scope['_breadcrumbs'][0]?.message).toBe(`${'A'.repeat(2048)}...`);
+    });
+
     test('setLevel', () => {
       const scope = new Scope();
       scope.setLevel('fatal');
@@ -232,14 +239,14 @@ describe('Scope', () => {
       const oldPropagationContext = scope.getPropagationContext();
       scope.setPropagationContext({
         traceId: '86f39e84263a4de99c326acab3bfe3bd',
-        spanId: '6e0c63257de34c92',
+        sampleRand: 0.42,
         sampled: true,
       });
       expect(scope.getPropagationContext()).not.toEqual(oldPropagationContext);
       expect(scope.getPropagationContext()).toEqual({
         traceId: '86f39e84263a4de99c326acab3bfe3bd',
-        spanId: '6e0c63257de34c92',
         sampled: true,
+        sampleRand: 0.42,
       });
     });
 
@@ -257,15 +264,6 @@ describe('Scope', () => {
       parentScope.setExtra('a', 1);
       const scope = parentScope.clone();
       expect(parentScope['_extra']).toEqual(scope['_extra']);
-    });
-
-    test('_requestSession clone', () => {
-      const parentScope = new Scope();
-      // eslint-disable-next-line deprecation/deprecation
-      parentScope.setRequestSession({ status: 'errored' });
-      const scope = parentScope.clone();
-      // eslint-disable-next-line deprecation/deprecation
-      expect(parentScope.getRequestSession()).toEqual(scope.getRequestSession());
     });
 
     test('parent changed inheritance', () => {
@@ -286,26 +284,6 @@ describe('Scope', () => {
       expect(scope['_extra']).toEqual({ a: 2 });
     });
 
-    test('child override should set the value of parent _requestSession', () => {
-      // Test that ensures if the status value of `status` of `_requestSession` is changed in a child scope
-      // that it should also change in parent scope because we are copying the reference to the object
-      const parentScope = new Scope();
-      // eslint-disable-next-line deprecation/deprecation
-      parentScope.setRequestSession({ status: 'errored' });
-
-      const scope = parentScope.clone();
-      // eslint-disable-next-line deprecation/deprecation
-      const requestSession = scope.getRequestSession();
-      if (requestSession) {
-        requestSession.status = 'ok';
-      }
-
-      // eslint-disable-next-line deprecation/deprecation
-      expect(parentScope.getRequestSession()).toEqual({ status: 'ok' });
-      // eslint-disable-next-line deprecation/deprecation
-      expect(scope.getRequestSession()).toEqual({ status: 'ok' });
-    });
-
     test('should clone propagation context', () => {
       const parentScope = new Scope();
       const scope = parentScope.clone();
@@ -322,16 +300,13 @@ describe('Scope', () => {
     scope.setUser({ id: '1' });
     scope.setFingerprint(['abcd']);
     scope.addBreadcrumb({ message: 'test' });
-    // eslint-disable-next-line deprecation/deprecation
-    scope.setRequestSession({ status: 'ok' });
     expect(scope['_extra']).toEqual({ a: 2 });
     scope.clear();
     expect(scope['_extra']).toEqual({});
-    expect(scope['_requestSession']).toEqual(undefined);
     expect(scope['_propagationContext']).toEqual({
       traceId: expect.any(String),
-      spanId: expect.any(String),
       sampled: undefined,
+      sampleRand: expect.any(Number),
     });
     expect(scope['_propagationContext']).not.toEqual(oldPropagationContext);
   });
@@ -356,8 +331,6 @@ describe('Scope', () => {
       scope.setUser({ id: '1337' });
       scope.setLevel('info');
       scope.setFingerprint(['foo']);
-      // eslint-disable-next-line deprecation/deprecation
-      scope.setRequestSession({ status: 'ok' });
     });
 
     test('given no data, returns the original scope', () => {
@@ -372,7 +345,7 @@ describe('Scope', () => {
     });
 
     test('given callback function, pass it the scope and returns original or modified scope', () => {
-      const cb = jest
+      const cb = vi
         .fn()
         .mockImplementationOnce(v => v)
         .mockImplementationOnce(v => {
@@ -390,7 +363,7 @@ describe('Scope', () => {
     });
 
     test('given callback function, when it doesnt return instanceof Scope, ignore it and return original scope', () => {
-      const cb = jest.fn().mockImplementationOnce(_v => 'wat');
+      const cb = vi.fn().mockImplementationOnce(_v => 'wat');
       const updatedScope = scope.update(cb);
       expect(cb).toHaveBeenCalledWith(scope);
       expect(updatedScope).toEqual(scope);
@@ -405,7 +378,6 @@ describe('Scope', () => {
       localScope.setUser({ id: '42' });
       localScope.setLevel('warning');
       localScope.setFingerprint(['bar']);
-      (localScope as any)._requestSession = { status: 'ok' };
 
       const updatedScope = scope.update(localScope) as any;
 
@@ -427,7 +399,6 @@ describe('Scope', () => {
       expect(updatedScope._user).toEqual({ id: '42' });
       expect(updatedScope._level).toEqual('warning');
       expect(updatedScope._fingerprint).toEqual(['bar']);
-      expect(updatedScope._requestSession.status).toEqual('ok');
       // @ts-expect-error accessing private property for test
       expect(updatedScope._propagationContext).toEqual(localScope._propagationContext);
     });
@@ -450,7 +421,6 @@ describe('Scope', () => {
       expect(updatedScope._user).toEqual({ id: '1337' });
       expect(updatedScope._level).toEqual('info');
       expect(updatedScope._fingerprint).toEqual(['foo']);
-      expect(updatedScope._requestSession.status).toEqual('ok');
     });
 
     test('given a plain object, it should merge two together, with the passed object having priority', () => {
@@ -461,12 +431,10 @@ describe('Scope', () => {
         level: 'warning' as const,
         tags: { bar: '3', baz: '4' },
         user: { id: '42' },
-        // eslint-disable-next-line deprecation/deprecation
-        requestSession: { status: 'errored' as RequestSessionStatus },
         propagationContext: {
           traceId: '8949daf83f4a4a70bee4c1eb9ab242ed',
-          spanId: 'a024ad8fea82680e',
           sampled: true,
+          sampleRand: 0.42,
         },
       };
 
@@ -490,11 +458,10 @@ describe('Scope', () => {
       expect(updatedScope._user).toEqual({ id: '42' });
       expect(updatedScope._level).toEqual('warning');
       expect(updatedScope._fingerprint).toEqual(['bar']);
-      expect(updatedScope._requestSession).toEqual({ status: 'errored' });
       expect(updatedScope._propagationContext).toEqual({
         traceId: '8949daf83f4a4a70bee4c1eb9ab242ed',
-        spanId: 'a024ad8fea82680e',
         sampled: true,
+        sampleRand: 0.42,
       });
     });
   });
@@ -542,7 +509,7 @@ describe('Scope', () => {
         tags: { tag1: 'aa', tag2: 'aa' },
         extra: { extra1: 'aa', extra2: 'aa' },
         contexts: { os: { name: 'os1' }, culture: { display_name: 'name1' } },
-        propagationContext: { spanId: '1', traceId: '1' },
+        propagationContext: { traceId: '1', sampleRand: 0.42 },
         fingerprint: ['aa'],
       });
       scope.addBreadcrumb(breadcrumb1);
@@ -597,7 +564,7 @@ describe('Scope', () => {
 
   describe('.captureException()', () => {
     it('should call captureException() on client with newly generated event ID if not explicitly passed in', () => {
-      const fakeCaptureException = jest.fn(() => 'mock-event-id');
+      const fakeCaptureException = vi.fn(() => 'mock-event-id');
       const fakeClient = {
         captureException: fakeCaptureException,
       } as unknown as Client;
@@ -626,7 +593,7 @@ describe('Scope', () => {
     });
 
     it('should pass exception to captureException() on client', () => {
-      const fakeCaptureException = jest.fn(() => 'mock-event-id');
+      const fakeCaptureException = vi.fn(() => 'mock-event-id');
       const fakeClient = {
         captureException: fakeCaptureException,
       } as unknown as Client;
@@ -641,7 +608,7 @@ describe('Scope', () => {
     });
 
     it('should call captureException() on client with a synthetic exception', () => {
-      const fakeCaptureException = jest.fn(() => 'mock-event-id');
+      const fakeCaptureException = vi.fn(() => 'mock-event-id');
       const fakeClient = {
         captureException: fakeCaptureException,
       } as unknown as Client;
@@ -658,7 +625,7 @@ describe('Scope', () => {
     });
 
     it('should pass the original exception to captureException() on client', () => {
-      const fakeCaptureException = jest.fn(() => 'mock-event-id');
+      const fakeCaptureException = vi.fn(() => 'mock-event-id');
       const fakeClient = {
         captureException: fakeCaptureException,
       } as unknown as Client;
@@ -676,7 +643,7 @@ describe('Scope', () => {
     });
 
     it('should forward hint to captureException() on client', () => {
-      const fakeCaptureException = jest.fn(() => 'mock-event-id');
+      const fakeCaptureException = vi.fn(() => 'mock-event-id');
       const fakeClient = {
         captureException: fakeCaptureException,
       } as unknown as Client;
@@ -695,7 +662,7 @@ describe('Scope', () => {
 
   describe('.captureMessage()', () => {
     it('should call captureMessage() on client with newly generated event ID if not explicitly passed in', () => {
-      const fakeCaptureMessage = jest.fn(() => 'mock-event-id');
+      const fakeCaptureMessage = vi.fn(() => 'mock-event-id');
       const fakeClient = {
         captureMessage: fakeCaptureMessage,
       } as unknown as Client;
@@ -721,7 +688,7 @@ describe('Scope', () => {
     });
 
     it('should pass exception to captureMessage() on client', () => {
-      const fakeCaptureMessage = jest.fn(() => 'mock-event-id');
+      const fakeCaptureMessage = vi.fn(() => 'mock-event-id');
       const fakeClient = {
         captureMessage: fakeCaptureMessage,
       } as unknown as Client;
@@ -734,7 +701,7 @@ describe('Scope', () => {
     });
 
     it('should call captureMessage() on client with a synthetic exception', () => {
-      const fakeCaptureMessage = jest.fn(() => 'mock-event-id');
+      const fakeCaptureMessage = vi.fn(() => 'mock-event-id');
       const fakeClient = {
         captureMessage: fakeCaptureMessage,
       } as unknown as Client;
@@ -752,7 +719,7 @@ describe('Scope', () => {
     });
 
     it('should pass the original exception to captureMessage() on client', () => {
-      const fakeCaptureMessage = jest.fn(() => 'mock-event-id');
+      const fakeCaptureMessage = vi.fn(() => 'mock-event-id');
       const fakeClient = {
         captureMessage: fakeCaptureMessage,
       } as unknown as Client;
@@ -770,7 +737,7 @@ describe('Scope', () => {
     });
 
     it('should forward level and hint to captureMessage() on client', () => {
-      const fakeCaptureMessage = jest.fn(() => 'mock-event-id');
+      const fakeCaptureMessage = vi.fn(() => 'mock-event-id');
       const fakeClient = {
         captureMessage: fakeCaptureMessage,
       } as unknown as Client;
@@ -790,7 +757,7 @@ describe('Scope', () => {
 
   describe('.captureEvent()', () => {
     it('should call captureEvent() on client with newly generated event ID if not explicitly passed in', () => {
-      const fakeCaptureEvent = jest.fn(() => 'mock-event-id');
+      const fakeCaptureEvent = vi.fn(() => 'mock-event-id');
       const fakeClient = {
         captureEvent: fakeCaptureEvent,
       } as unknown as Client;
@@ -815,7 +782,7 @@ describe('Scope', () => {
     });
 
     it('should pass event to captureEvent() on client', () => {
-      const fakeCaptureEvent = jest.fn(() => 'mock-event-id');
+      const fakeCaptureEvent = vi.fn(() => 'mock-event-id');
       const fakeClient = {
         captureEvent: fakeCaptureEvent,
       } as unknown as Client;
@@ -830,7 +797,7 @@ describe('Scope', () => {
     });
 
     it('should forward hint to captureEvent() on client', () => {
-      const fakeCaptureEvent = jest.fn(() => 'mock-event-id');
+      const fakeCaptureEvent = vi.fn(() => 'mock-event-id');
       const fakeClient = {
         captureEvent: fakeCaptureEvent,
       } as unknown as Client;
@@ -887,67 +854,73 @@ describe('withScope()', () => {
     getGlobalScope().clear();
   });
 
-  it('will make the passed scope the active scope within the callback', done => {
-    withScope(scope => {
-      expect(getCurrentScope()).toBe(scope);
-      done();
-    });
-  });
-
-  it('will pass a scope that is different from the current active isolation scope', done => {
-    withScope(scope => {
-      expect(getIsolationScope()).not.toBe(scope);
-      done();
-    });
-  });
-
-  it('will always make the inner most passed scope the current isolation scope when nesting calls', done => {
-    withIsolationScope(_scope1 => {
-      withIsolationScope(scope2 => {
-        expect(getIsolationScope()).toBe(scope2);
+  it('will make the passed scope the active scope within the callback', () =>
+    new Promise<void>(done => {
+      withScope(scope => {
+        expect(getCurrentScope()).toBe(scope);
         done();
       });
-    });
-  });
+    }));
 
-  it('forks the scope when not passing any scope', done => {
-    const initialScope = getCurrentScope();
-    initialScope.setTag('aa', 'aa');
+  it('will pass a scope that is different from the current active isolation scope', () =>
+    new Promise<void>(done => {
+      withScope(scope => {
+        expect(getIsolationScope()).not.toBe(scope);
+        done();
+      });
+    }));
 
-    withScope(scope => {
-      expect(getCurrentScope()).toBe(scope);
-      scope.setTag('bb', 'bb');
-      expect(scope).not.toBe(initialScope);
-      expect(scope.getScopeData().tags).toEqual({ aa: 'aa', bb: 'bb' });
-      done();
-    });
-  });
+  it('will always make the inner most passed scope the current isolation scope when nesting calls', () =>
+    new Promise<void>(done => {
+      withIsolationScope(_scope1 => {
+        withIsolationScope(scope2 => {
+          expect(getIsolationScope()).toBe(scope2);
+          done();
+        });
+      });
+    }));
 
-  it('forks the scope when passing undefined', done => {
-    const initialScope = getCurrentScope();
-    initialScope.setTag('aa', 'aa');
+  it('forks the scope when not passing any scope', () =>
+    new Promise<void>(done => {
+      const initialScope = getCurrentScope();
+      initialScope.setTag('aa', 'aa');
 
-    withScope(undefined, scope => {
-      expect(getCurrentScope()).toBe(scope);
-      scope.setTag('bb', 'bb');
-      expect(scope).not.toBe(initialScope);
-      expect(scope.getScopeData().tags).toEqual({ aa: 'aa', bb: 'bb' });
-      done();
-    });
-  });
+      withScope(scope => {
+        expect(getCurrentScope()).toBe(scope);
+        scope.setTag('bb', 'bb');
+        expect(scope).not.toBe(initialScope);
+        expect(scope.getScopeData().tags).toEqual({ aa: 'aa', bb: 'bb' });
+        done();
+      });
+    }));
 
-  it('sets the passed in scope as active scope', done => {
-    const initialScope = getCurrentScope();
-    initialScope.setTag('aa', 'aa');
+  it('forks the scope when passing undefined', () =>
+    new Promise<void>(done => {
+      const initialScope = getCurrentScope();
+      initialScope.setTag('aa', 'aa');
 
-    const customScope = new Scope();
+      withScope(undefined, scope => {
+        expect(getCurrentScope()).toBe(scope);
+        scope.setTag('bb', 'bb');
+        expect(scope).not.toBe(initialScope);
+        expect(scope.getScopeData().tags).toEqual({ aa: 'aa', bb: 'bb' });
+        done();
+      });
+    }));
 
-    withScope(customScope, scope => {
-      expect(getCurrentScope()).toBe(customScope);
-      expect(scope).toBe(customScope);
-      done();
-    });
-  });
+  it('sets the passed in scope as active scope', () =>
+    new Promise<void>(done => {
+      const initialScope = getCurrentScope();
+      initialScope.setTag('aa', 'aa');
+
+      const customScope = new Scope();
+
+      withScope(customScope, scope => {
+        expect(getCurrentScope()).toBe(customScope);
+        expect(scope).toBe(customScope);
+        done();
+      });
+    }));
 });
 
 describe('withIsolationScope()', () => {
@@ -957,58 +930,64 @@ describe('withIsolationScope()', () => {
     getGlobalScope().clear();
   });
 
-  it('will make the passed isolation scope the active isolation scope within the callback', done => {
-    withIsolationScope(scope => {
-      expect(getIsolationScope()).toBe(scope);
-      done();
-    });
-  });
-
-  it('will pass an isolation scope that is different from the current active scope', done => {
-    withIsolationScope(scope => {
-      expect(getCurrentScope()).not.toBe(scope);
-      done();
-    });
-  });
-
-  it('will always make the inner most passed scope the current scope when nesting calls', done => {
-    withIsolationScope(_scope1 => {
-      withIsolationScope(scope2 => {
-        expect(getIsolationScope()).toBe(scope2);
+  it('will make the passed isolation scope the active isolation scope within the callback', () =>
+    new Promise<void>(done => {
+      withIsolationScope(scope => {
+        expect(getIsolationScope()).toBe(scope);
         done();
       });
-    });
-  });
+    }));
+
+  it('will pass an isolation scope that is different from the current active scope', () =>
+    new Promise<void>(done => {
+      withIsolationScope(scope => {
+        expect(getCurrentScope()).not.toBe(scope);
+        done();
+      });
+    }));
+
+  it('will always make the inner most passed scope the current scope when nesting calls', () =>
+    new Promise<void>(done => {
+      withIsolationScope(_scope1 => {
+        withIsolationScope(scope2 => {
+          expect(getIsolationScope()).toBe(scope2);
+          done();
+        });
+      });
+    }));
 
   // Note: This is expected! In browser, we do not actually fork this
-  it('does not fork isolation scope when not passing any isolation scope', done => {
-    const isolationScope = getIsolationScope();
+  it('does not fork isolation scope when not passing any isolation scope', () =>
+    new Promise<void>(done => {
+      const isolationScope = getIsolationScope();
 
-    withIsolationScope(scope => {
-      expect(getIsolationScope()).toBe(scope);
-      expect(scope).toBe(isolationScope);
-      done();
-    });
-  });
+      withIsolationScope(scope => {
+        expect(getIsolationScope()).toBe(scope);
+        expect(scope).toBe(isolationScope);
+        done();
+      });
+    }));
 
-  it('does not fork isolation scope when passing undefined', done => {
-    const isolationScope = getIsolationScope();
+  it('does not fork isolation scope when passing undefined', () =>
+    new Promise<void>(done => {
+      const isolationScope = getIsolationScope();
 
-    withIsolationScope(undefined, scope => {
-      expect(getIsolationScope()).toBe(scope);
-      expect(scope).toBe(isolationScope);
-      done();
-    });
-  });
+      withIsolationScope(undefined, scope => {
+        expect(getIsolationScope()).toBe(scope);
+        expect(scope).toBe(isolationScope);
+        done();
+      });
+    }));
 
-  it('ignores passed in isolation scope', done => {
-    const isolationScope = getIsolationScope();
-    const customIsolationScope = new Scope();
+  it('ignores passed in isolation scope', () =>
+    new Promise<void>(done => {
+      const isolationScope = getIsolationScope();
+      const customIsolationScope = new Scope();
 
-    withIsolationScope(customIsolationScope, scope => {
-      expect(getIsolationScope()).toBe(isolationScope);
-      expect(scope).toBe(isolationScope);
-      done();
-    });
-  });
+      withIsolationScope(customIsolationScope, scope => {
+        expect(getIsolationScope()).toBe(isolationScope);
+        expect(scope).toBe(isolationScope);
+        done();
+      });
+    }));
 });

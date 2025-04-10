@@ -2,6 +2,8 @@ import type { SerializedCheckIn } from '../../src/types-hoist';
 
 import { createCheckInEnvelope } from '../../src/checkin';
 
+import { describe, expect, test } from 'vitest';
+
 describe('createCheckInEnvelope', () => {
   test('creates a check in envelope header', () => {
     const envelope = createCheckInEnvelope(

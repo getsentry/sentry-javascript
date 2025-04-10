@@ -6,7 +6,7 @@ import {
   spanToJSON,
 } from '@sentry/core';
 import type { IntegrationFn } from '@sentry/core';
-import { generateInstrumentOnce } from '../../otel/instrument';
+import { instrumentWhenWrapped, generateInstrumentOnce } from '../../otel/instrument';
 
 const INTEGRATION_NAME = 'Dataloader';
 
@@ -19,31 +19,37 @@ export const instrumentDataloader = generateInstrumentOnce(
 );
 
 const _dataloaderIntegration = (() => {
+  let instrumentationWrappedCallback: undefined | ((callback: () => void) => void);
+
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
-      instrumentDataloader();
+      const instrumentation = instrumentDataloader();
+      instrumentationWrappedCallback = instrumentWhenWrapped(instrumentation);
     },
 
     setup(client) {
-      client.on('spanStart', span => {
-        const spanJSON = spanToJSON(span);
-        if (spanJSON.description?.startsWith('dataloader')) {
-          span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.db.otel.dataloader');
-        }
+      // This is called either immediately or when the instrumentation is wrapped
+      instrumentationWrappedCallback?.(() => {
+        client.on('spanStart', span => {
+          const spanJSON = spanToJSON(span);
+          if (spanJSON.description?.startsWith('dataloader')) {
+            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.db.otel.dataloader');
+          }
 
-        // These are all possible dataloader span descriptions
-        // Still checking for the future versions
-        // in case they add support for `clear` and `prime`
-        if (
-          spanJSON.description === 'dataloader.load' ||
-          spanJSON.description === 'dataloader.loadMany' ||
-          spanJSON.description === 'dataloader.batch'
-        ) {
-          span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'cache.get');
-          // TODO: We can try adding `key` to the `data` attribute upstream.
-          // Or alternatively, we can add `requestHook` to the dataloader instrumentation.
-        }
+          // These are all possible dataloader span descriptions
+          // Still checking for the future versions
+          // in case they add support for `clear` and `prime`
+          if (
+            spanJSON.description === 'dataloader.load' ||
+            spanJSON.description === 'dataloader.loadMany' ||
+            spanJSON.description === 'dataloader.batch'
+          ) {
+            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'cache.get');
+            // TODO: We can try adding `key` to the `data` attribute upstream.
+            // Or alternatively, we can add `requestHook` to the dataloader instrumentation.
+          }
+        });
       });
     },
   };

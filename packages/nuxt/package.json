@@ -1,13 +1,13 @@
 {
   "name": "@sentry/nuxt",
-  "version": "8.42.0",
+  "version": "9.12.0",
   "description": "Official Sentry SDK for Nuxt (EXPERIMENTAL)",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/nuxt",
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=16"
+    "node": ">=18.19.1"
   },
   "files": [
     "/build"
@@ -43,13 +43,13 @@
   },
   "dependencies": {
     "@nuxt/kit": "^3.13.2",
-    "@sentry/browser": "8.42.0",
-    "@sentry/core": "8.42.0",
-    "@sentry/node": "8.42.0",
-    "@sentry/opentelemetry": "8.42.0",
-    "@sentry/rollup-plugin": "2.22.6",
-    "@sentry/vite-plugin": "2.22.6",
-    "@sentry/vue": "8.42.0"
+    "@sentry/browser": "9.12.0",
+    "@sentry/core": "9.12.0",
+    "@sentry/node": "9.12.0",
+    "@sentry/opentelemetry": "9.12.0",
+    "@sentry/rollup-plugin": "3.2.4",
+    "@sentry/vite-plugin": "3.2.4",
+    "@sentry/vue": "9.12.0"
   },
   "devDependencies": {
     "@nuxt/module-builder": "^0.8.4",
@@ -58,7 +58,7 @@
   "scripts": {
     "build": "run-s build:types build:transpile",
     "build:dev": "yarn build",
-    "build:nuxt-module": "nuxt-module-build build --outDir build/module",
+    "build:nuxt-module": "bash ./generate-build-stubs.bash && nuxt-module-build build --outDir build/module",
     "build:transpile": "rollup -c rollup.npm.config.mjs && yarn build:nuxt-module",
     "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch build:types:watch",
@@ -70,6 +70,7 @@
     "clean": "rimraf build coverage sentry-nuxt-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
+    "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module && es-check es2020 ./build/module/*.cjs && es-check es2020 ./build/module/*.mjs --module",
     "test": "yarn test:unit",
     "test:unit": "vitest run",
     "test:watch": "vitest --watch",

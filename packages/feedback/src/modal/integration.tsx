@@ -1,4 +1,4 @@
-import { getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/core';
+import { getClient, getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/core';
 import type { FeedbackFormData, FeedbackModalIntegration, IntegrationFn, User } from '@sentry/core';
 import { h, render } from 'preact';
 import * as hooks from 'preact/hooks';
@@ -50,7 +50,8 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
         },
         open() {
           renderContent(true);
-          options.onFormOpen && options.onFormOpen();
+          options.onFormOpen?.();
+          getClient()?.emit('openFeedbackWidget');
           originalOverflow = DOCUMENT.body.style.overflow;
           DOCUMENT.body.style.overflow = 'hidden';
         },
@@ -60,7 +61,7 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
         },
       };
 
-      const screenshotInput = screenshotIntegration && screenshotIntegration.createInput({ h, hooks, dialog, options });
+      const screenshotInput = screenshotIntegration?.createInput({ h, hooks, dialog, options });
 
       const renderContent = (open: boolean): void => {
         render(
@@ -73,18 +74,18 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
             defaultEmail={(userKey && user && user[userKey.email]) || ''}
             onFormClose={() => {
               renderContent(false);
-              options.onFormClose && options.onFormClose();
+              options.onFormClose?.();
             }}
             onSubmit={sendFeedback}
             onSubmitSuccess={(data: FeedbackFormData) => {
               renderContent(false);
-              options.onSubmitSuccess && options.onSubmitSuccess(data);
+              options.onSubmitSuccess?.(data);
             }}
             onSubmitError={(error: Error) => {
-              options.onSubmitError && options.onSubmitError(error);
+              options.onSubmitError?.(error);
             }}
             onFormSubmitted={() => {
-              options.onFormSubmitted && options.onFormSubmitted();
+              options.onFormSubmitted?.();
             }}
             open={open}
           />,

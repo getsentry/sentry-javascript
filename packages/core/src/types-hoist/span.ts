@@ -1,5 +1,5 @@
+import type { SpanLink, SpanLinkJSON } from './link';
 import type { Measurements } from './measurement';
-import type { Primitive } from './misc';
 import type { HrTime } from './opentelemetry';
 import type { SpanStatus } from './spanStatus';
 import type { TransactionSource } from './transaction';
@@ -31,20 +31,12 @@ export type SpanAttributes = Partial<{
 }> &
   Record<string, SpanAttributeValue | undefined>;
 
-export type MetricSummary = {
-  min: number;
-  max: number;
-  count: number;
-  sum: number;
-  tags?: Record<string, Primitive> | undefined;
-};
-
 /** This type is aligned with the OpenTelemetry TimeInput type. */
 export type SpanTimeInput = HrTime | number | Date;
 
 /** A JSON representation of a span. */
 export interface SpanJSON {
-  data?: { [key: string]: any };
+  data: SpanAttributes;
   description?: string;
   op?: string;
   parent_span_id?: string;
@@ -54,12 +46,12 @@ export interface SpanJSON {
   timestamp?: number;
   trace_id: string;
   origin?: SpanOrigin;
-  _metrics_summary?: Record<string, Array<MetricSummary>>;
   profile_id?: string;
   exclusive_time?: number;
   measurements?: Measurements;
   is_segment?: boolean;
   segment_id?: string;
+  links?: SpanLinkJSON[];
 }
 
 // These are aligned with OpenTelemetry trace flags
@@ -191,6 +183,12 @@ export interface SentrySpanArguments {
   endTimestamp?: number | undefined;
 
   /**
+   * Links to associate with the new span. Setting links here is preferred over addLink()
+   * as certain context information is only available during span creation.
+   */
+  links?: SpanLink[];
+
+  /**
    * Set to `true` if this span should be sent as a standalone segment span
    * as opposed to a transaction.
    *
@@ -234,6 +232,16 @@ export interface Span {
 
   /**
    * Update the name of the span.
+   *
+   * **Important:** You most likely want to use `Sentry.updateSpanName(span, name)` instead!
+   *
+   * This method will update the current span name but cannot guarantee that the new name will be
+   * the final name of the span. Instrumentation might still overwrite the name with an automatically
+   * computed name, for example in `http.server` or `db` spans.
+   *
+   * You can ensure that your name is kept and not overwritten by calling `Sentry.updateSpanName(span, name)`
+   *
+   * @param name the new name of the span
    */
   updateName(name: string): this;
 
@@ -249,14 +257,21 @@ export interface Span {
   addEvent(name: string, attributesOrStartTime?: SpanAttributes | SpanTimeInput, startTime?: SpanTimeInput): this;
 
   /**
-   * NOT USED IN SENTRY, only added for compliance with OTEL Span interface
+   * Associates this span with a related span. Links can reference spans from the same or different trace
+   * and are typically used for batch operations, cross-trace scenarios, or scatter/gather patterns.
+   *
+   * Prefer setting links directly when starting a span (e.g. `Sentry.startSpan()`) as some context information is only available during span creation.
+   * @param link - The link containing the context of the span to link to and optional attributes
    */
-  addLink(link: unknown): this;
+  addLink(link: SpanLink): this;
 
   /**
-   * NOT USED IN SENTRY, only added for compliance with OTEL Span interface
+   * Associates this span with multiple related spans. See {@link addLink} for more details.
+   *
+   * Prefer setting links directly when starting a span (e.g. `Sentry.startSpan()`) as some context information is only available during span creation.
+   * @param links - Array of links to associate with this span
    */
-  addLinks(links: unknown): this;
+  addLinks(links: SpanLink[]): this;
 
   /**
    * NOT USED IN SENTRY, only added for compliance with OTEL Span interface

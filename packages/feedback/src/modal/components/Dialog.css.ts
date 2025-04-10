@@ -115,6 +115,12 @@ const FORM = `
   flex: 1 0;
 }
 
+.form fieldset {
+  border: none;
+  margin: 0;
+  padding: 0;
+}
+
 .form__right {
   flex: 0 0 auto;
   display: flex;

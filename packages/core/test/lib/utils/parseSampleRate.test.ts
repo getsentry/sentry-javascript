@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { parseSampleRate } from '../../../src/utils/parseSampleRate';
 
 describe('parseSampleRate', () => {

@@ -1,11 +1,12 @@
+import { afterAll, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
 afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('should capture a simple error with message', done => {
-  createRunner(__dirname, 'scenario.ts')
+test('should capture a simple error with message', async () => {
+  await createRunner(__dirname, 'scenario.ts')
     .expect({
       event: {
         exception: {
@@ -25,5 +26,6 @@ test('should capture a simple error with message', done => {
         },
       },
     })
-    .start(done);
+    .start()
+    .completed();
 });

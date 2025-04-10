@@ -1,5 +1,5 @@
 import * as SentryCore from '@sentry/core';
-import { beforeEach, describe, it, vi } from 'vitest';
+import { beforeEach, describe, it, vi, expect } from 'vitest';
 import { sentryBeforeResponseMiddleware } from '../../src/server';
 import type { ResponseMiddlewareResponse } from '../../src/server';
 

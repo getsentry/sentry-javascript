@@ -13,7 +13,7 @@ import {
 const META_TAG_TRACE_ID = '12345678901234567890123456789012';
 const META_TAG_PARENT_SPAN_ID = '1234567890123456';
 const META_TAG_BAGGAGE =
-  'sentry-trace_id=12345678901234567890123456789012,sentry-sample_rate=0.2,sentry-sampled=true,sentry-transaction=my-transaction,sentry-public_key=public,sentry-release=1.0.0,sentry-environment=prod';
+  'sentry-trace_id=12345678901234567890123456789012,sentry-sample_rate=0.2,sentry-sampled=true,sentry-transaction=my-transaction,sentry-public_key=public,sentry-release=1.0.0,sentry-environment=prod,sentry-sample_rand=0.42';
 
 sentryTest(
   'create a new trace for a navigation after the <meta> tag pageload trace',
@@ -54,6 +54,7 @@ sentryTest(
       transaction: 'my-transaction',
       public_key: 'public',
       trace_id: META_TAG_TRACE_ID,
+      sample_rand: '0.42',
     });
 
     expect(navigationEvent.type).toEqual('transaction');
@@ -71,9 +72,11 @@ sentryTest(
       sample_rate: '1',
       sampled: 'true',
       trace_id: navigationTraceContext?.trace_id,
+      sample_rand: expect.any(String),
     });
 
     expect(pageloadTraceContext?.trace_id).not.toEqual(navigationTraceContext?.trace_id);
+    expect(pageloadTraceHeader?.sample_rand).not.toEqual(navigationTraceHeader?.sample_rand);
   },
 );
 
@@ -105,6 +108,7 @@ sentryTest('error after <meta> tag pageload has pageload traceId', async ({ getL
     transaction: 'my-transaction',
     public_key: 'public',
     trace_id: META_TAG_TRACE_ID,
+    sample_rand: '0.42',
   });
 
   const errorEventPromise = getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
@@ -130,6 +134,7 @@ sentryTest('error after <meta> tag pageload has pageload traceId', async ({ getL
     transaction: 'my-transaction',
     public_key: 'public',
     trace_id: META_TAG_TRACE_ID,
+    sample_rand: '0.42',
   });
 });
 
@@ -171,6 +176,7 @@ sentryTest('error during <meta> tag pageload has pageload traceId', async ({ get
     transaction: 'my-transaction',
     public_key: 'public',
     trace_id: META_TAG_TRACE_ID,
+    sample_rand: '0.42',
   });
 
   expect(errorEvent.type).toEqual(undefined);
@@ -188,6 +194,7 @@ sentryTest('error during <meta> tag pageload has pageload traceId', async ({ get
     transaction: 'my-transaction',
     public_key: 'public',
     trace_id: META_TAG_TRACE_ID,
+    sample_rand: '0.42',
   });
 });
 
@@ -200,7 +207,7 @@ sentryTest(
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 
-    await page.route('http://example.com/**', route => {
+    await page.route('http://sentry-test-site.example/**', route => {
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -213,7 +220,7 @@ sentryTest(
       undefined,
       eventAndTraceHeaderRequestParser,
     );
-    const requestPromise = page.waitForRequest('http://example.com/*');
+    const requestPromise = page.waitForRequest('http://sentry-test-site.example/*');
     await page.goto(url);
     await page.locator('#fetchBtn').click();
     const [[pageloadEvent, pageloadTraceHeader], request] = await Promise.all([pageloadEventPromise, requestPromise]);
@@ -234,6 +241,7 @@ sentryTest(
       transaction: 'my-transaction',
       public_key: 'public',
       trace_id: META_TAG_TRACE_ID,
+      sample_rand: '0.42',
     });
 
     const headers = request.headers();
@@ -251,7 +259,7 @@ sentryTest(
       sentryTest.skip();
     }
 
-    await page.route('http://example.com/**', route => {
+    await page.route('http://sentry-test-site.example/**', route => {
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -266,7 +274,7 @@ sentryTest(
       undefined,
       eventAndTraceHeaderRequestParser,
     );
-    const requestPromise = page.waitForRequest('http://example.com/*');
+    const requestPromise = page.waitForRequest('http://sentry-test-site.example/*');
     await page.goto(url);
     await page.locator('#xhrBtn').click();
     const [[pageloadEvent, pageloadTraceHeader], request] = await Promise.all([pageloadEventPromise, requestPromise]);
@@ -287,6 +295,7 @@ sentryTest(
       transaction: 'my-transaction',
       public_key: 'public',
       trace_id: META_TAG_TRACE_ID,
+      sample_rand: '0.42',
     });
 
     const headers = request.headers();

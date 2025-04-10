@@ -46,6 +46,10 @@ test('Sends an API route transaction', async ({ baseURL }) => {
     origin: 'auto.http.otel.http',
   });
 
+  expect(transactionEvent.contexts?.response).toEqual({
+    status_code: 200,
+  });
+
   expect(transactionEvent).toEqual(
     expect.objectContaining({
       spans: expect.arrayContaining([

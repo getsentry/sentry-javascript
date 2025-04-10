@@ -29,9 +29,9 @@ export const instrumentKoa = generateInstrumentOnce(
           return;
         }
         const attributes = spanToJSON(span).data;
-        const route = attributes && attributes[ATTR_HTTP_ROUTE];
+        const route = attributes[ATTR_HTTP_ROUTE];
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        const method: string = info?.context?.request?.method?.toUpperCase() || 'GET';
+        const method = info.context?.request?.method?.toUpperCase() || 'GET';
         if (route) {
           getIsolationScope().setTransactionName(`${method} ${route}`);
         }
@@ -105,7 +105,7 @@ export const setupKoaErrorHandler = (app: { use: (arg0: (ctx: any, next: any) =>
 function addKoaSpanAttributes(span: Span): void {
   span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.http.otel.koa');
 
-  const attributes = spanToJSON(span).data || {};
+  const attributes = spanToJSON(span).data;
 
   // this is one of: middleware, router
   const type = attributes['koa.type'];

@@ -30,13 +30,26 @@ export function instrumentXHR(): void {
 
   // eslint-disable-next-line @typescript-eslint/unbound-method
   xhrproto.open = new Proxy(xhrproto.open, {
-    apply(originalOpen, xhrOpenThisArg: XMLHttpRequest & SentryWrappedXMLHttpRequest, xhrOpenArgArray) {
+    apply(
+      originalOpen,
+      xhrOpenThisArg: XMLHttpRequest & SentryWrappedXMLHttpRequest,
+      xhrOpenArgArray:
+        | [method: string, url: string | URL]
+        | [method: string, url: string | URL, async: boolean, username?: string | null, password?: string | null],
+    ) {
+      // NOTE: If you are a Sentry user, and you are seeing this stack frame,
+      //       it means the error, that was caused by your XHR call did not
+      //       have a stack trace. If you are using HttpClient integration,
+      //       this is the expected behavior, as we are using this virtual error to capture
+      //       the location of your XHR call, and group your HttpClient events accordingly.
+      const virtualError = new Error();
+
       const startTimestamp = timestampInSeconds() * 1000;
 
       // open() should always be called with two or more arguments
       // But to be on the safe side, we actually validate this and bail out if we don't have a method & url
       const method = isString(xhrOpenArgArray[0]) ? xhrOpenArgArray[0].toUpperCase() : undefined;
-      const url = parseUrl(xhrOpenArgArray[1]);
+      const url = parseXhrUrlArg(xhrOpenArgArray[1]);
 
       if (!method || !url) {
         return originalOpen.apply(xhrOpenThisArg, xhrOpenArgArray);
@@ -74,6 +87,7 @@ export function instrumentXHR(): void {
             endTimestamp: timestampInSeconds() * 1000,
             startTimestamp,
             xhr: xhrOpenThisArg,
+            virtualError,
           };
           triggerHandlers('xhr', handlerData);
         }
@@ -139,16 +153,23 @@ export function instrumentXHR(): void {
   });
 }
 
-function parseUrl(url: string | unknown): string | undefined {
+/**
+ * Parses the URL argument of a XHR method to a string.
+ *
+ * See: https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/open#url
+ * url: A string or any other object with a stringifier — including a URL object — that provides the URL of the resource to send the request to.
+ *
+ * @param url - The URL argument of an XHR method
+ * @returns The parsed URL string or undefined if the URL is invalid
+ */
+function parseXhrUrlArg(url: unknown): string | undefined {
   if (isString(url)) {
     return url;
   }
 
   try {
-    // url can be a string or URL
-    // but since URL is not available in IE11, we do not check for it,
-    // but simply assume it is an URL and return `toString()` from it (which returns the full URL)
-    // If that fails, we just return undefined
+    // If the passed in argument is not a string, it should have a `toString` method as a stringifier.
+    // If that fails, we just return undefined (like in IE11 where URL is not available)
     return (url as URL).toString();
   } catch {} // eslint-disable-line no-empty
 

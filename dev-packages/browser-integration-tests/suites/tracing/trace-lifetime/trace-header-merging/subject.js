@@ -8,10 +8,12 @@ fetchPojo.addEventListener('click', () => {
 
   // Make two fetch requests that reuse the same fetch object
   Sentry.startSpan({ name: 'does-not-matter-1' }, () =>
-    fetch('http://example.com/fetch-pojo', fetchOptions)
+    fetch('http://sentry-test-site.example/fetch-pojo', fetchOptions)
       .then(res => res.text())
       .then(() =>
-        Sentry.startSpan({ name: 'does-not-matter-2' }, () => fetch('http://example.com/fetch-pojo', fetchOptions)),
+        Sentry.startSpan({ name: 'does-not-matter-2' }, () =>
+          fetch('http://sentry-test-site.example/fetch-pojo', fetchOptions),
+        ),
       ),
   );
 });
@@ -26,10 +28,12 @@ fetchArray.addEventListener('click', () => {
 
   // Make two fetch requests that reuse the same fetch object
   Sentry.startSpan({ name: 'does-not-matter-1' }, () =>
-    fetch('http://example.com/fetch-array', fetchOptions)
+    fetch('http://sentry-test-site.example/fetch-array', fetchOptions)
       .then(res => res.text())
       .then(() =>
-        Sentry.startSpan({ name: 'does-not-matter-2' }, () => fetch('http://example.com/fetch-array', fetchOptions)),
+        Sentry.startSpan({ name: 'does-not-matter-2' }, () =>
+          fetch('http://sentry-test-site.example/fetch-array', fetchOptions),
+        ),
       ),
   );
 });
@@ -44,10 +48,12 @@ fetchHeaders.addEventListener('click', () => {
 
   // Make two fetch requests that reuse the same fetch object
   Sentry.startSpan({ name: 'does-not-matter-1' }, () =>
-    fetch('http://example.com/fetch-headers', fetchOptions)
+    fetch('http://sentry-test-site.example/fetch-headers', fetchOptions)
       .then(res => res.text())
       .then(() =>
-        Sentry.startSpan({ name: 'does-not-matter-2' }, () => fetch('http://example.com/fetch-headers', fetchOptions)),
+        Sentry.startSpan({ name: 'does-not-matter-2' }, () =>
+          fetch('http://sentry-test-site.example/fetch-headers', fetchOptions),
+        ),
       ),
   );
 });

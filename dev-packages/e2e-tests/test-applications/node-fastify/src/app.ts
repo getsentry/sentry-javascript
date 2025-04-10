@@ -81,6 +81,16 @@ app.get('/test-error', async function (req, res) {
   res.send({ exceptionId });
 });
 
+app.get('/test-4xx-error', async function (req, res) {
+  res.code(400);
+  throw new Error('This is a 4xx error');
+});
+
+app.get('/test-5xx-error', async function (req, res) {
+  res.code(500);
+  throw new Error('This is a 5xx error');
+});
+
 app.get<{ Params: { id: string } }>('/test-exception/:id', async function (req, res) {
   throw new Error(`This is an exception with id ${req.params.id}`);
 });

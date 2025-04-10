@@ -15,7 +15,7 @@ export function handleAfterSendEvent(replay: ReplayContainer): AfterSendEventCal
       return;
     }
 
-    const statusCode = sendResponse && sendResponse.statusCode;
+    const statusCode = sendResponse?.statusCode;
 
     // We only want to do stuff on successful error sending, otherwise you get error replays without errors attached
     // If not using the base transport, we allow `undefined` response (as a custom transport may not implement this correctly yet)
@@ -39,8 +39,8 @@ function handleTransactionEvent(replay: ReplayContainer, event: TransactionEvent
   // Collect traceIds in _context regardless of `recordingMode`
   // In error mode, _context gets cleared on every checkout
   // We limit to max. 100 transactions linked
-  if (event.contexts && event.contexts.trace && event.contexts.trace.trace_id && replayContext.traceIds.size < 100) {
-    replayContext.traceIds.add(event.contexts.trace.trace_id as string);
+  if (event.contexts?.trace?.trace_id && replayContext.traceIds.size < 100) {
+    replayContext.traceIds.add(event.contexts.trace.trace_id);
   }
 }
 

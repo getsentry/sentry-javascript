@@ -1,3 +1,5 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Client } from '../../../src/';
 import {
   SentrySpan,
   getCurrentScope,
@@ -11,20 +13,18 @@ import {
 } from '../../../src/';
 import { getAsyncContextStrategy } from '../../../src/asyncContext';
 import { freezeDscOnSpan } from '../../../src/tracing/dynamicSamplingContext';
-import type { Client, Span } from '../../../src/types-hoist';
-
+import type { Span } from '../../../src/types-hoist';
 import type { TestClientOptions } from '../../mocks/client';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 const dsn = 'https://123@sentry.io/42';
 
 const SCOPE_TRACE_ID = '12345678901234567890123456789012';
-const SCOPE_SPAN_ID = '1234567890123456';
 
 function setupClient(opts?: Partial<TestClientOptions>): Client {
   getCurrentScope().setPropagationContext({
     traceId: SCOPE_TRACE_ID,
-    spanId: SCOPE_SPAN_ID,
+    sampleRand: Math.random(),
   });
 
   const options = getDefaultTestClientOptions({
@@ -49,7 +49,7 @@ describe('getTraceData', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('uses the ACS implementation, if available', () => {
@@ -57,7 +57,7 @@ describe('getTraceData', () => {
 
     const carrier = getMainCarrier();
 
-    const customFn = jest.fn((options?: { span?: Span }) => {
+    const customFn = vi.fn((options?: { span?: Span }) => {
       expect(options).toEqual({ span: undefined });
       return {
         'sentry-trace': 'abc',
@@ -98,7 +98,7 @@ describe('getTraceData', () => {
       sampled: true,
     });
 
-    const customFn = jest.fn((options?: { span?: Span }) => {
+    const customFn = vi.fn((options?: { span?: Span }) => {
       expect(options).toEqual({ span });
       return {
         'sentry-trace': 'abc',
@@ -164,20 +164,22 @@ describe('getTraceData', () => {
     getCurrentScope().setPropagationContext({
       traceId: '12345678901234567890123456789012',
       sampled: true,
-      spanId: '1234567890123456',
+      parentSpanId: '1234567890123456',
+      sampleRand: 0.42,
       dsc: {
         environment: 'staging',
         public_key: 'key',
         trace_id: '12345678901234567890123456789012',
+        sample_rand: '0.42',
       },
     });
 
     const traceData = getTraceData();
 
-    expect(traceData).toEqual({
-      'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
-      baggage: 'sentry-environment=staging,sentry-public_key=key,sentry-trace_id=12345678901234567890123456789012',
-    });
+    expect(traceData['sentry-trace']).toMatch(/^12345678901234567890123456789012-[a-f0-9]{16}-1$/);
+    expect(traceData.baggage).toEqual(
+      'sentry-environment=staging,sentry-public_key=key,sentry-trace_id=12345678901234567890123456789012,sentry-sample_rand=0.42',
+    );
   });
 
   it('returns frozen DSC from SentrySpan if available', () => {

@@ -1,7 +1,6 @@
 import * as os from 'os';
 import type {
   Client,
-  Context,
   ContinuousThreadCpuProfile,
   DebugImage,
   DsnComponents,
@@ -14,6 +13,7 @@ import type {
   ProfileChunkItem,
   SdkInfo,
   ThreadCpuProfile,
+  TransactionEvent,
 } from '@sentry/core';
 import {
   createEnvelope,
@@ -27,8 +27,8 @@ import {
 import { env, versions } from 'process';
 import { isMainThread, threadId } from 'worker_threads';
 
+import type { RawChunkCpuProfile, RawThreadCpuProfile } from '@sentry-internal/node-cpu-profiler';
 import { DEBUG_BUILD } from './debug-build';
-import type { RawChunkCpuProfile, RawThreadCpuProfile } from './types';
 
 // We require the file because if we import it, it will be included in the bundle.
 // I guess tsc does not check file contents when it's imported.
@@ -37,16 +37,12 @@ export const PROFILER_THREAD_NAME = isMainThread ? 'main' : 'worker';
 const FORMAT_VERSION = '1';
 const CONTINUOUS_FORMAT_VERSION = '2';
 
-// Os machine was backported to 16.18, but this was not reflected in the types
-// @ts-expect-error ignore missing
-const machine = typeof os.machine === 'function' ? os.machine() : os.arch();
-
 // Machine properties (eval only once)
 const PLATFORM = os.platform();
 const RELEASE = os.release();
 const VERSION = os.version();
 const TYPE = os.type();
-const MODEL = machine;
+const MODEL = os.machine();
 const ARCH = os.arch();
 
 /**
@@ -103,7 +99,7 @@ export function createProfilingEvent(client: Client, profile: RawThreadCpuProfil
     event_id: event.event_id ?? '',
     transaction: event.transaction ?? '',
     start_timestamp: event.start_timestamp ? event.start_timestamp * 1000 : Date.now(),
-    trace_id: event.contexts?.['trace']?.['trace_id'] ?? '',
+    trace_id: event.contexts?.trace?.trace_id ?? '',
     profile_id: profile.profile_id,
   });
 }
@@ -138,7 +134,7 @@ function createProfilePayload(
   // Log a warning if the profile has an invalid traceId (should be uuidv4).
   // All profiles and transactions are rejected if this is the case and we want to
   // warn users that this is happening if they enable debug flag
-  if (trace_id && trace_id.length !== 32) {
+  if (trace_id?.length !== 32) {
     DEBUG_BUILD && logger.log(`[Profiling] Invalid traceId: ${trace_id} on profiled event`);
   }
 
@@ -211,7 +207,7 @@ function createProfileChunkPayload(
   // Log a warning if the profile has an invalid traceId (should be uuidv4).
   // All profiles and transactions are rejected if this is the case and we want to
   // warn users that this is happening if they enable debug flag
-  if (trace_id && trace_id.length !== 32) {
+  if (trace_id?.length !== 32) {
     DEBUG_BUILD && logger.log(`[Profiling] Invalid traceId: ${trace_id} on profiled event`);
   }
 
@@ -356,7 +352,7 @@ export function addProfilesToEnvelope(envelope: Envelope, profiles: Profile[]): 
  * @returns {Event[]}
  */
 export function findProfiledTransactionsFromEnvelope(envelope: Envelope): Event[] {
-  const events: Event[] = [];
+  const events: TransactionEvent[] = [];
 
   forEachEnvelopeItem(envelope, (item, type) => {
     if (type !== 'transaction') {
@@ -365,18 +361,17 @@ export function findProfiledTransactionsFromEnvelope(envelope: Envelope): Event[
 
     // First item is the type, so we can skip it, everything else is an event
     for (let j = 1; j < item.length; j++) {
-      const event = item[j];
+      const event = item[j] as TransactionEvent;
 
       if (!event) {
         // Shouldn't happen, but lets be safe
         continue;
       }
 
-      // @ts-expect-error profile_id is not part of the metadata type
-      const profile_id = (event.contexts as Context)?.['profile']?.['profile_id'];
+      const profile_id = event.contexts?.profile?.profile_id;
 
       if (event && profile_id) {
-        events.push(item[j] as Event);
+        events.push(event);
       }
     }
   });
@@ -405,6 +400,7 @@ export function createEventEnvelopeHeaders(
  * Creates a standalone profile_chunk envelope.
  */
 export function makeProfileChunkEnvelope(
+  platform: 'node',
   chunk: ProfileChunk,
   sdkInfo: SdkInfo | undefined,
   tunnel: string | undefined,
@@ -412,6 +408,7 @@ export function makeProfileChunkEnvelope(
 ): ProfileChunkEnvelope {
   const profileChunkHeader: ProfileChunkItem[0] = {
     type: 'profile_chunk',
+    platform,
   };
 
   return createEnvelope<ProfileChunkEnvelope>(createEventEnvelopeHeaders(sdkInfo, tunnel, dsn), [
@@ -427,7 +424,7 @@ export function makeProfileChunkEnvelope(
 export function applyDebugMetadata(client: Client, resource_paths: ReadonlyArray<string>): DebugImage[] {
   const options = client.getOptions();
 
-  if (!options || !options.stackParser) {
+  if (!options?.stackParser) {
     return [];
   }
 

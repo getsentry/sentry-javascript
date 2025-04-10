@@ -37,7 +37,7 @@ function instrumentConsole(): void {
         triggerHandlers('console', handlerData);
 
         const log = originalConsoleMethods[level];
-        log && log.apply(GLOBAL_OBJ.console, args);
+        log?.apply(GLOBAL_OBJ.console, args);
       };
     });
   });

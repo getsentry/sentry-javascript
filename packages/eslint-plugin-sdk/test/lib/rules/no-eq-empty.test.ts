@@ -1,5 +1,5 @@
 import { RuleTester } from 'eslint';
-import { describe } from 'vitest';
+import { describe, test } from 'vitest';
 
 // @ts-expect-error untyped module
 import rule from '../../../src/rules/no-eq-empty';

@@ -1,6 +1,6 @@
+import type { ScopeData } from '../scope';
 import { getDynamicSamplingContextFromSpan } from '../tracing/dynamicSamplingContext';
-import type { Breadcrumb, Event, ScopeData, Span } from '../types-hoist';
-import { dropUndefinedKeys } from '../utils-hoist/object';
+import type { Breadcrumb, Event, Span } from '../types-hoist';
 import { merge } from './merge';
 import { getRootSpan, spanToJSON, spanToTraceContext } from './spanUtils';
 
@@ -112,24 +112,20 @@ export function mergeArray<Prop extends 'breadcrumbs' | 'fingerprint'>(
 function applyDataToEvent(event: Event, data: ScopeData): void {
   const { extra, tags, user, contexts, level, transactionName } = data;
 
-  const cleanedExtra = dropUndefinedKeys(extra);
-  if (cleanedExtra && Object.keys(cleanedExtra).length) {
-    event.extra = { ...cleanedExtra, ...event.extra };
+  if (Object.keys(extra).length) {
+    event.extra = { ...extra, ...event.extra };
   }
 
-  const cleanedTags = dropUndefinedKeys(tags);
-  if (cleanedTags && Object.keys(cleanedTags).length) {
-    event.tags = { ...cleanedTags, ...event.tags };
+  if (Object.keys(tags).length) {
+    event.tags = { ...tags, ...event.tags };
   }
 
-  const cleanedUser = dropUndefinedKeys(user);
-  if (cleanedUser && Object.keys(cleanedUser).length) {
-    event.user = { ...cleanedUser, ...event.user };
+  if (Object.keys(user).length) {
+    event.user = { ...user, ...event.user };
   }
 
-  const cleanedContexts = dropUndefinedKeys(contexts);
-  if (cleanedContexts && Object.keys(cleanedContexts).length) {
-    event.contexts = { ...cleanedContexts, ...event.contexts };
+  if (Object.keys(contexts).length) {
+    event.contexts = { ...contexts, ...event.contexts };
   }
 
   if (level) {
@@ -190,7 +186,7 @@ function applyFingerprintToEvent(event: Event, fingerprint: ScopeData['fingerpri
   }
 
   // If we have no data at all, remove empty array default
-  if (event.fingerprint && !event.fingerprint.length) {
+  if (!event.fingerprint.length) {
     delete event.fingerprint;
   }
 }

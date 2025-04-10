@@ -1,11 +1,12 @@
+import { afterAll, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
 afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('node-cron instrumentation', done => {
-  createRunner(__dirname, 'scenario.ts')
+test('node-cron instrumentation', async () => {
+  await createRunner(__dirname, 'scenario.ts')
     .expect({
       check_in: {
         check_in_id: expect.any(String),
@@ -71,5 +72,6 @@ test('node-cron instrumentation', done => {
         exception: { values: [{ type: 'Error', value: 'Error in cron job' }] },
       },
     })
-    .start(done);
+    .start()
+    .completed();
 });

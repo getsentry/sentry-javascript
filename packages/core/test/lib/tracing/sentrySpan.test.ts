@@ -1,4 +1,6 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, setCurrentClient, timestampInSeconds } from '../../../src';
+import { describe, expect, it, test, vi } from 'vitest';
+import type { SpanJSON } from '../../../src';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, getCurrentScope, setCurrentClient, timestampInSeconds } from '../../../src';
 import { SentrySpan } from '../../../src/tracing/sentrySpan';
 import { SPAN_STATUS_ERROR } from '../../../src/tracing/spanstatus';
 import { TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED, spanToJSON } from '../../../src/utils/spanUtils';
@@ -30,7 +32,7 @@ describe('SentrySpan', () => {
 
       const spanJson = spanToJSON(span);
       expect(spanJson.description).toEqual('new name');
-      expect(spanJson.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('custom');
+      expect(spanJson.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('custom');
     });
   });
 
@@ -73,127 +75,6 @@ describe('SentrySpan', () => {
       expect(serialized).toHaveProperty('span_id', 'd');
       expect(serialized).toHaveProperty('trace_id', 'c');
     });
-
-    test('should drop all `undefined` values', () => {
-      const spanA = new SentrySpan({ traceId: 'a', spanId: 'b' });
-      const spanB = new SentrySpan({
-        parentSpanId: spanA.spanContext().spanId,
-        spanId: 'd',
-        traceId: 'c',
-      });
-      const serialized = spanToJSON(spanB);
-      expect(serialized).toStrictEqual({
-        start_timestamp: expect.any(Number),
-        parent_span_id: 'b',
-        span_id: 'd',
-        trace_id: 'c',
-        origin: 'manual',
-        data: {
-          'sentry.origin': 'manual',
-        },
-      });
-    });
-  });
-
-  describe('finish', () => {
-    test('simple', () => {
-      const span = new SentrySpan({});
-      expect(spanToJSON(span).timestamp).toBeUndefined();
-      span.end();
-      expect(spanToJSON(span).timestamp).toBeGreaterThan(1);
-    });
-
-    test('uses sampled config for standalone span', () => {
-      const client = new TestClient(
-        getDefaultTestClientOptions({
-          dsn: 'https://username@domain/123',
-          enableSend: true,
-        }),
-      );
-      setCurrentClient(client);
-
-      // @ts-expect-error Accessing private transport API
-      const mockSend = jest.spyOn(client._transport, 'send');
-
-      const notSampledSpan = new SentrySpan({
-        name: 'not-sampled',
-        isStandalone: true,
-        startTimestamp: 1,
-        endTimestamp: 2,
-        sampled: false,
-      });
-      notSampledSpan.end();
-      expect(mockSend).not.toHaveBeenCalled();
-
-      const sampledSpan = new SentrySpan({
-        name: 'is-sampled',
-        isStandalone: true,
-        startTimestamp: 1,
-        endTimestamp: 2,
-        sampled: true,
-      });
-      sampledSpan.end();
-      expect(mockSend).toHaveBeenCalledTimes(1);
-    });
-
-    test('sends the span if `beforeSendSpan` does not modify the span ', () => {
-      const beforeSendSpan = jest.fn(span => span);
-      const client = new TestClient(
-        getDefaultTestClientOptions({
-          dsn: 'https://username@domain/123',
-          enableSend: true,
-          beforeSendSpan,
-        }),
-      );
-      setCurrentClient(client);
-
-      // @ts-expect-error Accessing private transport API
-      const mockSend = jest.spyOn(client._transport, 'send');
-      const span = new SentrySpan({
-        name: 'test',
-        isStandalone: true,
-        startTimestamp: 1,
-        endTimestamp: 2,
-        sampled: true,
-      });
-      span.end();
-      expect(mockSend).toHaveBeenCalled();
-    });
-
-    test('does not send the span if `beforeSendSpan` drops the span', () => {
-      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
-
-      const beforeSendSpan = jest.fn(() => null);
-      const client = new TestClient(
-        getDefaultTestClientOptions({
-          dsn: 'https://username@domain/123',
-          enableSend: true,
-          beforeSendSpan,
-        }),
-      );
-      setCurrentClient(client);
-
-      const recordDroppedEventSpy = jest.spyOn(client, 'recordDroppedEvent');
-      // @ts-expect-error Accessing private transport API
-      const mockSend = jest.spyOn(client._transport, 'send');
-      const span = new SentrySpan({
-        name: 'test',
-        isStandalone: true,
-        startTimestamp: 1,
-        endTimestamp: 2,
-        sampled: true,
-      });
-      span.end();
-
-      expect(mockSend).not.toHaveBeenCalled();
-      expect(recordDroppedEventSpy).toHaveBeenCalledWith('before_send', 'span');
-
-      expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
-      expect(consoleWarnSpy).toBeCalledWith(
-        '[Sentry] Deprecation warning: Returning null from `beforeSendSpan` will be disallowed from SDK version 9.0.0 onwards. The callback will only support mutating spans. To drop certain spans, configure the respective integrations directly.',
-      );
-      consoleWarnSpy.mockRestore();
-    });
   });
 
   describe('end', () => {
@@ -218,6 +99,145 @@ describe('SentrySpan', () => {
       const endTime = Date.now();
       span.end(endTime);
       expect(spanToJSON(span).timestamp).toBe(endTime / 1000);
+    });
+
+    test('uses sampled config for standalone span', () => {
+      const client = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: 'https://username@domain/123',
+          enableSend: true,
+        }),
+      );
+      setCurrentClient(client);
+
+      // @ts-expect-error Accessing private transport API
+      const mockSend = vi.spyOn(client._transport, 'send');
+
+      const notSampledSpan = new SentrySpan({
+        name: 'not-sampled',
+        isStandalone: true,
+        startTimestamp: 1,
+        endTimestamp: 2,
+        sampled: false,
+      });
+      notSampledSpan.end();
+      expect(mockSend).not.toHaveBeenCalled();
+
+      const sampledSpan = new SentrySpan({
+        name: 'is-sampled',
+        isStandalone: true,
+        startTimestamp: 1,
+        endTimestamp: 2,
+        sampled: true,
+      });
+      sampledSpan.end();
+      expect(mockSend).toHaveBeenCalledTimes(1);
+    });
+
+    test('sends the span if `beforeSendSpan` does not modify the span', () => {
+      const beforeSendSpan = vi.fn(span => span);
+      const client = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: 'https://username@domain/123',
+          enableSend: true,
+          beforeSendSpan,
+        }),
+      );
+      setCurrentClient(client);
+
+      // @ts-expect-error Accessing private transport API
+      const mockSend = vi.spyOn(client._transport, 'send');
+      const span = new SentrySpan({
+        name: 'test',
+        isStandalone: true,
+        startTimestamp: 1,
+        endTimestamp: 2,
+        sampled: true,
+      });
+      span.end();
+      expect(mockSend).toHaveBeenCalled();
+    });
+
+    test('does not drop the span if `beforeSendSpan` returns null', () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      const beforeSendSpan = vi.fn(() => null as unknown as SpanJSON);
+      const client = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: 'https://username@domain/123',
+          enableSend: true,
+          beforeSendSpan,
+        }),
+      );
+      setCurrentClient(client);
+
+      const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+      // @ts-expect-error Accessing private transport API
+      const mockSend = vi.spyOn(client._transport, 'send');
+      const span = new SentrySpan({
+        name: 'test',
+        isStandalone: true,
+        startTimestamp: 1,
+        endTimestamp: 2,
+        sampled: true,
+      });
+      span.end();
+
+      expect(mockSend).toHaveBeenCalled();
+      expect(recordDroppedEventSpy).not.toHaveBeenCalled();
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        '[Sentry] Returning null from `beforeSendSpan` is disallowed. To drop certain spans, configure the respective integrations directly.',
+      );
+      consoleWarnSpy.mockRestore();
+    });
+
+    test('build TransactionEvent for basic root span', () => {
+      const client = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: 'https://username@domain/123',
+        }),
+      );
+      setCurrentClient(client);
+
+      const scope = getCurrentScope();
+      const captureEventSpy = vi.spyOn(scope, 'captureEvent').mockImplementation(() => 'testId');
+
+      const span = new SentrySpan({
+        name: 'test',
+        startTimestamp: 1,
+        sampled: true,
+      });
+      span.end(2);
+
+      expect(captureEventSpy).toHaveBeenCalledTimes(1);
+      expect(captureEventSpy).toHaveBeenCalledWith({
+        contexts: {
+          trace: {
+            data: {
+              'sentry.origin': 'manual',
+            },
+            origin: 'manual',
+            span_id: expect.stringMatching(/^[a-f0-9]{16}$/),
+            trace_id: expect.stringMatching(/^[a-f0-9]{32}$/),
+          },
+        },
+        sdkProcessingMetadata: {
+          capturedSpanIsolationScope: undefined,
+          capturedSpanScope: undefined,
+          dynamicSamplingContext: {
+            environment: 'production',
+            public_key: 'username',
+            trace_id: expect.stringMatching(/^[a-f0-9]{32}$/),
+            transaction: 'test',
+          },
+        },
+        spans: [],
+        start_timestamp: 1,
+        timestamp: 2,
+        transaction: 'test',
+        type: 'transaction',
+      });
     });
   });
 

@@ -1,3 +1,4 @@
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { createTransport } from '../../src/transports/base';
 import { parseEnvelope } from '../../src/utils-hoist/envelope';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
@@ -9,7 +10,7 @@ describe('Attachments', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   test('actually end up in envelope', async () => {

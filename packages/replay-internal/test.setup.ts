@@ -1,5 +1,5 @@
 import { printDiffOrStringify } from 'jest-matcher-utils';
-import { vi } from 'vitest';
+import { vi, expect } from 'vitest';
 import type { Mocked, MockedFunction } from 'vitest';
 
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */

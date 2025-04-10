@@ -643,4 +643,97 @@ describe('Tracekit - Chrome Tests', () => {
       },
     });
   });
+
+  it('should correctly parse a wasm stack trace', () => {
+    const WASM_ERROR = {
+      message: 'memory access out of bounds',
+      name: 'RuntimeError',
+      stack: `RuntimeError: memory access out of bounds
+      at MyClass::bar(int) const (http://localhost:8001/main.wasm:wasm-function[190]:0x5aeb)
+      at MyClass::foo(int) const (http://localhost:8001/main.wasm:wasm-function[186]:0x5637)
+      at MyClass::getAt(int) const (http://localhost:8001/main.wasm:wasm-function[182]:0x540b)
+      at emscripten::internal::MethodInvoker<int (MyClass::*)(int) const, int, MyClass const*, int>::invoke(int (MyClass::* const&)(int) const, MyClass const*, int) (http://localhost:8001/main.wasm:wasm-function[152]:0x47df)
+      at ClassHandle.MyClass$getAt [as getAt] (eval at newFunc (http://localhost:8001/main.js:2201:27), <anonymous>:9:10)
+      at myFunctionVectorOutOfBounds (http://localhost:8001/main.html:18:22)
+      at captureError (http://localhost:8001/main.html:27:11)
+      at Object.onRuntimeInitialized (http://localhost:8001/main.html:39:9)
+      at doRun (http://localhost:8001/main.js:7084:71)
+      at run (http://localhost:8001/main.js:7101:5)`,
+    };
+
+    const ex = exceptionFromError(parser, WASM_ERROR);
+
+    // This is really ugly but the wasm integration should clean up these stack frames
+    expect(ex).toStrictEqual({
+      stacktrace: {
+        frames: [
+          {
+            colno: 5,
+            filename: 'http://localhost:8001/main.js',
+            function: 'run',
+            in_app: true,
+            lineno: 7101,
+          },
+          {
+            colno: 71,
+            filename: 'http://localhost:8001/main.js',
+            function: 'doRun',
+            in_app: true,
+            lineno: 7084,
+          },
+          {
+            colno: 9,
+            filename: 'http://localhost:8001/main.html',
+            function: 'Object.onRuntimeInitialized',
+            in_app: true,
+            lineno: 39,
+          },
+          {
+            colno: 11,
+            filename: 'http://localhost:8001/main.html',
+            function: 'captureError',
+            in_app: true,
+            lineno: 27,
+          },
+          {
+            colno: 22,
+            filename: 'http://localhost:8001/main.html',
+            function: 'myFunctionVectorOutOfBounds',
+            in_app: true,
+            lineno: 18,
+          },
+          {
+            colno: 27,
+            filename: 'http://localhost:8001/main.js',
+            function: 'ClassHandle.MyClass$getAt [as getAt]',
+            in_app: true,
+            lineno: 2201,
+          },
+          {
+            filename:
+              'int) const, int, MyClass const*, int>::invoke(int (MyClass::* const&)(int) const, MyClass const*, int) (http://localhost:8001/main.wasm:wasm-function[152]:0x47df',
+            function: 'emscripten::internal::MethodInvoker<int (MyClass::*)',
+            in_app: true,
+          },
+          {
+            filename: 'int) const (http://localhost:8001/main.wasm:wasm-function[182]:0x540b',
+            function: 'MyClass::getAt',
+            in_app: true,
+          },
+          {
+            filename: 'int) const (http://localhost:8001/main.wasm:wasm-function[186]:0x5637',
+            function: 'MyClass::foo',
+            in_app: true,
+          },
+          {
+            filename: 'int) const (http://localhost:8001/main.wasm:wasm-function[190]:0x5aeb',
+            function: 'MyClass::bar',
+            in_app: true,
+          },
+        ],
+      },
+      type: 'RuntimeError',
+      value: 'memory access out of bounds',
+    });
+  });
 });

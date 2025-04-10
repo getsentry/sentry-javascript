@@ -33,6 +33,7 @@ sentryTest('sends a segment span envelope', async ({ getLocalTestUrl, page }) =>
       sampled: 'true',
       trace_id: traceId,
       transaction: 'standalone_segment_span',
+      sample_rand: expect.any(String),
     },
   });
 

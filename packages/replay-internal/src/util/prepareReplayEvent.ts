@@ -1,4 +1,3 @@
-import type { IntegrationIndex } from '@sentry/core';
 import { getIsolationScope, prepareEvent } from '@sentry/core';
 import type { Client, EventHint, ReplayEvent, Scope } from '@sentry/core';
 
@@ -11,14 +10,16 @@ export async function prepareReplayEvent({
   replayId: event_id,
   event,
 }: {
-  client: Client & { _integrations?: IntegrationIndex };
+  client: Client;
   scope: Scope;
   replayId: string;
   event: ReplayEvent;
 }): Promise<ReplayEvent | null> {
   const integrations =
-    typeof client._integrations === 'object' && client._integrations !== null && !Array.isArray(client._integrations)
-      ? Object.keys(client._integrations)
+    typeof client['_integrations'] === 'object' &&
+    client['_integrations'] !== null &&
+    !Array.isArray(client['_integrations'])
+      ? Object.keys(client['_integrations'])
       : undefined;
 
   const eventHint: EventHint = { event_id, integrations };
@@ -39,6 +40,8 @@ export async function prepareReplayEvent({
     return null;
   }
 
+  client.emit('postprocessEvent', preparedEvent, eventHint);
+
   // This normally happens in browser client "_prepareEvent"
   // but since we do not use this private method from the client, but rather the plain import
   // we need to do this manually.
@@ -46,7 +49,7 @@ export async function prepareReplayEvent({
 
   // extract the SDK name because `client._prepareEvent` doesn't add it to the event
   const metadata = client.getSdkMetadata();
-  const { name, version } = (metadata && metadata.sdk) || {};
+  const { name, version } = metadata?.sdk || {};
 
   preparedEvent.sdk = {
     ...preparedEvent.sdk,

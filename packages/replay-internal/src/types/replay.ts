@@ -1,14 +1,4 @@
-import type {
-  Breadcrumb,
-  ErrorEvent,
-  FetchBreadcrumbHint,
-  HandlerDataFetch,
-  ReplayRecordingData,
-  ReplayRecordingMode,
-  SentryWrappedXMLHttpRequest,
-  Span,
-  XhrBreadcrumbHint,
-} from '@sentry/core';
+import type { Breadcrumb, ErrorEvent, ReplayRecordingData, ReplayRecordingMode, Span } from '@sentry/core';
 
 import type { SKIPPED, THROTTLED } from '../util/throttle';
 import type { AllPerformanceEntry, AllPerformanceEntryData, ReplayPerformanceEntry } from './performance';
@@ -239,6 +229,12 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
     captureExceptions: boolean;
     traceInternals: boolean;
     continuousCheckout: number;
+    /**
+     * Before enabling, please read the security considerations:
+     * https://github.com/rrweb-io/rrweb/blob/master/docs/recipes/cross-origin-iframes.md#considerations
+     */
+    recordCrossOriginIframes: boolean;
+    autoFlushOnFeedback: boolean;
   }>;
 }
 
@@ -500,17 +496,6 @@ export interface ReplayContainer {
   getCurrentRoute(): string | undefined;
   handleException(err: unknown): void;
 }
-
-type RequestBody = null | Blob | BufferSource | FormData | URLSearchParams | string;
-
-export type XhrHint = XhrBreadcrumbHint & {
-  xhr: XMLHttpRequest & SentryWrappedXMLHttpRequest;
-  input?: RequestBody;
-};
-export type FetchHint = FetchBreadcrumbHint & {
-  input: HandlerDataFetch['args'];
-  response: Response;
-};
 
 export type ReplayNetworkRequestData = {
   startTimestamp: number;

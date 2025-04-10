@@ -60,7 +60,7 @@ describe('withSentryConfig', () => {
 
     const wrappedConfig = withSentryConfig(originalConfig);
 
-    expect(wrappedConfig).toEqual({ ...originalConfig, preprocess: [sentryPreproc] });
+    expect(wrappedConfig).toEqual({ ...originalConfig });
   });
 
   it('handles multiple wraps correctly by only adding our preprocessors once', () => {

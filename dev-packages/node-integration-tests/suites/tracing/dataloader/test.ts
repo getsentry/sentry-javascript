@@ -1,3 +1,4 @@
+import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
 describe('dataloader auto-instrumentation', () => {
@@ -31,10 +32,9 @@ describe('dataloader auto-instrumentation', () => {
     ]),
   };
 
-  test('should auto-instrument `dataloader` package.', done => {
-    createRunner(__dirname, 'scenario.js')
-      .expect({ transaction: EXPECTED_TRANSACTION })
-      .start(done)
-      .makeRequest('get', '/');
+  test('should auto-instrument `dataloader` package.', async () => {
+    const runner = createRunner(__dirname, 'scenario.js').expect({ transaction: EXPECTED_TRANSACTION }).start();
+    runner.makeRequest('get', '/');
+    await runner.completed();
   });
 });

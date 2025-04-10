@@ -1,3 +1,4 @@
+import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
 describe('lru-memoizer', () => {
@@ -5,8 +6,8 @@ describe('lru-memoizer', () => {
     cleanupChildProcesses();
   });
 
-  test('keeps outer context inside the memoized inner functions', done => {
-    createRunner(__dirname, 'scenario.js')
+  test('keeps outer context inside the memoized inner functions', async () => {
+    await createRunner(__dirname, 'scenario.js')
       // We expect only one transaction and nothing else.
       // A failed test will result in an error event being sent to Sentry.
       // Which will fail this suite.
@@ -24,6 +25,7 @@ describe('lru-memoizer', () => {
           },
         },
       })
-      .start(done);
+      .start()
+      .completed();
   });
 });

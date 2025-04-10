@@ -43,7 +43,7 @@ test('Sends a pageload transaction to Sentry', async ({ page }) => {
   );
 });
 
-test('captures a navigation transcation to Sentry', async ({ page }) => {
+test('captures a navigation transaction to Sentry', async ({ page }) => {
   const clientNavigationTxnEventPromise = waitForTransaction('create-next-app', txnEvent => {
     return txnEvent?.transaction === '/user/[id]';
   });
@@ -53,7 +53,7 @@ test('captures a navigation transcation to Sentry', async ({ page }) => {
   // navigation to page
   const clickPromise = page.getByText('navigate').click();
 
-  const [clientTxnEvent, serverTxnEvent, _1] = await Promise.all([clientNavigationTxnEventPromise, clickPromise]);
+  const [clientTxnEvent, serverTxnEvent] = await Promise.all([clientNavigationTxnEventPromise, clickPromise]);
 
   expect(clientTxnEvent).toEqual(
     expect.objectContaining({
@@ -76,6 +76,16 @@ test('captures a navigation transcation to Sentry', async ({ page }) => {
             'sentry.sample_rate': 1,
             'sentry.source': 'route',
           }),
+          links: [
+            {
+              attributes: {
+                'sentry.link.type': 'previous_trace',
+              },
+              sampled: true,
+              span_id: expect.stringMatching(/[a-f0-9]{16}/),
+              trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+            },
+          ],
         },
       },
       request: {

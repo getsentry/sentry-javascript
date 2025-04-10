@@ -2,7 +2,7 @@ import * as path from 'path';
 import { addPlugin, addPluginTemplate, addServerPlugin, createResolver, defineNuxtModule } from '@nuxt/kit';
 import { consoleSandbox } from '@sentry/core';
 import type { SentryNuxtModuleOptions } from './common/types';
-import { addDynamicImportEntryFileWrapper, addServerConfigToBuild } from './vite/addServerConfig';
+import { addDynamicImportEntryFileWrapper, addSentryTopImport, addServerConfigToBuild } from './vite/addServerConfig';
 import { setupSourceMaps } from './vite/sourceMaps';
 import { findDefaultSdkInitFile } from './vite/utils';
 
@@ -18,10 +18,18 @@ export default defineNuxtModule<ModuleOptions>({
   },
   defaults: {},
   setup(moduleOptionsParam, nuxt) {
+    if (moduleOptionsParam?.enabled === false) {
+      return;
+    }
+
     const moduleOptions = {
       ...moduleOptionsParam,
-      dynamicImportForServerEntry: moduleOptionsParam.dynamicImportForServerEntry !== false, // default: true
-      entrypointWrappedFunctions: moduleOptionsParam.entrypointWrappedFunctions || ['default', 'handler', 'server'],
+      autoInjectServerSentry: moduleOptionsParam.autoInjectServerSentry,
+      experimental_entrypointWrappedFunctions: moduleOptionsParam.experimental_entrypointWrappedFunctions || [
+        'default',
+        'handler',
+        'server',
+      ],
     };
 
     const moduleDirResolver = createResolver(import.meta.url);
@@ -54,18 +62,6 @@ export default defineNuxtModule<ModuleOptions>({
     const serverConfigFile = findDefaultSdkInitFile('server');
 
     if (serverConfigFile) {
-      if (moduleOptions.dynamicImportForServerEntry === false) {
-        // Inject the server-side Sentry config file with a side effect import
-        addPluginTemplate({
-          mode: 'server',
-          filename: 'sentry-server-config.mjs',
-          getContents: () =>
-            `import "${buildDirResolver.resolve(`/${serverConfigFile}`)}"\n` +
-            'import { defineNuxtPlugin } from "#imports"\n' +
-            'export default defineNuxtPlugin(() => {})',
-        });
-      }
-
       addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/sentry.server'));
     }
 
@@ -74,18 +70,38 @@ export default defineNuxtModule<ModuleOptions>({
     }
 
     nuxt.hooks.hook('nitro:init', nitro => {
-      if (serverConfigFile && serverConfigFile.includes('.server.config')) {
+      if (serverConfigFile?.includes('.server.config')) {
         if (nitro.options.dev) {
           consoleSandbox(() => {
             // eslint-disable-next-line no-console
             console.log(
-              '[Sentry] Your application is running in development mode. Note: @sentry/nuxt is in beta and may not work as expected on the server-side (Nitro). Errors are reported, but tracing does not work.',
+              '[Sentry] Your application is running in development mode. Note: @sentry/nuxt does not work as expected on the server-side (Nitro). Errors are reported, but tracing does not work.',
             );
           });
         }
 
-        if (moduleOptions.dynamicImportForServerEntry === false) {
-          addServerConfigToBuild(moduleOptions, nuxt, nitro, serverConfigFile);
+        consoleSandbox(() => {
+          const serverDir = nitro.options.output.serverDir;
+
+          // Netlify env: https://docs.netlify.com/configure-builds/environment-variables/#build-metadata
+          if (serverDir.includes('.netlify') || !!process.env.NETLIFY) {
+            // eslint-disable-next-line no-console
+            console.warn(
+              '[Sentry] Warning: The Sentry SDK detected a Netlify build. Server-side support for the Sentry Nuxt SDK on Netlify is currently unreliable due to technical limitations of serverless functions. Traces are not collected, and errors may occasionally not be reported. For more information on setting up Sentry on the Nuxt server-side, please refer to the documentation: https://docs.sentry.io/platforms/javascript/guides/nuxt/install/',
+            );
+          }
+
+          // Vercel env: https://vercel.com/docs/projects/environment-variables/system-environment-variables#VERCEL
+          if (serverDir.includes('.vercel') || !!process.env.VERCEL) {
+            // eslint-disable-next-line no-console
+            console.warn(
+              '[Sentry] Warning: The Sentry SDK detected a Vercel build. The Sentry Nuxt SDK currently does not support tracing on Vercel. For more information on setting up Sentry on the Nuxt server-side, please refer to the documentation: https://docs.sentry.io/platforms/javascript/guides/nuxt/install/',
+            );
+          }
+        });
+
+        if (moduleOptions.autoInjectServerSentry !== 'experimental_dynamic-import') {
+          addServerConfigToBuild(moduleOptions, nitro, serverConfigFile);
 
           if (moduleOptions.debug) {
             const serverDirResolver = createResolver(nitro.options.output.serverDir);
@@ -101,7 +117,13 @@ export default defineNuxtModule<ModuleOptions>({
               );
             });
           }
-        } else {
+        }
+
+        if (moduleOptions.autoInjectServerSentry === 'top-level-import') {
+          addSentryTopImport(moduleOptions, nitro);
+        }
+
+        if (moduleOptions.autoInjectServerSentry === 'experimental_dynamic-import') {
           addDynamicImportEntryFileWrapper(nitro, serverConfigFile, moduleOptions);
 
           if (moduleOptions.debug) {

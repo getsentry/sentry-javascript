@@ -11,5 +11,4 @@ export { wrapMiddlewareWithSentry } from './wrapMiddlewareWithSentry';
 export { wrapPageComponentWithSentry } from './pages-router-instrumentation/wrapPageComponentWithSentry';
 export { wrapGenerationFunctionWithSentry } from './wrapGenerationFunctionWithSentry';
 export { withServerActionInstrumentation } from './withServerActionInstrumentation';
-// eslint-disable-next-line deprecation/deprecation
-export { experimental_captureRequestError, captureRequestError } from './captureRequestError';
+export { captureRequestError } from './captureRequestError';

@@ -97,10 +97,10 @@ export function stripSentryFramesAndReverse(stack: ReadonlyArray<StackFrame>): S
     localStack.pop();
 
     // When using synthetic events, we will have a 2 levels deep stack, as `new Error('Sentry syntheticException')`
-    // is produced within the hub itself, making it:
+    // is produced within the scope itself, making it:
     //
     //   Sentry.captureException()
-    //   getCurrentHub().captureException()
+    //   scope.captureException()
     //
     // instead of just the top `Sentry` call itself.
     // This forces us to possibly strip an additional frame in the exact same was as above.

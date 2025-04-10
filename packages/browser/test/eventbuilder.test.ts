@@ -5,7 +5,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { defaultStackParser } from '../src';
-import { eventFromUnknownInput, extractMessage, extractType } from '../src/eventbuilder';
+import { eventFromMessage, eventFromUnknownInput, extractMessage, extractType } from '../src/eventbuilder';
 
 vi.mock('@sentry/core', async requireActual => {
   return {
@@ -229,5 +229,35 @@ describe('extractName', () => {
     error.name = undefined as any;
     const name = extractType(error);
     expect(name).toBeUndefined();
+  });
+});
+
+describe('eventFromMessage ', () => {
+  it('creates an event from a string message', async () => {
+    const event = await eventFromMessage(defaultStackParser, 'Test message');
+    expect(event).toEqual({
+      level: 'info',
+      message: 'Test message',
+    });
+  });
+
+  it('creates an event with a synthetic stack trace if attachStacktrace is true', async () => {
+    const syntheticException = new Error('Test message');
+    const event = await eventFromMessage(defaultStackParser, 'Test message', 'info', { syntheticException }, true);
+    expect(event.exception?.values?.[0]).toEqual(
+      expect.objectContaining({
+        mechanism: { handled: true, synthetic: true, type: 'generic' },
+        stacktrace: {
+          frames: expect.arrayContaining([expect.any(Object), expect.any(Object)]),
+        },
+        value: 'Test message',
+      }),
+    );
+  });
+
+  it("doesn't add a synthetic stack trace if attachStacktrace is false, even if one is passed-", async () => {
+    const syntheticException = new Error('Test message');
+    const event = await eventFromMessage(defaultStackParser, 'Test message', 'info', { syntheticException }, false);
+    expect(event.exception).toBeUndefined();
   });
 });

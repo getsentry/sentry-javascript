@@ -1,5 +1,5 @@
 import { isWrapped } from '@opentelemetry/core';
-import { consoleSandbox, getClient, getGlobalScope, hasTracingEnabled, isEnabled } from '@sentry/core';
+import { consoleSandbox, getClient, getGlobalScope, hasSpansEnabled, isEnabled } from '@sentry/core';
 import type { NodeClient } from '../sdk/client';
 import { isCjs } from './commonjs';
 import { createMissingInstrumentationContext } from './createMissingInstrumentationContext';
@@ -11,12 +11,12 @@ export function ensureIsWrapped(
   maybeWrappedFunction: unknown,
   name: 'express' | 'connect' | 'fastify' | 'hapi' | 'koa',
 ): void {
-  const client = getClient<NodeClient>();
+  const clientOptions = getClient<NodeClient>()?.getOptions();
   if (
-    !client?.getOptions().disableInstrumentationWarnings &&
+    !clientOptions?.disableInstrumentationWarnings &&
     !isWrapped(maybeWrappedFunction) &&
     isEnabled() &&
-    hasTracingEnabled()
+    hasSpansEnabled(clientOptions)
   ) {
     consoleSandbox(() => {
       if (isCjs()) {

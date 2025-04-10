@@ -1,3 +1,4 @@
+import { describe, expect, test } from 'vitest';
 import type { RateLimits } from '../../src/utils-hoist/ratelimit';
 import {
   DEFAULT_RETRY_AFTER,

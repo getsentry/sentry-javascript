@@ -19,8 +19,7 @@ import { WINDOW } from '../../../types';
 // sentry-specific change:
 // add optional param to not check for responseStart (see comment below)
 export const getNavigationEntry = (checkResponseStart = true): PerformanceNavigationTiming | void => {
-  const navigationEntry =
-    WINDOW.performance && WINDOW.performance.getEntriesByType && WINDOW.performance.getEntriesByType('navigation')[0];
+  const navigationEntry = WINDOW.performance?.getEntriesByType?.('navigation')[0];
   // Check to ensure the `responseStart` property is present and valid.
   // In some cases no value is reported by the browser (for
   // privacy/security reasons), and in other cases (bugs) the value is

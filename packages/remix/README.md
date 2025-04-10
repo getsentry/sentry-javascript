@@ -48,7 +48,7 @@ import * as Sentry from '@sentry/remix';
 Sentry.init({
   dsn: '__DSN__',
   tracesSampleRate: 1,
-  integrations: [new Sentry.Integrations.Prisma({ client: prisma })],
+  integrations: [Sentry.prismaIntegration()],
   // ...
 });
 ```
@@ -88,23 +88,6 @@ function App() {
 }
 
 export default withSentry(App);
-```
-
-You can disable or configure `ErrorBoundary` using a second parameter to `withSentry`.
-
-```ts
-
-withSentry(App, {
-  wrapWithErrorBoundary: false
-});
-
-// or
-
-withSentry(App, {
-  errorBoundaryOptions: {
-    fallback: <p>An error has occurred</p>
-  }
-});
 ```
 
 To set context information or send manual events, use the exported functions of `@sentry/remix`.

@@ -23,8 +23,7 @@ export function logAndExitProcess(error: unknown): void {
 
   const options = client.getOptions();
   const timeout =
-    (options && options.shutdownTimeout && options.shutdownTimeout > 0 && options.shutdownTimeout) ||
-    DEFAULT_SHUTDOWN_TIMEOUT;
+    options?.shutdownTimeout && options.shutdownTimeout > 0 ? options.shutdownTimeout : DEFAULT_SHUTDOWN_TIMEOUT;
   client.close(timeout).then(
     (result: boolean) => {
       if (!result) {

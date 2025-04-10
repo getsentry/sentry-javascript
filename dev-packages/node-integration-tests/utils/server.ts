@@ -42,8 +42,9 @@ type HeaderAssertCallback = (headers: Record<string, string | string[] | undefin
 
 /** Creates a test server that can be used to check headers */
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-export function createTestServer(done: (error?: unknown) => void) {
+export function createTestServer() {
   const gets: Array<[string, HeaderAssertCallback, number]> = [];
+  let error: unknown | undefined;
 
   return {
     get: function (path: string, callback: HeaderAssertCallback, result = 200) {
@@ -58,7 +59,7 @@ export function createTestServer(done: (error?: unknown) => void) {
           try {
             callback(req.headers);
           } catch (e) {
-            done(e);
+            error = e;
           }
 
           res.status(result).send();
@@ -70,9 +71,11 @@ export function createTestServer(done: (error?: unknown) => void) {
           const address = server.address() as AddressInfo;
           resolve([
             `http://localhost:${address.port}`,
-            (error?: unknown) => {
+            () => {
               server.close();
-              done(error);
+              if (error) {
+                throw error;
+              }
             },
           ]);
         });

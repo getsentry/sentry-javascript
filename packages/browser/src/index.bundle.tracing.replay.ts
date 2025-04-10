@@ -4,8 +4,6 @@ registerSpanErrorInstrumentation();
 
 export * from './index.bundle.base';
 
-export * from './metrics';
-
 export {
   getActiveSpan,
   getRootSpan,

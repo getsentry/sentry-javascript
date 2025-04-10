@@ -7,8 +7,24 @@ const SENTRY_USER_CONFIG = ['./sentry.config.js', './sentry.config.ts'];
 exports.onCreateWebpackConfig = ({ getConfig, actions }, options) => {
   const enableClientWebpackPlugin = options.enableClientWebpackPlugin !== false;
   if (process.env.NODE_ENV === 'production' && enableClientWebpackPlugin) {
-    const deleteSourcemapsAfterUpload = options.deleteSourcemapsAfterUpload === true;
+    const prevSourceMapSetting = getConfig() && 'devtool' in getConfig() ? getConfig().devtool : undefined;
+    const shouldAutomaticallyEnableSourceMaps =
+      prevSourceMapSetting !== 'source-map' && prevSourceMapSetting !== 'hidden-source-map';
+
+    if (shouldAutomaticallyEnableSourceMaps) {
+      // eslint-disable-next-line no-console
+      console.log(
+        '[Sentry] Automatically enabling source map generation by setting `devtool: "hidden-source-map"`. Those source maps will be deleted after they were uploaded to Sentry',
+      );
+    }
+
+    // Delete source maps per default or when this is explicitly set to `true` (`deleteSourceMapsAfterUpload: true` can override the default behavior)
+    const deleteSourcemapsAfterUpload =
+      options.deleteSourcemapsAfterUpload ||
+      (options.deleteSourcemapsAfterUpload !== false && shouldAutomaticallyEnableSourceMaps);
+
     actions.setWebpackConfig({
+      devtool: shouldAutomaticallyEnableSourceMaps ? 'hidden-source-map' : prevSourceMapSetting,
       plugins: [
         sentryWebpackPlugin({
           sourcemaps: {

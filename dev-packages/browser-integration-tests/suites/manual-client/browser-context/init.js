@@ -6,7 +6,7 @@ import {
   defaultStackParser,
   functionToStringIntegration,
   httpContextIntegration,
-  inboundFiltersIntegration,
+  eventFiltersIntegration,
   linkedErrorsIntegration,
   makeFetchTransport,
 } from '@sentry/browser';
@@ -16,7 +16,7 @@ const integrations = [
   functionToStringIntegration(),
   dedupeIntegration(),
   httpContextIntegration(),
-  inboundFiltersIntegration(),
+  eventFiltersIntegration(),
   linkedErrorsIntegration(),
 ];
 

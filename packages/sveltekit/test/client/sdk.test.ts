@@ -45,7 +45,6 @@ describe('Sentry client SDK', () => {
       it.each([
         ['tracesSampleRate', { tracesSampleRate: 0 }],
         ['tracesSampler', { tracesSampler: () => 1.0 }],
-        ['enableTracing', { enableTracing: true }],
         ['no tracing option set', {}],
       ])('adds a browserTracingIntegration if tracing is enabled via %s', (_, tracingOptions) => {
         init({
@@ -65,7 +64,7 @@ describe('Sentry client SDK', () => {
 
         init({
           dsn: 'https://public@dsn.ingest.sentry.io/1337',
-          enableTracing: true,
+          tracesSampleRate: 1,
         });
 
         const browserTracing = getClient<BrowserClient>()?.getIntegrationByName('BrowserTracing');

@@ -1,6 +1,7 @@
 import type * as http from 'http';
 import { parseSemver } from '@sentry/core';
 import type { EnvelopeItemType } from '@sentry/core';
+import { describe } from 'vitest';
 
 const NODE_VERSION = parseSemver(process.versions.node).major;
 
@@ -31,9 +32,8 @@ export type DataCollectorOptions = {
  * Returns`describe` or `describe.skip` depending on allowed major versions of Node.
  *
  * @param {{ min?: number; max?: number }} allowedVersion
- * @return {*}  {jest.Describe}
  */
-export const conditionalTest = (allowedVersion: { min?: number; max?: number }): jest.Describe => {
+export function conditionalTest(allowedVersion: { min?: number; max?: number }): typeof describe | typeof describe.skip{
   if (!NODE_VERSION) {
     return describe.skip;
   }
@@ -41,7 +41,7 @@ export const conditionalTest = (allowedVersion: { min?: number; max?: number }):
   return NODE_VERSION < (allowedVersion.min || -Infinity) || NODE_VERSION > (allowedVersion.max || Infinity)
     ? describe.skip
     : describe;
-};
+}
 
 /**
  * Parses response body containing an Envelope

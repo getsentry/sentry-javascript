@@ -13,13 +13,12 @@ const LazyLoadableIntegrations = {
   captureConsoleIntegration: 'captureconsole',
   contextLinesIntegration: 'contextlines',
   linkedErrorsIntegration: 'linkederrors',
-  debugIntegration: 'debug',
   dedupeIntegration: 'dedupe',
   extraErrorDataIntegration: 'extraerrordata',
+  graphqlClientIntegration: 'graphqlclient',
   httpClientIntegration: 'httpclient',
   reportingObserverIntegration: 'reportingobserver',
   rewriteFramesIntegration: 'rewriteframes',
-  sessionTimingIntegration: 'sessiontiming',
   browserProfilingIntegration: 'browserprofiling',
   moduleMetadataIntegration: 'modulemetadata',
 } as const;
@@ -58,7 +57,7 @@ export async function lazyLoadIntegration(
   const script = WINDOW.document.createElement('script');
   script.src = url;
   script.crossOrigin = 'anonymous';
-  script.referrerPolicy = 'origin';
+  script.referrerPolicy = 'strict-origin';
 
   if (scriptNonce) {
     script.setAttribute('nonce', scriptNonce);
@@ -70,7 +69,7 @@ export async function lazyLoadIntegration(
   });
 
   const currentScript = WINDOW.document.currentScript;
-  const parent = WINDOW.document.body || WINDOW.document.head || (currentScript && currentScript.parentElement);
+  const parent = WINDOW.document.body || WINDOW.document.head || currentScript?.parentElement;
 
   if (parent) {
     parent.appendChild(script);
@@ -95,8 +94,7 @@ export async function lazyLoadIntegration(
 
 function getScriptURL(bundle: string): string {
   const client = getClient<BrowserClient>();
-  const options = client && client.getOptions();
-  const baseURL = (options && options.cdnBaseUrl) || 'https://browser.sentry-cdn.com';
+  const baseURL = client?.getOptions()?.cdnBaseUrl || 'https://browser.sentry-cdn.com';
 
   return new URL(`/${SDK_VERSION}/${bundle}.min.js`, baseURL).toString();
 }

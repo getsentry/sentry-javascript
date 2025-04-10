@@ -1,4 +1,5 @@
 import type { SpanJSON } from '@sentry/core';
+import { afterAll, expect, test } from 'vitest';
 import { assertSentryTransaction } from '../../../../utils/assertions';
 import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
@@ -6,8 +7,8 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('should report finished spans as children of the root transaction.', done => {
-  createRunner(__dirname, 'scenario.ts')
+test('should report finished spans as children of the root transaction.', async () => {
+  await createRunner(__dirname, 'scenario.ts')
     .expect({
       transaction: transaction => {
         const rootSpanId = transaction.contexts?.trace?.span_id;
@@ -30,14 +31,17 @@ test('should report finished spans as children of the root transaction.', done =
             {
               description: 'span_3',
               parent_span_id: rootSpanId,
+              data: {},
             },
             {
               description: 'span_5',
               parent_span_id: span3Id,
+              data: {},
             },
           ] as SpanJSON[],
         });
       },
     })
-    .start(done);
+    .start()
+    .completed();
 });

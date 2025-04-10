@@ -11,24 +11,24 @@
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "test:prod": "TEST_ENV=production playwright test",
-    "test:build": "pnpm install && npx playwright install && pnpm build",
+    "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm test:prod"
   },
   "dependencies": {
     "@sentry/sveltekit": "latest || *"
   },
   "devDependencies": {
-    "@playwright/test": "^1.44.1",
+    "@playwright/test": "~1.50.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@sentry/core": "latest || *",
     "@sveltejs/adapter-auto": "^3.0.0",
     "@sveltejs/adapter-node": "^2.0.0",
-    "@sveltejs/kit": "^2.5.0",
+    "@sveltejs/kit": "^2.16.0",
     "@sveltejs/vite-plugin-svelte": "^3.0.0",
     "svelte": "^4.2.8",
     "svelte-check": "^3.6.0",
     "typescript": "^5.0.0",
-    "vite": "^5.4.10"
+    "vite": "^5.4.11"
   },
   "type": "module"
 }

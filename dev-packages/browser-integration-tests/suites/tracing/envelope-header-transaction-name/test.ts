@@ -27,6 +27,7 @@ sentryTest(
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       public_key: 'public',
       sampled: 'true',
+      sample_rand: expect.any(String),
     });
   },
 );

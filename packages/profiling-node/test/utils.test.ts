@@ -1,6 +1,8 @@
 import { addItemToEnvelope, createEnvelope, uuid4 } from '@sentry/core';
 import type { Event } from '@sentry/core';
+import { describe, expect, it } from 'vitest';
 
+import type { RawThreadCpuProfile } from '@sentry-internal/node-cpu-profiler';
 import {
   addProfilesToEnvelope,
   findProfiledTransactionsFromEnvelope,
@@ -8,7 +10,11 @@ import {
   isValidSampleRate,
 } from '../src/utils';
 
-import type { ProfiledEvent } from '../src/types';
+interface ProfiledEvent extends Event {
+  sdkProcessingMetadata: {
+    profile?: RawThreadCpuProfile;
+  };
+}
 
 function makeProfile(
   props: Partial<ProfiledEvent['sdkProcessingMetadata']['profile']>,

@@ -38,7 +38,7 @@ sentryTest('allows to setup a client manually & capture exceptions', async ({ ge
     environment: 'local',
     release: '0.0.1',
     sdk: {
-      integrations: ['Breadcrumbs', 'FunctionToString', 'Dedupe', 'HttpContext', 'InboundFilters', 'LinkedErrors'],
+      integrations: ['Breadcrumbs', 'FunctionToString', 'Dedupe', 'HttpContext', 'EventFilters', 'LinkedErrors'],
       name: 'sentry.javascript.browser',
       version: expect.any(String),
       packages: [{ name: expect.any(String), version: expect.any(String) }],

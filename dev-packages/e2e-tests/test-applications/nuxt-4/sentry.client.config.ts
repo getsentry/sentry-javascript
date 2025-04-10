@@ -8,7 +8,7 @@ Sentry.init({
   tracesSampleRate: 1.0,
   integrations: [
     Sentry.piniaIntegration(usePinia(), {
-      actionTransformer: action => `Transformed: ${action}`,
+      actionTransformer: action => `${action}.transformed`,
       stateTransformer: state => ({
         transformed: true,
         ...state,

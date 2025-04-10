@@ -59,8 +59,8 @@ export function updateRateLimits(
 
   // "The name is case-insensitive."
   // https://developer.mozilla.org/en-US/docs/Web/API/Headers/get
-  const rateLimitHeader = headers && headers['x-sentry-rate-limits'];
-  const retryAfterHeader = headers && headers['retry-after'];
+  const rateLimitHeader = headers?.['x-sentry-rate-limits'];
+  const retryAfterHeader = headers?.['retry-after'];
 
   if (rateLimitHeader) {
     /**

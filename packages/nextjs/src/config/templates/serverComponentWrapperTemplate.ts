@@ -4,7 +4,6 @@ import * as Sentry from '@sentry/nextjs';
 // API) we use a shim if it doesn't exist. The logic for this is in the wrapping loader.
 import * as origModule from '__SENTRY_NEXTJS_REQUEST_ASYNC_STORAGE_SHIM__';
 // @ts-expect-error We use `__SENTRY_WRAPPING_TARGET_FILE__` as a placeholder for the path to the file being wrapped.
-// biome-ignore lint/nursery/noUnusedImports: Biome doesn't understand the shim with variable import path
 import * as serverComponentModule from '__SENTRY_WRAPPING_TARGET_FILE__';
 
 import type { RequestAsyncStorage } from './requestAsyncStorageShim';

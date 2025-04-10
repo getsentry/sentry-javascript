@@ -8,21 +8,10 @@ import {
   isNodeEnv,
   logger,
 } from '@sentry/core';
-import type {
-  BrowserClient,
-  ErrorBoundaryProps,
-  browserTracingIntegration as originalBrowserTracingIntegration,
-} from '@sentry/react';
-import {
-  WINDOW,
-  getClient,
-  startBrowserTracingNavigationSpan,
-  startBrowserTracingPageLoadSpan,
-  withErrorBoundary,
-} from '@sentry/react';
+import type { BrowserClient, browserTracingIntegration as originalBrowserTracingIntegration } from '@sentry/react';
+import { WINDOW, getClient, startBrowserTracingNavigationSpan, startBrowserTracingPageLoadSpan } from '@sentry/react';
 import * as React from 'react';
 import { DEBUG_BUILD } from '../utils/debug-build';
-import { getFutureFlagsBrowser, readRemixVersionFromLoader } from '../utils/futureFlags';
 
 export type Params<Key extends string = string> = {
   readonly [key in Key]: string | undefined;
@@ -59,15 +48,11 @@ let _useMatches: UseMatches | undefined;
 let _instrumentNavigation: boolean | undefined;
 
 function getInitPathName(): string | undefined {
-  if (WINDOW && WINDOW.location) {
+  if (WINDOW.location) {
     return WINDOW.location.pathname;
   }
 
   return undefined;
-}
-
-function isRemixV2(remixVersion: number | undefined): boolean {
-  return remixVersion === 2 || getFutureFlagsBrowser()?.v2_errorBoundary || false;
 }
 
 export function startPageloadSpan(client: Client): void {
@@ -111,25 +96,25 @@ function startNavigationSpan(matches: RouteMatch<string>[]): void {
 }
 
 /**
- * Wraps a remix `root` (see: https://remix.run/docs/en/v1/guides/migrating-react-router-app#creating-the-root-route)
+ * Wraps a remix `root` (see: https://remix.run/docs/en/main/start/quickstart#the-root-route)
  * To enable pageload/navigation tracing on every route.
- * Also wraps the application with `ErrorBoundary`.
  *
  * @param OrigApp The Remix root to wrap
- * @param options The options for ErrorBoundary wrapper.
+ * @param useEffect The `useEffect` hook from `react`
+ * @param useLocation The `useLocation` hook from `@remix-run/react`
+ * @param useMatches The `useMatches` hook from `@remix-run/react`
+ * @param instrumentNavigation Whether to instrument navigation spans. Defaults to `true`.
  */
 export function withSentry<P extends Record<string, unknown>, R extends React.ComponentType<P>>(
   OrigApp: R,
-  options: {
-    wrapWithErrorBoundary?: boolean;
-    errorBoundaryOptions?: ErrorBoundaryProps;
-  } = {
-    // We don't want to wrap application with Sentry's ErrorBoundary by default for Remix v2
-    wrapWithErrorBoundary: true,
-    errorBoundaryOptions: {},
-  },
+  useEffect?: UseEffect,
+  useLocation?: UseLocation,
+  useMatches?: UseMatches,
+  instrumentNavigation?: boolean,
 ): R {
   const SentryRoot: React.FC<P> = (props: P) => {
+    setGlobals({ useEffect, useLocation, useMatches, instrumentNavigation: instrumentNavigation || true });
+
     // Early return when any of the required functions is not available.
     if (!_useEffect || !_useLocation || !_useMatches) {
       DEBUG_BUILD &&
@@ -177,7 +162,7 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
         return;
       }
 
-      if (_instrumentNavigation && matches && matches.length) {
+      if (_instrumentNavigation && matches?.length) {
         if (activeRootSpan) {
           activeRootSpan.end();
         }
@@ -188,11 +173,6 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
 
     isBaseLocation = false;
 
-    if (!isRemixV2(readRemixVersionFromLoader()) && options.wrapWithErrorBoundary) {
-      // @ts-expect-error Setting more specific React Component typing for `R` generic above
-      // will break advanced type inference done by react router params
-      return withErrorBoundary(OrigApp, options.errorBoundaryOptions)(props);
-    }
     // @ts-expect-error Setting more specific React Component typing for `R` generic above
     // will break advanced type inference done by react router params
     return <OrigApp {...props} />;
@@ -214,8 +194,8 @@ export function setGlobals({
   useMatches?: UseMatches;
   instrumentNavigation?: boolean;
 }): void {
-  _useEffect = useEffect;
-  _useLocation = useLocation;
-  _useMatches = useMatches;
-  _instrumentNavigation = instrumentNavigation;
+  _useEffect = useEffect || _useEffect;
+  _useLocation = useLocation || _useLocation;
+  _useMatches = useMatches || _useMatches;
+  _instrumentNavigation = instrumentNavigation ?? _instrumentNavigation;
 }

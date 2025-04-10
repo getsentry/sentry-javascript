@@ -1,11 +1,12 @@
+import { afterAll, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
 afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('should apply scopes correctly', done => {
-  createRunner(__dirname, 'scenario.ts')
+test('should apply scopes correctly', async () => {
+  await createRunner(__dirname, 'scenario.ts')
     .expect({
       event: {
         message: 'outer_before',
@@ -34,5 +35,6 @@ test('should apply scopes correctly', done => {
         },
       },
     })
-    .start(done);
+    .start()
+    .completed();
 });

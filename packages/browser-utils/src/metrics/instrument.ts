@@ -201,7 +201,7 @@ export function addPerformanceInstrumentationHandler(
 function triggerHandlers(type: InstrumentHandlerType, data: unknown): void {
   const typeHandlers = handlers[type];
 
-  if (!typeHandlers || !typeHandlers.length) {
+  if (!typeHandlers?.length) {
     return;
   }
 

@@ -4,6 +4,12 @@
 export * from './client';
 export * from './vite';
 export * from './server';
+export * from './worker';
+
+// Use the ./server version of some functions that are also exported from ./worker
+export { sentryHandle } from './server';
+// Use the ./worker version of some functions that are also exported from ./server
+export { initCloudflareSentryHandle } from './worker';
 
 import type { Client, Integration, Options, StackParser } from '@sentry/core';
 import type { HandleClientError, HandleServerError } from '@sveltejs/kit';
@@ -42,17 +48,10 @@ export declare const contextLinesIntegration: typeof clientSdk.contextLinesInteg
 export declare const getDefaultIntegrations: (options: Options) => Integration[];
 export declare const defaultStackParser: StackParser;
 
-export declare const getClient: typeof clientSdk.getClient;
-// eslint-disable-next-line deprecation/deprecation
-export declare const getCurrentHub: typeof clientSdk.getCurrentHub;
-
 export declare function close(timeout?: number | undefined): PromiseLike<boolean>;
 export declare function flush(timeout?: number | undefined): PromiseLike<boolean>;
 export declare function lastEventId(): string | undefined;
 
-export declare const continueTrace: typeof clientSdk.continueTrace;
-
-// eslint-disable-next-line deprecation/deprecation
-export declare const metrics: typeof clientSdk.metrics & typeof serverSdk.metrics;
-
 export declare function trackComponent(options: clientSdk.TrackingOptions): ReturnType<typeof clientSdk.trackComponent>;
+
+export declare const logger: typeof clientSdk.logger | typeof serverSdk.logger;

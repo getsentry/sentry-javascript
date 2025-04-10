@@ -92,7 +92,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
             component: '@nestjs/core',
             'nestjs.version': expect.any(String),
             'nestjs.type': 'request_context',
-            'http.method': 'GET',
+            'http.request.method': 'GET',
             'http.url': '/test-transaction',
             'http.route': '/test-transaction',
             'nestjs.controller': 'AppController',
@@ -806,5 +806,10 @@ test('Calling intercept method on service with Injectable decorator returns 200'
 
 test('Calling canActivate method on service with Injectable decorator returns 200', async ({ baseURL }) => {
   const response = await fetch(`${baseURL}/test-service-canActivate`);
+  expect(response.status).toBe(200);
+});
+
+test('Calling @All method on service with Injectable decorator returns 200', async ({ baseURL }) => {
+  const response = await fetch(`${baseURL}/test-all`);
   expect(response.status).toBe(200);
 });

@@ -47,7 +47,7 @@ export function getNativeImplementation<T extends keyof CacheableImplementations
       sandbox.hidden = true;
       document.head.appendChild(sandbox);
       const contentWindow = sandbox.contentWindow;
-      if (contentWindow && contentWindow[name]) {
+      if (contentWindow?.[name]) {
         impl = contentWindow[name] as CacheableImplementations[T];
       }
       document.head.removeChild(sandbox);

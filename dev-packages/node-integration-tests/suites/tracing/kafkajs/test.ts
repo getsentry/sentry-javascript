@@ -1,15 +1,13 @@
+import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
-
-// When running docker compose, we need a larger timeout, as this takes some time...
-jest.setTimeout(60_000);
 
 describe('kafkajs', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
 
-  test('traces producers and consumers', done => {
-    createRunner(__dirname, 'scenario.js')
+  test('traces producers and consumers', { timeout: 60_000 }, async () => {
+    await createRunner(__dirname, 'scenario.js')
       .withDockerCompose({
         workingDirectory: [__dirname],
         readyMatches: ['9092'],
@@ -50,6 +48,7 @@ describe('kafkajs', () => {
           },
         },
       })
-      .start(done);
+      .start()
+      .completed();
   });
 });

@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import type { ProcessArgs, ProcessInterface } from '../../src/utils/entry-point';
 import { getEntryPointType, parseProcessPaths } from '../../src/utils/entry-point';
 

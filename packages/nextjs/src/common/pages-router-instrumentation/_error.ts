@@ -19,7 +19,7 @@ export async function captureUnderscoreErrorException(contextOrProps: ContextOrP
   const { req, res, err } = contextOrProps;
 
   // 404s (and other 400-y friends) can trigger `_error`, but we don't want to send them to Sentry
-  const statusCode = (res && res.statusCode) || contextOrProps.statusCode;
+  const statusCode = res?.statusCode || contextOrProps.statusCode;
   if (statusCode && statusCode < 500) {
     return Promise.resolve();
   }

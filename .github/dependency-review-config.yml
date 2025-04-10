@@ -7,3 +7,5 @@ allow-ghsas:
   - GHSA-fr5h-rqp8-mj6g
   # we need this for an E2E test for the minimum required version of Nuxt 3.7.0
   - GHSA-v784-fjjh-f8r4
+  # Next.js Cache poisoning - We require a vulnerable version for E2E testing
+  - GHSA-gp8f-8m3g-qvj9

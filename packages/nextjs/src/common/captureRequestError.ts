@@ -1,5 +1,7 @@
 import type { RequestEventData } from '@sentry/core';
+import { vercelWaitUntil } from '@sentry/core';
 import { captureException, headersToDict, withScope } from '@sentry/core';
+import { flushSafelyWithTimeout } from './utils/responseEnd';
 
 type RequestInfo = {
   path: string;
@@ -39,13 +41,7 @@ export function captureRequestError(error: unknown, request: RequestInfo, errorC
         handled: false,
       },
     });
+
+    vercelWaitUntil(flushSafelyWithTimeout());
   });
 }
-
-/**
- * Reports errors passed to the the Next.js `onRequestError` instrumentation hook.
- *
- * @deprecated Use `captureRequestError` instead.
- */
-// TODO(v9): Remove this export
-export const experimental_captureRequestError = captureRequestError;

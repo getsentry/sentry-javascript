@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { parseFetchArgs } from '../../../src/utils-hoist/instrument/fetch';
 
 describe('instrument > parseFetchArgs', () => {

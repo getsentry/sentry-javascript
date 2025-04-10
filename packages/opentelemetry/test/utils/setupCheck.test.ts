@@ -1,4 +1,5 @@
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
+import { describe, afterEach, beforeEach, expect, it } from 'vitest';
 
 import { SentrySampler } from '../../src/sampler';
 import { SentrySpanProcessor } from '../../src/spanProcessor';

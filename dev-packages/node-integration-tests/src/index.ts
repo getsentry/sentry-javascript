@@ -29,6 +29,9 @@ export function startExpressServerAndSendPortToRunner(app: Express, port: number
   const server = app.listen(port || 0, () => {
     const address = server.address() as AddressInfo;
 
+    // @ts-expect-error If we write the port to the app we can read it within route handlers in tests
+    app.port = port || address.port;
+
     // eslint-disable-next-line no-console
     console.log(`{"port":${port || address.port}}`);
   });
@@ -40,4 +43,12 @@ export function startExpressServerAndSendPortToRunner(app: Express, port: number
 export function sendPortToRunner(port: number): void {
   // eslint-disable-next-line no-console
   console.log(`{"port":${port}}`);
+}
+
+/**
+ * Can be used to get the port of a running app, so requests can be sent to a server from within the server.
+ */
+export function getPortAppIsRunningOn(app: Express): number | undefined {
+  // @ts-expect-error It's not defined in the types but we'd like to read it.
+  return app.port;
 }

@@ -4,11 +4,6 @@ import { DEBUG_BUILD } from './debug-build';
 import { isString } from './is';
 import { logger } from './logger';
 
-/**
- * @deprecated Use a `"baggage"` string directly
- */
-export const BAGGAGE_HEADER_NAME = 'baggage';
-
 export const SENTRY_BAGGAGE_KEY_PREFIX = 'sentry-';
 
 export const SENTRY_BAGGAGE_KEY_PREFIX_REGEX = /^sentry-/;
@@ -135,7 +130,7 @@ function baggageHeaderToObject(baggageHeader: string): Record<string, string> {
  * @returns a baggage header string, or `undefined` if the object didn't have any values, since an empty baggage header
  * is not spec compliant.
  */
-function objectToBaggageHeader(object: Record<string, string>): string | undefined {
+export function objectToBaggageHeader(object: Record<string, string>): string | undefined {
   if (Object.keys(object).length === 0) {
     // An empty baggage header is not spec compliant: We return undefined.
     return undefined;

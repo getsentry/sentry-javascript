@@ -1,11 +1,14 @@
+import { beforeEach, describe, expect, it, test } from 'vitest';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
   SPAN_STATUS_UNSET,
   SentrySpan,
   TRACEPARENT_REGEXP,
+  convertSpanLinksForEnvelope,
   setCurrentClient,
   spanToTraceHeader,
   startInactiveSpan,
@@ -13,9 +16,17 @@ import {
   timestampInSeconds,
 } from '../../../src';
 import type { Span, SpanAttributes, SpanStatus, SpanTimeInput } from '../../../src/types-hoist';
+import type { SpanLink } from '../../../src/types-hoist/link';
 import type { OpenTelemetrySdkTraceBaseSpan } from '../../../src/utils/spanUtils';
-import { spanToTraceContext } from '../../../src/utils/spanUtils';
-import { getRootSpan, spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../../../src/utils/spanUtils';
+import { TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED } from '../../../src/utils/spanUtils';
+import {
+  getRootSpan,
+  spanIsSampled,
+  spanTimeInputToSeconds,
+  spanToJSON,
+  spanToTraceContext,
+  updateSpanName,
+} from '../../../src/utils/spanUtils';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 function createMockedOtelSpan({
@@ -146,6 +157,115 @@ describe('spanToTraceContext', () => {
       span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
       trace_id: 'ABCD',
     });
+  });
+});
+
+describe('convertSpanLinksForEnvelope', () => {
+  it('returns undefined for undefined input', () => {
+    expect(convertSpanLinksForEnvelope(undefined)).toBeUndefined();
+  });
+
+  it('returns undefined for empty array input', () => {
+    expect(convertSpanLinksForEnvelope([])).toBeUndefined();
+  });
+
+  it('converts a single span link to a flattened envelope item', () => {
+    const links: SpanLink[] = [
+      {
+        context: {
+          spanId: 'span1',
+          traceId: 'trace1',
+          traceFlags: TRACE_FLAG_SAMPLED,
+        },
+        attributes: {
+          'sentry.link.type': 'previous_trace',
+        },
+      },
+    ];
+
+    const result = convertSpanLinksForEnvelope(links);
+
+    result?.forEach(item => expect(item).not.toHaveProperty('context'));
+    expect(result).toEqual([
+      {
+        span_id: 'span1',
+        trace_id: 'trace1',
+        sampled: true,
+        attributes: {
+          'sentry.link.type': 'previous_trace',
+        },
+      },
+    ]);
+  });
+
+  it('converts multiple span links to a flattened envelope item', () => {
+    const links: SpanLink[] = [
+      {
+        context: {
+          spanId: 'span1',
+          traceId: 'trace1',
+          traceFlags: TRACE_FLAG_SAMPLED,
+        },
+        attributes: {
+          'sentry.link.type': 'previous_trace',
+        },
+      },
+      {
+        context: {
+          spanId: 'span2',
+          traceId: 'trace2',
+          traceFlags: TRACE_FLAG_NONE,
+        },
+        attributes: {
+          'sentry.link.type': 'another_trace',
+        },
+      },
+    ];
+
+    const result = convertSpanLinksForEnvelope(links);
+
+    result?.forEach(item => expect(item).not.toHaveProperty('context'));
+    expect(result).toEqual([
+      {
+        span_id: 'span1',
+        trace_id: 'trace1',
+        sampled: true,
+        attributes: {
+          'sentry.link.type': 'previous_trace',
+        },
+      },
+      {
+        span_id: 'span2',
+        trace_id: 'trace2',
+        sampled: false,
+        attributes: {
+          'sentry.link.type': 'another_trace',
+        },
+      },
+    ]);
+  });
+
+  it('handles span links without attributes', () => {
+    const links: SpanLink[] = [
+      {
+        context: {
+          spanId: 'span1',
+          traceId: 'trace1',
+          traceFlags: TRACE_FLAG_SAMPLED,
+        },
+      },
+    ];
+
+    const result = convertSpanLinksForEnvelope(links);
+
+    result?.forEach(item => expect(item).not.toHaveProperty('context'));
+    expect(result).toEqual([
+      {
+        span_id: 'span1',
+        trace_id: 'trace1',
+        sampled: true,
+      },
+    ]);
   });
 });
 
@@ -287,10 +407,21 @@ describe('spanToJSON', () => {
     });
   });
 
-  it('returns empty object for unknown span implementation', () => {
-    const span = { other: 'other' };
+  it('returns minimal object for unknown span implementation', () => {
+    const span = {
+      // This is the minimal interface we require from a span
+      spanContext: () => ({
+        spanId: 'SPAN-1',
+        traceId: 'TRACE-1',
+      }),
+    };
 
-    expect(spanToJSON(span as unknown as Span)).toEqual({});
+    expect(spanToJSON(span as unknown as Span)).toEqual({
+      span_id: 'SPAN-1',
+      trace_id: 'TRACE-1',
+      start_timestamp: 0,
+      data: {},
+    });
   });
 });
 
@@ -330,5 +461,15 @@ describe('getRootSpan', () => {
         });
       });
     });
+  });
+});
+
+describe('updateSpanName', () => {
+  it('updates the span name and source', () => {
+    const span = new SentrySpan({ name: 'old-name', attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' } });
+    updateSpanName(span, 'new-name');
+    const spanJSON = spanToJSON(span);
+    expect(spanJSON.description).toBe('new-name');
+    expect(spanJSON.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('custom');
   });
 });

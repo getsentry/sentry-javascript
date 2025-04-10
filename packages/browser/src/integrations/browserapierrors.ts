@@ -163,15 +163,14 @@ function _wrapXHR(originalSend: () => void): () => void {
 
 function _wrapEventTarget(target: string): void {
   const globalObject = WINDOW as unknown as Record<string, { prototype?: object }>;
-  const targetObj = globalObject[target];
-  const proto = targetObj && targetObj.prototype;
+  const proto = globalObject[target]?.prototype;
 
   // eslint-disable-next-line no-prototype-builtins
-  if (!proto || !proto.hasOwnProperty || !proto.hasOwnProperty('addEventListener')) {
+  if (!proto?.hasOwnProperty?.('addEventListener')) {
     return;
   }
 
-  fill(proto, 'addEventListener', function (original: VoidFunction,): (
+  fill(proto, 'addEventListener', function (original: VoidFunction): (
     ...args: Parameters<typeof WINDOW.addEventListener>
   ) => ReturnType<typeof WINDOW.addEventListener> {
     return function (this: unknown, eventName, fn, options): VoidFunction {
@@ -217,7 +216,7 @@ function _wrapEventTarget(target: string): void {
     };
   });
 
-  fill(proto, 'removeEventListener', function (originalRemoveEventListener: VoidFunction,): (
+  fill(proto, 'removeEventListener', function (originalRemoveEventListener: VoidFunction): (
     this: unknown,
     ...args: Parameters<typeof WINDOW.removeEventListener>
   ) => ReturnType<typeof WINDOW.removeEventListener> {

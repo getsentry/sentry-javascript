@@ -1,4 +1,6 @@
+import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
+import { assertSentryTransaction } from '../../../utils/assertions';
 
 describe('express tracing', () => {
   afterAll(() => {
@@ -6,8 +8,8 @@ describe('express tracing', () => {
   });
 
   describe('CJS', () => {
-    test('should create and send transactions for Express routes and spans for middlewares.', done => {
-      createRunner(__dirname, 'server.js')
+    test('should create and send transactions for Express routes and spans for middlewares.', async () => {
+      const runner = createRunner(__dirname, 'server.js')
         .expect({
           transaction: {
             contexts: {
@@ -44,12 +46,13 @@ describe('express tracing', () => {
             ]),
           },
         })
-        .start(done)
-        .makeRequest('get', '/test/express');
+        .start();
+      runner.makeRequest('get', '/test/express');
+      await runner.completed();
     });
 
-    test('should set a correct transaction name for routes specified in RegEx', done => {
-      createRunner(__dirname, 'server.js')
+    test('should set a correct transaction name for routes specified in RegEx', async () => {
+      const runner = createRunner(__dirname, 'server.js')
         .expect({
           transaction: {
             transaction: 'GET /\\/test\\/regex/',
@@ -70,8 +73,9 @@ describe('express tracing', () => {
             },
           },
         })
-        .start(done)
-        .makeRequest('get', '/test/regex');
+        .start();
+      runner.makeRequest('get', '/test/regex');
+      await runner.completed();
     });
 
     test.each([['array1'], ['array5']])(
@@ -139,7 +143,7 @@ describe('express tracing', () => {
     }) as any);
 
     describe('request data', () => {
-      test('correctly captures JSON request data', done => {
+      test('correctly captures JSON request data', async () => {
         const runner = createRunner(__dirname, 'server.js')
           .expect({
             transaction: {
@@ -158,12 +162,13 @@ describe('express tracing', () => {
               },
             },
           })
-          .start(done);
+          .start();
 
         runner.makeRequest('post', '/test-post', { data: { foo: 'bar', other: 1 } });
+        await runner.completed();
       });
 
-      test('correctly captures plain text request data', done => {
+      test('correctly captures plain text request data', async () => {
         const runner = createRunner(__dirname, 'server.js')
           .expect({
             transaction: {
@@ -179,15 +184,16 @@ describe('express tracing', () => {
               },
             },
           })
-          .start(done);
+          .start();
 
         runner.makeRequest('post', '/test-post', {
           headers: { 'Content-Type': 'text/plain' },
           data: 'some plain text',
         });
+        await runner.completed();
       });
 
-      test('correctly captures text buffer request data', done => {
+      test('correctly captures text buffer request data', async () => {
         const runner = createRunner(__dirname, 'server.js')
           .expect({
             transaction: {
@@ -203,15 +209,16 @@ describe('express tracing', () => {
               },
             },
           })
-          .start(done);
+          .start();
 
         runner.makeRequest('post', '/test-post', {
           headers: { 'Content-Type': 'application/octet-stream' },
           data: Buffer.from('some plain text in buffer'),
         });
+        await runner.completed();
       });
 
-      test('correctly captures non-text buffer request data', done => {
+      test('correctly captures non-text buffer request data', async () => {
         const runner = createRunner(__dirname, 'server.js')
           .expect({
             transaction: {
@@ -228,7 +235,7 @@ describe('express tracing', () => {
               },
             },
           })
-          .start(done);
+          .start();
 
         const body = new Uint8Array([1, 2, 3, 4, 5]).buffer;
 
@@ -236,6 +243,35 @@ describe('express tracing', () => {
           headers: { 'Content-Type': 'application/octet-stream' },
           data: body,
         });
+        await runner.completed();
+      });
+
+      test('correctly ignores request data', async () => {
+        const runner = createRunner(__dirname, 'server.js')
+          .expect({
+            transaction: e => {
+              assertSentryTransaction(e, {
+                transaction: 'POST /test-post-ignore-body',
+                request: {
+                  url: expect.stringMatching(/^http:\/\/localhost:(\d+)\/test-post-ignore-body$/),
+                  method: 'POST',
+                  headers: {
+                    'user-agent': expect.stringContaining(''),
+                    'content-type': 'application/octet-stream',
+                  },
+                },
+              });
+              // Ensure the request body has been ignored
+              expect(e).have.property('request').that.does.not.have.property('data');
+            },
+          })
+          .start();
+
+        runner.makeRequest('post', '/test-post-ignore-body', {
+          headers: { 'Content-Type': 'application/octet-stream' },
+          data: Buffer.from('some plain text in buffer'),
+        });
+        await runner.completed();
       });
     });
   });

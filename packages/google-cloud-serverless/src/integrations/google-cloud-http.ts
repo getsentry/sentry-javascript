@@ -70,5 +70,5 @@ function wrapRequestFunction(orig: RequestFunction): RequestFunction {
 /** Identifies service by its base url */
 function identifyService(apiEndpoint: string): string {
   const match = apiEndpoint.match(/^https:\/\/(\w+)\.googleapis.com$/);
-  return match && match[1] ? match[1] : apiEndpoint.replace(/^(http|https)?:\/\//, '');
+  return match?.[1] || apiEndpoint.replace(/^(http|https)?:\/\//, '');
 }

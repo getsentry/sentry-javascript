@@ -5,8 +5,8 @@ codecov:
 
 ai_pr_review:
   enabled: true
-  method: "label"
-  label_name: "ci-codecov-ai-review"
+  method: 'label'
+  label_name: 'ci-codecov-ai-review'
 
 coverage:
   precision: 2

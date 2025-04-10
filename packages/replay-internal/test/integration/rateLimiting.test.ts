@@ -44,7 +44,7 @@ describe('Integration | rate-limiting behaviour', () => {
     clearSession(replay);
     vi.clearAllMocks();
 
-    replay && replay.stop();
+    replay?.stop();
   });
 
   it.each([

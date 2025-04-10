@@ -1,5 +1,7 @@
 import { context, trace } from '@opentelemetry/api';
 import { getCurrentScope, setAsyncContextStrategy } from '@sentry/core';
+import { describe, afterEach, beforeEach, expect, it, vi } from 'vitest';
+
 import { getTraceData } from '../../src/utils/getTraceData';
 import { makeTraceState } from '../../src/utils/makeTraceState';
 import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
@@ -10,9 +12,9 @@ describe('getTraceData', () => {
     mockSdkInit();
   });
 
-  afterEach(() => {
-    cleanupOtel();
-    jest.clearAllMocks();
+  afterEach(async () => {
+    await cleanupOtel();
+    vi.clearAllMocks();
   });
 
   it('returns the tracing data from the span, if a span is available', () => {
@@ -54,8 +56,8 @@ describe('getTraceData', () => {
   it('returns propagationContext DSC data if no span is available', () => {
     getCurrentScope().setPropagationContext({
       traceId: '12345678901234567890123456789012',
+      sampleRand: Math.random(),
       sampled: true,
-      spanId: '1234567890123456',
       dsc: {
         environment: 'staging',
         public_key: 'key',
@@ -65,10 +67,10 @@ describe('getTraceData', () => {
 
     const traceData = getTraceData();
 
-    expect(traceData).toEqual({
-      'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
-      baggage: 'sentry-environment=staging,sentry-public_key=key,sentry-trace_id=12345678901234567890123456789012',
-    });
+    expect(traceData['sentry-trace']).toMatch(/^12345678901234567890123456789012-[a-f0-9]{16}-1$/);
+    expect(traceData.baggage).toEqual(
+      'sentry-environment=staging,sentry-public_key=key,sentry-trace_id=12345678901234567890123456789012',
+    );
   });
 
   it('works with an span with frozen DSC in traceState', () => {

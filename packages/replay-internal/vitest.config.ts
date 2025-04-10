@@ -7,6 +7,5 @@ export default defineConfig({
   test: {
     ...baseConfig.test,
     setupFiles: ['./test.setup.ts'],
-    reporters: ['default'],
   },
 });

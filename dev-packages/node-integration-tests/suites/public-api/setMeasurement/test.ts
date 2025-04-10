@@ -1,11 +1,12 @@
+import { afterAll, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
 afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('should attach measurement to transaction', done => {
-  createRunner(__dirname, 'scenario.ts')
+test('should attach measurement to transaction', async () => {
+  await createRunner(__dirname, 'scenario.ts')
     .expect({
       transaction: {
         transaction: 'some_transaction',
@@ -16,5 +17,6 @@ test('should attach measurement to transaction', done => {
         },
       },
     })
-    .start(done);
+    .start()
+    .completed();
 });

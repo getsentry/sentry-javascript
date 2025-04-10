@@ -38,6 +38,15 @@ sentryTest('works with a Request passed in', async ({ getLocalTestUrl, page }) =
             type: 'http.client',
             handled: false,
           },
+          stacktrace: {
+            frames: expect.arrayContaining([
+              expect.objectContaining({
+                filename: 'http://sentry-test.io/subject.bundle.js',
+                function: '?',
+                in_app: true,
+              }),
+            ]),
+          },
         },
       ],
     },

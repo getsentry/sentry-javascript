@@ -1,12 +1,22 @@
 import * as os from 'node:os';
 
+import { afterAll, describe, expect, it, vi } from 'vitest';
 import { getAppContext, getDeviceContext } from '../../src/integrations/context';
 import { conditionalTest } from '../helpers/conditional';
+
+vi.mock('node:os', async () => {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-imports
+  const original = (await vi.importActual('node:os')) as typeof import('node:os');
+  return {
+    ...original,
+    uptime: original.uptime,
+  };
+});
 
 describe('Context', () => {
   describe('getAppContext', () => {
     afterAll(() => {
-      jest.clearAllMocks();
+      vi.clearAllMocks();
     });
 
     conditionalTest({ max: 18 })('it does not return free_memory on older node versions', () => {
@@ -23,7 +33,7 @@ describe('Context', () => {
     );
 
     conditionalTest({ min: 22 })('returns no free_memory if process.availableMemory ', () => {
-      jest.spyOn(process as any, 'availableMemory').mockReturnValue(undefined as unknown as number);
+      vi.spyOn(process as any, 'availableMemory').mockReturnValue(undefined as unknown as number);
       const appContext = getAppContext();
       expect(appContext.free_memory).toBeUndefined();
     });
@@ -31,7 +41,7 @@ describe('Context', () => {
 
   describe('getDeviceContext', () => {
     afterAll(() => {
-      jest.clearAllMocks();
+      vi.clearAllMocks();
     });
 
     it('returns boot time if os.uptime is defined and returns a valid uptime', () => {
@@ -40,7 +50,7 @@ describe('Context', () => {
     });
 
     it('returns no boot time if os.uptime() returns undefined', () => {
-      jest.spyOn(os, 'uptime').mockReturnValue(undefined as unknown as number);
+      vi.spyOn(os, 'uptime').mockReturnValue(undefined as unknown as number);
       const deviceCtx = getDeviceContext({});
       expect(deviceCtx.boot_time).toBeUndefined();
     });

@@ -73,22 +73,14 @@ import type {
   HandlerDataUnhandledRejection as HandlerDataUnhandledRejection_imported,
   HandlerDataXhr as HandlerDataXhr_imported,
   HttpHeaderValue as HttpHeaderValue_imported,
-  Hub as Hub_imported,
   InProgressCheckIn as InProgressCheckIn_imported,
   InformationUnit as InformationUnit_imported,
   Integration as Integration_imported,
-  IntegrationClass as IntegrationClass_imported,
   IntegrationFn as IntegrationFn_imported,
   InternalBaseTransportOptions as InternalBaseTransportOptions_imported,
   MeasurementUnit as MeasurementUnit_imported,
   Measurements as Measurements_imported,
   Mechanism as Mechanism_imported,
-  MetricBucketItem as MetricBucketItem_imported,
-  MetricData as MetricData_imported,
-  MetricInstance as MetricInstance_imported,
-  MetricSummary as MetricSummary_imported,
-  Metrics as Metrics_imported,
-  MetricsAggregator as MetricsAggregator_imported,
   MissingInstrumentationContext as MissingInstrumentationContext_imported,
   MonitorConfig as MonitorConfig_imported,
   NoneUnit as NoneUnit_imported,
@@ -113,10 +105,7 @@ import type {
   ReplayEvent as ReplayEvent_imported,
   ReplayRecordingData as ReplayRecordingData_imported,
   ReplayRecordingMode as ReplayRecordingMode_imported,
-  Request as Request_imported,
   RequestEventData as RequestEventData_imported,
-  RequestSession as RequestSession_imported,
-  RequestSessionStatus as RequestSessionStatus_imported,
   Runtime as Runtime_imported,
   SamplingContext as SamplingContext_imported,
   SanitizedRequestData as SanitizedRequestData_imported,
@@ -137,7 +126,6 @@ import type {
   SessionAggregates as SessionAggregates_imported,
   SessionContext as SessionContext_imported,
   SessionEnvelope as SessionEnvelope_imported,
-  SessionFlusherLike as SessionFlusherLike_imported,
   SessionItem as SessionItem_imported,
   SessionStatus as SessionStatus_imported,
   SeverityLevel as SeverityLevel_imported,
@@ -158,8 +146,6 @@ import type {
   StackParser as StackParser_imported,
   Stacktrace as Stacktrace_imported,
   StartSpanOptions as StartSpanOptions_imported,
-  StatsdEnvelope as StatsdEnvelope_imported,
-  StatsdItem as StatsdItem_imported,
   Thread as Thread_imported,
   ThreadCpuFrame as ThreadCpuFrame_imported,
   ThreadCpuProfile as ThreadCpuProfile_imported,
@@ -282,10 +268,6 @@ export type CheckInItem = CheckInItem_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type CheckInEnvelope = CheckInEnvelope_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
-export type StatsdItem = StatsdItem_imported;
-/** @deprecated This type has been moved to `@sentry/core`. */
-export type StatsdEnvelope = StatsdEnvelope_imported;
-/** @deprecated This type has been moved to `@sentry/core`. */
 export type ProfileItem = ProfileItem_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type ProfileChunkEnvelope = ProfileChunkEnvelope_imported;
@@ -316,12 +298,7 @@ export type Extra = Extra_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type Extras = Extras_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
-// eslint-disable-next-line deprecation/deprecation
-export type Hub = Hub_imported;
-/** @deprecated This type has been moved to `@sentry/core`. */
 export type Integration = Integration_imported;
-/** @deprecated This type has been moved to `@sentry/core`. */
-export type IntegrationClass<T> = IntegrationClass_imported<T>;
 /** @deprecated This type has been moved to `@sentry/core`. */
 // eslint-disable-next-line deprecation/deprecation
 export type IntegrationFn<IntegrationType = Integration> = IntegrationFn_imported<IntegrationType>;
@@ -394,9 +371,6 @@ export type QueryParams = QueryParams_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type RequestEventData = RequestEventData_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
-// eslint-disable-next-line deprecation/deprecation
-export type Request = Request_imported;
-/** @deprecated This type has been moved to `@sentry/core`. */
 export type SanitizedRequestData = SanitizedRequestData_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type Runtime = Runtime_imported;
@@ -423,15 +397,6 @@ export type SessionContext = SessionContext_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type SessionStatus = SessionStatus_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
-// eslint-disable-next-line deprecation/deprecation
-export type RequestSession = RequestSession_imported;
-/** @deprecated This type has been moved to `@sentry/core`. */
-// eslint-disable-next-line deprecation/deprecation
-export type RequestSessionStatus = RequestSessionStatus_imported;
-/** @deprecated This type has been moved to `@sentry/core`. */
-// eslint-disable-next-line deprecation/deprecation
-export type SessionFlusherLike = SessionFlusherLike_imported;
-/** @deprecated This type has been moved to `@sentry/core`. */
 export type SerializedSession = SerializedSession_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type SeverityLevel = SeverityLevel_imported;
@@ -453,8 +418,6 @@ export type SpanJSON = SpanJSON_imported;
 export type SpanContextData = SpanContextData_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type TraceFlag = TraceFlag_imported;
-/** @deprecated This type has been moved to `@sentry/core`. */
-export type MetricSummary = MetricSummary_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type SpanStatus = SpanStatus_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
@@ -554,16 +517,6 @@ export type FinishedCheckIn = FinishedCheckIn_imported;
 export type InProgressCheckIn = InProgressCheckIn_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type SerializedCheckIn = SerializedCheckIn_imported;
-/** @deprecated This type has been moved to `@sentry/core`. */
-export type MetricsAggregator = MetricsAggregator_imported;
-/** @deprecated This type has been moved to `@sentry/core`. */
-export type MetricBucketItem = MetricBucketItem_imported;
-/** @deprecated This type has been moved to `@sentry/core`. */
-export type MetricInstance = MetricInstance_imported;
-/** @deprecated This type has been moved to `@sentry/core`. */
-export type MetricData = MetricData_imported;
-/** @deprecated This type has been moved to `@sentry/core`. */
-export type Metrics = Metrics_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type ParameterizedString = ParameterizedString_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */

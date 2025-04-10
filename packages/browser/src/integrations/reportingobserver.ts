@@ -54,7 +54,10 @@ interface ReportingObserverOptions {
 
 /** This is experimental and the types are not included with TypeScript, sadly. */
 interface ReportingObserverClass {
-  new (handler: (reports: Report[]) => void, options: { buffered?: boolean; types?: ReportTypes[] }): {
+  new (
+    handler: (reports: Report[]) => void,
+    options: { buffered?: boolean; types?: ReportTypes[] },
+  ): {
     observe: () => void;
   };
 }

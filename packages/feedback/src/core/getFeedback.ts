@@ -8,5 +8,5 @@ type FeedbackIntegration = ReturnType<typeof buildFeedbackIntegration>;
  */
 export function getFeedback(): ReturnType<FeedbackIntegration> | undefined {
   const client = getClient();
-  return client && client.getIntegrationByName<ReturnType<FeedbackIntegration>>('Feedback');
+  return client?.getIntegrationByName<ReturnType<FeedbackIntegration>>('Feedback');
 }

@@ -1,3 +1,4 @@
+import { describe, expect, test, vi } from 'vitest';
 import { SyncPromise, rejectedSyncPromise, resolvedSyncPromise } from '../../src/utils-hoist/syncpromise';
 
 describe('SyncPromise', () => {
@@ -120,14 +121,14 @@ describe('SyncPromise', () => {
   });
 
   test('with setTimeout', async () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     expect.assertions(1);
 
     return new SyncPromise<number>(resolve => {
       setTimeout(() => {
         resolve(12);
       }, 10);
-      jest.runAllTimers();
+      vi.runAllTimers();
     }).then(val => {
       expect(val).toEqual(12);
     });
@@ -146,7 +147,7 @@ describe('SyncPromise', () => {
   });
 
   test('calling the callback not immediately', () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     expect.assertions(4);
 
     const qp = new SyncPromise<number>(resolve =>
@@ -169,7 +170,7 @@ describe('SyncPromise', () => {
       .then(null, () => {
         // no-empty
       });
-    jest.runAllTimers();
+    vi.runAllTimers();
     expect(qp).toHaveProperty('_value');
   });
 

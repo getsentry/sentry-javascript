@@ -1,11 +1,12 @@
+import { afterAll, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
 afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('should capture a parameterized representation of the message', done => {
-  createRunner(__dirname, 'scenario.ts')
+test('should capture a parameterized representation of the message', async () => {
+  await createRunner(__dirname, 'scenario.ts')
     .expect({
       event: {
         logentry: {
@@ -14,5 +15,6 @@ test('should capture a parameterized representation of the message', done => {
         },
       },
     })
-    .start(done);
+    .start()
+    .completed();
 });

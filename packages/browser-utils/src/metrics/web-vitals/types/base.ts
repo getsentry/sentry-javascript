@@ -104,15 +104,6 @@ export type MetricWithAttribution =
  */
 export type MetricRatingThresholds = [number, number];
 
-/**
- * @deprecated Use metric-specific function types instead, such as:
- * `(metric: LCPMetric) => void`. If a single callback type is needed for
- * multiple metrics, use `(metric: MetricType) => void`.
- */
-export interface ReportCallback {
-  (metric: MetricType): void;
-}
-
 export interface ReportOpts {
   reportAllChanges?: boolean;
   durationThreshold?: number;

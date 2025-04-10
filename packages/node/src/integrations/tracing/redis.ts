@@ -40,7 +40,7 @@ const cacheResponseHook: RedisResponseCustomAttributeFunction = (span: Span, red
   if (
     !safeKey ||
     !cacheOperation ||
-    !_redisOptions?.cachePrefixes ||
+    !_redisOptions.cachePrefixes ||
     !shouldConsiderForCache(redisCommand, safeKey, _redisOptions.cachePrefixes)
   ) {
     // not relevant for cache
@@ -49,8 +49,8 @@ const cacheResponseHook: RedisResponseCustomAttributeFunction = (span: Span, red
 
   // otel/ioredis seems to be using the old standard, as there was a change to those params: https://github.com/open-telemetry/opentelemetry-specification/issues/3199
   // We are using params based on the docs: https://opentelemetry.io/docs/specs/semconv/attributes-registry/network/
-  const networkPeerAddress = spanToJSON(span).data?.['net.peer.name'];
-  const networkPeerPort = spanToJSON(span).data?.['net.peer.port'];
+  const networkPeerAddress = spanToJSON(span).data['net.peer.name'];
+  const networkPeerPort = spanToJSON(span).data['net.peer.port'];
   if (networkPeerPort && networkPeerAddress) {
     span.setAttributes({ 'network.peer.address': networkPeerAddress, 'network.peer.port': networkPeerPort });
   }

@@ -7,7 +7,6 @@
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
     "alwaysStrict": true,
-    "noImplicitUseStrict": false,
     "strictNullChecks": true,
     "strictPropertyInitialization": true,
     "noEmitOnError": false,

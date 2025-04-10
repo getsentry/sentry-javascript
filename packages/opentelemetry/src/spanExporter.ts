@@ -1,18 +1,26 @@
+/* eslint-disable max-lines */
 import type { Span } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
 import { ATTR_HTTP_RESPONSE_STATUS_CODE, SEMATTRS_HTTP_STATUS_CODE } from '@opentelemetry/semantic-conventions';
-import type { SpanJSON, SpanOrigin, TraceContext, TransactionEvent, TransactionSource } from '@sentry/core';
+import type {
+  SpanAttributes,
+  SpanJSON,
+  SpanOrigin,
+  TraceContext,
+  TransactionEvent,
+  TransactionSource,
+} from '@sentry/core';
+import { convertSpanLinksForEnvelope } from '@sentry/core';
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   captureEvent,
-  dropUndefinedKeys,
   getCapturedScopesOnSpan,
   getDynamicSamplingContextFromSpan,
-  getMetricSummaryJsonForSpan,
   getStatusMessage,
   logger,
   spanTimeInputToSeconds,
@@ -133,7 +141,9 @@ export class SentrySpanExporter {
     const remainingOpenSpanCount = finishedSpans.length - sentSpanCount;
 
     DEBUG_BUILD &&
-      logger.log(`SpanExporter exported ${sentSpanCount} spans, ${remainingOpenSpanCount} unsent spans remaining`);
+      logger.log(
+        `SpanExporter exported ${sentSpanCount} spans, ${remainingOpenSpanCount} spans are waiting for their parent spans to finish`,
+      );
 
     sentSpans.forEach(span => {
       const bucketEntry = this._spansToBucketEntry.get(span);
@@ -221,21 +231,23 @@ function parseSpan(span: ReadableSpan): { op?: string; origin?: SpanOrigin; sour
   return { origin, op, source };
 }
 
-function createTransactionForOtelSpan(span: ReadableSpan): TransactionEvent {
+/** Exported only for tests. */
+export function createTransactionForOtelSpan(span: ReadableSpan): TransactionEvent {
   const { op, description, data, origin = 'manual', source } = getSpanData(span);
   const capturedSpanScopes = getCapturedScopesOnSpan(span as unknown as Span);
 
   const sampleRate = span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE] as number | undefined;
 
-  const attributes = dropUndefinedKeys({
+  const attributes: SpanAttributes = {
     [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
     [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: sampleRate,
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin,
     ...data,
     ...removeSentryAttributes(span.attributes),
-  });
+  };
 
+  const { links } = span;
   const { traceId: trace_id, spanId: span_id } = span.spanContext();
 
   // If parentSpanIdFromTraceState is defined at all, we want it to take precedence
@@ -247,7 +259,7 @@ function createTransactionForOtelSpan(span: ReadableSpan): TransactionEvent {
 
   const status = mapStatus(span);
 
-  const traceContext: TraceContext = dropUndefinedKeys({
+  const traceContext: TraceContext = {
     parent_span_id,
     span_id,
     trace_id,
@@ -255,7 +267,11 @@ function createTransactionForOtelSpan(span: ReadableSpan): TransactionEvent {
     origin,
     op,
     status: getStatusMessage(status), // As per protocol, span status is allowed to be undefined
-  });
+    links: convertSpanLinksForEnvelope(links),
+  };
+
+  const statusCode = attributes[ATTR_HTTP_RESPONSE_STATUS_CODE];
+  const responseContext = typeof statusCode === 'number' ? { response: { status_code: statusCode } } : undefined;
 
   const transactionEvent: TransactionEvent = {
     contexts: {
@@ -263,6 +279,7 @@ function createTransactionForOtelSpan(span: ReadableSpan): TransactionEvent {
       otel: {
         resource: span.resource.attributes,
       },
+      ...responseContext,
     },
     spans: [],
     start_timestamp: spanTimeInputToSeconds(span.startTime),
@@ -270,19 +287,16 @@ function createTransactionForOtelSpan(span: ReadableSpan): TransactionEvent {
     transaction: description,
     type: 'transaction',
     sdkProcessingMetadata: {
-      ...dropUndefinedKeys({
-        capturedSpanScope: capturedSpanScopes.scope,
-        capturedSpanIsolationScope: capturedSpanScopes.isolationScope,
-        sampleRate,
-        dynamicSamplingContext: getDynamicSamplingContextFromSpan(span as unknown as Span),
-      }),
+      capturedSpanScope: capturedSpanScopes.scope,
+      capturedSpanIsolationScope: capturedSpanScopes.isolationScope,
+      sampleRate,
+      dynamicSamplingContext: getDynamicSamplingContextFromSpan(span as unknown as Span),
     },
     ...(source && {
       transaction_info: {
         source,
       },
     }),
-    _metrics_summary: getMetricSummaryJsonForSpan(span as unknown as Span),
   };
 
   return transactionEvent;
@@ -308,19 +322,19 @@ function createAndFinishSpanForOtelSpan(node: SpanNode, spans: SpanJSON[], sentS
   const span_id = span.spanContext().spanId;
   const trace_id = span.spanContext().traceId;
 
-  const { attributes, startTime, endTime, parentSpanId } = span;
+  const { attributes, startTime, endTime, parentSpanId, links } = span;
 
   const { op, description, data, origin = 'manual' } = getSpanData(span);
-  const allData = dropUndefinedKeys({
+  const allData = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin,
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
     ...removeSentryAttributes(attributes),
     ...data,
-  });
+  };
 
   const status = mapStatus(span);
 
-  const spanJSON: SpanJSON = dropUndefinedKeys({
+  const spanJSON: SpanJSON = {
     span_id,
     trace_id,
     data: allData,
@@ -332,9 +346,9 @@ function createAndFinishSpanForOtelSpan(node: SpanNode, spans: SpanJSON[], sentS
     status: getStatusMessage(status), // As per protocol, span status is allowed to be undefined
     op,
     origin,
-    _metrics_summary: getMetricSummaryJsonForSpan(span as unknown as Span),
     measurements: timedEventsToMeasurements(span.events),
-  });
+    links: convertSpanLinksForEnvelope(links),
+  };
 
   spans.push(spanJSON);
 
@@ -377,6 +391,7 @@ function removeSentryAttributes(data: Record<string, unknown>): Record<string, u
   /* eslint-disable @typescript-eslint/no-dynamic-delete */
   delete cleanedData[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE];
   delete cleanedData[SEMANTIC_ATTRIBUTE_SENTRY_PARENT_IS_REMOTE];
+  delete cleanedData[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME];
   /* eslint-enable @typescript-eslint/no-dynamic-delete */
 
   return cleanedData;

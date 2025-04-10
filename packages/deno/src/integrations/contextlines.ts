@@ -74,9 +74,9 @@ export const contextLinesIntegration = defineIntegration(_contextLinesIntegratio
 
 /** Processes an event and adds context lines */
 async function addSourceContext(event: Event, contextLines: number): Promise<Event> {
-  if (contextLines > 0 && event.exception && event.exception.values) {
+  if (contextLines > 0 && event.exception?.values) {
     for (const exception of event.exception.values) {
-      if (exception.stacktrace && exception.stacktrace.frames) {
+      if (exception.stacktrace?.frames) {
         await addSourceContextToFrames(exception.stacktrace.frames, contextLines);
       }
     }

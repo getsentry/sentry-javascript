@@ -30,9 +30,9 @@ export const TTFBThresholds: MetricRatingThresholds = [800, 1800];
  * @param callback
  */
 const whenReady = (callback: () => void) => {
-  if (WINDOW.document && WINDOW.document.prerendering) {
+  if (WINDOW.document?.prerendering) {
     whenActivated(() => whenReady(callback));
-  } else if (WINDOW.document && WINDOW.document.readyState !== 'complete') {
+  } else if (WINDOW.document?.readyState !== 'complete') {
     addEventListener('load', () => whenReady(callback), true);
   } else {
     // Queue a task so the callback runs after `loadEventEnd`.

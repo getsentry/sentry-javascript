@@ -1,14 +1,15 @@
+/* eslint-disable max-lines */
 import * as child_process from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
-import { escapeStringForRegex, uuid4 } from '@sentry/core';
+import { consoleSandbox, escapeStringForRegex, uuid4 } from '@sentry/core';
 import { getSentryRelease } from '@sentry/node';
 import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
-import type { Plugin } from 'vite';
+import type { Plugin, UserConfig } from 'vite';
 
 import MagicString from 'magic-string';
-import { WRAPPED_MODULE_SUFFIX } from './autoInstrument';
+import { WRAPPED_MODULE_SUFFIX } from '../common/utils';
 import type { GlobalSentryValues } from './injectGlobalValues';
 import { VIRTUAL_GLOBAL_VALUES_FILE, getGlobalValueInjectionCode } from './injectGlobalValues';
 import { getAdapterOutputDir, getHooksFileName, loadSvelteConfig } from './svelteConfig';
@@ -47,7 +48,7 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
   const svelteConfig = await loadSvelteConfig();
 
   const usedAdapter = options?.adapter || 'other';
-  const outputDir = await getAdapterOutputDir(svelteConfig, usedAdapter);
+  const adapterOutputDir = await getAdapterOutputDir(svelteConfig, usedAdapter);
 
   const defaultPluginOptions: SentryVitePluginOptions = {
     release: {
@@ -60,6 +61,9 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
     },
   };
 
+  const { promise: filesToDeleteAfterUpload, resolve: resolveFilesToDeleteAfterUpload } =
+    createFilesToDeleteAfterUploadPromise();
+
   const mergedOptions = {
     ...defaultPluginOptions,
     ...options,
@@ -67,7 +71,12 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
       ...defaultPluginOptions.release,
       ...options?.release,
     },
+    sourcemaps: {
+      ...options?.sourcemaps,
+      filesToDeleteAfterUpload,
+    },
   };
+
   const { debug } = mergedOptions;
 
   const sentryPlugins: Plugin[] = await sentryVitePlugin(mergedOptions);
@@ -76,53 +85,142 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
     plugin => plugin.name === 'sentry-vite-debug-id-upload-plugin',
   );
 
+  const sentryViteFileDeletionPlugin = sentryPlugins.find(plugin => plugin.name === 'sentry-file-deletion-plugin');
+
+  const sentryViteReleaseManagementPlugin = sentryPlugins.find(
+    // sentry-debug-id-upload-plugin was the old (misleading) name of the plugin
+    // sentry-release-management-plugin is the new name
+    plugin => plugin.name === 'sentry-debug-id-upload-plugin' || plugin.name === 'sentry-release-management-plugin',
+  );
+
   if (!sentryViteDebugIdUploadPlugin) {
     debug &&
       // eslint-disable-next-line no-console
       console.warn(
         'sentry-vite-debug-id-upload-plugin not found in sentryPlugins! Cannot modify plugin - returning default Sentry Vite plugins',
       );
+
+    // resolving filesToDeleteAfterUpload here, because we return the original deletion plugin which awaits the promise
+    resolveFilesToDeleteAfterUpload(undefined);
+
     return sentryPlugins;
   }
 
-  const restOfSentryVitePlugins = sentryPlugins.filter(plugin => plugin.name !== 'sentry-vite-debug-id-upload-plugin');
+  if (!sentryViteFileDeletionPlugin) {
+    debug &&
+      // eslint-disable-next-line no-console
+      console.warn(
+        'sentry-file-deletion-plugin not found in sentryPlugins! Cannot modify plugin - returning default Sentry Vite plugins',
+      );
+
+    // resolving filesToDeleteAfterUpload here, because we return the original deletion plugin which awaits the promise
+    resolveFilesToDeleteAfterUpload(undefined);
+
+    return sentryPlugins;
+  }
+
+  if (!sentryViteReleaseManagementPlugin) {
+    debug &&
+      // eslint-disable-next-line no-console
+      console.warn(
+        'sentry-release-management-plugin not found in sentryPlugins! Cannot modify plugin - returning default Sentry Vite plugins',
+      );
+
+    // resolving filesToDeleteAfterUpload here, because we return the original deletion plugin which awaits the promise
+    resolveFilesToDeleteAfterUpload(undefined);
+
+    return sentryPlugins;
+  }
+
+  const unchangedSentryVitePlugins = sentryPlugins.filter(
+    plugin =>
+      ![
+        'sentry-vite-debug-id-upload-plugin',
+        'sentry-file-deletion-plugin',
+        'sentry-release-management-plugin', // new name of release management plugin
+        'sentry-debug-id-upload-plugin', // old name of release management plugin
+      ].includes(plugin.name),
+  );
 
   let isSSRBuild = true;
 
   const serverHooksFile = getHooksFileName(svelteConfig, 'server');
 
   const globalSentryValues: GlobalSentryValues = {
-    __sentry_sveltekit_output_dir: outputDir,
+    __sentry_sveltekit_output_dir: adapterOutputDir,
   };
 
-  const customPlugin: Plugin = {
-    name: 'sentry-upload-sveltekit-source-maps',
+  const sourceMapSettingsPlugin: Plugin = {
+    name: 'sentry-sveltekit-update-source-map-setting-plugin',
     apply: 'build', // only apply this plugin at build time
-    enforce: 'post', // this needs to be set to post, otherwise we don't pick up the output from the SvelteKit adapter
+    config: async (config: UserConfig) => {
+      const settingKey = 'build.sourcemap';
 
-    // Modify the config to generate source maps
-    config: config => {
-      const sourceMapsPreviouslyNotEnabled = !config.build?.sourcemap;
-      if (debug && sourceMapsPreviouslyNotEnabled) {
-        // eslint-disable-next-line no-console
-        console.log('[Source Maps Plugin] Enabling source map generation');
-        if (!mergedOptions.sourcemaps?.filesToDeleteAfterUpload) {
-          // eslint-disable-next-line no-console
+      const { updatedSourceMapSetting, previousSourceMapSetting } = getUpdatedSourceMapSetting(config);
+
+      const userProvidedFilesToDeleteAfterUpload = await options?.sourcemaps?.filesToDeleteAfterUpload;
+
+      if (previousSourceMapSetting === 'unset') {
+        consoleSandbox(() => {
+          //  eslint-disable-next-line no-console
+          console.log(`[Sentry] Enabled source map generation in the build options with \`${settingKey}: "hidden"\`.`);
+        });
+
+        if (userProvidedFilesToDeleteAfterUpload) {
+          resolveFilesToDeleteAfterUpload(userProvidedFilesToDeleteAfterUpload);
+        } else {
+          // Including all hidden (`.*`) directories by default so that folders like .vercel,
+          // .netlify, etc are also cleaned up. Additionally, we include the adapter output
+          // dir which could be a non-hidden directory, like `build` for the Node adapter.
+          const defaultFileDeletionGlob = ['./.*/**/*.map', `./${adapterOutputDir}/**/*.map`];
+
+          consoleSandbox(() => {
+            // eslint-disable-next-line no-console
+            console.warn(
+              `[Sentry] Automatically setting \`sourceMapsUploadOptions.sourcemaps.filesToDeleteAfterUpload: [${defaultFileDeletionGlob
+                .map(file => `"${file}"`)
+                .join(', ')}]\` to delete generated source maps after they were uploaded to Sentry.`,
+            );
+          });
+
+          // In case we enabled source maps and users didn't specify a glob patter to delete, we set a default pattern:
+          resolveFilesToDeleteAfterUpload(defaultFileDeletionGlob);
+        }
+
+        return {
+          ...config,
+          build: { ...config.build, sourcemap: updatedSourceMapSetting },
+        };
+      }
+
+      if (previousSourceMapSetting === 'disabled') {
+        consoleSandbox(() => {
+          //  eslint-disable-next-line no-console
           console.warn(
-            `[Source Maps Plugin] We recommend setting the \`sourceMapsUploadOptions.sourcemaps.filesToDeleteAfterUpload\` option to clean up source maps after uploading.
-[Source Maps Plugin] Otherwise, source maps might be deployed to production, depending on your configuration`,
+            `[Sentry] Parts of source map generation are currently disabled in your Vite configuration (\`${settingKey}: false\`). This setting is either a default setting or was explicitly set in your configuration. Sentry won't override this setting. Without source maps, code snippets on the Sentry Issues page will remain minified. To show unminified code, enable source maps in \`${settingKey}\` (e.g. by setting them to \`hidden\`).`,
           );
+        });
+      } else if (previousSourceMapSetting === 'enabled') {
+        if (mergedOptions?.debug) {
+          consoleSandbox(() => {
+            // eslint-disable-next-line no-console
+            console.log(
+              `[Sentry] We discovered you enabled source map generation in your Vite configuration (\`${settingKey}\`). Sentry will keep this source map setting. This will un-minify the code snippet on the Sentry Issue page.`,
+            );
+          });
         }
       }
-      return {
-        ...config,
-        build: {
-          ...config.build,
-          sourcemap: true,
-        },
-      };
-    },
 
+      resolveFilesToDeleteAfterUpload(userProvidedFilesToDeleteAfterUpload);
+
+      return config;
+    },
+  };
+
+  const customDebugIdUploadPlugin: Plugin = {
+    name: 'sentry-sveltekit-debug-id-upload-plugin',
+    apply: 'build', // only apply this plugin at build time
+    enforce: 'post', // this needs to be set to post, otherwise we don't pick up the output from the SvelteKit adapter
     resolveId: (id, _importer, _ref) => {
       if (id === VIRTUAL_GLOBAL_VALUES_FILE) {
         return {
@@ -177,7 +275,7 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
         return;
       }
 
-      const outDir = path.resolve(process.cwd(), outputDir);
+      const outDir = path.resolve(process.cwd(), adapterOutputDir);
       // eslint-disable-next-line no-console
       debug && console.log('[Source Maps Plugin] Looking up source maps in', outDir);
 
@@ -248,7 +346,101 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
     },
   };
 
-  return [...restOfSentryVitePlugins, customPlugin];
+  // The file deletion plugin is originally called in `writeBundle`.
+  // We need to call it in `closeBundle` though, because we also postpone
+  // the upload step to `closeBundle`
+  const customFileDeletionPlugin: Plugin = {
+    name: 'sentry-sveltekit-file-deletion-plugin',
+    apply: 'build', // only apply this plugin at build time
+    enforce: 'post',
+    closeBundle: async () => {
+      if (!isSSRBuild) {
+        return;
+      }
+
+      const writeBundleFn = sentryViteFileDeletionPlugin?.writeBundle;
+      if (typeof writeBundleFn === 'function') {
+        // This is fine though, because the original method doesn't consume any arguments in its `writeBundle` callback.
+        const outDir = path.resolve(process.cwd(), adapterOutputDir);
+        try {
+          // @ts-expect-error - the writeBundle hook expects two args we can't pass in here (they're only available in `writeBundle`)
+          await writeBundleFn({ dir: outDir });
+        } catch (e) {
+          // eslint-disable-next-line no-console
+          console.warn('Failed to delete source maps:', e);
+        }
+      }
+    },
+  };
+
+  const customReleaseManagementPlugin: Plugin = {
+    name: 'sentry-sveltekit-release-management-plugin',
+    apply: 'build', // only apply this plugin at build time
+    enforce: 'post',
+    closeBundle: async () => {
+      try {
+        // @ts-expect-error - this hook exists on the plugin!
+        await sentryViteReleaseManagementPlugin.writeBundle();
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn('[Source Maps Plugin] Failed to upload release data:', e);
+      }
+    },
+  };
+
+  return [
+    ...unchangedSentryVitePlugins,
+    sourceMapSettingsPlugin,
+    customReleaseManagementPlugin,
+    customDebugIdUploadPlugin,
+    customFileDeletionPlugin,
+  ];
+}
+
+/**
+ * Whether the user enabled (true, 'hidden', 'inline') or disabled (false) source maps
+ */
+type UserSourceMapSetting = 'enabled' | 'disabled' | 'unset' | undefined;
+
+/** There are 3 ways to set up source map generation (https://github.com/getsentry/sentry-javascript/issues/13993)
+ *
+ *     1. User explicitly disabled source maps
+ *       - keep this setting (emit a warning that errors won't be unminified in Sentry)
+ *       - We won't upload anything
+ *
+ *     2. Users enabled source map generation (true, 'hidden', 'inline').
+ *       - keep this setting (don't do anything - like deletion - besides uploading)
+ *
+ *     3. Users didn't set source maps generation
+ *       - we enable 'hidden' source maps generation
+ *       - configure `filesToDeleteAfterUpload` to delete all .map files (we emit a log about this)
+ *
+ * --> only exported for testing
+ */
+export function getUpdatedSourceMapSetting(viteConfig: {
+  build?: {
+    sourcemap?: boolean | 'inline' | 'hidden';
+  };
+}): { updatedSourceMapSetting: boolean | 'inline' | 'hidden'; previousSourceMapSetting: UserSourceMapSetting } {
+  viteConfig.build = viteConfig.build || {};
+
+  const originalSourcemapSetting = viteConfig.build.sourcemap;
+
+  if (originalSourcemapSetting === false) {
+    return {
+      previousSourceMapSetting: 'disabled',
+      updatedSourceMapSetting: originalSourcemapSetting,
+    };
+  }
+
+  if (originalSourcemapSetting && ['hidden', 'inline', true].includes(originalSourcemapSetting)) {
+    return { previousSourceMapSetting: 'enabled', updatedSourceMapSetting: originalSourcemapSetting };
+  }
+
+  return {
+    previousSourceMapSetting: 'unset',
+    updatedSourceMapSetting: 'hidden',
+  };
 }
 
 function getFiles(dir: string): string[] {
@@ -283,4 +475,23 @@ function detectSentryRelease(): string {
   const release = getSentryRelease() || releaseFallback;
 
   return release;
+}
+
+/**
+ * Creates a deferred promise that can be resolved/rejected by calling the
+ * `resolve` or `reject` function.
+ * Inspired by: https://stackoverflow.com/a/69027809
+ */
+function createFilesToDeleteAfterUploadPromise(): {
+  promise: Promise<string | string[] | undefined>;
+  resolve: (value: string | string[] | undefined) => void;
+  reject: (reason?: unknown) => void;
+} {
+  let resolve!: (value: string | string[] | undefined) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<string | string[] | undefined>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { resolve, reject, promise };
 }

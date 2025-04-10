@@ -229,7 +229,7 @@ export default {
 };
 ```
 
-### Disabeling automatic source map upload
+### Disabling automatic source map upload
 
 If you don't want to upload source maps automatically, you can disable it as follows:
 

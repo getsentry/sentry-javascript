@@ -1,4 +1,5 @@
 import type { FeatureFlag } from '../featureFlags';
+import type { SpanLinkJSON } from './link';
 import type { Primitive } from './misc';
 import type { SpanOrigin } from './span';
 
@@ -106,6 +107,7 @@ export interface TraceContext extends Record<string, unknown> {
   tags?: { [key: string]: Primitive };
   trace_id: string;
   origin?: SpanOrigin;
+  links?: SpanLinkJSON[];
 }
 
 export interface CloudResourceContext extends Record<string, unknown> {

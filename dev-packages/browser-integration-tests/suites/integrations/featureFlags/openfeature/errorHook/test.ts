@@ -4,7 +4,7 @@ import { sentryTest } from '../../../../../utils/fixtures';
 
 import { envelopeRequestParser, shouldSkipFeatureFlagsTest, waitForErrorRequest } from '../../../../../utils/helpers';
 
-const FLAG_BUFFER_SIZE = 100; // Corresponds to constant in featureFlags.ts, in browser utils.
+import { FLAG_BUFFER_SIZE } from '../../constants';
 
 sentryTest('Flag evaluation error hook', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipFeatureFlagsTest()) {

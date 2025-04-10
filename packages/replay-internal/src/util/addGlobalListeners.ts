@@ -17,7 +17,10 @@ import type { ReplayContainer } from '../types';
 /**
  * Add global listeners that cannot be removed.
  */
-export function addGlobalListeners(replay: ReplayContainer): void {
+export function addGlobalListeners(
+  replay: ReplayContainer,
+  { autoFlushOnFeedback }: { autoFlushOnFeedback?: boolean },
+): void {
   // Listeners from core SDK //
   const client = getClient();
 
@@ -57,15 +60,22 @@ export function addGlobalListeners(replay: ReplayContainer): void {
       replay.lastActiveSpan = span;
     });
 
-    // We want to flush replay
-    client.on('beforeSendFeedback', (feedbackEvent, options) => {
+    // We want to attach the replay id to the feedback event
+    client.on('beforeSendFeedback', async (feedbackEvent, options) => {
       const replayId = replay.getSessionId();
-      if (options && options.includeReplay && replay.isEnabled() && replayId) {
-        // This should never reject
-        if (feedbackEvent.contexts && feedbackEvent.contexts.feedback) {
-          feedbackEvent.contexts.feedback.replay_id = replayId;
+      if (options?.includeReplay && replay.isEnabled() && replayId && feedbackEvent.contexts?.feedback) {
+        // In case the feedback is sent via API and not through our widget, we want to flush replay
+        if (feedbackEvent.contexts.feedback.source === 'api' && autoFlushOnFeedback) {
+          await replay.flush();
         }
+        feedbackEvent.contexts.feedback.replay_id = replayId;
       }
     });
+
+    if (autoFlushOnFeedback) {
+      client.on('openFeedbackWidget', async () => {
+        await replay.flush();
+      });
+    }
   }
 }

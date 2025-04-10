@@ -1,5 +1,5 @@
-import type { Client, DsnComponents, DynamicSamplingContext, Event } from '../../src/types-hoist';
-
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Client } from '../../src';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SentrySpan,
@@ -9,6 +9,7 @@ import {
   setCurrentClient,
 } from '../../src';
 import { createEventEnvelope, createSpanEnvelope } from '../../src/envelope';
+import type { DsnComponents, DynamicSamplingContext, Event } from '../../src/types-hoist';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 
 const testDsn: DsnComponents = { protocol: 'https', projectId: 'abc', host: 'testry.io', publicKey: 'pubKey123' };
@@ -97,11 +98,11 @@ describe('createSpanEnvelope', () => {
     client.init();
 
     // We want to avoid console errors in the tests
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   it('creates a span envelope', () => {
@@ -116,7 +117,7 @@ describe('createSpanEnvelope', () => {
 
     const spanEnvelope = createSpanEnvelope([span]);
 
-    const spanItem = spanEnvelope[1]?.[0]?.[1];
+    const spanItem = spanEnvelope[1][0]?.[1];
     expect(spanItem).toEqual({
       data: {
         'sentry.origin': 'manual',
@@ -192,7 +193,7 @@ describe('createSpanEnvelope', () => {
   });
 
   it('calls `beforeSendSpan` and uses original span without any changes', () => {
-    const beforeSendSpan = jest.fn(span => span);
+    const beforeSendSpan = vi.fn(span => span);
     const options = getDefaultTestClientOptions({ dsn: 'https://domain/123', beforeSendSpan });
     const client = new TestClient(options);
 
@@ -207,7 +208,7 @@ describe('createSpanEnvelope', () => {
 
     expect(beforeSendSpan).toHaveBeenCalled();
 
-    const spanItem = spanEnvelope[1]?.[0]?.[1];
+    const spanItem = spanEnvelope[1][0]?.[1];
     expect(spanItem).toEqual({
       data: {
         'sentry.origin': 'manual',
@@ -224,7 +225,7 @@ describe('createSpanEnvelope', () => {
   });
 
   it('calls `beforeSendSpan` and uses the modified span', () => {
-    const beforeSendSpan = jest.fn(span => {
+    const beforeSendSpan = vi.fn(span => {
       span.description = `mutated description: ${span.description}`;
       return span;
     });
@@ -242,7 +243,7 @@ describe('createSpanEnvelope', () => {
 
     expect(beforeSendSpan).toHaveBeenCalled();
 
-    const spanItem = spanEnvelope[1]?.[0]?.[1];
+    const spanItem = spanEnvelope[1][0]?.[1];
     expect(spanItem).toEqual({
       data: {
         'sentry.origin': 'manual',

@@ -7,7 +7,7 @@ sentryTest(
   async ({ getLocalTestUrl, page, forceFlushReplay }) => {
     const bundle = process.env.PW_BUNDLE;
 
-    if (!bundle || !bundle.startsWith('bundle_') || bundle.includes('replay')) {
+    if (!bundle?.startsWith('bundle_') || bundle.includes('replay')) {
       sentryTest.skip();
     }
 

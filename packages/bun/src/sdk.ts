@@ -1,5 +1,8 @@
+import * as os from 'node:os';
 import {
+  applySdkMetadata,
   functionToStringIntegration,
+  hasSpansEnabled,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
   requestDataIntegration,
@@ -9,6 +12,7 @@ import type { NodeClient } from '@sentry/node';
 import {
   consoleIntegration,
   contextLinesIntegration,
+  getAutoPerformanceIntegrations,
   httpIntegration,
   init as initNode,
   modulesIntegration,
@@ -18,7 +22,6 @@ import {
   onUnhandledRejectionIntegration,
 } from '@sentry/node';
 
-import { BunClient } from './client';
 import { bunServerIntegration } from './integrations/bunserver';
 import { makeFetchTransport } from './transports';
 import type { BunOptions } from './types';
@@ -28,6 +31,8 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
   // We return a copy of the defaultIntegrations here to avoid mutating this
   return [
     // Common
+    // TODO(v10): Replace with eventFiltersIntegration once we remove the deprecated `inboundFiltersIntegration`
+    // eslint-disable-next-line deprecation/deprecation
     inboundFiltersIntegration(),
     functionToStringIntegration(),
     linkedErrorsIntegration(),
@@ -45,6 +50,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     modulesIntegration(),
     // Bun Specific
     bunServerIntegration(),
+    ...(hasSpansEnabled(_options) ? getAutoPerformanceIntegrations() : []),
   ];
 }
 
@@ -92,8 +98,16 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
  *
  * @see {@link BunOptions} for documentation on configuration options.
  */
-export function init(options: BunOptions = {}): NodeClient | undefined {
-  options.clientClass = BunClient;
+export function init(userOptions: BunOptions = {}): NodeClient | undefined {
+  applySdkMetadata(userOptions, 'bun');
+
+  const options = {
+    ...userOptions,
+    platform: 'javascript',
+    runtime: { name: 'bun', version: Bun.version },
+    serverName: userOptions.serverName || global.process.env.SENTRY_NAME || os.hostname(),
+  };
+
   options.transport = options.transport || makeFetchTransport;
 
   if (options.defaultIntegrations === undefined) {

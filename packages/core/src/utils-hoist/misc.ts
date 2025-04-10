@@ -15,21 +15,23 @@ interface CryptoGlobal {
   crypto?: CryptoInternal;
 }
 
+function getCrypto(): CryptoInternal | undefined {
+  const gbl = GLOBAL_OBJ as typeof GLOBAL_OBJ & CryptoGlobal;
+  return gbl.crypto || gbl.msCrypto;
+}
+
 /**
  * UUID4 generator
- *
+ * @param crypto Object that provides the crypto API.
  * @returns string Generated UUID4.
  */
-export function uuid4(): string {
-  const gbl = GLOBAL_OBJ as typeof GLOBAL_OBJ & CryptoGlobal;
-  const crypto = gbl.crypto || gbl.msCrypto;
-
+export function uuid4(crypto = getCrypto()): string {
   let getRandomByte = (): number => Math.random() * 16;
   try {
-    if (crypto && crypto.randomUUID) {
+    if (crypto?.randomUUID) {
       return crypto.randomUUID().replace(/-/g, '');
     }
-    if (crypto && crypto.getRandomValues) {
+    if (crypto?.getRandomValues) {
       getRandomByte = () => {
         // crypto.getRandomValues might return undefined instead of the typed array
         // in old Chromium versions (e.g. 23.0.1235.0 (151422))
@@ -55,7 +57,7 @@ export function uuid4(): string {
 }
 
 function getFirstException(event: Event): Exception | undefined {
-  return event.exception && event.exception.values ? event.exception.values[0] : undefined;
+  return event.exception?.values?.[0];
 }
 
 /**
@@ -115,7 +117,7 @@ export function addExceptionMechanism(event: Event, newMechanism?: Partial<Mecha
   firstException.mechanism = { ...defaultMechanism, ...currentMechanism, ...newMechanism };
 
   if (newMechanism && 'data' in newMechanism) {
-    const mergedData = { ...(currentMechanism && currentMechanism.data), ...newMechanism.data };
+    const mergedData = { ...currentMechanism?.data, ...newMechanism.data };
     firstException.mechanism.data = mergedData;
   }
 }
@@ -229,16 +231,4 @@ function isAlreadyCaptured(exception: unknown): boolean | void {
   try {
     return (exception as { __sentry_captured__?: boolean }).__sentry_captured__;
   } catch {} // eslint-disable-line no-empty
-}
-
-/**
- * Checks whether the given input is already an array, and if it isn't, wraps it in one.
- *
- * @param maybeArray Input to turn into an array, if necessary
- * @returns The input, if already an array, or an array with the input as the only element, if not
- *
- * @deprecated This function has been deprecated and will not be replaced.
- */
-export function arrayify<T = unknown>(maybeArray: T | T[]): T[] {
-  return Array.isArray(maybeArray) ? maybeArray : [maybeArray];
 }

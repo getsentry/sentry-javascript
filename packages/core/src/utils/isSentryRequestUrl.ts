@@ -1,4 +1,5 @@
-import type { Client, DsnComponents } from '../types-hoist';
+import type { Client } from '../client';
+import type { DsnComponents } from '../types-hoist';
 
 /**
  * Checks whether given url points to Sentry server
@@ -6,8 +7,8 @@ import type { Client, DsnComponents } from '../types-hoist';
  * @param url url to verify
  */
 export function isSentryRequestUrl(url: string, client: Client | undefined): boolean {
-  const dsn = client && client.getDsn();
-  const tunnel = client && client.getOptions().tunnel;
+  const dsn = client?.getDsn();
+  const tunnel = client?.getOptions().tunnel;
   return checkDsn(url, dsn) || checkTunnel(url, tunnel);
 }
 

@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it, test, vi } from 'vitest';
 import {
   Scope,
   addBreadcrumb,
@@ -35,7 +36,7 @@ describe('captureFeedback', () => {
     setCurrentClient(client);
     client.init();
 
-    const mockTransport = jest.spyOn(client.getTransport()!, 'send');
+    const mockTransport = vi.spyOn(client.getTransport()!, 'send');
 
     const eventId = captureFeedback({
       message: 'test',
@@ -90,7 +91,7 @@ describe('captureFeedback', () => {
     setCurrentClient(client);
     client.init();
 
-    const mockTransport = jest.spyOn(client.getTransport()!, 'send');
+    const mockTransport = vi.spyOn(client.getTransport()!, 'send');
 
     const eventId = captureFeedback({
       name: 'doe',
@@ -155,7 +156,7 @@ describe('captureFeedback', () => {
     setCurrentClient(client);
     client.init();
 
-    const mockTransport = jest.spyOn(client.getTransport()!, 'send');
+    const mockTransport = vi.spyOn(client.getTransport()!, 'send');
 
     const attachment1 = new Uint8Array([1, 2, 3, 4, 5]);
     const attachment2 = new Uint8Array([6, 7, 8, 9]);
@@ -248,7 +249,7 @@ describe('captureFeedback', () => {
     setCurrentClient(client);
     client.init();
 
-    const mockTransport = jest.spyOn(client.getTransport()!, 'send');
+    const mockTransport = vi.spyOn(client.getTransport()!, 'send');
 
     const traceId = '4C79F60C11214EB38604F4AE0781BFB2';
     const spanId = 'FA90FDEAD5F74052';
@@ -260,8 +261,9 @@ describe('captureFeedback', () => {
 
     getCurrentScope().setPropagationContext({
       traceId,
-      spanId,
+      parentSpanId: spanId,
       dsc,
+      sampleRand: 0.42,
     });
 
     const eventId = captureFeedback({
@@ -290,7 +292,8 @@ describe('captureFeedback', () => {
             contexts: {
               trace: {
                 trace_id: traceId,
-                span_id: spanId,
+                parent_span_id: spanId,
+                span_id: expect.stringMatching(/[a-f0-9]{16}/),
               },
               feedback: {
                 message: 'test',
@@ -312,7 +315,7 @@ describe('captureFeedback', () => {
       getDefaultTestClientOptions({
         dsn: 'https://dsn@ingest.f00.f00/1',
         enableSend: true,
-        enableTracing: true,
+        tracesSampleRate: 1,
         // We don't care about transactions here...
         beforeSendTransaction() {
           return null;
@@ -322,7 +325,7 @@ describe('captureFeedback', () => {
     setCurrentClient(client);
     client.init();
 
-    const mockTransport = jest.spyOn(client.getTransport()!, 'send');
+    const mockTransport = vi.spyOn(client.getTransport()!, 'send');
 
     let span: Span | undefined;
     const eventId = startSpan({ name: 'test-span' }, _span => {
@@ -350,6 +353,7 @@ describe('captureFeedback', () => {
           sampled: 'true',
           sample_rate: '1',
           transaction: 'test-span',
+          sample_rand: expect.any(String),
         },
       },
       [
@@ -382,7 +386,7 @@ describe('captureFeedback', () => {
       getDefaultTestClientOptions({
         dsn: 'https://dsn@ingest.f00.f00/1',
         enableSend: true,
-        enableTracing: true,
+        tracesSampleRate: 1,
         // We don't care about transactions here...
         beforeSendTransaction() {
           return null;
@@ -392,7 +396,7 @@ describe('captureFeedback', () => {
     setCurrentClient(client);
     client.init();
 
-    const mockTransport = jest.spyOn(client.getTransport()!, 'send');
+    const mockTransport = vi.spyOn(client.getTransport()!, 'send');
 
     withIsolationScope(isolationScope => {
       isolationScope.setTag('test-1', 'tag');
@@ -478,8 +482,8 @@ describe('captureFeedback', () => {
     const scope = new Scope();
     scope.setClient(client2);
 
-    const mockTransport = jest.spyOn(client.getTransport()!, 'send');
-    const mockTransport2 = jest.spyOn(client2.getTransport()!, 'send');
+    const mockTransport = vi.spyOn(client.getTransport()!, 'send');
+    const mockTransport2 = vi.spyOn(client2.getTransport()!, 'send');
 
     const eventId = captureFeedback(
       {

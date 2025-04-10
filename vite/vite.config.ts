@@ -5,10 +5,23 @@ export default defineConfig({
     __DEBUG_BUILD__: true,
   },
   test: {
-    globals: true,
     coverage: {
       enabled: true,
       reportsDirectory: './coverage',
+      exclude: [
+        '**/node_modules/**',
+        '**/test/**',
+        '**/tests/**',
+        '**/__tests__/**',
+        '**/rollup*.config.*',
+        '**/build/**',
+        '.eslint*',
+        'vite.config.*',
+      ],
+    },
+    reporters: ['default', ...(process.env.CI ? [['junit', { classnameTemplate: '{filepath}' }]] : [])],
+    outputFile: {
+      junit: 'vitest.junit.xml',
     },
     typecheck: {
       tsconfig: './tsconfig.test.json',

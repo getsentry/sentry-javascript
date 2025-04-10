@@ -10,7 +10,7 @@ import {
 const META_TAG_TRACE_ID = '12345678901234567890123456789012';
 const META_TAG_PARENT_SPAN_ID = '1234567890123456';
 const META_TAG_BAGGAGE =
-  'sentry-trace_id=12345678901234567890123456789012,sentry-public_key=public,sentry-release=1.0.0,sentry-environment=prod';
+  'sentry-trace_id=12345678901234567890123456789012,sentry-public_key=public,sentry-release=1.0.0,sentry-environment=prod,sentry-sample_rand=0.42';
 
 sentryTest('error on initial page has traceId from meta tag', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
@@ -41,6 +41,7 @@ sentryTest('error on initial page has traceId from meta tag', async ({ getLocalT
     public_key: 'public',
     release: '1.0.0',
     trace_id: META_TAG_TRACE_ID,
+    sample_rand: '0.42',
   });
 });
 
@@ -72,6 +73,7 @@ sentryTest('error has new traceId after navigation', async ({ getLocalTestUrl, p
     public_key: 'public',
     release: '1.0.0',
     trace_id: META_TAG_TRACE_ID,
+    sample_rand: expect.any(String),
   });
 
   const errorEventPromise2 = getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
@@ -103,7 +105,7 @@ sentryTest('outgoing fetch requests have new traceId after navigation', async ({
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  await page.route('http://example.com/**', route => {
+  await page.route('http://sentry-test-site.example/**', route => {
     return route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -113,7 +115,7 @@ sentryTest('outgoing fetch requests have new traceId after navigation', async ({
 
   await page.goto(url);
 
-  const requestPromise = page.waitForRequest('http://example.com/*');
+  const requestPromise = page.waitForRequest('http://sentry-test-site.example/*');
   await page.locator('#fetchBtn').click();
   const request = await requestPromise;
   const headers = request.headers();
@@ -124,7 +126,7 @@ sentryTest('outgoing fetch requests have new traceId after navigation', async ({
 
   await page.goto(`${url}#navigation`);
 
-  const requestPromise2 = page.waitForRequest('http://example.com/*');
+  const requestPromise2 = page.waitForRequest('http://sentry-test-site.example/*');
   await page.locator('#fetchBtn').click();
   const request2 = await requestPromise2;
   const headers2 = request2.headers();
@@ -145,7 +147,7 @@ sentryTest('outgoing XHR requests have new traceId after navigation', async ({ g
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  await page.route('http://example.com/**', route => {
+  await page.route('http://sentry-test-site.example/**', route => {
     return route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -155,7 +157,7 @@ sentryTest('outgoing XHR requests have new traceId after navigation', async ({ g
 
   await page.goto(url);
 
-  const requestPromise = page.waitForRequest('http://example.com/*');
+  const requestPromise = page.waitForRequest('http://sentry-test-site.example/*');
   await page.locator('#xhrBtn').click();
   const request = await requestPromise;
   const headers = request.headers();
@@ -166,7 +168,7 @@ sentryTest('outgoing XHR requests have new traceId after navigation', async ({ g
 
   await page.goto(`${url}#navigation`);
 
-  const requestPromise2 = page.waitForRequest('http://example.com/*');
+  const requestPromise2 = page.waitForRequest('http://sentry-test-site.example/*');
   await page.locator('#xhrBtn').click();
   const request2 = await requestPromise2;
   const headers2 = request2.headers();

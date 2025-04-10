@@ -54,6 +54,7 @@ sentryTest('should capture an INP click event span during pageload', async ({ br
       sample_rate: '1',
       sampled: 'true',
       trace_id: traceId,
+      sample_rand: expect.any(String),
       // no transaction, because span source is URL
     },
   });

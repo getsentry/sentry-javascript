@@ -28,3 +28,25 @@ test('Sends correct error event', async ({ baseURL }) => {
     parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
   });
 });
+
+test('Does not send 4xx errors by default', async ({ baseURL }) => {
+  // Define our test approach: we'll send both a 5xx and a 4xx request
+  // We should only see the 5xx error captured due to shouldHandleError's default behavior
+
+  // Create a promise to wait for the 500 error
+  const serverErrorPromise = waitForError('node-fastify', event => {
+    // Looking for a 500 error that should be captured
+    return !!event.exception?.values?.[0]?.value?.includes('This is a 5xx error');
+  });
+
+  // Make a request that will trigger a 400 error
+  const notFoundResponse = await fetch(`${baseURL}/test-4xx-error`);
+  expect(notFoundResponse.status).toBe(400);
+
+  // Make a request that will trigger a 500 error
+  await fetch(`${baseURL}/test-5xx-error`);
+
+  // Verify we receive the 500 error
+  const errorEvent = await serverErrorPromise;
+  expect(errorEvent.exception?.values?.[0]?.value).toContain('This is a 5xx error');
+});

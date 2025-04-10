@@ -1,5 +1,5 @@
 import type { BrowserClientReplayOptions, Client, Integration, IntegrationFn, ReplayRecordingMode } from '@sentry/core';
-import { consoleSandbox, dropUndefinedKeys, isBrowser, parseSampleRate } from '@sentry/core';
+import { consoleSandbox, isBrowser, parseSampleRate } from '@sentry/core';
 import {
   DEFAULT_FLUSH_MAX_DELAY,
   DEFAULT_FLUSH_MIN_DELAY,
@@ -46,16 +46,8 @@ export const replayIntegration = ((options?: ReplayConfiguration) => {
 
 /**
  * Replay integration
- *
- * TODO: Rewrite this to be functional integration
- * Exported for tests.
  */
 export class Replay implements Integration {
-  /**
-   * @inheritDoc
-   */
-  public static id: string = 'Replay';
-
   /**
    * @inheritDoc
    */
@@ -114,7 +106,7 @@ export class Replay implements Integration {
     beforeErrorSampling,
     onError,
   }: ReplayConfiguration = {}) {
-    this.name = Replay.id;
+    this.name = 'Replay';
 
     const privacyOptions = getPrivacyOptions({
       mask,
@@ -158,6 +150,8 @@ export class Replay implements Integration {
           // this can happen if the error is frozen or does not allow mutation for other reasons
         }
       },
+      // experimental support for recording iframes from different origins
+      recordCrossOriginIframes: Boolean(_experiments.recordCrossOriginIframes),
     };
 
     this._initialOptions = {
@@ -288,7 +282,7 @@ export class Replay implements Integration {
    * Get the current session ID.
    */
   public getReplayId(): string | undefined {
-    if (!this._replay || !this._replay.isEnabled()) {
+    if (!this._replay?.isEnabled()) {
       return;
     }
 
@@ -304,7 +298,7 @@ export class Replay implements Integration {
    *   - or calling `flush()` to send the replay
    */
   public getRecordingMode(): ReplayRecordingMode | undefined {
-    if (!this._replay || !this._replay.isEnabled()) {
+    if (!this._replay?.isEnabled()) {
       return;
     }
 
@@ -362,7 +356,7 @@ function loadReplayOptionsFromClient(initialOptions: InitialReplayPluginOptions,
   const finalOptions: ReplayPluginOptions = {
     sessionSampleRate: 0,
     errorSampleRate: 0,
-    ...dropUndefinedKeys(initialOptions),
+    ...initialOptions,
   };
 
   const replaysSessionSampleRate = parseSampleRate(opt.replaysSessionSampleRate);

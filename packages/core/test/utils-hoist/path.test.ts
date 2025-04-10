@@ -1,3 +1,4 @@
+import { describe, expect, test } from 'vitest';
 import { basename, dirname } from '../../src/utils-hoist/path';
 
 describe('path', () => {

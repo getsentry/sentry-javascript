@@ -49,9 +49,9 @@ const _browserProfilingIntegration = (() => {
         const profilesToAddToEnvelope: Profile[] = [];
 
         for (const profiledTransaction of profiledTransactionEvents) {
-          const context = profiledTransaction && profiledTransaction.contexts;
-          const profile_id = context && context['profile'] && context['profile']['profile_id'];
-          const start_timestamp = context && context['profile'] && context['profile']['start_timestamp'];
+          const context = profiledTransaction?.contexts;
+          const profile_id = context?.profile?.['profile_id'];
+          const start_timestamp = context?.profile?.['start_timestamp'];
 
           if (typeof profile_id !== 'string') {
             DEBUG_BUILD && logger.log('[Profiling] cannot find profile for a span without a profile context');
@@ -64,7 +64,7 @@ const _browserProfilingIntegration = (() => {
           }
 
           // Remove the profile from the span context before sending, relay will take care of the rest.
-          if (context && context['profile']) {
+          if (context?.profile) {
             delete context.profile;
           }
 

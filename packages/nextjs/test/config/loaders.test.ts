@@ -2,6 +2,7 @@
 import './mocks';
 
 import * as fs from 'fs';
+import { describe, vi, it, expect } from 'vitest';
 
 import type { ModuleRuleUseProperty, WebpackModuleRule } from '../../src/config/types';
 import {
@@ -13,36 +14,8 @@ import {
 } from './fixtures';
 import { materializeFinalWebpackConfig } from './testUtils';
 
-const existsSyncSpy = jest.spyOn(fs, 'existsSync');
-const lstatSyncSpy = jest.spyOn(fs, 'lstatSync');
-
-type MatcherResult = { pass: boolean; message: () => string };
-
-expect.extend({
-  stringEndingWith(received: string, expectedEnding: string): MatcherResult {
-    const failsTest = !received.endsWith(expectedEnding);
-    const generateErrorMessage = () =>
-      failsTest
-        ? // Regular error message for match failing
-          `expected string ending with '${expectedEnding}', but got '${received}'`
-        : // Error message for the match passing if someone has called it with `expect.not`
-          `expected string not ending with '${expectedEnding}', but got '${received}'`;
-
-    return {
-      pass: !failsTest,
-      message: generateErrorMessage,
-    };
-  },
-});
-
-declare global {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
-  namespace jest {
-    interface Expect {
-      stringEndingWith: (expectedEnding: string) => MatcherResult;
-    }
-  }
-}
+const existsSyncSpy = vi.spyOn(fs, 'existsSync');
+const lstatSyncSpy = vi.spyOn(fs, 'lstatSync');
 
 function applyRuleToResource(rule: WebpackModuleRule, resourcePath: string): ModuleRuleUseProperty[] {
   const applications = [];
@@ -80,7 +53,7 @@ describe('webpack loaders', () => {
         test: expect.any(RegExp),
         use: [
           {
-            loader: expect.stringEndingWith('valueInjectionLoader.js'),
+            loader: expect.stringMatching(/valueInjectionLoader\.js$/),
             // We use `expect.objectContaining({})` rather than `expect.any(Object)` to match any plain object because
             // the latter will also match arrays, regexes, dates, sets, etc. - anything whose `typeof` value is
             // `'object'`.
@@ -272,7 +245,7 @@ describe('webpack loaders', () => {
         test: /sentry\.client\.config\.(jsx?|tsx?)/,
         use: [
           {
-            loader: expect.stringEndingWith('valueInjectionLoader.js'),
+            loader: expect.stringMatching(/valueInjectionLoader\.js$/),
             // We use `expect.objectContaining({})` rather than `expect.any(Object)` to match any plain object because
             // the latter will also match arrays, regexes, dates, sets, etc. - anything whose `typeof` value is
             // `'object'`.
@@ -285,9 +258,10 @@ describe('webpack loaders', () => {
 });
 
 describe('`distDir` value in default server-side `RewriteFrames` integration', () => {
-  describe('`RewriteFrames` ends up with correct `distDir` value', () => {
+  it('`RewriteFrames` ends up with correct `distDir` value', () => {
     // TODO: this, along with any number of other parts of the build process, should be tested with an integration
     // test which actually runs webpack and inspects the resulting bundles (and that integration test should test
-    // custom `distDir` values with and without a `.`, to make sure the regex escaping is working)
+    // custom `distDir` values with and without a `.`, to make sure the regex
+    // escaping is working)
   });
 });

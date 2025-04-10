@@ -1,23 +1,24 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 
+import { type Mock, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Client } from '../../../src';
 import * as CurrentScopes from '../../../src/currentScopes';
 import * as SentryCore from '../../../src/exports';
-import type { Client, ConsoleLevel, Event } from '../../../src/types-hoist';
-
 import { captureConsoleIntegration } from '../../../src/integrations/captureconsole';
+import type { ConsoleLevel, Event } from '../../../src/types-hoist';
 import { addConsoleInstrumentationHandler } from '../../../src/utils-hoist/instrument/console';
 import { resetInstrumentationHandlers } from '../../../src/utils-hoist/instrument/handlers';
 import { CONSOLE_LEVELS, originalConsoleMethods } from '../../../src/utils-hoist/logger';
 import { GLOBAL_OBJ } from '../../../src/utils-hoist/worldwide';
 
-const mockConsole: { [key in ConsoleLevel]: jest.Mock<any> } = {
-  debug: jest.fn(),
-  log: jest.fn(),
-  warn: jest.fn(),
-  error: jest.fn(),
-  assert: jest.fn(),
-  info: jest.fn(),
-  trace: jest.fn(),
+const mockConsole: { [key in ConsoleLevel]: Mock<any> } = {
+  debug: vi.fn(),
+  log: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+  assert: vi.fn(),
+  info: vi.fn(),
+  trace: vi.fn(),
 };
 
 describe('CaptureConsole setup', () => {
@@ -28,23 +29,23 @@ describe('CaptureConsole setup', () => {
   let mockClient: Client;
 
   const mockScope = {
-    setExtra: jest.fn(),
-    addEventProcessor: jest.fn(),
+    setExtra: vi.fn(),
+    addEventProcessor: vi.fn(),
   };
 
-  const captureMessage = jest.fn();
-  const captureException = jest.fn();
-  const withScope = jest.fn(callback => {
+  const captureMessage = vi.fn();
+  const captureException = vi.fn();
+  const withScope = vi.fn(callback => {
     return callback(mockScope);
   });
 
   beforeEach(() => {
     mockClient = {} as Client;
 
-    jest.spyOn(SentryCore, 'captureMessage').mockImplementation(captureMessage);
-    jest.spyOn(SentryCore, 'captureException').mockImplementation(captureException);
-    jest.spyOn(CurrentScopes, 'getClient').mockImplementation(() => mockClient);
-    jest.spyOn(CurrentScopes, 'withScope').mockImplementation(withScope);
+    vi.spyOn(SentryCore, 'captureMessage').mockImplementation(captureMessage);
+    vi.spyOn(SentryCore, 'captureException').mockImplementation(captureException);
+    vi.spyOn(CurrentScopes, 'getClient').mockImplementation(() => mockClient);
+    vi.spyOn(CurrentScopes, 'withScope').mockImplementation(withScope);
 
     CONSOLE_LEVELS.forEach(key => {
       originalConsoleMethods[key] = mockConsole[key];
@@ -52,7 +53,7 @@ describe('CaptureConsole setup', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     CONSOLE_LEVELS.forEach(key => {
       originalConsoleMethods[key] = _originalConsoleMethods[key];
@@ -132,7 +133,7 @@ describe('CaptureConsole setup', () => {
 
     expect(mockScope.addEventProcessor).toHaveBeenCalledTimes(1);
 
-    const addedEventProcessor = (mockScope.addEventProcessor as jest.Mock).mock.calls[0][0];
+    const addedEventProcessor = (mockScope.addEventProcessor as Mock).mock.calls[0]?.[0];
     const someEvent: Event = {};
     addedEventProcessor(someEvent);
 
@@ -261,7 +262,7 @@ describe('CaptureConsole setup', () => {
   it('should call the original console function when console members are called', () => {
     // Mock console log to test if it was called
     const originalConsoleLog = GLOBAL_OBJ.console.log;
-    const mockConsoleLog = jest.fn();
+    const mockConsoleLog = vi.fn();
     GLOBAL_OBJ.console.log = mockConsoleLog;
 
     const captureConsole = captureConsoleIntegration({ levels: ['log'] });
@@ -305,29 +306,77 @@ describe('CaptureConsole setup', () => {
     }).not.toThrow();
   });
 
-  it("marks captured exception's mechanism as unhandled", () => {
-    // const addExceptionMechanismSpy = jest.spyOn(utils, 'addExceptionMechanism');
+  describe('exception mechanism', () => {
+    it("marks captured exception's mechanism as handled by default", () => {
+      const captureConsole = captureConsoleIntegration({ levels: ['error'] });
+      captureConsole.setup?.(mockClient);
 
-    const captureConsole = captureConsoleIntegration({ levels: ['error'] });
-    captureConsole.setup?.(mockClient);
+      const someError = new Error('some error');
+      GLOBAL_OBJ.console.error(someError);
 
-    const someError = new Error('some error');
-    GLOBAL_OBJ.console.error(someError);
+      const addedEventProcessor = (mockScope.addEventProcessor as Mock).mock.calls[0]?.[0];
+      const someEvent: Event = {
+        exception: {
+          values: [{}],
+        },
+      };
+      addedEventProcessor(someEvent);
 
-    const addedEventProcessor = (mockScope.addEventProcessor as jest.Mock).mock.calls[0][0];
-    const someEvent: Event = {
-      exception: {
-        values: [{}],
-      },
-    };
-    addedEventProcessor(someEvent);
+      expect(captureException).toHaveBeenCalledTimes(1);
+      expect(mockScope.addEventProcessor).toHaveBeenCalledTimes(1);
 
-    expect(captureException).toHaveBeenCalledTimes(1);
-    expect(mockScope.addEventProcessor).toHaveBeenCalledTimes(1);
+      expect(someEvent.exception?.values?.[0]?.mechanism).toEqual({
+        handled: true,
+        type: 'console',
+      });
+    });
 
-    expect(someEvent.exception?.values?.[0]?.mechanism).toEqual({
-      handled: false,
-      type: 'console',
+    it("marks captured exception's mechanism as handled if set in the options", () => {
+      const captureConsole = captureConsoleIntegration({ levels: ['error'], handled: true });
+      captureConsole.setup?.(mockClient);
+
+      const someError = new Error('some error');
+      GLOBAL_OBJ.console.error(someError);
+
+      const addedEventProcessor = (mockScope.addEventProcessor as Mock).mock.calls[0]?.[0];
+      const someEvent: Event = {
+        exception: {
+          values: [{}],
+        },
+      };
+      addedEventProcessor(someEvent);
+
+      expect(captureException).toHaveBeenCalledTimes(1);
+      expect(mockScope.addEventProcessor).toHaveBeenCalledTimes(1);
+
+      expect(someEvent.exception?.values?.[0]?.mechanism).toEqual({
+        handled: true,
+        type: 'console',
+      });
+    });
+
+    it("marks captured exception's mechanism as unhandled if set in the options", () => {
+      const captureConsole = captureConsoleIntegration({ levels: ['error'], handled: false });
+      captureConsole.setup?.(mockClient);
+
+      const someError = new Error('some error');
+      GLOBAL_OBJ.console.error(someError);
+
+      const addedEventProcessor = (mockScope.addEventProcessor as Mock).mock.calls[0]?.[0];
+      const someEvent: Event = {
+        exception: {
+          values: [{}],
+        },
+      };
+      addedEventProcessor(someEvent);
+
+      expect(captureException).toHaveBeenCalledTimes(1);
+      expect(mockScope.addEventProcessor).toHaveBeenCalledTimes(1);
+
+      expect(someEvent.exception?.values?.[0]?.mechanism).toEqual({
+        handled: false,
+        type: 'console',
+      });
     });
   });
 });

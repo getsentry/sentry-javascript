@@ -2,13 +2,14 @@ import { GLOBAL_OBJ } from '@sentry/core';
 import type { Integration } from '@sentry/core';
 import { getCurrentScope } from '@sentry/node';
 import * as SentryNode from '@sentry/node';
+import { describe, vi, afterEach, it, expect } from 'vitest';
 
 import { init } from '../src/server';
 
 // normally this is set as part of the build process, so mock it here
 (GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryRewriteFramesDistDir: string })._sentryRewriteFramesDistDir = '.next';
 
-const nodeInit = jest.spyOn(SentryNode, 'init');
+const nodeInit = vi.spyOn(SentryNode, 'init');
 
 function findIntegrationByName(integrations: Integration[] = [], name: string): Integration | undefined {
   return integrations.find(integration => integration.name === name);
@@ -16,7 +17,7 @@ function findIntegrationByName(integrations: Integration[] = [], name: string): 
 
 describe('Server init()', () => {
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     SentryNode.getGlobalScope().clear();
     SentryNode.getIsolationScope().clear();
@@ -48,7 +49,6 @@ describe('Server init()', () => {
             ],
           },
         },
-        autoSessionTracking: false,
         environment: 'test',
 
         // Integrations are tested separately, and we can't be more specific here without depending on the order in

@@ -1,15 +1,19 @@
+/**
+ * @vitest-environment jsdom
+ */
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { SentrySpan } from '@sentry/core';
 import type { StartSpanOptions } from '@sentry/core';
 import { render } from '@testing-library/react';
 import { renderHook } from '@testing-library/react-hooks';
-// biome-ignore lint/nursery/noUnusedImports: Need React import for JSX
 import * as React from 'react';
 
 import { REACT_MOUNT_OP, REACT_RENDER_OP, REACT_UPDATE_OP } from '../src/constants';
 import { UNKNOWN_COMPONENT, useProfiler, withProfiler } from '../src/profiler';
 
-const mockStartInactiveSpan = jest.fn((spanArgs: StartSpanOptions) => ({ ...spanArgs }));
-const mockFinish = jest.fn();
+const mockStartInactiveSpan = vi.fn((spanArgs: StartSpanOptions) => ({ ...spanArgs }));
+const mockFinish = vi.fn();
 
 class MockSpan extends SentrySpan {
   public end(): void {
@@ -19,8 +23,8 @@ class MockSpan extends SentrySpan {
 
 let activeSpan: Record<string, any>;
 
-jest.mock('@sentry/browser', () => ({
-  ...jest.requireActual('@sentry/browser'),
+vi.mock('@sentry/browser', async requireActual => ({
+  ...(await requireActual()),
   getActiveSpan: () => activeSpan,
   startInactiveSpan: (ctx: StartSpanOptions) => {
     mockStartInactiveSpan(ctx);

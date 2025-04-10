@@ -1,3 +1,4 @@
+import { describe, expect, test } from 'vitest';
 import { GLOBAL_OBJ } from '../../src/utils-hoist/worldwide';
 
 describe('GLOBAL_OBJ', () => {
