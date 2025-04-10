@@ -348,7 +348,7 @@ function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilte
           queryItems.push(translateFiltersIntoMethods(key, value));
         }
 
-        const body: Record<string, unknown> = {};
+        const body: Record<string, unknown> = Object.create(null);
         if (isPlainObject(typedThis.body)) {
           for (const [key, value] of Object.entries(typedThis.body)) {
             body[key] = value;
