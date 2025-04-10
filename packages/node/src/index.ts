@@ -2,7 +2,6 @@ export { httpIntegration } from './integrations/http';
 export { nativeNodeFetchIntegration } from './integrations/node-fetch';
 export { fsIntegration } from './integrations/fs';
 
-export { consoleIntegration } from './integrations/console';
 export { nodeContextIntegration } from './integrations/context';
 export { contextLinesIntegration } from './integrations/contextlines';
 export { localVariablesIntegration } from './integrations/local-variables';
@@ -131,6 +130,7 @@ export {
   zodErrorsIntegration,
   profiler,
   consoleLoggingIntegration,
+  consoleIntegration,
 } from '@sentry/core';
 
 export type {
