@@ -1,6 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSupabaseClient } from '@/lib/initSupabaseAdmin';
-import * as Sentry from '@sentry/nextjs';
 
 type Data = {
   data: any;
@@ -10,6 +9,7 @@ type Data = {
 const supabaseClient = getSupabaseClient();
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse<Data>) {
+  console.debug("###############################3", supabaseClient.auth.admin.listUsers)
   const { data, error } = await supabaseClient.auth.admin.listUsers();
 
   if (error) {

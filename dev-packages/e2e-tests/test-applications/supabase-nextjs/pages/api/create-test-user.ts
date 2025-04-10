@@ -1,6 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSupabaseClient } from '@/lib/initSupabaseAdmin';
-import * as Sentry from '@sentry/nextjs';
 
 type Data = {
   data: any;
