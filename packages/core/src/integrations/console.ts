@@ -48,7 +48,7 @@ export const consoleIntegration = defineIntegration((options: Partial<ConsoleInt
           return;
         }
 
-        captureConsoleBreadcrumb(level, args);
+        addConsoleBreadcrumb(level, args);
       });
     },
   };
@@ -59,7 +59,7 @@ export const consoleIntegration = defineIntegration((options: Partial<ConsoleInt
  *
  * Exported just for tests.
  */
-export function captureConsoleBreadcrumb(level: ConsoleLevel, args: unknown[]): void {
+export function addConsoleBreadcrumb(level: ConsoleLevel, args: unknown[]): void {
   const breadcrumb = {
     category: 'console',
     data: {
