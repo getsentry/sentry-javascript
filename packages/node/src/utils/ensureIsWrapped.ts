@@ -1,4 +1,4 @@
-import { isWrapped } from '@opentelemetry/core';
+import { isWrapped } from '@opentelemetry/instrumentation';
 import { consoleSandbox, getClient, getGlobalScope, hasSpansEnabled, isEnabled } from '@sentry/core';
 import type { NodeClient } from '../sdk/client';
 import { isCjs } from './commonjs';

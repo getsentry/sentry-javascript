@@ -7,8 +7,8 @@ import { getCurrentScope, getGlobalScope, getIsolationScope, flush } from '@sent
 import { setOpenTelemetryContextAsyncContextStrategy } from '../../src/asyncContextStrategy';
 import { clearOpenTelemetrySetupCheck } from '../../src/utils/setupCheck';
 import { init as initTestClient } from './TestClient';
+import type { TestClientInterface } from './TestClient';
 import { initOtel } from './initOtel';
-import type { OpenTelemetryClient } from '../../src/types';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 
@@ -54,7 +54,7 @@ export async function cleanupOtel(_provider?: BasicTracerProvider): Promise<void
 }
 
 export function getProvider(_provider?: BasicTracerProvider): BasicTracerProvider | undefined {
-  let provider = _provider || getClient<OpenTelemetryClient>()?.traceProvider || trace.getTracerProvider();
+  let provider = _provider || getClient<TestClientInterface>()?.traceProvider || trace.getTracerProvider();
 
   if (provider instanceof ProxyTracerProvider) {
     provider = provider.getDelegate();
