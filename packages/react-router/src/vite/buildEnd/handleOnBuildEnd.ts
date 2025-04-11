@@ -28,12 +28,14 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
     release,
     sourceMapsUploadOptions = { enabled: true },
     debug = false,
+    unstable_sentryVitePluginOptions,
   } = getSentryConfig(viteConfig);
 
   const cliInstance = new SentryCli(null, {
     authToken,
     org,
     project,
+    ...unstable_sentryVitePluginOptions,
   });
   // check if release should be created
   if (release?.name) {
