@@ -28,14 +28,20 @@ export const createSentryPiniaPlugin: (options?: SentryPiniaPluginOptions) => Pi
   },
 ) => {
   const plugin: PiniaPlugin = ({ store, pinia }) => {
-    const getAllStoreStates = (): Record<string, unknown> => {
+    const getAllStoreStates = (
+      stateTransformer?: SentryPiniaPluginOptions['stateTransformer'],
+    ): Record<string, unknown> => {
       const states: Record<string, unknown> = {};
 
       Object.keys(pinia.state.value).forEach(storeId => {
         states[storeId] = pinia.state.value[storeId];
       });
 
-      return states;
+      try {
+        return stateTransformer ? stateTransformer(states) : states;
+      } catch {
+        return states;
+      }
     };
 
     options.attachPiniaState !== false &&
@@ -55,7 +61,7 @@ export const createSentryPiniaPlugin: (options?: SentryPiniaPluginOptions) => Pi
               ...(hint.attachments || []),
               {
                 filename,
-                data: JSON.stringify(getAllStoreStates()),
+                data: JSON.stringify(getAllStoreStates(options.stateTransformer)),
               },
             ];
           }
@@ -85,16 +91,15 @@ export const createSentryPiniaPlugin: (options?: SentryPiniaPluginOptions) => Pi
         }
 
         /* Set latest state of all stores to scope */
-        const allStates = getAllStoreStates();
-        const transformedState = options.stateTransformer ? options.stateTransformer(allStates) : allStates;
+        const allStates = getAllStoreStates(options.stateTransformer);
         const scope = getCurrentScope();
         const currentState = scope.getScopeData().contexts.state;
 
-        if (typeof transformedState !== 'undefined' && transformedState !== null) {
+        if (typeof allStates !== 'undefined' && allStates !== null) {
           const client = getClient();
           const options = client?.getOptions();
           const normalizationDepth = options?.normalizeDepth || 3; // default state normalization depth to 3
-          const piniaStateContext = { type: 'pinia', value: transformedState };
+          const piniaStateContext = { type: 'pinia', value: allStates };
 
           const newState = {
             ...(currentState || {}),
