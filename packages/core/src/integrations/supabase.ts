@@ -362,6 +362,7 @@ function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilte
           'db.schema': typedThis.schema,
           'db.url': typedThis.url.origin,
           'db.sdk': typedThis.headers['X-Client-Info'],
+          'db.system': 'postgresql',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `db.${operation}`,
         };
