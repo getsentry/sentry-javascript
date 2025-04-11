@@ -5,11 +5,11 @@
 import * as Sentry from '@sentry/nextjs';
 
 Sentry.init({
-  dsn: 'https://f183f54e7d7d4f018dddaaade1f8481a@o447951.ingest.us.sentry.io/5659328',
+  dsn: 'https://public@dsn.ingest.sentry.io/1337',
   environment: 'qa', // dynamic sampling bias to keep transactions
   tracesSampleRate: 1,
   sendDefaultPii: true,
-  // tunnel: 'http://localhost:3031/', // proxy server
+  tunnel: 'http://localhost:3031/', // proxy server
   transportOptions: {
     // We expect the app to send a lot of events in a short time
     bufferSize: 1000,
