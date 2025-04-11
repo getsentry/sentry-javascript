@@ -228,7 +228,7 @@ function instrumentAuthOperation(operation: AuthOperationFn, isAdmin = false): A
           },
         },
         span => {
-          return Reflect.apply(target, thisArg, [])
+          return Reflect.apply(target, thisArg, argumentsList)
             .then((res: unknown) => {
               if (res && typeof res === 'object' && 'error' in res && res.error) {
                 span.setStatus({ code: SPAN_STATUS_ERROR });
