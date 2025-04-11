@@ -2,7 +2,11 @@ import type { Client } from '../client';
 import { DEFAULT_ENVIRONMENT } from '../constants';
 import { getClient } from '../currentScopes';
 import type { Scope } from '../scope';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_PREVIOUS_TRACE_SAMPLE_RATE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+} from '../semanticAttributes';
 import type { DynamicSamplingContext } from '../types-hoist/envelope';
 import type { Span } from '../types-hoist/span';
 import { hasSpansEnabled } from '../utils/hasSpansEnabled';
@@ -85,8 +89,12 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
   // The span sample rate that was locally applied to the root span should also always be applied to the DSC, even if the DSC is frozen.
   // This is so that the downstream traces/services can use parentSampleRate in their `tracesSampler` to make consistent sampling decisions across the entire trace.
   const rootSpanSampleRate =
-    traceState?.get('sentry.sample_rate') ?? rootSpanAttributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE];
+    traceState?.get('sentry.sample_rate') ??
+    rootSpanAttributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE] ??
+    rootSpanAttributes[SEMANTIC_ATTRIBUTE_SENTRY_PREVIOUS_TRACE_SAMPLE_RATE];
+
   function applyLocalSampleRateToDsc(dsc: Partial<DynamicSamplingContext>): Partial<DynamicSamplingContext> {
+    console.log('xx applyLocalSampleRateToDsc', dsc, { rootSpanSampleRate }, rootSpanAttributes);
     if (typeof rootSpanSampleRate === 'number' || typeof rootSpanSampleRate === 'string') {
       dsc.sample_rate = `${rootSpanSampleRate}`;
     }

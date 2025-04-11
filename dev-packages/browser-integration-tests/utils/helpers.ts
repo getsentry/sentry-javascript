@@ -1,5 +1,7 @@
+/* eslint-disable max-lines */
 import type { Page, Request } from '@playwright/test';
 import type {
+  ClientReport,
   Envelope,
   EnvelopeItem,
   EnvelopeItemType,
@@ -245,6 +247,31 @@ export function waitForTransactionRequest(
 
       if (callback) {
         return callback(event as TransactionEvent);
+      }
+
+      return true;
+    } catch {
+      return false;
+    }
+  });
+}
+
+export function waitForClientReportRequest(page: Page, callback?: (report: ClientReport) => boolean): Promise<Request> {
+  return page.waitForRequest(req => {
+    const postData = req.postData();
+    if (!postData) {
+      return false;
+    }
+
+    try {
+      const maybeReport = envelopeRequestParser<Partial<ClientReport>>(req);
+
+      if (typeof maybeReport.discarded_events !== 'object') {
+        return false;
+      }
+
+      if (callback) {
+        return callback(maybeReport as ClientReport);
       }
 
       return true;

@@ -1,5 +1,11 @@
-import type { Span } from '@sentry/core';
-import { type SpanContextData, logger, SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE, spanToJSON } from '@sentry/core';
+import type { PropagationContext, Span } from '@sentry/core';
+import {
+  type SpanContextData,
+  logger,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE,
+  spanToJSON,
+} from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../exports';
 
@@ -13,6 +19,16 @@ export interface PreviousTraceInfo {
    * Timestamp in seconds when the previous trace was started
    */
   startTimestamp: number;
+
+  /**
+   * sample rate of the previous trace
+   */
+  sampleRate: number;
+
+  /**
+   * The sample rand of the previous trace
+   */
+  sampleRand: number;
 }
 
 // 1h in seconds
@@ -33,14 +49,29 @@ export const PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE = 'sentry.previous_trace';
 export function addPreviousTraceSpanLink(
   previousTraceInfo: PreviousTraceInfo | undefined,
   span: Span,
+  oldPropagationContext: PropagationContext,
 ): PreviousTraceInfo {
   const spanJson = spanToJSON(span);
 
+  function getSampleRate(): number {
+    try {
+      return (
+        Number(oldPropagationContext.dsc?.sample_rate) ?? Number(spanJson.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE])
+      );
+    } catch {
+      return 0;
+    }
+  }
+
+  const updatedPreviousTraceInfo = {
+    spanContext: span.spanContext(),
+    startTimestamp: spanJson.start_timestamp,
+    sampleRate: getSampleRate(),
+    sampleRand: oldPropagationContext.sampleRand,
+  };
+
   if (!previousTraceInfo) {
-    return {
-      spanContext: span.spanContext(),
-      startTimestamp: spanJson.start_timestamp,
-    };
+    return updatedPreviousTraceInfo;
   }
 
   const previousTraceSpanCtx = previousTraceInfo.spanContext;
@@ -80,15 +111,12 @@ export function addPreviousTraceSpanLink(
     span.setAttribute(
       PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE,
       `${previousTraceSpanCtx.traceId}-${previousTraceSpanCtx.spanId}-${
-        previousTraceSpanCtx.traceFlags === 0x1 ? 1 : 0
+        spanContextSampled(previousTraceSpanCtx) ? 1 : 0
       }`,
     );
   }
 
-  return {
-    spanContext: span.spanContext(),
-    startTimestamp: spanToJSON(span).start_timestamp,
-  };
+  return updatedPreviousTraceInfo;
 }
 
 /**
@@ -115,3 +143,10 @@ export function getPreviousTraceFromSessionStorage(): PreviousTraceInfo | undefi
     return undefined;
   }
 }
+
+/**
+ * see {@link import('@sentry/core').spanIsSampled}
+ */
+export const spanContextSampled = (ctx: SpanContextData): boolean => {
+  return ctx.traceFlags === 0x1;
+};
