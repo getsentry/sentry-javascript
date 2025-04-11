@@ -94,7 +94,6 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
     rootSpanAttributes[SEMANTIC_ATTRIBUTE_SENTRY_PREVIOUS_TRACE_SAMPLE_RATE];
 
   function applyLocalSampleRateToDsc(dsc: Partial<DynamicSamplingContext>): Partial<DynamicSamplingContext> {
-    console.log('xx applyLocalSampleRateToDsc', dsc, { rootSpanSampleRate }, rootSpanAttributes);
     if (typeof rootSpanSampleRate === 'number' || typeof rootSpanSampleRate === 'string') {
       dsc.sample_rate = `${rootSpanSampleRate}`;
     }
