@@ -19,7 +19,7 @@ test('Sends server-side Supabase auth admin `createUser` span', async ({ page, b
   expect(transactionEvent.spans).toContainEqual({
     data: expect.any(Object),
     description: 'createUser',
-    op: 'db.supabase.auth.admin.createUser',
+    op: 'db.auth.admin.createUser',
     parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     start_timestamp: expect.any(Number),
@@ -165,7 +165,7 @@ test('Sends server-side Supabase auth admin `listUsers` span', async ({ page, ba
   expect(transactionEvent.spans).toContainEqual({
     data: expect.any(Object),
     description: 'listUsers',
-    op: 'db.supabase.auth.admin.listUsers',
+    op: 'db.auth.admin.listUsers',
     parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     start_timestamp: expect.any(Number),

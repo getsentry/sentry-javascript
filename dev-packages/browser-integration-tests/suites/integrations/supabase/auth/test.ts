@@ -76,7 +76,7 @@ sentryTest('should capture Supabase authentication spans', async ({ getLocalTest
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
-  const supabaseSpans = eventData.spans?.filter(({ op }) => op?.startsWith('db.supabase.auth'));
+  const supabaseSpans = eventData.spans?.filter(({ op }) => op?.startsWith('db.auth'));
 
   expect(supabaseSpans).toHaveLength(2);
   expect(supabaseSpans![0]).toMatchObject({
@@ -88,7 +88,7 @@ sentryTest('should capture Supabase authentication spans', async ({ getLocalTest
     trace_id: eventData.contexts?.trace?.trace_id,
     status: 'ok',
     data: expect.objectContaining({
-      'sentry.op': 'db.supabase.auth.signInWithPassword',
+      'sentry.op': 'db.auth.signInWithPassword',
       'sentry.origin': 'auto.db.supabase',
     }),
   });
@@ -102,7 +102,7 @@ sentryTest('should capture Supabase authentication spans', async ({ getLocalTest
     trace_id: eventData.contexts?.trace?.trace_id,
     status: 'ok',
     data: expect.objectContaining({
-      'sentry.op': 'db.supabase.auth.signOut',
+      'sentry.op': 'db.auth.signOut',
       'sentry.origin': 'auto.db.supabase',
     }),
   });
@@ -119,7 +119,7 @@ sentryTest('should capture Supabase authentication errors', async ({ getLocalTes
 
   const [errorEvent, transactionEvent] = await getMultipleSentryEnvelopeRequests<Event>(page, 2, { url });
 
-  const supabaseSpans = transactionEvent.spans?.filter(({ op }) => op?.startsWith('db.supabase.auth'));
+  const supabaseSpans = transactionEvent.spans?.filter(({ op }) => op?.startsWith('db.auth'));
 
   expect(errorEvent.exception?.values?.[0].value).toBe('Invalid email or password');
 
@@ -133,7 +133,7 @@ sentryTest('should capture Supabase authentication errors', async ({ getLocalTes
     trace_id: transactionEvent.contexts?.trace?.trace_id,
     status: 'unknown_error',
     data: expect.objectContaining({
-      'sentry.op': 'db.supabase.auth.signInWithPassword',
+      'sentry.op': 'db.auth.signInWithPassword',
       'sentry.origin': 'auto.db.supabase',
     }),
   });
