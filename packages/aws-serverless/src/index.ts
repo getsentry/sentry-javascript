@@ -100,6 +100,7 @@ export {
   postgresIntegration,
   prismaIntegration,
   childProcessIntegration,
+  createSentryWinstonTransport,
   hapiIntegration,
   setupHapiErrorHandler,
   spotlightIntegration,
