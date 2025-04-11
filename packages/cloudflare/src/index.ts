@@ -75,6 +75,8 @@ export {
   rewriteFramesIntegration,
   captureConsoleIntegration,
   moduleMetadataIntegration,
+  supabaseIntegration,
+  instrumentSupabase,
   zodErrorsIntegration,
   consoleIntegration,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,

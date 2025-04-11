@@ -59,6 +59,8 @@ export {
   setHttpStatus,
   makeMultiplexedTransport,
   moduleMetadataIntegration,
+  supabaseIntegration,
+  instrumentSupabase,
   zodErrorsIntegration,
   thirdPartyErrorFilterIntegration,
 } from '@sentry/core';

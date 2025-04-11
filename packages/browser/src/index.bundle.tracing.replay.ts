@@ -14,6 +14,8 @@ export {
   withActiveSpan,
   getSpanDescendants,
   setMeasurement,
+  supabaseIntegration,
+  instrumentSupabase,
 } from '@sentry/core';
 
 export {
