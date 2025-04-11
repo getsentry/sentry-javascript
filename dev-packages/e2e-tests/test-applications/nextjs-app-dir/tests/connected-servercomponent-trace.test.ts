@@ -16,6 +16,7 @@ test('Will create a transaction with spans for every server component and metada
 
   expect(spanDescriptions).toContainEqual('Layout Server Component (/(nested-layout)/nested-layout)');
   expect(spanDescriptions).toContainEqual('Layout Server Component (/(nested-layout))');
+  expect(spanDescriptions).toContainEqual('Template Server Component (/(nested-layout))');
   expect(spanDescriptions).toContainEqual('Page Server Component (/(nested-layout)/nested-layout)');
   expect(spanDescriptions).toContainEqual('Page.generateMetadata (/(nested-layout)/nested-layout)');
 });

@@ -89,6 +89,8 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
               attributes: {
                 [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
+                'sentry.nextjs.function.type': componentType,
+                'sentry.nextjs.function.route': componentRoute,
               },
             },
             span => {
