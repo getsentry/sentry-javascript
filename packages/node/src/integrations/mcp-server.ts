@@ -6,7 +6,7 @@ import { SDK_VERSION } from '@sentry/core';
 import { generateInstrumentOnce } from '../otel/instrument';
 import { defineIntegration } from '@sentry/core';
 
-const supportedVersions = ['> 0.0.1'];
+const supportedVersions = ['*'];
 
 interface MCPServerInstance {
   tool: (toolName: string, toolSchema: unknown, handler: (...args: unknown[]) => unknown) => void;
