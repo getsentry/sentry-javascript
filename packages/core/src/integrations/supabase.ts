@@ -224,11 +224,11 @@ function instrumentAuthOperation(operation: AuthOperationFn, isAdmin = false): A
           name: operation.name,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase',
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `db.supabase.auth.${isAdmin ? 'admin.' : ''}${operation.name}`,
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `db.auth.${isAdmin ? 'admin.' : ''}${operation.name}`,
           },
         },
         span => {
-          return Reflect.apply(target, thisArg, argumentsList)
+          return Reflect.apply(target, thisArg, [])
             .then((res: unknown) => {
               if (res && typeof res === 'object' && 'error' in res && res.error) {
                 span.setStatus({ code: SPAN_STATUS_ERROR });
