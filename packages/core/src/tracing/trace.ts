@@ -407,7 +407,17 @@ function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parent
   const client = getClient();
   const options: Partial<ClientOptions> = client?.getOptions() || {};
 
-  const { name = '', attributes } = spanArguments;
+  const { name = '' } = spanArguments;
+
+  const mutableSpanSamplingData = { spanAttributes: { ...spanArguments.attributes }, spanName: name, parentSampled };
+
+  // we don't care about the decision for the moment; this is just a placeholder
+  client?.emit('beforeSampling', mutableSpanSamplingData, { decision: false });
+
+  // If hook consumers override the parentSampled flag, we will use that value instead of the actual one
+  const finalParentSampled = mutableSpanSamplingData.parentSampled ?? parentSampled;
+  const finalAttributes = mutableSpanSamplingData.spanAttributes;
+
   const currentPropagationContext = scope.getPropagationContext();
   const [sampled, sampleRate, localSampleRateWasApplied] = scope.getScopeData().sdkProcessingMetadata[
     SUPPRESS_TRACING_KEY
@@ -417,8 +427,8 @@ function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parent
         options,
         {
           name,
-          parentSampled,
-          attributes,
+          parentSampled: finalParentSampled,
+          attributes: finalAttributes,
           parentSampleRate: parseSampleRate(currentPropagationContext.dsc?.sample_rate),
         },
         currentPropagationContext.sampleRand,
@@ -430,7 +440,7 @@ function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parent
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
       [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]:
         sampleRate !== undefined && localSampleRateWasApplied ? sampleRate : undefined,
-      ...spanArguments.attributes,
+      ...finalAttributes,
     },
     sampled,
   });
