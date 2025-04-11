@@ -1,9 +1,9 @@
 import { createRunner } from '../../../../utils/runner';
-import { describe, test, expect } from 'vitest'
+import { describe, test, expect } from 'vitest';
 
 // Graphql Instrumentation emits some spans by default on server start
 const EXPECTED_START_SERVER_TRANSACTION = {
-  transaction: 'Test Server Start',
+  transaction: 'Test Server Start (query IntrospectionQuery)',
 };
 
 describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
@@ -61,7 +61,7 @@ describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
 
   test('useOperationNameForRootSpan ignores an invalid root span', async () => {
     const EXPECTED_TRANSACTION = {
-      transaction: 'test span name',
+      transaction: 'test span name (query GetHello)',
       spans: expect.arrayContaining([
         expect.objectContaining({
           data: {

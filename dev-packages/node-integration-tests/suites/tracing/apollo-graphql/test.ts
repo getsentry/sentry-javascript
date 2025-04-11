@@ -3,13 +3,13 @@ import { createRunner } from '../../../utils/runner';
 
 // Graphql Instrumentation emits some spans by default on server start
 const EXPECTED_START_SERVER_TRANSACTION = {
-  transaction: 'Test Server Start',
+  transaction: 'Test Server Start (query IntrospectionQuery)',
 };
 
 describe('GraphQL/Apollo Tests', () => {
   test('should instrument GraphQL queries used from Apollo Server.', async () => {
     const EXPECTED_TRANSACTION = {
-      transaction: 'Test Transaction',
+      transaction: 'Test Transaction (query)',
       spans: expect.arrayContaining([
         expect.objectContaining({
           data: {
@@ -33,7 +33,7 @@ describe('GraphQL/Apollo Tests', () => {
 
   test('should instrument GraphQL mutations used from Apollo Server.', async () => {
     const EXPECTED_TRANSACTION = {
-      transaction: 'Test Transaction',
+      transaction: 'Test Transaction (mutation Mutation)',
       spans: expect.arrayContaining([
         expect.objectContaining({
           data: {
