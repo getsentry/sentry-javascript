@@ -120,6 +120,8 @@ function instrumentBunServeOptionRoutes(serveOptions: Parameters<typeof Bun.serv
 
   Object.keys(serveOptions.routes).forEach(route => {
     const routeHandler = serveOptions.routes[route];
+
+    // Handle route handlers that are an object
     if (typeof routeHandler === 'function') {
       serveOptions.routes[route] = new Proxy(routeHandler, {
         apply: (routeHandlerTarget, routeHandlerThisArg, routeHandlerArgs: Parameters<typeof routeHandler>) => {
@@ -128,11 +130,12 @@ function instrumentBunServeOptionRoutes(serveOptions: Parameters<typeof Bun.serv
       });
     }
 
-    // TODO: Handle static routes
+    // Static routes are not instrumented
     if (routeHandler instanceof Response) {
       return;
     }
 
+    // Handle the route handlers that are an object. This means they define a route handler for each method.
     if (typeof routeHandler === 'object') {
       Object.entries(routeHandler).forEach(([routeHandlerObjectHandlerKey, routeHandlerObjectHandler]) => {
         if (typeof routeHandlerObjectHandler === 'function') {
