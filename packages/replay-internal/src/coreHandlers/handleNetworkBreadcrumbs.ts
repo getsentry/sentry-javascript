@@ -1,8 +1,9 @@
+import type { FetchHint, XhrHint } from '@sentry-internal/browser-utils';
 import { getClient } from '@sentry/core';
-import type { Breadcrumb, BreadcrumbHint, FetchBreadcrumbData, XhrBreadcrumbData } from '@sentry/types';
+import type { Breadcrumb, BreadcrumbHint, FetchBreadcrumbData, XhrBreadcrumbData } from '@sentry/core';
 
 import { DEBUG_BUILD } from '../debug-build';
-import type { FetchHint, ReplayContainer, ReplayNetworkOptions, XhrHint } from '../types';
+import type { ReplayContainer, ReplayNetworkOptions } from '../types';
 import { logger } from '../util/logger';
 import { captureFetchBreadcrumbToReplay, enrichFetchBreadcrumb } from './util/fetchUtils';
 import { captureXhrBreadcrumbToReplay, enrichXhrBreadcrumb } from './util/xhrUtils';
@@ -92,9 +93,9 @@ function _isFetchBreadcrumb(breadcrumb: Breadcrumb): breadcrumb is Breadcrumb & 
 }
 
 function _isXhrHint(hint?: BreadcrumbHint): hint is XhrHint {
-  return hint && hint.xhr;
+  return hint?.xhr;
 }
 
 function _isFetchHint(hint?: BreadcrumbHint): hint is FetchHint {
-  return hint && hint.response;
+  return hint?.response;
 }

@@ -1,24 +1,23 @@
 export * from './exports';
 
+import * as logger from './log';
+
+export { logger };
+
 export { reportingObserverIntegration } from './integrations/reportingobserver';
 export { httpClientIntegration } from './integrations/httpclient';
 export { contextLinesIntegration } from './integrations/contextlines';
+export { graphqlClientIntegration } from './integrations/graphqlClient';
 
 export {
   captureConsoleIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  debugIntegration,
   extraErrorDataIntegration,
   rewriteFramesIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  sessionTimingIntegration,
   captureFeedback,
+  consoleLoggingIntegration,
 } from '@sentry/core';
 
-export {
-  replayIntegration,
-  getReplay,
-} from '@sentry-internal/replay';
+export { replayIntegration, getReplay } from '@sentry-internal/replay';
 export type {
   ReplayEventType,
   ReplayEventWithTime,
@@ -36,17 +35,9 @@ export { replayCanvasIntegration } from '@sentry-internal/replay-canvas';
 import { feedbackAsyncIntegration } from './feedbackAsync';
 import { feedbackSyncIntegration } from './feedbackSync';
 export { feedbackAsyncIntegration, feedbackSyncIntegration, feedbackSyncIntegration as feedbackIntegration };
-export {
-  getFeedback,
-  sendFeedback,
-} from '@sentry-internal/feedback';
+export { getFeedback, sendFeedback } from '@sentry-internal/feedback';
 
-export * from './metrics';
-
-export {
-  defaultRequestInstrumentationOptions,
-  instrumentOutgoingRequests,
-} from './tracing/request';
+export { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './tracing/request';
 export {
   browserTracingIntegration,
   startBrowserTracingNavigationSpan,
@@ -54,8 +45,6 @@ export {
 } from './tracing/browserTracingIntegration';
 export type { RequestInstrumentationOptions } from './tracing/request';
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  addTracingExtensions,
   registerSpanErrorInstrumentation,
   getActiveSpan,
   getRootSpan,
@@ -73,7 +62,14 @@ export {
   zodErrorsIntegration,
   thirdPartyErrorFilterIntegration,
 } from '@sentry/core';
-export type { Span } from '@sentry/types';
+export type { Span } from '@sentry/core';
 export { makeBrowserOfflineTransport } from './transports/offline';
 export { browserProfilingIntegration } from './profiling/integration';
 export { spotlightBrowserIntegration } from './integrations/spotlight';
+export { browserSessionIntegration } from './integrations/browsersession';
+export { featureFlagsIntegration, type FeatureFlagsIntegration } from './integrations/featureFlags';
+export { launchDarklyIntegration, buildLaunchDarklyFlagUsedHandler } from './integrations/featureFlags/launchdarkly';
+export { openFeatureIntegration, OpenFeatureIntegrationHook } from './integrations/featureFlags/openfeature';
+export { unleashIntegration } from './integrations/featureFlags/unleash';
+export { statsigIntegration } from './integrations/featureFlags/statsig';
+export { diagnoseSdkConnectivity } from './diagnose-sdk';

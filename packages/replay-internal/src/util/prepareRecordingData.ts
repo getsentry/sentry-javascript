@@ -1,4 +1,4 @@
-import type { ReplayRecordingData } from '@sentry/types';
+import type { ReplayRecordingData } from '@sentry/core';
 
 /**
  * Prepare the recording data ready to be sent.

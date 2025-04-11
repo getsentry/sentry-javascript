@@ -1,7 +1,7 @@
 import { afterAll, describe, expect, it, vi } from 'vitest';
 
-import { createEnvelope, serializeEnvelope } from '@sentry/core';
-import type { EventEnvelope, EventItem } from '@sentry/types';
+import { SENTRY_BUFFER_FULL_ERROR, createEnvelope, serializeEnvelope } from '@sentry/core';
+import type { EventEnvelope, EventItem } from '@sentry/core';
 
 import type { VercelEdgeTransportOptions } from '../../src/transports';
 import { IsolatedPromiseBuffer, makeEdgeTransport } from '../../src/transports';
@@ -139,7 +139,12 @@ describe('IsolatedPromiseBuffer', () => {
     await ipb.add(task2);
     await ipb.add(task3);
 
-    await expect(ipb.add(task4)).rejects.toThrowError('Not adding Promise because buffer limit was reached.');
+    try {
+      await ipb.add(task4);
+      throw new Error('Should not be called');
+    } catch (error) {
+      expect(error).toBe(SENTRY_BUFFER_FULL_ERROR);
+    }
   });
 
   it('should not throw when one of the tasks throws when drained', async () => {

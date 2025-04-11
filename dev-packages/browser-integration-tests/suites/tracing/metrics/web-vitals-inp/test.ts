@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import type { Event as SentryEvent, SpanEnvelope, SpanJSON } from '@sentry/types';
+import type { Event as SentryEvent, SpanEnvelope, SpanJSON } from '@sentry/core';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import {
@@ -54,6 +54,7 @@ sentryTest('should capture an INP click event span during pageload', async ({ br
       sample_rate: '1',
       sampled: 'true',
       trace_id: traceId,
+      sample_rand: expect.any(String),
       // no transaction, because span source is URL
     },
   });

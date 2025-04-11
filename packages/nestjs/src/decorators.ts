@@ -1,7 +1,7 @@
 import { captureException } from '@sentry/core';
+import type { MonitorConfig } from '@sentry/core';
 import * as Sentry from '@sentry/node';
 import { startSpan } from '@sentry/node';
-import type { MonitorConfig } from '@sentry/types';
 import { isExpectedError } from './helpers';
 
 /**
@@ -9,11 +9,9 @@ import { isExpectedError } from './helpers';
  */
 export const SentryCron = (monitorSlug: string, monitorConfig?: MonitorConfig): MethodDecorator => {
   return (target: unknown, propertyKey, descriptor: PropertyDescriptor) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const originalMethod = descriptor.value as (...args: any[]) => Promise<any>;
+    const originalMethod = descriptor.value as (...args: unknown[]) => Promise<unknown>;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    descriptor.value = function (...args: any[]) {
+    descriptor.value = function (...args: unknown[]) {
       return Sentry.withMonitor(
         monitorSlug,
         () => {
@@ -22,6 +20,9 @@ export const SentryCron = (monitorSlug: string, monitorConfig?: MonitorConfig): 
         monitorConfig,
       );
     };
+
+    copyFunctionNameAndMetadata({ originalMethod, descriptor });
+
     return descriptor;
   };
 };
@@ -30,12 +31,10 @@ export const SentryCron = (monitorSlug: string, monitorConfig?: MonitorConfig): 
  * A decorator usable to wrap arbitrary functions with spans.
  */
 export function SentryTraced(op: string = 'function') {
-  return function (target: unknown, propertyKey: string, descriptor: PropertyDescriptor) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const originalMethod = descriptor.value as (...args: any[]) => Promise<any> | any; // function can be sync or async
+  return function (_target: unknown, propertyKey: string, descriptor: PropertyDescriptor) {
+    const originalMethod = descriptor.value as (...args: unknown[]) => Promise<unknown> | unknown; // function can be sync or async
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    descriptor.value = function (...args: any[]) {
+    descriptor.value = function (...args: unknown[]) {
       return startSpan(
         {
           op: op,
@@ -47,13 +46,7 @@ export function SentryTraced(op: string = 'function') {
       );
     };
 
-    // preserve the original name on the decorated function
-    Object.defineProperty(descriptor.value, 'name', {
-      value: originalMethod.name,
-      configurable: true,
-      enumerable: true,
-      writable: true,
-    });
+    copyFunctionNameAndMetadata({ originalMethod, descriptor });
 
     return descriptor;
   };
@@ -64,11 +57,9 @@ export function SentryTraced(op: string = 'function') {
  */
 export function SentryExceptionCaptured() {
   return function (target: unknown, propertyKey: string, descriptor: PropertyDescriptor) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const originalCatch = descriptor.value as (exception: unknown, host: unknown, ...args: any[]) => void;
+    const originalCatch = descriptor.value as (exception: unknown, host: unknown, ...args: unknown[]) => void;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    descriptor.value = function (exception: unknown, host: unknown, ...args: any[]) {
+    descriptor.value = function (exception: unknown, host: unknown, ...args: unknown[]) {
       if (isExpectedError(exception)) {
         return originalCatch.apply(this, [exception, host, ...args]);
       }
@@ -77,13 +68,40 @@ export function SentryExceptionCaptured() {
       return originalCatch.apply(this, [exception, host, ...args]);
     };
 
+    copyFunctionNameAndMetadata({ originalMethod: originalCatch, descriptor });
+
     return descriptor;
   };
 }
 
 /**
- * A decorator to wrap user-defined exception filters and add Sentry error reporting.
+ * Copies the function name and metadata from the original method to the decorated method.
+ * This ensures that the decorated method maintains the same name and metadata as the original.
  *
- * @deprecated This decorator was renamed and will be removed in a future major version. Use `SentryExceptionCaptured` instead.
+ * @param {Function} params.originalMethod - The original method being decorated
+ * @param {PropertyDescriptor} params.descriptor - The property descriptor containing the decorated method
  */
-export const WithSentry = SentryExceptionCaptured;
+function copyFunctionNameAndMetadata({
+  originalMethod,
+  descriptor,
+}: {
+  descriptor: PropertyDescriptor;
+  originalMethod: (...args: unknown[]) => unknown;
+}): void {
+  // preserve the original name on the decorated function
+  Object.defineProperty(descriptor.value, 'name', {
+    value: originalMethod.name,
+    configurable: true,
+    enumerable: true,
+    writable: true,
+  });
+
+  // copy metadata
+  if (typeof Reflect !== 'undefined' && typeof Reflect.getMetadataKeys === 'function') {
+    const originalMetaData = Reflect.getMetadataKeys(originalMethod);
+    for (const key of originalMetaData) {
+      const value = Reflect.getMetadata(key, originalMethod);
+      Reflect.defineMetadata(key, value, descriptor.value);
+    }
+  }
+}

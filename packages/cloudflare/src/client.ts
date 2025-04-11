@@ -1,7 +1,5 @@
-import type { ServerRuntimeClientOptions } from '@sentry/core';
+import type { ClientOptions, Options, ServerRuntimeClientOptions } from '@sentry/core';
 import { ServerRuntimeClient, applySdkMetadata } from '@sentry/core';
-import type { ClientOptions, Options } from '@sentry/types';
-
 import type { CloudflareTransportOptions } from './transport';
 
 /**
@@ -37,7 +35,7 @@ interface BaseCloudflareOptions {}
 /**
  * Configuration options for the Sentry Cloudflare SDK
  *
- * @see @sentry/types Options for more information.
+ * @see @sentry/core Options for more information.
  */
 export interface CloudflareOptions extends Options<CloudflareTransportOptions>, BaseCloudflareOptions {}
 

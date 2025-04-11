@@ -140,7 +140,15 @@ describe('canWrapLoad', () => {
         return { props: { msg: res.toString() } }
       }`,
     ],
-
+    [
+      'export function declaration - with angle bracket type assertion',
+      `export async function load() {
+        let x: unknown = 'foo';
+        return {
+          msg: <string>x,
+        };
+      }`,
+    ],
     [
       'variable declaration (let)',
       `import {something} from 'somewhere';

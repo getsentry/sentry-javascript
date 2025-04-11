@@ -25,9 +25,9 @@ export const initMetric = <MetricName extends MetricType['name']>(name: MetricNa
   let navigationType: MetricType['navigationType'] = 'navigate';
 
   if (navEntry) {
-    if ((WINDOW.document && WINDOW.document.prerendering) || getActivationStart() > 0) {
+    if (WINDOW.document?.prerendering || getActivationStart() > 0) {
       navigationType = 'prerender';
-    } else if (WINDOW.document && WINDOW.document.wasDiscarded) {
+    } else if (WINDOW.document?.wasDiscarded) {
       navigationType = 'restore';
     } else if (navEntry.type) {
       navigationType = navEntry.type.replace(/_/g, '-') as MetricType['navigationType'];

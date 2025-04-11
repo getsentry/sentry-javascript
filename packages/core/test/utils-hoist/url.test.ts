@@ -1,8 +1,11 @@
+import { describe, expect, it } from 'vitest';
 import {
-  getNumberOfUrlSegments,
   getSanitizedUrlString,
   parseUrl,
   stripUrlQueryAndFragment,
+  parseStringToURLObject,
+  isURLObjectRelative,
+  getSanitizedUrlStringFromUrlObject,
 } from '../../src/utils-hoist/url';
 
 describe('stripQueryStringAndFragment', () => {
@@ -23,18 +26,6 @@ describe('stripQueryStringAndFragment', () => {
   it('strips query string and fragment from url', () => {
     const urlWithQueryStringAndFragment = `${urlString}${queryString}${fragment}`;
     expect(stripUrlQueryAndFragment(urlWithQueryStringAndFragment)).toBe(urlString);
-  });
-});
-
-describe('getNumberOfUrlSegments', () => {
-  test.each([
-    ['regular path', '/projects/123/views/234', 4],
-    ['single param parameterized path', '/users/:id/details', 3],
-    ['multi param parameterized path', '/stores/:storeId/products/:productId', 4],
-    ['regex path', String(/\/api\/post[0-9]/), 2],
-  ])('%s', (_: string, input, output) => {
-    // eslint-disable-next-line deprecation/deprecation
-    expect(getNumberOfUrlSegments(input)).toEqual(output);
   });
 });
 
@@ -78,8 +69,6 @@ describe('getSanitizedUrlString', () => {
       'https://[filtered]:[filtered]@somedomain.com',
     ],
     ['same-origin url', '/api/v4/users?id=123', '/api/v4/users'],
-    ['url without a protocol', 'example.com', 'example.com'],
-    ['url without a protocol with a path', 'example.com/sub/path?id=123', 'example.com/sub/path'],
     ['url with port 8080', 'http://172.31.12.144:8080/test', 'http://172.31.12.144:8080/test'],
     ['url with port 4433', 'http://172.31.12.144:4433/test', 'http://172.31.12.144:4433/test'],
     ['url with port 443', 'http://172.31.12.144:443/test', 'http://172.31.12.144/test'],
@@ -87,5 +76,221 @@ describe('getSanitizedUrlString', () => {
   ])('returns a sanitized URL for a %s', (_, rawUrl: string, sanitizedURL: string) => {
     const urlObject = parseUrl(rawUrl);
     expect(getSanitizedUrlString(urlObject)).toEqual(sanitizedURL);
+  });
+});
+
+describe('parseUrl', () => {
+  it.each([
+    [
+      'https://somedomain.com',
+      { host: 'somedomain.com', path: '', search: '', hash: '', protocol: 'https', relative: '' },
+    ],
+    [
+      'https://somedomain.com/path/to/happiness',
+      {
+        host: 'somedomain.com',
+        path: '/path/to/happiness',
+        search: '',
+        hash: '',
+        protocol: 'https',
+        relative: '/path/to/happiness',
+      },
+    ],
+    [
+      'https://somedomain.com/path/to/happiness?auhtToken=abc123&param2=bar',
+      {
+        host: 'somedomain.com',
+        path: '/path/to/happiness',
+        search: '?auhtToken=abc123&param2=bar',
+        hash: '',
+        protocol: 'https',
+        relative: '/path/to/happiness?auhtToken=abc123&param2=bar',
+      },
+    ],
+    [
+      'https://somedomain.com/path/to/happiness?auhtToken=abc123&param2=bar#wildfragment',
+      {
+        host: 'somedomain.com',
+        path: '/path/to/happiness',
+        search: '?auhtToken=abc123&param2=bar',
+        hash: '#wildfragment',
+        protocol: 'https',
+        relative: '/path/to/happiness?auhtToken=abc123&param2=bar#wildfragment',
+      },
+    ],
+    [
+      'https://somedomain.com/path/to/happiness#somewildfragment123',
+      {
+        host: 'somedomain.com',
+        path: '/path/to/happiness',
+        search: '',
+        hash: '#somewildfragment123',
+        protocol: 'https',
+        relative: '/path/to/happiness#somewildfragment123',
+      },
+    ],
+    [
+      'https://somedomain.com/path/to/happiness#somewildfragment123?auhtToken=abc123&param2=bar',
+      {
+        host: 'somedomain.com',
+        path: '/path/to/happiness',
+        search: '',
+        hash: '#somewildfragment123?auhtToken=abc123&param2=bar',
+        protocol: 'https',
+        relative: '/path/to/happiness#somewildfragment123?auhtToken=abc123&param2=bar',
+      },
+    ],
+    [
+      // yup, this is a valid URL (protocol-agnostic URL)
+      '//somedomain.com/path/to/happiness?auhtToken=abc123&param2=bar#wildfragment',
+      {
+        host: 'somedomain.com',
+        path: '/path/to/happiness',
+        search: '?auhtToken=abc123&param2=bar',
+        hash: '#wildfragment',
+        protocol: undefined,
+        relative: '/path/to/happiness?auhtToken=abc123&param2=bar#wildfragment',
+      },
+    ],
+    ['', {}],
+    [
+      '\n',
+      {
+        hash: '',
+        host: undefined,
+        path: '\n',
+        protocol: undefined,
+        relative: '\n',
+        search: '',
+      },
+    ],
+    [
+      'somerandomString',
+      {
+        hash: '',
+        host: undefined,
+        path: 'somerandomString',
+        protocol: undefined,
+        relative: 'somerandomString',
+        search: '',
+      },
+    ],
+    [
+      'somedomain.com',
+      {
+        host: undefined,
+        path: 'somedomain.com',
+        search: '',
+        hash: '',
+        protocol: undefined,
+        relative: 'somedomain.com',
+      },
+    ],
+    [
+      'somedomain.com/path/?q=1#fragment',
+      {
+        host: undefined,
+        path: 'somedomain.com/path/',
+        search: '?q=1',
+        hash: '#fragment',
+        protocol: undefined,
+        relative: 'somedomain.com/path/?q=1#fragment',
+      },
+    ],
+  ])('returns parsed partial URL object for %s', (url: string, expected: any) => {
+    expect(parseUrl(url)).toEqual(expected);
+  });
+});
+
+describe('parseStringToURLObject', () => {
+  it('returns undefined for invalid URLs', () => {
+    expect(parseStringToURLObject('invalid-url')).toBeUndefined();
+  });
+
+  it('returns a URL object for valid URLs', () => {
+    expect(parseStringToURLObject('https://somedomain.com')).toBeInstanceOf(URL);
+  });
+
+  it('returns a URL object for valid URLs with a base URL', () => {
+    expect(parseStringToURLObject('https://somedomain.com', 'https://base.com')).toBeInstanceOf(URL);
+  });
+
+  it('returns a relative URL object for relative URLs', () => {
+    expect(parseStringToURLObject('/path/to/happiness')).toEqual({
+      isRelative: true,
+      pathname: '/path/to/happiness',
+      search: '',
+      hash: '',
+    });
+  });
+
+  it('does not throw an error if URl.canParse is not defined', () => {
+    const canParse = (URL as any).canParse;
+    delete (URL as any).canParse;
+    expect(parseStringToURLObject('https://somedomain.com')).toBeInstanceOf(URL);
+    (URL as any).canParse = canParse;
+  });
+});
+
+describe('isURLObjectRelative', () => {
+  it('returns true for relative URLs', () => {
+    expect(isURLObjectRelative(parseStringToURLObject('/path/to/happiness')!)).toBe(true);
+  });
+
+  it('returns false for absolute URLs', () => {
+    expect(isURLObjectRelative(parseStringToURLObject('https://somedomain.com')!)).toBe(false);
+  });
+});
+
+describe('getSanitizedUrlStringFromUrlObject', () => {
+  it.each([
+    ['regular url', 'https://somedomain.com', 'https://somedomain.com/'],
+    ['regular url with a path', 'https://somedomain.com/path/to/happiness', 'https://somedomain.com/path/to/happiness'],
+    [
+      'url with standard http port 80',
+      'http://somedomain.com:80/path/to/happiness',
+      'http://somedomain.com/path/to/happiness',
+    ],
+    [
+      'url with standard https port 443',
+      'https://somedomain.com:443/path/to/happiness',
+      'https://somedomain.com/path/to/happiness',
+    ],
+    [
+      'url with non-standard port',
+      'https://somedomain.com:4200/path/to/happiness',
+      'https://somedomain.com:4200/path/to/happiness',
+    ],
+    [
+      'url with query params',
+      'https://somedomain.com:4200/path/to/happiness?auhtToken=abc123&param2=bar',
+      'https://somedomain.com:4200/path/to/happiness',
+    ],
+    [
+      'url with a fragment',
+      'https://somedomain.com/path/to/happiness#somewildfragment123',
+      'https://somedomain.com/path/to/happiness',
+    ],
+    [
+      'url with a fragment and query params',
+      'https://somedomain.com/path/to/happiness#somewildfragment123?auhtToken=abc123&param2=bar',
+      'https://somedomain.com/path/to/happiness',
+    ],
+    [
+      'url with authorization',
+      'https://username:password@somedomain.com',
+      'https://%filtered%:%filtered%@somedomain.com/',
+    ],
+    ['same-origin url', '/api/v4/users?id=123', '/api/v4/users'],
+    ['url with port 8080', 'http://172.31.12.144:8080/test', 'http://172.31.12.144:8080/test'],
+    ['url with port 4433', 'http://172.31.12.144:4433/test', 'http://172.31.12.144:4433/test'],
+    ['url with port 443', 'http://172.31.12.144:443/test', 'http://172.31.12.144/test'],
+    ['url with IP and port 80', 'http://172.31.12.144:80/test', 'http://172.31.12.144/test'],
+  ])('returns a sanitized URL for a %s', (_, rawUrl: string, sanitizedURL: string) => {
+    const urlObject = parseStringToURLObject(rawUrl);
+    if (!urlObject) {
+      throw new Error('Invalid URL');
+    }
+    expect(getSanitizedUrlStringFromUrlObject(urlObject)).toEqual(sanitizedURL);
   });
 });

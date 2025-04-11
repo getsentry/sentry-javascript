@@ -1,4 +1,4 @@
-import type { DataCategory, TransportMakeRequestResponse } from '@sentry/types';
+import type { DataCategory, TransportMakeRequestResponse } from '../types-hoist';
 
 // Intentionally keeping the key broad, as we don't know for sure what rate limit headers get returned from backend
 export type RateLimits = Record<string, number>;
@@ -59,8 +59,8 @@ export function updateRateLimits(
 
   // "The name is case-insensitive."
   // https://developer.mozilla.org/en-US/docs/Web/API/Headers/get
-  const rateLimitHeader = headers && headers['x-sentry-rate-limits'];
-  const retryAfterHeader = headers && headers['retry-after'];
+  const rateLimitHeader = headers?.['x-sentry-rate-limits'];
+  const retryAfterHeader = headers?.['retry-after'];
 
   if (rateLimitHeader) {
     /**

@@ -15,10 +15,10 @@
     "build": "ember build --environment=production",
     "start": "ember serve --prod",
     "test": "playwright test",
-    "test:build": "pnpm install && npx playwright install && pnpm build",
-    "test:build-latest": "pnpm install && pnpm add ember-source@latest && npx playwright install && pnpm build",
+    "test:build": "pnpm install && pnpm build",
+    "test:build-latest": "pnpm install && pnpm add ember-source@latest && pnpm build",
     "test:assert": "playwright test",
-    "clean": "npx rimraf node_modules,pnpm-lock.yaml,dist"
+    "clean": "npx rimraf node_modules pnpm-lock.yaml dist"
   },
   "devDependencies": {
     "@babel/core": "^7.24.4",
@@ -50,23 +50,26 @@
     "loader.js": "^4.7.0",
     "tracked-built-ins": "^3.3.0",
     "webpack": "^5.91.0",
-    "@playwright/test": "^1.44.1",
+    "@playwright/test": "~1.50.0",
     "@sentry/ember": "latest || *",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@tsconfig/ember": "^3.0.6",
-    "@types/node": "18.18.0",
+    "@types/node": "^18.19.1",
     "@tsconfig/node18": "18.2.4",
     "@types/rsvp": "^4.0.9",
     "ts-node": "10.9.1",
     "typescript": "^5.4.5"
   },
   "engines": {
-    "node": ">= 18"
+    "node": ">=18"
   },
   "ember": {
     "edition": "octane"
   },
   "volta": {
     "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "skip": true
   }
 }

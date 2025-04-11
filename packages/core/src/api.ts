@@ -1,4 +1,5 @@
-import type { DsnComponents, DsnLike, SdkInfo } from '@sentry/types';
+import type { ReportDialogOptions } from './report-dialog';
+import type { DsnComponents, DsnLike, SdkInfo } from './types-hoist';
 import { dsnToString, makeDsn } from './utils-hoist/dsn';
 
 const SENTRY_API_VERSION = '7';
@@ -44,14 +45,7 @@ export function getEnvelopeEndpointWithUrlEncodedAuth(dsn: DsnComponents, tunnel
 }
 
 /** Returns the url to the report dialog endpoint. */
-export function getReportDialogEndpoint(
-  dsnLike: DsnLike,
-  dialogOptions: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    [key: string]: any;
-    user?: { name?: string; email?: string };
-  },
-): string {
+export function getReportDialogEndpoint(dsnLike: DsnLike, dialogOptions: ReportDialogOptions): string {
   const dsn = makeDsn(dsnLike);
   if (!dsn) {
     return '';

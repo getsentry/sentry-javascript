@@ -35,8 +35,8 @@ test('Cron job triggers send of in_progress envelope', async ({ baseURL }) => {
       },
       contexts: {
         trace: {
-          span_id: expect.any(String),
-          trace_id: expect.any(String),
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
         },
       },
     }),
@@ -51,8 +51,8 @@ test('Cron job triggers send of in_progress envelope', async ({ baseURL }) => {
       duration: expect.any(Number),
       contexts: {
         trace: {
-          span_id: expect.any(String),
-          trace_id: expect.any(String),
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
         },
       },
     }),
@@ -72,8 +72,8 @@ test('Sends exceptions to Sentry on error in cron job', async ({ baseURL }) => {
   expect(errorEvent.exception?.values).toHaveLength(1);
   expect(errorEvent.exception?.values?.[0]?.value).toBe('Test error from cron job');
   expect(errorEvent.contexts?.trace).toEqual({
-    trace_id: expect.any(String),
-    span_id: expect.any(String),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
   });
 
   // kill cron so tests don't get stuck

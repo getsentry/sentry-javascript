@@ -1,7 +1,7 @@
 import { SDK_VERSION } from '@sentry/solid';
 import * as SentrySolid from '@sentry/solid';
 
-import { vi } from 'vitest';
+import { vi, describe, beforeEach, it, expect } from 'vitest';
 import { init as solidStartInit } from '../../src/client';
 import { solidRouterBrowserTracingIntegration } from '../../src/client/solidrouter';
 
@@ -46,6 +46,7 @@ describe('browserTracingIntegration', () => {
       ?.getOptions()
       .integrations.find(integration => integration.name === 'BrowserTracing');
     expect(browserTracingIntegration).toBeDefined();
+    // @ts-expect-error Non public field
     expect(browserTracingIntegration!.isDefaultInstance).toEqual(true);
   });
 
@@ -76,6 +77,7 @@ describe('browserTracingIntegration', () => {
       ?.getOptions()
       .integrations.find(integration => integration.name === 'BrowserTracing');
     expect(browserTracingIntegration).toBeDefined();
+    // @ts-expect-error Non public field
     expect(browserTracingIntegration!.isDefaultInstance).toBeUndefined();
   });
 });

@@ -8,9 +8,10 @@ import {
   setCurrentClient,
   spanToJSON,
 } from '@sentry/core';
-import type { Span } from '@sentry/types';
-import type { ResourceEntry } from '../../src/metrics/browserMetrics';
-import { _addMeasureSpans, _addResourceSpans } from '../../src/metrics/browserMetrics';
+import type { Span } from '@sentry/core';
+import { describe, beforeEach, it, expect, beforeAll, afterAll } from 'vitest';
+
+import { _addMeasureSpans, _addNavigationSpans, _addResourceSpans } from '../../src/metrics/browserMetrics';
 import { WINDOW } from '../../src/types';
 import { TestClient, getDefaultClientOptions } from '../utils/TestClient';
 
@@ -30,6 +31,17 @@ const mockWindowLocation = {
 const originalLocation = WINDOW.location;
 
 const resourceEntryName = 'https://example.com/assets/to/css';
+
+interface AdditionalPerformanceResourceTiming {
+  renderBlockingStatus?: 'non-blocking' | 'blocking' | '';
+  deliveryType?: 'cache' | 'navigational-prefetch' | '';
+}
+
+function mockPerformanceResourceTiming(
+  data: Partial<PerformanceResourceTiming> & AdditionalPerformanceResourceTiming,
+): PerformanceResourceTiming & AdditionalPerformanceResourceTiming {
+  return data as PerformanceResourceTiming & AdditionalPerformanceResourceTiming;
+}
 
 describe('_addMeasureSpans', () => {
   const span = new SentrySpan({ op: 'pageload', name: '/', sampled: true });
@@ -54,13 +66,12 @@ describe('_addMeasureSpans', () => {
       spans.push(span);
     });
 
-    const entry: Omit<PerformanceMeasure, 'toJSON'> = {
+    const entry = {
       entryType: 'measure',
       name: 'measure-1',
       duration: 10,
       startTime: 12,
-      detail: undefined,
-    };
+    } as PerformanceEntry;
 
     const timeOrigin = 100;
     const startTime = 23;
@@ -82,6 +93,29 @@ describe('_addMeasureSpans', () => {
         },
       }),
     );
+  });
+
+  it('drops measurement spans with negative duration', () => {
+    const spans: Span[] = [];
+
+    getClient()?.on('spanEnd', span => {
+      spans.push(span);
+    });
+
+    const entry = {
+      entryType: 'measure',
+      name: 'measure-1',
+      duration: 10,
+      startTime: 12,
+    } as PerformanceEntry;
+
+    const timeOrigin = 100;
+    const startTime = 23;
+    const duration = -50;
+
+    _addMeasureSpans(span, entry, startTime, duration, timeOrigin);
+
+    expect(spans).toHaveLength(0);
   });
 });
 
@@ -116,13 +150,14 @@ describe('_addResourceSpans', () => {
       spans.push(span);
     });
 
-    const entry: ResourceEntry = {
+    const entry = mockPerformanceResourceTiming({
       initiatorType: 'xmlhttprequest',
       transferSize: 256,
       encodedBodySize: 256,
       decodedBodySize: 256,
       renderBlockingStatus: 'non-blocking',
-    };
+      nextHopProtocol: 'http/1.1',
+    });
     _addResourceSpans(span, entry, resourceEntryName, 123, 456, 100);
 
     expect(spans).toHaveLength(0);
@@ -135,13 +170,14 @@ describe('_addResourceSpans', () => {
       spans.push(span);
     });
 
-    const entry: ResourceEntry = {
+    const entry = mockPerformanceResourceTiming({
       initiatorType: 'fetch',
       transferSize: 256,
       encodedBodySize: 256,
       decodedBodySize: 256,
       renderBlockingStatus: 'non-blocking',
-    };
+      nextHopProtocol: 'http/1.1',
+    });
     _addResourceSpans(span, entry, 'https://example.com/assets/to/me', 123, 456, 100);
 
     expect(spans).toHaveLength(0);
@@ -154,13 +190,14 @@ describe('_addResourceSpans', () => {
       spans.push(span);
     });
 
-    const entry: ResourceEntry = {
+    const entry = mockPerformanceResourceTiming({
       initiatorType: 'css',
       transferSize: 256,
       encodedBodySize: 456,
       decodedBodySize: 593,
       renderBlockingStatus: 'non-blocking',
-    };
+      nextHopProtocol: 'http/1.1',
+    });
 
     const timeOrigin = 100;
     const startTime = 23;
@@ -186,6 +223,8 @@ describe('_addResourceSpans', () => {
           ['url.scheme']: 'https',
           ['server.address']: 'example.com',
           ['url.same_origin']: true,
+          ['network.protocol.name']: 'http',
+          ['network.protocol.version']: '1.1',
         },
       }),
     );
@@ -222,9 +261,10 @@ describe('_addResourceSpans', () => {
     ];
     for (let i = 0; i < table.length; i++) {
       const { initiatorType, op } = table[i]!;
-      const entry: ResourceEntry = {
+      const entry = mockPerformanceResourceTiming({
         initiatorType,
-      };
+        nextHopProtocol: 'http/1.1',
+      });
       _addResourceSpans(span, entry, 'https://example.com/assets/to/me', 123, 234, 465);
 
       expect(spans).toHaveLength(i + 1);
@@ -239,13 +279,14 @@ describe('_addResourceSpans', () => {
       spans.push(span);
     });
 
-    const entry: ResourceEntry = {
+    const entry = mockPerformanceResourceTiming({
       initiatorType: 'css',
       transferSize: 0,
       encodedBodySize: 0,
       decodedBodySize: 0,
       renderBlockingStatus: 'non-blocking',
-    };
+      nextHopProtocol: 'h2',
+    });
 
     _addResourceSpans(span, entry, resourceEntryName, 100, 23, 345);
 
@@ -262,6 +303,8 @@ describe('_addResourceSpans', () => {
           ['url.scheme']: 'https',
           ['server.address']: 'example.com',
           ['url.same_origin']: true,
+          ['network.protocol.name']: 'http',
+          ['network.protocol.version']: '2',
         },
       }),
     );
@@ -274,12 +317,13 @@ describe('_addResourceSpans', () => {
       spans.push(span);
     });
 
-    const entry: ResourceEntry = {
+    const entry = mockPerformanceResourceTiming({
       initiatorType: 'css',
       transferSize: 2147483647,
       encodedBodySize: 2147483647,
       decodedBodySize: 2147483647,
-    };
+      nextHopProtocol: 'h3',
+    });
 
     _addResourceSpans(span, entry, resourceEntryName, 100, 23, 345);
 
@@ -292,6 +336,8 @@ describe('_addResourceSpans', () => {
           'server.address': 'example.com',
           'url.same_origin': true,
           'url.scheme': 'https',
+          ['network.protocol.name']: 'http',
+          ['network.protocol.version']: '3',
         },
         description: '/assets/to/css',
         timestamp: 468,
@@ -316,7 +362,8 @@ describe('_addResourceSpans', () => {
       transferSize: null,
       encodedBodySize: null,
       decodedBodySize: null,
-    } as unknown as ResourceEntry;
+      nextHopProtocol: 'h3',
+    } as unknown as PerformanceResourceTiming;
 
     _addResourceSpans(span, entry, resourceEntryName, 100, 23, 345);
 
@@ -329,6 +376,8 @@ describe('_addResourceSpans', () => {
           'server.address': 'example.com',
           'url.same_origin': true,
           'url.scheme': 'https',
+          ['network.protocol.name']: 'http',
+          ['network.protocol.version']: '3',
         },
         description: '/assets/to/css',
         timestamp: 468,
@@ -341,7 +390,7 @@ describe('_addResourceSpans', () => {
 
   // resource delivery types: https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming/deliveryType
   // i.e. better but not yet widely supported way to check for browser cache hit
-  it.each(['cache', 'navigational-prefetch', ''])(
+  it.each(['cache', 'navigational-prefetch', ''] as const)(
     'attaches delivery type ("%s") to resource spans if available',
     deliveryType => {
       const spans: Span[] = [];
@@ -350,13 +399,14 @@ describe('_addResourceSpans', () => {
         spans.push(span);
       });
 
-      const entry: ResourceEntry = {
+      const entry = mockPerformanceResourceTiming({
         initiatorType: 'css',
         transferSize: 0,
         encodedBodySize: 0,
         decodedBodySize: 0,
         deliveryType,
-      };
+        nextHopProtocol: 'h3',
+      });
 
       _addResourceSpans(span, entry, resourceEntryName, 100, 23, 345);
 
@@ -364,6 +414,188 @@ describe('_addResourceSpans', () => {
       expect(spanToJSON(spans[0]!).data).toMatchObject({ 'http.response_delivery_type': deliveryType });
     },
   );
+});
+
+describe('_addNavigationSpans', () => {
+  const pageloadSpan = new SentrySpan({ op: 'pageload', name: '/', sampled: true });
+
+  beforeAll(() => {
+    setGlobalLocation(mockWindowLocation);
+  });
+
+  afterAll(() => {
+    resetGlobalLocation();
+  });
+
+  beforeEach(() => {
+    getCurrentScope().clear();
+    getIsolationScope().clear();
+
+    const client = new TestClient(
+      getDefaultClientOptions({
+        tracesSampleRate: 1,
+      }),
+    );
+    setCurrentClient(client);
+    client.init();
+  });
+
+  it('adds navigation spans based on the navigation performance entry', () => {
+    // entry taken from a real entry via browser dev tools
+    const entry: PerformanceNavigationTiming = {
+      name: 'https://santry.com/test',
+      entryType: 'navigation',
+      startTime: 0,
+      duration: 546.1000000014901,
+      initiatorType: 'navigation',
+      nextHopProtocol: 'h2',
+      workerStart: 0,
+      redirectStart: 7.5,
+      redirectEnd: 20.5,
+      redirectCount: 2,
+      fetchStart: 4.9000000059604645,
+      domainLookupStart: 4.9000000059604645,
+      domainLookupEnd: 4.9000000059604645,
+      connectStart: 4.9000000059604645,
+      secureConnectionStart: 4.9000000059604645,
+      connectEnd: 4.9000000059604645,
+      requestStart: 7.9000000059604645,
+      responseStart: 396.80000000447035,
+      responseEnd: 416.40000000596046,
+      transferSize: 14726,
+      encodedBodySize: 14426,
+      decodedBodySize: 67232,
+      responseStatus: 200,
+      serverTiming: [],
+      unloadEventStart: 0,
+      unloadEventEnd: 0,
+      domInteractive: 473.20000000298023,
+      domContentLoadedEventStart: 480.1000000014901,
+      domContentLoadedEventEnd: 480.30000000447035,
+      domComplete: 546,
+      loadEventStart: 546,
+      loadEventEnd: 546.1000000014901,
+      type: 'navigate',
+      activationStart: 0,
+      toJSON: () => ({}),
+    };
+    const spans: Span[] = [];
+
+    getClient()?.on('spanEnd', span => {
+      spans.push(span);
+    });
+
+    _addNavigationSpans(pageloadSpan, entry, 999);
+
+    const trace_id = pageloadSpan.spanContext().traceId;
+    const parent_span_id = pageloadSpan.spanContext().spanId;
+
+    expect(spans).toHaveLength(9);
+    expect(spans.map(spanToJSON)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          data: {
+            'sentry.op': 'browser.domContentLoadedEvent',
+            'sentry.origin': 'auto.ui.browser.metrics',
+          },
+          description: 'https://santry.com/test',
+          op: 'browser.domContentLoadedEvent',
+          origin: 'auto.ui.browser.metrics',
+          parent_span_id,
+          trace_id,
+        }),
+        expect.objectContaining({
+          data: {
+            'sentry.op': 'browser.loadEvent',
+            'sentry.origin': 'auto.ui.browser.metrics',
+          },
+          description: 'https://santry.com/test',
+          op: 'browser.loadEvent',
+          origin: 'auto.ui.browser.metrics',
+          parent_span_id,
+          trace_id,
+        }),
+        expect.objectContaining({
+          data: {
+            'sentry.op': 'browser.connect',
+            'sentry.origin': 'auto.ui.browser.metrics',
+          },
+          description: 'https://santry.com/test',
+          op: 'browser.connect',
+          origin: 'auto.ui.browser.metrics',
+          parent_span_id,
+          trace_id,
+        }),
+        expect.objectContaining({
+          data: {
+            'sentry.op': 'browser.TLS/SSL',
+            'sentry.origin': 'auto.ui.browser.metrics',
+          },
+          description: 'https://santry.com/test',
+          op: 'browser.TLS/SSL',
+          origin: 'auto.ui.browser.metrics',
+          parent_span_id,
+          trace_id,
+        }),
+        expect.objectContaining({
+          data: {
+            'sentry.op': 'browser.cache',
+            'sentry.origin': 'auto.ui.browser.metrics',
+          },
+          description: 'https://santry.com/test',
+          op: 'browser.cache',
+          origin: 'auto.ui.browser.metrics',
+          parent_span_id,
+          trace_id,
+        }),
+        expect.objectContaining({
+          data: {
+            'sentry.op': 'browser.DNS',
+            'sentry.origin': 'auto.ui.browser.metrics',
+          },
+          description: 'https://santry.com/test',
+          op: 'browser.DNS',
+          origin: 'auto.ui.browser.metrics',
+          parent_span_id,
+          trace_id,
+        }),
+        expect.objectContaining({
+          data: {
+            'sentry.op': 'browser.request',
+            'sentry.origin': 'auto.ui.browser.metrics',
+          },
+          description: 'https://santry.com/test',
+          op: 'browser.request',
+          origin: 'auto.ui.browser.metrics',
+          parent_span_id,
+          trace_id,
+        }),
+        expect.objectContaining({
+          data: {
+            'sentry.op': 'browser.response',
+            'sentry.origin': 'auto.ui.browser.metrics',
+          },
+          description: 'https://santry.com/test',
+          op: 'browser.response',
+          origin: 'auto.ui.browser.metrics',
+          parent_span_id,
+          trace_id,
+        }),
+        expect.objectContaining({
+          data: {
+            'http.redirect_count': 2,
+            'sentry.op': 'browser.redirect',
+            'sentry.origin': 'auto.ui.browser.metrics',
+          },
+          description: 'https://santry.com/test',
+          op: 'browser.redirect',
+          origin: 'auto.ui.browser.metrics',
+          parent_span_id,
+          trace_id,
+        }),
+      ]),
+    );
+  });
 });
 
 const setGlobalLocation = (location: Location) => {

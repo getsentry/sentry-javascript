@@ -1,7 +1,6 @@
-import type { OfflineStore, OfflineTransportOptions } from '@sentry/core';
-import { makeOfflineTransport } from '@sentry/core';
-import { parseEnvelope, serializeEnvelope } from '@sentry/core';
-import type { BaseTransportOptions, Envelope, Transport } from '@sentry/types';
+import type { BaseTransportOptions, Envelope, OfflineStore, OfflineTransportOptions, Transport } from '@sentry/core';
+import { makeOfflineTransport, parseEnvelope, serializeEnvelope } from '@sentry/core';
+import { WINDOW } from '../helpers';
 import { makeFetchTransport } from './fetch';
 
 // 'Store', 'promisifyRequest' and 'createStore' were originally copied from the 'idb-keyval' package before being
@@ -160,7 +159,15 @@ function createIndexedDbStore(options: BrowserOfflineTransportOptions): OfflineS
 function makeIndexedDbOfflineTransport<T>(
   createTransport: (options: T) => Transport,
 ): (options: T & BrowserOfflineTransportOptions) => Transport {
-  return options => createTransport({ ...options, createStore: createIndexedDbStore });
+  return options => {
+    const transport = createTransport({ ...options, createStore: createIndexedDbStore });
+
+    WINDOW.addEventListener('online', async _ => {
+      await transport.flush();
+    });
+
+    return transport;
+  };
 }
 
 /**

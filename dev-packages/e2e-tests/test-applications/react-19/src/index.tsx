@@ -1,5 +1,4 @@
 import * as Sentry from '@sentry/react';
-// biome-ignore lint/nursery/noUnusedImports: <explanation>
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import Index from './pages/Index';

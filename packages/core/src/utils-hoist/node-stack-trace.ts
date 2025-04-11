@@ -21,7 +21,7 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-import type { StackLineParser, StackLineParserFn } from '@sentry/types';
+import type { StackLineParser, StackLineParserFn } from '../types-hoist';
 import { UNKNOWN_FUNCTION } from './stacktrace';
 
 export type GetModuleFn = (filename: string | undefined) => string | undefined;
@@ -100,11 +100,11 @@ export function node(getModule?: GetModuleFn): StackLineParserFn {
         functionName = typeName ? `${typeName}.${methodName}` : methodName;
       }
 
-      let filename = lineMatch[2] && lineMatch[2].startsWith('file://') ? lineMatch[2].slice(7) : lineMatch[2];
+      let filename = lineMatch[2]?.startsWith('file://') ? lineMatch[2].slice(7) : lineMatch[2];
       const isNative = lineMatch[5] === 'native';
 
       // If it's a Windows path, trim the leading slash so that `/C:/foo` becomes `C:/foo`
-      if (filename && filename.match(/\/[A-Z]:/)) {
+      if (filename?.match(/\/[A-Z]:/)) {
         filename = filename.slice(1);
       }
 
@@ -113,7 +113,7 @@ export function node(getModule?: GetModuleFn): StackLineParserFn {
       }
 
       return {
-        filename,
+        filename: filename ? decodeURI(filename) : undefined,
         module: getModule ? getModule(filename) : undefined,
         function: functionName,
         lineno: _parseIntOrUndefined(lineMatch[3]),

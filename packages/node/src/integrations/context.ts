@@ -1,10 +1,10 @@
 /* eslint-disable max-lines */
+
 import { execFile } from 'node:child_process';
 import { readFile, readdir } from 'node:fs';
 import * as os from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
-import { defineIntegration } from '@sentry/core';
 import type {
   AppContext,
   CloudResourceContext,
@@ -14,7 +14,8 @@ import type {
   Event,
   IntegrationFn,
   OsContext,
-} from '@sentry/types';
+} from '@sentry/core';
+import { defineIntegration } from '@sentry/core';
 
 export const readFileAsync = promisify(readFile);
 export const readDirAsync = promisify(readdir);
@@ -122,18 +123,18 @@ export const nodeContextIntegration = defineIntegration(_nodeContextIntegration)
 function _updateContext(contexts: Contexts): Contexts {
   // Only update properties if they exist
 
-  if (contexts?.app?.app_memory) {
+  if (contexts.app?.app_memory) {
     contexts.app.app_memory = process.memoryUsage().rss;
   }
 
-  if (contexts?.app?.free_memory && typeof (process as ProcessWithCurrentValues).availableMemory === 'function') {
+  if (contexts.app?.free_memory && typeof (process as ProcessWithCurrentValues).availableMemory === 'function') {
     const freeMemory = (process as ProcessWithCurrentValues).availableMemory?.();
     if (freeMemory != null) {
       contexts.app.free_memory = freeMemory;
     }
   }
 
-  if (contexts?.device?.free_memory) {
+  if (contexts.device?.free_memory) {
     contexts.device.free_memory = os.freemem();
   }
 
@@ -171,8 +172,7 @@ async function getOsContext(): Promise<OsContext> {
 
 function getCultureContext(): CultureContext | undefined {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-    if (typeof (process.versions as unknown as any).icu !== 'string') {
+    if (typeof process.versions.icu !== 'string') {
       // Node was built without ICU support
       return;
     }
@@ -226,7 +226,7 @@ export function getDeviceContext(deviceOpt: DeviceContextOptions | true): Device
   // Sometimes os.uptime() throws due to lacking permissions: https://github.com/getsentry/sentry-javascript/issues/8202
   let uptime;
   try {
-    uptime = os.uptime && os.uptime();
+    uptime = os.uptime();
   } catch (e) {
     // noop
   }
@@ -246,8 +246,8 @@ export function getDeviceContext(deviceOpt: DeviceContextOptions | true): Device
   }
 
   if (deviceOpt === true || deviceOpt.cpu) {
-    const cpuInfo: os.CpuInfo[] | undefined = os.cpus();
-    const firstCpu = cpuInfo && cpuInfo[0];
+    const cpuInfo = os.cpus() as os.CpuInfo[] | undefined;
+    const firstCpu = cpuInfo?.[0];
     if (firstCpu) {
       device.processor_count = cpuInfo.length;
       device.cpu_description = firstCpu.model;

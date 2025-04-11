@@ -17,12 +17,3 @@ for (const path of paths) {
     //
   }
 }
-
-// eslint-disable-next-line no-console
-console.log('Cleaning up watchman...');
-
-try {
-  execSync('watchman watch-del "./../.."; watchman watch-project "./../.."', { stdio: 'inherit' });
-} catch (_) {
-  //
-}

@@ -1,3 +1,4 @@
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ensureIsWrapped } from '../../src/utils/ensureIsWrapped';
 import { cleanupOtel, mockSdkInit, resetGlobals } from '../helpers/mockSdkInit';
 
@@ -12,13 +13,13 @@ const wrappedfunction = Object.assign(() => {}, {
 
 describe('ensureIsWrapped', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
     cleanupOtel();
     resetGlobals();
   });
 
   it('warns when the method is unwrapped', () => {
-    const spyWarn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const spyWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
     mockSdkInit({ tracesSampleRate: 1 });
 
@@ -31,7 +32,7 @@ describe('ensureIsWrapped', () => {
   });
 
   it('does not warn when the method is wrapped', () => {
-    const spyWarn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const spyWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
     mockSdkInit({ tracesSampleRate: 1 });
 
@@ -41,7 +42,7 @@ describe('ensureIsWrapped', () => {
   });
 
   it('does not warn without a client', () => {
-    const spyWarn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const spyWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     resetGlobals();
 
     ensureIsWrapped(wrappedfunction, 'express');
@@ -50,7 +51,7 @@ describe('ensureIsWrapped', () => {
   });
 
   it('does not warn without tracing', () => {
-    const spyWarn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const spyWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
     mockSdkInit({});
 
@@ -60,7 +61,7 @@ describe('ensureIsWrapped', () => {
   });
 
   it('does not warn if disableInstrumentationWarnings=true', () => {
-    const spyWarn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const spyWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
     mockSdkInit({ tracesSampleRate: 1, disableInstrumentationWarnings: true });
 

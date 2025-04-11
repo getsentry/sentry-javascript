@@ -40,9 +40,9 @@ test('Sends an API route transaction from module', async ({ baseURL }) => {
       'http.route': '/example-module/transaction',
     },
     op: 'http.server',
-    span_id: expect.any(String),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
     status: 'ok',
-    trace_id: expect.any(String),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     origin: 'auto.http.otel.http',
   });
 
@@ -59,12 +59,12 @@ test('Sends an API route transaction from module', async ({ baseURL }) => {
           },
           op: 'request_handler.express',
           description: '/example-module/transaction',
-          parent_span_id: expect.any(String),
-          span_id: expect.any(String),
+          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
           start_timestamp: expect.any(Number),
           status: 'ok',
           timestamp: expect.any(Number),
-          trace_id: expect.any(String),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           origin: 'auto.http.otel.express',
         },
         {
@@ -72,12 +72,12 @@ test('Sends an API route transaction from module', async ({ baseURL }) => {
             'sentry.origin': 'manual',
           },
           description: 'test-span',
-          parent_span_id: expect.any(String),
-          span_id: expect.any(String),
+          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
           start_timestamp: expect.any(Number),
           status: 'ok',
           timestamp: expect.any(Number),
-          trace_id: expect.any(String),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           origin: 'manual',
         },
         {
@@ -85,17 +85,17 @@ test('Sends an API route transaction from module', async ({ baseURL }) => {
             'sentry.origin': 'manual',
           },
           description: 'child-span',
-          parent_span_id: expect.any(String),
-          span_id: expect.any(String),
+          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
           start_timestamp: expect.any(Number),
           status: 'ok',
           timestamp: expect.any(Number),
-          trace_id: expect.any(String),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           origin: 'manual',
         },
         {
-          span_id: expect.any(String),
-          trace_id: expect.any(String),
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           data: {
             'sentry.origin': 'auto.http.otel.nestjs',
             'sentry.op': 'handler.nestjs',
@@ -105,7 +105,7 @@ test('Sends an API route transaction from module', async ({ baseURL }) => {
             'nestjs.callback': 'testTransaction',
           },
           description: 'testTransaction',
-          parent_span_id: expect.any(String),
+          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
           start_timestamp: expect.any(Number),
           timestamp: expect.any(Number),
           status: 'ok',
@@ -142,14 +142,14 @@ test('API route transaction includes exception filter span for global filter in 
     expect.objectContaining({
       spans: expect.arrayContaining([
         {
-          span_id: expect.any(String),
-          trace_id: expect.any(String),
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           data: {
             'sentry.op': 'middleware.nestjs',
             'sentry.origin': 'auto.middleware.nestjs',
           },
           description: 'ExampleExceptionFilter',
-          parent_span_id: expect.any(String),
+          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
           start_timestamp: expect.any(Number),
           timestamp: expect.any(Number),
           status: 'ok',
@@ -181,14 +181,14 @@ test('API route transaction includes exception filter span for local filter in m
     expect.objectContaining({
       spans: expect.arrayContaining([
         {
-          span_id: expect.any(String),
-          trace_id: expect.any(String),
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           data: {
             'sentry.op': 'middleware.nestjs',
             'sentry.origin': 'auto.middleware.nestjs',
           },
           description: 'LocalExampleExceptionFilter',
-          parent_span_id: expect.any(String),
+          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
           start_timestamp: expect.any(Number),
           timestamp: expect.any(Number),
           status: 'ok',
@@ -220,14 +220,14 @@ test('API route transaction includes exception filter span for global filter in 
     expect.objectContaining({
       spans: expect.arrayContaining([
         {
-          span_id: expect.any(String),
-          trace_id: expect.any(String),
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           data: {
             'sentry.op': 'middleware.nestjs',
             'sentry.origin': 'auto.middleware.nestjs',
           },
           description: 'ExampleExceptionFilterRegisteredFirst',
-          parent_span_id: expect.any(String),
+          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
           start_timestamp: expect.any(Number),
           timestamp: expect.any(Number),
           status: 'ok',

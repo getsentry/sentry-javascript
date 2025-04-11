@@ -1,7 +1,7 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
+import type { Client, Span } from '@sentry/core';
 import * as SentryNode from '@sentry/node';
-import type { Client, Span } from '@sentry/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { handleRequest, interpolateRouteFromUrlAndParams } from '../../src/server/middleware';
@@ -143,6 +143,49 @@ describe('sentryMiddleware', () => {
 
     // @ts-expect-error, a partial ctx object is fine here
     await expect(async () => middleware(ctx, next)).rejects.toThrowError();
+
+    expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
+      mechanism: { handled: false, type: 'astro', data: { function: 'astroMiddleware' } },
+    });
+  });
+
+  it('throws and sends an error to sentry if response streaming throws', async () => {
+    const captureExceptionSpy = vi.spyOn(SentryNode, 'captureException');
+
+    const middleware = handleRequest();
+    const ctx = {
+      request: {
+        method: 'GET',
+        url: '/users',
+        headers: new Headers(),
+      },
+      url: new URL('https://myDomain.io/users/'),
+      params: {},
+    };
+
+    const error = new Error('Something went wrong');
+
+    const faultyStream = new ReadableStream({
+      pull: controller => {
+        controller.error(error);
+        controller.close();
+      },
+    });
+
+    const next = vi.fn(() =>
+      Promise.resolve(
+        new Response(faultyStream, {
+          headers: new Headers({ 'content-type': 'text/html' }),
+        }),
+      ),
+    );
+
+    // @ts-expect-error, a partial ctx object is fine here
+    const resultFromNext = await middleware(ctx, next);
+
+    expect(resultFromNext?.headers.get('content-type')).toEqual('text/html');
+
+    await expect(() => resultFromNext!.text()).rejects.toThrowError();
 
     expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
       mechanism: { handled: false, type: 'astro', data: { function: 'astroMiddleware' } },

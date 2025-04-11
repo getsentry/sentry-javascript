@@ -22,7 +22,7 @@
 // SOFTWARE.
 
 import { basename, createStackParser, nodeStackLineParser } from '@sentry/core';
-import type { StackLineParser, StackLineParserFn, StackParser } from '@sentry/types';
+import type { StackLineParser, StackLineParserFn, StackParser } from '@sentry/core';
 
 type GetModuleFn = (filename: string | undefined) => string | undefined;
 

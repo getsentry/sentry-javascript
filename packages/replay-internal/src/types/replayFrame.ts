@@ -1,4 +1,4 @@
-import type { Breadcrumb } from '@sentry/types';
+import type { Breadcrumb } from '@sentry/core';
 
 import type {
   HistoryData,

@@ -8,7 +8,7 @@ import { useFakeTimers } from '../../utils/use-fake-timers';
 
 useFakeTimers();
 
-import type { Breadcrumb } from '@sentry/types';
+import type { Breadcrumb } from '@sentry/core';
 
 import { BASE_TIMESTAMP } from '../..';
 import { ClickDetector, ignoreElement } from '../../../src/coreHandlers/handleClick';

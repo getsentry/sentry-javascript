@@ -1,4 +1,4 @@
-import type { FeedbackInternalOptions } from '@sentry/types';
+import type { FeedbackInternalOptions } from '@sentry/core';
 
 /**
  * Partial configuration that overrides default configuration values

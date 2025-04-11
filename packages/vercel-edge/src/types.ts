@@ -1,4 +1,4 @@
-import type { ClientOptions, Options, TracePropagationTargets } from '@sentry/types';
+import type { ClientOptions, Options, TracePropagationTargets } from '@sentry/core';
 
 import type { VercelEdgeClient } from './client';
 import type { VercelEdgeTransportOptions } from './transports';
@@ -60,7 +60,7 @@ export interface BaseVercelEdgeOptions {
 
 /**
  * Configuration options for the Sentry VercelEdge SDK
- * @see @sentry/types Options for more information.
+ * @see @sentry/core Options for more information.
  */
 export interface VercelEdgeOptions extends Options<VercelEdgeTransportOptions>, BaseVercelEdgeOptions {}
 

@@ -1,22 +1,12 @@
+/* eslint-disable max-lines */
+
 import {
   SENTRY_XHR_DATA_KEY,
   addClickKeypressInstrumentationHandler,
   addHistoryInstrumentationHandler,
   addXhrInstrumentationHandler,
 } from '@sentry-internal/browser-utils';
-import { addBreadcrumb, defineIntegration, getClient } from '@sentry/core';
-import {
-  addConsoleInstrumentationHandler,
-  addFetchInstrumentationHandler,
-  getBreadcrumbLogLevelFromHttpStatusCode,
-  getComponentName,
-  getEventDescription,
-  htmlTreeAsString,
-  logger,
-  parseUrl,
-  safeJoin,
-  severityLevelFromString,
-} from '@sentry/core';
+import type { FetchHint, XhrHint } from '@sentry-internal/browser-utils';
 import type {
   Breadcrumb,
   Client,
@@ -31,7 +21,22 @@ import type {
   IntegrationFn,
   XhrBreadcrumbData,
   XhrBreadcrumbHint,
-} from '@sentry/types';
+} from '@sentry/core';
+import {
+  addBreadcrumb,
+  addConsoleInstrumentationHandler,
+  addFetchInstrumentationHandler,
+  defineIntegration,
+  getBreadcrumbLogLevelFromHttpStatusCode,
+  getClient,
+  getComponentName,
+  getEventDescription,
+  htmlTreeAsString,
+  logger,
+  parseUrl,
+  safeJoin,
+  severityLevelFromString,
+} from '@sentry/core';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
@@ -69,6 +74,7 @@ const _breadcrumbsIntegration = ((options: Partial<BreadcrumbsOptions> = {}) => 
   return {
     name: INTEGRATION_NAME,
     setup(client) {
+      // TODO(v10): Remove this functionality and use `consoleIntegration` from @sentry/core instead.
       if (_options.console) {
         addConsoleInstrumentationHandler(_getConsoleBreadcrumbHandler(client));
       }
@@ -248,17 +254,16 @@ function _getXhrBreadcrumbHandler(client: Client): (handlerData: HandlerDataXhr)
       endTimestamp,
     };
 
-    const level = getBreadcrumbLogLevelFromHttpStatusCode(status_code);
+    const breadcrumb = {
+      category: 'xhr',
+      data,
+      type: 'http',
+      level: getBreadcrumbLogLevelFromHttpStatusCode(status_code),
+    };
 
-    addBreadcrumb(
-      {
-        category: 'xhr',
-        data,
-        type: 'http',
-        level,
-      },
-      hint,
-    );
+    client.emit('beforeOutgoingRequestBreadcrumb', breadcrumb, hint as XhrHint);
+
+    addBreadcrumb(breadcrumb, hint);
   };
 }
 
@@ -283,6 +288,11 @@ function _getFetchBreadcrumbHandler(client: Client): (handlerData: HandlerDataFe
       return;
     }
 
+    const breadcrumbData: FetchBreadcrumbData = {
+      method: handlerData.fetchData.method,
+      url: handlerData.fetchData.url,
+    };
+
     if (handlerData.error) {
       const data: FetchBreadcrumbData = handlerData.fetchData;
       const hint: FetchBreadcrumbHint = {
@@ -292,38 +302,44 @@ function _getFetchBreadcrumbHandler(client: Client): (handlerData: HandlerDataFe
         endTimestamp,
       };
 
-      addBreadcrumb(
-        {
-          category: 'fetch',
-          data,
-          level: 'error',
-          type: 'http',
-        },
-        hint,
-      );
+      const breadcrumb = {
+        category: 'fetch',
+        data,
+        level: 'error',
+        type: 'http',
+      } satisfies Breadcrumb;
+
+      client.emit('beforeOutgoingRequestBreadcrumb', breadcrumb, hint as FetchHint);
+
+      addBreadcrumb(breadcrumb, hint);
     } else {
       const response = handlerData.response as Response | undefined;
       const data: FetchBreadcrumbData = {
         ...handlerData.fetchData,
-        status_code: response && response.status,
+        status_code: response?.status,
       };
+
+      breadcrumbData.request_body_size = handlerData.fetchData.request_body_size;
+      breadcrumbData.response_body_size = handlerData.fetchData.response_body_size;
+      breadcrumbData.status_code = response?.status;
+
       const hint: FetchBreadcrumbHint = {
         input: handlerData.args,
         response,
         startTimestamp,
         endTimestamp,
       };
-      const level = getBreadcrumbLogLevelFromHttpStatusCode(data.status_code);
 
-      addBreadcrumb(
-        {
-          category: 'fetch',
-          data,
-          type: 'http',
-          level,
-        },
-        hint,
-      );
+      const breadcrumb = {
+        category: 'fetch',
+        data,
+        type: 'http',
+        level: getBreadcrumbLogLevelFromHttpStatusCode(data.status_code),
+      };
+
+      client.emit('beforeOutgoingRequestBreadcrumb', breadcrumb, hint as FetchHint);
+
+      addBreadcrumb(breadcrumb, hint);
     }
   };
 }
@@ -344,7 +360,7 @@ function _getHistoryBreadcrumbHandler(client: Client): (handlerData: HandlerData
     const parsedTo = parseUrl(to);
 
     // Initial pushState doesn't provide `from` information
-    if (!parsedFrom || !parsedFrom.path) {
+    if (!parsedFrom?.path) {
       parsedFrom = parsedLoc;
     }
 

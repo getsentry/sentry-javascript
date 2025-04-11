@@ -19,7 +19,7 @@ export function wrapApiHandlerWithSentryVercelCrons<F extends (...args: any[]) =
   return new Proxy(handler, {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     apply: (originalFunction, thisArg, args: any[]) => {
-      if (!args || !args[0]) {
+      if (!args?.[0]) {
         return originalFunction.apply(thisArg, args);
       }
 
@@ -38,7 +38,7 @@ export function wrapApiHandlerWithSentryVercelCrons<F extends (...args: any[]) =
 
       const vercelCron = vercelCronsConfig.find(vercelCron => vercelCron.path === cronsKey);
 
-      if (!vercelCron || !vercelCron.path || !vercelCron.schedule) {
+      if (!vercelCron?.path || !vercelCron.schedule) {
         return originalFunction.apply(thisArg, args);
       }
 

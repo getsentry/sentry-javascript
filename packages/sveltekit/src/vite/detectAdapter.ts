@@ -1,11 +1,11 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import type { Package } from '@sentry/types';
+import type { Package } from '@sentry/core';
 
 /**
  * Supported @sveltejs/adapters-[adapter] SvelteKit adapters
  */
-export type SupportedSvelteKitAdapters = 'node' | 'auto' | 'vercel' | 'other';
+export type SupportedSvelteKitAdapters = 'node' | 'auto' | 'vercel' | 'cloudflare' | 'other';
 
 /**
  * Tries to detect the used adapter for SvelteKit by looking at the dependencies.
@@ -21,6 +21,8 @@ export async function detectAdapter(debug?: boolean): Promise<SupportedSvelteKit
     adapter = 'vercel';
   } else if (allDependencies['@sveltejs/adapter-node']) {
     adapter = 'node';
+  } else if (allDependencies['@sveltejs/adapter-cloudflare']) {
+    adapter = 'cloudflare';
   } else if (allDependencies['@sveltejs/adapter-auto']) {
     adapter = 'auto';
   }

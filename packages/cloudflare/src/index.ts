@@ -2,8 +2,6 @@ export type {
   Breadcrumb,
   BreadcrumbHint,
   PolymorphicRequest,
-  // eslint-disable-next-line deprecation/deprecation
-  Request,
   RequestEventData,
   SdkInfo,
   Event,
@@ -17,8 +15,7 @@ export type {
   Stacktrace,
   Thread,
   User,
-} from '@sentry/types';
-export type { AddRequestDataToEventOptions } from '@sentry/core';
+} from '@sentry/core';
 
 export type { CloudflareOptions } from './client';
 
@@ -67,20 +64,19 @@ export {
   withActiveSpan,
   getSpanDescendants,
   continueTrace,
-  // eslint-disable-next-line deprecation/deprecation
-  metrics,
   functionToStringIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   inboundFiltersIntegration,
+  eventFiltersIntegration,
   linkedErrorsIntegration,
   requestDataIntegration,
   extraErrorDataIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  debugIntegration,
   dedupeIntegration,
   rewriteFramesIntegration,
   captureConsoleIntegration,
   moduleMetadataIntegration,
   zodErrorsIntegration,
+  consoleIntegration,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -89,6 +85,7 @@ export {
   spanToJSON,
   spanToTraceHeader,
   spanToBaggageHeader,
+  updateSpanName,
 } from '@sentry/core';
 
 export { withSentry } from './handler';
@@ -102,3 +99,5 @@ export { getDefaultIntegrations } from './sdk';
 export { fetchIntegration } from './integrations/fetch';
 
 export { instrumentD1WithSentry } from './d1';
+
+export { setAsyncLocalStorageAsyncContextStrategy } from './async';

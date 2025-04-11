@@ -1,4 +1,5 @@
 import { createRunner } from '../../../../utils/runner';
+import { describe, test, expect } from 'vitest'
 
 // Graphql Instrumentation emits some spans by default on server start
 const EXPECTED_START_SERVER_TRANSACTION = {
@@ -6,7 +7,7 @@ const EXPECTED_START_SERVER_TRANSACTION = {
 };
 
 describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
-  test('useOperationNameForRootSpan works with single query operation', done => {
+  test('useOperationNameForRootSpan works with single query operation', async () => {
     const EXPECTED_TRANSACTION = {
       transaction: 'GET /test-graphql (query GetHello)',
       spans: expect.arrayContaining([
@@ -24,13 +25,14 @@ describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
       ]),
     };
 
-    createRunner(__dirname, 'scenario-query.js')
+    await createRunner(__dirname, 'scenario-query.js')
       .expect({ transaction: EXPECTED_START_SERVER_TRANSACTION })
       .expect({ transaction: EXPECTED_TRANSACTION })
-      .start(done);
+      .start()
+      .completed();
   });
 
-  test('useOperationNameForRootSpan works with single mutation operation', done => {
+  test('useOperationNameForRootSpan works with single mutation operation', async () => {
     const EXPECTED_TRANSACTION = {
       transaction: 'GET /test-graphql (mutation TestMutation)',
       spans: expect.arrayContaining([
@@ -50,13 +52,14 @@ describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
       ]),
     };
 
-    createRunner(__dirname, 'scenario-mutation.js')
+    await createRunner(__dirname, 'scenario-mutation.js')
       .expect({ transaction: EXPECTED_START_SERVER_TRANSACTION })
       .expect({ transaction: EXPECTED_TRANSACTION })
-      .start(done);
+      .start()
+      .completed();
   });
 
-  test('useOperationNameForRootSpan ignores an invalid root span', done => {
+  test('useOperationNameForRootSpan ignores an invalid root span', async () => {
     const EXPECTED_TRANSACTION = {
       transaction: 'test span name',
       spans: expect.arrayContaining([
@@ -74,13 +77,14 @@ describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
       ]),
     };
 
-    createRunner(__dirname, 'scenario-invalid-root-span.js')
+    await createRunner(__dirname, 'scenario-invalid-root-span.js')
       .expect({ transaction: EXPECTED_START_SERVER_TRANSACTION })
       .expect({ transaction: EXPECTED_TRANSACTION })
-      .start(done);
+      .start()
+      .completed();
   });
 
-  test('useOperationNameForRootSpan works with single query operation without name', done => {
+  test('useOperationNameForRootSpan works with single query operation without name', async () => {
     const EXPECTED_TRANSACTION = {
       transaction: 'GET /test-graphql (query)',
       spans: expect.arrayContaining([
@@ -97,13 +101,14 @@ describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
       ]),
     };
 
-    createRunner(__dirname, 'scenario-no-operation-name.js')
+    await createRunner(__dirname, 'scenario-no-operation-name.js')
       .expect({ transaction: EXPECTED_START_SERVER_TRANSACTION })
       .expect({ transaction: EXPECTED_TRANSACTION })
-      .start(done);
+      .start()
+      .completed();
   });
 
-  test('useOperationNameForRootSpan works with multiple query operations', done => {
+  test('useOperationNameForRootSpan works with multiple query operations', async () => {
     const EXPECTED_TRANSACTION = {
       transaction: 'GET /test-graphql (query GetHello, query GetWorld)',
       spans: expect.arrayContaining([
@@ -132,21 +137,23 @@ describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
       ]),
     };
 
-    createRunner(__dirname, 'scenario-multiple-operations.js')
+    await createRunner(__dirname, 'scenario-multiple-operations.js')
       .expect({ transaction: EXPECTED_START_SERVER_TRANSACTION })
       .expect({ transaction: EXPECTED_TRANSACTION })
-      .start(done);
+      .start()
+      .completed();
   });
 
-  test('useOperationNameForRootSpan works with more than 5 query operations', done => {
+  test('useOperationNameForRootSpan works with more than 5 query operations', async () => {
     const EXPECTED_TRANSACTION = {
       transaction:
         'GET /test-graphql (query GetHello1, query GetHello2, query GetHello3, query GetHello4, query GetHello5, +4)',
     };
 
-    createRunner(__dirname, 'scenario-multiple-operations-many.js')
+    await createRunner(__dirname, 'scenario-multiple-operations-many.js')
       .expect({ transaction: EXPECTED_START_SERVER_TRANSACTION })
       .expect({ transaction: EXPECTED_TRANSACTION })
-      .start(done);
+      .start()
+      .completed();
   });
 });

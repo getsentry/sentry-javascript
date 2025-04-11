@@ -2,7 +2,7 @@ import { record } from '@sentry-internal/rrweb';
 import type { serializedElementNodeWithId, serializedNodeWithId } from '@sentry-internal/rrweb-snapshot';
 import { NodeType } from '@sentry-internal/rrweb-snapshot';
 import { htmlTreeAsString } from '@sentry/core';
-import type { Breadcrumb, HandlerDataDom } from '@sentry/types';
+import type { Breadcrumb, HandlerDataDom } from '@sentry/core';
 
 import type { ReplayContainer } from '../types';
 import { createBreadcrumb } from '../util/createBreadcrumb';

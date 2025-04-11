@@ -24,7 +24,7 @@
 // OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import { UNKNOWN_FUNCTION, createStackParser } from '@sentry/core';
-import type { StackFrame, StackLineParser, StackLineParserFn } from '@sentry/types';
+import type { StackFrame, StackLineParser, StackLineParserFn } from '@sentry/core';
 
 const OPERA10_PRIORITY = 10;
 const OPERA11_PRIORITY = 20;

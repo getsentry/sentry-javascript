@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import type { Metric } from '../../types';
 import { observe } from '../observe';
 
 declare global {
@@ -27,8 +26,8 @@ let interactionCountEstimate = 0;
 let minKnownInteractionId = Infinity;
 let maxKnownInteractionId = 0;
 
-const updateEstimate = (entries: Metric['entries']): void => {
-  (entries as PerformanceEventTiming[]).forEach(e => {
+const updateEstimate = (entries: PerformanceEventTiming[]) => {
+  entries.forEach(e => {
     if (e.interactionId) {
       minKnownInteractionId = Math.min(minKnownInteractionId, e.interactionId);
       maxKnownInteractionId = Math.max(maxKnownInteractionId, e.interactionId);

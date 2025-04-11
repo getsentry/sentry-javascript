@@ -3,9 +3,9 @@
 // exports in this file - which we do below.
 export * from './client';
 export * from './server';
-export * from './vite';
+export * from './config';
 
-import type { Client, Integration, Options, StackParser } from '@sentry/types';
+import type { Client, Integration, Options, StackParser } from '@sentry/core';
 
 import type * as clientSdk from './client';
 import type * as serverSdk from './server';
@@ -19,13 +19,8 @@ export declare const contextLinesIntegration: typeof clientSdk.contextLinesInteg
 export declare const getDefaultIntegrations: (options: Options) => Integration[];
 export declare const defaultStackParser: StackParser;
 
-export declare const getClient: typeof clientSdk.getClient;
-
 export declare function close(timeout?: number | undefined): PromiseLike<boolean>;
 export declare function flush(timeout?: number | undefined): PromiseLike<boolean>;
 export declare function lastEventId(): string | undefined;
 
-export declare const continueTrace: typeof clientSdk.continueTrace;
-
-// eslint-disable-next-line deprecation/deprecation
-export declare const metrics: typeof clientSdk.metrics & typeof serverSdk.metrics;
+export declare const logger: typeof clientSdk.logger | typeof serverSdk.logger;

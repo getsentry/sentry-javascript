@@ -9,7 +9,6 @@
 ## Links
 
 - [Official SDK Docs](https://docs.sentry.io/platforms/javascript/guides/react/)
-- [TypeDoc](http://getsentry.github.io/sentry-javascript/)
 
 ## General
 

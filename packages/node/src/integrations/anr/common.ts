@@ -1,4 +1,4 @@
-import type { Contexts, DsnComponents, Primitive, SdkMetadata } from '@sentry/types';
+import type { Contexts, DsnComponents, Primitive, SdkMetadata } from '@sentry/core';
 
 export interface AnrIntegrationOptions {
   /**
@@ -21,6 +21,12 @@ export interface AnrIntegrationOptions {
    * This uses the node debugger which enables the inspector API and opens the required ports.
    */
   captureStackTrace: boolean;
+  /**
+   * Maximum number of ANR events to send.
+   *
+   * Defaults to 1.
+   */
+  maxAnrEvents: number;
   /**
    * Tags to include with ANR events.
    */

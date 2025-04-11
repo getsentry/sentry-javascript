@@ -7,7 +7,7 @@ export * from './client';
 export * from './server';
 export * from './edge';
 
-import type { Client, Integration, Options, StackParser } from '@sentry/types';
+import type { Client, Integration, Options, StackParser } from '@sentry/core';
 
 import type * as clientSdk from './client';
 import type { ServerComponentContext, VercelCronsConfig } from './common/types';
@@ -18,10 +18,6 @@ import type * as serverSdk from './server';
 export declare function init(
   options: Options | clientSdk.BrowserOptions | serverSdk.NodeOptions | edgeSdk.EdgeOptions,
 ): Client | undefined;
-
-export declare const getClient: typeof clientSdk.getClient;
-export declare const getRootSpan: typeof serverSdk.getRootSpan;
-export declare const continueTrace: typeof clientSdk.continueTrace;
 
 export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;
 export declare const contextLinesIntegration: typeof clientSdk.contextLinesIntegration;
@@ -36,8 +32,7 @@ export declare const createReduxEnhancer: typeof clientSdk.createReduxEnhancer;
 export declare const showReportDialog: typeof clientSdk.showReportDialog;
 export declare const withErrorBoundary: typeof clientSdk.withErrorBoundary;
 
-// eslint-disable-next-line deprecation/deprecation
-export declare const metrics: typeof clientSdk.metrics & typeof serverSdk.metrics;
+export declare const logger: typeof clientSdk.logger | typeof serverSdk.logger;
 
 export { withSentryConfig } from './config';
 
@@ -142,5 +137,4 @@ export declare function wrapApiHandlerWithSentryVercelCrons<F extends (...args: 
  */
 export declare function wrapPageComponentWithSentry<C>(WrappingTarget: C): C;
 
-// eslint-disable-next-line deprecation/deprecation
-export { experimental_captureRequestError, captureRequestError } from './common/captureRequestError';
+export { captureRequestError } from './common/captureRequestError';

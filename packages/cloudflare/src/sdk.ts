@@ -1,3 +1,4 @@
+import type { Integration } from '@sentry/core';
 import {
   dedupeIntegration,
   functionToStringIntegration,
@@ -6,12 +7,11 @@ import {
   initAndBind,
   linkedErrorsIntegration,
   requestDataIntegration,
+  stackParserFromStackParserOptions,
+  consoleIntegration,
 } from '@sentry/core';
-import { stackParserFromStackParserOptions } from '@sentry/core';
-import type { Integration } from '@sentry/types';
 import type { CloudflareClientOptions, CloudflareOptions } from './client';
 import { CloudflareClient } from './client';
-
 import { fetchIntegration } from './integrations/fetch';
 import { makeCloudflareTransport } from './transport';
 import { defaultStackParser } from './vendor/stacktrace';
@@ -21,11 +21,14 @@ export function getDefaultIntegrations(options: CloudflareOptions): Integration[
   const sendDefaultPii = options.sendDefaultPii ?? false;
   return [
     dedupeIntegration(),
+    // TODO(v10): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
+    // eslint-disable-next-line deprecation/deprecation
     inboundFiltersIntegration(),
     functionToStringIntegration(),
     linkedErrorsIntegration(),
     fetchIntegration(),
     requestDataIntegration(sendDefaultPii ? undefined : { include: { cookies: false } }),
+    consoleIntegration(),
   ];
 }
 

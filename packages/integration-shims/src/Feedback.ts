@@ -1,5 +1,5 @@
 import { consoleSandbox } from '@sentry/core';
-import type { Integration } from '@sentry/types';
+import type { Integration } from '@sentry/core';
 import { FAKE_FUNCTION } from './common';
 
 const FEEDBACK_INTEGRATION_METHODS = ['attachTo', 'createForm', 'createWidget', 'remove'] as const;

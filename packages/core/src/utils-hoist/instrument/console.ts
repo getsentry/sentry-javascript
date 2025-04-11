@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/ban-types */
-import type { ConsoleLevel, HandlerDataConsole } from '@sentry/types';
+import type { ConsoleLevel, HandlerDataConsole } from '../../types-hoist';
 
 import { CONSOLE_LEVELS, originalConsoleMethods } from '../logger';
 import { fill } from '../object';
@@ -37,7 +37,7 @@ function instrumentConsole(): void {
         triggerHandlers('console', handlerData);
 
         const log = originalConsoleMethods[level];
-        log && log.apply(GLOBAL_OBJ.console, args);
+        log?.apply(GLOBAL_OBJ.console, args);
       };
     });
   });

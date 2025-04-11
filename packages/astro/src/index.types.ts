@@ -7,7 +7,7 @@ export * from '@sentry/node';
 
 import type { NodeOptions } from '@sentry/node';
 
-import type { Client, Integration, Options, StackParser } from '@sentry/types';
+import type { Client, Integration, Options, StackParser } from '@sentry/core';
 
 import type * as clientSdk from './index.client';
 import type * as serverSdk from './index.server';
@@ -25,13 +25,8 @@ export declare const defaultStackParser: StackParser;
 export declare function close(timeout?: number | undefined): PromiseLike<boolean>;
 export declare function flush(timeout?: number | undefined): PromiseLike<boolean>;
 
-// eslint-disable-next-line deprecation/deprecation
-export declare const getCurrentHub: typeof clientSdk.getCurrentHub;
-export declare const getClient: typeof clientSdk.getClient;
-export declare const continueTrace: typeof clientSdk.continueTrace;
-
 export declare const Span: clientSdk.Span;
 
-// eslint-disable-next-line deprecation/deprecation
-export declare const metrics: typeof clientSdk.metrics & typeof serverSdk;
+export declare const logger: typeof clientSdk.logger | typeof serverSdk.logger;
+
 export default sentryAstro;

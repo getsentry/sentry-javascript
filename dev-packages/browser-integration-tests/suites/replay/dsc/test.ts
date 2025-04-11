@@ -1,6 +1,6 @@
 import { expect } from '@playwright/test';
 import type * as Sentry from '@sentry/browser';
-import type { EventEnvelopeHeaders } from '@sentry/types';
+import type { EventEnvelopeHeaders } from '@sentry/core';
 
 import { sentryTest } from '../../../utils/fixtures';
 import {
@@ -58,10 +58,11 @@ sentryTest(
     expect(envHeader.trace).toEqual({
       environment: 'production',
       sample_rate: '1',
-      trace_id: expect.any(String),
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       public_key: 'public',
       replay_id: replay.session?.id,
       sampled: 'true',
+      sample_rand: expect.any(String),
     });
   },
 );
@@ -105,9 +106,10 @@ sentryTest(
     expect(envHeader.trace).toEqual({
       environment: 'production',
       sample_rate: '1',
-      trace_id: expect.any(String),
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       public_key: 'public',
       sampled: 'true',
+      sample_rand: expect.any(String),
     });
   },
 );
@@ -157,10 +159,11 @@ sentryTest(
     expect(envHeader.trace).toEqual({
       environment: 'production',
       sample_rate: '1',
-      trace_id: expect.any(String),
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       public_key: 'public',
       replay_id: replay.session?.id,
       sampled: 'true',
+      sample_rand: expect.any(String),
     });
   },
 );
@@ -199,9 +202,10 @@ sentryTest(
     expect(envHeader.trace).toEqual({
       environment: 'production',
       sample_rate: '1',
-      trace_id: expect.any(String),
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       public_key: 'public',
       sampled: 'true',
+      sample_rand: expect.any(String),
     });
   },
 );
@@ -240,13 +244,14 @@ sentryTest('should add replay_id to error DSC while replay is active', async ({ 
   expect(error1Header.trace).toBeDefined();
   expect(error1Header.trace).toEqual({
     environment: 'production',
-    trace_id: expect.any(String),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     public_key: 'public',
     replay_id: replay.session?.id,
     ...(hasTracing
       ? {
           sample_rate: '1',
           sampled: 'true',
+          sample_rand: expect.any(String),
         }
       : {}),
   });
@@ -261,12 +266,13 @@ sentryTest('should add replay_id to error DSC while replay is active', async ({ 
   expect(error2Header.trace).toBeDefined();
   expect(error2Header.trace).toEqual({
     environment: 'production',
-    trace_id: expect.any(String),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     public_key: 'public',
     ...(hasTracing
       ? {
           sample_rate: '1',
           sampled: 'true',
+          sample_rand: expect.any(String),
         }
       : {}),
   });

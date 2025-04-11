@@ -1,6 +1,8 @@
-import type { Event as SentryEvent, Exception, StackFrame, Stacktrace } from '@sentry/types';
+import type { Event as SentryEvent, Exception, StackFrame, Stacktrace } from '../../../src/types-hoist';
 
 import { _shouldDropEvent, dedupeIntegration } from '../../../src/integrations/dedupe';
+
+import { describe, expect, it } from 'vitest';
 
 type EventWithException = SentryEvent & {
   exception: {

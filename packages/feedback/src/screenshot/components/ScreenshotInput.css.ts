@@ -11,10 +11,17 @@ export function createScreenshotInputStyles(styleNonce?: string): HTMLStyleEleme
 
   style.textContent = `
 .editor {
-  padding: 10px;
-  padding-top: 65px;
-  padding-bottom: 65px;
+  display: flex;
   flex-grow: 1;
+  flex-direction: column;
+}
+
+.editor__image-container {
+  justify-items: center;
+  padding: 15px;
+  position: relative;
+  height: 100%;
+  border-radius: var(--menu-border-radius, 6px);
 
   background-color: ${surface200};
   background-image: repeating-linear-gradient(
@@ -42,47 +49,57 @@ export function createScreenshotInputStyles(styleNonce?: string): HTMLStyleEleme
   justify-content: center;
 }
 
-.editor__canvas-container canvas {
+.editor__canvas-container > * {
   object-fit: contain;
-  position: relative;
+  position: absolute;
 }
 
-.editor__crop-btn-group {
-  padding: 8px;
+.editor__tool-container {
+  padding-top: 8px;
+  display: flex;
+  justify-content: center;
+}
+
+.editor__tool-bar {
+  display: flex;
   gap: 8px;
-  border-radius: var(--menu-border-radius, 6px);
-  background: var(--button-primary-background, var(--background));
-  width: 175px;
-  position: absolute;
 }
 
-.editor__crop-corner {
-  width: 30px;
-  height: 30px;
+.editor__tool {
+  display: flex;
+  padding: 8px 12px;
+  justify-content: center;
+  align-items: center;
+  border: var(--button-border, var(--border));
+  border-radius: var(--button-border-radius, 6px);
+  background: var(--button-background, var(--background));
+  color: var(--button-color, var(--foreground));
+}
+
+.editor__tool--active {
+  background: var(--button-primary-background, var(--accent-background));
+  color: var(--button-primary-color, var(--accent-foreground));
+}
+
+.editor__rect {
   position: absolute;
+  z-index: 2;
+}
+
+.editor__rect button {
+  opacity: 0;
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  cursor: pointer;
+  padding: 0;
+  z-index: 3;
+  border: none;
   background: none;
-  border: 3px solid #ffffff;
 }
 
-.editor__crop-corner--top-left {
-  cursor: nwse-resize;
-  border-right: none;
-  border-bottom: none;
-}
-.editor__crop-corner--top-right {
-  cursor: nesw-resize;
-  border-left: none;
-  border-bottom: none;
-}
-.editor__crop-corner--bottom-left {
-  cursor: nesw-resize;
-  border-right: none;
-  border-top: none;
-}
-.editor__crop-corner--bottom-right {
-  cursor: nwse-resize;
-  border-left: none;
-  border-top: none;
+.editor__rect:hover button {
+  opacity: 1;
 }
 `;
 

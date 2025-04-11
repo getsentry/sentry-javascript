@@ -1,4 +1,5 @@
-import type { Client, Span } from '@sentry/types';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Client } from '../../../src/';
 import {
   SentrySpan,
   getCurrentScope,
@@ -12,20 +13,18 @@ import {
 } from '../../../src/';
 import { getAsyncContextStrategy } from '../../../src/asyncContext';
 import { freezeDscOnSpan } from '../../../src/tracing/dynamicSamplingContext';
-
-import { isValidBaggageString } from '../../../src/utils/traceData';
+import type { Span } from '../../../src/types-hoist';
 import type { TestClientOptions } from '../../mocks/client';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 const dsn = 'https://123@sentry.io/42';
 
 const SCOPE_TRACE_ID = '12345678901234567890123456789012';
-const SCOPE_SPAN_ID = '1234567890123456';
 
 function setupClient(opts?: Partial<TestClientOptions>): Client {
   getCurrentScope().setPropagationContext({
     traceId: SCOPE_TRACE_ID,
-    spanId: SCOPE_SPAN_ID,
+    sampleRand: Math.random(),
   });
 
   const options = getDefaultTestClientOptions({
@@ -50,7 +49,7 @@ describe('getTraceData', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('uses the ACS implementation, if available', () => {
@@ -58,7 +57,7 @@ describe('getTraceData', () => {
 
     const carrier = getMainCarrier();
 
-    const customFn = jest.fn((options?: { span?: Span }) => {
+    const customFn = vi.fn((options?: { span?: Span }) => {
       expect(options).toEqual({ span: undefined });
       return {
         'sentry-trace': 'abc',
@@ -99,7 +98,7 @@ describe('getTraceData', () => {
       sampled: true,
     });
 
-    const customFn = jest.fn((options?: { span?: Span }) => {
+    const customFn = vi.fn((options?: { span?: Span }) => {
       expect(options).toEqual({ span });
       return {
         'sentry-trace': 'abc',
@@ -165,20 +164,22 @@ describe('getTraceData', () => {
     getCurrentScope().setPropagationContext({
       traceId: '12345678901234567890123456789012',
       sampled: true,
-      spanId: '1234567890123456',
+      parentSpanId: '1234567890123456',
+      sampleRand: 0.42,
       dsc: {
         environment: 'staging',
         public_key: 'key',
         trace_id: '12345678901234567890123456789012',
+        sample_rand: '0.42',
       },
     });
 
     const traceData = getTraceData();
 
-    expect(traceData).toEqual({
-      'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
-      baggage: 'sentry-environment=staging,sentry-public_key=key,sentry-trace_id=12345678901234567890123456789012',
-    });
+    expect(traceData['sentry-trace']).toMatch(/^12345678901234567890123456789012-[a-f0-9]{16}-1$/);
+    expect(traceData.baggage).toEqual(
+      'sentry-environment=staging,sentry-public_key=key,sentry-trace_id=12345678901234567890123456789012,sentry-sample_rand=0.42',
+    );
   });
 
   it('returns frozen DSC from SentrySpan if available', () => {
@@ -279,77 +280,5 @@ describe('getTraceData', () => {
     const traceData = getTraceData();
 
     expect(traceData).toEqual({});
-  });
-});
-
-describe('isValidBaggageString', () => {
-  it.each([
-    'sentry-environment=production',
-    'sentry-environment=staging,sentry-public_key=key,sentry-trace_id=abc',
-    // @ is allowed in values
-    'sentry-release=project@1.0.0',
-    // spaces are allowed around the delimiters
-    'sentry-environment=staging ,   sentry-public_key=key  ,sentry-release=myproject@1.0.0',
-    'sentry-environment=staging ,   thirdparty=value  ,sentry-release=myproject@1.0.0',
-    // these characters are explicitly allowed for keys in the baggage spec:
-    "!#$%&'*+-.^_`|~1234567890abcxyzABCXYZ=true",
-    // special characters in values are fine (except for ",;\ - see other test)
-    'key=(value)',
-    'key=[{(value)}]',
-    'key=some$value',
-    'key=more#value',
-    'key=max&value',
-    'key=max:value',
-    'key=x=value',
-  ])('returns true if the baggage string is valid (%s)', baggageString => {
-    expect(isValidBaggageString(baggageString)).toBe(true);
-  });
-
-  it.each([
-    // baggage spec doesn't permit leading spaces
-    ' sentry-environment=production,sentry-publickey=key,sentry-trace_id=abc',
-    // no spaces in keys or values
-    'sentry-public key=key',
-    'sentry-publickey=my key',
-    // no delimiters ("(),/:;<=>?@[\]{}") in keys
-    'asdf(x=value',
-    'asdf)x=value',
-    'asdf,x=value',
-    'asdf/x=value',
-    'asdf:x=value',
-    'asdf;x=value',
-    'asdf<x=value',
-    'asdf>x=value',
-    'asdf?x=value',
-    'asdf@x=value',
-    'asdf[x=value',
-    'asdf]x=value',
-    'asdf\\x=value',
-    'asdf{x=value',
-    'asdf}x=value',
-    // no ,;\" in values
-    'key=va,lue',
-    'key=va;lue',
-    'key=va\\lue',
-    'key=va"lue"',
-    // baggage headers can have properties but we currently don't support them
-    'sentry-environment=production;prop1=foo;prop2=bar,nextkey=value',
-    // no fishy stuff
-    'absolutely not a valid baggage string',
-    'val"/><script>alert("xss")</script>',
-    'something"/>',
-    '<script>alert("xss")</script>',
-    '/>',
-    '" onblur="alert("xss")',
-  ])('returns false if the baggage string is invalid (%s)', baggageString => {
-    expect(isValidBaggageString(baggageString)).toBe(false);
-  });
-
-  it('returns false if the baggage string is empty', () => {
-    expect(isValidBaggageString('')).toBe(false);
-  });
-
-  it('returns false if the baggage string is empty', () => {
-    expect(isValidBaggageString(undefined)).toBe(false);
   });
 });

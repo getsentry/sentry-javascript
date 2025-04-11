@@ -10,21 +10,19 @@ sentryTest(
       sentryTest.skip();
     }
 
-    await page.route('**/api/test/', async route => {
-      const req = route.request();
-      const headers = await req.allHeaders();
+    const requestPromise = page.waitForRequest('http://sentry-test-site.example/api/test/');
 
-      // headers.bar was set in fetch options (and should be sent)
-      expect(headers.bar).toBe('22');
-      // headers.foo was set in init request object (and should be ignored)
-      expect(headers.foo).toBeUndefined();
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
-      return route.fulfill({
-        status: 200,
-        body: 'ok',
-      });
-    });
+    await page.goto(url);
 
-    await getLocalTestUrl({ testDir: __dirname });
+    const request = await requestPromise;
+
+    const headers = await request.allHeaders();
+
+    // headers.bar was set in fetch options (and should be sent)
+    expect(headers.bar).toBe('22');
+    // headers.foo was set in init request object (and should be ignored)
+    expect(headers.foo).toBeUndefined();
   },
 );

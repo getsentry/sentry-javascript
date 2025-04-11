@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { normalizeUrlToBase } from '../../src/utils-hoist/normalize';
 
 describe('normalizeUrlToBase()', () => {

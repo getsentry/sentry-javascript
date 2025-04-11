@@ -1,4 +1,5 @@
 import { ConnectInstrumentation } from '@opentelemetry/instrumentation-connect';
+import type { IntegrationFn, Span } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -7,7 +8,6 @@ import {
   getClient,
   spanToJSON,
 } from '@sentry/core';
-import type { IntegrationFn, Span } from '@sentry/types';
 import { generateInstrumentOnce } from '../../otel/instrument';
 import { ensureIsWrapped } from '../../utils/ensureIsWrapped';
 
@@ -89,7 +89,7 @@ export const setupConnectErrorHandler = (app: ConnectApp): void => {
 };
 
 function addConnectSpanAttributes(span: Span): void {
-  const attributes = spanToJSON(span).data || {};
+  const attributes = spanToJSON(span).data;
 
   // this is one of: middleware, request_handler
   const type = attributes['connect.type'];
@@ -104,7 +104,7 @@ function addConnectSpanAttributes(span: Span): void {
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `${type}.connect`,
   });
 
-  // Also update the name, we don't need to "middleware - " prefix
+  // Also update the name, we don't need the "middleware - " prefix
   const name = attributes['connect.name'];
   if (typeof name === 'string') {
     span.updateName(name);

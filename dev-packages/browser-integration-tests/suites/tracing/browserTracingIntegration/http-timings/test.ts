@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/types';
+import type { Event } from '@sentry/core';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import { getMultipleSentryEnvelopeRequests, shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -10,7 +10,7 @@ sentryTest('should create fetch spans with http timing @firefox', async ({ brows
   if (shouldSkipTracingTest() || !supportedBrowsers.includes(browserName)) {
     sentryTest.skip();
   }
-  await page.route('http://example.com/*', async route => {
+  await page.route('http://sentry-test-site.example/*', async route => {
     const request = route.request();
     const postData = await request.postDataJSON();
 
@@ -33,9 +33,9 @@ sentryTest('should create fetch spans with http timing @firefox', async ({ brows
   await page.pause();
   requestSpans?.forEach((span, index) =>
     expect(span).toMatchObject({
-      description: `GET http://example.com/${index}`,
+      description: `GET http://sentry-test-site.example/${index}`,
       parent_span_id: tracingEvent.contexts?.trace?.span_id,
-      span_id: expect.any(String),
+      span_id: expect.stringMatching(/[a-f0-9]{16}/),
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
       trace_id: tracingEvent.contexts?.trace?.trace_id,

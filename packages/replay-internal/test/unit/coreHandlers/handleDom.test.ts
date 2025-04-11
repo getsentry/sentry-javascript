@@ -4,7 +4,7 @@
 
 import { describe, expect, test } from 'vitest';
 
-import type { HandlerDataDom } from '@sentry/types';
+import type { HandlerDataDom } from '@sentry/core';
 
 import { handleDom } from '../../../src/coreHandlers/handleDom';
 

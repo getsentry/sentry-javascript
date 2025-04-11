@@ -1,5 +1,4 @@
-import { captureException, getCurrentScope, withIsolationScope } from '@sentry/core';
-import { extractTraceparentData } from '@sentry/core';
+import { captureException, extractTraceparentData, getCurrentScope, withIsolationScope } from '@sentry/core';
 
 interface FunctionComponent {
   (...args: unknown[]): unknown;

@@ -62,6 +62,12 @@ differ slightly for other SDKs depending on how they are structured and how they
 - [ ] If the package you're adding is a dependency of fullstack framework (e.g. Remix or NextJS) SDKs, make sure that
       your package is added to the integration test apps' `"resolutions"` field in their `package.json`s.
 
+- [ ] Add the new package to the "root" README inside the repository.
+
+- [ ] Add the new package to the GitHub Issue bug template.
+
+- [ ] Create label inside the GitHub repo named "Package: foobar".
+
 ## Cutting the Release
 
 When you’re ready to make the first release, there are a couple of steps that need to be performed in the **correct

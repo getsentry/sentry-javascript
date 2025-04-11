@@ -1,4 +1,4 @@
-import type { Span, SpanStatus } from '@sentry/types';
+import type { Span, SpanStatus } from '../types-hoist';
 
 export const SPAN_STATUS_UNSET = 0;
 export const SPAN_STATUS_OK = 1;

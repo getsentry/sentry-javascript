@@ -1,6 +1,5 @@
-import type { SentrySpan } from '@sentry/core';
+import type { Integration, SentrySpan, Span, SpanAttributes, SpanTimeInput, StartSpanOptions } from '@sentry/core';
 import { getClient, getCurrentScope, spanToJSON, startInactiveSpan, withActiveSpan } from '@sentry/core';
-import type { Integration, Span, SpanAttributes, SpanTimeInput, StartSpanOptions } from '@sentry/types';
 import { WINDOW } from '../types';
 
 /**
@@ -75,11 +74,11 @@ export function startStandaloneWebVitalSpan(options: StandaloneWebVitalSpanOptio
 
   const { name, transaction, attributes: passedAttributes, startTime } = options;
 
-  const { release, environment } = client.getOptions();
+  const { release, environment, sendDefaultPii } = client.getOptions();
   // We need to get the replay, user, and activeTransaction from the current scope
   // so that we can associate replay id, profile id, and a user display to the span
   const replay = client.getIntegrationByName<Integration & { getReplayId: () => string }>('Replay');
-  const replayId = replay && replay.getReplayId();
+  const replayId = replay?.getReplayId();
 
   const scope = getCurrentScope();
 
@@ -107,7 +106,10 @@ export function startStandaloneWebVitalSpan(options: StandaloneWebVitalSpanOptio
     // Web vital score calculation relies on the user agent to account for different
     // browsers setting different thresholds for what is considered a good/meh/bad value.
     // For example: Chrome vs. Chrome Mobile
-    'user_agent.original': WINDOW.navigator && WINDOW.navigator.userAgent,
+    'user_agent.original': WINDOW.navigator?.userAgent,
+
+    // This tells Sentry to infer the IP address from the request
+    'client.address': sendDefaultPii ? '{{auto}}' : undefined,
 
     ...passedAttributes,
   };
@@ -125,7 +127,7 @@ export function startStandaloneWebVitalSpan(options: StandaloneWebVitalSpanOptio
 /** Get the browser performance API. */
 export function getBrowserPerformanceAPI(): Performance | undefined {
   // @ts-expect-error we want to make sure all of these are available, even if TS is sure they are
-  return WINDOW && WINDOW.addEventListener && WINDOW.performance;
+  return WINDOW.addEventListener && WINDOW.performance;
 }
 
 /**
@@ -134,4 +136,35 @@ export function getBrowserPerformanceAPI(): Performance | undefined {
  */
 export function msToSec(time: number): number {
   return time / 1000;
+}
+
+/**
+ * Converts ALPN protocol ids to name and version.
+ *
+ * (https://www.iana.org/assignments/tls-extensiontype-values/tls-extensiontype-values.xhtml#alpn-protocol-ids)
+ * @param nextHopProtocol PerformanceResourceTiming.nextHopProtocol
+ */
+export function extractNetworkProtocol(nextHopProtocol: string): { name: string; version: string } {
+  let name = 'unknown';
+  let version = 'unknown';
+  let _name = '';
+  for (const char of nextHopProtocol) {
+    // http/1.1 etc.
+    if (char === '/') {
+      [name, version] = nextHopProtocol.split('/') as [string, string];
+      break;
+    }
+    // h2, h3 etc.
+    if (!isNaN(Number(char))) {
+      name = _name === 'h' ? 'http' : _name;
+      version = nextHopProtocol.split(_name)[1] as string;
+      break;
+    }
+    _name += char;
+  }
+  if (_name === nextHopProtocol) {
+    // webrtc, ftp, etc.
+    name = _name;
+  }
+  return { name, version };
 }

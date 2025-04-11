@@ -1,11 +1,12 @@
+import { afterAll, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
 afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('should set a simple context', done => {
-  createRunner(__dirname, 'scenario.ts')
+test('should set a simple context', async () => {
+  await createRunner(__dirname, 'scenario.ts')
     .expect({
       event: {
         message: 'simple_context_object',
@@ -16,5 +17,6 @@ test('should set a simple context', done => {
         },
       },
     })
-    .start(done);
+    .start()
+    .completed();
 });

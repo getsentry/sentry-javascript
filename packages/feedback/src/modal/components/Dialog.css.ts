@@ -60,7 +60,7 @@ const DIALOG = `
   gap: 16px;
   padding: var(--dialog-padding, 24px);
   max-width: 100%;
-  width: var(--form-width, 272px);
+  width: 100%;
   max-height: 100%;
   overflow: auto;
 
@@ -70,12 +70,6 @@ const DIALOG = `
   box-shadow: var(--dialog-box-shadow, var(--box-shadow));
   transform: translate(0, 0) scale(1);
   transition: transform 0.2s ease-in-out;
-}
-
-@media (max-width: 600px) {
-  .dialog__content {
-    width: var(--form-width, 100%);
-  }
 }
 
 `;
@@ -90,7 +84,20 @@ const DIALOG_HEADER = `
 }
 .dialog__title {
   align-self: center;
+  width: var(--form-width, 272px);
 }
+
+@media (max-width: 600px) {
+  .dialog__title {
+    width: auto;
+  }
+}
+
+.dialog__position:has(.editor) .dialog__title {
+  width: auto;
+}
+
+
 .brand-link {
   display: inline-flex;
 }
@@ -108,6 +115,12 @@ const FORM = `
   flex: 1 0;
 }
 
+.form fieldset {
+  border: none;
+  margin: 0;
+  padding: 0;
+}
+
 .form__right {
   flex: 0 0 auto;
   display: flex;
@@ -115,7 +128,11 @@ const FORM = `
   flex-direction: column;
   justify-content: space-between;
   gap: 20px;
-  width: 100%;
+  width: var(--form-width, 100%);
+}
+
+.dialog__position:has(.editor) .form__right {
+  width: var(--form-width, 272px);
 }
 
 .form__top {

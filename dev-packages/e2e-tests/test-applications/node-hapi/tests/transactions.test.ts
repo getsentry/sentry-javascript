@@ -39,9 +39,9 @@ test('Sends successful transaction', async ({ baseURL }) => {
       'http.route': '/test-success',
     },
     op: 'http.server',
-    span_id: expect.any(String),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
     status: 'ok',
-    trace_id: expect.any(String),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     origin: 'auto.http.otel.http',
   });
 
@@ -69,12 +69,12 @@ test('Sends successful transaction', async ({ baseURL }) => {
       description: 'GET /test-success',
       op: 'router.hapi',
       origin: 'auto.http.otel.hapi',
-      parent_span_id: expect.any(String),
-      span_id: expect.any(String),
+      parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      span_id: expect.stringMatching(/[a-f0-9]{16}/),
       start_timestamp: expect.any(Number),
       status: 'ok',
       timestamp: expect.any(Number),
-      trace_id: expect.any(String),
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     },
     {
       // this comes from "onPreResponse"
@@ -87,12 +87,12 @@ test('Sends successful transaction', async ({ baseURL }) => {
       description: 'ext - onPreResponse',
       op: 'server.ext.hapi',
       origin: 'auto.http.otel.hapi',
-      parent_span_id: expect.any(String),
-      span_id: expect.any(String),
+      parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      span_id: expect.stringMatching(/[a-f0-9]{16}/),
       start_timestamp: expect.any(Number),
       status: 'ok',
       timestamp: expect.any(Number),
-      trace_id: expect.any(String),
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     },
   ]);
 });

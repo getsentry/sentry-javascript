@@ -13,10 +13,10 @@ import {
   getRootSpan,
   spanToJSON,
 } from '@sentry/core';
-import type { Client, Integration, Span, TransactionSource } from '@sentry/types';
-import hoistNonReactStatics from 'hoist-non-react-statics';
+import type { Client, Integration, Span, TransactionSource } from '@sentry/core';
 import * as React from 'react';
 import type { ReactElement } from 'react';
+import { hoistNonReactStatics } from './hoist-non-react-statics';
 
 import type { Action, Location } from './types';
 
@@ -121,11 +121,11 @@ function instrumentReactRouter(
   matchPath?: MatchPath,
 ): void {
   function getInitPathName(): string | undefined {
-    if (history && history.location) {
+    if (history.location) {
       return history.location.pathname;
     }
 
-    if (WINDOW && WINDOW.location) {
+    if (WINDOW.location) {
       return WINDOW.location.pathname;
     }
 
@@ -223,10 +223,10 @@ function computeRootMatch(pathname: string): Match {
 
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access */
 export function withSentryRouting<P extends Record<string, any>, R extends React.ComponentType<P>>(Route: R): R {
-  const componentDisplayName = (Route as any).displayName || (Route as any).name;
+  const componentDisplayName = Route.displayName || Route.name;
 
   const WrappedRoute: React.FC<P> = (props: P) => {
-    if (props && props.computedMatch && props.computedMatch.isExact) {
+    if (props?.computedMatch?.isExact) {
       const route = props.computedMatch.path;
       const activeRootSpan = getActiveRootSpan();
 

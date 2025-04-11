@@ -72,17 +72,3 @@ export interface CLSAttribution {
 export interface CLSMetricWithAttribution extends CLSMetric {
   attribution: CLSAttribution;
 }
-
-/**
- * A CLS-specific version of the ReportCallback function.
- */
-export interface CLSReportCallback {
-  (metric: CLSMetric): void;
-}
-
-/**
- * A CLS-specific version of the ReportCallback function with attribution.
- */
-export interface CLSReportCallbackWithAttribution {
-  (metric: CLSMetricWithAttribution): void;
-}

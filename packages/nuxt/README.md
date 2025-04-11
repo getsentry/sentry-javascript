@@ -130,35 +130,6 @@ export default defineNuxtConfig({
 });
 ```
 
-## Troubleshooting
+## Troubleshoot
 
-When adding `sentry.server.config.ts`, you might get an error like this:
-"`Failed to register ESM hook import-in-the-middle/hook.mjs`". You can add an override (npm/pnpm) or a resolution (yarn)
-for `@vercel/nft` to fix this. This will add the `hook.mjs` file to your build output
-([Nitro issue here](https://github.com/unjs/nitro/issues/2703)).
-
-For `npm`:
-
-```json
-"overrides": {
-  "@vercel/nft": "^0.27.4"
-}
-```
-
-for `yarn`:
-
-```json
-"resolutions": {
-  "@vercel/nft": "^0.27.4"
-}
-```
-
-or for `pnpm`:
-
-```json
-"pnpm": {
-  "overrides": {
-    "@vercel/nft": "^0.27.4"
-  }
-}
-```
+If you encounter any issues with error tracking or integrations, refer to the official [Sentry Nuxt SDK documentation](https://docs.sentry.io/platforms/javascript/guides/nuxt/). If the documentation does not provide the necessary information, consider opening an issue on GitHub.

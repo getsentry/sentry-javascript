@@ -1,3 +1,5 @@
+import type { RequestEventData } from '@sentry/core';
+import { getActiveSpan } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
@@ -6,12 +8,11 @@ import {
   getClient,
   getIsolationScope,
   handleCallbackErrors,
+  logger,
   startSpan,
+  vercelWaitUntil,
   withIsolationScope,
 } from '@sentry/core';
-import { logger, vercelWaitUntil } from '@sentry/core';
-import type { RequestEventData } from '@sentry/types';
-
 import { DEBUG_BUILD } from './debug-build';
 import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
 import { flushSafelyWithTimeout } from './utils/responseEnd';
@@ -95,7 +96,13 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
       } satisfies RequestEventData,
     });
 
-    return continueTrace(
+    // Normally, there is an active span here (from Next.js OTEL) and we just use that as parent
+    // Else, we manually continueTrace from the incoming headers
+    const continueTraceIfNoActiveSpan = getActiveSpan()
+      ? <T>(_opts: unknown, callback: () => T) => callback()
+      : continueTrace;
+
+    return continueTraceIfNoActiveSpan(
       {
         sentryTrace: sentryTraceHeader,
         baggage: baggageHeader,

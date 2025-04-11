@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import type { Event as SentryEvent, SpanEnvelope } from '@sentry/types';
+import type { Event as SentryEvent, SpanEnvelope } from '@sentry/core';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import {
@@ -58,6 +58,7 @@ sentryTest(
         sampled: 'true',
         trace_id: traceId,
         transaction: 'test-route',
+        sample_rand: expect.any(String),
       },
     });
 
@@ -69,7 +70,6 @@ sentryTest(
         'sentry.exclusive_time': inpValue,
         'sentry.op': 'ui.interaction.click',
         'sentry.origin': 'auto.http.browser.inp',
-        'sentry.sample_rate': 1,
         'sentry.source': 'custom',
         transaction: 'test-route',
         'user_agent.original': expect.stringContaining('Chrome'),

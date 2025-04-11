@@ -1,4 +1,4 @@
-import type { ErrorEvent, Event, FeedbackEvent, ReplayEvent, TransactionEvent } from '@sentry/types';
+import type { ErrorEvent, Event, FeedbackEvent, ReplayEvent, TransactionEvent } from '@sentry/core';
 
 /** If the event is an error event */
 export function isErrorEvent(event: Event): event is ErrorEvent {

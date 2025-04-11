@@ -19,16 +19,3 @@ export type FirstInputPolyfillEntry = Omit<PerformanceEventTiming, 'processingEn
 export interface FirstInputPolyfillCallback {
   (entry: FirstInputPolyfillEntry): void;
 }
-
-export type NavigationTimingPolyfillEntry = Omit<
-  PerformanceNavigationTiming,
-  | 'initiatorType'
-  | 'nextHopProtocol'
-  | 'redirectCount'
-  | 'transferSize'
-  | 'encodedBodySize'
-  | 'decodedBodySize'
-  | 'type'
-> & {
-  type: PerformanceNavigationTiming['type'];
-};

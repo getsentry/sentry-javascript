@@ -1,12 +1,15 @@
-import type { PropagationContext } from '@sentry/types';
 import { uuid4 } from './misc';
 
 /**
- * Returns a new minimal propagation context
+ * Generate a random, valid trace ID.
  */
-export function generatePropagationContext(): PropagationContext {
-  return {
-    traceId: uuid4(),
-    spanId: uuid4().substring(16),
-  };
+export function generateTraceId(): string {
+  return uuid4();
+}
+
+/**
+ * Generate a random, valid span ID.
+ */
+export function generateSpanId(): string {
+  return uuid4().substring(16);
 }

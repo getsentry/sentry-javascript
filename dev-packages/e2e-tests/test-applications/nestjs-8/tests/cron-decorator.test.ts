@@ -27,8 +27,8 @@ test('Cron job triggers send of in_progress envelope', async ({ baseURL }) => {
       },
       contexts: {
         trace: {
-          span_id: expect.any(String),
-          trace_id: expect.any(String),
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
         },
       },
     }),
@@ -43,8 +43,8 @@ test('Cron job triggers send of in_progress envelope', async ({ baseURL }) => {
       duration: expect.any(Number),
       contexts: {
         trace: {
-          span_id: expect.any(String),
-          trace_id: expect.any(String),
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
         },
       },
     }),

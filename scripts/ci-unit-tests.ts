@@ -2,20 +2,12 @@ import * as childProcess from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 
-type NodeVersion = '14' | '16' | '18' | '20' | '21';
-
-interface VersionConfig {
-  ignoredPackages: Array<`@${'sentry' | 'sentry-internal'}/${string}`>;
-}
-
 const UNIT_TEST_ENV = process.env.UNIT_TEST_ENV as 'node' | 'browser' | undefined;
-
-const CURRENT_NODE_VERSION = process.version.replace('v', '').split('.')[0] as NodeVersion;
-
 const RUN_AFFECTED = process.argv.includes('--affected');
+const NODE_VERSION = process.env.NODE_VERSION as '18' | '20' | '22';
 
 // These packages are tested separately in CI, so no need to run them here
-const DEFAULT_SKIP_PACKAGES = ['@sentry/profiling-node', '@sentry/bun', '@sentry/deno'];
+const DEFAULT_SKIP_PACKAGES = ['@sentry/bun', '@sentry/deno'];
 
 // All other packages are run for multiple node versions
 const BROWSER_TEST_PACKAGES = [
@@ -26,7 +18,6 @@ const BROWSER_TEST_PACKAGES = [
   '@sentry/angular',
   '@sentry/solid',
   '@sentry/svelte',
-  '@sentry/profiling-node',
   '@sentry-internal/browser-utils',
   '@sentry-internal/replay',
   '@sentry-internal/replay-canvas',
@@ -35,33 +26,8 @@ const BROWSER_TEST_PACKAGES = [
   '@sentry/wasm',
 ];
 
-// These are Node-version specific tests that need to be skipped because of support
-const SKIP_TEST_PACKAGES: Record<NodeVersion, VersionConfig> = {
-  '14': {
-    ignoredPackages: [
-      '@sentry/cloudflare',
-      '@sentry/solidstart',
-      '@sentry/sveltekit',
-      '@sentry/vercel-edge',
-      '@sentry/astro',
-      '@sentry/nuxt',
-      '@sentry/nestjs',
-      '@sentry-internal/eslint-plugin-sdk',
-    ],
-  },
-  '16': {
-    ignoredPackages: ['@sentry/cloudflare', '@sentry/vercel-edge', '@sentry/astro', '@sentry/solidstart'],
-  },
-  '18': {
-    ignoredPackages: [],
-  },
-  '20': {
-    ignoredPackages: [],
-  },
-  '21': {
-    ignoredPackages: [],
-  },
-};
+// Packages that cannot run in Node 18
+const SKIP_NODE_18_PACKAGES = ['@sentry/react-router'];
 
 function getAllPackages(): string[] {
   const { workspaces }: { workspaces: string[] } = JSON.parse(
@@ -93,11 +59,10 @@ function runTests(): void {
     });
   } else if (UNIT_TEST_ENV === 'node') {
     BROWSER_TEST_PACKAGES.forEach(pkg => ignores.add(pkg));
-  }
 
-  const versionConfig = SKIP_TEST_PACKAGES[CURRENT_NODE_VERSION];
-  if (versionConfig) {
-    versionConfig.ignoredPackages.forEach(dep => ignores.add(dep));
+    if (NODE_VERSION === '18') {
+      SKIP_NODE_18_PACKAGES.forEach(pkg => ignores.add(pkg));
+    }
   }
 
   if (RUN_AFFECTED) {

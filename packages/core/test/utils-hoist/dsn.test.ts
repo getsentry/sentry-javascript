@@ -1,17 +1,18 @@
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { DEBUG_BUILD } from '../../src/utils-hoist/debug-build';
 import { dsnToString, makeDsn } from '../../src/utils-hoist/dsn';
 import { logger } from '../../src/utils-hoist/logger';
 
-function testIf(condition: boolean): jest.It {
+function testIf(condition: boolean) {
   return condition ? test : test.skip;
 }
 
-const loggerErrorSpy = jest.spyOn(logger, 'error').mockImplementation(() => {});
-const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+const loggerErrorSpy = vi.spyOn(logger, 'error').mockImplementation(() => {});
+const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 describe('Dsn', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('fromComponents', () => {

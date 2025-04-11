@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import type { EventEnvelopeHeaders } from '@sentry/types';
+import type { EventEnvelopeHeaders } from '@sentry/core';
 
 import { sentryTest } from '../../../utils/fixtures';
 import {
@@ -24,9 +24,10 @@ sentryTest(
       environment: 'production',
       sample_rate: '1',
       transaction: expect.stringContaining('/index.html'),
-      trace_id: expect.any(String),
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       public_key: 'public',
       sampled: 'true',
+      sample_rand: expect.any(String),
     });
   },
 );

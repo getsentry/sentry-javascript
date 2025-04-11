@@ -1,12 +1,12 @@
-import { applySdkMetadata, flush, getGlobalScope } from '@sentry/core';
-import { logger, vercelWaitUntil } from '@sentry/core';
+import * as path from 'node:path';
+import type { Client, EventProcessor, Integration } from '@sentry/core';
+import { applySdkMetadata, flush, getGlobalScope, logger, vercelWaitUntil } from '@sentry/core';
 import {
   type NodeOptions,
   getDefaultIntegrations as getDefaultNodeIntegrations,
   httpIntegration,
   init as initNode,
 } from '@sentry/node';
-import type { Client, EventProcessor, Integration } from '@sentry/types';
 import { DEBUG_BUILD } from '../common/debug-build';
 import type { SentryNuxtServerOptions } from '../common/types';
 
@@ -18,7 +18,6 @@ import type { SentryNuxtServerOptions } from '../common/types';
 export function init(options: SentryNuxtServerOptions): Client | undefined {
   const sentryOptions = {
     ...options,
-    registerEsmLoaderHooks: mergeRegisterEsmLoaderHooks(options),
     defaultIntegrations: getNuxtDefaultIntegrations(options),
   };
 
@@ -33,23 +32,26 @@ export function init(options: SentryNuxtServerOptions): Client | undefined {
 }
 
 /**
- * Filter out transactions for Nuxt build assets
- * This regex matches the default path to the nuxt-generated build assets (`_nuxt`).
+ * Filter out transactions for resource requests which we don't want to send to Sentry
+ * for quota reasons.
  *
  * Only exported for testing
  */
 export function lowQualityTransactionsFilter(options: SentryNuxtServerOptions): EventProcessor {
   return Object.assign(
     (event => {
-      if (event.type === 'transaction' && event.transaction?.match(/^GET \/_nuxt\//)) {
-        // todo: the buildAssetDir could be changed in the nuxt config - change this to a more generic solution
+      if (event.type !== 'transaction' || !event.transaction) {
+        return event;
+      }
+      // We don't want to send transaction for file requests, so everything ending with a *.someExtension should be filtered out
+      // path.extname will return an empty string for normal page requests
+      if (path.extname(event.transaction)) {
         options.debug &&
           DEBUG_BUILD &&
           logger.log('NuxtLowQualityTransactionsFilter filtered transaction: ', event.transaction);
         return null;
-      } else {
-        return event;
       }
+      return event;
     }) satisfies EventProcessor,
     { id: 'NuxtLowQualityTransactionsFilter' },
   );
@@ -87,25 +89,6 @@ function getNuxtDefaultIntegrations(options: NodeOptions): Integration[] {
       },
     }),
   ];
-}
-
-/**
- * Adds /vue/ to the registerEsmLoaderHooks options and merges it with the old values in the array if one is defined.
- * If the registerEsmLoaderHooks option is already a boolean, nothing is changed.
- *
- * Only exported for Testing purposes.
- */
-export function mergeRegisterEsmLoaderHooks(
-  options: SentryNuxtServerOptions,
-): SentryNuxtServerOptions['registerEsmLoaderHooks'] {
-  if (typeof options.registerEsmLoaderHooks === 'object' && options.registerEsmLoaderHooks !== null) {
-    return {
-      exclude: Array.isArray(options.registerEsmLoaderHooks.exclude)
-        ? [...options.registerEsmLoaderHooks.exclude, /vue/]
-        : options.registerEsmLoaderHooks.exclude ?? [/vue/],
-    };
-  }
-  return options.registerEsmLoaderHooks ?? { exclude: [/vue/] };
 }
 
 /**

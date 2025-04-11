@@ -187,7 +187,7 @@ export default function wrappingLoader(
       // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor
       .match(new RegExp(`(?:^|/)?([^/]+)\\.(?:${pageExtensionRegex})$`));
 
-    if (componentTypeMatch && componentTypeMatch[1]) {
+    if (componentTypeMatch?.[1]) {
       let componentType: ServerComponentContext['componentType'];
       switch (componentTypeMatch[1]) {
         case 'page':

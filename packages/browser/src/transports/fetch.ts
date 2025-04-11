@@ -1,9 +1,7 @@
 import { clearCachedImplementation, getNativeImplementation } from '@sentry-internal/browser-utils';
-import { createTransport } from '@sentry/core';
-import { rejectedSyncPromise } from '@sentry/core';
-import type { Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/types';
+import type { Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/core';
+import { createTransport, rejectedSyncPromise } from '@sentry/core';
 import type { WINDOW } from '../helpers';
-
 import type { BrowserTransportOptions } from './types';
 
 /**
@@ -24,7 +22,7 @@ export function makeFetchTransport(
     const requestOptions: RequestInit = {
       body: request.body,
       method: 'POST',
-      referrerPolicy: 'origin',
+      referrerPolicy: 'strict-origin',
       headers: options.headers,
       // Outgoing requests are usually cancelled when navigating to a different page, causing a "TypeError: Failed to
       // fetch" error and sending a "network_error" client-outcome - in Chrome, the request status shows "(cancelled)".

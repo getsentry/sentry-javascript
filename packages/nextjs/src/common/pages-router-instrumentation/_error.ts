@@ -1,5 +1,4 @@
-import { captureException, httpRequestToRequestData, withScope } from '@sentry/core';
-import { vercelWaitUntil } from '@sentry/core';
+import { captureException, httpRequestToRequestData, vercelWaitUntil, withScope } from '@sentry/core';
 import type { NextPageContext } from 'next';
 import { flushSafelyWithTimeout } from '../utils/responseEnd';
 
@@ -20,7 +19,7 @@ export async function captureUnderscoreErrorException(contextOrProps: ContextOrP
   const { req, res, err } = contextOrProps;
 
   // 404s (and other 400-y friends) can trigger `_error`, but we don't want to send them to Sentry
-  const statusCode = (res && res.statusCode) || contextOrProps.statusCode;
+  const statusCode = res?.statusCode || contextOrProps.statusCode;
   if (statusCode && statusCode < 500) {
     return Promise.resolve();
   }

@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
-import { SpanJSON } from '@sentry/types';
+import { SpanJSON } from '@sentry/core';
 
 test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
   const id = crypto.randomUUID();
@@ -78,7 +78,7 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
       'http.route': '/test-outgoing-http/:id',
     },
     op: 'http.server',
-    span_id: expect.any(String),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
     status: 'ok',
     trace_id: traceId,
     origin: 'auto.http.otel.http',
@@ -89,7 +89,6 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
       'sentry.source': 'route',
       'sentry.origin': 'auto.http.otel.http',
       'sentry.op': 'http.server',
-      'sentry.sample_rate': 1,
       url: `http://localhost:3030/test-inbound-headers/${id}`,
       'otel.kind': 'SERVER',
       'http.response.status_code': 200,
@@ -111,7 +110,7 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
     },
     op: 'http.server',
     parent_span_id: outgoingHttpSpanId,
-    span_id: expect.any(String),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
     status: 'ok',
     trace_id: traceId,
     origin: 'auto.http.otel.http',
@@ -193,7 +192,7 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
       'http.route': '/test-outgoing-fetch/:id',
     },
     op: 'http.server',
-    span_id: expect.any(String),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
     status: 'ok',
     trace_id: traceId,
     origin: 'auto.http.otel.http',
@@ -204,7 +203,6 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
       'sentry.source': 'route',
       'sentry.origin': 'auto.http.otel.http',
       'sentry.op': 'http.server',
-      'sentry.sample_rate': 1,
       url: `http://localhost:3030/test-inbound-headers/${id}`,
       'otel.kind': 'SERVER',
       'http.response.status_code': 200,
@@ -226,7 +224,7 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
     }),
     op: 'http.server',
     parent_span_id: outgoingHttpSpanId,
-    span_id: expect.any(String),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
     status: 'ok',
     trace_id: traceId,
     origin: 'auto.http.otel.http',

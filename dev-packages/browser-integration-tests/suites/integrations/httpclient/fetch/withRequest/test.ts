@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/types';
+import type { Event } from '@sentry/core';
 
 import { sentryTest } from '../../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest } from '../../../../../utils/helpers';
@@ -37,6 +37,15 @@ sentryTest('works with a Request passed in', async ({ getLocalTestUrl, page }) =
           mechanism: {
             type: 'http.client',
             handled: false,
+          },
+          stacktrace: {
+            frames: expect.arrayContaining([
+              expect.objectContaining({
+                filename: 'http://sentry-test.io/subject.bundle.js',
+                function: '?',
+                in_app: true,
+              }),
+            ]),
           },
         },
       ],

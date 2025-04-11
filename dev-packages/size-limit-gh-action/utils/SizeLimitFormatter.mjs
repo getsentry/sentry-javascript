@@ -91,7 +91,6 @@ export class SizeLimitFormatter {
 
     return results.reduce((current, result) => {
       return {
-        // biome-ignore lint/performance/noAccumulatingSpread: <explanation>
         ...current,
         [result.name]: {
           name: result.name,

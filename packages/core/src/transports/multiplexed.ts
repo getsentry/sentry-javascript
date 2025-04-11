@@ -6,7 +6,7 @@ import type {
   EventItem,
   Transport,
   TransportMakeRequestResponse,
-} from '@sentry/types';
+} from '../types-hoist';
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from '../api';
 import { dsnFromString } from '../utils-hoist/dsn';
@@ -121,7 +121,7 @@ export function makeMultiplexedTransport<TO extends BaseTransportOptions>(
 
     async function send(envelope: Envelope): Promise<TransportMakeRequestResponse> {
       function getEvent(types?: EnvelopeItemType[]): Event | undefined {
-        const eventTypes: EnvelopeItemType[] = types && types.length ? types : ['event'];
+        const eventTypes: EnvelopeItemType[] = types?.length ? types : ['event'];
         return eventFromEnvelope(envelope, eventTypes);
       }
 

@@ -1,5 +1,4 @@
 import * as path from 'path';
-import { getSentryRelease } from '@sentry/node';
 import type { SentryWebpackPluginOptions } from '@sentry/webpack-plugin';
 import type { BuildContext, NextConfigObject, SentryBuildOptions } from './types';
 
@@ -10,8 +9,9 @@ import type { BuildContext, NextConfigObject, SentryBuildOptions } from './types
 export function getWebpackPluginOptions(
   buildContext: BuildContext,
   sentryBuildOptions: SentryBuildOptions,
+  releaseName: string | undefined,
 ): SentryWebpackPluginOptions {
-  const { buildId, isServer, config: userNextConfig, dir, nextRuntime } = buildContext;
+  const { isServer, config: userNextConfig, dir, nextRuntime } = buildContext;
 
   const prefixInsert = !isServer ? 'Client' : nextRuntime === 'edge' ? 'Edge' : 'Node.js';
 
@@ -23,7 +23,7 @@ export function getWebpackPluginOptions(
   const distDir = (userNextConfig as NextConfigObject).distDir?.replace(/\\/g, '/') ?? '.next';
   const distDirAbsPath = path.posix.join(projectDir, distDir);
 
-  let sourcemapUploadAssets: string[] = [];
+  const sourcemapUploadAssets: string[] = [];
   const sourcemapUploadIgnore: string[] = [];
 
   if (isServer) {
@@ -51,10 +51,6 @@ export function getWebpackPluginOptions(
     );
   }
 
-  if (sentryBuildOptions.sourcemaps?.disable) {
-    sourcemapUploadAssets = [];
-  }
-
   return {
     authToken: sentryBuildOptions.authToken,
     headers: sentryBuildOptions.headers,
@@ -69,6 +65,7 @@ export function getWebpackPluginOptions(
     silent: sentryBuildOptions.silent,
     url: sentryBuildOptions.sentryUrl,
     sourcemaps: {
+      disable: sentryBuildOptions.sourcemaps?.disable,
       rewriteSources(source) {
         if (source.startsWith('webpack://_N_E/')) {
           return source.replace('webpack://_N_E/', '');
@@ -92,17 +89,24 @@ export function getWebpackPluginOptions(
         : undefined,
       ...sentryBuildOptions.unstable_sentryWebpackPluginOptions?.sourcemaps,
     },
-    release: {
-      inject: false, // The webpack plugin's release injection breaks the `app` directory - we inject the release manually with the value injection loader instead.
-      name: sentryBuildOptions.release?.name ?? getSentryRelease(buildId),
-      create: sentryBuildOptions.release?.create,
-      finalize: sentryBuildOptions.release?.finalize,
-      dist: sentryBuildOptions.release?.dist,
-      vcsRemote: sentryBuildOptions.release?.vcsRemote,
-      setCommits: sentryBuildOptions.release?.setCommits,
-      deploy: sentryBuildOptions.release?.deploy,
-      ...sentryBuildOptions.unstable_sentryWebpackPluginOptions?.release,
-    },
+    release:
+      releaseName !== undefined
+        ? {
+            inject: false, // The webpack plugin's release injection breaks the `app` directory - we inject the release manually with the value injection loader instead.
+            name: releaseName,
+            create: sentryBuildOptions.release?.create,
+            finalize: sentryBuildOptions.release?.finalize,
+            dist: sentryBuildOptions.release?.dist,
+            vcsRemote: sentryBuildOptions.release?.vcsRemote,
+            setCommits: sentryBuildOptions.release?.setCommits,
+            deploy: sentryBuildOptions.release?.deploy,
+            ...sentryBuildOptions.unstable_sentryWebpackPluginOptions?.release,
+          }
+        : {
+            inject: false,
+            create: false,
+            finalize: false,
+          },
     bundleSizeOptimizations: {
       ...sentryBuildOptions.bundleSizeOptimizations,
     },

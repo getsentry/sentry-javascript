@@ -1,11 +1,9 @@
-import { spanIsSampled, spanToJSON } from '@sentry/core';
-import { logger, uuid4 } from '@sentry/core';
+/* eslint-disable deprecation/deprecation */
+import { CpuProfilerBindings, type RawThreadCpuProfile } from '@sentry-internal/node-cpu-profiler';
+import type { CustomSamplingContext, Span } from '@sentry/core';
+import { logger, spanIsSampled, spanToJSON, uuid4 } from '@sentry/core';
 import type { NodeClient } from '@sentry/node';
-import type { CustomSamplingContext, Span } from '@sentry/types';
-
-import { CpuProfilerBindings } from './cpu_profiler';
 import { DEBUG_BUILD } from './debug-build';
-import type { RawThreadCpuProfile } from './types';
 import { isValidSampleRate } from './utils';
 
 export const MAX_PROFILE_DURATION_MS = 30 * 1000;
@@ -50,10 +48,6 @@ export function maybeProfileSpan(
     profilesSampleRate = profilesSampler({
       name: spanName,
       attributes: data,
-      transactionContext: {
-        name: spanName,
-        parentSampled,
-      },
       parentSampled,
       ...customSamplingContext,
     });

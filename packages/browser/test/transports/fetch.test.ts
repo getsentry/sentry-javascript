@@ -2,7 +2,7 @@ import type { Mock } from 'vitest';
 import { describe, expect, it, vi } from 'vitest';
 
 import { createEnvelope, serializeEnvelope } from '@sentry/core';
-import type { EventEnvelope, EventItem } from '@sentry/types';
+import type { EventEnvelope, EventItem } from '@sentry/core';
 
 import { makeFetchTransport } from '../../src/transports/fetch';
 import type { BrowserTransportOptions } from '../../src/transports/types';
@@ -50,7 +50,7 @@ describe('NewFetchTransport', () => {
       body: serializeEnvelope(ERROR_ENVELOPE),
       method: 'POST',
       keepalive: true,
-      referrerPolicy: 'origin',
+      referrerPolicy: 'strict-origin',
     });
   });
 

@@ -52,7 +52,7 @@ export class AsyncLocalStorageContextManager extends AbstractAsyncHooksContextMa
         getStore() {
           return undefined;
         },
-        run(_store, callback, ...args) {
+        run(_store: unknown, callback: () => Context, ...args: unknown[]) {
           return callback.apply(this, args);
         },
         disable() {

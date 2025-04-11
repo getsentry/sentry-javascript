@@ -59,6 +59,7 @@ test.describe('client-side errors', () => {
           'LinkedErrors',
           'Dedupe',
           'HttpContext',
+          'BrowserSession',
           'BrowserTracing',
         ]),
         name: 'sentry.javascript.astro',

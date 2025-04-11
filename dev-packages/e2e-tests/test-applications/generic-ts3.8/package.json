@@ -11,15 +11,13 @@
   },
   "devDependencies": {
     "typescript": "3.8.3",
-    "@types/node": "^14.18.0"
+    "@types/node": "^14.0.0"
   },
   "dependencies": {
     "@sentry/browser": "latest || *",
     "@sentry/core": "latest || *",
     "@sentry/node": "latest || *",
     "@sentry-internal/replay": "latest || *",
-    "@sentry/types": "latest || *",
-    "@sentry/core": "latest || *",
     "@sentry/wasm": "latest || *"
   }
 }

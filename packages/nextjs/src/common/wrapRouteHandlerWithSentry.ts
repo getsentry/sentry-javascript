@@ -1,3 +1,4 @@
+import type { RequestEventData } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -8,16 +9,15 @@ import {
   getIsolationScope,
   getRootSpan,
   handleCallbackErrors,
+  propagationContextFromHeaders,
   setCapturedScopesOnSpan,
   setHttpStatus,
+  winterCGHeadersToDict,
   withIsolationScope,
   withScope,
 } from '@sentry/core';
-import type { RequestEventData } from '@sentry/types';
-import type { RouteHandlerContext } from './types';
-
-import { propagationContextFromHeaders, winterCGHeadersToDict } from '@sentry/core';
 import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
+import type { RouteHandlerContext } from './types';
 import { commonObjectToIsolationScope } from './utils/tracingUtils';
 
 /**

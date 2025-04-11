@@ -1,4 +1,4 @@
-import type { Event, EventHint } from '@sentry/types';
+import type { Event, EventHint } from '@sentry/core';
 
 /**
  * Returns true if we think the given event is an error originating inside of rrweb.
@@ -9,7 +9,7 @@ export function isRrwebError(event: Event, hint: EventHint): boolean {
   }
 
   // @ts-expect-error this may be set by rrweb when it finds errors
-  if (hint.originalException && hint.originalException.__rrweb__) {
+  if (hint.originalException?.__rrweb__) {
     return true;
   }
 

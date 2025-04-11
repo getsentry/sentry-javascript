@@ -182,22 +182,20 @@ function isAngularFixture(val: any): boolean {
  */
 function fixtureVitestSerializer(fixture: any) {
   // * Get Component meta data
-  const componentType = (
-    fixture && fixture.componentType ? fixture.componentType : fixture.componentRef.componentType
-  ) as any;
+  const componentType = (fixture?.componentType ? fixture.componentType : fixture.componentRef.componentType) as any;
 
   let inputsData: string = '';
 
   const selector = Reflect.getOwnPropertyDescriptor(componentType, '__annotations__')?.value[0].selector;
 
-  if (componentType && componentType.propDecorators) {
+  if (componentType?.propDecorators) {
     inputsData = Object.entries(componentType.propDecorators)
       .map(([key, value]) => `${key}="${value}"`)
       .join('');
   }
 
   // * Get DOM Elements
-  const divElement = fixture && fixture.nativeElement ? fixture.nativeElement : fixture.location.nativeElement;
+  const divElement = fixture?.nativeElement ? fixture.nativeElement : fixture.location.nativeElement;
 
   // * Convert string data to HTML data
   const doc = new DOMParser().parseFromString(

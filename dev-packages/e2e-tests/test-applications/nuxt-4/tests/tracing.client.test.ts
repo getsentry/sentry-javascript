@@ -45,11 +45,11 @@ test('sends component tracking spans when `trackComponents` is enabled', async (
     data: { 'sentry.origin': 'auto.ui.vue', 'sentry.op': 'ui.vue.mount' },
     description: 'Vue <ErrorButton>',
     op: 'ui.vue.mount',
-    parent_span_id: expect.any(String),
-    span_id: expect.any(String),
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
     start_timestamp: expect.any(Number),
     timestamp: expect.any(Number),
-    trace_id: expect.any(String),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     origin: 'auto.ui.vue',
   };
 

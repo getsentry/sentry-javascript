@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/types';
+import type { Event } from '@sentry/core';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -12,6 +12,8 @@ sentryTest(
       sentryTest.skip();
     }
     const url = await getLocalTestUrl({ testDir: __dirname });
+
+    await page.route('**/path/to/script.js', route => route.fulfill({ path: `${__dirname}/assets/script.js` }));
 
     await page.goto(url);
 

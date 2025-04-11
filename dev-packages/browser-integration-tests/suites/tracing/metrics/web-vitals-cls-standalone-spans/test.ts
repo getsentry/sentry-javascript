@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 import { expect } from '@playwright/test';
-import type { Event as SentryEvent, EventEnvelope, SpanEnvelope } from '@sentry/types';
+import type { Event as SentryEvent, EventEnvelope, SpanEnvelope } from '@sentry/core';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import {
@@ -100,6 +100,7 @@ sentryTest('captures a "GOOD" CLS vital with its source as a standalone span', a
       sample_rate: '1',
       sampled: 'true',
       trace_id: spanEnvelopeItem.trace_id,
+      sample_rand: expect.any(String),
       // no transaction, because span source is URL
     },
   });
@@ -167,6 +168,7 @@ sentryTest('captures a "MEH" CLS vital with its source as a standalone span', as
       sample_rate: '1',
       sampled: 'true',
       trace_id: spanEnvelopeItem.trace_id,
+      sample_rand: expect.any(String),
       // no transaction, because span source is URL
     },
   });
@@ -232,6 +234,7 @@ sentryTest('captures a "POOR" CLS vital with its source as a standalone span.', 
       sample_rate: '1',
       sampled: 'true',
       trace_id: spanEnvelopeItem.trace_id,
+      sample_rand: expect.any(String),
       // no transaction, because span source is URL
     },
   });
@@ -294,6 +297,7 @@ sentryTest(
         sample_rate: '1',
         sampled: 'true',
         trace_id: spanEnvelopeItem.trace_id,
+        sample_rand: expect.any(String),
         // no transaction, because span source is URL
       },
     });

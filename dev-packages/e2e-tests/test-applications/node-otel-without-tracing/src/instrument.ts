@@ -15,9 +15,6 @@ Sentry.init({
   debug: !!process.env.DEBUG,
   tunnel: `http://localhost:3031/`, // proxy server
   // Tracing is completely disabled
-
-  integrations: [Sentry.httpIntegration({ spans: false })],
-
   // Custom OTEL setup
   skipOpenTelemetrySetup: true,
 });

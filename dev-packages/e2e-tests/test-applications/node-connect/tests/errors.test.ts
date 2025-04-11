@@ -23,7 +23,7 @@ test('Sends correct error event', async ({ baseURL }) => {
   expect(errorEvent.transaction).toEqual('GET /test-exception');
 
   expect(errorEvent.contexts?.trace).toEqual({
-    trace_id: expect.any(String),
-    span_id: expect.any(String),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
   });
 });

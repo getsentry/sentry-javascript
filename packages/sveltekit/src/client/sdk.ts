@@ -1,8 +1,8 @@
 import { applySdkMetadata } from '@sentry/core';
+import type { Client, Integration } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/svelte';
 import { getDefaultIntegrations as getDefaultSvelteIntegrations } from '@sentry/svelte';
 import { WINDOW, init as initSvelteSdk } from '@sentry/svelte';
-import type { Client, Integration } from '@sentry/types';
 
 import { browserTracingIntegration as svelteKitBrowserTracingIntegration } from './browserTracingIntegration';
 

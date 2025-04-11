@@ -1,6 +1,6 @@
-import type { DsnComponents, SdkInfo } from '@sentry/types';
-
+import { describe, expect, it, test } from 'vitest';
 import { getEnvelopeEndpointWithUrlEncodedAuth, getReportDialogEndpoint } from '../../src/api';
+import type { DsnComponents, SdkInfo } from '../../src/types-hoist';
 import { makeDsn } from '../../src/utils-hoist/dsn';
 
 const ingestDsn = 'https://abc@xxxx.ingest.sentry.io:1234/subpath/123';

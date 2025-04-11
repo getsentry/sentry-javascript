@@ -2,6 +2,7 @@ import type { Span } from '@opentelemetry/api';
 import type { RedisResponseCustomAttributeFunction } from '@opentelemetry/instrumentation-ioredis';
 import { IORedisInstrumentation } from '@opentelemetry/instrumentation-ioredis';
 import { RedisInstrumentation } from '@opentelemetry/instrumentation-redis-4';
+import type { IntegrationFn } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_CACHE_HIT,
   SEMANTIC_ATTRIBUTE_CACHE_ITEM_SIZE,
@@ -10,9 +11,8 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   defineIntegration,
   spanToJSON,
+  truncate,
 } from '@sentry/core';
-import { truncate } from '@sentry/core';
-import type { IntegrationFn } from '@sentry/types';
 import { generateInstrumentOnce } from '../../otel/instrument';
 import {
   GET_COMMANDS,
@@ -40,7 +40,7 @@ const cacheResponseHook: RedisResponseCustomAttributeFunction = (span: Span, red
   if (
     !safeKey ||
     !cacheOperation ||
-    !_redisOptions?.cachePrefixes ||
+    !_redisOptions.cachePrefixes ||
     !shouldConsiderForCache(redisCommand, safeKey, _redisOptions.cachePrefixes)
   ) {
     // not relevant for cache
@@ -49,8 +49,8 @@ const cacheResponseHook: RedisResponseCustomAttributeFunction = (span: Span, red
 
   // otel/ioredis seems to be using the old standard, as there was a change to those params: https://github.com/open-telemetry/opentelemetry-specification/issues/3199
   // We are using params based on the docs: https://opentelemetry.io/docs/specs/semconv/attributes-registry/network/
-  const networkPeerAddress = spanToJSON(span).data?.['net.peer.name'];
-  const networkPeerPort = spanToJSON(span).data?.['net.peer.port'];
+  const networkPeerAddress = spanToJSON(span).data['net.peer.name'];
+  const networkPeerPort = spanToJSON(span).data['net.peer.port'];
   if (networkPeerPort && networkPeerAddress) {
     span.setAttributes({ 'network.peer.address': networkPeerAddress, 'network.peer.port': networkPeerPort });
   }

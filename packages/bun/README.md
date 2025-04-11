@@ -13,7 +13,6 @@
 ## Links
 
 - [Official SDK Docs](https://docs.sentry.io/quickstart/)
-- [TypeDoc](http://getsentry.github.io/sentry-javascript/)
 
 The Sentry Bun SDK is in beta. Please help us improve the SDK by
 [reporting any issues or giving us feedback](https://github.com/getsentry/sentry-javascript/issues).

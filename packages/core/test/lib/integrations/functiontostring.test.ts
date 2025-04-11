@@ -1,3 +1,4 @@
+import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { fill, getClient, getCurrentScope, setCurrentClient } from '../../../src';
 import { functionToStringIntegration } from '../../../src/integrations/functiontostring';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';

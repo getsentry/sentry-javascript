@@ -1,11 +1,11 @@
 import * as os from 'node:os';
 import type { Tracer } from '@opentelemetry/api';
 import { trace } from '@opentelemetry/api';
+import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
-import type { Scope, ServerRuntimeClientOptions } from '@sentry/core';
-import { SDK_VERSION, ServerRuntimeClient, applySdkMetadata, logger } from '@sentry/core';
+import type { DynamicSamplingContext, Scope, ServerRuntimeClientOptions, TraceContext } from '@sentry/core';
+import { _INTERNAL_flushLogsBuffer, SDK_VERSION, ServerRuntimeClient, applySdkMetadata, logger } from '@sentry/core';
 import { getTraceContextForScope } from '@sentry/opentelemetry';
-import type { DynamicSamplingContext, TraceContext } from '@sentry/types';
 import { isMainThread, threadId } from 'worker_threads';
 import { DEBUG_BUILD } from '../debug-build';
 import type { NodeClientOptions } from '../types';
@@ -18,14 +18,22 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
   private _tracer: Tracer | undefined;
   private _clientReportInterval: NodeJS.Timeout | undefined;
   private _clientReportOnExitFlushListener: (() => void) | undefined;
+  private _logOnExitFlushListener: (() => void) | undefined;
 
   public constructor(options: NodeClientOptions) {
+    const serverName = options.serverName || global.process.env.SENTRY_NAME || os.hostname();
     const clientOptions: ServerRuntimeClientOptions = {
       ...options,
       platform: 'node',
       runtime: { name: 'node', version: global.process.version },
-      serverName: options.serverName || global.process.env.SENTRY_NAME || os.hostname(),
+      serverName,
     };
+
+    if (options.openTelemetryInstrumentations) {
+      registerInstrumentations({
+        instrumentations: options.openTelemetryInstrumentations,
+      });
+    }
 
     applySdkMetadata(clientOptions, 'node');
 
@@ -34,6 +42,23 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
     );
 
     super(clientOptions);
+
+    if (this.getOptions()._experiments?.enableLogs) {
+      this._logOnExitFlushListener = () => {
+        _INTERNAL_flushLogsBuffer(this);
+      };
+
+      if (serverName) {
+        this.on('beforeCaptureLog', log => {
+          log.attributes = {
+            ...log.attributes,
+            'server.address': serverName,
+          };
+        });
+      }
+
+      process.on('beforeExit', this._logOnExitFlushListener);
+    }
   }
 
   /** Get the OTEL tracer. */
@@ -78,6 +103,10 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
       process.off('beforeExit', this._clientReportOnExitFlushListener);
     }
 
+    if (this._logOnExitFlushListener) {
+      process.off('beforeExit', this._logOnExitFlushListener);
+    }
+
     return super.close(timeout);
   }
 
@@ -103,13 +132,10 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
         this._flushOutcomes();
       };
 
-      this._clientReportInterval = setInterval(
-        () => {
-          DEBUG_BUILD && logger.log('Flushing client reports based on interval.');
-          this._flushOutcomes();
-        },
-        clientOptions.clientReportFlushInterval ?? DEFAULT_CLIENT_REPORT_FLUSH_INTERVAL_MS,
-      )
+      this._clientReportInterval = setInterval(() => {
+        DEBUG_BUILD && logger.log('Flushing client reports based on interval.');
+        this._flushOutcomes();
+      }, clientOptions.clientReportFlushInterval ?? DEFAULT_CLIENT_REPORT_FLUSH_INTERVAL_MS)
         // Unref is critical for not preventing the process from exiting because the interval is active.
         .unref();
 

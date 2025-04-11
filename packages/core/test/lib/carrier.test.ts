@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { getSentryCarrier } from '../../src/carrier';
 import { SDK_VERSION } from '../../src/utils-hoist/version';
 

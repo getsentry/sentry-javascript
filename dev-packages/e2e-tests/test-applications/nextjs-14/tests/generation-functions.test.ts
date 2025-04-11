@@ -18,10 +18,10 @@ test('Should emit a span for a generateMetadata() function invocation', async ({
     expect.objectContaining({
       description: 'generateMetadata /generation-functions/page',
       origin: 'auto',
-      parent_span_id: expect.any(String),
-      span_id: expect.any(String),
+      parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      span_id: expect.stringMatching(/[a-f0-9]{16}/),
       status: 'ok',
-      trace_id: expect.any(String),
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     }),
   );
 
@@ -75,10 +75,10 @@ test('Should send a transaction event for a generateViewport() function invocati
     expect.objectContaining({
       description: 'generateViewport /generation-functions/page',
       origin: 'auto',
-      parent_span_id: expect.any(String),
-      span_id: expect.any(String),
+      parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      span_id: expect.stringMatching(/[a-f0-9]{16}/),
       status: 'ok',
-      trace_id: expect.any(String),
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     }),
   );
 });

@@ -1,9 +1,0 @@
-{
-  "include": ["scenario.ts"],
-  "compilerOptions": {
-    "module": "commonjs",
-    "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
-    "target": "ES2021",
-  }
-}

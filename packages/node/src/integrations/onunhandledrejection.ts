@@ -1,6 +1,5 @@
-import { captureException, defineIntegration, getClient } from '@sentry/core';
-import { consoleSandbox } from '@sentry/core';
-import type { Client, IntegrationFn } from '@sentry/types';
+import type { Client, IntegrationFn, SeverityLevel } from '@sentry/core';
+import { captureException, consoleSandbox, defineIntegration, getClient } from '@sentry/core';
 import { logAndExitProcess } from '../utils/errorhandling';
 
 type UnhandledRejectionMode = 'none' | 'warn' | 'strict';
@@ -16,12 +15,15 @@ interface OnUnhandledRejectionOptions {
 const INTEGRATION_NAME = 'OnUnhandledRejection';
 
 const _onUnhandledRejectionIntegration = ((options: Partial<OnUnhandledRejectionOptions> = {}) => {
-  const mode = options.mode || 'warn';
+  const opts = {
+    mode: 'warn',
+    ...options,
+  } satisfies OnUnhandledRejectionOptions;
 
   return {
     name: INTEGRATION_NAME,
     setup(client) {
-      global.process.on('unhandledRejection', makeUnhandledPromiseHandler(client, { mode }));
+      global.process.on('unhandledRejection', makeUnhandledPromiseHandler(client, opts));
     },
   };
 }) satisfies IntegrationFn;
@@ -47,10 +49,13 @@ export function makeUnhandledPromiseHandler(
       return;
     }
 
+    const level: SeverityLevel = options.mode === 'strict' ? 'fatal' : 'error';
+
     captureException(reason, {
       originalException: promise,
       captureContext: {
         extra: { unhandledPromiseRejection: true },
+        level,
       },
       mechanism: {
         handled: false,
@@ -58,19 +63,14 @@ export function makeUnhandledPromiseHandler(
       },
     });
 
-    handleRejection(reason, options);
+    handleRejection(reason, options.mode);
   };
 }
 
 /**
  * Handler for `mode` option
-
  */
-function handleRejection(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  reason: any,
-  options: OnUnhandledRejectionOptions,
-): void {
+function handleRejection(reason: unknown, mode: UnhandledRejectionMode): void {
   // https://github.com/nodejs/node/blob/7cf6f9e964aa00772965391c23acda6d71972a9a/lib/internal/process/promises.js#L234-L240
   const rejectionWarning =
     'This error originated either by ' +
@@ -79,13 +79,12 @@ function handleRejection(
     ' The promise rejected with the reason:';
 
   /* eslint-disable no-console */
-  if (options.mode === 'warn') {
+  if (mode === 'warn') {
     consoleSandbox(() => {
       console.warn(rejectionWarning);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      console.error(reason && reason.stack ? reason.stack : reason);
+      console.error(reason && typeof reason === 'object' && 'stack' in reason ? reason.stack : reason);
     });
-  } else if (options.mode === 'strict') {
+  } else if (mode === 'strict') {
     consoleSandbox(() => {
       console.warn(rejectionWarning);
     });

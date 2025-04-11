@@ -1,11 +1,12 @@
+import { afterAll, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
 afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('should allow nested scoping', done => {
-  createRunner(__dirname, 'scenario.ts')
+test('should allow nested scoping', async () => {
+  await createRunner(__dirname, 'scenario.ts')
     .expect({
       event: {
         message: 'root_before',
@@ -53,5 +54,6 @@ test('should allow nested scoping', done => {
         },
       },
     })
-    .start(done);
+    .start()
+    .completed();
 });

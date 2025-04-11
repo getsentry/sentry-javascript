@@ -1,19 +1,39 @@
 /* eslint-disable deprecation/deprecation */
+import type { Span } from '@opentelemetry/api';
+import { trace } from '@opentelemetry/api';
+import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import { SEMATTRS_HTTP_METHOD, SEMATTRS_HTTP_URL } from '@opentelemetry/semantic-conventions';
-
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { getRequestSpanData } from '../../src/utils/getRequestSpanData';
-import { createSpan } from '../helpers/createSpan';
+import { TestClient, getDefaultTestClientOptions } from '../helpers/TestClient';
+import { setupOtel } from '../helpers/initOtel';
+import { cleanupOtel } from '../helpers/mockSdkInit';
 
 describe('getRequestSpanData', () => {
+  let provider: BasicTracerProvider | undefined;
+
+  beforeEach(() => {
+    const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
+    provider = setupOtel(client);
+  });
+
+  afterEach(() => {
+    cleanupOtel(provider);
+  });
+
+  function createSpan(name: string): Span {
+    return trace.getTracer('test').startSpan(name);
+  }
+
   it('works with basic span', () => {
-    const span = createSpan();
+    const span = createSpan('test-span');
     const data = getRequestSpanData(span);
 
     expect(data).toEqual({});
   });
 
   it('works with http span', () => {
-    const span = createSpan();
+    const span = createSpan('test-span');
     span.setAttributes({
       [SEMATTRS_HTTP_URL]: 'http://example.com?foo=bar#baz',
       [SEMATTRS_HTTP_METHOD]: 'GET',
@@ -30,7 +50,7 @@ describe('getRequestSpanData', () => {
   });
 
   it('works without method', () => {
-    const span = createSpan();
+    const span = createSpan('test-span');
     span.setAttributes({
       [SEMATTRS_HTTP_URL]: 'http://example.com',
     });
@@ -44,7 +64,7 @@ describe('getRequestSpanData', () => {
   });
 
   it('works with incorrect URL', () => {
-    const span = createSpan();
+    const span = createSpan('test-span');
     span.setAttributes({
       [SEMATTRS_HTTP_URL]: 'malformed-url-here',
       [SEMATTRS_HTTP_METHOD]: 'GET',

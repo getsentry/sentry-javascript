@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { Event } from '@sentry/types';
+import { Event } from '@sentry/core';
 import { getMultipleSentryEnvelopeRequests } from './utils/helpers';
 
 test('should report a manually captured error.', async ({ page }) => {

@@ -1,7 +1,6 @@
 import { KafkaJsInstrumentation } from '@opentelemetry/instrumentation-kafkajs';
-
+import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
-import type { IntegrationFn } from '@sentry/types';
 import { generateInstrumentOnce } from '../../otel/instrument';
 import { addOriginToSpan } from '../../utils/addOriginToSpan';
 

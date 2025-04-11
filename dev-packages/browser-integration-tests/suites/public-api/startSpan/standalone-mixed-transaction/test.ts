@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import type { Envelope, EventEnvelope, SpanEnvelope, TransactionEvent } from '@sentry/types';
+import type { Envelope, EventEnvelope, SpanEnvelope, TransactionEvent } from '@sentry/core';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import {
@@ -47,6 +47,7 @@ sentryTest(
         sampled: 'true',
         trace_id: traceId,
         transaction: 'outer',
+        sample_rand: expect.any(String),
       },
     });
 
@@ -64,6 +65,7 @@ sentryTest(
         sampled: 'true',
         trace_id: traceId,
         transaction: 'outer',
+        sample_rand: expect.any(String),
       },
     });
 

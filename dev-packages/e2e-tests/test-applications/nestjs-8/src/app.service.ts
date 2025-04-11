@@ -1,9 +1,9 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { RpcException } from '@nestjs/microservices';
 import { Cron, SchedulerRegistry } from '@nestjs/schedule';
+import type { MonitorConfig } from '@sentry/core';
 import * as Sentry from '@sentry/nestjs';
 import { SentryCron, SentryTraced } from '@sentry/nestjs';
-import type { MonitorConfig } from '@sentry/types';
 
 const monitorConfig: MonitorConfig = {
   schedule: {

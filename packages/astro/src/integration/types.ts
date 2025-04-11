@@ -1,5 +1,6 @@
 import type { BrowserOptions } from '@sentry/browser';
-import type { Options } from '@sentry/types';
+import type { Options } from '@sentry/core';
+import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
 
 type SdkInitPaths = {
   /**
@@ -73,6 +74,30 @@ type SourceMapsOptions = {
    * @see https://www.npmjs.com/package/glob#glob-primer
    */
   assets?: string | Array<string>;
+
+  /**
+   * A glob or an array of globs that specifies the build artifacts that should be deleted after the artifact
+   * upload to Sentry has been completed.
+   *
+   * @default [] - By default no files are deleted.
+   *
+   * The globbing patterns follow the implementation of the glob package. (https://www.npmjs.com/package/glob)
+   */
+  filesToDeleteAfterUpload?: string | Array<string>;
+
+  /**
+   * Options to further customize the Sentry Vite Plugin (@sentry/vite-plugin) behavior directly.
+   * Options specified in this object take precedence over all other options.
+   *
+   * @see https://www.npmjs.com/package/@sentry/vite-plugin/v/2.14.2#options which lists all available options.
+   *
+   * Warning: Options within this object are subject to change at any time.
+   * We DO NOT guarantee semantic versioning for these options, meaning breaking
+   * changes can occur at any time within a major SDK version.
+   *
+   * Furthermore, some options are untested with Astro specifically. Use with caution.
+   */
+  unstable_sentryVitePluginOptions?: Partial<SentryVitePluginOptions>;
 };
 
 type BundleSizeOptimizationOptions = {
@@ -150,6 +175,7 @@ type SdkEnabledOptions = {
    * Sentry code will be added to your bundle.
    *
    * @default true - the SDK is enabled by default for both, client and server.
+   *
    */
   enabled?:
     | boolean
@@ -158,6 +184,41 @@ type SdkEnabledOptions = {
         server?: boolean;
       };
 };
+
+type DeprecatedRuntimeOptions = Pick<
+  Options,
+  'environment' | 'release' | 'dsn' | 'debug' | 'sampleRate' | 'tracesSampleRate'
+> &
+  Pick<BrowserOptions, 'replaysSessionSampleRate' | 'replaysOnErrorSampleRate'> & {
+    /**
+     * @deprecated Use the `environment` option in your runtime-specific Sentry.init() call in sentry.client.config.(js|ts) or sentry.server.config.(js|ts) instead.
+     */
+    environment?: string;
+    /**
+     * @deprecated Use the `release` option in your runtime-specific Sentry.init() call in sentry.client.config.(js|ts) or sentry.server.config.(js|ts) instead.
+     */
+    release?: string;
+    /**
+     * @deprecated Use the `dsn` option in your runtime-specific Sentry.init() call in sentry.client.config.(js|ts) or sentry.server.config.(js|ts) instead.
+     */
+    dsn?: string;
+    /**
+     * @deprecated Use the `sampleRate` option in your runtime-specific Sentry.init() call in sentry.client.config.(js|ts) or sentry.server.config.(js|ts) instead.
+     */
+    sampleRate?: number;
+    /**
+     * @deprecated Use the `tracesSampleRate` option in your runtime-specific Sentry.init() call in sentry.client.config.(js|ts) or sentry.server.config.(js|ts) instead.
+     */
+    tracesSampleRate?: number;
+    /**
+     * @deprecated Use the `replaysSessionSampleRate` option in your Sentry.init() call in sentry.client.config.(js|ts) instead.
+     */
+    replaysSessionSampleRate?: number;
+    /**
+     * @deprecated Use the `replaysOnErrorSampleRate` option in your Sentry.init() call in sentry.client.config.(js|ts) instead.
+     */
+    replaysOnErrorSampleRate?: number;
+  };
 
 /**
  * A subset of Sentry SDK options that can be set via the `sentryAstro` integration.
@@ -169,8 +230,7 @@ type SdkEnabledOptions = {
  * If you specify a dedicated init file, the SDK options passed to `sentryAstro` will be ignored.
  */
 export type SentryOptions = SdkInitPaths &
-  Pick<Options, 'dsn' | 'release' | 'environment' | 'sampleRate' | 'tracesSampleRate' | 'debug'> &
-  Pick<BrowserOptions, 'replaysSessionSampleRate' | 'replaysOnErrorSampleRate'> &
+  DeprecatedRuntimeOptions &
   InstrumentationOptions &
   SdkEnabledOptions & {
     /**
@@ -187,4 +247,8 @@ export type SentryOptions = SdkInitPaths &
      * Do not define them in the `sentry.client.config.(js|ts)` or `sentry.server.config.(js|ts)` files.
      */
     bundleSizeOptimizations?: BundleSizeOptimizationOptions;
+    /**
+     * If enabled, prints debug logs during the build process.
+     */
+    debug?: boolean;
   };

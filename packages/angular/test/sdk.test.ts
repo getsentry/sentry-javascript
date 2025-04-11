@@ -15,7 +15,7 @@ describe('init', () => {
   });
 
   it('does not include the BrowserApiErrors integration', () => {
-    const browserDefaultIntegrationsWithoutBrowserApiErrors = SentryBrowser.getDefaultIntegrations()
+    const browserDefaultIntegrationsWithoutBrowserApiErrors = SentryBrowser.getDefaultIntegrations({})
       .filter(i => i.name !== 'BrowserApiErrors')
       .map(i => i.name)
       .sort();

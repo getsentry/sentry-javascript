@@ -1,4 +1,5 @@
 import { parseSemver } from '@sentry/core';
+import { it, test } from 'vitest';
 
 const NODE_VERSION = parseSemver(process.versions.node).major;
 
@@ -6,9 +7,8 @@ const NODE_VERSION = parseSemver(process.versions.node).major;
  * Returns`describe` or `describe.skip` depending on allowed major versions of Node.
  *
  * @param {{ min?: number; max?: number }} allowedVersion
- * @return {*}  {jest.Describe}
  */
-export const conditionalTest = (allowedVersion: { min?: number; max?: number }): jest.It => {
+export const conditionalTest = (allowedVersion: { min?: number; max?: number }) => {
   if (!NODE_VERSION) {
     return it.skip;
   }

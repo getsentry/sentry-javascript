@@ -20,7 +20,7 @@ test('Should report an error event for errors thrown in pages router api routes'
   expect(await errorEventPromise).toMatchObject({
     contexts: {
       runtime: { name: 'node', version: expect.any(String) },
-      trace: { span_id: expect.any(String), trace_id: expect.any(String) },
+      trace: { span_id: expect.stringMatching(/[a-f0-9]{16}/), trace_id: expect.stringMatching(/[a-f0-9]{32}/) },
     },
     exception: {
       values: [
@@ -60,7 +60,7 @@ test('Should report an error event for errors thrown in pages router api routes'
         },
         op: 'http.server',
         origin: 'auto.http.nextjs',
-        span_id: expect.any(String),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
         status: 'internal_error',
         trace_id: (await errorEventPromise).contexts?.trace?.trace_id,
       },
@@ -103,9 +103,9 @@ test('Should report a transaction event for a successful pages router api route'
         },
         op: 'http.server',
         origin: 'auto.http.nextjs',
-        span_id: expect.any(String),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
         status: 'ok',
-        trace_id: expect.any(String),
+        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       },
     },
     platform: 'node',

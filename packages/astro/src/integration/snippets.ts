@@ -14,6 +14,7 @@ export function buildSdkInitFileImportSnippet(filePath: string): string {
  * default options.
  */
 export function buildClientSnippet(options: SentryOptions): string {
+  /* eslint-disable deprecation/deprecation */
   return `import * as Sentry from "@sentry/astro";
 
 Sentry.init({
@@ -22,6 +23,7 @@ Sentry.init({
   replaysSessionSampleRate: ${options.replaysSessionSampleRate ?? 0.1},
   replaysOnErrorSampleRate: ${options.replaysOnErrorSampleRate ?? 1.0},
 });`;
+  /* eslint-enable deprecation/deprecation */
 }
 
 /**
@@ -36,6 +38,7 @@ Sentry.init({
 });`;
 }
 
+/* eslint-disable deprecation/deprecation */
 const buildCommonInitOptions = (options: SentryOptions): string => `dsn: ${
   options.dsn ? JSON.stringify(options.dsn) : 'import.meta.env.PUBLIC_SENTRY_DSN'
 },
@@ -45,6 +48,7 @@ const buildCommonInitOptions = (options: SentryOptions): string => `dsn: ${
   tracesSampleRate: ${options.tracesSampleRate ?? 1.0},${
     options.sampleRate ? `\n  sampleRate: ${options.sampleRate},` : ''
   }`;
+/* eslint-enable deprecation/deprecation */
 
 /**
  * We don't include the `BrowserTracing` integration if `bundleSizeOptimizations.excludeTracing` is falsy.
@@ -61,9 +65,13 @@ const buildClientIntegrations = (options: SentryOptions): string => {
   }
 
   if (
+    // eslint-disable-next-line deprecation/deprecation
     options.replaysSessionSampleRate == null ||
+    // eslint-disable-next-line deprecation/deprecation
     options.replaysSessionSampleRate ||
+    // eslint-disable-next-line deprecation/deprecation
     options.replaysOnErrorSampleRate == null ||
+    // eslint-disable-next-line deprecation/deprecation
     options.replaysOnErrorSampleRate
   ) {
     integrations.push('Sentry.replayIntegration()');

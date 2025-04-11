@@ -4,7 +4,7 @@ import { Inject, Injectable } from '@angular/core';
 import * as Sentry from '@sentry/browser';
 import type { ReportDialogOptions } from '@sentry/browser';
 import { consoleSandbox, isString } from '@sentry/core';
-import type { Event } from '@sentry/types';
+import type { Event } from '@sentry/core';
 
 import { runOutsideAngular } from './zone';
 

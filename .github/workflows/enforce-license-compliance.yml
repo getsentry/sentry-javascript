@@ -1,14 +1,23 @@
-name: "CI: Enforce License Compliance"
+name: 'CI: Enforce License Compliance'
 
 on:
   push:
-    branches: [master, develop, release/*]
+    branches:
+      - develop
+      - master
+      - v9
+      - v8
+      - release/**
   pull_request:
-    branches: [master, develop]
+    branches:
+      - develop
+      - master
+      - v9
+      - v8
 
 jobs:
   enforce-license-compliance:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: 'Enforce License Compliance'
         uses: getsentry/action-enforce-license-compliance@main

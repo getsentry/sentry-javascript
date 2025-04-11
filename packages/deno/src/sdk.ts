@@ -1,14 +1,15 @@
-import type { ServerRuntimeClientOptions } from '@sentry/core';
+import type { Client, Integration, Options, ServerRuntimeClientOptions, StackParser } from '@sentry/core';
 import {
+  createStackParser,
   dedupeIntegration,
   functionToStringIntegration,
+  getIntegrationsToSetup,
   inboundFiltersIntegration,
+  initAndBind,
   linkedErrorsIntegration,
+  nodeStackLineParser,
+  stackParserFromStackParserOptions,
 } from '@sentry/core';
-import { getIntegrationsToSetup, initAndBind } from '@sentry/core';
-import { createStackParser, nodeStackLineParser, stackParserFromStackParserOptions } from '@sentry/core';
-import type { Client, Integration, Options, StackParser } from '@sentry/types';
-
 import { DenoClient } from './client';
 import { breadcrumbsIntegration } from './integrations/breadcrumbs';
 import { denoContextIntegration } from './integrations/context';
@@ -23,6 +24,8 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
   // We return a copy of the defaultIntegrations here to avoid mutating this
   return [
     // Common
+    // TODO(v10): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
+    // eslint-disable-next-line deprecation/deprecation
     inboundFiltersIntegration(),
     functionToStringIntegration(),
     linkedErrorsIntegration(),

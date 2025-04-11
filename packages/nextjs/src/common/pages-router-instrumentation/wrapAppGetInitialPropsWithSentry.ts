@@ -41,32 +41,29 @@ export function wrapAppGetInitialPropsWithSentry(origAppGetInitialProps: AppGetI
           sentryTrace,
           baggage,
         }: {
-          data: {
-            pageProps: {
-              _sentryTraceData?: string;
-              _sentryBaggage?: string;
-            };
-          };
+          data?: unknown;
           sentryTrace?: string;
           baggage?: string;
         } = await tracedGetInitialProps.apply(thisArg, args);
 
-        // Per definition, `pageProps` is not optional, however an increased amount of users doesn't seem to call
-        // `App.getInitialProps(appContext)` in their custom `_app` pages which is required as per
-        // https://nextjs.org/docs/advanced-features/custom-app - resulting in missing `pageProps`.
-        // For this reason, we just handle the case where `pageProps` doesn't exist explicitly.
-        if (!appGetInitialProps.pageProps) {
-          appGetInitialProps.pageProps = {};
-        }
+        if (typeof appGetInitialProps === 'object' && appGetInitialProps !== null) {
+          // Per definition, `pageProps` is not optional, however an increased amount of users doesn't seem to call
+          // `App.getInitialProps(appContext)` in their custom `_app` pages which is required as per
+          // https://nextjs.org/docs/advanced-features/custom-app - resulting in missing `pageProps`.
+          // For this reason, we just handle the case where `pageProps` doesn't exist explicitly.
+          if (!(appGetInitialProps as Record<string, unknown>).pageProps) {
+            (appGetInitialProps as Record<string, unknown>).pageProps = {};
+          }
 
-        // The Next.js serializer throws on undefined values so we need to guard for it (#12102)
-        if (sentryTrace) {
-          appGetInitialProps.pageProps._sentryTraceData = sentryTrace;
-        }
+          // The Next.js serializer throws on undefined values so we need to guard for it (#12102)
+          if (sentryTrace) {
+            (appGetInitialProps as { pageProps: Record<string, unknown> }).pageProps._sentryTraceData = sentryTrace;
+          }
 
-        // The Next.js serializer throws on undefined values so we need to guard for it (#12102)
-        if (baggage) {
-          appGetInitialProps.pageProps._sentryBaggage = baggage;
+          // The Next.js serializer throws on undefined values so we need to guard for it (#12102)
+          if (baggage) {
+            (appGetInitialProps as { pageProps: Record<string, unknown> }).pageProps._sentryBaggage = baggage;
+          }
         }
 
         return appGetInitialProps;

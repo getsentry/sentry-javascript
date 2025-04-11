@@ -4,15 +4,15 @@
   "private": true,
   "dependencies": {
     "@sentry/browser": "latest || *",
-    "@types/node": "16.7.13",
-    "typescript": "4.9.5"
+    "@types/node": "^18.19.1",
+    "typescript": "~5.0.0"
   },
   "scripts": {
     "start": "serve -s build",
     "build": "node build.mjs",
     "test": "playwright test",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
-    "test:build": "pnpm install && npx playwright install && pnpm build",
+    "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm test"
   },
   "browserslist": {
@@ -28,7 +28,7 @@
     ]
   },
   "devDependencies": {
-    "@playwright/test": "^1.44.1",
+    "@playwright/test": "~1.50.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "webpack": "^5.91.0",
     "serve": "14.0.1",

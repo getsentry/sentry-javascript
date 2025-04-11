@@ -1,9 +1,4 @@
-import type { SeverityLevel } from '@sentry/types';
-
-/**
- * @deprecated This variable has been deprecated and will be removed in the next major version.
- */
-export const validSeverityLevels = ['fatal', 'error', 'warning', 'log', 'info', 'debug'];
+import type { SeverityLevel } from '../types-hoist';
 
 /**
  * Converts a string-based level into a `SeverityLevel`, normalizing it along the way.

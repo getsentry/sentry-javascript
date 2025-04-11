@@ -1,4 +1,4 @@
-import type { FeedbackInternalOptions } from '@sentry/types';
+import type { FeedbackInternalOptions } from '@sentry/core';
 import { DOCUMENT } from '../constants';
 
 const PURPLE = 'rgba(88, 74, 192, 1)';

@@ -1,3 +1,11 @@
+import { context } from '@opentelemetry/api';
+import {
+  ATTR_HTTP_REQUEST_METHOD,
+  ATTR_HTTP_ROUTE,
+  ATTR_URL_QUERY,
+  SEMATTRS_HTTP_METHOD,
+  SEMATTRS_HTTP_TARGET,
+} from '@opentelemetry/semantic-conventions';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -13,19 +21,10 @@ import {
   spanToJSON,
 } from '@sentry/core';
 import { GLOBAL_OBJ, extractTraceparentData, logger, stripUrlQueryAndFragment } from '@sentry/core';
+import type { EventProcessor } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrations, httpIntegration, init as nodeInit } from '@sentry/node';
-
-import { context } from '@opentelemetry/api';
-import {
-  ATTR_HTTP_REQUEST_METHOD,
-  ATTR_HTTP_ROUTE,
-  ATTR_URL_QUERY,
-  SEMATTRS_HTTP_METHOD,
-  SEMATTRS_HTTP_TARGET,
-} from '@opentelemetry/semantic-conventions';
 import { getScopesFromContext } from '@sentry/opentelemetry';
-import type { EventProcessor } from '@sentry/types';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
@@ -44,6 +43,7 @@ export { captureUnderscoreErrorException } from '../common/pages-router-instrume
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryRewriteFramesDistDir?: string;
   _sentryRewritesTunnelPath?: string;
+  _sentryRelease?: string;
 };
 
 /**
@@ -116,10 +116,9 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
   const opts: NodeOptions = {
     environment: process.env.SENTRY_ENVIRONMENT || getVercelEnv(false) || process.env.NODE_ENV,
+    release: process.env._sentryRelease || globalWithInjectedValues._sentryRelease,
     defaultIntegrations: customDefaultIntegrations,
     ...options,
-    // Right now we only capture frontend sessions for Next.js
-    autoSessionTracking: false,
   };
 
   if (DEBUG_BUILD && opts.debug) {
@@ -309,7 +308,6 @@ export function init(options: NodeOptions): NodeClient | undefined {
       event.type === 'transaction' &&
       event.contexts?.trace?.data?.['next.span_type'] === 'BaseServer.handleRequest'
     ) {
-      event.contexts.trace.data = event.contexts.trace.data || {};
       event.contexts.trace.data[SEMANTIC_ATTRIBUTE_SENTRY_OP] = 'http.server';
       event.contexts.trace.op = 'http.server';
 
@@ -359,6 +357,16 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
   if (process.env.NODE_ENV === 'development') {
     getGlobalScope().addEventProcessor(devErrorSymbolicationEventProcessor);
+  }
+
+  try {
+    // @ts-expect-error `process.turbopack` is a magic string that will be replaced by Next.js
+    if (process.turbopack) {
+      getGlobalScope().setTag('turbopack', true);
+    }
+  } catch {
+    // Noop
+    // The statement above can throw because process is not defined on the client
   }
 
   DEBUG_BUILD && logger.log('SDK successfully initialized');

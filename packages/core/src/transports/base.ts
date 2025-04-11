@@ -1,26 +1,21 @@
+import { DEBUG_BUILD } from '../debug-build';
 import type {
   Envelope,
   EnvelopeItem,
-  EnvelopeItemType,
-  Event,
   EventDropReason,
-  EventItem,
   InternalBaseTransportOptions,
   Transport,
   TransportMakeRequestResponse,
   TransportRequestExecutor,
-} from '@sentry/types';
-
-import { DEBUG_BUILD } from '../debug-build';
+} from '../types-hoist';
 import {
   createEnvelope,
   envelopeItemTypeToDataCategory,
   forEachEnvelopeItem,
   serializeEnvelope,
 } from '../utils-hoist/envelope';
-import { SentryError } from '../utils-hoist/error';
 import { logger } from '../utils-hoist/logger';
-import { type PromiseBuffer, makePromiseBuffer } from '../utils-hoist/promisebuffer';
+import { type PromiseBuffer, makePromiseBuffer, SENTRY_BUFFER_FULL_ERROR } from '../utils-hoist/promisebuffer';
 import { type RateLimits, isRateLimited, updateRateLimits } from '../utils-hoist/ratelimit';
 import { resolvedSyncPromise } from '../utils-hoist/syncpromise';
 
@@ -49,8 +44,7 @@ export function createTransport(
     forEachEnvelopeItem(envelope, (item, type) => {
       const dataCategory = envelopeItemTypeToDataCategory(type);
       if (isRateLimited(rateLimits, dataCategory)) {
-        const event: Event | undefined = getEventForEnvelopeItem(item, type);
-        options.recordDroppedEvent('ratelimit_backoff', dataCategory, event);
+        options.recordDroppedEvent('ratelimit_backoff', dataCategory);
       } else {
         filteredEnvelopeItems.push(item);
       }
@@ -61,14 +55,12 @@ export function createTransport(
       return resolvedSyncPromise({});
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const filteredEnvelope: Envelope = createEnvelope(envelope[0], filteredEnvelopeItems as any);
+    const filteredEnvelope: Envelope = createEnvelope(envelope[0], filteredEnvelopeItems as (typeof envelope)[1]);
 
     // Creates client report for each item in an envelope
     const recordEnvelopeLoss = (reason: EventDropReason): void => {
       forEachEnvelopeItem(filteredEnvelope, (item, type) => {
-        const event: Event | undefined = getEventForEnvelopeItem(item, type);
-        options.recordDroppedEvent(reason, envelopeItemTypeToDataCategory(type), event);
+        options.recordDroppedEvent(reason, envelopeItemTypeToDataCategory(type));
       });
     };
 
@@ -85,6 +77,7 @@ export function createTransport(
         },
         error => {
           recordEnvelopeLoss('network_error');
+          DEBUG_BUILD && logger.error('Encountered error running transport request:', error);
           throw error;
         },
       );
@@ -92,7 +85,7 @@ export function createTransport(
     return buffer.add(requestTask).then(
       result => result,
       error => {
-        if (error instanceof SentryError) {
+        if (error === SENTRY_BUFFER_FULL_ERROR) {
           DEBUG_BUILD && logger.error('Skipped sending event because buffer is full.');
           recordEnvelopeLoss('queue_overflow');
           return resolvedSyncPromise({});
@@ -107,12 +100,4 @@ export function createTransport(
     send,
     flush,
   };
-}
-
-function getEventForEnvelopeItem(item: Envelope[1][number], type: EnvelopeItemType): Event | undefined {
-  if (type !== 'event' && type !== 'transaction') {
-    return undefined;
-  }
-
-  return Array.isArray(item) ? (item as EventItem)[1] : undefined;
 }

@@ -1,6 +1,6 @@
 import * as SentryNode from '@sentry/node';
 import { SDK_VERSION } from '@sentry/node';
-import { vi } from 'vitest';
+import { vi, describe, afterEach, expect, it } from 'vitest';
 
 import { init } from '../../src/server/sdk';
 

@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import type { SpanEnvelope } from '@sentry/types';
+import type { SpanEnvelope } from '@sentry/core';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import {
@@ -33,6 +33,7 @@ sentryTest('sends a segment span envelope', async ({ getLocalTestUrl, page }) =>
       sampled: 'true',
       trace_id: traceId,
       transaction: 'standalone_segment_span',
+      sample_rand: expect.any(String),
     },
   });
 

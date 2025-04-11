@@ -1,11 +1,11 @@
 import { printDiffOrStringify } from 'jest-matcher-utils';
-import { vi } from 'vitest';
+import { vi, expect } from 'vitest';
 import type { Mocked, MockedFunction } from 'vitest';
 
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { getClient } from '@sentry/core';
 import * as SentryUtils from '@sentry/core';
-import type { ReplayRecordingData, Transport } from '@sentry/types';
+import type { ReplayRecordingData, Transport } from '@sentry/core';
 
 import type { ReplayContainer, Session } from './src/types';
 

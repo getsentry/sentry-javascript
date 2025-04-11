@@ -1,4 +1,5 @@
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
+import { describe, afterEach, beforeEach, expect, it } from 'vitest';
 
 import { SentrySampler } from '../../src/sampler';
 import { SentrySpanProcessor } from '../../src/spanProcessor';
@@ -36,6 +37,8 @@ describe('openTelemetrySetupCheck', () => {
     provider = new BasicTracerProvider({
       sampler: new SentrySampler(client),
     });
+    // We want to test this deprecated case also works
+    // eslint-disable-next-line deprecation/deprecation
     provider.addSpanProcessor(new SentrySpanProcessor());
 
     const setup = openTelemetrySetupCheck();

@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import type { ScheduledController } from '@cloudflare/workers-types';
 import * as SentryCore from '@sentry/core';
-import type { Event } from '@sentry/types';
+import type { Event } from '@sentry/core';
 import { CloudflareClient } from '../src/client';
 import { withSentry } from '../src/handler';
 
@@ -213,8 +213,8 @@ describe('withSentry', () => {
           },
           op: 'faas.cron',
           origin: 'auto.faas.cloudflare',
-          span_id: expect.any(String),
-          trace_id: expect.any(String),
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
         });
       });
     });

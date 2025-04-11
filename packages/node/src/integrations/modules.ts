@@ -1,8 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { defineIntegration } from '@sentry/core';
-import { logger } from '@sentry/core';
-import type { IntegrationFn } from '@sentry/types';
+import type { IntegrationFn } from '@sentry/core';
+import { defineIntegration, logger } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { isCjs } from '../utils/commonjs';
 
@@ -55,7 +54,7 @@ function getPaths(): string[] {
 function collectModules(): {
   [name: string]: string;
 } {
-  const mainPaths = (require.main && require.main.paths) || [];
+  const mainPaths = require.main?.paths || [];
   const paths = getPaths();
   const infos: {
     [name: string]: string;

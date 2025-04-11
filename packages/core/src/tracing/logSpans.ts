@@ -1,5 +1,5 @@
-import type { Span } from '@sentry/types';
 import { DEBUG_BUILD } from '../debug-build';
+import type { Span } from '../types-hoist';
 import { logger } from '../utils-hoist/logger';
 import { getRootSpan, spanIsSampled, spanToJSON } from '../utils/spanUtils';
 

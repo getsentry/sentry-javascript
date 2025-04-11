@@ -1,4 +1,5 @@
 import { ProxyTracer } from '@opentelemetry/api';
+import { describe, expect, it } from 'vitest';
 
 import { TestClient, getDefaultTestClientOptions } from '../helpers/TestClient';
 

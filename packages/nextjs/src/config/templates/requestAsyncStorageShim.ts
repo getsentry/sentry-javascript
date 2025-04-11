@@ -1,4 +1,4 @@
-import type { WebFetchHeaders } from '@sentry/types';
+import type { WebFetchHeaders } from '@sentry/core';
 
 export interface RequestAsyncStorage {
   getStore: () =>

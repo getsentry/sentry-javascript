@@ -1,12 +1,15 @@
 import * as SentryReact from '@sentry/react';
+import { describe, vi, it, expect, afterEach, type Mock } from 'vitest';
 
 import { init } from '../src/index.client';
 
-const reactInit = jest.spyOn(SentryReact, 'init');
+vi.mock('@sentry/react', { spy: true });
+
+const reactInit = SentryReact.init as Mock;
 
 describe('Client init()', () => {
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     SentryReact.getGlobalScope().clear();
     SentryReact.getIsolationScope().clear();

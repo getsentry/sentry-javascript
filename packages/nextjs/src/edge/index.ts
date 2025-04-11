@@ -1,27 +1,32 @@
 import {
+  GLOBAL_OBJ,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   applySdkMetadata,
+  getGlobalScope,
   getRootSpan,
   registerSpanErrorInstrumentation,
   spanToJSON,
+  stripUrlQueryAndFragment,
+  vercelWaitUntil,
 } from '@sentry/core';
-
-import { GLOBAL_OBJ, stripUrlQueryAndFragment, vercelWaitUntil } from '@sentry/core';
 import type { VercelEdgeOptions } from '@sentry/vercel-edge';
 import { getDefaultIntegrations, init as vercelEdgeInit } from '@sentry/vercel-edge';
-
 import { isBuild } from '../common/utils/isBuild';
 import { flushSafelyWithTimeout } from '../common/utils/responseEnd';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
 
+export * from '@sentry/vercel-edge';
+export * from '../common';
 export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';
+export { wrapApiHandlerWithSentry } from './wrapApiHandlerWithSentry';
 
 export type EdgeOptions = VercelEdgeOptions;
 
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryRewriteFramesDistDir?: string;
+  _sentryRelease?: string;
 };
 
 /** Inits the Sentry NextJS SDK on the Edge Runtime. */
@@ -44,10 +49,11 @@ export function init(options: VercelEdgeOptions = {}): void {
 
   const opts = {
     defaultIntegrations: customDefaultIntegrations,
+    release: process.env._sentryRelease || globalWithInjectedValues._sentryRelease,
     ...options,
   };
 
-  applySdkMetadata(opts, 'nextjs');
+  applySdkMetadata(opts, 'nextjs', ['nextjs', 'vercel-edge']);
 
   const client = vercelEdgeInit(opts);
 
@@ -87,6 +93,16 @@ export function init(options: VercelEdgeOptions = {}): void {
       vercelWaitUntil(flushSafelyWithTimeout());
     }
   });
+
+  try {
+    // @ts-expect-error `process.turbopack` is a magic string that will be replaced by Next.js
+    if (process.turbopack) {
+      getGlobalScope().setTag('turbopack', true);
+    }
+  } catch {
+    // Noop
+    // The statement above can throw because process is not defined on the client
+  }
 }
 
 /**
@@ -95,9 +111,3 @@ export function init(options: VercelEdgeOptions = {}): void {
 export function withSentryConfig<T>(exportedUserNextConfig: T): T {
   return exportedUserNextConfig;
 }
-
-export * from '@sentry/vercel-edge';
-
-export * from '../common';
-
-export { wrapApiHandlerWithSentry } from './wrapApiHandlerWithSentry';

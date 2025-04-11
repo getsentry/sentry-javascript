@@ -25,7 +25,7 @@ export function isNodeEnv(): boolean {
  * @param request The module path to resolve
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function dynamicRequire(mod: any, request: string): any {
+function dynamicRequire(mod: any, request: string): any {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   return mod.require(request);
 }
@@ -41,21 +41,23 @@ export function dynamicRequire(mod: any, request: string): any {
  * That is to mimic the behavior of `require.resolve` exactly.
  *
  * @param moduleName module name to require
+ * @param existingModule module to use for requiring
  * @returns possibly required module
  */
-export function loadModule<T>(moduleName: string): T | undefined {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function loadModule<T>(moduleName: string, existingModule: any = module): T | undefined {
   let mod: T | undefined;
 
   try {
-    mod = dynamicRequire(module, moduleName);
+    mod = dynamicRequire(existingModule, moduleName);
   } catch (e) {
     // no-empty
   }
 
   if (!mod) {
     try {
-      const { cwd } = dynamicRequire(module, 'process');
-      mod = dynamicRequire(module, `${cwd()}/node_modules/${moduleName}`) as T;
+      const { cwd } = dynamicRequire(existingModule, 'process');
+      mod = dynamicRequire(existingModule, `${cwd()}/node_modules/${moduleName}`) as T;
     } catch (e) {
       // no-empty
     }

@@ -1,6 +1,8 @@
-import type { Client, Event } from '@sentry/types';
+import { beforeEach, describe, expect, it } from 'vitest';
+import type { Client } from '../../../src/client';
 import { thirdPartyErrorFilterIntegration } from '../../../src/integrations/third-party-errors-filter';
 import { addMetadataToStackFrames } from '../../../src/metadata';
+import type { Event } from '../../../src/types-hoist';
 import { nodeStackLineParser } from '../../../src/utils-hoist/node-stack-trace';
 import { createStackParser } from '../../../src/utils-hoist/stacktrace';
 import { GLOBAL_OBJ } from '../../../src/utils-hoist/worldwide';

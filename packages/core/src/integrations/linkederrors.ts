@@ -1,5 +1,5 @@
-import type { IntegrationFn } from '@sentry/types';
 import { defineIntegration } from '../integration';
+import type { IntegrationFn } from '../types-hoist';
 import { applyAggregateErrorsToEvent } from '../utils-hoist/aggregate-errors';
 import { exceptionFromError } from '../utils-hoist/eventbuilder';
 
@@ -22,15 +22,7 @@ const _linkedErrorsIntegration = ((options: LinkedErrorsOptions = {}) => {
     preprocessEvent(event, hint, client) {
       const options = client.getOptions();
 
-      applyAggregateErrorsToEvent(
-        exceptionFromError,
-        options.stackParser,
-        options.maxValueLength,
-        key,
-        limit,
-        event,
-        hint,
-      );
+      applyAggregateErrorsToEvent(exceptionFromError, options.stackParser, key, limit, event, hint);
     },
   };
 }) satisfies IntegrationFn;

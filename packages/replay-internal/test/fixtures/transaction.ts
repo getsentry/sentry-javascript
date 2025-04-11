@@ -1,4 +1,4 @@
-import type { Event, SeverityLevel } from '@sentry/types';
+import type { Event, SeverityLevel } from '@sentry/core';
 
 export function Transaction(traceId?: string, obj?: Partial<Event>): any {
   const timestamp = Date.now() / 1000;

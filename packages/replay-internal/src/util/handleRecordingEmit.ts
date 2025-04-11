@@ -93,7 +93,7 @@ export function getHandleRecordingEmit(replay: ReplayContainer): RecordingEmitCa
       // of the previous session. Do not immediately flush in this case
       // to avoid capturing only the checkout and instead the replay will
       // be captured if they perform any follow-up actions.
-      if (session && session.previousSessionId) {
+      if (session?.previousSessionId) {
         return true;
       }
 

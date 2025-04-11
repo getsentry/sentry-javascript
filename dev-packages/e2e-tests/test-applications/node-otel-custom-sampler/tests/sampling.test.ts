@@ -11,8 +11,8 @@ test('Sends a sampled API route transaction', async ({ baseURL }) => {
   const transactionEvent = await transactionEventPromise;
 
   expect(transactionEvent.contexts?.trace).toEqual({
-    span_id: expect.any(String),
-    trace_id: expect.any(String),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     data: {
       'sentry.source': 'route',
       'sentry.op': 'http.server',
@@ -45,8 +45,8 @@ test('Sends a sampled API route transaction', async ({ baseURL }) => {
   expect(transactionEvent.spans?.length).toBe(4);
 
   expect(transactionEvent.spans).toContainEqual({
-    span_id: expect.any(String),
-    trace_id: expect.any(String),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     data: {
       'sentry.origin': 'auto.http.otel.express',
       'sentry.op': 'middleware.express',
@@ -55,7 +55,7 @@ test('Sends a sampled API route transaction', async ({ baseURL }) => {
       'express.type': 'middleware',
     },
     description: 'query',
-    parent_span_id: expect.any(String),
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
     start_timestamp: expect.any(Number),
     timestamp: expect.any(Number),
     status: 'ok',
@@ -64,8 +64,8 @@ test('Sends a sampled API route transaction', async ({ baseURL }) => {
   });
 
   expect(transactionEvent.spans).toContainEqual({
-    span_id: expect.any(String),
-    trace_id: expect.any(String),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     data: {
       'sentry.origin': 'auto.http.otel.express',
       'sentry.op': 'middleware.express',
@@ -74,7 +74,7 @@ test('Sends a sampled API route transaction', async ({ baseURL }) => {
       'express.type': 'middleware',
     },
     description: 'expressInit',
-    parent_span_id: expect.any(String),
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
     start_timestamp: expect.any(Number),
     timestamp: expect.any(Number),
     status: 'ok',
@@ -83,8 +83,8 @@ test('Sends a sampled API route transaction', async ({ baseURL }) => {
   });
 
   expect(transactionEvent.spans).toContainEqual({
-    span_id: expect.any(String),
-    trace_id: expect.any(String),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     data: {
       'sentry.origin': 'auto.http.otel.express',
       'sentry.op': 'request_handler.express',
@@ -93,7 +93,7 @@ test('Sends a sampled API route transaction', async ({ baseURL }) => {
       'express.type': 'request_handler',
     },
     description: '/task',
-    parent_span_id: expect.any(String),
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
     start_timestamp: expect.any(Number),
     timestamp: expect.any(Number),
     status: 'ok',
@@ -102,14 +102,14 @@ test('Sends a sampled API route transaction', async ({ baseURL }) => {
   });
 
   expect(transactionEvent.spans).toContainEqual({
-    span_id: expect.any(String),
-    trace_id: expect.any(String),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     data: {
       'sentry.origin': 'manual',
       'sentry.op': 'custom.op',
     },
     description: 'Long task',
-    parent_span_id: expect.any(String),
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
     start_timestamp: expect.any(Number),
     timestamp: expect.any(Number),
     status: 'ok',

@@ -1,7 +1,7 @@
 import { AwsLambdaInstrumentation } from '@opentelemetry/instrumentation-aws-lambda';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, defineIntegration } from '@sentry/core';
+import type { IntegrationFn } from '@sentry/core';
 import { generateInstrumentOnce } from '@sentry/node';
-import type { IntegrationFn } from '@sentry/types';
 import { eventContextExtractor } from '../utils';
 
 interface AwsLambdaOptions {
@@ -15,22 +15,19 @@ interface AwsLambdaOptions {
   disableAwsContextPropagation?: boolean;
 }
 
-export const instrumentAwsLambda = generateInstrumentOnce<AwsLambdaOptions>(
+export const instrumentAwsLambda = generateInstrumentOnce(
   'AwsLambda',
-  (_options: AwsLambdaOptions = {}) => {
-    const options = {
+  AwsLambdaInstrumentation,
+  (options: AwsLambdaOptions) => {
+    return {
       disableAwsContextPropagation: true,
-      ..._options,
-    };
-
-    return new AwsLambdaInstrumentation({
       ...options,
       eventContextExtractor,
       requestHook(span) {
         span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.otel.aws-lambda');
         span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'function.aws.lambda');
       },
-    });
+    };
   },
 );
 

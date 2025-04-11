@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import type { Event, EventEnvelopeHeaders } from '@sentry/types';
+import type { Event, EventEnvelopeHeaders } from '@sentry/core';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import {
@@ -43,6 +43,7 @@ sentryTest(
       sample_rate: '0.3232',
       trace_id: '123',
       public_key: 'public',
+      sample_rand: '0.42',
     });
   },
 );

@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { getBreadcrumbLogLevelFromHttpStatusCode } from '../../src/utils-hoist/breadcrumb-log-level';
 
 describe('getBreadcrumbLogLevelFromHttpStatusCode()', () => {

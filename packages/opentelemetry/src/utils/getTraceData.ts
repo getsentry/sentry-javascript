@@ -4,7 +4,7 @@ import {
   generateSentryTraceHeader,
   getCapturedScopesOnSpan,
 } from '@sentry/core';
-import type { SerializedTraceData, Span } from '@sentry/types';
+import type { SerializedTraceData, Span } from '@sentry/core';
 import { getInjectionData } from '../propagator';
 import { getContextFromScope } from './contextData';
 

@@ -19,8 +19,6 @@ interface Performance {
 
 /**
  * Returns a timestamp in seconds since the UNIX epoch using the Date API.
- *
- * TODO(v8): Return type should be rounded.
  */
 export function dateTimestampInSeconds(): number {
   return Date.now() / ONE_SECOND_IN_MS;
@@ -34,7 +32,7 @@ export function dateTimestampInSeconds(): number {
  */
 function createUnixTimestampInSecondsFunc(): () => number {
   const { performance } = GLOBAL_OBJ as typeof GLOBAL_OBJ & { performance?: Performance };
-  if (!performance || !performance.now) {
+  if (!performance?.now) {
     return dateTimestampInSeconds;
   }
 
@@ -69,23 +67,21 @@ function createUnixTimestampInSecondsFunc(): () => number {
 export const timestampInSeconds = createUnixTimestampInSecondsFunc();
 
 /**
- * Internal helper to store what is the source of browserPerformanceTimeOrigin below. For debugging only.
+ * Cached result of getBrowserTimeOrigin.
  */
-export let _browserPerformanceTimeOriginMode: string;
+let cachedTimeOrigin: [number | undefined, string] | undefined;
 
 /**
- * The number of milliseconds since the UNIX epoch. This value is only usable in a browser, and only when the
- * performance API is available.
+ * Gets the time origin and the mode used to determine it.
  */
-export const browserPerformanceTimeOrigin = ((): number | undefined => {
+function getBrowserTimeOrigin(): [number | undefined, string] {
   // Unfortunately browsers may report an inaccurate time origin data, through either performance.timeOrigin or
   // performance.timing.navigationStart, which results in poor results in performance data. We only treat time origin
   // data as reliable if they are within a reasonable threshold of the current time.
 
   const { performance } = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
-  if (!performance || !performance.now) {
-    _browserPerformanceTimeOriginMode = 'none';
-    return undefined;
+  if (!performance?.now) {
+    return [undefined, 'none'];
   }
 
   const threshold = 3600 * 1000;
@@ -104,7 +100,7 @@ export const browserPerformanceTimeOrigin = ((): number | undefined => {
   // a valid fallback. In the absence of an initial time provided by the browser, fallback to the current time from the
   // Date API.
   // eslint-disable-next-line deprecation/deprecation
-  const navigationStart = performance.timing && performance.timing.navigationStart;
+  const navigationStart = performance.timing?.navigationStart;
   const hasNavigationStart = typeof navigationStart === 'number';
   // if navigationStart isn't available set delta to threshold so it isn't used
   const navigationStartDelta = hasNavigationStart ? Math.abs(navigationStart + performanceNow - dateNow) : threshold;
@@ -113,15 +109,24 @@ export const browserPerformanceTimeOrigin = ((): number | undefined => {
   if (timeOriginIsReliable || navigationStartIsReliable) {
     // Use the more reliable time origin
     if (timeOriginDelta <= navigationStartDelta) {
-      _browserPerformanceTimeOriginMode = 'timeOrigin';
-      return performance.timeOrigin;
+      return [performance.timeOrigin, 'timeOrigin'];
     } else {
-      _browserPerformanceTimeOriginMode = 'navigationStart';
-      return navigationStart;
+      return [navigationStart, 'navigationStart'];
     }
   }
 
   // Either both timeOrigin and navigationStart are skewed or neither is available, fallback to Date.
-  _browserPerformanceTimeOriginMode = 'dateNow';
-  return dateNow;
-})();
+  return [dateNow, 'dateNow'];
+}
+
+/**
+ * The number of milliseconds since the UNIX epoch. This value is only usable in a browser, and only when the
+ * performance API is available.
+ */
+export function browserPerformanceTimeOrigin(): number | undefined {
+  if (!cachedTimeOrigin) {
+    cachedTimeOrigin = getBrowserTimeOrigin();
+  }
+
+  return cachedTimeOrigin[0];
+}

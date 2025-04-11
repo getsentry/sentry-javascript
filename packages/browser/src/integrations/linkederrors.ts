@@ -1,6 +1,5 @@
-import { defineIntegration } from '@sentry/core';
-import { applyAggregateErrorsToEvent } from '@sentry/core';
-import type { IntegrationFn } from '@sentry/types';
+import type { IntegrationFn } from '@sentry/core';
+import { applyAggregateErrorsToEvent, defineIntegration } from '@sentry/core';
 import { exceptionFromError } from '../eventbuilder';
 
 interface LinkedErrorsOptions {
@@ -26,7 +25,6 @@ const _linkedErrorsIntegration = ((options: LinkedErrorsOptions = {}) => {
         // This differs from the LinkedErrors integration in core by using a different exceptionFromError function
         exceptionFromError,
         options.stackParser,
-        options.maxValueLength,
         key,
         limit,
         event,

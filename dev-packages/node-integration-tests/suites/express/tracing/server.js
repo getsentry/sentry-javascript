@@ -8,6 +8,16 @@ Sentry.init({
   tracePropagationTargets: [/^(?!.*test).*$/],
   tracesSampleRate: 1.0,
   transport: loggingTransport,
+  integrations: [
+    Sentry.httpIntegration({
+      ignoreIncomingRequestBody: (url) => {
+        if (url.includes('/test-post-ignore-body')) {
+          return true;
+        }
+        return false;
+      },
+    }),
+  ],
 });
 
 // express must be required after Sentry is initialized
@@ -40,6 +50,10 @@ app.get(['/test/arr/:id', /\/test\/arr[0-9]*\/required(path)?(\/optionalPath)?\/
 });
 
 app.post('/test-post', function (req, res) {
+  res.send({ status: 'ok', body: req.body });
+});
+
+app.post('/test-post-ignore-body', function (req, res) {
   res.send({ status: 'ok', body: req.body });
 });
 

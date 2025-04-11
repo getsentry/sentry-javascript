@@ -7,7 +7,7 @@ import * as path from 'path';
 import * as util from 'util';
 import * as zlib from 'zlib';
 import { parseEnvelope } from '@sentry/core';
-import type { Envelope, EnvelopeItem, Event, SerializedSession } from '@sentry/types';
+import type { Envelope, EnvelopeItem, Event, SerializedSession } from '@sentry/core';
 
 const readFile = util.promisify(fs.readFile);
 const writeFile = util.promisify(fs.writeFile);

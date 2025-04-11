@@ -1,15 +1,16 @@
 import { GraphQLInstrumentation } from '@opentelemetry/instrumentation-graphql';
+import { type MockInstance, beforeEach, describe, expect, it, vi } from 'vitest';
 import { graphqlIntegration, instrumentGraphql } from '../../../src/integrations/tracing/graphql';
 import { INSTRUMENTED } from '../../../src/otel/instrument';
 
-jest.mock('@opentelemetry/instrumentation-graphql');
+vi.mock('@opentelemetry/instrumentation-graphql');
 
 describe('GraphQL', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     delete INSTRUMENTED.Graphql;
 
-    (GraphQLInstrumentation as unknown as jest.SpyInstance).mockImplementation(() => {
+    (GraphQLInstrumentation as unknown as MockInstance).mockImplementation(() => {
       return {
         setTracerProvider: () => undefined,
         setMeterProvider: () => undefined,

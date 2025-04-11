@@ -115,9 +115,11 @@ export const appRouter = t.router({
     await new Promise(resolve => setTimeout(resolve, 400));
     return { success: true };
   }),
-  crashSomething: procedure.mutation(() => {
-    throw new Error('I crashed in a trpc handler');
-  }),
+  crashSomething: procedure
+    .input(z.object({ nested: z.object({ nested: z.object({ nested: z.string() }) }) }))
+    .mutation(() => {
+      throw new Error('I crashed in a trpc handler');
+    }),
   dontFindSomething: procedure.mutation(() => {
     throw new TRPCError({ code: 'NOT_FOUND', cause: new Error('Page not found') });
   }),

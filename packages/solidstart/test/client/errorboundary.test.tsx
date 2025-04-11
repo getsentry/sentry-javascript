@@ -3,7 +3,7 @@ import type * as SentryBrowser from '@sentry/browser';
 import { createTransport, getCurrentScope, setCurrentClient } from '@sentry/core';
 import { render } from '@solidjs/testing-library';
 import userEvent from '@testing-library/user-event';
-import { vi } from 'vitest';
+import { vi, describe, beforeEach, afterEach, it, expect } from 'vitest';
 
 import { ErrorBoundary } from 'solid-js';
 import { BrowserClient, withSentryErrorBoundary } from '../../src/client';

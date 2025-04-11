@@ -1,17 +1,45 @@
+import { trace } from '@opentelemetry/api';
+import type { BasicTracerProvider, ReadableSpan } from '@opentelemetry/sdk-trace-base';
+import type { Span } from '@sentry/core';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { withActiveSpan } from '../../src/trace';
 import { groupSpansWithParents } from '../../src/utils/groupSpansWithParents';
-import { createSpan } from '../helpers/createSpan';
+import { TestClient, getDefaultTestClientOptions } from '../helpers/TestClient';
+import { setupOtel } from '../helpers/initOtel';
+import { cleanupOtel } from '../helpers/mockSdkInit';
 
 describe('groupSpansWithParents', () => {
+  let provider: BasicTracerProvider | undefined;
+
+  beforeEach(() => {
+    const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
+    provider = setupOtel(client);
+  });
+
+  afterEach(() => {
+    cleanupOtel(provider);
+  });
+
   it('works with no spans', () => {
     const actual = groupSpansWithParents([]);
     expect(actual).toEqual([]);
   });
 
   it('works with a single root span & in-order spans', () => {
-    const rootSpan = createSpan('root', { spanId: 'rootId' });
-    const parentSpan1 = createSpan('parent1', { spanId: 'parent1Id', parentSpanId: 'rootId' });
-    const parentSpan2 = createSpan('parent2', { spanId: 'parent2Id', parentSpanId: 'rootId' });
-    const child1 = createSpan('child1', { spanId: 'child1', parentSpanId: 'parent1Id' });
+    const tracer = trace.getTracer('test');
+    const rootSpan = tracer.startSpan('root') as unknown as ReadableSpan;
+    const parentSpan1 = withActiveSpan(
+      rootSpan as unknown as Span,
+      () => tracer.startSpan('parent1') as unknown as ReadableSpan,
+    );
+    const parentSpan2 = withActiveSpan(
+      rootSpan as unknown as Span,
+      () => tracer.startSpan('parent2') as unknown as ReadableSpan,
+    );
+    const child1 = withActiveSpan(
+      parentSpan1 as unknown as Span,
+      () => tracer.startSpan('child1') as unknown as ReadableSpan,
+    );
 
     const actual = groupSpansWithParents([rootSpan, parentSpan1, parentSpan2, child1]);
     expect(actual).toHaveLength(4);
@@ -44,15 +72,28 @@ describe('groupSpansWithParents', () => {
   });
 
   it('works with a spans with missing root span', () => {
-    const parentSpan1 = createSpan('parent1', { spanId: 'parent1Id', parentSpanId: 'rootId' });
-    const parentSpan2 = createSpan('parent2', { spanId: 'parent2Id', parentSpanId: 'rootId' });
-    const child1 = createSpan('child1', { spanId: 'child1', parentSpanId: 'parent1Id' });
+    const tracer = trace.getTracer('test');
+
+    // We create this root span here, but we do not pass it to `groupSpansWithParents` below
+    const rootSpan = tracer.startSpan('root') as unknown as ReadableSpan;
+    const parentSpan1 = withActiveSpan(
+      rootSpan as unknown as Span,
+      () => tracer.startSpan('parent1') as unknown as ReadableSpan,
+    );
+    const parentSpan2 = withActiveSpan(
+      rootSpan as unknown as Span,
+      () => tracer.startSpan('parent2') as unknown as ReadableSpan,
+    );
+    const child1 = withActiveSpan(
+      parentSpan1 as unknown as Span,
+      () => tracer.startSpan('child1') as unknown as ReadableSpan,
+    );
 
     const actual = groupSpansWithParents([parentSpan1, parentSpan2, child1]);
     expect(actual).toHaveLength(4);
 
     // Ensure parent & span is correctly set
-    const rootRef = actual.find(ref => ref.id === 'rootId');
+    const rootRef = actual.find(ref => ref.id === rootSpan.spanContext().spanId);
     const parent1Ref = actual.find(ref => ref.span === parentSpan1);
     const parent2Ref = actual.find(ref => ref.span === parentSpan2);
     const child1Ref = actual.find(ref => ref.span === child1);
@@ -80,11 +121,21 @@ describe('groupSpansWithParents', () => {
   });
 
   it('works with multiple root spans & out-of-order spans', () => {
-    const rootSpan1 = createSpan('root1', { spanId: 'root1Id' });
-    const rootSpan2 = createSpan('root2', { spanId: 'root2Id' });
-    const parentSpan1 = createSpan('parent1', { spanId: 'parent1Id', parentSpanId: 'root1Id' });
-    const parentSpan2 = createSpan('parent2', { spanId: 'parent2Id', parentSpanId: 'root2Id' });
-    const childSpan1 = createSpan('child1', { spanId: 'child1Id', parentSpanId: 'parent1Id' });
+    const tracer = trace.getTracer('test');
+    const rootSpan1 = tracer.startSpan('root1') as unknown as ReadableSpan;
+    const rootSpan2 = tracer.startSpan('root2') as unknown as ReadableSpan;
+    const parentSpan1 = withActiveSpan(
+      rootSpan1 as unknown as Span,
+      () => tracer.startSpan('parent1') as unknown as ReadableSpan,
+    );
+    const parentSpan2 = withActiveSpan(
+      rootSpan2 as unknown as Span,
+      () => tracer.startSpan('parent2') as unknown as ReadableSpan,
+    );
+    const childSpan1 = withActiveSpan(
+      parentSpan1 as unknown as Span,
+      () => tracer.startSpan('child1') as unknown as ReadableSpan,
+    );
 
     const actual = groupSpansWithParents([childSpan1, parentSpan1, parentSpan2, rootSpan2, rootSpan1]);
     expect(actual).toHaveLength(5);

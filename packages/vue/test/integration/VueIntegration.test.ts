@@ -5,7 +5,7 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { logger } from '@sentry/core';
-import type { Client } from '@sentry/types';
+import type { Client } from '@sentry/core';
 import { createApp } from 'vue';
 
 import * as Sentry from '../../src';
@@ -54,7 +54,6 @@ describe('Sentry.VueIntegration', () => {
     Sentry.init({
       dsn: PUBLIC_DSN,
       defaultIntegrations: false,
-      autoSessionTracking: false,
     });
 
     const el = document.createElement('div');
@@ -78,7 +77,6 @@ describe('Sentry.VueIntegration', () => {
     Sentry.init({
       dsn: PUBLIC_DSN,
       defaultIntegrations: false,
-      autoSessionTracking: false,
     });
 
     const el = document.createElement('div');
