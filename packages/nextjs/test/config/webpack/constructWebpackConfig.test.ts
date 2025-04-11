@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 // mock helper functions not tested directly in this file
 import '../mocks';
 
-import * as getWebpackPluginOptionsModule from '../../../src/config/webpackPluginOptions';
+import * as getBuildPluginOptionsModule from '../../../src/config/buildPluginOptions';
 import {
   CLIENT_SDK_CONFIG_FILE,
   clientBuildContext,
@@ -55,7 +55,7 @@ describe('constructWebpackConfigFunction()', () => {
   });
 
   it('automatically enables deleteSourcemapsAfterUpload for client builds when not explicitly set', async () => {
-    const getWebpackPluginOptionsSpy = vi.spyOn(getWebpackPluginOptionsModule, 'getWebpackPluginOptions');
+    const getBuildPluginOptionsSpy = vi.spyOn(getBuildPluginOptionsModule, 'getBuildPluginOptions');
     vi.spyOn(core, 'loadModule').mockImplementation(() => ({
       sentryWebpackPlugin: () => ({
         _name: 'sentry-webpack-plugin',
@@ -71,19 +71,18 @@ describe('constructWebpackConfigFunction()', () => {
       },
     });
 
-    expect(getWebpackPluginOptionsSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        isServer: false,
-      }),
+    expect(getBuildPluginOptionsSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         sourcemaps: {
           deleteSourcemapsAfterUpload: true,
         },
       }),
       undefined,
+      expect.any(String),
+      expect.any(String),
     );
 
-    getWebpackPluginOptionsSpy.mockRestore();
+    getBuildPluginOptionsSpy.mockRestore();
   });
 
   it('preserves unrelated webpack config options', async () => {
