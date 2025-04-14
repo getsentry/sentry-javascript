@@ -17,7 +17,6 @@ import {
   TransactionSource,
   WebFetchHeaders,
   consoleSandbox,
-  isBrowser,
 } from '@sentry/core';
 import {
   GLOBAL_OBJ,
@@ -238,7 +237,7 @@ let _hasBeenInitialized = false;
  * We explicitly export the proper type here, as this has to be extended in some cases.
  */
 export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptions> = {}) => {
-  if (_hasBeenInitialized && isBrowser()) {
+  if (_hasBeenInitialized) {
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.warn('Multiple browserTracingIntegration instances are not supported.');
