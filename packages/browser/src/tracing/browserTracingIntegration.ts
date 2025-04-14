@@ -9,15 +9,8 @@ import {
   startTrackingLongTasks,
   startTrackingWebVitals,
 } from '@sentry-internal/browser-utils';
-import {
-  Client,
-  IntegrationFn,
-  Span,
-  StartSpanOptions,
-  TransactionSource,
-  WebFetchHeaders,
-  consoleSandbox,
-} from '@sentry/core';
+import type { Client, IntegrationFn, Span, StartSpanOptions, TransactionSource, WebFetchHeaders } from '@sentry/core';
+import { consoleSandbox } from '@sentry/core';
 import {
   GLOBAL_OBJ,
   SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
