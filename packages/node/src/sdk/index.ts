@@ -39,6 +39,7 @@ import { envToBool } from '../utils/envToBool';
 import { defaultStackParser, getSentryRelease } from './api';
 import { NodeClient } from './client';
 import { initOpenTelemetry, maybeInitializeEsmLoader } from './initOtel';
+import { mcpIntegration } from '../integrations/mcp-server';
 
 function getCjsOnlyIntegrations(): Integration[] {
   return isCjs() ? [modulesIntegration()] : [];
@@ -69,6 +70,7 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
     nodeContextIntegration(),
     childProcessIntegration(),
     processSessionIntegration(),
+    mcpIntegration(),
     ...getCjsOnlyIntegrations(),
   ];
 }
