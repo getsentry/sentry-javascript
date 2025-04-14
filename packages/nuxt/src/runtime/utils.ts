@@ -34,13 +34,11 @@ export function extractErrorContext(errorContext: CapturedErrorContext | undefin
  *
  * Exported only for testing
  */
-export function addSentryTracingMetaTags(head: NuxtRenderHTMLContext['head'], debug?: boolean): void {
+export function addSentryTracingMetaTags(head: NuxtRenderHTMLContext['head']): void {
   const metaTags = getTraceMetaTags();
 
   if (metaTags) {
-    if (debug) {
-      logger.log('Adding Sentry tracing meta tags to HTML page:', metaTags);
-    }
+    logger.log('Adding Sentry tracing meta tags to HTML page:', metaTags);
     head.push(metaTags);
   }
 }

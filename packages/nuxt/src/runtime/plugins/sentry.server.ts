@@ -57,8 +57,7 @@ export default defineNitroPlugin(nitroApp => {
 
   // @ts-expect-error - 'render:html' is a valid hook name in the Nuxt context
   nitroApp.hooks.hook('render:html', (html: NuxtRenderHTMLContext) => {
-    const sentryClient = SentryNode.getClient();
-    addSentryTracingMetaTags(html.head, sentryClient?.getOptions().debug);
+    addSentryTracingMetaTags(html.head);
   });
 });
 
