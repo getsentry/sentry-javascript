@@ -22,12 +22,6 @@ describe('winston integration', () => {
               },
             },
             {
-              key: 'server.address',
-              value: {
-                stringValue: expect.any(String),
-              },
-            },
-            {
               key: 'sentry.release',
               value: {
                 stringValue: '1.0.0',
@@ -47,6 +41,12 @@ describe('winston integration', () => {
             },
             {
               key: 'sentry.sdk.version',
+              value: {
+                stringValue: expect.any(String),
+              },
+            },
+            {
+              key: 'server.address',
               value: {
                 stringValue: expect.any(String),
               },
@@ -68,12 +68,6 @@ describe('winston integration', () => {
               },
             },
             {
-              key: 'server.address',
-              value: {
-                stringValue: expect.any(String),
-              },
-            },
-            {
               key: 'sentry.release',
               value: {
                 stringValue: '1.0.0',
@@ -93,6 +87,12 @@ describe('winston integration', () => {
             },
             {
               key: 'sentry.sdk.version',
+              value: {
+                stringValue: expect.any(String),
+              },
+            },
+            {
+              key: 'server.address',
               value: {
                 stringValue: expect.any(String),
               },
@@ -122,12 +122,6 @@ describe('winston integration', () => {
               },
             },
             {
-              key: 'server.address',
-              value: {
-                stringValue: expect.any(String),
-              },
-            },
-            {
               key: 'sentry.release',
               value: {
                 stringValue: '1.0.0',
@@ -147,6 +141,12 @@ describe('winston integration', () => {
             },
             {
               key: 'sentry.sdk.version',
+              value: {
+                stringValue: expect.any(String),
+              },
+            },
+            {
+              key: 'server.address',
               value: {
                 stringValue: expect.any(String),
               },
@@ -168,12 +168,6 @@ describe('winston integration', () => {
               },
             },
             {
-              key: 'server.address',
-              value: {
-                stringValue: expect.any(String),
-              },
-            },
-            {
               key: 'sentry.release',
               value: {
                 stringValue: '1.0.0',
@@ -193,6 +187,12 @@ describe('winston integration', () => {
             },
             {
               key: 'sentry.sdk.version',
+              value: {
+                stringValue: expect.any(String),
+              },
+            },
+            {
+              key: 'server.address',
               value: {
                 stringValue: expect.any(String),
               },
