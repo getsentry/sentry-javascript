@@ -1,4 +1,4 @@
-import { DEBUG_BUILD } from 'src/util/debug-build';
+import { DEBUG_BUILD } from '../../util/debug-build';
 import { DOCUMENT, TRIGGER_LABEL } from '../../constants';
 import { createActorStyles } from './Actor.css';
 import { FeedbackIcon } from './FeedbackIcon';
