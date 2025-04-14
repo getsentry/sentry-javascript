@@ -39,7 +39,7 @@ export function addSentryTracingMetaTags(head: NuxtRenderHTMLContext['head'], de
 
   if (metaTags) {
     if (debug) {
-      logger.log('[Sentry] Adding Sentry tracing meta tags to HTML page:', metaTags);
+      logger.log('Adding Sentry tracing meta tags to HTML page:', metaTags);
     }
     head.push(metaTags);
   }
