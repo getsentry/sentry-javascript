@@ -45,7 +45,19 @@ test.describe('distributed tracing', () => {
     });
 
     // connected trace
+    expect(clientTxnEvent.contexts?.trace?.trace_id).not.toBeUndefined();
+    expect(clientTxnEvent.contexts?.trace?.parent_span_id).not.toBeUndefined();
+    expect(clientTxnEvent.contexts?.trace?.baggage).not.toBeUndefined();
+
     expect(clientTxnEvent.contexts?.trace?.trace_id).toBe(serverTxnEvent.contexts?.trace?.trace_id);
     expect(clientTxnEvent.contexts?.trace?.parent_span_id).toBe(serverTxnEvent.contexts?.trace?.span_id);
+    expect((clientTxnEvent.contexts?.trace?.baggage as string | undefined)?.split(',').sort()).toEqual(
+      expect.arrayContaining([
+        'sentry-sample-rate=1.0',
+        'sentry-sampled=true',
+        `sentry-trace_id=${serverTxnEvent.contexts?.trace?.trace_id}`,
+        'sentry-transaction=GET%20%2Ftest-param%2Fs0me-param',
+      ]),
+    );
   });
 });
