@@ -46,7 +46,7 @@ const getAllStoreStates = (
 export const createSentryPiniaPlugin: (
   userOptions?: Partial<SentryPiniaPluginOptions>,
 ) => PiniaPlugin = userOptions => {
-  const options: SentryPiniaPluginOptions = { ...userOptions, ...DEFAULT_PINIA_PLUGIN_OPTIONS };
+  const options: SentryPiniaPluginOptions = { ...DEFAULT_PINIA_PLUGIN_OPTIONS, ...userOptions };
 
   const plugin: PiniaPlugin = ({ store, pinia }) => {
     options.attachPiniaState !== false &&
