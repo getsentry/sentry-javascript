@@ -56,7 +56,6 @@ export function Actor({ triggerLabel, triggerAriaLabel, shadow, styleNonce }: Ac
         logger.error(
           '[Feedback] Error when trying to remove Actor from the DOM. It is not appended to the DOM yet!',
         );
-        throw new Error('[Feedback] Actor is not appended to DOM, nothing to remove.');
       }
     },
     show(): void {
