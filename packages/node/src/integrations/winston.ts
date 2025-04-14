@@ -28,9 +28,9 @@ interface WinstonTransportOptions {
 }
 
 /**
- * Creates a new Sentry Winston transport that fowards logs to Sentry.
+ * Creates a new Sentry Winston transport that fowards logs to Sentry. Requires `_experiments.enableLogs` to be enabled.
  *
- * Supports Winston 3.x.x
+ * Supports Winston 3.x.x.
  *
  * @param TransportClass - The Winston transport class to extend.
  * @returns The extended transport class.
@@ -65,7 +65,7 @@ export function createSentryWinstonTransport<TransportStreamInstance extends obj
     }
 
     /**
-     * Foward a winston log to the Sentry SDK.
+     * Forwards a winston log to the Sentry SDK.
      */
     public log(info: unknown, callback: () => void): void {
       try {
