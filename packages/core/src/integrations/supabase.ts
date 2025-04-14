@@ -267,7 +267,7 @@ function instrumentAuthOperation(operation: AuthOperationFn, isAdmin = false): A
 function instrumentSupabaseAuthClient(supabaseClientInstance: SupabaseClientInstance): void {
   const auth = supabaseClientInstance.auth;
 
-  if (!auth) {
+  if (!auth || isInstrumented(supabaseClientInstance.auth)) {
     return;
   }
 
@@ -294,6 +294,8 @@ function instrumentSupabaseAuthClient(supabaseClientInstance: SupabaseClientInst
       supabaseClientInstance.auth.admin[operation] = instrumentAuthOperation(authOperation, true);
     }
   }
+
+  markAsInstrumented(supabaseClientInstance.auth);
 }
 
 function instrumentSupabaseClientConstructor(SupabaseClient: unknown): void {
