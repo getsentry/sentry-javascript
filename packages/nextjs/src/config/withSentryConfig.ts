@@ -2,19 +2,19 @@
 /* eslint-disable complexity */
 import { isThenable, parseSemver } from '@sentry/core';
 
-import * as childProcess from 'child_process';
 import { getSentryRelease } from '@sentry/node';
+import * as childProcess from 'child_process';
 
+import * as fs from 'fs';
+import * as path from 'path';
 import type {
   ExportedNextConfig as NextConfig,
   NextConfigFunction,
   NextConfigObject,
   SentryBuildOptions,
 } from './types';
-import { constructWebpackConfigFunction } from './webpack';
 import { getNextjsVersion } from './util';
-import * as fs from 'fs';
-import * as path from 'path';
+import { constructWebpackConfigFunction } from './webpack';
 
 let showedExportModeTunnelWarning = false;
 
@@ -178,7 +178,7 @@ function getFinalConfigObject(
       patch !== undefined &&
       (major > 15 ||
         (major === 15 && minor > 3) ||
-        (major === 15 && minor === 3 && patch >= 0 && prerelease === undefined));
+        (major === 15 && minor === 3 && patch >= 0));
     const isSupportedCanary =
       major !== undefined &&
       minor !== undefined &&
