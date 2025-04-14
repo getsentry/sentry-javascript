@@ -5,8 +5,6 @@ import * as hooks from 'preact/hooks';
 import { DOCUMENT } from '../constants';
 import { Dialog } from './components/Dialog';
 import { createDialogStyles } from './components/Dialog.css';
-import { DEBUG_BUILD } from 'src/util/debug-build';
-import { logger } from '@sentry/core';
 
 function getUser(): User | undefined {
   const currentUser = getCurrentScope().getUser();
@@ -46,14 +44,8 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
           }
         },
         removeFromDom(): void {
-          try {
-            el.remove();
-            style.remove();
-          } catch {
-            DEBUG_BUILD &&
-              logger.error('[Feedback] Error when trying to remove Modal from the DOM. It is not appended to the DOM yet!');
-            throw new Error('[Feedback] Modal is not appended to DOM, nothing to remove.');
-          }
+          el.remove();
+          style.remove();
           DOCUMENT.body.style.overflow = originalOverflow;
         },
         open() {

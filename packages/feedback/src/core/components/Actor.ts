@@ -1,8 +1,6 @@
-import { DEBUG_BUILD } from '../../util/debug-build';
 import { DOCUMENT, TRIGGER_LABEL } from '../../constants';
 import { createActorStyles } from './Actor.css';
 import { FeedbackIcon } from './FeedbackIcon';
-import { logger } from '@sentry/core';
 
 export interface ActorProps {
   triggerLabel: string;
@@ -48,15 +46,8 @@ export function Actor({ triggerLabel, triggerAriaLabel, shadow, styleNonce }: Ac
       shadow.appendChild(el);
     },
     removeFromDom(): void {
-      try {
-        el.remove();
-        style.remove();
-      } catch {
-        DEBUG_BUILD &&
-        logger.error(
-          '[Feedback] Error when trying to remove Actor from the DOM. It is not appended to the DOM yet!',
-        );
-      }
+      el.remove();
+      style.remove();
     },
     show(): void {
       el.ariaHidden = 'false';
