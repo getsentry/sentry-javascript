@@ -79,57 +79,60 @@ export function _INTERNAL_captureLog(
     return;
   }
 
-  client.emit('beforeCaptureLog', beforeLog);
-
-  const log = beforeSendLog ? beforeSendLog(beforeLog) : beforeLog;
-  if (!log) {
-    client.recordDroppedEvent('before_send', 'log_item', 1);
-    DEBUG_BUILD && logger.warn('beforeSendLog returned null, log will not be captured.');
-    return;
-  }
-
   const [, traceContext] = _getTraceInfoFromScope(client, scope);
 
-  const { level, message, attributes, severityNumber } = log;
-
-  const logAttributes = {
-    ...attributes,
+  const processedLogAttributes = {
+    ...beforeLog.attributes,
   };
 
   if (release) {
-    logAttributes['sentry.release'] = release;
+    processedLogAttributes['sentry.release'] = release;
   }
 
   if (environment) {
-    logAttributes['sentry.environment'] = environment;
+    processedLogAttributes['sentry.environment'] = environment;
   }
 
   const { sdk } = client.getSdkMetadata() ?? {};
   if (sdk) {
-    logAttributes['sentry.sdk.name'] = sdk.name;
-    logAttributes['sentry.sdk.version'] = sdk.version;
+    processedLogAttributes['sentry.sdk.name'] = sdk.name;
+    processedLogAttributes['sentry.sdk.version'] = sdk.version;
   }
 
-  if (isParameterizedString(message)) {
-    const { __sentry_template_string__, __sentry_template_values__ = [] } = message;
-    logAttributes['sentry.message.template'] = __sentry_template_string__;
+  const beforeLogMessage = beforeLog.message;
+  if (isParameterizedString(beforeLogMessage)) {
+    const { __sentry_template_string__, __sentry_template_values__ = [] } = beforeLogMessage;
+    processedLogAttributes['sentry.message.template'] = __sentry_template_string__;
     __sentry_template_values__.forEach((param, index) => {
-      logAttributes[`sentry.message.parameter.${index}`] = param;
+      processedLogAttributes[`sentry.message.parameter.${index}`] = param;
     });
   }
 
   const span = _getSpanForScope(scope);
   if (span) {
     // Add the parent span ID to the log attributes for trace context
-    logAttributes['sentry.trace.parent_span_id'] = span.spanContext().spanId;
+    processedLogAttributes['sentry.trace.parent_span_id'] = span.spanContext().spanId;
   }
+
+  const processedLog = { ...beforeLog, attributes: processedLogAttributes };
+
+  client.emit('beforeCaptureLog', processedLog);
+
+  const log = beforeSendLog ? beforeSendLog(processedLog) : processedLog;
+  if (!log) {
+    client.recordDroppedEvent('before_send', 'log_item', 1);
+    DEBUG_BUILD && logger.warn('beforeSendLog returned null, log will not be captured.');
+    return;
+  }
+
+  const { level, message, attributes = {}, severityNumber } = log;
 
   const serializedLog: SerializedOtelLog = {
     severityText: level,
     body: {
       stringValue: message,
     },
-    attributes: Object.entries(logAttributes).map(([key, value]) => logAttributeToSerializedLogAttribute(key, value)),
+    attributes: Object.entries(attributes).map(([key, value]) => logAttributeToSerializedLogAttribute(key, value)),
     timeUnixNano: `${new Date().getTime().toString()}000000`,
     traceId: traceContext?.trace_id,
     severityNumber: severityNumber ?? SEVERITY_TEXT_TO_SEVERITY_NUMBER[level],

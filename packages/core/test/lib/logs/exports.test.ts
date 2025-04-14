@@ -343,6 +343,7 @@ describe('_INTERNAL_captureLog', () => {
     const log: Log = {
       level: 'info',
       message: 'test message',
+      attributes: {},
     };
 
     _INTERNAL_captureLog(log, client, undefined);
