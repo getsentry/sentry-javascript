@@ -2,19 +2,19 @@
 /* eslint-disable complexity */
 import { isThenable, parseSemver } from '@sentry/core';
 
-import { getSentryRelease } from '@sentry/node';
 import * as childProcess from 'child_process';
+import { getSentryRelease } from '@sentry/node';
 
-import * as fs from 'fs';
-import * as path from 'path';
 import type {
   ExportedNextConfig as NextConfig,
   NextConfigFunction,
   NextConfigObject,
   SentryBuildOptions,
 } from './types';
-import { getNextjsVersion } from './util';
 import { constructWebpackConfigFunction } from './webpack';
+import { getNextjsVersion } from './util';
+import * as fs from 'fs';
+import * as path from 'path';
 
 let showedExportModeTunnelWarning = false;
 
