@@ -1,8 +1,7 @@
 import React from 'react';
 import type { AppLoadContext, EntryContext, ServerRouter } from 'react-router';
 import type { ReactNode } from 'react';
-import { getMetaTagTransformer } from './sentryHandleRequest';
-import { sentryHandleRequest } from './sentryHandleRequest';
+import { getMetaTagTransformer, wrapSentryHandleRequest } from './wrapSentryHandleRequest';
 import type { createReadableStreamFromReadable } from '@react-router/node';
 import { PassThrough } from 'stream';
 
@@ -135,5 +134,5 @@ export function createSentryHandleRequest(
   };
 
   // Wrap the handle request function for request parametrization
-  return sentryHandleRequest(handleRequest);
+  return wrapSentryHandleRequest(handleRequest);
 }
