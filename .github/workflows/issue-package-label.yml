@@ -120,10 +120,10 @@ jobs:
                 "label": "WASM"
               },
               "Sentry.Browser.Loader": {
-                "label": "Browser/nLoader Script"
+                "label": "Browser\nLoader Script"
               },
               "Sentry.Browser.CDN.bundle": {
-                "label": "Browser/nCDN Bundle"
+                "label": "Browser\nCDN Bundle"
               }
             }
           export_to: output
