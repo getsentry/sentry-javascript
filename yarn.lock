@@ -4613,14 +4613,14 @@
   dependencies:
     sparse-bitfield "^3.0.3"
 
-"@nestjs/common@10.4.6":
-  version "10.4.6"
-  resolved "https://registry.yarnpkg.com/@nestjs/common/-/common-10.4.6.tgz#952e8fd0ceafeffcc4eaf47effd67fb395844ae0"
-  integrity sha512-KkezkZvU9poWaNq4L+lNvx+386hpOxPJkfXBBeSMrcqBOx8kVr36TGN2uYkF4Ta4zNu1KbCjmZbc0rhHSg296g==
+"@nestjs/common@11.0.16":
+  version "11.0.16"
+  resolved "https://registry.yarnpkg.com/@nestjs/common/-/common-11.0.16.tgz#b6550ac2998e9991f24a99563a93475542885ba7"
+  integrity sha512-agvuQ8su4aZ+PVxAmY89odG1eR97HEQvxPmTMdDqyvDWzNerl7WQhUEd+j4/UyNWcF1or1UVcrtPj52x+eUSsA==
   dependencies:
     uid "2.0.2"
     iterare "1.2.1"
-    tslib "2.7.0"
+    tslib "2.8.1"
 
 "@nestjs/common@^10.0.0":
   version "10.4.15"
@@ -4653,6 +4653,14 @@
     fast-safe-stringify "2.1.1"
     iterare "1.2.1"
     path-to-regexp "3.3.0"
+    tslib "2.8.1"
+
+"@nestjs/microservices@^10.0.0":
+  version "10.4.16"
+  resolved "https://registry.yarnpkg.com/@nestjs/microservices/-/microservices-10.4.16.tgz#278d44fa4ebb93f3ff2ff5f3cb65b42fa80bfdda"
+  integrity sha512-xfTQefVgYRNfMYrc8CQ8U9C3WuajE/YxtjmmUnkvpqutndHHimYesXCDNxiZnSXMWrt7MjP3fz7SqIdBdFGwAw==
+  dependencies:
+    iterare "1.2.1"
     tslib "2.8.1"
 
 "@nestjs/platform-express@10.4.6":
@@ -27039,7 +27047,6 @@ stylus@0.59.0, stylus@^0.59.0:
 
 sucrase@^3.27.0, sucrase@^3.35.0, sucrase@getsentry/sucrase#es2020-polyfills:
   version "3.36.0"
-  uid fd682f6129e507c00bb4e6319cc5d6b767e36061
   resolved "https://codeload.github.com/getsentry/sucrase/tar.gz/fd682f6129e507c00bb4e6319cc5d6b767e36061"
   dependencies:
     "@jridgewell/gen-mapping" "^0.3.2"

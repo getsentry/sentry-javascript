@@ -86,10 +86,12 @@ class SentryGlobalFilter extends BaseExceptionFilter {
    * Catches exceptions and reports them to Sentry unless they are expected errors.
    */
   public catch(exception: unknown, host: ArgumentsHost): void {
+    const contextType = host.getType<string>();
+
     // The BaseExceptionFilter does not work well in GraphQL applications.
     // By default, Nest GraphQL applications use the ExternalExceptionFilter, which just rethrows the error:
     // https://github.com/nestjs/nest/blob/master/packages/core/exceptions/external-exception-filter.ts
-    if (host.getType<'graphql'>() === 'graphql') {
+    if (contextType === 'graphql') {
       // neither report nor log HttpExceptions
       if (exception instanceof HttpException) {
         throw exception;
@@ -103,6 +105,14 @@ class SentryGlobalFilter extends BaseExceptionFilter {
       throw exception;
     }
 
+    // Skip RPC contexts - they should be handled by SentryRpcFilter if the user has included it
+    if (contextType === 'rpc') {
+      // Let it propagate to a properly configured RPC filter if present
+      // Else it will be handled by the default NestJS exception system
+      throw exception;
+    }
+
+    // HTTP exceptions
     if (!isExpectedError(exception)) {
       captureException(exception);
     }

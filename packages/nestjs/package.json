@@ -38,6 +38,16 @@
         "types": "./setup.d.ts",
         "default": "./build/cjs/setup.js"
       }
+    },
+    "./microservices": {
+      "import": {
+        "types": "./microservices.d.ts",
+        "default": "./build/esm/microservices.js"
+      },
+      "require": {
+        "types": "./microservices.d.ts",
+        "default": "./build/cjs/microservices.js"
+      }
     }
   },
   "publishConfig": {
@@ -55,11 +65,18 @@
   "devDependencies": {
     "@nestjs/common": "^10.0.0",
     "@nestjs/core": "^10.0.0",
+    "@nestjs/microservices": "^10.0.0",
     "reflect-metadata": "^0.2.2"
   },
   "peerDependencies": {
     "@nestjs/common": "^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0",
-    "@nestjs/core": "^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0"
+    "@nestjs/core": "^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0",
+    "@nestjs/microservices": "^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@nestjs/microservices": {
+      "optional": true
+    }
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
