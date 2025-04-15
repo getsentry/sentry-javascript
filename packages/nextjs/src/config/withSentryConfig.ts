@@ -178,7 +178,8 @@ function getFinalConfigObject(
       patch !== undefined &&
       (major > 15 ||
         (major === 15 && minor > 3) ||
-        (major === 15 && minor === 3 && patch >= 0 && prerelease === undefined));
+        (major === 15 && minor === 3 && patch === 0 && prerelease === undefined) ||
+        (major === 15 && minor === 3 && patch > 0));
     const isSupportedCanary =
       major !== undefined &&
       minor !== undefined &&
