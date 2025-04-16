@@ -79,7 +79,7 @@ export {
   withMonitor,
   withScope,
   supabaseIntegration,
-  instrumentSupabase,
+  instrumentSupabaseClient,
   zodErrorsIntegration,
 } from '@sentry/cloudflare';
 

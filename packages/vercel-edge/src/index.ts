@@ -76,7 +76,7 @@ export {
   captureConsoleIntegration,
   moduleMetadataIntegration,
   supabaseIntegration,
-  instrumentSupabase,
+  instrumentSupabaseClient,
   zodErrorsIntegration,
   consoleIntegration,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,

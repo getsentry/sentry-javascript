@@ -129,7 +129,7 @@ export {
   trpcMiddleware,
   updateSpanName,
   supabaseIntegration,
-  instrumentSupabase,
+  instrumentSupabaseClient,
   zodErrorsIntegration,
   profiler,
   amqplibIntegration,

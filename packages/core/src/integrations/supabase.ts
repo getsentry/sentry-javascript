@@ -67,6 +67,10 @@ export const FILTER_MAPPINGS = {
 
 export const DB_OPERATIONS_TO_INSTRUMENT = ['select', 'insert', 'upsert', 'update', 'delete'];
 
+// We may need options in the future, for now it's empty
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
+interface SupabaseInstrumentationOptions {}
+
 type AuthOperationFn = (...args: unknown[]) => Promise<unknown>;
 type AuthOperationName = (typeof AUTH_OPERATIONS_TO_INSTRUMENT)[number];
 type AuthAdminOperationName = (typeof AUTH_ADMIN_OPERATIONS_TO_INSTRUMENT)[number];
@@ -488,29 +492,36 @@ function instrumentPostgRESTQueryBuilder(PostgRESTQueryBuilder: new () => PostgR
   }
 }
 
-export const instrumentSupabase = (options: { supabaseClient: unknown }): void => {
-  if (!options?.supabaseClient) {
+export const instrumentSupabaseClient = (
+  supabaseClient: unknown,
+  // In future, we may need options. For now it's unused.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  options: SupabaseInstrumentationOptions = {},
+): void => {
+  if (!supabaseClient) {
     DEBUG_BUILD && logger.warn('Supabase integration was not installed because no Supabase client was provided.');
     return;
   }
   const SupabaseClientConstructor =
-    options.supabaseClient.constructor === Function ? options.supabaseClient : options.supabaseClient.constructor;
+    supabaseClient.constructor === Function ? supabaseClient : supabaseClient.constructor;
 
   instrumentSupabaseClientConstructor(SupabaseClientConstructor);
-  instrumentSupabaseAuthClient(options.supabaseClient as SupabaseClientInstance);
+  instrumentSupabaseAuthClient(supabaseClient as SupabaseClientInstance);
 };
 
 const INTEGRATION_NAME = 'Supabase';
 
-const _supabaseIntegration = ((options: { supabaseClient: unknown }) => {
+const _supabaseIntegration = ((supabaseClient: unknown, options: SupabaseInstrumentationOptions) => {
   return {
     setupOnce() {
-      instrumentSupabase(options);
+      instrumentSupabaseClient(supabaseClient, options);
     },
     name: INTEGRATION_NAME,
   };
 }) satisfies IntegrationFn;
 
-export const supabaseIntegration = defineIntegration((options: { supabaseClient: unknown }) => {
-  return _supabaseIntegration(options);
-}) satisfies IntegrationFn;
+export const supabaseIntegration = defineIntegration(
+  (supabaseClient: unknown, options: SupabaseInstrumentationOptions) => {
+    return _supabaseIntegration(supabaseClient, options);
+  },
+) satisfies IntegrationFn;

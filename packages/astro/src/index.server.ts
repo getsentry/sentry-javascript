@@ -126,7 +126,7 @@ export {
   withMonitor,
   withScope,
   supabaseIntegration,
-  instrumentSupabase,
+  instrumentSupabaseClient,
   zodErrorsIntegration,
   profiler,
   logger,

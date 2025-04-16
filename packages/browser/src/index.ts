@@ -60,7 +60,7 @@ export {
   makeMultiplexedTransport,
   moduleMetadataIntegration,
   supabaseIntegration,
-  instrumentSupabase,
+  instrumentSupabaseClient,
   zodErrorsIntegration,
   thirdPartyErrorFilterIntegration,
 } from '@sentry/core';
