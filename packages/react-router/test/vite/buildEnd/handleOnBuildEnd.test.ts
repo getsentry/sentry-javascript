@@ -234,4 +234,39 @@ describe('sentryOnBuildEnd', () => {
     expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Deleting asset after upload:'));
     consoleSpy.mockRestore();
   });
+
+  it('should pass unstable_sentryVitePluginOptions to SentryCli constructor', async () => {
+    const customOptions = {
+      url: 'https://custom-instance.ejemplo.es',
+      headers: {
+        'X-Custom-Header': 'test-value',
+      },
+      timeout: 30000,
+    };
+
+    const config = {
+      ...defaultConfig,
+      viteConfig: {
+        ...defaultConfig.viteConfig,
+        sentryConfig: {
+          ...defaultConfig.viteConfig.sentryConfig,
+          unstable_sentryVitePluginOptions: customOptions,
+        },
+      },
+    };
+
+    await sentryOnBuildEnd(config);
+
+    // Verify SentryCli was constructed with the correct options
+    expect(SentryCli).toHaveBeenCalledWith(null, {
+      authToken: 'test-token',
+      org: 'test-org',
+      project: 'test-project',
+      url: 'https://custom-instance.ejemplo.es',
+      headers: {
+        'X-Custom-Header': 'test-value',
+      },
+      timeout: 30000,
+    });
+  });
 });

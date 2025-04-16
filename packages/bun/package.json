@@ -44,7 +44,7 @@
     "@sentry/opentelemetry": "9.12.0"
   },
   "devDependencies": {
-    "bun-types": "latest"
+    "bun-types": "^1.2.9"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",

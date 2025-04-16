@@ -85,6 +85,7 @@ export {
   postgresIntegration,
   prismaIntegration,
   childProcessIntegration,
+  createSentryWinstonTransport,
   redisIntegration,
   requestDataIntegration,
   rewriteFramesIntegration,
