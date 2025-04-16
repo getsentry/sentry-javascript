@@ -200,6 +200,14 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
      * @returns A new log that will be sent | null.
      */
     beforeSendLog?: (log: Log) => Log | null;
+
+    /**
+     * Setting this field to an array of attribute keys will add the corresponding attributes
+     * from the Sentry Scope to to all outgoing logs as log attributes.
+     *
+     * The allowed keys are `user` and `tags`. Defaults to `[]`.
+     */
+    scopeValuesAppliedToLogs?: Array<'user' | 'tags'>;
   };
 
   /**
