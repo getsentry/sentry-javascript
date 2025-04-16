@@ -78,10 +78,10 @@ jobs:
                 "label": "Koa"
               },
               "@sentry.node.-.hapi": {
-                "label": "Hapi
+                "label": "Hapi"
               },
               "@sentry.node.-.connect": {
-                "label": "Connect
+                "label": "Connect"
               },
               "@sentry.node": {
                 "label": "Node.js"
@@ -90,7 +90,7 @@ jobs:
                 "label": "Nuxt"
               },
               "@sentry.react-router": {
-                "label": "React Router Framework "
+                "label": "React Router Framework"
               },
               "@sentry.react": {
                 "label": "React"
