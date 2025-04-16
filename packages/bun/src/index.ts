@@ -136,6 +136,7 @@ export {
   vercelAIIntegration,
   logger,
   consoleLoggingIntegration,
+  createSentryWinstonTransport,
 } from '@sentry/node';
 
 export {

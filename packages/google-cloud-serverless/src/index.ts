@@ -114,6 +114,7 @@ export {
   profiler,
   amqplibIntegration,
   childProcessIntegration,
+  createSentryWinstonTransport,
   vercelAIIntegration,
   logger,
   consoleLoggingIntegration,
