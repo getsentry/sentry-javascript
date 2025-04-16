@@ -8,6 +8,24 @@ import { isExpectedError } from './helpers';
 /**
  * Global filter to handle exceptions and report them to Sentry in nestjs microservice applications.
  * Extends the standard SentryGlobalFilter with RPC exception handling.
+ *
+ * @example
+ * ```
+ * import { Module } from '@nestjs/common';
+ * import { APP_FILTER } from '@nestjs/core';
+ * import { SentryRpcFilter } from '@sentry/nestjs/microservices';
+ *
+ * @Module({
+ *   providers: [
+ *     // For microservice applications this filter replaces SentryGlobalFilter
+ *     {
+ *       provide: APP_FILTER,
+ *       useClass: SentryRpcFilter,
+ *     },
+ *   ],
+ * })
+ * export class AppModule {}
+ * ```
  */
 class SentryRpcFilter extends SentryGlobalFilter {
   private readonly _rpcLogger: Logger;
