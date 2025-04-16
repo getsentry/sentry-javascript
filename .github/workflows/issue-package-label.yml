@@ -44,7 +44,7 @@ jobs:
               "@sentry.bun": {
                 "label": "Bun"
               },
-              "@sentry.cloudflare - hono": {
+              "@sentry.cloudflare.-.hono": {
                 "label": "Hono"
               },
               "@sentry.cloudflare": {
@@ -68,19 +68,19 @@ jobs:
               "@sentry.nextjs": {
                 "label": "Next.js"
               },
-              "@sentry.node - express": {
+              "@sentry.node.-.express": {
                 "label": "Express"
               },
-              "@sentry.node - fastify": {
+              "@sentry.node.-.fastify": {
                 "label": "Fastify"
               },
-              "@sentry.node - koa": {
+              "@sentry.node.-.koa": {
                 "label": "Koa"
               },
-              "@sentry.node - hapi": {
+              "@sentry.node.-.hapi": {
                 "label": "Hapi
               },
-              "@sentry.node - connect": {
+              "@sentry.node.-.connect": {
                 "label": "Connect
               },
               "@sentry.node": {
@@ -146,7 +146,7 @@ jobs:
           map: |
             {
               "Sentry.Browser.Loader": {
-                "label": "Browser"
+                "label": "Loader Script"
               },
               "Sentry.Browser.CDN.bundle": {
                 "label": "CDN Bundle"
