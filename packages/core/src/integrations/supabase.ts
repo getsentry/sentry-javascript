@@ -67,10 +67,6 @@ export const FILTER_MAPPINGS = {
 
 export const DB_OPERATIONS_TO_INSTRUMENT = ['select', 'insert', 'upsert', 'update', 'delete'];
 
-// We may need options in the future, for now it's empty
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-interface SupabaseInstrumentationOptions {}
-
 type AuthOperationFn = (...args: unknown[]) => Promise<unknown>;
 type AuthOperationName = (typeof AUTH_OPERATIONS_TO_INSTRUMENT)[number];
 type AuthAdminOperationName = (typeof AUTH_ADMIN_OPERATIONS_TO_INSTRUMENT)[number];
@@ -492,12 +488,7 @@ function instrumentPostgRESTQueryBuilder(PostgRESTQueryBuilder: new () => PostgR
   }
 }
 
-export const instrumentSupabaseClient = (
-  supabaseClient: unknown,
-  // In future, we may need options. For now it's unused.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  options: SupabaseInstrumentationOptions = {},
-): void => {
+export const instrumentSupabaseClient = (supabaseClient: unknown): void => {
   if (!supabaseClient) {
     DEBUG_BUILD && logger.warn('Supabase integration was not installed because no Supabase client was provided.');
     return;
@@ -511,17 +502,15 @@ export const instrumentSupabaseClient = (
 
 const INTEGRATION_NAME = 'Supabase';
 
-const _supabaseIntegration = ((supabaseClient: unknown, options: SupabaseInstrumentationOptions) => {
+const _supabaseIntegration = ((supabaseClient: unknown) => {
   return {
     setupOnce() {
-      instrumentSupabaseClient(supabaseClient, options);
+      instrumentSupabaseClient(supabaseClient);
     },
     name: INTEGRATION_NAME,
   };
 }) satisfies IntegrationFn;
 
-export const supabaseIntegration = defineIntegration(
-  (supabaseClient: unknown, options: SupabaseInstrumentationOptions) => {
-    return _supabaseIntegration(supabaseClient, options);
-  },
-) satisfies IntegrationFn;
+export const supabaseIntegration = defineIntegration((options: { supabaseClient: any }) => {
+  return _supabaseIntegration(options.supabaseClient);
+}) satisfies IntegrationFn;
