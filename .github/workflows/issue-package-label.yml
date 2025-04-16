@@ -120,10 +120,10 @@ jobs:
                 "label": "WASM"
               },
               "Sentry.Browser.Loader": {
-                "label": "Browser\nLoader Script"
+                "label": "Browser"
               },
               "Sentry.Browser.CDN.bundle": {
-                "label": "Browser\nCDN Bundle"
+                "label": "Browser"
               }
             }
           export_to: output
@@ -131,6 +131,32 @@ jobs:
       - name: Add package label if applicable
         # Note: We only add the label if the issue is still open
         if: steps.packageLabel.outputs.label != ''
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          labels: ${{ steps.packageLabel.outputs.label }}
+
+      - name: Map additional to issue label
+        # https://github.com/kanga333/variable-mapper
+        uses: kanga333/variable-mapper@v0.3.0
+        id: additionalLabel
+        if: steps.packageName.outputs.match != ''
+        with:
+          key: '${{ steps.packageName.outputs.group1 }}'
+          # Note: Since this is handled as a regex, and JSON parse wrangles slashes /, we just use `.` instead
+          map: |
+            {
+              "Sentry.Browser.Loader": {
+                "label": "Browser"
+              },
+              "Sentry.Browser.CDN.bundle": {
+                "label": "CDN Bundle"
+              }
+            }
+          export_to: output
+
+      - name: Add additional label if applicable
+        # Note: We only add the label if the issue is still open
+        if: steps.additionalLabel.outputs.label != ''
         uses: actions-ecosystem/action-add-labels@v1
         with:
           labels: ${{ steps.packageLabel.outputs.label }}
