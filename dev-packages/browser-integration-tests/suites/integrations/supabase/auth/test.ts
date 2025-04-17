@@ -71,6 +71,12 @@ sentryTest('should capture Supabase authentication spans', async ({ getLocalTest
     return;
   }
 
+  const bundle = process.env.PW_BUNDLE || '';
+  // We only want to run this in non-CDN bundle mode
+  if (bundle.startsWith('bundle')) {
+    sentryTest.skip();
+  }
+
   await mockSupabaseAuthRoutesSuccess(page);
 
   const url = await getLocalTestUrl({ testDir: __dirname });
@@ -111,6 +117,12 @@ sentryTest('should capture Supabase authentication spans', async ({ getLocalTest
 sentryTest('should capture Supabase authentication errors', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     return;
+  }
+
+  const bundle = process.env.PW_BUNDLE || '';
+  // We only want to run this in non-CDN bundle mode
+  if (bundle.startsWith('bundle')) {
+    sentryTest.skip();
   }
 
   await mockSupabaseAuthRoutesFailure(page);
