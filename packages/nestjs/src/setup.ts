@@ -86,10 +86,12 @@ class SentryGlobalFilter extends BaseExceptionFilter {
    * Catches exceptions and reports them to Sentry unless they are expected errors.
    */
   public catch(exception: unknown, host: ArgumentsHost): void {
+    const contextType = host.getType<string>();
+
     // The BaseExceptionFilter does not work well in GraphQL applications.
     // By default, Nest GraphQL applications use the ExternalExceptionFilter, which just rethrows the error:
     // https://github.com/nestjs/nest/blob/master/packages/core/exceptions/external-exception-filter.ts
-    if (host.getType<'graphql'>() === 'graphql') {
+    if (contextType === 'graphql') {
       // neither report nor log HttpExceptions
       if (exception instanceof HttpException) {
         throw exception;
@@ -103,6 +105,39 @@ class SentryGlobalFilter extends BaseExceptionFilter {
       throw exception;
     }
 
+    // Handle microservice context (rpc)
+    // We cannot add proper handing here since RpcException depend on the @nestjs/microservices package
+    // For these cases we log a warning that the user should be providing a dedicated exception filter
+    if (contextType === 'rpc') {
+      // Unlikely case
+      if (exception instanceof HttpException) {
+        throw exception;
+      }
+
+      // Handle any other kind of error
+      if (!(exception instanceof Error)) {
+        if (!isExpectedError(exception)) {
+          captureException(exception);
+        }
+        throw exception;
+      }
+
+      // In this case we're likely running into an RpcException, which the user should handle with a dedicated filter
+      // https://github.com/nestjs/nest/blob/master/sample/03-microservices/src/common/filters/rpc-exception.filter.ts
+      if (!isExpectedError(exception)) {
+        captureException(exception);
+      }
+
+      this._logger.warn(
+        'IMPORTANT: RpcException should be handled with a dedicated Rpc exception filter, not the generic SentryGlobalFilter',
+      );
+
+      // Log the error and return, otherwise we may crash the user's app by handling rpc errors in a http context
+      this._logger.error(exception.message, exception.stack);
+      return;
+    }
+
+    // HTTP exceptions
     if (!isExpectedError(exception)) {
       captureException(exception);
     }
