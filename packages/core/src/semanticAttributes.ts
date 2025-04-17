@@ -14,6 +14,14 @@ export const SEMANTIC_ATTRIBUTE_SENTRY_SOURCE = 'sentry.source';
 export const SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE = 'sentry.sample_rate';
 
 /**
+ * Attribute holding the sample rate of the previous trace.
+ * This is used to sample consistently across subsequent traces in the browser SDK.
+ *
+ * Note: Only defined on root spans, if opted into consistent sampling
+ */
+export const SEMANTIC_ATTRIBUTE_SENTRY_PREVIOUS_TRACE_SAMPLE_RATE = 'sentry.previous_trace_sample_rate';
+
+/**
  * Use this attribute to represent the operation of a span.
  */
 export const SEMANTIC_ATTRIBUTE_SENTRY_OP = 'sentry.op';
