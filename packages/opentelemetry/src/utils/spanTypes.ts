@@ -52,11 +52,9 @@ export function spanHasName<SpanType extends AbstractSpan>(span: SpanType): span
  * This is necessary because the base `Span` type does not have a kind,
  * so in places where we are passed a generic span, we need to check if we want to access it.
  */
-export function spanHasParentId<SpanType extends AbstractSpan>(
-  span: SpanType,
-): span is SpanType & { parentSpanId: string } {
+export function spanHasParentId<SpanType extends AbstractSpan>(span: SpanType): span is SpanType {
   const castSpan = span as ReadableSpan;
-  return !!castSpan.parentSpanId;
+  return !!castSpan.parentSpanContext?.spanId;
 }
 
 /**
