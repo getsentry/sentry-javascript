@@ -70,7 +70,6 @@ export const DB_OPERATIONS_TO_INSTRUMENT = ['select', 'insert', 'upsert', 'updat
 type AuthOperationFn = (...args: unknown[]) => Promise<unknown>;
 type AuthOperationName = (typeof AUTH_OPERATIONS_TO_INSTRUMENT)[number];
 type AuthAdminOperationName = (typeof AUTH_ADMIN_OPERATIONS_TO_INSTRUMENT)[number];
-type PostgRESTQueryOperationName = (typeof DB_OPERATIONS_TO_INSTRUMENT)[number];
 type PostgRESTQueryOperationFn = (...args: unknown[]) => PostgRESTFilterBuilder;
 
 export interface SupabaseClientInstance {
@@ -80,7 +79,7 @@ export interface SupabaseClientInstance {
 }
 
 export interface PostgRESTQueryBuilder {
-  [key: PostgRESTQueryOperationName]: PostgRESTQueryOperationFn;
+  [key: string]: PostgRESTQueryOperationFn;
 }
 
 export interface PostgRESTFilterBuilder {
