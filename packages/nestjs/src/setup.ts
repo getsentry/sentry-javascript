@@ -105,11 +105,36 @@ class SentryGlobalFilter extends BaseExceptionFilter {
       throw exception;
     }
 
-    // Skip RPC contexts - they should be handled by SentryRpcFilter if the user has included it
+    // Handle microservice context (rpc)
+    // We cannot add proper handing here since RpcException depend on the @nestjs/microservices package
+    // For these cases we log a warning that the user should be providing a dedicated exception filter
     if (contextType === 'rpc') {
-      // Let it propagate to a properly configured RPC filter if present
-      // Else it will be handled by the default NestJS exception system
-      throw exception;
+      // Unlikely case
+      if (exception instanceof HttpException) {
+        throw exception;
+      }
+
+      // Handle any other kind of error
+      if (!(exception instanceof Error)) {
+        if (!isExpectedError(exception)) {
+          captureException(exception);
+        }
+        throw exception;
+      }
+
+      // In this case we're likely running into an RpcException, which the user should handle with a dedicated filter
+      // https://github.com/nestjs/nest/blob/master/sample/03-microservices/src/common/filters/rpc-exception.filter.ts
+      if (!isExpectedError(exception)) {
+        captureException(exception);
+      }
+
+      this._logger.warn(
+        'IMPORTANT: RpcException should be handled with a dedicated Rpc exception filter, not the generic SentryGlobalFilter',
+      );
+
+      // Log the error and return, otherwise we may crash the user's app by handling rpc errors in a http context
+      this._logger.error(exception.message, exception.stack);
+      return;
     }
 
     // HTTP exceptions
