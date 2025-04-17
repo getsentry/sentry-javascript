@@ -15,8 +15,6 @@ export {
   getSpanDescendants,
   setMeasurement,
   captureFeedback,
-  supabaseIntegration,
-  instrumentSupabaseClient,
 } from '@sentry/core';
 
 export {
