@@ -19,15 +19,17 @@ async function mockSupabaseRoute(page: Page) {
   });
 }
 
+
+const bundle = process.env.PW_BUNDLE || '';
+// We only want to run this in non-CDN bundle mode
+if (bundle.startsWith('bundle')) {
+  sentryTest.skip();
+}
+
+
 sentryTest('should capture Supabase database operation breadcrumbs', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     return;
-  }
-
-  const bundle = process.env.PW_BUNDLE || '';
-  // We only want to run this in non-CDN bundle mode
-  if (bundle.startsWith('bundle')) {
-    sentryTest.skip();
   }
 
   await mockSupabaseRoute(page);
@@ -51,12 +53,6 @@ sentryTest('should capture multiple Supabase operations in sequence', async ({ g
     return;
   }
 
-  const bundle = process.env.PW_BUNDLE || '';
-  // We only want to run this in non-CDN bundle mode
-  if (bundle.startsWith('bundle')) {
-    sentryTest.skip();
-  }
-
   await mockSupabaseRoute(page);
 
   const url = await getLocalTestUrl({ testDir: __dirname });
@@ -75,12 +71,6 @@ sentryTest('should capture multiple Supabase operations in sequence', async ({ g
 sentryTest('should include correct data payload in Supabase breadcrumbs', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     return;
-  }
-
-  const bundle = process.env.PW_BUNDLE || '';
-  // We only want to run this in non-CDN bundle mode
-  if (bundle.startsWith('bundle')) {
-    sentryTest.skip();
   }
 
   await mockSupabaseRoute(page);

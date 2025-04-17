@@ -66,15 +66,16 @@ async function mockSupabaseAuthRoutesFailure(page: Page) {
   });
 }
 
+
+const bundle = process.env.PW_BUNDLE || '';
+// We only want to run this in non-CDN bundle mode
+if (bundle.startsWith('bundle')) {
+  sentryTest.skip();
+}
+
 sentryTest('should capture Supabase authentication spans', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     return;
-  }
-
-  const bundle = process.env.PW_BUNDLE || '';
-  // We only want to run this in non-CDN bundle mode
-  if (bundle.startsWith('bundle')) {
-    sentryTest.skip();
   }
 
   await mockSupabaseAuthRoutesSuccess(page);
@@ -117,12 +118,6 @@ sentryTest('should capture Supabase authentication spans', async ({ getLocalTest
 sentryTest('should capture Supabase authentication errors', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     return;
-  }
-
-  const bundle = process.env.PW_BUNDLE || '';
-  // We only want to run this in non-CDN bundle mode
-  if (bundle.startsWith('bundle')) {
-    sentryTest.skip();
   }
 
   await mockSupabaseAuthRoutesFailure(page);
