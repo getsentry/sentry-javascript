@@ -1,4 +1,5 @@
 import type { ClientOptions, Context } from '@sentry/core';
+import { logger } from '@sentry/core';
 import { captureException, getClient, getTraceMetaTags } from '@sentry/core';
 import type { VueOptions } from '@sentry/vue/src/types';
 import type { CapturedErrorContext } from 'nitropack';
@@ -37,6 +38,7 @@ export function addSentryTracingMetaTags(head: NuxtRenderHTMLContext['head']): v
   const metaTags = getTraceMetaTags();
 
   if (metaTags) {
+    logger.log('Adding Sentry tracing meta tags to HTML page:', metaTags);
     head.push(metaTags);
   }
 }
