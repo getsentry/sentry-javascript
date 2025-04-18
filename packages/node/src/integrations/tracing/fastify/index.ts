@@ -1,5 +1,6 @@
 import type { IntegrationFn, Span } from '@sentry/core';
 import FastifyOtelInstrumentation from '@fastify/otel';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import {
   captureException,
   defineIntegration,
@@ -15,7 +16,6 @@ import { generateInstrumentOnce } from '../../otel/instrument';
 import { FastifyInstrumentationV3 } from './v3/instrumentation';
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import { DEBUG_BUILD } from '../../../debug-build';
-import type { FastifyInstance, FastifyReply, FastifyRequest } from './types';
 
 interface FastifyHandlerOptions {
   /**
@@ -55,28 +55,25 @@ interface FastifyHandlerOptions {
 const INTEGRATION_NAME = 'Fastify';
 const INTEGRATION_NAME_V3 = 'Fastify-V3';
 
-export const instrumentFastifyV3 = generateInstrumentOnce(
-  INTEGRATION_NAME_V3,
-  () =>
-    new FastifyInstrumentationV3({
-      requestHook(span) {
-        addFastifySpanAttributes(span);
-      },
-    }),
-);
+export const instrumentFastifyV3 = generateInstrumentOnce(INTEGRATION_NAME_V3, () => new FastifyInstrumentationV3());
 
 export const instrumentFastify = generateInstrumentOnce(INTEGRATION_NAME, () => {
-  // FastifyOtelInstrumentation does not have a `requestHook`
-  // so we can't use `addFastifySpanAttributes` here for now
   const fastifyOtelInstrumentationInstance = new FastifyOtelInstrumentation();
   const plugin = fastifyOtelInstrumentationInstance.plugin();
 
+  // This message handler works for Fastify versions 3, 4 and 5
   diagnosticsChannel.subscribe('fastify.initialization', message => {
     const fastifyInstance = (message as { fastify?: FastifyInstance }).fastify;
 
     fastifyInstance?.register(plugin).after(err => {
       if (err) {
         DEBUG_BUILD && logger.error('Failed to setup Fastify instrumentation', err);
+      } else {
+        instrumentClient();
+
+        if (fastifyInstance) {
+          instrumentOnRequest(fastifyInstance);
+        }
       }
     });
   });
@@ -154,18 +151,6 @@ export function setupFastifyErrorHandler(fastify: FastifyInstance, options?: Par
         }
       });
 
-      // registering `onRequest` hook here instead of using Otel `onRequest` callback b/c `onRequest` hook
-      // is ironically called in the fastify `preHandler` hook which is called later in the lifecycle:
-      // https://fastify.dev/docs/latest/Reference/Lifecycle/
-      fastify.addHook('onRequest', async (request, _reply) => {
-        // Taken from Otel Fastify instrumentation:
-        // https://github.com/open-telemetry/opentelemetry-js-contrib/blob/main/plugins/node/opentelemetry-instrumentation-fastify/src/instrumentation.ts#L94-L96
-        const routeName = request.routeOptions?.url || request.routerPath;
-        const method = request.method || 'GET';
-
-        getIsolationScope().setTransactionName(`${method} ${routeName}`);
-      });
-
       done();
     },
     {
@@ -174,43 +159,67 @@ export function setupFastifyErrorHandler(fastify: FastifyInstance, options?: Par
     },
   );
 
-  // Sadly, middleware spans do not go through `requestHook`, so we handle those here
-  // We register this hook in this method, because if we register it in the integration `setup`,
-  // it would always run even for users that are not even using fastify
-  const client = getClient();
-  if (client) {
-    client.on('spanStart', span => {
-      addFastifySpanAttributes(span);
-    });
-  }
-
+  // eslint-disable-next-line @typescript-eslint/no-floating-promises
   fastify.register(plugin);
 }
 
 function addFastifySpanAttributes(span: Span): void {
-  const attributes = spanToJSON(span).data;
+  const spanJSON = spanToJSON(span);
+  const spanName = spanJSON.description;
+  const attributes = spanJSON.data;
 
-  // this is one of: middleware, request_handler
   const type = attributes['fastify.type'];
 
+  const isHook = type === 'hook';
+  const isHandler = type === spanName?.startsWith('handler -');
+  // In @fastify/otel `request-handler` is separated by dash, not underscore
+  const isRequestHandler = spanName === 'request' || type === 'request-handler';
+
   // If this is already set, or we have no fastify span, no need to process again...
-  if (attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] || !type) {
+  if (attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] || (!isHandler && !isRequestHandler && !isHook)) {
     return;
   }
 
+  const opPrefix = isHook ? 'hook' : isHandler ? 'middleware' : isRequestHandler ? 'request-handler' : '<unknown>';
+
   span.setAttributes({
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.fastify',
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `${type}.fastify`,
+    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `${opPrefix}.fastify`,
   });
 
-  // Also update the name, we don't need to "middleware - " prefix
-  const name = attributes['fastify.name'] || attributes['plugin.name'] || attributes['hook.name'];
-  if (typeof name === 'string') {
+  const attrName = attributes['fastify.name'] || attributes['plugin.name'] || attributes['hook.name'];
+  if (typeof attrName === 'string') {
     // Try removing `fastify -> ` and `@fastify/otel -> ` prefixes
     // This is a bit of a hack, and not always working for all spans
     // But it's the best we can do without a proper API
-    const updatedName = name.replace(/^fastify -> /, '').replace(/^@fastify\/otel -> /, '');
+    const updatedName = attrName.replace(/^fastify -> /, '').replace(/^@fastify\/otel -> /, '');
 
     span.updateName(updatedName);
   }
+}
+
+function instrumentClient(): void {
+  const client = getClient();
+  if (client) {
+    client.on('spanStart', (span: Span) => {
+      addFastifySpanAttributes(span);
+    });
+  }
+}
+
+function instrumentOnRequest(fastify: FastifyInstance): void {
+  fastify.addHook('onRequest', async (request: FastifyRequest, _reply) => {
+    if (request.opentelemetry) {
+      const { span } = request.opentelemetry();
+
+      if (span) {
+        addFastifySpanAttributes(span);
+      }
+    }
+
+    const routeName = request.routeOptions?.url;
+    const method = request.method || 'GET';
+
+    getIsolationScope().setTransactionName(`${method} ${routeName}`);
+  });
 }

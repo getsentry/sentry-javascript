@@ -62,12 +62,12 @@ test('Sends an API route transaction', async ({ baseURL }) => {
     data: {
       'fastify.type': 'hook',
       'hook.callback.name': 'anonymous',
-      'hook.name': 'fastify -> @fastify/otel -> sentry-fastify-error-handler - onRequest',
+      'hook.name': 'fastify -> @fastify/otel - onRequest',
       'sentry.op': 'hook.fastify',
       'sentry.origin': 'auto.http.otel.fastify',
       'service.name': 'fastify',
     },
-    description: 'sentry-fastify-error-handler - onRequest',
+    description: '@fastify/otel - onRequest',
     op: 'hook.fastify',
     parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -77,7 +77,6 @@ test('Sends an API route transaction', async ({ baseURL }) => {
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     origin: 'auto.http.otel.fastify',
   });
-
 
   expect(spans).toContainEqual({
     data: {
