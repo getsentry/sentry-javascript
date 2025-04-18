@@ -3945,9 +3945,9 @@
   dependencies:
     dequal "^2.0.3"
 
-"@fastify/otel@fastify/otel#main":
+"@fastify/otel@onurtemizkan/otel#fastify-types":
   version "0.5.2"
-  resolved "https://codeload.github.com/fastify/otel/tar.gz/dd7d7bf512aeb3696d0b15a379263b5a3f0b1ecb"
+  resolved "https://codeload.github.com/onurtemizkan/otel/tar.gz/cd24107490ea07b1392833db709e413ab53159f3"
   dependencies:
     "@opentelemetry/core" "^2.0.0"
     "@opentelemetry/instrumentation" "^0.200.0"
