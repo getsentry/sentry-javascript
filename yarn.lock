@@ -15765,10 +15765,10 @@ fast-xml-parser@^4.4.1:
   dependencies:
     strnum "^1.0.5"
 
-fastify@^5.3.0:
-  version "5.3.0"
-  resolved "https://registry.yarnpkg.com/fastify/-/fastify-5.3.0.tgz#34af4061a326219c1d5acdb4084b50caab9ad681"
-  integrity sha512-vDpCJa4KRkHrdDMpDNtyPaIDi/ptCwoJ0M8RiefuIMvyXTgG63xYGe9DYYiCpydjh0ETIaLoSyKBNKkh7ew1eA==
+fastify@^5.3.1:
+  version "5.3.1"
+  resolved "https://registry.yarnpkg.com/fastify/-/fastify-5.3.1.tgz#89881214b23d2c0715cb86eefc055a0ff2b53744"
+  integrity sha512-PhpFhuUZVnq1IvTHCrIMCqqukNuJGWnV/nxTrSDtirbsAZnVYO8I9LaxSk5OPXSiioA6DoEG1r5U1g41/cix0g==
   dependencies:
     "@fastify/ajv-compiler" "^4.0.0"
     "@fastify/error" "^4.0.0"
