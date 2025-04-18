@@ -13,20 +13,25 @@ import type { BaseTransportOptions, Transport } from './transport';
 export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOptions> {
   /**
    * Enable debug functionality in the SDK itself
+   * @default false
    */
   debug?: boolean;
 
   /**
    * Specifies whether this SDK should send events to Sentry.
-   * Defaults to true.
+   * @default true
    */
   enabled?: boolean;
 
-  /** Attaches stacktraces to pure capture message / log integrations */
+  /**
+   * Attaches stacktraces to pure capture message / log integrations
+   * @default false
+   */
   attachStacktrace?: boolean;
 
   /**
    * Send SDK Client Reports. When calling `Sentry.init()`, this option defaults to `true`.
+   * @default true
    */
   sendClientReports?: boolean;
 
@@ -43,7 +48,10 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    */
   release?: string;
 
-  /** The current environment of your application (e.g. "production"). */
+  /**
+   * The current environment of your application (e.g. "production").
+   * @default "production"
+   */
   environment?: string;
 
   /** Sets the distribution for all events */
@@ -51,6 +59,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
 
   /**
    * List of integrations that should be installed after SDK was initialized.
+   * @default []
    */
   integrations: Integration[];
 
@@ -101,8 +110,9 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   initialScope?: CaptureContext;
 
   /**
-   * The maximum number of breadcrumbs sent with events. Defaults to 100.
+   * The maximum number of breadcrumbs sent with events.
    * Sentry has a maximum payload size of 1MB and any events exceeding that payload size will be dropped.
+   * @default 100
    */
   maxBreadcrumbs?: number;
 
@@ -111,10 +121,14 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    *
    * 0.0 = 0% chance of a given event being sent (send no events) 1.0 = 100% chance of a given event being sent (send
    * all events)
+   * @default 1.0
    */
   sampleRate?: number;
 
-  /** Maximum number of chars a single value can have before it will be truncated. */
+  /**
+   * Maximum number of chars a single value can have before it will be truncated.
+   * @default 250
+   */
   maxValueLength?: number;
 
   /**
@@ -124,7 +138,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * - `user`
    * - `contexts`
    * - `extra`
-   * Defaults to `3`. Set to `0` to disable.
+   * @default 3
    */
   normalizeDepth?: number;
 
@@ -135,19 +149,21 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * - `user`
    * - `contexts`
    * - `extra`
-   * Defaults to `1000`
+   * @default 1000
    */
   normalizeMaxBreadth?: number;
 
   /**
    * A pattern for error messages which should not be sent to Sentry.
    * By default, all errors will be sent.
+   * @default []
    */
   ignoreErrors?: Array<string | RegExp>;
 
   /**
    * A pattern for transaction names which should not be sent to Sentry.
    * By default, all transactions will be sent.
+   * @default []
    */
   ignoreTransactions?: Array<string | RegExp>;
 
@@ -162,8 +178,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * Controls if potentially sensitive data should be sent to Sentry by default.
    * Note that this only applies to data that the SDK is sending by default
    * but not data that was explicitly set (e.g. by calling `Sentry.setUser()`).
-   *
-   * Defaults to `false`.
+   * @default false
    *
    * NOTE: This option currently controls only a few data points in a selected
    * set of SDKs. The goal for this option is to eventually control all sensitive
@@ -186,7 +201,8 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [key: string]: any;
     /**
-     * If logs support should be enabled. Defaults to false.
+     * If logs support should be enabled.
+     * @default false
      */
     enableLogs?: boolean;
     /**
@@ -208,6 +224,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * By default, all errors will be sent.
    *
    * Requires the use of the `InboundFilters` integration.
+   * @default []
    */
   allowUrls?: Array<string | RegExp>;
 
@@ -217,6 +234,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * By default, all errors will be sent.
    *
    * Requires the use of the `InboundFilters` integration.
+   * @default []
    */
   denyUrls?: Array<string | RegExp>;
 
