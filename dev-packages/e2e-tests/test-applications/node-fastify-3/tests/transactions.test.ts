@@ -61,13 +61,13 @@ test('Sends an API route transaction', async ({ baseURL }) => {
   expect(spans).toContainEqual({
     data: {
       'plugin.name': 'sentry-fastify-error-handler',
-      'fastify.type': 'middleware',
-      'hook.name': 'onRequest',
+      'fastify.type': 'request_handler',
+      'http.route': '/test-transaction',
       'sentry.origin': 'auto.http.otel.fastify',
-      'sentry.op': 'middleware.fastify',
+      'sentry.op': 'request_handler.fastify',
     },
     description: 'sentry-fastify-error-handler',
-    op: 'middleware.fastify',
+    op: 'request_handler.fastify',
     parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     start_timestamp: expect.any(Number),

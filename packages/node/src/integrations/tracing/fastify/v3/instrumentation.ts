@@ -28,6 +28,14 @@ import {
   safeExecuteInTheMiddle,
 } from '@opentelemetry/instrumentation';
 import { SEMATTRS_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
+import type { Span } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  getClient,
+  getIsolationScope,
+  spanToJSON,
+} from '@sentry/core';
 
 import { AttributeNames, FastifyNames, FastifyTypes } from './enums/AttributeNames';
 
@@ -101,6 +109,10 @@ export class FastifyInstrumentationV3 extends InstrumentationBase<FastifyInstrum
       if (routeName && rpcMetadata?.type === RPCType.HTTP) {
         rpcMetadata.route = routeName;
       }
+
+      const method = request.method || 'GET';
+
+      getIsolationScope().setTransactionName(`${method} ${routeName}`);
       done();
     };
   }
@@ -197,6 +209,8 @@ export class FastifyInstrumentationV3 extends InstrumentationBase<FastifyInstrum
       app.addHook('onRequest', instrumentation._hookOnRequest());
       app.addHook('preHandler', instrumentation._hookPreHandler());
 
+      instrumentClient();
+
       instrumentation._wrap(app, 'addHook', instrumentation._wrapAddHook());
 
       return app;
@@ -249,7 +263,6 @@ export class FastifyInstrumentationV3 extends InstrumentationBase<FastifyInstrum
       const anyRequest = request as any;
 
       const handler = anyRequest.routeOptions?.handler || anyRequest.context?.handler;
-
       const handlerName = handler?.name.startsWith('bound ') ? handler.name.substring(6) : handler?.name;
       const spanName = `${FastifyNames.REQUEST_HANDLER} - ${handlerName || this.pluginName || ANONYMOUS_NAME}`;
 
@@ -265,6 +278,8 @@ export class FastifyInstrumentationV3 extends InstrumentationBase<FastifyInstrum
         spanAttributes[AttributeNames.FASTIFY_NAME] = handlerName;
       }
       const span = startSpan(reply, instrumentation.tracer, spanName, spanAttributes);
+
+      addFastifyV3SpanAttributes(span);
 
       const { requestHook } = instrumentation.getConfig();
       if (requestHook) {
@@ -283,5 +298,42 @@ export class FastifyInstrumentationV3 extends InstrumentationBase<FastifyInstrum
         done();
       });
     };
+  }
+}
+
+function instrumentClient(): void {
+  const client = getClient();
+  if (client) {
+    client.on('spanStart', (span: Span) => {
+      addFastifyV3SpanAttributes(span);
+    });
+  }
+}
+
+function addFastifyV3SpanAttributes(span: Span): void {
+  const attributes = spanToJSON(span).data;
+
+  // this is one of: middleware, request_handler
+  const type = attributes['fastify.type'];
+
+  // If this is already set, or we have no fastify span, no need to process again...
+  if (attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] || !type) {
+    return;
+  }
+
+  span.setAttributes({
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.fastify',
+    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `${type}.fastify`,
+  });
+
+  // Also update the name, we don't need to "middleware - " prefix
+  const name = attributes['fastify.name'] || attributes['plugin.name'] || attributes['hook.name'];
+  if (typeof name === 'string') {
+    // Try removing `fastify -> ` and `@fastify/otel -> ` prefixes
+    // This is a bit of a hack, and not always working for all spans
+    // But it's the best we can do without a proper API
+    const updatedName = name.replace(/^fastify -> /, '').replace(/^@fastify\/otel -> /, '');
+
+    span.updateName(updatedName);
   }
 }
