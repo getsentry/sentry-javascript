@@ -37,6 +37,7 @@ export default [
             },
           }),
         ],
+        external: ['fastify'],
       },
     }),
   ),
