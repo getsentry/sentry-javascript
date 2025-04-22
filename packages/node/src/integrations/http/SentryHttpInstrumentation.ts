@@ -30,6 +30,8 @@ import { getRequestInfo } from './vendor/getRequestInfo';
 type Http = typeof http;
 type Https = typeof https;
 
+const INSTRUMENTATION_NAME = '@sentry/instrumentation-http';
+
 export type SentryHttpInstrumentationOptions = InstrumentationConfig & {
   /**
    * Whether breadcrumbs should be recorded for requests.
@@ -101,7 +103,7 @@ const MAX_BODY_BYTE_LENGTH = 1024 * 1024;
  */
 export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpInstrumentationOptions> {
   public constructor(config: SentryHttpInstrumentationOptions = {}) {
-    super('@sentry/instrumentation-http', VERSION, config);
+    super(INSTRUMENTATION_NAME, VERSION, config);
   }
 
   /** @inheritdoc */
@@ -377,6 +379,10 @@ function patchRequestToCaptureBody(req: IncomingMessage, isolationScope: Scope):
       apply: (target, thisArg, args: Parameters<typeof req.on>) => {
         const [event, listener, ...restArgs] = args;
 
+        if (DEBUG_BUILD) {
+          logger.log(INSTRUMENTATION_NAME, 'Patching request.on', event);
+        }
+
         if (event === 'data') {
           const callback = new Proxy(listener, {
             apply: (target, thisArg, args: Parameters<typeof listener>) => {
@@ -387,7 +393,8 @@ function patchRequestToCaptureBody(req: IncomingMessage, isolationScope: Scope):
                 chunks.push(chunk);
               } else if (DEBUG_BUILD) {
                 logger.log(
-                  `Dropping request body chunk because it maximum body length of ${MAX_BODY_BYTE_LENGTH}b is exceeded.`,
+                  INSTRUMENTATION_NAME,
+                  `Dropping request body chunk because maximum body length of ${MAX_BODY_BYTE_LENGTH}b is exceeded.`,
                 );
               }
 
@@ -424,13 +431,21 @@ function patchRequestToCaptureBody(req: IncomingMessage, isolationScope: Scope):
     });
 
     req.on('end', () => {
-      const body = Buffer.concat(chunks).toString('utf-8');
-      if (body) {
-        isolationScope.setSDKProcessingMetadata({ normalizedRequest: { data: body } });
+      try {
+        const body = Buffer.concat(chunks).toString('utf-8');
+        if (body) {
+          isolationScope.setSDKProcessingMetadata({ normalizedRequest: { data: body } });
+        }
+      } catch (error) {
+        if (DEBUG_BUILD) {
+          logger.error(INSTRUMENTATION_NAME, 'Error building captured request body', error);
+        }
       }
     });
-  } catch {
-    // ignore errors if we can't patch stuff
+  } catch (error) {
+    if (DEBUG_BUILD) {
+      logger.error(INSTRUMENTATION_NAME, 'Error patching request to capture body', error);
+    }
   }
 }
 
