@@ -400,29 +400,6 @@ function patchRequestToCaptureBody(req: IncomingMessage, isolationScope: Scope):
           return Reflect.apply(target, thisArg, [event, callback, ...restArgs]);
         }
 
-        if (event === 'end') {
-          const callback = new Proxy(listener, {
-            apply: (target, thisArg, args) => {
-              try {
-                const body = Buffer.concat(chunks).toString('utf-8');
-
-                if (body) {
-                  const normalizedRequest = { data: body } satisfies RequestEventData;
-                  isolationScope.setSDKProcessingMetadata({ normalizedRequest });
-                }
-              } catch {
-                // ignore errors here
-              }
-
-              return Reflect.apply(target, thisArg, args);
-            },
-          });
-
-          callbackMap.set(listener, callback);
-
-          return Reflect.apply(target, thisArg, [event, callback, ...restArgs]);
-        }
-
         return Reflect.apply(target, thisArg, args);
       },
     });
@@ -444,6 +421,13 @@ function patchRequestToCaptureBody(req: IncomingMessage, isolationScope: Scope):
 
         return Reflect.apply(target, thisArg, args);
       },
+    });
+
+    req.on('end', () => {
+      const body = Buffer.concat(chunks).toString('utf-8');
+      if (body) {
+        isolationScope.setSDKProcessingMetadata({ normalizedRequest: { data: body } });
+      }
     });
   } catch {
     // ignore errors if we can't patch stuff
