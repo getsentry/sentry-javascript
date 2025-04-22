@@ -3,7 +3,7 @@ import { context, propagation } from '@opentelemetry/api';
 import { VERSION } from '@opentelemetry/core';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
-import type { AggregationCounts, Client, RequestEventData, SanitizedRequestData, Scope } from '@sentry/core';
+import type { AggregationCounts, Client, SanitizedRequestData, Scope } from '@sentry/core';
 import {
   addBreadcrumb,
   generateSpanId,
