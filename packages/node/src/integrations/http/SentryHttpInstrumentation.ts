@@ -394,7 +394,7 @@ function patchRequestToCaptureBody(req: IncomingMessage, isolationScope: Scope):
               } else if (DEBUG_BUILD) {
                 logger.log(
                   INSTRUMENTATION_NAME,
-                  `Dropping request body chunk because it maximum body length of ${MAX_BODY_BYTE_LENGTH}b is exceeded.`,
+                  `Dropping request body chunk because maximum body length of ${MAX_BODY_BYTE_LENGTH}b is exceeded.`,
                 );
               }
 
