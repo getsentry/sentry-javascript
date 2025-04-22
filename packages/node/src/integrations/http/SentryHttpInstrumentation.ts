@@ -389,7 +389,7 @@ function patchRequestToCaptureBody(req: IncomingMessage, isolationScope: Scope):
 
                 if (bodyByteLength < MAX_BODY_BYTE_LENGTH) {
                   chunks.push(bufferifiedChunk);
-                  bodyByteLength += bufferifiedChunk.length;
+                  bodyByteLength += bufferifiedChunk.byteLength;
                 } else if (DEBUG_BUILD) {
                   logger.log(
                     INSTRUMENTATION_NAME,
