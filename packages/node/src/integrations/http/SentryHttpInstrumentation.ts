@@ -360,11 +360,8 @@ function getBreadcrumbData(request: http.ClientRequest): Partial<SanitizedReques
  * This way, we only read the body if the user also consumes the body, ensuring we do not change any behavior in unexpected ways.
  */
 function patchRequestToCaptureBody(req: IncomingMessage, isolationScope: Scope): void {
+  let bodyByteLength = 0;
   const chunks: Buffer[] = [];
-
-  function getChunksSize(): number {
-    return chunks.reduce((acc, chunk) => acc + chunk.byteLength, 0);
-  }
 
   /**
    * We need to keep track of the original callbacks, in order to be able to remove listeners again.
@@ -386,16 +383,21 @@ function patchRequestToCaptureBody(req: IncomingMessage, isolationScope: Scope):
         if (event === 'data') {
           const callback = new Proxy(listener, {
             apply: (target, thisArg, args: Parameters<typeof listener>) => {
-              // If we have already read more than the max body length, we stop adding chunks
-              // To avoid growing the memory indefinitely if a response is e.g. streamed
-              if (getChunksSize() < MAX_BODY_BYTE_LENGTH) {
-                const chunk = args[0] as Buffer;
-                chunks.push(chunk);
-              } else if (DEBUG_BUILD) {
-                logger.log(
-                  INSTRUMENTATION_NAME,
-                  `Dropping request body chunk because maximum body length of ${MAX_BODY_BYTE_LENGTH}b is exceeded.`,
-                );
+              try {
+                const chunk = args[0] as Buffer | string;
+                const bufferifiedChunk = Buffer.from(chunk);
+
+                if (bodyByteLength < MAX_BODY_BYTE_LENGTH) {
+                  chunks.push(bufferifiedChunk);
+                  bodyByteLength += bufferifiedChunk.length;
+                } else if (DEBUG_BUILD) {
+                  logger.log(
+                    INSTRUMENTATION_NAME,
+                    `Dropping request body chunk because maximum body length of ${MAX_BODY_BYTE_LENGTH}b is exceeded.`,
+                  );
+                }
+              } catch {
+                // noop
               }
 
               return Reflect.apply(target, thisArg, args);
