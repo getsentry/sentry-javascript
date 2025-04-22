@@ -160,12 +160,13 @@ function createReduxEnhancer(enhancerOptions?: Partial<SentryEnhancerOptions>): 
       }
 
       const store = next(sentryWrapReducer(reducer), initialState);
-      return {
-        ...store,
-        replaceReducer(nextReducer: Reducer<S, A>) {
-          store.replaceReducer(sentryWrapReducer(nextReducer))
-        },
-      }
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      store.replaceReducer = new Proxy(store.replaceReducer, {
+        apply: function (target, thisArg, args) {
+          target.apply(thisArg, [sentryWrapReducer(args[0])]);
+        }
+      })
 
       return store;
     };
