@@ -425,4 +425,37 @@ describe('createReduxEnhancer', () => {
       expect(mockHint.attachments).toHaveLength(0);
     });
   });
+
+  it('restore itself when calling store replaceReducer', () => {
+    const enhancer = createReduxEnhancer();
+
+    const initialState = {};
+
+    const ACTION_TYPE = 'UPDATE_VALUE';
+    const reducer = (state: Record<string, unknown> = initialState, action: { type: string; newValue: any }) => {
+        if (action.type === ACTION_TYPE) {
+          return {
+            ...state,
+            value: action.newValue,
+          };
+        }
+        return state;
+      };
+
+    const store = Redux.createStore(reducer, enhancer);
+
+    store.replaceReducer(reducer);
+
+    const updateAction = { type: ACTION_TYPE, newValue: 'updated' };
+    store.dispatch(updateAction);
+
+    expect(mockSetContext).toBeCalledWith('state', {
+      state: {
+        type: 'redux',
+        value: {
+          value: 'updated',
+        },
+      },
+    });
+  });
 });
