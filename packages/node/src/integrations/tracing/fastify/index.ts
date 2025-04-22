@@ -1,6 +1,6 @@
 import type { IntegrationFn, Span } from '@sentry/core';
 import FastifyOtelInstrumentation from '@fastify/otel';
-import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from './types';
 import {
   captureException,
   defineIntegration,
@@ -78,7 +78,8 @@ export const instrumentFastify = generateInstrumentOnce(INTEGRATION_NAME, () => 
     });
   });
 
-  return fastifyOtelInstrumentationInstance;
+  // Returning this as any not to deal with the internal types of the FastifyOtelInstrumentation
+  return fastifyOtelInstrumentationInstance as any;
 });
 
 const _fastifyIntegration = (() => {
@@ -208,7 +209,7 @@ function instrumentClient(): void {
 }
 
 function instrumentOnRequest(fastify: FastifyInstance): void {
-  fastify.addHook('onRequest', async (request: FastifyRequest, _reply) => {
+  fastify.addHook('onRequest', async (request: FastifyRequest & { opentelemetry?: () => { span?: Span } }, _reply) => {
     if (request.opentelemetry) {
       const { span } = request.opentelemetry();
 
