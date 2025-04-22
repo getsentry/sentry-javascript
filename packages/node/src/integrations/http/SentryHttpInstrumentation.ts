@@ -396,8 +396,8 @@ function patchRequestToCaptureBody(req: IncomingMessage, isolationScope: Scope):
                     `Dropping request body chunk because maximum body length of ${MAX_BODY_BYTE_LENGTH}b is exceeded.`,
                   );
                 }
-              } catch {
-                // noop
+              } catch (err) {
+                DEBUG_BUILD && logger.error(INSTRUMENTATION_NAME, 'Encountered error while storing body chunk.');
               }
 
               return Reflect.apply(target, thisArg, args);
