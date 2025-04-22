@@ -71,6 +71,8 @@ export {
   dedupeIntegration,
   extraErrorDataIntegration,
   rewriteFramesIntegration,
+  supabaseIntegration,
+  instrumentSupabaseClient,
   zodErrorsIntegration,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
