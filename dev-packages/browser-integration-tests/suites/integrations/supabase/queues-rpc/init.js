@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/browser';
 import { createClient } from '@supabase/supabase-js';
 window.Sentry = Sentry;
 
-const queues = createClient('https://test.supabase.co', 'test-key', {
+const supabaseClient = createClient('https://test.supabase.co', 'test-key', {
   db: {
     schema: 'pgmq_public',
   },
@@ -11,21 +11,21 @@ const queues = createClient('https://test.supabase.co', 'test-key', {
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  integrations: [Sentry.browserTracingIntegration(), Sentry.supabaseIntegration(queues)],
+  integrations: [Sentry.browserTracingIntegration(), Sentry.supabaseIntegration({ supabaseClient })],
   tracesSampleRate: 1.0,
 });
 
 // Simulate queue operations
 async function performQueueOperations() {
   try {
-    await queues.rpc('enqueue', {
-        queue_name: 'todos',
-        msg: { title: 'Test Todo' },
-      });
+    await supabaseClient.rpc('enqueue', {
+      queue_name: 'todos',
+      msg: { title: 'Test Todo' },
+    });
 
-      await queues.rpc('dequeue', {
-        queue_name: 'todos',
-      });
+    await supabaseClient.rpc('dequeue', {
+      queue_name: 'todos',
+    });
   } catch (error) {
     Sentry.captureException(error);
   }
