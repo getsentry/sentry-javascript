@@ -1,8 +1,7 @@
-import { createEnvelope } from '../utils-hoist';
-
 import type { DsnComponents, SdkMetadata, SerializedOtelLog } from '../types-hoist';
 import type { OtelLogEnvelope, OtelLogItem } from '../types-hoist/envelope';
-import { dsnToString } from '../utils-hoist';
+import { dsnToString } from '../utils-hoist/dsn';
+import { createEnvelope } from '../utils-hoist/envelope';
 
 /**
  * Creates OTEL log envelope item for a serialized OTEL log.
