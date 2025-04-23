@@ -5,7 +5,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from './semanticAttributes';
 import { startSpan } from './tracing';
-import { logger } from './utils-hoist';
+import { logger } from './utils-hoist/logger';
 
 interface MCPServerInstance {
   // The first arg is always a name, the last arg should always be a callback function (ie a handler).

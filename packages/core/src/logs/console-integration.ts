@@ -3,7 +3,10 @@ import { DEBUG_BUILD } from '../debug-build';
 import { defineIntegration } from '../integration';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import type { ConsoleLevel, IntegrationFn } from '../types-hoist';
-import { CONSOLE_LEVELS, GLOBAL_OBJ, addConsoleInstrumentationHandler, logger, safeJoin } from '../utils-hoist';
+import { CONSOLE_LEVELS, logger } from '../utils-hoist/logger';
+import { GLOBAL_OBJ } from '../utils-hoist/worldwide';
+import { addConsoleInstrumentationHandler } from '../utils-hoist/instrument/console';
+import { safeJoin } from '../utils-hoist/string';
 import { _INTERNAL_captureLog } from './exports';
 
 interface CaptureConsoleOptions {

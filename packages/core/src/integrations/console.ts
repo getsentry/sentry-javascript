@@ -2,13 +2,11 @@ import { addBreadcrumb } from '../breadcrumbs';
 import { getClient } from '../currentScopes';
 import { defineIntegration } from '../integration';
 import type { ConsoleLevel } from '../types-hoist';
-import {
-  CONSOLE_LEVELS,
-  GLOBAL_OBJ,
-  addConsoleInstrumentationHandler,
-  safeJoin,
-  severityLevelFromString,
-} from '../utils-hoist';
+import { addConsoleInstrumentationHandler } from '../utils-hoist/instrument/console';
+import { CONSOLE_LEVELS } from '../utils-hoist/logger';
+import { severityLevelFromString } from '../utils-hoist/severity';
+import { safeJoin } from '../utils-hoist/string';
+import { GLOBAL_OBJ } from '../utils-hoist/worldwide';
 
 interface ConsoleIntegrationOptions {
   levels: ConsoleLevel[];

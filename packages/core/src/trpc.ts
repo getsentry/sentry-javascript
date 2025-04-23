@@ -2,8 +2,8 @@ import { getClient, withScope } from './currentScopes';
 import { captureException } from './exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from './semanticAttributes';
 import { startSpanManual } from './tracing';
-import { addNonEnumerableProperty } from './utils-hoist';
 import { normalize } from './utils-hoist/normalize';
+import { addNonEnumerableProperty } from './utils-hoist/object';
 
 interface SentryTrpcMiddlewareOptions {
   /** Whether to include procedure inputs in reported events. Defaults to `false`. */
