@@ -140,7 +140,7 @@ export function makeBaseBundleConfig(options) {
     plugins: rolldown
       ? [cleanupPlugin, licensePlugin]
       : [sucrasePlugin, nodeResolvePlugin, cleanupPlugin, licensePlugin],
-    treeshake: rolldown ? true : 'smallest',
+    treeshake: rolldown ? { moduleSideEffects:false } : 'smallest',
   };
 
   const bundleTypeConfigMap = {
