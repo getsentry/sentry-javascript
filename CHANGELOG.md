@@ -10,6 +10,115 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 9.13.0
+
+### Important Changes
+
+- **feat(node): Add support for winston logger ([#15983](https://github.com/getsentry/sentry-javascript/pull/15983))**
+
+  Sentry is adding support for [structured logging](https://github.com/getsentry/sentry-javascript/discussions/15916). In this release we've added support for sending logs to Sentry via the [winston](https://github.com/winstonjs/winston) logger to the Sentry Node SDK (and SDKs that use the Node SDK under the hood like `@sentry/nestjs`). The Logging APIs in the Sentry SDK are still experimental and subject to change.
+
+  ```js
+  const winston = require('winston');
+  const Transport = require('winston-transport');
+
+  const transport = Sentry.createSentryWinstonTransport(Transport);
+
+  const logger = winston.createLogger({
+    transports: [transport],
+  });
+  ```
+
+- **feat(core): Add `wrapMcpServerWithSentry` to instrument MCP servers from `@modelcontextprotocol/sdk` ([#16032](https://github.com/getsentry/sentry-javascript/pull/16032))**
+
+  The Sentry SDK now supports instrumenting MCP servers from the `@modelcontextprotocol/sdk` package. Compatible with versions `^1.9.0` of the `@modelcontextprotocol/sdk` package.
+
+  ```js
+  import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+
+  // Create an MCP server
+  const server = new McpServer({
+    name: 'Demo',
+    version: '1.0.0',
+  });
+
+  // Use the instrumented server in your application
+  const instrumentedServer = Sentry.wrapMcpServerWithSentry(server);
+  ```
+
+- **feat(core): Move console integration into core and add to cloudflare/vercel-edge ([#16024](https://github.com/getsentry/sentry-javascript/pull/16024))**
+
+  Console instrumentation has been added to `@sentry/cloudflare` and `@sentry/nextjs` Edge Runtime and is enabled by default. Now calls to the console object will be captured as breadcrumbs for those SDKs.
+
+- **feat(bun): Support new `Bun.serve` APIs ([#16035](https://github.com/getsentry/sentry-javascript/pull/16035))**
+
+  Bun `1.2.6` and above have a new `Bun.serve` API, which the Bun SDK now supports. The SDK instruments the new routes object that can be used to define routes for the server.
+
+  Thanks to @Jarred-Sumner for helping us get this supported!
+
+### Other Changes
+
+- feat(browser): Warn on duplicate `browserTracingIntegration` ([#16042](https://github.com/getsentry/sentry-javascript/pull/16042))
+- feat(core): Allow delayed sending with offline transport ([#15937](https://github.com/getsentry/sentry-javascript/pull/15937))
+- feat(deps): Bump @sentry/webpack-plugin from 3.2.4 to 3.3.1 ([#16057](https://github.com/getsentry/sentry-javascript/pull/16057))
+- feat(vue): Apply stateTransformer to attachments in Pinia Plugin ([#16034](https://github.com/getsentry/sentry-javascript/pull/16034))
+- fix(core): Run `beforeSendLog` after we process log ([#16019](https://github.com/getsentry/sentry-javascript/pull/16019))
+- fix(nextjs): Don't show turbopack warning for newer Next.js canaries ([#16065](https://github.com/getsentry/sentry-javascript/pull/16065))
+- fix(nextjs): Include patch version 0 for min supported 15.3.0 ([#16026](https://github.com/getsentry/sentry-javascript/pull/16026))
+- fix(node): Ensure late init works with all integrations ([#16016](https://github.com/getsentry/sentry-javascript/pull/16016))
+- fix(react-router): Pass `unstable_sentryVitePluginOptions` to cli instance ([#16033](https://github.com/getsentry/sentry-javascript/pull/16033))
+- fix(serverless-aws): Overwrite root span name with GraphQL if set ([#16010](https://github.com/getsentry/sentry-javascript/pull/16010))
+
+## 9.12.0
+
+### Important Changes
+
+- **feat(feedback): Implement highlighting and hiding controls for screenshots ([#15951](https://github.com/getsentry/sentry-javascript/pull/15951))**
+
+  The Sentry SDK now supports highlighting and hiding controls for screenshots in [user feedback reports](https://docs.sentry.io/platforms/javascript/user-feedback/). This functionality is enabled by default.
+
+- **feat(node): Add `ignoreIncomingRequestBody` callback to `httpIntegration` ([#15959](https://github.com/getsentry/sentry-javascript/pull/15959))**
+
+  The `httpIntegration` now supports an optional `ignoreIncomingRequestBody` callback that can be used to skip capturing the body of incoming requests.
+
+  ```ts
+  Sentry.init({
+    integrations: [
+      Sentry.httpIntegration({
+        ignoreIncomingRequestBody: (url, request) => {
+          return request.method === 'GET' && url.includes('/api/large-payload');
+        },
+      }),
+    ],
+  });
+  ```
+
+  The `ignoreIncomingRequestBody` callback receives the URL of the request and should return `true` if the body should be ignored.
+
+- **Logging Improvements**
+
+  Sentry is adding support for [structured logging](https://github.com/getsentry/sentry-javascript/discussions/15916). In this release we've made a variety of improvements to logging functionality in the Sentry SDKs.
+
+  - feat(node): Add server.address to nodejs logs ([#16006](https://github.com/getsentry/sentry-javascript/pull/16006))
+  - feat(core): Add sdk name and version to logs ([#16005](https://github.com/getsentry/sentry-javascript/pull/16005))
+  - feat(core): Add sentry origin attribute to console logs integration ([#15998](https://github.com/getsentry/sentry-javascript/pull/15998))
+  - fix(core): Do not abbreviate message parameter attribute ([#15987](https://github.com/getsentry/sentry-javascript/pull/15987))
+  - fix(core): Prefix release and environment correctly ([#15999](https://github.com/getsentry/sentry-javascript/pull/15999))
+  - fix(node): Make log flushing logic more robust ([#15991](https://github.com/getsentry/sentry-javascript/pull/15991))
+
+### Other Changes
+
+- build(aws-serverless): Include debug logs in lambda layer SDK bundle ([#15974](https://github.com/getsentry/sentry-javascript/pull/15974))
+- feat(astro): Add tracking of errors during HTML streaming ([#15995](https://github.com/getsentry/sentry-javascript/pull/15995))
+- feat(browser): Add `onRequestSpanStart` hook to browser tracing integration ([#15979](https://github.com/getsentry/sentry-javascript/pull/15979))
+- feat(deps): Bump @sentry/cli from 2.42.3 to 2.43.0 ([#16001](https://github.com/getsentry/sentry-javascript/pull/16001))
+- feat(nextjs): Add `captureRouterTransitionStart` hook for capturing navigations ([#15981](https://github.com/getsentry/sentry-javascript/pull/15981))
+- feat(nextjs): Mark clientside prefetch request spans with `http.request.prefetch: true` attribute ([#15980](https://github.com/getsentry/sentry-javascript/pull/15980))
+- feat(nextjs): Un experimentify `clientInstrumentationHook` ([#15992](https://github.com/getsentry/sentry-javascript/pull/15992))
+- feat(nextjs): Warn when client was initialized more than once ([#15971](https://github.com/getsentry/sentry-javascript/pull/15971))
+- feat(node): Add support for `SENTRY_DEBUG` env variable ([#15972](https://github.com/getsentry/sentry-javascript/pull/15972))
+- fix(tss-react): Change `authToken` type to `string` ([#15985](https://github.com/getsentry/sentry-javascript/pull/15985))
+
 Work in this release was contributed by @Page- and @Fryuni. Thank you for your contributions!
 
 ## 9.11.0
@@ -17,6 +126,7 @@ Work in this release was contributed by @Page- and @Fryuni. Thank you for your c
 - feat(browser): Add `http.redirect_count` attribute to `browser.redirect` span ([#15943](https://github.com/getsentry/sentry-javascript/pull/15943))
 - feat(core): Add `consoleLoggingIntegration` for logs ([#15955](https://github.com/getsentry/sentry-javascript/pull/15955))
 - feat(core): Don't truncate error messages ([#15818](https://github.com/getsentry/sentry-javascript/pull/15818))
+- feat(core): Emit debug log when transport execution fails ([#16009](https://github.com/getsentry/sentry-javascript/pull/16009))
 - feat(nextjs): Add release injection in Turbopack ([#15958](https://github.com/getsentry/sentry-javascript/pull/15958))
 - feat(nextjs): Record `turbopack` as tag ([#15928](https://github.com/getsentry/sentry-javascript/pull/15928))
 - feat(nuxt): Base decision on source maps upload only on Nuxt source map settings ([#15859](https://github.com/getsentry/sentry-javascript/pull/15859))
