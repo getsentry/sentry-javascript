@@ -2,8 +2,6 @@
 // https://github.com/supabase-community/sentry-integration-js
 
 /* eslint-disable max-lines */
-import { logger, isPlainObject } from '../utils-hoist';
-
 import type { IntegrationFn } from '../types-hoist';
 import { setHttpStatus, startSpan } from '../tracing';
 import { addBreadcrumb } from '../breadcrumbs';
@@ -12,6 +10,8 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '
 import { captureException } from '../exports';
 import { SPAN_STATUS_ERROR, SPAN_STATUS_OK } from '../tracing';
 import { DEBUG_BUILD } from '../debug-build';
+import { logger } from '../utils-hoist/logger';
+import { isPlainObject } from '../utils-hoist/is';
 
 const AUTH_OPERATIONS_TO_INSTRUMENT = [
   'reauthenticate',

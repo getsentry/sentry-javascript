@@ -1,12 +1,15 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { createOtelLogEnvelope, createOtelLogEnvelopeItem } from '../../../src/logs/envelope';
 import type { DsnComponents, SdkMetadata, SerializedOtelLog } from '../../../src/types-hoist';
-import * as utilsHoist from '../../../src/utils-hoist';
+import * as utilsDsn from '../../../src/utils-hoist/dsn';
+import * as utilsEnvelope from '../../../src/utils-hoist/envelope';
 
 // Mock utils-hoist functions
-vi.mock('../../../src/utils-hoist', () => ({
-  createEnvelope: vi.fn((_headers, items) => [_headers, items]),
+vi.mock('../../../src/utils-hoist/dsn', () => ({
   dsnToString: vi.fn(dsn => `https://${dsn.publicKey}@${dsn.host}/`),
+}));
+vi.mock('../../../src/utils-hoist/envelope', () => ({
+  createEnvelope: vi.fn((_headers, items) => [_headers, items]),
 }));
 
 describe('createOtelLogEnvelopeItem', () => {
@@ -32,8 +35,8 @@ describe('createOtelLogEnvelope', () => {
     vi.setSystemTime(new Date('2023-01-01T12:00:00Z'));
 
     // Reset mocks
-    vi.mocked(utilsHoist.createEnvelope).mockClear();
-    vi.mocked(utilsHoist.dsnToString).mockClear();
+    vi.mocked(utilsEnvelope.createEnvelope).mockClear();
+    vi.mocked(utilsDsn.dsnToString).mockClear();
   });
 
   afterEach(() => {
@@ -53,7 +56,7 @@ describe('createOtelLogEnvelope', () => {
     expect(result[0]).toEqual({});
 
     // Verify createEnvelope was called with the right parameters
-    expect(utilsHoist.createEnvelope).toHaveBeenCalledWith({}, expect.any(Array));
+    expect(utilsEnvelope.createEnvelope).toHaveBeenCalledWith({}, expect.any(Array));
   });
 
   it('includes SDK info when metadata is provided', () => {
@@ -101,7 +104,7 @@ describe('createOtelLogEnvelope', () => {
     const result = createOtelLogEnvelope(mockLogs, undefined, 'https://tunnel.example.com', dsn);
 
     expect(result[0]).toHaveProperty('dsn');
-    expect(utilsHoist.dsnToString).toHaveBeenCalledWith(dsn);
+    expect(utilsDsn.dsnToString).toHaveBeenCalledWith(dsn);
   });
 
   it('maps each log to an envelope item', () => {
@@ -119,7 +122,7 @@ describe('createOtelLogEnvelope', () => {
     createOtelLogEnvelope(mockLogs);
 
     // Check that createEnvelope was called with an array of envelope items
-    expect(utilsHoist.createEnvelope).toHaveBeenCalledWith(
+    expect(utilsEnvelope.createEnvelope).toHaveBeenCalledWith(
       expect.anything(),
       expect.arrayContaining([
         expect.arrayContaining([{ type: 'otel_log' }, mockLogs[0]]),
@@ -166,7 +169,7 @@ describe('Trace context in logs', () => {
     createOtelLogEnvelope([mockLog]);
 
     // Verify the envelope preserves the trace information
-    expect(utilsHoist.createEnvelope).toHaveBeenCalledWith(
+    expect(utilsEnvelope.createEnvelope).toHaveBeenCalledWith(
       expect.anything(),
       expect.arrayContaining([
         expect.arrayContaining([

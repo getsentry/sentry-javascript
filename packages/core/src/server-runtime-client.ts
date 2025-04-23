@@ -23,7 +23,7 @@ import { logger } from './utils-hoist/logger';
 import { uuid4 } from './utils-hoist/misc';
 import { resolvedSyncPromise } from './utils-hoist/syncpromise';
 import { _INTERNAL_flushLogsBuffer } from './logs/exports';
-import { isPrimitive } from './utils-hoist';
+import { isPrimitive } from './utils-hoist/is';
 
 // TODO: Make this configurable
 const DEFAULT_LOG_FLUSH_INTERVAL = 5000;
