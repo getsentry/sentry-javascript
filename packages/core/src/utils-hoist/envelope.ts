@@ -1,20 +1,20 @@
 import { getSentryCarrier } from '../carrier';
+import type { Attachment } from '../types-hoist/attachment';
 import type {
-  Attachment,
-  AttachmentItem,
   BaseEnvelopeHeaders,
   BaseEnvelopeItemHeaders,
-  DataCategory,
-  DsnComponents,
-  Envelope,
   EnvelopeItemType,
-  Event,
+  Envelope,
   EventEnvelopeHeaders,
-  SdkInfo,
-  SdkMetadata,
+  AttachmentItem,
   SpanItem,
-  SpanJSON,
-} from '../types-hoist';
+} from '../types-hoist/envelope';
+import type { DsnComponents } from '../types-hoist/dsn';
+import type { Event } from '../types-hoist/event';
+import type { SdkInfo } from '../types-hoist/sdkinfo';
+import type { SdkMetadata } from '../types-hoist/sdkmetadata';
+import type { SpanJSON } from '../types-hoist/span';
+import type { DataCategory } from '../types-hoist/datacategory';
 
 import { dsnToString } from './dsn';
 import { normalize } from './normalize';

@@ -1,12 +1,6 @@
-import type {
-  BaseTransportOptions,
-  Envelope,
-  EnvelopeItemType,
-  Event,
-  EventItem,
-  Transport,
-  TransportMakeRequestResponse,
-} from '../types-hoist';
+import type { Envelope, EnvelopeItemType, EventItem } from '../types-hoist/envelope';
+import type { Transport, TransportMakeRequestResponse, BaseTransportOptions } from '../types-hoist/transport';
+import type { Event } from '../types-hoist/event';
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from '../api';
 import { dsnFromString } from '../utils-hoist/dsn';

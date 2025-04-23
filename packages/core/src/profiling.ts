@@ -1,4 +1,4 @@
-import type { Profiler, ProfilingIntegration } from './types-hoist';
+import type { Profiler, ProfilingIntegration } from './types-hoist/profiling';
 
 import { getClient } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';

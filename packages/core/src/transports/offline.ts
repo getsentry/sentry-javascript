@@ -1,4 +1,5 @@
-import type { Envelope, InternalBaseTransportOptions, Transport, TransportMakeRequestResponse } from '../types-hoist';
+import type { Envelope } from '../types-hoist/envelope';
+import type { InternalBaseTransportOptions, Transport, TransportMakeRequestResponse } from '../types-hoist/transport';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { envelopeContainsItemType } from '../utils-hoist/envelope';

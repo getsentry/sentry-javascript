@@ -1,4 +1,4 @@
-import type { DsnComponents, DsnLike, DsnProtocol } from '../types-hoist';
+import type { DsnComponents, DsnLike, DsnProtocol } from '../types-hoist/dsn';
 
 import { DEBUG_BUILD } from './debug-build';
 import { consoleSandbox, logger } from './logger';

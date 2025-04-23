@@ -1,40 +1,24 @@
 /* eslint-disable max-lines */
-import type {
-  Breadcrumb,
-  BreadcrumbHint,
-  CheckIn,
-  ClientOptions,
-  DataCategory,
-  DsnComponents,
-  DynamicSamplingContext,
-  Envelope,
-  ErrorEvent,
-  Event,
-  EventDropReason,
-  EventHint,
-  EventProcessor,
-  FeedbackEvent,
-  FetchBreadcrumbHint,
-  Integration,
-  Log,
-  MonitorConfig,
-  Outcome,
-  ParameterizedString,
-  SdkMetadata,
-  Session,
-  SessionAggregates,
-  SeverityLevel,
-  Span,
-  SpanAttributes,
-  SpanContextData,
-  SpanJSON,
-  StartSpanOptions,
-  TraceContext,
-  TransactionEvent,
-  Transport,
-  TransportMakeRequestResponse,
-  XhrBreadcrumbHint,
-} from './types-hoist';
+import type { Breadcrumb, BreadcrumbHint, FetchBreadcrumbHint, XhrBreadcrumbHint } from './types-hoist/breadcrumb';
+import type { CheckIn, MonitorConfig } from './types-hoist/checkin';
+import type { ClientOptions } from './types-hoist/options';
+import type { DataCategory } from './types-hoist/datacategory';
+import type { EventDropReason, Outcome } from './types-hoist/clientreport';
+import type { DsnComponents } from './types-hoist/dsn';
+import type { DynamicSamplingContext, Envelope } from './types-hoist/envelope';
+import type { ErrorEvent, Event, EventHint, TransactionEvent } from './types-hoist/event';
+import type { EventProcessor } from './types-hoist/eventprocessor';
+import type { FeedbackEvent } from './types-hoist/feedback';
+import type { Integration } from './types-hoist/integration';
+import type { Log } from './types-hoist/log';
+import type { ParameterizedString } from './types-hoist/parameterize';
+import type { SdkMetadata } from './types-hoist/sdkmetadata';
+import type { Session, SessionAggregates } from './types-hoist/session';
+import type { SeverityLevel } from './types-hoist/severity';
+import type { Span, SpanAttributes, SpanContextData, SpanJSON } from './types-hoist/span';
+import type { StartSpanOptions } from './types-hoist/startSpanOptions';
+import type { TraceContext } from './types-hoist/context';
+import type { Transport, TransportMakeRequestResponse } from './types-hoist/transport';
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
 import { DEFAULT_ENVIRONMENT } from './constants';

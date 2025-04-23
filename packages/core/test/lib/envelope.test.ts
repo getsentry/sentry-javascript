@@ -9,8 +9,10 @@ import {
   setCurrentClient,
 } from '../../src';
 import { createEventEnvelope, createSpanEnvelope } from '../../src/envelope';
-import type { DsnComponents, DynamicSamplingContext, Event } from '../../src/types-hoist';
+import type { Event } from '../../src/types-hoist/event';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
+import type { DsnComponents } from '../../build/types/types-hoist/dsn';
+import type { DynamicSamplingContext } from '../../build/types/types-hoist/envelope';
 
 const testDsn: DsnComponents = { protocol: 'https', projectId: 'abc', host: 'testry.io', publicKey: 'pubKey123' };
 

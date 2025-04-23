@@ -2,7 +2,7 @@
 // https://github.com/supabase-community/sentry-integration-js
 
 /* eslint-disable max-lines */
-import type { IntegrationFn } from '../types-hoist';
+import type { IntegrationFn } from '../types-hoist/integration';
 import { setHttpStatus, startSpan } from '../tracing';
 import { addBreadcrumb } from '../breadcrumbs';
 import { defineIntegration } from '../integration';

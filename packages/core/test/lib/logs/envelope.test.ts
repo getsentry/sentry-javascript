@@ -1,6 +1,8 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { createOtelLogEnvelope, createOtelLogEnvelopeItem } from '../../../src/logs/envelope';
-import type { DsnComponents, SdkMetadata, SerializedOtelLog } from '../../../src/types-hoist';
+import type { DsnComponents } from '../../../src/types-hoist/dsn';
+import type { SdkMetadata } from '../../../src/types-hoist/sdkmetadata';
+import type { SerializedOtelLog } from '../../../src/types-hoist/log';
 import * as utilsDsn from '../../../src/utils-hoist/dsn';
 import * as utilsEnvelope from '../../../src/utils-hoist/envelope';
 

@@ -2,14 +2,12 @@
 
 import type { AsyncContextStrategy } from '../asyncContext/types';
 import { getMainCarrier } from '../carrier';
-import type {
-  ClientOptions,
-  DynamicSamplingContext,
-  SentrySpanArguments,
-  Span,
-  SpanTimeInput,
-  StartSpanOptions,
-} from '../types-hoist';
+import type { ClientOptions } from '../types-hoist/options';
+import type { DynamicSamplingContext } from '../types-hoist/envelope';
+import type { SentrySpanArguments } from '../types-hoist/span';
+import type { Span } from '../types-hoist/span';
+import type { SpanTimeInput } from '../types-hoist/span';
+import type { StartSpanOptions } from '../types-hoist/startSpanOptions';
 
 import { getClient, getCurrentScope, getIsolationScope, withScope } from '../currentScopes';
 

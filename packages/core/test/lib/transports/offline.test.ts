@@ -1,13 +1,7 @@
-import type {
-  ClientReport,
-  Envelope,
-  EventEnvelope,
-  EventItem,
-  InternalBaseTransportOptions,
-  ReplayEnvelope,
-  ReplayEvent,
-  TransportMakeRequestResponse,
-} from '../../../src/types-hoist';
+import type { ClientReport } from '../../../src/types-hoist/clientreport';
+import type { Envelope, EventEnvelope, EventItem, ReplayEnvelope } from '../../../src/types-hoist/envelope';
+import type { ReplayEvent } from '../../../src/types-hoist/replay';
+import type { InternalBaseTransportOptions, TransportMakeRequestResponse } from '../../../src/types-hoist/transport';
 
 import { describe, expect, it } from 'vitest';
 import {

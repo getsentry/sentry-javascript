@@ -1,4 +1,5 @@
-import type { Options, SamplingContext } from '../types-hoist';
+import type { Options } from '../types-hoist/options';
+import type { SamplingContext } from '../types-hoist/samplingcontext';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { logger } from '../utils-hoist/logger';

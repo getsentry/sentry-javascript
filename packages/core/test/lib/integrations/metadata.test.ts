@@ -1,4 +1,4 @@
-import type { Event } from '../../../src/types-hoist';
+import type { Event } from '../../../src/types-hoist/event';
 
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import {

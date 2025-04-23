@@ -1,4 +1,6 @@
-import type { Event, Mechanism, StackFrame } from '../../src/types-hoist';
+import type { Event } from '../../src/types-hoist/event';
+import type { Mechanism } from '../../src/types-hoist/mechanism';
+import type { StackFrame } from '../../src/types-hoist/stackframe';
 
 import { describe, expect, it, test } from 'vitest';
 import {

@@ -1,5 +1,6 @@
-import type { Event, EventProcessor, Integration } from '../../../src/types-hoist';
-
+import type { Event } from '../../../src/types-hoist/event';
+import type { EventProcessor } from '../../../src/types-hoist/eventprocessor';
+import type { Integration } from '../../../src/types-hoist/integration';
 import { describe, expect, it } from 'vitest';
 import type { EventFiltersOptions } from '../../../src/integrations/eventFilters';
 import { eventFiltersIntegration } from '../../../src/integrations/eventFilters';

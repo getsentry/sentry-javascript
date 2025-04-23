@@ -1,25 +1,20 @@
 /* eslint-disable max-lines */
 import type { Client } from './client';
 import { updateSession } from './session';
-import type {
-  Attachment,
-  Breadcrumb,
-  Context,
-  Contexts,
-  DynamicSamplingContext,
-  Event,
-  EventHint,
-  EventProcessor,
-  Extra,
-  Extras,
-  Primitive,
-  PropagationContext,
-  RequestEventData,
-  Session,
-  SeverityLevel,
-  Span,
-  User,
-} from './types-hoist';
+import type { Attachment } from './types-hoist/attachment';
+import type { Breadcrumb } from './types-hoist/breadcrumb';
+import type { Context, Contexts } from './types-hoist/context';
+import type { DynamicSamplingContext } from './types-hoist/envelope';
+import type { Event, EventHint } from './types-hoist/event';
+import type { EventProcessor } from './types-hoist/eventprocessor';
+import type { Extra, Extras } from './types-hoist/extra';
+import type { Primitive } from './types-hoist/misc';
+import type { PropagationContext } from './types-hoist/tracing';
+import type { RequestEventData } from './types-hoist/request';
+import type { Session } from './types-hoist/session';
+import type { SeverityLevel } from './types-hoist/severity';
+import type { Span } from './types-hoist/span';
+import type { User } from './types-hoist/user';
 import { isPlainObject } from './utils-hoist/is';
 import { logger } from './utils-hoist/logger';
 import { uuid4 } from './utils-hoist/misc';

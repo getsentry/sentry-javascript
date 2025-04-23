@@ -1,4 +1,5 @@
-import type { AttachmentItem, EventEnvelope, EventItem, TransportMakeRequestResponse } from '../../../src/types-hoist';
+import type { AttachmentItem, EventEnvelope, EventItem } from '../../../src/types-hoist/envelope';
+import type { TransportMakeRequestResponse } from '../../../src/types-hoist/transport';
 
 import { describe, expect, it, vi } from 'vitest';
 import { createTransport } from '../../../src/transports/base';

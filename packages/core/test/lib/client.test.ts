@@ -13,7 +13,11 @@ import {
 } from '../../src';
 import type { BaseClient, Client } from '../../src/client';
 import * as integrationModule from '../../src/integration';
-import type { Envelope, ErrorEvent, Event, SpanJSON, TransactionEvent } from '../../src/types-hoist';
+import type { Envelope } from '../../src/types-hoist/envelope';
+import type { ErrorEvent } from '../../src/types-hoist/event';
+import type { Event } from '../../src/types-hoist/event';
+import type { SpanJSON } from '../../src/types-hoist/span';
+import type { TransactionEvent } from '../../src/types-hoist/event';
 import * as loggerModule from '../../src/utils-hoist/logger';
 import * as miscModule from '../../src/utils-hoist/misc';
 import * as stringModule from '../../src/utils-hoist/string';

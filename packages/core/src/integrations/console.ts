@@ -1,7 +1,7 @@
 import { addBreadcrumb } from '../breadcrumbs';
 import { getClient } from '../currentScopes';
 import { defineIntegration } from '../integration';
-import type { ConsoleLevel } from '../types-hoist';
+import type { ConsoleLevel } from '../types-hoist/instrument';
 import { addConsoleInstrumentationHandler } from '../utils-hoist/instrument/console';
 import { CONSOLE_LEVELS } from '../utils-hoist/logger';
 import { severityLevelFromString } from '../utils-hoist/severity';

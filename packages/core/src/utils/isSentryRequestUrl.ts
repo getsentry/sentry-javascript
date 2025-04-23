@@ -1,5 +1,5 @@
 import type { Client } from '../client';
-import type { DsnComponents } from '../types-hoist';
+import type { DsnComponents } from '../types-hoist/dsn';
 
 /**
  * Checks whether given url points to Sentry server

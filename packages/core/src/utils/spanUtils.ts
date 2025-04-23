@@ -10,15 +10,9 @@ import {
 import type { SentrySpan } from '../tracing/sentrySpan';
 import { SPAN_STATUS_OK, SPAN_STATUS_UNSET } from '../tracing/spanstatus';
 import { getCapturedScopesOnSpan } from '../tracing/utils';
-import type {
-  Span,
-  SpanAttributes,
-  SpanJSON,
-  SpanOrigin,
-  SpanStatus,
-  SpanTimeInput,
-  TraceContext,
-} from '../types-hoist';
+import type { Span, SpanAttributes, SpanJSON, SpanOrigin, SpanTimeInput } from '../types-hoist/span';
+import type { SpanStatus } from '../types-hoist/spanStatus';
+import type { TraceContext } from '../types-hoist/context';
 import type { SpanLink, SpanLinkJSON } from '../types-hoist/link';
 import { consoleSandbox } from '../utils-hoist/logger';
 import { addNonEnumerableProperty } from '../utils-hoist/object';

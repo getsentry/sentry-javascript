@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 
-import type { WrappedFunction } from '../../src/types-hoist';
+import type { WrappedFunction } from '../../src/types-hoist/wrappedfunction';
 
 import { describe, expect, it, test, vi } from 'vitest';
 import {

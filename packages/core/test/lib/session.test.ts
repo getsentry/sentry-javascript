@@ -1,4 +1,4 @@
-import type { SessionContext } from '../../src/types-hoist';
+import type { SessionContext } from '../../src/types-hoist/session';
 
 import { describe, expect, it, test } from 'vitest';
 import { closeSession, makeSession, updateSession } from '../../src/session';

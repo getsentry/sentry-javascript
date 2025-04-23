@@ -3,7 +3,7 @@ import { _getTraceInfoFromScope } from '../client';
 import { getClient, getCurrentScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { SEVERITY_TEXT_TO_SEVERITY_NUMBER } from './constants';
-import type { SerializedLogAttribute, SerializedOtelLog } from '../types-hoist';
+import type { SerializedLogAttribute, SerializedOtelLog } from '../types-hoist/log';
 import type { Log } from '../types-hoist/log';
 import { _getSpanForScope } from '../utils/spanOnScope';
 import { createOtelLogEnvelope } from './envelope';

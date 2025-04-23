@@ -26,7 +26,9 @@ import {
 } from '../../../src/tracing';
 import { SentryNonRecordingSpan } from '../../../src/tracing/sentryNonRecordingSpan';
 import { startNewTrace } from '../../../src/tracing/trace';
-import type { Event, Span, StartSpanOptions } from '../../../src/types-hoist';
+import type { Event } from '../../../src/types-hoist/event';
+import type { Span } from '../../../src/types-hoist/span';
+import type { StartSpanOptions } from '../../../src/types-hoist/startSpanOptions';
 import { _setSpanForScope } from '../../../src/utils/spanOnScope';
 import { getActiveSpan, getRootSpan, getSpanDescendants, spanIsSampled } from '../../../src/utils/spanUtils';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';

@@ -1,4 +1,4 @@
-import type { DynamicSamplingContext } from '../types-hoist';
+import type { DynamicSamplingContext } from '../types-hoist/envelope';
 
 import { DEBUG_BUILD } from './debug-build';
 import { isString } from './is';
