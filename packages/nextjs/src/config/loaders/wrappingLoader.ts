@@ -205,12 +205,6 @@ export default function wrappingLoader(
         case 'loading':
           componentType = 'Loading';
           break;
-        case 'template':
-          componentType = 'Template';
-          break;
-        case 'default':
-          componentType = 'Default';
-          break;
         default:
           componentType = 'Unknown';
       }
