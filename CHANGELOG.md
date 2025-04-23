@@ -32,7 +32,6 @@ This PR adds trace propagation to `@sentry/react-router` by providing utilities 
 - feat(nextjs): Improve server component data ([#15996](https://github.com/getsentry/sentry-javascript/pull/15996))
 - feat(nuxt): Log when adding HTML trace meta tags ([#16044](https://github.com/getsentry/sentry-javascript/pull/16044))
 - fix(node): Make body capturing more robust ([#16105](https://github.com/getsentry/sentry-javascript/pull/16105))
-- ref(core): Remove internal `utils-hoist` re-export ([#16114](https://github.com/getsentry/sentry-javascript/pull/16114))
 - ref(node): Log when incoming request bodies are being captured ([#16104](https://github.com/getsentry/sentry-javascript/pull/16104))
 
 ## 9.13.0
