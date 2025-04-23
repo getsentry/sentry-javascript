@@ -55,7 +55,6 @@
   "devDependencies": {
     "@nestjs/common": "^10.0.0",
     "@nestjs/core": "^10.0.0",
-    "@nestjs/microservices": "^10.0.0",
     "reflect-metadata": "^0.2.2"
   },
   "peerDependencies": {
