@@ -128,6 +128,8 @@ export {
   spanToBaggageHeader,
   trpcMiddleware,
   updateSpanName,
+  supabaseIntegration,
+  instrumentSupabaseClient,
   zodErrorsIntegration,
   profiler,
   consoleLoggingIntegration,

@@ -3,7 +3,7 @@ import { context, propagation } from '@opentelemetry/api';
 import { VERSION } from '@opentelemetry/core';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
-import type { AggregationCounts, Client, RequestEventData, SanitizedRequestData, Scope } from '@sentry/core';
+import type { AggregationCounts, Client, SanitizedRequestData, Scope } from '@sentry/core';
 import {
   addBreadcrumb,
   generateSpanId,
@@ -29,6 +29,8 @@ import { getRequestInfo } from './vendor/getRequestInfo';
 
 type Http = typeof http;
 type Https = typeof https;
+
+const INSTRUMENTATION_NAME = '@sentry/instrumentation-http';
 
 export type SentryHttpInstrumentationOptions = InstrumentationConfig & {
   /**
@@ -101,7 +103,7 @@ const MAX_BODY_BYTE_LENGTH = 1024 * 1024;
  */
 export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpInstrumentationOptions> {
   public constructor(config: SentryHttpInstrumentationOptions = {}) {
-    super('@sentry/instrumentation-http', VERSION, config);
+    super(INSTRUMENTATION_NAME, VERSION, config);
   }
 
   /** @inheritdoc */
@@ -358,11 +360,8 @@ function getBreadcrumbData(request: http.ClientRequest): Partial<SanitizedReques
  * This way, we only read the body if the user also consumes the body, ensuring we do not change any behavior in unexpected ways.
  */
 function patchRequestToCaptureBody(req: IncomingMessage, isolationScope: Scope): void {
+  let bodyByteLength = 0;
   const chunks: Buffer[] = [];
-
-  function getChunksSize(): number {
-    return chunks.reduce((acc, chunk) => acc + chunk.byteLength, 0);
-  }
 
   /**
    * We need to keep track of the original callbacks, in order to be able to remove listeners again.
@@ -377,41 +376,28 @@ function patchRequestToCaptureBody(req: IncomingMessage, isolationScope: Scope):
       apply: (target, thisArg, args: Parameters<typeof req.on>) => {
         const [event, listener, ...restArgs] = args;
 
+        if (DEBUG_BUILD) {
+          logger.log(INSTRUMENTATION_NAME, 'Patching request.on', event);
+        }
+
         if (event === 'data') {
           const callback = new Proxy(listener, {
             apply: (target, thisArg, args: Parameters<typeof listener>) => {
-              // If we have already read more than the max body length, we stop adding chunks
-              // To avoid growing the memory indefinitely if a response is e.g. streamed
-              if (getChunksSize() < MAX_BODY_BYTE_LENGTH) {
-                const chunk = args[0] as Buffer;
-                chunks.push(chunk);
-              } else if (DEBUG_BUILD) {
-                logger.log(
-                  `Dropping request body chunk because it maximum body length of ${MAX_BODY_BYTE_LENGTH}b is exceeded.`,
-                );
-              }
-
-              return Reflect.apply(target, thisArg, args);
-            },
-          });
-
-          callbackMap.set(listener, callback);
-
-          return Reflect.apply(target, thisArg, [event, callback, ...restArgs]);
-        }
-
-        if (event === 'end') {
-          const callback = new Proxy(listener, {
-            apply: (target, thisArg, args) => {
               try {
-                const body = Buffer.concat(chunks).toString('utf-8');
+                const chunk = args[0] as Buffer | string;
+                const bufferifiedChunk = Buffer.from(chunk);
 
-                if (body) {
-                  const normalizedRequest = { data: body } satisfies RequestEventData;
-                  isolationScope.setSDKProcessingMetadata({ normalizedRequest });
+                if (bodyByteLength < MAX_BODY_BYTE_LENGTH) {
+                  chunks.push(bufferifiedChunk);
+                  bodyByteLength += bufferifiedChunk.byteLength;
+                } else if (DEBUG_BUILD) {
+                  logger.log(
+                    INSTRUMENTATION_NAME,
+                    `Dropping request body chunk because maximum body length of ${MAX_BODY_BYTE_LENGTH}b is exceeded.`,
+                  );
                 }
-              } catch {
-                // ignore errors here
+              } catch (err) {
+                DEBUG_BUILD && logger.error(INSTRUMENTATION_NAME, 'Encountered error while storing body chunk.');
               }
 
               return Reflect.apply(target, thisArg, args);
@@ -445,8 +431,23 @@ function patchRequestToCaptureBody(req: IncomingMessage, isolationScope: Scope):
         return Reflect.apply(target, thisArg, args);
       },
     });
-  } catch {
-    // ignore errors if we can't patch stuff
+
+    req.on('end', () => {
+      try {
+        const body = Buffer.concat(chunks).toString('utf-8');
+        if (body) {
+          isolationScope.setSDKProcessingMetadata({ normalizedRequest: { data: body } });
+        }
+      } catch (error) {
+        if (DEBUG_BUILD) {
+          logger.error(INSTRUMENTATION_NAME, 'Error building captured request body', error);
+        }
+      }
+    });
+  } catch (error) {
+    if (DEBUG_BUILD) {
+      logger.error(INSTRUMENTATION_NAME, 'Error patching request to capture body', error);
+    }
   }
 }
 

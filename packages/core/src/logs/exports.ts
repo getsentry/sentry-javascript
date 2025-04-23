@@ -5,9 +5,10 @@ import { DEBUG_BUILD } from '../debug-build';
 import { SEVERITY_TEXT_TO_SEVERITY_NUMBER } from './constants';
 import type { SerializedLogAttribute, SerializedOtelLog } from '../types-hoist';
 import type { Log } from '../types-hoist/log';
-import { isParameterizedString, logger } from '../utils-hoist';
 import { _getSpanForScope } from '../utils/spanOnScope';
 import { createOtelLogEnvelope } from './envelope';
+import { logger } from '../utils-hoist/logger';
+import { isParameterizedString } from '../utils-hoist/is';
 
 const MAX_LOG_BUFFER_SIZE = 100;
 
