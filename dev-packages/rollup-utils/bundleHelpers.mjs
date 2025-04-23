@@ -25,6 +25,7 @@ const BUNDLE_VARIANTS = ['.js', '.min.js', '.debug.min.js'];
 
 export function makeBaseBundleConfig(options) {
   const { bundleType, entrypoints, licenseTitle, outputFileBase, packageSpecificConfig, sucrase } = options;
+  const rolldown = process.argv[1]?.endsWith('rolldown');
 
   const nodeResolvePlugin = makeNodeResolvePlugin();
   const sucrasePlugin = makeSucrasePlugin({}, sucrase);
@@ -133,11 +134,13 @@ export function makeBaseBundleConfig(options) {
       entryFileNames: outputFileBase,
       dir: 'build',
       sourcemap: true,
-      strict: false,
+      ...(rolldown ? {} : {strict: false}),
       esModule: false,
     },
-    plugins: [sucrasePlugin, nodeResolvePlugin, cleanupPlugin, licensePlugin],
-    treeshake: 'smallest',
+    plugins: rolldown
+      ? [cleanupPlugin, licensePlugin]
+      : [sucrasePlugin, nodeResolvePlugin, cleanupPlugin, licensePlugin],
+    treeshake: rolldown ? true : 'smallest',
   };
 
   const bundleTypeConfigMap = {
