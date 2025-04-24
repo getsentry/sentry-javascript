@@ -19,9 +19,12 @@ import { TRPCError, initTRPC } from '@trpc/server';
 import * as trpcExpress from '@trpc/server/adapters/express';
 import express from 'express';
 import { z } from 'zod';
+import { mcpRouter } from './mcp';
 
 const app = express();
 const port = 3030;
+
+app.use(mcpRouter);
 
 app.get('/test-success', function (req, res) {
   res.send({ version: 'v1' });
