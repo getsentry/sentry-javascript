@@ -24,7 +24,7 @@
     "./package.json": "./package.json",
     ".": {
       "types": "./build/types/index.types.d.ts",
-      "default": "./build/esm/index.client.js",
+      "default": "./build/cjs/index.client.js",
       "browser": {
         "import": "./build/esm/index.client.js",
         "require": "./build/cjs/index.client.js"
