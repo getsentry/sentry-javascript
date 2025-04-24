@@ -16,6 +16,7 @@ import { generateInstrumentOnce } from '../../otel/instrument';
 import { FastifyInstrumentationV3 } from './v3/instrumentation';
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import { DEBUG_BUILD } from '../../../debug-build';
+import type { Instrumentation, InstrumentationConfig } from '@opentelemetry/instrumentation';
 
 interface FastifyHandlerOptions {
   /**
@@ -78,8 +79,8 @@ export const instrumentFastify = generateInstrumentOnce(INTEGRATION_NAME, () => 
     });
   });
 
-  // Returning this as any not to deal with the internal types of the FastifyOtelInstrumentation
-  return fastifyOtelInstrumentationInstance as any;
+  // Returning this as unknown not to deal with the internal types of the FastifyOtelInstrumentation
+  return fastifyOtelInstrumentationInstance as Instrumentation<InstrumentationConfig>;
 });
 
 const _fastifyIntegration = (() => {
