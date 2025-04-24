@@ -6,7 +6,7 @@ import * as CurrentScopes from '../../../src/currentScopes';
 import * as SentryCore from '../../../src/exports';
 import { captureConsoleIntegration } from '../../../src/integrations/captureconsole';
 import type { Event } from '../../../src/types-hoist/event';
-import type { ConsoleLevel } from '../../../src/types/types-hoist/instrument';
+import type { ConsoleLevel } from '../../../src/types-hoist/instrument';
 import { addConsoleInstrumentationHandler } from '../../../src/utils-hoist/instrument/console';
 import { resetInstrumentationHandlers } from '../../../src/utils-hoist/instrument/handlers';
 import { CONSOLE_LEVELS, originalConsoleMethods } from '../../../src/utils-hoist/logger';

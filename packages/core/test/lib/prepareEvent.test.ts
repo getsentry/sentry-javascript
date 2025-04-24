@@ -4,9 +4,9 @@ import { GLOBAL_OBJ, createStackParser, getGlobalScope, getIsolationScope } from
 import { Scope } from '../../src/scope';
 import type { Event, EventHint } from '../../src/types-hoist/event';
 import type { EventProcessor } from '../../src/types-hoist/eventprocessor';
-import type { Attachment } from '../../src/types/types-hoist/attachment';
-import type { Breadcrumb } from '../../src/types/types-hoist/breadcrumb';
-import type { ClientOptions } from '../../src/types/types-hoist/options';
+import type { Attachment } from '../../src/types-hoist/attachment';
+import type { Breadcrumb } from '../../src/types-hoist/breadcrumb';
+import type { ClientOptions } from '../../src/types-hoist/options';
 import {
   applyClientOptions,
   applyDebugIds,

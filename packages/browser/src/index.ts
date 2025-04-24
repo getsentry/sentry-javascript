@@ -13,7 +13,6 @@ export {
   captureConsoleIntegration,
   extraErrorDataIntegration,
   rewriteFramesIntegration,
-  captureFeedback,
   consoleLoggingIntegration,
 } from '@sentry/core';
 
