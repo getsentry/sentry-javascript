@@ -134,6 +134,7 @@ export {
   profiler,
   consoleLoggingIntegration,
   consoleIntegration,
+  wrapMcpServerWithSentry,
 } from '@sentry/core';
 
 export type {

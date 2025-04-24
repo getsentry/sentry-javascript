@@ -85,6 +85,7 @@ export {
   spanToTraceHeader,
   spanToBaggageHeader,
   updateSpanName,
+  wrapMcpServerWithSentry,
 } from '@sentry/core';
 
 export { DenoClient } from './client';
