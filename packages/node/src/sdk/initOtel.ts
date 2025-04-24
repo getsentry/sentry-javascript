@@ -42,7 +42,7 @@ export function maybeInitializeEsmLoader(): void {
   const [nodeMajor = 0, nodeMinor = 0] = process.versions.node.split('.').map(Number);
 
   // Register hook was added in v20.6.0 and v18.19.0
-  if (nodeMajor >= 22 || (nodeMajor === 20 && nodeMinor >= 6) || (nodeMajor === 18 && nodeMinor >= 19)) {
+  if (nodeMajor >= 21 || (nodeMajor === 20 && nodeMinor >= 6) || (nodeMajor === 18 && nodeMinor >= 19)) {
     if (!GLOBAL_OBJ._sentryEsmLoaderHookRegistered) {
       try {
         const { addHookMessagePort } = createAddHookMessageChannel();
