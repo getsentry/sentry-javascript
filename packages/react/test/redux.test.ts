@@ -433,14 +433,14 @@ describe('createReduxEnhancer', () => {
 
     const ACTION_TYPE = 'UPDATE_VALUE';
     const reducer = (state: Record<string, unknown> = initialState, action: { type: string; newValue: any }) => {
-        if (action.type === ACTION_TYPE) {
-          return {
-            ...state,
-            value: action.newValue,
-          };
-        }
-        return state;
-      };
+      if (action.type === ACTION_TYPE) {
+        return {
+          ...state,
+          value: action.newValue,
+        };
+      }
+      return state;
+    };
 
     const store = Redux.createStore(reducer, enhancer);
 

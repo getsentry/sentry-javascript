@@ -165,8 +165,8 @@ function createReduxEnhancer(enhancerOptions?: Partial<SentryEnhancerOptions>): 
       store.replaceReducer = new Proxy(store.replaceReducer, {
         apply: function (target, thisArg, args) {
           target.apply(thisArg, [sentryWrapReducer(args[0])]);
-        }
-      })
+        },
+      });
 
       return store;
     };
