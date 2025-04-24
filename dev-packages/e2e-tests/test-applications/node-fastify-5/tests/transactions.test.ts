@@ -106,3 +106,40 @@ test('Sends an API route transaction', async ({ baseURL }) => {
     origin: 'manual',
   });
 });
+
+test('Captures request metadata', async ({ baseURL }) => {
+  const transactionEventPromise = waitForTransaction('node-fastify-5', transactionEvent => {
+    return (
+      transactionEvent?.contexts?.trace?.op === 'http.server' && transactionEvent?.transaction === 'POST /test-post'
+    );
+  });
+
+  const res = await fetch(`${baseURL}/test-post`, {
+    method: 'POST',
+    body: JSON.stringify({ foo: 'bar', other: 1 }),
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+  const resBody = await res.json();
+
+  expect(resBody).toEqual({ status: 'ok', body: { foo: 'bar', other: 1 } });
+
+  const transactionEvent = await transactionEventPromise;
+
+  expect(transactionEvent.request).toEqual({
+    cookies: {},
+    url: expect.stringMatching(/^http:\/\/localhost:(\d+)\/test-post$/),
+    method: 'POST',
+    headers: expect.objectContaining({
+      'user-agent': expect.stringContaining(''),
+      'content-type': 'application/json',
+    }),
+    data: JSON.stringify({
+      foo: 'bar',
+      other: 1,
+    }),
+  });
+
+  expect(transactionEvent.user).toEqual(undefined);
+});
