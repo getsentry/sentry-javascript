@@ -15,11 +15,13 @@ import {
   startSpan,
   timestampInSeconds,
 } from '../../../src';
-import type { Span, SpanAttributes, SpanStatus, SpanTimeInput } from '../../../src/types-hoist';
 import type { SpanLink } from '../../../src/types-hoist/link';
+import type { Span, SpanAttributes, SpanTimeInput } from '../../../src/types-hoist/span';
+import type { SpanStatus } from '../../../src/types-hoist/spanStatus';
 import type { OpenTelemetrySdkTraceBaseSpan } from '../../../src/utils/spanUtils';
-import { TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED } from '../../../src/utils/spanUtils';
 import {
+  TRACE_FLAG_NONE,
+  TRACE_FLAG_SAMPLED,
   getRootSpan,
   spanIsSampled,
   spanTimeInputToSeconds,

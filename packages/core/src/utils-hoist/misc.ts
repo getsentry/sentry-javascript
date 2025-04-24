@@ -1,4 +1,7 @@
-import type { Event, Exception, Mechanism, StackFrame } from '../types-hoist';
+import type { Event } from '../types-hoist/event';
+import type { Exception } from '../types-hoist/exception';
+import type { Mechanism } from '../types-hoist/mechanism';
+import type { StackFrame } from '../types-hoist/stackframe';
 
 import { addNonEnumerableProperty } from './object';
 import { snipLine } from './string';

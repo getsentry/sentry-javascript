@@ -1,16 +1,12 @@
-import type {
-  BaseTransportOptions,
-  CheckIn,
-  ClientOptions,
-  Event,
-  EventHint,
-  Log,
-  MonitorConfig,
-  ParameterizedString,
-  Primitive,
-  SerializedCheckIn,
-  SeverityLevel,
-} from './types-hoist';
+import type { BaseTransportOptions } from './types-hoist/transport';
+import type { CheckIn, SerializedCheckIn } from './types-hoist/checkin';
+import type { ClientOptions } from './types-hoist/options';
+import type { Event, EventHint } from './types-hoist/event';
+import type { Log } from './types-hoist/log';
+import type { MonitorConfig } from './types-hoist/checkin';
+import type { ParameterizedString } from './types-hoist/parameterize';
+import type { Primitive } from './types-hoist/misc';
+import type { SeverityLevel } from './types-hoist/severity';
 
 import { createCheckInEnvelope } from './checkin';
 import { Client, _getTraceInfoFromScope } from './client';

@@ -1,4 +1,4 @@
-import type { SerializedCheckIn } from '../../src/types-hoist';
+import type { SerializedCheckIn } from '../../src/types-hoist/checkin';
 
 import { createCheckInEnvelope } from '../../src/checkin';
 

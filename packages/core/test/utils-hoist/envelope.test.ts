@@ -1,4 +1,6 @@
-import type { Event, EventEnvelope, SpanAttributes } from '../../src/types-hoist';
+import type { Event } from '../../src/types-hoist/event';
+import type { EventEnvelope } from '../../src/types-hoist/envelope';
+import type { SpanAttributes } from '../../src/types-hoist/span';
 
 import {
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
@@ -111,12 +113,8 @@ describe('envelope', () => {
         before: () => {
           GLOBAL_OBJ.__SENTRY__ = {};
 
-          getSentryCarrier(GLOBAL_OBJ).encodePolyfill = vi.fn<Uint8Array, [string]>((input: string) =>
-            new TextEncoder().encode(input),
-          );
-          getSentryCarrier(GLOBAL_OBJ).decodePolyfill = vi.fn<string, [Uint8Array]>((input: Uint8Array) =>
-            new TextDecoder().decode(input),
-          );
+          getSentryCarrier(GLOBAL_OBJ).encodePolyfill = vi.fn((input: string) => new TextEncoder().encode(input));
+          getSentryCarrier(GLOBAL_OBJ).decodePolyfill = vi.fn((input: Uint8Array) => new TextDecoder().decode(input));
         },
         after: () => {
           expect(getSentryCarrier(GLOBAL_OBJ).encodePolyfill).toHaveBeenCalled();

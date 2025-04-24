@@ -1,12 +1,7 @@
-import type {
-  BaseTransportOptions,
-  ClientReport,
-  Envelope,
-  EventEnvelope,
-  EventItem,
-  TransactionEvent,
-  Transport,
-} from '../../../src/types-hoist';
+import type { BaseTransportOptions, Transport } from '../../../src/types-hoist/transport';
+import type { ClientReport } from '../../../src/types-hoist/clientreport';
+import type { Envelope, EventEnvelope, EventItem } from '../../../src/types-hoist/envelope';
+import type { TransactionEvent } from '../../../src/types-hoist/event';
 
 import { describe, expect, it, vi } from 'vitest';
 import {

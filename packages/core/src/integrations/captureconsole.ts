@@ -2,7 +2,7 @@ import { getClient, withScope } from '../currentScopes';
 import { captureException, captureMessage } from '../exports';
 import { defineIntegration } from '../integration';
 import type { CaptureContext } from '../scope';
-import type { IntegrationFn } from '../types-hoist';
+import type { IntegrationFn } from '../types-hoist/integration';
 import { addConsoleInstrumentationHandler } from '../utils-hoist/instrument/console';
 import { CONSOLE_LEVELS } from '../utils-hoist/logger';
 import { addExceptionMechanism } from '../utils-hoist/misc';

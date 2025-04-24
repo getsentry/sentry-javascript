@@ -1,4 +1,4 @@
-import type { ClientReport } from '../../src/types-hoist';
+import type { ClientReport } from '../../src/types-hoist/clientreport';
 
 import { describe, expect, it } from 'vitest';
 import { createClientReportEnvelope } from '../../src/utils-hoist/clientreport';

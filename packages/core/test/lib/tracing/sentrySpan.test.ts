@@ -1,6 +1,9 @@
 import { describe, expect, it, test, vi } from 'vitest';
-import type { SpanJSON } from '../../../src';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, getCurrentScope, setCurrentClient, timestampInSeconds } from '../../../src';
+import type { SpanJSON } from '../../../src/types-hoist/span';
+import { getCurrentScope } from '../../../src/currentScopes';
+import { setCurrentClient } from '../../../src/sdk';
+import { timestampInSeconds } from '../../../src/utils-hoist/time';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../../../src/semanticAttributes';
 import { SentrySpan } from '../../../src/tracing/sentrySpan';
 import { SPAN_STATUS_ERROR } from '../../../src/tracing/spanstatus';
 import { TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED, spanToJSON } from '../../../src/utils/spanUtils';

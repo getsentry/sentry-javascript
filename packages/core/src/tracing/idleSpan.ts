@@ -1,5 +1,7 @@
 import { getClient, getCurrentScope } from '../currentScopes';
-import type { DynamicSamplingContext, Span, StartSpanOptions } from '../types-hoist';
+import type { DynamicSamplingContext } from '../types-hoist/envelope';
+import type { Span } from '../types-hoist/span';
+import type { StartSpanOptions } from '../types-hoist/startSpanOptions';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON } from '../semanticAttributes';

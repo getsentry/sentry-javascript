@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { WrappedFunction } from '../types-hoist';
+import type { WrappedFunction } from '../types-hoist/wrappedfunction';
 
 import { htmlTreeAsString } from './browser';
 import { DEBUG_BUILD } from './debug-build';

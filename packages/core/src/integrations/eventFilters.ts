@@ -1,4 +1,6 @@
-import type { Event, IntegrationFn, StackFrame } from '../types-hoist';
+import type { Event } from '../types-hoist/event';
+import type { IntegrationFn } from '../types-hoist/integration';
+import type { StackFrame } from '../types-hoist/stackframe';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { defineIntegration } from '../integration';

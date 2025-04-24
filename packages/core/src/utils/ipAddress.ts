@@ -1,4 +1,6 @@
-import type { Session, SessionAggregates, User } from '../types-hoist';
+import type { Session } from '../types-hoist/session';
+import type { SessionAggregates } from '../types-hoist/session';
+import type { User } from '../types-hoist/user';
 
 // By default, we want to infer the IP address, unless this is explicitly set to `null`
 // We do this after all other processing is done

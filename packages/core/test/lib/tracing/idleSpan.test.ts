@@ -1,5 +1,3 @@
-import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
-
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
@@ -18,7 +16,9 @@ import {
   startSpanManual,
 } from '../../../src';
 import { TRACING_DEFAULTS, startIdleSpan } from '../../../src/tracing/idleSpan';
-import type { Event, Span } from '../../../src/types-hoist';
+import type { Event } from '../../../src/types-hoist/event';
+import type { Span } from '../../../src/types-hoist/span';
+import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 const dsn = 'https://123@sentry.io/42';
 

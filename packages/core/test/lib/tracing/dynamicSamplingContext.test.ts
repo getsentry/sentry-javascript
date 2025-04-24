@@ -7,7 +7,8 @@ import {
 } from '../../../src';
 import { SentrySpan, getDynamicSamplingContextFromSpan, startInactiveSpan } from '../../../src/tracing';
 import { freezeDscOnSpan } from '../../../src/tracing/dynamicSamplingContext';
-import type { Span, SpanContextData, TransactionSource } from '../../../src/types-hoist';
+import type { Span, SpanContextData } from '../../../src/types-hoist/span';
+import type { TransactionSource } from '../../../src/types-hoist/transaction';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 describe('getDynamicSamplingContextFromSpan', () => {

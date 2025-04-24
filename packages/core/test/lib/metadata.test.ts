@@ -1,5 +1,4 @@
-import type { Event } from '../../src/types-hoist';
-
+import type { Event } from '../../src/types-hoist/event';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { addMetadataToStackFrames, getMetadataForUrl, stripMetadataFromStackFrames } from '../../src/metadata';
 import { nodeStackLineParser } from '../../src/utils-hoist/node-stack-trace';

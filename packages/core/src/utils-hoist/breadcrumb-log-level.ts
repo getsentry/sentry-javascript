@@ -1,4 +1,4 @@
-import type { SeverityLevel } from '../types-hoist';
+import type { SeverityLevel } from '../types-hoist/severity';
 
 /**
  * Determine a breadcrumb's log level (only `warning` or `error`) based on an HTTP status code.

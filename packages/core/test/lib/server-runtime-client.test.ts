@@ -1,10 +1,9 @@
-import type { Event, EventHint } from '../../src/types-hoist';
-
 import { describe, expect, it, test, vi } from 'vitest';
 import { Scope, createTransport } from '../../src';
+import { _INTERNAL_captureLog, _INTERNAL_flushLogsBuffer } from '../../src/logs/exports';
 import type { ServerRuntimeClientOptions } from '../../src/server-runtime-client';
 import { ServerRuntimeClient } from '../../src/server-runtime-client';
-import { _INTERNAL_captureLog, _INTERNAL_flushLogsBuffer } from '../../src/logs/exports';
+import type { Event, EventHint } from '../../src/types-hoist/event';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 
