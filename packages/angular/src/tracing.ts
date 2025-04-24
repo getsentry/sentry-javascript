@@ -1,6 +1,6 @@
+import type { AfterViewInit, OnDestroy, OnInit } from '@angular/core';
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import { ElementRef } from '@angular/core';
-import type { AfterViewInit, OnDestroy, OnInit } from '@angular/core';
 import { Directive, Injectable, Input, NgModule } from '@angular/core';
 import type { ActivatedRouteSnapshot, Event, RouterState } from '@angular/router';
 // Duplicated import to work around a TypeScript bug where it'd complain that `Router` isn't imported as a type.
@@ -9,19 +9,19 @@ import type { ActivatedRouteSnapshot, Event, RouterState } from '@angular/router
 import { NavigationCancel, NavigationError, Router } from '@angular/router';
 import { NavigationEnd, NavigationStart, ResolveEnd } from '@angular/router';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   browserTracingIntegration as originalBrowserTracingIntegration,
   getActiveSpan,
   getClient,
   getCurrentScope,
   getRootSpan,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanToJSON,
   startBrowserTracingNavigationSpan,
   startInactiveSpan,
 } from '@sentry/browser';
-import { logger, stripUrlQueryAndFragment, timestampInSeconds } from '@sentry/core';
 import type { Integration, Span } from '@sentry/core';
+import { logger, stripUrlQueryAndFragment, timestampInSeconds } from '@sentry/core';
 import type { Observable } from 'rxjs';
 import { Subscription } from 'rxjs';
 import { filter, tap } from 'rxjs/operators';
