@@ -323,8 +323,6 @@ export type {
   ProfileChunkItem,
   SpanEnvelope,
   SpanItem,
-  OtelLogEnvelope,
-  OtelLogItem,
 } from './types-hoist/envelope';
 export type { ExtendedError } from './types-hoist/error';
 export type { Event, EventHint, EventType, ErrorEvent, TransactionEvent } from './types-hoist/event';
@@ -385,13 +383,7 @@ export type {
   TraceFlag,
 } from './types-hoist/span';
 export type { SpanStatus } from './types-hoist/spanStatus';
-export type {
-  Log,
-  LogSeverityLevel,
-  SerializedOtelLog,
-  SerializedLogAttribute,
-  SerializedLogAttributeValueType,
-} from './types-hoist/log';
+export type { Log, LogSeverityLevel } from './types-hoist/log';
 export type { TimedEvent } from './types-hoist/timedEvent';
 export type { StackFrame } from './types-hoist/stackframe';
 export type { Stacktrace, StackParser, StackLineParser, StackLineParserFn } from './types-hoist/stacktrace';
