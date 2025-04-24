@@ -9,92 +9,38 @@ describe('winston integration', () => {
   test('should capture winston logs with default levels', async () => {
     const runner = createRunner(__dirname, 'subject.ts')
       .expect({
-        otel_log: {
-          severityText: 'info',
-          body: {
-            stringValue: 'Test info message',
-          },
-          attributes: [
+        log: {
+          items: [
             {
-              key: 'sentry.origin',
-              value: {
-                stringValue: 'auto.logging.winston',
-              },
-            },
-            {
-              key: 'sentry.release',
-              value: {
-                stringValue: '1.0.0',
-              },
-            },
-            {
-              key: 'sentry.environment',
-              value: {
-                stringValue: 'test',
-              },
-            },
-            {
-              key: 'sentry.sdk.name',
-              value: {
-                stringValue: 'sentry.javascript.node',
-              },
-            },
-            {
-              key: 'sentry.sdk.version',
-              value: {
-                stringValue: expect.any(String),
-              },
-            },
-            {
-              key: 'server.address',
-              value: {
-                stringValue: expect.any(String),
+              timestamp: expect.any(Number),
+              level: 'info',
+              body: 'Test info message',
+              attributes: {
+                'sentry.origin': { value: 'auto.logging.winston', type: 'string' },
+                'sentry.release': { value: '1.0.0', type: 'string' },
+                'sentry.environment': { value: 'test', type: 'string' },
+                'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+                'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+                'server.address': { value: expect.any(String), type: 'string' },
               },
             },
           ],
         },
       })
       .expect({
-        otel_log: {
-          severityText: 'error',
-          body: {
-            stringValue: 'Test error message',
-          },
-          attributes: [
+        log: {
+          items: [
             {
-              key: 'sentry.origin',
-              value: {
-                stringValue: 'auto.logging.winston',
-              },
-            },
-            {
-              key: 'sentry.release',
-              value: {
-                stringValue: '1.0.0',
-              },
-            },
-            {
-              key: 'sentry.environment',
-              value: {
-                stringValue: 'test',
-              },
-            },
-            {
-              key: 'sentry.sdk.name',
-              value: {
-                stringValue: 'sentry.javascript.node',
-              },
-            },
-            {
-              key: 'sentry.sdk.version',
-              value: {
-                stringValue: expect.any(String),
-              },
-            },
-            {
-              key: 'server.address',
-              value: {
-                stringValue: expect.any(String),
+              timestamp: expect.any(Number),
+              level: 'error',
+              body: 'Test error message',
+              attributes: {
+                'sentry.origin': { value: 'auto.logging.winston', type: 'string' },
+                'sentry.release': { value: '1.0.0', type: 'string' },
+                'sentry.environment': { value: 'test', type: 'string' },
+                'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+                'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+                'server.address': { value: expect.any(String), type: 'string' },
               },
             },
           ],
@@ -109,92 +55,38 @@ describe('winston integration', () => {
     const runner = createRunner(__dirname, 'subject.ts')
       .withEnv({ CUSTOM_LEVELS: 'true' })
       .expect({
-        otel_log: {
-          severityText: 'info',
-          body: {
-            stringValue: 'Test info message',
-          },
-          attributes: [
+        log: {
+          items: [
             {
-              key: 'sentry.origin',
-              value: {
-                stringValue: 'auto.logging.winston',
-              },
-            },
-            {
-              key: 'sentry.release',
-              value: {
-                stringValue: '1.0.0',
-              },
-            },
-            {
-              key: 'sentry.environment',
-              value: {
-                stringValue: 'test',
-              },
-            },
-            {
-              key: 'sentry.sdk.name',
-              value: {
-                stringValue: 'sentry.javascript.node',
-              },
-            },
-            {
-              key: 'sentry.sdk.version',
-              value: {
-                stringValue: expect.any(String),
-              },
-            },
-            {
-              key: 'server.address',
-              value: {
-                stringValue: expect.any(String),
+              timestamp: expect.any(Number),
+              level: 'info',
+              body: 'Test info message',
+              attributes: {
+                'sentry.origin': { value: 'auto.logging.winston', type: 'string' },
+                'sentry.release': { value: '1.0.0', type: 'string' },
+                'sentry.environment': { value: 'test', type: 'string' },
+                'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+                'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+                'server.address': { value: expect.any(String), type: 'string' },
               },
             },
           ],
         },
       })
       .expect({
-        otel_log: {
-          severityText: 'error',
-          body: {
-            stringValue: 'Test error message',
-          },
-          attributes: [
+        log: {
+          items: [
             {
-              key: 'sentry.origin',
-              value: {
-                stringValue: 'auto.logging.winston',
-              },
-            },
-            {
-              key: 'sentry.release',
-              value: {
-                stringValue: '1.0.0',
-              },
-            },
-            {
-              key: 'sentry.environment',
-              value: {
-                stringValue: 'test',
-              },
-            },
-            {
-              key: 'sentry.sdk.name',
-              value: {
-                stringValue: 'sentry.javascript.node',
-              },
-            },
-            {
-              key: 'sentry.sdk.version',
-              value: {
-                stringValue: expect.any(String),
-              },
-            },
-            {
-              key: 'server.address',
-              value: {
-                stringValue: expect.any(String),
+              timestamp: expect.any(Number),
+              level: 'error',
+              body: 'Test error message',
+              attributes: {
+                'sentry.origin': { value: 'auto.logging.winston', type: 'string' },
+                'sentry.release': { value: '1.0.0', type: 'string' },
+                'sentry.environment': { value: 'test', type: 'string' },
+                'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+                'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+                'server.address': { value: expect.any(String), type: 'string' },
               },
             },
           ],
@@ -209,92 +101,38 @@ describe('winston integration', () => {
     const runner = createRunner(__dirname, 'subject.ts')
       .withEnv({ WITH_METADATA: 'true' })
       .expect({
-        otel_log: {
-          severityText: 'info',
-          body: {
-            stringValue: 'Test info message',
-          },
-          attributes: [
+        log: {
+          items: [
             {
-              key: 'sentry.origin',
-              value: {
-                stringValue: 'auto.logging.winston',
-              },
-            },
-            {
-              key: 'sentry.release',
-              value: {
-                stringValue: '1.0.0',
-              },
-            },
-            {
-              key: 'sentry.environment',
-              value: {
-                stringValue: 'test',
-              },
-            },
-            {
-              key: 'sentry.sdk.name',
-              value: {
-                stringValue: 'sentry.javascript.node',
-              },
-            },
-            {
-              key: 'sentry.sdk.version',
-              value: {
-                stringValue: expect.any(String),
-              },
-            },
-            {
-              key: 'server.address',
-              value: {
-                stringValue: expect.any(String),
+              timestamp: expect.any(Number),
+              level: 'info',
+              body: 'Test info message',
+              attributes: {
+                'sentry.origin': { value: 'auto.logging.winston', type: 'string' },
+                'sentry.release': { value: '1.0.0', type: 'string' },
+                'sentry.environment': { value: 'test', type: 'string' },
+                'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+                'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+                'server.address': { value: expect.any(String), type: 'string' },
               },
             },
           ],
         },
       })
       .expect({
-        otel_log: {
-          severityText: 'error',
-          body: {
-            stringValue: 'Test error message',
-          },
-          attributes: [
+        log: {
+          items: [
             {
-              key: 'sentry.origin',
-              value: {
-                stringValue: 'auto.logging.winston',
-              },
-            },
-            {
-              key: 'sentry.release',
-              value: {
-                stringValue: '1.0.0',
-              },
-            },
-            {
-              key: 'sentry.environment',
-              value: {
-                stringValue: 'test',
-              },
-            },
-            {
-              key: 'sentry.sdk.name',
-              value: {
-                stringValue: 'sentry.javascript.node',
-              },
-            },
-            {
-              key: 'sentry.sdk.version',
-              value: {
-                stringValue: expect.any(String),
-              },
-            },
-            {
-              key: 'server.address',
-              value: {
-                stringValue: expect.any(String),
+              timestamp: expect.any(Number),
+              level: 'error',
+              body: 'Test error message',
+              attributes: {
+                'sentry.origin': { value: 'auto.logging.winston', type: 'string' },
+                'sentry.release': { value: '1.0.0', type: 'string' },
+                'sentry.environment': { value: 'test', type: 'string' },
+                'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+                'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+                'server.address': { value: expect.any(String), type: 'string' },
               },
             },
           ],

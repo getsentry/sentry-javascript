@@ -323,6 +323,7 @@ export type {
   ProfileChunkItem,
   SpanEnvelope,
   SpanItem,
+  LogEnvelope,
 } from './types-hoist/envelope';
 export type { ExtendedError } from './types-hoist/error';
 export type { Event, EventHint, EventType, ErrorEvent, TransactionEvent } from './types-hoist/event';
@@ -435,3 +436,4 @@ export type { ParameterizedString } from './types-hoist/parameterize';
 export type { ContinuousProfiler, ProfilingIntegration, Profiler } from './types-hoist/profiling';
 export type { ViewHierarchyData, ViewHierarchyWindow } from './types-hoist/view-hierarchy';
 export type { LegacyCSPReport } from './types-hoist/csp';
+export type { SerializedLog, SerializedLogContainer } from './types-hoist/log';

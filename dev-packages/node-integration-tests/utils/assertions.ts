@@ -3,7 +3,7 @@ import type {
   Envelope,
   Event,
   SerializedCheckIn,
-  SerializedOtelLog,
+  SerializedLogContainer,
   SerializedSession,
   SessionAggregates,
   TransactionEvent,
@@ -67,7 +67,10 @@ export function assertSentryClientReport(actual: ClientReport, expected: Partial
   });
 }
 
-export function assertSentryOtelLog(actual: SerializedOtelLog, expected: Partial<SerializedOtelLog>): void {
+export function assertSentryLogContainer(
+  actual: SerializedLogContainer,
+  expected: Partial<SerializedLogContainer>,
+): void {
   expect(actual).toMatchObject({
     ...expected,
   });

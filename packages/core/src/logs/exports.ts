@@ -154,7 +154,7 @@ export function _INTERNAL_captureLog(
   if (logBuffer === undefined) {
     CLIENT_TO_LOG_BUFFER_MAP.set(client, [serializedLog]);
   } else {
-    logBuffer.push(serializedLog);
+    CLIENT_TO_LOG_BUFFER_MAP.set(client, [...logBuffer, serializedLog]);
     if (logBuffer.length > MAX_LOG_BUFFER_SIZE) {
       _INTERNAL_flushLogsBuffer(client, logBuffer);
     }
@@ -173,7 +173,7 @@ export function _INTERNAL_captureLog(
  * the stable Sentry SDK API and can be changed or removed without warning.
  */
 export function _INTERNAL_flushLogsBuffer(client: Client, maybeLogBuffer?: Array<SerializedLog>): void {
-  const logBuffer = maybeLogBuffer ?? CLIENT_TO_LOG_BUFFER_MAP.get(client) ?? [];
+  const logBuffer = maybeLogBuffer ?? _INTERNAL_getLogBuffer(client) ?? [];
   if (logBuffer.length === 0) {
     return;
   }
@@ -182,7 +182,7 @@ export function _INTERNAL_flushLogsBuffer(client: Client, maybeLogBuffer?: Array
   const envelope = createLogEnvelope(logBuffer, clientOptions._metadata, clientOptions.tunnel, client.getDsn());
 
   // Clear the log buffer after envelopes have been constructed.
-  logBuffer.length = 0;
+  CLIENT_TO_LOG_BUFFER_MAP.set(client, []);
 
   client.emit('flushLogs');
 

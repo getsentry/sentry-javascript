@@ -1,5 +1,6 @@
 import { expect } from '@playwright/test';
-import type { OtelLogEnvelope } from '@sentry/core';
+import type { LogEnvelope } from '@sentry/core';
+
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, properFullEnvelopeRequestParser } from '../../../../utils/helpers';
 
@@ -12,510 +13,156 @@ sentryTest('should capture all logging methods', async ({ getLocalTestUrl, page 
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  const event = await getFirstSentryEnvelopeRequest<OtelLogEnvelope>(page, url, properFullEnvelopeRequestParser);
+  const event = await getFirstSentryEnvelopeRequest<LogEnvelope>(page, url, properFullEnvelopeRequestParser);
   const envelopeItems = event[1];
 
   expect(envelopeItems[0]).toEqual([
     {
-      type: 'otel_log',
+      type: 'log',
+      item_count: 12,
+      content_type: 'application/vnd.sentry.items.log+json',
     },
     {
-      severityText: 'trace',
-      body: { stringValue: 'test trace' },
-      attributes: [
+      items: [
         {
-          key: 'sentry.sdk.name',
-          value: {
-            stringValue: 'sentry.javascript.browser',
+          timestamp: expect.any(Number),
+          level: 'trace',
+          body: 'test trace',
+          attributes: {
+            'sentry.sdk.name': { value: 'sentry.javascript.browser', type: 'string' },
+            'sentry.sdk.version': { value: expect.any(String), type: 'string' },
           },
         },
         {
-          key: 'sentry.sdk.version',
-          value: {
-            stringValue: expect.any(String),
+          timestamp: expect.any(Number),
+          level: 'debug',
+          body: 'test debug',
+          attributes: {
+            'sentry.sdk.name': { value: 'sentry.javascript.browser', type: 'string' },
+            'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+          },
+        },
+        {
+          timestamp: expect.any(Number),
+          level: 'info',
+          body: 'test info',
+          attributes: {
+            'sentry.sdk.name': { value: 'sentry.javascript.browser', type: 'string' },
+            'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+          },
+        },
+        {
+          timestamp: expect.any(Number),
+          level: 'warn',
+          body: 'test warn',
+          attributes: {
+            'sentry.sdk.name': { value: 'sentry.javascript.browser', type: 'string' },
+            'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+          },
+        },
+        {
+          timestamp: expect.any(Number),
+          level: 'error',
+          body: 'test error',
+          attributes: {
+            'sentry.sdk.name': { value: 'sentry.javascript.browser', type: 'string' },
+            'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+          },
+        },
+        {
+          timestamp: expect.any(Number),
+          level: 'fatal',
+          body: 'test fatal',
+          attributes: {
+            'sentry.sdk.name': { value: 'sentry.javascript.browser', type: 'string' },
+            'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+          },
+        },
+        {
+          timestamp: expect.any(Number),
+          level: 'trace',
+          body: 'test trace stringArg false 123',
+          attributes: {
+            'sentry.sdk.name': { value: 'sentry.javascript.browser', type: 'string' },
+            'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+            'sentry.message.template': { value: 'test %s %s %s %s', type: 'string' },
+            'sentry.message.parameter.0': { value: 'trace', type: 'string' },
+            'sentry.message.parameter.1': { value: 'stringArg', type: 'string' },
+            'sentry.message.parameter.2': { value: false, type: 'boolean' },
+            'sentry.message.parameter.3': { value: 123, type: 'number' },
+          },
+        },
+        {
+          timestamp: expect.any(Number),
+          level: 'debug',
+          body: 'test debug stringArg false 123',
+          attributes: {
+            'sentry.sdk.name': { value: 'sentry.javascript.browser', type: 'string' },
+            'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+            'sentry.message.template': { value: 'test %s %s %s %s', type: 'string' },
+            'sentry.message.parameter.0': { value: 'debug', type: 'string' },
+            'sentry.message.parameter.1': { value: 'stringArg', type: 'string' },
+            'sentry.message.parameter.2': { value: false, type: 'boolean' },
+            'sentry.message.parameter.3': { value: 123, type: 'number' },
+          },
+        },
+        {
+          timestamp: expect.any(Number),
+          level: 'info',
+          body: 'test info stringArg false 123',
+          attributes: {
+            'sentry.sdk.name': { value: 'sentry.javascript.browser', type: 'string' },
+            'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+            'sentry.message.template': { value: 'test %s %s %s %s', type: 'string' },
+            'sentry.message.parameter.0': { value: 'info', type: 'string' },
+            'sentry.message.parameter.1': { value: 'stringArg', type: 'string' },
+            'sentry.message.parameter.2': { value: false, type: 'boolean' },
+            'sentry.message.parameter.3': { value: 123, type: 'number' },
+          },
+        },
+        {
+          timestamp: expect.any(Number),
+          level: 'warn',
+          body: 'test warn stringArg false 123',
+          attributes: {
+            'sentry.sdk.name': { value: 'sentry.javascript.browser', type: 'string' },
+            'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+            'sentry.message.template': { value: 'test %s %s %s %s', type: 'string' },
+            'sentry.message.parameter.0': { value: 'warn', type: 'string' },
+            'sentry.message.parameter.1': { value: 'stringArg', type: 'string' },
+            'sentry.message.parameter.2': { value: false, type: 'boolean' },
+            'sentry.message.parameter.3': { value: 123, type: 'number' },
+          },
+        },
+        {
+          timestamp: expect.any(Number),
+          level: 'error',
+          body: 'test error stringArg false 123',
+          attributes: {
+            'sentry.sdk.name': { value: 'sentry.javascript.browser', type: 'string' },
+            'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+            'sentry.message.template': { value: 'test %s %s %s %s', type: 'string' },
+            'sentry.message.parameter.0': { value: 'error', type: 'string' },
+            'sentry.message.parameter.1': { value: 'stringArg', type: 'string' },
+            'sentry.message.parameter.2': { value: false, type: 'boolean' },
+            'sentry.message.parameter.3': { value: 123, type: 'number' },
+          },
+        },
+        {
+          timestamp: expect.any(Number),
+          level: 'fatal',
+          body: 'test fatal stringArg false 123',
+          attributes: {
+            'sentry.sdk.name': { value: 'sentry.javascript.browser', type: 'string' },
+            'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+            'sentry.message.template': { value: 'test %s %s %s %s', type: 'string' },
+            'sentry.message.parameter.0': { value: 'fatal', type: 'string' },
+            'sentry.message.parameter.1': { value: 'stringArg', type: 'string' },
+            'sentry.message.parameter.2': { value: false, type: 'boolean' },
+            'sentry.message.parameter.3': { value: 123, type: 'number' },
           },
         },
       ],
-      timeUnixNano: expect.any(String),
-      traceId: expect.any(String),
-      severityNumber: 1,
-    },
-  ]);
-
-  expect(envelopeItems[1]).toEqual([
-    {
-      type: 'otel_log',
-    },
-    {
-      severityText: 'debug',
-      body: { stringValue: 'test debug' },
-      attributes: [
-        {
-          key: 'sentry.sdk.name',
-          value: {
-            stringValue: 'sentry.javascript.browser',
-          },
-        },
-        {
-          key: 'sentry.sdk.version',
-          value: {
-            stringValue: expect.any(String),
-          },
-        },
-      ],
-      timeUnixNano: expect.any(String),
-      traceId: expect.any(String),
-      severityNumber: 5,
-    },
-  ]);
-
-  expect(envelopeItems[2]).toEqual([
-    {
-      type: 'otel_log',
-    },
-    {
-      severityText: 'info',
-      body: { stringValue: 'test info' },
-      attributes: [
-        {
-          key: 'sentry.sdk.name',
-          value: {
-            stringValue: 'sentry.javascript.browser',
-          },
-        },
-        {
-          key: 'sentry.sdk.version',
-          value: {
-            stringValue: expect.any(String),
-          },
-        },
-      ],
-      timeUnixNano: expect.any(String),
-      traceId: expect.any(String),
-      severityNumber: 9,
-    },
-  ]);
-
-  expect(envelopeItems[3]).toEqual([
-    {
-      type: 'otel_log',
-    },
-    {
-      severityText: 'warn',
-      body: { stringValue: 'test warn' },
-      attributes: [
-        {
-          key: 'sentry.sdk.name',
-          value: {
-            stringValue: 'sentry.javascript.browser',
-          },
-        },
-        {
-          key: 'sentry.sdk.version',
-          value: {
-            stringValue: expect.any(String),
-          },
-        },
-      ],
-      timeUnixNano: expect.any(String),
-      traceId: expect.any(String),
-      severityNumber: 13,
-    },
-  ]);
-
-  expect(envelopeItems[4]).toEqual([
-    {
-      type: 'otel_log',
-    },
-    {
-      severityText: 'error',
-      body: { stringValue: 'test error' },
-      attributes: [
-        {
-          key: 'sentry.sdk.name',
-          value: {
-            stringValue: 'sentry.javascript.browser',
-          },
-        },
-        {
-          key: 'sentry.sdk.version',
-          value: {
-            stringValue: expect.any(String),
-          },
-        },
-      ],
-      timeUnixNano: expect.any(String),
-      traceId: expect.any(String),
-      severityNumber: 17,
-    },
-  ]);
-
-  expect(envelopeItems[5]).toEqual([
-    {
-      type: 'otel_log',
-    },
-    {
-      severityText: 'fatal',
-      body: { stringValue: 'test fatal' },
-      attributes: [
-        {
-          key: 'sentry.sdk.name',
-          value: {
-            stringValue: 'sentry.javascript.browser',
-          },
-        },
-        {
-          key: 'sentry.sdk.version',
-          value: {
-            stringValue: expect.any(String),
-          },
-        },
-      ],
-      timeUnixNano: expect.any(String),
-      traceId: expect.any(String),
-      severityNumber: 21,
-    },
-  ]);
-
-  expect(envelopeItems[6]).toEqual([
-    {
-      type: 'otel_log',
-    },
-    {
-      severityText: 'trace',
-      body: { stringValue: 'test trace stringArg false 123' },
-      attributes: [
-        {
-          key: 'sentry.sdk.name',
-          value: {
-            stringValue: 'sentry.javascript.browser',
-          },
-        },
-        {
-          key: 'sentry.sdk.version',
-          value: {
-            stringValue: expect.any(String),
-          },
-        },
-        {
-          key: 'sentry.message.template',
-          value: {
-            stringValue: 'test %s %s %s %s',
-          },
-        },
-        {
-          key: 'sentry.message.parameter.0',
-          value: {
-            stringValue: 'trace',
-          },
-        },
-        {
-          key: 'sentry.message.parameter.1',
-          value: {
-            stringValue: 'stringArg',
-          },
-        },
-        {
-          key: 'sentry.message.parameter.2',
-          value: {
-            boolValue: false,
-          },
-        },
-        {
-          key: 'sentry.message.parameter.3',
-          value: {
-            doubleValue: 123,
-          },
-        },
-      ],
-      timeUnixNano: expect.any(String),
-      traceId: expect.any(String),
-      severityNumber: 1,
-    },
-  ]);
-
-  expect(envelopeItems[7]).toEqual([
-    {
-      type: 'otel_log',
-    },
-    {
-      severityText: 'debug',
-      body: { stringValue: 'test debug stringArg false 123' },
-      attributes: [
-        {
-          key: 'sentry.sdk.name',
-          value: {
-            stringValue: 'sentry.javascript.browser',
-          },
-        },
-        {
-          key: 'sentry.sdk.version',
-          value: {
-            stringValue: expect.any(String),
-          },
-        },
-        {
-          key: 'sentry.message.template',
-          value: {
-            stringValue: 'test %s %s %s %s',
-          },
-        },
-        {
-          key: 'sentry.message.parameter.0',
-          value: {
-            stringValue: 'debug',
-          },
-        },
-        {
-          key: 'sentry.message.parameter.1',
-          value: {
-            stringValue: 'stringArg',
-          },
-        },
-        {
-          key: 'sentry.message.parameter.2',
-          value: {
-            boolValue: false,
-          },
-        },
-        {
-          key: 'sentry.message.parameter.3',
-          value: {
-            doubleValue: 123,
-          },
-        },
-      ],
-      timeUnixNano: expect.any(String),
-      traceId: expect.any(String),
-      severityNumber: 5,
-    },
-  ]);
-
-  expect(envelopeItems[8]).toEqual([
-    {
-      type: 'otel_log',
-    },
-    {
-      severityText: 'info',
-      body: { stringValue: 'test info stringArg false 123' },
-      attributes: [
-        {
-          key: 'sentry.sdk.name',
-          value: {
-            stringValue: 'sentry.javascript.browser',
-          },
-        },
-        {
-          key: 'sentry.sdk.version',
-          value: {
-            stringValue: expect.any(String),
-          },
-        },
-        {
-          key: 'sentry.message.template',
-          value: {
-            stringValue: 'test %s %s %s %s',
-          },
-        },
-        {
-          key: 'sentry.message.parameter.0',
-          value: {
-            stringValue: 'info',
-          },
-        },
-        {
-          key: 'sentry.message.parameter.1',
-          value: {
-            stringValue: 'stringArg',
-          },
-        },
-        {
-          key: 'sentry.message.parameter.2',
-          value: {
-            boolValue: false,
-          },
-        },
-        {
-          key: 'sentry.message.parameter.3',
-          value: {
-            doubleValue: 123,
-          },
-        },
-      ],
-      timeUnixNano: expect.any(String),
-      traceId: expect.any(String),
-      severityNumber: 9,
-    },
-  ]);
-
-  expect(envelopeItems[9]).toEqual([
-    {
-      type: 'otel_log',
-    },
-    {
-      severityText: 'warn',
-      body: { stringValue: 'test warn stringArg false 123' },
-      attributes: [
-        {
-          key: 'sentry.sdk.name',
-          value: {
-            stringValue: 'sentry.javascript.browser',
-          },
-        },
-        {
-          key: 'sentry.sdk.version',
-          value: {
-            stringValue: expect.any(String),
-          },
-        },
-        {
-          key: 'sentry.message.template',
-          value: {
-            stringValue: 'test %s %s %s %s',
-          },
-        },
-        {
-          key: 'sentry.message.parameter.0',
-          value: {
-            stringValue: 'warn',
-          },
-        },
-        {
-          key: 'sentry.message.parameter.1',
-          value: {
-            stringValue: 'stringArg',
-          },
-        },
-        {
-          key: 'sentry.message.parameter.2',
-          value: {
-            boolValue: false,
-          },
-        },
-        {
-          key: 'sentry.message.parameter.3',
-          value: {
-            doubleValue: 123,
-          },
-        },
-      ],
-      timeUnixNano: expect.any(String),
-      traceId: expect.any(String),
-      severityNumber: 13,
-    },
-  ]);
-
-  expect(envelopeItems[10]).toEqual([
-    {
-      type: 'otel_log',
-    },
-    {
-      severityText: 'error',
-      body: { stringValue: 'test error stringArg false 123' },
-      attributes: [
-        {
-          key: 'sentry.sdk.name',
-          value: {
-            stringValue: 'sentry.javascript.browser',
-          },
-        },
-        {
-          key: 'sentry.sdk.version',
-          value: {
-            stringValue: expect.any(String),
-          },
-        },
-        {
-          key: 'sentry.message.template',
-          value: {
-            stringValue: 'test %s %s %s %s',
-          },
-        },
-        {
-          key: 'sentry.message.parameter.0',
-          value: {
-            stringValue: 'error',
-          },
-        },
-        {
-          key: 'sentry.message.parameter.1',
-          value: {
-            stringValue: 'stringArg',
-          },
-        },
-        {
-          key: 'sentry.message.parameter.2',
-          value: {
-            boolValue: false,
-          },
-        },
-        {
-          key: 'sentry.message.parameter.3',
-          value: {
-            doubleValue: 123,
-          },
-        },
-      ],
-      timeUnixNano: expect.any(String),
-      traceId: expect.any(String),
-      severityNumber: 17,
-    },
-  ]);
-
-  expect(envelopeItems[11]).toEqual([
-    {
-      type: 'otel_log',
-    },
-    {
-      severityText: 'fatal',
-      body: { stringValue: 'test fatal stringArg false 123' },
-      attributes: [
-        {
-          key: 'sentry.sdk.name',
-          value: {
-            stringValue: 'sentry.javascript.browser',
-          },
-        },
-        {
-          key: 'sentry.sdk.version',
-          value: {
-            stringValue: expect.any(String),
-          },
-        },
-        {
-          key: 'sentry.message.template',
-          value: {
-            stringValue: 'test %s %s %s %s',
-          },
-        },
-        {
-          key: 'sentry.message.parameter.0',
-          value: {
-            stringValue: 'fatal',
-          },
-        },
-        {
-          key: 'sentry.message.parameter.1',
-          value: {
-            stringValue: 'stringArg',
-          },
-        },
-        {
-          key: 'sentry.message.parameter.2',
-          value: {
-            boolValue: false,
-          },
-        },
-        {
-          key: 'sentry.message.parameter.3',
-          value: {
-            doubleValue: 123,
-          },
-        },
-      ],
-      timeUnixNano: expect.any(String),
-      traceId: expect.any(String),
-      severityNumber: 21,
     },
   ]);
 });
