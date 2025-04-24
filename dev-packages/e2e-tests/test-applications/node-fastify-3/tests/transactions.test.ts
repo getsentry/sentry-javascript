@@ -126,7 +126,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
 });
 
 test('Captures request metadata', async ({ baseURL }) => {
-  const transactionEventPromise = waitForTransaction('node-fastify', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('node-fastify-3', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' && transactionEvent?.transaction === 'POST /test-post'
     );
