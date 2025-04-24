@@ -88,6 +88,7 @@ export {
   spanToTraceHeader,
   spanToBaggageHeader,
   updateSpanName,
+  wrapMcpServerWithSentry,
 } from '@sentry/core';
 
 export { withSentry } from './handler';
