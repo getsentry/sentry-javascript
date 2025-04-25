@@ -3,8 +3,6 @@
  */
 
 import '../utils/mock-internal-setTimeout';
-import type { MockInstance, MockedFunction } from 'vitest';
-
 import type { Transport } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import * as SentryBrowserUtils from '@sentry-internal/browser-utils';

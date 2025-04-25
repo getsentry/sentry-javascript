@@ -3,12 +3,10 @@
  */
 
 import '../utils/mock-internal-setTimeout';
+import * as SentryUtils from '@sentry/core';
+import * as SentryBrowserUtils from '@sentry-internal/browser-utils';
 import type { MockedFunction } from 'vitest';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-
-import * as SentryBrowserUtils from '@sentry-internal/browser-utils';
-import * as SentryUtils from '@sentry/core';
-
 import { DEFAULT_FLUSH_MIN_DELAY, MAX_REPLAY_DURATION, WINDOW } from '../../src/constants';
 import type { Replay } from '../../src/integration';
 import type { ReplayContainer } from '../../src/replay';
@@ -21,9 +19,6 @@ import * as SendReplay from '../../src/util/sendReplay';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '../index';
 import type { DomHandler } from '../types';
 import { getTestEventCheckout } from '../utils/getTestEvent';
-import { useFakeTimers } from '../utils/use-fake-timers';
-
-useFakeTimers();
 
 type MockSendReplay = MockedFunction<any>;
 type MockAddPerformanceEntries = MockedFunction<ReplayContainer['_addPerformanceEntries']>;

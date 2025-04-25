@@ -11,7 +11,6 @@ import * as SentryAddEvent from '../../../src/util/addEvent';
 import { createOptionsEvent, getHandleRecordingEmit } from '../../../src/util/handleRecordingEmit';
 import { BASE_TIMESTAMP } from '../..';
 import { setupReplayContainer } from '../../utils/setupReplayContainer';
-import { BASE_TIMESTAMP } from '../..';
 
 let optionsEvent: ReplayOptionFrameEvent;
 

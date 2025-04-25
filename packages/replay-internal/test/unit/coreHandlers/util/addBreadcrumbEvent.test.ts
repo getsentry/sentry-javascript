@@ -8,7 +8,6 @@ import { addBreadcrumbEvent } from '../../../../src/coreHandlers/util/addBreadcr
 import type { EventBufferArray } from '../../../../src/eventBuffer/EventBufferArray';
 import { BASE_TIMESTAMP } from '../../..';
 import { setupReplayContainer } from '../../../utils/setupReplayContainer';
-import { BASE_TIMESTAMP } from '../../..';
 
 describe('Unit | coreHandlers | util | addBreadcrumbEvent', function () {
   beforeAll(() => {

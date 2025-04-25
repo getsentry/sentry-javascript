@@ -11,7 +11,6 @@ import { addEvent, shouldAddEvent } from '../../../src/util/addEvent';
 import { BASE_TIMESTAMP } from '../..';
 import { getTestEventIncremental } from '../../utils/getTestEvent';
 import { setupReplayContainer } from '../../utils/setupReplayContainer';
-import { BASE_TIMESTAMP } from '../..';
 
 describe('Unit | util | addEvent', () => {
   beforeAll(() => {

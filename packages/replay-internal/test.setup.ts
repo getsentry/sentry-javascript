@@ -1,5 +1,6 @@
-import type { ReplayRecordingData, Transport } from '@sentry/core';
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+
+import type { ReplayRecordingData, Transport } from '@sentry/core';
 import { getClient } from '@sentry/core';
 import * as SentryUtils from '@sentry/core';
 import { printDiffOrStringify } from 'jest-matcher-utils';

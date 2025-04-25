@@ -18,7 +18,6 @@ import type { EventBufferArray } from '../../../src/eventBuffer/EventBufferArray
 import type { ReplayContainer, ReplayNetworkOptions } from '../../../src/types';
 import { BASE_TIMESTAMP } from '../..';
 import { setupReplayContainer } from '../../utils/setupReplayContainer';
-import { BASE_TIMESTAMP } from '../..';
 
 async function waitForReplayEventBuffer() {
   // Need one Promise.resolve() per await in the util functions
