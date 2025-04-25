@@ -2,19 +2,15 @@
  * @vitest-environment jsdom
  */
 
-import type { MockedFunction } from 'vitest';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
-import { getClient } from '@sentry/core';
+import '../utils/use-fake-timers';
 import type { Transport, TransportMakeRequestResponse } from '@sentry/core';
-
+import { getClient } from '@sentry/core';
+import type { MockedFunction } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_FLUSH_MIN_DELAY } from '../../src/constants';
 import type { ReplayContainer } from '../../src/replay';
 import { clearSession } from '../../src/session/clearSession';
 import { BASE_TIMESTAMP, mockSdk } from '../index';
-import { useFakeTimers } from '../utils/use-fake-timers';
-
-useFakeTimers();
 
 async function advanceTimers(time: number) {
   vi.advanceTimersByTime(time);
@@ -26,6 +22,10 @@ type MockTransportSend = MockedFunction<Transport['send']>;
 describe('Integration | rate-limiting behaviour', () => {
   let replay: ReplayContainer;
   let mockTransportSend: MockTransportSend;
+
+  beforeAll(() => {
+    vi.useFakeTimers();
+  });
 
   beforeEach(async () => {
     vi.setSystemTime(new Date(BASE_TIMESTAMP));

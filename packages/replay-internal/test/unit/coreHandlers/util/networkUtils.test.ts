@@ -2,8 +2,8 @@
  * @vitest-environment jsdom
  */
 
-import { describe, expect, it } from 'vitest';
-
+import '../../../utils/use-fake-timers';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { NETWORK_BODY_MAX_SIZE } from '../../../../src/constants';
 import {
   buildNetworkRequestOrResponse,
@@ -11,11 +11,12 @@ import {
   getFullUrl,
   parseContentLengthHeader,
 } from '../../../../src/coreHandlers/util/networkUtils';
-import { useFakeTimers } from '../../../utils/use-fake-timers';
-
-useFakeTimers();
 
 describe('Unit | coreHandlers | util | networkUtils', () => {
+  beforeAll(() => {
+    vi.useFakeTimers();
+  });
+
   describe('parseContentLengthHeader()', () => {
     it.each([
       [undefined, undefined],

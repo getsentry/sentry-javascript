@@ -2,13 +2,13 @@
  * @vitest-environment jsdom
  */
 
+import '../utils/use-fake-timers';
+
 import type { MockInstance, MockedFunction } from 'vitest';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-
 import * as SentryBrowserUtils from '@sentry-internal/browser-utils';
 import * as SentryCore from '@sentry/core';
 import type { Transport } from '@sentry/core';
-
 import { DEFAULT_FLUSH_MIN_DELAY, WINDOW } from '../../src/constants';
 import type { ReplayContainer } from '../../src/replay';
 import { clearSession } from '../../src/session/clearSession';
@@ -17,9 +17,6 @@ import * as SendReplayRequest from '../../src/util/sendReplayRequest';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '../index';
 import type { DomHandler } from '../types';
 import { getTestEventCheckout, getTestEventIncremental } from '../utils/getTestEvent';
-import { useFakeTimers } from '../utils/use-fake-timers';
-
-useFakeTimers();
 
 type MockTransportSend = MockedFunction<Transport['send']>;
 
@@ -32,6 +29,7 @@ describe('Integration | sendReplayEvent', () => {
   const { record: mockRecord } = mockRrweb();
 
   beforeAll(async () => {
+    vi.useFakeTimers();
     vi.setSystemTime(new Date(BASE_TIMESTAMP));
     vi.spyOn(SentryBrowserUtils, 'addClickKeypressInstrumentationHandler').mockImplementation(handler => {
       domHandler = handler;

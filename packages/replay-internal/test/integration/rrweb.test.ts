@@ -2,14 +2,15 @@
  * @vitest-environment jsdom
  */
 
-import { afterEach, describe, expect, it, vi } from 'vitest';
-
+import '../utils/use-fake-timers';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { resetSdkMock } from '../mocks/resetSdkMock';
-import { useFakeTimers } from '../utils/use-fake-timers';
-
-useFakeTimers();
 
 describe('Integration | rrweb', () => {
+  beforeAll(() => {
+    vi.useFakeTimers();
+  });
+
   afterEach(() => {
     vi.clearAllMocks();
   });
