@@ -2,19 +2,19 @@
  * @vitest-environment jsdom
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
-import { getClient, getCurrentScope } from '@sentry/core';
+import '../utils/mock-internal-setTimeout';
 import type { Event } from '@sentry/core';
-
+import { getClient, getCurrentScope } from '@sentry/core';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BASE_TIMESTAMP } from '..';
 import { resetSdkMock } from '../mocks/resetSdkMock';
 import { getTestEventIncremental } from '../utils/getTestEvent';
-import { useFakeTimers } from '../utils/use-fake-timers';
-
-useFakeTimers();
 
 describe('Integration | eventProcessors', () => {
+  beforeAll(() => {
+    vi.useFakeTimers();
+  });
+
   beforeEach(() => {
     getCurrentScope().clear();
     getCurrentScope().setClient(undefined);

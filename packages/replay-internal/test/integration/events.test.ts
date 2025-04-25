@@ -2,6 +2,8 @@
  * @vitest-environment jsdom
  */
 
+import '../utils/mock-internal-setTimeout';
+import { getClient } from '@sentry/core';
 import type { MockInstance } from 'vitest';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -16,9 +18,6 @@ import type { RecordMock } from '../index';
 import { BASE_TIMESTAMP } from '../index';
 import { resetSdkMock } from '../mocks/resetSdkMock';
 import { getTestEventCheckout } from '../utils/getTestEvent';
-import { useFakeTimers } from '../utils/use-fake-timers';
-
-useFakeTimers();
 
 async function advanceTimers(time: number) {
   vi.advanceTimersByTime(time);
@@ -32,8 +31,9 @@ describe('Integration | events', () => {
   const prevLocation = WINDOW.location;
 
   beforeAll(async () => {
+    vi.useFakeTimers();
     vi.setSystemTime(new Date(BASE_TIMESTAMP));
-    vi.runAllTimers();
+    vi.runAllTimers(); // TODO???
   });
 
   beforeEach(async () => {

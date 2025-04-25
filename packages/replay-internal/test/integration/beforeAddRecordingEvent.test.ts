@@ -2,6 +2,7 @@
  * @vitest-environment jsdom
  */
 
+import '../utils/mock-internal-setTimeout';
 import type { MockInstance, MockedFunction } from 'vitest';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -17,9 +18,6 @@ import { createPerformanceSpans } from '../../src/util/createPerformanceSpans';
 import * as SendReplayRequest from '../../src/util/sendReplayRequest';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '../index';
 import type { DomHandler } from '../types';
-import { useFakeTimers } from '../utils/use-fake-timers';
-
-useFakeTimers();
 
 type MockTransportSend = MockedFunction<Transport['send']>;
 
@@ -32,6 +30,7 @@ describe('Integration | beforeAddRecordingEvent', () => {
   const { record: mockRecord } = mockRrweb();
 
   beforeAll(async () => {
+    vi.useFakeTimers();
     vi.setSystemTime(new Date(BASE_TIMESTAMP));
     vi.spyOn(SentryBrowserUtils, 'addClickKeypressInstrumentationHandler').mockImplementation(handler => {
       domHandler = handler;

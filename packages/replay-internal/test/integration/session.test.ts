@@ -2,11 +2,10 @@
  * @vitest-environment jsdom
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
-import { getClient } from '@sentry/core';
+import '../utils/mock-internal-setTimeout';
 import type { Transport } from '@sentry/core';
-
+import { getClient } from '@sentry/core';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   DEFAULT_FLUSH_MIN_DELAY,
   MAX_REPLAY_DURATION,
@@ -26,9 +25,6 @@ import type { RecordMock } from '../mocks/mockRrweb';
 import { resetSdkMock } from '../mocks/resetSdkMock';
 import type { DomHandler } from '../types';
 import { getTestEventCheckout, getTestEventIncremental } from '../utils/getTestEvent';
-import { useFakeTimers } from '../utils/use-fake-timers';
-
-useFakeTimers();
 
 const prevLocation = WINDOW.location;
 
@@ -36,6 +32,10 @@ describe('Integration | session', () => {
   let replay: ReplayContainer;
   let domHandler: DomHandler;
   let mockRecord: RecordMock;
+
+  beforeAll(() => {
+    vi.useFakeTimers();
+  });
 
   beforeEach(async () => {
     ({ mockRecord, domHandler, replay } = await resetSdkMock({

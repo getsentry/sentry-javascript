@@ -2,10 +2,9 @@
  * @vitest-environment jsdom
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
+import '../utils/mock-internal-setTimeout';
 import { captureException, getClient } from '@sentry/core';
-
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   BUFFER_CHECKOUT_TIME,
   DEFAULT_FLUSH_MIN_DELAY,
@@ -24,9 +23,6 @@ import { BASE_TIMESTAMP } from '../index';
 import { resetSdkMock } from '../mocks/resetSdkMock';
 import type { DomHandler } from '../types';
 import { getTestEventCheckout, getTestEventIncremental } from '../utils/getTestEvent';
-import { useFakeTimers } from '../utils/use-fake-timers';
-
-useFakeTimers();
 
 async function advanceTimers(time: number) {
   vi.advanceTimersByTime(time);
@@ -42,6 +38,10 @@ describe('Integration | errorSampleRate', () => {
     let replay: ReplayContainer;
     let mockRecord: RecordMock;
     let domHandler: DomHandler;
+
+    beforeAll(() => {
+      vi.useFakeTimers();
+    });
 
     beforeEach(async () => {
       ({ mockRecord, domHandler, replay } = await resetSdkMock({

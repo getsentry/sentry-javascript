@@ -2,24 +2,23 @@
  * @vitest-environment jsdom
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
-import type { MockInstance } from 'vitest';
-
+import '../../utils/mock-internal-setTimeout';
 import { EventType } from '@sentry-internal/rrweb';
-
-import { BASE_TIMESTAMP } from '../..';
+import type { MockInstance } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ReplayOptionFrameEvent } from '../../../src/types';
 import * as SentryAddEvent from '../../../src/util/addEvent';
 import { createOptionsEvent, getHandleRecordingEmit } from '../../../src/util/handleRecordingEmit';
 import { setupReplayContainer } from '../../utils/setupReplayContainer';
-import { useFakeTimers } from '../../utils/use-fake-timers';
-
-useFakeTimers();
+import { BASE_TIMESTAMP } from '../..';
 
 let optionsEvent: ReplayOptionFrameEvent;
 
 describe('Unit | util | handleRecordingEmit', () => {
+  beforeAll(() => {
+    vi.useFakeTimers();
+  });
+
   let addEventMock: MockInstance;
 
   beforeEach(function () {

@@ -6,7 +6,3 @@ vi.mock('@sentry-internal/browser-utils', async () => ({
     return setTimeout.call(global, ...args);
   },
 }));
-
-export function useFakeTimers(): void {
-  vi.useFakeTimers();
-}
