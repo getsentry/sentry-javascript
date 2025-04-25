@@ -1,5 +1,5 @@
+import { describe, expect,test } from 'vitest';
 import { createRunner } from '../../../../utils/runner';
-import { describe, test, expect } from 'vitest';
 
 // Graphql Instrumentation emits some spans by default on server start
 const EXPECTED_START_SERVER_TRANSACTION = {

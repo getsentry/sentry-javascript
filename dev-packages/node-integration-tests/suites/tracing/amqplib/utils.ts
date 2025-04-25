@@ -1,5 +1,5 @@
-import amqp from 'amqplib';
 import type { Channel, Connection } from 'amqplib';
+import amqp from 'amqplib';
 import { ACKNOWLEDGEMENT, AMQP_URL, QUEUE_OPTIONS } from './constants';
 
 export type RabbitMQData = {
