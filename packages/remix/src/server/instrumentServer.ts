@@ -372,7 +372,7 @@ function instrumentBuildCallback(
       }
 
       if (!(wrappedRoute.module.loader as WrappedFunction).__sentry_original__) {
-        wrappedRoute.module.loader = makeWrappedRootLoader()(wrappedRoute.module.loader);
+        fill(wrappedRoute.module, 'loader', makeWrappedRootLoader());
       }
     }
 
