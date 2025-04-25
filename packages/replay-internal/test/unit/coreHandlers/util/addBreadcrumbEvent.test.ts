@@ -6,6 +6,7 @@ import '../../../utils/mock-internal-setTimeout';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { addBreadcrumbEvent } from '../../../../src/coreHandlers/util/addBreadcrumbEvent';
 import type { EventBufferArray } from '../../../../src/eventBuffer/EventBufferArray';
+import { BASE_TIMESTAMP } from '../../..';
 import { setupReplayContainer } from '../../../utils/setupReplayContainer';
 import { BASE_TIMESTAMP } from '../../..';
 

@@ -1,6 +1,6 @@
-import type { Event } from '../../src/types-hoist/event';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { addMetadataToStackFrames, getMetadataForUrl, stripMetadataFromStackFrames } from '../../src/metadata';
+import type { Event } from '../../src/types-hoist/event';
 import { nodeStackLineParser } from '../../src/utils-hoist/node-stack-trace';
 import { createStackParser } from '../../src/utils-hoist/stacktrace';
 import { GLOBAL_OBJ } from '../../src/utils-hoist/worldwide';

@@ -1,7 +1,6 @@
+import { DEBUG_BUILD } from '../debug-build';
 import type { Envelope } from '../types-hoist/envelope';
 import type { InternalBaseTransportOptions, Transport, TransportMakeRequestResponse } from '../types-hoist/transport';
-
-import { DEBUG_BUILD } from '../debug-build';
 import { envelopeContainsItemType } from '../utils-hoist/envelope';
 import { logger } from '../utils-hoist/logger';
 import { parseRetryAfterHeader } from '../utils-hoist/ratelimit';

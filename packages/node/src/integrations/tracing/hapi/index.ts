@@ -1,15 +1,15 @@
 import { HapiInstrumentation } from '@opentelemetry/instrumentation-hapi';
 import type { IntegrationFn, Span } from '@sentry/core';
 import {
-  SDK_VERSION,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   captureException,
   defineIntegration,
   getClient,
   getDefaultIsolationScope,
   getIsolationScope,
   logger,
+  SDK_VERSION,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../../debug-build';

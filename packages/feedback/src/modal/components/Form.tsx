@@ -1,12 +1,12 @@
-import { logger } from '@sentry/core';
 import type {
   FeedbackFormData,
   FeedbackInternalOptions,
   FeedbackScreenshotIntegration,
   SendFeedback,
 } from '@sentry/core';
-import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
+import { logger } from '@sentry/core';
 import type { JSX, VNode } from 'preact';
+import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
 import { useCallback, useState } from 'preact/hooks';
 import { FEEDBACK_WIDGET_SOURCE } from '../../constants';
 import { DEBUG_BUILD } from '../../util/debug-build';

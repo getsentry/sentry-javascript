@@ -1,8 +1,7 @@
-import type { AttachmentItem, EventEnvelope, EventItem } from '../../../src/types-hoist/envelope';
-import type { TransportMakeRequestResponse } from '../../../src/types-hoist/transport';
-
 import { describe, expect, it, vi } from 'vitest';
 import { createTransport } from '../../../src/transports/base';
+import type { AttachmentItem, EventEnvelope, EventItem } from '../../../src/types-hoist/envelope';
+import type { TransportMakeRequestResponse } from '../../../src/types-hoist/transport';
 import { createEnvelope, serializeEnvelope } from '../../../src/utils-hoist/envelope';
 import type { PromiseBuffer } from '../../../src/utils-hoist/promisebuffer';
 import { resolvedSyncPromise } from '../../../src/utils-hoist/syncpromise';

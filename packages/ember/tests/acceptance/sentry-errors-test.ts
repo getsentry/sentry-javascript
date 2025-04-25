@@ -2,7 +2,6 @@ import { next } from '@ember/runloop';
 import { click, visit } from '@ember/test-helpers';
 import { setupApplicationTest } from 'ember-qunit';
 import { module, test } from 'qunit';
-
 import type { SentryTestContext } from '../helpers/setup-sentry';
 import { setupSentryTest } from '../helpers/setup-sentry';
 import { assertSentryErrorCount, assertSentryErrors } from '../helpers/utils';

@@ -1,8 +1,7 @@
+import { expect } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
-import { expect } from '@playwright/test';
-
-import { TEST_HOST, sentryTest } from '../../../../utils/fixtures';
+import { sentryTest,TEST_HOST } from '../../../../utils/fixtures';
 import { LOADER_CONFIGS } from '../../../../utils/generatePlugin';
 import { envelopeRequestParser, waitForErrorRequestOnUrl } from '../../../../utils/helpers';
 

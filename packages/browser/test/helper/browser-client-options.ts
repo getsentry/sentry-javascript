@@ -1,6 +1,4 @@
-import { createTransport } from '@sentry/core';
-import { resolvedSyncPromise } from '@sentry/core';
-
+import { createTransport, resolvedSyncPromise } from '@sentry/core';
 import type { BrowserClientOptions } from '../../src/client';
 
 export function getDefaultBrowserClientOptions(options: Partial<BrowserClientOptions> = {}): BrowserClientOptions {

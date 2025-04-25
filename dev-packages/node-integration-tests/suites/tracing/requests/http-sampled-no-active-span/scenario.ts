@@ -1,5 +1,6 @@
-import { loggingTransport } from '@sentry-internal/node-integration-tests';
 import * as Sentry from '@sentry/node';
+import { loggingTransport } from '@sentry-internal/node-integration-tests';
+import * as http from 'http';
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
@@ -9,8 +10,6 @@ Sentry.init({
   integrations: [],
   transport: loggingTransport,
 });
-
-import * as http from 'http';
 
 async function run(): Promise<void> {
   await makeHttpRequest(`${process.env.SERVER_URL}/api/v0`);

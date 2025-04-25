@@ -1,8 +1,8 @@
 import {
-  GLOBAL_OBJ,
   flush,
   getDefaultIsolationScope,
   getIsolationScope,
+  GLOBAL_OBJ,
   logger,
   vercelWaitUntil,
   withIsolationScope,

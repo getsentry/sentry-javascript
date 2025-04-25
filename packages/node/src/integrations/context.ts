@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 
 import { execFile } from 'node:child_process';
-import { readFile, readdir } from 'node:fs';
+import { readdir, readFile } from 'node:fs';
 import * as os from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';

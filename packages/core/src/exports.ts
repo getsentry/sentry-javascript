@@ -10,13 +10,13 @@ import type { Primitive } from './types-hoist/misc';
 import type { Session, SessionContext } from './types-hoist/session';
 import type { SeverityLevel } from './types-hoist/severity';
 import type { User } from './types-hoist/user';
+import type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
+import { parseEventHintOrCaptureContext } from './utils/prepareEvent';
 import { isThenable } from './utils-hoist/is';
 import { logger } from './utils-hoist/logger';
 import { uuid4 } from './utils-hoist/misc';
 import { timestampInSeconds } from './utils-hoist/time';
 import { GLOBAL_OBJ } from './utils-hoist/worldwide';
-import type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
-import { parseEventHintOrCaptureContext } from './utils/prepareEvent';
 
 /**
  * Captures an exception event and sends it to Sentry.

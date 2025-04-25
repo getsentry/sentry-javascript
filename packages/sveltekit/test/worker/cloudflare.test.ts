@@ -1,9 +1,8 @@
+import { beforeEach } from 'node:test';
+import * as SentryCloudflare from '@sentry/cloudflare';
+import type { Carrier, GLOBAL_OBJ } from '@sentry/core';
 import { describe, expect, it, vi } from 'vitest';
 import { initCloudflareSentryHandle } from '../../src/worker';
-
-import * as SentryCloudflare from '@sentry/cloudflare';
-import { beforeEach } from 'node:test';
-import type { Carrier, GLOBAL_OBJ } from '@sentry/core';
 
 const globalWithSentry = globalThis as typeof GLOBAL_OBJ & Carrier;
 

@@ -1,12 +1,10 @@
-import { printDiffOrStringify } from 'jest-matcher-utils';
-import { vi, expect } from 'vitest';
-import type { Mocked, MockedFunction } from 'vitest';
-
+import type { ReplayRecordingData, Transport } from '@sentry/core';
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { getClient } from '@sentry/core';
 import * as SentryUtils from '@sentry/core';
-import type { ReplayRecordingData, Transport } from '@sentry/core';
-
+import { printDiffOrStringify } from 'jest-matcher-utils';
+import type { Mocked, MockedFunction } from 'vitest';
+import { expect, vi } from 'vitest';
 import type { ReplayContainer, Session } from './src/types';
 
 type MockTransport = MockedFunction<Transport['send']>;

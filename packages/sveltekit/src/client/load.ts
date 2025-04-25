@@ -1,13 +1,13 @@
 import {
+  addNonEnumerableProperty,
+  handleCallbackErrors,
+  objectify,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  handleCallbackErrors,
   startSpan,
 } from '@sentry/core';
-import { addNonEnumerableProperty, objectify } from '@sentry/core';
 import { captureException } from '@sentry/svelte';
 import type { LoadEvent } from '@sveltejs/kit';
-
 import type { SentryWrappedFlag } from '../common/utils';
 import { isHttpError, isRedirect } from '../common/utils';
 

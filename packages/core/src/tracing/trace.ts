@@ -1,28 +1,24 @@
 /* eslint-disable max-lines */
 
+import { getAsyncContextStrategy } from '../asyncContext';
 import type { AsyncContextStrategy } from '../asyncContext/types';
 import { getMainCarrier } from '../carrier';
-import type { ClientOptions } from '../types-hoist/options';
-import type { DynamicSamplingContext } from '../types-hoist/envelope';
-import type { SentrySpanArguments } from '../types-hoist/span';
-import type { Span } from '../types-hoist/span';
-import type { SpanTimeInput } from '../types-hoist/span';
-import type { StartSpanOptions } from '../types-hoist/startSpanOptions';
-
 import { getClient, getCurrentScope, getIsolationScope, withScope } from '../currentScopes';
-
-import { getAsyncContextStrategy } from '../asyncContext';
 import { DEBUG_BUILD } from '../debug-build';
 import type { Scope } from '../scope';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
-import { logger } from '../utils-hoist/logger';
-import { generateTraceId } from '../utils-hoist/propagationContext';
-import { propagationContextFromHeaders } from '../utils-hoist/tracing';
+import type { DynamicSamplingContext } from '../types-hoist/envelope';
+import type { ClientOptions } from '../types-hoist/options';
+import type { SentrySpanArguments, Span, SpanTimeInput } from '../types-hoist/span';
+import type { StartSpanOptions } from '../types-hoist/startSpanOptions';
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
 import { hasSpansEnabled } from '../utils/hasSpansEnabled';
 import { parseSampleRate } from '../utils/parseSampleRate';
 import { _getSpanForScope, _setSpanForScope } from '../utils/spanOnScope';
 import { addChildSpanToSpan, getRootSpan, spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
+import { logger } from '../utils-hoist/logger';
+import { generateTraceId } from '../utils-hoist/propagationContext';
+import { propagationContextFromHeaders } from '../utils-hoist/tracing';
 import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanStart } from './logSpans';
 import { sampleSpan } from './sampling';

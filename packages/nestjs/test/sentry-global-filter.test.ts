@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { ArgumentsHost } from '@nestjs/common';
 import { HttpException, HttpStatus, Logger } from '@nestjs/common';
-import { SentryGlobalFilter } from '../src/setup';
 import * as SentryCore from '@sentry/core';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as Helpers from '../src/helpers';
+import { SentryGlobalFilter } from '../src/setup';
 
 vi.mock('../src/helpers', () => ({
   isExpectedError: vi.fn(),

@@ -2,13 +2,13 @@ import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import type { EventAndTraceHeader } from '../../../../utils/helpers';
-import { shouldSkipFeedbackTest } from '../../../../utils/helpers';
-import {
-  eventAndTraceHeaderRequestParser,
+import {   eventAndTraceHeaderRequestParser,
   getFirstSentryEnvelopeRequest,
   getMultipleSentryEnvelopeRequests,
+shouldSkipFeedbackTest ,
   shouldSkipTracingTest,
 } from '../../../../utils/helpers';
+
 
 sentryTest(
   'should create a new trace for a navigation after the initial pageload',

@@ -1,9 +1,9 @@
 // store references to original, unwrapped built-ins in order to make assertions re: wrapped functions
+import * as Sentry from '@sentry/browser';
+
 window.originalBuiltIns = {
   addEventListener: document.addEventListener,
 };
-
-import * as Sentry from '@sentry/browser';
 
 window.Sentry = Sentry;
 

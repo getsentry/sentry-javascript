@@ -1,5 +1,4 @@
 import { uuid4 } from '@sentry/core';
-
 import type { Sampled, Session } from '../types';
 
 /**

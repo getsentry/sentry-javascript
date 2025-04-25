@@ -1,10 +1,10 @@
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   handleCallbackErrors,
   httpRequestToRequestData,
   isString,
   logger,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setHttpStatus,
   stripUrlQueryAndFragment,
 } from '@sentry/core';

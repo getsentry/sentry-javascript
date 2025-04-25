@@ -2,14 +2,13 @@
 
 // We export everything from both the client part of the SDK and from the server part. Some of the exports collide,
 // which is not allowed, unless we redefine the colliding exports in this file - which we do below.
-export * from './index.client';
-export * from './index.server';
-
 import type { Client, Integration, Options, StackParser } from '@sentry/core';
-
 import * as clientSdk from './index.client';
 import * as serverSdk from './index.server';
 import type { RemixOptions } from './utils/remixOptions';
+
+export * from './index.client';
+export * from './index.server';
 
 /** Initializes Sentry Remix SDK */
 export declare function init(options: RemixOptions): Client | undefined;

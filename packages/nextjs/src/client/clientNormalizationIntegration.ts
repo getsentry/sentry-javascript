@@ -1,5 +1,5 @@
-import { rewriteFramesIntegration } from '@sentry/react';
 import { defineIntegration } from '@sentry/core';
+import { rewriteFramesIntegration } from '@sentry/react';
 
 export const nextjsClientStackFrameNormalizationIntegration = defineIntegration(
   ({

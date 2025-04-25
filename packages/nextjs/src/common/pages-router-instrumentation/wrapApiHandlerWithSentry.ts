@@ -1,6 +1,4 @@
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   captureException,
   continueTrace,
   getActiveSpan,
@@ -8,6 +6,8 @@ import {
   isString,
   logger,
   objectify,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setHttpStatus,
   startSpanManual,
   vercelWaitUntil,

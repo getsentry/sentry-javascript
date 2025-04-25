@@ -6,10 +6,9 @@ import type {
   FeedbackTextConfiguration,
   FeedbackThemeConfiguration,
 } from './config';
+import type { FeedbackEvent, SendFeedback, SendFeedbackParams, UserFeedback } from './sendFeedback';
 
 export type { FeedbackFormData } from './form';
-
-import type { FeedbackEvent, SendFeedback, SendFeedbackParams, UserFeedback } from './sendFeedback';
 export type { FeedbackEvent, UserFeedback, SendFeedback, SendFeedbackParams };
 
 /**

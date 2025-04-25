@@ -1,5 +1,10 @@
-import { loggingTransport } from '@sentry-internal/node-integration-tests';
 import * as Sentry from '@sentry/node';
+import { loggingTransport , startExpressServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
+import express from 'express';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import * as util from 'util';
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
@@ -13,13 +18,6 @@ Sentry.init({
     }),
   ],
 });
-
-import * as fs from 'fs';
-import * as os from 'os';
-import * as path from 'path';
-import * as util from 'util';
-import { startExpressServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
-import express from 'express';
 
 const app = express();
 

@@ -9,20 +9,20 @@ import type { Event, EventHint } from './types-hoist/event';
 import type { EventProcessor } from './types-hoist/eventprocessor';
 import type { Extra, Extras } from './types-hoist/extra';
 import type { Primitive } from './types-hoist/misc';
-import type { PropagationContext } from './types-hoist/tracing';
 import type { RequestEventData } from './types-hoist/request';
 import type { Session } from './types-hoist/session';
 import type { SeverityLevel } from './types-hoist/severity';
 import type { Span } from './types-hoist/span';
+import type { PropagationContext } from './types-hoist/tracing';
 import type { User } from './types-hoist/user';
+import { merge } from './utils/merge';
+import { _getSpanForScope, _setSpanForScope } from './utils/spanOnScope';
 import { isPlainObject } from './utils-hoist/is';
 import { logger } from './utils-hoist/logger';
 import { uuid4 } from './utils-hoist/misc';
 import { generateTraceId } from './utils-hoist/propagationContext';
 import { truncate } from './utils-hoist/string';
 import { dateTimestampInSeconds } from './utils-hoist/time';
-import { merge } from './utils/merge';
-import { _getSpanForScope, _setSpanForScope } from './utils/spanOnScope';
 
 /**
  * Default value for maximum number of breadcrumbs added to an event.

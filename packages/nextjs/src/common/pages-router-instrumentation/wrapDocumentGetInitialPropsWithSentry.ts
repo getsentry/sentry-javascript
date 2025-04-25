@@ -1,5 +1,4 @@
 import type Document from 'next/document';
-
 import { isBuild } from '../utils/isBuild';
 import { withErrorInstrumentation, withTracedServerSideDataFetcher } from '../utils/wrapperUtils';
 

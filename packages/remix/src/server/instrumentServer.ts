@@ -1,9 +1,6 @@
 /* eslint-disable max-lines */
 import type { RequestEventData, Span, TransactionSource, WrappedFunction } from '@sentry/core';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   continueTrace,
   fill,
   getActiveSpan,
@@ -14,6 +11,9 @@ import {
   isNodeEnv,
   loadModule,
   logger,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setHttpStatus,
   spanToJSON,
   startSpan,

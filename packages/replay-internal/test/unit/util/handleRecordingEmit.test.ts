@@ -9,6 +9,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import type { ReplayOptionFrameEvent } from '../../../src/types';
 import * as SentryAddEvent from '../../../src/util/addEvent';
 import { createOptionsEvent, getHandleRecordingEmit } from '../../../src/util/handleRecordingEmit';
+import { BASE_TIMESTAMP } from '../..';
 import { setupReplayContainer } from '../../utils/setupReplayContainer';
 import { BASE_TIMESTAMP } from '../..';
 

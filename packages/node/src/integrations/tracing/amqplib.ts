@@ -1,5 +1,5 @@
 import type { Span } from '@opentelemetry/api';
-import { AmqplibInstrumentation, type AmqplibInstrumentationConfig } from '@opentelemetry/instrumentation-amqplib';
+import { type AmqplibInstrumentationConfig, AmqplibInstrumentation } from '@opentelemetry/instrumentation-amqplib';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
 import { generateInstrumentOnce } from '../../otel/instrument';

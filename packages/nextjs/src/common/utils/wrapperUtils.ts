@@ -1,4 +1,3 @@
-import type { IncomingMessage, ServerResponse } from 'http';
 import {
   captureException,
   getActiveSpan,
@@ -8,6 +7,7 @@ import {
   getTraceData,
   httpRequestToRequestData,
 } from '@sentry/core';
+import type { IncomingMessage, ServerResponse } from 'http';
 import { TRANSACTION_ATTR_SENTRY_ROUTE_BACKFILL } from '../span-attributes-with-logic-attached';
 
 /**

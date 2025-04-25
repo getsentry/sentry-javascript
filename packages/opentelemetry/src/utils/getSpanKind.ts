@@ -1,5 +1,4 @@
 import { SpanKind } from '@opentelemetry/api';
-
 import type { AbstractSpan } from '../types';
 import { spanHasKind } from './spanTypes';
 

@@ -1,10 +1,9 @@
+import { DEBUG_BUILD } from '../debug-build';
 import { defineIntegration } from '../integration';
 import type { Contexts } from '../types-hoist/context';
-import type { Event, EventHint } from '../types-hoist/event';
 import type { ExtendedError } from '../types-hoist/error';
+import type { Event, EventHint } from '../types-hoist/event';
 import type { IntegrationFn } from '../types-hoist/integration';
-
-import { DEBUG_BUILD } from '../debug-build';
 import { isError, isPlainObject } from '../utils-hoist/is';
 import { logger } from '../utils-hoist/logger';
 import { normalize } from '../utils-hoist/normalize';

@@ -1,16 +1,14 @@
 import { execSync } from 'node:child_process';
 import * as path from 'node:path';
-
-import { loggingTransport } from '@sentry-internal/node-integration-tests';
 import * as Sentry from '@sentry/node';
+import { loggingTransport } from '@sentry-internal/node-integration-tests';
+import { runSentry } from './other-file';
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   release: '1.0',
   transport: loggingTransport,
 });
-
-import { runSentry } from './other-file';
 
 runSentry();
 

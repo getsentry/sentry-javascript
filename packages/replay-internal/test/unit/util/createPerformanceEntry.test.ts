@@ -9,6 +9,7 @@ import {
   getLargestContentfulPaint,
 } from '../../../src/util/createPerformanceEntries';
 import { PerformanceEntryNavigation } from '../../fixtures/performanceEntry/navigation';
+import { useFakeTimers } from '../../utils/use-fake-timers';
 
 vi.mock('@sentry/core', async () => ({
   ...(await vi.importActual('@sentry/core')),

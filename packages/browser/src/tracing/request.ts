@@ -1,15 +1,5 @@
-import {
-  SENTRY_XHR_DATA_KEY,
-  addPerformanceInstrumentationHandler,
-  addXhrInstrumentationHandler,
-  extractNetworkProtocol,
-} from '@sentry-internal/browser-utils';
-import type { XhrHint } from '@sentry-internal/browser-utils';
 import type { Client, HandlerDataXhr, SentryWrappedXMLHttpRequest, Span, WebFetchHeaders } from '@sentry/core';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SentryNonRecordingSpan,
   addFetchEndInstrumentationHandler,
   addFetchInstrumentationHandler,
   browserPerformanceTimeOrigin,
@@ -20,12 +10,22 @@ import {
   hasSpansEnabled,
   instrumentFetchRequest,
   parseUrl,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SentryNonRecordingSpan,
   setHttpStatus,
   spanToJSON,
   startInactiveSpan,
   stringMatchesSomePattern,
   stripUrlQueryAndFragment,
 } from '@sentry/core';
+import type { XhrHint } from '@sentry-internal/browser-utils';
+import {
+  addPerformanceInstrumentationHandler,
+  addXhrInstrumentationHandler,
+  extractNetworkProtocol,
+  SENTRY_XHR_DATA_KEY,
+} from '@sentry-internal/browser-utils';
 import { WINDOW } from '../helpers';
 
 /** Options for Request Instrumentation */

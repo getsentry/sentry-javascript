@@ -1,8 +1,6 @@
-import type { ServerRuntimeClientOptions } from '@sentry/core';
-import { applySdkMetadata } from '@sentry/core';
-import { ServerRuntimeClient } from '@sentry/core';
-
 import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
+import type { ServerRuntimeClientOptions } from '@sentry/core';
+import { applySdkMetadata, ServerRuntimeClient } from '@sentry/core';
 import type { VercelEdgeClientOptions } from './types';
 
 declare const process: {

@@ -1,11 +1,9 @@
-import { describe, expect, it } from 'vitest';
-
 import * as svelteCompiler from 'svelte/compiler';
-
+import { describe, expect, it } from 'vitest';
 import {
-  FIRST_PASS_COMPONENT_TRACKING_PREPROC_ID,
   componentTrackingPreprocessor,
   defaultComponentTrackingOptions,
+  FIRST_PASS_COMPONENT_TRACKING_PREPROC_ID,
 } from '../src/preprocessors';
 import type { SentryPreprocessorGroup } from '../src/types';
 

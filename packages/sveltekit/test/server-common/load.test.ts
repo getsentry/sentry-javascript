@@ -1,16 +1,14 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
+import type { Event } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
-import type { Event } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
-import { NodeClient, getCurrentScope, getIsolationScope, setCurrentClient } from '@sentry/node';
+import { getCurrentScope, getIsolationScope, NodeClient, setCurrentClient } from '@sentry/node';
 import type { Load, ServerLoad } from '@sveltejs/kit';
 import { error, redirect } from '@sveltejs/kit';
-
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { wrapLoadWithSentry, wrapServerLoadWithSentry } from '../../src/server-common/load';
 import { getDefaultNodeClientOptions } from '../utils';
 

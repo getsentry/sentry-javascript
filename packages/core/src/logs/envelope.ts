@@ -1,7 +1,7 @@
 import type { DsnComponents } from '../types-hoist/dsn';
-import type { SdkMetadata } from '../types-hoist/sdkmetadata';
-import type { SerializedOtelLog } from '../types-hoist/log';
 import type { OtelLogEnvelope, OtelLogItem } from '../types-hoist/envelope';
+import type { SerializedOtelLog } from '../types-hoist/log';
+import type { SdkMetadata } from '../types-hoist/sdkmetadata';
 import { dsnToString } from '../utils-hoist/dsn';
 import { createEnvelope } from '../utils-hoist/envelope';
 

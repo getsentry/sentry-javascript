@@ -1,20 +1,20 @@
-import * as fs from 'fs';
+import { existsSync } from 'node:fs';
 import { createResolver } from '@nuxt/kit';
 import { logger } from '@sentry/core';
+import * as fs from 'fs';
 import type { Nitro } from 'nitropack';
 import type { InputPluginOption } from 'rollup';
 import type { SentryNuxtModuleOptions } from '../common/types';
 import {
-  QUERY_END_INDICATOR,
-  SENTRY_REEXPORTED_FUNCTIONS,
-  SENTRY_WRAPPED_ENTRY,
-  SENTRY_WRAPPED_FUNCTIONS,
   constructFunctionReExport,
   constructWrappedFunctionExportQuery,
   getFilenameFromNodeStartCommand,
+  QUERY_END_INDICATOR,
   removeSentryQueryFromPath,
+  SENTRY_REEXPORTED_FUNCTIONS,
+  SENTRY_WRAPPED_ENTRY,
+  SENTRY_WRAPPED_FUNCTIONS,
 } from './utils';
-import { existsSync } from 'node:fs';
 
 const SERVER_CONFIG_FILENAME = 'sentry.server.config';
 

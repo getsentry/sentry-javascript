@@ -1,8 +1,7 @@
+import type { ExtendedError } from '../types-hoist/error';
 import type { Event, EventHint } from '../types-hoist/event';
 import type { Exception } from '../types-hoist/exception';
-import type { ExtendedError } from '../types-hoist/error';
 import type { StackParser } from '../types-hoist/stacktrace';
-
 import { isInstanceOf } from './is';
 
 /**

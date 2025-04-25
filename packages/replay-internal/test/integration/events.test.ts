@@ -6,9 +6,6 @@ import '../utils/mock-internal-setTimeout';
 import { getClient } from '@sentry/core';
 import type { MockInstance } from 'vitest';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-
-import { getClient } from '@sentry/core';
-
 import { WINDOW } from '../../src/constants';
 import type { ReplayContainer } from '../../src/replay';
 import { clearSession } from '../../src/session/clearSession';

@@ -1,12 +1,11 @@
 import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import { captureException, setCurrentClient } from '@sentry/core';
-import { describe, afterEach, beforeEach, expect, it, vi, afterAll } from 'vitest';
-
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setupEventContextTrace } from '../../src/setupEventContextTrace';
-import type { TestClientInterface } from '../helpers/TestClient';
-import { TestClient, getDefaultTestClientOptions } from '../helpers/TestClient';
 import { setupOtel } from '../helpers/initOtel';
 import { cleanupOtel } from '../helpers/mockSdkInit';
+import type { TestClientInterface } from '../helpers/TestClient';
+import { getDefaultTestClientOptions, TestClient } from '../helpers/TestClient';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 

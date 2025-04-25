@@ -1,5 +1,6 @@
-import { loggingTransport } from '@sentry-internal/node-integration-tests';
 import * as Sentry from '@sentry/node';
+import { loggingTransport } from '@sentry-internal/node-integration-tests';
+import * as http from 'http';
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
@@ -9,8 +10,6 @@ Sentry.init({
   integrations: [],
   transport: loggingTransport,
 });
-
-import * as http from 'http';
 
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
 Sentry.startSpan({ name: 'test_span' }, async () => {

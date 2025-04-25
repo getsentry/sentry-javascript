@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
+import type { ExtendedError } from '../../src/types-hoist/error';
 import type { Event, EventHint } from '../../src/types-hoist/event';
 import type { Exception } from '../../src/types-hoist/exception';
-import type { ExtendedError } from '../../src/types-hoist/error';
 import type { StackParser } from '../../src/types-hoist/stacktrace';
 import { applyAggregateErrorsToEvent } from '../../src/utils-hoist/aggregate-errors';
 import { createStackParser } from '../../src/utils-hoist/stacktrace';

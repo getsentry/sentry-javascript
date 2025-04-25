@@ -1,8 +1,6 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-
 import * as SentryBrowser from '@sentry/browser';
-import { SDK_VERSION, getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/browser';
-
+import { getCurrentScope, getGlobalScope, getIsolationScope, SDK_VERSION } from '@sentry/browser';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { init as reactRouterInit } from '../../src/client';
 
 const browserInit = vi.spyOn(SentryBrowser, 'init');

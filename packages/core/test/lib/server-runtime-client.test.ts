@@ -1,5 +1,5 @@
 import { describe, expect, it, test, vi } from 'vitest';
-import { Scope, createTransport } from '../../src';
+import { createTransport, Scope } from '../../src';
 import { _INTERNAL_captureLog, _INTERNAL_flushLogsBuffer } from '../../src/logs/exports';
 import type { ServerRuntimeClientOptions } from '../../src/server-runtime-client';
 import { ServerRuntimeClient } from '../../src/server-runtime-client';

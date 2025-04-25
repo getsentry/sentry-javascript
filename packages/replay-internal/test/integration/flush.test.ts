@@ -21,6 +21,9 @@ import * as SendReplay from '../../src/util/sendReplay';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '../index';
 import type { DomHandler } from '../types';
 import { getTestEventCheckout } from '../utils/getTestEvent';
+import { useFakeTimers } from '../utils/use-fake-timers';
+
+useFakeTimers();
 
 type MockSendReplay = MockedFunction<any>;
 type MockAddPerformanceEntries = MockedFunction<ReplayContainer['_addPerformanceEntries']>;

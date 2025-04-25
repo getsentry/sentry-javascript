@@ -1,16 +1,15 @@
-import type { Event } from '../../src/types-hoist/event';
-import type { EventEnvelope } from '../../src/types-hoist/envelope';
-import type { SpanAttributes } from '../../src/types-hoist/span';
-
 import {
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT,
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE,
+  SentrySpan,
   spanToJSON,
 } from '@sentry/core';
-import { SentrySpan } from '@sentry/core';
-import { describe, expect, it, test, vi, afterEach } from 'vitest';
+import { afterEach, describe, expect, it, test, vi } from 'vitest';
 import { getSentryCarrier } from '../../src/carrier';
+import type { EventEnvelope } from '../../src/types-hoist/envelope';
+import type { Event } from '../../src/types-hoist/event';
+import type { SpanAttributes } from '../../src/types-hoist/span';
 import {
   addItemToEnvelope,
   createEnvelope,

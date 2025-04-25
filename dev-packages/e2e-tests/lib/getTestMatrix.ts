@@ -1,9 +1,9 @@
 import { execSync } from 'child_process';
 import * as fs from 'fs';
+import { sync as globSync } from 'glob';
 import * as path from 'path';
 import { dirname } from 'path';
 import { parseArgs } from 'util';
-import { sync as globSync } from 'glob';
 
 interface MatrixInclude {
   /** The test application (directory) name. */

@@ -1,12 +1,11 @@
-import { getCurrentScope } from '../../src/currentScopes';
-
 import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
+import { getCurrentScope } from '../../src/currentScopes';
 import { addIntegration, getIntegrationsToSetup, installedIntegrations, setupIntegration } from '../../src/integration';
 import { setCurrentClient } from '../../src/sdk';
-import { logger } from '../../src/utils-hoist/logger';
-import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 import type { Integration } from '../../src/types-hoist/integration';
 import type { Options } from '../../src/types-hoist/options';
+import { logger } from '../../src/utils-hoist/logger';
+import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
 function getTestClient(): TestClient {
   return new TestClient(

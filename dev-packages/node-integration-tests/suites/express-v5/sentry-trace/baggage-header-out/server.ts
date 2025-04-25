@@ -1,5 +1,8 @@
-import { loggingTransport, startExpressServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
 import * as Sentry from '@sentry/node';
+import { loggingTransport, startExpressServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
+import cors from 'cors';
+import express from 'express';
+import http from 'http';
 
 export type TestAPIResponse = { test_data: { host: string; 'sentry-trace': string; baggage: string } };
 
@@ -11,10 +14,6 @@ Sentry.init({
   tracesSampleRate: 1.0,
   transport: loggingTransport,
 });
-
-import http from 'http';
-import cors from 'cors';
-import express from 'express';
 
 const app = express();
 

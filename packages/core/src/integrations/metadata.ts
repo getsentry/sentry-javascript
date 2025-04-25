@@ -1,7 +1,6 @@
 import { defineIntegration } from '../integration';
-import type { EventItem } from '../types-hoist/envelope';
-
 import { addMetadataToStackFrames, stripMetadataFromStackFrames } from '../metadata';
+import type { EventItem } from '../types-hoist/envelope';
 import { forEachEnvelopeItem } from '../utils-hoist/envelope';
 
 /**

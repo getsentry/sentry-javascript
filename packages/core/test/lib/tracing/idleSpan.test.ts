@@ -1,24 +1,24 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
-  SentryNonRecordingSpan,
-  SentrySpan,
   getActiveSpan,
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromSpan,
   getGlobalScope,
   getIsolationScope,
+  SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
+  SentryNonRecordingSpan,
+  SentrySpan,
   setCurrentClient,
   spanToJSON,
   startInactiveSpan,
   startSpan,
   startSpanManual,
 } from '../../../src';
-import { TRACING_DEFAULTS, startIdleSpan } from '../../../src/tracing/idleSpan';
+import { startIdleSpan, TRACING_DEFAULTS } from '../../../src/tracing/idleSpan';
 import type { Event } from '../../../src/types-hoist/event';
 import type { Span } from '../../../src/types-hoist/span';
-import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
+import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 const dsn = 'https://123@sentry.io/42';
 

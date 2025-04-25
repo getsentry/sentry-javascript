@@ -1,16 +1,16 @@
 import { getClient } from './currentScopes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from './semanticAttributes';
-import { SPAN_STATUS_ERROR, setHttpStatus, startInactiveSpan } from './tracing';
+import { setHttpStatus, SPAN_STATUS_ERROR, startInactiveSpan } from './tracing';
 import { SentryNonRecordingSpan } from './tracing/sentryNonRecordingSpan';
 import type { FetchBreadcrumbHint } from './types-hoist/breadcrumb';
 import type { HandlerDataFetch } from './types-hoist/instrument';
 import type { Span, SpanAttributes, SpanOrigin } from './types-hoist/span';
-import { SENTRY_BAGGAGE_KEY_PREFIX } from './utils-hoist/baggage';
-import { isInstanceOf, isRequest } from './utils-hoist/is';
-import { getSanitizedUrlStringFromUrlObject, isURLObjectRelative, parseStringToURLObject } from './utils-hoist/url';
 import { hasSpansEnabled } from './utils/hasSpansEnabled';
 import { getActiveSpan } from './utils/spanUtils';
 import { getTraceData } from './utils/traceData';
+import { SENTRY_BAGGAGE_KEY_PREFIX } from './utils-hoist/baggage';
+import { isInstanceOf, isRequest } from './utils-hoist/is';
+import { getSanitizedUrlStringFromUrlObject, isURLObjectRelative, parseStringToURLObject } from './utils-hoist/url';
 
 type PolymorphicRequestHeaders =
   | Record<string, string | undefined>

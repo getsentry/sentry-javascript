@@ -1,21 +1,22 @@
-import { beforeEach, describe, expect, it } from 'vitest';
-
+import type { EventEnvelopeHeaders, Span } from '@sentry/core';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   getRootSpan,
   getSpanDescendants,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanIsSampled,
   spanToJSON,
 } from '@sentry/core';
-import type { EventEnvelopeHeaders, Span } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { NodeClient, setCurrentClient } from '@sentry/node';
 import type { Handle } from '@sveltejs/kit';
 import { redirect } from '@sveltejs/kit';
-import { vi } from 'vitest';
-
-import { FETCH_PROXY_SCRIPT, addSentryCodeToPage, isFetchProxyRequired } from '../../src/server-common/handle';
-import { sentryHandle } from '../../src/server-common/handle';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  addSentryCodeToPage,
+  FETCH_PROXY_SCRIPT,
+  isFetchProxyRequired,
+  sentryHandle,
+} from '../../src/server-common/handle';
 import { getDefaultNodeClientOptions } from '../utils';
 
 const mockCaptureException = vi.spyOn(SentryCore, 'captureException').mockImplementation(() => 'xx');
