@@ -3,7 +3,7 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 
-test.only('Should record transactions for mcp handlers', async ({ baseURL }) => {
+test('Should record transactions for mcp handlers', async ({ baseURL }) => {
   const transport = new SSEClientTransport(new URL(`${baseURL}/sse`));
 
   const client = new Client({
