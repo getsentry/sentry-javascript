@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import { sentryTest,TEST_HOST } from '../../../utils/fixtures';
+import { sentryTest, TEST_HOST } from '../../../utils/fixtures';
 import { envelopeRequestParser, getEnvelopeType, shouldSkipFeedbackTest } from '../../../utils/helpers';
 
 sentryTest('should capture feedback with custom button', async ({ getLocalTestUrl, page }) => {

@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/node';
-import { loggingTransport , startExpressServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
+import { loggingTransport, startExpressServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
 
 Sentry.init({
   // No dsn, means  client is disabled
@@ -14,7 +14,6 @@ initialClient?.addIntegration(Sentry.httpIntegration());
 
 // Store this so we can update the client later
 const initialCurrentScope = Sentry.getCurrentScope();
-
 
 import express from 'express';
 

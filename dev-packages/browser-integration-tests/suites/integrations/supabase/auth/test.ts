@@ -65,7 +65,6 @@ async function mockSupabaseAuthRoutesFailure(page: Page) {
   });
 }
 
-
 const bundle = process.env.PW_BUNDLE || '';
 // We only want to run this in non-CDN bundle mode
 if (bundle.startsWith('bundle')) {

@@ -1,4 +1,4 @@
-import { describe, expect,test } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import { createRunner } from '../../../../utils/runner';
 
 // Graphql Instrumentation emits some spans by default on server start

@@ -2,13 +2,13 @@ import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import type { EventAndTraceHeader } from '../../../../utils/helpers';
-import {   eventAndTraceHeaderRequestParser,
+import {
+  eventAndTraceHeaderRequestParser,
   getFirstSentryEnvelopeRequest,
   getMultipleSentryEnvelopeRequests,
-shouldSkipFeedbackTest ,
+  shouldSkipFeedbackTest,
   shouldSkipTracingTest,
 } from '../../../../utils/helpers';
-
 
 sentryTest('creates a new trace and sample_rand on each navigation', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {

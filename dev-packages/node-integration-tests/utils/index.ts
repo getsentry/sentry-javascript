@@ -33,7 +33,10 @@ export type DataCollectorOptions = {
  *
  * @param {{ min?: number; max?: number }} allowedVersion
  */
-export function conditionalTest(allowedVersion: { min?: number; max?: number }): typeof describe | typeof describe.skip{
+export function conditionalTest(allowedVersion: {
+  min?: number;
+  max?: number;
+}): typeof describe | typeof describe.skip {
   if (!NODE_VERSION) {
     return describe.skip;
   }
