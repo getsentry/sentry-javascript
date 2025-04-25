@@ -2,9 +2,9 @@
  * @vitest-environment jsdom
  */
 
-import '../utils/use-fake-timers';
+import '../utils/mock-internal-setTimeout';
 import { beforeAll, describe, expect, test, vi } from 'vitest';
-import { resetSdkMock } from '.../utils/mock-internal-setTimeout
+import { resetSdkMock } from '../mocks/resetSdkMock';
 
 describe('Integration | getRecordingMode()', () => {
   beforeAll(() => {
