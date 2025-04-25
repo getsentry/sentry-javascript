@@ -1,4 +1,4 @@
-import '../../utils/use-fake-timers';
+import '../../utils/mock-internal-setTimeout';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { WINDOW } from '../../../src/constants';
 import {

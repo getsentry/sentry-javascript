@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 
-import '../utils/use-fake-timers';
+import '../utils/mock-internal-setTimeout';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { WINDOW } from '../../src/constants';
 import type { Replay } from '../../src/integration';

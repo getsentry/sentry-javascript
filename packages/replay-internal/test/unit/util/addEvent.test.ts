@@ -3,7 +3,7 @@
  */
 
 import 'jsdom-worker';
-import '../../utils/use-fake-timers';
+import '../../utils/mock-internal-setTimeout';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MAX_REPLAY_DURATION, REPLAY_MAX_EVENT_BUFFER_SIZE, SESSION_IDLE_PAUSE_DURATION } from '../../../src/constants';
 import type { EventBufferProxy } from '../../../src/eventBuffer/EventBufferProxy';

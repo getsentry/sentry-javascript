@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 
-import '../utils/use-fake-timers';
+import '../utils/mock-internal-setTimeout';
 import type { MockInstance, MockedFunction } from 'vitest';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 

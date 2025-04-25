@@ -4,7 +4,7 @@
 
 import '../utils/use-fake-timers';
 import { beforeAll, describe, expect, test, vi } from 'vitest';
-import { resetSdkMock } from '../mocks/resetSdkMock';
+import { resetSdkMock } from '.../utils/mock-internal-setTimeout
 
 describe('Integration | getRecordingMode()', () => {
   beforeAll(() => {

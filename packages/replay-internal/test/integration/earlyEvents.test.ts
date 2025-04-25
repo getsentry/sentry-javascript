@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import '../utils/use-fake-timers';
+import '../utils/mock-internal-setTimeout';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BASE_TIMESTAMP } from '..';
 import { resetSdkMock } from '../mocks/resetSdkMock';

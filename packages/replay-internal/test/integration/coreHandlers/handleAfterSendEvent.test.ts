@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 
-import '../../utils/use-fake-timers';
+import '../../utils/mock-internal-setTimeout';
 import type { ErrorEvent, Event } from '@sentry/core';
 import { getClient } from '@sentry/core';
 import type { MockInstance } from 'vitest';

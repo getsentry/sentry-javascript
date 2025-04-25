@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 
-import '../../utils/use-fake-timers';
+import '../../utils/mock-internal-setTimeout';
 import { EventType } from '@sentry-internal/rrweb';
 import type { MockInstance } from 'vitest';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';

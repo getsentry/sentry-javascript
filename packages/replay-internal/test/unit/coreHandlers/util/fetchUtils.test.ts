@@ -1,4 +1,4 @@
-import '../../../utils/use-fake-timers';
+import '../../../utils/mock-internal-setTimeout';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { _getResponseInfo } from '../../../../src/coreHandlers/util/fetchUtils';
 

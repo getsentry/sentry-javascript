@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 
-import '../../../utils/use-fake-timers';
+import '../../../utils/mock-internal-setTimeout';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { NETWORK_BODY_MAX_SIZE } from '../../../../src/constants';
 import {
