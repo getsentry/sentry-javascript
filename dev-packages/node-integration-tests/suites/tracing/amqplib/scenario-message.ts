@@ -1,5 +1,5 @@
-import './init';
 import * as Sentry from '@sentry/node';
+import './init';
 import { connectToRabbitMQ, consumeMessageFromQueue, createQueue, sendMessageToQueue } from './utils';
 
 const queueName = 'queue1';

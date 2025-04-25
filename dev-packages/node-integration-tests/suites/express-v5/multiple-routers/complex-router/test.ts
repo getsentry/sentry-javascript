@@ -1,4 +1,4 @@
-import { afterAll, describe,test } from 'vitest';
+import { afterAll, test, describe } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
 afterAll(() => {

@@ -1,4 +1,4 @@
-import { afterAll, describe, expect,test } from 'vitest';
+import { afterAll, describe, test, expect } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../utils/runner';
 
 describe('winston integration', () => {

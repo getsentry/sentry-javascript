@@ -1,5 +1,5 @@
-import * as Sentry from '@sentry/node';
 import { loggingTransport } from '@sentry-internal/node-integration-tests';
+import * as Sentry from '@sentry/node';
 
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
 (async () => {

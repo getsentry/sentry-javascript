@@ -1,6 +1,6 @@
-import type { EnvelopeItemType } from '@sentry/core';
-import { parseSemver } from '@sentry/core';
 import type * as http from 'http';
+import { parseSemver } from '@sentry/core';
+import type { EnvelopeItemType } from '@sentry/core';
 import { describe } from 'vitest';
 
 const NODE_VERSION = parseSemver(process.versions.node).major;

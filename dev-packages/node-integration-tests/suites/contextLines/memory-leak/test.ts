@@ -1,5 +1,5 @@
-import { afterAll, describe, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
+import { describe, afterAll, test } from 'vitest';
 
 describe('ContextLines integration in CJS', () => {
   afterAll(() => {
