@@ -66,7 +66,7 @@ export class SentryVercelAiInstrumentation extends InstrumentationBase {
     this._callbacks.forEach(callback => callback());
     this._callbacks = [];
 
-    function generatePatch(name: string) {
+    function generatePatch(originalMethod: (...args: MethodArgs) => unknown) {
       return (...args: MethodArgs) => {
         const existingExperimentalTelemetry = args[0].experimental_telemetry || {};
         const isEnabled = existingExperimentalTelemetry.isEnabled;
@@ -83,15 +83,28 @@ export class SentryVercelAiInstrumentation extends InstrumentationBase {
         }
 
         // @ts-expect-error we know that the method exists
-        return moduleExports[name].apply(this, args);
+        return originalMethod.apply(this, args);
       };
     }
 
-    const patchedModuleExports = INSTRUMENTED_METHODS.reduce((acc, curr) => {
-      acc[curr] = generatePatch(curr);
-      return acc;
-    }, {} as PatchedModuleExports);
+    // Is this an ESM module?
+    // https://tc39.es/ecma262/#sec-module-namespace-objects
+    if (Object.prototype.toString.call(moduleExports) === '[object Module]') {
+      // In ESM we take the usual route and just replace the exports we want to instrument
+      for (const method of INSTRUMENTED_METHODS) {
+        moduleExports[method] = generatePatch(moduleExports[method]);
+      }
 
-    return { ...moduleExports, ...patchedModuleExports };
+      return moduleExports;
+    } else {
+      // In CJS we can't replace the exports in the original module because they
+      // don't have setters, so we create a new object with the same properties
+      const patchedModuleExports = INSTRUMENTED_METHODS.reduce((acc, curr) => {
+        acc[curr] = generatePatch(moduleExports[curr]);
+        return acc;
+      }, {} as PatchedModuleExports);
+
+      return { ...moduleExports, ...patchedModuleExports };
+    }
   }
 }
