@@ -1,5 +1,6 @@
 /* eslint-disable deprecation/deprecation */
 /* eslint-disable max-lines */
+/* eslint-disable jsdoc/require-jsdoc */
 import type { Span } from '@opentelemetry/api';
 import opentelemetry, { SpanStatusCode } from '@opentelemetry/api';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
@@ -16,13 +17,14 @@ import type * as remixRunServerRuntimeData from '@remix-run/server-runtime/dist/
 import type * as remixRunServerRuntimeRouteMatching from '@remix-run/server-runtime/dist/routeMatching';
 import type { RouteMatch } from '@remix-run/server-runtime/dist/routeMatching';
 import type { ServerRoute } from '@remix-run/server-runtime/dist/routes';
+import { SDK_VERSION } from '@sentry/core';
 
 const RemixSemanticAttributes = {
   MATCH_PARAMS: 'match.params',
   MATCH_ROUTE_ID: 'match.route.id',
 };
 
-const VERSION = '__OTEL_REMIX_INSTRUMENTATION_VERSION__';
+const VERSION = SDK_VERSION;
 
 export interface RemixInstrumentationConfig extends InstrumentationConfig {
   /**
@@ -48,36 +50,24 @@ const DEFAULT_CONFIG: RemixInstrumentationConfig = {
   legacyErrorAttributes: false,
 };
 
-/**
- *
- */
 export class RemixInstrumentation extends InstrumentationBase {
   public constructor(config: RemixInstrumentationConfig = {}) {
     super('RemixInstrumentation', VERSION, Object.assign({}, DEFAULT_CONFIG, config));
   }
 
-  /**
-   *
-   */
-  public override getConfig(): RemixInstrumentationConfig {
+  public getConfig(): RemixInstrumentationConfig {
     return this._config;
   }
 
-  /**
-   *
-   */
-  public override setConfig(config: RemixInstrumentationConfig = {}): void {
+  public setConfig(config: RemixInstrumentationConfig = {}): void {
     this._config = Object.assign({}, DEFAULT_CONFIG, config);
   }
 
-  /**
-   *
-   */
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  protected override init(): InstrumentationNodeModuleDefinition {
+  protected init(): InstrumentationNodeModuleDefinition {
     const remixRunServerRuntimeRouteMatchingFile = new InstrumentationNodeModuleFile(
       '@remix-run/server-runtime/dist/routeMatching.js',
-      ['1.6.2 - 2.x'],
+      ['2.x'],
       (moduleExports: typeof remixRunServerRuntimeRouteMatching) => {
         // createRequestHandler
         if (isWrapped(moduleExports['matchServerRoutes'])) {
@@ -116,7 +106,7 @@ export class RemixInstrumentation extends InstrumentationBase {
     );
 
     /*
-     * In Remix 1.8.0, the callXXLoader functions were renamed to callXXLoaderRR. They were renamed back in 2.9.0.
+     * In Remix 2.9.0, the `callXXLoaderRR` functions were renamed to `callXXLoader`.
      */
     const remixRunServerRuntimeDataPre_2_9_File = new InstrumentationNodeModuleFile(
       '@remix-run/server-runtime/dist/data.js',
@@ -153,7 +143,7 @@ export class RemixInstrumentation extends InstrumentationBase {
 
     const remixRunServerRuntimeModule = new InstrumentationNodeModuleDefinition(
       '@remix-run/server-runtime',
-      ['>=2.*'],
+      ['2.x'],
       (moduleExports: typeof remixRunServerRuntime) => {
         // createRequestHandler
         if (isWrapped(moduleExports['createRequestHandler'])) {
@@ -172,9 +162,6 @@ export class RemixInstrumentation extends InstrumentationBase {
     return remixRunServerRuntimeModule;
   }
 
-  /**
-   *
-   */
   private _patchMatchServerRoutes(): (original: typeof remixRunServerRuntimeRouteMatching.matchServerRoutes) => any {
     return function matchServerRoutes(original) {
       return function patchMatchServerRoutes(
@@ -203,9 +190,6 @@ export class RemixInstrumentation extends InstrumentationBase {
     };
   }
 
-  /**
-   *
-   */
   private _patchCreateRequestHandler(): (original: typeof remixRunServerRuntime.createRequestHandler) => any {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const plugin = this;
@@ -247,9 +231,6 @@ export class RemixInstrumentation extends InstrumentationBase {
     };
   }
 
-  /**
-   *
-   */
   private _patchCallRouteLoader(): (original: typeof remixRunServerRuntimeData.callRouteLoader) => any {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const plugin = this;
@@ -285,52 +266,6 @@ export class RemixInstrumentation extends InstrumentationBase {
     };
   }
 
-  /**
-   *
-   */
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  private _patchCallRouteLoaderPre_1_7_2(): (original: typeof remixRunServerRuntimeData.callRouteLoader) => any {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const plugin = this;
-    return function callRouteLoader(original) {
-      return function patchCallRouteLoader(this: any, ...args: Parameters<typeof original>): Promise<Response> {
-        // Cast as `any` to avoid typescript errors since this is patching an older version
-        const [params] = args as unknown as any;
-
-        const span = plugin.tracer.startSpan(
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          `LOADER ${params.match.route.id}`,
-          { attributes: { [SemanticAttributes.CODE_FUNCTION]: 'loader' } },
-          opentelemetry.context.active(),
-        );
-
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        addRequestAttributesToSpan(span, params.request);
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        addMatchAttributesToSpan(span, { routeId: params.match.route.id, params: params.match.params });
-
-        return opentelemetry.context.with(opentelemetry.trace.setSpan(opentelemetry.context.active(), span), () => {
-          const originalResponsePromise: Promise<Response> = original.apply(this, args);
-          return originalResponsePromise
-            .then(response => {
-              addResponseAttributesToSpan(span, response);
-              return response;
-            })
-            .catch(error => {
-              plugin._addErrorToSpan(span, error);
-              throw error;
-            })
-            .finally(() => {
-              span.end();
-            });
-        });
-      };
-    };
-  }
-
-  /**
-   *
-   */
   private _patchCallRouteAction(): (original: typeof remixRunServerRuntimeData.callRouteAction) => any {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const plugin = this;
@@ -390,9 +325,6 @@ export class RemixInstrumentation extends InstrumentationBase {
     };
   }
 
-  /**
-   *
-   */
   private _addErrorToSpan(span: Span, error: Error): void {
     addErrorEventToSpan(span, error);
 
