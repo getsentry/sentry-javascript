@@ -10,12 +10,12 @@ import type {
   SeverityLevel,
 } from '@sentry/core';
 import {
-  Client,
+  _INTERNAL_flushLogsBuffer,
   addAutoIpAddressToSession,
   addAutoIpAddressToUser,
   applySdkMetadata,
+  Client,
   getSDKSource,
-  _INTERNAL_flushLogsBuffer,
 } from '@sentry/core';
 import { eventFromException, eventFromMessage } from './eventbuilder';
 import { WINDOW } from './helpers';

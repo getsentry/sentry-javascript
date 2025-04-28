@@ -1,28 +1,26 @@
 import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
 import {
-  Scope,
-  SyncPromise,
   addBreadcrumb,
   dsnToString,
   getCurrentScope,
   getIsolationScope,
   lastEventId,
   makeSession,
+  Scope,
   setCurrentClient,
+  SyncPromise,
   withMonitor,
 } from '../../src';
 import type { BaseClient, Client } from '../../src/client';
 import * as integrationModule from '../../src/integration';
 import type { Envelope } from '../../src/types-hoist/envelope';
-import type { ErrorEvent } from '../../src/types-hoist/event';
-import type { Event } from '../../src/types-hoist/event';
+import type { ErrorEvent, Event, TransactionEvent } from '../../src/types-hoist/event';
 import type { SpanJSON } from '../../src/types-hoist/span';
-import type { TransactionEvent } from '../../src/types-hoist/event';
 import * as loggerModule from '../../src/utils-hoist/logger';
 import * as miscModule from '../../src/utils-hoist/misc';
 import * as stringModule from '../../src/utils-hoist/string';
 import * as timeModule from '../../src/utils-hoist/time';
-import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
+import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 import { AdHocIntegration, TestIntegration } from '../mocks/integration';
 import { makeFakeTransport } from '../mocks/transport';
 import { clearGlobalScope } from './clear-global-scope';

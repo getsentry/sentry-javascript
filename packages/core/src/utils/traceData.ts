@@ -4,11 +4,11 @@ import { getClient, getCurrentScope } from '../currentScopes';
 import { isEnabled } from '../exports';
 import type { Scope } from '../scope';
 import { getDynamicSamplingContextFromScope, getDynamicSamplingContextFromSpan } from '../tracing';
-import type { SerializedTraceData } from '../types-hoist/tracing';
 import type { Span } from '../types-hoist/span';
+import type { SerializedTraceData } from '../types-hoist/tracing';
 import { dynamicSamplingContextToSentryBaggageHeader } from '../utils-hoist/baggage';
 import { logger } from '../utils-hoist/logger';
-import { TRACEPARENT_REGEXP, generateSentryTraceHeader } from '../utils-hoist/tracing';
+import { generateSentryTraceHeader, TRACEPARENT_REGEXP } from '../utils-hoist/tracing';
 import { getActiveSpan, spanToTraceHeader } from './spanUtils';
 
 /**

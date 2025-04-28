@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, test } from 'vitest';
-import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 import { assertSentryTransaction } from '../../../utils/assertions';
+import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
 describe('express tracing', () => {
   afterAll(() => {

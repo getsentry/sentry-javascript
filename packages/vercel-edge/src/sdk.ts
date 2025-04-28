@@ -1,4 +1,4 @@
-import { DiagLogLevel, context, diag, propagation, trace } from '@opentelemetry/api';
+import { context, diag, DiagLogLevel, propagation, trace } from '@opentelemetry/api';
 import { Resource } from '@opentelemetry/resources';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import {
@@ -8,28 +8,28 @@ import {
 } from '@opentelemetry/semantic-conventions';
 import type { Client, Integration, Options } from '@sentry/core';
 import {
-  GLOBAL_OBJ,
-  SDK_VERSION,
+  consoleIntegration,
   createStackParser,
   dedupeIntegration,
   functionToStringIntegration,
   getCurrentScope,
   getIntegrationsToSetup,
+  GLOBAL_OBJ,
   hasSpansEnabled,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
   logger,
   nodeStackLineParser,
   requestDataIntegration,
+  SDK_VERSION,
   stackParserFromStackParserOptions,
-  consoleIntegration,
 } from '@sentry/core';
 import {
+  enhanceDscWithOpenTelemetryRootSpanName,
+  openTelemetrySetupCheck,
   SentryPropagator,
   SentrySampler,
   SentrySpanProcessor,
-  enhanceDscWithOpenTelemetryRootSpanName,
-  openTelemetrySetupCheck,
   setOpenTelemetryContextAsyncContextStrategy,
   setupEventContextTrace,
   wrapContextManagerClass,

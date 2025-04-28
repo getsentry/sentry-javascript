@@ -1,15 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
 import {
+  getClient,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  getClient,
   setCurrentClient,
 } from '../../../src';
-import { SentrySpan, getDynamicSamplingContextFromSpan, startInactiveSpan } from '../../../src/tracing';
+import { getDynamicSamplingContextFromSpan, SentrySpan, startInactiveSpan } from '../../../src/tracing';
 import { freezeDscOnSpan } from '../../../src/tracing/dynamicSamplingContext';
 import type { Span, SpanContextData } from '../../../src/types-hoist/span';
 import type { TransactionSource } from '../../../src/types-hoist/transaction';
-import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
+import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 describe('getDynamicSamplingContextFromSpan', () => {
   beforeEach(() => {

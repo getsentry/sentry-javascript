@@ -28,6 +28,8 @@ module.exports = {
             'ts-expect-error': true,
           },
         ],
+        // We rely on having imports after init() is called for OTEL
+        'import/first': 'off',
       },
     },
   ],

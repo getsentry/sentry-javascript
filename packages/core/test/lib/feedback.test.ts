@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, test, vi } from 'vitest';
 import {
-  Scope,
   addBreadcrumb,
   getCurrentScope,
+  Scope,
   setCurrentClient,
   startSpan,
   withIsolationScope,
@@ -10,7 +10,7 @@ import {
 } from '../../src';
 import { captureFeedback } from '../../src/feedback';
 import type { Span } from '../../src/types-hoist/span';
-import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
+import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
 describe('captureFeedback', () => {
   beforeEach(() => {

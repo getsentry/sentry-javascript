@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  Scope,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
   getMainCarrier,
+  Scope,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   setAsyncContextStrategy,
   setCurrentClient,
   spanToJSON,
@@ -14,10 +14,10 @@ import {
 } from '../../../src';
 import { getAsyncContextStrategy } from '../../../src/asyncContext';
 import {
-  SentrySpan,
   continueTrace,
   getDynamicSamplingContextFromSpan,
   registerSpanErrorInstrumentation,
+  SentrySpan,
   startInactiveSpan,
   startSpan,
   startSpanManual,
@@ -31,7 +31,7 @@ import type { Span } from '../../../src/types-hoist/span';
 import type { StartSpanOptions } from '../../../src/types-hoist/startSpanOptions';
 import { _setSpanForScope } from '../../../src/utils/spanOnScope';
 import { getActiveSpan, getRootSpan, getSpanDescendants, spanIsSampled } from '../../../src/utils/spanUtils';
-import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
+import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 const enum Type {
   Sync = 'sync',

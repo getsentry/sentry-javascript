@@ -1,15 +1,15 @@
-import { SENTRY_XHR_DATA_KEY, getBodyString, getFetchRequestArgBody } from '@sentry-internal/browser-utils';
-import type { FetchHint, XhrHint } from '@sentry-internal/browser-utils';
+import type { Client, IntegrationFn } from '@sentry/core';
 import {
+  defineIntegration,
+  isString,
   SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_URL_FULL,
-  defineIntegration,
-  isString,
   spanToJSON,
   stringMatchesSomePattern,
 } from '@sentry/core';
-import type { Client, IntegrationFn } from '@sentry/core';
+import type { FetchHint, XhrHint } from '@sentry-internal/browser-utils';
+import { getBodyString, getFetchRequestArgBody, SENTRY_XHR_DATA_KEY } from '@sentry-internal/browser-utils';
 
 interface GraphQLClientOptions {
   endpoints: Array<string | RegExp>;

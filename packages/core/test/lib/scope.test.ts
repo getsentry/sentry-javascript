@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, test, vi } from 'vitest';
 import type { Client } from '../../src/client';
-import { applyScopeDataToEvent } from '../../src/utils/applyScopeDataToEvent';
 import {
   getCurrentScope,
   getGlobalScope,
@@ -11,7 +10,8 @@ import {
 import { Scope } from '../../src/scope';
 import type { Breadcrumb } from '../../src/types-hoist/breadcrumb';
 import type { Event } from '../../src/types-hoist/event';
-import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
+import { applyScopeDataToEvent } from '../../src/utils/applyScopeDataToEvent';
+import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 import { clearGlobalScope } from './clear-global-scope';
 
 describe('Scope', () => {

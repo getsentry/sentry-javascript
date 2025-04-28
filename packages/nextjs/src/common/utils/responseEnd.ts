@@ -1,6 +1,6 @@
-import type { ServerResponse } from 'http';
 import type { Span } from '@sentry/core';
 import { fill, flush, logger, setHttpStatus } from '@sentry/core';
+import type { ServerResponse } from 'http';
 import { DEBUG_BUILD } from '../debug-build';
 import type { ResponseEndMethod, WrappedResponseEndMethod } from '../types';
 

@@ -1,4 +1,3 @@
-import { SDK_VERSION } from '@sentry/core';
 import type {
   ClientReport,
   Envelope,
@@ -9,6 +8,7 @@ import type {
   SessionAggregates,
   TransactionEvent,
 } from '@sentry/core';
+import { SDK_VERSION } from '@sentry/core';
 import { expect } from 'vitest';
 
 /**

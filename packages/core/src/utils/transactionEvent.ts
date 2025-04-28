@@ -1,6 +1,6 @@
 import { SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME, SEMANTIC_ATTRIBUTE_PROFILE_ID } from '../semanticAttributes';
-import type { SpanJSON } from '../types-hoist/span';
 import type { TransactionEvent } from '../types-hoist/event';
+import type { SpanJSON } from '../types-hoist/span';
 
 /**
  * Converts a transaction event to a span JSON object.

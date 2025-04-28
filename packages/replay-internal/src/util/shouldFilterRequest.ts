@@ -1,5 +1,4 @@
 import { getClient, isSentryRequestUrl } from '@sentry/core';
-
 import { DEBUG_BUILD } from '../debug-build';
 import type { ReplayContainer } from '../types';
 

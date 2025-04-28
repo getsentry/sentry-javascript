@@ -3,12 +3,11 @@
  */
 
 import '../utils/mock-internal-setTimeout';
-
-import type { MockInstance, MockedFunction } from 'vitest';
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import * as SentryBrowserUtils from '@sentry-internal/browser-utils';
-import * as SentryCore from '@sentry/core';
 import type { Transport } from '@sentry/core';
+import * as SentryCore from '@sentry/core';
+import * as SentryBrowserUtils from '@sentry-internal/browser-utils';
+import type { MockedFunction, MockInstance } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_FLUSH_MIN_DELAY, WINDOW } from '../../src/constants';
 import type { ReplayContainer } from '../../src/replay';
 import { clearSession } from '../../src/session/clearSession';

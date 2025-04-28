@@ -1,9 +1,7 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
-
 import type { Event } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import type { Callback, Handler } from 'aws-lambda';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-
 import { init, wrapHandler } from '../src/sdk';
 
 const mockSpanEnd = vi.fn();

@@ -1,13 +1,12 @@
-import * as fs from 'fs';
-import * as path from 'path';
 import { BigQuery } from '@google-cloud/bigquery';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { createTransport, NodeClient, setCurrentClient } from '@sentry/node';
+import * as fs from 'fs';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore ESM/CJS interop issue
 import nock from 'nock';
-import { describe, vi, beforeEach, test, expect, afterAll } from 'vitest';
-
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
-import { NodeClient, createTransport, setCurrentClient } from '@sentry/node';
+import * as path from 'path';
+import { afterAll, beforeEach, describe, expect, test, vi } from 'vitest';
 import { googleCloudHttpIntegration } from '../../src/integrations/google-cloud-http';
 
 const mockSpanEnd = vi.fn();

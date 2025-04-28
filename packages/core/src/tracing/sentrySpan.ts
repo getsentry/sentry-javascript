@@ -9,26 +9,23 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '../semanticAttributes';
-import type { SentrySpanArguments } from '../types-hoist/span';
-import type { Span } from '../types-hoist/span';
-import type { SpanAttributeValue } from '../types-hoist/span';
-import type { SpanAttributes } from '../types-hoist/span';
-import type { SpanContextData } from '../types-hoist/span';
 import type { SpanEnvelope } from '../types-hoist/envelope';
-import type { SpanJSON } from '../types-hoist/span';
-import type { SpanOrigin } from '../types-hoist/span';
-import type { SpanStatus } from '../types-hoist/spanStatus';
-import type { SpanTimeInput } from '../types-hoist/span';
-import type { TimedEvent } from '../types-hoist/timedEvent';
 import type { TransactionEvent } from '../types-hoist/event';
-import type { TransactionSource } from '../types-hoist/transaction';
 import type { SpanLink } from '../types-hoist/link';
-import { logger } from '../utils-hoist/logger';
-import { generateSpanId, generateTraceId } from '../utils-hoist/propagationContext';
-import { timestampInSeconds } from '../utils-hoist/time';
+import type {
+  SentrySpanArguments,
+  Span,
+  SpanAttributes,
+  SpanAttributeValue,
+  SpanContextData,
+  SpanJSON,
+  SpanOrigin,
+  SpanTimeInput,
+} from '../types-hoist/span';
+import type { SpanStatus } from '../types-hoist/spanStatus';
+import type { TimedEvent } from '../types-hoist/timedEvent';
+import type { TransactionSource } from '../types-hoist/transaction';
 import {
-  TRACE_FLAG_NONE,
-  TRACE_FLAG_SAMPLED,
   convertSpanLinksForEnvelope,
   getRootSpan,
   getSpanDescendants,
@@ -36,7 +33,12 @@ import {
   spanTimeInputToSeconds,
   spanToJSON,
   spanToTransactionTraceContext,
+  TRACE_FLAG_NONE,
+  TRACE_FLAG_SAMPLED,
 } from '../utils/spanUtils';
+import { logger } from '../utils-hoist/logger';
+import { generateSpanId, generateTraceId } from '../utils-hoist/propagationContext';
+import { timestampInSeconds } from '../utils-hoist/time';
 import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanEnd } from './logSpans';
 import { timedEventsToMeasurements } from './measurement';

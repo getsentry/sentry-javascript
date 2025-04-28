@@ -1,12 +1,11 @@
 import {
   type CloudflareOptions,
-  wrapRequestHandler,
+  getDefaultIntegrations as getDefaultCloudflareIntegrations,
   setAsyncLocalStorageAsyncContextStrategy,
+  wrapRequestHandler,
 } from '@sentry/cloudflare';
-import { getDefaultIntegrations as getDefaultCloudflareIntegrations } from '@sentry/cloudflare';
-import type { Handle } from '@sveltejs/kit';
-
 import { addNonEnumerableProperty } from '@sentry/core';
+import type { Handle } from '@sveltejs/kit';
 import { rewriteFramesIntegration } from '../server-common/rewriteFramesIntegration';
 
 /**

@@ -4,7 +4,7 @@ import { _resetErrorsInstrumented, registerSpanErrorInstrumentation } from '../.
 import type { HandlerDataError, HandlerDataUnhandledRejection } from '../../../src/types-hoist/instrument';
 import * as globalErrorModule from '../../../src/utils-hoist/instrument/globalError';
 import * as globalUnhandledRejectionModule from '../../../src/utils-hoist/instrument/globalUnhandledRejection';
-import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
+import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 let mockErrorCallback: (data: HandlerDataError) => void = () => {};
 let mockUnhandledRejectionCallback: (data: HandlerDataUnhandledRejection) => void = () => {};

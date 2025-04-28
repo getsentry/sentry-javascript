@@ -1,9 +1,22 @@
 /* eslint-disable max-lines */
+import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
+import { DEFAULT_ENVIRONMENT } from './constants';
+import { getCurrentScope, getIsolationScope, getTraceContextFromScope } from './currentScopes';
+import { DEBUG_BUILD } from './debug-build';
+import { createEventEnvelope, createSessionEnvelope } from './envelope';
+import type { IntegrationIndex } from './integration';
+import { afterSetupIntegrations, setupIntegration, setupIntegrations } from './integration';
+import type { Scope } from './scope';
+import { updateSession } from './session';
+import {
+  getDynamicSamplingContextFromScope,
+  getDynamicSamplingContextFromSpan,
+} from './tracing/dynamicSamplingContext';
 import type { Breadcrumb, BreadcrumbHint, FetchBreadcrumbHint, XhrBreadcrumbHint } from './types-hoist/breadcrumb';
 import type { CheckIn, MonitorConfig } from './types-hoist/checkin';
-import type { ClientOptions } from './types-hoist/options';
-import type { DataCategory } from './types-hoist/datacategory';
 import type { EventDropReason, Outcome } from './types-hoist/clientreport';
+import type { TraceContext } from './types-hoist/context';
+import type { DataCategory } from './types-hoist/datacategory';
 import type { DsnComponents } from './types-hoist/dsn';
 import type { DynamicSamplingContext, Envelope } from './types-hoist/envelope';
 import type { ErrorEvent, Event, EventHint, TransactionEvent } from './types-hoist/event';
@@ -11,43 +24,28 @@ import type { EventProcessor } from './types-hoist/eventprocessor';
 import type { FeedbackEvent } from './types-hoist/feedback';
 import type { Integration } from './types-hoist/integration';
 import type { Log } from './types-hoist/log';
+import type { ClientOptions } from './types-hoist/options';
 import type { ParameterizedString } from './types-hoist/parameterize';
 import type { SdkMetadata } from './types-hoist/sdkmetadata';
 import type { Session, SessionAggregates } from './types-hoist/session';
 import type { SeverityLevel } from './types-hoist/severity';
 import type { Span, SpanAttributes, SpanContextData, SpanJSON } from './types-hoist/span';
 import type { StartSpanOptions } from './types-hoist/startSpanOptions';
-import type { TraceContext } from './types-hoist/context';
 import type { Transport, TransportMakeRequestResponse } from './types-hoist/transport';
-
-import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
-import { DEFAULT_ENVIRONMENT } from './constants';
-import { getCurrentScope, getIsolationScope, getTraceContextFromScope } from './currentScopes';
-import { DEBUG_BUILD } from './debug-build';
-import { createEventEnvelope, createSessionEnvelope } from './envelope';
-import type { IntegrationIndex } from './integration';
-import { afterSetupIntegrations } from './integration';
-import { setupIntegration, setupIntegrations } from './integration';
-import type { Scope } from './scope';
-import { updateSession } from './session';
-import {
-  getDynamicSamplingContextFromScope,
-  getDynamicSamplingContextFromSpan,
-} from './tracing/dynamicSamplingContext';
+import { getPossibleEventMessages } from './utils/eventUtils';
+import { merge } from './utils/merge';
+import { parseSampleRate } from './utils/parseSampleRate';
+import { prepareEvent } from './utils/prepareEvent';
+import { _getSpanForScope } from './utils/spanOnScope';
+import { showSpanDropWarning, spanToTraceContext } from './utils/spanUtils';
+import { convertSpanJsonToTransactionEvent, convertTransactionEventToSpanJson } from './utils/transactionEvent';
 import { createClientReportEnvelope } from './utils-hoist/clientreport';
 import { dsnToString, makeDsn } from './utils-hoist/dsn';
 import { addItemToEnvelope, createAttachmentEnvelopeItem } from './utils-hoist/envelope';
 import { isParameterizedString, isPlainObject, isPrimitive, isThenable } from './utils-hoist/is';
 import { logger } from './utils-hoist/logger';
 import { checkOrSetAlreadyCaught, uuid4 } from './utils-hoist/misc';
-import { SyncPromise, rejectedSyncPromise, resolvedSyncPromise } from './utils-hoist/syncpromise';
-import { getPossibleEventMessages } from './utils/eventUtils';
-import { merge } from './utils/merge';
-import { parseSampleRate } from './utils/parseSampleRate';
-import { prepareEvent } from './utils/prepareEvent';
-import { showSpanDropWarning, spanToTraceContext } from './utils/spanUtils';
-import { convertSpanJsonToTransactionEvent, convertTransactionEventToSpanJson } from './utils/transactionEvent';
-import { _getSpanForScope } from './utils/spanOnScope';
+import { rejectedSyncPromise, resolvedSyncPromise, SyncPromise } from './utils-hoist/syncpromise';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
 const MISSING_RELEASE_FOR_SESSION_ERROR = 'Discarded session because of missing or non-string release';

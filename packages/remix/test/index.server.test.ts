@@ -1,6 +1,5 @@
 import * as SentryNode from '@sentry/node';
-import { describe, vi, it, expect, afterEach, type Mock } from 'vitest';
-
+import { type Mock, afterEach, describe, expect, it, vi } from 'vitest';
 import { init } from '../src/index.server';
 
 vi.mock('@sentry/node', { spy: true });

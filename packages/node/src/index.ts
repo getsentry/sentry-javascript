@@ -1,3 +1,5 @@
+import * as logger from './logs/exports';
+
 export { httpIntegration } from './integrations/http';
 export { nativeNodeFetchIntegration } from './integrations/node-fetch';
 export { fsIntegration } from './integrations/fs';
@@ -155,7 +157,5 @@ export type {
   User,
   Span,
 } from '@sentry/core';
-
-import * as logger from './logs/exports';
 
 export { logger };

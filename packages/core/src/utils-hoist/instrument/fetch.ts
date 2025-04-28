@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { HandlerDataFetch } from '../../types-hoist/instrument';
 import type { WebFetchHeaders } from '../../types-hoist/webfetchapi';
-
 import { isError, isRequest } from '../is';
 import { addNonEnumerableProperty, fill } from '../object';
 import { supportsNativeFetch } from '../supports';

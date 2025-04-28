@@ -1,10 +1,9 @@
+/* eslint-disable no-empty-pattern */
+import { test as base } from '@playwright/test';
+import { SDK_VERSION } from '@sentry/browser';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
-/* eslint-disable no-empty-pattern */
-import { test as base } from '@playwright/test';
-
-import { SDK_VERSION } from '@sentry/browser';
 import { generatePage } from './generatePage';
 
 export const TEST_HOST = 'http://sentry-test.io';

@@ -1,21 +1,19 @@
 /**
  * @vitest-environment jsdom
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 import {
+  createTransport,
+  getCurrentScope,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  createTransport,
-  getCurrentScope,
   setCurrentClient,
 } from '@sentry/core';
 import { act, render } from '@testing-library/react';
 import { createMemoryHistory } from 'history-4';
 import * as React from 'react';
-import { Route, Router, Switch, matchPath } from 'react-router-5';
-
+import { matchPath, Route, Router, Switch } from 'react-router-5';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BrowserClient, reactRouterV5BrowserTracingIntegration, withSentryRouting } from '../src';
 import type { RouteConfig } from '../src/reactrouter';
 

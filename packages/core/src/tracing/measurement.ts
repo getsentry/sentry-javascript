@@ -3,10 +3,10 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT,
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE,
 } from '../semanticAttributes';
-import type { MeasurementUnit, Measurements } from '../types-hoist/measurement';
+import type { Measurements, MeasurementUnit } from '../types-hoist/measurement';
 import type { TimedEvent } from '../types-hoist/timedEvent';
-import { logger } from '../utils-hoist/logger';
 import { getActiveSpan, getRootSpan } from '../utils/spanUtils';
+import { logger } from '../utils-hoist/logger';
 
 /**
  * Adds a measurement to the active transaction on the current global scope. You can optionally pass in a different span

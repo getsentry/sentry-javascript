@@ -3,7 +3,6 @@
  */
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-
 import { defaultStackParser } from '../src';
 import { eventFromMessage, eventFromUnknownInput, extractMessage, extractType } from '../src/eventbuilder';
 

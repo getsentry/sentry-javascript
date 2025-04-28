@@ -1,5 +1,4 @@
 import { expect } from '@playwright/test';
-
 import { sentryTest } from '../../../../utils/fixtures';
 import { LOADER_CONFIGS } from '../../../../utils/generatePlugin';
 

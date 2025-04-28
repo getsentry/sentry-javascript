@@ -2,10 +2,9 @@
  * @vitest-environment jsdom
  */
 
-import { describe, expect, test } from 'vitest';
-
-import { SENTRY_XHR_DATA_KEY } from '@sentry-internal/browser-utils';
 import type { FetchHint, XhrHint } from '@sentry-internal/browser-utils';
+import { SENTRY_XHR_DATA_KEY } from '@sentry-internal/browser-utils';
+import { describe, expect, test } from 'vitest';
 import {
   getGraphQLRequestPayload,
   getRequestPayloadXhrOrFetch,

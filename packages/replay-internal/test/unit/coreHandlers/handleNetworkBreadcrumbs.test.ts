@@ -16,8 +16,8 @@ import { NETWORK_BODY_MAX_SIZE } from '../../../src/constants';
 import { beforeAddNetworkBreadcrumb } from '../../../src/coreHandlers/handleNetworkBreadcrumbs';
 import type { EventBufferArray } from '../../../src/eventBuffer/EventBufferArray';
 import type { ReplayContainer, ReplayNetworkOptions } from '../../../src/types';
-import { setupReplayContainer } from '../../utils/setupReplayContainer';
 import { BASE_TIMESTAMP } from '../..';
+import { setupReplayContainer } from '../../utils/setupReplayContainer';
 
 async function waitForReplayEventBuffer() {
   // Need one Promise.resolve() per await in the util functions

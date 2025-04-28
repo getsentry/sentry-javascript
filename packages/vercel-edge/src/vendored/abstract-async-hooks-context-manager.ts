@@ -31,8 +31,8 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 /* eslint-disable @typescript-eslint/no-this-alias */
 
-import type { EventEmitter } from 'events';
 import type { Context, ContextManager } from '@opentelemetry/api';
+import type { EventEmitter } from 'events';
 
 type Func<T> = (...args: unknown[]) => T;
 

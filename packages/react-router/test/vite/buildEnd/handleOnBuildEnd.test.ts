@@ -1,5 +1,5 @@
-import * as fs from 'fs';
 import SentryCli from '@sentry/cli';
+import * as fs from 'fs';
 import { glob } from 'glob';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { sentryOnBuildEnd } from '../../../src/vite/buildEnd/handleOnBuildEnd';

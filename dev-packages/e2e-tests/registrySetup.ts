@@ -1,7 +1,6 @@
 /* eslint-disable no-console */
 import * as childProcess from 'child_process';
 import * as path from 'path';
-
 import { PUBLISH_PACKAGES_DOCKER_IMAGE_NAME, TEST_REGISTRY_CONTAINER_NAME, VERDACCIO_VERSION } from './lib/constants';
 
 const publishScriptNodeVersion = process.env.E2E_TEST_PUBLISH_SCRIPT_NODE_VERSION;

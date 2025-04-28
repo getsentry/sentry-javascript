@@ -1,5 +1,5 @@
-import { logger } from '@sentry/core';
 import type { Logger } from '@sentry/core';
+import { logger } from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
 import type { NetworkMetaWarning } from './types';
 

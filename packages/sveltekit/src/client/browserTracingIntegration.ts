@@ -1,14 +1,14 @@
-import { navigating, page } from '$app/stores';
 import type { Client, Integration, Span } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import {
-  WINDOW,
   browserTracingIntegration as originalBrowserTracingIntegration,
   getCurrentScope,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
   startInactiveSpan,
+  WINDOW,
 } from '@sentry/svelte';
+import { navigating, page } from '$app/stores';
 
 /**
  * A custom `BrowserTracing` integration for SvelteKit.

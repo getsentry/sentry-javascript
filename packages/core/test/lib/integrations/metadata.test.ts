@@ -1,17 +1,16 @@
-import type { Event } from '../../../src/types-hoist/event';
-
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import {
-  GLOBAL_OBJ,
   captureException,
   createStackParser,
   createTransport,
+  GLOBAL_OBJ,
   moduleMetadataIntegration,
   nodeStackLineParser,
   parseEnvelope,
   setCurrentClient,
 } from '../../../src';
-import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
+import type { Event } from '../../../src/types-hoist/event';
+import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 const stackParser = createStackParser(nodeStackLineParser());
 

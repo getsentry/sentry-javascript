@@ -1,4 +1,28 @@
 /* eslint-disable max-lines */
+import type { Client, IntegrationFn, Span, StartSpanOptions, TransactionSource, WebFetchHeaders } from '@sentry/core';
+import {
+  addNonEnumerableProperty,
+  browserPerformanceTimeOrigin,
+  consoleSandbox,
+  generateTraceId,
+  getClient,
+  getCurrentScope,
+  getDynamicSamplingContextFromSpan,
+  getIsolationScope,
+  getLocationHref,
+  getRootSpan,
+  GLOBAL_OBJ,
+  logger,
+  propagationContextFromHeaders,
+  registerSpanErrorInstrumentation,
+  SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  spanIsSampled,
+  spanToJSON,
+  startIdleSpan,
+  TRACING_DEFAULTS,
+} from '@sentry/core';
 import {
   addHistoryInstrumentationHandler,
   addPerformanceEntries,
@@ -9,40 +33,16 @@ import {
   startTrackingLongTasks,
   startTrackingWebVitals,
 } from '@sentry-internal/browser-utils';
-import type { Client, IntegrationFn, Span, StartSpanOptions, TransactionSource, WebFetchHeaders } from '@sentry/core';
-import { consoleSandbox } from '@sentry/core';
-import {
-  GLOBAL_OBJ,
-  SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  TRACING_DEFAULTS,
-  addNonEnumerableProperty,
-  browserPerformanceTimeOrigin,
-  generateTraceId,
-  getClient,
-  getCurrentScope,
-  getDynamicSamplingContextFromSpan,
-  getIsolationScope,
-  getLocationHref,
-  getRootSpan,
-  logger,
-  propagationContextFromHeaders,
-  registerSpanErrorInstrumentation,
-  spanIsSampled,
-  spanToJSON,
-  startIdleSpan,
-} from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 import { registerBackgroundTabDetection } from './backgroundtab';
-import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './request';
 import type { PreviousTraceInfo } from './previousTrace';
 import {
   addPreviousTraceSpanLink,
   getPreviousTraceFromSessionStorage,
   storePreviousTraceInSessionStorage,
 } from './previousTrace';
+import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './request';
 
 export const BROWSER_TRACING_INTEGRATION_ID = 'BrowserTracing';
 

@@ -1,6 +1,5 @@
 import { expect } from '@playwright/test';
 import type { OtelLogEnvelope } from '@sentry/core';
-
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, properFullEnvelopeRequestParser } from '../../../../utils/helpers';
 
