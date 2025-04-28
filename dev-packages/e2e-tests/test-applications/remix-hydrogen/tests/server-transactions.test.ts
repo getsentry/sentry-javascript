@@ -40,7 +40,6 @@ test('Sends two linked transactions (server & client) to Sentry', async ({ page 
 
   const httpServerTraceId = httpServerTransaction.contexts?.trace?.trace_id;
   const httpServerSpanId = httpServerTransaction.contexts?.trace?.span_id;
-  const loaderSpanId = httpServerTransaction?.spans?.find(span => span.op === 'function.remix.loader')?.span_id;
 
   const pageLoadTraceId = pageloadTransaction.contexts?.trace?.trace_id;
   const pageLoadSpanId = pageloadTransaction.contexts?.trace?.span_id;
@@ -50,7 +49,6 @@ test('Sends two linked transactions (server & client) to Sentry', async ({ page 
 
   expect(httpServerTraceId).toBeDefined();
   expect(httpServerSpanId).toBeDefined();
-  expect(loaderSpanId).toBeDefined();
 
   expect(pageLoadTraceId).toEqual(httpServerTraceId);
   expect(pageLoadSpanId).not.toEqual(httpServerSpanId);

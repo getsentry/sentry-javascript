@@ -364,6 +364,18 @@ function instrumentBuildCallback(
   for (const [id, route] of Object.entries(build.routes)) {
     const wrappedRoute = { ...route, module: { ...route.module } };
 
+    // Entry module should have a loader function to provide `sentry-trace` and `baggage`
+    // They will be available for the root `meta` function as `data.sentryTrace` and `data.sentryBaggage`
+    if (!wrappedRoute.parentId) {
+      if (!wrappedRoute.module.loader) {
+        wrappedRoute.module.loader = () => ({});
+      }
+
+      if (!(wrappedRoute.module.loader as WrappedFunction).__sentry_original__) {
+        fill(wrappedRoute.module, 'loader', makeWrappedRootLoader());
+      }
+    }
+
     const routeAction = wrappedRoute.module.action as undefined | WrappedFunction;
     if (routeAction && !routeAction.__sentry_original__) {
       fill(wrappedRoute.module, 'action', makeWrappedAction(id, options?.instrumentTracing));
@@ -372,17 +384,6 @@ function instrumentBuildCallback(
     const routeLoader = wrappedRoute.module.loader as undefined | WrappedFunction;
     if (routeLoader && !routeLoader.__sentry_original__) {
       fill(wrappedRoute.module, 'loader', makeWrappedLoader(id, options?.instrumentTracing));
-    }
-
-    // Entry module should have a loader function to provide `sentry-trace` and `baggage`
-    // They will be available for the root `meta` function as `data.sentryTrace` and `data.sentryBaggage`
-    if (!wrappedRoute.parentId) {
-      if (!wrappedRoute.module.loader) {
-        wrappedRoute.module.loader = () => ({});
-      }
-
-      // We want to wrap the root loader regardless of whether it's already wrapped before.
-      fill(wrappedRoute.module, 'loader', makeWrappedRootLoader());
     }
 
     routes[id] = wrappedRoute;
