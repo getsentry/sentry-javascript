@@ -56,18 +56,12 @@ export interface RemixInstrumentationConfig extends InstrumentationConfig {
    * @default { _action: "actionType" }
    */
   actionFormDataAttributes?: Record<string, boolean | string>;
-  /**
-   * Whether to emit errors in the form of span attributes, as well as in span exception events.
-   * Defaults to `false`, meaning that only span exception events are emitted.
-   */
-  legacyErrorAttributes?: boolean;
 }
 
 const DEFAULT_CONFIG: RemixInstrumentationConfig = {
   actionFormDataAttributes: {
     _action: 'actionType',
   },
-  legacyErrorAttributes: false,
 };
 
 export class RemixInstrumentation extends InstrumentationBase {
@@ -347,10 +341,6 @@ export class RemixInstrumentation extends InstrumentationBase {
 
   private _addErrorToSpan(span: Span, error: Error): void {
     addErrorEventToSpan(span, error);
-
-    if (this.getConfig().legacyErrorAttributes || false) {
-      addErrorAttributesToSpan(span, error);
-    }
   }
 }
 
@@ -382,14 +372,4 @@ const addResponseAttributesToSpan = (span: Span, response: Response | null): voi
 const addErrorEventToSpan = (span: Span, error: Error): void => {
   span.recordException(error);
   span.setStatus({ code: SpanStatusCode.ERROR, message: error.message });
-};
-
-const addErrorAttributesToSpan = (span: Span, error: Error): void => {
-  span.setAttribute('error', true);
-  if (error.message) {
-    span.setAttribute(SemanticAttributes.EXCEPTION_MESSAGE, error.message);
-  }
-  if (error.stack) {
-    span.setAttribute(SemanticAttributes.EXCEPTION_STACKTRACE, error.stack);
-  }
 };
