@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, test } from 'vitest';
-import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
+import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('dataloader auto-instrumentation', () => {
   afterAll(async () => {
@@ -32,9 +32,17 @@ describe('dataloader auto-instrumentation', () => {
     ]),
   };
 
-  test('should auto-instrument `dataloader` package.', async () => {
-    const runner = createRunner(__dirname, 'scenario.js').expect({ transaction: EXPECTED_TRANSACTION }).start();
-    runner.makeRequest('get', '/');
-    await runner.completed();
-  });
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario.mjs',
+    'instrument.mjs',
+    createRunner => {
+      test('should auto-instrument `dataloader` package.', async () => {
+        const runner = createRunner().expect({ transaction: EXPECTED_TRANSACTION }).start();
+        runner.makeRequest('get', '/');
+        await runner.completed();
+      });
+    },
+    { skipEsm: true },
+  );
 });

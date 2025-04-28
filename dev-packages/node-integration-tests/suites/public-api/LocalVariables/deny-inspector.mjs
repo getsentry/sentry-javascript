@@ -1,5 +1,6 @@
 import { register } from 'node:module';
 
+// eslint-disable-next-line no-unused-vars
 const hookScript = Buffer.from(`
 
   `);
@@ -16,6 +17,8 @@ export async function resolve(specifier, context, nextResolve) {
   import.meta.url,
 );
 
-const Sentry = await import('@sentry/node');
+(async () => {
+  const Sentry = await import('@sentry/node');
 
-Sentry.init({});
+  Sentry.init({});
+})();

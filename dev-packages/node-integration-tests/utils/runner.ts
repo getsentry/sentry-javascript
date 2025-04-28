@@ -14,8 +14,9 @@ import type {
 import { normalize } from '@sentry/core';
 import axios from 'axios';
 import { execSync, spawn, spawnSync } from 'child_process';
-import { existsSync } from 'fs';
+import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
 import { join } from 'path';
+import { afterAll, describe } from 'vitest';
 import {
   assertEnvelopeHeader,
   assertSentryCheckIn,
@@ -164,6 +165,67 @@ type StartResult = {
   ): Promise<T | undefined>;
 };
 
+export function createEsmAndCjsTests(
+  cwd: string,
+  scenarioPath: string,
+  instrumentPath: string,
+  callback: (createTestRunner: () => ReturnType<typeof createRunner>, mode: 'esm' | 'cjs') => void,
+  options?: { skipCjs?: boolean; skipEsm?: boolean },
+): void {
+  const mjsScenarioPath = join(cwd, scenarioPath);
+  const mjsInstrumentPath = join(cwd, instrumentPath);
+
+  if (!mjsScenarioPath.endsWith('.mjs')) {
+    throw new Error(`Scenario path must end with .mjs: ${scenarioPath}`);
+  }
+
+  if (!existsSync(mjsInstrumentPath)) {
+    throw new Error(`Instrument file not found: ${mjsInstrumentPath}`);
+  }
+
+  const cjsScenarioPath = join(cwd, `tmp_${scenarioPath.replace('.mjs', '.cjs')}`);
+  const cjsInstrumentPath = join(cwd, `tmp_${instrumentPath.replace('.mjs', '.cjs')}`);
+
+  // For the CJS runner, we create some temporary files...
+  if (!options?.skipCjs) {
+    convertEsmFileToCjs(mjsScenarioPath, cjsScenarioPath);
+    convertEsmFileToCjs(mjsInstrumentPath, cjsInstrumentPath);
+  }
+
+  describe('esm & cjs', () => {
+    afterAll(() => {
+      try {
+        unlinkSync(cjsInstrumentPath);
+      } catch {
+        // Ignore errors here
+      }
+      try {
+        unlinkSync(cjsScenarioPath);
+      } catch {
+        // Ignore errors here
+      }
+    });
+
+    const scenarios: [mode: 'esm' | 'cjs', getRunner: () => ReturnType<typeof createRunner>][] = [];
+    if (!options?.skipEsm) {
+      scenarios.push(['esm', () => createRunner(mjsScenarioPath).withFlags('--import', mjsInstrumentPath)]);
+    }
+    if (!options?.skipCjs) {
+      scenarios.push(['cjs', () => createRunner(cjsScenarioPath).withFlags('--require', cjsInstrumentPath)]);
+    }
+
+    describe.each(scenarios)('%s', (mode, getRunner) => {
+      callback(getRunner, mode);
+    });
+  });
+}
+
+function convertEsmFileToCjs(inputPath: string, outputPath: string): void {
+  const cjsFileContent = readFileSync(inputPath, 'utf8');
+  const cjsFileContentConverted = convertEsmToCjs(cjsFileContent);
+  writeFileSync(outputPath, cjsFileContentConverted);
+}
+
 /** Creates a test runner */
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function createRunner(...paths: string[]) {
@@ -183,6 +245,7 @@ export function createRunner(...paths: string[]) {
   let dockerOptions: DockerOptions | undefined;
   let ensureNoErrorOutput = false;
   const logs: string[] = [];
+  const cleanups: VoidFunction[] = [];
 
   if (testPath.endsWith('.ts')) {
     flags.push('-r', 'ts-node/register');
@@ -213,6 +276,14 @@ export function createRunner(...paths: string[]) {
     },
     withFlags: function (...args: string[]) {
       flags.push(...args);
+      return this;
+    },
+    withInstrument: function (instrumentPath: string) {
+      flags.push('--import', instrumentPath);
+      return this;
+    },
+    withCleanup: function (cleanup: VoidFunction) {
+      cleanups.push(cleanup);
       return this;
     },
     withMockSentryServer: function () {
@@ -252,6 +323,8 @@ export function createRunner(...paths: string[]) {
       let child: ReturnType<typeof spawn> | undefined;
 
       function complete(error?: Error): void {
+        cleanups.forEach(cleanup => cleanup());
+
         child?.kill();
         done?.(normalize(error));
         if (error) {
@@ -564,4 +637,37 @@ function expectLog(item: SerializedLogContainer, expected: ExpectedLogContainer)
   } else {
     assertSentryLogContainer(item, expected);
   }
+}
+
+/**
+ * Converts ESM import statements to CommonJS require statements
+ * @param content The content of an ESM file
+ * @returns The content with require statements instead of imports
+ */
+function convertEsmToCjs(content: string): string {
+  let newContent = content;
+
+  // Handle default imports: import x from 'y' -> const x = require('y')
+  newContent = newContent.replace(
+    /import\s+([\w*{}\s,]+)\s+from\s+['"]([^'"]+)['"]/g,
+    (_, imports: string, module: string) => {
+      if (imports.includes('* as')) {
+        // Handle namespace imports: import * as x from 'y' -> const x = require('y')
+        return `const ${imports.replace('* as', '').trim()} = require('${module}')`;
+      } else if (imports.includes('{')) {
+        // Handle named imports: import {x, y} from 'z' -> const {x, y} = require('z')
+        return `const ${imports} = require('${module}')`;
+      } else {
+        // Handle default imports: import x from 'y' -> const x = require('y')
+        return `const ${imports} = require('${module}')`;
+      }
+    },
+  );
+
+  // Handle side-effect imports: import 'x' -> require('x')
+  newContent = newContent.replace(/import\s+['"]([^'"]+)['"]/g, (_, module) => {
+    return `require('${module}')`;
+  });
+
+  return newContent;
 }
