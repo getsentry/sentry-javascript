@@ -27,6 +27,7 @@ export function getDefaultIntegrations(options: CloudflareOptions): Integration[
     functionToStringIntegration(),
     linkedErrorsIntegration(),
     fetchIntegration(),
+    // todo: the `include` object should be defined based on `sendDefaultPii` directly in the integration
     requestDataIntegration(sendDefaultPii ? undefined : { include: { cookies: false } }),
     consoleIntegration(),
   ];

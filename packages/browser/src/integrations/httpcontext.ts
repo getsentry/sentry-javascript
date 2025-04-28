@@ -20,7 +20,7 @@ export const httpContextIntegration = defineIntegration(() => {
       const { userAgent } = WINDOW.navigator || {};
 
       const headers = {
-        ...event.request?.headers,
+        ...event.request?.headers, // fixme: add conditional for `sendDefaultPii` here?
         ...(referrer && { Referer: referrer }),
         ...(userAgent && { 'User-Agent': userAgent }),
       };
