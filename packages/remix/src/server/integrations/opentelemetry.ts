@@ -1,8 +1,8 @@
 import type { Client, IntegrationFn, Span } from '@sentry/core';
 import { defineIntegration, SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { generateInstrumentOnce, getClient, spanToJSON } from '@sentry/node';
-import { RemixInstrumentation } from 'opentelemetry-instrumentation-remix';
 import type { RemixOptions } from '../../utils/remixOptions';
+import { RemixInstrumentation } from '../../vendor/instrumentation';
 
 const INTEGRATION_NAME = 'Remix';
 
