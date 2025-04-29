@@ -34,7 +34,10 @@ export async function storeFormDataKeys(
           attrKey = key;
         }
 
-        span.setAttribute(`remix.action_form_data.${attrKey}`, typeof value === 'string' ? value : '[non-string value]');
+        span.setAttribute(
+          `remix.action_form_data.${attrKey}`,
+          typeof value === 'string' ? value : '[non-string value]',
+        );
       }
     });
   } catch (e) {
