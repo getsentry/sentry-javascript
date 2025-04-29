@@ -1,7 +1,6 @@
 import { SDK_VERSION } from '@sentry/solid';
 import * as SentrySolid from '@sentry/solid';
-
-import { vi, describe, beforeEach, it, expect } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { init as solidStartInit } from '../../src/client';
 import { solidRouterBrowserTracingIntegration } from '../../src/client/solidrouter';
 

@@ -1,8 +1,7 @@
+import { expect } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
-import { expect } from '@playwright/test';
-
-import { TEST_HOST, sentryTest } from '../../../utils/fixtures';
+import { sentryTest, TEST_HOST } from '../../../utils/fixtures';
 import { getExpectedReplayEvent } from '../../../utils/replayEventTemplates';
 import {
   getFullRecordingSnapshots,

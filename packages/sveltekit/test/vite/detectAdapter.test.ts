@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 import { detectAdapter } from '../../src/vite/detectAdapter';
 
 let existsFile = true;

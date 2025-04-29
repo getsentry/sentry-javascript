@@ -1,6 +1,5 @@
-import { defineIntegration } from '@sentry/core';
 import type { Event, IntegrationFn, StackFrame } from '@sentry/core';
-
+import { defineIntegration } from '@sentry/core';
 import { patchWebAssembly } from './patchWebAssembly';
 import { getImage, getImages } from './registry';
 

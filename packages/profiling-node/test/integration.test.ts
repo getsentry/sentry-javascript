@@ -1,12 +1,9 @@
+import type { ProfileChunk, ProfilingIntegration, Transport } from '@sentry/core';
+import { createEnvelope, getMainCarrier, GLOBAL_OBJ, logger } from '@sentry/core';
 import * as Sentry from '@sentry/node';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
-import { CpuProfilerBindings } from '@sentry-internal/node-cpu-profiler';
-import { getMainCarrier } from '@sentry/core';
-import { GLOBAL_OBJ, createEnvelope, logger } from '@sentry/core';
-import type { ProfilingIntegration } from '@sentry/core';
-import type { ProfileChunk, Transport } from '@sentry/core';
 import type { NodeClientOptions } from '@sentry/node/build/types/types';
+import { CpuProfilerBindings } from '@sentry-internal/node-cpu-profiler';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { _nodeProfilingIntegration } from '../src/integration';
 
 function makeLegacySpanProfilingClient(): [Sentry.NodeClient, Transport] {

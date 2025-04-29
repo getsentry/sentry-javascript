@@ -1,5 +1,4 @@
-import { describe, vi, afterAll, afterEach, it } from 'vitest';
-
+import { afterAll, afterEach, describe, it, vi } from 'vitest';
 import { wrapApiHandlerWithSentry } from '../../src/edge';
 
 const origRequest = global.Request;

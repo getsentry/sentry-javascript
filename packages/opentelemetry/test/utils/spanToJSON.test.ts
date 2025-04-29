@@ -8,9 +8,9 @@ import {
   spanToJSON,
 } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { TestClient, getDefaultTestClientOptions } from '../helpers/TestClient';
 import { setupOtel } from '../helpers/initOtel';
 import { cleanupOtel } from '../helpers/mockSdkInit';
+import { getDefaultTestClientOptions, TestClient } from '../helpers/TestClient';
 
 describe('spanToJSON', () => {
   describe('OpenTelemetry Span', () => {

@@ -4,12 +4,11 @@
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { vi, afterAll, afterEach } from 'vitest';
+import { afterAll, afterEach, vi } from 'vitest';
+import { CLIENT_SDK_CONFIG_FILE, EDGE_SDK_CONFIG_FILE, SERVER_SDK_CONFIG_FILE } from './fixtures';
 
 vi.mock('fs');
 vi.mock('os');
-
-import { CLIENT_SDK_CONFIG_FILE, EDGE_SDK_CONFIG_FILE, SERVER_SDK_CONFIG_FILE } from './fixtures';
 
 // We use `fs.existsSync()` in `getUserConfigFile()`. When we're not testing `getUserConfigFile()` specifically, all we
 // need is for it to give us any valid answer, so make it always find what it's looking for. Since this is a core node

@@ -4,10 +4,10 @@ import type {
   ExportedHandlerScheduledHandler,
 } from '@cloudflare/workers-types';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   captureException,
   flush,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   startSpan,
   withIsolationScope,
 } from '@sentry/core';

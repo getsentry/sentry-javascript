@@ -2,13 +2,13 @@ import { types } from 'node:util';
 import { Worker } from 'node:worker_threads';
 import type { Contexts, Event, EventHint, Integration, IntegrationFn, ScopeData } from '@sentry/core';
 import {
-  GLOBAL_OBJ,
   defineIntegration,
   getClient,
   getCurrentScope,
   getFilenameToDebugIdMap,
   getGlobalScope,
   getIsolationScope,
+  GLOBAL_OBJ,
   logger,
   mergeScopeData,
 } from '@sentry/core';

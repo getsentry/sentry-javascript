@@ -1,5 +1,4 @@
 import type { GetServerSideProps } from 'next';
-
 import { isBuild } from '../utils/isBuild';
 import { withErrorInstrumentation, withTracedServerSideDataFetcher } from '../utils/wrapperUtils';
 

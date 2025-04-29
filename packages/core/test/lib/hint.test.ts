@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import { GLOBAL_OBJ, captureEvent, getCurrentScope } from '../../src';
+import { captureEvent, getCurrentScope, GLOBAL_OBJ } from '../../src';
 import { initAndBind } from '../../src/sdk';
-import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
+import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 import { AddAttachmentTestIntegration } from '../mocks/integration';
 
 const PUBLIC_DSN = 'https://username@domain/123';

@@ -1,5 +1,4 @@
 import type { Breadcrumb, ErrorEvent, ReplayRecordingData, ReplayRecordingMode, Span } from '@sentry/core';
-
 import type { SKIPPED, THROTTLED } from '../util/throttle';
 import type { AllPerformanceEntry, AllPerformanceEntryData, ReplayPerformanceEntry } from './performance';
 import type { ReplayFrameEvent } from './replayFrame';

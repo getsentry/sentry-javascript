@@ -1,12 +1,11 @@
 import * as fs from 'node:fs';
-import { parseStackFrames } from '@sentry/core';
 import type { StackFrame } from '@sentry/core';
-
+import { parseStackFrames } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import {
+  _contextLinesIntegration,
   MAX_CONTEXTLINES_COLNO,
   MAX_CONTEXTLINES_LINENO,
-  _contextLinesIntegration,
   resetFileContentCache,
 } from '../../src/integrations/contextlines';
 import { defaultStackParser } from '../../src/sdk/api';

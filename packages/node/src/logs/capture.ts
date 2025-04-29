@@ -1,6 +1,5 @@
 import { format } from 'node:util';
-
-import type { LogSeverityLevel, Log, ParameterizedString } from '@sentry/core';
+import type { Log, LogSeverityLevel, ParameterizedString } from '@sentry/core';
 import { _INTERNAL_captureLog } from '@sentry/core';
 
 export type CaptureLogArgs =

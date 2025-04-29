@@ -1,4 +1,8 @@
 /* eslint-disable max-lines */
+import type * as http from 'node:http';
+import type { IncomingMessage, RequestOptions } from 'node:http';
+import type * as https from 'node:https';
+import type { EventEmitter } from 'node:stream';
 import { context, propagation } from '@opentelemetry/api';
 import { VERSION } from '@opentelemetry/core';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
@@ -18,10 +22,6 @@ import {
   stripUrlQueryAndFragment,
   withIsolationScope,
 } from '@sentry/core';
-import type * as http from 'node:http';
-import type { IncomingMessage, RequestOptions } from 'node:http';
-import type * as https from 'node:https';
-import type { EventEmitter } from 'node:stream';
 import { DEBUG_BUILD } from '../../debug-build';
 import { getRequestUrl } from '../../utils/getRequestUrl';
 import { stealthWrap } from './utils';

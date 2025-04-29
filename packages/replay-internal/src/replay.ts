@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
-import { EventType, record } from '@sentry-internal/rrweb';
 import type { ReplayRecordingMode, Span } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, getActiveSpan, getClient, getRootSpan, spanToJSON } from '@sentry/core';
+import { getActiveSpan, getClient, getRootSpan, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON } from '@sentry/core';
+import { EventType, record } from '@sentry-internal/rrweb';
 import {
   BUFFER_CHECKOUT_TIME,
   SESSION_IDLE_EXPIRE_DURATION,
@@ -56,7 +56,7 @@ import { resetReplayIdOnDynamicSamplingContext } from './util/resetReplayIdOnDyn
 import { sendReplay } from './util/sendReplay';
 import { RateLimitError } from './util/sendReplayRequest';
 import type { SKIPPED } from './util/throttle';
-import { THROTTLED, throttle } from './util/throttle';
+import { throttle, THROTTLED } from './util/throttle';
 
 /**
  * The main replay container class, which holds all the state and methods for recording and sending replays.

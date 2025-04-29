@@ -1,8 +1,4 @@
 /* eslint-disable max-lines */
-import { execSync, spawn, spawnSync } from 'child_process';
-import { existsSync } from 'fs';
-import { join } from 'path';
-import { normalize } from '@sentry/core';
 import type {
   ClientReport,
   Envelope,
@@ -15,7 +11,11 @@ import type {
   SessionAggregates,
   TransactionEvent,
 } from '@sentry/core';
+import { normalize } from '@sentry/core';
 import axios from 'axios';
+import { execSync, spawn, spawnSync } from 'child_process';
+import { existsSync } from 'fs';
+import { join } from 'path';
 import {
   assertEnvelopeHeader,
   assertSentryCheckIn,

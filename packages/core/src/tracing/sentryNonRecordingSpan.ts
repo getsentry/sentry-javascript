@@ -1,14 +1,14 @@
 import type {
   SentrySpanArguments,
   Span,
-  SpanAttributeValue,
   SpanAttributes,
+  SpanAttributeValue,
   SpanContextData,
-  SpanStatus,
   SpanTimeInput,
-} from '../types-hoist';
-import { generateSpanId, generateTraceId } from '../utils-hoist/propagationContext';
+} from '../types-hoist/span';
+import type { SpanStatus } from '../types-hoist/spanStatus';
 import { TRACE_FLAG_NONE } from '../utils/spanUtils';
+import { generateSpanId, generateTraceId } from '../utils-hoist/propagationContext';
 
 /**
  * A Sentry Span that is non-recording, meaning it will not be sent to Sentry.

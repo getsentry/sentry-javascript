@@ -1,7 +1,6 @@
 /* eslint-disable no-console */
 import type { ConsoleMessage } from '@playwright/test';
 import { expect } from '@playwright/test';
-
 import { sentryTest } from '../../../utils/fixtures';
 
 sentryTest('logs debug messages correctly', async ({ getLocalTestUrl, page }) => {

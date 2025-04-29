@@ -1,10 +1,8 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-
 import * as SentryBrowser from '@sentry/browser';
+import type { Span, SpanAttributes } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
-import type { Span, SpanAttributes } from '@sentry/core';
-
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Route } from '../src/router';
 import { instrumentVueRouter } from '../src/router';
 

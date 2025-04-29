@@ -2,9 +2,8 @@
  * @vitest-environment jsdom
  */
 
-import type { WrappedFunction } from '../../src/types-hoist';
-
 import { describe, expect, it, test, vi } from 'vitest';
+import type { WrappedFunction } from '../../src/types-hoist/wrappedfunction';
 import {
   addNonEnumerableProperty,
   dropUndefinedKeys,

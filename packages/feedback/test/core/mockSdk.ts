@@ -1,7 +1,5 @@
-import { vi } from 'vitest';
-
 import type { Envelope, Transport, TransportMakeRequestResponse } from '@sentry/core';
-
+import { vi } from 'vitest';
 import type { TestClientOptions } from '../../src/core/TestClient';
 import { getDefaultClientOptions, init } from '../../src/core/TestClient';
 

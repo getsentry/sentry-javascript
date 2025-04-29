@@ -1,7 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 import * as SentryCore from '@sentry/core';
 import { logger as coreLogger } from '@sentry/core';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { logger } from '../../../src/util/logger';
 
 const mockCaptureException = vi.spyOn(SentryCore, 'captureException');

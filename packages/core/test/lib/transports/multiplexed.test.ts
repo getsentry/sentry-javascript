@@ -1,13 +1,3 @@
-import type {
-  BaseTransportOptions,
-  ClientReport,
-  Envelope,
-  EventEnvelope,
-  EventItem,
-  TransactionEvent,
-  Transport,
-} from '../../../src/types-hoist';
-
 import { describe, expect, it, vi } from 'vitest';
 import {
   createClientReportEnvelope,
@@ -19,6 +9,10 @@ import {
   parseEnvelope,
 } from '../../../src';
 import { eventFromEnvelope } from '../../../src/transports/multiplexed';
+import type { ClientReport } from '../../../src/types-hoist/clientreport';
+import type { Envelope, EventEnvelope, EventItem } from '../../../src/types-hoist/envelope';
+import type { TransactionEvent } from '../../../src/types-hoist/event';
+import type { BaseTransportOptions, Transport } from '../../../src/types-hoist/transport';
 
 const DSN1 = 'https://1234@5678.ingest.sentry.io/4321';
 const DSN1_URL = getEnvelopeEndpointWithUrlEncodedAuth(dsnFromString(DSN1)!);

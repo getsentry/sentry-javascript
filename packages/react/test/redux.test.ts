@@ -1,10 +1,8 @@
-import type { Mock } from 'vitest';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
 import * as Sentry from '@sentry/browser';
 import * as SentryCore from '@sentry/core';
 import * as Redux from 'redux';
-
+import type { Mock } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createReduxEnhancer } from '../src/redux';
 
 const mockSetContext = vi.fn();

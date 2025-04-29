@@ -7,7 +7,11 @@ async function assertRequests({
   page,
   buttonSelector,
   requestMatcher,
-}: { page: Page; buttonSelector: string; requestMatcher: string }) {
+}: {
+  page: Page;
+  buttonSelector: string;
+  requestMatcher: string;
+}) {
   const requests = await new Promise<Request[]>(resolve => {
     const requests: Request[] = [];
     page

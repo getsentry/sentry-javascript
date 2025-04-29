@@ -1,11 +1,10 @@
 // Note: These tests run the handler in Node.js, which has some differences to the cloudflare workers runtime.
 // Although this is not ideal, this is the best we can do until we have a better way to test cloudflare workers.
 
-import { beforeEach, describe, expect, test, vi } from 'vitest';
-
 import type { ScheduledController } from '@cloudflare/workers-types';
-import * as SentryCore from '@sentry/core';
 import type { Event } from '@sentry/core';
+import * as SentryCore from '@sentry/core';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { CloudflareClient } from '../src/client';
 import { withSentry } from '../src/handler';
 

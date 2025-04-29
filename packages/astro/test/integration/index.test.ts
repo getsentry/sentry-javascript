@@ -1,9 +1,7 @@
 import type { AstroConfig } from 'astro';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { getUpdatedSourceMapSettings } from '../../src/integration/index';
+import { getUpdatedSourceMapSettings, sentryAstro } from '../../src/integration';
 import type { SentryOptions } from '../../src/integration/types';
-
-import { sentryAstro } from '../../src/integration';
 
 const sentryVitePluginSpy = vi.fn(() => 'sentryVitePlugin');
 

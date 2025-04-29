@@ -3,20 +3,20 @@
  */
 
 import 'jsdom-worker';
-
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-import { BASE_TIMESTAMP } from '../..';
+import '../../utils/mock-internal-setTimeout';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MAX_REPLAY_DURATION, REPLAY_MAX_EVENT_BUFFER_SIZE, SESSION_IDLE_PAUSE_DURATION } from '../../../src/constants';
 import type { EventBufferProxy } from '../../../src/eventBuffer/EventBufferProxy';
 import { addEvent, shouldAddEvent } from '../../../src/util/addEvent';
+import { BASE_TIMESTAMP } from '../..';
 import { getTestEventIncremental } from '../../utils/getTestEvent';
 import { setupReplayContainer } from '../../utils/setupReplayContainer';
-import { useFakeTimers } from '../../utils/use-fake-timers';
-
-useFakeTimers();
 
 describe('Unit | util | addEvent', () => {
+  beforeAll(() => {
+    vi.useFakeTimers();
+  });
+
   it('stops when encountering a compression error', async function () {
     vi.setSystemTime(BASE_TIMESTAMP);
 

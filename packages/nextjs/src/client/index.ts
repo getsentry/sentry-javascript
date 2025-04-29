@@ -1,7 +1,5 @@
 import type { Client, EventProcessor, Integration } from '@sentry/core';
-import { consoleSandbox } from '@sentry/core';
-import { getGlobalScope } from '@sentry/core';
-import { GLOBAL_OBJ, addEventProcessor, applySdkMetadata } from '@sentry/core';
+import { addEventProcessor, applySdkMetadata, consoleSandbox, getGlobalScope, GLOBAL_OBJ } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/react';
 import { getDefaultIntegrations as getReactDefaultIntegrations, init as reactInit } from '@sentry/react';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';

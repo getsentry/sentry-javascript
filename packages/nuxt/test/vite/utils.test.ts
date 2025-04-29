@@ -1,16 +1,16 @@
 import * as fs from 'fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
-  QUERY_END_INDICATOR,
-  SENTRY_REEXPORTED_FUNCTIONS,
-  SENTRY_WRAPPED_ENTRY,
-  SENTRY_WRAPPED_FUNCTIONS,
   constructFunctionReExport,
   constructWrappedFunctionExportQuery,
   extractFunctionReexportQueryParameters,
   findDefaultSdkInitFile,
   getFilenameFromNodeStartCommand,
+  QUERY_END_INDICATOR,
   removeSentryQueryFromPath,
+  SENTRY_REEXPORTED_FUNCTIONS,
+  SENTRY_WRAPPED_ENTRY,
+  SENTRY_WRAPPED_FUNCTIONS,
 } from '../../src/vite/utils';
 
 vi.mock('fs');
