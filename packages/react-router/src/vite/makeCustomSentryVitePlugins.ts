@@ -31,8 +31,8 @@ export async function makeCustomSentryVitePlugins(options: SentryReactRouterBuil
       ...unstable_sentryVitePluginOptions?._metaOptions,
     },
     release: {
-      ...release,
       ...unstable_sentryVitePluginOptions?.release,
+      ...release,
     },
     // will be handled in buildEnd hook
     sourcemaps: {
