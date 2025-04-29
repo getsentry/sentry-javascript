@@ -1,6 +1,6 @@
 import { join } from 'node:path';
 import { afterAll, describe, expect, test } from 'vitest';
-import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
+import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 // `ai` SDK only support Node 18+
 describe('ai', () => {
