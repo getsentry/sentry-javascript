@@ -91,6 +91,8 @@ export {
   wrapMcpServerWithSentry,
 } from '@sentry/core';
 
+export * as logger from './logs/exports';
+
 export { withSentry } from './handler';
 export { sentryPagesPlugin } from './pages-plugin';
 
