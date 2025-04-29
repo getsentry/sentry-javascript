@@ -32,6 +32,7 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
     debug = false,
     unstable_sentryVitePluginOptions,
   }: SentryReactRouterBuildOptions = {
+    ...sentryConfig.unstable_sentryVitePluginOptions,
     ...sentryConfig,
     release: {
       ...sentryConfig.unstable_sentryVitePluginOptions?.release,
