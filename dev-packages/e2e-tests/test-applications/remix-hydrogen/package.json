@@ -36,7 +36,7 @@
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@shopify/cli": "^3.74.1",
     "@shopify/hydrogen-codegen": "^0.3.1",
-    "@shopify/mini-oxygen": "^3.1.1",
+    "@shopify/mini-oxygen": "3.2.0",
     "@shopify/oxygen-workers-types": "^4.1.2",
     "@shopify/prettier-config": "^1.1.2",
     "@tailwindcss/vite": "4.0.0-alpha.17",
