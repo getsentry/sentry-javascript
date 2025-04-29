@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
 import { createLogContainerEnvelopeItem, createLogEnvelope } from '../../../src/logs/envelope';
 import type { DsnComponents } from '../../../src/types-hoist/dsn';
 import type { SerializedLog } from '../../../src/types-hoist/log';
