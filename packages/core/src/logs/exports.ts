@@ -1,15 +1,14 @@
 import type { Client } from '../client';
-import type { SerializedLog, SerializedLogAttributeValue, Log } from '../types-hoist/log';
-
 import { _getTraceInfoFromScope } from '../client';
 import { getClient, getCurrentScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
-import { SEVERITY_TEXT_TO_SEVERITY_NUMBER } from './constants';
+import type { Log,SerializedLog, SerializedLogAttributeValue } from '../types-hoist/log';
 import { _getSpanForScope } from '../utils/spanOnScope';
-import { createLogEnvelope } from './envelope';
-import { logger } from '../utils-hoist/logger';
 import { isParameterizedString } from '../utils-hoist/is';
+import { logger } from '../utils-hoist/logger';
 import { timestampInSeconds } from '../utils-hoist/time';
+import { SEVERITY_TEXT_TO_SEVERITY_NUMBER } from './constants';
+import { createLogEnvelope } from './envelope';
 
 const MAX_LOG_BUFFER_SIZE = 100;
 

@@ -1,8 +1,9 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { createLogContainerEnvelopeItem, createLogEnvelope } from '../../../src/logs/envelope';
 import type { DsnComponents } from '../../../src/types-hoist/dsn';
-import type { SdkMetadata } from '../../../src/types-hoist/sdkmetadata';
 import type { SerializedLog } from '../../../src/types-hoist/log';
+import type { SdkMetadata } from '../../../src/types-hoist/sdkmetadata';
 import * as utilsDsn from '../../../src/utils-hoist/dsn';
 import * as utilsEnvelope from '../../../src/utils-hoist/envelope';
 
@@ -26,7 +27,7 @@ describe('createLogContainerEnvelopeItem', () => {
 
     expect(result).toHaveLength(2);
     expect(result[0]).toEqual({ type: 'log', item_count: 2, content_type: 'application/vnd.sentry.items.log+json' });
-    expect(result[1]).toBe(mockLog);
+    expect(result[1]).toEqual({ items: [mockLog, mockLog] });
   });
 });
 
@@ -127,12 +128,14 @@ describe('createLogEnvelope', () => {
 
     createLogEnvelope(mockLogs);
 
-    // Check that createEnvelope was called with an array of envelope items
+    // Check that createEnvelope was called with a single container item containing all logs
     expect(utilsEnvelope.createEnvelope).toHaveBeenCalledWith(
       expect.anything(),
       expect.arrayContaining([
-        expect.arrayContaining([{ type: 'log' }, mockLogs[0]]),
-        expect.arrayContaining([{ type: 'log' }, mockLogs[1]]),
+        expect.arrayContaining([
+          { type: 'log', item_count: 2, content_type: 'application/vnd.sentry.items.log+json' },
+          { items: mockLogs },
+        ]),
       ]),
     );
   });

@@ -1,7 +1,7 @@
 import type { DsnComponents } from '../types-hoist/dsn';
-import type { SdkMetadata } from '../types-hoist/sdkmetadata';
-import type { SerializedLog } from '../types-hoist/log';
 import type { LogContainerItem, LogEnvelope } from '../types-hoist/envelope';
+import type { SerializedLog } from '../types-hoist/log';
+import type { SdkMetadata } from '../types-hoist/sdkmetadata';
 import { dsnToString } from '../utils-hoist/dsn';
 import { createEnvelope } from '../utils-hoist/envelope';
 
