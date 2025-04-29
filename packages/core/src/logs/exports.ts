@@ -2,7 +2,7 @@ import type { Client } from '../client';
 import { _getTraceInfoFromScope } from '../client';
 import { getClient, getCurrentScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
-import type { Log,SerializedLog, SerializedLogAttributeValue } from '../types-hoist/log';
+import type { Log, SerializedLog, SerializedLogAttributeValue } from '../types-hoist/log';
 import { _getSpanForScope } from '../utils/spanOnScope';
 import { isParameterizedString } from '../utils-hoist/is';
 import { logger } from '../utils-hoist/logger';
