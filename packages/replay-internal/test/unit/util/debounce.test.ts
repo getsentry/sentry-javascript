@@ -1,12 +1,12 @@
-import { describe, expect, it, vi } from 'vitest';
-
-import { useFakeTimers } from '../../utils/use-fake-timers';
-
-useFakeTimers();
-
+import '../../utils/mock-internal-setTimeout';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { debounce } from '../../../src/util/debounce';
 
 describe('Unit | util | debounce', () => {
+  beforeAll(() => {
+    vi.useFakeTimers();
+  });
+
   it('delay the execution of the passed callback function by the passed minDelay', () => {
     const callback = vi.fn();
     const debouncedCallback = debounce(callback, 100);

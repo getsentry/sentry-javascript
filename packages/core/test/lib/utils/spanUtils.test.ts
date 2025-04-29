@@ -1,33 +1,35 @@
 import { beforeEach, describe, expect, it, test } from 'vitest';
 import {
+  convertSpanLinksForEnvelope,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SentrySpan,
+  setCurrentClient,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
   SPAN_STATUS_UNSET,
-  SentrySpan,
-  TRACEPARENT_REGEXP,
-  convertSpanLinksForEnvelope,
-  setCurrentClient,
   spanToTraceHeader,
   startInactiveSpan,
   startSpan,
   timestampInSeconds,
+  TRACEPARENT_REGEXP,
 } from '../../../src';
-import type { Span, SpanAttributes, SpanStatus, SpanTimeInput } from '../../../src/types-hoist';
 import type { SpanLink } from '../../../src/types-hoist/link';
+import type { Span, SpanAttributes, SpanTimeInput } from '../../../src/types-hoist/span';
+import type { SpanStatus } from '../../../src/types-hoist/spanStatus';
 import type { OpenTelemetrySdkTraceBaseSpan } from '../../../src/utils/spanUtils';
-import { TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED } from '../../../src/utils/spanUtils';
 import {
   getRootSpan,
   spanIsSampled,
   spanTimeInputToSeconds,
   spanToJSON,
   spanToTraceContext,
+  TRACE_FLAG_NONE,
+  TRACE_FLAG_SAMPLED,
   updateSpanName,
 } from '../../../src/utils/spanUtils';
-import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
+import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 function createMockedOtelSpan({
   spanId,

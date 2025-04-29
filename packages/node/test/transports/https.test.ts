@@ -1,10 +1,9 @@
+import type { EventEnvelope, EventItem } from '@sentry/core';
+import { createEnvelope, createTransport, serializeEnvelope } from '@sentry/core';
 import * as http from 'http';
 import * as https from 'https';
-import { createTransport } from '@sentry/core';
-import { createEnvelope, serializeEnvelope } from '@sentry/core';
-import type { EventEnvelope, EventItem } from '@sentry/core';
-
 import { type Mock, afterEach, describe, expect, it, vi } from 'vitest';
+import * as httpProxyAgent from '../../src/proxy';
 import { makeNodeTransport } from '../../src/transports';
 import type { HTTPModule, HTTPModuleRequestIncomingMessage } from '../../src/transports/http-module';
 import testServerCerts from './test-server-certs';
@@ -17,8 +16,6 @@ vi.mock('@sentry/core', async () => {
     createTransport: vi.fn().mockImplementation(actualCore.createTransport),
   };
 });
-
-import * as httpProxyAgent from '../../src/proxy';
 
 const SUCCESS = 200;
 const RATE_LIMIT = 429;

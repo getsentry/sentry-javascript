@@ -2,13 +2,15 @@
  * @vitest-environment jsdom
  */
 
-import { describe, expect, test } from 'vitest';
+import '../utils/mock-internal-setTimeout';
+import { beforeAll, describe, expect, test, vi } from 'vitest';
 import { resetSdkMock } from '../mocks/resetSdkMock';
-import { useFakeTimers } from '../utils/use-fake-timers';
-
-useFakeTimers();
 
 describe('Integration | getRecordingMode()', () => {
+  beforeAll(() => {
+    vi.useFakeTimers();
+  });
+
   test('returns "session" when session sampling is enabled', async () => {
     const { integration } = await resetSdkMock({
       replayOptions: {

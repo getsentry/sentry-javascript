@@ -2,14 +2,17 @@ import { assert, warn } from '@ember/debug';
 import type Route from '@ember/routing/route';
 import { next } from '@ember/runloop';
 import { getOwnConfig, isDevelopingApp, macroCondition } from '@embroider/macros';
-import { startSpan } from '@sentry/browser';
 import type { BrowserOptions } from '@sentry/browser';
+import { startSpan } from '@sentry/browser';
 import * as Sentry from '@sentry/browser';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, applySdkMetadata } from '@sentry/core';
-import { GLOBAL_OBJ } from '@sentry/core';
-import Ember from 'ember';
-
 import type { Client, TransactionSource } from '@sentry/core';
+import {
+  applySdkMetadata,
+  GLOBAL_OBJ,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+} from '@sentry/core';
+import Ember from 'ember';
 import type { EmberSentryConfig, GlobalConfig, OwnConfig } from './types';
 
 function _getSentryInitConfig(): EmberSentryConfig['sentry'] {

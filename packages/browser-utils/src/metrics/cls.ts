@@ -1,17 +1,19 @@
+import type { SpanAttributes } from '@sentry/core';
 import {
+  browserPerformanceTimeOrigin,
+  getActiveSpan,
+  getClient,
+  getCurrentScope,
+  getRootSpan,
+  htmlTreeAsString,
+  logger,
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT,
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  getActiveSpan,
-  getClient,
-  getCurrentScope,
-  getRootSpan,
   spanToJSON,
 } from '@sentry/core';
-import { browserPerformanceTimeOrigin, htmlTreeAsString, logger } from '@sentry/core';
-import type { SpanAttributes } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { addClsInstrumentationHandler } from './instrument';
 import { msToSec, startStandaloneWebVitalSpan } from './utils';

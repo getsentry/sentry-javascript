@@ -1,9 +1,9 @@
 /* eslint-disable no-console */
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { PassThrough } from 'stream';
-import * as wrapSentryHandleRequestModule from '../../src/server/wrapSentryHandleRequest';
-import { createSentryHandleRequest } from '../../src/server/createSentryHandleRequest';
 import type { EntryContext } from 'react-router';
+import { PassThrough } from 'stream';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createSentryHandleRequest } from '../../src/server/createSentryHandleRequest';
+import * as wrapSentryHandleRequestModule from '../../src/server/wrapSentryHandleRequest';
 
 vi.mock('../../src/server/wrapSentryHandleRequest', () => ({
   wrapSentryHandleRequest: vi.fn(fn => fn),

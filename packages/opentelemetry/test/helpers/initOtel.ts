@@ -1,4 +1,4 @@
-import { DiagLogLevel, context, diag, propagation, trace } from '@opentelemetry/api';
+import { context, diag, DiagLogLevel, propagation, trace } from '@opentelemetry/api';
 import { AsyncLocalStorageContextManager } from '@opentelemetry/context-async-hooks';
 import { Resource } from '@opentelemetry/resources';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
@@ -7,9 +7,7 @@ import {
   ATTR_SERVICE_VERSION,
   SEMRESATTRS_SERVICE_NAMESPACE,
 } from '@opentelemetry/semantic-conventions';
-import { SDK_VERSION, getClient } from '@sentry/core';
-import { logger } from '@sentry/core';
-
+import { getClient, logger, SDK_VERSION } from '@sentry/core';
 import { wrapContextManagerClass } from '../../src/contextManager';
 import { DEBUG_BUILD } from '../../src/debug-build';
 import { SentryPropagator } from '../../src/propagator';

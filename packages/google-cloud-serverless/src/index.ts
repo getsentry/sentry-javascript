@@ -118,6 +118,7 @@ export {
   vercelAIIntegration,
   logger,
   consoleLoggingIntegration,
+  wrapMcpServerWithSentry,
 } from '@sentry/node';
 
 export {

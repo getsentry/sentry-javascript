@@ -20,8 +20,8 @@
  * limitations under the License.
  */
 import type { RequestOptions } from 'node:http';
-import * as url from 'url';
 import type { DiagLogger } from '@opentelemetry/api';
+import * as url from 'url';
 
 /**
  * Makes sure options is an url object

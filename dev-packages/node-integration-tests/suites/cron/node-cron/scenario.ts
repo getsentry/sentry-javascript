@@ -1,5 +1,5 @@
-import { loggingTransport } from '@sentry-internal/node-integration-tests';
 import * as Sentry from '@sentry/node';
+import { loggingTransport } from '@sentry-internal/node-integration-tests';
 import * as cron from 'node-cron';
 
 Sentry.init({

@@ -1,6 +1,5 @@
 import { expect } from '@playwright/test';
 import type { Envelope, EventEnvelope, SpanEnvelope, TransactionEvent } from '@sentry/core';
-
 import { sentryTest } from '../../../../utils/fixtures';
 import {
   getMultipleSentryEnvelopeRequests,

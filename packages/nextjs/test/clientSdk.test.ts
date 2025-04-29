@@ -1,11 +1,9 @@
-import { getGlobalScope, getIsolationScope } from '@sentry/core';
-import { logger } from '@sentry/core';
 import type { Integration } from '@sentry/core';
+import { getGlobalScope, getIsolationScope, logger } from '@sentry/core';
 import * as SentryReact from '@sentry/react';
-import { WINDOW, getClient, getCurrentScope } from '@sentry/react';
+import { getClient, getCurrentScope, WINDOW } from '@sentry/react';
 import { JSDOM } from 'jsdom';
-import { describe, vi, afterAll, afterEach, it, expect } from 'vitest';
-
+import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 import { breadcrumbsIntegration, browserTracingIntegration, init } from '../src/client';
 
 const reactInit = vi.spyOn(SentryReact, 'init');

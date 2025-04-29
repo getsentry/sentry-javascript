@@ -1,7 +1,6 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
-import { describe, vi, beforeEach, test, expect } from 'vitest';
-
 import type { Event } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { wrapEventFunction } from '../../src/gcpfunction/events';
 import type { EventFunction, EventFunctionWithCallback } from '../../src/gcpfunction/general';
 

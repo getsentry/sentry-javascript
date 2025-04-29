@@ -2,7 +2,6 @@ import Application from '@ember/application';
 import * as Sentry from '@sentry/ember';
 import loadInitializers from 'ember-load-initializers';
 import Resolver from 'ember-resolver';
-
 import config from './config/environment';
 
 Sentry.init({

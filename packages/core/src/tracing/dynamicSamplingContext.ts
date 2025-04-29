@@ -3,14 +3,15 @@ import { DEFAULT_ENVIRONMENT } from '../constants';
 import { getClient } from '../currentScopes';
 import type { Scope } from '../scope';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
-import type { DynamicSamplingContext, Span } from '../types-hoist';
+import type { DynamicSamplingContext } from '../types-hoist/envelope';
+import type { Span } from '../types-hoist/span';
+import { hasSpansEnabled } from '../utils/hasSpansEnabled';
+import { getRootSpan, spanIsSampled, spanToJSON } from '../utils/spanUtils';
 import {
   baggageHeaderToDynamicSamplingContext,
   dynamicSamplingContextToSentryBaggageHeader,
 } from '../utils-hoist/baggage';
 import { addNonEnumerableProperty } from '../utils-hoist/object';
-import { hasSpansEnabled } from '../utils/hasSpansEnabled';
-import { getRootSpan, spanIsSampled, spanToJSON } from '../utils/spanUtils';
 import { getCapturedScopesOnSpan } from './utils';
 
 /**

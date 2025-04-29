@@ -1,10 +1,9 @@
 import { getClient, getCurrentScope } from '../currentScopes';
-import type { DynamicSamplingContext, Span, StartSpanOptions } from '../types-hoist';
-
 import { DEBUG_BUILD } from '../debug-build';
 import { SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON } from '../semanticAttributes';
-import { logger } from '../utils-hoist/logger';
-import { timestampInSeconds } from '../utils-hoist/time';
+import type { DynamicSamplingContext } from '../types-hoist/envelope';
+import type { Span } from '../types-hoist/span';
+import type { StartSpanOptions } from '../types-hoist/startSpanOptions';
 import { hasSpansEnabled } from '../utils/hasSpansEnabled';
 import { _setSpanForScope } from '../utils/spanOnScope';
 import {
@@ -14,6 +13,8 @@ import {
   spanTimeInputToSeconds,
   spanToJSON,
 } from '../utils/spanUtils';
+import { logger } from '../utils-hoist/logger';
+import { timestampInSeconds } from '../utils-hoist/time';
 import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
 import { SPAN_STATUS_ERROR } from './spanstatus';

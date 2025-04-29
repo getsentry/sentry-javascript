@@ -1,6 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
-
 import type { Plugin } from 'vite';
+import { describe, expect, it, vi } from 'vitest';
 import * as autoInstrument from '../../src/vite/autoInstrument';
 import { generateVitePluginOptions, sentrySvelteKit } from '../../src/vite/sentryVitePlugins';
 import * as sourceMaps from '../../src/vite/sourceMaps';

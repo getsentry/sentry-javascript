@@ -1,10 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import * as SentrySvelte from '@sentry/svelte';
 import type { Load } from '@sveltejs/kit';
 import { redirect } from '@sveltejs/kit';
-
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { wrapLoadWithSentry } from '../../src/client/load';
 
 const mockCaptureException = vi.spyOn(SentrySvelte, 'captureException').mockImplementation(() => 'xx');

@@ -1,7 +1,7 @@
 import type { Span } from '@sentry/core';
-import { logger, SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE, spanToJSON, type SpanContextData } from '@sentry/core';
-import { WINDOW } from '../exports';
+import { type SpanContextData, logger, SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE, spanToJSON } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
+import { WINDOW } from '../exports';
 
 export interface PreviousTraceInfo {
   /**

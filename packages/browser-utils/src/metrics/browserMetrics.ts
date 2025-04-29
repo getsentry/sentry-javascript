@@ -1,12 +1,12 @@
 /* eslint-disable max-lines */
 import type { Measurements, Span, SpanAttributes, StartSpanOptions } from '@sentry/core';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   browserPerformanceTimeOrigin,
   getActiveSpan,
   getComponentName,
   htmlTreeAsString,
   parseUrl,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   setMeasurement,
   spanToJSON,
 } from '@sentry/core';

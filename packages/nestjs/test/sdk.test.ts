@@ -1,8 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 import { SDK_VERSION } from '@sentry/core';
 import * as SentryNode from '@sentry/node';
-
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { init as nestInit } from '../src/sdk';
 
 const nodeInit = vi.spyOn(SentryNode, 'init');

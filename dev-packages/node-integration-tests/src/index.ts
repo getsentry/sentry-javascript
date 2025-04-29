@@ -1,6 +1,6 @@
-import type { AddressInfo } from 'net';
 import type { BaseTransportOptions, Envelope, Transport, TransportMakeRequestResponse } from '@sentry/core';
 import type { Express } from 'express';
+import type { AddressInfo } from 'net';
 
 /**
  * Debug logging transport

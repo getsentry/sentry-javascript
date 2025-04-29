@@ -1,9 +1,8 @@
-import { vi, describe, beforeEach, test, expect } from 'vitest';
+import { createTransport, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, setCurrentClient } from '@sentry/core';
 import { NodeClient } from '@sentry/node';
-import { createTransport } from '@sentry/core';
-import { setCurrentClient, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
-import { googleCloudGrpcIntegration, fillGrpcFunction } from '../../src/integrations/google-cloud-grpc';
-import type { GrpcFunctionObject, Stub, GrpcFunction } from '../../src/integrations/google-cloud-grpc';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
+import type { GrpcFunction, GrpcFunctionObject, Stub } from '../../src/integrations/google-cloud-grpc';
+import { fillGrpcFunction, googleCloudGrpcIntegration } from '../../src/integrations/google-cloud-grpc';
 
 const mockSpanEnd = vi.fn();
 const mockStartInactiveSpan = vi.fn();

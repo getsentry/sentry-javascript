@@ -3,7 +3,6 @@ import resolve from '@rollup/plugin-node-resolve';
 import terser from '@rollup/plugin-terser';
 import typescript from '@rollup/plugin-typescript';
 import { defineConfig } from 'rollup';
-
 import { makeLicensePlugin } from '../../dev-packages/rollup-utils/plugins/index.mjs';
 
 const licensePlugin = makeLicensePlugin('Sentry Replay Worker');

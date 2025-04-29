@@ -1,8 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { vi, describe, it, expect } from 'vitest';
-
+import { describe, expect, it, vi } from 'vitest';
 import { TRIGGER_LABEL } from '../../../src/constants';
 import { getFeedback } from '../../../src/core/getFeedback';
 import { buildFeedbackIntegration } from '../../../src/core/integration';

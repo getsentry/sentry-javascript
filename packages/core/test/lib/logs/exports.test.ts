@@ -1,14 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
+import { fmt, Scope } from '../../../src';
 import {
+  _INTERNAL_captureLog,
   _INTERNAL_flushLogsBuffer,
   _INTERNAL_getLogBuffer,
-  _INTERNAL_captureLog,
   logAttributeToSerializedLogAttribute,
 } from '../../../src/logs/exports';
-import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
-import * as loggerModule from '../../../src/utils-hoist/logger';
-import { Scope, fmt } from '../../../src';
 import type { Log } from '../../../src/types-hoist/log';
+import * as loggerModule from '../../../src/utils-hoist/logger';
+import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 

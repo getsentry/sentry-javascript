@@ -1,8 +1,8 @@
 /* eslint-disable max-lines */
 import type { DebugImage, Envelope, Event, EventEnvelope, Profile, Span, ThreadCpuProfile } from '@sentry/core';
 import {
-  DEFAULT_ENVIRONMENT,
   browserPerformanceTimeOrigin,
+  DEFAULT_ENVIRONMENT,
   forEachEnvelopeItem,
   getClient,
   getDebugImagesForResources,
@@ -13,7 +13,7 @@ import {
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
-import type { JSSelfProfile, JSSelfProfileStack, JSSelfProfiler, JSSelfProfilerConstructor } from './jsSelfProfiling';
+import type { JSSelfProfile, JSSelfProfiler, JSSelfProfilerConstructor, JSSelfProfileStack } from './jsSelfProfiling';
 
 const MS_TO_NS = 1e6;
 // Use 0 as main thread id which is identical to threadId in node:worker_threads

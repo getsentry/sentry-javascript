@@ -11,18 +11,18 @@ import type {
   TransactionEvent,
   TransactionSource,
 } from '@sentry/core';
-import { convertSpanLinksForEnvelope } from '@sentry/core';
 import {
+  captureEvent,
+  convertSpanLinksForEnvelope,
+  getCapturedScopesOnSpan,
+  getDynamicSamplingContextFromSpan,
+  getStatusMessage,
+  logger,
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  captureEvent,
-  getCapturedScopesOnSpan,
-  getDynamicSamplingContextFromSpan,
-  getStatusMessage,
-  logger,
   spanTimeInputToSeconds,
   timedEventsToMeasurements,
 } from '@sentry/core';

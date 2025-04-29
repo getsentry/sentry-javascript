@@ -1,6 +1,6 @@
+import { consoleSandbox } from '@sentry/core';
 import * as fs from 'fs';
 import * as path from 'path';
-import { consoleSandbox } from '@sentry/core';
 import type { Plugin, UserConfig } from 'vite';
 import type { SentrySolidStartPluginOptions } from './types';
 
