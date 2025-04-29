@@ -154,7 +154,7 @@ export function _INTERNAL_captureLog(
     CLIENT_TO_LOG_BUFFER_MAP.set(client, [serializedLog]);
   } else {
     CLIENT_TO_LOG_BUFFER_MAP.set(client, [...logBuffer, serializedLog]);
-    if (logBuffer.length > MAX_LOG_BUFFER_SIZE) {
+    if (logBuffer.length >= MAX_LOG_BUFFER_SIZE) {
       _INTERNAL_flushLogsBuffer(client, logBuffer);
     }
   }
