@@ -21,6 +21,8 @@ function getSentryConfig(viteConfig: unknown): SentryReactRouterBuildOptions {
  * and optionally deletes the source map files after upload.
  */
 export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteConfig }) => {
+  const sentryConfig = getSentryConfig(viteConfig);
+
   const {
     authToken,
     org,
@@ -29,7 +31,13 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
     sourceMapsUploadOptions = { enabled: true },
     debug = false,
     unstable_sentryVitePluginOptions,
-  } = getSentryConfig(viteConfig);
+  }: SentryReactRouterBuildOptions = {
+    ...sentryConfig,
+    release: {
+      ...sentryConfig.unstable_sentryVitePluginOptions?.release,
+      ...sentryConfig.release,
+    },
+  };
 
   const cliInstance = new SentryCli(null, {
     authToken,
