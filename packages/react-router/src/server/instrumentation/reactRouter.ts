@@ -1,6 +1,9 @@
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
 import {
+  getActiveSpan,
+  getRootSpan,
+  logger,
   SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -8,7 +11,8 @@ import {
   startSpan,
 } from '@sentry/core';
 import type * as reactRouter from 'react-router';
-import { isActionRequest, isDataRequest, isLoaderRequest } from './util';
+import { getSpanName, isDataRequest } from './util';
+import { DEBUG_BUILD } from '../../common/debug-build';
 
 type ReactRouterModuleExports = typeof reactRouter;
 
@@ -53,10 +57,10 @@ export class ReactRouterInstrumentation extends InstrumentationBase<Instrumentat
       get(target, prop, receiver) {
         if (prop === 'createRequestHandler') {
           const original = target[prop];
-          return function wrappedCreateRequestHandler(this: unknown, ...args: any[]) {
+          return function wrappedCreateRequestHandler(this: unknown, ...args: unknown[]) {
             const originalRequestHandler = original.apply(this, args);
 
-            return async function wrappedRequestHandler(request: Request, initialContext?: any) {
+            return async function wrappedRequestHandler(request: Request, initialContext?: unknown) {
               let url: URL;
               try {
                 url = new URL(request.url);
@@ -69,22 +73,21 @@ export class ReactRouterInstrumentation extends InstrumentationBase<Instrumentat
                 return originalRequestHandler(request, initialContext);
               }
 
-              // All data requests end with .data
-              let txName = url.pathname.replace(/\.data$/, '');
+              const activeSpan = getActiveSpan();
+              const rootSpan = activeSpan && getRootSpan(activeSpan);
 
-              if (isLoaderRequest(url.pathname, request.method)) {
-                txName = `Loader ${txName}`;
-              } else if (isActionRequest(url.pathname, request.method)) {
-                txName = `Action ${txName}`;
+              if (!rootSpan) {
+                DEBUG_BUILD && logger.debug('No active root span found, skipping tracing for data request');
+                return originalRequestHandler(request, initialContext);
               }
 
               return startSpan(
                 {
-                  name: txName,
+                  name: getSpanName(url.pathname, request.method),
                   attributes: {
                     [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
                     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react-router',
-                    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+                    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react-router.loader',
                     url: url.pathname,
                     method: request.method,
                   },

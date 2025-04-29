@@ -2,7 +2,7 @@ import { defineIntegration } from '@sentry/core';
 import { generateInstrumentOnce } from '@sentry/node';
 import { ReactRouterInstrumentation } from '../instrumentation/reactRouter';
 
-const INTEGRATION_NAME = 'React Router Server';
+const INTEGRATION_NAME = 'ReactRouterServer';
 
 const instrumentReactRouter = generateInstrumentOnce('React-Router-Server', () => {
   return new ReactRouterInstrumentation();

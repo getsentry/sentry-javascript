@@ -1,4 +1,17 @@
 /**
+ * Gets the span name for a request based on whether it's a loader or action request.
+ * @param pathName The URL pathname to check
+ * @param requestMethod The HTTP request method
+ */
+export function getSpanName(pathName: string, requestMethod: string): string {
+  return isLoaderRequest(pathName, requestMethod)
+    ? 'Executing Server Loader'
+    : isActionRequest(pathName, requestMethod)
+      ? 'Executing Server Action'
+      : 'Unknown Data Request';
+}
+
+/**
  * Checks if the request is a server loader request
  * @param pathname The URL pathname to check
  * @param requestMethod The HTTP request method
