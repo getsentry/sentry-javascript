@@ -11,8 +11,8 @@ import {
   startSpan,
 } from '@sentry/core';
 import type * as reactRouter from 'react-router';
-import { getSpanName, isDataRequest } from './util';
 import { DEBUG_BUILD } from '../../common/debug-build';
+import { getSpanName, isDataRequest } from './util';
 
 type ReactRouterModuleExports = typeof reactRouter;
 
