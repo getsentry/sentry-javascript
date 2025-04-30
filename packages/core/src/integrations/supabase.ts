@@ -219,7 +219,7 @@ function instrumentAuthOperation(operation: AuthOperationFn, isAdmin = false): A
     apply(target, thisArg, argumentsList) {
       return startSpan(
         {
-          name: operation.name,
+          name: `auth ${isAdmin ? '(admin) ' : ''}${operation.name}`,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase',
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
@@ -343,7 +343,6 @@ function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilte
 
         const pathParts = typedThis.url.pathname.split('/');
         const table = pathParts.length > 0 ? pathParts[pathParts.length - 1] : '';
-        const description = `from(${table})`;
 
         const queryItems: string[] = [];
         for (const [key, value] of typedThis.url.searchParams.entries()) {
@@ -351,13 +350,19 @@ function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilte
           // so we need to use array instead of object to collect them.
           queryItems.push(translateFiltersIntoMethods(key, value));
         }
-
         const body: Record<string, unknown> = Object.create(null);
         if (isPlainObject(typedThis.body)) {
           for (const [key, value] of Object.entries(typedThis.body)) {
             body[key] = value;
           }
         }
+
+        // Adding operation to the beginning of the description if it's not a `select` operation
+        // For example, it can be an `insert` or `update` operation but the query can be `select(...)`
+        // For `select` operations, we don't need repeat it in the description
+        const description = `${operation === 'select' ? '' : `${operation}${body ? '(...) ' : ''}`}${queryItems.join(
+          ' ',
+        )} from(${table})`;
 
         const attributes: Record<string, any> = {
           'db.table': table,
