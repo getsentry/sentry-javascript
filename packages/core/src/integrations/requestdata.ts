@@ -46,7 +46,6 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
 
       const includeWithDefaultPiiApplied: RequestDataIncludeOptions = {
         ...include,
-        // todo: also exclude cookies and headers if sendDefaultPii is false
         ip: include.ip ?? client.getOptions().sendDefaultPii,
       };
 

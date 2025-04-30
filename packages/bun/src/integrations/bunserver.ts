@@ -232,7 +232,7 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
               if (response?.status) {
                 setHttpStatus(span, response.status);
                 isolationScope.setContext('response', {
-                  headers: response.headers.toJSON(), // fixme: headers are passed 1:1
+                  headers: response.headers.toJSON(),
                   status_code: response.status,
                 });
               }
