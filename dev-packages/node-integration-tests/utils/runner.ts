@@ -191,10 +191,8 @@ export function createEsmAndCjsTests(
   const cjsInstrumentPath = join(cwd, `tmp_${instrumentPath.replace('.mjs', '.cjs')}`);
 
   // For the CJS runner, we create some temporary files...
-  if (!options?.failsOnCjs) {
-    convertEsmFileToCjs(mjsScenarioPath, cjsScenarioPath);
-    convertEsmFileToCjs(mjsInstrumentPath, cjsInstrumentPath);
-  }
+  convertEsmFileToCjs(mjsScenarioPath, cjsScenarioPath);
+  convertEsmFileToCjs(mjsInstrumentPath, cjsInstrumentPath);
 
   describe('esm & cjs', () => {
     afterAll(() => {
