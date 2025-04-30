@@ -12,7 +12,6 @@ import type {
   TransactionEvent,
 } from '@sentry/core';
 import { normalize } from '@sentry/core';
-import axios from 'axios';
 import { execSync, spawn, spawnSync } from 'child_process';
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
 import { join } from 'path';
@@ -161,7 +160,7 @@ type StartResult = {
   makeRequest<T>(
     method: 'get' | 'post',
     path: string,
-    options?: { headers?: Record<string, string>; data?: unknown; expectError?: boolean },
+    options?: { headers?: Record<string, string>; data?: BodyInit; expectError?: boolean },
   ): Promise<T | undefined>;
 };
 
@@ -532,7 +531,7 @@ export function createRunner(...paths: string[]) {
         makeRequest: async function <T>(
           method: 'get' | 'post',
           path: string,
-          options: { headers?: Record<string, string>; data?: unknown; expectError?: boolean } = {},
+          options: { headers?: Record<string, string>; data?: BodyInit; expectError?: boolean } = {},
         ): Promise<T | undefined> {
           try {
             await waitFor(() => scenarioServerPort !== undefined, 10_000, 'Timed out waiting for server port');
@@ -542,22 +541,33 @@ export function createRunner(...paths: string[]) {
           }
 
           const url = `http://localhost:${scenarioServerPort}${path}`;
-          const data = options.data;
+          const body = options.data;
           const headers = options.headers || {};
           const expectError = options.expectError || false;
 
-          if (process.env.DEBUG) log('making request', method, url, headers, data);
+          if (process.env.DEBUG) log('making request', method, url, headers, body);
 
           try {
-            const res =
-              method === 'post' ? await axios.post(url, data, { headers }) : await axios.get(url, { headers });
+            const res = await fetch(url, { headers, method, body });
+
+            if (!res.ok) {
+              if (!expectError) {
+                complete(new Error(`Expected request to "${path}" to succeed, but got a ${res.status} response`));
+              }
+
+              return;
+            }
 
             if (expectError) {
               complete(new Error(`Expected request to "${path}" to fail, but got a ${res.status} response`));
               return;
             }
 
-            return res.data;
+            if (res.headers.get('content-type')?.includes('application/json')) {
+              return await res.json();
+            }
+
+            return (await res.text()) as T;
           } catch (e) {
             if (expectError) {
               return;

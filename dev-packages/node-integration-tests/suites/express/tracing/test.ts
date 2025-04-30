@@ -164,7 +164,12 @@ describe('express tracing', () => {
           })
           .start();
 
-        runner.makeRequest('post', '/test-post', { data: { foo: 'bar', other: 1 } });
+        runner.makeRequest('post', '/test-post', {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          data: JSON.stringify({ foo: 'bar', other: 1 }),
+        });
         await runner.completed();
       });
 
