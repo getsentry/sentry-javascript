@@ -194,7 +194,12 @@ export function createEsmAndCjsTests(
   convertEsmFileToCjs(mjsScenarioPath, cjsScenarioPath);
   convertEsmFileToCjs(mjsInstrumentPath, cjsInstrumentPath);
 
-  describe('esm & cjs', () => {
+  describe('esm', () => {
+    const testFn = options?.failsOnEsm ? test.fails : test;
+    callback(() => createRunner(mjsScenarioPath).withFlags('--import', mjsInstrumentPath), testFn, 'esm');
+  });
+
+  describe('cjs', () => {
     afterAll(() => {
       try {
         unlinkSync(cjsInstrumentPath);
@@ -208,15 +213,8 @@ export function createEsmAndCjsTests(
       }
     });
 
-    describe('esm', () => {
-      const testFn = options?.failsOnEsm ? test.fails : test;
-      callback(() => createRunner(mjsScenarioPath).withFlags('--import', mjsInstrumentPath), testFn, 'esm');
-    });
-
-    describe('cjs', () => {
-      const testFn = options?.failsOnCjs ? test.fails : test;
-      callback(() => createRunner(cjsScenarioPath).withFlags('--require', cjsInstrumentPath), testFn, 'cjs');
-    });
+    const testFn = options?.failsOnCjs ? test.fails : test;
+    callback(() => createRunner(cjsScenarioPath).withFlags('--require', cjsInstrumentPath), testFn, 'cjs');
   });
 }
 
