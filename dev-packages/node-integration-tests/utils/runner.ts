@@ -16,7 +16,7 @@ import axios from 'axios';
 import { execSync, spawn, spawnSync } from 'child_process';
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
 import { join } from 'path';
-import { afterAll, describe, test } from 'vitest';
+import { afterAll, beforeAll, describe, test } from 'vitest';
 import {
   assertEnvelopeHeader,
   assertSentryCheckIn,
@@ -190,16 +190,18 @@ export function createEsmAndCjsTests(
   const cjsScenarioPath = join(cwd, `tmp_${scenarioPath.replace('.mjs', '.cjs')}`);
   const cjsInstrumentPath = join(cwd, `tmp_${instrumentPath.replace('.mjs', '.cjs')}`);
 
-  // For the CJS runner, we create some temporary files...
-  convertEsmFileToCjs(mjsScenarioPath, cjsScenarioPath);
-  convertEsmFileToCjs(mjsInstrumentPath, cjsInstrumentPath);
-
   describe('esm', () => {
     const testFn = options?.failsOnEsm ? test.fails : test;
     callback(() => createRunner(mjsScenarioPath).withFlags('--import', mjsInstrumentPath), testFn, 'esm');
   });
 
   describe('cjs', () => {
+    beforeAll(() => {
+      // For the CJS runner, we create some temporary files...
+      convertEsmFileToCjs(mjsScenarioPath, cjsScenarioPath);
+      convertEsmFileToCjs(mjsInstrumentPath, cjsInstrumentPath);
+    });
+
     afterAll(() => {
       try {
         unlinkSync(cjsInstrumentPath);
