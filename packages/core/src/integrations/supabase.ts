@@ -377,6 +377,7 @@ function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilte
 
         return startSpan(
           {
+            op: 'db',
             name: description,
             attributes,
           },
