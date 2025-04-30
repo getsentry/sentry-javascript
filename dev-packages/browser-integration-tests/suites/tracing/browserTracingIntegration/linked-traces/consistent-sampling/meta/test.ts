@@ -5,18 +5,17 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_PREVIOUS_TRACE_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
 } from '@sentry/core';
-
-import { sentryTest } from '../../../../../utils/fixtures';
+import { sentryTest } from '../../../../../../utils/fixtures';
 import {
   eventAndTraceHeaderRequestParser,
   shouldSkipTracingTest,
   waitForTransactionRequest,
-} from '../../../../../utils/helpers';
+} from '../../../../../../utils/helpers';
 
 const metaTagSampleRand = 0.051121;
 const metaTagSampleRate = 0.2;
 
-sentryTest.describe('When `sampleLinkedTracesConsistently` is `true` and page contains <meta> tags', () => {
+sentryTest.describe('When `consistentTraceSampling` is `true` and page contains <meta> tags', () => {
   sentryTest('Continues sampling decision across all traces from meta tag', async ({ getLocalTestUrl, page }) => {
     if (shouldSkipTracingTest()) {
       sentryTest.skip();

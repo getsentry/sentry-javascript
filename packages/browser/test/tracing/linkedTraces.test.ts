@@ -1,15 +1,145 @@
-import { SentrySpan, spanToJSON, timestampInSeconds } from '@sentry/core';
+import { addChildSpanToSpan, getCurrentScope, SentrySpan, Span, spanToJSON, timestampInSeconds } from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { PreviousTraceInfo } from '../../src/tracing/previousTrace';
+import { BrowserClient } from '../../src';
+import type { PreviousTraceInfo } from '../../src/tracing/linkedTraces';
 import {
   addPreviousTraceSpanLink,
   getPreviousTraceFromSessionStorage,
+  linkTraces,
   PREVIOUS_TRACE_KEY,
   PREVIOUS_TRACE_MAX_DURATION,
   PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE,
   spanContextSampled,
   storePreviousTraceInSessionStorage,
-} from '../../src/tracing/previousTrace';
+} from '../../src/tracing/linkedTraces';
+
+describe('linkTraces', () => {
+  describe('adds a previous trace span link on span start', () => {
+    // @ts-expect-error - mock contains only necessary API
+    const client = new BrowserClient({ transport: () => {}, integrations: [], stackParser: () => [] });
+
+    let spanStartCb: (span: Span) => void;
+
+    // @ts-expect-error - this is fine for testing
+    const clientOnSpy = vi.spyOn(client, 'on').mockImplementation((event, cb) => {
+      // @ts-expect-error - this is fine for testing
+      if (event === 'spanStart') {
+        spanStartCb = cb;
+      }
+    });
+
+    it('registers a spanStart handler', () => {
+      expect(clientOnSpy).toHaveBeenCalledWith('spanStart', expect.any(Function));
+      expect(clientOnSpy).toHaveBeenCalledOnce();
+    });
+
+    beforeEach(() => {
+      linkTraces({ linkPreviousTrace: 'in-memory', consistentTraceSampling: false }, client);
+    });
+
+    it("doesn't add a link if the passed span is not the root span", () => {
+      const rootSpan = new SentrySpan({
+        name: 'test',
+        parentSpanId: undefined,
+        sampled: true,
+        spanId: '123',
+        traceId: '456',
+      });
+
+      const childSpan = new SentrySpan({
+        name: 'test',
+        parentSpanId: '123',
+        spanId: '456',
+        traceId: '789',
+        sampled: true,
+      });
+
+      addChildSpanToSpan(rootSpan, childSpan);
+
+      spanStartCb(childSpan);
+
+      expect(spanToJSON(childSpan).links).toBeUndefined();
+    });
+
+    it('adds a link from the first trace root span to the second trace root span', () => {
+      const rootSpanTrace1 = new SentrySpan({
+        name: 'test',
+        parentSpanId: undefined,
+        sampled: true,
+        spanId: '123',
+        traceId: '456',
+      });
+
+      spanStartCb(rootSpanTrace1);
+
+      expect(spanToJSON(rootSpanTrace1).links).toBeUndefined();
+
+      const rootSpanTrace2 = new SentrySpan({
+        name: 'test',
+        parentSpanId: undefined,
+        sampled: true,
+        spanId: '789',
+        traceId: 'def',
+      });
+
+      spanStartCb(rootSpanTrace2);
+
+      expect(spanToJSON(rootSpanTrace2).links).toEqual([
+        {
+          attributes: {
+            'sentry.link.type': 'previous_trace',
+          },
+          span_id: '123',
+          trace_id: '456',
+          sampled: true,
+        },
+      ]);
+    });
+
+    it("doesn't add a link to the second root span if it is part of the same trace", () => {
+      const rootSpanTrace1 = new SentrySpan({
+        name: 'test',
+        parentSpanId: undefined,
+        sampled: true,
+        spanId: '123',
+        traceId: 'def',
+      });
+
+      spanStartCb(rootSpanTrace1);
+
+      expect(spanToJSON(rootSpanTrace1).links).toBeUndefined();
+
+      const rootSpan2Trace = new SentrySpan({
+        name: 'test',
+        parentSpanId: undefined,
+        sampled: true,
+        spanId: '789',
+        traceId: 'def',
+      });
+
+      spanStartCb(rootSpan2Trace);
+
+      expect(spanToJSON(rootSpan2Trace).links).toBeUndefined();
+    });
+  });
+
+  // only basic tests here, rest is tested in browser-integration-tests
+  describe('consistentTraceSampling', () => {
+    // @ts-expect-error - mock contains only necessary API
+    const client = new BrowserClient({ transport: () => {}, integrations: [], stackParser: () => [] });
+    const clientOnSpy = vi.spyOn(client, 'on');
+
+    beforeEach(() => {
+      linkTraces({ linkPreviousTrace: 'in-memory', consistentTraceSampling: true }, client);
+    });
+
+    it('registers a beforeSampling handler', () => {
+      expect(clientOnSpy).toHaveBeenCalledWith('spanStart', expect.any(Function));
+      expect(clientOnSpy).toHaveBeenCalledWith('beforeSampling', expect.any(Function));
+      expect(clientOnSpy).toHaveBeenCalledTimes(2);
+    });
+  });
+});
 
 describe('addPreviousTraceSpanLink', () => {
   it(`adds a previous_trace span link to startSpanOptions if the previous trace was created within ${PREVIOUS_TRACE_MAX_DURATION}s`, () => {

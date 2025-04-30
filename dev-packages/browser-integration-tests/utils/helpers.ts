@@ -446,3 +446,17 @@ export async function getFirstSentryEnvelopeRequest<T>(
 
   return req;
 }
+
+export async function hidePage(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      get: function () {
+        return 'hidden';
+      },
+    });
+
+    // Dispatch the visibilitychange event to notify listeners
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+}

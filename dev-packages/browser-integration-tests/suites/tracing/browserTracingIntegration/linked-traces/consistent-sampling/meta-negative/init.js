@@ -7,11 +7,11 @@ Sentry.init({
   integrations: [
     Sentry.browserTracingIntegration({
       linkPreviousTrace: 'in-memory',
-      sampleLinkedTracesConsistently: true
+      consistentTraceSampling: true,
     }),
   ],
   tracePropagationTargets: ['someurl.com'],
-  // only take into account sampling from meta tag; otherwise sample negatively
-  tracesSampleRate: 0,
+  tracesSampleRate: 1,
   debug: true,
+  sendClientReports: true,
 });

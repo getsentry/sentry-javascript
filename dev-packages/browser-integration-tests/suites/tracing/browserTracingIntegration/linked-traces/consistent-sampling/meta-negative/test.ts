@@ -1,20 +1,20 @@
 import { expect } from '@playwright/test';
 import type { ClientReport } from '@sentry/core';
 import { extractTraceparentData, parseBaggageHeader } from '@sentry/core';
-
-import { sentryTest } from '../../../../../utils/fixtures';
+import { sentryTest } from '../../../../../../utils/fixtures';
 import {
   envelopeRequestParser,
   getMultipleSentryEnvelopeRequests,
+  hidePage,
   shouldSkipTracingTest,
   waitForClientReportRequest,
-} from '../../../../../utils/helpers';
+} from '../../../../../../utils/helpers';
 
 const metaTagSampleRand = 0.9;
 const metaTagSampleRate = 0.2;
 const metaTagTraceId = '12345678901234567890123456789012';
 
-sentryTest.describe('When `sampleLinkedTracesConsistently` is `true` and page contains <meta> tags', () => {
+sentryTest.describe('When `consistentTraceSampling` is `true` and page contains <meta> tags', () => {
   sentryTest(
     'Continues negative sampling decision from meta tag across all traces and downstream propagations',
     async ({ getLocalTestUrl, page }) => {
@@ -81,18 +81,7 @@ sentryTest.describe('When `sampleLinkedTracesConsistently` is `true` and page co
       });
 
       await sentryTest.step('Client report', async () => {
-        await page.evaluate(() => {
-          Object.defineProperty(document, 'visibilityState', {
-            configurable: true,
-            get: function () {
-              return 'hidden';
-            },
-          });
-
-          // Dispatch the visibilitychange event to notify listeners
-          document.dispatchEvent(new Event('visibilitychange'));
-        });
-
+        await hidePage(page);
         const clientReport = envelopeRequestParser<ClientReport>(await clientReportPromise);
         expect(clientReport).toEqual({
           timestamp: expect.any(Number),

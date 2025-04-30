@@ -5,15 +5,14 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE,
 } from '@sentry/core';
-
-import { sentryTest } from '../../../../../utils/fixtures';
+import { sentryTest } from '../../../../../../utils/fixtures';
 import {
   eventAndTraceHeaderRequestParser,
   shouldSkipTracingTest,
   waitForTransactionRequest,
-} from '../../../../../utils/helpers';
+} from '../../../../../../utils/helpers';
 
-sentryTest.describe('When `sampleLinkedTracesConsistently` is `true`', () => {
+sentryTest.describe('When `consistentTraceSampling` is `true`', () => {
   sentryTest('Continues sampling decision from initial pageload', async ({ getLocalTestUrl, page }) => {
     if (shouldSkipTracingTest()) {
       sentryTest.skip();

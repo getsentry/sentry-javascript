@@ -10,14 +10,12 @@ import {
   getDynamicSamplingContextFromSpan,
   getIsolationScope,
   getLocationHref,
-  getRootSpan,
   GLOBAL_OBJ,
   logger,
   propagationContextFromHeaders,
   registerSpanErrorInstrumentation,
   SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_PREVIOUS_TRACE_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanIsSampled,
   spanToJSON,
@@ -37,13 +35,7 @@ import {
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 import { registerBackgroundTabDetection } from './backgroundtab';
-import type { PreviousTraceInfo } from './previousTrace';
-import {
-  addPreviousTraceSpanLink,
-  getPreviousTraceFromSessionStorage,
-  spanContextSampled,
-  storePreviousTraceInSessionStorage,
-} from './previousTrace';
+import { linkTraces } from './linkedTraces';
 import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './request';
 
 export const BROWSER_TRACING_INTEGRATION_ID = 'BrowserTracing';
@@ -168,8 +160,10 @@ export interface BrowserTracingOptions {
    *
    * - `'off'`: The previous trace data will not be stored or linked.
    *
-   * Note that your `tracesSampleRate` or `tracesSampler` config significantly influences
-   * how often traces will be linked.
+   * You can also use {@link BrowserTracingOptions.consistentTraceSampling} to get
+   * consistent trace sampling of subsequent traces. Otherwise, by default, your
+   * `tracesSampleRate` or `tracesSampler` config significantly influences how often
+   * traces will be linked.
    *
    * @default 'in-memory' - see explanation above
    */
@@ -182,7 +176,7 @@ export interface BrowserTracingOptions {
    * are also sampled positively. In case the initial trace was sampled negatively,
    * all subsequent traces are also sampled negatively.
    *
-   * This option lets you get consistent, linked traces within a user journey
+   * This option allows you to get consistent, linked traces within a user journey
    * while maintaining an overall quota based on your trace sampling settings.
    *
    * This option is only effective if {@link BrowserTracingOptions.linkPreviousTrace}
@@ -190,7 +184,7 @@ export interface BrowserTracingOptions {
    *
    * @default `false` - this is an opt-in feature.
    */
-  sampleLinkedTracesConsistently: boolean;
+  consistentTraceSampling: boolean;
 
   /**
    * _experiments allows the user to send options to define how this integration works.
@@ -233,7 +227,7 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   enableLongAnimationFrame: true,
   enableInp: true,
   linkPreviousTrace: 'in-memory',
-  sampleLinkedTracesConsistently: false,
+  consistentTraceSampling: false,
   _experiments: {},
   ...defaultRequestInstrumentationOptions,
 };
@@ -285,7 +279,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     instrumentPageLoad,
     instrumentNavigation,
     linkPreviousTrace,
-    sampleLinkedTracesConsistently,
+    consistentTraceSampling,
     onRequestSpanStart,
   } = {
     ...DEFAULT_BROWSER_TRACING_OPTIONS,
@@ -431,67 +425,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       });
 
       if (linkPreviousTrace !== 'off') {
-        const useSessionStorage = linkPreviousTrace === 'session-storage';
-
-        let inMemoryPreviousTraceInfo = useSessionStorage ? getPreviousTraceFromSessionStorage() : undefined;
-
-        client.on('spanStart', span => {
-          if (getRootSpan(span) !== span) {
-            return;
-          }
-
-          const scope = getCurrentScope();
-          const oldPropagationContext = scope.getPropagationContext();
-          inMemoryPreviousTraceInfo = addPreviousTraceSpanLink(inMemoryPreviousTraceInfo, span, oldPropagationContext);
-
-          if (useSessionStorage) {
-            storePreviousTraceInSessionStorage(inMemoryPreviousTraceInfo);
-          }
-        });
-
-        if (sampleLinkedTracesConsistently) {
-          /*
-          This is a massive hack I'm really not proud of:
-
-          When users opt into `sampleLinkedTracesConsistently`, we need to make sure that we "propagate"
-          the previous trace's sample rate and rand to the current trace. This is necessary because otherwise, span
-          metric extrapolation is off, as we'd be propagating a too high sample rate for the subsequent traces.
-
-          So therefore, we pretend that the previous trace was the parent trace of the newly started trace. To do that,
-          we mutate the propagation context of the current trace and set the sample rate and sample rand of the previous trace.
-          Timing-wise, it is fine because it happens before we even sample the root span.
-
-          @see https://github.com/getsentry/sentry-javascript/issues/15754
-          */
-          client.on('beforeSampling', mutableSamplingContextData => {
-            if (!inMemoryPreviousTraceInfo) {
-              return;
-            }
-
-            const scope = getCurrentScope();
-            const currentPropagationContext = scope.getPropagationContext();
-
-            scope.setPropagationContext({
-              ...currentPropagationContext,
-              dsc: {
-                ...currentPropagationContext.dsc,
-                // The fallback to 0 should never happen; this is rather to satisfy the types
-                sample_rate: String(inMemoryPreviousTraceInfo.sampleRate ?? 0),
-                sampled: String(spanContextSampled(inMemoryPreviousTraceInfo.spanContext)),
-              },
-              sampleRand: inMemoryPreviousTraceInfo.sampleRand,
-            });
-
-            mutableSamplingContextData.parentSampled = spanContextSampled(inMemoryPreviousTraceInfo.spanContext);
-            mutableSamplingContextData.parentSampleRate = inMemoryPreviousTraceInfo.sampleRate;
-
-            mutableSamplingContextData.spanAttributes = {
-              ...mutableSamplingContextData.spanAttributes,
-              // record an attribute that this span was "force-sampled", so that we can later check on this.
-              [SEMANTIC_ATTRIBUTE_SENTRY_PREVIOUS_TRACE_SAMPLE_RATE]: inMemoryPreviousTraceInfo.sampleRate,
-            };
-          });
-        }
+        linkTraces({ linkPreviousTrace, consistentTraceSampling }, client);
       }
 
       if (WINDOW.location) {

@@ -4,13 +4,13 @@ const btn2 = document.getElementById('btn2');
 
 btn1.addEventListener('click', () => {
   Sentry.startNewTrace(() => {
-    Sentry.startSpan({name: 'custom root span 1', op: 'custom'}, () => {});
+    Sentry.startSpan({ name: 'custom root span 1', op: 'custom' }, () => {});
   });
 });
 
 btn2.addEventListener('click', () => {
   Sentry.startNewTrace(() => {
-    Sentry.startSpan({name: 'custom root span 2', op: 'custom'}, async () => {
+    Sentry.startSpan({ name: 'custom root span 2', op: 'custom' }, async () => {
       await fetch('https://someUrl.com');
     });
   });

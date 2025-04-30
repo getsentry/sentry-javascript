@@ -1,7 +1,10 @@
-import type { PropagationContext, Span } from '@sentry/core';
+import type { Client, PropagationContext, Span } from '@sentry/core';
 import {
   type SpanContextData,
+  getCurrentScope,
+  getRootSpan,
   logger,
+  SEMANTIC_ATTRIBUTE_SENTRY_PREVIOUS_TRACE_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE,
   spanToJSON,
@@ -38,6 +41,90 @@ export const PREVIOUS_TRACE_MAX_DURATION = 3600;
 export const PREVIOUS_TRACE_KEY = 'sentry_previous_trace';
 
 export const PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE = 'sentry.previous_trace';
+
+/**
+ * Takes care of linking traces and applying the (consistent) sampling behavoiour based on the passed options
+ * @param options - options for linking traces and consistent trace sampling (@see BrowserTracingOptions)
+ * @param client - Sentry client
+ */
+export function linkTraces(
+  {
+    linkPreviousTrace,
+    consistentTraceSampling,
+  }: {
+    linkPreviousTrace: 'session-storage' | 'in-memory';
+    consistentTraceSampling: boolean;
+  },
+  client: Client,
+): void {
+  const useSessionStorage = linkPreviousTrace === 'session-storage';
+
+  let inMemoryPreviousTraceInfo = useSessionStorage ? getPreviousTraceFromSessionStorage() : undefined;
+
+  client.on('spanStart', span => {
+    if (getRootSpan(span) !== span) {
+      return;
+    }
+
+    const oldPropagationContext = getCurrentScope().getPropagationContext();
+    inMemoryPreviousTraceInfo = addPreviousTraceSpanLink(inMemoryPreviousTraceInfo, span, oldPropagationContext);
+
+    if (useSessionStorage) {
+      storePreviousTraceInSessionStorage(inMemoryPreviousTraceInfo);
+    }
+  });
+
+  let isFirstTraceOnPageload = true;
+  if (consistentTraceSampling) {
+    /*
+    When users opt into `consistentTraceSampling`, we need to ensure that we propagate
+    the previous trace's sample rate and rand to the current trace. This is necessary because otherwise, span
+    metric extrapolation is inaccurate, as we'd propagate a too high sample rate for the subsequent traces.
+
+    So therefore, we pretend that the previous trace was the parent trace of the newly started trace. To do that,
+    we mutate the propagation context of the current trace and set the sample rate and sample rand of the previous trace.
+    Timing-wise, it is fine because it happens before we even sample the root span.
+
+    @see https://github.com/getsentry/sentry-javascript/issues/15754
+    */
+    client.on('beforeSampling', mutableSamplingContextData => {
+      if (!inMemoryPreviousTraceInfo) {
+        return;
+      }
+
+      const scope = getCurrentScope();
+      const currentPropagationContext = scope.getPropagationContext();
+
+      // We do not want to force-continue the sampling decision if we continue a trace
+      // that was started on the backend. Most prominently, this will happen in MPAs where
+      // users hard-navigate between pages. In this case, the sampling decision of a potentially
+      // started trace on the server takes precedence.
+      // Why? We want to prioritize inter-trace consistency over intra-trace consistency.
+      if (isFirstTraceOnPageload && currentPropagationContext.parentSpanId) {
+        isFirstTraceOnPageload = false;
+        return;
+      }
+
+      scope.setPropagationContext({
+        ...currentPropagationContext,
+        dsc: {
+          ...currentPropagationContext.dsc,
+          sample_rate: String(inMemoryPreviousTraceInfo.sampleRate),
+          sampled: String(spanContextSampled(inMemoryPreviousTraceInfo.spanContext)),
+        },
+        sampleRand: inMemoryPreviousTraceInfo.sampleRand,
+      });
+
+      mutableSamplingContextData.parentSampled = spanContextSampled(inMemoryPreviousTraceInfo.spanContext);
+      mutableSamplingContextData.parentSampleRate = inMemoryPreviousTraceInfo.sampleRate;
+
+      mutableSamplingContextData.spanAttributes = {
+        ...mutableSamplingContextData.spanAttributes,
+        [SEMANTIC_ATTRIBUTE_SENTRY_PREVIOUS_TRACE_SAMPLE_RATE]: inMemoryPreviousTraceInfo.sampleRate,
+      };
+    });
+  }
+}
 
 /**
  * Adds a previous_trace span link to the passed span if the passed
@@ -147,6 +234,6 @@ export function getPreviousTraceFromSessionStorage(): PreviousTraceInfo | undefi
 /**
  * see {@link import('@sentry/core').spanIsSampled}
  */
-export const spanContextSampled = (ctx: SpanContextData): boolean => {
+export function spanContextSampled(ctx: SpanContextData): boolean {
   return ctx.traceFlags === 0x1;
-};
+}

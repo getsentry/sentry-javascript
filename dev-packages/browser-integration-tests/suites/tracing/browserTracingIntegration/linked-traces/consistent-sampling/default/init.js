@@ -7,7 +7,7 @@ Sentry.init({
   integrations: [
     Sentry.browserTracingIntegration({
       linkPreviousTrace: 'in-memory',
-      sampleLinkedTracesConsistently: true
+      consistentTraceSampling: true,
     }),
   ],
   tracePropagationTargets: ['someurl.com'],
