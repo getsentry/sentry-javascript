@@ -1,7 +1,7 @@
 name: ❅ Flaky Test
 description: Report a flaky test in CI
 title: '[Flaky CI]: '
-labels: ["Tests"]
+labels: ['Tests']
 body:
   - type: dropdown
     id: type
