@@ -114,6 +114,15 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
       this._onOutgoingRequestFinish(request, response);
     });
 
+    // When an error happens, we still want to have a breadcrumb
+    // In this case, `http.client.response.finish` is not triggered
+    subscribe('http.client.request.error', data => {
+      const request = (data as { request: http.ClientRequest }).request;
+      // there is no response object here, we only have access to request & error :(
+
+      this._onOutgoingRequestFinish(request, undefined);
+    });
+
     return [];
   }
 
@@ -121,7 +130,9 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
    * This is triggered when an outgoing request finishes.
    * It has access to the final request and response objects.
    */
-  private _onOutgoingRequestFinish(request: http.ClientRequest, response: http.IncomingMessage): void {
+  private _onOutgoingRequestFinish(request: http.ClientRequest, response?: http.IncomingMessage): void {
+    DEBUG_BUILD && logger.log(INSTRUMENTATION_NAME, 'Handling outgoing request finish');
+
     const _breadcrumbs = this.getConfig().breadcrumbs;
     const breadCrumbsEnabled = typeof _breadcrumbs === 'undefined' ? true : _breadcrumbs;
     const options = getRequestOptions(request);
@@ -148,6 +159,8 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
       return;
     }
 
+    DEBUG_BUILD && logger.log(INSTRUMENTATION_NAME, 'Patching server.emit');
+
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const instrumentation = this;
     const { ignoreIncomingRequestBody } = instrumentation.getConfig();
@@ -159,7 +172,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
           return target.apply(thisArg, args);
         }
 
-        DEBUG_BUILD && logger.log('http instrumentation for incoming request');
+        DEBUG_BUILD && logger.log(INSTRUMENTATION_NAME, 'isolating incoming request');
 
         const isolationScope = getIsolationScope().clone();
         const request = args[1] as http.IncomingMessage;
@@ -222,10 +235,10 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
 }
 
 /** Add a breadcrumb for outgoing requests. */
-function addRequestBreadcrumb(request: http.ClientRequest, response: http.IncomingMessage): void {
+function addRequestBreadcrumb(request: http.ClientRequest, response: http.IncomingMessage | undefined): void {
   const data = getBreadcrumbData(request);
 
-  const statusCode = response.statusCode;
+  const statusCode = response?.statusCode;
   const level = getBreadcrumbLogLevelFromHttpStatusCode(statusCode);
 
   addBreadcrumb(
@@ -281,6 +294,8 @@ function patchRequestToCaptureBody(req: http.IncomingMessage, isolationScope: Sc
   let bodyByteLength = 0;
   const chunks: Buffer[] = [];
 
+  DEBUG_BUILD && logger.log(INSTRUMENTATION_NAME, 'Patching request.on');
+
   /**
    * We need to keep track of the original callbacks, in order to be able to remove listeners again.
    * Since `off` depends on having the exact same function reference passed in, we need to be able to map
@@ -294,11 +309,8 @@ function patchRequestToCaptureBody(req: http.IncomingMessage, isolationScope: Sc
       apply: (target, thisArg, args: Parameters<typeof req.on>) => {
         const [event, listener, ...restArgs] = args;
 
-        if (DEBUG_BUILD) {
-          logger.log(INSTRUMENTATION_NAME, 'Patching request.on', event);
-        }
-
         if (event === 'data') {
+          DEBUG_BUILD && logger.log(INSTRUMENTATION_NAME, 'Handling request.on', event);
           const callback = new Proxy(listener, {
             apply: (target, thisArg, args: Parameters<typeof listener>) => {
               try {
