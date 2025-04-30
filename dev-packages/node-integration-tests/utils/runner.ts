@@ -16,7 +16,7 @@ import axios from 'axios';
 import { execSync, spawn, spawnSync } from 'child_process';
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
 import { join } from 'path';
-import { afterAll, describe } from 'vitest';
+import { afterAll, describe, test } from 'vitest';
 import {
   assertEnvelopeHeader,
   assertSentryCheckIn,
@@ -169,7 +169,11 @@ export function createEsmAndCjsTests(
   cwd: string,
   scenarioPath: string,
   instrumentPath: string,
-  callback: (createTestRunner: () => ReturnType<typeof createRunner>, mode: 'esm' | 'cjs') => void,
+  callback: (
+    createTestRunner: () => ReturnType<typeof createRunner>,
+    testFn: typeof test | typeof test.fails,
+    mode: 'esm' | 'cjs',
+  ) => void,
   options?: { skipCjs?: boolean; skipEsm?: boolean },
 ): void {
   const mjsScenarioPath = join(cwd, scenarioPath);
@@ -206,16 +210,14 @@ export function createEsmAndCjsTests(
       }
     });
 
-    const scenarios: [mode: 'esm' | 'cjs', getRunner: () => ReturnType<typeof createRunner>][] = [];
-    if (!options?.skipEsm) {
-      scenarios.push(['esm', () => createRunner(mjsScenarioPath).withFlags('--import', mjsInstrumentPath)]);
-    }
-    if (!options?.skipCjs) {
-      scenarios.push(['cjs', () => createRunner(cjsScenarioPath).withFlags('--require', cjsInstrumentPath)]);
-    }
+    describe('esm', () => {
+      const testFn = options?.skipEsm ? test.fails : test;
+      callback(() => createRunner(mjsScenarioPath).withFlags('--import', mjsInstrumentPath), testFn, 'esm');
+    });
 
-    describe.each(scenarios)('%s', (mode, getRunner) => {
-      callback(getRunner, mode);
+    describe('cjs', () => {
+      const testFn = options?.skipCjs ? test.fails : test;
+      callback(() => createRunner(cjsScenarioPath).withFlags('--require', cjsInstrumentPath), testFn, 'cjs');
     });
   });
 }
@@ -245,7 +247,6 @@ export function createRunner(...paths: string[]) {
   let dockerOptions: DockerOptions | undefined;
   let ensureNoErrorOutput = false;
   const logs: string[] = [];
-  const cleanups: VoidFunction[] = [];
 
   if (testPath.endsWith('.ts')) {
     flags.push('-r', 'ts-node/register');
@@ -282,10 +283,6 @@ export function createRunner(...paths: string[]) {
       flags.push('--import', instrumentPath);
       return this;
     },
-    withCleanup: function (cleanup: VoidFunction) {
-      cleanups.push(cleanup);
-      return this;
-    },
     withMockSentryServer: function () {
       withSentryServer = true;
       return this;
@@ -308,13 +305,10 @@ export function createRunner(...paths: string[]) {
       ensureNoErrorOutput = true;
       return this;
     },
-    start: function (done?: (e?: unknown) => void): StartResult {
-      let resolve: (value: void) => void;
-      let reject: (reason?: unknown) => void;
-      const completePromise = new Promise<void>((res, rej) => {
-        resolve = res;
-        reject = rej;
-      });
+    start: function (): StartResult {
+      let isComplete = false;
+      let completeError: Error | undefined;
+
       const expectedEnvelopeCount = Math.max(expectedEnvelopes.length, (expectedEnvelopeHeaders || []).length);
 
       let envelopeCount = 0;
@@ -323,15 +317,13 @@ export function createRunner(...paths: string[]) {
       let child: ReturnType<typeof spawn> | undefined;
 
       function complete(error?: Error): void {
-        cleanups.forEach(cleanup => cleanup());
-
-        child?.kill();
-        done?.(normalize(error));
-        if (error) {
-          reject(error);
-        } else {
-          resolve();
+        if (isComplete) {
+          return;
         }
+
+        isComplete = true;
+        completeError = error || undefined;
+        child?.kill();
       }
 
       /** Called after each expect callback to check if we're complete */
@@ -526,8 +518,12 @@ export function createRunner(...paths: string[]) {
         .catch(e => complete(e));
 
       return {
-        completed: function (): Promise<void> {
-          return completePromise;
+        completed: async function (): Promise<void> {
+          await waitFor(() => isComplete);
+
+          if (completeError) {
+            throw completeError;
+          }
         },
         childHasExited: function (): boolean {
           return hasExited;

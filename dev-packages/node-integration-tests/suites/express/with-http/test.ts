@@ -1,7 +1,7 @@
-import { afterAll, describe, test } from 'vitest';
+import { afterAll, describe } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
-describe('express with http import xxx', () => {
+describe('express with http import', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
@@ -10,7 +10,7 @@ describe('express with http import xxx', () => {
     __dirname,
     'scenario.mjs',
     'instrument.mjs',
-    createRunner => {
+    (createRunner, test) => {
       test('it works when importing the http module', async () => {
         const runner = createRunner()
           .expect({

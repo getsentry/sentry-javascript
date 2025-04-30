@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, test } from 'vitest';
+import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('connect auto-instrumentation', () => {
@@ -40,7 +40,7 @@ describe('connect auto-instrumentation', () => {
     __dirname,
     'scenario.mjs',
     'instrument.mjs',
-    createTestRunner => {
+    (createTestRunner, test) => {
       test('should auto-instrument `connect` package.', async () => {
         const runner = createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start();
         runner.makeRequest('get', '/');

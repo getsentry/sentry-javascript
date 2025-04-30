@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, test } from 'vitest';
+import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('hapi auto-instrumentation', () => {
@@ -36,7 +36,7 @@ describe('hapi auto-instrumentation', () => {
     },
   };
 
-  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', createRunner => {
+  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('should auto-instrument `@hapi/hapi` package.', async () => {
       const runner = createRunner().expect({ transaction: EXPECTED_TRANSACTION }).start();
       runner.makeRequest('get', '/');

@@ -1,5 +1,5 @@
 import type { TransactionEvent } from '@sentry/core';
-import { afterAll, describe, expect, test } from 'vitest';
+import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 const EXPECTED_MESSAGE_SPAN_PRODUCER = expect.objectContaining({
@@ -29,7 +29,7 @@ describe('amqplib auto-instrumentation', () => {
     cleanupChildProcesses();
   });
 
-  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', createTestRunner => {
+  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createTestRunner, test) => {
     test('should be able to send and receive messages', async () => {
       await createTestRunner()
         .withDockerCompose({
