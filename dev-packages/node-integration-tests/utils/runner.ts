@@ -41,13 +41,13 @@ export function cleanupChildProcesses(): void {
 process.on('exit', cleanupChildProcesses);
 
 /** Promise only resolves when fn returns true */
-async function waitFor(fn: () => boolean, timeout = 10_000): Promise<void> {
+async function waitFor(fn: () => boolean, timeout = 10_000, message = 'Timed out waiting'): Promise<void> {
   let remaining = timeout;
   while (fn() === false) {
     await new Promise<void>(resolve => setTimeout(resolve, 100));
     remaining -= 100;
     if (remaining < 0) {
-      throw new Error('Timed out waiting for server port');
+      throw new Error(message);
     }
   }
 }
@@ -519,7 +519,7 @@ export function createRunner(...paths: string[]) {
 
       return {
         completed: async function (): Promise<void> {
-          await waitFor(() => isComplete);
+          await waitFor(() => isComplete, 120_000, 'Timed out waiting for test to complete');
 
           if (completeError) {
             throw completeError;
@@ -537,7 +537,7 @@ export function createRunner(...paths: string[]) {
           options: { headers?: Record<string, string>; data?: unknown; expectError?: boolean } = {},
         ): Promise<T | undefined> {
           try {
-            await waitFor(() => scenarioServerPort !== undefined);
+            await waitFor(() => scenarioServerPort !== undefined, 10_000, 'Timed out waiting for server port');
           } catch (e) {
             complete(e as Error);
             return;
