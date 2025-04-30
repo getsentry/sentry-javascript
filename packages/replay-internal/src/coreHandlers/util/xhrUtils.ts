@@ -99,6 +99,8 @@ function _prepareXhrData(
     };
   }
 
+  // ---- This additional network data below is only captured for URLs defined in `networkDetailAllowUrls` ----
+
   const xhrInfo = xhr[SENTRY_XHR_DATA_KEY];
   const networkRequestHeaders = xhrInfo
     ? getAllowedHeaders(xhrInfo.request_headers, options.networkRequestHeaders)
