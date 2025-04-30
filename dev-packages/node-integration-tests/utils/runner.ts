@@ -174,7 +174,7 @@ export function createEsmAndCjsTests(
     testFn: typeof test | typeof test.fails,
     mode: 'esm' | 'cjs',
   ) => void,
-  options?: { skipCjs?: boolean; skipEsm?: boolean },
+  options?: { failsOnCjs?: boolean; failsOnEsm?: boolean },
 ): void {
   const mjsScenarioPath = join(cwd, scenarioPath);
   const mjsInstrumentPath = join(cwd, instrumentPath);
@@ -191,7 +191,7 @@ export function createEsmAndCjsTests(
   const cjsInstrumentPath = join(cwd, `tmp_${instrumentPath.replace('.mjs', '.cjs')}`);
 
   // For the CJS runner, we create some temporary files...
-  if (!options?.skipCjs) {
+  if (!options?.failsOnCjs) {
     convertEsmFileToCjs(mjsScenarioPath, cjsScenarioPath);
     convertEsmFileToCjs(mjsInstrumentPath, cjsInstrumentPath);
   }
@@ -211,12 +211,12 @@ export function createEsmAndCjsTests(
     });
 
     describe('esm', () => {
-      const testFn = options?.skipEsm ? test.fails : test;
+      const testFn = options?.failsOnEsm ? test.fails : test;
       callback(() => createRunner(mjsScenarioPath).withFlags('--import', mjsInstrumentPath), testFn, 'esm');
     });
 
     describe('cjs', () => {
-      const testFn = options?.skipCjs ? test.fails : test;
+      const testFn = options?.failsOnCjs ? test.fails : test;
       callback(() => createRunner(cjsScenarioPath).withFlags('--require', cjsInstrumentPath), testFn, 'cjs');
     });
   });

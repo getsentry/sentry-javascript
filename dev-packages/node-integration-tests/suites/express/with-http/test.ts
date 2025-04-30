@@ -36,6 +36,6 @@ describe('express with http import', () => {
       // TODO: This is failing on ESM because importing http is triggering the http spans twice :(
       // We need to fix this!
     },
-    { skipEsm: true },
+    { failsOnEsm: true },
   );
 });
