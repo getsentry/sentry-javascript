@@ -1,10 +1,5 @@
 import { register } from 'node:module';
 
-// eslint-disable-next-line no-unused-vars
-const hookScript = Buffer.from(`
-
-  `);
-
 register(
   new URL(`data:application/javascript,
 export async function resolve(specifier, context, nextResolve) {
