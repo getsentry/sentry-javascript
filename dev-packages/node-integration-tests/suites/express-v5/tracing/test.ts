@@ -79,8 +79,8 @@ describe('express tracing', () => {
 
     test.each([['array1'], ['array5']])(
       'should set a correct transaction name for routes consisting of arrays of routes for %p',
-      ((segment: string, done: () => void) => {
-        createRunner(__dirname, 'server.js')
+      async (segment: string) => {
+        const runner = await createRunner(__dirname, 'server.js')
           .expect({
             transaction: {
               transaction: 'GET /test/array1,/\\/test\\/array[2-9]/',
@@ -101,9 +101,10 @@ describe('express tracing', () => {
               },
             },
           })
-          .start(done)
-          .makeRequest('get', `/test/${segment}`);
-      }) as any,
+          .start();
+        await runner.makeRequest('get', `/test/${segment}`);
+        await runner.completed();
+      },
     );
 
     test.each([
@@ -113,8 +114,8 @@ describe('express tracing', () => {
       ['arr/requiredPath'],
       ['arr/required/lastParam'],
       ['arr55/required/lastParam'],
-    ])('should handle more complex regexes in route arrays correctly for %p', ((segment: string, done: () => void) => {
-      createRunner(__dirname, 'server.js')
+    ])('should handle more complex regexes in route arrays correctly for %p', async (segment: string) => {
+      const runner = await createRunner(__dirname, 'server.js')
         .expect({
           transaction: {
             transaction: 'GET /test/arr/:id,/\\/test\\/arr[0-9]*\\/required(path)?(\\/optionalPath)?\\/(lastParam)?/',
@@ -135,9 +136,10 @@ describe('express tracing', () => {
             },
           },
         })
-        .start(done)
-        .makeRequest('get', `/test/${segment}`);
-    }) as any);
+        .start();
+      await runner.makeRequest('get', `/test/${segment}`);
+      await runner.completed();
+    });
 
     describe('request data', () => {
       test('correctly captures JSON request data', async () => {
@@ -161,7 +163,12 @@ describe('express tracing', () => {
           })
           .start();
 
-        runner.makeRequest('post', '/test-post', { data: { foo: 'bar', other: 1 } });
+        runner.makeRequest('post', '/test-post', {
+          data: JSON.stringify({ foo: 'bar', other: 1 }),
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
         await runner.completed();
       });
 
