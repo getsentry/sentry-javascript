@@ -205,7 +205,6 @@ function endSpan(span: Span, handlerData: HandlerDataFetch): void {
   if (handlerData.response) {
     setHttpStatus(span, handlerData.response.status);
 
-    // fixme: only send if `sendDefaultPii`?
     const contentLength = handlerData.response?.headers && handlerData.response.headers.get('content-length');
 
     if (contentLength) {

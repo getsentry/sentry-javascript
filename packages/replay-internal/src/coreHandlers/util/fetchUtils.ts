@@ -55,11 +55,9 @@ export function enrichFetchBreadcrumb(
 ): void {
   const { input, response } = hint;
 
-  // fixme: only add this if `sendDefaultPii` is enabled?
   const body = input ? getFetchRequestArgBody(input) : undefined;
   const reqSize = getBodySize(body);
 
-  // fixme: only send response body size if `sendDefaultPii` is enabled?
   const resSize = response ? parseContentLengthHeader(response.headers.get('content-length')) : undefined;
 
   if (reqSize !== undefined) {

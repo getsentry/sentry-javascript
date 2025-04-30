@@ -209,7 +209,7 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
       normalizedRequest: {
         url: request.url,
         method: request.method,
-        headers: request.headers.toJSON(), // fixme: headers are passed 1:1
+        headers: request.headers.toJSON(),
         query_string: parsedUrl?.search,
       } satisfies RequestEventData,
     });

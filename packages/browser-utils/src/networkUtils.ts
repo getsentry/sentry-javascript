@@ -17,7 +17,6 @@ export function serializeFormData(formData: FormData): string {
 
 /** Get the string representation of a body. */
 export function getBodyString(body: unknown, _logger: Logger = logger): [string | undefined, NetworkMetaWarning?] {
-  // fixme: only add body string if `sendDefaultPii` is enabled?
   try {
     if (typeof body === 'string') {
       return [body];

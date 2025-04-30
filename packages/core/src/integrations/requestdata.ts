@@ -21,6 +21,7 @@ type RequestDataIntegrationOptions = {
   include?: RequestDataIncludeOptions;
 };
 
+// TODO(v10): Change defaults based on `sendDefaultPii`
 const DEFAULT_INCLUDE: RequestDataIncludeOptions = {
   cookies: true,
   data: true,
@@ -75,7 +76,6 @@ function addNormalizedRequestDataToEvent(
   additionalData: { ipAddress?: string },
   include: RequestDataIncludeOptions,
 ): void {
-  // fixme: only add when `sendDefaultPii` is enabled?
   event.request = {
     ...event.request,
     ...extractNormalizedRequestData(req, include),
@@ -123,7 +123,6 @@ function extractNormalizedRequestData(
   }
 
   if (include.cookies) {
-    // fixme: cookies enabled by default?
     const cookies = normalizedRequest.cookies || (headers?.cookie ? parseCookie(headers.cookie) : undefined);
     requestData.cookies = cookies || {};
   }
