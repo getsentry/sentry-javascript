@@ -1,5 +1,4 @@
-import { join } from 'node:path';
-import { afterAll, describe, expect, test } from 'vitest';
+import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 // `ai` SDK only support Node 18+
@@ -126,15 +125,9 @@ describe('ai', () => {
     ]),
   };
 
-  test('creates ai related spans - cjs', async () => {
-    await createRunner(__dirname, 'scenario.js').expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
-  });
-
-  test('creates ai related spans - esm', async () => {
-    await createRunner(__dirname, 'scenario.mjs')
-      .withFlags('--import', join(__dirname, 'instrument.mjs'))
-      .expect({ transaction: EXPECTED_TRANSACTION })
-      .start()
-      .completed();
+  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('creates ai related spans ', async () => {
+      await createRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
+    });
   });
 });
