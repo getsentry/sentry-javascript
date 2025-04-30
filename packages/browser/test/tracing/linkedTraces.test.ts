@@ -1,4 +1,5 @@
-import { addChildSpanToSpan, getCurrentScope, SentrySpan, Span, spanToJSON, timestampInSeconds } from '@sentry/core';
+import type { Span } from '@sentry/core';
+import { addChildSpanToSpan, SentrySpan, spanToJSON, timestampInSeconds } from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BrowserClient } from '../../src';
 import type { PreviousTraceInfo } from '../../src/tracing/linkedTraces';
