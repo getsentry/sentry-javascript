@@ -222,7 +222,9 @@ function instrumentAuthOperation(operation: AuthOperationFn, isAdmin = false): A
           name: operation.name,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase',
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `db.auth.${isAdmin ? 'admin.' : ''}${operation.name}`,
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
+            'db.system': 'postgresql',
+            'db.operation': `auth.${isAdmin ? 'admin.' : ''}${operation.name}`,
           },
         },
         span => {
@@ -363,8 +365,9 @@ function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilte
           'db.url': typedThis.url.origin,
           'db.sdk': typedThis.headers['X-Client-Info'],
           'db.system': 'postgresql',
+          'db.operation': operation,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `db.${operation}`,
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
         };
 
         if (queryItems.length) {
@@ -377,7 +380,6 @@ function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilte
 
         return startSpan(
           {
-            op: 'db',
             name: description,
             attributes,
           },

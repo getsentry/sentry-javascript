@@ -17,9 +17,14 @@ test('Sends server-side Supabase auth admin `createUser` span', async ({ page, b
   const transactionEvent = await httpTransactionPromise;
 
   expect(transactionEvent.spans).toContainEqual({
-    data: expect.any(Object),
+    data: expect.objectContaining({
+      "db.operation": "auth.admin.createUser",
+      "db.system": "postgresql",
+      "sentry.op": "db",
+      "sentry.origin": "auto.db.supabase"
+    }),
     description: 'createUser',
-    op: 'db.auth.admin.createUser',
+    op: 'db',
     parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     start_timestamp: expect.any(Number),
@@ -55,7 +60,17 @@ test('Sends client-side Supabase db-operation spans and breadcrumbs to Sentry', 
   expect(transactionEvent.spans).toContainEqual(
     expect.objectContaining({
       description: 'from(todos)',
-      op: 'db.select',
+      op: 'db',
+      data: expect.objectContaining({
+        "db.operation": "select",
+        "db.query": [
+          "select(*)",
+          "filter(order, asc)"
+        ],
+        "db.system": "postgresql",
+        "sentry.op": "db",
+        "sentry.origin": "auto.db.supabase"
+      }),
       parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       start_timestamp: expect.any(Number),
@@ -67,9 +82,18 @@ test('Sends client-side Supabase db-operation spans and breadcrumbs to Sentry', 
   );
 
   expect(transactionEvent.spans).toContainEqual({
-    data: expect.any(Object),
+    data: expect.objectContaining({
+      "db.operation": "select",
+      "db.query": [
+        "select(*)",
+        "filter(order, asc)"
+      ],
+      "db.system": "postgresql",
+      "sentry.op": "db",
+      "sentry.origin": "auto.db.supabase"
+    }),
     description: 'from(todos)',
-    op: 'db.insert',
+    op: 'db',
     parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     start_timestamp: expect.any(Number),
@@ -109,8 +133,17 @@ test('Sends server-side Supabase db-operation spans and breadcrumbs to Sentry', 
 
   expect(transactionEvent.spans).toContainEqual(
     expect.objectContaining({
+      data: expect.objectContaining({
+        "db.operation": "insert",
+        "db.query": [
+          "select(*)",
+        ],
+        "db.system": "postgresql",
+        "sentry.op": "db",
+        "sentry.origin": "auto.db.supabase"
+      }),
       description: 'from(todos)',
-      op: 'db.select',
+      op: 'db',
       parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       start_timestamp: expect.any(Number),
@@ -122,9 +155,17 @@ test('Sends server-side Supabase db-operation spans and breadcrumbs to Sentry', 
   );
 
   expect(transactionEvent.spans).toContainEqual({
-    data: expect.any(Object),
+    data: expect.objectContaining({
+      "db.operation": "select",
+      "db.query": [
+        "select(*)",
+      ],
+      "db.system": "postgresql",
+      "sentry.op": "db",
+      "sentry.origin": "auto.db.supabase"
+    }),
     description: 'from(todos)',
-    op: 'db.insert',
+    op: 'db',
     parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     start_timestamp: expect.any(Number),
@@ -163,9 +204,14 @@ test('Sends server-side Supabase auth admin `listUsers` span', async ({ page, ba
   const transactionEvent = await httpTransactionPromise;
 
   expect(transactionEvent.spans).toContainEqual({
-    data: expect.any(Object),
+    data: expect.objectContaining({
+      "db.operation": "auth.admin.listUsers",
+      "db.system": "postgresql",
+      "sentry.op": "db",
+      "sentry.origin": "auto.db.supabase"
+    }),
     description: 'listUsers',
-    op: 'db.auth.admin.listUsers',
+    op: 'db',
     parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     start_timestamp: expect.any(Number),
