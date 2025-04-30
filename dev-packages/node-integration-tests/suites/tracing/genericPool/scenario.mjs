@@ -1,18 +1,9 @@
-const { loggingTransport } = require('@sentry-internal/node-integration-tests');
-const Sentry = require('@sentry/node');
-
-Sentry.init({
-  dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  release: '1.0',
-  tracesSampleRate: 1.0,
-  transport: loggingTransport,
-});
+import * as Sentry from '@sentry/node';
+import genericPool from 'generic-pool';
+import mysql from 'mysql';
 
 // Stop the process from exiting before the transaction is sent
 setInterval(() => {}, 1000);
-
-const mysql = require('mysql');
-const genericPool = require('generic-pool');
 
 const factory = {
   create: function () {
@@ -67,5 +58,4 @@ async function run() {
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-floating-promises
 run();

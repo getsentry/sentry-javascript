@@ -1,18 +1,8 @@
-const { loggingTransport } = require('@sentry-internal/node-integration-tests');
-const Sentry = require('@sentry/node');
-
-Sentry.init({
-  dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  release: '1.0',
-  tracesSampleRate: 1.0,
-  transport: loggingTransport,
-  integrations: [Sentry.knexIntegration()],
-});
+import * as Sentry from '@sentry/node';
+import knex from 'knex';
 
 // Stop the process from exiting before the transaction is sent
 setInterval(() => {}, 1000);
-
-const knex = require('knex').default;
 
 const mysql2Client = knex({
   client: 'mysql2',
@@ -49,5 +39,4 @@ async function run() {
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-floating-promises
 run();

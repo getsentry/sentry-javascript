@@ -10,8 +10,7 @@ Sentry.init({
   transport: loggingTransport,
 });
 
-// eslint-disable-next-line no-unused-vars
-const _worker = new Worker(path.join(__dirname, 'child.js'));
+new Worker(path.join(__dirname, 'child.js'));
 
 setTimeout(() => {
   process.exit();

@@ -1,17 +1,7 @@
-const { loggingTransport } = require('@sentry-internal/node-integration-tests');
-const Sentry = require('@sentry/node');
-
-Sentry.init({
-  dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  release: '1.0',
-  tracesSampleRate: 1.0,
-  transport: loggingTransport,
-});
-
 // Stop the process from exiting before the transaction is sent
 setInterval(() => {}, 1000);
 
-const { Kafka } = require('kafkajs');
+import { Kafka } from 'kafkajs';
 
 async function run() {
   const kafka = new Kafka({
@@ -54,10 +44,6 @@ async function run() {
       },
     ],
   });
-
-  // Wait for the message to be received
-  await new Promise(resolve => setTimeout(resolve, 5000));
 }
 
-// eslint-disable-next-line @typescript-eslint/no-floating-promises
 run();
