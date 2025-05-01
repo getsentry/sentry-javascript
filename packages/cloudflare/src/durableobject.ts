@@ -134,8 +134,8 @@ function wrapMethodWithSentry<T extends (...args: any[]) => any>(
  */
 export function instrumentDurableObjectWithSentry<E, T extends DurableObject<E>>(
   optionsCallback: (env: E) => CloudflareOptions,
-  DurableObjectClass: { new (state: DurableObjectState, env: E): T },
-): typeof DurableObjectClass {
+  DurableObjectClass: new (state: DurableObjectState, env: E) => T,
+): new (state: DurableObjectState, env: E) => T {
   return new Proxy(DurableObjectClass, {
     construct(target, [context, env]) {
       setAsyncLocalStorageAsyncContextStrategy();
