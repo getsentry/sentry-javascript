@@ -92,6 +92,7 @@ export {
 } from '@sentry/core';
 
 export { withSentry } from './handler';
+export { instrumentDurableObjectWithSentry } from './durableobject';
 export { sentryPagesPlugin } from './pages-plugin';
 
 export { wrapRequestHandler } from './request';
