@@ -30,57 +30,63 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
 ): ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata> {
   setAsyncLocalStorageAsyncContextStrategy();
 
-  if ('fetch' in handler && typeof handler.fetch === 'function' && !isInstrumented(handler.fetch)) {
-    handler.fetch = new Proxy(handler.fetch, {
-      apply(target, thisArg, args: Parameters<ExportedHandlerFetchHandler<Env, CfHostMetadata>>) {
-        const [request, env, context] = args;
-        const options = optionsCallback(env);
-        return wrapRequestHandler({ options, request, context }, () => target.apply(thisArg, args));
-      },
-    });
-
-    markAsInstrumented(handler.fetch);
-  }
-
-  if ('scheduled' in handler && typeof handler.scheduled === 'function' && !isInstrumented(handler.scheduled)) {
-    handler.scheduled = new Proxy(handler.scheduled, {
-      apply(target, thisArg, args: Parameters<ExportedHandlerScheduledHandler<Env>>) {
-        const [event, env, context] = args;
-        return withIsolationScope(isolationScope => {
+  try {
+    if ('fetch' in handler && typeof handler.fetch === 'function' && !isInstrumented(handler.fetch)) {
+      handler.fetch = new Proxy(handler.fetch, {
+        apply(target, thisArg, args: Parameters<ExportedHandlerFetchHandler<Env, CfHostMetadata>>) {
+          const [request, env, context] = args;
           const options = optionsCallback(env);
-          const client = init(options);
-          isolationScope.setClient(client);
+          return wrapRequestHandler({ options, request, context }, () => target.apply(thisArg, args));
+        },
+      });
 
-          addCloudResourceContext(isolationScope);
+      markAsInstrumented(handler.fetch);
+    }
 
-          return startSpan(
-            {
-              op: 'faas.cron',
-              name: `Scheduled Cron ${event.cron}`,
-              attributes: {
-                'faas.cron': event.cron,
-                'faas.time': new Date(event.scheduledTime).toISOString(),
-                'faas.trigger': 'timer',
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare',
-                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
+    if ('scheduled' in handler && typeof handler.scheduled === 'function' && !isInstrumented(handler.scheduled)) {
+      handler.scheduled = new Proxy(handler.scheduled, {
+        apply(target, thisArg, args: Parameters<ExportedHandlerScheduledHandler<Env>>) {
+          const [event, env, context] = args;
+          return withIsolationScope(isolationScope => {
+            const options = optionsCallback(env);
+            const client = init(options);
+            isolationScope.setClient(client);
+
+            addCloudResourceContext(isolationScope);
+
+            return startSpan(
+              {
+                op: 'faas.cron',
+                name: `Scheduled Cron ${event.cron}`,
+                attributes: {
+                  'faas.cron': event.cron,
+                  'faas.time': new Date(event.scheduledTime).toISOString(),
+                  'faas.trigger': 'timer',
+                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare',
+                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
+                },
               },
-            },
-            async () => {
-              try {
-                return await (target.apply(thisArg, args) as ReturnType<typeof target>);
-              } catch (e) {
-                captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
-                throw e;
-              } finally {
-                context.waitUntil(flush(2000));
-              }
-            },
-          );
-        });
-      },
-    });
+              async () => {
+                try {
+                  return await (target.apply(thisArg, args) as ReturnType<typeof target>);
+                } catch (e) {
+                  captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
+                  throw e;
+                } finally {
+                  context.waitUntil(flush(2000));
+                }
+              },
+            );
+          });
+        },
+      });
 
-    markAsInstrumented(handler.scheduled);
+      markAsInstrumented(handler.scheduled);
+    }
+    // This is here because Miniflare sometimes cannot get instrumented
+    //
+  } catch (e) {
+    // Do not console anything here, we don't want to spam the console with errors
   }
 
   return handler;
