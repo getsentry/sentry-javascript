@@ -1,8 +1,3 @@
-import type {
-  ExportedHandler,
-  ExportedHandlerFetchHandler,
-  ExportedHandlerScheduledHandler,
-} from '@cloudflare/workers-types';
 import {
   captureException,
   flush,
@@ -13,14 +8,10 @@ import {
 } from '@sentry/core';
 import { setAsyncLocalStorageAsyncContextStrategy } from './async';
 import type { CloudflareOptions } from './client';
+import { isInstrumented, markAsInstrumented } from './instrument';
 import { wrapRequestHandler } from './request';
 import { addCloudResourceContext } from './scope-utils';
 import { init } from './sdk';
-
-/**
- * Extract environment generic from exported handler.
- */
-type ExtractEnv<P> = P extends ExportedHandler<infer Env> ? Env : never;
 
 /**
  * Wrapper for Cloudflare handlers.
@@ -33,16 +24,15 @@ type ExtractEnv<P> = P extends ExportedHandler<infer Env> ? Env : never;
  * @param handler {ExportedHandler} The handler to wrap.
  * @returns The wrapped handler.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function withSentry<E extends ExportedHandler<any>>(
-  optionsCallback: (env: ExtractEnv<E>) => CloudflareOptions,
-  handler: E,
-): E {
+export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostMetadata = unknown>(
+  optionsCallback: (env: Env) => CloudflareOptions,
+  handler: ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata>,
+): ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata> {
   setAsyncLocalStorageAsyncContextStrategy();
 
   if ('fetch' in handler && typeof handler.fetch === 'function' && !isInstrumented(handler.fetch)) {
     handler.fetch = new Proxy(handler.fetch, {
-      apply(target, thisArg, args: Parameters<ExportedHandlerFetchHandler<ExtractEnv<E>>>) {
+      apply(target, thisArg, args: Parameters<ExportedHandlerFetchHandler<Env, CfHostMetadata>>) {
         const [request, env, context] = args;
         const options = optionsCallback(env);
         return wrapRequestHandler({ options, request, context }, () => target.apply(thisArg, args));
@@ -54,7 +44,7 @@ export function withSentry<E extends ExportedHandler<any>>(
 
   if ('scheduled' in handler && typeof handler.scheduled === 'function' && !isInstrumented(handler.scheduled)) {
     handler.scheduled = new Proxy(handler.scheduled, {
-      apply(target, thisArg, args: Parameters<ExportedHandlerScheduledHandler<ExtractEnv<E>>>) {
+      apply(target, thisArg, args: Parameters<ExportedHandlerScheduledHandler<Env>>) {
         const [event, env, context] = args;
         return withIsolationScope(isolationScope => {
           const options = optionsCallback(env);
@@ -94,24 +84,4 @@ export function withSentry<E extends ExportedHandler<any>>(
   }
 
   return handler;
-}
-
-type SentryInstrumented<T> = T & {
-  __SENTRY_INSTRUMENTED__?: boolean;
-};
-
-function markAsInstrumented<T>(handler: T): void {
-  try {
-    (handler as SentryInstrumented<T>).__SENTRY_INSTRUMENTED__ = true;
-  } catch {
-    // ignore errors here
-  }
-}
-
-function isInstrumented<T>(handler: T): boolean | undefined {
-  try {
-    return (handler as SentryInstrumented<T>).__SENTRY_INSTRUMENTED__;
-  } catch {
-    return false;
-  }
 }
