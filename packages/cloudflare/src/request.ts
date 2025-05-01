@@ -76,6 +76,18 @@ export function wrapRequestHandler(
 
     const routeName = `${request.method} ${pathname ? stripUrlQueryAndFragment(pathname) : '/'}`;
 
+    // Do not capture spans for OPTIONS and HEAD requests
+    if (request.method === 'OPTIONS' || request.method === 'HEAD') {
+      try {
+        return await handler();
+      } catch (e) {
+        captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
+        throw e;
+      } finally {
+        context?.waitUntil(flush(2000));
+      }
+    }
+
     return continueTrace(
       { sentryTrace: request.headers.get('sentry-trace') || '', baggage: request.headers.get('baggage') },
       () => {
