@@ -12,10 +12,11 @@ module.exports = {
       },
     },
     {
-      files: ['suites/**/*.ts'],
+      files: ['suites/**/*.ts', 'suites/**/*.mjs'],
       parserOptions: {
         project: ['tsconfig.test.json'],
         sourceType: 'module',
+        ecmaVersion: 'latest',
       },
       rules: {
         '@typescript-eslint/typedef': 'off',

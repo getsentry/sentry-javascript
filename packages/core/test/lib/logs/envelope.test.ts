@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createOtelLogEnvelope, createOtelLogEnvelopeItem } from '../../../src/logs/envelope';
+import { createLogContainerEnvelopeItem, createLogEnvelope } from '../../../src/logs/envelope';
 import type { DsnComponents } from '../../../src/types-hoist/dsn';
-import type { SerializedOtelLog } from '../../../src/types-hoist/log';
+import type { SerializedLog } from '../../../src/types-hoist/log';
 import type { SdkMetadata } from '../../../src/types-hoist/sdkmetadata';
 import * as utilsDsn from '../../../src/utils-hoist/dsn';
 import * as utilsEnvelope from '../../../src/utils-hoist/envelope';
@@ -14,24 +14,23 @@ vi.mock('../../../src/utils-hoist/envelope', () => ({
   createEnvelope: vi.fn((_headers, items) => [_headers, items]),
 }));
 
-describe('createOtelLogEnvelopeItem', () => {
+describe('createLogContainerEnvelopeItem', () => {
   it('creates an envelope item with correct structure', () => {
-    const mockLog: SerializedOtelLog = {
-      severityText: 'error',
-      body: {
-        stringValue: 'Test error message',
-      },
+    const mockLog: SerializedLog = {
+      timestamp: 1713859200,
+      level: 'error',
+      body: 'Test error message',
     };
 
-    const result = createOtelLogEnvelopeItem(mockLog);
+    const result = createLogContainerEnvelopeItem([mockLog, mockLog]);
 
     expect(result).toHaveLength(2);
-    expect(result[0]).toEqual({ type: 'otel_log' });
-    expect(result[1]).toBe(mockLog);
+    expect(result[0]).toEqual({ type: 'log', item_count: 2, content_type: 'application/vnd.sentry.items.log+json' });
+    expect(result[1]).toEqual({ items: [mockLog, mockLog] });
   });
 });
 
-describe('createOtelLogEnvelope', () => {
+describe('createLogEnvelope', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2023-01-01T12:00:00Z'));
@@ -46,14 +45,15 @@ describe('createOtelLogEnvelope', () => {
   });
 
   it('creates an envelope with basic headers', () => {
-    const mockLogs: SerializedOtelLog[] = [
+    const mockLogs: SerializedLog[] = [
       {
-        severityText: 'info',
-        body: { stringValue: 'Test log message' },
+        timestamp: 1713859200,
+        level: 'info',
+        body: 'Test log message',
       },
     ];
 
-    const result = createOtelLogEnvelope(mockLogs);
+    const result = createLogEnvelope(mockLogs);
 
     expect(result[0]).toEqual({});
 
@@ -62,10 +62,11 @@ describe('createOtelLogEnvelope', () => {
   });
 
   it('includes SDK info when metadata is provided', () => {
-    const mockLogs: SerializedOtelLog[] = [
+    const mockLogs: SerializedLog[] = [
       {
-        severityText: 'info',
-        body: { stringValue: 'Test log message' },
+        timestamp: 1713859200,
+        level: 'info',
+        body: 'Test log message',
       },
     ];
 
@@ -76,7 +77,7 @@ describe('createOtelLogEnvelope', () => {
       },
     };
 
-    const result = createOtelLogEnvelope(mockLogs, metadata);
+    const result = createLogEnvelope(mockLogs, metadata);
 
     expect(result[0]).toEqual({
       sdk: {
@@ -87,10 +88,11 @@ describe('createOtelLogEnvelope', () => {
   });
 
   it('includes DSN when tunnel and DSN are provided', () => {
-    const mockLogs: SerializedOtelLog[] = [
+    const mockLogs: SerializedLog[] = [
       {
-        severityText: 'info',
-        body: { stringValue: 'Test log message' },
+        timestamp: 1713859200,
+        level: 'info',
+        body: 'Test log message',
       },
     ];
 
@@ -103,88 +105,35 @@ describe('createOtelLogEnvelope', () => {
       publicKey: 'abc123',
     };
 
-    const result = createOtelLogEnvelope(mockLogs, undefined, 'https://tunnel.example.com', dsn);
+    const result = createLogEnvelope(mockLogs, undefined, 'https://tunnel.example.com', dsn);
 
     expect(result[0]).toHaveProperty('dsn');
     expect(utilsDsn.dsnToString).toHaveBeenCalledWith(dsn);
   });
 
   it('maps each log to an envelope item', () => {
-    const mockLogs: SerializedOtelLog[] = [
+    const mockLogs: SerializedLog[] = [
       {
-        severityText: 'info',
-        body: { stringValue: 'First log message' },
+        timestamp: 1713859200,
+        level: 'info',
+        body: 'First log message',
       },
       {
-        severityText: 'error',
-        body: { stringValue: 'Second log message' },
+        timestamp: 1713859200,
+        level: 'error',
+        body: 'Second log message',
       },
     ];
 
-    createOtelLogEnvelope(mockLogs);
+    createLogEnvelope(mockLogs);
 
-    // Check that createEnvelope was called with an array of envelope items
-    expect(utilsEnvelope.createEnvelope).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.arrayContaining([
-        expect.arrayContaining([{ type: 'otel_log' }, mockLogs[0]]),
-        expect.arrayContaining([{ type: 'otel_log' }, mockLogs[1]]),
-      ]),
-    );
-  });
-});
-
-describe('Trace context in logs', () => {
-  it('correctly sets parent_span_id in trace context', () => {
-    // Create a log with trace context
-    const mockParentSpanId = 'abcdef1234567890';
-    const mockTraceId = '00112233445566778899aabbccddeeff';
-
-    const mockLog: SerializedOtelLog = {
-      severityText: 'info',
-      body: { stringValue: 'Test log with trace context' },
-      traceId: mockTraceId,
-      attributes: [
-        {
-          key: 'sentry.trace.parent_span_id',
-          value: { stringValue: mockParentSpanId },
-        },
-        {
-          key: 'some.other.attribute',
-          value: { stringValue: 'test value' },
-        },
-      ],
-    };
-
-    // Create an envelope item from this log
-    const envelopeItem = createOtelLogEnvelopeItem(mockLog);
-
-    // Verify the parent_span_id is preserved in the envelope item
-    expect(envelopeItem[1]).toBe(mockLog);
-    expect(envelopeItem[1].traceId).toBe(mockTraceId);
-    expect(envelopeItem[1].attributes).toContainEqual({
-      key: 'sentry.trace.parent_span_id',
-      value: { stringValue: mockParentSpanId },
-    });
-
-    // Create an envelope with this log
-    createOtelLogEnvelope([mockLog]);
-
-    // Verify the envelope preserves the trace information
+    // Check that createEnvelope was called with a single container item containing all logs
     expect(utilsEnvelope.createEnvelope).toHaveBeenCalledWith(
       expect.anything(),
       expect.arrayContaining([
         expect.arrayContaining([
-          { type: 'otel_log' },
-          expect.objectContaining({
-            traceId: mockTraceId,
-            attributes: expect.arrayContaining([
-              {
-                key: 'sentry.trace.parent_span_id',
-                value: { stringValue: mockParentSpanId },
-              },
-            ]),
-          }),
+          { type: 'log', item_count: 2, content_type: 'application/vnd.sentry.items.log+json' },
+          { items: mockLogs },
         ]),
       ]),
     );
