@@ -19,9 +19,8 @@
  * limitations under the License.
  */
 
-import { type Attributes, type Span, SpanStatusCode, type Tracer } from '@opentelemetry/api';
+import { type Attributes, type Span, type Tracer, SpanStatusCode } from '@opentelemetry/api';
 import { spanRequestSymbol } from './constants';
-
 import type { PluginFastifyReply } from './internal-types';
 
 /**

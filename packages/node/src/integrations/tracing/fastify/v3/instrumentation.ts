@@ -20,8 +20,8 @@
  * limitations under the License.
  */
 
-import { type Attributes, SpanStatusCode, context, trace } from '@opentelemetry/api';
-import { RPCType, getRPCMetadata } from '@opentelemetry/core';
+import { type Attributes, context, SpanStatusCode, trace } from '@opentelemetry/api';
+import { getRPCMetadata, RPCType } from '@opentelemetry/core';
 import {
   InstrumentationBase,
   InstrumentationNodeModuleDefinition,
@@ -30,17 +30,12 @@ import {
 import { SEMATTRS_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
 import type { Span } from '@sentry/core';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   getClient,
   getIsolationScope,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
 } from '@sentry/core';
-
-import { AttributeNames, FastifyNames, FastifyTypes } from './enums/AttributeNames';
-
-import type { PluginFastifyReply } from './internal-types';
-
 import type {
   FastifyErrorCodes,
   FastifyInstance,
@@ -49,7 +44,8 @@ import type {
   HandlerOriginal,
   HookHandlerDoneFunction,
 } from '../types';
-
+import { AttributeNames, FastifyNames, FastifyTypes } from './enums/AttributeNames';
+import type { PluginFastifyReply } from './internal-types';
 import type { FastifyInstrumentationConfig } from './types';
 import { endSpan, safeExecuteInTheMiddleMaybePromise, startSpan } from './utils';
 /** @knipignore */

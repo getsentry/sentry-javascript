@@ -1,22 +1,21 @@
+import * as diagnosticsChannel from 'node:diagnostics_channel';
+import { FastifyOtelInstrumentation } from '@fastify/otel';
+import type { Instrumentation, InstrumentationConfig } from '@opentelemetry/instrumentation';
 import type { IntegrationFn, Span } from '@sentry/core';
-import FastifyOtelInstrumentation from '@fastify/otel';
-import type { FastifyInstance, FastifyReply, FastifyRequest } from './types';
 import {
   captureException,
   defineIntegration,
   getClient,
   getIsolationScope,
+  logger,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  parseSemver,
-  logger,
   spanToJSON,
 } from '@sentry/core';
-import { generateInstrumentOnce } from '../../otel/instrument';
-import { FastifyInstrumentationV3 } from './v3/instrumentation';
-import * as diagnosticsChannel from 'node:diagnostics_channel';
 import { DEBUG_BUILD } from '../../../debug-build';
-import type { Instrumentation, InstrumentationConfig } from '@opentelemetry/instrumentation';
+import { generateInstrumentOnce } from '../../../otel/instrument';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from './types';
+import { FastifyInstrumentationV3 } from './v3/instrumentation';
 
 interface FastifyHandlerOptions {
   /**
