@@ -460,3 +460,22 @@ export async function hidePage(page: Page): Promise<void> {
     document.dispatchEvent(new Event('visibilitychange'));
   });
 }
+
+export async function waitForTracingHeadersOnUrl(
+  page: Page,
+  url: string,
+): Promise<{ baggage: string; sentryTrace: string }> {
+  return new Promise<{ baggage: string; sentryTrace: string }>(resolve => {
+    page
+      .route(url, (route, req) => {
+        const baggage = req.headers()['baggage'];
+        const sentryTrace = req.headers()['sentry-trace'];
+        resolve({ baggage, sentryTrace });
+        return route.fulfill({ status: 200, body: 'ok' });
+      })
+      .catch(error => {
+        // Handle any routing setup errors
+        throw error;
+      });
+  });
+}

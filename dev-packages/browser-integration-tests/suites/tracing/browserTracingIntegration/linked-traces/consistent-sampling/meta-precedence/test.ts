@@ -8,6 +8,7 @@ import {
   hidePage,
   shouldSkipTracingTest,
   waitForClientReportRequest,
+  waitForTracingHeadersOnUrl,
   waitForTransactionRequest,
 } from '../../../../../../utils/helpers';
 
@@ -33,16 +34,11 @@ sentryTest.describe('When `consistentTraceSampling` is `true` and page contains 
       });
 
       await sentryTest.step('Make fetch request', async () => {
-        let sentryTrace = undefined;
-        let baggage = undefined;
-
-        await page.route('https://someUrl.com', (route, req) => {
-          baggage = req.headers()['baggage'];
-          sentryTrace = req.headers()['sentry-trace'];
-          return route.fulfill({ status: 200, body: 'ok' });
-        });
+        const tracingHeadersPromise = waitForTracingHeadersOnUrl(page, 'https://someUrl.com');
 
         await page.locator('#btn2').click();
+
+        const { baggage, sentryTrace } = await tracingHeadersPromise;
 
         expect(sentryTrace).toBeDefined();
         expect(baggage).toBeDefined();
