@@ -108,42 +108,43 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
 
   /** @inheritdoc */
   public init(): [InstrumentationNodeModuleDefinition, InstrumentationNodeModuleDefinition] {
-    const handledRequests = new WeakSet<http.ClientRequest>();
-
-    const handleOutgoingRequestFinishOnce = (request: http.ClientRequest, response?: http.IncomingMessage): void => {
-      if (handledRequests.has(request)) {
-        return;
-      }
-
-      handledRequests.add(request);
-      this._onOutgoingRequestFinish(request, response);
-    };
+    // We register handlers when either http or https is instrumented
+    // but we only want to register them once, whichever is instrumented first
+    let hasRegisteredHandlers = false;
 
     const onHttpServerRequestStart = ((_data: unknown) => {
       const data = _data as { server: http.Server };
       this._patchServerEmitOnce(data.server);
     }) satisfies ChannelListener;
 
-    const onHttpsServerRequestStart = ((_data: unknown) => {
-      const data = _data as { server: http.Server };
-      this._patchServerEmitOnce(data.server);
-    }) satisfies ChannelListener;
-
     const onHttpClientResponseFinish = ((_data: unknown) => {
       const data = _data as { request: http.ClientRequest; response: http.IncomingMessage };
-      handleOutgoingRequestFinishOnce(data.request, data.response);
+      this._onOutgoingRequestFinish(data.request, data.response);
     }) satisfies ChannelListener;
 
     const onHttpClientRequestError = ((_data: unknown) => {
       const data = _data as { request: http.ClientRequest };
-      handleOutgoingRequestFinishOnce(data.request, undefined);
+      this._onOutgoingRequestFinish(data.request, undefined);
     }) satisfies ChannelListener;
 
+    /**
+     * You may be wondering why we register these diagnostics-channel listenrers in such InstrumentationNodeModuleDefinition,
+     * instead of simply subscribing to the events once in here.
+     * The reason for this is timing semantics: These functions are called once the http or https module is loaded.
+     * If we'd subscribe before that, there seem to be conflicts with the OTEL native instrumentation in some scenarios,
+     * especially the "import-on-top" pattern of setting up ESM applications.
+     */
     return [
       new InstrumentationNodeModuleDefinition(
         'http',
         ['*'],
         (moduleExports: Http): Http => {
+          if (hasRegisteredHandlers) {
+            return moduleExports;
+          }
+
+          hasRegisteredHandlers = true;
+
           subscribe('http.server.request.start', onHttpServerRequestStart);
           subscribe('http.client.response.finish', onHttpClientResponseFinish);
 
@@ -163,7 +164,13 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
         'https',
         ['*'],
         (moduleExports: Https): Https => {
-          subscribe('http.server.request.start', onHttpsServerRequestStart);
+          if (hasRegisteredHandlers) {
+            return moduleExports;
+          }
+
+          hasRegisteredHandlers = true;
+
+          subscribe('http.server.request.start', onHttpServerRequestStart);
           subscribe('http.client.response.finish', onHttpClientResponseFinish);
 
           // When an error happens, we still want to have a breadcrumb
@@ -173,7 +180,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
           return moduleExports;
         },
         () => {
-          unsubscribe('http.server.request.start', onHttpsServerRequestStart);
+          unsubscribe('http.server.request.start', onHttpServerRequestStart);
           unsubscribe('http.client.response.finish', onHttpClientResponseFinish);
           unsubscribe('http.client.request.error', onHttpClientRequestError);
         },
