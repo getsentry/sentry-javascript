@@ -28,10 +28,8 @@ export async function storeFormDataKeys(
       let attrKey = key;
 
       if (formDataKeys?.[key]) {
-        if (formDataKeys[key] === false) {
-          return;
-        } else if (typeof value === 'string') {
-          attrKey = key;
+        if (typeof formDataKeys[key] === 'string') {
+          attrKey = formDataKeys[key] as string;
         }
 
         span.setAttribute(
