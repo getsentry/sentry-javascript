@@ -1,10 +1,13 @@
-import { subscribe } from 'node:diagnostics_channel';
+/* eslint-disable max-lines */
+import type { ChannelListener } from 'node:diagnostics_channel';
+import { subscribe, unsubscribe } from 'node:diagnostics_channel';
 import type * as http from 'node:http';
+import type * as https from 'node:https';
 import type { EventEmitter } from 'node:stream';
 import { context, propagation } from '@opentelemetry/api';
 import { VERSION } from '@opentelemetry/core';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
-import { InstrumentationBase } from '@opentelemetry/instrumentation';
+import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
 import type { AggregationCounts, Client, SanitizedRequestData, Scope } from '@sentry/core';
 import {
   addBreadcrumb,
@@ -25,6 +28,9 @@ import { DEBUG_BUILD } from '../../debug-build';
 import { getRequestUrl } from '../../utils/getRequestUrl';
 
 const INSTRUMENTATION_NAME = '@sentry/instrumentation-http';
+
+type Http = typeof http;
+type Https = typeof https;
 
 export type SentryHttpInstrumentationOptions = InstrumentationConfig & {
   /**
@@ -101,29 +107,80 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
   }
 
   /** @inheritdoc */
-  public init(): [] {
-    subscribe('http.server.request.start', data => {
-      const server = (data as { server: http.Server }).server;
-      this._patchServerEmit(server);
-    });
+  public init(): [InstrumentationNodeModuleDefinition, InstrumentationNodeModuleDefinition] {
+    // Nothing to do here
 
-    subscribe('http.client.response.finish', data => {
-      const request = (data as { request: http.ClientRequest }).request;
-      const response = (data as { response: http.IncomingMessage }).response;
+    const handledRequests = new WeakSet<http.ClientRequest>();
 
+    const handleOutgoingRequestFinishOnce = (request: http.ClientRequest, response?: http.IncomingMessage): void => {
+      if (handledRequests.has(request)) {
+        return;
+      }
+
+      handledRequests.add(request);
       this._onOutgoingRequestFinish(request, response);
-    });
+    };
 
-    // When an error happens, we still want to have a breadcrumb
-    // In this case, `http.client.response.finish` is not triggered
-    subscribe('http.client.request.error', data => {
-      const request = (data as { request: http.ClientRequest }).request;
-      // there is no response object here, we only have access to request & error :(
+    const onHttpServerRequestStart = ((_data: unknown) => {
+      const data = _data as { server: http.Server };
+      this._patchServerEmitOnce(data.server);
+    }) satisfies ChannelListener;
 
-      this._onOutgoingRequestFinish(request, undefined);
-    });
+    const onHttpsServerRequestStart = ((_data: unknown) => {
+      const data = _data as { server: http.Server };
+      this._patchServerEmitOnce(data.server);
+    }) satisfies ChannelListener;
 
-    return [];
+    const onHttpClientResponseFinish = ((_data: unknown) => {
+      const data = _data as { request: http.ClientRequest; response: http.IncomingMessage };
+      handleOutgoingRequestFinishOnce(data.request, data.response);
+    }) satisfies ChannelListener;
+
+    const onHttpClientRequestError = ((_data: unknown) => {
+      const data = _data as { request: http.ClientRequest };
+      handleOutgoingRequestFinishOnce(data.request, undefined);
+    }) satisfies ChannelListener;
+
+    return [
+      new InstrumentationNodeModuleDefinition(
+        'http',
+        ['*'],
+        (moduleExports: Http): Http => {
+          subscribe('http.server.request.start', onHttpServerRequestStart);
+          subscribe('http.client.response.finish', onHttpClientResponseFinish);
+
+          // When an error happens, we still want to have a breadcrumb
+          // In this case, `http.client.response.finish` is not triggered
+          subscribe('http.client.request.error', onHttpClientRequestError);
+
+          return moduleExports;
+        },
+        () => {
+          unsubscribe('http.server.request.start', onHttpServerRequestStart);
+          unsubscribe('http.client.response.finish', onHttpClientResponseFinish);
+          unsubscribe('http.client.request.error', onHttpClientRequestError);
+        },
+      ),
+      new InstrumentationNodeModuleDefinition(
+        'https',
+        ['*'],
+        (moduleExports: Https): Https => {
+          subscribe('http.server.request.start', onHttpsServerRequestStart);
+          subscribe('http.client.response.finish', onHttpClientResponseFinish);
+
+          // When an error happens, we still want to have a breadcrumb
+          // In this case, `http.client.response.finish` is not triggered
+          subscribe('http.client.request.error', onHttpClientRequestError);
+
+          return moduleExports;
+        },
+        () => {
+          unsubscribe('http.server.request.start', onHttpsServerRequestStart);
+          unsubscribe('http.client.response.finish', onHttpClientResponseFinish);
+          unsubscribe('http.client.request.error', onHttpClientRequestError);
+        },
+      ),
+    ];
   }
 
   /**
@@ -150,7 +207,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
    * Patch a server.emit function to handle process isolation for incoming requests.
    * This will only patch the emit function if it was not already patched.
    */
-  private _patchServerEmit(server: http.Server): void {
+  private _patchServerEmitOnce(server: http.Server): void {
     // eslint-disable-next-line @typescript-eslint/unbound-method
     const originalEmit = server.emit;
 
@@ -159,7 +216,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
       return;
     }
 
-    DEBUG_BUILD && logger.log(INSTRUMENTATION_NAME, 'Patching server.emit');
+    DEBUG_BUILD && logger.log(INSTRUMENTATION_NAME, 'Patching server.emit!!!');
 
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const instrumentation = this;
