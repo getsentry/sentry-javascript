@@ -194,7 +194,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
    * It has access to the final request and response objects.
    */
   private _onOutgoingRequestFinish(request: http.ClientRequest, response?: http.IncomingMessage): void {
-    DEBUG_BUILD && logger.log(INSTRUMENTATION_NAME, 'Handling outgoing request finish');
+    DEBUG_BUILD && logger.log(INSTRUMENTATION_NAME, 'Handling finished outgoing request');
 
     const _breadcrumbs = this.getConfig().breadcrumbs;
     const breadCrumbsEnabled = typeof _breadcrumbs === 'undefined' ? true : _breadcrumbs;
@@ -222,7 +222,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
       return;
     }
 
-    DEBUG_BUILD && logger.log(INSTRUMENTATION_NAME, 'Patching server.emit!!!');
+    DEBUG_BUILD && logger.log(INSTRUMENTATION_NAME, 'Patching server.emit()');
 
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const instrumentation = this;
@@ -235,7 +235,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
           return target.apply(thisArg, args);
         }
 
-        DEBUG_BUILD && logger.log(INSTRUMENTATION_NAME, 'isolating incoming request');
+        DEBUG_BUILD && logger.log(INSTRUMENTATION_NAME, 'Handling incoming request');
 
         const isolationScope = getIsolationScope().clone();
         const request = args[1] as http.IncomingMessage;
@@ -373,7 +373,7 @@ function patchRequestToCaptureBody(req: http.IncomingMessage, isolationScope: Sc
         const [event, listener, ...restArgs] = args;
 
         if (event === 'data') {
-          DEBUG_BUILD && logger.log(INSTRUMENTATION_NAME, 'Handling request.on', event);
+          DEBUG_BUILD && logger.log(INSTRUMENTATION_NAME, 'Handling request.on("data")');
           const callback = new Proxy(listener, {
             apply: (target, thisArg, args: Parameters<typeof listener>) => {
               try {
