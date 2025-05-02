@@ -32,6 +32,8 @@ async function assertRequests({
       });
   });
 
+  expect(requests).toHaveLength(2);
+
   requests.forEach(request => {
     const headers = request.headers();
 
@@ -39,7 +41,7 @@ async function assertRequests({
     expect(headers['sentry-trace']).not.toContain(',');
 
     // No multiple baggage entries
-    expect(headers['baggage'].match(/sentry-trace_id/g) ?? []).toHaveLength(1);
+    expect(headers['baggage'].match(/sentry-release/g) ?? []).toHaveLength(1);
   });
 }
 
