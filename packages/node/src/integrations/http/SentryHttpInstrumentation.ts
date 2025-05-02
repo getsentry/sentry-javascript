@@ -109,7 +109,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
   /** @inheritdoc */
   public init(): [InstrumentationNodeModuleDefinition, InstrumentationNodeModuleDefinition] {
     // We register handlers when either http or https is instrumented
-    // but we only want to register them once, whichever is instrumented first
+    // but we only want to register them once, whichever is loaded first
     let hasRegisteredHandlers = false;
 
     const onHttpServerRequestStart = ((_data: unknown) => {
@@ -128,7 +128,8 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
     }) satisfies ChannelListener;
 
     /**
-     * You may be wondering why we register these diagnostics-channel listenrers in such InstrumentationNodeModuleDefinition,
+     * You may be wondering why we register these diagnostics-channel listeners
+     * in such a convoluted way (as InstrumentationNodeModuleDefinition...)˝,
      * instead of simply subscribing to the events once in here.
      * The reason for this is timing semantics: These functions are called once the http or https module is loaded.
      * If we'd subscribe before that, there seem to be conflicts with the OTEL native instrumentation in some scenarios,
