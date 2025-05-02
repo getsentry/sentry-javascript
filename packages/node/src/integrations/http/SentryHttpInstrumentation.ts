@@ -108,8 +108,6 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
 
   /** @inheritdoc */
   public init(): [InstrumentationNodeModuleDefinition, InstrumentationNodeModuleDefinition] {
-    // Nothing to do here
-
     const handledRequests = new WeakSet<http.ClientRequest>();
 
     const handleOutgoingRequestFinishOnce = (request: http.ClientRequest, response?: http.IncomingMessage): void => {
