@@ -103,8 +103,10 @@ export function instrumentFetchRequest(
 
 /**
  * Adds sentry-trace and baggage headers to the various forms of fetch headers.
+ * exported only for testing purposes
  */
-function _addTracingHeadersToFetchRequest(
+// eslint-disable-next-line complexity -- yup it's this complicated :(
+export function _addTracingHeadersToFetchRequest(
   request: string | Request,
   fetchOptionsObj: {
     headers?:
@@ -124,51 +126,45 @@ function _addTracingHeadersToFetchRequest(
     return undefined;
   }
 
-  const headers = fetchOptionsObj.headers || (isRequest(request) ? request.headers : undefined);
+  const originalHeaders = fetchOptionsObj.headers || (isRequest(request) ? request.headers : undefined);
 
-  if (!headers) {
+  if (!originalHeaders) {
     return { ...traceHeaders };
-  } else if (isHeaders(headers)) {
-    const newHeaders = new Headers(headers);
-    newHeaders.set('sentry-trace', sentryTrace);
+  } else if (isHeaders(originalHeaders)) {
+    const newHeaders = new Headers(originalHeaders);
+
+    // We don't want to override manually added sentry headers
+    if (!newHeaders.get('sentry-trace')) {
+      newHeaders.set('sentry-trace', sentryTrace);
+    }
 
     if (baggage) {
       const prevBaggageHeader = newHeaders.get('baggage');
-      if (prevBaggageHeader) {
-        const prevHeaderStrippedFromSentryBaggage = stripBaggageHeaderOfSentryBaggageValues(prevBaggageHeader);
-        newHeaders.set(
-          'baggage',
-          // If there are non-sentry entries (i.e. if the stripped string is non-empty/truthy) combine the stripped header and sentry baggage header
-          // otherwise just set the sentry baggage header
-          prevHeaderStrippedFromSentryBaggage ? `${prevHeaderStrippedFromSentryBaggage},${baggage}` : baggage,
-        );
-      } else {
+
+      // 3 cases:
+      // 1. No previous baggage header -> add baggage
+      // 2. Previous baggage header has no sentry baggage values -> add our baggage
+      // 3. Previous baggage header has sentry baggage values -> do nothing (might have been added manually by users)
+      if (!prevBaggageHeader) {
         newHeaders.set('baggage', baggage);
+      } else if (!baggageHeaderHasSentryBaggageValues(prevBaggageHeader)) {
+        newHeaders.set('baggage', `${prevBaggageHeader},${baggage}`);
       }
     }
 
     return newHeaders;
-  } else if (Array.isArray(headers)) {
-    const newHeaders = [
-      ...headers
-        // Remove any existing sentry-trace headers
-        .filter(header => {
-          return !(Array.isArray(header) && header[0] === 'sentry-trace');
-        })
-        // Get rid of previous sentry baggage values in baggage header
-        .map(header => {
-          if (Array.isArray(header) && header[0] === 'baggage' && typeof header[1] === 'string') {
-            const [headerName, headerValue, ...rest] = header;
-            return [headerName, stripBaggageHeaderOfSentryBaggageValues(headerValue), ...rest];
-          } else {
-            return header;
-          }
-        }),
-      // Attach the new sentry-trace header
-      ['sentry-trace', sentryTrace],
-    ];
+  } else if (Array.isArray(originalHeaders)) {
+    const newHeaders = [...originalHeaders];
 
-    if (baggage) {
+    if (!originalHeaders.find(header => header[0] === 'sentry-trace')) {
+      newHeaders.push(['sentry-trace', sentryTrace]);
+    }
+
+    const prevBaggageHeaderWithSentryValues = originalHeaders.find(
+      header => header[0] === 'baggage' && baggageHeaderHasSentryBaggageValues(header[1]),
+    );
+
+    if (baggage && !prevBaggageHeaderWithSentryValues) {
       // If there are multiple entries with the same key, the browser will merge the values into a single request header.
       // Its therefore safe to simply push a "baggage" entry, even though there might already be another baggage header.
       newHeaders.push(['baggage', baggage]);
@@ -176,26 +172,28 @@ function _addTracingHeadersToFetchRequest(
 
     return newHeaders as PolymorphicRequestHeaders;
   } else {
-    const existingBaggageHeader = 'baggage' in headers ? headers.baggage : undefined;
-    let newBaggageHeaders: string[] = [];
+    const existingSentryTraceHeader = 'sentry-trace' in originalHeaders ? originalHeaders['sentry-trace'] : undefined;
 
-    if (Array.isArray(existingBaggageHeader)) {
-      newBaggageHeaders = existingBaggageHeader
-        .map(headerItem =>
-          typeof headerItem === 'string' ? stripBaggageHeaderOfSentryBaggageValues(headerItem) : headerItem,
-        )
-        .filter(headerItem => headerItem === '');
-    } else if (existingBaggageHeader) {
-      newBaggageHeaders.push(stripBaggageHeaderOfSentryBaggageValues(existingBaggageHeader));
-    }
+    const existingBaggageHeader = 'baggage' in originalHeaders ? originalHeaders.baggage : undefined;
+    const newBaggageHeaders: string[] = existingBaggageHeader
+      ? Array.isArray(existingBaggageHeader)
+        ? [...existingBaggageHeader]
+        : [existingBaggageHeader]
+      : [];
 
-    if (baggage) {
+    const prevBaggageHeaderWithSentryValues =
+      existingBaggageHeader &&
+      (Array.isArray(existingBaggageHeader)
+        ? existingBaggageHeader.find(headerItem => baggageHeaderHasSentryBaggageValues(headerItem))
+        : baggageHeaderHasSentryBaggageValues(existingBaggageHeader));
+
+    if (baggage && !prevBaggageHeaderWithSentryValues) {
       newBaggageHeaders.push(baggage);
     }
 
     return {
-      ...(headers as Exclude<typeof headers, Headers>),
-      'sentry-trace': sentryTrace,
+      ...(originalHeaders as Exclude<typeof originalHeaders, Headers>),
+      'sentry-trace': (existingSentryTraceHeader as string | undefined) ?? sentryTrace,
       baggage: newBaggageHeaders.length > 0 ? newBaggageHeaders.join(',') : undefined,
     };
   }
@@ -219,14 +217,10 @@ function endSpan(span: Span, handlerData: HandlerDataFetch): void {
   span.end();
 }
 
-function stripBaggageHeaderOfSentryBaggageValues(baggageHeader: string): string {
-  return (
-    baggageHeader
-      .split(',')
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      .filter(baggageEntry => !baggageEntry.split('=')[0]!.startsWith(SENTRY_BAGGAGE_KEY_PREFIX))
-      .join(',')
-  );
+function baggageHeaderHasSentryBaggageValues(baggageHeader: string): boolean {
+  return baggageHeader
+    .split(',')
+    .some(baggageEntry => baggageEntry.split('=')[0]?.startsWith(SENTRY_BAGGAGE_KEY_PREFIX));
 }
 
 function isHeaders(headers: unknown): headers is Headers {
