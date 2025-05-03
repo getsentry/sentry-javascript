@@ -2,8 +2,9 @@ import type { BrowserOptions } from '@sentry/browser';
 import { init as browserInit } from '@sentry/browser';
 import type { Client } from '@sentry/core';
 import { applySdkMetadata, setTag } from '@sentry/core';
-import { BROWSER_TRACING_INTEGRATION_ID } from '../../../browser/build/npm/types/tracing/browserTracingIntegration';
 import { reactRouterTracingIntegration } from './tracingIntegration';
+
+const BROWSER_TRACING_INTEGRATION_ID = 'BrowserTracing';
 
 /**
  * Initializes the client side of the React Router SDK.
