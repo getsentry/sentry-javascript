@@ -14,6 +14,7 @@ export function reactRouterTracingIntegration(): Integration {
 
   return {
     ...browserTracingIntegrationInstance,
+    name: 'ReactRouterTracingIntegration',
     afterAllSetup(client) {
       browserTracingIntegrationInstance.afterAllSetup(client);
       instrumentHydratedRouter();
