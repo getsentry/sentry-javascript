@@ -124,7 +124,7 @@ function getActiveRootSpan(): Span | undefined {
 
 function getParameterizedRoute(routerState: RouterState): string {
   const lastMatch = routerState.matches[routerState.matches.length - 1];
-  return lastMatch?.route.path ?? routerState.location.pathname;
+  return normalizePathname(lastMatch?.route.path ?? routerState.location.pathname);
 }
 
 function normalizePathname(pathname: string): string {
