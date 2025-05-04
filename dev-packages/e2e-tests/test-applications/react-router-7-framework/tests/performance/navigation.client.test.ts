@@ -5,7 +5,6 @@ import { APP_NAME } from '../constants';
 test.describe('client - navigation performance', () => {
   test('should create navigation transaction', async ({ page }) => {
     const navigationPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      console.log('tx', transactionEvent.transaction);
       return transactionEvent.transaction === '/performance/ssr';
     });
 
@@ -57,7 +56,6 @@ test.describe('client - navigation performance', () => {
 
   test('should update navigation transaction for dynamic routes', async ({ page }) => {
     const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      console.log('tx', transactionEvent.transaction);
       return transactionEvent.transaction === '/performance/with/:param';
     });
 
