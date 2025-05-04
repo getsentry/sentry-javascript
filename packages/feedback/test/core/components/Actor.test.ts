@@ -62,4 +62,24 @@ describe('Actor', () => {
     expect(actorAria.el.textContent).toBe('Button');
     expect(actorAria.el.ariaLabel).toBe('Aria');
   });
+
+  it('does not throw if removeFromDom() is called when it is not mounted', () => {
+    const feedbackIntegration = buildFeedbackIntegration({
+      lazyLoadIntegration: vi.fn(),
+    });
+
+    const configuredIntegration = feedbackIntegration({});
+    mockSdk({
+      sentryOptions: {
+        integrations: [configuredIntegration],
+      },
+    });
+
+    const feedback = getFeedback();
+
+    const actorComponent = feedback!.createWidget();
+
+    expect(() => actorComponent.removeFromDom()).not.toThrowError();
+    expect(() => actorComponent.removeFromDom()).not.toThrowError();
+  });
 });

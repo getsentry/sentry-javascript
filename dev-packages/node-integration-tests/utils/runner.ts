@@ -12,10 +12,10 @@ import type {
   TransactionEvent,
 } from '@sentry/core';
 import { normalize } from '@sentry/core';
-import axios from 'axios';
 import { execSync, spawn, spawnSync } from 'child_process';
-import { existsSync } from 'fs';
+import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
 import { join } from 'path';
+import { afterAll, beforeAll, describe, test } from 'vitest';
 import {
   assertEnvelopeHeader,
   assertSentryCheckIn,
@@ -40,13 +40,13 @@ export function cleanupChildProcesses(): void {
 process.on('exit', cleanupChildProcesses);
 
 /** Promise only resolves when fn returns true */
-async function waitFor(fn: () => boolean, timeout = 10_000): Promise<void> {
+async function waitFor(fn: () => boolean, timeout = 10_000, message = 'Timed out waiting'): Promise<void> {
   let remaining = timeout;
   while (fn() === false) {
     await new Promise<void>(resolve => setTimeout(resolve, 100));
     remaining -= 100;
     if (remaining < 0) {
-      throw new Error('Timed out waiting for server port');
+      throw new Error(message);
     }
   }
 }
@@ -160,9 +160,70 @@ type StartResult = {
   makeRequest<T>(
     method: 'get' | 'post',
     path: string,
-    options?: { headers?: Record<string, string>; data?: unknown; expectError?: boolean },
+    options?: { headers?: Record<string, string>; data?: BodyInit; expectError?: boolean },
   ): Promise<T | undefined>;
 };
+
+export function createEsmAndCjsTests(
+  cwd: string,
+  scenarioPath: string,
+  instrumentPath: string,
+  callback: (
+    createTestRunner: () => ReturnType<typeof createRunner>,
+    testFn: typeof test | typeof test.fails,
+    mode: 'esm' | 'cjs',
+  ) => void,
+  options?: { failsOnCjs?: boolean; failsOnEsm?: boolean },
+): void {
+  const mjsScenarioPath = join(cwd, scenarioPath);
+  const mjsInstrumentPath = join(cwd, instrumentPath);
+
+  if (!mjsScenarioPath.endsWith('.mjs')) {
+    throw new Error(`Scenario path must end with .mjs: ${scenarioPath}`);
+  }
+
+  if (!existsSync(mjsInstrumentPath)) {
+    throw new Error(`Instrument file not found: ${mjsInstrumentPath}`);
+  }
+
+  const cjsScenarioPath = join(cwd, `tmp_${scenarioPath.replace('.mjs', '.cjs')}`);
+  const cjsInstrumentPath = join(cwd, `tmp_${instrumentPath.replace('.mjs', '.cjs')}`);
+
+  describe('esm', () => {
+    const testFn = options?.failsOnEsm ? test.fails : test;
+    callback(() => createRunner(mjsScenarioPath).withFlags('--import', mjsInstrumentPath), testFn, 'esm');
+  });
+
+  describe('cjs', () => {
+    beforeAll(() => {
+      // For the CJS runner, we create some temporary files...
+      convertEsmFileToCjs(mjsScenarioPath, cjsScenarioPath);
+      convertEsmFileToCjs(mjsInstrumentPath, cjsInstrumentPath);
+    });
+
+    afterAll(() => {
+      try {
+        unlinkSync(cjsInstrumentPath);
+      } catch {
+        // Ignore errors here
+      }
+      try {
+        unlinkSync(cjsScenarioPath);
+      } catch {
+        // Ignore errors here
+      }
+    });
+
+    const testFn = options?.failsOnCjs ? test.fails : test;
+    callback(() => createRunner(cjsScenarioPath).withFlags('--require', cjsInstrumentPath), testFn, 'cjs');
+  });
+}
+
+function convertEsmFileToCjs(inputPath: string, outputPath: string): void {
+  const cjsFileContent = readFileSync(inputPath, 'utf8');
+  const cjsFileContentConverted = convertEsmToCjs(cjsFileContent);
+  writeFileSync(outputPath, cjsFileContentConverted);
+}
 
 /** Creates a test runner */
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
@@ -215,6 +276,10 @@ export function createRunner(...paths: string[]) {
       flags.push(...args);
       return this;
     },
+    withInstrument: function (instrumentPath: string) {
+      flags.push('--import', instrumentPath);
+      return this;
+    },
     withMockSentryServer: function () {
       withSentryServer = true;
       return this;
@@ -237,13 +302,10 @@ export function createRunner(...paths: string[]) {
       ensureNoErrorOutput = true;
       return this;
     },
-    start: function (done?: (e?: unknown) => void): StartResult {
-      let resolve: (value: void) => void;
-      let reject: (reason?: unknown) => void;
-      const completePromise = new Promise<void>((res, rej) => {
-        resolve = res;
-        reject = rej;
-      });
+    start: function (): StartResult {
+      let isComplete = false;
+      let completeError: Error | undefined;
+
       const expectedEnvelopeCount = Math.max(expectedEnvelopes.length, (expectedEnvelopeHeaders || []).length);
 
       let envelopeCount = 0;
@@ -252,13 +314,13 @@ export function createRunner(...paths: string[]) {
       let child: ReturnType<typeof spawn> | undefined;
 
       function complete(error?: Error): void {
-        child?.kill();
-        done?.(normalize(error));
-        if (error) {
-          reject(error);
-        } else {
-          resolve();
+        if (isComplete) {
+          return;
         }
+
+        isComplete = true;
+        completeError = error || undefined;
+        child?.kill();
       }
 
       /** Called after each expect callback to check if we're complete */
@@ -453,8 +515,12 @@ export function createRunner(...paths: string[]) {
         .catch(e => complete(e));
 
       return {
-        completed: function (): Promise<void> {
-          return completePromise;
+        completed: async function (): Promise<void> {
+          await waitFor(() => isComplete, 120_000, 'Timed out waiting for test to complete');
+
+          if (completeError) {
+            throw completeError;
+          }
         },
         childHasExited: function (): boolean {
           return hasExited;
@@ -465,32 +531,43 @@ export function createRunner(...paths: string[]) {
         makeRequest: async function <T>(
           method: 'get' | 'post',
           path: string,
-          options: { headers?: Record<string, string>; data?: unknown; expectError?: boolean } = {},
+          options: { headers?: Record<string, string>; data?: BodyInit; expectError?: boolean } = {},
         ): Promise<T | undefined> {
           try {
-            await waitFor(() => scenarioServerPort !== undefined);
+            await waitFor(() => scenarioServerPort !== undefined, 10_000, 'Timed out waiting for server port');
           } catch (e) {
             complete(e as Error);
             return;
           }
 
           const url = `http://localhost:${scenarioServerPort}${path}`;
-          const data = options.data;
+          const body = options.data;
           const headers = options.headers || {};
           const expectError = options.expectError || false;
 
-          if (process.env.DEBUG) log('making request', method, url, headers, data);
+          if (process.env.DEBUG) log('making request', method, url, headers, body);
 
           try {
-            const res =
-              method === 'post' ? await axios.post(url, data, { headers }) : await axios.get(url, { headers });
+            const res = await fetch(url, { headers, method, body });
+
+            if (!res.ok) {
+              if (!expectError) {
+                complete(new Error(`Expected request to "${path}" to succeed, but got a ${res.status} response`));
+              }
+
+              return;
+            }
 
             if (expectError) {
               complete(new Error(`Expected request to "${path}" to fail, but got a ${res.status} response`));
               return;
             }
 
-            return res.data;
+            if (res.headers.get('content-type')?.includes('application/json')) {
+              return await res.json();
+            }
+
+            return (await res.text()) as T;
           } catch (e) {
             if (expectError) {
               return;
@@ -564,4 +641,37 @@ function expectLog(item: SerializedLogContainer, expected: ExpectedLogContainer)
   } else {
     assertSentryLogContainer(item, expected);
   }
+}
+
+/**
+ * Converts ESM import statements to CommonJS require statements
+ * @param content The content of an ESM file
+ * @returns The content with require statements instead of imports
+ */
+function convertEsmToCjs(content: string): string {
+  let newContent = content;
+
+  // Handle default imports: import x from 'y' -> const x = require('y')
+  newContent = newContent.replace(
+    /import\s+([\w*{}\s,]+)\s+from\s+['"]([^'"]+)['"]/g,
+    (_, imports: string, module: string) => {
+      if (imports.includes('* as')) {
+        // Handle namespace imports: import * as x from 'y' -> const x = require('y')
+        return `const ${imports.replace('* as', '').trim()} = require('${module}')`;
+      } else if (imports.includes('{')) {
+        // Handle named imports: import {x, y} from 'z' -> const {x, y} = require('z')
+        return `const ${imports} = require('${module}')`;
+      } else {
+        // Handle default imports: import x from 'y' -> const x = require('y')
+        return `const ${imports} = require('${module}')`;
+      }
+    },
+  );
+
+  // Handle side-effect imports: import 'x' -> require('x')
+  newContent = newContent.replace(/import\s+['"]([^'"]+)['"]/g, (_, module) => {
+    return `require('${module}')`;
+  });
+
+  return newContent;
 }

@@ -1,17 +1,9 @@
-const { loggingTransport, sendPortToRunner } = require('@sentry-internal/node-integration-tests');
-const Sentry = require('@sentry/node');
+import * as Sentry from '@sentry/node';
+import { sendPortToRunner } from '@sentry-internal/node-integration-tests';
+import connect from 'connect';
+import http from 'http';
 
 const port = 5986;
-
-Sentry.init({
-  dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  release: '1.0',
-  tracesSampleRate: 1.0,
-  transport: loggingTransport,
-});
-
-const connect = require('connect');
-const http = require('http');
 
 const run = async () => {
   const app = connect();
