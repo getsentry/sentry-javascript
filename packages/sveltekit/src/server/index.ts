@@ -116,9 +116,12 @@ export {
   withIsolationScope,
   withMonitor,
   withScope,
+  supabaseIntegration,
+  instrumentSupabaseClient,
   zodErrorsIntegration,
   logger,
   consoleLoggingIntegration,
+  createSentryWinstonTransport,
 } from '@sentry/node';
 
 // We can still leave this for the carrier init and type exports

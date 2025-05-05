@@ -27,9 +27,11 @@ async function run() {
     async span => {
       // Ref: https://www.apollographql.com/docs/apollo-server/testing/testing/#testing-using-executeoperation
       await server.executeOperation({
-        query: gql`mutation TestMutation($email: String){
-          login(email: $email)
-        }`,
+        query: gql`
+          mutation TestMutation($email: String) {
+            login(email: $email)
+          }
+        `,
         variables: { email: 'test@email.com' },
       });
 

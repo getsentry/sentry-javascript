@@ -1,5 +1,5 @@
 import type { ClientOptions, Options, ServerRuntimeClientOptions } from '@sentry/core';
-import { ServerRuntimeClient, applySdkMetadata } from '@sentry/core';
+import { applySdkMetadata, ServerRuntimeClient } from '@sentry/core';
 import type { CloudflareTransportOptions } from './transport';
 
 /**

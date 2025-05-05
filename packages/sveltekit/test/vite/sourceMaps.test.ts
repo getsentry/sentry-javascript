@@ -1,9 +1,7 @@
+import type { Plugin } from 'vite';
+import * as vite from 'vite';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getUpdatedSourceMapSetting, makeCustomSentryVitePlugins } from '../../src/vite/sourceMaps';
-
-import type { Plugin } from 'vite';
-
-import * as vite from 'vite';
 
 const mockedViteDebugIdUploadPlugin = {
   name: 'sentry-vite-debug-id-upload-plugin',

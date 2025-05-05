@@ -1,9 +1,8 @@
-import fs from 'fs';
-import path from 'path';
 import { type Package } from '@sentry/core';
+import fs from 'fs';
 import HtmlWebpackPlugin, { createHtmlTagObject } from 'html-webpack-plugin';
+import path from 'path';
 import type { Compiler } from 'webpack';
-
 import { addStaticAsset, symlinkAsset } from './staticAssets';
 
 const LOADER_TEMPLATE = fs.readFileSync(path.join(__dirname, '../fixtures/loader.js'), 'utf-8');

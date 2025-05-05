@@ -1,4 +1,6 @@
-import type { Event, StackFrame, StackLineParser, StackParser } from '../types-hoist';
+import type { Event } from '../types-hoist/event';
+import type { StackFrame } from '../types-hoist/stackframe';
+import type { StackLineParser, StackParser } from '../types-hoist/stacktrace';
 
 const STACKTRACE_FRAME_LIMIT = 50;
 export const UNKNOWN_FUNCTION = '?';

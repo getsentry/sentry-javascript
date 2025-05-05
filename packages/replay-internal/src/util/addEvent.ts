@@ -1,6 +1,5 @@
-import { EventType } from '@sentry-internal/rrweb';
 import { getClient } from '@sentry/core';
-
+import { EventType } from '@sentry-internal/rrweb';
 import { DEBUG_BUILD } from '../debug-build';
 import { EventBufferSizeExceededError } from '../eventBuffer/error';
 import type { AddEventResult, RecordingEvent, ReplayContainer, ReplayFrameEvent, ReplayPluginOptions } from '../types';

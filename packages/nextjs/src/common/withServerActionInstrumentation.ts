@@ -1,14 +1,14 @@
 import type { RequestEventData } from '@sentry/core';
-import { getActiveSpan } from '@sentry/core';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  SPAN_STATUS_ERROR,
   captureException,
   continueTrace,
+  getActiveSpan,
   getClient,
   getIsolationScope,
   handleCallbackErrors,
   logger,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SPAN_STATUS_ERROR,
   startSpan,
   vercelWaitUntil,
   withIsolationScope,

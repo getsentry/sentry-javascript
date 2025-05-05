@@ -1,5 +1,4 @@
-import { vi, describe, beforeEach, test, expect } from 'vitest';
-
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { init } from '../src/sdk';
 
 const mockInit = vi.fn();

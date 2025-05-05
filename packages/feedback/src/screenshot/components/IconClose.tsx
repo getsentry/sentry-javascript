@@ -1,4 +1,4 @@
-import type { VNode, h as hType } from 'preact';
+import type { h as hType, VNode } from 'preact';
 
 interface FactoryParams {
   h: typeof hType;

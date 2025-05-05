@@ -1,5 +1,6 @@
 import type { Integration, Options } from '@sentry/core';
 import {
+  consoleIntegration,
   consoleSandbox,
   functionToStringIntegration,
   getCurrentScope,
@@ -20,7 +21,6 @@ import {
 } from '@sentry/opentelemetry';
 import { DEBUG_BUILD } from '../debug-build';
 import { childProcessIntegration } from '../integrations/childProcess';
-import { consoleIntegration } from '../integrations/console';
 import { nodeContextIntegration } from '../integrations/context';
 import { contextLinesIntegration } from '../integrations/contextlines';
 import { httpIntegration } from '../integrations/http';

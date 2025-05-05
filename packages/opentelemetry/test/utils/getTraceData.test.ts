@@ -1,7 +1,6 @@
 import { context, trace } from '@opentelemetry/api';
 import { getCurrentScope, setAsyncContextStrategy } from '@sentry/core';
-import { describe, afterEach, beforeEach, expect, it, vi } from 'vitest';
-
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getTraceData } from '../../src/utils/getTraceData';
 import { makeTraceState } from '../../src/utils/makeTraceState';
 import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';

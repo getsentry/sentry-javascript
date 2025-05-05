@@ -111,9 +111,12 @@ export {
   withIsolationScope,
   withMonitor,
   withScope,
+  supabaseIntegration,
+  instrumentSupabaseClient,
   zodErrorsIntegration,
   logger,
   consoleLoggingIntegration,
+  createSentryWinstonTransport,
 } from '@sentry/node';
 
 // Keeping the `*` exports for backwards compatibility and types

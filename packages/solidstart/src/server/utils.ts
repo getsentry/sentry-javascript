@@ -1,5 +1,5 @@
-import { logger } from '@sentry/core';
 import type { EventProcessor, Options } from '@sentry/core';
+import { logger } from '@sentry/core';
 import { flush, getGlobalScope } from '@sentry/node';
 import { DEBUG_BUILD } from '../common/debug-build';
 

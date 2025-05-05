@@ -100,6 +100,7 @@ export {
   postgresIntegration,
   prismaIntegration,
   childProcessIntegration,
+  createSentryWinstonTransport,
   hapiIntegration,
   setupHapiErrorHandler,
   spotlightIntegration,
@@ -109,12 +110,15 @@ export {
   spanToBaggageHeader,
   trpcMiddleware,
   updateSpanName,
+  supabaseIntegration,
+  instrumentSupabaseClient,
   zodErrorsIntegration,
   profiler,
   amqplibIntegration,
   vercelAIIntegration,
   logger,
   consoleLoggingIntegration,
+  wrapMcpServerWithSentry,
 } from '@sentry/node';
 
 export {

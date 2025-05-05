@@ -1,7 +1,5 @@
 import { expect } from '@playwright/test';
-
 import { sentryTest } from '../../../../../utils/fixtures';
-
 import { shouldSkipFeatureFlagsTest } from '../../../../../utils/helpers';
 
 sentryTest('Logs and returns if isEnabled does not match expected signature', async ({ getLocalTestUrl, page }) => {

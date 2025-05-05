@@ -1,5 +1,4 @@
 import * as os from 'node:os';
-
 import { afterAll, describe, expect, it, vi } from 'vitest';
 import { getAppContext, getDeviceContext } from '../../src/integrations/context';
 import { conditionalTest } from '../helpers/conditional';

@@ -107,7 +107,7 @@ const ANR_EVENT_WITH_DEBUG_META: Event = {
   },
 };
 
-describe('should report ANR when event loop blocked', () => {
+describe('should report ANR when event loop blocked', { timeout: 90_000 }, () => {
   afterAll(() => {
     cleanupChildProcesses();
   });

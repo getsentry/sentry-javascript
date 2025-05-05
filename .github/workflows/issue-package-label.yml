@@ -30,76 +30,100 @@ jobs:
           map: |
             {
               "@sentry.angular": {
-                "label": "Package: angular"
+                "label": "Angular"
               },
               "@sentry.astro": {
-                "label": "Package: astro"
+                "label": "Astro"
               },
               "@sentry.aws-serverless": {
-                "label": "Package: aws-serverless"
+                "label": "AWS Lambda"
               },
               "@sentry.browser": {
-                "label": "Package: browser"
+                "label": "Browser"
               },
               "@sentry.bun": {
-                "label": "Package: bun"
+                "label": "Bun"
+              },
+              "@sentry.cloudflare.-.hono": {
+                "label": "Hono"
               },
               "@sentry.cloudflare": {
-                "label": "Package: cloudflare"
+                "label": "Cloudflare Workers"
               },
               "@sentry.deno": {
-                "label": "Package: deno"
+                "label": "Deno"
               },
               "@sentry.ember": {
-                "label": "Package: ember"
+                "label": "Ember"
               },
               "@sentry.gatsby": {
-                "label": "Package: gatbsy"
+                "label": "Gatbsy"
               },
               "@sentry.google-cloud-serverless": {
-                "label": "Package: google-cloud-serverless"
+                "label": "Google Cloud Functions"
               },
               "@sentry.nestjs": {
-                "label": "Package: nestjs"
+                "label": "Nest.js"
               },
               "@sentry.nextjs": {
-                "label": "Package: nextjs"
+                "label": "Next.js"
+              },
+              "@sentry.node.-.express": {
+                "label": "Express"
+              },
+              "@sentry.node.-.fastify": {
+                "label": "Fastify"
+              },
+              "@sentry.node.-.koa": {
+                "label": "Koa"
+              },
+              "@sentry.node.-.hapi": {
+                "label": "Hapi"
+              },
+              "@sentry.node.-.connect": {
+                "label": "Connect"
               },
               "@sentry.node": {
-                "label": "Package: node"
+                "label": "Node.js"
               },
               "@sentry.nuxt": {
-                "label": "Package: nuxt"
+                "label": "Nuxt"
+              },
+              "@sentry.react-router": {
+                "label": "React Router Framework"
               },
               "@sentry.react": {
-                "label": "Package: react"
+                "label": "React"
               },
               "@sentry.remix": {
-                "label": "Package: remix"
+                "label": "Remix"
               },
               "@sentry.solid": {
-                "label": "Package: solid"
+                "label": "Solid"
               },
-              "@sentry.solid": {
-                "label": "Package: solidstart"
+              "@sentry.solidstart": {
+                "label": "SolidStart"
               },
               "@sentry.sveltekit": {
-                "label": "Package: sveltekit"
+                "label": "SvelteKit"
               },
               "@sentry.svelte": {
-                "label": "Package: svelte"
+                "label": "Svelte"
               },
               "@sentry.vue": {
-                "label": "Package: vue"
+                "label": "Vue"
+              },
+              "@sentry.tanstackstart-react": {
+                "label": "Tanstack Start React"
               },
               "@sentry.wasm": {
-                "label": "Package: wasm"
+                "label": "WASM"
               },
               "Sentry.Browser.Loader": {
-                "label": "Package-Meta: Loader"
+                "label": "Browser"
               },
               "Sentry.Browser.CDN.bundle": {
-                "label": "Package-Meta: CDN"
+                "label": "Browser"
               }
             }
           export_to: output
@@ -110,3 +134,29 @@ jobs:
         uses: actions-ecosystem/action-add-labels@v1
         with:
           labels: ${{ steps.packageLabel.outputs.label }}
+
+      - name: Map additional to issue label
+        # https://github.com/kanga333/variable-mapper
+        uses: kanga333/variable-mapper@v0.3.0
+        id: additionalLabel
+        if: steps.packageName.outputs.match != ''
+        with:
+          key: '${{ steps.packageName.outputs.group1 }}'
+          # Note: Since this is handled as a regex, and JSON parse wrangles slashes /, we just use `.` instead
+          map: |
+            {
+              "Sentry.Browser.Loader": {
+                "label": "Loader Script"
+              },
+              "Sentry.Browser.CDN.bundle": {
+                "label": "CDN Bundle"
+              }
+            }
+          export_to: output
+
+      - name: Add additional label if applicable
+        # Note: We only add the label if the issue is still open
+        if: steps.additionalLabel.outputs.label != ''
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          labels: ${{ steps.additionalLabel.outputs.label }}

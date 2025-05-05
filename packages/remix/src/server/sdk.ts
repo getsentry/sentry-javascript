@@ -1,8 +1,7 @@
-import { applySdkMetadata, logger } from '@sentry/core';
 import type { Integration } from '@sentry/core';
+import { applySdkMetadata, logger } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrations as getDefaultNodeIntegrations, init as nodeInit, isInitialized } from '@sentry/node';
-
 import { DEBUG_BUILD } from '../utils/debug-build';
 import type { RemixOptions } from '../utils/remixOptions';
 import { instrumentServer } from './instrumentServer';

@@ -3,10 +3,9 @@
  */
 
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
-
 import { REPLAY_SESSION_KEY, WINDOW } from '../../../src/constants';
-import { makeSession } from '../../../src/session/Session';
 import { saveSession } from '../../../src/session/saveSession';
+import { makeSession } from '../../../src/session/Session';
 
 describe('Unit | session | saveSession', () => {
   beforeAll(() => {

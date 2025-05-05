@@ -108,13 +108,17 @@ export {
   spanToBaggageHeader,
   trpcMiddleware,
   updateSpanName,
+  supabaseIntegration,
+  instrumentSupabaseClient,
   zodErrorsIntegration,
   profiler,
   amqplibIntegration,
   childProcessIntegration,
+  createSentryWinstonTransport,
   vercelAIIntegration,
   logger,
   consoleLoggingIntegration,
+  wrapMcpServerWithSentry,
 } from '@sentry/node';
 
 export {

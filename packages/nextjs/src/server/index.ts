@@ -6,22 +6,25 @@ import {
   SEMATTRS_HTTP_METHOD,
   SEMATTRS_HTTP_TARGET,
 } from '@opentelemetry/semantic-conventions';
+import type { EventProcessor } from '@sentry/core';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   applySdkMetadata,
+  extractTraceparentData,
   getCapturedScopesOnSpan,
   getClient,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
   getRootSpan,
+  GLOBAL_OBJ,
+  logger,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCapturedScopesOnSpan,
   spanToJSON,
+  stripUrlQueryAndFragment,
 } from '@sentry/core';
-import { GLOBAL_OBJ, extractTraceparentData, logger, stripUrlQueryAndFragment } from '@sentry/core';
-import type { EventProcessor } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrations, httpIntegration, init as nodeInit } from '@sentry/node';
 import { getScopesFromContext } from '@sentry/opentelemetry';

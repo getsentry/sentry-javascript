@@ -1,4 +1,4 @@
-import { DiagLogLevel, context, diag, propagation, trace } from '@opentelemetry/api';
+import { context, diag, DiagLogLevel, propagation, trace } from '@opentelemetry/api';
 import { Resource } from '@opentelemetry/resources';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import {
@@ -8,27 +8,28 @@ import {
 } from '@opentelemetry/semantic-conventions';
 import type { Client, Integration, Options } from '@sentry/core';
 import {
-  GLOBAL_OBJ,
-  SDK_VERSION,
+  consoleIntegration,
   createStackParser,
   dedupeIntegration,
   functionToStringIntegration,
   getCurrentScope,
   getIntegrationsToSetup,
+  GLOBAL_OBJ,
   hasSpansEnabled,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
   logger,
   nodeStackLineParser,
   requestDataIntegration,
+  SDK_VERSION,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
 import {
+  enhanceDscWithOpenTelemetryRootSpanName,
+  openTelemetrySetupCheck,
   SentryPropagator,
   SentrySampler,
   SentrySpanProcessor,
-  enhanceDscWithOpenTelemetryRootSpanName,
-  openTelemetrySetupCheck,
   setOpenTelemetryContextAsyncContextStrategy,
   setupEventContextTrace,
   wrapContextManagerClass,
@@ -57,6 +58,8 @@ export function getDefaultIntegrations(options: Options): Integration[] {
     functionToStringIntegration(),
     linkedErrorsIntegration(),
     winterCGFetchIntegration(),
+    consoleIntegration(),
+    // TODO(v10): integration can be included - but integration should not add IP address etc
     ...(options.sendDefaultPii ? [requestDataIntegration()] : []),
   ];
 }

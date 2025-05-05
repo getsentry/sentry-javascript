@@ -1,11 +1,11 @@
 // Add measure before SDK initializes
+import * as Sentry from '@sentry/browser';
+
 const end = performance.now();
 performance.measure('Next.js-before-hydration', {
   duration: 1000,
   end,
 });
-
-import * as Sentry from '@sentry/browser';
 
 window.Sentry = Sentry;
 

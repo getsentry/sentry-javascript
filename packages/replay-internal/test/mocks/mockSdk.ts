@@ -1,6 +1,5 @@
 import type { Envelope, Transport, TransportMakeRequestResponse } from '@sentry/core';
 import { vi } from 'vitest';
-
 import type { Replay as ReplayIntegration } from '../../src/integration';
 import type { ReplayContainer } from '../../src/replay';
 import type { ReplayConfiguration } from '../../src/types';

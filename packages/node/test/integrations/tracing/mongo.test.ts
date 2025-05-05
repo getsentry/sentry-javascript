@@ -1,5 +1,4 @@
 import { MongoDBInstrumentation } from '@opentelemetry/instrumentation-mongodb';
-
 import { type MockInstance, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   _defaultDbStatementSerializer,

@@ -1,6 +1,6 @@
 import type { Page, Request, Response } from '@playwright/test';
-/* eslint-disable max-lines */
-import type { ReplayCanvasIntegrationOptions } from '@sentry-internal/replay-canvas';
+import type { ReplayEventWithTime } from '@sentry/browser';
+import type { Breadcrumb, Event, ReplayEvent, ReplayRecordingMode } from '@sentry/core';
 import type {
   InternalEventContext,
   RecordingEvent,
@@ -8,12 +8,11 @@ import type {
   ReplayPluginOptions,
   Session,
 } from '@sentry-internal/replay/build/npm/types/types';
+/* eslint-disable max-lines */
+import type { ReplayCanvasIntegrationOptions } from '@sentry-internal/replay-canvas';
 import type { fullSnapshotEvent, incrementalSnapshotEvent } from '@sentry-internal/rrweb';
 import { EventType } from '@sentry-internal/rrweb';
-import type { ReplayEventWithTime } from '@sentry/browser';
-import type { Breadcrumb, Event, ReplayEvent, ReplayRecordingMode } from '@sentry/core';
 import { decompressSync, strFromU8 } from 'fflate';
-
 import { envelopeRequestParser } from './helpers';
 
 type CustomRecordingEvent = { tag: string; payload: Record<string, unknown> };

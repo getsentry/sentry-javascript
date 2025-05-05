@@ -4,6 +4,6 @@ window.Sentry = Sentry;
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  integrations: [Sentry.browserTracingIntegration({linkPreviousTrace: 'session-storage'})],
+  integrations: [Sentry.browserTracingIntegration({ linkPreviousTrace: 'session-storage' })],
   tracesSampleRate: 1,
 });

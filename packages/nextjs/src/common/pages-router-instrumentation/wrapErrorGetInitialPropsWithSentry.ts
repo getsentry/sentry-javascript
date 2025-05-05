@@ -1,6 +1,5 @@
 import type { NextPageContext } from 'next';
 import type { ErrorProps } from 'next/error';
-
 import { isBuild } from '../utils/isBuild';
 import { withErrorInstrumentation, withTracedServerSideDataFetcher } from '../utils/wrapperUtils';
 

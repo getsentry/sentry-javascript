@@ -85,6 +85,7 @@ export {
   postgresIntegration,
   prismaIntegration,
   childProcessIntegration,
+  createSentryWinstonTransport,
   redisIntegration,
   requestDataIntegration,
   rewriteFramesIntegration,
@@ -125,10 +126,13 @@ export {
   withIsolationScope,
   withMonitor,
   withScope,
+  supabaseIntegration,
+  instrumentSupabaseClient,
   zodErrorsIntegration,
   profiler,
   logger,
   consoleLoggingIntegration,
+  wrapMcpServerWithSentry,
 } from '@sentry/node';
 
 export { init } from './server/sdk';

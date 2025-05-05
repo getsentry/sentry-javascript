@@ -1,14 +1,13 @@
-import { SpanKind, context, trace } from '@opentelemetry/api';
+import { context, SpanKind, trace } from '@opentelemetry/api';
 import { TraceState } from '@opentelemetry/core';
 import { SamplingDecision } from '@opentelemetry/sdk-trace-base';
 import { ATTR_HTTP_REQUEST_METHOD } from '@opentelemetry/semantic-conventions';
 import { generateSpanId, generateTraceId } from '@sentry/core';
-import { describe, afterEach, vi, expect, it } from 'vitest';
-
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING } from '../src/constants';
 import { SentrySampler } from '../src/sampler';
-import { TestClient, getDefaultTestClientOptions } from './helpers/TestClient';
 import { cleanupOtel } from './helpers/mockSdkInit';
+import { getDefaultTestClientOptions, TestClient } from './helpers/TestClient';
 
 describe('SentrySampler', () => {
   afterEach(async () => {

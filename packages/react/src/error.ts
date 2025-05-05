@@ -1,7 +1,7 @@
 import { captureException, withScope } from '@sentry/browser';
 import { isError } from '@sentry/core';
-import { version } from 'react';
 import type { ErrorInfo } from 'react';
+import { version } from 'react';
 
 /**
  * See if React major version is 17+ by parsing version string.

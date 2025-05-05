@@ -1,13 +1,13 @@
 /* eslint-disable complexity */
 /* eslint-disable max-lines */
 
-import * as fs from 'fs';
-import * as path from 'path';
 import { escapeStringForRegex, loadModule, logger, parseSemver } from '@sentry/core';
 import * as chalk from 'chalk';
+import * as fs from 'fs';
+import * as path from 'path';
 import { sync as resolveSync } from 'resolve';
-
 import type { VercelCronsConfig } from '../common/types';
+import { getBuildPluginOptions } from './buildPluginOptions';
 // Note: If you need to import a type from Webpack, do it in `types.ts` and export it from there. Otherwise, our
 // circular dependency check thinks this file is importing from itself. See https://github.com/pahen/madge/issues/306.
 import type {
@@ -21,7 +21,6 @@ import type {
   WebpackConfigObjectWithModuleRules,
   WebpackEntryProperty,
 } from './types';
-import { getBuildPluginOptions } from './buildPluginOptions';
 import { getNextjsVersion, setWebpackBuildFunctionCalled } from './util';
 
 // Next.js runs webpack 3 times, once for the client, the server, and for edge. Because we don't want to print certain

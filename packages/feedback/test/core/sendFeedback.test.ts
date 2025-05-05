@@ -1,8 +1,6 @@
 /**
  * @vitest-environment jsdom
  */
-import { vi, describe, it, expect, beforeEach, afterAll } from 'vitest';
-
 import {
   addBreadcrumb,
   getClient,
@@ -12,11 +10,11 @@ import {
   withIsolationScope,
   withScope,
 } from '@sentry/core';
-
-import { mockSdk } from './mockSdk';
-import { sendFeedback } from '../../src/core/sendFeedback';
-
 import { TextDecoder, TextEncoder } from 'util';
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { sendFeedback } from '../../src/core/sendFeedback';
+import { mockSdk } from './mockSdk';
+
 const patchedEncoder = (!global.window.TextEncoder && (global.window.TextEncoder = TextEncoder)) || true;
 // @ts-expect-error patch the encoder on the window, else importing JSDOM fails (deleted in afterAll)
 const patchedDecoder = (!global.window.TextDecoder && (global.window.TextDecoder = TextDecoder)) || true;

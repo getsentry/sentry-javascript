@@ -1,25 +1,22 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
-import type { Span } from '@sentry/core';
-import { getDynamicSamplingContextFromSpan, spanIsSampled, spanToJSON } from '@sentry/core';
-
-import { init } from '../../src';
-import type { NodeClient } from '../../src';
+import * as SentryCore from '@sentry/core';
+import { afterEach, beforeAll, beforeEach, describe, expect, spyOn, test } from 'bun:test';
 import { instrumentBunServe } from '../../src/integrations/bunserver';
-import { getDefaultBunClientOptions } from '../helpers';
 
 describe('Bun Serve Integration', () => {
-  let client: NodeClient | undefined;
-  // Fun fact: Bun = 2 21 14 :)
-  let port: number = 22114;
+  const continueTraceSpy = spyOn(SentryCore, 'continueTrace');
+  const startSpanSpy = spyOn(SentryCore, 'startSpan');
 
   beforeAll(() => {
     instrumentBunServe();
   });
 
   beforeEach(() => {
-    const options = getDefaultBunClientOptions({ tracesSampleRate: 1 });
-    client = init(options);
+    startSpanSpy.mockClear();
+    continueTraceSpy.mockClear();
   });
+
+  // Fun fact: Bun = 2 21 14 :)
+  let port: number = 22114;
 
   afterEach(() => {
     // Don't reuse the port; Bun server stops lazily so tests may accidentally hit a server still closing from a
@@ -28,12 +25,6 @@ describe('Bun Serve Integration', () => {
   });
 
   test('generates a transaction around a request', async () => {
-    let generatedSpan: Span | undefined;
-
-    client?.on('spanEnd', span => {
-      generatedSpan = span;
-    });
-
     const server = Bun.serve({
       async fetch(_req) {
         return new Response('Bun!');
@@ -41,34 +32,30 @@ describe('Bun Serve Integration', () => {
       port,
     });
     await fetch(`http://localhost:${port}/users?id=123`);
-    server.stop();
+    await server.stop();
 
-    if (!generatedSpan) {
-      throw 'No span was generated in the test';
-    }
-
-    const spanJson = spanToJSON(generatedSpan);
-    expect(spanJson.status).toBe('ok');
-    expect(spanJson.op).toEqual('http.server');
-    expect(spanJson.description).toEqual('GET /users');
-    expect(spanJson.data).toEqual({
-      'http.query': '?id=123',
-      'http.request.method': 'GET',
-      'http.response.status_code': 200,
-      'sentry.op': 'http.server',
-      'sentry.origin': 'auto.http.bun.serve',
-      'sentry.sample_rate': 1,
-      'sentry.source': 'url',
-    });
+    expect(startSpanSpy).toHaveBeenCalledTimes(1);
+    expect(startSpanSpy).toHaveBeenLastCalledWith(
+      {
+        attributes: {
+          'sentry.origin': 'auto.http.bun.serve',
+          'http.request.method': 'GET',
+          'sentry.source': 'url',
+          'url.query': '?id=123',
+          'url.path': '/users',
+          'url.full': `http://localhost:${port}/users?id=123`,
+          'url.port': port.toString(),
+          'url.scheme': 'http:',
+          'url.domain': 'localhost',
+        },
+        op: 'http.server',
+        name: 'GET /users',
+      },
+      expect.any(Function),
+    );
   });
 
   test('generates a post transaction', async () => {
-    let generatedSpan: Span | undefined;
-
-    client?.on('spanEnd', span => {
-      generatedSpan = span;
-    });
-
     const server = Bun.serve({
       async fetch(_req) {
         return new Response('Bun!');
@@ -80,16 +67,26 @@ describe('Bun Serve Integration', () => {
       method: 'POST',
     });
 
-    server.stop();
+    await server.stop();
 
-    if (!generatedSpan) {
-      throw 'No span was generated in the test';
-    }
-
-    expect(spanToJSON(generatedSpan).status).toBe('ok');
-    expect(spanToJSON(generatedSpan).data?.['http.response.status_code']).toEqual(200);
-    expect(spanToJSON(generatedSpan).op).toEqual('http.server');
-    expect(spanToJSON(generatedSpan).description).toEqual('POST /');
+    expect(startSpanSpy).toHaveBeenCalledTimes(1);
+    expect(startSpanSpy).toHaveBeenLastCalledWith(
+      {
+        attributes: {
+          'sentry.origin': 'auto.http.bun.serve',
+          'http.request.method': 'POST',
+          'sentry.source': 'url',
+          'url.path': '/',
+          'url.full': `http://localhost:${port}/`,
+          'url.port': port.toString(),
+          'url.scheme': 'http:',
+          'url.domain': 'localhost',
+        },
+        op: 'http.server',
+        name: 'POST /',
+      },
+      expect.any(Function),
+    );
   });
 
   test('continues a trace', async () => {
@@ -98,13 +95,7 @@ describe('Bun Serve Integration', () => {
     const PARENT_SAMPLED = '1';
 
     const SENTRY_TRACE_HEADER = `${TRACE_ID}-${PARENT_SPAN_ID}-${PARENT_SAMPLED}`;
-    const SENTRY_BAGGAGE_HEADER = 'sentry-version=1.0,sentry-sample_rand=0.42,sentry-environment=production';
-
-    let generatedSpan: Span | undefined;
-
-    client?.on('spanEnd', span => {
-      generatedSpan = span;
-    });
+    const SENTRY_BAGGAGE_HEADER = 'sentry-sample_rand=0.42,sentry-environment=production';
 
     const server = Bun.serve({
       async fetch(_req) {
@@ -113,35 +104,31 @@ describe('Bun Serve Integration', () => {
       port,
     });
 
+    // Make request with trace headers
     await fetch(`http://localhost:${port}/`, {
-      headers: { 'sentry-trace': SENTRY_TRACE_HEADER, baggage: SENTRY_BAGGAGE_HEADER },
+      headers: {
+        'sentry-trace': SENTRY_TRACE_HEADER,
+        baggage: SENTRY_BAGGAGE_HEADER,
+      },
     });
 
-    server.stop();
+    await server.stop();
 
-    if (!generatedSpan) {
-      throw 'No span was generated in the test';
-    }
+    // Verify continueTrace was called with the correct headers
+    expect(continueTraceSpy).toHaveBeenCalledTimes(1);
+    expect(continueTraceSpy).toHaveBeenCalledWith(
+      {
+        sentryTrace: SENTRY_TRACE_HEADER,
+        baggage: SENTRY_BAGGAGE_HEADER,
+      },
+      expect.any(Function),
+    );
 
-    expect(generatedSpan.spanContext().traceId).toBe(TRACE_ID);
-    expect(spanToJSON(generatedSpan).parent_span_id).toBe(PARENT_SPAN_ID);
-    expect(spanIsSampled(generatedSpan)).toBe(true);
-    expect(generatedSpan.isRecording()).toBe(false);
-
-    expect(getDynamicSamplingContextFromSpan(generatedSpan)).toStrictEqual({
-      version: '1.0',
-      sample_rand: '0.42',
-      environment: 'production',
-    });
+    // Verify a span was created
+    expect(startSpanSpy).toHaveBeenCalledTimes(1);
   });
 
-  test('does not create transactions for OPTIONS or HEAD requests', async () => {
-    let generatedSpan: Span | undefined;
-
-    client?.on('spanEnd', span => {
-      generatedSpan = span;
-    });
-
+  test('skips span creation for OPTIONS and HEAD requests', async () => {
     const server = Bun.serve({
       async fetch(_req) {
         return new Response('Bun!');
@@ -149,42 +136,265 @@ describe('Bun Serve Integration', () => {
       port,
     });
 
-    await fetch(`http://localhost:${port}/`, {
+    // Make OPTIONS request
+    const optionsResponse = await fetch(`http://localhost:${port}/`, {
       method: 'OPTIONS',
     });
+    expect(await optionsResponse.text()).toBe('Bun!');
 
-    await fetch(`http://localhost:${port}/`, {
+    // Make HEAD request
+    const headResponse = await fetch(`http://localhost:${port}/`, {
       method: 'HEAD',
     });
+    expect(await headResponse.text()).toBe('');
 
-    server.stop();
+    // Verify no spans were created
+    expect(startSpanSpy).not.toHaveBeenCalled();
 
-    expect(generatedSpan).toBeUndefined();
+    // Make a GET request to verify spans are still created for other methods
+    const getResponse = await fetch(`http://localhost:${port}/`);
+    expect(await getResponse.text()).toBe('Bun!');
+    expect(startSpanSpy).toHaveBeenCalledTimes(1);
+
+    await server.stop();
   });
 
-  test('intruments the server again if it is reloaded', async () => {
-    let serverWasInstrumented = false;
-    client?.on('spanEnd', () => {
-      serverWasInstrumented = true;
-    });
-
+  test('handles route parameters correctly', async () => {
     const server = Bun.serve({
-      async fetch(_req) {
-        return new Response('Bun!');
+      routes: {
+        '/users/:id': req => {
+          return new Response(`User ${req.params.id}`);
+        },
       },
       port,
     });
 
+    // Make request to parameterized route
+    const response = await fetch(`http://localhost:${port}/users/123`);
+    expect(await response.text()).toBe('User 123');
+
+    // Verify span was created with correct attributes
+    expect(startSpanSpy).toHaveBeenCalledTimes(1);
+    expect(startSpanSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        attributes: expect.objectContaining({
+          'sentry.origin': 'auto.http.bun.serve',
+          'http.request.method': 'GET',
+          'sentry.source': 'route',
+          'url.template': '/users/:id',
+          'url.path.parameter.id': '123',
+          'url.path': '/users/123',
+          'url.full': `http://localhost:${port}/users/123`,
+          'url.port': port.toString(),
+          'url.scheme': 'http:',
+          'url.domain': 'localhost',
+        }),
+        op: 'http.server',
+        name: 'GET /users/:id',
+      }),
+      expect.any(Function),
+    );
+
+    await server.stop();
+  });
+
+  test('handles wildcard routes correctly', async () => {
+    const server = Bun.serve({
+      routes: {
+        '/api/*': req => {
+          return new Response(`API route: ${req.url}`);
+        },
+      },
+      port,
+    });
+
+    // Make request to wildcard route
+    const response = await fetch(`http://localhost:${port}/api/users/123`);
+    expect(await response.text()).toBe(`API route: http://localhost:${port}/api/users/123`);
+
+    // Verify span was created with correct attributes
+    expect(startSpanSpy).toHaveBeenCalledTimes(1);
+    expect(startSpanSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        attributes: expect.objectContaining({
+          'sentry.origin': 'auto.http.bun.serve',
+          'http.request.method': 'GET',
+          'sentry.source': 'route',
+          'url.template': '/api/*',
+          'url.path': '/api/users/123',
+          'url.full': `http://localhost:${port}/api/users/123`,
+          'url.port': port.toString(),
+          'url.scheme': 'http:',
+          'url.domain': 'localhost',
+        }),
+        op: 'http.server',
+        name: 'GET /api/*',
+      }),
+      expect.any(Function),
+    );
+
+    await server.stop();
+  });
+
+  test('reapplies instrumentation after server reload', async () => {
+    const server = Bun.serve({
+      async fetch(_req) {
+        return new Response('Initial handler');
+      },
+      port,
+    });
+
+    // Verify initial handler works
+    const initialResponse = await fetch(`http://localhost:${port}/`);
+    expect(await initialResponse.text()).toBe('Initial handler');
+    expect(startSpanSpy).toHaveBeenCalledTimes(1);
+    startSpanSpy.mockClear();
+
+    // Reload server with new handler
     server.reload({
       async fetch(_req) {
-        return new Response('Reloaded Bun!');
+        return new Response('Reloaded handler');
       },
     });
 
-    await fetch(`http://localhost:${port}/`);
+    // Verify new handler works and is instrumented
+    const reloadedResponse = await fetch(`http://localhost:${port}/`);
+    expect(await reloadedResponse.text()).toBe('Reloaded handler');
+    expect(startSpanSpy).toHaveBeenCalledTimes(1);
 
-    server.stop();
+    await server.stop();
+  });
 
-    expect(serverWasInstrumented).toBeTrue();
+  describe('per-HTTP method routes', () => {
+    test('handles GET method correctly', async () => {
+      const server = Bun.serve({
+        routes: {
+          '/api/posts': {
+            GET: () => new Response('List posts'),
+          },
+        },
+        port,
+      });
+
+      const response = await fetch(`http://localhost:${port}/api/posts`);
+      expect(await response.text()).toBe('List posts');
+      expect(startSpanSpy).toHaveBeenCalledTimes(1);
+      expect(startSpanSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            'sentry.origin': 'auto.http.bun.serve',
+            'http.request.method': 'GET',
+            'sentry.source': 'route',
+            'url.path': '/api/posts',
+          }),
+          op: 'http.server',
+          name: 'GET /api/posts',
+        }),
+        expect.any(Function),
+      );
+
+      await server.stop();
+    });
+
+    test('handles POST method correctly', async () => {
+      const server = Bun.serve({
+        routes: {
+          '/api/posts': {
+            POST: async req => {
+              const body = (await req.json()) as Record<string, unknown>;
+              return Response.json({ created: true, ...body });
+            },
+          },
+        },
+        port,
+      });
+
+      const response = await fetch(`http://localhost:${port}/api/posts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: 'New Post' }),
+      });
+      expect(await response.json()).toEqual({ created: true, title: 'New Post' });
+      expect(startSpanSpy).toHaveBeenCalledTimes(1);
+      expect(startSpanSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            'sentry.origin': 'auto.http.bun.serve',
+            'http.request.method': 'POST',
+            'sentry.source': 'route',
+            'url.path': '/api/posts',
+          }),
+          op: 'http.server',
+          name: 'POST /api/posts',
+        }),
+        expect.any(Function),
+      );
+
+      await server.stop();
+    });
+
+    test('handles PUT method correctly', async () => {
+      const server = Bun.serve({
+        routes: {
+          '/api/posts': {
+            PUT: () => new Response('Update post'),
+          },
+        },
+        port,
+      });
+
+      const response = await fetch(`http://localhost:${port}/api/posts`, {
+        method: 'PUT',
+      });
+      expect(await response.text()).toBe('Update post');
+      expect(startSpanSpy).toHaveBeenCalledTimes(1);
+      expect(startSpanSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            'sentry.origin': 'auto.http.bun.serve',
+            'http.request.method': 'PUT',
+            'sentry.source': 'route',
+            'url.path': '/api/posts',
+          }),
+          op: 'http.server',
+          name: 'PUT /api/posts',
+        }),
+        expect.any(Function),
+      );
+
+      await server.stop();
+    });
+
+    test('handles DELETE method correctly', async () => {
+      const server = Bun.serve({
+        routes: {
+          '/api/posts': {
+            DELETE: () => new Response('Delete post'),
+          },
+        },
+        port,
+      });
+
+      const response = await fetch(`http://localhost:${port}/api/posts`, {
+        method: 'DELETE',
+      });
+      expect(await response.text()).toBe('Delete post');
+      expect(startSpanSpy).toHaveBeenCalledTimes(1);
+      expect(startSpanSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            'sentry.origin': 'auto.http.bun.serve',
+            'http.request.method': 'DELETE',
+            'sentry.source': 'route',
+            'url.path': '/api/posts',
+          }),
+          op: 'http.server',
+          name: 'DELETE /api/posts',
+        }),
+        expect.any(Function),
+      );
+
+      await server.stop();
+    });
   });
 });

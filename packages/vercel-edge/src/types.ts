@@ -1,5 +1,4 @@
 import type { ClientOptions, Options, TracePropagationTargets } from '@sentry/core';
-
 import type { VercelEdgeClient } from './client';
 import type { VercelEdgeTransportOptions } from './transports';
 

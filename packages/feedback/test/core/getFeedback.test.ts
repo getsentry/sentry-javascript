@@ -1,6 +1,5 @@
-import { vi, describe, it, expect, beforeEach } from 'vitest';
-
 import { getCurrentScope } from '@sentry/core';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getFeedback } from '../../src/core/getFeedback';
 import { buildFeedbackIntegration } from '../../src/core/integration';
 import { mockSdk } from './mockSdk';

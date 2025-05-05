@@ -1,9 +1,8 @@
 import { addBreadcrumb, captureException, getClient, withIsolationScope, withScope } from '@sentry/core';
-import { describe, afterEach, expect, it, vi } from 'vitest';
-
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { startSpan } from '../../src/trace';
-import type { TestClientInterface } from '../helpers/TestClient';
 import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
+import type { TestClientInterface } from '../helpers/TestClient';
 
 describe('Integration | breadcrumbs', () => {
   const beforeSendTransaction = vi.fn(() => null);

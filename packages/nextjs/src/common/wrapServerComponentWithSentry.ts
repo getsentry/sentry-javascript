@@ -1,17 +1,17 @@
 import type { RequestEventData } from '@sentry/core';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  SPAN_STATUS_ERROR,
-  SPAN_STATUS_OK,
-  Scope,
   captureException,
   getActiveSpan,
   getCapturedScopesOnSpan,
   getRootSpan,
   handleCallbackErrors,
   propagationContextFromHeaders,
+  Scope,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCapturedScopesOnSpan,
+  SPAN_STATUS_ERROR,
+  SPAN_STATUS_OK,
   startSpanManual,
   vercelWaitUntil,
   winterCGHeadersToDict,
@@ -89,6 +89,8 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
               attributes: {
                 [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
+                'sentry.nextjs.function.type': componentType,
+                'sentry.nextjs.function.route': componentRoute,
               },
             },
             span => {
