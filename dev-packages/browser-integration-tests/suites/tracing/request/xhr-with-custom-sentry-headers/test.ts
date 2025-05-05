@@ -20,7 +20,7 @@ sentryTest(
     const requestHeaders = request.headers();
     expect(requestHeaders).toMatchObject({
       'sentry-trace': '123-abc-1',
-      baggage: 'sentry-release=1.1.1',
+      baggage: 'sentry-release=1.1.1,  sentry-trace_id=123',
       'x-test-header': 'existing-header',
     });
   },

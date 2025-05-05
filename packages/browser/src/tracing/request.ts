@@ -431,7 +431,9 @@ function setHeaderOnXhr(
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     xhr.setRequestHeader!('sentry-trace', sentryTraceHeader);
     if (sentryBaggageHeader) {
-      // bail if a pre-existing baggage header is set and already contains sentry values
+      // only add our headers if
+      // - no pre-existing baggage header exists
+      // - or it is set and doesn't yet contain sentry values
       const originalBaggageHeader = originalHeaders?.['baggage'];
       if (!originalBaggageHeader || !baggageHeaderHasSentryValues(originalBaggageHeader)) {
         // From MDN: "If this method is called several times with the same header, the values are merged into one single request header."
@@ -447,7 +449,7 @@ function setHeaderOnXhr(
 }
 
 function baggageHeaderHasSentryValues(baggageHeader: string): boolean {
-  return baggageHeader.split(',').some(value => value.startsWith('sentry-'));
+  return baggageHeader.split(',').some(value => value.trim().startsWith('sentry-'));
 }
 
 function getFullURL(url: string): string | undefined {
