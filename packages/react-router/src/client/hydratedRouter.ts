@@ -48,7 +48,7 @@ export function instrumentHydratedRouter(): void {
       // Patching navigate for creating accurate navigation transactions
       if (typeof router.navigate === 'function') {
         const originalNav = router.navigate.bind(router);
-        router.navigate = function patchedNavigate(...args) {
+        router.navigate = function sentryPatchedNavigate(...args) {
           maybeCreateNavigationTransaction(
             String(args[0]) || '<unknown route>', // will be updated anyway
             'url', // this also will be updated once we have the parameterized route
