@@ -425,7 +425,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       });
 
       if (linkPreviousTrace !== 'off') {
-        linkTraces({ linkPreviousTrace, consistentTraceSampling }, client);
+        linkTraces(client, { linkPreviousTrace, consistentTraceSampling });
       }
 
       if (WINDOW.location) {

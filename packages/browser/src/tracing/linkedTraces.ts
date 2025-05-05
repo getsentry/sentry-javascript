@@ -48,6 +48,7 @@ export const PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE = 'sentry.previous_trace';
  * @param client - Sentry client
  */
 export function linkTraces(
+  client: Client,
   {
     linkPreviousTrace,
     consistentTraceSampling,
@@ -55,7 +56,6 @@ export function linkTraces(
     linkPreviousTrace: 'session-storage' | 'in-memory';
     consistentTraceSampling: boolean;
   },
-  client: Client,
 ): void {
   const useSessionStorage = linkPreviousTrace === 'session-storage';
 
@@ -79,7 +79,7 @@ export function linkTraces(
     /*
     When users opt into `consistentTraceSampling`, we need to ensure that we propagate
     the previous trace's sample rate and rand to the current trace. This is necessary because otherwise, span
-    metric extrapolation is inaccurate, as we'd propagate a too high sample rate for the subsequent traces.
+    metric extrapolation is inaccurate, as we'd propagate too high of a sample rate for the subsequent traces.
 
     So therefore, we pretend that the previous trace was the parent trace of the newly started trace. To do that,
     we mutate the propagation context of the current trace and set the sample rate and sample rand of the previous trace.

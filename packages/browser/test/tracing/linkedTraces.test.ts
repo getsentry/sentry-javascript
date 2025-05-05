@@ -35,7 +35,7 @@ describe('linkTraces', () => {
     });
 
     beforeEach(() => {
-      linkTraces({ linkPreviousTrace: 'in-memory', consistentTraceSampling: false }, client);
+      linkTraces(client, { linkPreviousTrace: 'in-memory', consistentTraceSampling: false });
     });
 
     it("doesn't add a link if the passed span is not the root span", () => {
@@ -131,7 +131,7 @@ describe('linkTraces', () => {
     const clientOnSpy = vi.spyOn(client, 'on');
 
     beforeEach(() => {
-      linkTraces({ linkPreviousTrace: 'in-memory', consistentTraceSampling: true }, client);
+      linkTraces(client, { linkPreviousTrace: 'in-memory', consistentTraceSampling: true });
     });
 
     it('registers a beforeSampling handler', () => {
