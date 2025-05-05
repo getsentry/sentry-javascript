@@ -5860,10 +5860,10 @@
   resolved "https://registry.yarnpkg.com/@polka/url/-/url-1.0.0-next.28.tgz#d45e01c4a56f143ee69c54dd6b12eade9e270a73"
   integrity sha512-8LduaNlMZGwdZ6qWrKlfa+2M4gahzFkprZiAt2TF8uS0qQgBizKXpXURqvTJ4WtmupWxaLqjRb2UCTe72mu+Aw==
 
-"@prisma/instrumentation@6.6.0":
-  version "6.6.0"
-  resolved "https://registry.yarnpkg.com/@prisma/instrumentation/-/instrumentation-6.6.0.tgz#5b73164c722bcfcd29c43cb883b4735143b65eb2"
-  integrity sha512-M/a6njz3hbf2oucwdbjNKrSMLuyMCwgDrmTtkF1pm4Nm7CU45J/Hd6lauF2CDACTUYzu3ymcV7P0ZAhIoj6WRw==
+"@prisma/instrumentation@6.7.0":
+  version "6.7.0"
+  resolved "https://registry.yarnpkg.com/@prisma/instrumentation/-/instrumentation-6.7.0.tgz#5fd97be1f89e9d9268148424a812deaea491f80a"
+  integrity sha512-3NuxWlbzYNevgPZbV0ktA2z6r0bfh0g22ONTxcK09a6+6MdIPjHsYx1Hnyu4yOq+j7LmupO5J69hhuOnuvj8oQ==
   dependencies:
     "@opentelemetry/instrumentation" "^0.52.0 || ^0.53.0 || ^0.54.0 || ^0.55.0 || ^0.56.0 || ^0.57.0"
 
