@@ -86,7 +86,7 @@
     "@opentelemetry/instrumentation-lru-memoizer": "0.44.1",
     "@opentelemetry/instrumentation-mongodb": "0.52.0",
     "@opentelemetry/instrumentation-mongoose": "0.46.1",
-    "@opentelemetry/instrumentation-mysql": "0.45.1",
+    "@opentelemetry/instrumentation-mysql": "0.46.0",
     "@opentelemetry/instrumentation-mysql2": "0.45.2",
     "@opentelemetry/instrumentation-pg": "0.51.1",
     "@opentelemetry/instrumentation-redis-4": "0.46.1",
