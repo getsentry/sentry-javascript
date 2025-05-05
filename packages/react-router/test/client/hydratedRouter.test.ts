@@ -31,7 +31,7 @@ describe('instrumentHydratedRouter', () => {
     originalRouter = (globalThis as any).__reactRouterDataRouter;
     mockRouter = {
       state: {
-        location: { pathname: '/foo' },
+        location: { pathname: '/foo/bar' },
         matches: [{ route: { path: '/foo/:id' } }],
       },
       navigate: vi.fn(),
@@ -45,7 +45,7 @@ describe('instrumentHydratedRouter', () => {
     (core.getActiveSpan as any).mockReturnValue(mockPageloadSpan);
     (core.getRootSpan as any).mockImplementation((span: any) => span);
     (core.spanToJSON as any).mockImplementation((_span: any) => ({
-      description: '/foo',
+      description: '/foo/bar',
       op: 'pageload',
     }));
     (core.getClient as any).mockReturnValue({});
@@ -75,17 +75,37 @@ describe('instrumentHydratedRouter', () => {
     expect(browser.startBrowserTracingNavigationSpan).toHaveBeenCalled();
   });
 
-  it('updates navigation transaction on state change', () => {
+  it('updates navigation transaction on state change to idle', () => {
     instrumentHydratedRouter();
     // Simulate a state change to idle
     const callback = mockRouter.subscribe.mock.calls[0][0];
     const newState = {
-      location: { pathname: '/foo' },
+      location: { pathname: '/foo/bar' },
       matches: [{ route: { path: '/foo/:id' } }],
       navigation: { state: 'idle' },
     };
+    mockRouter.navigate('/foo/bar');
+    // After navigation, the active span should be the navigation span
+    (core.getActiveSpan as any).mockReturnValue(mockNavigationSpan);
     callback(newState);
-    expect(mockPageloadSpan.updateName).toHaveBeenCalled();
-    expect(mockPageloadSpan.setAttribute).toHaveBeenCalled();
+    expect(mockNavigationSpan.updateName).toHaveBeenCalled();
+    expect(mockNavigationSpan.setAttribute).toHaveBeenCalled();
+  });
+
+  it('does not update navigation transaction on state change to loading', () => {
+    instrumentHydratedRouter();
+    // Simulate a state change to loading (non-idle)
+    const callback = mockRouter.subscribe.mock.calls[0][0];
+    const newState = {
+      location: { pathname: '/foo/bar' },
+      matches: [{ route: { path: '/foo/:id' } }],
+      navigation: { state: 'loading' },
+    };
+    mockRouter.navigate('/foo/bar');
+    // After navigation, the active span should be the navigation span
+    (core.getActiveSpan as any).mockReturnValue(mockNavigationSpan);
+    callback(newState);
+    expect(mockNavigationSpan.updateName).not.toHaveBeenCalled();
+    expect(mockNavigationSpan.setAttribute).not.toHaveBeenCalled();
   });
 });
