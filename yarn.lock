@@ -6464,11 +6464,6 @@
   resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-3.2.4.tgz#c0877df6e5ce227bf51754bf27da2fa5227af847"
   integrity sha512-yBzRn3GEUSv1RPtE4xB4LnuH74ZxtdoRJ5cmQ9i6mzlmGDxlrnKuvem5++AolZTE9oJqAD3Tx2rd1PqmpWnLoA==
 
-"@sentry/babel-plugin-component-annotate@3.3.0-alpha.1":
-  version "3.3.0-alpha.1"
-  resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-3.3.0-alpha.1.tgz#4d839cfb7f313d93be88ccfce0a54b7c66fc1080"
-  integrity sha512-QtiIig59zHL1cVRoNaBikjF92UBpXxWq8tBe+OupP+W8U63IbLVv2C8pUPzz3QngtzzjnTY+lDFGi6LmQrmFJw==
-
 "@sentry/bundler-plugin-core@2.22.6":
   version "2.22.6"
   resolved "https://registry.yarnpkg.com/@sentry/bundler-plugin-core/-/bundler-plugin-core-2.22.6.tgz#a1ea1fd43700a3ece9e7db016997e79a2782b87d"
@@ -6490,20 +6485,6 @@
   dependencies:
     "@babel/core" "^7.18.5"
     "@sentry/babel-plugin-component-annotate" "3.2.4"
-    "@sentry/cli" "2.42.2"
-    dotenv "^16.3.1"
-    find-up "^5.0.0"
-    glob "^9.3.2"
-    magic-string "0.30.8"
-    unplugin "1.0.1"
-
-"@sentry/bundler-plugin-core@3.3.0-alpha.1":
-  version "3.3.0-alpha.1"
-  resolved "https://registry.yarnpkg.com/@sentry/bundler-plugin-core/-/bundler-plugin-core-3.3.0-alpha.1.tgz#356d343ec9c399416cf0c193621bc1871135279c"
-  integrity sha512-dIbwiiuTq9RJDbltl3jrPZRVyQ/BePuEhNiP2cZ0oiQPeM9SRiZcGRZ7nmG+DBlTPp+IM51R1hhskndrVg9R1Q==
-  dependencies:
-    "@babel/core" "^7.18.5"
-    "@sentry/babel-plugin-component-annotate" "3.3.0-alpha.1"
     "@sentry/cli" "2.42.2"
     dotenv "^16.3.1"
     find-up "^5.0.0"
@@ -6655,15 +6636,6 @@
   integrity sha512-LCuNu5LXPSCq2BNke1zvEW8CXL4SPBsCjYexAx51PZ6Lp87VxWcCxGqXhr37MGpYwY10A1r31/XOe69iXHJjGA==
   dependencies:
     "@sentry/bundler-plugin-core" "3.2.4"
-    unplugin "1.0.1"
-    uuid "^9.0.0"
-
-"@sentry/webpack-plugin@3.3.0-alpha.1":
-  version "3.3.0-alpha.1"
-  resolved "https://registry.yarnpkg.com/@sentry/webpack-plugin/-/webpack-plugin-3.3.0-alpha.1.tgz#6151b01ae51dfd0a7e724ea05b48c7e0090f70b0"
-  integrity sha512-173XxkdjL5La9KtdKxem1z2b+p6vK/ADbXy/yRIJc0q4Ayu9AVKnIQZ1GAQ4lGFxuEHgzc6eVSY+eDE6omxUxQ==
-  dependencies:
-    "@sentry/bundler-plugin-core" "3.3.0-alpha.1"
     unplugin "1.0.1"
     uuid "^9.0.0"
 
