@@ -222,7 +222,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
       return;
     }
 
-    DEBUG_BUILD && logger.log(INSTRUMENTATION_NAME, 'Patching server.emit()');
+    DEBUG_BUILD && logger.log(INSTRUMENTATION_NAME, 'Patching server.emit');
 
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const instrumentation = this;
