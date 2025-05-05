@@ -1,6 +1,7 @@
 import { startBrowserTracingNavigationSpan } from '@sentry/browser';
 import type { Span } from '@sentry/core';
 import {
+  consoleSandbox,
   getActiveSpan,
   getClient,
   getRootSpan,
@@ -11,6 +12,7 @@ import {
   spanToJSON,
 } from '@sentry/core';
 import type { DataRouter, RouterState } from 'react-router';
+import { DEBUG_BUILD } from '../common/debug-build';
 
 const GLOBAL_OBJ_WITH_DATA_ROUTER = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   __reactRouterDataRouter?: DataRouter;
@@ -84,6 +86,13 @@ export function instrumentHydratedRouter(): void {
     // Retry until the router is available or max retries reached
     const interval = setInterval(() => {
       if (trySubscribe() || retryCount >= MAX_RETRIES) {
+        if (retryCount >= MAX_RETRIES) {
+          DEBUG_BUILD &&
+            consoleSandbox(() => {
+              // eslint-disable-next-line no-console
+              console.warn('Unable to instrument React Router: router not found after hydration.');
+            });
+        }
         clearInterval(interval);
       }
       retryCount++;
