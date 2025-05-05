@@ -1,17 +1,11 @@
 import type { Instrumentation } from '@opentelemetry/instrumentation';
-// When importing CJS modules into an ESM module, we cannot import the named exports directly.
-import * as prismaInstrumentation from '@prisma/instrumentation';
+import { PrismaInstrumentation } from '@prisma/instrumentation';
 import { consoleSandbox, defineIntegration, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, spanToJSON } from '@sentry/core';
 import { generateInstrumentOnce } from '../../otel/instrument';
 import type { PrismaV5TracingHelper } from './prisma/vendor/v5-tracing-helper';
 import type { PrismaV6TracingHelper } from './prisma/vendor/v6-tracing-helper';
 
 const INTEGRATION_NAME = 'Prisma';
-
-const EsmInteropPrismaInstrumentation: typeof prismaInstrumentation.PrismaInstrumentation =
-  // @ts-expect-error We need to do the following for interop reasons
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  prismaInstrumentation.default?.PrismaInstrumentation || prismaInstrumentation.PrismaInstrumentation;
 
 type CompatibilityLayerTraceHelper = PrismaV5TracingHelper & PrismaV6TracingHelper;
 
@@ -31,7 +25,7 @@ function getPrismaTracingHelper(): unknown | undefined {
   return prismaTracingHelper;
 }
 
-class SentryPrismaInteropInstrumentation extends EsmInteropPrismaInstrumentation {
+class SentryPrismaInteropInstrumentation extends PrismaInstrumentation {
   public constructor() {
     super();
   }
