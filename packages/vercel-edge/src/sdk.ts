@@ -59,6 +59,7 @@ export function getDefaultIntegrations(options: Options): Integration[] {
     linkedErrorsIntegration(),
     winterCGFetchIntegration(),
     consoleIntegration(),
+    // TODO(v10): integration can be included - but integration should not add IP address etc
     ...(options.sendDefaultPii ? [requestDataIntegration()] : []),
   ];
 }

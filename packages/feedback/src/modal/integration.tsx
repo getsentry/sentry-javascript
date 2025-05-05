@@ -44,8 +44,8 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
           }
         },
         removeFromDom(): void {
-          shadowRoot.removeChild(el);
-          shadowRoot.removeChild(style);
+          el.remove();
+          style.remove();
           DOCUMENT.body.style.overflow = originalOverflow;
         },
         open() {

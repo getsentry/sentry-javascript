@@ -10,8 +10,7 @@ Sentry.init({
   transport: loggingTransport,
 });
 
-// eslint-disable-next-line no-unused-vars
-const _child = fork(path.join(__dirname, 'child.mjs'));
+fork(path.join(__dirname, 'child.mjs'));
 
 setTimeout(() => {
   throw new Error('Exiting main process');
