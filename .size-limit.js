@@ -47,7 +47,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration'),
     gzip: true,
-    limit: '76 KB',
+    limit: '77 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay) - with treeshaking flags',
@@ -219,7 +219,7 @@ module.exports = [
     import: createImport('init'),
     ignore: ['$app/stores'],
     gzip: true,
-    limit: '38.5 KB',
+    limit: '39 KB',
   },
   // Node SDK (ESM)
   {

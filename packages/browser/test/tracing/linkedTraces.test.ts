@@ -1,14 +1,146 @@
-import { SentrySpan, spanToJSON, timestampInSeconds } from '@sentry/core';
+import type { Span } from '@sentry/core';
+import { addChildSpanToSpan, SentrySpan, spanToJSON, timestampInSeconds } from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { PreviousTraceInfo } from '../../src/tracing/previousTrace';
+import { BrowserClient } from '../../src';
+import type { PreviousTraceInfo } from '../../src/tracing/linkedTraces';
 import {
   addPreviousTraceSpanLink,
   getPreviousTraceFromSessionStorage,
+  linkTraces,
   PREVIOUS_TRACE_KEY,
   PREVIOUS_TRACE_MAX_DURATION,
   PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE,
+  spanContextSampled,
   storePreviousTraceInSessionStorage,
-} from '../../src/tracing/previousTrace';
+} from '../../src/tracing/linkedTraces';
+
+describe('linkTraces', () => {
+  describe('adds a previous trace span link on span start', () => {
+    // @ts-expect-error - mock contains only necessary API
+    const client = new BrowserClient({ transport: () => {}, integrations: [], stackParser: () => [] });
+
+    let spanStartCb: (span: Span) => void;
+
+    // @ts-expect-error - this is fine for testing
+    const clientOnSpy = vi.spyOn(client, 'on').mockImplementation((event, cb) => {
+      // @ts-expect-error - this is fine for testing
+      if (event === 'spanStart') {
+        spanStartCb = cb;
+      }
+    });
+
+    it('registers a spanStart handler', () => {
+      expect(clientOnSpy).toHaveBeenCalledWith('spanStart', expect.any(Function));
+      expect(clientOnSpy).toHaveBeenCalledOnce();
+    });
+
+    beforeEach(() => {
+      linkTraces(client, { linkPreviousTrace: 'in-memory', consistentTraceSampling: false });
+    });
+
+    it("doesn't add a link if the passed span is not the root span", () => {
+      const rootSpan = new SentrySpan({
+        name: 'test',
+        parentSpanId: undefined,
+        sampled: true,
+        spanId: '123',
+        traceId: '456',
+      });
+
+      const childSpan = new SentrySpan({
+        name: 'test',
+        parentSpanId: '123',
+        spanId: '456',
+        traceId: '789',
+        sampled: true,
+      });
+
+      addChildSpanToSpan(rootSpan, childSpan);
+
+      spanStartCb(childSpan);
+
+      expect(spanToJSON(childSpan).links).toBeUndefined();
+    });
+
+    it('adds a link from the first trace root span to the second trace root span', () => {
+      const rootSpanTrace1 = new SentrySpan({
+        name: 'test',
+        parentSpanId: undefined,
+        sampled: true,
+        spanId: '123',
+        traceId: '456',
+      });
+
+      spanStartCb(rootSpanTrace1);
+
+      expect(spanToJSON(rootSpanTrace1).links).toBeUndefined();
+
+      const rootSpanTrace2 = new SentrySpan({
+        name: 'test',
+        parentSpanId: undefined,
+        sampled: true,
+        spanId: '789',
+        traceId: 'def',
+      });
+
+      spanStartCb(rootSpanTrace2);
+
+      expect(spanToJSON(rootSpanTrace2).links).toEqual([
+        {
+          attributes: {
+            'sentry.link.type': 'previous_trace',
+          },
+          span_id: '123',
+          trace_id: '456',
+          sampled: true,
+        },
+      ]);
+    });
+
+    it("doesn't add a link to the second root span if it is part of the same trace", () => {
+      const rootSpanTrace1 = new SentrySpan({
+        name: 'test',
+        parentSpanId: undefined,
+        sampled: true,
+        spanId: '123',
+        traceId: 'def',
+      });
+
+      spanStartCb(rootSpanTrace1);
+
+      expect(spanToJSON(rootSpanTrace1).links).toBeUndefined();
+
+      const rootSpan2Trace = new SentrySpan({
+        name: 'test',
+        parentSpanId: undefined,
+        sampled: true,
+        spanId: '789',
+        traceId: 'def',
+      });
+
+      spanStartCb(rootSpan2Trace);
+
+      expect(spanToJSON(rootSpan2Trace).links).toBeUndefined();
+    });
+  });
+
+  // only basic tests here, rest is tested in browser-integration-tests
+  describe('consistentTraceSampling', () => {
+    // @ts-expect-error - mock contains only necessary API
+    const client = new BrowserClient({ transport: () => {}, integrations: [], stackParser: () => [] });
+    const clientOnSpy = vi.spyOn(client, 'on');
+
+    beforeEach(() => {
+      linkTraces(client, { linkPreviousTrace: 'in-memory', consistentTraceSampling: true });
+    });
+
+    it('registers a beforeSampling handler', () => {
+      expect(clientOnSpy).toHaveBeenCalledWith('spanStart', expect.any(Function));
+      expect(clientOnSpy).toHaveBeenCalledWith('beforeSampling', expect.any(Function));
+      expect(clientOnSpy).toHaveBeenCalledTimes(2);
+    });
+  });
+});
 
 describe('addPreviousTraceSpanLink', () => {
   it(`adds a previous_trace span link to startSpanOptions if the previous trace was created within ${PREVIOUS_TRACE_MAX_DURATION}s`, () => {
@@ -22,6 +154,8 @@ describe('addPreviousTraceSpanLink', () => {
       },
       // max time reached almost exactly
       startTimestamp: currentSpanStart - PREVIOUS_TRACE_MAX_DURATION + 1,
+      sampleRand: 0.0126,
+      sampleRate: 0.5,
     };
 
     const currentSpan = new SentrySpan({
@@ -33,7 +167,14 @@ describe('addPreviousTraceSpanLink', () => {
       sampled: true,
     });
 
-    const updatedPreviousTraceInfo = addPreviousTraceSpanLink(previousTraceInfo, currentSpan);
+    const oldPropagationContext = {
+      sampleRand: 0.0126,
+      traceId: '123',
+      sampled: true,
+      dsc: { sample_rand: '0.0126', sample_rate: '0.5' },
+    };
+
+    const updatedPreviousTraceInfo = addPreviousTraceSpanLink(previousTraceInfo, currentSpan, oldPropagationContext);
 
     const spanJson = spanToJSON(currentSpan);
 
@@ -55,6 +196,8 @@ describe('addPreviousTraceSpanLink', () => {
     expect(updatedPreviousTraceInfo).toEqual({
       spanContext: currentSpan.spanContext(),
       startTimestamp: currentSpanStart,
+      sampleRand: 0.0126,
+      sampleRate: 0.5,
     });
   });
 
@@ -68,6 +211,8 @@ describe('addPreviousTraceSpanLink', () => {
         traceFlags: 0,
       },
       startTimestamp: Date.now() / 1000 - PREVIOUS_TRACE_MAX_DURATION - 1,
+      sampleRand: 0.0126,
+      sampleRate: 0.5,
     };
 
     const currentSpan = new SentrySpan({
@@ -75,7 +220,14 @@ describe('addPreviousTraceSpanLink', () => {
       startTimestamp: currentSpanStart,
     });
 
-    const updatedPreviousTraceInfo = addPreviousTraceSpanLink(previousTraceInfo, currentSpan);
+    const oldPropagationContext = {
+      sampleRand: 0.0126,
+      traceId: '123',
+      sampled: true,
+      dsc: { sample_rand: '0.0126', sample_rate: '0.5' },
+    };
+
+    const updatedPreviousTraceInfo = addPreviousTraceSpanLink(previousTraceInfo, currentSpan, oldPropagationContext);
 
     const spanJson = spanToJSON(currentSpan);
 
@@ -87,6 +239,8 @@ describe('addPreviousTraceSpanLink', () => {
     expect(updatedPreviousTraceInfo).toEqual({
       spanContext: currentSpan.spanContext(),
       startTimestamp: currentSpanStart,
+      sampleRand: 0.0126,
+      sampleRate: 0.5,
     });
   });
 
@@ -98,6 +252,15 @@ describe('addPreviousTraceSpanLink', () => {
         traceFlags: 1,
       },
       startTimestamp: Date.now() / 1000,
+      sampleRand: 0.0126,
+      sampleRate: 0.5,
+    };
+
+    const oldPropagationContext = {
+      sampleRand: 0.0126,
+      traceId: '123',
+      sampled: true,
+      dsc: { sample_rand: '0.0126', sample_rate: '0.5' },
     };
 
     const currentSpanStart = timestampInSeconds();
@@ -119,7 +282,7 @@ describe('addPreviousTraceSpanLink', () => {
       startTimestamp: currentSpanStart,
     });
 
-    const updatedPreviousTraceInfo = addPreviousTraceSpanLink(previousTraceInfo, currentSpan);
+    const updatedPreviousTraceInfo = addPreviousTraceSpanLink(previousTraceInfo, currentSpan, oldPropagationContext);
 
     expect(spanToJSON(currentSpan).links).toEqual([
       {
@@ -143,6 +306,8 @@ describe('addPreviousTraceSpanLink', () => {
     expect(updatedPreviousTraceInfo).toEqual({
       spanContext: currentSpan.spanContext(),
       startTimestamp: currentSpanStart,
+      sampleRand: 0.0126,
+      sampleRate: 0.5,
     });
   });
 
@@ -150,13 +315,22 @@ describe('addPreviousTraceSpanLink', () => {
     const currentSpanStart = timestampInSeconds();
     const currentSpan = new SentrySpan({ name: 'test', startTimestamp: currentSpanStart });
 
-    const updatedPreviousTraceInfo = addPreviousTraceSpanLink(undefined, currentSpan);
+    const oldPropagationContext = {
+      sampleRand: 0.0126,
+      traceId: '123',
+      sampled: false,
+      dsc: { sample_rand: '0.0126', sample_rate: '0.5', sampled: 'false' },
+    };
+
+    const updatedPreviousTraceInfo = addPreviousTraceSpanLink(undefined, currentSpan, oldPropagationContext);
 
     const spanJson = spanToJSON(currentSpan);
     expect(spanJson.links).toBeUndefined();
     expect(Object.keys(spanJson.data)).not.toContain(PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE);
 
     expect(updatedPreviousTraceInfo).toEqual({
+      sampleRand: 0.0126,
+      sampleRate: 0.5,
       spanContext: currentSpan.spanContext(),
       startTimestamp: currentSpanStart,
     });
@@ -178,9 +352,18 @@ describe('addPreviousTraceSpanLink', () => {
         traceFlags: 1,
       },
       startTimestamp: currentSpanStart - 1,
+      sampleRand: 0.0126,
+      sampleRate: 0.5,
     };
 
-    const updatedPreviousTraceInfo = addPreviousTraceSpanLink(previousTraceInfo, currentSpan);
+    const oldPropagationContext = {
+      sampleRand: 0.0126,
+      traceId: '123',
+      sampled: true,
+      dsc: { sample_rand: '0.0126', sample_rate: '0.5' },
+    };
+
+    const updatedPreviousTraceInfo = addPreviousTraceSpanLink(previousTraceInfo, currentSpan, oldPropagationContext);
 
     const spanJson = spanToJSON(currentSpan);
     expect(spanJson.links).toBeUndefined();
@@ -213,6 +396,8 @@ describe('store and retrieve previous trace data via sessionStorage ', () => {
         traceFlags: 1,
       },
       startTimestamp: Date.now() / 1000,
+      sampleRand: 0.0126,
+      sampleRate: 0.5,
     };
 
     storePreviousTraceInSessionStorage(previousTraceInfo);
@@ -231,10 +416,33 @@ describe('store and retrieve previous trace data via sessionStorage ', () => {
         traceFlags: 1,
       },
       startTimestamp: Date.now() / 1000,
+      sampleRand: 0.0126,
+      sampleRate: 0.5,
     };
 
     expect(() => storePreviousTraceInSessionStorage(previousTraceInfo)).not.toThrow();
     expect(getPreviousTraceFromSessionStorage).not.toThrow();
     expect(getPreviousTraceFromSessionStorage()).toBeUndefined();
+  });
+});
+
+describe('spanContextSampled', () => {
+  it('returns true if traceFlags is 1', () => {
+    const spanContext = {
+      traceId: '123',
+      spanId: '456',
+      traceFlags: 1,
+    };
+
+    expect(spanContextSampled(spanContext)).toBe(true);
+  });
+
+  it.each([0, 2, undefined as unknown as number])('returns false if traceFlags is %s', flags => {
+    const spanContext = {
+      traceId: '123',
+      spanId: '456',
+      traceFlags: flags,
+    };
+    expect(spanContextSampled(spanContext)).toBe(false);
   });
 });
