@@ -1,9 +1,9 @@
+import type { createSentryBuildPluginManager as createSentryBuildPluginManagerType } from '@sentry/bundler-plugin-core';
+import { loadModule } from '@sentry/core';
+import { glob } from 'glob';
+import { getBuildPluginOptions } from './buildPluginOptions';
 import type { SentryBuildOptions } from './types';
 import { getWebpackBuildFunctionCalled } from './util';
-import { getBuildPluginOptions } from './buildPluginOptions';
-import { glob } from 'glob';
-import { loadModule } from '@sentry/core';
-import type { createSentryBuildPluginManager as createSentryBuildPluginManagerType } from '@sentry/bundler-plugin-core';
 
 /**
  * A function to do Sentry stuff for the `runAfterProductionCompile` Next.js hook
