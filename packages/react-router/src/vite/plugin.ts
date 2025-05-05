@@ -1,9 +1,9 @@
 import type { ConfigEnv } from 'vite';
 import { type Plugin } from 'vite';
+import { makeConfigInjectorPlugin } from './makeConfigInjectorPlugin';
 import { makeCustomSentryVitePlugins } from './makeCustomSentryVitePlugins';
 import { makeEnableSourceMapsPlugin } from './makeEnableSourceMapsPlugin';
 import type { SentryReactRouterBuildOptions } from './types';
-import { makeConfigInjectorPlugin } from './makeConfigInjectorPlugin';
 
 /**
  * A Vite plugin for Sentry that handles source map uploads and bundle size optimizations.
