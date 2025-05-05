@@ -1,4 +1,4 @@
-import { captureLog, type CaptureLogArgs } from './capture';
+import { type CaptureLogArgs, captureLog } from './capture';
 
 /**
  * @summary Capture a log with the `trace` level. Requires `_experiments.enableLogs` to be enabled.

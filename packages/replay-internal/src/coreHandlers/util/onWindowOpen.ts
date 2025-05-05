@@ -1,5 +1,4 @@
 import { fill } from '@sentry/core';
-
 import { WINDOW } from '../../constants';
 
 type WindowOpenHandler = () => void;

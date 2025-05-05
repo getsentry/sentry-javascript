@@ -1,9 +1,8 @@
+import type { Client, Span } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
-import type { Client, Span } from '@sentry/core';
 import * as SentryNode from '@sentry/node';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
 import { handleRequest, interpolateRouteFromUrlAndParams } from '../../src/server/middleware';
 
 vi.mock('../../src/server/meta', () => ({

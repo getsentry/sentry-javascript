@@ -1,3 +1,5 @@
+import * as logger from './logs/exports';
+
 export { httpIntegration } from './integrations/http';
 export { nativeNodeFetchIntegration } from './integrations/node-fetch';
 export { fsIntegration } from './integrations/fs';
@@ -128,10 +130,13 @@ export {
   spanToBaggageHeader,
   trpcMiddleware,
   updateSpanName,
+  supabaseIntegration,
+  instrumentSupabaseClient,
   zodErrorsIntegration,
   profiler,
   consoleLoggingIntegration,
   consoleIntegration,
+  wrapMcpServerWithSentry,
 } from '@sentry/core';
 
 export type {
@@ -152,7 +157,5 @@ export type {
   User,
   Span,
 } from '@sentry/core';
-
-import * as logger from './logs/exports';
 
 export { logger };

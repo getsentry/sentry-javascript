@@ -1,15 +1,15 @@
 import type { Client, StartSpanOptions } from '@sentry/core';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   getActiveSpan,
   getCurrentScope,
   getRootSpan,
   isNodeEnv,
   logger,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
 import type { BrowserClient, browserTracingIntegration as originalBrowserTracingIntegration } from '@sentry/react';
-import { WINDOW, getClient, startBrowserTracingNavigationSpan, startBrowserTracingPageLoadSpan } from '@sentry/react';
+import { getClient, startBrowserTracingNavigationSpan, startBrowserTracingPageLoadSpan, WINDOW } from '@sentry/react';
 import * as React from 'react';
 import { DEBUG_BUILD } from '../utils/debug-build';
 

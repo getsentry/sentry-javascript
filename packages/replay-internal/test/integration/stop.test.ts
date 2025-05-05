@@ -2,11 +2,10 @@
  * @vitest-environment jsdom
  */
 
-import type { MockInstance, MockedFunction } from 'vitest';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
+import '../utils/mock-internal-setTimeout';
 import * as SentryBrowserUtils from '@sentry-internal/browser-utils';
-
+import type { MockedFunction, MockInstance } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { WINDOW } from '../../src/constants';
 import type { Replay } from '../../src/integration';
 import type { ReplayContainer } from '../../src/replay';
@@ -15,9 +14,6 @@ import { createOptionsEvent } from '../../src/util/handleRecordingEmit';
 // mock functions need to be imported first
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '../index';
 import { getTestEventIncremental } from '../utils/getTestEvent';
-import { useFakeTimers } from '../utils/use-fake-timers';
-
-useFakeTimers();
 
 type MockRunFlush = MockedFunction<ReplayContainer['_runFlush']>;
 
@@ -30,6 +26,10 @@ describe('Integration | stop', () => {
 
   let mockAddDomInstrumentationHandler: MockInstance;
   let mockRunFlush: MockRunFlush;
+
+  beforeAll(() => {
+    vi.useFakeTimers();
+  });
 
   beforeEach(async () => {
     vi.setSystemTime(new Date(BASE_TIMESTAMP));

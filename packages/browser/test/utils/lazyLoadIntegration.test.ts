@@ -2,16 +2,15 @@
  * @vitest-environment jsdom
  */
 
-import { afterAll, afterEach, beforeEach, describe, expect, test } from 'vitest';
-
+import { JSDOM } from 'jsdom';
 import { TextDecoder, TextEncoder } from 'util';
-import { SDK_VERSION, lazyLoadIntegration } from '../../src';
+import { afterAll, afterEach, beforeEach, describe, expect, test } from 'vitest';
+import { lazyLoadIntegration, SDK_VERSION } from '../../src';
 import * as Sentry from '../../src';
+
 const patchedEncoder = (!global.window.TextEncoder && (global.window.TextEncoder = TextEncoder)) || true;
 // @ts-expect-error patch the encoder on the window, else importing JSDOM fails (deleted in afterAll)
 const patchedDecoder = (!global.window.TextDecoder && (global.window.TextDecoder = TextDecoder)) || true;
-
-import { JSDOM } from 'jsdom';
 
 const globalDocument = global.document;
 const globalWindow = global.window;

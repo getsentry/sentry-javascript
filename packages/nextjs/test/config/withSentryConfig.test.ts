@@ -1,5 +1,4 @@
-import { describe, vi, it, expect } from 'vitest';
-
+import { describe, expect, it, vi } from 'vitest';
 import { defaultRuntimePhase, defaultsObject, exportedNextConfig, userNextConfig } from './fixtures';
 import { materializeFinalNextConfig } from './testUtils';
 

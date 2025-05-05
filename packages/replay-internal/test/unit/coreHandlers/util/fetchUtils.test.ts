@@ -1,12 +1,12 @@
-import { describe, expect, it, vi } from 'vitest';
-
-import { useFakeTimers } from '../../../utils/use-fake-timers';
-
-useFakeTimers();
-
+import '../../../utils/mock-internal-setTimeout';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { _getResponseInfo } from '../../../../src/coreHandlers/util/fetchUtils';
 
 describe('Unit | coreHandlers | util | fetchUtils', () => {
+  beforeAll(() => {
+    vi.useFakeTimers();
+  });
+
   describe('_getResponseInfo', () => {
     it('works with captureDetails: false', async () => {
       const res = await _getResponseInfo(

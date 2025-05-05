@@ -5,24 +5,24 @@ import {
   spanToJSON,
   startBrowserTracingNavigationSpan,
 } from '@sentry/browser';
+import type { Client, Integration, Span } from '@sentry/core';
 import {
+  getClient,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  getClient,
 } from '@sentry/core';
-import type { Client, Integration, Span } from '@sentry/core';
 import type {
   BeforeLeaveEventArgs,
   HashRouter,
   MemoryRouter,
-  RouteSectionProps,
   Router as BaseRouter,
+  RouteSectionProps,
   StaticRouter,
 } from '@solidjs/router';
 import { useBeforeLeave, useLocation } from '@solidjs/router';
-import { createEffect, mergeProps, splitProps } from 'solid-js';
 import type { Component, JSX, ParentProps } from 'solid-js';
+import { createEffect, mergeProps, splitProps } from 'solid-js';
 import { createComponent } from 'solid-js/web';
 
 const CLIENTS_WITH_INSTRUMENT_NAVIGATION = new WeakSet<Client>();

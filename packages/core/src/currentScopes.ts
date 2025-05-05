@@ -2,8 +2,8 @@ import { getAsyncContextStrategy } from './asyncContext';
 import { getGlobalSingleton, getMainCarrier } from './carrier';
 import type { Client } from './client';
 import { Scope } from './scope';
-import type { TraceContext } from './types-hoist';
-import { generateSpanId } from './utils-hoist';
+import type { TraceContext } from './types-hoist/context';
+import { generateSpanId } from './utils-hoist/propagationContext';
 
 /**
  * Get the currently active scope.

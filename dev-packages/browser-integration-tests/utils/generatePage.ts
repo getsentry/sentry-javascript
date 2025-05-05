@@ -1,7 +1,6 @@
 import { mkdirSync } from 'fs';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import webpack from 'webpack';
-
 import webpackConfig from '../webpack.config';
 import SentryScenarioGenerationPlugin from './generatePlugin';
 

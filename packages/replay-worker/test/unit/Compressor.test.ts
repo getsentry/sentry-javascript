@@ -1,7 +1,5 @@
-import { describe, expect, it } from 'vitest';
-
 import { decompressSync, strFromU8 } from 'fflate';
-
+import { describe, expect, it } from 'vitest';
 import { Compressor } from '../../src/Compressor';
 
 describe('Compressor', () => {

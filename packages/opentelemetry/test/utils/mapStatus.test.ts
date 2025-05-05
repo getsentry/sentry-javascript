@@ -7,9 +7,9 @@ import type { SpanStatus } from '@sentry/core';
 import { SPAN_STATUS_ERROR, SPAN_STATUS_OK } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { mapStatus } from '../../src/utils/mapStatus';
-import { TestClient, getDefaultTestClientOptions } from '../helpers/TestClient';
 import { setupOtel } from '../helpers/initOtel';
 import { cleanupOtel } from '../helpers/mockSdkInit';
+import { getDefaultTestClientOptions, TestClient } from '../helpers/TestClient';
 
 describe('mapStatus', () => {
   let provider: BasicTracerProvider | undefined;

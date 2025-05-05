@@ -1,10 +1,8 @@
-import type { MockInstance } from 'vitest';
-import { beforeAll, beforeEach, describe, expect, it, vi, afterEach } from 'vitest';
-
-import * as browserUtils from '@sentry-internal/browser-utils';
-import * as utils from '@sentry/core';
 import type { Client } from '@sentry/core';
-
+import * as utils from '@sentry/core';
+import * as browserUtils from '@sentry-internal/browser-utils';
+import type { MockInstance } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { instrumentOutgoingRequests, shouldAttachHeaders } from '../../src/tracing/request';
 
 beforeAll(() => {

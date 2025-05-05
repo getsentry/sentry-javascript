@@ -3,14 +3,12 @@
  */
 
 import 'jsdom-worker';
-
 import { describe, expect, it, vi } from 'vitest';
-
-import { BASE_TIMESTAMP } from '../..';
 import { REPLAY_MAX_EVENT_BUFFER_SIZE } from '../../../src/constants';
 import { createEventBuffer } from '../../../src/eventBuffer';
-import { EventBufferProxy } from '../../../src/eventBuffer/EventBufferProxy';
 import { EventBufferSizeExceededError } from '../../../src/eventBuffer/error';
+import { EventBufferProxy } from '../../../src/eventBuffer/EventBufferProxy';
+import { BASE_TIMESTAMP } from '../..';
 import { decompress } from '../../utils/compression';
 import { getTestEventIncremental } from '../../utils/getTestEvent';
 

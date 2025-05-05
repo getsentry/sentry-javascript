@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   getSanitizedUrlString,
+  getSanitizedUrlStringFromUrlObject,
+  isURLObjectRelative,
+  parseStringToURLObject,
   parseUrl,
   stripUrlQueryAndFragment,
-  parseStringToURLObject,
-  isURLObjectRelative,
-  getSanitizedUrlStringFromUrlObject,
 } from '../../src/utils-hoist/url';
 
 describe('stripQueryStringAndFragment', () => {

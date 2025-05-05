@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { addConsoleBreadcrumb } from '../../../src/integrations/console';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { addBreadcrumb } from '../../../src/breadcrumbs';
+import { addConsoleBreadcrumb } from '../../../src/integrations/console';
 
 vi.mock('../../../src/breadcrumbs', () => ({
   addBreadcrumb: vi.fn(),

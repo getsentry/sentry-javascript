@@ -1,4 +1,5 @@
-import type { PolymorphicRequest, RequestEventData } from '../types-hoist';
+import type { PolymorphicRequest } from '../types-hoist/polymorphics';
+import type { RequestEventData } from '../types-hoist/request';
 import type { WebFetchHeaders, WebFetchRequest } from '../types-hoist/webfetchapi';
 
 /**

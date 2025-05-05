@@ -1,5 +1,6 @@
 import type { Integration } from '@sentry/core';
 import {
+  consoleIntegration,
   dedupeIntegration,
   functionToStringIntegration,
   getIntegrationsToSetup,
@@ -8,7 +9,6 @@ import {
   linkedErrorsIntegration,
   requestDataIntegration,
   stackParserFromStackParserOptions,
-  consoleIntegration,
 } from '@sentry/core';
 import type { CloudflareClientOptions, CloudflareOptions } from './client';
 import { CloudflareClient } from './client';
@@ -27,6 +27,7 @@ export function getDefaultIntegrations(options: CloudflareOptions): Integration[
     functionToStringIntegration(),
     linkedErrorsIntegration(),
     fetchIntegration(),
+    // TODO(v10): the `include` object should be defined directly in the integration based on `sendDefaultPii`
     requestDataIntegration(sendDefaultPii ? undefined : { include: { cookies: false } }),
     consoleIntegration(),
   ];

@@ -75,6 +75,8 @@ export {
   rewriteFramesIntegration,
   captureConsoleIntegration,
   moduleMetadataIntegration,
+  supabaseIntegration,
+  instrumentSupabaseClient,
   zodErrorsIntegration,
   consoleIntegration,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -85,9 +87,12 @@ export {
   spanToJSON,
   spanToTraceHeader,
   spanToBaggageHeader,
+  wrapMcpServerWithSentry,
 } from '@sentry/core';
 
 export { VercelEdgeClient } from './client';
 export { getDefaultIntegrations, init } from './sdk';
 
 export { winterCGFetchIntegration } from './integrations/wintercg-fetch';
+
+export * as logger from './logs/exports';

@@ -1,11 +1,12 @@
-import type { Event, IntegrationFn, StackFrame } from '../types-hoist';
-
 import { DEBUG_BUILD } from '../debug-build';
 import { defineIntegration } from '../integration';
+import type { Event } from '../types-hoist/event';
+import type { IntegrationFn } from '../types-hoist/integration';
+import type { StackFrame } from '../types-hoist/stackframe';
+import { getPossibleEventMessages } from '../utils/eventUtils';
 import { logger } from '../utils-hoist/logger';
 import { getEventDescription } from '../utils-hoist/misc';
 import { stringMatchesSomePattern } from '../utils-hoist/string';
-import { getPossibleEventMessages } from '../utils/eventUtils';
 
 // "Script error." is hard coded into browsers for errors that it can't read.
 // this is the result of a script being pulled in from an external domain and CORS.

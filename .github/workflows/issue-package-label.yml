@@ -44,7 +44,7 @@ jobs:
               "@sentry.bun": {
                 "label": "Bun"
               },
-              "@sentry.cloudflare - hono": {
+              "@sentry.cloudflare.-.hono": {
                 "label": "Hono"
               },
               "@sentry.cloudflare": {
@@ -68,20 +68,20 @@ jobs:
               "@sentry.nextjs": {
                 "label": "Next.js"
               },
-              "@sentry.node - express": {
+              "@sentry.node.-.express": {
                 "label": "Express"
               },
-              "@sentry.node - fastify": {
+              "@sentry.node.-.fastify": {
                 "label": "Fastify"
               },
-              "@sentry.node - koa": {
+              "@sentry.node.-.koa": {
                 "label": "Koa"
               },
-              "@sentry.node - hapi": {
-                "label": "Hapi
+              "@sentry.node.-.hapi": {
+                "label": "Hapi"
               },
-              "@sentry.node - connect": {
-                "label": "Connect
+              "@sentry.node.-.connect": {
+                "label": "Connect"
               },
               "@sentry.node": {
                 "label": "Node.js"
@@ -90,7 +90,7 @@ jobs:
                 "label": "Nuxt"
               },
               "@sentry.react-router": {
-                "label": "React Router Framework "
+                "label": "React Router Framework"
               },
               "@sentry.react": {
                 "label": "React"
@@ -120,10 +120,10 @@ jobs:
                 "label": "WASM"
               },
               "Sentry.Browser.Loader": {
-                "label": "Browser\nLoader Script"
+                "label": "Browser"
               },
               "Sentry.Browser.CDN.bundle": {
-                "label": "Browser\nCDN Bundle"
+                "label": "Browser"
               }
             }
           export_to: output
@@ -134,3 +134,29 @@ jobs:
         uses: actions-ecosystem/action-add-labels@v1
         with:
           labels: ${{ steps.packageLabel.outputs.label }}
+
+      - name: Map additional to issue label
+        # https://github.com/kanga333/variable-mapper
+        uses: kanga333/variable-mapper@v0.3.0
+        id: additionalLabel
+        if: steps.packageName.outputs.match != ''
+        with:
+          key: '${{ steps.packageName.outputs.group1 }}'
+          # Note: Since this is handled as a regex, and JSON parse wrangles slashes /, we just use `.` instead
+          map: |
+            {
+              "Sentry.Browser.Loader": {
+                "label": "Loader Script"
+              },
+              "Sentry.Browser.CDN.bundle": {
+                "label": "CDN Bundle"
+              }
+            }
+          export_to: output
+
+      - name: Add additional label if applicable
+        # Note: We only add the label if the issue is still open
+        if: steps.additionalLabel.outputs.label != ''
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          labels: ${{ steps.additionalLabel.outputs.label }}

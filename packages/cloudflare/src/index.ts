@@ -75,6 +75,8 @@ export {
   rewriteFramesIntegration,
   captureConsoleIntegration,
   moduleMetadataIntegration,
+  supabaseIntegration,
+  instrumentSupabaseClient,
   zodErrorsIntegration,
   consoleIntegration,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -86,9 +88,11 @@ export {
   spanToTraceHeader,
   spanToBaggageHeader,
   updateSpanName,
+  wrapMcpServerWithSentry,
 } from '@sentry/core';
 
 export { withSentry } from './handler';
+export { instrumentDurableObjectWithSentry } from './durableobject';
 export { sentryPagesPlugin } from './pages-plugin';
 
 export { wrapRequestHandler } from './request';

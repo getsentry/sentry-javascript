@@ -26,8 +26,8 @@
  */
 
 import type { Attributes } from '@opentelemetry/api';
-import { SpanStatusCode, context, diag, trace } from '@opentelemetry/api';
-import { RPCType, getRPCMetadata } from '@opentelemetry/core';
+import { context, diag, SpanStatusCode, trace } from '@opentelemetry/api';
+import { getRPCMetadata, RPCType } from '@opentelemetry/core';
 import {
   InstrumentationBase,
   InstrumentationNodeModuleDefinition,

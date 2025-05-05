@@ -1,4 +1,4 @@
-import type { StackFrame } from '../types-hoist';
+import type { StackFrame } from '../types-hoist/stackframe';
 import { filenameIsInApp } from './node-stack-trace';
 import { UNKNOWN_FUNCTION } from './stacktrace';
 

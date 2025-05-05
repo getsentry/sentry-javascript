@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 
 import { execFile } from 'node:child_process';
-import { readFile, readdir } from 'node:fs';
+import { readdir, readFile } from 'node:fs';
 import * as os from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
@@ -61,6 +61,7 @@ const _nodeContextIntegration = ((options: ContextOptions = {}) => {
 
     const updatedContext = _updateContext(await cachedContext);
 
+    // TODO(v10): conditional with `sendDefaultPii` here?
     event.contexts = {
       ...event.contexts,
       app: { ...updatedContext.app, ...event.contexts?.app },

@@ -2,12 +2,10 @@
  * @vitest-environment jsdom
  */
 
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-
-import { logger } from '@sentry/core';
 import type { Client } from '@sentry/core';
+import { logger } from '@sentry/core';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from 'vue';
-
 import * as Sentry from '../../src';
 
 const PUBLIC_DSN = 'https://username@domain/123';

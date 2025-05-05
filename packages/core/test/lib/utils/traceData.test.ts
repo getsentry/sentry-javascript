@@ -1,21 +1,21 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Client } from '../../../src/';
 import {
-  SentrySpan,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
   getMainCarrier,
   getTraceData,
+  SentrySpan,
   setAsyncContextStrategy,
   setCurrentClient,
   withActiveSpan,
 } from '../../../src/';
 import { getAsyncContextStrategy } from '../../../src/asyncContext';
 import { freezeDscOnSpan } from '../../../src/tracing/dynamicSamplingContext';
-import type { Span } from '../../../src/types-hoist';
+import type { Span } from '../../../src/types-hoist/span';
 import type { TestClientOptions } from '../../mocks/client';
-import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
+import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 const dsn = 'https://123@sentry.io/42';
 

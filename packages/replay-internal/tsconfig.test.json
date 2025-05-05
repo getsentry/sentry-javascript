@@ -1,7 +1,7 @@
 {
   "extends": "./tsconfig.json",
 
-  "include": ["test/**/*.ts", "vitest.config.ts", "test.setup.ts"],
+  "include": ["test/**/*.ts", "vitest.config.ts", "test/vitest-custom-matchers.d.ts"],
 
   "compilerOptions": {
     "types": ["node"],

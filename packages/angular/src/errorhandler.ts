@@ -1,11 +1,10 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import type { ErrorHandler as AngularErrorHandler, OnDestroy } from '@angular/core';
 import { Inject, Injectable } from '@angular/core';
-import * as Sentry from '@sentry/browser';
 import type { ReportDialogOptions } from '@sentry/browser';
-import { consoleSandbox, isString } from '@sentry/core';
+import * as Sentry from '@sentry/browser';
 import type { Event } from '@sentry/core';
-
+import { consoleSandbox, isString } from '@sentry/core';
 import { runOutsideAngular } from './zone';
 
 /**

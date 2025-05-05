@@ -1,7 +1,6 @@
 import type { Context, ContextManager } from '@opentelemetry/api';
-import { getCurrentScope, getIsolationScope } from '@sentry/core';
 import type { Scope } from '@sentry/core';
-
+import { getCurrentScope, getIsolationScope } from '@sentry/core';
 import {
   SENTRY_FORK_ISOLATION_SCOPE_CONTEXT_KEY,
   SENTRY_FORK_SET_ISOLATION_SCOPE_CONTEXT_KEY,

@@ -12,45 +12,79 @@ import type { BaseTransportOptions, Transport } from './transport';
 
 export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOptions> {
   /**
-   * Enable debug functionality in the SDK itself
+   * Enable debug functionality in the SDK itself. If `debug` is set to `true` the SDK will attempt
+   * to print out useful debugging information about what the SDK is doing.
+   *
+   * @default false
    */
   debug?: boolean;
 
   /**
-   * Specifies whether this SDK should send events to Sentry.
-   * Defaults to true.
+   * Specifies whether this SDK should send events to Sentry. Setting this to `enabled: false`
+   * doesn't prevent all overhead from Sentry instrumentation. To disable Sentry completely,
+   * depending on environment, call `Sentry.init conditionally.
+   *
+   * @default true
    */
   enabled?: boolean;
 
-  /** Attaches stacktraces to pure capture message / log integrations */
+  /**
+   * When enabled, stack traces are automatically attached to all events captured with `Sentry.captureMessage`.
+   *
+   * Grouping in Sentry is different for events with stack traces and without. As a result, you will get
+   * new groups as you enable or disable this flag for certain events.
+   *
+   * @default false
+   */
   attachStacktrace?: boolean;
 
   /**
-   * Send SDK Client Reports. When calling `Sentry.init()`, this option defaults to `true`.
+   * Send SDK Client Reports, which are used to emit outcomes about events that the SDK dropped
+   * or failed to capture.
+   *
+   * @default true
    */
   sendClientReports?: boolean;
 
   /**
-   * The Dsn used to connect to Sentry and identify the project. If omitted, the
-   * SDK will not send any data to Sentry.
+   * The DSN tells the SDK where to send the events. If this is not set, the SDK will not send any events to Sentry.
+   *
+   * @default undefined
    */
   dsn?: string;
 
   /**
-   * The release identifier used when uploading respective source maps. Specify
-   * this value to allow Sentry to resolve the correct source maps when
-   * processing events.
+   * Sets the release. Release names are strings, but some formats are detected by Sentry and might be
+   * rendered differently. Learn more about how to send release data so Sentry can tell you about
+   * regressions between releases and identify the potential source in the
+   * [releases documentation](https://docs.sentry.io/product/releases/)
+   *
+   * @default undefined
    */
   release?: string;
 
-  /** The current environment of your application (e.g. "production"). */
+  /**
+   * The current environment of your application (e.g. "production").
+   *
+   * Environments are case-sensitive. The environment name can't contain newlines, spaces or forward slashes,
+   * can't be the string "None", or exceed 64 characters. You can't delete environments, but you can hide them.
+   *
+   * @default "production"
+   */
   environment?: string;
 
-  /** Sets the distribution for all events */
+  /**
+   * Sets the distribution of the application. Distributions are used to disambiguate build or
+   * deployment variants of the same release of an application.
+   *
+   * @default undefined
+   */
   dist?: string;
 
   /**
    * List of integrations that should be installed after SDK was initialized.
+   *
+   * @default []
    */
   integrations: Integration[];
 
@@ -61,8 +95,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   transport: (transportOptions: TO) => Transport;
 
   /**
-   * A stack parser implementation
-   * By default, a stack parser is supplied for all supported platforms
+   * A stack parser implementation. By default, a stack parser is supplied for all supported platforms.
    */
   stackParser: StackParser;
 
@@ -75,10 +108,12 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * Sample rate to determine trace sampling.
    *
    * 0.0 = 0% chance of a given trace being sent (send no traces) 1.0 = 100% chance of a given trace being sent (send
-   * all traces)
+   * all traces).
    *
    * Tracing is enabled if either this or `tracesSampler` is defined. If both are defined, `tracesSampleRate` is
-   * ignored.
+   * ignored. Set this and `tracesSampler` to `undefined` to disable tracing.
+   *
+   * @default undefined
    */
   tracesSampleRate?: number;
 
@@ -97,24 +132,34 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
 
   /**
    * Initial data to populate scope.
+   *
+   * @default undefined
    */
   initialScope?: CaptureContext;
 
   /**
-   * The maximum number of breadcrumbs sent with events. Defaults to 100.
+   * The maximum number of breadcrumbs sent with events.
    * Sentry has a maximum payload size of 1MB and any events exceeding that payload size will be dropped.
+   *
+   * @default 100
    */
   maxBreadcrumbs?: number;
 
   /**
-   * A global sample rate to apply to all events.
+   * A global sample rate to apply to all error events.
    *
    * 0.0 = 0% chance of a given event being sent (send no events) 1.0 = 100% chance of a given event being sent (send
    * all events)
+   *
+   * @default 1.0
    */
   sampleRate?: number;
 
-  /** Maximum number of chars a single value can have before it will be truncated. */
+  /**
+   * Maximum number of chars a single value can have before it will be truncated.
+   *
+   * @default 250
+   */
   maxValueLength?: number;
 
   /**
@@ -124,7 +169,8 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * - `user`
    * - `contexts`
    * - `extra`
-   * Defaults to `3`. Set to `0` to disable.
+   *
+   * @default 3
    */
   normalizeDepth?: number;
 
@@ -135,19 +181,30 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * - `user`
    * - `contexts`
    * - `extra`
-   * Defaults to `1000`
+   *
+   * @default 1000
    */
   normalizeMaxBreadth?: number;
 
   /**
    * A pattern for error messages which should not be sent to Sentry.
    * By default, all errors will be sent.
+   *
+   * Behavior of the `ignoreErrors` option is controlled by the `Sentry.eventFiltersIntegration` integration. If the
+   * event filters integration is not installed, the `ignoreErrors` option will not have any effect.
+   *
+   * @default []
    */
   ignoreErrors?: Array<string | RegExp>;
 
   /**
    * A pattern for transaction names which should not be sent to Sentry.
    * By default, all transactions will be sent.
+   *
+   * Behavior of the `ignoreTransactions` option is controlled by the `Sentry.eventFiltersIntegration` integration.
+   * If the event filters integration is not installed, the `ignoreTransactions` option will not have any effect.
+   *
+   * @default []
    */
   ignoreTransactions?: Array<string | RegExp>;
 
@@ -155,6 +212,8 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * A URL to an envelope tunnel endpoint. An envelope tunnel is an HTTP endpoint
    * that accepts Sentry envelopes for forwarding. This can be used to force data
    * through a custom server independent of the type of data.
+   *
+   * @default undefined
    */
   tunnel?: string;
 
@@ -163,7 +222,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * Note that this only applies to data that the SDK is sending by default
    * but not data that was explicitly set (e.g. by calling `Sentry.setUser()`).
    *
-   * Defaults to `false`.
+   * @default false
    *
    * NOTE: This option currently controls only a few data points in a selected
    * set of SDKs. The goal for this option is to eventually control all sensitive
@@ -176,6 +235,8 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   /**
    * Set of metadata about the SDK that can be internally used to enhance envelopes and events,
    * and provide additional data about every request.
+   *
+   * @internal This option is not part of the public API and is subject to change at any time.
    */
   _metadata?: SdkMetadata;
 
@@ -186,7 +247,9 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [key: string]: any;
     /**
-     * If logs support should be enabled. Defaults to false.
+     * If logs support should be enabled.
+     *
+     * @default false
      */
     enableLogs?: boolean;
     /**
@@ -195,6 +258,8 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
      *
      * Note that you must return a valid log from this callback. If you do not wish to modify the log, simply return
      * it at the end. Returning `null` will cause the log to be dropped.
+     *
+     * @default undefined
      *
      * @param log The log generated by the SDK.
      * @returns A new log that will be sent | null.
@@ -207,7 +272,10 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * This is the opposite of {@link Options.denyUrls}.
    * By default, all errors will be sent.
    *
-   * Requires the use of the `InboundFilters` integration.
+   * Behavior of the `allowUrls` option is controlled by the `Sentry.eventFiltersIntegration` integration.
+   * If the event filters integration is not installed, the `allowUrls` option will not have any effect.
+   *
+   * @default []
    */
   allowUrls?: Array<string | RegExp>;
 
@@ -216,7 +284,10 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * To allow certain errors instead, use {@link Options.allowUrls}.
    * By default, all errors will be sent.
    *
-   * Requires the use of the `InboundFilters` integration.
+   * Behavior of the `denyUrls` option is controlled by the `Sentry.eventFiltersIntegration` integration.
+   * If the event filters integration is not installed, the `denyUrls` option will not have any effect.
+   *
+   * @default []
    */
   denyUrls?: Array<string | RegExp>;
 
@@ -253,7 +324,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * Function to compute tracing sample rate dynamically and filter unwanted traces.
    *
    * Tracing is enabled if either this or `tracesSampleRate` is defined. If both are defined, `tracesSampleRate` is
-   * ignored.
+   * ignored. Set this and `tracesSampleRate` to `undefined` to disable tracing.
    *
    * Will automatically be passed a context object of default and optional custom data.
    *
@@ -276,7 +347,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   beforeSend?: (event: ErrorEvent, hint: EventHint) => PromiseLike<ErrorEvent | null> | ErrorEvent | null;
 
   /**
-   * This function can be defined to modify or entirely drop a child span before it's sent.
+   * This function can be defined to modify a child span before it's sent.
    * Returning `null` will cause this span to be dropped.
    *
    * Note that this function is only called for child spans and not for the root span (formerly known as transaction).
@@ -284,7 +355,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    *
    * @param span The span generated by the SDK.
    *
-   * @returns A new span that will be sent or null if the span should not be sent.
+   * @returns The modified span payload that will be sent.
    */
   beforeSendSpan?: (span: SpanJSON) => SpanJSON;
 

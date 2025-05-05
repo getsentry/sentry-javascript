@@ -1,4 +1,5 @@
-import type { DebugImage, StackParser } from '../types-hoist';
+import type { DebugImage } from '../types-hoist/debugMeta';
+import type { StackParser } from '../types-hoist/stacktrace';
 import { GLOBAL_OBJ } from './worldwide';
 
 type StackString = string;

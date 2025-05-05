@@ -108,6 +108,8 @@ export {
   spanToBaggageHeader,
   trpcMiddleware,
   updateSpanName,
+  supabaseIntegration,
+  instrumentSupabaseClient,
   zodErrorsIntegration,
   profiler,
   amqplibIntegration,
@@ -116,6 +118,7 @@ export {
   vercelAIIntegration,
   logger,
   consoleLoggingIntegration,
+  wrapMcpServerWithSentry,
 } from '@sentry/node';
 
 export {

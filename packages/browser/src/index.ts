@@ -1,6 +1,8 @@
-export * from './exports';
-
+import { feedbackAsyncIntegration } from './feedbackAsync';
+import { feedbackSyncIntegration } from './feedbackSync';
 import * as logger from './log';
+
+export * from './exports';
 
 export { logger };
 
@@ -13,7 +15,6 @@ export {
   captureConsoleIntegration,
   extraErrorDataIntegration,
   rewriteFramesIntegration,
-  captureFeedback,
   consoleLoggingIntegration,
 } from '@sentry/core';
 
@@ -31,9 +32,6 @@ export type {
 } from '@sentry-internal/replay';
 
 export { replayCanvasIntegration } from '@sentry-internal/replay-canvas';
-
-import { feedbackAsyncIntegration } from './feedbackAsync';
-import { feedbackSyncIntegration } from './feedbackSync';
 export { feedbackAsyncIntegration, feedbackSyncIntegration, feedbackSyncIntegration as feedbackIntegration };
 export { getFeedback, sendFeedback } from '@sentry-internal/feedback';
 
@@ -59,6 +57,8 @@ export {
   setHttpStatus,
   makeMultiplexedTransport,
   moduleMetadataIntegration,
+  supabaseIntegration,
+  instrumentSupabaseClient,
   zodErrorsIntegration,
   thirdPartyErrorFilterIntegration,
 } from '@sentry/core';

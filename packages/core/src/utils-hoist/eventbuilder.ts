@@ -1,15 +1,12 @@
 import type { Client } from '../client';
-import type {
-  Event,
-  EventHint,
-  Exception,
-  Extras,
-  Mechanism,
-  ParameterizedString,
-  SeverityLevel,
-  StackFrame,
-  StackParser,
-} from '../types-hoist';
+import type { Event, EventHint } from '../types-hoist/event';
+import type { Exception } from '../types-hoist/exception';
+import type { Extras } from '../types-hoist/extra';
+import type { Mechanism } from '../types-hoist/mechanism';
+import type { ParameterizedString } from '../types-hoist/parameterize';
+import type { SeverityLevel } from '../types-hoist/severity';
+import type { StackFrame } from '../types-hoist/stackframe';
+import type { StackParser } from '../types-hoist/stacktrace';
 import { isError, isErrorEvent, isParameterizedString, isPlainObject } from './is';
 import { addExceptionMechanism, addExceptionTypeValue } from './misc';
 import { normalizeToSize } from './normalize';

@@ -1,7 +1,6 @@
-import type { SessionContext } from '../../src/types-hoist';
-
 import { describe, expect, it, test } from 'vitest';
 import { closeSession, makeSession, updateSession } from '../../src/session';
+import type { SessionContext } from '../../src/types-hoist/session';
 import { timestampInSeconds } from '../../src/utils-hoist/time';
 
 describe('Session', () => {

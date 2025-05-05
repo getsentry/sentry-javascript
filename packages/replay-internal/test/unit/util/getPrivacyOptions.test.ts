@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
 import { getPrivacyOptions } from '../../../src/util/getPrivacyOptions';
 
 describe('Unit | util | getPrivacyOptions', () => {

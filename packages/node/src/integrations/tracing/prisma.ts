@@ -1,7 +1,7 @@
 import type { Instrumentation } from '@opentelemetry/instrumentation';
 // When importing CJS modules into an ESM module, we cannot import the named exports directly.
 import * as prismaInstrumentation from '@prisma/instrumentation';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, consoleSandbox, defineIntegration, spanToJSON } from '@sentry/core';
+import { consoleSandbox, defineIntegration, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, spanToJSON } from '@sentry/core';
 import { generateInstrumentOnce } from '../../otel/instrument';
 import type { PrismaV5TracingHelper } from './prisma/vendor/v5-tracing-helper';
 import type { PrismaV6TracingHelper } from './prisma/vendor/v6-tracing-helper';

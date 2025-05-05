@@ -1,17 +1,15 @@
 import type { Context, Span, SpanContext, SpanOptions, Tracer } from '@opentelemetry/api';
-import { SpanStatusCode, TraceFlags, context, trace } from '@opentelemetry/api';
+import { context, SpanStatusCode, trace, TraceFlags } from '@opentelemetry/api';
 import { suppressTracing } from '@opentelemetry/core';
 import type {
   Client,
+  continueTrace as baseContinueTrace,
   DynamicSamplingContext,
   Scope,
   Span as SentrySpan,
   TraceContext,
-  continueTrace as baseContinueTrace,
 } from '@sentry/core';
 import {
-  SDK_VERSION,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromScope,
@@ -19,6 +17,8 @@ import {
   getRootSpan,
   getTraceContextFromScope,
   handleCallbackErrors,
+  SDK_VERSION,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   spanToJSON,
   spanToTraceContext,
 } from '@sentry/core';
