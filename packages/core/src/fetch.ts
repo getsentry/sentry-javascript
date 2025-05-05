@@ -104,6 +104,11 @@ export function instrumentFetchRequest(
 /**
  * Adds sentry-trace and baggage headers to the various forms of fetch headers.
  * exported only for testing purposes
+ *
+ * When we determine if we should add a baggage header, there are 3 cases:
+ * 1. No previous baggage header -> add baggage
+ * 2. Previous baggage header has no sentry baggage values -> add our baggage
+ * 3. Previous baggage header has sentry baggage values -> do nothing (might have been added manually by users)
  */
 // eslint-disable-next-line complexity -- yup it's this complicated :(
 export function _addTracingHeadersToFetchRequest(
@@ -141,10 +146,6 @@ export function _addTracingHeadersToFetchRequest(
     if (baggage) {
       const prevBaggageHeader = newHeaders.get('baggage');
 
-      // 3 cases:
-      // 1. No previous baggage header -> add baggage
-      // 2. Previous baggage header has no sentry baggage values -> add our baggage
-      // 3. Previous baggage header has sentry baggage values -> do nothing (might have been added manually by users)
       if (!prevBaggageHeader) {
         newHeaders.set('baggage', baggage);
       } else if (!baggageHeaderHasSentryBaggageValues(prevBaggageHeader)) {
@@ -218,9 +219,7 @@ function endSpan(span: Span, handlerData: HandlerDataFetch): void {
 }
 
 function baggageHeaderHasSentryBaggageValues(baggageHeader: string): boolean {
-  return baggageHeader
-    .split(',')
-    .some(baggageEntry => baggageEntry.split('=')[0]?.startsWith(SENTRY_BAGGAGE_KEY_PREFIX));
+  return baggageHeader.split(',').some(baggageEntry => baggageEntry.trim().startsWith(SENTRY_BAGGAGE_KEY_PREFIX));
 }
 
 function isHeaders(headers: unknown): headers is Headers {

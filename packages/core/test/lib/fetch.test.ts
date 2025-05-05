@@ -7,7 +7,9 @@ const { DEFAULT_SENTRY_TRACE, DEFAULT_BAGGAGE } = vi.hoisted(() => ({
 }));
 
 const CUSTOM_SENTRY_TRACE = '123-abc-1';
-const CUSTOM_BAGGAGE = 'sentry-trace_id=123,sentry-sampled=true';
+// adding in random spaces here to ensure they are trimmed and our sentry baggage item detection logic works.
+// Spaces between items are allowed by the baggage spec.
+const CUSTOM_BAGGAGE = ' sentry-trace_id=123 , sentry-sampled=true';
 
 vi.mock('../../src/utils/traceData', () => {
   return {
@@ -156,7 +158,7 @@ describe('_addTracingHeadersToFetchRequest', () => {
         expect(Object.fromEntries(returnedHeaders!.entries())).toEqual({
           'custom-header': 'custom-value',
           'sentry-trace': CUSTOM_SENTRY_TRACE,
-          baggage: CUSTOM_BAGGAGE,
+          baggage: CUSTOM_BAGGAGE.trim(),
         });
       });
 
@@ -359,7 +361,7 @@ describe('_addTracingHeadersToFetchRequest', () => {
         expect(Object.fromEntries(returnedHeaders!.entries())).toEqual({
           'custom-header': 'custom-value',
           'sentry-trace': CUSTOM_SENTRY_TRACE,
-          baggage: CUSTOM_BAGGAGE,
+          baggage: CUSTOM_BAGGAGE.trim(),
         });
       });
 
@@ -380,7 +382,7 @@ describe('_addTracingHeadersToFetchRequest', () => {
         expect(Object.fromEntries(returnedHeaders!.entries())).toEqual({
           'custom-header': 'custom-value',
           'sentry-trace': CUSTOM_SENTRY_TRACE,
-          baggage: CUSTOM_BAGGAGE,
+          baggage: CUSTOM_BAGGAGE.trim(),
         });
       });
 
@@ -401,7 +403,7 @@ describe('_addTracingHeadersToFetchRequest', () => {
         expect(Object.fromEntries(returnedHeaders!.entries())).toEqual({
           'custom-header': 'custom-value',
           'sentry-trace': CUSTOM_SENTRY_TRACE,
-          baggage: CUSTOM_BAGGAGE,
+          baggage: CUSTOM_BAGGAGE.trim(),
         });
       });
     });
