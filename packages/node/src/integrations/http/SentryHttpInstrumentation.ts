@@ -12,6 +12,7 @@ import type { AggregationCounts, Client, SanitizedRequestData, Scope } from '@se
 import {
   addBreadcrumb,
   addNonEnumerableProperty,
+  flush,
   generateSpanId,
   getBreadcrumbLogLevelFromHttpStatusCode,
   getClient,
@@ -22,6 +23,7 @@ import {
   logger,
   parseUrl,
   stripUrlQueryAndFragment,
+  vercelWaitUntil,
   withIsolationScope,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
@@ -48,6 +50,15 @@ export type SentryHttpInstrumentationOptions = InstrumentationConfig & {
    * @default `false`
    */
   extractIncomingTraceFromHeader?: boolean;
+
+  /**
+   * If this is true, we try to patch the server response to ensure we flush on serverless platforms.
+   * For now, this is only the case when running on Vercel and when the OTEL Http instrumentation is not added,
+   * as otherwise that takes care of this (with slightly different timing mechanics).
+   *
+   * @default `false`
+   */
+  patchResponseForServerless?: boolean;
 
   /**
    * Do not capture breadcrumbs for outgoing HTTP requests to URLs where the given callback returns `true`.
@@ -112,9 +123,15 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
     // but we only want to register them once, whichever is loaded first
     let hasRegisteredHandlers = false;
 
+    const patchResponseForServerless = this.getConfig().patchResponseForServerless;
+
     const onHttpServerRequestStart = ((_data: unknown) => {
-      const data = _data as { server: http.Server };
+      const data = _data as { server: http.Server; response: http.ServerResponse };
       this._patchServerEmitOnce(data.server);
+
+      if (patchResponseForServerless) {
+        patchResponseToFlushOnServerlessPlatformsOnce(data.response);
+      }
     }) satisfies ChannelListener;
 
     const onHttpClientResponseFinish = ((_data: unknown) => {
@@ -127,6 +144,29 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
       this._onOutgoingRequestFinish(data.request, undefined);
     }) satisfies ChannelListener;
 
+    const registerHandlers = <T extends Http | Https>(moduleExports: T): T => {
+      if (hasRegisteredHandlers) {
+        return moduleExports;
+      }
+
+      hasRegisteredHandlers = true;
+
+      subscribe('http.server.request.start', onHttpServerRequestStart);
+      subscribe('http.client.response.finish', onHttpClientResponseFinish);
+
+      // When an error happens, we still want to have a breadcrumb
+      // In this case, `http.client.response.finish` is not triggered
+      subscribe('http.client.request.error', onHttpClientRequestError);
+
+      return moduleExports;
+    };
+
+    const unregisterHandlers = (): void => {
+      unsubscribe('http.server.request.start', onHttpServerRequestStart);
+      unsubscribe('http.client.response.finish', onHttpClientResponseFinish);
+      unsubscribe('http.client.request.error', onHttpClientRequestError);
+    };
+
     /**
      * You may be wondering why we register these diagnostics-channel listeners
      * in such a convoluted way (as InstrumentationNodeModuleDefinition...)˝,
@@ -136,56 +176,8 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
      * especially the "import-on-top" pattern of setting up ESM applications.
      */
     return [
-      new InstrumentationNodeModuleDefinition(
-        'http',
-        ['*'],
-        (moduleExports: Http): Http => {
-          if (hasRegisteredHandlers) {
-            return moduleExports;
-          }
-
-          hasRegisteredHandlers = true;
-
-          subscribe('http.server.request.start', onHttpServerRequestStart);
-          subscribe('http.client.response.finish', onHttpClientResponseFinish);
-
-          // When an error happens, we still want to have a breadcrumb
-          // In this case, `http.client.response.finish` is not triggered
-          subscribe('http.client.request.error', onHttpClientRequestError);
-
-          return moduleExports;
-        },
-        () => {
-          unsubscribe('http.server.request.start', onHttpServerRequestStart);
-          unsubscribe('http.client.response.finish', onHttpClientResponseFinish);
-          unsubscribe('http.client.request.error', onHttpClientRequestError);
-        },
-      ),
-      new InstrumentationNodeModuleDefinition(
-        'https',
-        ['*'],
-        (moduleExports: Https): Https => {
-          if (hasRegisteredHandlers) {
-            return moduleExports;
-          }
-
-          hasRegisteredHandlers = true;
-
-          subscribe('http.server.request.start', onHttpServerRequestStart);
-          subscribe('http.client.response.finish', onHttpClientResponseFinish);
-
-          // When an error happens, we still want to have a breadcrumb
-          // In this case, `http.client.response.finish` is not triggered
-          subscribe('http.client.request.error', onHttpClientRequestError);
-
-          return moduleExports;
-        },
-        () => {
-          unsubscribe('http.server.request.start', onHttpServerRequestStart);
-          unsubscribe('http.client.response.finish', onHttpClientResponseFinish);
-          unsubscribe('http.client.request.error', onHttpClientRequestError);
-        },
-      ),
+      new InstrumentationNodeModuleDefinition('http', ['*'], registerHandlers, unregisterHandlers),
+      new InstrumentationNodeModuleDefinition('https', ['*'], registerHandlers, unregisterHandlers),
     ];
   }
 
@@ -526,6 +518,75 @@ export function recordRequestSession({
         }, sessionFlushingDelayMS).unref();
       }
     }
+  });
+}
+
+/** Ensure this is patched once. */
+export function patchResponseToFlushOnServerlessPlatformsOnce(res: http.ServerResponse): void {
+  // This means it was already patched, do nothing
+  if ((res as { __sentry_patched__?: boolean }).__sentry_patched__) {
+    return;
+  }
+
+  // For now, only patch on Vercel
+  if (!process.env.VERCEL) {
+    return;
+  }
+
+  addNonEnumerableProperty(res, '__sentry_patched__', true);
+
+  // This is vercel specific handling to flush events before the lambda freezes
+  DEBUG_BUILD && logger.log('Patching response to flush on Vercel');
+
+  // In some cases res.end does not seem to be defined leading to errors if passed to Proxy
+  // https://github.com/getsentry/sentry-javascript/issues/15759
+  if (typeof res.end !== 'function') {
+    DEBUG_BUILD && logger.warn('res.end is not a function, skipping patch...');
+    return;
+  }
+
+  let markOnEndDone = (): void => undefined;
+  const onEndDonePromise = new Promise<void>(res => {
+    markOnEndDone = res;
+  });
+
+  res.on('close', () => {
+    markOnEndDone();
+  });
+
+  logger.log('Patching res.end()');
+
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  res.end = new Proxy(res.end, {
+    apply(target, thisArg, argArray) {
+      vercelWaitUntil(
+        new Promise<void>(finishWaitUntil => {
+          // Define a timeout that unblocks the lambda just to be safe so we're not indefinitely keeping it alive, exploding server bills
+          const timeout = setTimeout(() => {
+            finishWaitUntil();
+          }, 2000);
+
+          onEndDonePromise
+            .then(() => {
+              DEBUG_BUILD && logger.log('Flushing events before Vercel Lambda freeze');
+              return flush(2000);
+            })
+            .then(
+              () => {
+                clearTimeout(timeout);
+                finishWaitUntil();
+              },
+              e => {
+                clearTimeout(timeout);
+                DEBUG_BUILD && logger.log('Error while flushing events for Vercel:\n', e);
+                finishWaitUntil();
+              },
+            );
+        }),
+      );
+
+      return target.apply(thisArg, argArray);
+    },
   });
 }
 

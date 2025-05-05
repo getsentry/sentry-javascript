@@ -4,10 +4,6 @@ import express from 'express';
 
 const app = express();
 
-app.get('/test/express', (_req, res) => {
-  res.send({ response: 'response 1' });
-});
-
 app.get('/test/error', () => {
   throw new Error('test error');
 });
