@@ -420,19 +420,36 @@ function setHeaderOnXhr(
   sentryTraceHeader: string,
   sentryBaggageHeader: string | undefined,
 ): void {
+  const originalHeaders = xhr.__sentry_xhr_v3__?.request_headers;
+
+  if (originalHeaders?.['sentry-trace']) {
+    // bail if a sentry-trace header is already set
+    return;
+  }
+
   try {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     xhr.setRequestHeader!('sentry-trace', sentryTraceHeader);
     if (sentryBaggageHeader) {
-      // From MDN: "If this method is called several times with the same header, the values are merged into one single request header."
-      // We can therefore simply set a baggage header without checking what was there before
-      // https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/setRequestHeader
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      xhr.setRequestHeader!('baggage', sentryBaggageHeader);
+      // only add our headers if
+      // - no pre-existing baggage header exists
+      // - or it is set and doesn't yet contain sentry values
+      const originalBaggageHeader = originalHeaders?.['baggage'];
+      if (!originalBaggageHeader || !baggageHeaderHasSentryValues(originalBaggageHeader)) {
+        // From MDN: "If this method is called several times with the same header, the values are merged into one single request header."
+        // We can therefore simply set a baggage header without checking what was there before
+        // https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/setRequestHeader
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        xhr.setRequestHeader!('baggage', sentryBaggageHeader);
+      }
     }
   } catch (_) {
     // Error: InvalidStateError: Failed to execute 'setRequestHeader' on 'XMLHttpRequest': The object's state must be OPENED.
   }
+}
+
+function baggageHeaderHasSentryValues(baggageHeader: string): boolean {
+  return baggageHeader.split(',').some(value => value.trim().startsWith('sentry-'));
 }
 
 function getFullURL(url: string): string | undefined {
