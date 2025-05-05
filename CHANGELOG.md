@@ -10,6 +10,28 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+### Important Changes
+
+- **fix(node): Avoid double-wrapping http module ([#16177](https://github.com/getsentry/sentry-javascript/pull/16177))**
+
+When running your application in ESM mode, there have been scenarios that resulted in the `http`/`https` emitting duplicate spans for incoming requests. This was apparently caused by us double-wrapping the modules for incoming request isolation.
+
+In order to solve this problem, the modules are no longer monkey patched by us for request isolation. Instead, we register diagnostics*channel hooks to handle request isolation now.
+While this is generally not expected to break anything, there is one tiny change that \_may* affect you if you have been relying on very specific functionality:
+
+The `ignoreOutgoingRequests` option of `httpIntegration` receives the `RequestOptions` as second argument. This type is not changed, however due to how the wrapping now works, we no longer pass through the full RequestOptions, but re-construct this partially based on the generated request. For the vast majority of cases, this should be fine, but for the sake of completeness, these are the only fields that may be available there going forward - other fields that _may_ have existed before may no longer be set:
+
+```ts
+ignoreOutgoingRequests(url: string, {
+  method: string;
+  protocol: string;
+  host: string;
+  hostname: string; // same as host
+  path: string;
+  headers: OutgoingHttpHeaders;
+})
+```
+
 ## 9.15.0
 
 ### Important Changes

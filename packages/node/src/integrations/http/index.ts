@@ -151,6 +151,7 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
+      // TODO: get rid of this too
       // Below, we instrument the Node.js HTTP API three times. 2 times Sentry-specific, 1 time OTEL specific.
       // Due to timing reasons, we sometimes need to apply Sentry instrumentation _before_ we apply the OTEL
       // instrumentation (e.g. to flush on serverless platforms), and sometimes we need to apply Sentry instrumentation
@@ -165,19 +166,19 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
 
       const instrumentSpans = _shouldInstrumentSpans(options, getClient<NodeClient>()?.getOptions());
 
-      // This is the "regular" OTEL instrumentation that emits spans
-      if (instrumentSpans) {
-        const instrumentationConfig = getConfigWithDefaults(options);
-        instrumentOtelHttp(instrumentationConfig);
-      }
-
-      // This is Sentry-specific instrumentation that is applied _after_ any OTEL instrumentation.
+      // This is Sentry-specific instrumentation for request isolation and breadcrumbs
       instrumentSentryHttp({
         ...options,
         // If spans are not instrumented, it means the HttpInstrumentation has not been added
         // In that case, we want to handle incoming trace extraction ourselves
         extractIncomingTraceFromHeader: !instrumentSpans,
       });
+
+      // This is the "regular" OTEL instrumentation that emits spans
+      if (instrumentSpans) {
+        const instrumentationConfig = getConfigWithDefaults(options);
+        instrumentOtelHttp(instrumentationConfig);
+      }
     },
   };
 });
