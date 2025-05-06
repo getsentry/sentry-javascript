@@ -15,6 +15,7 @@ import type { CloudflareOptions } from './client';
 import { isInstrumented, markAsInstrumented } from './instrument';
 import { wrapRequestHandler } from './request';
 import { init } from './sdk';
+import { getFinalOptions } from './options';
 
 type MethodWrapperOptions = {
   spanName?: string;
@@ -140,7 +141,7 @@ export function instrumentDurableObjectWithSentry<E, T extends DurableObject<E>>
     construct(target, [context, env]) {
       setAsyncLocalStorageAsyncContextStrategy();
 
-      const options = optionsCallback(env);
+      const options = getFinalOptions(optionsCallback(env), env);
 
       const obj = new target(context, env);
 

@@ -9,6 +9,7 @@ import {
 import { setAsyncLocalStorageAsyncContextStrategy } from './async';
 import type { CloudflareOptions } from './client';
 import { isInstrumented, markAsInstrumented } from './instrument';
+import { getFinalOptions } from './options';
 import { wrapRequestHandler } from './request';
 import { addCloudResourceContext } from './scope-utils';
 import { init } from './sdk';
@@ -35,9 +36,8 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
       handler.fetch = new Proxy(handler.fetch, {
         apply(target, thisArg, args: Parameters<ExportedHandlerFetchHandler<Env, CfHostMetadata>>) {
           const [request, env, context] = args;
-          const callbackOptions = optionsCallback(env);
 
-          const options = { ...getOptionsFromEnv(env), ...callbackOptions };
+          const options = getFinalOptions(optionsCallback(env), env);
 
           return wrapRequestHandler({ options, request, context }, () => target.apply(thisArg, args));
         },
@@ -51,9 +51,7 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
         apply(target, thisArg, args: Parameters<ExportedHandlerScheduledHandler<Env>>) {
           const [event, env, context] = args;
           return withIsolationScope(isolationScope => {
-            const callbackOptions = optionsCallback(env);
-
-            const options = { ...getOptionsFromEnv(env), ...callbackOptions };
+            const options = getFinalOptions(optionsCallback(env), env);
 
             const client = init(options);
             isolationScope.setClient(client);
@@ -96,14 +94,4 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
   }
 
   return handler;
-}
-
-function getOptionsFromEnv(env: unknown): CloudflareOptions {
-  if (typeof env !== 'object' || env === null) {
-    return {};
-  }
-
-  return {
-    release: 'SENTRY_RELEASE' in env && typeof env.SENTRY_RELEASE === 'string' ? env.SENTRY_RELEASE : undefined,
-  };
 }
