@@ -25,7 +25,10 @@ export function loggingTransport(_options: BaseTransportOptions): Transport {
  * Setting this port to something specific is useful for local debugging but dangerous for
  * CI/CD environments where port collisions can cause flakes!
  */
-export function startExpressServerAndSendPortToRunner(app: Express, port: number | undefined = undefined): void {
+export function startExpressServerAndSendPortToRunner(
+  app: Pick<Express, 'listen'>,
+  port: number | undefined = undefined,
+): void {
   const server = app.listen(port || 0, () => {
     const address = server.address() as AddressInfo;
 
