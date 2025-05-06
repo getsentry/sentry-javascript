@@ -74,6 +74,14 @@ interface HttpOptions {
   ignoreIncomingRequests?: (urlPath: string, request: IncomingMessage) => boolean;
 
   /**
+   * Do not capture spans for incoming HTTP requests with the given status codes.
+   * By default, spans with 404 status code are ignored.
+   *
+   * @default `[404]`
+   */
+  dropSpansForIncomingRequestStatusCodes?: (number | RegExp)[];
+
+  /**
    * Do not capture the request body for incoming HTTP requests to URLs where the given callback returns `true`.
    * This can be useful for long running requests where the body is not needed and we want to avoid capturing it.
    *
@@ -148,6 +156,8 @@ export function _shouldInstrumentSpans(options: HttpOptions, clientOptions: Part
  * It creates breadcrumbs and spans for outgoing HTTP requests which will be attached to the currently active span.
  */
 export const httpIntegration = defineIntegration((options: HttpOptions = {}) => {
+  const dropSpansForIncomingRequestStatusCodes = options.dropSpansForIncomingRequestStatusCodes ?? [404];
+
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
@@ -179,6 +189,22 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
         const instrumentationConfig = getConfigWithDefaults(options);
         instrumentOtelHttp(instrumentationConfig);
       }
+    },
+    processEvent(event) {
+      // Drop transaction if it has a status code that should be ignored
+      if (event.type === 'transaction') {
+        const statusCode = event.contexts?.trace?.data?.['http.response.status_code'];
+        if (
+          typeof statusCode === 'number' &&
+          dropSpansForIncomingRequestStatusCodes.some(code =>
+            typeof code === 'number' ? code === statusCode : code.test(statusCode.toString()),
+          )
+        ) {
+          return null;
+        }
+      }
+
+      return event;
     },
   };
 });
