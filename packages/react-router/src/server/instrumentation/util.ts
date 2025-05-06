@@ -1,4 +1,17 @@
 /**
+ * Gets the op name for a request based on whether it's a loader or action request.
+ * @param pathName The URL pathname to check
+ * @param requestMethod The HTTP request method
+ */
+export function getOpName(pathName: string, requestMethod: string): string {
+  return isLoaderRequest(pathName, requestMethod)
+    ? 'function.react-router.loader'
+    : isActionRequest(pathName, requestMethod)
+      ? 'function.react-router.action'
+      : 'function.react-router';
+}
+
+/**
  * Gets the span name for a request based on whether it's a loader or action request.
  * @param pathName The URL pathname to check
  * @param requestMethod The HTTP request method

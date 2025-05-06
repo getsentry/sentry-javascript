@@ -12,7 +12,7 @@ import {
 } from '@sentry/core';
 import type * as reactRouter from 'react-router';
 import { DEBUG_BUILD } from '../../common/debug-build';
-import { getSpanName, isDataRequest } from './util';
+import { getOpName, getSpanName, isDataRequest } from './util';
 
 type ReactRouterModuleExports = typeof reactRouter;
 
@@ -87,7 +87,7 @@ export class ReactRouterInstrumentation extends InstrumentationBase<Instrumentat
                   attributes: {
                     [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
                     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react-router',
-                    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react-router.loader',
+                    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: getOpName(url.pathname, request.method),
                     url: url.pathname,
                     method: request.method,
                   },
