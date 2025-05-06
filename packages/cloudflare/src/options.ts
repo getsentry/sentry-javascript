@@ -10,14 +10,11 @@ import type { CloudflareOptions } from './client';
  * @returns The final options.
  */
 export function getFinalOptions(userOptions: CloudflareOptions, env: unknown): CloudflareOptions {
-  function getOptionsFromEnv(env: unknown): CloudflareOptions {
-    if (typeof env !== 'object' || env === null) {
-      return {};
-    }
-
-    return {
-      release: 'SENTRY_RELEASE' in env && typeof env.SENTRY_RELEASE === 'string' ? env.SENTRY_RELEASE : undefined,
-    };
+  if (typeof env !== 'object' || env === null) {
+    return userOptions;
   }
-  return { ...getOptionsFromEnv(env), ...userOptions };
+
+  const release = 'SENTRY_RELEASE' in env && typeof env.SENTRY_RELEASE === 'string' ? env.SENTRY_RELEASE : undefined;
+
+  return { release, ...userOptions };
 }
