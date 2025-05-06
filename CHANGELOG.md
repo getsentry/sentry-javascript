@@ -10,7 +10,6 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-
 ## 9.16.0
 
 ### Important changes
@@ -58,7 +57,6 @@ ignoreOutgoingRequests(url: string, {
 - fix(feedback): Prevent `removeFromDom()` from throwing ([#16030](https://github.com/getsentry/sentry-javascript/pull/16030))
 - fix(node): Use class constructor in docstring for winston transport ([#16167](https://github.com/getsentry/sentry-javascript/pull/16167))
 - ref(core): Switch to standardized log envelope ([#16133](https://github.com/getsentry/sentry-javascript/pull/16133))
-
 
 ## 9.15.0
 
