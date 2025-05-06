@@ -93,8 +93,7 @@ describe('express v5 tracing', () => {
       const runner = createRunner()
         .expect({
           transaction: {
-            // FIXME: This is wrong :(
-            transaction: 'GET /',
+            transaction: 'GET /does-not-exist',
             contexts: {
               trace: {
                 span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -103,8 +102,6 @@ describe('express v5 tracing', () => {
                   'http.response.status_code': 404,
                   url: expect.stringMatching(/\/does-not-exist$/),
                   'http.method': 'GET',
-                  // FIXME: This is wrong :(
-                  'http.route': '/',
                   'http.url': expect.stringMatching(/\/does-not-exist$/),
                   'http.target': '/does-not-exist',
                 },
