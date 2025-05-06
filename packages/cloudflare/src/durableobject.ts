@@ -13,6 +13,7 @@ import type { DurableObject } from 'cloudflare:workers';
 import { setAsyncLocalStorageAsyncContextStrategy } from './async';
 import type { CloudflareOptions } from './client';
 import { isInstrumented, markAsInstrumented } from './instrument';
+import { getFinalOptions } from './options';
 import { wrapRequestHandler } from './request';
 import { init } from './sdk';
 
@@ -140,7 +141,7 @@ export function instrumentDurableObjectWithSentry<E, T extends DurableObject<E>>
     construct(target, [context, env]) {
       setAsyncLocalStorageAsyncContextStrategy();
 
-      const options = optionsCallback(env);
+      const options = getFinalOptions(optionsCallback(env), env);
 
       const obj = new target(context, env);
 
