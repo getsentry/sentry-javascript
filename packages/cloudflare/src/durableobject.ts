@@ -13,9 +13,9 @@ import type { DurableObject } from 'cloudflare:workers';
 import { setAsyncLocalStorageAsyncContextStrategy } from './async';
 import type { CloudflareOptions } from './client';
 import { isInstrumented, markAsInstrumented } from './instrument';
+import { getFinalOptions } from './options';
 import { wrapRequestHandler } from './request';
 import { init } from './sdk';
-import { getFinalOptions } from './options';
 
 type MethodWrapperOptions = {
   spanName?: string;
