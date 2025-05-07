@@ -12,7 +12,6 @@ import { addOriginToSpan } from '../../utils/addOriginToSpan';
 import { getRequestUrl } from '../../utils/getRequestUrl';
 import type { SentryHttpInstrumentationOptions } from './SentryHttpInstrumentation';
 import { SentryHttpInstrumentation } from './SentryHttpInstrumentation';
-import { SentryHttpInstrumentationBeforeOtel } from './SentryHttpInstrumentationBeforeOtel';
 
 const INTEGRATION_NAME = 'Http';
 
@@ -117,10 +116,6 @@ interface HttpOptions {
   };
 }
 
-const instrumentSentryHttpBeforeOtel = generateInstrumentOnce(`${INTEGRATION_NAME}.sentry-before-otel`, () => {
-  return new SentryHttpInstrumentationBeforeOtel();
-});
-
 const instrumentSentryHttp = generateInstrumentOnce<SentryHttpInstrumentationOptions>(
   `${INTEGRATION_NAME}.sentry`,
   options => {
@@ -162,19 +157,6 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
-      // TODO: get rid of this too
-      // Below, we instrument the Node.js HTTP API three times. 2 times Sentry-specific, 1 time OTEL specific.
-      // Due to timing reasons, we sometimes need to apply Sentry instrumentation _before_ we apply the OTEL
-      // instrumentation (e.g. to flush on serverless platforms), and sometimes we need to apply Sentry instrumentation
-      // _after_ we apply OTEL instrumentation (e.g. for isolation scope handling and breadcrumbs).
-
-      // This is Sentry-specific instrumentation that is applied _before_ any OTEL instrumentation.
-      if (process.env.VERCEL) {
-        // Currently this instrumentation only does something when deployed on Vercel, so to save some overhead, we short circuit adding it here only for Vercel.
-        // If it's functionality is extended in the future, feel free to remove the if statement and this comment.
-        instrumentSentryHttpBeforeOtel();
-      }
-
       const instrumentSpans = _shouldInstrumentSpans(options, getClient<NodeClient>()?.getOptions());
 
       // This is Sentry-specific instrumentation for request isolation and breadcrumbs
