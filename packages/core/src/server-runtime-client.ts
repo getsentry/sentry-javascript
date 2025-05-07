@@ -52,6 +52,7 @@ export class ServerRuntimeClient<
     if (this._options._experiments?.enableLogs) {
       // eslint-disable-next-line @typescript-eslint/no-this-alias
       const client = this;
+
       client.on('flushLogs', () => {
         client._logWeight = 0;
         clearTimeout(client._logFlushIdleTimeout);
@@ -71,6 +72,10 @@ export class ServerRuntimeClient<
             _INTERNAL_flushLogsBuffer(client);
           }, DEFAULT_LOG_FLUSH_INTERVAL);
         }
+      });
+
+      client.on('flush', () => {
+        _INTERNAL_flushLogsBuffer(client);
       });
     }
   }
