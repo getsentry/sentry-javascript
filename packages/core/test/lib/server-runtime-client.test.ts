@@ -278,5 +278,25 @@ describe('ServerRuntimeClient', () => {
       expect(sendEnvelopeSpy).not.toHaveBeenCalled();
       expect(client['_logWeight']).toBe(0);
     });
+
+    it('flushes logs when flush event is triggered', () => {
+      const options = getDefaultClientOptions({
+        dsn: PUBLIC_DSN,
+        _experiments: { enableLogs: true },
+      });
+      client = new ServerRuntimeClient(options);
+
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
+
+      // Add some logs
+      _INTERNAL_captureLog({ message: 'test1', level: 'info' }, client);
+      _INTERNAL_captureLog({ message: 'test2', level: 'info' }, client);
+
+      // Trigger flush event
+      client.emit('flush');
+
+      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
+      expect(client['_logWeight']).toBe(0); // Weight should be reset after flush
+    });
   });
 });
