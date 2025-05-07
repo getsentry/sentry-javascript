@@ -157,7 +157,7 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
         // On Vercel, we want to patch the response to flush on Vercel Lambda freeze
         // This is usually done in the OTEL Http Instrumentation, but if that is not added,
         // we do it here instead
-        patchResponseForServerless: !instrumentSpans && !!process.env.VERCEL,
+        patchResponseForServerless: !instrumentSpans && !!process.env.VERCEL && !options.disableIncomingRequestSpans,
       });
 
       // This is the "regular" OTEL instrumentation that emits spans
