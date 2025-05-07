@@ -1,11 +1,9 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
-import { getGlobalScope } from '@sentry/core';
 import type { Event, EventType } from '@sentry/core';
-import * as SentryNode from '@sentry/node';
+import { getGlobalScope } from '@sentry/core';
 import type { NodeClient } from '@sentry/node';
+import * as SentryNode from '@sentry/node';
 import { SDK_VERSION } from '@sentry/node';
-
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { init as reactRouterInit, lowQualityTransactionsFilter } from '../../src/server/sdk';
 
 const nodeInit = vi.spyOn(SentryNode, 'init');
