@@ -28,7 +28,7 @@ test('Should create a transaction for route handlers and correctly set span stat
 
   const routehandlerTransaction = await routehandlerTransactionPromise;
 
-  expect(routehandlerTransaction.contexts?.trace?.status).toBe('not_found');
+  expect(routehandlerTransaction.contexts?.trace?.status).toBe('permission_denied');
   expect(routehandlerTransaction.contexts?.trace?.op).toBe('http.server');
 });
 

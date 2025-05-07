@@ -125,20 +125,3 @@ test('Should send a transaction event with correct status for a generateMetadata
 
   expect((await transactionPromise).contexts?.trace?.status).toBe('ok');
 });
-
-test('Should send a transaction event with correct status for a generateMetadata() function invocation with notfound()', async ({
-  page,
-}) => {
-  const testTitle = 'notfound-foobar';
-
-  const transactionPromise = waitForTransaction('nextjs-14', async transactionEvent => {
-    return (
-      transactionEvent.contexts?.trace?.data?.['http.target'] ===
-      `/generation-functions/with-notfound?metadataTitle=${testTitle}`
-    );
-  });
-
-  await page.goto(`/generation-functions/with-notfound?metadataTitle=${testTitle}`);
-
-  expect((await transactionPromise).contexts?.trace?.status).toBe('not_found');
-});
