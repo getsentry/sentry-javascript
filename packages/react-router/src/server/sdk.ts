@@ -26,11 +26,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
   return client;
 }
 
-const matchedRegexes = [
-  /GET \/node_modules\//,
-  /GET \/favicon\.ico/,
-  /GET \/@id\//,
-];
+const matchedRegexes = [/GET \/node_modules\//, /GET \/favicon\.ico/, /GET \/@id\//];
 
 /**
  * Filters out noisy transactions such as requests to node_modules, favicon.ico, @id/
@@ -41,14 +37,12 @@ const matchedRegexes = [
 export function lowQualityTransactionsFilter(options: NodeOptions): EventProcessor {
   return Object.assign(
     (event => {
-
       if (event.type !== 'transaction' || !event.transaction) {
         return event;
       }
 
       if (matchedRegexes.some(regex => event.transaction?.match(regex))) {
-        options.debug &&
-          logger.log('[ReactRouter] Filtered node_modules transaction:', event.transaction);
+        options.debug && logger.log('[ReactRouter] Filtered node_modules transaction:', event.transaction);
         return null;
       }
 

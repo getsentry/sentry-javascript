@@ -80,34 +80,25 @@ describe('React Router server SDK', () => {
       });
 
       describe('filters out low quality transactions', () => {
-        it.each([
-          'GET /node_modules/react/index.js',
-          'GET /favicon.ico',
-          'GET /@id/package',
-        ])('%s', async (transaction) => {
-          client.captureEvent({ type: 'transaction', transaction });
+        it.each(['GET /node_modules/react/index.js', 'GET /favicon.ico', 'GET /@id/package'])(
+          '%s',
+          async transaction => {
+            client.captureEvent({ type: 'transaction', transaction });
 
-          await client.flush();
+            await client.flush();
 
-          expect(beforeSendEvent).not.toHaveBeenCalled();
-        });
+            expect(beforeSendEvent).not.toHaveBeenCalled();
+          },
+        );
       });
 
       describe('allows high quality transactions', () => {
-        it.each([
-          'GET /',
-          'GET /users',
-          'POST /api/data',
-          'GET /projects/123',
-        ])('%s', async (transaction) => {
+        it.each(['GET /', 'GET /users', 'POST /api/data', 'GET /projects/123'])('%s', async transaction => {
           client.captureEvent({ type: 'transaction', transaction });
 
           await client.flush();
 
-          expect(beforeSendEvent).toHaveBeenCalledWith(
-            expect.objectContaining({ transaction }),
-            expect.any(Object)
-          );
+          expect(beforeSendEvent).toHaveBeenCalledWith(expect.objectContaining({ transaction }), expect.any(Object));
         });
       });
     });
@@ -118,7 +109,7 @@ describe('React Router server SDK', () => {
       it.each([
         ['node_modules request', 'GET /node_modules/react/index.js'],
         ['favicon.ico request', 'GET /favicon.ico'],
-        ['@id request', 'GET /@id/package']
+        ['@id request', 'GET /@id/package'],
       ])('%s', (description, transaction) => {
         const filter = lowQualityTransactionsFilter({});
         const event = {
@@ -134,7 +125,7 @@ describe('React Router server SDK', () => {
       it.each([
         ['normal page request', 'GET /users'],
         ['API request', 'POST /api/users'],
-        ['app route', 'GET /projects/123']
+        ['app route', 'GET /projects/123'],
       ])('%s', (description, transaction) => {
         const filter = lowQualityTransactionsFilter({});
         const event = {
