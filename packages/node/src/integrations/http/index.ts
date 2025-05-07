@@ -76,10 +76,11 @@ interface HttpOptions {
   /**
    * Do not capture spans for incoming HTTP requests with the given status codes.
    * By default, spans with 404 status code are ignored.
+   * Expects an array of status codes or a range of status codes, e.g. [[300,399], 404] would ignore 3xx and 404 status codes.
    *
    * @default `[404]`
    */
-  dropSpansForIncomingRequestStatusCodes?: (number | RegExp)[];
+  dropSpansForIncomingRequestStatusCodes?: (number | [number, number])[];
 
   /**
    * Do not capture the request body for incoming HTTP requests to URLs where the given callback returns `true`.
@@ -196,9 +197,14 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
         const statusCode = event.contexts?.trace?.data?.['http.response.status_code'];
         if (
           typeof statusCode === 'number' &&
-          dropSpansForIncomingRequestStatusCodes.some(code =>
-            typeof code === 'number' ? code === statusCode : code.test(statusCode.toString()),
-          )
+          dropSpansForIncomingRequestStatusCodes.some(code => {
+            if (typeof code === 'number') {
+              return code === statusCode;
+            }
+
+            const [min, max] = code;
+            return statusCode >= min && statusCode <= max;
+          })
         ) {
           return null;
         }
