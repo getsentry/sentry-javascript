@@ -10,6 +10,11 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 9.16.1
+
+- fix(core): Make sure logs get flushed in server-runtime-client ([#16222](https://github.com/getsentry/sentry-javascript/pull/16222))
+- ref(node): Remove vercel flushing code that does nothing ([#16217](https://github.com/getsentry/sentry-javascript/pull/16217))
+
 ## 9.16.0
 
 ### Important changes
