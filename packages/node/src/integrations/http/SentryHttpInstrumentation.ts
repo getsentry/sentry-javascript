@@ -18,13 +18,17 @@ import {
   getCurrentScope,
   getIsolationScope,
   getSanitizedUrlString,
+  getTraceData,
   httpRequestToRequestData,
   logger,
+  LRUMap,
   parseUrl,
   stripUrlQueryAndFragment,
   withIsolationScope,
 } from '@sentry/core';
+import { shouldPropagateTraceForUrl } from '@sentry/opentelemetry';
 import { DEBUG_BUILD } from '../../debug-build';
+import { mergeBaggageHeaders } from '../../utils/baggage';
 import { getRequestUrl } from '../../utils/getRequestUrl';
 
 const INSTRUMENTATION_NAME = '@sentry/instrumentation-http';
@@ -48,6 +52,15 @@ export type SentryHttpInstrumentationOptions = InstrumentationConfig & {
    * @default `false`
    */
   extractIncomingTraceFromHeader?: boolean;
+
+  /**
+   * Whether to propagate Sentry trace headers in ougoing requests.
+   * By default this is done by the HttpInstrumentation, but if that is not added (e.g. because tracing is disabled, ...)
+   * then this instrumentation can take over.
+   *
+   * @default `false`
+   */
+  propagateTraceInOutgoingRequests?: boolean;
 
   /**
    * Do not capture breadcrumbs for outgoing HTTP requests to URLs where the given callback returns `true`.
@@ -102,8 +115,12 @@ const MAX_BODY_BYTE_LENGTH = 1024 * 1024;
  * https://github.com/open-telemetry/opentelemetry-js/blob/f8ab5592ddea5cba0a3b33bf8d74f27872c0367f/experimental/packages/opentelemetry-instrumentation-http/src/http.ts
  */
 export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpInstrumentationOptions> {
+  private _propagationDecisionMap: LRUMap<string, boolean>;
+
   public constructor(config: SentryHttpInstrumentationOptions = {}) {
     super(INSTRUMENTATION_NAME, VERSION, config);
+
+    this._propagationDecisionMap = new LRUMap<string, boolean>(100);
   }
 
   /** @inheritdoc */
@@ -125,6 +142,11 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
     const onHttpClientRequestError = ((_data: unknown) => {
       const data = _data as { request: http.ClientRequest };
       this._onOutgoingRequestFinish(data.request, undefined);
+    }) satisfies ChannelListener;
+
+    const onHttpClientRequestCreated = ((_data: unknown) => {
+      const data = _data as { request: http.ClientRequest };
+      this._onOutgoingRequestCreated(data.request);
     }) satisfies ChannelListener;
 
     /**
@@ -153,12 +175,19 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
           // In this case, `http.client.response.finish` is not triggered
           subscribe('http.client.request.error', onHttpClientRequestError);
 
+          // NOTE: This channel only exist since Node 23
+          // Before that, outgoing requests are not patched, sadly
+          if (this.getConfig().propagateTraceInOutgoingRequests) {
+            subscribe('http.client.request.created', onHttpClientRequestCreated);
+          }
+
           return moduleExports;
         },
         () => {
           unsubscribe('http.server.request.start', onHttpServerRequestStart);
           unsubscribe('http.client.response.finish', onHttpClientResponseFinish);
           unsubscribe('http.client.request.error', onHttpClientRequestError);
+          unsubscribe('http.client.request.created', onHttpClientRequestCreated);
         },
       ),
       new InstrumentationNodeModuleDefinition(
@@ -206,6 +235,49 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
 
     if (breadCrumbsEnabled && shouldCreateBreadcrumb) {
       addRequestBreadcrumb(request, response);
+    }
+  }
+
+  /**
+   * This is triggered when an outgoing request is created.
+   * It has access to the request object, and can mutate it before the request is sent.
+   */
+  private _onOutgoingRequestCreated(request: http.ClientRequest): void {
+    const url = getRequestUrl(request);
+    const ignoreOutgoingRequests = this.getConfig().ignoreOutgoingRequests;
+    const shouldPropagate =
+      typeof ignoreOutgoingRequests === 'function' ? !ignoreOutgoingRequests(url, getRequestOptions(request)) : true;
+
+    if (!shouldPropagate) {
+      return;
+    }
+
+    // Manually add the trace headers, if it applies
+    // Note: We do not use `propagation.inject()` here, because our propagator relies on an active span
+    // Which we do not have in this case
+    const tracePropagationTargets = getClient()?.getOptions().tracePropagationTargets;
+    const addedHeaders = shouldPropagateTraceForUrl(url, tracePropagationTargets, this._propagationDecisionMap)
+      ? getTraceData()
+      : undefined;
+
+    if (!addedHeaders) {
+      return;
+    }
+
+    const { 'sentry-trace': sentryTrace, baggage } = addedHeaders;
+
+    // We do not want to overwrite existing header here, if it was already set
+    if (sentryTrace && !request.getHeader('sentry-trace')) {
+      request.setHeader('sentry-trace', sentryTrace);
+      logger.log(INSTRUMENTATION_NAME, 'Added sentry-trace header to outgoing request');
+    }
+
+    if (baggage) {
+      // For baggage, we make sure to merge this into a possibly existing header
+      const newBaggage = mergeBaggageHeaders(request.getHeader('baggage'), baggage);
+      if (newBaggage) {
+        request.setHeader('baggage', newBaggage);
+      }
     }
   }
 
