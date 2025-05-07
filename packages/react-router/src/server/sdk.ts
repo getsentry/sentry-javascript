@@ -26,8 +26,14 @@ export function init(options: NodeOptions): NodeClient | undefined {
   return client;
 }
 
+const matchedRegexes = [
+  /GET \/node_modules\//,
+  /GET \/favicon\.ico/,
+  /GET \/@id\//,
+];
+
 /**
- * Filters out noisy transactions such as requests to node_modules
+ * Filters out noisy transactions such as requests to node_modules, favicon.ico, @id/
  *
  * @param options The NodeOptions passed to the SDK
  * @returns An EventProcessor that filters low-quality transactions
@@ -35,11 +41,12 @@ export function init(options: NodeOptions): NodeClient | undefined {
 export function lowQualityTransactionsFilter(options: NodeOptions): EventProcessor {
   return Object.assign(
     (event => {
+
       if (event.type !== 'transaction' || !event.transaction) {
         return event;
       }
 
-      if (event.transaction.match(/\/node_modules\//)) {
+      if (matchedRegexes.some(regex => event.transaction?.match(regex))) {
         options.debug &&
           logger.log('[ReactRouter] Filtered node_modules transaction:', event.transaction);
         return null;
