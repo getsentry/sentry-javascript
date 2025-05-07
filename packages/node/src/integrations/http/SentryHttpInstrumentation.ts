@@ -70,6 +70,22 @@ export type SentryHttpInstrumentationOptions = InstrumentationConfig & {
   ignoreIncomingRequestBody?: (url: string, request: http.RequestOptions) => boolean;
 
   /**
+   * Controls the maximum size of HTTP request bodies attached to events.
+   *
+   * Available options:
+   * - 'none': No request bodies will be attached
+   * - 'small': Request bodies up to 1,000 bytes will be attached
+   * - 'medium': Request bodies up to 10,000 bytes will be attached (default)
+   * - 'always': Request bodies will always be attached
+   *
+   * Note that even with 'always' setting, bodies exceeding 1MB will never be attached
+   * for performance and security reasons.
+   *
+   * @default 'medium'
+   */
+  maxRequestBodySize?: 'none' | 'small' | 'medium' | 'always';
+
+  /**
    * Whether the integration should create [Sessions](https://docs.sentry.io/product/releases/health/#sessions) for incoming requests to track the health and crash-free rate of your releases in Sentry.
    * Read more about Release Health: https://docs.sentry.io/product/releases/health/
    *
@@ -226,7 +242,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
 
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const instrumentation = this;
-    const { ignoreIncomingRequestBody } = instrumentation.getConfig();
+    const { ignoreIncomingRequestBody, maxRequestBodySize = 'medium' } = instrumentation.getConfig();
 
     const newEmit = new Proxy(originalEmit, {
       apply(target, thisArg, args: [event: string, ...args: unknown[]]) {
@@ -247,8 +263,8 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
         const ipAddress = (request as { ip?: string }).ip || request.socket?.remoteAddress;
 
         const url = request.url || '/';
-        if (!ignoreIncomingRequestBody?.(url, request)) {
-          patchRequestToCaptureBody(request, isolationScope);
+        if (!ignoreIncomingRequestBody?.(url, request) || maxRequestBodySize !== 'none') {
+          patchRequestToCaptureBody(request, isolationScope, maxRequestBodySize);
         }
 
         // Update the isolation scope, isolate this request
@@ -353,7 +369,11 @@ function getBreadcrumbData(request: http.ClientRequest): Partial<SanitizedReques
  * we monkey patch `req.on('data')` to intercept the body chunks.
  * This way, we only read the body if the user also consumes the body, ensuring we do not change any behavior in unexpected ways.
  */
-function patchRequestToCaptureBody(req: http.IncomingMessage, isolationScope: Scope): void {
+function patchRequestToCaptureBody(
+  req: http.IncomingMessage,
+  isolationScope: Scope,
+  maxRequestBodySize: 'none' | 'small' | 'medium' | 'always',
+): void {
   let bodyByteLength = 0;
   const chunks: Buffer[] = [];
 
@@ -366,6 +386,13 @@ function patchRequestToCaptureBody(req: http.IncomingMessage, isolationScope: Sc
    */
   const callbackMap = new WeakMap();
 
+  if (maxRequestBodySize === 'none') {
+    return;
+  }
+
+  const maxBodySize =
+    maxRequestBodySize === 'small' ? 1_000 : maxRequestBodySize === 'medium' ? 10_000 : MAX_BODY_BYTE_LENGTH;
+
   try {
     // eslint-disable-next-line @typescript-eslint/unbound-method
     req.on = new Proxy(req.on, {
@@ -373,20 +400,23 @@ function patchRequestToCaptureBody(req: http.IncomingMessage, isolationScope: Sc
         const [event, listener, ...restArgs] = args;
 
         if (event === 'data') {
-          DEBUG_BUILD && logger.log(INSTRUMENTATION_NAME, 'Handling request.on("data")');
+          if (DEBUG_BUILD) {
+            logger.log(INSTRUMENTATION_NAME, 'Handling request.on("data")');
+            logger.log(INSTRUMENTATION_NAME, `Requested maximum body size: ${maxBodySize}b`);
+          }
           const callback = new Proxy(listener, {
             apply: (target, thisArg, args: Parameters<typeof listener>) => {
               try {
                 const chunk = args[0] as Buffer | string;
                 const bufferifiedChunk = Buffer.from(chunk);
 
-                if (bodyByteLength < MAX_BODY_BYTE_LENGTH) {
+                if (bodyByteLength < maxBodySize) {
                   chunks.push(bufferifiedChunk);
                   bodyByteLength += bufferifiedChunk.byteLength;
                 } else if (DEBUG_BUILD) {
                   logger.log(
                     INSTRUMENTATION_NAME,
-                    `Dropping request body chunk because maximum body length of ${MAX_BODY_BYTE_LENGTH}b is exceeded.`,
+                    `Dropping request body chunk because maximum body length of ${maxBodySize}b is exceeded.`,
                   );
                 }
               } catch (err) {
@@ -429,7 +459,16 @@ function patchRequestToCaptureBody(req: http.IncomingMessage, isolationScope: Sc
       try {
         const body = Buffer.concat(chunks).toString('utf-8');
         if (body) {
-          isolationScope.setSDKProcessingMetadata({ normalizedRequest: { data: body } });
+          // Using Buffer.byteLength here, because the body may contain characters that are not 1 byte long
+          const bodyByteLength = Buffer.byteLength(body, 'utf-8');
+          const truncatedBody =
+            bodyByteLength > maxBodySize
+              ? `${Buffer.from(body)
+                  .subarray(0, maxBodySize - 3)
+                  .toString('utf-8')}...`
+              : body;
+
+          isolationScope.setSDKProcessingMetadata({ normalizedRequest: { data: truncatedBody } });
         }
       } catch (error) {
         if (DEBUG_BUILD) {
