@@ -1,3 +1,12 @@
+import {
+  SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SEMANTIC_ATTRIBUTE_URL_FULL,
+} from '../semanticAttributes';
+import type { SpanAttributes } from '../types-hoist/span';
+
 type PartialURL = {
   host?: string;
   path?: string;
@@ -105,6 +114,88 @@ export function getSanitizedUrlStringFromUrlObject(url: URLObject): string {
   }
 
   return newUrl.toString();
+}
+
+type PartialRequest = {
+  method?: string;
+};
+
+function getHttpSpanNameFromUrlObject(
+  urlObject: URLObject | undefined,
+  request?: PartialRequest,
+  routeName?: string,
+): string {
+  const method = request?.method?.toUpperCase() ?? 'GET';
+  const route = routeName ? routeName : urlObject ? getSanitizedUrlStringFromUrlObject(urlObject) : '/';
+
+  return `${method} ${route}`;
+}
+
+/**
+ * Takes a parsed URL object and returns a set of attributes for the span
+ * that represents the HTTP request for that url. This is used for both server
+ * and client http spans.
+ *
+ * Follows https://opentelemetry.io/docs/specs/semconv/http/.
+ *
+ * @param urlObject - see {@link parseStringToURLObject}
+ * @param httpType - The type of HTTP operation (server or client)
+ * @param spanOrigin - The origin of the span
+ * @param request - The request object, see {@link PartialRequest}
+ * @param routeName - The name of the route, must be low cardinality
+ * @returns The span name and attributes for the HTTP operation
+ */
+export function getHttpSpanDetailsFromUrlObject(
+  urlObject: URLObject | undefined,
+  httpType: 'server' | 'client',
+  spanOrigin: string,
+  request?: PartialRequest,
+  routeName?: string,
+): [name: string, attributes: SpanAttributes] {
+  const attributes: SpanAttributes = {
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
+    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `http.${httpType}`,
+  };
+
+  if (routeName) {
+    attributes['http.route'] = routeName;
+    attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'route';
+  }
+
+  if (request?.method) {
+    attributes[SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD] = request.method.toUpperCase();
+  }
+
+  if (urlObject) {
+    if (urlObject.search) {
+      attributes['url.query'] = urlObject.search;
+    }
+    if (urlObject.hash) {
+      attributes['url.fragment'] = urlObject.hash;
+    }
+    if (urlObject.pathname) {
+      attributes['url.path'] = urlObject.pathname;
+      if (urlObject.pathname === '/') {
+        attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'route';
+      }
+    }
+
+    if (!isURLObjectRelative(urlObject)) {
+      attributes[SEMANTIC_ATTRIBUTE_URL_FULL] = urlObject.href;
+      if (urlObject.port) {
+        attributes['url.port'] = urlObject.port;
+      }
+      if (urlObject.protocol) {
+        attributes['url.scheme'] = urlObject.protocol;
+      }
+      if (urlObject.hostname) {
+        attributes['server.address'] = urlObject.hostname;
+      }
+    }
+  }
+
+  return [getHttpSpanNameFromUrlObject(urlObject, request, routeName), attributes];
 }
 
 /**

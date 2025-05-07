@@ -1,17 +1,12 @@
 import type { ExecutionContext, IncomingRequestCfProperties } from '@cloudflare/workers-types';
-import type { SpanAttributes } from '@sentry/core';
 import {
   captureException,
   continueTrace,
   flush,
-  SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  SEMANTIC_ATTRIBUTE_URL_FULL,
+  getHttpSpanDetailsFromUrlObject,
+  parseStringToURLObject,
   setHttpStatus,
   startSpan,
-  stripUrlQueryAndFragment,
   withIsolationScope,
 } from '@sentry/core';
 import type { CloudflareOptions } from './client';
@@ -42,27 +37,12 @@ export function wrapRequestHandler(
     const client = init(options);
     isolationScope.setClient(client);
 
-    const attributes: SpanAttributes = {
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.cloudflare',
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
-      [SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD]: request.method,
-      [SEMANTIC_ATTRIBUTE_URL_FULL]: request.url,
-    };
+    const urlObject = parseStringToURLObject(request.url);
+    const [name, attributes] = getHttpSpanDetailsFromUrlObject(urlObject, 'server', 'auto.http.cloudflare', request);
 
     const contentLength = request.headers.get('content-length');
     if (contentLength) {
       attributes['http.request.body.size'] = parseInt(contentLength, 10);
-    }
-
-    let pathname = '';
-    try {
-      const url = new URL(request.url);
-      pathname = url.pathname;
-      attributes['server.address'] = url.hostname;
-      attributes['url.scheme'] = url.protocol.replace(':', '');
-    } catch {
-      // skip
     }
 
     addCloudResourceContext(isolationScope);
@@ -73,8 +53,6 @@ export function wrapRequestHandler(
         attributes['network.protocol.name'] = request.cf.httpProtocol;
       }
     }
-
-    const routeName = `${request.method} ${pathname ? stripUrlQueryAndFragment(pathname) : '/'}`;
 
     // Do not capture spans for OPTIONS and HEAD requests
     if (request.method === 'OPTIONS' || request.method === 'HEAD') {
@@ -96,7 +74,7 @@ export function wrapRequestHandler(
         // See: https://developers.cloudflare.com/workers/runtime-apis/performance/
         return startSpan(
           {
-            name: routeName,
+            name,
             attributes,
           },
           async span => {
