@@ -109,12 +109,12 @@ test('Should record transaction and error for a trpc handler that returns a stat
   const transactionEventPromise = waitForTransaction('node-express', transactionEvent => {
     return (
       transactionEvent.transaction === 'POST /trpc' &&
-      !!transactionEvent.spans?.find(span => span.description === 'trpc/dontFindSomething')
+      !!transactionEvent.spans?.find(span => span.description === 'trpc/unauthorized')
     );
   });
 
   const errorEventPromise = waitForError('node-express', errorEvent => {
-    return !!errorEvent?.exception?.values?.some(exception => exception.value?.includes('Page not found'));
+    return !!errorEvent?.exception?.values?.some(exception => exception.value?.includes('Unauthorized'));
   });
 
   const trpcClient = createTRPCProxyClient<AppRouter>({
@@ -125,7 +125,7 @@ test('Should record transaction and error for a trpc handler that returns a stat
     ],
   });
 
-  await expect(trpcClient.dontFindSomething.mutate()).rejects.toBeDefined();
+  await expect(trpcClient.unauthorized.mutate()).rejects.toBeDefined();
 
   await expect(transactionEventPromise).resolves.toBeDefined();
   await expect(errorEventPromise).resolves.toBeDefined();

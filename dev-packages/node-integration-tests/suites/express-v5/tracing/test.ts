@@ -77,7 +77,7 @@ describe('express v5 tracing', () => {
       await runner.completed();
     });
 
-    test('handles root page correctly', async () => {
+    test('handles root route correctly', async () => {
       const runner = createRunner()
         .expect({
           transaction: {
@@ -89,30 +89,17 @@ describe('express v5 tracing', () => {
       await runner.completed();
     });
 
-    test('handles 404 page correctly', async () => {
+    test('ignores 404 routes by default', async () => {
       const runner = createRunner()
         .expect({
+          // No transaction is sent for the 404 route
           transaction: {
-            transaction: 'GET /does-not-exist',
-            contexts: {
-              trace: {
-                span_id: expect.stringMatching(/[a-f0-9]{16}/),
-                trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-                data: {
-                  'http.response.status_code': 404,
-                  url: expect.stringMatching(/\/does-not-exist$/),
-                  'http.method': 'GET',
-                  'http.url': expect.stringMatching(/\/does-not-exist$/),
-                  'http.target': '/does-not-exist',
-                },
-                op: 'http.server',
-                status: 'not_found',
-              },
-            },
+            transaction: 'GET /',
           },
         })
         .start();
       runner.makeRequest('get', '/does-not-exist', { expectError: true });
+      runner.makeRequest('get', '/');
       await runner.completed();
     });
 
@@ -289,5 +276,57 @@ describe('express v5 tracing', () => {
         await runner.completed();
       });
     });
+  });
+
+  describe('filter status codes', () => {
+    createEsmAndCjsTests(
+      __dirname,
+      'scenario-filterStatusCode.mjs',
+      'instrument-filterStatusCode.mjs',
+      (createRunner, test) => {
+        // We opt-out of the default 404 filtering in order to test how 404 spans are handled
+        test('handles 404 route correctly', async () => {
+          const runner = createRunner()
+            .expect({
+              transaction: {
+                transaction: 'GET /does-not-exist',
+                contexts: {
+                  trace: {
+                    span_id: expect.stringMatching(/[a-f0-9]{16}/),
+                    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                    data: {
+                      'http.response.status_code': 404,
+                      url: expect.stringMatching(/\/does-not-exist$/),
+                      'http.method': 'GET',
+                      'http.url': expect.stringMatching(/\/does-not-exist$/),
+                      'http.target': '/does-not-exist',
+                    },
+                    op: 'http.server',
+                    status: 'not_found',
+                  },
+                },
+              },
+            })
+            .start();
+          runner.makeRequest('get', '/does-not-exist', { expectError: true });
+          await runner.completed();
+        });
+
+        test('filters defined status codes', async () => {
+          const runner = createRunner()
+            .expect({
+              transaction: {
+                transaction: 'GET /',
+              },
+            })
+            .start();
+          await runner.makeRequest('get', '/499', { expectError: true });
+          await runner.makeRequest('get', '/300', { expectError: true });
+          await runner.makeRequest('get', '/399', { expectError: true });
+          await runner.makeRequest('get', '/');
+          await runner.completed();
+        });
+      },
+    );
   });
 });
