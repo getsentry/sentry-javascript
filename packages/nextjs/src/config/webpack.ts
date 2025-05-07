@@ -7,6 +7,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { sync as resolveSync } from 'resolve';
 import type { VercelCronsConfig } from '../common/types';
+import { getBuildPluginOptions } from './buildPluginOptions';
 // Note: If you need to import a type from Webpack, do it in `types.ts` and export it from there. Otherwise, our
 // circular dependency check thinks this file is importing from itself. See https://github.com/pahen/madge/issues/306.
 import type {
@@ -20,8 +21,7 @@ import type {
   WebpackConfigObjectWithModuleRules,
   WebpackEntryProperty,
 } from './types';
-import { getNextjsVersion } from './util';
-import { getWebpackPluginOptions } from './webpackPluginOptions';
+import { getNextjsVersion, setWebpackBuildFunctionCalled } from './util';
 
 // Next.js runs webpack 3 times, once for the client, the server, and for edge. Because we don't want to print certain
 // warnings 3 times, we keep track of them here.
@@ -51,6 +51,8 @@ export function constructWebpackConfigFunction(
     incomingConfig: WebpackConfigObject,
     buildContext: BuildContext,
   ): WebpackConfigObject {
+    setWebpackBuildFunctionCalled();
+
     const { isServer, dev: isDev, dir: projectDir } = buildContext;
     const runtime = isServer ? (buildContext.nextRuntime === 'edge' ? 'edge' : 'server') : 'client';
     // Default page extensions per https://github.com/vercel/next.js/blob/f1dbc9260d48c7995f6c52f8fbcc65f08e627992/packages/next/server/config-shared.ts#L161
@@ -392,8 +394,19 @@ export function constructWebpackConfigFunction(
         }
 
         newConfig.plugins = newConfig.plugins || [];
+
+        const mode = ({ client: 'webpack-client', server: 'webpack-nodejs', edge: 'webpack-edge' } as const)[runtime];
+
+        // We need to convert paths to posix because Glob patterns use `\` to escape
+        // glob characters. This clashes with Windows path separators.
+        // See: https://www.npmjs.com/package/glob
+        const projectDir = buildContext.dir.replace(/\\/g, '/');
+        // `.next` is the default directory
+        const distDir = (userNextConfig as NextConfigObject).distDir?.replace(/\\/g, '/') ?? '.next';
+        const distDirAbsPath = path.posix.join(projectDir, distDir);
+
         const sentryWebpackPluginInstance = sentryWebpackPlugin(
-          getWebpackPluginOptions(buildContext, userSentryOptions, releaseName),
+          getBuildPluginOptions(userSentryOptions, releaseName, mode, distDirAbsPath),
         );
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         sentryWebpackPluginInstance._name = 'sentry-webpack-plugin'; // For tests and debugging. Serves no other purpose.

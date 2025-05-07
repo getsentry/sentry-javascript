@@ -5,6 +5,7 @@ import { getSentryRelease } from '@sentry/node';
 import * as childProcess from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import { handleAfterProductionCompile } from './runAfterProductionCompile';
 import type {
   ExportedNextConfig as NextConfig,
   NextConfigFunction,
@@ -203,6 +204,30 @@ function getFinalConfigObject(
         );
       }
     }
+  }
+
+  // Used for turbopack. Runs sourcemaps upload & release management via the `runAfterProductionCompile` hook.
+  if (incomingUserNextConfigObject?.compiler?.runAfterProductionCompile === undefined) {
+    incomingUserNextConfigObject.compiler ??= {};
+    incomingUserNextConfigObject.compiler.runAfterProductionCompile = async ({ distDir }) => {
+      await handleAfterProductionCompile({ releaseName, distDir }, userSentryOptions);
+    };
+  } else if (typeof incomingUserNextConfigObject.compiler.runAfterProductionCompile === 'function') {
+    incomingUserNextConfigObject.compiler.runAfterProductionCompile = new Proxy(
+      incomingUserNextConfigObject.compiler.runAfterProductionCompile,
+      {
+        async apply(target, thisArg, argArray) {
+          const { distDir }: { distDir: string } = argArray[0] ?? { distDir: '.next' }; // should never be undefined but to be defensive
+          await target.apply(thisArg, argArray);
+          await handleAfterProductionCompile({ releaseName, distDir }, userSentryOptions);
+        },
+      },
+    );
+  } else {
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[@sentry/nextjs] The configured `compiler.runAfterProductionCompile` option is not a function. Will not run source map and release management logic.',
+    );
   }
 
   return {

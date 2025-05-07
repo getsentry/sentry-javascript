@@ -1,32 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import type { BuildContext, NextConfigObject } from '../../../src/config/types';
-import { getWebpackPluginOptions } from '../../../src/config/webpackPluginOptions';
+import { getBuildPluginOptions } from '../../../src/config/buildPluginOptions';
 
-function generateBuildContext(overrides: {
-  dir?: string;
-  isServer: boolean;
-  nextjsConfig?: NextConfigObject;
-}): BuildContext {
-  return {
-    dev: false, // The plugin is not included in dev mode
-    isServer: overrides.isServer,
-    buildId: 'test-build-id',
-    dir: overrides.dir ?? '/my/project/dir',
-    config: overrides.nextjsConfig ?? {},
-    totalPages: 2,
-    defaultLoaders: true,
-    webpack: {
-      version: '4.0.0',
-      DefinePlugin: {} as any,
-    },
-  };
-}
-
-describe('getWebpackPluginOptions()', () => {
+describe('getBuildPluginOptions()', () => {
   it('forwards relevant options', () => {
-    const buildContext = generateBuildContext({ isServer: false });
-    const generatedPluginOptions = getWebpackPluginOptions(
-      buildContext,
+    const generatedPluginOptions = getBuildPluginOptions(
       {
         authToken: 'my-auth-token',
         headers: { 'my-test-header': 'test' },
@@ -59,6 +36,8 @@ describe('getWebpackPluginOptions()', () => {
         },
       },
       'my-release',
+      'webpack-client',
+      '/my/project/dir/.next',
     );
 
     expect(generatedPluginOptions.authToken).toBe('my-auth-token');
@@ -118,9 +97,7 @@ describe('getWebpackPluginOptions()', () => {
   });
 
   it('forwards bundleSizeOptimization options', () => {
-    const buildContext = generateBuildContext({ isServer: false });
-    const generatedPluginOptions = getWebpackPluginOptions(
-      buildContext,
+    const generatedPluginOptions = getBuildPluginOptions(
       {
         bundleSizeOptimizations: {
           excludeTracing: true,
@@ -128,6 +105,8 @@ describe('getWebpackPluginOptions()', () => {
         },
       },
       undefined,
+      'webpack-client',
+      '/my/project/dir/.next',
     );
 
     expect(generatedPluginOptions).toMatchObject({
@@ -139,8 +118,7 @@ describe('getWebpackPluginOptions()', () => {
   });
 
   it('returns the right `assets` and `ignore` values during the server build', () => {
-    const buildContext = generateBuildContext({ isServer: true });
-    const generatedPluginOptions = getWebpackPluginOptions(buildContext, {}, undefined);
+    const generatedPluginOptions = getBuildPluginOptions({}, undefined, 'webpack-nodejs', '/my/project/dir/.next');
     expect(generatedPluginOptions.sourcemaps).toMatchObject({
       assets: ['/my/project/dir/.next/server/**', '/my/project/dir/.next/serverless/**'],
       ignore: [],
@@ -148,8 +126,7 @@ describe('getWebpackPluginOptions()', () => {
   });
 
   it('returns the right `assets` and `ignore` values during the client build', () => {
-    const buildContext = generateBuildContext({ isServer: false });
-    const generatedPluginOptions = getWebpackPluginOptions(buildContext, {}, undefined);
+    const generatedPluginOptions = getBuildPluginOptions({}, undefined, 'webpack-client', '/my/project/dir/.next');
     expect(generatedPluginOptions.sourcemaps).toMatchObject({
       assets: ['/my/project/dir/.next/static/chunks/pages/**', '/my/project/dir/.next/static/chunks/app/**'],
       ignore: [
@@ -163,8 +140,12 @@ describe('getWebpackPluginOptions()', () => {
   });
 
   it('returns the right `assets` and `ignore` values during the client build with `widenClientFileUpload`', () => {
-    const buildContext = generateBuildContext({ isServer: false });
-    const generatedPluginOptions = getWebpackPluginOptions(buildContext, { widenClientFileUpload: true }, undefined);
+    const generatedPluginOptions = getBuildPluginOptions(
+      { widenClientFileUpload: true },
+      undefined,
+      'webpack-client',
+      '/my/project/dir/.next',
+    );
     expect(generatedPluginOptions.sourcemaps).toMatchObject({
       assets: ['/my/project/dir/.next/static/chunks/**'],
       ignore: [
@@ -178,20 +159,24 @@ describe('getWebpackPluginOptions()', () => {
   });
 
   it('sets `sourcemaps.disable` plugin options to true when `sourcemaps.disable` is true', () => {
-    const buildContext = generateBuildContext({ isServer: false });
-    const generatedPluginOptions = getWebpackPluginOptions(buildContext, { sourcemaps: { disable: true } }, undefined);
+    const generatedPluginOptions = getBuildPluginOptions(
+      { sourcemaps: { disable: true } },
+      undefined,
+      'webpack-client',
+      '/my/project/dir/.next',
+    );
     expect(generatedPluginOptions.sourcemaps).toMatchObject({
       disable: true,
     });
   });
 
   it('passes posix paths to the plugin', () => {
-    const buildContext = generateBuildContext({
-      dir: 'C:\\my\\windows\\project\\dir',
-      nextjsConfig: { distDir: '.dist\\v1' },
-      isServer: false,
-    });
-    const generatedPluginOptions = getWebpackPluginOptions(buildContext, { widenClientFileUpload: true }, undefined);
+    const generatedPluginOptions = getBuildPluginOptions(
+      { widenClientFileUpload: true },
+      undefined,
+      'webpack-client',
+      'C:\\my\\windows\\project\\dir\\.dist\\v1',
+    );
     expect(generatedPluginOptions.sourcemaps).toMatchObject({
       assets: ['C:/my/windows/project/dir/.dist/v1/static/chunks/**'],
       ignore: [
@@ -205,8 +190,7 @@ describe('getWebpackPluginOptions()', () => {
   });
 
   it('sets options to not create a release or do any release operations when releaseName is undefined', () => {
-    const buildContext = generateBuildContext({ isServer: false });
-    const generatedPluginOptions = getWebpackPluginOptions(buildContext, {}, undefined);
+    const generatedPluginOptions = getBuildPluginOptions({}, undefined, 'webpack-client', '/my/project/dir/.next');
 
     expect(generatedPluginOptions).toMatchObject({
       release: {
