@@ -13,6 +13,9 @@ Sentry.init({
   debug: !!process.env.DEBUG,
   tunnel: `http://localhost:3031/`, // proxy server
   tracesSampleRate: 1,
+  _experiments: {
+    enableLogs: true,
+  },
 });
 
 import { TRPCError, initTRPC } from '@trpc/server';
@@ -28,6 +31,11 @@ app.use(mcpRouter);
 
 app.get('/test-success', function (req, res) {
   res.send({ version: 'v1' });
+});
+
+app.get('/test-log', function (req, res) {
+  Sentry.logger.debug('Accessed /test-log route');
+  res.send({ message: 'Log sent' });
 });
 
 app.get('/test-param/:param', function (req, res) {
@@ -123,8 +131,8 @@ export const appRouter = t.router({
     .mutation(() => {
       throw new Error('I crashed in a trpc handler');
     }),
-  dontFindSomething: procedure.mutation(() => {
-    throw new TRPCError({ code: 'NOT_FOUND', cause: new Error('Page not found') });
+  unauthorized: procedure.mutation(() => {
+    throw new TRPCError({ code: 'UNAUTHORIZED', cause: new Error('Unauthorized') });
   }),
 });
 

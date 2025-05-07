@@ -39,7 +39,6 @@
     "ai": "^4.0.6",
     "amqplib": "^0.10.7",
     "apollo-server": "^3.11.1",
-    "axios": "^1.7.7",
     "body-parser": "^1.20.3",
     "connect": "^3.7.0",
     "cors": "^2.8.5",

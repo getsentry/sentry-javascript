@@ -90,7 +90,6 @@ function decodeUTF8(input: Uint8Array): string {
  */
 export function serializeEnvelope(envelope: Envelope): string | Uint8Array {
   const [envHeaders, items] = envelope;
-
   // Initially we construct our envelope as a string and only convert to binary chunks if we encounter binary data
   let parts: string | Uint8Array[] = JSON.stringify(envHeaders);
 
@@ -221,7 +220,7 @@ const ITEM_TYPE_TO_DATA_CATEGORY_MAP: Record<EnvelopeItemType, DataCategory> = {
   feedback: 'feedback',
   span: 'span',
   raw_security: 'security',
-  otel_log: 'log_item',
+  log: 'log_item',
 };
 
 /**

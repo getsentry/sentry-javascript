@@ -89,9 +89,13 @@ export {
   spanToBaggageHeader,
   updateSpanName,
   wrapMcpServerWithSentry,
+  consoleLoggingIntegration,
 } from '@sentry/core';
 
+export * as logger from './logs/exports';
+
 export { withSentry } from './handler';
+export { instrumentDurableObjectWithSentry } from './durableobject';
 export { sentryPagesPlugin } from './pages-plugin';
 
 export { wrapRequestHandler } from './request';

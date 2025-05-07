@@ -74,6 +74,15 @@ interface HttpOptions {
   ignoreIncomingRequests?: (urlPath: string, request: IncomingMessage) => boolean;
 
   /**
+   * Do not capture spans for incoming HTTP requests with the given status codes.
+   * By default, spans with 404 status code are ignored.
+   * Expects an array of status codes or a range of status codes, e.g. [[300,399], 404] would ignore 3xx and 404 status codes.
+   *
+   * @default `[404]`
+   */
+  dropSpansForIncomingRequestStatusCodes?: (number | [number, number])[];
+
+  /**
    * Do not capture the request body for incoming HTTP requests to URLs where the given callback returns `true`.
    * This can be useful for long running requests where the body is not needed and we want to avoid capturing it.
    *
@@ -148,9 +157,12 @@ export function _shouldInstrumentSpans(options: HttpOptions, clientOptions: Part
  * It creates breadcrumbs and spans for outgoing HTTP requests which will be attached to the currently active span.
  */
 export const httpIntegration = defineIntegration((options: HttpOptions = {}) => {
+  const dropSpansForIncomingRequestStatusCodes = options.dropSpansForIncomingRequestStatusCodes ?? [404];
+
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
+      // TODO: get rid of this too
       // Below, we instrument the Node.js HTTP API three times. 2 times Sentry-specific, 1 time OTEL specific.
       // Due to timing reasons, we sometimes need to apply Sentry instrumentation _before_ we apply the OTEL
       // instrumentation (e.g. to flush on serverless platforms), and sometimes we need to apply Sentry instrumentation
@@ -165,19 +177,40 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
 
       const instrumentSpans = _shouldInstrumentSpans(options, getClient<NodeClient>()?.getOptions());
 
-      // This is the "regular" OTEL instrumentation that emits spans
-      if (instrumentSpans) {
-        const instrumentationConfig = getConfigWithDefaults(options);
-        instrumentOtelHttp(instrumentationConfig);
-      }
-
-      // This is Sentry-specific instrumentation that is applied _after_ any OTEL instrumentation.
+      // This is Sentry-specific instrumentation for request isolation and breadcrumbs
       instrumentSentryHttp({
         ...options,
         // If spans are not instrumented, it means the HttpInstrumentation has not been added
         // In that case, we want to handle incoming trace extraction ourselves
         extractIncomingTraceFromHeader: !instrumentSpans,
       });
+
+      // This is the "regular" OTEL instrumentation that emits spans
+      if (instrumentSpans) {
+        const instrumentationConfig = getConfigWithDefaults(options);
+        instrumentOtelHttp(instrumentationConfig);
+      }
+    },
+    processEvent(event) {
+      // Drop transaction if it has a status code that should be ignored
+      if (event.type === 'transaction') {
+        const statusCode = event.contexts?.trace?.data?.['http.response.status_code'];
+        if (
+          typeof statusCode === 'number' &&
+          dropSpansForIncomingRequestStatusCodes.some(code => {
+            if (typeof code === 'number') {
+              return code === statusCode;
+            }
+
+            const [min, max] = code;
+            return statusCode >= min && statusCode <= max;
+          })
+        ) {
+          return null;
+        }
+      }
+
+      return event;
     },
   };
 });
