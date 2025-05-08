@@ -70,7 +70,7 @@ describe('express with httpIntegration and maxRequestBodySize: "none"', () => {
     'scenario.mjs',
     'instrument-none.mjs',
     (createRunner, test) => {
-      test('does not capture any request bodies with none setting', async () => {
+      test('does not capture any request bodies with "none" setting', async () => {
         const runner = createRunner()
           .expect({
             transaction: {
@@ -90,7 +90,7 @@ describe('express with httpIntegration and maxRequestBodySize: "none"', () => {
         await runner.completed();
       });
 
-      test('does not capture any request bodies with none setting and "ignoreIncomingRequestBody"', async () => {
+      test('does not capture any request bodies with "none" setting and "ignoreIncomingRequestBody"', async () => {
         const runner = createRunner()
           .expect({
             transaction: {
