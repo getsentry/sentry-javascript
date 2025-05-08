@@ -89,6 +89,39 @@ describe('express with httpIntegration and maxRequestBodySize: "none"', () => {
 
         await runner.completed();
       });
+
+      test('does not capture any request bodies with none setting and "ignoreIncomingRequestBody"', async () => {
+        const runner = createRunner()
+          .expect({
+            transaction: {
+              transaction: 'POST /test-body-size',
+              request: expect.not.objectContaining({
+                data: expect.any(String),
+              }),
+            },
+          })
+          .expect({
+            transaction: {
+              transaction: 'POST /ignore-request-body',
+              request: expect.not.objectContaining({
+                data: expect.any(String),
+              }),
+            },
+          })
+          .start();
+
+        await runner.makeRequest('post', '/test-body-size', {
+          headers: { 'Content-Type': 'application/json' },
+          data: JSON.stringify(generatePayload(500)),
+        });
+
+        await runner.makeRequest('post', '/ignore-request-body', {
+          headers: { 'Content-Type': 'application/json' },
+          data: JSON.stringify(generatePayload(500)),
+        });
+
+        await runner.completed();
+      });
     },
     { failsOnEsm: false },
   );

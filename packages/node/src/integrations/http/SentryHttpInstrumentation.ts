@@ -263,7 +263,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
         const ipAddress = (request as { ip?: string }).ip || request.socket?.remoteAddress;
 
         const url = request.url || '/';
-        if (!ignoreIncomingRequestBody?.(url, request) || maxRequestBodySize !== 'none') {
+        if (!ignoreIncomingRequestBody?.(url, request) && maxRequestBodySize !== 'none') {
           patchRequestToCaptureBody(request, isolationScope, maxRequestBodySize);
         }
 
@@ -372,7 +372,7 @@ function getBreadcrumbData(request: http.ClientRequest): Partial<SanitizedReques
 function patchRequestToCaptureBody(
   req: http.IncomingMessage,
   isolationScope: Scope,
-  maxRequestBodySize: 'none' | 'small' | 'medium' | 'always',
+  maxRequestBodySize: 'small' | 'medium' | 'always',
 ): void {
   let bodyByteLength = 0;
   const chunks: Buffer[] = [];
@@ -386,10 +386,6 @@ function patchRequestToCaptureBody(
    */
   const callbackMap = new WeakMap();
 
-  if (maxRequestBodySize === 'none') {
-    return;
-  }
-
   const maxBodySize =
     maxRequestBodySize === 'small' ? 1_000 : maxRequestBodySize === 'medium' ? 10_000 : MAX_BODY_BYTE_LENGTH;
 
@@ -400,10 +396,9 @@ function patchRequestToCaptureBody(
         const [event, listener, ...restArgs] = args;
 
         if (event === 'data') {
-          if (DEBUG_BUILD) {
-            logger.log(INSTRUMENTATION_NAME, 'Handling request.on("data")');
-            logger.log(INSTRUMENTATION_NAME, `Requested maximum body size: ${maxBodySize}b`);
-          }
+          DEBUG_BUILD &&
+            logger.log(INSTRUMENTATION_NAME, `Handling request.on("data") with maximum body size of ${maxBodySize}b`);
+
           const callback = new Proxy(listener, {
             apply: (target, thisArg, args: Parameters<typeof listener>) => {
               try {

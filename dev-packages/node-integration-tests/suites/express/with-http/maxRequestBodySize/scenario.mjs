@@ -18,6 +18,15 @@ app.post('/test-body-size', (req, res) => {
   });
 });
 
+app.post('/ignore-request-body', (req, res) => {
+  const receivedSize = JSON.stringify(req.body).length;
+  res.json({
+    success: true,
+    receivedSize,
+    message: 'Payload processed successfully',
+  });
+});
+
 Sentry.setupExpressErrorHandler(app);
 
 startExpressServerAndSendPortToRunner(app);
