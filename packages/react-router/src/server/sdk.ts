@@ -1,15 +1,12 @@
-import type { Integration} from '@sentry/core';
+import type { Integration } from '@sentry/core';
 import { applySdkMetadata, logger, setTag } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
-import { getDefaultIntegrations as getNodeDefaultIntegrations,init as initNodeSdk} from '@sentry/node';
+import { getDefaultIntegrations as getNodeDefaultIntegrations, init as initNodeSdk } from '@sentry/node';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { lowQualityTransactionsFilterIntegration } from './lowQualityTransactionsFilterIntegration';
 
 function getDefaultIntegrations(options: NodeOptions): Integration[] {
-  return [
-    ... getNodeDefaultIntegrations(options),
-    lowQualityTransactionsFilterIntegration(options),
-  ];
+  return [...getNodeDefaultIntegrations(options), lowQualityTransactionsFilterIntegration(options)];
 }
 
 /**

@@ -17,7 +17,7 @@ describe('Low Quality Transactions Filter Integration', () => {
       it.each([
         ['node_modules requests', 'GET /node_modules/some-package/index.js'],
         ['favicon.ico requests', 'GET /favicon.ico'],
-        ['@id/ requests', 'GET /@id/some-id']
+        ['@id/ requests', 'GET /@id/some-id'],
       ])('%s', (description, transaction) => {
         const integration = lowQualityTransactionsFilterIntegration({ debug: true }) as Integration;
         const event = {
@@ -29,10 +29,7 @@ describe('Low Quality Transactions Filter Integration', () => {
 
         expect(result).toBeNull();
 
-        expect(loggerLog).toHaveBeenCalledWith(
-          '[ReactRouter] Filtered node_modules transaction:',
-          transaction
-        );
+        expect(loggerLog).toHaveBeenCalledWith('[ReactRouter] Filtered node_modules transaction:', transaction);
       });
     });
 
@@ -40,7 +37,7 @@ describe('Low Quality Transactions Filter Integration', () => {
       it.each([
         ['normal page requests', 'GET /api/users'],
         ['API endpoints', 'POST /data'],
-        ['app routes', 'GET /projects/123']
+        ['app routes', 'GET /projects/123'],
       ])('%s', (description, transaction) => {
         const integration = lowQualityTransactionsFilterIntegration({}) as Integration;
         const event = {

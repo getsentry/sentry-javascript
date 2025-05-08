@@ -66,7 +66,7 @@ describe('React Router server SDK', () => {
       expect(Array.isArray(defaultIntegrations)).toBe(true);
 
       const filterIntegration = defaultIntegrations.find(
-        integration => integration.name === 'LowQualityTransactionsFilter'
+        integration => integration.name === 'LowQualityTransactionsFilter',
       );
 
       expect(filterIntegration).toBeDefined();

@@ -1,4 +1,4 @@
-import { type Client,type Event, type EventHint, defineIntegration, logger } from '@sentry/core';
+import { type Client, type Event, type EventHint, defineIntegration, logger } from '@sentry/core';
 import type { NodeOptions } from '@sentry/node';
 
 /**
@@ -30,7 +30,6 @@ function _lowQualityTransactionsFilterIntegration(options: NodeOptions): {
   };
 }
 
-
-export const lowQualityTransactionsFilterIntegration = defineIntegration(
-  (options: NodeOptions) => _lowQualityTransactionsFilterIntegration(options),
+export const lowQualityTransactionsFilterIntegration = defineIntegration((options: NodeOptions) =>
+  _lowQualityTransactionsFilterIntegration(options),
 );
