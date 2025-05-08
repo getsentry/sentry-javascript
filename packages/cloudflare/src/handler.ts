@@ -1,6 +1,7 @@
 import {
   captureException,
   flush,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   startSpan,
@@ -66,7 +67,7 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
                   'faas.cron': event.cron,
                   'faas.time': new Date(event.scheduledTime).toISOString(),
                   'faas.trigger': 'timer',
-                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare',
+                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.scheduled',
                   [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
                 },
               },
@@ -87,8 +88,122 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
 
       markAsInstrumented(handler.scheduled);
     }
+
+    if ('email' in handler && typeof handler.email === 'function' && !isInstrumented(handler.email)) {
+      handler.email = new Proxy(handler.email, {
+        apply(target, thisArg, args: Parameters<EmailExportedHandler<Env>>) {
+          const [emailMessage, env, context] = args;
+          return withIsolationScope(isolationScope => {
+            const options = getFinalOptions(optionsCallback(env), env);
+
+            const client = init(options);
+            isolationScope.setClient(client);
+
+            addCloudResourceContext(isolationScope);
+
+            return startSpan(
+              {
+                op: 'faas.email',
+                name: `Handle Email ${emailMessage.to}`,
+                attributes: {
+                  'faas.trigger': 'email',
+                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.email',
+                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
+                },
+              },
+              async () => {
+                try {
+                  return await (target.apply(thisArg, args) as ReturnType<typeof target>);
+                } catch (e) {
+                  captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
+                  throw e;
+                } finally {
+                  context.waitUntil(flush(2000));
+                }
+              },
+            );
+          });
+        },
+      });
+
+      markAsInstrumented(handler.email);
+    }
+
+    if ('queue' in handler && typeof handler.queue === 'function' && !isInstrumented(handler.queue)) {
+      handler.queue = new Proxy(handler.queue, {
+        apply(target, thisArg, args: Parameters<ExportedHandlerQueueHandler<Env, QueueHandlerMessage>>) {
+          const [batch, env, context] = args;
+
+          return withIsolationScope(isolationScope => {
+            const options = getFinalOptions(optionsCallback(env), env);
+
+            const client = init(options);
+            isolationScope.setClient(client);
+
+            addCloudResourceContext(isolationScope);
+
+            return startSpan(
+              {
+                op: 'faas.queue',
+                name: `process ${batch.queue}`,
+                attributes: {
+                  'faas.trigger': 'pubsub',
+                  'messaging.destination.name': batch.queue,
+                  'messaging.system': 'cloudflare',
+                  'messaging.batch.message_count': batch.messages.length,
+                  'messaging.message.retry.count': batch.messages.reduce((acc, message) => acc + message.attempts, 0),
+                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'queue.process',
+                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.queue',
+                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
+                },
+              },
+              async () => {
+                try {
+                  return await (target.apply(thisArg, args) as ReturnType<typeof target>);
+                } catch (e) {
+                  captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
+                  throw e;
+                } finally {
+                  context.waitUntil(flush(2000));
+                }
+              },
+            );
+          });
+        },
+      });
+
+      markAsInstrumented(handler.queue);
+    }
+
+    if ('tail' in handler && typeof handler.tail === 'function' && !isInstrumented(handler.tail)) {
+      handler.tail = new Proxy(handler.tail, {
+        apply(target, thisArg, args: Parameters<ExportedHandlerTailHandler<Env>>) {
+          const [, env, context] = args;
+
+          return withIsolationScope(async isolationScope => {
+            const options = getFinalOptions(optionsCallback(env), env);
+
+            const client = init(options);
+            isolationScope.setClient(client);
+
+            addCloudResourceContext(isolationScope);
+
+            try {
+              return await (target.apply(thisArg, args) as ReturnType<typeof target>);
+            } catch (e) {
+              captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
+              throw e;
+            } finally {
+              context.waitUntil(flush(2000));
+            }
+          });
+        },
+      });
+
+      markAsInstrumented(handler.tail);
+    }
+
     // This is here because Miniflare sometimes cannot get instrumented
-    //
   } catch (e) {
     // Do not console anything here, we don't want to spam the console with errors
   }
