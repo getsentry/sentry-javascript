@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  getHttpSpanDetailsFromUrlObject,
   getSanitizedUrlString,
   getSanitizedUrlStringFromUrlObject,
   isURLObjectRelative,
@@ -344,11 +345,277 @@ describe('getSanitizedUrlStringFromUrlObject', () => {
     ['url with port 4433', 'http://172.31.12.144:4433/test', 'http://172.31.12.144:4433/test'],
     ['url with port 443', 'http://172.31.12.144:443/test', 'http://172.31.12.144/test'],
     ['url with IP and port 80', 'http://172.31.12.144:80/test', 'http://172.31.12.144/test'],
+    ['invalid URL', 'invalid-url', '/invalid-url'],
+    ['valid absolute URL with base', 'https://somedomain.com', 'https://somedomain.com/'],
+    ['relative URL', '/path/to/happiness', '/path/to/happiness'],
+    ['relative URL with query', '/path/to/happiness?q=1', '/path/to/happiness'],
+    ['relative URL with hash', '/path/to/happiness#section', '/path/to/happiness'],
+    ['relative URL with query and hash', '/path/to/happiness?q=1#section', '/path/to/happiness'],
+    [
+      'URL with special chars',
+      'https://somedomain.com/path/with spaces/and/special@chars',
+      'https://somedomain.com/path/with%20spaces/and/special@chars',
+    ],
+    [
+      'URL with unicode',
+      'https://somedomain.com/path/with/unicode/测试',
+      'https://somedomain.com/path/with/unicode/%E6%B5%8B%E8%AF%95',
+    ],
+    ['URL with multiple query params', 'https://somedomain.com/path?q1=1&q2=2&q3=3', 'https://somedomain.com/path'],
+    ['URL with encoded chars', 'https://somedomain.com/path/%20%2F%3F%23', 'https://somedomain.com/path/%20%2F%3F%23'],
+    ['URL with IPv4', 'https://192.168.1.1/path', 'https://192.168.1.1/path'],
+    ['URL with IPv6', 'https://[2001:db8::1]/path', 'https://[2001:db8::1]/path'],
+    ['URL with subdomain', 'https://sub.somedomain.com/path', 'https://sub.somedomain.com/path'],
+    ['URL with multiple subdomains', 'https://sub1.sub2.somedomain.com/path', 'https://sub1.sub2.somedomain.com/path'],
+    ['URL with trailing slash', 'https://somedomain.com/path/', 'https://somedomain.com/path/'],
+    ['URL with empty path', 'https://somedomain.com', 'https://somedomain.com/'],
+    ['URL with root path', 'https://somedomain.com/', 'https://somedomain.com/'],
+    ['URL with file extension', 'https://somedomain.com/path/file.html', 'https://somedomain.com/path/file.html'],
+    ['URL with custom protocol', 'custom://somedomain.com/path', 'custom://somedomain.com/path'],
+    [
+      'URL with query containing special chars',
+      'https://somedomain.com/path?q=hello+world&x=1/2',
+      'https://somedomain.com/path',
+    ],
+    [
+      'URL with hash containing special chars',
+      'https://somedomain.com/path#section/1/2',
+      'https://somedomain.com/path',
+    ],
+    [
+      'URL with all components',
+      'https://user:pass@sub.somedomain.com:8080/path/file.html?q=1#section',
+      'https://%filtered%:%filtered%@sub.somedomain.com:8080/path/file.html',
+    ],
   ])('returns a sanitized URL for a %s', (_, rawUrl: string, sanitizedURL: string) => {
     const urlObject = parseStringToURLObject(rawUrl);
     if (!urlObject) {
       throw new Error('Invalid URL');
     }
     expect(getSanitizedUrlStringFromUrlObject(urlObject)).toEqual(sanitizedURL);
+  });
+});
+
+describe('getHttpSpanDetailsFromUrlObject', () => {
+  it('handles undefined URL object', () => {
+    const [name, attributes] = getHttpSpanDetailsFromUrlObject(undefined, 'test-origin');
+    expect(name).toBe('GET /');
+    expect(attributes).toEqual({
+      'sentry.origin': 'test-origin',
+      'sentry.source': 'url',
+    });
+  });
+
+  it('handles relative URL object', () => {
+    const urlObject = parseStringToURLObject('/api/users')!;
+    const [name, attributes] = getHttpSpanDetailsFromUrlObject(urlObject, 'test-origin');
+    expect(name).toBe('GET /api/users');
+    expect(attributes).toEqual({
+      'sentry.origin': 'test-origin',
+      'sentry.source': 'url',
+      'url.path': '/api/users',
+    });
+  });
+
+  it('handles absolute URL object', () => {
+    const urlObject = parseStringToURLObject('https://example.com/api/users?q=test#section')!;
+    const [name, attributes] = getHttpSpanDetailsFromUrlObject(urlObject, 'test-origin');
+    expect(name).toBe('GET https://example.com/api/users');
+    expect(attributes).toEqual({
+      'sentry.origin': 'test-origin',
+      'sentry.source': 'url',
+      'url.path': '/api/users',
+      'url.query': '?q=test',
+      'url.fragment': '#section',
+      'url.full': 'https://example.com/api/users?q=test#section',
+      'server.address': 'example.com',
+      'url.scheme': 'https:',
+    });
+  });
+
+  it('handles URL object with request method', () => {
+    const urlObject = parseStringToURLObject('https://example.com/api/users')!;
+    const [name, attributes] = getHttpSpanDetailsFromUrlObject(urlObject, 'test-origin', { method: 'POST' });
+    expect(name).toBe('POST https://example.com/api/users');
+    expect(attributes).toEqual({
+      'sentry.origin': 'test-origin',
+      'sentry.source': 'url',
+      'url.path': '/api/users',
+      'url.full': 'https://example.com/api/users',
+      'server.address': 'example.com',
+      'url.scheme': 'https:',
+      'http.request.method': 'POST',
+    });
+  });
+
+  it('handles URL object with route name', () => {
+    const urlObject = parseStringToURLObject('https://example.com/api/users')!;
+    const [name, attributes] = getHttpSpanDetailsFromUrlObject(urlObject, 'test-origin', undefined, '/api/users/:id');
+    expect(name).toBe('GET /api/users/:id');
+    expect(attributes).toEqual({
+      'sentry.origin': 'test-origin',
+      'sentry.source': 'route',
+      'url.path': '/api/users',
+      'url.full': 'https://example.com/api/users',
+      'server.address': 'example.com',
+      'url.scheme': 'https:',
+      'http.route': '/api/users/:id',
+    });
+  });
+
+  it('handles root path URL', () => {
+    const urlObject = parseStringToURLObject('https://example.com/')!;
+    const [name, attributes] = getHttpSpanDetailsFromUrlObject(urlObject, 'test-origin');
+    expect(name).toBe('GET https://example.com/');
+    expect(attributes).toEqual({
+      'sentry.origin': 'test-origin',
+      'sentry.source': 'route',
+      'url.path': '/',
+      'url.full': 'https://example.com/',
+      'server.address': 'example.com',
+      'url.scheme': 'https:',
+    });
+  });
+
+  it('handles URL with port', () => {
+    const urlObject = parseStringToURLObject('https://example.com:8080/api/users')!;
+    const [name, attributes] = getHttpSpanDetailsFromUrlObject(urlObject, 'test-origin');
+    expect(name).toBe('GET https://example.com:8080/api/users');
+    expect(attributes).toEqual({
+      'sentry.origin': 'test-origin',
+      'sentry.source': 'url',
+      'url.path': '/api/users',
+      'url.full': 'https://example.com:8080/api/users',
+      'server.address': 'example.com',
+      'url.scheme': 'https:',
+      'url.port': '8080',
+    });
+  });
+
+  it('handles URL with non-standard port and request method', () => {
+    const urlObject = parseStringToURLObject('https://example.com:3000/api/users')!;
+    const [name, attributes] = getHttpSpanDetailsFromUrlObject(urlObject, 'test-origin', { method: 'PUT' });
+    expect(name).toBe('PUT https://example.com:3000/api/users');
+    expect(attributes).toEqual({
+      'sentry.origin': 'test-origin',
+      'sentry.source': 'url',
+      'url.path': '/api/users',
+      'url.full': 'https://example.com:3000/api/users',
+      'server.address': 'example.com',
+      'url.scheme': 'https:',
+      'url.port': '3000',
+      'http.request.method': 'PUT',
+    });
+  });
+
+  it('handles URL with route name and request method', () => {
+    const urlObject = parseStringToURLObject('https://example.com/api/users/123')!;
+    const [name, attributes] = getHttpSpanDetailsFromUrlObject(
+      urlObject,
+      'test-origin',
+      { method: 'PATCH' },
+      '/api/users/:id',
+    );
+    expect(name).toBe('PATCH /api/users/:id');
+    expect(attributes).toEqual({
+      'sentry.origin': 'test-origin',
+      'sentry.source': 'route',
+      'url.path': '/api/users/123',
+      'url.full': 'https://example.com/api/users/123',
+      'server.address': 'example.com',
+      'url.scheme': 'https:',
+      'http.route': '/api/users/:id',
+      'http.request.method': 'PATCH',
+    });
+  });
+
+  it('handles URL with query params and route name', () => {
+    const urlObject = parseStringToURLObject('https://example.com/api/search?q=test&page=1')!;
+    const [name, attributes] = getHttpSpanDetailsFromUrlObject(urlObject, 'test-origin', undefined, '/api/search');
+    expect(name).toBe('GET /api/search');
+    expect(attributes).toEqual({
+      'sentry.origin': 'test-origin',
+      'sentry.source': 'route',
+      'url.path': '/api/search',
+      'url.query': '?q=test&page=1',
+      'url.full': 'https://example.com/api/search?q=test&page=1',
+      'server.address': 'example.com',
+      'url.scheme': 'https:',
+      'http.route': '/api/search',
+    });
+  });
+
+  it('handles URL with fragment and route name', () => {
+    const urlObject = parseStringToURLObject('https://example.com/api/docs#section-1')!;
+    const [name, attributes] = getHttpSpanDetailsFromUrlObject(urlObject, 'test-origin', undefined, '/api/docs');
+    expect(name).toBe('GET /api/docs');
+    expect(attributes).toEqual({
+      'sentry.origin': 'test-origin',
+      'sentry.source': 'route',
+      'url.path': '/api/docs',
+      'url.fragment': '#section-1',
+      'url.full': 'https://example.com/api/docs#section-1',
+      'server.address': 'example.com',
+      'url.scheme': 'https:',
+      'http.route': '/api/docs',
+    });
+  });
+
+  it('handles URL with auth credentials', () => {
+    const urlObject = parseStringToURLObject('https://user:pass@example.com/api/users')!;
+    const [name, attributes] = getHttpSpanDetailsFromUrlObject(urlObject, 'test-origin');
+    expect(name).toBe('GET https://%filtered%:%filtered%@example.com/api/users');
+    expect(attributes).toEqual({
+      'sentry.origin': 'test-origin',
+      'sentry.source': 'url',
+      'url.path': '/api/users',
+      'url.full': 'https://user:pass@example.com/api/users',
+      'server.address': 'example.com',
+      'url.scheme': 'https:',
+    });
+  });
+
+  it('handles URL with IPv4 address', () => {
+    const urlObject = parseStringToURLObject('https://192.168.1.1:8080/api/users')!;
+    const [name, attributes] = getHttpSpanDetailsFromUrlObject(urlObject, 'test-origin');
+    expect(name).toBe('GET https://192.168.1.1:8080/api/users');
+    expect(attributes).toEqual({
+      'sentry.origin': 'test-origin',
+      'sentry.source': 'url',
+      'url.path': '/api/users',
+      'url.full': 'https://192.168.1.1:8080/api/users',
+      'server.address': '192.168.1.1',
+      'url.scheme': 'https:',
+      'url.port': '8080',
+    });
+  });
+
+  it('handles URL with IPv6 address', () => {
+    const urlObject = parseStringToURLObject('https://[2001:db8::1]:8080/api/users')!;
+    const [name, attributes] = getHttpSpanDetailsFromUrlObject(urlObject, 'test-origin');
+    expect(name).toBe('GET https://[2001:db8::1]:8080/api/users');
+    expect(attributes).toEqual({
+      'sentry.origin': 'test-origin',
+      'sentry.source': 'url',
+      'url.path': '/api/users',
+      'url.full': 'https://[2001:db8::1]:8080/api/users',
+      'server.address': '[2001:db8::1]',
+      'url.scheme': 'https:',
+      'url.port': '8080',
+    });
+  });
+
+  it('handles URL with subdomain', () => {
+    const urlObject = parseStringToURLObject('https://api.example.com/users')!;
+    const [name, attributes] = getHttpSpanDetailsFromUrlObject(urlObject, 'test-origin');
+    expect(name).toBe('GET https://api.example.com/users');
+    expect(attributes).toEqual({
+      'sentry.origin': 'test-origin',
+      'sentry.source': 'url',
+      'url.path': '/users',
+      'url.full': 'https://api.example.com/users',
+      'server.address': 'api.example.com',
+      'url.scheme': 'https:',
+    });
   });
 });
