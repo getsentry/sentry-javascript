@@ -121,11 +121,18 @@ type PartialRequest = {
 
 function getHttpSpanNameFromUrlObject(
   urlObject: URLObject | undefined,
+  kind: 'server' | 'client',
   request?: PartialRequest,
   routeName?: string,
 ): string {
   const method = request?.method?.toUpperCase() ?? 'GET';
-  const route = routeName ? routeName : urlObject ? getSanitizedUrlStringFromUrlObject(urlObject) : '/';
+  const route = routeName
+    ? routeName
+    : urlObject
+      ? kind === 'client'
+        ? getSanitizedUrlStringFromUrlObject(urlObject)
+        : urlObject.pathname
+      : '/';
 
   return `${method} ${route}`;
 }
@@ -138,7 +145,7 @@ function getHttpSpanNameFromUrlObject(
  * Follows https://opentelemetry.io/docs/specs/semconv/http/.
  *
  * @param urlObject - see {@link parseStringToURLObject}
- * @param httpType - The type of HTTP operation (server or client)
+ * @param kind - The type of HTTP operation (server or client)
  * @param spanOrigin - The origin of the span
  * @param request - The request object, see {@link PartialRequest}
  * @param routeName - The name of the route, must be low cardinality
@@ -146,6 +153,7 @@ function getHttpSpanNameFromUrlObject(
  */
 export function getHttpSpanDetailsFromUrlObject(
   urlObject: URLObject | undefined,
+  kind: 'server' | 'client',
   spanOrigin: string,
   request?: PartialRequest,
   routeName?: string,
@@ -156,7 +164,7 @@ export function getHttpSpanDetailsFromUrlObject(
   };
 
   if (routeName) {
-    attributes['http.route'] = routeName;
+    attributes[kind === 'client' ? 'http.route' : 'url.route'] = routeName;
     attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'route';
   }
 
@@ -187,12 +195,12 @@ export function getHttpSpanDetailsFromUrlObject(
         attributes['url.scheme'] = urlObject.protocol;
       }
       if (urlObject.hostname) {
-        attributes['server.address'] = urlObject.hostname;
+        attributes[kind === 'server' ? 'server.address' : 'url.domain'] = urlObject.hostname;
       }
     }
   }
 
-  return [getHttpSpanNameFromUrlObject(urlObject, request, routeName), attributes];
+  return [getHttpSpanNameFromUrlObject(urlObject, kind, request, routeName), attributes];
 }
 
 /**
