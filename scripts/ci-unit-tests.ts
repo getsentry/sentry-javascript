@@ -4,7 +4,7 @@ import * as path from 'path';
 
 const UNIT_TEST_ENV = process.env.UNIT_TEST_ENV as 'node' | 'browser' | undefined;
 const RUN_AFFECTED = process.argv.includes('--affected');
-const NODE_VERSION = process.env.NODE_VERSION as '18' | '20' | '22';
+const NODE_VERSION = process.env.NODE_VERSION as '18' | '20' | '22' | '24';
 
 // These packages are tested separately in CI, so no need to run them here
 const DEFAULT_SKIP_PACKAGES = ['@sentry/bun', '@sentry/deno'];
@@ -28,6 +28,8 @@ const BROWSER_TEST_PACKAGES = [
 
 // Packages that cannot run in Node 18
 const SKIP_NODE_18_PACKAGES = ['@sentry/react-router'];
+
+const SKIP_NODE_24_PACKAGES = ['@sentry/google-cloud-serverless'];
 
 function getAllPackages(): string[] {
   const { workspaces }: { workspaces: string[] } = JSON.parse(
@@ -62,6 +64,10 @@ function runTests(): void {
 
     if (NODE_VERSION === '18') {
       SKIP_NODE_18_PACKAGES.forEach(pkg => ignores.add(pkg));
+    }
+
+    if (NODE_VERSION === '24') {
+      SKIP_NODE_24_PACKAGES.forEach(pkg => ignores.add(pkg));
     }
   }
 
