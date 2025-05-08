@@ -1,4 +1,17 @@
 /* eslint-disable max-lines */
+import type { AgnosticRouteObject } from '@remix-run/router';
+import type {
+  ActionFunction,
+  ActionFunctionArgs,
+  AppLoadContext,
+  CreateRequestHandlerFunction,
+  EntryContext,
+  HandleDocumentRequestFunction,
+  LoaderFunction,
+  LoaderFunctionArgs,
+  RequestHandler,
+  ServerBuild,
+} from '@remix-run/server-runtime';
 import type { RequestEventData, Span, TransactionSource, WrappedFunction } from '@sentry/core';
 import {
   continueTrace,
@@ -23,21 +36,13 @@ import {
 import { DEBUG_BUILD } from '../utils/debug-build';
 import { createRoutes, getTransactionName } from '../utils/utils';
 import { extractData, isDeferredData, isResponse, isRouteErrorResponse, json } from '../utils/vendor/response';
-import type {
-  AppData,
-  AppLoadContext,
-  CreateRequestHandlerFunction,
-  DataFunction,
-  DataFunctionArgs,
-  EntryContext,
-  HandleDocumentRequestFunction,
-  RemixRequest,
-  RequestHandler,
-  ServerBuild,
-  ServerRoute,
-  ServerRouteManifest,
-} from '../utils/vendor/types';
 import { captureRemixServerException, errorHandleDataFunction, errorHandleDocumentRequestFunction } from './errors';
+
+type AppData = unknown;
+type RemixRequest = Parameters<RequestHandler>[0];
+type ServerRouteManifest = ServerBuild['routes'];
+type DataFunction = LoaderFunction | ActionFunction;
+type DataFunctionArgs = LoaderFunctionArgs | ActionFunctionArgs;
 
 const redirectStatusCodes = new Set([301, 302, 303, 307, 308]);
 function isRedirectResponse(response: Response): boolean {
@@ -261,7 +266,7 @@ function wrapRequestHandler(
       return origRequestHandler.call(this, request, loadContext);
     }
 
-    let resolvedRoutes: ServerRoute[] | undefined;
+    let resolvedRoutes: AgnosticRouteObject[] | undefined;
 
     if (options?.instrumentTracing) {
       if (typeof build === 'function') {
@@ -428,7 +433,7 @@ export const makeWrappedCreateRequestHandler = (options?: { instrumentTracing?: 
   function (origCreateRequestHandler: CreateRequestHandlerFunction): CreateRequestHandlerFunction {
     return function (
       this: unknown,
-      build: ServerBuild | (() => Promise<ServerBuild>),
+      build: ServerBuild | (() => ServerBuild | Promise<ServerBuild>),
       ...args: unknown[]
     ): RequestHandler {
       const newBuild = instrumentBuild(build, options);

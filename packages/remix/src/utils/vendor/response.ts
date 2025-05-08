@@ -6,10 +6,13 @@
 //
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-import type { AgnosticRouteMatch, AgnosticRouteObject } from '@remix-run/router';
+import type {
+  AgnosticRouteMatch,
+  AgnosticRouteObject,
+  ErrorResponse,
+  UNSAFE_DeferredData as DeferredData,
+} from '@remix-run/router';
 import { matchRoutes } from '@remix-run/router';
-import type { DeferredData, ErrorResponse, ServerRoute } from './types';
-
 /**
  * Based on Remix Implementation
  *
@@ -76,7 +79,7 @@ export const json: JsonFunction = (data, init = {}) => {
  * Changed so that `matchRoutes` function is passed in.
  */
 export function matchServerRoutes(
-  routes: ServerRoute[],
+  routes: AgnosticRouteObject[],
   pathname: string,
 ): AgnosticRouteMatch<string, AgnosticRouteObject>[] | null {
   const matches = matchRoutes(routes, pathname);
@@ -153,11 +156,5 @@ export function isDeferredData(value: any): value is DeferredData {
 export function isRouteErrorResponse(value: any): value is ErrorResponse {
   const error: ErrorResponse = value;
 
-  return (
-    error != null &&
-    typeof error.status === 'number' &&
-    typeof error.statusText === 'string' &&
-    typeof error.internal === 'boolean' &&
-    'data' in error
-  );
+  return error != null && typeof error.status === 'number' && typeof error.statusText === 'string' && 'data' in error;
 }

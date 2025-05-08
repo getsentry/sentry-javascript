@@ -1,7 +1,9 @@
 import type {
+  ActionFunction,
   ActionFunctionArgs,
   EntryContext,
   HandleDocumentRequestFunction,
+  LoaderFunction,
   LoaderFunctionArgs,
 } from '@remix-run/node';
 import type { RequestEventData, Span } from '@sentry/core';
@@ -18,7 +20,8 @@ import { DEBUG_BUILD } from '../utils/debug-build';
 import type { RemixOptions } from '../utils/remixOptions';
 import { storeFormDataKeys } from '../utils/utils';
 import { extractData, isResponse, isRouteErrorResponse } from '../utils/vendor/response';
-import type { DataFunction, RemixRequest } from '../utils/vendor/types';
+
+type DataFunction = LoaderFunction | ActionFunction;
 
 /**
  * Captures an exception happened in the Remix server.
@@ -87,7 +90,7 @@ export function errorHandleDocumentRequestFunction(
   this: unknown,
   origDocumentRequestFunction: HandleDocumentRequestFunction,
   requestContext: {
-    request: RemixRequest;
+    request: Request;
     responseStatusCode: number;
     responseHeaders: Headers;
     context: EntryContext;
