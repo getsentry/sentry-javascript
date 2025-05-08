@@ -1,5 +1,6 @@
 /* eslint-disable max-lines */
 import type { AgnosticRouteObject } from '@remix-run/router';
+import { isDeferredData, isRouteErrorResponse } from '@remix-run/router';
 import type {
   ActionFunction,
   ActionFunctionArgs,
@@ -35,7 +36,7 @@ import {
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../utils/debug-build';
 import { createRoutes, getTransactionName } from '../utils/utils';
-import { extractData, isDeferredData, isResponse, isRouteErrorResponse, json } from '../utils/vendor/response';
+import { extractData, isResponse, json } from '../utils/vendor/response';
 import { captureRemixServerException, errorHandleDataFunction, errorHandleDocumentRequestFunction } from './errors';
 
 type AppData = unknown;

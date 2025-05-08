@@ -6,6 +6,7 @@ import type {
   LoaderFunction,
   LoaderFunctionArgs,
 } from '@remix-run/node';
+import { isRouteErrorResponse } from '@remix-run/router';
 import type { RequestEventData, Span } from '@sentry/core';
 import {
   addExceptionMechanism,
@@ -19,7 +20,7 @@ import {
 import { DEBUG_BUILD } from '../utils/debug-build';
 import type { RemixOptions } from '../utils/remixOptions';
 import { storeFormDataKeys } from '../utils/utils';
-import { extractData, isResponse, isRouteErrorResponse } from '../utils/vendor/response';
+import { extractData, isResponse } from '../utils/vendor/response';
 
 type DataFunction = LoaderFunction | ActionFunction;
 
