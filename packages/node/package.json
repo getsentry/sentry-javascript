@@ -65,6 +65,7 @@
     "access": "public"
   },
   "dependencies": {
+    "@fastify/otel": "0.6.0",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/context-async-hooks": "^1.30.1",
     "@opentelemetry/core": "^1.30.1",
@@ -73,7 +74,6 @@
     "@opentelemetry/instrumentation-connect": "0.43.1",
     "@opentelemetry/instrumentation-dataloader": "0.16.1",
     "@opentelemetry/instrumentation-express": "0.47.1",
-    "@opentelemetry/instrumentation-fastify": "0.44.2",
     "@opentelemetry/instrumentation-fs": "0.19.1",
     "@opentelemetry/instrumentation-generic-pool": "0.43.1",
     "@opentelemetry/instrumentation-graphql": "0.47.1",

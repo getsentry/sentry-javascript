@@ -3,7 +3,7 @@ import { instrumentOtelHttp } from '../http';
 import { amqplibIntegration, instrumentAmqplib } from './amqplib';
 import { connectIntegration, instrumentConnect } from './connect';
 import { expressIntegration, instrumentExpress, instrumentExpressV5 } from './express';
-import { fastifyIntegration, instrumentFastify } from './fastify';
+import { fastifyIntegration, instrumentFastify, instrumentFastifyV3 } from './fastify';
 import { genericPoolIntegration, instrumentGenericPool } from './genericPool';
 import { graphqlIntegration, instrumentGraphql } from './graphql';
 import { hapiIntegration, instrumentHapi } from './hapi';
@@ -58,6 +58,7 @@ export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) =>
     instrumentExpressV5,
     instrumentConnect,
     instrumentFastify,
+    instrumentFastifyV3,
     instrumentHapi,
     instrumentKafka,
     instrumentKoa,
