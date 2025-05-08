@@ -102,8 +102,8 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
               attributes: {
                 [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
-                'sentry.nextjs.function.type': generationFunctionIdentifier,
-                'sentry.nextjs.function.route': componentRoute,
+                'sentry.nextjs.ssr.function.type': generationFunctionIdentifier,
+                'sentry.nextjs.ssr.function.route': componentRoute,
               },
             },
             span => {
