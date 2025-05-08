@@ -2,10 +2,9 @@
   "compilerOptions": {
     "types": ["node"],
     "esModuleInterop": true,
-    "lib": ["es2018"],
+    "lib": ["dom", "dom.iterable", "esnext"],
     "strict": true,
-    "outDir": "dist",
-    "skipLibCheck": true
+    "outDir": "dist"
   },
-  "include": ["src/**/*.ts"]
+  "include": ["./src/*.ts"]
 }
