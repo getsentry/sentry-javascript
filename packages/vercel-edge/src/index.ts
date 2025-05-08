@@ -88,6 +88,7 @@ export {
   spanToTraceHeader,
   spanToBaggageHeader,
   wrapMcpServerWithSentry,
+  consoleLoggingIntegration,
 } from '@sentry/core';
 
 export { VercelEdgeClient } from './client';
