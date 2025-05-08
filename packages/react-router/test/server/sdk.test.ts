@@ -1,10 +1,10 @@
-import type { Event, EventType } from '@sentry/core';
-import { getGlobalScope } from '@sentry/core';
+import type { Integration } from '@sentry/core';
 import type { NodeClient } from '@sentry/node';
 import * as SentryNode from '@sentry/node';
 import { SDK_VERSION } from '@sentry/node';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { init as reactRouterInit, lowQualityTransactionsFilter } from '../../src/server/sdk';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import * as LowQualityModule from '../../src/server/lowQualityTransactionsFilterIntegration';
+import { init as reactRouterInit } from '../../src/server/sdk';
 
 const nodeInit = vi.spyOn(SentryNode, 'init');
 
@@ -48,91 +48,28 @@ describe('React Router server SDK', () => {
       expect(client).not.toBeUndefined();
     });
 
-    it('registers the low quality transactions filter', async () => {
-      const addEventProcessor = vi.spyOn(getGlobalScope(), 'addEventProcessor');
-      addEventProcessor.mockClear();
+    it('adds the low quality transactions filter integration by default', () => {
+      const filterSpy = vi.spyOn(LowQualityModule, 'lowQualityTransactionsFilterIntegration');
 
       reactRouterInit({
         dsn: 'https://public@dsn.ingest.sentry.io/1337',
-      }) as NodeClient;
-
-      expect(addEventProcessor).toHaveBeenCalledTimes(1);
-      const processor = addEventProcessor.mock.calls[0]![0];
-      expect(processor?.id).toEqual('ReactRouterLowQualityTransactionsFilter');
-    });
-
-    describe('transaction filtering', () => {
-      const beforeSendEvent = vi.fn(event => event);
-      let client: NodeClient;
-
-      beforeEach(() => {
-        vi.clearAllMocks();
-        beforeSendEvent.mockClear();
-        SentryNode.getGlobalScope().clear();
-
-        client = reactRouterInit({
-          dsn: 'https://public@dsn.ingest.sentry.io/1337',
-        }) as NodeClient;
-
-        client.on('beforeSendEvent', beforeSendEvent);
       });
 
-      describe('filters out low quality transactions', () => {
-        it.each(['GET /node_modules/react/index.js', 'GET /favicon.ico', 'GET /@id/package'])(
-          '%s',
-          async transaction => {
-            client.captureEvent({ type: 'transaction', transaction });
+      expect(filterSpy).toHaveBeenCalled();
 
-            await client.flush();
+      expect(nodeInit).toHaveBeenCalledTimes(1);
+      const initOptions = nodeInit.mock.calls[0]?.[0];
 
-            expect(beforeSendEvent).not.toHaveBeenCalled();
-          },
-        );
-      });
+      expect(initOptions).toBeDefined();
 
-      describe('allows high quality transactions', () => {
-        it.each(['GET /', 'GET /users', 'POST /api/data', 'GET /projects/123'])('%s', async transaction => {
-          client.captureEvent({ type: 'transaction', transaction });
+      const defaultIntegrations = initOptions?.defaultIntegrations as Integration[];
+      expect(Array.isArray(defaultIntegrations)).toBe(true);
 
-          await client.flush();
+      const filterIntegration = defaultIntegrations.find(
+        integration => integration.name === 'LowQualityTransactionsFilter'
+      );
 
-          expect(beforeSendEvent).toHaveBeenCalledWith(expect.objectContaining({ transaction }), expect.any(Object));
-        });
-      });
-    });
-  });
-
-  describe('lowQualityTransactionsFilter', () => {
-    describe('filters out low quality transactions', () => {
-      it.each([
-        ['node_modules request', 'GET /node_modules/react/index.js'],
-        ['favicon.ico request', 'GET /favicon.ico'],
-        ['@id request', 'GET /@id/package'],
-      ])('%s', (description, transaction) => {
-        const filter = lowQualityTransactionsFilter({});
-        const event = {
-          type: 'transaction' as EventType,
-          transaction,
-        } as Event;
-
-        expect(filter(event, {})).toBeNull();
-      });
-    });
-
-    describe('does not filter good transactions', () => {
-      it.each([
-        ['normal page request', 'GET /users'],
-        ['API request', 'POST /api/users'],
-        ['app route', 'GET /projects/123'],
-      ])('%s', (description, transaction) => {
-        const filter = lowQualityTransactionsFilter({});
-        const event = {
-          type: 'transaction' as EventType,
-          transaction,
-        } as Event;
-
-        expect(filter(event, {})).toBe(event);
-      });
+      expect(filterIntegration).toBeDefined();
     });
   });
 });
