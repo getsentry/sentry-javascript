@@ -1,6 +1,5 @@
 import {
   SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_URL_FULL,
@@ -62,7 +61,7 @@ export function isURLObjectRelative(url: URLObject): url is RelativeURL {
  * @returns The parsed URL object or undefined if the URL is invalid
  */
 export function parseStringToURLObject(url: string, urlBase?: string | URL | undefined): URLObject | undefined {
-  const isRelative = url.startsWith('/');
+  const isRelative = url.indexOf('://') <= 0 && url.indexOf('//') !== 0;
   const base = urlBase ?? (isRelative ? DEFAULT_BASE_URL : undefined);
   try {
     // Use `canParse` to short-circuit the URL constructor if it's not a valid URL
@@ -147,7 +146,6 @@ function getHttpSpanNameFromUrlObject(
  */
 export function getHttpSpanDetailsFromUrlObject(
   urlObject: URLObject | undefined,
-  httpType: 'server' | 'client',
   spanOrigin: string,
   request?: PartialRequest,
   routeName?: string,
@@ -155,7 +153,6 @@ export function getHttpSpanDetailsFromUrlObject(
   const attributes: SpanAttributes = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
     [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `http.${httpType}`,
   };
 
   if (routeName) {

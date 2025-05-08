@@ -203,28 +203,86 @@ describe('parseUrl', () => {
 });
 
 describe('parseStringToURLObject', () => {
-  it('returns undefined for invalid URLs', () => {
-    expect(parseStringToURLObject('invalid-url')).toBeUndefined();
+  it.each([
+    [
+      'invalid URL',
+      'invalid-url',
+      {
+        isRelative: true,
+        pathname: '/invalid-url',
+        search: '',
+        hash: '',
+      },
+    ],
+    ['valid absolute URL', 'https://somedomain.com', expect.any(URL)],
+    ['valid absolute URL with base', 'https://somedomain.com', expect.any(URL), 'https://base.com'],
+    [
+      'relative URL',
+      '/path/to/happiness',
+      {
+        isRelative: true,
+        pathname: '/path/to/happiness',
+        search: '',
+        hash: '',
+      },
+    ],
+    [
+      'relative URL with query',
+      '/path/to/happiness?q=1',
+      {
+        isRelative: true,
+        pathname: '/path/to/happiness',
+        search: '?q=1',
+        hash: '',
+      },
+    ],
+    [
+      'relative URL with hash',
+      '/path/to/happiness#section',
+      {
+        isRelative: true,
+        pathname: '/path/to/happiness',
+        search: '',
+        hash: '#section',
+      },
+    ],
+    [
+      'relative URL with query and hash',
+      '/path/to/happiness?q=1#section',
+      {
+        isRelative: true,
+        pathname: '/path/to/happiness',
+        search: '?q=1',
+        hash: '#section',
+      },
+    ],
+    ['URL with port', 'https://somedomain.com:8080/path', expect.any(URL)],
+    ['URL with auth', 'https://user:pass@somedomain.com', expect.any(URL)],
+    ['URL with special chars', 'https://somedomain.com/path/with spaces/and/special@chars', expect.any(URL)],
+    ['URL with unicode', 'https://somedomain.com/path/with/unicode/测试', expect.any(URL)],
+    ['URL with multiple query params', 'https://somedomain.com/path?q1=1&q2=2&q3=3', expect.any(URL)],
+    ['URL with encoded chars', 'https://somedomain.com/path/%20%2F%3F%23', expect.any(URL)],
+    ['URL with IPv4', 'https://192.168.1.1/path', expect.any(URL)],
+    ['URL with IPv6', 'https://[2001:db8::1]/path', expect.any(URL)],
+    ['URL with subdomain', 'https://sub.somedomain.com/path', expect.any(URL)],
+    ['URL with multiple subdomains', 'https://sub1.sub2.somedomain.com/path', expect.any(URL)],
+    ['URL with trailing slash', 'https://somedomain.com/path/', expect.any(URL)],
+    ['URL with empty path', 'https://somedomain.com', expect.any(URL)],
+    ['URL with root path', 'https://somedomain.com/', expect.any(URL)],
+    ['URL with file extension', 'https://somedomain.com/path/file.html', expect.any(URL)],
+    ['URL with custom protocol', 'custom://somedomain.com/path', expect.any(URL)],
+    ['URL with query containing special chars', 'https://somedomain.com/path?q=hello+world&x=1/2', expect.any(URL)],
+    ['URL with hash containing special chars', 'https://somedomain.com/path#section/1/2', expect.any(URL)],
+    [
+      'URL with all components',
+      'https://user:pass@sub.somedomain.com:8080/path/file.html?q=1#section',
+      expect.any(URL),
+    ],
+  ])('handles %s', (_, url: string, expected: any, base?: string) => {
+    expect(parseStringToURLObject(url, base)).toEqual(expected);
   });
 
-  it('returns a URL object for valid URLs', () => {
-    expect(parseStringToURLObject('https://somedomain.com')).toBeInstanceOf(URL);
-  });
-
-  it('returns a URL object for valid URLs with a base URL', () => {
-    expect(parseStringToURLObject('https://somedomain.com', 'https://base.com')).toBeInstanceOf(URL);
-  });
-
-  it('returns a relative URL object for relative URLs', () => {
-    expect(parseStringToURLObject('/path/to/happiness')).toEqual({
-      isRelative: true,
-      pathname: '/path/to/happiness',
-      search: '',
-      hash: '',
-    });
-  });
-
-  it('does not throw an error if URl.canParse is not defined', () => {
+  it('does not throw an error if URL.canParse is not defined', () => {
     const canParse = (URL as any).canParse;
     delete (URL as any).canParse;
     expect(parseStringToURLObject('https://somedomain.com')).toBeInstanceOf(URL);

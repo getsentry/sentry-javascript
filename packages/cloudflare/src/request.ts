@@ -5,6 +5,7 @@ import {
   flush,
   getHttpSpanDetailsFromUrlObject,
   parseStringToURLObject,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   setHttpStatus,
   startSpan,
   withIsolationScope,
@@ -38,12 +39,14 @@ export function wrapRequestHandler(
     isolationScope.setClient(client);
 
     const urlObject = parseStringToURLObject(request.url);
-    const [name, attributes] = getHttpSpanDetailsFromUrlObject(urlObject, 'server', 'auto.http.cloudflare', request);
+    const [name, attributes] = getHttpSpanDetailsFromUrlObject(urlObject, 'auto.http.cloudflare', request);
 
     const contentLength = request.headers.get('content-length');
     if (contentLength) {
       attributes['http.request.body.size'] = parseInt(contentLength, 10);
     }
+
+    attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] = 'http.server';
 
     addCloudResourceContext(isolationScope);
     if (request) {
