@@ -1,0 +1,442 @@
+import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
+import type { Scope } from '@sentry/core';
+import {
+  getCurrentScope,
+  getIsolationScope,
+  Scope as ScopeClass,
+  setAsyncContextStrategy,
+  withIsolationScope,
+  withScope,
+} from '@sentry/core';
+import { afterAll, afterEach, beforeEach, describe, expect, it, test } from 'vitest';
+import { setOpenTelemetryContextAsyncContextStrategy } from '../../../packages/opentelemetry/src/asyncContextStrategy';
+import { setupOtel } from './helpers/initOtel';
+import { cleanupOtel } from './helpers/mockSdkInit';
+import { getDefaultTestClientOptions, TestClient } from './helpers/TestClient';
+
+describe('asyncContextStrategy', () => {
+  let provider: BasicTracerProvider | undefined;
+
+  beforeEach(() => {
+    getCurrentScope().clear();
+    getIsolationScope().clear();
+
+    const options = getDefaultTestClientOptions();
+    const client = new TestClient(options);
+    provider = setupOtel(client);
+    setOpenTelemetryContextAsyncContextStrategy();
+  });
+
+  afterEach(() => {
+    cleanupOtel(provider);
+  });
+
+  afterAll(() => {
+    // clear the strategy
+    setAsyncContextStrategy(undefined);
+  });
+
+  test('scope inheritance', () => {
+    const initialScope = getCurrentScope();
+    const initialIsolationScope = getIsolationScope();
+
+    initialScope.setExtra('a', 'a');
+    initialIsolationScope.setExtra('aa', 'aa');
+
+    withIsolationScope(() => {
+      const scope1 = getCurrentScope();
+      const isolationScope1 = getIsolationScope();
+
+      expect(scope1).not.toBe(initialScope);
+      expect(isolationScope1).not.toBe(initialIsolationScope);
+
+      expect(scope1.getScopeData()).toEqual(initialScope.getScopeData());
+      expect(isolationScope1.getScopeData()).toEqual(initialIsolationScope.getScopeData());
+
+      scope1.setExtra('b', 'b');
+      isolationScope1.setExtra('bb', 'bb');
+
+      withScope(() => {
+        const scope2 = getCurrentScope();
+        const isolationScope2 = getIsolationScope();
+
+        expect(scope2).not.toBe(scope1);
+        expect(isolationScope2).toBe(isolationScope1);
+
+        expect(scope2.getScopeData()).toEqual(scope1.getScopeData());
+
+        scope2.setExtra('c', 'c');
+
+        expect(scope2.getScopeData().extra).toEqual({
+          a: 'a',
+          b: 'b',
+          c: 'c',
+        });
+
+        expect(isolationScope2.getScopeData().extra).toEqual({
+          aa: 'aa',
+          bb: 'bb',
+        });
+      });
+    });
+  });
+
+  test('async scope inheritance', async () => {
+    const initialScope = getCurrentScope();
+    const initialIsolationScope = getIsolationScope();
+
+    async function asyncSetExtra(scope: Scope, key: string, value: string): Promise<void> {
+      await new Promise(resolve => setTimeout(resolve, 1));
+      scope.setExtra(key, value);
+    }
+
+    initialScope.setExtra('a', 'a');
+    initialIsolationScope.setExtra('aa', 'aa');
+
+    await withIsolationScope(async () => {
+      const scope1 = getCurrentScope();
+      const isolationScope1 = getIsolationScope();
+
+      expect(scope1).not.toBe(initialScope);
+      expect(isolationScope1).not.toBe(initialIsolationScope);
+
+      expect(scope1.getScopeData()).toEqual(initialScope.getScopeData());
+      expect(isolationScope1.getScopeData()).toEqual(initialIsolationScope.getScopeData());
+
+      await asyncSetExtra(scope1, 'b', 'b');
+      await asyncSetExtra(isolationScope1, 'bb', 'bb');
+
+      await withScope(async () => {
+        const scope2 = getCurrentScope();
+        const isolationScope2 = getIsolationScope();
+
+        expect(scope2).not.toBe(scope1);
+        expect(isolationScope2).toBe(isolationScope1);
+
+        expect(scope2.getScopeData()).toEqual(scope1.getScopeData());
+
+        await asyncSetExtra(scope2, 'c', 'c');
+
+        expect(scope2.getScopeData().extra).toEqual({
+          a: 'a',
+          b: 'b',
+          c: 'c',
+        });
+
+        expect(isolationScope2.getScopeData().extra).toEqual({
+          aa: 'aa',
+          bb: 'bb',
+        });
+      });
+    });
+  });
+
+  test('concurrent scope contexts', () => {
+    const initialScope = getCurrentScope();
+    const initialIsolationScope = getIsolationScope();
+
+    initialScope.setExtra('a', 'a');
+    initialIsolationScope.setExtra('aa', 'aa');
+
+    withIsolationScope(() => {
+      const scope1 = getCurrentScope();
+      const isolationScope1 = getIsolationScope();
+
+      expect(scope1).not.toBe(initialScope);
+      expect(isolationScope1).not.toBe(initialIsolationScope);
+
+      expect(scope1.getScopeData()).toEqual(initialScope.getScopeData());
+      expect(isolationScope1.getScopeData()).toEqual(initialIsolationScope.getScopeData());
+
+      scope1.setExtra('b', 'b');
+      isolationScope1.setExtra('bb', 'bb');
+
+      withScope(() => {
+        const scope2 = getCurrentScope();
+        const isolationScope2 = getIsolationScope();
+
+        expect(scope2).not.toBe(scope1);
+        expect(isolationScope2).toBe(isolationScope1);
+
+        expect(scope2.getScopeData()).toEqual(scope1.getScopeData());
+
+        scope2.setExtra('c', 'c');
+
+        expect(scope2.getScopeData().extra).toEqual({
+          a: 'a',
+          b: 'b',
+          c: 'c',
+        });
+
+        expect(isolationScope2.getScopeData().extra).toEqual({
+          aa: 'aa',
+          bb: 'bb',
+        });
+      });
+    });
+
+    withIsolationScope(() => {
+      const scope1 = getCurrentScope();
+      const isolationScope1 = getIsolationScope();
+
+      expect(scope1).not.toBe(initialScope);
+      expect(isolationScope1).not.toBe(initialIsolationScope);
+
+      expect(scope1.getScopeData()).toEqual(initialScope.getScopeData());
+      expect(isolationScope1.getScopeData()).toEqual(initialIsolationScope.getScopeData());
+
+      scope1.setExtra('b2', 'b');
+      isolationScope1.setExtra('bb2', 'bb');
+
+      withScope(() => {
+        const scope2 = getCurrentScope();
+        const isolationScope2 = getIsolationScope();
+
+        expect(scope2).not.toBe(scope1);
+        expect(isolationScope2).toBe(isolationScope1);
+
+        expect(scope2.getScopeData()).toEqual(scope1.getScopeData());
+
+        scope2.setExtra('c2', 'c');
+
+        expect(scope2.getScopeData().extra).toEqual({
+          a: 'a',
+          b2: 'b',
+          c2: 'c',
+        });
+
+        expect(isolationScope2.getScopeData().extra).toEqual({
+          aa: 'aa',
+          bb2: 'bb',
+        });
+      });
+    });
+  });
+
+  test('concurrent async scope contexts', async () => {
+    const initialScope = getCurrentScope();
+    const initialIsolationScope = getIsolationScope();
+
+    async function asyncSetExtra(scope: Scope, key: string, value: string): Promise<void> {
+      await new Promise(resolve => setTimeout(resolve, 1));
+      scope.setExtra(key, value);
+    }
+
+    initialScope.setExtra('a', 'a');
+    initialIsolationScope.setExtra('aa', 'aa');
+
+    await withIsolationScope(async () => {
+      const scope1 = getCurrentScope();
+      const isolationScope1 = getIsolationScope();
+
+      expect(scope1).not.toBe(initialScope);
+      expect(isolationScope1).not.toBe(initialIsolationScope);
+
+      expect(scope1.getScopeData()).toEqual(initialScope.getScopeData());
+      expect(isolationScope1.getScopeData()).toEqual(initialIsolationScope.getScopeData());
+
+      await asyncSetExtra(scope1, 'b', 'b');
+      await asyncSetExtra(isolationScope1, 'bb', 'bb');
+
+      await withScope(async () => {
+        const scope2 = getCurrentScope();
+        const isolationScope2 = getIsolationScope();
+
+        expect(scope2).not.toBe(scope1);
+        expect(isolationScope2).toBe(isolationScope1);
+
+        expect(scope2.getScopeData()).toEqual(scope1.getScopeData());
+
+        await asyncSetExtra(scope2, 'c', 'c');
+
+        expect(scope2.getScopeData().extra).toEqual({
+          a: 'a',
+          b: 'b',
+          c: 'c',
+        });
+
+        expect(isolationScope2.getScopeData().extra).toEqual({
+          aa: 'aa',
+          bb: 'bb',
+        });
+      });
+    });
+
+    await withIsolationScope(async () => {
+      const scope1 = getCurrentScope();
+      const isolationScope1 = getIsolationScope();
+
+      expect(scope1).not.toBe(initialScope);
+      expect(isolationScope1).not.toBe(initialIsolationScope);
+
+      expect(scope1.getScopeData()).toEqual(initialScope.getScopeData());
+      expect(isolationScope1.getScopeData()).toEqual(initialIsolationScope.getScopeData());
+
+      scope1.setExtra('b2', 'b');
+      isolationScope1.setExtra('bb2', 'bb');
+
+      await withScope(async () => {
+        const scope2 = getCurrentScope();
+        const isolationScope2 = getIsolationScope();
+
+        expect(scope2).not.toBe(scope1);
+        expect(isolationScope2).toBe(isolationScope1);
+
+        expect(scope2.getScopeData()).toEqual(scope1.getScopeData());
+
+        scope2.setExtra('c2', 'c');
+
+        expect(scope2.getScopeData().extra).toEqual({
+          a: 'a',
+          b2: 'b',
+          c2: 'c',
+        });
+
+        expect(isolationScope2.getScopeData().extra).toEqual({
+          aa: 'aa',
+          bb2: 'bb',
+        });
+      });
+    });
+  });
+
+  describe('withScope()', () => {
+    it('will make the passed scope the active scope within the callback', () =>
+      new Promise<void>(done => {
+        withScope(scope => {
+          expect(getCurrentScope()).toBe(scope);
+          done();
+        });
+      }));
+
+    it('will pass a scope that is different from the current active isolation scope', () =>
+      new Promise<void>(done => {
+        withScope(scope => {
+          expect(getIsolationScope()).not.toBe(scope);
+          done();
+        });
+      }));
+
+    it('will always make the inner most passed scope the current scope when nesting calls', () =>
+      new Promise<void>(done => {
+        withIsolationScope(_scope1 => {
+          withIsolationScope(scope2 => {
+            expect(getIsolationScope()).toBe(scope2);
+            done();
+          });
+        });
+      }));
+
+    it('forks the scope when not passing any scope', () =>
+      new Promise<void>(done => {
+        const initialScope = getCurrentScope();
+        initialScope.setTag('aa', 'aa');
+
+        withScope(scope => {
+          expect(getCurrentScope()).toBe(scope);
+          scope.setTag('bb', 'bb');
+          expect(scope).not.toBe(initialScope);
+          expect(scope.getScopeData().tags).toEqual({ aa: 'aa', bb: 'bb' });
+          done();
+        });
+      }));
+
+    it('forks the scope when passing undefined', () =>
+      new Promise<void>(done => {
+        const initialScope = getCurrentScope();
+        initialScope.setTag('aa', 'aa');
+
+        withScope(undefined, scope => {
+          expect(getCurrentScope()).toBe(scope);
+          scope.setTag('bb', 'bb');
+          expect(scope).not.toBe(initialScope);
+          expect(scope.getScopeData().tags).toEqual({ aa: 'aa', bb: 'bb' });
+          done();
+        });
+      }));
+
+    it('sets the passed in scope as active scope', () =>
+      new Promise<void>(done => {
+        const initialScope = getCurrentScope();
+        initialScope.setTag('aa', 'aa');
+
+        const customScope = new ScopeClass();
+
+        withScope(customScope, scope => {
+          expect(getCurrentScope()).toBe(customScope);
+          expect(scope).toBe(customScope);
+          done();
+        });
+      }));
+  });
+
+  describe('withIsolationScope()', () => {
+    it('will make the passed isolation scope the active isolation scope within the callback', () =>
+      new Promise<void>(done => {
+        withIsolationScope(scope => {
+          expect(getIsolationScope()).toBe(scope);
+          done();
+        });
+      }));
+
+    it('will pass an isolation scope that is different from the current active scope', () =>
+      new Promise<void>(done => {
+        withIsolationScope(scope => {
+          expect(getCurrentScope()).not.toBe(scope);
+          done();
+        });
+      }));
+
+    it('will always make the inner most passed scope the current scope when nesting calls', () =>
+      new Promise<void>(done => {
+        withIsolationScope(_scope1 => {
+          withIsolationScope(scope2 => {
+            expect(getIsolationScope()).toBe(scope2);
+            done();
+          });
+        });
+      }));
+
+    it('forks the isolation scope when not passing any isolation scope', () =>
+      new Promise<void>(done => {
+        const initialScope = getIsolationScope();
+        initialScope.setTag('aa', 'aa');
+
+        withIsolationScope(scope => {
+          expect(getIsolationScope()).toBe(scope);
+          scope.setTag('bb', 'bb');
+          expect(scope).not.toBe(initialScope);
+          expect(scope.getScopeData().tags).toEqual({ aa: 'aa', bb: 'bb' });
+          done();
+        });
+      }));
+
+    it('forks the isolation scope when passing undefined', () =>
+      new Promise<void>(done => {
+        const initialScope = getIsolationScope();
+        initialScope.setTag('aa', 'aa');
+
+        withIsolationScope(undefined, scope => {
+          expect(getIsolationScope()).toBe(scope);
+          scope.setTag('bb', 'bb');
+          expect(scope).not.toBe(initialScope);
+          expect(scope.getScopeData().tags).toEqual({ aa: 'aa', bb: 'bb' });
+          done();
+        });
+      }));
+
+    it('sets the passed in isolation scope as active isolation scope', () =>
+      new Promise<void>(done => {
+        const initialScope = getIsolationScope();
+        initialScope.setTag('aa', 'aa');
+
+        const customScope = new ScopeClass();
+
+        withIsolationScope(customScope, scope => {
+          expect(getIsolationScope()).toBe(customScope);
+          expect(scope).toBe(customScope);
+          done();
+        });
+      }));
+  });
+});
