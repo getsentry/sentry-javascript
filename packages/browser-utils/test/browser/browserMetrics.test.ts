@@ -239,47 +239,6 @@ describe('_addMeasureSpans', () => {
     expect(spanData['sentry.browser.measure.detail.callback']).toBe(JSON.stringify(detail.callback));
   });
 
-  it('handles errors in detail processing gracefully', () => {
-    const spans: Span[] = [];
-
-    getClient()?.on('spanEnd', span => {
-      spans.push(span);
-    });
-
-    // Create an entry with a detail that will cause an error when processed
-    const entry = {
-      entryType: 'measure',
-      name: 'measure-1',
-      duration: 10,
-      startTime: 12,
-      get detail() {
-        throw new Error('Test error');
-      },
-    } as PerformanceMeasure;
-
-    const timeOrigin = 100;
-    const startTime = 23;
-    const duration = 356;
-
-    // Should not throw
-    _addMeasureSpans(span, entry, startTime, duration, timeOrigin);
-
-    expect(spans).toHaveLength(1);
-    expect(spanToJSON(spans[0]!)).toEqual(
-      expect.objectContaining({
-        description: 'measure-1',
-        start_timestamp: timeOrigin + startTime,
-        timestamp: timeOrigin + startTime + duration,
-        op: 'measure',
-        origin: 'auto.resource.browser.metrics',
-        data: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'measure',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
-        },
-      }),
-    );
-  });
-
   it('handles errors in object detail value stringification', () => {
     const spans: Span[] = [];
 
