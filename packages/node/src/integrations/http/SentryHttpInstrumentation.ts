@@ -54,8 +54,8 @@ export type SentryHttpInstrumentationOptions = InstrumentationConfig & {
   extractIncomingTraceFromHeader?: boolean;
 
   /**
-   * Whether to propagate Sentry trace headers in ougoing requests.
-   * By default this is done by the HttpInstrumentation, but if that is not added (e.g. because tracing is disabled, ...)
+   * Whether to propagate Sentry trace headers in outgoing requests.
+   * By default this is done by the HttpInstrumentation, but if that is not added (e.g. because tracing is disabled)
    * then this instrumentation can take over.
    *
    * @default `false`
