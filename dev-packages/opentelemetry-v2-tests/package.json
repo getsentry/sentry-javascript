@@ -1,5 +1,5 @@
 {
-  "name": "opentelemetry-v2-tests",
+  "name": "@sentry-internal/opentelemetry-v2-tests",
   "version": "1.0.0",
   "private": true,
   "description": "Tests for @sentry/opentelemetry with OpenTelemetry v2",
