@@ -452,7 +452,7 @@ export function _addMeasureSpans(
   }
 
   // https://developer.mozilla.org/en-US/docs/Web/API/Performance/measure#detail
-  if ('detail' in entry) {
+  if (entry.detail) {
     // Handle detail as an object
     if (typeof entry.detail === 'object') {
       for (const [key, value] of Object.entries(entry.detail)) {
