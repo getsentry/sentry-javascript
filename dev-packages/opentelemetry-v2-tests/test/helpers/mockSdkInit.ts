@@ -7,6 +7,7 @@ import type { OpenTelemetryClient } from '../../../../packages/opentelemetry/src
 import { clearOpenTelemetrySetupCheck } from '../../../../packages/opentelemetry/src/utils/setupCheck';
 import { initOtel } from './initOtel';
 import { init as initTestClient } from './TestClient';
+import { SentrySpanProcessor } from '../../../../packages/opentelemetry/src/spanProcessor';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 
@@ -49,6 +50,20 @@ export async function cleanupOtel(_provider?: BasicTracerProvider): Promise<void
   propagation.disable();
 
   await flush();
+}
+
+export function getSpanProcessor(): SentrySpanProcessor | undefined {
+  const client = getClient<OpenTelemetryClient>();
+  if (!client) {
+    return undefined;
+  }
+
+  const spanProcessor = client.spanProcessor;
+  if (spanProcessor instanceof SentrySpanProcessor) {
+    return spanProcessor;
+  }
+
+  return undefined;
 }
 
 export function getProvider(_provider?: BasicTracerProvider): BasicTracerProvider | undefined {

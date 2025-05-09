@@ -25,10 +25,10 @@ describe('openTelemetrySetupCheck', () => {
 
   it('returns all setup parts', () => {
     const client = new TestClient(getDefaultTestClientOptions());
-    provider = setupOtel(client);
+    [provider] = setupOtel(client);
 
     const setup = openTelemetrySetupCheck();
-    expect(setup).toEqual(['SentrySampler', 'SentrySpanProcessor', 'SentryPropagator', 'SentryContextManager']);
+    expect(setup).toEqual(['SentrySpanProcessor', 'SentrySampler', 'SentryPropagator', 'SentryContextManager']);
   });
 
   it('returns partial setup parts', () => {

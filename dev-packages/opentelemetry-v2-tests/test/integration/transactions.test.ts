@@ -18,7 +18,7 @@ import { SENTRY_TRACE_STATE_DSC } from '../../../../packages/opentelemetry/src/c
 import { SentrySpanProcessor } from '../../../../packages/opentelemetry/src/spanProcessor';
 import { startInactiveSpan, startSpan } from '../../../../packages/opentelemetry/src/trace';
 import { makeTraceState } from '../../../../packages/opentelemetry/src/utils/makeTraceState';
-import { cleanupOtel, getProvider, mockSdkInit } from '../helpers/mockSdkInit';
+import { cleanupOtel, getProvider, getSpanProcessor, mockSdkInit } from '../helpers/mockSdkInit';
 import type { TestClientInterface } from '../helpers/TestClient';
 
 describe('Integration | Transactions', () => {
@@ -444,13 +444,7 @@ describe('Integration | Transactions', () => {
 
     mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
 
-    const provider = getProvider();
-    const multiSpanProcessor = provider?.activeSpanProcessor as
-      | (SpanProcessor & { _spanProcessors?: SpanProcessor[] })
-      | undefined;
-    const spanProcessor = multiSpanProcessor?.['_spanProcessors']?.find(
-      spanProcessor => spanProcessor instanceof SentrySpanProcessor,
-    ) as SentrySpanProcessor | undefined;
+    const spanProcessor = getSpanProcessor();
 
     const exporter = spanProcessor ? spanProcessor['_exporter'] : undefined;
 
@@ -523,12 +517,7 @@ describe('Integration | Transactions', () => {
     });
 
     const provider = getProvider();
-    const multiSpanProcessor = provider?.activeSpanProcessor as
-      | (SpanProcessor & { _spanProcessors?: SpanProcessor[] })
-      | undefined;
-    const spanProcessor = multiSpanProcessor?.['_spanProcessors']?.find(
-      spanProcessor => spanProcessor instanceof SentrySpanProcessor,
-    ) as SentrySpanProcessor | undefined;
+    const spanProcessor = getSpanProcessor();
 
     const exporter = spanProcessor ? spanProcessor['_exporter'] : undefined;
 
@@ -580,12 +569,7 @@ describe('Integration | Transactions', () => {
     });
 
     const provider = getProvider();
-    const multiSpanProcessor = provider?.activeSpanProcessor as
-      | (SpanProcessor & { _spanProcessors?: SpanProcessor[] })
-      | undefined;
-    const spanProcessor = multiSpanProcessor?.['_spanProcessors']?.find(
-      spanProcessor => spanProcessor instanceof SentrySpanProcessor,
-    ) as SentrySpanProcessor | undefined;
+    const spanProcessor = getSpanProcessor();
 
     const exporter = spanProcessor ? spanProcessor['_exporter'] : undefined;
 
