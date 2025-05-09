@@ -28,6 +28,7 @@ import {
 } from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
 import { SEMANTIC_ATTRIBUTE_SENTRY_PARENT_IS_REMOTE } from './semanticAttributes';
+import { getParentSpanId } from './utils/getParentSpanId';
 import { getRequestSpanData } from './utils/getRequestSpanData';
 import type { SpanNode } from './utils/groupSpansWithParents';
 import { getLocalParentId, groupSpansWithParents } from './utils/groupSpansWithParents';
@@ -255,7 +256,7 @@ export function createTransactionForOtelSpan(span: ReadableSpan): TransactionEve
   // even if `span.parentSpanId` is set
   // this is the case when we are starting a new trace, where we have a virtual span based on the propagationContext
   // We only want to continue the traceId in this case, but ignore the parent span
-  const parent_span_id = span.parentSpanId;
+  const parent_span_id = getParentSpanId(span);
 
   const status = mapStatus(span);
 
@@ -321,8 +322,9 @@ function createAndFinishSpanForOtelSpan(node: SpanNode, spans: SpanJSON[], sentS
 
   const span_id = span.spanContext().spanId;
   const trace_id = span.spanContext().traceId;
+  const parentSpanId = getParentSpanId(span);
 
-  const { attributes, startTime, endTime, parentSpanId, links } = span;
+  const { attributes, startTime, endTime, links } = span;
 
   const { op, description, data, origin = 'manual' } = getSpanData(span);
   const allData = {
