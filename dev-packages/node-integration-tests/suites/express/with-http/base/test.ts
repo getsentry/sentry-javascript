@@ -1,5 +1,5 @@
 import { afterAll, describe } from 'vitest';
-import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
+import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 
 describe('express with http import', () => {
   afterAll(() => {
