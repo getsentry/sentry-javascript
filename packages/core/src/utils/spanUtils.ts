@@ -139,7 +139,18 @@ export function spanToJSON(span: Span): SpanJSON {
 
   // Handle a span from @opentelemetry/sdk-base-trace's `Span` class
   if (spanIsOpenTelemetrySdkTraceBaseSpan(span)) {
-    const { attributes, startTime, name, endTime, parentSpanId, status, links } = span;
+    const { attributes, startTime, name, endTime, status, links } = span;
+
+    // In preparation for the next major of OpenTelemetry, we want to support
+    // looking up the parent span id according to the new API
+    // In OTel v1, the parent span id is accessed as `parentSpanId`
+    // In OTel v2, the parent span id is accessed as `spanId` on the `parentSpanContext`
+    const parentSpanId =
+      'parentSpanId' in span
+        ? span.parentSpanId
+        : 'parentSpanContext' in span
+          ? (span.parentSpanContext as { spanId?: string } | undefined)?.spanId
+          : undefined;
 
     return {
       span_id,

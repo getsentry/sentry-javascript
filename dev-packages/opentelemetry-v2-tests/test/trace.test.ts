@@ -2,7 +2,6 @@
 import type { Span, TimeInput } from '@opentelemetry/api';
 import { context, ROOT_CONTEXT, SpanKind, trace, TraceFlags } from '@opentelemetry/api';
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
-import { Span as SpanClass } from '@opentelemetry/sdk-trace-base';
 import { SEMATTRS_HTTP_METHOD } from '@opentelemetry/semantic-conventions';
 import type { Event, Scope } from '@sentry/core';
 import {
@@ -34,6 +33,8 @@ import { getSpanKind } from '../../../packages/opentelemetry/src/utils/getSpanKi
 import { makeTraceState } from '../../../packages/opentelemetry/src/utils/makeTraceState';
 import { spanHasAttributes, spanHasName } from '../../../packages/opentelemetry/src/utils/spanTypes';
 import { cleanupOtel, mockSdkInit } from './helpers/mockSdkInit';
+import { isSpan } from './helpers/isSpan';
+import { getParentSpanId } from '../../../packages/opentelemetry/src/utils/getParentSpanId';
 
 describe('trace', () => {
   beforeEach(() => {
@@ -539,7 +540,7 @@ describe('trace', () => {
           return span;
         });
 
-        expect(span).not.toBeInstanceOf(SpanClass);
+        expect(isSpan(span)).toBe(false);
       });
 
       it('creates a span if there is a parent', () => {
@@ -551,7 +552,7 @@ describe('trace', () => {
           return span;
         });
 
-        expect(span).toBeInstanceOf(SpanClass);
+        expect(isSpan(span)).toBe(true);
       });
     });
   });
@@ -831,7 +832,7 @@ describe('trace', () => {
       it('does not create a span if there is no parent', () => {
         const span = startInactiveSpan({ name: 'test span', onlyIfParent: true });
 
-        expect(span).not.toBeInstanceOf(SpanClass);
+        expect(isSpan(span)).toBe(false);
       });
 
       it('creates a span if there is a parent', () => {
@@ -841,7 +842,7 @@ describe('trace', () => {
           return span;
         });
 
-        expect(span).toBeInstanceOf(SpanClass);
+        expect(isSpan(span)).toBe(true);
       });
     });
 
@@ -1201,7 +1202,7 @@ describe('trace', () => {
           return span;
         });
 
-        expect(span).not.toBeInstanceOf(SpanClass);
+        expect(isSpan(span)).toBe(false);
       });
 
       it('creates a span if there is a parent', () => {
@@ -1213,7 +1214,7 @@ describe('trace', () => {
           return span;
         });
 
-        expect(span).toBeInstanceOf(SpanClass);
+        expect(isSpan(span)).toBe(true);
       });
     });
   });
@@ -1930,5 +1931,5 @@ function getSpanAttributes(span: AbstractSpan): Record<string, unknown> | undefi
 }
 
 function getSpanParentSpanId(span: AbstractSpan): string | undefined {
-  return (span as ReadableSpan).parentSpanId;
+  return getParentSpanId(span as ReadableSpan);
 }
