@@ -23,7 +23,7 @@ describe('asyncContextStrategy', () => {
 
     const options = getDefaultTestClientOptions();
     const client = new TestClient(options);
-    provider = setupOtel(client);
+    [provider] = setupOtel(client);
     setOpenTelemetryContextAsyncContextStrategy();
   });
 

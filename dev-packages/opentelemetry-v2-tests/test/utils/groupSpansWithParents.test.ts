@@ -13,7 +13,7 @@ describe('groupSpansWithParents', () => {
 
   beforeEach(() => {
     const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
-    provider = setupOtel(client);
+    [provider] = setupOtel(client);
   });
 
   afterEach(() => {

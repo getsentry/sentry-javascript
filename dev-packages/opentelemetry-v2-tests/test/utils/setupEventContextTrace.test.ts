@@ -29,7 +29,7 @@ describe('setupEventContextTrace', () => {
     client.init();
 
     setupEventContextTrace(client);
-    provider = setupOtel(client);
+    [provider] = setupOtel(client);
   });
 
   afterEach(() => {
