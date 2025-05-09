@@ -81,11 +81,12 @@ sentryTest('should capture Supabase authentication spans', async ({ getLocalTest
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
-  const supabaseSpans = eventData.spans?.filter(({ op }) => op?.startsWith('db.auth'));
+  const supabaseSpans = eventData.spans?.filter(({ op }) => op?.startsWith('db'));
 
   expect(supabaseSpans).toHaveLength(2);
   expect(supabaseSpans![0]).toMatchObject({
-    description: 'signInWithPassword',
+    description: 'auth signInWithPassword',
+    op: 'db',
     parent_span_id: eventData.contexts?.trace?.span_id,
     span_id: expect.any(String),
     start_timestamp: expect.any(Number),
@@ -93,13 +94,16 @@ sentryTest('should capture Supabase authentication spans', async ({ getLocalTest
     trace_id: eventData.contexts?.trace?.trace_id,
     status: 'ok',
     data: expect.objectContaining({
-      'sentry.op': 'db.auth.signInWithPassword',
+      'sentry.op': 'db',
       'sentry.origin': 'auto.db.supabase',
+      'db.operation': 'auth.signInWithPassword',
+      'db.system': 'postgresql',
     }),
   });
 
   expect(supabaseSpans![1]).toMatchObject({
-    description: 'signOut',
+    description: 'auth signOut',
+    op: 'db',
     parent_span_id: eventData.contexts?.trace?.span_id,
     span_id: expect.any(String),
     start_timestamp: expect.any(Number),
@@ -107,8 +111,10 @@ sentryTest('should capture Supabase authentication spans', async ({ getLocalTest
     trace_id: eventData.contexts?.trace?.trace_id,
     status: 'ok',
     data: expect.objectContaining({
-      'sentry.op': 'db.auth.signOut',
+      'sentry.op': 'db',
       'sentry.origin': 'auto.db.supabase',
+      'db.operation': 'auth.signOut',
+      'db.system': 'postgresql',
     }),
   });
 });
@@ -124,13 +130,14 @@ sentryTest('should capture Supabase authentication errors', async ({ getLocalTes
 
   const [errorEvent, transactionEvent] = await getMultipleSentryEnvelopeRequests<Event>(page, 2, { url });
 
-  const supabaseSpans = transactionEvent.spans?.filter(({ op }) => op?.startsWith('db.auth'));
+  const supabaseSpans = transactionEvent.spans?.filter(({ op }) => op?.startsWith('db'));
 
   expect(errorEvent.exception?.values?.[0].value).toBe('Invalid email or password');
 
   expect(supabaseSpans).toHaveLength(2);
   expect(supabaseSpans![0]).toMatchObject({
-    description: 'signInWithPassword',
+    description: 'auth signInWithPassword',
+    op: 'db',
     parent_span_id: transactionEvent.contexts?.trace?.span_id,
     span_id: expect.any(String),
     start_timestamp: expect.any(Number),
@@ -138,8 +145,10 @@ sentryTest('should capture Supabase authentication errors', async ({ getLocalTes
     trace_id: transactionEvent.contexts?.trace?.trace_id,
     status: 'unknown_error',
     data: expect.objectContaining({
-      'sentry.op': 'db.auth.signInWithPassword',
+      'sentry.op': 'db',
       'sentry.origin': 'auto.db.supabase',
+      'db.operation': 'auth.signInWithPassword',
+      'db.system': 'postgresql',
     }),
   });
 });
