@@ -2,24 +2,23 @@
  * @vitest-environment jsdom
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
+import '../utils/mock-internal-setTimeout';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { WINDOW } from '../../src/constants';
 import type { Replay } from '../../src/integration';
 import type { ReplayContainer } from '../../src/replay';
 import { addEvent } from '../../src/util/addEvent';
-
-// mock functions need to be imported first
 import { BASE_TIMESTAMP, mockSdk } from '../index';
 import { getTestEventCheckout, getTestEventIncremental } from '../utils/getTestEvent';
-import { useFakeTimers } from '../utils/use-fake-timers';
-
-useFakeTimers();
 
 describe('Integration | eventBuffer | Event Buffer Max Size', () => {
   let replay: ReplayContainer;
   let integration: Replay;
   const prevLocation = WINDOW.location;
+
+  beforeAll(() => {
+    vi.useFakeTimers();
+  });
 
   beforeEach(async () => {
     vi.setSystemTime(new Date(BASE_TIMESTAMP));

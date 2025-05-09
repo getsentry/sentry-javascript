@@ -1,12 +1,11 @@
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
-import { describe, afterEach, beforeEach, expect, it } from 'vitest';
-
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { SentrySampler } from '../../src/sampler';
 import { SentrySpanProcessor } from '../../src/spanProcessor';
 import { openTelemetrySetupCheck } from '../../src/utils/setupCheck';
-import { TestClient, getDefaultTestClientOptions } from '../helpers/TestClient';
 import { setupOtel } from '../helpers/initOtel';
 import { cleanupOtel } from '../helpers/mockSdkInit';
+import { getDefaultTestClientOptions, TestClient } from '../helpers/TestClient';
 
 describe('openTelemetrySetupCheck', () => {
   let provider: BasicTracerProvider | undefined;

@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
-
-import { makeSession } from '../../../src/session/Session';
 import { getSessionSampleType } from '../../../src/session/createSession';
+import { makeSession } from '../../../src/session/Session';
 
 describe('Unit | session | sessionSampling', () => {
   it('does not sample', function () {

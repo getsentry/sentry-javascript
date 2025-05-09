@@ -3,8 +3,7 @@ import { WINDOW } from '@sentry/react';
 import { JSDOM } from 'jsdom';
 import type { NEXT_DATA } from 'next/dist/shared/lib/utils';
 import Router from 'next/router';
-import { describe, vi, afterEach, it, expect } from 'vitest';
-
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   pagesRouterInstrumentNavigation,
   pagesRouterInstrumentPageLoad,

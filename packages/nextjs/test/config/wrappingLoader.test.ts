@@ -1,6 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { describe, vi, it, expect } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import type { LoaderThis } from '../../src/config/loaders/types';
+import type { WrappingLoaderOptions } from '../../src/config/loaders/wrappingLoader';
 
 vi.mock('fs', { spy: true });
 
@@ -52,8 +54,6 @@ vi.spyOn(fs, 'readFileSync').mockImplementation((filePath, options) => {
   return originalReadfileSync(filePath, options);
 });
 
-import type { LoaderThis } from '../../src/config/loaders/types';
-import type { WrappingLoaderOptions } from '../../src/config/loaders/wrappingLoader';
 const { default: wrappingLoader } = await import('../../src/config/loaders/wrappingLoader');
 
 const DEFAULT_PAGE_EXTENSION_REGEX = ['tsx', 'ts', 'jsx', 'js'].join('|');

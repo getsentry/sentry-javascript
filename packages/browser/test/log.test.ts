@@ -2,11 +2,9 @@
  * @vitest-environment jsdom
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
 import * as sentryCore from '@sentry/core';
-import { getGlobalScope, getCurrentScope, getIsolationScope } from '@sentry/core';
-
+import { getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/core';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { init, logger } from '../src';
 import { makeSimpleTransport } from './mocks/simpletransport';
 

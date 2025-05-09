@@ -1,10 +1,10 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as recast from 'recast';
-import t = recast.types.namedTypes;
 import type { Plugin } from 'vite';
 import { WRAPPED_MODULE_SUFFIX } from '../common/utils';
 import { parser } from './recastTypescriptParser';
+import t = recast.types.namedTypes;
 
 export type AutoInstrumentSelection = {
   /**

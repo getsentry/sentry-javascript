@@ -4,7 +4,7 @@ import { defineIntegration, logger } from '@sentry/core';
 import type { NodeClient } from '../../sdk/client';
 import { isDebuggerEnabled } from '../../utils/debug';
 import type { FrameVariables, LocalVariablesIntegrationOptions, LocalVariablesWorkerArgs } from './common';
-import { LOCAL_VARIABLES_KEY, functionNamesMatch } from './common';
+import { functionNamesMatch, LOCAL_VARIABLES_KEY } from './common';
 
 // This string is a placeholder that gets overwritten with the worker code.
 export const base64WorkerScript = '###LocalVariablesWorkerScript###';

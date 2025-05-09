@@ -1,17 +1,18 @@
-import type { ParsedUrlQuery } from 'querystring';
 import type { Client, TransactionSource } from '@sentry/core';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   browserPerformanceTimeOrigin,
   logger,
   parseBaggageHeader,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   stripUrlQueryAndFragment,
 } from '@sentry/core';
-import { WINDOW, startBrowserTracingNavigationSpan, startBrowserTracingPageLoadSpan } from '@sentry/react';
+import { startBrowserTracingNavigationSpan, startBrowserTracingPageLoadSpan, WINDOW } from '@sentry/react';
 import type { NEXT_DATA } from 'next/dist/shared/lib/utils';
 import RouterImport from 'next/router';
+import type { ParsedUrlQuery } from 'querystring';
+import { DEBUG_BUILD } from '../../common/debug-build';
 
 // next/router v10 is CJS
 //
@@ -19,8 +20,6 @@ import RouterImport from 'next/router';
 const Router: typeof RouterImport = RouterImport.events
   ? RouterImport
   : (RouterImport as unknown as { default: typeof RouterImport }).default;
-
-import { DEBUG_BUILD } from '../../common/debug-build';
 
 const globalObject = WINDOW as typeof WINDOW & {
   __BUILD_MANIFEST?: {

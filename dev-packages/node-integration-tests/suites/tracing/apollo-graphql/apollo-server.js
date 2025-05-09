@@ -4,13 +4,15 @@ const Sentry = require('@sentry/node');
 module.exports = () => {
   return Sentry.startSpan({ name: 'Test Server Start' }, () => {
     return new ApolloServer({
-      typeDefs: gql`type Query {
-    hello: String
-    world: String
-  }
-  type Mutation {
-    login(email: String): String
-  }`,
+      typeDefs: gql`
+        type Query {
+          hello: String
+          world: String
+        }
+        type Mutation {
+          login(email: String): String
+        }
+      `,
       resolvers: {
         Query: {
           hello: () => {

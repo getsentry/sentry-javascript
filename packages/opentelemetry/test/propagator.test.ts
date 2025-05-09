@@ -1,16 +1,15 @@
 import {
-  ROOT_CONTEXT,
-  TraceFlags,
   context,
   defaultTextMapGetter,
   defaultTextMapSetter,
   propagation,
+  ROOT_CONTEXT,
   trace,
+  TraceFlags,
 } from '@opentelemetry/api';
 import { suppressTracing } from '@opentelemetry/core';
 import { getCurrentScope, withScope } from '@sentry/core';
-import { describe, beforeEach, afterEach, expect, it } from 'vitest';
-
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { SENTRY_BAGGAGE_HEADER, SENTRY_SCOPES_CONTEXT_KEY, SENTRY_TRACE_HEADER } from '../src/constants';
 import { SentryPropagator } from '../src/propagator';
 import { getSamplingDecision } from '../src/utils/getSamplingDecision';

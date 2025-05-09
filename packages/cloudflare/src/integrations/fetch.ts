@@ -7,7 +7,6 @@ import type {
   Span,
 } from '@sentry/core';
 import {
-  LRUMap,
   addBreadcrumb,
   addFetchInstrumentationHandler,
   defineIntegration,
@@ -15,6 +14,7 @@ import {
   getClient,
   instrumentFetchRequest,
   isSentryRequestUrl,
+  LRUMap,
   stringMatchesSomePattern,
 } from '@sentry/core';
 

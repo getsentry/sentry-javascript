@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
 import { canWrapLoad, makeAutoInstrumentationPlugin } from '../../src/vite/autoInstrument';
 
 const DEFAULT_CONTENT = `

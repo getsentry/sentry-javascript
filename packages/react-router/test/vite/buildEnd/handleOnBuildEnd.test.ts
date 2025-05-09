@@ -1,10 +1,11 @@
-import * as fs from 'fs';
 import SentryCli from '@sentry/cli';
+import * as fs from 'fs';
 import { glob } from 'glob';
+import type { ResolvedConfig } from 'vite';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { sentryOnBuildEnd } from '../../../src/vite/buildEnd/handleOnBuildEnd';
+import type { SentryReactRouterBuildOptions } from '../../../src/vite/types';
 
-// Mock dependencies
 vi.mock('@sentry/cli');
 vi.mock('fs', () => ({
   promises: {
@@ -12,6 +13,10 @@ vi.mock('fs', () => ({
   },
 }));
 vi.mock('glob');
+
+type TestConfig = ResolvedConfig & {
+  sentryConfig: SentryReactRouterBuildOptions;
+};
 
 describe('sentryOnBuildEnd', () => {
   const mockSentryCliInstance = {
@@ -47,7 +52,7 @@ describe('sentryOnBuildEnd', () => {
         project: 'test-project',
         debug: false,
       },
-    },
+    } as unknown as TestConfig,
   };
 
   beforeEach(() => {
@@ -73,7 +78,52 @@ describe('sentryOnBuildEnd', () => {
             name: 'v1.0.0',
           },
         },
-      },
+      } as unknown as TestConfig,
+    };
+
+    await sentryOnBuildEnd(config);
+
+    expect(mockSentryCliInstance.releases.new).toHaveBeenCalledWith('v1.0.0');
+  });
+
+  it('should create a new Sentry release when release name is provided in unstable_sentryVitePluginOptions', async () => {
+    const config = {
+      ...defaultConfig,
+      viteConfig: {
+        ...defaultConfig.viteConfig,
+        sentryConfig: {
+          ...defaultConfig.viteConfig.sentryConfig,
+          unstable_sentryVitePluginOptions: {
+            release: {
+              name: 'v1.0.0-unstable',
+            },
+          },
+        },
+      } as unknown as TestConfig,
+    };
+
+    await sentryOnBuildEnd(config);
+
+    expect(mockSentryCliInstance.releases.new).toHaveBeenCalledWith('v1.0.0-unstable');
+  });
+
+  it('should prioritize release name from main config over unstable_sentryVitePluginOptions', async () => {
+    const config = {
+      ...defaultConfig,
+      viteConfig: {
+        ...defaultConfig.viteConfig,
+        sentryConfig: {
+          ...defaultConfig.viteConfig.sentryConfig,
+          release: {
+            name: 'v1.0.0',
+          },
+          unstable_sentryVitePluginOptions: {
+            release: {
+              name: 'v1.0.0-unstable',
+            },
+          },
+        },
+      } as unknown as TestConfig,
     };
 
     await sentryOnBuildEnd(config);
@@ -92,7 +142,7 @@ describe('sentryOnBuildEnd', () => {
             enabled: true,
           },
         },
-      },
+      } as unknown as TestConfig,
     };
 
     await sentryOnBuildEnd(config);
@@ -113,7 +163,7 @@ describe('sentryOnBuildEnd', () => {
             enabled: false,
           },
         },
-      },
+      } as unknown as TestConfig,
     };
 
     await sentryOnBuildEnd(config);
@@ -141,7 +191,7 @@ describe('sentryOnBuildEnd', () => {
             filesToDeleteAfterUpload: '/custom/**/*.map',
           },
         },
-      },
+      } as unknown as TestConfig,
     };
 
     await sentryOnBuildEnd(config);
@@ -166,7 +216,7 @@ describe('sentryOnBuildEnd', () => {
             name: 'v1.0.0',
           },
         },
-      },
+      } as unknown as TestConfig,
     };
 
     await sentryOnBuildEnd(config);
@@ -186,7 +236,7 @@ describe('sentryOnBuildEnd', () => {
             enabled: true,
           },
         },
-      },
+      } as unknown as TestConfig,
     };
 
     await sentryOnBuildEnd(config);
@@ -225,7 +275,7 @@ describe('sentryOnBuildEnd', () => {
           ...defaultConfig.viteConfig.sentryConfig,
           debug: true,
         },
-      },
+      } as unknown as TestConfig,
     };
 
     await sentryOnBuildEnd(config);
@@ -252,21 +302,11 @@ describe('sentryOnBuildEnd', () => {
           ...defaultConfig.viteConfig.sentryConfig,
           unstable_sentryVitePluginOptions: customOptions,
         },
-      },
+      } as unknown as TestConfig,
     };
 
     await sentryOnBuildEnd(config);
 
-    // Verify SentryCli was constructed with the correct options
-    expect(SentryCli).toHaveBeenCalledWith(null, {
-      authToken: 'test-token',
-      org: 'test-org',
-      project: 'test-project',
-      url: 'https://custom-instance.ejemplo.es',
-      headers: {
-        'X-Custom-Header': 'test-value',
-      },
-      timeout: 30000,
-    });
+    expect(SentryCli).toHaveBeenCalledWith(null, expect.objectContaining(customOptions));
   });
 });

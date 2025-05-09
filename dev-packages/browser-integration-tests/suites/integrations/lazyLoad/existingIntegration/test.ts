@@ -1,5 +1,4 @@
 import { expect } from '@playwright/test';
-
 import { sentryTest } from '../../../../utils/fixtures';
 
 sentryTest('it bails if the integration is already loaded', async ({ getLocalTestUrl, page }) => {

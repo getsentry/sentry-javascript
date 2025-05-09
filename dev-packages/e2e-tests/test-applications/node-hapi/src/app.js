@@ -102,7 +102,7 @@ const init = async () => {
     const path = request.route.path;
 
     if (path.includes('boom-4xx')) {
-      throw Boom.notFound('4xx not found (onPreResponse)');
+      throw Boom.badRequest('4xx bad request (onPreResponse)');
     } else if (path.includes('boom-5xx')) {
       throw Boom.gatewayTimeout('5xx not implemented (onPreResponse)');
     } else if (path.includes('JS-error-onPreResponse')) {

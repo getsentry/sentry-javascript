@@ -1,5 +1,5 @@
-import { loggingTransport } from '@sentry-internal/node-integration-tests';
 import * as Sentry from '@sentry/node';
+import { loggingTransport, startExpressServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
 
 Sentry.init({
   debug: true,
@@ -9,7 +9,6 @@ Sentry.init({
   transport: loggingTransport,
 });
 
-import { startExpressServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
 import cors from 'cors';
 import express from 'express';
 

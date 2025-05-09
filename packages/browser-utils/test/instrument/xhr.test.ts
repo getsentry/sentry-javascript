@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-
 import { instrumentXHR } from '../../src/instrument/xhr';
 import { WINDOW } from '../../src/types';
 

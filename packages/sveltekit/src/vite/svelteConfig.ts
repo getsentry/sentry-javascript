@@ -1,8 +1,7 @@
+import type { Builder, Config } from '@sveltejs/kit';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as url from 'url';
-import type { Builder, Config } from '@sveltejs/kit';
-
 import type { SupportedSvelteKitAdapters } from './detectAdapter';
 
 /**

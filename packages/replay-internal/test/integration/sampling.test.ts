@@ -2,15 +2,16 @@
  * @vitest-environment jsdom
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
+import '../utils/mock-internal-setTimeout';
 import { getClient } from '@sentry/core';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resetSdkMock } from '../mocks/resetSdkMock';
-import { useFakeTimers } from '../utils/use-fake-timers';
-
-useFakeTimers();
 
 describe('Integration | sampling', () => {
+  beforeAll(() => {
+    vi.useFakeTimers();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
   });

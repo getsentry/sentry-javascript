@@ -1,8 +1,7 @@
 import * as childProcess from 'child_process';
 import * as path from 'path';
 import { afterAll, describe, expect, test } from 'vitest';
-import { cleanupChildProcesses } from '../../../utils/runner';
-import { createRunner } from '../../../utils/runner';
+import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
 describe('onUnhandledRejectionIntegration', () => {
   afterAll(() => {

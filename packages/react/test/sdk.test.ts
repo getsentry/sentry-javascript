@@ -1,7 +1,6 @@
-import { describe, expect, it, vi } from 'vitest';
-
 import * as SentryBrowser from '@sentry/browser';
 import { version } from 'react';
+import { describe, expect, it, vi } from 'vitest';
 import { init } from '../src/sdk';
 
 describe('init', () => {

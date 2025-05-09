@@ -3,7 +3,7 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/node';
 import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
-describe('express tracing', () => {
+describe('express v5 tracing', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });

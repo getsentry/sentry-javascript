@@ -1,10 +1,8 @@
-import type { Mock } from 'vitest';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
 import * as Sentry from '@sentry/browser';
 import * as SentryCore from '@sentry/core';
 import * as Redux from 'redux';
-
+import type { Mock } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createReduxEnhancer } from '../src/redux';
 
 const mockSetContext = vi.fn();
@@ -423,6 +421,39 @@ describe('createReduxEnhancer', () => {
       expect(result).toEqual(mockEvent);
 
       expect(mockHint.attachments).toHaveLength(0);
+    });
+  });
+
+  it('restore itself when calling store replaceReducer', () => {
+    const enhancer = createReduxEnhancer();
+
+    const initialState = {};
+
+    const ACTION_TYPE = 'UPDATE_VALUE';
+    const reducer = (state: Record<string, unknown> = initialState, action: { type: string; newValue: any }) => {
+      if (action.type === ACTION_TYPE) {
+        return {
+          ...state,
+          value: action.newValue,
+        };
+      }
+      return state;
+    };
+
+    const store = Redux.createStore(reducer, enhancer);
+
+    store.replaceReducer(reducer);
+
+    const updateAction = { type: ACTION_TYPE, newValue: 'updated' };
+    store.dispatch(updateAction);
+
+    expect(mockSetContext).toBeCalledWith('state', {
+      state: {
+        type: 'redux',
+        value: {
+          value: 'updated',
+        },
+      },
     });
   });
 });

@@ -1,7 +1,5 @@
-import { afterEach, describe, expect, it, test, vi } from 'vitest';
-
 import { setCurrentClient } from '@sentry/browser';
-
+import { afterEach, describe, expect, it, test, vi } from 'vitest';
 import { attachErrorHandler } from '../src/errorhandler';
 import type { Operation, Options, ViewModel, Vue } from '../src/types';
 

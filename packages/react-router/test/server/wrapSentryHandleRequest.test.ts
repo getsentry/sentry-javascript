@@ -1,9 +1,9 @@
-import { describe, test, expect, beforeEach, vi } from 'vitest';
 import { RPCType } from '@opentelemetry/core';
 import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, getActiveSpan, getRootSpan, getTraceMetaTags } from '@sentry/core';
+import { getActiveSpan, getRootSpan, getTraceMetaTags, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { PassThrough } from 'stream';
-import { wrapSentryHandleRequest, getMetaTagTransformer } from '../../src/server/wrapSentryHandleRequest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { getMetaTagTransformer, wrapSentryHandleRequest } from '../../src/server/wrapSentryHandleRequest';
 
 vi.mock('@opentelemetry/core', () => ({
   RPCType: { HTTP: 'http' },

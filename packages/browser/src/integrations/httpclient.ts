@@ -1,17 +1,16 @@
-import { SENTRY_XHR_DATA_KEY, addXhrInstrumentationHandler } from '@sentry-internal/browser-utils';
 import type { Client, Event as SentryEvent, IntegrationFn, SentryWrappedXMLHttpRequest } from '@sentry/core';
 import {
-  GLOBAL_OBJ,
   addExceptionMechanism,
   addFetchInstrumentationHandler,
   captureEvent,
   defineIntegration,
   getClient,
+  GLOBAL_OBJ,
   isSentryRequestUrl,
   logger,
   supportsNativeFetch,
 } from '@sentry/core';
-
+import { addXhrInstrumentationHandler, SENTRY_XHR_DATA_KEY } from '@sentry-internal/browser-utils';
 import { DEBUG_BUILD } from '../debug-build';
 
 export type HttpStatusCodeRange = [number, number] | number;

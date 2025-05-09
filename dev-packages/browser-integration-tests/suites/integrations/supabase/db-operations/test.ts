@@ -1,9 +1,12 @@
 import type { Page } from '@playwright/test';
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
-
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, getMultipleSentryEnvelopeRequests, shouldSkipTracingTest } from '../../../../utils/helpers';
+import {
+  getFirstSentryEnvelopeRequest,
+  getMultipleSentryEnvelopeRequests,
+  shouldSkipTracingTest,
+} from '../../../../utils/helpers';
 
 async function mockSupabaseRoute(page: Page) {
   await page.route('**/rest/v1/todos**', route => {
@@ -19,13 +22,11 @@ async function mockSupabaseRoute(page: Page) {
   });
 }
 
-
 const bundle = process.env.PW_BUNDLE || '';
 // We only want to run this in non-CDN bundle mode
 if (bundle.startsWith('bundle')) {
   sentryTest.skip();
 }
-
 
 sentryTest('should capture Supabase database operation breadcrumbs', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
@@ -83,8 +84,6 @@ sentryTest('should include correct data payload in Supabase breadcrumbs', async 
 
   expect(supabaseBreadcrumb).toBeDefined();
   expect(supabaseBreadcrumb?.data).toMatchObject({
-    query: expect.arrayContaining([
-      'filter(columns, )'
-    ]),
+    query: expect.arrayContaining(['filter(columns, )']),
   });
 });

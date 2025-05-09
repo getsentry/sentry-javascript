@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-
 import { formatComponentName } from '../../src/vendor/components';
 
 describe('formatComponentName', () => {

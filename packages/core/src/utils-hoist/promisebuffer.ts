@@ -1,4 +1,4 @@
-import { SyncPromise, rejectedSyncPromise, resolvedSyncPromise } from './syncpromise';
+import { rejectedSyncPromise, resolvedSyncPromise, SyncPromise } from './syncpromise';
 
 export interface PromiseBuffer<T> {
   // exposes the internal array so tests can assert on the state of it.

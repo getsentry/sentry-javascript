@@ -1,5 +1,4 @@
 import type { ClientOptions, Options, TracePropagationTargets } from '@sentry/core';
-
 import type { BunTransportOptions } from './transports';
 
 export interface BaseBunOptions {

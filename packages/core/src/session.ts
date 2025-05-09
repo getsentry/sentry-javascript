@@ -1,4 +1,4 @@
-import type { SerializedSession, Session, SessionContext, SessionStatus } from './types-hoist';
+import type { SerializedSession, Session, SessionContext, SessionStatus } from './types-hoist/session';
 import { uuid4 } from './utils-hoist/misc';
 import { timestampInSeconds } from './utils-hoist/time';
 

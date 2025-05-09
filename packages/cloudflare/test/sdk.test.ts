@@ -1,6 +1,5 @@
-import { describe, expect, test, vi } from 'vitest';
-
 import * as SentryCore from '@sentry/core';
+import { describe, expect, test, vi } from 'vitest';
 import { CloudflareClient } from '../src/client';
 import { init } from '../src/sdk';
 

@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hasSpansEnabled } from '../../../src';
-import { hasTracingEnabled } from '../../../src';
+import { hasSpansEnabled, hasTracingEnabled } from '../../../src';
 
 describe('hasSpansEnabled', () => {
   const tracesSampler = () => 1;

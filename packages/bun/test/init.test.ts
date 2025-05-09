@@ -1,7 +1,7 @@
 import { type Integration } from '@sentry/core';
 import * as sentryNode from '@sentry/node';
 import type { Mock } from 'bun:test';
-import { afterEach, beforeEach, describe, it, spyOn, mock, expect } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, it, mock, spyOn } from 'bun:test';
 import { getClient, init } from '../src';
 
 const PUBLIC_DSN = 'https://username@domain/123';

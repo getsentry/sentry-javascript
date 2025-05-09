@@ -1,21 +1,20 @@
 import { getSentryCarrier } from '../carrier';
+import type { Attachment } from '../types-hoist/attachment';
+import type { DataCategory } from '../types-hoist/datacategory';
+import type { DsnComponents } from '../types-hoist/dsn';
 import type {
-  Attachment,
   AttachmentItem,
   BaseEnvelopeHeaders,
   BaseEnvelopeItemHeaders,
-  DataCategory,
-  DsnComponents,
   Envelope,
   EnvelopeItemType,
-  Event,
   EventEnvelopeHeaders,
-  SdkInfo,
-  SdkMetadata,
   SpanItem,
-  SpanJSON,
-} from '../types-hoist';
-
+} from '../types-hoist/envelope';
+import type { Event } from '../types-hoist/event';
+import type { SdkInfo } from '../types-hoist/sdkinfo';
+import type { SdkMetadata } from '../types-hoist/sdkmetadata';
+import type { SpanJSON } from '../types-hoist/span';
 import { dsnToString } from './dsn';
 import { normalize } from './normalize';
 import { GLOBAL_OBJ } from './worldwide';
@@ -91,7 +90,6 @@ function decodeUTF8(input: Uint8Array): string {
  */
 export function serializeEnvelope(envelope: Envelope): string | Uint8Array {
   const [envHeaders, items] = envelope;
-
   // Initially we construct our envelope as a string and only convert to binary chunks if we encounter binary data
   let parts: string | Uint8Array[] = JSON.stringify(envHeaders);
 
@@ -222,7 +220,7 @@ const ITEM_TYPE_TO_DATA_CATEGORY_MAP: Record<EnvelopeItemType, DataCategory> = {
   feedback: 'feedback',
   span: 'span',
   raw_security: 'security',
-  otel_log: 'log_item',
+  log: 'log_item',
 };
 
 /**

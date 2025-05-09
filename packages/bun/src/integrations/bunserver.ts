@@ -1,18 +1,18 @@
-import type { ServeOptions } from 'bun';
 import type { IntegrationFn, RequestEventData, SpanAttributes } from '@sentry/core';
 import {
+  captureException,
+  continueTrace,
+  defineIntegration,
+  isURLObjectRelative,
+  parseStringToURLObject,
   SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  captureException,
-  isURLObjectRelative,
   setHttpStatus,
-  defineIntegration,
-  continueTrace,
   startSpan,
   withIsolationScope,
-  parseStringToURLObject,
 } from '@sentry/core';
+import type { ServeOptions } from 'bun';
 
 const INTEGRATION_NAME = 'BunServer';
 

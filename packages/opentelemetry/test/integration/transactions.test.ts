@@ -1,27 +1,25 @@
 import type { SpanContext } from '@opentelemetry/api';
-import { ROOT_CONTEXT } from '@opentelemetry/api';
-import { TraceFlags, context, trace } from '@opentelemetry/api';
+import { context, ROOT_CONTEXT, trace, TraceFlags } from '@opentelemetry/api';
+import { TraceState } from '@opentelemetry/core';
 import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
+import type { Event, TransactionEvent } from '@sentry/core';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   addBreadcrumb,
   getClient,
+  logger,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setTag,
   startSpanManual,
   withIsolationScope,
 } from '@sentry/core';
-import { logger } from '@sentry/core';
-import type { Event, TransactionEvent } from '@sentry/core';
-import { describe, afterEach, expect, it, vi } from 'vitest';
-
-import { TraceState } from '@opentelemetry/core';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SENTRY_TRACE_STATE_DSC } from '../../src/constants';
 import { SentrySpanProcessor } from '../../src/spanProcessor';
 import { startInactiveSpan, startSpan } from '../../src/trace';
 import { makeTraceState } from '../../src/utils/makeTraceState';
-import type { TestClientInterface } from '../helpers/TestClient';
 import { cleanupOtel, getProvider, mockSdkInit } from '../helpers/mockSdkInit';
+import type { TestClientInterface } from '../helpers/TestClient';
 
 describe('Integration | Transactions', () => {
   afterEach(async () => {

@@ -3,7 +3,6 @@
 
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import type { CloudflareOptions } from '../src/client';
-
 import { sentryPagesPlugin } from '../src/pages-plugin';
 
 const MOCK_OPTIONS: CloudflareOptions = {

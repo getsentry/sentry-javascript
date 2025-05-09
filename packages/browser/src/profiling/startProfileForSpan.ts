@@ -1,11 +1,9 @@
-import { getCurrentScope, spanToJSON } from '@sentry/core';
-import { logger, timestampInSeconds, uuid4 } from '@sentry/core';
 import type { Span } from '@sentry/core';
-
+import { getCurrentScope, logger, spanToJSON, timestampInSeconds, uuid4 } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 import type { JSSelfProfile } from './jsSelfProfiling';
-import { MAX_PROFILE_DURATION_MS, addProfileToGlobalCache, isAutomatedPageLoadSpan, startJSSelfProfile } from './utils';
+import { addProfileToGlobalCache, isAutomatedPageLoadSpan, MAX_PROFILE_DURATION_MS, startJSSelfProfile } from './utils';
 
 /**
  * Wraps startTransaction and stopTransaction with profiling related logic.

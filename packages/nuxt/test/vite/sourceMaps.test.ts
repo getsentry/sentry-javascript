@@ -1,11 +1,11 @@
 import type { Nuxt } from '@nuxt/schema';
-import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SentryNuxtModuleOptions } from '../../src/common/types';
 import type { SourceMapSetting } from '../../src/vite/sourceMaps';
 import {
   changeNuxtSourceMapSettings,
-  validateNitroSourceMapSettings,
   getPluginOptions,
+  validateNitroSourceMapSettings,
 } from '../../src/vite/sourceMaps';
 
 vi.mock('@sentry/core', () => ({

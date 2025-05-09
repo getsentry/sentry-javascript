@@ -2,8 +2,8 @@
  * @vitest-environment jsdom
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as sentryCore from '@sentry/core';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BrowserClient } from '../src/client';
 import { WINDOW } from '../src/helpers';
 import { getDefaultBrowserClientOptions } from './helper/browser-client-options';

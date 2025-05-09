@@ -1,5 +1,4 @@
 import { describe, expect } from 'vitest';
-
 import { getNumberOfUrlSegments } from '../src/reactrouterv6-compat-utils';
 
 describe('getNumberOfUrlSegments', () => {

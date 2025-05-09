@@ -2,11 +2,9 @@
  * @vitest-environment jsdom
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 import { SDK_VERSION } from '@sentry/browser';
 import * as SentryBrowser from '@sentry/browser';
-
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { init as svelteInit } from '../src/sdk';
 
 const browserInit = vi.spyOn(SentryBrowser, 'init');

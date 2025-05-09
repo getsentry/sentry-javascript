@@ -1,14 +1,14 @@
 import type { ExecutionContext, IncomingRequestCfProperties } from '@cloudflare/workers-types';
 import type { SpanAttributes } from '@sentry/core';
 import {
+  captureException,
+  continueTrace,
+  flush,
   SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_URL_FULL,
-  captureException,
-  continueTrace,
-  flush,
   setHttpStatus,
   startSpan,
   stripUrlQueryAndFragment,
@@ -75,6 +75,18 @@ export function wrapRequestHandler(
     }
 
     const routeName = `${request.method} ${pathname ? stripUrlQueryAndFragment(pathname) : '/'}`;
+
+    // Do not capture spans for OPTIONS and HEAD requests
+    if (request.method === 'OPTIONS' || request.method === 'HEAD') {
+      try {
+        return await handler();
+      } catch (e) {
+        captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
+        throw e;
+      } finally {
+        context?.waitUntil(flush(2000));
+      }
+    }
 
     return continueTrace(
       { sentryTrace: request.headers.get('sentry-trace') || '', baggage: request.headers.get('baggage') },

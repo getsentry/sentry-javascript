@@ -1,13 +1,12 @@
 import { DEBUG_BUILD } from '../debug-build';
+import type { EventDropReason } from '../types-hoist/clientreport';
+import type { Envelope, EnvelopeItem } from '../types-hoist/envelope';
 import type {
-  Envelope,
-  EnvelopeItem,
-  EventDropReason,
   InternalBaseTransportOptions,
   Transport,
   TransportMakeRequestResponse,
   TransportRequestExecutor,
-} from '../types-hoist';
+} from '../types-hoist/transport';
 import {
   createEnvelope,
   envelopeItemTypeToDataCategory,

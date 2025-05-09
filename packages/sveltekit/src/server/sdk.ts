@@ -1,8 +1,6 @@
 import { applySdkMetadata } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
-import { getDefaultIntegrations as getDefaultNodeIntegrations } from '@sentry/node';
-import { init as initNodeSdk } from '@sentry/node';
-
+import { getDefaultIntegrations as getDefaultNodeIntegrations, init as initNodeSdk } from '@sentry/node';
 import { rewriteFramesIntegration } from '../server-common/rewriteFramesIntegration';
 
 /**

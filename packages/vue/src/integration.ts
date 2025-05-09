@@ -1,4 +1,4 @@
-import { GLOBAL_OBJ, consoleSandbox, defineIntegration, hasSpansEnabled } from '@sentry/core';
+import { consoleSandbox, defineIntegration, GLOBAL_OBJ, hasSpansEnabled } from '@sentry/core';
 import { DEFAULT_HOOKS } from './constants';
 import { DEBUG_BUILD } from './debug-build';
 import { attachErrorHandler } from './errorhandler';

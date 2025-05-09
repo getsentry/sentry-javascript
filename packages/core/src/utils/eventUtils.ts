@@ -1,4 +1,4 @@
-import type { Event } from '../types-hoist';
+import type { Event } from '../types-hoist/event';
 
 /**
  * Get a list of possible event messages from a Sentry event.

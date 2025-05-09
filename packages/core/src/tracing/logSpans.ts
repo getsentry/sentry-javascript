@@ -1,7 +1,7 @@
 import { DEBUG_BUILD } from '../debug-build';
-import type { Span } from '../types-hoist';
-import { logger } from '../utils-hoist/logger';
+import type { Span } from '../types-hoist/span';
 import { getRootSpan, spanIsSampled, spanToJSON } from '../utils/spanUtils';
+import { logger } from '../utils-hoist/logger';
 
 /**
  * Print a log message for a started span.

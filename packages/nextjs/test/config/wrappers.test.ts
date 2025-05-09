@@ -1,8 +1,7 @@
-import type { IncomingMessage, ServerResponse } from 'http';
-import * as SentryCore from '@sentry/core';
 import type { Client } from '@sentry/core';
-import { describe, vi, beforeEach, afterEach, test, expect } from 'vitest';
-
+import * as SentryCore from '@sentry/core';
+import type { IncomingMessage, ServerResponse } from 'http';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { wrapGetInitialPropsWithSentry, wrapGetServerSidePropsWithSentry } from '../../src/common';
 
 const startSpanManualSpy = vi.spyOn(SentryCore, 'startSpanManual');

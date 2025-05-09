@@ -12,14 +12,14 @@ import type {
   startBrowserTracingPageLoadSpan as startBrowserTracingPageLoadSpanType,
 } from '@sentry/browser';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   getActiveSpan,
   getClient,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   startInactiveSpan,
 } from '@sentry/browser';
-import { GLOBAL_OBJ, addIntegration, browserPerformanceTimeOrigin, timestampInSeconds } from '@sentry/core';
 import type { Span } from '@sentry/core';
+import { addIntegration, browserPerformanceTimeOrigin, GLOBAL_OBJ, timestampInSeconds } from '@sentry/core';
 import type { ExtendedBackburner } from '@sentry/ember/runloop';
 import type { EmberRouterMain, EmberSentryConfig, GlobalConfig, OwnConfig } from '../types';
 

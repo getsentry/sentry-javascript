@@ -1,4 +1,5 @@
-import type { Event, StackParser } from './types-hoist';
+import type { Event } from './types-hoist/event';
+import type { StackParser } from './types-hoist/stacktrace';
 import { GLOBAL_OBJ } from './utils-hoist/worldwide';
 
 /** Keys are source filename/url, values are metadata objects. */

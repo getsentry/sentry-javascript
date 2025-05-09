@@ -1,5 +1,4 @@
 import { expect } from '@playwright/test';
-
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,

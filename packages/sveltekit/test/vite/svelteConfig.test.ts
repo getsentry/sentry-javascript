@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 import type { SupportedSvelteKitAdapters } from '../../src/vite/detectAdapter';
 import { getAdapterOutputDir, getHooksFileName, loadSvelteConfig } from '../../src/vite/svelteConfig';
 

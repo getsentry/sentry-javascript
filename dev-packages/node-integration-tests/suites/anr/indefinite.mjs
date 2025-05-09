@@ -1,7 +1,6 @@
+import * as Sentry from '@sentry/node';
 import * as assert from 'assert';
 import * as crypto from 'crypto';
-
-import * as Sentry from '@sentry/node';
 
 setTimeout(() => {
   process.exit();

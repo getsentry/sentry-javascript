@@ -22,7 +22,7 @@
     "clean:all": "run-s clean:build clean:tarballs clean:caches clean:deps clean:watchman",
     "fix": "run-s fix:prettier fix:lerna",
     "fix:lerna": "lerna run fix",
-    "fix:prettier": "prettier \"**/*.{md,css,yml,yaml}\" \"packages/**/**.{ts,js,mjs,cjs,mts,cts,jsx,tsx,astro,vue}\" --write",
+    "fix:prettier": "prettier \"**/*.{md,css,yml,yaml}\" \"packages/**/**.{ts,js,mjs,cjs,mts,cts,jsx,tsx,astro,vue}\" \"dev-packages/!(e2e-tests)/**/**.{ts,js,mjs,cjs,mts,cts,jsx,tsx,astro,vue}\" --write",
     "changelog": "ts-node ./scripts/get-commit-list.ts",
     "link:yarn": "lerna exec yarn link",
     "lint": "run-s lint:prettier lint:lerna",

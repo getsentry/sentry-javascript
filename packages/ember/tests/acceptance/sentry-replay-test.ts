@@ -1,9 +1,8 @@
 import { visit } from '@ember/test-helpers';
-import * as Sentry from '@sentry/ember';
 import type { BrowserClient, replayIntegration } from '@sentry/ember';
+import * as Sentry from '@sentry/ember';
 import { setupApplicationTest } from 'ember-qunit';
 import { module, test } from 'qunit';
-
 import { setupSentryTest } from '../helpers/setup-sentry';
 
 module('Acceptance | Sentry Session Replay', function (hooks) {

@@ -1,5 +1,5 @@
-import { captureException } from '@sentry/core';
 import type { MonitorConfig } from '@sentry/core';
+import { captureException } from '@sentry/core';
 import * as Sentry from '@sentry/node';
 import { startSpan } from '@sentry/node';
 import { isExpectedError } from './helpers';

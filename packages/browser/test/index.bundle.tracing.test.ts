@@ -1,8 +1,6 @@
-import { describe, expect, it } from 'vitest';
-
 import { feedbackIntegrationShim, replayIntegrationShim } from '@sentry-internal/integration-shims';
+import { describe, expect, it } from 'vitest';
 import { browserTracingIntegration } from '../src';
-
 import * as TracingBundle from '../src/index.bundle.tracing';
 
 describe('index.bundle.tracing', () => {

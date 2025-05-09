@@ -1,8 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { SentryCron, SentryExceptionCaptured, SentryTraced } from '../src/decorators';
-import * as core from '@sentry/core';
-import * as helpers from '../src/helpers';
 import 'reflect-metadata';
+import * as core from '@sentry/core';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { SentryCron, SentryExceptionCaptured, SentryTraced } from '../src/decorators';
+import * as helpers from '../src/helpers';
 
 describe('SentryTraced decorator', () => {
   beforeEach(() => {

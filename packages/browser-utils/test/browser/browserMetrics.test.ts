@@ -1,19 +1,18 @@
+import type { Span } from '@sentry/core';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SentrySpan,
   getClient,
   getCurrentScope,
   getIsolationScope,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SentrySpan,
   setCurrentClient,
   spanToJSON,
 } from '@sentry/core';
-import type { Span } from '@sentry/core';
-import { describe, beforeEach, it, expect, beforeAll, afterAll } from 'vitest';
-
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { _addMeasureSpans, _addNavigationSpans, _addResourceSpans } from '../../src/metrics/browserMetrics';
 import { WINDOW } from '../../src/types';
-import { TestClient, getDefaultClientOptions } from '../utils/TestClient';
+import { getDefaultClientOptions, TestClient } from '../utils/TestClient';
 
 const mockWindowLocation = {
   ancestorOrigins: {},

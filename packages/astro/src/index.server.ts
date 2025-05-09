@@ -132,6 +132,7 @@ export {
   profiler,
   logger,
   consoleLoggingIntegration,
+  wrapMcpServerWithSentry,
 } from '@sentry/node';
 
 export { init } from './server/sdk';

@@ -2,23 +2,23 @@
  * @vitest-environment jsdom
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
-import { getClient } from '@sentry/core';
+import '../utils/mock-internal-setTimeout';
 import type { Transport } from '@sentry/core';
-
+import { getClient } from '@sentry/core';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_FLUSH_MIN_DELAY, SESSION_IDLE_EXPIRE_DURATION } from '../../src/constants';
 import type { Replay } from '../../src/integration';
 import type { ReplayContainer } from '../../src/replay';
 import { BASE_TIMESTAMP } from '../index';
 import { resetSdkMock } from '../mocks/resetSdkMock';
-import { useFakeTimers } from '../utils/use-fake-timers';
-
-useFakeTimers();
 
 describe('Integration | start', () => {
   let replay: ReplayContainer;
   let integration: Replay;
+
+  beforeAll(() => {
+    vi.useFakeTimers();
+  });
 
   beforeEach(async () => {
     ({ replay, integration } = await resetSdkMock({

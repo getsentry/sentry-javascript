@@ -1,5 +1,6 @@
 import type { ReportDialogOptions } from './report-dialog';
-import type { DsnComponents, DsnLike, SdkInfo } from './types-hoist';
+import type { DsnComponents, DsnLike } from './types-hoist/dsn';
+import type { SdkInfo } from './types-hoist/sdkinfo';
 import { dsnToString, makeDsn } from './utils-hoist/dsn';
 
 const SENTRY_API_VERSION = '7';

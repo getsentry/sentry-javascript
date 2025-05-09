@@ -1,9 +1,6 @@
-import { beforeEach, describe, expect, test, vi } from 'vitest';
-
-import * as SentryCore from '@sentry/core';
-
 import type { D1Database, D1PreparedStatement } from '@cloudflare/workers-types';
-
+import * as SentryCore from '@sentry/core';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { instrumentD1WithSentry } from '../src/d1';
 
 const MOCK_FIRST_RETURN_VALUE = { id: 1, name: 'Foo' };

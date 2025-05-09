@@ -48,7 +48,7 @@ snapshot[`captureException 1`] = `
               filename: "app:///test/mod.test.ts",
               function: "?",
               in_app: true,
-              lineno: 44,
+              lineno: 42,
               post_context: [
                 "",
                 "  await delay(200);",
@@ -74,7 +74,7 @@ snapshot[`captureException 1`] = `
               filename: "app:///test/mod.test.ts",
               function: "something",
               in_app: true,
-              lineno: 41,
+              lineno: 39,
               post_context: [
                 "  }",
                 "",

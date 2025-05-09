@@ -1,6 +1,5 @@
 import type { BrowserOptions } from '@sentry/react';
-import { describe, vi, beforeEach, it, expect } from 'vitest';
-
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { applyTunnelRouteOption } from '../../src/client/tunnelRoute';
 
 const globalWithInjectedValues = global as typeof global & {

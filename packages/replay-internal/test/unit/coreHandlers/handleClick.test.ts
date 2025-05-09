@@ -2,19 +2,19 @@
  * @vitest-environment jsdom
  */
 
-import { beforeEach, describe, expect, it, test, vi } from 'vitest';
-
-import { useFakeTimers } from '../../utils/use-fake-timers';
-
-useFakeTimers();
-
+import '../../utils/mock-internal-setTimeout';
 import type { Breadcrumb } from '@sentry/core';
-
-import { BASE_TIMESTAMP } from '../..';
+import { beforeAll, beforeEach, describe, expect, it, test, vi } from 'vitest';
 import { ClickDetector, ignoreElement } from '../../../src/coreHandlers/handleClick';
 import type { ReplayContainer } from '../../../src/types';
+import { BASE_TIMESTAMP } from '../..';
+
 describe('Unit | coreHandlers | handleClick', () => {
   describe('ClickDetector', () => {
+    beforeAll(() => {
+      vi.useFakeTimers();
+    });
+
     beforeEach(() => {
       vi.setSystemTime(BASE_TIMESTAMP);
     });

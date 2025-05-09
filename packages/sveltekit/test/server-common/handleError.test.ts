@@ -1,8 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 import * as SentryCore from '@sentry/core';
 import type { HandleServerError, RequestEvent } from '@sveltejs/kit';
-
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { handleErrorWithSentry } from '../../src/server-common/handleError';
 
 const mockCaptureException = vi.spyOn(SentryCore, 'captureException').mockImplementation(() => 'xx');

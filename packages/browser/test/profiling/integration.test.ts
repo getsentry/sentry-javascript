@@ -2,11 +2,9 @@
  * @vitest-environment jsdom
  */
 
-import { describe, expect, it, vi } from 'vitest';
-
 import type { BrowserClient } from '@sentry/browser';
 import * as Sentry from '@sentry/browser';
-
+import { describe, expect, it, vi } from 'vitest';
 import type { JSSelfProfile } from '../../src/profiling/jsSelfProfiling';
 
 describe('BrowserProfilingIntegration', () => {

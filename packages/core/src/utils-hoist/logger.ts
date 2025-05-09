@@ -1,5 +1,5 @@
 import { getGlobalSingleton } from '../carrier';
-import type { ConsoleLevel } from '../types-hoist';
+import type { ConsoleLevel } from '../types-hoist/instrument';
 import { DEBUG_BUILD } from './debug-build';
 import { GLOBAL_OBJ } from './worldwide';
 

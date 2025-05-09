@@ -1,6 +1,6 @@
-import type * as http from 'http';
-import { parseSemver } from '@sentry/core';
 import type { EnvelopeItemType } from '@sentry/core';
+import { parseSemver } from '@sentry/core';
+import type * as http from 'http';
 import { describe } from 'vitest';
 
 const NODE_VERSION = parseSemver(process.versions.node).major;
@@ -33,7 +33,10 @@ export type DataCollectorOptions = {
  *
  * @param {{ min?: number; max?: number }} allowedVersion
  */
-export function conditionalTest(allowedVersion: { min?: number; max?: number }): typeof describe | typeof describe.skip{
+export function conditionalTest(allowedVersion: {
+  min?: number;
+  max?: number;
+}): typeof describe | typeof describe.skip {
   if (!NODE_VERSION) {
     return describe.skip;
   }

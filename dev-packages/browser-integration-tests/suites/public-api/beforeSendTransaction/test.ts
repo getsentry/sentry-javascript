@@ -1,7 +1,6 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/core';
-
 import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/browser';
+import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../utils/helpers';
 

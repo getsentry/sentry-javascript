@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-
 import { isExpired } from '../../../src/util/isExpired';
 
 describe('Unit | util | isExpired', () => {

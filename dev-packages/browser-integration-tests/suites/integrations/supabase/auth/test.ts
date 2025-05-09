@@ -1,7 +1,6 @@
 import type { Page } from '@playwright/test';
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
-
 import { sentryTest } from '../../../../utils/fixtures';
 import {
   getFirstSentryEnvelopeRequest,
@@ -65,7 +64,6 @@ async function mockSupabaseAuthRoutesFailure(page: Page) {
     });
   });
 }
-
 
 const bundle = process.env.PW_BUNDLE || '';
 // We only want to run this in non-CDN bundle mode

@@ -1,9 +1,7 @@
 import type { EventProcessor } from '@sentry/core';
-import * as SentryNode from '@sentry/node';
 import type { NodeClient } from '@sentry/node';
-import { Scope } from '@sentry/node';
-import { getGlobalScope } from '@sentry/node';
-import { SDK_VERSION } from '@sentry/node';
+import * as SentryNode from '@sentry/node';
+import { getGlobalScope, Scope, SDK_VERSION } from '@sentry/node';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { init } from '../../src/server';
 import { clientSourceMapErrorFilter } from '../../src/server/sdk';

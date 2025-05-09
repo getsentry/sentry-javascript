@@ -1,12 +1,11 @@
-import type { Event as SentryEvent, ExtendedError } from '../../../src/types-hoist';
-
-import { extraErrorDataIntegration } from '../../../src/integrations/extraerrordata';
-
 import { beforeEach, describe, expect, it } from 'vitest';
-import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
+import { extraErrorDataIntegration } from '../../../src/integrations/extraerrordata';
+import type { ExtendedError } from '../../../src/types-hoist/error';
+import type { Event } from '../../../src/types-hoist/event';
+import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 const extraErrorData = extraErrorDataIntegration();
-let event: SentryEvent;
+let event: Event;
 
 describe('ExtraErrorData()', () => {
   const testClient = new TestClient(getDefaultTestClientOptions({ maxValueLength: 250 }));
@@ -25,7 +24,7 @@ describe('ExtraErrorData()', () => {
         originalException: error,
       },
       testClient,
-    ) as SentryEvent;
+    ) as Event;
 
     expect(enhancedEvent.contexts).toEqual({
       TypeError: {
@@ -46,7 +45,7 @@ describe('ExtraErrorData()', () => {
         originalException: error,
       },
       testClient,
-    ) as SentryEvent;
+    ) as Event;
 
     expect(enhancedEvent.contexts).toEqual({
       TypeError: {
@@ -66,7 +65,7 @@ describe('ExtraErrorData()', () => {
         originalException: error,
       },
       testClient,
-    ) as SentryEvent;
+    ) as Event;
 
     expect(enhancedEvent.contexts).toEqual({
       TypeError: {
@@ -91,7 +90,7 @@ describe('ExtraErrorData()', () => {
         originalException: error,
       },
       testClient,
-    ) as SentryEvent;
+    ) as Event;
 
     expect(enhancedEvent.contexts).toEqual({
       TypeError: {
@@ -119,7 +118,7 @@ describe('ExtraErrorData()', () => {
         originalException: error,
       },
       testClient,
-    ) as SentryEvent;
+    ) as Event;
 
     expect(enhancedEvent.contexts).toEqual({
       TypeError: {
@@ -138,7 +137,7 @@ describe('ExtraErrorData()', () => {
         originalException: error,
       },
       testClient,
-    ) as SentryEvent;
+    ) as Event;
 
     expect(enhancedEvent).toEqual(event);
   });
@@ -179,7 +178,7 @@ describe('ExtraErrorData()', () => {
         originalException: error,
       },
       testClient,
-    ) as SentryEvent;
+    ) as Event;
 
     expect(enhancedEvent.contexts).toEqual({
       TypeError: {
@@ -206,7 +205,7 @@ describe('ExtraErrorData()', () => {
         originalException: error,
       },
       testClient,
-    ) as SentryEvent;
+    ) as Event;
 
     expect(enhancedEvent.contexts).toEqual({
       TypeError: {
@@ -230,7 +229,7 @@ describe('ExtraErrorData()', () => {
         originalException: error,
       },
       testClient,
-    ) as SentryEvent;
+    ) as Event;
 
     expect(enhancedEvent.contexts).toEqual({
       TypeError: {
@@ -258,7 +257,7 @@ describe('ExtraErrorData()', () => {
         originalException: error,
       },
       testClient,
-    ) as SentryEvent;
+    ) as Event;
 
     expect(enhancedEvent.contexts).toEqual({
       Error: {
@@ -287,7 +286,7 @@ describe('ExtraErrorData()', () => {
         originalException: error,
       },
       testClient,
-    ) as SentryEvent;
+    ) as Event;
 
     expect(enhancedEvent.contexts).not.toEqual({
       Error: {

@@ -2,13 +2,12 @@
  * @vitest-environment jsdom
  */
 
-import type { MockInstance, MockedFunction } from 'vitest';
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-
-import * as SentryBrowserUtils from '@sentry-internal/browser-utils';
-import * as SentryCore from '@sentry/core';
+import '../utils/mock-internal-setTimeout';
 import type { Transport } from '@sentry/core';
-
+import * as SentryCore from '@sentry/core';
+import * as SentryBrowserUtils from '@sentry-internal/browser-utils';
+import type { MockedFunction, MockInstance } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Replay } from '../../src/integration';
 import type { ReplayContainer } from '../../src/replay';
 import { clearSession } from '../../src/session/clearSession';
@@ -17,9 +16,6 @@ import { createPerformanceSpans } from '../../src/util/createPerformanceSpans';
 import * as SendReplayRequest from '../../src/util/sendReplayRequest';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '../index';
 import type { DomHandler } from '../types';
-import { useFakeTimers } from '../utils/use-fake-timers';
-
-useFakeTimers();
 
 type MockTransportSend = MockedFunction<Transport['send']>;
 
@@ -32,6 +28,7 @@ describe('Integration | beforeAddRecordingEvent', () => {
   const { record: mockRecord } = mockRrweb();
 
   beforeAll(async () => {
+    vi.useFakeTimers();
     vi.setSystemTime(new Date(BASE_TIMESTAMP));
     vi.spyOn(SentryBrowserUtils, 'addClickKeypressInstrumentationHandler').mockImplementation(handler => {
       domHandler = handler;

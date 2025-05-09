@@ -62,7 +62,6 @@ test.describe('tracing in dynamically rendered (ssr) routes', () => {
     });
 
     expect(serverPageRequestTxn).toMatchObject({
-      breadcrumbs: expect.any(Array),
       contexts: {
         app: expect.any(Object),
         cloud_resource: expect.any(Object),

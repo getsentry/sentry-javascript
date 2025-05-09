@@ -2,7 +2,6 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-
 import { DefaultArtifactClient } from '@actions/artifact';
 import * as core from '@actions/core';
 import { exec } from '@actions/exec';
@@ -10,9 +9,8 @@ import { context, getOctokit } from '@actions/github';
 import * as glob from '@actions/glob';
 import * as io from '@actions/io';
 import { markdownTable } from 'markdown-table';
-
-import { SizeLimitFormatter } from './utils/SizeLimitFormatter.mjs';
 import { getArtifactsForBranchAndWorkflow } from './utils/getArtifactsForBranchAndWorkflow.mjs';
+import { SizeLimitFormatter } from './utils/SizeLimitFormatter.mjs';
 
 const SIZE_LIMIT_HEADING = '## size-limit report 📦 ';
 const ARTIFACT_NAME = 'size-limit-action';

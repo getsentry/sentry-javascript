@@ -26,6 +26,7 @@ describe('wrapMcpServerWithSentry', () => {
       resource: mockResource,
       tool: mockTool,
       prompt: mockPrompt,
+      connect: vi.fn(),
     };
 
     // Wrap the MCP server
@@ -93,10 +94,18 @@ describe('wrapMcpServerWithSentry', () => {
         resource: vi.fn(),
         tool: vi.fn(),
         prompt: vi.fn(),
+        connect: vi.fn(),
       };
 
       const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
       wrappedMcpServer.resource(resourceName, {}, mockResourceHandler);
+
+      // The original registration should use a wrapped handler
+      expect(mockMcpServer.resource).toHaveBeenCalledWith(resourceName, {}, expect.any(Function));
+
+      // Invoke the wrapped handler to trigger Sentry span
+      const wrappedResourceHandler = (mockMcpServer.resource as any).mock.calls[0][2];
+      wrappedResourceHandler('test-uri', { foo: 'bar' });
 
       expect(tracingModule.startSpan).toHaveBeenCalledTimes(1);
       expect(tracingModule.startSpan).toHaveBeenCalledWith(
@@ -113,8 +122,8 @@ describe('wrapMcpServerWithSentry', () => {
         expect.any(Function),
       );
 
-      // Verify the original method was called with all arguments
-      expect(mockMcpServer.resource).toHaveBeenCalledWith(resourceName, {}, mockResourceHandler);
+      // Verify the original handler was called within the span
+      expect(mockResourceHandler).toHaveBeenCalledWith('test-uri', { foo: 'bar' });
     });
 
     it('should call the original resource method directly if name or handler is not valid', () => {
@@ -122,6 +131,7 @@ describe('wrapMcpServerWithSentry', () => {
         resource: vi.fn(),
         tool: vi.fn(),
         prompt: vi.fn(),
+        connect: vi.fn(),
       };
 
       const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
@@ -147,10 +157,18 @@ describe('wrapMcpServerWithSentry', () => {
         resource: vi.fn(),
         tool: vi.fn(),
         prompt: vi.fn(),
+        connect: vi.fn(),
       };
 
       const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
       wrappedMcpServer.tool(toolName, {}, mockToolHandler);
+
+      // The original registration should use a wrapped handler
+      expect(mockMcpServer.tool).toHaveBeenCalledWith(toolName, {}, expect.any(Function));
+
+      // Invoke the wrapped handler to trigger Sentry span
+      const wrappedToolHandler = (mockMcpServer.tool as any).mock.calls[0][2];
+      wrappedToolHandler({ arg: 'value' }, { foo: 'baz' });
 
       expect(tracingModule.startSpan).toHaveBeenCalledTimes(1);
       expect(tracingModule.startSpan).toHaveBeenCalledWith(
@@ -167,8 +185,8 @@ describe('wrapMcpServerWithSentry', () => {
         expect.any(Function),
       );
 
-      // Verify the original method was called with all arguments
-      expect(mockMcpServer.tool).toHaveBeenCalledWith(toolName, {}, mockToolHandler);
+      // Verify the original handler was called within the span
+      expect(mockToolHandler).toHaveBeenCalledWith({ arg: 'value' }, { foo: 'baz' });
     });
 
     it('should call the original tool method directly if name or handler is not valid', () => {
@@ -176,6 +194,7 @@ describe('wrapMcpServerWithSentry', () => {
         resource: vi.fn(),
         tool: vi.fn(),
         prompt: vi.fn(),
+        connect: vi.fn(),
       };
 
       const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
@@ -198,15 +217,23 @@ describe('wrapMcpServerWithSentry', () => {
         resource: vi.fn(),
         tool: vi.fn(),
         prompt: vi.fn(),
+        connect: vi.fn(),
       };
 
       const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
       wrappedMcpServer.prompt(promptName, {}, mockPromptHandler);
 
+      // The original registration should use a wrapped handler
+      expect(mockMcpServer.prompt).toHaveBeenCalledWith(promptName, {}, expect.any(Function));
+
+      // Invoke the wrapped handler to trigger Sentry span
+      const wrappedPromptHandler = (mockMcpServer.prompt as any).mock.calls[0][2];
+      wrappedPromptHandler({ msg: 'hello' }, { data: 123 });
+
       expect(tracingModule.startSpan).toHaveBeenCalledTimes(1);
       expect(tracingModule.startSpan).toHaveBeenCalledWith(
         {
-          name: `mcp-server/resource:${promptName}`,
+          name: `mcp-server/prompt:${promptName}`,
           forceTransaction: true,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'auto.function.mcp-server',
@@ -218,8 +245,8 @@ describe('wrapMcpServerWithSentry', () => {
         expect.any(Function),
       );
 
-      // Verify the original method was called with all arguments
-      expect(mockMcpServer.prompt).toHaveBeenCalledWith(promptName, {}, mockPromptHandler);
+      // Verify the original handler was called within the span
+      expect(mockPromptHandler).toHaveBeenCalledWith({ msg: 'hello' }, { data: 123 });
     });
 
     it('should call the original prompt method directly if name or handler is not valid', () => {
@@ -227,6 +254,7 @@ describe('wrapMcpServerWithSentry', () => {
         resource: vi.fn(),
         tool: vi.fn(),
         prompt: vi.fn(),
+        connect: vi.fn(),
       };
 
       const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);

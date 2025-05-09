@@ -1,8 +1,7 @@
-import { describe, expect, it, vi } from 'vitest';
-
 // mock helper functions not tested directly in this file
 import '../mocks';
-
+import * as core from '@sentry/core';
+import { describe, expect, it, vi } from 'vitest';
 import * as getWebpackPluginOptionsModule from '../../../src/config/webpackPluginOptions';
 import {
   CLIENT_SDK_CONFIG_FILE,
@@ -14,7 +13,6 @@ import {
   userNextConfig,
 } from '../fixtures';
 import { materializeFinalNextConfig, materializeFinalWebpackConfig } from '../testUtils';
-import * as core from '@sentry/core';
 
 describe('constructWebpackConfigFunction()', () => {
   it('includes expected properties', async () => {

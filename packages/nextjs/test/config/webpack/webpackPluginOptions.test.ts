@@ -1,5 +1,4 @@
-import { describe, it, expect } from 'vitest';
-
+import { describe, expect, it } from 'vitest';
 import type { BuildContext, NextConfigObject } from '../../../src/config/types';
 import { getWebpackPluginOptions } from '../../../src/config/webpackPluginOptions';
 

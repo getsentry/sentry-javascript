@@ -1,4 +1,6 @@
 /* eslint-disable max-lines */
+import type { Envelope, EnvelopeItem, Event, SerializedSession } from '@sentry/core';
+import { parseEnvelope } from '@sentry/core';
 import * as fs from 'fs';
 import * as http from 'http';
 import type { AddressInfo } from 'net';
@@ -6,8 +8,6 @@ import * as os from 'os';
 import * as path from 'path';
 import * as util from 'util';
 import * as zlib from 'zlib';
-import { parseEnvelope } from '@sentry/core';
-import type { Envelope, EnvelopeItem, Event, SerializedSession } from '@sentry/core';
 
 const readFile = util.promisify(fs.readFile);
 const writeFile = util.promisify(fs.writeFile);

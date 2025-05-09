@@ -1,16 +1,15 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-
 import type { BrowserClient } from '@sentry/browser';
 import {
   browserTracingIntegration,
   getActiveSpan,
+  getClient,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
+  SDK_VERSION,
 } from '@sentry/browser';
 import * as SentryBrowser from '@sentry/browser';
-import { SDK_VERSION, getClient } from '@sentry/browser';
-
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { init } from '../../src/client/sdk';
 
 const browserInit = vi.spyOn(SentryBrowser, 'init');

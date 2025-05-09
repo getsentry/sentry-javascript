@@ -2,18 +2,20 @@
  * @vitest-environment jsdom
  */
 
-import { afterEach, describe, expect, it, vi } from 'vitest';
-
+import '../../utils/mock-internal-setTimeout';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { handleBeforeSendEvent } from '../../../src/coreHandlers/handleBeforeSendEvent';
 import type { ReplayContainer } from '../../../src/replay';
 import { Error } from '../../fixtures/error';
 import { resetSdkMock } from '../../mocks/resetSdkMock';
-import { useFakeTimers } from '../../utils/use-fake-timers';
 
-useFakeTimers();
 let replay: ReplayContainer;
 
 describe('Integration | coreHandlers | handleBeforeSendEvent', () => {
+  beforeAll(() => {
+    vi.useFakeTimers();
+  });
+
   afterEach(() => {
     replay.stop();
   });

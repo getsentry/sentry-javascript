@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/browser';
-
 import { createClient } from '@supabase/supabase-js';
+
 window.Sentry = Sentry;
 
 const supabaseClient = createClient('https://test.supabase.co', 'test-key');

@@ -1,8 +1,6 @@
-import { describe, expect, it } from 'vitest';
-
-import { makeDsn } from '@sentry/core';
 import type { ReplayEvent } from '@sentry/core';
-
+import { makeDsn } from '@sentry/core';
+import { describe, expect, it } from 'vitest';
 import { createReplayEnvelope } from '../../../src/util/createReplayEnvelope';
 
 describe('Unit | util | createReplayEnvelope', () => {

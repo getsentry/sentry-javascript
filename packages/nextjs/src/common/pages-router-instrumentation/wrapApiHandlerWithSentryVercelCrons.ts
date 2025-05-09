@@ -1,6 +1,5 @@
 import { captureCheckIn } from '@sentry/core';
 import type { NextApiRequest } from 'next';
-
 import type { VercelCronsConfig } from '../types';
 
 type EdgeRequest = {

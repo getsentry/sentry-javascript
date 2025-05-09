@@ -1,9 +1,8 @@
+import * as Sentry from '@sentry/node';
 import * as assert from 'assert';
 import * as crypto from 'crypto';
 import * as path from 'path';
 import * as url from 'url';
-
-import * as Sentry from '@sentry/node';
 
 global._sentryDebugIds = { [new Error().stack]: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa' };
 

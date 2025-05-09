@@ -1,32 +1,30 @@
 /**
  * @vitest-environment jsdom
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 import {
+  createTransport,
+  getCurrentScope,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  createTransport,
-  getCurrentScope,
   setCurrentClient,
 } from '@sentry/core';
 import { render } from '@testing-library/react';
 import * as React from 'react';
 import {
+  createMemoryRouter,
+  createRoutesFromChildren,
+  matchRoutes,
   MemoryRouter,
   Navigate,
   Route,
   RouterProvider,
   Routes,
-  createMemoryRouter,
-  createRoutesFromChildren,
-  matchRoutes,
   useLocation,
   useNavigationType,
   useRoutes,
 } from 'react-router-6';
-
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BrowserClient } from '../src';
 import {
   reactRouterV6BrowserTracingIntegration,

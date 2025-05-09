@@ -1,4 +1,4 @@
-import type { Options } from '../types-hoist';
+import type { Options } from '../types-hoist/options';
 import { SDK_VERSION } from '../utils-hoist/version';
 
 /**

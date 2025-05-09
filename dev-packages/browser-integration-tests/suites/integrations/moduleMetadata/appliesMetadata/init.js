@@ -1,5 +1,4 @@
 import * as Sentry from '@sentry/browser';
-
 import { moduleMetadataIntegration } from '@sentry/browser';
 
 Sentry.init({

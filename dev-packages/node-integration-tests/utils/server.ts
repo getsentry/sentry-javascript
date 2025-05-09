@@ -1,7 +1,7 @@
-import type { AddressInfo } from 'net';
-import { parseEnvelope } from '@sentry/core';
 import type { Envelope } from '@sentry/core';
+import { parseEnvelope } from '@sentry/core';
 import express from 'express';
+import type { AddressInfo } from 'net';
 
 /**
  * Creates a basic Sentry server that accepts POST to the envelope endpoint

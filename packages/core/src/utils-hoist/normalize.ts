@@ -1,5 +1,4 @@
-import type { Primitive } from '../types-hoist';
-
+import type { Primitive } from '../types-hoist/misc';
 import { isSyntheticEvent, isVueViewModel } from './is';
 import { convertToPlainObject } from './object';
 import { getFunctionName } from './stacktrace';

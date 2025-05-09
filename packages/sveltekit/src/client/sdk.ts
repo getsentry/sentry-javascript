@@ -1,9 +1,7 @@
-import { applySdkMetadata } from '@sentry/core';
 import type { Client, Integration } from '@sentry/core';
+import { applySdkMetadata } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/svelte';
-import { getDefaultIntegrations as getDefaultSvelteIntegrations } from '@sentry/svelte';
-import { WINDOW, init as initSvelteSdk } from '@sentry/svelte';
-
+import { getDefaultIntegrations as getDefaultSvelteIntegrations, init as initSvelteSdk, WINDOW } from '@sentry/svelte';
 import { browserTracingIntegration as svelteKitBrowserTracingIntegration } from './browserTracingIntegration';
 
 type WindowWithSentryFetchProxy = typeof WINDOW & {

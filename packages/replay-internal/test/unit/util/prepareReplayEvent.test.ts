@@ -1,11 +1,9 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
-import { getClient, getCurrentScope, setCurrentClient } from '@sentry/core';
 import type { ReplayEvent } from '@sentry/core';
-
+import { getClient, getCurrentScope, setCurrentClient } from '@sentry/core';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { REPLAY_EVENT_NAME } from '../../../src/constants';
 import { prepareReplayEvent } from '../../../src/util/prepareReplayEvent';
-import { TestClient, getDefaultClientOptions } from '../../utils/TestClient';
+import { getDefaultClientOptions, TestClient } from '../../utils/TestClient';
 
 describe('Unit | util | prepareReplayEvent', () => {
   beforeEach(() => {

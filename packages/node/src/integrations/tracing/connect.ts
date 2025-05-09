@@ -1,11 +1,11 @@
 import { ConnectInstrumentation } from '@opentelemetry/instrumentation-connect';
 import type { IntegrationFn, Span } from '@sentry/core';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   captureException,
   defineIntegration,
   getClient,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
 } from '@sentry/core';
 import { generateInstrumentOnce } from '../../otel/instrument';

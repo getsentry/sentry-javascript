@@ -1,24 +1,24 @@
 import type { Client } from './client';
 import { getDynamicSamplingContextFromSpan } from './tracing/dynamicSamplingContext';
 import type { SentrySpan } from './tracing/sentrySpan';
+import type { LegacyCSPReport } from './types-hoist/csp';
+import type { DsnComponents } from './types-hoist/dsn';
 import type {
-  DsnComponents,
   DynamicSamplingContext,
-  Event,
   EventEnvelope,
   EventItem,
-  LegacyCSPReport,
   RawSecurityEnvelope,
   RawSecurityItem,
-  SdkInfo,
-  SdkMetadata,
-  Session,
-  SessionAggregates,
   SessionEnvelope,
   SessionItem,
   SpanEnvelope,
   SpanItem,
-} from './types-hoist';
+} from './types-hoist/envelope';
+import type { Event } from './types-hoist/event';
+import type { SdkInfo } from './types-hoist/sdkinfo';
+import type { SdkMetadata } from './types-hoist/sdkmetadata';
+import type { Session, SessionAggregates } from './types-hoist/session';
+import { showSpanDropWarning, spanToJSON } from './utils/spanUtils';
 import { dsnToString } from './utils-hoist/dsn';
 import {
   createEnvelope,
@@ -27,7 +27,6 @@ import {
   getSdkMetadataForEnvelopeHeader,
 } from './utils-hoist/envelope';
 import { uuid4 } from './utils-hoist/misc';
-import { showSpanDropWarning, spanToJSON } from './utils/spanUtils';
 
 /**
  * Apply SdkInfo (name, version, packages, integrations) to the corresponding event key.

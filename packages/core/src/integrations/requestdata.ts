@@ -1,5 +1,7 @@
 import { defineIntegration } from '../integration';
-import type { Event, IntegrationFn, RequestEventData } from '../types-hoist';
+import type { Event } from '../types-hoist/event';
+import type { IntegrationFn } from '../types-hoist/integration';
+import type { RequestEventData } from '../types-hoist/request';
 import { parseCookie } from '../utils/cookie';
 import { getClientIPAddress, ipHeaderNames } from '../vendor/getIpAddress';
 
@@ -19,6 +21,7 @@ type RequestDataIntegrationOptions = {
   include?: RequestDataIncludeOptions;
 };
 
+// TODO(v10): Change defaults based on `sendDefaultPii`
 const DEFAULT_INCLUDE: RequestDataIncludeOptions = {
   cookies: true,
   data: true,

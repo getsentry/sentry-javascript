@@ -3,9 +3,8 @@ import type * as SentryCore from '@sentry/core';
 import { createTransport, getCurrentScope, setCurrentClient } from '@sentry/core';
 import { render } from '@solidjs/testing-library';
 import userEvent from '@testing-library/user-event';
-import { vi, describe, beforeEach, it, expect, afterEach } from 'vitest';
-
 import { ErrorBoundary } from 'solid-js';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NodeClient, withSentryErrorBoundary } from '../../src/server';
 
 const mockCaptureException = vi.fn();

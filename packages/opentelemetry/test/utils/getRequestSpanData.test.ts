@@ -5,9 +5,9 @@ import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import { SEMATTRS_HTTP_METHOD, SEMATTRS_HTTP_URL } from '@opentelemetry/semantic-conventions';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { getRequestSpanData } from '../../src/utils/getRequestSpanData';
-import { TestClient, getDefaultTestClientOptions } from '../helpers/TestClient';
 import { setupOtel } from '../helpers/initOtel';
 import { cleanupOtel } from '../helpers/mockSdkInit';
+import { getDefaultTestClientOptions, TestClient } from '../helpers/TestClient';
 
 describe('getRequestSpanData', () => {
   let provider: BasicTracerProvider | undefined;

@@ -1,6 +1,6 @@
-import * as path from 'path';
 import { addPlugin, addPluginTemplate, addServerPlugin, createResolver, defineNuxtModule } from '@nuxt/kit';
 import { consoleSandbox } from '@sentry/core';
+import * as path from 'path';
 import type { SentryNuxtModuleOptions } from './common/types';
 import { addDynamicImportEntryFileWrapper, addSentryTopImport, addServerConfigToBuild } from './vite/addServerConfig';
 import { setupSourceMaps } from './vite/sourceMaps';

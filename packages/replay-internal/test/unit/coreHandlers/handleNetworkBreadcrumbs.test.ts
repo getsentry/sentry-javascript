@@ -2,9 +2,7 @@
  * @vitest-environment jsdom
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-import { SENTRY_XHR_DATA_KEY } from '@sentry-internal/browser-utils';
+import '../../utils/mock-internal-setTimeout';
 import type {
   Breadcrumb,
   BreadcrumbHint,
@@ -12,16 +10,14 @@ import type {
   SentryWrappedXMLHttpRequest,
   XhrBreadcrumbHint,
 } from '@sentry/core';
-
-import { BASE_TIMESTAMP } from '../..';
+import { SENTRY_XHR_DATA_KEY } from '@sentry-internal/browser-utils';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NETWORK_BODY_MAX_SIZE } from '../../../src/constants';
 import { beforeAddNetworkBreadcrumb } from '../../../src/coreHandlers/handleNetworkBreadcrumbs';
 import type { EventBufferArray } from '../../../src/eventBuffer/EventBufferArray';
 import type { ReplayContainer, ReplayNetworkOptions } from '../../../src/types';
+import { BASE_TIMESTAMP } from '../..';
 import { setupReplayContainer } from '../../utils/setupReplayContainer';
-import { useFakeTimers } from '../../utils/use-fake-timers';
-
-useFakeTimers();
 
 async function waitForReplayEventBuffer() {
   // Need one Promise.resolve() per await in the util functions
@@ -57,6 +53,10 @@ function getMockResponse(contentLength?: string, body?: string, headers?: Record
 }
 
 describe('Unit | coreHandlers | handleNetworkBreadcrumbs', () => {
+  beforeAll(() => {
+    vi.useFakeTimers();
+  });
+
   describe('beforeAddNetworkBreadcrumb()', () => {
     let options: ReplayNetworkOptions & {
       replay: ReplayContainer;

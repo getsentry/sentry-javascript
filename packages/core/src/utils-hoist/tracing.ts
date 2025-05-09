@@ -1,6 +1,7 @@
-import type { DynamicSamplingContext, PropagationContext, TraceparentData } from '../types-hoist';
+import type { DynamicSamplingContext } from '../types-hoist/envelope';
+import type { PropagationContext } from '../types-hoist/tracing';
+import type { TraceparentData } from '../types-hoist/transaction';
 import { parseSampleRate } from '../utils/parseSampleRate';
-
 import { baggageHeaderToDynamicSamplingContext } from './baggage';
 import { generateSpanId, generateTraceId } from './propagationContext';
 

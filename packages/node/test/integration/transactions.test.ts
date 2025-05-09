@@ -1,10 +1,8 @@
-import { TraceFlags, context, trace } from '@opentelemetry/api';
+import { context, trace, TraceFlags } from '@opentelemetry/api';
 import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
-import { logger } from '@sentry/core';
 import type { TransactionEvent } from '@sentry/core';
+import { logger, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { SentrySpanProcessor } from '@sentry/opentelemetry';
-
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as Sentry from '../../src';
 import { cleanupOtel, getProvider, mockSdkInit } from '../helpers/mockSdkInit';

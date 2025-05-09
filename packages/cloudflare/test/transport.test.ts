@@ -1,7 +1,6 @@
-import { SENTRY_BUFFER_FULL_ERROR, createEnvelope, serializeEnvelope } from '@sentry/core';
 import type { EventEnvelope, EventItem } from '@sentry/core';
+import { createEnvelope, SENTRY_BUFFER_FULL_ERROR, serializeEnvelope } from '@sentry/core';
 import { afterAll, describe, expect, it, vi } from 'vitest';
-
 import type { CloudflareTransportOptions } from '../src/transport';
 import { IsolatedPromiseBuffer, makeCloudflareTransport } from '../src/transport';
 

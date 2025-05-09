@@ -28,7 +28,7 @@ describe('Remix API Actions', () => {
           data: {
             'code.function': 'loader',
             'sentry.op': 'loader.remix',
-            'match.route.id': 'routes/action-json-response.$id',
+            'match.route.id': 'root',
             'match.params.id': '123123',
           },
         },
@@ -36,7 +36,7 @@ describe('Remix API Actions', () => {
           data: {
             'code.function': 'loader',
             'sentry.op': 'loader.remix',
-            'match.route.id': 'root',
+            'match.route.id': 'routes/action-json-response.$id',
             'match.params.id': '123123',
           },
         },

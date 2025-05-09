@@ -1,12 +1,11 @@
 import type { ReportDialogOptions } from '@sentry/browser';
 import { getClient, showReportDialog, withScope } from '@sentry/browser';
-import { logger } from '@sentry/core';
 import type { Scope } from '@sentry/core';
+import { logger } from '@sentry/core';
 import * as React from 'react';
-import { hoistNonReactStatics } from './hoist-non-react-statics';
-
 import { DEBUG_BUILD } from './debug-build';
 import { captureReactException } from './error';
+import { hoistNonReactStatics } from './hoist-non-react-statics';
 
 export const UNKNOWN_COMPONENT = 'unknown';
 

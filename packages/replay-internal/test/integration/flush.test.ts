@@ -2,16 +2,11 @@
  * @vitest-environment jsdom
  */
 
+import '../utils/mock-internal-setTimeout';
+import * as SentryUtils from '@sentry/core';
+import * as SentryBrowserUtils from '@sentry-internal/browser-utils';
 import type { MockedFunction } from 'vitest';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-
-import { useFakeTimers } from '../utils/use-fake-timers';
-
-useFakeTimers();
-
-import * as SentryBrowserUtils from '@sentry-internal/browser-utils';
-import * as SentryUtils from '@sentry/core';
-
 import { DEFAULT_FLUSH_MIN_DELAY, MAX_REPLAY_DURATION, WINDOW } from '../../src/constants';
 import type { Replay } from '../../src/integration';
 import type { ReplayContainer } from '../../src/replay';
@@ -48,6 +43,7 @@ describe('Integration | flush', () => {
   let mockAddPerformanceEntries: MockAddPerformanceEntries;
 
   beforeAll(async () => {
+    vi.useFakeTimers();
     vi.spyOn(SentryBrowserUtils, 'addClickKeypressInstrumentationHandler').mockImplementation(handler => {
       domHandler = handler;
     });

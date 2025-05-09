@@ -3,8 +3,7 @@ import { Session } from 'node:inspector/promises';
 import { workerData } from 'node:worker_threads';
 import { consoleSandbox } from '@sentry/core';
 import type { LocalVariablesWorkerArgs, PausedExceptionEvent, RateLimitIncrement, Variables } from './common';
-import { LOCAL_VARIABLES_KEY } from './common';
-import { createRateLimiter } from './common';
+import { createRateLimiter, LOCAL_VARIABLES_KEY } from './common';
 
 const options: LocalVariablesWorkerArgs = workerData;
 

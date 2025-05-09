@@ -4,19 +4,19 @@ import { IORedisInstrumentation } from '@opentelemetry/instrumentation-ioredis';
 import { RedisInstrumentation } from '@opentelemetry/instrumentation-redis-4';
 import type { IntegrationFn } from '@sentry/core';
 import {
+  defineIntegration,
   SEMANTIC_ATTRIBUTE_CACHE_HIT,
   SEMANTIC_ATTRIBUTE_CACHE_ITEM_SIZE,
   SEMANTIC_ATTRIBUTE_CACHE_KEY,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  defineIntegration,
   spanToJSON,
   truncate,
 } from '@sentry/core';
 import { generateInstrumentOnce } from '../../otel/instrument';
 import {
-  GET_COMMANDS,
   calculateCacheItemSize,
+  GET_COMMANDS,
   getCacheKeySafely,
   getCacheOperation,
   isInCommands,

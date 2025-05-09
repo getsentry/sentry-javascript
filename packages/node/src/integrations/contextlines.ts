@@ -1,7 +1,7 @@
 import { createReadStream } from 'node:fs';
 import { createInterface } from 'node:readline';
 import type { Event, IntegrationFn, StackFrame } from '@sentry/core';
-import { LRUMap, defineIntegration, logger, snipLine } from '@sentry/core';
+import { defineIntegration, logger, LRUMap, snipLine } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 
 const LRU_FILE_CONTENTS_CACHE = new LRUMap<string, Record<number, string>>(10);

@@ -1,5 +1,5 @@
-import * as http from 'http';
 import * as Sentry from '@sentry/node';
+import * as http from 'http';
 
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
 Sentry.startSpan({ name: 'test_span' }, async () => {

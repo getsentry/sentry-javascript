@@ -1,13 +1,12 @@
-import { z } from 'zod';
-import type { Event, EventHint } from '../../../src/types-hoist';
-
 import { describe, expect, it, test } from 'vitest';
+import { z } from 'zod';
 import {
   applyZodErrorsToEvent,
   flattenIssue,
   flattenIssuePath,
   formatIssueMessage,
 } from '../../../src/integrations/zoderrors';
+import type { Event, EventHint } from '../../../src/types-hoist/event';
 
 // Simplified type definition
 interface ZodIssue {

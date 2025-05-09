@@ -1,5 +1,12 @@
-import { Scope, getCurrentScope, getGlobalScope, getIsolationScope, withIsolationScope, withScope } from '@sentry/core';
-import { GLOBAL_OBJ } from '@sentry/core';
+import {
+  getCurrentScope,
+  getGlobalScope,
+  getIsolationScope,
+  GLOBAL_OBJ,
+  Scope,
+  withIsolationScope,
+  withScope,
+} from '@sentry/core';
 import { AsyncLocalStorage } from 'async_hooks';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { setAsyncLocalStorageAsyncContextStrategy } from '../src/async';

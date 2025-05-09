@@ -1,4 +1,5 @@
-import type { Span, SpanStatus } from '../types-hoist';
+import type { Span } from '../types-hoist/span';
+import type { SpanStatus } from '../types-hoist/spanStatus';
 
 export const SPAN_STATUS_UNSET = 0;
 export const SPAN_STATUS_OK = 1;

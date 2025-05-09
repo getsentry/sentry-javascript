@@ -1,12 +1,12 @@
 import { Session as InspectorSession } from 'node:inspector';
 import { parentPort, workerData } from 'node:worker_threads';
 import type { DebugImage, Event, ScopeData, Session, StackFrame } from '@sentry/core';
-import { generateSpanId } from '@sentry/core';
 import {
   applyScopeDataToEvent,
   callFrameToStackFrame,
   createEventEnvelope,
   createSessionEnvelope,
+  generateSpanId,
   getEnvelopeEndpointWithUrlEncodedAuth,
   makeSession,
   normalizeUrlToBase,
@@ -15,7 +15,6 @@ import {
   uuid4,
   watchdogTimer,
 } from '@sentry/core';
-
 import { makeNodeTransport } from '../../transports';
 import { createGetModuleFromFilename } from '../../utils/module';
 import type { WorkerStartData } from './common';

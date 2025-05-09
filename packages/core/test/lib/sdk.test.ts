@@ -1,10 +1,11 @@
 import { type Mock, beforeEach, describe, expect, it, test, vi } from 'vitest';
-import type { Client } from '../../src';
-import { captureCheckIn, getCurrentScope, setCurrentClient } from '../../src';
+import type { Client } from '../../src/client';
+import { getCurrentScope } from '../../src/currentScopes';
+import { captureCheckIn } from '../../src/exports';
 import { installedIntegrations } from '../../src/integration';
-import { initAndBind } from '../../src/sdk';
-import type { Integration } from '../../src/types-hoist';
-import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
+import { initAndBind, setCurrentClient } from '../../src/sdk';
+import type { Integration } from '../../src/types-hoist/integration';
+import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
 // eslint-disable-next-line no-var
 declare var global: any;

@@ -1,18 +1,18 @@
+import type { TransactionSource } from '@sentry/core';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   captureException,
   getActiveSpan,
   getCurrentScope,
   getRootSpan,
   handleCallbackErrors,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCapturedScopesOnSpan,
   startSpan,
   vercelWaitUntil,
   winterCGRequestToRequestData,
   withIsolationScope,
 } from '@sentry/core';
-import type { TransactionSource } from '@sentry/core';
 import type { EdgeRouteHandler } from '../edge/types';
 import { flushSafelyWithTimeout } from './utils/responseEnd';
 

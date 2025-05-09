@@ -1,5 +1,4 @@
 import { expect } from '@playwright/test';
-
 import { sentryTest } from '../../../../utils/fixtures';
 import { envelopeRequestParser } from '../../../../utils/helpers';
 import { getReplaySnapshot, isReplayEvent, shouldSkipReplayTest } from '../../../../utils/replayHelpers';

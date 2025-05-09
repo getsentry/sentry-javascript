@@ -1,5 +1,4 @@
 import * as Sentry from '@sentry/browser';
-
 import { makeMultiplexedTransport } from '@sentry/browser';
 
 window.Sentry = Sentry;

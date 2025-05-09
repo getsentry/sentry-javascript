@@ -1,3 +1,4 @@
+import type { RequestEventData, Scope, SpanAttributes } from '@sentry/core';
 import {
   addNonEnumerableProperty,
   extractQueryParamsFromUrl,
@@ -7,10 +8,7 @@ import {
   vercelWaitUntil,
   winterCGRequestToRequestData,
 } from '@sentry/core';
-import type { RequestEventData, Scope, SpanAttributes } from '@sentry/core';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   captureException,
   continueTrace,
   flush,
@@ -18,6 +16,8 @@ import {
   getClient,
   getCurrentScope,
   getTraceMetaTags,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setHttpStatus,
   startSpan,
   withIsolationScope,

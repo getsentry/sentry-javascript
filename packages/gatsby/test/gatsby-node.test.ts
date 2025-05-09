@@ -1,4 +1,5 @@
-import { describe, afterAll, afterEach, beforeEach, beforeAll, vi, it, expect } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { onCreateWebpackConfig } from '../gatsby-node';
 
 vi.hoisted(
   () =>
@@ -20,8 +21,6 @@ async function mock(mockedUri: string, stub: any) {
     return Module._load_original(uri, parent);
   };
 }
-
-import { onCreateWebpackConfig } from '../gatsby-node';
 
 describe('onCreateWebpackConfig', () => {
   // eslint-disable-next-line @typescript-eslint/no-var-requires

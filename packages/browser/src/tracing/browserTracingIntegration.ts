@@ -1,4 +1,27 @@
 /* eslint-disable max-lines */
+import type { Client, IntegrationFn, Span, StartSpanOptions, TransactionSource, WebFetchHeaders } from '@sentry/core';
+import {
+  addNonEnumerableProperty,
+  browserPerformanceTimeOrigin,
+  consoleSandbox,
+  generateTraceId,
+  getClient,
+  getCurrentScope,
+  getDynamicSamplingContextFromSpan,
+  getIsolationScope,
+  getLocationHref,
+  GLOBAL_OBJ,
+  logger,
+  propagationContextFromHeaders,
+  registerSpanErrorInstrumentation,
+  SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  spanIsSampled,
+  spanToJSON,
+  startIdleSpan,
+  TRACING_DEFAULTS,
+} from '@sentry/core';
 import {
   addHistoryInstrumentationHandler,
   addPerformanceEntries,
@@ -9,40 +32,11 @@ import {
   startTrackingLongTasks,
   startTrackingWebVitals,
 } from '@sentry-internal/browser-utils';
-import type { Client, IntegrationFn, Span, StartSpanOptions, TransactionSource, WebFetchHeaders } from '@sentry/core';
-import { consoleSandbox } from '@sentry/core';
-import {
-  GLOBAL_OBJ,
-  SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  TRACING_DEFAULTS,
-  addNonEnumerableProperty,
-  browserPerformanceTimeOrigin,
-  generateTraceId,
-  getClient,
-  getCurrentScope,
-  getDynamicSamplingContextFromSpan,
-  getIsolationScope,
-  getLocationHref,
-  getRootSpan,
-  logger,
-  propagationContextFromHeaders,
-  registerSpanErrorInstrumentation,
-  spanIsSampled,
-  spanToJSON,
-  startIdleSpan,
-} from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 import { registerBackgroundTabDetection } from './backgroundtab';
+import { linkTraces } from './linkedTraces';
 import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './request';
-import type { PreviousTraceInfo } from './previousTrace';
-import {
-  addPreviousTraceSpanLink,
-  getPreviousTraceFromSessionStorage,
-  storePreviousTraceInSessionStorage,
-} from './previousTrace';
 
 export const BROWSER_TRACING_INTEGRATION_ID = 'BrowserTracing';
 
@@ -166,12 +160,31 @@ export interface BrowserTracingOptions {
    *
    * - `'off'`: The previous trace data will not be stored or linked.
    *
-   * Note that your `tracesSampleRate` or `tracesSampler` config significantly influences
-   * how often traces will be linked.
+   * You can also use {@link BrowserTracingOptions.consistentTraceSampling} to get
+   * consistent trace sampling of subsequent traces. Otherwise, by default, your
+   * `tracesSampleRate` or `tracesSampler` config significantly influences how often
+   * traces will be linked.
    *
    * @default 'in-memory' - see explanation above
    */
   linkPreviousTrace: 'in-memory' | 'session-storage' | 'off';
+
+  /**
+   * If true, Sentry will consistently sample subsequent traces based on the
+   * sampling decision of the initial trace. For example, if the initial page
+   * load trace was sampled positively, all subsequent traces (e.g. navigations)
+   * are also sampled positively. In case the initial trace was sampled negatively,
+   * all subsequent traces are also sampled negatively.
+   *
+   * This option allows you to get consistent, linked traces within a user journey
+   * while maintaining an overall quota based on your trace sampling settings.
+   *
+   * This option is only effective if {@link BrowserTracingOptions.linkPreviousTrace}
+   * is enabled (i.e. not set to `'off'`).
+   *
+   * @default `false` - this is an opt-in feature.
+   */
+  consistentTraceSampling: boolean;
 
   /**
    * _experiments allows the user to send options to define how this integration works.
@@ -214,6 +227,7 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   enableLongAnimationFrame: true,
   enableInp: true,
   linkPreviousTrace: 'in-memory',
+  consistentTraceSampling: false,
   _experiments: {},
   ...defaultRequestInstrumentationOptions,
 };
@@ -265,6 +279,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     instrumentPageLoad,
     instrumentNavigation,
     linkPreviousTrace,
+    consistentTraceSampling,
     onRequestSpanStart,
   } = {
     ...DEFAULT_BROWSER_TRACING_OPTIONS,
@@ -342,6 +357,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         });
       },
     });
+
     setActiveIdleSpan(client, idleSpan);
 
     function emitFinish(): void {
@@ -409,20 +425,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       });
 
       if (linkPreviousTrace !== 'off') {
-        let inMemoryPreviousTraceInfo: PreviousTraceInfo | undefined = undefined;
-
-        client.on('spanStart', span => {
-          if (getRootSpan(span) !== span) {
-            return;
-          }
-
-          if (linkPreviousTrace === 'session-storage') {
-            const updatedPreviousTraceInfo = addPreviousTraceSpanLink(getPreviousTraceFromSessionStorage(), span);
-            storePreviousTraceInSessionStorage(updatedPreviousTraceInfo);
-          } else {
-            inMemoryPreviousTraceInfo = addPreviousTraceSpanLink(inMemoryPreviousTraceInfo, span);
-          }
-        });
+        linkTraces(client, { linkPreviousTrace, consistentTraceSampling });
       }
 
       if (WINDOW.location) {

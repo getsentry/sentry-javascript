@@ -1,12 +1,12 @@
 import { DataloaderInstrumentation } from '@opentelemetry/instrumentation-dataloader';
+import type { IntegrationFn } from '@sentry/core';
 import {
+  defineIntegration,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  defineIntegration,
   spanToJSON,
 } from '@sentry/core';
-import type { IntegrationFn } from '@sentry/core';
-import { instrumentWhenWrapped, generateInstrumentOnce } from '../../otel/instrument';
+import { generateInstrumentOnce, instrumentWhenWrapped } from '../../otel/instrument';
 
 const INTEGRATION_NAME = 'Dataloader';
 

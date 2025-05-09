@@ -1,4 +1,4 @@
-import { GLOBAL_OBJ, defineIntegration } from '@sentry/core';
+import { defineIntegration, GLOBAL_OBJ } from '@sentry/core';
 import type { VueIntegrationOptions } from '@sentry/vue';
 
 type Options = Omit<VueIntegrationOptions, 'app' | 'Vue'>;

@@ -1,7 +1,10 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, handleCallbackErrors } from '@sentry/core';
-import { logger } from '@sentry/core';
+import {
+  handleCallbackErrors,
+  logger,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+} from '@sentry/core';
 import { captureException, flush, getCurrentScope, startSpanManual } from '@sentry/node';
-
 import { DEBUG_BUILD } from '../debug-build';
 import { domainify, markEventUnhandled, proxyFunction } from '../utils';
 import type { EventFunction, EventFunctionWithCallback, WrapperOptions } from './general';

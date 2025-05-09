@@ -1,8 +1,8 @@
 import {
-  WINDOW,
   browserTracingIntegration as originalBrowserTracingIntegration,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
+  WINDOW,
 } from '@sentry/browser';
 import type { Integration } from '@sentry/core';
 import {

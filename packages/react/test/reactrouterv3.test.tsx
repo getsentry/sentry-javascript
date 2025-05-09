@@ -1,20 +1,19 @@
 /**
  * @vitest-environment jsdom
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 import { BrowserClient } from '@sentry/browser';
 import {
+  createTransport,
+  getCurrentScope,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  createTransport,
-  getCurrentScope,
   setCurrentClient,
 } from '@sentry/core';
 import { act, render } from '@testing-library/react';
 import * as React from 'react';
-import { IndexRoute, Route, Router, createMemoryHistory, createRoutes, match } from 'react-router-3';
+import { createMemoryHistory, createRoutes, IndexRoute, match, Route, Router } from 'react-router-3';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { reactRouterV3BrowserTracingIntegration } from '../src/reactrouterv3';
 
 const mockStartBrowserTracingPageLoadSpan = vi.fn();

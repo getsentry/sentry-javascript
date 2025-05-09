@@ -8,7 +8,7 @@ describe('ContextLines integration in ESM', () => {
     const instrumentPath = join(__dirname, 'instrument.mjs');
 
     await createRunner(__dirname, 'scenario with space.mjs')
-      .withFlags('--import', instrumentPath)
+      .withInstrument(instrumentPath)
       .expect({
         event: {
           exception: {

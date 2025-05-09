@@ -1,5 +1,4 @@
 import { expect } from '@playwright/test';
-
 import { sentryTest } from '../../../../../utils/fixtures';
 
 sentryTest('Event listener instrumentation preserves "this" context', async ({ getLocalTestUrl, page }) => {

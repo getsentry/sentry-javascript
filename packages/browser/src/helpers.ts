@@ -1,11 +1,11 @@
 import type { Mechanism, WrappedFunction } from '@sentry/core';
 import {
-  GLOBAL_OBJ,
   addExceptionMechanism,
   addExceptionTypeValue,
   addNonEnumerableProperty,
   captureException,
   getOriginalFunction,
+  GLOBAL_OBJ,
   markFunctionWrapped,
   withScope,
 } from '@sentry/core';

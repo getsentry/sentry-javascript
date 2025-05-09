@@ -1,9 +1,7 @@
 // mock helper functions not tested directly in this file
 import './mocks';
-
 import * as fs from 'fs';
-import { describe, vi, it, expect } from 'vitest';
-
+import { describe, expect, it, vi } from 'vitest';
 import type { ModuleRuleUseProperty, WebpackModuleRule } from '../../src/config/types';
 import {
   clientBuildContext,

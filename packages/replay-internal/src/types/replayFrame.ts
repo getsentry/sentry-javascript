@@ -1,5 +1,4 @@
 import type { Breadcrumb } from '@sentry/core';
-
 import type {
   HistoryData,
   MemoryData,

@@ -4,13 +4,12 @@
 
 import type { MockedFunction } from 'vitest';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-
 import { MAX_REPLAY_DURATION, SESSION_IDLE_EXPIRE_DURATION, WINDOW } from '../../../src/constants';
-import { makeSession } from '../../../src/session/Session';
 import * as CreateSession from '../../../src/session/createSession';
 import * as FetchSession from '../../../src/session/fetchSession';
 import { loadOrCreateSession } from '../../../src/session/loadOrCreateSession';
 import { saveSession } from '../../../src/session/saveSession';
+import { makeSession } from '../../../src/session/Session';
 import type { SessionOptions } from '../../../src/types';
 
 vi.mock('@sentry/core', async () => {

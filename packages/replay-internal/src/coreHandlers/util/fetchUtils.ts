@@ -1,7 +1,6 @@
-import { getBodyString, getFetchRequestArgBody, setTimeout } from '@sentry-internal/browser-utils';
-import type { FetchHint, NetworkMetaWarning } from '@sentry-internal/browser-utils';
 import type { Breadcrumb, FetchBreadcrumbData } from '@sentry/core';
-
+import type { FetchHint, NetworkMetaWarning } from '@sentry-internal/browser-utils';
+import { getBodyString, getFetchRequestArgBody, setTimeout } from '@sentry-internal/browser-utils';
 import { DEBUG_BUILD } from '../../debug-build';
 import type {
   ReplayContainer,

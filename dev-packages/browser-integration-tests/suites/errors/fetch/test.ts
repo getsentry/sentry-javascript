@@ -29,7 +29,6 @@ sentryTest('handles fetch network errors @firefox', async ({ getLocalTestUrl, pa
   });
 });
 
-
 sentryTest('handles fetch network errors on subdomains @firefox', async ({ getLocalTestUrl, page, browserName }) => {
   const url = await getLocalTestUrl({ testDir: __dirname });
   const reqPromise = waitForErrorRequest(page);

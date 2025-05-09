@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, test } from 'vitest';
-import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
+import { cleanupChildProcesses, createEsmAndCjsTests, createRunner } from '../../../utils/runner';
 import { createTestServer } from '../../../utils/server';
 
 describe('httpIntegration', () => {
@@ -7,52 +7,48 @@ describe('httpIntegration', () => {
     cleanupChildProcesses();
   });
 
-  test('allows to pass instrumentation options to integration', async () => {
-    // response shape seems different on Node 14, so we skip this there
-    const nodeMajorVersion = Number(process.versions.node.split('.')[0]);
-    if (nodeMajorVersion <= 14) {
-      return;
-    }
-
-    const runner = createRunner(__dirname, 'server.js')
-      .expect({
-        transaction: {
-          contexts: {
-            trace: {
-              span_id: expect.stringMatching(/[a-f0-9]{16}/),
-              trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-              data: {
-                url: expect.stringMatching(/\/test$/),
-                'http.response.status_code': 200,
-                attr1: 'yes',
-                attr2: 'yes',
-                attr3: 'yes',
+  createEsmAndCjsTests(__dirname, 'server.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('allows to pass instrumentation options to integration', async () => {
+      const runner = createRunner()
+        .expect({
+          transaction: {
+            contexts: {
+              trace: {
+                span_id: expect.stringMatching(/[a-f0-9]{16}/),
+                trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                data: {
+                  url: expect.stringMatching(/\/test$/),
+                  'http.response.status_code': 200,
+                  attr1: 'yes',
+                  attr2: 'yes',
+                  attr3: 'yes',
+                },
+                op: 'http.server',
+                status: 'ok',
               },
-              op: 'http.server',
-              status: 'ok',
+            },
+            extra: {
+              requestHookCalled: {
+                url: expect.stringMatching(/\/test$/),
+                method: 'GET',
+              },
+              responseHookCalled: {
+                url: expect.stringMatching(/\/test$/),
+                method: 'GET',
+              },
+              applyCustomAttributesOnSpanCalled: {
+                reqUrl: expect.stringMatching(/\/test$/),
+                reqMethod: 'GET',
+                resUrl: expect.stringMatching(/\/test$/),
+                resMethod: 'GET',
+              },
             },
           },
-          extra: {
-            requestHookCalled: {
-              url: expect.stringMatching(/\/test$/),
-              method: 'GET',
-            },
-            responseHookCalled: {
-              url: expect.stringMatching(/\/test$/),
-              method: 'GET',
-            },
-            applyCustomAttributesOnSpanCalled: {
-              reqUrl: expect.stringMatching(/\/test$/),
-              reqMethod: 'GET',
-              resUrl: expect.stringMatching(/\/test$/),
-              resMethod: 'GET',
-            },
-          },
-        },
-      })
-      .start();
-    runner.makeRequest('get', '/test');
-    await runner.completed();
+        })
+        .start();
+      runner.makeRequest('get', '/test');
+      await runner.completed();
+    });
   });
 
   test('allows to pass experimental config through to integration', async () => {
@@ -155,7 +151,7 @@ describe('httpIntegration', () => {
             expect(breadcrumbs![0]?.data?.url).toEqual(`${SERVER_URL}/pass`);
           },
         })
-        .start(closeTestServer);
+        .start();
       runner.makeRequest('get', '/testUrl');
       await runner.completed();
       closeTestServer();

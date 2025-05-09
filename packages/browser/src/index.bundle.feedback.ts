@@ -11,5 +11,3 @@ export {
   feedbackAsyncIntegration as feedbackIntegration,
   replayIntegrationShim as replayIntegration,
 };
-
-export { captureFeedback } from '@sentry/core';

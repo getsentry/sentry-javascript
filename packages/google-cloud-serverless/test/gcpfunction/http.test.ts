@@ -1,9 +1,8 @@
 import type { Integration } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
-import { describe, vi, beforeEach, test, expect, type MockInstance } from 'vitest';
-
-import { wrapHttpFunction } from '../../src/gcpfunction/http';
+import { type MockInstance, beforeEach, describe, expect, test, vi } from 'vitest';
 import type { HttpFunction, Request, Response } from '../../src/gcpfunction/general';
+import { wrapHttpFunction } from '../../src/gcpfunction/http';
 import { init } from '../../src/sdk';
 
 const mockStartSpanManual = vi.fn((...spanArgs) => ({ ...spanArgs }));

@@ -1,17 +1,19 @@
+import { SentrySpan } from '@sentry/core';
 import * as SentryNode from '@sentry/node';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   createTransport,
   getCurrentScope,
   getIsolationScope,
+  NodeClient,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCurrentClient,
   spanToJSON,
 } from '@sentry/node';
-import { NodeClient } from '@sentry/node';
 import { redirect } from '@solidjs/router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { withServerActionInstrumentation } from '../../src/server';
 
 const mockCaptureException = vi.spyOn(SentryNode, 'captureException').mockImplementation(() => '');
 const mockFlush = vi.spyOn(SentryNode, 'flush').mockImplementation(async () => true);
@@ -25,9 +27,6 @@ vi.mock('solid-js/web', async () => {
     getRequestEvent: (...args: unknown[]) => mockGetRequestEvent(...args),
   };
 });
-
-import { SentrySpan } from '@sentry/core';
-import { withServerActionInstrumentation } from '../../src/server';
 
 describe('withServerActionInstrumentation', () => {
   function createMockNodeClient(): NodeClient {

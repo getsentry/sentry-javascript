@@ -1,10 +1,10 @@
 import * as api from '@opentelemetry/api';
+import type { SerializedTraceData, Span } from '@sentry/core';
 import {
   dynamicSamplingContextToSentryBaggageHeader,
   generateSentryTraceHeader,
   getCapturedScopesOnSpan,
 } from '@sentry/core';
-import type { SerializedTraceData, Span } from '@sentry/core';
 import { getInjectionData } from '../propagator';
 import { getContextFromScope } from './contextData';
 

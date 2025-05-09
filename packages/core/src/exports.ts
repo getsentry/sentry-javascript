@@ -2,28 +2,21 @@ import { getClient, getCurrentScope, getIsolationScope, withIsolationScope } fro
 import { DEBUG_BUILD } from './debug-build';
 import type { CaptureContext } from './scope';
 import { closeSession, makeSession, updateSession } from './session';
-import type {
-  CheckIn,
-  Event,
-  EventHint,
-  EventProcessor,
-  Extra,
-  Extras,
-  FinishedCheckIn,
-  MonitorConfig,
-  Primitive,
-  Session,
-  SessionContext,
-  SeverityLevel,
-  User,
-} from './types-hoist';
+import type { CheckIn, FinishedCheckIn, MonitorConfig } from './types-hoist/checkin';
+import type { Event, EventHint } from './types-hoist/event';
+import type { EventProcessor } from './types-hoist/eventprocessor';
+import type { Extra, Extras } from './types-hoist/extra';
+import type { Primitive } from './types-hoist/misc';
+import type { Session, SessionContext } from './types-hoist/session';
+import type { SeverityLevel } from './types-hoist/severity';
+import type { User } from './types-hoist/user';
+import type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
+import { parseEventHintOrCaptureContext } from './utils/prepareEvent';
 import { isThenable } from './utils-hoist/is';
 import { logger } from './utils-hoist/logger';
 import { uuid4 } from './utils-hoist/misc';
 import { timestampInSeconds } from './utils-hoist/time';
 import { GLOBAL_OBJ } from './utils-hoist/worldwide';
-import type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
-import { parseEventHintOrCaptureContext } from './utils/prepareEvent';
 
 /**
  * Captures an exception event and sends it to Sentry.

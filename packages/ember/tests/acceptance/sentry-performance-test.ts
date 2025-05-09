@@ -1,7 +1,6 @@
 import { click, find, visit } from '@ember/test-helpers';
 import { setupApplicationTest } from 'ember-qunit';
 import { module, test } from 'qunit';
-
 import { setupSentryTest } from '../helpers/setup-sentry';
 import { assertSentryTransactionCount, assertSentryTransactions } from '../helpers/utils';
 

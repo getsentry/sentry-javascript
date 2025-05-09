@@ -1,7 +1,7 @@
 import type { Integration } from '@sentry/core';
 import { browserTracingIntegration as originalBrowserTracingIntegration } from '@sentry/react';
-import { setGlobals, startPageloadSpan } from './performance';
 import type { RemixBrowserTracingIntegrationOptions } from './performance';
+import { setGlobals, startPageloadSpan } from './performance';
 /**
  * Creates a browser tracing integration for Remix applications.
  * This integration will create pageload and navigation spans.

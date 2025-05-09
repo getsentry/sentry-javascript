@@ -1,14 +1,3 @@
-import type {
-  ClientReport,
-  Envelope,
-  EventEnvelope,
-  EventItem,
-  InternalBaseTransportOptions,
-  ReplayEnvelope,
-  ReplayEvent,
-  TransportMakeRequestResponse,
-} from '../../../src/types-hoist';
-
 import { describe, expect, it } from 'vitest';
 import {
   createClientReportEnvelope,
@@ -20,7 +9,11 @@ import {
   parseEnvelope,
 } from '../../../src';
 import type { CreateOfflineStore, OfflineTransportOptions } from '../../../src/transports/offline';
-import { START_DELAY, makeOfflineTransport } from '../../../src/transports/offline';
+import { makeOfflineTransport, START_DELAY } from '../../../src/transports/offline';
+import type { ClientReport } from '../../../src/types-hoist/clientreport';
+import type { Envelope, EventEnvelope, EventItem, ReplayEnvelope } from '../../../src/types-hoist/envelope';
+import type { ReplayEvent } from '../../../src/types-hoist/replay';
+import type { InternalBaseTransportOptions, TransportMakeRequestResponse } from '../../../src/types-hoist/transport';
 
 const ERROR_ENVELOPE = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, [
   [{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }] as EventItem,

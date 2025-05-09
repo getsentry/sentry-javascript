@@ -1,6 +1,5 @@
-import { afterEach, beforeEach, beforeAll, describe, expect, test, spyOn } from 'bun:test';
 import * as SentryCore from '@sentry/core';
-
+import { afterEach, beforeAll, beforeEach, describe, expect, spyOn, test } from 'bun:test';
 import { instrumentBunServe } from '../../src/integrations/bunserver';
 
 describe('Bun Serve Integration', () => {

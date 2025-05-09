@@ -1,16 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { DsnComponents } from '../../build/types/types-hoist/dsn';
+import type { DynamicSamplingContext } from '../../build/types/types-hoist/envelope';
 import type { Client } from '../../src';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  SentrySpan,
   getCurrentScope,
   getIsolationScope,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SentrySpan,
   setAsyncContextStrategy,
   setCurrentClient,
 } from '../../src';
 import { createEventEnvelope, createSpanEnvelope } from '../../src/envelope';
-import type { DsnComponents, DynamicSamplingContext, Event } from '../../src/types-hoist';
-import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
+import type { Event } from '../../src/types-hoist/event';
+import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
 const testDsn: DsnComponents = { protocol: 'https', projectId: 'abc', host: 'testry.io', publicKey: 'pubKey123' };
 

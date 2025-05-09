@@ -1,4 +1,5 @@
 import * as os from 'node:os';
+import type { Integration, Options } from '@sentry/core';
 import {
   applySdkMetadata,
   functionToStringIntegration,
@@ -7,7 +8,6 @@ import {
   linkedErrorsIntegration,
   requestDataIntegration,
 } from '@sentry/core';
-import type { Integration, Options } from '@sentry/core';
 import type { NodeClient } from '@sentry/node';
 import {
   consoleIntegration,
@@ -21,7 +21,6 @@ import {
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
 } from '@sentry/node';
-
 import { bunServerIntegration } from './integrations/bunserver';
 import { makeFetchTransport } from './transports';
 import type { BunOptions } from './types';

@@ -8,7 +8,7 @@ Sentry.init({
   // todo: get this from env
   dsn: 'https://username@domain/123',
   tunnel: `http://localhost:3031/`, // proxy server
-  integrations: [Sentry.browserTracingIntegration()],
+  integrations: [Sentry.reactRouterTracingIntegration()],
   tracesSampleRate: 1.0,
   tracePropagationTargets: [/^\//],
 });

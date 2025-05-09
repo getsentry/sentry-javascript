@@ -18,7 +18,7 @@ interface WinstonTransportOptions {
    *
    * @example
    * ```ts
-   * const transport = Sentry.createSentryWinstonTransport(Transport, {
+   * const SentryWinstonTransport = Sentry.createSentryWinstonTransport(Transport, {
    *   // Only capture error and warn logs
    *   levels: ['error', 'warn'],
    * });
@@ -43,10 +43,10 @@ interface WinstonTransportOptions {
  * const winston = require('winston');
  * const Transport = require('winston-transport');
  *
- * const transport = Sentry.createSentryWinstonTransport(Transport);
+ * const SentryWinstonTransport = Sentry.createSentryWinstonTransport(Transport);
  *
  * const logger = winston.createLogger({
- *   transports: [transport],
+ *   transports: [new SentryWinstonTransport()],
  * });
  * ```
  */

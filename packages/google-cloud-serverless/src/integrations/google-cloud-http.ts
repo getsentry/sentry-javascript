@@ -1,11 +1,11 @@
 import type * as common from '@google-cloud/common';
 import type { Client, IntegrationFn } from '@sentry/core';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SentryNonRecordingSpan,
   defineIntegration,
   fill,
   getClient,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SentryNonRecordingSpan,
 } from '@sentry/core';
 import { startInactiveSpan } from '@sentry/node';
 

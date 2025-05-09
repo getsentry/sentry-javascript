@@ -1,5 +1,6 @@
 import type { Integration, Options } from '@sentry/core';
 import {
+  consoleIntegration,
   consoleSandbox,
   functionToStringIntegration,
   getCurrentScope,
@@ -11,7 +12,6 @@ import {
   propagationContextFromHeaders,
   requestDataIntegration,
   stackParserFromStackParserOptions,
-  consoleIntegration,
 } from '@sentry/core';
 import {
   enhanceDscWithOpenTelemetryRootSpanName,

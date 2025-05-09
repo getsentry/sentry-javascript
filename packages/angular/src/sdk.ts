@@ -17,7 +17,6 @@ import {
   inboundFiltersIntegration,
   logger,
 } from '@sentry/core';
-
 import { IS_DEBUG_BUILD } from './flags';
 
 /**

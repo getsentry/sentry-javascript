@@ -1,19 +1,18 @@
 import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
+import type { Scope } from '@sentry/core';
 import {
-  Scope as ScopeClass,
   getCurrentScope,
   getIsolationScope,
+  Scope as ScopeClass,
   setAsyncContextStrategy,
   withIsolationScope,
   withScope,
 } from '@sentry/core';
-import { describe, beforeEach, afterEach, afterAll, test, expect, it } from 'vitest';
-
-import type { Scope } from '@sentry/core';
+import { afterAll, afterEach, beforeEach, describe, expect, it, test } from 'vitest';
 import { setOpenTelemetryContextAsyncContextStrategy } from '../src/asyncContextStrategy';
-import { TestClient, getDefaultTestClientOptions } from './helpers/TestClient';
 import { setupOtel } from './helpers/initOtel';
 import { cleanupOtel } from './helpers/mockSdkInit';
+import { getDefaultTestClientOptions, TestClient } from './helpers/TestClient';
 
 describe('asyncContextStrategy', () => {
   let provider: BasicTracerProvider | undefined;

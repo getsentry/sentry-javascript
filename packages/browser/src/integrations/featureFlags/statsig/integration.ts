@@ -1,5 +1,4 @@
 import type { Client, Event, EventHint, IntegrationFn } from '@sentry/core';
-
 import { defineIntegration } from '@sentry/core';
 import { copyFlagsFromScopeToEvent, insertFlagToScope } from '../../../utils/featureFlags';
 import type { FeatureGate, StatsigClient } from './types';

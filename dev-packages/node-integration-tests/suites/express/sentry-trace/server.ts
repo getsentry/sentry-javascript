@@ -1,5 +1,5 @@
-import { loggingTransport } from '@sentry-internal/node-integration-tests';
 import * as Sentry from '@sentry/node';
+import { loggingTransport, startExpressServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
 
 export type TestAPIResponse = { test_data: { host: string; 'sentry-trace': string; baggage: string } };
 
@@ -12,10 +12,9 @@ Sentry.init({
   transport: loggingTransport,
 });
 
-import http from 'http';
-import { startExpressServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
 import cors from 'cors';
 import express from 'express';
+import http from 'http';
 
 const app = express();
 

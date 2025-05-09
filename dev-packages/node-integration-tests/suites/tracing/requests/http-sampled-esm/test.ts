@@ -30,7 +30,7 @@ describe('outgoing http in ESM', () => {
 
     const instrumentPath = join(__dirname, 'instrument.mjs');
     await createRunner(__dirname, 'scenario.mjs')
-      .withFlags('--import', instrumentPath)
+      .withInstrument(instrumentPath)
       .withEnv({ SERVER_URL })
       .expect({
         transaction: {

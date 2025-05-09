@@ -1,8 +1,6 @@
-import { describe, expect, it, vi } from 'vitest';
-
-import { sentryHandle, initCloudflareSentryHandle } from '../../src/server';
-
 import * as NodeSDK from '@sentry/node';
+import { describe, expect, it, vi } from 'vitest';
+import { initCloudflareSentryHandle, sentryHandle } from '../../src/server';
 
 describe('Node handle hooks', () => {
   // dumb test to ensure we continue exporting the request handlers

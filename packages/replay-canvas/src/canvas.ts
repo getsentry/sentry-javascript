@@ -1,7 +1,7 @@
+import type { Integration, IntegrationFn } from '@sentry/core';
+import { defineIntegration } from '@sentry/core';
 import type { CanvasManagerInterface, CanvasManagerOptions } from '@sentry-internal/replay';
 import { CanvasManager } from '@sentry-internal/rrweb';
-import { defineIntegration } from '@sentry/core';
-import type { Integration, IntegrationFn } from '@sentry/core';
 
 interface ReplayCanvasIntegration extends Integration {
   snapshot: (canvasElement?: HTMLCanvasElement) => Promise<void>;

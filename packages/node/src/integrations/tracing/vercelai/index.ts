@@ -1,6 +1,6 @@
 /* eslint-disable complexity */
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, defineIntegration, spanToJSON } from '@sentry/core';
 import type { IntegrationFn } from '@sentry/core';
+import { defineIntegration, SEMANTIC_ATTRIBUTE_SENTRY_OP, spanToJSON } from '@sentry/core';
 import { generateInstrumentOnce } from '../../../otel/instrument';
 import { addOriginToSpan } from '../../../utils/addOriginToSpan';
 import { SentryVercelAiInstrumentation } from './instrumentation';

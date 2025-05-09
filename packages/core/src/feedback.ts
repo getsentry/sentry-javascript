@@ -1,5 +1,6 @@
 import { getClient, getCurrentScope } from './currentScopes';
-import type { EventHint, FeedbackEvent, SendFeedbackParams } from './types-hoist';
+import type { EventHint } from './types-hoist/event';
+import type { FeedbackEvent, SendFeedbackParams } from './types-hoist/feedback';
 
 /**
  * Send user feedback to Sentry.

@@ -1,11 +1,10 @@
+import type { AttributeValue } from '@opentelemetry/api';
 import { GraphQLInstrumentation } from '@opentelemetry/instrumentation-graphql';
-import { defineIntegration, getRootSpan, spanToJSON } from '@sentry/core';
 import type { IntegrationFn } from '@sentry/core';
+import { defineIntegration, getRootSpan, spanToJSON } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION } from '@sentry/opentelemetry';
 import { generateInstrumentOnce } from '../../otel/instrument';
-
 import { addOriginToSpan } from '../../utils/addOriginToSpan';
-import type { AttributeValue } from '@opentelemetry/api';
 
 interface GraphqlOptions {
   /**

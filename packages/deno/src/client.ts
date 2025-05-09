@@ -1,6 +1,5 @@
 import type { ServerRuntimeClientOptions } from '@sentry/core';
 import { SDK_VERSION, ServerRuntimeClient } from '@sentry/core';
-
 import type { DenoClientOptions } from './types';
 
 function getHostName(): string | undefined {

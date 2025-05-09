@@ -1,6 +1,5 @@
 /* eslint-disable no-console */
 import * as dotenv from 'dotenv';
-
 import { registrySetup } from './registrySetup';
 
 async function run(): Promise<void> {

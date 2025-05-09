@@ -1,7 +1,7 @@
 import type { Client } from './client';
 import { getCurrentScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
-import type { ClientOptions } from './types-hoist';
+import type { ClientOptions } from './types-hoist/options';
 import { consoleSandbox, logger } from './utils-hoist/logger';
 
 /** A class object that can instantiate Client objects. */

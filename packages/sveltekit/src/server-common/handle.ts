@@ -1,20 +1,19 @@
 import type { Span } from '@sentry/core';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   continueTrace,
   getCurrentScope,
   getDefaultIsolationScope,
   getIsolationScope,
   getTraceMetaTags,
   logger,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setHttpStatus,
   startSpan,
   winterCGRequestToRequestData,
   withIsolationScope,
 } from '@sentry/core';
 import type { Handle, ResolveOptions } from '@sveltejs/kit';
-
 import { DEBUG_BUILD } from '../common/debug-build';
 import { flushIfServerless, getTracePropagationData, sendErrorToSentry } from './utils';
 

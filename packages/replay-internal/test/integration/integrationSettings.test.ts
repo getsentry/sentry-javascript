@@ -2,10 +2,8 @@
  * @vitest-environment jsdom
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
 import type { MockInstance } from 'vitest';
-
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mockSdk } from '../index';
 
 describe('Integration | integrationSettings', () => {

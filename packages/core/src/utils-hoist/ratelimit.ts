@@ -1,4 +1,5 @@
-import type { DataCategory, TransportMakeRequestResponse } from '../types-hoist';
+import type { DataCategory } from '../types-hoist/datacategory';
+import type { TransportMakeRequestResponse } from '../types-hoist/transport';
 
 // Intentionally keeping the key broad, as we don't know for sure what rate limit headers get returned from backend
 export type RateLimits = Record<string, number>;

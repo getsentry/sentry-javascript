@@ -8,12 +8,7 @@ module.exports = {
       extends: ['plugin:import/typescript'],
       plugins: ['@typescript-eslint', 'jsdoc'],
       parser: '@typescript-eslint/parser',
-      rules: {
-        // sort imports
-        'simple-import-sort/sort': 'error',
-        'sort-imports': 'off',
-        'import/order': 'off',
-      },
+      rules: {},
     },
     {
       // Configuration for files under src
@@ -28,8 +23,16 @@ module.exports = {
   rules: {
     // We shouldn't make assumptions about imports/exports being dereferenced.
     'import/namespace': 'off',
-
-    // imports should be ordered.
-    'import/order': ['error', { 'newlines-between': 'always' }],
+    // This is done by TS anyhow
+    'import/no-unresolved': 'off',
+    // sort imports
+    'sort-imports': 'off',
+    'import/order': 'off',
+    // Avoid newlines between import groups
+    // See: https://github.com/lydell/eslint-plugin-simple-import-sort?tab=readme-ov-file#how-do-i-remove-all-blank-lines-between-imports
+    'simple-import-sort/imports': ['error', { groups: [['^\\u0000', '^node:', '^@?\\w', '^', '^\\.']] }],
+    'simple-import-sort/exports': 'off',
+    'import/first': 'error',
+    'import/newline-after-import': 'error',
   },
 };

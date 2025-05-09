@@ -1,5 +1,7 @@
-import * as Sentry from '@sentry/browser';
+/* eslint-disable import/no-duplicates */
 
+import * as Sentry from '@sentry/browser';
+// These need to be separate imports so they can be handled by our test runner
 import { moduleMetadataIntegration } from '@sentry/browser';
 import { rewriteFramesIntegration } from '@sentry/browser';
 

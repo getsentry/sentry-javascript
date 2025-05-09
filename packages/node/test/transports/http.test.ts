@@ -1,10 +1,15 @@
-import * as http from 'http';
-import { createGunzip } from 'zlib';
-import { createTransport } from '@sentry/core';
-import { addItemToEnvelope, createAttachmentEnvelopeItem, createEnvelope, serializeEnvelope } from '@sentry/core';
 import type { EventEnvelope, EventItem } from '@sentry/core';
-
+import {
+  addItemToEnvelope,
+  createAttachmentEnvelopeItem,
+  createEnvelope,
+  createTransport,
+  serializeEnvelope,
+} from '@sentry/core';
+import * as http from 'http';
 import { type Mock, afterEach, describe, expect, it, vi } from 'vitest';
+import { createGunzip } from 'zlib';
+import * as httpProxyAgent from '../../src/proxy';
 import { makeNodeTransport } from '../../src/transports';
 
 vi.mock('@sentry/core', async () => {
@@ -24,8 +29,6 @@ vi.mock('node:http', async () => {
     request: original.request,
   };
 });
-
-import * as httpProxyAgent from '../../src/proxy';
 
 const SUCCESS = 200;
 const RATE_LIMIT = 429;

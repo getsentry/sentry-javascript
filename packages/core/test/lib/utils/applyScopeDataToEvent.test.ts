@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { ScopeData } from '../../../src';
 import { startInactiveSpan } from '../../../src';
-import type { Attachment, Breadcrumb, Event, EventProcessor, EventType } from '../../../src/types-hoist';
+import type { Attachment } from '../../../src/types-hoist/attachment';
+import type { Breadcrumb } from '../../../src/types-hoist/breadcrumb';
+import type { Event, EventType } from '../../../src/types-hoist/event';
+import type { EventProcessor } from '../../../src/types-hoist/eventprocessor';
 import {
   applyScopeDataToEvent,
   mergeAndOverwriteScopeData,

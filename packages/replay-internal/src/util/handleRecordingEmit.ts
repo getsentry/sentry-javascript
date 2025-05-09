@@ -1,5 +1,4 @@
 import { EventType } from '@sentry-internal/rrweb';
-
 import { updateClickDetectorForRecordingEvent } from '../coreHandlers/handleClick';
 import { DEBUG_BUILD } from '../debug-build';
 import { saveSession } from '../session/saveSession';

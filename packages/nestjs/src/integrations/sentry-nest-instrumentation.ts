@@ -7,9 +7,9 @@ import {
 } from '@opentelemetry/instrumentation';
 import type { Span } from '@sentry/core';
 import {
-  SDK_VERSION,
   getActiveSpan,
   isThenable,
+  SDK_VERSION,
   startInactiveSpan,
   startSpan,
   startSpanManual,

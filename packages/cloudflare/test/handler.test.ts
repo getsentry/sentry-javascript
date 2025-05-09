@@ -1,16 +1,16 @@
 // Note: These tests run the handler in Node.js, which has some differences to the cloudflare workers runtime.
 // Although this is not ideal, this is the best we can do until we have a better way to test cloudflare workers.
 
-import { beforeEach, describe, expect, test, vi } from 'vitest';
-
 import type { ScheduledController } from '@cloudflare/workers-types';
-import * as SentryCore from '@sentry/core';
 import type { Event } from '@sentry/core';
+import * as SentryCore from '@sentry/core';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { CloudflareClient } from '../src/client';
 import { withSentry } from '../src/handler';
 
 const MOCK_ENV = {
   SENTRY_DSN: 'https://public@dsn.ingest.sentry.io/1337',
+  SENTRY_RELEASE: '1.1.1',
 };
 
 describe('withSentry', () => {
@@ -52,6 +52,65 @@ describe('withSentry', () => {
 
       expect(result).toBe(response);
     });
+
+    test('merges options from env and callback', async () => {
+      const handler = {
+        fetch(_request, _env, _context) {
+          throw new Error('test');
+        },
+      } satisfies ExportedHandler<typeof MOCK_ENV>;
+
+      let sentryEvent: Event = {};
+
+      const wrappedHandler = withSentry(
+        env => ({
+          dsn: env.SENTRY_DSN,
+          beforeSend(event) {
+            sentryEvent = event;
+            return null;
+          },
+        }),
+        handler,
+      );
+
+      try {
+        await wrappedHandler.fetch(new Request('https://example.com'), MOCK_ENV, createMockExecutionContext());
+      } catch {
+        // ignore
+      }
+
+      expect(sentryEvent.release).toEqual('1.1.1');
+    });
+
+    test('callback options take precedence over env options', async () => {
+      const handler = {
+        fetch(_request, _env, _context) {
+          throw new Error('test');
+        },
+      } satisfies ExportedHandler<typeof MOCK_ENV>;
+
+      let sentryEvent: Event = {};
+
+      const wrappedHandler = withSentry(
+        env => ({
+          dsn: env.SENTRY_DSN,
+          release: '2.0.0',
+          beforeSend(event) {
+            sentryEvent = event;
+            return null;
+          },
+        }),
+        handler,
+      );
+
+      try {
+        await wrappedHandler.fetch(new Request('https://example.com'), MOCK_ENV, createMockExecutionContext());
+      } catch {
+        // ignore
+      }
+
+      expect(sentryEvent.release).toEqual('2.0.0');
+    });
   });
 
   describe('scheduled handler', () => {
@@ -69,6 +128,55 @@ describe('withSentry', () => {
 
       expect(optionsCallback).toHaveBeenCalledTimes(1);
       expect(optionsCallback).toHaveBeenLastCalledWith(MOCK_ENV);
+    });
+
+    test('merges options from env and callback', async () => {
+      const handler = {
+        scheduled(_controller, _env, _context) {
+          SentryCore.captureMessage('cloud_resource');
+          return;
+        },
+      } satisfies ExportedHandler<typeof MOCK_ENV>;
+
+      let sentryEvent: Event = {};
+      const wrappedHandler = withSentry(
+        env => ({
+          dsn: env.SENTRY_DSN,
+          beforeSend(event) {
+            sentryEvent = event;
+            return null;
+          },
+        }),
+        handler,
+      );
+      await wrappedHandler.scheduled(createMockScheduledController(), MOCK_ENV, createMockExecutionContext());
+
+      expect(sentryEvent.release).toBe('1.1.1');
+    });
+
+    test('callback options take precedence over env options', async () => {
+      const handler = {
+        scheduled(_controller, _env, _context) {
+          SentryCore.captureMessage('cloud_resource');
+          return;
+        },
+      } satisfies ExportedHandler<typeof MOCK_ENV>;
+
+      let sentryEvent: Event = {};
+      const wrappedHandler = withSentry(
+        env => ({
+          dsn: env.SENTRY_DSN,
+          release: '2.0.0',
+          beforeSend(event) {
+            sentryEvent = event;
+            return null;
+          },
+        }),
+        handler,
+      );
+      await wrappedHandler.scheduled(createMockScheduledController(), MOCK_ENV, createMockExecutionContext());
+
+      expect(sentryEvent.release).toEqual('2.0.0');
     });
 
     test('flushes the event after the handler is done using the cloudflare context.waitUntil', async () => {

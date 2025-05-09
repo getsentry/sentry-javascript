@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-
 import { isHttpError, isRedirect } from '../../src/common/utils';
 
 describe('isRedirect', () => {

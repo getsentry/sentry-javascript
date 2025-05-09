@@ -12,6 +12,7 @@ export default [
   ]),
   ...prefix('performance', [
     index('routes/performance/index.tsx'),
+    route('ssr', 'routes/performance/ssr.tsx'),
     route('with/:param', 'routes/performance/dynamic-param.tsx'),
     route('static', 'routes/performance/static.tsx'),
   ]),

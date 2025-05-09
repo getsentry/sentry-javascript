@@ -1,4 +1,4 @@
-import type { ParameterizedString } from '../types-hoist';
+import type { ParameterizedString } from '../types-hoist/parameterize';
 
 /**
  * Tagged template function which returns parameterized representation of the message

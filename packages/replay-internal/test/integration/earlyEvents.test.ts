@@ -1,16 +1,16 @@
 /**
  * @vitest-environment jsdom
  */
-
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
+import '../utils/mock-internal-setTimeout';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BASE_TIMESTAMP } from '..';
 import { resetSdkMock } from '../mocks/resetSdkMock';
-import { useFakeTimers } from '../utils/use-fake-timers';
-
-useFakeTimers();
 
 describe('Integration | early events', () => {
+  beforeAll(() => {
+    vi.useFakeTimers();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
   });

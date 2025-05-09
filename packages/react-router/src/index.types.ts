@@ -1,12 +1,13 @@
-// re-define colliding type exports below
-
-export * from './client';
-export * from './server';
-export * from './vite';
+/* eslint-disable import/export */
 
 import type { Integration, Options, StackParser } from '@sentry/core';
 import type * as clientSdk from './client';
 import type * as serverSdk from './server';
+
+// re-define colliding type exports below
+export * from './client';
+export * from './server';
+export * from './vite';
 
 /** Initializes Sentry React Router SDK */
 export declare function init(options: Options | clientSdk.BrowserOptions | serverSdk.NodeOptions): void;

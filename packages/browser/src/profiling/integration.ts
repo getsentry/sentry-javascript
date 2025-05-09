@@ -1,16 +1,15 @@
-import { defineIntegration, getActiveSpan, getRootSpan } from '@sentry/core';
-import { logger } from '@sentry/core';
 import type { EventEnvelope, IntegrationFn, Profile, Span } from '@sentry/core';
-
+import { defineIntegration, getActiveSpan, getRootSpan, logger } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { startProfileForSpan } from './startProfileForSpan';
 import type { ProfiledEvent } from './utils';
-import { isAutomatedPageLoadSpan, shouldProfileSpan } from './utils';
 import {
   addProfilesToEnvelope,
   createProfilingEvent,
   findProfiledTransactionsFromEnvelope,
   getActiveProfilesCount,
+  isAutomatedPageLoadSpan,
+  shouldProfileSpan,
   takeProfileFromGlobalCache,
 } from './utils';
 

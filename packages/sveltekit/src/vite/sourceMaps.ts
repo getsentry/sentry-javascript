@@ -1,17 +1,16 @@
 /* eslint-disable max-lines */
-import * as child_process from 'child_process';
-import * as fs from 'fs';
-import * as path from 'path';
 import { consoleSandbox, escapeStringForRegex, uuid4 } from '@sentry/core';
 import { getSentryRelease } from '@sentry/node';
 import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
-import type { Plugin, UserConfig } from 'vite';
-
+import * as child_process from 'child_process';
+import * as fs from 'fs';
 import MagicString from 'magic-string';
+import * as path from 'path';
+import type { Plugin, UserConfig } from 'vite';
 import { WRAPPED_MODULE_SUFFIX } from '../common/utils';
 import type { GlobalSentryValues } from './injectGlobalValues';
-import { VIRTUAL_GLOBAL_VALUES_FILE, getGlobalValueInjectionCode } from './injectGlobalValues';
+import { getGlobalValueInjectionCode, VIRTUAL_GLOBAL_VALUES_FILE } from './injectGlobalValues';
 import { getAdapterOutputDir, getHooksFileName, loadSvelteConfig } from './svelteConfig';
 import type { CustomSentryVitePluginOptions } from './types';
 

@@ -1,6 +1,5 @@
 import Route from '@ember/routing/route';
 import { instrumentRoutePerformance } from '@sentry/ember';
-
 import timeout from '../../helpers/utils';
 
 const SLOW_TRANSITION_WAIT = 1500;
