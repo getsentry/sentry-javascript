@@ -164,7 +164,8 @@ export function getHttpSpanDetailsFromUrlObject(
   };
 
   if (routeName) {
-    attributes[kind === 'client' ? 'http.route' : 'url.route'] = routeName;
+    // This is based on https://opentelemetry.io/docs/specs/semconv/http/http-spans/#name
+    attributes[kind === 'server' ? 'http.route' : 'url.template'] = routeName;
     attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'route';
   }
 

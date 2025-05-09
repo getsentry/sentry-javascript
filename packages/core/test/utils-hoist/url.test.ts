@@ -420,7 +420,7 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
   it('handles absolute URL object', () => {
     const urlObject = parseStringToURLObject('https://example.com/api/users?q=test#section')!;
     const [name, attributes] = getHttpSpanDetailsFromUrlObject(urlObject, 'server', 'test-origin');
-    expect(name).toBe('GET https://example.com/api/users');
+    expect(name).toBe('GET /api/users');
     expect(attributes).toEqual({
       'sentry.origin': 'test-origin',
       'sentry.source': 'url',
@@ -436,7 +436,7 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
   it('handles URL object with request method', () => {
     const urlObject = parseStringToURLObject('https://example.com/api/users')!;
     const [name, attributes] = getHttpSpanDetailsFromUrlObject(urlObject, 'server', 'test-origin', { method: 'POST' });
-    expect(name).toBe('POST https://example.com/api/users');
+    expect(name).toBe('POST /api/users');
     expect(attributes).toEqual({
       'sentry.origin': 'test-origin',
       'sentry.source': 'url',
@@ -472,7 +472,7 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
   it('handles root path URL', () => {
     const urlObject = parseStringToURLObject('https://example.com/')!;
     const [name, attributes] = getHttpSpanDetailsFromUrlObject(urlObject, 'server', 'test-origin');
-    expect(name).toBe('GET https://example.com/');
+    expect(name).toBe('GET /');
     expect(attributes).toEqual({
       'sentry.origin': 'test-origin',
       'sentry.source': 'route',
@@ -486,7 +486,7 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
   it('handles URL with port', () => {
     const urlObject = parseStringToURLObject('https://example.com:8080/api/users')!;
     const [name, attributes] = getHttpSpanDetailsFromUrlObject(urlObject, 'server', 'test-origin');
-    expect(name).toBe('GET https://example.com:8080/api/users');
+    expect(name).toBe('GET /api/users');
     expect(attributes).toEqual({
       'sentry.origin': 'test-origin',
       'sentry.source': 'url',
@@ -501,7 +501,7 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
   it('handles URL with non-standard port and request method', () => {
     const urlObject = parseStringToURLObject('https://example.com:3000/api/users')!;
     const [name, attributes] = getHttpSpanDetailsFromUrlObject(urlObject, 'server', 'test-origin', { method: 'PUT' });
-    expect(name).toBe('PUT https://example.com:3000/api/users');
+    expect(name).toBe('PUT /api/users');
     expect(attributes).toEqual({
       'sentry.origin': 'test-origin',
       'sentry.source': 'url',
@@ -583,7 +583,7 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
   it('handles URL with auth credentials', () => {
     const urlObject = parseStringToURLObject('https://user:pass@example.com/api/users')!;
     const [name, attributes] = getHttpSpanDetailsFromUrlObject(urlObject, 'server', 'test-origin');
-    expect(name).toBe('GET https://%filtered%:%filtered%@example.com/api/users');
+    expect(name).toBe('GET /api/users');
     expect(attributes).toEqual({
       'sentry.origin': 'test-origin',
       'sentry.source': 'url',
@@ -597,7 +597,7 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
   it('handles URL with IPv4 address', () => {
     const urlObject = parseStringToURLObject('https://192.168.1.1:8080/api/users')!;
     const [name, attributes] = getHttpSpanDetailsFromUrlObject(urlObject, 'server', 'test-origin');
-    expect(name).toBe('GET https://192.168.1.1:8080/api/users');
+    expect(name).toBe('GET /api/users');
     expect(attributes).toEqual({
       'sentry.origin': 'test-origin',
       'sentry.source': 'url',
@@ -612,7 +612,7 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
   it('handles URL with IPv6 address', () => {
     const urlObject = parseStringToURLObject('https://[2001:db8::1]:8080/api/users')!;
     const [name, attributes] = getHttpSpanDetailsFromUrlObject(urlObject, 'server', 'test-origin');
-    expect(name).toBe('GET https://[2001:db8::1]:8080/api/users');
+    expect(name).toBe('GET /api/users');
     expect(attributes).toEqual({
       'sentry.origin': 'test-origin',
       'sentry.source': 'url',
@@ -627,7 +627,7 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
   it('handles URL with subdomain', () => {
     const urlObject = parseStringToURLObject('https://api.example.com/users')!;
     const [name, attributes] = getHttpSpanDetailsFromUrlObject(urlObject, 'server', 'test-origin');
-    expect(name).toBe('GET https://api.example.com/users');
+    expect(name).toBe('GET /users');
     expect(attributes).toEqual({
       'sentry.origin': 'test-origin',
       'sentry.source': 'url',
