@@ -20,7 +20,9 @@ function _lowQualityTransactionsFilterIntegration(options: NodeOptions): {
         return event;
       }
 
-      if (matchedRegexes.some(regex => event.transaction?.match(regex))) {
+      const transaction = event.transaction;
+
+      if (matchedRegexes.some(regex => transaction.match(regex))) {
         options.debug && logger.log('[ReactRouter] Filtered node_modules transaction:', event.transaction);
         return null;
       }
