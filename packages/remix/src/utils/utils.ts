@@ -10,7 +10,11 @@ type ServerRouteManifest = ServerBuild['routes'];
 /**
  *
  */
-export async function storeFormDataKeys(args: LoaderFunctionArgs | ActionFunctionArgs, span: Span): Promise<void> {
+export async function storeFormDataKeys(
+  args: LoaderFunctionArgs | ActionFunctionArgs,
+  span: Span,
+  formDataKeys?: Record<string, string | boolean> | undefined,
+): Promise<void> {
   try {
     // We clone the request for Remix be able to read the FormData later.
     const clonedRequest = args.request.clone();
@@ -21,7 +25,18 @@ export async function storeFormDataKeys(args: LoaderFunctionArgs | ActionFunctio
     const formData = await clonedRequest.formData();
 
     formData.forEach((value, key) => {
-      span.setAttribute(`remix.action_form_data.${key}`, typeof value === 'string' ? value : '[non-string value]');
+      let attrKey = key;
+
+      if (formDataKeys?.[key]) {
+        if (typeof formDataKeys[key] === 'string') {
+          attrKey = formDataKeys[key] as string;
+        }
+
+        span.setAttribute(
+          `remix.action_form_data.${attrKey}`,
+          typeof value === 'string' ? value : '[non-string value]',
+        );
+      }
     });
   } catch (e) {
     DEBUG_BUILD && logger.warn('Failed to read FormData from request', e);
