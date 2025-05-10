@@ -255,6 +255,7 @@ export {
   parseUrl,
   stripUrlQueryAndFragment,
   parseStringToURLObject,
+  getHttpSpanDetailsFromUrlObject,
   isURLObjectRelative,
   getSanitizedUrlStringFromUrlObject,
 } from './utils-hoist/url';
