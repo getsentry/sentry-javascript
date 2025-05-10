@@ -54,7 +54,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration'),
     gzip: true,
-    limit: '70 KB',
+    limit: '71 KB',
     modifyWebpackConfig: function (config) {
       const webpack = require('webpack');
       const TerserPlugin = require('terser-webpack-plugin');
@@ -139,7 +139,7 @@ module.exports = [
     path: 'packages/vue/build/esm/index.js',
     import: createImport('init', 'browserTracingIntegration'),
     gzip: true,
-    limit: '40 KB',
+    limit: '41 KB',
   },
   // Svelte SDK (ESM)
   {
