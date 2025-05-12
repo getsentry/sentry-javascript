@@ -49,3 +49,5 @@ export function isActionRequest(pathname: string, requestMethod: string): boolea
 export function isDataRequest(pathname: string): boolean {
   return pathname.endsWith('.data');
 }
+
+export const SEMANTIC_ATTRIBUTE_SENTRY_OVERWRITE = 'sentry.overwrite-route';

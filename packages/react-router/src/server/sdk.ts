@@ -1,8 +1,10 @@
-import type { Integration } from '@sentry/core';
-import { applySdkMetadata, logger, setTag } from '@sentry/core';
+import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
+import type { EventProcessor, Integration } from '@sentry/core';
+import { applySdkMetadata, getGlobalScope, logger, setTag } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrations, init as initNodeSdk } from '@sentry/node';
 import { DEBUG_BUILD } from '../common/debug-build';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OVERWRITE } from './instrumentation/util';
 import { reactRouterServerIntegration } from './integration/reactRouterServer';
 
 /**
@@ -21,6 +23,30 @@ export function init(options: NodeOptions): NodeClient | undefined {
   const client = initNodeSdk(opts);
 
   setTag('runtime', 'node');
+
+  // Overwrite the transaction name for instrumented data loaders because the trace data gets overwritten at a later point.
+  // We only update the tx in case SEMANTIC_ATTRIBUTE_SENTRY_OVERWRITE got set in our instrumentation before.
+  getGlobalScope().addEventProcessor(
+    Object.assign(
+      (event => {
+        const overwrite = event.contexts?.trace?.data?.[SEMANTIC_ATTRIBUTE_SENTRY_OVERWRITE];
+        if (
+          event.type === 'transaction' &&
+          event.transaction === 'GET *' &&
+          event.contexts?.trace?.data?.[ATTR_HTTP_ROUTE] === '*' &&
+          overwrite
+        ) {
+          event.transaction = overwrite;
+          delete event.contexts?.trace?.data?.[SEMANTIC_ATTRIBUTE_SENTRY_OVERWRITE];
+          event.contexts.trace.data[ATTR_HTTP_ROUTE] = 'url';
+          return event;
+        } else {
+          return event;
+        }
+      }) satisfies EventProcessor,
+      { id: 'ReactRouterTransactionEnhancer' },
+    ),
+  );
 
   DEBUG_BUILD && logger.log('SDK successfully initialized');
   return client;
