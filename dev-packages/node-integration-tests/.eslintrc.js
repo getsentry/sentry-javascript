@@ -18,6 +18,9 @@ module.exports = {
         sourceType: 'module',
         ecmaVersion: 'latest',
       },
+      globals: {
+        fetch: 'readonly',
+      },
       rules: {
         '@typescript-eslint/typedef': 'off',
         // Explicitly allow ts-ignore with description for Node integration tests
