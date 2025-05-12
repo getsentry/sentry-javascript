@@ -251,6 +251,9 @@ export function createRunner(...paths: string[]) {
 
   return {
     expect: function (expected: Expected) {
+      if (ensureNoErrorOutput) {
+        throw new Error('You should not use `ensureNoErrorOutput` when using `expect`!');
+      }
       expectedEnvelopes.push(expected);
       return this;
     },
@@ -299,6 +302,9 @@ export function createRunner(...paths: string[]) {
       return this;
     },
     ensureNoErrorOutput: function () {
+      if (expectedEnvelopes.length > 0) {
+        throw new Error('You should not use `ensureNoErrorOutput` when using `expect`!');
+      }
       ensureNoErrorOutput = true;
       return this;
     },

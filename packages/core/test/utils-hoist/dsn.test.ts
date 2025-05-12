@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { DEBUG_BUILD } from '../../src/utils-hoist/debug-build';
+import { DEBUG_BUILD } from '../../src/debug-build';
 import { dsnToString, makeDsn } from '../../src/utils-hoist/dsn';
 import { logger } from '../../src/utils-hoist/logger';
 
