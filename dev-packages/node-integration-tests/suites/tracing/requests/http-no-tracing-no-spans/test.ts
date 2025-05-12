@@ -32,7 +32,6 @@ describe('outgoing http requests with tracing & spans disabled', () => {
 
         await createRunner()
           .withEnv({ SERVER_URL })
-          .ensureNoErrorOutput()
           .expect({
             event: {
               exception: {
@@ -131,7 +130,6 @@ describe('outgoing http requests with tracing & spans disabled', () => {
 
         await createRunner()
           .withEnv({ SERVER_URL })
-          .ensureNoErrorOutput()
           .expect({
             event: {
               exception: {

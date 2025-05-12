@@ -1,6 +1,6 @@
 import { getGlobalSingleton } from '../carrier';
 import type { ConsoleLevel } from '../types-hoist/instrument';
-import { DEBUG_BUILD } from './debug-build';
+import { DEBUG_BUILD } from './../debug-build';
 import { GLOBAL_OBJ } from './worldwide';
 
 /** Prefix for logging strings */
