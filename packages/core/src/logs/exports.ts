@@ -7,12 +7,14 @@ import { _getSpanForScope } from '../utils/spanOnScope';
 import { isParameterizedString } from '../utils-hoist/is';
 import { logger } from '../utils-hoist/logger';
 import { timestampInSeconds } from '../utils-hoist/time';
+import { GLOBAL_OBJ } from '../utils-hoist/worldwide';
 import { SEVERITY_TEXT_TO_SEVERITY_NUMBER } from './constants';
 import { createLogEnvelope } from './envelope';
 
 const MAX_LOG_BUFFER_SIZE = 100;
 
-const CLIENT_TO_LOG_BUFFER_MAP = new WeakMap<Client, Array<SerializedLog>>();
+// The reference to the Client <> LogBuffer map is stored to ensure it's always the same
+GLOBAL_OBJ._sentryClientToLogBufferMap = new WeakMap<Client, Array<SerializedLog>>();
 
 /**
  * Converts a log attribute to a serialized log attribute.
@@ -149,11 +151,11 @@ export function _INTERNAL_captureLog(
     ),
   };
 
-  const logBuffer = CLIENT_TO_LOG_BUFFER_MAP.get(client);
+  const logBuffer = _INTERNAL_getLogBuffer(client);
   if (logBuffer === undefined) {
-    CLIENT_TO_LOG_BUFFER_MAP.set(client, [serializedLog]);
+    GLOBAL_OBJ._sentryClientToLogBufferMap?.set(client, [serializedLog]);
   } else {
-    CLIENT_TO_LOG_BUFFER_MAP.set(client, [...logBuffer, serializedLog]);
+    GLOBAL_OBJ._sentryClientToLogBufferMap?.set(client, [...logBuffer, serializedLog]);
     if (logBuffer.length >= MAX_LOG_BUFFER_SIZE) {
       _INTERNAL_flushLogsBuffer(client, logBuffer);
     }
@@ -181,7 +183,7 @@ export function _INTERNAL_flushLogsBuffer(client: Client, maybeLogBuffer?: Array
   const envelope = createLogEnvelope(logBuffer, clientOptions._metadata, clientOptions.tunnel, client.getDsn());
 
   // Clear the log buffer after envelopes have been constructed.
-  CLIENT_TO_LOG_BUFFER_MAP.set(client, []);
+  GLOBAL_OBJ._sentryClientToLogBufferMap?.set(client, []);
 
   client.emit('flushLogs');
 
@@ -199,5 +201,5 @@ export function _INTERNAL_flushLogsBuffer(client: Client, maybeLogBuffer?: Array
  * @returns The log buffer for the given client.
  */
 export function _INTERNAL_getLogBuffer(client: Client): Array<SerializedLog> | undefined {
-  return CLIENT_TO_LOG_BUFFER_MAP.get(client);
+  return GLOBAL_OBJ._sentryClientToLogBufferMap?.get(client);
 }

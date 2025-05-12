@@ -2,10 +2,15 @@ import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
 import type { EventProcessor, Integration } from '@sentry/core';
 import { applySdkMetadata, getGlobalScope, logger, setTag } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
-import { getDefaultIntegrations, init as initNodeSdk } from '@sentry/node';
+import { getDefaultIntegrations as getNodeDefaultIntegrations, init as initNodeSdk } from '@sentry/node';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OVERWRITE } from './instrumentation/util';
 import { reactRouterServerIntegration } from './integration/reactRouterServer';
+import { lowQualityTransactionsFilterIntegration } from './lowQualityTransactionsFilterIntegration';
+
+function getDefaultIntegrations(options: NodeOptions): Integration[] {
+  return [...getNodeDefaultIntegrations(options), lowQualityTransactionsFilterIntegration(options)];
+}
 
 /**
  * Initializes the server side of the React Router SDK
@@ -14,6 +19,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
   const opts: NodeOptions = {
     defaultIntegrations: [...getDefaultReactRouterServerIntegrations(options)],
     ...options,
+    defaultIntegrations: getDefaultIntegrations(options),
   };
 
   DEBUG_BUILD && logger.log('Initializing SDK...');
@@ -49,6 +55,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
   );
 
   DEBUG_BUILD && logger.log('SDK successfully initialized');
+
   return client;
 }
 

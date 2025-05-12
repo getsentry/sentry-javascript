@@ -491,6 +491,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
         spanAttributes: SpanAttributes;
         spanName: string;
         parentSampled?: boolean;
+        parentSampleRate?: number;
         parentContext?: SpanContextData;
       },
       samplingDecision: { decision: boolean },
@@ -691,6 +692,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       spanAttributes: SpanAttributes;
       spanName: string;
       parentSampled?: boolean;
+      parentSampleRate?: number;
       parentContext?: SpanContextData;
     },
     samplingDecision: { decision: boolean },

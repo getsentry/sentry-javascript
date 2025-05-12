@@ -1,7 +1,7 @@
 import { afterAll, describe, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
-describe('express tracing experimental', () => {
+describe('express v5 tracing', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });

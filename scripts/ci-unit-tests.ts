@@ -4,7 +4,7 @@ import * as path from 'path';
 
 const UNIT_TEST_ENV = process.env.UNIT_TEST_ENV as 'node' | 'browser' | undefined;
 const RUN_AFFECTED = process.argv.includes('--affected');
-const NODE_VERSION = process.env.NODE_VERSION as '18' | '20' | '22';
+const NODE_VERSION = process.env.NODE_VERSION as '18' | '20' | '22' | '24';
 
 // These packages are tested separately in CI, so no need to run them here
 const DEFAULT_SKIP_PACKAGES = ['@sentry/bun', '@sentry/deno'];

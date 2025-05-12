@@ -1,6 +1,7 @@
 /* eslint-disable max-lines */
+import type { ChannelListener } from 'node:diagnostics_channel';
+import { subscribe, unsubscribe } from 'node:diagnostics_channel';
 import type * as http from 'node:http';
-import type { IncomingMessage, RequestOptions } from 'node:http';
 import type * as https from 'node:https';
 import type { EventEmitter } from 'node:stream';
 import { context, propagation } from '@opentelemetry/api';
@@ -10,6 +11,7 @@ import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opent
 import type { AggregationCounts, Client, SanitizedRequestData, Scope } from '@sentry/core';
 import {
   addBreadcrumb,
+  addNonEnumerableProperty,
   generateSpanId,
   getBreadcrumbLogLevelFromHttpStatusCode,
   getClient,
@@ -24,13 +26,11 @@ import {
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import { getRequestUrl } from '../../utils/getRequestUrl';
-import { stealthWrap } from './utils';
-import { getRequestInfo } from './vendor/getRequestInfo';
+
+const INSTRUMENTATION_NAME = '@sentry/instrumentation-http';
 
 type Http = typeof http;
 type Https = typeof https;
-
-const INSTRUMENTATION_NAME = '@sentry/instrumentation-http';
 
 export type SentryHttpInstrumentationOptions = InstrumentationConfig & {
   /**
@@ -58,7 +58,7 @@ export type SentryHttpInstrumentationOptions = InstrumentationConfig & {
    * @param url Contains the entire URL, including query string (if any), protocol, host, etc. of the outgoing request.
    * @param request Contains the {@type RequestOptions} object used to make the outgoing request.
    */
-  ignoreOutgoingRequests?: (url: string, request: RequestOptions) => boolean;
+  ignoreOutgoingRequests?: (url: string, request: http.RequestOptions) => boolean;
 
   /**
    * Do not capture the request body for incoming HTTP requests to URLs where the given callback returns `true`.
@@ -67,7 +67,7 @@ export type SentryHttpInstrumentationOptions = InstrumentationConfig & {
    * @param url Contains the entire URL, including query string (if any), protocol, host, etc. of the outgoing request.
    * @param request Contains the {@type RequestOptions} object used to make the outgoing request.
    */
-  ignoreIncomingRequestBody?: (url: string, request: RequestOptions) => boolean;
+  ignoreIncomingRequestBody?: (url: string, request: http.RequestOptions) => boolean;
 
   /**
    * Whether the integration should create [Sessions](https://docs.sentry.io/product/releases/health/#sessions) for incoming requests to track the health and crash-free rate of your releases in Sentry.
@@ -108,71 +108,134 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
 
   /** @inheritdoc */
   public init(): [InstrumentationNodeModuleDefinition, InstrumentationNodeModuleDefinition] {
-    return [this._getHttpsInstrumentation(), this._getHttpInstrumentation()];
-  }
+    // We register handlers when either http or https is instrumented
+    // but we only want to register them once, whichever is loaded first
+    let hasRegisteredHandlers = false;
 
-  /** Get the instrumentation for the http module. */
-  private _getHttpInstrumentation(): InstrumentationNodeModuleDefinition {
-    return new InstrumentationNodeModuleDefinition(
-      'http',
-      ['*'],
-      (moduleExports: Http): Http => {
-        // Patch incoming requests for request isolation
-        stealthWrap(moduleExports.Server.prototype, 'emit', this._getPatchIncomingRequestFunction());
+    const onHttpServerRequestStart = ((_data: unknown) => {
+      const data = _data as { server: http.Server };
+      this._patchServerEmitOnce(data.server);
+    }) satisfies ChannelListener;
 
-        // Patch outgoing requests for breadcrumbs
-        const patchedRequest = stealthWrap(moduleExports, 'request', this._getPatchOutgoingRequestFunction());
-        stealthWrap(moduleExports, 'get', this._getPatchOutgoingGetFunction(patchedRequest));
+    const onHttpClientResponseFinish = ((_data: unknown) => {
+      const data = _data as { request: http.ClientRequest; response: http.IncomingMessage };
+      this._onOutgoingRequestFinish(data.request, data.response);
+    }) satisfies ChannelListener;
 
-        return moduleExports;
-      },
-      () => {
-        // no unwrap here
-      },
-    );
-  }
+    const onHttpClientRequestError = ((_data: unknown) => {
+      const data = _data as { request: http.ClientRequest };
+      this._onOutgoingRequestFinish(data.request, undefined);
+    }) satisfies ChannelListener;
 
-  /** Get the instrumentation for the https module. */
-  private _getHttpsInstrumentation(): InstrumentationNodeModuleDefinition {
-    return new InstrumentationNodeModuleDefinition(
-      'https',
-      ['*'],
-      (moduleExports: Https): Https => {
-        // Patch incoming requests for request isolation
-        stealthWrap(moduleExports.Server.prototype, 'emit', this._getPatchIncomingRequestFunction());
+    /**
+     * You may be wondering why we register these diagnostics-channel listeners
+     * in such a convoluted way (as InstrumentationNodeModuleDefinition...)˝,
+     * instead of simply subscribing to the events once in here.
+     * The reason for this is timing semantics: These functions are called once the http or https module is loaded.
+     * If we'd subscribe before that, there seem to be conflicts with the OTEL native instrumentation in some scenarios,
+     * especially the "import-on-top" pattern of setting up ESM applications.
+     */
+    return [
+      new InstrumentationNodeModuleDefinition(
+        'http',
+        ['*'],
+        (moduleExports: Http): Http => {
+          if (hasRegisteredHandlers) {
+            return moduleExports;
+          }
 
-        // Patch outgoing requests for breadcrumbs
-        const patchedRequest = stealthWrap(moduleExports, 'request', this._getPatchOutgoingRequestFunction());
-        stealthWrap(moduleExports, 'get', this._getPatchOutgoingGetFunction(patchedRequest));
+          hasRegisteredHandlers = true;
 
-        return moduleExports;
-      },
-      () => {
-        // no unwrap here
-      },
-    );
+          subscribe('http.server.request.start', onHttpServerRequestStart);
+          subscribe('http.client.response.finish', onHttpClientResponseFinish);
+
+          // When an error happens, we still want to have a breadcrumb
+          // In this case, `http.client.response.finish` is not triggered
+          subscribe('http.client.request.error', onHttpClientRequestError);
+
+          return moduleExports;
+        },
+        () => {
+          unsubscribe('http.server.request.start', onHttpServerRequestStart);
+          unsubscribe('http.client.response.finish', onHttpClientResponseFinish);
+          unsubscribe('http.client.request.error', onHttpClientRequestError);
+        },
+      ),
+      new InstrumentationNodeModuleDefinition(
+        'https',
+        ['*'],
+        (moduleExports: Https): Https => {
+          if (hasRegisteredHandlers) {
+            return moduleExports;
+          }
+
+          hasRegisteredHandlers = true;
+
+          subscribe('http.server.request.start', onHttpServerRequestStart);
+          subscribe('http.client.response.finish', onHttpClientResponseFinish);
+
+          // When an error happens, we still want to have a breadcrumb
+          // In this case, `http.client.response.finish` is not triggered
+          subscribe('http.client.request.error', onHttpClientRequestError);
+
+          return moduleExports;
+        },
+        () => {
+          unsubscribe('http.server.request.start', onHttpServerRequestStart);
+          unsubscribe('http.client.response.finish', onHttpClientResponseFinish);
+          unsubscribe('http.client.request.error', onHttpClientRequestError);
+        },
+      ),
+    ];
   }
 
   /**
-   * Patch the incoming request function for request isolation.
+   * This is triggered when an outgoing request finishes.
+   * It has access to the final request and response objects.
    */
-  private _getPatchIncomingRequestFunction(): (
-    original: (event: string, ...args: unknown[]) => boolean,
-  ) => (this: unknown, event: string, ...args: unknown[]) => boolean {
+  private _onOutgoingRequestFinish(request: http.ClientRequest, response?: http.IncomingMessage): void {
+    DEBUG_BUILD && logger.log(INSTRUMENTATION_NAME, 'Handling finished outgoing request');
+
+    const _breadcrumbs = this.getConfig().breadcrumbs;
+    const breadCrumbsEnabled = typeof _breadcrumbs === 'undefined' ? true : _breadcrumbs;
+    const options = getRequestOptions(request);
+
+    const _ignoreOutgoingRequests = this.getConfig().ignoreOutgoingRequests;
+    const shouldCreateBreadcrumb =
+      typeof _ignoreOutgoingRequests === 'function' ? !_ignoreOutgoingRequests(getRequestUrl(request), options) : true;
+
+    if (breadCrumbsEnabled && shouldCreateBreadcrumb) {
+      addRequestBreadcrumb(request, response);
+    }
+  }
+
+  /**
+   * Patch a server.emit function to handle process isolation for incoming requests.
+   * This will only patch the emit function if it was not already patched.
+   */
+  private _patchServerEmitOnce(server: http.Server): void {
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    const originalEmit = server.emit;
+
+    // This means it was already patched, do nothing
+    if ((originalEmit as { __sentry_patched__?: boolean }).__sentry_patched__) {
+      return;
+    }
+
+    DEBUG_BUILD && logger.log(INSTRUMENTATION_NAME, 'Patching server.emit');
+
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const instrumentation = this;
     const { ignoreIncomingRequestBody } = instrumentation.getConfig();
 
-    return (
-      original: (event: string, ...args: unknown[]) => boolean,
-    ): ((this: unknown, event: string, ...args: unknown[]) => boolean) => {
-      return function incomingRequest(this: unknown, ...args: [event: string, ...args: unknown[]]): boolean {
+    const newEmit = new Proxy(originalEmit, {
+      apply(target, thisArg, args: [event: string, ...args: unknown[]]) {
         // Only traces request events
         if (args[0] !== 'request') {
-          return original.apply(this, args);
+          return target.apply(thisArg, args);
         }
 
-        instrumentation._diag.debug('http instrumentation for incoming request');
+        DEBUG_BUILD && logger.log(INSTRUMENTATION_NAME, 'Handling incoming request');
 
         const isolationScope = getIsolationScope().clone();
         const request = args[1] as http.IncomingMessage;
@@ -217,97 +280,28 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
 
           // If we don't want to extract the trace from the header, we can skip this
           if (!instrumentation.getConfig().extractIncomingTraceFromHeader) {
-            return original.apply(this, args);
+            return target.apply(thisArg, args);
           }
 
           const ctx = propagation.extract(context.active(), normalizedRequest.headers);
           return context.with(ctx, () => {
-            return original.apply(this, args);
+            return target.apply(thisArg, args);
           });
         });
-      };
-    };
-  }
+      },
+    });
 
-  /**
-   * Patch the outgoing request function for breadcrumbs.
-   */
-  private _getPatchOutgoingRequestFunction(): (
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    original: (...args: any[]) => http.ClientRequest,
-  ) => (options: URL | http.RequestOptions | string, ...args: unknown[]) => http.ClientRequest {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const instrumentation = this;
+    addNonEnumerableProperty(newEmit, '__sentry_patched__', true);
 
-    return (original: (...args: unknown[]) => http.ClientRequest): ((...args: unknown[]) => http.ClientRequest) => {
-      return function outgoingRequest(this: unknown, ...args: unknown[]): http.ClientRequest {
-        instrumentation._diag.debug('http instrumentation for outgoing requests');
-
-        // Making a copy to avoid mutating the original args array
-        // We need to access and reconstruct the request options object passed to `ignoreOutgoingRequests`
-        // so that it matches what Otel instrumentation passes to `ignoreOutgoingRequestHook`.
-        // @see https://github.com/open-telemetry/opentelemetry-js/blob/7293e69c1e55ca62e15d0724d22605e61bd58952/experimental/packages/opentelemetry-instrumentation-http/src/http.ts#L756-L789
-        const argsCopy = [...args];
-
-        const options = argsCopy.shift() as URL | http.RequestOptions | string;
-
-        const extraOptions =
-          typeof argsCopy[0] === 'object' && (typeof options === 'string' || options instanceof URL)
-            ? (argsCopy.shift() as http.RequestOptions)
-            : undefined;
-
-        const { optionsParsed } = getRequestInfo(instrumentation._diag, options, extraOptions);
-
-        const request = original.apply(this, args) as ReturnType<typeof http.request>;
-
-        request.prependListener('response', (response: http.IncomingMessage) => {
-          const _breadcrumbs = instrumentation.getConfig().breadcrumbs;
-          const breadCrumbsEnabled = typeof _breadcrumbs === 'undefined' ? true : _breadcrumbs;
-
-          const _ignoreOutgoingRequests = instrumentation.getConfig().ignoreOutgoingRequests;
-          const shouldCreateBreadcrumb =
-            typeof _ignoreOutgoingRequests === 'function'
-              ? !_ignoreOutgoingRequests(getRequestUrl(request), optionsParsed)
-              : true;
-
-          if (breadCrumbsEnabled && shouldCreateBreadcrumb) {
-            addRequestBreadcrumb(request, response);
-          }
-        });
-
-        return request;
-      };
-    };
-  }
-
-  /** Path the outgoing get function for breadcrumbs. */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private _getPatchOutgoingGetFunction(clientRequest: (...args: any[]) => http.ClientRequest) {
-    return (_original: unknown): ((...args: unknown[]) => http.ClientRequest) => {
-      // Re-implement http.get. This needs to be done (instead of using
-      // getPatchOutgoingRequestFunction to patch it) because we need to
-      // set the trace context header before the returned http.ClientRequest is
-      // ended. The Node.js docs state that the only differences between
-      // request and get are that (1) get defaults to the HTTP GET method and
-      // (2) the returned request object is ended immediately. The former is
-      // already true (at least in supported Node versions up to v10), so we
-      // simply follow the latter. Ref:
-      // https://nodejs.org/dist/latest/docs/api/http.html#http_http_get_options_callback
-      // https://github.com/googleapis/cloud-trace-nodejs/blob/master/src/instrumentations/instrumentation-http.ts#L198
-      return function outgoingGetRequest(...args: unknown[]): http.ClientRequest {
-        const req = clientRequest(...args);
-        req.end();
-        return req;
-      };
-    };
+    server.emit = newEmit;
   }
 }
 
 /** Add a breadcrumb for outgoing requests. */
-function addRequestBreadcrumb(request: http.ClientRequest, response: http.IncomingMessage): void {
+function addRequestBreadcrumb(request: http.ClientRequest, response: http.IncomingMessage | undefined): void {
   const data = getBreadcrumbData(request);
 
-  const statusCode = response.statusCode;
+  const statusCode = response?.statusCode;
   const level = getBreadcrumbLogLevelFromHttpStatusCode(statusCode);
 
   addBreadcrumb(
@@ -359,9 +353,11 @@ function getBreadcrumbData(request: http.ClientRequest): Partial<SanitizedReques
  * we monkey patch `req.on('data')` to intercept the body chunks.
  * This way, we only read the body if the user also consumes the body, ensuring we do not change any behavior in unexpected ways.
  */
-function patchRequestToCaptureBody(req: IncomingMessage, isolationScope: Scope): void {
+function patchRequestToCaptureBody(req: http.IncomingMessage, isolationScope: Scope): void {
   let bodyByteLength = 0;
   const chunks: Buffer[] = [];
+
+  DEBUG_BUILD && logger.log(INSTRUMENTATION_NAME, 'Patching request.on');
 
   /**
    * We need to keep track of the original callbacks, in order to be able to remove listeners again.
@@ -376,11 +372,8 @@ function patchRequestToCaptureBody(req: IncomingMessage, isolationScope: Scope):
       apply: (target, thisArg, args: Parameters<typeof req.on>) => {
         const [event, listener, ...restArgs] = args;
 
-        if (DEBUG_BUILD) {
-          logger.log(INSTRUMENTATION_NAME, 'Patching request.on', event);
-        }
-
         if (event === 'data') {
+          DEBUG_BUILD && logger.log(INSTRUMENTATION_NAME, 'Handling request.on("data")');
           const callback = new Proxy(listener, {
             apply: (target, thisArg, args: Parameters<typeof listener>) => {
               try {
@@ -449,6 +442,17 @@ function patchRequestToCaptureBody(req: IncomingMessage, isolationScope: Scope):
       logger.error(INSTRUMENTATION_NAME, 'Error patching request to capture body', error);
     }
   }
+}
+
+function getRequestOptions(request: http.ClientRequest): http.RequestOptions {
+  return {
+    method: request.method,
+    protocol: request.protocol,
+    host: request.host,
+    hostname: request.host,
+    path: request.path,
+    headers: request.getHeaders(),
+  };
 }
 
 /**

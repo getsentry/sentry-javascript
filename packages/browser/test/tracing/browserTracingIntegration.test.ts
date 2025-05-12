@@ -28,7 +28,7 @@ import {
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
 } from '../../src/tracing/browserTracingIntegration';
-import { PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE } from '../../src/tracing/previousTrace';
+import { PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE } from '../../src/tracing/linkedTraces';
 import { getDefaultBrowserClientOptions } from '../helper/browser-client-options';
 
 const oldTextEncoder = global.window.TextEncoder;
