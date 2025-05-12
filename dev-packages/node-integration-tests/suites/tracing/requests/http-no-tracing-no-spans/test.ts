@@ -5,7 +5,7 @@ import { createTestServer } from '../../../../utils/server';
 
 describe('outgoing http requests with tracing & spans disabled', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    conditionalTest({ min: 23 })('node >=23', () => {
+    conditionalTest({ min: 22 })('node >=22', () => {
       test('outgoing http requests are correctly instrumented with tracing & spans disabled', async () => {
         expect.assertions(11);
 
@@ -104,7 +104,7 @@ describe('outgoing http requests with tracing & spans disabled', () => {
 
     // On older node versions, outgoing requests do not get trace-headers injected, sadly
     // This is because the necessary diagnostics channel hook is not available yet
-    conditionalTest({ max: 22 })('node <=22', () => {
+    conditionalTest({ max: 21 })('node <22', () => {
       test('outgoing http requests generate breadcrumbs correctly with tracing & spans disabled', async () => {
         expect.assertions(9);
 
