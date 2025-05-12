@@ -76,9 +76,7 @@ export function supportsFetch(): boolean {
   }
 
   try {
-    new Headers();
     new Request('http://www.example.com');
-    new Response();
     return true;
   } catch (e) {
     return false;
@@ -153,6 +151,8 @@ export function supportsReportingObserver(): boolean {
  * {@link supportsReferrerPolicy}.
  *
  * @returns Answer to the given question.
+ *
+ * @deprecated This method will be removed in a future version.
  */
 export function supportsReferrerPolicy(): boolean {
   // Despite all stars in the sky saying that Edge supports old draft syntax, aka 'never', 'always', 'origin' and 'default'

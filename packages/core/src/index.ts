@@ -206,6 +206,7 @@ export {
   supportsFetch,
   supportsHistory,
   supportsNativeFetch,
+  // eslint-disable-next-line deprecation/deprecation
   supportsReferrerPolicy,
   supportsReportingObserver,
 } from './utils-hoist/supports';

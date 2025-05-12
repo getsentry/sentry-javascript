@@ -127,6 +127,9 @@ declare const __SENTRY_RELEASE__: string | undefined;
  * @see {@link BrowserOptions} for documentation on configuration options.
  */
 export function init(browserOptions: BrowserOptions = {}): Client | undefined {
+  if (_checkBailForBrowserExtension(browserOptions)) {
+    return;
+  }
   return _init(browserOptions, getDefaultIntegrations(browserOptions));
 }
 
@@ -142,30 +145,18 @@ export function initWithDefaultIntegrations(
   browserOptions: BrowserOptions = {},
   getDefaultIntegrationsImpl: (options: BrowserOptions) => Integration[],
 ): BrowserClient | undefined {
+  if (_checkBailForBrowserExtension(browserOptions)) {
+    return;
+  }
+
   return _init(browserOptions, getDefaultIntegrationsImpl(browserOptions));
 }
 
 /**
  * Acutal implementation shared by init and initWithDefaultIntegrations.
  */
-function _init(
-  browserOptions: BrowserOptions = {},
-  defaultIntegrations: Integration[],
-): BrowserClient | undefined {
+function _init(browserOptions: BrowserOptions = {}, defaultIntegrations: Integration[]): BrowserClient {
   const options = applyDefaultOptions(browserOptions);
-
-  const isBrowserExtension = !options.skipBrowserExtensionCheck && shouldShowBrowserExtensionError();
-
-/*   if (DEBUG_BUILD) {
-    logBrowserEnvironmentWarnings({
-      browserExtension: isBrowserExtension,
-      fetch: !supportsFetch(),
-    });
-  }
- */
-  if (isBrowserExtension) {
-    return;
-  }
   const clientOptions = getClientOptions(options, defaultIntegrations);
   return initAndBind(BrowserClient, clientOptions);
 }
@@ -253,52 +244,49 @@ export function onLoad(callback: () => void): void {
 }
 
 function shouldShowBrowserExtensionError(): boolean {
-  const windowWithMaybeExtension =
-    typeof WINDOW.window !== 'undefined' && (WINDOW as typeof WINDOW & ExtensionProperties);
-  if (!windowWithMaybeExtension) {
+  if (typeof WINDOW.window === 'undefined') {
     // No need to show the error if we're not in a browser window environment (e.g. service workers)
     return false;
   }
 
-  const extensionKey = windowWithMaybeExtension.chrome ? 'chrome' : 'browser';
-  const extensionObject = windowWithMaybeExtension[extensionKey];
-
-  const runtimeId = extensionObject?.runtime?.id;
-  const href = getLocationHref() || '';
-
-  const extensionProtocols = ['chrome-extension:', 'moz-extension:', 'ms-browser-extension:', 'safari-web-extension:'];
-
-  // Running the SDK in a dedicated extension page and calling Sentry.init is fine; no risk of data leakage
-  const isDedicatedExtensionPage =
-    !!runtimeId && WINDOW === WINDOW.top && extensionProtocols.some(protocol => href.startsWith(`${protocol}//`));
+  const _window = WINDOW as typeof WINDOW & ExtensionProperties;
 
   // Running the SDK in NW.js, which appears like a browser extension but isn't, is also fine
   // see: https://github.com/getsentry/sentry-javascript/issues/12668
-  const isNWjs = typeof windowWithMaybeExtension.nw !== 'undefined';
-
-  return !!runtimeId && !isDedicatedExtensionPage && !isNWjs;
-}
-
-function logBrowserEnvironmentWarnings({
-  fetch,
-  browserExtension,
-}: {
-  fetch: boolean;
-  browserExtension: boolean;
-}): void {
-  if (browserExtension) {
-    consoleSandbox(() => {
-      // eslint-disable-next-line no-console
-      console.error(
-        '[Sentry] You cannot run Sentry this way in a browser extension, check: https://docs.sentry.io/platforms/javascript/best-practices/browser-extensions/',
-      );
-    });
+  if (_window.nw) {
+    return false;
   }
 
-  if (fetch) {
-    logger.warn(
-      'No Fetch API detected. The Sentry SDK requires a Fetch API compatible environment to send events. Please add a Fetch API polyfill.',
-    );
+  const extensionObject = _window['chrome'] || _window['browser'];
+
+  if (!extensionObject?.runtime?.id) {
+    return false;
+  }
+
+  const href = getLocationHref();
+  const extensionProtocols = ['chrome-extension', 'moz-extension', 'ms-browser-extension', 'safari-web-extension'];
+
+  // Running the SDK in a dedicated extension page and calling Sentry.init is fine; no risk of data leakage
+  const isDedicatedExtensionPage =
+    WINDOW === WINDOW.top && extensionProtocols.some(protocol => href.startsWith(`${protocol}://`));
+
+  return !isDedicatedExtensionPage;
+}
+
+function _checkBailForBrowserExtension(options: BrowserOptions): true | void {
+  const isBrowserExtension = !options.skipBrowserExtensionCheck && shouldShowBrowserExtensionError();
+
+  if (isBrowserExtension) {
+    if (DEBUG_BUILD) {
+      consoleSandbox(() => {
+        // eslint-disable-next-line no-console
+        console.error(
+          '[Sentry] You cannot run Sentry this way in a browser extension, check: https://docs.sentry.io/platforms/javascript/best-practices/browser-extensions/',
+        );
+      });
+    }
+
+    return true;
   }
 }
 
