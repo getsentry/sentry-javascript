@@ -1,16 +1,6 @@
 import * as Sentry from '@sentry/node';
-import { loggingTransport } from '@sentry-internal/node-integration-tests';
 
-Sentry.init({
-  dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  release: '1.0',
-  tracePropagationTargets: [/\/v0/, 'v1'],
-  tracesSampleRate: 0,
-  integrations: [],
-  transport: loggingTransport,
-});
-
-async function run(): Promise<void> {
+async function run() {
   // Wrap in span that is not sampled
   await Sentry.startSpan({ name: 'outer' }, async () => {
     await fetch(`${process.env.SERVER_URL}/api/v0`).then(res => res.text());
@@ -22,5 +12,4 @@ async function run(): Promise<void> {
   Sentry.captureException(new Error('foo'));
 }
 
-// eslint-disable-next-line @typescript-eslint/no-floating-promises
 run();
