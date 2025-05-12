@@ -127,26 +127,7 @@ declare const __SENTRY_RELEASE__: string | undefined;
  * @see {@link BrowserOptions} for documentation on configuration options.
  */
 export function init(browserOptions: BrowserOptions = {}): Client | undefined {
-  // Note: If we call `initWithDefaultIntegrations()` here, webpack seems unable to tree-shake the DEBUG_BUILD usage inside of it
-  // So we duplicate the logic here like this to ensure maximum saved bytes
-  const options = applyDefaultOptions(browserOptions);
-  const defaultIntegrations = getDefaultIntegrations(browserOptions);
-
-  const isBrowserExtension = !options.skipBrowserExtensionCheck && shouldShowBrowserExtensionError();
-
-  if (DEBUG_BUILD) {
-    logBrowserEnvironmentWarnings({
-      browserExtension: isBrowserExtension,
-      fetch: !supportsFetch(),
-    });
-  }
-
-  if (isBrowserExtension) {
-    return;
-  }
-
-  const clientOptions = getClientOptions(options, defaultIntegrations);
-  return initAndBind(BrowserClient, clientOptions);
+  return _init(browserOptions, getDefaultIntegrations(browserOptions));
 }
 
 /**
@@ -161,18 +142,27 @@ export function initWithDefaultIntegrations(
   browserOptions: BrowserOptions = {},
   getDefaultIntegrationsImpl: (options: BrowserOptions) => Integration[],
 ): BrowserClient | undefined {
+  return _init(browserOptions, getDefaultIntegrationsImpl(browserOptions));
+}
+
+/**
+ * Acutal implementation shared by init and initWithDefaultIntegrations.
+ */
+function _init(
+  browserOptions: BrowserOptions = {},
+  defaultIntegrations: Integration[],
+): BrowserClient | undefined {
   const options = applyDefaultOptions(browserOptions);
-  const defaultIntegrations = getDefaultIntegrationsImpl(browserOptions);
 
   const isBrowserExtension = !options.skipBrowserExtensionCheck && shouldShowBrowserExtensionError();
 
-  if (DEBUG_BUILD) {
+/*   if (DEBUG_BUILD) {
     logBrowserEnvironmentWarnings({
       browserExtension: isBrowserExtension,
       fetch: !supportsFetch(),
     });
   }
-
+ */
   if (isBrowserExtension) {
     return;
   }
