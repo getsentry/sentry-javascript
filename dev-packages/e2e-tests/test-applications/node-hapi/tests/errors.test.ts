@@ -77,7 +77,7 @@ test('Does not send errors to Sentry if boom throws in "onPreResponse" after JS 
   const response4xx = await fetch(`${baseURL}/test-failure-boom-4xx`);
   const response5xx = await fetch(`${baseURL}/test-failure-boom-5xx`);
 
-  expect(response4xx.status).toBe(404);
+  expect(response4xx.status).toBe(400);
   expect(response5xx.status).toBe(504);
 
   const transactionEvent4xx = await transactionEventPromise4xx;

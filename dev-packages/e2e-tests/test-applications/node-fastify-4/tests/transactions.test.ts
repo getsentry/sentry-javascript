@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Sends an API route transaction', async ({ baseURL }) => {
-  const pageloadTransactionEventPromise = waitForTransaction('node-fastify', transactionEvent => {
+  const pageloadTransactionEventPromise = waitForTransaction('node-fastify-4', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent?.transaction === 'GET /test-transaction'
@@ -60,33 +60,15 @@ test('Sends an API route transaction', async ({ baseURL }) => {
 
   expect(spans).toContainEqual({
     data: {
-      'plugin.name': 'fastify -> sentry-fastify-error-handler',
-      'fastify.type': 'middleware',
-      'hook.name': 'onRequest',
+      'fastify.type': 'hook',
+      'hook.callback.name': 'anonymous',
+      'hook.name': 'fastify -> @fastify/otel - onRequest',
+      'sentry.op': 'hook.fastify',
       'sentry.origin': 'auto.http.otel.fastify',
-      'sentry.op': 'middleware.fastify',
+      'service.name': 'fastify',
     },
-    description: 'sentry-fastify-error-handler',
-    op: 'middleware.fastify',
-    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    start_timestamp: expect.any(Number),
-    status: 'ok',
-    timestamp: expect.any(Number),
-    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-    origin: 'auto.http.otel.fastify',
-  });
-
-  expect(spans).toContainEqual({
-    data: {
-      'plugin.name': 'fastify -> sentry-fastify-error-handler',
-      'fastify.type': 'request_handler',
-      'http.route': '/test-transaction',
-      'sentry.op': 'request_handler.fastify',
-      'sentry.origin': 'auto.http.otel.fastify',
-    },
-    description: 'sentry-fastify-error-handler',
-    op: 'request_handler.fastify',
+    description: '@fastify/otel - onRequest',
+    op: 'hook.fastify',
     parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     start_timestamp: expect.any(Number),
@@ -126,7 +108,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
 });
 
 test('Captures request metadata', async ({ baseURL }) => {
-  const transactionEventPromise = waitForTransaction('node-fastify', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('node-fastify-4', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' && transactionEvent?.transaction === 'POST /test-post'
     );

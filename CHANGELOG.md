@@ -10,7 +10,38 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-### Important Changes
+## 9.17.0
+
+- feat(node): Migrate to `@fastify/otel` ([#15542](https://github.com/getsentry/sentry-javascript/pull/15542))
+
+## 9.16.1
+
+- fix(core): Make sure logs get flushed in server-runtime-client ([#16222](https://github.com/getsentry/sentry-javascript/pull/16222))
+- ref(node): Remove vercel flushing code that does nothing ([#16217](https://github.com/getsentry/sentry-javascript/pull/16217))
+
+## 9.16.0
+
+### Important changes
+
+- **feat: Create a Vite plugin that injects sentryConfig into the global config ([#16197](https://github.com/getsentry/sentry-javascript/pull/16197))**
+
+Add a new plugin `makeConfigInjectorPlugin` within our existing vite plugin that updates the global vite config with sentry options
+
+- **feat(browser): Add option to sample linked traces consistently ([#16037](https://github.com/getsentry/sentry-javascript/pull/16037))**
+
+This PR implements consistent sampling across traces as outlined in ([#15754](https://github.com/getsentry/sentry-javascript/pull/15754))
+
+- **feat(cloudflare): Add support for durable objects ([#16180](https://github.com/getsentry/sentry-javascript/pull/16180))**
+
+This PR introduces a new `instrumentDurableObjectWithSentry` method to the SDK, which instruments durable objects. We capture both traces and errors automatically.
+
+- **feat(node): Add Prisma integration by default ([#16073](https://github.com/getsentry/sentry-javascript/pull/16073))**
+
+[Prisma integration](https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/integrations/prisma/) is enabled by default, it should work for both ESM and CJS.
+
+- **feat(react-router): Add client-side router instrumentation ([#16185](https://github.com/getsentry/sentry-javascript/pull/16185))**
+
+Adds client-side instrumentation for react router's `HydratedRouter`. To enable it, simply replace `browserTracingIntegration()` with `reactRouterTracingIntegration()` in your client-side init call.
 
 - **fix(node): Avoid double-wrapping http module ([#16177](https://github.com/getsentry/sentry-javascript/pull/16177))**
 
@@ -31,6 +62,21 @@ ignoreOutgoingRequests(url: string, {
   headers: OutgoingHttpHeaders;
 })
 ```
+
+### Other changes
+
+- feat(cloudflare): Add logs exports ([#16165](https://github.com/getsentry/sentry-javascript/pull/16165))
+- feat(vercel-edge): Add logs export ([#16166](https://github.com/getsentry/sentry-javascript/pull/16166))
+- feat(cloudflare): Read `SENTRY_RELEASE` from `env` ([#16201](https://github.com/getsentry/sentry-javascript/pull/16201))
+- feat(node): Drop `http.server` spans with 404 status by default ([#16205](https://github.com/getsentry/sentry-javascript/pull/16205))
+- fix(browser): Respect manually set sentry tracing headers in XHR requests ([#16184](https://github.com/getsentry/sentry-javascript/pull/16184))
+- fix(core): Respect manually set sentry tracing headers in fetch calls ([#16183](https://github.com/getsentry/sentry-javascript/pull/16183))
+- fix(feedback): Prevent `removeFromDom()` from throwing ([#16030](https://github.com/getsentry/sentry-javascript/pull/16030))
+- fix(node): Use class constructor in docstring for winston transport ([#16167](https://github.com/getsentry/sentry-javascript/pull/16167))
+- fix(node): Fix vercel flushing logic & add test for it ([#16208](https://github.com/getsentry/sentry-javascript/pull/16208))
+- fix(node): Fix 404 route handling in express 5 ([#16211](https://github.com/getsentry/sentry-javascript/pull/16211))
+- fix(logs): Ensure logs can be flushed correctly ([#16216](https://github.com/getsentry/sentry-javascript/pull/16216))
+- ref(core): Switch to standardized log envelope ([#16133](https://github.com/getsentry/sentry-javascript/pull/16133))
 
 ## 9.15.0
 
