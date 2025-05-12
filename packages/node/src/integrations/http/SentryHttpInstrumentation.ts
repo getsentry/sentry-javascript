@@ -176,7 +176,8 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
           subscribe('http.client.request.error', onHttpClientRequestError);
 
           // NOTE: This channel only exist since Node 23
-          // Before that, outgoing requests are not patched, sadly
+          // Before that, outgoing requests are not patched
+          // and trace headers are not propagated, sadly.
           if (this.getConfig().propagateTraceInOutgoingRequests) {
             subscribe('http.client.request.created', onHttpClientRequestCreated);
           }
