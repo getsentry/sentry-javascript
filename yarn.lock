@@ -5615,13 +5615,13 @@
     "@opentelemetry/instrumentation" "^0.57.1"
     "@opentelemetry/semantic-conventions" "^1.27.0"
 
-"@opentelemetry/instrumentation-mongoose@0.46.1":
-  version "0.46.1"
-  resolved "https://registry.yarnpkg.com/@opentelemetry/instrumentation-mongoose/-/instrumentation-mongoose-0.46.1.tgz#23f22b7d4d5a548ac8add2a52ec2fec4e61c7de1"
-  integrity sha512-3kINtW1LUTPkiXFRSSBmva1SXzS/72we/jL22N+BnF3DFcoewkdkHPYOIdAAk9gSicJ4d5Ojtt1/HeibEc5OQg==
+"@opentelemetry/instrumentation-mongoose@0.47.1":
+  version "0.47.1"
+  resolved "https://registry.yarnpkg.com/@opentelemetry/instrumentation-mongoose/-/instrumentation-mongoose-0.47.1.tgz#1479d2725de01470b2f24b569c460c7c5f8b69ac"
+  integrity sha512-0OcL5YpZX9PtF55Oi1RtWUdjElJscR9u6NzAdww81EQc3wFfQWmdREUEBeWaDH5jpiomdFp6zDXms622ofEOjg==
   dependencies:
-    "@opentelemetry/core" "^1.8.0"
-    "@opentelemetry/instrumentation" "^0.57.1"
+    "@opentelemetry/core" "^2.0.0"
+    "@opentelemetry/instrumentation" "^0.200.0"
     "@opentelemetry/semantic-conventions" "^1.27.0"
 
 "@opentelemetry/instrumentation-mysql2@0.45.2":
@@ -27132,6 +27132,7 @@ stylus@0.59.0, stylus@^0.59.0:
 
 sucrase@^3.27.0, sucrase@^3.35.0, sucrase@getsentry/sucrase#es2020-polyfills:
   version "3.36.0"
+  uid fd682f6129e507c00bb4e6319cc5d6b767e36061
   resolved "https://codeload.github.com/getsentry/sucrase/tar.gz/fd682f6129e507c00bb4e6319cc5d6b767e36061"
   dependencies:
     "@jridgewell/gen-mapping" "^0.3.2"
