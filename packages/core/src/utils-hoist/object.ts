@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { WrappedFunction } from '../types-hoist/wrappedfunction';
-import { htmlTreeAsString } from './browser';
 import { DEBUG_BUILD } from './../debug-build';
+import { htmlTreeAsString } from './browser';
 import { isElement, isError, isEvent, isInstanceOf, isPrimitive } from './is';
 import { logger } from './logger';
 import { truncate } from './string';
