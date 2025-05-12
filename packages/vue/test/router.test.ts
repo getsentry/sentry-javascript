@@ -328,7 +328,7 @@ describe('instrumentVueRouter()', () => {
     [false, 0],
     [true, 1],
   ])(
-    'should return instrumentation that considers the instrumentPageLoad = %p',
+    'should return instrumentation that considers the instrumentPageLoad = %j',
     (instrumentPageLoad, expectedCallsAmount) => {
       const mockRootSpan = {
         ...MOCK_SPAN,
@@ -368,7 +368,7 @@ describe('instrumentVueRouter()', () => {
     [false, 0],
     [true, 1],
   ])(
-    'should return instrumentation that considers the instrumentNavigation = %p',
+    'should return instrumentation that considers the instrumentNavigation = %j',
     (instrumentNavigation, expectedCallsAmount) => {
       const mockStartSpan = vi.fn().mockReturnValue(MOCK_SPAN);
       instrumentVueRouter(
