@@ -70,6 +70,7 @@ describe('wrapSentryHandleRequest', () => {
     expect(getRootSpan).toHaveBeenCalledWith(mockActiveSpan);
     expect(mockRootSpan.setAttributes).toHaveBeenCalledWith({
       [ATTR_HTTP_ROUTE]: '/some-path',
+      'sentry.custom-span-name': 'GET /some-path',
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
     });
     expect(mockRpcMetadata.route).toBe('/some-path');

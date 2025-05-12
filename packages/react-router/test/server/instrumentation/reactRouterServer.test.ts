@@ -28,6 +28,7 @@ vi.mock('./util', async () => {
 
 const mockSpan = {
   spanContext: () => ({ traceId: '1', spanId: '2', traceFlags: 1 }),
+  setAttributes: vi.fn(),
 };
 
 function createRequest(url: string, method = 'GET') {
