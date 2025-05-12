@@ -1,7 +1,8 @@
-import { expect, test } from 'vitest';
+import { describe,expect, test } from 'vitest';
 import {
   baggageHeaderToDynamicSamplingContext,
   dynamicSamplingContextToSentryBaggageHeader,
+  parseBaggageHeader,
 } from '../../src/utils-hoist/baggage';
 
 test.each([
@@ -27,7 +28,7 @@ test.each([
     { environment: 'production', release: '1.0.1' },
   ],
   [42, undefined],
-])('baggageHeaderToDynamicSamplingContext(%p) should return %p', (input, expectedOutput) => {
+])('baggageHeaderToDynamicSamplingContext(%j) should return %j', (input, expectedOutput) => {
   expect(baggageHeaderToDynamicSamplingContext(input)).toStrictEqual(expectedOutput);
 });
 
@@ -40,6 +41,34 @@ test.each([
     { release: 'abcdf', environment: '1234', someRandomKey: 'foo' },
     'sentry-release=abcdf,sentry-environment=1234,sentry-someRandomKey=foo',
   ],
-])('dynamicSamplingContextToSentryBaggageHeader(%p) should return %p', (input, expectedOutput) => {
+])('dynamicSamplingContextToSentryBaggageHeader(%j) should return %j', (input, expectedOutput) => {
   expect(dynamicSamplingContextToSentryBaggageHeader(input)).toStrictEqual(expectedOutput);
+});
+
+describe('parseBaggageHeader', () => {
+  test.each([
+    [undefined, undefined],
+    [1, undefined],
+    [true, undefined],
+    [false, undefined],
+    [null, undefined],
+    [NaN, undefined],
+    [Infinity, undefined],
+    [0, undefined],
+    ['', undefined],
+    ['foo', {}],
+    [
+      'sentry-environment=production,sentry-release=10.0.2,foo=bar',
+      { 'sentry-environment': 'production', 'sentry-release': '10.0.2', foo: 'bar' },
+    ],
+    [
+      ['sentry-environment=production,sentry-release=10.0.2,foo=bar', 'foo2=bar2'],
+      { 'sentry-environment': 'production', 'sentry-release': '10.0.2', foo: 'bar', foo2: 'bar2' },
+    ],
+    // ignores malformed baggage entries
+    ['foo=bar,foo2=%3G', { foo: 'bar' }],
+  ])('parseBaggageHeader(%j) should return %j', (input, expectedOutput) => {
+    const actual = parseBaggageHeader(input);
+    expect(actual).toStrictEqual(expectedOutput);
+  });
 });
