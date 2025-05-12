@@ -8,8 +8,16 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_OVERWRITE } from './instrumentation/util';
 import { reactRouterServerIntegration } from './integration/reactRouterServer';
 import { lowQualityTransactionsFilterIntegration } from './lowQualityTransactionsFilterIntegration';
 
-function getDefaultIntegrations(options: NodeOptions): Integration[] {
-  return [...getNodeDefaultIntegrations(options), lowQualityTransactionsFilterIntegration(options)];
+/**
+ * Returns the default integrations for the React Router SDK.
+ * @param options The options for the SDK.
+ */
+export function getDefaultReactRouterServerIntegrations(options: NodeOptions): Integration[] {
+  return [
+    ...getNodeDefaultIntegrations(options),
+    lowQualityTransactionsFilterIntegration(options),
+    reactRouterServerIntegration(),
+  ];
 }
 
 /**
@@ -17,9 +25,8 @@ function getDefaultIntegrations(options: NodeOptions): Integration[] {
  */
 export function init(options: NodeOptions): NodeClient | undefined {
   const opts: NodeOptions = {
-    defaultIntegrations: [...getDefaultReactRouterServerIntegrations(options)],
     ...options,
-    defaultIntegrations: getDefaultIntegrations(options),
+    defaultIntegrations: getDefaultReactRouterServerIntegrations(options),
   };
 
   DEBUG_BUILD && logger.log('Initializing SDK...');
@@ -57,12 +64,4 @@ export function init(options: NodeOptions): NodeClient | undefined {
   DEBUG_BUILD && logger.log('SDK successfully initialized');
 
   return client;
-}
-
-/**
- * Returns the default integrations for the React Router SDK.
- * @param options The options for the SDK.
- */
-export function getDefaultReactRouterServerIntegrations(options: NodeOptions): Integration[] {
-  return [...getDefaultIntegrations(options), reactRouterServerIntegration()];
 }
