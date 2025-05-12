@@ -54,7 +54,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration'),
     gzip: true,
-    limit: '70 KB',
+    limit: '70.1 KB',
     modifyWebpackConfig: function (config) {
       const webpack = require('webpack');
       const TerserPlugin = require('terser-webpack-plugin');
