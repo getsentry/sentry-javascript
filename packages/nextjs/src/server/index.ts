@@ -178,7 +178,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
         'AppRouteRouteHandlers',
         'ResolveMetadata',
         'Middleware',
-        'NextNodeServerSpan'
+        'NextNodeServerSpan',
       ].includes(category);
 
       if (isNextjsSpan && functionName) {
@@ -188,18 +188,15 @@ export function init(options: NodeOptions): NodeClient | undefined {
           functionType = 'Component';
         } else if (category === 'NextNodeServer' && functionName === 'findPageComponents') {
           functionType = 'Page';
-        }
-        else if (category === 'NextNodeServerSpan' && functionName === 'getLayoutOrPageModule') {
+        } else if (category === 'NextNodeServerSpan' && functionName === 'getLayoutOrPageModule') {
           if (spanAttributes?.['next.segment'] === '__LAYOUT__') {
             functionType = 'Layout';
           } else {
             functionType = 'Page';
           }
-
         }
       }
-      }
-
+    }
 
     if (functionType) {
       let route = '/';
