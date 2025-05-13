@@ -150,17 +150,8 @@ function getRouteStringFromRoutes(routes: Route[]): string {
     }
   }
 
-  const pathParts = routesWithPaths
-    .slice(index)
-    .filter(({ path }) => !!path)
-    .map(({ path }) => path);
-
-  // Join all parts with '/', then replace multiple slashes with a single one.
-  let fullPath = pathParts.join('/');
-  fullPath = fullPath.replace(/\/+/g, '/');
-
-  // Edge case: If the path started with multiple slashes and routes,
-  // like `//foo`, it might become `/foo`. This is generally acceptable.
-
-  return fullPath;
+  return routesWithPaths.slice(index).reduce((acc, { path }) => {
+    const pathSegment = acc === '/' || acc === '' ? path : `/${path}`;
+    return `${acc}${pathSegment}`;
+  }, '');
 }
