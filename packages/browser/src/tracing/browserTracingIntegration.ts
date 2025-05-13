@@ -33,7 +33,7 @@ import {
   startTrackingWebVitals,
 } from '@sentry-internal/browser-utils';
 import { DEBUG_BUILD } from '../debug-build';
-import { WINDOW } from '../helpers';
+import { getHttpRequestData, WINDOW } from '../helpers';
 import { registerBackgroundTabDetection } from './backgroundtab';
 import { linkTraces } from './linkedTraces';
 import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './request';
@@ -360,6 +360,12 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
 
     setActiveIdleSpan(client, idleSpan);
 
+    // We store the normalized request data on the scope, so we get the request data at time of span creation
+    // otherwise, the URL etc. may already be of the following navigation, and we'd report the wrong URL
+    getCurrentScope().setSDKProcessingMetadata({
+      normalizedRequest: getHttpRequestData(),
+    });
+
     function emitFinish(): void {
       if (optionalWindowDocument && ['interactive', 'complete'].includes(optionalWindowDocument.readyState)) {
         client.emit('idleSpanEnableAutoFinish', idleSpan);
@@ -459,8 +465,10 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
               return;
             }
 
-            if (from !== to) {
-              startingUrl = undefined;
+            startingUrl = undefined;
+
+            // We wait a tick here to ensure that WINDOW.location.pathname is updated
+            setTimeout(() => {
               startBrowserTracingNavigationSpan(client, {
                 name: WINDOW.location.pathname,
                 attributes: {
@@ -468,7 +476,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
                 },
               });
-            }
+            });
           });
         }
       }

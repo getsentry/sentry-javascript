@@ -9,4 +9,4 @@ Sentry.init({
 });
 
 // Immediately navigate to a new page to abort the pageload
-window.location.href = '#foo';
+window.history.pushState({}, '', '/sub-page');
