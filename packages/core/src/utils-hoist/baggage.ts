@@ -1,5 +1,5 @@
 import type { DynamicSamplingContext } from '../types-hoist/envelope';
-import { DEBUG_BUILD } from './debug-build';
+import { DEBUG_BUILD } from './../debug-build';
 import { isString } from './is';
 import { logger } from './logger';
 
@@ -113,7 +113,17 @@ export function parseBaggageHeader(
 function baggageHeaderToObject(baggageHeader: string): Record<string, string> {
   return baggageHeader
     .split(',')
-    .map(baggageEntry => baggageEntry.split('=').map(keyOrValue => decodeURIComponent(keyOrValue.trim())))
+    .map(baggageEntry =>
+      baggageEntry.split('=').map(keyOrValue => {
+        try {
+          return decodeURIComponent(keyOrValue.trim());
+        } catch {
+          // We ignore errors here, e.g. if the value cannot be URL decoded.
+          // This will then be skipped in the next step
+          return;
+        }
+      }),
+    )
     .reduce<Record<string, string>>((acc, [key, value]) => {
       if (key && value) {
         acc[key] = value;

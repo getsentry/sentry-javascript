@@ -78,12 +78,14 @@
   "devDependencies": {
     "@remix-run/node": "^2.15.2",
     "@remix-run/react": "^2.15.2",
+    "@remix-run/server-runtime": "2.15.2",
     "@types/express": "^4.17.14",
     "vite": "^5.4.11"
   },
   "peerDependencies": {
     "@remix-run/node": "2.x",
     "@remix-run/react": "2.x",
+    "@remix-run/server-runtime": "2.x",
     "react": "18.x"
   },
   "scripts": {

@@ -1,4 +1,4 @@
-import { DEBUG_BUILD } from '../debug-build';
+import { DEBUG_BUILD } from '../../debug-build';
 import { logger } from '../logger';
 import { getFunctionName } from '../stacktrace';
 

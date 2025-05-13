@@ -1,18 +1,6 @@
 import * as Sentry from '@sentry/node';
-import { loggingTransport } from '@sentry-internal/node-integration-tests';
-
-Sentry.init({
-  dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  release: '1.0',
-  tracesSampleRate: 1.0,
-  tracePropagationTargets: [/\/v0/, 'v1'],
-  integrations: [],
-  transport: loggingTransport,
-});
-
 import * as http from 'http';
 
-// eslint-disable-next-line @typescript-eslint/no-floating-promises
 Sentry.startSpan({ name: 'test_span' }, async () => {
   await makeHttpRequest(`${process.env.SERVER_URL}/api/v0`);
   await makeHttpRequest(`${process.env.SERVER_URL}/api/v1`);
@@ -20,8 +8,8 @@ Sentry.startSpan({ name: 'test_span' }, async () => {
   await makeHttpRequest(`${process.env.SERVER_URL}/api/v3`);
 });
 
-function makeHttpRequest(url: string): Promise<void> {
-  return new Promise<void>(resolve => {
+function makeHttpRequest(url) {
+  return new Promise(resolve => {
     http
       .request(url, httpRes => {
         httpRes.on('data', () => {
