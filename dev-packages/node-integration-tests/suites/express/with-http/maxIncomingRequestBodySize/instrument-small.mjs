@@ -6,10 +6,5 @@ Sentry.init({
   release: '1.0',
   tracesSampleRate: 1.0,
   transport: loggingTransport,
-  integrations: [
-    Sentry.httpIntegration({
-      maxRequestBodySize: 'none',
-      ignoreIncomingRequestBody: url => url.includes('/ignore-request-body'),
-    }),
-  ],
+  integrations: [Sentry.httpIntegration({ maxIncomingRequestBodySize: 'small' })],
 });

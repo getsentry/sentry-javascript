@@ -6,5 +6,5 @@ Sentry.init({
   release: '1.0',
   tracesSampleRate: 1.0,
   transport: loggingTransport,
-  integrations: [Sentry.httpIntegration({ maxRequestBodySize: 'medium' })],
+  integrations: [Sentry.httpIntegration({ maxIncomingRequestBodySize: 'medium' })],
 });

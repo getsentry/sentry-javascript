@@ -70,7 +70,7 @@ export type SentryHttpInstrumentationOptions = InstrumentationConfig & {
   ignoreIncomingRequestBody?: (url: string, request: http.RequestOptions) => boolean;
 
   /**
-   * Controls the maximum size of HTTP request bodies attached to events.
+   * Controls the maximum size of incoming HTTP request bodies attached to events.
    *
    * Available options:
    * - 'none': No request bodies will be attached
@@ -83,7 +83,7 @@ export type SentryHttpInstrumentationOptions = InstrumentationConfig & {
    *
    * @default 'medium'
    */
-  maxRequestBodySize?: 'none' | 'small' | 'medium' | 'always';
+  maxIncomingRequestBodySize?: 'none' | 'small' | 'medium' | 'always';
 
   /**
    * Whether the integration should create [Sessions](https://docs.sentry.io/product/releases/health/#sessions) for incoming requests to track the health and crash-free rate of your releases in Sentry.
@@ -242,7 +242,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
 
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const instrumentation = this;
-    const { ignoreIncomingRequestBody, maxRequestBodySize = 'medium' } = instrumentation.getConfig();
+    const { ignoreIncomingRequestBody, maxIncomingRequestBodySize = 'medium' } = instrumentation.getConfig();
 
     const newEmit = new Proxy(originalEmit, {
       apply(target, thisArg, args: [event: string, ...args: unknown[]]) {
@@ -263,8 +263,8 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
         const ipAddress = (request as { ip?: string }).ip || request.socket?.remoteAddress;
 
         const url = request.url || '/';
-        if (!ignoreIncomingRequestBody?.(url, request) && maxRequestBodySize !== 'none') {
-          patchRequestToCaptureBody(request, isolationScope, maxRequestBodySize);
+        if (!ignoreIncomingRequestBody?.(url, request) && maxIncomingRequestBodySize !== 'none') {
+          patchRequestToCaptureBody(request, isolationScope, maxIncomingRequestBodySize);
         }
 
         // Update the isolation scope, isolate this request
@@ -372,7 +372,7 @@ function getBreadcrumbData(request: http.ClientRequest): Partial<SanitizedReques
 function patchRequestToCaptureBody(
   req: http.IncomingMessage,
   isolationScope: Scope,
-  maxRequestBodySize: 'small' | 'medium' | 'always',
+  maxIncomingRequestBodySize: 'small' | 'medium' | 'always',
 ): void {
   let bodyByteLength = 0;
   const chunks: Buffer[] = [];
@@ -387,7 +387,11 @@ function patchRequestToCaptureBody(
   const callbackMap = new WeakMap();
 
   const maxBodySize =
-    maxRequestBodySize === 'small' ? 1_000 : maxRequestBodySize === 'medium' ? 10_000 : MAX_BODY_BYTE_LENGTH;
+    maxIncomingRequestBodySize === 'small'
+      ? 1_000
+      : maxIncomingRequestBodySize === 'medium'
+        ? 10_000
+        : MAX_BODY_BYTE_LENGTH;
 
   try {
     // eslint-disable-next-line @typescript-eslint/unbound-method

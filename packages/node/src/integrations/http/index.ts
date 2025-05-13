@@ -91,7 +91,7 @@ interface HttpOptions {
   ignoreIncomingRequestBody?: (url: string, request: RequestOptions) => boolean;
 
   /**
-   * Controls the maximum size of HTTP request bodies attached to events.
+   * Controls the maximum size of incoming HTTP request bodies attached to events.
    *
    * Available options:
    * - 'none': No request bodies will be attached
@@ -104,7 +104,7 @@ interface HttpOptions {
    *
    * @default 'medium'
    */
-  maxRequestBodySize?: 'none' | 'small' | 'medium' | 'always';
+  maxIncomingRequestBodySize?: 'none' | 'small' | 'medium' | 'always';
 
   /**
    * If true, do not generate spans for incoming requests at all.
