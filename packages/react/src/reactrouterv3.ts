@@ -150,9 +150,8 @@ function getRouteStringFromRoutes(routes: Route[]): string {
     }
   }
 
-  return routesWithPaths
-    .slice(index)
-    .filter(({ path }) => !!path)
-    .map(({ path }) => path)
-    .join('');
+  return routesWithPaths.slice(index).reduce((acc, { path }) => {
+    const pathSegment = acc === '/' || acc === '' ? path : `/${path}`;
+    return `${acc}${pathSegment}`;
+  }, '');
 }
