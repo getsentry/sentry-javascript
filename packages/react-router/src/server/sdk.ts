@@ -50,12 +50,13 @@ export function init(options: NodeOptions): NodeClient | undefined {
           overwrite
         ) {
           event.transaction = overwrite;
-          delete event.contexts?.trace?.data?.[SEMANTIC_ATTRIBUTE_SENTRY_OVERWRITE];
           event.contexts.trace.data[ATTR_HTTP_ROUTE] = 'url';
-          return event;
-        } else {
-          return event;
         }
+
+        // always yeet this attribute into the void, as this should not reach the server
+        delete event.contexts?.trace?.data?.[SEMANTIC_ATTRIBUTE_SENTRY_OVERWRITE];
+
+        return event;
       }) satisfies EventProcessor,
       { id: 'ReactRouterTransactionEnhancer' },
     ),
