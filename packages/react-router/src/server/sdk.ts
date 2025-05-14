@@ -5,8 +5,8 @@ import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrations as getNodeDefaultIntegrations, init as initNodeSdk } from '@sentry/node';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OVERWRITE } from './instrumentation/util';
+import { lowQualityTransactionsFilterIntegration } from './integration/lowQualityTransactionsFilterIntegration';
 import { reactRouterServerIntegration } from './integration/reactRouterServer';
-import { lowQualityTransactionsFilterIntegration } from './lowQualityTransactionsFilterIntegration';
 
 /**
  * Returns the default integrations for the React Router SDK.

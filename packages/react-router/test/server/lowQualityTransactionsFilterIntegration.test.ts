@@ -2,7 +2,7 @@ import type { Event, EventType, Integration } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import * as SentryNode from '@sentry/node';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { lowQualityTransactionsFilterIntegration } from '../../src/server/lowQualityTransactionsFilterIntegration';
+import { lowQualityTransactionsFilterIntegration } from '../../src/server/integration/lowQualityTransactionsFilterIntegration';
 
 const loggerLog = vi.spyOn(SentryCore.logger, 'log').mockImplementation(() => {});
 
@@ -18,6 +18,7 @@ describe('Low Quality Transactions Filter Integration', () => {
         ['node_modules requests', 'GET /node_modules/some-package/index.js'],
         ['favicon.ico requests', 'GET /favicon.ico'],
         ['@id/ requests', 'GET /@id/some-id'],
+        ['manifest requests', 'GET /__manifest?p=%2Fperformance%2Fserver-action'],
       ])('%s', (description, transaction) => {
         const integration = lowQualityTransactionsFilterIntegration({ debug: true }) as Integration;
         const event = {
