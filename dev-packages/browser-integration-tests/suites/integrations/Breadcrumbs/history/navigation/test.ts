@@ -29,14 +29,14 @@ sentryTest('should record history changes as navigation breadcrumbs', async ({ g
       category: 'navigation',
       data: {
         from: '/bar?a=1#fragment',
-        to: '[object Object]',
+        to: '/[object%20Object]',
       },
       timestamp: expect.any(Number),
     },
     {
       category: 'navigation',
       data: {
-        from: '[object Object]',
+        from: '/[object%20Object]',
         to: '/bar?a=1#fragment',
       },
       timestamp: expect.any(Number),
