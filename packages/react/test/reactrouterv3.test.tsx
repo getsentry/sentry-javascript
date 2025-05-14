@@ -64,6 +64,11 @@ describe('browserTracingReactRouterV3', () => {
         <Route path=":orgid" component={() => <div>OrgId</div>} />
         <Route path=":orgid/v1/:teamid" component={() => <div>Team</div>} />
       </Route>
+      <Route path="teams">
+        <Route path=":teamId">
+          <Route path="details" component={() => <div>Team Details</div>} />
+        </Route>
+      </Route>
     </Route>
   );
   const history = createMemoryHistory();
@@ -192,6 +197,22 @@ describe('browserTracingReactRouterV3', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
       },
     });
+    expect(getCurrentScope().getScopeData().transactionName).toEqual('/users/:userid');
+
+    act(() => {
+      history.push('/teams/456/details');
+    });
+
+    expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(2);
+    expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
+      name: '/teams/:teamId/details',
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v3',
+        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+      },
+    });
+    expect(getCurrentScope().getScopeData().transactionName).toEqual('/teams/:teamId/details');
   });
 
   it("updates the scope's `transactionName` on a navigation", () => {

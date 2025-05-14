@@ -30,6 +30,7 @@ sentryTest('creates a pageload transaction with url as source', async ({ getLoca
     [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
     [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+    ['sentry.idle_span_finish_reason']: 'idleTimeout',
   });
 
   expect(eventData.contexts?.trace?.op).toBe('pageload');

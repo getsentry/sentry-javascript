@@ -1,7 +1,13 @@
 import { context } from '@opentelemetry/api';
 import { getRPCMetadata, RPCType } from '@opentelemetry/core';
 import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
-import { getActiveSpan, getRootSpan, getTraceMetaTags, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import {
+  getActiveSpan,
+  getRootSpan,
+  getTraceMetaTags,
+  SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+} from '@sentry/core';
 import type { AppLoadContext, EntryContext } from 'react-router';
 import type { PassThrough } from 'stream';
 import { Transform } from 'stream';
@@ -30,6 +36,7 @@ export function wrapSentryHandleRequest(originalHandle: OriginalHandleRequest): 
   ) {
     const parameterizedPath =
       routerContext?.staticHandlerContext?.matches?.[routerContext.staticHandlerContext.matches.length - 1]?.route.path;
+
     if (parameterizedPath) {
       const activeSpan = getActiveSpan();
       if (activeSpan) {
@@ -38,6 +45,7 @@ export function wrapSentryHandleRequest(originalHandle: OriginalHandleRequest): 
 
         // The express instrumentation writes on the rpcMetadata and that ends up stomping on the `http.route` attribute.
         const rpcMetadata = getRPCMetadata(context.active());
+
         if (rpcMetadata?.type === RPCType.HTTP) {
           rpcMetadata.route = routeName;
         }
@@ -46,6 +54,7 @@ export function wrapSentryHandleRequest(originalHandle: OriginalHandleRequest): 
         rootSpan.setAttributes({
           [ATTR_HTTP_ROUTE]: routeName,
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: `${request.method} ${routeName}`,
         });
       }
     }
