@@ -12,6 +12,7 @@ import {
   getLocationHref,
   GLOBAL_OBJ,
   logger,
+  parseStringToURLObject,
   propagationContextFromHeaders,
   registerSpanErrorInstrumentation,
   SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
@@ -355,20 +356,10 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
           sampled: spanIsSampled(idleSpan),
           dsc: getDynamicSamplingContextFromSpan(span),
         });
-
-        scope.setSDKProcessingMetadata({
-          normalizedRequest: undefined,
-        });
       },
     });
 
     setActiveIdleSpan(client, idleSpan);
-
-    // We store the normalized request data on the scope, so we get the request data at time of span creation
-    // otherwise, the URL etc. may already be of the following navigation, and we'd report the wrong URL
-    getCurrentScope().setSDKProcessingMetadata({
-      normalizedRequest: getHttpRequestData(),
-    });
 
     function emitFinish(): void {
       if (optionalWindowDocument && ['interactive', 'complete'].includes(optionalWindowDocument.readyState)) {
@@ -409,7 +400,14 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         maybeEndActiveSpan();
 
         getIsolationScope().setPropagationContext({ traceId: generateTraceId(), sampleRand: Math.random() });
-        getCurrentScope().setPropagationContext({ traceId: generateTraceId(), sampleRand: Math.random() });
+
+        const scope = getCurrentScope();
+        scope.setPropagationContext({ traceId: generateTraceId(), sampleRand: Math.random() });
+        // We reset this to ensure we do not have lingering incorrect data here
+        // places that call this hook may set this where appropriate - else, the URL at span sending time is used
+        scope.setSDKProcessingMetadata({
+          normalizedRequest: undefined,
+        });
 
         _createRouteSpan(client, {
           op: 'navigation',
@@ -427,7 +425,15 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         const baggage = traceOptions.baggage || getMetaContent('baggage');
 
         const propagationContext = propagationContextFromHeaders(sentryTrace, baggage);
-        getCurrentScope().setPropagationContext(propagationContext);
+
+        const scope = getCurrentScope();
+        scope.setPropagationContext(propagationContext);
+
+        // We store the normalized request data on the scope, so we get the request data at time of span creation
+        // otherwise, the URL etc. may already be of the following navigation, and we'd report the wrong URL
+        scope.setSDKProcessingMetadata({
+          normalizedRequest: getHttpRequestData(),
+        });
 
         _createRouteSpan(client, {
           op: 'pageload',
@@ -470,16 +476,23 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
             }
 
             startingUrl = undefined;
+            const parsed = parseStringToURLObject(to);
+            startBrowserTracingNavigationSpan(client, {
+              name: parsed?.pathname || WINDOW.location.pathname,
+              attributes: {
+                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
+              },
+            });
 
-            // We wait a tick here to ensure that WINDOW.location.pathname is updated
-            setTimeout(() => {
-              startBrowserTracingNavigationSpan(client, {
-                name: WINDOW.location.pathname,
-                attributes: {
-                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
-                },
-              });
+            // We store the normalized request data on the scope, so we get the request data at time of span creation
+            // otherwise, the URL etc. may already be of the following navigation, and we'd report the wrong URL
+            getCurrentScope().setSDKProcessingMetadata({
+              normalizedRequest: {
+                ...getHttpRequestData(),
+                // Ensure to set this, so this matches the target route even if the URL has not yet been updated
+                url: to,
+              },
             });
           });
         }
