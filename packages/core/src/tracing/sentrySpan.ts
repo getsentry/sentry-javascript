@@ -336,6 +336,8 @@ export class SentrySpan implements Span {
 
     const { scope: capturedSpanScope, isolationScope: capturedSpanIsolationScope } = getCapturedScopesOnSpan(this);
 
+    const normalizedRequest = capturedSpanScope?.getScopeData().sdkProcessingMetadata?.normalizedRequest;
+
     if (this._sampled !== true) {
       return undefined;
     }
@@ -374,6 +376,7 @@ export class SentrySpan implements Span {
         capturedSpanIsolationScope,
         dynamicSamplingContext: getDynamicSamplingContextFromSpan(this),
       },
+      request: normalizedRequest,
       ...(source && {
         transaction_info: {
           source,
