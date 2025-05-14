@@ -355,6 +355,10 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
           sampled: spanIsSampled(idleSpan),
           dsc: getDynamicSamplingContextFromSpan(span),
         });
+
+        scope.setSDKProcessingMetadata({
+          normalizedRequest: undefined,
+        });
       },
     });
 
