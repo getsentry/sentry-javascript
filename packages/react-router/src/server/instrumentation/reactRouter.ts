@@ -57,10 +57,10 @@ export class ReactRouterInstrumentation extends InstrumentationBase<Instrumentat
       get(target, prop, receiver) {
         if (prop === 'createRequestHandler') {
           const original = target[prop];
-          return function wrappedCreateRequestHandler(this: unknown, ...args: unknown[]) {
+          return function sentryWrappedCreateRequestHandler(this: unknown, ...args: unknown[]) {
             const originalRequestHandler = original.apply(this, args);
 
-            return async function wrappedRequestHandler(request: Request, initialContext?: unknown) {
+            return async function sentryWrappedRequestHandler(request: Request, initialContext?: unknown) {
               let url: URL;
               try {
                 url = new URL(request.url);
