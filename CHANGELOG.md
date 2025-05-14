@@ -10,6 +10,29 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+Work in this release was contributed by @sidx1024. Thank you for your contribution!
+
+## 9.18.0
+
+### Important changes
+
+- **feat: Support Node 24 ([#16236](https://github.com/getsentry/sentry-javascript/pull/16236))**
+
+We now also publish profiling binaries for Node 24.
+
+### Other changes
+
+- deps(node): Bump `import-in-the-middle` to `1.13.1` ([#16260](https://github.com/getsentry/sentry-javascript/pull/16260))
+- feat: Export `consoleLoggingIntegration` from vercel edge sdk ([#16228](https://github.com/getsentry/sentry-javascript/pull/16228))
+- feat(cloudflare): Add support for email, queue, and tail handler ([#16233](https://github.com/getsentry/sentry-javascript/pull/16233))
+- feat(cloudflare): Improve http span data ([#16232](https://github.com/getsentry/sentry-javascript/pull/16232))
+- feat(nextjs): Add more attributes for generation functions ([#16214](https://github.com/getsentry/sentry-javascript/pull/16214))
+- feat(opentelemetry): Widen peer dependencies to support Otel v2 ([#16246](https://github.com/getsentry/sentry-javascript/pull/16246))
+- fix(core): Gracefully handle invalid baggage entries ([#16257](https://github.com/getsentry/sentry-javascript/pull/16257))
+- fix(node): Ensure traces are propagated without spans in Node 22+ ([#16221](https://github.com/getsentry/sentry-javascript/pull/16221))
+- fix(node): Use sentry forked `@fastify/otel` dependency with pinned Otel v1 deps ([#16256](https://github.com/getsentry/sentry-javascript/pull/16256))
+- fix(remix): Remove vendored types ([#16218](https://github.com/getsentry/sentry-javascript/pull/16218))
+
 ## 9.17.0
 
 - feat(node): Migrate to `@fastify/otel` ([#15542](https://github.com/getsentry/sentry-javascript/pull/15542))
