@@ -1,4 +1,4 @@
-import type { Client, Integration, Options, ReportDialogOptions } from '@sentry/core';
+import { Client, Integration, Options, ReportDialogOptions, getClient } from '@sentry/core';
 import {
   consoleSandbox,
   dedupeIntegration,
@@ -12,7 +12,6 @@ import {
   lastEventId,
   logger,
   stackParserFromStackParserOptions,
-  supportsFetch,
 } from '@sentry/core';
 import type { BrowserClientOptions, BrowserOptions } from './client';
 import { BrowserClient } from './client';
@@ -26,6 +25,22 @@ import { httpContextIntegration } from './integrations/httpcontext';
 import { linkedErrorsIntegration } from './integrations/linkederrors';
 import { defaultStackParser } from './stack-parsers';
 import { makeFetchTransport } from './transports/fetch';
+
+type ExtensionProperties = {
+  chrome?: Runtime;
+  browser?: Runtime;
+  nw?: unknown;
+};
+type Runtime = {
+  runtime?: {
+    id?: string;
+  };
+};
+
+/**
+ * A magic string that build tooling can leverage in order to inject a release value into the SDK.
+ */
+declare const __SENTRY_RELEASE__: string | undefined;
 
 /** Get the default integrations for the browser SDK. */
 export function getDefaultIntegrations(_options: Options): Integration[] {
@@ -63,22 +78,6 @@ export function applyDefaultOptions(optionsArg: BrowserOptions): BrowserOptions 
     ...optionsArg,
   };
 }
-
-type ExtensionProperties = {
-  chrome?: Runtime;
-  browser?: Runtime;
-  nw?: unknown;
-};
-type Runtime = {
-  runtime?: {
-    id?: string;
-  };
-};
-
-/**
- * A magic string that build tooling can leverage in order to inject a release value into the SDK.
- */
-declare const __SENTRY_RELEASE__: string | undefined;
 
 /**
  * The Sentry Browser SDK Client.
@@ -127,7 +126,7 @@ declare const __SENTRY_RELEASE__: string | undefined;
  * @see {@link BrowserOptions} for documentation on configuration options.
  */
 export function init(browserOptions: BrowserOptions = {}): Client | undefined {
-  if (_checkBailForBrowserExtension(browserOptions)) {
+  if (!browserOptions.skipBrowserExtensionCheck && _checkForBrowserExtension()) {
     return;
   }
   return _init(browserOptions, getDefaultIntegrations(browserOptions));
@@ -145,7 +144,7 @@ export function initWithDefaultIntegrations(
   browserOptions: BrowserOptions = {},
   getDefaultIntegrationsImpl: (options: BrowserOptions) => Integration[],
 ): BrowserClient | undefined {
-  if (_checkBailForBrowserExtension(browserOptions)) {
+  if (!browserOptions.skipBrowserExtensionCheck && _checkForBrowserExtension()) {
     return;
   }
 
@@ -174,7 +173,7 @@ export function showReportDialog(options: ReportDialogOptions = {}): void {
   }
 
   const scope = getCurrentScope();
-  const client = scope.getClient();
+  const client = getClient();
   const dsn = client?.getDsn();
 
   if (!dsn) {
@@ -182,24 +181,23 @@ export function showReportDialog(options: ReportDialogOptions = {}): void {
     return;
   }
 
-  if (scope) {
-    options.user = {
+  options.user = {
+    ...scope.getUser(),
+    ...options.user,
+  };
+
+  const mergedOptions = {
+    user: {
       ...scope.getUser(),
       ...options.user,
-    };
-  }
-
-  if (!options.eventId) {
-    const eventId = lastEventId();
-    if (eventId) {
-      options.eventId = eventId;
-    }
-  }
+    },
+    eventId: options.eventId || lastEventId(),
+  };
 
   const script = WINDOW.document.createElement('script');
   script.async = true;
   script.crossOrigin = 'anonymous';
-  script.src = getReportDialogEndpoint(dsn, options);
+  script.src = getReportDialogEndpoint(dsn, mergedOptions);
 
   if (options.onLoad) {
     script.onload = options.onLoad;
@@ -243,7 +241,7 @@ export function onLoad(callback: () => void): void {
   callback();
 }
 
-function shouldShowBrowserExtensionError(): boolean {
+function _isEmbeddedBrowserExtension(): boolean {
   if (typeof WINDOW.window === 'undefined') {
     // No need to show the error if we're not in a browser window environment (e.g. service workers)
     return false;
@@ -273,15 +271,13 @@ function shouldShowBrowserExtensionError(): boolean {
   return !isDedicatedExtensionPage;
 }
 
-function _checkBailForBrowserExtension(options: BrowserOptions): true | void {
-  const isBrowserExtension = !options.skipBrowserExtensionCheck && shouldShowBrowserExtensionError();
-
-  if (isBrowserExtension) {
+function _checkForBrowserExtension(): true | void {
+  if (_isEmbeddedBrowserExtension()) {
     if (DEBUG_BUILD) {
       consoleSandbox(() => {
         // eslint-disable-next-line no-console
         console.error(
-          '[Sentry] You cannot run Sentry this way in a browser extension, check: https://docs.sentry.io/platforms/javascript/best-practices/browser-extensions/',
+          '[Sentry] You cannot use Sentry.init() in a browser extension, see: https://docs.sentry.io/platforms/javascript/best-practices/browser-extensions/',
         );
       });
     }
