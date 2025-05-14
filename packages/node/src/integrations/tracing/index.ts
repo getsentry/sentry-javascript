@@ -3,7 +3,7 @@ import { instrumentOtelHttp } from '../http';
 import { amqplibIntegration, instrumentAmqplib } from './amqplib';
 import { connectIntegration, instrumentConnect } from './connect';
 import { expressIntegration, instrumentExpress, instrumentExpressV5 } from './express';
-import { fastifyIntegration, instrumentFastify } from './fastify';
+import { fastifyIntegration, instrumentFastify, instrumentFastifyV3 } from './fastify';
 import { genericPoolIntegration, instrumentGenericPool } from './genericPool';
 import { graphqlIntegration, instrumentGraphql } from './graphql';
 import { hapiIntegration, instrumentHapi } from './hapi';
@@ -15,6 +15,7 @@ import { instrumentMongoose, mongooseIntegration } from './mongoose';
 import { instrumentMysql, mysqlIntegration } from './mysql';
 import { instrumentMysql2, mysql2Integration } from './mysql2';
 import { instrumentPostgres, postgresIntegration } from './postgres';
+import { prismaIntegration } from './prisma';
 import { instrumentRedis, redisIntegration } from './redis';
 import { instrumentTedious, tediousIntegration } from './tedious';
 import { instrumentVercelAi, vercelAIIntegration } from './vercelai';
@@ -33,10 +34,7 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     mysql2Integration(),
     redisIntegration(),
     postgresIntegration(),
-    // For now, we do not include prisma by default because it has ESM issues
-    // See https://github.com/prisma/prisma/issues/23410
-    // TODO v8: Figure out a better solution for this, maybe only disable in ESM mode?
-    // prismaIntegration(),
+    prismaIntegration(),
     hapiIntegration(),
     koaIntegration(),
     connectIntegration(),
@@ -60,6 +58,7 @@ export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) =>
     instrumentExpressV5,
     instrumentConnect,
     instrumentFastify,
+    instrumentFastifyV3,
     instrumentHapi,
     instrumentKafka,
     instrumentKoa,

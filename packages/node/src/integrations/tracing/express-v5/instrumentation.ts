@@ -164,16 +164,18 @@ export class ExpressInstrumentationV5 extends InstrumentationBase<ExpressInstrum
           // remove duplicate slashes to normalize route
           .replace(/\/{2,}/g, '/');
 
+        const actualRoute = route.length > 0 ? route : undefined;
+
         const attributes: Attributes = {
           // eslint-disable-next-line deprecation/deprecation
-          [SEMATTRS_HTTP_ROUTE]: route.length > 0 ? route : '/',
+          [SEMATTRS_HTTP_ROUTE]: actualRoute,
         };
         const metadata = getLayerMetadata(route, layer, layerPath);
         const type = metadata.attributes[AttributeNames.EXPRESS_TYPE] as ExpressLayerType;
 
         const rpcMetadata = getRPCMetadata(context.active());
         if (rpcMetadata?.type === RPCType.HTTP) {
-          rpcMetadata.route = route || '/';
+          rpcMetadata.route = actualRoute;
         }
 
         // verify against the config if the layer should be ignored

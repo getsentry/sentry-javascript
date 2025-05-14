@@ -104,4 +104,32 @@ test.describe('servery - performance', () => {
       },
     });
   });
+
+  test('should automatically instrument server loader', async ({ page }) => {
+    const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
+      return transactionEvent.transaction === 'GET /performance/server-loader.data';
+    });
+
+    await page.goto(`/performance`); // initial ssr pageloads do not contain .data requests
+    await page.waitForTimeout(500); // quick breather before navigation
+    await page.getByRole('link', { name: 'Server Loader' }).click(); // this will actually trigger a .data request
+
+    const transaction = await txPromise;
+
+    expect(transaction?.spans?.[transaction.spans?.length - 1]).toMatchObject({
+      span_id: expect.any(String),
+      trace_id: expect.any(String),
+      data: {
+        'sentry.origin': 'auto.http.react-router',
+        'sentry.op': 'function.react-router.loader',
+      },
+      description: 'Executing Server Loader',
+      parent_span_id: expect.any(String),
+      start_timestamp: expect.any(Number),
+      timestamp: expect.any(Number),
+      status: 'ok',
+      op: 'function.react-router.loader',
+      origin: 'auto.http.react-router',
+    });
+  });
 });
