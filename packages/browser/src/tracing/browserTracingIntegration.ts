@@ -12,6 +12,7 @@ import {
   getLocationHref,
   GLOBAL_OBJ,
   logger,
+  parseStringToURLObject,
   propagationContextFromHeaders,
   registerSpanErrorInstrumentation,
   SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
@@ -33,7 +34,7 @@ import {
   startTrackingWebVitals,
 } from '@sentry-internal/browser-utils';
 import { DEBUG_BUILD } from '../debug-build';
-import { WINDOW } from '../helpers';
+import { getHttpRequestData, WINDOW } from '../helpers';
 import { registerBackgroundTabDetection } from './backgroundtab';
 import { linkTraces } from './linkedTraces';
 import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './request';
@@ -386,6 +387,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         if (activeSpan && !spanToJSON(activeSpan).timestamp) {
           DEBUG_BUILD && logger.log(`[Tracing] Finishing current active span with op: ${spanToJSON(activeSpan).op}`);
           // If there's an open active span, we need to finish it before creating an new one.
+          activeSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON, 'cancelled');
           activeSpan.end();
         }
       }
@@ -398,7 +400,14 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         maybeEndActiveSpan();
 
         getIsolationScope().setPropagationContext({ traceId: generateTraceId(), sampleRand: Math.random() });
-        getCurrentScope().setPropagationContext({ traceId: generateTraceId(), sampleRand: Math.random() });
+
+        const scope = getCurrentScope();
+        scope.setPropagationContext({ traceId: generateTraceId(), sampleRand: Math.random() });
+        // We reset this to ensure we do not have lingering incorrect data here
+        // places that call this hook may set this where appropriate - else, the URL at span sending time is used
+        scope.setSDKProcessingMetadata({
+          normalizedRequest: undefined,
+        });
 
         _createRouteSpan(client, {
           op: 'navigation',
@@ -416,7 +425,15 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         const baggage = traceOptions.baggage || getMetaContent('baggage');
 
         const propagationContext = propagationContextFromHeaders(sentryTrace, baggage);
-        getCurrentScope().setPropagationContext(propagationContext);
+
+        const scope = getCurrentScope();
+        scope.setPropagationContext(propagationContext);
+
+        // We store the normalized request data on the scope, so we get the request data at time of span creation
+        // otherwise, the URL etc. may already be of the following navigation, and we'd report the wrong URL
+        scope.setSDKProcessingMetadata({
+          normalizedRequest: getHttpRequestData(),
+        });
 
         _createRouteSpan(client, {
           op: 'pageload',
@@ -458,16 +475,25 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
               return;
             }
 
-            if (from !== to) {
-              startingUrl = undefined;
-              startBrowserTracingNavigationSpan(client, {
-                name: WINDOW.location.pathname,
-                attributes: {
-                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
-                },
-              });
-            }
+            startingUrl = undefined;
+            const parsed = parseStringToURLObject(to);
+            startBrowserTracingNavigationSpan(client, {
+              name: parsed?.pathname || WINDOW.location.pathname,
+              attributes: {
+                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
+              },
+            });
+
+            // We store the normalized request data on the scope, so we get the request data at time of span creation
+            // otherwise, the URL etc. may already be of the following navigation, and we'd report the wrong URL
+            getCurrentScope().setSDKProcessingMetadata({
+              normalizedRequest: {
+                ...getHttpRequestData(),
+                // Ensure to set this, so this matches the target route even if the URL has not yet been updated
+                url: to,
+              },
+            });
           });
         }
       }

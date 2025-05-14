@@ -80,8 +80,8 @@ test('Should set a "not_found" status on a server component span when notFound()
       op: 'function.nextjs',
       status: 'not_found',
       data: expect.objectContaining({
-        'sentry.nextjs.function.type': 'Page',
-        'sentry.nextjs.function.route': '/server-component/not-found',
+        'sentry.nextjs.ssr.function.type': 'Page',
+        'sentry.nextjs.ssr.function.route': '/server-component/not-found',
       }),
     }),
   );
@@ -112,8 +112,8 @@ test('Should capture an error and transaction for a app router page', async ({ p
       op: 'function.nextjs',
       status: 'internal_error',
       data: expect.objectContaining({
-        'sentry.nextjs.function.type': 'Page',
-        'sentry.nextjs.function.route': '/server-component/faulty',
+        'sentry.nextjs.ssr.function.type': 'Page',
+        'sentry.nextjs.ssr.function.route': '/server-component/faulty',
       }),
     }),
   );

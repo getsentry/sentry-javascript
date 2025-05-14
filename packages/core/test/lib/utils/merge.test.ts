@@ -69,7 +69,7 @@ describe('merge', () => {
         a0a: 'a0a',
       },
     ],
-  ])('works with %p and %p', (oldData, newData, expected) => {
+  ])('works with %j and %j', (oldData, newData, expected) => {
     const actual = merge(oldData, newData as any);
     expect(actual).toEqual(expected);
   });

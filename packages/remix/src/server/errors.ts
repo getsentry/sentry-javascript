@@ -134,7 +134,7 @@ export async function errorHandleDataFunction(
         const options = getClient()?.getOptions() as RemixOptions | undefined;
 
         if (options?.sendDefaultPii && options.captureActionFormDataKeys) {
-          await storeFormDataKeys(args, span);
+          await storeFormDataKeys(args, span, options.captureActionFormDataKeys);
         }
       }
 

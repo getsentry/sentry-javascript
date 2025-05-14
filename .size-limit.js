@@ -18,7 +18,6 @@ module.exports = [
     limit: '24.1 KB',
     modifyWebpackConfig: function (config) {
       const webpack = require('webpack');
-      const TerserPlugin = require('terser-webpack-plugin');
 
       config.plugins.push(
         new webpack.DefinePlugin({
@@ -30,7 +29,6 @@ module.exports = [
       );
 
       config.optimization.minimize = true;
-      config.optimization.minimizer = [new TerserPlugin()];
 
       return config;
     },
@@ -57,7 +55,6 @@ module.exports = [
     limit: '71 KB',
     modifyWebpackConfig: function (config) {
       const webpack = require('webpack');
-      const TerserPlugin = require('terser-webpack-plugin');
 
       config.plugins.push(
         new webpack.DefinePlugin({
@@ -69,7 +66,6 @@ module.exports = [
       );
 
       config.optimization.minimize = true;
-      config.optimization.minimizer = [new TerserPlugin()];
 
       return config;
     },
@@ -239,7 +235,6 @@ module.exports = [
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     modifyWebpackConfig: function (config) {
       const webpack = require('webpack');
-      const TerserPlugin = require('terser-webpack-plugin');
 
       config.plugins.push(
         new webpack.DefinePlugin({
@@ -248,7 +243,6 @@ module.exports = [
       );
 
       config.optimization.minimize = true;
-      config.optimization.minimizer = [new TerserPlugin()];
 
       return config;
     },

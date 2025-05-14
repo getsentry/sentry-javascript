@@ -29,8 +29,6 @@ const BROWSER_TEST_PACKAGES = [
 // Packages that cannot run in Node 18
 const SKIP_NODE_18_PACKAGES = ['@sentry/react-router'];
 
-const SKIP_NODE_24_PACKAGES = ['@sentry/google-cloud-serverless'];
-
 function getAllPackages(): string[] {
   const { workspaces }: { workspaces: string[] } = JSON.parse(
     fs.readFileSync(path.join(process.cwd(), 'package.json'), 'utf-8'),
@@ -64,10 +62,6 @@ function runTests(): void {
 
     if (NODE_VERSION === '18') {
       SKIP_NODE_18_PACKAGES.forEach(pkg => ignores.add(pkg));
-    }
-
-    if (NODE_VERSION === '24') {
-      SKIP_NODE_24_PACKAGES.forEach(pkg => ignores.add(pkg));
     }
   }
 

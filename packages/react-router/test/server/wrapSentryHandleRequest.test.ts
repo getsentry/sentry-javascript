@@ -12,6 +12,7 @@ vi.mock('@opentelemetry/core', () => ({
 
 vi.mock('@sentry/core', () => ({
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE: 'sentry.source',
+  SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME: 'sentry.custom-span-name',
   getActiveSpan: vi.fn(),
   getRootSpan: vi.fn(),
   getTraceMetaTags: vi.fn(),
@@ -69,6 +70,7 @@ describe('wrapSentryHandleRequest', () => {
     expect(getRootSpan).toHaveBeenCalledWith(mockActiveSpan);
     expect(mockRootSpan.setAttributes).toHaveBeenCalledWith({
       [ATTR_HTTP_ROUTE]: '/some-path',
+      'sentry.custom-span-name': 'GET /some-path',
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
     });
     expect(mockRpcMetadata.route).toBe('/some-path');

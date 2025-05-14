@@ -11,7 +11,7 @@ describe('httpIntegration', () => {
       [{ spans: false }, { skipOpenTelemetrySetup: true }, false],
       [{}, { skipOpenTelemetrySetup: true }, false],
       [{}, { skipOpenTelemetrySetup: false }, true],
-    ])('returns the correct value for options=%p and clientOptions=%p', (options, clientOptions, expected) => {
+    ])('returns the correct value for options=%j and clientOptions=%j', (options, clientOptions, expected) => {
       const actual = _shouldInstrumentSpans(options, clientOptions);
       expect(actual).toBe(expected);
     });

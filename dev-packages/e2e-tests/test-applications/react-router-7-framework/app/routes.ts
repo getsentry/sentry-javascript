@@ -15,5 +15,7 @@ export default [
     route('ssr', 'routes/performance/ssr.tsx'),
     route('with/:param', 'routes/performance/dynamic-param.tsx'),
     route('static', 'routes/performance/static.tsx'),
+    route('server-loader', 'routes/performance/server-loader.tsx'),
+    route('server-action', 'routes/performance/server-action.tsx'),
   ]),
 ] satisfies RouteConfig;
