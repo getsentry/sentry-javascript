@@ -386,6 +386,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         if (activeSpan && !spanToJSON(activeSpan).timestamp) {
           DEBUG_BUILD && logger.log(`[Tracing] Finishing current active span with op: ${spanToJSON(activeSpan).op}`);
           // If there's an open active span, we need to finish it before creating an new one.
+          activeSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON, 'cancelled');
           activeSpan.end();
         }
       }
