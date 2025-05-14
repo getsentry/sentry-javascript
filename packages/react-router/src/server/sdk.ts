@@ -45,7 +45,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
         const overwrite = event.contexts?.trace?.data?.[SEMANTIC_ATTRIBUTE_SENTRY_OVERWRITE];
         if (
           event.type === 'transaction' &&
-          event.transaction === 'GET *' &&
+          (event.transaction === 'GET *' || event.transaction === 'POST *') &&
           event.contexts?.trace?.data?.[ATTR_HTTP_ROUTE] === '*' &&
           overwrite
         ) {
