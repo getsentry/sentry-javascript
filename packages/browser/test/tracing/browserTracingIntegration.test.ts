@@ -152,7 +152,7 @@ describe('browserTracingIntegration', () => {
     expect(spanIsSampled(span!)).toBe(false);
   });
 
-  it('starts navigation when URL changes', async () => {
+  it('starts navigation when URL changes', () => {
     const client = new BrowserClient(
       getDefaultBrowserClientOptions({
         tracesSampleRate: 1,
@@ -186,9 +186,6 @@ describe('browserTracingIntegration', () => {
     Object.defineProperty(global, 'location', { value: dom.window.document.location, writable: true });
 
     WINDOW.history.pushState({}, '', '/test');
-
-    // wait a tick to ensure everything settled
-    await new Promise(resolve => setTimeout(resolve, 1));
 
     expect(span!.isRecording()).toBe(false);
 
@@ -227,9 +224,6 @@ describe('browserTracingIntegration', () => {
     Object.defineProperty(global, 'location', { value: dom2.window.document.location, writable: true });
 
     WINDOW.history.pushState({}, '', '/test2');
-
-    // wait a tick to ensure everything settled
-    await new Promise(resolve => setTimeout(resolve, 1));
 
     expect(span2!.isRecording()).toBe(false);
 
@@ -867,7 +861,7 @@ describe('browserTracingIntegration', () => {
       expect(propagationContext.parentSpanId).toEqual('1121201211212012');
     });
 
-    it('ignores the meta tag data for navigation spans', async () => {
+    it('ignores the meta tag data for navigation spans', () => {
       document.head.innerHTML =
         '<meta name="sentry-trace" content="12312012123120121231201212312012-1121201211212012-0">' +
         '<meta name="baggage" content="sentry-release=2.1.14">';
@@ -888,9 +882,6 @@ describe('browserTracingIntegration', () => {
       Object.defineProperty(global, 'location', { value: dom.window.document.location, writable: true });
 
       WINDOW.history.pushState({}, '', '/navigation-test');
-
-      // wait a tick to ensure everything settled
-      await new Promise(resolve => setTimeout(resolve, 1));
 
       const idleSpan = getActiveSpan()!;
       expect(idleSpan).toBeDefined();
