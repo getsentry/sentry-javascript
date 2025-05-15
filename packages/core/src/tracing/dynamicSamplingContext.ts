@@ -49,7 +49,7 @@ export function getDynamicSamplingContextFromClient(trace_id: string, client: Cl
 
   let org_id: string | undefined;
   if (options.orgId) {
-    org_id = options.orgId;
+    org_id = String(options.orgId);
   } else if (host) {
     org_id = extractOrgIdFromDsnHost(host);
   }

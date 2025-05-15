@@ -326,7 +326,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    *
    * The SDK tries to automatically extract the organization ID from the DSN. With this option, you can override it.
    */
-  orgId?: `${number}`;
+  orgId?: `${number}` | number;
 
   /**
    * Function to compute tracing sample rate dynamically and filter unwanted traces.

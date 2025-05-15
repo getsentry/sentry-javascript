@@ -263,6 +263,19 @@ describe('getDynamicSamplingContextFromClient', () => {
     expect(dsc.org_id).toBe('1234560');
   });
 
+  it('handles orgId passed as number', () => {
+    client = new TestClient(
+      getDefaultTestClientOptions({
+        dsn: 'https://public@my-org.sentry.io/1',
+        orgId: 123456,
+      }),
+    );
+
+    const dsc = getDynamicSamplingContextFromClient(TRACE_ID, client);
+
+    expect(dsc.org_id).toBe('123456');
+  });
+
   it('handles missing DSN gracefully', () => {
     client = new TestClient(
       getDefaultTestClientOptions({
