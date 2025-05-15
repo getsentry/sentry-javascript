@@ -321,6 +321,13 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   tracePropagationTargets?: TracePropagationTargets;
 
   /**
+   * The organization ID of the current SDK.
+   *
+   * The SDK automatically extracts the organization ID from the DSN, if needed. With this option, you can override it.
+   */
+  orgId?: string;
+
+  /**
    * Function to compute tracing sample rate dynamically and filter unwanted traces.
    *
    * Tracing is enabled if either this or `tracesSampleRate` is defined. If both are defined, `tracesSampleRate` is

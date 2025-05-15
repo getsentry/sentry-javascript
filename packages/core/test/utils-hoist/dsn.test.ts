@@ -1,6 +1,6 @@
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, it, test, vi } from 'vitest';
 import { DEBUG_BUILD } from '../../src/debug-build';
-import { dsnToString, makeDsn } from '../../src/utils-hoist/dsn';
+import { dsnToString, extractOrgIdFromDsnHost, makeDsn } from '../../src/utils-hoist/dsn';
 import { logger } from '../../src/utils-hoist/logger';
 
 function testIf(condition: boolean) {
@@ -213,5 +213,37 @@ describe('Dsn', () => {
       const dsn = makeDsn('https://abc@sentry.io/sentry/custom/installation/321');
       expect(dsnToString(dsn!)).toBe('https://abc@sentry.io/sentry/custom/installation/321');
     });
+  });
+});
+
+describe('extractOrgIdFromDsnHost', () => {
+  it('extracts the org ID from a DSN host with standard format', () => {
+    expect(extractOrgIdFromDsnHost('o123456.sentry.io')).toBe('123456');
+  });
+
+  it('extracts numeric org IDs of different lengths', () => {
+    expect(extractOrgIdFromDsnHost('o1.ingest.sentry.io')).toBe('1');
+    expect(extractOrgIdFromDsnHost('o42.sentry.io')).toBe('42');
+    expect(extractOrgIdFromDsnHost('o9999999.sentry.io')).toBe('9999999');
+  });
+
+  it('returns undefined for hosts without an org ID prefix', () => {
+    expect(extractOrgIdFromDsnHost('sentry.io')).toBeUndefined();
+    expect(extractOrgIdFromDsnHost('example.com')).toBeUndefined();
+  });
+
+  it('returns undefined for hosts with invalid org ID format', () => {
+    expect(extractOrgIdFromDsnHost('oabc.sentry.io')).toBeUndefined();
+    expect(extractOrgIdFromDsnHost('o.sentry.io')).toBeUndefined();
+    expect(extractOrgIdFromDsnHost('oX123.sentry.io')).toBeUndefined();
+  });
+
+  it('handles different domain variations', () => {
+    expect(extractOrgIdFromDsnHost('o123456.ingest.sentry.io')).toBe('123456');
+    expect(extractOrgIdFromDsnHost('o123456.custom-domain.com')).toBe('123456');
+  });
+
+  it('handles empty string input', () => {
+    expect(extractOrgIdFromDsnHost('')).toBeUndefined();
   });
 });

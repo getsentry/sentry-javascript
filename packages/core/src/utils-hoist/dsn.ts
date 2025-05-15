@@ -2,6 +2,9 @@ import type { DsnComponents, DsnLike, DsnProtocol } from '../types-hoist/dsn';
 import { DEBUG_BUILD } from './../debug-build';
 import { consoleSandbox, logger } from './logger';
 
+/** Regular expression used to extract org ID from a DSN host. */
+const ORG_ID_REGEX = /^o(\d+)\./;
+
 /** Regular expression used to parse a Dsn. */
 const DSN_REGEX = /^(?:(\w+):)\/\/(?:(\w+)(?::(\w+)?)?@)([\w.-]+)(?::(\d+))?\/(.+)/;
 
@@ -112,6 +115,21 @@ function validateDsn(dsn: DsnComponents): boolean {
   }
 
   return true;
+}
+
+/**
+ * Extract the org ID from a DSN host.
+ *
+ * @param host The host from a DSN
+ * @returns The org ID if found, undefined otherwise
+ */
+export function extractOrgIdFromDsnHost(host: string): string | undefined {
+  const match = host.match(ORG_ID_REGEX);
+
+  if (match?.[1]) {
+    return match[1];
+  }
+  return undefined;
 }
 
 /**
