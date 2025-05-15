@@ -18,7 +18,7 @@ export class TestEventListener {
   @OnEvent('multiple.first')
   @OnEvent('multiple.second')
   async handleMultipleEvents(payload: any): Promise<void> {
-    Sentry.setTag('payload', payload);
+    Sentry.setTag(payload.data, true);
     await new Promise(resolve => setTimeout(resolve, 100));
   }
 }

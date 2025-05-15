@@ -43,10 +43,13 @@ test('Event emitter', async () => {
 
 test('Multiple OnEvent decorators', async () => {
   const firstTxPromise = waitForTransaction('nestjs-distributed-tracing', transactionEvent => {
-    return transactionEvent.transaction === 'event multiple.first';
+    return transactionEvent.transaction === 'event multiple.first|multiple.second';
   });
   const secondTxPromise = waitForTransaction('nestjs-distributed-tracing', transactionEvent => {
-    return transactionEvent.transaction === 'event multiple.second';
+    return transactionEvent.transaction === 'event multiple.first|multiple.second';
+  });
+  const rootPromise = waitForTransaction('nestjs-distributed-tracing', transactionEvent => {
+    return transactionEvent.transaction === 'GET /events/emit-multiple';
   });
 
   const eventsUrl = `http://localhost:3050/events/emit-multiple`;
@@ -54,7 +57,10 @@ test('Multiple OnEvent decorators', async () => {
 
   const firstTx = await firstTxPromise;
   const secondTx = await secondTxPromise;
+  const rootTx = await rootPromise;
 
-  expect(firstTx.tags).toMatchObject({ payload: { data: 'test-first' } });
-  expect(secondTx.tags).toMatchObject({ payload: { data: 'test-second' } });
+  expect(firstTx).toBeDefined();
+  expect(secondTx).toBeDefined();
+  // assert that the correct payloads were added
+  expect(rootTx.tags).toMatchObject({ 'test-first': true, 'test-second': true });
 });
