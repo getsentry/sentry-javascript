@@ -13,4 +13,10 @@ export class TestEventListener {
     await new Promise(resolve => setTimeout(resolve, 100));
     throw new Error('Test error from event handler');
   }
+
+  @OnEvent('multiple.first')
+  @OnEvent('multiple.second')
+  async handleMultipleEvents(payload: any): Promise<void> {
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
 }

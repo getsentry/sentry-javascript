@@ -40,3 +40,21 @@ test('Event emitter', async () => {
     status: 'ok',
   });
 });
+
+test('Multiple OnEvent decorators', async () => {
+  const firstTxPromise = waitForTransaction('nestjs-distributed-tracing', transactionEvent => {
+    return transactionEvent.transaction === 'event multiple.first';
+  });
+  const secondTxPromise = waitForTransaction('nestjs-distributed-tracing', transactionEvent => {
+    return transactionEvent.transaction === 'event multiple.second';
+  });
+
+  const eventsUrl = `http://localhost:3050/events/emit-multiple`;
+  await fetch(eventsUrl);
+
+  const firstTx = await firstTxPromise;
+  const secondTx = await secondTxPromise;
+
+  expect(firstTx).toBeDefined();
+  expect(secondTx).toBeDefined();
+});
