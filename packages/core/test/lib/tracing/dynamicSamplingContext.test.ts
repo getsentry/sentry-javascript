@@ -228,14 +228,14 @@ describe('getDynamicSamplingContextFromClient', () => {
   it('uses orgId from options when specified', () => {
     client = new TestClient(
       getDefaultTestClientOptions({
-        orgId: 'explicit-org-id',
+        orgId: '00222111',
         dsn: 'https://public@sentry.example.com/1',
       }),
     );
 
     const dsc = getDynamicSamplingContextFromClient(TRACE_ID, client);
 
-    expect(dsc.org_id).toBe('explicit-org-id');
+    expect(dsc.org_id).toBe('00222111');
   });
 
   it('infers orgId from DSN host when not explicitly provided', () => {
@@ -253,14 +253,14 @@ describe('getDynamicSamplingContextFromClient', () => {
   it('prioritizes explicit orgId over inferred from DSN', () => {
     client = new TestClient(
       getDefaultTestClientOptions({
-        orgId: 'explicit-org-id',
+        orgId: '1234560',
         dsn: 'https://public@my-org.sentry.io/1',
       }),
     );
 
     const dsc = getDynamicSamplingContextFromClient(TRACE_ID, client);
 
-    expect(dsc.org_id).toBe('explicit-org-id');
+    expect(dsc.org_id).toBe('1234560');
   });
 
   it('handles missing DSN gracefully', () => {

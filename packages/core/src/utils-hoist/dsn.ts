@@ -126,10 +126,7 @@ function validateDsn(dsn: DsnComponents): boolean {
 export function extractOrgIdFromDsnHost(host: string): string | undefined {
   const match = host.match(ORG_ID_REGEX);
 
-  if (match?.[1]) {
-    return match[1];
-  }
-  return undefined;
+  return match?.[1];
 }
 
 /**

@@ -321,11 +321,12 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   tracePropagationTargets?: TracePropagationTargets;
 
   /**
-   * The organization ID of the current SDK.
+   * The organization ID of the current SDK. The organization ID is a string containing only numbers. This ID is used to
+   * propagate traces to other Sentry services.
    *
-   * The SDK automatically extracts the organization ID from the DSN, if needed. With this option, you can override it.
+   * The SDK tries to automatically extract the organization ID from the DSN. With this option, you can override it.
    */
-  orgId?: string;
+  orgId?: `${number}`;
 
   /**
    * Function to compute tracing sample rate dynamically and filter unwanted traces.
