@@ -1,8 +1,9 @@
-import { Client, Integration, Options, ReportDialogOptions, getClient } from '@sentry/core';
+import type { Client, Integration, Options, ReportDialogOptions } from '@sentry/core';
 import {
   consoleSandbox,
   dedupeIntegration,
   functionToStringIntegration,
+  getClient,
   getCurrentScope,
   getIntegrationsToSetup,
   getLocationHref,

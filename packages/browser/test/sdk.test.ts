@@ -158,7 +158,7 @@ describe('init', () => {
 
       expect(consoleErrorSpy).toBeCalledTimes(1);
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '[Sentry] You cannot run Sentry this way in a browser extension, check: https://docs.sentry.io/platforms/javascript/best-practices/browser-extensions/',
+        '[Sentry] You cannot use Sentry.init() in a browser extension, see: https://docs.sentry.io/platforms/javascript/best-practices/browser-extensions/',
       );
     });
 
@@ -171,7 +171,7 @@ describe('init', () => {
 
       expect(consoleErrorSpy).toBeCalledTimes(1);
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '[Sentry] You cannot run Sentry this way in a browser extension, check: https://docs.sentry.io/platforms/javascript/best-practices/browser-extensions/',
+        '[Sentry] You cannot use Sentry.init() in a browser extension, see: https://docs.sentry.io/platforms/javascript/best-practices/browser-extensions/',
       );
     });
 
