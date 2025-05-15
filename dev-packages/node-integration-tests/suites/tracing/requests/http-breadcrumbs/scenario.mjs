@@ -9,6 +9,8 @@ async function run() {
   await makeHttpRequest(`${process.env.SERVER_URL}/api/v2`);
   await makeHttpRequest(`${process.env.SERVER_URL}/api/v3`);
 
+  await Sentry.suppressTracing(() => makeHttpRequest(`${process.env.SERVER_URL}/api/v4`));
+
   Sentry.captureException(new Error('foo'));
 }
 
