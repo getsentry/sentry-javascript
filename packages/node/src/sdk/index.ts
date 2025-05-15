@@ -1,4 +1,4 @@
-import type { Integration, Options } from '@sentry/core';
+import { Integration, Options, rewriteFramesIntegration } from '@sentry/core';
 import {
   consoleIntegration,
   consoleSandbox,
@@ -63,6 +63,9 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
     // Global Handlers
     onUncaughtExceptionIntegration(),
     onUnhandledRejectionIntegration(),
+    rewriteFramesIntegration({
+      root: process.cwd(),
+    }),
     // Event Info
     contextLinesIntegration(),
     localVariablesIntegration(),
