@@ -55,6 +55,6 @@ test('Multiple OnEvent decorators', async () => {
   const firstTx = await firstTxPromise;
   const secondTx = await secondTxPromise;
 
-  expect(firstTx).toBeDefined();
-  expect(secondTx).toBeDefined();
+  expect(firstTx.tags).toMatchObject({ payload: { data: 'test-first' } });
+  expect(secondTx.tags).toMatchObject({ payload: { data: 'test-second' } });
 });
