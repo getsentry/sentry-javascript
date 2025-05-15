@@ -1,4 +1,4 @@
-import { Integration, Options, rewriteFramesIntegration } from '@sentry/core';
+import type { Integration, Options } from '@sentry/core';
 import {
   consoleIntegration,
   consoleSandbox,
@@ -11,6 +11,7 @@ import {
   logger,
   propagationContextFromHeaders,
   requestDataIntegration,
+  rewriteFramesIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
 import {
