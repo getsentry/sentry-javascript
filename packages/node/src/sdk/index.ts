@@ -64,15 +64,16 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
     // Global Handlers
     onUncaughtExceptionIntegration(),
     onUnhandledRejectionIntegration(),
-    rewriteFramesIntegration({
-      root: process.cwd(),
-    }),
     // Event Info
     contextLinesIntegration(),
     localVariablesIntegration(),
     nodeContextIntegration(),
     childProcessIntegration(),
     processSessionIntegration(),
+    // This has to run after the other integrations, because it rewrites the frames
+    rewriteFramesIntegration({
+      root: process.cwd(),
+    }),
     ...getCjsOnlyIntegrations(),
   ];
 }
