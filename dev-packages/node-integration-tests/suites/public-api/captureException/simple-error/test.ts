@@ -19,7 +19,11 @@ test('should capture a simple error with message', async () => {
                 handled: true,
               },
               stacktrace: {
-                frames: expect.any(Array),
+                frames: expect.arrayContaining([
+                  expect.objectContaining({
+                    filename: 'app:///suites/public-api/captureException/simple-error/scenario.ts',
+                  }),
+                ]),
               },
             },
           ],
