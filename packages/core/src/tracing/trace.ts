@@ -16,9 +16,10 @@ import { hasSpansEnabled } from '../utils/hasSpansEnabled';
 import { parseSampleRate } from '../utils/parseSampleRate';
 import { _getSpanForScope, _setSpanForScope } from '../utils/spanOnScope';
 import { addChildSpanToSpan, getRootSpan, spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
+import { baggageHeaderToDynamicSamplingContext } from '../utils-hoist/baggage';
 import { logger } from '../utils-hoist/logger';
 import { generateTraceId } from '../utils-hoist/propagationContext';
-import { propagationContextFromHeaders } from '../utils-hoist/tracing';
+import { propagationContextFromHeaders, shouldContinueTrace } from '../utils-hoist/tracing';
 import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanStart } from './logSpans';
 import { sampleSpan } from './sampling';
@@ -215,6 +216,12 @@ export const continueTrace = <V>(
   }
 
   const { sentryTrace, baggage } = options;
+
+  const incomingDsc = baggageHeaderToDynamicSamplingContext(baggage);
+
+  if (shouldContinueTrace(getClient(), incomingDsc?.org_id)) {
+    return startNewTrace(callback);
+  }
 
   return withScope(scope => {
     const propagationContext = propagationContextFromHeaders(sentryTrace, baggage);
