@@ -137,13 +137,15 @@ export function generateIteratee({
       }
     } else {
       if (isWindowsFrame || startsWithSlash) {
+        const abs_path = frame.filename;
         const filename = isWindowsFrame
-          ? frame.filename
+          ? abs_path
               .replace(/^[a-zA-Z]:/, '') // remove Windows-style prefix
               .replace(/\\/g, '/') // replace all `\\` instances with `/`
-          : frame.filename;
+          : abs_path;
         const base = root ? relative(root, filename) : basename(filename);
         frame.filename = `${prefix}${base}`;
+        frame.abs_path = abs_path;
       }
     }
 

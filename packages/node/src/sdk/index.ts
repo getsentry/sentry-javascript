@@ -73,6 +73,7 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
     // This has to run after the other integrations, because it rewrites the frames
     rewriteFramesIntegration({
       root: process.cwd(),
+      prefix: '',
     }),
     ...getCjsOnlyIntegrations(),
   ];

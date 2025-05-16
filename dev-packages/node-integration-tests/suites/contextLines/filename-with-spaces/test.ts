@@ -18,7 +18,8 @@ describe('ContextLines integration in ESM', () => {
                 stacktrace: {
                   frames: expect.arrayContaining([
                     {
-                      filename: 'app:///suites/contextLines/filename-with-spaces/scenario with space.mjs',
+                      filename: '/suites/contextLines/filename-with-spaces/scenario with space.mjs',
+                      abs_path: expect.stringContaining('/dev-packages/node-integration-tests/suites/contextLines/filename-with-spaces/scenario with space.mjs'),
                       context_line: "Sentry.captureException(new Error('Test Error'));",
                       pre_context: ["import * as Sentry from '@sentry/node';", ''],
                       post_context: ['', '// some more post context'],
@@ -54,7 +55,8 @@ describe('ContextLines integration in CJS', () => {
                 stacktrace: {
                   frames: expect.arrayContaining([
                     {
-                      filename: 'app:///suites/contextLines/filename-with-spaces/scenario with space.cjs',
+                      filename: '/suites/contextLines/filename-with-spaces/scenario with space.cjs',
+                      abs_path: expect.stringContaining('/dev-packages/node-integration-tests/suites/contextLines/filename-with-spaces/scenario with space.cjs'),
                       context_line: "Sentry.captureException(new Error('Test Error'));",
                       pre_context: [
                         '',

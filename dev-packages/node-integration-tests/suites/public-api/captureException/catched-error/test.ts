@@ -21,7 +21,8 @@ test('should work inside catch block', async () => {
               stacktrace: {
                 frames: expect.arrayContaining([
                   expect.objectContaining({
-                    filename: 'app:///suites/public-api/captureException/catched-error/scenario.ts',
+                    filename: '/suites/public-api/captureException/catched-error/scenario.ts',
+                    abs_path: expect.stringContaining('/dev-packages/node-integration-tests/suites/public-api/captureException/catched-error/scenario.ts'),
                     context_line: "  throw new Error('catched_error');",
                     pre_context: [
                       'Sentry.init({',
