@@ -1,7 +1,11 @@
+import type { Client } from '../client';
+import { DEBUG_BUILD } from '../debug-build';
+import { deriveOrgIdFromClient } from '../tracing/utils';
 import type { DynamicSamplingContext } from '../types-hoist/envelope';
 import type { PropagationContext } from '../types-hoist/tracing';
 import type { TraceparentData } from '../types-hoist/transaction';
 import { parseSampleRate } from '../utils/parseSampleRate';
+import { logger } from '../utils-hoist/logger';
 import { baggageHeaderToDynamicSamplingContext } from './baggage';
 import { generateSpanId, generateTraceId } from './propagationContext';
 
@@ -123,4 +127,41 @@ function getSampleRandFromTraceparentAndDsc(
     // If nothing applies, return a random sample rand.
     return Math.random();
   }
+}
+
+/**
+ * Determines whether a new trace should be continued based on the provided client and baggage org ID.
+ * If the trace should not be continued, a new trace will be started.
+ *
+ * The result is dependent on the `strictTraceContinuation` option in the client.
+ * See https://develop.sentry.dev/sdk/telemetry/traces/#stricttracecontinuation
+ */
+export function shouldContinueTrace(client: Client | undefined, baggageOrgId?: string): boolean {
+  const sdkOptionOrgId = deriveOrgIdFromClient(client);
+
+  // Case: baggage org ID and SDK org ID don't match - always start new trace
+  if (baggageOrgId && sdkOptionOrgId && baggageOrgId !== sdkOptionOrgId) {
+    DEBUG_BUILD &&
+      logger.info(
+        `Starting a new trace because org IDs don't match (incoming baggage: ${baggageOrgId}, SDK options: ${sdkOptionOrgId})`,
+      );
+    return false;
+  }
+
+  const strictTraceContinuation = client?.getOptions()?.strictTraceContinuation || false; // default for `strictTraceContinuation` is `false` todo(v10): set default to `true`
+
+  if (strictTraceContinuation) {
+    // With strict continuation enabled, start new trace if:
+    // - Baggage has org ID but SDK doesn't have one
+    // - SDK has org ID but baggage doesn't have one
+    if ((baggageOrgId && !sdkOptionOrgId) || (!baggageOrgId && sdkOptionOrgId)) {
+      DEBUG_BUILD &&
+        logger.info(
+          `Starting a new trace because strict trace continuation is enabled and one org ID is missing (incoming baggage: ${baggageOrgId}, SDK options: ${sdkOptionOrgId})`,
+        );
+      return false;
+    }
+  }
+
+  return true;
 }

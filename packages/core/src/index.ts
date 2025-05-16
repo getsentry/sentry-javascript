@@ -216,6 +216,7 @@ export {
   extractTraceparentData,
   generateSentryTraceHeader,
   propagationContextFromHeaders,
+  shouldContinueTrace,
 } from './utils-hoist/tracing';
 export { getSDKSource, isBrowserBundle } from './utils-hoist/env';
 export type { SdkSource } from './utils-hoist/env';

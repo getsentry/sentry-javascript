@@ -19,7 +19,7 @@ import { addChildSpanToSpan, getRootSpan, spanIsSampled, spanTimeInputToSeconds,
 import { baggageHeaderToDynamicSamplingContext } from '../utils-hoist/baggage';
 import { logger } from '../utils-hoist/logger';
 import { generateTraceId } from '../utils-hoist/propagationContext';
-import { propagationContextFromHeaders } from '../utils-hoist/tracing';
+import { propagationContextFromHeaders, shouldContinueTrace } from '../utils-hoist/tracing';
 import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanStart } from './logSpans';
 import { sampleSpan } from './sampling';
@@ -216,41 +216,10 @@ export const continueTrace = <V>(
   }
 
   const { sentryTrace, baggage } = options;
-  const client = getClient();
-
-  const clientOptions = client?.getOptions();
-  const strictTraceContinuation = clientOptions?.strictTraceContinuation || false; // default for `strictTraceContinuation` is `false` todo(v10): set default to `true`
 
   const incomingDsc = baggageHeaderToDynamicSamplingContext(baggage);
-  const baggageOrgId = incomingDsc?.org_id;
 
-  const sdkOrgId = deriveOrgIdFromClient(client);
-
-  const shouldStartNewTrace = (): boolean => {
-    // Case: baggage org ID and SDK org ID don't match - always start new trace
-    if (baggageOrgId && sdkOrgId && baggageOrgId !== sdkOrgId) {
-      DEBUG_BUILD &&
-        logger.info(`Starting a new trace because org IDs don't match (incoming: ${baggageOrgId}, sdk: ${sdkOrgId})`);
-      return true;
-    }
-
-    if (strictTraceContinuation) {
-      // With strict continuation enabled, start new trace if:
-      // - Baggage has org ID but SDK doesn't have one
-      // - SDK has org ID but baggage doesn't have one
-      if ((baggageOrgId && !sdkOrgId) || (!baggageOrgId && sdkOrgId)) {
-        DEBUG_BUILD &&
-          logger.info(
-            `Starting a new trace because strict trace continuation is enabled and one org ID is missing (incoming: ${baggageOrgId}, sdk: ${sdkOrgId})`,
-          );
-        return true;
-      }
-    }
-
-    return false;
-  };
-
-  if (shouldStartNewTrace()) {
+  if (shouldContinueTrace(getClient(), incomingDsc?.org_id)) {
     return startNewTrace(callback);
   }
 
