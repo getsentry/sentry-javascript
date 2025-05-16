@@ -15,9 +15,11 @@ import {
   parseBaggageHeader,
   propagationContextFromHeaders,
   SENTRY_BAGGAGE_KEY_PREFIX,
+  shouldContinueTrace,
   spanToJSON,
   stringMatchesSomePattern,
 } from '@sentry/core';
+import { baggageHeaderToDynamicSamplingContext } from '@sentry/core/src';
 import { SENTRY_BAGGAGE_HEADER, SENTRY_TRACE_HEADER, SENTRY_TRACE_STATE_URL } from './constants';
 import { DEBUG_BUILD } from './debug-build';
 import { getScopesFromContext, setScopesOnContext } from './utils/contextData';
@@ -210,10 +212,11 @@ function getContextWithRemoteActiveSpan(
   const propagationContext = propagationContextFromHeaders(sentryTrace, baggage);
 
   const { traceId, parentSpanId, sampled, dsc } = propagationContext;
+  const incomingDsc = baggageHeaderToDynamicSamplingContext(baggage);
 
   // We only want to set the virtual span if we are continuing a concrete trace
   // Otherwise, we ignore the incoming trace here, e.g. if we have no trace headers
-  if (!parentSpanId) {
+  if (!parentSpanId || !shouldContinueTrace(getClient(), incomingDsc?.org_id)) {
     return ctx;
   }
 

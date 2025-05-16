@@ -15,8 +15,9 @@ import {
   baggageHeaderToDynamicSamplingContext,
   dynamicSamplingContextToSentryBaggageHeader,
 } from '../utils-hoist/baggage';
+import { deriveOrgIdFromClient } from '../utils-hoist/dsn';
 import { addNonEnumerableProperty } from '../utils-hoist/object';
-import { deriveOrgIdFromClient, getCapturedScopesOnSpan } from './utils';
+import { getCapturedScopesOnSpan } from './utils';
 
 /**
  * If you change this value, also update the terser plugin config to

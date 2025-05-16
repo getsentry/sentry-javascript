@@ -26,7 +26,7 @@ import { sampleSpan } from './sampling';
 import { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
 import { SentrySpan } from './sentrySpan';
 import { SPAN_STATUS_ERROR } from './spanstatus';
-import { deriveOrgIdFromClient, setCapturedScopesOnSpan } from './utils';
+import { setCapturedScopesOnSpan } from './utils';
 
 const SUPPRESS_TRACING_KEY = '__SENTRY_SUPPRESS_TRACING__';
 
