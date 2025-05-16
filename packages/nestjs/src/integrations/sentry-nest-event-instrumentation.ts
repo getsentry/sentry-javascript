@@ -85,7 +85,7 @@ export class SentryNestEventInstrumentation extends InstrumentationBase {
             // from the reflector metadata as there is no information during execution which event triggered it
             if (Reflect.getMetadataKeys(descriptor.value).includes('EVENT_LISTENER_METADATA')) {
               const eventData = Reflect.getMetadata('EVENT_LISTENER_METADATA', descriptor.value);
-              if (Array.isArray(eventData) && eventData.length > 0) {
+              if (Array.isArray(eventData)) {
                 eventName = eventData
                   .map((data: unknown) => {
                     if (data && typeof data === 'object' && 'event' in data && data.event) {
