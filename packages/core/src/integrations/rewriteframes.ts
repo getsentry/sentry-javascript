@@ -54,7 +54,7 @@ interface RewriteFramesOptions {
  */
 export const rewriteFramesIntegration = defineIntegration((options: RewriteFramesOptions = {}) => {
   const root = options.root;
-  const prefix = options.prefix || 'app:///';
+  const prefix = options.prefix ?? 'app:///';
 
   const isBrowser = 'window' in GLOBAL_OBJ && !!GLOBAL_OBJ.window;
 
