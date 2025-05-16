@@ -22,7 +22,9 @@ test('should capture a simple error with message', async () => {
                 frames: expect.arrayContaining([
                   expect.objectContaining({
                     filename: '/suites/public-api/captureException/simple-error/scenario.ts',
-                    abs_path: expect.stringContaining('/dev-packages/node-integration-tests/suites/public-api/captureException/simple-error/scenario.ts'),
+                    abs_path: expect.stringContaining(
+                      '/dev-packages/node-integration-tests/suites/public-api/captureException/simple-error/scenario.ts',
+                    ),
                   }),
                 ]),
               },
