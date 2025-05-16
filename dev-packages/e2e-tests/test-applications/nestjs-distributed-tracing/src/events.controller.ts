@@ -11,4 +11,11 @@ export class EventsController {
 
     return { message: 'Events emitted' };
   }
+
+  @Get('emit-multiple')
+  async emitMultipleEvents() {
+    await this.eventsService.emitMultipleEvents();
+
+    return { message: 'Events emitted' };
+  }
 }
