@@ -10,7 +10,7 @@ function _lowQualityTransactionsFilterIntegration(options: NodeOptions): {
   name: string;
   processEvent: (event: Event, hint: EventHint, client: Client) => Event | null;
 } {
-  const matchedRegexes = [/GET \/node_modules\//, /GET \/favicon\.ico/, /GET \/@id\//];
+  const matchedRegexes = [/GET \/node_modules\//, /GET \/favicon\.ico/, /GET \/@id\//, /GET \/__manifest\?/];
 
   return {
     name: 'LowQualityTransactionsFilter',

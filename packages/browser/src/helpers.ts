@@ -4,6 +4,7 @@ import {
   addExceptionTypeValue,
   addNonEnumerableProperty,
   captureException,
+  getLocationHref,
   getOriginalFunction,
   GLOBAL_OBJ,
   markFunctionWrapped,
@@ -174,4 +175,25 @@ export function wrap<T extends WrappableFunction, NonFunction>(
   }
 
   return sentryWrapped;
+}
+
+/**
+ * Get HTTP request data from the current page.
+ */
+export function getHttpRequestData(): { url: string; headers: Record<string, string> } {
+  // grab as much info as exists and add it to the event
+  const url = getLocationHref();
+  const { referrer } = WINDOW.document || {};
+  const { userAgent } = WINDOW.navigator || {};
+
+  const headers = {
+    ...(referrer && { Referer: referrer }),
+    ...(userAgent && { 'User-Agent': userAgent }),
+  };
+  const request = {
+    url,
+    headers,
+  };
+
+  return request;
 }

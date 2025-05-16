@@ -132,4 +132,31 @@ test.describe('servery - performance', () => {
       origin: 'auto.http.react-router',
     });
   });
+
+  test('should automatically instrument server action', async ({ page }) => {
+    const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
+      return transactionEvent.transaction === 'POST /performance/server-action.data';
+    });
+
+    await page.goto(`/performance/server-action`);
+    await page.getByRole('button', { name: 'Submit' }).click(); // this will trigger a .data request
+
+    const transaction = await txPromise;
+
+    expect(transaction?.spans?.[transaction.spans?.length - 1]).toMatchObject({
+      span_id: expect.any(String),
+      trace_id: expect.any(String),
+      data: {
+        'sentry.origin': 'auto.http.react-router',
+        'sentry.op': 'function.react-router.action',
+      },
+      description: 'Executing Server Action',
+      parent_span_id: expect.any(String),
+      start_timestamp: expect.any(Number),
+      timestamp: expect.any(Number),
+      status: 'ok',
+      op: 'function.react-router.action',
+      origin: 'auto.http.react-router',
+    });
+  });
 });

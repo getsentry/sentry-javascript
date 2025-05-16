@@ -25,6 +25,7 @@ test('Sends a transaction for a request to app router', async ({ page }) => {
       'http.status_code': 200,
       'http.target': '/server-component/parameter/1337/42',
       'otel.kind': 'SERVER',
+      'next.route': '/server-component/parameter/[...parameters]',
     }),
     op: 'http.server',
     origin: 'auto',

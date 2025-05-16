@@ -104,7 +104,7 @@ sentryTest(
             nodeId: expect.any(Number),
             node: {
               attributes: {
-                'aria-label': 'An Error in aria-label',
+                'aria-label': '** ***** ** **********',
                 class: 'btn btn-error',
                 id: 'error',
                 role: 'button',

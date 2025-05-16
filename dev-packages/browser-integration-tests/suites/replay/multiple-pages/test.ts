@@ -210,7 +210,7 @@ sentryTest(
     expect(replayEvent6).toEqual(
       getExpectedReplayEvent({
         segment_id: 6,
-        urls: ['/spa'],
+        urls: [`${TEST_HOST}/spa`],
         request: {
           url: `${TEST_HOST}/spa`,
           headers: {

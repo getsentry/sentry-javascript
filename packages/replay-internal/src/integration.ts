@@ -95,7 +95,7 @@ export class Replay implements Integration {
     networkResponseHeaders = [],
 
     mask = [],
-    maskAttributes = ['title', 'placeholder'],
+    maskAttributes = ['title', 'placeholder', 'aria-label'],
     unmask = [],
     block = [],
     unblock = [],

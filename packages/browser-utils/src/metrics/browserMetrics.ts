@@ -1,10 +1,11 @@
 /* eslint-disable max-lines */
-import type { Measurements, Span, SpanAttributes, StartSpanOptions } from '@sentry/core';
+import type { Measurements, Span, SpanAttributes, SpanAttributeValue, StartSpanOptions } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
   getActiveSpan,
   getComponentName,
   htmlTreeAsString,
+  isPrimitive,
   parseUrl,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   setMeasurement,
@@ -339,7 +340,7 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
       case 'mark':
       case 'paint':
       case 'measure': {
-        _addMeasureSpans(span, entry, startTime, duration, timeOrigin);
+        _addMeasureSpans(span, entry as PerformanceMeasure, startTime, duration, timeOrigin);
 
         // capture web vitals
         const firstHidden = getVisibilityWatcher();
@@ -421,7 +422,7 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
  */
 export function _addMeasureSpans(
   span: Span,
-  entry: PerformanceEntry,
+  entry: PerformanceMeasure,
   startTime: number,
   duration: number,
   timeOrigin: number,
@@ -448,6 +449,34 @@ export function _addMeasureSpans(
   if (measureStartTimestamp !== startTimeStamp) {
     attributes['sentry.browser.measure_happened_before_request'] = true;
     attributes['sentry.browser.measure_start_time'] = measureStartTimestamp;
+  }
+
+  // https://developer.mozilla.org/en-US/docs/Web/API/Performance/measure#detail
+  if (entry.detail) {
+    // Handle detail as an object
+    if (typeof entry.detail === 'object') {
+      for (const [key, value] of Object.entries(entry.detail)) {
+        if (value && isPrimitive(value)) {
+          attributes[`sentry.browser.measure.detail.${key}`] = value as SpanAttributeValue;
+        } else {
+          try {
+            // This is user defined so we can't guarantee it's serializable
+            attributes[`sentry.browser.measure.detail.${key}`] = JSON.stringify(value);
+          } catch {
+            // skip
+          }
+        }
+      }
+    } else if (isPrimitive(entry.detail)) {
+      attributes['sentry.browser.measure.detail'] = entry.detail as SpanAttributeValue;
+    } else {
+      // This is user defined so we can't guarantee it's serializable
+      try {
+        attributes['sentry.browser.measure.detail'] = JSON.stringify(entry.detail);
+      } catch {
+        // skip
+      }
+    }
   }
 
   // Measurements from third parties can be off, which would create invalid spans, dropping transactions in the process.

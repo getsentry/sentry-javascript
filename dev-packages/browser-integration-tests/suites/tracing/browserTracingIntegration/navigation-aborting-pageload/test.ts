@@ -40,6 +40,9 @@ sentryTest(
     expect(navigationTraceId).toBeDefined();
     expect(pageloadTraceId).not.toEqual(navigationTraceId);
 
+    expect(pageloadRequest.transaction).toEqual('/index.html');
+    expect(navigationRequest.transaction).toEqual('/sub-page');
+
     expect(pageloadRequest.contexts?.trace?.data).toMatchObject({
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
       [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
@@ -53,6 +56,18 @@ sentryTest(
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
       ['sentry.idle_span_finish_reason']: 'idleTimeout',
+    });
+    expect(pageloadRequest.request).toEqual({
+      headers: {
+        'User-Agent': expect.any(String),
+      },
+      url: 'http://sentry-test.io/index.html',
+    });
+    expect(navigationRequest.request).toEqual({
+      headers: {
+        'User-Agent': expect.any(String),
+      },
+      url: 'http://sentry-test.io/sub-page',
     });
   },
 );

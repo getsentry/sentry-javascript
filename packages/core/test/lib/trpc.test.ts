@@ -26,7 +26,7 @@ describe('trpcMiddleware', () => {
     setExtra: vi.fn(),
   };
 
-  const withScope = vi.fn(callback => {
+  const withIsolationScope = vi.fn(callback => {
     return callback(mockScope);
   });
 
@@ -38,7 +38,7 @@ describe('trpcMiddleware', () => {
     client.init();
     vi.spyOn(currentScopes, 'getClient').mockReturnValue(mockClient);
     vi.spyOn(tracing, 'startSpanManual').mockImplementation((name, callback) => callback(mockSpan, () => {}));
-    vi.spyOn(currentScopes, 'withScope').mockImplementation(withScope);
+    vi.spyOn(currentScopes, 'withIsolationScope').mockImplementation(withIsolationScope);
     vi.spyOn(exports, 'captureException').mockImplementation(() => 'mock-event-id');
   });
 
