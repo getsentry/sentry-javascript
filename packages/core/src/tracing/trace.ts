@@ -17,7 +17,6 @@ import { parseSampleRate } from '../utils/parseSampleRate';
 import { _getSpanForScope, _setSpanForScope } from '../utils/spanOnScope';
 import { addChildSpanToSpan, getRootSpan, spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
 import { baggageHeaderToDynamicSamplingContext } from '../utils-hoist/baggage';
-import { extractOrgIdFromDsnHost } from '../utils-hoist/dsn';
 import { logger } from '../utils-hoist/logger';
 import { generateTraceId } from '../utils-hoist/propagationContext';
 import { propagationContextFromHeaders } from '../utils-hoist/tracing';
@@ -27,7 +26,7 @@ import { sampleSpan } from './sampling';
 import { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
 import { SentrySpan } from './sentrySpan';
 import { SPAN_STATUS_ERROR } from './spanstatus';
-import { setCapturedScopesOnSpan } from './utils';
+import { deriveOrgIdFromClient, setCapturedScopesOnSpan } from './utils';
 
 const SUPPRESS_TRACING_KEY = '__SENTRY_SUPPRESS_TRACING__';
 
@@ -225,11 +224,7 @@ export const continueTrace = <V>(
   const incomingDsc = baggageHeaderToDynamicSamplingContext(baggage);
   const baggageOrgId = incomingDsc?.org_id;
 
-  let sdkOrgId: string | undefined;
-  const dsn = client?.getDsn();
-  if (dsn?.host) {
-    sdkOrgId = extractOrgIdFromDsnHost(dsn.host);
-  }
+  const sdkOrgId = deriveOrgIdFromClient(client);
 
   const shouldStartNewTrace = (): boolean => {
     // Case: baggage org ID and SDK org ID don't match - always start new trace

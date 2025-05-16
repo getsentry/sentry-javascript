@@ -1,5 +1,7 @@
+import type { Client } from '../client';
 import type { Scope } from '../scope';
 import type { Span } from '../types-hoist/span';
+import { extractOrgIdFromDsnHost } from '../utils-hoist/dsn';
 import { addNonEnumerableProperty } from '../utils-hoist/object';
 
 const SCOPE_ON_START_SPAN_FIELD = '_sentryScope';
@@ -26,4 +28,25 @@ export function getCapturedScopesOnSpan(span: Span): { scope?: Scope; isolationS
     scope: (span as SpanWithScopes)[SCOPE_ON_START_SPAN_FIELD],
     isolationScope: (span as SpanWithScopes)[ISOLATION_SCOPE_ON_START_SPAN_FIELD],
   };
+}
+
+/**
+ *  Returns the organization ID of the client.
+ *
+ *  The organization ID is extracted from the DSN. If the client options include a `orgId`, this will always take precedence.
+ */
+export function deriveOrgIdFromClient(client: Client | undefined): string | undefined {
+  const options = client?.getOptions();
+
+  const { host } = client?.getDsn() || {};
+
+  let org_id: string | undefined;
+
+  if (options?.orgId) {
+    org_id = String(options.orgId);
+  } else if (host) {
+    org_id = extractOrgIdFromDsnHost(host);
+  }
+
+  return org_id;
 }
