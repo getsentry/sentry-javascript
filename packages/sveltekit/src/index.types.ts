@@ -20,6 +20,10 @@ export { initCloudflareSentryHandle } from './worker';
 
 /** Initializes Sentry SvelteKit SDK */
 export declare function init(options: Options | clientSdk.BrowserOptions | serverSdk.NodeOptions): Client | undefined;
+export declare function initWithDefaultIntegrations(
+  options: Options | clientSdk.BrowserOptions | serverSdk.NodeOptions,
+  getDefaultIntegrations: (options: Options) => Integration[],
+): Client | undefined;
 
 export declare function handleErrorWithSentry<T extends HandleClientError | HandleServerError>(handleError?: T): T;
 

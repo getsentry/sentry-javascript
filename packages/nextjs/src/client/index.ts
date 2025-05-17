@@ -1,7 +1,7 @@
 import type { Client, EventProcessor, Integration } from '@sentry/core';
 import { addEventProcessor, applySdkMetadata, consoleSandbox, getGlobalScope, GLOBAL_OBJ } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/react';
-import { getDefaultIntegrations as getReactDefaultIntegrations, init as reactInit } from '@sentry/react';
+import { getDefaultIntegrations as getReactDefaultIntegrations, initWithDefaultIntegrations } from '@sentry/react';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
 import { isRedirectNavigationError } from '../common/nextNavigationErrorUtils';
@@ -43,7 +43,6 @@ export function init(options: BrowserOptions): Client | undefined {
 
   const opts = {
     environment: getVercelEnv(true) || process.env.NODE_ENV,
-    defaultIntegrations: getDefaultIntegrations(options),
     release: process.env._sentryRelease || globalWithInjectedValues._sentryRelease,
     ...options,
   } satisfies BrowserOptions;
@@ -51,7 +50,7 @@ export function init(options: BrowserOptions): Client | undefined {
   applyTunnelRouteOption(opts);
   applySdkMetadata(opts, 'nextjs', ['nextjs', 'react']);
 
-  const client = reactInit(opts);
+  const client = initWithDefaultIntegrations(opts, getDefaultIntegrations);
 
   const filterTransactions: EventProcessor = event =>
     event.type === 'transaction' && event.transaction === '/404' ? null : event;

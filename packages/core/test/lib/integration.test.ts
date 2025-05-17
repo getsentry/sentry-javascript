@@ -34,7 +34,8 @@ class MockIntegration implements Integration {
 
 type TestCase = [
   string, // test name
-  Options['defaultIntegrations'], // default integrations
+  Integration[] | undefined, // SDK-provided default intergations
+  Options['defaultIntegrations'], // user-provided defaultIntegrations
   Options['integrations'], // user-provided integrations
   Array<string | string[]>, // expected results
 ];
@@ -47,31 +48,49 @@ describe('getIntegrationsToSetup', () => {
 
     const testCases: TestCase[] = [
       // each test case is [testName, defaultIntegrations, userIntegrations, expectedResult]
-      ['no default integrations, no user integrations provided', false, undefined, []],
-      ['no default integrations, empty user-provided array', false, [], []],
-      ['no default integrations, user-provided array', false, userIntegrationsArray, ['CatchTreats']],
-      ['no default integrations, user-provided function', false, userIntegrationsFunction, ['CatchTreats']],
-      ['with default integrations, no user integrations provided', defaultIntegrations, undefined, ['ChaseSquirrels']],
-      ['with default integrations, empty user-provided array', defaultIntegrations, [], ['ChaseSquirrels']],
+      ['no default integrations, no user integrations provided', [], false, undefined, []],
+      ['no default integrations, empty user-provided array', [], false, [], []],
+      ['no default integrations, user-provided array', [], false, userIntegrationsArray, ['CatchTreats']],
+      ['no default integrations, user-provided function', [], false, userIntegrationsFunction, ['CatchTreats']],
+      [
+        'with default integrations, no user integrations provided',
+        defaultIntegrations,
+        undefined,
+        undefined,
+        ['ChaseSquirrels'],
+      ],
+      [
+        'with custom defaultIntegrations, no user integrations provided',
+        [],
+        defaultIntegrations,
+        undefined,
+        ['ChaseSquirrels'],
+      ],
+      ['with default integrations, empty user-provided array', defaultIntegrations, undefined, [], ['ChaseSquirrels']],
       [
         'with default integrations, user-provided array',
         defaultIntegrations,
+        undefined,
         userIntegrationsArray,
         ['ChaseSquirrels', 'CatchTreats'],
       ],
       [
         'with default integrations, user-provided function',
         defaultIntegrations,
+        undefined,
         userIntegrationsFunction,
         ['ChaseSquirrels', 'CatchTreats'],
       ],
     ];
 
-    test.each(testCases)('%s', (_, defaultIntegrations, userIntegrations, expected) => {
-      const integrations = getIntegrationsToSetup({
-        defaultIntegrations,
-        integrations: userIntegrations,
-      });
+    test.each(testCases)('%s', (_, sdkDefaultIntegrations, defaultIntegrations, userIntegrations, expected) => {
+      const integrations = getIntegrationsToSetup(
+        {
+          defaultIntegrations,
+          integrations: userIntegrations,
+        },
+        sdkDefaultIntegrations,
+      );
       expect(integrations.map(i => i.name)).toEqual(expected);
     });
   });
@@ -114,10 +133,11 @@ describe('getIntegrationsToSetup', () => {
     ];
 
     const testCases: TestCase[] = [
-      // each test case is [testName, defaultIntegrations, userIntegrations, expectedResult]
+      // each test case is [testName, defaultIntegrations, userDefaultIntergations, userIntegrations, expectedResult]
       [
         'duplicate default integrations',
         duplicateDefaultIntegrations,
+        undefined,
         userIntegrationsArray,
         [
           ['ChaseSquirrels', 'defaultB'],
@@ -127,6 +147,7 @@ describe('getIntegrationsToSetup', () => {
       [
         'duplicate user integrations, user-provided array',
         defaultIntegrations,
+        undefined,
         duplicateUserIntegrationsArray,
         [
           ['ChaseSquirrels', 'defaultA'],
@@ -136,6 +157,7 @@ describe('getIntegrationsToSetup', () => {
       [
         'duplicate user integrations, user-provided function with defaults first',
         defaultIntegrations,
+        undefined,
         duplicateUserIntegrationsFunctionDefaultsFirst,
         [
           ['ChaseSquirrels', 'defaultA'],
@@ -145,6 +167,7 @@ describe('getIntegrationsToSetup', () => {
       [
         'duplicate user integrations, user-provided function with defaults second',
         defaultIntegrations,
+        undefined,
         duplicateUserIntegrationsFunctionDefaultsSecond,
         [
           ['CatchTreats', 'userB'],
@@ -154,6 +177,7 @@ describe('getIntegrationsToSetup', () => {
       [
         'same integration in default and user integrations, user-provided array',
         defaultIntegrations,
+        undefined,
         userIntegrationsMatchingDefaultsArray,
         [
           ['ChaseSquirrels', 'userA'],
@@ -163,6 +187,7 @@ describe('getIntegrationsToSetup', () => {
       [
         'same integration in default and user integrations, user-provided function with defaults first',
         defaultIntegrations,
+        undefined,
         userIntegrationsMatchingDefaultsFunctionDefaultsFirst,
         [
           ['ChaseSquirrels', 'userA'],
@@ -172,6 +197,7 @@ describe('getIntegrationsToSetup', () => {
       [
         'same integration in default and user integrations, user-provided function with defaults second',
         defaultIntegrations,
+        undefined,
         userIntegrationsMatchingDefaultsFunctionDefaultsSecond,
         [
           ['ChaseSquirrels', 'userA'],
@@ -180,11 +206,13 @@ describe('getIntegrationsToSetup', () => {
       ],
     ];
 
-    test.each(testCases)('%s', (_, defaultIntegrations, userIntegrations, expected) => {
-      const integrations = getIntegrationsToSetup({
-        defaultIntegrations: defaultIntegrations,
-        integrations: userIntegrations,
-      }) as MockIntegration[];
+    test.each(testCases)('%s', (_, defaultIntegrations, _defaultIntegrations, userIntegrations, expected) => {
+      const integrations = getIntegrationsToSetup(
+        {
+          integrations: userIntegrations,
+        },
+        defaultIntegrations,
+      ) as MockIntegration[];
 
       expect(integrations.map(i => [i.name, i.tag])).toEqual(expected);
     });

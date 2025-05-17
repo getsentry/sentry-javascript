@@ -48,7 +48,6 @@ export function init(options: VercelEdgeOptions = {}): void {
   }
 
   const opts = {
-    defaultIntegrations: customDefaultIntegrations,
     release: process.env._sentryRelease || globalWithInjectedValues._sentryRelease,
     ...options,
   };

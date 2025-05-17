@@ -4,7 +4,7 @@ import type { BrowserOptions } from '@sentry/solid';
 import {
   browserTracingIntegration,
   getDefaultIntegrations as getDefaultSolidIntegrations,
-  init as initSolidSDK,
+  initWithDefaultIntegrations,
 } from '@sentry/solid';
 
 // Treeshakable guard to remove all code related to tracing
@@ -15,13 +15,12 @@ declare const __SENTRY_TRACING__: boolean;
  */
 export function init(options: BrowserOptions): Client | undefined {
   const opts = {
-    defaultIntegrations: getDefaultIntegrations(options),
     ...options,
   };
 
   applySdkMetadata(opts, 'solidstart', ['solidstart', 'solid']);
 
-  return initSolidSDK(opts);
+  return initWithDefaultIntegrations(opts, getDefaultIntegrations);
 }
 
 function getDefaultIntegrations(options: BrowserOptions): Integration[] {

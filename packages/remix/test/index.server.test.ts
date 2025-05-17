@@ -1,10 +1,10 @@
 import * as SentryNode from '@sentry/node';
-import { type Mock, afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { init } from '../src/index.server';
 
 vi.mock('@sentry/node', { spy: true });
 
-const nodeInit = SentryNode.init as Mock;
+const nodeInit = vi.spyOn(SentryNode, 'initWithDefaultIntegrations');
 
 describe('Server init()', () => {
   afterEach(() => {
@@ -39,6 +39,7 @@ describe('Server init()', () => {
           },
         },
       }),
+      expect.any(Function),
     );
   });
 
