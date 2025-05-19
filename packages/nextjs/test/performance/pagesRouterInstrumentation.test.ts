@@ -332,6 +332,7 @@ describe('pagesRouterInstrumentNavigation', () => {
             'sentry.source': expectedTransactionSource,
           },
         }),
+        { isRedirect: undefined },
       );
     },
   );
