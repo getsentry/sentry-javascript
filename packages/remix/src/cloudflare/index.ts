@@ -1,4 +1,3 @@
-import type { ServerBuild } from '@remix-run/server-runtime';
 import {
   instrumentBuild as instrumentRemixBuild,
   makeWrappedCreateRequestHandler,
@@ -15,14 +14,11 @@ export { makeWrappedCreateRequestHandler, sentryHandleError };
  * Instruments a Remix build to capture errors and performance data.
  * @param build The Remix build to instrument.
  * @returns The instrumented Remix build.
- *
- * Note: CreateRequestHandlerFunction from @shopify/remix-oxygen accepts a ServerBuild, not a function unlike the rest of the Remix ecosystem
- * That's why we accept and return a ServerBuild type here.
  */
-export const instrumentBuild = (build: ServerBuild): ServerBuild => {
+export const instrumentBuild: typeof instrumentRemixBuild = build => {
   return instrumentRemixBuild(build, {
     instrumentTracing: true,
-  }) as ServerBuild;
+  });
 };
 
 export type {

@@ -246,12 +246,9 @@ function makeWrappedRootLoader() {
   };
 }
 
-function wrapRequestHandler(
+function wrapRequestHandler<T extends ServerBuild | (() => ServerBuild | Promise<ServerBuild>)>(
   origRequestHandler: RequestHandler,
-  build:
-    | ServerBuild
-    | { build: ServerBuild }
-    | (() => ServerBuild | { build: ServerBuild } | Promise<ServerBuild | { build: ServerBuild }>),
+  build: T,
   options?: {
     instrumentTracing?: boolean;
   },
@@ -278,7 +275,7 @@ function wrapRequestHandler(
 
       // check if the build is nested under `build` key
       if ('build' in resolvedBuild) {
-        resolvedRoutes = createRoutes(resolvedBuild.build.routes);
+        resolvedRoutes = createRoutes((resolvedBuild.build as ServerBuild).routes);
       } else {
         resolvedRoutes = createRoutes(resolvedBuild.routes);
       }
@@ -407,12 +404,12 @@ function instrumentBuildCallback(
 /**
  * Instruments `remix` ServerBuild for performance tracing and error tracking.
  */
-export function instrumentBuild(
-  build: ServerBuild | (() => ServerBuild | Promise<ServerBuild>),
+export function instrumentBuild<T extends ServerBuild | (() => ServerBuild | Promise<ServerBuild>)>(
+  build: T,
   options?: {
     instrumentTracing?: boolean;
   },
-): ServerBuild | (() => ServerBuild | Promise<ServerBuild>) {
+): T {
   if (typeof build === 'function') {
     return function () {
       const resolvedBuild = build();
@@ -424,9 +421,9 @@ export function instrumentBuild(
       } else {
         return instrumentBuildCallback(resolvedBuild, options);
       }
-    };
+    } as T;
   } else {
-    return instrumentBuildCallback(build, options);
+    return instrumentBuildCallback(build, options) as T;
   }
 }
 
