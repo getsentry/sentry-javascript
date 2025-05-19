@@ -1,3 +1,4 @@
+import commonjs from '@rollup/plugin-commonjs';
 import replace from '@rollup/plugin-replace';
 import { makeBaseNPMConfig, makeNPMConfigVariants, makeOtelLoaders } from '@sentry-internal/rollup-utils';
 import { createWorkerCodeBuilder } from './rollup.anr-worker.config.mjs';
@@ -27,6 +28,7 @@ export default [
           preserveModules: true,
         },
         plugins: [
+          commonjs(),
           replace({
             delimiters: ['###', '###'],
             // removes some rollup warnings
