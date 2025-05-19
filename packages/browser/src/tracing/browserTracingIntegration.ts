@@ -328,7 +328,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
 
   let lastClickTimestamp: number | undefined;
 
-  if (detectRedirects) {
+  if (detectRedirects && optionalWindowDocument) {
     addEventListener('click', () => (lastClickTimestamp = timestampInSeconds()), { capture: true, passive: true });
   }
 
