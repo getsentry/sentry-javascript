@@ -32,17 +32,19 @@ SOFTWARE.
 */
 
 /* eslint-disable @typescript-eslint/explicit-member-accessibility */
-'use strict';
-const dc = require('node:diagnostics_channel');
-const { context, trace, SpanStatusCode, propagation, diag } = require('@opentelemetry/api');
-const { getRPCMetadata, RPCType } = require('@opentelemetry/core');
-const {
-  ATTR_HTTP_ROUTE,
-  ATTR_HTTP_RESPONSE_STATUS_CODE,
+/* eslint-disable jsdoc/require-jsdoc */
+/* eslint-disable max-lines */
+/* eslint-disable no-param-reassign */
+import dc from 'node:diagnostics_channel';
+import { context, propagation,SpanStatusCode, trace } from '@opentelemetry/api';
+import { getRPCMetadata, RPCType } from '@opentelemetry/core';
+import { InstrumentationBase } from '@opentelemetry/instrumentation';
+import {
   ATTR_HTTP_REQUEST_METHOD,
+  ATTR_HTTP_RESPONSE_STATUS_CODE,
+  ATTR_HTTP_ROUTE,
   ATTR_SERVICE_NAME,
-} = require('@opentelemetry/semantic-conventions');
-const { InstrumentationBase } = require('@opentelemetry/instrumentation');
+} from '@opentelemetry/semantic-conventions';
 
 // SENTRY VENDOR NOTE
 // Instead of using the package.json file, we hard code the package name and version here.
@@ -82,7 +84,7 @@ const kAddHookOriginal = Symbol('fastify otel addhook original');
 const kSetNotFoundOriginal = Symbol('fastify otel setnotfound original');
 const kIgnorePaths = Symbol('fastify otel ignore path');
 
-class FastifyOtelInstrumentation extends InstrumentationBase {
+export class FastifyOtelInstrumentation extends InstrumentationBase {
   constructor(config) {
     super(PACKAGE_NAME, PACKAGE_VERSION, config);
     this.servername = config?.servername ?? process.env.OTEL_SERVICE_NAME ?? 'fastify';
@@ -488,6 +490,3 @@ class FastifyOtelInstrumentation extends InstrumentationBase {
     }
   }
 }
-
-module.exports = FastifyOtelInstrumentation;
-module.exports.FastifyOtelInstrumentation = FastifyOtelInstrumentation;
