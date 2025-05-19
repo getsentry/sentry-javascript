@@ -432,11 +432,7 @@ export function instrumentBuild(
 
 export const makeWrappedCreateRequestHandler = (options?: { instrumentTracing?: boolean }) =>
   function (origCreateRequestHandler: CreateRequestHandlerFunction): CreateRequestHandlerFunction {
-    return function (
-      this: unknown,
-      build: ServerBuild | (() => ServerBuild | Promise<ServerBuild>),
-      ...args: unknown[]
-    ): RequestHandler {
+    return function (this: unknown, build, ...args: unknown[]): RequestHandler {
       const newBuild = instrumentBuild(build, options);
       const requestHandler = origCreateRequestHandler.call(this, newBuild, ...args);
 
