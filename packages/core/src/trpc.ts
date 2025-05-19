@@ -1,4 +1,4 @@
-import { getClient, withScope } from './currentScopes';
+import { getClient, withIsolationScope } from './currentScopes';
 import { captureException } from './exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from './semanticAttributes';
 import { startSpanManual } from './tracing';
@@ -76,7 +76,7 @@ export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
       }
     }
 
-    return withScope(scope => {
+    return withIsolationScope(scope => {
       scope.setContext('trpc', trpcContext);
       return startSpanManual(
         {

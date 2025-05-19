@@ -25,6 +25,7 @@ export type DynamicSamplingContext = {
   replay_id?: string;
   sampled?: string;
   sample_rand?: string;
+  org_id?: string;
 };
 
 // https://github.com/getsentry/relay/blob/311b237cd4471042352fa45e7a0824b8995f216f/relay-server/src/envelope.rs#L154

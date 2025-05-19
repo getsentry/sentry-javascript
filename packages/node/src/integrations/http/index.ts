@@ -91,6 +91,22 @@ interface HttpOptions {
   ignoreIncomingRequestBody?: (url: string, request: RequestOptions) => boolean;
 
   /**
+   * Controls the maximum size of incoming HTTP request bodies attached to events.
+   *
+   * Available options:
+   * - 'none': No request bodies will be attached
+   * - 'small': Request bodies up to 1,000 bytes will be attached
+   * - 'medium': Request bodies up to 10,000 bytes will be attached (default)
+   * - 'always': Request bodies will always be attached
+   *
+   * Note that even with 'always' setting, bodies exceeding 1MB will never be attached
+   * for performance and security reasons.
+   *
+   * @default 'medium'
+   */
+  maxIncomingRequestBodySize?: 'none' | 'small' | 'medium' | 'always';
+
+  /**
    * If true, do not generate spans for incoming requests at all.
    * This is used by Remix to avoid generating spans for incoming requests, as it generates its own spans.
    */

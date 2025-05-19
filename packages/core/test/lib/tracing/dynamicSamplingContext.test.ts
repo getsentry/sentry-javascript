@@ -5,8 +5,9 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCurrentClient,
 } from '../../../src';
+import { DEFAULT_ENVIRONMENT } from '../../../src/constants';
 import { getDynamicSamplingContextFromSpan, SentrySpan, startInactiveSpan } from '../../../src/tracing';
-import { freezeDscOnSpan } from '../../../src/tracing/dynamicSamplingContext';
+import { freezeDscOnSpan, getDynamicSamplingContextFromClient } from '../../../src/tracing/dynamicSamplingContext';
 import type { Span, SpanContextData } from '../../../src/types-hoist/span';
 import type { TransactionSource } from '../../../src/types-hoist/transaction';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
@@ -72,6 +73,7 @@ describe('getDynamicSamplingContextFromSpan', () => {
 
     expect(dynamicSamplingContext).toStrictEqual({
       public_key: undefined,
+      org_id: undefined,
       release: '1.0.1',
       environment: 'production',
       sampled: 'true',
@@ -91,6 +93,7 @@ describe('getDynamicSamplingContextFromSpan', () => {
 
     expect(dynamicSamplingContext).toStrictEqual({
       public_key: undefined,
+      org_id: undefined,
       release: '1.0.1',
       environment: 'production',
       sampled: 'true',
@@ -115,6 +118,7 @@ describe('getDynamicSamplingContextFromSpan', () => {
 
     expect(dynamicSamplingContext).toStrictEqual({
       public_key: undefined,
+      org_id: undefined,
       release: '1.0.1',
       environment: 'production',
       sampled: 'true',
@@ -171,10 +175,136 @@ describe('getDynamicSamplingContextFromSpan', () => {
 
     expect(dynamicSamplingContext).toStrictEqual({
       public_key: undefined,
+      org_id: undefined,
       release: '1.0.1',
       environment: 'production',
       trace_id: expect.stringMatching(/^[a-f0-9]{32}$/),
       transaction: 'tx',
     });
+  });
+});
+
+describe('getDynamicSamplingContextFromClient', () => {
+  const TRACE_ID = '4b25bc58f14243d8b208d1e22a054164';
+  let client: TestClient;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('creates DSC with basic client information', () => {
+    client = new TestClient(
+      getDefaultTestClientOptions({
+        release: '1.0.0',
+        environment: 'test-env',
+        dsn: 'https://public@sentry.example.com/1',
+      }),
+    );
+
+    const dsc = getDynamicSamplingContextFromClient(TRACE_ID, client);
+
+    expect(dsc).toEqual({
+      trace_id: TRACE_ID,
+      release: '1.0.0',
+      environment: 'test-env',
+      public_key: 'public',
+      org_id: undefined,
+    });
+  });
+
+  it('uses DEFAULT_ENVIRONMENT when environment is not specified', () => {
+    client = new TestClient(
+      getDefaultTestClientOptions({
+        release: '1.0.0',
+        dsn: 'https://public@sentry.example.com/1',
+      }),
+    );
+
+    const dsc = getDynamicSamplingContextFromClient(TRACE_ID, client);
+
+    expect(dsc.environment).toBe(DEFAULT_ENVIRONMENT);
+  });
+
+  it('uses orgId from options when specified', () => {
+    client = new TestClient(
+      getDefaultTestClientOptions({
+        orgId: '00222111',
+        dsn: 'https://public@sentry.example.com/1',
+      }),
+    );
+
+    const dsc = getDynamicSamplingContextFromClient(TRACE_ID, client);
+
+    expect(dsc.org_id).toBe('00222111');
+  });
+
+  it('infers orgId from DSN host when not explicitly provided', () => {
+    client = new TestClient(
+      getDefaultTestClientOptions({
+        dsn: 'https://public@o123456.sentry.io/1',
+      }),
+    );
+
+    const dsc = getDynamicSamplingContextFromClient(TRACE_ID, client);
+
+    expect(dsc.org_id).toBe('123456');
+  });
+
+  it('prioritizes explicit orgId over inferred from DSN', () => {
+    client = new TestClient(
+      getDefaultTestClientOptions({
+        orgId: '1234560',
+        dsn: 'https://public@my-org.sentry.io/1',
+      }),
+    );
+
+    const dsc = getDynamicSamplingContextFromClient(TRACE_ID, client);
+
+    expect(dsc.org_id).toBe('1234560');
+  });
+
+  it('handles orgId passed as number', () => {
+    client = new TestClient(
+      getDefaultTestClientOptions({
+        dsn: 'https://public@my-org.sentry.io/1',
+        orgId: 123456,
+      }),
+    );
+
+    const dsc = getDynamicSamplingContextFromClient(TRACE_ID, client);
+
+    expect(dsc.org_id).toBe('123456');
+  });
+
+  it('handles missing DSN gracefully', () => {
+    client = new TestClient(
+      getDefaultTestClientOptions({
+        release: '1.0.0',
+      }),
+    );
+
+    const dsc = getDynamicSamplingContextFromClient(TRACE_ID, client);
+
+    expect(dsc.public_key).toBeUndefined();
+    expect(dsc.org_id).toBeUndefined();
+  });
+
+  it('emits createDsc event with the generated DSC', () => {
+    client = new TestClient(
+      getDefaultTestClientOptions({
+        release: '1.0.0',
+        dsn: 'https://public@sentry.example.com/1',
+      }),
+    );
+
+    const emitSpy = vi.spyOn(client, 'emit');
+
+    const dsc = getDynamicSamplingContextFromClient(TRACE_ID, client);
+
+    expect(emitSpy).toHaveBeenCalledWith('createDsc', dsc);
   });
 });
