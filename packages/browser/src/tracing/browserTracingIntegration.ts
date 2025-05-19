@@ -521,23 +521,19 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
 
             startingUrl = undefined;
             const parsed = parseStringToURLObject(to);
-            startBrowserTracingNavigationSpan(client, {
-              name: parsed?.pathname || WINDOW.location.pathname,
-              attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
+            const activeSpan = getActiveIdleSpan(client);
+            const navigationIsRedirect = activeSpan && isRedirect(activeSpan, lastClickTimestamp);
+            startBrowserTracingNavigationSpan(
+              client,
+              {
+                name: parsed?.pathname || WINDOW.location.pathname,
+                attributes: {
+                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
+                },
               },
-            });
-
-            // We store the normalized request data on the scope, so we get the request data at time of span creation
-            // otherwise, the URL etc. may already be of the following navigation, and we'd report the wrong URL
-            getCurrentScope().setSDKProcessingMetadata({
-              normalizedRequest: {
-                ...getHttpRequestData(),
-                // Ensure to set this, so this matches the target route even if the URL has not yet been updated
-                url: to,
-              },
-            });
+              !navigationIsRedirect ? { url: to } : undefined,
+            );
           });
         }
       }
@@ -589,10 +585,27 @@ export function startBrowserTracingPageLoadSpan(
  * Manually start a navigation span.
  * This will only do something if a browser tracing integration has been setup.
  */
-export function startBrowserTracingNavigationSpan(client: Client, spanOptions: StartSpanOptions): Span | undefined {
+export function startBrowserTracingNavigationSpan(
+  client: Client,
+  spanOptions: StartSpanOptions,
+  options?: { url?: string },
+): Span | undefined {
   client.emit('startNavigationSpan', spanOptions);
 
-  getCurrentScope().setTransactionName(spanOptions.name);
+  const scope = getCurrentScope();
+  scope.setTransactionName(spanOptions.name);
+
+  // We store the normalized request data on the scope, so we get the request data at time of span creation
+  // otherwise, the URL etc. may already be of the following navigation, and we'd report the wrong URL
+  const url = options?.url;
+  if (url) {
+    scope.setSDKProcessingMetadata({
+      normalizedRequest: {
+        ...getHttpRequestData(),
+        url,
+      },
+    });
+  }
 
   return getActiveIdleSpan(client);
 }
@@ -679,24 +692,24 @@ function setActiveIdleSpan(client: Client, span: Span | undefined): void {
   addNonEnumerableProperty(client, ACTIVE_IDLE_SPAN_PROPERTY, span);
 }
 
-// The max. time in ms between two pageload/navigation spans that makes us consider the second one a redirect
-const REDIRECT_THRESHOLD = 300;
+// The max. time in seconds between two pageload/navigation spans that makes us consider the second one a redirect
+const REDIRECT_THRESHOLD = 0.3;
 
 function isRedirect(activeSpan: Span, lastClickTimestamp: number | undefined): boolean {
   const spanData = spanToJSON(activeSpan);
 
   const now = dateTimestampInSeconds();
 
-  // More than 500ms since last navigation/pageload span?
+  // More than 300ms since last navigation/pageload span?
   // --> never consider this a redirect
   const startTimestamp = spanData.start_timestamp;
   if (now - startTimestamp > REDIRECT_THRESHOLD) {
     return false;
   }
 
-  // More than 500ms since last click?
+  // A click happened in the last 300ms?
   // --> never consider this a redirect
-  if (lastClickTimestamp && now - lastClickTimestamp > REDIRECT_THRESHOLD) {
+  if (lastClickTimestamp && now - lastClickTimestamp <= REDIRECT_THRESHOLD) {
     return false;
   }
 
