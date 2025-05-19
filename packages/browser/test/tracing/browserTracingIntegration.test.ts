@@ -53,24 +53,17 @@ Object.defineProperty(global, 'history', { value: dom.window.history, writable: 
 const originalGlobalDocument = WINDOW.document;
 const originalGlobalLocation = WINDOW.location;
 const originalGlobalHistory = WINDOW.history;
-afterAll(() => {
-  // Clean up JSDom
-  Object.defineProperty(WINDOW, 'document', { value: originalGlobalDocument });
-  Object.defineProperty(WINDOW, 'location', { value: originalGlobalLocation });
-  Object.defineProperty(WINDOW, 'history', { value: originalGlobalHistory });
-});
-
-afterEach(() => {
-  vi.useRealTimers();
-  performance.clearMarks();
-});
 
 describe('browserTracingIntegration', () => {
   beforeEach(() => {
+    vi.useFakeTimers();
     getCurrentScope().clear();
     getIsolationScope().clear();
     getCurrentScope().setClient(undefined);
     document.head.innerHTML = '';
+
+    const dom = new JSDOM(undefined, { url: 'https://example.com/' });
+    Object.defineProperty(global, 'location', { value: dom.window.document.location, writable: true });
 
     // We want to suppress the "Multiple browserTracingIntegration instances are not supported." warnings
     vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -78,11 +71,17 @@ describe('browserTracingIntegration', () => {
 
   afterEach(() => {
     getActiveSpan()?.end();
+    vi.useRealTimers();
+    performance.clearMarks();
   });
 
   afterAll(() => {
     global.window.TextEncoder = oldTextEncoder;
     global.window.TextDecoder = oldTextDecoder;
+    // Clean up JSDom
+    Object.defineProperty(WINDOW, 'document', { value: originalGlobalDocument });
+    Object.defineProperty(WINDOW, 'location', { value: originalGlobalLocation });
+    Object.defineProperty(WINDOW, 'history', { value: originalGlobalHistory });
   });
 
   it('works with tracing enabled', () => {
@@ -155,7 +154,7 @@ describe('browserTracingIntegration', () => {
     expect(spanIsSampled(span!)).toBe(false);
   });
 
-  it('starts navigation when URL changes', () => {
+  it('starts navigation when URL changes after > 300ms', () => {
     const client = new BrowserClient(
       getDefaultBrowserClientOptions({
         tracesSampleRate: 1,
@@ -188,6 +187,7 @@ describe('browserTracingIntegration', () => {
     const dom = new JSDOM(undefined, { url: 'https://example.com/test' });
     Object.defineProperty(global, 'location', { value: dom.window.document.location, writable: true });
 
+    vi.advanceTimersByTime(400);
     WINDOW.history.pushState({}, '', '/test');
 
     expect(span!.isRecording()).toBe(false);
