@@ -36,7 +36,7 @@ SOFTWARE.
 /* eslint-disable max-lines */
 /* eslint-disable no-param-reassign */
 import dc from 'node:diagnostics_channel';
-import { context, propagation,SpanStatusCode, trace } from '@opentelemetry/api';
+import { context, propagation, SpanStatusCode, trace } from '@opentelemetry/api';
 import { getRPCMetadata, RPCType } from '@opentelemetry/core';
 import { InstrumentationBase } from '@opentelemetry/instrumentation';
 import {
