@@ -422,13 +422,12 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         }
       }
 
-      client.on('startNavigationSpan', startSpanOptions => {
+      client.on('startNavigationSpan', (startSpanOptions, navigationOptions) => {
         if (getClient() !== client) {
           return;
         }
 
-        const activeSpan = getActiveIdleSpan(client);
-        if (detectRedirects && activeSpan && isRedirect(activeSpan, lastClickTimestamp)) {
+        if (navigationOptions?.isRedirect) {
           DEBUG_BUILD && logger.warn('[Tracing] Detected redirect, navigation span will not be the root span.');
           _createRouteSpan(
             client,
@@ -522,7 +521,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
             startingUrl = undefined;
             const parsed = parseStringToURLObject(to);
             const activeSpan = getActiveIdleSpan(client);
-            const navigationIsRedirect = activeSpan && isRedirect(activeSpan, lastClickTimestamp);
+            const navigationIsRedirect = activeSpan && detectRedirects && isRedirect(activeSpan, lastClickTimestamp);
             startBrowserTracingNavigationSpan(
               client,
               {
@@ -532,7 +531,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
                 },
               },
-              !navigationIsRedirect ? { url: to } : undefined,
+              { url: to, isRedirect: navigationIsRedirect },
             );
           });
         }
@@ -588,17 +587,18 @@ export function startBrowserTracingPageLoadSpan(
 export function startBrowserTracingNavigationSpan(
   client: Client,
   spanOptions: StartSpanOptions,
-  options?: { url?: string },
+  options?: { url?: string; isRedirect?: boolean },
 ): Span | undefined {
-  client.emit('startNavigationSpan', spanOptions);
+  const { url, isRedirect } = options || {};
+
+  client.emit('startNavigationSpan', spanOptions, { isRedirect });
 
   const scope = getCurrentScope();
   scope.setTransactionName(spanOptions.name);
 
   // We store the normalized request data on the scope, so we get the request data at time of span creation
   // otherwise, the URL etc. may already be of the following navigation, and we'd report the wrong URL
-  const url = options?.url;
-  if (url) {
+  if (url && !isRedirect) {
     scope.setSDKProcessingMetadata({
       normalizedRequest: {
         ...getHttpRequestData(),
