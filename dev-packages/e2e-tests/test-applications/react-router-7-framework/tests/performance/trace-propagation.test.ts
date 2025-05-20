@@ -37,6 +37,6 @@ test.describe('Trace propagation', () => {
   test('should not have trace connection for prerendered pages', async ({ page }) => {
     await page.goto(`/performance/static`);
 
-    await expect(page.locator('meta[name="sentry-trace"]')).toHaveCount(0);
+    expect(page.locator('meta[name="sentry-trace"]')).toBeUndefined()
   });
 });
