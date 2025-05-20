@@ -23,6 +23,5 @@
     "paths": {
       "~/*": ["app/*"]
     },
-    "noEmit": true
   }
 }
