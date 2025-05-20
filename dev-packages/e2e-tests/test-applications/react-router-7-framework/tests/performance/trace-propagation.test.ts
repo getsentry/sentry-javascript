@@ -35,8 +35,9 @@ test.describe('Trace propagation', () => {
   });
 
   test('should not have trace connection for prerendered pages', async ({ page }) => {
-    await page.goto(`/performance/static`);
+    await page.goto('/performance/static');
 
-    expect(page.locator('meta[name="sentry-trace"]')).toBeUndefined()
+    const sentryTraceElement = await page.$('meta[name="sentry-trace"]');
+    expect(sentryTraceElement).toBeNull();
   });
 });
