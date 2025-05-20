@@ -4,7 +4,7 @@ import { createTestServer } from '../../../../utils/server';
 
 describe('outgoing fetch', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('outgoing fetch requests create breadcrumbs xxx', async () => {
+    test('outgoing fetch requests create breadcrumbs', async () => {
       const [SERVER_URL, closeTestServer] = await createTestServer().start();
 
       await createRunner()

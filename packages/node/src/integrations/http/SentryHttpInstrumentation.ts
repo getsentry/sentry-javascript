@@ -5,7 +5,7 @@ import type * as http from 'node:http';
 import type * as https from 'node:https';
 import type { EventEmitter } from 'node:stream';
 import { context, propagation } from '@opentelemetry/api';
-import { VERSION } from '@opentelemetry/core';
+import { isTracingSuppressed, VERSION } from '@opentelemetry/core';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
 import type { AggregationCounts, Client, SanitizedRequestData, Scope } from '@sentry/core';
@@ -132,11 +132,13 @@ const MAX_BODY_BYTE_LENGTH = 1024 * 1024;
  */
 export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpInstrumentationOptions> {
   private _propagationDecisionMap: LRUMap<string, boolean>;
+  private _ignoreOutgoingRequestsMap: WeakMap<http.ClientRequest, boolean>;
 
   public constructor(config: SentryHttpInstrumentationOptions = {}) {
     super(INSTRUMENTATION_NAME, VERSION, config);
 
     this._propagationDecisionMap = new LRUMap<string, boolean>(100);
+    this._ignoreOutgoingRequestsMap = new WeakMap<http.ClientRequest, boolean>();
   }
 
   /** @inheritdoc */
@@ -165,6 +167,37 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
       this._onOutgoingRequestCreated(data.request);
     }) satisfies ChannelListener;
 
+    const wrap = <T extends Http | Https>(moduleExports: T): T => {
+      if (hasRegisteredHandlers) {
+        return moduleExports;
+      }
+
+      hasRegisteredHandlers = true;
+
+      subscribe('http.server.request.start', onHttpServerRequestStart);
+      subscribe('http.client.response.finish', onHttpClientResponseFinish);
+
+      // When an error happens, we still want to have a breadcrumb
+      // In this case, `http.client.response.finish` is not triggered
+      subscribe('http.client.request.error', onHttpClientRequestError);
+
+      // NOTE: This channel only exist since Node 22
+      // Before that, outgoing requests are not patched
+      // and trace headers are not propagated, sadly.
+      if (this.getConfig().propagateTraceInOutgoingRequests) {
+        subscribe('http.client.request.created', onHttpClientRequestCreated);
+      }
+
+      return moduleExports;
+    };
+
+    const unwrap = (): void => {
+      unsubscribe('http.server.request.start', onHttpServerRequestStart);
+      unsubscribe('http.client.response.finish', onHttpClientResponseFinish);
+      unsubscribe('http.client.request.error', onHttpClientRequestError);
+      unsubscribe('http.client.request.created', onHttpClientRequestCreated);
+    };
+
     /**
      * You may be wondering why we register these diagnostics-channel listeners
      * in such a convoluted way (as InstrumentationNodeModuleDefinition...)˝,
@@ -174,64 +207,8 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
      * especially the "import-on-top" pattern of setting up ESM applications.
      */
     return [
-      new InstrumentationNodeModuleDefinition(
-        'http',
-        ['*'],
-        (moduleExports: Http): Http => {
-          if (hasRegisteredHandlers) {
-            return moduleExports;
-          }
-
-          hasRegisteredHandlers = true;
-
-          subscribe('http.server.request.start', onHttpServerRequestStart);
-          subscribe('http.client.response.finish', onHttpClientResponseFinish);
-
-          // When an error happens, we still want to have a breadcrumb
-          // In this case, `http.client.response.finish` is not triggered
-          subscribe('http.client.request.error', onHttpClientRequestError);
-
-          // NOTE: This channel only exist since Node 23
-          // Before that, outgoing requests are not patched
-          // and trace headers are not propagated, sadly.
-          if (this.getConfig().propagateTraceInOutgoingRequests) {
-            subscribe('http.client.request.created', onHttpClientRequestCreated);
-          }
-
-          return moduleExports;
-        },
-        () => {
-          unsubscribe('http.server.request.start', onHttpServerRequestStart);
-          unsubscribe('http.client.response.finish', onHttpClientResponseFinish);
-          unsubscribe('http.client.request.error', onHttpClientRequestError);
-          unsubscribe('http.client.request.created', onHttpClientRequestCreated);
-        },
-      ),
-      new InstrumentationNodeModuleDefinition(
-        'https',
-        ['*'],
-        (moduleExports: Https): Https => {
-          if (hasRegisteredHandlers) {
-            return moduleExports;
-          }
-
-          hasRegisteredHandlers = true;
-
-          subscribe('http.server.request.start', onHttpServerRequestStart);
-          subscribe('http.client.response.finish', onHttpClientResponseFinish);
-
-          // When an error happens, we still want to have a breadcrumb
-          // In this case, `http.client.response.finish` is not triggered
-          subscribe('http.client.request.error', onHttpClientRequestError);
-
-          return moduleExports;
-        },
-        () => {
-          unsubscribe('http.server.request.start', onHttpServerRequestStart);
-          unsubscribe('http.client.response.finish', onHttpClientResponseFinish);
-          unsubscribe('http.client.request.error', onHttpClientRequestError);
-        },
-      ),
+      new InstrumentationNodeModuleDefinition('http', ['*'], wrap, unwrap),
+      new InstrumentationNodeModuleDefinition('https', ['*'], wrap, unwrap),
     ];
   }
 
@@ -244,13 +221,12 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
 
     const _breadcrumbs = this.getConfig().breadcrumbs;
     const breadCrumbsEnabled = typeof _breadcrumbs === 'undefined' ? true : _breadcrumbs;
-    const options = getRequestOptions(request);
 
-    const _ignoreOutgoingRequests = this.getConfig().ignoreOutgoingRequests;
-    const shouldCreateBreadcrumb =
-      typeof _ignoreOutgoingRequests === 'function' ? !_ignoreOutgoingRequests(getRequestUrl(request), options) : true;
+    // Note: We cannot rely on the map being set by `_onOutgoingRequestCreated`, because that is not run in Node <22
+    const shouldIgnore = this._ignoreOutgoingRequestsMap.get(request) ?? this._shouldIgnoreOutgoingRequest(request);
+    this._ignoreOutgoingRequestsMap.set(request, shouldIgnore);
 
-    if (breadCrumbsEnabled && shouldCreateBreadcrumb) {
+    if (breadCrumbsEnabled && !shouldIgnore) {
       addRequestBreadcrumb(request, response);
     }
   }
@@ -260,14 +236,15 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
    * It has access to the request object, and can mutate it before the request is sent.
    */
   private _onOutgoingRequestCreated(request: http.ClientRequest): void {
-    const url = getRequestUrl(request);
-    const ignoreOutgoingRequests = this.getConfig().ignoreOutgoingRequests;
-    const shouldPropagate =
-      typeof ignoreOutgoingRequests === 'function' ? !ignoreOutgoingRequests(url, getRequestOptions(request)) : true;
+    const shouldIgnore = this._ignoreOutgoingRequestsMap.get(request) ?? this._shouldIgnoreOutgoingRequest(request);
+    this._ignoreOutgoingRequestsMap.set(request, shouldIgnore);
 
-    if (!shouldPropagate) {
+    if (shouldIgnore) {
       return;
     }
+
+    // Add trace propagation headers
+    const url = getRequestUrl(request);
 
     // Manually add the trace headers, if it applies
     // Note: We do not use `propagation.inject()` here, because our propagator relies on an active span
@@ -383,6 +360,25 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
     addNonEnumerableProperty(newEmit, '__sentry_patched__', true);
 
     server.emit = newEmit;
+  }
+
+  /**
+   * Check if the given outgoing request should be ignored.
+   */
+  private _shouldIgnoreOutgoingRequest(request: http.ClientRequest): boolean {
+    if (isTracingSuppressed(context.active())) {
+      return true;
+    }
+
+    const ignoreOutgoingRequests = this.getConfig().ignoreOutgoingRequests;
+
+    if (!ignoreOutgoingRequests) {
+      return false;
+    }
+
+    const options = getRequestOptions(request);
+    const url = getRequestUrl(request);
+    return ignoreOutgoingRequests(url, options);
   }
 }
 
