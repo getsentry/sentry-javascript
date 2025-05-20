@@ -1,9 +1,8 @@
 {
   "include": [
-    "./server.ts",
-    "./app/**/*.d.ts",
-    "./app/**/*.ts",
-    "./app/**/*.tsx"
+    "**/*.d.ts",
+    "**/*.ts",
+    "**/*.tsx"
   ],
   "compilerOptions": {
     "lib": ["DOM", "DOM.Iterable", "ES2022"],

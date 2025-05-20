@@ -28,6 +28,7 @@ type Env = {
   PUBLIC_STOREFRONT_ID: string;
   PUBLIC_CUSTOMER_ACCOUNT_API_CLIENT_ID: string;
   PUBLIC_CUSTOMER_ACCOUNT_API_URL: string;
+  PUBLIC_CHECKOUT_DOMAIN: string;
   // Add any other environment variables your app expects here
 };
 
@@ -42,7 +43,7 @@ export default {
           tunnel: `http://localhost:3031/`, // proxy server
         },
         // Need to cast to any because this is not on cloudflare
-        request: request,
+        request,
         context: executionContext,
       },
       async () => {
