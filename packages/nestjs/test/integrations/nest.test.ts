@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import * as core from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { isPatched } from '../../src/integrations/helpers';
