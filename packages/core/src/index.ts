@@ -203,9 +203,11 @@ export {
   supportsDOMError,
   supportsDOMException,
   supportsErrorEvent,
+  // eslint-disable-next-line deprecation/deprecation
   supportsFetch,
   supportsHistory,
   supportsNativeFetch,
+  // eslint-disable-next-line deprecation/deprecation
   supportsReferrerPolicy,
   supportsReportingObserver,
 } from './utils-hoist/supports';

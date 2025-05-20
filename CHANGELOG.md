@@ -10,6 +10,27 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 9.22.0
+
+### Important changes
+
+- **Revert "feat(browser): Track measure detail as span attributes" ([#16348](https://github.com/getsentry/sentry-javascript/pull/16348))**
+
+This is a revert of a feature introduced in `9.20.0` with [#16240](https://github.com/getsentry/sentry-javascript/pull/16240). This feature was causing crashes in firefox, so we are reverting it. We will re-enable this functionality in the future after fixing the crash.
+
+### Other changes
+
+- feat(deps): bump @sentry/rollup-plugin from 3.1.2 to 3.2.1 ([#15511](https://github.com/getsentry/sentry-javascript/pull/15511))
+- fix(remix): Use generic types for `ServerBuild` argument and return ([#16336](https://github.com/getsentry/sentry-javascript/pull/16336))
+
+## 9.21.0
+
+- docs: Fix v7 migration link ([#14629](https://github.com/getsentry/sentry-javascript/pull/14629))
+- feat(node): Vendor in `@fastify/otel` ([#16328](https://github.com/getsentry/sentry-javascript/pull/16328))
+- fix(nestjs): Handle multiple `OnEvent` decorators ([#16306](https://github.com/getsentry/sentry-javascript/pull/16306))
+- fix(node): Avoid creating breadcrumbs for suppressed requests ([#16285](https://github.com/getsentry/sentry-javascript/pull/16285))
+- fix(remix): Add missing `client` exports to `server` and `cloudflare` entries ([#16341](https://github.com/getsentry/sentry-javascript/pull/16341))
+
 Work in this release was contributed by @phthhieu. Thank you for your contribution!
 
 ## 9.20.0
