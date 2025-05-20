@@ -69,8 +69,11 @@ export function supportsHistory(): boolean {
  * {@link supportsFetch}.
  *
  * @returns Answer to the given question.
+ * @deprecated This is no longer used and will be removed in a future major version.
  */
-export function supportsFetch(): boolean {
+export const supportsFetch = _isFetchSupported;
+
+function _isFetchSupported(): boolean {
   if (!('fetch' in WINDOW)) {
     return false;
   }
@@ -104,7 +107,7 @@ export function supportsNativeFetch(): boolean {
     return true;
   }
 
-  if (!supportsFetch()) {
+  if (!_isFetchSupported()) {
     return false;
   }
 
@@ -153,6 +156,7 @@ export function supportsReportingObserver(): boolean {
  * {@link supportsReferrerPolicy}.
  *
  * @returns Answer to the given question.
+ * @deprecated This is no longer used and will be removed in a future major version.
  */
 export function supportsReferrerPolicy(): boolean {
   // Despite all stars in the sky saying that Edge supports old draft syntax, aka 'never', 'always', 'origin' and 'default'
@@ -160,7 +164,7 @@ export function supportsReferrerPolicy(): boolean {
   // it doesn't. And it throws an exception instead of ignoring this parameter...
   // REF: https://github.com/getsentry/raven-js/issues/1233
 
-  if (!supportsFetch()) {
+  if (!_isFetchSupported()) {
     return false;
   }
 
