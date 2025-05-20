@@ -3,7 +3,7 @@
   "sideEffects": false,
   "type": "module",
   "scripts": {
-    "build": "shopify hydrogen build --codegen",
+    "build": "shopify hydrogen build --codegen && pnpm typecheck",
     "dev": "shopify hydrogen dev --codegen",
     "preview": "shopify hydrogen preview",
     "lint": "eslint --no-error-on-unmatched-pattern --ext .js,.ts,.jsx,.tsx .",
@@ -17,6 +17,7 @@
   "dependencies": {
     "@remix-run/react": "^2.15.2",
     "@remix-run/server-runtime": "^2.15.2",
+    "@remix-run/cloudflare-pages": "^2.15.2",
     "@sentry/cloudflare": "latest || *",
     "@sentry/remix": "latest || *",
     "@sentry/vite-plugin": "^3.1.2",
