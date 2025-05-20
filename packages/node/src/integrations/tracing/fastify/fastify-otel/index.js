@@ -5,7 +5,6 @@ https://github.com/fastify/otel/releases/tag/v0.8.0
 Tried not to modify the original code too much keeping it as a JavaScript CJS module to make it easier to update when required
 
 Modifications include:
-- Removed `logger` as it created problems with TypesScript
 - Removed reading of package.json to get the version and package name
 
 MIT License
@@ -36,7 +35,7 @@ SOFTWARE.
 /* eslint-disable max-lines */
 /* eslint-disable no-param-reassign */
 import dc from 'node:diagnostics_channel';
-import { context, propagation, SpanStatusCode, trace } from '@opentelemetry/api';
+import { context, diag, propagation, SpanStatusCode, trace } from '@opentelemetry/api';
 import { getRPCMetadata, RPCType } from '@opentelemetry/core';
 import { InstrumentationBase } from '@opentelemetry/instrumentation';
 import {
@@ -89,6 +88,7 @@ export class FastifyOtelInstrumentation extends InstrumentationBase {
     super(PACKAGE_NAME, PACKAGE_VERSION, config);
     this.servername = config?.servername ?? process.env.OTEL_SERVICE_NAME ?? 'fastify';
     this[kIgnorePaths] = null;
+    this._logger = diag.createComponentLogger({ namespace: PACKAGE_NAME });
 
     if (config?.ignorePaths != null || process.env.OTEL_FASTIFY_IGNORE_PATHS != null) {
       const ignorePaths = config?.ignorePaths ?? process.env.OTEL_FASTIFY_IGNORE_PATHS;
@@ -177,9 +177,9 @@ export class FastifyOtelInstrumentation extends InstrumentationBase {
 
       instance.addHook('onRoute', function (routeOptions) {
         if (instrumentation[kIgnorePaths]?.(routeOptions) === true) {
-          // instrumentation.logger.debug(
-          //   `Ignoring route instrumentation ${routeOptions.method} ${routeOptions.url} because it matches the ignore path`,
-          // );
+          instrumentation._logger.debug(
+            `Ignoring route instrumentation ${routeOptions.method} ${routeOptions.url} because it matches the ignore path`,
+          );
           return;
         }
 
@@ -254,9 +254,9 @@ export class FastifyOtelInstrumentation extends InstrumentationBase {
             method: request.method,
           }) === true
         ) {
-          // this[kInstrumentation].logger.debug(
-          //   `Ignoring request ${request.method} ${request.url} because it matches the ignore path`,
-          // );
+          this[kInstrumentation]._logger.debug(
+            `Ignoring request ${request.method} ${request.url} because it matches the ignore path`,
+          );
           return hookDone();
         }
 
