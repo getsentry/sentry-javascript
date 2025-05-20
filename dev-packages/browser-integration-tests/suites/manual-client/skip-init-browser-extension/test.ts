@@ -23,7 +23,7 @@ sentryTest(
     if (hasDebugLogs()) {
       expect(errorLogs.length).toEqual(1);
       expect(errorLogs[0]).toEqual(
-        '[Sentry] You cannot run Sentry this way in a browser extension, check: https://docs.sentry.io/platforms/javascript/best-practices/browser-extensions/',
+        '[Sentry] You cannot use Sentry.init() in a browser extension, see: https://docs.sentry.io/platforms/javascript/best-practices/browser-extensions/',
       );
     } else {
       expect(errorLogs.length).toEqual(0);
