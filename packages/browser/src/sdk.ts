@@ -1,15 +1,12 @@
-import type { Client, Integration, Options, ReportDialogOptions } from '@sentry/core';
+import type { Client, Integration, Options } from '@sentry/core';
 import {
   consoleSandbox,
   dedupeIntegration,
   functionToStringIntegration,
-  getCurrentScope,
   getIntegrationsToSetup,
   getLocationHref,
-  getReportDialogEndpoint,
   inboundFiltersIntegration,
   initAndBind,
-  lastEventId,
   logger,
   stackParserFromStackParserOptions,
   supportsFetch,
@@ -199,72 +196,6 @@ export function init(browserOptions: BrowserOptions = {}): Client | undefined {
   };
 
   return initAndBind(BrowserClient, clientOptions);
-}
-
-/**
- * Present the user with a report dialog.
- *
- * @param options Everything is optional, we try to fetch all info need from the global scope.
- */
-export function showReportDialog(options: ReportDialogOptions = {}): void {
-  // doesn't work without a document (React Native)
-  if (!WINDOW.document) {
-    DEBUG_BUILD && logger.error('Global document not defined in showReportDialog call');
-    return;
-  }
-
-  const scope = getCurrentScope();
-  const client = scope.getClient();
-  const dsn = client?.getDsn();
-
-  if (!dsn) {
-    DEBUG_BUILD && logger.error('DSN not configured for showReportDialog call');
-    return;
-  }
-
-  if (scope) {
-    options.user = {
-      ...scope.getUser(),
-      ...options.user,
-    };
-  }
-
-  if (!options.eventId) {
-    const eventId = lastEventId();
-    if (eventId) {
-      options.eventId = eventId;
-    }
-  }
-
-  const script = WINDOW.document.createElement('script');
-  script.async = true;
-  script.crossOrigin = 'anonymous';
-  script.src = getReportDialogEndpoint(dsn, options);
-
-  if (options.onLoad) {
-    script.onload = options.onLoad;
-  }
-
-  const { onClose } = options;
-  if (onClose) {
-    const reportDialogClosedMessageHandler = (event: MessageEvent): void => {
-      if (event.data === '__sentry_reportdialog_closed__') {
-        try {
-          onClose();
-        } finally {
-          WINDOW.removeEventListener('message', reportDialogClosedMessageHandler);
-        }
-      }
-    };
-    WINDOW.addEventListener('message', reportDialogClosedMessageHandler);
-  }
-
-  const injectionPoint = WINDOW.document.head || WINDOW.document.body;
-  if (injectionPoint) {
-    injectionPoint.appendChild(script);
-  } else {
-    DEBUG_BUILD && logger.error('Not injecting report dialog. No injection point found in HTML');
-  }
 }
 
 /**
