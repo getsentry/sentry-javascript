@@ -10,7 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "pg": "8.13.1",
-    "pg-native": "3.2.0"
+    "pg": "8.16.0",
+    "pg-native": "3.5.0"
   }
 }
