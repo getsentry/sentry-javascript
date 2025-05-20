@@ -8,6 +8,7 @@ export * from '@sentry/react';
 
 export { captureRemixErrorBoundaryError } from '../client/errors';
 export { withSentry } from '../client/performance';
+export { ErrorBoundary, browserTracingIntegration } from '../client';
 export { makeWrappedCreateRequestHandler, sentryHandleError };
 
 /**
