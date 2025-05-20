@@ -3,14 +3,14 @@
   "sideEffects": false,
   "type": "module",
   "scripts": {
-    "build": "shopify hydrogen build --codegen",
+    "build": "pnpm typecheck && shopify hydrogen build --codegen",
     "dev": "shopify hydrogen dev --codegen",
     "preview": "shopify hydrogen preview",
     "lint": "eslint --no-error-on-unmatched-pattern --ext .js,.ts,.jsx,.tsx .",
     "typecheck": "tsc",
     "codegen": "shopify hydrogen codegen",
     "clean": "npx rimraf node_modules dist pnpm-lock.yaml",
-    "test:build": "pnpm install && npx playwright install && pnpm build && pnpm typecheck",
+    "test:build": "pnpm install && npx playwright install && pnpm build",
     "test:assert": "pnpm playwright test"
   },
   "prettier": "@shopify/prettier-config",
