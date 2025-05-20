@@ -71,6 +71,9 @@ describe('browserTracingIntegration', () => {
     getIsolationScope().clear();
     getCurrentScope().setClient(undefined);
     document.head.innerHTML = '';
+
+    // We want to suppress the "Multiple browserTracingIntegration instances are not supported." warnings
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
   });
 
   afterEach(() => {
