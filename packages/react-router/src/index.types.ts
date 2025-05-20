@@ -1,6 +1,6 @@
 /* eslint-disable import/export */
 
-import type { Integration, Options, StackParser } from '@sentry/core';
+import type { Client, Integration, Options, StackParser } from '@sentry/core';
 import type * as clientSdk from './client';
 import type * as serverSdk from './server';
 
@@ -10,7 +10,11 @@ export * from './server';
 export * from './vite';
 
 /** Initializes Sentry React Router SDK */
-export declare function init(options: Options | clientSdk.BrowserOptions | serverSdk.NodeOptions): void;
+export declare function init(options: Options | clientSdk.BrowserOptions | serverSdk.NodeOptions): Client | undefined;
+export declare function initWithDefaultIntegrations(
+  options: Options | clientSdk.BrowserOptions | serverSdk.NodeOptions,
+  getDefaultIntegrations: (options: Options) => Integration[],
+): Client | undefined;
 
 export declare const contextLinesIntegration: typeof clientSdk.contextLinesIntegration;
 export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;

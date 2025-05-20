@@ -60,9 +60,8 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
 }
 
 /** Exported only for tests. */
-export function applyDefaultOptions(optionsArg: BrowserOptions = {}): BrowserOptions {
+export function applyDefaultOptions(optionsArg: BrowserOptions): BrowserOptions {
   const defaultOptions: BrowserOptions = {
-    defaultIntegrations: getDefaultIntegrations(optionsArg),
     release:
       typeof __SENTRY_RELEASE__ === 'string' // This allows build tooling to find-and-replace __SENTRY_RELEASE__ to inject a release value
         ? __SENTRY_RELEASE__
@@ -72,25 +71,8 @@ export function applyDefaultOptions(optionsArg: BrowserOptions = {}): BrowserOpt
 
   return {
     ...defaultOptions,
-    ...dropTopLevelUndefinedKeys(optionsArg),
+    ...optionsArg,
   };
-}
-
-/**
- * In contrast to the regular `dropUndefinedKeys` method,
- * this one does not deep-drop keys, but only on the top level.
- */
-function dropTopLevelUndefinedKeys<T extends object>(obj: T): Partial<T> {
-  const mutatetedObj: Partial<T> = {};
-
-  for (const k of Object.getOwnPropertyNames(obj)) {
-    const key = k as keyof T;
-    if (obj[key] !== undefined) {
-      mutatetedObj[key] = obj[key];
-    }
-  }
-
-  return mutatetedObj;
 }
 
 /**
@@ -143,15 +125,34 @@ export function init(browserOptions: BrowserOptions = {}): Client | undefined {
   if (!browserOptions.skipBrowserExtensionCheck && _checkForBrowserExtension()) {
     return;
   }
+  return _init(browserOptions, getDefaultIntegrations(browserOptions));
+}
 
+/**
+ * Initialize a browser client with the provided options and default integrations getter function.
+ * This is an internal method the SDK uses under the hood to set up things - you should not use this as a user!
+ * Instead, use `init()` to initialize the SDK.
+ *
+ * @hidden
+ * @internal
+ */
+export function initWithDefaultIntegrations(
+  browserOptions: BrowserOptions = {},
+  getDefaultIntegrationsImpl: (options: BrowserOptions) => Integration[],
+): BrowserClient | undefined {
+  if (!browserOptions.skipBrowserExtensionCheck && _checkForBrowserExtension()) {
+    return;
+  }
+
+  return _init(browserOptions, getDefaultIntegrationsImpl(browserOptions));
+}
+
+/**
+ * Acutal implementation shared by init and initWithDefaultIntegrations.
+ */
+function _init(browserOptions: BrowserOptions = {}, defaultIntegrations: Integration[]): BrowserClient {
   const options = applyDefaultOptions(browserOptions);
-  const clientOptions: BrowserClientOptions = {
-    ...options,
-    stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
-    integrations: getIntegrationsToSetup(options),
-    transport: options.transport || makeFetchTransport,
-  };
-
+  const clientOptions = getClientOptions(options, defaultIntegrations);
   return initAndBind(BrowserClient, clientOptions);
 }
 
@@ -214,4 +215,13 @@ function _checkForBrowserExtension(): true | void {
 
     return true;
   }
+}
+
+function getClientOptions(options: BrowserOptions, defaultIntegrations: Integration[]): BrowserClientOptions {
+  return {
+    ...options,
+    stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
+    integrations: getIntegrationsToSetup(options, defaultIntegrations),
+    transport: options.transport || makeFetchTransport,
+  };
 }

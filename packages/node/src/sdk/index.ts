@@ -74,7 +74,7 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
 }
 
 /** Get the default integrations for the Node SDK. */
-export function getDefaultIntegrations(options: Options): Integration[] {
+export function getDefaultIntegrations(options: NodeOptions): Integration[] {
   return [
     ...getDefaultIntegrationsWithoutPerformance(),
     // We only add performance integrations if tracing is enabled
@@ -89,22 +89,27 @@ export function getDefaultIntegrations(options: Options): Integration[] {
  * Initialize Sentry for Node.
  */
 export function init(options: NodeOptions | undefined = {}): NodeClient | undefined {
-  return _init(options, getDefaultIntegrations);
+  return initWithDefaultIntegrations(options, getDefaultIntegrations);
 }
 
 /**
  * Initialize Sentry for Node, without any integrations added by default.
  */
 export function initWithoutDefaultIntegrations(options: NodeOptions | undefined = {}): NodeClient {
-  return _init(options, () => []);
+  return initWithDefaultIntegrations(options, () => []);
 }
 
 /**
- * Initialize Sentry for Node, without performance instrumentation.
+ * Initialize a Node client with the provided options and default integrations getter function.
+ * This is an internal method the SDK uses under the hood to set up things - you should not use this as a user!
+ * Instead, use `init()` to initialize the SDK.
+ *
+ * @hidden
+ * @internal
  */
-function _init(
+export function initWithDefaultIntegrations(
   _options: NodeOptions | undefined = {},
-  getDefaultIntegrationsImpl: (options: Options) => Integration[],
+  getDefaultIntegrationsImpl: (options: NodeOptions) => Integration[],
 ): NodeClient {
   const options = getClientOptions(_options, getDefaultIntegrationsImpl);
 
@@ -217,15 +222,12 @@ function getClientOptions(
     debug: envToBool(options.debug ?? process.env.SENTRY_DEBUG),
   };
 
-  const integrations = options.integrations;
-  const defaultIntegrations = options.defaultIntegrations ?? getDefaultIntegrationsImpl(mergedOptions);
+  const defaultIntegrations = getDefaultIntegrationsImpl(mergedOptions);
 
   return {
     ...mergedOptions,
-    integrations: getIntegrationsToSetup({
-      defaultIntegrations,
-      integrations,
-    }),
+    stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
+    integrations: getIntegrationsToSetup(mergedOptions, defaultIntegrations),
   };
 }
 

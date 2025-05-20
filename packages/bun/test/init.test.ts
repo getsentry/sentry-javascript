@@ -19,7 +19,6 @@ describe('init()', () => {
   let mockAutoPerformanceIntegrations: Mock<() => Integration[]>;
 
   beforeEach(() => {
-    // @ts-expect-error weird
     mockAutoPerformanceIntegrations = spyOn(sentryNode, 'getAutoPerformanceIntegrations');
   });
 

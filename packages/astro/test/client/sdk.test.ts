@@ -1,8 +1,6 @@
-import type { BrowserClient } from '@sentry/browser';
 import {
   browserTracingIntegration,
   getActiveSpan,
-  getClient,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
@@ -12,7 +10,7 @@ import * as SentryBrowser from '@sentry/browser';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { init } from '../../src/client/sdk';
 
-const browserInit = vi.spyOn(SentryBrowser, 'init');
+const browserInit = vi.spyOn(SentryBrowser, 'initWithDefaultIntegrations');
 
 describe('Sentry client SDK', () => {
   describe('init', () => {
@@ -44,6 +42,7 @@ describe('Sentry client SDK', () => {
             },
           },
         }),
+        expect.any(Function),
       );
     });
 
@@ -53,37 +52,31 @@ describe('Sentry client SDK', () => {
         ['tracesSampler', { tracesSampler: () => 1.0 }],
         ['no tracing option set', {}],
       ])('adds browserTracingIntegration if tracing is enabled via %s', (_, tracingOptions) => {
-        init({
+        const client = init({
           dsn: 'https://public@dsn.ingest.sentry.io/1337',
           ...tracingOptions,
         });
 
-        const integrationsToInit = browserInit.mock.calls[0]![0]?.defaultIntegrations;
-        const browserTracing = getClient<BrowserClient>()?.getIntegrationByName('BrowserTracing');
-
-        expect(integrationsToInit).toContainEqual(expect.objectContaining({ name: 'BrowserTracing' }));
+        const browserTracing = client?.getIntegrationByName('BrowserTracing');
         expect(browserTracing).toBeDefined();
       });
 
       it("doesn't add browserTracingIntegration if `__SENTRY_TRACING__` is set to false", () => {
         (globalThis as any).__SENTRY_TRACING__ = false;
 
-        init({
+        const client = init({
           dsn: 'https://public@dsn.ingest.sentry.io/1337',
           tracesSampleRate: 1,
         });
 
-        const integrationsToInit = browserInit.mock.calls[0]![0]?.defaultIntegrations || [];
-        const browserTracing = getClient<BrowserClient>()?.getIntegrationByName('BrowserTracing');
-
-        expect(integrationsToInit).not.toContainEqual(expect.objectContaining({ name: 'BrowserTracing' }));
+        const browserTracing = client?.getIntegrationByName('BrowserTracing');
         expect(browserTracing).toBeUndefined();
 
         delete (globalThis as any).__SENTRY_TRACING__;
       });
 
       it('Overrides the automatically default browserTracingIntegration instance with a a user-provided browserTracingIntegration instance', () => {
-        init({
+        const client = init({
           dsn: 'https://public@dsn.ingest.sentry.io/1337',
           integrations: [
             browserTracingIntegration({ finalTimeout: 10, instrumentNavigation: false, instrumentPageLoad: false }),
@@ -91,7 +84,7 @@ describe('Sentry client SDK', () => {
           tracesSampleRate: 1,
         });
 
-        const browserTracing = getClient<BrowserClient>()?.getIntegrationByName('BrowserTracing');
+        const browserTracing = client?.getIntegrationByName('BrowserTracing');
         expect(browserTracing).toBeDefined();
 
         // no active span means the settings were respected

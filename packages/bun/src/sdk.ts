@@ -14,7 +14,7 @@ import {
   contextLinesIntegration,
   getAutoPerformanceIntegrations,
   httpIntegration,
-  init as initNode,
+  initWithDefaultIntegrations,
   modulesIntegration,
   nativeNodeFetchIntegration,
   nodeContextIntegration,
@@ -109,9 +109,5 @@ export function init(userOptions: BunOptions = {}): NodeClient | undefined {
 
   options.transport = options.transport || makeFetchTransport;
 
-  if (options.defaultIntegrations === undefined) {
-    options.defaultIntegrations = getDefaultIntegrations(options);
-  }
-
-  return initNode(options);
+  return initWithDefaultIntegrations(options, getDefaultIntegrations);
 }

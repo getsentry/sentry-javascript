@@ -1,6 +1,6 @@
 import type { Integration } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
-import { type MockInstance, beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import type { HttpFunction, Request, Response } from '../../src/gcpfunction/general';
 import { wrapHttpFunction } from '../../src/gcpfunction/http';
 import { init } from '../../src/sdk';
@@ -23,8 +23,8 @@ vi.mock('@sentry/node', async () => {
   const original = (await vi.importActual('@sentry/node')) as typeof import('@sentry/node');
   return {
     ...original,
-    init: (options: unknown) => {
-      mockInit(options);
+    initWithDefaultIntegrations: (options: unknown, getDefaultIntergations: unknown) => {
+      mockInit(options, getDefaultIntergations);
     },
     startSpanManual: (...args: unknown[]) => {
       mockStartSpanManual(...args);
@@ -169,10 +169,9 @@ describe('GCPFunction', () => {
 
     await handleHttp(wrappedHandler);
 
-    const initOptions = (mockInit as unknown as MockInstance).mock.calls[0];
-    const defaultIntegrations = initOptions?.[0]?.defaultIntegrations.map((i: Integration) => i.name);
-
-    expect(defaultIntegrations).toContain('RequestData');
+    const getDefaultIntegrationsFn = mockInit.mock.calls[0]?.[1] as () => Integration[];
+    const integrationNames = getDefaultIntegrationsFn().map(i => i.name);
+    expect(integrationNames).toContain('RequestData');
 
     expect(mockScope.setSDKProcessingMetadata).toHaveBeenCalledWith({
       normalizedRequest: {

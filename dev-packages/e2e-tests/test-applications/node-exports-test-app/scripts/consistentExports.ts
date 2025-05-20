@@ -18,6 +18,7 @@ const NODE_EXPORTS_IGNORE = [
   'setNodeAsyncContextStrategy',
   'getDefaultIntegrationsWithoutPerformance',
   'initWithoutDefaultIntegrations',
+  'initWithDefaultIntegrations',
   'SentryContextManager',
   'validateOpenTelemetrySetup',
   'preloadOpenTelemetry',

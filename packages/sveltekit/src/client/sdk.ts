@@ -1,7 +1,11 @@
 import type { Client, Integration } from '@sentry/core';
 import { applySdkMetadata } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/svelte';
-import { getDefaultIntegrations as getDefaultSvelteIntegrations, init as initSvelteSdk, WINDOW } from '@sentry/svelte';
+import {
+  getDefaultIntegrations as getDefaultSvelteIntegrations,
+  initWithDefaultIntegrations,
+  WINDOW,
+} from '@sentry/svelte';
 import { browserTracingIntegration as svelteKitBrowserTracingIntegration } from './browserTracingIntegration';
 
 type WindowWithSentryFetchProxy = typeof WINDOW & {
@@ -18,7 +22,6 @@ declare const __SENTRY_TRACING__: boolean;
  */
 export function init(options: BrowserOptions): Client | undefined {
   const opts = {
-    defaultIntegrations: getDefaultIntegrations(options),
     ...options,
   };
 
@@ -28,7 +31,7 @@ export function init(options: BrowserOptions): Client | undefined {
   const actualFetch = switchToFetchProxy();
 
   // 2. Initialize the SDK which will instrument our proxy
-  const client = initSvelteSdk(opts);
+  const client = initWithDefaultIntegrations(opts, getDefaultIntegrations);
 
   // 3. Restore the original fetch now that our proxy is instrumented
   if (actualFetch) {
@@ -38,7 +41,7 @@ export function init(options: BrowserOptions): Client | undefined {
   return client;
 }
 
-function getDefaultIntegrations(options: BrowserOptions): Integration[] | undefined {
+function getDefaultIntegrations(options: BrowserOptions): Integration[] {
   // This evaluates to true unless __SENTRY_TRACING__ is text-replaced with "false",
   // in which case everything inside will get tree-shaken away
   if (typeof __SENTRY_TRACING__ === 'undefined' || __SENTRY_TRACING__) {

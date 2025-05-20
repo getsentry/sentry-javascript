@@ -44,7 +44,9 @@ export {
   init,
   getDefaultIntegrations,
   getDefaultIntegrationsWithoutPerformance,
+  // eslint-disable-next-line deprecation/deprecation
   initWithoutDefaultIntegrations,
+  initWithDefaultIntegrations,
   validateOpenTelemetrySetup,
 } from './sdk';
 export { initOpenTelemetry, preloadOpenTelemetry } from './sdk/initOtel';

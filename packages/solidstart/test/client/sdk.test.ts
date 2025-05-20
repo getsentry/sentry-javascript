@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { init as solidStartInit } from '../../src/client';
 import { solidRouterBrowserTracingIntegration } from '../../src/client/solidrouter';
 
-const browserInit = vi.spyOn(SentrySolid, 'init');
+const browserInit = vi.spyOn(SentrySolid, 'initWithDefaultIntegrations');
 
 describe('Initialize Solid Start SDK', () => {
   beforeEach(() => {
@@ -31,7 +31,7 @@ describe('Initialize Solid Start SDK', () => {
 
     expect(client).not.toBeUndefined();
     expect(browserInit).toHaveBeenCalledTimes(1);
-    expect(browserInit).toHaveBeenLastCalledWith(expect.objectContaining(expectedMetadata));
+    expect(browserInit).toHaveBeenLastCalledWith(expect.objectContaining(expectedMetadata), expect.any(Function));
   });
 });
 

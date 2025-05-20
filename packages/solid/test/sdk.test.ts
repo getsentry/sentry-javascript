@@ -3,7 +3,7 @@ import * as SentryBrowser from '@sentry/browser';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { init as solidInit } from '../src/sdk';
 
-const browserInit = vi.spyOn(SentryBrowser, 'init');
+const browserInit = vi.spyOn(SentryBrowser, 'initWithDefaultIntegrations');
 
 describe('Initialize Solid SDK', () => {
   beforeEach(() => {
@@ -27,6 +27,6 @@ describe('Initialize Solid SDK', () => {
 
     expect(client).not.toBeUndefined();
     expect(browserInit).toHaveBeenCalledTimes(1);
-    expect(browserInit).toHaveBeenLastCalledWith(expect.objectContaining(expectedMetadata));
+    expect(browserInit).toHaveBeenLastCalledWith(expect.objectContaining(expectedMetadata), expect.any(Function));
   });
 });
