@@ -42,7 +42,7 @@ export default {
           tunnel: `http://localhost:3031/`, // proxy server
         },
         // Need to cast to any because this is not on cloudflare
-        request: request as any,
+        request: request,
         context: executionContext,
       },
       async () => {
