@@ -1,5 +1,4 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import { FastifyOtelInstrumentation } from '@fastify/otel';
 import type { Instrumentation, InstrumentationConfig } from '@opentelemetry/instrumentation';
 import type { IntegrationFn, Span } from '@sentry/core';
 import {
@@ -14,6 +13,7 @@ import {
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../../debug-build';
 import { generateInstrumentOnce } from '../../../otel/instrument';
+import { FastifyOtelInstrumentation } from './fastify-otel/index';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from './types';
 import { FastifyInstrumentationV3 } from './v3/instrumentation';
 
