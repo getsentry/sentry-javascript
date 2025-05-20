@@ -6488,6 +6488,11 @@
   resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-3.3.1.tgz#baecd89396cbb4659565a4e8efe7f0a71b19262a"
   integrity sha512-5GOxGT7lZN+I8A7Vp0rWY+726FDKEw8HnFiebe51rQrMbfGfCu2Aw9uSM0nT9OG6xhV6WvGccIcCszTPs4fUZQ==
 
+"@sentry/babel-plugin-component-annotate@3.4.0":
+  version "3.4.0"
+  resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-3.4.0.tgz#f47a7652e16f84556df82cbc38f0004bca1335d1"
+  integrity sha512-tSzfc3aE7m0PM0Aj7HBDet5llH9AB9oc+tBQ8AvOqUSnWodLrNCuWeQszJ7mIBovD3figgCU3h0cvI6U5cDtsg==
+
 "@sentry/bundler-plugin-core@2.22.6":
   version "2.22.6"
   resolved "https://registry.yarnpkg.com/@sentry/bundler-plugin-core/-/bundler-plugin-core-2.22.6.tgz#a1ea1fd43700a3ece9e7db016997e79a2782b87d"
@@ -6523,6 +6528,20 @@
   dependencies:
     "@babel/core" "^7.18.5"
     "@sentry/babel-plugin-component-annotate" "3.3.1"
+    "@sentry/cli" "2.42.2"
+    dotenv "^16.3.1"
+    find-up "^5.0.0"
+    glob "^9.3.2"
+    magic-string "0.30.8"
+    unplugin "1.0.1"
+
+"@sentry/bundler-plugin-core@3.4.0":
+  version "3.4.0"
+  resolved "https://registry.yarnpkg.com/@sentry/bundler-plugin-core/-/bundler-plugin-core-3.4.0.tgz#3a3459aba94cbeb093347f5730f15df25153fd0a"
+  integrity sha512-X1Q41AsQ6xcT6hB4wYmBDBukndKM/inT4IsR7pdKLi7ICpX2Qq6lisamBAEPCgEvnLpazSFguaiC0uiwMKAdqw==
+  dependencies:
+    "@babel/core" "^7.18.5"
+    "@sentry/babel-plugin-component-annotate" "3.4.0"
     "@sentry/cli" "2.42.2"
     dotenv "^16.3.1"
     find-up "^5.0.0"
@@ -6644,12 +6663,12 @@
     "@sentry/cli-win32-i686" "2.43.0"
     "@sentry/cli-win32-x64" "2.43.0"
 
-"@sentry/rollup-plugin@3.2.4":
-  version "3.2.4"
-  resolved "https://registry.yarnpkg.com/@sentry/rollup-plugin/-/rollup-plugin-3.2.4.tgz#aa07424b3ffc582e471f9af5d933e663b7ba3ff5"
-  integrity sha512-ZWTT1mc1OiROdRbXX9zTGXvdWpHwMyPJjKsI4+sT/ohwTU3/nh8yGw6+VTxOkrsZj72+p2OcAfpO7Yv/gUP9Yg==
+"@sentry/rollup-plugin@3.4.0":
+  version "3.4.0"
+  resolved "https://registry.yarnpkg.com/@sentry/rollup-plugin/-/rollup-plugin-3.4.0.tgz#326618d6fe91a030ee4ab335e1bab35f201090b0"
+  integrity sha512-oqDcjV+aaTZZ7oOadk90KlShOYfKEEQsvbZtzHl7HPHNt5kmtTaQyWphPIDt2Z9OCK8QF5T8GLsr1MCOXJ6vqA==
   dependencies:
-    "@sentry/bundler-plugin-core" "3.2.4"
+    "@sentry/bundler-plugin-core" "3.4.0"
     unplugin "1.0.1"
 
 "@sentry/vite-plugin@2.22.6", "@sentry/vite-plugin@^2.22.6":
@@ -27105,6 +27124,7 @@ stylus@0.59.0, stylus@^0.59.0:
 
 sucrase@^3.27.0, sucrase@^3.35.0, sucrase@getsentry/sucrase#es2020-polyfills:
   version "3.36.0"
+  uid fd682f6129e507c00bb4e6319cc5d6b767e36061
   resolved "https://codeload.github.com/getsentry/sucrase/tar.gz/fd682f6129e507c00bb4e6319cc5d6b767e36061"
   dependencies:
     "@jridgewell/gen-mapping" "^0.3.2"
