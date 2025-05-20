@@ -12,6 +12,7 @@ Sentry.init({
 setInterval(() => {}, 1000);
 
 const { native } = require('pg');
+
 const { Client } = native;
 
 const client = new Client({ port: 5444, user: 'test', password: 'test', database: 'tests' });
