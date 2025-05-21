@@ -19,7 +19,7 @@ sentryTest(
     });
 
     const isEnabled = await page.evaluate(() => {
-      return !!(window as any).Sentry.isEnabled();
+      return !!(window as any).Sentry.getClient()?.getOptions().enabled;
     });
 
     expect(isInitialized).toEqual(true);
