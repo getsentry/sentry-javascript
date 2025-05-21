@@ -59,12 +59,7 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
         apply(target, thisArg, args) {
           const [err] = args;
 
-          captureException(err, {
-            mechanism: {
-              handled: false,
-              type: 'cloudflare',
-            },
-          });
+          captureException(err, { mechanism: { handled: false, type: 'cloudflare' } });
 
           return Reflect.apply(target, thisArg, args);
         },
