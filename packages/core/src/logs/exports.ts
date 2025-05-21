@@ -61,10 +61,7 @@ export function logAttributeToSerializedLogAttribute(value: unknown): Serialized
   }
 }
 
-function defaultCaptureSerializedLog(
-  client: Client,
-  serializedLog: SerializedLog,
-): void {
+function defaultCaptureSerializedLog(client: Client, serializedLog: SerializedLog): void {
   const logBuffer = _INTERNAL_getLogBuffer(client);
   if (logBuffer === undefined) {
     GLOBAL_OBJ._sentryClientToLogBufferMap?.set(client, [serializedLog]);
