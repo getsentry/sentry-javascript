@@ -1,7 +1,7 @@
 import type { Integration, Options } from '@sentry/core';
 import { applySdkMetadata } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
-import { getDefaultIntegrationsWithoutPerformance, initWithDefaultIntegrations } from '@sentry/node';
+import { getDefaultIntegrationsWithoutPerformance, initWithoutDefaultIntegrations } from '@sentry/node';
 import { googleCloudGrpcIntegration } from './integrations/google-cloud-grpc';
 import { googleCloudHttpIntegration } from './integrations/google-cloud-http';
 
@@ -33,5 +33,5 @@ export function init(options: NodeOptions = {}): NodeClient | undefined {
 
   applySdkMetadata(opts, 'google-cloud-serverless');
 
-  return initWithDefaultIntegrations(opts, getDefaultIntegrations);
+  return initWithoutDefaultIntegrations(opts, getDefaultIntegrations);
 }

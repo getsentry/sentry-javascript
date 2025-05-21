@@ -121,7 +121,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
   // https://github.com/lforst/nextjs-fork/blob/1994fd186defda77ad971c36dc3163db263c993f/packages/next/src/server/lib/patch-fetch.ts#L245
   process.env.NEXT_OTEL_FETCH_DISABLED = '1';
 
-  const client = initWithDefaultIntegrations(opts, getNextDefaultIntegrations);
+  const client = initWithoutDefaultIntegrations(opts, getNextDefaultIntegrations);
   client?.on('beforeSampling', ({ spanAttributes }, samplingDecision) => {
     // There are situations where the Next.js Node.js server forwards requests for the Edge Runtime server (e.g. in
     // middleware) and this causes spans for Sentry ingest requests to be created. These are not exempt from our tracing

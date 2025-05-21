@@ -87,15 +87,19 @@ export function getDefaultIntegrations(options: NodeOptions): Integration[] {
 /**
  * Initialize Sentry for Node.
  */
-export function init(options: NodeOptions | undefined = {}): NodeClient | undefined {
-  return initWithDefaultIntegrations(options, getDefaultIntegrations);
+export function init(options: NodeOptions = {}): NodeClient | undefined {
+  return _init(options, getDefaultIntegrations);
 }
 
 /**
  * Initialize Sentry for Node, without any integrations added by default.
+ * This allows to optionally pass a function that returns default integrations that should be used instead.
  */
-export function initWithoutDefaultIntegrations(options: NodeOptions | undefined = {}): NodeClient {
-  return initWithDefaultIntegrations(options, () => []);
+export function initWithoutDefaultIntegrations(
+  options: NodeOptions = {},
+  getDefaultIntegrationsImpl?: (options: NodeOptions) => Integration[],
+): NodeClient {
+  return _init(options, getDefaultIntegrationsImpl || (() => []));
 }
 
 /**
@@ -106,7 +110,7 @@ export function initWithoutDefaultIntegrations(options: NodeOptions | undefined 
  * @hidden
  * @internal
  */
-export function initWithDefaultIntegrations(
+function _init(
   options: NodeOptions = {},
   getDefaultIntegrationsImpl: (options: NodeOptions) => Integration[],
 ): NodeClient {

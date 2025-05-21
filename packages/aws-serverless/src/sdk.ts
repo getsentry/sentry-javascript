@@ -13,7 +13,7 @@ import {
   flush,
   getCurrentScope,
   getDefaultIntegrationsWithoutPerformance,
-  initWithDefaultIntegrations,
+  initWithoutDefaultIntegrations,
   startSpanManual,
   withScope,
 } from '@sentry/node';
@@ -82,7 +82,7 @@ export function init(options: NodeOptions = {}): NodeClient | undefined {
 
   applySdkMetadata(opts, 'aws-serverless');
 
-  return initWithDefaultIntegrations(opts, getDefaultIntegrations);
+  return initWithoutDefaultIntegrations(opts, getDefaultIntegrations);
 }
 
 /** */

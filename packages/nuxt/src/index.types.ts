@@ -12,10 +12,7 @@ export * from './index.server';
 
 // re-export colliding types
 export declare function init(options: Options | SentryNuxtClientOptions | SentryNuxtServerOptions): Client | undefined;
-export declare function initWithDefaultIntegrations(
-  options: Options | SentryNuxtClientOptions | SentryNuxtServerOptions,
-  getDefaultIntegrations: (options: Options) => Integration[],
-): Client | undefined;
+
 export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;
 export declare const contextLinesIntegration: typeof clientSdk.contextLinesIntegration;
 export declare const getDefaultIntegrations: (options: Options) => Integration[];

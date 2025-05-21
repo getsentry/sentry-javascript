@@ -3,7 +3,7 @@ import { applySdkMetadata, logger } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import {
   getDefaultIntegrations as getDefaultNodeIntegrations,
-  initWithDefaultIntegrations,
+  initWithoutDefaultIntegrations,
   isInitialized,
 } from '@sentry/node';
 import { DEBUG_BUILD } from '../utils/debug-build';
@@ -38,7 +38,7 @@ export function init(options: RemixOptions): NodeClient | undefined {
   };
   applySdkMetadata(opts, 'remix', ['remix', 'node']);
 
-  const client = initWithDefaultIntegrations(opts, getRemixDefaultIntegrations);
+  const client = initWithoutDefaultIntegrations(opts, getRemixDefaultIntegrations);
 
   instrumentServer();
 

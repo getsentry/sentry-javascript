@@ -5,7 +5,7 @@ import {
   type NodeOptions,
   getDefaultIntegrations as getDefaultNodeIntegrations,
   httpIntegration,
-  initWithDefaultIntegrations,
+  initWithoutDefaultIntegrations,
 } from '@sentry/node';
 import { DEBUG_BUILD } from '../common/debug-build';
 import type { SentryNuxtServerOptions } from '../common/types';
@@ -22,7 +22,7 @@ export function init(options: SentryNuxtServerOptions): Client | undefined {
 
   applySdkMetadata(sentryOptions, 'nuxt', ['nuxt', 'node']);
 
-  const client = initWithDefaultIntegrations(sentryOptions, getNuxtDefaultIntegrations);
+  const client = initWithoutDefaultIntegrations(sentryOptions, getNuxtDefaultIntegrations);
 
   getGlobalScope().addEventProcessor(lowQualityTransactionsFilter(options));
   getGlobalScope().addEventProcessor(clientSourceMapErrorFilter(options));

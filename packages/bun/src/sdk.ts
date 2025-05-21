@@ -8,13 +8,12 @@ import {
   linkedErrorsIntegration,
   requestDataIntegration,
 } from '@sentry/core';
-import type { NodeClient } from '@sentry/node';
+import { NodeClient, initWithoutDefaultIntegrations } from '@sentry/node';
 import {
   consoleIntegration,
   contextLinesIntegration,
   getAutoPerformanceIntegrations,
   httpIntegration,
-  initWithDefaultIntegrations,
   modulesIntegration,
   nativeNodeFetchIntegration,
   nodeContextIntegration,
@@ -109,5 +108,5 @@ export function init(userOptions: BunOptions = {}): NodeClient | undefined {
 
   options.transport = options.transport || makeFetchTransport;
 
-  return initWithDefaultIntegrations(options, getDefaultIntegrations);
+  return initWithoutDefaultIntegrations(options, getDefaultIntegrations);
 }

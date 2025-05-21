@@ -6,7 +6,7 @@ import {
   spanToJSON,
 } from '@sentry/core';
 import type { NodeClient, NodeOptions, Span } from '@sentry/node';
-import { getDefaultIntegrations as getDefaultNodeIntegrations, initWithDefaultIntegrations } from '@sentry/node';
+import { getDefaultIntegrations as getDefaultNodeIntegrations, initWithoutDefaultIntegrations } from '@sentry/node';
 import { nestIntegration } from './integrations/nest';
 
 /**
@@ -19,7 +19,7 @@ export function init(options: NodeOptions | undefined = {}): NodeClient | undefi
 
   applySdkMetadata(opts, 'nestjs');
 
-  const client = initWithDefaultIntegrations(opts, getDefaultIntegrations);
+  const client = initWithoutDefaultIntegrations(opts, getDefaultIntegrations);
 
   if (client) {
     client.on('spanStart', span => {

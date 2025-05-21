@@ -1,7 +1,7 @@
 import type { Integration } from '@sentry/core';
 import { applySdkMetadata, rewriteFramesIntegration } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
-import { getDefaultIntegrations as getDefaultNodeIntegrations, initWithDefaultIntegrations } from '@sentry/node';
+import { getDefaultIntegrations as getDefaultNodeIntegrations, initWithoutDefaultIntegrations } from '@sentry/node';
 
 /**
  * Initialize the Server-side Sentry SDK
@@ -14,7 +14,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
   applySdkMetadata(opts, 'sveltekit', ['sveltekit', 'node']);
 
-  return initWithDefaultIntegrations(opts, getDefaultIntegrations);
+  return initWithoutDefaultIntegrations(opts, getDefaultIntegrations);
 }
 
 function getDefaultIntegrations(options: NodeOptions): Integration[] {
