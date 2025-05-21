@@ -55,7 +55,7 @@ export {
   BaseClient,
 } from './client';
 export { ServerRuntimeClient } from './server-runtime-client';
-export { initAndBind, setCurrentClient } from './sdk';
+export { initAndBind, setCurrentClient, getClientOptions } from './sdk';
 export { createTransport } from './transports/base';
 export { makeOfflineTransport } from './transports/offline';
 export { makeMultiplexedTransport } from './transports/multiplexed';

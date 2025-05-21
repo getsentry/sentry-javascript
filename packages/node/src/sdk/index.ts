@@ -113,7 +113,7 @@ export function initWithDefaultIntegrations(
 ): NodeClient {
   const options = getClientOptions(_options, getDefaultIntegrationsImpl);
 
-  if (options.debug === true) {
+  if (options.debug) {
     if (DEBUG_BUILD) {
       logger.enable();
     } else {

@@ -1,4 +1,4 @@
-import type { Client, Integration, Options } from '@sentry/core';
+import { Client, Integration, Options, getClientOptions } from '@sentry/core';
 import {
   consoleSandbox,
   dedupeIntegration,
@@ -57,22 +57,6 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     httpContextIntegration(),
     browserSessionIntegration(),
   ];
-}
-
-/** Exported only for tests. */
-export function applyDefaultOptions(optionsArg: BrowserOptions): BrowserOptions {
-  const defaultOptions: BrowserOptions = {
-    release:
-      typeof __SENTRY_RELEASE__ === 'string' // This allows build tooling to find-and-replace __SENTRY_RELEASE__ to inject a release value
-        ? __SENTRY_RELEASE__
-        : WINDOW.SENTRY_RELEASE?.id, // This supports the variable that sentry-webpack-plugin injects
-    sendClientReports: true,
-  };
-
-  return {
-    ...defaultOptions,
-    ...optionsArg,
-  };
 }
 
 /**
@@ -152,7 +136,11 @@ export function initWithDefaultIntegrations(
  */
 function _init(browserOptions: BrowserOptions = {}, defaultIntegrations: Integration[]): BrowserClient {
   const options = applyDefaultOptions(browserOptions);
-  const clientOptions = getClientOptions(options, defaultIntegrations);
+  const clientOptions = getClientOptions(options, {
+    integrations: defaultIntegrations,
+    stackParser: defaultStackParser,
+    transport: makeFetchTransport,
+  });
   return initAndBind(BrowserClient, clientOptions);
 }
 
@@ -217,11 +205,14 @@ function _checkForBrowserExtension(): true | void {
   }
 }
 
-function getClientOptions(options: BrowserOptions, defaultIntegrations: Integration[]): BrowserClientOptions {
+/** Exported only for tests. */
+export function applyDefaultOptions(optionsArg: BrowserOptions): BrowserOptions {
   return {
-    ...options,
-    stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
-    integrations: getIntegrationsToSetup(options, defaultIntegrations),
-    transport: options.transport || makeFetchTransport,
+    release:
+      typeof __SENTRY_RELEASE__ === 'string' // This allows build tooling to find-and-replace __SENTRY_RELEASE__ to inject a release value
+        ? __SENTRY_RELEASE__
+        : WINDOW.SENTRY_RELEASE?.id, // This supports the variable that sentry-webpack-plugin injects
+    sendClientReports: true,
+    ...optionsArg,
   };
 }
