@@ -1,10 +1,20 @@
-import { SDK_VERSION } from '@sentry/solid';
+import * as SentryCore from '@sentry/core';
+import { BrowserClient, SDK_VERSION } from '@sentry/solid';
 import * as SentrySolid from '@sentry/solid';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { init as solidStartInit } from '../../src/client';
 import { solidRouterBrowserTracingIntegration } from '../../src/client/solidrouter';
 
-const browserInit = vi.spyOn(SentrySolid, 'initWithDefaultIntegrations');
+const initAndBind = vi.spyOn(SentryCore, 'initAndBind');
+
+// Mock this to avoid the "duplicate integration" error message
+vi.spyOn(SentrySolid, 'browserTracingIntegration').mockImplementation(() => {
+  return {
+    name: 'BrowserTracing',
+    setupOnce: vi.fn(),
+    afterAllSetup: vi.fn(),
+  };
+});
 
 describe('Initialize Solid Start SDK', () => {
   beforeEach(() => {
@@ -30,8 +40,8 @@ describe('Initialize Solid Start SDK', () => {
     };
 
     expect(client).not.toBeUndefined();
-    expect(browserInit).toHaveBeenCalledTimes(1);
-    expect(browserInit).toHaveBeenLastCalledWith(expect.objectContaining(expectedMetadata), expect.any(Function));
+    expect(initAndBind).toHaveBeenCalledTimes(1);
+    expect(initAndBind).toHaveBeenLastCalledWith(BrowserClient, expect.objectContaining(expectedMetadata));
   });
 });
 

@@ -8,12 +8,13 @@ import {
   linkedErrorsIntegration,
   requestDataIntegration,
 } from '@sentry/core';
-import { NodeClient, initWithoutDefaultIntegrations } from '@sentry/node';
+import type { NodeClient } from '@sentry/node';
 import {
   consoleIntegration,
   contextLinesIntegration,
   getAutoPerformanceIntegrations,
   httpIntegration,
+  initWithoutDefaultIntegrations,
   modulesIntegration,
   nativeNodeFetchIntegration,
   nodeContextIntegration,

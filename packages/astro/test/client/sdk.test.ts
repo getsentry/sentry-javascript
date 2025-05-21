@@ -1,4 +1,5 @@
 import {
+  BrowserClient,
   browserTracingIntegration,
   getActiveSpan,
   getCurrentScope,
@@ -7,10 +8,20 @@ import {
   SDK_VERSION,
 } from '@sentry/browser';
 import * as SentryBrowser from '@sentry/browser';
+import * as SentryCore from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { init } from '../../src/client/sdk';
 
-const browserInit = vi.spyOn(SentryBrowser, 'initWithDefaultIntegrations');
+const initAndBind = vi.spyOn(SentryCore, 'initAndBind');
+
+// Mock this to avoid the "duplicate integration" error message
+vi.spyOn(SentryBrowser, 'browserTracingIntegration').mockImplementation(() => {
+  return {
+    name: 'BrowserTracing',
+    setupOnce: vi.fn(),
+    afterAllSetup: vi.fn(),
+  };
+});
 
 describe('Sentry client SDK', () => {
   describe('init', () => {
@@ -24,12 +35,13 @@ describe('Sentry client SDK', () => {
     });
 
     it('adds Astro metadata to the SDK options', () => {
-      expect(browserInit).not.toHaveBeenCalled();
+      expect(initAndBind).not.toHaveBeenCalled();
 
       init({});
 
-      expect(browserInit).toHaveBeenCalledTimes(1);
-      expect(browserInit).toHaveBeenCalledWith(
+      expect(initAndBind).toHaveBeenCalledTimes(1);
+      expect(initAndBind).toHaveBeenCalledWith(
+        BrowserClient,
         expect.objectContaining({
           _metadata: {
             sdk: {
@@ -42,7 +54,6 @@ describe('Sentry client SDK', () => {
             },
           },
         }),
-        expect.any(Function),
       );
     });
 

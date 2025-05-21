@@ -11,7 +11,7 @@ describe('Node handle hooks', () => {
 
   describe('initCloudflareSentryHandle', () => {
     it('inits Sentry on the first call but not on subsequent calls', async () => {
-      const initSpy = vi.spyOn(NodeSDK, 'initWithDefaultIntegrations').mockImplementationOnce(() => ({}) as any);
+      const initSpy = vi.spyOn(NodeSDK, 'initWithoutDefaultIntegrations').mockImplementationOnce(() => ({}) as any);
 
       const handle = initCloudflareSentryHandle({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
       expect(handle).toBeDefined();

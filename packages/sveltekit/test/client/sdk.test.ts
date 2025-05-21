@@ -1,9 +1,19 @@
+import * as SentryCore from '@sentry/core';
 import * as SentrySvelte from '@sentry/svelte';
-import { getCurrentScope, getGlobalScope, getIsolationScope, SDK_VERSION } from '@sentry/svelte';
+import { BrowserClient,getCurrentScope, getGlobalScope, getIsolationScope, SDK_VERSION } from '@sentry/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { init } from '../../src/client';
 
-const svelteInit = vi.spyOn(SentrySvelte, 'initWithDefaultIntegrations');
+const initAndBind = vi.spyOn(SentryCore, 'initAndBind');
+
+// Mock this to avoid the "duplicate integration" error message
+vi.spyOn(SentrySvelte, 'browserTracingIntegration').mockImplementation(() => {
+  return {
+    name: 'BrowserTracing',
+    setupOnce: vi.fn(),
+    afterAllSetup: vi.fn(),
+  };
+});
 
 describe('Sentry client SDK', () => {
   describe('init', () => {
@@ -17,12 +27,13 @@ describe('Sentry client SDK', () => {
     });
 
     it('adds SvelteKit metadata to the SDK options', () => {
-      expect(svelteInit).not.toHaveBeenCalled();
+      expect(initAndBind).not.toHaveBeenCalled();
 
       init({});
 
-      expect(svelteInit).toHaveBeenCalledTimes(1);
-      expect(svelteInit).toHaveBeenCalledWith(
+      expect(initAndBind).toHaveBeenCalledTimes(1);
+      expect(initAndBind).toHaveBeenCalledWith(
+        BrowserClient,
         expect.objectContaining({
           _metadata: {
             sdk: {
@@ -35,7 +46,6 @@ describe('Sentry client SDK', () => {
             },
           },
         }),
-        expect.any(Function),
       );
     });
 

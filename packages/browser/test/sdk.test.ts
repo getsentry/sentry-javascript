@@ -241,7 +241,7 @@ describe('init', () => {
       consoleErrorSpy.mockRestore();
     });
 
-    it("doesn't return a client on initialization error", () => {
+    it('returns a disabled client on initialization error', () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
       Object.defineProperty(WINDOW, 'chrome', {
@@ -251,7 +251,9 @@ describe('init', () => {
 
       const client = init(options);
 
-      expect(client).toBeUndefined();
+      expect(client).toBeDefined();
+      expect(SentryCore.isEnabled()).toBe(false);
+      expect(client!['_isEnabled']()).toBe(false);
 
       consoleErrorSpy.mockRestore();
     });

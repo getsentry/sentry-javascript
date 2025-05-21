@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { init } from '../../src/server';
 import { clientSourceMapErrorFilter } from '../../src/server/sdk';
 
-const nodeInit = vi.spyOn(SentryNode, 'initWithDefaultIntegrations');
+const nodeInit = vi.spyOn(SentryNode, 'initWithoutDefaultIntegrations');
 
 describe('Nuxt Server SDK', () => {
   describe('init', () => {

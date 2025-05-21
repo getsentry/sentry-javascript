@@ -8,7 +8,7 @@ vi.mock('@sentry/node', async () => {
   const original = (await vi.importActual('@sentry/node')) as typeof import('@sentry/node');
   return {
     ...original,
-    initWithDefaultIntegrations: (options: unknown) => {
+    initWithoutDefaultIntegrations: (options: unknown) => {
       mockInit(options);
     },
   };

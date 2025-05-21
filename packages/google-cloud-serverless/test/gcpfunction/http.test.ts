@@ -23,7 +23,7 @@ vi.mock('@sentry/node', async () => {
   const original = (await vi.importActual('@sentry/node')) as typeof import('@sentry/node');
   return {
     ...original,
-    initWithDefaultIntegrations: (options: unknown, getDefaultIntergations: unknown) => {
+    initWithoutDefaultIntegrations: (options: unknown, getDefaultIntergations: unknown) => {
       mockInit(options, getDefaultIntergations);
     },
     startSpanManual: (...args: unknown[]) => {

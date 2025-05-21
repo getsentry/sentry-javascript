@@ -1,9 +1,19 @@
-import { SDK_VERSION } from '@sentry/browser';
+import { BrowserClient, SDK_VERSION } from '@sentry/browser';
 import * as SentryBrowser from '@sentry/browser';
+import * as SentryCore from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { init as solidInit } from '../src/sdk';
+import { init } from '../src/sdk';
 
-const browserInit = vi.spyOn(SentryBrowser, 'initWithDefaultIntegrations');
+const initAndBind = vi.spyOn(SentryCore, 'initAndBind');
+
+// Mock this to avoid the "duplicate integration" error message
+vi.spyOn(SentryBrowser, 'browserTracingIntegration').mockImplementation(() => {
+  return {
+    name: 'BrowserTracing',
+    setupOnce: vi.fn(),
+    afterAllSetup: vi.fn(),
+  };
+});
 
 describe('Initialize Solid SDK', () => {
   beforeEach(() => {
@@ -11,7 +21,7 @@ describe('Initialize Solid SDK', () => {
   });
 
   it('has the correct metadata', () => {
-    const client = solidInit({
+    const client = init({
       dsn: 'https://public@dsn.ingest.sentry.io/1337',
     });
 
@@ -26,7 +36,7 @@ describe('Initialize Solid SDK', () => {
     };
 
     expect(client).not.toBeUndefined();
-    expect(browserInit).toHaveBeenCalledTimes(1);
-    expect(browserInit).toHaveBeenLastCalledWith(expect.objectContaining(expectedMetadata), expect.any(Function));
+    expect(initAndBind).toHaveBeenCalledTimes(1);
+    expect(initAndBind).toHaveBeenLastCalledWith(BrowserClient, expect.objectContaining(expectedMetadata));
   });
 });

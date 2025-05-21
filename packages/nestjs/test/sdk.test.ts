@@ -3,7 +3,7 @@ import * as SentryNode from '@sentry/node';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { init as nestInit } from '../src/sdk';
 
-const nodeInit = vi.spyOn(SentryNode, 'initWithDefaultIntegrations');
+const nodeInit = vi.spyOn(SentryNode, 'initWithoutDefaultIntegrations');
 const PUBLIC_DSN = 'https://username@domain/123';
 
 describe('Initialize Nest SDK', () => {

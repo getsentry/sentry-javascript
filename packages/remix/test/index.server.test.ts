@@ -4,7 +4,7 @@ import { init } from '../src/index.server';
 
 vi.mock('@sentry/node', { spy: true });
 
-const nodeInit = vi.spyOn(SentryNode, 'initWithDefaultIntegrations');
+const nodeInit = vi.spyOn(SentryNode, 'initWithoutDefaultIntegrations');
 
 describe('Server init()', () => {
   afterEach(() => {

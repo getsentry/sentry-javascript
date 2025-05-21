@@ -4,7 +4,7 @@ import { getClient, SDK_VERSION } from '@sentry/node';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { init } from '../../src/server/sdk';
 
-const nodeInit = vi.spyOn(SentryNode, 'initWithDefaultIntegrations');
+const nodeInit = vi.spyOn(SentryNode, 'initWithoutDefaultIntegrations');
 
 describe('Sentry server SDK', () => {
   describe('init', () => {

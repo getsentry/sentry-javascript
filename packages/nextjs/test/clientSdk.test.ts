@@ -1,13 +1,22 @@
-import type { Integration } from '@sentry/core';
-import { getGlobalScope, getIsolationScope, logger } from '@sentry/core';
+import { getGlobalScope, getIsolationScope, logger, startInactiveSpan, withActiveSpan } from '@sentry/core';
+import * as SentryCore from '@sentry/core';
+import { BrowserClient, getClient, getCurrentScope, httpClientIntegration, WINDOW } from '@sentry/react';
 import * as SentryReact from '@sentry/react';
-import { getClient, getCurrentScope, WINDOW } from '@sentry/react';
 import { JSDOM } from 'jsdom';
 import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
-import { breadcrumbsIntegration, browserTracingIntegration, init } from '../src/client';
+import { browserTracingIntegration, init } from '../src/client';
 
-const reactInit = vi.spyOn(SentryReact, 'initWithDefaultIntegrations');
+const initAndBind = vi.spyOn(SentryCore, 'initAndBind');
 const loggerLogSpy = vi.spyOn(logger, 'log');
+
+// Mock this to avoid the "duplicate integration" error message
+vi.spyOn(SentryReact, 'browserTracingIntegration').mockImplementation(() => {
+  return {
+    name: 'BrowserTracing',
+    setupOnce: vi.fn(),
+    afterAllSetup: vi.fn(),
+  };
+});
 
 // We're setting up JSDom here because the Next.js routing instrumentations requires a few things to be present on pageload:
 // 1. Access to window.document API for `window.document.getElementById`
@@ -29,10 +38,6 @@ afterAll(() => {
   Object.defineProperty(WINDOW, 'addEventListener', { value: originalGlobalAddEventListener });
 });
 
-function findIntegrationByName(integrations: Integration[] = [], name: string): Integration | undefined {
-  return integrations.find(integration => integration.name === name);
-}
-
 const TEST_DSN = 'https://public@dsn.ingest.sentry.io/1337';
 
 describe('Client init()', () => {
@@ -46,11 +51,15 @@ describe('Client init()', () => {
   });
 
   it('inits the React SDK', () => {
-    expect(reactInit).toHaveBeenCalledTimes(0);
+    expect(initAndBind).toHaveBeenCalledTimes(0);
     init({});
-    expect(reactInit).toHaveBeenCalledTimes(1);
-    expect(reactInit).toHaveBeenCalledWith(
+    expect(initAndBind).toHaveBeenCalledTimes(1);
+    expect(initAndBind).toHaveBeenCalledWith(
+      BrowserClient,
       expect.objectContaining({
+        integrations: expect.arrayContaining([
+          expect.objectContaining({ name: 'NextjsClientStackFrameNormalization' }),
+        ]),
         _metadata: {
           sdk: {
             name: 'sentry.javascript.nextjs',
@@ -69,12 +78,7 @@ describe('Client init()', () => {
         },
         environment: 'test',
       }),
-      expect.any(Function),
     );
-
-    const getDefaultIntegrationsFn = reactInit.mock.calls[0]?.[1] as () => Integration[];
-    const integrationNames = getDefaultIntegrationsFn().map(i => i.name);
-    expect(integrationNames).toContain('NextjsClientStackFrameNormalization');
   });
 
   it('adds 404 transaction filter', () => {
@@ -85,8 +89,8 @@ describe('Client init()', () => {
     const transportSend = vi.spyOn(getClient()!.getTransport()!, 'send');
 
     // Ensure we have no current span, so our next span is a transaction
-    SentryReact.withActiveSpan(null, () => {
-      SentryReact.startInactiveSpan({ name: '/404' })?.end();
+    withActiveSpan(null, () => {
+      startInactiveSpan({ name: '/404' })?.end();
     });
 
     expect(transportSend).not.toHaveBeenCalled();
@@ -94,16 +98,11 @@ describe('Client init()', () => {
   });
 
   describe('integrations', () => {
-    // Options passed by `@sentry/nextjs`'s `init` to `@sentry/react`'s `init` after modifying them
-    type ModifiedInitOptionsIntegrationArray = { defaultIntegrations: Integration[]; integrations: Integration[] };
-
     it('supports passing unrelated integrations through options', () => {
-      init({ integrations: [breadcrumbsIntegration({ console: false })] });
+      const client = init({ dsn: TEST_DSN, integrations: [httpClientIntegration()] });
 
-      const reactInitOptions = reactInit.mock.calls[0]![0] as ModifiedInitOptionsIntegrationArray;
-      const installedBreadcrumbsIntegration = findIntegrationByName(reactInitOptions.integrations, 'Breadcrumbs');
-
-      expect(installedBreadcrumbsIntegration).toBeDefined();
+      const integration = client?.getIntegrationByName('HttpClient');
+      expect(integration).toBeDefined();
     });
 
     it('forces correct router instrumentation if user provides `browserTracingIntegration` in an array', () => {

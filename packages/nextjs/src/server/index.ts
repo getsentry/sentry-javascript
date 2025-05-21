@@ -26,7 +26,7 @@ import {
   stripUrlQueryAndFragment,
 } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
-import { getDefaultIntegrations, httpIntegration, initWithDefaultIntegrations } from '@sentry/node';
+import { getDefaultIntegrations, httpIntegration, initWithoutDefaultIntegrations } from '@sentry/node';
 import { getScopesFromContext } from '@sentry/opentelemetry';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';

@@ -7,7 +7,7 @@ import { init } from '../src/server';
 // normally this is set as part of the build process, so mock it here
 (GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryRewriteFramesDistDir: string })._sentryRewriteFramesDistDir = '.next';
 
-const nodeInit = vi.spyOn(SentryNode, 'initWithDefaultIntegrations');
+const nodeInit = vi.spyOn(SentryNode, 'initWithoutDefaultIntegrations');
 
 describe('Server init()', () => {
   afterEach(() => {
