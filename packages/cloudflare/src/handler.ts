@@ -26,6 +26,7 @@ import { init } from './sdk';
  * @param handler {ExportedHandler} The handler to wrap.
  * @returns The wrapped handler.
  */
+// eslint-disable-next-line complexity
 export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostMetadata = unknown>(
   optionsCallback: (env: Env) => CloudflareOptions,
   handler: ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata>,
@@ -45,6 +46,31 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
       });
 
       markAsInstrumented(handler.fetch);
+    }
+
+    /* hono does not reach the catch block of the fetch handler and captureException needs to be called in the hono errorHandler */
+    if (
+      'onError' in handler &&
+      'errorHandler' in handler &&
+      typeof handler.errorHandler === 'function' &&
+      !isInstrumented(handler.errorHandler)
+    ) {
+      handler.errorHandler = new Proxy(handler.errorHandler, {
+        apply(target, thisArg, args) {
+          const [err] = args;
+
+          captureException(err, {
+            mechanism: {
+              handled: false,
+              type: 'cloudflare',
+            },
+          });
+
+          return Reflect.apply(target, thisArg, args);
+        },
+      });
+
+      markAsInstrumented(handler.errorHandler);
     }
 
     if ('scheduled' in handler && typeof handler.scheduled === 'function' && !isInstrumented(handler.scheduled)) {
