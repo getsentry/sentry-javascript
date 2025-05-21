@@ -18,7 +18,12 @@ sentryTest(
       return !!(window as any).Sentry.isInitialized();
     });
 
-    expect(isInitialized).toEqual(false);
+    const isEnabled = await page.evaluate(() => {
+      return !!(window as any).Sentry.isEnabled();
+    });
+
+    expect(isInitialized).toEqual(true);
+    expect(isEnabled).toEqual(false);
 
     if (hasDebugLogs()) {
       expect(errorLogs.length).toEqual(1);
