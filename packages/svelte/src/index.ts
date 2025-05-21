@@ -5,7 +5,7 @@ export type {
 
 export * from '@sentry/browser';
 
-export { init, initWithDefaultIntegrations } from './sdk';
+export { init } from './sdk';
 
 export { trackComponent } from './performance';
 

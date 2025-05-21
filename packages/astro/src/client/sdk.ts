@@ -1,11 +1,13 @@
 import type { BrowserOptions } from '@sentry/browser';
 import {
+  BrowserClient,
   browserTracingIntegration,
+  defaultStackParser,
   getDefaultIntegrations as getBrowserDefaultIntegrations,
-  initWithDefaultIntegrations,
+  makeFetchTransport,
 } from '@sentry/browser';
 import type { Client, Integration } from '@sentry/core';
-import { applySdkMetadata } from '@sentry/core';
+import { applySdkMetadata, getClientOptions, initAndBind } from '@sentry/core';
 
 // Tree-shakable guard to remove all code related to tracing
 declare const __SENTRY_TRACING__: boolean;
@@ -16,13 +18,15 @@ declare const __SENTRY_TRACING__: boolean;
  * @param options Configuration options for the SDK.
  */
 export function init(options: BrowserOptions): Client | undefined {
-  const opts = {
-    ...options,
-  };
+  const clientOptions = getClientOptions(options, {
+    integrations: getDefaultIntegrations(options),
+    stackParser: defaultStackParser,
+    transport: makeFetchTransport,
+  });
 
-  applySdkMetadata(opts, 'astro', ['astro', 'browser']);
+  applySdkMetadata(clientOptions, 'astro', ['astro', 'browser']);
 
-  return initWithDefaultIntegrations(opts, getDefaultIntegrations);
+  return initAndBind(BrowserClient, clientOptions);
 }
 
 function getDefaultIntegrations(options: BrowserOptions): Integration[] {

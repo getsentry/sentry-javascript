@@ -1,7 +1,19 @@
 import type { Client, EventProcessor, Integration } from '@sentry/core';
-import { addEventProcessor, applySdkMetadata, consoleSandbox, getGlobalScope, GLOBAL_OBJ } from '@sentry/core';
+import {
+  applySdkMetadata,
+  consoleSandbox,
+  getClientOptions,
+  getGlobalScope,
+  GLOBAL_OBJ,
+  initAndBind,
+} from '@sentry/core';
 import type { BrowserOptions } from '@sentry/react';
-import { getDefaultIntegrations as getReactDefaultIntegrations, initWithDefaultIntegrations } from '@sentry/react';
+import {
+  BrowserClient,
+  defaultStackParser,
+  getDefaultIntegrations as getReactDefaultIntegrations,
+  makeFetchTransport,
+} from '@sentry/react';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
 import { isRedirectNavigationError } from '../common/nextNavigationErrorUtils';
@@ -45,34 +57,40 @@ export function init(options: BrowserOptions): Client | undefined {
     environment: getVercelEnv(true) || process.env.NODE_ENV,
     release: process.env._sentryRelease || globalWithInjectedValues._sentryRelease,
     ...options,
-  } satisfies BrowserOptions;
+  };
 
-  applyTunnelRouteOption(opts);
-  applySdkMetadata(opts, 'nextjs', ['nextjs', 'react']);
+  const clientOptions = getClientOptions(opts, {
+    integrations: getDefaultIntegrations(options),
+    stackParser: defaultStackParser,
+    transport: makeFetchTransport,
+  });
 
-  const client = initWithDefaultIntegrations(opts, getDefaultIntegrations);
+  applyTunnelRouteOption(clientOptions);
+  applySdkMetadata(clientOptions, 'nextjs', ['nextjs', 'react']);
+
+  const client = initAndBind(BrowserClient, clientOptions);
 
   const filterTransactions: EventProcessor = event =>
     event.type === 'transaction' && event.transaction === '/404' ? null : event;
   filterTransactions.id = 'NextClient404Filter';
-  addEventProcessor(filterTransactions);
+  client.addEventProcessor(filterTransactions);
 
   const filterIncompleteNavigationTransactions: EventProcessor = event =>
     event.type === 'transaction' && event.transaction === INCOMPLETE_APP_ROUTER_INSTRUMENTATION_TRANSACTION_NAME
       ? null
       : event;
   filterIncompleteNavigationTransactions.id = 'IncompleteTransactionFilter';
-  addEventProcessor(filterIncompleteNavigationTransactions);
+  client.addEventProcessor(filterIncompleteNavigationTransactions);
 
   const filterNextRedirectError: EventProcessor = (event, hint) =>
     isRedirectNavigationError(hint?.originalException) || event.exception?.values?.[0]?.value === 'NEXT_REDIRECT'
       ? null
       : event;
   filterNextRedirectError.id = 'NextRedirectErrorFilter';
-  addEventProcessor(filterNextRedirectError);
+  client.addEventProcessor(filterNextRedirectError);
 
   if (process.env.NODE_ENV === 'development') {
-    addEventProcessor(devErrorSymbolicationEventProcessor);
+    client.addEventProcessor(devErrorSymbolicationEventProcessor);
   }
 
   try {

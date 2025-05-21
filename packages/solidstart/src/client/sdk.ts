@@ -1,10 +1,12 @@
 import type { Client, Integration } from '@sentry/core';
-import { applySdkMetadata } from '@sentry/core';
+import { applySdkMetadata, getClientOptions, initAndBind } from '@sentry/core';
+import { defaultStackParser } from '@sentry/node';
 import type { BrowserOptions } from '@sentry/solid';
 import {
+  BrowserClient,
   browserTracingIntegration,
   getDefaultIntegrations as getDefaultSolidIntegrations,
-  initWithDefaultIntegrations,
+  makeFetchTransport,
 } from '@sentry/solid';
 
 // Treeshakable guard to remove all code related to tracing
@@ -14,13 +16,15 @@ declare const __SENTRY_TRACING__: boolean;
  * Initializes the client side of the Solid Start SDK.
  */
 export function init(options: BrowserOptions): Client | undefined {
-  const opts = {
-    ...options,
-  };
+  const clientOptions = getClientOptions(options, {
+    integrations: getDefaultIntegrations(options),
+    stackParser: defaultStackParser,
+    transport: makeFetchTransport,
+  });
 
-  applySdkMetadata(opts, 'solidstart', ['solidstart', 'solid']);
+  applySdkMetadata(clientOptions, 'solidstart', ['solidstart', 'solid']);
 
-  return initWithDefaultIntegrations(opts, getDefaultIntegrations);
+  return initAndBind(BrowserClient, clientOptions);
 }
 
 function getDefaultIntegrations(options: BrowserOptions): Integration[] {

@@ -3,12 +3,23 @@ import type { Tracer } from '@opentelemetry/api';
 import { trace } from '@opentelemetry/api';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
-import type { DynamicSamplingContext, Scope, ServerRuntimeClientOptions, TraceContext } from '@sentry/core';
-import { _INTERNAL_flushLogsBuffer, applySdkMetadata, logger, SDK_VERSION, ServerRuntimeClient } from '@sentry/core';
+import type { DynamicSamplingContext, Scope, TraceContext } from '@sentry/core';
+import {
+  _INTERNAL_flushLogsBuffer,
+  applySdkMetadata,
+  logger,
+  propagationContextFromHeaders,
+  SDK_VERSION,
+  ServerRuntimeClient,
+} from '@sentry/core';
 import { getTraceContextForScope } from '@sentry/opentelemetry';
 import { isMainThread, threadId } from 'worker_threads';
+import { getCurrentScope } from '..';
 import { DEBUG_BUILD } from '../debug-build';
 import type { NodeClientOptions } from '../types';
+import { isCjs } from '../utils/commonjs';
+import { envToBool } from '../utils/envToBool';
+import { getSentryRelease } from './api';
 
 const DEFAULT_CLIENT_REPORT_FLUSH_INTERVAL_MS = 60_000; // 60s was chosen arbitrarily
 
@@ -21,15 +32,9 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
   private _logOnExitFlushListener: (() => void) | undefined;
 
   public constructor(options: NodeClientOptions) {
-    const serverName = options.serverName || global.process.env.SENTRY_NAME || os.hostname();
-    const clientOptions: ServerRuntimeClientOptions = {
-      ...options,
-      platform: 'node',
-      runtime: { name: 'node', version: global.process.version },
-      serverName,
-    };
+    const clientOptions = applyDefaultOptions(options);
 
-    if (options.openTelemetryInstrumentations) {
+    if (clientOptions.openTelemetryInstrumentations) {
       registerInstrumentations({
         instrumentations: options.openTelemetryInstrumentations,
       });
@@ -40,19 +45,24 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
     logger.log(
       `Initializing Sentry: process: ${process.pid}, thread: ${isMainThread ? 'main' : `worker-${threadId}`}.`,
     );
+    logger.log(`Running in ${isCjs() ? 'CommonJS' : 'ESM'} mode.`);
 
     super(clientOptions);
+
+    updateScopeFromEnvVariables();
+
+    this.startClientReportTracking();
 
     if (this.getOptions()._experiments?.enableLogs) {
       this._logOnExitFlushListener = () => {
         _INTERNAL_flushLogsBuffer(this);
       };
 
-      if (serverName) {
+      if (clientOptions.serverName) {
         this.on('beforeCaptureLog', log => {
           log.attributes = {
             ...log.attributes,
-            'server.address': serverName,
+            'server.address': clientOptions.serverName,
           };
         });
       }
@@ -152,5 +162,72 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
     }
 
     return getTraceContextForScope(this, scope);
+  }
+}
+
+function applyDefaultOptions<T extends Partial<NodeClientOptions>>(options: T): T {
+  const release = getRelease(options.release);
+  const spotlight =
+    options.spotlight ?? envToBool(process.env.SENTRY_SPOTLIGHT, { strict: true }) ?? process.env.SENTRY_SPOTLIGHT;
+  const tracesSampleRate = getTracesSampleRate(options.tracesSampleRate);
+  const serverName = options.serverName || global.process.env.SENTRY_NAME || os.hostname();
+
+  return {
+    platform: 'node',
+    runtime: { name: 'node', version: global.process.version },
+    serverName,
+    ...options,
+    dsn: options.dsn ?? process.env.SENTRY_DSN,
+    environment: options.environment ?? process.env.SENTRY_ENVIRONMENT,
+    sendClientReports: options.sendClientReports ?? true,
+    release,
+    tracesSampleRate,
+    spotlight,
+    debug: envToBool(options.debug ?? process.env.SENTRY_DEBUG),
+  };
+}
+
+function getRelease(release: NodeClientOptions['release']): string | undefined {
+  if (release !== undefined) {
+    return release;
+  }
+
+  const detectedRelease = getSentryRelease();
+  if (detectedRelease !== undefined) {
+    return detectedRelease;
+  }
+
+  return undefined;
+}
+
+/**
+ * Tries to get a `tracesSampleRate`, possibly extracted from the environment variables.
+ */
+export function getTracesSampleRate(tracesSampleRate: NodeClientOptions['tracesSampleRate']): number | undefined {
+  if (tracesSampleRate !== undefined) {
+    return tracesSampleRate;
+  }
+
+  const sampleRateFromEnv = process.env.SENTRY_TRACES_SAMPLE_RATE;
+  if (!sampleRateFromEnv) {
+    return undefined;
+  }
+
+  const parsed = parseFloat(sampleRateFromEnv);
+  return isFinite(parsed) ? parsed : undefined;
+}
+
+/**
+ * Update scope and propagation context based on environmental variables.
+ *
+ * See https://github.com/getsentry/rfcs/blob/main/text/0071-continue-trace-over-process-boundaries.md
+ * for more details.
+ */
+function updateScopeFromEnvVariables(): void {
+  if (envToBool(process.env.SENTRY_USE_ENVIRONMENT) !== false) {
+    const sentryTraceEnv = process.env.SENTRY_TRACE;
+    const baggageEnv = process.env.SENTRY_BAGGAGE;
+    const propagationContext = propagationContextFromHeaders(sentryTraceEnv, baggageEnv);
+    getCurrentScope().setPropagationContext(propagationContext);
   }
 }

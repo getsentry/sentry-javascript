@@ -10,7 +10,7 @@ import type { Mock } from 'vitest';
 import { afterEach, describe, expect, it, test, vi } from 'vitest';
 import type { BrowserOptions } from '../src';
 import { WINDOW } from '../src';
-import { applyDefaultOptions, init, initWithDefaultIntegrations } from '../src/sdk';
+import { init } from '../src/sdk';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 
@@ -52,31 +52,43 @@ describe('init', () => {
   it('installs default integrations', () => {
     // Note: We need to prevent this from actually adding all the default integrations, as otherwise
     // following tests may fail (e.g. because console is monkey patched etc.)
-    const spyGetIntegrationsToSetup = vi.spyOn(SentryCore, 'getIntegrationsToSetup').mockImplementation(() => []);
+    const spyGetClientOptions = vi.spyOn(SentryCore, 'getClientOptions').mockImplementation(options => {
+      return {
+        ...options,
+        integrations: [],
+      } as unknown as SentryCore.ClientOptions;
+    });
 
     const options = getDefaultBrowserOptions({ dsn: PUBLIC_DSN });
     init(options);
 
-    expect(spyGetIntegrationsToSetup).toHaveBeenCalledTimes(1);
-    expect(spyGetIntegrationsToSetup).toHaveBeenCalledWith(
-      expect.objectContaining(options),
-      expect.arrayContaining([expect.objectContaining({ name: 'InboundFilters' })]),
-    );
+    expect(spyGetClientOptions).toHaveBeenCalledTimes(1);
+    expect(spyGetClientOptions).toHaveBeenCalledWith(expect.objectContaining(options), {
+      integrations: expect.arrayContaining([expect.objectContaining({ name: 'InboundFilters' })]),
+      stackParser: expect.any(Function),
+      transport: expect.any(Function),
+    });
   });
 
   it('installs default integrations if `defaultIntegrations: undefined`', () => {
     // Note: We need to prevent this from actually adding all the default integrations, as otherwise
     // following tests may fail (e.g. because console is monkey patched etc.)
-    const spyGetIntegrationsToSetup = vi.spyOn(SentryCore, 'getIntegrationsToSetup').mockImplementation(() => []);
+    const spyGetClientOptions = vi.spyOn(SentryCore, 'getClientOptions').mockImplementation(options => {
+      return {
+        ...options,
+        integrations: [],
+      } as unknown as SentryCore.ClientOptions;
+    });
 
     const options = getDefaultBrowserOptions({ dsn: PUBLIC_DSN, defaultIntegrations: undefined });
     init(options);
 
-    expect(spyGetIntegrationsToSetup).toHaveBeenCalledTimes(1);
-    expect(spyGetIntegrationsToSetup).toHaveBeenCalledWith(
-      expect.objectContaining(options),
-      expect.arrayContaining([expect.objectContaining({ name: 'InboundFilters' })]),
-    );
+    expect(spyGetClientOptions).toHaveBeenCalledTimes(1);
+    expect(spyGetClientOptions).toHaveBeenCalledWith(expect.objectContaining(options), {
+      integrations: expect.arrayContaining([expect.objectContaining({ name: 'InboundFilters' })]),
+      stackParser: expect.any(Function),
+      transport: expect.any(Function),
+    });
   });
 
   test("doesn't install any default integrations if told not to", () => {
@@ -248,115 +260,5 @@ describe('init', () => {
   it('returns a client from init', () => {
     const client = init();
     expect(client).not.toBeUndefined();
-  });
-});
-
-describe('initWithDefaultIntegrations', () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  test('installs with provided getDefaultIntegrations function', () => {
-    const integration1 = new MockIntegration(SentryCore.uuid4());
-    const integration2 = new MockIntegration(SentryCore.uuid4());
-    const getDefaultIntegrations = vi.fn(() => [integration1, integration2]);
-    const options = getDefaultBrowserOptions({ dsn: PUBLIC_DSN });
-
-    const client = initWithDefaultIntegrations(options, getDefaultIntegrations);
-
-    expect(getDefaultIntegrations).toHaveBeenCalledTimes(1);
-    expect(getDefaultIntegrations).toHaveBeenCalledWith(options);
-
-    expect(client).toBeDefined();
-    expect(client?.['_integrations']).toEqual({
-      [integration1.name]: integration1,
-      [integration2.name]: integration2,
-    });
-    expect(integration1.setupOnce).toHaveBeenCalledTimes(1);
-    expect(integration2.setupOnce).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe('applyDefaultOptions', () => {
-  test('it works with empty options', () => {
-    const options = {};
-    const actual = applyDefaultOptions(options);
-
-    expect(actual).toEqual({
-      release: undefined,
-      sendClientReports: true,
-    });
-  });
-
-  test('it works with options', () => {
-    const options = {
-      tracesSampleRate: 0.5,
-      release: '1.0.0',
-    };
-    const actual = applyDefaultOptions(options);
-
-    expect(actual).toEqual({
-      release: '1.0.0',
-      sendClientReports: true,
-      tracesSampleRate: 0.5,
-    });
-  });
-
-  test('it works with defaultIntegrations=false', () => {
-    const options = {
-      defaultIntegrations: false,
-    } as const;
-    const actual = applyDefaultOptions(options);
-
-    expect(actual.defaultIntegrations).toStrictEqual(false);
-  });
-
-  test('it works with defaultIntegrations=[]', () => {
-    const options = {
-      defaultIntegrations: [],
-    };
-    const actual = applyDefaultOptions(options);
-
-    expect(actual.defaultIntegrations).toEqual([]);
-  });
-
-  test('it works with tracesSampleRate=undefined', () => {
-    const options = {
-      tracesSampleRate: undefined,
-    } as const;
-    const actual = applyDefaultOptions(options);
-
-    // Not defined, not even undefined
-    expect(actual.tracesSampleRate).toStrictEqual(undefined);
-  });
-
-  test('it works with tracesSampleRate=null', () => {
-    const options = {
-      tracesSampleRate: null,
-    } as any;
-    const actual = applyDefaultOptions(options);
-
-    expect(actual.tracesSampleRate).toStrictEqual(null);
-  });
-
-  test('it works with tracesSampleRate=0', () => {
-    const options = {
-      tracesSampleRate: 0,
-    } as const;
-    const actual = applyDefaultOptions(options);
-
-    expect(actual.tracesSampleRate).toStrictEqual(0);
-  });
-
-  test('it does not deep-drop undefined keys', () => {
-    const options = {
-      obj: {
-        prop: undefined,
-      },
-    } as any;
-    const actual = applyDefaultOptions(options) as any;
-
-    expect('prop' in actual.obj).toBe(true);
-    expect(actual.obj.prop).toStrictEqual(undefined);
   });
 });

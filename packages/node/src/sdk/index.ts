@@ -1,17 +1,14 @@
-import type { Integration, Options } from '@sentry/core';
+import type { Integration } from '@sentry/core';
 import {
   consoleIntegration,
-  consoleSandbox,
   functionToStringIntegration,
-  getCurrentScope,
-  getIntegrationsToSetup,
+  getClientOptions,
   hasSpansEnabled,
   inboundFiltersIntegration,
+  initAndBind,
   linkedErrorsIntegration,
   logger,
-  propagationContextFromHeaders,
   requestDataIntegration,
-  stackParserFromStackParserOptions,
 } from '@sentry/core';
 import {
   enhanceDscWithOpenTelemetryRootSpanName,
@@ -30,14 +27,13 @@ import { nativeNodeFetchIntegration } from '../integrations/node-fetch';
 import { onUncaughtExceptionIntegration } from '../integrations/onuncaughtexception';
 import { onUnhandledRejectionIntegration } from '../integrations/onunhandledrejection';
 import { processSessionIntegration } from '../integrations/processSession';
-import { INTEGRATION_NAME as SPOTLIGHT_INTEGRATION_NAME, spotlightIntegration } from '../integrations/spotlight';
+import { spotlightIntegration } from '../integrations/spotlight';
 import { getAutoPerformanceIntegrations } from '../integrations/tracing';
 import { makeNodeTransport } from '../transports';
 import type { NodeClientOptions, NodeOptions } from '../types';
 import { isCjs } from '../utils/commonjs';
-import { envToBool } from '../utils/envToBool';
-import { defaultStackParser, getSentryRelease } from './api';
-import { NodeClient } from './client';
+import { defaultStackParser } from './api';
+import { getTracesSampleRate, NodeClient } from './client';
 import { initOpenTelemetry, maybeInitializeEsmLoader } from './initOtel';
 
 function getCjsOnlyIntegrations(): Integration[] {
@@ -77,6 +73,9 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
 export function getDefaultIntegrations(options: NodeOptions): Integration[] {
   return [
     ...getDefaultIntegrationsWithoutPerformance(),
+    ...(options.spotlight
+      ? [spotlightIntegration({ sidecarUrl: typeof options.spotlight === 'string' ? options.spotlight : undefined })]
+      : []),
     // We only add performance integrations if tracing is enabled
     // Note that this means that without tracing enabled, e.g. `expressIntegration()` will not be added
     // This means that generally request isolation will work (because that is done by httpIntegration)
@@ -108,51 +107,30 @@ export function initWithoutDefaultIntegrations(options: NodeOptions | undefined 
  * @internal
  */
 export function initWithDefaultIntegrations(
-  _options: NodeOptions | undefined = {},
+  options: NodeOptions = {},
   getDefaultIntegrationsImpl: (options: NodeOptions) => Integration[],
 ): NodeClient {
-  const options = getClientOptions(_options, getDefaultIntegrationsImpl);
-
-  if (options.debug) {
-    if (DEBUG_BUILD) {
-      logger.enable();
-    } else {
-      // use `console.warn` rather than `logger.warn` since by non-debug bundles have all `logger.x` statements stripped
-      consoleSandbox(() => {
-        // eslint-disable-next-line no-console
-        console.warn('[Sentry] Cannot initialize SDK with `debug` option using a non-debug bundle.');
-      });
-    }
-  }
-
   if (!isCjs() && options.registerEsmLoaderHooks !== false) {
     maybeInitializeEsmLoader();
   }
 
   setOpenTelemetryContextAsyncContextStrategy();
 
-  const scope = getCurrentScope();
-  scope.update(options.initialScope);
+  // We need to make sure to extract the tracesSampleRate already here, before we pass it to `getDefaultIntegrationsImpl`
+  // As otherwise, the check for `hasSpansEnabled` may not work in all scenarios
+  const optionsWithTracesSampleRate = {
+    ...options,
+    tracesSampleRate: getTracesSampleRate(options.tracesSampleRate),
+  };
+  const defaultIntegrations = getDefaultIntegrationsImpl(optionsWithTracesSampleRate);
 
-  if (options.spotlight && !options.integrations.some(({ name }) => name === SPOTLIGHT_INTEGRATION_NAME)) {
-    options.integrations.push(
-      spotlightIntegration({
-        sidecarUrl: typeof options.spotlight === 'string' ? options.spotlight : undefined,
-      }),
-    );
-  }
+  const clientOptions = getClientOptions<NodeOptions, NodeClientOptions>(options, {
+    integrations: defaultIntegrations,
+    stackParser: defaultStackParser,
+    transport: makeNodeTransport,
+  });
 
-  const client = new NodeClient(options);
-  // The client is on the current scope, from where it generally is inherited
-  getCurrentScope().setClient(client);
-
-  client.init();
-
-  logger.log(`Running in ${isCjs() ? 'CommonJS' : 'ESM'} mode.`);
-
-  client.startClientReportTracking();
-
-  updateScopeFromEnvVariables();
+  const client = initAndBind(NodeClient, clientOptions);
 
   // If users opt-out of this, they _have_ to set up OpenTelemetry themselves
   // There is no way to use this SDK without OpenTelemetry!
@@ -197,78 +175,5 @@ export function validateOpenTelemetrySetup(): void {
     logger.warn(
       'You have to set up the SentrySampler. Without this, the OpenTelemetry & Sentry integration may still work, but sample rates set for the Sentry SDK will not be respected. If you use a custom sampler, make sure to use `wrapSamplingDecision`.',
     );
-  }
-}
-
-function getClientOptions(
-  options: NodeOptions,
-  getDefaultIntegrationsImpl: (options: Options) => Integration[],
-): NodeClientOptions {
-  const release = getRelease(options.release);
-  const spotlight =
-    options.spotlight ?? envToBool(process.env.SENTRY_SPOTLIGHT, { strict: true }) ?? process.env.SENTRY_SPOTLIGHT;
-  const tracesSampleRate = getTracesSampleRate(options.tracesSampleRate);
-
-  const mergedOptions = {
-    ...options,
-    dsn: options.dsn ?? process.env.SENTRY_DSN,
-    environment: options.environment ?? process.env.SENTRY_ENVIRONMENT,
-    sendClientReports: options.sendClientReports ?? true,
-    transport: options.transport ?? makeNodeTransport,
-    stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
-    release,
-    tracesSampleRate,
-    spotlight,
-    debug: envToBool(options.debug ?? process.env.SENTRY_DEBUG),
-  };
-
-  const defaultIntegrations = getDefaultIntegrationsImpl(mergedOptions);
-
-  return {
-    ...mergedOptions,
-    stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
-    integrations: getIntegrationsToSetup(mergedOptions, defaultIntegrations),
-  };
-}
-
-function getRelease(release: NodeOptions['release']): string | undefined {
-  if (release !== undefined) {
-    return release;
-  }
-
-  const detectedRelease = getSentryRelease();
-  if (detectedRelease !== undefined) {
-    return detectedRelease;
-  }
-
-  return undefined;
-}
-
-function getTracesSampleRate(tracesSampleRate: NodeOptions['tracesSampleRate']): number | undefined {
-  if (tracesSampleRate !== undefined) {
-    return tracesSampleRate;
-  }
-
-  const sampleRateFromEnv = process.env.SENTRY_TRACES_SAMPLE_RATE;
-  if (!sampleRateFromEnv) {
-    return undefined;
-  }
-
-  const parsed = parseFloat(sampleRateFromEnv);
-  return isFinite(parsed) ? parsed : undefined;
-}
-
-/**
- * Update scope and propagation context based on environmental variables.
- *
- * See https://github.com/getsentry/rfcs/blob/main/text/0071-continue-trace-over-process-boundaries.md
- * for more details.
- */
-function updateScopeFromEnvVariables(): void {
-  if (envToBool(process.env.SENTRY_USE_ENVIRONMENT) !== false) {
-    const sentryTraceEnv = process.env.SENTRY_TRACE;
-    const baggageEnv = process.env.SENTRY_BAGGAGE;
-    const propagationContext = propagationContextFromHeaders(sentryTraceEnv, baggageEnv);
-    getCurrentScope().setPropagationContext(propagationContext);
   }
 }

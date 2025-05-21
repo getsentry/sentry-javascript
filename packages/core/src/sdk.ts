@@ -1,12 +1,11 @@
 import type { Client } from './client';
 import { getCurrentScope } from './currentScopes';
-import { DEBUG_BUILD } from './debug-build';
 import { getIntegrationsToSetup } from './integration';
-import { Integration } from './types-hoist/integration';
+import type { Integration } from './types-hoist/integration';
 import type { ClientOptions, Options } from './types-hoist/options';
-import { StackParser } from './types-hoist/stacktrace';
-import { BaseTransportOptions, Transport } from './types-hoist/transport';
-import { consoleSandbox, logger } from './utils-hoist/logger';
+import type { StackParser } from './types-hoist/stacktrace';
+import type { BaseTransportOptions, Transport } from './types-hoist/transport';
+import { enableLogger } from './utils-hoist/logger';
 import { stackParserFromStackParserOptions } from './utils-hoist/stacktrace';
 
 /** A class object that can instantiate Client objects. */
@@ -21,15 +20,7 @@ export type ClientClass<F extends Client, O extends ClientOptions> = new (option
  */
 export function initAndBind<F extends Client, O extends ClientOptions>(ClientClass: ClientClass<F, O>, options: O): F {
   if (options.debug) {
-    if (DEBUG_BUILD) {
-      logger.enable();
-    } else {
-      // use `console.warn` rather than `logger.warn` since by non-debug bundles have all `logger.x` statements stripped
-      consoleSandbox(() => {
-        // eslint-disable-next-line no-console
-        console.warn('[Sentry] Cannot initialize SDK with `debug` option using a non-debug bundle.');
-      });
-    }
+    enableLogger();
   }
   const scope = getCurrentScope();
   scope.update(options.initialScope);
