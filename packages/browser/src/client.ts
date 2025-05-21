@@ -85,41 +85,41 @@ export class BrowserClient extends Client<BrowserClientOptions> {
 
     super(opts);
 
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const client = this;
-    const { sendDefaultPii, _experiments } = client._options;
+    const { sendDefaultPii, sendClientReports, _experiments } = this._options;
     const enableLogs = _experiments?.enableLogs;
 
-    if (opts.sendClientReports && WINDOW.document) {
+    if (WINDOW.document && (sendClientReports || enableLogs)) {
       WINDOW.document.addEventListener('visibilitychange', () => {
         if (WINDOW.document.visibilityState === 'hidden') {
-          this._flushOutcomes();
+          if (sendClientReports) {
+            this._flushOutcomes();
+          }
           if (enableLogs) {
-            _INTERNAL_flushLogsBuffer(client);
+            _INTERNAL_flushLogsBuffer(this);
           }
         }
       });
     }
 
     if (enableLogs) {
-      client.on('flush', () => {
-        _INTERNAL_flushLogsBuffer(client);
+      this.on('flush', () => {
+        _INTERNAL_flushLogsBuffer(this);
       });
 
-      client.on('afterCaptureLog', () => {
-        if (client._logFlushIdleTimeout) {
-          clearTimeout(client._logFlushIdleTimeout);
+      this.on('afterCaptureLog', () => {
+        if (this._logFlushIdleTimeout) {
+          clearTimeout(this._logFlushIdleTimeout);
         }
 
-        client._logFlushIdleTimeout = setTimeout(() => {
-          _INTERNAL_flushLogsBuffer(client);
+        this._logFlushIdleTimeout = setTimeout(() => {
+          _INTERNAL_flushLogsBuffer(this);
         }, DEFAULT_FLUSH_INTERVAL);
       });
     }
 
     if (sendDefaultPii) {
-      client.on('postprocessEvent', addAutoIpAddressToUser);
-      client.on('beforeSendSession', addAutoIpAddressToSession);
+      this.on('postprocessEvent', addAutoIpAddressToUser);
+      this.on('beforeSendSession', addAutoIpAddressToSession);
     }
   }
 
