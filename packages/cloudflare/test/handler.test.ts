@@ -7,6 +7,17 @@ import * as SentryCore from '@sentry/core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { CloudflareClient } from '../src/client';
 import { withSentry } from '../src/handler';
+import { markAsInstrumented } from '../src/instrument';
+
+// Custom type for hono-like apps (cloudflare handlers) that include errorHandler and onError
+type HonoLikeApp<Env = unknown, QueueHandlerMessage = unknown, CfHostMetadata = unknown> = ExportedHandler<
+  Env,
+  QueueHandlerMessage,
+  CfHostMetadata
+> & {
+  onError?: () => void;
+  errorHandler?: (err: Error) => Response;
+};
 
 const MOCK_ENV = {
   SENTRY_DSN: 'https://public@dsn.ingest.sentry.io/1337',
@@ -929,6 +940,86 @@ describe('withSentry', () => {
 
         expect(thrownError).toBe(error);
       });
+    });
+  });
+
+  describe('hono errorHandler', () => {
+    test('captures errors handled by the errorHandler', async () => {
+      const captureExceptionSpy = vi.spyOn(SentryCore, 'captureException');
+      const error = new Error('test hono error');
+
+      const honoApp = {
+        fetch(_request, _env, _context) {
+          return new Response('test');
+        },
+        onError() {}, // hono-like onError
+        errorHandler(err: Error) {
+          return new Response(`Error: ${err.message}`, { status: 500 });
+        },
+      } satisfies HonoLikeApp<typeof MOCK_ENV>;
+
+      withSentry(env => ({ dsn: env.SENTRY_DSN }), honoApp);
+
+      // simulates hono's error handling
+      const errorHandlerResponse = honoApp.errorHandler?.(error);
+
+      expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
+      expect(captureExceptionSpy).toHaveBeenLastCalledWith(error, {
+        mechanism: { handled: false, type: 'cloudflare' },
+      });
+      expect(errorHandlerResponse?.status).toBe(500);
+    });
+
+    test('preserves the original errorHandler functionality', async () => {
+      const originalErrorHandlerSpy = vi.fn().mockImplementation((err: Error) => {
+        return new Response(`Error: ${err.message}`, { status: 500 });
+      });
+
+      const error = new Error('test hono error');
+
+      const honoApp = {
+        fetch(_request, _env, _context) {
+          return new Response('test');
+        },
+        onError() {}, // hono-like onError
+        errorHandler: originalErrorHandlerSpy,
+      } satisfies HonoLikeApp<typeof MOCK_ENV>;
+
+      withSentry(env => ({ dsn: env.SENTRY_DSN }), honoApp);
+
+      // Call the errorHandler directly to simulate Hono's error handling
+      const errorHandlerResponse = honoApp.errorHandler?.(error);
+
+      expect(originalErrorHandlerSpy).toHaveBeenCalledTimes(1);
+      expect(originalErrorHandlerSpy).toHaveBeenLastCalledWith(error);
+      expect(errorHandlerResponse?.status).toBe(500);
+    });
+
+    test('does not instrument an already instrumented errorHandler', async () => {
+      const captureExceptionSpy = vi.spyOn(SentryCore, 'captureException');
+      const error = new Error('test hono error');
+
+      // Create a handler with an errorHandler that's already been instrumented
+      const originalErrorHandler = (err: Error) => {
+        return new Response(`Error: ${err.message}`, { status: 500 });
+      };
+
+      // Mark as instrumented before wrapping
+      markAsInstrumented(originalErrorHandler);
+
+      const honoApp = {
+        fetch(_request, _env, _context) {
+          return new Response('test');
+        },
+        onError() {}, // hono-like onError
+        errorHandler: originalErrorHandler,
+      } satisfies HonoLikeApp<typeof MOCK_ENV>;
+
+      withSentry(env => ({ dsn: env.SENTRY_DSN }), honoApp);
+
+      // The errorHandler should not have been wrapped again
+      honoApp.errorHandler?.(error);
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
     });
   });
 });
