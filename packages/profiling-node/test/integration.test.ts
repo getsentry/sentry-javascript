@@ -34,6 +34,7 @@ function makeLegacyContinuousProfilingClient(): [Sentry.NodeClient, Transport] {
     stackParser: Sentry.defaultStackParser,
     tracesSampleRate: 1,
     debug: true,
+    sendClientReports: false,
     environment: 'test-environment',
     dsn: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
     integrations: [integration],
@@ -55,6 +56,7 @@ function makeCurrentSpanProfilingClient(options: Partial<NodeClientOptions> = {}
     stackParser: Sentry.defaultStackParser,
     tracesSampleRate: 1,
     debug: true,
+    sendClientReports: false,
     environment: 'test-environment',
     dsn: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
     integrations: [integration],
@@ -84,6 +86,7 @@ function makeClientOptions(
     stackParser: Sentry.defaultStackParser,
     integrations: [_nodeProfilingIntegration()],
     debug: true,
+    sendClientReports: false,
     transport: _opts =>
       Sentry.makeNodeTransport({
         url: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
