@@ -1,7 +1,7 @@
 import type { UndiciInstrumentationConfig } from '@opentelemetry/instrumentation-undici';
 import { UndiciInstrumentation } from '@opentelemetry/instrumentation-undici';
 import type { IntegrationFn } from '@sentry/core';
-import { defineIntegration, getClient, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { defineIntegration, getClient, hasSpansEnabled, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { generateInstrumentOnce } from '../../otel/instrument';
 import type { NodeClient } from '../../sdk/client';
 import type { NodeClientOptions } from '../../types';
@@ -86,8 +86,10 @@ function getAbsoluteUrl(origin: string, path: string = '/'): string {
 
 function _shouldInstrumentSpans(options: NodeFetchOptions, clientOptions: Partial<NodeClientOptions> = {}): boolean {
   // If `spans` is passed in, it takes precedence
-  // Else, we by default emit spans, unless `skipOpenTelemetrySetup` is set to `true`
-  return typeof options.spans === 'boolean' ? options.spans : !clientOptions.skipOpenTelemetrySetup;
+  // Else, we by default emit spans, unless `skipOpenTelemetrySetup` is set to `true` or spans are not enabled
+  return typeof options.spans === 'boolean'
+    ? options.spans
+    : !clientOptions.skipOpenTelemetrySetup && hasSpansEnabled(clientOptions);
 }
 
 function getConfigWithDefaults(options: Partial<NodeFetchOptions> = {}): UndiciInstrumentationConfig {

@@ -77,8 +77,8 @@ export type SentryHttpInstrumentationOptions = InstrumentationConfig & {
    * Do not capture the request body for incoming HTTP requests to URLs where the given callback returns `true`.
    * This can be useful for long running requests where the body is not needed and we want to avoid capturing it.
    *
-   * @param url Contains the entire URL, including query string (if any), protocol, host, etc. of the outgoing request.
-   * @param request Contains the {@type RequestOptions} object used to make the outgoing request.
+   * @param url Contains the entire URL, including query string (if any), protocol, host, etc. of the incoming request.
+   * @param request Contains the {@type RequestOptions} object used to make the incoming request.
    */
   ignoreIncomingRequestBody?: (url: string, request: http.RequestOptions) => boolean;
 

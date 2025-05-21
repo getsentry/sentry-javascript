@@ -3,7 +3,8 @@ import { diag } from '@opentelemetry/api';
 import type { HttpInstrumentationConfig } from '@opentelemetry/instrumentation-http';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import type { Span } from '@sentry/core';
-import { defineIntegration, getClient } from '@sentry/core';
+import { defineIntegration, getClient, hasSpansEnabled } from '@sentry/core';
+import { NODE_VERSION } from '../../nodeVersion';
 import { generateInstrumentOnce } from '../../otel/instrument';
 import type { NodeClient } from '../../sdk/client';
 import type { HTTPModuleRequestIncomingMessage } from '../../transports/http-module';
@@ -85,8 +86,8 @@ interface HttpOptions {
    * Do not capture the request body for incoming HTTP requests to URLs where the given callback returns `true`.
    * This can be useful for long running requests where the body is not needed and we want to avoid capturing it.
    *
-   * @param url Contains the entire URL, including query string (if any), protocol, host, etc. of the outgoing request.
-   * @param request Contains the {@type RequestOptions} object used to make the outgoing request.
+   * @param url Contains the entire URL, including query string (if any), protocol, host, etc. of the incoming request.
+   * @param request Contains the {@type RequestOptions} object used to make the incoming request.
    */
   ignoreIncomingRequestBody?: (url: string, request: RequestOptions) => boolean;
 
@@ -159,8 +160,22 @@ export const instrumentOtelHttp = generateInstrumentOnce<HttpInstrumentationConf
 /** Exported only for tests. */
 export function _shouldInstrumentSpans(options: HttpOptions, clientOptions: Partial<NodeClientOptions> = {}): boolean {
   // If `spans` is passed in, it takes precedence
-  // Else, we by default emit spans, unless `skipOpenTelemetrySetup` is set to `true`
-  return typeof options.spans === 'boolean' ? options.spans : !clientOptions.skipOpenTelemetrySetup;
+  // Else, we by default emit spans, unless `skipOpenTelemetrySetup` is set to `true` or spans are not enabled
+  if (typeof options.spans === 'boolean') {
+    return options.spans;
+  }
+
+  if (clientOptions.skipOpenTelemetrySetup) {
+    return false;
+  }
+
+  // IMPORTANT: We only disable span instrumentation when spans are not enabled _and_ we are on Node 22+,
+  // as otherwise the necessary diagnostics channel is not available yet
+  if (!hasSpansEnabled(clientOptions) && NODE_VERSION.major >= 22) {
+    return false;
+  }
+
+  return true;
 }
 
 /**
