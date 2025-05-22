@@ -106,7 +106,7 @@ export function enableLogger(): void {
   if (DEBUG_BUILD) {
     logger.enable();
   } else {
-    // use `console.warn` rather than `logger.warn` since by non-debug bundles have all `logger.x` statements stripped
+    // use `console.warn` rather than `logger.warn` since non-debug bundles have all `logger.x` statements stripped
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.warn('[Sentry] Cannot initialize SDK with `debug` option using a non-debug bundle.');
