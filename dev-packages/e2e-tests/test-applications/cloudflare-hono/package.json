@@ -7,7 +7,7 @@
     "typecheck": "tsc --noEmit",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings",
     "test:build": "pnpm install && pnpm build",
-    "test:assert": "pnpm typecheck"
+    "test:assert": "pnpm typecheck && pnpm test"
   },
   "dependencies": {
     "@sentry/cloudflare": "latest || *",
