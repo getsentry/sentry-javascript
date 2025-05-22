@@ -44,8 +44,10 @@ sentryTest('should capture Supabase database operation breadcrumbs', async ({ ge
     timestamp: expect.any(Number),
     type: 'supabase',
     category: 'db.insert',
-    message: 'from(todos)',
-    data: expect.any(Object),
+    message: 'insert(...) filter(columns, ) from(todos)',
+    data: expect.objectContaining({
+      query: expect.arrayContaining(['filter(columns, )']),
+    }),
   });
 });
 
