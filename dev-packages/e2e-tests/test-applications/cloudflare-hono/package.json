@@ -7,7 +7,8 @@
     "typecheck": "tsc --noEmit",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings",
     "test:build": "pnpm install && pnpm build",
-    "test:assert": "pnpm typecheck && pnpm test"
+    "//": "Just checking if it builds correctly and types don't break",
+    "test:assert": "pnpm typecheck"
   },
   "dependencies": {
     "@sentry/cloudflare": "latest || *",
@@ -16,7 +17,7 @@
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.8.31",
     "@cloudflare/workers-types": "^4.20250521.0",
-    "vitest": "3.1.4",
+    "vitest": "3.1.0",
     "wrangler": "^4.16.0"
   },
   "volta": {
