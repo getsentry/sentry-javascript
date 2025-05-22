@@ -1,4 +1,4 @@
-import { Env, Hono } from 'hono';
+import { Hono } from 'hono';
 import * as Sentry from '@sentry/cloudflare';
 
 const app = new Hono();
@@ -27,7 +27,7 @@ app.notFound(ctx => {
 
 export default Sentry.withSentry(
   (env: Env) => ({
-    dsn: env.E2E_TEST_DSN,
+    dsn: env?.E2E_TEST_DSN,
     tracesSampleRate: 1.0,
   }),
   app,
