@@ -156,7 +156,7 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
 }
 
 function applyDefaultOptions<T extends Partial<NodeClientOptions>>(options: T): T {
-  const release = getRelease(options.release);
+  const release = options.release ?? getSentryRelease();
   const spotlight =
     options.spotlight ?? envToBool(process.env.SENTRY_SPOTLIGHT, { strict: true }) ?? process.env.SENTRY_SPOTLIGHT;
   const tracesSampleRate = getTracesSampleRate(options.tracesSampleRate);
@@ -175,19 +175,6 @@ function applyDefaultOptions<T extends Partial<NodeClientOptions>>(options: T): 
     spotlight,
     debug: envToBool(options.debug ?? process.env.SENTRY_DEBUG),
   };
-}
-
-function getRelease(release: NodeClientOptions['release']): string | undefined {
-  if (release !== undefined) {
-    return release;
-  }
-
-  const detectedRelease = getSentryRelease();
-  if (detectedRelease !== undefined) {
-    return detectedRelease;
-  }
-
-  return undefined;
 }
 
 /**

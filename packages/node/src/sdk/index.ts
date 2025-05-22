@@ -104,11 +104,7 @@ export function initWithoutDefaultIntegrations(options: NodeOptions = {}): NodeC
 
 /**
  * Initialize a Node client with the provided options and default integrations getter function.
- * This is an internal method the SDK uses under the hood to set up things - you should not use this as a user!
- * Instead, use `init()` to initialize the SDK.
- *
- * @hidden
- * @internal
+ * This is an internal method the SDK uses under the hood to set up things.
  */
 function _init(
   options: NodeOptions = {},
