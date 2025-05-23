@@ -91,8 +91,8 @@ export function init(options: BrowserOptions = {}): Client | undefined {
     !options.skipBrowserExtensionCheck && checkAndWarnIfIsEmbeddedBrowserExtension();
 
   const clientOptions: BrowserClientOptions = {
-    enabled: !shouldDisableBecauseIsBrowserExtenstion,
     ...options,
+    enabled: shouldDisableBecauseIsBrowserExtenstion ? false : options.enabled,
     stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
     integrations: getIntegrationsToSetup({
       integrations: options.integrations,
