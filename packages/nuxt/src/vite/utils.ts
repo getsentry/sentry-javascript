@@ -23,7 +23,7 @@ export function findDefaultSdkInitFile(type: 'server' | 'client', nuxt?: Nuxt): 
   }
 
   // Get layers from highest priority to lowest
-  const layers = [...nuxt?.options._layers ?? []].reverse();
+  const layers = [...(nuxt?.options._layers ?? [])].reverse();
 
   for (const layer of layers) {
     for (const relativePath of relativePaths) {

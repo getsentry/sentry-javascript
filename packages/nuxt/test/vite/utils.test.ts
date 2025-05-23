@@ -72,23 +72,22 @@ describe('findDefaultSdkInitFile', () => {
   });
 
   it('should return the latest layer config file path if client config exists', () => {
-      vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
-        return !(filePath instanceof URL) && filePath.includes('sentry.client.config.ts');
-      });
+    vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
+      return !(filePath instanceof URL) && filePath.includes('sentry.client.config.ts');
+    });
 
-      const nuxtMock = {
-        options: {
-          _layers: [
-            {
-              cwd: 'packages/nuxt/module'
-            },
-            {
-              cwd: 'packages/nuxt'
-            }
-          ]
-        }
-      } as Nuxt
-
+    const nuxtMock = {
+      options: {
+        _layers: [
+          {
+            cwd: 'packages/nuxt/module',
+          },
+          {
+            cwd: 'packages/nuxt',
+          },
+        ],
+      },
+    } as Nuxt;
 
     const result = findDefaultSdkInitFile('client', nuxtMock);
     expect(result).toMatch('packages/nuxt/sentry.client.config.ts');
@@ -96,7 +95,7 @@ describe('findDefaultSdkInitFile', () => {
 
   it('should return the latest layer config file path if server config exists', () => {
     vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
-    return (
+      return (
         !(filePath instanceof URL) &&
         (filePath.includes('sentry.server.config.ts') || filePath.includes('instrument.server.ts'))
       );
@@ -106,43 +105,41 @@ describe('findDefaultSdkInitFile', () => {
       options: {
         _layers: [
           {
-            cwd: 'packages/nuxt/module'
+            cwd: 'packages/nuxt/module',
           },
           {
-            cwd: 'packages/nuxt'
-          }
-        ]
-      }
-    } as Nuxt
+            cwd: 'packages/nuxt',
+          },
+        ],
+      },
+    } as Nuxt;
 
     const result = findDefaultSdkInitFile('server', nuxtMock);
     expect(result).toMatch('packages/nuxt/sentry.server.config.ts');
   });
 
   it('should return the latest layer config file path if client config exists in former layer', () => {
-      vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
-        return !(filePath instanceof URL) && filePath.includes('nuxt/sentry.client.config.ts');
-      });
+    vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
+      return !(filePath instanceof URL) && filePath.includes('nuxt/sentry.client.config.ts');
+    });
 
-      const nuxtMock = {
-        options: {
-          _layers: [
-            {
-              cwd: 'packages/nuxt/module'
-            },
-            {
-              cwd: 'packages/nuxt'
-            }
-          ]
-        }
-      } as Nuxt
-
+    const nuxtMock = {
+      options: {
+        _layers: [
+          {
+            cwd: 'packages/nuxt/module',
+          },
+          {
+            cwd: 'packages/nuxt',
+          },
+        ],
+      },
+    } as Nuxt;
 
     const result = findDefaultSdkInitFile('client', nuxtMock);
     expect(result).toMatch('packages/nuxt/sentry.client.config.ts');
   });
 });
-
 
 describe('getFilenameFromPath', () => {
   it('should return the filename from a simple path', () => {
