@@ -37,14 +37,12 @@ export class ReactRouterInstrumentation extends InstrumentationBase<Instrumentat
       COMPONENT,
       supportedVersions,
       (moduleExports: ReactRouterModuleExports) => {
-        if (isWrapped(moduleExports['createRequestHandler'])) {
-          this._unwrap(moduleExports, 'createRequestHandler');
-        }
-        this._wrap(moduleExports, 'createRequestHandler', _patchCreateRequestHandler);
-        return moduleExports;
-      },
-      (moduleExports: ReactRouterModuleExports) => {
-        this._unwrap(moduleExports, 'createRequestHandler');
+        const { createRequestHandler, ...rest } = moduleExports;
+
+        return {
+          ...rest,
+          createRequestHandler: _patchCreateRequestHandler(createRequestHandler),
+        };
       },
     );
 
