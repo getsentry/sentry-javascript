@@ -886,7 +886,13 @@ jobs:
       - uses: pnpm/action-setup@v4
         with:
           version: 9.4.0
+     - name: Set up Node for Angular 20
+        if: matrix.test-application == 'angular-20'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.19.2'
       - name: Set up Node
+        if: matrix.test-application != 'angular-20'
         uses: actions/setup-node@v4
         with:
           node-version-file: 'dev-packages/e2e-tests/package.json'
