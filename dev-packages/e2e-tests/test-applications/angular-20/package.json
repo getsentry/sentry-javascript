@@ -6,7 +6,7 @@
     "dev": "ng serve",
     "proxy": "node start-event-proxy.mjs",
     "preview": "http-server dist/angular-20/browser --port 8080",
-    "build": "ng build",
+    "build": "NG_DISABLE_VERSION_CHECK=1 ng build",
     "watch": "ng build --watch --configuration development",
     "test": "playwright test",
     "test:build": "pnpm install && pnpm build",
@@ -43,5 +43,8 @@
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
     "typescript": "~5.8.3"
+  },
+  "volta": {
+    "extends": "../../package.json"
   }
 }
