@@ -61,12 +61,25 @@ export function logAttributeToSerializedLogAttribute(value: unknown): Serialized
   }
 }
 
+function defaultCaptureSerializedLog(client: Client, serializedLog: SerializedLog): void {
+  const logBuffer = _INTERNAL_getLogBuffer(client);
+  if (logBuffer === undefined) {
+    GLOBAL_OBJ._sentryClientToLogBufferMap?.set(client, [serializedLog]);
+  } else {
+    GLOBAL_OBJ._sentryClientToLogBufferMap?.set(client, [...logBuffer, serializedLog]);
+    if (logBuffer.length >= MAX_LOG_BUFFER_SIZE) {
+      _INTERNAL_flushLogsBuffer(client, logBuffer);
+    }
+  }
+}
+
 /**
  * Captures a log event and sends it to Sentry.
  *
  * @param log - The log event to capture.
  * @param scope - A scope. Uses the current scope if not provided.
  * @param client - A client. Uses the current client if not provided.
+ * @param captureSerializedLog - A function to capture the serialized log.
  *
  * @experimental This method will experience breaking changes. This is not yet part of
  * the stable Sentry SDK API and can be changed or removed without warning.
@@ -75,6 +88,7 @@ export function _INTERNAL_captureLog(
   beforeLog: Log,
   client: Client | undefined = getClient(),
   scope = getCurrentScope(),
+  captureSerializedLog: (client: Client, log: SerializedLog) => void = defaultCaptureSerializedLog,
 ): void {
   if (!client) {
     DEBUG_BUILD && logger.warn('No client available to capture log.');
@@ -151,15 +165,7 @@ export function _INTERNAL_captureLog(
     ),
   };
 
-  const logBuffer = _INTERNAL_getLogBuffer(client);
-  if (logBuffer === undefined) {
-    GLOBAL_OBJ._sentryClientToLogBufferMap?.set(client, [serializedLog]);
-  } else {
-    GLOBAL_OBJ._sentryClientToLogBufferMap?.set(client, [...logBuffer, serializedLog]);
-    if (logBuffer.length >= MAX_LOG_BUFFER_SIZE) {
-      _INTERNAL_flushLogsBuffer(client, logBuffer);
-    }
-  }
+  captureSerializedLog(client, serializedLog);
 
   client.emit('afterCaptureLog', log);
 }
