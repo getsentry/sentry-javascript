@@ -13,12 +13,7 @@ import {
   requestDataIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
-import {
-  enhanceDscWithOpenTelemetryRootSpanName,
-  openTelemetrySetupCheck,
-  setOpenTelemetryContextAsyncContextStrategy,
-  setupEventContextTrace,
-} from '@sentry/opentelemetry';
+import { openTelemetrySetupCheck, setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
 import { DEBUG_BUILD } from '../debug-build';
 import { childProcessIntegration } from '../integrations/childProcess';
 import { nodeContextIntegration } from '../integrations/context';
@@ -129,9 +124,6 @@ function _init(
     });
     validateOpenTelemetrySetup();
   }
-
-  enhanceDscWithOpenTelemetryRootSpanName(client);
-  setupEventContextTrace(client);
 
   return client;
 }

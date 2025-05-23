@@ -5,7 +5,11 @@ import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import type { DynamicSamplingContext, Scope, TraceContext } from '@sentry/core';
 import { _INTERNAL_flushLogsBuffer, applySdkMetadata, logger, SDK_VERSION, ServerRuntimeClient } from '@sentry/core';
-import { getTraceContextForScope } from '@sentry/opentelemetry';
+import {
+  enhanceDscWithOpenTelemetryRootSpanName,
+  getTraceContextForScope,
+  setupEventContextTrace,
+} from '@sentry/opentelemetry';
 import { isMainThread, threadId } from 'worker_threads';
 import { DEBUG_BUILD } from '../debug-build';
 import type { NodeClientOptions } from '../types';
@@ -59,6 +63,9 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
 
       process.on('beforeExit', this._logOnExitFlushListener);
     }
+
+    enhanceDscWithOpenTelemetryRootSpanName(this);
+    setupEventContextTrace(this);
   }
 
   /** Get the OTEL tracer. */
