@@ -60,8 +60,6 @@ function _patchCreateRequestHandler(
   original: typeof reactRouter.createRequestHandler,
 ): typeof reactRouter.createRequestHandler {
   return function sentryWrappedCreateRequestHandler(this: unknown, ...args: unknown[]) {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore not sure why original isn't found here?
     const originalRequestHandler = (original as typeof reactRouter.createRequestHandler).apply(this, args);
     return async function sentryWrappedRequestHandler(request: Request, initialContext?: unknown) {
       let url: URL;
