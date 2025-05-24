@@ -2,11 +2,13 @@ import { VERSION } from '@angular/core';
 import type { BrowserOptions } from '@sentry/browser';
 import {
   breadcrumbsIntegration,
+  BrowserClient,
   browserSessionIntegration,
+  defaultStackParser,
   globalHandlersIntegration,
   httpContextIntegration,
-  init as browserInit,
   linkedErrorsIntegration,
+  makeFetchTransport,
   setContext,
 } from '@sentry/browser';
 import type { Client, Integration } from '@sentry/core';
@@ -14,7 +16,9 @@ import {
   applySdkMetadata,
   dedupeIntegration,
   functionToStringIntegration,
+  getClientOptions,
   inboundFiltersIntegration,
+  initAndBind,
   logger,
 } from '@sentry/core';
 import { IS_DEBUG_BUILD } from './flags';
@@ -49,15 +53,19 @@ export function getDefaultIntegrations(_options: BrowserOptions = {}): Integrati
  * Inits the Angular SDK
  */
 export function init(options: BrowserOptions): Client | undefined {
-  const opts = {
-    defaultIntegrations: getDefaultIntegrations(),
-    ...options,
-  };
+  const clientOptions = getClientOptions(options, {
+    integrations: getDefaultIntegrations(options),
+    stackParser: defaultStackParser,
+    transport: makeFetchTransport,
+  });
 
-  applySdkMetadata(opts, 'angular');
+  applySdkMetadata(clientOptions, 'angular');
+
+  const client = initAndBind(BrowserClient, clientOptions);
 
   checkAndSetAngularVersion();
-  return browserInit(opts);
+
+  return client;
 }
 
 function checkAndSetAngularVersion(): void {

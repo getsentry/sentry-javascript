@@ -100,3 +100,16 @@ function makeLogger(): Logger {
  * The logger is a singleton on the carrier, to ensure that a consistent logger is used throughout the SDK.
  */
 export const logger = getGlobalSingleton('logger', makeLogger);
+
+/** Enables the logger, or log a warning if DEBUG_BUILD is false. */
+export function enableLogger(): void {
+  if (DEBUG_BUILD) {
+    logger.enable();
+  } else {
+    // use `console.warn` rather than `logger.warn` since by non-debug bundles have all `logger.x` statements stripped
+    consoleSandbox(() => {
+      // eslint-disable-next-line no-console
+      console.warn('[Sentry] Cannot initialize SDK with `debug` option using a non-debug bundle.');
+    });
+  }
+}

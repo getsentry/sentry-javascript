@@ -7,10 +7,10 @@ import type { Integration } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { createTransport, resolvedSyncPromise } from '@sentry/core';
 import type { Mock } from 'vitest';
-import { afterAll, afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
+import { afterEach, describe, expect, it, test, vi } from 'vitest';
 import type { BrowserOptions } from '../src';
 import { WINDOW } from '../src';
-import { applyDefaultOptions, getDefaultIntegrations, init } from '../src/sdk';
+import { init } from '../src/sdk';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 
@@ -32,15 +32,11 @@ export class MockIntegration implements Integration {
 }
 
 describe('init', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
-  afterAll(() => {
-    vi.resetAllMocks();
-  });
-
-  test('installs default integrations', () => {
+  test('installs passed default integrations', () => {
     const DEFAULT_INTEGRATIONS: Integration[] = [
       new MockIntegration('MockIntegration 0.1'),
       new MockIntegration('MockIntegration 0.2'),
@@ -53,28 +49,53 @@ describe('init', () => {
     expect(DEFAULT_INTEGRATIONS[1]!.setupOnce as Mock).toHaveBeenCalledTimes(1);
   });
 
+  it('installs default integrations', () => {
+    // Note: We need to prevent this from actually adding all the default integrations, as otherwise
+    // following tests may fail (e.g. because console is monkey patched etc.)
+    const spyGetClientOptions = vi.spyOn(SentryCore, 'getClientOptions').mockImplementation(options => {
+      return {
+        ...options,
+        integrations: [],
+      } as unknown as SentryCore.ClientOptions;
+    });
+
+    const options = getDefaultBrowserOptions({ dsn: PUBLIC_DSN });
+    init(options);
+
+    expect(spyGetClientOptions).toHaveBeenCalledTimes(1);
+    expect(spyGetClientOptions).toHaveBeenCalledWith(expect.objectContaining(options), {
+      integrations: expect.arrayContaining([expect.objectContaining({ name: 'InboundFilters' })]),
+      stackParser: expect.any(Function),
+      transport: expect.any(Function),
+    });
+  });
+
   it('installs default integrations if `defaultIntegrations: undefined`', () => {
-    // @ts-expect-error this is fine for testing
-    const initAndBindSpy = vi.spyOn(SentryCore, 'initAndBind').mockImplementationOnce(() => {});
+    // Note: We need to prevent this from actually adding all the default integrations, as otherwise
+    // following tests may fail (e.g. because console is monkey patched etc.)
+    const spyGetClientOptions = vi.spyOn(SentryCore, 'getClientOptions').mockImplementation(options => {
+      return {
+        ...options,
+        integrations: [],
+      } as unknown as SentryCore.ClientOptions;
+    });
+
     const options = getDefaultBrowserOptions({ dsn: PUBLIC_DSN, defaultIntegrations: undefined });
     init(options);
 
-    expect(initAndBindSpy).toHaveBeenCalledTimes(1);
-
-    const optionsPassed = initAndBindSpy.mock.calls[0]?.[1];
-    expect(optionsPassed?.integrations.length).toBeGreaterThan(0);
+    expect(spyGetClientOptions).toHaveBeenCalledTimes(1);
+    expect(spyGetClientOptions).toHaveBeenCalledWith(expect.objectContaining(options), {
+      integrations: expect.arrayContaining([expect.objectContaining({ name: 'InboundFilters' })]),
+      stackParser: expect.any(Function),
+      transport: expect.any(Function),
+    });
   });
 
-  test("doesn't install default integrations if told not to", () => {
-    const DEFAULT_INTEGRATIONS: Integration[] = [
-      new MockIntegration('MockIntegration 0.3'),
-      new MockIntegration('MockIntegration 0.4'),
-    ];
+  test("doesn't install any default integrations if told not to", () => {
     const options = getDefaultBrowserOptions({ dsn: PUBLIC_DSN, defaultIntegrations: false });
-    init(options);
+    const client = init(options);
 
-    expect(DEFAULT_INTEGRATIONS[0]!.setupOnce as Mock).toHaveBeenCalledTimes(0);
-    expect(DEFAULT_INTEGRATIONS[1]!.setupOnce as Mock).toHaveBeenCalledTimes(0);
+    expect(client?.['_integrations']).toEqual({});
   });
 
   it('installs merged default integrations, with overrides provided through options', () => {
@@ -134,7 +155,7 @@ describe('init', () => {
       Object.defineProperty(WINDOW, 'browser', { value: undefined, writable: true });
       Object.defineProperty(WINDOW, 'nw', { value: undefined, writable: true });
       Object.defineProperty(WINDOW, 'window', { value: WINDOW, writable: true });
-      vi.clearAllMocks();
+      vi.restoreAllMocks();
     });
 
     it('logs a browser extension error if executed inside a Chrome extension', () => {
@@ -151,8 +172,6 @@ describe('init', () => {
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         '[Sentry] You cannot use Sentry.init() in a browser extension, see: https://docs.sentry.io/platforms/javascript/best-practices/browser-extensions/',
       );
-
-      consoleErrorSpy.mockRestore();
     });
 
     it('logs a browser extension error if executed inside a Firefox/Safari extension', () => {
@@ -166,8 +185,6 @@ describe('init', () => {
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         '[Sentry] You cannot use Sentry.init() in a browser extension, see: https://docs.sentry.io/platforms/javascript/best-practices/browser-extensions/',
       );
-
-      consoleErrorSpy.mockRestore();
     });
 
     it.each(['chrome-extension', 'moz-extension', 'ms-browser-extension', 'safari-web-extension'])(
@@ -224,7 +241,7 @@ describe('init', () => {
       consoleErrorSpy.mockRestore();
     });
 
-    it("doesn't return a client on initialization error", () => {
+    it('returns a disabled client on initialization error', () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
       Object.defineProperty(WINDOW, 'chrome', {
@@ -234,7 +251,9 @@ describe('init', () => {
 
       const client = init(options);
 
-      expect(client).toBeUndefined();
+      expect(client).toBeDefined();
+      expect(SentryCore.isEnabled()).toBe(false);
+      expect(client!['_isEnabled']()).toBe(false);
 
       consoleErrorSpy.mockRestore();
     });
@@ -243,99 +262,5 @@ describe('init', () => {
   it('returns a client from init', () => {
     const client = init();
     expect(client).not.toBeUndefined();
-  });
-});
-
-describe('applyDefaultOptions', () => {
-  test('it works with empty options', () => {
-    const options = {};
-    const actual = applyDefaultOptions(options);
-
-    expect(actual).toEqual({
-      defaultIntegrations: expect.any(Array),
-      release: undefined,
-      sendClientReports: true,
-    });
-
-    expect((actual.defaultIntegrations as { name: string }[]).map(i => i.name)).toEqual(
-      getDefaultIntegrations(options).map(i => i.name),
-    );
-  });
-
-  test('it works with options', () => {
-    const options = {
-      tracesSampleRate: 0.5,
-      release: '1.0.0',
-    };
-    const actual = applyDefaultOptions(options);
-
-    expect(actual).toEqual({
-      defaultIntegrations: expect.any(Array),
-      release: '1.0.0',
-      sendClientReports: true,
-      tracesSampleRate: 0.5,
-    });
-
-    expect((actual.defaultIntegrations as { name: string }[]).map(i => i.name)).toEqual(
-      getDefaultIntegrations(options).map(i => i.name),
-    );
-  });
-
-  test('it works with defaultIntegrations=false', () => {
-    const options = {
-      defaultIntegrations: false,
-    } as const;
-    const actual = applyDefaultOptions(options);
-
-    expect(actual.defaultIntegrations).toStrictEqual(false);
-  });
-
-  test('it works with defaultIntegrations=[]', () => {
-    const options = {
-      defaultIntegrations: [],
-    };
-    const actual = applyDefaultOptions(options);
-
-    expect(actual.defaultIntegrations).toEqual([]);
-  });
-
-  test('it works with tracesSampleRate=undefined', () => {
-    const options = {
-      tracesSampleRate: undefined,
-    } as const;
-    const actual = applyDefaultOptions(options);
-
-    // Not defined, not even undefined
-    expect('tracesSampleRate' in actual).toBe(false);
-  });
-
-  test('it works with tracesSampleRate=null', () => {
-    const options = {
-      tracesSampleRate: null,
-    } as any;
-    const actual = applyDefaultOptions(options);
-
-    expect(actual.tracesSampleRate).toStrictEqual(null);
-  });
-
-  test('it works with tracesSampleRate=0', () => {
-    const options = {
-      tracesSampleRate: 0,
-    } as const;
-    const actual = applyDefaultOptions(options);
-
-    expect(actual.tracesSampleRate).toStrictEqual(0);
-  });
-
-  test('it does not deep-drop undefined keys', () => {
-    const options = {
-      obj: {
-        prop: undefined,
-      },
-    } as any;
-    const actual = applyDefaultOptions(options) as any;
-
-    expect('prop' in actual.obj).toBe(true);
-    expect(actual.obj.prop).toStrictEqual(undefined);
   });
 });

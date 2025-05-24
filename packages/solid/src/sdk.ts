@@ -4,7 +4,7 @@ import type { Client } from '@sentry/core';
 import { applySdkMetadata } from '@sentry/core';
 
 /**
- * Initializes the Solid SDK
+ * Initializes the Solid SDK.
  */
 export function init(options: BrowserOptions): Client | undefined {
   const opts = {
@@ -12,6 +12,5 @@ export function init(options: BrowserOptions): Client | undefined {
   };
 
   applySdkMetadata(opts, 'solid');
-
   return browserInit(opts);
 }

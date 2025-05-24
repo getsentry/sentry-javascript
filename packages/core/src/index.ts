@@ -55,7 +55,7 @@ export {
   BaseClient,
 } from './client';
 export { ServerRuntimeClient } from './server-runtime-client';
-export { initAndBind, setCurrentClient } from './sdk';
+export { initAndBind, setCurrentClient, getClientOptions } from './sdk';
 export { createTransport } from './transports/base';
 export { makeOfflineTransport } from './transports/offline';
 export { makeMultiplexedTransport } from './transports/multiplexed';
@@ -160,7 +160,7 @@ export {
   isVueViewModel,
 } from './utils-hoist/is';
 export { isBrowser } from './utils-hoist/isBrowser';
-export { CONSOLE_LEVELS, consoleSandbox, logger, originalConsoleMethods } from './utils-hoist/logger';
+export { CONSOLE_LEVELS, consoleSandbox, logger, originalConsoleMethods, enableLogger } from './utils-hoist/logger';
 export type { Logger } from './utils-hoist/logger';
 export {
   addContextToFrame,

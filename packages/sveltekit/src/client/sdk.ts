@@ -1,7 +1,13 @@
 import type { Client, Integration } from '@sentry/core';
-import { applySdkMetadata } from '@sentry/core';
+import { applySdkMetadata, getClientOptions, initAndBind } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/svelte';
-import { getDefaultIntegrations as getDefaultSvelteIntegrations, init as initSvelteSdk, WINDOW } from '@sentry/svelte';
+import {
+  BrowserClient,
+  defaultStackParser,
+  getDefaultIntegrations as getDefaultSvelteIntegrations,
+  makeFetchTransport,
+  WINDOW,
+} from '@sentry/svelte';
 import { browserTracingIntegration as svelteKitBrowserTracingIntegration } from './browserTracingIntegration';
 
 type WindowWithSentryFetchProxy = typeof WINDOW & {
@@ -17,18 +23,18 @@ declare const __SENTRY_TRACING__: boolean;
  * @param options Configuration options for the SDK.
  */
 export function init(options: BrowserOptions): Client | undefined {
-  const opts = {
-    defaultIntegrations: getDefaultIntegrations(options),
-    ...options,
-  };
-
-  applySdkMetadata(opts, 'sveltekit', ['sveltekit', 'svelte']);
-
   // 1. Switch window.fetch to our fetch proxy we injected earlier
   const actualFetch = switchToFetchProxy();
 
   // 2. Initialize the SDK which will instrument our proxy
-  const client = initSvelteSdk(opts);
+  const clientOptions = getClientOptions(options, {
+    integrations: getDefaultIntegrations(options),
+    stackParser: defaultStackParser,
+    transport: makeFetchTransport,
+  });
+  applySdkMetadata(clientOptions, 'sveltekit', ['sveltekit', 'svelte']);
+
+  const client = initAndBind(BrowserClient, clientOptions);
 
   // 3. Restore the original fetch now that our proxy is instrumented
   if (actualFetch) {
@@ -38,7 +44,7 @@ export function init(options: BrowserOptions): Client | undefined {
   return client;
 }
 
-function getDefaultIntegrations(options: BrowserOptions): Integration[] | undefined {
+function getDefaultIntegrations(options: BrowserOptions): Integration[] {
   // This evaluates to true unless __SENTRY_TRACING__ is text-replaced with "false",
   // in which case everything inside will get tree-shaken away
   if (typeof __SENTRY_TRACING__ === 'undefined' || __SENTRY_TRACING__) {

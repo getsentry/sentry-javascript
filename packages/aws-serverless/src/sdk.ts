@@ -77,13 +77,12 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
  */
 export function init(options: NodeOptions = {}): NodeClient | undefined {
   const opts = {
-    defaultIntegrations: getDefaultIntegrations(options),
     ...options,
   };
 
   applySdkMetadata(opts, 'aws-serverless');
 
-  return initWithoutDefaultIntegrations(opts);
+  return initWithoutDefaultIntegrations(opts, getDefaultIntegrations);
 }
 
 /** */

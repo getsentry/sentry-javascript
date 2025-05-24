@@ -2,6 +2,7 @@ import type { BrowserOptions } from '@sentry/browser';
 import { init as browserInit } from '@sentry/browser';
 import type { Client } from '@sentry/core';
 import { applySdkMetadata } from '@sentry/core';
+
 /**
  * Inits the Svelte SDK
  */

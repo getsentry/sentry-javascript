@@ -1,6 +1,7 @@
-import { getDefaultIntegrations, init as browserInit } from '@sentry/browser';
-import type { Client } from '@sentry/core';
-import { applySdkMetadata } from '@sentry/core';
+import type { BrowserOptions } from '@sentry/browser';
+import { BrowserClient, defaultStackParser, getDefaultIntegrations, makeFetchTransport } from '@sentry/browser';
+import type { Client, Integration } from '@sentry/core';
+import { applySdkMetadata, getClientOptions, initAndBind } from '@sentry/core';
 import { vueIntegration } from './integration';
 import type { Options } from './types';
 
@@ -8,12 +9,17 @@ import type { Options } from './types';
  * Inits the Vue SDK
  */
 export function init(options: Partial<Omit<Options, 'tracingOptions'>> = {}): Client | undefined {
-  const opts = {
-    defaultIntegrations: [...getDefaultIntegrations(options), vueIntegration()],
-    ...options,
-  };
+  const clientOptions = getClientOptions(options, {
+    integrations: getVueDefaultIntegrations(options),
+    stackParser: defaultStackParser,
+    transport: makeFetchTransport,
+  });
 
-  applySdkMetadata(opts, 'vue');
+  applySdkMetadata(clientOptions, 'vue');
 
-  return browserInit(opts);
+  return initAndBind(BrowserClient, clientOptions);
+}
+
+function getVueDefaultIntegrations(options: BrowserOptions): Integration[] {
+  return [...getDefaultIntegrations(options), vueIntegration()];
 }
