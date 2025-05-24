@@ -7,7 +7,7 @@ import {
   ATTR_SERVICE_VERSION,
   SEMRESATTRS_SERVICE_NAMESPACE,
 } from '@opentelemetry/semantic-conventions';
-import { consoleSandbox, GLOBAL_OBJ, logger, SDK_VERSION } from '@sentry/core';
+import { consoleSandbox, enableLogger, GLOBAL_OBJ, logger, SDK_VERSION } from '@sentry/core';
 import { SentryPropagator, SentrySampler, SentrySpanProcessor } from '@sentry/opentelemetry';
 import { createAddHookMessageChannel } from 'import-in-the-middle';
 import moduleModule from 'module';
@@ -52,7 +52,10 @@ export function maybeInitializeEsmLoader(): void {
           transferList: [addHookMessagePort],
         });
       } catch (error) {
-        logger.warn('Failed to register ESM hook', error);
+        consoleSandbox(() => {
+          // eslint-disable-next-line no-console
+          console.warn('Failed to register ESM hook', error);
+        });
       }
     }
   } else {
@@ -79,7 +82,7 @@ export function preloadOpenTelemetry(options: NodePreloadOptions = {}): void {
   const { debug } = options;
 
   if (debug) {
-    logger.enable();
+    enableLogger();
     setupOpenTelemetryLogger();
   }
 

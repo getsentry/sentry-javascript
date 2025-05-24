@@ -23,7 +23,7 @@ describe('NodeClient', () => {
     cleanupOtel();
   });
 
-  it('sets correct metadata', () => {
+  it('sets correct metadata & default options', () => {
     const options = getDefaultNodeClientOptions();
     const client = new NodeClient(options);
 
@@ -32,6 +32,7 @@ describe('NodeClient', () => {
       integrations: [],
       transport: options.transport,
       stackParser: options.stackParser,
+      release: '1.0.0',
       _metadata: {
         sdk: {
           name: 'sentry.javascript.node',
@@ -48,6 +49,8 @@ describe('NodeClient', () => {
       runtime: { name: 'node', version: expect.any(String) },
       serverName: expect.any(String),
       tracesSampleRate: 1,
+      debug: false,
+      sendClientReports: true,
     });
   });
 

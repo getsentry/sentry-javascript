@@ -160,7 +160,7 @@ export {
   isVueViewModel,
 } from './utils-hoist/is';
 export { isBrowser } from './utils-hoist/isBrowser';
-export { CONSOLE_LEVELS, consoleSandbox, logger, originalConsoleMethods } from './utils-hoist/logger';
+export { CONSOLE_LEVELS, consoleSandbox, logger, originalConsoleMethods, enableLogger } from './utils-hoist/logger';
 export type { Logger } from './utils-hoist/logger';
 export {
   addContextToFrame,
