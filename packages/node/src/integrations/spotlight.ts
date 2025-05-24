@@ -1,6 +1,6 @@
 import * as http from 'node:http';
 import type { Client, Envelope, IntegrationFn } from '@sentry/core';
-import { defineIntegration, logger, serializeEnvelope } from '@sentry/core';
+import { defineIntegration, logger, serializeEnvelope, suppressTracing } from '@sentry/core';
 
 type SpotlightConnectionOptions = {
   /**
@@ -57,40 +57,40 @@ function connectToSpotlight(client: Client, options: Required<SpotlightConnectio
     }
 
     const serializedEnvelope = serializeEnvelope(envelope);
-
-    const request = getNativeHttpRequest();
-    const req = request(
-      {
-        method: 'POST',
-        path: spotlightUrl.pathname,
-        hostname: spotlightUrl.hostname,
-        port: spotlightUrl.port,
-        headers: {
-          'Content-Type': 'application/x-sentry-envelope',
+    suppressTracing(() => {
+      const req = http.request(
+        {
+          method: 'POST',
+          path: spotlightUrl.pathname,
+          hostname: spotlightUrl.hostname,
+          port: spotlightUrl.port,
+          headers: {
+            'Content-Type': 'application/x-sentry-envelope',
+          },
         },
-      },
-      res => {
-        if (res.statusCode && res.statusCode >= 200 && res.statusCode < 400) {
-          // Reset failed requests counter on success
-          failedRequests = 0;
-        }
-        res.on('data', () => {
-          // Drain socket
-        });
+        res => {
+          if (res.statusCode && res.statusCode >= 200 && res.statusCode < 400) {
+            // Reset failed requests counter on success
+            failedRequests = 0;
+          }
+          res.on('data', () => {
+            // Drain socket
+          });
 
-        res.on('end', () => {
-          // Drain socket
-        });
-        res.setEncoding('utf8');
-      },
-    );
+          res.on('end', () => {
+            // Drain socket
+          });
+          res.setEncoding('utf8');
+        },
+      );
 
-    req.on('error', () => {
-      failedRequests++;
-      logger.warn('[Spotlight] Failed to send envelope to Spotlight Sidecar');
+      req.on('error', () => {
+        failedRequests++;
+        logger.warn('[Spotlight] Failed to send envelope to Spotlight Sidecar');
+      });
+      req.write(serializedEnvelope);
+      req.end();
     });
-    req.write(serializedEnvelope);
-    req.end();
   });
 }
 
@@ -101,23 +101,4 @@ function parseSidecarUrl(url: string): URL | undefined {
     logger.warn(`[Spotlight] Invalid sidecar URL: ${url}`);
     return undefined;
   }
-}
-
-type HttpRequestImpl = typeof http.request;
-type WrappedHttpRequest = HttpRequestImpl & { __sentry_original__: HttpRequestImpl };
-
-/**
- * We want to get an unpatched http request implementation to avoid capturing our own calls.
- */
-export function getNativeHttpRequest(): HttpRequestImpl {
-  const { request } = http;
-  if (isWrapped(request)) {
-    return request.__sentry_original__;
-  }
-
-  return request;
-}
-
-function isWrapped(impl: HttpRequestImpl): impl is WrappedHttpRequest {
-  return '__sentry_original__' in impl;
 }
