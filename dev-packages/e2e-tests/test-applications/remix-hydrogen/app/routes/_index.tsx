@@ -1,6 +1,12 @@
 import { Link, useSearchParams } from '@remix-run/react';
 import * as Sentry from '@sentry/remix/cloudflare';
 
+declare global {
+  interface Window {
+    capturedExceptionId?: string;
+  }
+}
+
 export default function Index() {
   const [searchParams] = useSearchParams();
 

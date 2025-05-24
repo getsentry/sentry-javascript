@@ -4,6 +4,16 @@
  * For more information, see https://remix.run/file-conventions/entry.client
  */
 
+// Extend the Window interface to include ENV
+declare global {
+  interface Window {
+    ENV: {
+      SENTRY_DSN: string;
+      [key: string]: unknown;
+    };
+  }
+}
+
 import { RemixBrowser, useLocation, useMatches } from '@remix-run/react';
 import * as Sentry from '@sentry/remix';
 import { StrictMode, startTransition, useEffect } from 'react';

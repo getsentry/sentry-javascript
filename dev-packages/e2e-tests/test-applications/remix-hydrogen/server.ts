@@ -12,11 +12,25 @@ import { type AppLoadContext, createRequestHandler, getStorefrontHeaders } from 
 import { CART_QUERY_FRAGMENT } from '~/lib/fragments';
 import { AppSession } from '~/lib/session';
 // Virtual entry point for the app
+// Typescript errors about the type of `remixBuild` will be there when it's used
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-expect-error
 import * as remixBuild from 'virtual:remix/server-build';
 
 /**
  * Export a fetch handler in module format.
  */
+type Env = {
+  SESSION_SECRET: string;
+  PUBLIC_STOREFRONT_API_TOKEN: string;
+  PRIVATE_STOREFRONT_API_TOKEN: string;
+  PUBLIC_STORE_DOMAIN: string;
+  PUBLIC_STOREFRONT_ID: string;
+  PUBLIC_CUSTOMER_ACCOUNT_API_CLIENT_ID: string;
+  PUBLIC_CUSTOMER_ACCOUNT_API_URL: string;
+  // Add any other environment variables your app expects here
+};
+
 export default {
   async fetch(request: Request, env: Env, executionContext: ExecutionContext): Promise<Response> {
     return wrapRequestHandler(
@@ -68,7 +82,7 @@ export default {
             request,
             session,
             customerAccountId: env.PUBLIC_CUSTOMER_ACCOUNT_API_CLIENT_ID,
-            customerAccountUrl: env.PUBLIC_CUSTOMER_ACCOUNT_API_URL,
+            shopId: env.PUBLIC_STORE_DOMAIN,
           });
 
           /*

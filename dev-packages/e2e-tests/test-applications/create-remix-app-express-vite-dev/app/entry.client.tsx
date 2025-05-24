@@ -3,6 +3,16 @@ import * as Sentry from '@sentry/remix';
 import { StrictMode, startTransition, useEffect } from 'react';
 import { hydrateRoot } from 'react-dom/client';
 
+// Extend the Window interface to include ENV
+declare global {
+  interface Window {
+    ENV: {
+      SENTRY_DSN: string;
+      [key: string]: unknown;
+    };
+  }
+}
+
 Sentry.init({
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: window.ENV.SENTRY_DSN,

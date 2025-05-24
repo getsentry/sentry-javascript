@@ -20,7 +20,7 @@ test('Sends parameterized transaction name to Sentry', async ({ page }) => {
 
 test('Sends form data with action span', async ({ page }) => {
   const formdataActionTransaction = waitForTransaction('create-remix-app-express', transactionEvent => {
-    return transactionEvent?.spans?.some(span => span.data && span.data['code.function'] === 'action');
+    return transactionEvent?.spans?.some(span => span.data && span.data['code.function'] === 'action') || false;
   });
 
   await page.goto('/action-formdata');
@@ -34,13 +34,13 @@ test('Sends form data with action span', async ({ page }) => {
 
   await page.locator('button[type=submit]').click();
 
-  const actionSpan = (await formdataActionTransaction).spans.find(
+  const actionSpan = (await formdataActionTransaction)?.spans?.find(
     span => span.data && span.data['code.function'] === 'action',
   );
 
   expect(actionSpan).toBeDefined();
-  expect(actionSpan.op).toBe('action.remix');
-  expect(actionSpan.data).toMatchObject({
+  expect(actionSpan?.op).toBe('action.remix');
+  expect(actionSpan?.data).toMatchObject({
     'formData.text': 'test',
     'formData.file': 'file.txt',
   });
@@ -48,17 +48,17 @@ test('Sends form data with action span', async ({ page }) => {
 
 test('Sends a loader span to Sentry', async ({ page }) => {
   const loaderTransactionPromise = waitForTransaction('create-remix-app-express', transactionEvent => {
-    return transactionEvent?.spans?.some(span => span.data && span.data['code.function'] === 'loader');
+    return transactionEvent?.spans?.some(span => span.data && span.data['code.function'] === 'loader') || false;
   });
 
   await page.goto('/');
 
-  const loaderSpan = (await loaderTransactionPromise).spans.find(
+  const loaderSpan = (await loaderTransactionPromise)?.spans?.find(
     span => span.data && span.data['code.function'] === 'loader',
   );
 
   expect(loaderSpan).toBeDefined();
-  expect(loaderSpan.op).toBe('loader.remix');
+  expect(loaderSpan?.op).toBe('loader.remix');
 });
 
 test('Propagates trace when ErrorBoundary is triggered', async ({ page }) => {
@@ -83,9 +83,8 @@ test('Propagates trace when ErrorBoundary is triggered', async ({ page }) => {
 
   const httpServerTraceId = httpServerTransaction.contexts?.trace?.trace_id;
   const httpServerSpanId = httpServerTransaction.contexts?.trace?.span_id;
-  const loaderSpanId = httpServerTransaction.spans.find(
-    span => span.data && span.data['code.function'] === 'loader',
-  )?.span_id;
+  const loaderSpanId = httpServerTransaction?.spans?.find(span => span.data && span.data['code.function'] === 'loader')
+    ?.span_id;
 
   const pageLoadTraceId = pageloadTransaction.contexts?.trace?.trace_id;
   const pageLoadSpanId = pageloadTransaction.contexts?.trace?.span_id;

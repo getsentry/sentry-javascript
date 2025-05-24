@@ -40,11 +40,6 @@ function isBotRequest(userAgent: string | null) {
     return isbotModule.isbot(userAgent);
   }
 
-  // isbot < 3.8.0
-  if ('default' in isbotModule && typeof isbotModule.default === 'function') {
-    return isbotModule.default(userAgent);
-  }
-
   return false;
 }
 
