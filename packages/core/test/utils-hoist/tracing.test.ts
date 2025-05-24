@@ -1,5 +1,10 @@
 import { describe, expect, it, test } from 'vitest';
-import { extractTraceparentData, propagationContextFromHeaders } from '../../src/utils-hoist/tracing';
+import {
+  extractTraceparentData,
+  propagationContextFromHeaders,
+  shouldContinueTrace,
+} from '../../src/utils-hoist/tracing';
+import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
 const EXAMPLE_SENTRY_TRACE = '12312012123120121231201212312012-1121201211212012-1';
 const EXAMPLE_BAGGAGE = 'sentry-release=1.2.3,sentry-foo=bar,other=baz,sentry-sample_rand=0.42';
@@ -122,5 +127,67 @@ describe('extractTraceparentData', () => {
 
     // bogus sampling decision
     expect(extractTraceparentData('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-x')).toBeUndefined();
+  });
+});
+
+describe('shouldContinueTrace', () => {
+  test('returns true when both baggage and SDK org IDs are undefined', () => {
+    const client = new TestClient(getDefaultTestClientOptions({}));
+
+    const result = shouldContinueTrace(client, undefined);
+    expect(result).toBe(true);
+  });
+
+  test('returns true when org IDs match', () => {
+    const orgId = '123456';
+    const client = new TestClient(getDefaultTestClientOptions({ orgId }));
+
+    const result = shouldContinueTrace(client, orgId);
+    expect(result).toBe(true);
+  });
+
+  test('returns false when org IDs do not match', () => {
+    const client = new TestClient(getDefaultTestClientOptions({ orgId: '123456' }));
+
+    const result = shouldContinueTrace(client, '654321');
+    expect(result).toBe(false);
+  });
+
+  test('returns true when baggage org ID is undefined and strictTraceContinuation is false', () => {
+    const client = new TestClient(getDefaultTestClientOptions({ orgId: '123456', strictTraceContinuation: false }));
+
+    const result = shouldContinueTrace(client, undefined);
+    expect(result).toBe(true);
+  });
+
+  test('returns true when SDK org ID is undefined and strictTraceContinuation is false', () => {
+    const client = new TestClient(getDefaultTestClientOptions({ strictTraceContinuation: false }));
+
+    const result = shouldContinueTrace(client, '123456');
+    expect(result).toBe(true);
+  });
+
+  test('returns false when baggage org ID is undefined and strictTraceContinuation is true', () => {
+    const client = new TestClient(getDefaultTestClientOptions({ orgId: '123456', strictTraceContinuation: true }));
+
+    const result = shouldContinueTrace(client, undefined);
+    expect(result).toBe(false);
+  });
+
+  test('returns false when SDK org ID is undefined and strictTraceContinuation is true', () => {
+    const client = new TestClient(getDefaultTestClientOptions({ strictTraceContinuation: true }));
+
+    const result = shouldContinueTrace(client, '123456');
+    expect(result).toBe(false);
+  });
+
+  test('returns true when client is undefined', () => {
+    const result = shouldContinueTrace(undefined, '123456');
+    expect(result).toBe(true);
+  });
+
+  test('returns true when both org IDs and client are undefined', () => {
+    const result = shouldContinueTrace(undefined, undefined);
+    expect(result).toBe(true);
   });
 });
