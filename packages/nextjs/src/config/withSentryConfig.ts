@@ -67,8 +67,6 @@ function getFinalConfigObject(
     }
   }
 
-  setUpBuildTimeVariables(incomingUserNextConfigObject, userSentryOptions, releaseName);
-
   const nextJsVersion = getNextjsVersion();
 
   // Add the `clientTraceMetadata` experimental option based on Next.js version. The option got introduced in Next.js version 15.0.0 (actually 14.3.0-canary.64).
@@ -285,64 +283,6 @@ function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: s
       };
     }
   };
-}
-
-function setUpBuildTimeVariables(
-  userNextConfig: NextConfigObject,
-  userSentryOptions: SentryBuildOptions,
-  releaseName: string | undefined,
-): void {
-  const assetPrefix = userNextConfig.assetPrefix || userNextConfig.basePath || '';
-  const basePath = userNextConfig.basePath ?? '';
-  const rewritesTunnelPath =
-    userSentryOptions.tunnelRoute !== undefined && userNextConfig.output !== 'export'
-      ? `${basePath}${userSentryOptions.tunnelRoute}`
-      : undefined;
-
-  const buildTimeVariables: Record<string, string> = {
-    // Make sure that if we have a windows path, the backslashes are interpreted as such (rather than as escape
-    // characters)
-    _sentryRewriteFramesDistDir: userNextConfig.distDir?.replace(/\\/g, '\\\\') || '.next',
-    // Get the path part of `assetPrefix`, minus any trailing slash. (We use a placeholder for the origin if
-    // `assetPrefix` doesn't include one. Since we only care about the path, it doesn't matter what it is.)
-    _sentryRewriteFramesAssetPrefixPath: assetPrefix
-      ? new URL(assetPrefix, 'http://dogs.are.great').pathname.replace(/\/$/, '')
-      : '',
-  };
-
-  if (userNextConfig.assetPrefix) {
-    buildTimeVariables._assetsPrefix = userNextConfig.assetPrefix;
-  }
-
-  if (userSentryOptions._experimental?.thirdPartyOriginStackFrames) {
-    buildTimeVariables._experimentalThirdPartyOriginStackFrames = 'true';
-  }
-
-  if (rewritesTunnelPath) {
-    buildTimeVariables._sentryRewritesTunnelPath = rewritesTunnelPath;
-  }
-
-  if (basePath) {
-    buildTimeVariables._sentryBasePath = basePath;
-  }
-
-  if (userNextConfig.assetPrefix) {
-    buildTimeVariables._sentryAssetPrefix = userNextConfig.assetPrefix;
-  }
-
-  if (userSentryOptions._experimental?.thirdPartyOriginStackFrames) {
-    buildTimeVariables._experimentalThirdPartyOriginStackFrames = 'true';
-  }
-
-  if (releaseName) {
-    buildTimeVariables._sentryRelease = releaseName;
-  }
-
-  if (typeof userNextConfig.env === 'object') {
-    userNextConfig.env = { ...buildTimeVariables, ...userNextConfig.env };
-  } else if (userNextConfig.env === undefined) {
-    userNextConfig.env = buildTimeVariables;
-  }
 }
 
 function getGitRevision(): string | undefined {
