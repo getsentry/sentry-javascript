@@ -145,7 +145,7 @@ export interface BrowserTracingOptions {
   enableHTTPTimings: boolean;
 
   /**
-   * Resource spans matching strings in the array will not be emitted.
+   * Resource spans with `op`s matching strings in the array will not be emitted.
    *
    * Default: []
    */

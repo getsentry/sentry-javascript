@@ -306,7 +306,7 @@ interface AddPerformanceEntriesOptions {
    *
    * Default: []
    */
-  ignoreResourceSpans: Array<'resouce.script' | 'resource.css' | 'resource.img' | 'resource.other' | string >;
+  ignoreResourceSpans: Array<'resouce.script' | 'resource.css' | 'resource.img' | 'resource.other' | string>;
 }
 
 /** Add performance related spans to a transaction */
