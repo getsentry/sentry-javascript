@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
 import { DEFAULT_ENVIRONMENT } from './constants';
-import { getCurrentScope, getIsolationScope, getTraceContextFromScope } from './currentScopes';
+import { getCurrentScope, getIsolationScope, getTraceContextFromScope, withScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import { createEventEnvelope, createSessionEnvelope } from './envelope';
 import type { IntegrationIndex } from './integration';
@@ -36,8 +36,7 @@ import { getPossibleEventMessages } from './utils/eventUtils';
 import { merge } from './utils/merge';
 import { parseSampleRate } from './utils/parseSampleRate';
 import { prepareEvent } from './utils/prepareEvent';
-import { _getSpanForScope } from './utils/spanOnScope';
-import { showSpanDropWarning, spanToTraceContext } from './utils/spanUtils';
+import { getActiveSpan, showSpanDropWarning, spanToTraceContext } from './utils/spanUtils';
 import { convertSpanJsonToTransactionEvent, convertTransactionEventToSpanJson } from './utils/transactionEvent';
 import { createClientReportEnvelope } from './utils-hoist/clientreport';
 import { dsnToString, makeDsn } from './utils-hoist/dsn';
@@ -1325,10 +1324,12 @@ export function _getTraceInfoFromScope(
     return [undefined, undefined];
   }
 
-  const span = _getSpanForScope(scope);
-  const traceContext = span ? spanToTraceContext(span) : getTraceContextFromScope(scope);
-  const dynamicSamplingContext = span
-    ? getDynamicSamplingContextFromSpan(span)
-    : getDynamicSamplingContextFromScope(client, scope);
-  return [dynamicSamplingContext, traceContext];
+  return withScope(scope, () => {
+    const span = getActiveSpan();
+    const traceContext = span ? spanToTraceContext(span) : getTraceContextFromScope(scope);
+    const dynamicSamplingContext = span
+      ? getDynamicSamplingContextFromSpan(span)
+      : getDynamicSamplingContextFromScope(client, scope);
+    return [dynamicSamplingContext, traceContext];
+  });
 }
