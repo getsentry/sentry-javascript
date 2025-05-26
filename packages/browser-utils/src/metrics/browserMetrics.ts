@@ -300,6 +300,13 @@ interface AddPerformanceEntriesOptions {
    * sent as a standalone span instead.
    */
   recordClsOnPageloadSpan: boolean;
+
+  /**
+   * Resource spans matching strings in the array will not be emitted.
+   *
+   * Default: []
+   */
+  ignoreResourceSpans: Array<string>;
 }
 
 /** Add performance related spans to a transaction */
@@ -355,7 +362,7 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
         break;
       }
       case 'resource': {
-        _addResourceSpans(span, entry as PerformanceResourceTiming, entry.name, startTime, duration, timeOrigin);
+        _addResourceSpans(span, entry as PerformanceResourceTiming, entry.name, startTime, duration, timeOrigin, options.ignoreResourceSpans);
         break;
       }
       // Ignore other entry types.
@@ -568,10 +575,16 @@ export function _addResourceSpans(
   startTime: number,
   duration: number,
   timeOrigin: number,
+  ignoreResourceSpans?: Array<string>
 ): void {
   // we already instrument based on fetch and xhr, so we don't need to
   // duplicate spans here.
   if (entry.initiatorType === 'xmlhttprequest' || entry.initiatorType === 'fetch') {
+    return;
+  }
+
+  const op = entry.initiatorType ? `resource.${entry.initiatorType}` : 'resource.other';
+  if (ignoreResourceSpans?.includes(op)) {
     return;
   }
 
@@ -616,7 +629,7 @@ export function _addResourceSpans(
 
   startAndEndSpan(span, startTimestamp, endTimestamp, {
     name: resourceUrl.replace(WINDOW.location.origin, ''),
-    op: entry.initiatorType ? `resource.${entry.initiatorType}` : 'resource.other',
+    op,
     attributes,
   });
 }
