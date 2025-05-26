@@ -1781,6 +1781,19 @@ describe('getActiveSpan', () => {
     const result = getActiveSpan();
     expect(result).toBe(staticSpan);
   });
+
+  it('handles active span when passing scopes to withScope', () => {
+    const [scope, span] = startSpan({ name: 'outer' }, span => {
+      return [getCurrentScope(), span];
+    });
+
+    const spanOnScope = withScope(scope, () => {
+      return getActiveSpan();
+    });
+
+    expect(spanOnScope).toBeDefined();
+    expect(spanOnScope).toBe(span);
+  });
 });
 
 describe('withActiveSpan()', () => {
