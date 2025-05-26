@@ -61,7 +61,16 @@ export function logAttributeToSerializedLogAttribute(value: unknown): Serialized
   }
 }
 
-function defaultCaptureSerializedLog(client: Client, serializedLog: SerializedLog): void {
+/**
+ * Captures a serialized log event and adds it to the log buffer for the given client.
+ *
+ * @param client - A client. Uses the current client if not provided.
+ * @param serializedLog - The serialized log event to capture.
+ *
+ * @experimental This method will experience breaking changes. This is not yet part of
+ * the stable Sentry SDK API and can be changed or removed without warning.
+ */
+export function _INTERNAL_captureSerializedLog(client: Client, serializedLog: SerializedLog): void {
   const logBuffer = _INTERNAL_getLogBuffer(client);
   if (logBuffer === undefined) {
     GLOBAL_OBJ._sentryClientToLogBufferMap?.set(client, [serializedLog]);
@@ -88,7 +97,7 @@ export function _INTERNAL_captureLog(
   beforeLog: Log,
   client: Client | undefined = getClient(),
   scope = getCurrentScope(),
-  captureSerializedLog: (client: Client, log: SerializedLog) => void = defaultCaptureSerializedLog,
+  captureSerializedLog: (client: Client, log: SerializedLog) => void = _INTERNAL_captureSerializedLog,
 ): void {
   if (!client) {
     DEBUG_BUILD && logger.warn('No client available to capture log.');
