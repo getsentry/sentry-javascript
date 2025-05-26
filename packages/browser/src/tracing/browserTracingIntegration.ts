@@ -145,6 +145,13 @@ export interface BrowserTracingOptions {
   enableHTTPTimings: boolean;
 
   /**
+   * Resource spans with `op`s matching strings in the array will not be emitted.
+   *
+   * Default: []
+   */
+  ignoreResourceSpans: Array<string>;
+
+  /**
    * Link the currently started trace to a previous trace (e.g. a prior pageload, navigation or
    * manually started span). When enabled, this option will allow you to navigate between traces
    * in the Sentry UI.
@@ -226,6 +233,7 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   enableLongTask: true,
   enableLongAnimationFrame: true,
   enableInp: true,
+  ignoreResourceSpans: [],
   linkPreviousTrace: 'in-memory',
   consistentTraceSampling: false,
   _experiments: {},
@@ -268,6 +276,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     trackFetchStreamPerformance,
     shouldCreateSpanForRequest,
     enableHTTPTimings,
+    ignoreResourceSpans,
     instrumentPageLoad,
     instrumentNavigation,
     linkPreviousTrace,
@@ -310,7 +319,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         // This will generally always be defined here, because it is set in `setup()` of the integration
         // but technically, it is optional, so we guard here to be extra safe
         _collectWebVitals?.();
-        addPerformanceEntries(span, { recordClsOnPageloadSpan: !enableStandaloneClsSpans });
+        addPerformanceEntries(span, { recordClsOnPageloadSpan: !enableStandaloneClsSpans, ignoreResourceSpans });
         setActiveIdleSpan(client, undefined);
 
         // A trace should stay consistent over the entire timespan of one route - even after the pageload/navigation ended.

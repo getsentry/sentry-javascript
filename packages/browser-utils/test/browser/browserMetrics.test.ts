@@ -271,6 +271,53 @@ describe('_addResourceSpans', () => {
     }
   });
 
+  it('allows resource spans to be ignored via ignoreResourceSpans', () => {
+    const spans: Span[] = [];
+    const ignoredResourceSpans = ['resource.other', 'resource.script'];
+
+    getClient()?.on('spanEnd', span => {
+      spans.push(span);
+    });
+
+    const table = [
+      {
+        initiatorType: undefined,
+        op: 'resource.other',
+      },
+      {
+        initiatorType: 'css',
+        op: 'resource.css',
+      },
+      {
+        initiatorType: 'css',
+        op: 'resource.css',
+      },
+      {
+        initiatorType: 'image',
+        op: 'resource.image',
+      },
+      {
+        initiatorType: 'script',
+        op: 'resource.script',
+      },
+    ];
+    for (const row of table) {
+      const { initiatorType } = row;
+      const entry = mockPerformanceResourceTiming({
+        initiatorType,
+        nextHopProtocol: 'http/1.1',
+      });
+      _addResourceSpans(span, entry, 'https://example.com/assets/to/me', 123, 234, 465, ignoredResourceSpans);
+    }
+    expect(spans).toHaveLength(table.length - ignoredResourceSpans.length);
+    const spanOps = new Set(
+      spans.map(s => {
+        return spanToJSON(s).op;
+      }),
+    );
+    expect(spanOps).toEqual(new Set(['resource.css', 'resource.image']));
+  });
+
   it('allows for enter size of 0', () => {
     const spans: Span[] = [];
 
