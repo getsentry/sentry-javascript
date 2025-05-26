@@ -10,7 +10,7 @@ sentryTest('should allow specific types of resource spans to be ignored.', async
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
-  const uiSpans = eventData.spans?.filter(({ op }) => op?.startsWith('resource.script'));
+  const allSpans = eventData.spans?.filter(({ op }) => op?.startsWith('resource.script'));
 
-  expect(uiSpans?.length).toBe(0);
+  expect(allSpans?.length).toBe(0);
 });
