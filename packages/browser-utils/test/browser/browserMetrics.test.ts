@@ -273,10 +273,7 @@ describe('_addResourceSpans', () => {
 
   it('allows resource spans to be ignored via ignoreResourceSpans', () => {
     const spans: Span[] = [];
-    const ignoredResourceSpans = [
-      'resource.other',
-      'resource.script'
-    ];
+    const ignoredResourceSpans = ['resource.other', 'resource.script'];
 
     getClient()?.on('spanEnd', span => {
       spans.push(span);
@@ -313,9 +310,11 @@ describe('_addResourceSpans', () => {
       _addResourceSpans(span, entry, 'https://example.com/assets/to/me', 123, 234, 465, ignoredResourceSpans);
     }
     expect(spans).toHaveLength(table.length - ignoredResourceSpans.length);
-    const spanOps = new Set(spans.map((s) => {
-      return spanToJSON(s).op;
-    }));
+    const spanOps = new Set(
+      spans.map(s => {
+        return spanToJSON(s).op;
+      }),
+    );
     expect(spanOps).toEqual(new Set(['resource.css', 'resource.image']));
   });
 

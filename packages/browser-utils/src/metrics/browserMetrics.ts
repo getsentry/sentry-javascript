@@ -362,7 +362,15 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
         break;
       }
       case 'resource': {
-        _addResourceSpans(span, entry as PerformanceResourceTiming, entry.name, startTime, duration, timeOrigin, options.ignoreResourceSpans);
+        _addResourceSpans(
+          span,
+          entry as PerformanceResourceTiming,
+          entry.name,
+          startTime,
+          duration,
+          timeOrigin,
+          options.ignoreResourceSpans,
+        );
         break;
       }
       // Ignore other entry types.
@@ -575,7 +583,7 @@ export function _addResourceSpans(
   startTime: number,
   duration: number,
   timeOrigin: number,
-  ignoreResourceSpans?: Array<string>
+  ignoreResourceSpans?: Array<string>,
 ): void {
   // we already instrument based on fetch and xhr, so we don't need to
   // duplicate spans here.

@@ -6,7 +6,7 @@ Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   integrations: [
     Sentry.browserTracingIntegration({
-      ignoreResourceSpans: ['resource.script']
+      ignoreResourceSpans: ['resource.script'],
     }),
   ],
   tracesSampleRate: 1,
