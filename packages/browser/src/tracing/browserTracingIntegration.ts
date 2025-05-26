@@ -3,7 +3,6 @@ import type { Client, IntegrationFn, Span, StartSpanOptions, TransactionSource, 
 import {
   addNonEnumerableProperty,
   browserPerformanceTimeOrigin,
-  consoleSandbox,
   generateTraceId,
   getClient,
   getCurrentScope,
@@ -233,8 +232,6 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   ...defaultRequestInstrumentationOptions,
 };
 
-let _hasBeenInitialized = false;
-
 /**
  * The Browser Tracing integration automatically instruments browser pageload/navigation
  * actions as transactions, and captures requests, metrics and errors as spans.
@@ -245,22 +242,16 @@ let _hasBeenInitialized = false;
  * We explicitly export the proper type here, as this has to be extended in some cases.
  */
 export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptions> = {}) => {
-  if (_hasBeenInitialized) {
-    consoleSandbox(() => {
-      // eslint-disable-next-line no-console
-      console.warn('Multiple browserTracingIntegration instances are not supported.');
-    });
-  }
-
-  _hasBeenInitialized = true;
+  const latestRoute: RouteInfo = {
+    name: undefined,
+    source: undefined,
+  };
 
   /**
    * This is just a small wrapper that makes `document` optional.
    * We want to be extra-safe and always check that this exists, to ensure weird environments do not blow up.
    */
   const optionalWindowDocument = WINDOW.document as (typeof WINDOW)['document'] | undefined;
-
-  registerSpanErrorInstrumentation();
 
   const {
     enableInp,
@@ -287,31 +278,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     ..._options,
   };
 
-  const _collectWebVitals = startTrackingWebVitals({ recordClsStandaloneSpans: enableStandaloneClsSpans || false });
-
-  if (enableInp) {
-    startTrackingINP();
-  }
-
-  if (
-    enableLongAnimationFrame &&
-    GLOBAL_OBJ.PerformanceObserver &&
-    PerformanceObserver.supportedEntryTypes &&
-    PerformanceObserver.supportedEntryTypes.includes('long-animation-frame')
-  ) {
-    startTrackingLongAnimationFrames();
-  } else if (enableLongTask) {
-    startTrackingLongTasks();
-  }
-
-  if (enableInteractions) {
-    startTrackingInteractions();
-  }
-
-  const latestRoute: RouteInfo = {
-    name: undefined,
-    source: undefined,
-  };
+  let _collectWebVitals: undefined | (() => void);
 
   /** Create routing idle transaction. */
   function _createRouteSpan(client: Client, startSpanOptions: StartSpanOptions): void {
@@ -340,7 +307,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       // should wait for finish signal if it's a pageload transaction
       disableAutoFinish: isPageloadTransaction,
       beforeSpanEnd: span => {
-        _collectWebVitals();
+        _collectWebVitals?.();
         addPerformanceEntries(span, { recordClsOnPageloadSpan: !enableStandaloneClsSpans });
         setActiveIdleSpan(client, undefined);
 
@@ -378,8 +345,29 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
 
   return {
     name: BROWSER_TRACING_INTEGRATION_ID,
-    afterAllSetup(client) {
-      let startingUrl: string | undefined = getLocationHref();
+    setup(client) {
+      registerSpanErrorInstrumentation();
+
+      _collectWebVitals = startTrackingWebVitals({ recordClsStandaloneSpans: enableStandaloneClsSpans || false });
+
+      if (enableInp) {
+        startTrackingINP();
+      }
+
+      if (
+        enableLongAnimationFrame &&
+        GLOBAL_OBJ.PerformanceObserver &&
+        PerformanceObserver.supportedEntryTypes &&
+        PerformanceObserver.supportedEntryTypes.includes('long-animation-frame')
+      ) {
+        startTrackingLongAnimationFrames();
+      } else if (enableLongTask) {
+        startTrackingLongTasks();
+      }
+
+      if (enableInteractions) {
+        startTrackingInteractions();
+      }
 
       function maybeEndActiveSpan(): void {
         const activeSpan = getActiveIdleSpan(client);
@@ -440,6 +428,9 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
           ...startSpanOptions,
         });
       });
+    },
+    afterAllSetup(client) {
+      let startingUrl: string | undefined = getLocationHref();
 
       if (linkPreviousTrace !== 'off') {
         linkTraces(client, { linkPreviousTrace, consistentTraceSampling });
