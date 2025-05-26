@@ -302,11 +302,11 @@ interface AddPerformanceEntriesOptions {
   recordClsOnPageloadSpan: boolean;
 
   /**
-   * Resource spans matching strings in the array will not be emitted.
+   * Resource spans with `op`s matching strings in the array will not be emitted.
    *
    * Default: []
    */
-  ignoreResourceSpans: Array<string>;
+  ignoreResourceSpans: Array<'resouce.script' | 'resource.css' | 'resource.img' | 'resource.other' | string >;
 }
 
 /** Add performance related spans to a transaction */
