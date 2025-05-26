@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/node-core';
-import { loggingTransport } from '@sentry-internal/node-integration-tests';
+import { loggingTransport } from '@sentry-internal/node-core-otel-v2-integration-tests';
 import { CronJob } from 'cron';
 
 Sentry.init({

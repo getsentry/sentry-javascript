@@ -1,7 +1,7 @@
 import { execSync } from 'node:child_process';
 import * as path from 'node:path';
 import * as Sentry from '@sentry/node-core';
-import { loggingTransport } from '@sentry-internal/node-integration-tests';
+import { loggingTransport } from '@sentry-internal/node-core-otel-v2-integration-tests';
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
