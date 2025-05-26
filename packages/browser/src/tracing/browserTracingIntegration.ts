@@ -307,6 +307,8 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       // should wait for finish signal if it's a pageload transaction
       disableAutoFinish: isPageloadTransaction,
       beforeSpanEnd: span => {
+        // This will generally always be defined here, because it is set in `setup()` of the integration
+        // but technically, it is optional, so we guard here to be extra safe
         _collectWebVitals?.();
         addPerformanceEntries(span, { recordClsOnPageloadSpan: !enableStandaloneClsSpans });
         setActiveIdleSpan(client, undefined);
