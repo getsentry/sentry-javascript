@@ -236,7 +236,9 @@ export function createReactRouterV6CompatibleTracingIntegration(
 
   return {
     ...integration,
-    setup() {
+    setup(client) {
+      integration.setup(client);
+
       _useEffect = useEffect;
       _useLocation = useLocation;
       _useNavigationType = useNavigationType;
