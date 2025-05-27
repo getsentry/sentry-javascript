@@ -18,12 +18,12 @@ Sentry.init({
 // Simulate queue operations
 async function performQueueOperations() {
   try {
-    await supabaseClient.rpc('enqueue', {
+    await supabaseClient.rpc('send', {
       queue_name: 'todos',
       msg: { title: 'Test Todo' },
     });
 
-    await supabaseClient.rpc('dequeue', {
+    await supabaseClient.rpc('pop', {
       queue_name: 'todos',
     });
   } catch (error) {
