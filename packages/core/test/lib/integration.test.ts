@@ -22,13 +22,11 @@ class MockIntegration implements Integration {
   // Only for testing - tag to keep separate instances straight when testing deduplication
   public tag?: string;
 
+  public setupOnce = vi.fn(() => {});
+
   public constructor(name: string, tag?: string) {
     this.name = name;
     this.tag = tag;
-  }
-
-  public setupOnce(): void {
-    // noop
   }
 }
 
@@ -73,6 +71,31 @@ describe('getIntegrationsToSetup', () => {
         integrations: userIntegrations,
       });
       expect(integrations.map(i => i.name)).toEqual(expected);
+    });
+
+    test('it uses passed integration over default intergation', () => {
+      const integrationDefault = new MockIntegration('ChaseSquirrels');
+      const integration1 = new MockIntegration('ChaseSquirrels');
+
+      const integrations = getIntegrationsToSetup({
+        defaultIntegrations: [integrationDefault],
+        integrations: [integration1],
+      });
+
+      expect(integrations).toEqual([integration1]);
+    });
+
+    test('it uses last passed integration only', () => {
+      const integrationDefault = new MockIntegration('ChaseSquirrels');
+      const integration1 = new MockIntegration('ChaseSquirrels');
+      const integration2 = new MockIntegration('ChaseSquirrels');
+
+      const integrations = getIntegrationsToSetup({
+        defaultIntegrations: [integrationDefault],
+        integrations: [integration1, integration2],
+      });
+
+      expect(integrations).toEqual([integration2]);
     });
   });
 

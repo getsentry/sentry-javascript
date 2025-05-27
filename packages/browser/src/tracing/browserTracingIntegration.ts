@@ -3,7 +3,6 @@ import type { Client, IntegrationFn, Span, StartSpanOptions, TransactionSource, 
 import {
   addNonEnumerableProperty,
   browserPerformanceTimeOrigin,
-  consoleSandbox,
   generateTraceId,
   getClient,
   getCurrentScope,
@@ -146,6 +145,13 @@ export interface BrowserTracingOptions {
   enableHTTPTimings: boolean;
 
   /**
+   * Resource spans with `op`s matching strings in the array will not be emitted.
+   *
+   * Default: []
+   */
+  ignoreResourceSpans: Array<string>;
+
+  /**
    * Link the currently started trace to a previous trace (e.g. a prior pageload, navigation or
    * manually started span). When enabled, this option will allow you to navigate between traces
    * in the Sentry UI.
@@ -227,13 +233,12 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   enableLongTask: true,
   enableLongAnimationFrame: true,
   enableInp: true,
+  ignoreResourceSpans: [],
   linkPreviousTrace: 'in-memory',
   consistentTraceSampling: false,
   _experiments: {},
   ...defaultRequestInstrumentationOptions,
 };
-
-let _hasBeenInitialized = false;
 
 /**
  * The Browser Tracing integration automatically instruments browser pageload/navigation
@@ -245,22 +250,16 @@ let _hasBeenInitialized = false;
  * We explicitly export the proper type here, as this has to be extended in some cases.
  */
 export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptions> = {}) => {
-  if (_hasBeenInitialized) {
-    consoleSandbox(() => {
-      // eslint-disable-next-line no-console
-      console.warn('Multiple browserTracingIntegration instances are not supported.');
-    });
-  }
-
-  _hasBeenInitialized = true;
+  const latestRoute: RouteInfo = {
+    name: undefined,
+    source: undefined,
+  };
 
   /**
    * This is just a small wrapper that makes `document` optional.
    * We want to be extra-safe and always check that this exists, to ensure weird environments do not blow up.
    */
   const optionalWindowDocument = WINDOW.document as (typeof WINDOW)['document'] | undefined;
-
-  registerSpanErrorInstrumentation();
 
   const {
     enableInp,
@@ -277,6 +276,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     trackFetchStreamPerformance,
     shouldCreateSpanForRequest,
     enableHTTPTimings,
+    ignoreResourceSpans,
     instrumentPageLoad,
     instrumentNavigation,
     linkPreviousTrace,
@@ -287,31 +287,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     ..._options,
   };
 
-  const _collectWebVitals = startTrackingWebVitals({ recordClsStandaloneSpans: enableStandaloneClsSpans || false });
-
-  if (enableInp) {
-    startTrackingINP();
-  }
-
-  if (
-    enableLongAnimationFrame &&
-    GLOBAL_OBJ.PerformanceObserver &&
-    PerformanceObserver.supportedEntryTypes &&
-    PerformanceObserver.supportedEntryTypes.includes('long-animation-frame')
-  ) {
-    startTrackingLongAnimationFrames();
-  } else if (enableLongTask) {
-    startTrackingLongTasks();
-  }
-
-  if (enableInteractions) {
-    startTrackingInteractions();
-  }
-
-  const latestRoute: RouteInfo = {
-    name: undefined,
-    source: undefined,
-  };
+  let _collectWebVitals: undefined | (() => void);
 
   /** Create routing idle transaction. */
   function _createRouteSpan(client: Client, startSpanOptions: StartSpanOptions): void {
@@ -340,8 +316,10 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       // should wait for finish signal if it's a pageload transaction
       disableAutoFinish: isPageloadTransaction,
       beforeSpanEnd: span => {
-        _collectWebVitals();
-        addPerformanceEntries(span, { recordClsOnPageloadSpan: !enableStandaloneClsSpans });
+        // This will generally always be defined here, because it is set in `setup()` of the integration
+        // but technically, it is optional, so we guard here to be extra safe
+        _collectWebVitals?.();
+        addPerformanceEntries(span, { recordClsOnPageloadSpan: !enableStandaloneClsSpans, ignoreResourceSpans });
         setActiveIdleSpan(client, undefined);
 
         // A trace should stay consistent over the entire timespan of one route - even after the pageload/navigation ended.
@@ -378,8 +356,29 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
 
   return {
     name: BROWSER_TRACING_INTEGRATION_ID,
-    afterAllSetup(client) {
-      let startingUrl: string | undefined = getLocationHref();
+    setup(client) {
+      registerSpanErrorInstrumentation();
+
+      _collectWebVitals = startTrackingWebVitals({ recordClsStandaloneSpans: enableStandaloneClsSpans || false });
+
+      if (enableInp) {
+        startTrackingINP();
+      }
+
+      if (
+        enableLongAnimationFrame &&
+        GLOBAL_OBJ.PerformanceObserver &&
+        PerformanceObserver.supportedEntryTypes &&
+        PerformanceObserver.supportedEntryTypes.includes('long-animation-frame')
+      ) {
+        startTrackingLongAnimationFrames();
+      } else if (enableLongTask) {
+        startTrackingLongTasks();
+      }
+
+      if (enableInteractions) {
+        startTrackingInteractions();
+      }
 
       function maybeEndActiveSpan(): void {
         const activeSpan = getActiveIdleSpan(client);
@@ -440,6 +439,9 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
           ...startSpanOptions,
         });
       });
+    },
+    afterAllSetup(client) {
+      let startingUrl: string | undefined = getLocationHref();
 
       if (linkPreviousTrace !== 'off') {
         linkTraces(client, { linkPreviousTrace, consistentTraceSampling });
