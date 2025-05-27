@@ -1,3 +1,4 @@
+import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import { getCapturedScopesOnSpan, getCurrentScope } from '@sentry/core';
 import { getClient } from '@sentry/opentelemetry';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -7,8 +8,10 @@ import type { NodeClient } from '../../src/sdk/client';
 import { cleanupOtel, mockSdkInit, resetGlobals } from '../helpers/mockSdkInit';
 
 describe('Integration | Scope', () => {
+  let provider: BasicTracerProvider | undefined;
+
   afterEach(() => {
-    cleanupOtel();
+    cleanupOtel(provider);
   });
 
   describe.each([
@@ -19,7 +22,7 @@ describe('Integration | Scope', () => {
       const beforeSend = vi.fn(() => null);
       const beforeSendTransaction = vi.fn(() => null);
 
-      mockSdkInit({ tracesSampleRate: tracingEnabled ? 1 : 0, beforeSend, beforeSendTransaction });
+      provider = mockSdkInit({ tracesSampleRate: tracingEnabled ? 1 : 0, beforeSend, beforeSendTransaction });
 
       const client = getClient() as NodeClient;
 
@@ -133,7 +136,7 @@ describe('Integration | Scope', () => {
       const beforeSend = vi.fn(() => null);
       const beforeSendTransaction = vi.fn(() => null);
 
-      mockSdkInit({ tracesSampleRate: tracingEnabled ? 1 : 0, beforeSend, beforeSendTransaction });
+      provider = mockSdkInit({ tracesSampleRate: tracingEnabled ? 1 : 0, beforeSend, beforeSendTransaction });
 
       const client = getClient() as NodeClient;
       const rootScope = getCurrentScope();
@@ -266,7 +269,7 @@ describe('Integration | Scope', () => {
 
     it('is applied to events', async () => {
       const beforeSend = vi.fn();
-      mockSdkInit({ beforeSend });
+      provider = mockSdkInit({ beforeSend });
       const client = Sentry.getClient();
 
       const globalScope = Sentry.getGlobalScope();
@@ -324,7 +327,7 @@ describe('Integration | Scope', () => {
 
     it('is applied to events', async () => {
       const beforeSend = vi.fn();
-      mockSdkInit({ beforeSend });
+      provider = mockSdkInit({ beforeSend });
       const client = Sentry.getClient();
 
       const isolationScope = Sentry.getIsolationScope();
@@ -354,7 +357,7 @@ describe('Integration | Scope', () => {
 
     it('withIsolationScope works', async () => {
       const beforeSend = vi.fn();
-      mockSdkInit({ beforeSend });
+      provider = mockSdkInit({ beforeSend });
       const client = Sentry.getClient();
 
       const initialIsolationScope = Sentry.getIsolationScope();
@@ -404,7 +407,7 @@ describe('Integration | Scope', () => {
 
     it('can be deeply nested', async () => {
       const beforeSend = vi.fn();
-      mockSdkInit({ beforeSend });
+      provider = mockSdkInit({ beforeSend });
       const client = Sentry.getClient();
 
       const initialIsolationScope = Sentry.getIsolationScope();
@@ -506,7 +509,7 @@ describe('Integration | Scope', () => {
 
     it('withScope works', async () => {
       const beforeSend = vi.fn();
-      mockSdkInit({ beforeSend });
+      provider = mockSdkInit({ beforeSend });
       const client = Sentry.getClient();
 
       const isolationScope = Sentry.getIsolationScope();
@@ -601,7 +604,7 @@ describe('Integration | Scope', () => {
 
     it('automatically forks with OTEL context', async () => {
       const beforeSend = vi.fn();
-      mockSdkInit({ beforeSend });
+      provider = mockSdkInit({ beforeSend });
       const client = Sentry.getClient();
 
       const initialCurrentScope = Sentry.getCurrentScope();
@@ -650,7 +653,7 @@ describe('Integration | Scope', () => {
 
     it('merges data from global, isolation and current scope', async () => {
       const beforeSend = vi.fn();
-      mockSdkInit({ beforeSend });
+      provider = mockSdkInit({ beforeSend });
       const client = Sentry.getClient();
 
       Sentry.getGlobalScope().setTag('tag1', 'val1');

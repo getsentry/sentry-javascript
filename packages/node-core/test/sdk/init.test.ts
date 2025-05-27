@@ -1,7 +1,7 @@
 import type { Integration } from '@sentry/core';
 import { logger } from '@sentry/core';
 import * as SentryOpentelemetry from '@sentry/opentelemetry';
-import { type Mock, type MockInstance, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { type Mock, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getClient } from '../../src/';
 import { init, validateOpenTelemetrySetup } from '../../src/sdk';
 import { NodeClient } from '../../src/sdk/client';
@@ -87,26 +87,8 @@ describe('init()', () => {
     });
   });
 
-  describe('OpenTelemetry', () => {
-    it('sets up OpenTelemetry by default', () => {
-      init({ dsn: PUBLIC_DSN });
-
-      const client = getClient<NodeClient>();
-
-      expect(client?.traceProvider).toBeDefined();
-    });
-
-    it('allows to opt-out of OpenTelemetry setup', () => {
-      init({ dsn: PUBLIC_DSN, skipOpenTelemetrySetup: true });
-
-      const client = getClient<NodeClient>();
-
-      expect(client?.traceProvider).not.toBeDefined();
-    });
-  });
-
   it('returns initialized client', () => {
-    const client = init({ dsn: PUBLIC_DSN, skipOpenTelemetrySetup: true });
+    const client = init({ dsn: PUBLIC_DSN });
 
     expect(client).toBeInstanceOf(NodeClient);
   });
@@ -267,7 +249,7 @@ describe('validateOpenTelemetrySetup', () => {
       return [];
     });
 
-    init({ dsn: PUBLIC_DSN, skipOpenTelemetrySetup: true, tracesSampleRate: 1 });
+    init({ dsn: PUBLIC_DSN, tracesSampleRate: 1 });
 
     validateOpenTelemetrySetup();
 

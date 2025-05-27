@@ -11,17 +11,19 @@ const wrappedfunction = Object.assign(() => {}, {
   __unwrap: () => {},
 });
 
+let provider;
+
 describe('ensureIsWrapped', () => {
   afterEach(() => {
     vi.restoreAllMocks();
-    cleanupOtel();
+    cleanupOtel(provider);
     resetGlobals();
   });
 
   it('warns when the method is unwrapped', () => {
     const spyWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    mockSdkInit({ tracesSampleRate: 1 });
+    provider = mockSdkInit({ tracesSampleRate: 1 });
 
     ensureIsWrapped(unwrappedFunction, 'express');
 
@@ -34,7 +36,7 @@ describe('ensureIsWrapped', () => {
   it('does not warn when the method is wrapped', () => {
     const spyWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    mockSdkInit({ tracesSampleRate: 1 });
+    provider = mockSdkInit({ tracesSampleRate: 1 });
 
     ensureIsWrapped(wrappedfunction, 'express');
 
@@ -53,7 +55,7 @@ describe('ensureIsWrapped', () => {
   it('does not warn without tracing', () => {
     const spyWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    mockSdkInit({});
+    provider = mockSdkInit({});
 
     ensureIsWrapped(unwrappedFunction, 'express');
 
@@ -63,7 +65,7 @@ describe('ensureIsWrapped', () => {
   it('does not warn if disableInstrumentationWarnings=true', () => {
     const spyWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    mockSdkInit({ tracesSampleRate: 1, disableInstrumentationWarnings: true });
+    provider = mockSdkInit({ tracesSampleRate: 1, disableInstrumentationWarnings: true });
 
     ensureIsWrapped(unwrappedFunction, 'express');
 

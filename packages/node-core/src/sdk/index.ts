@@ -1,3 +1,4 @@
+import { diag, DiagLogLevel } from '@opentelemetry/api';
 import type { Integration, Options } from '@sentry/core';
 import {
   consoleIntegration,
@@ -37,7 +38,7 @@ import { isCjs } from '../utils/commonjs';
 import { envToBool } from '../utils/envToBool';
 import { defaultStackParser, getSentryRelease } from './api';
 import { NodeClient } from './client';
-import { initOpenTelemetry, maybeInitializeEsmLoader } from './initOtel';
+import { maybeInitializeEsmLoader } from './esmLoader';
 
 function getCjsOnlyIntegrations(): Integration[] {
   return isCjs() ? [modulesIntegration()] : [];
@@ -136,14 +137,7 @@ function _init(
 
   updateScopeFromEnvVariables();
 
-  // If users opt-out of this, they _have_ to set up OpenTelemetry themselves
-  // There is no way to use this SDK without OpenTelemetry!
-  if (!options.skipOpenTelemetrySetup) {
-    initOpenTelemetry(client, {
-      spanProcessors: options.openTelemetrySpanProcessors,
-    });
-    validateOpenTelemetrySetup();
-  }
+  setupOpenTelemetryLogger();
 
   enhanceDscWithOpenTelemetryRootSpanName(client);
   setupEventContextTrace(client);
@@ -256,4 +250,20 @@ function updateScopeFromEnvVariables(): void {
     const propagationContext = propagationContextFromHeaders(sentryTraceEnv, baggageEnv);
     getCurrentScope().setPropagationContext(propagationContext);
   }
+}
+
+/**
+ * Setup the OTEL logger to use our own logger.
+ */
+function setupOpenTelemetryLogger(): void {
+  const otelLogger = new Proxy(logger as typeof logger & { verbose: (typeof logger)['debug'] }, {
+    get(target, prop, receiver) {
+      const actualProp = prop === 'verbose' ? 'debug' : prop;
+      return Reflect.get(target, actualProp, receiver);
+    },
+  });
+
+  // Disable diag, to ensure this works even if called multiple times
+  diag.disable();
+  diag.setLogger(otelLogger, DiagLogLevel.DEBUG);
 }

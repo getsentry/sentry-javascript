@@ -1,16 +1,19 @@
+import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import type { Event } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { getActiveSpan, getClient, startInactiveSpan, startSpan, withActiveSpan } from '../../src';
 import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
 
+let provider: BasicTracerProvider | undefined;
+
 afterEach(() => {
   vi.restoreAllMocks();
-  cleanupOtel();
+  cleanupOtel(provider);
 });
 
 describe('withActiveSpan()', () => {
   it('should set the active span within the callback', () => {
-    mockSdkInit();
+    provider = mockSdkInit();
 
     const inactiveSpan = startInactiveSpan({ name: 'inactive-span' });
 
@@ -23,7 +26,7 @@ describe('withActiveSpan()', () => {
 
   it('should create child spans when calling startSpan within the callback', async () => {
     const beforeSendTransaction = vi.fn(() => null);
-    mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
+    provider = mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
     const client = getClient();
 
     const inactiveSpan = startInactiveSpan({ name: 'inactive-span' });
@@ -71,7 +74,7 @@ describe('withActiveSpan()', () => {
       transactions.push(event);
       return null;
     });
-    mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
+    provider = mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
     const client = getClient();
 
     startSpan({ name: 'parent-span' }, () => {

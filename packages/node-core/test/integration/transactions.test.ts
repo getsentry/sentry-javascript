@@ -1,16 +1,17 @@
 import { context, trace, TraceFlags } from '@opentelemetry/api';
-import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
+import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import type { TransactionEvent } from '@sentry/core';
-import { logger, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
-import { SentrySpanProcessor } from '@sentry/opentelemetry';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as Sentry from '../../src';
-import { cleanupOtel, getProvider, mockSdkInit } from '../helpers/mockSdkInit';
+import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
 
 describe('Integration | Transactions', () => {
+  let provider: BasicTracerProvider | undefined;
+
   afterEach(() => {
     vi.restoreAllMocks();
-    cleanupOtel();
+    cleanupOtel(provider);
   });
 
   it('correctly creates transaction & spans', async () => {
@@ -20,7 +21,7 @@ describe('Integration | Transactions', () => {
       return null;
     });
 
-    mockSdkInit({
+    provider = mockSdkInit({
       tracesSampleRate: 1,
       beforeSendTransaction,
       release: '8.0.0',
@@ -75,9 +76,7 @@ describe('Integration | Transactions', () => {
 
     expect(transaction.contexts?.otel).toEqual({
       resource: {
-        'service.name': 'node',
-        'service.namespace': 'sentry',
-        'service.version': expect.any(String),
+        'service.name': expect.any(String),
         'telemetry.sdk.language': 'nodejs',
         'telemetry.sdk.name': 'opentelemetry',
         'telemetry.sdk.version': expect.any(String),
@@ -163,7 +162,7 @@ describe('Integration | Transactions', () => {
   it('correctly creates concurrent transaction & spans', async () => {
     const beforeSendTransaction = vi.fn(() => null);
 
-    mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
+    provider = mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
 
     const client = Sentry.getClient()!;
 
@@ -308,7 +307,7 @@ describe('Integration | Transactions', () => {
   it('correctly creates concurrent transaction & spans when using native OTEL tracer', async () => {
     const beforeSendTransaction = vi.fn(() => null);
 
-    mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
+    provider = mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
 
     const client = Sentry.getClient<Sentry.NodeClient>();
 
@@ -456,7 +455,7 @@ describe('Integration | Transactions', () => {
       traceFlags: TraceFlags.SAMPLED,
     };
 
-    mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
+    provider = mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
 
     const client = Sentry.getClient()!;
 
@@ -548,138 +547,5 @@ describe('Integration | Transactions', () => {
         trace_id: traceId,
       },
     ]);
-  });
-
-  it('cleans up spans that are not flushed for over 5 mins', async () => {
-    const beforeSendTransaction = vi.fn(() => null);
-
-    const now = Date.now();
-    vi.useFakeTimers();
-    vi.setSystemTime(now);
-
-    const logs: unknown[] = [];
-    vi.spyOn(logger, 'log').mockImplementation(msg => logs.push(msg));
-
-    mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
-
-    const provider = getProvider();
-    const multiSpanProcessor = provider?.activeSpanProcessor as
-      | (SpanProcessor & { _spanProcessors?: SpanProcessor[] })
-      | undefined;
-    const spanProcessor = multiSpanProcessor?.['_spanProcessors']?.find(
-      spanProcessor => spanProcessor instanceof SentrySpanProcessor,
-    ) as SentrySpanProcessor | undefined;
-
-    const exporter = spanProcessor ? spanProcessor['_exporter'] : undefined;
-
-    if (!exporter) {
-      throw new Error('No exporter found, aborting test...');
-    }
-
-    void Sentry.startSpan({ name: 'test name' }, async () => {
-      Sentry.startInactiveSpan({ name: 'inner span 1' }).end();
-      Sentry.startInactiveSpan({ name: 'inner span 2' }).end();
-
-      // Pretend this is pending for 10 minutes
-      await new Promise(resolve => setTimeout(resolve, 10 * 60 * 1000));
-    });
-
-    vi.advanceTimersByTime(1);
-
-    // Child-spans have been added to the exporter, but they are pending since they are waiting for their parent
-    const finishedSpans1 = [];
-    exporter['_finishedSpanBuckets'].forEach((bucket: any) => {
-      if (bucket) {
-        finishedSpans1.push(...bucket.spans);
-      }
-    });
-    expect(finishedSpans1.length).toBe(2);
-    expect(beforeSendTransaction).toHaveBeenCalledTimes(0);
-
-    // Now wait for 5 mins
-    vi.advanceTimersByTime(5 * 60 * 1_000 + 1);
-
-    // Adding another span will trigger the cleanup
-    Sentry.startSpan({ name: 'other span' }, () => {});
-
-    vi.advanceTimersByTime(1);
-
-    // Old spans have been cleared away
-    const finishedSpans2 = [];
-    exporter['_finishedSpanBuckets'].forEach((bucket: any) => {
-      if (bucket) {
-        finishedSpans2.push(...bucket.spans);
-      }
-    });
-    expect(finishedSpans2.length).toBe(0);
-
-    // Called once for the 'other span'
-    expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
-
-    expect(logs).toEqual(
-      expect.arrayContaining([
-        'SpanExporter dropped 2 spans because they were pending for more than 300 seconds.',
-        'SpanExporter exported 1 spans, 0 spans are waiting for their parent spans to finish',
-      ]),
-    );
-  });
-
-  it('allows to configure `maxSpanWaitDuration` to capture long running spans', async () => {
-    const transactions: TransactionEvent[] = [];
-    const beforeSendTransaction = vi.fn(event => {
-      transactions.push(event);
-      return null;
-    });
-
-    const now = Date.now();
-    vi.useFakeTimers();
-    vi.setSystemTime(now);
-
-    const logs: unknown[] = [];
-    vi.spyOn(logger, 'log').mockImplementation(msg => logs.push(msg));
-
-    mockSdkInit({
-      tracesSampleRate: 1,
-      beforeSendTransaction,
-      maxSpanWaitDuration: 100 * 60,
-    });
-
-    Sentry.startSpanManual({ name: 'test name' }, rootSpan => {
-      const subSpan = Sentry.startInactiveSpan({ name: 'inner span 1' });
-      subSpan.end();
-
-      Sentry.startSpanManual({ name: 'inner span 2' }, innerSpan => {
-        // Child span ends after 10 min
-        setTimeout(
-          () => {
-            innerSpan.end();
-          },
-          10 * 60 * 1_000,
-        );
-      });
-
-      // root span ends after 99 min
-      setTimeout(
-        () => {
-          rootSpan.end();
-        },
-        99 * 10 * 1_000,
-      );
-    });
-
-    // Now wait for 100 mins
-    vi.advanceTimersByTime(100 * 60 * 1_000);
-
-    expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
-    expect(transactions).toHaveLength(1);
-    const transaction = transactions[0]!;
-
-    expect(transaction.transaction).toEqual('test name');
-    const spans = transaction.spans || [];
-
-    expect(spans).toHaveLength(2);
-
-    expect(spans).toContainEqual(expect.objectContaining({ description: 'inner span 1' }));
-    expect(spans).toContainEqual(expect.objectContaining({ description: 'inner span 2' }));
   });
 });

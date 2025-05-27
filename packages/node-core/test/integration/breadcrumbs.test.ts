@@ -1,3 +1,4 @@
+import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import { addBreadcrumb, captureException, withIsolationScope, withScope } from '@sentry/core';
 import { startSpan } from '@sentry/opentelemetry';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -8,8 +9,10 @@ import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
 describe('Integration | breadcrumbs', () => {
   const beforeSendTransaction = vi.fn(() => null);
 
+  let provider: BasicTracerProvider | undefined;
+
   afterEach(() => {
-    cleanupOtel();
+    cleanupOtel(provider);
   });
 
   describe('without tracing', () => {
@@ -17,7 +20,7 @@ describe('Integration | breadcrumbs', () => {
       const beforeSend = vi.fn(() => null);
       const beforeBreadcrumb = vi.fn(breadcrumb => breadcrumb);
 
-      mockSdkInit({ beforeSend, beforeBreadcrumb });
+      provider = mockSdkInit({ beforeSend, beforeBreadcrumb });
 
       const client = getClient() as NodeClient;
 
@@ -53,7 +56,7 @@ describe('Integration | breadcrumbs', () => {
       const beforeSend = vi.fn(() => null);
       const beforeBreadcrumb = vi.fn(breadcrumb => breadcrumb);
 
-      mockSdkInit({ beforeSend, beforeBreadcrumb });
+      provider = mockSdkInit({ beforeSend, beforeBreadcrumb });
 
       const client = getClient();
 
@@ -99,7 +102,7 @@ describe('Integration | breadcrumbs', () => {
     const beforeSend = vi.fn(() => null);
     const beforeBreadcrumb = vi.fn(breadcrumb => breadcrumb);
 
-    mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, tracesSampleRate: 1 });
+    provider = mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, tracesSampleRate: 1 });
 
     const client = getClient() as NodeClient;
 
@@ -144,7 +147,7 @@ describe('Integration | breadcrumbs', () => {
     const beforeSend = vi.fn(() => null);
     const beforeBreadcrumb = vi.fn(breadcrumb => breadcrumb);
 
-    mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, tracesSampleRate: 1 });
+    provider = mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, tracesSampleRate: 1 });
 
     const client = getClient() as NodeClient;
 
@@ -196,7 +199,7 @@ describe('Integration | breadcrumbs', () => {
     const beforeSend = vi.fn(() => null);
     const beforeBreadcrumb = vi.fn(breadcrumb => breadcrumb);
 
-    mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, tracesSampleRate: 1 });
+    provider = mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, tracesSampleRate: 1 });
 
     const client = getClient() as NodeClient;
 
@@ -237,7 +240,7 @@ describe('Integration | breadcrumbs', () => {
     const beforeSend = vi.fn(() => null);
     const beforeBreadcrumb = vi.fn(breadcrumb => breadcrumb);
 
-    mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, tracesSampleRate: 1 });
+    provider = mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, tracesSampleRate: 1 });
 
     const client = getClient() as NodeClient;
 
