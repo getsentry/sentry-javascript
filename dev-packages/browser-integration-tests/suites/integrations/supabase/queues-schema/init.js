@@ -18,12 +18,12 @@ Sentry.init({
 // Simulate queue operations
 async function performQueueOperations() {
   try {
-    await supabaseClient.schema('pgmq_public').rpc('enqueue', {
+    await supabaseClient.schema('pgmq_public').rpc('send', {
       queue_name: 'todos',
       msg: { title: 'Test Todo' },
     });
 
-    await supabaseClient.schema('pgmq_public').rpc('dequeue', {
+    await supabaseClient.schema('pgmq_public').rpc('pop', {
       queue_name: 'todos',
     });
   } catch (error) {
