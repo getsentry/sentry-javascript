@@ -5,12 +5,24 @@ import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
 
 async function mockSupabaseRoute(page: Page) {
-  await page.route('**/rest/v1/rpc**', route => {
+  await page.route('**/rpc/**/send', route => {
     return route.fulfill({
       status: 200,
-      body: JSON.stringify({
-        foo: ['bar', 'baz'],
-      }),
+      body: JSON.stringify([0]),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+  });
+
+  await page.route('**/rpc/**/pop', route => {
+    return route.fulfill({
+      status: 200,
+      body: JSON.stringify([
+        {
+          msg_id: 0,
+        },
+      ]),
       headers: {
         'Content-Type': 'application/json',
       },
@@ -25,16 +37,16 @@ if (bundle.startsWith('bundle')) {
 }
 
 sentryTest('should capture Supabase queue spans from client.rpc', async ({ getLocalTestUrl, page }) => {
-  await mockSupabaseRoute(page);
-
   if (shouldSkipTracingTest()) {
     return;
   }
 
+  await mockSupabaseRoute(page);
+
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   const event = await getFirstSentryEnvelopeRequest<Event>(page, url);
-  const queueSpans = event.spans?.filter(({ op }) => op?.startsWith('queue'));
+  const queueSpans = event.spans?.filter(({ op }) => op?.startsWith('queue.'));
 
   expect(queueSpans).toHaveLength(2);
 
@@ -49,7 +61,7 @@ sentryTest('should capture Supabase queue spans from client.rpc', async ({ getLo
       'sentry.op': 'queue.publish',
       'sentry.origin': 'auto.db.supabase',
       'messaging.destination.name': 'todos',
-      'messaging.message.id': 'Test Todo',
+      'messaging.message.id': '0',
     }),
   });
 
@@ -64,6 +76,7 @@ sentryTest('should capture Supabase queue spans from client.rpc', async ({ getLo
       'sentry.op': 'queue.process',
       'sentry.origin': 'auto.db.supabase',
       'messaging.destination.name': 'todos',
+      'messaging.message.id': '0',
     }),
   });
 });
