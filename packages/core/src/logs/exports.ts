@@ -1,8 +1,10 @@
 import type { Client } from '../client';
 import { _getTraceInfoFromScope } from '../client';
-import { getClient, getCurrentScope } from '../currentScopes';
+import { getClient, getCurrentScope, getGlobalScope, getIsolationScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
+import type { Scope, ScopeData } from '../scope';
 import type { Log, SerializedLog, SerializedLogAttributeValue } from '../types-hoist/log';
+import { mergeScopeData } from '../utils/applyScopeDataToEvent';
 import { _getSpanForScope } from '../utils/spanOnScope';
 import { isParameterizedString } from '../utils-hoist/is';
 import { logger } from '../utils-hoist/logger';
@@ -93,10 +95,11 @@ export function _INTERNAL_captureSerializedLog(client: Client, serializedLog: Se
  * @experimental This method will experience breaking changes. This is not yet part of
  * the stable Sentry SDK API and can be changed or removed without warning.
  */
+// eslint-disable-next-line complexity
 export function _INTERNAL_captureLog(
   beforeLog: Log,
   client: Client | undefined = getClient(),
-  scope = getCurrentScope(),
+  currentScope = getCurrentScope(),
   captureSerializedLog: (client: Client, log: SerializedLog) => void = _INTERNAL_captureSerializedLog,
 ): void {
   if (!client) {
@@ -111,11 +114,26 @@ export function _INTERNAL_captureLog(
     return;
   }
 
-  const [, traceContext] = _getTraceInfoFromScope(client, scope);
+  const [, traceContext] = _getTraceInfoFromScope(client, currentScope);
 
   const processedLogAttributes = {
     ...beforeLog.attributes,
   };
+
+  const { user } = getScopeData(currentScope);
+  // Only attach user to log attributes if sendDefaultPii is enabled
+  if (client.getOptions().sendDefaultPii) {
+    const { id, email, username } = user;
+    if (id && !processedLogAttributes['user.id']) {
+      processedLogAttributes['user.id'] = id;
+    }
+    if (email && !processedLogAttributes['user.email']) {
+      processedLogAttributes['user.email'] = email;
+    }
+    if (username && !processedLogAttributes['user.name']) {
+      processedLogAttributes['user.name'] = username;
+    }
+  }
 
   if (release) {
     processedLogAttributes['sentry.release'] = release;
@@ -140,7 +158,7 @@ export function _INTERNAL_captureLog(
     });
   }
 
-  const span = _getSpanForScope(scope);
+  const span = _getSpanForScope(currentScope);
   if (span) {
     // Add the parent span ID to the log attributes for trace context
     processedLogAttributes['sentry.trace.parent_span_id'] = span.spanContext().spanId;
@@ -217,4 +235,19 @@ export function _INTERNAL_flushLogsBuffer(client: Client, maybeLogBuffer?: Array
  */
 export function _INTERNAL_getLogBuffer(client: Client): Array<SerializedLog> | undefined {
   return GLOBAL_OBJ._sentryClientToLogBufferMap?.get(client);
+}
+
+/**
+ * Get the scope data for the current scope.
+ * @param currentScope - The current scope.
+ * @returns The scope data.
+ */
+function getScopeData(currentScope: Scope): ScopeData {
+  const scopeData = getGlobalScope().getScopeData();
+  const isolationScope = getIsolationScope();
+  if (isolationScope) {
+    mergeScopeData(scopeData, isolationScope.getScopeData());
+  }
+  mergeScopeData(scopeData, currentScope.getScopeData());
+  return scopeData;
 }

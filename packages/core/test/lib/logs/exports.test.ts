@@ -375,4 +375,302 @@ describe('_INTERNAL_captureLog', () => {
     expect(beforeCaptureLogSpy).toHaveBeenCalledWith('afterCaptureLog', log);
     beforeCaptureLogSpy.mockRestore();
   });
+
+  describe('user functionality', () => {
+    it('includes user data in log attributes when sendDefaultPii is enabled', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        _experiments: { enableLogs: true },
+        sendDefaultPii: true,
+      });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setUser({
+        id: '123',
+        email: 'user@example.com',
+        username: 'testuser',
+      });
+
+      _INTERNAL_captureLog({ level: 'info', message: 'test log with user' }, client, scope);
+
+      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+      expect(logAttributes).toEqual({
+        'user.id': {
+          value: '123',
+          type: 'string',
+        },
+        'user.email': {
+          value: 'user@example.com',
+          type: 'string',
+        },
+        'user.name': {
+          value: 'testuser',
+          type: 'string',
+        },
+      });
+    });
+
+    it('does not include user data in log attributes when sendDefaultPii is disabled', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        _experiments: { enableLogs: true },
+        sendDefaultPii: false,
+      });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setUser({
+        id: '123',
+        email: 'user@example.com',
+        username: 'testuser',
+      });
+
+      _INTERNAL_captureLog({ level: 'info', message: 'test log without user' }, client, scope);
+
+      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+      expect(logAttributes).toEqual({});
+    });
+
+    it('includes partial user data when only some fields are available', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        _experiments: { enableLogs: true },
+        sendDefaultPii: true,
+      });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setUser({
+        id: '123',
+        // email and username are missing
+      });
+
+      _INTERNAL_captureLog({ level: 'info', message: 'test log with partial user' }, client, scope);
+
+      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+      expect(logAttributes).toEqual({
+        'user.id': {
+          value: '123',
+          type: 'string',
+        },
+      });
+    });
+
+    it('includes user email and username without id', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        _experiments: { enableLogs: true },
+        sendDefaultPii: true,
+      });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setUser({
+        email: 'user@example.com',
+        username: 'testuser',
+        // id is missing
+      });
+
+      _INTERNAL_captureLog({ level: 'info', message: 'test log with email and username' }, client, scope);
+
+      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+      expect(logAttributes).toEqual({
+        'user.email': {
+          value: 'user@example.com',
+          type: 'string',
+        },
+        'user.name': {
+          value: 'testuser',
+          type: 'string',
+        },
+      });
+    });
+
+    it('does not include user data when user object is empty', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        _experiments: { enableLogs: true },
+        sendDefaultPii: true,
+      });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setUser({});
+
+      _INTERNAL_captureLog({ level: 'info', message: 'test log with empty user' }, client, scope);
+
+      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+      expect(logAttributes).toEqual({});
+    });
+
+    it('combines user data with other log attributes', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        _experiments: { enableLogs: true },
+        sendDefaultPii: true,
+        release: '1.0.0',
+        environment: 'test',
+      });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setUser({
+        id: '123',
+        email: 'user@example.com',
+      });
+
+      _INTERNAL_captureLog(
+        {
+          level: 'info',
+          message: 'test log with user and other attributes',
+          attributes: { component: 'auth', action: 'login' },
+        },
+        client,
+        scope,
+      );
+
+      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+      expect(logAttributes).toEqual({
+        component: {
+          value: 'auth',
+          type: 'string',
+        },
+        action: {
+          value: 'login',
+          type: 'string',
+        },
+        'user.id': {
+          value: '123',
+          type: 'string',
+        },
+        'user.email': {
+          value: 'user@example.com',
+          type: 'string',
+        },
+        'sentry.release': {
+          value: '1.0.0',
+          type: 'string',
+        },
+        'sentry.environment': {
+          value: 'test',
+          type: 'string',
+        },
+      });
+    });
+
+    it('handles user data with non-string values', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        _experiments: { enableLogs: true },
+        sendDefaultPii: true,
+      });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setUser({
+        id: 123, // number instead of string
+        email: 'user@example.com',
+        username: undefined, // undefined value
+      });
+
+      _INTERNAL_captureLog({ level: 'info', message: 'test log with non-string user values' }, client, scope);
+
+      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+      expect(logAttributes).toEqual({
+        'user.id': {
+          value: 123,
+          type: 'integer',
+        },
+        'user.email': {
+          value: 'user@example.com',
+          type: 'string',
+        },
+      });
+    });
+
+    it('preserves existing user attributes in log and does not override them', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        _experiments: { enableLogs: true },
+        sendDefaultPii: true,
+      });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setUser({
+        id: '123',
+        email: 'user@example.com',
+      });
+
+      _INTERNAL_captureLog(
+        {
+          level: 'info',
+          message: 'test log with existing user attributes',
+          attributes: {
+            'user.id': 'existing-id', // This should NOT be overridden by scope user
+            'user.custom': 'custom-value', // This should be preserved
+          },
+        },
+        client,
+        scope,
+      );
+
+      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+      expect(logAttributes).toEqual({
+        'user.custom': {
+          value: 'custom-value',
+          type: 'string',
+        },
+        'user.id': {
+          value: 'existing-id', // Existing value is preserved
+          type: 'string',
+        },
+        'user.email': {
+          value: 'user@example.com', // Only added because user.email wasn't already present
+          type: 'string',
+        },
+      });
+    });
+
+    it('only adds scope user data for attributes that do not already exist', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        _experiments: { enableLogs: true },
+        sendDefaultPii: true,
+      });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setUser({
+        id: 'scope-id',
+        email: 'scope@example.com',
+        username: 'scope-user',
+      });
+
+      _INTERNAL_captureLog(
+        {
+          level: 'info',
+          message: 'test log with partial existing user attributes',
+          attributes: {
+            'user.email': 'existing@example.com', // This should be preserved
+            'other.attr': 'value',
+          },
+        },
+        client,
+        scope,
+      );
+
+      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+      expect(logAttributes).toEqual({
+        'other.attr': {
+          value: 'value',
+          type: 'string',
+        },
+        'user.email': {
+          value: 'existing@example.com', // Existing email is preserved
+          type: 'string',
+        },
+        'user.id': {
+          value: 'scope-id', // Added from scope because not present
+          type: 'string',
+        },
+        'user.name': {
+          value: 'scope-user', // Added from scope because not present
+          type: 'string',
+        },
+      });
+    });
+  });
 });
