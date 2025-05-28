@@ -65,9 +65,7 @@ export function getExternalOptionsWithSentryNuxt(previousExternal: ExternalOptio
     external = new Proxy(previousExternal, {
       apply(target, thisArg, args: [string, string | undefined, boolean]) {
         const [source] = args;
-        if (
-          sentryExternals.some(external => (typeof external === 'string' ? source === external : external.test(source)))
-        ) {
+        if (sentryExternals.some(external => external.test(source))) {
           return true;
         }
         return Reflect.apply(target, thisArg, args);
