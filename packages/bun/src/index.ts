@@ -154,4 +154,5 @@ export type { BunOptions } from './types';
 export { BunClient } from './client';
 export { getDefaultIntegrations, init } from './sdk';
 export { bunServerIntegration } from './integrations/bunserver';
+export { bunSqliteIntegration } from './integrations/bunsqlite';
 export { makeFetchTransport } from './transports';

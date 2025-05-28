@@ -22,6 +22,7 @@ import {
   onUnhandledRejectionIntegration,
 } from '@sentry/node';
 import { bunServerIntegration } from './integrations/bunserver';
+import { bunSqliteIntegration } from './integrations/bunsqlite';
 import { makeFetchTransport } from './transports';
 import type { BunOptions } from './types';
 
@@ -49,6 +50,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     modulesIntegration(),
     // Bun Specific
     bunServerIntegration(),
+    bunSqliteIntegration(),
     ...(hasSpansEnabled(_options) ? getAutoPerformanceIntegrations() : []),
   ];
 }
