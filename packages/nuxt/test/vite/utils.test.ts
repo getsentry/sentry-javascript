@@ -301,7 +301,7 @@ export { foo_sentryWrapped as foo };
 describe('getExternalOptionsWithSentryNuxt', () => {
   it('should return sentryExternals when previousExternal is undefined', () => {
     const result = getExternalOptionsWithSentryNuxt(undefined);
-    expect(result).toEqual([/^@sentry\/nuxt$/]);
+    expect(result).toEqual(/^@sentry\/nuxt$/);
   });
 
   it('should merge sentryExternals with array previousExternal', () => {
@@ -328,38 +328,29 @@ describe('getExternalOptionsWithSentryNuxt', () => {
     const mockExternalFn = vi.fn().mockReturnValue(false);
     const result = getExternalOptionsWithSentryNuxt(mockExternalFn);
 
-    if (typeof result === 'function') {
-      const output = result('@sentry/nuxt', undefined, false);
-      expect(output).toBe(true);
-      expect(mockExternalFn).not.toHaveBeenCalled();
-    } else {
-      throw Error('Result should be a function');
-    }
+    // @ts-expect-error - result is a function
+    const output = result('@sentry/nuxt', undefined, false);
+    expect(output).toBe(true);
+    expect(mockExternalFn).not.toHaveBeenCalled();
   });
 
   it('should return false from proxied function and call function when source just includes @sentry/nuxt', () => {
     const mockExternalFn = vi.fn().mockReturnValue(false);
     const result = getExternalOptionsWithSentryNuxt(mockExternalFn);
 
-    if (typeof result === 'function') {
-      const output = result('@sentry/nuxt/dist/index.js', undefined, false);
-      expect(output).toBe(false);
-      expect(mockExternalFn).toHaveBeenCalledWith('@sentry/nuxt/dist/index.js', undefined, false);
-    } else {
-      throw Error('Result should be a function');
-    }
+    // @ts-expect-error - result is a function
+    const output = result('@sentry/nuxt/dist/index.js', undefined, false);
+    expect(output).toBe(false);
+    expect(mockExternalFn).toHaveBeenCalledWith('@sentry/nuxt/dist/index.js', undefined, false);
   });
 
   it('should call original function when source does not include @sentry/nuxt', () => {
     const mockExternalFn = vi.fn().mockReturnValue(false);
     const result = getExternalOptionsWithSentryNuxt(mockExternalFn);
 
-    if (typeof result === 'function') {
-      const output = result('vue', undefined, false);
-      expect(output).toBe(false);
-      expect(mockExternalFn).toHaveBeenCalledWith('vue', undefined, false);
-    } else {
-      throw Error('Result should be a function');
-    }
+    // @ts-expect-error - result is a function
+    const output = result('vue', undefined, false);
+    expect(output).toBe(false);
+    expect(mockExternalFn).toHaveBeenCalledWith('vue', undefined, false);
   });
 });

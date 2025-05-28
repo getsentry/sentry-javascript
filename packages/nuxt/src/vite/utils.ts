@@ -58,25 +58,25 @@ export function removeSentryQueryFromPath(url: string): string {
  *  that would result in adding imports from OpenTelemetry libraries etc. to the server build.
  */
 export function getExternalOptionsWithSentryNuxt(previousExternal: ExternalOption | undefined): ExternalOption {
-  const sentryExternals = [/^@sentry\/nuxt$/];
+  const sentryNuxt = /^@sentry\/nuxt$/;
   let external: ExternalOption;
 
   if (typeof previousExternal === 'function') {
     external = new Proxy(previousExternal, {
       apply(target, thisArg, args: [string, string | undefined, boolean]) {
         const [source] = args;
-        if (sentryExternals.some(external => external.test(source))) {
+        if (sentryNuxt.test(source)) {
           return true;
         }
         return Reflect.apply(target, thisArg, args);
       },
     });
   } else if (Array.isArray(previousExternal)) {
-    external = [...sentryExternals, ...previousExternal];
+    external = [sentryNuxt, ...previousExternal];
   } else if (previousExternal) {
-    external = [...sentryExternals, previousExternal];
+    external = [sentryNuxt, previousExternal];
   } else {
-    external = sentryExternals;
+    external = sentryNuxt;
   }
 
   return external;
