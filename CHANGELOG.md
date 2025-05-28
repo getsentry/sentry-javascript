@@ -10,6 +10,43 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 9.23.0
+
+### Important changes
+
+- **feat(browser): option to ignore certain resource types ([#16389](https://github.com/getsentry/sentry-javascript/pull/16389))**
+
+Adds an option to opt out of certain `resource.*` spans via `ignoreResourceSpans`.
+
+For example, to opt out of `resource.script` spans:
+
+```js
+Sentry.browserTracingIntegration({
+  ignoreResourceSpans: ['resource.script'],
+}),
+```
+
+### Other changes
+
+- feat: Export `isEnabled` from all SDKs ([#16405](https://github.com/getsentry/sentry-javascript/pull/16405))
+- feat(browser): Disable client when browser extension is detected in `init()` ([#16354](https://github.com/getsentry/sentry-javascript/pull/16354))
+- feat(core): Allow re-use of `captureLog` ([#16352](https://github.com/getsentry/sentry-javascript/pull/16352))
+- feat(core): Export `_INTERNAL_captureSerializedLog` ([#16387](https://github.com/getsentry/sentry-javascript/pull/16387))
+- feat(deps): bump @opentelemetry/semantic-conventions from 1.32.0 to 1.34.0 ([#16393](https://github.com/getsentry/sentry-javascript/pull/16393))
+- feat(deps): bump @prisma/instrumentation from 6.7.0 to 6.8.2 ([#16392](https://github.com/getsentry/sentry-javascript/pull/16392))
+- feat(deps): bump @sentry/cli from 2.43.0 to 2.45.0 ([#16395](https://github.com/getsentry/sentry-javascript/pull/16395))
+- feat(deps): bump @sentry/webpack-plugin from 3.3.1 to 3.5.0 ([#16394](https://github.com/getsentry/sentry-javascript/pull/16394))
+- feat(nextjs): Include `static/chunks/main-*` files for `widenClientFileUpload` ([#16406](https://github.com/getsentry/sentry-javascript/pull/16406))
+- feat(node): Do not add HTTP & fetch span instrumentation if tracing is disabled ([#15730](https://github.com/getsentry/sentry-javascript/pull/15730))
+- feat(nuxt): Added support for nuxt layers ([#16372](https://github.com/getsentry/sentry-javascript/pull/16372))
+- fix(browser): Ensure logs are flushed when sendClientReports=false ([#16351](https://github.com/getsentry/sentry-javascript/pull/16351))
+- fix(browser): Move `browserTracingIntegration` code to `setup` hook ([#16386](https://github.com/getsentry/sentry-javascript/pull/16386))
+- fix(cloudflare): Capture exceptions thrown in hono ([#16355](https://github.com/getsentry/sentry-javascript/pull/16355))
+- fix(node): Don't warn about Spotlight on empty NODE_ENV ([#16381](https://github.com/getsentry/sentry-javascript/pull/16381))
+- fix(node): Suppress Spotlight calls ([#16380](https://github.com/getsentry/sentry-javascript/pull/16380))
+- fix(nuxt): Add `@sentry/nuxt` as external in Rollup ([#16407](https://github.com/getsentry/sentry-javascript/pull/16407))
+- fix(opentelemetry): Ensure `withScope` keeps span active & `_getTraceInfoFromScope` works ([#16385](https://github.com/getsentry/sentry-javascript/pull/16385))
+
 Work in this release was contributed by @Xenossolitarius. Thank you for your contribution!
 
 ## 9.22.0
