@@ -215,11 +215,11 @@ test('Sends queue publish spans with `schema(...).rpc(...)`', async ({ page, bas
   const httpTransactionPromise = waitForTransaction('supabase-nextjs', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent?.transaction === 'GET /api/enqueue-schema'
+      transactionEvent?.transaction === 'GET /api/queue/producer-schema'
     );
   });
 
-  const result = await fetch(`${baseURL}/api/enqueue-schema`);
+  const result = await fetch(`${baseURL}/api/queue/producer-schema`);
 
   expect(result.status).toBe(200);
   expect(await result.json()).toEqual({ data: [1] });
@@ -262,11 +262,11 @@ test('Sends queue publish spans with `rpc(...)`', async ({ page, baseURL }) => {
   const httpTransactionPromise = waitForTransaction('supabase-nextjs', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent?.transaction === 'GET /api/enqueue-rpc'
+      transactionEvent?.transaction === 'GET /api/queue/producer-rpc'
     );
   });
 
-  const result = await fetch(`${baseURL}/api/enqueue-rpc`);
+  const result = await fetch(`${baseURL}/api/queue/producer-rpc`);
   const transactionEvent = await httpTransactionPromise;
 
   expect(result.status).toBe(200);
@@ -308,11 +308,11 @@ test('Sends queue process spans with `schema(...).rpc(...)`', async ({ page, bas
   const httpTransactionPromise = waitForTransaction('supabase-nextjs', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent?.transaction === 'GET /api/dequeue-schema'
+      transactionEvent?.transaction === 'GET /api/queue/consumer-schema'
     );
   });
 
-  const result = await fetch(`${baseURL}/api/dequeue-schema`);
+  const result = await fetch(`${baseURL}/api/queue/consumer-schema`);
   const transactionEvent = await httpTransactionPromise;
 
   expect(result.status).toBe(200);
@@ -356,11 +356,11 @@ test('Sends queue process spans with `rpc(...)`', async ({ page, baseURL }) => {
   const httpTransactionPromise = waitForTransaction('supabase-nextjs', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent?.transaction === 'GET /api/dequeue-rpc'
+      transactionEvent?.transaction === 'GET /api/queue/consumer-rpc'
     );
   });
 
-  const result = await fetch(`${baseURL}/api/dequeue-rpc`);
+  const result = await fetch(`${baseURL}/api/queue/consumer-rpc`);
   const transactionEvent = await httpTransactionPromise;
 
   expect(result.status).toBe(200);
@@ -404,7 +404,7 @@ test('Sends queue process error spans with `rpc(...)`', async ({ page, baseURL }
   const httpTransactionPromise = waitForTransaction('supabase-nextjs', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent?.transaction === 'GET /api/dequeue-error'
+      transactionEvent?.transaction === 'GET /api/queue/consumer-error'
     );
   });
 
@@ -412,7 +412,7 @@ test('Sends queue process error spans with `rpc(...)`', async ({ page, baseURL }
     return errorEvent?.exception?.values?.[0]?.value?.includes('pgmq.q_non-existing-queue');
   });
 
-  const result = await fetch(`${baseURL}/api/dequeue-error`);
+  const result = await fetch(`${baseURL}/api/queue/consumer-error`);
   const transactionEvent = await httpTransactionPromise;
 
   expect(result.status).toBe(500);
@@ -464,11 +464,11 @@ test('Sends queue batch publish spans with `rpc(...)`', async ({ page, baseURL }
   const httpTransactionPromise = waitForTransaction('supabase-nextjs', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent?.transaction === 'GET /api/batch_enqueue'
+      transactionEvent?.transaction === 'GET /api/queue/producer-batch'
     );
   });
 
-  const result = await fetch(`${baseURL}/api/batch_enqueue`);
+  const result = await fetch(`${baseURL}/api/queue/producer-batch`);
   const transactionEvent = await httpTransactionPromise;
 
   expect(result.status).toBe(200);
@@ -509,10 +509,10 @@ test('Sends queue batch publish spans with `rpc(...)`', async ({ page, baseURL }
 test('Sends `read` queue operation spans with `rpc(...)`', async ({ page, baseURL }) => {
   const httpTransactionPromise = waitForTransaction('supabase-nextjs', transactionEvent => {
     return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' && transactionEvent?.transaction === 'GET /api/queue_read'
+      transactionEvent?.contexts?.trace?.op === 'http.server' && transactionEvent?.transaction === 'GET /api/queue/receiver-rpc'
     );
   });
-  const result = await fetch(`${baseURL}/api/queue_read`);
+  const result = await fetch(`${baseURL}/api/queue/receiver-rpc`);
   const transactionEvent = await httpTransactionPromise;
 
   expect(result.status).toBe(200);
