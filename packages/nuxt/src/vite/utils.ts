@@ -1,6 +1,8 @@
+import type { Nuxt } from '@nuxt/schema';
 import { consoleSandbox } from '@sentry/core';
 import * as fs from 'fs';
 import * as path from 'path';
+import type { ExternalOption } from 'rollup';
 
 /**
  *  Find the default SDK init file for the given type (client or server).
@@ -50,6 +52,37 @@ export function removeSentryQueryFromPath(url: string): string {
   // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor
   const regex = new RegExp(`\\${SENTRY_WRAPPED_ENTRY}.*?\\${QUERY_END_INDICATOR}`);
   return url.replace(regex, '');
+}
+
+/**
+ *  Add @sentry/nuxt to the external options of the Rollup configuration to prevent Rollup bundling all dependencies
+ *  that would result in adding imports from OpenTelemetry libraries etc. to the server build.
+ */
+export function getExternalOptionsWithSentryNuxt(previousExternal: ExternalOption | undefined): ExternalOption {
+  const sentryExternals = [/^@sentry\/nuxt$/];
+  let external: ExternalOption;
+
+  if (typeof previousExternal === 'function') {
+    external = new Proxy(previousExternal, {
+      apply(target, thisArg, args: [string, string | undefined, boolean]) {
+        const [source] = args;
+        if (
+          sentryExternals.some(external => (typeof external === 'string' ? source === external : external.test(source)))
+        ) {
+          return true;
+        }
+        return Reflect.apply(target, thisArg, args);
+      },
+    });
+  } else if (Array.isArray(previousExternal)) {
+    external = [...sentryExternals, ...previousExternal];
+  } else if (previousExternal) {
+    external = [...sentryExternals, previousExternal];
+  } else {
+    external = sentryExternals;
+  }
+
+  return external;
 }
 
 /**
