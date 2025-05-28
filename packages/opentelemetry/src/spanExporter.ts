@@ -128,7 +128,7 @@ export class SentrySpanExporter {
 
   /** Get all completed root nodes from a list of nodes */
   public getCompletedRootNodes(nodes: SpanNode[]): SpanNodeCompleted[] {
-    return nodes.filter(node => this.nodeIsCompletedRootNode(node));
+    return nodes.filter((node): node is SpanNodeCompleted => this.nodeIsCompletedRootNode(node));
   }
 
   /** Export a single span. */
