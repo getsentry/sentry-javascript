@@ -46,6 +46,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   inboundFiltersIntegration,
   isInitialized,
+  isEnabled,
   lastEventId,
   linkedErrorsIntegration,
   requestDataIntegration,

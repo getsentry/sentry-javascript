@@ -65,6 +65,7 @@ export {
 export {
   addBreadcrumb,
   isInitialized,
+  isEnabled,
   getGlobalScope,
   lastEventId,
   close,

@@ -14,6 +14,7 @@ export {
   createTransport,
   getClient,
   isInitialized,
+  isEnabled,
   generateInstrumentOnce,
   getCurrentScope,
   getGlobalScope,
