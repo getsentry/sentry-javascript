@@ -1,7 +1,6 @@
 import type { IntegrationFn, WrappedFunction } from '@sentry/core';
 import { defineIntegration, fill, getFunctionName, getOriginalFunction } from '@sentry/core';
 import { WINDOW, wrap } from '../helpers';
-import { __propKey } from 'tslib';
 
 const DEFAULT_EVENT_TARGET = [
   'EventTarget',
