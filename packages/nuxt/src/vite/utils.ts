@@ -1,4 +1,3 @@
-import type { Nuxt } from '@nuxt/schema';
 import { consoleSandbox } from '@sentry/core';
 import * as fs from 'fs';
 import * as path from 'path';
