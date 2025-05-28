@@ -41,11 +41,15 @@ export function getWebpackPluginOptions(
       );
     }
 
-    // TODO: We should think about uploading these when `widenClientFileUpload` is `true`. They may be useful in some situations.
+    // We want to include main-* files if widenClientFileUpload is true as they have proven to be useful
+    if (!sentryBuildOptions.widenClientFileUpload) {
+      sourcemapUploadIgnore.push(path.posix.join(distDirAbsPath, 'static', 'chunks', 'main-*'));
+    }
+
+    // Always ignore framework, polyfills, and webpack files
     sourcemapUploadIgnore.push(
       path.posix.join(distDirAbsPath, 'static', 'chunks', 'framework-*'),
       path.posix.join(distDirAbsPath, 'static', 'chunks', 'framework.*'),
-      path.posix.join(distDirAbsPath, 'static', 'chunks', 'main-*'),
       path.posix.join(distDirAbsPath, 'static', 'chunks', 'polyfills-*'),
       path.posix.join(distDirAbsPath, 'static', 'chunks', 'webpack-*'),
     );

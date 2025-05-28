@@ -32,6 +32,7 @@ export {
   flush,
   getClient,
   isInitialized,
+  isEnabled,
   getCurrentScope,
   getIsolationScope,
   getGlobalScope,
