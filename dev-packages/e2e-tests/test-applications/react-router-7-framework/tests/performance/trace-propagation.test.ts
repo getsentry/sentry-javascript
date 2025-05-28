@@ -33,4 +33,11 @@ test.describe('Trace propagation', () => {
     expect(clientTx.contexts?.trace?.trace_id).toEqual(serverTx.contexts?.trace?.trace_id);
     expect(clientTx.contexts?.trace?.parent_span_id).toBe(serverTx.contexts?.trace?.span_id);
   });
+
+  test('should not have trace connection for prerendered pages', async ({ page }) => {
+    await page.goto('/performance/static');
+
+    const sentryTraceElement = await page.$('meta[name="sentry-trace"]');
+    expect(sentryTraceElement).toBeNull();
+  });
 });

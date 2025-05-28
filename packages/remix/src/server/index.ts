@@ -52,6 +52,7 @@ export {
   eventFiltersIntegration,
   initOpenTelemetry,
   isInitialized,
+  isEnabled,
   knexIntegration,
   kafkaIntegration,
   koaIntegration,

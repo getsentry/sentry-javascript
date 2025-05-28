@@ -16,7 +16,7 @@
     "@opentelemetry/core": "^2.0.0",
     "@opentelemetry/instrumentation": "^0.200.0",
     "@opentelemetry/sdk-trace-base": "^2.0.0",
-    "@opentelemetry/semantic-conventions": "^1.30.0"
+    "@opentelemetry/semantic-conventions": "^1.34.0"
   },
   "volta": {
     "extends": "../../package.json"

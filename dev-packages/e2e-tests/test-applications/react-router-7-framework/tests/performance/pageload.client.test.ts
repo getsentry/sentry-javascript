@@ -5,7 +5,7 @@ import { APP_NAME } from '../constants';
 test.describe('client - pageload performance', () => {
   test('should send pageload transaction', async ({ page }) => {
     const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      return transactionEvent.transaction === '/performance';
+      return transactionEvent.transaction === '/performance/';
     });
 
     await page.goto(`/performance`);
@@ -29,7 +29,7 @@ test.describe('client - pageload performance', () => {
       spans: expect.any(Array),
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
-      transaction: '/performance',
+      transaction: '/performance/',
       type: 'transaction',
       transaction_info: { source: 'url' },
       measurements: expect.any(Object),
@@ -103,10 +103,9 @@ test.describe('client - pageload performance', () => {
     });
   });
 
-  // todo: this page is currently not prerendered (see react-router.config.ts)
   test('should send pageload transaction for prerendered pages', async ({ page }) => {
     const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      return transactionEvent.transaction === '/performance/static';
+      return transactionEvent.transaction === '/performance/static/';
     });
 
     await page.goto(`/performance/static`);
@@ -114,7 +113,7 @@ test.describe('client - pageload performance', () => {
     const transaction = await txPromise;
 
     expect(transaction).toMatchObject({
-      transaction: '/performance/static',
+      transaction: '/performance/static/',
       contexts: {
         trace: {
           span_id: expect.any(String),

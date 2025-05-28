@@ -1,10 +1,12 @@
 import * as fs from 'fs';
+import type { Nuxt } from 'nuxt/schema';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   constructFunctionReExport,
   constructWrappedFunctionExportQuery,
   extractFunctionReexportQueryParameters,
   findDefaultSdkInitFile,
+  getExternalOptionsWithSentryNuxt,
   getFilenameFromNodeStartCommand,
   QUERY_END_INDICATOR,
   removeSentryQueryFromPath,
@@ -68,6 +70,75 @@ describe('findDefaultSdkInitFile', () => {
 
     const result = findDefaultSdkInitFile('server');
     expect(result).toMatch('packages/nuxt/sentry.server.config.js');
+  });
+
+  it('should return the latest layer config file path if client config exists', () => {
+    vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
+      return !(filePath instanceof URL) && filePath.includes('sentry.client.config.ts');
+    });
+
+    const nuxtMock = {
+      options: {
+        _layers: [
+          {
+            cwd: 'packages/nuxt/module',
+          },
+          {
+            cwd: 'packages/nuxt',
+          },
+        ],
+      },
+    } as Nuxt;
+
+    const result = findDefaultSdkInitFile('client', nuxtMock);
+    expect(result).toMatch('packages/nuxt/sentry.client.config.ts');
+  });
+
+  it('should return the latest layer config file path if server config exists', () => {
+    vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
+      return (
+        !(filePath instanceof URL) &&
+        (filePath.includes('sentry.server.config.ts') || filePath.includes('instrument.server.ts'))
+      );
+    });
+
+    const nuxtMock = {
+      options: {
+        _layers: [
+          {
+            cwd: 'packages/nuxt/module',
+          },
+          {
+            cwd: 'packages/nuxt',
+          },
+        ],
+      },
+    } as Nuxt;
+
+    const result = findDefaultSdkInitFile('server', nuxtMock);
+    expect(result).toMatch('packages/nuxt/sentry.server.config.ts');
+  });
+
+  it('should return the latest layer config file path if client config exists in former layer', () => {
+    vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
+      return !(filePath instanceof URL) && filePath.includes('nuxt/sentry.client.config.ts');
+    });
+
+    const nuxtMock = {
+      options: {
+        _layers: [
+          {
+            cwd: 'packages/nuxt/module',
+          },
+          {
+            cwd: 'packages/nuxt',
+          },
+        ],
+      },
+    } as Nuxt;
+
+    const result = findDefaultSdkInitFile('client', nuxtMock);
+    expect(result).toMatch('packages/nuxt/sentry.client.config.ts');
   });
 });
 
@@ -294,5 +365,62 @@ export { foo_sentryWrapped as foo };
     const entryId = './module';
     const result = constructFunctionReExport(query, entryId);
     expect(result).toBe('');
+  });
+});
+
+describe('getExternalOptionsWithSentryNuxt', () => {
+  it('should return sentryExternals when previousExternal is undefined', () => {
+    const result = getExternalOptionsWithSentryNuxt(undefined);
+    expect(result).toEqual(/^@sentry\/nuxt$/);
+  });
+
+  it('should merge sentryExternals with array previousExternal', () => {
+    const previousExternal = [/vue/, 'react'];
+    const result = getExternalOptionsWithSentryNuxt(previousExternal);
+    expect(result).toEqual([/^@sentry\/nuxt$/, /vue/, 'react']);
+  });
+
+  it('should create array with sentryExternals and non-array previousExternal', () => {
+    const previousExternal = 'vue';
+    const result = getExternalOptionsWithSentryNuxt(previousExternal);
+    expect(result).toEqual([/^@sentry\/nuxt$/, 'vue']);
+  });
+
+  it('should create a proxy when previousExternal is a function', () => {
+    const mockExternalFn = vi.fn().mockReturnValue(false);
+    const result = getExternalOptionsWithSentryNuxt(mockExternalFn);
+
+    expect(typeof result).toBe('function');
+    expect(result).toBeInstanceOf(Function);
+  });
+
+  it('should return true from proxied function when source is @sentry/nuxt', () => {
+    const mockExternalFn = vi.fn().mockReturnValue(false);
+    const result = getExternalOptionsWithSentryNuxt(mockExternalFn);
+
+    // @ts-expect-error - result is a function
+    const output = result('@sentry/nuxt', undefined, false);
+    expect(output).toBe(true);
+    expect(mockExternalFn).not.toHaveBeenCalled();
+  });
+
+  it('should return false from proxied function and call function when source just includes @sentry/nuxt', () => {
+    const mockExternalFn = vi.fn().mockReturnValue(false);
+    const result = getExternalOptionsWithSentryNuxt(mockExternalFn);
+
+    // @ts-expect-error - result is a function
+    const output = result('@sentry/nuxt/dist/index.js', undefined, false);
+    expect(output).toBe(false);
+    expect(mockExternalFn).toHaveBeenCalledWith('@sentry/nuxt/dist/index.js', undefined, false);
+  });
+
+  it('should call original function when source does not include @sentry/nuxt', () => {
+    const mockExternalFn = vi.fn().mockReturnValue(false);
+    const result = getExternalOptionsWithSentryNuxt(mockExternalFn);
+
+    // @ts-expect-error - result is a function
+    const output = result('vue', undefined, false);
+    expect(output).toBe(false);
+    expect(mockExternalFn).toHaveBeenCalledWith('vue', undefined, false);
   });
 });
