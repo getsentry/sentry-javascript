@@ -71,6 +71,9 @@ export class SentrySpanExporter {
   private _finishedSpanBucketSize: number;
   private _spansToBucketEntry: WeakMap<ReadableSpan, FinishedSpanBucket>;
   private _lastCleanupTimestampInS: number;
+  // Essentially a a set of span ids that are already sent. The values are expiration
+  // times in this cache so we don't hold onto them indefinitely.
+  private _sentSpans: Map<string, number>;
 
   public constructor(options?: {
     /** Lower bound of time in seconds until spans that are buffered but have not been sent as part of a transaction get cleared from memory. */
@@ -80,6 +83,52 @@ export class SentrySpanExporter {
     this._finishedSpanBuckets = new Array(this._finishedSpanBucketSize).fill(undefined);
     this._lastCleanupTimestampInS = Math.floor(Date.now() / 1000);
     this._spansToBucketEntry = new WeakMap();
+    this._sentSpans = new Map<string, number>();
+  }
+
+  /**
+   * Check if a span with the given ID has already been sent using the `_sentSpans` as a cache.
+   * Purges "expired" spans from the cache upon checking.
+   * @param spanId The span id to check.
+   * @returns Whether the span is already sent in the past X seconds.
+   */
+  public isSpanAlreadySent(spanId: string): boolean {
+    const expirationTime = this._sentSpans.get(spanId);
+    if (expirationTime) {
+      if (Date.now() >= expirationTime) {
+        this._sentSpans.delete(spanId); // Remove expired span
+      } else {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** Remove "expired" span id entries from the _sentSpans cache. */
+  public flushSentSpanCache(): void {
+    const currentTimestamp = Date.now();
+    // Doing this 2-pass method to avoid modifying the map while iterating over it.
+    const spansToPurge: (string | undefined)[] = Array.from(this._sentSpans.entries(), ([spanId, expirationTime]) => {
+      if (expirationTime <= currentTimestamp) {
+        return spanId; // Collect expired spans
+      }
+      return undefined;
+    });
+    for (const spanId of spansToPurge) {
+      if (spanId) {
+        this._sentSpans.delete(spanId); // Purge expired spans
+      }
+    }
+  }
+
+  /** Check if a node is a completed root node or a node whose parent has already been sent */
+  public nodeIsCompletedRootNode(node: SpanNode): node is SpanNodeCompleted {
+    return !!node.span && (!node.parentNode || this.isSpanAlreadySent(node.parentNode.id));
+  }
+
+  /** Get all completed root nodes from a list of nodes */
+  public getCompletedRootNodes(nodes: SpanNode[]): SpanNodeCompleted[] {
+    return nodes.filter(node => this.nodeIsCompletedRootNode(node));
   }
 
   /** Export a single span. */
@@ -113,7 +162,8 @@ export class SentrySpanExporter {
     this._spansToBucketEntry.set(span, currentBucket);
 
     // If the span doesn't have a local parent ID (it's a root span), we're gonna flush all the ended spans
-    if (!getLocalParentId(span)) {
+    const localParentId = getLocalParentId(span);
+    if (!localParentId || this.isSpanAlreadySent(localParentId)) {
       this._clearTimeout();
 
       // If we got a parent span, we try to send the span tree
@@ -128,30 +178,29 @@ export class SentrySpanExporter {
   public flush(): void {
     this._clearTimeout();
 
-    const finishedSpans: ReadableSpan[] = [];
-    this._finishedSpanBuckets.forEach(bucket => {
-      if (bucket) {
-        finishedSpans.push(...bucket.spans);
-      }
-    });
+    const finishedSpans: ReadableSpan[] = this._finishedSpanBuckets.flatMap(bucket =>
+      bucket ? Array.from(bucket.spans) : [],
+    );
 
-    const sentSpans = maybeSend(finishedSpans);
+    this.flushSentSpanCache();
+    const sentSpans = this._maybeSend(finishedSpans);
+    for (const span of finishedSpans) {
+      this._sentSpans.set(span.spanContext().spanId, Date.now() + DEFAULT_TIMEOUT * 1000);
+    }
 
     const sentSpanCount = sentSpans.size;
-
     const remainingOpenSpanCount = finishedSpans.length - sentSpanCount;
-
     DEBUG_BUILD &&
       logger.log(
         `SpanExporter exported ${sentSpanCount} spans, ${remainingOpenSpanCount} spans are waiting for their parent spans to finish`,
       );
 
-    sentSpans.forEach(span => {
+    for (const span of sentSpans) {
       const bucketEntry = this._spansToBucketEntry.get(span);
       if (bucketEntry) {
         bucketEntry.spans.delete(span);
       }
-    });
+    }
   }
 
   /** Clear the exporter. */
@@ -167,59 +216,51 @@ export class SentrySpanExporter {
       this._flushTimeout = undefined;
     }
   }
-}
 
-/**
- * Send the given spans, but only if they are part of a finished transaction.
- *
- * Returns the sent spans.
- * Spans remain unsent when their parent span is not yet finished.
- * This will happen regularly, as child spans are generally finished before their parents.
- * But it _could_ also happen because, for whatever reason, a parent span was lost.
- * In this case, we'll eventually need to clean this up.
- */
-function maybeSend(spans: ReadableSpan[]): Set<ReadableSpan> {
-  const grouped = groupSpansWithParents(spans);
-  const sentSpans = new Set<ReadableSpan>();
+  /**
+   * Send the given spans, but only if they are part of a finished transaction.
+   *
+   * Returns the sent spans.
+   * Spans remain unsent when their parent span is not yet finished.
+   * This will happen regularly, as child spans are generally finished before their parents.
+   * But it _could_ also happen because, for whatever reason, a parent span was lost.
+   * In this case, we'll eventually need to clean this up.
+   */
+  private _maybeSend(spans: ReadableSpan[]): Set<ReadableSpan> {
+    const grouped = groupSpansWithParents(spans);
+    const sentSpans = new Set<ReadableSpan>();
 
-  const rootNodes = getCompletedRootNodes(grouped);
+    const rootNodes = this.getCompletedRootNodes(grouped);
 
-  rootNodes.forEach(root => {
-    const span = root.span;
-    sentSpans.add(span);
-    const transactionEvent = createTransactionForOtelSpan(span);
+    for (const root of rootNodes) {
+      const span = root.span;
+      sentSpans.add(span);
+      const transactionEvent = createTransactionForOtelSpan(span);
 
-    // We'll recursively add all the child spans to this array
-    const spans = transactionEvent.spans || [];
+      // We'll recursively add all the child spans to this array
+      const spans = transactionEvent.spans || [];
 
-    root.children.forEach(child => {
-      createAndFinishSpanForOtelSpan(child, spans, sentSpans);
-    });
+      for (const child of root.children) {
+        createAndFinishSpanForOtelSpan(child, spans, sentSpans);
+      }
 
-    // spans.sort() mutates the array, but we do not use this anymore after this point
-    // so we can safely mutate it here
-    transactionEvent.spans =
-      spans.length > MAX_SPAN_COUNT
-        ? spans.sort((a, b) => a.start_timestamp - b.start_timestamp).slice(0, MAX_SPAN_COUNT)
-        : spans;
+      // spans.sort() mutates the array, but we do not use this anymore after this point
+      // so we can safely mutate it here
+      transactionEvent.spans =
+        spans.length > MAX_SPAN_COUNT
+          ? spans.sort((a, b) => a.start_timestamp - b.start_timestamp).slice(0, MAX_SPAN_COUNT)
+          : spans;
 
-    const measurements = timedEventsToMeasurements(span.events);
-    if (measurements) {
-      transactionEvent.measurements = measurements;
+      const measurements = timedEventsToMeasurements(span.events);
+      if (measurements) {
+        transactionEvent.measurements = measurements;
+      }
+
+      captureEvent(transactionEvent);
     }
 
-    captureEvent(transactionEvent);
-  });
-
-  return sentSpans;
-}
-
-function nodeIsCompletedRootNode(node: SpanNode): node is SpanNodeCompleted {
-  return !!node.span && !node.parentNode;
-}
-
-function getCompletedRootNodes(nodes: SpanNode[]): SpanNodeCompleted[] {
-  return nodes.filter(nodeIsCompletedRootNode);
+    return sentSpans;
+  }
 }
 
 function parseSpan(span: ReadableSpan): { op?: string; origin?: SpanOrigin; source?: TransactionSource } {
