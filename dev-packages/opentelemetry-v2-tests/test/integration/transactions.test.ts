@@ -20,6 +20,7 @@ import { startInactiveSpan, startSpan } from '../../../../packages/opentelemetry
 import { makeTraceState } from '../../../../packages/opentelemetry/src/utils/makeTraceState';
 import { cleanupOtel, getProvider, getSpanProcessor, mockSdkInit } from '../helpers/mockSdkInit';
 import type { TestClientInterface } from '../helpers/TestClient';
+import { time } from 'console';
 
 describe('Integration | Transactions', () => {
   afterEach(async () => {
@@ -550,7 +551,8 @@ describe('Integration | Transactions', () => {
     expect(finishedSpans.length).toBe(0);
   });
 
-  it('discards child spans that are finished after their parent span', async () => {
+  it('discards child spans that are finished after 5 minutes their parent span has been sent', async () => {
+    const timeout = 5 * 60 * 1000;
     const now = Date.now();
     vi.useFakeTimers();
     vi.setSystemTime(now);
@@ -587,10 +589,10 @@ describe('Integration | Transactions', () => {
 
       setTimeout(() => {
         subSpan2.end();
-      }, 1);
+      }, timeout + 1);
     });
 
-    vi.advanceTimersByTime(2);
+    vi.advanceTimersByTime(timeout + 2);
 
     expect(transactions).toHaveLength(1);
     expect(transactions[0]?.spans).toHaveLength(1);
