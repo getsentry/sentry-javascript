@@ -128,6 +128,8 @@ export class SentrySpanExporter {
 
   /** Get all completed root nodes from a list of nodes */
   public getCompletedRootNodes(nodes: SpanNode[]): SpanNodeCompleted[] {
+    // TODO: We should be able to remove the explicit `node is SpanNodeCompleted` type guard
+    //       once we stop supporting TS < 5.5
     return nodes.filter((node): node is SpanNodeCompleted => this.nodeIsCompletedRootNode(node));
   }
 
