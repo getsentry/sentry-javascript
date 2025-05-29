@@ -47,6 +47,7 @@ class MockTransport implements Transport {
 export async function mockSdk({ replayOptions, sentryOptions, autoStart = true }: MockSdkParams = {}): Promise<{
   replay: ReplayContainer;
   integration: ReplayIntegration;
+  client: ReturnType<typeof init>;
 }> {
   const { Replay } = await import('../../src/integration');
 
@@ -92,5 +93,5 @@ export async function mockSdk({ replayOptions, sentryOptions, autoStart = true }
 
   const replay = replayIntegration['_replay']!;
 
-  return { replay, integration: replayIntegration };
+  return { replay, integration: replayIntegration, client };
 }

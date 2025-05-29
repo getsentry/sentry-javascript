@@ -320,7 +320,20 @@ export class Replay implements Integration {
   /** Setup the integration. */
   private _setup(client: Client): void {
     // Client is not available in constructor, so we need to wait until setupOnce
-    const finalOptions = loadReplayOptionsFromClient(this._initialOptions, client);
+    const clientOptions = client.getOptions();
+    const finalOptions = loadReplayOptionsFromClient(this._initialOptions, clientOptions as BrowserClientReplayOptions);
+
+    if (clientOptions._experiments?.enableLogs) {
+      client.on('beforeCaptureLog', log => {
+        const replayId = this.getReplayId();
+        if (replayId) {
+          log.attributes = {
+            ...log.attributes,
+            'replay.id': replayId,
+          };
+        }
+      });
+    }
 
     this._replay = new ReplayContainer({
       options: finalOptions,
@@ -350,9 +363,10 @@ export class Replay implements Integration {
 }
 
 /** Parse Replay-related options from SDK options */
-function loadReplayOptionsFromClient(initialOptions: InitialReplayPluginOptions, client: Client): ReplayPluginOptions {
-  const opt = client.getOptions() as BrowserClientReplayOptions;
-
+function loadReplayOptionsFromClient(
+  initialOptions: InitialReplayPluginOptions,
+  opt: BrowserClientReplayOptions,
+): ReplayPluginOptions {
   const finalOptions: ReplayPluginOptions = {
     sessionSampleRate: 0,
     errorSampleRate: 0,
