@@ -120,7 +120,7 @@ export function _INTERNAL_captureLog(
     ...beforeLog.attributes,
   };
 
-  const { user } = getScopeData(currentScope);
+  const { user } = getMergedScopeData(currentScope);
   // Only attach user to log attributes if sendDefaultPii is enabled
   if (client.getOptions().sendDefaultPii) {
     const { id, email, username } = user;
@@ -238,16 +238,15 @@ export function _INTERNAL_getLogBuffer(client: Client): Array<SerializedLog> | u
 }
 
 /**
- * Get the scope data for the current scope.
+ * Get the scope data for the current scope after merging with the
+ * global scope and isolation scope.
+ *
  * @param currentScope - The current scope.
  * @returns The scope data.
  */
-function getScopeData(currentScope: Scope): ScopeData {
+function getMergedScopeData(currentScope: Scope): ScopeData {
   const scopeData = getGlobalScope().getScopeData();
-  const isolationScope = getIsolationScope();
-  if (isolationScope) {
-    mergeScopeData(scopeData, isolationScope.getScopeData());
-  }
+  mergeScopeData(scopeData, getIsolationScope().getScopeData());
   mergeScopeData(scopeData, currentScope.getScopeData());
   return scopeData;
 }
