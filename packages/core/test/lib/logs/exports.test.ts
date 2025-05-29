@@ -9,6 +9,7 @@ import {
 import type { Log } from '../../../src/types-hoist/log';
 import * as loggerModule from '../../../src/utils-hoist/logger';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
+import { Replay } from '../../../../replay-internal/src/integration';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 
@@ -150,6 +151,50 @@ describe('_INTERNAL_captureLog', () => {
       },
       'sentry.environment': {
         value: 'test',
+        type: 'string',
+      },
+    });
+  });
+
+  it('includes replay id in log attributes when available', async () => {
+
+    let _initialized = false;
+    class TestReplayIntegration extends Replay {
+      protected get _isInitialized(): boolean {
+        return _initialized;
+      }
+      protected set _isInitialized(value: boolean) {
+        _initialized = value;
+      }
+
+      public afterAllSetup(): void {
+        // do nothing, we need to manually initialize this
+      }
+    }
+    const replayIntegration = new TestReplayIntegration();
+    const options = getDefaultTestClientOptions({
+      dsn: PUBLIC_DSN,
+      _experiments: { enableLogs: true },
+      integrations: [replayIntegration],
+    });
+
+    const client = new TestClient(options);
+
+    replayIntegration['_setup'](client as any);
+    replayIntegration['_initialize'](client as any);
+
+    const scope = new Scope();
+    scope.setPropagationContext({
+      traceId: '3d9355f71e9c444b81161599adac6e29',
+      sampleRand: 1,
+    });
+
+    _INTERNAL_captureLog({ level: 'info', message: 'test log with replay id' }, client, scope);
+
+    const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+    expect(logAttributes).toEqual({
+      'sentry.replay_id': {
+        value: '123',
         type: 'string',
       },
     });

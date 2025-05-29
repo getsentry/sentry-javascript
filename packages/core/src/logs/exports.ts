@@ -10,6 +10,7 @@ import { timestampInSeconds } from '../utils-hoist/time';
 import { GLOBAL_OBJ } from '../utils-hoist/worldwide';
 import { SEVERITY_TEXT_TO_SEVERITY_NUMBER } from './constants';
 import { createLogEnvelope } from './envelope';
+import { Integration } from '../types-hoist/integration';
 
 const MAX_LOG_BUFFER_SIZE = 100;
 
@@ -111,6 +112,9 @@ export function _INTERNAL_captureLog(
     return;
   }
 
+
+  const replay = client.getIntegrationByName<Integration & { getReplayId: () => string }>('Replay');
+  const replayId = replay?.getReplayId();
   const [, traceContext] = _getTraceInfoFromScope(client, scope);
 
   const processedLogAttributes = {
@@ -123,6 +127,10 @@ export function _INTERNAL_captureLog(
 
   if (environment) {
     processedLogAttributes['sentry.environment'] = environment;
+  }
+
+  if (replayId) {
+    processedLogAttributes['sentry.replay_id'] = replayId;
   }
 
   const { sdk } = client.getSdkMetadata() ?? {};
