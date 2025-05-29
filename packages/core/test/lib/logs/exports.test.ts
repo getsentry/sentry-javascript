@@ -673,4 +673,64 @@ describe('_INTERNAL_captureLog', () => {
       });
     });
   });
+
+  it('overrides user-provided system attributes with SDK values', () => {
+    const options = getDefaultTestClientOptions({
+      dsn: PUBLIC_DSN,
+      _experiments: { enableLogs: true },
+      release: 'sdk-release-1.0.0',
+      environment: 'sdk-environment',
+    });
+    const client = new TestClient(options);
+
+    // Mock getSdkMetadata to return SDK info
+    vi.spyOn(client, 'getSdkMetadata').mockReturnValue({
+      sdk: {
+        name: 'sentry.javascript.node',
+        version: '7.0.0',
+      },
+    });
+
+    const scope = new Scope();
+
+    _INTERNAL_captureLog(
+      {
+        level: 'info',
+        message: 'test log with user-provided system attributes',
+        attributes: {
+          'sentry.release': 'user-release-2.0.0',
+          'sentry.environment': 'user-environment',
+          'sentry.sdk.name': 'user-sdk-name',
+          'sentry.sdk.version': 'user-sdk-version',
+          'user.custom': 'preserved-value',
+        },
+      },
+      client,
+      scope,
+    );
+
+    const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+    expect(logAttributes).toEqual({
+      'user.custom': {
+        value: 'preserved-value',
+        type: 'string',
+      },
+      'sentry.release': {
+        value: 'sdk-release-1.0.0',
+        type: 'string',
+      },
+      'sentry.environment': {
+        value: 'sdk-environment',
+        type: 'string',
+      },
+      'sentry.sdk.name': {
+        value: 'sentry.javascript.node',
+        type: 'string',
+      },
+      'sentry.sdk.version': {
+        value: '7.0.0',
+        type: 'string',
+      },
+    });
+  });
 });

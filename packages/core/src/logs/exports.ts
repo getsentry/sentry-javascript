@@ -64,6 +64,25 @@ export function logAttributeToSerializedLogAttribute(value: unknown): Serialized
 }
 
 /**
+ * Sets a log attribute if the value exists and the attribute key is not already present.
+ *
+ * @param logAttributes - The log attributes object to modify.
+ * @param key - The attribute key to set.
+ * @param value - The value to set (only sets if truthy and key not present).
+ * @param setEvenIfPresent - Whether to set the attribute if it is present. Defaults to true.
+ */
+function setLogAttribute(
+  logAttributes: Record<string, unknown>,
+  key: string,
+  value: unknown,
+  setEvenIfPresent = true,
+): void {
+  if (value && (!logAttributes[key] || setEvenIfPresent)) {
+    logAttributes[key] = value;
+  }
+}
+
+/**
  * Captures a serialized log event and adds it to the log buffer for the given client.
  *
  * @param client - A client. Uses the current client if not provided.
@@ -95,7 +114,6 @@ export function _INTERNAL_captureSerializedLog(client: Client, serializedLog: Se
  * @experimental This method will experience breaking changes. This is not yet part of
  * the stable Sentry SDK API and can be changed or removed without warning.
  */
-// eslint-disable-next-line complexity
 export function _INTERNAL_captureLog(
   beforeLog: Log,
   client: Client | undefined = getClient(),
@@ -124,30 +142,17 @@ export function _INTERNAL_captureLog(
   // Only attach user to log attributes if sendDefaultPii is enabled
   if (client.getOptions().sendDefaultPii) {
     const { id, email, username } = user;
-    if (id && !processedLogAttributes['user.id']) {
-      processedLogAttributes['user.id'] = id;
-    }
-    if (email && !processedLogAttributes['user.email']) {
-      processedLogAttributes['user.email'] = email;
-    }
-    if (username && !processedLogAttributes['user.name']) {
-      processedLogAttributes['user.name'] = username;
-    }
+    setLogAttribute(processedLogAttributes, 'user.id', id, false);
+    setLogAttribute(processedLogAttributes, 'user.email', email, false);
+    setLogAttribute(processedLogAttributes, 'user.name', username, false);
   }
 
-  if (release) {
-    processedLogAttributes['sentry.release'] = release;
-  }
+  setLogAttribute(processedLogAttributes, 'sentry.release', release);
+  setLogAttribute(processedLogAttributes, 'sentry.environment', environment);
 
-  if (environment) {
-    processedLogAttributes['sentry.environment'] = environment;
-  }
-
-  const { sdk } = client.getSdkMetadata() ?? {};
-  if (sdk) {
-    processedLogAttributes['sentry.sdk.name'] = sdk.name;
-    processedLogAttributes['sentry.sdk.version'] = sdk.version;
-  }
+  const { name, version } = client.getSdkMetadata()?.sdk ?? {};
+  setLogAttribute(processedLogAttributes, 'sentry.sdk.name', name);
+  setLogAttribute(processedLogAttributes, 'sentry.sdk.version', version);
 
   const beforeLogMessage = beforeLog.message;
   if (isParameterizedString(beforeLogMessage)) {
@@ -159,10 +164,8 @@ export function _INTERNAL_captureLog(
   }
 
   const span = _getSpanForScope(currentScope);
-  if (span) {
-    // Add the parent span ID to the log attributes for trace context
-    processedLogAttributes['sentry.trace.parent_span_id'] = span.spanContext().spanId;
-  }
+  // Add the parent span ID to the log attributes for trace context
+  setLogAttribute(processedLogAttributes, 'sentry.trace.parent_span_id', span?.spanContext().spanId);
 
   const processedLog = { ...beforeLog, attributes: processedLogAttributes };
 
