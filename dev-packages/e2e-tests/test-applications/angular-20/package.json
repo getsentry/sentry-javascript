@@ -10,6 +10,7 @@
     "watch": "ng build --watch --configuration development",
     "test": "playwright test",
     "test:build": "pnpm install && pnpm build",
+    "test:build-canary": "pnpm install && pnpm add @angular/animations@next @angular/common@next @angular/compiler@next @angular/core@next @angular/forms@next @angular/platform-browser@next @angular/platform-browser-dynamic@next @angular/router@next && pnpm add -D @angular-devkit/build-angular@next @angular/cli@next @angular/compiler-cli@next && pnpm build",
     "test:assert": "playwright test",
     "clean": "npx rimraf .angular node_modules pnpm-lock.yaml dist"
   },

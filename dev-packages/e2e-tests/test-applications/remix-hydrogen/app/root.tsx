@@ -2,7 +2,6 @@ import {
   Links,
   LiveReload,
   Meta,
-  type MetaFunction,
   Outlet,
   Scripts,
   ScrollRestoration,
@@ -12,17 +11,20 @@ import {
   useMatches,
   useRouteError,
 } from '@remix-run/react';
-
+import {LoaderFunctionArgs} from '@remix-run/server-runtime';
 import * as Sentry from '@sentry/remix/cloudflare';
-import { useNonce } from '@shopify/hydrogen';
-import type { CustomerAccessToken } from '@shopify/hydrogen/storefront-api-types';
-import { type LoaderArgs, defer } from '@shopify/remix-oxygen';
-import { useEffect } from 'react';
-import favicon from '../public/favicon.svg';
-import type { HydrogenSession } from '../server';
+import {useNonce} from '@shopify/hydrogen';
+import type {CustomerAccessToken} from '@shopify/hydrogen/storefront-api-types';
+import type {HydrogenSession} from '@shopify/hydrogen';
+import {defer} from '@shopify/remix-oxygen';
+import {useEffect} from 'react';
 
 // This is important to avoid re-fetching root queries on sub-navigations
-export const shouldRevalidate: ShouldRevalidateFunction = ({ formMethod, currentUrl, nextUrl }) => {
+export const shouldRevalidate: ShouldRevalidateFunction = ({
+  formMethod,
+  currentUrl,
+  nextUrl,
+}) => {
   // revalidate when a mutation is performed e.g add to cart, login...
   if (formMethod && formMethod !== 'GET') {
     return true;
@@ -46,20 +48,39 @@ export function links() {
       rel: 'preconnect',
       href: 'https://shop.app',
     },
-    { rel: 'icon', type: 'image/svg+xml', href: favicon },
   ];
 }
 
-export async function loader({ context }: LoaderArgs) {
-  const { storefront, session, cart } = context;
-  const customerAccessToken = await session.get('customerAccessToken');
-  const publicStoreDomain = context.env.PUBLIC_STORE_DOMAIN;
+export async function loader({
+  context,
+}: {
+  context: LoaderFunctionArgs['context'];
+}) {
+  const {storefront, session, cart} = context as {
+    storefront: {
+      query: (query: string, options: any) => Promise<any>;
+      CacheLong: () => any;
+    };
+    session: HydrogenSession;
+    cart: unknown;
+    env: unknown;
+  };
+  // Type assertion for cart to fix TS error
+  const typedCart = cart as {get: () => Promise<unknown>};
+  const customerAccessToken = await (session as HydrogenSession).get(
+    'customerAccessToken',
+  );
+  const publicStoreDomain = (context.env as {PUBLIC_STORE_DOMAIN: string})
+    .PUBLIC_STORE_DOMAIN;
 
   // validate the customer access token is valid
-  const { isLoggedIn, headers } = await validateCustomerAccessToken(session, customerAccessToken);
+  const {isLoggedIn, headers} = await validateCustomerAccessToken(
+    session,
+    customerAccessToken,
+  );
 
   // defer the cart query by not awaiting it
-  const cartPromise = cart.get();
+  const cartPromise = typedCart.get();
 
   // defer the footer query (below the fold)
   const footerPromise = storefront.query(FOOTER_QUERY, {
@@ -85,12 +106,23 @@ export async function loader({ context }: LoaderArgs) {
       isLoggedIn,
       publicStoreDomain,
     },
-    { headers },
+    {headers},
   );
 }
 
-export const meta = ({ data }: Sentry.SentryMetaArgs<MetaFunction<typeof loader>>) => {
+export const meta = ({
+  data,
+}: {
+  data: {
+    ENV: {SENTRY_DSN: string};
+    sentryTrace: string;
+    sentryBaggage: string;
+  };
+}) => {
   return [
+    {
+      env: data.ENV,
+    },
     {
       name: 'sentry-trace',
       content: data.sentryTrace,
@@ -187,11 +219,14 @@ export function ErrorBoundary() {
  *  );
  *  ```
  *  */
-async function validateCustomerAccessToken(session: HydrogenSession, customerAccessToken?: CustomerAccessToken) {
+async function validateCustomerAccessToken(
+  session: HydrogenSession,
+  customerAccessToken?: CustomerAccessToken,
+) {
   let isLoggedIn = false;
   const headers = new Headers();
   if (!customerAccessToken?.accessToken || !customerAccessToken?.expiresAt) {
-    return { isLoggedIn, headers };
+    return {isLoggedIn, headers};
   }
 
   const expiresAt = new Date(customerAccessToken.expiresAt).getTime();
@@ -205,7 +240,7 @@ async function validateCustomerAccessToken(session: HydrogenSession, customerAcc
     isLoggedIn = true;
   }
 
-  return { isLoggedIn, headers };
+  return {isLoggedIn, headers};
 }
 
 const MENU_FRAGMENT = `#graphql

@@ -1,8 +1,10 @@
 import type { Client } from '../client';
 import { _getTraceInfoFromScope } from '../client';
-import { getClient, getCurrentScope } from '../currentScopes';
+import { getClient, getCurrentScope, getGlobalScope, getIsolationScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
+import type { Scope, ScopeData } from '../scope';
 import type { Log, SerializedLog, SerializedLogAttributeValue } from '../types-hoist/log';
+import { mergeScopeData } from '../utils/applyScopeDataToEvent';
 import { _getSpanForScope } from '../utils/spanOnScope';
 import { isParameterizedString } from '../utils-hoist/is';
 import { logger } from '../utils-hoist/logger';
@@ -62,6 +64,25 @@ export function logAttributeToSerializedLogAttribute(value: unknown): Serialized
 }
 
 /**
+ * Sets a log attribute if the value exists and the attribute key is not already present.
+ *
+ * @param logAttributes - The log attributes object to modify.
+ * @param key - The attribute key to set.
+ * @param value - The value to set (only sets if truthy and key not present).
+ * @param setEvenIfPresent - Whether to set the attribute if it is present. Defaults to true.
+ */
+function setLogAttribute(
+  logAttributes: Record<string, unknown>,
+  key: string,
+  value: unknown,
+  setEvenIfPresent = true,
+): void {
+  if (value && (!logAttributes[key] || setEvenIfPresent)) {
+    logAttributes[key] = value;
+  }
+}
+
+/**
  * Captures a serialized log event and adds it to the log buffer for the given client.
  *
  * @param client - A client. Uses the current client if not provided.
@@ -96,7 +117,7 @@ export function _INTERNAL_captureSerializedLog(client: Client, serializedLog: Se
 export function _INTERNAL_captureLog(
   beforeLog: Log,
   client: Client | undefined = getClient(),
-  scope = getCurrentScope(),
+  currentScope = getCurrentScope(),
   captureSerializedLog: (client: Client, log: SerializedLog) => void = _INTERNAL_captureSerializedLog,
 ): void {
   if (!client) {
@@ -111,25 +132,27 @@ export function _INTERNAL_captureLog(
     return;
   }
 
-  const [, traceContext] = _getTraceInfoFromScope(client, scope);
+  const [, traceContext] = _getTraceInfoFromScope(client, currentScope);
 
   const processedLogAttributes = {
     ...beforeLog.attributes,
   };
 
-  if (release) {
-    processedLogAttributes['sentry.release'] = release;
+  const { user } = getMergedScopeData(currentScope);
+  // Only attach user to log attributes if sendDefaultPii is enabled
+  if (client.getOptions().sendDefaultPii) {
+    const { id, email, username } = user;
+    setLogAttribute(processedLogAttributes, 'user.id', id, false);
+    setLogAttribute(processedLogAttributes, 'user.email', email, false);
+    setLogAttribute(processedLogAttributes, 'user.name', username, false);
   }
 
-  if (environment) {
-    processedLogAttributes['sentry.environment'] = environment;
-  }
+  setLogAttribute(processedLogAttributes, 'sentry.release', release);
+  setLogAttribute(processedLogAttributes, 'sentry.environment', environment);
 
-  const { sdk } = client.getSdkMetadata() ?? {};
-  if (sdk) {
-    processedLogAttributes['sentry.sdk.name'] = sdk.name;
-    processedLogAttributes['sentry.sdk.version'] = sdk.version;
-  }
+  const { name, version } = client.getSdkMetadata()?.sdk ?? {};
+  setLogAttribute(processedLogAttributes, 'sentry.sdk.name', name);
+  setLogAttribute(processedLogAttributes, 'sentry.sdk.version', version);
 
   const beforeLogMessage = beforeLog.message;
   if (isParameterizedString(beforeLogMessage)) {
@@ -140,11 +163,9 @@ export function _INTERNAL_captureLog(
     });
   }
 
-  const span = _getSpanForScope(scope);
-  if (span) {
-    // Add the parent span ID to the log attributes for trace context
-    processedLogAttributes['sentry.trace.parent_span_id'] = span.spanContext().spanId;
-  }
+  const span = _getSpanForScope(currentScope);
+  // Add the parent span ID to the log attributes for trace context
+  setLogAttribute(processedLogAttributes, 'sentry.trace.parent_span_id', span?.spanContext().spanId);
 
   const processedLog = { ...beforeLog, attributes: processedLogAttributes };
 
@@ -217,4 +238,18 @@ export function _INTERNAL_flushLogsBuffer(client: Client, maybeLogBuffer?: Array
  */
 export function _INTERNAL_getLogBuffer(client: Client): Array<SerializedLog> | undefined {
   return GLOBAL_OBJ._sentryClientToLogBufferMap?.get(client);
+}
+
+/**
+ * Get the scope data for the current scope after merging with the
+ * global scope and isolation scope.
+ *
+ * @param currentScope - The current scope.
+ * @returns The scope data.
+ */
+function getMergedScopeData(currentScope: Scope): ScopeData {
+  const scopeData = getGlobalScope().getScopeData();
+  mergeScopeData(scopeData, getIsolationScope().getScopeData());
+  mergeScopeData(scopeData, currentScope.getScopeData());
+  return scopeData;
 }

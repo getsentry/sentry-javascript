@@ -10,6 +10,20 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 9.24.0
+
+### Important Changes
+
+- feat(angular): Bump `@sentry/angular` peer dependencies to add Angular 20 support ([#16414](https://github.com/getsentry/sentry-javascript/pull/16414))
+
+This release adds support for Angular 20 to the Sentry Angular SDK `@sentry/angular`.
+
+### Other Changes
+
+- feat(browser): Add `unregisterOriginalCallbacks` option to `browserApiErrorsIntegration` ([#16412](https://github.com/getsentry/sentry-javascript/pull/16412))
+- feat(core): Add user to logs ([#16399](https://github.com/getsentry/sentry-javascript/pull/16399))
+- feat(core): Make sure Supabase db query insights are populated ([#16169](https://github.com/getsentry/sentry-javascript/pull/16169))
+
 ## 9.23.0
 
 ### Important changes
