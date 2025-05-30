@@ -107,16 +107,10 @@ export class SentrySpanExporter {
   /** Remove "expired" span id entries from the _sentSpans cache. */
   public flushSentSpanCache(): void {
     const currentTimestamp = Date.now();
-    // Doing this 2-pass method to avoid modifying the map while iterating over it.
-    const spansToPurge: (string | undefined)[] = Array.from(this._sentSpans.entries(), ([spanId, expirationTime]) => {
+    // Note, it is safe to delete items from the map as we go: https://stackoverflow.com/a/35943995/90297
+    for (const [spanId, expirationTime] of this._sentSpans.entries()) {
       if (expirationTime <= currentTimestamp) {
-        return spanId; // Collect expired spans
-      }
-      return undefined;
-    });
-    for (const spanId of spansToPurge) {
-      if (spanId) {
-        this._sentSpans.delete(spanId); // Purge expired spans
+        this._sentSpans.delete(spanId);
       }
     }
   }
