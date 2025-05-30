@@ -15,6 +15,7 @@ import { getNextjsVersion } from './util';
 import { constructWebpackConfigFunction } from './webpack';
 
 let showedExportModeTunnelWarning = false;
+let showedExperimentalBuildModeWarning = false;
 
 /**
  * Modifies the passed in Next.js configuration with automatic build-time instrumentation and source map upload.
@@ -64,6 +65,27 @@ function getFinalConfigObject(
       }
     } else {
       setUpTunnelRewriteRules(incomingUserNextConfigObject, userSentryOptions.tunnelRoute);
+    }
+  }
+
+  if (process.argv.includes('--experimental-build-mode')) {
+    if (!showedExperimentalBuildModeWarning) {
+      showedExperimentalBuildModeWarning = true;
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[@sentry/nextjs] The Sentry Next.js SDK does not currently fully support next build --experimental-build-mode',
+      );
+    }
+    if (process.argv.includes('generate')) {
+      // Next.js v15.3.0-canary.1 splits the experimental build into two phases:
+      // 1. compile: Code compilation
+      // 2. generate: Environment variable inlining and prerendering (We don't instrument this phase, we inline in the compile phase)
+      //
+      // We assume a single “full” build and reruns Webpack instrumentation in both phases.
+      // During the generate step it collides with Next.js’s new inliner (they do some bad replacements in the inliner)
+      // producing malformed JS and build failures.
+      // We skip Sentry processing during generate to avoid this issue.
+      return incomingUserNextConfigObject;
     }
   }
 
