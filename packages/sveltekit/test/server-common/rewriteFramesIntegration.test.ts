@@ -45,6 +45,7 @@ describe('rewriteFramesIteratee', () => {
 
     expect(result.exception?.values?.[0]?.stacktrace?.frames?.[0]).toEqual({
       filename: 'app:///3-ab34d22f.js',
+      abs_path: '/some/path/to/server/chunks/3-ab34d22f.js',
       lineno: 1,
       colno: 1,
     });
