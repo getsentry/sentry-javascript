@@ -38,6 +38,7 @@ export {
   getGlobalScope,
   setCurrentClient,
   Scope,
+  getTraceData,
   continueTrace,
   suppressTracing,
   SDK_VERSION,
