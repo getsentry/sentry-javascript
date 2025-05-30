@@ -259,7 +259,7 @@ export function continueTrace<T>(options: Parameters<typeof baseContinueTrace>[0
 
 /**
  * Get the trace context for a given scope.
- * We have a custom implemention here because we need an OTEL-specific way to get the span from a scope.
+ * We have a custom implementation here because we need an OTEL-specific way to get the span from a scope.
  */
 export function getTraceContextForScope(
   client: Client,
