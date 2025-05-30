@@ -886,6 +886,7 @@ jobs:
       - uses: pnpm/action-setup@v4
         with:
           version: 9.4.0
+      # TODO: Remove this once the repo is bumped to 20.19.2 or higher
       - name: Set up Node for Angular 20
         if: matrix.test-application == 'angular-20'
         uses: actions/setup-node@v4
