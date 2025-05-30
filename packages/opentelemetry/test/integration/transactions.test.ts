@@ -561,7 +561,8 @@ describe('Integration | Transactions', () => {
     expect(finishedSpans.length).toBe(0);
   });
 
-  it('discards child spans that are finished after their parent span', async () => {
+  it('collects child spans that are finished within 5 minutes their parent span has been sent', async () => {
+    const timeout = 5 * 60 * 1000;
     const now = Date.now();
     vi.useFakeTimers();
     vi.setSystemTime(now);
@@ -603,10 +604,67 @@ describe('Integration | Transactions', () => {
 
       setTimeout(() => {
         subSpan2.end();
-      }, 1);
+      }, timeout - 2);
     });
 
-    vi.advanceTimersByTime(2);
+    vi.advanceTimersByTime(timeout - 1);
+
+    expect(transactions).toHaveLength(2);
+    expect(transactions[0]?.spans).toHaveLength(1);
+
+    const finishedSpans: any = exporter['_finishedSpanBuckets'].flatMap(bucket =>
+      bucket ? Array.from(bucket.spans) : [],
+    );
+    expect(finishedSpans.length).toBe(0);
+  });
+
+  it('discards child spans that are finished after 5 minutes their parent span has been sent', async () => {
+    const timeout = 5 * 60 * 1000;
+    const now = Date.now();
+    vi.useFakeTimers();
+    vi.setSystemTime(now);
+
+    const logs: unknown[] = [];
+    vi.spyOn(logger, 'log').mockImplementation(msg => logs.push(msg));
+
+    const transactions: Event[] = [];
+
+    mockSdkInit({
+      tracesSampleRate: 1,
+      beforeSendTransaction: event => {
+        transactions.push(event);
+        return null;
+      },
+    });
+
+    const provider = getProvider();
+    const multiSpanProcessor = provider?.activeSpanProcessor as
+      | (SpanProcessor & { _spanProcessors?: SpanProcessor[] })
+      | undefined;
+    const spanProcessor = multiSpanProcessor?.['_spanProcessors']?.find(
+      spanProcessor => spanProcessor instanceof SentrySpanProcessor,
+    ) as SentrySpanProcessor | undefined;
+
+    const exporter = spanProcessor ? spanProcessor['_exporter'] : undefined;
+
+    if (!exporter) {
+      throw new Error('No exporter found, aborting test...');
+    }
+
+    startSpanManual({ name: 'test name' }, async span => {
+      const subSpan = startInactiveSpan({ name: 'inner span 1' });
+      subSpan.end();
+
+      const subSpan2 = startInactiveSpan({ name: 'inner span 2' });
+
+      span.end();
+
+      setTimeout(() => {
+        subSpan2.end();
+      }, timeout + 1);
+    });
+
+    vi.advanceTimersByTime(timeout + 2);
 
     expect(transactions).toHaveLength(1);
     expect(transactions[0]?.spans).toHaveLength(1);
