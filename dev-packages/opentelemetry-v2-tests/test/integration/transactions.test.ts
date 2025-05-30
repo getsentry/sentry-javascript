@@ -20,7 +20,6 @@ import { startInactiveSpan, startSpan } from '../../../../packages/opentelemetry
 import { makeTraceState } from '../../../../packages/opentelemetry/src/utils/makeTraceState';
 import { cleanupOtel, getProvider, getSpanProcessor, mockSdkInit } from '../helpers/mockSdkInit';
 import type { TestClientInterface } from '../helpers/TestClient';
-import { time } from 'console';
 
 describe('Integration | Transactions', () => {
   afterEach(async () => {
