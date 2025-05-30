@@ -51,7 +51,6 @@ export {
   startSpanManual,
   withActiveSpan,
   startNewTrace,
-  getTraceData,
   getSpanDescendants,
   setMeasurement,
   getSpanStatusFromHttpCode,
