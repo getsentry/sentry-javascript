@@ -1,7 +1,6 @@
 import type { SpanContext } from '@opentelemetry/api';
 import { context, ROOT_CONTEXT, trace, TraceFlags } from '@opentelemetry/api';
 import { TraceState } from '@opentelemetry/core';
-import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
 import type { Event, TransactionEvent } from '@sentry/core';
 import {
   addBreadcrumb,
@@ -15,7 +14,6 @@ import {
 } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SENTRY_TRACE_STATE_DSC } from '../../../../packages/opentelemetry/src/constants';
-import { SentrySpanProcessor } from '../../../../packages/opentelemetry/src/spanProcessor';
 import { startInactiveSpan, startSpan } from '../../../../packages/opentelemetry/src/trace';
 import { makeTraceState } from '../../../../packages/opentelemetry/src/utils/makeTraceState';
 import { cleanupOtel, getProvider, getSpanProcessor, mockSdkInit } from '../helpers/mockSdkInit';
