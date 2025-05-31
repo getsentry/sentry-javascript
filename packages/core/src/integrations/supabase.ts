@@ -7,8 +7,9 @@ import { DEBUG_BUILD } from '../debug-build';
 import { captureException } from '../exports';
 import { defineIntegration } from '../integration';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
-import { setHttpStatus, SPAN_STATUS_ERROR, SPAN_STATUS_OK, startSpan } from '../tracing';
+import { continueTrace, setHttpStatus, SPAN_STATUS_ERROR, SPAN_STATUS_OK, startSpan } from '../tracing';
 import type { IntegrationFn } from '../types-hoist/integration';
+import { getTraceData } from '../utils/traceData';
 import { isPlainObject } from '../utils-hoist/is';
 import { logger } from '../utils-hoist/logger';
 
@@ -100,12 +101,16 @@ export interface PostgRESTFilterBuilder {
 
 export interface SupabaseResponse {
   status?: number;
-  data?: Array<
-    | number
-    | {
-        msg_id?: number;
-      }
-  >;
+  data?: Array<{
+    msg_id?: number;
+    enqueued_at?: string;
+    message?: {
+      _sentry?: {
+        sentry_trace?: string;
+        baggage?: string;
+      };
+    };
+  }>;
   error?: {
     message: string;
     code?: string;
@@ -238,7 +243,21 @@ function instrumentRpcReturnedFromSchemaCall(SupabaseClient: unknown): void {
           (supabaseInstance as unknown as SupabaseClientInstance).rpc,
           {
             apply(target, thisArg, argumentsList) {
-              return instrumentRpcImpl(target, thisArg, argumentsList);
+              const isProducerSpan = argumentsList[0] === 'send' || argumentsList[0] === 'send_batch';
+              const isConsumerSpan = argumentsList[0] === 'pop';
+
+              if (!isProducerSpan && !isConsumerSpan) {
+                return Reflect.apply(target, thisArg, argumentsList);
+              }
+
+              if (isProducerSpan) {
+                return instrumentRpcProducer(target, thisArg, argumentsList);
+              } else if (isConsumerSpan) {
+                return instrumentRpcConsumer(target, thisArg, argumentsList);
+              }
+
+              // If the operation is not a queue operation, return the original function
+              return Reflect.apply(target, thisArg, argumentsList);
             },
           },
         );
@@ -251,50 +270,58 @@ function instrumentRpcReturnedFromSchemaCall(SupabaseClient: unknown): void {
   markAsInstrumented((SupabaseClient as unknown as SupabaseClientConstructor).prototype.schema);
 }
 
-const instrumentRpcImpl = (target: any, thisArg: any, argumentsList: any[]): Promise<unknown> => {
-  const isProducerSpan = argumentsList[0] === 'send' || argumentsList[0] === 'send_batch';
-  const isConsumerSpan = argumentsList[0] === 'pop';
-  const isReceiverSpan = argumentsList[0] === 'read';
-
-  if (!isProducerSpan && !isConsumerSpan && !isReceiverSpan) {
-    return Reflect.apply(target, thisArg, argumentsList);
+function extractTraceAndBaggageFromMessage(message: { _sentry?: { sentry_trace?: string; baggage?: string } }): {
+  sentryTrace?: string;
+  baggage?: string;
+} {
+  if (message?._sentry) {
+    return {
+      sentryTrace: message._sentry.sentry_trace,
+      baggage: message._sentry.baggage,
+    };
   }
+  return {};
+}
 
-  const maybeQueueParams = argumentsList[1];
-
-  // If the second argument is not an object, it's not a queue operation
-  if (!isPlainObject(maybeQueueParams)) {
-    return Reflect.apply(target, thisArg, argumentsList);
-  }
-
-  const queueName = maybeQueueParams?.queue_name as string;
-
-  const op = isProducerSpan
-    ? 'queue.publish'
-    : isConsumerSpan
-      ? 'queue.process'
-      : isReceiverSpan
-        ? 'queue.receive'
-        : '';
-
-  // If the operation is not a queue operation, return the original function
-  if (!op) {
-    return Reflect.apply(target, thisArg, argumentsList);
-  }
-
-  return startSpan(
+const instrumentRpcConsumer = (target: any, thisArg: any, argumentsList: any[]): Promise<unknown> => {
+  const [operationName, queueParams] = argumentsList as [
+    'pop',
     {
-      name: 'supabase.db.rpc',
-      attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase',
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
-        'messaging.system': 'supabase',
-      },
+      queue_name?: string;
     },
-    async span => {
-      try {
-        return (Reflect.apply(target, thisArg, argumentsList) as Promise<SupabaseResponse>).then(
-          (res: SupabaseResponse) => {
+  ];
+
+  const isConsumerSpan = operationName === 'pop';
+  const queueName = queueParams?.queue_name;
+
+  if (!isConsumerSpan) {
+    return Reflect.apply(target, thisArg, argumentsList); // Not a consumer operation
+  }
+
+  return (Reflect.apply(target, thisArg, argumentsList) as Promise<SupabaseResponse>).then((res: SupabaseResponse) => {
+    const latency = res.data?.[0]?.enqueued_at ? Date.now() - Date.parse(res.data?.[0]?.enqueued_at) : undefined;
+
+    const { sentryTrace, baggage } = extractTraceAndBaggageFromMessage(res.data?.[0]?.message || {});
+
+    // Remove Sentry metadata from the returned message
+    delete res.data?.[0]?.message?._sentry;
+
+    return continueTrace(
+      {
+        sentryTrace,
+        baggage,
+      },
+      () => {
+        return startSpan(
+          {
+            name: 'supabase.db.rpc',
+            attributes: {
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'queue.process',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase',
+              'messaging.system': 'supabase',
+            },
+          },
+          span => {
             const messageId =
               res?.data?.map(item => (typeof item === 'number' ? item : item.msg_id)).join(',') || undefined;
 
@@ -304,6 +331,10 @@ const instrumentRpcImpl = (target: any, thisArg: any, argumentsList: any[]): Pro
 
             if (queueName) {
               span.setAttribute('messaging.destination.name', queueName);
+            }
+
+            if (latency) {
+              span.setAttribute('messaging.message.receive.latency', latency);
             }
 
             const breadcrumb: SupabaseBreadcrumb = {
@@ -349,6 +380,8 @@ const instrumentRpcImpl = (target: any, thisArg: any, argumentsList: any[]): Pro
               });
 
               span.setStatus({ code: SPAN_STATUS_ERROR });
+            } else {
+              span.setStatus({ code: SPAN_STATUS_OK });
             }
 
             span.end();
@@ -356,25 +389,146 @@ const instrumentRpcImpl = (target: any, thisArg: any, argumentsList: any[]): Pro
             return res;
           },
         );
-      } catch (err: unknown) {
-        span.setStatus({ code: SPAN_STATUS_ERROR });
-        span.end();
-        captureException(err, {
-          mechanism: {
-            handled: false,
-          },
+      },
+    );
+  });
+};
+
+function instrumentRpcProducer(target: any, thisArg: any, argumentsList: any[]): Promise<unknown> {
+  const maybeQueueParams = argumentsList[1];
+
+  // If the second argument is not an object, it's not a queue operation
+  if (!isPlainObject(maybeQueueParams)) {
+    return Reflect.apply(target, thisArg, argumentsList);
+  }
+
+  const queueName = maybeQueueParams?.queue_name as string;
+
+  // If the queue name is not provided, return the original function
+  if (!queueName) {
+    return Reflect.apply(target, thisArg, argumentsList);
+  }
+
+  return startSpan(
+    {
+      name: 'supabase.db.rpc',
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase',
+        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'queue.publish',
+        'messaging.system': 'supabase',
+      },
+    },
+    span => {
+      const { 'sentry-trace': sentryTrace, baggage: sentryBaggage } = getTraceData();
+      const [, sentryArgumentsQueueParams] = argumentsList as [
+        'send' | 'send_batch',
+        {
+          queue_name: string;
+          messages?: Array<{ _sentry?: { sentry_trace?: string; baggage?: string } }>;
+          message?: { _sentry?: { sentry_trace?: string; baggage?: string } };
+        },
+      ];
+
+      if (sentryArgumentsQueueParams?.message) {
+        sentryArgumentsQueueParams.message._sentry = {
+          sentry_trace: sentryTrace,
+          baggage: sentryBaggage,
+        };
+      } else if (sentryArgumentsQueueParams?.messages) {
+        sentryArgumentsQueueParams.messages = sentryArgumentsQueueParams.messages.map(message => {
+          message._sentry = {
+            sentry_trace: sentryTrace,
+            baggage: sentryBaggage,
+          };
+          return message;
         });
       }
+
+      argumentsList[1] = sentryArgumentsQueueParams;
+
+      return (Reflect.apply(target, thisArg, argumentsList) as Promise<SupabaseResponse>)
+        .then((res: SupabaseResponse) => {
+          const messageId =
+            res?.data?.map(item => (typeof item === 'number' ? item : item.msg_id)).join(',') || undefined;
+
+          if (messageId) {
+            span.setAttribute('messaging.message.id', messageId || '<unknown>');
+          }
+
+          if (queueName) {
+            span.setAttribute('messaging.destination.name', queueName || '<unknown>');
+          }
+
+          const breadcrumb: SupabaseBreadcrumb = {
+            type: 'supabase',
+            category: `db.rpc.${argumentsList[0]}`,
+            message: `rpc(${argumentsList[0]})`,
+          };
+          const data: Record<string, unknown> = {};
+          if (messageId) {
+            data['messaging.message.id'] = messageId;
+          }
+          if (queueName) {
+            data['messaging.destination.name'] = queueName;
+          }
+          if (Object.keys(data).length) {
+            breadcrumb.data = data;
+          }
+          addBreadcrumb(breadcrumb);
+          if (res.error) {
+            const err = new Error(res.error.message) as SupabaseError;
+            if (res.error.code) {
+              err.code = res.error.code;
+            }
+            if (res.error.details) {
+              err.details = res.error.details;
+            }
+            captureException(err, {
+              contexts: {
+                supabase: {
+                  queueName,
+                  messageId,
+                },
+              },
+            });
+            span.setStatus({ code: SPAN_STATUS_ERROR });
+          } else {
+            span.setStatus({ code: SPAN_STATUS_OK });
+          }
+          span.end();
+
+          return res;
+        })
+        .catch((err: unknown) => {
+          span.setStatus({ code: SPAN_STATUS_ERROR });
+          span.end();
+          captureException(err, {
+            mechanism: {
+              handled: false,
+            },
+          });
+          throw err;
+        });
     },
   );
-};
+}
 
 function instrumentRpc(SupabaseClient: unknown): void {
   (SupabaseClient as unknown as SupabaseClientInstance).rpc = new Proxy(
     (SupabaseClient as unknown as SupabaseClientInstance).rpc,
     {
       apply(target, thisArg, argumentsList) {
-        return instrumentRpcImpl(target, thisArg, argumentsList);
+        let result: Promise<unknown>;
+
+        if (argumentsList[0] === 'send' || argumentsList[0] === 'send_batch') {
+          result = instrumentRpcProducer(target, thisArg, argumentsList);
+        } else if (argumentsList[0] === 'pop') {
+          result = instrumentRpcConsumer(target, thisArg, argumentsList);
+        } else {
+          result = Reflect.apply(target, thisArg, argumentsList) as Promise<unknown>;
+        }
+
+        return result;
       },
     },
   );
