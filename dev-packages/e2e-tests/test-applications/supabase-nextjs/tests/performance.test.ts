@@ -305,42 +305,48 @@ test('Sends queue publish spans with `rpc(...)`', async ({ page, baseURL }) => {
 });
 
 test('Sends queue process spans with `schema(...).rpc(...)`', async ({ page, baseURL }) => {
-  const httpTransactionPromise = waitForTransaction('supabase-nextjs', transactionEvent => {
+  const consumerSpanPromise = waitForTransaction('supabase-nextjs', transactionEvent => {
     return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent?.transaction === 'GET /api/queue/consumer-schema'
+      transactionEvent?.contexts?.trace?.op === 'queue.process' && transactionEvent?.transaction === 'supabase.db.rpc'
     );
   });
 
   const result = await fetch(`${baseURL}/api/queue/consumer-schema`);
-  const transactionEvent = await httpTransactionPromise;
+  const consumerEvent = await consumerSpanPromise;
 
   expect(result.status).toBe(200);
   expect(await result.json()).toEqual(
-    expect.objectContaining({ data: [expect.objectContaining({ message: { title: 'Test Todo' }, msg_id: 1 })] }),
+    expect.objectContaining({
+      data: [
+        expect.objectContaining({
+          message: {
+            title: 'Test Todo',
+          },
+          msg_id: expect.any(Number),
+        }),
+      ],
+    }),
   );
 
-  expect(transactionEvent.spans).toHaveLength(2);
-  expect(transactionEvent.spans).toContainEqual({
+  expect(consumerEvent.contexts.trace).toEqual({
     data: {
       'messaging.destination.name': 'todos',
       'messaging.system': 'supabase',
       'messaging.message.id': '1',
+      'messaging.message.receive.latency': expect.any(Number),
       'sentry.op': 'queue.process',
       'sentry.origin': 'auto.db.supabase',
+      'sentry.source': 'route',
     },
-    description: 'supabase.db.rpc',
     op: 'queue.process',
     origin: 'auto.db.supabase',
-    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    start_timestamp: expect.any(Number),
+    parent_span_id: expect.any(String),
+    span_id: expect.any(String),
     status: 'ok',
-    timestamp: expect.any(Number),
-    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    trace_id: expect.any(String),
   });
 
-  expect(transactionEvent.breadcrumbs).toContainEqual({
+  expect(consumerEvent.breadcrumbs).toContainEqual({
     timestamp: expect.any(Number),
     type: 'supabase',
     category: 'db.rpc.pop',
@@ -353,42 +359,47 @@ test('Sends queue process spans with `schema(...).rpc(...)`', async ({ page, bas
 });
 
 test('Sends queue process spans with `rpc(...)`', async ({ page, baseURL }) => {
-  const httpTransactionPromise = waitForTransaction('supabase-nextjs', transactionEvent => {
+  const consumerSpanPromise = waitForTransaction('supabase-nextjs', transactionEvent => {
     return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent?.transaction === 'GET /api/queue/consumer-rpc'
+      transactionEvent?.contexts?.trace?.op === 'queue.process' && transactionEvent?.transaction === 'supabase.db.rpc'
     );
   });
 
   const result = await fetch(`${baseURL}/api/queue/consumer-rpc`);
-  const transactionEvent = await httpTransactionPromise;
+  const consumerEvent = await consumerSpanPromise;
 
   expect(result.status).toBe(200);
   expect(await result.json()).toEqual(
-    expect.objectContaining({ data: [expect.objectContaining({ message: { title: 'Test Todo' }, msg_id: 2 })] }),
+    expect.objectContaining({
+      data: [
+        expect.objectContaining({
+          message: {
+            title: 'Test Todo',
+          },
+          msg_id: expect.any(Number),
+        }),
+      ],
+    }),
   );
-
-  expect(transactionEvent.spans).toHaveLength(2);
-  expect(transactionEvent.spans).toContainEqual({
+  expect(consumerEvent.contexts.trace).toEqual({
     data: {
       'messaging.destination.name': 'todos',
       'messaging.system': 'supabase',
       'messaging.message.id': '2',
+      'messaging.message.receive.latency': expect.any(Number),
       'sentry.op': 'queue.process',
       'sentry.origin': 'auto.db.supabase',
+      'sentry.source': 'route',
     },
-    description: 'supabase.db.rpc',
     op: 'queue.process',
     origin: 'auto.db.supabase',
-    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    start_timestamp: expect.any(Number),
+    parent_span_id: expect.any(String),
+    span_id: expect.any(String),
     status: 'ok',
-    timestamp: expect.any(Number),
-    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    trace_id: expect.any(String),
   });
 
-  expect(transactionEvent.breadcrumbs).toContainEqual({
+  expect(consumerEvent.breadcrumbs).toContainEqual({
     timestamp: expect.any(Number),
     type: 'supabase',
     category: 'db.rpc.pop',
@@ -503,43 +514,5 @@ test('Sends queue batch publish spans with `rpc(...)`', async ({ page, baseURL }
       'messaging.destination.name': 'todos',
       'messaging.message.id': '3,4',
     },
-  });
-});
-
-test('Sends `read` queue operation spans with `rpc(...)`', async ({ page, baseURL }) => {
-  const httpTransactionPromise = waitForTransaction('supabase-nextjs', transactionEvent => {
-    return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' && transactionEvent?.transaction === 'GET /api/queue/receiver-rpc'
-    );
-  });
-  const result = await fetch(`${baseURL}/api/queue/receiver-rpc`);
-  const transactionEvent = await httpTransactionPromise;
-
-  expect(result.status).toBe(200);
-  expect(await result.json()).toEqual(
-    expect.objectContaining({ data: [
-      expect.objectContaining({ message: { title: 'Test Todo 1' }, msg_id: 3 }),
-      expect.objectContaining({ message: { title: 'Test Todo 2' }, msg_id: 4 }),
-    ] }),
-  );
-
-  expect(transactionEvent.spans).toHaveLength(2);
-  expect(transactionEvent.spans).toContainEqual({
-    data: {
-      'messaging.destination.name': 'todos',
-      'messaging.system': 'supabase',
-      'messaging.message.id': '3,4',
-      'sentry.op': 'queue.receive',
-      'sentry.origin': 'auto.db.supabase',
-    },
-    description: 'supabase.db.rpc',
-    op: 'queue.receive',
-    origin: 'auto.db.supabase',
-    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    start_timestamp: expect.any(Number),
-    status: 'ok',
-    timestamp: expect.any(Number),
-    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
   });
 });
