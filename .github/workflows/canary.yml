@@ -69,6 +69,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - test-application: 'angular-20'
+            build-command: 'test:build-canary'
+            label: 'angular-20 (next)'
           - test-application: 'create-react-app'
             build-command: 'test:build-canary'
             label: 'create-react-app (canary)'
@@ -123,8 +126,14 @@ jobs:
       - uses: pnpm/action-setup@v4
         with:
           version: 9.4.0
-
+      # TODO: Remove this once the repo is bumped to 20.19.2 or higher
+      - name: Set up Node for Angular 20
+        if: matrix.test-application == 'angular-20'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.19.2'
       - name: Set up Node
+        if: matrix.test-application != 'angular-20'
         uses: actions/setup-node@v4
         with:
           node-version-file: 'dev-packages/e2e-tests/package.json'
