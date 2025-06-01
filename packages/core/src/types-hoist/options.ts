@@ -365,7 +365,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    *
    * @returns The modified span payload that will be sent.
    */
-  beforeSendSpan?: (span: SpanJSON) => SpanJSON;
+  beforeSendSpan?: (span: SpanJSON) => SpanJSON | null;
 
   /**
    * An event-processing callback for transaction events, guaranteed to be invoked after all other event
