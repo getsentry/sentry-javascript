@@ -1,6 +1,7 @@
 import type { InstrumentationConfig, InstrumentationModuleDefinition } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
-import { SDK_VERSION } from '@sentry/core';
+import { getCurrentScope, SDK_VERSION } from '@sentry/core';
+import { INTEGRATION_NAME } from './constants';
 import type { TelemetrySettings } from './types';
 
 // List of patched methods
@@ -70,14 +71,18 @@ export class SentryVercelAiInstrumentation extends InstrumentationBase {
       return (...args: MethodArgs) => {
         const existingExperimentalTelemetry = args[0].experimental_telemetry || {};
         const isEnabled = existingExperimentalTelemetry.isEnabled;
+        const client = getCurrentScope().getClient();
+        const shouldRecordImportAndExports = client?.getIntegrationByName(INTEGRATION_NAME)
+          ? client.getOptions().sendDefaultPii
+          : false;
 
         // if `isEnabled` is not explicitly set to `true` or `false`, enable telemetry
         // but disable capturing inputs and outputs by default
         if (isEnabled === undefined) {
           args[0].experimental_telemetry = {
             isEnabled: true,
-            recordInputs: false,
-            recordOutputs: false,
+            recordInputs: shouldRecordImportAndExports,
+            recordOutputs: shouldRecordImportAndExports,
             ...existingExperimentalTelemetry,
           };
         }
