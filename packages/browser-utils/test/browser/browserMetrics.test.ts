@@ -10,12 +10,7 @@ import {
   spanToJSON,
 } from '@sentry/core';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import {
-  _addMeasureSpans,
-  _addNavigationSpans,
-  _addResourceSpans,
-  addPerformanceEntries,
-} from '../../src/metrics/browserMetrics';
+import { _addMeasureSpans, _addNavigationSpans, _addResourceSpans } from '../../src/metrics/browserMetrics';
 import { WINDOW } from '../../src/types';
 import { getDefaultClientOptions, TestClient } from '../utils/TestClient';
 
