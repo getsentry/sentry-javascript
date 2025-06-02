@@ -164,7 +164,7 @@ export interface BrowserTracingOptions {
    *
    * Default: [] - By default, all `mark` and `measure` entries are sent as spans.
    */
-  ignoreMeasureSpans: Array<string>;
+  ignoreMeasureSpans: Array<string | RegExp>;
 
   /**
    * Link the currently started trace to a previous trace (e.g. a prior pageload, navigation or

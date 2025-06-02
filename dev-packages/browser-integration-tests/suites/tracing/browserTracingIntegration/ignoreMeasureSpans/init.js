@@ -6,7 +6,7 @@ Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   integrations: [
     Sentry.browserTracingIntegration({
-      ignoreMeasureSpans: ['measure-ignore', 'mark-i'],
+      ignoreMeasureSpans: ['measure-ignore', /mark-i/],
       idleTimeout: 9000,
     }),
   ],

@@ -315,7 +315,7 @@ interface AddPerformanceEntriesOptions {
    *
    * Default: []
    */
-  ignoreMeasureSpans: Array<string>;
+  ignoreMeasureSpans: Array<string | RegExp>;
 }
 
 /** Add performance related spans to a transaction */
@@ -449,7 +449,7 @@ export function _addMeasureSpans(
   startTime: number,
   duration: number,
   timeOrigin: number,
-  ignoreMeasureSpans: Array<string>,
+  ignoreMeasureSpans: AddPerformanceEntriesOptions['ignoreMeasureSpans'],
 ): void {
   if (['mark', 'measure'].includes(entry.entryType) && stringMatchesSomePattern(entry.name, ignoreMeasureSpans)) {
     return;

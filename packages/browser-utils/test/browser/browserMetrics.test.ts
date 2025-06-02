@@ -173,8 +173,7 @@ describe('_addMeasureSpans', () => {
     const duration = 356;
 
     entries.forEach(e => {
-      // full match ('measure-ignore') and partial match ('mark-i') cause the span to be ignored
-      _addMeasureSpans(pageloadSpan, e, startTime, duration, timeOrigin, ['measure-ignore', 'mark-i']);
+      _addMeasureSpans(pageloadSpan, e, startTime, duration, timeOrigin, ['measure-i', /mark-ign/]);
     });
 
     expect(spans).toHaveLength(3);
