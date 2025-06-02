@@ -61,6 +61,14 @@ export interface BaseNodeOptions {
    */
   profileLifecycle?: 'manual' | 'trace';
 
+  /**
+   * If set to true, the SDK will not automatically detect the `serverName`.
+   *
+   * This is useful if you are using the SDK in a CLI app or Electron where the
+   * hostname might be considered PII.
+   */
+  skipIncludingServerName?: boolean;
+
   /** Sets an optional server name (device name) */
   serverName?: string;
 
