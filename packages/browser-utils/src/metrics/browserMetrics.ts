@@ -310,12 +310,13 @@ interface AddPerformanceEntriesOptions {
   ignoreResourceSpans: Array<'resouce.script' | 'resource.css' | 'resource.img' | 'resource.other' | string>;
 
   /**
-   * Performance spans created from `performance.mark(...)` or `performance.measure(...)`
+   * Performance spans created from browser Performance APIs,
+   * `performance.mark(...)` nand `performance.measure(...)`
    * with `name`s matching strings in the array will not be emitted.
    *
    * Default: []
    */
-  ignoreMeasureSpans: Array<string | RegExp>;
+  ignorePerformanceApiSpans: Array<string | RegExp>;
 }
 
 /** Add performance related spans to a transaction */
@@ -355,7 +356,7 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
       case 'mark':
       case 'paint':
       case 'measure': {
-        _addMeasureSpans(span, entry, startTime, duration, timeOrigin, options.ignoreMeasureSpans);
+        _addMeasureSpans(span, entry, startTime, duration, timeOrigin, options.ignorePerformanceApiSpans);
 
         // capture web vitals
         const firstHidden = getVisibilityWatcher();
@@ -449,9 +450,12 @@ export function _addMeasureSpans(
   startTime: number,
   duration: number,
   timeOrigin: number,
-  ignoreMeasureSpans: AddPerformanceEntriesOptions['ignoreMeasureSpans'],
+  ignorePerformanceApiSpans: AddPerformanceEntriesOptions['ignorePerformanceApiSpans'],
 ): void {
-  if (['mark', 'measure'].includes(entry.entryType) && stringMatchesSomePattern(entry.name, ignoreMeasureSpans)) {
+  if (
+    ['mark', 'measure'].includes(entry.entryType) &&
+    stringMatchesSomePattern(entry.name, ignorePerformanceApiSpans)
+  ) {
     return;
   }
 

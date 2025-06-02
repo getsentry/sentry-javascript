@@ -117,7 +117,7 @@ describe('_addMeasureSpans', () => {
     expect(spans).toHaveLength(0);
   });
 
-  it('ignores performance spans that match ignoreMeasureSpans', () => {
+  it('ignores performance spans that match ignorePerformanceApiSpans', () => {
     const pageloadSpan = new SentrySpan({ op: 'pageload', name: '/', sampled: true });
     const spans: Span[] = [];
 

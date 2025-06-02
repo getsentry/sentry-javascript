@@ -4,7 +4,7 @@ import { sentryTest } from '../../../../utils/fixtures';
 import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../utils/helpers';
 
 sentryTest(
-  'should ignore mark and measure spans that match `ignoreMeasureSpans`',
+  'should ignore mark and measure spans that match `ignorePerformanceApiSpans`',
   async ({ getLocalTestUrl, page }) => {
     if (shouldSkipTracingTest()) {
       sentryTest.skip();

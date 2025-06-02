@@ -152,19 +152,39 @@ export interface BrowserTracingOptions {
   ignoreResourceSpans: Array<'resouce.script' | 'resource.css' | 'resource.img' | 'resource.other' | string>;
 
   /**
-   * Spans created from
-   * [`performance.mark(...)`](https://developer.mozilla.org/en-US/docs/Web/API/Performance/mark)
-   * and
-   * [`performance.measure(...)`](https://developer.mozilla.org/en-US/docs/Web/API/Performance/measure)
-   * calls will not be emitted if their names match strings in this array.
+   * Spans created from the following browser Performance APIs,
+   *
+   * - [`performance.mark(...)`](https://developer.mozilla.org/en-US/docs/Web/API/Performance/mark)
+   * - [`performance.measure(...)`](https://developer.mozilla.org/en-US/docs/Web/API/Performance/measure)
+   *
+   * will not be emitted if their names match strings in this array.
    *
    * This is useful, if you come across `mark` or `measure` spans in your Sentry traces
    * that you want to ignore. For example, sometimes, browser extensions or libraries
    * emit these entries on their own, which might not be relevant to your application.
    *
+   * * @example
+   * ```ts
+   * Sentry.init({
+   *   integrations: [
+   *     Sentry.browserTracingIntegration({
+   *      ignorePerformanceApiSpans: ['myMeasurement', /myMark/],
+   *     }),
+   *   ],
+   * });
+   *
+   * // no spans will be created for these:
+   * performance.mark('myMark');
+   * performance.measure('myMeasurement');
+   *
+   * // spans will be created for these:
+   * performance.mark('authenticated');
+   * performance.measure('input-duration', ...);
+   * ```
+   *
    * Default: [] - By default, all `mark` and `measure` entries are sent as spans.
    */
-  ignoreMeasureSpans: Array<string | RegExp>;
+  ignorePerformanceApiSpans: Array<string | RegExp>;
 
   /**
    * Link the currently started trace to a previous trace (e.g. a prior pageload, navigation or
@@ -249,7 +269,7 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   enableLongAnimationFrame: true,
   enableInp: true,
   ignoreResourceSpans: [],
-  ignoreMeasureSpans: [],
+  ignorePerformanceApiSpans: [],
   linkPreviousTrace: 'in-memory',
   consistentTraceSampling: false,
   _experiments: {},
@@ -293,7 +313,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     shouldCreateSpanForRequest,
     enableHTTPTimings,
     ignoreResourceSpans,
-    ignoreMeasureSpans,
+    ignorePerformanceApiSpans,
     instrumentPageLoad,
     instrumentNavigation,
     linkPreviousTrace,
@@ -339,7 +359,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         addPerformanceEntries(span, {
           recordClsOnPageloadSpan: !enableStandaloneClsSpans,
           ignoreResourceSpans,
-          ignoreMeasureSpans,
+          ignorePerformanceApiSpans,
         });
         setActiveIdleSpan(client, undefined);
 
