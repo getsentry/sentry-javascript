@@ -10,7 +10,12 @@ import {
   spanToJSON,
 } from '@sentry/core';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { _addMeasureSpans, _addNavigationSpans, _addResourceSpans } from '../../src/metrics/browserMetrics';
+import {
+  _addMeasureSpans,
+  _addNavigationSpans,
+  _addResourceSpans,
+  addPerformanceEntries,
+} from '../../src/metrics/browserMetrics';
 import { WINDOW } from '../../src/types';
 import { getDefaultClientOptions, TestClient } from '../utils/TestClient';
 
@@ -76,7 +81,7 @@ describe('_addMeasureSpans', () => {
     const startTime = 23;
     const duration = 356;
 
-    _addMeasureSpans(span, entry, startTime, duration, timeOrigin);
+    _addMeasureSpans(span, entry, startTime, duration, timeOrigin, []);
 
     expect(spans).toHaveLength(1);
     expect(spanToJSON(spans[0]!)).toEqual(
@@ -112,9 +117,75 @@ describe('_addMeasureSpans', () => {
     const startTime = 23;
     const duration = -50;
 
-    _addMeasureSpans(span, entry, startTime, duration, timeOrigin);
+    _addMeasureSpans(span, entry, startTime, duration, timeOrigin, []);
 
     expect(spans).toHaveLength(0);
+  });
+
+  it('ignores performance spans that match ignoreMeasureSpans', () => {
+    const pageloadSpan = new SentrySpan({ op: 'pageload', name: '/', sampled: true });
+    const spans: Span[] = [];
+
+    getClient()?.on('spanEnd', span => {
+      spans.push(span);
+    });
+
+    const entries: PerformanceEntry[] = [
+      {
+        entryType: 'measure',
+        name: 'measure-pass',
+        duration: 10,
+        startTime: 12,
+        toJSON: () => ({}),
+      },
+      {
+        entryType: 'measure',
+        name: 'measure-ignore',
+        duration: 10,
+        startTime: 12,
+        toJSON: () => ({}),
+      },
+      {
+        entryType: 'mark',
+        name: 'mark-pass',
+        duration: 0,
+        startTime: 12,
+        toJSON: () => ({}),
+      },
+      {
+        entryType: 'mark',
+        name: 'mark-ignore',
+        duration: 0,
+        startTime: 12,
+        toJSON: () => ({}),
+      },
+      {
+        entryType: 'paint',
+        name: 'mark-ignore',
+        duration: 0,
+        startTime: 12,
+        toJSON: () => ({}),
+      },
+    ];
+
+    const timeOrigin = 100;
+    const startTime = 23;
+    const duration = 356;
+
+    entries.forEach(e => {
+      // full match ('measure-ignore') and partial match ('mark-i') cause the span to be ignored
+      _addMeasureSpans(pageloadSpan, e, startTime, duration, timeOrigin, ['measure-ignore', 'mark-i']);
+    });
+
+    expect(spans).toHaveLength(3);
+    expect(spans.map(spanToJSON)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ description: 'measure-pass', op: 'measure' }),
+        expect.objectContaining({ description: 'mark-pass', op: 'mark' }),
+        // name matches but type is not (mark|measure) => should not be ignored
+        expect.objectContaining({ description: 'mark-ignore', op: 'paint' }),
+      ]),
+    );
   });
 });
 

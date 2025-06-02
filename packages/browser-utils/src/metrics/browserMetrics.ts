@@ -9,6 +9,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   setMeasurement,
   spanToJSON,
+  stringMatchesSomePattern,
 } from '@sentry/core';
 import { WINDOW } from '../types';
 import { trackClsAsStandaloneSpan } from './cls';
@@ -307,6 +308,14 @@ interface AddPerformanceEntriesOptions {
    * Default: []
    */
   ignoreResourceSpans: Array<'resouce.script' | 'resource.css' | 'resource.img' | 'resource.other' | string>;
+
+  /**
+   * Performance spans created from `performance.mark(...)` or `performance.measure(...)`
+   * with `name`s matching strings in the array will not be emitted.
+   *
+   * Default: []
+   */
+  ignoreMeasureSpans: Array<string>;
 }
 
 /** Add performance related spans to a transaction */
@@ -346,7 +355,7 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
       case 'mark':
       case 'paint':
       case 'measure': {
-        _addMeasureSpans(span, entry, startTime, duration, timeOrigin);
+        _addMeasureSpans(span, entry, startTime, duration, timeOrigin, options.ignoreMeasureSpans);
 
         // capture web vitals
         const firstHidden = getVisibilityWatcher();
@@ -440,7 +449,12 @@ export function _addMeasureSpans(
   startTime: number,
   duration: number,
   timeOrigin: number,
+  ignoreMeasureSpans: Array<string>,
 ): void {
+  if (['mark', 'measure'].includes(entry.entryType) && stringMatchesSomePattern(entry.name, ignoreMeasureSpans)) {
+    return;
+  }
+
   const navEntry = getNavigationEntry(false);
   const requestTime = msToSec(navEntry ? navEntry.requestStart : 0);
   // Because performance.measure accepts arbitrary timestamps it can produce
