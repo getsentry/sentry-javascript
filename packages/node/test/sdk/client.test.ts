@@ -129,6 +129,18 @@ describe('NodeClient', () => {
       expect(event.server_name).toEqual(os.hostname());
     });
 
+    test('does not add hostname when includeServerName = false', () => {
+      const options = getDefaultNodeClientOptions({});
+      options.includeServerName = false;
+      const client = new NodeClient(options);
+
+      const event: Event = {};
+      const hint: EventHint = {};
+      client['_prepareEvent'](event, hint, currentScope, isolationScope);
+
+      expect(event.server_name).toBeUndefined();
+    });
+
     test("doesn't clobber existing runtime data", () => {
       const options = getDefaultNodeClientOptions({ serverName: 'bar' });
       const client = new NodeClient(options);
