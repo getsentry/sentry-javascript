@@ -123,6 +123,23 @@ describe('init()', () => {
         }),
       );
     });
+
+    it('does not install spotlight integration by default', () => {
+      const client = init({
+        dsn: PUBLIC_DSN,
+      });
+
+      expect(client!.getIntegrationByName('Spotlight')).toBeUndefined();
+    });
+
+    it('installs spotlight integration if spotlight=true is configured', () => {
+      const client = init({
+        dsn: PUBLIC_DSN,
+        spotlight: true,
+      });
+
+      expect(client!.getIntegrationByName('Spotlight')).toBeDefined();
+    });
   });
 
   describe('OpenTelemetry', () => {
