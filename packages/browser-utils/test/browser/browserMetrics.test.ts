@@ -76,7 +76,7 @@ describe('_addMeasureSpans', () => {
     const startTime = 23;
     const duration = 356;
 
-    _addMeasureSpans(span, entry, startTime, duration, timeOrigin);
+    _addMeasureSpans(span, entry, startTime, duration, timeOrigin, []);
 
     expect(spans).toHaveLength(1);
     expect(spanToJSON(spans[0]!)).toEqual(
@@ -112,9 +112,74 @@ describe('_addMeasureSpans', () => {
     const startTime = 23;
     const duration = -50;
 
-    _addMeasureSpans(span, entry, startTime, duration, timeOrigin);
+    _addMeasureSpans(span, entry, startTime, duration, timeOrigin, []);
 
     expect(spans).toHaveLength(0);
+  });
+
+  it('ignores performance spans that match ignorePerformanceApiSpans', () => {
+    const pageloadSpan = new SentrySpan({ op: 'pageload', name: '/', sampled: true });
+    const spans: Span[] = [];
+
+    getClient()?.on('spanEnd', span => {
+      spans.push(span);
+    });
+
+    const entries: PerformanceEntry[] = [
+      {
+        entryType: 'measure',
+        name: 'measure-pass',
+        duration: 10,
+        startTime: 12,
+        toJSON: () => ({}),
+      },
+      {
+        entryType: 'measure',
+        name: 'measure-ignore',
+        duration: 10,
+        startTime: 12,
+        toJSON: () => ({}),
+      },
+      {
+        entryType: 'mark',
+        name: 'mark-pass',
+        duration: 0,
+        startTime: 12,
+        toJSON: () => ({}),
+      },
+      {
+        entryType: 'mark',
+        name: 'mark-ignore',
+        duration: 0,
+        startTime: 12,
+        toJSON: () => ({}),
+      },
+      {
+        entryType: 'paint',
+        name: 'mark-ignore',
+        duration: 0,
+        startTime: 12,
+        toJSON: () => ({}),
+      },
+    ];
+
+    const timeOrigin = 100;
+    const startTime = 23;
+    const duration = 356;
+
+    entries.forEach(e => {
+      _addMeasureSpans(pageloadSpan, e, startTime, duration, timeOrigin, ['measure-i', /mark-ign/]);
+    });
+
+    expect(spans).toHaveLength(3);
+    expect(spans.map(spanToJSON)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ description: 'measure-pass', op: 'measure' }),
+        expect.objectContaining({ description: 'mark-pass', op: 'mark' }),
+        // name matches but type is not (mark|measure) => should not be ignored
+        expect.objectContaining({ description: 'mark-ignore', op: 'paint' }),
+      ]),
+    );
   });
 });
 

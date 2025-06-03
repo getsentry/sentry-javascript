@@ -21,7 +21,11 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
   private _logOnExitFlushListener: (() => void) | undefined;
 
   public constructor(options: NodeClientOptions) {
-    const serverName = options.serverName || global.process.env.SENTRY_NAME || os.hostname();
+    const serverName =
+      options.includeServerName === false
+        ? undefined
+        : options.serverName || global.process.env.SENTRY_NAME || os.hostname();
+
     const clientOptions: ServerRuntimeClientOptions = {
       ...options,
       platform: 'node',
