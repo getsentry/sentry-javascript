@@ -454,7 +454,7 @@ jobs:
         with:
           node-version-file: 'package.json'
       - name: Set up Deno
-        uses: denoland/setup-deno@v2.0.2
+        uses: denoland/setup-deno@v2.0.3
         with:
           deno-version: v2.1.5
       - name: Restore caches
@@ -886,6 +886,7 @@ jobs:
       - uses: pnpm/action-setup@v4
         with:
           version: 9.4.0
+      # TODO: Remove this once the repo is bumped to 20.19.2 or higher
       - name: Set up Node for Angular 20
         if: matrix.test-application == 'angular-20'
         uses: actions/setup-node@v4

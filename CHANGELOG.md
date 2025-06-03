@@ -10,6 +10,31 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 9.25.0
+
+### Important Changes
+
+- **feat(browser): Add option to ignore `mark` and `measure` spans ([#16443](https://github.com/getsentry/sentry-javascript/pull/16443))**
+
+This release adds an option to `browserTracingIntegration` that lets you ignore
+`mark` and `measure` spans created from the `performance.mark(...)` and `performance.measure(...)` browser APIs:
+
+```js
+Sentry.init({
+  integrations: [
+    Sentry.browserTracingIntegration({
+      ignorePerformanceApiSpans: ['measure-to-ignore', /mark-to-ignore/],
+    }),
+  ],
+});
+```
+
+### Other Changes
+
+- feat(browser): Export getTraceData from the browser sdks ([#16433](https://github.com/getsentry/sentry-javascript/pull/16433))
+- feat(node): Add `includeServerName` option ([#16442](https://github.com/getsentry/sentry-javascript/pull/16442))
+- fix(nuxt): Remove setting `@sentry/nuxt` external ([#16444](https://github.com/getsentry/sentry-javascript/pull/16444))
+
 ## 9.24.0
 
 ### Important Changes

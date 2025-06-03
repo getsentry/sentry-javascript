@@ -8,7 +8,6 @@ import type { SentryNuxtModuleOptions } from '../common/types';
 import {
   constructFunctionReExport,
   constructWrappedFunctionExportQuery,
-  getExternalOptionsWithSentryNuxt,
   getFilenameFromNodeStartCommand,
   QUERY_END_INDICATOR,
   removeSentryQueryFromPath,
@@ -130,13 +129,6 @@ function injectServerConfigPlugin(nitro: Nitro, serverConfigFile: string, debug?
 
   return {
     name: 'rollup-plugin-inject-sentry-server-config',
-
-    options(opts) {
-      return {
-        ...opts,
-        external: getExternalOptionsWithSentryNuxt(opts.external),
-      };
-    },
 
     buildStart() {
       const configPath = createResolver(nitro.options.srcDir).resolve(`/${serverConfigFile}`);
