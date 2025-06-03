@@ -82,7 +82,7 @@ function getFinalConfigObject(
       // 2. generate: Environment variable inlining and prerendering (We don't instrument this phase, we inline in the compile phase)
       //
       // We assume a single “full” build and reruns Webpack instrumentation in both phases.
-      // During the generate step it collides with Next.js’s new inliner (they do some bad replacements in the inliner)
+      // During the generate step it collides with Next.js’s inliner
       // producing malformed JS and build failures.
       // We skip Sentry processing during generate to avoid this issue.
       return incomingUserNextConfigObject;
