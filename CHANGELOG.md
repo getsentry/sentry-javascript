@@ -1,14 +1,8 @@
 # Changelog
 
-<!-- prettier-ignore-start -->
-> [!IMPORTANT]
-> If you are upgrading to the `9.x` versions of the SDK from `8.x` or below, make sure you follow our
-> [migration guide](https://docs.sentry.io/platforms/javascript/migration/) first.
-<!-- prettier-ignore-end -->
+## 9.25.1
 
-## Unreleased
-
-- "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+- fix(otel): Don't ignore child spans after the root is sent ([#16416](https://github.com/getsentry/sentry-javascript/pull/16416))
 
 ## 9.25.0
 
