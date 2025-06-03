@@ -45,6 +45,8 @@ import { timedEventsToMeasurements } from './measurement';
 import { getCapturedScopesOnSpan } from './utils';
 
 const MAX_SPAN_COUNT = 1000;
+const MAX_FEATURE_FLAGS_PER_SPAN = 10;  // The maximum number of feature flag evaluations that can be recorded in span attributes.
+const FEATURE_FLAG_ATTRIBUTE_PREFIX = 'sentry.flag.evaluation.';
 
 /**
  * Span contains all data about a span
@@ -57,6 +59,7 @@ export class SentrySpan implements Span {
   protected _name?: string | undefined;
   protected _attributes: SpanAttributes;
   protected _links?: SpanLink[];
+  protected _numFeatureFlags: number;
   /** Epoch timestamp in seconds when the span started. */
   protected _startTime: number;
   /** Epoch timestamp in seconds when the span ended. */
@@ -81,6 +84,7 @@ export class SentrySpan implements Span {
     this._spanId = spanContext.spanId || generateSpanId();
     this._startTime = spanContext.startTimestamp || timestampInSeconds();
     this._links = spanContext.links;
+    this._numFeatureFlags = 0;
 
     this._attributes = {};
     this.setAttributes({
@@ -130,6 +134,17 @@ export class SentrySpan implements Span {
       this._links = links;
     }
     return this;
+  }
+
+  /** @inheritDoc */
+  public addFeatureFlag(name: string, value: boolean): this {
+    if (!(name in this._attributes)) {
+      if (this._numFeatureFlags >= MAX_FEATURE_FLAGS_PER_SPAN) {
+        return this;
+      }
+      this._numFeatureFlags++;
+    }
+    return this.setAttribute(`${FEATURE_FLAG_ATTRIBUTE_PREFIX}${name}`, value);
   }
 
   /**

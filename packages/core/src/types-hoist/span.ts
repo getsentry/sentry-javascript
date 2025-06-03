@@ -274,6 +274,13 @@ export interface Span {
   addLinks(links: SpanLink[]): this;
 
   /**
+   * Adds a feature flag evaluation to the span.
+   * @param name - The name of the feature flag.
+   * @param value - The value of the feature flag.
+   */
+  addFeatureFlag(name: string, value: boolean): this;
+
+  /**
    * NOT USED IN SENTRY, only added for compliance with OTEL Span interface
    */
   recordException(exception: unknown, time?: number): void;

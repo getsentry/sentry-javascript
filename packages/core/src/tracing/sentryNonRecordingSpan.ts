@@ -79,6 +79,11 @@ export class SentryNonRecordingSpan implements Span {
     return this;
   }
 
+  /** @inheritDoc */
+  public addFeatureFlag(_name: string, _value: boolean): this {
+    return this;
+  }
+
   /**
    * This should generally not be used,
    * but we need it for being compliant with the OTEL Span interface.
