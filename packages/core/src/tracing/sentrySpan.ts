@@ -1,3 +1,5 @@
+/* eslint-disable max-lines */
+
 import { getClient, getCurrentScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { createSpanEnvelope } from '../envelope';
