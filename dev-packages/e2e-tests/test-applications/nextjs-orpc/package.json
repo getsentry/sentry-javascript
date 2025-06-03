@@ -41,5 +41,8 @@
   },
   "volta": {
     "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "optional": true
   }
 }
