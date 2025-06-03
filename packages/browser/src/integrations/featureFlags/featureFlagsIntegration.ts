@@ -1,6 +1,6 @@
 import type { Client, Event, EventHint, Integration, IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
-import { copyFlagsFromScopeToEvent, insertFlagToScope } from '../../utils/featureFlags';
+import { addFlagToActiveSpan, copyFlagsFromScopeToEvent, insertFlagToScope } from '../../utils/featureFlags';
 
 export interface FeatureFlagsIntegration extends Integration {
   addFeatureFlag: (name: string, value: unknown) => void;
@@ -41,6 +41,7 @@ export const featureFlagsIntegration = defineIntegration(() => {
 
     addFeatureFlag(name: string, value: unknown): void {
       insertFlagToScope(name, value);
+      addFlagToActiveSpan(name, value);
     },
   };
 }) as IntegrationFn<FeatureFlagsIntegration>;

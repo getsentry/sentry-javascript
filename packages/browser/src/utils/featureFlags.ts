@@ -1,5 +1,5 @@
 import type { Event, FeatureFlag } from '@sentry/core';
-import { getCurrentScope, logger } from '@sentry/core';
+import { getActiveSpan, getCurrentScope, logger } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 
 /**
@@ -86,4 +86,16 @@ export function insertToFlagBuffer(flags: FeatureFlag[], name: string, value: un
     flag: name,
     result: value,
   });
+}
+
+/**
+ * Add a feature flag evaluation to the active span. Currently a no-op for non-boolean values.
+ * @param name
+ * @param value
+ */
+export function addFlagToActiveSpan(name: string, value: unknown): void {
+  if (typeof value !== 'boolean') {
+    return;
+  }
+  getActiveSpan()?.addFeatureFlag(name, value);
 }

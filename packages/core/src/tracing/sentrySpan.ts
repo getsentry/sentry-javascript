@@ -45,7 +45,7 @@ import { timedEventsToMeasurements } from './measurement';
 import { getCapturedScopesOnSpan } from './utils';
 
 const MAX_SPAN_COUNT = 1000;
-const MAX_FEATURE_FLAGS_PER_SPAN = 10;  // The maximum number of feature flag evaluations that can be recorded in span attributes.
+const MAX_FEATURE_FLAGS_PER_SPAN = 10; // The maximum number of feature flag evaluations that can be recorded in span attributes.
 const FEATURE_FLAG_ATTRIBUTE_PREFIX = 'sentry.flag.evaluation.';
 
 /**
