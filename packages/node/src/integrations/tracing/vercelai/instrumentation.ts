@@ -73,7 +73,7 @@ export class SentryVercelAiInstrumentation extends InstrumentationBase {
         const isEnabled = existingExperimentalTelemetry.isEnabled;
 
         const client = getCurrentScope().getClient();
-        const shouldRecordImportAndExports = client?.getIntegrationByName(INTEGRATION_NAME)
+        const shouldRecordInputsAndOutputs = client?.getIntegrationByName(INTEGRATION_NAME)
           ? client.getOptions().sendDefaultPii
           : false;
 
@@ -81,11 +81,11 @@ export class SentryVercelAiInstrumentation extends InstrumentationBase {
         const recordInputs =
           existingExperimentalTelemetry.recordInputs !== undefined
             ? existingExperimentalTelemetry.recordInputs
-            : shouldRecordImportAndExports;
+            : shouldRecordInputsAndOutputs;
         const recordOutputs =
           existingExperimentalTelemetry.recordOutputs !== undefined
             ? existingExperimentalTelemetry.recordOutputs
-            : shouldRecordImportAndExports;
+            : shouldRecordInputsAndOutputs;
 
         args[0].experimental_telemetry = {
           ...existingExperimentalTelemetry,
