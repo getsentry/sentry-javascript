@@ -71,21 +71,28 @@ export class SentryVercelAiInstrumentation extends InstrumentationBase {
       return (...args: MethodArgs) => {
         const existingExperimentalTelemetry = args[0].experimental_telemetry || {};
         const isEnabled = existingExperimentalTelemetry.isEnabled;
+
         const client = getCurrentScope().getClient();
         const shouldRecordImportAndExports = client?.getIntegrationByName(INTEGRATION_NAME)
           ? client.getOptions().sendDefaultPii
           : false;
 
-        // if `isEnabled` is not explicitly set to `true` or `false`, enable telemetry
-        // but disable capturing inputs and outputs by default
-        if (isEnabled === undefined) {
-          args[0].experimental_telemetry = {
-            isEnabled: true,
-            recordInputs: shouldRecordImportAndExports,
-            recordOutputs: shouldRecordImportAndExports,
-            ...existingExperimentalTelemetry,
-          };
-        }
+        // Set recordInputs and recordOutputs based on sendDefaultPii if not explicitly set
+        const recordInputs =
+          existingExperimentalTelemetry.recordInputs !== undefined
+            ? existingExperimentalTelemetry.recordInputs
+            : shouldRecordImportAndExports;
+        const recordOutputs =
+          existingExperimentalTelemetry.recordOutputs !== undefined
+            ? existingExperimentalTelemetry.recordOutputs
+            : shouldRecordImportAndExports;
+
+        args[0].experimental_telemetry = {
+          ...existingExperimentalTelemetry,
+          isEnabled: isEnabled !== undefined ? isEnabled : true,
+          recordInputs,
+          recordOutputs,
+        };
 
         // @ts-expect-error we know that the method exists
         return originalMethod.apply(this, args);
