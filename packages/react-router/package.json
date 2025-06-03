@@ -42,6 +42,7 @@
     "@sentry/cli": "^2.45.0",
     "@sentry/core": "9.25.0",
     "@sentry/node": "9.25.0",
+    "@sentry/react": "9.25.0",
     "@sentry/vite-plugin": "^3.2.4",
     "glob": "11.0.1"
   },
