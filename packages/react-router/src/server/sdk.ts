@@ -2,7 +2,7 @@ import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
 import type { EventProcessor, Integration } from '@sentry/core';
 import { applySdkMetadata, getGlobalScope, logger, setTag } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
-import { getDefaultIntegrations as getNodeDefaultIntegrations, init as initNodeSdk } from '@sentry/node';
+import { getDefaultIntegrations as getNodeDefaultIntegrations, init as initNodeSdk, NODE_VERSION } from '@sentry/node';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OVERWRITE } from './instrumentation/util';
 import { lowQualityTransactionsFilterIntegration } from './integration/lowQualityTransactionsFilterIntegration';
@@ -13,11 +13,13 @@ import { reactRouterServerIntegration } from './integration/reactRouterServer';
  * @param options The options for the SDK.
  */
 export function getDefaultReactRouterServerIntegrations(options: NodeOptions): Integration[] {
-  return [
-    ...getNodeDefaultIntegrations(options),
-    lowQualityTransactionsFilterIntegration(options),
-    reactRouterServerIntegration(),
-  ];
+  const integrations = [...getNodeDefaultIntegrations(options), lowQualityTransactionsFilterIntegration(options)];
+
+  if (NODE_VERSION.major === 20 && NODE_VERSION.minor < 19) {
+    integrations.push(reactRouterServerIntegration());
+  }
+
+  return integrations;
 }
 
 /**
