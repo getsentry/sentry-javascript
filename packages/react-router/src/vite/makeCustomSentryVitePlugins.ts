@@ -14,6 +14,7 @@ export async function makeCustomSentryVitePlugins(options: SentryReactRouterBuil
     org,
     project,
     telemetry,
+    reactComponentAnnotation,
     release,
   } = options;
 
@@ -29,6 +30,11 @@ export async function makeCustomSentryVitePlugins(options: SentryReactRouterBuil
         metaFramework: 'react-router',
       },
       ...unstable_sentryVitePluginOptions?._metaOptions,
+    },
+    reactComponentAnnotation: {
+      enabled: reactComponentAnnotation?.enabled ?? undefined,
+      ignoredComponents: reactComponentAnnotation?.ignoredComponents ?? undefined,
+      ...unstable_sentryVitePluginOptions?.reactComponentAnnotation,
     },
     release: {
       ...unstable_sentryVitePluginOptions?.release,
@@ -48,7 +54,9 @@ export async function makeCustomSentryVitePlugins(options: SentryReactRouterBuil
       return [
         'sentry-telemetry-plugin',
         'sentry-vite-release-injection-plugin',
-        'sentry-vite-component-name-annotate-plugin',
+        ...(reactComponentAnnotation?.enabled || unstable_sentryVitePluginOptions?.reactComponentAnnotation?.enabled
+          ? ['sentry-vite-component-name-annotate-plugin']
+          : []),
       ].includes(plugin.name);
     }),
   ];
