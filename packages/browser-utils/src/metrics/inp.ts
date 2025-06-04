@@ -13,6 +13,7 @@ import {
   spanToJSON,
 } from '@sentry/core';
 import {
+  type InstrumentationHandlerCallback,
   addInpInstrumentationHandler,
   addPerformanceInstrumentationHandler,
   isPerformanceEventTiming,
@@ -72,66 +73,70 @@ const INP_ENTRY_MAP: Record<string, 'click' | 'hover' | 'drag' | 'press'> = {
   input: 'press',
 };
 
-/** Starts tracking the Interaction to Next Paint on the current page. */
-function _trackINP(): () => void {
-  return addInpInstrumentationHandler(({ metric }) => {
-    if (metric.value == undefined) {
-      return;
-    }
+/** Starts tracking the Interaction to Next Paint on the current page. #
+ * exported only for testing
+ */
+export function _trackINP(): () => void {
+  return addInpInstrumentationHandler(_onInp);
+}
 
-    const duration = msToSec(metric.value);
-    if (duration > MAX_PLAUSIBLE_INP_VALUE) {
-      return;
-    }
+export const _onInp = (({ metric }) => {
+  if (metric.value == undefined) {
+    return;
+  }
 
-    const entry = metric.entries.find(entry => entry.duration === metric.value && INP_ENTRY_MAP[entry.name]);
+  const duration = msToSec(metric.value);
+  if (duration > MAX_PLAUSIBLE_INP_VALUE) {
+    return;
+  }
 
-    if (!entry) {
-      return;
-    }
+  const entry = metric.entries.find(entry => entry.duration === metric.value && INP_ENTRY_MAP[entry.name]);
 
-    const { interactionId } = entry;
-    const interactionType = INP_ENTRY_MAP[entry.name];
+  if (!entry) {
+    return;
+  }
 
-    /** Build the INP span, create an envelope from the span, and then send the envelope */
-    const startTime = msToSec((browserPerformanceTimeOrigin() as number) + entry.startTime);
-    const activeSpan = getActiveSpan();
-    const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
+  const { interactionId } = entry;
+  const interactionType = INP_ENTRY_MAP[entry.name];
 
-    // We first try to lookup the span from our INTERACTIONS_SPAN_MAP,
-    // where we cache the route per interactionId
-    const cachedSpan = interactionId != null ? INTERACTIONS_SPAN_MAP.get(interactionId) : undefined;
+  /** Build the INP span, create an envelope from the span, and then send the envelope */
+  const startTime = msToSec((browserPerformanceTimeOrigin() as number) + entry.startTime);
+  const activeSpan = getActiveSpan();
+  const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
 
-    const spanToUse = cachedSpan || rootSpan;
+  // We first try to lookup the span from our INTERACTIONS_SPAN_MAP,
+  // where we cache the route per interactionId
+  const cachedSpan = interactionId != null ? INTERACTIONS_SPAN_MAP.get(interactionId) : undefined;
 
-    // Else, we try to use the active span.
-    // Finally, we fall back to look at the transactionName on the scope
-    const routeName = spanToUse ? spanToJSON(spanToUse).description : getCurrentScope().getScopeData().transactionName;
+  const spanToUse = cachedSpan || rootSpan;
 
-    const name = htmlTreeAsString(entry.target);
-    const attributes: SpanAttributes = {
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser.inp',
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `ui.interaction.${interactionType}`,
-      [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: entry.duration,
-    };
+  // Else, we try to use the active span.
+  // Finally, we fall back to look at the transactionName on the scope
+  const routeName = spanToUse ? spanToJSON(spanToUse).description : getCurrentScope().getScopeData().transactionName;
 
-    const span = startStandaloneWebVitalSpan({
-      name,
-      transaction: routeName,
-      attributes,
-      startTime,
+  const name = htmlTreeAsString(entry.target);
+  const attributes: SpanAttributes = {
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser.inp',
+    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `ui.interaction.${interactionType}`,
+    [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: entry.duration,
+  };
+
+  const span = startStandaloneWebVitalSpan({
+    name,
+    transaction: routeName,
+    attributes,
+    startTime,
+  });
+
+  if (span) {
+    span.addEvent('inp', {
+      [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT]: 'millisecond',
+      [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE]: metric.value,
     });
 
-    if (span) {
-      span.addEvent('inp', {
-        [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT]: 'millisecond',
-        [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE]: metric.value,
-      });
-
-      span.end(startTime + duration);
-    }
-  });
-}
+    span.end(startTime + duration);
+  }
+}) satisfies InstrumentationHandlerCallback;
 
 /**
  * Register a listener to cache route information for INP interactions.
