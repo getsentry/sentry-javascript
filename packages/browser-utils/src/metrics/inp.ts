@@ -23,6 +23,11 @@ const LAST_INTERACTIONS: number[] = [];
 const INTERACTIONS_SPAN_MAP = new Map<number, Span>();
 
 /**
+ * 60 seconds is the maximum for a plausible INP value.
+ * (source: Me)
+ */
+const MAX_PLAUSIBLE_INP_VALUE = 60;
+/**
  * Start tracking INP webvital events.
  */
 export function startTrackingINP(): () => void {
@@ -74,6 +79,11 @@ function _trackINP(): () => void {
       return;
     }
 
+    const duration = msToSec(metric.value);
+    if (duration > MAX_PLAUSIBLE_INP_VALUE) {
+      return;
+    }
+
     const entry = metric.entries.find(entry => entry.duration === metric.value && INP_ENTRY_MAP[entry.name]);
 
     if (!entry) {
@@ -85,7 +95,6 @@ function _trackINP(): () => void {
 
     /** Build the INP span, create an envelope from the span, and then send the envelope */
     const startTime = msToSec((browserPerformanceTimeOrigin() as number) + entry.startTime);
-    const duration = msToSec(metric.value);
     const activeSpan = getActiveSpan();
     const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
 
