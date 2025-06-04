@@ -28,7 +28,7 @@ app.get('/test/isolationScope', () => {
 app.get('/test/withIsolationScope', () => {
   Sentry.withIsolationScope(iScope => {
     iScope.setTag('with-isolation-scope', 'tag');
-    throw new Error('isolation_test_error');
+    throw new Error('with_isolation_scope_test_error');
   });
 });
 

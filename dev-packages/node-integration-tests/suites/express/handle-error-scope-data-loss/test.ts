@@ -113,7 +113,7 @@ test('withIsolationScope scope is NOT applied to thrown error caught by global h
                 handled: false,
               },
               type: 'Error',
-              value: 'test_error',
+              value: 'with_isolation_scope_test_error',
               stacktrace: {
                 frames: expect.arrayContaining([
                   expect.objectContaining({
@@ -132,7 +132,7 @@ test('withIsolationScope scope is NOT applied to thrown error caught by global h
     })
     .start();
 
-  runner.makeRequest('get', '/test/withScope', { expectError: true });
+  runner.makeRequest('get', '/test/withIsolationScope', { expectError: true });
 
   await runner.completed();
 });
