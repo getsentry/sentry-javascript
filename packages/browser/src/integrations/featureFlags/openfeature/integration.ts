@@ -1,9 +1,17 @@
 /**
- * OpenFeature integration.
+ * Sentry integration for capturing OpenFeature feature flag evaluations.
  *
- * Add the openFeatureIntegration() function call to your integration lists.
- * Add the integration hook to your OpenFeature object.
- *   - OpenFeature.getClient().addHooks(new OpenFeatureIntegrationHook());
+ * See the [feature flag documentation](https://develop.sentry.dev/sdk/expected-features/#feature-flags) for more information.
+ *
+ * @example
+ * ```
+ * import * as Sentry from "@sentry/browser";
+ * import { OpenFeature } from "@openfeature/web-sdk";
+ *
+ * Sentry.init(..., integrations: [Sentry.openFeatureIntegration()]);
+ * OpenFeature.setProvider(new MyProviderOfChoice());
+ * OpenFeature.addHooks(new Sentry.OpenFeatureIntegrationHook());
+ * ```
  */
 import type { Client, Event, EventHint, IntegrationFn, Span } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';

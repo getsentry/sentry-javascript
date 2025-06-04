@@ -12,9 +12,8 @@ export interface FeatureFlagsIntegration extends Integration {
 }
 
 /**
- * Sentry integration for buffering feature flags manually with an API, and
- * capturing them on error events. We recommend you do this on each flag
- * evaluation. Flags are buffered per Sentry scope and limited to 100 per event.
+ * Sentry integration for buffering feature flag evaluations manually with an API, and
+ * capturing them on error events and spans.
  *
  * See the [feature flag documentation](https://develop.sentry.dev/sdk/expected-features/#feature-flags) for more information.
  *
