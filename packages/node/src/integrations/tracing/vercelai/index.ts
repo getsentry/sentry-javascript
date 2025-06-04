@@ -3,6 +3,16 @@ import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration, SEMANTIC_ATTRIBUTE_SENTRY_OP, spanToJSON } from '@sentry/core';
 import { generateInstrumentOnce } from '../../../otel/instrument';
 import { addOriginToSpan } from '../../../utils/addOriginToSpan';
+import {
+  AI_MODEL_ID_ATTRIBUTE,
+  AI_MODEL_PROVIDER_ATTRIBUTE,
+  AI_PROMPT_ATTRIBUTE,
+  AI_USAGE_COMPLETION_TOKENS_ATTRIBUTE,
+  AI_USAGE_PROMPT_TOKENS_ATTRIBUTE,
+  GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
+  GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
+  GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
+} from './attributes';
 import { SentryVercelAiInstrumentation } from './instrumentation';
 
 const INTEGRATION_NAME = 'VercelAI';
@@ -27,10 +37,10 @@ const _vercelAIIntegration = (() => {
           }
 
           // The id of the model
-          const aiModelId = attributes['ai.model.id'];
+          const aiModelId = attributes[AI_MODEL_ID_ATTRIBUTE];
 
           // the provider of the model
-          const aiModelProvider = attributes['ai.model.provider'];
+          const aiModelProvider = attributes[AI_MODEL_PROVIDER_ATTRIBUTE];
 
           // both of these must be defined for the integration to work
           if (typeof aiModelId !== 'string' || typeof aiModelProvider !== 'string' || !aiModelId || !aiModelProvider) {
@@ -114,11 +124,11 @@ const _vercelAIIntegration = (() => {
             span.setAttribute('ai.pipeline.name', functionId);
           }
 
-          if (attributes['ai.prompt']) {
-            span.setAttribute('ai.input_messages', attributes['ai.prompt']);
+          if (attributes[AI_PROMPT_ATTRIBUTE]) {
+            span.setAttribute('gen_ai.prompt', attributes[AI_PROMPT_ATTRIBUTE]);
           }
-          if (attributes['ai.model.id']) {
-            span.setAttribute('ai.model_id', attributes['ai.model.id']);
+          if (attributes[AI_MODEL_ID_ATTRIBUTE] && !attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]) {
+            span.setAttribute(GEN_AI_RESPONSE_MODEL_ATTRIBUTE, attributes[AI_MODEL_ID_ATTRIBUTE]);
           }
           span.setAttribute('ai.streaming', name.includes('stream'));
         });
@@ -132,18 +142,22 @@ const _vercelAIIntegration = (() => {
                 continue;
               }
 
-              if (attributes['ai.usage.completionTokens'] != undefined) {
-                attributes['ai.completion_tokens.used'] = attributes['ai.usage.completionTokens'];
+              if (attributes[AI_USAGE_COMPLETION_TOKENS_ATTRIBUTE] != undefined) {
+                attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] = attributes[AI_USAGE_COMPLETION_TOKENS_ATTRIBUTE];
+                // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+                delete attributes[AI_USAGE_COMPLETION_TOKENS_ATTRIBUTE];
               }
-              if (attributes['ai.usage.promptTokens'] != undefined) {
-                attributes['ai.prompt_tokens.used'] = attributes['ai.usage.promptTokens'];
+              if (attributes[AI_USAGE_PROMPT_TOKENS_ATTRIBUTE] != undefined) {
+                attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE] = attributes[AI_USAGE_PROMPT_TOKENS_ATTRIBUTE];
+                // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+                delete attributes[AI_USAGE_PROMPT_TOKENS_ATTRIBUTE];
               }
               if (
-                typeof attributes['ai.usage.completionTokens'] == 'number' &&
-                typeof attributes['ai.usage.promptTokens'] == 'number'
+                typeof attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] === 'number' &&
+                typeof attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE] === 'number'
               ) {
-                attributes['ai.total_tokens.used'] =
-                  attributes['ai.usage.completionTokens'] + attributes['ai.usage.promptTokens'];
+                attributes['gen_ai.usage.total_tokens'] =
+                  attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] + attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE];
               }
             }
           }
