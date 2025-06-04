@@ -61,7 +61,7 @@ export type InternalGlobal = {
   /**
    * A map of spans to feature flag buffers. Populated by feature flag integrations.
    */
-  _spanToFlagBufferMap?: WeakMap<Span, FeatureFlag[]>;
+  _spanToFlagBufferMap?: WeakMap<Span, Set<FeatureFlag>>;
 } & Carrier;
 
 /** Get's the global object for the current JavaScript runtime */

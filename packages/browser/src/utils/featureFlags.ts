@@ -53,8 +53,7 @@ export function copyFlagsFromScopeToEvent(event: Event): Event {
  *
  * @param name     Name of the feature flag to insert.
  * @param value    Value of the feature flag.
- * @param maxSize  Max number of flags the buffer should store. It's recommended
- *   to keep this consistent across insertions. Default is FLAG_BUFFER_SIZE
+ * @param maxSize  Max number of flags the buffer should store. Default value should always be used in production.
  */
 export function insertFlagToScope(name: string, value: unknown, maxSize: number = FLAG_BUFFER_SIZE): void {
   const scopeContexts = getCurrentScope().getScopeData().contexts;
@@ -68,7 +67,7 @@ export function insertFlagToScope(name: string, value: unknown, maxSize: number 
 /**
  * Exported for tests. Currently only accepts boolean values (otherwise no-op).
  */
-export function insertToFlagBuffer(flags: FeatureFlag[], name: string, value: unknown, maxSize: number): void {
+export function insertToFlagBuffer(flags: FeatureFlag[], name: string, value: unknown, maxSize: number, allowEviction: boolean = true): void {
   if (typeof value !== 'boolean') {
     return;
   }
@@ -87,8 +86,12 @@ export function insertToFlagBuffer(flags: FeatureFlag[], name: string, value: un
   }
 
   if (flags.length === maxSize) {
-    // If at capacity, pop the earliest flag - O(n)
-    flags.shift();
+    if (allowEviction) {
+      // If at capacity, pop the earliest flag - O(n)
+      flags.shift();
+    } else {
+      return;
+    }
   }
 
   // Push the flag to the end - O(1)
@@ -119,9 +122,7 @@ export function bufferSpanFeatureFlag(
   const span = getActiveSpan();
   if (span) {
     const flags = spanFlagMap.get(span) || [];
-    if (!flags.find(flag => flag.flag === name) && flags.length < maxFlagsPerSpan) {
-      flags.push({ flag: name, result: value });
-    }
+    insertToFlagBuffer(flags, name, value, maxFlagsPerSpan, false);
     spanFlagMap.set(span, flags);
   }
 }
