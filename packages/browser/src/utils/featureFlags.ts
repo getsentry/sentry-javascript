@@ -18,7 +18,10 @@ export const FLAG_BUFFER_SIZE = 100;
  */
 export const MAX_FLAGS_PER_SPAN = 10;
 
+// Global map of spans to feature flag buffers. Populated by feature flag integrations.
 GLOBAL_OBJ._spanToFlagBufferMap = new WeakMap<Span, FeatureFlag[]>();
+
+const SPAN_FLAG_ATTRIBUTE_PREFIX = 'flag.evaluation.';
 
 /**
  * Copies feature flags that are in current scope context to the event context
@@ -131,6 +134,6 @@ export function bufferSpanFeatureFlag(
 export function freezeSpanFeatureFlags(span: Span): void {
   const flags = GLOBAL_OBJ._spanToFlagBufferMap?.get(span);
   if (flags) {
-    span.setAttributes(Object.fromEntries(flags.map(flag => [`flag.evaluation.${flag.flag}`, flag.result])));
+    span.setAttributes(Object.fromEntries(flags.map(flag => [`${SPAN_FLAG_ATTRIBUTE_PREFIX}${flag.flag}`, flag.result])));
   }
 }
