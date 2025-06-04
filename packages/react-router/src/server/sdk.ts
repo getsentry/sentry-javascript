@@ -15,7 +15,10 @@ import { reactRouterServerIntegration } from './integration/reactRouterServer';
 export function getDefaultReactRouterServerIntegrations(options: NodeOptions): Integration[] {
   const integrations = [...getNodeDefaultIntegrations(options), lowQualityTransactionsFilterIntegration(options)];
 
-  if (NODE_VERSION.major === 20 && NODE_VERSION.minor < 19) {
+  if (
+    (NODE_VERSION.major === 20 && NODE_VERSION.minor < 19) || // https://nodejs.org/en/blog/release/v20.19.0
+    (NODE_VERSION.major === 22 && NODE_VERSION.minor < 12) // https://nodejs.org/en/blog/release/v22.12.0
+  ) {
     integrations.push(reactRouterServerIntegration());
   }
 
