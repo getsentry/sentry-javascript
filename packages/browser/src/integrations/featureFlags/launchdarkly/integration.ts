@@ -1,6 +1,11 @@
-import type { Client, Event, EventHint, IntegrationFn } from '@sentry/core';
+import type { Client, Event, EventHint, IntegrationFn, Span } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
-import { copyFlagsFromScopeToEvent, insertFlagToScope } from '../../../utils/featureFlags';
+import {
+  bufferSpanFeatureFlag,
+  copyFlagsFromScopeToEvent,
+  freezeSpanFeatureFlags,
+  insertFlagToScope,
+} from '../../../utils/featureFlags';
 import type { LDContext, LDEvaluationDetail, LDInspectionFlagUsedHandler } from './types';
 
 /**
@@ -21,6 +26,12 @@ import type { LDContext, LDEvaluationDetail, LDInspectionFlagUsedHandler } from 
 export const launchDarklyIntegration = defineIntegration(() => {
   return {
     name: 'LaunchDarkly',
+
+    setup(client: Client) {
+      client.on('spanEnd', (span: Span) => {
+        freezeSpanFeatureFlags(span);
+      });
+    },
 
     processEvent(event: Event, _hint: EventHint, _client: Client): Event {
       return copyFlagsFromScopeToEvent(event);
@@ -46,6 +57,7 @@ export function buildLaunchDarklyFlagUsedHandler(): LDInspectionFlagUsedHandler 
      */
     method: (flagKey: string, flagDetail: LDEvaluationDetail, _context: LDContext) => {
       insertFlagToScope(flagKey, flagDetail.value);
+      bufferSpanFeatureFlag(flagKey, flagDetail.value);
     },
   };
 }

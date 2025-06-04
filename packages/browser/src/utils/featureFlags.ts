@@ -1,5 +1,5 @@
-import type { Event, FeatureFlag } from '@sentry/core';
-import { getCurrentScope, logger } from '@sentry/core';
+import type { Event, FeatureFlag, Span } from '@sentry/core';
+import { getActiveSpan, getCurrentScope, GLOBAL_OBJ, logger } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 
 /**
@@ -12,6 +12,13 @@ import { DEBUG_BUILD } from '../debug-build';
  * Max size of the LRU flag buffer stored in Sentry scope and event contexts.
  */
 export const FLAG_BUFFER_SIZE = 100;
+
+/**
+ * Max number of flag evaluations to record per span.
+ */
+export const MAX_FLAGS_PER_SPAN = 10;
+
+GLOBAL_OBJ._spanToFlagBufferMap = new WeakMap<Span, FeatureFlag[]>();
 
 /**
  * Copies feature flags that are in current scope context to the event context
@@ -86,4 +93,44 @@ export function insertToFlagBuffer(flags: FeatureFlag[], name: string, value: un
     flag: name,
     result: value,
   });
+}
+
+/**
+ * Records a feature flag evaluation for the active span, adding it to a weak map of flag buffers. This is a no-op for non-boolean values.
+ * The keys in each buffer are unique. Once the buffer for a span reaches maxFlagsPerSpan, subsequent flags are dropped.
+ *
+ * @param name             Name of the feature flag.
+ * @param value            Value of the feature flag. Non-boolean values are ignored.
+ * @param maxFlagsPerSpan  Max number of flags a buffer should store. Default value should always be used in production.
+ */
+export function bufferSpanFeatureFlag(
+  name: string,
+  value: unknown,
+  maxFlagsPerSpan: number = MAX_FLAGS_PER_SPAN,
+): void {
+  const spanFlagMap = GLOBAL_OBJ._spanToFlagBufferMap;
+  if (!spanFlagMap || typeof value !== 'boolean') {
+    return;
+  }
+
+  const span = getActiveSpan();
+  if (span) {
+    const flags = spanFlagMap.get(span) || [];
+    if (!flags.find(flag => flag.flag === name) && flags.length < maxFlagsPerSpan) {
+      flags.push({ flag: name, result: value });
+    }
+    spanFlagMap.set(span, flags);
+  }
+}
+
+/**
+ * Add the buffered feature flags for a span to the span attributes. Call this on span end.
+ *
+ * @param span         Span to add flags to.
+ */
+export function freezeSpanFeatureFlags(span: Span): void {
+  const flags = GLOBAL_OBJ._spanToFlagBufferMap?.get(span);
+  if (flags) {
+    span.setAttributes(Object.fromEntries(flags.map(flag => [`flag.evaluation.${flag.flag}`, flag.result])));
+  }
 }
