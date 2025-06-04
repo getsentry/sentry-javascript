@@ -12,8 +12,8 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
 } from '@sentry/core';
+import type { InstrumentationHandlerCallback } from './instrument';
 import {
-  type InstrumentationHandlerCallback,
   addInpInstrumentationHandler,
   addPerformanceInstrumentationHandler,
   isPerformanceEventTiming,
@@ -80,7 +80,10 @@ export function _trackINP(): () => void {
   return addInpInstrumentationHandler(_onInp);
 }
 
-export const _onInp = (({ metric }) => {
+/**
+ * exported only for testing
+ */
+export const _onInp: InstrumentationHandlerCallback = ({ metric }) => {
   if (metric.value == undefined) {
     return;
   }
@@ -136,7 +139,7 @@ export const _onInp = (({ metric }) => {
 
     span.end(startTime + duration);
   }
-}) satisfies InstrumentationHandlerCallback;
+};
 
 /**
  * Register a listener to cache route information for INP interactions.
