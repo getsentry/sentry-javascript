@@ -142,24 +142,22 @@ const _vercelAIIntegration = (() => {
                 continue;
               }
 
-              if (
-                attributes[AI_USAGE_COMPLETION_TOKENS_ATTRIBUTE] != undefined &&
-                attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] != undefined
-              ) {
+              if (attributes[AI_USAGE_COMPLETION_TOKENS_ATTRIBUTE] != undefined) {
                 attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] = attributes[AI_USAGE_COMPLETION_TOKENS_ATTRIBUTE];
+                // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+                delete attributes[AI_USAGE_COMPLETION_TOKENS_ATTRIBUTE];
               }
-              if (
-                attributes[AI_USAGE_PROMPT_TOKENS_ATTRIBUTE] != undefined &&
-                attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE] != undefined
-              ) {
+              if (attributes[AI_USAGE_PROMPT_TOKENS_ATTRIBUTE] != undefined) {
                 attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE] = attributes[AI_USAGE_PROMPT_TOKENS_ATTRIBUTE];
+                // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+                delete attributes[AI_USAGE_PROMPT_TOKENS_ATTRIBUTE];
               }
               if (
-                typeof attributes[AI_USAGE_COMPLETION_TOKENS_ATTRIBUTE] == 'number' &&
-                typeof attributes[AI_USAGE_PROMPT_TOKENS_ATTRIBUTE] == 'number'
+                typeof attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] === 'number' &&
+                typeof attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE] === 'number'
               ) {
                 attributes['gen_ai.usage.total_tokens'] =
-                  attributes[AI_USAGE_COMPLETION_TOKENS_ATTRIBUTE] + attributes[AI_USAGE_PROMPT_TOKENS_ATTRIBUTE];
+                  attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] + attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE];
               }
             }
           }
