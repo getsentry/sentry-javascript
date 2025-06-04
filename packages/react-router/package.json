@@ -42,13 +42,14 @@
     "@sentry/cli": "^2.45.0",
     "@sentry/core": "9.25.1",
     "@sentry/node": "9.25.1",
+    "@sentry/react": "9.25.1",
     "@sentry/vite-plugin": "^3.2.4",
     "glob": "11.0.1"
   },
   "devDependencies": {
-    "@react-router/dev": "^7.1.5",
-    "@react-router/node": "^7.1.5",
-    "react-router": "^7.1.5",
+    "@react-router/dev": "^7.5.2",
+    "@react-router/node": "^7.5.2",
+    "react-router": "^7.5.2",
     "vite": "^6.1.0"
   },
   "peerDependencies": {

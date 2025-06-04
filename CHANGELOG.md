@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+
+## 9.26.0
+
+- feat(react-router): Re-export functions from `@sentry/react` ([#16465](https://github.com/getsentry/sentry-javascript/pull/16465))
+- fix(nextjs): Skip re instrumentating on generate phase of experimental build mode ([#16410](https://github.com/getsentry/sentry-javascript/pull/16410))
+- fix(node): Ensure adding sentry-trace and baggage headers via SentryHttpInstrumentation doesn't crash ([#16473](https://github.com/getsentry/sentry-javascript/pull/16473))
+
 ## 9.25.1
 
 - fix(otel): Don't ignore child spans after the root is sent ([#16416](https://github.com/getsentry/sentry-javascript/pull/16416))
