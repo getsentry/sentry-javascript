@@ -2,6 +2,7 @@ import type { SpanAttributes } from '@sentry/core';
 import {
   getActiveSpan,
   getRootSpan,
+  parseStringToURLObject,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -43,20 +44,16 @@ export function wrapServerAction<T>(options: SpanOptions = {}, actionFn: (args: 
       const root = getRootSpan(active);
       // coming from auto.http.otel.http
       if (spanToJSON(root).description === 'POST') {
-        let pathname;
-        try {
-          pathname = new URL(args.request.url).pathname;
-        } catch (error) {
-          // let's not do anything in case the url parsing fails
-          return actionFn(args);
+        const url = parseStringToURLObject(args.request.url);
+        if (url?.pathname) {
+          root.setAttributes({
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+            [SEMANTIC_ATTRIBUTE_SENTRY_OVERWRITE]: `${args.request.method} ${url.pathname}`,
+          });
         }
-        root.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OVERWRITE, args.request.url);
-        root.setAttributes({
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OVERWRITE]: `${args.request.method} ${pathname}`,
-        });
       }
     }
+
     return startSpan(
       {
         name,
