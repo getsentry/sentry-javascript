@@ -50,4 +50,29 @@ describe('withSentryConfig', () => {
 
     expect(exportedNextConfigFunction).toHaveBeenCalledWith(defaultRuntimePhase, defaultsObject);
   });
+
+  it('handles experimental build mode correctly', () => {
+    const originalArgv = process.argv;
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    try {
+      process.argv = [...originalArgv, '--experimental-build-mode'];
+      materializeFinalNextConfig(exportedNextConfig);
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        '[@sentry/nextjs] The Sentry Next.js SDK does not currently fully support next build --experimental-build-mode',
+      );
+
+      // Generate phase
+      process.argv = [...process.argv, 'generate'];
+      const generateConfig = materializeFinalNextConfig(exportedNextConfig);
+
+      expect(generateConfig).toEqual(exportedNextConfig);
+
+      expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      process.argv = originalArgv;
+      consoleWarnSpy.mockRestore();
+    }
+  });
 });

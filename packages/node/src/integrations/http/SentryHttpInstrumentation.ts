@@ -20,6 +20,7 @@ import {
   getSanitizedUrlString,
   getTraceData,
   httpRequestToRequestData,
+  isError,
   logger,
   LRUMap,
   parseUrl,
@@ -262,15 +263,34 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
 
     // We do not want to overwrite existing header here, if it was already set
     if (sentryTrace && !request.getHeader('sentry-trace')) {
-      request.setHeader('sentry-trace', sentryTrace);
-      logger.log(INSTRUMENTATION_NAME, 'Added sentry-trace header to outgoing request');
+      try {
+        request.setHeader('sentry-trace', sentryTrace);
+        DEBUG_BUILD && logger.log(INSTRUMENTATION_NAME, 'Added sentry-trace header to outgoing request');
+      } catch (error) {
+        DEBUG_BUILD &&
+          logger.error(
+            INSTRUMENTATION_NAME,
+            'Failed to add sentry-trace header to outgoing request:',
+            isError(error) ? error.message : 'Unknown error',
+          );
+      }
     }
 
     if (baggage) {
       // For baggage, we make sure to merge this into a possibly existing header
       const newBaggage = mergeBaggageHeaders(request.getHeader('baggage'), baggage);
       if (newBaggage) {
-        request.setHeader('baggage', newBaggage);
+        try {
+          request.setHeader('baggage', newBaggage);
+          DEBUG_BUILD && logger.log(INSTRUMENTATION_NAME, 'Added baggage header to outgoing request');
+        } catch (error) {
+          DEBUG_BUILD &&
+            logger.error(
+              INSTRUMENTATION_NAME,
+              'Failed to add baggage header to outgoing request:',
+              isError(error) ? error.message : 'Unknown error',
+            );
+        }
       }
     }
   }
