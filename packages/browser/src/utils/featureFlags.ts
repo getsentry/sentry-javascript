@@ -43,18 +43,16 @@ export function copyFlagsFromScopeToEvent(event: Event): Event {
 }
 
 /**
- * Creates a feature flags values array in current context if it does not exist
- * and inserts the flag into a FeatureFlag array while maintaining ordered LRU
- * properties. Not thread-safe. After inserting:
- * - `flags` is sorted in order of recency, with the newest flag at the end.
- * - No other flags with the same name exist in `flags`.
- * - The length of `flags` does not exceed `maxSize`. The oldest flag is evicted
- *  as needed.
+ * Inserts a flag into the current scope's context while maintaining ordered LRU properties.
+ * Not thread-safe. After inserting:
+ * - The flag buffer is sorted in order of recency, with the newest evaluation at the end.
+ * - The names in the buffer are always unique.
+ * - The length of the buffer never exceeds `maxSize`.
  *
  * @param name     Name of the feature flag to insert.
  * @param value    Value of the feature flag.
  * @param maxSize  Max number of flags the buffer should store. Default value should always be used in production.
- */
+*/
 export function insertFlagToScope(name: string, value: unknown, maxSize: number = FLAG_BUFFER_SIZE): void {
   const scopeContexts = getCurrentScope().getScopeData().contexts;
   if (!scopeContexts.flags) {
@@ -65,7 +63,17 @@ export function insertFlagToScope(name: string, value: unknown, maxSize: number 
 }
 
 /**
- * Exported for tests. Currently only accepts boolean values (otherwise no-op).
+ * Exported for tests only. Currently only accepts boolean values (otherwise no-op).
+ * Inserts a flag into a FeatureFlag array while maintaining the following properties:
+ * - Flags are sorted in order of recency, with the newest evaluation at the end.
+ * - The flag names are always unique.
+ * - The length of the array never exceeds `maxSize`.
+ *
+ * @param flags      The buffer to insert the flag into.
+ * @param name       Name of the feature flag to insert.
+ * @param value      Value of the feature flag.
+ * @param maxSize    Max number of flags the buffer should store. Default value should always be used in production.
+ * @param allowEviction  If true, the oldest flag is evicted when the buffer is full. Otherwise the new flag is dropped.
  */
 export function insertToFlagBuffer(flags: FeatureFlag[], name: string, value: unknown, maxSize: number, allowEviction: boolean = true): void {
   if (typeof value !== 'boolean') {
