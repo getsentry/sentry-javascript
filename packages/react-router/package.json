@@ -47,9 +47,9 @@
     "glob": "11.0.1"
   },
   "devDependencies": {
-    "@react-router/dev": "^7.1.5",
-    "@react-router/node": "^7.1.5",
-    "react-router": "^7.1.5",
+    "@react-router/dev": "^7.5.2",
+    "@react-router/node": "^7.5.2",
+    "react-router": "^7.5.2",
     "vite": "^6.1.0"
   },
   "peerDependencies": {
