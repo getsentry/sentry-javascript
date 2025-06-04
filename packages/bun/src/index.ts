@@ -139,7 +139,6 @@ export {
   consoleLoggingIntegration,
   createSentryWinstonTransport,
   wrapMcpServerWithSentry,
-  NODE_VERSION,
 } from '@sentry/node';
 
 export {
