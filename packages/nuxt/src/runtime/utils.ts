@@ -8,7 +8,6 @@ import {
   logger,
   vercelWaitUntil,
 } from '@sentry/core';
-import * as SentryNode from '@sentry/node';
 import type { VueOptions } from '@sentry/vue/src/types';
 import type { CapturedErrorContext } from 'nitropack';
 import type { NuxtRenderHTMLContext } from 'nuxt/app';
@@ -89,7 +88,7 @@ export function reportNuxtError(options: {
 }
 
 async function flushWithTimeout(): Promise<void> {
-  const sentryClient = SentryNode.getClient();
+  const sentryClient = getClient();
   const isDebug = sentryClient ? sentryClient.getOptions().debug : false;
 
   try {

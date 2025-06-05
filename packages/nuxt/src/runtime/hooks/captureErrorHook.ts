@@ -1,4 +1,4 @@
-import * as SentryNode from '@sentry/node';
+import { captureException, getClient, getCurrentScope } from '@sentry/core';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { H3Error } from 'h3';
 import type { CapturedErrorContext } from 'nitropack';
@@ -8,7 +8,7 @@ import { extractErrorContext, flushIfServerless } from '../utils';
  *  Hook that can be added in a Nitro plugin. It captures an error and sends it to Sentry.
  */
 export async function sentryCaptureErrorHook(error: Error, errorContext: CapturedErrorContext): Promise<void> {
-  const sentryClient = SentryNode.getClient();
+  const sentryClient = getClient();
   const sentryClientOptions = sentryClient?.getOptions();
 
   if (
@@ -33,12 +33,12 @@ export async function sentryCaptureErrorHook(error: Error, errorContext: Capture
   };
 
   if (path) {
-    SentryNode.getCurrentScope().setTransactionName(`${method} ${path}`);
+    getCurrentScope().setTransactionName(`${method} ${path}`);
   }
 
   const structuredContext = extractErrorContext(errorContext);
 
-  SentryNode.captureException(error, {
+  captureException(error, {
     captureContext: { contexts: { nuxt: structuredContext } },
     mechanism: { handled: false },
   });
