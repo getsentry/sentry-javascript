@@ -90,7 +90,7 @@ export const _onInp: InstrumentationHandlerCallback = ({ metric }) => {
 
   const duration = msToSec(metric.value);
 
-  // we received occasional reports of hour-long INP values.
+  // We received occasional reports of hour-long INP values.
   // Therefore, we add a sanity check to avoid creating spans for
   // unrealistically long INP durations.
   if (duration > MAX_PLAUSIBLE_INP_DURATION) {
