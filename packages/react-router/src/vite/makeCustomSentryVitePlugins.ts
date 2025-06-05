@@ -14,6 +14,7 @@ export async function makeCustomSentryVitePlugins(options: SentryReactRouterBuil
     org,
     project,
     telemetry,
+    reactComponentAnnotation,
     release,
   } = options;
 
@@ -30,6 +31,11 @@ export async function makeCustomSentryVitePlugins(options: SentryReactRouterBuil
       },
       ...unstable_sentryVitePluginOptions?._metaOptions,
     },
+    reactComponentAnnotation: {
+      enabled: reactComponentAnnotation?.enabled ?? undefined,
+      ignoredComponents: reactComponentAnnotation?.ignoredComponents ?? undefined,
+      ...unstable_sentryVitePluginOptions?.reactComponentAnnotation,
+    },
     release: {
       ...unstable_sentryVitePluginOptions?.release,
       ...release,
@@ -45,7 +51,13 @@ export async function makeCustomSentryVitePlugins(options: SentryReactRouterBuil
   // only use a subset of the plugins as all upload and file deletion tasks will be handled in the buildEnd hook
   return [
     ...sentryVitePlugins.filter(plugin => {
-      return ['sentry-telemetry-plugin', 'sentry-vite-release-injection-plugin'].includes(plugin.name);
+      return [
+        'sentry-telemetry-plugin',
+        'sentry-vite-release-injection-plugin',
+        ...(reactComponentAnnotation?.enabled || unstable_sentryVitePluginOptions?.reactComponentAnnotation?.enabled
+          ? ['sentry-vite-component-name-annotate-plugin']
+          : []),
+      ].includes(plugin.name);
     }),
   ];
 }
