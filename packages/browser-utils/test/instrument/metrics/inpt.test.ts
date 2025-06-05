@@ -23,50 +23,86 @@ describe('_trackINP', () => {
 });
 
 describe('_onInp', () => {
-  const startStandaloneWebVitalSpan = vi.spyOn(utils, 'startStandaloneWebVitalSpan');
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it('early-returns if the INP metric entry has no value', () => {
+    const startStandaloneWebVitalSpanSpy = vi.spyOn(utils, 'startStandaloneWebVitalSpan');
+
     const metric = {
       value: undefined,
       entries: [],
     };
     // @ts-expect-error - incomplete metric object
     _onInp({ metric });
-    expect(startStandaloneWebVitalSpan).not.toHaveBeenCalled();
+
+    expect(startStandaloneWebVitalSpanSpy).not.toHaveBeenCalled();
   });
 
   it('early-returns if the INP metric value is greater than 60 seconds', () => {
+    const startStandaloneWebVitalSpanSpy = vi.spyOn(utils, 'startStandaloneWebVitalSpan');
+
     const metric = {
       value: 60_001,
-      entries: [{ name: 'click', duration: 60_001, interactionId: 1 }],
+      entries: [
+        { name: 'click', duration: 60_001, interactionId: 1 },
+        { name: 'click', duration: 60_000, interactionId: 2 },
+      ],
     };
     // @ts-expect-error - incomplete metric object
     _onInp({ metric });
-    expect(startStandaloneWebVitalSpan).not.toHaveBeenCalled();
+
+    expect(startStandaloneWebVitalSpanSpy).not.toHaveBeenCalled();
   });
 
   it('early-returns if the inp metric has an unknown interaction type', () => {
+    const startStandaloneWebVitalSpanSpy = vi.spyOn(utils, 'startStandaloneWebVitalSpan');
+
     const metric = {
       value: 10,
       entries: [{ name: 'unknown', duration: 10, interactionId: 1 }],
     };
     // @ts-expect-error - incomplete metric object
     _onInp({ metric });
-    expect(startStandaloneWebVitalSpan).not.toHaveBeenCalled();
+
+    expect(startStandaloneWebVitalSpanSpy).not.toHaveBeenCalled();
   });
 
   it('starts a span for a valid INP metric entry', () => {
+    const startStandaloneWebVitalSpanSpy = vi.spyOn(utils, 'startStandaloneWebVitalSpan');
+
     const metric = {
       value: 10,
       entries: [{ name: 'click', duration: 10, interactionId: 1 }],
     };
     // @ts-expect-error - incomplete metric object
     _onInp({ metric });
-    expect(startStandaloneWebVitalSpan).toHaveBeenCalledWith({
+
+    expect(startStandaloneWebVitalSpanSpy).toHaveBeenCalledTimes(1);
+    expect(startStandaloneWebVitalSpanSpy).toHaveBeenCalledWith({
+      attributes: {
+        'sentry.exclusive_time': 10,
+        'sentry.op': 'ui.interaction.click',
+        'sentry.origin': 'auto.http.browser.inp',
+      },
+      name: '<unknown>',
+      startTime: NaN,
+      transaction: undefined,
+    });
+  });
+
+  it('takes the correct entry based on the metric value', () => {
+    const startStandaloneWebVitalSpanSpy = vi.spyOn(utils, 'startStandaloneWebVitalSpan');
+
+    const metric = {
+      value: 10,
+      entries: [
+        { name: 'click', duration: 10, interactionId: 1 },
+        { name: 'click', duration: 9, interactionId: 2 },
+      ],
+    };
+    // @ts-expect-error - incomplete metric object
+    _onInp({ metric });
+
+    expect(startStandaloneWebVitalSpanSpy).toHaveBeenCalledTimes(1);
+    expect(startStandaloneWebVitalSpanSpy).toHaveBeenCalledWith({
       attributes: {
         'sentry.exclusive_time': 10,
         'sentry.op': 'ui.interaction.click',
