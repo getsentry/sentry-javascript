@@ -2,7 +2,7 @@ import type { InstrumentationConfig, InstrumentationModuleDefinition } from '@op
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
 import { getCurrentScope, SDK_VERSION } from '@sentry/core';
 import { INTEGRATION_NAME } from './constants';
-import type { TelemetrySettings } from './types';
+import type { TelemetrySettings, VercelAiIntegration } from './types';
 
 // List of patched methods
 // From: https://sdk.vercel.ai/docs/ai-sdk-core/telemetry#collected-data
@@ -23,6 +23,47 @@ type MethodArgs = [MethodFirstArg, ...unknown[]];
 
 type PatchedModuleExports = Record<(typeof INSTRUMENTED_METHODS)[number], (...args: MethodArgs) => unknown> &
   Record<string, unknown>;
+
+interface RecordingOptions {
+  recordInputs?: boolean;
+  recordOutputs?: boolean;
+}
+
+/**
+ * Determines whether to record inputs and outputs for Vercel AI telemetry based on the configuration hierarchy.
+ *
+ * The order of precedence is:
+ * 1. The vercel ai integration options
+ * 2. The experimental_telemetry options in the vercel ai method calls
+ * 3. When telemetry is explicitly enabled (isEnabled: true), default to recording
+ * 4. Otherwise, use the sendDefaultPii option from client options
+ */
+export function determineRecordingSettings(
+  integrationRecordingOptions: RecordingOptions | undefined,
+  methodTelemetryOptions: RecordingOptions,
+  telemetryExplicitlyEnabled: boolean | undefined,
+  defaultRecordingEnabled: boolean,
+): { recordInputs: boolean; recordOutputs: boolean } {
+  const recordInputs =
+    integrationRecordingOptions?.recordInputs !== undefined
+      ? integrationRecordingOptions.recordInputs
+      : methodTelemetryOptions.recordInputs !== undefined
+        ? methodTelemetryOptions.recordInputs
+        : telemetryExplicitlyEnabled === true
+          ? true // When telemetry is explicitly enabled, default to recording inputs
+          : defaultRecordingEnabled;
+
+  const recordOutputs =
+    integrationRecordingOptions?.recordOutputs !== undefined
+      ? integrationRecordingOptions.recordOutputs
+      : methodTelemetryOptions.recordOutputs !== undefined
+        ? methodTelemetryOptions.recordOutputs
+        : telemetryExplicitlyEnabled === true
+          ? true // When telemetry is explicitly enabled, default to recording inputs
+          : defaultRecordingEnabled;
+
+  return { recordInputs, recordOutputs };
+}
 
 /**
  * This detects is added by the Sentry Vercel AI Integration to detect if the integration should
@@ -73,19 +114,16 @@ export class SentryVercelAiInstrumentation extends InstrumentationBase {
         const isEnabled = existingExperimentalTelemetry.isEnabled;
 
         const client = getCurrentScope().getClient();
-        const shouldRecordInputsAndOutputs = client?.getIntegrationByName(INTEGRATION_NAME)
-          ? client.getOptions().sendDefaultPii
-          : false;
+        const integration = client?.getIntegrationByName<VercelAiIntegration>(INTEGRATION_NAME);
+        const integrationOptions = integration?.options;
+        const shouldRecordInputsAndOutputs = integration ? Boolean(client?.getOptions().sendDefaultPii) : false;
 
-        // Set recordInputs and recordOutputs based on sendDefaultPii if not explicitly set
-        const recordInputs =
-          existingExperimentalTelemetry.recordInputs !== undefined
-            ? existingExperimentalTelemetry.recordInputs
-            : shouldRecordInputsAndOutputs;
-        const recordOutputs =
-          existingExperimentalTelemetry.recordOutputs !== undefined
-            ? existingExperimentalTelemetry.recordOutputs
-            : shouldRecordInputsAndOutputs;
+        const { recordInputs, recordOutputs } = determineRecordingSettings(
+          integrationOptions,
+          existingExperimentalTelemetry,
+          isEnabled,
+          shouldRecordInputsAndOutputs,
+        );
 
         args[0].experimental_telemetry = {
           ...existingExperimentalTelemetry,

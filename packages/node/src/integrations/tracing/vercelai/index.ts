@@ -15,14 +15,16 @@ import {
 } from './attributes';
 import { INTEGRATION_NAME } from './constants';
 import { SentryVercelAiInstrumentation } from './instrumentation';
+import type { VercelAiOptions } from './types';
 
 export const instrumentVercelAi = generateInstrumentOnce(INTEGRATION_NAME, () => new SentryVercelAiInstrumentation({}));
 
-const _vercelAIIntegration = (() => {
+const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
   let instrumentation: undefined | SentryVercelAiInstrumentation;
 
   return {
     name: INTEGRATION_NAME,
+    options,
     setupOnce() {
       instrumentation = instrumentVercelAi();
     },
