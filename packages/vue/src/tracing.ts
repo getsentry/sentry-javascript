@@ -31,7 +31,7 @@ const HOOKS: { [key in Operation]: Hook[] } = {
   update: ['beforeUpdate', 'updated'],
 };
 
-/** Finish top-level component span and activity with a debounce configured using `timeout` option */
+/** End the top-level component span and activity with a debounce configured using `timeout` option */
 function maybeEndRootComponentSpan(vm: VueSentry, timestamp: number, timeout: number): void {
   if (vm.$_sentryRootComponentSpanTimer) {
     clearTimeout(vm.$_sentryRootComponentSpanTimer);
@@ -125,7 +125,7 @@ export const createTracingMixins = (options: Partial<TracingOptions> = {}): Mixi
           if (activeSpan) {
             // Cancel any existing span for this operation (safety measure)
             // We're actually not sure if it will ever be the case that cleanup hooks were not called.
-            // However, we had users report that spans didn't get finished, so we finished the span before
+            // However, we had users report that spans didn't end, so we end the span before
             // starting a new one, just to be sure.
             const oldSpan = this.$_sentryComponentSpans[operation];
             if (oldSpan) {
@@ -150,8 +150,8 @@ export const createTracingMixins = (options: Partial<TracingOptions> = {}): Mixi
           if (!span) return; // Skip if no span was created in the "before" hook
           span.end();
 
-          // For any "after" hook, also schedule the root component span to finish
-          maybeEndRootComponentSpan(this, timestampInSeconds(), options.timeout || 2000);
+          // For any "after" hook, also schedule the root component span to end
+          maybeEndRootComponentSpan(this, timestampInSeconds(), rootComponentSpanFinalTimeout);
         }
       };
     }
