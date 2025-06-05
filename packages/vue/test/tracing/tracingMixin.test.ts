@@ -27,11 +27,10 @@ vi.mock('../../src/vendor/components', () => {
   };
 });
 
-const mockSpanFactory = (): { name?: string; op?: string; end: Mock; startChild: Mock } => ({
+const mockSpanFactory = (): { name?: string; op?: string; end: Mock } => ({
   name: undefined,
   op: undefined,
   end: vi.fn(),
-  startChild: vi.fn(),
 });
 
 vi.useFakeTimers();
@@ -127,23 +126,25 @@ describe('Vue Tracing Mixins', () => {
       );
     });
 
-    it('should finish root component span on timer after component spans end', () => {
-      // todo/fixme: This root component span is only finished if trackComponents is true --> it should probably be always finished
-      const mixins = createTracingMixins({ trackComponents: true, timeout: 1000 });
-      const rootMockSpan = mockSpanFactory();
-      mockRootInstance.$_sentryRootComponentSpan = rootMockSpan;
+    it.each([true, false])(
+      'should finish root component span on timer after component spans end, if trackComponents is %s',
+      () => {
+        const mixins = createTracingMixins({ trackComponents: false, timeout: 1000 });
+        const rootMockSpan = mockSpanFactory();
+        mockRootInstance.$_sentryRootComponentSpan = rootMockSpan;
 
-      // Create and finish a component span
-      mixins.beforeMount.call(mockVueInstance);
-      mixins.mounted.call(mockVueInstance);
+        // Create and finish a component span
+        mixins.beforeMount.call(mockVueInstance);
+        mixins.mounted.call(mockVueInstance);
 
-      // Root component span should not end immediately
-      expect(rootMockSpan.end).not.toHaveBeenCalled();
+        // Root component span should not end immediately
+        expect(rootMockSpan.end).not.toHaveBeenCalled();
 
-      // After timeout, root component span should end
-      vi.advanceTimersByTime(1001);
-      expect(rootMockSpan.end).toHaveBeenCalled();
-    });
+        // After timeout, root component span should end
+        vi.advanceTimersByTime(1001);
+        expect(rootMockSpan.end).toHaveBeenCalled();
+      },
+    );
   });
 
   describe('Component Span Lifecycle', () => {
