@@ -24,10 +24,10 @@ const LAST_INTERACTIONS: number[] = [];
 const INTERACTIONS_SPAN_MAP = new Map<number, Span>();
 
 /**
- * 60 seconds is the maximum for a plausible INP value.
+ * 60 seconds is the maximum for a plausible INP value
  * (source: Me)
  */
-const MAX_PLAUSIBLE_INP_VALUE = 60;
+const MAX_PLAUSIBLE_INP_DURATION = 60;
 /**
  * Start tracking INP webvital events.
  */
@@ -89,7 +89,11 @@ export const _onInp: InstrumentationHandlerCallback = ({ metric }) => {
   }
 
   const duration = msToSec(metric.value);
-  if (duration > MAX_PLAUSIBLE_INP_VALUE) {
+
+  // we received occasional reports of hour-long INP values.
+  // Therefore, we add a sanity check to avoid creating spans for
+  // unrealistically long INP durations.
+  if (duration > MAX_PLAUSIBLE_INP_DURATION) {
     return;
   }
 
