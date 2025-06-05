@@ -1,7 +1,7 @@
 import { expect } from '@playwright/test';
 import type { Scope } from '@sentry/browser';
-import { sentryTest } from '../../../../../utils/fixtures';
-import { envelopeRequestParser, shouldSkipFeatureFlagsTest, waitForErrorRequest } from '../../../../../utils/helpers';
+import { sentryTest } from '../../../../../../utils/fixtures';
+import { envelopeRequestParser, shouldSkipFeatureFlagsTest, waitForErrorRequest } from '../../../../../../utils/helpers';
 
 sentryTest('Flag evaluations in forked scopes are stored separately.', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipFeatureFlagsTest()) {
@@ -25,20 +25,20 @@ sentryTest('Flag evaluations in forked scopes are stored separately.', async ({ 
   await page.evaluate(() => {
     const Sentry = (window as any).Sentry;
     const errorButton = document.querySelector('#error') as HTMLButtonElement;
-    const client = (window as any).initialize();
+    const flagsIntegration = (window as any).Sentry.getClient().getIntegrationByName('FeatureFlags');
 
-    client.getBooleanValue('shared', true);
+    flagsIntegration.addFeatureFlag('shared', true);
 
     Sentry.withScope((scope: Scope) => {
-      client.getBooleanValue('forked', true);
-      client.getBooleanValue('shared', false);
+      flagsIntegration.addFeatureFlag('forked', true);
+      flagsIntegration.addFeatureFlag('shared', false);
       scope.setTag('isForked', true);
       if (errorButton) {
         errorButton.click();
       }
     });
 
-    client.getBooleanValue('main', true);
+    flagsIntegration.addFeatureFlag('main', true);
     Sentry.getCurrentScope().setTag('isForked', false);
     errorButton.click();
     return true;

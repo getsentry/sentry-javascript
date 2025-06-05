@@ -1,7 +1,7 @@
 import { expect } from '@playwright/test';
-import { sentryTest } from '../../../../../utils/fixtures';
-import { envelopeRequestParser, shouldSkipFeatureFlagsTest, waitForErrorRequest } from '../../../../../utils/helpers';
-import { FLAG_BUFFER_SIZE } from '../../constants';
+import { sentryTest } from '../../../../../../utils/fixtures';
+import { envelopeRequestParser, shouldSkipFeatureFlagsTest, waitForErrorRequest } from '../../../../../../utils/helpers';
+import { FLAG_BUFFER_SIZE } from '../../../constants';
 
 sentryTest('Basic test with eviction, update, and no async tasks', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipFeatureFlagsTest()) {
@@ -20,12 +20,13 @@ sentryTest('Basic test with eviction, update, and no async tasks', async ({ getL
   await page.goto(url);
 
   await page.evaluate(bufferSize => {
-    const client = (window as any).initialize();
+    const ldClient = (window as any).initializeLD();
     for (let i = 1; i <= bufferSize; i++) {
-      client.getBooleanValue(`feat${i}`, false);
+      ldClient.variation(`feat${i}`, false);
     }
-    client.getBooleanValue(`feat${bufferSize + 1}`, true); // eviction
-    client.getBooleanValue('feat3', true); // update
+    ldClient.variation(`feat${bufferSize + 1}`, true); // eviction
+    ldClient.variation('feat3', true); // update
+    return true;
   }, FLAG_BUFFER_SIZE);
 
   const reqPromise = waitForErrorRequest(page);
