@@ -114,7 +114,7 @@ describe('Vue Tracing Mixins', () => {
   });
 
   describe('Root Component Behavior', () => {
-    it('should always create root span for root component regardless of tracking options', () => {
+    it('should always create a span for the Vue root component regardless of tracking options', () => {
       const mixins = createTracingMixins({ trackComponents: false });
 
       mixins.beforeMount.call(mockRootInstance);
@@ -208,28 +208,30 @@ describe('Vue Tracing Mixins', () => {
   });
 
   describe('Component Tracking Options', () => {
-    it('should respect tracking configuration options', () => {
-      // Test different tracking configurations with the same component
-      const runTracingTest = (trackComponents: boolean | string[] | undefined, shouldTrack: boolean) => {
-        vi.clearAllMocks();
-        const mixins = createTracingMixins({ trackComponents });
-        mixins.beforeMount.call(mockVueInstance);
+    it.each([
+      { trackComponents: undefined, expected: false, description: 'defaults to not tracking components' },
+      { trackComponents: false, expected: false, description: 'does not track when explicitly disabled' },
+    ])('$description', ({ trackComponents }) => {
+      const mixins = createTracingMixins({ trackComponents });
+      mixins.beforeMount.call(mockVueInstance);
+      expect(startInactiveSpan).not.toHaveBeenCalled();
+    });
 
-        if (shouldTrack) {
-          expect(startInactiveSpan).toHaveBeenCalled();
-        } else {
-          expect(startInactiveSpan).not.toHaveBeenCalled();
-        }
-      };
+    it.each([
+      { trackComponents: true, description: 'tracks all components when enabled' },
+      { trackComponents: ['TestComponent'], description: 'tracks components that match the name list' },
+    ])('$description', ({ trackComponents }) => {
+      const mixins = createTracingMixins({ trackComponents });
+      mixins.beforeMount.call(mockVueInstance);
+      expect(startInactiveSpan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'Vue TestComponent',
+          op: 'ui.vue.mount',
+        }),
+      );
+    });
 
-      // Test all tracking configurations
-      runTracingTest(undefined, false); // Default - don't track
-      runTracingTest(false, false); // Explicitly disabled
-      runTracingTest(true, true); // Track all components
-      runTracingTest(['TestComponent'], true); // Track by name (match)
-
-      // Test component not in tracking list
-      vi.clearAllMocks();
+    it('does not track components not in the tracking list', () => {
       const mixins = createTracingMixins({ trackComponents: ['OtherComponent'] });
       mixins.beforeMount.call(mockVueInstance); // TestComponent
       expect(startInactiveSpan).not.toHaveBeenCalled();
