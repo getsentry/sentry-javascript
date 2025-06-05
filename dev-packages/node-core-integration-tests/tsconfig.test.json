@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+
+  "include": ["suites/**/*.ts", "vite.config.ts"],
+
+  "compilerOptions": {
+    // Although this seems wrong to include `DOM` here, it's necessary to make
+    // global fetch available in tests in lower Node versions.
+    "lib": ["DOM", "ES2018"],
+    // should include all types from `./tsconfig.json` plus types for all test frameworks used
+    "types": ["node"]
+
+    // other package-specific, test-specific options
+  }
+}
