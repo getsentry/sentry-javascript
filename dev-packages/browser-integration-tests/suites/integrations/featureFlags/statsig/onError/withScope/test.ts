@@ -1,7 +1,7 @@
 import { expect } from '@playwright/test';
 import type { Scope } from '@sentry/browser';
-import { sentryTest } from '../../../../../utils/fixtures';
-import { envelopeRequestParser, shouldSkipFeatureFlagsTest, waitForErrorRequest } from '../../../../../utils/helpers';
+import { sentryTest } from '../../../../../../utils/fixtures';
+import { envelopeRequestParser, shouldSkipFeatureFlagsTest, waitForErrorRequest } from '../../../../../../utils/helpers';
 
 sentryTest('Flag evaluations in forked scopes are stored separately.', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipFeatureFlagsTest()) {
