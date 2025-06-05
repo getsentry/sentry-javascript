@@ -1,10 +1,10 @@
-import { wrapRequestHandler, setAsyncLocalStorageAsyncContextStrategy } from '@sentry/cloudflare';
-import type { NitroApp, NitroAppPlugin } from 'nitropack';
-import type { CloudflareOptions } from '@sentry/cloudflare';
 import type { ExecutionContext } from '@cloudflare/workers-types';
+import type { CloudflareOptions } from '@sentry/cloudflare';
+import { setAsyncLocalStorageAsyncContextStrategy, wrapRequestHandler } from '@sentry/cloudflare';
+import type { NitroApp, NitroAppPlugin } from 'nitropack';
 import type { NuxtRenderHTMLContext } from 'nuxt/app';
-import { addSentryTracingMetaTags } from '../utils';
 import { sentryCaptureErrorHook } from '../hooks/captureErrorHook';
+import { addSentryTracingMetaTags } from '../utils';
 
 interface CfEventType {
   protocol: string;
