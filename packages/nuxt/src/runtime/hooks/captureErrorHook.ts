@@ -1,7 +1,8 @@
 import * as SentryNode from '@sentry/node';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { H3Error } from 'h3';
-import { extractErrorContext, flushIfServerless } from '../utils';
 import type { CapturedErrorContext } from 'nitropack';
+import { extractErrorContext, flushIfServerless } from '../utils';
 
 /**
  *  Hook that can be added in a Nitro plugin. It captures an error and sends it to Sentry.

@@ -1,11 +1,18 @@
 import type { ClientOptions, Context } from '@sentry/core';
-import { flush, GLOBAL_OBJ, logger, vercelWaitUntil } from '@sentry/core';
-import { captureException, getClient, getTraceMetaTags, logger } from '@sentry/core';
+import {
+  captureException,
+  flush,
+  getClient,
+  getTraceMetaTags,
+  GLOBAL_OBJ,
+  logger,
+  vercelWaitUntil,
+} from '@sentry/core';
+import * as SentryNode from '@sentry/node';
 import type { VueOptions } from '@sentry/vue/src/types';
 import type { CapturedErrorContext } from 'nitropack';
 import type { NuxtRenderHTMLContext } from 'nuxt/app';
 import type { ComponentPublicInstance } from 'vue';
-import * as SentryNode from '@sentry/node';
 
 /**
  *  Extracts the relevant context information from the error context (H3Event in Nitro Error)

@@ -4,8 +4,8 @@ import { type EventHandler } from 'h3';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { defineNitroPlugin } from 'nitropack/runtime';
 import type { NuxtRenderHTMLContext } from 'nuxt/app';
-import { addSentryTracingMetaTags, flushIfServerless } from '../utils';
 import { sentryCaptureErrorHook } from '../hooks/captureErrorHook';
+import { addSentryTracingMetaTags, flushIfServerless } from '../utils';
 
 export default defineNitroPlugin(nitroApp => {
   nitroApp.h3App.handler = patchEventHandler(nitroApp.h3App.handler);
