@@ -12,11 +12,11 @@ type Mixins = Parameters<Vue['mixin']>[0];
 
 interface VueSentry extends ViewModel {
   readonly $root: VueSentry;
-  $_sentrySpans?: {
+  $_sentryComponentSpans?: {
     [key: string]: Span | undefined;
   };
-  $_sentryRootSpan?: Span;
-  $_sentryRootSpanTimer?: ReturnType<typeof setTimeout>;
+  $_sentryRootComponentSpan?: Span;
+  $_sentryRootComponentSpanTimer?: ReturnType<typeof setTimeout>;
 }
 
 // Mappings from operation to corresponding lifecycle hook.
@@ -31,16 +31,16 @@ const HOOKS: { [key in Operation]: Hook[] } = {
   update: ['beforeUpdate', 'updated'],
 };
 
-/** Finish top-level span and activity with a debounce configured using `timeout` option */
-function finishRootSpan(vm: VueSentry, timestamp: number, timeout: number): void {
-  if (vm.$_sentryRootSpanTimer) {
-    clearTimeout(vm.$_sentryRootSpanTimer);
+/** Finish top-level component span and activity with a debounce configured using `timeout` option */
+function finishRootComponentSpan(vm: VueSentry, timestamp: number, timeout: number): void {
+  if (vm.$_sentryRootComponentSpanTimer) {
+    clearTimeout(vm.$_sentryRootComponentSpanTimer);
   }
 
-  vm.$_sentryRootSpanTimer = setTimeout(() => {
-    if (vm.$root?.$_sentryRootSpan) {
-      vm.$root.$_sentryRootSpan.end(timestamp);
-      vm.$root.$_sentryRootSpan = undefined;
+  vm.$_sentryRootComponentSpanTimer = setTimeout(() => {
+    if (vm.$root?.$_sentryRootComponentSpan) {
+      vm.$root.$_sentryRootComponentSpan.end(timestamp);
+      vm.$root.$_sentryRootComponentSpan = undefined;
     }
   }, timeout);
 }
@@ -77,12 +77,12 @@ export const createTracingMixins = (options: Partial<TracingOptions> = {}): Mixi
 
     for (const internalHook of internalHooks) {
       mixins[internalHook] = function (this: VueSentry) {
-        const isRoot = this.$root === this;
+        const isRootComponent = this.$root === this;
 
-        // 1. Root span creation
-        if (isRoot) {
-          this.$_sentryRootSpan =
-            this.$_sentryRootSpan ||
+        // 1. Root Component span creation
+        if (isRootComponent) {
+          this.$_sentryRootComponentSpan =
+            this.$_sentryRootComponentSpan ||
             startInactiveSpan({
               name: 'Application Render',
               op: `${VUE_OP}.render`,
@@ -97,7 +97,7 @@ export const createTracingMixins = (options: Partial<TracingOptions> = {}): Mixi
         const componentName = formatComponentName(this, false);
 
         const shouldTrack =
-          isRoot || // We always want to track the root component
+          isRootComponent || // We always want to track the root component
           (Array.isArray(options.trackComponents)
             ? findTrackComponent(options.trackComponents, componentName)
             : options.trackComponents);
@@ -106,11 +106,11 @@ export const createTracingMixins = (options: Partial<TracingOptions> = {}): Mixi
           return;
         }
 
-        this.$_sentrySpans = this.$_sentrySpans || {};
+        this.$_sentryComponentSpans = this.$_sentryComponentSpans || {};
 
         // 3. Span lifecycle management based on the hook type
         const isBeforeHook = internalHook === internalHooks[0];
-        const activeSpan = this.$root?.$_sentryRootSpan || getActiveSpan();
+        const activeSpan = this.$root?.$_sentryRootComponentSpan || getActiveSpan();
 
         if (isBeforeHook) {
           // Starting a new span in the "before" hook
@@ -119,12 +119,12 @@ export const createTracingMixins = (options: Partial<TracingOptions> = {}): Mixi
             // We're actually not sure if it will ever be the case that cleanup hooks were not called.
             // However, we had users report that spans didn't get finished, so we finished the span before
             // starting a new one, just to be sure.
-            const oldSpan = this.$_sentrySpans[operation];
+            const oldSpan = this.$_sentryComponentSpans[operation];
             if (oldSpan) {
               oldSpan.end();
             }
 
-            this.$_sentrySpans[operation] = startInactiveSpan({
+            this.$_sentryComponentSpans[operation] = startInactiveSpan({
               name: `Vue ${componentName}`,
               op: `${VUE_OP}.${operation}`,
               attributes: {
@@ -136,14 +136,14 @@ export const createTracingMixins = (options: Partial<TracingOptions> = {}): Mixi
           }
         } else {
           // The span should already be added via the first handler call (in the 'before' hook)
-          const span = this.$_sentrySpans[operation];
+          const span = this.$_sentryComponentSpans[operation];
           // The before hook did not start the tracking span, so the span was not added.
           // This is probably because it happened before there is an active transaction
           if (!span) return; // Skip if no span was created in the "before" hook
           span.end();
 
-          // For any "after" hook, also schedule the root span to finish
-          finishRootSpan(this, timestampInSeconds(), options.timeout || 2000);
+          // For any "after" hook, also schedule the root component span to finish
+          finishRootComponentSpan(this, timestampInSeconds(), options.timeout || 2000);
         }
       };
     }
