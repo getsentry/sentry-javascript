@@ -27,6 +27,10 @@ web-vitals only report once per pageload.
 
 ## CHANGELOG
 
+TODO PR URL
+
+- Bumped from Web Vitals 4.2.5 to 5.0.2
+
 https://github.com/getsentry/sentry-javascript/pull/14439
 
 - Bumped from Web Vitals v3.5.2 to v4.2.4

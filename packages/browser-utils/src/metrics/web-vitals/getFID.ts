@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * // Sentry: web-vitals removed FID reporting from v5. We're keeping it around
+ * for the time being.
+ * // TODO(v10): Remove FID reporting!
  */
 
 import { bindReporter } from './lib/bindReporter';
