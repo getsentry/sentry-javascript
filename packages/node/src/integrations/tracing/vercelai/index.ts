@@ -13,17 +13,18 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
 } from './attributes';
+import { INTEGRATION_NAME } from './constants';
 import { SentryVercelAiInstrumentation } from './instrumentation';
-
-const INTEGRATION_NAME = 'VercelAI';
+import type { VercelAiOptions } from './types';
 
 export const instrumentVercelAi = generateInstrumentOnce(INTEGRATION_NAME, () => new SentryVercelAiInstrumentation({}));
 
-const _vercelAIIntegration = (() => {
+const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
   let instrumentation: undefined | SentryVercelAiInstrumentation;
 
   return {
     name: INTEGRATION_NAME,
+    options,
     setupOnce() {
       instrumentation = instrumentVercelAi();
     },
