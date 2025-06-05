@@ -114,7 +114,7 @@ describe('Vue Tracing Mixins', () => {
   });
 
   describe('Root Component Behavior', () => {
-    it('should always create a span for the Vue root component regardless of tracking options', () => {
+    it('should always create a root component span for the Vue root component regardless of tracking options', () => {
       const mixins = createTracingMixins({ trackComponents: false });
 
       mixins.beforeMount.call(mockRootInstance);
@@ -127,8 +127,8 @@ describe('Vue Tracing Mixins', () => {
       );
     });
 
-    it('should finish root span on timer after component spans end', () => {
-      // todo/fixme: This root span is only finished if trackComponents is true --> it should probably be always finished
+    it('should finish root component span on timer after component spans end', () => {
+      // todo/fixme: This root component span is only finished if trackComponents is true --> it should probably be always finished
       const mixins = createTracingMixins({ trackComponents: true, timeout: 1000 });
       const rootMockSpan = mockSpanFactory();
       mockRootInstance.$_sentryRootSpan = rootMockSpan;
@@ -137,10 +137,10 @@ describe('Vue Tracing Mixins', () => {
       mixins.beforeMount.call(mockVueInstance);
       mixins.mounted.call(mockVueInstance);
 
-      // Root span should not end immediately
+      // Root component span should not end immediately
       expect(rootMockSpan.end).not.toHaveBeenCalled();
 
-      // After timeout, root span should end
+      // After timeout, root component span should end
       vi.advanceTimersByTime(1001);
       expect(rootMockSpan.end).toHaveBeenCalled();
     });
@@ -192,7 +192,7 @@ describe('Vue Tracing Mixins', () => {
       expect(() => mixins.mounted.call(mockVueInstance)).not.toThrow();
     });
 
-    it('should skip spans when no active root span (transaction) exists', () => {
+    it('should skip spans when no active root component span (transaction) exists', () => {
       const mixins = createTracingMixins({ trackComponents: true });
 
       // Remove active spans
