@@ -46,14 +46,14 @@ describe('Vue Tracing Mixins', () => {
     mockRootInstance = {
       $root: null,
       componentName: 'RootComponent',
-      $_sentrySpans: {},
+      $_sentryComponentSpans: {},
     };
     mockRootInstance.$root = mockRootInstance; // Self-reference for root
 
     mockVueInstance = {
       $root: mockRootInstance,
       componentName: 'TestComponent',
-      $_sentrySpans: {},
+      $_sentryComponentSpans: {},
     };
 
     (getActiveSpan as any).mockReturnValue({ id: 'parent-span' });
@@ -131,7 +131,7 @@ describe('Vue Tracing Mixins', () => {
       // todo/fixme: This root component span is only finished if trackComponents is true --> it should probably be always finished
       const mixins = createTracingMixins({ trackComponents: true, timeout: 1000 });
       const rootMockSpan = mockSpanFactory();
-      mockRootInstance.$_sentryRootSpan = rootMockSpan;
+      mockRootInstance.$_sentryRootComponentSpan = rootMockSpan;
 
       // Create and finish a component span
       mixins.beforeMount.call(mockVueInstance);
@@ -160,10 +160,10 @@ describe('Vue Tracing Mixins', () => {
           op: 'ui.vue.mount',
         }),
       );
-      expect(mockVueInstance.$_sentrySpans.mount).toBeDefined();
+      expect(mockVueInstance.$_sentryComponentSpans.mount).toBeDefined();
 
       // 2. Get the span for verification
-      const componentSpan = mockVueInstance.$_sentrySpans.mount;
+      const componentSpan = mockVueInstance.$_sentryComponentSpans.mount;
 
       // 3. End span in "after" hook
       mixins.mounted.call(mockVueInstance);
@@ -175,14 +175,14 @@ describe('Vue Tracing Mixins', () => {
 
       // Create an existing span first
       const oldSpan = mockSpanFactory();
-      mockVueInstance.$_sentrySpans.mount = oldSpan;
+      mockVueInstance.$_sentryComponentSpans.mount = oldSpan;
 
       // Create a new span for the same operation
       mixins.beforeMount.call(mockVueInstance);
 
       // Verify old span was ended and new span was created
       expect(oldSpan.end).toHaveBeenCalled();
-      expect(mockVueInstance.$_sentrySpans.mount).not.toBe(oldSpan);
+      expect(mockVueInstance.$_sentryComponentSpans.mount).not.toBe(oldSpan);
     });
 
     it('should gracefully handle when "after" hook is called without "before" hook', () => {
@@ -197,7 +197,7 @@ describe('Vue Tracing Mixins', () => {
 
       // Remove active spans
       (getActiveSpan as any).mockReturnValue(null);
-      mockRootInstance.$_sentryRootSpan = null;
+      mockRootInstance.$_sentryRootComponentSpan = null;
 
       // Try to create a span
       mixins.beforeMount.call(mockVueInstance);
