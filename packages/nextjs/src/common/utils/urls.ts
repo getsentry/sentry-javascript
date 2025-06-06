@@ -21,10 +21,7 @@ function substituteRouteParams(path: string, params?: ComponentRouteParams): str
 
   let resultPath = path;
   for (const [key, value] of Object.entries(params)) {
-    const paramPattern = /\[([^\]]+)\]/g;
-    resultPath = resultPath.replace(paramPattern, (match, paramName) => {
-      return paramName === key ? encodeURIComponent(value) : match;
-    });
+    resultPath = resultPath.split(`[${key}]`).join(encodeURIComponent(value));
   }
   return resultPath;
 }
@@ -35,12 +32,14 @@ function substituteRouteParams(path: string, params?: ComponentRouteParams): str
  * @returns The normalized path
  */
 function sanitizeRoutePath(path: string): string {
-  const normalizedPath = path
-    .replace(/\([^)]+\)/g, '') // Remove route groups
-    .replace(/\/{2,}/g, '/') // Normalize multiple slashes
-    .replace(/\/$/, ''); // Remove trailing slash
+  const withoutGroups = path
+    .split(/\([^)]*\)/)
+    .join('')
+    .split('/')
+    .filter(Boolean)
+    .join('/');
 
-  return normalizedPath || '/'; // Ensure root path is '/'
+  return withoutGroups ? `/${withoutGroups}` : '/';
 }
 
 /**
