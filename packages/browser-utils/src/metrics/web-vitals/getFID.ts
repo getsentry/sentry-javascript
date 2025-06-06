@@ -64,6 +64,7 @@ export const onFID = (onReport: (metric: FIDMetric) => void, opts: ReportOpts = 
     report = bindReporter(onReport, metric, FIDThresholds, opts.reportAllChanges);
 
     if (po) {
+      // sentry: TODO: Figure out if we can use new whinIdleOrHidden insteard of onHidden
       onHidden(
         runOnce(() => {
           handleEntries(po.takeRecords() as FIDMetric['entries']);

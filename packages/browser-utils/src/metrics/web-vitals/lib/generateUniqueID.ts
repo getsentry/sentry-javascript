@@ -20,5 +20,5 @@
  * @return {string}
  */
 export const generateUniqueID = () => {
-  return `v4-${Date.now()}-${Math.floor(Math.random() * (9e12 - 1)) + 1e12}`;
+  return `v5-${Date.now()}-${Math.floor(Math.random() * (9e12 - 1)) + 1e12}`;
 };
