@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import { WINDOW } from '../../types';
 import { bindReporter } from './lib/bindReporter';
 import { initMetric } from './lib/initMetric';
 import { initUnique } from './lib/initUnique';
