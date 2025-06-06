@@ -68,7 +68,7 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
         const params = props && typeof props === 'object' && 'params' in props ? props.params : undefined;
         const searchParams =
           props && typeof props === 'object' && 'searchParams' in props ? props.searchParams : undefined;
-        data = { params, searchParams } as Record<string, unknown>;
+        data = { params, searchParams }
       }
 
       return withIsolationScope(isolationScope, () => {
