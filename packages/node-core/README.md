@@ -26,29 +26,54 @@ Unlike the `@sentry/node` SDK, this SDK comes with no OpenTelemetry auto-instrum
 ## Installation
 
 ```bash
-npm install @sentry/node-core @opentelemetry/api @opentelemetry/core @opentelemetry/context-async-hooks @opentelemetry/instrumentation@0.200.0 @opentelemetry/resources @opentelemetry/sdk-trace-base @opentelemetry/semantic-conventions
+npm install @sentry/node-core @sentry/opentelemetry @opentelemetry/api @opentelemetry/core @opentelemetry/context-async-hooks @opentelemetry/instrumentation @opentelemetry/resources @opentelemetry/sdk-trace-base @opentelemetry/semantic-conventions
 
 # Or yarn
-yarn add @sentry/node-core @opentelemetry/api @opentelemetry/core @opentelemetry/context-async-hooks @opentelemetry/instrumentation@0.200.0 @opentelemetry/resources @opentelemetry/sdk-trace-base @opentelemetry/semantic-conventions
+yarn add @sentry/node-core @sentry/opentelemetry @opentelemetry/api @opentelemetry/core @opentelemetry/context-async-hooks @opentelemetry/instrumentation @opentelemetry/resources @opentelemetry/sdk-trace-base @opentelemetry/semantic-conventions
 ```
 
 ## Usage
 
 Sentry should be initialized as early in your app as possible. It is essential that you call `Sentry.init` before you
-require any other modules in your application, otherwise any auto-instrumentation of these modules will **not** work.
+require any other modules in your application, otherwise any auto-instrumentation will **not** work.
+You also need to set up OpenTelemetry, if you prefer not to, consider using the `@sentry/node` SDK instead.
 
 You need to create a file named `instrument.js` that imports and initializes Sentry:
 
 ```js
 // CJS Syntax
+const { NodeTracerProvider } = require('@opentelemetry/sdk-trace-node');
 const Sentry = require('@sentry/node-core');
+const { SentrySpanProcessor, SentryPropagator, SentrySampler } = require('@sentry/opentelemetry');
 // ESM Syntax
+import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import * as Sentry from '@sentry/node-core';
+import { SentrySpanProcessor, SentryPropagator, SentrySampler } from '@sentry/opentelemetry';
 
-Sentry.init({
+const sentryClient = Sentry.init({
   dsn: '__DSN__',
   // ...
 });
+
+// Note: This could be BasicTracerProvider or any other provider depending on how you want to use the
+// OpenTelemetry SDK
+const provider = new NodeTracerProvider({
+  // Ensure the correct subset of traces is sent to Sentry
+  // This also ensures trace propagation works as expected
+  sampler: sentryClient ? new SentrySampler(sentryClient) : undefined,
+  spanProcessors: [
+    // Ensure spans are correctly linked & sent to Sentry
+    new SentrySpanProcessor(),
+    // Add additional processors here
+  ],
+});
+
+provider.register({
+  propagator: new SentryPropagator(),
+  contextManager: new Sentry.SentryContextManager(),
+});
+
+Sentry.validateOpenTelemetrySetup();
 ```
 
 You need to require or import the `instrument.js` file before importing any other modules in your application. This is

@@ -1,10 +1,10 @@
 import { context, propagation, trace } from '@opentelemetry/api';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
-import type { NodeClient } from '@sentry/node-core';
+import type { Client } from '@sentry/core';
 import * as Sentry from '@sentry/node-core';
 import { SentryPropagator, SentrySampler, SentrySpanProcessor } from '@sentry/opentelemetry';
 
-export function setupOtel(client: NodeClient | undefined): BasicTracerProvider {
+export function setupOtel(client: Client | undefined): BasicTracerProvider {
   const provider = new BasicTracerProvider({
     sampler: client ? new SentrySampler(client) : undefined,
     spanProcessors: [new SentrySpanProcessor()],

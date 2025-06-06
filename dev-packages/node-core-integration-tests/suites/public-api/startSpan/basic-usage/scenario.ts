@@ -7,11 +7,6 @@ const client = Sentry.init({
   release: '1.0',
   tracesSampleRate: 1.0,
   transport: loggingTransport,
-  debug: true,
-  beforeSendTransaction: transaction => {
-    console.log('beforeSendTransaction', transaction);
-    return transaction;
-  },
 });
 
 setupOtel(client);
