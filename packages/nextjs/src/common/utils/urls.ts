@@ -1,17 +1,9 @@
-import { parseStringToURLObject, getSanitizedUrlStringFromUrlObject } from '@sentry/core';
+import { getSanitizedUrlStringFromUrlObject, parseStringToURLObject } from '@sentry/core';
 
-/**
- * Type definition for component route parameters
- */
 type ComponentRouteParams = Record<string, string> | undefined;
-
-/**
- * Type definition for headers dictionary
- */
 type HeadersDict = Record<string, string> | undefined;
 
-
-const HEADER_KEYS = {
+const HeaderKeys = {
   FORWARDED_PROTO: 'x-forwarded-proto',
   FORWARDED_HOST: 'x-forwarded-host',
   HOST: 'host',
@@ -27,11 +19,14 @@ const HEADER_KEYS = {
 function substituteRouteParams(path: string, params?: ComponentRouteParams): string {
   if (!params || typeof params !== 'object') return path;
 
+  let resultPath = path;
   for (const [key, value] of Object.entries(params)) {
-    const regex = new RegExp(`\\[${key}\\]`, 'g');
-    path = path.replace(regex, encodeURIComponent(value));
+    const paramPattern = /\[([^\]]+)\]/g;
+    resultPath = resultPath.replace(paramPattern, (match, paramName) => {
+      return paramName === key ? encodeURIComponent(value) : match;
+    });
   }
-  return path;
+  return resultPath;
 }
 
 /**
@@ -40,11 +35,12 @@ function substituteRouteParams(path: string, params?: ComponentRouteParams): str
  * @returns The normalized path
  */
 function sanitizeRoutePath(path: string): string {
-  return path
+  const normalizedPath = path
     .replace(/\([^)]+\)/g, '') // Remove route groups
-    .replace(/\/{2,}/g, '/')   // Normalize multiple slashes
-    .replace(/\/$/, '')        // Remove trailing slash
-    || '/';                    // Ensure root path is '/'
+    .replace(/\/{2,}/g, '/') // Normalize multiple slashes
+    .replace(/\/$/, ''); // Remove trailing slash
+
+  return normalizedPath || '/'; // Ensure root path is '/'
 }
 
 /**
@@ -67,8 +63,8 @@ export function buildUrlFromComponentRoute(
   // spans like generateMetadata and Server Component rendering, are normally direct children of the root http.server span
   const path = pathname ?? sanitizeRoutePath(parameterisedPath);
 
-  const protocol = headersDict?.[HEADER_KEYS.FORWARDED_PROTO];
-  const host = headersDict?.[HEADER_KEYS.FORWARDED_HOST] || headersDict?.[HEADER_KEYS.HOST];
+  const protocol = headersDict?.[HeaderKeys.FORWARDED_PROTO];
+  const host = headersDict?.[HeaderKeys.FORWARDED_HOST] || headersDict?.[HeaderKeys.HOST];
 
   if (!protocol || !host) {
     return path;
@@ -91,7 +87,7 @@ export function buildUrlFromComponentRoute(
  * @returns A sanitized URL string or undefined if referer is missing/invalid
  */
 export function extractSanitizedUrlFromRefererHeader(headersDict?: HeadersDict): string | undefined {
-  const referer = headersDict?.[HEADER_KEYS.REFERER];
+  const referer = headersDict?.[HeaderKeys.REFERER];
   if (!referer) {
     return undefined;
   }

@@ -1,4 +1,3 @@
-
 import { describe, expect, it } from 'vitest';
 import {
   buildUrlFromComponentRoute,
@@ -20,7 +19,11 @@ describe('URL Utilities', () => {
     });
 
     it('should handle route parameters', () => {
-      const result = buildUrlFromComponentRoute('/users/[id]/posts/[postId]', { id: '123', postId: '456' }, mockHeaders);
+      const result = buildUrlFromComponentRoute(
+        '/users/[id]/posts/[postId]',
+        { id: '123', postId: '456' },
+        mockHeaders,
+      );
       expect(result).toBe('https://example.com/users/123/posts/456');
     });
 
@@ -147,4 +150,3 @@ describe('URL Utilities', () => {
     });
   });
 });
-

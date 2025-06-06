@@ -78,7 +78,12 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
           isolationScope.setSDKProcessingMetadata({
             normalizedRequest: {
               headers: headersDict,
-              url: getSanitizedRequestUrl(componentRoute, data?.params as Record<string, string> | undefined, headersDict, pathname),
+              url: getSanitizedRequestUrl(
+                componentRoute,
+                data?.params as Record<string, string> | undefined,
+                headersDict,
+                pathname,
+              ),
             } satisfies RequestEventData,
           });
 

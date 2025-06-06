@@ -54,7 +54,7 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
         const spanData = spanToJSON(rootSpan);
 
         if (spanData.data && 'http.target' in spanData.data) {
-          pathname = spanData.data['http.target']?.toString()
+          pathname = spanData.data['http.target']?.toString();
         }
       }
 
@@ -64,7 +64,10 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
 
       if (getClient()?.getOptions().sendDefaultPii) {
         const props: unknown = args[0];
-        params = props && typeof props === 'object' && 'params' in props ? (props.params as Record<string, string>) : undefined;
+        params =
+          props && typeof props === 'object' && 'params' in props
+            ? (props.params as Record<string, string>)
+            : undefined;
       }
 
       isolationScope.setSDKProcessingMetadata({
