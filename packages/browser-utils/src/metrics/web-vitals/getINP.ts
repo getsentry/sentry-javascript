@@ -121,10 +121,8 @@ export const onINP = (onReport: (metric: INPMetric) => void, opts: INPReportOpts
       // because some browsers we still support (Safari <14.4) don't fully support
       // `visibilitychange` or have known bugs w.r.t the `visibilitychange` event.
       onHidden(() => {
-        if (WINDOW.document?.visibilityState === 'hidden') {
-          handleEntries(po.takeRecords() as INPMetric['entries']);
-          report(true);
-        }
+        handleEntries(po.takeRecords() as INPMetric['entries']);
+        report(true);
       });
     }
   });

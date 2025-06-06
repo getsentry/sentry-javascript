@@ -15,6 +15,7 @@
  */
 
 import { WINDOW } from '../../../types.js';
+import { onHidden } from './onHidden.js';
 import { runOnce } from './runOnce.js';
 
 /**
@@ -32,6 +33,9 @@ export const whenIdleOrHidden = (cb: () => void) => {
     // eslint-disable-next-line no-param-reassign
     cb = runOnce(cb);
     rIC(cb);
-    WINDOW.document?.addEventListener('visibilitychange', cb, { once: true });
+    // sentry: we use onHidden instead of directly listening to visibilitychange
+    // because some browsers we still support (Safari <14.4) don't fully support
+    // `visibilitychange` or have known bugs w.r.t the `visibilitychange` event.
+    onHidden(cb);
   }
 };
