@@ -3,6 +3,7 @@ import type { SpanEnvelope } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import {
   getMultipleSentryEnvelopeRequests,
+  hidePage,
   properFullEnvelopeRequestParser,
   shouldSkipTracingTest,
 } from '../../../../utils/helpers';
@@ -33,9 +34,7 @@ sentryTest(
     await page.waitForTimeout(500);
 
     // Page hide to trigger INP
-    await page.evaluate(() => {
-      window.dispatchEvent(new Event('pagehide'));
-    });
+    await hidePage(page);
 
     // Get the INP span envelope
     const spanEnvelope = (await spanEnvelopePromise)[0];
