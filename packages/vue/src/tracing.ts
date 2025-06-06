@@ -31,8 +31,8 @@ const HOOKS: { [key in Operation]: Hook[] } = {
   update: ['beforeUpdate', 'updated'],
 };
 
-/** Finish top-level component span and activity with a debounce configured using `timeout` option */
-function finishRootComponentSpan(vm: VueSentry, timestamp: number, timeout: number): void {
+/** End the top-level component span and activity with a debounce configured using `timeout` option */
+function maybeEndRootComponentSpan(vm: VueSentry, timestamp: number, timeout: number): void {
   if (vm.$_sentryRootComponentSpanTimer) {
     clearTimeout(vm.$_sentryRootComponentSpanTimer);
   }
@@ -66,6 +66,8 @@ export const createTracingMixins = (options: Partial<TracingOptions> = {}): Mixi
 
   const mixins: Mixins = {};
 
+  const rootComponentSpanFinalTimeout = options.timeout || 2000;
+
   for (const operation of hooks) {
     // Retrieve corresponding hooks from Vue lifecycle.
     // eg. mount => ['beforeMount', 'mounted']
@@ -91,6 +93,9 @@ export const createTracingMixins = (options: Partial<TracingOptions> = {}): Mixi
               },
               onlyIfParent: true,
             });
+
+          // call debounced end function once directly, just in case no child components call it
+          maybeEndRootComponentSpan(this, timestampInSeconds(), rootComponentSpanFinalTimeout);
         }
 
         // 2. Component tracking filter
@@ -102,7 +107,10 @@ export const createTracingMixins = (options: Partial<TracingOptions> = {}): Mixi
             ? findTrackComponent(options.trackComponents, componentName)
             : options.trackComponents);
 
+        // We always want to track root component
         if (!shouldTrack) {
+          // even if we don't track `this` component, we still want to end the root span eventually
+          maybeEndRootComponentSpan(this, timestampInSeconds(), rootComponentSpanFinalTimeout);
           return;
         }
 
@@ -117,7 +125,7 @@ export const createTracingMixins = (options: Partial<TracingOptions> = {}): Mixi
           if (activeSpan) {
             // Cancel any existing span for this operation (safety measure)
             // We're actually not sure if it will ever be the case that cleanup hooks were not called.
-            // However, we had users report that spans didn't get finished, so we finished the span before
+            // However, we had users report that spans didn't end, so we end the span before
             // starting a new one, just to be sure.
             const oldSpan = this.$_sentryComponentSpans[operation];
             if (oldSpan) {
@@ -142,8 +150,8 @@ export const createTracingMixins = (options: Partial<TracingOptions> = {}): Mixi
           if (!span) return; // Skip if no span was created in the "before" hook
           span.end();
 
-          // For any "after" hook, also schedule the root component span to finish
-          finishRootComponentSpan(this, timestampInSeconds(), options.timeout || 2000);
+          // For any "after" hook, also schedule the root component span to end
+          maybeEndRootComponentSpan(this, timestampInSeconds(), rootComponentSpanFinalTimeout);
         }
       };
     }
