@@ -4,6 +4,8 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+Work in this release was contributed by @agrattan0820. Thank you for your contribution!
+
 ## 9.27.0
 
 - feat(node): Expand how vercel ai input/outputs can be set ([#16455](https://github.com/getsentry/sentry-javascript/pull/16455))
