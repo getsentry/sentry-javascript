@@ -59,6 +59,25 @@ describe('flags', () => {
       ]);
     });
 
+    it('drops new entries when allowEviction is false and buffer is full', () => {
+      const buffer: FeatureFlag[] = [];
+      const maxSize = 0;
+      insertToFlagBuffer(buffer, 'feat1', true, maxSize, false);
+      insertToFlagBuffer(buffer, 'feat2', true, maxSize, false);
+      insertToFlagBuffer(buffer, 'feat3', true, maxSize, false);
+
+      expect(buffer).toEqual([]);
+    });
+
+    it('still updates order and values when allowEviction is false and buffer is full', () => {
+      const buffer: FeatureFlag[] = [];
+      const maxSize = 1;
+      insertToFlagBuffer(buffer, 'feat1', false, maxSize, false);
+      insertToFlagBuffer(buffer, 'feat1', true, maxSize, false);
+
+      expect(buffer).toEqual([{ flag: 'feat1', result: true }]);
+    });
+
     it('does not allocate unnecessary space', () => {
       const buffer: FeatureFlag[] = [];
       const maxSize = 1000;

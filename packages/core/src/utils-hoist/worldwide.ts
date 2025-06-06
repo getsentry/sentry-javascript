@@ -14,7 +14,9 @@
 
 import type { Carrier } from '../carrier';
 import type { Client } from '../client';
+import type { FeatureFlag } from '../featureFlags';
 import type { SerializedLog } from '../types-hoist/log';
+import type { Span } from '../types-hoist/span';
 import type { SdkSource } from './env';
 
 /** Internal global with common properties and Sentry extensions  */
@@ -56,6 +58,10 @@ export type InternalGlobal = {
    */
   _sentryModuleMetadata?: Record<string, any>;
   _sentryEsmLoaderHookRegistered?: boolean;
+  /**
+   * A map of spans to feature flag buffers. Populated by feature flag integrations.
+   */
+  _spanToFlagBufferMap?: WeakMap<Span, FeatureFlag[]>;
 } & Carrier;
 
 /** Get's the global object for the current JavaScript runtime */

@@ -1,10 +1,15 @@
-import type { Client, Event, EventHint, IntegrationFn } from '@sentry/core';
+import type { Client, Event, EventHint, IntegrationFn, Span } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
-import { copyFlagsFromScopeToEvent, insertFlagToScope } from '../../../utils/featureFlags';
+import {
+  bufferSpanFeatureFlag,
+  copyFlagsFromScopeToEvent,
+  freezeSpanFeatureFlags,
+  insertFlagToScope,
+} from '../../../utils/featureFlags';
 import type { LDContext, LDEvaluationDetail, LDInspectionFlagUsedHandler } from './types';
 
 /**
- * Sentry integration for capturing feature flags from LaunchDarkly.
+ * Sentry integration for capturing feature flag evaluations from LaunchDarkly.
  *
  * See the [feature flag documentation](https://develop.sentry.dev/sdk/expected-features/#feature-flags) for more information.
  *
@@ -22,6 +27,12 @@ export const launchDarklyIntegration = defineIntegration(() => {
   return {
     name: 'LaunchDarkly',
 
+    setup(client: Client) {
+      client.on('spanEnd', (span: Span) => {
+        freezeSpanFeatureFlags(span);
+      });
+    },
+
     processEvent(event: Event, _hint: EventHint, _client: Client): Event {
       return copyFlagsFromScopeToEvent(event);
     },
@@ -29,10 +40,10 @@ export const launchDarklyIntegration = defineIntegration(() => {
 }) satisfies IntegrationFn;
 
 /**
- * LaunchDarkly hook that listens for flag evaluations and updates the `flags`
- * context in our Sentry scope. This needs to be registered as an
- * 'inspector' in LaunchDarkly initialize() options, separately from
- * `launchDarklyIntegration`. Both are needed to collect feature flags on error.
+ * LaunchDarkly hook to listen for and buffer flag evaluations. This needs to
+ * be registered as an 'inspector' in LaunchDarkly initialize() options,
+ * separately from `launchDarklyIntegration`. Both the hook and the integration
+ * are needed to capture LaunchDarkly flags.
  */
 export function buildLaunchDarklyFlagUsedHandler(): LDInspectionFlagUsedHandler {
   return {
@@ -46,6 +57,7 @@ export function buildLaunchDarklyFlagUsedHandler(): LDInspectionFlagUsedHandler 
      */
     method: (flagKey: string, flagDetail: LDEvaluationDetail, _context: LDContext) => {
       insertFlagToScope(flagKey, flagDetail.value);
+      bufferSpanFeatureFlag(flagKey, flagDetail.value);
     },
   };
 }
