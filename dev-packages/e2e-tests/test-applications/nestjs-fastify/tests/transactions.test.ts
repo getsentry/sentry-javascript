@@ -116,36 +116,6 @@ test('Sends an API route transaction', async ({ baseURL }) => {
           span_id: expect.stringMatching(/[a-f0-9]{16}/),
           trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           data: {
-            'sentry.origin': 'auto.middleware.nestjs',
-            'sentry.op': 'middleware.nestjs',
-          },
-          description: 'SentryTracingInterceptor',
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          start_timestamp: expect.any(Number),
-          timestamp: expect.any(Number),
-          status: 'ok',
-          op: 'middleware.nestjs',
-          origin: 'auto.middleware.nestjs',
-        },
-        {
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          data: {
-            'sentry.origin': 'auto.middleware.nestjs',
-            'sentry.op': 'middleware.nestjs',
-          },
-          description: 'SentryTracingInterceptor',
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          start_timestamp: expect.any(Number),
-          timestamp: expect.any(Number),
-          status: 'ok',
-          op: 'middleware.nestjs',
-          origin: 'auto.middleware.nestjs',
-        },
-        {
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          data: {
             'sentry.origin': 'auto.http.otel.nestjs',
             'sentry.op': 'handler.nestjs',
             component: '@nestjs/core',
@@ -183,29 +153,19 @@ test('Sends an API route transaction', async ({ baseURL }) => {
           status: 'ok',
           origin: 'manual',
         },
-        {
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          data: {
-            'sentry.origin': 'auto.middleware.nestjs',
-            'sentry.op': 'middleware.nestjs',
-          },
-          description: 'Interceptors - After Route',
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          start_timestamp: expect.any(Number),
-          timestamp: expect.any(Number),
-          status: 'ok',
-          op: 'middleware.nestjs',
-          origin: 'auto.middleware.nestjs',
-        },
       ]),
+      start_timestamp: expect.any(Number),
+      timestamp: expect.any(Number),
       transaction: 'GET /test-transaction',
-      type: 'transaction',
       transaction_info: {
         source: 'route',
       },
+      type: 'transaction',
     }),
   );
+
+  const spanDescriptions = transactionEvent.spans.map(span => span.description);
+  expect(spanDescriptions).not.toContain('SentryTracingInterceptor');
 });
 
 test('API route transaction includes nest middleware span. Spans created in and after middleware are nested correctly', async ({
