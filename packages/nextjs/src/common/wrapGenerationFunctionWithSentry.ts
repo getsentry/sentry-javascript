@@ -13,6 +13,7 @@ import {
   setCapturedScopesOnSpan,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
+  spanToJSON,
   startSpanManual,
   winterCGHeadersToDict,
   withIsolationScope,
@@ -22,7 +23,7 @@ import type { GenerationFunctionContext } from '../common/types';
 import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
 import { TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL } from './span-attributes-with-logic-attached';
 import { commonObjectToIsolationScope, commonObjectToPropagationContext } from './utils/tracingUtils';
-
+import { getSanitizedRequestUrl } from './utils/urls';
 /**
  * Wraps a generation function (e.g. generateMetadata) with Sentry error and performance instrumentation.
  */
@@ -44,13 +45,22 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
       }
 
       const isolationScope = commonObjectToIsolationScope(headers);
+      let pathname = undefined as string | undefined;
 
       const activeSpan = getActiveSpan();
       if (activeSpan) {
         const rootSpan = getRootSpan(activeSpan);
         const { scope } = getCapturedScopesOnSpan(rootSpan);
         setCapturedScopesOnSpan(rootSpan, scope ?? new Scope(), isolationScope);
+
+        const spanData = spanToJSON(rootSpan);
+
+        if (spanData.data && 'http.target' in spanData.data) {
+          pathname = spanData.data['http.target'] as string;
+        }
       }
+
+      const headersDict = headers ? winterCGHeadersToDict(headers) : undefined;
 
       let data: Record<string, unknown> | undefined = undefined;
       if (getClient()?.getOptions().sendDefaultPii) {
@@ -58,10 +68,8 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
         const params = props && typeof props === 'object' && 'params' in props ? props.params : undefined;
         const searchParams =
           props && typeof props === 'object' && 'searchParams' in props ? props.searchParams : undefined;
-        data = { params, searchParams };
+        data = { params, searchParams } as Record<string, unknown>;
       }
-
-      const headersDict = headers ? winterCGHeadersToDict(headers) : undefined;
 
       return withIsolationScope(isolationScope, () => {
         return withScope(scope => {
@@ -70,6 +78,7 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
           isolationScope.setSDKProcessingMetadata({
             normalizedRequest: {
               headers: headersDict,
+              url: getSanitizedRequestUrl(componentRoute, data?.params as Record<string, string> | undefined, headersDict, pathname),
             } satisfies RequestEventData,
           });
 
