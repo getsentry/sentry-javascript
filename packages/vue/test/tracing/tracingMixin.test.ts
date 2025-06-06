@@ -128,8 +128,8 @@ describe('Vue Tracing Mixins', () => {
 
     it.each([true, false])(
       'should finish root component span on timer after component spans end, if trackComponents is %s',
-      () => {
-        const mixins = createTracingMixins({ trackComponents: false, timeout: 1000 });
+      trackComponents => {
+        const mixins = createTracingMixins({ trackComponents, timeout: 1000 });
         const rootMockSpan = mockSpanFactory();
         mockRootInstance.$_sentryRootComponentSpan = rootMockSpan;
 
