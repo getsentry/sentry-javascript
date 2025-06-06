@@ -54,10 +54,10 @@ export function buildUrlFromComponentRoute(
   headersDict?: HeadersDict,
   pathname?: string,
 ): string {
-  const parameterisedPath = substituteRouteParams(componentRoute, params);
-  // pathname has precedence over the parameterised path if it exists
-  // spans like generateMetadata and Server Component rendering, are normally direct children of the root http.server span
-  const path = pathname ?? sanitizeRoutePath(parameterisedPath);
+  const parameterizedPath = substituteRouteParams(componentRoute, params);
+  // If available, the pathname from the http.target of the HTTP request server span takes precedence over the parameterized path.
+  // Spans such as generateMetadata and Server Component rendering are typically direct children of that span.
+  const path = pathname ?? sanitizeRoutePath(parameterizedPath);
 
   const protocol = headersDict?.[HeaderKeys.FORWARDED_PROTO];
   const host = headersDict?.[HeaderKeys.FORWARDED_HOST] || headersDict?.[HeaderKeys.HOST];
