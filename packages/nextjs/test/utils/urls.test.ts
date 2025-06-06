@@ -3,6 +3,8 @@ import {
   buildUrlFromComponentRoute,
   extractSanitizedUrlFromRefererHeader,
   getSanitizedRequestUrl,
+  sanitizeRoutePath,
+  substituteRouteParams,
 } from '../../src/common/utils/urls';
 
 describe('URL Utilities', () => {
@@ -147,6 +149,45 @@ describe('URL Utilities', () => {
     it('should handle undefined headers', () => {
       const result = getSanitizedRequestUrl('/test', undefined, undefined);
       expect(result).toBe('/test');
+    });
+  });
+
+  describe('sanitizeRoutePath', () => {
+    it('should handle root path', () => {
+      const result = sanitizeRoutePath('');
+      expect(result).toBe('/');
+    });
+
+    it('should handle multiple slashes', () => {
+      const result = sanitizeRoutePath('////foo///bar');
+      expect(result).toBe('/foo/bar');
+    });
+
+    it('should handle route groups', () => {
+      const result = sanitizeRoutePath('/products/(auth)/details');
+      expect(result).toBe('/products/details');
+    });
+  });
+
+  describe('substituteRouteParams', () => {
+    it('should handle route parameters', () => {
+      const result = substituteRouteParams('/users/[id]', { id: '123' });
+      expect(result).toBe('/users/123');
+    });
+
+    it('should handle multiple instances of the same parameter', () => {
+      const result = substituteRouteParams('/users/[id]/[id]/profile', { id: '123' });
+      expect(result).toBe('/users/123/123/profile');
+    });
+
+    it('should handle special characters in parameters', () => {
+      const result = substituteRouteParams('/search/[query]', { query: 'hello world' });
+      expect(result).toBe('/search/hello%20world');
+    });
+
+    it('should handle undefined parameters', () => {
+      const result = substituteRouteParams('/users/[id]', undefined);
+      expect(result).toBe('/users/[id]');
     });
   });
 });

@@ -16,7 +16,7 @@ const HeaderKeys = {
  * @param params - Optional route parameters to replace in the template
  * @returns The path with parameters replaced
  */
-function substituteRouteParams(path: string, params?: ComponentRouteParams): string {
+export function substituteRouteParams(path: string, params?: ComponentRouteParams): string {
   if (!params || typeof params !== 'object') return path;
 
   let resultPath = path;
@@ -31,15 +31,14 @@ function substituteRouteParams(path: string, params?: ComponentRouteParams): str
  * @param path - The path to normalize
  * @returns The normalized path
  */
-function sanitizeRoutePath(path: string): string {
-  const withoutGroups = path
-    .split(/\([^)]*\)/)
-    .join('')
+export function sanitizeRoutePath(path: string): string {
+  const cleanedPath = path
+    .replace(/\([^/]*?\)/g, '') // Safely remove route groups like (auth)
     .split('/')
-    .filter(Boolean)
+    .filter(Boolean) // Remove empty segments caused by double slashes
     .join('/');
 
-  return withoutGroups ? `/${withoutGroups}` : '/';
+  return cleanedPath ? `/${cleanedPath}` : '/';
 }
 
 /**
