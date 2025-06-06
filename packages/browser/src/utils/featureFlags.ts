@@ -104,7 +104,6 @@ export function insertToFlagBuffer(
       // If at capacity, pop the earliest flag - O(n)
       flags.shift();
     } else {
-
       return;
     }
   }

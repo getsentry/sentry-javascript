@@ -43,7 +43,7 @@ window.UnleashClient = class {
 // Not a mock UnleashClient class method since it needs to match the signature of the actual UnleashClient.
 window.setVariant = (client, featureName, variantName, isEnabled) => {
   client._featureToVariant[featureName] = { name: variantName, enabled: isEnabled, feature_enabled: isEnabled };
-}
+};
 
 window.Sentry = Sentry;
 window.sentryUnleashIntegration = Sentry.unleashIntegration({ featureFlagClientClass: window.UnleashClient });
@@ -57,4 +57,3 @@ Sentry.init({
     Sentry.browserTracingIntegration({ instrumentNavigation: false, instrumentPageLoad: false }),
   ],
 });
-
