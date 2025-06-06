@@ -1,7 +1,14 @@
 import type { ExecutionContext } from '@cloudflare/workers-types';
 import type { CloudflareOptions } from '@sentry/cloudflare';
-import { setAsyncLocalStorageAsyncContextStrategy, wrapRequestHandler } from '@sentry/cloudflare';
-import { getDefaultIsolationScope, getIsolationScope, logger } from '@sentry/core';
+import {
+  getActiveSpan,
+  getTraceData,
+  setAsyncLocalStorageAsyncContextStrategy,
+  spanToJSON,
+  wrapRequestHandler,
+} from '@sentry/cloudflare';
+import { continueTrace, getCurrentScope, getDefaultIsolationScope, getIsolationScope, logger } from '@sentry/core';
+import type { H3Event } from 'h3';
 import type { NitroApp, NitroAppPlugin } from 'nitropack';
 import type { NuxtRenderHTMLContext } from 'nuxt/app';
 import { sentryCaptureErrorHook } from '../hooks/captureErrorHook';
@@ -86,27 +93,53 @@ export const sentryCloudflareNitroPlugin =
             context: event.context.cloudflare.context,
           };
 
-          const isolationScope = getIsolationScope();
-          const newIsolationScope =
-            isolationScope === getDefaultIsolationScope() ? isolationScope.clone() : isolationScope;
+          // fixme same as 5
+          console.log('::traceData 1', getTraceData());
+          console.log('::propagationContext 1', JSON.stringify(getCurrentScope().getPropagationContext()));
 
-          logger.log(
-            `Patched Cloudflare handler (\`nitroApp.localFetch\`). ${
-              isolationScope === newIsolationScope ? 'Using existing' : 'Created new'
-            } isolation scope.`,
-          );
+          const traceData = getTraceData();
 
-          return wrapRequestHandler(requestHandlerOptions, () => handlerTarget.apply(handlerThisArg, handlerArgs));
+          // return continueTrace({ sentryTrace: traceData['sentry-trace'] || '', baggage: traceData.baggage }, () => {
+          return wrapRequestHandler(requestHandlerOptions, () => {
+            const isolationScope = getIsolationScope();
+            const newIsolationScope =
+              isolationScope === getDefaultIsolationScope() ? isolationScope.clone() : isolationScope;
+
+            logger.log(
+              `Patched Cloudflare handler (\`nitroApp.localFetch\`). ${
+                isolationScope === newIsolationScope ? 'Using existing' : 'Created new'
+              } isolation scope.`,
+            );
+
+            console.log('::traceData 4', getTraceData());
+            console.log('::propagationContext 4', JSON.stringify(getCurrentScope().getPropagationContext()));
+
+            return handlerTarget.apply(handlerThisArg, handlerArgs);
+          });
+          // });
         }
 
         return handlerTarget.apply(handlerThisArg, handlerArgs);
       },
     });
 
+    // todo: start span in a hook before the request handler
+
     // @ts-expect-error - 'render:html' is a valid hook name in the Nuxt context
-    nitroApp.hooks.hook('render:html', (html: NuxtRenderHTMLContext) => {
+    nitroApp.hooks.hook('render:html', (html: NuxtRenderHTMLContext, { event }: { event: H3Event }) => {
       // fixme: it's attaching the html meta tag but it's not connecting the trace
       // fixme: its' actually connecting the trace but the meta tags are cached
+      console.log('event.headers', event.headers);
+      console.log('event.node.req.headers.cache-control', event.node.req.headers['cache-control']);
+      console.log('event.context', event.context);
+
+      const span = getActiveSpan();
+
+      console.log('::active span', span ? spanToJSON(span) : 'no active span');
+
+      console.log('::traceData 5', getTraceData());
+      console.log('::propagationContext 5', JSON.stringify(getCurrentScope().getPropagationContext()));
+
       addSentryTracingMetaTags(html.head);
     });
 
