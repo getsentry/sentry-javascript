@@ -3,7 +3,9 @@ import {
   captureException,
   continueTrace,
   flush,
+  getCurrentScope,
   getHttpSpanDetailsFromUrlObject,
+  getTraceData,
   parseStringToURLObject,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   setHttpStatus,
@@ -69,6 +71,40 @@ export function wrapRequestHandler(
       }
     }
 
+    // fixme: at this point, there is no active span
+
+    // Check if we already have active trace data - if so, don't wrap with continueTrace
+    // This allows us to continue an existing trace from the parent context (e.g., Nuxt)
+    // todo: create an option for opting out of continueTrace
+    const existingPropagationContext = getCurrentScope().getPropagationContext();
+    if (existingPropagationContext?.traceId) {
+      return startSpan(
+        {
+          name,
+          attributes,
+        },
+        async span => {
+          // fixme: same as 2
+          console.log('::traceData 2', getTraceData());
+          console.log('::propagationContext 2', JSON.stringify(getCurrentScope().getPropagationContext()));
+
+          try {
+            const res = await handler();
+            setHttpStatus(span, res.status);
+            return res;
+          } catch (e) {
+            captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
+            throw e;
+          } finally {
+            context?.waitUntil(flush(2000));
+          }
+        },
+      );
+    }
+
+    console.log('request.headers', request.headers);
+
+    // No active trace, create one from headers
     return continueTrace(
       { sentryTrace: request.headers.get('sentry-trace') || '', baggage: request.headers.get('baggage') },
       () => {
@@ -81,6 +117,9 @@ export function wrapRequestHandler(
             attributes,
           },
           async span => {
+            console.log('::traceData 3', getTraceData());
+            console.log('::propagationContext 3', JSON.stringify(getCurrentScope().getPropagationContext()));
+
             try {
               const res = await handler();
               setHttpStatus(span, res.status);
