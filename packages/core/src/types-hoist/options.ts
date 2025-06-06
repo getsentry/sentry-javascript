@@ -321,6 +321,18 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   tracePropagationTargets?: TracePropagationTargets;
 
   /**
+   * Controls whether trace continuation should be strict about matching organization IDs.
+   *
+   * When set to `true`, the SDK will only continue a trace if the organization ID in the incoming baggage
+   * matches the organization ID of the current SDK (extracted from the DSN).
+   *
+   * If there is no match, the SDK will start a new trace instead of continuing the incoming one.
+   *
+   * @default false
+   */
+  strictTraceContinuation?: boolean;
+
+  /**
    * The organization ID of the current SDK. The organization ID is a string containing only numbers. This ID is used to
    * propagate traces to other Sentry services.
    *

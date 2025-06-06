@@ -1,3 +1,4 @@
+import type { Client } from '../client';
 import type { DsnComponents, DsnLike, DsnProtocol } from '../types-hoist/dsn';
 import { DEBUG_BUILD } from './../debug-build';
 import { consoleSandbox, logger } from './logger';
@@ -127,6 +128,27 @@ export function extractOrgIdFromDsnHost(host: string): string | undefined {
   const match = host.match(ORG_ID_REGEX);
 
   return match?.[1];
+}
+
+/**
+ *  Returns the organization ID of the client.
+ *
+ *  The organization ID is extracted from the DSN. If the client options include a `orgId`, this will always take precedence.
+ */
+export function deriveOrgIdFromClient(client: Client | undefined): string | undefined {
+  const options = client?.getOptions();
+
+  const { host } = client?.getDsn() || {};
+
+  let org_id: string | undefined;
+
+  if (options?.orgId) {
+    org_id = String(options.orgId);
+  } else if (host) {
+    org_id = extractOrgIdFromDsnHost(host);
+  }
+
+  return org_id;
 }
 
 /**
