@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/node-core';
 import { loggingTransport } from '@sentry-internal/node-integration-tests';
 import * as iitm from 'import-in-the-middle';
-import { setupOtel } from '../../../utils/setupOtel.mjs';
+import { setupOtel } from '../../../utils/setupOtel.js';
 
 new iitm.Hook((_, name) => {
   if (name !== 'http') {

@@ -146,7 +146,6 @@ export class SentryNodeFetchInstrumentation extends InstrumentationBase<SentryNo
     if (!addedHeaders) {
       return;
     }
-
     const { 'sentry-trace': sentryTrace, baggage } = addedHeaders;
 
     // We do not want to overwrite existing headers here

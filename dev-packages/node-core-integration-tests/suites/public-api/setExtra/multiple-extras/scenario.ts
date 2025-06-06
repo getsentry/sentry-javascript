@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/node-core';
 import { loggingTransport } from '@sentry-internal/node-core-integration-tests';
-import { setupOtel } from '../../../utils/setupOtel';
+import { setupOtel } from '../../../../utils/setupOtel';
 
 const client = Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',

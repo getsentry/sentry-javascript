@@ -14,7 +14,7 @@ export async function resolve(specifier, context, nextResolve) {
 
 (async () => {
   const Sentry = await import('@sentry/node-core');
-  const { setupOtel } = await import('../../../utils/setupOtel.mjs');
+  const { setupOtel } = await import('../../../utils/setupOtel.js');
 
   const client = Sentry.init({});
 

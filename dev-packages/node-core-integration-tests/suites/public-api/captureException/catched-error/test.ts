@@ -23,11 +23,11 @@ test('should work inside catch block', async () => {
                   expect.objectContaining({
                     context_line: "  throw new Error('catched_error');",
                     pre_context: [
-                      'Sentry.init({',
-                      "  dsn: 'https://public@dsn.ingest.sentry.io/1337',",
                       "  release: '1.0',",
                       '  transport: loggingTransport,',
                       '});',
+                      '',
+                      'setupOtel(client);',
                       '',
                       'try {',
                     ],

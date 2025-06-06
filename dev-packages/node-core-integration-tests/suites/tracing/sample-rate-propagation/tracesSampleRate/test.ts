@@ -30,7 +30,7 @@ describe('parentSampleRate propagation with tracesSampleRate', () => {
     expect((response as any).propagatedData.baggage).toMatch(/sentry-sample_rate=0\.1337/);
   });
 
-  test('should propagate configured sample rate when receiving a trace without sampling decision and sample rate', async () => {
+  test('should not propagate configured sample rate when receiving a trace without sampling decision and sample rate', async () => {
     const runner = createRunner(__dirname, 'server.js').start();
     const response = await runner.makeRequest('get', '/check', {
       headers: {
@@ -39,10 +39,10 @@ describe('parentSampleRate propagation with tracesSampleRate', () => {
       },
     });
 
-    expect((response as any).propagatedData.baggage).toMatch(/sentry-sample_rate=0\.69/);
+    expect((response as any).propagatedData.baggage).not.toMatch(/sentry-sample_rate=0\.69/);
   });
 
-  test('should propagate configured sample rate when receiving a trace without sampling decision, but with sample rate', async () => {
+  test('should not propagate configured sample rate when receiving a trace without sampling decision, but with sample rate', async () => {
     const runner = createRunner(__dirname, 'server.js').start();
     const response = await runner.makeRequest('get', '/check', {
       headers: {
@@ -51,12 +51,12 @@ describe('parentSampleRate propagation with tracesSampleRate', () => {
       },
     });
 
-    expect((response as any).propagatedData.baggage).toMatch(/sentry-sample_rate=0\.69/);
+    expect((response as any).propagatedData.baggage).not.toMatch(/sentry-sample_rate=0\.69/);
   });
 
-  test('should propagate configured sample rate when there is no incoming trace', async () => {
+  test('should not propagate configured sample rate when there is no incoming trace', async () => {
     const runner = createRunner(__dirname, 'server.js').start();
     const response = await runner.makeRequest('get', '/check');
-    expect((response as any).propagatedData.baggage).toMatch(/sentry-sample_rate=0\.69/);
+    expect((response as any).propagatedData.baggage).not.toMatch(/sentry-sample_rate=0\.69/);
   });
 });

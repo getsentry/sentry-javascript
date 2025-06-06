@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/node-core';
 import { loggingTransport } from '@sentry-internal/node-integration-tests';
 import * as path from 'path';
 import { Worker } from 'worker_threads';
-import { setupOtel } from '../../../utils/setupOtel.mjs';
+import { setupOtel } from '../../utils/setupOtel.js';
 
 const __dirname = new URL('.', import.meta.url).pathname;
 

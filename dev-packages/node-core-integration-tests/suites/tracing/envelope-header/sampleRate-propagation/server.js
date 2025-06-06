@@ -27,7 +27,12 @@ app.use(bodyParser.text());
 app.use(bodyParser.raw());
 
 app.get('/test', (req, res) => {
-  res.send({ headers: req.headers });
+  // Create a transaction to trigger trace continuation from headers
+  // because node-core doesn't create spans for http requests due to
+  // the lack of @opentelemetry/instrumentation-http
+  Sentry.startSpan({ name: 'test-transaction', op: 'http.server' }, () => {
+    res.send({ headers: req.headers });
+  });
 });
 
 startExpressServerAndSendPortToRunner(app);

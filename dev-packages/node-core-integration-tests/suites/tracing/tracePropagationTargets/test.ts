@@ -3,10 +3,9 @@ import { conditionalTest } from '../../../utils';
 import { createRunner } from '../../../utils/runner';
 import { createTestServer } from '../../../utils/server';
 
-// This test requires Node.js 24+ because it depends on the 'http.client.request.created'
+// This test requires Node.js 22+ because it depends on the 'http.client.request.created'
 // diagnostic channel for baggage header propagation, which only exists since Node 22.12.0+ and 23.2.0+
-// Since conditionalTest only works with major versions, we use 24+ to be safe
-conditionalTest({ min: 24 })('tracePropagationTargets', () => {
+conditionalTest({ min: 22 })('node >=22', () => {
   test('SentryHttpIntegration should instrument correct requests when tracePropagationTargets option is provided', async () => {
     expect.assertions(11);
 
