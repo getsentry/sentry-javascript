@@ -35,12 +35,12 @@ sentryTest("Feature flags are added to active span's attributes on span end.", a
   // withNestedSpans is a util used to start 3 nested spans: root-span (not recorded in transaction_event.spans), span, and nested-span.
   await page.evaluate(maxFlags => {
     (window as any).withNestedSpans(() => {
-      const flagsIntegration = (window as any).Sentry.getClient().getIntegrationByName('FeatureFlags');
+      const ldClient = (window as any).initializeLD();
       for (let i = 1; i <= maxFlags; i++) {
-        flagsIntegration.addFeatureFlag(`feat${i}`, false);
+        ldClient.variation(`feat${i}`, false);
       }
-      flagsIntegration.addFeatureFlag(`feat${maxFlags + 1}`, true); // dropped flag
-      flagsIntegration.addFeatureFlag('feat3', true); // update
+      ldClient.variation(`feat${maxFlags + 1}`, true); // dropped
+      ldClient.variation('feat3', true); // update
     });
     return true;
   }, MAX_FLAGS_PER_SPAN);
