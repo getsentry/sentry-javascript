@@ -84,8 +84,6 @@ export function _trackINP(): () => void {
  * exported only for testing
  */
 export const _onInp: InstrumentationHandlerCallback = ({ metric }) => {
-  console.log('xx _onINP', metric);
-
   if (metric.value == undefined) {
     return;
   }
