@@ -38,7 +38,7 @@ export const onFCP = (onReport: (metric: FCPMetric) => void, opts: ReportOpts = 
     let report: ReturnType<typeof bindReporter>;
 
     const handleEntries = (entries: FCPMetric['entries']) => {
-      entries.forEach(entry => {
+      for (const entry of entries) {
         if (entry.name === 'first-contentful-paint') {
           po!.disconnect();
 
@@ -53,7 +53,7 @@ export const onFCP = (onReport: (metric: FCPMetric) => void, opts: ReportOpts = 
             report(true);
           }
         }
-      });
+      }
     };
 
     const po = observe('paint', handleEntries);

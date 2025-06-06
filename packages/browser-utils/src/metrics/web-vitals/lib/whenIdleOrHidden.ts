@@ -14,27 +14,28 @@
  * limitations under the License.
  */
 
-import { WINDOW } from '../../../types';
-import { onHidden } from './onHidden';
-import { runOnce } from './runOnce';
+import { WINDOW } from '../../../types.js';
+import { onHidden } from './onHidden.js';
+import { runOnce } from './runOnce.js';
 
 /**
  * Runs the passed callback during the next idle period, or immediately
  * if the browser's visibility state is (or becomes) hidden.
  */
-export const whenIdle = (cb: () => void): number => {
+export const whenIdleOrHidden = (cb: () => void) => {
   const rIC = WINDOW.requestIdleCallback || WINDOW.setTimeout;
 
-  let handle = -1;
-  // eslint-disable-next-line no-param-reassign
-  cb = runOnce(cb) as () => void;
   // If the document is hidden, run the callback immediately, otherwise
   // race an idle callback with the next `visibilitychange` event.
   if (WINDOW.document?.visibilityState === 'hidden') {
     cb();
   } else {
-    handle = rIC(cb);
+    // eslint-disable-next-line no-param-reassign
+    cb = runOnce(cb);
+    rIC(cb);
+    // sentry: we use onHidden instead of directly listening to visibilitychange
+    // because some browsers we still support (Safari <14.4) don't fully support
+    // `visibilitychange` or have known bugs w.r.t the `visibilitychange` event.
     onHidden(cb);
   }
-  return handle;
 };

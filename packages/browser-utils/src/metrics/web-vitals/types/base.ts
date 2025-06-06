@@ -24,6 +24,7 @@ import type { TTFBMetric, TTFBMetricWithAttribution } from './ttfb';
 export interface Metric {
   /**
    * The name of the metric (in acronym form).
+   * // sentry: re-added FID here since we continue supporting it for now
    */
   name: 'CLS' | 'FCP' | 'FID' | 'INP' | 'LCP' | 'TTFB';
 
@@ -78,6 +79,7 @@ export interface Metric {
 }
 
 /** The union of supported metric types. */
+// sentry: re-added FIDMetric here since we continue supporting it for now
 export type MetricType = CLSMetric | FCPMetric | FIDMetric | INPMetric | LCPMetric | TTFBMetric;
 
 /** The union of supported metric attribution types. */
@@ -104,9 +106,21 @@ export type MetricWithAttribution =
  */
 export type MetricRatingThresholds = [number, number];
 
+/**
+ * @deprecated Use metric-specific function types instead, such as:
+ * `(metric: LCPMetric) => void`. If a single callback type is needed for
+ * multiple metrics, use `(metric: MetricType) => void`.
+ */
+export interface ReportCallback {
+  (metric: MetricType): void;
+}
+
 export interface ReportOpts {
   reportAllChanges?: boolean;
-  durationThreshold?: number;
+}
+
+export interface AttributionReportOpts extends ReportOpts {
+  generateTarget?: (el: Node | null) => string;
 }
 
 /**

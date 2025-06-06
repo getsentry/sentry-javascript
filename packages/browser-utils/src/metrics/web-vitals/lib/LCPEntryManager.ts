@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Google LLC
+ * Copyright 2024 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,9 +14,13 @@
  * limitations under the License.
  */
 
-import { getNavigationEntry } from './getNavigationEntry';
+// eslint-disable-next-line jsdoc/require-jsdoc
+export class LCPEntryManager {
+  // eslint-disable-next-line @typescript-eslint/explicit-member-accessibility
+  _onBeforeProcessingEntry?: (entry: LargestContentfulPaint) => void;
 
-export const getActivationStart = (): number => {
-  const navEntry = getNavigationEntry();
-  return navEntry?.activationStart ?? 0;
-};
+  // eslint-disable-next-line @typescript-eslint/explicit-member-accessibility, jsdoc/require-jsdoc
+  _processEntry(entry: LargestContentfulPaint) {
+    this._onBeforeProcessingEntry?.(entry);
+  }
+}
