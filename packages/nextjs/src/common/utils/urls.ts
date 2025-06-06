@@ -27,18 +27,16 @@ export function substituteRouteParams(path: string, params?: ComponentRouteParam
 }
 
 /**
- * Normalizes a path by removing route groups and multiple slashes
+ * Normalizes a path by removing route groups
  * @param path - The path to normalize
  * @returns The normalized path
  */
 export function sanitizeRoutePath(path: string): string {
-  const cleanedPath = path
-    .replace(/\([^/]*?\)/g, '') // Safely remove route groups like (auth)
+  const cleanedSegments = path
     .split('/')
-    .filter(Boolean) // Remove empty segments caused by double slashes
-    .join('/');
+    .filter(segment => segment && !(segment.startsWith('(') && segment.endsWith(')')));
 
-  return cleanedPath ? `/${cleanedPath}` : '/';
+  return cleanedSegments.length > 0 ? `/${cleanedSegments.join('/')}` : '/';
 }
 
 /**
