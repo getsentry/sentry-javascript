@@ -52,7 +52,7 @@ export function copyFlagsFromScopeToEvent(event: Event): Event {
  * @param name     Name of the feature flag to insert.
  * @param value    Value of the feature flag.
  * @param maxSize  Max number of flags the buffer should store. Default value should always be used in production.
-*/
+ */
 export function insertFlagToScope(name: string, value: unknown, maxSize: number = FLAG_BUFFER_SIZE): void {
   const scopeContexts = getCurrentScope().getScopeData().contexts;
   if (!scopeContexts.flags) {
@@ -75,7 +75,13 @@ export function insertFlagToScope(name: string, value: unknown, maxSize: number 
  * @param maxSize    Max number of flags the buffer should store. Default value should always be used in production.
  * @param allowEviction  If true, the oldest flag is evicted when the buffer is full. Otherwise the new flag is dropped.
  */
-export function insertToFlagBuffer(flags: FeatureFlag[], name: string, value: unknown, maxSize: number, allowEviction: boolean = true): void {
+export function insertToFlagBuffer(
+  flags: FeatureFlag[],
+  name: string,
+  value: unknown,
+  maxSize: number,
+  allowEviction: boolean = true,
+): void {
   if (typeof value !== 'boolean') {
     return;
   }
@@ -98,6 +104,7 @@ export function insertToFlagBuffer(flags: FeatureFlag[], name: string, value: un
       // If at capacity, pop the earliest flag - O(n)
       flags.shift();
     } else {
+
       return;
     }
   }
@@ -143,6 +150,8 @@ export function bufferSpanFeatureFlag(
 export function freezeSpanFeatureFlags(span: Span): void {
   const flags = GLOBAL_OBJ._spanToFlagBufferMap?.get(span);
   if (flags) {
-    span.setAttributes(Object.fromEntries(flags.map(flag => [`${SPAN_FLAG_ATTRIBUTE_PREFIX}${flag.flag}`, flag.result])));
+    span.setAttributes(
+      Object.fromEntries(flags.map(flag => [`${SPAN_FLAG_ATTRIBUTE_PREFIX}${flag.flag}`, flag.result])),
+    );
   }
 }
