@@ -50,6 +50,8 @@ const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
           ) {
             addOriginToSpan(span, 'auto.vercelai.otel');
             span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'gen_ai.execute_tool');
+            span.setAttribute('gen_ai.tool.call.id', attributes[AI_TOOL_CALL_ID_ATTRIBUTE]);
+            span.setAttribute('gen_ai.tool.name', attributes[AI_TOOL_CALL_NAME_ATTRIBUTE]);
             span.updateName(`execute_tool ${attributes[AI_TOOL_CALL_NAME_ATTRIBUTE]}`);
             return;
           }
