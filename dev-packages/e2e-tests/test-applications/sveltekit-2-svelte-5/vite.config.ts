@@ -9,4 +9,10 @@ export default defineConfig({
     }),
     sveltekit(),
   ],
+  ssr: {
+    external: [
+      '@prisma/instrumentation',
+      /^@opentelemetry\/instrumentation/
+    ]
+  }
 });
