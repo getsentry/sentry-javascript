@@ -109,7 +109,7 @@ export class SentryVercelAiInstrumentation extends InstrumentationBase {
     this._callbacks = [];
 
     function generatePatch(originalMethod: (...args: MethodArgs) => unknown) {
-      return function (this: unknown, ...args: MethodArgs) {
+      return (...args: MethodArgs) => {
         const existingExperimentalTelemetry = args[0].experimental_telemetry || {};
         const isEnabled = existingExperimentalTelemetry.isEnabled;
 
@@ -132,6 +132,7 @@ export class SentryVercelAiInstrumentation extends InstrumentationBase {
           recordOutputs,
         };
 
+        // @ts-expect-error we know that the method exists
         return originalMethod.apply(this, args);
       };
     }
