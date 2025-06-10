@@ -120,6 +120,7 @@ export {
   logger,
   consoleLoggingIntegration,
   wrapMcpServerWithSentry,
+  NODE_VERSION,
 } from '@sentry/node';
 
 export {
