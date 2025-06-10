@@ -192,22 +192,24 @@ async function resolveStackFrames(
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 3000);
 
-    const res = await fetch(
-      `${
-        // eslint-disable-next-line no-restricted-globals
-        typeof window === 'undefined' ? 'http://localhost:3000' : '' // TODO: handle the case where users define a different port
-      }${basePath}/__nextjs_original-stack-frames`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+    const res = await suppressTracing(() =>
+      fetch(
+        `${
+          // eslint-disable-next-line no-restricted-globals
+          typeof window === 'undefined' ? 'http://localhost:3000' : '' // TODO: handle the case where users define a different port
+        }${basePath}/__nextjs_original-stack-frames`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          signal: controller.signal,
+          body: JSON.stringify(postBody),
         },
-        signal: controller.signal,
-        body: JSON.stringify(postBody),
-      },
-    ).finally(() => {
-      clearTimeout(timer);
-    });
+      ).finally(() => {
+        clearTimeout(timer);
+      }),
+    );
 
     if (!res.ok || res.status === 204) {
       return null;
