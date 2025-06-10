@@ -15,8 +15,8 @@ import {
 } from '@opentelemetry/semantic-conventions';
 import type { SpanAttributes, TransactionSource } from '@sentry/core';
 import {
-  getSanitizedUrlString,
-  parseUrl,
+  getSanitizedUrlStringFromUrlObject,
+  parseStringToURLObject,
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -253,8 +253,8 @@ export function getSanitizedUrl(
   // This is the normalized route name - may not always be available!
   const httpRoute = attributes[ATTR_HTTP_ROUTE];
 
-  const parsedUrl = typeof httpUrl === 'string' ? parseUrl(httpUrl) : undefined;
-  const url = parsedUrl ? getSanitizedUrlString(parsedUrl) : undefined;
+  const parsedUrl = typeof httpUrl === 'string' ? parseStringToURLObject(httpUrl) : undefined;
+  const url = parsedUrl ? getSanitizedUrlStringFromUrlObject(parsedUrl) : undefined;
   const query = parsedUrl?.search || undefined;
   const fragment = parsedUrl?.hash || undefined;
 
