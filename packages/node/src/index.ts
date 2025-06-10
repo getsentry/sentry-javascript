@@ -54,6 +54,7 @@ export { createGetModuleFromFilename } from './utils/module';
 export { makeNodeTransport } from './transports';
 export { NodeClient } from './sdk/client';
 export { cron } from './cron';
+export { NODE_VERSION } from './nodeVersion';
 
 export type { NodeOptions } from './types';
 
