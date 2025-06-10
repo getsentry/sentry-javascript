@@ -4,16 +4,15 @@ import type { Client } from '@sentry/core';
 import * as Sentry from '@sentry/node-core';
 import { SentryPropagator, SentrySampler, SentrySpanProcessor } from '@sentry/opentelemetry';
 
-export function setupOtel(client: Client | undefined): BasicTracerProvider {
+export function setupOtel(client: Client): BasicTracerProvider {
   const provider = new BasicTracerProvider({
-    sampler: client ? new SentrySampler(client) : undefined,
+    sampler: new SentrySampler(client),
     spanProcessors: [new SentrySpanProcessor()],
   });
 
-  provider.register({
-    propagator: new SentryPropagator(),
-    contextManager: new Sentry.SentryContextManager(),
-  });
+  trace.setGlobalTracerProvider(provider);
+  propagation.setGlobalPropagator(new SentryPropagator());
+  context.setGlobalContextManager(new Sentry.SentryContextManager());
 
   Sentry.validateOpenTelemetrySetup();
 
