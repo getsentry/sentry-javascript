@@ -15,11 +15,11 @@
  */
 import type { Client, Event, EventHint, IntegrationFn, Span } from '@sentry/core';
 import {
-  defineIntegration,
   _INTERNAL_bufferSpanFeatureFlag,
   _INTERNAL_copyFlagsFromScopeToEvent,
   _INTERNAL_freezeSpanFeatureFlags,
   _INTERNAL_insertFlagToScope,
+  defineIntegration,
 } from '@sentry/core';
 import type { EvaluationDetails, HookContext, HookHints, JsonValue, OpenFeatureHook } from './types';
 
