@@ -120,6 +120,8 @@ export {
   logger,
   consoleLoggingIntegration,
   wrapMcpServerWithSentry,
+  featureFlagsIntegration,
+  type FeatureFlagsIntegration,
 } from '@sentry/node';
 
 export {
