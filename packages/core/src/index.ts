@@ -112,6 +112,7 @@ export { supabaseIntegration, instrumentSupabaseClient } from './integrations/su
 export { zodErrorsIntegration } from './integrations/zoderrors';
 export { thirdPartyErrorFilterIntegration } from './integrations/third-party-errors-filter';
 export { consoleIntegration } from './integrations/console';
+export { featureFlagsIntegration, type FeatureFlagsIntegration } from './integrations/featureFlags';
 
 export { profiler } from './profiling';
 export { instrumentFetchRequest } from './fetch';
@@ -123,6 +124,8 @@ export { _INTERNAL_captureLog, _INTERNAL_flushLogsBuffer, _INTERNAL_captureSeria
 export { consoleLoggingIntegration } from './logs/console-integration';
 
 export type { FeatureFlag } from './featureFlags';
+// TODO: ^export from utils?
+// TODO: how to export utils without making public?
 
 export { applyAggregateErrorsToEvent } from './utils-hoist/aggregate-errors';
 export { getBreadcrumbLogLevelFromHttpStatusCode } from './utils-hoist/breadcrumb-log-level';
