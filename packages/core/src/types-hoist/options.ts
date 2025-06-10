@@ -356,7 +356,6 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
 
   /**
    * This function can be defined to modify a child span before it's sent.
-   * Returning `null` will cause this span to be dropped.
    *
    * Note that this function is only called for child spans and not for the root span (formerly known as transaction).
    * If you want to modify or drop the root span, use {@link Options.beforeSendTransaction} instead.

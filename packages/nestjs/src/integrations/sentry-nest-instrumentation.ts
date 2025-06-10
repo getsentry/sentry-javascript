@@ -183,8 +183,12 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                 const parentSpan = getActiveSpan();
                 let afterSpan: Span | undefined;
 
-                // Check that we can reasonably assume that the target is an interceptor.
-                if (!context || !next || typeof next.handle !== 'function') {
+                if (
+                  !context ||
+                  !next ||
+                  typeof next.handle !== 'function' || // Check that we can reasonably assume that the target is an interceptor.
+                  target.name === 'SentryTracingInterceptor' // We don't want to trace this internal interceptor
+                ) {
                   return originalIntercept.apply(thisArgIntercept, argsIntercept);
                 }
 

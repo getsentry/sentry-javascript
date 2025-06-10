@@ -71,5 +71,77 @@ describe('React Router server SDK', () => {
 
       expect(filterIntegration).toBeDefined();
     });
+
+    it('adds reactRouterServer integration for Node.js 20.18', () => {
+      vi.spyOn(SentryNode, 'NODE_VERSION', 'get').mockReturnValue({ major: 20, minor: 18, patch: 0 });
+
+      reactRouterInit({
+        dsn: 'https://public@dsn.ingest.sentry.io/1337',
+      });
+
+      expect(nodeInit).toHaveBeenCalledTimes(1);
+      const initOptions = nodeInit.mock.calls[0]?.[0];
+      const defaultIntegrations = initOptions?.defaultIntegrations as Integration[];
+
+      const reactRouterServerIntegration = defaultIntegrations.find(
+        integration => integration.name === 'ReactRouterServer',
+      );
+
+      expect(reactRouterServerIntegration).toBeDefined();
+    });
+
+    it('adds reactRouterServer integration for Node.js 22.11', () => {
+      vi.spyOn(SentryNode, 'NODE_VERSION', 'get').mockReturnValue({ major: 22, minor: 11, patch: 0 });
+
+      reactRouterInit({
+        dsn: 'https://public@dsn.ingest.sentry.io/1337',
+      });
+
+      expect(nodeInit).toHaveBeenCalledTimes(1);
+      const initOptions = nodeInit.mock.calls[0]?.[0];
+      const defaultIntegrations = initOptions?.defaultIntegrations as Integration[];
+
+      const reactRouterServerIntegration = defaultIntegrations.find(
+        integration => integration.name === 'ReactRouterServer',
+      );
+
+      expect(reactRouterServerIntegration).toBeDefined();
+    });
+
+    it('does not add reactRouterServer integration for Node.js 20.19', () => {
+      vi.spyOn(SentryNode, 'NODE_VERSION', 'get').mockReturnValue({ major: 20, minor: 19, patch: 0 });
+
+      reactRouterInit({
+        dsn: 'https://public@dsn.ingest.sentry.io/1337',
+      });
+
+      expect(nodeInit).toHaveBeenCalledTimes(1);
+      const initOptions = nodeInit.mock.calls[0]?.[0];
+      const defaultIntegrations = initOptions?.defaultIntegrations as Integration[];
+
+      const reactRouterServerIntegration = defaultIntegrations.find(
+        integration => integration.name === 'ReactRouterServer',
+      );
+
+      expect(reactRouterServerIntegration).toBeUndefined();
+    });
+
+    it('does not add reactRouterServer integration for Node.js 22.12', () => {
+      vi.spyOn(SentryNode, 'NODE_VERSION', 'get').mockReturnValue({ major: 22, minor: 12, patch: 0 });
+
+      reactRouterInit({
+        dsn: 'https://public@dsn.ingest.sentry.io/1337',
+      });
+
+      expect(nodeInit).toHaveBeenCalledTimes(1);
+      const initOptions = nodeInit.mock.calls[0]?.[0];
+      const defaultIntegrations = initOptions?.defaultIntegrations as Integration[];
+
+      const reactRouterServerIntegration = defaultIntegrations.find(
+        integration => integration.name === 'ReactRouterServer',
+      );
+
+      expect(reactRouterServerIntegration).toBeUndefined();
+    });
   });
 });
