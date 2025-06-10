@@ -16,12 +16,12 @@ import { getActiveSpan } from './spanUtils';
 /**
  * Max size of the LRU flag buffer stored in Sentry scope and event contexts.
  */
-export const FLAG_BUFFER_SIZE = 100;
+const FLAG_BUFFER_SIZE = 100;
 
 /**
  * Max number of flag evaluations to record per span.
  */
-export const MAX_FLAGS_PER_SPAN = 10;
+const MAX_FLAGS_PER_SPAN = 10;
 
 // Global map of spans to feature flag buffers. Populated by feature flag integrations.
 GLOBAL_OBJ._spanToFlagBufferMap = new WeakMap<Span, FeatureFlag[]>();
@@ -31,7 +31,7 @@ const SPAN_FLAG_ATTRIBUTE_PREFIX = 'flag.evaluation.';
 /**
  * Copies feature flags that are in current scope context to the event context
  */
-export function copyFlagsFromScopeToEvent(event: Event): Event {
+export function _INTERNAL_copyFlagsFromScopeToEvent(event: Event): Event {
   const scope = getCurrentScope();
   const flagContext = scope.getScopeData().contexts.flags;
   const flagBuffer = flagContext ? flagContext.values : [];
@@ -58,13 +58,13 @@ export function copyFlagsFromScopeToEvent(event: Event): Event {
  * @param value    Value of the feature flag.
  * @param maxSize  Max number of flags the buffer should store. Default value should always be used in production.
  */
-export function insertFlagToScope(name: string, value: unknown, maxSize: number = FLAG_BUFFER_SIZE): void {
+export function _INTERNAL_insertFlagToScope(name: string, value: unknown, maxSize: number = FLAG_BUFFER_SIZE): void {
   const scopeContexts = getCurrentScope().getScopeData().contexts;
   if (!scopeContexts.flags) {
     scopeContexts.flags = { values: [] };
   }
   const flags = scopeContexts.flags.values as FeatureFlag[];
-  insertToFlagBuffer(flags, name, value, maxSize);
+  _INTERNAL_insertToFlagBuffer(flags, name, value, maxSize);
 }
 
 /**
@@ -80,7 +80,7 @@ export function insertFlagToScope(name: string, value: unknown, maxSize: number 
  * @param maxSize    Max number of flags the buffer should store. Default value should always be used in production.
  * @param allowEviction  If true, the oldest flag is evicted when the buffer is full. Otherwise the new flag is dropped.
  */
-export function insertToFlagBuffer(
+export function _INTERNAL_insertToFlagBuffer(
   flags: FeatureFlag[],
   name: string,
   value: unknown,
@@ -128,7 +128,7 @@ export function insertToFlagBuffer(
  * @param value            Value of the feature flag. Non-boolean values are ignored.
  * @param maxFlagsPerSpan  Max number of flags a buffer should store. Default value should always be used in production.
  */
-export function bufferSpanFeatureFlag(
+export function _INTERNAL_bufferSpanFeatureFlag(
   name: string,
   value: unknown,
   maxFlagsPerSpan: number = MAX_FLAGS_PER_SPAN,
@@ -141,7 +141,7 @@ export function bufferSpanFeatureFlag(
   const span = getActiveSpan();
   if (span) {
     const flags = spanFlagMap.get(span) || [];
-    insertToFlagBuffer(flags, name, value, maxFlagsPerSpan, false);
+    _INTERNAL_insertToFlagBuffer(flags, name, value, maxFlagsPerSpan, false);
     spanFlagMap.set(span, flags);
   }
 }
@@ -151,7 +151,7 @@ export function bufferSpanFeatureFlag(
  *
  * @param span         Span to add flags to.
  */
-export function freezeSpanFeatureFlags(span: Span): void {
+export function _INTERNAL_freezeSpanFeatureFlags(span: Span): void {
   const flags = GLOBAL_OBJ._spanToFlagBufferMap?.get(span);
   if (flags) {
     span.setAttributes(

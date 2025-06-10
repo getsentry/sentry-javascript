@@ -125,7 +125,7 @@ export { consoleLoggingIntegration } from './logs/console-integration';
 
 export type { FeatureFlag } from './featureFlags';
 // TODO: ^export from utils?
-// TODO: how to export utils without making public?
+export { _INTERNAL_copyFlagsFromScopeToEvent, _INTERNAL_insertFlagToScope, _INTERNAL_bufferSpanFeatureFlag, _INTERNAL_freezeSpanFeatureFlags } from './utils/featureFlags';
 
 export { applyAggregateErrorsToEvent } from './utils-hoist/aggregate-errors';
 export { getBreadcrumbLogLevelFromHttpStatusCode } from './utils-hoist/breadcrumb-log-level';

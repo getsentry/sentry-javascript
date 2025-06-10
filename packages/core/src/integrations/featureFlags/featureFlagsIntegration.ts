@@ -4,10 +4,10 @@ import { type Event, type EventHint } from '../../types-hoist/event';
 import { type Integration, type IntegrationFn } from '../../types-hoist/integration';
 import { type Span } from '../../types-hoist/span';
 import {
-  bufferSpanFeatureFlag,
-  copyFlagsFromScopeToEvent,
-  freezeSpanFeatureFlags,
-  insertFlagToScope,
+  _INTERNAL_bufferSpanFeatureFlag,
+  _INTERNAL_copyFlagsFromScopeToEvent,
+  _INTERNAL_freezeSpanFeatureFlags,
+  _INTERNAL_insertFlagToScope,
 } from '../../utils/featureFlags';
 
 export interface FeatureFlagsIntegration extends Integration {
@@ -44,17 +44,17 @@ export const featureFlagsIntegration = defineIntegration(() => {
 
     setup(client: Client) {
       client.on('spanEnd', (span: Span) => {
-        freezeSpanFeatureFlags(span);
+        _INTERNAL_freezeSpanFeatureFlags(span);
       });
     },
 
     processEvent(event: Event, _hint: EventHint, _client: Client): Event {
-      return copyFlagsFromScopeToEvent(event);
+      return _INTERNAL_copyFlagsFromScopeToEvent(event);
     },
 
     addFeatureFlag(name: string, value: unknown): void {
-      insertFlagToScope(name, value);
-      bufferSpanFeatureFlag(name, value);
+      _INTERNAL_insertFlagToScope(name, value);
+      _INTERNAL_bufferSpanFeatureFlag(name, value);
     },
   };
 }) as IntegrationFn<FeatureFlagsIntegration>;

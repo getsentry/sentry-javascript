@@ -1,17 +1,17 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { getCurrentScope } from '../../../src/currentScopes';
 import { type FeatureFlag } from '../../../src/featureFlags';
-import { insertFlagToScope, insertToFlagBuffer } from '../../../src/utils/featureFlags';
+import { _INTERNAL_insertFlagToScope, _INTERNAL_insertToFlagBuffer } from '../../../src/utils/featureFlags';
 import { logger } from '../../../src/utils-hoist/logger';
 
 describe('flags', () => {
   describe('insertFlagToScope()', () => {
     it('adds flags to the current scope context', () => {
       const maxSize = 3;
-      insertFlagToScope('feat1', true, maxSize);
-      insertFlagToScope('feat2', true, maxSize);
-      insertFlagToScope('feat3', true, maxSize);
-      insertFlagToScope('feat4', true, maxSize);
+      _INTERNAL_insertFlagToScope('feat1', true, maxSize);
+      _INTERNAL_insertFlagToScope('feat2', true, maxSize);
+      _INTERNAL_insertFlagToScope('feat3', true, maxSize);
+      _INTERNAL_insertFlagToScope('feat4', true, maxSize);
 
       const scope = getCurrentScope();
       expect(scope.getScopeData().contexts.flags?.values).toEqual([
@@ -32,10 +32,10 @@ describe('flags', () => {
     it('maintains ordering and evicts the oldest entry', () => {
       const buffer: FeatureFlag[] = [];
       const maxSize = 3;
-      insertToFlagBuffer(buffer, 'feat1', true, maxSize);
-      insertToFlagBuffer(buffer, 'feat2', true, maxSize);
-      insertToFlagBuffer(buffer, 'feat3', true, maxSize);
-      insertToFlagBuffer(buffer, 'feat4', true, maxSize);
+      _INTERNAL_insertToFlagBuffer(buffer, 'feat1', true, maxSize);
+      _INTERNAL_insertToFlagBuffer(buffer, 'feat2', true, maxSize);
+      _INTERNAL_insertToFlagBuffer(buffer, 'feat3', true, maxSize);
+      _INTERNAL_insertToFlagBuffer(buffer, 'feat4', true, maxSize);
 
       expect(buffer).toEqual([
         { flag: 'feat2', result: true },
@@ -47,11 +47,11 @@ describe('flags', () => {
     it('does not duplicate same-name flags and updates order and values', () => {
       const buffer: FeatureFlag[] = [];
       const maxSize = 3;
-      insertToFlagBuffer(buffer, 'feat1', true, maxSize);
-      insertToFlagBuffer(buffer, 'feat2', true, maxSize);
-      insertToFlagBuffer(buffer, 'feat3', true, maxSize);
-      insertToFlagBuffer(buffer, 'feat3', false, maxSize);
-      insertToFlagBuffer(buffer, 'feat1', false, maxSize);
+      _INTERNAL_insertToFlagBuffer(buffer, 'feat1', true, maxSize);
+      _INTERNAL_insertToFlagBuffer(buffer, 'feat2', true, maxSize);
+      _INTERNAL_insertToFlagBuffer(buffer, 'feat3', true, maxSize);
+      _INTERNAL_insertToFlagBuffer(buffer, 'feat3', false, maxSize);
+      _INTERNAL_insertToFlagBuffer(buffer, 'feat1', false, maxSize);
 
       expect(buffer).toEqual([
         { flag: 'feat2', result: true },
@@ -63,9 +63,9 @@ describe('flags', () => {
     it('drops new entries when allowEviction is false and buffer is full', () => {
       const buffer: FeatureFlag[] = [];
       const maxSize = 0;
-      insertToFlagBuffer(buffer, 'feat1', true, maxSize, false);
-      insertToFlagBuffer(buffer, 'feat2', true, maxSize, false);
-      insertToFlagBuffer(buffer, 'feat3', true, maxSize, false);
+      _INTERNAL_insertToFlagBuffer(buffer, 'feat1', true, maxSize, false);
+      _INTERNAL_insertToFlagBuffer(buffer, 'feat2', true, maxSize, false);
+      _INTERNAL_insertToFlagBuffer(buffer, 'feat3', true, maxSize, false);
 
       expect(buffer).toEqual([]);
     });
@@ -73,8 +73,8 @@ describe('flags', () => {
     it('still updates order and values when allowEviction is false and buffer is full', () => {
       const buffer: FeatureFlag[] = [];
       const maxSize = 1;
-      insertToFlagBuffer(buffer, 'feat1', false, maxSize, false);
-      insertToFlagBuffer(buffer, 'feat1', true, maxSize, false);
+      _INTERNAL_insertToFlagBuffer(buffer, 'feat1', false, maxSize, false);
+      _INTERNAL_insertToFlagBuffer(buffer, 'feat1', true, maxSize, false);
 
       expect(buffer).toEqual([{ flag: 'feat1', result: true }]);
     });
@@ -82,8 +82,8 @@ describe('flags', () => {
     it('does not allocate unnecessary space', () => {
       const buffer: FeatureFlag[] = [];
       const maxSize = 1000;
-      insertToFlagBuffer(buffer, 'feat1', true, maxSize);
-      insertToFlagBuffer(buffer, 'feat2', true, maxSize);
+      _INTERNAL_insertToFlagBuffer(buffer, 'feat1', true, maxSize);
+      _INTERNAL_insertToFlagBuffer(buffer, 'feat2', true, maxSize);
 
       expect(buffer).toEqual([
         { flag: 'feat1', result: true },
@@ -94,8 +94,8 @@ describe('flags', () => {
     it('does not accept non-boolean values', () => {
       const buffer: FeatureFlag[] = [];
       const maxSize = 1000;
-      insertToFlagBuffer(buffer, 'feat1', 1, maxSize);
-      insertToFlagBuffer(buffer, 'feat2', 'string', maxSize);
+      _INTERNAL_insertToFlagBuffer(buffer, 'feat1', 1, maxSize);
+      _INTERNAL_insertToFlagBuffer(buffer, 'feat2', 'string', maxSize);
 
       expect(buffer).toEqual([]);
     });
@@ -106,7 +106,7 @@ describe('flags', () => {
         { flag: 'feat2', result: true },
       ];
 
-      insertToFlagBuffer(buffer, 'feat1', true, 1);
+      _INTERNAL_insertToFlagBuffer(buffer, 'feat1', true, 1);
       expect(loggerSpy).toHaveBeenCalledWith(
         expect.stringContaining('[Feature Flags] insertToFlagBuffer called on a buffer larger than maxSize'),
       );
@@ -115,7 +115,7 @@ describe('flags', () => {
         { flag: 'feat2', result: true },
       ]);
 
-      insertToFlagBuffer(buffer, 'feat1', true, -2);
+      _INTERNAL_insertToFlagBuffer(buffer, 'feat1', true, -2);
       expect(loggerSpy).toHaveBeenCalledWith(
         expect.stringContaining('[Feature Flags] insertToFlagBuffer called on a buffer larger than maxSize'),
       );

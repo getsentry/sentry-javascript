@@ -1,11 +1,11 @@
 import type { Client, Event, EventHint, IntegrationFn, Span } from '@sentry/core';
-import { defineIntegration } from '@sentry/core';
 import {
-  bufferSpanFeatureFlag,
-  copyFlagsFromScopeToEvent,
-  freezeSpanFeatureFlags,
-  insertFlagToScope,
-} from '../../../utils/featureFlags';
+  defineIntegration,
+  _INTERNAL_bufferSpanFeatureFlag,
+  _INTERNAL_copyFlagsFromScopeToEvent,
+  _INTERNAL_freezeSpanFeatureFlags,
+  _INTERNAL_insertFlagToScope,
+} from '@sentry/core';
 import type { LDContext, LDEvaluationDetail, LDInspectionFlagUsedHandler } from './types';
 
 /**
@@ -29,12 +29,12 @@ export const launchDarklyIntegration = defineIntegration(() => {
 
     setup(client: Client) {
       client.on('spanEnd', (span: Span) => {
-        freezeSpanFeatureFlags(span);
+        _INTERNAL_freezeSpanFeatureFlags(span);
       });
     },
 
     processEvent(event: Event, _hint: EventHint, _client: Client): Event {
-      return copyFlagsFromScopeToEvent(event);
+      return _INTERNAL_copyFlagsFromScopeToEvent(event);
     },
   };
 }) satisfies IntegrationFn;
@@ -56,8 +56,8 @@ export function buildLaunchDarklyFlagUsedHandler(): LDInspectionFlagUsedHandler 
      * Handle a flag evaluation by storing its name and value on the current scope.
      */
     method: (flagKey: string, flagDetail: LDEvaluationDetail, _context: LDContext) => {
-      insertFlagToScope(flagKey, flagDetail.value);
-      bufferSpanFeatureFlag(flagKey, flagDetail.value);
+      _INTERNAL_insertFlagToScope(flagKey, flagDetail.value);
+      _INTERNAL_bufferSpanFeatureFlag(flagKey, flagDetail.value);
     },
   };
 }

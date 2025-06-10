@@ -1,12 +1,14 @@
 import type { Client, Event, EventHint, IntegrationFn, Span } from '@sentry/core';
-import { defineIntegration, fill, logger } from '@sentry/core';
 import { DEBUG_BUILD } from '../../../debug-build';
 import {
-  bufferSpanFeatureFlag,
-  copyFlagsFromScopeToEvent,
-  freezeSpanFeatureFlags,
-  insertFlagToScope,
-} from '../../../utils/featureFlags';
+  defineIntegration,
+  fill,
+  logger,
+  _INTERNAL_bufferSpanFeatureFlag,
+  _INTERNAL_copyFlagsFromScopeToEvent,
+  _INTERNAL_freezeSpanFeatureFlags,
+  _INTERNAL_insertFlagToScope,
+} from '@sentry/core';
 import type { UnleashClient, UnleashClientClass } from './types';
 
 type UnleashIntegrationOptions = {
@@ -42,7 +44,7 @@ export const unleashIntegration = defineIntegration(
 
       setup(client: Client) {
         client.on('spanEnd', (span: Span) => {
-          freezeSpanFeatureFlags(span);
+          _INTERNAL_freezeSpanFeatureFlags(span);
         });
       },
 
@@ -52,7 +54,7 @@ export const unleashIntegration = defineIntegration(
       },
 
       processEvent(event: Event, _hint: EventHint, _client: Client): Event {
-        return copyFlagsFromScopeToEvent(event);
+        return _INTERNAL_copyFlagsFromScopeToEvent(event);
       },
     };
   },
@@ -75,8 +77,8 @@ function _wrappedIsEnabled(
     const result = original.apply(this, args);
 
     if (typeof toggleName === 'string' && typeof result === 'boolean') {
-      insertFlagToScope(toggleName, result);
-      bufferSpanFeatureFlag(toggleName, result);
+      _INTERNAL_insertFlagToScope(toggleName, result);
+      _INTERNAL_bufferSpanFeatureFlag(toggleName, result);
     } else if (DEBUG_BUILD) {
       logger.error(
         `[Feature Flags] UnleashClient.isEnabled does not match expected signature. arg0: ${toggleName} (${typeof toggleName}), result: ${result} (${typeof result})`,

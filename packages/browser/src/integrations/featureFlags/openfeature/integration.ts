@@ -14,13 +14,13 @@
  * ```
  */
 import type { Client, Event, EventHint, IntegrationFn, Span } from '@sentry/core';
-import { defineIntegration } from '@sentry/core';
 import {
-  bufferSpanFeatureFlag,
-  copyFlagsFromScopeToEvent,
-  freezeSpanFeatureFlags,
-  insertFlagToScope,
-} from '../../../utils/featureFlags';
+  defineIntegration,
+  _INTERNAL_bufferSpanFeatureFlag,
+  _INTERNAL_copyFlagsFromScopeToEvent,
+  _INTERNAL_freezeSpanFeatureFlags,
+  _INTERNAL_insertFlagToScope,
+} from '@sentry/core';
 import type { EvaluationDetails, HookContext, HookHints, JsonValue, OpenFeatureHook } from './types';
 
 export const openFeatureIntegration = defineIntegration(() => {
@@ -29,12 +29,12 @@ export const openFeatureIntegration = defineIntegration(() => {
 
     setup(client: Client) {
       client.on('spanEnd', (span: Span) => {
-        freezeSpanFeatureFlags(span);
+        _INTERNAL_freezeSpanFeatureFlags(span);
       });
     },
 
     processEvent(event: Event, _hint: EventHint, _client: Client): Event {
-      return copyFlagsFromScopeToEvent(event);
+      return _INTERNAL_copyFlagsFromScopeToEvent(event);
     },
   };
 }) satisfies IntegrationFn;
@@ -47,15 +47,15 @@ export class OpenFeatureIntegrationHook implements OpenFeatureHook {
    * Successful evaluation result.
    */
   public after(_hookContext: Readonly<HookContext<JsonValue>>, evaluationDetails: EvaluationDetails<JsonValue>): void {
-    insertFlagToScope(evaluationDetails.flagKey, evaluationDetails.value);
-    bufferSpanFeatureFlag(evaluationDetails.flagKey, evaluationDetails.value);
+    _INTERNAL_insertFlagToScope(evaluationDetails.flagKey, evaluationDetails.value);
+    _INTERNAL_bufferSpanFeatureFlag(evaluationDetails.flagKey, evaluationDetails.value);
   }
 
   /**
    * On error evaluation result.
    */
   public error(hookContext: Readonly<HookContext<JsonValue>>, _error: unknown, _hookHints?: HookHints): void {
-    insertFlagToScope(hookContext.flagKey, hookContext.defaultValue);
-    bufferSpanFeatureFlag(hookContext.flagKey, hookContext.defaultValue);
+    _INTERNAL_insertFlagToScope(hookContext.flagKey, hookContext.defaultValue);
+    _INTERNAL_bufferSpanFeatureFlag(hookContext.flagKey, hookContext.defaultValue);
   }
 }
