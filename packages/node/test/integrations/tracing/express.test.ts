@@ -86,7 +86,7 @@ describe('Express', () => {
     it('passes both options to instrumentation', () => {
       instrumentExpress({
         ignoreLayers: ['/health'],
-        ignoreLayersType: ['request_handler']
+        ignoreLayersType: ['request_handler'],
       });
 
       expect(ExpressInstrumentation).toHaveBeenCalledTimes(1);
@@ -115,7 +115,7 @@ describe('Express', () => {
     it('passes options to instrumentExpressV5', () => {
       instrumentExpressV5({
         ignoreLayers: [(path: string) => path.startsWith('/admin')],
-        ignoreLayersType: ['middleware', 'router']
+        ignoreLayersType: ['middleware', 'router'],
       });
 
       expect(ExpressInstrumentationV5).toHaveBeenCalledTimes(1);
@@ -152,7 +152,7 @@ describe('Express', () => {
     it('passes options from expressIntegration to both instrumentations', () => {
       expressIntegration({
         ignoreLayers: [/^\/api\/v1/],
-        ignoreLayersType: ['middleware']
+        ignoreLayersType: ['middleware'],
       }).setupOnce!();
 
       expect(ExpressInstrumentation).toHaveBeenCalledTimes(1);
@@ -174,7 +174,7 @@ describe('Express', () => {
 
     it('passes all layer types from expressIntegration to instrumentation', () => {
       expressIntegration({
-        ignoreLayersType: ['router', 'middleware', 'request_handler']
+        ignoreLayersType: ['router', 'middleware', 'request_handler'],
       }).setupOnce!();
 
       expect(ExpressInstrumentation).toHaveBeenCalledTimes(1);

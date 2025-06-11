@@ -1,6 +1,6 @@
 import type * as http from 'node:http';
 import type { Span } from '@opentelemetry/api';
-import type { ExpressRequestInfo } from '@opentelemetry/instrumentation-express';
+import type { ExpressLayerType, ExpressRequestInfo } from '@opentelemetry/instrumentation-express';
 import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
 import type { IntegrationFn } from '@sentry/core';
 import {
@@ -26,11 +26,33 @@ type IgnoreMatcher = string | RegExp | ((path: string) => boolean);
 
 interface ExpressOptions {
   /**
-   * Ignore specific layers based on their path
+   * Ignore specific layers based on their path.
+   *
+   * Accepts an array of matchers that can be:
+   * - String: exact path match
+   * - RegExp: pattern matching
+   * - Function: custom logic that receives the path and returns boolean
    */
   ignoreLayers?: IgnoreMatcher[];
   /**
-   * Ignore specific layers based on their type
+   * Ignore specific layers based on their type.
+   *
+   * Available layer types:
+   * - 'router': Express router layers
+   * - 'middleware': Express middleware layers
+   * - 'request_handler': Express request handler layers
+   *
+   * @example
+   * ```javascript
+   * // Ignore only middleware layers
+   * ignoreLayersType: ['middleware']
+   *
+   * // Ignore multiple layer types
+   * ignoreLayersType: ['middleware', 'router']
+   *
+   * // Ignore all layer types (effectively disables tracing)
+   * ignoreLayersType: ['middleware', 'router', 'request_handler']
+   * ```
    */
   ignoreLayersType?: ('router' | 'middleware' | 'request_handler')[];
 }
@@ -74,7 +96,7 @@ export const instrumentExpress = generateInstrumentOnce(
       requestHook: span => requestHook(span),
       spanNameHook: (info, defaultName) => spanNameHook(info, defaultName),
       ignoreLayers: options.ignoreLayers,
-      ignoreLayersType: options.ignoreLayersType as any,
+      ignoreLayersType: options.ignoreLayersType as ExpressLayerType[],
     }),
 );
 
@@ -85,7 +107,7 @@ export const instrumentExpressV5 = generateInstrumentOnce(
       requestHook: span => requestHook(span),
       spanNameHook: (info, defaultName) => spanNameHook(info, defaultName),
       ignoreLayers: options.ignoreLayers,
-      ignoreLayersType: options.ignoreLayersType as any,
+      ignoreLayersType: options.ignoreLayersType as ExpressLayerType[],
     }),
 );
 
