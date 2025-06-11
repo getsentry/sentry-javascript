@@ -14,15 +14,35 @@ import {
 import { DEBUG_BUILD } from '../../debug-build';
 import { generateInstrumentOnce } from '../../otel/instrument';
 import { ensureIsWrapped } from '../../utils/ensureIsWrapped';
+import { addOriginToSpan } from '../../utils/addOriginToSpan';
+
+/**
+ * Koa layer types for ignoreLayersType option
+ */
+export type KoaLayerType = 'router' | 'middleware';
+
+interface KoaOptions {
+  /**
+   * Ignore layers of specified types.
+   *
+   * @example ['middleware'] - Ignore all middleware layers
+   * @example ['router'] - Ignore all router layers
+   * @example ['middleware', 'router'] - Ignore both middleware and router layers
+   */
+  ignoreLayersType?: KoaLayerType[];
+}
 
 const INTEGRATION_NAME = 'Koa';
 
 export const instrumentKoa = generateInstrumentOnce(
   INTEGRATION_NAME,
-  () =>
-    new KoaInstrumentation({
+  KoaInstrumentation,
+  (options: KoaOptions = {}) => {
+    return {
+      ignoreLayersType: options.ignoreLayersType as any,
       requestHook(span, info) {
         addKoaSpanAttributes(span);
+        addOriginToSpan(span, 'auto.http.otel.koa');
 
         if (getIsolationScope() === getDefaultIsolationScope()) {
           DEBUG_BUILD && logger.warn('Isolation scope is default isolation scope - skipping setting transactionName');
@@ -36,14 +56,15 @@ export const instrumentKoa = generateInstrumentOnce(
           getIsolationScope().setTransactionName(`${method} ${route}`);
         }
       },
-    }),
+    };
+  },
 );
 
-const _koaIntegration = (() => {
+const _koaIntegration = ((options: KoaOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
-      instrumentKoa();
+      instrumentKoa(options);
     },
   };
 }) satisfies IntegrationFn;
@@ -55,12 +76,28 @@ const _koaIntegration = (() => {
  *
  * For more information, see the [koa documentation](https://docs.sentry.io/platforms/javascript/guides/koa/).
  *
+ * @param {KoaOptions} options Configuration options for the Koa integration.
+ *
  * @example
  * ```javascript
  * const Sentry = require('@sentry/node');
  *
  * Sentry.init({
  *   integrations: [Sentry.koaIntegration()],
+ * })
+ * ```
+ *
+ * @example
+ * ```javascript
+ * // To ignore middleware spans
+ * const Sentry = require('@sentry/node');
+ *
+ * Sentry.init({
+ *   integrations: [
+ *     Sentry.koaIntegration({
+ *       ignoreLayersType: ['middleware']
+ *     })
+ *   ],
  * })
  * ```
  */
@@ -103,8 +140,6 @@ export const setupKoaErrorHandler = (app: { use: (arg0: (ctx: any, next: any) =>
 };
 
 function addKoaSpanAttributes(span: Span): void {
-  span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.http.otel.koa');
-
   const attributes = spanToJSON(span).data;
 
   // this is one of: middleware, router
