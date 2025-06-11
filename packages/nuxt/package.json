@@ -47,7 +47,7 @@
     "@sentry/core": "9.28.1",
     "@sentry/node": "9.28.1",
     "@sentry/opentelemetry": "9.28.1",
-    "@sentry/rollup-plugin": "3.4.0",
+    "@sentry/rollup-plugin": "3.5.0",
     "@sentry/vite-plugin": "3.2.4",
     "@sentry/vue": "9.28.1"
   },
