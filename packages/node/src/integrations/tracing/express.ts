@@ -22,6 +22,19 @@ import { ExpressInstrumentationV5 } from './express-v5/instrumentation';
 const INTEGRATION_NAME = 'Express';
 const INTEGRATION_NAME_V5 = 'Express-V5';
 
+type IgnoreMatcher = string | RegExp | ((path: string) => boolean);
+
+interface ExpressOptions {
+  /**
+   * Ignore specific layers based on their path
+   */
+  ignoreLayers?: IgnoreMatcher[];
+  /**
+   * Ignore specific layers based on their type
+   */
+  ignoreLayersType?: ('router' | 'middleware' | 'request_handler')[];
+}
+
 function requestHook(span: Span): void {
   addOriginToSpan(span, 'auto.http.otel.express');
 
@@ -56,28 +69,32 @@ function spanNameHook(info: ExpressRequestInfo<unknown>, defaultName: string): s
 
 export const instrumentExpress = generateInstrumentOnce(
   INTEGRATION_NAME,
-  () =>
+  (options: ExpressOptions = {}) =>
     new ExpressInstrumentation({
       requestHook: span => requestHook(span),
       spanNameHook: (info, defaultName) => spanNameHook(info, defaultName),
+      ignoreLayers: options.ignoreLayers,
+      ignoreLayersType: options.ignoreLayersType as any,
     }),
 );
 
 export const instrumentExpressV5 = generateInstrumentOnce(
   INTEGRATION_NAME_V5,
-  () =>
+  (options: ExpressOptions = {}) =>
     new ExpressInstrumentationV5({
       requestHook: span => requestHook(span),
       spanNameHook: (info, defaultName) => spanNameHook(info, defaultName),
+      ignoreLayers: options.ignoreLayers,
+      ignoreLayersType: options.ignoreLayersType as any,
     }),
 );
 
-const _expressIntegration = (() => {
+const _expressIntegration = ((options: ExpressOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
-      instrumentExpress();
-      instrumentExpressV5();
+      instrumentExpress(options);
+      instrumentExpressV5(options);
     },
   };
 }) satisfies IntegrationFn;
@@ -89,12 +106,42 @@ const _expressIntegration = (() => {
  *
  * For more information, see the [express documentation](https://docs.sentry.io/platforms/javascript/guides/express/).
  *
+ * @param {ExpressOptions} options Configuration options for the Express integration.
+ *
  * @example
  * ```javascript
  * const Sentry = require('@sentry/node');
  *
  * Sentry.init({
  *   integrations: [Sentry.expressIntegration()],
+ * })
+ * ```
+ *
+ * @example
+ * ```javascript
+ * // To ignore specific middleware layers by path
+ * const Sentry = require('@sentry/node');
+ *
+ * Sentry.init({
+ *   integrations: [
+ *     Sentry.expressIntegration({
+ *       ignoreLayers: ['/health', /^\/internal/]
+ *     })
+ *   ],
+ * })
+ * ```
+ *
+ * @example
+ * ```javascript
+ * // To ignore specific middleware layers by type
+ * const Sentry = require('@sentry/node');
+ *
+ * Sentry.init({
+ *   integrations: [
+ *     Sentry.expressIntegration({
+ *       ignoreLayersType: ['middleware']
+ *     })
+ *   ],
  * })
  * ```
  */
