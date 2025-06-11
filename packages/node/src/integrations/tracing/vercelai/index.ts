@@ -33,7 +33,7 @@ const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
       instrumentation = instrumentVercelAi();
     },
     setup(client) {
-      instrumentation?.callWhenPatched(() => {
+      function registerProcessors(): void {
         client.on('spanStart', span => {
           const { data: attributes, description: name } = spanToJSON(span);
 
@@ -188,7 +188,13 @@ const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
 
           return event;
         });
-      });
+      }
+
+      if (options.force) {
+        registerProcessors();
+      } else {
+        instrumentation?.callWhenPatched(registerProcessors);
+      }
     },
   };
 }) satisfies IntegrationFn;
