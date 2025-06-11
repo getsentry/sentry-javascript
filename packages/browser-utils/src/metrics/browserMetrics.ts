@@ -1,10 +1,11 @@
 /* eslint-disable max-lines */
-import type { Measurements, Span, SpanAttributes, StartSpanOptions } from '@sentry/core';
+import type { Measurements, Span, SpanAttributes, SpanAttributeValue, StartSpanOptions } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
   getActiveSpan,
   getComponentName,
   htmlTreeAsString,
+  isPrimitive,
   parseUrl,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   setMeasurement,
@@ -481,6 +482,46 @@ export function _addMeasureSpans(
   if (measureStartTimestamp !== startTimeStamp) {
     attributes['sentry.browser.measure_happened_before_request'] = true;
     attributes['sentry.browser.measure_start_time'] = measureStartTimestamp;
+  }
+
+  // Safely access and process detail property
+  // Cast to PerformanceMeasure to access detail property
+  const performanceMeasure = entry as PerformanceMeasure;
+  if (performanceMeasure.detail !== undefined) {
+    try {
+      // Accessing detail might throw in some browsers (e.g., Firefox) due to security restrictions
+      const detail = performanceMeasure.detail;
+
+      // Process detail based on its type
+      if (detail && typeof detail === 'object') {
+        // Handle object details
+        for (const [key, value] of Object.entries(detail)) {
+          if (value && isPrimitive(value)) {
+            attributes[`sentry.browser.measure.detail.${key}`] = value as SpanAttributeValue;
+          } else if (value !== undefined) {
+            try {
+              // This is user defined so we can't guarantee it's serializable
+              attributes[`sentry.browser.measure.detail.${key}`] = JSON.stringify(value);
+            } catch {
+              // Skip values that can't be stringified
+            }
+          }
+        }
+      } else if (isPrimitive(detail)) {
+        // Handle primitive details
+        attributes['sentry.browser.measure.detail'] = detail as SpanAttributeValue;
+      } else if (detail !== null) {
+        // Handle non-primitive, non-object details
+        try {
+          attributes['sentry.browser.measure.detail'] = JSON.stringify(detail);
+        } catch {
+          // Skip if stringification fails
+        }
+      }
+    } catch {
+      // Silently ignore any errors when accessing detail
+      // This handles the Firefox "Permission denied to access object" error
+    }
   }
 
   // Measurements from third parties can be off, which would create invalid spans, dropping transactions in the process.
