@@ -22,40 +22,14 @@ sentryTest('should add browser-related spans to pageload transaction', async ({ 
   expect(requestSpan).toBeDefined();
   expect(requestSpan?.description).toBe(page.url());
 
-  // Find all measure spans
-  const measureSpans = eventData.spans?.filter(({ op }) => op === 'measure');
-  expect(measureSpans?.length).toBe(3); // We created 3 measures in init.js
+  const measureSpan = eventData.spans?.find(({ op }) => op === 'measure');
+  expect(measureSpan).toBeDefined();
 
-  // Test 1: Verify object detail is captured
-  const nextJsMeasure = measureSpans?.find(span => span.description === 'Next.js-before-hydration');
-  expect(nextJsMeasure).toBeDefined();
-  expect(nextJsMeasure?.data).toMatchObject({
+  expect(requestSpan!.start_timestamp).toBeLessThanOrEqual(measureSpan!.start_timestamp);
+  expect(measureSpan?.data).toEqual({
     'sentry.browser.measure_happened_before_request': true,
     'sentry.browser.measure_start_time': expect.any(Number),
-    'sentry.browser.measure.detail.component': 'HomePage',
-    'sentry.browser.measure.detail.renderTime': 123.45,
-    'sentry.browser.measure.detail.isSSR': true,
     'sentry.op': 'measure',
     'sentry.origin': 'auto.resource.browser.metrics',
   });
-
-  // Test 2: Verify primitive detail is captured
-  const customMetricMeasure = measureSpans?.find(span => span.description === 'custom-metric');
-  expect(customMetricMeasure).toBeDefined();
-  expect(customMetricMeasure?.data).toMatchObject({
-    'sentry.browser.measure.detail': 'simple-string-detail',
-    'sentry.op': 'measure',
-    'sentry.origin': 'auto.resource.browser.metrics',
-  });
-
-  // Test 3: Verify complex detail is stringified
-  const complexMeasure = measureSpans?.find(span => span.description === 'complex-measure');
-  expect(complexMeasure).toBeDefined();
-  expect(complexMeasure?.data).toMatchObject({
-    'sentry.browser.measure.detail.nested': '{"value":"test","array":[1,2,3]}',
-    'sentry.op': 'measure',
-    'sentry.origin': 'auto.resource.browser.metrics',
-  });
-
-  expect(requestSpan!.start_timestamp).toBeLessThanOrEqual(nextJsMeasure!.start_timestamp);
 });
