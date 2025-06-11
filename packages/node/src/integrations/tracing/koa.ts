@@ -1,7 +1,7 @@
+import type { KoaInstrumentationConfig, KoaLayerType } from '@opentelemetry/instrumentation-koa';
 import { KoaInstrumentation } from '@opentelemetry/instrumentation-koa';
-import type { KoaLayerType, KoaInstrumentationConfig } from '@opentelemetry/instrumentation-koa';
 import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
-import type { IntegrationFn, Span } from '@sentry/core';
+import type { IntegrationFn } from '@sentry/core';
 import {
   captureException,
   defineIntegration,
@@ -9,19 +9,18 @@ import {
   getIsolationScope,
   logger,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import { generateInstrumentOnce } from '../../otel/instrument';
-import { ensureIsWrapped } from '../../utils/ensureIsWrapped';
 import { addOriginToSpan } from '../../utils/addOriginToSpan';
+import { ensureIsWrapped } from '../../utils/ensureIsWrapped';
 
 interface KoaOptions {
   /**
    * Ignore layers of specified types
    */
-  ignoreLayersType?: KoaLayerType[];
+  ignoreLayersType?: Array<'middleware' | 'router'>;
 }
 
 const INTEGRATION_NAME = 'Koa';
@@ -31,21 +30,34 @@ export const instrumentKoa = generateInstrumentOnce(
   KoaInstrumentation,
   (options: KoaOptions = {}) => {
     return {
-      ignoreLayersType: options.ignoreLayersType,
+      ignoreLayersType: options.ignoreLayersType as KoaLayerType[],
       requestHook(span, info) {
-        addKoaSpanAttributes(span);
         addOriginToSpan(span, 'auto.http.otel.koa');
+
+        const attributes = spanToJSON(span).data;
+
+        // this is one of: middleware, router
+        const type = attributes['koa.type'];
+        if (type) {
+          span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, `${type}.koa`);
+        }
+
+        // Also update the name
+        const name = attributes['koa.name'];
+        if (typeof name === 'string') {
+          // Somehow, name is sometimes `''` for middleware spans
+          // See: https://github.com/open-telemetry/opentelemetry-js-contrib/issues/2220
+          span.updateName(name || '< unknown >');
+        }
 
         if (getIsolationScope() === getDefaultIsolationScope()) {
           DEBUG_BUILD && logger.warn('Isolation scope is default isolation scope - skipping setting transactionName');
           return;
         }
-        const attributes = spanToJSON(span).data;
         const route = attributes[ATTR_HTTP_ROUTE];
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        const method = info.context?.request?.method?.toUpperCase?.();
-
-        if (typeof route === 'string' && typeof method === 'string') {
+        const method = info.context?.request?.method?.toUpperCase() || 'GET';
+        if (route) {
           getIsolationScope().setTransactionName(`${method} ${route}`);
         }
       },
@@ -131,25 +143,3 @@ export const setupKoaErrorHandler = (app: { use: (arg0: (ctx: any, next: any) =>
 
   ensureIsWrapped(app.use, 'koa');
 };
-
-function addKoaSpanAttributes(span: Span): void {
-  const attributes = spanToJSON(span).data;
-
-  // this is one of: middleware, router
-  const type = attributes['koa.type'];
-
-  if (type) {
-    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, `${type}.koa`);
-  }
-
-  // Also update the name
-  const name = attributes['koa.name'];
-  if (typeof name === 'string') {
-    // Somehow, name is sometimes `''` for middleware spans
-    // See: https://github.com/open-telemetry/opentelemetry-js-contrib/issues/2220
-    span.updateName(name || '< unknown >');
-  }
-}
-
-// Re-export the KoaLayerType for users
-export type { KoaLayerType };
