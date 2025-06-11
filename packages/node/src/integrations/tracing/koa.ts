@@ -1,4 +1,5 @@
 import { KoaInstrumentation } from '@opentelemetry/instrumentation-koa';
+import type { KoaLayerType, KoaInstrumentationConfig } from '@opentelemetry/instrumentation-koa';
 import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
 import type { IntegrationFn, Span } from '@sentry/core';
 import {
@@ -16,18 +17,9 @@ import { generateInstrumentOnce } from '../../otel/instrument';
 import { ensureIsWrapped } from '../../utils/ensureIsWrapped';
 import { addOriginToSpan } from '../../utils/addOriginToSpan';
 
-/**
- * Koa layer types for ignoreLayersType option
- */
-export type KoaLayerType = 'router' | 'middleware';
-
 interface KoaOptions {
   /**
-   * Ignore layers of specified types.
-   *
-   * @example ['middleware'] - Ignore all middleware layers
-   * @example ['router'] - Ignore all router layers
-   * @example ['middleware', 'router'] - Ignore both middleware and router layers
+   * Ignore layers of specified types
    */
   ignoreLayersType?: KoaLayerType[];
 }
@@ -39,7 +31,7 @@ export const instrumentKoa = generateInstrumentOnce(
   KoaInstrumentation,
   (options: KoaOptions = {}) => {
     return {
-      ignoreLayersType: options.ignoreLayersType as any,
+      ignoreLayersType: options.ignoreLayersType,
       requestHook(span, info) {
         addKoaSpanAttributes(span);
         addOriginToSpan(span, 'auto.http.otel.koa');
@@ -51,12 +43,13 @@ export const instrumentKoa = generateInstrumentOnce(
         const attributes = spanToJSON(span).data;
         const route = attributes[ATTR_HTTP_ROUTE];
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        const method = info.context?.request?.method?.toUpperCase() || 'GET';
-        if (route) {
+        const method = info.context?.request?.method?.toUpperCase?.();
+
+        if (typeof route === 'string' && typeof method === 'string') {
           getIsolationScope().setTransactionName(`${method} ${route}`);
         }
       },
-    };
+    } satisfies KoaInstrumentationConfig;
   },
 );
 
@@ -157,3 +150,6 @@ function addKoaSpanAttributes(span: Span): void {
     span.updateName(name || '< unknown >');
   }
 }
+
+// Re-export the KoaLayerType for users
+export type { KoaLayerType };
