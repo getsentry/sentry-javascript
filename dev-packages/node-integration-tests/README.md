@@ -55,6 +55,7 @@ To enable verbose logging during test execution, set the `DEBUG` environment var
 `DEBUG=1 yarn test`
 
 When `DEBUG` is enabled, the test runner will output:
+
 - Test scenario startup information (path, flags, DSN)
 - Docker Compose output when using `withDockerCompose`
 - Child process stdout and stderr output
