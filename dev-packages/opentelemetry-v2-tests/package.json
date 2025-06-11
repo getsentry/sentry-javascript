@@ -7,6 +7,8 @@
     "node": ">=18"
   },
   "scripts": {
+    "lint": "eslint . --format stylish",
+    "fix": "eslint . --format stylish --fix",
     "test": "vitest run",
     "test:watch": "vitest --watch"
   },
