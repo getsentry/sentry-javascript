@@ -1,6 +1,6 @@
 import type { Client, Event, EventHint, IntegrationFn } from '@sentry/core';
 import {
-  _INTERNAL_bufferSpanFeatureFlag,
+  _INTERNAL_addFeatureFlagToActiveSpan,
   _INTERNAL_copyFlagsFromScopeToEvent,
   _INTERNAL_insertFlagToScope,
   defineIntegration,
@@ -50,7 +50,7 @@ export function buildLaunchDarklyFlagUsedHandler(): LDInspectionFlagUsedHandler 
      */
     method: (flagKey: string, flagDetail: LDEvaluationDetail, _context: LDContext) => {
       _INTERNAL_insertFlagToScope(flagKey, flagDetail.value);
-      _INTERNAL_bufferSpanFeatureFlag(flagKey, flagDetail.value);
+      _INTERNAL_addFeatureFlagToActiveSpan(flagKey, flagDetail.value);
     },
   };
 }

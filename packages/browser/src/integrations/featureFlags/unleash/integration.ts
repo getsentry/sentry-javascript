@@ -1,6 +1,6 @@
 import type { Client, Event, EventHint, IntegrationFn } from '@sentry/core';
 import {
-  _INTERNAL_bufferSpanFeatureFlag,
+  _INTERNAL_addFeatureFlagToActiveSpan,
   _INTERNAL_copyFlagsFromScopeToEvent,
   _INTERNAL_insertFlagToScope,
   defineIntegration,
@@ -71,7 +71,7 @@ function _wrappedIsEnabled(
 
     if (typeof toggleName === 'string' && typeof result === 'boolean') {
       _INTERNAL_insertFlagToScope(toggleName, result);
-      _INTERNAL_bufferSpanFeatureFlag(toggleName, result);
+      _INTERNAL_addFeatureFlagToActiveSpan(toggleName, result);
     } else if (DEBUG_BUILD) {
       logger.error(
         `[Feature Flags] UnleashClient.isEnabled does not match expected signature. arg0: ${toggleName} (${typeof toggleName}), result: ${result} (${typeof result})`,

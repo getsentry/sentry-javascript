@@ -15,7 +15,7 @@
  */
 import type { Client, Event, EventHint, IntegrationFn } from '@sentry/core';
 import {
-  _INTERNAL_bufferSpanFeatureFlag,
+  _INTERNAL_addFeatureFlagToActiveSpan,
   _INTERNAL_copyFlagsFromScopeToEvent,
   _INTERNAL_insertFlagToScope,
   defineIntegration,
@@ -41,7 +41,7 @@ export class OpenFeatureIntegrationHook implements OpenFeatureHook {
    */
   public after(_hookContext: Readonly<HookContext<JsonValue>>, evaluationDetails: EvaluationDetails<JsonValue>): void {
     _INTERNAL_insertFlagToScope(evaluationDetails.flagKey, evaluationDetails.value);
-    _INTERNAL_bufferSpanFeatureFlag(evaluationDetails.flagKey, evaluationDetails.value);
+    _INTERNAL_addFeatureFlagToActiveSpan(evaluationDetails.flagKey, evaluationDetails.value);
   }
 
   /**
@@ -49,6 +49,6 @@ export class OpenFeatureIntegrationHook implements OpenFeatureHook {
    */
   public error(hookContext: Readonly<HookContext<JsonValue>>, _error: unknown, _hookHints?: HookHints): void {
     _INTERNAL_insertFlagToScope(hookContext.flagKey, hookContext.defaultValue);
-    _INTERNAL_bufferSpanFeatureFlag(hookContext.flagKey, hookContext.defaultValue);
+    _INTERNAL_addFeatureFlagToActiveSpan(hookContext.flagKey, hookContext.defaultValue);
   }
 }

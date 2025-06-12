@@ -129,7 +129,7 @@ export function _INTERNAL_insertToFlagBuffer(
  * @param value            Value of the feature flag. Non-boolean values are ignored.
  * @param maxFlagsPerSpan  Max number of flags a buffer should store. Default value should always be used in production.
  */
-export function _INTERNAL_bufferSpanFeatureFlag(
+export function _INTERNAL_addFeatureFlagToActiveSpan(
   name: string,
   value: unknown,
   maxFlagsPerSpan: number = MAX_FLAGS_PER_SPAN,

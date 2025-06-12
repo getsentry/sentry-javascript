@@ -1,6 +1,6 @@
 import type { Client, Event, EventHint, IntegrationFn } from '@sentry/core';
 import {
-  _INTERNAL_bufferSpanFeatureFlag,
+  _INTERNAL_addFeatureFlagToActiveSpan,
   _INTERNAL_copyFlagsFromScopeToEvent,
   _INTERNAL_insertFlagToScope,
   defineIntegration,
@@ -38,7 +38,7 @@ export const statsigIntegration = defineIntegration(
       setup(_client: Client) {
         statsigClient.on('gate_evaluation', (event: { gate: FeatureGate }) => {
           _INTERNAL_insertFlagToScope(event.gate.name, event.gate.value);
-          _INTERNAL_bufferSpanFeatureFlag(event.gate.name, event.gate.value);
+          _INTERNAL_addFeatureFlagToActiveSpan(event.gate.name, event.gate.value);
         });
       },
 

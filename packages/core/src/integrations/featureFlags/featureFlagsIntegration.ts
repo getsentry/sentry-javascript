@@ -3,7 +3,7 @@ import { defineIntegration } from '../../integration';
 import { type Event, type EventHint } from '../../types-hoist/event';
 import { type Integration, type IntegrationFn } from '../../types-hoist/integration';
 import {
-  _INTERNAL_bufferSpanFeatureFlag,
+  _INTERNAL_addFeatureFlagToActiveSpan,
   _INTERNAL_copyFlagsFromScopeToEvent,
   _INTERNAL_insertFlagToScope,
 } from '../../utils/featureFlags';
@@ -46,7 +46,7 @@ export const featureFlagsIntegration = defineIntegration(() => {
 
     addFeatureFlag(name: string, value: unknown): void {
       _INTERNAL_insertFlagToScope(name, value);
-      _INTERNAL_bufferSpanFeatureFlag(name, value);
+      _INTERNAL_addFeatureFlagToActiveSpan(name, value);
     },
   };
 }) as IntegrationFn<FeatureFlagsIntegration>;

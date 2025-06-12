@@ -128,7 +128,7 @@ export type { FeatureFlag } from './featureFlags';
 export {
   _INTERNAL_copyFlagsFromScopeToEvent,
   _INTERNAL_insertFlagToScope,
-  _INTERNAL_bufferSpanFeatureFlag,
+  _INTERNAL_addFeatureFlagToActiveSpan,
 } from './utils/featureFlags';
 
 export { applyAggregateErrorsToEvent } from './utils-hoist/aggregate-errors';
