@@ -42,7 +42,7 @@ const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
     setupOnce() {
       instrumentation = instrumentVercelAi();
     },
-    setup(client) {
+    afterAllSetup(client) {
       function registerProcessors(): void {
         client.on('spanStart', span => {
           const { data: attributes, description: name } = spanToJSON(span);
