@@ -29,6 +29,7 @@ const _modulesIntegration = (() => {
 
       return event;
     },
+    getModules: _getModules,
   };
 }) satisfies IntegrationFn;
 
@@ -39,7 +40,7 @@ const _modulesIntegration = (() => {
  * - They are extracted from the dependencies & devDependencies in the package.json file
  * - They are extracted from the require.cache (CJS only)
  */
-export const modulesIntegration = defineIntegration(_modulesIntegration);
+export const modulesIntegration = _modulesIntegration;
 
 function getRequireCachePaths(): string[] {
   try {
