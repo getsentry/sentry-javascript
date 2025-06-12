@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/browser';
 
 const end = performance.now();
 performance.measure('Next.js-before-hydration', {
-  start: performance.now() - 1000,
+  duration: 1000,
   end,
 });
 
