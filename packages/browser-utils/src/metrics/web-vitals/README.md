@@ -2,10 +2,10 @@
 
 > A modular library for measuring the [Web Vitals](https://web.dev/vitals/) metrics on real users.
 
-This was vendored from: https://github.com/GoogleChrome/web-vitals: v3.5.2
+This was vendored from: https://github.com/GoogleChrome/web-vitals: v5.0.2
 
 The commit SHA used is:
-[3d2b3dc8576cc003618952fa39902fab764a53e2](https://github.com/GoogleChrome/web-vitals/tree/3d2b3dc8576cc003618952fa39902fab764a53e2)
+[463abbd425cda01ed65e0b5d18be9f559fe446cb](https://github.com/GoogleChrome/web-vitals/tree/463abbd425cda01ed65e0b5d18be9f559fe446cb)
 
 Current vendored web vitals are:
 
@@ -27,9 +27,11 @@ web-vitals only report once per pageload.
 
 ## CHANGELOG
 
-TODO PR URL
+https://github.com/getsentry/sentry-javascript/pull/16492
 
 - Bumped from Web Vitals 4.2.5 to 5.0.2
+  - Mainly fixes some INP, LCP and FCP edge cases
+  - Original library removed FID; we still keep it around for now
 
 https://github.com/getsentry/sentry-javascript/pull/14439
 
