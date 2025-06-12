@@ -1,6 +1,6 @@
 import { SDK_VERSION } from '@sentry/core';
 import { join } from 'path';
-import { afterAll, describe, expect, test } from 'vitest';
+import { afterAll, describe, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../utils/runner';
 
 describe('modulesIntegration', () => {

@@ -4,7 +4,7 @@ import express from 'express';
 
 const app = express();
 
-app.get('/test1', (_req, _res) => {
+app.get('/test1', () => {
   throw new Error('error_1');
 });
 
