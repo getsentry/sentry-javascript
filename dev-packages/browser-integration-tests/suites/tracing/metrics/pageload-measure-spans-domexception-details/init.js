@@ -3,8 +3,9 @@ import * as Sentry from '@sentry/browser';
 // Create measures BEFORE SDK initializes
 
 // Create a measure with detail
-const measure = performance.measure('firefox-test-measure', {
-  duration: 100,
+const measure = performance.measure('restricted-test-measure', {
+  start: performance.now(),
+  end: performance.now() + 1,
   detail: { test: 'initial-value' },
 });
 
@@ -18,16 +19,9 @@ Object.defineProperty(measure, 'detail', {
   enumerable: true,
 });
 
-// Also create a normal measure to ensure SDK still works
-performance.measure('normal-measure', {
-  duration: 50,
-  detail: 'this-should-work',
-});
-
 window.Sentry = Sentry;
 
 Sentry.init({
-  debug: true,
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   integrations: [
     Sentry.browserTracingIntegration({
@@ -35,4 +29,11 @@ Sentry.init({
     }),
   ],
   tracesSampleRate: 1,
+});
+
+// Also create a normal measure to ensure SDK still works
+performance.measure('normal-measure', {
+  start: performance.now(),
+  end: performance.now() + 50,
+  detail: 'this-should-work',
 });
