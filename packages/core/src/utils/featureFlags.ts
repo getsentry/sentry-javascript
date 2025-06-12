@@ -1,6 +1,5 @@
 import { getCurrentScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
-import { type FeatureFlag } from '../featureFlags';
 import { type Event } from '../types-hoist/event';
 import { type Span } from '../types-hoist/span';
 import { logger } from '../utils-hoist/logger';
@@ -12,6 +11,8 @@ import { getActiveSpan } from './spanUtils';
  * of each flag in the buffer is unique, and the output of getAll() is ordered
  * from oldest to newest.
  */
+
+export type FeatureFlag = { readonly flag: string; readonly result: boolean };
 
 /**
  * Max size of the LRU flag buffer stored in Sentry scope and event contexts.

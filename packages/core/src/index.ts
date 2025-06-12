@@ -123,8 +123,7 @@ export type { ReportDialogOptions } from './report-dialog';
 export { _INTERNAL_captureLog, _INTERNAL_flushLogsBuffer, _INTERNAL_captureSerializedLog } from './logs/exports';
 export { consoleLoggingIntegration } from './logs/console-integration';
 
-export type { FeatureFlag } from './featureFlags';
-// TODO: ^export from utils?
+export type { FeatureFlag } from './utils/featureFlags';
 export {
   _INTERNAL_copyFlagsFromScopeToEvent,
   _INTERNAL_insertFlagToScope,
