@@ -13,11 +13,10 @@
  * OpenFeature.addHooks(new Sentry.OpenFeatureIntegrationHook());
  * ```
  */
-import type { Client, Event, EventHint, IntegrationFn, Span } from '@sentry/core';
+import type { Client, Event, EventHint, IntegrationFn } from '@sentry/core';
 import {
   _INTERNAL_bufferSpanFeatureFlag,
   _INTERNAL_copyFlagsFromScopeToEvent,
-  _INTERNAL_freezeSpanFeatureFlags,
   _INTERNAL_insertFlagToScope,
   defineIntegration,
 } from '@sentry/core';
@@ -26,12 +25,6 @@ import type { EvaluationDetails, HookContext, HookHints, JsonValue, OpenFeatureH
 export const openFeatureIntegration = defineIntegration(() => {
   return {
     name: 'OpenFeature',
-
-    setup(client: Client) {
-      client.on('spanEnd', (span: Span) => {
-        _INTERNAL_freezeSpanFeatureFlags(span);
-      });
-    },
 
     processEvent(event: Event, _hint: EventHint, _client: Client): Event {
       return _INTERNAL_copyFlagsFromScopeToEvent(event);

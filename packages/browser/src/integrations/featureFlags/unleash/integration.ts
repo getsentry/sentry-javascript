@@ -1,8 +1,7 @@
-import type { Client, Event, EventHint, IntegrationFn, Span } from '@sentry/core';
+import type { Client, Event, EventHint, IntegrationFn } from '@sentry/core';
 import {
   _INTERNAL_bufferSpanFeatureFlag,
   _INTERNAL_copyFlagsFromScopeToEvent,
-  _INTERNAL_freezeSpanFeatureFlags,
   _INTERNAL_insertFlagToScope,
   defineIntegration,
   fill,
@@ -41,12 +40,6 @@ export const unleashIntegration = defineIntegration(
   ({ featureFlagClientClass: unleashClientClass }: UnleashIntegrationOptions) => {
     return {
       name: 'Unleash',
-
-      setup(client: Client) {
-        client.on('spanEnd', (span: Span) => {
-          _INTERNAL_freezeSpanFeatureFlags(span);
-        });
-      },
 
       setupOnce() {
         const unleashClientPrototype = unleashClientClass.prototype as UnleashClient;

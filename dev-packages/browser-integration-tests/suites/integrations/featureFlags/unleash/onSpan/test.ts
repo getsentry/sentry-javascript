@@ -60,12 +60,9 @@ sentryTest("Feature flags are added to active span's attributes on span end.", a
   expect(innerSpanFlags).toEqual([]);
 
   const expectedOuterSpanFlags = [];
-  for (let i = 1; i <= 2; i++) {
-    expectedOuterSpanFlags.push([`flag.evaluation.feat${i}`, false]);
+  for (let i = 1; i <= MAX_FLAGS_PER_SPAN; i++) {
+    expectedOuterSpanFlags.push([`flag.evaluation.feat${i}`, i === 3]);
   }
-  for (let i = 4; i <= MAX_FLAGS_PER_SPAN; i++) {
-    expectedOuterSpanFlags.push([`flag.evaluation.feat${i}`, false]);
-  }
-  expectedOuterSpanFlags.push(['flag.evaluation.feat3', true]);
-  expect(outerSpanFlags).toEqual(expectedOuterSpanFlags);
+  // Order agnostic (attribute dict is unordered).
+  expect(outerSpanFlags.sort()).toEqual(expectedOuterSpanFlags.sort());
 });
