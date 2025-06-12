@@ -37,3 +37,22 @@ performance.measure('normal-measure', {
   end: performance.now() + 50,
   detail: 'this-should-work',
 });
+
+// Create a measure with complex detail object
+performance.measure('complex-detail-measure', {
+  start: performance.now(),
+  end: performance.now() + 25,
+  detail: {
+    nested: {
+      array: [1, 2, 3],
+      object: {
+        key: 'value',
+      },
+    },
+    metadata: {
+      type: 'test',
+      version: '1.0',
+      tags: ['complex', 'nested', 'object'],
+    },
+  },
+});

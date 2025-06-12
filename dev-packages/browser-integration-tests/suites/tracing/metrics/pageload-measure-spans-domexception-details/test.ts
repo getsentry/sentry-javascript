@@ -17,7 +17,7 @@ sentryTest(
 
     // Find all measure spans
     const measureSpans = eventData.spans?.filter(({ op }) => op === 'measure');
-    expect(measureSpans?.length).toBe(2); // Both measures should create spans
+    expect(measureSpans?.length).toBe(3); // All three measures should create spans
 
     // Test 1: Verify the restricted-test-measure span exists but has no detail
     const restrictedMeasure = measureSpans?.find(span => span.description === 'restricted-test-measure');
@@ -39,6 +39,26 @@ sentryTest(
       'sentry.browser.measure.detail': 'this-should-work',
       'sentry.op': 'measure',
       'sentry.origin': 'auto.resource.browser.metrics',
+    });
+
+    // Test 3: Verify the complex detail object is captured correctly
+    const complexMeasure = measureSpans?.find(span => span.description === 'complex-detail-measure');
+    expect(complexMeasure).toBeDefined();
+    expect(complexMeasure?.data).toMatchObject({
+      'sentry.op': 'measure',
+      'sentry.origin': 'auto.resource.browser.metrics',
+      // The entire nested object is stringified as a single value
+      'sentry.browser.measure.detail.nested': JSON.stringify({
+        array: [1, 2, 3],
+        object: {
+          key: 'value',
+        },
+      }),
+      'sentry.browser.measure.detail.metadata': JSON.stringify({
+        type: 'test',
+        version: '1.0',
+        tags: ['complex', 'nested', 'object'],
+      }),
     });
   },
 );
