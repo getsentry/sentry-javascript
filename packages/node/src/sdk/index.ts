@@ -11,6 +11,7 @@ import {
   logger,
   propagationContextFromHeaders,
   requestDataIntegration,
+  rewriteFramesIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
 import {
@@ -69,6 +70,11 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
     nodeContextIntegration(),
     childProcessIntegration(),
     processSessionIntegration(),
+    // This has to run after the other integrations, because it rewrites the frames
+    rewriteFramesIntegration({
+      root: process.cwd(),
+      prefix: '/',
+    }),
     ...getCjsOnlyIntegrations(),
   ];
 }

@@ -139,6 +139,16 @@ describe('RewriteFrames', () => {
       expect(event.exception!.values![0]?.stacktrace!.frames![0]?.filename).toEqual('foobar/file1.js');
       expect(event.exception!.values![0]?.stacktrace!.frames![1]?.filename).toEqual('foobar/file2.js');
     });
+
+    it('handles empty string as prefix', () => {
+      rewriteFrames = rewriteFramesIntegration({
+        prefix: '',
+      });
+
+      const event = rewriteFrames.processEvent?.(exceptionEvent, {}, {} as any) as Event;
+      expect(event.exception!.values![0]?.stacktrace!.frames![0]?.filename).toEqual('file1.js');
+      expect(event.exception!.values![0]?.stacktrace!.frames![1]?.filename).toEqual('file2.js');
+    });
   });
 
   describe('default iteratee appends basename to `app:///` if frame starts with Windows path prefix', () => {
