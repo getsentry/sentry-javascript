@@ -17,12 +17,12 @@ export type FeatureFlag = { readonly flag: string; readonly result: boolean };
 /**
  * Max size of the LRU flag buffer stored in Sentry scope and event contexts.
  */
-const FLAG_BUFFER_SIZE = 100;
+export const _INTERNAL_FLAG_BUFFER_SIZE = 100;
 
 /**
  * Max number of flag evaluations to record per span.
  */
-const MAX_FLAGS_PER_SPAN = 10;
+export const _INTERNAL_MAX_FLAGS_PER_SPAN = 10;
 
 // Global map of spans to feature flag buffers. Populated by feature flag integrations.
 GLOBAL_OBJ._spanToFlagBufferMap = new WeakMap<Span, Set<string>>();
@@ -59,7 +59,11 @@ export function _INTERNAL_copyFlagsFromScopeToEvent(event: Event): Event {
  * @param value    Value of the feature flag.
  * @param maxSize  Max number of flags the buffer should store. Default value should always be used in production.
  */
-export function _INTERNAL_insertFlagToScope(name: string, value: unknown, maxSize: number = FLAG_BUFFER_SIZE): void {
+export function _INTERNAL_insertFlagToScope(
+  name: string,
+  value: unknown,
+  maxSize: number = _INTERNAL_FLAG_BUFFER_SIZE,
+): void {
   const scopeContexts = getCurrentScope().getScopeData().contexts;
   if (!scopeContexts.flags) {
     scopeContexts.flags = { values: [] };
@@ -133,7 +137,7 @@ export function _INTERNAL_insertToFlagBuffer(
 export function _INTERNAL_addFeatureFlagToActiveSpan(
   name: string,
   value: unknown,
-  maxFlagsPerSpan: number = MAX_FLAGS_PER_SPAN,
+  maxFlagsPerSpan: number = _INTERNAL_MAX_FLAGS_PER_SPAN,
 ): void {
   const spanFlagMap = GLOBAL_OBJ._spanToFlagBufferMap;
   if (!spanFlagMap || typeof value !== 'boolean') {

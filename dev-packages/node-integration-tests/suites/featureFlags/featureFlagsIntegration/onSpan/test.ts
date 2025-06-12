@@ -1,7 +1,6 @@
+import { _INTERNAL_MAX_FLAGS_PER_SPAN as MAX_FLAGS_PER_SPAN } from '@sentry/core';
 import { afterAll, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
-
-const MAX_FLAGS_PER_SPAN = 10;
 
 afterAll(() => {
   cleanupChildProcesses();

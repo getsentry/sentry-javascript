@@ -128,6 +128,8 @@ export {
   _INTERNAL_copyFlagsFromScopeToEvent,
   _INTERNAL_insertFlagToScope,
   _INTERNAL_addFeatureFlagToActiveSpan,
+  _INTERNAL_FLAG_BUFFER_SIZE,
+  _INTERNAL_MAX_FLAGS_PER_SPAN,
 } from './utils/featureFlags';
 
 export { applyAggregateErrorsToEvent } from './utils-hoist/aggregate-errors';

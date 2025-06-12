@@ -1,7 +1,6 @@
+import { _INTERNAL_FLAG_BUFFER_SIZE as FLAG_BUFFER_SIZE } from '@sentry/core';
 import { afterAll, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../../../utils/runner';
-
-const FLAG_BUFFER_SIZE = 100;
 
 afterAll(() => {
   cleanupChildProcesses();
