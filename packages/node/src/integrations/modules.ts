@@ -13,7 +13,8 @@ const INTEGRATION_NAME = 'Modules';
 declare const __SENTRY_SERVER_MODULES__: Record<string, string>;
 
 /**
- * This is replaced at build time with the modules loaded by the server.
+ * `__SENTRY_SERVER_MODULES__` can be replaced at build time with the modules loaded by the server.
+ * Right now, we leverage this in Next.js to circumvent the problem that we do not get access to these things at runtime.
  */
 const SERVER_MODULES = typeof __SENTRY_SERVER_MODULES__ === 'undefined' ? {} : __SENTRY_SERVER_MODULES__;
 
