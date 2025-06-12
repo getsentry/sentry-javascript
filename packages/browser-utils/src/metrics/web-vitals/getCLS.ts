@@ -14,10 +14,12 @@
  * limitations under the License.
  */
 
+import { WINDOW } from '../../types';
 import { bindReporter } from './lib/bindReporter';
 import { initMetric } from './lib/initMetric';
+import { initUnique } from './lib/initUnique';
+import { LayoutShiftManager } from './lib/LayoutShiftManager';
 import { observe } from './lib/observe';
-import { onHidden } from './lib/onHidden';
 import { runOnce } from './lib/runOnce';
 import { onFCP } from './onFCP';
 import type { CLSMetric, MetricRatingThresholds, ReportOpts } from './types';
@@ -54,58 +56,37 @@ export const onCLS = (onReport: (metric: CLSMetric) => void, opts: ReportOpts = 
       const metric = initMetric('CLS', 0);
       let report: ReturnType<typeof bindReporter>;
 
-      let sessionValue = 0;
-      let sessionEntries: LayoutShift[] = [];
+      const layoutShiftManager = initUnique(opts, LayoutShiftManager);
 
       const handleEntries = (entries: LayoutShift[]) => {
-        entries.forEach(entry => {
-          // Only count layout shifts without recent user input.
-          if (!entry.hadRecentInput) {
-            const firstSessionEntry = sessionEntries[0];
-            const lastSessionEntry = sessionEntries[sessionEntries.length - 1];
-
-            // If the entry occurred less than 1 second after the previous entry
-            // and less than 5 seconds after the first entry in the session,
-            // include the entry in the current session. Otherwise, start a new
-            // session.
-            if (
-              sessionValue &&
-              firstSessionEntry &&
-              lastSessionEntry &&
-              entry.startTime - lastSessionEntry.startTime < 1000 &&
-              entry.startTime - firstSessionEntry.startTime < 5000
-            ) {
-              sessionValue += entry.value;
-              sessionEntries.push(entry);
-            } else {
-              sessionValue = entry.value;
-              sessionEntries = [entry];
-            }
-          }
-        });
+        for (const entry of entries) {
+          layoutShiftManager._processEntry(entry);
+        }
 
         // If the current session value is larger than the current CLS value,
         // update CLS and the entries contributing to it.
-        if (sessionValue > metric.value) {
-          metric.value = sessionValue;
-          metric.entries = sessionEntries;
+        if (layoutShiftManager._sessionValue > metric.value) {
+          metric.value = layoutShiftManager._sessionValue;
+          metric.entries = layoutShiftManager._sessionEntries;
           report();
         }
       };
 
       const po = observe('layout-shift', handleEntries);
       if (po) {
-        report = bindReporter(onReport, metric, CLSThresholds, opts.reportAllChanges);
+        report = bindReporter(onReport, metric, CLSThresholds, opts!.reportAllChanges);
 
-        onHidden(() => {
-          handleEntries(po.takeRecords() as CLSMetric['entries']);
-          report(true);
+        WINDOW.document?.addEventListener('visibilitychange', () => {
+          if (WINDOW.document?.visibilityState === 'hidden') {
+            handleEntries(po.takeRecords() as CLSMetric['entries']);
+            report(true);
+          }
         });
 
         // Queue a task to report (if nothing else triggers a report first).
         // This allows CLS to be reported as soon as FCP fires when
         // `reportAllChanges` is true.
-        setTimeout(report, 0);
+        WINDOW?.setTimeout?.(report);
       }
     }),
   );
