@@ -7,8 +7,9 @@ import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../.
 
 sentryTest(
   'should handle permission denial gracefully and still create measure spans',
-  async ({ getLocalTestUrl, page }) => {
-    if (shouldSkipTracingTest()) {
+  async ({ getLocalTestUrl, page, browserName }) => {
+    // Skip test on webkit because we can't validate the detail in the browser
+    if (shouldSkipTracingTest() || browserName === 'webkit') {
       sentryTest.skip();
     }
 
