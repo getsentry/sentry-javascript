@@ -49,6 +49,7 @@ export type NextConfigObject = {
   productionBrowserSourceMaps?: boolean;
   // https://nextjs.org/docs/pages/api-reference/next-config-js/env
   env?: Record<string, string>;
+  serverExternalPackages?: string[];
 };
 
 export type SentryBuildOptions = {
