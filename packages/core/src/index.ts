@@ -88,6 +88,7 @@ export { parseSampleRate } from './utils/parseSampleRate';
 export { applySdkMetadata } from './utils/sdkMetadata';
 export { getTraceData } from './utils/traceData';
 export { getTraceMetaTags } from './utils/meta';
+export { debounce } from './utils/debounce';
 export {
   winterCGHeadersToDict,
   winterCGRequestToRequestData,

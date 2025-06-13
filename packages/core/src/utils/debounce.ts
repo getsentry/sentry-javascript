@@ -1,13 +1,14 @@
-import { debounce as debounceCore } from '@sentry/core';
-import { setTimeout } from '@sentry-internal/browser-utils';
-
 type DebouncedCallback = {
   (): void | unknown;
   flush: () => void | unknown;
   cancel: () => void;
 };
 type CallbackFunction = () => unknown;
-type DebounceOptions = { maxWait?: number };
+type DebounceOptions = {
+  maxWait?: number;
+  // This can be overwritten to use a different setTimeout implementation, e.g. to avoid triggering change detection in Angular
+  setTimeoutImpl?: typeof setTimeout;
+};
 
 /**
  * Heavily simplified debounce function based on lodash.debounce.
@@ -28,9 +29,47 @@ type DebounceOptions = { maxWait?: number };
  *          - `cancel`: Cancels the debouncing process and resets the debouncing timer
  */
 export function debounce(func: CallbackFunction, wait: number, options?: DebounceOptions): DebouncedCallback {
-  return debounceCore(func, wait, {
-    ...options,
-    // @ts-expect-error - Not quite sure why these types do not match, but this is fine
-    setTimeoutImpl: setTimeout,
-  });
+  let callbackReturnValue: unknown;
+
+  let timerId: ReturnType<typeof setTimeout> | undefined;
+  let maxTimerId: ReturnType<typeof setTimeout> | undefined;
+
+  const maxWait = options?.maxWait ? Math.max(options.maxWait, wait) : 0;
+  const setTimeoutImpl = options?.setTimeoutImpl || setTimeout;
+
+  function invokeFunc(): unknown {
+    cancelTimers();
+    callbackReturnValue = func();
+    return callbackReturnValue;
+  }
+
+  function cancelTimers(): void {
+    timerId !== undefined && clearTimeout(timerId);
+    maxTimerId !== undefined && clearTimeout(maxTimerId);
+    timerId = maxTimerId = undefined;
+  }
+
+  function flush(): unknown {
+    if (timerId !== undefined || maxTimerId !== undefined) {
+      return invokeFunc();
+    }
+    return callbackReturnValue;
+  }
+
+  function debounced(): unknown {
+    if (timerId) {
+      clearTimeout(timerId);
+    }
+    timerId = setTimeoutImpl(invokeFunc, wait);
+
+    if (maxWait && maxTimerId === undefined) {
+      maxTimerId = setTimeoutImpl(invokeFunc, maxWait);
+    }
+
+    return callbackReturnValue;
+  }
+
+  debounced.cancel = cancelTimers;
+  debounced.flush = flush;
+  return debounced;
 }
