@@ -484,15 +484,29 @@ export function _addMeasureSpans(
     attributes['sentry.browser.measure_start_time'] = measureStartTimestamp;
   }
 
-  // Safely access and process detail property
-  // Cast to PerformanceMeasure to access detail property
-  const performanceMeasure = entry as PerformanceMeasure;
+  _addDetailToSpanAttributes(attributes, entry as PerformanceMeasure);
+
+  // Measurements from third parties can be off, which would create invalid spans, dropping transactions in the process.
+  if (measureStartTimestamp <= measureEndTimestamp) {
+    startAndEndSpan(span, measureStartTimestamp, measureEndTimestamp, {
+      name: entry.name as string,
+      op: entry.entryType as string,
+      attributes,
+    });
+  }
+}
+
+function _addDetailToSpanAttributes(attributes: SpanAttributes, performanceMeasure: PerformanceMeasure): void {
   try {
     // Accessing detail might throw in some browsers (e.g., Firefox) due to security restrictions
     const detail = performanceMeasure.detail;
 
+    if (!detail) {
+      return;
+    }
+
     // Process detail based on its type
-    if (detail && typeof detail === 'object') {
+    if (typeof detail === 'object') {
       // Handle object details
       for (const [key, value] of Object.entries(detail)) {
         if (value && isPrimitive(value)) {
@@ -506,29 +520,23 @@ export function _addMeasureSpans(
           }
         }
       }
-    } else if (isPrimitive(detail)) {
+      return;
+    }
+
+    if (isPrimitive(detail)) {
       // Handle primitive details
       attributes['sentry.browser.measure.detail'] = detail as SpanAttributeValue;
-    } else if (detail !== null) {
-      // Handle non-primitive, non-object details
-      try {
-        attributes['sentry.browser.measure.detail'] = JSON.stringify(detail);
-      } catch {
-        // Skip if stringification fails
-      }
+      return;
+    }
+
+    try {
+      attributes['sentry.browser.measure.detail'] = JSON.stringify(detail);
+    } catch {
+      // Skip if stringification fails
     }
   } catch {
     // Silently ignore any errors when accessing detail
     // This handles the Firefox "Permission denied to access object" error
-  }
-
-  // Measurements from third parties can be off, which would create invalid spans, dropping transactions in the process.
-  if (measureStartTimestamp <= measureEndTimestamp) {
-    startAndEndSpan(span, measureStartTimestamp, measureEndTimestamp, {
-      name: entry.name as string,
-      op: entry.entryType as string,
-      attributes,
-    });
   }
 }
 
