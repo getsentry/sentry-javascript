@@ -1,7 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import type { IntegrationFn } from '@sentry/core';
-import { defineIntegration } from '@sentry/core';
 import { isCjs } from '../utils/commonjs';
 
 type ModuleInfo = Record<string, string>;
