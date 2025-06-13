@@ -123,4 +123,12 @@ test('Should capture an error and transaction for a app router page', async ({ p
   expect(errorEvent.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
   expect(transactionEvent.tags?.['my-isolated-tag']).toBe(true);
   expect(transactionEvent.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
+
+  // Modules are set for Next.js
+  expect(errorEvent.modules).toEqual(
+    expect.objectContaining({
+      '@sentry/nextjs': expect.any(String),
+      '@playwright/test': expect.any(String),
+    }),
+  );
 });
