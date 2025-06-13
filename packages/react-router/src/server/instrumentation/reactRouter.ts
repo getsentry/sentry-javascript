@@ -1,5 +1,5 @@
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
-import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
+import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
 import {
   getActiveSpan,
   getRootSpan,
@@ -37,11 +37,14 @@ export class ReactRouterInstrumentation extends InstrumentationBase<Instrumentat
       COMPONENT,
       supportedVersions,
       (moduleExports: ReactRouterModuleExports) => {
-        return this._createPatchedModuleProxy(moduleExports);
+        if (isWrapped(moduleExports['createRequestHandler'])) {
+          this._unwrap(moduleExports, 'createRequestHandler');
+        }
+        this._wrap(moduleExports, 'createRequestHandler', this._patchCreateRequestHandler());
+        return moduleExports;
       },
-      (_moduleExports: unknown) => {
-        // nothing to unwrap here
-        return _moduleExports;
+      (moduleExports: ReactRouterModuleExports) => {
+        this._unwrap(moduleExports, 'createRequestHandler');
       },
     );
 
@@ -49,63 +52,56 @@ export class ReactRouterInstrumentation extends InstrumentationBase<Instrumentat
   }
 
   /**
-   * Creates a proxy around the React Router module exports that patches the createRequestHandler function.
-   * This allows us to wrap the request handler to add performance monitoring for data loaders and actions.
+   * Returns a patched version of the createRequestHandler function that adds Sentry performance monitoring.
+   * This wraps the request handler to create spans for data loader and action requests.
    */
-  private _createPatchedModuleProxy(moduleExports: ReactRouterModuleExports): ReactRouterModuleExports {
-    return new Proxy(moduleExports, {
-      get(target, prop, receiver) {
-        if (prop === 'createRequestHandler') {
-          const original = target[prop];
-          return function sentryWrappedCreateRequestHandler(this: unknown, ...args: unknown[]) {
-            const originalRequestHandler = original.apply(this, args);
-
-            return async function sentryWrappedRequestHandler(request: Request, initialContext?: unknown) {
-              let url: URL;
-              try {
-                url = new URL(request.url);
-              } catch (error) {
-                return originalRequestHandler(request, initialContext);
-              }
-
-              // We currently just want to trace loaders and actions
-              if (!isDataRequest(url.pathname)) {
-                return originalRequestHandler(request, initialContext);
-              }
-
-              const activeSpan = getActiveSpan();
-              const rootSpan = activeSpan && getRootSpan(activeSpan);
-
-              if (!rootSpan) {
-                DEBUG_BUILD && logger.debug('No active root span found, skipping tracing for data request');
-                return originalRequestHandler(request, initialContext);
-              }
-
-              // Set the source and overwrite attributes on the root span to ensure the transaction name
-              // is derived from the raw URL pathname rather than any parameterized route that may be set later
-              // TODO: try to set derived parameterized route from build here (args[0])
-              rootSpan.setAttributes({
-                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-                [SEMANTIC_ATTRIBUTE_SENTRY_OVERWRITE]: `${request.method} ${url.pathname}`,
-              });
-
-              return startSpan(
-                {
-                  name: getSpanName(url.pathname, request.method),
-                  attributes: {
-                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react-router',
-                    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: getOpName(url.pathname, request.method),
-                  },
-                },
-                () => {
-                  return originalRequestHandler(request, initialContext);
-                },
-              );
-            };
-          };
+  private _patchCreateRequestHandler(): (original: typeof reactRouter.createRequestHandler) => any {
+    return function sentryWrappedCreateRequestHandler(this: unknown, ...args: unknown[]) {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore not sure why original isn't found here?
+      const originalRequestHandler = (original as typeof reactRouter.createRequestHandler).apply(this, args);
+      return async function sentryWrappedRequestHandler(request: Request, initialContext?: unknown) {
+        let url: URL;
+        try {
+          url = new URL(request.url);
+        } catch (error) {
+          return originalRequestHandler(request, initialContext);
         }
-        return Reflect.get(target, prop, receiver);
-      },
-    });
+
+        // We currently just want to trace loaders and actions
+        if (!isDataRequest(url.pathname)) {
+          return originalRequestHandler(request, initialContext);
+        }
+
+        const activeSpan = getActiveSpan();
+        const rootSpan = activeSpan && getRootSpan(activeSpan);
+
+        if (!rootSpan) {
+          DEBUG_BUILD && logger.debug('No active root span found, skipping tracing for data request');
+          return originalRequestHandler(request, initialContext);
+        }
+
+        // Set the source and overwrite attributes on the root span to ensure the transaction name
+        // is derived from the raw URL pathname rather than any parameterized route that may be set later
+        // TODO: try to set derived parameterized route from build here (args[0])
+        rootSpan.setAttributes({
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OVERWRITE]: `${request.method} ${url.pathname}`,
+        });
+
+        return startSpan(
+          {
+            name: getSpanName(url.pathname, request.method),
+            attributes: {
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react-router',
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: getOpName(url.pathname, request.method),
+            },
+          },
+          () => {
+            return originalRequestHandler(request, initialContext);
+          },
+        );
+      };
+    };
   }
 }
