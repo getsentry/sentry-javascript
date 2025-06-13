@@ -14,6 +14,7 @@ import type {
 import {
   captureEvent,
   convertSpanLinksForEnvelope,
+  debounce,
   getCapturedScopesOnSpan,
   getDynamicSamplingContextFromSpan,
   getStatusMessage,
@@ -49,8 +50,6 @@ interface FinishedSpanBucket {
  * A Sentry-specific exporter that converts OpenTelemetry Spans to Sentry Spans & Transactions.
  */
 export class SentrySpanExporter {
-  private _flushTimeout: ReturnType<typeof setTimeout> | undefined;
-
   /*
    * A quick explanation on the buckets: We do bucketing of finished spans for efficiency. This span exporter is
    * accumulating spans until a root span is encountered and then it flushes all the spans that are descendants of that
@@ -74,6 +73,7 @@ export class SentrySpanExporter {
   // Essentially a a set of span ids that are already sent. The values are expiration
   // times in this cache so we don't hold onto them indefinitely.
   private _sentSpans: Map<string, number>;
+  private _debouncedFlush: ReturnType<typeof debounce>;
 
   public constructor(options?: {
     /** Lower bound of time in seconds until spans that are buffered but have not been sent as part of a transaction get cleared from memory. */
@@ -84,47 +84,7 @@ export class SentrySpanExporter {
     this._lastCleanupTimestampInS = Math.floor(Date.now() / 1000);
     this._spansToBucketEntry = new WeakMap();
     this._sentSpans = new Map<string, number>();
-  }
-
-  /**
-   * Check if a span with the given ID has already been sent using the `_sentSpans` as a cache.
-   * Purges "expired" spans from the cache upon checking.
-   * @param spanId The span id to check.
-   * @returns Whether the span is already sent in the past X seconds.
-   */
-  public isSpanAlreadySent(spanId: string): boolean {
-    const expirationTime = this._sentSpans.get(spanId);
-    if (expirationTime) {
-      if (Date.now() >= expirationTime) {
-        this._sentSpans.delete(spanId); // Remove expired span
-      } else {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  /** Remove "expired" span id entries from the _sentSpans cache. */
-  public flushSentSpanCache(): void {
-    const currentTimestamp = Date.now();
-    // Note, it is safe to delete items from the map as we go: https://stackoverflow.com/a/35943995/90297
-    for (const [spanId, expirationTime] of this._sentSpans.entries()) {
-      if (expirationTime <= currentTimestamp) {
-        this._sentSpans.delete(spanId);
-      }
-    }
-  }
-
-  /** Check if a node is a completed root node or a node whose parent has already been sent */
-  public nodeIsCompletedRootNode(node: SpanNode): node is SpanNodeCompleted {
-    return !!node.span && (!node.parentNode || this.isSpanAlreadySent(node.parentNode.id));
-  }
-
-  /** Get all completed root nodes from a list of nodes */
-  public getCompletedRootNodes(nodes: SpanNode[]): SpanNodeCompleted[] {
-    // TODO: We should be able to remove the explicit `node is SpanNodeCompleted` type guard
-    //       once we stop supporting TS < 5.5
-    return nodes.filter((node): node is SpanNodeCompleted => this.nodeIsCompletedRootNode(node));
+    this._debouncedFlush = debounce(this.flush.bind(this), 1, { maxWait: 100 });
   }
 
   /** Export a single span. */
@@ -159,26 +119,18 @@ export class SentrySpanExporter {
 
     // If the span doesn't have a local parent ID (it's a root span), we're gonna flush all the ended spans
     const localParentId = getLocalParentId(span);
-    if (!localParentId || this.isSpanAlreadySent(localParentId)) {
-      this._clearTimeout();
-
-      // If we got a parent span, we try to send the span tree
-      // Wait a tick for this, to ensure we avoid race conditions
-      this._flushTimeout = setTimeout(() => {
-        this.flush();
-      }, 1);
+    if (!localParentId || this._sentSpans.has(localParentId)) {
+      this._debouncedFlush();
     }
   }
 
   /** Try to flush any pending spans immediately. */
   public flush(): void {
-    this._clearTimeout();
-
     const finishedSpans: ReadableSpan[] = this._finishedSpanBuckets.flatMap(bucket =>
       bucket ? Array.from(bucket.spans) : [],
     );
 
-    this.flushSentSpanCache();
+    this._flushSentSpanCache();
     const sentSpans = this._maybeSend(finishedSpans);
 
     const sentSpanCount = sentSpans.size;
@@ -197,20 +149,15 @@ export class SentrySpanExporter {
         bucketEntry.spans.delete(span);
       }
     }
+    // Cancel a pending debounced flush, if there is one
+    this._debouncedFlush.cancel();
   }
 
   /** Clear the exporter. */
   public clear(): void {
     this._finishedSpanBuckets = this._finishedSpanBuckets.fill(undefined);
-    this._clearTimeout();
-  }
-
-  /** Clear the flush timeout. */
-  private _clearTimeout(): void {
-    if (this._flushTimeout) {
-      clearTimeout(this._flushTimeout);
-      this._flushTimeout = undefined;
-    }
+    this._sentSpans.clear();
+    this._debouncedFlush.cancel();
   }
 
   /**
@@ -226,7 +173,7 @@ export class SentrySpanExporter {
     const grouped = groupSpansWithParents(spans);
     const sentSpans = new Set<ReadableSpan>();
 
-    const rootNodes = this.getCompletedRootNodes(grouped);
+    const rootNodes = this._getCompletedRootNodes(grouped);
 
     for (const root of rootNodes) {
       const span = root.span;
@@ -256,6 +203,29 @@ export class SentrySpanExporter {
     }
 
     return sentSpans;
+  }
+
+  /** Remove "expired" span id entries from the _sentSpans cache. */
+  private _flushSentSpanCache(): void {
+    const currentTimestamp = Date.now();
+    // Note, it is safe to delete items from the map as we go: https://stackoverflow.com/a/35943995/90297
+    for (const [spanId, expirationTime] of this._sentSpans.entries()) {
+      if (expirationTime <= currentTimestamp) {
+        this._sentSpans.delete(spanId);
+      }
+    }
+  }
+
+  /** Check if a node is a completed root node or a node whose parent has already been sent */
+  private _nodeIsCompletedRootNode(node: SpanNode): node is SpanNodeCompleted {
+    return !!node.span && (!node.parentNode || this._sentSpans.has(node.parentNode.id));
+  }
+
+  /** Get all completed root nodes from a list of nodes */
+  private _getCompletedRootNodes(nodes: SpanNode[]): SpanNodeCompleted[] {
+    // TODO: We should be able to remove the explicit `node is SpanNodeCompleted` type guard
+    //       once we stop supporting TS < 5.5
+    return nodes.filter((node): node is SpanNodeCompleted => this._nodeIsCompletedRootNode(node));
   }
 }
 
