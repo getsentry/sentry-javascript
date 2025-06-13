@@ -3,11 +3,8 @@ import { waitForError } from '@sentry-internal/test-utils';
 
 test('Sends correct error event', async ({ baseURL }) => {
   const errorEventPromise = waitForError('tsx-express', event => {
-    console.log('xx', { event }, event.exception?.values);
     return !event.type && event.exception?.values?.[0]?.value === 'This is an exception with id 123';
   });
-
-  console.log({ baseURL });
 
   await fetch(`${baseURL}/test-exception/123`);
 
@@ -40,6 +37,6 @@ test('Should record caught exceptions with local variable', async ({ baseURL }) 
 
   const errorEvent = await errorEventPromise;
 
-  const frames = errorEvent.exception?.values?.[0].stacktrace?.frames;
-  expect(frames?.[frames.length - 1].vars?.randomVariableToRecord).toBeDefined();
+  const frames = errorEvent.exception?.values?.[0]?.stacktrace?.frames;
+  expect(frames?.[frames.length - 1]?.vars?.randomVariableToRecord).toBeDefined();
 });
