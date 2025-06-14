@@ -1,12 +1,14 @@
 {
   "name": "@sentry-internal/opentelemetry-v2-tests",
-  "version": "9.27.0",
+  "version": "9.29.0",
   "private": true,
   "description": "Tests for @sentry/opentelemetry with OpenTelemetry v2",
   "engines": {
     "node": ">=18"
   },
   "scripts": {
+    "lint": "eslint . --format stylish",
+    "fix": "eslint . --format stylish --fix",
     "test": "vitest run",
     "test:watch": "vitest --watch"
   },

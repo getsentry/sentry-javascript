@@ -1,10 +1,11 @@
 /* eslint-disable max-lines */
-import type { Measurements, Span, SpanAttributes, StartSpanOptions } from '@sentry/core';
+import type { Measurements, Span, SpanAttributes, SpanAttributeValue, StartSpanOptions } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
   getActiveSpan,
   getComponentName,
   htmlTreeAsString,
+  isPrimitive,
   parseUrl,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   setMeasurement,
@@ -483,6 +484,8 @@ export function _addMeasureSpans(
     attributes['sentry.browser.measure_start_time'] = measureStartTimestamp;
   }
 
+  _addDetailToSpanAttributes(attributes, entry as PerformanceMeasure);
+
   // Measurements from third parties can be off, which would create invalid spans, dropping transactions in the process.
   if (measureStartTimestamp <= measureEndTimestamp) {
     startAndEndSpan(span, measureStartTimestamp, measureEndTimestamp, {
@@ -490,6 +493,50 @@ export function _addMeasureSpans(
       op: entry.entryType as string,
       attributes,
     });
+  }
+}
+
+function _addDetailToSpanAttributes(attributes: SpanAttributes, performanceMeasure: PerformanceMeasure): void {
+  try {
+    // Accessing detail might throw in some browsers (e.g., Firefox) due to security restrictions
+    const detail = performanceMeasure.detail;
+
+    if (!detail) {
+      return;
+    }
+
+    // Process detail based on its type
+    if (typeof detail === 'object') {
+      // Handle object details
+      for (const [key, value] of Object.entries(detail)) {
+        if (value && isPrimitive(value)) {
+          attributes[`sentry.browser.measure.detail.${key}`] = value as SpanAttributeValue;
+        } else if (value !== undefined) {
+          try {
+            // This is user defined so we can't guarantee it's serializable
+            attributes[`sentry.browser.measure.detail.${key}`] = JSON.stringify(value);
+          } catch {
+            // Skip values that can't be stringified
+          }
+        }
+      }
+      return;
+    }
+
+    if (isPrimitive(detail)) {
+      // Handle primitive details
+      attributes['sentry.browser.measure.detail'] = detail as SpanAttributeValue;
+      return;
+    }
+
+    try {
+      attributes['sentry.browser.measure.detail'] = JSON.stringify(detail);
+    } catch {
+      // Skip if stringification fails
+    }
+  } catch {
+    // Silently ignore any errors when accessing detail
+    // This handles the Firefox "Permission denied to access object" error
   }
 }
 

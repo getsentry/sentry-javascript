@@ -44,5 +44,10 @@
     "ts-loader": "^9.4.3",
     "tsconfig-paths": "^4.2.0",
     "typescript": "~5.0.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "minimatch": "10.0.1"
+    }
   }
 }
