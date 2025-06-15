@@ -49,8 +49,13 @@ export function buildLaunchDarklyFlagUsedHandler(): LDInspectionFlagUsedHandler 
      * Handle a flag evaluation by storing its name and value on the current scope.
      */
     method: (flagKey: string, flagDetail: LDEvaluationDetail, _context: LDContext) => {
+<<<<<<< HEAD
       _INTERNAL_insertFlagToScope(flagKey, flagDetail.value);
       _INTERNAL_addFeatureFlagToActiveSpan(flagKey, flagDetail.value);
+=======
+      insertFlagToScope(flagKey, flagDetail.value);
+      addFeatureFlagToActiveSpan(flagKey, flagDetail.value);
+>>>>>>> a323c38aad748683232bdae557dd0afc4e682c74
     },
   };
 }

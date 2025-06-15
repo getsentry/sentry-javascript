@@ -45,8 +45,13 @@ export const featureFlagsIntegration = defineIntegration(() => {
     },
 
     addFeatureFlag(name: string, value: unknown): void {
+<<<<<<< HEAD:packages/core/src/integrations/featureFlags/featureFlagsIntegration.ts
       _INTERNAL_insertFlagToScope(name, value);
       _INTERNAL_addFeatureFlagToActiveSpan(name, value);
+=======
+      insertFlagToScope(name, value);
+      addFeatureFlagToActiveSpan(name, value);
+>>>>>>> a323c38aad748683232bdae557dd0afc4e682c74:packages/browser/src/integrations/featureFlags/featureFlagsIntegration.ts
     },
   };
 }) as IntegrationFn<FeatureFlagsIntegration>;

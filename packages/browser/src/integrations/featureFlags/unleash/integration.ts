@@ -70,8 +70,13 @@ function _wrappedIsEnabled(
     const result = original.apply(this, args);
 
     if (typeof toggleName === 'string' && typeof result === 'boolean') {
+<<<<<<< HEAD
       _INTERNAL_insertFlagToScope(toggleName, result);
       _INTERNAL_addFeatureFlagToActiveSpan(toggleName, result);
+=======
+      insertFlagToScope(toggleName, result);
+      addFeatureFlagToActiveSpan(toggleName, result);
+>>>>>>> a323c38aad748683232bdae557dd0afc4e682c74
     } else if (DEBUG_BUILD) {
       logger.error(
         `[Feature Flags] UnleashClient.isEnabled does not match expected signature. arg0: ${toggleName} (${typeof toggleName}), result: ${result} (${typeof result})`,
