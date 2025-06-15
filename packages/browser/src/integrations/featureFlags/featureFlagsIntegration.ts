@@ -1,15 +1,14 @@
 import type { Client, Event, EventHint, Integration, IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
-import { copyFlagsFromScopeToEvent, insertFlagToScope } from '../../utils/featureFlags';
+import { addFeatureFlagToActiveSpan, copyFlagsFromScopeToEvent, insertFlagToScope } from '../../utils/featureFlags';
 
 export interface FeatureFlagsIntegration extends Integration {
   addFeatureFlag: (name: string, value: unknown) => void;
 }
 
 /**
- * Sentry integration for buffering feature flags manually with an API, and
- * capturing them on error events. We recommend you do this on each flag
- * evaluation. Flags are buffered per Sentry scope and limited to 100 per event.
+ * Sentry integration for buffering feature flag evaluations manually with an API, and
+ * capturing them on error events and spans.
  *
  * See the [feature flag documentation](https://develop.sentry.dev/sdk/expected-features/#feature-flags) for more information.
  *
@@ -41,6 +40,7 @@ export const featureFlagsIntegration = defineIntegration(() => {
 
     addFeatureFlag(name: string, value: unknown): void {
       insertFlagToScope(name, value);
+      addFeatureFlagToActiveSpan(name, value);
     },
   };
 }) as IntegrationFn<FeatureFlagsIntegration>;
