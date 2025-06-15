@@ -16,7 +16,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SENTRY_TRACE_STATE_DSC } from '../../../../packages/opentelemetry/src/constants';
 import { startInactiveSpan, startSpan } from '../../../../packages/opentelemetry/src/trace';
 import { makeTraceState } from '../../../../packages/opentelemetry/src/utils/makeTraceState';
-import { cleanupOtel, getProvider, getSpanProcessor, mockSdkInit } from '../helpers/mockSdkInit';
+import { cleanupOtel, getSpanProcessor, mockSdkInit } from '../helpers/mockSdkInit';
 import type { TestClientInterface } from '../helpers/TestClient';
 
 describe('Integration | Transactions', () => {
@@ -514,7 +514,6 @@ describe('Integration | Transactions', () => {
       },
     });
 
-    const provider = getProvider();
     const spanProcessor = getSpanProcessor();
 
     const exporter = spanProcessor ? spanProcessor['_exporter'] : undefined;
@@ -567,7 +566,6 @@ describe('Integration | Transactions', () => {
       },
     });
 
-    const provider = getProvider();
     const spanProcessor = getSpanProcessor();
 
     const exporter = spanProcessor ? spanProcessor['_exporter'] : undefined;
@@ -619,7 +617,6 @@ describe('Integration | Transactions', () => {
       },
     });
 
-    const provider = getProvider();
     const spanProcessor = getSpanProcessor();
 
     const exporter = spanProcessor ? spanProcessor['_exporter'] : undefined;

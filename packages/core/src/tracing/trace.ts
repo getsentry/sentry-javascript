@@ -253,8 +253,15 @@ export function suppressTracing<T>(callback: () => T): T {
   }
 
   return withScope(scope => {
+    // Note: We do not wait for the callback to finish before we reset the metadata
+    // the reason for this is that otherwise, in the browser this can lead to very weird behavior
+    // as there is only a single top scope, if the callback takes longer to finish,
+    // other, unrelated spans may also be suppressed, which we do not want
+    // so instead, we only suppress tracing synchronoysly in the browser
     scope.setSDKProcessingMetadata({ [SUPPRESS_TRACING_KEY]: true });
-    return callback();
+    const res = callback();
+    scope.setSDKProcessingMetadata({ [SUPPRESS_TRACING_KEY]: undefined });
+    return res;
   });
 }
 
