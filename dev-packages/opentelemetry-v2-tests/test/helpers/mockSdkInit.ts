@@ -3,11 +3,11 @@ import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import type { ClientOptions, Options } from '@sentry/core';
 import { flush, getClient, getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/core';
 import { setOpenTelemetryContextAsyncContextStrategy } from '../../../../packages/opentelemetry/src/asyncContextStrategy';
+import { SentrySpanProcessor } from '../../../../packages/opentelemetry/src/spanProcessor';
 import type { OpenTelemetryClient } from '../../../../packages/opentelemetry/src/types';
 import { clearOpenTelemetrySetupCheck } from '../../../../packages/opentelemetry/src/utils/setupCheck';
 import { initOtel } from './initOtel';
 import { init as initTestClient } from './TestClient';
-import { SentrySpanProcessor } from '../../../../packages/opentelemetry/src/spanProcessor';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 

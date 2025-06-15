@@ -28,13 +28,13 @@ import {
 } from '../../../packages/opentelemetry/src/trace';
 import type { AbstractSpan } from '../../../packages/opentelemetry/src/types';
 import { getActiveSpan } from '../../../packages/opentelemetry/src/utils/getActiveSpan';
+import { getParentSpanId } from '../../../packages/opentelemetry/src/utils/getParentSpanId';
 import { getSamplingDecision } from '../../../packages/opentelemetry/src/utils/getSamplingDecision';
 import { getSpanKind } from '../../../packages/opentelemetry/src/utils/getSpanKind';
 import { makeTraceState } from '../../../packages/opentelemetry/src/utils/makeTraceState';
 import { spanHasAttributes, spanHasName } from '../../../packages/opentelemetry/src/utils/spanTypes';
-import { cleanupOtel, mockSdkInit } from './helpers/mockSdkInit';
 import { isSpan } from './helpers/isSpan';
-import { getParentSpanId } from '../../../packages/opentelemetry/src/utils/getParentSpanId';
+import { cleanupOtel, mockSdkInit } from './helpers/mockSdkInit';
 
 describe('trace', () => {
   beforeEach(() => {

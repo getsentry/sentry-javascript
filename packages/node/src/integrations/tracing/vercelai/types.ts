@@ -56,6 +56,12 @@ export interface VercelAiOptions {
    * or if you set `isEnabled` to `true` in your ai SDK method telemetry settings
    */
   recordOutputs?: boolean;
+
+  /**
+   * By default, the instrumentation will register span processors only when the ai package is used.
+   * If you want to register the span processors even when the ai package usage cannot be detected, you can set `force` to `true`.
+   */
+  force?: boolean;
 }
 
 export interface VercelAiIntegration extends Integration {
