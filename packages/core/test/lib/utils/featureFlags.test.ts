@@ -1,7 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { getCurrentScope } from '../../../src/currentScopes';
-import { type FeatureFlag } from '../../../src/featureFlags';
-import { _INTERNAL_insertFlagToScope, _INTERNAL_insertToFlagBuffer } from '../../../src/utils/featureFlags';
+import {
+  type FeatureFlag,
+  _INTERNAL_insertFlagToScope,
+  _INTERNAL_insertToFlagBuffer,
+} from '../../../src/utils/featureFlags';
 import { logger } from '../../../src/utils-hoist/logger';
 
 describe('flags', () => {
@@ -58,25 +61,6 @@ describe('flags', () => {
         { flag: 'feat3', result: false },
         { flag: 'feat1', result: false },
       ]);
-    });
-
-    it('drops new entries when allowEviction is false and buffer is full', () => {
-      const buffer: FeatureFlag[] = [];
-      const maxSize = 0;
-      _INTERNAL_insertToFlagBuffer(buffer, 'feat1', true, maxSize, false);
-      _INTERNAL_insertToFlagBuffer(buffer, 'feat2', true, maxSize, false);
-      _INTERNAL_insertToFlagBuffer(buffer, 'feat3', true, maxSize, false);
-
-      expect(buffer).toEqual([]);
-    });
-
-    it('still updates order and values when allowEviction is false and buffer is full', () => {
-      const buffer: FeatureFlag[] = [];
-      const maxSize = 1;
-      _INTERNAL_insertToFlagBuffer(buffer, 'feat1', false, maxSize, false);
-      _INTERNAL_insertToFlagBuffer(buffer, 'feat1', true, maxSize, false);
-
-      expect(buffer).toEqual([{ flag: 'feat1', result: true }]);
     });
 
     it('does not allocate unnecessary space', () => {

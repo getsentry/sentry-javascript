@@ -83,14 +83,12 @@ export function _INTERNAL_insertFlagToScope(
  * @param name       Name of the feature flag to insert.
  * @param value      Value of the feature flag.
  * @param maxSize    Max number of flags the buffer should store. Default value should always be used in production.
- * @param allowEviction  If true, the oldest flag is evicted when the buffer is full. Otherwise the new flag is dropped.
  */
 export function _INTERNAL_insertToFlagBuffer(
   flags: FeatureFlag[],
   name: string,
   value: unknown,
   maxSize: number,
-  allowEviction: boolean = true,
 ): void {
   if (typeof value !== 'boolean') {
     return;
@@ -110,12 +108,8 @@ export function _INTERNAL_insertToFlagBuffer(
   }
 
   if (flags.length === maxSize) {
-    if (allowEviction) {
-      // If at capacity, pop the earliest flag - O(n)
-      flags.shift();
-    } else {
-      return;
-    }
+    // If at capacity, pop the earliest flag - O(n)
+    flags.shift();
   }
 
   // Push the flag to the end - O(1)
