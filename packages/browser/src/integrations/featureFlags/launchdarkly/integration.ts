@@ -1,10 +1,6 @@
-import type { Client, Event, EventHint, IntegrationFn, Span } from '@sentry/core';
+import type { Client, Event, EventHint, IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
-import {
-  addFeatureFlagToActiveSpan,
-  copyFlagsFromScopeToEvent,
-  insertFlagToScope,
-} from '../../../utils/featureFlags';
+import { addFeatureFlagToActiveSpan, copyFlagsFromScopeToEvent, insertFlagToScope } from '../../../utils/featureFlags';
 import type { LDContext, LDEvaluationDetail, LDInspectionFlagUsedHandler } from './types';
 
 /**

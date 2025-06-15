@@ -1,11 +1,7 @@
-import type { Client, Event, EventHint, IntegrationFn, Span } from '@sentry/core';
+import type { Client, Event, EventHint, IntegrationFn } from '@sentry/core';
 import { defineIntegration, fill, logger } from '@sentry/core';
 import { DEBUG_BUILD } from '../../../debug-build';
-import {
-  addFeatureFlagToActiveSpan,
-  copyFlagsFromScopeToEvent,
-  insertFlagToScope,
-} from '../../../utils/featureFlags';
+import { addFeatureFlagToActiveSpan, copyFlagsFromScopeToEvent, insertFlagToScope } from '../../../utils/featureFlags';
 import type { UnleashClient, UnleashClientClass } from './types';
 
 type UnleashIntegrationOptions = {

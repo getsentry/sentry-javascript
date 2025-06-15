@@ -13,13 +13,9 @@
  * OpenFeature.addHooks(new Sentry.OpenFeatureIntegrationHook());
  * ```
  */
-import type { Client, Event, EventHint, IntegrationFn, Span } from '@sentry/core';
+import type { Client, Event, EventHint, IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
-import {
-  addFeatureFlagToActiveSpan,
-  copyFlagsFromScopeToEvent,
-  insertFlagToScope,
-} from '../../../utils/featureFlags';
+import { addFeatureFlagToActiveSpan, copyFlagsFromScopeToEvent, insertFlagToScope } from '../../../utils/featureFlags';
 import type { EvaluationDetails, HookContext, HookHints, JsonValue, OpenFeatureHook } from './types';
 
 export const openFeatureIntegration = defineIntegration(() => {

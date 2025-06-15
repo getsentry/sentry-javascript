@@ -74,12 +74,7 @@ export function insertFlagToScope(name: string, value: unknown, maxSize: number 
  * @param value      Value of the feature flag.
  * @param maxSize    Max number of flags the buffer should store. Default value should always be used in production.
  */
-export function insertToFlagBuffer(
-  flags: FeatureFlag[],
-  name: string,
-  value: unknown,
-  maxSize: number,
-): void {
+export function insertToFlagBuffer(flags: FeatureFlag[], name: string, value: unknown, maxSize: number): void {
   if (typeof value !== 'boolean') {
     return;
   }

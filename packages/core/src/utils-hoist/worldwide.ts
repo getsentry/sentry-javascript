@@ -14,7 +14,6 @@
 
 import type { Carrier } from '../carrier';
 import type { Client } from '../client';
-import type { FeatureFlag } from '../featureFlags';
 import type { SerializedLog } from '../types-hoist/log';
 import type { Span } from '../types-hoist/span';
 import type { SdkSource } from './env';
