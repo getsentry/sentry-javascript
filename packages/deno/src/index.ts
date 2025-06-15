@@ -8,6 +8,7 @@ export type {
   EventHint,
   ErrorEvent,
   Exception,
+  FeatureFlagsIntegration,
   Session,
   SeverityLevel,
   Span,
@@ -87,6 +88,7 @@ export {
   spanToBaggageHeader,
   updateSpanName,
   wrapMcpServerWithSentry,
+  featureFlagsIntegration,
 } from '@sentry/core';
 
 export { DenoClient } from './client';

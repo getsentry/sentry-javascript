@@ -82,6 +82,8 @@ export {
   supabaseIntegration,
   instrumentSupabaseClient,
   zodErrorsIntegration,
+  featureFlagsIntegration,
+  type FeatureFlagsIntegration,
 } from '@sentry/cloudflare';
 
 /**

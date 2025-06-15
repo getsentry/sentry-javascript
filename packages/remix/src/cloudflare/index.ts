@@ -32,6 +32,7 @@ export type {
   EventHint,
   ErrorEvent,
   Exception,
+  FeatureFlagsIntegration,
   Session,
   SeverityLevel,
   Span,
@@ -109,4 +110,5 @@ export {
   spanToTraceHeader,
   spanToBaggageHeader,
   updateSpanName,
+  featureFlagsIntegration,
 } from '@sentry/core';

@@ -1,6 +1,12 @@
-import type { Client, Event, EventHint, Integration, IntegrationFn } from '@sentry/core';
-import { defineIntegration } from '@sentry/core';
-import { addFeatureFlagToActiveSpan, copyFlagsFromScopeToEvent, insertFlagToScope } from '../../utils/featureFlags';
+import { type Client } from '../../client';
+import { defineIntegration } from '../../integration';
+import { type Event, type EventHint } from '../../types-hoist/event';
+import { type Integration, type IntegrationFn } from '../../types-hoist/integration';
+import {
+  _INTERNAL_addFeatureFlagToActiveSpan,
+  _INTERNAL_copyFlagsFromScopeToEvent,
+  _INTERNAL_insertFlagToScope,
+} from '../../utils/featureFlags';
 
 export interface FeatureFlagsIntegration extends Integration {
   addFeatureFlag: (name: string, value: unknown) => void;
@@ -35,12 +41,12 @@ export const featureFlagsIntegration = defineIntegration(() => {
     name: 'FeatureFlags',
 
     processEvent(event: Event, _hint: EventHint, _client: Client): Event {
-      return copyFlagsFromScopeToEvent(event);
+      return _INTERNAL_copyFlagsFromScopeToEvent(event);
     },
 
     addFeatureFlag(name: string, value: unknown): void {
-      insertFlagToScope(name, value);
-      addFeatureFlagToActiveSpan(name, value);
+      _INTERNAL_insertFlagToScope(name, value);
+      _INTERNAL_addFeatureFlagToActiveSpan(name, value);
     },
   };
 }) as IntegrationFn<FeatureFlagsIntegration>;

@@ -135,6 +135,8 @@ export {
   consoleLoggingIntegration,
   wrapMcpServerWithSentry,
   NODE_VERSION,
+  featureFlagsIntegration,
+  type FeatureFlagsIntegration,
 } from '@sentry/node';
 
 export { init } from './server/sdk';

@@ -15,6 +15,7 @@ export type {
   Stacktrace,
   Thread,
   User,
+  FeatureFlagsIntegration,
 } from '@sentry/core';
 
 export {
@@ -139,6 +140,7 @@ export {
   consoleLoggingIntegration,
   createSentryWinstonTransport,
   wrapMcpServerWithSentry,
+  featureFlagsIntegration,
 } from '@sentry/node';
 
 export {

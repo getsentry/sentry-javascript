@@ -1,4 +1,4 @@
-import type { FeatureFlag } from '../featureFlags';
+import type { FeatureFlag } from '../utils/featureFlags';
 import type { SpanLinkJSON } from './link';
 import type { Primitive } from './misc';
 import type { SpanOrigin } from './span';

@@ -8,6 +8,7 @@ export type {
   EventHint,
   ErrorEvent,
   Exception,
+  FeatureFlagsIntegration,
   Session,
   SeverityLevel,
   Span,
@@ -91,6 +92,7 @@ export {
   updateSpanName,
   wrapMcpServerWithSentry,
   consoleLoggingIntegration,
+  featureFlagsIntegration,
 } from '@sentry/core';
 
 export * as logger from './logs/exports';
