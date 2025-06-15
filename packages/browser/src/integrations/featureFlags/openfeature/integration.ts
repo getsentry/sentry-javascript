@@ -40,25 +40,15 @@ export class OpenFeatureIntegrationHook implements OpenFeatureHook {
    * Successful evaluation result.
    */
   public after(_hookContext: Readonly<HookContext<JsonValue>>, evaluationDetails: EvaluationDetails<JsonValue>): void {
-<<<<<<< HEAD
     _INTERNAL_insertFlagToScope(evaluationDetails.flagKey, evaluationDetails.value);
     _INTERNAL_addFeatureFlagToActiveSpan(evaluationDetails.flagKey, evaluationDetails.value);
-=======
-    insertFlagToScope(evaluationDetails.flagKey, evaluationDetails.value);
-    addFeatureFlagToActiveSpan(evaluationDetails.flagKey, evaluationDetails.value);
->>>>>>> a323c38aad748683232bdae557dd0afc4e682c74
   }
 
   /**
    * On error evaluation result.
    */
   public error(hookContext: Readonly<HookContext<JsonValue>>, _error: unknown, _hookHints?: HookHints): void {
-<<<<<<< HEAD
     _INTERNAL_insertFlagToScope(hookContext.flagKey, hookContext.defaultValue);
     _INTERNAL_addFeatureFlagToActiveSpan(hookContext.flagKey, hookContext.defaultValue);
-=======
-    insertFlagToScope(hookContext.flagKey, hookContext.defaultValue);
-    addFeatureFlagToActiveSpan(hookContext.flagKey, hookContext.defaultValue);
->>>>>>> a323c38aad748683232bdae557dd0afc4e682c74
   }
 }

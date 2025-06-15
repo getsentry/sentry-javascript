@@ -37,13 +37,8 @@ export const statsigIntegration = defineIntegration(
 
       setup(_client: Client) {
         statsigClient.on('gate_evaluation', (event: { gate: FeatureGate }) => {
-<<<<<<< HEAD
           _INTERNAL_insertFlagToScope(event.gate.name, event.gate.value);
           _INTERNAL_addFeatureFlagToActiveSpan(event.gate.name, event.gate.value);
-=======
-          insertFlagToScope(event.gate.name, event.gate.value);
-          addFeatureFlagToActiveSpan(event.gate.name, event.gate.value);
->>>>>>> a323c38aad748683232bdae557dd0afc4e682c74
         });
       },
 
