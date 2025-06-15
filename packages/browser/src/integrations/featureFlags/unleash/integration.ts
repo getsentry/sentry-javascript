@@ -2,9 +2,8 @@ import type { Client, Event, EventHint, IntegrationFn, Span } from '@sentry/core
 import { defineIntegration, fill, logger } from '@sentry/core';
 import { DEBUG_BUILD } from '../../../debug-build';
 import {
-  bufferSpanFeatureFlag,
+  addFeatureFlagToActiveSpan,
   copyFlagsFromScopeToEvent,
-  freezeSpanFeatureFlags,
   insertFlagToScope,
 } from '../../../utils/featureFlags';
 import type { UnleashClient, UnleashClientClass } from './types';
@@ -40,12 +39,6 @@ export const unleashIntegration = defineIntegration(
     return {
       name: 'Unleash',
 
-      setup(client: Client) {
-        client.on('spanEnd', (span: Span) => {
-          freezeSpanFeatureFlags(span);
-        });
-      },
-
       setupOnce() {
         const unleashClientPrototype = unleashClientClass.prototype as UnleashClient;
         fill(unleashClientPrototype, 'isEnabled', _wrappedIsEnabled);
@@ -76,7 +69,7 @@ function _wrappedIsEnabled(
 
     if (typeof toggleName === 'string' && typeof result === 'boolean') {
       insertFlagToScope(toggleName, result);
-      bufferSpanFeatureFlag(toggleName, result);
+      addFeatureFlagToActiveSpan(toggleName, result);
     } else if (DEBUG_BUILD) {
       logger.error(
         `[Feature Flags] UnleashClient.isEnabled does not match expected signature. arg0: ${toggleName} (${typeof toggleName}), result: ${result} (${typeof result})`,

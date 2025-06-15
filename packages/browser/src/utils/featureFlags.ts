@@ -19,7 +19,7 @@ export const FLAG_BUFFER_SIZE = 100;
 export const MAX_FLAGS_PER_SPAN = 10;
 
 // Global map of spans to feature flag buffers. Populated by feature flag integrations.
-GLOBAL_OBJ._spanToFlagBufferMap = new WeakMap<Span, FeatureFlag[]>();
+GLOBAL_OBJ._spanToFlagBufferMap = new WeakMap<Span, Set<string>>();
 
 const SPAN_FLAG_ATTRIBUTE_PREFIX = 'flag.evaluation.';
 
@@ -116,14 +116,15 @@ export function insertToFlagBuffer(
 }
 
 /**
- * Records a feature flag evaluation for the active span, adding it to a weak map of flag buffers. This is a no-op for non-boolean values.
- * The keys in each buffer are unique. Once the buffer for a span reaches maxFlagsPerSpan, subsequent flags are dropped.
+ * Records a feature flag evaluation for the active span. This is a no-op for non-boolean values.
+ * The flag and its value is stored in span attributes with the `flag.evaluation` prefix. Once the
+ * unique flags for a span reaches maxFlagsPerSpan, subsequent flags are dropped.
  *
  * @param name             Name of the feature flag.
  * @param value            Value of the feature flag. Non-boolean values are ignored.
  * @param maxFlagsPerSpan  Max number of flags a buffer should store. Default value should always be used in production.
  */
-export function bufferSpanFeatureFlag(
+export function addFeatureFlagToActiveSpan(
   name: string,
   value: unknown,
   maxFlagsPerSpan: number = MAX_FLAGS_PER_SPAN,
@@ -135,22 +136,13 @@ export function bufferSpanFeatureFlag(
 
   const span = getActiveSpan();
   if (span) {
-    const flags = spanFlagMap.get(span) || [];
-    insertToFlagBuffer(flags, name, value, maxFlagsPerSpan, false);
+    const flags = spanFlagMap.get(span) || new Set<string>();
+    if (flags.has(name)) {
+      span.setAttribute(`${SPAN_FLAG_ATTRIBUTE_PREFIX}${name}`, value);
+    } else if (flags.size < maxFlagsPerSpan) {
+      flags.add(name);
+      span.setAttribute(`${SPAN_FLAG_ATTRIBUTE_PREFIX}${name}`, value);
+    }
     spanFlagMap.set(span, flags);
-  }
-}
-
-/**
- * Add the buffered feature flags for a span to the span attributes. Call this on span end.
- *
- * @param span         Span to add flags to.
- */
-export function freezeSpanFeatureFlags(span: Span): void {
-  const flags = GLOBAL_OBJ._spanToFlagBufferMap?.get(span);
-  if (flags) {
-    span.setAttributes(
-      Object.fromEntries(flags.map(flag => [`${SPAN_FLAG_ATTRIBUTE_PREFIX}${flag.flag}`, flag.result])),
-    );
   }
 }

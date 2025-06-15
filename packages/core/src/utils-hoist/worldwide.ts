@@ -59,9 +59,9 @@ export type InternalGlobal = {
   _sentryModuleMetadata?: Record<string, any>;
   _sentryEsmLoaderHookRegistered?: boolean;
   /**
-   * A map of spans to feature flag buffers. Populated by feature flag integrations.
+   * A map of spans to evaluated feature flags. Populated by feature flag integrations.
    */
-  _spanToFlagBufferMap?: WeakMap<Span, FeatureFlag[]>;
+  _spanToFlagBufferMap?: WeakMap<Span, Set<string>>;
 } & Carrier;
 
 /** Get's the global object for the current JavaScript runtime */

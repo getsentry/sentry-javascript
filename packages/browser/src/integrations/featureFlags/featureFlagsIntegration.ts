@@ -1,11 +1,6 @@
 import type { Client, Event, EventHint, Integration, IntegrationFn, Span } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
-import {
-  bufferSpanFeatureFlag,
-  copyFlagsFromScopeToEvent,
-  freezeSpanFeatureFlags,
-  insertFlagToScope,
-} from '../../utils/featureFlags';
+import { addFeatureFlagToActiveSpan, copyFlagsFromScopeToEvent, insertFlagToScope } from '../../utils/featureFlags';
 
 export interface FeatureFlagsIntegration extends Integration {
   addFeatureFlag: (name: string, value: unknown) => void;
@@ -39,19 +34,13 @@ export const featureFlagsIntegration = defineIntegration(() => {
   return {
     name: 'FeatureFlags',
 
-    setup(client: Client) {
-      client.on('spanEnd', (span: Span) => {
-        freezeSpanFeatureFlags(span);
-      });
-    },
-
     processEvent(event: Event, _hint: EventHint, _client: Client): Event {
       return copyFlagsFromScopeToEvent(event);
     },
 
     addFeatureFlag(name: string, value: unknown): void {
       insertFlagToScope(name, value);
-      bufferSpanFeatureFlag(name, value);
+      addFeatureFlagToActiveSpan(name, value);
     },
   };
 }) as IntegrationFn<FeatureFlagsIntegration>;
