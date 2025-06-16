@@ -58,8 +58,6 @@ export function trackClsAsStandaloneSpan(): void {
     standaloneClsEntry = entry;
   }, true);
 
-  // TODO: Figure out if we can switch to using whenIdleOrHidden instead of onHidden
-  // use pagehide event from web-vitals
   onHidden(() => {
     _collectClsOnce();
   });
