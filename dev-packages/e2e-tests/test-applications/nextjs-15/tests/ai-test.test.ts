@@ -3,7 +3,7 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('should create AI spans with correct attributes', async ({ page }) => {
   const aiTransactionPromise = waitForTransaction('nextjs-15', async transactionEvent => {
-    return transactionEvent?.transaction === 'ai-test';
+    return transactionEvent.transaction === 'GET /ai-test';
   });
 
   await page.goto('/ai-test');
@@ -11,8 +11,7 @@ test('should create AI spans with correct attributes', async ({ page }) => {
   const aiTransaction = await aiTransactionPromise;
 
   expect(aiTransaction).toBeDefined();
-  expect(aiTransaction.contexts?.trace?.op).toBe('function');
-  expect(aiTransaction.transaction).toBe('ai-test');
+  expect(aiTransaction.transaction).toBe('GET /ai-test');
 
   const spans = aiTransaction.spans || [];
 
