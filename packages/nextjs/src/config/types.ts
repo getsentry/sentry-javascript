@@ -45,10 +45,12 @@ export type NextConfigObject = {
   experimental?: {
     instrumentationHook?: boolean;
     clientTraceMetadata?: string[];
+    serverComponentsExternalPackages?: string[]; // next < v15.0.0
   };
   productionBrowserSourceMaps?: boolean;
   // https://nextjs.org/docs/pages/api-reference/next-config-js/env
   env?: Record<string, string>;
+  serverExternalPackages?: string[]; // next >= v15.0.0
 };
 
 export type SentryBuildOptions = {
