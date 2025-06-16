@@ -180,9 +180,6 @@ export class SentrySpanExporter {
 
     this.flushSentSpanCache();
     const sentSpans = this._maybeSend(finishedSpans);
-    for (const span of finishedSpans) {
-      this._sentSpans.set(span.spanContext().spanId, Date.now() + DEFAULT_TIMEOUT * 1000);
-    }
 
     const sentSpanCount = sentSpans.size;
     const remainingOpenSpanCount = finishedSpans.length - sentSpanCount;
@@ -191,7 +188,10 @@ export class SentrySpanExporter {
         `SpanExporter exported ${sentSpanCount} spans, ${remainingOpenSpanCount} spans are waiting for their parent spans to finish`,
       );
 
+    const expirationDate = Date.now() + DEFAULT_TIMEOUT * 1000;
+
     for (const span of sentSpans) {
+      this._sentSpans.set(span.spanContext().spanId, expirationDate);
       const bucketEntry = this._spansToBucketEntry.get(span);
       if (bucketEntry) {
         bucketEntry.spans.delete(span);
