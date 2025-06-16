@@ -64,7 +64,16 @@ export function setAsyncLocalStorageAsyncContextStrategy(): void {
     });
   }
 
+  // In contrast to the browser, we can rely on async context isolation here
+  function suppressTracing<T>(callback: () => T): T {
+    return withScope(scope => {
+      scope.setSDKProcessingMetadata({ __SENTRY_SUPPRESS_TRACING__: true });
+      return callback();
+    });
+  }
+
   setAsyncContextStrategy({
+    suppressTracing,
     withScope,
     withSetScope,
     withIsolationScope,

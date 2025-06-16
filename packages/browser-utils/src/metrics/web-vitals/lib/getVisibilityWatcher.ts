@@ -15,6 +15,7 @@
  */
 
 import { WINDOW } from '../../../types';
+import { getActivationStart } from './getActivationStart';
 
 let firstHiddenTime = -1;
 
@@ -24,7 +25,7 @@ const initHiddenTime = () => {
   // that visibility state is always 'hidden' during prerendering, so we have
   // to ignore that case until prerendering finishes (see: `prerenderingchange`
   // event logic below).
-  return WINDOW.document!.visibilityState === 'hidden' && !WINDOW.document!.prerendering ? 0 : Infinity;
+  return WINDOW.document?.visibilityState === 'hidden' && !WINDOW.document?.prerendering ? 0 : Infinity;
 };
 
 const onVisibilityUpdate = (event: Event) => {
@@ -61,11 +62,22 @@ const removeChangeListeners = () => {
 
 export const getVisibilityWatcher = () => {
   if (WINDOW.document && firstHiddenTime < 0) {
-    // If the document is hidden when this code runs, assume it was hidden
-    // since navigation start. This isn't a perfect heuristic, but it's the
-    // best we can do until an API is available to support querying past
-    // visibilityState.
-    firstHiddenTime = initHiddenTime();
+    // Check if we have a previous hidden `visibility-state` performance entry.
+    const activationStart = getActivationStart();
+    const firstVisibilityStateHiddenTime = !WINDOW.document.prerendering
+      ? globalThis.performance
+          .getEntriesByType('visibility-state')
+          .filter(e => e.name === 'hidden' && e.startTime > activationStart)[0]?.startTime
+      : undefined;
+
+    // Prefer that, but if it's not available and the document is hidden when
+    // this code runs, assume it was hidden since navigation start. This isn't
+    // a perfect heuristic, but it's the best we can do until the
+    // `visibility-state` performance entry becomes available in all browsers.
+    firstHiddenTime = firstVisibilityStateHiddenTime ?? initHiddenTime();
+    // We're still going to listen to for changes so we can handle things like
+    // bfcache restores and/or prerender without having to examine individual
+    // timestamps in detail.
     addChangeListeners();
   }
   return {

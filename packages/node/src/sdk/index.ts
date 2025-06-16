@@ -40,10 +40,6 @@ import { defaultStackParser, getSentryRelease } from './api';
 import { NodeClient } from './client';
 import { initOpenTelemetry, maybeInitializeEsmLoader } from './initOtel';
 
-function getCjsOnlyIntegrations(): Integration[] {
-  return isCjs() ? [modulesIntegration()] : [];
-}
-
 /**
  * Get default integrations, excluding performance.
  */
@@ -69,7 +65,7 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
     nodeContextIntegration(),
     childProcessIntegration(),
     processSessionIntegration(),
-    ...getCjsOnlyIntegrations(),
+    modulesIntegration(),
   ];
 }
 
