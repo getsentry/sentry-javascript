@@ -155,6 +155,8 @@ export class SentrySpanExporter {
       }
     }
     // Cancel a pending debounced flush, if there is one
+    // This can be relevant if we directly export, circumventing the debounce
+    // in that case, we want to cancel any pending debounced flush
     this._debouncedFlush.cancel();
   }
 
@@ -222,7 +224,7 @@ export class SentrySpanExporter {
   }
 
   /** Check if a node is a completed root node or a node whose parent has already been sent */
-  private _nodeIsCompletedRootNode(node: SpanNode): node is SpanNodeCompleted {
+  private _nodeIsCompletedRootNodeOrHasSentParent(node: SpanNode): node is SpanNodeCompleted {
     return !!node.span && (!node.parentNode || this._sentSpans.has(node.parentNode.id));
   }
 
@@ -230,7 +232,7 @@ export class SentrySpanExporter {
   private _getCompletedRootNodes(nodes: SpanNode[]): SpanNodeCompleted[] {
     // TODO: We should be able to remove the explicit `node is SpanNodeCompleted` type guard
     //       once we stop supporting TS < 5.5
-    return nodes.filter((node): node is SpanNodeCompleted => this._nodeIsCompletedRootNode(node));
+    return nodes.filter((node): node is SpanNodeCompleted => this._nodeIsCompletedRootNodeOrHasSentParent(node));
   }
 }
 
