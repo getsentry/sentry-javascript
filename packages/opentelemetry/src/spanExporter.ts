@@ -126,9 +126,14 @@ export class SentrySpanExporter {
 
   /** Try to flush any pending spans immediately. */
   public flush(): void {
-    const finishedSpans: ReadableSpan[] = this._finishedSpanBuckets.flatMap(bucket =>
-      bucket ? Array.from(bucket.spans) : [],
-    );
+const finishedSpans: ReadableSpan[] = [];
+for (const bucket of this._finishedSpanBuckets) {
+  if (bucket) {
+    for (const span of bucket.spans) {
+      finishedSpans.push(span);
+    }
+  }
+}
 
     this._flushSentSpanCache();
     const sentSpans = this._maybeSend(finishedSpans);
