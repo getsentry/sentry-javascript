@@ -34,14 +34,14 @@ test('should create AI spans with correct attributes', async ({ page }) => {
   expect(firstPipelineSpan?.data?.['ai.model.id']).toBe('mock-model-id');
   expect(firstPipelineSpan?.data?.['ai.model.provider']).toBe('mock-provider');
   expect(firstPipelineSpan?.data?.['ai.prompt']).toContain('Where is the first span?');
-  expect(firstPipelineSpan?.data?.['ai.response.text']).toBe('First span here!');
+  expect(firstPipelineSpan?.data?.['gen_ai.response.text']).toBe('First span here!');
   expect(firstPipelineSpan?.data?.['gen_ai.usage.input_tokens']).toBe(10);
   expect(firstPipelineSpan?.data?.['gen_ai.usage.output_tokens']).toBe(20); */
 
   // Second AI call - explicitly enabled telemetry
   const secondPipelineSpan = aiPipelineSpans[0];
   expect(secondPipelineSpan?.data?.['ai.prompt']).toContain('Where is the second span?');
-  expect(secondPipelineSpan?.data?.['ai.response.text']).toContain('Second span here!');
+  expect(secondPipelineSpan?.data?.['gen_ai.response.text']).toContain('Second span here!');
 
   // Third AI call - with tool calls
   /*  const thirdPipelineSpan = aiPipelineSpans[2];
@@ -50,7 +50,7 @@ test('should create AI spans with correct attributes', async ({ page }) => {
   expect(thirdPipelineSpan?.data?.['gen_ai.usage.output_tokens']).toBe(25); */
 
   // Tool call span
- /*  const toolSpan = toolCallSpans[0];
+  /*  const toolSpan = toolCallSpans[0];
   expect(toolSpan?.data?.['ai.toolCall.name']).toBe('getWeather');
   expect(toolSpan?.data?.['ai.toolCall.id']).toBe('call-1');
   expect(toolSpan?.data?.['ai.toolCall.args']).toContain('San Francisco');

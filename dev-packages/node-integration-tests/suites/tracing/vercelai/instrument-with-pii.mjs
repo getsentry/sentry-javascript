@@ -7,5 +7,5 @@ Sentry.init({
   tracesSampleRate: 1.0,
   sendDefaultPii: true,
   transport: loggingTransport,
-  integrations: [Sentry.vercelAIIntegration()],
+  integrations: [Sentry.vercelAIIntegration({ force: true })],
 });
