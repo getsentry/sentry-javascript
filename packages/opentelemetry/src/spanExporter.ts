@@ -73,6 +73,7 @@ export class SentrySpanExporter {
   // Essentially a a set of span ids that are already sent. The values are expiration
   // times in this cache so we don't hold onto them indefinitely.
   private _sentSpans: Map<string, number>;
+  /* Internally, we use a debounced flush to give some wiggle room to the span processor to accumulate more spans. */
   private _debouncedFlush: ReturnType<typeof debounce>;
 
   public constructor(options?: {
@@ -87,7 +88,10 @@ export class SentrySpanExporter {
     this._debouncedFlush = debounce(this.flush.bind(this), 1, { maxWait: 100 });
   }
 
-  /** Export a single span. */
+  /**
+   * Export a single span.
+   * This is called by the span processor whenever a span is ended.
+   */
   public export(span: ReadableSpan): void {
     const currentTimestampInS = Math.floor(Date.now() / 1000);
 
@@ -124,7 +128,11 @@ export class SentrySpanExporter {
     }
   }
 
-  /** Try to flush any pending spans immediately. */
+  /**
+   * Try to flush any pending spans immediately.
+   * This is called internally by the exporter (via _debouncedFlush),
+   * but can also be triggered externally if we force-flush.
+   */
   public flush(): void {
     const finishedSpans: ReadableSpan[] = [];
     for (const bucket of this._finishedSpanBuckets) {
@@ -155,12 +163,15 @@ export class SentrySpanExporter {
       }
     }
     // Cancel a pending debounced flush, if there is one
-    // This can be relevant if we directly export, circumventing the debounce
+    // This can be relevant if we directly flush, circumventing the debounce
     // in that case, we want to cancel any pending debounced flush
     this._debouncedFlush.cancel();
   }
 
-  /** Clear the exporter. */
+  /**
+   * Clear the exporter.
+   * This is called when the span processor is shut down.
+   */
   public clear(): void {
     this._finishedSpanBuckets = this._finishedSpanBuckets.fill(undefined);
     this._sentSpans.clear();
