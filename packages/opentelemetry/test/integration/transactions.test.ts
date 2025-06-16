@@ -680,6 +680,80 @@ describe('Integration | Transactions', () => {
     expect(finishedSpans[0]?.name).toBe('inner span 2');
   });
 
+  it('only considers sent spans, not finished spans, for flushing orphaned spans of sent spans', async () => {
+    const timeout = 5 * 60 * 1000;
+    const now = Date.now();
+    vi.useFakeTimers();
+    vi.setSystemTime(now);
+
+    const logs: unknown[] = [];
+    vi.spyOn(logger, 'log').mockImplementation(msg => logs.push(msg));
+
+    const transactions: Event[] = [];
+
+    mockSdkInit({
+      tracesSampleRate: 1,
+      beforeSendTransaction: event => {
+        transactions.push(event);
+        return null;
+      },
+    });
+
+    const provider = getProvider();
+    const multiSpanProcessor = provider?.activeSpanProcessor as
+      | (SpanProcessor & { _spanProcessors?: SpanProcessor[] })
+      | undefined;
+    const spanProcessor = multiSpanProcessor?.['_spanProcessors']?.find(
+      spanProcessor => spanProcessor instanceof SentrySpanProcessor,
+    ) as SentrySpanProcessor | undefined;
+
+    const exporter = spanProcessor ? spanProcessor['_exporter'] : undefined;
+
+    if (!exporter) {
+      throw new Error('No exporter found, aborting test...');
+    }
+
+    /**
+     * This is our span structure:
+     * span 1 --------
+     *    span 2 ---
+     *      span 3 -
+     *
+     * Where span 2 is finished before span 3 & span 1
+     */
+
+    const [span1, span3] = startSpanManual({ name: 'span 1' }, span1 => {
+      const [span2, span3] = startSpanManual({ name: 'span 2' }, span2 => {
+        const span3 = startInactiveSpan({ name: 'span 3' });
+        return [span2, span3];
+      });
+
+      // End span 2 before span 3
+      span2.end();
+
+      return [span1, span3];
+    });
+
+    vi.advanceTimersByTime(1);
+
+    // nothing should be sent yet, as span1 is not yet done
+    expect(transactions).toHaveLength(0);
+
+    // Now finish span1, should be sent with only span2 but without span3, as that is not yet finished
+    span1.end();
+    vi.advanceTimersByTime(1);
+
+    expect(transactions).toHaveLength(1);
+    expect(transactions[0]?.spans).toHaveLength(1);
+
+    // now finish span3, which should be sent as transaction too
+    span3.end();
+    vi.advanceTimersByTime(timeout);
+
+    expect(transactions).toHaveLength(2);
+    expect(transactions[1]?.spans).toHaveLength(0);
+  });
+
   it('uses & inherits DSC on span trace state', async () => {
     const transactionEvents: Event[] = [];
     const beforeSendTransaction = vi.fn(event => {
