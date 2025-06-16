@@ -26,6 +26,7 @@ import {
   addHistoryInstrumentationHandler,
   addPerformanceEntries,
   registerInpInteractionListener,
+  startTrackingElementTiming,
   startTrackingINP,
   startTrackingInteractions,
   startTrackingLongAnimationFrames,
@@ -114,6 +115,14 @@ export interface BrowserTracingOptions {
    * Default: true
    */
   enableInp: boolean;
+
+  /**
+   * If true, Sentry will capture [element timing](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceElementTiming)
+   * information and add it to the corresponding transaction.
+   *
+   * Default: true
+   */
+  enableElementTiming: boolean;
 
   /**
    * Flag to disable patching all together for fetch requests.
@@ -268,6 +277,7 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   enableLongTask: true,
   enableLongAnimationFrame: true,
   enableInp: true,
+  enableElementTiming: true,
   ignoreResourceSpans: [],
   ignorePerformanceApiSpans: [],
   linkPreviousTrace: 'in-memory',
@@ -299,6 +309,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
 
   const {
     enableInp,
+    enableElementTiming,
     enableLongTask,
     enableLongAnimationFrame,
     _experiments: { enableInteractions, enableStandaloneClsSpans },
@@ -404,6 +415,10 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
 
       if (enableInp) {
         startTrackingINP();
+      }
+
+      if (enableElementTiming) {
+        startTrackingElementTiming();
       }
 
       if (
