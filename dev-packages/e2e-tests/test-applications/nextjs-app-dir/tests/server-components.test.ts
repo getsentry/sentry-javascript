@@ -39,6 +39,7 @@ test('Sends a transaction for a request to app router', async ({ page }) => {
     headers: expect.objectContaining({
       'user-agent': expect.any(String),
     }),
+    url: expect.stringContaining('/server-component/parameter/1337/42'),
   });
 
   // The transaction should not contain any spans with the same name as the transaction
@@ -123,4 +124,12 @@ test('Should capture an error and transaction for a app router page', async ({ p
   expect(errorEvent.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
   expect(transactionEvent.tags?.['my-isolated-tag']).toBe(true);
   expect(transactionEvent.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
+
+  // Modules are set for Next.js
+  expect(errorEvent.modules).toEqual(
+    expect.objectContaining({
+      '@sentry/nextjs': expect.any(String),
+      '@playwright/test': expect.any(String),
+    }),
+  );
 });

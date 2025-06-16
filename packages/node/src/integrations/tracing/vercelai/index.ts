@@ -1,13 +1,18 @@
 /* eslint-disable @typescript-eslint/no-dynamic-delete */
 /* eslint-disable complexity */
-import type { IntegrationFn } from '@sentry/core';
+import type { Client, IntegrationFn } from '@sentry/core';
 import { defineIntegration, SEMANTIC_ATTRIBUTE_SENTRY_OP, spanToJSON } from '@sentry/core';
 import { generateInstrumentOnce } from '../../../otel/instrument';
 import { addOriginToSpan } from '../../../utils/addOriginToSpan';
+import type { modulesIntegration } from '../../modules';
 import {
   AI_MODEL_ID_ATTRIBUTE,
   AI_MODEL_PROVIDER_ATTRIBUTE,
   AI_PROMPT_ATTRIBUTE,
+  AI_PROMPT_MESSAGES_ATTRIBUTE,
+  AI_PROMPT_TOOLS_ATTRIBUTE,
+  AI_RESPONSE_TEXT_ATTRIBUTE,
+  AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
   AI_TELEMETRY_FUNCTION_ID_ATTRIBUTE,
   AI_TOOL_CALL_ID_ATTRIBUTE,
   AI_TOOL_CALL_NAME_ATTRIBUTE,
@@ -23,6 +28,15 @@ import type { VercelAiOptions } from './types';
 
 export const instrumentVercelAi = generateInstrumentOnce(INTEGRATION_NAME, () => new SentryVercelAiInstrumentation({}));
 
+/**
+ * Determines if the integration should be forced based on environment and package availability.
+ * Returns true if the 'ai' package is available.
+ */
+function shouldForceIntegration(client: Client): boolean {
+  const modules = client.getIntegrationByName<ReturnType<typeof modulesIntegration>>('Modules');
+  return !!modules?.getModules?.()?.ai;
+}
+
 const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
   let instrumentation: undefined | SentryVercelAiInstrumentation;
 
@@ -32,7 +46,7 @@ const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
     setupOnce() {
       instrumentation = instrumentVercelAi();
     },
-    setup(client) {
+    afterAllSetup(client) {
       function registerProcessors(): void {
         client.on('spanStart', span => {
           const { data: attributes, description: name } = spanToJSON(span);
@@ -183,6 +197,24 @@ const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
                 attributes['gen_ai.usage.total_tokens'] =
                   attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] + attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE];
               }
+
+              // Rename AI SDK attributes to standardized gen_ai attributes
+              if (attributes[AI_PROMPT_MESSAGES_ATTRIBUTE] != undefined) {
+                attributes['gen_ai.request.messages'] = attributes[AI_PROMPT_MESSAGES_ATTRIBUTE];
+                delete attributes[AI_PROMPT_MESSAGES_ATTRIBUTE];
+              }
+              if (attributes[AI_RESPONSE_TEXT_ATTRIBUTE] != undefined) {
+                attributes['gen_ai.response.text'] = attributes[AI_RESPONSE_TEXT_ATTRIBUTE];
+                delete attributes[AI_RESPONSE_TEXT_ATTRIBUTE];
+              }
+              if (attributes[AI_RESPONSE_TOOL_CALLS_ATTRIBUTE] != undefined) {
+                attributes['gen_ai.response.tool_calls'] = attributes[AI_RESPONSE_TOOL_CALLS_ATTRIBUTE];
+                delete attributes[AI_RESPONSE_TOOL_CALLS_ATTRIBUTE];
+              }
+              if (attributes[AI_PROMPT_TOOLS_ATTRIBUTE] != undefined) {
+                attributes['gen_ai.request.available_tools'] = attributes[AI_PROMPT_TOOLS_ATTRIBUTE];
+                delete attributes[AI_PROMPT_TOOLS_ATTRIBUTE];
+              }
             }
           }
 
@@ -190,7 +222,11 @@ const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
         });
       }
 
-      if (options.force) {
+      // Auto-detect if we should force the integration when running with 'ai' package available
+      // Note that this can only be detected if the 'Modules' integration is available, and running in CJS mode
+      const shouldForce = options.force ?? shouldForceIntegration(client);
+
+      if (shouldForce) {
         registerProcessors();
       } else {
         instrumentation?.callWhenPatched(registerProcessors);
@@ -212,6 +248,9 @@ const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
  *  integrations: [Sentry.vercelAIIntegration()],
  * });
  * ```
+ *
+ * The integration automatically detects when to force registration in CommonJS environments
+ * when the 'ai' package is available. You can still manually set the `force` option if needed.
  *
  * By default this integration adds tracing support to all `ai` function calls. If you need to disable
  * collecting spans for a specific call, you can do so by setting `experimental_telemetry.isEnabled` to
