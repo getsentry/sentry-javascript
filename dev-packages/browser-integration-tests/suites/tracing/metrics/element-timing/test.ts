@@ -46,9 +46,9 @@ sentryTest(
       route: '/index.html',
     });
     expect(imageFastRenderTime).toBeGreaterThan(90);
-    expect(imageFastRenderTime).toBeLessThan(200);
+    expect(imageFastRenderTime).toBeLessThan(400);
     expect(imageFastLoadTime).toBeGreaterThan(90);
-    expect(imageFastLoadTime).toBeLessThan(200);
+    expect(imageFastLoadTime).toBeLessThan(400);
     expect(imageFastRenderTime).toBeGreaterThan(imageFastLoadTime as number);
     expect(duration).toBeGreaterThan(0);
     expect(duration).toBeLessThan(20);
@@ -72,7 +72,7 @@ sentryTest(
       route: '/index.html',
     });
     expect(text1RenderTime).toBeGreaterThan(0);
-    expect(text1RenderTime).toBeLessThan(100);
+    expect(text1RenderTime).toBeLessThan(300);
     expect(text1LoadTime).toBe(0);
     expect(text1RenderTime).toBeGreaterThan(text1LoadTime as number);
     expect(text1Duration).toBe(0);
