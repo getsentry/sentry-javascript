@@ -5,8 +5,9 @@ type DebouncedCallback = {
 };
 type CallbackFunction = () => unknown;
 type DebounceOptions = {
+  /** The max. time in ms to wait for the callback to be invoked. */
   maxWait?: number;
-  // This can be overwritten to use a different setTimeout implementation, e.g. to avoid triggering change detection in Angular
+  /** This can be overwritten to use a different setTimeout implementation, e.g. to avoid triggering change detection in Angular  */
   setTimeoutImpl?: typeof setTimeout;
 };
 
