@@ -20,7 +20,7 @@ let showedExperimentalBuildModeWarning = false;
 // Packages we auto-instrument need to be external for instrumentation to work
 // Next.js externalizes some packages by default, see: https://nextjs.org/docs/app/api-reference/config/next-config-js/serverExternalPackages
 // Others we need to add ourselves
-const DEFAULT_SERVER_EXTERNAL_PACKAGES = [
+export const DEFAULT_SERVER_EXTERNAL_PACKAGES = [
   'ai',
   'amqplib',
   'connect',
@@ -219,8 +219,10 @@ function getFinalConfigObject(
     );
   }
 
+  let nextMajor: number | undefined;
   if (nextJsVersion) {
     const { major, minor, patch, prerelease } = parseSemver(nextJsVersion);
+    nextMajor = major;
     const isSupportedVersion =
       major !== undefined &&
       minor !== undefined &&
@@ -258,10 +260,22 @@ function getFinalConfigObject(
 
   return {
     ...incomingUserNextConfigObject,
-    serverExternalPackages: [
-      ...(incomingUserNextConfigObject.serverExternalPackages || []),
-      ...DEFAULT_SERVER_EXTERNAL_PACKAGES,
-    ],
+    ...(nextMajor && nextMajor >= 15
+      ? {
+          serverExternalPackages: [
+            ...(incomingUserNextConfigObject.serverExternalPackages || []),
+            ...DEFAULT_SERVER_EXTERNAL_PACKAGES,
+          ],
+        }
+      : {
+          experimental: {
+            ...incomingUserNextConfigObject.experimental,
+            serverComponentsExternalPackages: [
+              ...(incomingUserNextConfigObject.experimental?.serverComponentsExternalPackages || []),
+              ...DEFAULT_SERVER_EXTERNAL_PACKAGES,
+            ],
+          },
+        }),
     webpack: constructWebpackConfigFunction(incomingUserNextConfigObject, userSentryOptions, releaseName),
   };
 }
