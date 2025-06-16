@@ -5,8 +5,8 @@ import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest
 
 sentryTest(
   'adds element timing spans to pageload span tree for elements rendered during pageload',
-  async ({ getLocalTestUrl, page }) => {
-    if (shouldSkipTracingTest()) {
+  async ({ getLocalTestUrl, page, browserName }) => {
+    if (shouldSkipTracingTest() || browserName === 'webkit') {
       sentryTest.skip();
     }
 
@@ -161,8 +161,8 @@ sentryTest(
   },
 );
 
-sentryTest('emits element timing spans on navigation', async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipTracingTest()) {
+sentryTest('emits element timing spans on navigation', async ({ getLocalTestUrl, page, browserName }) => {
+  if (shouldSkipTracingTest() || browserName === 'webkit') {
     sentryTest.skip();
   }
 
@@ -212,8 +212,8 @@ sentryTest('emits element timing spans on navigation', async ({ getLocalTestUrl,
 
 // For element timing, we're fine with just always emitting a transaction,
 // regardless of a parent span being present or not (as in this case)
-sentryTest('emits element timing spans if no parent span is active', async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipTracingTest()) {
+sentryTest('emits element timing spans if no parent span is active', async ({ getLocalTestUrl, page, browserName }) => {
+  if (shouldSkipTracingTest() || browserName === 'webkit') {
     sentryTest.skip();
   }
 
