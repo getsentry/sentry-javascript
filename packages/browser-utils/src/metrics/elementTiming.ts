@@ -109,6 +109,7 @@ export const _onElementTiming = ({ entries }: { entries: PerformanceEntry[] }): 
         name: `element[${elementEntry.identifier}]`,
         attributes,
         startTime: spanStartTime,
+        onlyIfParent: true,
       },
       span => {
         span.end(spanStartTime + duration);
