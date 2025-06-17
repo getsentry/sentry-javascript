@@ -1,7 +1,7 @@
 import type { Client, Event, EventHint, IntegrationFn } from '@sentry/core';
 import { defineIntegration, fill, logger } from '@sentry/core';
 import { DEBUG_BUILD } from '../../../debug-build';
-import { copyFlagsFromScopeToEvent, insertFlagToScope } from '../../../utils/featureFlags';
+import { addFeatureFlagToActiveSpan, copyFlagsFromScopeToEvent, insertFlagToScope } from '../../../utils/featureFlags';
 import type { UnleashClient, UnleashClientClass } from './types';
 
 type UnleashIntegrationOptions = {
@@ -35,13 +35,13 @@ export const unleashIntegration = defineIntegration(
     return {
       name: 'Unleash',
 
-      processEvent(event: Event, _hint: EventHint, _client: Client): Event {
-        return copyFlagsFromScopeToEvent(event);
-      },
-
       setupOnce() {
         const unleashClientPrototype = unleashClientClass.prototype as UnleashClient;
         fill(unleashClientPrototype, 'isEnabled', _wrappedIsEnabled);
+      },
+
+      processEvent(event: Event, _hint: EventHint, _client: Client): Event {
+        return copyFlagsFromScopeToEvent(event);
       },
     };
   },
@@ -65,6 +65,7 @@ function _wrappedIsEnabled(
 
     if (typeof toggleName === 'string' && typeof result === 'boolean') {
       insertFlagToScope(toggleName, result);
+      addFeatureFlagToActiveSpan(toggleName, result);
     } else if (DEBUG_BUILD) {
       logger.error(
         `[Feature Flags] UnleashClient.isEnabled does not match expected signature. arg0: ${toggleName} (${typeof toggleName}), result: ${result} (${typeof result})`,
