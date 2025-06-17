@@ -490,7 +490,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         }
 
         if (navigationOptions?.isRedirect) {
-          DEBUG_BUILD && logger.warn('[Tracing] Detected redirect, navigation span will not be the root span.');
+          DEBUG_BUILD && logger.warn('[Tracing] Detected redirect, navigation span will not be the root span, but a child span.');
           _createRouteSpan(
             client,
             {
