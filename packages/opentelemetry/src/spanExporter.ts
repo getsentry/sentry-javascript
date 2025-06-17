@@ -134,14 +134,7 @@ export class SentrySpanExporter {
    * but can also be triggered externally if we force-flush.
    */
   public flush(): void {
-    const finishedSpans: ReadableSpan[] = [];
-    for (const bucket of this._finishedSpanBuckets) {
-      if (bucket) {
-        for (const span of bucket.spans) {
-          finishedSpans.push(span);
-        }
-      }
-    }
+    const finishedSpans = this._finishedSpanBuckets.flatMap(bucket => (bucket ? Array.from(bucket.spans) : []));
 
     this._flushSentSpanCache();
     const sentSpans = this._maybeSend(finishedSpans);
