@@ -81,3 +81,28 @@ describe('applyTunnelRouteOption()', () => {
     expect(options.tunnel).toBe('/my-error-monitoring-route?o=2222222&p=3333333&r=us');
   });
 });
+
+describe('Random tunnel route generation', () => {
+  it('Generates random tunnel routes when tunnelRoute is true', () => {
+    globalWithInjectedValues._sentryRewritesTunnelPath = '/abc123def'; // Simulated random path
+    const options: any = {
+      dsn: 'https://11111111111111111111111111111111@o2222222.ingest.sentry.io/3333333',
+    } as BrowserOptions;
+
+    applyTunnelRouteOption(options);
+
+    expect(options.tunnel).toBe('/abc123def?o=2222222&p=3333333');
+    expect(options.tunnel).toMatch(/^\/[a-z0-9]+\?o=2222222&p=3333333$/);
+  });
+
+  it('Does not apply tunnel route when tunnelRoute is false', () => {
+    globalWithInjectedValues._sentryRewritesTunnelPath = undefined;
+    const options: any = {
+      dsn: 'https://11111111111111111111111111111111@o2222222.ingest.sentry.io/3333333',
+    } as BrowserOptions;
+
+    applyTunnelRouteOption(options);
+
+    expect(options.tunnel).toBeUndefined();
+  });
+});

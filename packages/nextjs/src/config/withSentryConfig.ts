@@ -75,6 +75,15 @@ export function withSentryConfig<C>(nextConfig?: C, sentryBuildOptions: SentryBu
   }
 }
 
+/**
+ * Generates a random tunnel route path that's less likely to be blocked by ad-blockers
+ */
+function generateRandomTunnelRoute(): string {
+  // Generate a random 8-character alphanumeric string
+  const randomString = Math.random().toString(36).substring(2, 10);
+  return `/${randomString}`;
+}
+
 // Modify the materialized object form of the user's next config by deleting the `sentry` property and wrapping the
 // `webpack` property
 function getFinalConfigObject(
@@ -93,7 +102,12 @@ function getFinalConfigObject(
         );
       }
     } else {
-      setUpTunnelRewriteRules(incomingUserNextConfigObject, userSentryOptions.tunnelRoute);
+      const resolvedTunnelRoute =
+        typeof userSentryOptions.tunnelRoute === 'boolean'
+          ? generateRandomTunnelRoute()
+          : userSentryOptions.tunnelRoute;
+
+      setUpTunnelRewriteRules(incomingUserNextConfigObject, resolvedTunnelRoute);
     }
   }
 
@@ -363,10 +377,13 @@ function setUpBuildTimeVariables(
 ): void {
   const assetPrefix = userNextConfig.assetPrefix || userNextConfig.basePath || '';
   const basePath = userNextConfig.basePath ?? '';
-  const rewritesTunnelPath =
-    userSentryOptions.tunnelRoute !== undefined && userNextConfig.output !== 'export'
-      ? `${basePath}${userSentryOptions.tunnelRoute}`
-      : undefined;
+
+  let rewritesTunnelPath: string | undefined;
+  if (userSentryOptions.tunnelRoute !== undefined && userNextConfig.output !== 'export') {
+    const resolvedTunnelRoute =
+      typeof userSentryOptions.tunnelRoute === 'boolean' ? generateRandomTunnelRoute() : userSentryOptions.tunnelRoute;
+    rewritesTunnelPath = `${basePath}${resolvedTunnelRoute}`;
+  }
 
   const buildTimeVariables: Record<string, string> = {
     // Make sure that if we have a windows path, the backslashes are interpreted as such (rather than as escape
