@@ -64,8 +64,8 @@ const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
           ) {
             addOriginToSpan(span, 'auto.vercelai.otel');
             span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'gen_ai.execute_tool');
-            renameAttributeKey(attributes, AI_TOOL_CALL_ID_ATTRIBUTE, 'gen_ai.tool.call.id');
-            renameAttributeKey(attributes, AI_TOOL_CALL_NAME_ATTRIBUTE, 'gen_ai.tool.name');
+            span.setAttribute('gen_ai.tool.call.id', attributes[AI_TOOL_CALL_ID_ATTRIBUTE]);
+            span.setAttribute('gen_ai.tool.name', attributes[AI_TOOL_CALL_NAME_ATTRIBUTE]);
             span.updateName(`execute_tool ${attributes[AI_TOOL_CALL_NAME_ATTRIBUTE]}`);
             return;
           }
@@ -92,9 +92,11 @@ const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
             span.setAttribute('ai.pipeline.name', functionId);
           }
 
-          renameAttributeKey(attributes, AI_PROMPT_ATTRIBUTE, 'gen_ai.prompt');
+          if (attributes[AI_PROMPT_ATTRIBUTE]) {
+            span.setAttribute('gen_ai.prompt', attributes[AI_PROMPT_ATTRIBUTE]);
+          }
           if (attributes[AI_MODEL_ID_ATTRIBUTE] && !attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]) {
-            renameAttributeKey(attributes, AI_MODEL_ID_ATTRIBUTE, GEN_AI_RESPONSE_MODEL_ATTRIBUTE);
+            span.setAttribute(GEN_AI_RESPONSE_MODEL_ATTRIBUTE, attributes[AI_MODEL_ID_ATTRIBUTE]);
           }
           span.setAttribute('ai.streaming', name.includes('stream'));
 
