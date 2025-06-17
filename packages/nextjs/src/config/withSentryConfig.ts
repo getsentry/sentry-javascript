@@ -17,6 +17,35 @@ import { constructWebpackConfigFunction } from './webpack';
 let showedExportModeTunnelWarning = false;
 let showedExperimentalBuildModeWarning = false;
 
+// Packages we auto-instrument need to be external for instrumentation to work
+// Next.js externalizes some packages by default, see: https://nextjs.org/docs/app/api-reference/config/next-config-js/serverExternalPackages
+// Others we need to add ourselves
+export const DEFAULT_SERVER_EXTERNAL_PACKAGES = [
+  'ai',
+  'amqplib',
+  'connect',
+  'dataloader',
+  'express',
+  'generic-pool',
+  'graphql',
+  '@hapi/hapi',
+  'ioredis',
+  'kafkajs',
+  'koa',
+  'lru-memoizer',
+  'mongodb',
+  'mongoose',
+  'mysql',
+  'mysql2',
+  'knex',
+  'pg',
+  'pg-pool',
+  '@node-redis/client',
+  '@redis/client',
+  'redis',
+  'tedious',
+];
+
 /**
  * Modifies the passed in Next.js configuration with automatic build-time instrumentation and source map upload.
  *
@@ -190,8 +219,10 @@ function getFinalConfigObject(
     );
   }
 
+  let nextMajor: number | undefined;
   if (nextJsVersion) {
     const { major, minor, patch, prerelease } = parseSemver(nextJsVersion);
+    nextMajor = major;
     const isSupportedVersion =
       major !== undefined &&
       minor !== undefined &&
@@ -229,6 +260,22 @@ function getFinalConfigObject(
 
   return {
     ...incomingUserNextConfigObject,
+    ...(nextMajor && nextMajor >= 15
+      ? {
+          serverExternalPackages: [
+            ...(incomingUserNextConfigObject.serverExternalPackages || []),
+            ...DEFAULT_SERVER_EXTERNAL_PACKAGES,
+          ],
+        }
+      : {
+          experimental: {
+            ...incomingUserNextConfigObject.experimental,
+            serverComponentsExternalPackages: [
+              ...(incomingUserNextConfigObject.experimental?.serverComponentsExternalPackages || []),
+              ...DEFAULT_SERVER_EXTERNAL_PACKAGES,
+            ],
+          },
+        }),
     webpack: constructWebpackConfigFunction(incomingUserNextConfigObject, userSentryOptions, releaseName),
   };
 }
