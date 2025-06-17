@@ -138,14 +138,12 @@ export function _INTERNAL_captureLog(
     ...beforeLog.attributes,
   };
 
-  const { user } = getMergedScopeData(currentScope);
-  // Only attach user to log attributes if sendDefaultPii is enabled
-  if (client.getOptions().sendDefaultPii) {
-    const { id, email, username } = user;
-    setLogAttribute(processedLogAttributes, 'user.id', id, false);
-    setLogAttribute(processedLogAttributes, 'user.email', email, false);
-    setLogAttribute(processedLogAttributes, 'user.name', username, false);
-  }
+  const {
+    user: { id, email, username },
+  } = getMergedScopeData(currentScope);
+  setLogAttribute(processedLogAttributes, 'user.id', id, false);
+  setLogAttribute(processedLogAttributes, 'user.email', email, false);
+  setLogAttribute(processedLogAttributes, 'user.name', username, false);
 
   setLogAttribute(processedLogAttributes, 'sentry.release', release);
   setLogAttribute(processedLogAttributes, 'sentry.environment', environment);
