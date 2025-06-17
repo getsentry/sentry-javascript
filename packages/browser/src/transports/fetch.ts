@@ -45,7 +45,7 @@ export function makeFetchTransport(
     }
 
     try {
-      // TODO: This may need a `suppressTracing` call in the future when we switch the browser SDK to OTEL
+      // Note: We do not need to suppress tracing here, becasue we are using the native fetch, instead of our wrapped one.
       return nativeFetch(options.url, requestOptions).then(response => {
         pendingBodySize -= requestSize;
         pendingCount--;
