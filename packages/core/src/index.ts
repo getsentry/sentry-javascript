@@ -113,6 +113,7 @@ export { supabaseIntegration, instrumentSupabaseClient } from './integrations/su
 export { zodErrorsIntegration } from './integrations/zoderrors';
 export { thirdPartyErrorFilterIntegration } from './integrations/third-party-errors-filter';
 export { consoleIntegration } from './integrations/console';
+export { featureFlagsIntegration, type FeatureFlagsIntegration } from './integrations/featureFlags';
 
 export { profiler } from './profiling';
 export { instrumentFetchRequest } from './fetch';
@@ -123,7 +124,14 @@ export type { ReportDialogOptions } from './report-dialog';
 export { _INTERNAL_captureLog, _INTERNAL_flushLogsBuffer, _INTERNAL_captureSerializedLog } from './logs/exports';
 export { consoleLoggingIntegration } from './logs/console-integration';
 
-export type { FeatureFlag } from './featureFlags';
+export type { FeatureFlag } from './utils/featureFlags';
+export {
+  _INTERNAL_copyFlagsFromScopeToEvent,
+  _INTERNAL_insertFlagToScope,
+  _INTERNAL_addFeatureFlagToActiveSpan,
+  _INTERNAL_FLAG_BUFFER_SIZE,
+  _INTERNAL_MAX_FLAGS_PER_SPAN,
+} from './utils/featureFlags';
 
 export { applyAggregateErrorsToEvent } from './utils-hoist/aggregate-errors';
 export { getBreadcrumbLogLevelFromHttpStatusCode } from './utils-hoist/breadcrumb-log-level';

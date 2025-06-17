@@ -14,8 +14,12 @@
  * ```
  */
 import type { Client, Event, EventHint, IntegrationFn } from '@sentry/core';
-import { defineIntegration } from '@sentry/core';
-import { addFeatureFlagToActiveSpan, copyFlagsFromScopeToEvent, insertFlagToScope } from '../../../utils/featureFlags';
+import {
+  _INTERNAL_addFeatureFlagToActiveSpan,
+  _INTERNAL_copyFlagsFromScopeToEvent,
+  _INTERNAL_insertFlagToScope,
+  defineIntegration,
+} from '@sentry/core';
 import type { EvaluationDetails, HookContext, HookHints, JsonValue, OpenFeatureHook } from './types';
 
 export const openFeatureIntegration = defineIntegration(() => {
@@ -23,7 +27,7 @@ export const openFeatureIntegration = defineIntegration(() => {
     name: 'OpenFeature',
 
     processEvent(event: Event, _hint: EventHint, _client: Client): Event {
-      return copyFlagsFromScopeToEvent(event);
+      return _INTERNAL_copyFlagsFromScopeToEvent(event);
     },
   };
 }) satisfies IntegrationFn;
@@ -36,15 +40,15 @@ export class OpenFeatureIntegrationHook implements OpenFeatureHook {
    * Successful evaluation result.
    */
   public after(_hookContext: Readonly<HookContext<JsonValue>>, evaluationDetails: EvaluationDetails<JsonValue>): void {
-    insertFlagToScope(evaluationDetails.flagKey, evaluationDetails.value);
-    addFeatureFlagToActiveSpan(evaluationDetails.flagKey, evaluationDetails.value);
+    _INTERNAL_insertFlagToScope(evaluationDetails.flagKey, evaluationDetails.value);
+    _INTERNAL_addFeatureFlagToActiveSpan(evaluationDetails.flagKey, evaluationDetails.value);
   }
 
   /**
    * On error evaluation result.
    */
   public error(hookContext: Readonly<HookContext<JsonValue>>, _error: unknown, _hookHints?: HookHints): void {
-    insertFlagToScope(hookContext.flagKey, hookContext.defaultValue);
-    addFeatureFlagToActiveSpan(hookContext.flagKey, hookContext.defaultValue);
+    _INTERNAL_insertFlagToScope(hookContext.flagKey, hookContext.defaultValue);
+    _INTERNAL_addFeatureFlagToActiveSpan(hookContext.flagKey, hookContext.defaultValue);
   }
 }
