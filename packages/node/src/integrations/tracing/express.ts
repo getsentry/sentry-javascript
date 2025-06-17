@@ -1,6 +1,10 @@
 import type * as http from 'node:http';
 import type { Span } from '@opentelemetry/api';
-import type { ExpressLayerType, ExpressRequestInfo } from '@opentelemetry/instrumentation-express';
+import type {
+  ExpressInstrumentationConfig,
+  ExpressLayerType,
+  ExpressRequestInfo,
+} from '@opentelemetry/instrumentation-express';
 import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
 import type { IntegrationFn } from '@sentry/core';
 import {
@@ -89,26 +93,31 @@ function spanNameHook(info: ExpressRequestInfo<unknown>, defaultName: string): s
   return defaultName;
 }
 
+function buildInstrumentationConfig(options: ExpressOptions): ExpressInstrumentationConfig {
+  const config: ExpressInstrumentationConfig = {
+    requestHook: (span: Span) => requestHook(span),
+    spanNameHook: (info: ExpressRequestInfo<unknown>, defaultName: string) => spanNameHook(info, defaultName),
+  };
+
+  if (options.ignoreLayers) {
+    config.ignoreLayers = options.ignoreLayers;
+  }
+
+  if (options.ignoreLayersType) {
+    config.ignoreLayersType = options.ignoreLayersType as ExpressLayerType[];
+  }
+
+  return config;
+}
+
 export const instrumentExpress = generateInstrumentOnce(
   INTEGRATION_NAME,
-  (options: ExpressOptions = {}) =>
-    new ExpressInstrumentation({
-      requestHook: span => requestHook(span),
-      spanNameHook: (info, defaultName) => spanNameHook(info, defaultName),
-      ignoreLayers: options.ignoreLayers,
-      ignoreLayersType: options.ignoreLayersType as ExpressLayerType[],
-    }),
+  (options: ExpressOptions = {}) => new ExpressInstrumentation(buildInstrumentationConfig(options)),
 );
 
 export const instrumentExpressV5 = generateInstrumentOnce(
   INTEGRATION_NAME_V5,
-  (options: ExpressOptions = {}) =>
-    new ExpressInstrumentationV5({
-      requestHook: span => requestHook(span),
-      spanNameHook: (info, defaultName) => spanNameHook(info, defaultName),
-      ignoreLayers: options.ignoreLayers,
-      ignoreLayersType: options.ignoreLayersType as ExpressLayerType[],
-    }),
+  (options: ExpressOptions = {}) => new ExpressInstrumentationV5(buildInstrumentationConfig(options)),
 );
 
 const _expressIntegration = ((options: ExpressOptions = {}) => {
