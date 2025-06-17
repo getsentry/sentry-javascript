@@ -43,6 +43,12 @@ export function startTrackingElementTiming(): () => void {
  * exported only for testing
  */
 export const _onElementTiming = ({ entries }: { entries: PerformanceEntry[] }): void => {
+  const activeSpan = getActiveSpan();
+  const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
+  const transactionName = rootSpan
+    ? spanToJSON(rootSpan).description
+    : getCurrentScope().getScopeData().transactionName;
+
   entries.forEach(entry => {
     const elementEntry = entry as PerformanceElementTiming;
 
@@ -63,11 +69,11 @@ export const _onElementTiming = ({ entries }: { entries: PerformanceEntry[] }): 
     // - `renderTime` if available (available for all entries, except 3rd party images, but these should be covered by `loadTime`, 0 otherwise)
     // - `timestampInSeconds()` as a safeguard
     // see https://developer.mozilla.org/en-US/docs/Web/API/PerformanceElementTiming/renderTime#cross-origin_image_render_time
-    const { spanStartTime, spanStartTimeSource } = loadTime
-      ? { spanStartTime: msToSec(loadTime), spanStartTimeSource: 'load-time' }
+    const [spanStartTime, spanStartTimeSource] = loadTime
+      ? [msToSec(loadTime), 'load-time']
       : renderTime
-        ? { spanStartTime: msToSec(renderTime), spanStartTimeSource: 'render-time' }
-        : { spanStartTime: timestampInSeconds(), spanStartTimeSource: 'entry-emission' };
+        ? [msToSec(renderTime), 'render-time']
+        : [timestampInSeconds(), 'entry-emission'];
 
     const duration =
       paintType === 'image-paint'
@@ -78,30 +84,26 @@ export const _onElementTiming = ({ entries }: { entries: PerformanceEntry[] }): 
         : // for `'text-paint'` entries, we can't get a duration because the `loadTime` is always zero.
           0;
 
-    const activeSpan = getActiveSpan();
-    const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
-    const route = rootSpan ? spanToJSON(rootSpan).description : getCurrentScope().getScopeData().transactionName;
-
     const attributes: SpanAttributes = {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.elementtiming',
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.elementtiming',
       // name must be user-entered, so we can assume low cardinality
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
       // recording the source of the span start time, as it varies depending on available data
-      'sentry.span-start-time-source': spanStartTimeSource,
-      route,
-
+      'sentry.span_start_time_source': spanStartTimeSource,
+      'sentry.transaction_name': transactionName,
+      'element.id': elementEntry.id,
       'element.type': elementEntry.element?.tagName?.toLowerCase() || 'unknown',
       'element.size':
         elementEntry.naturalWidth && elementEntry.naturalHeight
           ? `${elementEntry.naturalWidth}x${elementEntry.naturalHeight}`
           : undefined,
-      'element.render-time': renderTime,
-      'element.load-time': loadTime,
+      'element.render_time': renderTime,
+      'element.load_time': loadTime,
       // `url` is `0`(number) for text paints (hence we fall back to undefined)
       'element.url': elementEntry.url || undefined,
       'element.identifier': elementEntry.identifier,
-      'element.paint-type': paintType,
+      'element.paint_type': paintType,
     };
 
     startSpan(
