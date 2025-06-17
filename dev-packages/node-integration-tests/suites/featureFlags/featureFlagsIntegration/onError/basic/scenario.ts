@@ -1,7 +1,6 @@
 import * as Sentry from '@sentry/node';
 import { loggingTransport } from '@sentry-internal/node-integration-tests';
-
-const FLAG_BUFFER_SIZE = 100;
+import { _INTERNAL_FLAG_BUFFER_SIZE as FLAG_BUFFER_SIZE } from '@sentry/core';
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
