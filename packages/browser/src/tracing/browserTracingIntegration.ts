@@ -350,7 +350,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
   };
 
   let _collectWebVitals: undefined | (() => void);
-  let lastClickTimestamp: number | undefined;
+  let lastInteractionTimestamp: number | undefined;
 
   /** Create routing idle transaction. */
   function _createRouteSpan(client: Client, startSpanOptions: StartSpanOptions, makeActive = true): void {
@@ -466,7 +466,11 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       }
 
       if (detectRedirects && optionalWindowDocument) {
-        addEventListener('click', () => (lastClickTimestamp = timestampInSeconds()), { capture: true, passive: true });
+        const clickHandler = (): void => {
+          lastInteractionTimestamp = timestampInSeconds();
+        };
+        addEventListener('click', () => clickHandler, { capture: true, passive: true });
+        addEventListener('keypress', () => clickHandler, { capture: true, passive: true });
       }
 
       function maybeEndActiveSpan(): void {
@@ -582,7 +586,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
             startingUrl = undefined;
             const parsed = parseStringToURLObject(to);
             const activeSpan = getActiveIdleSpan(client);
-            const navigationIsRedirect = activeSpan && detectRedirects && isRedirect(activeSpan, lastClickTimestamp);
+            const navigationIsRedirect = activeSpan && detectRedirects && isRedirect(activeSpan, lastInteractionTimestamp);
             startBrowserTracingNavigationSpan(
               client,
               {
@@ -756,7 +760,7 @@ function setActiveIdleSpan(client: Client, span: Span | undefined): void {
 // The max. time in seconds between two pageload/navigation spans that makes us consider the second one a redirect
 const REDIRECT_THRESHOLD = 0.3;
 
-function isRedirect(activeSpan: Span, lastClickTimestamp: number | undefined): boolean {
+function isRedirect(activeSpan: Span, lastInteractionTimestamp: number | undefined): boolean {
   const spanData = spanToJSON(activeSpan);
 
   const now = dateTimestampInSeconds();
@@ -770,7 +774,7 @@ function isRedirect(activeSpan: Span, lastClickTimestamp: number | undefined): b
 
   // A click happened in the last 300ms?
   // --> never consider this a redirect
-  if (lastClickTimestamp && now - lastClickTimestamp <= REDIRECT_THRESHOLD) {
+  if (lastInteractionTimestamp && now - lastInteractionTimestamp <= REDIRECT_THRESHOLD) {
     return false;
   }
 
