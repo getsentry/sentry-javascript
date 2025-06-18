@@ -107,6 +107,8 @@ function getFinalConfigObject(
           ? generateRandomTunnelRoute()
           : userSentryOptions.tunnelRoute;
 
+      // Update the global options object to use the resolved value everywhere
+      userSentryOptions.tunnelRoute = resolvedTunnelRoute;
       setUpTunnelRewriteRules(incomingUserNextConfigObject, resolvedTunnelRoute);
     }
   }
@@ -378,12 +380,12 @@ function setUpBuildTimeVariables(
   const assetPrefix = userNextConfig.assetPrefix || userNextConfig.basePath || '';
   const basePath = userNextConfig.basePath ?? '';
 
-  let rewritesTunnelPath: string | undefined;
-  if (userSentryOptions.tunnelRoute !== undefined && userNextConfig.output !== 'export') {
-    const resolvedTunnelRoute =
-      typeof userSentryOptions.tunnelRoute === 'boolean' ? generateRandomTunnelRoute() : userSentryOptions.tunnelRoute;
-    rewritesTunnelPath = `${basePath}${resolvedTunnelRoute}`;
-  }
+  const rewritesTunnelPath =
+    userSentryOptions.tunnelRoute !== undefined &&
+    userNextConfig.output !== 'export' &&
+    typeof userSentryOptions.tunnelRoute === 'string'
+      ? `${basePath}${userSentryOptions.tunnelRoute}`
+      : undefined;
 
   const buildTimeVariables: Record<string, string> = {
     // Make sure that if we have a windows path, the backslashes are interpreted as such (rather than as escape
