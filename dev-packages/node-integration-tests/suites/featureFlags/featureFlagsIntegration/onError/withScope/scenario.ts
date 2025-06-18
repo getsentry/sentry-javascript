@@ -1,22 +1,30 @@
-import type { Scope } from '@sentry/node';
 import * as Sentry from '@sentry/node';
 import { loggingTransport } from '@sentry-internal/node-integration-tests';
+
+const flagsIntegration = Sentry.featureFlagsIntegration();
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   sampleRate: 1.0,
   transport: loggingTransport,
-  integrations: [Sentry.featureFlagsIntegration()],
+  integrations: [flagsIntegration],
 });
 
-const flagsIntegration = Sentry.getClient()?.getIntegrationByName<Sentry.FeatureFlagsIntegration>('FeatureFlags');
-flagsIntegration?.addFeatureFlag('shared', true);
+async function run(): Promise<void> {
+  flagsIntegration.addFeatureFlag('shared', true);
 
-Sentry.withScope((_scope: Scope) => {
-  flagsIntegration?.addFeatureFlag('forked', true);
-  flagsIntegration?.addFeatureFlag('shared', false);
-  Sentry.captureException(new Error('Error in forked scope'));
-});
+  Sentry.withScope(() => {
+    flagsIntegration.addFeatureFlag('forked', true);
+    flagsIntegration.addFeatureFlag('shared', false);
+    Sentry.captureException(new Error('Error in forked scope'));
+  });
 
-flagsIntegration?.addFeatureFlag('main', true);
-throw new Error('Error in main scope');
+  await Sentry.flush();
+
+  flagsIntegration.addFeatureFlag('main', true);
+
+  throw new Error('Error in main scope');
+}
+
+// eslint-disable-next-line @typescript-eslint/no-floating-promises
+run();
