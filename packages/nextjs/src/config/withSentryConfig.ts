@@ -432,7 +432,7 @@ function getInstrumentationClientFileContents(): string | void {
     ['src', 'instrumentation-client.ts'],
     ['src', 'instrumentation-client.js'],
     ['instrumentation-client.ts'],
-    ['instrumentation-client.ts'],
+    ['instrumentation-client.js'],
   ];
 
   for (const pathSegments of potentialInstrumentationClientFileLocations) {
