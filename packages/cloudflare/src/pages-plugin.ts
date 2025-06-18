@@ -1,3 +1,4 @@
+import type { EventPluginContext, PagesPluginFunction } from '@cloudflare/workers-types';
 import { setAsyncLocalStorageAsyncContextStrategy } from './async';
 import type { CloudflareOptions } from './client';
 import { wrapRequestHandler } from './request';

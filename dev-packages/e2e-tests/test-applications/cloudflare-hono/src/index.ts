@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { DurableObject } from 'cloudflare:workers';
 import * as Sentry from '@sentry/cloudflare';
 
 const app = new Hono();
@@ -24,6 +25,19 @@ app.onError((err, ctx) => {
 app.notFound(ctx => {
   return ctx.json({ message: 'Not Found' }, 404);
 });
+
+class MyDurableObjectBase extends DurableObject<Env> {
+  // impl
+}
+
+// Typecheck that the instrumented durable object is valid
+export const MyDurableObject = Sentry.instrumentDurableObjectWithSentry(
+  (env: Env) => ({
+    dsn: env?.E2E_TEST_DSN,
+    tracesSampleRate: 1.0,
+  }),
+  MyDurableObjectBase,
+);
 
 export default Sentry.withSentry(
   (env: Env) => ({

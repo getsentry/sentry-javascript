@@ -1,4 +1,10 @@
-import type { ExecutionContext, IncomingRequestCfProperties } from '@cloudflare/workers-types';
+import type {
+  EventPluginContext,
+  ExecutionContext,
+  IncomingRequestCfProperties,
+  Request,
+  Response,
+} from '@cloudflare/workers-types';
 import {
   captureException,
   continueTrace,
@@ -14,10 +20,18 @@ import type { CloudflareOptions } from './client';
 import { addCloudResourceContext, addCultureContext, addRequest } from './scope-utils';
 import { init } from './sdk';
 
-interface RequestHandlerWrapperOptions {
+interface RequestHandlerWrapperOptions<
+  Env = unknown,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  Params extends string = any,
+  Data extends Record<string, unknown> = Record<string, unknown>,
+  // Although it is not ideal to use `any` here, it makes usage more flexible for different setups.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  PluginParams = any,
+> {
   options: CloudflareOptions;
   request: Request<unknown, IncomingRequestCfProperties<unknown>>;
-  context: ExecutionContext;
+  context: ExecutionContext | EventPluginContext<Env, Params, Data, PluginParams>;
 }
 
 /**
@@ -33,7 +47,7 @@ export function wrapRequestHandler(
     // In certain situations, the passed context can become undefined.
     // For example, for Astro while prerendering pages at build time.
     // see: https://github.com/getsentry/sentry-javascript/issues/13217
-    const context = wrapperOptions.context as ExecutionContext | undefined;
+    const context = wrapperOptions.context as RequestHandlerWrapperOptions['context'] | undefined;
 
     const client = init(options);
     isolationScope.setClient(client);

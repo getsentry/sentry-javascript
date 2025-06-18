@@ -1,3 +1,11 @@
+import type {
+  EmailExportedHandler,
+  ExportedHandler,
+  ExportedHandlerFetchHandler,
+  ExportedHandlerQueueHandler,
+  ExportedHandlerScheduledHandler,
+  ExportedHandlerTailHandler,
+} from '@cloudflare/workers-types';
 import {
   captureException,
   flush,
