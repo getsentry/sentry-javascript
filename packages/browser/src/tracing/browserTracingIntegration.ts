@@ -470,7 +470,8 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         }
 
         if (navigationOptions?.isRedirect) {
-          DEBUG_BUILD && logger.warn('[Tracing] Detected redirect, navigation span will not be the root span, but a child span.');
+          DEBUG_BUILD &&
+            logger.warn('[Tracing] Detected redirect, navigation span will not be the root span, but a child span.');
           _createRouteSpan(
             client,
             {
@@ -566,7 +567,8 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
             startingUrl = undefined;
             const parsed = parseStringToURLObject(to);
             const activeSpan = getActiveIdleSpan(client);
-            const navigationIsRedirect = activeSpan && detectRedirects && isRedirect(activeSpan, lastInteractionTimestamp);
+            const navigationIsRedirect =
+              activeSpan && detectRedirects && isRedirect(activeSpan, lastInteractionTimestamp);
             startBrowserTracingNavigationSpan(
               client,
               {
