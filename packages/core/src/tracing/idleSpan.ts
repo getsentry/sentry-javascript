@@ -5,6 +5,7 @@ import type { DynamicSamplingContext } from '../types-hoist/envelope';
 import type { Span } from '../types-hoist/span';
 import type { StartSpanOptions } from '../types-hoist/startSpanOptions';
 import { hasSpansEnabled } from '../utils/hasSpansEnabled';
+import { logger } from '../utils/logger';
 import { _setSpanForScope } from '../utils/spanOnScope';
 import {
   getActiveSpan,
@@ -13,8 +14,7 @@ import {
   spanTimeInputToSeconds,
   spanToJSON,
 } from '../utils/spanUtils';
-import { logger } from '../utils-hoist/logger';
-import { timestampInSeconds } from '../utils-hoist/time';
+import { timestampInSeconds } from '../utils/time';
 import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
 import { SPAN_STATUS_ERROR } from './spanstatus';

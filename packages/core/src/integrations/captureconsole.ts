@@ -1,14 +1,14 @@
 import { getClient, withScope } from '../currentScopes';
 import { captureException, captureMessage } from '../exports';
+import { addConsoleInstrumentationHandler } from '../instrument/console';
 import { defineIntegration } from '../integration';
 import type { CaptureContext } from '../scope';
 import type { IntegrationFn } from '../types-hoist/integration';
-import { addConsoleInstrumentationHandler } from '../instrument/console';
-import { CONSOLE_LEVELS } from '../utils-hoist/logger';
-import { addExceptionMechanism } from '../utils-hoist/misc';
-import { severityLevelFromString } from '../utils-hoist/severity';
-import { safeJoin } from '../utils-hoist/string';
-import { GLOBAL_OBJ } from '../utils-hoist/worldwide';
+import { CONSOLE_LEVELS } from '../utils/logger';
+import { addExceptionMechanism } from '../utils/misc';
+import { severityLevelFromString } from '../utils/severity';
+import { safeJoin } from '../utils/string';
+import { GLOBAL_OBJ } from '../utils/worldwide';
 
 interface CaptureConsoleOptions {
   levels?: string[];

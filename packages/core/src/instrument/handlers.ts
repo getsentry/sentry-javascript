@@ -1,6 +1,6 @@
 import { DEBUG_BUILD } from '../debug-build';
-import { logger } from '../utils-hoist/logger';
-import { getFunctionName } from '../utils-hoist/stacktrace';
+import { logger } from '../utils/logger';
+import { getFunctionName } from '../utils/stacktrace';
 
 export type InstrumentHandlerType =
   | 'console'

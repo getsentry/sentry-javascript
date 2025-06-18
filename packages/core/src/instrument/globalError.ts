@@ -1,5 +1,5 @@
 import type { HandlerDataError } from '../types-hoist/instrument';
-import { GLOBAL_OBJ } from '../utils-hoist/worldwide';
+import { GLOBAL_OBJ } from '../utils/worldwide';
 import { addHandler, maybeInstrument, triggerHandlers } from './handlers';
 
 let _oldOnErrorHandler: (typeof GLOBAL_OBJ)['onerror'] | null = null;

@@ -2,8 +2,8 @@ import { getEnvelopeEndpointWithUrlEncodedAuth } from '../api';
 import type { Envelope, EnvelopeItemType, EventItem } from '../types-hoist/envelope';
 import type { Event } from '../types-hoist/event';
 import type { BaseTransportOptions, Transport, TransportMakeRequestResponse } from '../types-hoist/transport';
-import { dsnFromString } from '../utils-hoist/dsn';
-import { createEnvelope, forEachEnvelopeItem } from '../utils-hoist/envelope';
+import { dsnFromString } from '../utils/dsn';
+import { createEnvelope, forEachEnvelopeItem } from '../utils/envelope';
 
 interface MatchParam {
   /** The envelope to be sent */

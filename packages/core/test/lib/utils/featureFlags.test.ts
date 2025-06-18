@@ -5,7 +5,7 @@ import {
   _INTERNAL_insertFlagToScope,
   _INTERNAL_insertToFlagBuffer,
 } from '../../../src/utils/featureFlags';
-import { logger } from '../../../src/utils-hoist/logger';
+import { logger } from '../../../src/utils/logger';
 
 describe('flags', () => {
   describe('insertFlagToScope()', () => {

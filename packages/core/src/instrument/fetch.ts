@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { HandlerDataFetch } from '../types-hoist/instrument';
 import type { WebFetchHeaders } from '../types-hoist/webfetchapi';
-import { isError, isRequest } from '../utils-hoist/is';
-import { addNonEnumerableProperty, fill } from '../utils-hoist/object';
-import { supportsNativeFetch } from '../utils-hoist/supports';
-import { timestampInSeconds } from '../utils-hoist/time';
-import { GLOBAL_OBJ } from '../utils-hoist/worldwide';
+import { isError, isRequest } from '../utils/is';
+import { addNonEnumerableProperty, fill } from '../utils/object';
+import { supportsNativeFetch } from '../utils/supports';
+import { timestampInSeconds } from '../utils/time';
+import { GLOBAL_OBJ } from '../utils/worldwide';
 import { addHandler, maybeInstrument, triggerHandlers } from './handlers';
 
 type FetchResource = string | { toString(): string } | { url: string };
