@@ -3,7 +3,7 @@ import { captureException, captureMessage } from '../exports';
 import { defineIntegration } from '../integration';
 import type { CaptureContext } from '../scope';
 import type { IntegrationFn } from '../types-hoist/integration';
-import { addConsoleInstrumentationHandler } from '../utils-hoist/instrument/console';
+import { addConsoleInstrumentationHandler } from '../instrument/console';
 import { CONSOLE_LEVELS } from '../utils-hoist/logger';
 import { addExceptionMechanism } from '../utils-hoist/misc';
 import { severityLevelFromString } from '../utils-hoist/severity';

@@ -1,5 +1,5 @@
 import { describe, test } from 'vitest';
-import { maybeInstrument } from '../../src/utils-hoist/instrument/handlers';
+import { maybeInstrument } from '../../src/instrument/handlers';
 
 describe('maybeInstrument', () => {
   test('does not throw when instrumenting fails', () => {

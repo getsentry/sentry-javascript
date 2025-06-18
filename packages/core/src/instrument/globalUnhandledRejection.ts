@@ -1,5 +1,5 @@
-import type { HandlerDataUnhandledRejection } from '../../types-hoist/instrument';
-import { GLOBAL_OBJ } from '../worldwide';
+import type { HandlerDataUnhandledRejection } from '../types-hoist/instrument';
+import { GLOBAL_OBJ } from '../utils-hoist/worldwide';
 import { addHandler, maybeInstrument, triggerHandlers } from './handlers';
 
 let _oldOnUnhandledRejectionHandler: (typeof GLOBAL_OBJ)['onunhandledrejection'] | null = null;

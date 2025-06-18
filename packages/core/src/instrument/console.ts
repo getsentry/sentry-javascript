@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/ban-types */
-import type { ConsoleLevel, HandlerDataConsole } from '../../types-hoist/instrument';
-import { CONSOLE_LEVELS, originalConsoleMethods } from '../logger';
-import { fill } from '../object';
-import { GLOBAL_OBJ } from '../worldwide';
+import type { ConsoleLevel, HandlerDataConsole } from '../types-hoist/instrument';
+import { CONSOLE_LEVELS, originalConsoleMethods } from '../utils-hoist/logger';
+import { fill } from '../utils-hoist/object';
+import { GLOBAL_OBJ } from '../utils-hoist/worldwide';
 import { addHandler, maybeInstrument, triggerHandlers } from './handlers';
 
 /**

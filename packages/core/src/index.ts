@@ -141,16 +141,16 @@ export { dsnFromString, dsnToString, makeDsn } from './utils-hoist/dsn';
 export { SentryError } from './utils-hoist/error';
 export { GLOBAL_OBJ } from './utils-hoist/worldwide';
 export type { InternalGlobal } from './utils-hoist/worldwide';
-export { addConsoleInstrumentationHandler } from './utils-hoist/instrument/console';
-export { addFetchEndInstrumentationHandler, addFetchInstrumentationHandler } from './utils-hoist/instrument/fetch';
-export { addGlobalErrorInstrumentationHandler } from './utils-hoist/instrument/globalError';
-export { addGlobalUnhandledRejectionInstrumentationHandler } from './utils-hoist/instrument/globalUnhandledRejection';
+export { addConsoleInstrumentationHandler } from './instrument/console';
+export { addFetchEndInstrumentationHandler, addFetchInstrumentationHandler } from './instrument/fetch';
+export { addGlobalErrorInstrumentationHandler } from './instrument/globalError';
+export { addGlobalUnhandledRejectionInstrumentationHandler } from './instrument/globalUnhandledRejection';
 export {
   addHandler,
   maybeInstrument,
   resetInstrumentationHandlers,
   triggerHandlers,
-} from './utils-hoist/instrument/handlers';
+} from './instrument/handlers';
 export {
   isDOMError,
   isDOMException,
