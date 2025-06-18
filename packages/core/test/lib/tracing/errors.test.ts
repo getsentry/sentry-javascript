@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { setCurrentClient, spanToJSON, startInactiveSpan, startSpan } from '../../../src';
+import * as globalErrorModule from '../../../src/instrument/globalError';
+import * as globalUnhandledRejectionModule from '../../../src/instrument/globalUnhandledRejection';
 import { _resetErrorsInstrumented, registerSpanErrorInstrumentation } from '../../../src/tracing/errors';
 import type { HandlerDataError, HandlerDataUnhandledRejection } from '../../../src/types-hoist/instrument';
-import * as globalErrorModule from '../../../src/utils/instrument/globalError';
-import * as globalUnhandledRejectionModule from '../../../src/utils/instrument/globalUnhandledRejection';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 let mockErrorCallback: (data: HandlerDataError) => void = () => {};

@@ -4,11 +4,11 @@ import { type Mock, afterEach, beforeEach, describe, expect, it, vi } from 'vite
 import type { Client } from '../../../src';
 import * as CurrentScopes from '../../../src/currentScopes';
 import * as SentryCore from '../../../src/exports';
+import { addConsoleInstrumentationHandler } from '../../../src/instrument/console';
+import { resetInstrumentationHandlers } from '../../../src/instrument/handlers';
 import { captureConsoleIntegration } from '../../../src/integrations/captureconsole';
 import type { Event } from '../../../src/types-hoist/event';
 import type { ConsoleLevel } from '../../../src/types-hoist/instrument';
-import { addConsoleInstrumentationHandler } from '../../../src/utils/instrument/console';
-import { resetInstrumentationHandlers } from '../../../src/utils/instrument/handlers';
 import { CONSOLE_LEVELS, originalConsoleMethods } from '../../../src/utils/logger';
 import { GLOBAL_OBJ } from '../../../src/utils/worldwide';
 

@@ -1,6 +1,6 @@
 import { it } from 'vitest';
-import { GLOBAL_OBJ } from '../../src/utils/worldwide';
 import { getSentryCarrier } from '../src/carrier';
+import { GLOBAL_OBJ } from '../src/utils/worldwide';
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 export const testOnlyIfNodeVersionAtLeast = (minVersion: number): Function => {

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { nodeStackLineParser } from '../../src/utils/node-stack-trace';
-import { stripSentryFramesAndReverse } from '../../src/utils/stacktrace';
+import { nodeStackLineParser } from '../../../src/utils/node-stack-trace';
+import { stripSentryFramesAndReverse } from '../../../src/utils/stacktrace';
 
 describe('Stacktrace', () => {
   describe('stripSentryFramesAndReverse()', () => {

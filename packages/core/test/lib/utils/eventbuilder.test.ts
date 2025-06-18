@@ -1,8 +1,8 @@
 import { describe, expect, it, test } from 'vitest';
 import type { Client } from '../../../src/client';
-import { eventFromMessage, eventFromUnknownInput } from '../../src/utils/eventbuilder';
-import { nodeStackLineParser } from '../../src/utils/node-stack-trace';
-import { createStackParser } from '../../src/utils/stacktrace';
+import { eventFromMessage, eventFromUnknownInput } from '../../../src/utils/eventbuilder';
+import { nodeStackLineParser } from '../../../src/utils/node-stack-trace';
+import { createStackParser } from '../../../src/utils/stacktrace';
 
 const stackParser = createStackParser(nodeStackLineParser());
 

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { LRUMap } from '../../src/utils/lru';
+import { LRUMap } from '../../../src/utils/lru';
 
 describe('LRUMap', () => {
   test('evicts older entries when reaching max size', () => {

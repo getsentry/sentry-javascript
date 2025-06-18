@@ -7,7 +7,7 @@ import {
   parseStringToURLObject,
   parseUrl,
   stripUrlQueryAndFragment,
-} from '../../src/utils/url';
+} from '../../../src/utils/url';
 
 describe('stripQueryStringAndFragment', () => {
   const urlString = 'http://dogs.are.great:1231/yay/';

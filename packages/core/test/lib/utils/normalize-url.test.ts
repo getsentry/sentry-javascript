@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeUrlToBase } from '../../src/utils/normalize';
+import { normalizeUrlToBase } from '../../../src/utils/normalize';
 
 describe('normalizeUrlToBase()', () => {
   it('Example app on Windows', () => {

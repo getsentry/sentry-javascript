@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { severityLevelFromString } from '../../src/utils/severity';
+import { severityLevelFromString } from '../../../src/utils/severity';
 
 describe('severityLevelFromString()', () => {
   test("converts 'warn' to 'warning'", () => {

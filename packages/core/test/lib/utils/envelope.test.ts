@@ -17,9 +17,9 @@ import {
   forEachEnvelopeItem,
   parseEnvelope,
   serializeEnvelope,
-} from '../../src/utils/envelope';
-import type { InternalGlobal } from '../../src/utils/worldwide';
-import { GLOBAL_OBJ } from '../../src/utils/worldwide';
+} from '../../../src/utils/envelope';
+import type { InternalGlobal } from '../../../src/utils/worldwide';
+import { GLOBAL_OBJ } from '../../../src/utils/worldwide';
 
 describe('envelope', () => {
   describe('createSpanEnvelope()', () => {

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { basename, dirname } from '../../src/utils/path';
+import { basename, dirname } from '../../../src/utils/path';
 
 describe('path', () => {
   describe('basename', () => {

@@ -9,9 +9,9 @@ import {
   isPrimitive,
   isThenable,
   isVueViewModel,
-} from '../../src/utils/is';
-import { supportsDOMError, supportsDOMException, supportsErrorEvent } from '../../src/utils/supports';
-import { resolvedSyncPromise } from '../../src/utils/syncpromise';
+} from '../../../src/utils/is';
+import { supportsDOMError, supportsDOMException, supportsErrorEvent } from '../../../src/utils/supports';
+import { resolvedSyncPromise } from '../../../src/utils/syncpromise';
 import { testOnlyIfNodeVersionAtLeast } from '../../testutils';
 
 if (supportsDOMError()) {

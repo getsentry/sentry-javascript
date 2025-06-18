@@ -11,7 +11,7 @@ import {
   fill,
   markFunctionWrapped,
   objectify,
-} from '../../src/utils/object';
+} from '../../../src/utils/object';
 import { testOnlyIfNodeVersionAtLeast } from '../../testutils';
 
 describe('fill()', () => {

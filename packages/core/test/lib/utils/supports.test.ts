@@ -1,6 +1,6 @@
 import { afterEach } from 'node:test';
 import { describe, expect, it } from 'vitest';
-import { supportsHistory } from '../../src/utils/supports';
+import { supportsHistory } from '../../../src/utils/supports';
 
 describe('supportsHistory', () => {
   const originalHistory = globalThis.history;

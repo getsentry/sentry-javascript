@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from 'vitest';
-import { makePromiseBuffer } from '../../src/utils/promisebuffer';
-import { SyncPromise } from '../../src/utils/syncpromise';
+import { makePromiseBuffer } from '../../../src/utils/promisebuffer';
+import { SyncPromise } from '../../../src/utils/syncpromise';
 
 describe('PromiseBuffer', () => {
   describe('add()', () => {

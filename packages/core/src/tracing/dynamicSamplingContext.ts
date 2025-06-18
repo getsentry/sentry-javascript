@@ -9,10 +9,7 @@ import {
 } from '../semanticAttributes';
 import type { DynamicSamplingContext } from '../types-hoist/envelope';
 import type { Span } from '../types-hoist/span';
-import {
-  baggageHeaderToDynamicSamplingContext,
-  dynamicSamplingContextToSentryBaggageHeader,
-} from '../utils/baggage';
+import { baggageHeaderToDynamicSamplingContext, dynamicSamplingContextToSentryBaggageHeader } from '../utils/baggage';
 import { extractOrgIdFromDsnHost } from '../utils/dsn';
 import { hasSpansEnabled } from '../utils/hasSpansEnabled';
 import { addNonEnumerableProperty } from '../utils/object';

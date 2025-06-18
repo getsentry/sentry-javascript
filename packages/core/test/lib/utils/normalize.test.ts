@@ -4,8 +4,8 @@
 
 import { describe, expect, test, vi } from 'vitest';
 import { addNonEnumerableProperty, normalize } from '../../../src';
-import * as isModule from '../../src/utils/is';
-import * as stacktraceModule from '../../src/utils/stacktrace';
+import * as isModule from '../../../src/utils/is';
+import * as stacktraceModule from '../../../src/utils/stacktrace';
 
 describe('normalize()', () => {
   describe('acts as a pass-through for simple-cases', () => {

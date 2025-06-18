@@ -145,12 +145,7 @@ export { addConsoleInstrumentationHandler } from './instrument/console';
 export { addFetchEndInstrumentationHandler, addFetchInstrumentationHandler } from './instrument/fetch';
 export { addGlobalErrorInstrumentationHandler } from './instrument/globalError';
 export { addGlobalUnhandledRejectionInstrumentationHandler } from './instrument/globalUnhandledRejection';
-export {
-  addHandler,
-  maybeInstrument,
-  resetInstrumentationHandlers,
-  triggerHandlers,
-} from './instrument/handlers';
+export { addHandler, maybeInstrument, resetInstrumentationHandlers, triggerHandlers } from './instrument/handlers';
 export {
   isDOMError,
   isDOMException,
@@ -270,12 +265,7 @@ export {
   isURLObjectRelative,
   getSanitizedUrlStringFromUrlObject,
 } from './utils/url';
-export {
-  eventFromMessage,
-  eventFromUnknownInput,
-  exceptionFromError,
-  parseStackFrames,
-} from './utils/eventbuilder';
+export { eventFromMessage, eventFromUnknownInput, exceptionFromError, parseStackFrames } from './utils/eventbuilder';
 export { callFrameToStackFrame, watchdogTimer } from './utils/anr';
 export { LRUMap } from './utils/lru';
 export { generateTraceId, generateSpanId } from './utils/propagationContext';

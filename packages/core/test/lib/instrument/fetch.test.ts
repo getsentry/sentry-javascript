@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseFetchArgs } from '../../../src/utils/instrument/fetch';
+import { parseFetchArgs } from '../../../src/instrument/fetch';
 
 describe('instrument > parseFetchArgs', () => {
   it.each([

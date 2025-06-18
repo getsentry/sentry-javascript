@@ -1,12 +1,12 @@
 import { describe, expect, test } from 'vitest';
-import type { RateLimits } from '../../src/utils/ratelimit';
+import type { RateLimits } from '../../../src/utils/ratelimit';
 import {
   DEFAULT_RETRY_AFTER,
   disabledUntil,
   isRateLimited,
   parseRetryAfterHeader,
   updateRateLimits,
-} from '../../src/utils/ratelimit';
+} from '../../../src/utils/ratelimit';
 
 describe('parseRetryAfterHeader()', () => {
   test('should fallback to 60s when incorrect header provided', () => {

@@ -8,7 +8,7 @@ import {
   checkOrSetAlreadyCaught,
   getEventDescription,
   uuid4,
-} from '../../src/utils/misc';
+} from '../../../src/utils/misc';
 
 describe('getEventDescription()', () => {
   test('message event', () => {

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { vercelWaitUntil } from '../../src/utils/vercelWaitUntil';
-import { GLOBAL_OBJ } from '../../src/utils/worldwide';
+import { vercelWaitUntil } from '../../../src/utils/vercelWaitUntil';
+import { GLOBAL_OBJ } from '../../../src/utils/worldwide';
 
 describe('vercelWaitUntil', () => {
   it('should do nothing if GLOBAL_OBJ does not have the @vercel/request-context symbol', () => {

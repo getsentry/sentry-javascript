@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from 'vitest';
-import { rejectedSyncPromise, resolvedSyncPromise, SyncPromise } from '../../src/utils/syncpromise';
+import { rejectedSyncPromise, resolvedSyncPromise, SyncPromise } from '../../../src/utils/syncpromise';
 
 describe('SyncPromise', () => {
   test('simple', async () => {
