@@ -23,4 +23,4 @@ flagsIntegration.addFeatureFlag('main', true);
 // To ensure order of sent events
 setTimeout(() => {
   throw new Error('Error in main scope');
-}, 1);
+}, 100);
