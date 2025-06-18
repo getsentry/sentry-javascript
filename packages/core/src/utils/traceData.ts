@@ -1,5 +1,6 @@
 import { getAsyncContextStrategy } from '../asyncContext';
 import { getMainCarrier } from '../carrier';
+import type { Client } from '../client';
 import { getClient, getCurrentScope } from '../currentScopes';
 import { isEnabled } from '../exports';
 import type { Scope } from '../scope';
@@ -22,8 +23,8 @@ import { getActiveSpan, spanToTraceHeader } from './spanUtils';
  * @returns an object with the tracing data values. The object keys are the name of the tracing key to be used as header
  * or meta tag name.
  */
-export function getTraceData(options: { span?: Span } = {}): SerializedTraceData {
-  const client = getClient();
+export function getTraceData(options: { span?: Span; scope?: Scope; client?: Client } = {}): SerializedTraceData {
+  const client = options.client || getClient();
   if (!isEnabled() || !client) {
     return {};
   }
@@ -34,7 +35,7 @@ export function getTraceData(options: { span?: Span } = {}): SerializedTraceData
     return acs.getTraceData(options);
   }
 
-  const scope = getCurrentScope();
+  const scope = options.scope || getCurrentScope();
   const span = options.span || getActiveSpan();
   const sentryTrace = span ? spanToTraceHeader(span) : scopeToTraceHeader(scope);
   const dsc = span ? getDynamicSamplingContextFromSpan(span) : getDynamicSamplingContextFromScope(client, scope);

@@ -2,7 +2,7 @@ import type { Baggage, Context, Span, SpanContext, TextMapGetter, TextMapSetter 
 import { context, INVALID_TRACEID, propagation, trace, TraceFlags } from '@opentelemetry/api';
 import { isTracingSuppressed, W3CBaggagePropagator } from '@opentelemetry/core';
 import { ATTR_URL_FULL, SEMATTRS_HTTP_URL } from '@opentelemetry/semantic-conventions';
-import type { continueTrace, DynamicSamplingContext, Options } from '@sentry/core';
+import type { Client, continueTrace, DynamicSamplingContext, Options, Scope } from '@sentry/core';
 import {
   generateSentryTraceHeader,
   getClient,
@@ -152,8 +152,12 @@ export function shouldPropagateTraceForUrl(
 
 /**
  * Get propagation injection data for the given context.
+ * The additional options can be passed to override the scope and client that is otherwise derived from the context.
  */
-export function getInjectionData(context: Context): {
+export function getInjectionData(
+  context: Context,
+  options: { scope?: Scope; client?: Client } = {},
+): {
   dynamicSamplingContext: Partial<DynamicSamplingContext> | undefined;
   traceId: string | undefined;
   spanId: string | undefined;
@@ -190,8 +194,8 @@ export function getInjectionData(context: Context): {
 
   // Else we try to use the propagation context from the scope
   // The only scenario where this should happen is when we neither have a span, nor an incoming trace
-  const scope = getScopesFromContext(context)?.scope || getCurrentScope();
-  const client = getClient();
+  const scope = options.scope || getScopesFromContext(context)?.scope || getCurrentScope();
+  const client = options.client || getClient();
 
   const propagationContext = scope.getPropagationContext();
   const dynamicSamplingContext = client ? getDynamicSamplingContextFromScope(client, scope) : undefined;
