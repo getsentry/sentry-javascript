@@ -5,7 +5,7 @@ import {
   wrapRequestHandler,
 } from '@sentry/cloudflare';
 import { addNonEnumerableProperty } from '@sentry/core';
-import type { Handle } from '@sveltejs/kit';
+import type { Handle, MaybePromise } from '@sveltejs/kit';
 import { rewriteFramesIntegration } from '../server-common/rewriteFramesIntegration';
 
 /**
@@ -34,12 +34,16 @@ export function initCloudflareSentryHandle(options: CloudflareOptions): Handle {
       return wrapRequestHandler(
         {
           options: opts,
+          // @ts-expect-error This expects a cloudflare request, but we cannot type
+          // it in the sveltekit worker.
           request: event.request,
           // @ts-expect-error This will exist in Cloudflare
           context: event.platform.context,
         },
         () => resolve(event),
-      );
+        // We need to cast this because `wrapRequestHandler` returns a Cloudflare Response,
+        // which is not compatible with the regular Response type.
+      ) as unknown as MaybePromise<Response>;
     }
     return resolve(event);
   };
