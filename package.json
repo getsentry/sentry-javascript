@@ -68,7 +68,7 @@
     "packages/nestjs",
     "packages/nextjs",
     "packages/node",
-    "packages/node-stalled",
+    "packages/node-native",
     "packages/nuxt",
     "packages/opentelemetry",
     "packages/profiling-node",

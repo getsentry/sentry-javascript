@@ -1,15 +1,10 @@
 import { types } from 'node:util';
 import { Worker } from 'node:worker_threads';
 import type { Contexts, Event, EventHint, Integration, IntegrationFn } from '@sentry/core';
-import {
-  defineIntegration,
-  getClient,
-  getFilenameToDebugIdMap,
-  getIsolationScope,
-  logger,
-} from '@sentry/core';
+import { defineIntegration, getClient, getFilenameToDebugIdMap, getIsolationScope, logger } from '@sentry/core';
 import type { NodeClient } from '@sentry/node';
-import type { AnrIntegrationOptions, WorkerStartData } from './common';
+import { registerThread, threadPoll } from '@sentry-internal/node-native-stacktrace';
+import type { ThreadBlockedIntegrationOptions, WorkerStartData } from './common';
 
 const { isPromise } = types;
 
@@ -17,14 +12,14 @@ const DEFAULT_INTERVAL = 50;
 const DEFAULT_HANG_THRESHOLD = 5000;
 
 function log(message: string, ...args: unknown[]): void {
-  logger.log(`[Node Stalled] ${message}`, ...args);
+  logger.log(`[Thread Blocked] ${message}`, ...args);
 }
 
 /**
  * Gets contexts by calling all event processors. This shouldn't be called until all integrations are setup
  */
 async function getContexts(client: NodeClient): Promise<Contexts> {
-  let event: Event | null = { message: 'ANR' };
+  let event: Event | null = { message: INTEGRATION_NAME };
   const eventHint: EventHint = {};
 
   for (const processor of client.getEventProcessors()) {
@@ -35,11 +30,11 @@ async function getContexts(client: NodeClient): Promise<Contexts> {
   return event?.contexts || {};
 }
 
-const INTEGRATION_NAME = 'NodeStalled';
+const INTEGRATION_NAME = 'ThreadBlocked';
 
-type AnrInternal = { startWorker: () => void; stopWorker: () => void };
+type ThreadBlockedInternal = { startWorker: () => void; stopWorker: () => void };
 
-const _anrIntegration = ((options: Partial<AnrIntegrationOptions> = {}) => {
+const _threadBlockedIntegration = ((options: Partial<ThreadBlockedIntegrationOptions> = {}) => {
   let worker: Promise<() => void> | undefined;
   let client: NodeClient | undefined;
 
@@ -66,25 +61,27 @@ const _anrIntegration = ((options: Partial<AnrIntegrationOptions> = {}) => {
     async setup(initClient: NodeClient) {
       client = initClient;
 
+      registerThread();
+
       // setImmediate is used to ensure that all other integrations have had their setup called first.
       // This allows us to call into all integrations to fetch the full context
       setImmediate(() => this.startWorker());
     },
-  } as Integration & AnrInternal;
+  } as Integration & ThreadBlockedInternal;
 }) satisfies IntegrationFn;
 
-type AnrReturn = (options?: Partial<AnrIntegrationOptions>) => Integration & AnrInternal;
+type ThreadBlockedReturn = (options?: Partial<ThreadBlockedIntegrationOptions>) => Integration & ThreadBlockedInternal;
 
-export const anrIntegration = defineIntegration(_anrIntegration) as AnrReturn;
+export const threadBlockedIntegration = defineIntegration(_threadBlockedIntegration) as ThreadBlockedReturn;
 
 /**
- * Starts the ANR worker thread
+ * Starts the worker thread
  *
  * @returns A function to stop the worker
  */
 async function _startWorker(
   client: NodeClient,
-  integrationOptions: Partial<AnrIntegrationOptions>,
+  integrationOptions: Partial<ThreadBlockedIntegrationOptions>,
 ): Promise<() => void> {
   const dsn = client.getDsn();
 
@@ -117,13 +114,13 @@ async function _startWorker(
     sdkMetadata,
     appRootPath: integrationOptions.appRootPath,
     pollInterval: integrationOptions.pollInterval || DEFAULT_INTERVAL,
-    anrThreshold: integrationOptions.anrThreshold || DEFAULT_HANG_THRESHOLD,
-    maxAnrEvents: integrationOptions.maxAnrEvents || 1,
+    blockedThreshold: integrationOptions.blockedThreshold || DEFAULT_HANG_THRESHOLD,
+    maxBlockedEvents: integrationOptions.maxBlockedEvents || 1,
     staticTags: integrationOptions.staticTags || {},
     contexts,
   };
 
-  const worker = new Worker(new URL('./worker', import.meta.url), {
+  const worker = new Worker(new URL('./thread-blocked-watchdog.js', import.meta.url), {
     workerData: options,
     // We don't want any Node args like --import to be passed to the worker
     execArgv: [],
@@ -142,7 +139,7 @@ async function _startWorker(
       // serialized without making it a SerializedSession
       const session = currentSession ? { ...currentSession, toJSON: undefined } : undefined;
       // message the worker to tell it the main event loop is still running
-      worker.postMessage({ session, debugImages: getFilenameToDebugIdMap(initOptions.stackParser) });
+      threadPoll({ session, debugImages: getFilenameToDebugIdMap(initOptions.stackParser) });
     } catch (_) {
       //
     }
@@ -150,21 +147,14 @@ async function _startWorker(
   // Timer should not block exit
   timer.unref();
 
-  worker.on('message', (msg: string) => {
-    if (msg === 'session-ended') {
-      log('ANR event sent from ANR worker. Clearing session in this thread.');
-      getIsolationScope().setSession(undefined);
-    }
-  });
-
   worker.once('error', (err: Error) => {
     clearInterval(timer);
-    log('ANR worker error', err);
+    log('watchdog worker error', err);
   });
 
   worker.once('exit', (code: number) => {
     clearInterval(timer);
-    log('ANR worker exit', code);
+    log('watchdog worker exit', code);
   });
 
   // Ensure this thread can't block app exit
@@ -177,13 +167,13 @@ async function _startWorker(
   };
 }
 
-export function disableAnrDetectionForCallback<T>(callback: () => T): T;
-export function disableAnrDetectionForCallback<T>(callback: () => Promise<T>): Promise<T>;
+export function disableBlockedDetectionForCallback<T>(callback: () => T): T;
+export function disableBlockedDetectionForCallback<T>(callback: () => Promise<T>): Promise<T>;
 /**
- * Disables ANR detection for the duration of the callback
+ * Disables blocked detection for the duration of the callback
  */
-export function disableAnrDetectionForCallback<T>(callback: () => T | Promise<T>): T | Promise<T> {
-  const integration = getClient()?.getIntegrationByName(INTEGRATION_NAME) as AnrInternal | undefined;
+export function disableBlockedDetectionForCallback<T>(callback: () => T | Promise<T>): T | Promise<T> {
+  const integration = getClient()?.getIntegrationByName(INTEGRATION_NAME) as ThreadBlockedInternal | undefined;
 
   if (!integration) {
     return callback();

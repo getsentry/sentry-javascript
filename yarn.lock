@@ -6493,6 +6493,14 @@
     detect-libc "^2.0.3"
     node-abi "^3.73.0"
 
+"@sentry-internal/node-native-stacktrace@^0.1.0":
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/node-native-stacktrace/-/node-native-stacktrace-0.1.0.tgz#fa0eaf1e66245f463ca2294ff63da74c56d1a052"
+  integrity sha512-dWkxhDdjcRdEOTk1acrdBledqIroaYJrOSbecx5tJ/m9DiWZ1Oa4eNi/sI2SHLT+hKmsBBxrychf6+Iitz5Bzw==
+  dependencies:
+    detect-libc "^2.0.4"
+    node-abi "^3.73.0"
+
 "@sentry-internal/rrdom@2.34.0":
   version "2.34.0"
   resolved "https://registry.yarnpkg.com/@sentry-internal/rrdom/-/rrdom-2.34.0.tgz#fccc9fe211c3995d4200abafbe8d75b671961ee9"
@@ -13295,7 +13303,7 @@ detect-libc@^1.0.3:
   resolved "https://registry.yarnpkg.com/detect-libc/-/detect-libc-1.0.3.tgz#fa137c4bd698edf55cd5cd02ac559f91a4c4ba9b"
   integrity sha512-pGjwhsmsp4kL2RTz08wcOlGN83otlqHeD/Z5T8GXZB+/YcpQ/dgo+lbU8ZsGxV0HIvqqxo9l7mqYwyYMD9bKDg==
 
-detect-libc@^2.0.0, detect-libc@^2.0.2, detect-libc@^2.0.3:
+detect-libc@^2.0.0, detect-libc@^2.0.2, detect-libc@^2.0.3, detect-libc@^2.0.4:
   version "2.0.4"
   resolved "https://registry.yarnpkg.com/detect-libc/-/detect-libc-2.0.4.tgz#f04715b8ba815e53b4d8109655b6508a6865a7e8"
   integrity sha512-3UDv+G9CsCKO1WKMGw9fwq/SWJYbI0c5Y7LU1AXYoDdbhE2AHQ6N6Nb34sG8Fj7T5APy8qXDCKuuIHd1BR0tVA==
@@ -27148,7 +27156,6 @@ stylus@0.59.0, stylus@^0.59.0:
 
 sucrase@^3.27.0, sucrase@^3.35.0, sucrase@getsentry/sucrase#es2020-polyfills:
   version "3.36.0"
-  uid fd682f6129e507c00bb4e6319cc5d6b767e36061
   resolved "https://codeload.github.com/getsentry/sucrase/tar.gz/fd682f6129e507c00bb4e6319cc5d6b767e36061"
   dependencies:
     "@jridgewell/gen-mapping" "^0.3.2"
