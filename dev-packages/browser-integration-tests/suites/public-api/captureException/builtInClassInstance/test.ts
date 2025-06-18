@@ -3,7 +3,7 @@ import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
 
-sentryTest('should capture an class instance', async ({ getLocalTestUrl, page }) => {
+sentryTest('should capture a class instance of a built-in class', async ({ getLocalTestUrl, page }) => {
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
@@ -11,7 +11,7 @@ sentryTest('should capture an class instance', async ({ getLocalTestUrl, page })
   expect(eventData.exception?.values).toHaveLength(1);
   expect(eventData.exception?.values?.[0]).toMatchObject({
     type: 'Error',
-    value: 'Object captured as exception with keys: prop1, prop2',
+    value: '[object Response]',
     mechanism: {
       type: 'generic',
       handled: true,
