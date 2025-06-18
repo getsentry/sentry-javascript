@@ -6721,7 +6721,7 @@
     "@sentry/bundler-plugin-core" "3.5.0"
     unplugin "1.0.1"
 
-"@sentry/vite-plugin@^2.22.6":
+"@sentry/vite-plugin@2.22.6", "@sentry/vite-plugin@^2.22.6":
   version "2.22.6"
   resolved "https://registry.yarnpkg.com/@sentry/vite-plugin/-/vite-plugin-2.22.6.tgz#d08a1ede05f137636d5b3c61845d24c0114f0d76"
   integrity sha512-zIieP1VLWQb3wUjFJlwOAoaaJygJhXeUoGd0e/Ha2RLb2eW2S+4gjf6y6NqyY71tZ74LYVZKg/4prB6FAZSMXQ==

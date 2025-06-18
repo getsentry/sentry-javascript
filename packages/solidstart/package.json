@@ -70,7 +70,7 @@
     "@sentry/node": "9.30.0",
     "@sentry/opentelemetry": "9.30.0",
     "@sentry/solid": "9.30.0",
-    "@sentry/vite-plugin": "^3.5.0"
+    "@sentry/vite-plugin": "2.22.6"
   },
   "devDependencies": {
     "@solidjs/router": "^0.13.4",
