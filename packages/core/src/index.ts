@@ -136,7 +136,7 @@ export {
 export { applyAggregateErrorsToEvent } from './utils-hoist/aggregate-errors';
 export { getBreadcrumbLogLevelFromHttpStatusCode } from './utils-hoist/breadcrumb-log-level';
 export { getComponentName, getLocationHref, htmlTreeAsString } from './utils-hoist/browser';
-export { dsnFromString, dsnToString, makeDsn } from './utils-hoist/dsn';
+export { dsnFromString, dsnToString, makeDsn, deriveOrgIdFromClient } from './utils-hoist/dsn';
 // eslint-disable-next-line deprecation/deprecation
 export { SentryError } from './utils-hoist/error';
 export { GLOBAL_OBJ } from './utils-hoist/worldwide';
@@ -227,6 +227,7 @@ export {
   extractTraceparentData,
   generateSentryTraceHeader,
   propagationContextFromHeaders,
+  shouldContinueTrace,
 } from './utils-hoist/tracing';
 export { getSDKSource, isBrowserBundle } from './utils-hoist/env';
 export type { SdkSource } from './utils-hoist/env';
