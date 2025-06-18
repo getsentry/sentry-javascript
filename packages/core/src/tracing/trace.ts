@@ -13,12 +13,12 @@ import type { SentrySpanArguments, Span, SpanTimeInput } from '../types-hoist/sp
 import type { StartSpanOptions } from '../types-hoist/startSpanOptions';
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
 import { hasSpansEnabled } from '../utils/hasSpansEnabled';
+import { logger } from '../utils/logger';
 import { parseSampleRate } from '../utils/parseSampleRate';
+import { generateTraceId } from '../utils/propagationContext';
 import { _getSpanForScope, _setSpanForScope } from '../utils/spanOnScope';
 import { addChildSpanToSpan, getRootSpan, spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
-import { logger } from '../utils-hoist/logger';
-import { generateTraceId } from '../utils-hoist/propagationContext';
-import { propagationContextFromHeaders } from '../utils-hoist/tracing';
+import { propagationContextFromHeaders } from '../utils/tracing';
 import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanStart } from './logSpans';
 import { sampleSpan } from './sampling';

@@ -1,13 +1,13 @@
 import { getClient } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
+import { addConsoleInstrumentationHandler } from '../instrument/console';
 import { defineIntegration } from '../integration';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import type { ConsoleLevel } from '../types-hoist/instrument';
 import type { IntegrationFn } from '../types-hoist/integration';
-import { addConsoleInstrumentationHandler } from '../utils-hoist/instrument/console';
-import { CONSOLE_LEVELS, logger } from '../utils-hoist/logger';
-import { safeJoin } from '../utils-hoist/string';
-import { GLOBAL_OBJ } from '../utils-hoist/worldwide';
+import { CONSOLE_LEVELS, logger } from '../utils/logger';
+import { safeJoin } from '../utils/string';
+import { GLOBAL_OBJ } from '../utils/worldwide';
 import { _INTERNAL_captureLog } from './exports';
 
 interface CaptureConsoleOptions {

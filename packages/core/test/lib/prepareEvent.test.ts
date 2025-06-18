@@ -14,7 +14,7 @@ import {
   parseEventHintOrCaptureContext,
   prepareEvent,
 } from '../../src/utils/prepareEvent';
-import { clearGlobalScope } from './clear-global-scope';
+import { clearGlobalScope } from '../testutils';
 
 describe('applyDebugIds', () => {
   afterEach(() => {

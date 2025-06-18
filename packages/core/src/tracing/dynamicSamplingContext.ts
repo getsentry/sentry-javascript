@@ -9,14 +9,11 @@ import {
 } from '../semanticAttributes';
 import type { DynamicSamplingContext } from '../types-hoist/envelope';
 import type { Span } from '../types-hoist/span';
+import { baggageHeaderToDynamicSamplingContext, dynamicSamplingContextToSentryBaggageHeader } from '../utils/baggage';
+import { extractOrgIdFromDsnHost } from '../utils/dsn';
 import { hasSpansEnabled } from '../utils/hasSpansEnabled';
+import { addNonEnumerableProperty } from '../utils/object';
 import { getRootSpan, spanIsSampled, spanToJSON } from '../utils/spanUtils';
-import {
-  baggageHeaderToDynamicSamplingContext,
-  dynamicSamplingContextToSentryBaggageHeader,
-} from '../utils-hoist/baggage';
-import { extractOrgIdFromDsnHost } from '../utils-hoist/dsn';
-import { addNonEnumerableProperty } from '../utils-hoist/object';
 import { getCapturedScopesOnSpan } from './utils';
 
 /**

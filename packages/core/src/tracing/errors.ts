@@ -1,8 +1,8 @@
 import { DEBUG_BUILD } from '../debug-build';
+import { addGlobalErrorInstrumentationHandler } from '../instrument/globalError';
+import { addGlobalUnhandledRejectionInstrumentationHandler } from '../instrument/globalUnhandledRejection';
+import { logger } from '../utils/logger';
 import { getActiveSpan, getRootSpan } from '../utils/spanUtils';
-import { addGlobalErrorInstrumentationHandler } from '../utils-hoist/instrument/globalError';
-import { addGlobalUnhandledRejectionInstrumentationHandler } from '../utils-hoist/instrument/globalUnhandledRejection';
-import { logger } from '../utils-hoist/logger';
 import { SPAN_STATUS_ERROR } from './spanstatus';
 
 let errorsInstrumented = false;

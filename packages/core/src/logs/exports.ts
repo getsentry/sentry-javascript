@@ -5,11 +5,11 @@ import { DEBUG_BUILD } from '../debug-build';
 import type { Scope, ScopeData } from '../scope';
 import type { Log, SerializedLog, SerializedLogAttributeValue } from '../types-hoist/log';
 import { mergeScopeData } from '../utils/applyScopeDataToEvent';
+import { isParameterizedString } from '../utils/is';
+import { logger } from '../utils/logger';
 import { _getSpanForScope } from '../utils/spanOnScope';
-import { isParameterizedString } from '../utils-hoist/is';
-import { logger } from '../utils-hoist/logger';
-import { timestampInSeconds } from '../utils-hoist/time';
-import { GLOBAL_OBJ } from '../utils-hoist/worldwide';
+import { timestampInSeconds } from '../utils/time';
+import { GLOBAL_OBJ } from '../utils/worldwide';
 import { SEVERITY_TEXT_TO_SEVERITY_NUMBER } from './constants';
 import { createLogEnvelope } from './envelope';
 

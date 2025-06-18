@@ -2,8 +2,8 @@ import { getCurrentScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { type Event } from '../types-hoist/event';
 import { type Span } from '../types-hoist/span';
-import { logger } from '../utils-hoist/logger';
-import { GLOBAL_OBJ } from '../utils-hoist/worldwide';
+import { logger } from '../utils/logger';
+import { GLOBAL_OBJ } from '../utils/worldwide';
 import { getActiveSpan } from './spanUtils';
 
 /**
