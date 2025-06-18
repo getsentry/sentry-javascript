@@ -10,17 +10,21 @@ Sentry.init({
   integrations: [flagsIntegration],
 });
 
-flagsIntegration.addFeatureFlag('shared', true);
+async function run(): Promise<void> {
+  flagsIntegration.addFeatureFlag('shared', true);
 
-Sentry.withScope(() => {
-  flagsIntegration.addFeatureFlag('forked', true);
-  flagsIntegration.addFeatureFlag('shared', false);
-  Sentry.captureException(new Error('Error in forked scope'));
-});
+  Sentry.withScope(() => {
+    flagsIntegration.addFeatureFlag('forked', true);
+    flagsIntegration.addFeatureFlag('shared', false);
+    Sentry.captureException(new Error('Error in forked scope'));
+  });
 
-flagsIntegration.addFeatureFlag('main', true);
+  await Sentry.flush();
 
-// To ensure order of sent events
-setTimeout(() => {
+  flagsIntegration.addFeatureFlag('main', true);
+
   throw new Error('Error in main scope');
-}, 100);
+}
+
+// eslint-disable-next-line @typescript-eslint/no-floating-promises
+run();
