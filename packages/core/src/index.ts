@@ -282,7 +282,7 @@ export { generateTraceId, generateSpanId } from './utils-hoist/propagationContex
 export { vercelWaitUntil } from './utils-hoist/vercelWaitUntil';
 export { SDK_VERSION } from './utils-hoist/version';
 export { getDebugImagesForResources, getFilenameToDebugIdMap } from './utils-hoist/debug-ids';
-export { escapeStringForRegex } from './utils-hoist/vendor/escapeStringForRegex';
+export { escapeStringForRegex } from './vendor/escapeStringForRegex';
 
 export type { Attachment } from './types-hoist/attachment';
 export type {

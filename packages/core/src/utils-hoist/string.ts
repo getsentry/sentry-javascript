@@ -1,6 +1,6 @@
 import { isRegExp, isString, isVueViewModel } from './is';
 
-export { escapeStringForRegex } from './vendor/escapeStringForRegex';
+export { escapeStringForRegex } from '../vendor/escapeStringForRegex';
 
 /**
  * Truncates given string to the maximum characters count
