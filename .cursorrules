@@ -118,3 +118,6 @@ Each package typically contains:
 2. ✅ `yarn test` (all tests pass)
 3. ✅ `yarn build:dev` (builds successfully)
 4. ✅ Target `develop` branch for PRs (not `master`)
+
+## Documentation Sync
+**IMPORTANT**: When editing CLAUDE.md, also update .cursorrules and vice versa to keep both files in sync.
