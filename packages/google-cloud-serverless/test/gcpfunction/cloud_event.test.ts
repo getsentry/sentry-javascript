@@ -45,6 +45,8 @@ describe('wrapCloudEventFunction', () => {
   function handleCloudEvent(fn: CloudEventFunctionWithCallback): Promise<any> {
     return new Promise((resolve, reject) => {
       const context = {
+        id: 'test-event-id',
+        specversion: '1.0',
         type: 'event.type',
       };
 
@@ -232,6 +234,10 @@ describe('wrapCloudEventFunction', () => {
     const handler: CloudEventFunction = _context => 42;
     const wrappedHandler = wrapCloudEventFunction(handler);
     await handleCloudEvent(wrappedHandler);
-    expect(mockScope.setContext).toBeCalledWith('gcp.function.context', { type: 'event.type' });
+    expect(mockScope.setContext).toBeCalledWith('gcp.function.context', {
+      id: 'test-event-id',
+      specversion: '1.0',
+      type: 'event.type'
+    });
   });
 });
