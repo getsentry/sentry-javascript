@@ -6,6 +6,11 @@ console.warn('console.warn', 123, false);
 console.error('console.error', 123, false);
 console.assert(false, 'console.assert', 123, false);
 
+// Test object and array truncation
+console.log('Object:', { key: 'value', nested: { prop: 123 } });
+console.log('Array:', [1, 2, 3, 'string']);
+console.log('Mixed:', 'prefix', { obj: true }, [4, 5, 6], 'suffix');
+
 console.log('');
 
 Sentry.flush();
