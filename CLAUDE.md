@@ -34,7 +34,7 @@ This is a Lerna monorepo containing 40+ packages in the `@sentry/*` namespace. K
 
 ### Core Packages
 - `packages/core/` - Base SDK with interfaces, type definitions, and core functionality
-- `packages/types/` - Shared TypeScript type definitions
+- `packages/types/` - Shared TypeScript type definitions (active)
 - `packages/browser-utils/` - Browser-specific utilities and instrumentation
 
 ### Platform SDKs
@@ -45,6 +45,13 @@ This is a Lerna monorepo containing 40+ packages in the `@sentry/*` namespace. K
 ### Framework Integrations
 - Framework packages follow naming: `packages/{framework}/` (react, vue, angular, etc.)
 - Each has client/server entry points where applicable (e.g., nextjs, nuxt, sveltekit)
+- Integration tests use Playwright (e.g., Remix, browser-integration-tests)
+
+### User Experience Packages
+- `packages/replay-internal/` - Session replay functionality
+- `packages/replay-canvas/` - Canvas recording support for replay
+- `packages/replay-worker/` - Web worker support for replay
+- `packages/feedback/` - User feedback integration
 
 ### Build System
 - Uses Rollup for bundling with config files: `rollup.*.config.mjs`
@@ -60,28 +67,33 @@ Each package typically contains:
 - `tsconfig.json`, `tsconfig.test.json`, `tsconfig.types.json` - TypeScript configs
 - `test/` directory with corresponding test files
 
+### Development Packages (`dev-packages/`)
+Separate from main packages, containing development and testing utilities:
+- `browser-integration-tests/` - Playwright browser tests
+- `e2e-tests/` - End-to-end tests for 70+ framework combinations
+- `node-integration-tests/` - Node.js integration tests
+- `test-utils/` - Shared testing utilities
+- `bundle-analyzer-scenarios/` - Bundle analysis
+- `rollup-utils/` - Build utilities
+- GitHub Actions packages for CI/CD automation
+
 ### Key Development Notes
 - Uses Volta for Node.js/Yarn version management
 - Requires initial `yarn build` after `yarn install` for TypeScript linking
-- Integration tests are in separate packages (`dev-packages/`)
+- Integration tests use Playwright extensively
 - Native profiling requires Python <3.12 for binary builds
 - Bundle outputs vary - check `build/bundles/` for specific files after builds
 
 ## Git Flow Branching Strategy
 
-This repository uses **Git Flow** branching model:
+This repository uses **Git Flow** branching model. See [detailed documentation](docs/gitflow.md).
 
-### Branch Structure
-- `master` - Production releases only
-- `develop` - Main development branch (target for PRs)  
-- `feat/` - Feature branches (e.g., `feat/add-feature`)
-- `release/X.Y.Z` - Release preparation branches
-
-### Workflow
+### Key Points
 - **All PRs target `develop` branch** (not `master`)
-- Features are merged: `feat/branch` → `develop`
-- Releases are created: `develop` → `release/X.Y.Z` → `master`
-- Automated workflow syncs `master` back to `develop` after releases
+- `master` represents the last released state
+- Never merge directly into `master` (except emergency fixes)
+- Automated workflow syncs `master` → `develop` after releases
+- Avoid changing `package.json` files on `develop` during pending releases
 
 ### Branch Naming
 - Features: `feat/descriptive-name`
