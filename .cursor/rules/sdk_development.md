@@ -3,7 +3,7 @@ description: Guidelines for working on the Sentry JavaScript SDK monorepo
 alwaysApply: true
 ---
 
-# Cursor Rules for Sentry JavaScript SDK
+# SDK Development Rules
 
 You are working on the Sentry JavaScript SDK, a critical production SDK used by thousands of applications. Follow these rules strictly.
 
@@ -125,4 +125,4 @@ Each package typically contains:
 4. ✅ Target `develop` branch for PRs (not `master`)
 
 ## Documentation Sync
-**IMPORTANT**: When editing CLAUDE.md, also update .cursorrules and vice versa to keep both files in sync.
+**IMPORTANT**: When editing CLAUDE.md, also update .cursor/rules/sdk_development.md and vice versa to keep both files in sync.

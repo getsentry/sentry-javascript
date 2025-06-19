@@ -6,7 +6,8 @@
       "Bash(git:*)",
       "Bash(yarn:*)",
       "WebFetch(domain:github.com)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(mv:*)"
     ],
     "deny": []
   }
