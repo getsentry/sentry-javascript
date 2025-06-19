@@ -144,4 +144,4 @@ To build a specific package: `yarn build:dev:filter @sentry/{package-name}`
 
 ## Cursor IDE Integration
 
-For Cursor IDE users, see [.cursor/rules/sdk_development.md](.cursor/rules/sdk_development.md) for complementary development rules.
+For Cursor IDE users, see [.cursor/rules/sdk_development.mdc](.cursor/rules/sdk_development.mdc) for complementary development rules.
