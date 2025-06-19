@@ -67,6 +67,26 @@ Each package typically contains:
 - Native profiling requires Python <3.12 for binary builds
 - Bundle outputs vary - check `build/bundles/` for specific files after builds
 
+## Git Flow Branching Strategy
+
+This repository uses **Git Flow** branching model:
+
+### Branch Structure
+- `master` - Production releases only
+- `develop` - Main development branch (target for PRs)  
+- `feat/` - Feature branches (e.g., `feat/add-feature`)
+- `release/X.Y.Z` - Release preparation branches
+
+### Workflow
+- **All PRs target `develop` branch** (not `master`)
+- Features are merged: `feat/branch` → `develop`
+- Releases are created: `develop` → `release/X.Y.Z` → `master`
+- Automated workflow syncs `master` back to `develop` after releases
+
+### Branch Naming
+- Features: `feat/descriptive-name`
+- Releases: `release/X.Y.Z`
+
 ## Testing Single Packages
 To test a specific package: `cd packages/{package-name} && yarn test`
 To build a specific package: `yarn build:dev:filter @sentry/{package-name}`
