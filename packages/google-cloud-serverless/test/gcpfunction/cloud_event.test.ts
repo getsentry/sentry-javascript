@@ -237,7 +237,7 @@ describe('wrapCloudEventFunction', () => {
     expect(mockScope.setContext).toBeCalledWith('gcp.function.context', {
       id: 'test-event-id',
       specversion: '1.0',
-      type: 'event.type'
+      type: 'event.type',
     });
   });
 });
