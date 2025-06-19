@@ -141,3 +141,7 @@ This repository uses **Git Flow** branching model. See [detailed documentation](
 
 To test a specific package: `cd packages/{package-name} && yarn test`
 To build a specific package: `yarn build:dev:filter @sentry/{package-name}`
+
+## Workflow Notes
+
+- Remember that when editing the base memory CLAUDE.md also to update .cursorrules and vice versa
