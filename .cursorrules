@@ -1,3 +1,8 @@
+---
+description: Guidelines for working on the Sentry JavaScript SDK monorepo
+alwaysApply: true
+---
+
 # Cursor Rules for Sentry JavaScript SDK
 
 You are working on the Sentry JavaScript SDK, a critical production SDK used by thousands of applications. Follow these rules strictly.
