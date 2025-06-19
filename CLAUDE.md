@@ -87,6 +87,25 @@ This repository uses **Git Flow** branching model:
 - Features: `feat/descriptive-name`
 - Releases: `release/X.Y.Z`
 
+## Code Quality Requirements
+
+**CRITICAL**: This is a production SDK used by thousands of applications. All changes must be:
+
+### Mandatory Checks
+- **Always run `yarn lint`** - Fix all linting issues before committing
+- **Always run `yarn test`** - Ensure all tests pass
+- **Run `yarn build`** - Verify build succeeds without errors
+
+### Before Any Commit
+1. `yarn lint` - Check and fix ESLint/Prettier issues
+2. `yarn test` - Run relevant tests for your changes
+3. `yarn build:dev` - Verify TypeScript compilation
+
+### CI/CD Integration
+- All PRs automatically run full lint/test/build pipeline
+- Failed checks block merging
+- Use `yarn test:pr` for testing only affected changes
+
 ## Testing Single Packages
 To test a specific package: `cd packages/{package-name} && yarn test`
 To build a specific package: `yarn build:dev:filter @sentry/{package-name}`
