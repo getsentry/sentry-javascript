@@ -225,7 +225,7 @@ export class PostgresJsInstrumentation extends InstrumentationBase {
         .replace(/\s+/g, ' ')
         // Collapse IN and in clauses
         // eg. IN (?, ?, ?, ?) to IN (?)
-        .replace(/\bIN\b\s*\((?:\s*\?\s*,?)+\)/g, 'IN (?)')
+        .replace(/\bIN\b\s*\(\s*\?(?:\s*,\s*\?)*\s*\)/g, 'IN (?)')
     );
   }
 }
