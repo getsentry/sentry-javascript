@@ -19,38 +19,58 @@ yarn why [package-name]
 
 ### Root Workspace vs. Package Dependencies
 
+**CRITICAL**: Understand the difference between dependency types:
+
 - **Root Workspace dependencies**: Shared dev tools, build tools, testing frameworks
 - **Package dependencies**: Package-specific runtime and dev dependencies
 - Always check if dependency should be in root workspace or package level
 
 ### Upgrade Dependencies
 
-ONLY ever upgrade a single package at a time.
+**MANDATORY**: Only ever upgrade a single package at a time.
 
-If a dependency is not defined in `package.json` anywhere, the upgrade MUST be run in the root workspace as the `yarn.lock` file is contained there.
+**CRITICAL RULE**: If a dependency is not defined in `package.json` anywhere, the upgrade must be run in the root workspace as the `yarn.lock` file is contained there.
 
 ```bash
 # Upgrade specific package to latest compatible version
 npx yarn-update-dependency@latest [package-name]
 ```
 
+#### CRITICAL: OpenTelemetry Dependency Constraint
+
+**STOP UPGRADE IMMEDIATELY** if upgrading any dependency with `opentelemetry` in the name and the new version depends on OpenTelemetry SDK/API v2.x or higher.
+
+When upgrading OpenTelemetry dependencies:
+1. Check the dependency's `package.json` after upgrade
+2. Verify none of its dependencies use `@opentelemetry/*` packages at v2.0.0 or higher
+3. If v2+ OpenTelemetry dependencies are detected, **ABORT the upgrade** and notify the user that this upgrade cannot proceed due to OpenTelemetry v2 compatibility constraints
+
 Avoid upgrading top-level dependencies (defined in `package.json`), especially if they are used for tests. If you are going to upgrade them, ask the user before proceeding.
 
-If a `package.json` file is updated, make sure it has a new line at the end.
+**REQUIREMENT**: If a `package.json` file is updated, make sure it has a new line at the end.
 
-#### e2e tests
+#### CRITICAL: E2E Test Dependencies
 
-For tests applications defined in `dev-packages/e2e-tests/test-applications`, if the test name explicitly mentions a dependency, DO NOT upgrade the major version of that dependency in the `test-applications` `package.json`. For example, DO NOT upgrade the nestjs version of `dev-packages/e2e-tests/test-applications/nestjs-8` to nestjs 9 or above because the test name mentions nestjs 8.
+**DO NOT UPGRADE** the major version of dependencies in test applications where the test name explicitly mentions a dependency version.
+
+**RULE**: For `dev-packages/e2e-tests/test-applications/*`, if the test directory name mentions a specific version (e.g., `nestjs-8`), do not upgrade that dependency beyond the mentioned major version.
+
+**Example**: Do not upgrade the nestjs version of `dev-packages/e2e-tests/test-applications/nestjs-8` to nestjs 9 or above because the test name mentions nestjs 8.
 
 ## Safety Protocols
 
 ### Pre-Upgrade Checklist
 
+**COMPLETE ALL STEPS** before proceeding with any upgrade:
+
 1. **Backup**: Ensure clean git state or create backup branch
-2. **CI Status**: Ensure all tests are passing
-3. **Lockfile works**: Ensure `yarn.lock` is in a good state (no merge conflicts)
+2. **CI Status**: Verify all tests are passing
+3. **Lockfile works**: Confirm `yarn.lock` is in a good state (no merge conflicts)
+4. **OpenTelemetry Check**: For OpenTelemetry dependencies, verify no v2+ dependencies will be introduced
 
 ### Post-Upgrade Verification
+
+Run all commands after every upgrade to ensure stability:
 
 ```bash
 # rebuild everything
@@ -73,18 +93,24 @@ yarn circularDepCheck
 
 ### Pinning Strategies
 
-- **Exact versions** (`1.2.3`): For critical dependencies
-- **Caret versions** (`^1.2.3`): Allow minor updates
+Choose the right versioning strategy:
+
+- **Exact versions** (`1.2.3`): Use for critical dependencies
+- **Caret versions** (`^1.2.3`): Allow minor updates only
 - **Latest tag**: Avoid as much as possible other than in certain testing and development scenarios
 
 ## Troubleshooting
 
-- Check current yarn version: `yarn --version`, always ensure you're using yarn v1 (not v2/v3/v4)
-- Verify yarn.lock exists and is properly maintained. Fix merge conflicts by running `yarn install`.
+Always check these common issues:
 
-## Security Considerations
+- **Yarn Version**: Run `yarn --version` - must be yarn v1 (not v2/v3/v4)
+- **Lockfile Issues**: Verify yarn.lock exists and is properly maintained. Fix merge conflicts by running `yarn install`
+
+## Best Practices
 
 ### Security Audits
+
+Run security checks regularly:
 
 ```bash
 # Check for security vulnerabilities
@@ -110,9 +136,32 @@ yarn outdated [package-name]
 yarn workspace [workspace-name] outdated
 ```
 
-## Best Practices
+### Using yarn info for Dependency Inspection
+
+Use `yarn info` to inspect package dependencies before and after upgrades:
+
+```bash
+# Check current version and dependencies
+yarn info <package-name>
+
+# Check specific version dependencies
+yarn info <package-name>@<version>
+
+# Check dependencies field specifically
+yarn info <package-name>@<version> dependencies
+
+# Check all available versions
+yarn info <package-name> versions
+```
+
+The `yarn info` command provides detailed dependency information without requiring installation, making it particularly useful for:
+- Verifying OpenTelemetry packages don't introduce v2+ dependencies
+- Checking what dependencies a package will bring in before upgrading
+- Understanding package version history and compatibility
 
 ### Documentation
 
-- Update README or code comments if dependency change affects usage of the SDK or it's integrations.
+Always update documentation when making changes:
+
+- Update README or code comments if dependency change affects usage of the SDK or its integrations
 - Notify team of significant changes
