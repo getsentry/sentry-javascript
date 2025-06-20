@@ -8,7 +8,7 @@ These have also been documented via [Cursor Rules](../.cursor/rules/publishing-r
 [New SDK Release Checklist](./new-sdk-release-checklist.md)**
 
 1. Run `yarn changelog` on the `develop` branch and determine what version will be released (we use
-   [semver](https://semver.org)). The semvar version should be decided based on what is in included in the release. For example, if the release includes a new feature, we should increment the minor version. If it includes only bug fixes, we should increment the patch version.
+   [semver](https://semver.org)). The semver version should be decided based on what is in included in the release. For example, if the release includes a new feature, we should increment the minor version. If it includes only bug fixes, we should increment the patch version.
 2. Create a branch `prepare-release/VERSION`, eg. `prepare-release/8.1.0`, off develop
 3. Update [`CHANGELOG.md`](https://github.com/getsentry/sentry-javascript/edit/master/CHANGELOG.md) to add an entry for
    the next release number and a list of changes since the last release. (See details below.)
