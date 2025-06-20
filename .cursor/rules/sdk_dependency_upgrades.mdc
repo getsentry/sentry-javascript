@@ -161,7 +161,5 @@ The `yarn info` command provides detailed dependency information without requiri
 
 ### Documentation
 
-Always update documentation when making changes:
-
 - Update README or code comments if dependency change affects usage of the SDK or its integrations
 - Notify team of significant changes
