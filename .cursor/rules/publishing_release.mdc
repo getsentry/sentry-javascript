@@ -3,6 +3,7 @@ description: Use this rule if you are looking to publish a release for the Sentr
 globs:
 alwaysApply: false
 ---
+
 # Publishing a Release
 
 Use these guidelines when publishing a new Sentry JavaScript SDK release.
