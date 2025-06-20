@@ -16,7 +16,7 @@ import {
 } from '@opentelemetry/semantic-conventions';
 import type { IntegrationFn, Span } from '@sentry/core';
 import { defineIntegration, getCurrentScope, startSpanManual } from '@sentry/core';
-import { SDK_VERSION } from '../..';
+import { SDK_VERSION } from '@sentry/core';
 import { generateInstrumentOnce } from '../../otel/instrument';
 
 const INTEGRATION_NAME = 'PostgresJs';
