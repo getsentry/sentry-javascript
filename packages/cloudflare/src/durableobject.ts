@@ -125,7 +125,7 @@ function wrapMethodWithSentry<T extends (...args: any[]) => any>(
  * }
  *
  * export const MyDurableObject = instrumentDurableObjectWithSentry(
- *   env => ({
+ *   (env: Env) => ({
  *     dsn: env.SENTRY_DSN,
  *     tracesSampleRate: 1.0,
  *   }),
@@ -133,18 +133,19 @@ function wrapMethodWithSentry<T extends (...args: any[]) => any>(
  * );
  * ```
  */
-export function instrumentDurableObjectWithSentry<
-  E,
-  T extends DurableObject & Rpc.DurableObjectBranded,
-  C extends new (ctx: DurableObjectState, env: E) => T,
->(optionsCallback: (env: E) => CloudflareOptions, DurableObjectClass: C): C {
-  return new Proxy(DurableObjectClass, {
+export function instrumentDurableObjectWithSentry<E, C>(
+  optionsCallback: (env: E) => CloudflareOptions,
+  DurableObjectClass: C,
+): C {
+  // We need to use `any` here because of type issues with the Durable Object constructor.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return new Proxy(DurableObjectClass as any, {
     construct(target, [context, env]) {
       setAsyncLocalStorageAsyncContextStrategy();
 
       const options = getFinalOptions(optionsCallback(env), env);
 
-      const obj = new target(context, env);
+      const obj = new target(context, env) as DurableObject & Rpc.DurableObjectBranded;
 
       // These are the methods that are available on a Durable Object
       // ref: https://developers.cloudflare.com/durable-objects/api/base/
