@@ -47,8 +47,9 @@ async function run() {
           DROP TABLE "User";
         `;
 
+        // This will be captured as an error as the table no longer exists
         await sql`
-          SELECT * FROM "User" WHERE "email" = 'bar@baz.com';
+          SELECT * FROM "User" WHERE "email" = 'foo@baz.com';
         `;
       } finally {
         await sql.end();

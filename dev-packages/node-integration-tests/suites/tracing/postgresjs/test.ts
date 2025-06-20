@@ -158,16 +158,18 @@ describe('postgresjs auto instrumentation', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             'db.namespace': 'test_db',
-            'db.query.text': 'SELECT * FROM "User" WHERE "email" = \'bar@baz.com\'',
+            'db.query.text': 'SELECT * FROM "User" WHERE "email" = \'foo@baz.com\'',
             'db.system.name': 'postgres',
             'sentry.op': 'db',
             'sentry.origin': 'manual',
             'server.address': 'localhost',
             'server.port': 5444,
           }),
-          description: 'SELECT db:test_db',
+          // This span is an error span and the `command` is not available when a does not resolve
+          // That's why we can't update the span description when the query fails
+          description: 'postgresjs.query',
           op: 'db',
-          status: 'ok',
+          status: 'unknown_error',
           origin: 'manual',
           parent_span_id: expect.any(String),
           span_id: expect.any(String),
@@ -184,14 +186,33 @@ describe('postgresjs auto instrumentation', () => {
         trace: {
           trace_id: expect.any(String),
           span_id: expect.any(String),
-          status: 'unknown_error',
         },
+      },
+      exception: {
+        values: [
+          {
+            type: 'PostgresError',
+            value: 'relation "User" does not exist',
+            stacktrace: expect.objectContaining({
+              frames: expect.arrayContaining([
+                expect.objectContaining({
+                  function: 'handle',
+                  module: 'postgres.cjs.src:connection',
+                  filename: expect.any(String),
+                  lineno: expect.any(Number),
+                  colno: expect.any(Number),
+                }),
+              ]),
+            }),
+          },
+        ],
       },
     };
 
     await createRunner(__dirname, 'scenario.js')
       .withDockerCompose({ workingDirectory: [__dirname], readyMatches: ['port 5432'] })
-      .expect({ transaction: EXPECTED_TRANSACTION, event: EXPECTED_ERROR_EVENT })
+      .expect({ transaction: EXPECTED_TRANSACTION })
+      .expect({ event: EXPECTED_ERROR_EVENT })
       .start()
       .completed();
   });
