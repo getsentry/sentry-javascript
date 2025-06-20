@@ -63,7 +63,7 @@ export class PostgresJsInstrumentation extends InstrumentationBase {
   }
 
   /**
-   *
+   * Patches the reject method of the Query class to set the span status
    */
   private _patchReject(rejectTarget: any, span: Span): any {
     return new Proxy(rejectTarget, {
@@ -112,7 +112,7 @@ export class PostgresJsInstrumentation extends InstrumentationBase {
   }
 
   /**
-   *
+   * Patches the Query class to instrument the handle method.
    */
   private _patchQuery(moduleExports: {
     Query: {
@@ -182,7 +182,8 @@ export class PostgresJsInstrumentation extends InstrumentationBase {
   }
 
   /**
-   *
+   * Patches the Connection class to set the database, host, and port attributes
+   * when a new connection is created.
    */
   private _patchConnection(Connection: any): any {
     return new Proxy(Connection, {
