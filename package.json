@@ -70,6 +70,7 @@
     "packages/node",
     "packages/nuxt",
     "packages/opentelemetry",
+    "packages/pino-transport",
     "packages/profiling-node",
     "packages/react",
     "packages/react-router",
