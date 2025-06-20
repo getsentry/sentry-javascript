@@ -2,8 +2,7 @@ import type {
   EventPluginContext,
   ExecutionContext,
   IncomingRequestCfProperties,
-  Request,
-  Response,
+  Request as CloudflareRequest,
 } from '@cloudflare/workers-types';
 import {
   captureException,
@@ -30,7 +29,7 @@ interface RequestHandlerWrapperOptions<
   PluginParams = any,
 > {
   options: CloudflareOptions;
-  request: Request<unknown, IncomingRequestCfProperties<unknown>>;
+  request: Request;
   context: ExecutionContext | EventPluginContext<Env, Params, Data, PluginParams>;
 }
 
@@ -43,6 +42,7 @@ export function wrapRequestHandler(
 ): Promise<Response> {
   return withIsolationScope(async isolationScope => {
     const { options, request } = wrapperOptions;
+    const cloudflareRequest = request as unknown as CloudflareRequest<unknown, IncomingRequestCfProperties>;
 
     // In certain situations, the passed context can become undefined.
     // For example, for Astro while prerendering pages at build time.
@@ -64,10 +64,10 @@ export function wrapRequestHandler(
 
     addCloudResourceContext(isolationScope);
     if (request) {
-      addRequest(isolationScope, request);
-      if (request.cf) {
-        addCultureContext(isolationScope, request.cf);
-        attributes['network.protocol.name'] = request.cf.httpProtocol;
+      addRequest(isolationScope, cloudflareRequest);
+      if (cloudflareRequest.cf) {
+        addCultureContext(isolationScope, cloudflareRequest.cf as IncomingRequestCfProperties);
+        attributes['network.protocol.name'] = cloudflareRequest.cf.httpProtocol;
       }
     }
 
