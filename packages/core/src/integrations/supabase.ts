@@ -12,6 +12,7 @@ import type { IntegrationFn } from '../types-hoist/integration';
 import { debug } from '../utils/debug-logger';
 import { isPlainObject } from '../utils/is';
 import { addExceptionMechanism } from '../utils/misc';
+import { getTraceData } from '../utils/traceData';
 
 export interface SupabaseClientConstructor {
   prototype: {
