@@ -84,18 +84,19 @@ const logger = pino(transport);
 
 The transport accepts the following options:
 
-### `levels`
+### `logLevels`
 
 **Type:** `Array<'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal'>`
-**Default:** `['trace', 'debug', 'info', 'warn', 'error', 'fatal']` (all levels)
 
-Use this option to filter which log levels should be sent to Sentry.
+**Default:** `['trace', 'debug', 'info', 'warn', 'error', 'fatal']` (all log levels)
+
+Use this option to filter which log severity levels should be sent to Sentry.
 
 ```javascript
 const transport = pino.transport({
   target: '@sentry/pino-transport',
   options: {
-    levels: ['warn', 'error', 'fatal'], // Only send warnings and above
+    logLevels: ['warn', 'error', 'fatal'], // Only send warnings and above
   },
 });
 ```
