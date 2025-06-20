@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 import { APP_NAME } from '../constants';
 
-test.describe('server - performance', () => {
+test.describe('servery - performance', () => {
   test('should send server transaction on pageload', async ({ page }) => {
     const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
       return transactionEvent.transaction === 'GET /performance';
@@ -105,8 +105,7 @@ test.describe('server - performance', () => {
     });
   });
 
-  // This does not work on Node 20.19, sadly
-  test.skip('should automatically instrument server loader', async ({ page }) => {
+  test('should automatically instrument server loader', async ({ page }) => {
     const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
       return transactionEvent.transaction === 'GET /performance/server-loader.data';
     });
@@ -134,8 +133,7 @@ test.describe('server - performance', () => {
     });
   });
 
-  // This does not work on Node 20.19, sadly
-  test.skip('should automatically instrument server action', async ({ page }) => {
+  test('should automatically instrument server action', async ({ page }) => {
     const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
       return transactionEvent.transaction === 'POST /performance/server-action.data';
     });
