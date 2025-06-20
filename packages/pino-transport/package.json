@@ -39,8 +39,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "9.30.0",
-    "@sentry/node": "9.30.0"
+    "@sentry/core": "9.30.0"
   },
   "peerDependencies": {
     "pino": "^8.0.0 || ^9.0.0"
