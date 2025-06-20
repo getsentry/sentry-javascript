@@ -1,4 +1,9 @@
-import type { ExecutionContext, IncomingRequestCfProperties } from '@cloudflare/workers-types';
+import type {
+  EventPluginContext,
+  ExecutionContext,
+  IncomingRequestCfProperties,
+  Request as CloudflareRequest,
+} from '@cloudflare/workers-types';
 import {
   captureException,
   continueTrace,
@@ -14,10 +19,18 @@ import type { CloudflareOptions } from './client';
 import { addCloudResourceContext, addCultureContext, addRequest } from './scope-utils';
 import { init } from './sdk';
 
-interface RequestHandlerWrapperOptions {
+interface RequestHandlerWrapperOptions<
+  Env = unknown,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  Params extends string = any,
+  Data extends Record<string, unknown> = Record<string, unknown>,
+  // Although it is not ideal to use `any` here, it makes usage more flexible for different setups.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  PluginParams = any,
+> {
   options: CloudflareOptions;
-  request: Request<unknown, IncomingRequestCfProperties<unknown>>;
-  context: ExecutionContext;
+  request: Request | CloudflareRequest;
+  context: ExecutionContext | EventPluginContext<Env, Params, Data, PluginParams>;
 }
 
 /**
@@ -29,11 +42,12 @@ export function wrapRequestHandler(
 ): Promise<Response> {
   return withIsolationScope(async isolationScope => {
     const { options, request } = wrapperOptions;
+    const cloudflareRequest = request as unknown as CloudflareRequest<unknown, IncomingRequestCfProperties>;
 
     // In certain situations, the passed context can become undefined.
     // For example, for Astro while prerendering pages at build time.
     // see: https://github.com/getsentry/sentry-javascript/issues/13217
-    const context = wrapperOptions.context as ExecutionContext | undefined;
+    const context = wrapperOptions.context as RequestHandlerWrapperOptions['context'] | undefined;
 
     const client = init(options);
     isolationScope.setClient(client);
@@ -50,10 +64,10 @@ export function wrapRequestHandler(
 
     addCloudResourceContext(isolationScope);
     if (request) {
-      addRequest(isolationScope, request);
-      if (request.cf) {
-        addCultureContext(isolationScope, request.cf);
-        attributes['network.protocol.name'] = request.cf.httpProtocol;
+      addRequest(isolationScope, cloudflareRequest);
+      if (cloudflareRequest.cf) {
+        addCultureContext(isolationScope, cloudflareRequest.cf as IncomingRequestCfProperties);
+        attributes['network.protocol.name'] = cloudflareRequest.cf.httpProtocol;
       }
     }
 

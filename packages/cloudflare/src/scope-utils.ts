@@ -1,4 +1,4 @@
-import type { IncomingRequestCfProperties } from '@cloudflare/workers-types';
+import type { IncomingRequestCfProperties, Request } from '@cloudflare/workers-types';
 import type { Scope } from '@sentry/core';
 import { winterCGRequestToRequestData } from '@sentry/core';
 
