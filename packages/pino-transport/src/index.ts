@@ -1,5 +1,6 @@
 import type { LogSeverityLevel } from '@sentry/core';
 import { _INTERNAL_captureLog, isPrimitive, normalize } from '@sentry/core';
+import type buildType from 'pino-abstract-transport';
 import * as pinoAbstractTransport from 'pino-abstract-transport';
 
 // Handle both CommonJS and ES module exports
@@ -109,8 +110,7 @@ interface PinoSourceConfig {
  * logger.error('Something went wrong');
  * ```
  */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-export function createSentryPinoTransport(options?: SentryPinoTransportOptions) {
+export function createSentryPinoTransport(options?: SentryPinoTransportOptions): ReturnType<typeof buildType> {
   const capturedLogLevels = new Set(options?.logLevels ?? DEFAULT_CAPTURED_LEVELS);
 
   return build(
