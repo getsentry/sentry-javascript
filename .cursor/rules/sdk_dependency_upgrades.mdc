@@ -70,8 +70,6 @@ Avoid upgrading top-level dependencies (defined in `package.json`), especially i
 
 ### Post-Upgrade Verification
 
-Run all commands after every upgrade to ensure stability:
-
 ```bash
 # rebuild everything
 yarn install
@@ -93,15 +91,11 @@ yarn circularDepCheck
 
 ### Pinning Strategies
 
-Choose the right versioning strategy:
-
 - **Exact versions** (`1.2.3`): Use for critical dependencies
 - **Caret versions** (`^1.2.3`): Allow minor updates only
 - **Latest tag**: Avoid as much as possible other than in certain testing and development scenarios
 
 ## Troubleshooting
-
-Always check these common issues:
 
 - **Yarn Version**: Run `yarn --version` - must be yarn v1 (not v2/v3/v4)
 - **Lockfile Issues**: Verify yarn.lock exists and is properly maintained. Fix merge conflicts by running `yarn install`
