@@ -29,7 +29,7 @@ interface RequestHandlerWrapperOptions<
   PluginParams = any,
 > {
   options: CloudflareOptions;
-  request: Request;
+  request: Request | CloudflareRequest;
   context: ExecutionContext | EventPluginContext<Env, Params, Data, PluginParams>;
 }
 

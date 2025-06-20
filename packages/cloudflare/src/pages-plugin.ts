@@ -50,6 +50,12 @@ export function sentryPagesPlugin<
   setAsyncLocalStorageAsyncContextStrategy();
   return context => {
     const options = typeof handlerOrOptions === 'function' ? handlerOrOptions(context) : handlerOrOptions;
-    return wrapRequestHandler({ options, request: context.request, context }, () => context.next());
+    return wrapRequestHandler(
+      { options, request: context.request, context },
+      // Need to mark as any because of incompatibilities between Cloudflare and regular Request types
+      // This should still be fine because we don't expose this type externally in `sentryPagesPlugin`.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      () => context.next() as any,
+    ) as ReturnType<PagesPluginFunction<Env, Params, Data, PluginParams>>;
   };
 }
