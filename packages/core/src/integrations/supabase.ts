@@ -11,6 +11,7 @@ import { continueTrace, setHttpStatus, SPAN_STATUS_ERROR, SPAN_STATUS_OK, startS
 import type { IntegrationFn } from '../types-hoist/integration';
 import { isPlainObject } from '../utils/is';
 import { logger } from '../utils/logger';
+import { getTraceData } from '../utils/traceData';
 
 export interface SupabaseClientConstructor {
   prototype: {
