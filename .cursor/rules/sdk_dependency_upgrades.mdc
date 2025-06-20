@@ -104,8 +104,6 @@ yarn circularDepCheck
 
 ### Security Audits
 
-Run security checks regularly:
-
 ```bash
 # Check for security vulnerabilities
 yarn audit
