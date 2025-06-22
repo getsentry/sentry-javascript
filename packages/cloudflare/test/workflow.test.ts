@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import type { WorkflowEvent, WorkflowStep, WorkflowStepConfig } from 'cloudflare:workers';
-import { inspect } from 'util';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { instrumentWorkflowWithSentry } from '../src/workflows';
 
@@ -194,6 +193,7 @@ describe('workflows', () => {
                 expect.objectContaining({
                   type: 'Error',
                   value: 'Test error',
+                  mechanism: { type: 'cloudflare', handled: true }
                 }),
               ],
             },
