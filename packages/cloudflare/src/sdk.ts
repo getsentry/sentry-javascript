@@ -20,7 +20,9 @@ import { defaultStackParser } from './vendor/stacktrace';
 export function getDefaultIntegrations(options: CloudflareOptions): Integration[] {
   const sendDefaultPii = options.sendDefaultPii ?? false;
   return [
-    dedupeIntegration(),
+    // The Dedupe integration should not be used in workflows because we want to
+    // capture all step failures, even if they are the same error.
+    ...(options.isWorkflow ? [] : [dedupeIntegration()]),
     // TODO(v10): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
     // eslint-disable-next-line deprecation/deprecation
     inboundFiltersIntegration(),

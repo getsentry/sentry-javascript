@@ -29,8 +29,13 @@ export class CloudflareClient extends ServerRuntimeClient<CloudflareClientOption
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-interface BaseCloudflareOptions {}
+interface BaseCloudflareOptions {
+  /**
+   * @ignore Only used internally to signal that the SDK is being used in a workflow.
+   * @hidden Only used internally to signal that the SDK is being used in a workflow.
+   */
+  isWorkflow?: boolean;
+}
 
 /**
  * Configuration options for the Sentry Cloudflare SDK
