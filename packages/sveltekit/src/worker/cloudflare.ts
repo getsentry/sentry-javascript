@@ -34,7 +34,7 @@ export function initCloudflareSentryHandle(options: CloudflareOptions): Handle {
       return wrapRequestHandler(
         {
           options: opts,
-          request: event.request,
+          request: event.request as Request<unknown, IncomingRequestCfProperties<unknown>>,
           // @ts-expect-error This will exist in Cloudflare
           context: event.platform.context,
         },
