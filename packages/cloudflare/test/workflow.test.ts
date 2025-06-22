@@ -193,7 +193,7 @@ describe('workflows', () => {
                 expect.objectContaining({
                   type: 'Error',
                   value: 'Test error',
-                  mechanism: { type: 'cloudflare', handled: true }
+                  mechanism: { type: 'cloudflare', handled: true },
                 }),
               ],
             },
@@ -291,8 +291,8 @@ describe('workflows', () => {
 
   test('Sampled random via instanceId', async () => {
     const TestWorkflowInstrumented = instrumentWorkflowWithSentry(
-    // Override the tracesSampleRate to 0.4 to be below the sampleRand
-    // calculated from the instanceId
+      // Override the tracesSampleRate to 0.4 to be below the sampleRand
+      // calculated from the instanceId
       () => ({ ...getSentryOptions(), tracesSampleRate: 0.4 }),
       ErrorTestWorkflow as any,
     );
