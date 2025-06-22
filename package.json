@@ -68,6 +68,7 @@
     "packages/nestjs",
     "packages/nextjs",
     "packages/node",
+    "packages/node-core",
     "packages/nuxt",
     "packages/opentelemetry",
     "packages/pino-transport",
