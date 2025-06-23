@@ -46,9 +46,8 @@
     "@sentry/browser": "9.30.0",
     "@sentry/core": "9.30.0",
     "@sentry/node": "9.30.0",
-    "@sentry/opentelemetry": "9.30.0",
-    "@sentry/rollup-plugin": "3.5.0",
-    "@sentry/vite-plugin": "3.2.4",
+    "@sentry/rollup-plugin": "^3.5.0",
+    "@sentry/vite-plugin": "^3.5.0",
     "@sentry/vue": "9.30.0"
   },
   "devDependencies": {
