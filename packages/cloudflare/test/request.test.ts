@@ -33,15 +33,14 @@ describe('withSentry', () => {
 
   test('flushes the event after the handler is done using the cloudflare context.waitUntil', async () => {
     const context = createMockExecutionContext();
+    const waitUntilSpy = vi.spyOn(context, 'waitUntil');
     await wrapRequestHandler(
       { options: MOCK_OPTIONS, request: new Request('https://example.com'), context },
       () => new Response('test'),
     );
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    expect(context.waitUntil).toHaveBeenCalledTimes(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    expect(context.waitUntil).toHaveBeenLastCalledWith(expect.any(Promise));
+    expect(waitUntilSpy).toHaveBeenCalledTimes(1);
+    expect(waitUntilSpy).toHaveBeenLastCalledWith(expect.any(Promise));
   });
 
   test("doesn't error if context is undefined", () => {
