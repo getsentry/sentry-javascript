@@ -1,8 +1,7 @@
-import { ProxyTracerProvider, context, propagation, trace } from '@opentelemetry/api';
+import { context, propagation, ProxyTracerProvider, trace } from '@opentelemetry/api';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import { getClient, getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/core';
 import type { NodeClient } from '../../src';
-
 import { init } from '../../src/sdk';
 import type { NodeClientOptions } from '../../src/types';
 

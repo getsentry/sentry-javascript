@@ -1,8 +1,6 @@
+import { init, SDK_VERSION } from '@sentry/react';
 import type { Mock } from 'vitest';
-import { describe, afterEach, expect, vi, test } from 'vitest';
-
-import { SDK_VERSION, init } from '@sentry/react';
-
+import { afterEach, describe, expect, test, vi } from 'vitest';
 import { init as gatsbyInit } from '../src/sdk';
 
 vi.mock('@sentry/react', async requiredActual => {

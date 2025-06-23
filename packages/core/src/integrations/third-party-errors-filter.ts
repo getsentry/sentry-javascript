@@ -1,8 +1,9 @@
 import { defineIntegration } from '../integration';
 import { addMetadataToStackFrames, stripMetadataFromStackFrames } from '../metadata';
-import type { Event, EventItem } from '../types-hoist';
-import { forEachEnvelopeItem } from '../utils-hoist/envelope';
-import { getFramesFromEvent } from '../utils-hoist/stacktrace';
+import type { EventItem } from '../types-hoist/envelope';
+import type { Event } from '../types-hoist/event';
+import { forEachEnvelopeItem } from '../utils/envelope';
+import { getFramesFromEvent } from '../utils/stacktrace';
 
 interface Options {
   /**

@@ -1,5 +1,4 @@
 import * as core from '@actions/core';
-
 import { context, getOctokit } from '@actions/github';
 
 async function run() {

@@ -1,12 +1,11 @@
 /* eslint-disable complexity */
 /* eslint-disable max-lines */
 
-import * as fs from 'fs';
-import * as path from 'path';
 import { escapeStringForRegex, loadModule, logger, parseSemver } from '@sentry/core';
 import * as chalk from 'chalk';
+import * as fs from 'fs';
+import * as path from 'path';
 import { sync as resolveSync } from 'resolve';
-
 import type { VercelCronsConfig } from '../common/types';
 // Note: If you need to import a type from Webpack, do it in `types.ts` and export it from there. Otherwise, our
 // circular dependency check thinks this file is importing from itself. See https://github.com/pahen/madge/issues/306.
@@ -21,8 +20,8 @@ import type {
   WebpackConfigObjectWithModuleRules,
   WebpackEntryProperty,
 } from './types';
-import { getWebpackPluginOptions } from './webpackPluginOptions';
 import { getNextjsVersion } from './util';
+import { getWebpackPluginOptions } from './webpackPluginOptions';
 
 // Next.js runs webpack 3 times, once for the client, the server, and for edge. Because we don't want to print certain
 // warnings 3 times, we keep track of them here.
@@ -411,6 +410,14 @@ export function constructWebpackConfigFunction(
       );
     }
 
+    // We inject a map of dependencies that the nextjs app has, as we cannot reliably extract them at runtime, sadly
+    newConfig.plugins = newConfig.plugins || [];
+    newConfig.plugins.push(
+      new buildContext.webpack.DefinePlugin({
+        __SENTRY_SERVER_MODULES__: JSON.stringify(_getModules(projectDir)),
+      }),
+    );
+
     return newConfig;
   };
 }
@@ -685,7 +692,9 @@ function addValueInjectionLoader(
   const isomorphicValues = {
     // `rewritesTunnel` set by the user in Next.js config
     _sentryRewritesTunnelPath:
-      userSentryOptions.tunnelRoute !== undefined && userNextConfig.output !== 'export'
+      userSentryOptions.tunnelRoute !== undefined &&
+      userNextConfig.output !== 'export' &&
+      typeof userSentryOptions.tunnelRoute === 'string'
         ? `${userNextConfig.basePath ?? ''}${userSentryOptions.tunnelRoute}`
         : undefined,
 
@@ -824,5 +833,23 @@ function addOtelWarningIgnoreRule(newConfig: WebpackConfigObjectWithModuleRules)
     newConfig.ignoreWarnings = ignoreRules;
   } else if (Array.isArray(newConfig.ignoreWarnings)) {
     newConfig.ignoreWarnings.push(...ignoreRules);
+  }
+}
+
+function _getModules(projectDir: string): Record<string, string> {
+  try {
+    const packageJson = path.join(projectDir, 'package.json');
+    const packageJsonContent = fs.readFileSync(packageJson, 'utf8');
+    const packageJsonObject = JSON.parse(packageJsonContent) as {
+      dependencies?: Record<string, string>;
+      devDependencies?: Record<string, string>;
+    };
+
+    return {
+      ...packageJsonObject.dependencies,
+      ...packageJsonObject.devDependencies,
+    };
+  } catch {
+    return {};
   }
 }

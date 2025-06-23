@@ -1,26 +1,33 @@
-import { createEnvelope } from '../utils-hoist';
-
-import type { DsnComponents, SdkMetadata, SerializedOtelLog } from '../types-hoist';
-import type { OtelLogEnvelope, OtelLogItem } from '../types-hoist/envelope';
-import { dsnToString } from '../utils-hoist';
+import type { DsnComponents } from '../types-hoist/dsn';
+import type { LogContainerItem, LogEnvelope } from '../types-hoist/envelope';
+import type { SerializedLog } from '../types-hoist/log';
+import type { SdkMetadata } from '../types-hoist/sdkmetadata';
+import { dsnToString } from '../utils/dsn';
+import { createEnvelope } from '../utils/envelope';
 
 /**
- * Creates OTEL log envelope item for a serialized OTEL log.
+ * Creates a log container envelope item for a list of logs.
  *
- * @param log - The serialized OTEL log to include in the envelope.
- * @returns The created OTEL log envelope item.
+ * @param items - The logs to include in the envelope.
+ * @returns The created log container envelope item.
  */
-export function createOtelLogEnvelopeItem(log: SerializedOtelLog): OtelLogItem {
+export function createLogContainerEnvelopeItem(items: Array<SerializedLog>): LogContainerItem {
   return [
     {
-      type: 'otel_log',
+      type: 'log',
+      item_count: items.length,
+      content_type: 'application/vnd.sentry.items.log+json',
     },
-    log,
+    {
+      items,
+    },
   ];
 }
 
 /**
  * Creates an envelope for a list of logs.
+ *
+ * Logs from multiple traces can be included in the same envelope.
  *
  * @param logs - The logs to include in the envelope.
  * @param metadata - The metadata to include in the envelope.
@@ -28,13 +35,13 @@ export function createOtelLogEnvelopeItem(log: SerializedOtelLog): OtelLogItem {
  * @param dsn - The DSN to include in the envelope.
  * @returns The created envelope.
  */
-export function createOtelLogEnvelope(
-  logs: Array<SerializedOtelLog>,
+export function createLogEnvelope(
+  logs: Array<SerializedLog>,
   metadata?: SdkMetadata,
   tunnel?: string,
   dsn?: DsnComponents,
-): OtelLogEnvelope {
-  const headers: OtelLogEnvelope[0] = {};
+): LogEnvelope {
+  const headers: LogEnvelope[0] = {};
 
   if (metadata?.sdk) {
     headers.sdk = {
@@ -47,5 +54,5 @@ export function createOtelLogEnvelope(
     headers.dsn = dsnToString(dsn);
   }
 
-  return createEnvelope<OtelLogEnvelope>(headers, logs.map(createOtelLogEnvelopeItem));
+  return createEnvelope<LogEnvelope>(headers, [createLogContainerEnvelopeItem(logs)]);
 }

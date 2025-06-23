@@ -1,29 +1,23 @@
-import type {
-  BaseTransportOptions,
-  CheckIn,
-  ClientOptions,
-  Event,
-  EventHint,
-  Log,
-  MonitorConfig,
-  ParameterizedString,
-  Primitive,
-  SerializedCheckIn,
-  SeverityLevel,
-} from './types-hoist';
-
 import { createCheckInEnvelope } from './checkin';
-import { Client, _getTraceInfoFromScope } from './client';
+import { _getTraceInfoFromScope, Client } from './client';
 import { getIsolationScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
+import { _INTERNAL_flushLogsBuffer } from './logs/exports';
 import type { Scope } from './scope';
 import { registerSpanErrorInstrumentation } from './tracing';
-import { eventFromMessage, eventFromUnknownInput } from './utils-hoist/eventbuilder';
-import { logger } from './utils-hoist/logger';
-import { uuid4 } from './utils-hoist/misc';
-import { resolvedSyncPromise } from './utils-hoist/syncpromise';
-import { _INTERNAL_flushLogsBuffer } from './logs/exports';
-import { isPrimitive } from './utils-hoist';
+import type { CheckIn, MonitorConfig, SerializedCheckIn } from './types-hoist/checkin';
+import type { Event, EventHint } from './types-hoist/event';
+import type { Log } from './types-hoist/log';
+import type { Primitive } from './types-hoist/misc';
+import type { ClientOptions } from './types-hoist/options';
+import type { ParameterizedString } from './types-hoist/parameterize';
+import type { SeverityLevel } from './types-hoist/severity';
+import type { BaseTransportOptions } from './types-hoist/transport';
+import { eventFromMessage, eventFromUnknownInput } from './utils/eventbuilder';
+import { isPrimitive } from './utils/is';
+import { logger } from './utils/logger';
+import { uuid4 } from './utils/misc';
+import { resolvedSyncPromise } from './utils/syncpromise';
 
 // TODO: Make this configurable
 const DEFAULT_LOG_FLUSH_INTERVAL = 5000;
@@ -58,6 +52,7 @@ export class ServerRuntimeClient<
     if (this._options._experiments?.enableLogs) {
       // eslint-disable-next-line @typescript-eslint/no-this-alias
       const client = this;
+
       client.on('flushLogs', () => {
         client._logWeight = 0;
         clearTimeout(client._logFlushIdleTimeout);
@@ -77,6 +72,10 @@ export class ServerRuntimeClient<
             _INTERNAL_flushLogsBuffer(client);
           }, DEFAULT_LOG_FLUSH_INTERVAL);
         }
+      });
+
+      client.on('flush', () => {
+        _INTERNAL_flushLogsBuffer(client);
       });
     }
   }

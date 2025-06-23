@@ -1,9 +1,9 @@
-import type { Envelope, InternalBaseTransportOptions, Transport, TransportMakeRequestResponse } from '../types-hoist';
-
 import { DEBUG_BUILD } from '../debug-build';
-import { envelopeContainsItemType } from '../utils-hoist/envelope';
-import { logger } from '../utils-hoist/logger';
-import { parseRetryAfterHeader } from '../utils-hoist/ratelimit';
+import type { Envelope } from '../types-hoist/envelope';
+import type { InternalBaseTransportOptions, Transport, TransportMakeRequestResponse } from '../types-hoist/transport';
+import { envelopeContainsItemType } from '../utils/envelope';
+import { logger } from '../utils/logger';
+import { parseRetryAfterHeader } from '../utils/ratelimit';
 
 export const MIN_DELAY = 100; // 100 ms
 export const START_DELAY = 5_000; // 5 seconds
@@ -38,8 +38,19 @@ export interface OfflineTransportOptions extends InternalBaseTransportOptions {
    * @param envelope The envelope that failed to send.
    * @param error The error that occurred.
    * @param retryDelay The current retry delay in milliseconds.
+   * @returns Whether the envelope should be stored.
    */
   shouldStore?: (envelope: Envelope, error: Error, retryDelay: number) => boolean | Promise<boolean>;
+
+  /**
+   * Should an attempt be made to send the envelope to Sentry.
+   *
+   * If this function is supplied and returns false, `shouldStore` will be called to determine if the envelope should be stored.
+   *
+   * @param envelope The envelope that will be sent.
+   * @returns Whether we should attempt to send the envelope
+   */
+  shouldSend?: (envelope: Envelope) => boolean | Promise<boolean>;
 }
 
 type Timer = number | { unref?: () => void };
@@ -128,6 +139,10 @@ export function makeOfflineTransport<TO>(
       }
 
       try {
+        if (options.shouldSend && (await options.shouldSend(envelope)) === false) {
+          throw new Error('Envelope not sent because `shouldSend` callback returned false');
+        }
+
         const result = await transport.send(envelope);
 
         let delay = MIN_DELAY;

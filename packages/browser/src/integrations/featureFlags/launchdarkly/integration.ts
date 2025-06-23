@@ -1,11 +1,14 @@
 import type { Client, Event, EventHint, IntegrationFn } from '@sentry/core';
+import {
+  _INTERNAL_addFeatureFlagToActiveSpan,
+  _INTERNAL_copyFlagsFromScopeToEvent,
+  _INTERNAL_insertFlagToScope,
+  defineIntegration,
+} from '@sentry/core';
 import type { LDContext, LDEvaluationDetail, LDInspectionFlagUsedHandler } from './types';
 
-import { defineIntegration } from '@sentry/core';
-import { copyFlagsFromScopeToEvent, insertFlagToScope } from '../../../utils/featureFlags';
-
 /**
- * Sentry integration for capturing feature flags from LaunchDarkly.
+ * Sentry integration for capturing feature flag evaluations from LaunchDarkly.
  *
  * See the [feature flag documentation](https://develop.sentry.dev/sdk/expected-features/#feature-flags) for more information.
  *
@@ -24,16 +27,16 @@ export const launchDarklyIntegration = defineIntegration(() => {
     name: 'LaunchDarkly',
 
     processEvent(event: Event, _hint: EventHint, _client: Client): Event {
-      return copyFlagsFromScopeToEvent(event);
+      return _INTERNAL_copyFlagsFromScopeToEvent(event);
     },
   };
 }) satisfies IntegrationFn;
 
 /**
- * LaunchDarkly hook that listens for flag evaluations and updates the `flags`
- * context in our Sentry scope. This needs to be registered as an
- * 'inspector' in LaunchDarkly initialize() options, separately from
- * `launchDarklyIntegration`. Both are needed to collect feature flags on error.
+ * LaunchDarkly hook to listen for and buffer flag evaluations. This needs to
+ * be registered as an 'inspector' in LaunchDarkly initialize() options,
+ * separately from `launchDarklyIntegration`. Both the hook and the integration
+ * are needed to capture LaunchDarkly flags.
  */
 export function buildLaunchDarklyFlagUsedHandler(): LDInspectionFlagUsedHandler {
   return {
@@ -46,7 +49,8 @@ export function buildLaunchDarklyFlagUsedHandler(): LDInspectionFlagUsedHandler 
      * Handle a flag evaluation by storing its name and value on the current scope.
      */
     method: (flagKey: string, flagDetail: LDEvaluationDetail, _context: LDContext) => {
-      insertFlagToScope(flagKey, flagDetail.value);
+      _INTERNAL_insertFlagToScope(flagKey, flagDetail.value);
+      _INTERNAL_addFeatureFlagToActiveSpan(flagKey, flagDetail.value);
     },
   };
 }

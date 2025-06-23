@@ -1,14 +1,16 @@
 /* eslint-disable max-lines */
-import type { Measurements, Span, SpanAttributes, StartSpanOptions } from '@sentry/core';
+import type { Measurements, Span, SpanAttributes, SpanAttributeValue, StartSpanOptions } from '@sentry/core';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   browserPerformanceTimeOrigin,
   getActiveSpan,
   getComponentName,
   htmlTreeAsString,
+  isPrimitive,
   parseUrl,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   setMeasurement,
   spanToJSON,
+  stringMatchesSomePattern,
 } from '@sentry/core';
 import { WINDOW } from '../types';
 import { trackClsAsStandaloneSpan } from './cls';
@@ -300,6 +302,22 @@ interface AddPerformanceEntriesOptions {
    * sent as a standalone span instead.
    */
   recordClsOnPageloadSpan: boolean;
+
+  /**
+   * Resource spans with `op`s matching strings in the array will not be emitted.
+   *
+   * Default: []
+   */
+  ignoreResourceSpans: Array<'resouce.script' | 'resource.css' | 'resource.img' | 'resource.other' | string>;
+
+  /**
+   * Performance spans created from browser Performance APIs,
+   * `performance.mark(...)` nand `performance.measure(...)`
+   * with `name`s matching strings in the array will not be emitted.
+   *
+   * Default: []
+   */
+  ignorePerformanceApiSpans: Array<string | RegExp>;
 }
 
 /** Add performance related spans to a transaction */
@@ -339,7 +357,7 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
       case 'mark':
       case 'paint':
       case 'measure': {
-        _addMeasureSpans(span, entry, startTime, duration, timeOrigin);
+        _addMeasureSpans(span, entry, startTime, duration, timeOrigin, options.ignorePerformanceApiSpans);
 
         // capture web vitals
         const firstHidden = getVisibilityWatcher();
@@ -355,7 +373,15 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
         break;
       }
       case 'resource': {
-        _addResourceSpans(span, entry as PerformanceResourceTiming, entry.name, startTime, duration, timeOrigin);
+        _addResourceSpans(
+          span,
+          entry as PerformanceResourceTiming,
+          entry.name,
+          startTime,
+          duration,
+          timeOrigin,
+          options.ignoreResourceSpans,
+        );
         break;
       }
       // Ignore other entry types.
@@ -425,7 +451,15 @@ export function _addMeasureSpans(
   startTime: number,
   duration: number,
   timeOrigin: number,
+  ignorePerformanceApiSpans: AddPerformanceEntriesOptions['ignorePerformanceApiSpans'],
 ): void {
+  if (
+    ['mark', 'measure'].includes(entry.entryType) &&
+    stringMatchesSomePattern(entry.name, ignorePerformanceApiSpans)
+  ) {
+    return;
+  }
+
   const navEntry = getNavigationEntry(false);
   const requestTime = msToSec(navEntry ? navEntry.requestStart : 0);
   // Because performance.measure accepts arbitrary timestamps it can produce
@@ -450,6 +484,8 @@ export function _addMeasureSpans(
     attributes['sentry.browser.measure_start_time'] = measureStartTimestamp;
   }
 
+  _addDetailToSpanAttributes(attributes, entry as PerformanceMeasure);
+
   // Measurements from third parties can be off, which would create invalid spans, dropping transactions in the process.
   if (measureStartTimestamp <= measureEndTimestamp) {
     startAndEndSpan(span, measureStartTimestamp, measureEndTimestamp, {
@@ -457,6 +493,50 @@ export function _addMeasureSpans(
       op: entry.entryType as string,
       attributes,
     });
+  }
+}
+
+function _addDetailToSpanAttributes(attributes: SpanAttributes, performanceMeasure: PerformanceMeasure): void {
+  try {
+    // Accessing detail might throw in some browsers (e.g., Firefox) due to security restrictions
+    const detail = performanceMeasure.detail;
+
+    if (!detail) {
+      return;
+    }
+
+    // Process detail based on its type
+    if (typeof detail === 'object') {
+      // Handle object details
+      for (const [key, value] of Object.entries(detail)) {
+        if (value && isPrimitive(value)) {
+          attributes[`sentry.browser.measure.detail.${key}`] = value as SpanAttributeValue;
+        } else if (value !== undefined) {
+          try {
+            // This is user defined so we can't guarantee it's serializable
+            attributes[`sentry.browser.measure.detail.${key}`] = JSON.stringify(value);
+          } catch {
+            // Skip values that can't be stringified
+          }
+        }
+      }
+      return;
+    }
+
+    if (isPrimitive(detail)) {
+      // Handle primitive details
+      attributes['sentry.browser.measure.detail'] = detail as SpanAttributeValue;
+      return;
+    }
+
+    try {
+      attributes['sentry.browser.measure.detail'] = JSON.stringify(detail);
+    } catch {
+      // Skip if stringification fails
+    }
+  } catch {
+    // Silently ignore any errors when accessing detail
+    // This handles the Firefox "Permission denied to access object" error
   }
 }
 
@@ -568,10 +648,16 @@ export function _addResourceSpans(
   startTime: number,
   duration: number,
   timeOrigin: number,
+  ignoreResourceSpans?: Array<string>,
 ): void {
   // we already instrument based on fetch and xhr, so we don't need to
   // duplicate spans here.
   if (entry.initiatorType === 'xmlhttprequest' || entry.initiatorType === 'fetch') {
+    return;
+  }
+
+  const op = entry.initiatorType ? `resource.${entry.initiatorType}` : 'resource.other';
+  if (ignoreResourceSpans?.includes(op)) {
     return;
   }
 
@@ -616,7 +702,7 @@ export function _addResourceSpans(
 
   startAndEndSpan(span, startTimestamp, endTimestamp, {
     name: resourceUrl.replace(WINDOW.location.origin, ''),
-    op: entry.initiatorType ? `resource.${entry.initiatorType}` : 'resource.other',
+    op,
     attributes,
   });
 }

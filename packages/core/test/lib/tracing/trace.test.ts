@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  Scope,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
   getMainCarrier,
+  Scope,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   setAsyncContextStrategy,
   setCurrentClient,
   spanToJSON,
@@ -14,10 +14,10 @@ import {
 } from '../../../src';
 import { getAsyncContextStrategy } from '../../../src/asyncContext';
 import {
-  SentrySpan,
   continueTrace,
   getDynamicSamplingContextFromSpan,
   registerSpanErrorInstrumentation,
+  SentrySpan,
   startInactiveSpan,
   startSpan,
   startSpanManual,
@@ -26,10 +26,12 @@ import {
 } from '../../../src/tracing';
 import { SentryNonRecordingSpan } from '../../../src/tracing/sentryNonRecordingSpan';
 import { startNewTrace } from '../../../src/tracing/trace';
-import type { Event, Span, StartSpanOptions } from '../../../src/types-hoist';
+import type { Event } from '../../../src/types-hoist/event';
+import type { Span } from '../../../src/types-hoist/span';
+import type { StartSpanOptions } from '../../../src/types-hoist/startSpanOptions';
 import { _setSpanForScope } from '../../../src/utils/spanOnScope';
 import { getActiveSpan, getRootSpan, getSpanDescendants, spanIsSampled } from '../../../src/utils/spanUtils';
-import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
+import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 const enum Type {
   Sync = 'sync',
@@ -1779,6 +1781,19 @@ describe('getActiveSpan', () => {
     const result = getActiveSpan();
     expect(result).toBe(staticSpan);
   });
+
+  it('handles active span when passing scopes to withScope', () => {
+    const [scope, span] = startSpan({ name: 'outer' }, span => {
+      return [getCurrentScope(), span];
+    });
+
+    const spanOnScope = withScope(scope, () => {
+      return getActiveSpan();
+    });
+
+    expect(spanOnScope).toBeDefined();
+    expect(spanOnScope).toBe(span);
+  });
 });
 
 describe('withActiveSpan()', () => {
@@ -1959,6 +1974,40 @@ describe('suppressTracing', () => {
       expect(child.isRecording()).toBe(false);
       expect(spanIsSampled(child)).toBe(false);
     });
+  });
+
+  it('works with parallel processes', async () => {
+    const span = suppressTracing(() => {
+      return startInactiveSpan({ name: 'span' });
+    });
+
+    // Note: This is unintuitive, but it is the expected behavior
+    // because we only suppress tracing synchronously in the browser
+    const span2Promise = suppressTracing(async () => {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      return startInactiveSpan({ name: 'span2' });
+    });
+
+    const span3Promise = suppressTracing(async () => {
+      const span = startInactiveSpan({ name: 'span3' });
+      await new Promise(resolve => setTimeout(resolve, 100));
+      return span;
+    });
+
+    const span4 = suppressTracing(() => {
+      return startInactiveSpan({ name: 'span' });
+    });
+
+    const span5 = startInactiveSpan({ name: 'span5' });
+
+    const span2 = await span2Promise;
+    const span3 = await span3Promise;
+
+    expect(spanIsSampled(span)).toBe(false);
+    expect(spanIsSampled(span2)).toBe(true);
+    expect(spanIsSampled(span3)).toBe(false);
+    expect(spanIsSampled(span4)).toBe(false);
+    expect(spanIsSampled(span5)).toBe(true);
   });
 });
 

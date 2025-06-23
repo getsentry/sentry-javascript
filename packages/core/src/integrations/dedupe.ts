@@ -1,9 +1,11 @@
-import { defineIntegration } from '../integration';
-import type { Event, Exception, IntegrationFn, StackFrame } from '../types-hoist';
-
 import { DEBUG_BUILD } from '../debug-build';
-import { logger } from '../utils-hoist/logger';
-import { getFramesFromEvent } from '../utils-hoist/stacktrace';
+import { defineIntegration } from '../integration';
+import type { Event } from '../types-hoist/event';
+import type { Exception } from '../types-hoist/exception';
+import type { IntegrationFn } from '../types-hoist/integration';
+import type { StackFrame } from '../types-hoist/stackframe';
+import { logger } from '../utils/logger';
+import { getFramesFromEvent } from '../utils/stacktrace';
 
 const INTEGRATION_NAME = 'Dedupe';
 

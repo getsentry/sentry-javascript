@@ -2,10 +2,8 @@
  * @vitest-environment jsdom
  */
 
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-
 import type * as Sentry from '@sentry/core';
-
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { WINDOW } from '../../../src/constants';
 import { createSession } from '../../../src/session/createSession';
 import { saveSession } from '../../../src/session/saveSession';

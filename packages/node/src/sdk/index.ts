@@ -1,5 +1,6 @@
 import type { Integration, Options } from '@sentry/core';
 import {
+  consoleIntegration,
   consoleSandbox,
   functionToStringIntegration,
   getCurrentScope,
@@ -20,7 +21,6 @@ import {
 } from '@sentry/opentelemetry';
 import { DEBUG_BUILD } from '../debug-build';
 import { childProcessIntegration } from '../integrations/childProcess';
-import { consoleIntegration } from '../integrations/console';
 import { nodeContextIntegration } from '../integrations/context';
 import { contextLinesIntegration } from '../integrations/contextlines';
 import { httpIntegration } from '../integrations/http';
@@ -40,10 +40,6 @@ import { defaultStackParser, getSentryRelease } from './api';
 import { NodeClient } from './client';
 import { initOpenTelemetry, maybeInitializeEsmLoader } from './initOtel';
 import { mcpIntegration } from '../integrations/mcp-server';
-
-function getCjsOnlyIntegrations(): Integration[] {
-  return isCjs() ? [modulesIntegration()] : [];
-}
 
 /**
  * Get default integrations, excluding performance.
@@ -71,7 +67,7 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
     childProcessIntegration(),
     processSessionIntegration(),
     mcpIntegration(),
-    ...getCjsOnlyIntegrations(),
+    modulesIntegration(),
   ];
 }
 

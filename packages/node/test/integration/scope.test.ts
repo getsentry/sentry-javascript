@@ -1,7 +1,5 @@
 import { getCapturedScopesOnSpan, getCurrentScope } from '@sentry/core';
 import { getClient } from '@sentry/opentelemetry';
-import { clearGlobalScope } from '../../../core/test/lib/clear-global-scope';
-
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as Sentry from '../../src/';
 import type { NodeClient } from '../../src/sdk/client';
@@ -241,7 +239,7 @@ describe('Integration | Scope', () => {
 
   describe('global scope', () => {
     beforeEach(() => {
-      clearGlobalScope();
+      resetGlobals();
     });
 
     it('works before calling init', () => {

@@ -1,4 +1,4 @@
-import { describe, test, vi, expect } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import { instrumentWhenWrapped } from '../../src/otel/instrument';
 
 describe('instrumentWhenWrapped', () => {

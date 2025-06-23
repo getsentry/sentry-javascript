@@ -1,7 +1,10 @@
 import type { Client, Event, EventHint, IntegrationFn } from '@sentry/core';
-
-import { defineIntegration } from '@sentry/core';
-import { copyFlagsFromScopeToEvent, insertFlagToScope } from '../../../utils/featureFlags';
+import {
+  _INTERNAL_addFeatureFlagToActiveSpan,
+  _INTERNAL_copyFlagsFromScopeToEvent,
+  _INTERNAL_insertFlagToScope,
+  defineIntegration,
+} from '@sentry/core';
 import type { FeatureGate, StatsigClient } from './types';
 
 /**
@@ -32,14 +35,15 @@ export const statsigIntegration = defineIntegration(
     return {
       name: 'Statsig',
 
-      processEvent(event: Event, _hint: EventHint, _client: Client): Event {
-        return copyFlagsFromScopeToEvent(event);
+      setup(_client: Client) {
+        statsigClient.on('gate_evaluation', (event: { gate: FeatureGate }) => {
+          _INTERNAL_insertFlagToScope(event.gate.name, event.gate.value);
+          _INTERNAL_addFeatureFlagToActiveSpan(event.gate.name, event.gate.value);
+        });
       },
 
-      setup() {
-        statsigClient.on('gate_evaluation', (event: { gate: FeatureGate }) => {
-          insertFlagToScope(event.gate.name, event.gate.value);
-        });
+      processEvent(event: Event, _hint: EventHint, _client: Client): Event {
+        return _INTERNAL_copyFlagsFromScopeToEvent(event);
       },
     };
   },

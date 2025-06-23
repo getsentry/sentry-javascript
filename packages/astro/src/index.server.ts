@@ -63,6 +63,7 @@ export {
   eventFiltersIntegration,
   initOpenTelemetry,
   isInitialized,
+  isEnabled,
   kafkaIntegration,
   koaIntegration,
   knexIntegration,
@@ -85,6 +86,7 @@ export {
   postgresIntegration,
   prismaIntegration,
   childProcessIntegration,
+  createSentryWinstonTransport,
   redisIntegration,
   requestDataIntegration,
   rewriteFramesIntegration,
@@ -125,10 +127,16 @@ export {
   withIsolationScope,
   withMonitor,
   withScope,
+  supabaseIntegration,
+  instrumentSupabaseClient,
   zodErrorsIntegration,
   profiler,
   logger,
   consoleLoggingIntegration,
+  wrapMcpServerWithSentry,
+  NODE_VERSION,
+  featureFlagsIntegration,
+  type FeatureFlagsIntegration,
 } from '@sentry/node';
 
 export { init } from './server/sdk';

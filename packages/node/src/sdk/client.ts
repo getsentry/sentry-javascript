@@ -4,7 +4,7 @@ import { trace } from '@opentelemetry/api';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import type { DynamicSamplingContext, Scope, ServerRuntimeClientOptions, TraceContext } from '@sentry/core';
-import { _INTERNAL_flushLogsBuffer, SDK_VERSION, ServerRuntimeClient, applySdkMetadata, logger } from '@sentry/core';
+import { _INTERNAL_flushLogsBuffer, applySdkMetadata, logger, SDK_VERSION, ServerRuntimeClient } from '@sentry/core';
 import { getTraceContextForScope } from '@sentry/opentelemetry';
 import { isMainThread, threadId } from 'worker_threads';
 import { DEBUG_BUILD } from '../debug-build';
@@ -21,7 +21,11 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
   private _logOnExitFlushListener: (() => void) | undefined;
 
   public constructor(options: NodeClientOptions) {
-    const serverName = options.serverName || global.process.env.SENTRY_NAME || os.hostname();
+    const serverName =
+      options.includeServerName === false
+        ? undefined
+        : options.serverName || global.process.env.SENTRY_NAME || os.hostname();
+
     const clientOptions: ServerRuntimeClientOptions = {
       ...options,
       platform: 'node',

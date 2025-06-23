@@ -1,4 +1,8 @@
 export * from '@sentry/node';
 
 export { init } from './sdk';
-export { sentryHandleRequest } from './sentryHandleRequest';
+// eslint-disable-next-line deprecation/deprecation
+export { wrapSentryHandleRequest, sentryHandleRequest, getMetaTagTransformer } from './wrapSentryHandleRequest';
+export { createSentryHandleRequest, type SentryHandleRequestOptions } from './createSentryHandleRequest';
+export { wrapServerAction } from './wrapServerAction';
+export { wrapServerLoader } from './wrapServerLoader';

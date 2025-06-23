@@ -1,10 +1,9 @@
 // Note: These tests run the handler in Node.js, which has some differences to the cloudflare workers runtime.
 // Although this is not ideal, this is the best we can do until we have a better way to test cloudflare workers.
 
-import { beforeAll, beforeEach, describe, expect, test, vi } from 'vitest';
-
-import * as SentryCore from '@sentry/core';
 import type { Event } from '@sentry/core';
+import * as SentryCore from '@sentry/core';
+import { beforeAll, beforeEach, describe, expect, test, vi } from 'vitest';
 import { setAsyncLocalStorageAsyncContextStrategy } from '../src/async';
 import type { CloudflareOptions } from '../src/client';
 import { CloudflareClient } from '../src/client';
@@ -255,12 +254,13 @@ describe('withSentry', () => {
         data: {
           'sentry.origin': 'auto.http.cloudflare',
           'sentry.op': 'http.server',
-          'sentry.source': 'url',
+          'sentry.source': 'route',
           'http.request.method': 'GET',
           'url.full': 'https://example.com/',
           'server.address': 'example.com',
           'network.protocol.name': 'HTTP/1.1',
-          'url.scheme': 'https',
+          'url.scheme': 'https:',
+          'url.path': '/',
           'sentry.sample_rate': 1,
           'http.response.status_code': 200,
           'http.request.body.size': 10,
@@ -270,6 +270,8 @@ describe('withSentry', () => {
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         status: 'ok',
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+        parent_span_id: undefined,
+        links: undefined,
       });
     });
   });

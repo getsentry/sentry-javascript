@@ -1,5 +1,4 @@
-import { describe, it, expect } from 'vitest';
-
+import { describe, expect, it } from 'vitest';
 import type { BuildContext, NextConfigObject } from '../../../src/config/types';
 import { getWebpackPluginOptions } from '../../../src/config/webpackPluginOptions';
 
@@ -154,9 +153,9 @@ describe('getWebpackPluginOptions()', () => {
     expect(generatedPluginOptions.sourcemaps).toMatchObject({
       assets: ['/my/project/dir/.next/static/chunks/pages/**', '/my/project/dir/.next/static/chunks/app/**'],
       ignore: [
+        '/my/project/dir/.next/static/chunks/main-*',
         '/my/project/dir/.next/static/chunks/framework-*',
         '/my/project/dir/.next/static/chunks/framework.*',
-        '/my/project/dir/.next/static/chunks/main-*',
         '/my/project/dir/.next/static/chunks/polyfills-*',
         '/my/project/dir/.next/static/chunks/webpack-*',
       ],
@@ -171,7 +170,6 @@ describe('getWebpackPluginOptions()', () => {
       ignore: [
         '/my/project/dir/.next/static/chunks/framework-*',
         '/my/project/dir/.next/static/chunks/framework.*',
-        '/my/project/dir/.next/static/chunks/main-*',
         '/my/project/dir/.next/static/chunks/polyfills-*',
         '/my/project/dir/.next/static/chunks/webpack-*',
       ],
@@ -198,7 +196,6 @@ describe('getWebpackPluginOptions()', () => {
       ignore: [
         'C:/my/windows/project/dir/.dist/v1/static/chunks/framework-*',
         'C:/my/windows/project/dir/.dist/v1/static/chunks/framework.*',
-        'C:/my/windows/project/dir/.dist/v1/static/chunks/main-*',
         'C:/my/windows/project/dir/.dist/v1/static/chunks/polyfills-*',
         'C:/my/windows/project/dir/.dist/v1/static/chunks/webpack-*',
       ],

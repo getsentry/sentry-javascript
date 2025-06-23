@@ -1,73 +1,81 @@
 import { describe, expect, it, vi } from 'vitest';
+import { fmt, Scope } from '../../../src';
 import {
+  _INTERNAL_captureLog,
   _INTERNAL_flushLogsBuffer,
   _INTERNAL_getLogBuffer,
-  _INTERNAL_captureLog,
   logAttributeToSerializedLogAttribute,
 } from '../../../src/logs/exports';
-import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
-import * as loggerModule from '../../../src/utils-hoist/logger';
-import { Scope, fmt } from '../../../src';
 import type { Log } from '../../../src/types-hoist/log';
+import * as loggerModule from '../../../src/utils/logger';
+import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 
 describe('logAttributeToSerializedLogAttribute', () => {
-  it('serializes number values', () => {
-    const result = logAttributeToSerializedLogAttribute('count', 42);
+  it('serializes integer values', () => {
+    const result = logAttributeToSerializedLogAttribute(42);
     expect(result).toEqual({
-      key: 'count',
-      value: { doubleValue: 42 },
+      value: 42,
+      type: 'integer',
+    });
+  });
+
+  it('serializes double values', () => {
+    const result = logAttributeToSerializedLogAttribute(42.34);
+    expect(result).toEqual({
+      value: 42.34,
+      type: 'double',
     });
   });
 
   it('serializes boolean values', () => {
-    const result = logAttributeToSerializedLogAttribute('enabled', true);
+    const result = logAttributeToSerializedLogAttribute(true);
     expect(result).toEqual({
-      key: 'enabled',
-      value: { boolValue: true },
+      value: true,
+      type: 'boolean',
     });
   });
 
   it('serializes string values', () => {
-    const result = logAttributeToSerializedLogAttribute('username', 'john_doe');
+    const result = logAttributeToSerializedLogAttribute('username');
     expect(result).toEqual({
-      key: 'username',
-      value: { stringValue: 'john_doe' },
+      value: 'username',
+      type: 'string',
     });
   });
 
   it('serializes object values as JSON strings', () => {
     const obj = { name: 'John', age: 30 };
-    const result = logAttributeToSerializedLogAttribute('user', obj);
+    const result = logAttributeToSerializedLogAttribute(obj);
     expect(result).toEqual({
-      key: 'user',
-      value: { stringValue: JSON.stringify(obj) },
+      value: JSON.stringify(obj),
+      type: 'string',
     });
   });
 
   it('serializes array values as JSON strings', () => {
     const array = [1, 2, 3, 'test'];
-    const result = logAttributeToSerializedLogAttribute('items', array);
+    const result = logAttributeToSerializedLogAttribute(array);
     expect(result).toEqual({
-      key: 'items',
-      value: { stringValue: JSON.stringify(array) },
+      value: JSON.stringify(array),
+      type: 'string',
     });
   });
 
   it('serializes undefined values as empty strings', () => {
-    const result = logAttributeToSerializedLogAttribute('missing', undefined);
+    const result = logAttributeToSerializedLogAttribute(undefined);
     expect(result).toEqual({
-      key: 'missing',
-      value: { stringValue: '' },
+      value: '',
+      type: 'string',
     });
   });
 
   it('serializes null values as JSON strings', () => {
-    const result = logAttributeToSerializedLogAttribute('empty', null);
+    const result = logAttributeToSerializedLogAttribute(null);
     expect(result).toEqual({
-      key: 'empty',
-      value: { stringValue: 'null' },
+      value: 'null',
+      type: 'string',
     });
   });
 });
@@ -81,11 +89,12 @@ describe('_INTERNAL_captureLog', () => {
     expect(_INTERNAL_getLogBuffer(client)).toHaveLength(1);
     expect(_INTERNAL_getLogBuffer(client)?.[0]).toEqual(
       expect.objectContaining({
-        severityText: 'info',
-        body: {
-          stringValue: 'test log message',
-        },
-        timeUnixNano: expect.any(String),
+        level: 'info',
+        body: 'test log message',
+        timestamp: expect.any(Number),
+        trace_id: expect.any(String),
+        severity_number: 9,
+        attributes: {},
       }),
     );
   });
@@ -116,8 +125,8 @@ describe('_INTERNAL_captureLog', () => {
 
     expect(_INTERNAL_getLogBuffer(client)?.[0]).toEqual(
       expect.objectContaining({
-        traceId: '3d9355f71e9c444b81161599adac6e29',
-        severityNumber: 17, // error level maps to 17
+        trace_id: '3d9355f71e9c444b81161599adac6e29',
+        severity_number: 17, // error level maps to 17
       }),
     );
   });
@@ -134,12 +143,16 @@ describe('_INTERNAL_captureLog', () => {
     _INTERNAL_captureLog({ level: 'info', message: 'test log with metadata' }, client, undefined);
 
     const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
-    expect(logAttributes).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ key: 'sentry.release', value: { stringValue: '1.0.0' } }),
-        expect.objectContaining({ key: 'sentry.environment', value: { stringValue: 'test' } }),
-      ]),
-    );
+    expect(logAttributes).toEqual({
+      'sentry.release': {
+        value: '1.0.0',
+        type: 'string',
+      },
+      'sentry.environment': {
+        value: 'test',
+        type: 'string',
+      },
+    });
   });
 
   it('includes SDK metadata in log attributes when available', () => {
@@ -159,12 +172,16 @@ describe('_INTERNAL_captureLog', () => {
     _INTERNAL_captureLog({ level: 'info', message: 'test log with SDK metadata' }, client, undefined);
 
     const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
-    expect(logAttributes).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ key: 'sentry.sdk.name', value: { stringValue: 'sentry.javascript.node' } }),
-        expect.objectContaining({ key: 'sentry.sdk.version', value: { stringValue: '7.0.0' } }),
-      ]),
-    );
+    expect(logAttributes).toEqual({
+      'sentry.sdk.name': {
+        value: 'sentry.javascript.node',
+        type: 'string',
+      },
+      'sentry.sdk.version': {
+        value: '7.0.0',
+        type: 'string',
+      },
+    });
   });
 
   it('does not include SDK metadata in log attributes when not available', () => {
@@ -202,12 +219,16 @@ describe('_INTERNAL_captureLog', () => {
     );
 
     const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
-    expect(logAttributes).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ key: 'userId', value: { stringValue: '123' } }),
-        expect.objectContaining({ key: 'component', value: { stringValue: 'auth' } }),
-      ]),
-    );
+    expect(logAttributes).toEqual({
+      userId: {
+        value: '123',
+        type: 'string',
+      },
+      component: {
+        value: 'auth',
+        type: 'string',
+      },
+    });
   });
 
   it('flushes logs buffer when it reaches max size', () => {
@@ -244,22 +265,20 @@ describe('_INTERNAL_captureLog', () => {
     _INTERNAL_captureLog({ level: 'info', message: parameterizedMessage }, client, undefined);
 
     const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
-    expect(logAttributes).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          key: 'sentry.message.template',
-          value: { stringValue: 'Hello %s, welcome to %s' },
-        }),
-        expect.objectContaining({
-          key: 'sentry.message.parameter.0',
-          value: { stringValue: 'John' },
-        }),
-        expect.objectContaining({
-          key: 'sentry.message.parameter.1',
-          value: { stringValue: 'Sentry' },
-        }),
-      ]),
-    );
+    expect(logAttributes).toEqual({
+      'sentry.message.template': {
+        value: 'Hello %s, welcome to %s',
+        type: 'string',
+      },
+      'sentry.message.parameter.0': {
+        value: 'John',
+        type: 'string',
+      },
+      'sentry.message.parameter.1': {
+        value: 'Sentry',
+        type: 'string',
+      },
+    });
   });
 
   it('processes logs through beforeSendLog when provided', () => {
@@ -295,13 +314,17 @@ describe('_INTERNAL_captureLog', () => {
     expect(logBuffer).toBeDefined();
     expect(logBuffer?.[0]).toEqual(
       expect.objectContaining({
-        body: {
-          stringValue: 'Modified: original message',
+        body: 'Modified: original message',
+        attributes: {
+          processed: {
+            value: true,
+            type: 'boolean',
+          },
+          original: {
+            value: true,
+            type: 'boolean',
+          },
         },
-        attributes: expect.arrayContaining([
-          expect.objectContaining({ key: 'processed', value: { boolValue: true } }),
-          expect.objectContaining({ key: 'original', value: { boolValue: true } }),
-        ]),
       }),
     );
   });
@@ -351,5 +374,342 @@ describe('_INTERNAL_captureLog', () => {
     expect(beforeCaptureLogSpy).toHaveBeenCalledWith('beforeCaptureLog', log);
     expect(beforeCaptureLogSpy).toHaveBeenCalledWith('afterCaptureLog', log);
     beforeCaptureLogSpy.mockRestore();
+  });
+
+  describe('user functionality', () => {
+    it('includes user data in log attributes', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        _experiments: { enableLogs: true },
+      });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setUser({
+        id: '123',
+        email: 'user@example.com',
+        username: 'testuser',
+      });
+
+      _INTERNAL_captureLog({ level: 'info', message: 'test log with user' }, client, scope);
+
+      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+      expect(logAttributes).toEqual({
+        'user.id': {
+          value: '123',
+          type: 'string',
+        },
+        'user.email': {
+          value: 'user@example.com',
+          type: 'string',
+        },
+        'user.name': {
+          value: 'testuser',
+          type: 'string',
+        },
+      });
+    });
+
+    it('includes partial user data when only some fields are available', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        _experiments: { enableLogs: true },
+        sendDefaultPii: true,
+      });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setUser({
+        id: '123',
+        // email and username are missing
+      });
+
+      _INTERNAL_captureLog({ level: 'info', message: 'test log with partial user' }, client, scope);
+
+      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+      expect(logAttributes).toEqual({
+        'user.id': {
+          value: '123',
+          type: 'string',
+        },
+      });
+    });
+
+    it('includes user email and username without id', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        _experiments: { enableLogs: true },
+        sendDefaultPii: true,
+      });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setUser({
+        email: 'user@example.com',
+        username: 'testuser',
+        // id is missing
+      });
+
+      _INTERNAL_captureLog({ level: 'info', message: 'test log with email and username' }, client, scope);
+
+      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+      expect(logAttributes).toEqual({
+        'user.email': {
+          value: 'user@example.com',
+          type: 'string',
+        },
+        'user.name': {
+          value: 'testuser',
+          type: 'string',
+        },
+      });
+    });
+
+    it('does not include user data when user object is empty', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        _experiments: { enableLogs: true },
+        sendDefaultPii: true,
+      });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setUser({});
+
+      _INTERNAL_captureLog({ level: 'info', message: 'test log with empty user' }, client, scope);
+
+      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+      expect(logAttributes).toEqual({});
+    });
+
+    it('combines user data with other log attributes', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        _experiments: { enableLogs: true },
+        sendDefaultPii: true,
+        release: '1.0.0',
+        environment: 'test',
+      });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setUser({
+        id: '123',
+        email: 'user@example.com',
+      });
+
+      _INTERNAL_captureLog(
+        {
+          level: 'info',
+          message: 'test log with user and other attributes',
+          attributes: { component: 'auth', action: 'login' },
+        },
+        client,
+        scope,
+      );
+
+      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+      expect(logAttributes).toEqual({
+        component: {
+          value: 'auth',
+          type: 'string',
+        },
+        action: {
+          value: 'login',
+          type: 'string',
+        },
+        'user.id': {
+          value: '123',
+          type: 'string',
+        },
+        'user.email': {
+          value: 'user@example.com',
+          type: 'string',
+        },
+        'sentry.release': {
+          value: '1.0.0',
+          type: 'string',
+        },
+        'sentry.environment': {
+          value: 'test',
+          type: 'string',
+        },
+      });
+    });
+
+    it('handles user data with non-string values', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        _experiments: { enableLogs: true },
+        sendDefaultPii: true,
+      });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setUser({
+        id: 123, // number instead of string
+        email: 'user@example.com',
+        username: undefined, // undefined value
+      });
+
+      _INTERNAL_captureLog({ level: 'info', message: 'test log with non-string user values' }, client, scope);
+
+      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+      expect(logAttributes).toEqual({
+        'user.id': {
+          value: 123,
+          type: 'integer',
+        },
+        'user.email': {
+          value: 'user@example.com',
+          type: 'string',
+        },
+      });
+    });
+
+    it('preserves existing user attributes in log and does not override them', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        _experiments: { enableLogs: true },
+        sendDefaultPii: true,
+      });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setUser({
+        id: '123',
+        email: 'user@example.com',
+      });
+
+      _INTERNAL_captureLog(
+        {
+          level: 'info',
+          message: 'test log with existing user attributes',
+          attributes: {
+            'user.id': 'existing-id', // This should NOT be overridden by scope user
+            'user.custom': 'custom-value', // This should be preserved
+          },
+        },
+        client,
+        scope,
+      );
+
+      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+      expect(logAttributes).toEqual({
+        'user.custom': {
+          value: 'custom-value',
+          type: 'string',
+        },
+        'user.id': {
+          value: 'existing-id', // Existing value is preserved
+          type: 'string',
+        },
+        'user.email': {
+          value: 'user@example.com', // Only added because user.email wasn't already present
+          type: 'string',
+        },
+      });
+    });
+
+    it('only adds scope user data for attributes that do not already exist', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        _experiments: { enableLogs: true },
+        sendDefaultPii: true,
+      });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setUser({
+        id: 'scope-id',
+        email: 'scope@example.com',
+        username: 'scope-user',
+      });
+
+      _INTERNAL_captureLog(
+        {
+          level: 'info',
+          message: 'test log with partial existing user attributes',
+          attributes: {
+            'user.email': 'existing@example.com', // This should be preserved
+            'other.attr': 'value',
+          },
+        },
+        client,
+        scope,
+      );
+
+      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+      expect(logAttributes).toEqual({
+        'other.attr': {
+          value: 'value',
+          type: 'string',
+        },
+        'user.email': {
+          value: 'existing@example.com', // Existing email is preserved
+          type: 'string',
+        },
+        'user.id': {
+          value: 'scope-id', // Added from scope because not present
+          type: 'string',
+        },
+        'user.name': {
+          value: 'scope-user', // Added from scope because not present
+          type: 'string',
+        },
+      });
+    });
+  });
+
+  it('overrides user-provided system attributes with SDK values', () => {
+    const options = getDefaultTestClientOptions({
+      dsn: PUBLIC_DSN,
+      _experiments: { enableLogs: true },
+      release: 'sdk-release-1.0.0',
+      environment: 'sdk-environment',
+    });
+    const client = new TestClient(options);
+
+    // Mock getSdkMetadata to return SDK info
+    vi.spyOn(client, 'getSdkMetadata').mockReturnValue({
+      sdk: {
+        name: 'sentry.javascript.node',
+        version: '7.0.0',
+      },
+    });
+
+    const scope = new Scope();
+
+    _INTERNAL_captureLog(
+      {
+        level: 'info',
+        message: 'test log with user-provided system attributes',
+        attributes: {
+          'sentry.release': 'user-release-2.0.0',
+          'sentry.environment': 'user-environment',
+          'sentry.sdk.name': 'user-sdk-name',
+          'sentry.sdk.version': 'user-sdk-version',
+          'user.custom': 'preserved-value',
+        },
+      },
+      client,
+      scope,
+    );
+
+    const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+    expect(logAttributes).toEqual({
+      'user.custom': {
+        value: 'preserved-value',
+        type: 'string',
+      },
+      'sentry.release': {
+        value: 'sdk-release-1.0.0',
+        type: 'string',
+      },
+      'sentry.environment': {
+        value: 'sdk-environment',
+        type: 'string',
+      },
+      'sentry.sdk.name': {
+        value: 'sentry.javascript.node',
+        type: 'string',
+      },
+      'sentry.sdk.version': {
+        value: '7.0.0',
+        type: 'string',
+      },
+    });
   });
 });

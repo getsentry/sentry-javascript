@@ -1,9 +1,9 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-
+import type { Integration } from '@sentry/core';
+import type { NodeClient } from '@sentry/node';
 import * as SentryNode from '@sentry/node';
-
 import { SDK_VERSION } from '@sentry/node';
-
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import * as LowQualityModule from '../../src/server/integration/lowQualityTransactionsFilterIntegration';
 import { init as reactRouterInit } from '../../src/server/sdk';
 
 const nodeInit = vi.spyOn(SentryNode, 'init');
@@ -42,7 +42,106 @@ describe('React Router server SDK', () => {
     });
 
     it('returns client from init', () => {
-      expect(reactRouterInit({})).not.toBeUndefined();
+      const client = reactRouterInit({
+        dsn: 'https://public@dsn.ingest.sentry.io/1337',
+      }) as NodeClient;
+      expect(client).not.toBeUndefined();
+    });
+
+    it('adds the low quality transactions filter integration by default', () => {
+      const filterSpy = vi.spyOn(LowQualityModule, 'lowQualityTransactionsFilterIntegration');
+
+      reactRouterInit({
+        dsn: 'https://public@dsn.ingest.sentry.io/1337',
+      });
+
+      expect(filterSpy).toHaveBeenCalled();
+
+      expect(nodeInit).toHaveBeenCalledTimes(1);
+      const initOptions = nodeInit.mock.calls[0]?.[0];
+
+      expect(initOptions).toBeDefined();
+
+      const defaultIntegrations = initOptions?.defaultIntegrations as Integration[];
+      expect(Array.isArray(defaultIntegrations)).toBe(true);
+
+      const filterIntegration = defaultIntegrations.find(
+        integration => integration.name === 'LowQualityTransactionsFilter',
+      );
+
+      expect(filterIntegration).toBeDefined();
+    });
+
+    it('adds reactRouterServer integration for Node.js 20.18', () => {
+      vi.spyOn(SentryNode, 'NODE_VERSION', 'get').mockReturnValue({ major: 20, minor: 18, patch: 0 });
+
+      reactRouterInit({
+        dsn: 'https://public@dsn.ingest.sentry.io/1337',
+      });
+
+      expect(nodeInit).toHaveBeenCalledTimes(1);
+      const initOptions = nodeInit.mock.calls[0]?.[0];
+      const defaultIntegrations = initOptions?.defaultIntegrations as Integration[];
+
+      const reactRouterServerIntegration = defaultIntegrations.find(
+        integration => integration.name === 'ReactRouterServer',
+      );
+
+      expect(reactRouterServerIntegration).toBeDefined();
+    });
+
+    it('adds reactRouterServer integration for Node.js 22.11', () => {
+      vi.spyOn(SentryNode, 'NODE_VERSION', 'get').mockReturnValue({ major: 22, minor: 11, patch: 0 });
+
+      reactRouterInit({
+        dsn: 'https://public@dsn.ingest.sentry.io/1337',
+      });
+
+      expect(nodeInit).toHaveBeenCalledTimes(1);
+      const initOptions = nodeInit.mock.calls[0]?.[0];
+      const defaultIntegrations = initOptions?.defaultIntegrations as Integration[];
+
+      const reactRouterServerIntegration = defaultIntegrations.find(
+        integration => integration.name === 'ReactRouterServer',
+      );
+
+      expect(reactRouterServerIntegration).toBeDefined();
+    });
+
+    it('does not add reactRouterServer integration for Node.js 20.19', () => {
+      vi.spyOn(SentryNode, 'NODE_VERSION', 'get').mockReturnValue({ major: 20, minor: 19, patch: 0 });
+
+      reactRouterInit({
+        dsn: 'https://public@dsn.ingest.sentry.io/1337',
+      });
+
+      expect(nodeInit).toHaveBeenCalledTimes(1);
+      const initOptions = nodeInit.mock.calls[0]?.[0];
+      const defaultIntegrations = initOptions?.defaultIntegrations as Integration[];
+
+      const reactRouterServerIntegration = defaultIntegrations.find(
+        integration => integration.name === 'ReactRouterServer',
+      );
+
+      expect(reactRouterServerIntegration).toBeUndefined();
+    });
+
+    it('does not add reactRouterServer integration for Node.js 22.12', () => {
+      vi.spyOn(SentryNode, 'NODE_VERSION', 'get').mockReturnValue({ major: 22, minor: 12, patch: 0 });
+
+      reactRouterInit({
+        dsn: 'https://public@dsn.ingest.sentry.io/1337',
+      });
+
+      expect(nodeInit).toHaveBeenCalledTimes(1);
+      const initOptions = nodeInit.mock.calls[0]?.[0];
+      const defaultIntegrations = initOptions?.defaultIntegrations as Integration[];
+
+      const reactRouterServerIntegration = defaultIntegrations.find(
+        integration => integration.name === 'ReactRouterServer',
+      );
+
+      expect(reactRouterServerIntegration).toBeUndefined();
     });
   });
 });

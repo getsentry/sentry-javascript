@@ -1,6 +1,6 @@
-import { clearCachedImplementation, getNativeImplementation } from '@sentry-internal/browser-utils';
 import type { Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/core';
 import { createTransport, rejectedSyncPromise } from '@sentry/core';
+import { clearCachedImplementation, getNativeImplementation } from '@sentry-internal/browser-utils';
 import type { WINDOW } from '../helpers';
 import type { BrowserTransportOptions } from './types';
 
@@ -45,7 +45,7 @@ export function makeFetchTransport(
     }
 
     try {
-      // TODO: This may need a `suppressTracing` call in the future when we switch the browser SDK to OTEL
+      // Note: We do not need to suppress tracing here, becasue we are using the native fetch, instead of our wrapped one.
       return nativeFetch(options.url, requestOptions).then(response => {
         pendingBodySize -= requestSize;
         pendingCount--;

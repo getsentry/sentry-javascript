@@ -1,9 +1,8 @@
-import { GLOBAL_OBJ } from '@sentry/core';
 import type { Integration } from '@sentry/core';
+import { GLOBAL_OBJ } from '@sentry/core';
 import { getCurrentScope } from '@sentry/node';
 import * as SentryNode from '@sentry/node';
-import { describe, vi, afterEach, it, expect } from 'vitest';
-
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { init } from '../src/server';
 
 // normally this is set as part of the build process, so mock it here

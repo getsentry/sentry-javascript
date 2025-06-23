@@ -1,6 +1,8 @@
-export * from './exports';
-
+import { feedbackAsyncIntegration } from './feedbackAsync';
+import { feedbackSyncIntegration } from './feedbackSync';
 import * as logger from './log';
+
+export * from './exports';
 
 export { logger };
 
@@ -13,7 +15,6 @@ export {
   captureConsoleIntegration,
   extraErrorDataIntegration,
   rewriteFramesIntegration,
-  captureFeedback,
   consoleLoggingIntegration,
 } from '@sentry/core';
 
@@ -31,9 +32,6 @@ export type {
 } from '@sentry-internal/replay';
 
 export { replayCanvasIntegration } from '@sentry-internal/replay-canvas';
-
-import { feedbackAsyncIntegration } from './feedbackAsync';
-import { feedbackSyncIntegration } from './feedbackSync';
 export { feedbackAsyncIntegration, feedbackSyncIntegration, feedbackSyncIntegration as feedbackIntegration };
 export { getFeedback, sendFeedback } from '@sentry-internal/feedback';
 
@@ -59,15 +57,17 @@ export {
   setHttpStatus,
   makeMultiplexedTransport,
   moduleMetadataIntegration,
+  supabaseIntegration,
+  instrumentSupabaseClient,
   zodErrorsIntegration,
   thirdPartyErrorFilterIntegration,
+  featureFlagsIntegration,
 } from '@sentry/core';
-export type { Span } from '@sentry/core';
+export type { Span, FeatureFlagsIntegration } from '@sentry/core';
 export { makeBrowserOfflineTransport } from './transports/offline';
 export { browserProfilingIntegration } from './profiling/integration';
 export { spotlightBrowserIntegration } from './integrations/spotlight';
 export { browserSessionIntegration } from './integrations/browsersession';
-export { featureFlagsIntegration, type FeatureFlagsIntegration } from './integrations/featureFlags';
 export { launchDarklyIntegration, buildLaunchDarklyFlagUsedHandler } from './integrations/featureFlags/launchdarkly';
 export { openFeatureIntegration, OpenFeatureIntegrationHook } from './integrations/featureFlags/openfeature';
 export { unleashIntegration } from './integrations/featureFlags/unleash';

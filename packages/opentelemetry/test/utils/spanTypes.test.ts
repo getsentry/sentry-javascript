@@ -1,6 +1,5 @@
 import type { Span } from '@opentelemetry/api';
 import { describe, expect, it } from 'vitest';
-
 import { spanHasAttributes, spanHasEvents, spanHasKind, spanHasParentId } from '../../src/utils/spanTypes';
 
 describe('spanTypes', () => {
@@ -9,7 +8,7 @@ describe('spanTypes', () => {
       [{}, false],
       [{ attributes: null }, false],
       [{ attributes: {} }, true],
-    ])('works with %p', (span, expected) => {
+    ])('works with %j', (span, expected) => {
       const castSpan = span as unknown as Span;
       const actual = spanHasAttributes(castSpan);
 
@@ -28,7 +27,7 @@ describe('spanTypes', () => {
       [{ kind: 0 }, true],
       [{ kind: 5 }, true],
       [{ kind: 'TEST_KIND' }, false],
-    ])('works with %p', (span, expected) => {
+    ])('works with %j', (span, expected) => {
       const castSpan = span as unknown as Span;
       const actual = spanHasKind(castSpan);
 
@@ -45,7 +44,7 @@ describe('spanTypes', () => {
       [{}, false],
       [{ parentSpanId: null }, false],
       [{ parentSpanId: 'TEST_PARENT_ID' }, true],
-    ])('works with %p', (span, expected) => {
+    ])('works with %j', (span, expected) => {
       const castSpan = span as unknown as Span;
       const actual = spanHasParentId(castSpan);
 
@@ -62,7 +61,7 @@ describe('spanTypes', () => {
       [{}, false],
       [{ events: null }, false],
       [{ events: [] }, true],
-    ])('works with %p', (span, expected) => {
+    ])('works with %j', (span, expected) => {
       const castSpan = span as unknown as Span;
       const actual = spanHasEvents(castSpan);
 

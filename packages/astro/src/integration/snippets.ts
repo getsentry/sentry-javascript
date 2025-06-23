@@ -1,5 +1,4 @@
 import * as path from 'path';
-
 import type { SentryOptions } from './types';
 
 /**

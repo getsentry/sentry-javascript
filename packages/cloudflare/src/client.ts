@@ -1,5 +1,5 @@
 import type { ClientOptions, Options, ServerRuntimeClientOptions } from '@sentry/core';
-import { ServerRuntimeClient, applySdkMetadata } from '@sentry/core';
+import { applySdkMetadata, ServerRuntimeClient } from '@sentry/core';
 import type { CloudflareTransportOptions } from './transport';
 
 /**
@@ -29,8 +29,14 @@ export class CloudflareClient extends ServerRuntimeClient<CloudflareClientOption
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-interface BaseCloudflareOptions {}
+interface BaseCloudflareOptions {
+  /**
+   * @ignore Used internally to disable the deDupeIntegration for workflows.
+   * @hidden Used internally to disable the deDupeIntegration for workflows.
+   * @default true
+   */
+  enableDedupe?: boolean;
+}
 
 /**
  * Configuration options for the Sentry Cloudflare SDK

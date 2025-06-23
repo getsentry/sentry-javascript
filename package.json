@@ -22,7 +22,7 @@
     "clean:all": "run-s clean:build clean:tarballs clean:caches clean:deps clean:watchman",
     "fix": "run-s fix:prettier fix:lerna",
     "fix:lerna": "lerna run fix",
-    "fix:prettier": "prettier \"**/*.{md,css,yml,yaml}\" \"packages/**/**.{ts,js,mjs,cjs,mts,cts,jsx,tsx,astro,vue}\" --write",
+    "fix:prettier": "prettier \"**/*.{md,css,yml,yaml}\" \"packages/**/**.{ts,js,mjs,cjs,mts,cts,jsx,tsx,astro,vue}\" \"dev-packages/!(e2e-tests)/**/**.{ts,js,mjs,cjs,mts,cts,jsx,tsx,astro,vue}\" --write",
     "changelog": "ts-node ./scripts/get-commit-list.ts",
     "link:yarn": "lerna exec yarn link",
     "lint": "run-s lint:prettier lint:lerna",
@@ -46,7 +46,7 @@
   "volta": {
     "node": "20.18.2",
     "yarn": "1.22.22",
-    "pnpm": "9.15.0"
+    "pnpm": "9.15.9"
   },
   "workspaces": [
     "packages/angular",
@@ -70,6 +70,7 @@
     "packages/node",
     "packages/nuxt",
     "packages/opentelemetry",
+    "packages/pino-transport",
     "packages/profiling-node",
     "packages/react",
     "packages/react-router",
@@ -96,7 +97,8 @@
     "dev-packages/size-limit-gh-action",
     "dev-packages/clear-cache-gh-action",
     "dev-packages/external-contributor-gh-action",
-    "dev-packages/rollup-utils"
+    "dev-packages/rollup-utils",
+    "dev-packages/opentelemetry-v2-tests"
   ],
   "devDependencies": {
     "@rollup/plugin-commonjs": "^25.0.7",

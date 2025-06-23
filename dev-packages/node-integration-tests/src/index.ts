@@ -1,6 +1,6 @@
-import type { AddressInfo } from 'net';
 import type { BaseTransportOptions, Envelope, Transport, TransportMakeRequestResponse } from '@sentry/core';
 import type { Express } from 'express';
+import type { AddressInfo } from 'net';
 
 /**
  * Debug logging transport
@@ -25,7 +25,10 @@ export function loggingTransport(_options: BaseTransportOptions): Transport {
  * Setting this port to something specific is useful for local debugging but dangerous for
  * CI/CD environments where port collisions can cause flakes!
  */
-export function startExpressServerAndSendPortToRunner(app: Express, port: number | undefined = undefined): void {
+export function startExpressServerAndSendPortToRunner(
+  app: Pick<Express, 'listen'>,
+  port: number | undefined = undefined,
+): void {
   const server = app.listen(port || 0, () => {
     const address = server.address() as AddressInfo;
 

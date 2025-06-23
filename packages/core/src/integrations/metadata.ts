@@ -1,8 +1,7 @@
 import { defineIntegration } from '../integration';
-import type { EventItem } from '../types-hoist';
-
 import { addMetadataToStackFrames, stripMetadataFromStackFrames } from '../metadata';
-import { forEachEnvelopeItem } from '../utils-hoist/envelope';
+import type { EventItem } from '../types-hoist/envelope';
+import { forEachEnvelopeItem } from '../utils/envelope';
 
 /**
  * Adds module metadata to stack frames.

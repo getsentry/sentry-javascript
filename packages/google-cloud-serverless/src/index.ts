@@ -14,6 +14,7 @@ export {
   createTransport,
   getClient,
   isInitialized,
+  isEnabled,
   generateInstrumentOnce,
   getCurrentScope,
   getGlobalScope,
@@ -108,13 +109,20 @@ export {
   spanToBaggageHeader,
   trpcMiddleware,
   updateSpanName,
+  supabaseIntegration,
+  instrumentSupabaseClient,
   zodErrorsIntegration,
   profiler,
   amqplibIntegration,
   childProcessIntegration,
+  createSentryWinstonTransport,
   vercelAIIntegration,
   logger,
   consoleLoggingIntegration,
+  wrapMcpServerWithSentry,
+  NODE_VERSION,
+  featureFlagsIntegration,
+  type FeatureFlagsIntegration,
 } from '@sentry/node';
 
 export {

@@ -32,12 +32,14 @@ export {
   flush,
   getClient,
   isInitialized,
+  isEnabled,
   getCurrentScope,
   getIsolationScope,
   getGlobalScope,
   setCurrentClient,
   Scope,
   continueTrace,
+  getTraceData,
   suppressTracing,
   SDK_VERSION,
   setContext,
@@ -84,7 +86,8 @@ export {
 } from './stack-parsers';
 export { eventFromException, eventFromMessage, exceptionFromError } from './eventbuilder';
 export { createUserFeedbackEnvelope } from './userfeedback';
-export { getDefaultIntegrations, forceLoad, init, onLoad, showReportDialog } from './sdk';
+export { getDefaultIntegrations, forceLoad, init, onLoad } from './sdk';
+export { showReportDialog } from './report-dialog';
 
 export { breadcrumbsIntegration } from './integrations/breadcrumbs';
 export { globalHandlersIntegration } from './integrations/globalhandlers';

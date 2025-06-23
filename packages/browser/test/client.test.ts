@@ -2,9 +2,9 @@
  * @vitest-environment jsdom
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as sentryCore from '@sentry/core';
-import { BrowserClient } from '../src/client';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { applyDefaultOptions, BrowserClient } from '../src/client';
 import { WINDOW } from '../src/helpers';
 import { getDefaultBrowserClientOptions } from './helper/browser-client-options';
 
@@ -116,5 +116,72 @@ describe('BrowserClient', () => {
       // Now should have flushed both logs
       expect(sentryCore._INTERNAL_flushLogsBuffer).toHaveBeenCalledWith(client);
     });
+  });
+});
+
+describe('applyDefaultOptions', () => {
+  it('works with empty options', () => {
+    const options = {};
+    const actual = applyDefaultOptions(options);
+
+    expect(actual).toEqual({
+      release: undefined,
+      sendClientReports: true,
+      parentSpanIsAlwaysRootSpan: true,
+    });
+  });
+
+  it('works with options', () => {
+    const options = {
+      tracesSampleRate: 0.5,
+      release: '1.0.0',
+    };
+    const actual = applyDefaultOptions(options);
+
+    expect(actual).toEqual({
+      release: '1.0.0',
+      sendClientReports: true,
+      tracesSampleRate: 0.5,
+      parentSpanIsAlwaysRootSpan: true,
+    });
+  });
+
+  it('picks up release from WINDOW.SENTRY_RELEASE.id', () => {
+    const releaseBefore = WINDOW.SENTRY_RELEASE;
+
+    WINDOW.SENTRY_RELEASE = { id: '1.0.0' };
+    const options = {
+      tracesSampleRate: 0.5,
+    };
+    const actual = applyDefaultOptions(options);
+
+    expect(actual).toEqual({
+      release: '1.0.0',
+      sendClientReports: true,
+      tracesSampleRate: 0.5,
+      parentSpanIsAlwaysRootSpan: true,
+    });
+
+    WINDOW.SENTRY_RELEASE = releaseBefore;
+  });
+
+  it('passed in release takes precedence over WINDOW.SENTRY_RELEASE.id', () => {
+    const releaseBefore = WINDOW.SENTRY_RELEASE;
+
+    WINDOW.SENTRY_RELEASE = { id: '1.0.0' };
+    const options = {
+      release: '2.0.0',
+      tracesSampleRate: 0.5,
+    };
+    const actual = applyDefaultOptions(options);
+
+    expect(actual).toEqual({
+      release: '2.0.0',
+      sendClientReports: true,
+      tracesSampleRate: 0.5,
+      parentSpanIsAlwaysRootSpan: true,
+    });
+
+    WINDOW.SENTRY_RELEASE = releaseBefore;
   });
 });

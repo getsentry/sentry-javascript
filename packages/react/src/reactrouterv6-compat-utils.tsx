@@ -3,25 +3,24 @@
 // https://gist.github.com/wontondon/e8c4bdf2888875e4c755712e99279536
 
 import {
-  WINDOW,
   browserTracingIntegration,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
+  WINDOW,
 } from '@sentry/browser';
 import type { Client, Integration, Span, TransactionSource } from '@sentry/core';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   getActiveSpan,
   getClient,
   getCurrentScope,
   getRootSpan,
   logger,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanToJSON,
 } from '@sentry/core';
 import * as React from 'react';
-
 import { DEBUG_BUILD } from './debug-build';
 import { hoistNonReactStatics } from './hoist-non-react-statics';
 import type {
@@ -237,7 +236,9 @@ export function createReactRouterV6CompatibleTracingIntegration(
 
   return {
     ...integration,
-    setup() {
+    setup(client) {
+      integration.setup(client);
+
       _useEffect = useEffect;
       _useLocation = useLocation;
       _useNavigationType = useNavigationType;

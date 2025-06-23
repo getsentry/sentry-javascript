@@ -1,9 +1,20 @@
 /* eslint-disable max-lines */
+import type { AgnosticRouteObject } from '@remix-run/router';
+import { isDeferredData, isRouteErrorResponse } from '@remix-run/router';
+import type {
+  ActionFunction,
+  ActionFunctionArgs,
+  AppLoadContext,
+  CreateRequestHandlerFunction,
+  EntryContext,
+  HandleDocumentRequestFunction,
+  LoaderFunction,
+  LoaderFunctionArgs,
+  RequestHandler,
+  ServerBuild,
+} from '@remix-run/server-runtime';
 import type { RequestEventData, Span, TransactionSource, WrappedFunction } from '@sentry/core';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   continueTrace,
   fill,
   getActiveSpan,
@@ -14,6 +25,9 @@ import {
   isNodeEnv,
   loadModule,
   logger,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setHttpStatus,
   spanToJSON,
   startSpan,
@@ -22,22 +36,14 @@ import {
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../utils/debug-build';
 import { createRoutes, getTransactionName } from '../utils/utils';
-import { extractData, isDeferredData, isResponse, isRouteErrorResponse, json } from '../utils/vendor/response';
-import type {
-  AppData,
-  AppLoadContext,
-  CreateRequestHandlerFunction,
-  DataFunction,
-  DataFunctionArgs,
-  EntryContext,
-  HandleDocumentRequestFunction,
-  RemixRequest,
-  RequestHandler,
-  ServerBuild,
-  ServerRoute,
-  ServerRouteManifest,
-} from '../utils/vendor/types';
+import { extractData, isResponse, json } from '../utils/vendor/response';
 import { captureRemixServerException, errorHandleDataFunction, errorHandleDocumentRequestFunction } from './errors';
+
+type AppData = unknown;
+type RemixRequest = Parameters<RequestHandler>[0];
+type ServerRouteManifest = ServerBuild['routes'];
+type DataFunction = LoaderFunction | ActionFunction;
+type DataFunctionArgs = LoaderFunctionArgs | ActionFunctionArgs;
 
 const redirectStatusCodes = new Set([301, 302, 303, 307, 308]);
 function isRedirectResponse(response: Response): boolean {
@@ -240,12 +246,9 @@ function makeWrappedRootLoader() {
   };
 }
 
-function wrapRequestHandler(
+function wrapRequestHandler<T extends ServerBuild | (() => ServerBuild | Promise<ServerBuild>)>(
   origRequestHandler: RequestHandler,
-  build:
-    | ServerBuild
-    | { build: ServerBuild }
-    | (() => ServerBuild | { build: ServerBuild } | Promise<ServerBuild | { build: ServerBuild }>),
+  build: T,
   options?: {
     instrumentTracing?: boolean;
   },
@@ -261,7 +264,7 @@ function wrapRequestHandler(
       return origRequestHandler.call(this, request, loadContext);
     }
 
-    let resolvedRoutes: ServerRoute[] | undefined;
+    let resolvedRoutes: AgnosticRouteObject[] | undefined;
 
     if (options?.instrumentTracing) {
       if (typeof build === 'function') {
@@ -272,7 +275,7 @@ function wrapRequestHandler(
 
       // check if the build is nested under `build` key
       if ('build' in resolvedBuild) {
-        resolvedRoutes = createRoutes(resolvedBuild.build.routes);
+        resolvedRoutes = createRoutes((resolvedBuild.build as ServerBuild).routes);
       } else {
         resolvedRoutes = createRoutes(resolvedBuild.routes);
       }
@@ -364,6 +367,18 @@ function instrumentBuildCallback(
   for (const [id, route] of Object.entries(build.routes)) {
     const wrappedRoute = { ...route, module: { ...route.module } };
 
+    // Entry module should have a loader function to provide `sentry-trace` and `baggage`
+    // They will be available for the root `meta` function as `data.sentryTrace` and `data.sentryBaggage`
+    if (!wrappedRoute.parentId) {
+      if (!wrappedRoute.module.loader) {
+        wrappedRoute.module.loader = () => ({});
+      }
+
+      if (!(wrappedRoute.module.loader as WrappedFunction).__sentry_original__) {
+        fill(wrappedRoute.module, 'loader', makeWrappedRootLoader());
+      }
+    }
+
     const routeAction = wrappedRoute.module.action as undefined | WrappedFunction;
     if (routeAction && !routeAction.__sentry_original__) {
       fill(wrappedRoute.module, 'action', makeWrappedAction(id, options?.instrumentTracing));
@@ -372,17 +387,6 @@ function instrumentBuildCallback(
     const routeLoader = wrappedRoute.module.loader as undefined | WrappedFunction;
     if (routeLoader && !routeLoader.__sentry_original__) {
       fill(wrappedRoute.module, 'loader', makeWrappedLoader(id, options?.instrumentTracing));
-    }
-
-    // Entry module should have a loader function to provide `sentry-trace` and `baggage`
-    // They will be available for the root `meta` function as `data.sentryTrace` and `data.sentryBaggage`
-    if (!wrappedRoute.parentId) {
-      if (!wrappedRoute.module.loader) {
-        wrappedRoute.module.loader = () => ({});
-      }
-
-      // We want to wrap the root loader regardless of whether it's already wrapped before.
-      fill(wrappedRoute.module, 'loader', makeWrappedRootLoader());
     }
 
     routes[id] = wrappedRoute;
@@ -400,12 +404,12 @@ function instrumentBuildCallback(
 /**
  * Instruments `remix` ServerBuild for performance tracing and error tracking.
  */
-export function instrumentBuild(
-  build: ServerBuild | (() => ServerBuild | Promise<ServerBuild>),
+export function instrumentBuild<T extends ServerBuild | (() => ServerBuild | Promise<ServerBuild>)>(
+  build: T,
   options?: {
     instrumentTracing?: boolean;
   },
-): ServerBuild | (() => ServerBuild | Promise<ServerBuild>) {
+): T {
   if (typeof build === 'function') {
     return function () {
       const resolvedBuild = build();
@@ -417,19 +421,15 @@ export function instrumentBuild(
       } else {
         return instrumentBuildCallback(resolvedBuild, options);
       }
-    };
+    } as T;
   } else {
-    return instrumentBuildCallback(build, options);
+    return instrumentBuildCallback(build, options) as T;
   }
 }
 
 export const makeWrappedCreateRequestHandler = (options?: { instrumentTracing?: boolean }) =>
   function (origCreateRequestHandler: CreateRequestHandlerFunction): CreateRequestHandlerFunction {
-    return function (
-      this: unknown,
-      build: ServerBuild | (() => Promise<ServerBuild>),
-      ...args: unknown[]
-    ): RequestHandler {
+    return function (this: unknown, build, ...args: unknown[]): RequestHandler {
       const newBuild = instrumentBuild(build, options);
       const requestHandler = origCreateRequestHandler.call(this, newBuild, ...args);
 

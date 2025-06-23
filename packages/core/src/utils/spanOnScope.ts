@@ -1,6 +1,6 @@
 import type { Scope } from '../scope';
-import type { Span } from '../types-hoist';
-import { addNonEnumerableProperty } from '../utils-hoist/object';
+import type { Span } from '../types-hoist/span';
+import { addNonEnumerableProperty } from '../utils/object';
 
 const SCOPE_SPAN_FIELD = '_sentrySpan';
 

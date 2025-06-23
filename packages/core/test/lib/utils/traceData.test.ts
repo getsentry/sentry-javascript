@@ -1,21 +1,22 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Client } from '../../../src/';
 import {
-  SentrySpan,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
   getMainCarrier,
   getTraceData,
+  Scope,
+  SentrySpan,
   setAsyncContextStrategy,
   setCurrentClient,
   withActiveSpan,
 } from '../../../src/';
 import { getAsyncContextStrategy } from '../../../src/asyncContext';
 import { freezeDscOnSpan } from '../../../src/tracing/dynamicSamplingContext';
-import type { Span } from '../../../src/types-hoist';
+import type { Span } from '../../../src/types-hoist/span';
 import type { TestClientOptions } from '../../mocks/client';
-import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
+import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 const dsn = 'https://123@sentry.io/42';
 
@@ -156,6 +157,35 @@ describe('getTraceData', () => {
       baggage:
         'sentry-environment=production,sentry-public_key=123,sentry-trace_id=12345678901234567890123456789012,sentry-sampled=true',
     });
+  });
+
+  it('allows to pass a scope & client directly', () => {
+    // this default client & scope should not be used!
+    setupClient();
+    getCurrentScope().setPropagationContext({
+      traceId: '12345678901234567890123456789099',
+      sampleRand: 0.44,
+    });
+
+    const options = getDefaultTestClientOptions({
+      dsn: 'https://567@sentry.io/42',
+      tracesSampleRate: 1,
+    });
+    const customClient = new TestClient(options);
+
+    const scope = new Scope();
+    scope.setPropagationContext({
+      traceId: '12345678901234567890123456789012',
+      sampleRand: 0.42,
+    });
+    scope.setClient(customClient);
+
+    const traceData = getTraceData({ client: customClient, scope });
+
+    expect(traceData['sentry-trace']).toMatch(/^12345678901234567890123456789012-[a-f0-9]{16}$/);
+    expect(traceData.baggage).toEqual(
+      'sentry-environment=production,sentry-public_key=567,sentry-trace_id=12345678901234567890123456789012',
+    );
   });
 
   it('returns propagationContext DSC data if no span is available', () => {

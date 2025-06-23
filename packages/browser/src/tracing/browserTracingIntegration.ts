@@ -1,4 +1,27 @@
 /* eslint-disable max-lines */
+import type { Client, IntegrationFn, Span, StartSpanOptions, TransactionSource, WebFetchHeaders } from '@sentry/core';
+import {
+  addNonEnumerableProperty,
+  browserPerformanceTimeOrigin,
+  generateTraceId,
+  getClient,
+  getCurrentScope,
+  getDynamicSamplingContextFromSpan,
+  getIsolationScope,
+  getLocationHref,
+  GLOBAL_OBJ,
+  logger,
+  parseStringToURLObject,
+  propagationContextFromHeaders,
+  registerSpanErrorInstrumentation,
+  SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  spanIsSampled,
+  spanToJSON,
+  startIdleSpan,
+  TRACING_DEFAULTS,
+} from '@sentry/core';
 import {
   addHistoryInstrumentationHandler,
   addPerformanceEntries,
@@ -9,39 +32,11 @@ import {
   startTrackingLongTasks,
   startTrackingWebVitals,
 } from '@sentry-internal/browser-utils';
-import type { Client, IntegrationFn, Span, StartSpanOptions, TransactionSource, WebFetchHeaders } from '@sentry/core';
-import {
-  GLOBAL_OBJ,
-  SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  TRACING_DEFAULTS,
-  addNonEnumerableProperty,
-  browserPerformanceTimeOrigin,
-  generateTraceId,
-  getClient,
-  getCurrentScope,
-  getDynamicSamplingContextFromSpan,
-  getIsolationScope,
-  getLocationHref,
-  getRootSpan,
-  logger,
-  propagationContextFromHeaders,
-  registerSpanErrorInstrumentation,
-  spanIsSampled,
-  spanToJSON,
-  startIdleSpan,
-} from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
-import { WINDOW } from '../helpers';
+import { getHttpRequestData, WINDOW } from '../helpers';
 import { registerBackgroundTabDetection } from './backgroundtab';
+import { linkTraces } from './linkedTraces';
 import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './request';
-import type { PreviousTraceInfo } from './previousTrace';
-import {
-  addPreviousTraceSpanLink,
-  getPreviousTraceFromSessionStorage,
-  storePreviousTraceInSessionStorage,
-} from './previousTrace';
 
 export const BROWSER_TRACING_INTEGRATION_ID = 'BrowserTracing';
 
@@ -150,6 +145,48 @@ export interface BrowserTracingOptions {
   enableHTTPTimings: boolean;
 
   /**
+   * Resource spans with `op`s matching strings in the array will not be emitted.
+   *
+   * Default: []
+   */
+  ignoreResourceSpans: Array<'resouce.script' | 'resource.css' | 'resource.img' | 'resource.other' | string>;
+
+  /**
+   * Spans created from the following browser Performance APIs,
+   *
+   * - [`performance.mark(...)`](https://developer.mozilla.org/en-US/docs/Web/API/Performance/mark)
+   * - [`performance.measure(...)`](https://developer.mozilla.org/en-US/docs/Web/API/Performance/measure)
+   *
+   * will not be emitted if their names match strings in this array.
+   *
+   * This is useful, if you come across `mark` or `measure` spans in your Sentry traces
+   * that you want to ignore. For example, sometimes, browser extensions or libraries
+   * emit these entries on their own, which might not be relevant to your application.
+   *
+   * * @example
+   * ```ts
+   * Sentry.init({
+   *   integrations: [
+   *     Sentry.browserTracingIntegration({
+   *      ignorePerformanceApiSpans: ['myMeasurement', /myMark/],
+   *     }),
+   *   ],
+   * });
+   *
+   * // no spans will be created for these:
+   * performance.mark('myMark');
+   * performance.measure('myMeasurement');
+   *
+   * // spans will be created for these:
+   * performance.mark('authenticated');
+   * performance.measure('input-duration', ...);
+   * ```
+   *
+   * Default: [] - By default, all `mark` and `measure` entries are sent as spans.
+   */
+  ignorePerformanceApiSpans: Array<string | RegExp>;
+
+  /**
    * Link the currently started trace to a previous trace (e.g. a prior pageload, navigation or
    * manually started span). When enabled, this option will allow you to navigate between traces
    * in the Sentry UI.
@@ -165,12 +202,31 @@ export interface BrowserTracingOptions {
    *
    * - `'off'`: The previous trace data will not be stored or linked.
    *
-   * Note that your `tracesSampleRate` or `tracesSampler` config significantly influences
-   * how often traces will be linked.
+   * You can also use {@link BrowserTracingOptions.consistentTraceSampling} to get
+   * consistent trace sampling of subsequent traces. Otherwise, by default, your
+   * `tracesSampleRate` or `tracesSampler` config significantly influences how often
+   * traces will be linked.
    *
    * @default 'in-memory' - see explanation above
    */
   linkPreviousTrace: 'in-memory' | 'session-storage' | 'off';
+
+  /**
+   * If true, Sentry will consistently sample subsequent traces based on the
+   * sampling decision of the initial trace. For example, if the initial page
+   * load trace was sampled positively, all subsequent traces (e.g. navigations)
+   * are also sampled positively. In case the initial trace was sampled negatively,
+   * all subsequent traces are also sampled negatively.
+   *
+   * This option allows you to get consistent, linked traces within a user journey
+   * while maintaining an overall quota based on your trace sampling settings.
+   *
+   * This option is only effective if {@link BrowserTracingOptions.linkPreviousTrace}
+   * is enabled (i.e. not set to `'off'`).
+   *
+   * @default `false` - this is an opt-in feature.
+   */
+  consistentTraceSampling: boolean;
 
   /**
    * _experiments allows the user to send options to define how this integration works.
@@ -212,7 +268,10 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   enableLongTask: true,
   enableLongAnimationFrame: true,
   enableInp: true,
+  ignoreResourceSpans: [],
+  ignorePerformanceApiSpans: [],
   linkPreviousTrace: 'in-memory',
+  consistentTraceSampling: false,
   _experiments: {},
   ...defaultRequestInstrumentationOptions,
 };
@@ -227,13 +286,16 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
  * We explicitly export the proper type here, as this has to be extended in some cases.
  */
 export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptions> = {}) => {
+  const latestRoute: RouteInfo = {
+    name: undefined,
+    source: undefined,
+  };
+
   /**
    * This is just a small wrapper that makes `document` optional.
    * We want to be extra-safe and always check that this exists, to ensure weird environments do not blow up.
    */
   const optionalWindowDocument = WINDOW.document as (typeof WINDOW)['document'] | undefined;
-
-  registerSpanErrorInstrumentation();
 
   const {
     enableInp,
@@ -250,40 +312,19 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     trackFetchStreamPerformance,
     shouldCreateSpanForRequest,
     enableHTTPTimings,
+    ignoreResourceSpans,
+    ignorePerformanceApiSpans,
     instrumentPageLoad,
     instrumentNavigation,
     linkPreviousTrace,
+    consistentTraceSampling,
     onRequestSpanStart,
   } = {
     ...DEFAULT_BROWSER_TRACING_OPTIONS,
     ..._options,
   };
 
-  const _collectWebVitals = startTrackingWebVitals({ recordClsStandaloneSpans: enableStandaloneClsSpans || false });
-
-  if (enableInp) {
-    startTrackingINP();
-  }
-
-  if (
-    enableLongAnimationFrame &&
-    GLOBAL_OBJ.PerformanceObserver &&
-    PerformanceObserver.supportedEntryTypes &&
-    PerformanceObserver.supportedEntryTypes.includes('long-animation-frame')
-  ) {
-    startTrackingLongAnimationFrames();
-  } else if (enableLongTask) {
-    startTrackingLongTasks();
-  }
-
-  if (enableInteractions) {
-    startTrackingInteractions();
-  }
-
-  const latestRoute: RouteInfo = {
-    name: undefined,
-    source: undefined,
-  };
+  let _collectWebVitals: undefined | (() => void);
 
   /** Create routing idle transaction. */
   function _createRouteSpan(client: Client, startSpanOptions: StartSpanOptions): void {
@@ -312,8 +353,14 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       // should wait for finish signal if it's a pageload transaction
       disableAutoFinish: isPageloadTransaction,
       beforeSpanEnd: span => {
-        _collectWebVitals();
-        addPerformanceEntries(span, { recordClsOnPageloadSpan: !enableStandaloneClsSpans });
+        // This will generally always be defined here, because it is set in `setup()` of the integration
+        // but technically, it is optional, so we guard here to be extra safe
+        _collectWebVitals?.();
+        addPerformanceEntries(span, {
+          recordClsOnPageloadSpan: !enableStandaloneClsSpans,
+          ignoreResourceSpans,
+          ignorePerformanceApiSpans,
+        });
         setActiveIdleSpan(client, undefined);
 
         // A trace should stay consistent over the entire timespan of one route - even after the pageload/navigation ended.
@@ -330,6 +377,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         });
       },
     });
+
     setActiveIdleSpan(client, idleSpan);
 
     function emitFinish(): void {
@@ -349,8 +397,29 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
 
   return {
     name: BROWSER_TRACING_INTEGRATION_ID,
-    afterAllSetup(client) {
-      let startingUrl: string | undefined = getLocationHref();
+    setup(client) {
+      registerSpanErrorInstrumentation();
+
+      _collectWebVitals = startTrackingWebVitals({ recordClsStandaloneSpans: enableStandaloneClsSpans || false });
+
+      if (enableInp) {
+        startTrackingINP();
+      }
+
+      if (
+        enableLongAnimationFrame &&
+        GLOBAL_OBJ.PerformanceObserver &&
+        PerformanceObserver.supportedEntryTypes &&
+        PerformanceObserver.supportedEntryTypes.includes('long-animation-frame')
+      ) {
+        startTrackingLongAnimationFrames();
+      } else if (enableLongTask) {
+        startTrackingLongTasks();
+      }
+
+      if (enableInteractions) {
+        startTrackingInteractions();
+      }
 
       function maybeEndActiveSpan(): void {
         const activeSpan = getActiveIdleSpan(client);
@@ -358,6 +427,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         if (activeSpan && !spanToJSON(activeSpan).timestamp) {
           DEBUG_BUILD && logger.log(`[Tracing] Finishing current active span with op: ${spanToJSON(activeSpan).op}`);
           // If there's an open active span, we need to finish it before creating an new one.
+          activeSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON, 'cancelled');
           activeSpan.end();
         }
       }
@@ -370,7 +440,14 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         maybeEndActiveSpan();
 
         getIsolationScope().setPropagationContext({ traceId: generateTraceId(), sampleRand: Math.random() });
-        getCurrentScope().setPropagationContext({ traceId: generateTraceId(), sampleRand: Math.random() });
+
+        const scope = getCurrentScope();
+        scope.setPropagationContext({ traceId: generateTraceId(), sampleRand: Math.random() });
+        // We reset this to ensure we do not have lingering incorrect data here
+        // places that call this hook may set this where appropriate - else, the URL at span sending time is used
+        scope.setSDKProcessingMetadata({
+          normalizedRequest: undefined,
+        });
 
         _createRouteSpan(client, {
           op: 'navigation',
@@ -388,29 +465,27 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         const baggage = traceOptions.baggage || getMetaContent('baggage');
 
         const propagationContext = propagationContextFromHeaders(sentryTrace, baggage);
-        getCurrentScope().setPropagationContext(propagationContext);
+
+        const scope = getCurrentScope();
+        scope.setPropagationContext(propagationContext);
+
+        // We store the normalized request data on the scope, so we get the request data at time of span creation
+        // otherwise, the URL etc. may already be of the following navigation, and we'd report the wrong URL
+        scope.setSDKProcessingMetadata({
+          normalizedRequest: getHttpRequestData(),
+        });
 
         _createRouteSpan(client, {
           op: 'pageload',
           ...startSpanOptions,
         });
       });
+    },
+    afterAllSetup(client) {
+      let startingUrl: string | undefined = getLocationHref();
 
       if (linkPreviousTrace !== 'off') {
-        let inMemoryPreviousTraceInfo: PreviousTraceInfo | undefined = undefined;
-
-        client.on('spanStart', span => {
-          if (getRootSpan(span) !== span) {
-            return;
-          }
-
-          if (linkPreviousTrace === 'session-storage') {
-            const updatedPreviousTraceInfo = addPreviousTraceSpanLink(getPreviousTraceFromSessionStorage(), span);
-            storePreviousTraceInSessionStorage(updatedPreviousTraceInfo);
-          } else {
-            inMemoryPreviousTraceInfo = addPreviousTraceSpanLink(inMemoryPreviousTraceInfo, span);
-          }
-        });
+        linkTraces(client, { linkPreviousTrace, consistentTraceSampling });
       }
 
       if (WINDOW.location) {
@@ -443,16 +518,25 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
               return;
             }
 
-            if (from !== to) {
-              startingUrl = undefined;
-              startBrowserTracingNavigationSpan(client, {
-                name: WINDOW.location.pathname,
-                attributes: {
-                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
-                },
-              });
-            }
+            startingUrl = undefined;
+            const parsed = parseStringToURLObject(to);
+            startBrowserTracingNavigationSpan(client, {
+              name: parsed?.pathname || WINDOW.location.pathname,
+              attributes: {
+                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
+              },
+            });
+
+            // We store the normalized request data on the scope, so we get the request data at time of span creation
+            // otherwise, the URL etc. may already be of the following navigation, and we'd report the wrong URL
+            getCurrentScope().setSDKProcessingMetadata({
+              normalizedRequest: {
+                ...getHttpRequestData(),
+                // Ensure to set this, so this matches the target route even if the URL has not yet been updated
+                url: to,
+              },
+            });
           });
         }
       }

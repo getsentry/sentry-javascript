@@ -1,12 +1,11 @@
 import {
   type CloudflareOptions,
-  wrapRequestHandler,
+  getDefaultIntegrations as getDefaultCloudflareIntegrations,
   setAsyncLocalStorageAsyncContextStrategy,
+  wrapRequestHandler,
 } from '@sentry/cloudflare';
-import { getDefaultIntegrations as getDefaultCloudflareIntegrations } from '@sentry/cloudflare';
-import type { Handle } from '@sveltejs/kit';
-
 import { addNonEnumerableProperty } from '@sentry/core';
+import type { Handle } from '@sveltejs/kit';
 import { rewriteFramesIntegration } from '../server-common/rewriteFramesIntegration';
 
 /**
@@ -35,7 +34,7 @@ export function initCloudflareSentryHandle(options: CloudflareOptions): Handle {
       return wrapRequestHandler(
         {
           options: opts,
-          request: event.request,
+          request: event.request as Request<unknown, IncomingRequestCfProperties<unknown>>,
           // @ts-expect-error This will exist in Cloudflare
           context: event.platform.context,
         },

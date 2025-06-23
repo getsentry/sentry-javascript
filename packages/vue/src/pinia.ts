@@ -13,31 +13,42 @@ type PiniaPlugin = (context: {
 }) => void;
 
 type SentryPiniaPluginOptions = {
-  attachPiniaState?: boolean;
-  addBreadcrumbs?: boolean;
-  actionTransformer?: (action: string) => any;
-  stateTransformer?: (state: Record<string, unknown>) => any;
+  attachPiniaState: boolean;
+  addBreadcrumbs: boolean;
+  actionTransformer: (action: string) => any;
+  stateTransformer: (state: Record<string, unknown>) => any;
 };
 
-export const createSentryPiniaPlugin: (options?: SentryPiniaPluginOptions) => PiniaPlugin = (
-  options: SentryPiniaPluginOptions = {
-    attachPiniaState: true,
-    addBreadcrumbs: true,
-    actionTransformer: action => action,
-    stateTransformer: state => state,
-  },
-) => {
+const DEFAULT_PINIA_PLUGIN_OPTIONS: SentryPiniaPluginOptions = {
+  attachPiniaState: true,
+  addBreadcrumbs: true,
+  actionTransformer: action => action,
+  stateTransformer: state => state,
+};
+
+const getAllStoreStates = (
+  pinia: { state: Ref<Record<string, StateTree>> },
+  stateTransformer?: SentryPiniaPluginOptions['stateTransformer'],
+): Record<string, unknown> => {
+  const states: Record<string, unknown> = {};
+
+  try {
+    Object.keys(pinia.state.value).forEach(storeId => {
+      states[storeId] = pinia.state.value[storeId];
+    });
+
+    return stateTransformer ? stateTransformer(states) : states;
+  } catch {
+    return states;
+  }
+};
+
+export const createSentryPiniaPlugin: (
+  userOptions?: Partial<SentryPiniaPluginOptions>,
+) => PiniaPlugin = userOptions => {
+  const options: SentryPiniaPluginOptions = { ...DEFAULT_PINIA_PLUGIN_OPTIONS, ...userOptions };
+
   const plugin: PiniaPlugin = ({ store, pinia }) => {
-    const getAllStoreStates = (): Record<string, unknown> => {
-      const states: Record<string, unknown> = {};
-
-      Object.keys(pinia.state.value).forEach(storeId => {
-        states[storeId] = pinia.state.value[storeId];
-      });
-
-      return states;
-    };
-
     options.attachPiniaState !== false &&
       getGlobalScope().addEventProcessor((event, hint) => {
         try {
@@ -55,7 +66,7 @@ export const createSentryPiniaPlugin: (options?: SentryPiniaPluginOptions) => Pi
               ...(hint.attachments || []),
               {
                 filename,
-                data: JSON.stringify(getAllStoreStates()),
+                data: JSON.stringify(getAllStoreStates(pinia, options.stateTransformer)),
               },
             ];
           }
@@ -68,9 +79,7 @@ export const createSentryPiniaPlugin: (options?: SentryPiniaPluginOptions) => Pi
 
     store.$onAction(context => {
       context.after(() => {
-        const transformedActionName = options.actionTransformer
-          ? options.actionTransformer(context.name)
-          : context.name;
+        const transformedActionName = options.actionTransformer(context.name);
 
         if (
           typeof transformedActionName !== 'undefined' &&
@@ -85,16 +94,15 @@ export const createSentryPiniaPlugin: (options?: SentryPiniaPluginOptions) => Pi
         }
 
         /* Set latest state of all stores to scope */
-        const allStates = getAllStoreStates();
-        const transformedState = options.stateTransformer ? options.stateTransformer(allStates) : allStates;
+        const allStates = getAllStoreStates(pinia, options.stateTransformer);
         const scope = getCurrentScope();
         const currentState = scope.getScopeData().contexts.state;
 
-        if (typeof transformedState !== 'undefined' && transformedState !== null) {
+        if (typeof allStates !== 'undefined' && allStates !== null) {
           const client = getClient();
           const options = client?.getOptions();
           const normalizationDepth = options?.normalizeDepth || 3; // default state normalization depth to 3
-          const piniaStateContext = { type: 'pinia', value: transformedState };
+          const piniaStateContext = { type: 'pinia', value: allStates };
 
           const newState = {
             ...(currentState || {}),

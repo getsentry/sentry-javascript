@@ -1,32 +1,31 @@
 import type { Client } from './client';
 import { getDynamicSamplingContextFromSpan } from './tracing/dynamicSamplingContext';
 import type { SentrySpan } from './tracing/sentrySpan';
+import type { LegacyCSPReport } from './types-hoist/csp';
+import type { DsnComponents } from './types-hoist/dsn';
 import type {
-  DsnComponents,
   DynamicSamplingContext,
-  Event,
   EventEnvelope,
   EventItem,
-  LegacyCSPReport,
   RawSecurityEnvelope,
   RawSecurityItem,
-  SdkInfo,
-  SdkMetadata,
-  Session,
-  SessionAggregates,
   SessionEnvelope,
   SessionItem,
   SpanEnvelope,
   SpanItem,
-} from './types-hoist';
-import { dsnToString } from './utils-hoist/dsn';
+} from './types-hoist/envelope';
+import type { Event } from './types-hoist/event';
+import type { SdkInfo } from './types-hoist/sdkinfo';
+import type { SdkMetadata } from './types-hoist/sdkmetadata';
+import type { Session, SessionAggregates } from './types-hoist/session';
+import { dsnToString } from './utils/dsn';
 import {
   createEnvelope,
   createEventEnvelopeHeaders,
   createSpanEnvelopeItem,
   getSdkMetadataForEnvelopeHeader,
-} from './utils-hoist/envelope';
-import { uuid4 } from './utils-hoist/misc';
+} from './utils/envelope';
+import { uuid4 } from './utils/misc';
 import { showSpanDropWarning, spanToJSON } from './utils/spanUtils';
 
 /**

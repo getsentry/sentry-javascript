@@ -1,19 +1,18 @@
+import type { Span } from '@sentry/core';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SentrySpan,
   getClient,
   getCurrentScope,
   getIsolationScope,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SentrySpan,
   setCurrentClient,
   spanToJSON,
 } from '@sentry/core';
-import type { Span } from '@sentry/core';
-import { describe, beforeEach, it, expect, beforeAll, afterAll } from 'vitest';
-
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { _addMeasureSpans, _addNavigationSpans, _addResourceSpans } from '../../src/metrics/browserMetrics';
 import { WINDOW } from '../../src/types';
-import { TestClient, getDefaultClientOptions } from '../utils/TestClient';
+import { getDefaultClientOptions, TestClient } from '../utils/TestClient';
 
 const mockWindowLocation = {
   ancestorOrigins: {},
@@ -77,7 +76,7 @@ describe('_addMeasureSpans', () => {
     const startTime = 23;
     const duration = 356;
 
-    _addMeasureSpans(span, entry, startTime, duration, timeOrigin);
+    _addMeasureSpans(span, entry, startTime, duration, timeOrigin, []);
 
     expect(spans).toHaveLength(1);
     expect(spanToJSON(spans[0]!)).toEqual(
@@ -113,9 +112,74 @@ describe('_addMeasureSpans', () => {
     const startTime = 23;
     const duration = -50;
 
-    _addMeasureSpans(span, entry, startTime, duration, timeOrigin);
+    _addMeasureSpans(span, entry, startTime, duration, timeOrigin, []);
 
     expect(spans).toHaveLength(0);
+  });
+
+  it('ignores performance spans that match ignorePerformanceApiSpans', () => {
+    const pageloadSpan = new SentrySpan({ op: 'pageload', name: '/', sampled: true });
+    const spans: Span[] = [];
+
+    getClient()?.on('spanEnd', span => {
+      spans.push(span);
+    });
+
+    const entries: PerformanceEntry[] = [
+      {
+        entryType: 'measure',
+        name: 'measure-pass',
+        duration: 10,
+        startTime: 12,
+        toJSON: () => ({}),
+      },
+      {
+        entryType: 'measure',
+        name: 'measure-ignore',
+        duration: 10,
+        startTime: 12,
+        toJSON: () => ({}),
+      },
+      {
+        entryType: 'mark',
+        name: 'mark-pass',
+        duration: 0,
+        startTime: 12,
+        toJSON: () => ({}),
+      },
+      {
+        entryType: 'mark',
+        name: 'mark-ignore',
+        duration: 0,
+        startTime: 12,
+        toJSON: () => ({}),
+      },
+      {
+        entryType: 'paint',
+        name: 'mark-ignore',
+        duration: 0,
+        startTime: 12,
+        toJSON: () => ({}),
+      },
+    ];
+
+    const timeOrigin = 100;
+    const startTime = 23;
+    const duration = 356;
+
+    entries.forEach(e => {
+      _addMeasureSpans(pageloadSpan, e, startTime, duration, timeOrigin, ['measure-i', /mark-ign/]);
+    });
+
+    expect(spans).toHaveLength(3);
+    expect(spans.map(spanToJSON)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ description: 'measure-pass', op: 'measure' }),
+        expect.objectContaining({ description: 'mark-pass', op: 'mark' }),
+        // name matches but type is not (mark|measure) => should not be ignored
+        expect.objectContaining({ description: 'mark-ignore', op: 'paint' }),
+      ]),
+    );
   });
 });
 
@@ -270,6 +334,53 @@ describe('_addResourceSpans', () => {
       expect(spans).toHaveLength(i + 1);
       expect(spanToJSON(spans[i]!)).toEqual(expect.objectContaining({ op }));
     }
+  });
+
+  it('allows resource spans to be ignored via ignoreResourceSpans', () => {
+    const spans: Span[] = [];
+    const ignoredResourceSpans = ['resource.other', 'resource.script'];
+
+    getClient()?.on('spanEnd', span => {
+      spans.push(span);
+    });
+
+    const table = [
+      {
+        initiatorType: undefined,
+        op: 'resource.other',
+      },
+      {
+        initiatorType: 'css',
+        op: 'resource.css',
+      },
+      {
+        initiatorType: 'css',
+        op: 'resource.css',
+      },
+      {
+        initiatorType: 'image',
+        op: 'resource.image',
+      },
+      {
+        initiatorType: 'script',
+        op: 'resource.script',
+      },
+    ];
+    for (const row of table) {
+      const { initiatorType } = row;
+      const entry = mockPerformanceResourceTiming({
+        initiatorType,
+        nextHopProtocol: 'http/1.1',
+      });
+      _addResourceSpans(span, entry, 'https://example.com/assets/to/me', 123, 234, 465, ignoredResourceSpans);
+    }
+    expect(spans).toHaveLength(table.length - ignoredResourceSpans.length);
+    const spanOps = new Set(
+      spans.map(s => {
+        return spanToJSON(s).op;
+      }),
+    );
+    expect(spanOps).toEqual(new Set(['resource.css', 'resource.image']));
   });
 
   it('allows for enter size of 0', () => {

@@ -4,12 +4,13 @@ import { type Mock, afterEach, beforeEach, describe, expect, it, vi } from 'vite
 import type { Client } from '../../../src';
 import * as CurrentScopes from '../../../src/currentScopes';
 import * as SentryCore from '../../../src/exports';
+import { addConsoleInstrumentationHandler } from '../../../src/instrument/console';
+import { resetInstrumentationHandlers } from '../../../src/instrument/handlers';
 import { captureConsoleIntegration } from '../../../src/integrations/captureconsole';
-import type { ConsoleLevel, Event } from '../../../src/types-hoist';
-import { addConsoleInstrumentationHandler } from '../../../src/utils-hoist/instrument/console';
-import { resetInstrumentationHandlers } from '../../../src/utils-hoist/instrument/handlers';
-import { CONSOLE_LEVELS, originalConsoleMethods } from '../../../src/utils-hoist/logger';
-import { GLOBAL_OBJ } from '../../../src/utils-hoist/worldwide';
+import type { Event } from '../../../src/types-hoist/event';
+import type { ConsoleLevel } from '../../../src/types-hoist/instrument';
+import { CONSOLE_LEVELS, originalConsoleMethods } from '../../../src/utils/logger';
+import { GLOBAL_OBJ } from '../../../src/utils/worldwide';
 
 const mockConsole: { [key in ConsoleLevel]: Mock<any> } = {
   debug: vi.fn(),

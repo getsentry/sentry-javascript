@@ -1,4 +1,5 @@
-import type { PolymorphicRequest, RequestEventData } from '../types-hoist';
+import type { PolymorphicRequest } from '../types-hoist/polymorphics';
+import type { RequestEventData } from '../types-hoist/request';
 import type { WebFetchHeaders, WebFetchRequest } from '../types-hoist/webfetchapi';
 
 /**
@@ -73,8 +74,15 @@ export function httpRequestToRequestData(request: {
   };
 }): RequestEventData {
   const headers = request.headers || {};
-  const host = typeof headers.host === 'string' ? headers.host : undefined;
-  const protocol = request.protocol || (request.socket?.encrypted ? 'https' : 'http');
+
+  // Check for x-forwarded-host first, then fall back to host header
+  const forwardedHost = typeof headers['x-forwarded-host'] === 'string' ? headers['x-forwarded-host'] : undefined;
+  const host = forwardedHost || (typeof headers.host === 'string' ? headers.host : undefined);
+
+  // Check for x-forwarded-proto first, then fall back to existing protocol detection
+  const forwardedProto = typeof headers['x-forwarded-proto'] === 'string' ? headers['x-forwarded-proto'] : undefined;
+  const protocol = forwardedProto || request.protocol || (request.socket?.encrypted ? 'https' : 'http');
+
   const url = request.url || '';
 
   const absoluteUrl = getAbsoluteUrl({

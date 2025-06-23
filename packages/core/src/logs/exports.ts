@@ -1,17 +1,22 @@
 import type { Client } from '../client';
 import { _getTraceInfoFromScope } from '../client';
-import { getClient, getCurrentScope } from '../currentScopes';
+import { getClient, getCurrentScope, getGlobalScope, getIsolationScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
-import { SEVERITY_TEXT_TO_SEVERITY_NUMBER } from './constants';
-import type { SerializedLogAttribute, SerializedOtelLog } from '../types-hoist';
-import type { Log } from '../types-hoist/log';
-import { isParameterizedString, logger } from '../utils-hoist';
+import type { Scope, ScopeData } from '../scope';
+import type { Log, SerializedLog, SerializedLogAttributeValue } from '../types-hoist/log';
+import { mergeScopeData } from '../utils/applyScopeDataToEvent';
+import { isParameterizedString } from '../utils/is';
+import { logger } from '../utils/logger';
 import { _getSpanForScope } from '../utils/spanOnScope';
-import { createOtelLogEnvelope } from './envelope';
+import { timestampInSeconds } from '../utils/time';
+import { GLOBAL_OBJ } from '../utils/worldwide';
+import { SEVERITY_TEXT_TO_SEVERITY_NUMBER } from './constants';
+import { createLogEnvelope } from './envelope';
 
 const MAX_LOG_BUFFER_SIZE = 100;
 
-const CLIENT_TO_LOG_BUFFER_MAP = new WeakMap<Client, Array<SerializedOtelLog>>();
+// The reference to the Client <> LogBuffer map is stored to ensure it's always the same
+GLOBAL_OBJ._sentryClientToLogBufferMap = new WeakMap<Client, Array<SerializedLog>>();
 
 /**
  * Converts a log attribute to a serialized log attribute.
@@ -20,22 +25,28 @@ const CLIENT_TO_LOG_BUFFER_MAP = new WeakMap<Client, Array<SerializedOtelLog>>()
  * @param value - The value of the log attribute.
  * @returns The serialized log attribute.
  */
-export function logAttributeToSerializedLogAttribute(key: string, value: unknown): SerializedLogAttribute {
+export function logAttributeToSerializedLogAttribute(value: unknown): SerializedLogAttributeValue {
   switch (typeof value) {
     case 'number':
+      if (Number.isInteger(value)) {
+        return {
+          value,
+          type: 'integer',
+        };
+      }
       return {
-        key,
-        value: { doubleValue: value },
+        value,
+        type: 'double',
       };
     case 'boolean':
       return {
-        key,
-        value: { boolValue: value },
+        value,
+        type: 'boolean',
       };
     case 'string':
       return {
-        key,
-        value: { stringValue: value },
+        value,
+        type: 'string',
       };
     default: {
       let stringValue = '';
@@ -45,9 +56,49 @@ export function logAttributeToSerializedLogAttribute(key: string, value: unknown
         // Do nothing
       }
       return {
-        key,
-        value: { stringValue },
+        value: stringValue,
+        type: 'string',
       };
+    }
+  }
+}
+
+/**
+ * Sets a log attribute if the value exists and the attribute key is not already present.
+ *
+ * @param logAttributes - The log attributes object to modify.
+ * @param key - The attribute key to set.
+ * @param value - The value to set (only sets if truthy and key not present).
+ * @param setEvenIfPresent - Whether to set the attribute if it is present. Defaults to true.
+ */
+function setLogAttribute(
+  logAttributes: Record<string, unknown>,
+  key: string,
+  value: unknown,
+  setEvenIfPresent = true,
+): void {
+  if (value && (!logAttributes[key] || setEvenIfPresent)) {
+    logAttributes[key] = value;
+  }
+}
+
+/**
+ * Captures a serialized log event and adds it to the log buffer for the given client.
+ *
+ * @param client - A client. Uses the current client if not provided.
+ * @param serializedLog - The serialized log event to capture.
+ *
+ * @experimental This method will experience breaking changes. This is not yet part of
+ * the stable Sentry SDK API and can be changed or removed without warning.
+ */
+export function _INTERNAL_captureSerializedLog(client: Client, serializedLog: SerializedLog): void {
+  const logBuffer = _INTERNAL_getLogBuffer(client);
+  if (logBuffer === undefined) {
+    GLOBAL_OBJ._sentryClientToLogBufferMap?.set(client, [serializedLog]);
+  } else {
+    GLOBAL_OBJ._sentryClientToLogBufferMap?.set(client, [...logBuffer, serializedLog]);
+    if (logBuffer.length >= MAX_LOG_BUFFER_SIZE) {
+      _INTERNAL_flushLogsBuffer(client, logBuffer);
     }
   }
 }
@@ -58,6 +109,7 @@ export function logAttributeToSerializedLogAttribute(key: string, value: unknown
  * @param log - The log event to capture.
  * @param scope - A scope. Uses the current scope if not provided.
  * @param client - A client. Uses the current client if not provided.
+ * @param captureSerializedLog - A function to capture the serialized log.
  *
  * @experimental This method will experience breaking changes. This is not yet part of
  * the stable Sentry SDK API and can be changed or removed without warning.
@@ -65,7 +117,8 @@ export function logAttributeToSerializedLogAttribute(key: string, value: unknown
 export function _INTERNAL_captureLog(
   beforeLog: Log,
   client: Client | undefined = getClient(),
-  scope = getCurrentScope(),
+  currentScope = getCurrentScope(),
+  captureSerializedLog: (client: Client, log: SerializedLog) => void = _INTERNAL_captureSerializedLog,
 ): void {
   if (!client) {
     DEBUG_BUILD && logger.warn('No client available to capture log.');
@@ -79,25 +132,25 @@ export function _INTERNAL_captureLog(
     return;
   }
 
-  const [, traceContext] = _getTraceInfoFromScope(client, scope);
+  const [, traceContext] = _getTraceInfoFromScope(client, currentScope);
 
   const processedLogAttributes = {
     ...beforeLog.attributes,
   };
 
-  if (release) {
-    processedLogAttributes['sentry.release'] = release;
-  }
+  const {
+    user: { id, email, username },
+  } = getMergedScopeData(currentScope);
+  setLogAttribute(processedLogAttributes, 'user.id', id, false);
+  setLogAttribute(processedLogAttributes, 'user.email', email, false);
+  setLogAttribute(processedLogAttributes, 'user.name', username, false);
 
-  if (environment) {
-    processedLogAttributes['sentry.environment'] = environment;
-  }
+  setLogAttribute(processedLogAttributes, 'sentry.release', release);
+  setLogAttribute(processedLogAttributes, 'sentry.environment', environment);
 
-  const { sdk } = client.getSdkMetadata() ?? {};
-  if (sdk) {
-    processedLogAttributes['sentry.sdk.name'] = sdk.name;
-    processedLogAttributes['sentry.sdk.version'] = sdk.version;
-  }
+  const { name, version } = client.getSdkMetadata()?.sdk ?? {};
+  setLogAttribute(processedLogAttributes, 'sentry.sdk.name', name);
+  setLogAttribute(processedLogAttributes, 'sentry.sdk.version', version);
 
   const beforeLogMessage = beforeLog.message;
   if (isParameterizedString(beforeLogMessage)) {
@@ -108,11 +161,9 @@ export function _INTERNAL_captureLog(
     });
   }
 
-  const span = _getSpanForScope(scope);
-  if (span) {
-    // Add the parent span ID to the log attributes for trace context
-    processedLogAttributes['sentry.trace.parent_span_id'] = span.spanContext().spanId;
-  }
+  const span = _getSpanForScope(currentScope);
+  // Add the parent span ID to the log attributes for trace context
+  setLogAttribute(processedLogAttributes, 'sentry.trace.parent_span_id', span?.spanContext().spanId);
 
   const processedLog = { ...beforeLog, attributes: processedLogAttributes };
 
@@ -127,26 +178,22 @@ export function _INTERNAL_captureLog(
 
   const { level, message, attributes = {}, severityNumber } = log;
 
-  const serializedLog: SerializedOtelLog = {
-    severityText: level,
-    body: {
-      stringValue: message,
-    },
-    attributes: Object.entries(attributes).map(([key, value]) => logAttributeToSerializedLogAttribute(key, value)),
-    timeUnixNano: `${new Date().getTime().toString()}000000`,
-    traceId: traceContext?.trace_id,
-    severityNumber: severityNumber ?? SEVERITY_TEXT_TO_SEVERITY_NUMBER[level],
+  const serializedLog: SerializedLog = {
+    timestamp: timestampInSeconds(),
+    level,
+    body: message,
+    trace_id: traceContext?.trace_id,
+    severity_number: severityNumber ?? SEVERITY_TEXT_TO_SEVERITY_NUMBER[level],
+    attributes: Object.keys(attributes).reduce(
+      (acc, key) => {
+        acc[key] = logAttributeToSerializedLogAttribute(attributes[key]);
+        return acc;
+      },
+      {} as Record<string, SerializedLogAttributeValue>,
+    ),
   };
 
-  const logBuffer = CLIENT_TO_LOG_BUFFER_MAP.get(client);
-  if (logBuffer === undefined) {
-    CLIENT_TO_LOG_BUFFER_MAP.set(client, [serializedLog]);
-  } else {
-    logBuffer.push(serializedLog);
-    if (logBuffer.length > MAX_LOG_BUFFER_SIZE) {
-      _INTERNAL_flushLogsBuffer(client, logBuffer);
-    }
-  }
+  captureSerializedLog(client, serializedLog);
 
   client.emit('afterCaptureLog', log);
 }
@@ -160,17 +207,17 @@ export function _INTERNAL_captureLog(
  * @experimental This method will experience breaking changes. This is not yet part of
  * the stable Sentry SDK API and can be changed or removed without warning.
  */
-export function _INTERNAL_flushLogsBuffer(client: Client, maybeLogBuffer?: Array<SerializedOtelLog>): void {
-  const logBuffer = maybeLogBuffer ?? CLIENT_TO_LOG_BUFFER_MAP.get(client) ?? [];
+export function _INTERNAL_flushLogsBuffer(client: Client, maybeLogBuffer?: Array<SerializedLog>): void {
+  const logBuffer = maybeLogBuffer ?? _INTERNAL_getLogBuffer(client) ?? [];
   if (logBuffer.length === 0) {
     return;
   }
 
   const clientOptions = client.getOptions();
-  const envelope = createOtelLogEnvelope(logBuffer, clientOptions._metadata, clientOptions.tunnel, client.getDsn());
+  const envelope = createLogEnvelope(logBuffer, clientOptions._metadata, clientOptions.tunnel, client.getDsn());
 
   // Clear the log buffer after envelopes have been constructed.
-  logBuffer.length = 0;
+  GLOBAL_OBJ._sentryClientToLogBufferMap?.set(client, []);
 
   client.emit('flushLogs');
 
@@ -187,6 +234,20 @@ export function _INTERNAL_flushLogsBuffer(client: Client, maybeLogBuffer?: Array
  * @param client - The client to get the log buffer for.
  * @returns The log buffer for the given client.
  */
-export function _INTERNAL_getLogBuffer(client: Client): Array<SerializedOtelLog> | undefined {
-  return CLIENT_TO_LOG_BUFFER_MAP.get(client);
+export function _INTERNAL_getLogBuffer(client: Client): Array<SerializedLog> | undefined {
+  return GLOBAL_OBJ._sentryClientToLogBufferMap?.get(client);
+}
+
+/**
+ * Get the scope data for the current scope after merging with the
+ * global scope and isolation scope.
+ *
+ * @param currentScope - The current scope.
+ * @returns The scope data.
+ */
+function getMergedScopeData(currentScope: Scope): ScopeData {
+  const scopeData = getGlobalScope().getScopeData();
+  mergeScopeData(scopeData, getIsolationScope().getScopeData());
+  mergeScopeData(scopeData, currentScope.getScopeData());
+  return scopeData;
 }

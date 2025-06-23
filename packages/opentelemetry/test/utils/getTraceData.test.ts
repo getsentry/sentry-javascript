@@ -1,10 +1,10 @@
 import { context, trace } from '@opentelemetry/api';
-import { getCurrentScope, setAsyncContextStrategy } from '@sentry/core';
-import { describe, afterEach, beforeEach, expect, it, vi } from 'vitest';
-
+import { getCurrentScope, Scope, setAsyncContextStrategy } from '@sentry/core';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getTraceData } from '../../src/utils/getTraceData';
 import { makeTraceState } from '../../src/utils/makeTraceState';
 import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
+import { getDefaultTestClientOptions, TestClient } from '../helpers/TestClient';
 
 describe('getTraceData', () => {
   beforeEach(() => {
@@ -51,6 +51,32 @@ describe('getTraceData', () => {
       baggage:
         'sentry-environment=production,sentry-public_key=username,sentry-trace_id=12345678901234567890123456789012,sentry-sampled=true',
     });
+  });
+
+  it('allows to pass a scope & client directly', () => {
+    getCurrentScope().setPropagationContext({
+      traceId: '12345678901234567890123456789099',
+      sampleRand: 0.44,
+    });
+
+    const customClient = new TestClient(
+      getDefaultTestClientOptions({ tracesSampleRate: 1, dsn: 'https://123@sentry.io/42' }),
+    );
+
+    // note: Right now, this only works properly if the scope is linked to a context
+    const scope = new Scope();
+    scope.setPropagationContext({
+      traceId: '12345678901234567890123456789012',
+      sampleRand: 0.42,
+    });
+    scope.setClient(customClient);
+
+    const traceData = getTraceData({ client: customClient, scope });
+
+    expect(traceData['sentry-trace']).toMatch(/^12345678901234567890123456789012-[a-f0-9]{16}$/);
+    expect(traceData.baggage).toEqual(
+      'sentry-environment=production,sentry-public_key=123,sentry-trace_id=12345678901234567890123456789012',
+    );
   });
 
   it('returns propagationContext DSC data if no span is available', () => {

@@ -17,7 +17,7 @@ describe('parseSampleRate', () => {
     ['1.5', undefined],
     ['0.555', 0.555],
     ['0', 0],
-  ])('works with %p', (input, sampleRate) => {
+  ])('works with %j', (input, sampleRate) => {
     const actual = parseSampleRate(input);
     expect(actual).toBe(sampleRate);
   });

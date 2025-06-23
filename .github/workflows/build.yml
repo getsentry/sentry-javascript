@@ -415,8 +415,6 @@ jobs:
     if: needs.job_build.outputs.changed_bun == 'true' || github.event_name != 'pull_request'
     timeout-minutes: 10
     runs-on: ubuntu-24.04
-    strategy:
-      fail-fast: false
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -442,8 +440,6 @@ jobs:
     if: needs.job_build.outputs.changed_deno == 'true' || github.event_name != 'pull_request'
     timeout-minutes: 10
     runs-on: ubuntu-24.04
-    strategy:
-      fail-fast: false
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -454,7 +450,7 @@ jobs:
         with:
           node-version-file: 'package.json'
       - name: Set up Deno
-        uses: denoland/setup-deno@v2.0.2
+        uses: denoland/setup-deno@v2.0.3
         with:
           deno-version: v2.1.5
       - name: Restore caches
@@ -475,7 +471,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [18, 20, 22]
+        node: [18, 20, 22, 24]
     steps:
       - name: Check out base commit (${{ github.event.pull_request.base.sha }})
         uses: actions/checkout@v4
@@ -713,12 +709,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: ['18.20.5', 20, 22]
+        node: ['18.20.5', 20, 22, 24]
         typescript:
           - false
         include:
           # Only check typescript for latest version (to streamline CI)
-          - node: 22
+          - node: 24
             typescript: '3.8'
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -760,7 +756,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [18, 20, 22]
+        node: [18, 20, 22, 24]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -885,11 +881,11 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - uses: pnpm/action-setup@v4
         with:
-          version: 9.4.0
+          version: 9.15.9
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version-file: 'dev-packages/e2e-tests/package.json'
+          node-version-file: 'dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/package.json'
       - name: Set up Bun
         if: matrix.test-application == 'node-exports-test-app'
         uses: oven-sh/setup-bun@v2
@@ -1005,11 +1001,11 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - uses: pnpm/action-setup@v4
         with:
-          version: 9.4.0
+          version: 9.15.9
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version-file: 'dev-packages/e2e-tests/package.json'
+          node-version-file: 'dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:

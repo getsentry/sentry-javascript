@@ -14,6 +14,7 @@ Sentry.init({
     }),
   ],
   tracesSampleRate: 1,
+  debug: true,
 });
 
 const client = Sentry.getClient();

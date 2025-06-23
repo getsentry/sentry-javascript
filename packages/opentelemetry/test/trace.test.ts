@@ -1,29 +1,26 @@
 /* eslint-disable deprecation/deprecation */
 import type { Span, TimeInput } from '@opentelemetry/api';
-import { ROOT_CONTEXT } from '@opentelemetry/api';
-import { SpanKind } from '@opentelemetry/api';
-import { TraceFlags, context, trace } from '@opentelemetry/api';
+import { context, ROOT_CONTEXT, SpanKind, trace, TraceFlags } from '@opentelemetry/api';
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
 import { Span as SpanClass } from '@opentelemetry/sdk-trace-base';
+import { SEMATTRS_HTTP_METHOD } from '@opentelemetry/semantic-conventions';
+import type { Event, Scope } from '@sentry/core';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromClient,
   getDynamicSamplingContextFromSpan,
   getRootSpan,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanIsSampled,
   spanToJSON,
   suppressTracing,
   withScope,
 } from '@sentry/core';
-import type { Event, Scope } from '@sentry/core';
-import { describe, afterEach, beforeEach, expect, it, vi } from 'vitest';
-
-import { SEMATTRS_HTTP_METHOD } from '@opentelemetry/semantic-conventions';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { continueTrace, startInactiveSpan, startSpan, startSpanManual } from '../src/trace';
 import type { AbstractSpan } from '../src/types';
 import { getActiveSpan } from '../src/utils/getActiveSpan';
@@ -1345,6 +1342,21 @@ describe('trace', () => {
       });
     });
   });
+
+  describe('scope passing', () => {
+    it('handles active span when passing scopes to withScope', () => {
+      const [scope, span] = startSpan({ name: 'outer' }, span => {
+        return [getCurrentScope(), span];
+      });
+
+      const spanOnScope = withScope(scope, () => {
+        return getActiveSpan();
+      });
+
+      expect(spanOnScope).toBeDefined();
+      expect(spanOnScope).toBe(span);
+    });
+  });
 });
 
 describe('trace (tracing disabled)', () => {
@@ -1908,6 +1920,38 @@ describe('suppressTracing', () => {
       expect(child.isRecording()).toBe(false);
       expect(spanIsSampled(child)).toBe(false);
     });
+  });
+
+  it('works with parallel processes', async () => {
+    const span = suppressTracing(() => {
+      return startInactiveSpan({ name: 'span' });
+    });
+
+    const span2Promise = suppressTracing(async () => {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      return startInactiveSpan({ name: 'span2' });
+    });
+
+    const span3Promise = suppressTracing(async () => {
+      const span = startInactiveSpan({ name: 'span3' });
+      await new Promise(resolve => setTimeout(resolve, 100));
+      return span;
+    });
+
+    const span4 = suppressTracing(() => {
+      return startInactiveSpan({ name: 'span' });
+    });
+
+    const span5 = startInactiveSpan({ name: 'span5' });
+
+    const span2 = await span2Promise;
+    const span3 = await span3Promise;
+
+    expect(spanIsSampled(span)).toBe(false);
+    expect(spanIsSampled(span2)).toBe(false);
+    expect(spanIsSampled(span3)).toBe(false);
+    expect(spanIsSampled(span4)).toBe(false);
+    expect(spanIsSampled(span5)).toBe(true);
   });
 });
 

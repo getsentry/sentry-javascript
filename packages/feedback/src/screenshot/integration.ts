@@ -1,5 +1,4 @@
-import type { FeedbackScreenshotIntegration, IntegrationFn } from '@sentry/core';
-import type { Attachment } from '@sentry/core';
+import type { Attachment, FeedbackScreenshotIntegration, IntegrationFn } from '@sentry/core';
 import type { h as hType } from 'preact';
 import type * as Hooks from 'preact/hooks';
 import { DOCUMENT } from '../constants';

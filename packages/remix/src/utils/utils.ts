@@ -1,14 +1,20 @@
-import type { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node';
-import { logger } from '@sentry/core';
+import type { ActionFunctionArgs, LoaderFunctionArgs, ServerBuild } from '@remix-run/node';
+import type { AgnosticRouteObject } from '@remix-run/router';
 import type { Span, TransactionSource } from '@sentry/core';
+import { logger } from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
 import { getRequestMatch, matchServerRoutes } from './vendor/response';
-import type { ServerRoute, ServerRouteManifest } from './vendor/types';
+
+type ServerRouteManifest = ServerBuild['routes'];
 
 /**
  *
  */
-export async function storeFormDataKeys(args: LoaderFunctionArgs | ActionFunctionArgs, span: Span): Promise<void> {
+export async function storeFormDataKeys(
+  args: LoaderFunctionArgs | ActionFunctionArgs,
+  span: Span,
+  formDataKeys?: Record<string, string | boolean> | undefined,
+): Promise<void> {
   try {
     // We clone the request for Remix be able to read the FormData later.
     const clonedRequest = args.request.clone();
@@ -19,7 +25,18 @@ export async function storeFormDataKeys(args: LoaderFunctionArgs | ActionFunctio
     const formData = await clonedRequest.formData();
 
     formData.forEach((value, key) => {
-      span.setAttribute(`remix.action_form_data.${key}`, typeof value === 'string' ? value : '[non-string value]');
+      let attrKey = key;
+
+      if (formDataKeys?.[key]) {
+        if (typeof formDataKeys[key] === 'string') {
+          attrKey = formDataKeys[key] as string;
+        }
+
+        span.setAttribute(
+          `remix.action_form_data.${attrKey}`,
+          typeof value === 'string' ? value : '[non-string value]',
+        );
+      }
     });
   } catch (e) {
     DEBUG_BUILD && logger.warn('Failed to read FormData from request', e);
@@ -29,7 +46,7 @@ export async function storeFormDataKeys(args: LoaderFunctionArgs | ActionFunctio
 /**
  * Get transaction name from routes and url
  */
-export function getTransactionName(routes: ServerRoute[], url: URL): [string, TransactionSource] {
+export function getTransactionName(routes: AgnosticRouteObject[], url: URL): [string, TransactionSource] {
   const matches = matchServerRoutes(routes, url.pathname);
   const match = matches && getRequestMatch(url, matches);
   return match === null ? [url.pathname, 'url'] : [match.route.id || 'no-route-id', 'route'];
@@ -41,11 +58,11 @@ export function getTransactionName(routes: ServerRoute[], url: URL): [string, Tr
  * @param manifest
  * @param parentId
  */
-export function createRoutes(manifest: ServerRouteManifest, parentId?: string): ServerRoute[] {
+export function createRoutes(manifest: ServerRouteManifest, parentId?: string): AgnosticRouteObject[] {
   return Object.entries(manifest)
     .filter(([, route]) => route.parentId === parentId)
     .map(([id, route]) => ({
       ...route,
       children: createRoutes(manifest, id),
-    }));
+    })) as AgnosticRouteObject[];
 }

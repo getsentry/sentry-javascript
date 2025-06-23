@@ -15,6 +15,7 @@ export type {
   Stacktrace,
   Thread,
   User,
+  FeatureFlagsIntegration,
 } from '@sentry/core';
 
 export {
@@ -33,6 +34,7 @@ export {
   createTransport,
   getClient,
   isInitialized,
+  isEnabled,
   generateInstrumentOnce,
   getCurrentScope,
   getGlobalScope,
@@ -128,12 +130,17 @@ export {
   spanToBaggageHeader,
   trpcMiddleware,
   updateSpanName,
+  supabaseIntegration,
+  instrumentSupabaseClient,
   zodErrorsIntegration,
   profiler,
   amqplibIntegration,
   vercelAIIntegration,
   logger,
   consoleLoggingIntegration,
+  createSentryWinstonTransport,
+  wrapMcpServerWithSentry,
+  featureFlagsIntegration,
 } from '@sentry/node';
 
 export {

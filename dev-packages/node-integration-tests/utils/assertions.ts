@@ -1,14 +1,14 @@
-import { SDK_VERSION } from '@sentry/core';
 import type {
   ClientReport,
   Envelope,
   Event,
   SerializedCheckIn,
-  SerializedOtelLog,
+  SerializedLogContainer,
   SerializedSession,
   SessionAggregates,
   TransactionEvent,
 } from '@sentry/core';
+import { SDK_VERSION } from '@sentry/core';
 import { expect } from 'vitest';
 
 /**
@@ -67,7 +67,10 @@ export function assertSentryClientReport(actual: ClientReport, expected: Partial
   });
 }
 
-export function assertSentryOtelLog(actual: SerializedOtelLog, expected: Partial<SerializedOtelLog>): void {
+export function assertSentryLogContainer(
+  actual: SerializedLogContainer,
+  expected: Partial<SerializedLogContainer>,
+): void {
   expect(actual).toMatchObject({
     ...expected,
   });

@@ -1,10 +1,10 @@
 import { expect } from '@playwright/test';
 import type { Event as SentryEvent, SpanEnvelope } from '@sentry/core';
-
 import { sentryTest } from '../../../../utils/fixtures';
 import {
   getFirstSentryEnvelopeRequest,
   getMultipleSentryEnvelopeRequests,
+  hidePage,
   properFullEnvelopeRequestParser,
   shouldSkipTracingTest,
 } from '../../../../utils/helpers';
@@ -34,9 +34,7 @@ sentryTest('should capture an INP click event span after pageload', async ({ bro
   await page.waitForTimeout(500);
 
   // Page hide to trigger INP
-  await page.evaluate(() => {
-    window.dispatchEvent(new Event('pagehide'));
-  });
+  await hidePage(page);
 
   // Get the INP span envelope
   const spanEnvelope = (await spanEnvelopePromise)[0];

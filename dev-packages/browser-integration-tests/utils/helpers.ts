@@ -1,15 +1,17 @@
+/* eslint-disable max-lines */
 import type { Page, Request } from '@playwright/test';
-import { parseEnvelope } from '@sentry/core';
 import type {
+  ClientReport,
   Envelope,
   EnvelopeItem,
   EnvelopeItemType,
-  Event,
+  Event as SentryEvent,
   EventEnvelope,
   EventEnvelopeHeaders,
   SessionContext,
   TransactionEvent,
 } from '@sentry/core';
+import { parseEnvelope } from '@sentry/core';
 
 export const envelopeUrlRegex = /\.sentry\.io\/api\/\d+\/envelope\//;
 
@@ -27,7 +29,7 @@ export const envelopeParser = (request: Request | null): unknown[] => {
   });
 };
 
-export const envelopeRequestParser = <T = Event>(request: Request | null, envelopeIndex = 2): T => {
+export const envelopeRequestParser = <T = SentryEvent>(request: Request | null, envelopeIndex = 2): T => {
   return envelopeParser(request)[envelopeIndex] as T;
 };
 
@@ -48,7 +50,7 @@ export const properEnvelopeParser = (request: Request | null): EnvelopeItem[] =>
   return items;
 };
 
-export type EventAndTraceHeader = [Event, EventEnvelopeHeaders['trace']];
+export type EventAndTraceHeader = [SentryEvent, EventEnvelopeHeaders['trace']];
 
 /**
  * Returns the first event item and `trace` envelope header from an envelope.
@@ -67,7 +69,7 @@ const properFullEnvelopeParser = <T extends Envelope>(request: Request | null): 
 };
 
 function getEventAndTraceHeader(envelope: EventEnvelope): EventAndTraceHeader {
-  const event = envelope[1][0]?.[1] as Event | undefined;
+  const event = envelope[1][0]?.[1] as SentryEvent | undefined;
   const trace = envelope[0]?.trace;
 
   if (!event || !trace) {
@@ -77,7 +79,7 @@ function getEventAndTraceHeader(envelope: EventEnvelope): EventAndTraceHeader {
   return [event, trace];
 }
 
-export const properEnvelopeRequestParser = <T = Event>(request: Request | null, envelopeIndex = 1): T => {
+export const properEnvelopeRequestParser = <T = SentryEvent>(request: Request | null, envelopeIndex = 1): T => {
   return properEnvelopeParser(request)[0]?.[envelopeIndex] as T;
 };
 
@@ -180,13 +182,13 @@ export async function runScriptInSandbox(
  *
  * @param {Page} page
  * @param {string} [url]
- * @return {*}  {Promise<Array<Event>>}
+ * @return {*}  {Promise<Array<SentryEvent>>}
  */
-export async function getSentryEvents(page: Page, url?: string): Promise<Array<Event>> {
+export async function getSentryEvents(page: Page, url?: string): Promise<Array<SentryEvent>> {
   if (url) {
     await page.goto(url);
   }
-  const eventsHandle = await page.evaluateHandle<Array<Event>>('window.events');
+  const eventsHandle = await page.evaluateHandle<Array<SentryEvent>>('window.events');
 
   return eventsHandle.jsonValue();
 }
@@ -201,7 +203,7 @@ export async function waitForTransactionRequestOnUrl(page: Page, url: string): P
   return req;
 }
 
-export function waitForErrorRequest(page: Page, callback?: (event: Event) => boolean): Promise<Request> {
+export function waitForErrorRequest(page: Page, callback?: (event: SentryEvent) => boolean): Promise<Request> {
   return page.waitForRequest(req => {
     const postData = req.postData();
     if (!postData) {
@@ -245,6 +247,31 @@ export function waitForTransactionRequest(
 
       if (callback) {
         return callback(event as TransactionEvent);
+      }
+
+      return true;
+    } catch {
+      return false;
+    }
+  });
+}
+
+export function waitForClientReportRequest(page: Page, callback?: (report: ClientReport) => boolean): Promise<Request> {
+  return page.waitForRequest(req => {
+    const postData = req.postData();
+    if (!postData) {
+      return false;
+    }
+
+    try {
+      const maybeReport = envelopeRequestParser<Partial<ClientReport>>(req);
+
+      if (typeof maybeReport.discarded_events !== 'object') {
+        return false;
+      }
+
+      if (callback) {
+        return callback(maybeReport as ClientReport);
       }
 
       return true;
@@ -418,4 +445,37 @@ export async function getFirstSentryEnvelopeRequest<T>(
   }
 
   return req;
+}
+
+export async function hidePage(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      get: function () {
+        return 'hidden';
+      },
+    });
+
+    // Dispatch the visibilitychange event to notify listeners
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+}
+
+export async function waitForTracingHeadersOnUrl(
+  page: Page,
+  url: string,
+): Promise<{ baggage: string; sentryTrace: string }> {
+  return new Promise<{ baggage: string; sentryTrace: string }>(resolve => {
+    page
+      .route(url, (route, req) => {
+        const baggage = req.headers()['baggage'];
+        const sentryTrace = req.headers()['sentry-trace'];
+        resolve({ baggage, sentryTrace });
+        return route.fulfill({ status: 200, body: 'ok' });
+      })
+      .catch(error => {
+        // Handle any routing setup errors
+        throw error;
+      });
+  });
 }

@@ -2,17 +2,18 @@
  * @vitest-environment jsdom
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-import { BASE_TIMESTAMP } from '../../..';
+import '../../../utils/mock-internal-setTimeout';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { addBreadcrumbEvent } from '../../../../src/coreHandlers/util/addBreadcrumbEvent';
 import type { EventBufferArray } from '../../../../src/eventBuffer/EventBufferArray';
+import { BASE_TIMESTAMP } from '../../..';
 import { setupReplayContainer } from '../../../utils/setupReplayContainer';
-import { useFakeTimers } from '../../../utils/use-fake-timers';
-
-useFakeTimers();
 
 describe('Unit | coreHandlers | util | addBreadcrumbEvent', function () {
+  beforeAll(() => {
+    vi.useFakeTimers();
+  });
+
   beforeEach(function () {
     vi.setSystemTime(BASE_TIMESTAMP);
   });

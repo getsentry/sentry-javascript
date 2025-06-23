@@ -1,7 +1,7 @@
-import * as fs from 'fs';
-import * as path from 'path';
 import { consoleSandbox } from '@sentry/core';
+import * as fs from 'fs';
 import type { Nitro } from 'nitropack';
+import * as path from 'path';
 import type { SentrySolidStartPluginOptions } from '../vite/types';
 import type { RollupConfig } from './types';
 import { wrapServerEntryWithDynamicImport } from './wrapServerEntryWithDynamicImport';

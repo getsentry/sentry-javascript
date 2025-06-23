@@ -1,8 +1,6 @@
 /* eslint-disable max-lines */
-import { CpuProfilerBindings, ProfileFormat, type RawThreadCpuProfile } from '@sentry-internal/node-cpu-profiler';
 import type { Event, IntegrationFn, Profile, ProfileChunk, ProfilingIntegration, Span } from '@sentry/core';
 import {
-  LRUMap,
   consoleSandbox,
   defineIntegration,
   getCurrentScope,
@@ -10,21 +8,23 @@ import {
   getIsolationScope,
   getRootSpan,
   logger,
+  LRUMap,
   spanToJSON,
   uuid4,
 } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
+import { type RawThreadCpuProfile, CpuProfilerBindings, ProfileFormat } from '@sentry-internal/node-cpu-profiler';
 import { DEBUG_BUILD } from './debug-build';
 import { NODE_MAJOR, NODE_VERSION } from './nodeVersion';
 import { MAX_PROFILE_DURATION_MS, maybeProfileSpan, stopSpanProfile } from './spanProfileUtils';
 import {
-  PROFILER_THREAD_ID_STRING,
-  PROFILER_THREAD_NAME,
   addProfilesToEnvelope,
   createProfilingChunkEvent,
   createProfilingEvent,
   findProfiledTransactionsFromEnvelope,
   makeProfileChunkEnvelope,
+  PROFILER_THREAD_ID_STRING,
+  PROFILER_THREAD_NAME,
 } from './utils';
 
 const CHUNK_INTERVAL_MS = 1000 * 60;
@@ -632,12 +632,12 @@ class ContinuousProfiler {
 
 /** Exported only for tests. */
 export const _nodeProfilingIntegration = ((): ProfilingIntegration<NodeClient> => {
-  if (![16, 18, 20, 22].includes(NODE_MAJOR)) {
+  if (![16, 18, 20, 22, 24].includes(NODE_MAJOR)) {
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.warn(
         `[Sentry Profiling] You are using a Node.js version that does not have prebuilt binaries (${NODE_VERSION}).`,
-        'The @sentry/profiling-node package only has prebuilt support for the following LTS versions of Node.js: 16, 18, 20, 22.',
+        'The @sentry/profiling-node package only has prebuilt support for the following LTS versions of Node.js: 16, 18, 20, 22, 24.',
         'To use the @sentry/profiling-node package with this version of Node.js, you will need to compile the native addon from source.',
         'See: https://github.com/getsentry/sentry-javascript/tree/develop/packages/profiling-node#building-the-package-from-source',
       );

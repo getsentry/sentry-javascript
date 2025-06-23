@@ -1,24 +1,53 @@
+/* eslint-disable @typescript-eslint/no-dynamic-delete */
 /* eslint-disable complexity */
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, defineIntegration, spanToJSON } from '@sentry/core';
-import type { IntegrationFn } from '@sentry/core';
+import type { Client, IntegrationFn } from '@sentry/core';
+import { defineIntegration, SEMANTIC_ATTRIBUTE_SENTRY_OP, spanToJSON } from '@sentry/core';
 import { generateInstrumentOnce } from '../../../otel/instrument';
 import { addOriginToSpan } from '../../../utils/addOriginToSpan';
+import type { modulesIntegration } from '../../modules';
+import {
+  AI_MODEL_ID_ATTRIBUTE,
+  AI_MODEL_PROVIDER_ATTRIBUTE,
+  AI_PROMPT_ATTRIBUTE,
+  AI_PROMPT_MESSAGES_ATTRIBUTE,
+  AI_PROMPT_TOOLS_ATTRIBUTE,
+  AI_RESPONSE_TEXT_ATTRIBUTE,
+  AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
+  AI_TELEMETRY_FUNCTION_ID_ATTRIBUTE,
+  AI_TOOL_CALL_ID_ATTRIBUTE,
+  AI_TOOL_CALL_NAME_ATTRIBUTE,
+  AI_USAGE_COMPLETION_TOKENS_ATTRIBUTE,
+  AI_USAGE_PROMPT_TOKENS_ATTRIBUTE,
+  GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
+  GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
+  GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
+} from './ai_sdk_attributes';
+import { INTEGRATION_NAME } from './constants';
 import { SentryVercelAiInstrumentation } from './instrumentation';
-
-const INTEGRATION_NAME = 'VercelAI';
+import type { VercelAiOptions } from './types';
 
 export const instrumentVercelAi = generateInstrumentOnce(INTEGRATION_NAME, () => new SentryVercelAiInstrumentation({}));
 
-const _vercelAIIntegration = (() => {
+/**
+ * Determines if the integration should be forced based on environment and package availability.
+ * Returns true if the 'ai' package is available.
+ */
+function shouldForceIntegration(client: Client): boolean {
+  const modules = client.getIntegrationByName<ReturnType<typeof modulesIntegration>>('Modules');
+  return !!modules?.getModules?.()?.ai;
+}
+
+const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
   let instrumentation: undefined | SentryVercelAiInstrumentation;
 
   return {
     name: INTEGRATION_NAME,
+    options,
     setupOnce() {
       instrumentation = instrumentVercelAi();
     },
-    setup(client) {
-      instrumentation?.callWhenPatched(() => {
+    afterAllSetup(client) {
+      function registerProcessors(): void {
         client.on('spanStart', span => {
           const { data: attributes, description: name } = spanToJSON(span);
 
@@ -26,79 +55,28 @@ const _vercelAIIntegration = (() => {
             return;
           }
 
-          // The id of the model
-          const aiModelId = attributes['ai.model.id'];
-
-          // the provider of the model
-          const aiModelProvider = attributes['ai.model.provider'];
-
-          // both of these must be defined for the integration to work
-          if (typeof aiModelId !== 'string' || typeof aiModelProvider !== 'string' || !aiModelId || !aiModelProvider) {
+          // Tool call spans
+          // https://ai-sdk.dev/docs/ai-sdk-core/telemetry#tool-call-spans
+          if (
+            attributes[AI_TOOL_CALL_NAME_ATTRIBUTE] &&
+            attributes[AI_TOOL_CALL_ID_ATTRIBUTE] &&
+            name === 'ai.toolCall'
+          ) {
+            addOriginToSpan(span, 'auto.vercelai.otel');
+            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'gen_ai.execute_tool');
+            span.setAttribute('gen_ai.tool.call.id', attributes[AI_TOOL_CALL_ID_ATTRIBUTE]);
+            span.setAttribute('gen_ai.tool.name', attributes[AI_TOOL_CALL_NAME_ATTRIBUTE]);
+            span.updateName(`execute_tool ${attributes[AI_TOOL_CALL_NAME_ATTRIBUTE]}`);
             return;
           }
 
-          let isPipelineSpan = false;
-
-          switch (name) {
-            case 'ai.generateText': {
-              span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.pipeline.generateText');
-              isPipelineSpan = true;
-              break;
-            }
-            case 'ai.generateText.doGenerate': {
-              span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.run.doGenerate');
-              break;
-            }
-            case 'ai.streamText': {
-              span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.pipeline.streamText');
-              isPipelineSpan = true;
-              break;
-            }
-            case 'ai.streamText.doStream': {
-              span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.run.doStream');
-              break;
-            }
-            case 'ai.generateObject': {
-              span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.pipeline.generateObject');
-              isPipelineSpan = true;
-              break;
-            }
-            case 'ai.generateObject.doGenerate': {
-              span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.run.doGenerate');
-              break;
-            }
-            case 'ai.streamObject': {
-              span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.pipeline.streamObject');
-              isPipelineSpan = true;
-              break;
-            }
-            case 'ai.streamObject.doStream': {
-              span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.run.doStream');
-              break;
-            }
-            case 'ai.embed': {
-              span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.pipeline.embed');
-              isPipelineSpan = true;
-              break;
-            }
-            case 'ai.embed.doEmbed': {
-              span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.embeddings');
-              break;
-            }
-            case 'ai.embedMany': {
-              span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.pipeline.embedMany');
-              isPipelineSpan = true;
-              break;
-            }
-            case 'ai.embedMany.doEmbed': {
-              span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.embeddings');
-              break;
-            }
-            case 'ai.toolCall':
-            case 'ai.stream.firstChunk':
-            case 'ai.stream.finish':
-              span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.run');
-              break;
+          // The AI and Provider must be defined for generate, stream, and embed spans.
+          // The id of the model
+          const aiModelId = attributes[AI_MODEL_ID_ATTRIBUTE];
+          // the provider of the model
+          const aiModelProvider = attributes[AI_MODEL_PROVIDER_ATTRIBUTE];
+          if (typeof aiModelId !== 'string' || typeof aiModelProvider !== 'string' || !aiModelId || !aiModelProvider) {
+            return;
           }
 
           addOriginToSpan(span, 'auto.vercelai.otel');
@@ -108,19 +86,91 @@ const _vercelAIIntegration = (() => {
           span.updateName(nameWthoutAi);
 
           // If a Telemetry name is set and it is a pipeline span, use that as the operation name
-          const functionId = attributes['ai.telemetry.functionId'];
-          if (functionId && typeof functionId === 'string' && isPipelineSpan) {
-            span.updateName(functionId);
+          const functionId = attributes[AI_TELEMETRY_FUNCTION_ID_ATTRIBUTE];
+          if (functionId && typeof functionId === 'string' && name.split('.').length - 1 === 1) {
+            span.updateName(`${nameWthoutAi} ${functionId}`);
             span.setAttribute('ai.pipeline.name', functionId);
           }
 
-          if (attributes['ai.prompt']) {
-            span.setAttribute('ai.input_messages', attributes['ai.prompt']);
+          if (attributes[AI_PROMPT_ATTRIBUTE]) {
+            span.setAttribute('gen_ai.prompt', attributes[AI_PROMPT_ATTRIBUTE]);
           }
-          if (attributes['ai.model.id']) {
-            span.setAttribute('ai.model_id', attributes['ai.model.id']);
+          if (attributes[AI_MODEL_ID_ATTRIBUTE] && !attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]) {
+            span.setAttribute(GEN_AI_RESPONSE_MODEL_ATTRIBUTE, attributes[AI_MODEL_ID_ATTRIBUTE]);
           }
           span.setAttribute('ai.streaming', name.includes('stream'));
+
+          // Generate Spans
+          if (name === 'ai.generateText') {
+            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.pipeline.generate_text');
+            return;
+          }
+
+          if (name === 'ai.generateText.doGenerate') {
+            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'gen_ai.generate_text');
+            span.updateName(`generate_text ${attributes[AI_MODEL_ID_ATTRIBUTE]}`);
+            return;
+          }
+
+          if (name === 'ai.streamText') {
+            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.pipeline.stream_text');
+            return;
+          }
+
+          if (name === 'ai.streamText.doStream') {
+            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'gen_ai.stream_text');
+            span.updateName(`stream_text ${attributes[AI_MODEL_ID_ATTRIBUTE]}`);
+            return;
+          }
+
+          if (name === 'ai.generateObject') {
+            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.pipeline.generate_object');
+            return;
+          }
+
+          if (name === 'ai.generateObject.doGenerate') {
+            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'gen_ai.generate_object');
+            span.updateName(`generate_object ${attributes[AI_MODEL_ID_ATTRIBUTE]}`);
+            return;
+          }
+
+          if (name === 'ai.streamObject') {
+            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.pipeline.stream_object');
+            return;
+          }
+
+          if (name === 'ai.streamObject.doStream') {
+            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'gen_ai.stream_object');
+            span.updateName(`stream_object ${attributes[AI_MODEL_ID_ATTRIBUTE]}`);
+            return;
+          }
+
+          if (name === 'ai.embed') {
+            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.pipeline.embed');
+            return;
+          }
+
+          if (name === 'ai.embed.doEmbed') {
+            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'gen_ai.embed');
+            span.updateName(`embed ${attributes[AI_MODEL_ID_ATTRIBUTE]}`);
+            return;
+          }
+
+          if (name === 'ai.embedMany') {
+            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.pipeline.embed_many');
+            return;
+          }
+
+          if (name === 'ai.embedMany.doEmbed') {
+            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'gen_ai.embed_many');
+            span.updateName(`embed_many ${attributes[AI_MODEL_ID_ATTRIBUTE]}`);
+            return;
+          }
+
+          if (name.startsWith('ai.stream')) {
+            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.run');
+            return;
+          }
         });
 
         client.addEventProcessor(event => {
@@ -132,25 +182,41 @@ const _vercelAIIntegration = (() => {
                 continue;
               }
 
-              if (attributes['ai.usage.completionTokens'] != undefined) {
-                attributes['ai.completion_tokens.used'] = attributes['ai.usage.completionTokens'];
-              }
-              if (attributes['ai.usage.promptTokens'] != undefined) {
-                attributes['ai.prompt_tokens.used'] = attributes['ai.usage.promptTokens'];
-              }
+              renameAttributeKey(
+                attributes,
+                AI_USAGE_COMPLETION_TOKENS_ATTRIBUTE,
+                GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
+              );
+              renameAttributeKey(attributes, AI_USAGE_PROMPT_TOKENS_ATTRIBUTE, GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE);
               if (
-                typeof attributes['ai.usage.completionTokens'] == 'number' &&
-                typeof attributes['ai.usage.promptTokens'] == 'number'
+                typeof attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] === 'number' &&
+                typeof attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE] === 'number'
               ) {
-                attributes['ai.total_tokens.used'] =
-                  attributes['ai.usage.completionTokens'] + attributes['ai.usage.promptTokens'];
+                attributes['gen_ai.usage.total_tokens'] =
+                  attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] + attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE];
               }
+
+              // Rename AI SDK attributes to standardized gen_ai attributes
+              renameAttributeKey(attributes, AI_PROMPT_MESSAGES_ATTRIBUTE, 'gen_ai.request.messages');
+              renameAttributeKey(attributes, AI_RESPONSE_TEXT_ATTRIBUTE, 'gen_ai.response.text');
+              renameAttributeKey(attributes, AI_RESPONSE_TOOL_CALLS_ATTRIBUTE, 'gen_ai.response.tool_calls');
+              renameAttributeKey(attributes, AI_PROMPT_TOOLS_ATTRIBUTE, 'gen_ai.request.available_tools');
             }
           }
 
           return event;
         });
-      });
+      }
+
+      // Auto-detect if we should force the integration when running with 'ai' package available
+      // Note that this can only be detected if the 'Modules' integration is available, and running in CJS mode
+      const shouldForce = options.force ?? shouldForceIntegration(client);
+
+      if (shouldForce) {
+        registerProcessors();
+      } else {
+        instrumentation?.callWhenPatched(registerProcessors);
+      }
     },
   };
 }) satisfies IntegrationFn;
@@ -168,6 +234,9 @@ const _vercelAIIntegration = (() => {
  *  integrations: [Sentry.vercelAIIntegration()],
  * });
  * ```
+ *
+ * The integration automatically detects when to force registration in CommonJS environments
+ * when the 'ai' package is available. You can still manually set the `force` option if needed.
  *
  * By default this integration adds tracing support to all `ai` function calls. If you need to disable
  * collecting spans for a specific call, you can do so by setting `experimental_telemetry.isEnabled` to
@@ -191,3 +260,14 @@ const _vercelAIIntegration = (() => {
  * });
  */
 export const vercelAIIntegration = defineIntegration(_vercelAIIntegration);
+
+/**
+ * Renames an attribute key in the provided attributes object if the old key exists.
+ * This function safely handles null and undefined values.
+ */
+function renameAttributeKey(attributes: Record<string, unknown>, oldKey: string, newKey: string): void {
+  if (attributes[oldKey] != null) {
+    attributes[newKey] = attributes[oldKey];
+    delete attributes[oldKey];
+  }
+}

@@ -1,5 +1,6 @@
-import type { SerializedSession, Session, SessionContext, SessionStatus } from './types-hoist';
-import { timestampInSeconds, uuid4 } from './utils-hoist';
+import type { SerializedSession, Session, SessionContext, SessionStatus } from './types-hoist/session';
+import { uuid4 } from './utils/misc';
+import { timestampInSeconds } from './utils/time';
 
 /**
  * Creates a new `Session` object by setting certain default parameters. If optional @param context

@@ -49,12 +49,7 @@ export function wrapClientClass<
      */
     public async flush(timeout?: number): Promise<boolean> {
       const provider = this.traceProvider;
-      const spanProcessor = provider?.activeSpanProcessor;
-
-      if (spanProcessor) {
-        await spanProcessor.forceFlush();
-      }
-
+      await provider?.forceFlush();
       return super.flush(timeout);
     }
   }

@@ -4,13 +4,15 @@ import { getGlobalScope } from '../currentScopes';
 import { notifyEventProcessors } from '../eventProcessors';
 import type { CaptureContext, ScopeContext } from '../scope';
 import { Scope } from '../scope';
-import type { ClientOptions, Event, EventHint, StackParser } from '../types-hoist';
-import { getFilenameToDebugIdMap } from '../utils-hoist/debug-ids';
-import { addExceptionMechanism, uuid4 } from '../utils-hoist/misc';
-import { normalize } from '../utils-hoist/normalize';
-import { truncate } from '../utils-hoist/string';
-import { dateTimestampInSeconds } from '../utils-hoist/time';
+import type { Event, EventHint } from '../types-hoist/event';
+import type { ClientOptions } from '../types-hoist/options';
+import type { StackParser } from '../types-hoist/stacktrace';
 import { applyScopeDataToEvent, mergeScopeData } from './applyScopeDataToEvent';
+import { getFilenameToDebugIdMap } from './debug-ids';
+import { addExceptionMechanism, uuid4 } from './misc';
+import { normalize } from './normalize';
+import { truncate } from './string';
+import { dateTimestampInSeconds } from './time';
 
 /**
  * This type makes sure that we get either a CaptureContext, OR an EventHint.

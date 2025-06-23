@@ -1,12 +1,5 @@
 /* eslint-disable max-lines */
 
-import {
-  SENTRY_XHR_DATA_KEY,
-  addClickKeypressInstrumentationHandler,
-  addHistoryInstrumentationHandler,
-  addXhrInstrumentationHandler,
-} from '@sentry-internal/browser-utils';
-import type { FetchHint, XhrHint } from '@sentry-internal/browser-utils';
 import type {
   Breadcrumb,
   Client,
@@ -37,7 +30,13 @@ import {
   safeJoin,
   severityLevelFromString,
 } from '@sentry/core';
-
+import type { FetchHint, XhrHint } from '@sentry-internal/browser-utils';
+import {
+  addClickKeypressInstrumentationHandler,
+  addHistoryInstrumentationHandler,
+  addXhrInstrumentationHandler,
+  SENTRY_XHR_DATA_KEY,
+} from '@sentry-internal/browser-utils';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 
@@ -74,6 +73,7 @@ const _breadcrumbsIntegration = ((options: Partial<BreadcrumbsOptions> = {}) => 
   return {
     name: INTEGRATION_NAME,
     setup(client) {
+      // TODO(v10): Remove this functionality and use `consoleIntegration` from @sentry/core instead.
       if (_options.console) {
         addConsoleInstrumentationHandler(_getConsoleBreadcrumbHandler(client));
       }

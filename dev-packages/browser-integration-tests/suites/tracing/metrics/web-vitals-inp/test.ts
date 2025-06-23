@@ -1,10 +1,10 @@
 import { expect } from '@playwright/test';
 import type { Event as SentryEvent, SpanEnvelope, SpanJSON } from '@sentry/core';
-
 import { sentryTest } from '../../../../utils/fixtures';
 import {
   getFirstSentryEnvelopeRequest,
   getMultipleSentryEnvelopeRequests,
+  hidePage,
   properFullEnvelopeRequestParser,
   shouldSkipTracingTest,
 } from '../../../../utils/helpers';
@@ -33,9 +33,7 @@ sentryTest('should capture an INP click event span during pageload', async ({ br
   await page.waitForTimeout(500);
 
   // Page hide to trigger INP
-  await page.evaluate(() => {
-    window.dispatchEvent(new Event('pagehide'));
-  });
+  await hidePage(page);
 
   // Get the INP span envelope
   const spanEnvelope = (await spanEnvelopePromise)[0];
@@ -119,6 +117,14 @@ sentryTest(
     });
 
     // Page hide to trigger INP
+
+    // Important: Purposefully not using hidePage() here to test the hidden state
+    // via the `pagehide` event. This is necessary because iOS Safari 14.4
+    // still doesn't fully emit the `visibilitychange` events but it's the lower
+    // bound for Safari on iOS that we support.
+    // If this test times out or fails, it's likely because we tried updating
+    // the web-vitals library which officially already dropped support for
+    // this iOS version
     await page.evaluate(() => {
       window.dispatchEvent(new Event('pagehide'));
     });

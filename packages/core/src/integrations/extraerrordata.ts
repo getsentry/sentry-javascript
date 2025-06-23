@@ -1,12 +1,14 @@
-import { defineIntegration } from '../integration';
-import type { Contexts, Event, EventHint, ExtendedError, IntegrationFn } from '../types-hoist';
-
 import { DEBUG_BUILD } from '../debug-build';
-import { isError, isPlainObject } from '../utils-hoist/is';
-import { logger } from '../utils-hoist/logger';
-import { normalize } from '../utils-hoist/normalize';
-import { addNonEnumerableProperty } from '../utils-hoist/object';
-import { truncate } from '../utils-hoist/string';
+import { defineIntegration } from '../integration';
+import type { Contexts } from '../types-hoist/context';
+import type { ExtendedError } from '../types-hoist/error';
+import type { Event, EventHint } from '../types-hoist/event';
+import type { IntegrationFn } from '../types-hoist/integration';
+import { isError, isPlainObject } from '../utils/is';
+import { logger } from '../utils/logger';
+import { normalize } from '../utils/normalize';
+import { addNonEnumerableProperty } from '../utils/object';
+import { truncate } from '../utils/string';
 
 const INTEGRATION_NAME = 'ExtraErrorData';
 

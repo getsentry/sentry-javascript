@@ -1,8 +1,8 @@
-import { describe, test, expect, beforeEach, vi } from 'vitest';
-import { trpcMiddleware, setCurrentClient, type Client, type Span } from '../../src';
-import * as tracing from '../../src/tracing';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { type Client, type Span, setCurrentClient, trpcMiddleware } from '../../src';
 import * as currentScopes from '../../src/currentScopes';
 import * as exports from '../../src/exports';
+import * as tracing from '../../src/tracing';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
 describe('trpcMiddleware', () => {
@@ -26,7 +26,7 @@ describe('trpcMiddleware', () => {
     setExtra: vi.fn(),
   };
 
-  const withScope = vi.fn(callback => {
+  const withIsolationScope = vi.fn(callback => {
     return callback(mockScope);
   });
 
@@ -38,7 +38,7 @@ describe('trpcMiddleware', () => {
     client.init();
     vi.spyOn(currentScopes, 'getClient').mockReturnValue(mockClient);
     vi.spyOn(tracing, 'startSpanManual').mockImplementation((name, callback) => callback(mockSpan, () => {}));
-    vi.spyOn(currentScopes, 'withScope').mockImplementation(withScope);
+    vi.spyOn(currentScopes, 'withIsolationScope').mockImplementation(withIsolationScope);
     vi.spyOn(exports, 'captureException').mockImplementation(() => 'mock-event-id');
   });
 

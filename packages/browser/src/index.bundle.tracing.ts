@@ -1,5 +1,5 @@
-import { feedbackIntegrationShim, replayIntegrationShim } from '@sentry-internal/integration-shims';
 import { registerSpanErrorInstrumentation } from '@sentry/core';
+import { feedbackIntegrationShim, replayIntegrationShim } from '@sentry-internal/integration-shims';
 
 registerSpanErrorInstrumentation();
 

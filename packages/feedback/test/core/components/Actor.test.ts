@@ -1,8 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { vi, describe, it, expect } from 'vitest';
-
+import { describe, expect, it, vi } from 'vitest';
 import { TRIGGER_LABEL } from '../../../src/constants';
 import { getFeedback } from '../../../src/core/getFeedback';
 import { buildFeedbackIntegration } from '../../../src/core/integration';
@@ -62,5 +61,25 @@ describe('Actor', () => {
 
     expect(actorAria.el.textContent).toBe('Button');
     expect(actorAria.el.ariaLabel).toBe('Aria');
+  });
+
+  it('does not throw if removeFromDom() is called when it is not mounted', () => {
+    const feedbackIntegration = buildFeedbackIntegration({
+      lazyLoadIntegration: vi.fn(),
+    });
+
+    const configuredIntegration = feedbackIntegration({});
+    mockSdk({
+      sentryOptions: {
+        integrations: [configuredIntegration],
+      },
+    });
+
+    const feedback = getFeedback();
+
+    const actorComponent = feedback!.createWidget();
+
+    expect(() => actorComponent.removeFromDom()).not.toThrowError();
+    expect(() => actorComponent.removeFromDom()).not.toThrowError();
   });
 });

@@ -1,7 +1,7 @@
 import { getClient, getIsolationScope } from './currentScopes';
-import type { Breadcrumb, BreadcrumbHint } from './types-hoist';
-import { consoleSandbox } from './utils-hoist/logger';
-import { dateTimestampInSeconds } from './utils-hoist/time';
+import type { Breadcrumb, BreadcrumbHint } from './types-hoist/breadcrumb';
+import { consoleSandbox } from './utils/logger';
+import { dateTimestampInSeconds } from './utils/time';
 
 /**
  * Default maximum number of breadcrumbs added to an event. Can be overwritten

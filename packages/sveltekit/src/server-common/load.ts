@@ -1,11 +1,10 @@
 import {
+  addNonEnumerableProperty,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  addNonEnumerableProperty,
   startSpan,
 } from '@sentry/core';
 import type { LoadEvent, ServerLoadEvent } from '@sveltejs/kit';
-
 import type { SentryWrappedFlag } from '../common/utils';
 import { flushIfServerless, sendErrorToSentry } from './utils';
 

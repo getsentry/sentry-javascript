@@ -1,10 +1,5 @@
 import type { RequestEventData, WebFetchHeaders } from '@sentry/core';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  SPAN_STATUS_ERROR,
-  SPAN_STATUS_OK,
-  Scope,
   captureException,
   getActiveSpan,
   getCapturedScopesOnSpan,
@@ -12,7 +7,13 @@ import {
   getRootSpan,
   handleCallbackErrors,
   propagationContextFromHeaders,
+  Scope,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCapturedScopesOnSpan,
+  SPAN_STATUS_ERROR,
+  SPAN_STATUS_OK,
+  spanToJSON,
   startSpanManual,
   winterCGHeadersToDict,
   withIsolationScope,
@@ -22,7 +23,7 @@ import type { GenerationFunctionContext } from '../common/types';
 import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
 import { TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL } from './span-attributes-with-logic-attached';
 import { commonObjectToIsolationScope, commonObjectToPropagationContext } from './utils/tracingUtils';
-
+import { getSanitizedRequestUrl } from './utils/urls';
 /**
  * Wraps a generation function (e.g. generateMetadata) with Sentry error and performance instrumentation.
  */
@@ -44,13 +45,22 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
       }
 
       const isolationScope = commonObjectToIsolationScope(headers);
+      let pathname = undefined as string | undefined;
 
       const activeSpan = getActiveSpan();
       if (activeSpan) {
         const rootSpan = getRootSpan(activeSpan);
         const { scope } = getCapturedScopesOnSpan(rootSpan);
         setCapturedScopesOnSpan(rootSpan, scope ?? new Scope(), isolationScope);
+
+        const spanData = spanToJSON(rootSpan);
+
+        if (spanData.data && 'http.target' in spanData.data) {
+          pathname = spanData.data['http.target'] as string;
+        }
       }
+
+      const headersDict = headers ? winterCGHeadersToDict(headers) : undefined;
 
       let data: Record<string, unknown> | undefined = undefined;
       if (getClient()?.getOptions().sendDefaultPii) {
@@ -61,8 +71,6 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
         data = { params, searchParams };
       }
 
-      const headersDict = headers ? winterCGHeadersToDict(headers) : undefined;
-
       return withIsolationScope(isolationScope, () => {
         return withScope(scope => {
           scope.setTransactionName(`${componentType}.${generationFunctionIdentifier} (${componentRoute})`);
@@ -70,6 +78,12 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
           isolationScope.setSDKProcessingMetadata({
             normalizedRequest: {
               headers: headersDict,
+              url: getSanitizedRequestUrl(
+                componentRoute,
+                data?.params as Record<string, string> | undefined,
+                headersDict,
+                pathname,
+              ),
             } satisfies RequestEventData,
           });
 
@@ -102,6 +116,8 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
               attributes: {
                 [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
+                'sentry.nextjs.ssr.function.type': generationFunctionIdentifier,
+                'sentry.nextjs.ssr.function.route': componentRoute,
               },
             },
             span => {

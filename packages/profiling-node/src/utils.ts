@@ -1,4 +1,3 @@
-import * as os from 'os';
 import type {
   Client,
   ContinuousThreadCpuProfile,
@@ -23,11 +22,10 @@ import {
   logger,
   uuid4,
 } from '@sentry/core';
-
+import type { RawChunkCpuProfile, RawThreadCpuProfile } from '@sentry-internal/node-cpu-profiler';
+import * as os from 'os';
 import { env, versions } from 'process';
 import { isMainThread, threadId } from 'worker_threads';
-
-import type { RawChunkCpuProfile, RawThreadCpuProfile } from '@sentry-internal/node-cpu-profiler';
 import { DEBUG_BUILD } from './debug-build';
 
 // We require the file because if we import it, it will be included in the bundle.

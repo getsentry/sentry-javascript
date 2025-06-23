@@ -1,9 +1,17 @@
-import { VERSION } from '@opentelemetry/core';
+import { context } from '@opentelemetry/api';
+import { isTracingSuppressed, VERSION } from '@opentelemetry/core';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase } from '@opentelemetry/instrumentation';
 import type { SanitizedRequestData } from '@sentry/core';
-import { LRUMap, getClient, getTraceData } from '@sentry/core';
-import { addBreadcrumb, getBreadcrumbLogLevelFromHttpStatusCode, getSanitizedUrlString, parseUrl } from '@sentry/core';
+import {
+  addBreadcrumb,
+  getBreadcrumbLogLevelFromHttpStatusCode,
+  getClient,
+  getSanitizedUrlString,
+  getTraceData,
+  LRUMap,
+  parseUrl,
+} from '@sentry/core';
 import { shouldPropagateTraceForUrl } from '@sentry/opentelemetry';
 import * as diagch from 'diagnostics_channel';
 import { NODE_MAJOR, NODE_MINOR } from '../../nodeVersion';
@@ -54,11 +62,13 @@ export class SentryNodeFetchInstrumentation extends InstrumentationBase<SentryNo
   // unsubscribing.
   private _channelSubs: Array<ListenerRecord>;
   private _propagationDecisionMap: LRUMap<string, boolean>;
+  private _ignoreOutgoingRequestsMap: WeakMap<UndiciRequest, boolean>;
 
   public constructor(config: SentryNodeFetchInstrumentationOptions = {}) {
     super('@sentry/instrumentation-node-fetch', VERSION, config);
     this._channelSubs = [];
     this._propagationDecisionMap = new LRUMap<string, boolean>(100);
+    this._ignoreOutgoingRequestsMap = new WeakMap<UndiciRequest, boolean>();
   }
 
   /** No need to instrument files/modules. */
@@ -111,14 +121,16 @@ export class SentryNodeFetchInstrumentation extends InstrumentationBase<SentryNo
       return;
     }
 
-    // Add trace propagation headers
-    const url = getAbsoluteUrl(request.origin, request.path);
-    const _ignoreOutgoingRequests = config.ignoreOutgoingRequests;
-    const shouldIgnore = _ignoreOutgoingRequests && url && _ignoreOutgoingRequests(url);
+    const shouldIgnore = this._shouldIgnoreOutgoingRequest(request);
+    // We store this decisision for later so we do not need to re-evaluate it
+    // Additionally, the active context is not correct in _onResponseHeaders, so we need to make sure it is evaluated here
+    this._ignoreOutgoingRequestsMap.set(request, shouldIgnore);
 
     if (shouldIgnore) {
       return;
     }
+
+    const url = getAbsoluteUrl(request.origin, request.path);
 
     // Manually add the trace headers, if it applies
     // Note: We do not use `propagation.inject()` here, because our propagator relies on an active span
@@ -190,13 +202,9 @@ export class SentryNodeFetchInstrumentation extends InstrumentationBase<SentryNo
     const _breadcrumbs = config.breadcrumbs;
     const breadCrumbsEnabled = typeof _breadcrumbs === 'undefined' ? true : _breadcrumbs;
 
-    const _ignoreOutgoingRequests = config.ignoreOutgoingRequests;
-    const shouldCreateBreadcrumb =
-      typeof _ignoreOutgoingRequests === 'function'
-        ? !_ignoreOutgoingRequests(getAbsoluteUrl(request.origin, request.path))
-        : true;
+    const shouldIgnore = this._ignoreOutgoingRequestsMap.get(request);
 
-    if (breadCrumbsEnabled && shouldCreateBreadcrumb) {
+    if (breadCrumbsEnabled && !shouldIgnore) {
       addRequestBreadcrumb(request, response);
     }
   }
@@ -224,6 +232,25 @@ export class SentryNodeFetchInstrumentation extends InstrumentationBase<SentryNo
       name: diagnosticChannel,
       unsubscribe,
     });
+  }
+
+  /**
+   * Check if the given outgoing request should be ignored.
+   */
+  private _shouldIgnoreOutgoingRequest(request: UndiciRequest): boolean {
+    if (isTracingSuppressed(context.active())) {
+      return true;
+    }
+
+    // Add trace propagation headers
+    const url = getAbsoluteUrl(request.origin, request.path);
+    const ignoreOutgoingRequests = this.getConfig().ignoreOutgoingRequests;
+
+    if (typeof ignoreOutgoingRequests !== 'function' || !url) {
+      return false;
+    }
+
+    return ignoreOutgoingRequests(url);
   }
 }
 

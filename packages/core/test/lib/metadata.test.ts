@@ -1,10 +1,9 @@
-import type { Event } from '../../src/types-hoist';
-
 import { beforeEach, describe, expect, it } from 'vitest';
 import { addMetadataToStackFrames, getMetadataForUrl, stripMetadataFromStackFrames } from '../../src/metadata';
-import { nodeStackLineParser } from '../../src/utils-hoist/node-stack-trace';
-import { createStackParser } from '../../src/utils-hoist/stacktrace';
-import { GLOBAL_OBJ } from '../../src/utils-hoist/worldwide';
+import type { Event } from '../../src/types-hoist/event';
+import { nodeStackLineParser } from '../../src/utils/node-stack-trace';
+import { createStackParser } from '../../src/utils/stacktrace';
+import { GLOBAL_OBJ } from '../../src/utils/worldwide';
 
 const parser = createStackParser(nodeStackLineParser());
 

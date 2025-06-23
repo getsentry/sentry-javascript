@@ -1,3 +1,5 @@
+/* eslint-disable import/export */
+
 import type { Client, Integration, Options, StackParser } from '@sentry/core';
 import type { SentryNuxtClientOptions, SentryNuxtServerOptions } from './common/types';
 import type * as clientSdk from './index.client';

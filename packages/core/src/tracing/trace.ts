@@ -1,30 +1,24 @@
 /* eslint-disable max-lines */
 
+import { getAsyncContextStrategy } from '../asyncContext';
 import type { AsyncContextStrategy } from '../asyncContext/types';
 import { getMainCarrier } from '../carrier';
-import type {
-  ClientOptions,
-  DynamicSamplingContext,
-  SentrySpanArguments,
-  Span,
-  SpanTimeInput,
-  StartSpanOptions,
-} from '../types-hoist';
-
 import { getClient, getCurrentScope, getIsolationScope, withScope } from '../currentScopes';
-
-import { getAsyncContextStrategy } from '../asyncContext';
 import { DEBUG_BUILD } from '../debug-build';
 import type { Scope } from '../scope';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
-import { logger } from '../utils-hoist/logger';
-import { generateTraceId } from '../utils-hoist/propagationContext';
-import { propagationContextFromHeaders } from '../utils-hoist/tracing';
+import type { DynamicSamplingContext } from '../types-hoist/envelope';
+import type { ClientOptions } from '../types-hoist/options';
+import type { SentrySpanArguments, Span, SpanTimeInput } from '../types-hoist/span';
+import type { StartSpanOptions } from '../types-hoist/startSpanOptions';
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
 import { hasSpansEnabled } from '../utils/hasSpansEnabled';
+import { logger } from '../utils/logger';
 import { parseSampleRate } from '../utils/parseSampleRate';
+import { generateTraceId } from '../utils/propagationContext';
 import { _getSpanForScope, _setSpanForScope } from '../utils/spanOnScope';
 import { addChildSpanToSpan, getRootSpan, spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
+import { propagationContextFromHeaders } from '../utils/tracing';
 import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanStart } from './logSpans';
 import { sampleSpan } from './sampling';
@@ -259,8 +253,15 @@ export function suppressTracing<T>(callback: () => T): T {
   }
 
   return withScope(scope => {
+    // Note: We do not wait for the callback to finish before we reset the metadata
+    // the reason for this is that otherwise, in the browser this can lead to very weird behavior
+    // as there is only a single top scope, if the callback takes longer to finish,
+    // other, unrelated spans may also be suppressed, which we do not want
+    // so instead, we only suppress tracing synchronoysly in the browser
     scope.setSDKProcessingMetadata({ [SUPPRESS_TRACING_KEY]: true });
-    return callback();
+    const res = callback();
+    scope.setSDKProcessingMetadata({ [SUPPRESS_TRACING_KEY]: undefined });
+    return res;
   });
 }
 
@@ -407,7 +408,17 @@ function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parent
   const client = getClient();
   const options: Partial<ClientOptions> = client?.getOptions() || {};
 
-  const { name = '', attributes } = spanArguments;
+  const { name = '' } = spanArguments;
+
+  const mutableSpanSamplingData = { spanAttributes: { ...spanArguments.attributes }, spanName: name, parentSampled };
+
+  // we don't care about the decision for the moment; this is just a placeholder
+  client?.emit('beforeSampling', mutableSpanSamplingData, { decision: false });
+
+  // If hook consumers override the parentSampled flag, we will use that value instead of the actual one
+  const finalParentSampled = mutableSpanSamplingData.parentSampled ?? parentSampled;
+  const finalAttributes = mutableSpanSamplingData.spanAttributes;
+
   const currentPropagationContext = scope.getPropagationContext();
   const [sampled, sampleRate, localSampleRateWasApplied] = scope.getScopeData().sdkProcessingMetadata[
     SUPPRESS_TRACING_KEY
@@ -417,8 +428,8 @@ function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parent
         options,
         {
           name,
-          parentSampled,
-          attributes,
+          parentSampled: finalParentSampled,
+          attributes: finalAttributes,
           parentSampleRate: parseSampleRate(currentPropagationContext.dsc?.sample_rate),
         },
         currentPropagationContext.sampleRand,
@@ -430,7 +441,7 @@ function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parent
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
       [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]:
         sampleRate !== undefined && localSampleRateWasApplied ? sampleRate : undefined,
-      ...spanArguments.attributes,
+      ...finalAttributes,
     },
     sampled,
   });

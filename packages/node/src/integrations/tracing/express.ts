@@ -4,13 +4,13 @@ import type { ExpressRequestInfo } from '@opentelemetry/instrumentation-express'
 import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
 import type { IntegrationFn } from '@sentry/core';
 import {
-  httpRequestToRequestData,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   captureException,
   defineIntegration,
   getDefaultIsolationScope,
   getIsolationScope,
+  httpRequestToRequestData,
   logger,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   spanToJSON,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';

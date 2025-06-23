@@ -1,14 +1,16 @@
 import { getAsyncContextStrategy } from '../asyncContext';
 import { getMainCarrier } from '../carrier';
+import type { Client } from '../client';
 import { getClient, getCurrentScope } from '../currentScopes';
 import { isEnabled } from '../exports';
 import type { Scope } from '../scope';
 import { getDynamicSamplingContextFromScope, getDynamicSamplingContextFromSpan } from '../tracing';
-import type { SerializedTraceData, Span } from '../types-hoist';
-import { dynamicSamplingContextToSentryBaggageHeader } from '../utils-hoist/baggage';
-import { logger } from '../utils-hoist/logger';
-import { TRACEPARENT_REGEXP, generateSentryTraceHeader } from '../utils-hoist/tracing';
+import type { Span } from '../types-hoist/span';
+import type { SerializedTraceData } from '../types-hoist/tracing';
+import { dynamicSamplingContextToSentryBaggageHeader } from './baggage';
+import { logger } from './logger';
 import { getActiveSpan, spanToTraceHeader } from './spanUtils';
+import { generateSentryTraceHeader, TRACEPARENT_REGEXP } from './tracing';
 
 /**
  * Extracts trace propagation data from the current span or from the client's scope (via transaction or propagation
@@ -21,8 +23,8 @@ import { getActiveSpan, spanToTraceHeader } from './spanUtils';
  * @returns an object with the tracing data values. The object keys are the name of the tracing key to be used as header
  * or meta tag name.
  */
-export function getTraceData(options: { span?: Span } = {}): SerializedTraceData {
-  const client = getClient();
+export function getTraceData(options: { span?: Span; scope?: Scope; client?: Client } = {}): SerializedTraceData {
+  const client = options.client || getClient();
   if (!isEnabled() || !client) {
     return {};
   }
@@ -33,7 +35,7 @@ export function getTraceData(options: { span?: Span } = {}): SerializedTraceData
     return acs.getTraceData(options);
   }
 
-  const scope = getCurrentScope();
+  const scope = options.scope || getCurrentScope();
   const span = options.span || getActiveSpan();
   const sentryTrace = span ? spanToTraceHeader(span) : scopeToTraceHeader(scope);
   const dsc = span ? getDynamicSamplingContextFromSpan(span) : getDynamicSamplingContextFromScope(client, scope);

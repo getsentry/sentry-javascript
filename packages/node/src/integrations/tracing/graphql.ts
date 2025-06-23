@@ -1,9 +1,10 @@
+import type { AttributeValue } from '@opentelemetry/api';
+import { SpanStatusCode } from '@opentelemetry/api';
 import { GraphQLInstrumentation } from '@opentelemetry/instrumentation-graphql';
-import { defineIntegration, getRootSpan, spanToJSON } from '@sentry/core';
 import type { IntegrationFn } from '@sentry/core';
+import { defineIntegration, getRootSpan, spanToJSON } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION } from '@sentry/opentelemetry';
 import { generateInstrumentOnce } from '../../otel/instrument';
-
 import { addOriginToSpan } from '../../utils/addOriginToSpan';
 
 interface GraphqlOptions {
@@ -45,8 +46,15 @@ export const instrumentGraphql = generateInstrumentOnce(
 
     return {
       ...options,
-      responseHook(span) {
+      responseHook(span, result) {
         addOriginToSpan(span, 'auto.graphql.otel.graphql');
+
+        // We want to ensure spans are marked as errored if there are errors in the result
+        // We only do that if the span is not already marked with a status
+        const resultWithMaybeError = result as { errors?: { message: string }[] };
+        if (resultWithMaybeError.errors?.length && !spanToJSON(span).status) {
+          span.setStatus({ code: SpanStatusCode.ERROR });
+        }
 
         const attributes = spanToJSON(span).data;
 
@@ -72,6 +80,16 @@ export const instrumentGraphql = generateInstrumentOnce(
           } else {
             rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION, newOperation);
           }
+
+          if (!spanToJSON(rootSpan).data['original-description']) {
+            rootSpan.setAttribute('original-description', spanToJSON(rootSpan).description);
+          }
+          // Important for e.g. @sentry/aws-serverless because this would otherwise overwrite the name again
+          rootSpan.updateName(
+            `${spanToJSON(rootSpan).data['original-description']} (${getGraphqlOperationNamesFromAttribute(
+              existingOperations,
+            )})`,
+          );
         }
       },
     };
@@ -114,4 +132,21 @@ function getOptionsWithDefaults(options?: GraphqlOptions): GraphqlOptions {
     useOperationNameForRootSpan: true,
     ...options,
   };
+}
+
+// copy from packages/opentelemetry/utils
+function getGraphqlOperationNamesFromAttribute(attr: AttributeValue): string {
+  if (Array.isArray(attr)) {
+    const sorted = attr.slice().sort();
+
+    // Up to 5 items, we just add all of them
+    if (sorted.length <= 5) {
+      return sorted.join(', ');
+    } else {
+      // Else, we add the first 5 and the diff of other operations
+      return `${sorted.slice(0, 5).join(', ')}, +${sorted.length - 5}`;
+    }
+  }
+
+  return `${attr}`;
 }

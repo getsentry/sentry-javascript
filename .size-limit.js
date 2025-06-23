@@ -8,7 +8,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init'),
     gzip: true,
-    limit: '24 KB',
+    limit: '25 KB',
   },
   {
     name: '@sentry/browser - with treeshaking flags',
@@ -18,7 +18,6 @@ module.exports = [
     limit: '24.1 KB',
     modifyWebpackConfig: function (config) {
       const webpack = require('webpack');
-      const TerserPlugin = require('terser-webpack-plugin');
 
       config.plugins.push(
         new webpack.DefinePlugin({
@@ -30,7 +29,6 @@ module.exports = [
       );
 
       config.optimization.minimize = true;
-      config.optimization.minimizer = [new TerserPlugin()];
 
       return config;
     },
@@ -40,24 +38,23 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration'),
     gzip: true,
-    limit: '38 KB',
+    limit: '39 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay)',
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration'),
     gzip: true,
-    limit: '76 KB',
+    limit: '77 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay) - with treeshaking flags',
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration'),
     gzip: true,
-    limit: '70 KB',
+    limit: '70.1 KB',
     modifyWebpackConfig: function (config) {
       const webpack = require('webpack');
-      const TerserPlugin = require('terser-webpack-plugin');
 
       config.plugins.push(
         new webpack.DefinePlugin({
@@ -69,7 +66,6 @@ module.exports = [
       );
 
       config.optimization.minimize = true;
-      config.optimization.minimizer = [new TerserPlugin()];
 
       return config;
     },
@@ -79,7 +75,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration', 'replayCanvasIntegration'),
     gzip: true,
-    limit: '81 KB',
+    limit: '82 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay, Feedback)',
@@ -124,7 +120,7 @@ module.exports = [
     import: createImport('init', 'ErrorBoundary', 'reactRouterV6BrowserTracingIntegration'),
     ignore: ['react/jsx-runtime'],
     gzip: true,
-    limit: '40.5 KB',
+    limit: '41 KB',
   },
   // Vue SDK (ESM)
   {
@@ -139,7 +135,7 @@ module.exports = [
     path: 'packages/vue/build/esm/index.js',
     import: createImport('init', 'browserTracingIntegration'),
     gzip: true,
-    limit: '40 KB',
+    limit: '41 KB',
   },
   // Svelte SDK (ESM)
   {
@@ -210,7 +206,7 @@ module.exports = [
     import: createImport('init'),
     ignore: ['next/router', 'next/constants'],
     gzip: true,
-    limit: '42 KB',
+    limit: '43 KB',
   },
   // SvelteKit SDK (ESM)
   {
@@ -219,7 +215,7 @@ module.exports = [
     import: createImport('init'),
     ignore: ['$app/stores'],
     gzip: true,
-    limit: '38.5 KB',
+    limit: '40 KB',
   },
   // Node SDK (ESM)
   {
@@ -239,7 +235,6 @@ module.exports = [
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     modifyWebpackConfig: function (config) {
       const webpack = require('webpack');
-      const TerserPlugin = require('terser-webpack-plugin');
 
       config.plugins.push(
         new webpack.DefinePlugin({
@@ -248,7 +243,6 @@ module.exports = [
       );
 
       config.optimization.minimize = true;
-      config.optimization.minimizer = [new TerserPlugin()];
 
       return config;
     },

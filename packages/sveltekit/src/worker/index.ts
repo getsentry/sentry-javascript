@@ -46,6 +46,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   inboundFiltersIntegration,
   isInitialized,
+  isEnabled,
   lastEventId,
   linkedErrorsIntegration,
   requestDataIntegration,
@@ -78,7 +79,11 @@ export {
   withIsolationScope,
   withMonitor,
   withScope,
+  supabaseIntegration,
+  instrumentSupabaseClient,
   zodErrorsIntegration,
+  featureFlagsIntegration,
+  type FeatureFlagsIntegration,
 } from '@sentry/cloudflare';
 
 /**

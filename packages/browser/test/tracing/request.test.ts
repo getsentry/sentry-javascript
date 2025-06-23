@@ -1,10 +1,8 @@
-import type { MockInstance } from 'vitest';
-import { beforeAll, beforeEach, describe, expect, it, vi, afterEach } from 'vitest';
-
-import * as browserUtils from '@sentry-internal/browser-utils';
-import * as utils from '@sentry/core';
 import type { Client } from '@sentry/core';
-
+import * as utils from '@sentry/core';
+import * as browserUtils from '@sentry-internal/browser-utils';
+import type { MockInstance } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { instrumentOutgoingRequests, shouldAttachHeaders } from '../../src/tracing/request';
 
 beforeAll(() => {
@@ -185,7 +183,7 @@ describe('shouldAttachHeaders', () => {
       ['https://my-origin.com?my-query', 'my-query', true],
       ['https://not-my-origin.com?my-query', 'my-query', true],
     ])(
-      'for url %p and tracePropagationTarget %p on page "https://my-origin.com/api/my-route" should return %p',
+      'for url %j and tracePropagationTarget %j on page "https://my-origin.com/api/my-route" should return %j',
       (url, matcher, result) => {
         expect(shouldAttachHeaders(url, [matcher])).toBe(result);
       },
@@ -236,7 +234,7 @@ describe('shouldAttachHeaders', () => {
     'https://not-my-origin.com/api',
     'https://my-origin.com?my-query',
     'https://not-my-origin.com?my-query',
-  ])('should return false for everything if tracePropagationTargets are empty (%p)', url => {
+  ])('should return false for everything if tracePropagationTargets are empty (%j)', url => {
     expect(shouldAttachHeaders(url, [])).toBe(false);
   });
 
@@ -268,7 +266,7 @@ describe('shouldAttachHeaders', () => {
         ['http://localhost:3000', false],
         ['https://somewhere.com/test/localhost/123', false],
         ['https://somewhere.com/test?url=https://my-origin.com', false],
-      ])('for URL %p should return %p', (url, expectedResult) => {
+      ])('for URL %j should return %j', (url, expectedResult) => {
         expect(shouldAttachHeaders(url, undefined)).toBe(expectedResult);
       });
     });
@@ -329,7 +327,7 @@ describe('shouldAttachHeaders', () => {
       ['https://not-my-origin.com/api', 'api', true],
       ['https://my-origin.com?my-query', 'my-query', true],
       ['https://not-my-origin.com?my-query', 'my-query', true],
-    ])('for url %p and tracePropagationTarget %p should return %p', (url, matcher, result) => {
+    ])('for url %j and tracePropagationTarget %j should return %j', (url, matcher, result) => {
       expect(shouldAttachHeaders(url, [matcher])).toBe(result);
     });
   });

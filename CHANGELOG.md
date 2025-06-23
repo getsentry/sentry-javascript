@@ -1,14 +1,435 @@
 # Changelog
 
-<!-- prettier-ignore-start -->
-> [!IMPORTANT]
-> If you are upgrading to the `9.x` versions of the SDK from `8.x` or below, make sure you follow our
-> [migration guide](https://docs.sentry.io/platforms/javascript/migration/) first.
-<!-- prettier-ignore-end -->
-
 ## Unreleased
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+
+## 9.31.0
+
+### Important Changes
+
+- feat(nextjs): Add option for auto-generated random tunnel route ([#16626](https://github.com/getsentry/sentry-javascript/pull/16626))
+
+Adds an option to automatically generate a random tunnel route for the Next.js SDK. This helps prevent ad blockers and other tools from blocking Sentry requests by using a randomized path instead of the predictable `/monitoring` endpoint.
+
+- feat(core): Allow to pass `scope` & `client` to `getTraceData` ([#16633](https://github.com/getsentry/sentry-javascript/pull/16633))
+
+Adds the ability to pass custom `scope` and `client` parameters to the `getTraceData` function, providing more flexibility when generating trace data for distributed tracing.
+
+### Other Changes
+
+- feat(core): Add support for `x-forwarded-host` and `x-forwarded-proto` headers ([#16687](https://github.com/getsentry/sentry-javascript/pull/16687))
+- deps: Remove unused `@sentry/opentelemetry` dependency ([#16677](https://github.com/getsentry/sentry-javascript/pull/16677))
+- deps: Update all bundler plugin instances to latest & allow caret ranges ([#16641](https://github.com/getsentry/sentry-javascript/pull/16641))
+- feat(deps): Bump @prisma/instrumentation from 6.8.2 to 6.9.0 ([#16608](https://github.com/getsentry/sentry-javascript/pull/16608))
+- feat(flags): add node support for generic featureFlagsIntegration and move utils to core ([#16585](https://github.com/getsentry/sentry-javascript/pull/16585))
+- feat(flags): capture feature flag evaluations on spans ([#16485](https://github.com/getsentry/sentry-javascript/pull/16485))
+- feat(pino): Add initial package for `@sentry/pino-transport` ([#16652](https://github.com/getsentry/sentry-javascript/pull/16652))
+- fix: Wait for the correct clientWidth/clientHeight when showing Feedback Screenshot previews ([#16648](https://github.com/getsentry/sentry-javascript/pull/16648))
+- fix(browser): Remove usage of Array.at() method ([#16647](https://github.com/getsentry/sentry-javascript/pull/16647))
+- fix(core): Improve `safeJoin` usage in console logging integration ([#16658](https://github.com/getsentry/sentry-javascript/pull/16658))
+- fix(google-cloud-serverless): Make `CloudEvent` type compatible ([#16661](https://github.com/getsentry/sentry-javascript/pull/16661))
+- fix(nextjs): Fix lookup of `instrumentation-client.js` file ([#16637](https://github.com/getsentry/sentry-javascript/pull/16637))
+- fix(node): Ensure graphql errors result in errored spans ([#16678](https://github.com/getsentry/sentry-javascript/pull/16678))
+
+## 9.30.0
+
+- feat(nextjs): Add URL to tags of server components and generation functions issues ([#16500](https://github.com/getsentry/sentry-javascript/pull/16500))
+- feat(nextjs): Ensure all packages we auto-instrument are externalized ([#16552](https://github.com/getsentry/sentry-javascript/pull/16552))
+- feat(node): Automatically enable `vercelAiIntegration` when `ai` module is detected ([#16565](https://github.com/getsentry/sentry-javascript/pull/16565))
+- feat(node): Ensure `modulesIntegration` works in more environments ([#16566](https://github.com/getsentry/sentry-javascript/pull/16566))
+- feat(core): Don't gate user on logs with `sendDefaultPii` ([#16527](https://github.com/getsentry/sentry-javascript/pull/16527))
+- feat(browser): Add detail to measure spans and add regression tests ([#16557](https://github.com/getsentry/sentry-javascript/pull/16557))
+- feat(node): Update Vercel AI span attributes ([#16580](https://github.com/getsentry/sentry-javascript/pull/16580))
+- fix(opentelemetry): Ensure only orphaned spans of sent spans are sent ([#16590](https://github.com/getsentry/sentry-javascript/pull/16590))
+
+## 9.29.0
+
+### Important Changes
+
+- **feat(browser): Update `web-vitals` to 5.0.2 ([#16492](https://github.com/getsentry/sentry-javascript/pull/16492))**
+
+This release upgrades the `web-vitals` library to version 5.0.2. This upgrade could slightly change the collected web vital values and potentially also influence alerts and performance scores in the Sentry UI.
+
+### Other Changes
+
+- feat(deps): Bump @sentry/rollup-plugin from 3.4.0 to 3.5.0 ([#16524](https://github.com/getsentry/sentry-javascript/pull/16524))
+- feat(ember): Stop warning for `onError` usage ([#16547](https://github.com/getsentry/sentry-javascript/pull/16547))
+- feat(node): Allow to force activate `vercelAiIntegration` ([#16551](https://github.com/getsentry/sentry-javascript/pull/16551))
+- feat(node): Introduce `ignoreLayersType` option to koa integration ([#16553](https://github.com/getsentry/sentry-javascript/pull/16553))
+- fix(browser): Ensure `suppressTracing` does not leak when async ([#16545](https://github.com/getsentry/sentry-javascript/pull/16545))
+- fix(vue): Ensure root component render span always ends ([#16488](https://github.com/getsentry/sentry-javascript/pull/16488))
+
+## 9.28.1
+
+- feat(deps): Bump @sentry/cli from 2.45.0 to 2.46.0 ([#16516](https://github.com/getsentry/sentry-javascript/pull/16516))
+- fix(nextjs): Avoid tracing calls to symbolication server on dev ([#16533](https://github.com/getsentry/sentry-javascript/pull/16533))
+- fix(sveltekit): Add import attribute for node exports ([#16528](https://github.com/getsentry/sentry-javascript/pull/16528))
+
+Work in this release was contributed by @eltigerchino. Thank you for your contribution!
+
+## 9.28.0
+
+### Important Changes
+
+- **feat(nestjs): Stop creating spans for `TracingInterceptor` ([#16501](https://github.com/getsentry/sentry-javascript/pull/16501))**
+
+With this change we stop creating spans for `TracingInterceptor` as this interceptor only serves as an internal helper and adds noise for the user.
+
+- **feat(node): Update vercel ai spans as per new conventions ([#16497](https://github.com/getsentry/sentry-javascript/pull/16497))**
+
+This feature ships updates to the span names and ops to better match OpenTelemetry. This should make them more easily accessible to the new agents module view we are building.
+
+### Other Changes
+
+- fix(sveltekit): Export `vercelAIIntegration` from `@sentry/node` ([#16496](https://github.com/getsentry/sentry-javascript/pull/16496))
+
+Work in this release was contributed by @agrattan0820. Thank you for your contribution!
+
+## 9.27.0
+
+- feat(node): Expand how vercel ai input/outputs can be set ([#16455](https://github.com/getsentry/sentry-javascript/pull/16455))
+- feat(node): Switch to new semantic conventions for Vercel AI ([#16476](https://github.com/getsentry/sentry-javascript/pull/16476))
+- feat(react-router): Add component annotation plugin ([#16472](https://github.com/getsentry/sentry-javascript/pull/16472))
+- feat(react-router): Export wrappers for server loaders and actions ([#16481](https://github.com/getsentry/sentry-javascript/pull/16481))
+- fix(browser): Ignore unrealistically long INP values ([#16484](https://github.com/getsentry/sentry-javascript/pull/16484))
+- fix(react-router): Conditionally add `ReactRouterServer` integration ([#16470](https://github.com/getsentry/sentry-javascript/pull/16470))
+
+## 9.26.0
+
+- feat(react-router): Re-export functions from `@sentry/react` ([#16465](https://github.com/getsentry/sentry-javascript/pull/16465))
+- fix(nextjs): Skip re instrumentating on generate phase of experimental build mode ([#16410](https://github.com/getsentry/sentry-javascript/pull/16410))
+- fix(node): Ensure adding sentry-trace and baggage headers via SentryHttpInstrumentation doesn't crash ([#16473](https://github.com/getsentry/sentry-javascript/pull/16473))
+
+## 9.25.1
+
+- fix(otel): Don't ignore child spans after the root is sent ([#16416](https://github.com/getsentry/sentry-javascript/pull/16416))
+
+## 9.25.0
+
+### Important Changes
+
+- **feat(browser): Add option to ignore `mark` and `measure` spans ([#16443](https://github.com/getsentry/sentry-javascript/pull/16443))**
+
+This release adds an option to `browserTracingIntegration` that lets you ignore
+`mark` and `measure` spans created from the `performance.mark(...)` and `performance.measure(...)` browser APIs:
+
+```js
+Sentry.init({
+  integrations: [
+    Sentry.browserTracingIntegration({
+      ignorePerformanceApiSpans: ['measure-to-ignore', /mark-to-ignore/],
+    }),
+  ],
+});
+```
+
+### Other Changes
+
+- feat(browser): Export getTraceData from the browser sdks ([#16433](https://github.com/getsentry/sentry-javascript/pull/16433))
+- feat(node): Add `includeServerName` option ([#16442](https://github.com/getsentry/sentry-javascript/pull/16442))
+- fix(nuxt): Remove setting `@sentry/nuxt` external ([#16444](https://github.com/getsentry/sentry-javascript/pull/16444))
+
+## 9.24.0
+
+### Important Changes
+
+- feat(angular): Bump `@sentry/angular` peer dependencies to add Angular 20 support ([#16414](https://github.com/getsentry/sentry-javascript/pull/16414))
+
+This release adds support for Angular 20 to the Sentry Angular SDK `@sentry/angular`.
+
+### Other Changes
+
+- feat(browser): Add `unregisterOriginalCallbacks` option to `browserApiErrorsIntegration` ([#16412](https://github.com/getsentry/sentry-javascript/pull/16412))
+- feat(core): Add user to logs ([#16399](https://github.com/getsentry/sentry-javascript/pull/16399))
+- feat(core): Make sure Supabase db query insights are populated ([#16169](https://github.com/getsentry/sentry-javascript/pull/16169))
+
+## 9.23.0
+
+### Important changes
+
+- **feat(browser): option to ignore certain resource types ([#16389](https://github.com/getsentry/sentry-javascript/pull/16389))**
+
+Adds an option to opt out of certain `resource.*` spans via `ignoreResourceSpans`.
+
+For example, to opt out of `resource.script` spans:
+
+```js
+Sentry.browserTracingIntegration({
+  ignoreResourceSpans: ['resource.script'],
+}),
+```
+
+### Other changes
+
+- feat: Export `isEnabled` from all SDKs ([#16405](https://github.com/getsentry/sentry-javascript/pull/16405))
+- feat(browser): Disable client when browser extension is detected in `init()` ([#16354](https://github.com/getsentry/sentry-javascript/pull/16354))
+- feat(core): Allow re-use of `captureLog` ([#16352](https://github.com/getsentry/sentry-javascript/pull/16352))
+- feat(core): Export `_INTERNAL_captureSerializedLog` ([#16387](https://github.com/getsentry/sentry-javascript/pull/16387))
+- feat(deps): bump @opentelemetry/semantic-conventions from 1.32.0 to 1.34.0 ([#16393](https://github.com/getsentry/sentry-javascript/pull/16393))
+- feat(deps): bump @prisma/instrumentation from 6.7.0 to 6.8.2 ([#16392](https://github.com/getsentry/sentry-javascript/pull/16392))
+- feat(deps): bump @sentry/cli from 2.43.0 to 2.45.0 ([#16395](https://github.com/getsentry/sentry-javascript/pull/16395))
+- feat(deps): bump @sentry/webpack-plugin from 3.3.1 to 3.5.0 ([#16394](https://github.com/getsentry/sentry-javascript/pull/16394))
+- feat(nextjs): Include `static/chunks/main-*` files for `widenClientFileUpload` ([#16406](https://github.com/getsentry/sentry-javascript/pull/16406))
+- feat(node): Do not add HTTP & fetch span instrumentation if tracing is disabled ([#15730](https://github.com/getsentry/sentry-javascript/pull/15730))
+- feat(nuxt): Added support for nuxt layers ([#16372](https://github.com/getsentry/sentry-javascript/pull/16372))
+- fix(browser): Ensure logs are flushed when sendClientReports=false ([#16351](https://github.com/getsentry/sentry-javascript/pull/16351))
+- fix(browser): Move `browserTracingIntegration` code to `setup` hook ([#16386](https://github.com/getsentry/sentry-javascript/pull/16386))
+- fix(cloudflare): Capture exceptions thrown in hono ([#16355](https://github.com/getsentry/sentry-javascript/pull/16355))
+- fix(node): Don't warn about Spotlight on empty NODE_ENV ([#16381](https://github.com/getsentry/sentry-javascript/pull/16381))
+- fix(node): Suppress Spotlight calls ([#16380](https://github.com/getsentry/sentry-javascript/pull/16380))
+- fix(nuxt): Add `@sentry/nuxt` as external in Rollup ([#16407](https://github.com/getsentry/sentry-javascript/pull/16407))
+- fix(opentelemetry): Ensure `withScope` keeps span active & `_getTraceInfoFromScope` works ([#16385](https://github.com/getsentry/sentry-javascript/pull/16385))
+
+Work in this release was contributed by @Xenossolitarius. Thank you for your contribution!
+
+## 9.22.0
+
+### Important changes
+
+- **Revert "feat(browser): Track measure detail as span attributes" ([#16348](https://github.com/getsentry/sentry-javascript/pull/16348))**
+
+This is a revert of a feature introduced in `9.20.0` with [#16240](https://github.com/getsentry/sentry-javascript/pull/16240). This feature was causing crashes in firefox, so we are reverting it. We will re-enable this functionality in the future after fixing the crash.
+
+### Other changes
+
+- feat(deps): bump @sentry/rollup-plugin from 3.1.2 to 3.2.1 ([#15511](https://github.com/getsentry/sentry-javascript/pull/15511))
+- fix(remix): Use generic types for `ServerBuild` argument and return ([#16336](https://github.com/getsentry/sentry-javascript/pull/16336))
+
+## 9.21.0
+
+- docs: Fix v7 migration link ([#14629](https://github.com/getsentry/sentry-javascript/pull/14629))
+- feat(node): Vendor in `@fastify/otel` ([#16328](https://github.com/getsentry/sentry-javascript/pull/16328))
+- fix(nestjs): Handle multiple `OnEvent` decorators ([#16306](https://github.com/getsentry/sentry-javascript/pull/16306))
+- fix(node): Avoid creating breadcrumbs for suppressed requests ([#16285](https://github.com/getsentry/sentry-javascript/pull/16285))
+- fix(remix): Add missing `client` exports to `server` and `cloudflare` entries ([#16341](https://github.com/getsentry/sentry-javascript/pull/16341))
+
+Work in this release was contributed by @phthhieu. Thank you for your contribution!
+
+## 9.20.0
+
+### Important changes
+
+- **feat(browser): Track measure detail as span attributes ([#16240](https://github.com/getsentry/sentry-javascript/pull/16240))**
+
+The SDK now automatically collects details passed to `performance.measure` options.
+
+### Other changes
+
+- feat(node): Add `maxIncomingRequestBodySize` ([#16225](https://github.com/getsentry/sentry-javascript/pull/16225))
+- feat(react-router): Add server action instrumentation ([#16292](https://github.com/getsentry/sentry-javascript/pull/16292))
+- feat(react-router): Filter manifest requests ([#16294](https://github.com/getsentry/sentry-javascript/pull/16294))
+- feat(replay): Extend default list for masking with `aria-label` ([#16192](https://github.com/getsentry/sentry-javascript/pull/16192))
+- fix(browser): Ensure pageload & navigation spans have correct data ([#16279](https://github.com/getsentry/sentry-javascript/pull/16279))
+- fix(cloudflare): Account for static fields in wrapper type ([#16303](https://github.com/getsentry/sentry-javascript/pull/16303))
+- fix(nextjs): Preserve `next.route` attribute on root spans ([#16297](https://github.com/getsentry/sentry-javascript/pull/16297))
+- feat(node): Fork isolation scope in tRPC middleware ([#16296](https://github.com/getsentry/sentry-javascript/pull/16296))
+- feat(core): Add `orgId` option to `init` and DSC (`sentry-org_id` in baggage) ([#16305](https://github.com/getsentry/sentry-javascript/pull/16305))
+
+## 9.19.0
+
+- feat(react-router): Add otel instrumentation for server requests ([#16147](https://github.com/getsentry/sentry-javascript/pull/16147))
+- feat(remix): Vendor in `opentelemetry-instrumentation-remix` ([#16145](https://github.com/getsentry/sentry-javascript/pull/16145))
+- fix(browser): Ensure spans auto-ended for navigations have `cancelled` reason ([#16277](https://github.com/getsentry/sentry-javascript/pull/16277))
+- fix(node): Pin `@fastify/otel` fork to direct url to allow installing without git ([#16287](https://github.com/getsentry/sentry-javascript/pull/16287))
+- fix(react): Handle nested parameterized routes in reactrouterv3 transaction normalization ([#16274](https://github.com/getsentry/sentry-javascript/pull/16274))
+
+Work in this release was contributed by @sidx1024. Thank you for your contribution!
+
+## 9.18.0
+
+### Important changes
+
+- **feat: Support Node 24 ([#16236](https://github.com/getsentry/sentry-javascript/pull/16236))**
+
+We now also publish profiling binaries for Node 24.
+
+### Other changes
+
+- deps(node): Bump `import-in-the-middle` to `1.13.1` ([#16260](https://github.com/getsentry/sentry-javascript/pull/16260))
+- feat: Export `consoleLoggingIntegration` from vercel edge sdk ([#16228](https://github.com/getsentry/sentry-javascript/pull/16228))
+- feat(cloudflare): Add support for email, queue, and tail handler ([#16233](https://github.com/getsentry/sentry-javascript/pull/16233))
+- feat(cloudflare): Improve http span data ([#16232](https://github.com/getsentry/sentry-javascript/pull/16232))
+- feat(nextjs): Add more attributes for generation functions ([#16214](https://github.com/getsentry/sentry-javascript/pull/16214))
+- feat(opentelemetry): Widen peer dependencies to support Otel v2 ([#16246](https://github.com/getsentry/sentry-javascript/pull/16246))
+- fix(core): Gracefully handle invalid baggage entries ([#16257](https://github.com/getsentry/sentry-javascript/pull/16257))
+- fix(node): Ensure traces are propagated without spans in Node 22+ ([#16221](https://github.com/getsentry/sentry-javascript/pull/16221))
+- fix(node): Use sentry forked `@fastify/otel` dependency with pinned Otel v1 deps ([#16256](https://github.com/getsentry/sentry-javascript/pull/16256))
+- fix(remix): Remove vendored types ([#16218](https://github.com/getsentry/sentry-javascript/pull/16218))
+
+## 9.17.0
+
+- feat(node): Migrate to `@fastify/otel` ([#15542](https://github.com/getsentry/sentry-javascript/pull/15542))
+
+## 9.16.1
+
+- fix(core): Make sure logs get flushed in server-runtime-client ([#16222](https://github.com/getsentry/sentry-javascript/pull/16222))
+- ref(node): Remove vercel flushing code that does nothing ([#16217](https://github.com/getsentry/sentry-javascript/pull/16217))
+
+## 9.16.0
+
+### Important changes
+
+- **feat: Create a Vite plugin that injects sentryConfig into the global config ([#16197](https://github.com/getsentry/sentry-javascript/pull/16197))**
+
+Add a new plugin `makeConfigInjectorPlugin` within our existing vite plugin that updates the global vite config with sentry options
+
+- **feat(browser): Add option to sample linked traces consistently ([#16037](https://github.com/getsentry/sentry-javascript/pull/16037))**
+
+This PR implements consistent sampling across traces as outlined in ([#15754](https://github.com/getsentry/sentry-javascript/pull/15754))
+
+- **feat(cloudflare): Add support for durable objects ([#16180](https://github.com/getsentry/sentry-javascript/pull/16180))**
+
+This PR introduces a new `instrumentDurableObjectWithSentry` method to the SDK, which instruments durable objects. We capture both traces and errors automatically.
+
+- **feat(node): Add Prisma integration by default ([#16073](https://github.com/getsentry/sentry-javascript/pull/16073))**
+
+[Prisma integration](https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/integrations/prisma/) is enabled by default, it should work for both ESM and CJS.
+
+- **feat(react-router): Add client-side router instrumentation ([#16185](https://github.com/getsentry/sentry-javascript/pull/16185))**
+
+Adds client-side instrumentation for react router's `HydratedRouter`. To enable it, simply replace `browserTracingIntegration()` with `reactRouterTracingIntegration()` in your client-side init call.
+
+- **fix(node): Avoid double-wrapping http module ([#16177](https://github.com/getsentry/sentry-javascript/pull/16177))**
+
+When running your application in ESM mode, there have been scenarios that resulted in the `http`/`https` emitting duplicate spans for incoming requests. This was apparently caused by us double-wrapping the modules for incoming request isolation.
+
+In order to solve this problem, the modules are no longer monkey patched by us for request isolation. Instead, we register diagnostics*channel hooks to handle request isolation now.
+While this is generally not expected to break anything, there is one tiny change that \_may* affect you if you have been relying on very specific functionality:
+
+The `ignoreOutgoingRequests` option of `httpIntegration` receives the `RequestOptions` as second argument. This type is not changed, however due to how the wrapping now works, we no longer pass through the full RequestOptions, but re-construct this partially based on the generated request. For the vast majority of cases, this should be fine, but for the sake of completeness, these are the only fields that may be available there going forward - other fields that _may_ have existed before may no longer be set:
+
+```ts
+ignoreOutgoingRequests(url: string, {
+  method: string;
+  protocol: string;
+  host: string;
+  hostname: string; // same as host
+  path: string;
+  headers: OutgoingHttpHeaders;
+})
+```
+
+### Other changes
+
+- feat(cloudflare): Add logs exports ([#16165](https://github.com/getsentry/sentry-javascript/pull/16165))
+- feat(vercel-edge): Add logs export ([#16166](https://github.com/getsentry/sentry-javascript/pull/16166))
+- feat(cloudflare): Read `SENTRY_RELEASE` from `env` ([#16201](https://github.com/getsentry/sentry-javascript/pull/16201))
+- feat(node): Drop `http.server` spans with 404 status by default ([#16205](https://github.com/getsentry/sentry-javascript/pull/16205))
+- fix(browser): Respect manually set sentry tracing headers in XHR requests ([#16184](https://github.com/getsentry/sentry-javascript/pull/16184))
+- fix(core): Respect manually set sentry tracing headers in fetch calls ([#16183](https://github.com/getsentry/sentry-javascript/pull/16183))
+- fix(feedback): Prevent `removeFromDom()` from throwing ([#16030](https://github.com/getsentry/sentry-javascript/pull/16030))
+- fix(node): Use class constructor in docstring for winston transport ([#16167](https://github.com/getsentry/sentry-javascript/pull/16167))
+- fix(node): Fix vercel flushing logic & add test for it ([#16208](https://github.com/getsentry/sentry-javascript/pull/16208))
+- fix(node): Fix 404 route handling in express 5 ([#16211](https://github.com/getsentry/sentry-javascript/pull/16211))
+- fix(logs): Ensure logs can be flushed correctly ([#16216](https://github.com/getsentry/sentry-javascript/pull/16216))
+- ref(core): Switch to standardized log envelope ([#16133](https://github.com/getsentry/sentry-javascript/pull/16133))
+
+## 9.15.0
+
+### Important Changes
+
+- **feat: Export `wrapMcpServerWithSentry` from server packages ([#16127](https://github.com/getsentry/sentry-javascript/pull/16127))**
+
+Exports the wrapMcpServerWithSentry which is our MCP server instrumentation from all the server packages.
+
+- **feat(core): Associate resource/tool/prompt invocations with request span instead of response span ([#16126](https://github.com/getsentry/sentry-javascript/pull/16126))**
+
+Adds a best effort mechanism to associate handler spans for `resource`, `tool` and `prompt` with the incoming message requests instead of the outgoing SSE response.
+
+### Other Changes
+
+- fix: Vercel `ai` ESM patching ([#16152](https://github.com/getsentry/sentry-javascript/pull/16152))
+- fix(node): Update version range for `module.register` ([#16125](https://github.com/getsentry/sentry-javascript/pull/16125))
+- fix(react-router): Spread `unstable_sentryVitePluginOptions` correctly ([#16156](https://github.com/getsentry/sentry-javascript/pull/16156))
+- fix(react): Fix Redux integration failing with reducer injection ([#16106](https://github.com/getsentry/sentry-javascript/pull/16106))
+- fix(remix): Add ESM-compatible exports ([#16124](https://github.com/getsentry/sentry-javascript/pull/16124))
+- fix(remix): Avoid rewrapping root loader. ([#16136](https://github.com/getsentry/sentry-javascript/pull/16136))
+
+Work in this release was contributed by @AntoineDuComptoirDesPharmacies. Thank you for your contribution!
+
+## 9.14.0
+
+### Important Changes
+
+- **feat: Add Supabase Integration ([#15719](https://github.com/getsentry/sentry-javascript/pull/15719))**
+
+This PR adds Supabase integration to `@sentry/core`, allowing automatic instrumentation of Supabase client operations (database queries and authentication) for performance monitoring and error tracking.
+
+- **feat(nestjs): Gracefully handle RPC scenarios in `SentryGlobalFilter` ([#16066](https://github.com/getsentry/sentry-javascript/pull/16066))**
+
+This PR adds better RPC exception handling to `@sentry/nestjs`, preventing application crashes while still capturing errors and warning users when a dedicated filter is needed. The implementation gracefully handles the 'rpc' context type in `SentryGlobalFilter` to improve reliability in hybrid applications.
+
+- **feat(react-router): Trace propagation ([#16070](https://github.com/getsentry/sentry-javascript/pull/16070))**
+
+This PR adds trace propagation to `@sentry/react-router` by providing utilities to inject trace meta tags into HTML headers and offering a pre-built Sentry-instrumented request handler, improving distributed tracing capabilities across page loads.
+
+### Other Changes
+
+- feat(deps): Bump @prisma/instrumentation from 6.5.0 to 6.6.0 ([#16102](https://github.com/getsentry/sentry-javascript/pull/16102))
+- feat(nextjs): Improve server component data ([#15996](https://github.com/getsentry/sentry-javascript/pull/15996))
+- feat(nuxt): Log when adding HTML trace meta tags ([#16044](https://github.com/getsentry/sentry-javascript/pull/16044))
+- fix(node): Make body capturing more robust ([#16105](https://github.com/getsentry/sentry-javascript/pull/16105))
+- ref(node): Log when incoming request bodies are being captured ([#16104](https://github.com/getsentry/sentry-javascript/pull/16104))
+
+## 9.13.0
+
+### Important Changes
+
+- **feat(node): Add support for winston logger ([#15983](https://github.com/getsentry/sentry-javascript/pull/15983))**
+
+  Sentry is adding support for [structured logging](https://github.com/getsentry/sentry-javascript/discussions/15916). In this release we've added support for sending logs to Sentry via the [winston](https://github.com/winstonjs/winston) logger to the Sentry Node SDK (and SDKs that use the Node SDK under the hood like `@sentry/nestjs`). The Logging APIs in the Sentry SDK are still experimental and subject to change.
+
+  ```js
+  const winston = require('winston');
+  const Transport = require('winston-transport');
+
+  const transport = Sentry.createSentryWinstonTransport(Transport);
+
+  const logger = winston.createLogger({
+    transports: [transport],
+  });
+  ```
+
+- **feat(core): Add `wrapMcpServerWithSentry` to instrument MCP servers from `@modelcontextprotocol/sdk` ([#16032](https://github.com/getsentry/sentry-javascript/pull/16032))**
+
+  The Sentry SDK now supports instrumenting MCP servers from the `@modelcontextprotocol/sdk` package. Compatible with versions `^1.9.0` of the `@modelcontextprotocol/sdk` package.
+
+  ```js
+  import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+
+  // Create an MCP server
+  const server = new McpServer({
+    name: 'Demo',
+    version: '1.0.0',
+  });
+
+  // Use the instrumented server in your application
+  const instrumentedServer = Sentry.wrapMcpServerWithSentry(server);
+  ```
+
+- **feat(core): Move console integration into core and add to cloudflare/vercel-edge ([#16024](https://github.com/getsentry/sentry-javascript/pull/16024))**
+
+  Console instrumentation has been added to `@sentry/cloudflare` and `@sentry/nextjs` Edge Runtime and is enabled by default. Now calls to the console object will be captured as breadcrumbs for those SDKs.
+
+- **feat(bun): Support new `Bun.serve` APIs ([#16035](https://github.com/getsentry/sentry-javascript/pull/16035))**
+
+  Bun `1.2.6` and above have a new `Bun.serve` API, which the Bun SDK now supports. The SDK instruments the new routes object that can be used to define routes for the server.
+
+  Thanks to @Jarred-Sumner for helping us get this supported!
+
+### Other Changes
+
+- feat(browser): Warn on duplicate `browserTracingIntegration` ([#16042](https://github.com/getsentry/sentry-javascript/pull/16042))
+- feat(core): Allow delayed sending with offline transport ([#15937](https://github.com/getsentry/sentry-javascript/pull/15937))
+- feat(deps): Bump @sentry/webpack-plugin from 3.2.4 to 3.3.1 ([#16057](https://github.com/getsentry/sentry-javascript/pull/16057))
+- feat(vue): Apply stateTransformer to attachments in Pinia Plugin ([#16034](https://github.com/getsentry/sentry-javascript/pull/16034))
+- fix(core): Run `beforeSendLog` after we process log ([#16019](https://github.com/getsentry/sentry-javascript/pull/16019))
+- fix(nextjs): Don't show turbopack warning for newer Next.js canaries ([#16065](https://github.com/getsentry/sentry-javascript/pull/16065))
+- fix(nextjs): Include patch version 0 for min supported 15.3.0 ([#16026](https://github.com/getsentry/sentry-javascript/pull/16026))
+- fix(node): Ensure late init works with all integrations ([#16016](https://github.com/getsentry/sentry-javascript/pull/16016))
+- fix(react-router): Pass `unstable_sentryVitePluginOptions` to cli instance ([#16033](https://github.com/getsentry/sentry-javascript/pull/16033))
+- fix(serverless-aws): Overwrite root span name with GraphQL if set ([#16010](https://github.com/getsentry/sentry-javascript/pull/16010))
 
 ## 9.12.0
 

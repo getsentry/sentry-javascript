@@ -10,21 +10,15 @@ import {
 import type { SentrySpan } from '../tracing/sentrySpan';
 import { SPAN_STATUS_OK, SPAN_STATUS_UNSET } from '../tracing/spanstatus';
 import { getCapturedScopesOnSpan } from '../tracing/utils';
-import type {
-  Span,
-  SpanAttributes,
-  SpanJSON,
-  SpanOrigin,
-  SpanStatus,
-  SpanTimeInput,
-  TraceContext,
-} from '../types-hoist';
+import type { TraceContext } from '../types-hoist/context';
 import type { SpanLink, SpanLinkJSON } from '../types-hoist/link';
-import { consoleSandbox } from '../utils-hoist/logger';
-import { addNonEnumerableProperty } from '../utils-hoist/object';
-import { generateSpanId } from '../utils-hoist/propagationContext';
-import { timestampInSeconds } from '../utils-hoist/time';
-import { generateSentryTraceHeader } from '../utils-hoist/tracing';
+import type { Span, SpanAttributes, SpanJSON, SpanOrigin, SpanTimeInput } from '../types-hoist/span';
+import type { SpanStatus } from '../types-hoist/spanStatus';
+import { consoleSandbox } from '../utils/logger';
+import { addNonEnumerableProperty } from '../utils/object';
+import { generateSpanId } from '../utils/propagationContext';
+import { timestampInSeconds } from '../utils/time';
+import { generateSentryTraceHeader } from '../utils/tracing';
 import { _getSpanForScope } from './spanOnScope';
 
 // These are aligned with OpenTelemetry trace flags
@@ -145,7 +139,18 @@ export function spanToJSON(span: Span): SpanJSON {
 
   // Handle a span from @opentelemetry/sdk-base-trace's `Span` class
   if (spanIsOpenTelemetrySdkTraceBaseSpan(span)) {
-    const { attributes, startTime, name, endTime, parentSpanId, status, links } = span;
+    const { attributes, startTime, name, endTime, status, links } = span;
+
+    // In preparation for the next major of OpenTelemetry, we want to support
+    // looking up the parent span id according to the new API
+    // In OTel v1, the parent span id is accessed as `parentSpanId`
+    // In OTel v2, the parent span id is accessed as `spanId` on the `parentSpanContext`
+    const parentSpanId =
+      'parentSpanId' in span
+        ? span.parentSpanId
+        : 'parentSpanContext' in span
+          ? (span.parentSpanContext as { spanId?: string } | undefined)?.spanId
+          : undefined;
 
     return {
       span_id,

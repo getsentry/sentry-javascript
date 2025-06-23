@@ -8,6 +8,7 @@ export type {
   EventHint,
   ErrorEvent,
   Exception,
+  FeatureFlagsIntegration,
   Session,
   SeverityLevel,
   Span,
@@ -33,6 +34,7 @@ export {
   flush,
   getClient,
   isInitialized,
+  isEnabled,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
@@ -75,7 +77,10 @@ export {
   rewriteFramesIntegration,
   captureConsoleIntegration,
   moduleMetadataIntegration,
+  supabaseIntegration,
+  instrumentSupabaseClient,
   zodErrorsIntegration,
+  consoleIntegration,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -85,9 +90,15 @@ export {
   spanToTraceHeader,
   spanToBaggageHeader,
   updateSpanName,
+  wrapMcpServerWithSentry,
+  consoleLoggingIntegration,
+  featureFlagsIntegration,
 } from '@sentry/core';
 
+export * as logger from './logs/exports';
+
 export { withSentry } from './handler';
+export { instrumentDurableObjectWithSentry } from './durableobject';
 export { sentryPagesPlugin } from './pages-plugin';
 
 export { wrapRequestHandler } from './request';
@@ -98,5 +109,7 @@ export { getDefaultIntegrations } from './sdk';
 export { fetchIntegration } from './integrations/fetch';
 
 export { instrumentD1WithSentry } from './d1';
+
+export { instrumentWorkflowWithSentry } from './workflows';
 
 export { setAsyncLocalStorageAsyncContextStrategy } from './async';

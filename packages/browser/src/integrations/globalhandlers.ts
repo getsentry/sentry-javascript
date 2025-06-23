@@ -1,6 +1,5 @@
 import type { Client, Event, IntegrationFn, Primitive, StackParser } from '@sentry/core';
 import {
-  UNKNOWN_FUNCTION,
   addGlobalErrorInstrumentationHandler,
   addGlobalUnhandledRejectionInstrumentationHandler,
   captureEvent,
@@ -10,8 +9,8 @@ import {
   isPrimitive,
   isString,
   logger,
+  UNKNOWN_FUNCTION,
 } from '@sentry/core';
-
 import type { BrowserClient } from '../client';
 import { DEBUG_BUILD } from '../debug-build';
 import { eventFromUnknownInput } from '../eventbuilder';

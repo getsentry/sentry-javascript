@@ -1,17 +1,19 @@
 import type { RequestEventData } from '@sentry/core';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  SPAN_STATUS_ERROR,
-  SPAN_STATUS_OK,
-  Scope,
   captureException,
   getActiveSpan,
   getCapturedScopesOnSpan,
+  getClient,
   getRootSpan,
   handleCallbackErrors,
   propagationContextFromHeaders,
+  Scope,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCapturedScopesOnSpan,
+  SPAN_STATUS_ERROR,
+  SPAN_STATUS_OK,
+  spanToJSON,
   startSpanManual,
   vercelWaitUntil,
   winterCGHeadersToDict,
@@ -23,6 +25,7 @@ import type { ServerComponentContext } from '../common/types';
 import { TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL } from './span-attributes-with-logic-attached';
 import { flushSafelyWithTimeout } from './utils/responseEnd';
 import { commonObjectToIsolationScope, commonObjectToPropagationContext } from './utils/tracingUtils';
+import { getSanitizedRequestUrl } from './utils/urls';
 
 /**
  * Wraps an `app` directory server component with Sentry error instrumentation.
@@ -41,18 +44,36 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
       const requestTraceId = getActiveSpan()?.spanContext().traceId;
       const isolationScope = commonObjectToIsolationScope(context.headers);
 
+      let pathname = undefined as string | undefined;
       const activeSpan = getActiveSpan();
       if (activeSpan) {
         const rootSpan = getRootSpan(activeSpan);
         const { scope } = getCapturedScopesOnSpan(rootSpan);
         setCapturedScopesOnSpan(rootSpan, scope ?? new Scope(), isolationScope);
+
+        const spanData = spanToJSON(rootSpan);
+
+        if (spanData.data && 'http.target' in spanData.data) {
+          pathname = spanData.data['http.target']?.toString();
+        }
       }
 
       const headersDict = context.headers ? winterCGHeadersToDict(context.headers) : undefined;
 
+      let params: Record<string, string> | undefined = undefined;
+
+      if (getClient()?.getOptions().sendDefaultPii) {
+        const props: unknown = args[0];
+        params =
+          props && typeof props === 'object' && 'params' in props
+            ? (props.params as Record<string, string>)
+            : undefined;
+      }
+
       isolationScope.setSDKProcessingMetadata({
         normalizedRequest: {
           headers: headersDict,
+          url: getSanitizedRequestUrl(componentRoute, params, headersDict, pathname),
         } satisfies RequestEventData,
       });
 
@@ -89,6 +110,8 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
               attributes: {
                 [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
+                'sentry.nextjs.ssr.function.type': componentType,
+                'sentry.nextjs.ssr.function.route': componentRoute,
               },
             },
             span => {

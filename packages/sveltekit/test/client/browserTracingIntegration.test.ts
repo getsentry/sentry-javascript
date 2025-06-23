@@ -3,17 +3,13 @@
  */
 
 /* eslint-disable @typescript-eslint/unbound-method */
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 import type { Span } from '@sentry/core';
-import { writable } from 'svelte/store';
-
-import { navigating, page } from '$app/stores';
-
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
-import { browserTracingIntegration } from '../../src/client';
-
 import * as SentrySvelte from '@sentry/svelte';
+import { writable } from 'svelte/store';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { navigating, page } from '$app/stores';
+import { browserTracingIntegration } from '../../src/client';
 
 // we have to overwrite the global mock from `vitest.setup.ts` here to reset the
 // `navigating` store for each test.

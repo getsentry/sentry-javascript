@@ -1,6 +1,5 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
-import { describe, vi, beforeEach, test, expect } from 'vitest';
-
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { wrapCloudEventFunction } from '../../src/gcpfunction/cloud_events';
 import type { CloudEventFunction, CloudEventFunctionWithCallback } from '../../src/gcpfunction/general';
 
@@ -46,6 +45,8 @@ describe('wrapCloudEventFunction', () => {
   function handleCloudEvent(fn: CloudEventFunctionWithCallback): Promise<any> {
     return new Promise((resolve, reject) => {
       const context = {
+        id: 'test-event-id',
+        specversion: '1.0',
         type: 'event.type',
       };
 
@@ -233,6 +234,10 @@ describe('wrapCloudEventFunction', () => {
     const handler: CloudEventFunction = _context => 42;
     const wrappedHandler = wrapCloudEventFunction(handler);
     await handleCloudEvent(wrappedHandler);
-    expect(mockScope.setContext).toBeCalledWith('gcp.function.context', { type: 'event.type' });
+    expect(mockScope.setContext).toBeCalledWith('gcp.function.context', {
+      id: 'test-event-id',
+      specversion: '1.0',
+      type: 'event.type',
+    });
   });
 });

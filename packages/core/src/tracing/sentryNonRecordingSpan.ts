@@ -1,13 +1,13 @@
 import type {
   SentrySpanArguments,
   Span,
-  SpanAttributeValue,
   SpanAttributes,
+  SpanAttributeValue,
   SpanContextData,
-  SpanStatus,
   SpanTimeInput,
-} from '../types-hoist';
-import { generateSpanId, generateTraceId } from '../utils-hoist/propagationContext';
+} from '../types-hoist/span';
+import type { SpanStatus } from '../types-hoist/spanStatus';
+import { generateSpanId, generateTraceId } from '../utils/propagationContext';
 import { TRACE_FLAG_NONE } from '../utils/spanUtils';
 
 /**

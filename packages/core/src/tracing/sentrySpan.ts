@@ -9,28 +9,25 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '../semanticAttributes';
+import type { SpanEnvelope } from '../types-hoist/envelope';
+import type { TransactionEvent } from '../types-hoist/event';
+import type { SpanLink } from '../types-hoist/link';
 import type {
   SentrySpanArguments,
   Span,
-  SpanAttributeValue,
   SpanAttributes,
+  SpanAttributeValue,
   SpanContextData,
-  SpanEnvelope,
   SpanJSON,
   SpanOrigin,
-  SpanStatus,
   SpanTimeInput,
-  TimedEvent,
-  TransactionEvent,
-  TransactionSource,
-} from '../types-hoist';
-import type { SpanLink } from '../types-hoist/link';
-import { logger } from '../utils-hoist/logger';
-import { generateSpanId, generateTraceId } from '../utils-hoist/propagationContext';
-import { timestampInSeconds } from '../utils-hoist/time';
+} from '../types-hoist/span';
+import type { SpanStatus } from '../types-hoist/spanStatus';
+import type { TimedEvent } from '../types-hoist/timedEvent';
+import type { TransactionSource } from '../types-hoist/transaction';
+import { logger } from '../utils/logger';
+import { generateSpanId, generateTraceId } from '../utils/propagationContext';
 import {
-  TRACE_FLAG_NONE,
-  TRACE_FLAG_SAMPLED,
   convertSpanLinksForEnvelope,
   getRootSpan,
   getSpanDescendants,
@@ -38,7 +35,10 @@ import {
   spanTimeInputToSeconds,
   spanToJSON,
   spanToTransactionTraceContext,
+  TRACE_FLAG_NONE,
+  TRACE_FLAG_SAMPLED,
 } from '../utils/spanUtils';
+import { timestampInSeconds } from '../utils/time';
 import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanEnd } from './logSpans';
 import { timedEventsToMeasurements } from './measurement';
@@ -336,6 +336,8 @@ export class SentrySpan implements Span {
 
     const { scope: capturedSpanScope, isolationScope: capturedSpanIsolationScope } = getCapturedScopesOnSpan(this);
 
+    const normalizedRequest = capturedSpanScope?.getScopeData().sdkProcessingMetadata?.normalizedRequest;
+
     if (this._sampled !== true) {
       return undefined;
     }
@@ -374,6 +376,7 @@ export class SentrySpan implements Span {
         capturedSpanIsolationScope,
         dynamicSamplingContext: getDynamicSamplingContextFromSpan(this),
       },
+      request: normalizedRequest,
       ...(source && {
         transaction_info: {
           source,

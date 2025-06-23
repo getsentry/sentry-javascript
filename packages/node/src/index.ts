@@ -1,8 +1,9 @@
+import * as logger from './logs/exports';
+
 export { httpIntegration } from './integrations/http';
 export { nativeNodeFetchIntegration } from './integrations/node-fetch';
 export { fsIntegration } from './integrations/fs';
 
-export { consoleIntegration } from './integrations/console';
 export { nodeContextIntegration } from './integrations/context';
 export { contextLinesIntegration } from './integrations/contextlines';
 export { localVariablesIntegration } from './integrations/local-variables';
@@ -34,6 +35,7 @@ export { dataloaderIntegration } from './integrations/tracing/dataloader';
 export { amqplibIntegration } from './integrations/tracing/amqplib';
 export { vercelAIIntegration } from './integrations/tracing/vercelai';
 export { childProcessIntegration } from './integrations/childProcess';
+export { createSentryWinstonTransport } from './integrations/winston';
 
 export { SentryContextManager } from './otel/contextManager';
 export { generateInstrumentOnce } from './otel/instrument';
@@ -52,6 +54,7 @@ export { createGetModuleFromFilename } from './utils/module';
 export { makeNodeTransport } from './transports';
 export { NodeClient } from './sdk/client';
 export { cron } from './cron';
+export { NODE_VERSION } from './nodeVersion';
 
 export type { NodeOptions } from './types';
 
@@ -63,6 +66,7 @@ export {
 export {
   addBreadcrumb,
   isInitialized,
+  isEnabled,
   getGlobalScope,
   lastEventId,
   close,
@@ -128,9 +132,14 @@ export {
   spanToBaggageHeader,
   trpcMiddleware,
   updateSpanName,
+  supabaseIntegration,
+  instrumentSupabaseClient,
   zodErrorsIntegration,
   profiler,
   consoleLoggingIntegration,
+  consoleIntegration,
+  wrapMcpServerWithSentry,
+  featureFlagsIntegration,
 } from '@sentry/core';
 
 export type {
@@ -150,8 +159,7 @@ export type {
   Thread,
   User,
   Span,
+  FeatureFlagsIntegration,
 } from '@sentry/core';
-
-import * as logger from './log';
 
 export { logger };

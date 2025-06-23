@@ -69,6 +69,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - test-application: 'angular-20'
+            build-command: 'test:build-canary'
+            label: 'angular-20 (next)'
           - test-application: 'create-react-app'
             build-command: 'test:build-canary'
             label: 'create-react-app (canary)'
@@ -122,12 +125,12 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - uses: pnpm/action-setup@v4
         with:
-          version: 9.4.0
-
+          version: 9.15.9
       - name: Set up Node
+        if: matrix.test-application != 'angular-20'
         uses: actions/setup-node@v4
         with:
-          node-version-file: 'dev-packages/e2e-tests/package.json'
+          node-version-file: 'dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/package.json'
 
       - name: Restore canary cache
         uses: actions/cache/restore@v4

@@ -1,4 +1,4 @@
-import { Event } from '@sentry/core';
+import type { Event } from '@sentry/core';
 import { describe, expect, it } from 'vitest';
 import { RemixTestEnv, assertSentryEvent, assertSentryTransaction } from '../utils/helpers';
 
@@ -242,14 +242,14 @@ describe('Remix API Loaders', () => {
           data: {
             'code.function': 'loader',
             'sentry.op': 'loader.remix',
-            'match.route.id': 'routes/loader-defer-response.$id',
+            'match.route.id': 'root',
           },
         },
         {
           data: {
             'code.function': 'loader',
             'sentry.op': 'loader.remix',
-            'match.route.id': 'root',
+            'match.route.id': 'routes/loader-defer-response.$id',
           },
         },
       ],

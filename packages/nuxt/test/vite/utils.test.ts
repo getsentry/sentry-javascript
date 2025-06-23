@@ -1,16 +1,17 @@
 import * as fs from 'fs';
+import type { Nuxt } from 'nuxt/schema';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
-  QUERY_END_INDICATOR,
-  SENTRY_REEXPORTED_FUNCTIONS,
-  SENTRY_WRAPPED_ENTRY,
-  SENTRY_WRAPPED_FUNCTIONS,
   constructFunctionReExport,
   constructWrappedFunctionExportQuery,
   extractFunctionReexportQueryParameters,
   findDefaultSdkInitFile,
   getFilenameFromNodeStartCommand,
+  QUERY_END_INDICATOR,
   removeSentryQueryFromPath,
+  SENTRY_REEXPORTED_FUNCTIONS,
+  SENTRY_WRAPPED_ENTRY,
+  SENTRY_WRAPPED_FUNCTIONS,
 } from '../../src/vite/utils';
 
 vi.mock('fs');
@@ -68,6 +69,75 @@ describe('findDefaultSdkInitFile', () => {
 
     const result = findDefaultSdkInitFile('server');
     expect(result).toMatch('packages/nuxt/sentry.server.config.js');
+  });
+
+  it('should return the latest layer config file path if client config exists', () => {
+    vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
+      return !(filePath instanceof URL) && filePath.includes('sentry.client.config.ts');
+    });
+
+    const nuxtMock = {
+      options: {
+        _layers: [
+          {
+            cwd: 'packages/nuxt/module',
+          },
+          {
+            cwd: 'packages/nuxt',
+          },
+        ],
+      },
+    } as Nuxt;
+
+    const result = findDefaultSdkInitFile('client', nuxtMock);
+    expect(result).toMatch('packages/nuxt/sentry.client.config.ts');
+  });
+
+  it('should return the latest layer config file path if server config exists', () => {
+    vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
+      return (
+        !(filePath instanceof URL) &&
+        (filePath.includes('sentry.server.config.ts') || filePath.includes('instrument.server.ts'))
+      );
+    });
+
+    const nuxtMock = {
+      options: {
+        _layers: [
+          {
+            cwd: 'packages/nuxt/module',
+          },
+          {
+            cwd: 'packages/nuxt',
+          },
+        ],
+      },
+    } as Nuxt;
+
+    const result = findDefaultSdkInitFile('server', nuxtMock);
+    expect(result).toMatch('packages/nuxt/sentry.server.config.ts');
+  });
+
+  it('should return the latest layer config file path if client config exists in former layer', () => {
+    vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
+      return !(filePath instanceof URL) && filePath.includes('nuxt/sentry.client.config.ts');
+    });
+
+    const nuxtMock = {
+      options: {
+        _layers: [
+          {
+            cwd: 'packages/nuxt/module',
+          },
+          {
+            cwd: 'packages/nuxt',
+          },
+        ],
+      },
+    } as Nuxt;
+
+    const result = findDefaultSdkInitFile('client', nuxtMock);
+    expect(result).toMatch('packages/nuxt/sentry.client.config.ts');
   });
 });
 
