@@ -9,16 +9,14 @@ describe('postgresjs auto instrumentation', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             'db.namespace': 'test_db',
-            'db.operation.name': 'CREATE TABLE',
-            'db.query.text':
-              'CREATE TABLE "User" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(?) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"))',
             'db.system.name': 'postgres',
             'sentry.op': 'db',
             'sentry.origin': 'manual',
             'server.address': 'localhost',
             'server.port': 5444,
           }),
-          description: 'CREATE TABLE db:test_db',
+          description:
+            'CREATE TABLE "User" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(?) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"))',
           op: 'db',
           status: 'ok',
           origin: 'manual',
@@ -31,16 +29,14 @@ describe('postgresjs auto instrumentation', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             'db.namespace': 'test_db',
-            'db.operation.name': 'SELECT',
-            'db.query.text':
-              "select b.oid, b.typarray from pg_catalog.pg_type a left join pg_catalog.pg_type b on b.oid = a.typelem where a.typcategory = 'A' group by b.oid, b.typarray order by b.oid",
             'db.system.name': 'postgres',
             'sentry.op': 'db',
             'sentry.origin': 'manual',
             'server.address': 'localhost',
             'server.port': 5444,
           }),
-          description: 'SELECT db:test_db',
+          description:
+            "select b.oid, b.typarray from pg_catalog.pg_type a left join pg_catalog.pg_type b on b.oid = a.typelem where a.typcategory = 'A' group by b.oid, b.typarray order by b.oid",
           op: 'db',
           status: 'ok',
           origin: 'manual',
@@ -53,15 +49,13 @@ describe('postgresjs auto instrumentation', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             'db.namespace': 'test_db',
-            'db.operation.name': 'INSERT',
-            'db.query.text': 'INSERT INTO "User" ("email", "name") VALUES (\'Foo\', \'bar@baz.com\')',
             'db.system.name': 'postgres',
             'sentry.origin': 'manual',
             'sentry.op': 'db',
             'server.address': 'localhost',
             'server.port': 5444,
           }),
-          description: 'INSERT db:test_db',
+          description: 'INSERT INTO "User" ("email", "name") VALUES (\'Foo\', \'bar@baz.com\')',
           op: 'db',
           status: 'ok',
           origin: 'manual',
@@ -74,15 +68,13 @@ describe('postgresjs auto instrumentation', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             'db.namespace': 'test_db',
-            'db.operation.name': 'UPDATE',
-            'db.query.text': 'UPDATE "User" SET "name" = \'Foo\' WHERE "email" = \'bar@baz.com\'',
             'db.system.name': 'postgres',
             'sentry.op': 'db',
             'sentry.origin': 'manual',
             'server.address': 'localhost',
             'server.port': 5444,
           }),
-          description: 'UPDATE db:test_db',
+          description: 'UPDATE "User" SET "name" = \'Foo\' WHERE "email" = \'bar@baz.com\'',
           op: 'db',
           status: 'ok',
           origin: 'manual',
@@ -95,15 +87,13 @@ describe('postgresjs auto instrumentation', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             'db.namespace': 'test_db',
-            'db.operation.name': 'SELECT',
-            'db.query.text': 'SELECT * FROM "User" WHERE "email" = \'bar@baz.com\'',
             'db.system.name': 'postgres',
             'sentry.op': 'db',
             'sentry.origin': 'manual',
             'server.address': 'localhost',
             'server.port': 5444,
           }),
-          description: 'SELECT db:test_db',
+          description: 'SELECT * FROM "User" WHERE "email" = \'bar@baz.com\'',
           op: 'db',
           status: 'ok',
           origin: 'manual',
@@ -116,15 +106,13 @@ describe('postgresjs auto instrumentation', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             'db.namespace': 'test_db',
-            'db.operation.name': 'SELECT',
-            'db.query.text': 'SELECT * from generate_series(?,?) as x',
             'db.system.name': 'postgres',
             'sentry.op': 'db',
             'sentry.origin': 'manual',
             'server.address': 'localhost',
             'server.port': 5444,
           }),
-          description: 'SELECT db:test_db',
+          description: 'SELECT * from generate_series(?,?) as x',
           op: 'db',
           status: 'ok',
           origin: 'manual',
@@ -137,15 +125,13 @@ describe('postgresjs auto instrumentation', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             'db.namespace': 'test_db',
-            'db.operation.name': 'DROP TABLE',
-            'db.query.text': 'DROP TABLE "User"',
             'db.system.name': 'postgres',
             'sentry.op': 'db',
             'sentry.origin': 'manual',
             'server.address': 'localhost',
             'server.port': 5444,
           }),
-          description: 'DROP TABLE db:test_db',
+          description: 'DROP TABLE "User"',
           op: 'db',
           status: 'ok',
           origin: 'manual',
@@ -158,16 +144,13 @@ describe('postgresjs auto instrumentation', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             'db.namespace': 'test_db',
-            'db.query.text': 'SELECT * FROM "User" WHERE "email" = \'foo@baz.com\'',
             'db.system.name': 'postgres',
             'sentry.op': 'db',
             'sentry.origin': 'manual',
             'server.address': 'localhost',
             'server.port': 5444,
           }),
-          // This span is an error span and the `command` is not available when a does not resolve
-          // That's why we can't update the span description when the query fails
-          description: 'postgresjs.query',
+          description: 'SELECT * FROM "User" WHERE "email" = \'foo@baz.com\'',
           op: 'db',
           status: 'unknown_error',
           origin: 'manual',

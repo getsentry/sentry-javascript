@@ -1,5 +1,4 @@
 // Instrumentation for https://github.com/porsager/postgres
-import { SpanStatusCode } from '@opentelemetry/api';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import {
   InstrumentationBase,
@@ -8,15 +7,12 @@ import {
 } from '@opentelemetry/instrumentation';
 import {
   ATTR_DB_NAMESPACE,
-  ATTR_DB_OPERATION_NAME,
-  ATTR_DB_QUERY_TEXT,
   ATTR_DB_SYSTEM_NAME,
   ATTR_SERVER_ADDRESS,
   ATTR_SERVER_PORT,
 } from '@opentelemetry/semantic-conventions';
 import type { IntegrationFn, Span } from '@sentry/core';
-import { defineIntegration, getCurrentScope, startSpanManual } from '@sentry/core';
-import { SDK_VERSION } from '@sentry/core';
+import { defineIntegration, getCurrentScope, SDK_VERSION, SPAN_STATUS_ERROR, startSpanManual } from '@sentry/core';
 import { generateInstrumentOnce } from '../../otel/instrument';
 
 const INTEGRATION_NAME = 'PostgresJs';
@@ -63,7 +59,7 @@ export class PostgresJsInstrumentation extends InstrumentationBase {
   }
 
   /**
-   * Patches the reject method of the Query class to set the span status
+   * Patches the reject method of the Query class to set the span status and end it
    */
   private _patchReject(rejectTarget: any, span: Span): any {
     return new Proxy(rejectTarget, {
@@ -75,8 +71,7 @@ export class PostgresJsInstrumentation extends InstrumentationBase {
         }[],
       ) => {
         span.setStatus({
-          code: SpanStatusCode.ERROR,
-          message: rejectArgs[0]?.message || 'PostgresJs Query Error',
+          code: SPAN_STATUS_ERROR,
         });
 
         const result = Reflect.apply(rejectTarget, rejectThisArg, rejectArgs);
@@ -87,23 +82,11 @@ export class PostgresJsInstrumentation extends InstrumentationBase {
   }
 
   /**
-   * Patches the resolve method of the Query class to start a span
-   * and set the relevant attributes.
+   * Patches the resolve method of the Query class to end the span when the query is resolved.
    */
-  private _patchResolve(resolveTarget: any, span: Span, databaseName: string): any {
+  private _patchResolve(resolveTarget: any, span: Span): any {
     return new Proxy(resolveTarget, {
-      apply: (resolveTarget, resolveThisArg, resolveArgs: [{ command?: string; statement?: { string: string } }]) => {
-        const sqlCommand = resolveArgs?.[0]?.command;
-
-        const spanDescription = sqlCommand
-          ? `${sqlCommand.replace(/\s+/g, ' ').trim()} db:${databaseName}`
-          : `Unknown Query db:${databaseName}`;
-
-        span.updateName(spanDescription);
-
-        // Set command and database attributes on the span
-        span.setAttribute(ATTR_DB_OPERATION_NAME, sqlCommand);
-
+      apply: (resolveTarget, resolveThisArg, resolveArgs) => {
         const result = Reflect.apply(resolveTarget, resolveThisArg, resolveArgs);
         span.end();
         return result;
@@ -127,14 +110,15 @@ export class PostgresJsInstrumentation extends InstrumentationBase {
         handleThisArg: {
           resolve: any;
           reject: any;
-          resolveArgs: [{ command?: string; statement?: { string: string } }];
           strings?: string[];
         },
         handleArgs,
       ) => {
+        const sanitizedSqlQuery = this._sanitizeSqlQuery(handleThisArg.strings?.[0]);
+
         return startSpanManual(
           {
-            name: 'postgresjs.query',
+            name: sanitizedSqlQuery || 'postgresjs.query',
             op: 'db',
           },
           (span: Span) => {
@@ -152,23 +136,20 @@ export class PostgresJsInstrumentation extends InstrumentationBase {
             const databaseName = postgresConnectionContext?.ATTR_DB_NAMESPACE || '<unknown database>';
             const databaseHost = postgresConnectionContext?.ATTR_SERVER_ADDRESS || '<unknown host>';
             const databasePort = postgresConnectionContext?.ATTR_SERVER_PORT || '<unknown port>';
-            const sanitizedSqlQuery = this._sanitizeSqlQuery(handleThisArg.strings?.[0]);
 
             span.setAttribute(ATTR_DB_SYSTEM_NAME, 'postgres');
             span.setAttribute(ATTR_DB_NAMESPACE, databaseName);
             span.setAttribute(ATTR_SERVER_ADDRESS, databaseHost);
             span.setAttribute(ATTR_SERVER_PORT, databasePort);
-            span.setAttribute(ATTR_DB_QUERY_TEXT, sanitizedSqlQuery);
 
-            handleThisArg.resolve = this._patchResolve(handleThisArg.resolve, span, databaseName);
+            handleThisArg.resolve = this._patchResolve(handleThisArg.resolve, span);
             handleThisArg.reject = this._patchReject(handleThisArg.reject, span);
 
             try {
               return Reflect.apply(handleTarget, handleThisArg, handleArgs);
             } catch (error) {
               span.setStatus({
-                code: SpanStatusCode.ERROR,
-                message: (error as Error).message || 'PostgresJs Query Error',
+                code: SPAN_STATUS_ERROR,
               });
               span.end();
               throw error; // Re-throw the error to propagate it
