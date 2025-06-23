@@ -114,7 +114,7 @@
     "@size-limit/webpack": "~11.1.6",
     "@types/jsdom": "^21.1.6",
     "@types/node": "^18.19.1",
-    "@vitest/coverage-v8": "^2.1.8",
+    "@vitest/coverage-v8": "^3.2.4",
     "deepmerge": "^4.2.2",
     "downlevel-dts": "~0.11.0",
     "es-check": "^7.2.1",
@@ -133,7 +133,7 @@
     "sucrase": "^3.35.0",
     "ts-node": "10.9.1",
     "typescript": "~5.0.0",
-    "vitest": "^2.1.8",
+    "vitest": "^3.2.4",
     "yalc": "^1.0.0-pre.53",
     "yarn-deduplicate": "6.0.2"
   },
