@@ -7,7 +7,7 @@ import {
   logAttributeToSerializedLogAttribute,
 } from '../../../src/logs/exports';
 import type { Log } from '../../../src/types-hoist/log';
-import * as loggerModule from '../../../src/utils-hoist/logger';
+import * as loggerModule from '../../../src/utils/logger';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 const PUBLIC_DSN = 'https://username@domain/123';

@@ -113,6 +113,7 @@ export { supabaseIntegration, instrumentSupabaseClient } from './integrations/su
 export { zodErrorsIntegration } from './integrations/zoderrors';
 export { thirdPartyErrorFilterIntegration } from './integrations/third-party-errors-filter';
 export { consoleIntegration } from './integrations/console';
+export { featureFlagsIntegration, type FeatureFlagsIntegration } from './integrations/featureFlags';
 
 export { profiler } from './profiling';
 export { instrumentFetchRequest } from './fetch';
@@ -123,26 +124,28 @@ export type { ReportDialogOptions } from './report-dialog';
 export { _INTERNAL_captureLog, _INTERNAL_flushLogsBuffer, _INTERNAL_captureSerializedLog } from './logs/exports';
 export { consoleLoggingIntegration } from './logs/console-integration';
 
-export type { FeatureFlag } from './featureFlags';
-
-export { applyAggregateErrorsToEvent } from './utils-hoist/aggregate-errors';
-export { getBreadcrumbLogLevelFromHttpStatusCode } from './utils-hoist/breadcrumb-log-level';
-export { getComponentName, getLocationHref, htmlTreeAsString } from './utils-hoist/browser';
-export { dsnFromString, dsnToString, makeDsn } from './utils-hoist/dsn';
-// eslint-disable-next-line deprecation/deprecation
-export { SentryError } from './utils-hoist/error';
-export { GLOBAL_OBJ } from './utils-hoist/worldwide';
-export type { InternalGlobal } from './utils-hoist/worldwide';
-export { addConsoleInstrumentationHandler } from './utils-hoist/instrument/console';
-export { addFetchEndInstrumentationHandler, addFetchInstrumentationHandler } from './utils-hoist/instrument/fetch';
-export { addGlobalErrorInstrumentationHandler } from './utils-hoist/instrument/globalError';
-export { addGlobalUnhandledRejectionInstrumentationHandler } from './utils-hoist/instrument/globalUnhandledRejection';
+export type { FeatureFlag } from './utils/featureFlags';
 export {
-  addHandler,
-  maybeInstrument,
-  resetInstrumentationHandlers,
-  triggerHandlers,
-} from './utils-hoist/instrument/handlers';
+  _INTERNAL_copyFlagsFromScopeToEvent,
+  _INTERNAL_insertFlagToScope,
+  _INTERNAL_addFeatureFlagToActiveSpan,
+  _INTERNAL_FLAG_BUFFER_SIZE,
+  _INTERNAL_MAX_FLAGS_PER_SPAN,
+} from './utils/featureFlags';
+
+export { applyAggregateErrorsToEvent } from './utils/aggregate-errors';
+export { getBreadcrumbLogLevelFromHttpStatusCode } from './utils/breadcrumb-log-level';
+export { getComponentName, getLocationHref, htmlTreeAsString } from './utils/browser';
+export { dsnFromString, dsnToString, makeDsn } from './utils/dsn';
+// eslint-disable-next-line deprecation/deprecation
+export { SentryError } from './utils/error';
+export { GLOBAL_OBJ } from './utils/worldwide';
+export type { InternalGlobal } from './utils/worldwide';
+export { addConsoleInstrumentationHandler } from './instrument/console';
+export { addFetchEndInstrumentationHandler, addFetchInstrumentationHandler } from './instrument/fetch';
+export { addGlobalErrorInstrumentationHandler } from './instrument/globalError';
+export { addGlobalUnhandledRejectionInstrumentationHandler } from './instrument/globalUnhandledRejection';
+export { addHandler, maybeInstrument, resetInstrumentationHandlers, triggerHandlers } from './instrument/handlers';
 export {
   isDOMError,
   isDOMException,
@@ -159,10 +162,10 @@ export {
   isSyntheticEvent,
   isThenable,
   isVueViewModel,
-} from './utils-hoist/is';
-export { isBrowser } from './utils-hoist/isBrowser';
-export { CONSOLE_LEVELS, consoleSandbox, logger, originalConsoleMethods } from './utils-hoist/logger';
-export type { Logger } from './utils-hoist/logger';
+} from './utils/is';
+export { isBrowser } from './utils/isBrowser';
+export { CONSOLE_LEVELS, consoleSandbox, logger, originalConsoleMethods } from './utils/logger';
+export type { Logger } from './utils/logger';
 export {
   addContextToFrame,
   addExceptionMechanism,
@@ -171,9 +174,9 @@ export {
   getEventDescription,
   parseSemver,
   uuid4,
-} from './utils-hoist/misc';
-export { isNodeEnv, loadModule } from './utils-hoist/node';
-export { normalize, normalizeToSize, normalizeUrlToBase } from './utils-hoist/normalize';
+} from './utils/misc';
+export { isNodeEnv, loadModule } from './utils/node';
+export { normalize, normalizeToSize, normalizeUrlToBase } from './utils/normalize';
 export {
   addNonEnumerableProperty,
   convertToPlainObject,
@@ -184,11 +187,11 @@ export {
   getOriginalFunction,
   markFunctionWrapped,
   objectify,
-} from './utils-hoist/object';
-export { basename, dirname, isAbsolute, join, normalizePath, relative, resolve } from './utils-hoist/path';
-export { makePromiseBuffer, SENTRY_BUFFER_FULL_ERROR } from './utils-hoist/promisebuffer';
-export type { PromiseBuffer } from './utils-hoist/promisebuffer';
-export { severityLevelFromString } from './utils-hoist/severity';
+} from './utils/object';
+export { basename, dirname, isAbsolute, join, normalizePath, relative, resolve } from './utils/path';
+export { makePromiseBuffer, SENTRY_BUFFER_FULL_ERROR } from './utils/promisebuffer';
+export type { PromiseBuffer } from './utils/promisebuffer';
+export { severityLevelFromString } from './utils/severity';
 export {
   UNKNOWN_FUNCTION,
   createStackParser,
@@ -196,9 +199,9 @@ export {
   getFunctionName,
   stackParserFromStackParserOptions,
   stripSentryFramesAndReverse,
-} from './utils-hoist/stacktrace';
-export { filenameIsInApp, node, nodeStackLineParser } from './utils-hoist/node-stack-trace';
-export { isMatchingPattern, safeJoin, snipLine, stringMatchesSomePattern, truncate } from './utils-hoist/string';
+} from './utils/stacktrace';
+export { filenameIsInApp, node, nodeStackLineParser } from './utils/node-stack-trace';
+export { isMatchingPattern, safeJoin, snipLine, stringMatchesSomePattern, truncate } from './utils/string';
 export {
   isNativeFunction,
   supportsDOMError,
@@ -211,17 +214,17 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   supportsReferrerPolicy,
   supportsReportingObserver,
-} from './utils-hoist/supports';
-export { SyncPromise, rejectedSyncPromise, resolvedSyncPromise } from './utils-hoist/syncpromise';
-export { browserPerformanceTimeOrigin, dateTimestampInSeconds, timestampInSeconds } from './utils-hoist/time';
+} from './utils/supports';
+export { SyncPromise, rejectedSyncPromise, resolvedSyncPromise } from './utils/syncpromise';
+export { browserPerformanceTimeOrigin, dateTimestampInSeconds, timestampInSeconds } from './utils/time';
 export {
   TRACEPARENT_REGEXP,
   extractTraceparentData,
   generateSentryTraceHeader,
   propagationContextFromHeaders,
-} from './utils-hoist/tracing';
-export { getSDKSource, isBrowserBundle } from './utils-hoist/env';
-export type { SdkSource } from './utils-hoist/env';
+} from './utils/tracing';
+export { getSDKSource, isBrowserBundle } from './utils/env';
+export type { SdkSource } from './utils/env';
 export {
   addItemToEnvelope,
   createAttachmentEnvelopeItem,
@@ -234,16 +237,16 @@ export {
   getSdkMetadataForEnvelopeHeader,
   parseEnvelope,
   serializeEnvelope,
-} from './utils-hoist/envelope';
-export { createClientReportEnvelope } from './utils-hoist/clientreport';
+} from './utils/envelope';
+export { createClientReportEnvelope } from './utils/clientreport';
 export {
   DEFAULT_RETRY_AFTER,
   disabledUntil,
   isRateLimited,
   parseRetryAfterHeader,
   updateRateLimits,
-} from './utils-hoist/ratelimit';
-export type { RateLimits } from './utils-hoist/ratelimit';
+} from './utils/ratelimit';
+export type { RateLimits } from './utils/ratelimit';
 export {
   MAX_BAGGAGE_STRING_LENGTH,
   SENTRY_BAGGAGE_KEY_PREFIX,
@@ -252,7 +255,7 @@ export {
   dynamicSamplingContextToSentryBaggageHeader,
   parseBaggageHeader,
   objectToBaggageHeader,
-} from './utils-hoist/baggage';
+} from './utils/baggage';
 export {
   getSanitizedUrlString,
   parseUrl,
@@ -261,20 +264,15 @@ export {
   getHttpSpanDetailsFromUrlObject,
   isURLObjectRelative,
   getSanitizedUrlStringFromUrlObject,
-} from './utils-hoist/url';
-export {
-  eventFromMessage,
-  eventFromUnknownInput,
-  exceptionFromError,
-  parseStackFrames,
-} from './utils-hoist/eventbuilder';
-export { callFrameToStackFrame, watchdogTimer } from './utils-hoist/anr';
-export { LRUMap } from './utils-hoist/lru';
-export { generateTraceId, generateSpanId } from './utils-hoist/propagationContext';
-export { vercelWaitUntil } from './utils-hoist/vercelWaitUntil';
-export { SDK_VERSION } from './utils-hoist/version';
-export { getDebugImagesForResources, getFilenameToDebugIdMap } from './utils-hoist/debug-ids';
-export { escapeStringForRegex } from './utils-hoist/vendor/escapeStringForRegex';
+} from './utils/url';
+export { eventFromMessage, eventFromUnknownInput, exceptionFromError, parseStackFrames } from './utils/eventbuilder';
+export { callFrameToStackFrame, watchdogTimer } from './utils/anr';
+export { LRUMap } from './utils/lru';
+export { generateTraceId, generateSpanId } from './utils/propagationContext';
+export { vercelWaitUntil } from './utils/vercelWaitUntil';
+export { SDK_VERSION } from './utils/version';
+export { getDebugImagesForResources, getFilenameToDebugIdMap } from './utils/debug-ids';
+export { escapeStringForRegex } from './vendor/escapeStringForRegex';
 
 export type { Attachment } from './types-hoist/attachment';
 export type {

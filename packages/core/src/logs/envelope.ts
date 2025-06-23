@@ -2,8 +2,8 @@ import type { DsnComponents } from '../types-hoist/dsn';
 import type { LogContainerItem, LogEnvelope } from '../types-hoist/envelope';
 import type { SerializedLog } from '../types-hoist/log';
 import type { SdkMetadata } from '../types-hoist/sdkmetadata';
-import { dsnToString } from '../utils-hoist/dsn';
-import { createEnvelope } from '../utils-hoist/envelope';
+import { dsnToString } from '../utils/dsn';
+import { createEnvelope } from '../utils/envelope';
 
 /**
  * Creates a log container envelope item for a list of logs.

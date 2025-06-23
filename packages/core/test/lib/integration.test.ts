@@ -4,7 +4,7 @@ import { addIntegration, getIntegrationsToSetup, installedIntegrations, setupInt
 import { setCurrentClient } from '../../src/sdk';
 import type { Integration } from '../../src/types-hoist/integration';
 import type { Options } from '../../src/types-hoist/options';
-import { logger } from '../../src/utils-hoist/logger';
+import { logger } from '../../src/utils/logger';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
 function getTestClient(): TestClient {

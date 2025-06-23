@@ -6,8 +6,8 @@ import {
 } from './semanticAttributes';
 import { startSpan, withActiveSpan } from './tracing';
 import type { Span } from './types-hoist/span';
+import { logger } from './utils/logger';
 import { getActiveSpan } from './utils/spanUtils';
-import { logger } from './utils-hoist/logger';
 
 interface MCPTransport {
   // The first argument is a JSON RPC message

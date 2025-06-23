@@ -75,6 +75,15 @@ export function withSentryConfig<C>(nextConfig?: C, sentryBuildOptions: SentryBu
   }
 }
 
+/**
+ * Generates a random tunnel route path that's less likely to be blocked by ad-blockers
+ */
+function generateRandomTunnelRoute(): string {
+  // Generate a random 8-character alphanumeric string
+  const randomString = Math.random().toString(36).substring(2, 10);
+  return `/${randomString}`;
+}
+
 // Modify the materialized object form of the user's next config by deleting the `sentry` property and wrapping the
 // `webpack` property
 function getFinalConfigObject(
@@ -93,7 +102,14 @@ function getFinalConfigObject(
         );
       }
     } else {
-      setUpTunnelRewriteRules(incomingUserNextConfigObject, userSentryOptions.tunnelRoute);
+      const resolvedTunnelRoute =
+        typeof userSentryOptions.tunnelRoute === 'boolean'
+          ? generateRandomTunnelRoute()
+          : userSentryOptions.tunnelRoute;
+
+      // Update the global options object to use the resolved value everywhere
+      userSentryOptions.tunnelRoute = resolvedTunnelRoute;
+      setUpTunnelRewriteRules(incomingUserNextConfigObject, resolvedTunnelRoute);
     }
   }
 
@@ -363,8 +379,11 @@ function setUpBuildTimeVariables(
 ): void {
   const assetPrefix = userNextConfig.assetPrefix || userNextConfig.basePath || '';
   const basePath = userNextConfig.basePath ?? '';
+
   const rewritesTunnelPath =
-    userSentryOptions.tunnelRoute !== undefined && userNextConfig.output !== 'export'
+    userSentryOptions.tunnelRoute !== undefined &&
+    userNextConfig.output !== 'export' &&
+    typeof userSentryOptions.tunnelRoute === 'string'
       ? `${basePath}${userSentryOptions.tunnelRoute}`
       : undefined;
 
@@ -432,7 +451,7 @@ function getInstrumentationClientFileContents(): string | void {
     ['src', 'instrumentation-client.ts'],
     ['src', 'instrumentation-client.js'],
     ['instrumentation-client.ts'],
-    ['instrumentation-client.ts'],
+    ['instrumentation-client.js'],
   ];
 
   for (const pathSegments of potentialInstrumentationClientFileLocations) {

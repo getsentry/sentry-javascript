@@ -426,9 +426,12 @@ export type SentryBuildOptions = {
    * Tunnel Sentry requests through this route on the Next.js server, to circumvent ad-blockers blocking Sentry events
    * from being sent. This option should be a path (for example: '/error-monitoring').
    *
+   * - Pass `true` to auto-generate a random, ad-blocker-resistant route for each build
+   * - Pass a string path (e.g., '/monitoring') to use a custom route
+   *
    * NOTE: This feature only works with Next.js 11+
    */
-  tunnelRoute?: string;
+  tunnelRoute?: string | boolean;
 
   /**
    * Tree shakes Sentry SDK logger statements from the bundle.

@@ -15,14 +15,14 @@ import type { SeverityLevel } from './types-hoist/severity';
 import type { Span } from './types-hoist/span';
 import type { PropagationContext } from './types-hoist/tracing';
 import type { User } from './types-hoist/user';
+import { isPlainObject } from './utils/is';
+import { logger } from './utils/logger';
 import { merge } from './utils/merge';
+import { uuid4 } from './utils/misc';
+import { generateTraceId } from './utils/propagationContext';
 import { _getSpanForScope, _setSpanForScope } from './utils/spanOnScope';
-import { isPlainObject } from './utils-hoist/is';
-import { logger } from './utils-hoist/logger';
-import { uuid4 } from './utils-hoist/misc';
-import { generateTraceId } from './utils-hoist/propagationContext';
-import { truncate } from './utils-hoist/string';
-import { dateTimestampInSeconds } from './utils-hoist/time';
+import { truncate } from './utils/string';
+import { dateTimestampInSeconds } from './utils/time';
 
 /**
  * Default value for maximum number of breadcrumbs added to an event.

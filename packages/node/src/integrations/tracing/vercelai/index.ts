@@ -182,14 +182,12 @@ const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
                 continue;
               }
 
-              if (attributes[AI_USAGE_COMPLETION_TOKENS_ATTRIBUTE] != undefined) {
-                attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] = attributes[AI_USAGE_COMPLETION_TOKENS_ATTRIBUTE];
-                delete attributes[AI_USAGE_COMPLETION_TOKENS_ATTRIBUTE];
-              }
-              if (attributes[AI_USAGE_PROMPT_TOKENS_ATTRIBUTE] != undefined) {
-                attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE] = attributes[AI_USAGE_PROMPT_TOKENS_ATTRIBUTE];
-                delete attributes[AI_USAGE_PROMPT_TOKENS_ATTRIBUTE];
-              }
+              renameAttributeKey(
+                attributes,
+                AI_USAGE_COMPLETION_TOKENS_ATTRIBUTE,
+                GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
+              );
+              renameAttributeKey(attributes, AI_USAGE_PROMPT_TOKENS_ATTRIBUTE, GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE);
               if (
                 typeof attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] === 'number' &&
                 typeof attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE] === 'number'
@@ -199,22 +197,10 @@ const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
               }
 
               // Rename AI SDK attributes to standardized gen_ai attributes
-              if (attributes[AI_PROMPT_MESSAGES_ATTRIBUTE] != undefined) {
-                attributes['gen_ai.request.messages'] = attributes[AI_PROMPT_MESSAGES_ATTRIBUTE];
-                delete attributes[AI_PROMPT_MESSAGES_ATTRIBUTE];
-              }
-              if (attributes[AI_RESPONSE_TEXT_ATTRIBUTE] != undefined) {
-                attributes['gen_ai.response.text'] = attributes[AI_RESPONSE_TEXT_ATTRIBUTE];
-                delete attributes[AI_RESPONSE_TEXT_ATTRIBUTE];
-              }
-              if (attributes[AI_RESPONSE_TOOL_CALLS_ATTRIBUTE] != undefined) {
-                attributes['gen_ai.response.tool_calls'] = attributes[AI_RESPONSE_TOOL_CALLS_ATTRIBUTE];
-                delete attributes[AI_RESPONSE_TOOL_CALLS_ATTRIBUTE];
-              }
-              if (attributes[AI_PROMPT_TOOLS_ATTRIBUTE] != undefined) {
-                attributes['gen_ai.request.available_tools'] = attributes[AI_PROMPT_TOOLS_ATTRIBUTE];
-                delete attributes[AI_PROMPT_TOOLS_ATTRIBUTE];
-              }
+              renameAttributeKey(attributes, AI_PROMPT_MESSAGES_ATTRIBUTE, 'gen_ai.request.messages');
+              renameAttributeKey(attributes, AI_RESPONSE_TEXT_ATTRIBUTE, 'gen_ai.response.text');
+              renameAttributeKey(attributes, AI_RESPONSE_TOOL_CALLS_ATTRIBUTE, 'gen_ai.response.tool_calls');
+              renameAttributeKey(attributes, AI_PROMPT_TOOLS_ATTRIBUTE, 'gen_ai.request.available_tools');
             }
           }
 
@@ -274,3 +260,14 @@ const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
  * });
  */
 export const vercelAIIntegration = defineIntegration(_vercelAIIntegration);
+
+/**
+ * Renames an attribute key in the provided attributes object if the old key exists.
+ * This function safely handles null and undefined values.
+ */
+function renameAttributeKey(attributes: Record<string, unknown>, oldKey: string, newKey: string): void {
+  if (attributes[oldKey] != null) {
+    attributes[newKey] = attributes[oldKey];
+    delete attributes[oldKey];
+  }
+}

@@ -1,9 +1,9 @@
 import { DEBUG_BUILD } from '../debug-build';
 import type { Envelope } from '../types-hoist/envelope';
 import type { InternalBaseTransportOptions, Transport, TransportMakeRequestResponse } from '../types-hoist/transport';
-import { envelopeContainsItemType } from '../utils-hoist/envelope';
-import { logger } from '../utils-hoist/logger';
-import { parseRetryAfterHeader } from '../utils-hoist/ratelimit';
+import { envelopeContainsItemType } from '../utils/envelope';
+import { logger } from '../utils/logger';
+import { parseRetryAfterHeader } from '../utils/ratelimit';
 
 export const MIN_DELAY = 100; // 100 ms
 export const START_DELAY = 5_000; // 5 seconds
