@@ -198,6 +198,215 @@ describe('request utils', () => {
         data: { xx: 'a', yy: 'z' },
       });
     });
+
+    describe('x-forwarded headers support', () => {
+      it('should prioritize x-forwarded-proto header over explicit protocol parameter', () => {
+        const actual = httpRequestToRequestData({
+          url: '/test',
+          headers: {
+            host: 'example.com',
+            'x-forwarded-proto': 'https',
+          },
+          protocol: 'http',
+        });
+
+        expect(actual).toEqual({
+          url: 'https://example.com/test',
+          headers: {
+            host: 'example.com',
+            'x-forwarded-proto': 'https',
+          },
+        });
+      });
+
+      it('should prioritize x-forwarded-proto header even when downgrading from https to http', () => {
+        const actual = httpRequestToRequestData({
+          url: '/test',
+          headers: {
+            host: 'example.com',
+            'x-forwarded-proto': 'http',
+          },
+          protocol: 'https',
+        });
+
+        expect(actual).toEqual({
+          url: 'http://example.com/test',
+          headers: {
+            host: 'example.com',
+            'x-forwarded-proto': 'http',
+          },
+        });
+      });
+
+      it('should prioritize x-forwarded-proto header over socket encryption detection', () => {
+        const actual = httpRequestToRequestData({
+          url: '/test',
+          headers: {
+            host: 'example.com',
+            'x-forwarded-proto': 'https',
+          },
+          socket: {
+            encrypted: false,
+          },
+        });
+
+        expect(actual).toEqual({
+          url: 'https://example.com/test',
+          headers: {
+            host: 'example.com',
+            'x-forwarded-proto': 'https',
+          },
+        });
+      });
+
+      it('should prioritize x-forwarded-host header over standard host header', () => {
+        const actual = httpRequestToRequestData({
+          url: '/test',
+          headers: {
+            host: 'localhost:3000',
+            'x-forwarded-host': 'example.com',
+            'x-forwarded-proto': 'https',
+          },
+        });
+
+        expect(actual).toEqual({
+          url: 'https://example.com/test',
+          headers: {
+            host: 'localhost:3000',
+            'x-forwarded-host': 'example.com',
+            'x-forwarded-proto': 'https',
+          },
+        });
+      });
+
+      it('should construct URL correctly when both x-forwarded-proto and x-forwarded-host are present', () => {
+        const actual = httpRequestToRequestData({
+          method: 'POST',
+          url: '/api/test?param=value',
+          headers: {
+            host: 'localhost:3000',
+            'x-forwarded-host': 'api.example.com',
+            'x-forwarded-proto': 'https',
+            'content-type': 'application/json',
+          },
+          protocol: 'http',
+        });
+
+        expect(actual).toEqual({
+          method: 'POST',
+          url: 'https://api.example.com/api/test?param=value',
+          query_string: 'param=value',
+          headers: {
+            host: 'localhost:3000',
+            'x-forwarded-host': 'api.example.com',
+            'x-forwarded-proto': 'https',
+            'content-type': 'application/json',
+          },
+        });
+      });
+
+      it('should fall back to standard headers when x-forwarded headers are not present', () => {
+        const actual = httpRequestToRequestData({
+          url: '/test',
+          headers: {
+            host: 'example.com',
+          },
+          protocol: 'https',
+        });
+
+        expect(actual).toEqual({
+          url: 'https://example.com/test',
+          headers: {
+            host: 'example.com',
+          },
+        });
+      });
+
+      it('should ignore x-forwarded headers when they contain non-string values', () => {
+        const actual = httpRequestToRequestData({
+          url: '/test',
+          headers: {
+            host: 'example.com',
+            'x-forwarded-host': ['forwarded.example.com'] as any,
+            'x-forwarded-proto': ['https'] as any,
+          },
+          protocol: 'http',
+        });
+
+        expect(actual).toEqual({
+          url: 'http://example.com/test',
+          headers: {
+            host: 'example.com',
+          },
+        });
+      });
+
+      it('should correctly transform localhost request to public URL using x-forwarded headers', () => {
+        const actual = httpRequestToRequestData({
+          method: 'GET',
+          url: '/',
+          headers: {
+            host: 'localhost:3000',
+            'x-forwarded-proto': 'https',
+            'x-forwarded-host': 'example.com',
+          },
+        });
+
+        expect(actual).toEqual({
+          method: 'GET',
+          url: 'https://example.com/',
+          headers: {
+            host: 'localhost:3000',
+            'x-forwarded-proto': 'https',
+            'x-forwarded-host': 'example.com',
+          },
+        });
+      });
+
+      it('should respect x-forwarded-proto even when it downgrades from encrypted socket', () => {
+        const actual = httpRequestToRequestData({
+          url: '/test',
+          headers: {
+            host: 'example.com',
+            'x-forwarded-proto': 'http',
+          },
+          socket: {
+            encrypted: true,
+          },
+        });
+
+        expect(actual).toEqual({
+          url: 'http://example.com/test',
+          headers: {
+            host: 'example.com',
+            'x-forwarded-proto': 'http',
+          },
+        });
+      });
+
+      it('should preserve query parameters when constructing URL with x-forwarded headers', () => {
+        const actual = httpRequestToRequestData({
+          method: 'GET',
+          url: '/search?q=test&category=api',
+          headers: {
+            host: 'localhost:8080',
+            'x-forwarded-host': 'search.example.com',
+            'x-forwarded-proto': 'https',
+          },
+        });
+
+        expect(actual).toEqual({
+          method: 'GET',
+          url: 'https://search.example.com/search?q=test&category=api',
+          query_string: 'q=test&category=api',
+          headers: {
+            host: 'localhost:8080',
+            'x-forwarded-host': 'search.example.com',
+            'x-forwarded-proto': 'https',
+          },
+        });
+      });
+    });
   });
 
   describe('extractQueryParamsFromUrl', () => {
