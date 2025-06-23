@@ -29,6 +29,7 @@ If you instrument your application via the Node.js `--import` flag, this
 instrumentation will be automatically applied to all worker threads.
 
 `instrument.mjs`
+
 ```javascript
 import * as Sentry from '@sentry/node';
 import { threadBlockedIntegration } from '@sentry/node-native';
@@ -41,6 +42,7 @@ Sentry.init({
 ```
 
 `app.mjs`
+
 ```javascript
 import { Worker } from 'worker_threads';
 
@@ -50,10 +52,11 @@ const worker = new Worker(new URL('./worker.mjs', import.meta.url));
 ```
 
 `worker.mjs`
-```javascript
 
+```javascript
 // This worker thread will also be monitored for blocked event loops too
 ```
+
 Start your application:
 
 ```bash
