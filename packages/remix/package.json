@@ -71,7 +71,6 @@
     "@sentry/cli": "^2.46.0",
     "@sentry/core": "9.30.0",
     "@sentry/node": "9.30.0",
-    "@sentry/opentelemetry": "9.30.0",
     "@sentry/react": "9.30.0",
     "glob": "^10.3.4",
     "yargs": "^17.6.0"
