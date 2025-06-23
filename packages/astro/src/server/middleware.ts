@@ -194,7 +194,12 @@ async function instrumentRequest(
                     sendErrorToSentry(e);
                     controller.error(e);
                   } finally {
-                    controller.close();
+                    // try catch this, as it could have been manually closed by a user-land middleware
+                    try {
+                      controller.close();
+                    } catch {
+                      // we assume this means it was already closed
+                    }
                   }
                 },
               });
