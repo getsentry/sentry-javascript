@@ -29094,19 +29094,7 @@ vite-plugin-inspect@^0.8.7:
     picocolors "^1.0.1"
     sirv "^2.0.4"
 
-vite-plugin-solid@^2.10.2:
-  version "2.10.2"
-  resolved "https://registry.yarnpkg.com/vite-plugin-solid/-/vite-plugin-solid-2.10.2.tgz#180f5ec9d8ac03d19160dd5728b313fe9b62ee0d"
-  integrity sha512-AOEtwMe2baBSXMXdo+BUwECC8IFHcKS6WQV/1NEd+Q7vHPap5fmIhLcAzr+DUJ04/KHx/1UBU0l1/GWP+rMAPQ==
-  dependencies:
-    "@babel/core" "^7.23.3"
-    "@types/babel__core" "^7.20.4"
-    babel-preset-solid "^1.8.4"
-    merge-anything "^5.1.7"
-    solid-refresh "^0.6.3"
-    vitefu "^0.2.5"
-
-vite-plugin-solid@^2.11.6:
+vite-plugin-solid@^2.10.2, vite-plugin-solid@^2.11.6:
   version "2.11.6"
   resolved "https://registry.yarnpkg.com/vite-plugin-solid/-/vite-plugin-solid-2.11.6.tgz#253d498affd9b07995bb113299a9da0e2cf38c55"
   integrity sha512-Sl5CTqJTGyEeOsmdH6BOgalIZlwH3t4/y0RQuFLMGnvWMBvxb4+lq7x3BSiAw6etf0QexfNJW7HSOO/Qf7pigg==
