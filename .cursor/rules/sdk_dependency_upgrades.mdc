@@ -42,12 +42,18 @@ Avoid upgrading top-level dependencies (defined in `package.json`), especially i
 
 #### CRITICAL: OpenTelemetry Dependency Constraint
 
-**STOP UPGRADE IMMEDIATELY** if upgrading any dependency with `opentelemetry` in the name and the new version depends on OpenTelemetry SDK/API v2.x or higher.
+**STOP UPGRADE IMMEDIATELY** if upgrading any dependency with `opentelemetry` in the name and the new version or any of its dependencies uses forbidden OpenTelemetry versions.
+
+**FORBIDDEN VERSION PATTERNS:**
+- `2.x.x` versions (e.g., `2.0.0`, `2.1.0`)
+- `0.2xx.x` versions (e.g., `0.200.0`, `0.201.0`)
 
 When upgrading OpenTelemetry dependencies:
 1. Check the dependency's `package.json` after upgrade
-2. Verify none of its dependencies use `@opentelemetry/*` packages at v2.0.0 or higher
-3. If v2+ OpenTelemetry dependencies are detected, **ABORT the upgrade** and notify the user that this upgrade cannot proceed due to OpenTelemetry v2 compatibility constraints
+2. Verify the package itself doesn't use forbidden version patterns
+3. Verify none of its dependencies use `@opentelemetry/*` packages with forbidden version patterns
+4. **Example**: `@opentelemetry/instrumentation-pg@0.52.0` is forbidden because it bumped to core `2.0.0` and instrumentation `0.200.0`
+5. If forbidden OpenTelemetry versions are detected, **ABORT the upgrade** and notify the user that this upgrade cannot proceed due to OpenTelemetry v2+ compatibility constraints
 
 #### CRITICAL: E2E Test Dependencies
 
@@ -66,7 +72,7 @@ When upgrading OpenTelemetry dependencies:
 1. **Backup**: Ensure clean git state or create backup branch
 2. **CI Status**: Verify all tests are passing
 3. **Lockfile works**: Confirm `yarn.lock` is in a good state (no merge conflicts)
-4. **OpenTelemetry Check**: For OpenTelemetry dependencies, verify no v2+ dependencies will be introduced
+4. **OpenTelemetry Check**: For OpenTelemetry dependencies, verify no forbidden version patterns (`2.x.x` or `0.2xx.x`) will be introduced
 
 ### Post-Upgrade Verification
 
@@ -147,7 +153,7 @@ yarn info <package-name> versions
 ```
 
 The `yarn info` command provides detailed dependency information without requiring installation, making it particularly useful for:
-- Verifying OpenTelemetry packages don't introduce v2+ dependencies
+- Verifying OpenTelemetry packages don't introduce forbidden version patterns (`2.x.x` or `0.2xx.x`)
 - Checking what dependencies a package will bring in before upgrading
 - Understanding package version history and compatibility
 
