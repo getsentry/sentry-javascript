@@ -56,6 +56,8 @@ const DEPENDENTS: Dependent[] = [
       'openFeatureIntegration',
       'statsigIntegration',
       'unleashIntegration',
+      'OpenFeatureIntegrationHook',
+      'buildLaunchDarklyFlagUsedHandler',
     ],
   },
   {
@@ -81,6 +83,8 @@ const DEPENDENTS: Dependent[] = [
       'openFeatureIntegration',
       'statsigIntegration',
       'unleashIntegration',
+      'OpenFeatureIntegrationHook',
+      'buildLaunchDarklyFlagUsedHandler',
     ],
   },
   {
@@ -94,6 +98,8 @@ const DEPENDENTS: Dependent[] = [
       'openFeatureIntegration',
       'statsigIntegration',
       'unleashIntegration',
+      'OpenFeatureIntegrationHook',
+      'buildLaunchDarklyFlagUsedHandler',
     ],
   },
   {
