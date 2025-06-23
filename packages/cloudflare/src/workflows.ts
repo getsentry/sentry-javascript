@@ -176,10 +176,21 @@ class WrappedWorkflowStep implements WorkflowStep {
 }
 
 /**
- *
- * @param optionsCallback
- * @param WorkFlowClass
- * @returns
+ * Instruments a Cloudflare Workflow class with Sentry.
+ * 
+ * @example
+ * ```typescript
+ * const InstrumentedWorkflow = instrumentWorkflowWithSentry(
+ *   (env) => ({ dsn: env.SENTRY_DSN }),
+ *   MyWorkflowClass
+ * );
+ * 
+ * export default InstrumentedWorkflow;
+ * ```
+ * 
+ * @param optionsCallback - Function that returns Sentry options to initialize Sentry
+ * @param WorkflowClass - The workflow class to instrument  
+ * @returns Instrumented workflow class with the same interface
  */
 export function instrumentWorkflowWithSentry<
   E, // Environment type
