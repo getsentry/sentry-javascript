@@ -27,6 +27,7 @@
     "@sentry/browser": "file:../../../browser",
     "@sentry/core": "file:../../../core",
     "@sentry/node": "file:../../../node",
+    "@sentry/opentelemetry": "file:../../../opentelemetry",
     "@sentry/react": "file:../../../react",
     "@sentry-internal/browser-utils": "file:../../../browser-utils",
     "@sentry-internal/replay": "file:../../../replay-internal",
