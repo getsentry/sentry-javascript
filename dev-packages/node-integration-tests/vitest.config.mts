@@ -3,7 +3,7 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     include: ['./suites/**/test.ts'],
-    // Ensure we can see debug output when DEBUT=true
+    // Ensure we can see debug output when DEBUG=true
     disableConsoleIntercept: true,
     silent: false,
     // By default Vitest uses child processes to run tests but all our tests
@@ -12,6 +12,8 @@ export default defineConfig({
     pool: 'threads',
     reporters: process.env.DEBUG
       ? ['default', { summary: false }]
-      : process.env.GITHUB_ACTIONS ? ['dot', 'github-actions'] : ['verbose'],
+      : process.env.GITHUB_ACTIONS
+        ? ['dot', 'github-actions']
+        : ['verbose'],
   },
 });
