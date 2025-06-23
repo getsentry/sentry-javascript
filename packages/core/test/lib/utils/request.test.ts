@@ -219,6 +219,25 @@ describe('request utils', () => {
         });
       });
 
+      it('should prioritize x-forwarded-proto header even when downgrading from https to http', () => {
+        const actual = httpRequestToRequestData({
+          url: '/test',
+          headers: {
+            host: 'example.com',
+            'x-forwarded-proto': 'http',
+          },
+          protocol: 'https',
+        });
+
+        expect(actual).toEqual({
+          url: 'http://example.com/test',
+          headers: {
+            host: 'example.com',
+            'x-forwarded-proto': 'http',
+          },
+        });
+      });
+
       it('should prioritize x-forwarded-proto header over socket encryption detection', () => {
         const actual = httpRequestToRequestData({
           url: '/test',
