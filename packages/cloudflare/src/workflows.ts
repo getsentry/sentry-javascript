@@ -92,10 +92,8 @@ class WrappedWorkflowStep implements WorkflowStep {
     const config = typeof configOrCallback === 'function' ? undefined : configOrCallback;
 
     const instrumentedCallback: () => Promise<T> = async () => {
-      // eslint-disable-next-line no-return-await
-      return await workflowStepWithSentry(this._instanceId, this._options, async () => {
-        // eslint-disable-next-line no-return-await
-        return await startSpan(
+      return workflowStepWithSentry(this._instanceId, this._options, async () => {
+        return startSpan(
           {
             op: 'function.step.do',
             name,
@@ -124,9 +122,7 @@ class WrappedWorkflowStep implements WorkflowStep {
       });
     };
 
-    return config
-      ? this._step.do(name, config, instrumentedCallback)
-      : this._step.do(name, instrumentedCallback);
+    return config ? this._step.do(name, config, instrumentedCallback) : this._step.do(name, instrumentedCallback);
   }
 
   public async sleep(name: string, duration: WorkflowSleepDuration): Promise<void> {
