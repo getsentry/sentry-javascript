@@ -1,13 +1,15 @@
-import type { Client, Event, EventHint, IntegrationFn } from '@sentry/core';
+import type { Client } from '../../../client';
+import { DEBUG_BUILD } from '../../../debug-build';
+import { defineIntegration } from '../../../integration';
+import type { Event, EventHint } from '../../../types-hoist/event';
+import type { IntegrationFn } from '../../../types-hoist/integration';
 import {
   _INTERNAL_addFeatureFlagToActiveSpan,
   _INTERNAL_copyFlagsFromScopeToEvent,
   _INTERNAL_insertFlagToScope,
-  defineIntegration,
-  fill,
-  logger,
-} from '@sentry/core';
-import { DEBUG_BUILD } from '../../../debug-build';
+} from '../../../utils/featureFlags';
+import { logger } from '../../../utils/logger';
+import { fill } from '../../../utils/object';
 import type { UnleashClient, UnleashClientClass } from './types';
 
 type UnleashIntegrationOptions = {

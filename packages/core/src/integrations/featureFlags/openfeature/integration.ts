@@ -1,3 +1,14 @@
+import type { Client } from '../../../client';
+import { defineIntegration } from '../../../integration';
+import type { Event, EventHint } from '../../../types-hoist/event';
+import type { IntegrationFn } from '../../../types-hoist/integration';
+import {
+  _INTERNAL_addFeatureFlagToActiveSpan,
+  _INTERNAL_copyFlagsFromScopeToEvent,
+  _INTERNAL_insertFlagToScope,
+} from '../../../utils/featureFlags';
+import type { EvaluationDetails, HookContext, HookHints, JsonValue, OpenFeatureHook } from './types';
+
 /**
  * Sentry integration for capturing OpenFeature feature flag evaluations.
  *
@@ -13,15 +24,6 @@
  * OpenFeature.addHooks(new Sentry.OpenFeatureIntegrationHook());
  * ```
  */
-import type { Client, Event, EventHint, IntegrationFn } from '@sentry/core';
-import {
-  _INTERNAL_addFeatureFlagToActiveSpan,
-  _INTERNAL_copyFlagsFromScopeToEvent,
-  _INTERNAL_insertFlagToScope,
-  defineIntegration,
-} from '@sentry/core';
-import type { EvaluationDetails, HookContext, HookHints, JsonValue, OpenFeatureHook } from './types';
-
 export const openFeatureIntegration = defineIntegration(() => {
   return {
     name: 'OpenFeature',

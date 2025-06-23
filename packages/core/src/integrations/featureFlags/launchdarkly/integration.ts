@@ -1,10 +1,12 @@
-import type { Client, Event, EventHint, IntegrationFn } from '@sentry/core';
+import type { Client } from '../../../client';
+import { defineIntegration } from '../../../integration';
+import type { Event, EventHint } from '../../../types-hoist/event';
+import type { IntegrationFn } from '../../../types-hoist/integration';
 import {
   _INTERNAL_addFeatureFlagToActiveSpan,
   _INTERNAL_copyFlagsFromScopeToEvent,
   _INTERNAL_insertFlagToScope,
-  defineIntegration,
-} from '@sentry/core';
+} from '../../../utils/featureFlags';
 import type { LDContext, LDEvaluationDetail, LDInspectionFlagUsedHandler } from './types';
 
 /**

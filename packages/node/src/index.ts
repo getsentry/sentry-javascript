@@ -140,6 +140,10 @@ export {
   consoleIntegration,
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
+  launchDarklyIntegration,
+  openFeatureIntegration,
+  statsigIntegration,
+  unleashIntegration,
 } from '@sentry/core';
 
 export type {
