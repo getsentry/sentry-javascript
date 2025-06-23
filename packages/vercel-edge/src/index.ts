@@ -8,6 +8,7 @@ export type {
   EventHint,
   ErrorEvent,
   Exception,
+  FeatureFlagsIntegration,
   Session,
   SeverityLevel,
   Span,
@@ -90,6 +91,7 @@ export {
   spanToBaggageHeader,
   wrapMcpServerWithSentry,
   consoleLoggingIntegration,
+  featureFlagsIntegration,
 } from '@sentry/core';
 
 export { VercelEdgeClient } from './client';

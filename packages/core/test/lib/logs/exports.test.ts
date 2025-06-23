@@ -7,7 +7,7 @@ import {
   logAttributeToSerializedLogAttribute,
 } from '../../../src/logs/exports';
 import type { Log } from '../../../src/types-hoist/log';
-import * as loggerModule from '../../../src/utils-hoist/logger';
+import * as loggerModule from '../../../src/utils/logger';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 const PUBLIC_DSN = 'https://username@domain/123';
@@ -377,11 +377,10 @@ describe('_INTERNAL_captureLog', () => {
   });
 
   describe('user functionality', () => {
-    it('includes user data in log attributes when sendDefaultPii is enabled', () => {
+    it('includes user data in log attributes', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
         _experiments: { enableLogs: true },
-        sendDefaultPii: true,
       });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -408,26 +407,6 @@ describe('_INTERNAL_captureLog', () => {
           type: 'string',
         },
       });
-    });
-
-    it('does not include user data in log attributes when sendDefaultPii is disabled', () => {
-      const options = getDefaultTestClientOptions({
-        dsn: PUBLIC_DSN,
-        _experiments: { enableLogs: true },
-        sendDefaultPii: false,
-      });
-      const client = new TestClient(options);
-      const scope = new Scope();
-      scope.setUser({
-        id: '123',
-        email: 'user@example.com',
-        username: 'testuser',
-      });
-
-      _INTERNAL_captureLog({ level: 'info', message: 'test log without user' }, client, scope);
-
-      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
-      expect(logAttributes).toEqual({});
     });
 
     it('includes partial user data when only some fields are available', () => {

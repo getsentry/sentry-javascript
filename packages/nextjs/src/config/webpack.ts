@@ -692,7 +692,9 @@ function addValueInjectionLoader(
   const isomorphicValues = {
     // `rewritesTunnel` set by the user in Next.js config
     _sentryRewritesTunnelPath:
-      userSentryOptions.tunnelRoute !== undefined && userNextConfig.output !== 'export'
+      userSentryOptions.tunnelRoute !== undefined &&
+      userNextConfig.output !== 'export' &&
+      typeof userSentryOptions.tunnelRoute === 'string'
         ? `${userNextConfig.basePath ?? ''}${userSentryOptions.tunnelRoute}`
         : undefined,
 

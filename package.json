@@ -46,7 +46,7 @@
   "volta": {
     "node": "20.18.2",
     "yarn": "1.22.22",
-    "pnpm": "9.15.0"
+    "pnpm": "9.15.9"
   },
   "workspaces": [
     "packages/angular",
@@ -71,6 +71,7 @@
     "packages/node-native",
     "packages/nuxt",
     "packages/opentelemetry",
+    "packages/pino-transport",
     "packages/profiling-node",
     "packages/react",
     "packages/react-router",

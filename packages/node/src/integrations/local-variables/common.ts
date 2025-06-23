@@ -70,7 +70,7 @@ export function isAnonymous(name: string | undefined): boolean {
 
 /** Do the function names appear to match? */
 export function functionNamesMatch(a: string | undefined, b: string | undefined): boolean {
-  return a === b || (isAnonymous(a) && isAnonymous(b));
+  return a === b || `Object.${a}` === b || a === `Object.${b}` || (isAnonymous(a) && isAnonymous(b));
 }
 
 export interface FrameVariables {

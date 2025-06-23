@@ -12,7 +12,7 @@ import type { Breadcrumb } from '../../src/types-hoist/breadcrumb';
 import type { Event } from '../../src/types-hoist/event';
 import { applyScopeDataToEvent } from '../../src/utils/applyScopeDataToEvent';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
-import { clearGlobalScope } from './clear-global-scope';
+import { clearGlobalScope } from '../testutils';
 
 describe('Scope', () => {
   beforeEach(() => {
