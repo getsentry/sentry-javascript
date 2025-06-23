@@ -1,7 +1,10 @@
 import * as logger from './logs/exports';
 
 export { httpIntegration } from './integrations/http';
-export { SentryHttpInstrumentation } from './integrations/http/SentryHttpInstrumentation';
+export {
+  SentryHttpInstrumentation,
+  type SentryHttpInstrumentationOptions,
+} from './integrations/http/SentryHttpInstrumentation';
 export { nativeNodeFetchIntegration } from './integrations/node-fetch';
 
 export { nodeContextIntegration } from './integrations/context';
