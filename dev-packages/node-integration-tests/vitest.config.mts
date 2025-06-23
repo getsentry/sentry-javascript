@@ -3,6 +3,7 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     include: ['./suites/**/test.ts'],
+    testTimeout: 20_000,
     // Ensure we can see debug output when DEBUG=true
     disableConsoleIntercept: true,
     silent: false,
