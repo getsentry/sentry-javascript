@@ -16,14 +16,14 @@ import * as integrationModule from '../../src/integration';
 import type { Envelope } from '../../src/types-hoist/envelope';
 import type { ErrorEvent, Event, TransactionEvent } from '../../src/types-hoist/event';
 import type { SpanJSON } from '../../src/types-hoist/span';
-import * as loggerModule from '../../src/utils-hoist/logger';
-import * as miscModule from '../../src/utils-hoist/misc';
-import * as stringModule from '../../src/utils-hoist/string';
-import * as timeModule from '../../src/utils-hoist/time';
+import * as loggerModule from '../../src/utils/logger';
+import * as miscModule from '../../src/utils/misc';
+import * as stringModule from '../../src/utils/string';
+import * as timeModule from '../../src/utils/time';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 import { AdHocIntegration, TestIntegration } from '../mocks/integration';
 import { makeFakeTransport } from '../mocks/transport';
-import { clearGlobalScope } from './clear-global-scope';
+import { clearGlobalScope } from '../testutils';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 // eslint-disable-next-line no-var

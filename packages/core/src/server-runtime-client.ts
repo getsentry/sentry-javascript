@@ -13,11 +13,11 @@ import type { ClientOptions } from './types-hoist/options';
 import type { ParameterizedString } from './types-hoist/parameterize';
 import type { SeverityLevel } from './types-hoist/severity';
 import type { BaseTransportOptions } from './types-hoist/transport';
-import { eventFromMessage, eventFromUnknownInput } from './utils-hoist/eventbuilder';
-import { isPrimitive } from './utils-hoist/is';
-import { logger } from './utils-hoist/logger';
-import { uuid4 } from './utils-hoist/misc';
-import { resolvedSyncPromise } from './utils-hoist/syncpromise';
+import { eventFromMessage, eventFromUnknownInput } from './utils/eventbuilder';
+import { isPrimitive } from './utils/is';
+import { logger } from './utils/logger';
+import { uuid4 } from './utils/misc';
+import { resolvedSyncPromise } from './utils/syncpromise';
 
 // TODO: Make this configurable
 const DEFAULT_LOG_FLUSH_INTERVAL = 5000;

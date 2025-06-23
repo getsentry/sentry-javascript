@@ -1,4 +1,4 @@
-import { isThenable } from '../utils-hoist/is';
+import { isThenable } from '../utils/is';
 
 /**
  * Wrap a callback function with error handling.

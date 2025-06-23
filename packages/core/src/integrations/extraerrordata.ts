@@ -4,11 +4,11 @@ import type { Contexts } from '../types-hoist/context';
 import type { ExtendedError } from '../types-hoist/error';
 import type { Event, EventHint } from '../types-hoist/event';
 import type { IntegrationFn } from '../types-hoist/integration';
-import { isError, isPlainObject } from '../utils-hoist/is';
-import { logger } from '../utils-hoist/logger';
-import { normalize } from '../utils-hoist/normalize';
-import { addNonEnumerableProperty } from '../utils-hoist/object';
-import { truncate } from '../utils-hoist/string';
+import { isError, isPlainObject } from '../utils/is';
+import { logger } from '../utils/logger';
+import { normalize } from '../utils/normalize';
+import { addNonEnumerableProperty } from '../utils/object';
+import { truncate } from '../utils/string';
 
 const INTEGRATION_NAME = 'ExtraErrorData';
 

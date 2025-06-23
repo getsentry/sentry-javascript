@@ -2,8 +2,8 @@ import { DEBUG_BUILD } from '../debug-build';
 import type { Options } from '../types-hoist/options';
 import type { SamplingContext } from '../types-hoist/samplingcontext';
 import { hasSpansEnabled } from '../utils/hasSpansEnabled';
+import { logger } from '../utils/logger';
 import { parseSampleRate } from '../utils/parseSampleRate';
-import { logger } from '../utils-hoist/logger';
 
 /**
  * Makes a sampling decision for the given options.

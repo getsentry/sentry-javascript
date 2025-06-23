@@ -50,6 +50,7 @@ body:
         - '@sentry/nestjs'
         - '@sentry/nextjs'
         - '@sentry/nuxt'
+        - '@sentry/pino-transport'
         - '@sentry/react'
         - '@sentry/react-router'
         - '@sentry/remix'

@@ -25,6 +25,8 @@ import type {
 import type { SpanStatus } from '../types-hoist/spanStatus';
 import type { TimedEvent } from '../types-hoist/timedEvent';
 import type { TransactionSource } from '../types-hoist/transaction';
+import { logger } from '../utils/logger';
+import { generateSpanId, generateTraceId } from '../utils/propagationContext';
 import {
   convertSpanLinksForEnvelope,
   getRootSpan,
@@ -36,9 +38,7 @@ import {
   TRACE_FLAG_NONE,
   TRACE_FLAG_SAMPLED,
 } from '../utils/spanUtils';
-import { logger } from '../utils-hoist/logger';
-import { generateSpanId, generateTraceId } from '../utils-hoist/propagationContext';
-import { timestampInSeconds } from '../utils-hoist/time';
+import { timestampInSeconds } from '../utils/time';
 import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanEnd } from './logSpans';
 import { timedEventsToMeasurements } from './measurement';

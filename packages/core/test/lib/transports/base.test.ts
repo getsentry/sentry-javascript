@@ -2,9 +2,9 @@ import { describe, expect, it, vi } from 'vitest';
 import { createTransport } from '../../../src/transports/base';
 import type { AttachmentItem, EventEnvelope, EventItem } from '../../../src/types-hoist/envelope';
 import type { TransportMakeRequestResponse } from '../../../src/types-hoist/transport';
-import { createEnvelope, serializeEnvelope } from '../../../src/utils-hoist/envelope';
-import type { PromiseBuffer } from '../../../src/utils-hoist/promisebuffer';
-import { resolvedSyncPromise } from '../../../src/utils-hoist/syncpromise';
+import { createEnvelope, serializeEnvelope } from '../../../src/utils/envelope';
+import type { PromiseBuffer } from '../../../src/utils/promisebuffer';
+import { resolvedSyncPromise } from '../../../src/utils/syncpromise';
 
 const ERROR_ENVELOPE = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, [
   [{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }] as EventItem,

@@ -4,6 +4,33 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 9.31.0
+
+### Important Changes
+
+- feat(nextjs): Add option for auto-generated random tunnel route ([#16626](https://github.com/getsentry/sentry-javascript/pull/16626))
+
+Adds an option to automatically generate a random tunnel route for the Next.js SDK. This helps prevent ad blockers and other tools from blocking Sentry requests by using a randomized path instead of the predictable `/monitoring` endpoint.
+
+- feat(core): Allow to pass `scope` & `client` to `getTraceData` ([#16633](https://github.com/getsentry/sentry-javascript/pull/16633))
+
+Adds the ability to pass custom `scope` and `client` parameters to the `getTraceData` function, providing more flexibility when generating trace data for distributed tracing.
+
+### Other Changes
+
+- deps: Remove unused `@sentry/opentelemetry` dependency ([#16677](https://github.com/getsentry/sentry-javascript/pull/16677))
+- deps: Update all bundler plugin instances to latest & allow caret ranges ([#16641](https://github.com/getsentry/sentry-javascript/pull/16641))
+- feat(deps): Bump @prisma/instrumentation from 6.8.2 to 6.9.0 ([#16608](https://github.com/getsentry/sentry-javascript/pull/16608))
+- feat(flags): add node support for generic featureFlagsIntegration and move utils to core ([#16585](https://github.com/getsentry/sentry-javascript/pull/16585))
+- feat(flags): capture feature flag evaluations on spans ([#16485](https://github.com/getsentry/sentry-javascript/pull/16485))
+- feat(pino): Add initial package for `@sentry/pino-transport` ([#16652](https://github.com/getsentry/sentry-javascript/pull/16652))
+- fix: Wait for the correct clientWidth/clientHeight when showing Feedback Screenshot previews ([#16648](https://github.com/getsentry/sentry-javascript/pull/16648))
+- fix(browser): Remove usage of Array.at() method ([#16647](https://github.com/getsentry/sentry-javascript/pull/16647))
+- fix(core): Improve `safeJoin` usage in console logging integration ([#16658](https://github.com/getsentry/sentry-javascript/pull/16658))
+- fix(google-cloud-serverless): Make `CloudEvent` type compatible ([#16661](https://github.com/getsentry/sentry-javascript/pull/16661))
+- fix(nextjs): Fix lookup of `instrumentation-client.js` file ([#16637](https://github.com/getsentry/sentry-javascript/pull/16637))
+- fix(node): Ensure graphql errors result in errored spans ([#16678](https://github.com/getsentry/sentry-javascript/pull/16678))
+
 ## 9.30.0
 
 - feat(nextjs): Add URL to tags of server components and generation functions issues ([#16500](https://github.com/getsentry/sentry-javascript/pull/16500))

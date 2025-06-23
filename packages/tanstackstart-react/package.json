@@ -55,7 +55,6 @@
     "@sentry-internal/browser-utils": "9.30.0",
     "@sentry/core": "9.30.0",
     "@sentry/node": "9.30.0",
-    "@sentry/opentelemetry": "9.30.0",
     "@sentry/react": "9.30.0"
   },
   "scripts": {
