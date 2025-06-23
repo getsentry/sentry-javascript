@@ -141,7 +141,9 @@ export {
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
   launchDarklyIntegration,
+  buildLaunchDarklyFlagUsedHandler,
   openFeatureIntegration,
+  OpenFeatureIntegrationHook,
   statsigIntegration,
   unleashIntegration,
 } from '@sentry/core';

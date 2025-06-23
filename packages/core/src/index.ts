@@ -117,7 +117,9 @@ export {
   featureFlagsIntegration,
   type FeatureFlagsIntegration,
   launchDarklyIntegration,
+  buildLaunchDarklyFlagUsedHandler,
   openFeatureIntegration,
+  OpenFeatureIntegrationHook,
   unleashIntegration,
   statsigIntegration,
 } from './integrations/featureFlags';

@@ -63,7 +63,9 @@ export {
   thirdPartyErrorFilterIntegration,
   featureFlagsIntegration,
   launchDarklyIntegration,
+  buildLaunchDarklyFlagUsedHandler,
   openFeatureIntegration,
+  OpenFeatureIntegrationHook,
   unleashIntegration,
   statsigIntegration,
 } from '@sentry/core';

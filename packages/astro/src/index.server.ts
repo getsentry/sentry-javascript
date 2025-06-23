@@ -138,9 +138,11 @@ export {
   featureFlagsIntegration,
   type FeatureFlagsIntegration,
   launchDarklyIntegration,
+  buildLaunchDarklyFlagUsedHandler,
   openFeatureIntegration,
-  statsigIntegration,
   unleashIntegration,
+  statsigIntegration,
+  OpenFeatureIntegrationHook,
 } from '@sentry/node';
 
 export { init } from './server/sdk';
