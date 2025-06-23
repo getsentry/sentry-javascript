@@ -52,6 +52,10 @@ const DEPENDENTS: Dependent[] = [
       'NodeClient',
       'NODE_VERSION',
       'childProcessIntegration',
+      'launchDarklyIntegration',
+      'openFeatureIntegration',
+      'statsigIntegration',
+      'unleashIntegration',
     ],
   },
   {
@@ -73,6 +77,10 @@ const DEPENDENTS: Dependent[] = [
     ignoreExports: [
       // Not needed for Serverless
       'setupFastifyErrorHandler',
+      'launchDarklyIntegration',
+      'openFeatureIntegration',
+      'statsigIntegration',
+      'unleashIntegration',
     ],
   },
   {
@@ -82,6 +90,10 @@ const DEPENDENTS: Dependent[] = [
     ignoreExports: [
       // Not needed for Serverless
       'setupFastifyErrorHandler',
+      'launchDarklyIntegration',
+      'openFeatureIntegration',
+      'statsigIntegration',
+      'unleashIntegration',
     ],
   },
   {
