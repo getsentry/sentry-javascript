@@ -1,6 +1,5 @@
 import {
   captureException,
-  flush,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -9,6 +8,7 @@ import {
 } from '@sentry/core';
 import { setAsyncLocalStorageAsyncContextStrategy } from './async';
 import type { CloudflareOptions } from './client';
+import { makeFlushAfterAll } from './flush';
 import { isInstrumented, markAsInstrumented } from './instrument';
 import { getFinalOptions } from './options';
 import { wrapRequestHandler } from './request';
@@ -72,6 +72,7 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
       handler.scheduled = new Proxy(handler.scheduled, {
         apply(target, thisArg, args: Parameters<ExportedHandlerScheduledHandler<Env>>) {
           const [event, env, context] = args;
+          const flushAfterAll = makeFlushAfterAll(context);
           return withIsolationScope(isolationScope => {
             const options = getFinalOptions(optionsCallback(env), env);
 
@@ -99,7 +100,7 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
                   captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
                   throw e;
                 } finally {
-                  context.waitUntil(flush(2000));
+                  flushAfterAll(2000);
                 }
               },
             );
@@ -114,6 +115,7 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
       handler.email = new Proxy(handler.email, {
         apply(target, thisArg, args: Parameters<EmailExportedHandler<Env>>) {
           const [emailMessage, env, context] = args;
+          const flushAfterAll = makeFlushAfterAll(context);
           return withIsolationScope(isolationScope => {
             const options = getFinalOptions(optionsCallback(env), env);
 
@@ -139,7 +141,7 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
                   captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
                   throw e;
                 } finally {
-                  context.waitUntil(flush(2000));
+                  flushAfterAll(2000);
                 }
               },
             );
@@ -154,6 +156,7 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
       handler.queue = new Proxy(handler.queue, {
         apply(target, thisArg, args: Parameters<ExportedHandlerQueueHandler<Env, QueueHandlerMessage>>) {
           const [batch, env, context] = args;
+          const flushAfterAll = makeFlushAfterAll(context);
 
           return withIsolationScope(isolationScope => {
             const options = getFinalOptions(optionsCallback(env), env);
@@ -185,7 +188,7 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
                   captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
                   throw e;
                 } finally {
-                  context.waitUntil(flush(2000));
+                  flushAfterAll(2000);
                 }
               },
             );
@@ -200,6 +203,7 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
       handler.tail = new Proxy(handler.tail, {
         apply(target, thisArg, args: Parameters<ExportedHandlerTailHandler<Env>>) {
           const [, env, context] = args;
+          const flushAfterAll = makeFlushAfterAll(context);
 
           return withIsolationScope(async isolationScope => {
             const options = getFinalOptions(optionsCallback(env), env);
@@ -215,7 +219,7 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
               captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
               throw e;
             } finally {
-              context.waitUntil(flush(2000));
+              flushAfterAll(2000);
             }
           });
         },
