@@ -22,7 +22,7 @@ export function getDefaultIntegrations(options: CloudflareOptions): Integration[
   return [
     // The Dedupe integration should not be used in workflows because we want to
     // capture all step failures, even if they are the same error.
-    ...(options.isWorkflow ? [] : [dedupeIntegration()]),
+    ...(options.enableDedupe === false ? [] : [dedupeIntegration()]),
     // TODO(v10): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
     // eslint-disable-next-line deprecation/deprecation
     inboundFiltersIntegration(),

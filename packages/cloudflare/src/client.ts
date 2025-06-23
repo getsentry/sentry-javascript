@@ -31,10 +31,11 @@ export class CloudflareClient extends ServerRuntimeClient<CloudflareClientOption
 
 interface BaseCloudflareOptions {
   /**
-   * @ignore Only used internally to signal that the SDK is being used in a workflow.
-   * @hidden Only used internally to signal that the SDK is being used in a workflow.
+   * @ignore Used internally to disable the deDupeIntegration for workflows.
+   * @hidden Used internally to disable the deDupeIntegration for workflows.
+   * @default true
    */
-  isWorkflow?: boolean;
+  enableDedupe?: boolean;
 }
 
 /**

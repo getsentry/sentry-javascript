@@ -54,7 +54,7 @@ async function workflowStepWithSentry<V>(
   setAsyncLocalStorageAsyncContextStrategy();
 
   return withIsolationScope(async isolationScope => {
-    const client = init({ ...options, isWorkflow: true });
+    const client = init({ ...options, enableDedupe: false });
     isolationScope.setClient(client);
 
     addCloudResourceContext(isolationScope);
@@ -88,75 +88,45 @@ class WrappedWorkflowStep implements WorkflowStep {
     configOrCallback: WorkflowStepConfig | (() => Promise<T>),
     maybeCallback?: () => Promise<T>,
   ): Promise<T> {
-    if (typeof configOrCallback === 'function') {
-      // do(name, callback)
-      return this._step.do(name, async () => {
+    const userCallback = (maybeCallback || configOrCallback) as () => Promise<T>;
+    const config = typeof configOrCallback === 'function' ? undefined : configOrCallback;
+
+    const instrumentedCallback: () => Promise<T> = async () => {
+      // eslint-disable-next-line no-return-await
+      return await workflowStepWithSentry(this._instanceId, this._options, async () => {
         // eslint-disable-next-line no-return-await
-        return await workflowStepWithSentry(this._instanceId, this._options, async () => {
-          // eslint-disable-next-line no-return-await
-          return await startSpan(
-            {
-              op: 'function.step.do',
-              name,
-              attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.workflow',
-                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
-              },
+        return await startSpan(
+          {
+            op: 'function.step.do',
+            name,
+            attributes: {
+              'cloudflare.workflow.timeout': config?.timeout,
+              'cloudflare.workflow.retries.backoff': config?.retries?.backoff,
+              'cloudflare.workflow.retries.delay': config?.retries?.delay,
+              'cloudflare.workflow.retries.limit': config?.retries?.limit,
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.workflow',
+              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
             },
-            async span => {
-              try {
-                const result = await configOrCallback();
-                span.setStatus({ code: 1 });
-                return result;
-              } catch (error) {
-                captureException(error, { mechanism: { handled: true, type: 'cloudflare' } });
-                throw error;
-              } finally {
-                this._ctx.waitUntil(flush(2000));
-              }
-            },
-          );
-        });
+          },
+          async span => {
+            try {
+              const result = await userCallback();
+              span.setStatus({ code: 1 });
+              return result;
+            } catch (error) {
+              captureException(error, { mechanism: { handled: true, type: 'cloudflare' } });
+              throw error;
+            } finally {
+              this._ctx.waitUntil(flush(2000));
+            }
+          },
+        );
       });
-    } else if (typeof maybeCallback === 'function') {
-      // do(name, config, callback)
-      return this._step.do(name, configOrCallback, async () => {
-        // eslint-disable-next-line no-return-await
-        return await workflowStepWithSentry(this._instanceId, this._options, async () => {
-          // eslint-disable-next-line no-return-await
-          return await startSpan(
-            {
-              op: 'function.step.do',
-              name,
-              attributes: {
-                'cloudflare.workflow.timeout': configOrCallback?.timeout,
-                'cloudflare.workflow.retries.backoff': configOrCallback?.retries?.backoff,
-                'cloudflare.workflow.retries.delay': configOrCallback?.retries?.delay,
-                'cloudflare.workflow.retries.limit': configOrCallback?.retries?.limit,
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.workflow',
-                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
-              },
-            },
-            async span => {
-              try {
-                const result = await maybeCallback();
-                span.setStatus({ code: 1 });
-                return result;
-              } catch (error) {
-                captureException(error, { mechanism: { handled: true, type: 'cloudflare' } });
-                throw error;
-              } finally {
-                this._ctx.waitUntil(flush(2000));
-              }
-            },
-          );
-        });
-      });
-    } else {
-      throw new Error(
-        'Invalid arguments for `step.do` method. Expected either (name, callback) or (name, config, callback).',
-      );
-    }
+    };
+
+    return config
+      ? this._step.do(name, config, instrumentedCallback)
+      : this._step.do(name, instrumentedCallback);
   }
 
   public async sleep(name: string, duration: WorkflowSleepDuration): Promise<void> {
@@ -177,19 +147,19 @@ class WrappedWorkflowStep implements WorkflowStep {
 
 /**
  * Instruments a Cloudflare Workflow class with Sentry.
- * 
+ *
  * @example
  * ```typescript
  * const InstrumentedWorkflow = instrumentWorkflowWithSentry(
  *   (env) => ({ dsn: env.SENTRY_DSN }),
  *   MyWorkflowClass
  * );
- * 
+ *
  * export default InstrumentedWorkflow;
  * ```
- * 
+ *
  * @param optionsCallback - Function that returns Sentry options to initialize Sentry
- * @param WorkflowClass - The workflow class to instrument  
+ * @param WorkflowClass - The workflow class to instrument
  * @returns Instrumented workflow class with the same interface
  */
 export function instrumentWorkflowWithSentry<
