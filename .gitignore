@@ -60,3 +60,7 @@ packages/gatsby/gatsby-node.d.ts
 
 # intellij
 *.iml
+
+# claude
+.claude/settings.local.json
+CLAUDE.local.md
