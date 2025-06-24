@@ -156,39 +156,44 @@ describe('Thread Blocked Native', { timeout: 30_000 }, () => {
   });
 
   test('worker thread', async () => {
-    const ANR_EVENT_THREADS: Event = {
-      ...ANR_EVENT,
-      exception: {
-        ...EXCEPTION('2'),
-      },
-      threads: {
-        values: [
-          {
-            id: '0',
-            name: 'main',
-            crashed: false,
-            current: true,
-            main: true,
-            stacktrace: {
-              frames: expect.any(Array),
-            },
-          },
-          {
-            id: '2',
-            name: 'worker-2',
-            crashed: true,
-            current: true,
-            main: false,
-          },
-        ],
-      },
-    };
-
     const instrument = join(__dirname, 'instrument.mjs');
     await createRunner(__dirname, 'worker-main.mjs')
       .withMockSentryServer()
       .withFlags('--import', instrument)
-      .expect({ event: ANR_EVENT_THREADS })
+      .expect({
+        event: event => {
+          const crashedThread = event.threads?.values?.find(thread => thread.crashed)?.id as string;
+          expect(crashedThread).toBeDefined();
+
+          expect(event).toMatchObject({
+            ...ANR_EVENT,
+            exception: {
+              ...EXCEPTION(crashedThread),
+            },
+            threads: {
+              values: [
+                {
+                  id: '0',
+                  name: 'main',
+                  crashed: false,
+                  current: true,
+                  main: true,
+                  stacktrace: {
+                    frames: expect.any(Array),
+                  },
+                },
+                {
+                  id: crashedThread,
+                  name: `worker-${crashedThread}`,
+                  crashed: true,
+                  current: true,
+                  main: false,
+                },
+              ],
+            },
+          });
+        },
+      })
       .start()
       .completed();
   });
