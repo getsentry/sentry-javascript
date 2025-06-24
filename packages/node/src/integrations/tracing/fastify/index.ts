@@ -60,6 +60,8 @@ export const instrumentFastifyV3 = generateInstrumentOnce(INTEGRATION_NAME_V3, (
 export const instrumentFastify = generateInstrumentOnce(INTEGRATION_NAME, () => {
   const fastifyOtelInstrumentationInstance = new FastifyOtelInstrumentation();
   const plugin = fastifyOtelInstrumentationInstance.plugin();
+  const options = fastifyOtelInstrumentationInstance.getConfig();
+  const shouldHandleError = (options as FastifyHandlerOptions)?.shouldHandleError || defaultShouldHandleError;
 
   // This message handler works for Fastify versions 3, 4 and 5
   diagnosticsChannel.subscribe('fastify.initialization', message => {
@@ -78,8 +80,22 @@ export const instrumentFastify = generateInstrumentOnce(INTEGRATION_NAME, () => 
     });
   });
 
+  // This diagnostics channel only works on Fastify version 5
+  // For versions 3 and 4, we use `setupFastifyErrorHandler` instead
+  diagnosticsChannel.subscribe('tracing:fastify.request.handler:error', message => {
+    const { error, request, reply } = message as {
+      error: Error;
+      request: FastifyRequest & { opentelemetry?: () => { span?: Span } };
+      reply: FastifyReply;
+    };
+
+    if (shouldHandleError(error, request, reply)) {
+      captureException(error);
+    }
+  });
+
   // Returning this as unknown not to deal with the internal types of the FastifyOtelInstrumentation
-  return fastifyOtelInstrumentationInstance as Instrumentation<InstrumentationConfig>;
+  return fastifyOtelInstrumentationInstance as Instrumentation<InstrumentationConfig & FastifyHandlerOptions>;
 });
 
 const _fastifyIntegration = (() => {
@@ -143,15 +159,21 @@ function defaultShouldHandleError(_error: Error, _request: FastifyRequest, reply
  */
 export function setupFastifyErrorHandler(fastify: FastifyInstance, options?: Partial<FastifyHandlerOptions>): void {
   const shouldHandleError = options?.shouldHandleError || defaultShouldHandleError;
-
   const plugin = Object.assign(
     function (fastify: FastifyInstance, _options: unknown, done: () => void): void {
-      fastify.addHook('onError', async (request, reply, error) => {
-        if (shouldHandleError(error, request, reply)) {
-          captureException(error);
-        }
-      });
-
+      if (fastify.version?.startsWith('5.')) {
+        // Fastify 5.x uses diagnostics channel for error handling
+        DEBUG_BUILD &&
+          logger.warn(
+            'Fastify 5.x detected, using diagnostics channel for error handling.\nYou can safely remove `setupFastifyErrorHandler` call.',
+          );
+      } else {
+        fastify.addHook('onError', async (request, reply, error) => {
+          if (shouldHandleError(error, request, reply)) {
+            captureException(error);
+          }
+        });
+      }
       done();
     },
     {
