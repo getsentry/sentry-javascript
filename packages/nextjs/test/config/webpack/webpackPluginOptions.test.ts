@@ -138,6 +138,23 @@ describe('getWebpackPluginOptions()', () => {
     });
   });
 
+  it('forwards errorHandler option', () => {
+    const buildContext = generateBuildContext({ isServer: false });
+    const mockErrorHandler = (err: Error) => {
+      throw err;
+    };
+
+    const generatedPluginOptions = getWebpackPluginOptions(
+      buildContext,
+      {
+        errorHandler: mockErrorHandler,
+      },
+      undefined,
+    );
+
+    expect(generatedPluginOptions.errorHandler).toBe(mockErrorHandler);
+  });
+
   it('returns the right `assets` and `ignore` values during the server build', () => {
     const buildContext = generateBuildContext({ isServer: true });
     const generatedPluginOptions = getWebpackPluginOptions(buildContext, {}, undefined);

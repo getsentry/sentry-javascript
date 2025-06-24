@@ -689,6 +689,10 @@ function addValueInjectionLoader(
 ): void {
   const assetPrefix = userNextConfig.assetPrefix || userNextConfig.basePath || '';
 
+  // Check if release creation is disabled to prevent injection that breaks build determinism
+  const shouldCreateRelease = userSentryOptions.release?.create !== false;
+  const releaseToInject = releaseName && shouldCreateRelease ? releaseName : undefined;
+
   const isomorphicValues = {
     // `rewritesTunnel` set by the user in Next.js config
     _sentryRewritesTunnelPath:
@@ -700,7 +704,8 @@ function addValueInjectionLoader(
 
     // The webpack plugin's release injection breaks the `app` directory so we inject the release manually here instead.
     // Having a release defined in dev-mode spams releases in Sentry so we only set one in non-dev mode
-    SENTRY_RELEASE: releaseName && !buildContext.dev ? { id: releaseName } : undefined,
+    // Only inject if release creation is not explicitly disabled (to maintain build determinism)
+    SENTRY_RELEASE: releaseToInject && !buildContext.dev ? { id: releaseToInject } : undefined,
     _sentryBasePath: buildContext.dev ? userNextConfig.basePath : undefined,
   };
 

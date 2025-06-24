@@ -62,6 +62,7 @@ export function getWebpackPluginOptions(
     project: sentryBuildOptions.project,
     telemetry: sentryBuildOptions.telemetry,
     debug: sentryBuildOptions.debug,
+    errorHandler: sentryBuildOptions.errorHandler,
     reactComponentAnnotation: {
       ...sentryBuildOptions.reactComponentAnnotation,
       ...sentryBuildOptions.unstable_sentryWebpackPluginOptions?.reactComponentAnnotation,

@@ -1,10 +1,8 @@
-import { defineConfig } from 'vitest/config';
 import baseConfig from '../../vite/vite.config';
 
-export default defineConfig({
+export default {
   ...baseConfig,
   test: {
     ...baseConfig.test,
-    environment: 'node',
   },
-});
+};
