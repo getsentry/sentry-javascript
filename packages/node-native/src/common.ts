@@ -1,18 +1,14 @@
 import type { Contexts, DsnComponents, Primitive, SdkMetadata, Session } from '@sentry/core';
 
+export const POLL_RATIO = 2;
+
 export interface ThreadBlockedIntegrationOptions {
   /**
-   * Interval to send heartbeat messages to the watchdog.
+   * Threshold in milliseconds to trigger an event.
    *
-   * Defaults to 50ms.
+   * Defaults to 1000ms.
    */
-  pollInterval: number;
-  /**
-   * Threshold in milliseconds to trigger a blocked event.
-   *
-   * Defaults to 5000ms.
-   */
-  blockedThreshold: number;
+  threshold: number;
   /**
    * Maximum number of blocked events to send.
    *

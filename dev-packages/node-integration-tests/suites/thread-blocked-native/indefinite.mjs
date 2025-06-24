@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/node';
-import { threadBlockedIntegration } from '@sentry/node-native';
+import { eventLoopBlockIntegration } from '@sentry/node-native';
 import * as assert from 'assert';
 import * as crypto from 'crypto';
 
@@ -10,7 +10,7 @@ setTimeout(() => {
 Sentry.init({
   dsn: process.env.SENTRY_DSN,
   release: '1.0',
-  integrations: [threadBlockedIntegration({ blockedThreshold: 100 })],
+  integrations: [eventLoopBlockIntegration()],
 });
 
 function longWork() {

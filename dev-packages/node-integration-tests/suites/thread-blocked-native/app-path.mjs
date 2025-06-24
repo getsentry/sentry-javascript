@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/node';
-import { threadBlockedIntegration } from '@sentry/node-native';
+import { eventLoopBlockIntegration } from '@sentry/node-native';
 import * as path from 'path';
 import * as url from 'url';
 import { longWork } from './long-work.js';
@@ -15,7 +15,7 @@ setTimeout(() => {
 Sentry.init({
   dsn: process.env.SENTRY_DSN,
   release: '1.0',
-  integrations: [threadBlockedIntegration({ blockedThreshold: 100, appRootPath: __dirname })],
+  integrations: [eventLoopBlockIntegration({ appRootPath: __dirname })],
 });
 
 setTimeout(() => {

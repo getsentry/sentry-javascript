@@ -1,5 +1,5 @@
 const Sentry = require('@sentry/node');
-const { threadBlockedIntegration } = require('@sentry/node-native');
+const { eventLoopBlockIntegration } = require('@sentry/node-native');
 const { longWork } = require('./long-work.js');
 const crypto = require('crypto');
 const assert = require('assert');
@@ -8,7 +8,7 @@ setTimeout(() => {
   process.exit();
 }, 10000);
 
-const threadBlocked = threadBlockedIntegration({ blockedThreshold: 100 });
+const threadBlocked = eventLoopBlockIntegration();
 
 Sentry.init({
   dsn: process.env.SENTRY_DSN,

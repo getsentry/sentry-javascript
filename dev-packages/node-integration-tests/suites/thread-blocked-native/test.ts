@@ -8,7 +8,7 @@ function EXCEPTION(thread_id = '0') {
     values: [
       {
         type: 'EventLoopBlocked',
-        value: 'Event Loop Blocked for at least 100 ms',
+        value: 'Event Loop Blocked for at least 1000 ms',
         mechanism: { type: 'ANR' },
         thread_id,
         stacktrace: {

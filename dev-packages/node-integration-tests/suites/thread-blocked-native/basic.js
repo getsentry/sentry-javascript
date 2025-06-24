@@ -1,5 +1,5 @@
 const Sentry = require('@sentry/node');
-const { threadBlockedIntegration } = require('@sentry/node-native');
+const { eventLoopBlockIntegration } = require('@sentry/node-native');
 const { longWork } = require('./long-work.js');
 
 global._sentryDebugIds = { [new Error().stack]: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa' };
@@ -11,7 +11,7 @@ setTimeout(() => {
 Sentry.init({
   dsn: process.env.SENTRY_DSN,
   release: '1.0',
-  integrations: [threadBlockedIntegration({ blockedThreshold: 100 })],
+  integrations: [eventLoopBlockIntegration()],
 });
 
 setTimeout(() => {

@@ -5,11 +5,11 @@ import { defineIntegration, getClient, getFilenameToDebugIdMap, getIsolationScop
 import type { NodeClient } from '@sentry/node';
 import { registerThread, threadPoll } from '@sentry-internal/node-native-stacktrace';
 import type { ThreadBlockedIntegrationOptions, WorkerStartData } from './common';
+import { POLL_RATIO } from './common';
 
 const { isPromise } = types;
 
-const DEFAULT_INTERVAL = 50;
-const DEFAULT_HANG_THRESHOLD = 5000;
+const DEFAULT_THRESHOLD = 1_000;
 
 function log(message: string, ...args: unknown[]): void {
   logger.log(`[Thread Blocked] ${message}`, ...args);
@@ -34,7 +34,7 @@ const INTEGRATION_NAME = 'ThreadBlocked';
 
 type ThreadBlockedInternal = { startWorker: () => void; stopWorker: () => void };
 
-const _threadBlockedIntegration = ((options: Partial<ThreadBlockedIntegrationOptions> = {}) => {
+const _eventLoopBlockIntegration = ((options: Partial<ThreadBlockedIntegrationOptions> = {}) => {
   let worker: Promise<() => void> | undefined;
   let client: NodeClient | undefined;
 
@@ -58,21 +58,48 @@ const _threadBlockedIntegration = ((options: Partial<ThreadBlockedIntegrationOpt
         });
       }
     },
-    async setup(initClient: NodeClient) {
+    async afterAllSetup(initClient: NodeClient) {
       client = initClient;
 
       registerThread();
 
-      // setImmediate is used to ensure that all other integrations have had their setup called first.
-      // This allows us to call into all integrations to fetch the full context
-      setImmediate(() => this.startWorker());
+      this.startWorker();
     },
   } as Integration & ThreadBlockedInternal;
 }) satisfies IntegrationFn;
 
 type ThreadBlockedReturn = (options?: Partial<ThreadBlockedIntegrationOptions>) => Integration & ThreadBlockedInternal;
 
-export const threadBlockedIntegration = defineIntegration(_threadBlockedIntegration) as ThreadBlockedReturn;
+/**
+ * Monitors the Node.js event loop for blocking behavior and reports blocked events to Sentry.
+ *
+ * Uses a background worker thread to detect when the main thread is blocked for longer than
+ * the configured threshold (default: 5 seconds).
+ *
+ * When instrumenting via the `--import` flag, this integration will
+ * automatically monitor all worker threads as well.
+ *
+ * ```js
+ * // instrument.mjs
+ * import * as Sentry from '@sentry/node';
+ * import { eventLoopBlockIntegration } from '@sentry/node-native';
+ *
+ * Sentry.init({
+ *   dsn: '__YOUR_DSN__',
+ *   integrations: [
+ *     eventLoopBlockIntegration({
+ *       threshold: 500, // Report blocks longer than 500ms
+ *     }),
+ *   ],
+ * });
+ * ```
+ *
+ * Start your application with:
+ * ```bash
+ * node --import instrument.mjs app.mjs
+ * ```
+ */
+export const eventLoopBlockIntegration = defineIntegration(_eventLoopBlockIntegration) as ThreadBlockedReturn;
 
 /**
  * Starts the worker thread
@@ -113,14 +140,15 @@ async function _startWorker(
     dist: initOptions.dist,
     sdkMetadata,
     appRootPath: integrationOptions.appRootPath,
-    pollInterval: integrationOptions.pollInterval || DEFAULT_INTERVAL,
-    blockedThreshold: integrationOptions.blockedThreshold || DEFAULT_HANG_THRESHOLD,
+    threshold: integrationOptions.threshold || DEFAULT_THRESHOLD,
     maxBlockedEvents: integrationOptions.maxBlockedEvents || 1,
     staticTags: integrationOptions.staticTags || {},
     contexts,
   };
 
-  const worker = new Worker(new URL('./thread-blocked-watchdog.js', import.meta.url), {
+  const pollInterval = options.threshold / POLL_RATIO
+
+  const worker = new Worker(new URL('./event-loop-block-watchdog.js', import.meta.url), {
     workerData: options,
     // We don't want any Node args like --import to be passed to the worker
     execArgv: [],
@@ -143,7 +171,7 @@ async function _startWorker(
     } catch (_) {
       //
     }
-  }, options.pollInterval);
+  }, pollInterval);
   // Timer should not block exit
   timer.unref();
 

@@ -14,9 +14,10 @@ import {
 import { makeNodeTransport } from '@sentry/node';
 import { captureStackTrace, getThreadsLastSeen } from '@sentry-internal/node-native-stacktrace';
 import type { ThreadState, WorkerStartData } from './common';
+import { POLL_RATIO } from './common';
 
 const {
-  blockedThreshold,
+  threshold,
   appRootPath,
   contexts,
   debug,
@@ -24,13 +25,13 @@ const {
   dsn,
   environment,
   maxBlockedEvents,
-  pollInterval,
   release,
   sdkMetadata,
   staticTags: tags,
   tunnel,
 } = workerData as WorkerStartData;
 
+const pollInterval = threshold / POLL_RATIO
 const triggeredThreads = new Set<string>();
 let sentAnrEvents = 0;
 
@@ -161,7 +162,7 @@ function getExceptionAndThreads(
       values: [
         {
           type: 'EventLoopBlocked',
-          value: `Event Loop Blocked for at least ${blockedThreshold} ms`,
+          value: `Event Loop Blocked for at least ${threshold} ms`,
           stacktrace: { frames: prepareStackFrames(crashedThread?.frames) },
           // This ensures the UI doesn't say 'Crashed in' for the stack trace
           mechanism: { type: 'ANR' },
@@ -246,7 +247,7 @@ async function sendAnrEvent(crashedThreadId: string): Promise<void> {
 
 setInterval(async () => {
   for (const [threadId, time] of Object.entries(getThreadsLastSeen())) {
-    if (time > blockedThreshold) {
+    if (time > threshold) {
       if (triggeredThreads.has(threadId)) {
         continue;
       }

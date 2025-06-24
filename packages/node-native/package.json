@@ -21,12 +21,12 @@
         "default": "./build/cjs/index.js"
       }
     },
-    "./thread-blocked-watchdog": {
+    "./event-loop-block-watchdog": {
       "import": {
-        "default": "./build/esm/thread-blocked-watchdog.js"
+        "default": "./build/esm/event-loop-block-watchdog.js"
       },
       "require": {
-        "default": "./build/cjs/thread-blocked-watchdog.js"
+        "default": "./build/cjs/event-loop-block-watchdog.js"
       }
     }
   },

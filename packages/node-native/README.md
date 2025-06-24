@@ -20,24 +20,25 @@ yarn add @sentry/node @sentry/node-native
 npm install --save @sentry/node @sentry/node-native
 ```
 
-## `threadBlockedIntegration`
+## `eventLoopBlockIntegration`
 
-The `threadBlockedIntegration` can be used to monitor for blocked event loops in
+The `eventLoopBlockIntegration` can be used to monitor for blocked event loops in
 all threads of a Node.js application.
 
-If you instrument your application via the Node.js `--import` flag, this
-instrumentation will be automatically applied to all worker threads.
+If you instrument your application via the Node.js `--import` flag, Sentry will
+be started and this instrumentation will be automatically applied to all worker
+threads.
 
 `instrument.mjs`
 
 ```javascript
 import * as Sentry from '@sentry/node';
-import { threadBlockedIntegration } from '@sentry/node-native';
+import { eventLoopBlockIntegration } from '@sentry/node-native';
 
 Sentry.init({
   dsn: '__YOUR_DSN__',
   // Capture stack traces when the event loop is blocked for more than 500ms
-  integrations: [threadBlockedIntegration({ blockedThreshold: 500 })],
+  integrations: [eventLoopBlockIntegration({ threshold: 500 })],
 });
 ```
 
