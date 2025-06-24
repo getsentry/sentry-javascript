@@ -1,6 +1,6 @@
 import type { Context, Span, SpanOptions, Tracer, TracerProvider } from '@opentelemetry/api';
 import { trace } from '@opentelemetry/api';
-import { startInactiveSpan, startSpan } from '@sentry/core';
+import { startInactiveSpan, startSpanManual } from '@sentry/core';
 
 /**
  * Set up a mock OTEL tracer to allow inter-op with OpenTelemetry emitted spans.
@@ -64,6 +64,7 @@ class SentryCloudflareTracer implements Tracer {
               () => {}
     ) as F;
 
-    return startSpan(spanOpts, callback) as ReturnType<F>;
+    // In OTEL the semantic matches `startSpanManual` because spans are not auto-ended
+    return startSpanManual(spanOpts, callback) as ReturnType<F>;
   }
 }
