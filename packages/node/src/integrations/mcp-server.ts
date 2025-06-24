@@ -62,7 +62,7 @@ export class McpInstrumentation extends InstrumentationBase {
 }
 const INTEGRATION_NAME = 'MCP';
 
-const instrumentMcp = generateInstrumentOnce('MCP', () => {
+export const instrumentMcp = generateInstrumentOnce('MCP', () => {
   return new McpInstrumentation();
 });
 

@@ -19,6 +19,7 @@ import { prismaIntegration } from './prisma';
 import { instrumentRedis, redisIntegration } from './redis';
 import { instrumentTedious, tediousIntegration } from './tedious';
 import { instrumentVercelAi, vercelAIIntegration } from './vercelai';
+import { mcpIntegration, instrumentMcp } from '../mcp-server';
 
 /**
  * With OTEL, all performance integrations will be added, as OTEL only initializes them when the patched package is actually required.
@@ -44,6 +45,7 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     amqplibIntegration(),
     lruMemoizerIntegration(),
     vercelAIIntegration(),
+    mcpIntegration(),
   ];
 }
 
@@ -75,5 +77,6 @@ export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) =>
     instrumentGenericPool,
     instrumentAmqplib,
     instrumentVercelAi,
+    instrumentMcp,
   ];
 }
