@@ -24541,6 +24541,11 @@ quick-format-unescaped@^4.0.3:
   resolved "https://registry.yarnpkg.com/quick-format-unescaped/-/quick-format-unescaped-4.0.4.tgz#93ef6dd8d3453cbc7970dd614fad4c5954d6b5a7"
   integrity sha512-tYC1Q1hgyRuHgloV/YXs2w15unPVh8qfu/qCTfhTYamaw7fyhumKa2yGpdSo87vY32rIclj+4fWYQXUMs9EHvg==
 
+quick-format-unescaped@^4.0.3:
+  version "4.0.4"
+  resolved "https://registry.yarnpkg.com/quick-format-unescaped/-/quick-format-unescaped-4.0.4.tgz#93ef6dd8d3453cbc7970dd614fad4c5954d6b5a7"
+  integrity sha512-tYC1Q1hgyRuHgloV/YXs2w15unPVh8qfu/qCTfhTYamaw7fyhumKa2yGpdSo87vY32rIclj+4fWYQXUMs9EHvg==
+
 quick-lru@^4.0.1:
   version "4.0.1"
   resolved "https://registry.yarnpkg.com/quick-lru/-/quick-lru-4.0.1.tgz#5b8878f113a58217848c6482026c73e1ba57727f"
