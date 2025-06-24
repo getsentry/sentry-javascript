@@ -8,8 +8,8 @@ import type { ThreadBlockedIntegrationOptions, WorkerStartData } from './common'
 
 const { isPromise } = types;
 
-const DEFAULT_INTERVAL = 50;
-const DEFAULT_HANG_THRESHOLD = 5000;
+const DEFAULT_INTERVAL_MS = 50;
+const DEFAULT_HANG_THRESHOLD_MS = 5000;
 
 function log(message: string, ...args: unknown[]): void {
   logger.log(`[Thread Blocked] ${message}`, ...args);
