@@ -447,6 +447,8 @@ export interface ReplayClickDetector {
   registerScroll(timestamp?: number): void;
   /** Register that a click on an element happened. */
   registerClick(element: HTMLElement): void;
+  /** Clear pending clicks and cancel timeout (e.g., when page enters/leaves bfcache). */
+  clearPendingClicks(): void;
 }
 
 export interface ReplayContainer {

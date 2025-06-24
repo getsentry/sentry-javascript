@@ -494,6 +494,96 @@ describe('Unit | coreHandlers | handleClick', () => {
         expect(mockAddBreadcrumbEvent).toHaveBeenCalledTimes(1);
       });
     });
+
+    describe('clearPendingClicks', () => {
+      let detector: ClickDetector;
+      let mockAddBreadcrumbEvent = vi.fn();
+
+      const replay = {
+        getCurrentRoute: () => 'test-route',
+      } as ReplayContainer;
+
+      beforeEach(() => {
+        vi.setSystemTime(BASE_TIMESTAMP);
+
+        mockAddBreadcrumbEvent = vi.fn();
+
+        detector = new ClickDetector(
+          replay,
+          {
+            threshold: 1_000,
+            timeout: 3_000,
+            scrollTimeout: 200,
+            ignoreSelector: '',
+          },
+          mockAddBreadcrumbEvent,
+        );
+      });
+
+      test('it clears pending clicks and cancels timeout', async () => {
+        const breadcrumb: Breadcrumb = {
+          timestamp: BASE_TIMESTAMP / 1000,
+          data: {
+            nodeId: 1,
+          },
+        };
+        const node = document.createElement('button');
+        detector.handleClick(breadcrumb, node);
+
+        expect(mockAddBreadcrumbEvent).toHaveBeenCalledTimes(0);
+
+        // Clear pending clicks (simulating bfcache)
+        detector.clearPendingClicks();
+
+        // Advance time past the timeout
+        vi.advanceTimersByTime(4_000);
+
+        // No breadcrumb should be created since we cleared pending clicks
+        expect(mockAddBreadcrumbEvent).toHaveBeenCalledTimes(0);
+      });
+
+      test('it allows new clicks after clearing', async () => {
+        const breadcrumb1: Breadcrumb = {
+          timestamp: BASE_TIMESTAMP / 1000,
+          data: {
+            nodeId: 1,
+          },
+        };
+        const node = document.createElement('button');
+        detector.handleClick(breadcrumb1, node);
+
+        // Clear pending clicks
+        detector.clearPendingClicks();
+
+        // Add a new click after clearing
+        const breadcrumb2: Breadcrumb = {
+          timestamp: (BASE_TIMESTAMP + 1000) / 1000,
+          data: {
+            nodeId: 2,
+          },
+        };
+        detector.handleClick(breadcrumb2, node);
+
+        vi.advanceTimersByTime(3_000);
+
+        // Only the second click should generate a breadcrumb
+        expect(mockAddBreadcrumbEvent).toHaveBeenCalledTimes(1);
+        expect(mockAddBreadcrumbEvent).toHaveBeenCalledWith(replay, {
+          category: 'ui.slowClickDetected',
+          type: 'default',
+          data: {
+            clickCount: 1,
+            endReason: 'timeout',
+            nodeId: 2,
+            route: 'test-route',
+            timeAfterClickMs: 3000,
+            url: 'http://localhost:3000/',
+          },
+          message: undefined,
+          timestamp: (BASE_TIMESTAMP + 1000) / 1000,
+        });
+      });
+    });
   });
 
   describe('ignoreElement', () => {

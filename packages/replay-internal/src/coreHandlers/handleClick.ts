@@ -119,6 +119,15 @@ export class ClickDetector implements ReplayClickDetector {
     }
   }
 
+  /** Clear pending clicks and cancel timeout (e.g., when page enters/leaves bfcache). */
+  public clearPendingClicks(): void {
+    this._clicks = [];
+    if (this._checkClickTimeout) {
+      clearTimeout(this._checkClickTimeout);
+      this._checkClickTimeout = undefined;
+    }
+  }
+
   /** @inheritDoc */
   public handleClick(breadcrumb: Breadcrumb, node: HTMLElement): void {
     if (ignoreElement(node, this._ignoreSelector) || !isClickBreadcrumb(breadcrumb)) {

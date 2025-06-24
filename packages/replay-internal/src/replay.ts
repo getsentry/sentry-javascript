@@ -166,7 +166,19 @@ export class ReplayContainer implements ReplayContainerInterface {
    */
   private _handleWindowFocus: () => void;
 
-  /** Ensure page remains active when a key is pressed. */
+  /**
+   * Handler for pageshow event (including bfcache restore).
+   */
+  private _handlePageShow: (event: PageTransitionEvent) => void;
+
+  /**
+   * Handler for pagehide event (including bfcache entry).
+   */
+  private _handlePageHide: (event: PageTransitionEvent) => void;
+
+  /**
+   * Keyboard event handler to detect user activity.
+   */
   private _handleKeyboardEvent: (event: KeyboardEvent) => void;
 
   public constructor({
@@ -268,7 +280,35 @@ export class ReplayContainer implements ReplayContainerInterface {
       this._doChangeToForegroundTasks(breadcrumb);
     };
 
-    /** Ensure page remains active when a key is pressed. */
+    /**
+     * Handler for pageshow event (including bfcache restore).
+     */
+    this._handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        // Page restored from bfcache - clear any pending click timers
+        if (this.clickDetector) {
+          this.clickDetector.clearPendingClicks();
+        }
+        this._doChangeToForegroundTasks();
+      }
+    };
+
+    /**
+     * Handler for pagehide event (including bfcache entry).
+     */
+    this._handlePageHide = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        // Page entering bfcache - clear any pending click timers
+        if (this.clickDetector) {
+          this.clickDetector.clearPendingClicks();
+        }
+        this._doChangeToBackgroundTasks();
+      }
+    };
+
+    /**
+     * Keyboard event handler to detect user activity.
+     */
     this._handleKeyboardEvent = (event: KeyboardEvent) => {
       handleKeyboardEvent(this, event);
     };
@@ -926,6 +966,8 @@ export class ReplayContainer implements ReplayContainerInterface {
       WINDOW.addEventListener('blur', this._handleWindowBlur);
       WINDOW.addEventListener('focus', this._handleWindowFocus);
       WINDOW.addEventListener('keydown', this._handleKeyboardEvent);
+      WINDOW.addEventListener('pageshow', this._handlePageShow);
+      WINDOW.addEventListener('pagehide', this._handlePageHide);
 
       if (this.clickDetector) {
         this.clickDetector.addListeners();
@@ -954,6 +996,8 @@ export class ReplayContainer implements ReplayContainerInterface {
       WINDOW.removeEventListener('blur', this._handleWindowBlur);
       WINDOW.removeEventListener('focus', this._handleWindowFocus);
       WINDOW.removeEventListener('keydown', this._handleKeyboardEvent);
+      WINDOW.removeEventListener('pageshow', this._handlePageShow);
+      WINDOW.removeEventListener('pagehide', this._handlePageHide);
 
       if (this.clickDetector) {
         this.clickDetector.removeListeners();
