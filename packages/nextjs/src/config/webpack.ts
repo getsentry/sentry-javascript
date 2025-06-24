@@ -398,6 +398,13 @@ export function constructWebpackConfigFunction(
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         sentryWebpackPluginInstance._name = 'sentry-webpack-plugin'; // For tests and debugging. Serves no other purpose.
         newConfig.plugins.push(sentryWebpackPluginInstance);
+
+        // Log a helpful message about handling Sentry CLI errors if no errorHandler is configured
+        if (!userSentryOptions.errorHandler && !userSentryOptions.silent) {
+          logger.info(
+            '[@sentry/nextjs] If Sentry CLI errors are blocking your builds, you can disable source map upload with `sourcemaps.disable: true` option, or set an `errorHandler` to handle upload failures gracefully. Read more: https://github.com/getsentry/sentry-javascript/issues/16195',
+          );
+        }
       }
     }
 

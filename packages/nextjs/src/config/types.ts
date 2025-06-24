@@ -446,6 +446,26 @@ export type SentryBuildOptions = {
   automaticVercelMonitors?: boolean;
 
   /**
+   * A function to handle errors that occur during release creation or source map upload.
+   *
+   * By default, the plugin will throw an error and stop the build when Sentry CLI encounters issues
+   * (e.g., when Sentry servers are down). Providing an errorHandler allows builds to continue despite
+   * these errors.
+   *
+   * To unblock builds during Sentry outages, you can configure this option like:
+   * ```js
+   * errorHandler: (err) => {
+   *   console.warn('[@sentry/nextjs] Warning: Sentry CLI encountered an error during source map upload');
+   *   console.warn('[@sentry/nextjs] This error will not fail your build. The error was:');
+   *   console.warn(err);
+   * }
+   * ```
+   *
+   * To disable source map uploads entirely, set `sourcemaps.disable: true` instead.
+   */
+  errorHandler?: (err: Error) => void;
+
+  /**
    * Contains a set of experimental flags that might change in future releases. These flags enable
    * features that are still in development and may be modified, renamed, or removed without notice.
    * Use with caution in production environments.

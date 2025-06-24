@@ -34,7 +34,43 @@ export declare const withErrorBoundary: typeof clientSdk.withErrorBoundary;
 
 export declare const logger: typeof clientSdk.logger | typeof serverSdk.logger;
 
-export { withSentryConfig } from './config';
+/**
+ * Wrap your Next.js configuration with Sentry to enable source map uploads and other build-time features.
+ *
+ * @param nextConfig - Your Next.js configuration object
+ * @param sentryBuildOptions - Options for Sentry build-time features
+ *
+ * @example
+ * ```js
+ * // next.config.js
+ * const { withSentryConfig } = require('@sentry/nextjs');
+ *
+ * module.exports = withSentryConfig(
+ *   {
+ *     // Your Next.js config
+ *   },
+ *   {
+ *     // Sentry build options
+ *     org: 'your-org',
+ *     project: 'your-project',
+ *     authToken: process.env.SENTRY_AUTH_TOKEN,
+ *
+ *     // Handle Sentry CLI errors gracefully to prevent build failures during outages
+ *     errorHandler: (err) => {
+ *       console.warn('[@sentry/nextjs] Warning: Sentry CLI encountered an error');
+ *       console.warn('[@sentry/nextjs] Your build will continue, but source maps will not be uploaded');
+ *       console.warn(err);
+ *       // Optionally, send to your monitoring service
+ *       // myMonitoringService.captureException(err);
+ *     },
+ *
+ *     // Alternatively, disable source map upload entirely
+ *     // sourcemaps: { disable: true }
+ *   }
+ * );
+ * ```
+ */
+export { withSentryConfig } from './config/withSentryConfig';
 
 /**
  * Wraps a Next.js Pages Router API route with Sentry error and performance instrumentation.
