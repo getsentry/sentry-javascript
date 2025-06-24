@@ -102,7 +102,7 @@ const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
 
           // Generate Spans
           if (name === 'ai.generateText') {
-            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.pipeline.generate_text');
+            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'gen_ai.invoke_agent');
             return;
           }
 
@@ -113,7 +113,7 @@ const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
           }
 
           if (name === 'ai.streamText') {
-            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.pipeline.stream_text');
+            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'gen_ai.invoke_agent');
             return;
           }
 
@@ -124,7 +124,7 @@ const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
           }
 
           if (name === 'ai.generateObject') {
-            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.pipeline.generate_object');
+            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'gen_ai.invoke_agent');
             return;
           }
 
@@ -135,7 +135,7 @@ const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
           }
 
           if (name === 'ai.streamObject') {
-            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.pipeline.stream_object');
+            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'gen_ai.invoke_agent');
             return;
           }
 
@@ -146,7 +146,7 @@ const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
           }
 
           if (name === 'ai.embed') {
-            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.pipeline.embed');
+            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'gen_ai.invoke_agent');
             return;
           }
 
@@ -157,7 +157,7 @@ const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
           }
 
           if (name === 'ai.embedMany') {
-            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.pipeline.embed_many');
+            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'gen_ai.invoke_agent');
             return;
           }
 
