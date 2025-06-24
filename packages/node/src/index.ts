@@ -32,6 +32,7 @@ export {
   statsigIntegration,
   unleashIntegration,
 } from './integrations/featureFlagShims';
+export { firebaseIntegration } from './integrations/tracing/firebase';
 
 export {
   init,
