@@ -93,24 +93,8 @@ interface PinoSourceConfig {
  *
  * @experimental This method will experience breaking changes. This is not yet part of
  * the stable Sentry SDK API and can be changed or removed without warning.
- *
- * @example
- * ```ts
- * import pino from 'pino';
- *
- * const logger = pino({
- *   transport: {
- *     target: '@sentry/pino-transport',
- *     options: {
- *       logLevels: ['error', 'fatal'], // Only capture errors and fatal
- *     },
- *   },
- * });
- *
- * logger.error('Something went wrong');
- * ```
  */
-export default function createSentryPinoTransport(options?: SentryPinoTransportOptions): ReturnType<typeof buildType> {
+export function createSentryPinoTransport(options?: SentryPinoTransportOptions): ReturnType<typeof buildType> {
   DEBUG_BUILD && logger.log('Initializing Sentry Pino transport');
   const capturedLogLevels = new Set(options?.logLevels ?? DEFAULT_CAPTURED_LEVELS);
 
@@ -256,3 +240,5 @@ function mapNumericLevelToSentryLevel(numericLevel: number): LogSeverityLevel {
 function isObject(value: unknown): value is Record<string | number, unknown> {
   return typeof value === 'object' && value != null;
 }
+
+export default createSentryPinoTransport;
