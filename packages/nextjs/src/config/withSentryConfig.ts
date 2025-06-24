@@ -90,7 +90,12 @@ function getFinalConfigObject(
   incomingUserNextConfigObject: NextConfigObject,
   userSentryOptions: SentryBuildOptions,
 ): NextConfigObject {
-  const releaseName = userSentryOptions.release?.name ?? getSentryRelease() ?? getGitRevision();
+  // Only determine a release name if release creation is not explicitly disabled
+  // This prevents injection of Git commit hashes that break build determinism
+  const shouldCreateRelease = userSentryOptions.release?.create !== false;
+  const releaseName = shouldCreateRelease
+    ? userSentryOptions.release?.name ?? getSentryRelease() ?? getGitRevision()
+    : userSentryOptions.release?.name;
 
   if (userSentryOptions?.tunnelRoute) {
     if (incomingUserNextConfigObject.output === 'export') {
@@ -126,8 +131,8 @@ function getFinalConfigObject(
       // 1. compile: Code compilation
       // 2. generate: Environment variable inlining and prerendering (We don't instrument this phase, we inline in the compile phase)
       //
-      // We assume a single “full” build and reruns Webpack instrumentation in both phases.
-      // During the generate step it collides with Next.js’s inliner
+      // We assume a single "full" build and reruns Webpack instrumentation in both phases.
+      // During the generate step it collides with Next.js's inliner
       // producing malformed JS and build failures.
       // We skip Sentry processing during generate to avoid this issue.
       return incomingUserNextConfigObject;
