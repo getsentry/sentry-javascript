@@ -55,33 +55,6 @@ logger.info('This is an info message');
 logger.error('This is an error message');
 ```
 
-### Programmatic Usage
-
-You can also create the transport programmatically:
-
-```javascript
-import pino from 'pino';
-import { createSentryPinoTransport } from '@sentry/pino-transport';
-
-const transport = pino.transport({
-  targets: [
-    {
-      target: 'pino-pretty', // Console output
-      level: 'info',
-    },
-    {
-      target: createSentryPinoTransport,
-      level: 'error',
-      options: {
-        levels: ['error', 'fatal'], // Only send errors and fatal logs to Sentry
-      },
-    },
-  ],
-});
-
-const logger = pino(transport);
-```
-
 ## Configuration Options
 
 The transport accepts the following options:

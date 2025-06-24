@@ -1,7 +1,8 @@
 import type { LogSeverityLevel } from '@sentry/core';
-import { _INTERNAL_captureLog, isPrimitive, normalize } from '@sentry/core';
+import { _INTERNAL_captureLog, isPrimitive, logger, normalize } from '@sentry/core';
 import type buildType from 'pino-abstract-transport';
 import * as pinoAbstractTransport from 'pino-abstract-transport';
+import { DEBUG_BUILD } from './debug-build';
 
 // Handle both CommonJS and ES module exports
 // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
@@ -96,7 +97,6 @@ interface PinoSourceConfig {
  * @example
  * ```ts
  * import pino from 'pino';
- * import { createSentryPinoTransport } from '@sentry/pino-transport';
  *
  * const logger = pino({
  *   transport: {
@@ -110,7 +110,8 @@ interface PinoSourceConfig {
  * logger.error('Something went wrong');
  * ```
  */
-export function createSentryPinoTransport(options?: SentryPinoTransportOptions): ReturnType<typeof buildType> {
+export default function createSentryPinoTransport(options?: SentryPinoTransportOptions): ReturnType<typeof buildType> {
+  DEBUG_BUILD && logger.log('Initializing Sentry Pino transport');
   const capturedLogLevels = new Set(options?.logLevels ?? DEFAULT_CAPTURED_LEVELS);
 
   return build(
@@ -255,7 +256,3 @@ function mapNumericLevelToSentryLevel(numericLevel: number): LogSeverityLevel {
 function isObject(value: unknown): value is Record<string | number, unknown> {
   return typeof value === 'object' && value != null;
 }
-
-// We need a default export for the default `target` based transport option to work.
-
-export default createSentryPinoTransport;
