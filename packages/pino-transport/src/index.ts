@@ -215,30 +215,37 @@ function mapPinoLevelToSentryLevel(level: unknown, levelsConfig?: unknown): LogS
  * Maps a numeric level to the closest Sentry severity level using range-based mapping.
  * Handles both standard Pino levels and custom numeric levels.
  *
+ * - `0-19` -> `trace`
+ * - `20-29` -> `debug`
+ * - `30-39` -> `info`
+ * - `40-49` -> `warn`
+ * - `50-59` -> `error`
+ * - `60+` -> `fatal`
+ *
  * @see https://github.com/pinojs/pino/blob/116b1b17935630b97222fbfd1c053d199d18ca4b/lib/constants.js#L6-L13
  */
 function mapNumericLevelToSentryLevel(numericLevel: number): LogSeverityLevel {
-  // 0-14 -> trace (includes standard 10)
-  if (numericLevel < 15) {
+  // 0-19 -> trace
+  if (numericLevel < 20) {
     return 'trace';
   }
-  // 15-24 -> debug (includes standard 20)
-  if (numericLevel < 25) {
+  // 20-29 -> debug
+  if (numericLevel < 30) {
     return 'debug';
   }
-  // 25-34 -> info (includes standard 30)
-  if (numericLevel < 35) {
+  // 30-39 -> info
+  if (numericLevel < 40) {
     return 'info';
   }
-  // 35-44 -> warn (includes standard 40)
-  if (numericLevel < 45) {
+  // 40-49 -> warn
+  if (numericLevel < 50) {
     return 'warn';
   }
-  // 45-54 -> error (includes standard 50)
-  if (numericLevel < 55) {
+  // 50-59 -> error
+  if (numericLevel < 60) {
     return 'error';
   }
-  // 55+ -> fatal (includes standard 60)
+  // 60+ -> fatal
   return 'fatal';
 }
 

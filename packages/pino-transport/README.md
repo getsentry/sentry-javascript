@@ -10,7 +10,7 @@ This transport forwards Pino logs to Sentry, allowing you to view and analyze yo
 npm install @sentry/pino-transport pino
 # or
 yarn add @sentry/pino-transport pino
-# or 
+# or
 pnpm add @sentry/pino-transport pino
 ```
 
@@ -120,12 +120,12 @@ Pino log levels are automatically mapped to Sentry log severity levels:
 
 Custom numeric levels are mapped to Sentry levels using ranges, so levels like `11`, `23`, or `42` will map correctly:
 
-- `0-14` → `trace`
-- `15-24` → `debug`
-- `25-34` → `info`
-- `35-44` → `warn`
-- `45-54` → `error`
-- `55+` → `fatal`
+- `0-19` → `trace`
+- `20-29` → `debug`
+- `30-39` → `info`
+- `40-49` → `warn`
+- `50-59` → `error`
+- `60+` → `fatal`
 
 ```javascript
 import pino from 'pino';
