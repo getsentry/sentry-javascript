@@ -18,6 +18,8 @@ import {
   getDynamicSamplingContextFromSpan,
   registerSpanErrorInstrumentation,
   SentrySpan,
+  SPAN_STATUS_ERROR,
+  SPAN_STATUS_OK,
   startInactiveSpan,
   startSpan,
   startSpanManual,
@@ -577,6 +579,76 @@ describe('startSpan', () => {
 
       expect(span).toBeDefined();
       expect(span).toBeInstanceOf(SentrySpan);
+    });
+  });
+
+  describe('span status handling on error', () => {
+    it('sets internal_error status when error is thrown and no status was set', () => {
+      let spanEnded: Span | undefined;
+      client.on('spanEnd', span => {
+        spanEnded = span;
+      });
+
+      expect(() => {
+        startSpan({ name: 'test span' }, () => {
+          throw new Error('Test error');
+        });
+      }).toThrow('Test error');
+
+      expect(spanEnded).toBeDefined();
+      expect(spanToJSON(spanEnded!).status).toBe('internal_error');
+    });
+
+    it('preserves explicitly set ok status when error is thrown', () => {
+      let spanEnded: Span | undefined;
+      client.on('spanEnd', span => {
+        spanEnded = span;
+      });
+
+      expect(() => {
+        startSpan({ name: 'test span' }, span => {
+          span.setStatus({ code: SPAN_STATUS_OK });
+          throw new Error('Test error');
+        });
+      }).toThrow('Test error');
+
+      expect(spanEnded).toBeDefined();
+      expect(spanToJSON(spanEnded!).status).toBe('ok');
+    });
+
+    it('preserves custom error status when error is thrown', () => {
+      let spanEnded: Span | undefined;
+      client.on('spanEnd', span => {
+        spanEnded = span;
+      });
+
+      expect(() => {
+        startSpan({ name: 'test span' }, span => {
+          span.setStatus({ code: SPAN_STATUS_ERROR, message: 'permission_denied' });
+          throw new Error('Test error');
+        });
+      }).toThrow('Test error');
+
+      expect(spanEnded).toBeDefined();
+      expect(spanToJSON(spanEnded!).status).toBe('permission_denied');
+    });
+
+    it('preserves explicitly set status in startSpanManual when error is thrown', () => {
+      let spanEnded: Span | undefined;
+      client.on('spanEnd', span => {
+        spanEnded = span;
+      });
+
+      expect(() => {
+        startSpanManual({ name: 'test span' }, (span, finish) => {
+          span.setStatus({ code: SPAN_STATUS_ERROR, message: 'unauthenticated' });
+          finish();
+          throw new Error('Test error');
+        });
+      }).toThrow('Test error');
+
+      expect(spanEnded).toBeDefined();
+      expect(spanToJSON(spanEnded!).status).toBe('unauthenticated');
     });
   });
 

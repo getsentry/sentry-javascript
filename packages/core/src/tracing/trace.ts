@@ -77,7 +77,7 @@ export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) =
         () => {
           // Only update the span status if it hasn't been changed yet, and the span is not yet finished
           const { status } = spanToJSON(activeSpan);
-          if (activeSpan.isRecording() && (!status || status === 'ok')) {
+          if (activeSpan.isRecording() && !status) {
             activeSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
           }
         },
@@ -139,7 +139,7 @@ export function startSpanManual<T>(options: StartSpanOptions, callback: (span: S
         () => {
           // Only update the span status if it hasn't been changed yet, and the span is not yet finished
           const { status } = spanToJSON(activeSpan);
-          if (activeSpan.isRecording() && (!status || status === 'ok')) {
+          if (activeSpan.isRecording() && !status) {
             activeSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
           }
         },
