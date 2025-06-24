@@ -30,7 +30,8 @@
     "@types/react-dom": "^18.2.34",
     "@types/prop-types": "15.7.7",
     "eslint": "^8.38.0",
-    "typescript": "^5.1.6"
+    "typescript": "^5.1.6",
+    "vite": "^5.4.11"
   },
   "resolutions": {
     "@types/react": "18.2.22"
