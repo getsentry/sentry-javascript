@@ -4,6 +4,7 @@ import { amqplibIntegration, instrumentAmqplib } from './amqplib';
 import { connectIntegration, instrumentConnect } from './connect';
 import { expressIntegration, instrumentExpress, instrumentExpressV5 } from './express';
 import { fastifyIntegration, instrumentFastify, instrumentFastifyV3 } from './fastify';
+import { firebaseIntegration, instrumentFirebase } from './firebase';
 import { genericPoolIntegration, instrumentGenericPool } from './genericPool';
 import { graphqlIntegration, instrumentGraphql } from './graphql';
 import { hapiIntegration, instrumentHapi } from './hapi';
@@ -44,6 +45,7 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     amqplibIntegration(),
     lruMemoizerIntegration(),
     vercelAIIntegration(),
+    firebaseIntegration(),
   ];
 }
 
@@ -75,5 +77,6 @@ export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) =>
     instrumentGenericPool,
     instrumentAmqplib,
     instrumentVercelAi,
+    instrumentFirebase,
   ];
 }
