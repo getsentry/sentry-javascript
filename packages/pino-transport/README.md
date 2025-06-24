@@ -1,4 +1,16 @@
-# Sentry Pino Transport
+<p align="center">
+  <a href="https://sentry.io/?utm_source=github&utm_medium=logo" target="_blank">
+    <img src="https://sentry-brand.storage.googleapis.com/sentry-wordmark-dark-280x84.png" alt="Sentry" width="280" height="84">
+  </a>
+</p>
+
+# Official Sentry Pino Transport
+
+[![npm version](https://img.shields.io/npm/v/@sentry/solid.svg)](https://www.npmjs.com/package/@sentry/solid)
+[![npm dm](https://img.shields.io/npm/dm/@sentry/solid.svg)](https://www.npmjs.com/package/@sentry/solid)
+[![npm dt](https://img.shields.io/npm/dt/@sentry/solid.svg)](https://www.npmjs.com/package/@sentry/solid)
+
+**WARNING**: This transport is in a **pre-release alpha**. The API is unstable and may change at any time.
 
 A Pino transport for sending logs to Sentry using the Sentry JavaScript SDK.
 
