@@ -10,7 +10,7 @@ import {
 import { consoleSandbox, GLOBAL_OBJ, logger, SDK_VERSION } from '@sentry/core';
 import { SentryPropagator, SentrySampler, SentrySpanProcessor } from '@sentry/opentelemetry';
 import { createAddHookMessageChannel } from 'import-in-the-middle';
-import { register } from 'module';
+import moduleModule from 'module';
 import { DEBUG_BUILD } from '../debug-build';
 import { getOpenTelemetryInstrumentationToPreload } from '../integrations/tracing';
 import { SentryContextManager } from '../otel/contextManager';
@@ -47,7 +47,7 @@ export function maybeInitializeEsmLoader(): void {
       try {
         const { addHookMessagePort } = createAddHookMessageChannel();
         // @ts-expect-error register is available in these versions
-        register('import-in-the-middle/hook.mjs', import.meta.url, {
+        moduleModule.register('import-in-the-middle/hook.mjs', import.meta.url, {
           data: { addHookMessagePort, include: [], experimentalPatchInternals: true},
           transferList: [addHookMessagePort],
         });
