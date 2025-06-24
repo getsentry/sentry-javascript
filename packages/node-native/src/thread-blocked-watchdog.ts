@@ -173,7 +173,13 @@ function getExceptionAndThreads(
       values: Object.entries(threads).map(([threadId, threadState]) => {
         const crashed = threadId === crashedThreadId;
 
-        const thread: Thread = { id: threadId, name: threadId, crashed, current: true, main: threadId === '0' };
+        const thread: Thread = {
+          id: threadId,
+          name: threadId === '0' ? 'main' : `worker-${threadId}`,
+          crashed,
+          current: true,
+          main: threadId === '0',
+        };
 
         if (!crashed) {
           thread.stacktrace = { frames: prepareStackFrames(threadState.frames) };

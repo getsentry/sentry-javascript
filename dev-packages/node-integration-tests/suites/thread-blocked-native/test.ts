@@ -54,7 +54,7 @@ const ANR_EVENT = {
     values: [
       {
         id: '0',
-        name: '0',
+        name: 'main',
         crashed: true,
         current: true,
         main: true,
@@ -163,7 +163,7 @@ describe('Thread Blocked Native', { timeout: 30_000 }, () => {
         values: [
           {
             id: '0',
-            name: '0',
+            name: 'main',
             crashed: false,
             current: true,
             main: true,
@@ -173,7 +173,7 @@ describe('Thread Blocked Native', { timeout: 30_000 }, () => {
           },
           {
             id: '2',
-            name: '2',
+            name: 'worker-2',
             crashed: true,
             current: true,
             main: false,
