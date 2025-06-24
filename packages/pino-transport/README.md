@@ -10,6 +10,8 @@ This transport forwards Pino logs to Sentry, allowing you to view and analyze yo
 npm install @sentry/pino-transport pino
 # or
 yarn add @sentry/pino-transport pino
+# or 
+pnpm add @sentry/pino-transport pino
 ```
 
 ## Requirements
