@@ -49,6 +49,7 @@ export {
   isEnabled,
   lastEventId,
   linkedErrorsIntegration,
+  logger,
   requestDataIntegration,
   rewriteFramesIntegration,
   Scope,
