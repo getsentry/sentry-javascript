@@ -209,3 +209,19 @@ sentryTest('emits element timing spans on navigation', async ({ getLocalTestUrl,
     navigationStartTime,
   );
 });
+
+function serveAssets(page: Page) {
+  page.route(/image-(fast|lazy|navigation|click)\.png/, async (route: Route) => {
+    await new Promise(resolve => setTimeout(resolve, 100));
+    return route.fulfill({
+      path: `${__dirname}/assets/sentry-logo-600x179.png`,
+    });
+  });
+
+  page.route('**/image-slow.png', async (route: Route) => {
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    return route.fulfill({
+      path: `${__dirname}/assets/sentry-logo-600x179.png`,
+    });
+  });
+}
