@@ -106,6 +106,14 @@ function sendStandaloneClsSpan(clsValue: number, entry: LayoutShift | undefined,
     'sentry.pageload.span_id': pageloadSpanId,
   };
 
+  // Add CLS sources as span attributes to help with debugging layout shifts
+  // See: https://developer.mozilla.org/en-US/docs/Web/API/LayoutShift/sources
+  if (entry?.sources) {
+    entry.sources.forEach((source, index) => {
+      attributes[`cls.source.${index + 1}`] = htmlTreeAsString(source.node);
+    });
+  }
+
   const span = startStandaloneWebVitalSpan({
     name,
     transaction: routeName,
