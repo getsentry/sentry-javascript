@@ -13,6 +13,7 @@ import {
 import type { CloudflareClientOptions, CloudflareOptions } from './client';
 import { CloudflareClient } from './client';
 import { fetchIntegration } from './integrations/fetch';
+import { setupOpenTelemetryTracer } from './opentelemetry/tracer';
 import { makeCloudflareTransport } from './transport';
 import { defaultStackParser } from './vendor/stacktrace';
 
@@ -49,6 +50,8 @@ export function init(options: CloudflareOptions): CloudflareClient | undefined {
     integrations: getIntegrationsToSetup(options),
     transport: options.transport || makeCloudflareTransport,
   };
+
+  setupOpenTelemetryTracer();
 
   return initAndBind(CloudflareClient, clientOptions) as CloudflareClient;
 }
