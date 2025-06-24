@@ -450,7 +450,7 @@ export function createRunner(...paths: string[]) {
 
           if (process.env.DEBUG) log('starting scenario', testPath, flags, env.SENTRY_DSN);
 
-          child = spawn('node', [...flags, testPath], { env, stdio: process.env.DEBUG ? 'inherit' : 'ignore' });
+          child = spawn('node', [...flags, testPath], { env });
 
           child.on('error', e => {
             // eslint-disable-next-line no-console

@@ -65,18 +65,20 @@ const ANR_EVENT = {
   exception: EXCEPTION(),
 };
 
-const ANR_EVENT_WITH_DEBUG_META: Event = {
-  ...ANR_EVENT,
-  debug_meta: {
-    images: [
-      {
-        type: 'sourcemap',
-        debug_id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa',
-        code_file: expect.stringContaining('basic'),
-      },
-    ],
-  },
-};
+function ANR_EVENT_WITH_DEBUG_META(file: string): Event {
+  return {
+    ...ANR_EVENT,
+    debug_meta: {
+      images: [
+        {
+          type: 'sourcemap',
+          debug_id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa',
+          code_file: expect.stringContaining(file),
+        },
+      ],
+    },
+  };
+}
 
 describe('Thread Blocked Native', { timeout: 30_000 }, () => {
   afterAll(() => {
@@ -86,7 +88,7 @@ describe('Thread Blocked Native', { timeout: 30_000 }, () => {
   test('CJS', async () => {
     await createRunner(__dirname, 'basic.js')
       .withMockSentryServer()
-      .expect({ event: ANR_EVENT_WITH_DEBUG_META })
+      .expect({ event: ANR_EVENT_WITH_DEBUG_META('basic') })
       .start()
       .completed();
   });
@@ -94,7 +96,7 @@ describe('Thread Blocked Native', { timeout: 30_000 }, () => {
   test('ESM', async () => {
     await createRunner(__dirname, 'basic.mjs')
       .withMockSentryServer()
-      .expect({ event: ANR_EVENT_WITH_DEBUG_META })
+      .expect({ event: ANR_EVENT_WITH_DEBUG_META('basic') })
       .start()
       .completed();
   });
@@ -123,8 +125,8 @@ describe('Thread Blocked Native', { timeout: 30_000 }, () => {
   test('multiple events via maxBlockedEvents', async () => {
     await createRunner(__dirname, 'basic-multiple.mjs')
       .withMockSentryServer()
-      .expect({ event: ANR_EVENT_WITH_DEBUG_META })
-      .expect({ event: ANR_EVENT_WITH_DEBUG_META })
+      .expect({ event: ANR_EVENT_WITH_DEBUG_META('basic-multiple') })
+      .expect({ event: ANR_EVENT_WITH_DEBUG_META('basic-multiple') })
       .start()
       .completed();
   });
