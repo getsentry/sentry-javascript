@@ -64,12 +64,13 @@ const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
             name === 'ai.toolCall'
           ) {
             addOriginToSpan(span, 'auto.vercelai.otel');
+            span.updateName(`execute_tool ${attributes[AI_TOOL_CALL_NAME_ATTRIBUTE]}`);
+
             span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'gen_ai.execute_tool');
             renameAttributeKey(attributes, AI_TOOL_CALL_NAME_ATTRIBUTE, 'gen_ai.tool.name');
             renameAttributeKey(attributes, AI_TOOL_CALL_ID_ATTRIBUTE, 'gen_ai.tool.call.id');
             renameAttributeKey(attributes, AI_TOOL_CALL_ARGS_ATTRIBUTE, 'gen_ai.tool.input');
             renameAttributeKey(attributes, AI_TOOL_CALL_RESULT_ATTRIBUTE, 'gen_ai.tool.output');
-            span.updateName(`execute_tool ${attributes[AI_TOOL_CALL_NAME_ATTRIBUTE]}`);
 
             // https://opentelemetry.io/docs/specs/semconv/registry/attributes/gen-ai/#gen-ai-tool-type
             if (!attributes['gen_ai.tool.type']) {
