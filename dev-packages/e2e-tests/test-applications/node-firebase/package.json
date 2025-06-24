@@ -16,6 +16,7 @@
     "test:assert": "pnpm test"
   },
   "dependencies": {
+    "@firebase/app": "^0.13.1",
     "@sentry/node": "latest || *",
     "@sentry/core": "latest || *",
     "@sentry/opentelemetry": "latest || *",
