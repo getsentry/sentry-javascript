@@ -10,11 +10,11 @@ export interface ThreadBlockedIntegrationOptions {
    */
   threshold: number;
   /**
-   * Maximum number of blocked events to send.
+   * Maximum number of blocked events to send per clock hour.
    *
    * Defaults to 1.
    */
-  maxBlockedEvents: number;
+  maxEventsPerHour: number;
   /**
    * Tags to include with blocked events.
    */

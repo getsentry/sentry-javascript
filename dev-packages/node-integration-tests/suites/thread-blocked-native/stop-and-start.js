@@ -29,13 +29,13 @@ function longWorkIgnored() {
 }
 
 setTimeout(() => {
-  threadBlocked.stopWorker();
+  threadBlocked.stop();
 
   setTimeout(() => {
     longWorkIgnored();
 
     setTimeout(() => {
-      threadBlocked.startWorker();
+      threadBlocked.start();
 
       setTimeout(() => {
         longWork();

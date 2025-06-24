@@ -9,10 +9,10 @@ import { POLL_RATIO } from './common';
 
 const { isPromise } = types;
 
-const DEFAULT_THRESHOLD = 1_000;
+const DEFAULT_THRESHOLD_MS = 1_000;
 
 function log(message: string, ...args: unknown[]): void {
-  logger.log(`[Thread Blocked] ${message}`, ...args);
+  logger.log(`[Sentry Block Event Loop] ${message}`, ...args);
 }
 
 /**
@@ -32,7 +32,7 @@ async function getContexts(client: NodeClient): Promise<Contexts> {
 
 const INTEGRATION_NAME = 'ThreadBlocked';
 
-type ThreadBlockedInternal = { startWorker: () => void; stopWorker: () => void };
+type ThreadBlockedInternal = { start: () => void; stop: () => void };
 
 const _eventLoopBlockIntegration = ((options: Partial<ThreadBlockedIntegrationOptions> = {}) => {
   let worker: Promise<() => void> | undefined;
@@ -40,7 +40,7 @@ const _eventLoopBlockIntegration = ((options: Partial<ThreadBlockedIntegrationOp
 
   return {
     name: INTEGRATION_NAME,
-    startWorker: () => {
+    start: () => {
       if (worker) {
         return;
       }
@@ -49,7 +49,7 @@ const _eventLoopBlockIntegration = ((options: Partial<ThreadBlockedIntegrationOp
         worker = _startWorker(client, options);
       }
     },
-    stopWorker: () => {
+    stop: () => {
       if (worker) {
         // eslint-disable-next-line @typescript-eslint/no-floating-promises
         worker.then(stop => {
@@ -58,12 +58,11 @@ const _eventLoopBlockIntegration = ((options: Partial<ThreadBlockedIntegrationOp
         });
       }
     },
-    async afterAllSetup(initClient: NodeClient) {
+    afterAllSetup(initClient: NodeClient) {
       client = initClient;
 
       registerThread();
-
-      this.startWorker();
+      this.start();
     },
   } as Integration & ThreadBlockedInternal;
 }) satisfies IntegrationFn;
@@ -140,13 +139,13 @@ async function _startWorker(
     dist: initOptions.dist,
     sdkMetadata,
     appRootPath: integrationOptions.appRootPath,
-    threshold: integrationOptions.threshold || DEFAULT_THRESHOLD,
-    maxBlockedEvents: integrationOptions.maxBlockedEvents || 1,
+    threshold: integrationOptions.threshold || DEFAULT_THRESHOLD_MS,
+    maxEventsPerHour: integrationOptions.maxEventsPerHour || 1,
     staticTags: integrationOptions.staticTags || {},
     contexts,
   };
 
-  const pollInterval = options.threshold / POLL_RATIO
+  const pollInterval = options.threshold / POLL_RATIO;
 
   const worker = new Worker(new URL('./event-loop-block-watchdog.js', import.meta.url), {
     workerData: options,
@@ -207,13 +206,13 @@ export function disableBlockedDetectionForCallback<T>(callback: () => T | Promis
     return callback();
   }
 
-  integration.stopWorker();
+  integration.stop();
 
   const result = callback();
   if (isPromise(result)) {
-    return result.finally(() => integration.startWorker());
+    return result.finally(() => integration.start());
   }
 
-  integration.startWorker();
+  integration.start();
   return result;
 }

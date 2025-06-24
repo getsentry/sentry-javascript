@@ -122,7 +122,7 @@ describe('Thread Blocked Native', { timeout: 30_000 }, () => {
       .completed();
   });
 
-  test('multiple events via maxBlockedEvents', async () => {
+  test('multiple events via maxEventsPerHour', async () => {
     await createRunner(__dirname, 'basic-multiple.mjs')
       .withMockSentryServer()
       .expect({ event: ANR_EVENT_WITH_DEBUG_META('basic-multiple') })

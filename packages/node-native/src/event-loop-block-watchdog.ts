@@ -24,22 +24,46 @@ const {
   dist,
   dsn,
   environment,
-  maxBlockedEvents,
+  maxEventsPerHour,
   release,
   sdkMetadata,
   staticTags: tags,
   tunnel,
 } = workerData as WorkerStartData;
 
-const pollInterval = threshold / POLL_RATIO
+const pollInterval = threshold / POLL_RATIO;
 const triggeredThreads = new Set<string>();
-let sentAnrEvents = 0;
 
 function log(...msg: unknown[]): void {
   if (debug) {
     // eslint-disable-next-line no-console
-    console.log('[Sentry Blocked Watchdog]', ...msg);
+    console.log('[Sentry Block Event Loop Watchdog]', ...msg);
   }
+}
+
+function createRateLimiter(maxEventsPerHour: number): () => boolean {
+  let currentHour = 0;
+  let currentCount = 0;
+
+  return function isRateLimited(): boolean {
+    const hour = new Date().getHours();
+
+    if (hour !== currentHour) {
+      currentHour = hour;
+      currentCount = 0;
+    }
+
+    if (currentCount >= maxEventsPerHour) {
+      if (currentCount === maxEventsPerHour) {
+        currentCount += 1;
+        log(`Rate limit reached: ${currentCount} events in this hour`);
+      }
+      return true;
+    }
+
+    currentCount += 1;
+    return false;
+  };
 }
 
 const url = getEnvelopeEndpointWithUrlEncodedAuth(dsn, tunnel, sdkMetadata.sdk);
@@ -49,6 +73,7 @@ const transport = makeNodeTransport({
     //
   },
 });
+const isRateLimited = createRateLimiter(maxEventsPerHour);
 
 async function sendAbnormalSession(serializedSession: Session | undefined): Promise<void> {
   if (!serializedSession) {
@@ -193,11 +218,9 @@ function getExceptionAndThreads(
 }
 
 async function sendAnrEvent(crashedThreadId: string): Promise<void> {
-  if (sentAnrEvents >= maxBlockedEvents) {
+  if (isRateLimited()) {
     return;
   }
-
-  sentAnrEvents += 1;
 
   const threads = captureStackTrace<ThreadState>();
   const crashedThread = threads[crashedThreadId];
@@ -235,14 +258,6 @@ async function sendAnrEvent(crashedThreadId: string): Promise<void> {
 
   await transport.send(envelope);
   await transport.flush(2000);
-
-  if (sentAnrEvents >= maxBlockedEvents) {
-    // Delay for 5 seconds so that stdio can flush if the main event loop ever restarts.
-    // This is mainly for the benefit of logging or debugging.
-    setTimeout(() => {
-      process.exit(0);
-    }, 5_000);
-  }
 }
 
 setInterval(async () => {
