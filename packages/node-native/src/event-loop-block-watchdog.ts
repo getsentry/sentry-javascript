@@ -38,7 +38,7 @@ let sentAnrEvents = 0;
 function log(...msg: unknown[]): void {
   if (debug) {
     // eslint-disable-next-line no-console
-    console.log('[Blocked Watchdog]', ...msg);
+    console.log('[Sentry Blocked Watchdog]', ...msg);
   }
 }
 
