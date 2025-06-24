@@ -21,7 +21,7 @@
         "default": "./build/cjs/index.js"
       }
     },
-    "./worker": {
+    "./thread-blocked-watchdog": {
       "import": {
         "default": "./build/esm/thread-blocked-watchdog.js"
       },
