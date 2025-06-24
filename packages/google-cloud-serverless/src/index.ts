@@ -87,6 +87,7 @@ export {
   connectIntegration,
   setupConnectErrorHandler,
   fastifyIntegration,
+  firebaseIntegration,
   genericPoolIntegration,
   graphqlIntegration,
   knexIntegration,

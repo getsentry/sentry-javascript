@@ -86,6 +86,7 @@ export {
   connectIntegration,
   setupConnectErrorHandler,
   fastifyIntegration,
+  firebaseIntegration,
   fsIntegration,
   genericPoolIntegration,
   graphqlIntegration,
