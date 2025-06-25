@@ -5,7 +5,7 @@
  * because Cloudflare Workers do not support it.
  *
  * Therefore, we cannot automatically patch setting `experimental_telemetry: { isEnabled: true }`
- * and users have to manually  these to get spans.
+ * and users have to manually set this to get spans.
  */
 
 import type { Client, IntegrationFn } from '@sentry/core';
@@ -57,7 +57,7 @@ const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
  * });
  * ```
  *
- * The integration automatically detects when to force registration in CommonJS environments
+ * The integration automatically detects when to force registration.
  * when the 'ai' package is available. You can still manually set the `force` option if needed.
  *
  * Unlike the Vercel AI integration in the node SDK, this integration does not add tracing support to
