@@ -95,7 +95,7 @@
     "@types/resolve": "1.20.3",
     "eslint-plugin-react": "^7.31.11",
     "next": "13.2.0",
-    "@sentry-internal/integration-shims": "9.31.0"
+    "@sentry-internal/integration-shims": "9.32.0"
   },
   "peerDependencies": {
     "next": "^13.2.0 || ^14.0 || ^15.0.0-rc.0"
