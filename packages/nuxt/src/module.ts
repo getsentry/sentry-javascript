@@ -4,7 +4,7 @@ import * as path from 'path';
 import type { SentryNuxtModuleOptions } from './common/types';
 import { addDynamicImportEntryFileWrapper, addSentryTopImport, addServerConfigToBuild } from './vite/addServerConfig';
 import { setupSourceMaps } from './vite/sourceMaps';
-import { findDefaultSdkInitFile } from './vite/utils';
+import { addOTelCommonJSImportAlias, findDefaultSdkInitFile } from './vite/utils';
 
 export type ModuleOptions = SentryNuxtModuleOptions;
 
@@ -68,6 +68,8 @@ export default defineNuxtModule<ModuleOptions>({
     if (clientConfigFile || serverConfigFile) {
       setupSourceMaps(moduleOptions, nuxt);
     }
+
+    addOTelCommonJSImportAlias(nuxt);
 
     nuxt.hooks.hook('nitro:init', nitro => {
       if (serverConfigFile?.includes('.server.config')) {
