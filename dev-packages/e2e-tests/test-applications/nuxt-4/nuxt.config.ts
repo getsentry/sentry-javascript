@@ -1,7 +1,7 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   future: { compatibilityVersion: 4 },
-  compatibilityDate: '2024-04-03',
+  compatibilityDate: '2025-06-06',
   imports: { autoImport: false },
 
   modules: ['@pinia/nuxt', '@sentry/nuxt/module'],
