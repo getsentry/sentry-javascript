@@ -1,9 +1,11 @@
 // Instrumentation for https://github.com/porsager/postgres
+import { context, trace } from '@opentelemetry/api';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import {
   InstrumentationBase,
   InstrumentationNodeModuleDefinition,
   InstrumentationNodeModuleFile,
+  safeExecuteInTheMiddle,
 } from '@opentelemetry/instrumentation';
 import {
   ATTR_DB_NAMESPACE,
@@ -12,20 +14,56 @@ import {
   ATTR_SERVER_PORT,
 } from '@opentelemetry/semantic-conventions';
 import type { IntegrationFn, Span } from '@sentry/core';
-import { defineIntegration, getCurrentScope, SDK_VERSION, SPAN_STATUS_ERROR, startSpanManual } from '@sentry/core';
+import {
+  defineIntegration,
+  getCurrentScope,
+  logger,
+  SDK_VERSION,
+  SPAN_STATUS_ERROR,
+  startSpanManual,
+} from '@sentry/core';
 import { generateInstrumentOnce } from '../../otel/instrument';
+import { addOriginToSpan } from '../../utils/addOriginToSpan';
 
 const INTEGRATION_NAME = 'PostgresJs';
 const SUPPORTED_VERSIONS = ['>=3.0.0 <4'];
 
-export const instrumentPostgresJs = generateInstrumentOnce(INTEGRATION_NAME, () => new PostgresJsInstrumentation());
+type PostgresConnectionContext = {
+  ATTR_DB_NAMESPACE?: string; // Database name
+  ATTR_SERVER_ADDRESS?: string; // Hostname or IP address of the database server
+  ATTR_SERVER_PORT?: string; // Port number of the database server
+};
+
+type PostgresJsInstrumentationConfig = InstrumentationConfig & {
+  /**
+   * Whether to require a parent span for the instrumentation.
+   * If set to true, the instrumentation will only create spans if there is a parent span
+   * available in the current scope.
+   * @default true
+   */
+  requireParentSpan?: boolean;
+  /**
+   * Hook to modify the span before it is started.
+   * This can be used to set additional attributes or modify the span in any way.
+   */
+  requestHook?: (span: Span, sanitizedSqlQuery: string, postgresConnectionContext?: PostgresConnectionContext) => void;
+};
+
+export const instrumentPostgresJs = generateInstrumentOnce(
+  INTEGRATION_NAME,
+  (options?: PostgresJsInstrumentationConfig) =>
+    new PostgresJsInstrumentation({
+      requireParentSpan: options?.requireParentSpan ?? true,
+      requestHook: options?.requestHook,
+    }),
+);
 
 /**
  * Instrumentation for the [postgres](https://www.npmjs.com/package/postgres) library.
  * This instrumentation captures postgresjs queries and their attributes,
  */
-export class PostgresJsInstrumentation extends InstrumentationBase {
-  public constructor(config: InstrumentationConfig = {}) {
+export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsInstrumentationConfig> {
+  public constructor(config: PostgresJsInstrumentationConfig) {
     super('sentry-postgres-js', SDK_VERSION, config);
   }
 
@@ -56,6 +94,17 @@ export class PostgresJsInstrumentation extends InstrumentationBase {
     });
 
     return [instrumentationModule];
+  }
+
+  /**
+   * Determines whether a span should be created based on the current context.
+   * If `requireParentSpan` is set to true in the configuration, a span will
+   * only be created if there is a parent span available.
+   */
+  private _shouldCreateSpans(): boolean {
+    const config = this.getConfig();
+    const hasParentSpan = trace.getSpan(context.active()) !== undefined;
+    return hasParentSpan || !config.requireParentSpan;
   }
 
   /**
@@ -114,6 +163,11 @@ export class PostgresJsInstrumentation extends InstrumentationBase {
         },
         handleArgs,
       ) => {
+        if (!this._shouldCreateSpans()) {
+          // If we don't need to create spans, just call the original method
+          return Reflect.apply(handleTarget, handleThisArg, handleArgs);
+        }
+
         const sanitizedSqlQuery = this._sanitizeSqlQuery(handleThisArg.strings?.[0]);
 
         return startSpanManual(
@@ -124,12 +178,23 @@ export class PostgresJsInstrumentation extends InstrumentationBase {
           (span: Span) => {
             const scope = getCurrentScope();
             const postgresConnectionContext = scope.getScopeData().contexts['postgresjsConnection'] as
-              | {
-                  ATTR_DB_NAMESPACE: string;
-                  ATTR_SERVER_ADDRESS: string;
-                  ATTR_SERVER_PORT: string;
-                }
+              | PostgresConnectionContext
               | undefined;
+
+            addOriginToSpan(span, 'auto.db.otel.postgres');
+
+            const { requestHook } = this.getConfig();
+
+            if (requestHook) {
+              safeExecuteInTheMiddle(
+                () => requestHook(span, sanitizedSqlQuery, postgresConnectionContext),
+                error => {
+                  if (error) {
+                    logger.error(`Error in requestHook for ${INTEGRATION_NAME} integration:`, error);
+                  }
+                },
+              );
+            }
 
             // ATTR_DB_NAMESPACE is used to indicate the database name and the schema name
             // It's only the database name as we don't have the schema information
