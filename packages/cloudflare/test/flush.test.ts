@@ -1,7 +1,6 @@
 import { type ExecutionContext } from '@cloudflare/workers-types';
-import * as SentryCore from '@sentry/core';
 import { describe, expect, it, onTestFinished, vi } from 'vitest';
-import { makeFlushAfterAll } from '../src/flush';
+import { makeFlushLock } from '../src/flush';
 
 describe('Flush buffer test', () => {
   const waitUntilPromises: Promise<void>[] = [];
@@ -11,11 +10,9 @@ describe('Flush buffer test', () => {
     }),
     passThroughOnException: vi.fn(),
   };
-  it('should flush buffer immediately if no waitUntil were called', () => {
-    const coreFlush = vi.spyOn(SentryCore, 'flush');
-    const flush = makeFlushAfterAll(mockExecutionContext);
-    flush();
-    expect(coreFlush).toBeCalled();
+  it('should flush buffer immediately if no waitUntil were called', async () => {
+    const { finalize } = makeFlushLock(mockExecutionContext);
+    await expect(finalize()).resolves.toBeUndefined();
   });
   it('should flush buffer only after all waitUntil were finished', async () => {
     vi.useFakeTimers();
@@ -23,13 +20,11 @@ describe('Flush buffer test', () => {
       vi.useRealTimers();
     });
     const task = new Promise(resolve => setTimeout(resolve, 100));
-    const coreFlush = vi.spyOn(SentryCore, 'flush');
-    const flush = makeFlushAfterAll(mockExecutionContext);
+    const lock = makeFlushLock(mockExecutionContext);
     mockExecutionContext.waitUntil(task);
-    flush();
-    expect(coreFlush).not.toBeCalled();
+    void lock.finalize();
     vi.advanceTimersToNextTimer();
     await Promise.all(waitUntilPromises);
-    expect(coreFlush).toBeCalled();
+    await expect(lock.ready).resolves.toBeUndefined();
   });
 });

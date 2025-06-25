@@ -134,7 +134,7 @@ describe('withSentry', () => {
     });
 
     test('flush must be called when all waitUntil are done', async () => {
-      const flush = vi.spyOn(SentryCore, 'flush');
+      const flush = vi.spyOn(SentryCore.Client.prototype, 'flush');
       vi.useFakeTimers();
       onTestFinished(() => {
         vi.useRealTimers();
@@ -154,7 +154,7 @@ describe('withSentry', () => {
       } as unknown as ExecutionContext);
       expect(flush).not.toBeCalled();
       expect(waitUntil).toBeCalled();
-      vi.advanceTimersToNextTimer();
+      vi.advanceTimersToNextTimer().runAllTimers();
       await Promise.all(waits);
       expect(flush).toHaveBeenCalledOnce();
     });
@@ -374,7 +374,7 @@ describe('withSentry', () => {
     });
 
     test('flush must be called when all waitUntil are done', async () => {
-      const flush = vi.spyOn(SentryCore, 'flush');
+      const flush = vi.spyOn(SentryCore.Client.prototype, 'flush');
       vi.useFakeTimers();
       onTestFinished(() => {
         vi.useRealTimers();
@@ -394,7 +394,7 @@ describe('withSentry', () => {
       } as unknown as ExecutionContext);
       expect(flush).not.toBeCalled();
       expect(waitUntil).toBeCalled();
-      vi.advanceTimersToNextTimer();
+      vi.advanceTimersToNextTimer().runAllTimers();
       await Promise.all(waits);
       expect(flush).toHaveBeenCalledOnce();
     });
@@ -613,7 +613,7 @@ describe('withSentry', () => {
     });
 
     test('flush must be called when all waitUntil are done', async () => {
-      const flush = vi.spyOn(SentryCore, 'flush');
+      const flush = vi.spyOn(SentryCore.Client.prototype, 'flush');
       vi.useFakeTimers();
       onTestFinished(() => {
         vi.useRealTimers();
@@ -633,7 +633,7 @@ describe('withSentry', () => {
       } as unknown as ExecutionContext);
       expect(flush).not.toBeCalled();
       expect(waitUntil).toBeCalled();
-      vi.advanceTimersToNextTimer();
+      vi.advanceTimersToNextTimer().runAllTimers();
       await Promise.all(waits);
       expect(flush).toHaveBeenCalledOnce();
     });
@@ -856,7 +856,7 @@ describe('withSentry', () => {
     });
 
     test('flush must be called when all waitUntil are done', async () => {
-      const flush = vi.spyOn(SentryCore, 'flush');
+      const flush = vi.spyOn(SentryCore.Client.prototype, 'flush');
       vi.useFakeTimers();
       onTestFinished(() => {
         vi.useRealTimers();
@@ -876,7 +876,7 @@ describe('withSentry', () => {
       } as unknown as ExecutionContext);
       expect(flush).not.toBeCalled();
       expect(waitUntil).toBeCalled();
-      vi.advanceTimersToNextTimer();
+      vi.advanceTimersToNextTimer().runAllTimers();
       await Promise.all(waits);
       expect(flush).toHaveBeenCalledOnce();
     });
@@ -1053,10 +1053,11 @@ describe('withSentry', () => {
     });
 
     test('flush must be called when all waitUntil are done', async () => {
-      const flush = vi.spyOn(SentryCore, 'flush');
+      const flush = vi.spyOn(SentryCore.Client.prototype, 'flush');
       vi.useFakeTimers();
       onTestFinished(() => {
         vi.useRealTimers();
+        flush.mockRestore();
       });
       const handler = {
         tail(_controller, _env, _context) {
@@ -1073,7 +1074,7 @@ describe('withSentry', () => {
       } as unknown as ExecutionContext);
       expect(flush).not.toBeCalled();
       expect(waitUntil).toBeCalled();
-      vi.advanceTimersToNextTimer();
+      vi.advanceTimersToNextTimer().runAllTimers();
       await Promise.all(waits);
       expect(flush).toHaveBeenCalledOnce();
     });

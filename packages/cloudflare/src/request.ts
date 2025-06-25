@@ -10,7 +10,6 @@ import {
   withIsolationScope,
 } from '@sentry/core';
 import type { CloudflareOptions } from './client';
-import { makeFlushAfterAll } from './flush';
 import { addCloudResourceContext, addCultureContext, addRequest } from './scope-utils';
 import { init } from './sdk';
 
@@ -34,9 +33,10 @@ export function wrapRequestHandler(
     // For example, for Astro while prerendering pages at build time.
     // see: https://github.com/getsentry/sentry-javascript/issues/13217
     const context = wrapperOptions.context as ExecutionContext | undefined;
-    const afterAllFlusher = context ? makeFlushAfterAll(context) : undefined;
 
-    const client = init(options);
+    const waitUntil = context?.waitUntil?.bind?.(context);
+
+    const client = init(options, context);
     isolationScope.setClient(client);
 
     const urlObject = parseStringToURLObject(request.url);
@@ -66,7 +66,7 @@ export function wrapRequestHandler(
         captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
         throw e;
       } finally {
-        afterAllFlusher?.(2000);
+        waitUntil?.(client?.flush?.(2000));
       }
     }
 
@@ -90,7 +90,7 @@ export function wrapRequestHandler(
               captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
               throw e;
             } finally {
-              afterAllFlusher?.(2000);
+              waitUntil?.(client?.flush?.(2000));
             }
           },
         );

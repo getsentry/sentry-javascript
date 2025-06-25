@@ -1,3 +1,4 @@
+import { type ExecutionContext } from '@cloudflare/workers-types';
 import type { Integration } from '@sentry/core';
 import {
   consoleIntegration,
@@ -12,6 +13,7 @@ import {
 } from '@sentry/core';
 import type { CloudflareClientOptions, CloudflareOptions } from './client';
 import { CloudflareClient } from './client';
+import { makeFlushLock } from './flush';
 import { fetchIntegration } from './integrations/fetch';
 import { makeCloudflareTransport } from './transport';
 import { defaultStackParser } from './vendor/stacktrace';
@@ -36,16 +38,19 @@ export function getDefaultIntegrations(options: CloudflareOptions): Integration[
 /**
  * Initializes the cloudflare SDK.
  */
-export function init(options: CloudflareOptions): CloudflareClient | undefined {
+export function init(options: CloudflareOptions, ctx: ExecutionContext | void): CloudflareClient | undefined {
   if (options.defaultIntegrations === undefined) {
     options.defaultIntegrations = getDefaultIntegrations(options);
   }
+
+  const flushLock = ctx ? makeFlushLock(ctx) : undefined;
 
   const clientOptions: CloudflareClientOptions = {
     ...options,
     stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
     integrations: getIntegrationsToSetup(options),
     transport: options.transport || makeCloudflareTransport,
+    flushLock,
   };
 
   return initAndBind(CloudflareClient, clientOptions) as CloudflareClient;
