@@ -51,7 +51,16 @@ export function init(options: CloudflareOptions): CloudflareClient | undefined {
     transport: options.transport || makeCloudflareTransport,
   };
 
-  setupOpenTelemetryTracer();
+  /**
+   * The Cloudflare SDK is not OpenTelemetry native, however, we set up some OpenTelemetry compatibility
+   * via a custom trace provider.
+   * This ensures that any spans emitted via `@opentelemetry/api` will be captured by Sentry.
+   * HOWEVER, big caveat: This does not handle custom context handling, it will always work off the current scope.
+   * This should be good enough for many, but not all integrations.
+   */
+  if (!options.skipOpenTelemetrySetup) {
+    setupOpenTelemetryTracer();
+  }
 
   return initAndBind(CloudflareClient, clientOptions) as CloudflareClient;
 }

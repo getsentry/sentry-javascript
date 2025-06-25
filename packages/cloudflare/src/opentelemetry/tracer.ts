@@ -26,7 +26,14 @@ class SentryCloudflareTraceProvider implements TracerProvider {
 
 class SentryCloudflareTracer implements Tracer {
   public startSpan(name: string, options?: SpanOptions): Span {
-    return startInactiveSpan({ name, ...options });
+    return startInactiveSpan({
+      name,
+      ...options,
+      attributes: {
+        ...options?.attributes,
+        'sentry.cloudflare_tracer': true,
+      },
+    });
   }
 
   /**
@@ -46,11 +53,15 @@ class SentryCloudflareTracer implements Tracer {
     context?: unknown,
     fn?: F,
   ): ReturnType<F> {
-    const opts = typeof options === 'object' && options !== null ? options : {};
+    const opts = (typeof options === 'object' && options !== null ? options : {}) as SpanOptions;
 
     const spanOpts = {
       name,
       ...opts,
+      attributes: {
+        ...opts.attributes,
+        'sentry.cloudflare_tracer': true,
+      },
     };
 
     const callback = (

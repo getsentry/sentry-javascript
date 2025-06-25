@@ -36,6 +36,19 @@ interface BaseCloudflareOptions {
    * @default true
    */
   enableDedupe?: boolean;
+
+  /**
+   * The Cloudflare SDK is not OpenTelemetry native, however, we set up some OpenTelemetry compatibility
+   * via a custom trace provider.
+   * This ensures that any spans emitted via `@opentelemetry/api` will be captured by Sentry.
+   * HOWEVER, big caveat: This does not handle custom context handling, it will always work off the current scope.
+   * This should be good enough for many, but not all integrations.
+   *
+   * If you want to opt-out of setting up the OpenTelemetry compatibility tracer, set this to `true`.
+   *
+   * @default false
+   */
+  skipOpenTelemetrySetup?: boolean;
 }
 
 /**
