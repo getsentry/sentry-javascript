@@ -10,6 +10,9 @@ describe('postgresjs auto instrumentation', () => {
           data: expect.objectContaining({
             'db.namespace': 'test_db',
             'db.system.name': 'postgres',
+            'db.operation.name': 'CREATE TABLE',
+            'db.query.text':
+              'CREATE TABLE "User" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(?) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"))',
             'sentry.op': 'db',
             'sentry.origin': 'auto.db.otel.postgres',
             'server.address': 'localhost',
@@ -30,6 +33,9 @@ describe('postgresjs auto instrumentation', () => {
           data: expect.objectContaining({
             'db.namespace': 'test_db',
             'db.system.name': 'postgres',
+            'db.operation.name': 'SELECT',
+            'db.query.text':
+              "select b.oid, b.typarray from pg_catalog.pg_type a left join pg_catalog.pg_type b on b.oid = a.typelem where a.typcategory = 'A' group by b.oid, b.typarray order by b.oid",
             'sentry.op': 'db',
             'sentry.origin': 'auto.db.otel.postgres',
             'server.address': 'localhost',
@@ -50,6 +56,8 @@ describe('postgresjs auto instrumentation', () => {
           data: expect.objectContaining({
             'db.namespace': 'test_db',
             'db.system.name': 'postgres',
+            'db.operation.name': 'INSERT',
+            'db.query.text': 'INSERT INTO "User" ("email", "name") VALUES (\'Foo\', \'bar@baz.com\')',
             'sentry.origin': 'auto.db.otel.postgres',
             'sentry.op': 'db',
             'server.address': 'localhost',
@@ -69,6 +77,8 @@ describe('postgresjs auto instrumentation', () => {
           data: expect.objectContaining({
             'db.namespace': 'test_db',
             'db.system.name': 'postgres',
+            'db.operation.name': 'UPDATE',
+            'db.query.text': 'UPDATE "User" SET "name" = \'Foo\' WHERE "email" = \'bar@baz.com\'',
             'sentry.op': 'db',
             'sentry.origin': 'auto.db.otel.postgres',
             'server.address': 'localhost',
@@ -88,6 +98,8 @@ describe('postgresjs auto instrumentation', () => {
           data: expect.objectContaining({
             'db.namespace': 'test_db',
             'db.system.name': 'postgres',
+            'db.operation.name': 'SELECT',
+            'db.query.text': 'SELECT * FROM "User" WHERE "email" = \'bar@baz.com\'',
             'sentry.op': 'db',
             'sentry.origin': 'auto.db.otel.postgres',
             'server.address': 'localhost',
@@ -107,6 +119,8 @@ describe('postgresjs auto instrumentation', () => {
           data: expect.objectContaining({
             'db.namespace': 'test_db',
             'db.system.name': 'postgres',
+            'db.operation.name': 'SELECT',
+            'db.query.text': 'SELECT * from generate_series(?,?) as x',
             'sentry.op': 'db',
             'sentry.origin': 'auto.db.otel.postgres',
             'server.address': 'localhost',
@@ -126,6 +140,8 @@ describe('postgresjs auto instrumentation', () => {
           data: expect.objectContaining({
             'db.namespace': 'test_db',
             'db.system.name': 'postgres',
+            'db.operation.name': 'DROP TABLE',
+            'db.query.text': 'DROP TABLE "User"',
             'sentry.op': 'db',
             'sentry.origin': 'auto.db.otel.postgres',
             'server.address': 'localhost',
@@ -145,6 +161,10 @@ describe('postgresjs auto instrumentation', () => {
           data: expect.objectContaining({
             'db.namespace': 'test_db',
             'db.system.name': 'postgres',
+            // No db.operation.name here, as this is an errored span
+            'db.response.status_code': '42P01',
+            'error.type': 'PostgresError',
+            'db.query.text': 'SELECT * FROM "User" WHERE "email" = \'foo@baz.com\'',
             'sentry.op': 'db',
             'sentry.origin': 'auto.db.otel.postgres',
             'server.address': 'localhost',

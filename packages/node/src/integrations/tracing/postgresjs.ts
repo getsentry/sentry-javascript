@@ -9,7 +9,11 @@ import {
 } from '@opentelemetry/instrumentation';
 import {
   ATTR_DB_NAMESPACE,
+  ATTR_DB_OPERATION_NAME,
+  ATTR_DB_QUERY_TEXT,
+  ATTR_DB_RESPONSE_STATUS_CODE,
   ATTR_DB_SYSTEM_NAME,
+  ATTR_ERROR_TYPE,
   ATTR_SERVER_ADDRESS,
   ATTR_SERVER_PORT,
 } from '@opentelemetry/semantic-conventions';
@@ -117,13 +121,25 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
         rejectThisArg,
         rejectArgs: {
           message?: string;
+          code?: string;
+          name?: string;
         }[],
       ) => {
         span.setStatus({
           code: SPAN_STATUS_ERROR,
+          // This message is the error message from the rejectArgs, when available
+          // e.g "relation 'User' does not exist"
+          message: rejectArgs?.[0]?.message || 'unknown_error',
         });
 
         const result = Reflect.apply(rejectTarget, rejectThisArg, rejectArgs);
+
+        // This status code is PG error code, e.g. '42P01' for "relation does not exist"
+        // https://www.postgresql.org/docs/current/errcodes-appendix.html
+        span.setAttribute(ATTR_DB_RESPONSE_STATUS_CODE, rejectArgs?.[0]?.code || 'Unknown error');
+        // This is the error type, e.g. 'PostgresError' for a Postgres error
+        span.setAttribute(ATTR_ERROR_TYPE, rejectArgs?.[0]?.name || 'Unknown error');
+
         span.end();
         return result;
       },
@@ -135,8 +151,14 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
    */
   private _patchResolve(resolveTarget: any, span: Span): any {
     return new Proxy(resolveTarget, {
-      apply: (resolveTarget, resolveThisArg, resolveArgs) => {
+      apply: (resolveTarget, resolveThisArg, resolveArgs: [{ command?: string }]) => {
         const result = Reflect.apply(resolveTarget, resolveThisArg, resolveArgs);
+        const sqlCommand = resolveArgs?.[0]?.command;
+
+        if (sqlCommand) {
+          // SQL command is only available when the query is resolved successfully
+          span.setAttribute(ATTR_DB_OPERATION_NAME, sqlCommand);
+        }
         span.end();
         return result;
       },
@@ -206,6 +228,7 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
             span.setAttribute(ATTR_DB_NAMESPACE, databaseName);
             span.setAttribute(ATTR_SERVER_ADDRESS, databaseHost);
             span.setAttribute(ATTR_SERVER_PORT, databasePort);
+            span.setAttribute(ATTR_DB_QUERY_TEXT, sanitizedSqlQuery);
 
             handleThisArg.resolve = this._patchResolve(handleThisArg.resolve, span);
             handleThisArg.reject = this._patchReject(handleThisArg.reject, span);
