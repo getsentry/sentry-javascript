@@ -20,8 +20,12 @@ let showedExperimentalBuildModeWarning = false;
 // Packages we auto-instrument need to be external for instrumentation to work
 // Next.js externalizes some packages by default, see: https://nextjs.org/docs/app/api-reference/config/next-config-js/serverExternalPackages
 // Others we need to add ourselves
+//
+// NOTE: 'ai' (Vercel AI SDK) is intentionally NOT included in this list.
+// When externalized, Next.js doesn't properly handle the package's conditional exports,
+// specifically the "react-server" export condition. This causes client-side code to be
+// loaded in server components instead of the appropriate server-side functions.
 export const DEFAULT_SERVER_EXTERNAL_PACKAGES = [
-  'ai',
   'amqplib',
   'connect',
   'dataloader',
