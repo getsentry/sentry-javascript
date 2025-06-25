@@ -8,11 +8,19 @@
  * and users have to manually  these to get spans.
  */
 
-import type { Client, IntegrationFn} from '@sentry/core';
-import { defineIntegration,processVercelAiSpan  } from '@sentry/core';
-import type { modulesIntegration } from '../../modules';
-import { INTEGRATION_NAME } from './constants';
-import type { VercelAiOptions } from './types';
+import type { Client, IntegrationFn } from '@sentry/core';
+import { defineIntegration, processVercelAiSpan } from '@sentry/core';
+import type { modulesIntegration } from '../modules';
+
+interface VercelAiOptions {
+  /**
+   * By default, the instrumentation will register span processors only when the ai package is used.
+   * If you want to register the span processors even when the ai package usage cannot be detected, you can set `force` to `true`.
+   */
+  force?: boolean;
+}
+
+const INTEGRATION_NAME = 'VercelAI';
 
 /**
  * Determines if the integration should be forced based on environment and package availability.

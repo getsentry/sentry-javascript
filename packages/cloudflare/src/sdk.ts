@@ -13,6 +13,7 @@ import {
 import type { CloudflareClientOptions, CloudflareOptions } from './client';
 import { CloudflareClient } from './client';
 import { fetchIntegration } from './integrations/fetch';
+import { vercelAIIntegration } from './integrations/tracing/vercelai';
 import { setupOpenTelemetryTracer } from './opentelemetry/tracer';
 import { makeCloudflareTransport } from './transport';
 import { defaultStackParser } from './vendor/stacktrace';
@@ -30,9 +31,11 @@ export function getDefaultIntegrations(options: CloudflareOptions): Integration[
     functionToStringIntegration(),
     linkedErrorsIntegration(),
     fetchIntegration(),
+    modulesIntegration(),
     // TODO(v10): the `include` object should be defined directly in the integration based on `sendDefaultPii`
     requestDataIntegration(sendDefaultPii ? undefined : { include: { cookies: false } }),
     consoleIntegration(),
+    vercelAIIntegration(),
   ];
 }
 
