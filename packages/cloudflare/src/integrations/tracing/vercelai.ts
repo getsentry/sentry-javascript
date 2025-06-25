@@ -48,16 +48,7 @@ const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
  *
  * For more information, see the [`ai` documentation](https://sdk.vercel.ai/docs/ai-sdk-core/telemetry).
  *
- * @example
- * ```javascript
- * const Sentry = require('@sentry/cloudflare');
- *
- * Sentry.init({
- *  integrations: [Sentry.vercelAIIntegration()],
- * });
- * ```
- *
- * The integration automatically detects when to force registration.
+ * The integration automatically detects when to force registration
  * when the 'ai' package is available. You can still manually set the `force` option if needed.
  *
  * Unlike the Vercel AI integration in the node SDK, this integration does not add tracing support to
