@@ -1,4 +1,5 @@
-import { isRegExp, isString, isVueViewModel } from './is';
+import { isPrimitive, isRegExp, isString, isVueViewModel } from './is';
+import { normalize } from './normalize';
 
 export { escapeStringForRegex } from '../vendor/escapeStringForRegex';
 
@@ -60,7 +61,10 @@ export function snipLine(line: string, colno: number): string {
 }
 
 /**
- * Join values in array
+ * Join values in array.
+ *
+ * We recommend using {@link normalizeAndSafeJoin} instead.
+ *
  * @param input array of values to be joined together
  * @param delimiter string to be placed in-between values
  * @returns Joined values
@@ -91,6 +95,24 @@ export function safeJoin(input: unknown[], delimiter?: string): string {
   }
 
   return output.join(delimiter);
+}
+
+/**
+ * Turn an array of values into a string by normalizing and joining them.
+ *
+ * A more robust version of {@link safeJoin}.
+ *
+ * @param values - The values to join.
+ * @param normalizeDepth - The depth to normalize the values.
+ * @param normalizeMaxBreadth - The maximum breadth to normalize the values.
+ * @returns The joined values.
+ */
+export function normalizeAndSafeJoin(values: unknown[], normalizeDepth: number, normalizeMaxBreadth: number): string {
+  return values
+    .map(value =>
+      isPrimitive(value) ? String(value) : JSON.stringify(normalize(value, normalizeDepth, normalizeMaxBreadth)),
+    )
+    .join(' ');
 }
 
 /**
