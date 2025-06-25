@@ -1,6 +1,9 @@
 import { describe, expect, test } from 'vitest';
 import { createRunner } from '../../../utils/runner';
 
+const EXISTING_TEST_EMAIL = 'bar@baz.com';
+const NON_EXISTING_TEST_EMAIL = 'foo@baz.com';
+
 describe('postgresjs auto instrumentation', () => {
   test('should auto-instrument `postgres` package', { timeout: 60_000 }, async () => {
     const EXPECTED_TRANSACTION = {
@@ -57,13 +60,13 @@ describe('postgresjs auto instrumentation', () => {
             'db.namespace': 'test_db',
             'db.system.name': 'postgres',
             'db.operation.name': 'INSERT',
-            'db.query.text': 'INSERT INTO "User" ("email", "name") VALUES (\'Foo\', \'bar@baz.com\')',
+            'db.query.text': `INSERT INTO "User" ("email", "name") VALUES (\'Foo\', '${EXISTING_TEST_EMAIL}')`,
             'sentry.origin': 'auto.db.otel.postgres',
             'sentry.op': 'db',
             'server.address': 'localhost',
             'server.port': 5444,
           }),
-          description: 'INSERT INTO "User" ("email", "name") VALUES (\'Foo\', \'bar@baz.com\')',
+          description: `INSERT INTO "User" ("email", "name") VALUES (\'Foo\', '${EXISTING_TEST_EMAIL}')`,
           op: 'db',
           status: 'ok',
           origin: 'auto.db.otel.postgres',
@@ -78,13 +81,13 @@ describe('postgresjs auto instrumentation', () => {
             'db.namespace': 'test_db',
             'db.system.name': 'postgres',
             'db.operation.name': 'UPDATE',
-            'db.query.text': 'UPDATE "User" SET "name" = \'Foo\' WHERE "email" = \'bar@baz.com\'',
+            'db.query.text': `UPDATE "User" SET "name" = 'Foo' WHERE "email" = '${EXISTING_TEST_EMAIL}'`,
             'sentry.op': 'db',
             'sentry.origin': 'auto.db.otel.postgres',
             'server.address': 'localhost',
             'server.port': 5444,
           }),
-          description: 'UPDATE "User" SET "name" = \'Foo\' WHERE "email" = \'bar@baz.com\'',
+          description: `UPDATE "User" SET "name" = 'Foo' WHERE "email" = '${EXISTING_TEST_EMAIL}'`,
           op: 'db',
           status: 'ok',
           origin: 'auto.db.otel.postgres',
@@ -99,13 +102,13 @@ describe('postgresjs auto instrumentation', () => {
             'db.namespace': 'test_db',
             'db.system.name': 'postgres',
             'db.operation.name': 'SELECT',
-            'db.query.text': 'SELECT * FROM "User" WHERE "email" = \'bar@baz.com\'',
+            'db.query.text': `SELECT * FROM "User" WHERE "email" = '${EXISTING_TEST_EMAIL}'`,
             'sentry.op': 'db',
             'sentry.origin': 'auto.db.otel.postgres',
             'server.address': 'localhost',
             'server.port': 5444,
           }),
-          description: 'SELECT * FROM "User" WHERE "email" = \'bar@baz.com\'',
+          description: `SELECT * FROM "User" WHERE "email" = '${EXISTING_TEST_EMAIL}'`,
           op: 'db',
           status: 'ok',
           origin: 'auto.db.otel.postgres',
@@ -164,13 +167,13 @@ describe('postgresjs auto instrumentation', () => {
             // No db.operation.name here, as this is an errored span
             'db.response.status_code': '42P01',
             'error.type': 'PostgresError',
-            'db.query.text': 'SELECT * FROM "User" WHERE "email" = \'foo@baz.com\'',
+            'db.query.text': `SELECT * FROM "User" WHERE "email" = '${NON_EXISTING_TEST_EMAIL}'`,
             'sentry.op': 'db',
             'sentry.origin': 'auto.db.otel.postgres',
             'server.address': 'localhost',
             'server.port': 5444,
           }),
-          description: 'SELECT * FROM "User" WHERE "email" = \'foo@baz.com\'',
+          description: `SELECT * FROM "User" WHERE "email" = '${NON_EXISTING_TEST_EMAIL}'`,
           op: 'db',
           status: 'unknown_error',
           origin: 'auto.db.otel.postgres',
