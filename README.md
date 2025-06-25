@@ -112,8 +112,6 @@ below:
   Provides the integration for Session Replay.
 - [`@sentry/core`](https://github.com/getsentry/sentry-javascript/tree/master/packages/core): The base for all
   JavaScript SDKs with interfaces, type definitions and base classes.
-- [`@sentry/pino-transport`](https://github.com/getsentry/sentry-javascript/tree/master/packages/pino-transport): Pino
-  transport for automatically sending log messages to Sentry.
 
 ## Bug Bounty Program
 

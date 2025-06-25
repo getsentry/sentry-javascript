@@ -31,8 +31,8 @@ export interface CloudEventsContext {
   [key: string]: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   id: string;
   specversion: string;
-  type?: string;
-  source?: string;
+  type: string;
+  source: string;
   time?: string;
   schemaurl?: string;
   contenttype?: string;

@@ -37,6 +37,7 @@ body:
         - '@sentry/node - koa'
         - '@sentry/node - hapi'
         - '@sentry/node - connect'
+        - '@sentry/node-native'
         - '@sentry/angular'
         - '@sentry/astro'
         - '@sentry/aws-serverless'
