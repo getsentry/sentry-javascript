@@ -1,5 +1,5 @@
 import { context } from '@opentelemetry/api';
-import { isTracingSuppressed, VERSION } from '@opentelemetry/core';
+import { isTracingSuppressed } from '@opentelemetry/core';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase } from '@opentelemetry/instrumentation';
 import type { SanitizedRequestData } from '@sentry/core';
@@ -23,6 +23,9 @@ const SENTRY_BAGGAGE_HEADER = 'baggage';
 
 // For baggage, we make sure to merge this into a possibly existing header
 const BAGGAGE_HEADER_REGEX = /baggage: (.*)\r\n/;
+
+// Bump this whenever we make changes
+const VERSION = '1.0.0';
 
 export type SentryNodeFetchInstrumentationOptions = InstrumentationConfig & {
   /**

@@ -1,3 +1,4 @@
+import { diag, DiagLogLevel } from '@opentelemetry/api';
 import type { Integration, Options } from '@sentry/core';
 import {
   consoleIntegration,
@@ -31,19 +32,18 @@ import { onUncaughtExceptionIntegration } from '../integrations/onuncaughtexcept
 import { onUnhandledRejectionIntegration } from '../integrations/onunhandledrejection';
 import { processSessionIntegration } from '../integrations/processSession';
 import { INTEGRATION_NAME as SPOTLIGHT_INTEGRATION_NAME, spotlightIntegration } from '../integrations/spotlight';
-import { getAutoPerformanceIntegrations } from '../integrations/tracing';
 import { makeNodeTransport } from '../transports';
 import type { NodeClientOptions, NodeOptions } from '../types';
 import { isCjs } from '../utils/commonjs';
 import { envToBool } from '../utils/envToBool';
 import { defaultStackParser, getSentryRelease } from './api';
 import { NodeClient } from './client';
-import { initOpenTelemetry, maybeInitializeEsmLoader } from './initOtel';
+import { maybeInitializeEsmLoader } from './esmLoader';
 
 /**
- * Get default integrations, excluding performance.
+ * Get default integrations for the Node-Core SDK.
  */
-export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
+export function getDefaultIntegrations(): Integration[] {
   return [
     // Common
     // TODO(v10): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
@@ -66,18 +66,6 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
     childProcessIntegration(),
     processSessionIntegration(),
     modulesIntegration(),
-  ];
-}
-
-/** Get the default integrations for the Node SDK. */
-export function getDefaultIntegrations(options: Options): Integration[] {
-  return [
-    ...getDefaultIntegrationsWithoutPerformance(),
-    // We only add performance integrations if tracing is enabled
-    // Note that this means that without tracing enabled, e.g. `expressIntegration()` will not be added
-    // This means that generally request isolation will work (because that is done by httpIntegration)
-    // But `transactionName` will not be set automatically
-    ...(hasSpansEnabled(options) ? getAutoPerformanceIntegrations() : []),
   ];
 }
 
@@ -145,14 +133,7 @@ function _init(
 
   updateScopeFromEnvVariables();
 
-  // If users opt-out of this, they _have_ to set up OpenTelemetry themselves
-  // There is no way to use this SDK without OpenTelemetry!
-  if (!options.skipOpenTelemetrySetup) {
-    initOpenTelemetry(client, {
-      spanProcessors: options.openTelemetrySpanProcessors,
-    });
-    validateOpenTelemetrySetup();
-  }
+  setupOpenTelemetryLogger();
 
   enhanceDscWithOpenTelemetryRootSpanName(client);
   setupEventContextTrace(client);
@@ -265,4 +246,20 @@ function updateScopeFromEnvVariables(): void {
     const propagationContext = propagationContextFromHeaders(sentryTraceEnv, baggageEnv);
     getCurrentScope().setPropagationContext(propagationContext);
   }
+}
+
+/**
+ * Setup the OTEL logger to use our own logger.
+ */
+function setupOpenTelemetryLogger(): void {
+  const otelLogger = new Proxy(logger as typeof logger & { verbose: (typeof logger)['debug'] }, {
+    get(target, prop, receiver) {
+      const actualProp = prop === 'verbose' ? 'debug' : prop;
+      return Reflect.get(target, actualProp, receiver);
+    },
+  });
+
+  // Disable diag, to ensure this works even if called multiple times
+  diag.disable();
+  diag.setLogger(otelLogger, DiagLogLevel.DEBUG);
 }

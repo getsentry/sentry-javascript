@@ -1,8 +1,11 @@
 import * as logger from './logs/exports';
 
 export { httpIntegration } from './integrations/http';
+export {
+  SentryHttpInstrumentation,
+  type SentryHttpInstrumentationOptions,
+} from './integrations/http/SentryHttpInstrumentation';
 export { nativeNodeFetchIntegration } from './integrations/node-fetch';
-export { fsIntegration } from './integrations/fs';
 
 export { nodeContextIntegration } from './integrations/context';
 export { contextLinesIntegration } from './integrations/contextlines';
@@ -12,43 +15,14 @@ export { onUncaughtExceptionIntegration } from './integrations/onuncaughtexcepti
 export { onUnhandledRejectionIntegration } from './integrations/onunhandledrejection';
 export { anrIntegration, disableAnrDetectionForCallback } from './integrations/anr';
 
-export { expressIntegration, expressErrorHandler, setupExpressErrorHandler } from './integrations/tracing/express';
-export { fastifyIntegration, setupFastifyErrorHandler } from './integrations/tracing/fastify';
-export { graphqlIntegration } from './integrations/tracing/graphql';
-export { kafkaIntegration } from './integrations/tracing/kafka';
-export { lruMemoizerIntegration } from './integrations/tracing/lrumemoizer';
-export { mongoIntegration } from './integrations/tracing/mongo';
-export { mongooseIntegration } from './integrations/tracing/mongoose';
-export { mysqlIntegration } from './integrations/tracing/mysql';
-export { mysql2Integration } from './integrations/tracing/mysql2';
-export { redisIntegration } from './integrations/tracing/redis';
-export { postgresIntegration } from './integrations/tracing/postgres';
-export { prismaIntegration } from './integrations/tracing/prisma';
-export { hapiIntegration, setupHapiErrorHandler } from './integrations/tracing/hapi';
-export { koaIntegration, setupKoaErrorHandler } from './integrations/tracing/koa';
-export { connectIntegration, setupConnectErrorHandler } from './integrations/tracing/connect';
 export { spotlightIntegration } from './integrations/spotlight';
-export { knexIntegration } from './integrations/tracing/knex';
-export { tediousIntegration } from './integrations/tracing/tedious';
-export { genericPoolIntegration } from './integrations/tracing/genericPool';
-export { dataloaderIntegration } from './integrations/tracing/dataloader';
-export { amqplibIntegration } from './integrations/tracing/amqplib';
-export { vercelAIIntegration } from './integrations/tracing/vercelai';
 export { childProcessIntegration } from './integrations/childProcess';
 export { createSentryWinstonTransport } from './integrations/winston';
 
 export { SentryContextManager } from './otel/contextManager';
 export { generateInstrumentOnce } from './otel/instrument';
 
-export {
-  init,
-  getDefaultIntegrations,
-  getDefaultIntegrationsWithoutPerformance,
-  initWithoutDefaultIntegrations,
-  validateOpenTelemetrySetup,
-} from './sdk';
-export { initOpenTelemetry, preloadOpenTelemetry } from './sdk/initOtel';
-export { getAutoPerformanceIntegrations } from './integrations/tracing';
+export { init, getDefaultIntegrations, initWithoutDefaultIntegrations, validateOpenTelemetrySetup } from './sdk';
 export { getSentryRelease, defaultStackParser } from './sdk/api';
 export { createGetModuleFromFilename } from './utils/module';
 export { makeNodeTransport } from './transports';

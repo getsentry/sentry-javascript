@@ -94,18 +94,6 @@ export interface BaseNodeOptions {
   spotlight?: boolean | string;
 
   /**
-   * If this is set to true, the SDK will not set up OpenTelemetry automatically.
-   * In this case, you _have_ to ensure to set it up correctly yourself, including:
-   * * The `SentrySpanProcessor`
-   * * The `SentryPropagator`
-   * * The `SentryContextManager`
-   * * The `SentrySampler`
-   *
-   * If you are registering your own OpenTelemetry Loader Hooks (or `import-in-the-middle` hooks), it is also recommended to set the `registerEsmLoaderHooks` option to false.
-   */
-  skipOpenTelemetrySetup?: boolean;
-
-  /**
    * Provide an array of OpenTelemetry Instrumentations that should be registered.
    *
    * Use this option if you want to register OpenTelemetry instrumentation that the Sentry SDK does not yet have support for.

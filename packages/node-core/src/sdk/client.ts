@@ -83,11 +83,8 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
   // eslint-disable-next-line jsdoc/require-jsdoc
   public async flush(timeout?: number): Promise<boolean> {
     const provider = this.traceProvider;
-    const spanProcessor = provider?.activeSpanProcessor;
 
-    if (spanProcessor) {
-      await spanProcessor.forceFlush();
-    }
+    await provider?.forceFlush();
 
     if (this.getOptions().sendClientReports) {
       this._flushOutcomes();
