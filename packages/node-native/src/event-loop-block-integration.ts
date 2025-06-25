@@ -73,7 +73,7 @@ type ThreadBlockedReturn = (options?: Partial<ThreadBlockedIntegrationOptions>) 
  * Monitors the Node.js event loop for blocking behavior and reports blocked events to Sentry.
  *
  * Uses a background worker thread to detect when the main thread is blocked for longer than
- * the configured threshold (default: 5 seconds).
+ * the configured threshold (default: 1 second).
  *
  * When instrumenting via the `--import` flag, this integration will
  * automatically monitor all worker threads as well.
@@ -213,6 +213,9 @@ export function disableBlockedDetectionForCallback<T>(callback: () => T | Promis
     return result.finally(() => integration.start());
   }
 
-  integration.start();
-  return result;
+  try {
+    return result;
+  } finally {
+    integration.start();
+  }
 }

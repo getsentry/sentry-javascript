@@ -217,7 +217,7 @@ function getExceptionAndThreads(
   };
 }
 
-async function sendAnrEvent(crashedThreadId: string): Promise<void> {
+async function sendBlockEvent(crashedThreadId: string): Promise<void> {
   if (isRateLimited()) {
     return;
   }
@@ -230,7 +230,11 @@ async function sendAnrEvent(crashedThreadId: string): Promise<void> {
     return;
   }
 
-  await sendAbnormalSession(crashedThread.state?.session);
+  try {
+    await sendAbnormalSession(crashedThread.state?.session);
+  } catch (error) {
+    log(`Failed to send abnormal session for thread '${crashedThreadId}':`, error);
+  }
 
   log('Sending event');
 
@@ -267,10 +271,14 @@ setInterval(async () => {
         continue;
       }
 
-      log(`Detected ANR for thread '${threadId}' with last seen time ${time} ms`);
+      log(`Blocked thread detected '${threadId}' last polled ${time} ms ago.`);
       triggeredThreads.add(threadId);
 
-      await sendAnrEvent(threadId);
+      try {
+        await sendBlockEvent(threadId);
+      } catch (error) {
+        log(`Failed to send event for thread '${threadId}':`, error);
+      }
     } else {
       triggeredThreads.delete(threadId);
     }
