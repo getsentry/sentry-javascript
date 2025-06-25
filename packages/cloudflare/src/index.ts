@@ -108,6 +108,7 @@ export { getDefaultIntegrations } from './sdk';
 
 export { fetchIntegration } from './integrations/fetch';
 export { vercelAIIntegration } from './integrations/tracing/vercelai';
+export { modulesIntegration } from './integrations/modules';
 
 export { instrumentD1WithSentry } from './d1';
 
