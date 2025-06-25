@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-dynamic-delete */
 /* eslint-disable complexity */
 import type { Client, IntegrationFn } from '@sentry/core';
 import { defineIntegration, SEMANTIC_ATTRIBUTE_SENTRY_OP, spanToJSON } from '@sentry/core';
@@ -14,8 +13,10 @@ import {
   AI_RESPONSE_TEXT_ATTRIBUTE,
   AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
   AI_TELEMETRY_FUNCTION_ID_ATTRIBUTE,
+  AI_TOOL_CALL_ARGS_ATTRIBUTE,
   AI_TOOL_CALL_ID_ATTRIBUTE,
   AI_TOOL_CALL_NAME_ATTRIBUTE,
+  AI_TOOL_CALL_RESULT_ATTRIBUTE,
   AI_USAGE_COMPLETION_TOKENS_ATTRIBUTE,
   AI_USAGE_PROMPT_TOKENS_ATTRIBUTE,
   GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
@@ -63,10 +64,19 @@ const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
             name === 'ai.toolCall'
           ) {
             addOriginToSpan(span, 'auto.vercelai.otel');
-            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'gen_ai.execute_tool');
-            span.setAttribute('gen_ai.tool.call.id', attributes[AI_TOOL_CALL_ID_ATTRIBUTE]);
-            span.setAttribute('gen_ai.tool.name', attributes[AI_TOOL_CALL_NAME_ATTRIBUTE]);
             span.updateName(`execute_tool ${attributes[AI_TOOL_CALL_NAME_ATTRIBUTE]}`);
+
+            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'gen_ai.execute_tool');
+            renameAttributeKey(attributes, AI_TOOL_CALL_NAME_ATTRIBUTE, 'gen_ai.tool.name');
+            renameAttributeKey(attributes, AI_TOOL_CALL_ID_ATTRIBUTE, 'gen_ai.tool.call.id');
+            renameAttributeKey(attributes, AI_TOOL_CALL_ARGS_ATTRIBUTE, 'gen_ai.tool.input');
+            renameAttributeKey(attributes, AI_TOOL_CALL_RESULT_ATTRIBUTE, 'gen_ai.tool.output');
+
+            // https://opentelemetry.io/docs/specs/semconv/registry/attributes/gen-ai/#gen-ai-tool-type
+            if (!attributes['gen_ai.tool.type']) {
+              span.setAttribute('gen_ai.tool.type', 'function');
+            }
+
             return;
           }
 
@@ -93,7 +103,7 @@ const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
           }
 
           if (attributes[AI_PROMPT_ATTRIBUTE]) {
-            span.setAttribute('gen_ai.prompt', attributes[AI_PROMPT_ATTRIBUTE]);
+            renameAttributeKey(attributes, AI_PROMPT_ATTRIBUTE, 'gen_ai.prompt');
           }
           if (attributes[AI_MODEL_ID_ATTRIBUTE] && !attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]) {
             span.setAttribute(GEN_AI_RESPONSE_MODEL_ATTRIBUTE, attributes[AI_MODEL_ID_ATTRIBUTE]);
@@ -268,6 +278,7 @@ export const vercelAIIntegration = defineIntegration(_vercelAIIntegration);
 function renameAttributeKey(attributes: Record<string, unknown>, oldKey: string, newKey: string): void {
   if (attributes[oldKey] != null) {
     attributes[newKey] = attributes[oldKey];
+    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
     delete attributes[oldKey];
   }
 }
