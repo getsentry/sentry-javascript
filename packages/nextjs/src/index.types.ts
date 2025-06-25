@@ -138,3 +138,6 @@ export declare function wrapApiHandlerWithSentryVercelCrons<F extends (...args: 
 export declare function wrapPageComponentWithSentry<C>(WrappingTarget: C): C;
 
 export { captureRequestError } from './common/captureRequestError';
+
+export declare const launchDarklyIntegration: typeof clientSdk.launchDarklyIntegration;
+export declare const buildLaunchDarklyFlagUsedHandler: typeof clientSdk.buildLaunchDarklyFlagUsedHandler;

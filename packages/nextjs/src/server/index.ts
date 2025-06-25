@@ -389,3 +389,8 @@ function sdkAlreadyInitialized(): boolean {
 export * from '../common';
 
 export { wrapApiHandlerWithSentry } from '../common/pages-router-instrumentation/wrapApiHandlerWithSentry';
+
+export {
+  launchDarklyIntegrationShim as launchDarklyIntegration,
+  buildLaunchDarklyFlagUsedHandlerShim as buildLaunchDarklyFlagUsedHandler,
+} from '@sentry-internal/integration-shims';
