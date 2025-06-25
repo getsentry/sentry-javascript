@@ -13,6 +13,7 @@ import {
 import type { CloudflareClientOptions, CloudflareOptions } from './client';
 import { CloudflareClient } from './client';
 import { fetchIntegration } from './integrations/fetch';
+import { modulesIntegration } from './integrations/modules';
 import { vercelAIIntegration } from './integrations/tracing/vercelai';
 import { setupOpenTelemetryTracer } from './opentelemetry/tracer';
 import { makeCloudflareTransport } from './transport';
