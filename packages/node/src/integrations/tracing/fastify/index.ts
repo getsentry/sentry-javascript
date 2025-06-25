@@ -58,7 +58,9 @@ const INTEGRATION_NAME_V3 = 'Fastify-V3';
 export const instrumentFastifyV3 = generateInstrumentOnce(INTEGRATION_NAME_V3, () => new FastifyInstrumentationV3());
 
 function handleFastifyError(
-  this: any,
+  this: {
+    diagnosticsChannelExists?: boolean;
+  },
   error: Error,
   request: FastifyRequest & { opentelemetry?: () => { span?: Span } },
   reply: FastifyReply,
@@ -118,7 +120,7 @@ export const instrumentFastify = generateInstrumentOnce(INTEGRATION_NAME, () => 
       reply: FastifyReply;
     };
 
-    handleFastifyError(error, request, reply, shouldHandleError, 'diagnostics-channel');
+    handleFastifyError.call(handleFastifyError, error, request, reply, shouldHandleError, 'diagnostics-channel');
   });
 
   // Returning this as unknown not to deal with the internal types of the FastifyOtelInstrumentation
@@ -189,7 +191,7 @@ export function setupFastifyErrorHandler(fastify: FastifyInstance, options?: Par
   const plugin = Object.assign(
     function (fastify: FastifyInstance, _options: unknown, done: () => void): void {
       fastify.addHook('onError', async (request, reply, error) => {
-        handleFastifyError(error, request, reply, shouldHandleError, 'onError-hook');
+        handleFastifyError.call(handleFastifyError, error, request, reply, shouldHandleError, 'onError-hook');
       });
       done();
     },
