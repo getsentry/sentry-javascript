@@ -1,5 +1,5 @@
-import { existsSync, readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import type * as NodeFs from 'node:fs';
+import type * as NodePath from 'node:path';
 import type { IntegrationFn } from '@sentry/core';
 import { isCjs } from '../utils/commonjs';
 
@@ -11,6 +11,17 @@ const INTEGRATION_NAME = 'Modules';
 
 declare const __SENTRY_SERVER_MODULES__: Record<string, string>;
 
+// Node utils are not available in the worker runtime, so we need to import them dynamically
+// So this may or may not be available at runtime
+let nodeUtils:
+  | undefined
+  | {
+      dirname: typeof NodePath.dirname;
+      join: typeof NodePath.join;
+      existsSync: typeof NodeFs.existsSync;
+      readFileSync: typeof NodeFs.readFileSync;
+    };
+
 /**
  * `__SENTRY_SERVER_MODULES__` can be replaced at build time with the modules loaded by the server.
  * Right now, we leverage this in Next.js to circumvent the problem that we do not get access to these things at runtime.
@@ -18,6 +29,9 @@ declare const __SENTRY_SERVER_MODULES__: Record<string, string>;
 const SERVER_MODULES = typeof __SENTRY_SERVER_MODULES__ === 'undefined' ? {} : __SENTRY_SERVER_MODULES__;
 
 const _modulesIntegration = (() => {
+  // eslint-disable-next-line @typescript-eslint/no-floating-promises
+  getNodeUtils();
+
   return {
     name: INTEGRATION_NAME,
     processEvent(event) {
@@ -58,6 +72,22 @@ function collectModules(): ModuleInfo {
   };
 }
 
+async function getNodeUtils(): Promise<void> {
+  try {
+    const { existsSync, readFileSync } = await import('node:fs');
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    const { dirname, join } = await import('node:path');
+
+    nodeUtils = {
+      dirname,
+      join,
+      existsSync,
+      readFileSync,
+    };
+  } catch {
+    // no-empty
+  }
+}
 /** Extract information about package.json modules from require.cache */
 function collectRequireModules(): ModuleInfo {
   const mainPaths = require.main?.paths || [];
@@ -67,6 +97,12 @@ function collectRequireModules(): ModuleInfo {
   // These may be overwritten by more specific versions from the require.cache
   const infos: ModuleInfo = {};
   const seen = new Set<string>();
+
+  if (!nodeUtils) {
+    return infos;
+  }
+
+  const { dirname, join, existsSync, readFileSync } = nodeUtils;
 
   paths.forEach(path => {
     let dir = path;
@@ -121,6 +157,12 @@ interface PackageJson {
 }
 
 function getPackageJson(): PackageJson {
+  if (!nodeUtils) {
+    return {};
+  }
+
+  const { join, readFileSync } = nodeUtils;
+
   try {
     const filePath = join(process.cwd(), 'package.json');
     const packageJson = JSON.parse(readFileSync(filePath, 'utf8')) as PackageJson;
