@@ -49,7 +49,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "9.31.0"
+    "@sentry/core": "9.31.0",
+    "@opentelemetry/api": "^1.9.0"
   },
   "peerDependencies": {
     "@cloudflare/workers-types": "^4.x"
