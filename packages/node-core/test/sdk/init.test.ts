@@ -3,7 +3,6 @@ import { logger } from '@sentry/core';
 import * as SentryOpentelemetry from '@sentry/opentelemetry';
 import { type Mock, type MockInstance, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getClient } from '../../src/';
-import * as auto from '../../src/integrations/tracing';
 import { init, validateOpenTelemetrySetup } from '../../src/sdk';
 import { NodeClient } from '../../src/sdk/client';
 import { cleanupOtel } from '../helpers/mockSdkInit';
@@ -22,12 +21,8 @@ class MockIntegration implements Integration {
 }
 
 describe('init()', () => {
-  let mockAutoPerformanceIntegrations: MockInstance = vi.fn(() => []);
-
   beforeEach(() => {
     global.__SENTRY__ = {};
-
-    mockAutoPerformanceIntegrations = vi.spyOn(auto, 'getAutoPerformanceIntegrations').mockImplementation(() => []);
   });
 
   afterEach(() => {
@@ -47,8 +42,6 @@ describe('init()', () => {
           integrations: [],
         }),
       );
-
-      expect(mockAutoPerformanceIntegrations).toHaveBeenCalledTimes(0);
     });
 
     it('installs merged default integrations, with overrides provided through options', () => {
@@ -68,7 +61,6 @@ describe('init()', () => {
       expect(mockDefaultIntegrations[1]?.setupOnce as Mock).toHaveBeenCalledTimes(1);
       expect(mockIntegrations[0]?.setupOnce as Mock).toHaveBeenCalledTimes(1);
       expect(mockIntegrations[1]?.setupOnce as Mock).toHaveBeenCalledTimes(1);
-      expect(mockAutoPerformanceIntegrations).toHaveBeenCalledTimes(0);
     });
 
     it('installs integrations returned from a callback function', () => {
@@ -92,54 +84,6 @@ describe('init()', () => {
       expect(mockDefaultIntegrations[0]?.setupOnce as Mock).toHaveBeenCalledTimes(1);
       expect(mockDefaultIntegrations[1]?.setupOnce as Mock).toHaveBeenCalledTimes(0);
       expect(newIntegration.setupOnce as Mock).toHaveBeenCalledTimes(1);
-      expect(mockAutoPerformanceIntegrations).toHaveBeenCalledTimes(0);
-    });
-
-    it('installs performance default instrumentations if tracing is enabled', () => {
-      const autoPerformanceIntegration = new MockIntegration('Some mock integration 4.4');
-
-      mockAutoPerformanceIntegrations.mockReset().mockImplementation(() => [autoPerformanceIntegration]);
-
-      const mockIntegrations = [
-        new MockIntegration('Some mock integration 4.1'),
-        new MockIntegration('Some mock integration 4.3'),
-      ];
-
-      init({
-        dsn: PUBLIC_DSN,
-        integrations: mockIntegrations,
-        tracesSampleRate: 1,
-      });
-
-      expect(mockIntegrations[0]?.setupOnce as Mock).toHaveBeenCalledTimes(1);
-      expect(mockIntegrations[1]?.setupOnce as Mock).toHaveBeenCalledTimes(1);
-      expect(autoPerformanceIntegration.setupOnce as Mock).toHaveBeenCalledTimes(1);
-      expect(mockAutoPerformanceIntegrations).toHaveBeenCalledTimes(1);
-
-      const client = getClient();
-      expect(client?.getOptions()).toEqual(
-        expect.objectContaining({
-          integrations: expect.arrayContaining([mockIntegrations[0], mockIntegrations[1], autoPerformanceIntegration]),
-        }),
-      );
-    });
-  });
-
-  describe('OpenTelemetry', () => {
-    it('sets up OpenTelemetry by default', () => {
-      init({ dsn: PUBLIC_DSN });
-
-      const client = getClient<NodeClient>();
-
-      expect(client?.traceProvider).toBeDefined();
-    });
-
-    it('allows to opt-out of OpenTelemetry setup', () => {
-      init({ dsn: PUBLIC_DSN, skipOpenTelemetrySetup: true });
-
-      const client = getClient<NodeClient>();
-
-      expect(client?.traceProvider).not.toBeDefined();
     });
   });
 

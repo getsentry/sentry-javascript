@@ -1,9 +1,9 @@
 import * as Sentry from '@sentry/node-core';
-import { setupOtel } from '../../../utils/setupOtel.js';
 import { loggingTransport } from '@sentry-internal/node-integration-tests';
 import { spawn } from 'child_process';
 import { join } from 'path';
 import { Worker } from 'worker_threads';
+import { setupOtel } from '../../../utils/setupOtel.js';
 
 const __dirname = new URL('.', import.meta.url).pathname;
 
@@ -13,7 +13,6 @@ const client = Sentry.init({
   integrations: [Sentry.childProcessIntegration({ captureWorkerErrors: false })],
   transport: loggingTransport,
 });
-
 
 setupOtel(client);
 

@@ -11,8 +11,8 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
 } from '@sentry/core';
+import { generateInstrumentOnce } from '@sentry/node-core';
 import { DEBUG_BUILD } from '../../../debug-build';
-import { generateInstrumentOnce } from '../../../otel/instrument';
 import { FastifyOtelInstrumentation } from './fastify-otel/index';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from './types';
 import { FastifyInstrumentationV3 } from './v3/instrumentation';

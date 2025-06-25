@@ -1,7 +1,7 @@
 import { GraphQLInstrumentation } from '@opentelemetry/instrumentation-graphql';
 import { type MockInstance, beforeEach, describe, expect, it, vi } from 'vitest';
+import { INSTRUMENTED } from '../../../src/index';
 import { graphqlIntegration, instrumentGraphql } from '../../../src/integrations/tracing/graphql';
-import { INSTRUMENTED } from '../../../src/otel/instrument';
 
 vi.mock('@opentelemetry/instrumentation-graphql');
 

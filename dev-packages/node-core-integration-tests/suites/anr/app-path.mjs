@@ -1,9 +1,9 @@
 import * as Sentry from '@sentry/node-core';
-import { setupOtel } from '../../utils/setupOtel.js';
 import * as assert from 'assert';
 import * as crypto from 'crypto';
 import * as path from 'path';
 import * as url from 'url';
+import { setupOtel } from '../../utils/setupOtel.js';
 
 global._sentryDebugIds = { [new Error().stack]: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa' };
 
@@ -18,7 +18,6 @@ const client = Sentry.init({
   release: '1.0',
   integrations: [Sentry.anrIntegration({ captureStackTrace: true, anrThreshold: 100, appRootPath: __dirname })],
 });
-
 
 setupOtel(client);
 

@@ -1,16 +1,40 @@
-import * as logger from './logs/exports';
+import { logger } from '@sentry/node-core';
 
 export { httpIntegration } from './integrations/http';
 export { nativeNodeFetchIntegration } from './integrations/node-fetch';
 export { fsIntegration } from './integrations/fs';
 
-export { nodeContextIntegration } from './integrations/context';
-export { contextLinesIntegration } from './integrations/contextlines';
-export { localVariablesIntegration } from './integrations/local-variables';
-export { modulesIntegration } from './integrations/modules';
-export { onUncaughtExceptionIntegration } from './integrations/onuncaughtexception';
-export { onUnhandledRejectionIntegration } from './integrations/onunhandledrejection';
-export { anrIntegration, disableAnrDetectionForCallback } from './integrations/anr';
+export {
+  nodeContextIntegration,
+  contextLinesIntegration,
+  localVariablesIntegration,
+  modulesIntegration,
+  onUncaughtExceptionIntegration,
+  onUnhandledRejectionIntegration,
+  anrIntegration,
+  disableAnrDetectionForCallback,
+  spotlightIntegration,
+  childProcessIntegration,
+  createSentryWinstonTransport,
+  SentryContextManager,
+  generateInstrumentOnce,
+  instrumentWhenWrapped,
+  INSTRUMENTED,
+  getSentryRelease,
+  defaultStackParser,
+  createGetModuleFromFilename,
+  makeNodeTransport,
+  NodeClient,
+  cron,
+  NODE_VERSION,
+  validateOpenTelemetrySetup,
+  addOriginToSpan,
+  getRequestUrl,
+  isCjs,
+  ensureIsWrapped,
+  createMissingInstrumentationContext,
+  envToBool,
+} from '@sentry/node-core';
 
 export { expressIntegration, expressErrorHandler, setupExpressErrorHandler } from './integrations/tracing/express';
 export { fastifyIntegration, setupFastifyErrorHandler } from './integrations/tracing/fastify';
@@ -28,34 +52,21 @@ export { prismaIntegration } from './integrations/tracing/prisma';
 export { hapiIntegration, setupHapiErrorHandler } from './integrations/tracing/hapi';
 export { koaIntegration, setupKoaErrorHandler } from './integrations/tracing/koa';
 export { connectIntegration, setupConnectErrorHandler } from './integrations/tracing/connect';
-export { spotlightIntegration } from './integrations/spotlight';
 export { knexIntegration } from './integrations/tracing/knex';
 export { tediousIntegration } from './integrations/tracing/tedious';
 export { genericPoolIntegration } from './integrations/tracing/genericPool';
 export { dataloaderIntegration } from './integrations/tracing/dataloader';
 export { amqplibIntegration } from './integrations/tracing/amqplib';
 export { vercelAIIntegration } from './integrations/tracing/vercelai';
-export { childProcessIntegration } from './integrations/childProcess';
-export { createSentryWinstonTransport } from './integrations/winston';
-
-export { SentryContextManager } from './otel/contextManager';
-export { generateInstrumentOnce } from './otel/instrument';
 
 export {
   init,
   getDefaultIntegrations,
   getDefaultIntegrationsWithoutPerformance,
   initWithoutDefaultIntegrations,
-  validateOpenTelemetrySetup,
 } from './sdk';
 export { initOpenTelemetry, preloadOpenTelemetry } from './sdk/initOtel';
 export { getAutoPerformanceIntegrations } from './integrations/tracing';
-export { getSentryRelease, defaultStackParser } from './sdk/api';
-export { createGetModuleFromFilename } from './utils/module';
-export { makeNodeTransport } from './transports';
-export { NodeClient } from './sdk/client';
-export { cron } from './cron';
-export { NODE_VERSION } from './nodeVersion';
 
 export type { NodeOptions } from './types';
 

@@ -99,7 +99,7 @@ describe('Integration | breadcrumbs', () => {
     const beforeSend = vi.fn(() => null);
     const beforeBreadcrumb = vi.fn(breadcrumb => breadcrumb);
 
-    mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, tracesSampleRate: 1 });
+    mockSdkInit({ tracesSampleRate: 1, beforeSend, beforeBreadcrumb, beforeSendTransaction });
 
     const client = getClient() as NodeClient;
 
@@ -144,7 +144,7 @@ describe('Integration | breadcrumbs', () => {
     const beforeSend = vi.fn(() => null);
     const beforeBreadcrumb = vi.fn(breadcrumb => breadcrumb);
 
-    mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, tracesSampleRate: 1 });
+    mockSdkInit({ tracesSampleRate: 1, beforeSend, beforeBreadcrumb, beforeSendTransaction });
 
     const client = getClient() as NodeClient;
 
@@ -196,7 +196,7 @@ describe('Integration | breadcrumbs', () => {
     const beforeSend = vi.fn(() => null);
     const beforeBreadcrumb = vi.fn(breadcrumb => breadcrumb);
 
-    mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, tracesSampleRate: 1 });
+    mockSdkInit({ tracesSampleRate: 1, beforeSend, beforeBreadcrumb, beforeSendTransaction });
 
     const client = getClient() as NodeClient;
 
@@ -237,7 +237,7 @@ describe('Integration | breadcrumbs', () => {
     const beforeSend = vi.fn(() => null);
     const beforeBreadcrumb = vi.fn(breadcrumb => breadcrumb);
 
-    mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, tracesSampleRate: 1 });
+    mockSdkInit({ tracesSampleRate: 1, beforeSend, beforeBreadcrumb, beforeSendTransaction });
 
     const client = getClient() as NodeClient;
 
@@ -295,7 +295,7 @@ describe('Integration | breadcrumbs', () => {
     const beforeSend = vi.fn(() => null);
     const beforeBreadcrumb = vi.fn(breadcrumb => breadcrumb);
 
-    mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, tracesSampleRate: 1 });
+    mockSdkInit({ tracesSampleRate: 1, beforeSend, beforeBreadcrumb, beforeSendTransaction });
 
     const client = getClient() as NodeClient;
 

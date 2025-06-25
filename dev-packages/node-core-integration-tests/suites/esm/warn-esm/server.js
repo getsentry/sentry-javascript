@@ -19,5 +19,4 @@ app.get('/test/success', (req, res) => {
   res.send({ response: 'response 3' });
 });
 
-
 startExpressServerAndSendPortToRunner(app);

@@ -1,5 +1,5 @@
+import { envToBool } from '@sentry/node-core';
 import { preloadOpenTelemetry } from './sdk/initOtel';
-import { envToBool } from './utils/envToBool';
 
 const debug = envToBool(process.env.SENTRY_DEBUG);
 const integrationsStr = process.env.SENTRY_PRELOAD_INTEGRATIONS;

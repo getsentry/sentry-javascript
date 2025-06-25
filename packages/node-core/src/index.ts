@@ -6,6 +6,10 @@ export {
   type SentryHttpInstrumentationOptions,
 } from './integrations/http/SentryHttpInstrumentation';
 export { nativeNodeFetchIntegration } from './integrations/node-fetch';
+export {
+  SentryNodeFetchInstrumentation,
+  type SentryNodeFetchInstrumentationOptions,
+} from './integrations/node-fetch/SentryNodeFetchInstrumentation';
 
 export { nodeContextIntegration } from './integrations/context';
 export { contextLinesIntegration } from './integrations/contextlines';
@@ -20,12 +24,20 @@ export { childProcessIntegration } from './integrations/childProcess';
 export { createSentryWinstonTransport } from './integrations/winston';
 
 export { SentryContextManager } from './otel/contextManager';
-export { generateInstrumentOnce } from './otel/instrument';
+export { generateInstrumentOnce, instrumentWhenWrapped, INSTRUMENTED } from './otel/instrument';
 
 export { init, getDefaultIntegrations, initWithoutDefaultIntegrations, validateOpenTelemetrySetup } from './sdk';
+export { setIsolationScope } from './sdk/scope';
 export { getSentryRelease, defaultStackParser } from './sdk/api';
 export { createGetModuleFromFilename } from './utils/module';
-export { makeNodeTransport } from './transports';
+export { addOriginToSpan } from './utils/addOriginToSpan';
+export { getRequestUrl } from './utils/getRequestUrl';
+export { isCjs } from './utils/commonjs';
+export { ensureIsWrapped } from './utils/ensureIsWrapped';
+export { createMissingInstrumentationContext } from './utils/createMissingInstrumentationContext';
+export { envToBool } from './utils/envToBool';
+export { makeNodeTransport, type NodeTransportOptions } from './transports';
+export type { HTTPModuleRequestIncomingMessage } from './transports/http-module';
 export { NodeClient } from './sdk/client';
 export { cron } from './cron';
 export { NODE_VERSION } from './nodeVersion';

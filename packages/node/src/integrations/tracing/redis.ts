@@ -13,7 +13,7 @@ import {
   spanToJSON,
   truncate,
 } from '@sentry/core';
-import { generateInstrumentOnce } from '../../otel/instrument';
+import { generateInstrumentOnce } from '@sentry/node-core';
 import {
   calculateCacheItemSize,
   GET_COMMANDS,

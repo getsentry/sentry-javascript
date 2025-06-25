@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/node-core';
-import { setupOtel } from '../../utils/setupOtel.js';
 import * as assert from 'assert';
 import * as crypto from 'crypto';
+import { setupOtel } from '../../utils/setupOtel.js';
 
 setTimeout(() => {
   process.exit();
@@ -12,7 +12,6 @@ const client = Sentry.init({
   release: '1.0',
   integrations: [Sentry.anrIntegration({ captureStackTrace: true, anrThreshold: 100 })],
 });
-
 
 setupOtel(client);
 

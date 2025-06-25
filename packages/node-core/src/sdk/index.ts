@@ -133,7 +133,9 @@ function _init(
 
   updateScopeFromEnvVariables();
 
-  setupOpenTelemetryLogger();
+  if (options.debug) {
+    setupOpenTelemetryLogger();
+  }
 
   enhanceDscWithOpenTelemetryRootSpanName(client);
   setupEventContextTrace(client);

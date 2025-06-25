@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/node-core';
-import { setupOtel } from '../../../../utils/setupOtel';
 import { loggingTransport } from '@sentry-internal/node-integration-tests';
+import { setupOtel } from '../../../../utils/setupOtel';
 
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
 (async () => {

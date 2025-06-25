@@ -10,7 +10,7 @@ afterEach(() => {
 
 describe('withActiveSpan()', () => {
   it('should set the active span within the callback', () => {
-    mockSdkInit();
+    mockSdkInit({ tracesSampleRate: 1 });
 
     const inactiveSpan = startInactiveSpan({ name: 'inactive-span' });
 
