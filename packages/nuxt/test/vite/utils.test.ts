@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import type { Nuxt } from 'nuxt/schema';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  addOTelCommonJSImportAlias,
   constructFunctionReExport,
   constructWrappedFunctionExportQuery,
   extractFunctionReexportQueryParameters,
@@ -364,5 +365,52 @@ export { foo_sentryWrapped as foo };
     const entryId = './module';
     const result = constructFunctionReExport(query, entryId);
     expect(result).toBe('');
+  });
+});
+
+describe('addOTelCommonJSImportAlias', () => {
+  it('adds alias for @opentelemetry/resources when options.alias does not exist', () => {
+    const nuxtMock: Nuxt = {
+      options: {},
+    } as unknown as Nuxt;
+
+    addOTelCommonJSImportAlias(nuxtMock);
+
+    expect(nuxtMock.options.alias).toEqual({
+      '@opentelemetry/resources': '@opentelemetry/resources/build/src/index.js',
+    });
+  });
+
+  it('adds alias for @opentelemetry/resources when options.alias already exists', () => {
+    const nuxtMock: Nuxt = {
+      options: {
+        alias: {
+          'existing-alias': 'some-path',
+        },
+      },
+    } as unknown as Nuxt;
+
+    addOTelCommonJSImportAlias(nuxtMock);
+
+    expect(nuxtMock.options.alias).toEqual({
+      'existing-alias': 'some-path',
+      '@opentelemetry/resources': '@opentelemetry/resources/build/src/index.js',
+    });
+  });
+
+  it('overwrites existing alias for @opentelemetry/resources if already present', () => {
+    const nuxtMock: Nuxt = {
+      options: {
+        alias: {
+          '@opentelemetry/resources': 'some-other-path',
+        },
+      },
+    } as unknown as Nuxt;
+
+    addOTelCommonJSImportAlias(nuxtMock);
+
+    expect(nuxtMock.options.alias).toEqual({
+      '@opentelemetry/resources': '@opentelemetry/resources/build/src/index.js',
+    });
   });
 });
