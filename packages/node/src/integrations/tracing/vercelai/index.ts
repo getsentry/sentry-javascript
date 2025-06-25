@@ -1,5 +1,5 @@
 import type { Client, IntegrationFn } from '@sentry/core';
-import { defineIntegration, processVercelAiSpan } from '@sentry/core';
+import { addVercelAiProcessors, defineIntegration } from '@sentry/core';
 import { generateInstrumentOnce } from '../../../otel/instrument';
 import type { modulesIntegration } from '../../modules';
 import { INTEGRATION_NAME } from './constants';
@@ -27,18 +27,14 @@ const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
       instrumentation = instrumentVercelAi();
     },
     afterAllSetup(client) {
-      function registerProcessors(): void {
-        client.on('spanEnd', processVercelAiSpan);
-      }
-
       // Auto-detect if we should force the integration when running with 'ai' package available
       // Note that this can only be detected if the 'Modules' integration is available, and running in CJS mode
       const shouldForce = options.force ?? shouldForceIntegration(client);
 
       if (shouldForce) {
-        registerProcessors();
+        addVercelAiProcessors(client);
       } else {
-        instrumentation?.callWhenPatched(registerProcessors);
+        instrumentation?.callWhenPatched(() => addVercelAiProcessors(client));
       }
     },
   };

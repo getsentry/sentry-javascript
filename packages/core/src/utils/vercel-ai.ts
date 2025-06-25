@@ -1,5 +1,7 @@
+import type { Client } from '../client';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
-import type { Span, SpanAttributes, SpanOrigin } from '../types-hoist/span';
+import type { Event } from '../types-hoist/event';
+import type { Span, SpanAttributes, SpanJSON, SpanOrigin } from '../types-hoist/span';
 import { spanToJSON } from './spanUtils';
 import {
   AI_MODEL_ID_ATTRIBUTE,
@@ -25,9 +27,9 @@ function addOriginToSpan(span: Span, origin: SpanOrigin): void {
 
 /**
  * Post-process spans emitted by the Vercel AI SDK.
- * This is supposed to be used in `client.on('spanEnd', ...)`, to ensure all data is already finished.
+ * This is supposed to be used in `client.on('spanStart', ...)
  */
-export function processVercelAiSpan(span: Span): void {
+function onVercelAiSpanStart(span: Span): void {
   const { data: attributes, description: name } = spanToJSON(span);
 
   if (!name) {
@@ -38,7 +40,6 @@ export function processVercelAiSpan(span: Span): void {
   // https://ai-sdk.dev/docs/ai-sdk-core/telemetry#tool-call-spans
   if (attributes[AI_TOOL_CALL_NAME_ATTRIBUTE] && attributes[AI_TOOL_CALL_ID_ATTRIBUTE] && name === 'ai.toolCall') {
     processToolCallSpan(span, attributes);
-    sharedProcessSpan(span, attributes);
     return;
   }
 
@@ -52,7 +53,47 @@ export function processVercelAiSpan(span: Span): void {
   }
 
   processGenerateSpan(span, name, attributes);
-  sharedProcessSpan(span, attributes);
+}
+
+const vercelAiEventProcessor = Object.assign(
+  (event: Event): Event => {
+    if (event.type === 'transaction' && event.spans) {
+      for (const span of event.spans) {
+        // this mutates spans in-place
+        processEndedVercelAiSpan(span);
+      }
+    }
+    return event;
+  },
+  { id: 'VercelAiEventProcessor' },
+);
+
+/**
+ * Post-process spans emitted by the Vercel AI SDK.
+ */
+function processEndedVercelAiSpan(span: SpanJSON): void {
+  const { data: attributes, origin } = span;
+
+  if (origin !== 'auto.vercelai.otel') {
+    return;
+  }
+
+  renameAttributeKey(attributes, AI_USAGE_COMPLETION_TOKENS_ATTRIBUTE, GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE);
+  renameAttributeKey(attributes, AI_USAGE_PROMPT_TOKENS_ATTRIBUTE, GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE);
+
+  if (
+    typeof attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] === 'number' &&
+    typeof attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE] === 'number'
+  ) {
+    attributes['gen_ai.usage.total_tokens'] =
+      attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] + attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE];
+  }
+
+  // Rename AI SDK attributes to standardized gen_ai attributes
+  renameAttributeKey(attributes, AI_PROMPT_MESSAGES_ATTRIBUTE, 'gen_ai.request.messages');
+  renameAttributeKey(attributes, AI_RESPONSE_TEXT_ATTRIBUTE, 'gen_ai.response.text');
+  renameAttributeKey(attributes, AI_RESPONSE_TOOL_CALLS_ATTRIBUTE, 'gen_ai.response.tool_calls');
+  renameAttributeKey(attributes, AI_PROMPT_TOOLS_ATTRIBUTE, 'gen_ai.request.available_tools');
 }
 
 /**
@@ -170,22 +211,11 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
   }
 }
 
-// Processing for both tool call and non-tool call spans
-function sharedProcessSpan(span: Span, attributes: SpanAttributes): void {
-  renameAttributeKey(attributes, AI_USAGE_COMPLETION_TOKENS_ATTRIBUTE, GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE);
-  renameAttributeKey(attributes, AI_USAGE_PROMPT_TOKENS_ATTRIBUTE, GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE);
-
-  if (
-    typeof attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] === 'number' &&
-    typeof attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE] === 'number'
-  ) {
-    attributes['gen_ai.usage.total_tokens'] =
-      attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] + attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE];
-  }
-
-  // Rename AI SDK attributes to standardized gen_ai attributes
-  renameAttributeKey(attributes, AI_PROMPT_MESSAGES_ATTRIBUTE, 'gen_ai.request.messages');
-  renameAttributeKey(attributes, AI_RESPONSE_TEXT_ATTRIBUTE, 'gen_ai.response.text');
-  renameAttributeKey(attributes, AI_RESPONSE_TOOL_CALLS_ATTRIBUTE, 'gen_ai.response.tool_calls');
-  renameAttributeKey(attributes, AI_PROMPT_TOOLS_ATTRIBUTE, 'gen_ai.request.available_tools');
+/**
+ * Add event processors to the given client to process Vercel AI spans.
+ */
+export function addVercelAiProcessors(client: Client): void {
+  client.on('spanStart', onVercelAiSpanStart);
+  // Note: We cannot do this on `spanEnd`, because the span cannot be mutated anymore at this point
+  client.addEventProcessor(vercelAiEventProcessor);
 }

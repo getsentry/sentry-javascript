@@ -9,7 +9,7 @@
  */
 
 import type { Client, IntegrationFn } from '@sentry/core';
-import { defineIntegration, processVercelAiSpan } from '@sentry/core';
+import { addVercelAiProcessors, defineIntegration } from '@sentry/core';
 import type { modulesIntegration } from '../modules';
 
 interface VercelAiOptions {
@@ -36,12 +36,8 @@ const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
     name: INTEGRATION_NAME,
     options,
     setup(client) {
-      function registerProcessors(): void {
-        client.on('spanEnd', processVercelAiSpan);
-      }
-
       if (options.force || shouldRunIntegration(client)) {
-        registerProcessors();
+        addVercelAiProcessors(client);
       }
     },
   };
