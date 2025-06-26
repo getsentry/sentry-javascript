@@ -9,7 +9,7 @@
   "scripts": {
     "generate": "prisma generate",
     "migrate": "prisma migrate dev -n sentry-test",
-    "setup": "run-s --silent generate migrate"
+    "setup": "yarn generate && yarn migrate"
   },
   "keywords": [],
   "author": "",

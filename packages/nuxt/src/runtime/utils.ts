@@ -50,7 +50,7 @@ export function addSentryTracingMetaTags(head: NuxtRenderHTMLContext['head']): v
  */
 export function reportNuxtError(options: {
   error: unknown;
-  instance?: ComponentPublicInstance | null;
+  instance?: Pick<ComponentPublicInstance, '$props'> | null;
   info?: string;
 }): void {
   const { error, instance, info } = options;

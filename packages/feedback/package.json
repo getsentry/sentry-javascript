@@ -42,16 +42,16 @@
     "@sentry/core": "9.32.0"
   },
   "devDependencies": {
-    "preact": "^10.19.4"
+    "preact": "10.19.4"
   },
   "scripts": {
     "build": "run-p build:transpile build:types build:bundle",
-    "build:transpile": "rollup -c rollup.npm.config.mjs",
-    "build:bundle": "rollup -c rollup.bundle.config.mjs",
+    "build:transpile": "yarn g:rollup -c rollup.npm.config.mjs",
+    "build:bundle": "yarn g:rollup -c rollup.bundle.config.mjs",
     "build:dev": "run-p build:transpile build:types",
-    "build:types": "run-s build:types:core build:types:downlevel",
+    "build:types": "yarn build:types:core && yarn build:types:downlevel",
     "build:types:core": "tsc -p tsconfig.types.json",
-    "build:types:downlevel": "yarn downlevel-dts build/npm/types build/npm/types-ts3.8 --to ts3.8 && yarn node ./scripts/shim-preact-export.js",
+    "build:types:downlevel": "yarn g:downlevel-dts build/npm/types build/npm/types-ts3.8 --to ts3.8 && yarn node ./scripts/shim-preact-export.js",
     "build:watch": "run-p build:transpile:watch build:bundle:watch build:types:watch",
     "build:dev:watch": "run-p build:transpile:watch build:types:watch",
     "build:transpile:watch": "yarn build:transpile --watch",
@@ -60,8 +60,8 @@
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build sentry-internal-feedback-*.tgz",
-    "fix": "eslint . --format stylish --fix",
-    "lint": "eslint . --format stylish",
+    "fix": "yarn g:eslint . --format stylish --fix",
+    "lint": "yarn g:eslint . --format stylish",
     "lint:es-compatibility": "es-check es2020 ./build/{bundles,npm/cjs}/*.js && es-check es2020 ./build/npm/esm/*.js --module",
     "test": "vitest run",
     "test:watch": "vitest --watch",

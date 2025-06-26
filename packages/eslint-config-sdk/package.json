@@ -30,7 +30,8 @@
     "eslint-plugin-deprecation": "^1.5.0",
     "eslint-plugin-import": "^2.22.0",
     "eslint-plugin-jsdoc": "^30.0.3",
-    "eslint-plugin-simple-import-sort": "^6.0.0"
+    "eslint-plugin-simple-import-sort": "^6.0.0",
+    "typescript": "~5.0.0"
   },
   "peerDependencies": {
     "eslint": ">=5"

@@ -94,7 +94,9 @@
   "devDependencies": {
     "@types/resolve": "1.20.3",
     "eslint-plugin-react": "^7.31.11",
-    "next": "13.5.9"
+    "next": "13.5.9",
+    "ts-node": "10.9.1",
+    "typescript": "~5.0.0"
   },
   "peerDependencies": {
     "next": "^13.2.0 || ^14.0 || ^15.0.0-rc.0"
@@ -103,9 +105,9 @@
     "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",
     "build:transpile": "ts-node scripts/buildRollup.ts",
-    "build:types": "run-s build:types:core build:types:downlevel",
+    "build:types": "yarn build:types:core && yarn build:types:downlevel",
     "build:types:core": "tsc -p tsconfig.types.json",
-    "build:types:downlevel": "yarn downlevel-dts build/types build/types-ts3.8 --to ts3.8",
+    "build:types:downlevel": "yarn g:downlevel-dts build/types build/types-ts3.8 --to ts3.8",
     "build:watch": "run-p build:transpile:watch build:types:watch",
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "nodemon --ext ts --watch src scripts/buildRollup.ts",
@@ -113,11 +115,11 @@
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.client.ts && madge --circular src/edge/index.ts && madge --circular src/index.server.ts && madge --circular src/index.types.ts",
     "clean": "rimraf build coverage sentry-nextjs-*.tgz",
-    "fix": "eslint . --format stylish --fix",
-    "lint": "eslint . --format stylish",
+    "fix": "yarn g:eslint . --format stylish --fix",
+    "lint": "yarn g:eslint . --format stylish",
     "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module",
     "test": "yarn test:unit",
-    "test:all": "run-s test:unit",
+    "test:all": "yarn test:unit",
     "test:unit": "vitest run",
     "test:watch": "vitest --watch",
     "vercel:branch": "source vercel/set-up-branch-for-test-app-use.sh",
