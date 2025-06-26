@@ -8,51 +8,27 @@
  * and users have to manually set this to get spans.
  */
 
-import type { Client, IntegrationFn } from '@sentry/core';
+import type { IntegrationFn } from '@sentry/core';
 import { addVercelAiProcessors, defineIntegration } from '@sentry/core';
-import type { modulesIntegration } from '../modules';
-
-interface VercelAiOptions {
-  /**
-   * By default, the instrumentation will register span processors only when the ai package is used.
-   * If you want to register the span processors even when the ai package usage cannot be detected, you can set `force` to `true`.
-   */
-  force?: boolean;
-}
 
 const INTEGRATION_NAME = 'VercelAI';
 
-/**
- * Determines if the integration should be forced based on environment and package availability.
- * Returns true if the 'ai' package is available.
- */
-function shouldRunIntegration(client: Client): boolean {
-  const modules = client.getIntegrationByName<ReturnType<typeof modulesIntegration>>('Modules');
-  return !!modules?.getModules?.()?.ai;
-}
-
-const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
+const _vercelAIIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
-    options,
     setup(client) {
-      if (options.force || shouldRunIntegration(client)) {
-        addVercelAiProcessors(client);
-      }
+      addVercelAiProcessors(client);
     },
   };
 }) satisfies IntegrationFn;
 
 /**
  * Adds Sentry tracing instrumentation for the [ai](https://www.npmjs.com/package/ai) library.
+ * This integration is not enabled by default, you need to manually add it.
  *
  * For more information, see the [`ai` documentation](https://sdk.vercel.ai/docs/ai-sdk-core/telemetry).
  *
- * The integration automatically detects when to force registration
- * when the 'ai' package is available. You can still manually set the `force` option if needed.
- *
- * Unlike the Vercel AI integration in the node SDK, this integration does not add tracing support to
- * `ai` function calls. You need to enable collecting spans for a specific call by setting
+ *  You need to enable collecting spans for a specific call by setting
  * `experimental_telemetry.isEnabled` to `true` in the first argument of the function call.
  *
  * ```javascript

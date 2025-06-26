@@ -42,6 +42,7 @@ const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
 
 /**
  * Adds Sentry tracing instrumentation for the [ai](https://www.npmjs.com/package/ai) library.
+ * This integration is not enabled by default, you need to manually add it.
  *
  * For more information, see the [`ai` documentation](https://sdk.vercel.ai/docs/ai-sdk-core/telemetry).
  *
@@ -54,17 +55,14 @@ const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
  * });
  * ```
  *
- * The integration automatically detects when to force registration in CommonJS environments
- * when the 'ai' package is available. You can still manually set the `force` option if needed.
- *
- * By default this integration adds tracing support to all `ai` function calls. If you need to disable
- * collecting spans for a specific call, you can do so by setting `experimental_telemetry.isEnabled` to
- * `false` in the first argument of the function call.
+ * This integration adds tracing support to all `ai` function calls.
+ * You need to opt-in to collecting spans for a specific call,
+ * you can do so by setting `experimental_telemetry.isEnabled` to `true` in the first argument of the function call.
  *
  * ```javascript
  * const result = await generateText({
  *   model: openai('gpt-4-turbo'),
- *   experimental_telemetry: { isEnabled: false },
+ *   experimental_telemetry: { isEnabled: true },
  * });
  * ```
  *
