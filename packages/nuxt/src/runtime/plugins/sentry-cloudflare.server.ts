@@ -1,23 +1,7 @@
 import type { ExecutionContext } from '@cloudflare/workers-types';
 import type { CloudflareOptions } from '@sentry/cloudflare';
-import {
-  getActiveSpan,
-  setAsyncLocalStorageAsyncContextStrategy,
-  spanToJSON,
-  wrapRequestHandler,
-} from '@sentry/cloudflare';
-import {
-  continueTrace,
-  getClient,
-  getCurrentScope,
-  getDefaultIsolationScope,
-  getIsolationScope,
-  getMainCarrier,
-  getTraceData,
-  logger,
-} from '@sentry/core';
-import { getTraceMetaTags } from '@sentry/core/src';
-import { getAsyncContextStrategy } from '@sentry/core/src/asyncContext';
+import { setAsyncLocalStorageAsyncContextStrategy, wrapRequestHandler } from '@sentry/cloudflare';
+import { getDefaultIsolationScope, getIsolationScope, getTraceData, logger } from '@sentry/core';
 import type { H3Event } from 'h3';
 import type { NitroApp, NitroAppPlugin } from 'nitropack';
 import type { NuxtRenderHTMLContext } from 'nuxt/app';
@@ -130,6 +114,8 @@ export const sentryCloudflareNitroPlugin =
         return handlerTarget.apply(handlerThisArg, handlerArgs);
       },
     });
+
+    // fixme: multiple pageload spans in one trace
 
     // @ts-expect-error - 'render:html' is a valid hook name in the Nuxt context
     nitroApp.hooks.hook('render:html', (html: NuxtRenderHTMLContext, { event }: { event: H3Event }) => {
