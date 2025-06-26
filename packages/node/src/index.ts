@@ -156,7 +156,6 @@ export {
   SentryContextManager,
   generateInstrumentOnce,
   instrumentWhenWrapped,
-  INSTRUMENTED,
   getSentryRelease,
   defaultStackParser,
   createGetModuleFromFilename,
@@ -165,12 +164,6 @@ export {
   cron,
   NODE_VERSION,
   validateOpenTelemetrySetup,
-  addOriginToSpan,
-  getRequestUrl,
-  isCjs,
-  ensureIsWrapped,
-  createMissingInstrumentationContext,
-  envToBool,
 } from '@sentry/node-core';
 
 export { logger };
