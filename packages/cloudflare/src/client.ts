@@ -55,7 +55,9 @@ interface BaseCloudflareOptions {}
  *
  * @see @sentry/core Options for more information.
  */
-export interface CloudflareOptions extends Options<CloudflareTransportOptions>, BaseCloudflareOptions {}
+export interface CloudflareOptions extends Options<CloudflareTransportOptions>, BaseCloudflareOptions {
+  ctx?: ExecutionContext
+}
 
 /**
  * Configuration options for the Sentry Cloudflare SDK Client class

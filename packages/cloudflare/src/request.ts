@@ -2,6 +2,7 @@ import type { ExecutionContext, IncomingRequestCfProperties } from '@cloudflare/
 import {
   captureException,
   continueTrace,
+  flush,
   getHttpSpanDetailsFromUrlObject,
   parseStringToURLObject,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -36,7 +37,7 @@ export function wrapRequestHandler(
 
     const waitUntil = context?.waitUntil?.bind?.(context);
 
-    const client = init(options, context);
+    const client = init({ ...options, ctx: context });
     isolationScope.setClient(client);
 
     const urlObject = parseStringToURLObject(request.url);
@@ -66,7 +67,7 @@ export function wrapRequestHandler(
         captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
         throw e;
       } finally {
-        waitUntil?.(client?.flush?.(2000));
+        waitUntil?.(flush(2000));
       }
     }
 
@@ -90,7 +91,7 @@ export function wrapRequestHandler(
               captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
               throw e;
             } finally {
-              waitUntil?.(client?.flush?.(2000));
+              waitUntil?.(flush(2000));
             }
           },
         );

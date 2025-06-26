@@ -1,4 +1,3 @@
-import { type ExecutionContext } from '@cloudflare/workers-types';
 import type { Integration } from '@sentry/core';
 import {
   consoleIntegration,
@@ -38,12 +37,13 @@ export function getDefaultIntegrations(options: CloudflareOptions): Integration[
 /**
  * Initializes the cloudflare SDK.
  */
-export function init(options: CloudflareOptions, ctx: ExecutionContext | void): CloudflareClient | undefined {
+export function init(options: CloudflareOptions): CloudflareClient | undefined {
   if (options.defaultIntegrations === undefined) {
     options.defaultIntegrations = getDefaultIntegrations(options);
   }
 
-  const flushLock = ctx ? makeFlushLock(ctx) : undefined;
+  const flushLock = options.ctx ? makeFlushLock(options.ctx) : undefined;
+  delete options.ctx;
 
   const clientOptions: CloudflareClientOptions = {
     ...options,
