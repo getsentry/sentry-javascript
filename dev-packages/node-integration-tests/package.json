@@ -12,9 +12,9 @@
   "scripts": {
     "build": "run-s build:transpile build:types",
     "build:dev": "yarn build",
-    "build:transpile": "rollup -c rollup.npm.config.mjs",
+    "build:transpile": "yarn g:rollup -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
-    "clean": "rimraf -g **/node_modules && run-p clean:script",
+    "clean": "rimraf -g **/node_modules && yarn clean:script",
     "clean:script": "node scripts/clean.js",
     "express-v5-install": "cd suites/express-v5 && yarn --no-lockfile",
     "lint": "eslint . --format stylish",
@@ -73,7 +73,10 @@
     "@types/amqplib": "^0.10.5",
     "@types/node-cron": "^3.0.11",
     "@types/node-schedule": "^2.1.7",
-    "globby": "11"
+    "file-type": "^20.4.1",
+    "globby": "11",
+    "react": "^18.0.0",
+    "zod": "^3.24.1"
   },
   "config": {
     "mongodbMemoryServer": {

@@ -73,20 +73,22 @@
     "@types/aws-lambda": "^8.10.62"
   },
   "devDependencies": {
-    "@types/node": "^18.19.1"
+    "@types/node": "^18.19.1",
+    "ts-node": "10.9.1",
+    "typescript": "~5.0.0"
   },
   "scripts": {
     "build": "run-p build:transpile build:types build:bundle",
     "build:bundle": "yarn build:layer",
     "build:layer": "yarn ts-node scripts/buildLambdaLayer.ts",
     "build:dev": "run-p build:transpile build:types",
-    "build:transpile": "rollup -c rollup.npm.config.mjs && yarn build:layer",
+    "build:transpile": "yarn g:rollup -c rollup.npm.config.mjs && yarn build:layer",
     "build:types": "run-s build:types:core build:types:downlevel",
     "build:types:core": "tsc -p tsconfig.types.json",
-    "build:types:downlevel": "yarn downlevel-dts build/npm/types build/npm/types-ts3.8 --to ts3.8",
+    "build:types:downlevel": "yarn g:downlevel-dts build/npm/types build/npm/types-ts3.8 --to ts3.8",
     "build:watch": "run-p build:transpile:watch build:types:watch",
     "build:dev:watch": "yarn build:watch",
-    "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
+    "build:transpile:watch": "yarn g:rollup -c rollup.npm.config.mjs --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",

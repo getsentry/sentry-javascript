@@ -13,7 +13,7 @@ function run(cmd: string, options?: childProcess.ExecSyncOptions): string {
 
 async function buildLambdaLayer(): Promise<void> {
   // Create the main SDK bundle
-  run('yarn rollup --config rollup.aws.config.mjs');
+  run('yarn g:rollup -c rollup.aws.config.mjs');
 
   // We build a minified bundle, but it's standing in for the regular `index.js` file listed in `package.json`'s `main`
   // property, so we have to rename it so it's findable.

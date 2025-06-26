@@ -55,7 +55,8 @@
   "devDependencies": {
     "@nestjs/common": "^10.0.0",
     "@nestjs/core": "^10.0.0",
-    "reflect-metadata": "^0.2.2"
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1"
   },
   "peerDependencies": {
     "@nestjs/common": "^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0",
@@ -64,13 +65,13 @@
   "scripts": {
     "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",
-    "build:transpile": "rollup -c rollup.npm.config.mjs",
+    "build:transpile": "yarn g:rollup -c rollup.npm.config.mjs",
     "build:types": "run-s build:types:core build:types:setup",
     "build:types:core": "tsc -p tsconfig.types.json",
     "build:types:setup": "tsc -p tsconfig.setup-types.json",
     "build:watch": "run-p build:transpile:watch build:types:watch",
     "build:dev:watch": "yarn build:watch",
-    "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
+    "build:transpile:watch": "yarn g:rollup -c rollup.npm.config.mjs --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts && madge --circular src/setup.ts",
