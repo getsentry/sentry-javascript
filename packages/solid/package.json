@@ -67,13 +67,13 @@
     "vite-plugin-solid": "^2.11.6"
   },
   "scripts": {
-    "build": "yarn g:run-p build:transpile build:types",
+    "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",
     "build:transpile": "yarn g:rollup -c rollup.npm.config.mjs",
     "build:types": "yarn build:types:core && yarn build:types:solidrouter",
     "build:types:core": "tsc -p tsconfig.types.json",
     "build:types:solidrouter": "tsc -p tsconfig.solidrouter-types.json",
-    "build:watch": "yarn g:run-p build:transpile:watch build:types:watch",
+    "build:watch": "run-p build:transpile:watch build:types:watch",
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "yarn g:rollup -c rollup.npm.config.mjs --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
