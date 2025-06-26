@@ -40,12 +40,20 @@ export function getDefaultIntegrations(options: Options): Integration[] {
  * Initialize Sentry for Node.
  */
 export function init(options: NodeOptions | undefined = {}): NodeClient | undefined {
-  const nodeDefaultIntegrations = getDefaultIntegrations(options);
+  return _init(options, getDefaultIntegrations);
+}
 
+/**
+ * Internal initialization function.
+ */
+function _init(
+  options: NodeOptions | undefined = {},
+  getDefaultIntegrationsImpl: (options: Options) => Integration[],
+): NodeClient | undefined {
   const client = initNodeCore({
     ...options,
     // Only use Node SDK defaults if none provided
-    defaultIntegrations: options.defaultIntegrations ?? nodeDefaultIntegrations,
+    defaultIntegrations: options.defaultIntegrations ?? getDefaultIntegrationsImpl(options),
   });
 
   // Add Node SDK specific OpenTelemetry setup
@@ -63,19 +71,5 @@ export function init(options: NodeOptions | undefined = {}): NodeClient | undefi
  * Initialize Sentry for Node, without any integrations added by default.
  */
 export function initWithoutDefaultIntegrations(options: NodeOptions | undefined = {}): NodeClient | undefined {
-  const client = initNodeCore({
-    ...options,
-    // Only use empty array if none provided
-    defaultIntegrations: options.defaultIntegrations ?? [],
-  });
-
-  // Add Node SDK specific OpenTelemetry setup
-  if (client && !options.skipOpenTelemetrySetup) {
-    initOpenTelemetry(client, {
-      spanProcessors: options.openTelemetrySpanProcessors,
-    });
-    validateOpenTelemetrySetup();
-  }
-
-  return client;
+  return _init(options, () => []);
 }
