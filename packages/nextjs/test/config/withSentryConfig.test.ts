@@ -144,4 +144,71 @@ describe('withSentryConfig', () => {
       );
     });
   });
+
+  describe('release injection behavior', () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+
+      // clear env to avoid leaking env vars from fixtures
+      delete exportedNextConfig.env;
+      delete process.env.SENTRY_RELEASE;
+    });
+
+    it('does not inject release when create is false', () => {
+      const sentryOptions = {
+        release: {
+          create: false,
+        },
+      };
+
+      // clear env to avoid leaking env vars from fixtures
+      delete exportedNextConfig.env;
+
+      const finalConfig = materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+
+      // Should not inject release into environment when create is false
+      expect(finalConfig.env).not.toHaveProperty('_sentryRelease');
+    });
+
+    it('injects release when create is true (default)', () => {
+      const sentryOptions = {
+        release: {
+          create: true,
+          name: 'test-release@1.0.0',
+        },
+      };
+
+      const finalConfig = materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+
+      // Should inject release into environment when create is true
+      expect(finalConfig.env).toHaveProperty('_sentryRelease', 'test-release@1.0.0');
+    });
+
+    it('injects release with explicit name', () => {
+      const sentryOptions = {
+        release: {
+          name: 'custom-release-v2.1.0',
+        },
+      };
+
+      const finalConfig = materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+
+      // Should inject the explicit release name
+      expect(finalConfig.env).toHaveProperty('_sentryRelease', 'custom-release-v2.1.0');
+    });
+
+    it('falls back to SENTRY_RELEASE environment variable when no explicit name provided', () => {
+      process.env.SENTRY_RELEASE = 'env-release-1.5.0';
+
+      const sentryOptions = {
+        release: {
+          create: true,
+        },
+      };
+
+      const finalConfig = materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+
+      expect(finalConfig.env).toHaveProperty('_sentryRelease', 'env-release-1.5.0');
+    });
+  });
 });

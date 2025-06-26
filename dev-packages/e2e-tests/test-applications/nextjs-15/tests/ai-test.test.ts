@@ -21,7 +21,7 @@ test('should create AI spans with correct attributes', async ({ page }) => {
   // TODO: For now, this is sadly not fully working - the monkey patching of the ai package is not working
   // because of this, only spans that are manually opted-in at call time will be captured
   // this may be fixed by https://github.com/vercel/ai/pull/6716 in the future
-  const aiPipelineSpans = spans.filter(span => span.op === 'ai.pipeline.generate_text');
+  const aiPipelineSpans = spans.filter(span => span.op === 'gen_ai.invoke_agent');
   const aiGenerateSpans = spans.filter(span => span.op === 'gen_ai.generate_text');
   const toolCallSpans = spans.filter(span => span.op === 'gen_ai.execute_tool');
 
