@@ -10,7 +10,7 @@
   "module": "build/esm/index.js",
   "types": "build/types/src/index.d.ts",
   "scripts": {
-    "build": "run-s build:transpile build:types",
+    "build": "yarn build:transpile && yarn build:types",
     "build:dev": "yarn build",
     "build:transpile": "yarn g:rollup -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",

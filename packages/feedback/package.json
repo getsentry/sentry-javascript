@@ -49,7 +49,7 @@
     "build:transpile": "yarn g:rollup -c rollup.npm.config.mjs",
     "build:bundle": "yarn g:rollup -c rollup.bundle.config.mjs",
     "build:dev": "run-p build:transpile build:types",
-    "build:types": "run-s build:types:core build:types:downlevel",
+    "build:types": "yarn build:types:core && yarn build:types:downlevel",
     "build:types:core": "tsc -p tsconfig.types.json",
     "build:types:downlevel": "yarn g:downlevel-dts build/npm/types build/npm/types-ts3.8 --to ts3.8 && yarn node ./scripts/shim-preact-export.js",
     "build:watch": "run-p build:transpile:watch build:bundle:watch build:types:watch",

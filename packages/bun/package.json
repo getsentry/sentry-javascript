@@ -49,7 +49,7 @@
     "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",
     "build:transpile": "yarn g:rollup -c rollup.npm.config.mjs",
-    "build:types": "run-s build:types:core build:types:downlevel",
+    "build:types": "yarn build:types:core && yarn build:types:downlevel",
     "build:types:core": "tsc -p tsconfig.types.json",
     "build:types:downlevel": "yarn g:downlevel-dts build/types build/types-ts3.8 --to ts3.8",
     "build:watch": "run-p build:transpile:watch build:types:watch",
@@ -63,7 +63,7 @@
     "lint": "yarn g:eslint . --format stylish",
     "lint:es-compatibility": "es-check es2022 ./build/cjs/*.js && es-check es2022 ./build/esm/*.js --module",
     "install:bun": "node ./scripts/install-bun.js",
-    "test": "run-s install:bun test:bun",
+    "test": "yarn install:bun && yarn test:bun",
     "test:bun": "bun test",
     "test:watch": "bun test --watch",
     "yalc:publish": "yalc publish --push --sig"

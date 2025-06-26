@@ -66,7 +66,7 @@
     "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",
     "build:transpile": "yarn g:rollup -c rollup.npm.config.mjs",
-    "build:types": "run-s build:types:core build:types:setup",
+    "build:types": "yarn build:types:core && yarn build:types:setup",
     "build:types:core": "tsc -p tsconfig.types.json",
     "build:types:setup": "tsc -p tsconfig.setup-types.json",
     "build:watch": "run-p build:transpile:watch build:types:watch",

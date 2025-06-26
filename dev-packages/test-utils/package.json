@@ -33,8 +33,8 @@
   "scripts": {
     "fix": "yarn g:eslint . --format stylish --fix",
     "lint": "yarn g:eslint . --format stylish",
-    "build": "run-s build:transpile build:types",
-    "build:tarball": "run-s build:transpile build:types",
+    "build": "yarn build:transpile && yarn build:types",
+    "build:tarball": "yarn build:transpile && yarn build:types",
     "build:dev": "yarn build",
     "build:transpile": "yarn g:rollup -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",

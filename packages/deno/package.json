@@ -28,7 +28,7 @@
   },
   "scripts": {
     "deno-types": "node ./scripts/download-deno-types.mjs",
-    "build": "run-s build:transpile build:types",
+    "build": "yarn build:transpile && yarn build:types",
     "build:dev": "yarn build",
     "build:transpile": "yarn deno-types && yarn g:rollup -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
@@ -41,7 +41,7 @@
     "lint": "yarn g:eslint . --format stylish",
     "lint:es-compatibility": "es-check es2022 ./build/esm/*.js --module",
     "install:deno": "node ./scripts/install-deno.mjs",
-    "test": "run-s install:deno deno-types test:unit",
+    "test": "yarn install:deno && yarn deno-types && yarn test:unit",
     "test:unit": "deno test --allow-read --allow-run --no-check",
     "test:unit:update": "deno test --allow-read --allow-write --allow-run -- --update",
     "yalc:publish": "yalc publish --push --sig"

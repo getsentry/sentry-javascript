@@ -56,7 +56,7 @@
     "vue": "^3.0.0"
   },
   "scripts": {
-    "build": "run-s build:types build:transpile",
+    "build": "yarn build:types && yarn build:transpile",
     "build:dev": "yarn build",
     "build:nuxt-module": "bash ./generate-build-stubs.bash && nuxt-module-build build --outDir build/module",
     "build:transpile": "yarn g:rollup -c rollup.npm.config.mjs && yarn build:nuxt-module",
