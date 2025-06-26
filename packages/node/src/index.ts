@@ -155,7 +155,6 @@ export {
   createSentryWinstonTransport,
   SentryContextManager,
   generateInstrumentOnce,
-  instrumentWhenWrapped,
   getSentryRelease,
   defaultStackParser,
   createGetModuleFromFilename,
