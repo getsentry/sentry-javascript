@@ -3,39 +3,6 @@ import { logger } from '@sentry/node-core';
 export { httpIntegration } from './integrations/http';
 export { nativeNodeFetchIntegration } from './integrations/node-fetch';
 export { fsIntegration } from './integrations/fs';
-
-export {
-  nodeContextIntegration,
-  contextLinesIntegration,
-  localVariablesIntegration,
-  modulesIntegration,
-  onUncaughtExceptionIntegration,
-  onUnhandledRejectionIntegration,
-  anrIntegration,
-  disableAnrDetectionForCallback,
-  spotlightIntegration,
-  childProcessIntegration,
-  createSentryWinstonTransport,
-  SentryContextManager,
-  generateInstrumentOnce,
-  instrumentWhenWrapped,
-  INSTRUMENTED,
-  getSentryRelease,
-  defaultStackParser,
-  createGetModuleFromFilename,
-  makeNodeTransport,
-  NodeClient,
-  cron,
-  NODE_VERSION,
-  validateOpenTelemetrySetup,
-  addOriginToSpan,
-  getRequestUrl,
-  isCjs,
-  ensureIsWrapped,
-  createMissingInstrumentationContext,
-  envToBool,
-} from '@sentry/node-core';
-
 export { expressIntegration, expressErrorHandler, setupExpressErrorHandler } from './integrations/tracing/express';
 export { fastifyIntegration, setupFastifyErrorHandler } from './integrations/tracing/fastify';
 export { graphqlIntegration } from './integrations/tracing/graphql';
@@ -173,5 +140,37 @@ export type {
   Span,
   FeatureFlagsIntegration,
 } from '@sentry/core';
+
+export {
+  nodeContextIntegration,
+  contextLinesIntegration,
+  localVariablesIntegration,
+  modulesIntegration,
+  onUncaughtExceptionIntegration,
+  onUnhandledRejectionIntegration,
+  anrIntegration,
+  disableAnrDetectionForCallback,
+  spotlightIntegration,
+  childProcessIntegration,
+  createSentryWinstonTransport,
+  SentryContextManager,
+  generateInstrumentOnce,
+  instrumentWhenWrapped,
+  INSTRUMENTED,
+  getSentryRelease,
+  defaultStackParser,
+  createGetModuleFromFilename,
+  makeNodeTransport,
+  NodeClient,
+  cron,
+  NODE_VERSION,
+  validateOpenTelemetrySetup,
+  addOriginToSpan,
+  getRequestUrl,
+  isCjs,
+  ensureIsWrapped,
+  createMissingInstrumentationContext,
+  envToBool,
+} from '@sentry/node-core';
 
 export { logger };

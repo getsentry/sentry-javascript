@@ -28,7 +28,9 @@
 
 /* eslint-disable @typescript-eslint/explicit-member-accessibility */
 /* eslint-disable @typescript-eslint/no-unused-vars */
+// eslint-disable-next-line import/no-duplicates
 import type * as http from 'node:http';
+// eslint-disable-next-line import/no-duplicates
 import type { OutgoingHttpHeaders } from 'node:http';
 import * as net from 'node:net';
 import * as tls from 'node:tls';

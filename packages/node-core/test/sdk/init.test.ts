@@ -1,7 +1,7 @@
 import type { Integration } from '@sentry/core';
 import { logger } from '@sentry/core';
 import * as SentryOpentelemetry from '@sentry/opentelemetry';
-import { type Mock, type MockInstance, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { type Mock, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getClient } from '../../src/';
 import { init, validateOpenTelemetrySetup } from '../../src/sdk';
 import { NodeClient } from '../../src/sdk/client';

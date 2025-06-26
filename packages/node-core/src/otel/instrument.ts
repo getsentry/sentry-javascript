@@ -25,6 +25,7 @@ export function generateInstrumentOnce<
  */
 export function generateInstrumentOnce<Options>(
   name: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   creatorOrClass: (new (...args: any[]) => Instrumentation) | ((options?: Options) => Instrumentation),
   optionsCallback?: (options: Options) => unknown,
 ): ((options: Options) => Instrumentation) & { id: string } {
