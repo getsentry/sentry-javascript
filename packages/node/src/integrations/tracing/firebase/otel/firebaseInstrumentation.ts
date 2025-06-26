@@ -7,7 +7,7 @@ const DefaultFirebaseInstrumentationConfig: FirebaseInstrumentationConfig = {};
 const firestoreSupportedVersions = ['>=3.0.0 <5']; // firebase 9+
 
 /**
- *
+ * Instrumentation for Firebase services, specifically Firestore.
  */
 export class FirebaseInstrumentation extends InstrumentationBase<FirebaseInstrumentationConfig> {
   public constructor(config: FirebaseInstrumentationConfig = DefaultFirebaseInstrumentationConfig) {
