@@ -51,7 +51,7 @@
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:dev": "yarn clean && yarn build",
     "build:transpile:watch": "yarn g:rollup -c rollup.npm.config.mjs --watch",
-    "build:watch": "run-p build:transpile:watch build:types:watch",
+    "build:watch": "yarn g:run-p build:transpile:watch build:types:watch",
     "build:tarball": "npm pack"
   },
   "dependencies": {

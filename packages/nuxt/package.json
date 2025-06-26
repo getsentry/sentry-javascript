@@ -61,7 +61,7 @@
     "build:nuxt-module": "bash ./generate-build-stubs.bash && nuxt-module-build build --outDir build/module",
     "build:transpile": "yarn g:rollup -c rollup.npm.config.mjs && yarn build:nuxt-module",
     "build:types": "tsc -p tsconfig.types.json",
-    "build:watch": "run-p build:transpile:watch build:types:watch",
+    "build:watch": "yarn g:run-p build:transpile:watch build:types:watch",
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "yarn g:rollup -c rollup.npm.config.mjs --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
