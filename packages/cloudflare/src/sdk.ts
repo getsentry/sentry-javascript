@@ -12,6 +12,7 @@ import {
 } from '@sentry/core';
 import type { CloudflareClientOptions, CloudflareOptions } from './client';
 import { CloudflareClient } from './client';
+import { makeFlushLock } from './flush';
 import { fetchIntegration } from './integrations/fetch';
 import { setupOpenTelemetryTracer } from './opentelemetry/tracer';
 import { makeCloudflareTransport } from './transport';
@@ -44,11 +45,15 @@ export function init(options: CloudflareOptions): CloudflareClient | undefined {
     options.defaultIntegrations = getDefaultIntegrations(options);
   }
 
+  const flushLock = options.ctx ? makeFlushLock(options.ctx) : undefined;
+  delete options.ctx;
+
   const clientOptions: CloudflareClientOptions = {
     ...options,
     stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
     integrations: getIntegrationsToSetup(options),
     transport: options.transport || makeCloudflareTransport,
+    flushLock,
   };
 
   /**
