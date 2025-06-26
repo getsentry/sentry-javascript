@@ -81,7 +81,10 @@ export const sentryCloudflareNitroPlugin =
         const pathname = handlerArgs[0];
         const event = handlerArgs[1];
 
-        if (isEventType(event)) {
+        if (!isEventType(event)) {
+          logger.log("Nitro Cloudflare plugin did not detect a Cloudflare event type. Won't patch Cloudflare handler.");
+          return handlerTarget.apply(handlerThisArg, handlerArgs);
+        } else {
           const requestHandlerOptions = {
             options: { ...sentryOptions, continueTraceFromPropagationContext: true },
             request: { ...event, url: `${event.protocol}//${event.host}${pathname}` },
@@ -110,8 +113,6 @@ export const sentryCloudflareNitroPlugin =
             return handlerTarget.apply(handlerThisArg, handlerArgs);
           });
         }
-
-        return handlerTarget.apply(handlerThisArg, handlerArgs);
       },
     });
 
