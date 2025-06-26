@@ -17,7 +17,18 @@ import { addCloudResourceContext, addCultureContext, addRequest } from './scope-
 import { init } from './sdk';
 
 interface RequestHandlerWrapperOptions {
-  options: CloudflareOptions;
+  options: CloudflareOptions & {
+    /**
+     * Enable or disable the automatic continuation of traces from the propagation context.
+     *
+     * When enabled, the SDK will continue a trace from the propagation context if it is present.
+     *
+     * When disabled, the SDK will fall back to the default case of continuing a trace from the request headers if they are present.
+     *
+     * @default false
+     */
+    continueTraceFromPropagationContext?: boolean;
+  };
   request: Request<unknown, IncomingRequestCfProperties<unknown>>;
   context: ExecutionContext;
 }
