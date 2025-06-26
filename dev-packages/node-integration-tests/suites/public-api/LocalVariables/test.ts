@@ -101,4 +101,30 @@ describe('LocalVariables integration', () => {
       .start()
       .completed();
   });
+
+  test('Should handle different function name formats', async () => {
+    await createRunner(__dirname, 'local-variables-name-matching.js')
+      .expect({
+        event: {
+          exception: {
+            values: [
+              {
+                stacktrace: {
+                  frames: expect.arrayContaining([
+                    expect.objectContaining({
+                      function: expect.stringMatching(/^(Object\.testSentry|testSentry)$/),
+                      vars: expect.objectContaining({
+                        args: expect.any(Object),
+                      }),
+                    }),
+                  ]),
+                },
+              },
+            ],
+          },
+        },
+      })
+      .start()
+      .completed();
+  });
 });
