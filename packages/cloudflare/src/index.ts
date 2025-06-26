@@ -107,6 +107,7 @@ export { CloudflareClient } from './client';
 export { getDefaultIntegrations } from './sdk';
 
 export { fetchIntegration } from './integrations/fetch';
+export { vercelAIIntegration } from './integrations/tracing/vercelai';
 
 export { instrumentD1WithSentry } from './d1';
 
