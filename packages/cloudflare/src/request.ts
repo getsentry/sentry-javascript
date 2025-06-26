@@ -76,18 +76,24 @@ export function wrapRequestHandler(
         // Note: This span will not have a duration unless I/O happens in the handler. This is
         // because of how the cloudflare workers runtime works.
         // See: https://developers.cloudflare.com/workers/runtime-apis/performance/
-        return startSpan({ name, attributes }, async (span: Span) => {
-          try {
-            const res = await handler();
-            setHttpStatus(span, res.status);
-            return res;
-          } catch (e) {
-            captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
-            throw e;
-          } finally {
-            context?.waitUntil(flush(2000));
-          }
-        });
+        return startSpan(
+          {
+            name,
+            attributes,
+          },
+          async span => {
+            try {
+              const res = await handler();
+              setHttpStatus(span, res.status);
+              return res;
+            } catch (e) {
+              captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
+              throw e;
+            } finally {
+              context?.waitUntil(flush(2000));
+            }
+          },
+        );
       },
     );
   });

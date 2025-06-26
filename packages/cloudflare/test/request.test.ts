@@ -220,6 +220,7 @@ describe('withSentry', () => {
         trace_id: '12312012123120121231201212312012',
       });
     });
+
     test('creates a span that wraps request handler', async () => {
       const mockRequest = new Request('https://example.com') as any;
       mockRequest.cf = {
