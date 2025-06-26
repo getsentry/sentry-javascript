@@ -77,7 +77,7 @@ export const sentryCloudflareNitroPlugin =
       async apply(handlerTarget, handlerThisArg, handlerArgs: [string, unknown]) {
         setAsyncLocalStorageAsyncContextStrategy();
 
-        const sentryOptions = typeof optionsOrFn === 'function' ? optionsOrFn(nitroApp) : optionsOrFn;
+        const cloudflareOptions = typeof optionsOrFn === 'function' ? optionsOrFn(nitroApp) : optionsOrFn;
         const pathname = handlerArgs[0];
         const event = handlerArgs[1];
 
@@ -86,7 +86,7 @@ export const sentryCloudflareNitroPlugin =
           return handlerTarget.apply(handlerThisArg, handlerArgs);
         } else {
           const requestHandlerOptions = {
-            options: { ...sentryOptions, continueTraceFromPropagationContext: true },
+            options: cloudflareOptions,
             request: { ...event, url: `${event.protocol}//${event.host}${pathname}` },
             context: event.context.cloudflare.context,
           };
@@ -98,7 +98,7 @@ export const sentryCloudflareNitroPlugin =
 
             const traceData = getTraceData();
             if (traceData && Object.keys(traceData).length > 0) {
-              // Storing trace data in the event context for later use in HTML meta tags (enables correct connection of parent/child span relationships)
+              // Storing trace data in the event context for later use in HTML meta-tags (enables correct connection of parent/child span relationships)
               // @ts-expect-error Storing a new key in the event context
               event.context[TRACE_DATA_KEY] = traceData;
               logger.log('Stored trace data in the event context.');
@@ -115,8 +115,6 @@ export const sentryCloudflareNitroPlugin =
         }
       },
     });
-
-    // fixme: multiple pageload spans in one trace
 
     // @ts-expect-error - 'render:html' is a valid hook name in the Nuxt context
     nitroApp.hooks.hook('render:html', (html: NuxtRenderHTMLContext, { event }: { event: H3Event }) => {

@@ -4,7 +4,6 @@ import {
   captureException,
   continueTrace,
   flush,
-  getCurrentScope,
   getHttpSpanDetailsFromUrlObject,
   parseStringToURLObject,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -17,18 +16,7 @@ import { addCloudResourceContext, addCultureContext, addRequest } from './scope-
 import { init } from './sdk';
 
 interface RequestHandlerWrapperOptions {
-  options: CloudflareOptions & {
-    /**
-     * Enable or disable the automatic continuation of traces from the propagation context.
-     *
-     * When enabled, the SDK will continue a trace from the propagation context if it is present.
-     *
-     * When disabled, the SDK will fall back to the default case of continuing a trace from the request headers if they are present.
-     *
-     * @default false
-     */
-    continueTraceFromPropagationContext?: boolean;
-  };
+  options: CloudflareOptions;
   request: Request<unknown, IncomingRequestCfProperties<unknown>>;
   context: ExecutionContext;
 }
@@ -82,40 +70,25 @@ export function wrapRequestHandler(
       }
     }
 
-    // Check if we already have active trace data - if so, don't wrap with continueTrace
-    // This allows us to continue an existing trace from the parent context (e.g. in Nuxt)
-    const existingPropagationContext = getCurrentScope().getPropagationContext();
-    if (options.continueTraceFromPropagationContext && existingPropagationContext?.traceId) {
-      return startSpan({ name, attributes }, cloudflareStartSpanCallback(handler, context));
-    }
-
-    // No active trace, create one from headers
     return continueTrace(
       { sentryTrace: request.headers.get('sentry-trace') || '', baggage: request.headers.get('baggage') },
       () => {
         // Note: This span will not have a duration unless I/O happens in the handler. This is
         // because of how the cloudflare workers runtime works.
         // See: https://developers.cloudflare.com/workers/runtime-apis/performance/
-        return startSpan({ name, attributes }, cloudflareStartSpanCallback(handler, context));
+        return startSpan({ name, attributes }, async (span: Span) => {
+          try {
+            const res = await handler();
+            setHttpStatus(span, res.status);
+            return res;
+          } catch (e) {
+            captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
+            throw e;
+          } finally {
+            context?.waitUntil(flush(2000));
+          }
+        });
       },
     );
   });
-}
-
-function cloudflareStartSpanCallback(
-  handler: (...args: unknown[]) => Response | Promise<Response>,
-  context?: ExecutionContext,
-) {
-  return async (span: Span) => {
-    try {
-      const res = await handler();
-      setHttpStatus(span, res.status);
-      return res;
-    } catch (e) {
-      captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
-      throw e;
-    } finally {
-      context?.waitUntil(flush(2000));
-    }
-  };
 }
