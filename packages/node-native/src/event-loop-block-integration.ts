@@ -1,13 +1,10 @@
-import { types } from 'node:util';
 import { Worker } from 'node:worker_threads';
-import type { Contexts, Event, EventHint, Integration, IntegrationFn } from '@sentry/core';
-import { defineIntegration, getClient, getFilenameToDebugIdMap, getIsolationScope, logger } from '@sentry/core';
+import type { Contexts, Event, EventHint, IntegrationFn } from '@sentry/core';
+import { defineIntegration, getFilenameToDebugIdMap, getIsolationScope, logger } from '@sentry/core';
 import type { NodeClient } from '@sentry/node';
 import { registerThread, threadPoll } from '@sentry-internal/node-native-stacktrace';
 import type { ThreadBlockedIntegrationOptions, WorkerStartData } from './common';
 import { POLL_RATIO } from './common';
-
-const { isPromise } = types;
 
 const DEFAULT_THRESHOLD_MS = 1_000;
 
@@ -32,42 +29,17 @@ async function getContexts(client: NodeClient): Promise<Contexts> {
 
 const INTEGRATION_NAME = 'ThreadBlocked';
 
-type ThreadBlockedInternal = { start: () => void; stop: () => void };
-
 const _eventLoopBlockIntegration = ((options: Partial<ThreadBlockedIntegrationOptions> = {}) => {
-  let worker: Promise<() => void> | undefined;
-  let client: NodeClient | undefined;
-
   return {
     name: INTEGRATION_NAME,
-    start: () => {
-      if (worker) {
-        return;
-      }
-
-      if (client) {
-        worker = _startWorker(client, options);
-      }
-    },
-    stop: () => {
-      if (worker) {
-        // eslint-disable-next-line @typescript-eslint/no-floating-promises
-        worker.then(stop => {
-          stop();
-          worker = undefined;
-        });
-      }
-    },
-    afterAllSetup(initClient: NodeClient) {
-      client = initClient;
-
+    afterAllSetup(client: NodeClient) {
       registerThread();
-      this.start();
+      _startWorker(client, options).catch(err => {
+        log('Failed to start event loop block worker', err);
+      });
     },
-  } as Integration & ThreadBlockedInternal;
+  };
 }) satisfies IntegrationFn;
-
-type ThreadBlockedReturn = (options?: Partial<ThreadBlockedIntegrationOptions>) => Integration & ThreadBlockedInternal;
 
 /**
  * Monitors the Node.js event loop for blocking behavior and reports blocked events to Sentry.
@@ -98,7 +70,7 @@ type ThreadBlockedReturn = (options?: Partial<ThreadBlockedIntegrationOptions>) 
  * node --import instrument.mjs app.mjs
  * ```
  */
-export const eventLoopBlockIntegration = defineIntegration(_eventLoopBlockIntegration) as ThreadBlockedReturn;
+export const eventLoopBlockIntegration = defineIntegration(_eventLoopBlockIntegration);
 
 /**
  * Starts the worker thread
@@ -192,30 +164,4 @@ async function _startWorker(
     worker.terminate();
     clearInterval(timer);
   };
-}
-
-export function disableBlockedDetectionForCallback<T>(callback: () => T): T;
-export function disableBlockedDetectionForCallback<T>(callback: () => Promise<T>): Promise<T>;
-/**
- * Disables blocked detection for the duration of the callback
- */
-export function disableBlockedDetectionForCallback<T>(callback: () => T | Promise<T>): T | Promise<T> {
-  const integration = getClient()?.getIntegrationByName(INTEGRATION_NAME) as ThreadBlockedInternal | undefined;
-
-  if (!integration) {
-    return callback();
-  }
-
-  integration.stop();
-
-  const result = callback();
-  if (isPromise(result)) {
-    return result.finally(() => integration.start());
-  }
-
-  try {
-    return result;
-  } finally {
-    integration.start();
-  }
 }

@@ -1,1 +1,1 @@
-export { eventLoopBlockIntegration, disableBlockedDetectionForCallback } from './event-loop-block-integration';
+export { eventLoopBlockIntegration } from './event-loop-block-integration';
