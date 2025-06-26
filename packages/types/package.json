@@ -51,9 +51,9 @@
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:tarball": "npm pack",
     "clean": "rimraf build sentry-types-*.tgz",
-    "lint": "eslint . --format stylish",
+    "lint": "yarn g:eslint . --format stylish",
     "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module",
-    "fix": "eslint . --format stylish --fix",
+    "fix": "yarn g:eslint . --format stylish --fix",
     "yalc:publish": "yalc publish --push --sig"
   },
   "dependencies": {

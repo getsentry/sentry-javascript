@@ -43,7 +43,8 @@
     "test:ci:bun": "lerna run test --scope @sentry/bun",
     "yalc:publish": "lerna run yalc:publish",
     "g:downlevel-dts": "cd $INIT_CWD && downlevel-dts",
-    "g:rollup": "cd $INIT_CWD && rollup"
+    "g:rollup": "cd $INIT_CWD && rollup",
+    "g:eslint": "cd $INIT_CWD && eslint"
   },
   "packageManager": "yarn@4.6.0+sha512.5383cc12567a95f1d668fbe762dfe0075c595b4bfff433be478dbbe24e05251a8e8c3eb992a986667c1d53b6c3a9c85b8398c35a960587fbd9fa3a0915406728",
   "volta": {
