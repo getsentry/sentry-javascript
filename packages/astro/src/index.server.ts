@@ -84,6 +84,7 @@ export {
   onUnhandledRejectionIntegration,
   parameterize,
   postgresIntegration,
+  postgresJsIntegration,
   prismaIntegration,
   childProcessIntegration,
   createSentryWinstonTransport,
