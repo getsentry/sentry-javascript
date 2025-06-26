@@ -221,6 +221,78 @@ describe('withSentry', () => {
       });
     });
 
+    test('uses existing propagation context when continueTraceFromPropagationContext is enabled', async () => {
+      const mockGetCurrentScope = vi.spyOn(SentryCore, 'getCurrentScope').mockReturnValue({
+        // return an existing propagation context
+        getPropagationContext: () => ({
+          traceId: '12312012123120121231201212312012',
+          spanId: '1121201211212012',
+        }),
+      } as any);
+
+      const mockStartSpan = vi.spyOn(SentryCore, 'startSpan');
+      const mockContinueTrace = vi.spyOn(SentryCore, 'continueTrace');
+
+      const mockRequest = new Request('https://example.com') as any;
+      // Headers should be ignored when continuing from propagation context
+      mockRequest.headers.set('sentry-trace', '99999999999999999999999999999999-9999999999999999-1');
+
+      await wrapRequestHandler(
+        {
+          options: {
+            ...MOCK_OPTIONS,
+            continueTraceFromPropagationContext: true,
+          },
+          request: mockRequest,
+          context: createMockExecutionContext(),
+        },
+        () => new Response('test'),
+      );
+
+      // Should use startSpan directly instead of continueTrace
+      expect(mockStartSpan).toHaveBeenCalledTimes(1);
+      expect(mockContinueTrace).not.toHaveBeenCalled();
+
+      mockGetCurrentScope.mockRestore();
+      mockStartSpan.mockRestore();
+      mockContinueTrace.mockRestore();
+    });
+
+    test('falls back to header-based trace when continueTraceFromPropagationContext is disabled or no context exists', async () => {
+      const mockGetCurrentScope = vi.spyOn(SentryCore, 'getCurrentScope').mockReturnValue({
+        // return an existing propagation context
+        getPropagationContext: () => ({
+          traceId: '12312012123120121231201212312012',
+          spanId: '1121201211212012',
+        }),
+      } as any);
+
+      const mockContinueTrace = vi.spyOn(SentryCore, 'continueTrace').mockImplementation((_, callback) => {
+        return callback();
+      });
+
+      const mockRequest = new Request('https://example.com') as any;
+      mockRequest.headers.set('sentry-trace', '99999999999999999999999999999999-9999999999999999-1');
+
+      await wrapRequestHandler(
+        {
+          options: {
+            ...MOCK_OPTIONS,
+            continueTraceFromPropagationContext: false, // Explicitly disabled
+          },
+          request: mockRequest,
+          context: createMockExecutionContext(),
+        },
+        () => new Response('test'),
+      );
+
+      // Should use continueTrace even with existing propagation context when option is disabled
+      expect(mockContinueTrace).toHaveBeenCalledTimes(1);
+
+      mockGetCurrentScope.mockRestore();
+      mockContinueTrace.mockRestore();
+    });
+
     test('creates a span that wraps request handler', async () => {
       const mockRequest = new Request('https://example.com') as any;
       mockRequest.cf = {

@@ -111,7 +111,7 @@ export const sentryCloudflareNitroPlugin =
 
             const traceData = getTraceData();
             if (traceData && Object.keys(traceData).length > 0) {
-              // Storing trace data in the event context for later use (enables correct connection of parent/child span relationships)
+              // Storing trace data in the event context for later use in HTML meta tags (enables correct connection of parent/child span relationships)
               // @ts-expect-error Storing a new key in the event context
               event.context[TRACE_DATA_KEY] = traceData;
               logger.log('Stored trace data in the event context.');

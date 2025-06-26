@@ -73,7 +73,6 @@ export function wrapRequestHandler(
 
     // Check if we already have active trace data - if so, don't wrap with continueTrace
     // This allows us to continue an existing trace from the parent context (e.g. in Nuxt)
-    // todo: create a test to check if continueTraceFromPropagationContext works
     const existingPropagationContext = getCurrentScope().getPropagationContext();
     if (options.continueTraceFromPropagationContext && existingPropagationContext?.traceId) {
       return startSpan({ name, attributes }, cloudflareStartSpanCallback(handler, context));
