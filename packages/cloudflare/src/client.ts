@@ -11,6 +11,7 @@ import type { CloudflareTransportOptions } from './transport';
  */
 export class CloudflareClient extends ServerRuntimeClient {
   private readonly _flushLock: ReturnType<typeof makeFlushLock> | void;
+
   /**
    * Creates a new Cloudflare SDK instance.
    * @param options Configuration options for this SDK.
@@ -56,7 +57,7 @@ interface BaseCloudflareOptions {}
  * @see @sentry/core Options for more information.
  */
 export interface CloudflareOptions extends Options<CloudflareTransportOptions>, BaseCloudflareOptions {
-  ctx?: ExecutionContext
+  ctx?: ExecutionContext;
 }
 
 /**
