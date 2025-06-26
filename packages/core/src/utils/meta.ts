@@ -22,7 +22,6 @@ import { getTraceData } from './traceData';
  * ```
  *
  */
-// todo add test for trace data argument
 export function getTraceMetaTags(traceData?: SerializedTraceData): string {
   return Object.entries(traceData || getTraceData())
     .map(([key, value]) => `<meta name="${key}" content="${value}"/>`)
