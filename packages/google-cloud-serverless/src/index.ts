@@ -100,6 +100,7 @@ export {
   redisIntegration,
   tediousIntegration,
   postgresIntegration,
+  postgresJsIntegration,
   prismaIntegration,
   hapiIntegration,
   setupHapiErrorHandler,

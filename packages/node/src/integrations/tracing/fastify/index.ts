@@ -57,9 +57,42 @@ const INTEGRATION_NAME_V3 = 'Fastify-V3';
 
 export const instrumentFastifyV3 = generateInstrumentOnce(INTEGRATION_NAME_V3, () => new FastifyInstrumentationV3());
 
+function handleFastifyError(
+  this: {
+    diagnosticsChannelExists?: boolean;
+  },
+  error: Error,
+  request: FastifyRequest & { opentelemetry?: () => { span?: Span } },
+  reply: FastifyReply,
+  shouldHandleError: (error: Error, request: FastifyRequest, reply: FastifyReply) => boolean,
+  handlerOrigin: 'diagnostics-channel' | 'onError-hook',
+): void {
+  // Diagnostics channel runs before the onError hook, so we can use it to check if the handler was already registered
+  if (handlerOrigin === 'diagnostics-channel') {
+    this.diagnosticsChannelExists = true;
+  }
+
+  if (this.diagnosticsChannelExists && handlerOrigin === 'onError-hook') {
+    DEBUG_BUILD &&
+      logger.warn(
+        'Fastify error handler was already registered via diagnostics channel.',
+        'You can safely remove `setupFastifyErrorHandler` call.',
+      );
+
+    // If the diagnostics channel already exists, we don't need to handle the error again
+    return;
+  }
+
+  if (shouldHandleError(error, request, reply)) {
+    captureException(error);
+  }
+}
+
 export const instrumentFastify = generateInstrumentOnce(INTEGRATION_NAME, () => {
   const fastifyOtelInstrumentationInstance = new FastifyOtelInstrumentation();
   const plugin = fastifyOtelInstrumentationInstance.plugin();
+  const options = fastifyOtelInstrumentationInstance.getConfig();
+  const shouldHandleError = (options as FastifyHandlerOptions)?.shouldHandleError || defaultShouldHandleError;
 
   // This message handler works for Fastify versions 3, 4 and 5
   diagnosticsChannel.subscribe('fastify.initialization', message => {
@@ -78,8 +111,20 @@ export const instrumentFastify = generateInstrumentOnce(INTEGRATION_NAME, () => 
     });
   });
 
+  // This diagnostics channel only works on Fastify version 5
+  // For versions 3 and 4, we use `setupFastifyErrorHandler` instead
+  diagnosticsChannel.subscribe('tracing:fastify.request.handler:error', message => {
+    const { error, request, reply } = message as {
+      error: Error;
+      request: FastifyRequest & { opentelemetry?: () => { span?: Span } };
+      reply: FastifyReply;
+    };
+
+    handleFastifyError.call(handleFastifyError, error, request, reply, shouldHandleError, 'diagnostics-channel');
+  });
+
   // Returning this as unknown not to deal with the internal types of the FastifyOtelInstrumentation
-  return fastifyOtelInstrumentationInstance as Instrumentation<InstrumentationConfig>;
+  return fastifyOtelInstrumentationInstance as Instrumentation<InstrumentationConfig & FastifyHandlerOptions>;
 });
 
 const _fastifyIntegration = (() => {
@@ -143,15 +188,11 @@ function defaultShouldHandleError(_error: Error, _request: FastifyRequest, reply
  */
 export function setupFastifyErrorHandler(fastify: FastifyInstance, options?: Partial<FastifyHandlerOptions>): void {
   const shouldHandleError = options?.shouldHandleError || defaultShouldHandleError;
-
   const plugin = Object.assign(
     function (fastify: FastifyInstance, _options: unknown, done: () => void): void {
       fastify.addHook('onError', async (request, reply, error) => {
-        if (shouldHandleError(error, request, reply)) {
-          captureException(error);
-        }
+        handleFastifyError.call(handleFastifyError, error, request, reply, shouldHandleError, 'onError-hook');
       });
-
       done();
     },
     {

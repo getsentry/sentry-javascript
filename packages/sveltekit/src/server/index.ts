@@ -77,6 +77,7 @@ export {
   onUnhandledRejectionIntegration,
   parameterize,
   postgresIntegration,
+  postgresJsIntegration,
   prismaIntegration,
   redisIntegration,
   requestDataIntegration,
