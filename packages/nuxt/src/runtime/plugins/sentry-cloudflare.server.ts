@@ -94,33 +94,28 @@ export const sentryCloudflareNitroPlugin =
         setAsyncLocalStorageAsyncContextStrategy();
 
         const sentryOptions = typeof optionsOrFn === 'function' ? optionsOrFn(nitroApp) : optionsOrFn;
-
         const pathname = handlerArgs[0];
         const event = handlerArgs[1];
 
         if (isEventType(event)) {
           const requestHandlerOptions = {
-            options: sentryOptions,
+            options: { ...sentryOptions, continueTraceFromPropagationContext: true },
             request: { ...event, url: `${event.protocol}//${event.host}${pathname}` },
             context: event.context.cloudflare.context,
           };
 
-          // fixme same as 5
-          console.log('::traceData 1', getTraceData());
-          console.log('::propagationContext 1', JSON.stringify(getCurrentScope().getPropagationContext()));
-
-          const traceData = getTraceData();
-          if (traceData && Object.keys(traceData).length > 0) {
-            // Storing trace data in the event context for later use (enables correct connection of parent/child span relationships)
-            // @ts-expect-error Storing a new key in the event context
-            event.context[TRACE_DATA_KEY] = traceData;
-          }
-
-          // return continueTrace({ sentryTrace: traceData['sentry-trace'] || '', baggage: traceData.baggage }, () => {
           return wrapRequestHandler(requestHandlerOptions, () => {
             const isolationScope = getIsolationScope();
             const newIsolationScope =
               isolationScope === getDefaultIsolationScope() ? isolationScope.clone() : isolationScope;
+
+            const traceData = getTraceData();
+            if (traceData && Object.keys(traceData).length > 0) {
+              // Storing trace data in the event context for later use (enables correct connection of parent/child span relationships)
+              // @ts-expect-error Storing a new key in the event context
+              event.context[TRACE_DATA_KEY] = traceData;
+              logger.log('Stored trace data in the event context.');
+            }
 
             logger.log(
               `Patched Cloudflare handler (\`nitroApp.localFetch\`). ${
@@ -128,36 +123,18 @@ export const sentryCloudflareNitroPlugin =
               } isolation scope.`,
             );
 
-            console.log('::traceData 4', getTraceData());
-            console.log('::propagationContext 4', JSON.stringify(getCurrentScope().getPropagationContext()));
-
             return handlerTarget.apply(handlerThisArg, handlerArgs);
           });
-          // });
         }
 
         return handlerTarget.apply(handlerThisArg, handlerArgs);
       },
     });
 
-    // todo: start span in a hook before the request handler
-
     // @ts-expect-error - 'render:html' is a valid hook name in the Nuxt context
     nitroApp.hooks.hook('render:html', (html: NuxtRenderHTMLContext, { event }: { event: H3Event }) => {
-      // fixme: it's attaching the html meta tag but it's not connecting the trace
-      // fixme: its' actually connecting the trace but the meta tags are cached
-      console.log('event.headers', event.headers);
-      console.log('event.node.req.headers.cache-control', event.node.req.headers['cache-control']);
-      console.log('event.context', event.context);
-
-      const span = getActiveSpan();
-
-      console.log('::active span', span ? spanToJSON(span) : 'no active span');
-
-      console.log('::traceData 5', getTraceData());
-      console.log('::propagationContext 5', JSON.stringify(getCurrentScope().getPropagationContext()));
-
       const storedTraceData = event.context[TRACE_DATA_KEY] as ReturnType<typeof getTraceData> | undefined;
+
       if (storedTraceData && Object.keys(storedTraceData).length > 0) {
         logger.log('Using stored trace data from event context for meta tags.');
         addSentryTracingMetaTags(html.head, storedTraceData);

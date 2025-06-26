@@ -1,16 +1,14 @@
 import type { ExecutionContext, IncomingRequestCfProperties } from '@cloudflare/workers-types';
+import type { Span } from '@sentry/core';
 import {
   captureException,
   continueTrace,
   flush,
-  getActiveSpan,
   getCurrentScope,
   getHttpSpanDetailsFromUrlObject,
-  getTraceData,
   parseStringToURLObject,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   setHttpStatus,
-  spanToJSON,
   startSpan,
   withIsolationScope,
 } from '@sentry/core';
@@ -73,38 +71,13 @@ export function wrapRequestHandler(
       }
     }
 
-    // fixme: at this point, there is no active span
-
     // Check if we already have active trace data - if so, don't wrap with continueTrace
-    // This allows us to continue an existing trace from the parent context (e.g., Nuxt)
-    // todo: create an option for opting out of continueTrace
+    // This allows us to continue an existing trace from the parent context (e.g. in Nuxt)
+    // todo: create a test to check if continueTraceFromPropagationContext works
     const existingPropagationContext = getCurrentScope().getPropagationContext();
-    if (existingPropagationContext?.traceId) {
-      return startSpan(
-        {
-          name,
-          attributes,
-        },
-        async span => {
-          // fixme: same as 2
-          console.log('::traceData 2', getTraceData());
-          console.log('::propagationContext 2', JSON.stringify(getCurrentScope().getPropagationContext()));
-
-          try {
-            const res = await handler();
-            setHttpStatus(span, res.status);
-            return res;
-          } catch (e) {
-            captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
-            throw e;
-          } finally {
-            context?.waitUntil(flush(2000));
-          }
-        },
-      );
+    if (options.continueTraceFromPropagationContext && existingPropagationContext?.traceId) {
+      return startSpan({ name, attributes }, cloudflareStartSpanCallback(handler, context));
     }
-
-    console.log('request.headers', request.headers);
 
     // No active trace, create one from headers
     return continueTrace(
@@ -113,28 +86,26 @@ export function wrapRequestHandler(
         // Note: This span will not have a duration unless I/O happens in the handler. This is
         // because of how the cloudflare workers runtime works.
         // See: https://developers.cloudflare.com/workers/runtime-apis/performance/
-        return startSpan(
-          {
-            name,
-            attributes,
-          },
-          async span => {
-            console.log('::traceData 3', getTraceData());
-            console.log('::propagationContext 3', JSON.stringify(getCurrentScope().getPropagationContext()));
-
-            try {
-              const res = await handler();
-              setHttpStatus(span, res.status);
-              return res;
-            } catch (e) {
-              captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
-              throw e;
-            } finally {
-              context?.waitUntil(flush(2000));
-            }
-          },
-        );
+        return startSpan({ name, attributes }, cloudflareStartSpanCallback(handler, context));
       },
     );
   });
+}
+
+function cloudflareStartSpanCallback(
+  handler: (...args: unknown[]) => Response | Promise<Response>,
+  context?: ExecutionContext,
+) {
+  return async (span: Span) => {
+    try {
+      const res = await handler();
+      setHttpStatus(span, res.status);
+      return res;
+    } catch (e) {
+      captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
+      throw e;
+    } finally {
+      context?.waitUntil(flush(2000));
+    }
+  };
 }
