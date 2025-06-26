@@ -1,4 +1,4 @@
-import type { ClientOptions, Context } from '@sentry/core';
+import type { ClientOptions, Context, SerializedTraceData } from '@sentry/core';
 import {
   captureException,
   flush,
@@ -41,8 +41,8 @@ export function extractErrorContext(errorContext: CapturedErrorContext | undefin
  *
  * Exported only for testing
  */
-export function addSentryTracingMetaTags(head: NuxtRenderHTMLContext['head']): void {
-  const metaTags = getTraceMetaTags();
+export function addSentryTracingMetaTags(head: NuxtRenderHTMLContext['head'], traceData?: SerializedTraceData): void {
+  const metaTags = getTraceMetaTags(traceData);
 
   if (metaTags) {
     logger.log('Adding Sentry tracing meta tags to HTML page:', metaTags);

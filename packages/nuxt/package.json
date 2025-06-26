@@ -49,7 +49,7 @@
     "@nuxt/kit": "^3.13.2",
     "@sentry/browser": "9.30.0",
     "@sentry/core": "9.30.0",
-    "@sentry/cloudflare": "9.26.0",
+    "@sentry/cloudflare": "9.30.0",
     "@sentry/node": "9.30.0",
     "@sentry/rollup-plugin": "^3.5.0",
     "@sentry/vite-plugin": "^3.5.0",

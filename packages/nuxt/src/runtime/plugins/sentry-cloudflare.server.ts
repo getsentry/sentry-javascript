@@ -2,12 +2,22 @@ import type { ExecutionContext } from '@cloudflare/workers-types';
 import type { CloudflareOptions } from '@sentry/cloudflare';
 import {
   getActiveSpan,
-  getTraceData,
   setAsyncLocalStorageAsyncContextStrategy,
   spanToJSON,
   wrapRequestHandler,
 } from '@sentry/cloudflare';
-import { continueTrace, getCurrentScope, getDefaultIsolationScope, getIsolationScope, logger } from '@sentry/core';
+import {
+  continueTrace,
+  getClient,
+  getCurrentScope,
+  getDefaultIsolationScope,
+  getIsolationScope,
+  getMainCarrier,
+  getTraceData,
+  logger,
+} from '@sentry/core';
+import { getTraceMetaTags } from '@sentry/core/src';
+import { getAsyncContextStrategy } from '@sentry/core/src/asyncContext';
 import type { H3Event } from 'h3';
 import type { NitroApp, NitroAppPlugin } from 'nitropack';
 import type { NuxtRenderHTMLContext } from 'nuxt/app';
@@ -41,6 +51,8 @@ function isEventType(event: unknown): event is CfEventType {
     'context' in event?.context?.cloudflare
   );
 }
+
+const TRACE_DATA_KEY = '__sentryTraceData';
 
 /**
  * Sentry Cloudflare Nitro plugin for when using the "cloudflare-pages" preset in Nuxt.
@@ -98,6 +110,11 @@ export const sentryCloudflareNitroPlugin =
           console.log('::propagationContext 1', JSON.stringify(getCurrentScope().getPropagationContext()));
 
           const traceData = getTraceData();
+          if (traceData && Object.keys(traceData).length > 0) {
+            // Storing trace data in the event context for later use (enables correct connection of parent/child span relationships)
+            // @ts-expect-error Storing a new key in the event context
+            event.context[TRACE_DATA_KEY] = traceData;
+          }
 
           // return continueTrace({ sentryTrace: traceData['sentry-trace'] || '', baggage: traceData.baggage }, () => {
           return wrapRequestHandler(requestHandlerOptions, () => {
@@ -140,7 +157,13 @@ export const sentryCloudflareNitroPlugin =
       console.log('::traceData 5', getTraceData());
       console.log('::propagationContext 5', JSON.stringify(getCurrentScope().getPropagationContext()));
 
-      addSentryTracingMetaTags(html.head);
+      const storedTraceData = event.context[TRACE_DATA_KEY] as ReturnType<typeof getTraceData> | undefined;
+      if (storedTraceData && Object.keys(storedTraceData).length > 0) {
+        logger.log('Using stored trace data from event context for meta tags.');
+        addSentryTracingMetaTags(html.head, storedTraceData);
+      } else {
+        addSentryTracingMetaTags(html.head);
+      }
     });
 
     nitroApp.hooks.hook('error', sentryCaptureErrorHook);
