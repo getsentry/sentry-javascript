@@ -26,8 +26,7 @@ import {
   SPAN_STATUS_ERROR,
   startSpanManual,
 } from '@sentry/core';
-import { generateInstrumentOnce } from '../../otel/instrument';
-import { addOriginToSpan } from '../../utils/addOriginToSpan';
+import { addOriginToSpan, generateInstrumentOnce } from '@sentry/node-core';
 
 const INTEGRATION_NAME = 'PostgresJs';
 const SUPPORTED_VERSIONS = ['>=3.0.0 <4'];
