@@ -37,6 +37,7 @@ export {
   expressIntegration,
   extraErrorDataIntegration,
   fastifyIntegration,
+  firebaseIntegration,
   flush,
   fsIntegration,
   functionToStringIntegration,
