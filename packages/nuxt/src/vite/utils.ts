@@ -191,7 +191,7 @@ export function constructFunctionReExport(pathWithQuery: string, entryId: string
  * @see https://nuxt.com/docs/guide/concepts/esm#aliasing-libraries
  */
 export function addOTelCommonJSImportAlias(nuxt: Nuxt): void {
-  if (nuxt.options.dev) {
+  if (!nuxt.options.dev) {
     return;
   }
 

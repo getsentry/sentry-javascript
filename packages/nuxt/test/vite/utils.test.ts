@@ -371,7 +371,7 @@ export { foo_sentryWrapped as foo };
 describe('addOTelCommonJSImportAlias', () => {
   it('adds alias for @opentelemetry/resources when options.alias does not exist', () => {
     const nuxtMock: Nuxt = {
-      options: {},
+      options: { dev: true },
     } as unknown as Nuxt;
 
     addOTelCommonJSImportAlias(nuxtMock);
@@ -384,6 +384,7 @@ describe('addOTelCommonJSImportAlias', () => {
   it('adds alias for @opentelemetry/resources when options.alias already exists', () => {
     const nuxtMock: Nuxt = {
       options: {
+        dev: true,
         alias: {
           'existing-alias': 'some-path',
         },
@@ -401,6 +402,7 @@ describe('addOTelCommonJSImportAlias', () => {
   it('does not override existing alias for @opentelemetry/resources', () => {
     const nuxtMock: Nuxt = {
       options: {
+        dev: true,
         alias: {
           '@opentelemetry/resources': 'some-other-path',
         },
@@ -414,11 +416,9 @@ describe('addOTelCommonJSImportAlias', () => {
     });
   });
 
-  it('does not add alias in development mode', () => {
+  it('does not add alias when not development mode', () => {
     const nuxtMock: Nuxt = {
-      options: {
-        dev: true,
-      },
+      options: {},
     } as unknown as Nuxt;
 
     addOTelCommonJSImportAlias(nuxtMock);
