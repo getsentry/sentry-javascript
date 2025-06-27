@@ -1,4 +1,4 @@
-import type { ExecutionContext } from '@cloudflare/workers-types';
+import type { ExecutionContext, IncomingRequestCfProperties } from '@cloudflare/workers-types';
 import type { CloudflareOptions } from '@sentry/cloudflare';
 import { setAsyncLocalStorageAsyncContextStrategy, wrapRequestHandler } from '@sentry/cloudflare';
 import { getDefaultIsolationScope, getIsolationScope, getTraceData, logger } from '@sentry/core';
@@ -11,28 +11,44 @@ import { addSentryTracingMetaTags } from '../utils';
 interface CfEventType {
   protocol: string;
   host: string;
+  method: string;
+  headers: Record<string, string>;
   context: {
+    cf: {
+      httpProtocol?: string;
+      country?: string;
+      // ...other CF properties
+    };
     cloudflare: {
       context: ExecutionContext;
+      request?: Record<string, unknown>;
+      env?: Record<string, unknown>;
     };
   };
 }
 
 function isEventType(event: unknown): event is CfEventType {
+  if (event === null || typeof event !== 'object') return false;
+
   return (
-    event !== null &&
-    typeof event === 'object' &&
+    // basic properties
     'protocol' in event &&
     'host' in event &&
-    'context' in event &&
     typeof event.protocol === 'string' &&
     typeof event.host === 'string' &&
+    // context property
+    'context' in event &&
     typeof event.context === 'object' &&
-    event?.context !== null &&
+    event.context !== null &&
+    // context.cf properties
+    'cf' in event.context &&
+    typeof event.context.cf === 'object' &&
+    event.context.cf !== null &&
+    // context.cloudflare properties
     'cloudflare' in event.context &&
     typeof event.context.cloudflare === 'object' &&
-    event?.context.cloudflare !== null &&
-    'context' in event?.context?.cloudflare
+    event.context.cloudflare !== null &&
+    'context' in event.context.cloudflare
   );
 }
 
@@ -85,9 +101,16 @@ export const sentryCloudflareNitroPlugin =
           logger.log("Nitro Cloudflare plugin did not detect a Cloudflare event type. Won't patch Cloudflare handler.");
           return handlerTarget.apply(handlerThisArg, handlerArgs);
         } else {
+          const url = `${event.protocol}//${event.host}${pathname}`;
+          const request = new Request(url, {
+            method: event.method,
+            headers: event.headers,
+            cf: event.context.cf,
+          }) as Request<unknown, IncomingRequestCfProperties<unknown>>;
+
           const requestHandlerOptions = {
             options: cloudflareOptions,
-            request: { ...event, url: `${event.protocol}//${event.host}${pathname}` },
+            request,
             context: event.context.cloudflare.context,
           };
 

@@ -1,5 +1,4 @@
 import type { ExecutionContext, IncomingRequestCfProperties } from '@cloudflare/workers-types';
-import type { Span } from '@sentry/core';
 import {
   captureException,
   continueTrace,
