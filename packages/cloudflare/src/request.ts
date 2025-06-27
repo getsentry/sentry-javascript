@@ -1,4 +1,8 @@
-import type { ExecutionContext, IncomingRequestCfProperties } from '@cloudflare/workers-types';
+import type {
+  ExecutionContext,
+  IncomingRequestCfProperties,
+  Request as CloudflareRequest,
+} from '@cloudflare/workers-types';
 import {
   captureException,
   continueTrace,
@@ -16,7 +20,7 @@ import { init } from './sdk';
 
 interface RequestHandlerWrapperOptions {
   options: CloudflareOptions;
-  request: Request<unknown, IncomingRequestCfProperties<unknown>>;
+  request: CloudflareRequest<unknown, IncomingRequestCfProperties<unknown>>;
   context: ExecutionContext;
 }
 

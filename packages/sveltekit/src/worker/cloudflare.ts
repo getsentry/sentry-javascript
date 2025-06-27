@@ -34,7 +34,8 @@ export function initCloudflareSentryHandle(options: CloudflareOptions): Handle {
       return wrapRequestHandler(
         {
           options: opts,
-          request: event.request as Request<unknown, IncomingRequestCfProperties<unknown>>,
+          // @ts-expect-error Cloudflare's `request` type is not compatible with `Request` type.
+          request: event.request,
           // @ts-expect-error This will exist in Cloudflare
           context: event.platform.context,
         },
