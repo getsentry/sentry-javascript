@@ -199,10 +199,8 @@ async function instrumentRequest(
                     }
                   }
 
-                  const reportedBody = bodyReporter();
-
                   try {
-                    for await (const chunk of reportedBody) {
+                    for await (const chunk of bodyReporter()) {
                       const html = typeof chunk === 'string' ? chunk : decoder.decode(chunk, { stream: true });
                       const modifiedHtml = addMetaTagToHead(html);
                       controller.enqueue(new TextEncoder().encode(modifiedHtml));
