@@ -233,42 +233,35 @@ function instrumentRpcReturnedFromSchemaCall(SupabaseClient: unknown): void {
   if (isInstrumented((SupabaseClient as unknown as SupabaseClientConstructorType).prototype.schema)) {
     return;
   }
-
   (SupabaseClient as unknown as SupabaseClientConstructorType).prototype.schema = new Proxy(
     (SupabaseClient as unknown as SupabaseClientConstructorType).prototype.schema,
     {
       apply(target, thisArg, argumentsList) {
         const supabaseInstance = Reflect.apply(target, thisArg, argumentsList);
-
-        (supabaseInstance as unknown as SupabaseClientConstructorType).rpc = new Proxy(
-          (supabaseInstance as unknown as SupabaseClientInstance).rpc,
-          {
-            apply(target, thisArg, argumentsList) {
-              const isProducerSpan = argumentsList[0] === 'send' || argumentsList[0] === 'send_batch';
-              const isConsumerSpan = argumentsList[0] === 'pop';
-
-              if (!isProducerSpan && !isConsumerSpan) {
-                return Reflect.apply(target, thisArg, argumentsList);
-              }
-
-              if (isProducerSpan) {
-                return instrumentRpcProducer(target, thisArg, argumentsList);
-              } else if (isConsumerSpan) {
-                return instrumentRpcConsumer(target, thisArg, argumentsList);
-              }
-
-              // If the operation is not a queue operation, return the original function
-              return Reflect.apply(target, thisArg, argumentsList);
-            },
-          },
-        );
-
+        instrumentRpcMethod(supabaseInstance as unknown as SupabaseClientConstructorType);
         return supabaseInstance;
       },
     },
   );
-
   markAsInstrumented((SupabaseClient as unknown as SupabaseClientConstructorType).prototype.schema);
+}
+
+function instrumentRpcMethod(supabaseInstance: SupabaseClientConstructorType): void {
+  supabaseInstance.rpc = new Proxy((supabaseInstance as unknown as SupabaseClientInstance).rpc, {
+    apply(target, thisArg, argumentsList) {
+      const isProducerSpan = argumentsList[0] === 'send' || argumentsList[0] === 'send_batch';
+      const isConsumerSpan = argumentsList[0] === 'pop';
+      if (!isProducerSpan && !isConsumerSpan) {
+        return Reflect.apply(target, thisArg, argumentsList);
+      }
+      if (isProducerSpan) {
+        return instrumentRpcProducer(target, thisArg, argumentsList);
+      } else if (isConsumerSpan) {
+        return instrumentRpcConsumer(target, thisArg, argumentsList);
+      }
+      return Reflect.apply(target, thisArg, argumentsList);
+    },
+  });
 }
 
 function extractTraceAndBaggageFromMessage(message: { _sentry?: { sentry_trace?: string; baggage?: string } }): {
