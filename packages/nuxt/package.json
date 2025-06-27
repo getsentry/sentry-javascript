@@ -52,7 +52,9 @@
   },
   "devDependencies": {
     "@nuxt/module-builder": "^0.8.4",
-    "nuxt": "^3.13.2"
+    "nuxt": "^3.13.2",
+    "nuxi": "^3.13.1",
+    "vite": "^5.4.11"
   },
   "scripts": {
     "build": "run-s build:types build:transpile",
