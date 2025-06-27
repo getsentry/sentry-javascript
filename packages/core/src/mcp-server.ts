@@ -25,6 +25,9 @@ interface MCPServerInstance {
   // The first arg is always a name, the last arg should always be a callback function (ie a handler).
   prompt: (name: string, ...args: unknown[]) => void;
   connect(transport: MCPTransport): Promise<void>;
+  server?: {
+    setRequestHandler: (schema: unknown, handler: (...args: unknown[]) => unknown) => void;
+  };
 }
 
 const wrappedMcpServerInstances = new WeakSet();
@@ -45,164 +48,213 @@ export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S):
     return mcpServerInstance;
   }
 
-  // eslint-disable-next-line @typescript-eslint/unbound-method
+  // Wrap connect() to intercept AFTER Protocol sets up transport handlers
   mcpServerInstance.connect = new Proxy(mcpServerInstance.connect, {
-    apply(target, thisArg, argArray) {
+    async apply(target, thisArg, argArray) {
       const [transport, ...restArgs] = argArray as [MCPTransport, ...unknown[]];
 
-      if (!transport.onclose) {
-        transport.onclose = () => {
-          if (transport.sessionId) {
-            handleTransportOnClose(transport.sessionId);
+      // Call the original connect first to let Protocol set up its handlers
+      const result = await Reflect.apply(target, thisArg, [transport, ...restArgs]);
+      
+      
+      // NOW intercept the transport's onmessage after Protocol has set it up
+      if (transport.onmessage) {
+        const protocolOnMessage = transport.onmessage;
+        
+        transport.onmessage = new Proxy(protocolOnMessage, {
+          apply(onMessageTarget, onMessageThisArg, onMessageArgs) {
+            const [jsonRpcMessage, extra] = onMessageArgs;
+            
+
+            // TODO(bete): Instrument responses/notifications (not sure if they are RPC)
+            if (isJsonRpcRequest(jsonRpcMessage)) {
+              return createMcpServerSpan(jsonRpcMessage, transport, extra, () => {
+                return onMessageTarget.apply(onMessageThisArg, onMessageArgs);
+              });
+            }
+            
+            return onMessageTarget.apply(onMessageThisArg, onMessageArgs);
           }
-        };
-      }
+        });
+      } 
 
-      if (!transport.onmessage) {
-        transport.onmessage = jsonRpcMessage => {
-          if (transport.sessionId && isJsonRPCMessageWithRequestId(jsonRpcMessage)) {
-            handleTransportOnMessage(transport.sessionId, jsonRpcMessage.id);
+      // Handle transport lifecycle events
+      if (transport.onclose) {
+        const originalOnClose = transport.onclose;
+        transport.onclose = new Proxy(originalOnClose, {
+          apply(onCloseTarget, onCloseThisArg, onCloseArgs) {
+            if (transport.sessionId) {
+              handleTransportOnClose(transport.sessionId);
+            }
+            return onCloseTarget.apply(onCloseThisArg, onCloseArgs);
           }
-        };
+        });
       }
-
-      const patchedTransport = new Proxy(transport, {
-        set(target, key, value) {
-          if (key === 'onmessage') {
-            target[key] = new Proxy(value, {
-              apply(onMessageTarget, onMessageThisArg, onMessageArgArray) {
-                const [jsonRpcMessage] = onMessageArgArray;
-                if (transport.sessionId && isJsonRPCMessageWithRequestId(jsonRpcMessage)) {
-                  handleTransportOnMessage(transport.sessionId, jsonRpcMessage.id);
-                }
-                return Reflect.apply(onMessageTarget, onMessageThisArg, onMessageArgArray);
-              },
-            });
-          } else if (key === 'onclose') {
-            target[key] = new Proxy(value, {
-              apply(onCloseTarget, onCloseThisArg, onCloseArgArray) {
-                if (transport.sessionId) {
-                  handleTransportOnClose(transport.sessionId);
-                }
-                return Reflect.apply(onCloseTarget, onCloseThisArg, onCloseArgArray);
-              },
-            });
-          } else {
-            target[key as keyof MCPTransport] = value;
-          }
-          return true;
-        },
-      });
-
-      return Reflect.apply(target, thisArg, [patchedTransport, ...restArgs]);
-    },
-  });
-
-  mcpServerInstance.resource = new Proxy(mcpServerInstance.resource, {
-    apply(target, thisArg, argArray) {
-      const resourceName: unknown = argArray[0];
-      const resourceHandler: unknown = argArray[argArray.length - 1];
-
-      if (typeof resourceName !== 'string' || typeof resourceHandler !== 'function') {
-        return target.apply(thisArg, argArray);
-      }
-
-      const wrappedResourceHandler = new Proxy(resourceHandler, {
-        apply(resourceHandlerTarget, resourceHandlerThisArg, resourceHandlerArgArray) {
-          const extraHandlerDataWithRequestId = resourceHandlerArgArray.find(isExtraHandlerDataWithRequestId);
-          return associateContextWithRequestSpan(extraHandlerDataWithRequestId, () => {
-            return startSpan(
-              {
-                name: `mcp-server/resource:${resourceName}`,
-                forceTransaction: true,
-                attributes: {
-                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'auto.function.mcp-server',
-                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.mcp-server',
-                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-                  'mcp_server.resource': resourceName,
-                },
-              },
-              () => resourceHandlerTarget.apply(resourceHandlerThisArg, resourceHandlerArgArray),
-            );
-          });
-        },
-      });
-
-      return Reflect.apply(target, thisArg, [...argArray.slice(0, -1), wrappedResourceHandler]);
-    },
-  });
-
-  mcpServerInstance.tool = new Proxy(mcpServerInstance.tool, {
-    apply(target, thisArg, argArray) {
-      const toolName: unknown = argArray[0];
-      const toolHandler: unknown = argArray[argArray.length - 1];
-
-      if (typeof toolName !== 'string' || typeof toolHandler !== 'function') {
-        return target.apply(thisArg, argArray);
-      }
-
-      const wrappedToolHandler = new Proxy(toolHandler, {
-        apply(toolHandlerTarget, toolHandlerThisArg, toolHandlerArgArray) {
-          const extraHandlerDataWithRequestId = toolHandlerArgArray.find(isExtraHandlerDataWithRequestId);
-          return associateContextWithRequestSpan(extraHandlerDataWithRequestId, () => {
-            return startSpan(
-              {
-                name: `mcp-server/tool:${toolName}`,
-                forceTransaction: true,
-                attributes: {
-                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'auto.function.mcp-server',
-                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.mcp-server',
-                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-                  'mcp_server.tool': toolName,
-                },
-              },
-              () => toolHandlerTarget.apply(toolHandlerThisArg, toolHandlerArgArray),
-            );
-          });
-        },
-      });
-
-      return Reflect.apply(target, thisArg, [...argArray.slice(0, -1), wrappedToolHandler]);
-    },
-  });
-
-  mcpServerInstance.prompt = new Proxy(mcpServerInstance.prompt, {
-    apply(target, thisArg, argArray) {
-      const promptName: unknown = argArray[0];
-      const promptHandler: unknown = argArray[argArray.length - 1];
-
-      if (typeof promptName !== 'string' || typeof promptHandler !== 'function') {
-        return target.apply(thisArg, argArray);
-      }
-
-      const wrappedPromptHandler = new Proxy(promptHandler, {
-        apply(promptHandlerTarget, promptHandlerThisArg, promptHandlerArgArray) {
-          const extraHandlerDataWithRequestId = promptHandlerArgArray.find(isExtraHandlerDataWithRequestId);
-          return associateContextWithRequestSpan(extraHandlerDataWithRequestId, () => {
-            return startSpan(
-              {
-                name: `mcp-server/prompt:${promptName}`,
-                forceTransaction: true,
-                attributes: {
-                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'auto.function.mcp-server',
-                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.mcp-server',
-                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-                  'mcp_server.prompt': promptName,
-                },
-              },
-              () => promptHandlerTarget.apply(promptHandlerThisArg, promptHandlerArgArray),
-            );
-          });
-        },
-      });
-
-      return Reflect.apply(target, thisArg, [...argArray.slice(0, -1), wrappedPromptHandler]);
+      return result;
     },
   });
 
   wrappedMcpServerInstances.add(mcpServerInstance);
-
   return mcpServerInstance as S;
+}
+
+function createMcpServerSpan(
+  jsonRpcMessage: JsonRpcRequest,
+  transport: MCPTransport,
+  extra: any,
+  callback: () => any
+) {
+  const { method, id: requestId, params } = jsonRpcMessage;
+  
+  // Extract target from method and params for proper description
+  const target = extractTarget(method, params);
+  const description = target ? `${method} ${target}` : method;
+
+  // Session ID should come from the transport itself, not the RPC message
+  const sessionId = transport.sessionId;
+  
+  // Extract client information from extra/request data
+  const clientAddress = extra?.requestInfo?.remoteAddress || 
+                       extra?.clientAddress ||
+                       extra?.request?.ip ||
+                       extra?.request?.connection?.remoteAddress;
+  const clientPort = extra?.requestInfo?.remotePort || 
+                    extra?.clientPort ||
+                    extra?.request?.connection?.remotePort;
+
+  // Determine transport types
+  const { mcpTransport, networkTransport } = getTransportTypes(transport);
+
+  const attributes: Record<string, string | number> = {
+    'mcp.method.name': method,
+    
+    ...(requestId !== undefined && { 'mcp.request.id': String(requestId) }),
+    ...(target && getTargetAttributes(method, target)),
+    ...(sessionId && { 'mcp.session.id': sessionId }),
+    ...(clientAddress && { 'client.address': clientAddress }),
+    ...(clientPort && { 'client.port': clientPort }),
+    'mcp.transport': mcpTransport,           // Application level: "http", "sse", "stdio", "websocket"
+    'network.transport': networkTransport,   // Network level: "tcp", "pipe", "udp", "quic"
+    'network.protocol.version': '2.0',       // JSON-RPC version
+    
+    // Opt-in: Tool arguments (if enabled)
+    ...getRequestArguments(method, params),
+    
+    // Sentry-specific attributes
+    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'mcp.server',
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.mcp_server',
+    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route'
+  };
+
+  return startSpan({
+    name: description,
+    forceTransaction: true,
+    attributes
+  }, () => {
+    return callback();
+  });
+}
+
+function extractTarget(method: string, params: any): string | undefined {
+  switch (method) {
+    case 'tools/call':
+      return params?.name;  // Tool name
+    case 'resources/read':
+    case 'resources/subscribe':
+    case 'resources/unsubscribe':
+      return params?.uri;   // Resource URI
+    case 'prompts/get':
+      return params?.name;  // Prompt name
+    default:
+      return undefined;
+  }
+}
+
+function getTargetAttributes(method: string, target: string): Record<string, string> {
+  switch (method) {
+    case 'tools/call':
+      return { 'mcp.tool.name': target };
+    case 'resources/read':
+    case 'resources/subscribe':
+    case 'resources/unsubscribe':
+      return { 'mcp.resource.uri': target };
+    case 'prompts/get':
+      return { 'mcp.prompt.name': target };
+    default:
+      return {};
+  }
+}
+
+function getTransportTypes(transport: MCPTransport): { mcpTransport: string; networkTransport: string } {
+  // Try to determine transport type from transport properties/constructor
+  const transportName = transport.constructor?.name?.toLowerCase() || '';
+  
+  if (transportName.includes('sse')) {
+    return { mcpTransport: 'sse', networkTransport: 'tcp' };
+  }
+  if (transportName.includes('http')) {
+    return { mcpTransport: 'http', networkTransport: 'tcp' };
+  }
+  if (transportName.includes('websocket') || transportName.includes('ws')) {
+    return { mcpTransport: 'websocket', networkTransport: 'tcp' };
+  }
+  if (transportName.includes('stdio')) {
+    return { mcpTransport: 'stdio', networkTransport: 'pipe' };
+  }
+  
+  // Default assumption based on your setup (HTTP server)
+  return { mcpTransport: 'http', networkTransport: 'tcp' };
+}
+function getRequestArguments(method: string, params: any): Record<string, string> {
+  const args: Record<string, string> = {};
+  
+  // Only include arguments for certain methods (security consideration)
+  switch (method) {
+    case 'tools/call':
+      if (params?.arguments) {
+        // Convert arguments to JSON strings as per MCP conventions
+        for (const [key, value] of Object.entries(params.arguments)) {
+          args[`mcp.request.argument.${key.toLowerCase()}`] = JSON.stringify(value);
+        }
+      }
+      break;
+    case 'resources/read':
+      if (params?.uri) {
+        args['mcp.request.argument.uri'] = JSON.stringify(params.uri);
+      }
+      break;
+    case 'prompts/get':
+      if (params?.name) {
+        args['mcp.request.argument.name'] = JSON.stringify(params.name);
+      }
+      if (params?.arguments) {
+        for (const [key, value] of Object.entries(params.arguments)) {
+          args[`mcp.request.argument.${key.toLowerCase()}`] = JSON.stringify(value);
+        }
+      }
+      break;
+  }
+  
+  return args;
+}
+
+function isJsonRpcRequest(message: any): message is JsonRpcRequest {
+  const isRequest = (
+    typeof message === 'object' &&
+    message !== null &&
+    message.jsonrpc === '2.0' &&
+    'method' in message &&
+    'id' in message
+  );
+  
+  return isRequest;
+}
+
+interface JsonRpcRequest {
+  jsonrpc: '2.0';
+  method: string;
+  id: string | number;
+  params?: any;
 }
 
 function isMcpServerInstance(mcpServerInstance: unknown): mcpServerInstance is MCPServerInstance {
@@ -216,35 +268,21 @@ function isMcpServerInstance(mcpServerInstance: unknown): mcpServerInstance is M
     'prompt' in mcpServerInstance &&
     typeof mcpServerInstance.prompt === 'function' &&
     'connect' in mcpServerInstance &&
-    typeof mcpServerInstance.connect === 'function'
+    typeof mcpServerInstance.connect === 'function' &&
+    'server' in mcpServerInstance &&
+    typeof mcpServerInstance.server === 'object' &&
+    mcpServerInstance.server !== null &&
+    'setRequestHandler' in mcpServerInstance.server &&
+    typeof mcpServerInstance.server.setRequestHandler === 'function'
   );
 }
 
-function isJsonRPCMessageWithRequestId(target: unknown): target is { id: RequestId } {
-  return (
-    typeof target === 'object' &&
-    target !== null &&
-    'id' in target &&
-    (typeof target.id === 'number' || typeof target.id === 'string')
-  );
-}
 
 interface ExtraHandlerDataWithRequestId {
   sessionId: SessionId;
   requestId: RequestId;
 }
 
-// Note that not all versions of the MCP library have `requestId` as a field on the extra data.
-function isExtraHandlerDataWithRequestId(target: unknown): target is ExtraHandlerDataWithRequestId {
-  return (
-    typeof target === 'object' &&
-    target !== null &&
-    'sessionId' in target &&
-    typeof target.sessionId === 'string' &&
-    'requestId' in target &&
-    (typeof target.requestId === 'number' || typeof target.requestId === 'string')
-  );
-}
 
 type SessionId = string;
 type RequestId = string | number;
@@ -255,6 +293,7 @@ function handleTransportOnClose(sessionId: SessionId): void {
   sessionAndRequestToRequestParentSpanMap.delete(sessionId);
 }
 
+// TODO(bete): refactor this and associateContextWithRequestSpan to use the new span API.
 function handleTransportOnMessage(sessionId: SessionId, requestId: RequestId): void {
   const activeSpan = getActiveSpan();
   if (activeSpan) {
