@@ -52,8 +52,6 @@ function isEventType(event: unknown): event is CfEventType {
   );
 }
 
-const TRACE_DATA_KEY = '__sentryTraceData';
-
 /**
  * Sentry Cloudflare Nitro plugin for when using the "cloudflare-pages" preset in Nuxt.
  * This plugin automatically sets up Sentry error monitoring and performance tracking for Cloudflare Pages projects.
@@ -89,6 +87,8 @@ const TRACE_DATA_KEY = '__sentryTraceData';
 export const sentryCloudflareNitroPlugin =
   (optionsOrFn: CloudflareOptions | ((nitroApp: NitroApp) => CloudflareOptions)): NitroAppPlugin =>
   (nitroApp: NitroApp): void => {
+    const traceDataMap = new WeakMap<object, ReturnType<typeof getTraceData>>();
+
     nitroApp.localFetch = new Proxy(nitroApp.localFetch, {
       async apply(handlerTarget, handlerThisArg, handlerArgs: [string, unknown]) {
         setAsyncLocalStorageAsyncContextStrategy();
@@ -122,10 +122,9 @@ export const sentryCloudflareNitroPlugin =
 
             const traceData = getTraceData();
             if (traceData && Object.keys(traceData).length > 0) {
-              // Storing trace data in the event context for later use in HTML meta-tags (enables correct connection of parent/child span relationships)
-              // @ts-expect-error Storing a new key in the event context
-              event.context[TRACE_DATA_KEY] = traceData;
-              logger.log('Stored trace data in the event context.');
+              // Storing trace data in the WeakMap using event.context.cf as key for later use in HTML meta-tags
+              traceDataMap.set(event.context.cf, traceData);
+              logger.log('Stored trace data for later use in HTML meta-tags: ', traceData);
             }
 
             logger.log(
@@ -142,10 +141,10 @@ export const sentryCloudflareNitroPlugin =
 
     // @ts-expect-error - 'render:html' is a valid hook name in the Nuxt context
     nitroApp.hooks.hook('render:html', (html: NuxtRenderHTMLContext, { event }: { event: H3Event }) => {
-      const storedTraceData = event.context[TRACE_DATA_KEY] as ReturnType<typeof getTraceData> | undefined;
+      const storedTraceData = event?.context?.cf ? traceDataMap.get(event.context.cf) : undefined;
 
       if (storedTraceData && Object.keys(storedTraceData).length > 0) {
-        logger.log('Using stored trace data from event context for meta tags.');
+        logger.log('Using stored trace data for HTML meta-tags: ', storedTraceData);
         addSentryTracingMetaTags(html.head, storedTraceData);
       } else {
         addSentryTracingMetaTags(html.head);
