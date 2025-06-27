@@ -12,7 +12,9 @@ import {
 } from '@sentry/core';
 import type { CloudflareClientOptions, CloudflareOptions } from './client';
 import { CloudflareClient } from './client';
+import { makeFlushLock } from './flush';
 import { fetchIntegration } from './integrations/fetch';
+import { setupOpenTelemetryTracer } from './opentelemetry/tracer';
 import { makeCloudflareTransport } from './transport';
 import { defaultStackParser } from './vendor/stacktrace';
 
@@ -43,12 +45,27 @@ export function init(options: CloudflareOptions): CloudflareClient | undefined {
     options.defaultIntegrations = getDefaultIntegrations(options);
   }
 
+  const flushLock = options.ctx ? makeFlushLock(options.ctx) : undefined;
+  delete options.ctx;
+
   const clientOptions: CloudflareClientOptions = {
     ...options,
     stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
     integrations: getIntegrationsToSetup(options),
     transport: options.transport || makeCloudflareTransport,
+    flushLock,
   };
+
+  /**
+   * The Cloudflare SDK is not OpenTelemetry native, however, we set up some OpenTelemetry compatibility
+   * via a custom trace provider.
+   * This ensures that any spans emitted via `@opentelemetry/api` will be captured by Sentry.
+   * HOWEVER, big caveat: This does not handle custom context handling, it will always work off the current scope.
+   * This should be good enough for many, but not all integrations.
+   */
+  if (!options.skipOpenTelemetrySetup) {
+    setupOpenTelemetryTracer();
+  }
 
   return initAndBind(CloudflareClient, clientOptions) as CloudflareClient;
 }
