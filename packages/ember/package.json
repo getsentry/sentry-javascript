@@ -30,7 +30,7 @@
     "postpack": "ember ts:clean"
   },
   "dependencies": {
-    "@babel/core": "^7.24.4",
+    "@babel/core": "^7.27.7",
     "@embroider/macros": "^1.16.0",
     "@sentry/browser": "9.33.0",
     "@sentry/core": "9.33.0",
