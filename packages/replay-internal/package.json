@@ -76,8 +76,8 @@
     "@sentry-internal/rrweb-snapshot": "2.35.0",
     "fflate": "0.8.2",
     "jest-matcher-utils": "^29.0.0",
-    "jsdom-worker": "^0.2.1",
-    "node-fetch": "^3.3.2"
+    "jsdom-worker": "^0.3.0",
+    "node-fetch": "^2.6.7"
   },
   "dependencies": {
     "@sentry-internal/browser-utils": "9.33.0",
