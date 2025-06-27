@@ -26,6 +26,9 @@ describe('init()', () => {
   beforeEach(() => {
     global.__SENTRY__ = {};
 
+    // prevent the logger from being enabled, resulting in console.log calls
+    vi.spyOn(logger, 'enable').mockImplementation(() => {});
+
     mockAutoPerformanceIntegrations = vi.spyOn(auto, 'getAutoPerformanceIntegrations').mockImplementation(() => []);
   });
 
