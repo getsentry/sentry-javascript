@@ -2215,19 +2215,33 @@ describe('Client', () => {
       await expect(promise).resolves.toEqual(result);
     });
 
-    // This test is skipped because jest keeps retrying ad infinitum
-    // when encountering an unhandled rejections.
-    // We could set "NODE_OPTIONS='--unhandled-rejections=warn' but it
-    // would affect the entire test suite.
-    // Maybe this can be re-enabled when switching to vitest.
-    //
-    // eslint-disable-next-line @sentry-internal/sdk/no-skipped-tests
-    test.skip('handles asynchronous errors', async () => {
+    test('handles asynchronous errors without causing unhandled rejection', async () => {
       const error = new Error('Test error');
       const callback = vi.fn().mockRejectedValue(error);
 
-      const promise = await withMonitor('test-monitor', callback);
+      const promise = withMonitor('test-monitor', callback);
       await expect(promise).rejects.toThrowError(error);
+    });
+
+    test('handles promise rejection without causing unhandled rejection', async () => {
+      const error = new Error('Promise rejection');
+      const promise = withMonitor('test-monitor', () => Promise.reject(error));
+
+      await expect(promise).rejects.toThrow(error);
+    });
+
+    test('propagates promise values correctly', async () => {
+      const promise = withMonitor('test-monitor', () => Promise.resolve('resolved value'));
+      await expect(promise).resolves.toBe('resolved value');
+    });
+
+    test('handles nested withMonitor calls correctly', async () => {
+      const innerError = new Error('Inner error');
+      const promise = withMonitor('outer-monitor', () => {
+        return withMonitor('inner-monitor', () => Promise.reject(innerError));
+      });
+
+      await expect(promise).rejects.toThrow(innerError);
     });
   });
 });
