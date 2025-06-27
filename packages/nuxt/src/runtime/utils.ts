@@ -44,6 +44,13 @@ export function extractErrorContext(errorContext: CapturedErrorContext | undefin
 export function addSentryTracingMetaTags(head: NuxtRenderHTMLContext['head'], traceData?: SerializedTraceData): void {
   const metaTags = getTraceMetaTags(traceData);
 
+  if (head.some(tag => tag.includes('meta') && tag.includes('sentry-trace'))) {
+    logger.warn(
+      'Skipping addition of meta tags. Sentry tracing meta tags are already present in HTML page. Make sure to only set up Sentry once on the server-side. ',
+    );
+    return;
+  }
+
   if (metaTags) {
     logger.log('Adding Sentry tracing meta tags to HTML page:', metaTags);
     head.push(metaTags);
