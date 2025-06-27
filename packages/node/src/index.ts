@@ -1,5 +1,3 @@
-import { logger } from '@sentry/node-core';
-
 export { httpIntegration } from './integrations/http';
 export { nativeNodeFetchIntegration } from './integrations/node-fetch';
 export { fsIntegration } from './integrations/fs';
@@ -48,6 +46,7 @@ export {
   isEnabled,
   getGlobalScope,
   lastEventId,
+  logger,
   close,
   createTransport,
   flush,
@@ -164,5 +163,3 @@ export {
   NODE_VERSION,
   validateOpenTelemetrySetup,
 } from '@sentry/node-core';
-
-export { logger };
