@@ -131,7 +131,7 @@
     "rollup-plugin-cleanup": "^3.2.1",
     "rollup-plugin-license": "^3.3.1",
     "size-limit": "~11.1.6",
-    "sucrase": "^3.35.0",
+    "sucrase": "getsentry/sucrase#es2020-polyfills",
     "ts-node": "10.9.1",
     "typescript": "~5.0.0",
     "vitest": "^3.2.4",
