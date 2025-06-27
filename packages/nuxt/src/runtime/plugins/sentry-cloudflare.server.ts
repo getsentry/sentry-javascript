@@ -101,7 +101,8 @@ export const sentryCloudflareNitroPlugin =
           logger.log("Nitro Cloudflare plugin did not detect a Cloudflare event type. Won't patch Cloudflare handler.");
           return handlerTarget.apply(handlerThisArg, handlerArgs);
         } else {
-          const url = `${event.protocol}//${event.host}${pathname}`;
+          // Usually, the protocol already includes ":"
+          const url = `${event.protocol}${event.protocol.endsWith(':') ? '' : ':'}//${event.host}${pathname}`;
           const request = new Request(url, {
             method: event.method,
             headers: event.headers,
