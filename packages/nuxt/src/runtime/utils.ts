@@ -88,15 +88,12 @@ export function reportNuxtError(options: {
 }
 
 async function flushWithTimeout(): Promise<void> {
-  const sentryClient = getClient();
-  const isDebug = sentryClient ? sentryClient.getOptions().debug : false;
-
   try {
-    isDebug && logger.log('Flushing events...');
+    logger.log('Flushing events...');
     await flush(2000);
-    isDebug && logger.log('Done flushing events');
+    logger.log('Done flushing events');
   } catch (e) {
-    isDebug && logger.log('Error while flushing events:\n', e);
+    logger.log('Error while flushing events:\n', e);
   }
 }
 
