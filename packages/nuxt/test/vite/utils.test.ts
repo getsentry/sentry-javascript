@@ -398,7 +398,7 @@ describe('addOTelCommonJSImportAlias', () => {
     });
   });
 
-  it('overwrites existing alias for @opentelemetry/resources if already present', () => {
+  it('does not override existing alias for @opentelemetry/resources', () => {
     const nuxtMock: Nuxt = {
       options: {
         alias: {
@@ -410,7 +410,19 @@ describe('addOTelCommonJSImportAlias', () => {
     addOTelCommonJSImportAlias(nuxtMock);
 
     expect(nuxtMock.options.alias).toEqual({
-      '@opentelemetry/resources': '@opentelemetry/resources/build/src/index.js',
+      '@opentelemetry/resources': 'some-other-path',
     });
+  });
+
+  it('does not add alias in development mode', () => {
+    const nuxtMock: Nuxt = {
+      options: {
+        dev: true,
+      },
+    } as unknown as Nuxt;
+
+    addOTelCommonJSImportAlias(nuxtMock);
+
+    expect(nuxtMock.options.alias).toBeUndefined();
   });
 });

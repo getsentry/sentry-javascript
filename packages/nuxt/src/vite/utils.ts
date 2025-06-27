@@ -191,9 +191,15 @@ export function constructFunctionReExport(pathWithQuery: string, entryId: string
  * @see https://nuxt.com/docs/guide/concepts/esm#aliasing-libraries
  */
 export function addOTelCommonJSImportAlias(nuxt: Nuxt): void {
+  if (nuxt.options.dev) {
+    return;
+  }
+
   if (!nuxt.options.alias) {
     nuxt.options.alias = {};
   }
 
-  nuxt.options.alias['@opentelemetry/resources'] = '@opentelemetry/resources/build/src/index.js';
+  if (!nuxt.options.alias['@opentelemetry/resources']) {
+    nuxt.options.alias['@opentelemetry/resources'] = '@opentelemetry/resources/build/src/index.js';
+  }
 }
