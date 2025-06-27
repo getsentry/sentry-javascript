@@ -13,7 +13,7 @@ import { isPlainObject } from '../utils/is';
 import { logger } from '../utils/logger';
 import { getTraceData } from '../utils/traceData';
 
-export interface SupabaseClientConstructor {
+export interface SupabaseClientConstructorType {
   prototype: {
     from: (table: string) => PostgRESTQueryBuilder;
     schema: (schema: string) => { rpc: (...args: unknown[]) => Promise<unknown> };
@@ -229,17 +229,17 @@ export function translateFiltersIntoMethods(key: string, query: string): string 
 }
 
 function instrumentRpcReturnedFromSchemaCall(SupabaseClient: unknown): void {
-  if (isInstrumented((SupabaseClient as unknown as SupabaseClientConstructor).prototype.schema)) {
+  if (isInstrumented((SupabaseClient as unknown as SupabaseClientConstructorType).prototype.schema)) {
     return;
   }
 
-  (SupabaseClient as unknown as SupabaseClientConstructor).prototype.schema = new Proxy(
-    (SupabaseClient as unknown as SupabaseClientConstructor).prototype.schema,
+  (SupabaseClient as unknown as SupabaseClientConstructorType).prototype.schema = new Proxy(
+    (SupabaseClient as unknown as SupabaseClientConstructorType).prototype.schema,
     {
       apply(target, thisArg, argumentsList) {
         const supabaseInstance = Reflect.apply(target, thisArg, argumentsList);
 
-        (supabaseInstance as unknown as SupabaseClientConstructor).rpc = new Proxy(
+        (supabaseInstance as unknown as SupabaseClientConstructorType).rpc = new Proxy(
           (supabaseInstance as unknown as SupabaseClientInstance).rpc,
           {
             apply(target, thisArg, argumentsList) {
@@ -267,7 +267,7 @@ function instrumentRpcReturnedFromSchemaCall(SupabaseClient: unknown): void {
     },
   );
 
-  markAsInstrumented((SupabaseClient as unknown as SupabaseClientConstructor).prototype.schema);
+  markAsInstrumented((SupabaseClient as unknown as SupabaseClientConstructorType).prototype.schema);
 }
 
 function extractTraceAndBaggageFromMessage(message: { _sentry?: { sentry_trace?: string; baggage?: string } }): {
@@ -619,12 +619,12 @@ function instrumentSupabaseAuthClient(supabaseClientInstance: SupabaseClientInst
 }
 
 function instrumentSupabaseClientConstructor(SupabaseClient: unknown): void {
-  if (isInstrumented((SupabaseClient as unknown as SupabaseClientConstructor).prototype.from)) {
+  if (isInstrumented((SupabaseClient as unknown as SupabaseClientConstructorType).prototype.from)) {
     return;
   }
 
-  (SupabaseClient as unknown as SupabaseClientConstructor).prototype.from = new Proxy(
-    (SupabaseClient as unknown as SupabaseClientConstructor).prototype.from,
+  (SupabaseClient as unknown as SupabaseClientConstructorType).prototype.from = new Proxy(
+    (SupabaseClient as unknown as SupabaseClientConstructorType).prototype.from,
     {
       apply(target, thisArg, argumentsList) {
         const rv = Reflect.apply(target, thisArg, argumentsList);
@@ -637,7 +637,7 @@ function instrumentSupabaseClientConstructor(SupabaseClient: unknown): void {
     },
   );
 
-  markAsInstrumented((SupabaseClient as unknown as SupabaseClientConstructor).prototype.from);
+  markAsInstrumented((SupabaseClient as unknown as SupabaseClientConstructorType).prototype.from);
 }
 
 function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilterBuilder['constructor']): void {
