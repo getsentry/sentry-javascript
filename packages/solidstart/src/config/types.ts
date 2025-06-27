@@ -6,7 +6,7 @@ export type RollupConfig = {
   plugins: unknown[];
 };
 
-export type SolidStartInlineConfig = Parameters<typeof defineConfig>[0];
+export type SolidStartInlineConfig = NonNullable<Parameters<typeof defineConfig>[0]>;
 
 export type SolidStartInlineServerConfig = {
   hooks?: {
