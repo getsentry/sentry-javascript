@@ -13,7 +13,8 @@ type InstrumentHandlerTypePerformanceObserver =
   | 'navigation'
   | 'paint'
   | 'resource'
-  | 'first-input';
+  | 'first-input'
+  | 'element';
 
 type InstrumentHandlerTypeMetric = 'cls' | 'lcp' | 'fid' | 'ttfb' | 'inp';
 
