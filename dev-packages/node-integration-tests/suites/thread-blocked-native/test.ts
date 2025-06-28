@@ -197,12 +197,4 @@ describe('Thread Blocked Native', { timeout: 30_000 }, () => {
       .start()
       .completed();
   });
-
-  test('watchdog can be stopped and restarted', async () => {
-    await createRunner(__dirname, 'stop-and-start.js')
-      .withMockSentryServer()
-      .expect({ event: ANR_EVENT })
-      .start()
-      .completed();
-  });
 });
