@@ -4,6 +4,49 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 9.33.0
+
+### Important Changes
+
+- **feat: Add opt-in `vercelAiIntegration` to cloudflare & vercel-edge ([#16732](https://github.com/getsentry/sentry-javascript/pull/16732))**
+
+The `vercelAiIntegration` is now available as opt-in for the Cloudflare and the Next.js SDK for Vercel Edge.
+To use it, add the integration in `Sentry.init`
+
+```js
+Sentry.init({
+  tracesSampleRate: 1.0,
+  integrations: [Sentry.vercelAIIntegration()],
+});
+```
+
+And enable telemetry for Vercel AI calls
+
+```js
+const result = await generateText({
+  model: openai('gpt-4o'),
+  experimental_telemetry: {
+    isEnabled: true,
+  },
+});
+```
+
+- **feat(node): Add postgresjs instrumentation ([#16665](https://github.com/getsentry/sentry-javascript/pull/16665))**
+
+The Node.js SDK now includes instrumentation for [Postgres.js](https://www.npmjs.com/package/postgres).
+
+- **feat(node): Use diagnostics channel for Fastify v5 error handling ([#16715](https://github.com/getsentry/sentry-javascript/pull/16715))**
+
+If you're on Fastify v5, you no longer need to call `setupFastifyErrorHandler`. It is done automatically by the node SDK. Older versions still rely on calling `setupFastifyErrorHandler`.
+
+### Other Changes
+
+- feat(cloudflare): Allow interop with OpenTelemetry emitted spans ([#16714](https://github.com/getsentry/sentry-javascript/pull/16714))
+- feat(cloudflare): Flush after `waitUntil` ([#16681](https://github.com/getsentry/sentry-javascript/pull/16681))
+- fix(nextjs): Remove `ai` from default server external packages ([#16736](https://github.com/getsentry/sentry-javascript/pull/16736))
+
+Work in this release was contributed by @0xbad0c0d3. Thank you for your contribution!
+
 ## 9.32.0
 
 ### Important Changes

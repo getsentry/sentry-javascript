@@ -35,7 +35,9 @@ export function wrapRequestHandler(
     // see: https://github.com/getsentry/sentry-javascript/issues/13217
     const context = wrapperOptions.context as ExecutionContext | undefined;
 
-    const client = init(options);
+    const waitUntil = context?.waitUntil?.bind?.(context);
+
+    const client = init({ ...options, ctx: context });
     isolationScope.setClient(client);
 
     const urlObject = parseStringToURLObject(request.url);
@@ -65,7 +67,7 @@ export function wrapRequestHandler(
         captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
         throw e;
       } finally {
-        context?.waitUntil(flush(2000));
+        waitUntil?.(flush(2000));
       }
     }
 
@@ -89,7 +91,7 @@ export function wrapRequestHandler(
               captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
               throw e;
             } finally {
-              context?.waitUntil(flush(2000));
+              waitUntil?.(flush(2000));
             }
           },
         );
