@@ -168,13 +168,25 @@ test.describe('Edge runtime', () => {
     expect(edgerouteTransaction2.contexts?.trace?.op).toBe('http.server');
     expect(edgerouteTransaction3.contexts?.trace?.op).toBe('http.server');
 
-    expect(edgerouteTransaction1.spans?.length).toBe(1);
-    expect(edgerouteTransaction2.spans?.length).toBe(1);
-    expect(edgerouteTransaction3.spans?.length).toBe(1);
-
-    expect(edgerouteTransaction1.spans?.[0].description).toBe('GET https://github.com/');
-    expect(edgerouteTransaction2.spans?.[0].description).toBe('GET https://github.com/');
-    expect(edgerouteTransaction3.spans?.[0].description).toBe('GET https://github.com/');
+    expect(edgerouteTransaction1.spans).toContainEqual({
+      description: 'GET https://github.com/',
+    });
+    expect(edgerouteTransaction2.spans).toContainEqual({
+      description: 'GET https://github.com/',
+    });
+    expect(edgerouteTransaction3.spans).toContainEqual({
+      description: 'GET https://github.com/',
+    });
+    // Does not contain span that is sent to the event proxy server
+    expect(edgerouteTransaction1.spans).not.toContainEqual({
+      description: expect.stringContaining('https://localhost:3031'),
+    });
+    expect(edgerouteTransaction2.spans).not.toContainEqual({
+      description: expect.stringContaining('https://localhost:3031'),
+    });
+    expect(edgerouteTransaction3.spans).not.toContainEqual({
+      description: expect.stringContaining('https://localhost:3031'),
+    });
   });
 });
 
