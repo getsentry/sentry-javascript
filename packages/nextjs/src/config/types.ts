@@ -426,9 +426,12 @@ export type SentryBuildOptions = {
    * Tunnel Sentry requests through this route on the Next.js server, to circumvent ad-blockers blocking Sentry events
    * from being sent. This option should be a path (for example: '/error-monitoring').
    *
+   * - Pass `true` to auto-generate a random, ad-blocker-resistant route for each build
+   * - Pass a string path (e.g., '/monitoring') to use a custom route
+   *
    * NOTE: This feature only works with Next.js 11+
    */
-  tunnelRoute?: string;
+  tunnelRoute?: string | boolean;
 
   /**
    * Tree shakes Sentry SDK logger statements from the bundle.
@@ -441,6 +444,23 @@ export type SentryBuildOptions = {
    * Defaults to `false`.
    */
   automaticVercelMonitors?: boolean;
+
+  /**
+   * When an error occurs during release creation or sourcemaps upload, the plugin will call this function.
+   *
+   * By default, the plugin will simply throw an error, thereby stopping the bundling process.
+   * If an `errorHandler` callback is provided, compilation will continue, unless an error is
+   * thrown in the provided callback.
+   *
+   * To allow compilation to continue but still emit a warning, set this option to the following:
+   *
+   * ```js
+   * (err) => {
+   *   console.warn(err);
+   * }
+   * ```
+   */
+  errorHandler?: (err: Error) => void;
 
   /**
    * Contains a set of experimental flags that might change in future releases. These flags enable

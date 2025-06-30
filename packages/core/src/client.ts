@@ -32,19 +32,19 @@ import type { SeverityLevel } from './types-hoist/severity';
 import type { Span, SpanAttributes, SpanContextData, SpanJSON } from './types-hoist/span';
 import type { StartSpanOptions } from './types-hoist/startSpanOptions';
 import type { Transport, TransportMakeRequestResponse } from './types-hoist/transport';
+import { createClientReportEnvelope } from './utils/clientreport';
+import { dsnToString, makeDsn } from './utils/dsn';
+import { addItemToEnvelope, createAttachmentEnvelopeItem } from './utils/envelope';
 import { getPossibleEventMessages } from './utils/eventUtils';
+import { isParameterizedString, isPlainObject, isPrimitive, isThenable } from './utils/is';
+import { logger } from './utils/logger';
 import { merge } from './utils/merge';
+import { checkOrSetAlreadyCaught, uuid4 } from './utils/misc';
 import { parseSampleRate } from './utils/parseSampleRate';
 import { prepareEvent } from './utils/prepareEvent';
 import { getActiveSpan, showSpanDropWarning, spanToTraceContext } from './utils/spanUtils';
+import { rejectedSyncPromise, resolvedSyncPromise, SyncPromise } from './utils/syncpromise';
 import { convertSpanJsonToTransactionEvent, convertTransactionEventToSpanJson } from './utils/transactionEvent';
-import { createClientReportEnvelope } from './utils-hoist/clientreport';
-import { dsnToString, makeDsn } from './utils-hoist/dsn';
-import { addItemToEnvelope, createAttachmentEnvelopeItem } from './utils-hoist/envelope';
-import { isParameterizedString, isPlainObject, isPrimitive, isThenable } from './utils-hoist/is';
-import { logger } from './utils-hoist/logger';
-import { checkOrSetAlreadyCaught, uuid4 } from './utils-hoist/misc';
-import { rejectedSyncPromise, resolvedSyncPromise, SyncPromise } from './utils-hoist/syncpromise';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
 const MISSING_RELEASE_FOR_SESSION_ERROR = 'Discarded session because of missing or non-string release';
@@ -498,7 +498,8 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   ): void;
 
   /**
-   * Register a callback for whenever a span is ended.
+   * Register a callback for after a span is ended.
+   * NOTE: The span cannot be mutated anymore in this callback.
    * Receives the span as argument.
    * @returns {() => void} A function that, when executed, removes the registered callback.
    */

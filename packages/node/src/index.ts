@@ -23,6 +23,7 @@ export { mysqlIntegration } from './integrations/tracing/mysql';
 export { mysql2Integration } from './integrations/tracing/mysql2';
 export { redisIntegration } from './integrations/tracing/redis';
 export { postgresIntegration } from './integrations/tracing/postgres';
+export { postgresJsIntegration } from './integrations/tracing/postgresjs';
 export { prismaIntegration } from './integrations/tracing/prisma';
 export { hapiIntegration, setupHapiErrorHandler } from './integrations/tracing/hapi';
 export { koaIntegration, setupKoaErrorHandler } from './integrations/tracing/koa';
@@ -139,6 +140,7 @@ export {
   consoleLoggingIntegration,
   consoleIntegration,
   wrapMcpServerWithSentry,
+  featureFlagsIntegration,
 } from '@sentry/core';
 
 export type {
@@ -158,6 +160,7 @@ export type {
   Thread,
   User,
   Span,
+  FeatureFlagsIntegration,
 } from '@sentry/core';
 
 export { logger };

@@ -15,6 +15,7 @@ export type {
   Stacktrace,
   Thread,
   User,
+  FeatureFlagsIntegration,
 } from '@sentry/core';
 
 export {
@@ -119,6 +120,7 @@ export {
   redisIntegration,
   tediousIntegration,
   postgresIntegration,
+  postgresJsIntegration,
   prismaIntegration,
   hapiIntegration,
   setupHapiErrorHandler,
@@ -139,6 +141,7 @@ export {
   consoleLoggingIntegration,
   createSentryWinstonTransport,
   wrapMcpServerWithSentry,
+  featureFlagsIntegration,
 } from '@sentry/node';
 
 export {

@@ -12,11 +12,11 @@ import {
   envelopeItemTypeToDataCategory,
   forEachEnvelopeItem,
   serializeEnvelope,
-} from '../utils-hoist/envelope';
-import { logger } from '../utils-hoist/logger';
-import { type PromiseBuffer, makePromiseBuffer, SENTRY_BUFFER_FULL_ERROR } from '../utils-hoist/promisebuffer';
-import { type RateLimits, isRateLimited, updateRateLimits } from '../utils-hoist/ratelimit';
-import { resolvedSyncPromise } from '../utils-hoist/syncpromise';
+} from '../utils/envelope';
+import { logger } from '../utils/logger';
+import { type PromiseBuffer, makePromiseBuffer, SENTRY_BUFFER_FULL_ERROR } from '../utils/promisebuffer';
+import { type RateLimits, isRateLimited, updateRateLimits } from '../utils/ratelimit';
+import { resolvedSyncPromise } from '../utils/syncpromise';
 
 export const DEFAULT_TRANSPORT_BUFFER_SIZE = 64;
 

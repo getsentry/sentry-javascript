@@ -20,8 +20,12 @@ let showedExperimentalBuildModeWarning = false;
 // Packages we auto-instrument need to be external for instrumentation to work
 // Next.js externalizes some packages by default, see: https://nextjs.org/docs/app/api-reference/config/next-config-js/serverExternalPackages
 // Others we need to add ourselves
+//
+// NOTE: 'ai' (Vercel AI SDK) is intentionally NOT included in this list.
+// When externalized, Next.js doesn't properly handle the package's conditional exports,
+// specifically the "react-server" export condition. This causes client-side code to be
+// loaded in server components instead of the appropriate server-side functions.
 export const DEFAULT_SERVER_EXTERNAL_PACKAGES = [
-  'ai',
   'amqplib',
   'connect',
   'dataloader',
@@ -75,13 +79,27 @@ export function withSentryConfig<C>(nextConfig?: C, sentryBuildOptions: SentryBu
   }
 }
 
+/**
+ * Generates a random tunnel route path that's less likely to be blocked by ad-blockers
+ */
+function generateRandomTunnelRoute(): string {
+  // Generate a random 8-character alphanumeric string
+  const randomString = Math.random().toString(36).substring(2, 10);
+  return `/${randomString}`;
+}
+
 // Modify the materialized object form of the user's next config by deleting the `sentry` property and wrapping the
 // `webpack` property
 function getFinalConfigObject(
   incomingUserNextConfigObject: NextConfigObject,
   userSentryOptions: SentryBuildOptions,
 ): NextConfigObject {
-  const releaseName = userSentryOptions.release?.name ?? getSentryRelease() ?? getGitRevision();
+  // Only determine a release name if release creation is not explicitly disabled
+  // This prevents injection of Git commit hashes that break build determinism
+  const shouldCreateRelease = userSentryOptions.release?.create !== false;
+  const releaseName = shouldCreateRelease
+    ? userSentryOptions.release?.name ?? getSentryRelease() ?? getGitRevision()
+    : userSentryOptions.release?.name;
 
   if (userSentryOptions?.tunnelRoute) {
     if (incomingUserNextConfigObject.output === 'export') {
@@ -93,7 +111,14 @@ function getFinalConfigObject(
         );
       }
     } else {
-      setUpTunnelRewriteRules(incomingUserNextConfigObject, userSentryOptions.tunnelRoute);
+      const resolvedTunnelRoute =
+        typeof userSentryOptions.tunnelRoute === 'boolean'
+          ? generateRandomTunnelRoute()
+          : userSentryOptions.tunnelRoute;
+
+      // Update the global options object to use the resolved value everywhere
+      userSentryOptions.tunnelRoute = resolvedTunnelRoute;
+      setUpTunnelRewriteRules(incomingUserNextConfigObject, resolvedTunnelRoute);
     }
   }
 
@@ -110,8 +135,8 @@ function getFinalConfigObject(
       // 1. compile: Code compilation
       // 2. generate: Environment variable inlining and prerendering (We don't instrument this phase, we inline in the compile phase)
       //
-      // We assume a single “full” build and reruns Webpack instrumentation in both phases.
-      // During the generate step it collides with Next.js’s inliner
+      // We assume a single "full" build and reruns Webpack instrumentation in both phases.
+      // During the generate step it collides with Next.js's inliner
       // producing malformed JS and build failures.
       // We skip Sentry processing during generate to avoid this issue.
       return incomingUserNextConfigObject;
@@ -363,8 +388,11 @@ function setUpBuildTimeVariables(
 ): void {
   const assetPrefix = userNextConfig.assetPrefix || userNextConfig.basePath || '';
   const basePath = userNextConfig.basePath ?? '';
+
   const rewritesTunnelPath =
-    userSentryOptions.tunnelRoute !== undefined && userNextConfig.output !== 'export'
+    userSentryOptions.tunnelRoute !== undefined &&
+    userNextConfig.output !== 'export' &&
+    typeof userSentryOptions.tunnelRoute === 'string'
       ? `${basePath}${userSentryOptions.tunnelRoute}`
       : undefined;
 
@@ -432,7 +460,7 @@ function getInstrumentationClientFileContents(): string | void {
     ['src', 'instrumentation-client.ts'],
     ['src', 'instrumentation-client.js'],
     ['instrumentation-client.ts'],
-    ['instrumentation-client.ts'],
+    ['instrumentation-client.js'],
   ];
 
   for (const pathSegments of potentialInstrumentationClientFileLocations) {

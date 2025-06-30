@@ -30,7 +30,8 @@ export class LayoutShiftManager {
     if (entry.hadRecentInput) return;
 
     const firstSessionEntry = this._sessionEntries[0];
-    const lastSessionEntry = this._sessionEntries.at(-1);
+    // This previously used `this._sessionEntries.at(-1)` but that is ES2022. We support ES2021 and earlier.
+    const lastSessionEntry = this._sessionEntries[this._sessionEntries.length - 1];
 
     // If the entry occurred less than 1 second after the previous entry
     // and less than 5 seconds after the first entry in the session,

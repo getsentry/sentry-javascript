@@ -99,6 +99,7 @@ export {
   redisIntegration,
   tediousIntegration,
   postgresIntegration,
+  postgresJsIntegration,
   prismaIntegration,
   hapiIntegration,
   setupHapiErrorHandler,
@@ -121,6 +122,8 @@ export {
   consoleLoggingIntegration,
   wrapMcpServerWithSentry,
   NODE_VERSION,
+  featureFlagsIntegration,
+  type FeatureFlagsIntegration,
 } from '@sentry/node';
 
 export {

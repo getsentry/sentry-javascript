@@ -49,6 +49,7 @@ export {
   isEnabled,
   lastEventId,
   linkedErrorsIntegration,
+  logger,
   requestDataIntegration,
   rewriteFramesIntegration,
   Scope,
@@ -82,6 +83,9 @@ export {
   supabaseIntegration,
   instrumentSupabaseClient,
   zodErrorsIntegration,
+  featureFlagsIntegration,
+  vercelAIIntegration,
+  type FeatureFlagsIntegration,
 } from '@sentry/cloudflare';
 
 /**
