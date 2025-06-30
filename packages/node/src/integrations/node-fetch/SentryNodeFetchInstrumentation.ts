@@ -2,16 +2,16 @@ import { context } from '@opentelemetry/api';
 import { isTracingSuppressed, VERSION } from '@opentelemetry/core';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase } from '@opentelemetry/instrumentation';
-import type {
-SanitizedRequestData ,
-} from '@sentry/core';
-import {   addBreadcrumb,
+import type { SanitizedRequestData } from '@sentry/core';
+import {
+  addBreadcrumb,
   getBreadcrumbLogLevelFromHttpStatusCode,
   getClient,
   getSanitizedUrlString,
   getTraceData,
   LRUMap,
-  parseUrl} from '@sentry/core';
+  parseUrl,
+} from '@sentry/core';
 import { shouldPropagateTraceForUrl } from '@sentry/opentelemetry';
 import * as diagch from 'diagnostics_channel';
 import { NODE_MAJOR, NODE_MINOR } from '../../nodeVersion';
