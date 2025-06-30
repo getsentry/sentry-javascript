@@ -29,4 +29,20 @@ describe('getTraceMetaTags', () => {
 
     expect(getTraceMetaTags()).toBe('');
   });
+
+  it('uses provided traceData instead of calling getTraceData()', () => {
+    const getTraceDataSpy = vi.spyOn(TraceDataModule, 'getTraceData');
+
+    const customTraceData = {
+      'sentry-trace': 'ab12345678901234567890123456789012-1234567890abcdef-1',
+      baggage:
+        'sentry-environment=test,sentry-public_key=public12345,sentry-trace_id=ab12345678901234567890123456789012,sentry-sample_rate=0.5',
+    };
+
+    expect(getTraceMetaTags(customTraceData))
+      .toBe(`<meta name="sentry-trace" content="ab12345678901234567890123456789012-1234567890abcdef-1"/>
+<meta name="baggage" content="sentry-environment=test,sentry-public_key=public12345,sentry-trace_id=ab12345678901234567890123456789012,sentry-sample_rate=0.5"/>`);
+
+    expect(getTraceDataSpy).not.toHaveBeenCalled();
+  });
 });
