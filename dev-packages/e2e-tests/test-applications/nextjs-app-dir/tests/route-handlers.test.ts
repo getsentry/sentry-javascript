@@ -172,9 +172,9 @@ test.describe('Edge runtime', () => {
     expect(edgerouteTransaction2.spans?.length).toBe(1);
     expect(edgerouteTransaction3.spans?.length).toBe(1);
 
-    expect(edgerouteTransaction1.spans?.[0].description).toBe('GET https://github.com');
-    expect(edgerouteTransaction2.spans?.[0].description).toBe('GET https://github.com');
-    expect(edgerouteTransaction3.spans?.[0].description).toBe('GET https://github.com');
+    expect(edgerouteTransaction1.spans?.[0].description).toBe('GET https://github.com/');
+    expect(edgerouteTransaction2.spans?.[0].description).toBe('GET https://github.com/');
+    expect(edgerouteTransaction3.spans?.[0].description).toBe('GET https://github.com/');
   });
 });
 

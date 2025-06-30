@@ -1,12 +1,11 @@
 import type { UndiciInstrumentationConfig } from '@opentelemetry/instrumentation-undici';
 import { UndiciInstrumentation } from '@opentelemetry/instrumentation-undici';
-import { IntegrationFn, isSentryRequestUrl } from '@sentry/core';
+import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration, getClient, hasSpansEnabled, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { generateInstrumentOnce } from '../../otel/instrument';
 import type { NodeClient } from '../../sdk/client';
 import type { NodeClientOptions } from '../../types';
 import { SentryNodeFetchInstrumentation } from './SentryNodeFetchInstrumentation';
-import { isNextEdgeRuntime } from '../../utils/isNextEdgeRuntime';
 
 const INTEGRATION_NAME = 'NodeFetch';
 
@@ -100,13 +99,6 @@ function getConfigWithDefaults(options: Partial<NodeFetchOptions> = {}): UndiciI
       const url = getAbsoluteUrl(request.origin, request.path);
       const _ignoreOutgoingRequests = options.ignoreOutgoingRequests;
       const shouldIgnore = _ignoreOutgoingRequests && url && _ignoreOutgoingRequests(url);
-
-      // Normally, we should not need this, because `suppressTracing` should take care of this
-      // However, in Next.js Edge Runtime in dev, there is a bug where the edge is simulated but still uses Node under the hood, leading to problems
-      // So we make sure to ignore outgoing requests to Sentry endpoints
-      if (isSentryRequestUrl(url, getClient())) {
-        return true;
-      }
 
       return !!shouldIgnore;
     },

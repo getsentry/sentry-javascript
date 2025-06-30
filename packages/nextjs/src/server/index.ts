@@ -6,7 +6,7 @@ import {
   SEMATTRS_HTTP_METHOD,
   SEMATTRS_HTTP_TARGET,
 } from '@opentelemetry/semantic-conventions';
-import type { EventProcessor } from '@sentry/core';
+import { EventProcessor, isSentryRequestUrl } from '@sentry/core';
 import {
   applySdkMetadata,
   extractTraceparentData,
@@ -203,7 +203,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
     }
   });
 
-  getGlobalScope().addEventProcessor(
+  client?.addEventProcessor(
     Object.assign(
       (event => {
         if (event.type === 'transaction') {
@@ -260,6 +260,16 @@ export function init(options: NodeOptions): NodeClient | undefined {
             }
           }
 
+          // On Edge Runtime, fetch requests can leak to the Node runtime fetch instrumentation
+          // and end up being sent as transactions to Sentry.
+          // We filter them here based on URL
+          if (event.contexts?.trace?.data?.[SEMANTIC_ATTRIBUTE_SENTRY_OP] === 'http.client') {
+            const url = event.contexts?.trace?.data?.['url'];
+            if (url && isSentryRequestUrl(url, client)) {
+              return null;
+            }
+          }
+
           return event;
         } else {
           return event;
@@ -269,7 +279,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
     ),
   );
 
-  getGlobalScope().addEventProcessor(
+  client?.addEventProcessor(
     Object.assign(
       ((event, hint) => {
         if (event.type !== undefined) {
@@ -364,7 +374,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
   });
 
   if (process.env.NODE_ENV === 'development') {
-    getGlobalScope().addEventProcessor(devErrorSymbolicationEventProcessor);
+    client?.addEventProcessor(devErrorSymbolicationEventProcessor);
   }
 
   try {
