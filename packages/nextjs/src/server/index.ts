@@ -6,7 +6,7 @@ import {
   SEMATTRS_HTTP_METHOD,
   SEMATTRS_HTTP_TARGET,
 } from '@opentelemetry/semantic-conventions';
-import { EventProcessor, isSentryRequestUrl } from '@sentry/core';
+import type { EventProcessor } from '@sentry/core';
 import {
   applySdkMetadata,
   extractTraceparentData,
@@ -17,6 +17,7 @@ import {
   getIsolationScope,
   getRootSpan,
   GLOBAL_OBJ,
+  isSentryRequestUrl,
   logger,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
