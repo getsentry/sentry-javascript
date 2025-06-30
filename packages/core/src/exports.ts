@@ -174,21 +174,21 @@ export function withMonitor<T>(
       throw e;
     }
 
-    if (isThenable(maybePromiseResult)) {
-      Promise.resolve(maybePromiseResult).then(
-        () => {
-          finishCheckIn('ok');
-        },
-        e => {
-          finishCheckIn('error');
-          throw e;
-        },
-      );
-    } else {
+    if (!isThenable(maybePromiseResult)) {
       finishCheckIn('ok');
+      return maybePromiseResult;
     }
 
-    return maybePromiseResult;
+    return maybePromiseResult.then(
+      result => {
+        finishCheckIn('ok');
+        return result;
+      },
+      e => {
+        finishCheckIn('error');
+        throw e;
+      },
+    ) as T;
   });
 }
 
