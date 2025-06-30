@@ -2,7 +2,7 @@ import { context } from '@opentelemetry/api';
 import { isTracingSuppressed, VERSION } from '@opentelemetry/core';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase } from '@opentelemetry/instrumentation';
-import type { SanitizedRequestData } from '@sentry/core';
+import { isSentryRequestUrl, SanitizedRequestData } from '@sentry/core';
 import {
   addBreadcrumb,
   getBreadcrumbLogLevelFromHttpStatusCode,
@@ -17,7 +17,6 @@ import * as diagch from 'diagnostics_channel';
 import { NODE_MAJOR, NODE_MINOR } from '../../nodeVersion';
 import { mergeBaggageHeaders } from '../../utils/baggage';
 import type { UndiciRequest, UndiciResponse } from './types';
-import { isNextEdgeRuntime } from '../../utils/isNextEdgeRuntime';
 
 const SENTRY_TRACE_HEADER = 'sentry-trace';
 const SENTRY_BAGGAGE_HEADER = 'baggage';
@@ -239,16 +238,20 @@ export class SentryNodeFetchInstrumentation extends InstrumentationBase<SentryNo
    * Check if the given outgoing request should be ignored.
    */
   private _shouldIgnoreOutgoingRequest(request: UndiciRequest): boolean {
-    // Never instrument outgoing requests in Edge Runtime
-    // This can be a problem when running in Next.js Edge Runtime in dev,
-    // as there edge is simulated but still uses Node under the hood, leaving to problems
-    if (isTracingSuppressed(context.active()) || isNextEdgeRuntime()) {
+    if (isTracingSuppressed(context.active())) {
       return true;
     }
 
     // Add trace propagation headers
     const url = getAbsoluteUrl(request.origin, request.path);
     const ignoreOutgoingRequests = this.getConfig().ignoreOutgoingRequests;
+
+    // Normally, we should not need this, because `suppressTracing` should take care of this
+    // However, in Next.js Edge Runtime in dev, there is a bug where the edge is simulated but still uses Node under the hood, leading to problems
+    // So we make sure to ignore outgoing requests to Sentry endpoints
+    if (isSentryRequestUrl(url, getClient())) {
+      return true;
+    }
 
     if (typeof ignoreOutgoingRequests !== 'function' || !url) {
       return false;
