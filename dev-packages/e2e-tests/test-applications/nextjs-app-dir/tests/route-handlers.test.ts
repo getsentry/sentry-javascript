@@ -119,6 +119,63 @@ test.describe('Edge runtime', () => {
 
     expect(routehandlerError.transaction).toBe('DELETE /route-handlers/[param]/edge');
   });
+
+  test('should not create spans for outgoing Sentry requests on edge routes', async ({ request }) => {
+    // Ensure no http.client transaction is created for any orphaned request
+    waitForTransaction('nextjs-app-dir', async transactionEvent => {
+      if (transactionEvent.contexts?.trace?.op === 'http.client') {
+        throw new Error(`Should not receive http.client transaction, but got: ${transactionEvent.transaction}`);
+      }
+      return false;
+    });
+
+    // We hit the endpoint three times and check that nowhere a http.client span for Sentry is to be found
+    // this way, we ensure that nothing is sent to Sentry in a follow up span
+    const edgerouteTransactionPromise1 = waitForTransaction('nextjs-app-dir', async transactionEvent => {
+      return (
+        transactionEvent?.transaction === 'PATCH /route-handlers/[param]/edge' &&
+        transactionEvent.contexts?.runtime?.name === 'vercel-edge'
+      );
+    });
+
+    await request.patch('/route-handlers/bar/edge');
+
+    const edgerouteTransactionPromise2 = waitForTransaction('nextjs-app-dir', async transactionEvent => {
+      return (
+        transactionEvent?.transaction === 'PATCH /route-handlers/[param]/edge' &&
+        transactionEvent.contexts?.runtime?.name === 'vercel-edge'
+      );
+    });
+
+    await request.patch('/route-handlers/bar/edge');
+
+    const edgerouteTransactionPromise3 = waitForTransaction('nextjs-app-dir', async transactionEvent => {
+      return (
+        transactionEvent?.transaction === 'PATCH /route-handlers/[param]/edge' &&
+        transactionEvent.contexts?.runtime?.name === 'vercel-edge'
+      );
+    });
+
+    await request.patch('/route-handlers/bar/edge');
+
+    const [edgerouteTransaction1, edgerouteTransaction2, edgerouteTransaction3] = await Promise.all([
+      edgerouteTransactionPromise1,
+      edgerouteTransactionPromise2,
+      edgerouteTransactionPromise3,
+    ]);
+
+    expect(edgerouteTransaction1.contexts?.trace?.op).toBe('http.server');
+    expect(edgerouteTransaction2.contexts?.trace?.op).toBe('http.server');
+    expect(edgerouteTransaction3.contexts?.trace?.op).toBe('http.server');
+
+    expect(edgerouteTransaction1.spans?.length).toBe(1);
+    expect(edgerouteTransaction2.spans?.length).toBe(1);
+    expect(edgerouteTransaction3.spans?.length).toBe(1);
+
+    expect(edgerouteTransaction1.spans?.[0].description).toBe('GET https://github.com');
+    expect(edgerouteTransaction2.spans?.[0].description).toBe('GET https://github.com');
+    expect(edgerouteTransaction3.spans?.[0].description).toBe('GET https://github.com');
+  });
 });
 
 test('should not crash route handlers that are configured with `export const dynamic = "error"`', async ({

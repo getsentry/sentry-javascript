@@ -5,6 +5,8 @@ import { NextResponse } from 'next/server';
 export const runtime = 'edge';
 
 export async function PATCH() {
+  // Test that actual fetch requests are captured
+  await fetch('https://github.com');
   return NextResponse.json({ name: 'John Doe' }, { status: 401 });
 }
 

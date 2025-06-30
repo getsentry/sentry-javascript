@@ -6,6 +6,7 @@ import { generateInstrumentOnce } from '../../otel/instrument';
 import type { NodeClient } from '../../sdk/client';
 import type { NodeClientOptions } from '../../types';
 import { SentryNodeFetchInstrumentation } from './SentryNodeFetchInstrumentation';
+import { isNextEdgeRuntime } from '../../utils/isNextEdgeRuntime';
 
 const INTEGRATION_NAME = 'NodeFetch';
 
@@ -96,6 +97,13 @@ function getConfigWithDefaults(options: Partial<NodeFetchOptions> = {}): UndiciI
   const instrumentationConfig = {
     requireParentforSpans: false,
     ignoreRequestHook: request => {
+      // Never instrument outgoing requests in Edge Runtime
+      // This can be a problem when running in Next.js Edge Runtime in dev,
+      // as there edge is simulated but still uses Node under the hood, leaving to problems
+      if (isNextEdgeRuntime()) {
+        return true;
+      }
+
       const url = getAbsoluteUrl(request.origin, request.path);
       const _ignoreOutgoingRequests = options.ignoreOutgoingRequests;
       const shouldIgnore = _ignoreOutgoingRequests && url && _ignoreOutgoingRequests(url);

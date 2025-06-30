@@ -17,6 +17,7 @@ import * as diagch from 'diagnostics_channel';
 import { NODE_MAJOR, NODE_MINOR } from '../../nodeVersion';
 import { mergeBaggageHeaders } from '../../utils/baggage';
 import type { UndiciRequest, UndiciResponse } from './types';
+import { isNextEdgeRuntime } from '../../utils/isNextEdgeRuntime';
 
 const SENTRY_TRACE_HEADER = 'sentry-trace';
 const SENTRY_BAGGAGE_HEADER = 'baggage';
@@ -238,7 +239,10 @@ export class SentryNodeFetchInstrumentation extends InstrumentationBase<SentryNo
    * Check if the given outgoing request should be ignored.
    */
   private _shouldIgnoreOutgoingRequest(request: UndiciRequest): boolean {
-    if (isTracingSuppressed(context.active())) {
+    // Never instrument outgoing requests in Edge Runtime
+    // This can be a problem when running in Next.js Edge Runtime in dev,
+    // as there edge is simulated but still uses Node under the hood, leaving to problems
+    if (isTracingSuppressed(context.active()) || isNextEdgeRuntime()) {
       return true;
     }
 
