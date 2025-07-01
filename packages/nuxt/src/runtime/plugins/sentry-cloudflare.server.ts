@@ -6,6 +6,7 @@ import type { H3Event } from 'h3';
 import type { NitroApp, NitroAppPlugin } from 'nitropack';
 import type { NuxtRenderHTMLContext } from 'nuxt/app';
 import { sentryCaptureErrorHook } from '../hooks/captureErrorHook';
+import { updateRouteBeforeResponse } from '../hooks/updateRouteBeforeResponse';
 import { addSentryTracingMetaTags } from '../utils';
 
 interface CfEventType {
@@ -138,6 +139,8 @@ export const sentryCloudflareNitroPlugin =
         }
       },
     });
+
+    nitroApp.hooks.hook('beforeResponse', updateRouteBeforeResponse);
 
     // @ts-expect-error - 'render:html' is a valid hook name in the Nuxt context
     nitroApp.hooks.hook('render:html', (html: NuxtRenderHTMLContext, { event }: { event: H3Event }) => {
