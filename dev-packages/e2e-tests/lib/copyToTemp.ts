@@ -18,13 +18,13 @@ function fixPackageJson(cwd: string): void {
 
   // 1. Fix file dependencies
   if (packageJson.devDependencies?.['@sentry-internal/test-utils']) {
-    const relativePath = resolve(relative(cwd, join(__dirname, '../test-utils')));
+    const relativePath = resolve(relative(cwd, join(__dirname, '../../test-utils')));
     packageJson.devDependencies['@sentry-internal/test-utils'] = `link:${relativePath}`;
   }
 
   // 2. Fix volta extends
   if (packageJson.volta?.extends === '../../package.json') {
-    const voltaPath = resolve(relative(cwd, join(__dirname, './package.json')));
+    const voltaPath = resolve(relative(cwd, join(__dirname, '../package.json')));
     packageJson.volta.extends = voltaPath;
   }
 
