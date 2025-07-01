@@ -46,73 +46,53 @@ describe('wrapMcpServerWithSentry', () => {
   });
 
   describe('Transport-level instrumentation', () => {
-    it('should proxy the connect method', () => {
-      const mockMcpServer = createMockMcpServer();
-      const originalConnect = mockMcpServer.connect;
+    let mockMcpServer: ReturnType<typeof createMockMcpServer>;
+    let wrappedMcpServer: ReturnType<typeof createMockMcpServer>;
+    let mockTransport: ReturnType<typeof createMockTransport>;
+
+    beforeEach(async () => {
+      mockMcpServer = createMockMcpServer();
+      wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
+      mockTransport = createMockTransport();
       
-      const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
-      
-      expect(wrappedMcpServer.connect).not.toBe(originalConnect);
+      // Connect the server to transport - this is common to most tests
+      await wrappedMcpServer.connect(mockTransport);
     });
 
-    it('should intercept transport onmessage handler', async () => {
-      const mockMcpServer = createMockMcpServer();
-      const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
+    it('should proxy the connect method', () => {
+      // We need to test this before connection, so create fresh instances
+      const freshMockMcpServer = createMockMcpServer();
+      const originalConnect = freshMockMcpServer.connect;
+      
+      const freshWrappedMcpServer = wrapMcpServerWithSentry(freshMockMcpServer);
+      
+      expect(freshWrappedMcpServer.connect).not.toBe(originalConnect);
+    });
 
-      const mockTransport = createMockTransport();
+    it('should intercept transport onmessage handler', () => {
       const originalOnMessage = mockTransport.onmessage;
-
-      await wrappedMcpServer.connect(mockTransport);
-
-      // onmessage should be wrapped
+      // onmessage should be wrapped after connection
       expect(mockTransport.onmessage).not.toBe(originalOnMessage);
     });
 
-    it('should intercept transport send handler', async () => {
-      const mockMcpServer = createMockMcpServer();
-      const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
-
-      const mockTransport = createMockTransport();
+    it('should intercept transport send handler', () => {
       const originalSend = mockTransport.send;
-
-      await wrappedMcpServer.connect(mockTransport);
-
-      // send should be wrapped
+      // send should be wrapped after connection  
       expect(mockTransport.send).not.toBe(originalSend);
     });
 
-    it('should intercept transport onclose handler', async () => {
-      const mockMcpServer = createMockMcpServer();
-      const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
-
-      const mockTransport = createMockTransport();
+    it('should intercept transport onclose handler', () => {
       const originalOnClose = mockTransport.onclose;
-
-      await wrappedMcpServer.connect(mockTransport);
-
-      // onclose should be wrapped
+      // onclose should be wrapped after connection
       expect(mockTransport.onclose).not.toBe(originalOnClose);
     });
 
-    it('should call original connect and preserve functionality', async () => {
-      const mockMcpServer = createMockMcpServer();
-      const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
-
-      const mockTransport = createMockTransport();
-
-      await wrappedMcpServer.connect(mockTransport);
-
-      // Original connect should have been called
+    it('should call original connect and preserve functionality', () => {
+      // Original connect should have been called during beforeEach
       expect(mockMcpServer.connect).toHaveBeenCalledWith(mockTransport);
     });
 
-    it('should create spans for incoming JSON-RPC requests', async () => {
-      const mockMcpServer = createMockMcpServer();
-      const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
-
-      const mockTransport = createMockTransport();
-      await wrappedMcpServer.connect(mockTransport);
-
+    it('should create spans for incoming JSON-RPC requests', () => {
       const jsonRpcRequest = {
         jsonrpc: '2.0',
         method: 'tools/call',
@@ -133,13 +113,7 @@ describe('wrapMcpServerWithSentry', () => {
       );
     });
 
-    it('should create spans for incoming JSON-RPC notifications', async () => {
-      const mockMcpServer = createMockMcpServer();
-      const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
-
-      const mockTransport = createMockTransport();
-      await wrappedMcpServer.connect(mockTransport);
-
+    it('should create spans for incoming JSON-RPC notifications', () => {
       const jsonRpcNotification = {
         jsonrpc: '2.0',
         method: 'notifications/initialized',
@@ -160,12 +134,6 @@ describe('wrapMcpServerWithSentry', () => {
     });
 
     it('should create spans for outgoing notifications', async () => {
-      const mockMcpServer = createMockMcpServer();
-      const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
-
-      const mockTransport = createMockTransport();
-      await wrappedMcpServer.connect(mockTransport);
-
       const outgoingNotification = {
         jsonrpc: '2.0',
         method: 'notifications/tools/list_changed',
@@ -185,13 +153,7 @@ describe('wrapMcpServerWithSentry', () => {
       );
     });
 
-    it('should not create spans for non-JSON-RPC messages', async () => {
-      const mockMcpServer = createMockMcpServer();
-      const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
-
-      const mockTransport = createMockTransport();
-      await wrappedMcpServer.connect(mockTransport);
-
+    it('should not create spans for non-JSON-RPC messages', () => {
       // Simulate non-JSON-RPC message
       expect(mockTransport.onmessage).toBeDefined();
       mockTransport.onmessage?.({ some: 'data' }, {});
@@ -199,15 +161,9 @@ describe('wrapMcpServerWithSentry', () => {
       expect(tracingModule.startSpan).not.toHaveBeenCalled();
     });
 
-    it('should handle transport onclose events', async () => {
-      const mockMcpServer = createMockMcpServer();
-      const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
-
-      const mockTransport = createMockTransport();
+    it('should handle transport onclose events', () => {
       mockTransport.sessionId = 'test-session-123';
       
-      await wrappedMcpServer.connect(mockTransport);
-
       // Trigger onclose - should not throw
       expect(mockTransport.onclose).toBeDefined();
       expect(() => mockTransport.onclose?.()).not.toThrow();
