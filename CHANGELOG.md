@@ -4,6 +4,50 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 9.34.0
+
+### Important Changes
+
+- **feat(nuxt): Add Cloudflare Nitro plugin ([#15597](https://github.com/getsentry/sentry-javascript/pull/15597))**
+
+  A Nitro plugin for `@sentry/nuxt` which initializes Sentry when deployed to Cloudflare (`cloudflare-pages` preset).
+
+  1. Remove the previous server config file: `sentry.server.config.ts`
+  2. Add a plugin in `server/plugins` (e.g. `server/plugins/sentry-cloudflare-setup.ts`)
+  3. Add this code in your plugin file
+
+     ```javascript
+     // server/plugins/sentry-cloudflare-setup.ts (filename does not matter)
+     import { sentryCloudflareNitroPlugin } from '@sentry/nuxt/module/plugins';
+
+     export default defineNitroPlugin(
+       sentryCloudflareNitroPlugin({
+         dsn: 'https://dsn',
+         tracesSampleRate: 1.0,
+       }),
+     );
+     ```
+
+     or with access to `nitroApp`:
+
+     ```javascript
+     // server/plugins/sentry-cloudflare-setup.ts (filename does not matter)
+     import { sentryCloudflareNitroPlugin } from '@sentry/nuxt/module/plugins';
+
+     export default defineNitroPlugin(sentryCloudflareNitroPlugin((nitroApp: NitroApp) => {
+       // You can access nitroApp here if needed
+       return  ({
+         dsn: 'https://dsn',
+         tracesSampleRate: 1.0,
+       })
+     }))
+     ```
+
+### Other Changes
+
+- feat(browser): Record standalone LCP spans ([#16591](https://github.com/getsentry/sentry-javascript/pull/16591))
+- fix(nuxt): Only add OTel alias in dev mode ([#16756](https://github.com/getsentry/sentry-javascript/pull/16756))
+
 ## 9.33.0
 
 ### Important Changes
