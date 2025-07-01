@@ -36,6 +36,7 @@ sentryTest(
       'sentry.origin': 'auto.ui.browser.elementtiming',
       'sentry.source': 'component',
       'sentry.span_start_time_source': 'load-time',
+      'element.id': 'image-fast-id',
       'element.identifier': 'image-fast',
       'element.type': 'img',
       'element.size': '600x179',
@@ -64,6 +65,7 @@ sentryTest(
       'sentry.origin': 'auto.ui.browser.elementtiming',
       'sentry.source': 'component',
       'sentry.span_start_time_source': 'render-time',
+      'element.id': 'text1-id',
       'element.identifier': 'text1',
       'element.type': 'p',
       'element.render_time': expect.any(Number),
@@ -91,6 +93,7 @@ sentryTest(
     const imageSlowSpan = elementTimingSpans?.find(({ data }) => data?.['element.identifier'] === 'image-slow');
     expect(imageSlowSpan).toBeDefined();
     expect(imageSlowSpan?.data).toEqual({
+      'element.id': '',
       'element.identifier': 'image-slow',
       'element.type': 'img',
       'element.size': '600x179',
@@ -118,6 +121,7 @@ sentryTest(
     const lazyImageSpan = elementTimingSpans?.find(({ data }) => data?.['element.identifier'] === 'lazy-image');
     expect(lazyImageSpan).toBeDefined();
     expect(lazyImageSpan?.data).toEqual({
+      'element.id': '',
       'element.identifier': 'lazy-image',
       'element.type': 'img',
       'element.size': '600x179',
@@ -144,6 +148,7 @@ sentryTest(
     // Check lazy-text span
     const lazyTextSpan = elementTimingSpans?.find(({ data }) => data?.['element.identifier'] === 'lazy-text');
     expect(lazyTextSpan?.data).toMatchObject({
+      'element.id': '',
       'element.identifier': 'lazy-text',
       'element.type': 'p',
       'sentry.transaction_name': '/index.html',
