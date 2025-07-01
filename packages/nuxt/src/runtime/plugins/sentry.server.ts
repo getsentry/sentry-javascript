@@ -5,10 +5,13 @@ import { type EventHandler } from 'h3';
 import { defineNitroPlugin } from 'nitropack/runtime';
 import type { NuxtRenderHTMLContext } from 'nuxt/app';
 import { sentryCaptureErrorHook } from '../hooks/captureErrorHook';
+import { updateRouteBeforeResponse } from '../hooks/updateRouteBeforeResponse';
 import { addSentryTracingMetaTags, flushIfServerless } from '../utils';
 
 export default defineNitroPlugin(nitroApp => {
   nitroApp.h3App.handler = patchEventHandler(nitroApp.h3App.handler);
+
+  nitroApp.hooks.hook('beforeResponse', updateRouteBeforeResponse);
 
   nitroApp.hooks.hook('error', sentryCaptureErrorHook);
 
