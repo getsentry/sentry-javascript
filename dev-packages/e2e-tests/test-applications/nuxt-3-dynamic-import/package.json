@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@sentry/nuxt": "latest || *",
+    "@sentry/core": "latest || *",
     "nuxt": "^3.14.0"
   },
   "devDependencies": {
@@ -26,5 +27,8 @@
       "nitropack": "~2.9.7",
       "ofetch": "^1.4.0"
     }
+  },
+  "volta": {
+    "extends": "../../package.json"
   }
 }
