@@ -18,14 +18,18 @@ function fixPackageJson(cwd: string): void {
 
   // 1. Fix file dependencies
   if (packageJson.devDependencies?.['@sentry-internal/test-utils']) {
-    const relativePath = resolve(relative(cwd, join(__dirname, '../../test-utils')));
-    packageJson.devDependencies['@sentry-internal/test-utils'] = `link:${relativePath}`;
+    const newPath = resolve(relative(cwd, join(__dirname, '../../test-utils')));
+    packageJson.devDependencies['@sentry-internal/test-utils'] = `link:${newPath}`;
+    // eslint-disable-next-line no-console
+    console.log(`Fixed devDependencies['@sentry-internal/test-utils'] to ${newPath}`);
   }
 
   // 2. Fix volta extends
   if (packageJson.volta?.extends === '../../package.json') {
-    const voltaPath = resolve(relative(cwd, join(__dirname, '../package.json')));
-    packageJson.volta.extends = voltaPath;
+    const newPath = resolve(relative(cwd, join(__dirname, '../package.json')));
+    packageJson.volta.extends = newPath;
+    // eslint-disable-next-line no-console
+    console.log(`Fixed volta.extends to ${newPath}`);
   }
 
   writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
