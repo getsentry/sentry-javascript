@@ -29,4 +29,7 @@ export declare const Span: clientSdk.Span;
 
 export declare const logger: typeof clientSdk.logger | typeof serverSdk.logger;
 
+export declare const launchDarklyIntegration: typeof clientSdk.launchDarklyIntegration;
+export declare const buildLaunchDarklyFlagUsedHandler: typeof clientSdk.buildLaunchDarklyFlagUsedHandler;
+
 export default sentryAstro;

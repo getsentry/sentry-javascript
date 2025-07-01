@@ -18,3 +18,6 @@ export declare const getDefaultIntegrations: (options: Options) => Integration[]
 export declare const defaultStackParser: StackParser;
 
 export declare const logger: typeof clientSdk.logger | typeof serverSdk.logger;
+
+export declare const launchDarklyIntegration: typeof clientSdk.launchDarklyIntegration;
+export declare const buildLaunchDarklyFlagUsedHandler: typeof clientSdk.buildLaunchDarklyFlagUsedHandler;

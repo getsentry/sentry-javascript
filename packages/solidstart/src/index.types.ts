@@ -25,3 +25,6 @@ export declare function flush(timeout?: number | undefined): PromiseLike<boolean
 export declare function lastEventId(): string | undefined;
 
 export declare const logger: typeof clientSdk.logger | typeof serverSdk.logger;
+
+export declare const launchDarklyIntegration: typeof clientSdk.launchDarklyIntegration;
+export declare const buildLaunchDarklyFlagUsedHandler: typeof clientSdk.buildLaunchDarklyFlagUsedHandler;
