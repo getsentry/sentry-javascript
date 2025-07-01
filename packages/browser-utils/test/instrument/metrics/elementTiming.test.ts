@@ -49,16 +49,20 @@ describe('_onElementTiming', () => {
       _onElementTiming({ entries: [entry] });
 
       expect(startSpanSpy).toHaveBeenCalledWith(
-        {
+        expect.objectContaining({
           name: 'element[test-element]',
           startTime: 0.05,
           attributes: expect.objectContaining({
             'sentry.op': 'ui.elementtiming',
-            'sentry.span-start-time-source': 'load-time',
-            'element.render-time': 100,
-            'element.load-time': 50,
+            'sentry.origin': 'auto.ui.browser.elementtiming',
+            'sentry.source': 'component',
+            'sentry.span_start_time_source': 'load-time',
+            'element.render_time': 100,
+            'element.load_time': 50,
+            'element.identifier': 'test-element',
+            'element.paint_type': 'image-paint',
           }),
-        },
+        }),
         expect.any(Function),
       );
     });
@@ -77,15 +81,20 @@ describe('_onElementTiming', () => {
       _onElementTiming({ entries: [entry] });
 
       expect(startSpanSpy).toHaveBeenCalledWith(
-        {
+        expect.objectContaining({
           name: 'element[test-element]',
           startTime: 0.1,
           attributes: expect.objectContaining({
-            'sentry.span-start-time-source': 'render-time',
-            'element.render-time': 100,
-            'element.load-time': undefined,
+            'sentry.op': 'ui.elementtiming',
+            'sentry.origin': 'auto.ui.browser.elementtiming',
+            'sentry.source': 'component',
+            'sentry.span_start_time_source': 'render-time',
+            'element.render_time': 100,
+            'element.load_time': undefined,
+            'element.identifier': 'test-element',
+            'element.paint_type': 'image-paint',
           }),
-        },
+        }),
         expect.any(Function),
       );
     });
@@ -103,15 +112,20 @@ describe('_onElementTiming', () => {
       _onElementTiming({ entries: [entry] });
 
       expect(startSpanSpy).toHaveBeenCalledWith(
-        {
+        expect.objectContaining({
           name: 'element[test-element]',
           startTime: expect.any(Number),
           attributes: expect.objectContaining({
-            'sentry.span-start-time-source': 'entry-emission',
-            'element.render-time': undefined,
-            'element.load-time': undefined,
+            'sentry.op': 'ui.elementtiming',
+            'sentry.origin': 'auto.ui.browser.elementtiming',
+            'sentry.source': 'component',
+            'sentry.span_start_time_source': 'entry-emission',
+            'element.render_time': undefined,
+            'element.load_time': undefined,
+            'element.identifier': 'test-element',
+            'element.paint_type': 'image-paint',
           }),
-        },
+        }),
         expect.any(Function),
       );
     });
@@ -137,9 +151,9 @@ describe('_onElementTiming', () => {
           name: 'element[test-element]',
           startTime: 1.5,
           attributes: expect.objectContaining({
-            'element.render-time': 1505,
-            'element.load-time': 1500,
-            'element.paint-type': 'image-paint',
+            'element.render_time': 1505,
+            'element.load_time': 1500,
+            'element.paint_type': 'image-paint',
           }),
         }),
         expect.any(Function),
@@ -167,9 +181,9 @@ describe('_onElementTiming', () => {
           name: 'element[test-element]',
           startTime: 1.6,
           attributes: expect.objectContaining({
-            'element.paint-type': 'text-paint',
-            'element.render-time': 1600,
-            'element.load-time': 0,
+            'element.paint_type': 'text-paint',
+            'element.render_time': 1600,
+            'element.load_time': 0,
           }),
         }),
         expect.any(Function),
@@ -198,9 +212,9 @@ describe('_onElementTiming', () => {
           name: 'element[test-element]',
           startTime: 1.7,
           attributes: expect.objectContaining({
-            'element.paint-type': 'somethingelse',
-            'element.render-time': 1700,
-            'element.load-time': 0,
+            'element.paint_type': 'somethingelse',
+            'element.render_time': 1700,
+            'element.load_time': 0,
           }),
         }),
         expect.any(Function),
@@ -232,9 +246,9 @@ describe('_onElementTiming', () => {
           attributes: expect.objectContaining({
             'element.type': 'img',
             'element.identifier': 'my-image',
-            'element.paint-type': 'image-paint',
-            'element.render-time': 100,
-            'element.load-time': undefined,
+            'element.paint_type': 'image-paint',
+            'element.render_time': 100,
+            'element.load_time': undefined,
             'element.size': undefined,
             'element.url': undefined,
           }),
@@ -312,8 +326,8 @@ describe('_onElementTiming', () => {
             'sentry.op': 'ui.elementtiming',
             'sentry.origin': 'auto.ui.browser.elementtiming',
             'sentry.source': 'component',
-            'sentry.span-start-time-source': 'render-time',
-            route: undefined,
+            'sentry.span_start_time_source': 'render-time',
+            'sentry.transaction_name': undefined,
           }),
         }),
         expect.any(Function),
