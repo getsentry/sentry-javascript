@@ -46,6 +46,9 @@ export declare function wrapLoadWithSentry<T extends (...args: any) => any>(orig
 export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;
 export declare const contextLinesIntegration: typeof clientSdk.contextLinesIntegration;
 
+// Different implementation in server and worker
+export declare const vercelAIIntegration: typeof serverSdk.vercelAIIntegration;
+
 export declare const getDefaultIntegrations: (options: Options) => Integration[];
 export declare const defaultStackParser: StackParser;
 

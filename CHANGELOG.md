@@ -4,6 +4,93 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 9.34.0
+
+### Important Changes
+
+- **feat(nuxt): Add Cloudflare Nitro plugin ([#15597](https://github.com/getsentry/sentry-javascript/pull/15597))**
+
+  A Nitro plugin for `@sentry/nuxt` which initializes Sentry when deployed to Cloudflare (`cloudflare-pages` preset).
+
+  1. Remove the previous server config file: `sentry.server.config.ts`
+  2. Add a plugin in `server/plugins` (e.g. `server/plugins/sentry-cloudflare-setup.ts`)
+  3. Add this code in your plugin file
+
+     ```javascript
+     // server/plugins/sentry-cloudflare-setup.ts (filename does not matter)
+     import { sentryCloudflareNitroPlugin } from '@sentry/nuxt/module/plugins';
+
+     export default defineNitroPlugin(
+       sentryCloudflareNitroPlugin({
+         dsn: 'https://dsn',
+         tracesSampleRate: 1.0,
+       }),
+     );
+     ```
+
+     or with access to `nitroApp`:
+
+     ```javascript
+     // server/plugins/sentry-cloudflare-setup.ts (filename does not matter)
+     import { sentryCloudflareNitroPlugin } from '@sentry/nuxt/module/plugins';
+
+     export default defineNitroPlugin(sentryCloudflareNitroPlugin((nitroApp: NitroApp) => {
+       // You can access nitroApp here if needed
+       return  ({
+         dsn: 'https://dsn',
+         tracesSampleRate: 1.0,
+       })
+     }))
+     ```
+
+### Other Changes
+
+- feat(browser): Record standalone LCP spans ([#16591](https://github.com/getsentry/sentry-javascript/pull/16591))
+- fix(nuxt): Only add OTel alias in dev mode ([#16756](https://github.com/getsentry/sentry-javascript/pull/16756))
+
+## 9.33.0
+
+### Important Changes
+
+- **feat: Add opt-in `vercelAiIntegration` to cloudflare & vercel-edge ([#16732](https://github.com/getsentry/sentry-javascript/pull/16732))**
+
+The `vercelAiIntegration` is now available as opt-in for the Cloudflare and the Next.js SDK for Vercel Edge.
+To use it, add the integration in `Sentry.init`
+
+```js
+Sentry.init({
+  tracesSampleRate: 1.0,
+  integrations: [Sentry.vercelAIIntegration()],
+});
+```
+
+And enable telemetry for Vercel AI calls
+
+```js
+const result = await generateText({
+  model: openai('gpt-4o'),
+  experimental_telemetry: {
+    isEnabled: true,
+  },
+});
+```
+
+- **feat(node): Add postgresjs instrumentation ([#16665](https://github.com/getsentry/sentry-javascript/pull/16665))**
+
+The Node.js SDK now includes instrumentation for [Postgres.js](https://www.npmjs.com/package/postgres).
+
+- **feat(node): Use diagnostics channel for Fastify v5 error handling ([#16715](https://github.com/getsentry/sentry-javascript/pull/16715))**
+
+If you're on Fastify v5, you no longer need to call `setupFastifyErrorHandler`. It is done automatically by the node SDK. Older versions still rely on calling `setupFastifyErrorHandler`.
+
+### Other Changes
+
+- feat(cloudflare): Allow interop with OpenTelemetry emitted spans ([#16714](https://github.com/getsentry/sentry-javascript/pull/16714))
+- feat(cloudflare): Flush after `waitUntil` ([#16681](https://github.com/getsentry/sentry-javascript/pull/16681))
+- fix(nextjs): Remove `ai` from default server external packages ([#16736](https://github.com/getsentry/sentry-javascript/pull/16736))
+
+Work in this release was contributed by @0xbad0c0d3. Thank you for your contribution!
+
 ## 9.32.0
 
 ### Important Changes

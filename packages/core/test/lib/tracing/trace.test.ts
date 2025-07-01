@@ -620,6 +620,44 @@ describe('startSpan', () => {
         });
       });
     });
+
+    it('explicit parentSpan takes precedence over parentSpanIsAlwaysRootSpan=true', () => {
+      const options = getDefaultTestClientOptions({
+        tracesSampleRate: 1,
+        parentSpanIsAlwaysRootSpan: true,
+      });
+      client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
+
+      const parentSpan = startInactiveSpan({ name: 'parent span' });
+
+      startSpan({ name: 'parent span' }, () => {
+        startSpan({ name: 'child span' }, () => {
+          startSpan({ name: 'grand child span', parentSpan }, grandChildSpan => {
+            expect(spanToJSON(grandChildSpan).parent_span_id).toBe(parentSpan.spanContext().spanId);
+          });
+        });
+      });
+    });
+
+    it('explicit parentSpan=null takes precedence over parentSpanIsAlwaysRootSpan=true', () => {
+      const options = getDefaultTestClientOptions({
+        tracesSampleRate: 1,
+        parentSpanIsAlwaysRootSpan: true,
+      });
+      client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
+
+      startSpan({ name: 'parent span' }, () => {
+        startSpan({ name: 'child span' }, () => {
+          startSpan({ name: 'grand child span', parentSpan: null }, grandChildSpan => {
+            expect(spanToJSON(grandChildSpan).parent_span_id).toBe(undefined);
+          });
+        });
+      });
+    });
   });
 
   it('samples with a tracesSampler', () => {
@@ -1174,6 +1212,46 @@ describe('startSpanManual', () => {
         span.end();
       });
     });
+
+    it('explicit parentSpan takes precedence over parentSpanIsAlwaysRootSpan=true', () => {
+      const options = getDefaultTestClientOptions({
+        tracesSampleRate: 1,
+        parentSpanIsAlwaysRootSpan: true,
+      });
+      client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
+
+      const parentSpan = startInactiveSpan({ name: 'parent span' });
+
+      startSpan({ name: 'parent span' }, () => {
+        startSpan({ name: 'child span' }, () => {
+          startSpanManual({ name: 'grand child span', parentSpan }, grandChildSpan => {
+            expect(spanToJSON(grandChildSpan).parent_span_id).toBe(parentSpan.spanContext().spanId);
+            grandChildSpan.end();
+          });
+        });
+      });
+    });
+
+    it('explicit parentSpan=null takes precedence over parentSpanIsAlwaysRootSpan=true', () => {
+      const options = getDefaultTestClientOptions({
+        tracesSampleRate: 1,
+        parentSpanIsAlwaysRootSpan: true,
+      });
+      client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
+
+      startSpan({ name: 'parent span' }, () => {
+        startSpan({ name: 'child span' }, () => {
+          startSpanManual({ name: 'grand child span', parentSpan: null }, grandChildSpan => {
+            expect(spanToJSON(grandChildSpan).parent_span_id).toBe(undefined);
+            grandChildSpan.end();
+          });
+        });
+      });
+    });
   });
 
   it('sets a child span reference on the parent span', () => {
@@ -1540,6 +1618,44 @@ describe('startInactiveSpan', () => {
             const inactiveSpan = startInactiveSpan({ name: 'inactive span' });
             expect(spanToJSON(inactiveSpan).parent_span_id).toBe(grandChildSpan.spanContext().spanId);
           });
+        });
+      });
+    });
+
+    it('explicit parentSpan takes precedence over parentSpanIsAlwaysRootSpan=true', () => {
+      const options = getDefaultTestClientOptions({
+        tracesSampleRate: 1,
+        parentSpanIsAlwaysRootSpan: true,
+      });
+      client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
+
+      const parentSpan = startInactiveSpan({ name: 'parent span' });
+
+      startSpan({ name: 'parent span' }, () => {
+        startSpan({ name: 'child span' }, () => {
+          const grandChildSpan = startInactiveSpan({ name: 'grand child span', parentSpan });
+          expect(spanToJSON(grandChildSpan).parent_span_id).toBe(parentSpan.spanContext().spanId);
+          grandChildSpan.end();
+        });
+      });
+    });
+
+    it('explicit parentSpan=null takes precedence over parentSpanIsAlwaysRootSpan=true', () => {
+      const options = getDefaultTestClientOptions({
+        tracesSampleRate: 1,
+        parentSpanIsAlwaysRootSpan: true,
+      });
+      client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
+
+      startSpan({ name: 'parent span' }, () => {
+        startSpan({ name: 'child span' }, () => {
+          const grandChildSpan = startInactiveSpan({ name: 'grand child span', parentSpan: null });
+          expect(spanToJSON(grandChildSpan).parent_span_id).toBe(undefined);
+          grandChildSpan.end();
         });
       });
     });

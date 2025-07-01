@@ -99,6 +99,7 @@ export {
   redisIntegration,
   tediousIntegration,
   postgresIntegration,
+  postgresJsIntegration,
   prismaIntegration,
   childProcessIntegration,
   createSentryWinstonTransport,

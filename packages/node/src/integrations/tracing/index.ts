@@ -15,6 +15,7 @@ import { instrumentMongoose, mongooseIntegration } from './mongoose';
 import { instrumentMysql, mysqlIntegration } from './mysql';
 import { instrumentMysql2, mysql2Integration } from './mysql2';
 import { instrumentPostgres, postgresIntegration } from './postgres';
+import { instrumentPostgresJs, postgresJsIntegration } from './postgresjs';
 import { prismaIntegration } from './prisma';
 import { instrumentRedis, redisIntegration } from './redis';
 import { instrumentTedious, tediousIntegration } from './tedious';
@@ -44,6 +45,7 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     amqplibIntegration(),
     lruMemoizerIntegration(),
     vercelAIIntegration(),
+    postgresJsIntegration(),
   ];
 }
 
@@ -75,5 +77,6 @@ export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) =>
     instrumentGenericPool,
     instrumentAmqplib,
     instrumentVercelAi,
+    instrumentPostgresJs,
   ];
 }

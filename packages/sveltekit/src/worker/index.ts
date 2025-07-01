@@ -84,6 +84,7 @@ export {
   instrumentSupabaseClient,
   zodErrorsIntegration,
   featureFlagsIntegration,
+  vercelAIIntegration,
   type FeatureFlagsIntegration,
 } from '@sentry/cloudflare';
 
