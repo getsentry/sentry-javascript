@@ -141,6 +141,8 @@ export {
   createSentryWinstonTransport,
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
+  launchDarklyIntegration,
+  buildLaunchDarklyFlagUsedHandler,
 } from '@sentry/node';
 
 export {
