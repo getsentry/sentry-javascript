@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync } from 'fs';
 import { cp } from 'fs/promises';
-import { join, relative, resolve } from 'path';
+import { join, resolve } from 'path';
 
 export async function copyToTemp(originalPath: string, tmpDirPath: string): Promise<void> {
   // copy files to tmp dir
@@ -18,7 +18,7 @@ function fixPackageJson(cwd: string): void {
 
   // 1. Fix file dependencies
   if (packageJson.devDependencies?.['@sentry-internal/test-utils']) {
-    const newPath = resolve(relative(cwd, join(__dirname, '../../test-utils')));
+    const newPath = resolve(join(__dirname, '../../test-utils'));
     packageJson.devDependencies['@sentry-internal/test-utils'] = `link:${newPath}`;
     // eslint-disable-next-line no-console
     console.log(`Fixed devDependencies['@sentry-internal/test-utils'] to ${newPath}`);
@@ -26,7 +26,7 @@ function fixPackageJson(cwd: string): void {
 
   // 2. Fix volta extends
   if (packageJson.volta?.extends === '../../package.json') {
-    const newPath = resolve(relative(cwd, join(__dirname, '../package.json')));
+    const newPath = resolve(join(__dirname, '../package.json'));
     packageJson.volta.extends = newPath;
     // eslint-disable-next-line no-console
     console.log(`Fixed volta.extends to ${newPath}`);
