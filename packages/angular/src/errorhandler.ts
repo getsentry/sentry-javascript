@@ -91,7 +91,7 @@ class SentryErrorHandler implements AngularErrorHandler, OnDestroy {
   public constructor(@Inject(SENTRY_ERROR_HANDLER_OPTIONS) @Optional()  options?: ErrorHandlerOptions) {
     this._options = {
       logErrors: true,
-      ...options,
+      ...(options || {}),
     };
   }
 
