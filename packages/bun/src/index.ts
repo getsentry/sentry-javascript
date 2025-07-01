@@ -144,6 +144,10 @@ export {
   featureFlagsIntegration,
   launchDarklyIntegration,
   buildLaunchDarklyFlagUsedHandler,
+  openFeatureIntegration,
+  OpenFeatureIntegrationHook,
+  statsigIntegration,
+  unleashIntegration,
 } from '@sentry/node';
 
 export {

@@ -35,3 +35,7 @@ export const lastEventId = runtime === 'client' ? clientSdk.lastEventId : server
 
 export declare const launchDarklyIntegration: typeof clientSdk.launchDarklyIntegration;
 export declare const buildLaunchDarklyFlagUsedHandler: typeof clientSdk.buildLaunchDarklyFlagUsedHandler;
+export declare const openFeatureIntegration: typeof clientSdk.openFeatureIntegration;
+export declare const OpenFeatureIntegrationHook: typeof clientSdk.OpenFeatureIntegrationHook;
+export declare const statsigIntegration: typeof clientSdk.statsigIntegration;
+export declare const unleashIntegration: typeof clientSdk.unleashIntegration;

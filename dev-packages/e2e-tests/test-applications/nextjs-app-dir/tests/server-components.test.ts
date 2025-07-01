@@ -136,5 +136,6 @@ test('Should capture an error and transaction for a app router page', async ({ p
 
 test('Should not throw error on server component when importing shimmed feature flag function', async ({ page }) => {
   await page.goto('/server-component/featureFlag');
+  // tests that none of the feature flag functions throw an error when imported in a node environment
   await expect(page.locator('body')).toContainText('FeatureFlagServerComponent');
 });
