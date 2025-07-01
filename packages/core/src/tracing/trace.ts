@@ -58,7 +58,7 @@ export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) =
 
     return wrapper(() => {
       const scope = getCurrentScope();
-      const parentSpan = getParentSpan(scope);
+      const parentSpan = getParentSpan(scope, customParentSpan);
 
       const shouldSkipSpan = options.onlyIfParent && !parentSpan;
       const activeSpan = shouldSkipSpan
@@ -116,7 +116,7 @@ export function startSpanManual<T>(options: StartSpanOptions, callback: (span: S
 
     return wrapper(() => {
       const scope = getCurrentScope();
-      const parentSpan = getParentSpan(scope);
+      const parentSpan = getParentSpan(scope, customParentSpan);
 
       const shouldSkipSpan = options.onlyIfParent && !parentSpan;
       const activeSpan = shouldSkipSpan
@@ -176,7 +176,7 @@ export function startInactiveSpan(options: StartSpanOptions): Span {
 
   return wrapper(() => {
     const scope = getCurrentScope();
-    const parentSpan = getParentSpan(scope);
+    const parentSpan = getParentSpan(scope, customParentSpan);
 
     const shouldSkipSpan = options.onlyIfParent && !parentSpan;
 
@@ -489,7 +489,17 @@ function _startChildSpan(parentSpan: Span, scope: Scope, spanArguments: SentrySp
   return childSpan;
 }
 
-function getParentSpan(scope: Scope): SentrySpan | undefined {
+function getParentSpan(scope: Scope, customParentSpan: Span | null | undefined): SentrySpan | undefined {
+  // always use the passed in span directly
+  if (customParentSpan) {
+    return customParentSpan as SentrySpan;
+  }
+
+  // This is different from `undefined` as it means the user explicitly wants no parent span
+  if (customParentSpan === null) {
+    return undefined;
+  }
+
   const span = _getSpanForScope(scope) as SentrySpan | undefined;
 
   if (!span) {
