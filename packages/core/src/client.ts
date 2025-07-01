@@ -498,7 +498,8 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   ): void;
 
   /**
-   * Register a callback for whenever a span is ended.
+   * Register a callback for after a span is ended.
+   * NOTE: The span cannot be mutated anymore in this callback.
    * Receives the span as argument.
    * @returns {() => void} A function that, when executed, removes the registered callback.
    */

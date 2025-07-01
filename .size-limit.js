@@ -38,21 +38,21 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration'),
     gzip: true,
-    limit: '40.5 KB',
+    limit: '40.7 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay)',
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration'),
     gzip: true,
-    limit: '78 KB',
+    limit: '80 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay) - with treeshaking flags',
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration'),
     gzip: true,
-    limit: '71 KB',
+    limit: '75 KB',
     modifyWebpackConfig: function (config) {
       const webpack = require('webpack');
 
@@ -156,7 +156,7 @@ module.exports = [
     name: 'CDN Bundle (incl. Tracing)',
     path: createCDNPath('bundle.tracing.min.js'),
     gzip: true,
-    limit: '40 KB',
+    limit: '41 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay)',

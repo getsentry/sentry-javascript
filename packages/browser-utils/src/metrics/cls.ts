@@ -58,8 +58,6 @@ export function trackClsAsStandaloneSpan(): void {
     standaloneClsEntry = entry;
   }, true);
 
-  // TODO: Figure out if we can switch to using whenIdleOrHidden instead of onHidden
-  // use pagehide event from web-vitals
   onHidden(() => {
     _collectClsOnce();
   });
@@ -105,6 +103,14 @@ function sendStandaloneClsSpan(clsValue: number, entry: LayoutShift | undefined,
     // attach the pageload span id to the CLS span so that we can link them in the UI
     'sentry.pageload.span_id': pageloadSpanId,
   };
+
+  // Add CLS sources as span attributes to help with debugging layout shifts
+  // See: https://developer.mozilla.org/en-US/docs/Web/API/LayoutShift/sources
+  if (entry?.sources) {
+    entry.sources.forEach((source, index) => {
+      attributes[`cls.source.${index + 1}`] = htmlTreeAsString(source.node);
+    });
+  }
 
   const span = startStandaloneWebVitalSpan({
     name,
