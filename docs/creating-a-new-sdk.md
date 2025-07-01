@@ -173,4 +173,5 @@ To add support for Cloudflare Workers or Pages in a specific SDK, you need to do
     ```
 
 3.  Add documentation to the [Cloudflare Frameworks docs](https://docs.sentry.io/platforms/javascript/guides/cloudflare/frameworks/) explaining how to set up the SDK for Cloudflare Workers/Pages.
-    This documentation should include instructions for users to add the `@sentry/cloudflare` package to their project. You can then link to the main Cloudflare SDK documentation from the framework-specific docs.
+    This documentation should include instructions for users to add the `@sentry/cloudflare` package to their project.
+    You can then link from the framework-specific docs pages to the Cloudflare SDK docs page by adding an entry to "Next Steps" on the "Getting Started" and "Manual Setup" pages.
