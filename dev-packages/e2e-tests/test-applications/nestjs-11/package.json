@@ -49,5 +49,8 @@
     "overrides": {
       "minimatch": "10.0.1"
     }
+  },
+  "volta": {
+    "extends": "../../package.json"
   }
 }

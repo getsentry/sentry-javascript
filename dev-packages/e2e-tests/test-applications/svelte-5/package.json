@@ -26,5 +26,8 @@
   },
   "dependencies": {
     "@sentry/svelte": "latest || *"
+  },
+  "volta": {
+    "extends": "../../package.json"
   }
 }
