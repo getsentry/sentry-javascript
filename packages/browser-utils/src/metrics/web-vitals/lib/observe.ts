@@ -28,6 +28,9 @@ interface PerformanceEntryMap {
   // our `instrumentPerformanceObserver` function also observes 'longtask'
   // entries.
   longtask: PerformanceEntry[];
+  // Sentry-specific change:
+  // We add element as a supported entry type for ElementTiming API
+  element: PerformanceEntry[];
 }
 
 /**

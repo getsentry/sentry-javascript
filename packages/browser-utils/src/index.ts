@@ -17,6 +17,8 @@ export {
   registerInpInteractionListener,
 } from './metrics/browserMetrics';
 
+export { startTrackingElementTiming } from './metrics/elementTiming';
+
 export { extractNetworkProtocol } from './metrics/utils';
 
 export { addClickKeypressInstrumentationHandler } from './instrument/dom';

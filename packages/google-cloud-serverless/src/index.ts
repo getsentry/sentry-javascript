@@ -124,6 +124,12 @@ export {
   NODE_VERSION,
   featureFlagsIntegration,
   type FeatureFlagsIntegration,
+  launchDarklyIntegration,
+  buildLaunchDarklyFlagUsedHandler,
+  openFeatureIntegration,
+  OpenFeatureIntegrationHook,
+  statsigIntegration,
+  unleashIntegration,
 } from '@sentry/node';
 
 export {
