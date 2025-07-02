@@ -175,15 +175,16 @@ export function withMonitor<T>(
     }
 
     if (isThenable(maybePromiseResult)) {
-      Promise.resolve(maybePromiseResult).then(
-        () => {
+      return maybePromiseResult.then(
+        r => {
           finishCheckIn('ok');
+          return r;
         },
         e => {
           finishCheckIn('error');
           throw e;
         },
-      );
+      ) as T;
     } else {
       finishCheckIn('ok');
     }
