@@ -1,6 +1,6 @@
 <template>
   <div>
-    <button @click="fetchError">Fetch Server Error</button>
+    <button @click="fetchError">Fetch Server API Error</button>
   </div>
 </template>
 
