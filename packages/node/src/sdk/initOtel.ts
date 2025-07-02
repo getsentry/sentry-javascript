@@ -1,4 +1,4 @@
-import { context, diag, DiagLogLevel, propagation, trace } from '@opentelemetry/api';
+import { context, propagation, trace } from '@opentelemetry/api';
 import { Resource } from '@opentelemetry/resources';
 import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
@@ -8,14 +8,13 @@ import {
   SEMRESATTRS_SERVICE_NAMESPACE,
 } from '@opentelemetry/semantic-conventions';
 import { consoleSandbox, GLOBAL_OBJ, logger, SDK_VERSION } from '@sentry/core';
+import type { NodeClient } from '@sentry/node-core';
+import { isCjs, SentryContextManager } from '@sentry/node-core';
 import { SentryPropagator, SentrySampler, SentrySpanProcessor } from '@sentry/opentelemetry';
 import { createAddHookMessageChannel } from 'import-in-the-middle';
 import moduleModule from 'module';
 import { DEBUG_BUILD } from '../debug-build';
 import { getOpenTelemetryInstrumentationToPreload } from '../integrations/tracing';
-import { SentryContextManager } from '../otel/contextManager';
-import { isCjs } from '../utils/commonjs';
-import type { NodeClient } from './client';
 
 // About 277h - this must fit into new Array(len)!
 const MAX_MAX_SPAN_WAIT_DURATION = 1_000_000;
@@ -29,10 +28,6 @@ interface AdditionalOpenTelemetryOptions {
  * Initialize OpenTelemetry for Node.
  */
 export function initOpenTelemetry(client: NodeClient, options: AdditionalOpenTelemetryOptions = {}): void {
-  if (client.getOptions().debug) {
-    setupOpenTelemetryLogger();
-  }
-
   const provider = setupOtel(client, options);
   client.traceProvider = provider;
 }
@@ -80,7 +75,6 @@ export function preloadOpenTelemetry(options: NodePreloadOptions = {}): void {
 
   if (debug) {
     logger.enable();
-    setupOpenTelemetryLogger();
   }
 
   if (!isCjs()) {
@@ -153,20 +147,4 @@ export function _clampSpanProcessorTimeout(maxSpanWaitDuration: number | undefin
   }
 
   return maxSpanWaitDuration;
-}
-
-/**
- * Setup the OTEL logger to use our own logger.
- */
-function setupOpenTelemetryLogger(): void {
-  const otelLogger = new Proxy(logger as typeof logger & { verbose: (typeof logger)['debug'] }, {
-    get(target, prop, receiver) {
-      const actualProp = prop === 'verbose' ? 'debug' : prop;
-      return Reflect.get(target, actualProp, receiver);
-    },
-  });
-
-  // Disable diag, to ensure this works even if called multiple times
-  diag.disable();
-  diag.setLogger(otelLogger, DiagLogLevel.DEBUG);
 }
