@@ -26,7 +26,7 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
   const outboundTransaction = await outboundTransactionPromise;
 
   const traceId = outboundTransaction?.contexts?.trace?.trace_id;
-  const outgoingHttpSpan = outboundTransaction?.spans?.find(span => span.op === 'http.client') as SpanJSON | undefined;
+  const outgoingHttpSpan = outboundTransaction?.spans?.find(span => span.op === 'http.client');
 
   expect(outgoingHttpSpan).toBeDefined();
 
