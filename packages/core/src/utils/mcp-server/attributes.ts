@@ -1,6 +1,6 @@
 /**
  * Essential MCP attribute constants for Sentry instrumentation
- * 
+ *
  * Based on OpenTelemetry MCP semantic conventions
  * @see https://github.com/open-telemetry/semantic-conventions/blob/3097fb0af5b9492b0e3f55dc5f6c21a3dc2be8df/docs/gen-ai/mcp.md
  */
@@ -115,4 +115,4 @@ export const MCP_NOTIFICATION_ORIGIN_VALUE = 'auto.mcp.notification';
 /**
  * Sentry source value for MCP route spans
  */
-export const MCP_ROUTE_SOURCE_VALUE = 'route'; 
+export const MCP_ROUTE_SOURCE_VALUE = 'route';

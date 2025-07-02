@@ -50,17 +50,17 @@ export interface MCPTransport {
    * The first argument is a JSON RPC message
    */
   onmessage?: (...args: unknown[]) => void;
-  
+
   /**
    * Close handler for transport lifecycle
    */
   onclose?: (...args: unknown[]) => void;
-  
+
   /**
    * Send method for outgoing messages
    */
   send?: (message: JsonRpcMessage, options?: Record<string, unknown>) => Promise<void>;
-  
+
   /**
    * Optional session identifier
    */
@@ -72,7 +72,6 @@ export interface MCPTransport {
  */
 export type JsonRpcMessage = JsonRpcRequest | JsonRpcNotification | JsonRpcResponse;
 
-
 /**
  * MCP server instance interface
  */
@@ -82,19 +81,19 @@ export interface MCPServerInstance {
    * The first arg is always a name, the last arg should always be a callback function (ie a handler).
    */
   resource: (name: string, ...args: unknown[]) => void;
-  
+
   /**
    * Register a tool handler
    * The first arg is always a name, the last arg should always be a callback function (ie a handler).
    */
   tool: (name: string, ...args: unknown[]) => void;
-  
+
   /**
    * Register a prompt handler
    * The first arg is always a name, the last arg should always be a callback function (ie a handler).
    */
   prompt: (name: string, ...args: unknown[]) => void;
-  
+
   /**
    * Connect the server to a transport
    */
@@ -112,4 +111,4 @@ export interface ExtraHandlerData {
 }
 
 export type SessionId = string;
-export type RequestId = string | number; 
+export type RequestId = string | number;

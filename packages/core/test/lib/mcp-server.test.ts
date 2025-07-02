@@ -4,7 +4,7 @@ import * as tracingModule from '../../src/tracing';
 
 describe('wrapMcpServerWithSentry', () => {
   const startSpanSpy = vi.spyOn(tracingModule, 'startSpan');
-  
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -36,7 +36,7 @@ describe('wrapMcpServerWithSentry', () => {
 
   it('should not wrap the same instance twice', () => {
     const mockMcpServer = createMockMcpServer();
-    
+
     const wrappedOnce = wrapMcpServerWithSentry(mockMcpServer);
     const wrappedTwice = wrapMcpServerWithSentry(wrappedOnce);
 
@@ -59,54 +59,54 @@ describe('wrapMcpServerWithSentry', () => {
       // We need to test this before connection, so create fresh instances
       const freshMockMcpServer = createMockMcpServer();
       const originalConnect = freshMockMcpServer.connect;
-      
+
       const freshWrappedMcpServer = wrapMcpServerWithSentry(freshMockMcpServer);
-      
+
       expect(freshWrappedMcpServer.connect).not.toBe(originalConnect);
     });
 
     it('should intercept transport onmessage handler', async () => {
       const originalOnMessage = mockTransport.onmessage;
-      
+
       await wrappedMcpServer.connect(mockTransport);
-      
+
       // onmessage should be wrapped after connection
       expect(mockTransport.onmessage).not.toBe(originalOnMessage);
     });
 
     it('should intercept transport send handler', async () => {
       const originalSend = mockTransport.send;
-      
+
       await wrappedMcpServer.connect(mockTransport);
-      
-      // send should be wrapped after connection  
+
+      // send should be wrapped after connection
       expect(mockTransport.send).not.toBe(originalSend);
     });
 
     it('should intercept transport onclose handler', async () => {
       const originalOnClose = mockTransport.onclose;
-      
+
       await wrappedMcpServer.connect(mockTransport);
-      
+
       // onclose should be wrapped after connection
       expect(mockTransport.onclose).not.toBe(originalOnClose);
     });
 
     it('should call original connect and preserve functionality', async () => {
       await wrappedMcpServer.connect(mockTransport);
-      
+
       // Original connect should have been called
       expect(mockMcpServer.connect).toHaveBeenCalledWith(mockTransport);
     });
 
     it('should create spans for incoming JSON-RPC requests', async () => {
       await wrappedMcpServer.connect(mockTransport);
-      
+
       const jsonRpcRequest = {
         jsonrpc: '2.0',
         method: 'tools/call',
         id: 'req-1',
-        params: { name: 'get-weather' }
+        params: { name: 'get-weather' },
       };
 
       // Simulate incoming message
@@ -117,13 +117,13 @@ describe('wrapMcpServerWithSentry', () => {
           name: 'tools/call get-weather',
           forceTransaction: true,
         }),
-        expect.any(Function)
+        expect.any(Function),
       );
     });
 
     it('should create spans for incoming JSON-RPC notifications', async () => {
       await wrappedMcpServer.connect(mockTransport);
-      
+
       const jsonRpcNotification = {
         jsonrpc: '2.0',
         method: 'notifications/initialized',
@@ -138,13 +138,13 @@ describe('wrapMcpServerWithSentry', () => {
           name: 'notifications/initialized',
           forceTransaction: true,
         }),
-        expect.any(Function)
+        expect.any(Function),
       );
     });
 
     it('should create spans for outgoing notifications', async () => {
       await wrappedMcpServer.connect(mockTransport);
-      
+
       const outgoingNotification = {
         jsonrpc: '2.0',
         method: 'notifications/tools/list_changed',
@@ -159,13 +159,13 @@ describe('wrapMcpServerWithSentry', () => {
           name: 'notifications/tools/list_changed',
           forceTransaction: true,
         }),
-        expect.any(Function)
+        expect.any(Function),
       );
     });
 
     it('should not create spans for non-JSON-RPC messages', async () => {
       await wrappedMcpServer.connect(mockTransport);
-      
+
       // Simulate non-JSON-RPC message
       mockTransport.onmessage?.({ some: 'data' }, {});
 
@@ -175,7 +175,7 @@ describe('wrapMcpServerWithSentry', () => {
     it('should handle transport onclose events', async () => {
       await wrappedMcpServer.connect(mockTransport);
       mockTransport.sessionId = 'test-session-123';
-      
+
       // Trigger onclose - should not throw
       expect(() => mockTransport.onclose?.()).not.toThrow();
     });
@@ -196,19 +196,19 @@ describe('wrapMcpServerWithSentry', () => {
 
     it('should create spans with correct MCP server semantic attributes for tool operations', async () => {
       await wrappedMcpServer.connect(mockTransport);
-      
+
       const jsonRpcRequest = {
         jsonrpc: '2.0',
         method: 'tools/call',
         id: 'req-1',
-        params: { name: 'get-weather', arguments: { location: 'Seattle, WA' }}
+        params: { name: 'get-weather', arguments: { location: 'Seattle, WA' } },
       };
 
       const extraWithClientInfo = {
         requestInfo: {
           remoteAddress: '192.168.1.100',
-          remotePort: 54321
-        }
+          remotePort: 54321,
+        },
       };
 
       mockTransport.onmessage?.(jsonRpcRequest, extraWithClientInfo);
@@ -233,18 +233,18 @@ describe('wrapMcpServerWithSentry', () => {
             'sentry.source': 'route',
           },
         },
-        expect.any(Function)
+        expect.any(Function),
       );
     });
 
     it('should create spans with correct attributes for resource operations', async () => {
       await wrappedMcpServer.connect(mockTransport);
-      
+
       const jsonRpcRequest = {
         jsonrpc: '2.0',
         method: 'resources/read',
         id: 'req-2',
-        params: { uri: 'file:///docs/api.md' }
+        params: { uri: 'file:///docs/api.md' },
       };
 
       mockTransport.onmessage?.(jsonRpcRequest, {});
@@ -267,18 +267,18 @@ describe('wrapMcpServerWithSentry', () => {
             'sentry.source': 'route',
           },
         },
-        expect.any(Function)
+        expect.any(Function),
       );
     });
 
     it('should create spans with correct attributes for prompt operations', async () => {
       await wrappedMcpServer.connect(mockTransport);
-      
+
       const jsonRpcRequest = {
         jsonrpc: '2.0',
         method: 'prompts/get',
         id: 'req-3',
-        params: { name: 'analyze-code' }
+        params: { name: 'analyze-code' },
       };
 
       mockTransport.onmessage?.(jsonRpcRequest, {});
@@ -301,17 +301,17 @@ describe('wrapMcpServerWithSentry', () => {
             'sentry.source': 'route',
           },
         },
-        expect.any(Function)
+        expect.any(Function),
       );
     });
 
     it('should create spans with correct attributes for notifications (no request id)', async () => {
       await wrappedMcpServer.connect(mockTransport);
-      
+
       const jsonRpcNotification = {
         jsonrpc: '2.0',
         method: 'notifications/tools/list_changed',
-        params: {}
+        params: {},
       };
 
       mockTransport.onmessage?.(jsonRpcNotification, {});
@@ -332,7 +332,7 @@ describe('wrapMcpServerWithSentry', () => {
             'sentry.source': 'route',
           },
         },
-        expect.any(Function)
+        expect.any(Function),
       );
 
       // Should not include mcp.request.id for notifications
@@ -344,12 +344,12 @@ describe('wrapMcpServerWithSentry', () => {
 
     it('should create spans for list operations without target in name', async () => {
       await wrappedMcpServer.connect(mockTransport);
-      
+
       const jsonRpcRequest = {
         jsonrpc: '2.0',
         method: 'tools/list',
         id: 'req-4',
-        params: {}
+        params: {},
       };
 
       mockTransport.onmessage?.(jsonRpcRequest, {});
@@ -362,7 +362,7 @@ describe('wrapMcpServerWithSentry', () => {
             'mcp.method.name': 'tools/list',
             'mcp.request.id': 'req-4',
             'mcp.session.id': 'test-session-123',
-            // Transport attributes  
+            // Transport attributes
             'mcp.transport': 'http',
             'network.transport': 'tcp',
             'network.protocol.version': '2.0',
@@ -372,21 +372,21 @@ describe('wrapMcpServerWithSentry', () => {
             'sentry.source': 'route',
           }),
         }),
-        expect.any(Function)
+        expect.any(Function),
       );
     });
 
     it('should create spans with logging attributes for notifications/message', async () => {
       await wrappedMcpServer.connect(mockTransport);
-      
+
       const loggingNotification = {
         jsonrpc: '2.0',
         method: 'notifications/message',
         params: {
           level: 'info',
           logger: 'math-service',
-          data: 'Addition completed: 2 + 5 = 7'
-        }
+          data: 'Addition completed: 2 + 5 = 7',
+        },
       };
 
       mockTransport.onmessage?.(loggingNotification, {});
@@ -411,7 +411,7 @@ describe('wrapMcpServerWithSentry', () => {
             'sentry.source': 'route',
           },
         },
-        expect.any(Function)
+        expect.any(Function),
       );
     });
 
@@ -424,8 +424,8 @@ describe('wrapMcpServerWithSentry', () => {
         method: 'notifications/cancelled',
         params: {
           requestId: 'req-123',
-          reason: 'user_requested'
-        }
+          reason: 'user_requested',
+        },
       };
 
       mockTransport.onmessage?.(cancelledNotification, {});
@@ -440,7 +440,7 @@ describe('wrapMcpServerWithSentry', () => {
             'mcp.notification.direction': 'client_to_server',
           }),
         }),
-        expect.any(Function)
+        expect.any(Function),
       );
 
       vi.clearAllMocks();
@@ -453,8 +453,8 @@ describe('wrapMcpServerWithSentry', () => {
           progressToken: 'token-456',
           progress: 75,
           total: 100,
-          message: 'Processing files...'
-        }
+          message: 'Processing files...',
+        },
       };
 
       mockTransport.onmessage?.(progressNotification, {});
@@ -472,7 +472,7 @@ describe('wrapMcpServerWithSentry', () => {
             'mcp.notification.direction': 'client_to_server',
           }),
         }),
-        expect.any(Function)
+        expect.any(Function),
       );
 
       vi.clearAllMocks();
@@ -482,8 +482,8 @@ describe('wrapMcpServerWithSentry', () => {
         jsonrpc: '2.0',
         method: 'notifications/resources/updated',
         params: {
-          uri: 'file:///tmp/data.json'
-        }
+          uri: 'file:///tmp/data.json',
+        },
       };
 
       mockTransport.onmessage?.(resourceUpdatedNotification, {});
@@ -498,11 +498,9 @@ describe('wrapMcpServerWithSentry', () => {
             'mcp.notification.direction': 'client_to_server',
           }),
         }),
-        expect.any(Function)
+        expect.any(Function),
       );
     });
-
-
   });
 });
 
