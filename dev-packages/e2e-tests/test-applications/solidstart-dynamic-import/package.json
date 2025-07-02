@@ -4,7 +4,7 @@
   "scripts": {
     "clean": "pnpx rimraf node_modules pnpm-lock.yaml .vinxi .output",
     "dev": "vinxi dev",
-    "build": "vinxi build && sh ./post_build.sh",
+    "build": "vinxi build",
     "preview": "HOST=localhost PORT=3030 vinxi start",
     "test:prod": "TEST_ENV=production playwright test",
     "test:build": "pnpm install && pnpm build",
