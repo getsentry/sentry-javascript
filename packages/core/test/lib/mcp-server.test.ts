@@ -224,7 +224,6 @@ describe('wrapMcpServerWithSentry', () => {
       expect(tracingModule.startSpan).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'tools/call get-weather',
-          op: 'mcp.server',
           forceTransaction: true,
           attributes: expect.objectContaining({
             // Required
@@ -244,7 +243,9 @@ describe('wrapMcpServerWithSentry', () => {
             'mcp.request.argument.location': '"Seattle, WA"',
             'mcp.request.argument.units': '"metric"',
             // Sentry-specific
+            'sentry.op': 'mcp.server',
             'sentry.origin': 'auto.function.mcp_server',
+            'sentry.source': 'route',
           }),
         }),
         expect.any(Function)
@@ -266,7 +267,7 @@ describe('wrapMcpServerWithSentry', () => {
       expect(tracingModule.startSpan).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'resources/read file:///docs/api.md',
-          op: 'mcp.server',
+          forceTransaction: true,
           attributes: expect.objectContaining({
             // Required
             'mcp.method.name': 'resources/read',
@@ -275,6 +276,16 @@ describe('wrapMcpServerWithSentry', () => {
             'mcp.request.id': 'req-2',
             // Recommended
             'mcp.session.id': 'test-session-123',
+            // Transport attributes
+            'mcp.transport': 'http',
+            'network.transport': 'tcp',
+            'network.protocol.version': '2.0',
+            // Request arguments (JSON-stringified)
+            'mcp.request.argument.uri': '"file:///docs/api.md"',
+            // Sentry-specific
+            'sentry.op': 'mcp.server',
+            'sentry.origin': 'auto.function.mcp_server',
+            'sentry.source': 'route',
           }),
         }),
         expect.any(Function)
@@ -296,7 +307,7 @@ describe('wrapMcpServerWithSentry', () => {
       expect(tracingModule.startSpan).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'prompts/get analyze-code',
-          op: 'mcp.server',
+          forceTransaction: true,
           attributes: expect.objectContaining({
             // Required
             'mcp.method.name': 'prompts/get',
@@ -305,6 +316,16 @@ describe('wrapMcpServerWithSentry', () => {
             'mcp.request.id': 'req-3',
             // Recommended
             'mcp.session.id': 'test-session-123',
+            // Transport attributes
+            'mcp.transport': 'http',
+            'network.transport': 'tcp',
+            'network.protocol.version': '2.0',
+            // Request arguments (JSON-stringified)
+            'mcp.request.argument.name': '"analyze-code"',
+            // Sentry-specific
+            'sentry.op': 'mcp.server',
+            'sentry.origin': 'auto.function.mcp_server',
+            'sentry.source': 'route',
           }),
         }),
         expect.any(Function)
@@ -325,7 +346,7 @@ describe('wrapMcpServerWithSentry', () => {
       expect(tracingModule.startSpan).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'notifications/tools/list_changed',
-          op: 'mcp.server',
+          forceTransaction: true,
           attributes: expect.objectContaining({
             // Required
             'mcp.method.name': 'notifications/tools/list_changed',
@@ -333,8 +354,14 @@ describe('wrapMcpServerWithSentry', () => {
             'mcp.session.id': 'test-session-123',
             // Notification-specific
             'mcp.notification.direction': 'client_to_server',
+            // Transport attributes
+            'mcp.transport': 'http',
+            'network.transport': 'tcp',
+            'network.protocol.version': '2.0',
             // Sentry-specific
+            'sentry.op': 'mcp.server',
             'sentry.origin': 'auto.mcp.notification',
+            'sentry.source': 'route',
           }),
         }),
         expect.any(Function)
@@ -362,11 +389,19 @@ describe('wrapMcpServerWithSentry', () => {
       expect(tracingModule.startSpan).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'tools/list',
-          op: 'mcp.server',
+          forceTransaction: true,
           attributes: expect.objectContaining({
             'mcp.method.name': 'tools/list',
             'mcp.request.id': 'req-4',
             'mcp.session.id': 'test-session-123',
+            // Transport attributes  
+            'mcp.transport': 'http',
+            'network.transport': 'tcp',
+            'network.protocol.version': '2.0',
+            // Sentry-specific
+            'sentry.op': 'mcp.server',
+            'sentry.origin': 'auto.function.mcp_server',
+            'sentry.source': 'route',
           }),
         }),
         expect.any(Function)
