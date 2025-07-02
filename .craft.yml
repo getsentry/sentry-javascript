@@ -8,10 +8,13 @@ targets:
   - name: npm
     id: '@sentry/types'
     includeNames: /^sentry-types-\d.*\.tgz$/
-  ## 1.2 Core SDK
+  ## 1.2 Core SDKs
   - name: npm
     id: '@sentry/core'
     includeNames: /^sentry-core-\d.*\.tgz$/
+  - name: npm
+    id: '@sentry/node-core'
+    includeNames: /^sentry-node-core-\d.*\.tgz$/
   ## 1.3 Browser Utils package
   - name: npm
     id: '@sentry-internal/browser-utils'
