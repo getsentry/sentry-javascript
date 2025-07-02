@@ -2,13 +2,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { wrapMcpServerWithSentry } from '../../src/mcp-server';
 import * as tracingModule from '../../src/tracing';
 
-vi.mock('../../src/tracing');
-
 describe('wrapMcpServerWithSentry', () => {
+  const startSpanSpy = vi.spyOn(tracingModule, 'startSpan');
+  
   beforeEach(() => {
     vi.clearAllMocks();
-    // @ts-expect-error mocking span is annoying
-    vi.mocked(tracingModule.startSpan).mockImplementation((_, cb) => cb());
   });
 
   it('should return the same instance (modified) if it is a valid MCP server instance', () => {
@@ -33,7 +31,7 @@ describe('wrapMcpServerWithSentry', () => {
     expect(result.tool).toBe(invalidMcpServer.tool);
 
     // No calls to startSpan
-    expect(tracingModule.startSpan).not.toHaveBeenCalled();
+    expect(startSpanSpy).not.toHaveBeenCalled();
   });
 
   it('should not wrap the same instance twice', () => {
@@ -114,7 +112,7 @@ describe('wrapMcpServerWithSentry', () => {
       // Simulate incoming message
       mockTransport.onmessage?.(jsonRpcRequest, {});
 
-      expect(tracingModule.startSpan).toHaveBeenCalledWith(
+      expect(startSpanSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'tools/call get-weather',
           forceTransaction: true,
@@ -135,7 +133,7 @@ describe('wrapMcpServerWithSentry', () => {
       // Simulate incoming notification
       mockTransport.onmessage?.(jsonRpcNotification, {});
 
-      expect(tracingModule.startSpan).toHaveBeenCalledWith(
+      expect(startSpanSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'notifications/initialized',
           forceTransaction: true,
@@ -156,7 +154,7 @@ describe('wrapMcpServerWithSentry', () => {
       // Simulate outgoing notification
       await mockTransport.send?.(outgoingNotification);
 
-      expect(tracingModule.startSpan).toHaveBeenCalledWith(
+      expect(startSpanSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'notifications/tools/list_changed',
           forceTransaction: true,
@@ -171,7 +169,7 @@ describe('wrapMcpServerWithSentry', () => {
       // Simulate non-JSON-RPC message
       mockTransport.onmessage?.({ some: 'data' }, {});
 
-      expect(tracingModule.startSpan).not.toHaveBeenCalled();
+      expect(startSpanSpy).not.toHaveBeenCalled();
     });
 
     it('should handle transport onclose events', async () => {
@@ -203,13 +201,7 @@ describe('wrapMcpServerWithSentry', () => {
         jsonrpc: '2.0',
         method: 'tools/call',
         id: 'req-1',
-        params: { 
-          name: 'get-weather',
-          arguments: { 
-            location: 'Seattle, WA',
-            units: 'metric'
-          }
-        }
+        params: { name: 'get-weather', arguments: { location: 'Seattle, WA' }}
       };
 
       const extraWithClientInfo = {
@@ -221,33 +213,26 @@ describe('wrapMcpServerWithSentry', () => {
 
       mockTransport.onmessage?.(jsonRpcRequest, extraWithClientInfo);
 
-      expect(tracingModule.startSpan).toHaveBeenCalledWith(
-        expect.objectContaining({
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        {
           name: 'tools/call get-weather',
           forceTransaction: true,
-          attributes: expect.objectContaining({
-            // Required
+          attributes: {
             'mcp.method.name': 'tools/call',
-            // Conditionally Required (tool operation)
             'mcp.tool.name': 'get-weather',
             'mcp.request.id': 'req-1',
-            // Recommended
             'mcp.session.id': 'test-session-123',
             'client.address': '192.168.1.100',
             'client.port': 54321,
-            // Transport attributes
             'mcp.transport': 'http',
             'network.transport': 'tcp',
             'network.protocol.version': '2.0',
-            // Tool arguments (JSON-stringified)
             'mcp.request.argument.location': '"Seattle, WA"',
-            'mcp.request.argument.units': '"metric"',
-            // Sentry-specific
             'sentry.op': 'mcp.server',
             'sentry.origin': 'auto.function.mcp_server',
             'sentry.source': 'route',
-          }),
-        }),
+          },
+        },
         expect.any(Function)
       );
     });
@@ -264,30 +249,24 @@ describe('wrapMcpServerWithSentry', () => {
 
       mockTransport.onmessage?.(jsonRpcRequest, {});
 
-      expect(tracingModule.startSpan).toHaveBeenCalledWith(
-        expect.objectContaining({
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        {
           name: 'resources/read file:///docs/api.md',
           forceTransaction: true,
-          attributes: expect.objectContaining({
-            // Required
+          attributes: {
             'mcp.method.name': 'resources/read',
-            // Conditionally Required (resource operation)
             'mcp.resource.uri': 'file:///docs/api.md',
             'mcp.request.id': 'req-2',
-            // Recommended
             'mcp.session.id': 'test-session-123',
-            // Transport attributes
             'mcp.transport': 'http',
             'network.transport': 'tcp',
             'network.protocol.version': '2.0',
-            // Request arguments (JSON-stringified)
             'mcp.request.argument.uri': '"file:///docs/api.md"',
-            // Sentry-specific
             'sentry.op': 'mcp.server',
             'sentry.origin': 'auto.function.mcp_server',
             'sentry.source': 'route',
-          }),
-        }),
+          },
+        },
         expect.any(Function)
       );
     });
@@ -304,30 +283,24 @@ describe('wrapMcpServerWithSentry', () => {
 
       mockTransport.onmessage?.(jsonRpcRequest, {});
 
-      expect(tracingModule.startSpan).toHaveBeenCalledWith(
-        expect.objectContaining({
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        {
           name: 'prompts/get analyze-code',
           forceTransaction: true,
-          attributes: expect.objectContaining({
-            // Required
+          attributes: {
             'mcp.method.name': 'prompts/get',
-            // Conditionally Required (prompt operation)
             'mcp.prompt.name': 'analyze-code',
             'mcp.request.id': 'req-3',
-            // Recommended
             'mcp.session.id': 'test-session-123',
-            // Transport attributes
             'mcp.transport': 'http',
             'network.transport': 'tcp',
             'network.protocol.version': '2.0',
-            // Request arguments (JSON-stringified)
             'mcp.request.argument.name': '"analyze-code"',
-            // Sentry-specific
             'sentry.op': 'mcp.server',
             'sentry.origin': 'auto.function.mcp_server',
             'sentry.source': 'route',
-          }),
-        }),
+          },
+        },
         expect.any(Function)
       );
     });
@@ -343,27 +316,22 @@ describe('wrapMcpServerWithSentry', () => {
 
       mockTransport.onmessage?.(jsonRpcNotification, {});
 
-      expect(tracingModule.startSpan).toHaveBeenCalledWith(
-        expect.objectContaining({
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        {
           name: 'notifications/tools/list_changed',
           forceTransaction: true,
-          attributes: expect.objectContaining({
-            // Required
+          attributes: {
             'mcp.method.name': 'notifications/tools/list_changed',
-            // Recommended
             'mcp.session.id': 'test-session-123',
-            // Notification-specific
             'mcp.notification.direction': 'client_to_server',
-            // Transport attributes
             'mcp.transport': 'http',
             'network.transport': 'tcp',
             'network.protocol.version': '2.0',
-            // Sentry-specific
             'sentry.op': 'mcp.server',
             'sentry.origin': 'auto.mcp.notification',
             'sentry.source': 'route',
-          }),
-        }),
+          },
+        },
         expect.any(Function)
       );
 
