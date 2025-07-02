@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "nuxt build && bash ./copyIITM.bash",
+    "build": "nuxt build",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
@@ -25,7 +25,8 @@
   "pnpm": {
     "overrides": {
       "nitropack": "~2.9.7",
-      "ofetch": "^1.4.0"
+      "ofetch": "^1.4.0",
+      "@vercel/nft": "0.29.4"
     }
   },
   "volta": {
