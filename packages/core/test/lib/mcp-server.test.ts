@@ -376,6 +376,132 @@ describe('wrapMcpServerWithSentry', () => {
       );
     });
 
+    it('should create spans with logging attributes for notifications/message', async () => {
+      await wrappedMcpServer.connect(mockTransport);
+      
+      const loggingNotification = {
+        jsonrpc: '2.0',
+        method: 'notifications/message',
+        params: {
+          level: 'info',
+          logger: 'math-service',
+          data: 'Addition completed: 2 + 5 = 7'
+        }
+      };
+
+      mockTransport.onmessage?.(loggingNotification, {});
+
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        {
+          name: 'notifications/message logger:math-service',
+          forceTransaction: true,
+          attributes: {
+            'mcp.method.name': 'notifications/message',
+            'mcp.session.id': 'test-session-123',
+            'mcp.notification.direction': 'client_to_server',
+            'mcp.transport': 'http',
+            'network.transport': 'tcp',
+            'network.protocol.version': '2.0',
+            'mcp.logging.level': 'info',
+            'mcp.logging.logger': 'math-service',
+            'mcp.logging.data_type': 'string',
+            'mcp.logging.message': 'Addition completed: 2 + 5 = 7',
+            'sentry.op': 'mcp.server',
+            'sentry.origin': 'auto.mcp.notification',
+            'sentry.source': 'route',
+          },
+        },
+        expect.any(Function)
+      );
+    });
+
+    it('should create spans with attributes for other notification types', async () => {
+      await wrappedMcpServer.connect(mockTransport);
+
+      // Test notifications/cancelled
+      const cancelledNotification = {
+        jsonrpc: '2.0',
+        method: 'notifications/cancelled',
+        params: {
+          requestId: 'req-123',
+          reason: 'user_requested'
+        }
+      };
+
+      mockTransport.onmessage?.(cancelledNotification, {});
+
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'notifications/cancelled request:req-123',
+          attributes: expect.objectContaining({
+            'mcp.method.name': 'notifications/cancelled',
+            'mcp.cancelled.request_id': 'req-123',
+            'mcp.cancelled.reason': 'user_requested',
+            'mcp.notification.direction': 'client_to_server',
+          }),
+        }),
+        expect.any(Function)
+      );
+
+      vi.clearAllMocks();
+
+      // Test notifications/progress
+      const progressNotification = {
+        jsonrpc: '2.0',
+        method: 'notifications/progress',
+        params: {
+          progressToken: 'token-456',
+          progress: 75,
+          total: 100,
+          message: 'Processing files...'
+        }
+      };
+
+      mockTransport.onmessage?.(progressNotification, {});
+
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'notifications/progress token:token-456',
+          attributes: expect.objectContaining({
+            'mcp.method.name': 'notifications/progress',
+            'mcp.progress.token': 'token-456',
+            'mcp.progress.current': 75,
+            'mcp.progress.total': 100,
+            'mcp.progress.percentage': 75,
+            'mcp.progress.message': 'Processing files...',
+            'mcp.notification.direction': 'client_to_server',
+          }),
+        }),
+        expect.any(Function)
+      );
+
+      vi.clearAllMocks();
+
+      // Test notifications/resources/updated
+      const resourceUpdatedNotification = {
+        jsonrpc: '2.0',
+        method: 'notifications/resources/updated',
+        params: {
+          uri: 'file:///tmp/data.json'
+        }
+      };
+
+      mockTransport.onmessage?.(resourceUpdatedNotification, {});
+
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'notifications/resources/updated file:///tmp/data.json',
+          attributes: expect.objectContaining({
+            'mcp.method.name': 'notifications/resources/updated',
+            'mcp.resource.uri': 'file:///tmp/data.json',
+            'mcp.resource.protocol': 'file:',
+            'mcp.notification.direction': 'client_to_server',
+          }),
+        }),
+        expect.any(Function)
+      );
+    });
+
 
   });
 });
