@@ -182,10 +182,11 @@ describe('Vercel AI integration', () => {
       expect.objectContaining({
         data: {
           'ai.operationId': 'ai.toolCall',
-          'ai.toolCall.id': 'call-1',
-          'ai.toolCall.name': 'getWeather',
           'gen_ai.tool.call.id': 'call-1',
+          'gen_ai.tool.input': expect.any(String),
           'gen_ai.tool.name': 'getWeather',
+          'gen_ai.tool.output': expect.any(String),
+          'gen_ai.tool.type': 'function',
           'operation.name': 'ai.toolCall',
           'sentry.op': 'gen_ai.execute_tool',
           'sentry.origin': 'auto.vercelai.otel',
@@ -390,11 +391,10 @@ describe('Vercel AI integration', () => {
         data: {
           'ai.operationId': 'ai.toolCall',
           'ai.toolCall.args': expect.any(String),
-          'ai.toolCall.id': 'call-1',
-          'ai.toolCall.name': 'getWeather',
           'ai.toolCall.result': expect.any(String),
           'gen_ai.tool.call.id': 'call-1',
           'gen_ai.tool.name': 'getWeather',
+          'gen_ai.tool.type': 'function',
           'operation.name': 'ai.toolCall',
           'sentry.op': 'gen_ai.execute_tool',
           'sentry.origin': 'auto.vercelai.otel',

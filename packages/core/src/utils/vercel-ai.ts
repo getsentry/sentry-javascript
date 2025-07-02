@@ -12,8 +12,10 @@ import {
   AI_RESPONSE_TEXT_ATTRIBUTE,
   AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
   AI_TELEMETRY_FUNCTION_ID_ATTRIBUTE,
+  AI_TOOL_CALL_ARGS_ATTRIBUTE,
   AI_TOOL_CALL_ID_ATTRIBUTE,
   AI_TOOL_CALL_NAME_ATTRIBUTE,
+  AI_TOOL_CALL_RESULT_ATTRIBUTE,
   AI_USAGE_COMPLETION_TOKENS_ATTRIBUTE,
   AI_USAGE_PROMPT_TOKENS_ATTRIBUTE,
   GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
@@ -111,8 +113,14 @@ function renameAttributeKey(attributes: Record<string, unknown>, oldKey: string,
 function processToolCallSpan(span: Span, attributes: SpanAttributes): void {
   addOriginToSpan(span, 'auto.vercelai.otel');
   span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'gen_ai.execute_tool');
-  span.setAttribute('gen_ai.tool.call.id', attributes[AI_TOOL_CALL_ID_ATTRIBUTE]);
-  span.setAttribute('gen_ai.tool.name', attributes[AI_TOOL_CALL_NAME_ATTRIBUTE]);
+  renameAttributeKey(attributes, AI_TOOL_CALL_NAME_ATTRIBUTE, 'gen_ai.tool.name');
+  renameAttributeKey(attributes, AI_TOOL_CALL_ID_ATTRIBUTE, 'gen_ai.tool.call.id');
+  renameAttributeKey(attributes, AI_TOOL_CALL_ARGS_ATTRIBUTE, 'gen_ai.tool.input');
+  renameAttributeKey(attributes, AI_TOOL_CALL_RESULT_ATTRIBUTE, 'gen_ai.tool.output');
+  // https://opentelemetry.io/docs/specs/semconv/registry/attributes/gen-ai/#gen-ai-tool-type
+  if (!attributes['gen_ai.tool.type']) {
+    span.setAttribute('gen_ai.tool.type', 'function');
+  }
   span.updateName(`execute_tool ${attributes[AI_TOOL_CALL_NAME_ATTRIBUTE]}`);
 }
 
@@ -127,7 +135,7 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
   const functionId = attributes[AI_TELEMETRY_FUNCTION_ID_ATTRIBUTE];
   if (functionId && typeof functionId === 'string' && name.split('.').length - 1 === 1) {
     span.updateName(`${nameWthoutAi} ${functionId}`);
-    span.setAttribute('ai.pipeline.name', functionId);
+    span.setAttribute('gen_ai.function_id', functionId);
   }
 
   if (attributes[AI_PROMPT_ATTRIBUTE]) {
