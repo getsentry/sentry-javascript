@@ -25,7 +25,7 @@ export function buildLaunchDarklyFlagUsedHandlerShim(): unknown {
   if (!isBrowser()) {
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
-      console.warn('The buildLaunchDarklyFlagUsedHandler() should only be used in the browser.');
+      console.warn('The buildLaunchDarklyFlagUsedHandler() can only be used in the browser.');
     });
   }
 
