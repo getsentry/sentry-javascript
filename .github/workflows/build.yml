@@ -1077,13 +1077,12 @@ jobs:
           if-no-files-found: ignore
 
       - name: Deploy Astro to Cloudflare
-        uses: cloudflare/pages-action@v1
+        uses: cloudflare/wrangler-action@v3
         if: matrix.test-application == 'cloudflare-astro'
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: ${{ secrets.CLOUDFLARE_PROJECT_NAME }}
-          directory: dist
+          command: pages deploy dist --project-name=${{ secrets.CLOUDFLARE_PROJECT_NAME }}
           workingDirectory: ${{ runner.temp }}/test-application
 
   job_required_jobs_passed:
