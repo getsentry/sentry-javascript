@@ -37,7 +37,8 @@
     "eslint-config-next": "^14.2.4",
     "postcss": "^8.4.39",
     "prettier": "^3.3.2",
-    "typescript": "^5.5.3"
+    "typescript": "^5.5.3",
+    "zod": "^3.24.2"
   },
   "volta": {
     "extends": "../../package.json"
