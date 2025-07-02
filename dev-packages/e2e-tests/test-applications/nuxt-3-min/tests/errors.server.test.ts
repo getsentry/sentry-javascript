@@ -8,7 +8,7 @@ test.describe('server-side errors', async () => {
     });
 
     await page.goto(`/fetch-server-error`);
-    await page.getByText('Fetch Server Error', { exact: true }).click();
+    await page.getByText('Fetch Server API Error', { exact: true }).click();
 
     const error = await errorPromise;
 
@@ -26,7 +26,7 @@ test.describe('server-side errors', async () => {
     });
 
     await page.goto(`/test-param/1234`);
-    await page.getByRole('button', { name: 'Fetch Server Error', exact: true }).click();
+    await page.getByRole('button', { name: 'Fetch Server API Error', exact: true }).click();
 
     const error = await errorPromise;
 
