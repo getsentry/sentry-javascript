@@ -15,6 +15,7 @@
     "@sentry/core": "latest || *",
     "@sentry/opentelemetry": "latest || *",
     "@types/node": "^18.19.1",
+    "@types/connect": "3.4.38",
     "connect": "3.7.0",
     "typescript": "~5.0.0",
     "ts-node": "10.9.1"
