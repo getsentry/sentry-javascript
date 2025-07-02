@@ -12,7 +12,7 @@ test.describe('server-side errors', async () => {
     });
 
     await page.goto(`/fetch-server-error`);
-    await page.getByText('Fetch Server Data', { exact: true }).click();
+    await page.getByText('Fetch Server Error', { exact: true }).click();
 
     const transactionEvent = await transactionEventPromise;
     const error = await errorPromise;
@@ -40,7 +40,7 @@ test.describe('server-side errors', async () => {
     });
 
     await page.goto(`/fetch-server-error`);
-    await page.getByText('Fetch Server Data', { exact: true }).click();
+    await page.getByText('Fetch Server Error', { exact: true }).click();
 
     const transactionEvent = await transactionEventPromise;
     const error = await errorPromise;
