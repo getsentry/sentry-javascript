@@ -19,12 +19,11 @@ function fixPackageJson(cwd: string): void {
   };
 
   // 1. Fix file dependencies
-  const didFixTestUtilsDependency =
-    (packageJson.dependencies && fixTestUtilsDependency(packageJson.dependencies)) ||
-    (packageJson.devDependencies && fixTestUtilsDependency(packageJson.devDependencies));
-
-  if (!didFixTestUtilsDependency) {
-    console.log("No '@sentry-internal/test-utils' dependency found");
+  if (packageJson.dependencies) {
+    fixFileLinkDependencies(packageJson.dependencies);
+  }
+  if (packageJson.devDependencies) {
+    fixFileLinkDependencies(packageJson.devDependencies);
   }
 
   // 2. Fix volta extends
@@ -39,13 +38,18 @@ function fixPackageJson(cwd: string): void {
   writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
 }
 
-function fixTestUtilsDependency(dependencyObj: Record<string, string>): boolean {
-  // 1. Fix file dependencies
-  if (dependencyObj['@sentry-internal/test-utils']) {
-    const newPath = join(__dirname, '../../test-utils');
-    dependencyObj['@sentry-internal/test-utils'] = `link:${newPath}`;
-    console.log(`Fixed '@sentry-internal/test-utils' dependency to ${newPath}`);
-    return true;
+function fixFileLinkDependencies(dependencyObj: Record<string, string>): boolean {
+  for (const [key, value] of Object.entries(dependencyObj)) {
+    if (value.startsWith('link:')) {
+      const dirPath = value.replace('link:', '');
+
+      // We add a virtual dir to ensure that the relative depth is consistent
+      // dirPath is relative to ./../test-applications/xxx
+      const newPath = join(__dirname, 'virtual-dir/', dirPath);
+
+      dependencyObj[key] = `link:${newPath}`;
+      console.log(`Fixed ${key} dependency to ${newPath}`);
+    }
   }
 
   return false;
