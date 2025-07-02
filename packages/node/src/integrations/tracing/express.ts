@@ -13,10 +13,8 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   spanToJSON,
 } from '@sentry/core';
+import { addOriginToSpan, ensureIsWrapped, generateInstrumentOnce } from '@sentry/node-core';
 import { DEBUG_BUILD } from '../../debug-build';
-import { generateInstrumentOnce } from '../../otel/instrument';
-import { addOriginToSpan } from '../../utils/addOriginToSpan';
-import { ensureIsWrapped } from '../../utils/ensureIsWrapped';
 import { ExpressInstrumentationV5 } from './express-v5/instrumentation';
 
 const INTEGRATION_NAME = 'Express';
