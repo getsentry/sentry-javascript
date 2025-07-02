@@ -1,4 +1,3 @@
-import { DEBUG_BUILD } from './debug-build';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -6,29 +5,45 @@ import {
 } from './semanticAttributes';
 import { startSpan, withActiveSpan } from './tracing';
 import type { Span } from './types-hoist/span';
-import { logger } from './utils/logger';
 import { getActiveSpan } from './utils/spanUtils';
-
-interface MCPTransport {
-  // The first argument is a JSON RPC message
-  onmessage?: (...args: unknown[]) => void;
-  onclose?: (...args: unknown[]) => void;
-  sessionId?: string;
-}
-
-interface MCPServerInstance {
-  // The first arg is always a name, the last arg should always be a callback function (ie a handler).
-  // TODO: We could also make use of the resource uri argument somehow.
-  resource: (name: string, ...args: unknown[]) => void;
-  // The first arg is always a name, the last arg should always be a callback function (ie a handler).
-  tool: (name: string, ...args: unknown[]) => void;
-  // The first arg is always a name, the last arg should always be a callback function (ie a handler).
-  prompt: (name: string, ...args: unknown[]) => void;
-  connect(transport: MCPTransport): Promise<void>;
-  server?: {
-    setRequestHandler: (schema: unknown, handler: (...args: unknown[]) => unknown) => void;
-  };
-}
+import {
+  MCP_METHOD_NAME_ATTRIBUTE,
+  MCP_REQUEST_ID_ATTRIBUTE,
+  MCP_SESSION_ID_ATTRIBUTE,
+  MCP_TRANSPORT_ATTRIBUTE,
+  NETWORK_TRANSPORT_ATTRIBUTE,
+  NETWORK_PROTOCOL_VERSION_ATTRIBUTE,
+  CLIENT_ADDRESS_ATTRIBUTE,
+  CLIENT_PORT_ATTRIBUTE,
+  MCP_NOTIFICATION_DIRECTION_ATTRIBUTE,
+  MCP_SERVER_OP_VALUE,
+  MCP_FUNCTION_ORIGIN_VALUE,
+  MCP_NOTIFICATION_ORIGIN_VALUE,
+  MCP_ROUTE_SOURCE_VALUE,
+} from './utils/mcp-server/attributes';
+import type {
+  JsonRpcRequest,
+  JsonRpcNotification,
+  MCPTransport,
+  MCPServerInstance,
+  SessionId,
+  RequestId,
+  ExtraHandlerData,
+} from './utils/mcp-server/types';
+import {
+  isJsonRpcRequest,
+  isJsonRpcNotification,
+  extractTarget,
+  getTargetAttributes,
+  getRequestArguments,
+  getTransportTypes,
+  getNotificationDescription,
+  getNotificationAttributes,
+  extractClientAddress,
+  extractClientPort,
+  validateMcpServerInstance,
+  createSpanName,
+} from './utils/mcp-server/utils';
 
 const wrappedMcpServerInstances = new WeakSet();
 
@@ -43,21 +58,21 @@ export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S):
     return mcpServerInstance;
   }
 
-  if (!isMcpServerInstance(mcpServerInstance)) {
-    DEBUG_BUILD && logger.warn('Did not patch MCP server. Interface is incompatible.');
+  if (!validateMcpServerInstance(mcpServerInstance)) {
     return mcpServerInstance;
   }
 
+  const serverInstance = mcpServerInstance as MCPServerInstance;
+
   // Wrap connect() to intercept AFTER Protocol sets up transport handlers
-  mcpServerInstance.connect = new Proxy(mcpServerInstance.connect, {
+  serverInstance.connect = new Proxy(serverInstance.connect, {
     async apply(target, thisArg, argArray) {
       const [transport, ...restArgs] = argArray as [MCPTransport, ...unknown[]];
 
       // Call the original connect first to let Protocol set up its handlers
       const result = await Reflect.apply(target, thisArg, [transport, ...restArgs]);
       
-      
-      // NOW intercept the transport's onmessage after Protocol has set it up
+      // Intercept incoming messages via onmessage
       if (transport.onmessage) {
         const protocolOnMessage = transport.onmessage;
         
@@ -65,10 +80,14 @@ export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S):
           apply(onMessageTarget, onMessageThisArg, onMessageArgs) {
             const [jsonRpcMessage, extra] = onMessageArgs;
             
-
-            // TODO(bete): Instrument responses/notifications (not sure if they are RPC)
+            // Instrument both requests and notifications
             if (isJsonRpcRequest(jsonRpcMessage)) {
-              return createMcpServerSpan(jsonRpcMessage, transport, extra, () => {
+              return createMcpServerSpan(jsonRpcMessage, transport, extra as ExtraHandlerData, () => {
+                return onMessageTarget.apply(onMessageThisArg, onMessageArgs);
+              });
+            }
+            if (isJsonRpcNotification(jsonRpcMessage)) {
+              return createMcpNotificationSpan(jsonRpcMessage, transport, extra as ExtraHandlerData, () => {
                 return onMessageTarget.apply(onMessageThisArg, onMessageArgs);
               });
             }
@@ -76,7 +95,27 @@ export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S):
             return onMessageTarget.apply(onMessageThisArg, onMessageArgs);
           }
         });
-      } 
+      }
+
+      // Intercept outgoing messages via send
+      if (transport.send) {
+        const originalSend = transport.send;
+        
+        transport.send = new Proxy(originalSend, {
+          async apply(sendTarget, sendThisArg, sendArgs) {
+            const [message, options] = sendArgs;
+            
+            // Instrument outgoing notifications (but not requests/responses)
+            if (isJsonRpcNotification(message)) {
+              return createMcpOutgoingNotificationSpan(message, transport, options as Record<string, unknown>, () => {
+                return sendTarget.apply(sendThisArg, sendArgs);
+              });
+            }
+            
+            return sendTarget.apply(sendThisArg, sendArgs);
+          }
+        });
+      }
 
       // Handle transport lifecycle events
       if (transport.onclose) {
@@ -101,49 +140,44 @@ export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S):
 function createMcpServerSpan(
   jsonRpcMessage: JsonRpcRequest,
   transport: MCPTransport,
-  extra: any,
-  callback: () => any
+  extra: ExtraHandlerData,
+  callback: () => unknown
 ) {
   const { method, id: requestId, params } = jsonRpcMessage;
   
   // Extract target from method and params for proper description
-  const target = extractTarget(method, params);
-  const description = target ? `${method} ${target}` : method;
+  const target = extractTarget(method, params as Record<string, unknown>);
+  const description = createSpanName(method, target);
 
   // Session ID should come from the transport itself, not the RPC message
   const sessionId = transport.sessionId;
   
   // Extract client information from extra/request data
-  const clientAddress = extra?.requestInfo?.remoteAddress || 
-                       extra?.clientAddress ||
-                       extra?.request?.ip ||
-                       extra?.request?.connection?.remoteAddress;
-  const clientPort = extra?.requestInfo?.remotePort || 
-                    extra?.clientPort ||
-                    extra?.request?.connection?.remotePort;
+  const clientAddress = extractClientAddress(extra);
+  const clientPort = extractClientPort(extra);
 
   // Determine transport types
   const { mcpTransport, networkTransport } = getTransportTypes(transport);
 
   const attributes: Record<string, string | number> = {
-    'mcp.method.name': method,
+    [MCP_METHOD_NAME_ATTRIBUTE]: method,
     
-    ...(requestId !== undefined && { 'mcp.request.id': String(requestId) }),
+    ...(requestId !== undefined && { [MCP_REQUEST_ID_ATTRIBUTE]: String(requestId) }),
     ...(target && getTargetAttributes(method, target)),
-    ...(sessionId && { 'mcp.session.id': sessionId }),
-    ...(clientAddress && { 'client.address': clientAddress }),
-    ...(clientPort && { 'client.port': clientPort }),
-    'mcp.transport': mcpTransport,           // Application level: "http", "sse", "stdio", "websocket"
-    'network.transport': networkTransport,   // Network level: "tcp", "pipe", "udp", "quic"
-    'network.protocol.version': '2.0',       // JSON-RPC version
+    ...(sessionId && { [MCP_SESSION_ID_ATTRIBUTE]: sessionId }),
+    ...(clientAddress && { [CLIENT_ADDRESS_ATTRIBUTE]: clientAddress }),
+    ...(clientPort && { [CLIENT_PORT_ATTRIBUTE]: clientPort }),
+    [MCP_TRANSPORT_ATTRIBUTE]: mcpTransport,           // Application level: "http", "sse", "stdio", "websocket"
+    [NETWORK_TRANSPORT_ATTRIBUTE]: networkTransport,   // Network level: "tcp", "pipe", "udp", "quic"
+    [NETWORK_PROTOCOL_VERSION_ATTRIBUTE]: '2.0',       // JSON-RPC version
     
     // Opt-in: Tool arguments (if enabled)
-    ...getRequestArguments(method, params),
+    ...getRequestArguments(method, params as Record<string, unknown>),
     
     // Sentry-specific attributes
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'mcp.server',
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.mcp_server',
-    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route'
+    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: MCP_SERVER_OP_VALUE,
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: MCP_FUNCTION_ORIGIN_VALUE,
+    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: MCP_ROUTE_SOURCE_VALUE
   };
 
   return startSpan({
@@ -151,141 +185,115 @@ function createMcpServerSpan(
     forceTransaction: true,
     attributes
   }, () => {
+    // TODO(bete): add proper error handling. Handle JSON RPC errors in the result
     return callback();
   });
 }
 
-function extractTarget(method: string, params: any): string | undefined {
-  switch (method) {
-    case 'tools/call':
-      return params?.name;  // Tool name
-    case 'resources/read':
-    case 'resources/subscribe':
-    case 'resources/unsubscribe':
-      return params?.uri;   // Resource URI
-    case 'prompts/get':
-      return params?.name;  // Prompt name
-    default:
-      return undefined;
-  }
-}
-
-function getTargetAttributes(method: string, target: string): Record<string, string> {
-  switch (method) {
-    case 'tools/call':
-      return { 'mcp.tool.name': target };
-    case 'resources/read':
-    case 'resources/subscribe':
-    case 'resources/unsubscribe':
-      return { 'mcp.resource.uri': target };
-    case 'prompts/get':
-      return { 'mcp.prompt.name': target };
-    default:
-      return {};
-  }
-}
-
-function getTransportTypes(transport: MCPTransport): { mcpTransport: string; networkTransport: string } {
-  // Try to determine transport type from transport properties/constructor
-  const transportName = transport.constructor?.name?.toLowerCase() || '';
+function createMcpNotificationSpan(
+  jsonRpcMessage: JsonRpcNotification,
+  transport: MCPTransport,
+  extra: ExtraHandlerData,
+  callback: () => unknown
+) {
+  const { method, params } = jsonRpcMessage;
   
-  if (transportName.includes('sse')) {
-    return { mcpTransport: 'sse', networkTransport: 'tcp' };
-  }
-  if (transportName.includes('http')) {
-    return { mcpTransport: 'http', networkTransport: 'tcp' };
-  }
-  if (transportName.includes('websocket') || transportName.includes('ws')) {
-    return { mcpTransport: 'websocket', networkTransport: 'tcp' };
-  }
-  if (transportName.includes('stdio')) {
-    return { mcpTransport: 'stdio', networkTransport: 'pipe' };
-  }
+  const description = getNotificationDescription(method, params as Record<string, unknown>);
   
-  // Default assumption based on your setup (HTTP server)
-  return { mcpTransport: 'http', networkTransport: 'tcp' };
-}
-function getRequestArguments(method: string, params: any): Record<string, string> {
-  const args: Record<string, string> = {};
+  const sessionId = transport.sessionId;
   
-  // Only include arguments for certain methods (security consideration)
-  switch (method) {
-    case 'tools/call':
-      if (params?.arguments) {
-        // Convert arguments to JSON strings as per MCP conventions
-        for (const [key, value] of Object.entries(params.arguments)) {
-          args[`mcp.request.argument.${key.toLowerCase()}`] = JSON.stringify(value);
-        }
-      }
-      break;
-    case 'resources/read':
-      if (params?.uri) {
-        args['mcp.request.argument.uri'] = JSON.stringify(params.uri);
-      }
-      break;
-    case 'prompts/get':
-      if (params?.name) {
-        args['mcp.request.argument.name'] = JSON.stringify(params.name);
-      }
-      if (params?.arguments) {
-        for (const [key, value] of Object.entries(params.arguments)) {
-          args[`mcp.request.argument.${key.toLowerCase()}`] = JSON.stringify(value);
-        }
-      }
-      break;
-  }
-  
-  return args;
+  // Extract client information
+  const clientAddress = extractClientAddress(extra);
+  const clientPort = extractClientPort(extra);
+
+  // Determine transport types
+  const { mcpTransport, networkTransport } = getTransportTypes(transport);
+
+  const notificationAttribs = getNotificationAttributes(method, params as Record<string, unknown>);
+
+  const attributes: Record<string, string | number> = {
+    [MCP_METHOD_NAME_ATTRIBUTE]: method,
+    [MCP_NOTIFICATION_DIRECTION_ATTRIBUTE]: 'client_to_server', // Incoming notification
+    
+    ...(sessionId && { [MCP_SESSION_ID_ATTRIBUTE]: sessionId }),
+    ...(clientAddress && { [CLIENT_ADDRESS_ATTRIBUTE]: clientAddress }),
+    ...(clientPort && { [CLIENT_PORT_ATTRIBUTE]: clientPort }),
+    [MCP_TRANSPORT_ATTRIBUTE]: mcpTransport,
+    [NETWORK_TRANSPORT_ATTRIBUTE]: networkTransport,
+    [NETWORK_PROTOCOL_VERSION_ATTRIBUTE]: '2.0',
+    
+    // Notification-specific attributes
+    ...notificationAttribs,
+    
+    // Sentry-specific attributes
+    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: MCP_SERVER_OP_VALUE,
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: MCP_NOTIFICATION_ORIGIN_VALUE,
+    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: MCP_ROUTE_SOURCE_VALUE
+  };
+
+  return startSpan({
+    name: description,
+    forceTransaction: true,
+    attributes
+  }, () => {
+    const result = callback();
+    return result;
+  });
 }
 
-function isJsonRpcRequest(message: any): message is JsonRpcRequest {
-  const isRequest = (
-    typeof message === 'object' &&
-    message !== null &&
-    message.jsonrpc === '2.0' &&
-    'method' in message &&
-    'id' in message
-  );
+function createMcpOutgoingNotificationSpan(
+  jsonRpcMessage: JsonRpcNotification,
+  transport: MCPTransport,
+  options: Record<string, unknown>,
+  callback: () => unknown
+) {
+  const { method, params } = jsonRpcMessage;
   
-  return isRequest;
+  const description = getNotificationDescription(method, params as Record<string, unknown>);
+  
+  const sessionId = transport.sessionId;
+  
+  // Determine transport types
+  const { mcpTransport, networkTransport } = getTransportTypes(transport);
+
+  const notificationAttribs = getNotificationAttributes(method, params as Record<string, unknown>);
+
+  const attributes: Record<string, string | number> = {
+    [MCP_METHOD_NAME_ATTRIBUTE]: method,
+    [MCP_NOTIFICATION_DIRECTION_ATTRIBUTE]: 'server_to_client', // Outgoing notification
+    
+    ...(sessionId && { [MCP_SESSION_ID_ATTRIBUTE]: sessionId }),
+    [MCP_TRANSPORT_ATTRIBUTE]: mcpTransport,
+    [NETWORK_TRANSPORT_ATTRIBUTE]: networkTransport,
+    [NETWORK_PROTOCOL_VERSION_ATTRIBUTE]: '2.0',
+    
+    // Notification-specific attributes
+    ...notificationAttribs,
+    
+    // Sentry-specific attributes
+    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: MCP_SERVER_OP_VALUE,
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: MCP_NOTIFICATION_ORIGIN_VALUE,
+    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: MCP_ROUTE_SOURCE_VALUE
+  };
+
+  return startSpan({
+    name: description,
+    forceTransaction: true,
+    attributes
+  }, () => {
+    const result = callback();
+    return result;
+  });
 }
 
-interface JsonRpcRequest {
-  jsonrpc: '2.0';
-  method: string;
-  id: string | number;
-  params?: any;
-}
-
-function isMcpServerInstance(mcpServerInstance: unknown): mcpServerInstance is MCPServerInstance {
-  return (
-    typeof mcpServerInstance === 'object' &&
-    mcpServerInstance !== null &&
-    'resource' in mcpServerInstance &&
-    typeof mcpServerInstance.resource === 'function' &&
-    'tool' in mcpServerInstance &&
-    typeof mcpServerInstance.tool === 'function' &&
-    'prompt' in mcpServerInstance &&
-    typeof mcpServerInstance.prompt === 'function' &&
-    'connect' in mcpServerInstance &&
-    typeof mcpServerInstance.connect === 'function' &&
-    'server' in mcpServerInstance &&
-    typeof mcpServerInstance.server === 'object' &&
-    mcpServerInstance.server !== null &&
-    'setRequestHandler' in mcpServerInstance.server &&
-    typeof mcpServerInstance.server.setRequestHandler === 'function'
-  );
-}
-
+// =============================================================================
+// SESSION AND REQUEST CORRELATION (Legacy support)
+// =============================================================================
 
 interface ExtraHandlerDataWithRequestId {
   sessionId: SessionId;
   requestId: RequestId;
 }
-
-
-type SessionId = string;
-type RequestId = string | number;
 
 const sessionAndRequestToRequestParentSpanMap = new Map<SessionId, Map<RequestId, Span>>();
 
