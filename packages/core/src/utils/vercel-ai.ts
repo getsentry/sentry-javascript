@@ -121,7 +121,7 @@ function processToolCallSpan(span: Span, attributes: SpanAttributes): void {
   if (!attributes['gen_ai.tool.type']) {
     span.setAttribute('gen_ai.tool.type', 'function');
   }
-  span.updateName(`execute_tool ${attributes[AI_TOOL_CALL_NAME_ATTRIBUTE]}`);
+  span.updateName(`execute_tool ${attributes['gen_ai.tool.name']}`);
 }
 
 function processGenerateSpan(span: Span, name: string, attributes: SpanAttributes): void {
