@@ -12,7 +12,8 @@
   },
   "type": "module",
   "dependencies": {
-    "@sentry/solidstart": "latest || *"
+    "@sentry/solidstart": "latest || *",
+     "@sentry/core": "latest || *"
   },
   "devDependencies": {
     "@playwright/test": "~1.50.0",
