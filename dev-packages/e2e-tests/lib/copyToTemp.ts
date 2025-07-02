@@ -27,8 +27,15 @@ function fixPackageJson(cwd: string): void {
   }
 
   // 2. Fix volta extends
-  if (packageJson.volta?.extends === '../../package.json') {
-    const newPath = join(__dirname, '../package.json');
+  if (!packageJson.volta) {
+    throw new Error('No volta config found, please provide one!');
+  }
+
+  if (typeof packageJson.volta.extends === 'string') {
+    const extendsPath = packageJson.volta.extends;
+    // We add a virtual dir to ensure that the relative depth is consistent
+    // dirPath is relative to ./../test-applications/xxx
+    const newPath = join(__dirname, 'virtual-dir/', extendsPath);
     packageJson.volta.extends = newPath;
     console.log(`Fixed volta.extends to ${newPath}`);
   } else {
