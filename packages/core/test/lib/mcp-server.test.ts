@@ -354,7 +354,7 @@ describe('wrapMcpServerWithSentry', () => {
 
       mockTransport.onmessage?.(jsonRpcRequest, {});
 
-      expect(tracingModule.startSpan).toHaveBeenCalledWith(
+      expect(startSpanSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'tools/list',
           forceTransaction: true,
