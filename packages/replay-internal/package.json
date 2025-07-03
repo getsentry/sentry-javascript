@@ -7,6 +7,16 @@
   "types": "build/npm/types/index.d.ts",
   "exports": {
     "./package.json": "./package.json",
+    "./worker-bundler": {
+      "import": {
+        "types": "./build/npm/types/worker-bundler.d.ts",
+        "default": "./build/npm/esm/worker-bundler.js"
+      },
+      "require": {
+        "types": "./build/npm/types/worker-bundler.d.ts",
+        "default": "./build/npm/cjs/worker-bundler.js"
+      }
+    },
     ".": {
       "import": {
         "types": "./build/npm/types/index.d.ts",
