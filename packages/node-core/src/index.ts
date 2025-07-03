@@ -25,6 +25,7 @@ export { childProcessIntegration } from './integrations/childProcess';
 export { createSentryWinstonTransport } from './integrations/winston';
 
 export { SentryContextManager } from './otel/contextManager';
+export { setupOpenTelemetryLogger } from './otel/logger';
 export { generateInstrumentOnce, instrumentWhenWrapped, INSTRUMENTED } from './otel/instrument';
 
 export { init, getDefaultIntegrations, initWithoutDefaultIntegrations, validateOpenTelemetrySetup } from './sdk';
