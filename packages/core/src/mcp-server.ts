@@ -1,9 +1,7 @@
-import type { Span } from './types-hoist/span';
 import type {
   ExtraHandlerData,
   MCPServerInstance,
   MCPTransport,
-  SessionId,
 } from './utils/mcp-server/types';
 import {
   createMcpNotificationSpan,
@@ -92,9 +90,10 @@ export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S):
         const originalOnClose = transport.onclose;
         transport.onclose = new Proxy(originalOnClose, {
           apply(onCloseTarget, onCloseThisArg, onCloseArgs) {
-            if (transport.sessionId) {
-              handleTransportOnClose(transport.sessionId);
-            }
+            //TODO(bete): session and request correlation (methods at the bottom of this file)
+            // if (transport.sessionId) {
+            //   handleTransportOnClose(transport.sessionId);
+            // }
             return Reflect.apply(onCloseTarget, onCloseThisArg, onCloseArgs);
           },
         });
@@ -111,11 +110,11 @@ export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S):
 // SESSION AND REQUEST CORRELATION (Legacy support)
 // =============================================================================
 
-const sessionAndRequestToRequestParentSpanMap = new Map<SessionId, Map<string, Span>>();
+// const sessionAndRequestToRequestParentSpanMap = new Map<SessionId, Map<string, Span>>();
 
-function handleTransportOnClose(sessionId: SessionId): void {
-  sessionAndRequestToRequestParentSpanMap.delete(sessionId);
-}
+// function handleTransportOnClose(sessionId: SessionId): void {
+//   sessionAndRequestToRequestParentSpanMap.delete(sessionId);
+// }
 
 // TODO(bete): refactor this and associateContextWithRequestSpan to use the new span API.
 // function handleTransportOnMessage(sessionId: SessionId, requestId: string): void {
