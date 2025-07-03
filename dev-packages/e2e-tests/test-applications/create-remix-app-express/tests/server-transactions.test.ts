@@ -101,7 +101,7 @@ test('Propagates trace when ErrorBoundary is triggered', async ({ page }) => {
 
 test('Sends two linked transactions (server & client) to Sentry', async ({ page }) => {
   // We use this to identify the transactions
-  const testTag = uuid4();
+  const testTag = crypto.randomUUID();
 
   const httpServerTransactionPromise = waitForTransaction('create-remix-app-express', transactionEvent => {
     return transactionEvent.contexts?.trace?.op === 'http.server' && transactionEvent.tags?.['sentry_test'] === testTag;
