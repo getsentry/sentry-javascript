@@ -16,7 +16,7 @@ export function resourceTimingToSpanAttributes(
   resourceTiming: PerformanceResourceTiming,
 ): Array<Parameters<Span['setAttribute']>> {
   const timingSpanData: Array<Parameters<Span['setAttribute']>> = [];
-  if (resourceTiming.nextHopProtocol) {
+  if (resourceTiming.nextHopProtocol != undefined) {
     const { name, version } = extractNetworkProtocol(resourceTiming.nextHopProtocol);
     timingSpanData.push(['network.protocol.version', version], ['network.protocol.name', name]);
   }
