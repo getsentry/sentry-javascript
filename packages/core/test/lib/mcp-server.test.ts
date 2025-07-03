@@ -323,11 +323,10 @@ describe('wrapMcpServerWithSentry', () => {
           attributes: {
             'mcp.method.name': 'notifications/tools/list_changed',
             'mcp.session.id': 'test-session-123',
-            'mcp.notification.direction': 'client_to_server',
             'mcp.transport': 'http',
             'network.transport': 'tcp',
             'network.protocol.version': '2.0',
-            'sentry.op': 'mcp.server',
+            'sentry.op': 'mcp.notification.client_to_server',
             'sentry.origin': 'auto.mcp.notification',
             'sentry.source': 'route',
           },
@@ -393,12 +392,11 @@ describe('wrapMcpServerWithSentry', () => {
 
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
-          name: 'notifications/message logger:math-service',
+          name: 'notifications/message',
           forceTransaction: true,
           attributes: {
             'mcp.method.name': 'notifications/message',
             'mcp.session.id': 'test-session-123',
-            'mcp.notification.direction': 'client_to_server',
             'mcp.transport': 'http',
             'network.transport': 'tcp',
             'network.protocol.version': '2.0',
@@ -406,7 +404,7 @@ describe('wrapMcpServerWithSentry', () => {
             'mcp.logging.logger': 'math-service',
             'mcp.logging.data_type': 'string',
             'mcp.logging.message': 'Addition completed: 2 + 5 = 7',
-            'sentry.op': 'mcp.server',
+            'sentry.op': 'mcp.notification.client_to_server',
             'sentry.origin': 'auto.mcp.notification',
             'sentry.source': 'route',
           },
@@ -432,12 +430,14 @@ describe('wrapMcpServerWithSentry', () => {
 
       expect(startSpanSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          name: 'notifications/cancelled request:req-123',
+          name: 'notifications/cancelled',
           attributes: expect.objectContaining({
             'mcp.method.name': 'notifications/cancelled',
             'mcp.cancelled.request_id': 'req-123',
             'mcp.cancelled.reason': 'user_requested',
-            'mcp.notification.direction': 'client_to_server',
+            'sentry.op': 'mcp.notification.client_to_server',
+            'sentry.origin': 'auto.mcp.notification',
+            'sentry.source': 'route',
           }),
         }),
         expect.any(Function),
@@ -461,7 +461,7 @@ describe('wrapMcpServerWithSentry', () => {
 
       expect(startSpanSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          name: 'notifications/progress token:token-456',
+          name: 'notifications/progress',
           attributes: expect.objectContaining({
             'mcp.method.name': 'notifications/progress',
             'mcp.progress.token': 'token-456',
@@ -469,7 +469,9 @@ describe('wrapMcpServerWithSentry', () => {
             'mcp.progress.total': 100,
             'mcp.progress.percentage': 75,
             'mcp.progress.message': 'Processing files...',
-            'mcp.notification.direction': 'client_to_server',
+            'sentry.op': 'mcp.notification.client_to_server',
+            'sentry.origin': 'auto.mcp.notification',
+            'sentry.source': 'route',
           }),
         }),
         expect.any(Function),
@@ -490,12 +492,38 @@ describe('wrapMcpServerWithSentry', () => {
 
       expect(startSpanSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          name: 'notifications/resources/updated file:///tmp/data.json',
+          name: 'notifications/resources/updated',
           attributes: expect.objectContaining({
             'mcp.method.name': 'notifications/resources/updated',
             'mcp.resource.uri': 'file:///tmp/data.json',
             'mcp.resource.protocol': 'file:',
-            'mcp.notification.direction': 'client_to_server',
+            'sentry.op': 'mcp.notification.client_to_server',
+            'sentry.origin': 'auto.mcp.notification',
+            'sentry.source': 'route',
+          }),
+        }),
+        expect.any(Function),
+      );
+    });
+
+    it('should create spans with correct operation for outgoing notifications', async () => {
+      await wrappedMcpServer.connect(mockTransport);
+
+      const outgoingNotification = {
+        jsonrpc: '2.0',
+        method: 'notifications/tools/list_changed',
+      };
+
+      await mockTransport.send?.(outgoingNotification);
+
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'notifications/tools/list_changed',
+          attributes: expect.objectContaining({
+            'mcp.method.name': 'notifications/tools/list_changed',
+            'sentry.op': 'mcp.notification.server_to_client',
+            'sentry.origin': 'auto.mcp.notification',
+            'sentry.source': 'route',
           }),
         }),
         expect.any(Function),

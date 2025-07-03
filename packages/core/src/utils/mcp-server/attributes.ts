@@ -56,16 +56,6 @@ export const MCP_RESOURCE_URI_ATTRIBUTE = 'mcp.resource.uri';
 export const MCP_PROMPT_NAME_ATTRIBUTE = 'mcp.prompt.name';
 
 // =============================================================================
-// NOTIFICATION ATTRIBUTES
-// =============================================================================
-
-/**
- * Direction of the notification (client_to_server or server_to_client)
- * @see https://github.com/open-telemetry/semantic-conventions/blob/3097fb0af5b9492b0e3f55dc5f6c21a3dc2be8df/docs/gen-ai/mcp.md#notification-attributes
- */
-export const MCP_NOTIFICATION_DIRECTION_ATTRIBUTE = 'mcp.notification.direction';
-
-// =============================================================================
 // NETWORK ATTRIBUTES (OpenTelemetry Standard)
 // =============================================================================
 
@@ -101,6 +91,18 @@ export const CLIENT_PORT_ATTRIBUTE = 'client.port';
  * Sentry operation value for MCP server spans
  */
 export const MCP_SERVER_OP_VALUE = 'mcp.server';
+
+/**
+ * Sentry operation value for client-to-server notifications
+ * Following OpenTelemetry MCP semantic conventions
+ */
+export const MCP_NOTIFICATION_CLIENT_TO_SERVER_OP_VALUE = 'mcp.notification.client_to_server';
+
+/**
+ * Sentry operation value for server-to-client notifications
+ * Following OpenTelemetry MCP semantic conventions
+ */
+export const MCP_NOTIFICATION_SERVER_TO_CLIENT_OP_VALUE = 'mcp.notification.server_to_client';
 
 /**
  * Sentry origin value for MCP function spans

@@ -15,8 +15,9 @@ import {
   CLIENT_PORT_ATTRIBUTE,
   MCP_FUNCTION_ORIGIN_VALUE,
   MCP_METHOD_NAME_ATTRIBUTE,
-  MCP_NOTIFICATION_DIRECTION_ATTRIBUTE,
+  MCP_NOTIFICATION_CLIENT_TO_SERVER_OP_VALUE,
   MCP_NOTIFICATION_ORIGIN_VALUE,
+  MCP_NOTIFICATION_SERVER_TO_CLIENT_OP_VALUE,
   MCP_REQUEST_ID_ATTRIBUTE,
   MCP_ROUTE_SOURCE_VALUE,
   MCP_SERVER_OP_VALUE,
@@ -174,42 +175,15 @@ export function getTransportTypes(transport: MCPTransport): { mcpTransport: stri
 // =============================================================================
 
 /**
- *
+ * Get notification span name following OpenTelemetry conventions
+ * For notifications, we use the method name directly as per JSON-RPC conventions
  */
-export function getNotificationDescription(method: string, params: Record<string, unknown>): string {
-  // Enhanced description with target information
-  switch (method) {
-    case 'notifications/message':
-      // For logging messages, include logger in description
-      if (params?.logger && typeof params.logger === 'string') {
-        return `${method} logger:${params.logger}`;
-      }
-      return method;
-    case 'notifications/cancelled':
-      // For cancelled notifications, include request ID if available
-      if (params?.requestId) {
-        return `${method} request:${params.requestId}`;
-      }
-      return method;
-    case 'notifications/progress':
-      // For progress notifications, include progress token if available
-      if (params?.progressToken) {
-        return `${method} token:${params.progressToken}`;
-      }
-      return method;
-    case 'notifications/resources/updated':
-      // For resource updates, include URI
-      if (params?.uri && typeof params.uri === 'string') {
-        return `${method} ${params.uri}`;
-      }
-      return method;
-    default:
-      return method;
-  }
+export function getNotificationSpanName(method: string): string {
+  return method;
 }
 
 /**
- *
+ * Extract additional attributes for specific notification types
  */
 export function getNotificationAttributes(
   method: string,
@@ -217,7 +191,6 @@ export function getNotificationAttributes(
 ): Record<string, string | number> {
   const attributes: Record<string, string | number> = {};
 
-  // Comprehensive notification attributes
   switch (method) {
     case 'notifications/cancelled':
       if (params?.requestId) {
@@ -229,7 +202,6 @@ export function getNotificationAttributes(
       break;
 
     case 'notifications/message':
-      // Logging-specific attributes
       if (params?.level) {
         attributes['mcp.logging.level'] = String(params.level);
       }
@@ -279,7 +251,6 @@ export function getNotificationAttributes(
       break;
 
     case 'notifications/initialized':
-      // Mark as lifecycle event
       attributes['mcp.lifecycle.phase'] = 'initialization_complete';
       attributes['mcp.protocol.ready'] = 1;
       break;
@@ -323,49 +294,135 @@ export function createSpanName(method: string, target?: string): string {
 }
 
 // =============================================================================
-// SPAN ATTRIBUTE BUILDERS
+// UNIFIED SPAN BUILDER
 // =============================================================================
 
+interface McpSpanConfig {
+  type: 'request' | 'notification-incoming' | 'notification-outgoing';
+  message: JsonRpcRequest | JsonRpcNotification;
+  transport: MCPTransport;
+  extra?: ExtraHandlerData;
+  callback: () => unknown;
+}
+
 /**
- * Builds base span attributes common to all MCP span types
+ * Unified builder for creating MCP spans
+ * Follows OpenTelemetry semantic conventions for span naming
  */
-export function buildBaseSpanAttributes(
+function createMcpSpan(config: McpSpanConfig): unknown {
+  const { type, message, transport, extra, callback } = config;
+  const { method } = message;
+  const params = message.params as Record<string, unknown> | undefined;
+
+  // Determine span name based on type and OTEL conventions
+  let spanName: string;
+  if (type === 'request') {
+    const target = extractTarget(method, params || {});
+    spanName = createSpanName(method, target);
+  } else {
+    // For notifications, use method name directly (OTEL convention)
+    spanName = getNotificationSpanName(method);
+  }
+
+  // Build attributes
+  const attributes: Record<string, string | number> = {
+    // Base attributes
+    ...buildTransportAttributes(transport, extra),
+    // Method name (required for all spans)
+    [MCP_METHOD_NAME_ATTRIBUTE]: method,
+    // Type-specific attributes
+    ...buildTypeSpecificAttributes(type, message, params),
+    // Sentry attributes
+    ...buildSentryAttributes(type),
+  };
+
+  return startSpan(
+    {
+      name: spanName,
+      forceTransaction: true,
+      attributes,
+    },
+    callback,
+  );
+}
+
+/**
+ * Build transport and network attributes
+ */
+function buildTransportAttributes(
   transport: MCPTransport,
   extra?: ExtraHandlerData,
 ): Record<string, string | number> {
-  // Session ID should come from the transport itself, not the RPC message
   const sessionId = transport.sessionId;
-
-  // Extract client information from extra/request data (if provided)
   const clientAddress = extra ? extractClientAddress(extra) : undefined;
   const clientPort = extra ? extractClientPort(extra) : undefined;
-
-  // Determine transport types
   const { mcpTransport, networkTransport } = getTransportTypes(transport);
 
   return {
     ...(sessionId && { [MCP_SESSION_ID_ATTRIBUTE]: sessionId }),
     ...(clientAddress && { [CLIENT_ADDRESS_ATTRIBUTE]: clientAddress }),
     ...(clientPort && { [CLIENT_PORT_ATTRIBUTE]: clientPort }),
-    [MCP_TRANSPORT_ATTRIBUTE]: mcpTransport, // Application level: "http", "sse", "stdio", "websocket"
-    [NETWORK_TRANSPORT_ATTRIBUTE]: networkTransport, // Network level: "tcp", "pipe", "udp", "quic"
-    [NETWORK_PROTOCOL_VERSION_ATTRIBUTE]: '2.0', // JSON-RPC version
+    [MCP_TRANSPORT_ATTRIBUTE]: mcpTransport,
+    [NETWORK_TRANSPORT_ATTRIBUTE]: networkTransport,
+    [NETWORK_PROTOCOL_VERSION_ATTRIBUTE]: '2.0',
   };
 }
 
 /**
- * Builds Sentry-specific span attributes
+ * Build type-specific attributes based on message type
  */
-export function buildSentrySpanAttributes(origin: string): Record<string, string> {
+function buildTypeSpecificAttributes(
+  type: McpSpanConfig['type'],
+  message: JsonRpcRequest | JsonRpcNotification,
+  params?: Record<string, unknown>,
+): Record<string, string | number> {
+  if (type === 'request') {
+    const request = message as JsonRpcRequest;
+    const target = extractTarget(request.method, params || {});
+    
+    return {
+      ...(request.id !== undefined && { [MCP_REQUEST_ID_ATTRIBUTE]: String(request.id) }),
+      ...(target && getTargetAttributes(request.method, target)),
+      ...getRequestArguments(request.method, params || {}),
+    };
+  }
+
+  // For notifications, only include notification-specific attributes
+  return getNotificationAttributes(message.method, params || {});
+}
+
+/**
+ * Build Sentry-specific attributes based on span type
+ * Uses specific operations for notification direction
+ */
+function buildSentryAttributes(type: McpSpanConfig['type']): Record<string, string> {
+  let op: string;
+  let origin: string;
+  
+  switch (type) {
+    case 'request':
+      op = MCP_SERVER_OP_VALUE;
+      origin = MCP_FUNCTION_ORIGIN_VALUE;
+      break;
+    case 'notification-incoming':
+      op = MCP_NOTIFICATION_CLIENT_TO_SERVER_OP_VALUE;
+      origin = MCP_NOTIFICATION_ORIGIN_VALUE;
+      break;
+    case 'notification-outgoing':
+      op = MCP_NOTIFICATION_SERVER_TO_CLIENT_OP_VALUE;
+      origin = MCP_NOTIFICATION_ORIGIN_VALUE;
+      break;
+  }
+  
   return {
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: MCP_SERVER_OP_VALUE,
+    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin,
     [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: MCP_ROUTE_SOURCE_VALUE,
   };
 }
 
 // =============================================================================
-// SPAN CREATION FUNCTIONS
+// PUBLIC API - SIMPLIFIED SPAN CREATION FUNCTIONS
 // =============================================================================
 
 /**
@@ -377,42 +434,13 @@ export function createMcpServerSpan(
   extra: ExtraHandlerData,
   callback: () => unknown,
 ): unknown {
-  const { method, id: requestId, params } = jsonRpcMessage;
-
-  // Extract target from method and params for proper description
-  const target = extractTarget(method, params as Record<string, unknown>);
-  const description = createSpanName(method, target);
-
-  // Build base attributes using shared builder
-  const baseAttributes = buildBaseSpanAttributes(transport, extra);
-
-  // Build request-specific attributes
-  const requestAttributes: Record<string, string | number> = {
-    [MCP_METHOD_NAME_ATTRIBUTE]: method,
-    ...(requestId !== undefined && { [MCP_REQUEST_ID_ATTRIBUTE]: String(requestId) }),
-    ...(target && getTargetAttributes(method, target)),
-    // Opt-in: Tool arguments (if enabled)
-    ...getRequestArguments(method, params as Record<string, unknown>),
-  };
-
-  // Build Sentry-specific attributes using shared builder
-  const sentryAttributes = buildSentrySpanAttributes(MCP_FUNCTION_ORIGIN_VALUE);
-
-  return startSpan(
-    {
-      name: description,
-      forceTransaction: true,
-      attributes: {
-        ...baseAttributes,
-        ...requestAttributes,
-        ...sentryAttributes,
-      },
-    },
-    () => {
-      // TODO(bete): add proper error handling. Handle JSON RPC errors in the result
-      return callback();
-    },
-  );
+  return createMcpSpan({
+    type: 'request',
+    message: jsonRpcMessage,
+    transport,
+    extra,
+    callback,
+  });
 }
 
 /**
@@ -424,39 +452,13 @@ export function createMcpNotificationSpan(
   extra: ExtraHandlerData,
   callback: () => unknown,
 ): unknown {
-  const { method, params } = jsonRpcMessage;
-
-  const description = getNotificationDescription(method, params as Record<string, unknown>);
-
-  // Build base attributes using shared builder
-  const baseAttributes = buildBaseSpanAttributes(transport, extra);
-
-  // Build notification-specific attributes
-  const notificationAttributes: Record<string, string | number> = {
-    [MCP_METHOD_NAME_ATTRIBUTE]: method,
-    [MCP_NOTIFICATION_DIRECTION_ATTRIBUTE]: 'client_to_server', // Incoming notification
-    // Notification-specific attributes
-    ...getNotificationAttributes(method, params as Record<string, unknown>),
-  };
-
-  // Build Sentry-specific attributes using shared builder
-  const sentryAttributes = buildSentrySpanAttributes(MCP_NOTIFICATION_ORIGIN_VALUE);
-
-  return startSpan(
-    {
-      name: description,
-      forceTransaction: true,
-      attributes: {
-        ...baseAttributes,
-        ...notificationAttributes,
-        ...sentryAttributes,
-      },
-    },
-    () => {
-      const result = callback();
-      return result;
-    },
-  );
+  return createMcpSpan({
+    type: 'notification-incoming',
+    message: jsonRpcMessage,
+    transport,
+    extra,
+    callback,
+  });
 }
 
 /**
@@ -468,37 +470,10 @@ export function createMcpOutgoingNotificationSpan(
   options: Record<string, unknown>,
   callback: () => unknown,
 ): unknown {
-  const { method, params } = jsonRpcMessage;
-
-  const description = getNotificationDescription(method, params as Record<string, unknown>);
-
-  // Build base attributes using shared builder (no client info for outgoing notifications)
-  const baseAttributes = buildBaseSpanAttributes(transport);
-
-  // Build notification-specific attributes
-  const notificationAttributes: Record<string, string | number> = {
-    [MCP_METHOD_NAME_ATTRIBUTE]: method,
-    [MCP_NOTIFICATION_DIRECTION_ATTRIBUTE]: 'server_to_client', // Outgoing notification
-    // Notification-specific attributes
-    ...getNotificationAttributes(method, params as Record<string, unknown>),
-  };
-
-  // Build Sentry-specific attributes using shared builder
-  const sentryAttributes = buildSentrySpanAttributes(MCP_NOTIFICATION_ORIGIN_VALUE);
-
-  return startSpan(
-    {
-      name: description,
-      forceTransaction: true,
-      attributes: {
-        ...baseAttributes,
-        ...notificationAttributes,
-        ...sentryAttributes,
-      },
-    },
-    () => {
-      const result = callback();
-      return result;
-    },
-  );
+  return createMcpSpan({
+    type: 'notification-outgoing',
+    message: jsonRpcMessage,
+    transport,
+    callback,
+  });
 }
