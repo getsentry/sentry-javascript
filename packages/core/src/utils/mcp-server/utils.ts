@@ -55,7 +55,7 @@ export function isJsonRpcNotification(message: unknown): message is JsonRpcNotif
   );
 }
 
-/** Extracts target info from method and params based on method type */
+/** Validates MCP server instance with comprehensive type checking */
 export function validateMcpServerInstance(instance: unknown): boolean {
   if (
     typeof instance === 'object' &&
@@ -156,11 +156,26 @@ function getRequestArguments(method: string, params: Record<string, unknown>): R
 function getTransportTypes(transport: MCPTransport): { mcpTransport: string; networkTransport: string } {
   const transportName = transport.constructor?.name?.toLowerCase() || '';
 
-  if (transportName.includes('sse')) return { mcpTransport: 'sse', networkTransport: 'tcp' };
-  if (transportName.includes('websocket')) return { mcpTransport: 'websocket', networkTransport: 'tcp' };
-  if (transportName.includes('stdio')) return { mcpTransport: 'stdio', networkTransport: 'pipe' };
+  // Standard MCP transports per specification
+  if (transportName.includes('stdio')) {
+    return { mcpTransport: 'stdio', networkTransport: 'pipe' };
+  }
+  
+  // Streamable HTTP is the standard HTTP-based transport
+  // The official SDK uses 'StreamableHTTPServerTransport' / 'StreamableHTTPClientTransport'
+  if (transportName.includes('streamablehttp') || transportName.includes('streamable')) {
+    return { mcpTransport: 'http', networkTransport: 'tcp' };
+  }
+  
+  // SSE is the deprecated HTTP+SSE transport (backwards compatibility)
+  // Note: Modern Streamable HTTP can use SSE internally, but SSE transport is deprecated
+  if (transportName.includes('sse')) {
+    return { mcpTransport: 'sse', networkTransport: 'tcp' };
+  }
 
-  return { mcpTransport: 'http', networkTransport: 'tcp' };
+  // For custom transports, mark as unknown
+  // TODO(bete): Add support for custom transports
+  return { mcpTransport: 'unknown', networkTransport: 'unknown' };
 }
 
 /** Extracts additional attributes for specific notification types */

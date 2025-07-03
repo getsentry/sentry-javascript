@@ -530,6 +530,123 @@ describe('wrapMcpServerWithSentry', () => {
       );
     });
   });
+
+  describe('Stdio Transport Tests', () => {
+    let mockMcpServer: ReturnType<typeof createMockMcpServer>;
+    let wrappedMcpServer: ReturnType<typeof createMockMcpServer>;
+    let mockStdioTransport: ReturnType<typeof createMockStdioTransport>;
+
+    beforeEach(() => {
+      mockMcpServer = createMockMcpServer();
+      wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
+      mockStdioTransport = createMockStdioTransport();
+      mockStdioTransport.sessionId = 'stdio-session-456';
+    });
+
+    it('should detect stdio transport and set correct attributes', async () => {
+      await wrappedMcpServer.connect(mockStdioTransport);
+
+      const jsonRpcRequest = {
+        jsonrpc: '2.0',
+        method: 'tools/call',
+        id: 'req-stdio-1',
+        params: { name: 'process-file', arguments: { path: '/tmp/data.txt' } },
+      };
+
+      mockStdioTransport.onmessage?.(jsonRpcRequest, {});
+
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        {
+          name: 'tools/call process-file',
+          forceTransaction: true,
+          attributes: {
+            'mcp.method.name': 'tools/call',
+            'mcp.tool.name': 'process-file',
+            'mcp.request.id': 'req-stdio-1',
+            'mcp.session.id': 'stdio-session-456',
+            'mcp.transport': 'stdio',  // Should be stdio, not http
+            'network.transport': 'pipe',  // Should be pipe, not tcp
+            'network.protocol.version': '2.0',
+            'mcp.request.argument.path': '"/tmp/data.txt"',
+            'sentry.op': 'mcp.server',
+            'sentry.origin': 'auto.function.mcp_server',
+            'sentry.source': 'route',
+          },
+        },
+        expect.any(Function),
+      );
+    });
+
+    it('should handle stdio transport notifications correctly', async () => {
+      await wrappedMcpServer.connect(mockStdioTransport);
+
+      const notification = {
+        jsonrpc: '2.0',
+        method: 'notifications/message',
+        params: {
+          level: 'debug',
+          data: 'Processing stdin input',
+        },
+      };
+
+      mockStdioTransport.onmessage?.(notification, {});
+
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'notifications/message',
+          attributes: expect.objectContaining({
+            'mcp.method.name': 'notifications/message',
+            'mcp.session.id': 'stdio-session-456',
+            'mcp.transport': 'stdio',
+            'network.transport': 'pipe',
+            'mcp.logging.level': 'debug',
+            'mcp.logging.message': 'Processing stdin input',
+          }),
+        }),
+        expect.any(Function),
+      );
+    });
+  });
+
+  describe('SSE Transport Tests (Backwards Compatibility)', () => {
+    let mockMcpServer: ReturnType<typeof createMockMcpServer>;
+    let wrappedMcpServer: ReturnType<typeof createMockMcpServer>;
+    let mockSseTransport: ReturnType<typeof createMockSseTransport>;
+
+    beforeEach(() => {
+      mockMcpServer = createMockMcpServer();
+      wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
+      mockSseTransport = createMockSseTransport();
+      mockSseTransport.sessionId = 'sse-session-789';
+    });
+
+    it('should detect SSE transport for backwards compatibility', async () => {
+      await wrappedMcpServer.connect(mockSseTransport);
+
+      const jsonRpcRequest = {
+        jsonrpc: '2.0',
+        method: 'resources/read',
+        id: 'req-sse-1',
+        params: { uri: 'https://api.example.com/data' },
+      };
+
+      mockSseTransport.onmessage?.(jsonRpcRequest, {});
+
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'resources/read https://api.example.com/data',
+          attributes: expect.objectContaining({
+            'mcp.method.name': 'resources/read',
+            'mcp.resource.uri': 'https://api.example.com/data',
+            'mcp.transport': 'sse',  // Deprecated but supported
+            'network.transport': 'tcp',
+            'mcp.session.id': 'sse-session-789',
+          }),
+        }),
+        expect.any(Function),
+      );
+    });
+  });
 });
 
 // Test helpers
@@ -546,10 +663,39 @@ function createMockMcpServer() {
 }
 
 function createMockTransport() {
-  return {
-    onmessage: vi.fn(),
-    onclose: vi.fn(),
-    send: vi.fn().mockResolvedValue(undefined),
-    sessionId: 'test-session-123',
-  };
+  // exact naming pattern from the official SDK
+  class StreamableHTTPServerTransport {
+    onmessage = vi.fn();
+    onclose = vi.fn();
+    send = vi.fn().mockResolvedValue(undefined);
+    sessionId = 'test-session-123';
+  }
+  
+  return new StreamableHTTPServerTransport();
+}
+
+function createMockStdioTransport() {
+  // Create a mock that mimics StdioServerTransport
+  // Using the exact naming pattern from the official SDK
+  class StdioServerTransport {
+    onmessage = vi.fn();
+    onclose = vi.fn();
+    send = vi.fn().mockResolvedValue(undefined);
+    sessionId = 'stdio-session-456';
+  }
+  
+  return new StdioServerTransport();
+}
+
+function createMockSseTransport() {
+  // Create a mock that mimics the deprecated SSEServerTransport
+  // For backwards compatibility testing
+  class SSEServerTransport {
+    onmessage = vi.fn();
+    onclose = vi.fn();
+    send = vi.fn().mockResolvedValue(undefined);
+    sessionId = 'sse-session-789';
+  }
+  
+  return new SSEServerTransport();
 }
