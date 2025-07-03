@@ -36,7 +36,9 @@ yarn add @sentry/node-core @sentry/opentelemetry @opentelemetry/api @opentelemet
 
 Sentry should be initialized as early in your app as possible. It is essential that you call `Sentry.init` before you
 require any other modules in your application, otherwise any auto-instrumentation will **not** work.
-You also need to set up OpenTelemetry, if you prefer not to, consider using the `@sentry/node` SDK instead.
+
+You also **have to** set up OpenTelemetry, if you prefer not to, consider using the `@sentry/node` SDK instead.
+Without setting up OpenTelemetry, you only get basic error tracking out of the box without proper scope isolation.
 
 You need to create a file named `instrument.js` that imports and initializes Sentry:
 
@@ -57,23 +59,29 @@ const sentryClient = Sentry.init({
   // ...
 });
 
-// Note: This could be BasicTracerProvider or any other provider depending on how you want to use the
-// OpenTelemetry SDK
-const provider = new NodeTracerProvider({
-  // Ensure the correct subset of traces is sent to Sentry
-  // This also ensures trace propagation works as expected
-  sampler: sentryClient ? new SentrySampler(sentryClient) : undefined,
-  spanProcessors: [
-    // Ensure spans are correctly linked & sent to Sentry
-    new SentrySpanProcessor(),
-    // Add additional processors here
-  ],
-});
+if (sentryClient) {
+  // Note: This could be BasicTracerProvider or any other provider depending on how you want to use the
+  // OpenTelemetry SDK
+  const provider = new NodeTracerProvider({
+    // Ensure the correct subset of traces is sent to Sentry
+    // This also ensures trace propagation works as expected
+    sampler: new SentrySampler(sentryClient),
+    spanProcessors: [
+      // Ensure spans are correctly linked & sent to Sentry
+      new SentrySpanProcessor(),
+      // Add additional processors here
+    ],
+  });
 
-trace.setGlobalTracerProvider(provider);
-propagation.setGlobalPropagator(new SentryPropagator());
-context.setGlobalContextManager(new Sentry.SentryContextManager());
+  trace.setGlobalTracerProvider(provider);
+  propagation.setGlobalPropagator(new SentryPropagator());
+  context.setGlobalContextManager(new Sentry.SentryContextManager());
+}
 
+// Set up the OpenTelemetry logger to use Sentry's logger
+Sentry.setupOpenTelemetryLogger();
+
+// validate your setup
 Sentry.validateOpenTelemetrySetup();
 ```
 

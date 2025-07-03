@@ -1,4 +1,3 @@
-import { diag, DiagLogLevel } from '@opentelemetry/api';
 import type { Integration, Options } from '@sentry/core';
 import {
   consoleIntegration,
@@ -133,10 +132,6 @@ function _init(
 
   updateScopeFromEnvVariables();
 
-  if (options.debug) {
-    setupOpenTelemetryLogger();
-  }
-
   enhanceDscWithOpenTelemetryRootSpanName(client);
   setupEventContextTrace(client);
 
@@ -248,20 +243,4 @@ function updateScopeFromEnvVariables(): void {
     const propagationContext = propagationContextFromHeaders(sentryTraceEnv, baggageEnv);
     getCurrentScope().setPropagationContext(propagationContext);
   }
-}
-
-/**
- * Setup the OTEL logger to use our own logger.
- */
-function setupOpenTelemetryLogger(): void {
-  const otelLogger = new Proxy(logger as typeof logger & { verbose: (typeof logger)['debug'] }, {
-    get(target, prop, receiver) {
-      const actualProp = prop === 'verbose' ? 'debug' : prop;
-      return Reflect.get(target, actualProp, receiver);
-    },
-  });
-
-  // Disable diag, to ensure this works even if called multiple times
-  diag.disable();
-  diag.setLogger(otelLogger, DiagLogLevel.DEBUG);
 }

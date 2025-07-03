@@ -8,8 +8,7 @@ import {
   SEMRESATTRS_SERVICE_NAMESPACE,
 } from '@opentelemetry/semantic-conventions';
 import { consoleSandbox, GLOBAL_OBJ, logger, SDK_VERSION } from '@sentry/core';
-import type { NodeClient } from '@sentry/node-core';
-import { isCjs, SentryContextManager } from '@sentry/node-core';
+import { type NodeClient, isCjs, SentryContextManager, setupOpenTelemetryLogger } from '@sentry/node-core';
 import { SentryPropagator, SentrySampler, SentrySpanProcessor } from '@sentry/opentelemetry';
 import { createAddHookMessageChannel } from 'import-in-the-middle';
 import moduleModule from 'module';
@@ -28,6 +27,10 @@ interface AdditionalOpenTelemetryOptions {
  * Initialize OpenTelemetry for Node.
  */
 export function initOpenTelemetry(client: NodeClient, options: AdditionalOpenTelemetryOptions = {}): void {
+  if (client.getOptions().debug) {
+    setupOpenTelemetryLogger();
+  }
+
   const provider = setupOtel(client, options);
   client.traceProvider = provider;
 }
