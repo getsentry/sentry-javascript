@@ -41,7 +41,7 @@ test('Should record caught exceptions with local variable', async ({ baseURL }) 
   expect(frames?.[frames.length - 1]?.vars?.randomVariableToRecord).toBeDefined();
 });
 
-test('To not crush app from withMonitor', async ({ baseURL }) => {
+test('To not crash app from withMonitor', async ({ baseURL }) => {
   const doRequest = async (id: number) => {
     const response = await fetch(`${baseURL}/crash-in-with-monitor/${id}`)
     return response.json();
