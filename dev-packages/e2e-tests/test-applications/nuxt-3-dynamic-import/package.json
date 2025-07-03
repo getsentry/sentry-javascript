@@ -15,7 +15,6 @@
   },
   "dependencies": {
     "@sentry/nuxt": "latest || *",
-    "@sentry/core": "latest || *",
     "nuxt": "^3.14.0"
   },
   "devDependencies": {

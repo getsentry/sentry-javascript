@@ -18,7 +18,6 @@
   "dependencies": {
     "@pinia/nuxt": "^0.5.5",
     "@sentry/nuxt": "latest || *",
-    "@sentry/core": "latest || *",
     "nuxt": "^4.0.0-alpha.4"
   },
   "devDependencies": {

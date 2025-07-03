@@ -1,6 +1,4 @@
 import { expect, test } from '@playwright/test';
-import { uuid4 } from '@sentry/core';
-
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test.describe.configure({ mode: 'serial' });
@@ -63,7 +61,7 @@ test('Sends a loader span to Sentry', async ({ page }) => {
 
 test('Propagates trace when ErrorBoundary is triggered', async ({ page }) => {
   // We use this to identify the transactions
-  const testTag = uuid4();
+  const testTag = crypto.randomUUID();
 
   const httpServerTransactionPromise = waitForTransaction('create-remix-app-express', transactionEvent => {
     return transactionEvent.contexts?.trace?.op === 'http.server' && transactionEvent.tags?.['sentry_test'] === testTag;
