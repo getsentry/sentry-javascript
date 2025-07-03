@@ -11,6 +11,7 @@ import {
   getTraceData,
   LRUMap,
   parseUrl,
+  SDK_VERSION,
 } from '@sentry/core';
 import { shouldPropagateTraceForUrl } from '@sentry/opentelemetry';
 import * as diagch from 'diagnostics_channel';
@@ -23,9 +24,6 @@ const SENTRY_BAGGAGE_HEADER = 'baggage';
 
 // For baggage, we make sure to merge this into a possibly existing header
 const BAGGAGE_HEADER_REGEX = /baggage: (.*)\r\n/;
-
-// Bump this whenever we make changes
-const VERSION = '1.0.0';
 
 export type SentryNodeFetchInstrumentationOptions = InstrumentationConfig & {
   /**
@@ -68,7 +66,7 @@ export class SentryNodeFetchInstrumentation extends InstrumentationBase<SentryNo
   private _ignoreOutgoingRequestsMap: WeakMap<UndiciRequest, boolean>;
 
   public constructor(config: SentryNodeFetchInstrumentationOptions = {}) {
-    super('@sentry/instrumentation-node-fetch', VERSION, config);
+    super('@sentry/instrumentation-node-fetch', SDK_VERSION, config);
     this._channelSubs = [];
     this._propagationDecisionMap = new LRUMap<string, boolean>(100);
     this._ignoreOutgoingRequestsMap = new WeakMap<UndiciRequest, boolean>();

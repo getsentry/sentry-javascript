@@ -5,7 +5,7 @@ import type * as http from 'node:http';
 import type * as https from 'node:https';
 import type { EventEmitter } from 'node:stream';
 import { context, propagation } from '@opentelemetry/api';
-import { isTracingSuppressed, VERSION } from '@opentelemetry/core';
+import { isTracingSuppressed } from '@opentelemetry/core';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
 import type { AggregationCounts, Client, SanitizedRequestData, Scope } from '@sentry/core';
@@ -24,6 +24,7 @@ import {
   logger,
   LRUMap,
   parseUrl,
+  SDK_VERSION,
   stripUrlQueryAndFragment,
   withIsolationScope,
 } from '@sentry/core';
@@ -136,7 +137,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
   private _ignoreOutgoingRequestsMap: WeakMap<http.ClientRequest, boolean>;
 
   public constructor(config: SentryHttpInstrumentationOptions = {}) {
-    super(INSTRUMENTATION_NAME, VERSION, config);
+    super(INSTRUMENTATION_NAME, SDK_VERSION, config);
 
     this._propagationDecisionMap = new LRUMap<string, boolean>(100);
     this._ignoreOutgoingRequestsMap = new WeakMap<http.ClientRequest, boolean>();
