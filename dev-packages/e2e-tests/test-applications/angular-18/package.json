@@ -31,6 +31,7 @@
   "devDependencies": {
     "@playwright/test": "~1.50.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@sentry/core": "latest || *",
     "@angular-devkit/build-angular": "^18.0.0",
     "@angular/cli": "^18.0.0",
     "@angular/compiler-cli": "^18.0.0",
