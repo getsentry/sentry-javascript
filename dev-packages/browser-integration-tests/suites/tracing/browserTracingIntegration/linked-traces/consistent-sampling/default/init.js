@@ -10,7 +10,7 @@ Sentry.init({
       consistentTraceSampling: true,
     }),
   ],
-  tracePropagationTargets: ['someurl.com'],
+  tracePropagationTargets: ['sentry-test-external.io'],
   tracesSampler: ctx => {
     if (ctx.attributes && ctx.attributes['sentry.origin'] === 'auto.pageload.browser') {
       return 1;

@@ -10,7 +10,7 @@ Sentry.init({
       consistentTraceSampling: true,
     }),
   ],
-  tracePropagationTargets: ['someurl.com'],
+  tracePropagationTargets: ['sentry-test-external.io'],
   tracesSampler: ({ inheritOrSampleWith }) => {
     return inheritOrSampleWith(0);
   },
