@@ -37,6 +37,6 @@ test('Should record caught exceptions with local variable', async ({ baseURL }) 
 
   const errorEvent = await errorEventPromise;
 
-  const frames = errorEvent.exception?.values?.[0].stacktrace?.frames;
-  expect(frames?.[frames.length - 1].vars?.randomVariableToRecord).toBeDefined();
+  const frames = errorEvent.exception?.values?.[0]?.stacktrace?.frames;
+  expect(frames?.[frames.length - 1]?.vars?.randomVariableToRecord).toBeDefined();
 });
