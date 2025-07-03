@@ -10,7 +10,7 @@ Sentry.init({
       consistentTraceSampling: true,
     }),
   ],
-  tracePropagationTargets: ['someurl.com'],
+  tracePropagationTargets: ['sentry-test-external.io'],
   // only take into account sampling from meta tag; otherwise sample negatively
   tracesSampleRate: 0,
   debug: true,
