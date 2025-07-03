@@ -150,6 +150,7 @@ export function captureCheckIn(checkIn: CheckIn, upsertMonitorConfig?: MonitorCo
  * Wraps a callback with a cron monitor check in. The check in will be sent to Sentry when the callback finishes.
  *
  * @param monitorSlug The distinct slug of the monitor.
+ * @param callback Callback to be monitored
  * @param upsertMonitorConfig An optional object that describes a monitor config. Use this if you want
  * to create a monitor automatically when sending a check in.
  */
@@ -185,9 +186,8 @@ export function withMonitor<T>(
           throw e;
         },
       ) as T;
-    } else {
-      finishCheckIn('ok');
     }
+    finishCheckIn('ok');
 
     return maybePromiseResult;
   });
