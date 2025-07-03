@@ -13,9 +13,7 @@
   "dependencies": {
     "@opentelemetry/sdk-node": "0.52.1",
     "@opentelemetry/exporter-trace-otlp-http": "0.52.1",
-    "@sentry/core": "latest || *",
     "@sentry/node": "latest || *",
-    "@sentry/opentelemetry": "latest || *",
     "@types/express": "4.17.17",
     "@types/node": "^18.19.1",
     "express": "4.20.0",

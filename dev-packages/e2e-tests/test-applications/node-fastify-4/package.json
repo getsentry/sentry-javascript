@@ -12,8 +12,6 @@
   },
   "dependencies": {
     "@sentry/node": "latest || *",
-    "@sentry/core": "latest || *",
-    "@sentry/opentelemetry": "latest || *",
     "@types/node": "^18.19.1",
     "fastify": "4.29.1",
     "typescript": "5.6.3",
