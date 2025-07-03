@@ -71,11 +71,11 @@ export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S):
 
         transport.send = new Proxy(originalSend, {
           async apply(sendTarget, sendThisArg, sendArgs) {
-            const [message, options] = sendArgs;
+            const [message] = sendArgs;
 
             // Instrument outgoing notifications (but not requests/responses)
             if (isJsonRpcNotification(message)) {
-              return createMcpOutgoingNotificationSpan(message, transport, options as Record<string, unknown>, () => {
+              return createMcpOutgoingNotificationSpan(message, transport, () => {
                 return Reflect.apply(sendTarget, sendThisArg, sendArgs);
               });
             }

@@ -26,15 +26,9 @@ import {
   NETWORK_PROTOCOL_VERSION_ATTRIBUTE,
   NETWORK_TRANSPORT_ATTRIBUTE,
 } from './attributes';
-import type { ExtraHandlerData, JsonRpcNotification, JsonRpcRequest, MCPTransport } from './types';
+import type { ExtraHandlerData, JsonRpcNotification, JsonRpcRequest, McpSpanConfig, MCPTransport } from './types';
 
-// =============================================================================
-// TYPE GUARDS
-// =============================================================================
-
-/**
- *
- */
+/** Validates if a message is a JSON-RPC request */
 export function isJsonRpcRequest(message: unknown): message is JsonRpcRequest {
   return (
     typeof message === 'object' &&
@@ -46,9 +40,7 @@ export function isJsonRpcRequest(message: unknown): message is JsonRpcRequest {
   );
 }
 
-/**
- *
- */
+/** Validates if a message is a JSON-RPC notification */
 export function isJsonRpcNotification(message: unknown): message is JsonRpcNotification {
   return (
     typeof message === 'object' &&
@@ -60,9 +52,7 @@ export function isJsonRpcNotification(message: unknown): message is JsonRpcNotif
   );
 }
 
-/**
- *
- */
+/** Extracts target info from method and params based on method type */
 export function validateMcpServerInstance(instance: unknown): boolean {
   if (
     typeof instance === 'object' &&
@@ -78,50 +68,39 @@ export function validateMcpServerInstance(instance: unknown): boolean {
   return false;
 }
 
-// =============================================================================
-// ATTRIBUTE EXTRACTION
-// =============================================================================
+/** Extracts target info from method and params based on method type */
+function extractTargetInfo(method: string, params: Record<string, unknown>): { 
+  target?: string; 
+  attributes: Record<string, string> 
+} {
+  let target: string | undefined;
+  let attributeKey: string | undefined;
 
-/**
- *
- */
-export function extractTarget(method: string, params: Record<string, unknown>): string | undefined {
   switch (method) {
     case 'tools/call':
-      return typeof params?.name === 'string' ? params.name : undefined;
+      target = typeof params?.name === 'string' ? params.name : undefined;
+      attributeKey = 'mcp.tool.name';
+      break;
     case 'resources/read':
     case 'resources/subscribe':
     case 'resources/unsubscribe':
-      return typeof params?.uri === 'string' ? params.uri : undefined;
+      target = typeof params?.uri === 'string' ? params.uri : undefined;
+      attributeKey = 'mcp.resource.uri';
+      break;
     case 'prompts/get':
-      return typeof params?.name === 'string' ? params.name : undefined;
-    default:
-      return undefined;
+      target = typeof params?.name === 'string' ? params.name : undefined;
+      attributeKey = 'mcp.prompt.name';
+      break;
   }
+
+  return {
+    target,
+    attributes: target && attributeKey ? { [attributeKey]: target } : {}
+  };
 }
 
-/**
- *
- */
-export function getTargetAttributes(method: string, target: string): Record<string, string> {
-  switch (method) {
-    case 'tools/call':
-      return { 'mcp.tool.name': target };
-    case 'resources/read':
-    case 'resources/subscribe':
-    case 'resources/unsubscribe':
-      return { 'mcp.resource.uri': target };
-    case 'prompts/get':
-      return { 'mcp.prompt.name': target };
-    default:
-      return {};
-  }
-}
-
-/**
- *
- */
-export function getRequestArguments(method: string, params: Record<string, unknown>): Record<string, string> {
+/** Extracts request arguments based on method type */
+function getRequestArguments(method: string, params: Record<string, unknown>): Record<string, string> {
   const args: Record<string, string> = {};
 
   // Argument capture for different methods
@@ -153,14 +132,8 @@ export function getRequestArguments(method: string, params: Record<string, unkno
   return args;
 }
 
-// =============================================================================
-// TRANSPORT DETECTION
-// =============================================================================
-
-/**
- *
- */
-export function getTransportTypes(transport: MCPTransport): { mcpTransport: string; networkTransport: string } {
+/** Extracts transport types based on transport constructor name */
+function getTransportTypes(transport: MCPTransport): { mcpTransport: string; networkTransport: string } {
   const transportName = transport.constructor?.name?.toLowerCase() || '';
 
   if (transportName.includes('sse')) return { mcpTransport: 'sse', networkTransport: 'tcp' };
@@ -170,22 +143,8 @@ export function getTransportTypes(transport: MCPTransport): { mcpTransport: stri
   return { mcpTransport: 'http', networkTransport: 'tcp' };
 }
 
-// =============================================================================
-// NOTIFICATION HANDLING
-// =============================================================================
-
-/**
- * Get notification span name following OpenTelemetry conventions
- * For notifications, we use the method name directly as per JSON-RPC conventions
- */
-export function getNotificationSpanName(method: string): string {
-  return method;
-}
-
-/**
- * Extract additional attributes for specific notification types
- */
-export function getNotificationAttributes(
+/** Extracts additional attributes for specific notification types */
+function getNotificationAttributes(
   method: string,
   params: Record<string, unknown>,
 ): Record<string, string | number> {
@@ -259,51 +218,14 @@ export function getNotificationAttributes(
   return attributes;
 }
 
-// =============================================================================
-// CLIENT INFO EXTRACTION
-// =============================================================================
 
 /**
- *
+ * Creates a span name based on the method and target
  */
-export function extractClientAddress(extra: ExtraHandlerData): string | undefined {
-  return (
-    extra?.requestInfo?.remoteAddress ||
-    extra?.clientAddress ||
-    extra?.request?.ip ||
-    extra?.request?.connection?.remoteAddress
-  );
-}
-
-/**
- *
- */
-export function extractClientPort(extra: ExtraHandlerData): number | undefined {
-  return extra?.requestInfo?.remotePort || extra?.clientPort || extra?.request?.connection?.remotePort;
-}
-
-// =============================================================================
-// SPAN NAMING
-// =============================================================================
-
-/**
- *
- */
-export function createSpanName(method: string, target?: string): string {
+function createSpanName(method: string, target?: string): string {
   return target ? `${method} ${target}` : method;
 }
 
-// =============================================================================
-// UNIFIED SPAN BUILDER
-// =============================================================================
-
-interface McpSpanConfig {
-  type: 'request' | 'notification-incoming' | 'notification-outgoing';
-  message: JsonRpcRequest | JsonRpcNotification;
-  transport: MCPTransport;
-  extra?: ExtraHandlerData;
-  callback: () => unknown;
-}
 
 /**
  * Unified builder for creating MCP spans
@@ -317,11 +239,11 @@ function createMcpSpan(config: McpSpanConfig): unknown {
   // Determine span name based on type and OTEL conventions
   let spanName: string;
   if (type === 'request') {
-    const target = extractTarget(method, params || {});
-    spanName = createSpanName(method, target);
+    const targetInfo = extractTargetInfo(method, params || {});
+    spanName = createSpanName(method, targetInfo.target);
   } else {
-    // For notifications, use method name directly (OTEL convention)
-    spanName = getNotificationSpanName(method);
+    // For notifications, use method name directly per OpenTelemetry conventions
+    spanName = method;
   }
 
   // Build attributes
@@ -354,14 +276,13 @@ function buildTransportAttributes(
   extra?: ExtraHandlerData,
 ): Record<string, string | number> {
   const sessionId = transport.sessionId;
-  const clientAddress = extra ? extractClientAddress(extra) : undefined;
-  const clientPort = extra ? extractClientPort(extra) : undefined;
+  const clientInfo = extra ? extractClientInfo(extra) : {};
   const { mcpTransport, networkTransport } = getTransportTypes(transport);
 
   return {
     ...(sessionId && { [MCP_SESSION_ID_ATTRIBUTE]: sessionId }),
-    ...(clientAddress && { [CLIENT_ADDRESS_ATTRIBUTE]: clientAddress }),
-    ...(clientPort && { [CLIENT_PORT_ATTRIBUTE]: clientPort }),
+    ...(clientInfo.address && { [CLIENT_ADDRESS_ATTRIBUTE]: clientInfo.address }),
+    ...(clientInfo.port && { [CLIENT_PORT_ATTRIBUTE]: clientInfo.port }),
     [MCP_TRANSPORT_ATTRIBUTE]: mcpTransport,
     [NETWORK_TRANSPORT_ATTRIBUTE]: networkTransport,
     [NETWORK_PROTOCOL_VERSION_ATTRIBUTE]: '2.0',
@@ -378,11 +299,11 @@ function buildTypeSpecificAttributes(
 ): Record<string, string | number> {
   if (type === 'request') {
     const request = message as JsonRpcRequest;
-    const target = extractTarget(request.method, params || {});
+    const targetInfo = extractTargetInfo(request.method, params || {});
     
     return {
       ...(request.id !== undefined && { [MCP_REQUEST_ID_ATTRIBUTE]: String(request.id) }),
-      ...(target && getTargetAttributes(request.method, target)),
+      ...targetInfo.attributes,
       ...getRequestArguments(request.method, params || {}),
     };
   }
@@ -420,10 +341,6 @@ function buildSentryAttributes(type: McpSpanConfig['type']): Record<string, stri
     [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: MCP_ROUTE_SOURCE_VALUE,
   };
 }
-
-// =============================================================================
-// PUBLIC API - SIMPLIFIED SPAN CREATION FUNCTIONS
-// =============================================================================
 
 /**
  * Creates a span for MCP server request handling
@@ -467,7 +384,6 @@ export function createMcpNotificationSpan(
 export function createMcpOutgoingNotificationSpan(
   jsonRpcMessage: JsonRpcNotification,
   transport: MCPTransport,
-  options: Record<string, unknown>,
   callback: () => unknown,
 ): unknown {
   return createMcpSpan({
@@ -476,4 +392,22 @@ export function createMcpOutgoingNotificationSpan(
     transport,
     callback,
   });
+}
+
+/**
+ * Combine the two extraction functions into one
+ */
+function extractClientInfo(extra: ExtraHandlerData): { 
+  address?: string; 
+  port?: number 
+} {
+  return {
+    address: extra?.requestInfo?.remoteAddress ||
+             extra?.clientAddress ||
+             extra?.request?.ip ||
+             extra?.request?.connection?.remoteAddress,
+    port: extra?.requestInfo?.remotePort || 
+          extra?.clientPort || 
+          extra?.request?.connection?.remotePort
+  };
 }
