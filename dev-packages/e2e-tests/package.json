@@ -17,7 +17,7 @@
     "ci:build-matrix": "ts-node ./lib/getTestMatrix.ts",
     "ci:build-matrix-optional": "ts-node ./lib/getTestMatrix.ts --optional=true",
     "ci:copy-to-temp": "ts-node ./ciCopyToTemp.ts",
-    "clean:test-applications": "rimraf --glob test-applications/**/{node_modules,dist,build,.next,.nuxt,.sveltekit,.react-router,.astro,.output,pnpm-lock.yaml,.last-run.json,test-results,.angular}",
+    "clean:test-applications": "rimraf --glob test-applications/**/{node_modules,dist,build,.next,.nuxt,.sveltekit,.react-router,.astro,.output,pnpm-lock.yaml,.last-run.json,test-results,.angular,event-dumps}",
     "clean:pnpm": "pnpm store prune"
   },
   "devDependencies": {
