@@ -38,21 +38,21 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration'),
     gzip: true,
-    limit: '39 KB',
+    limit: '40.7 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay)',
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration'),
     gzip: true,
-    limit: '77 KB',
+    limit: '80 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay) - with treeshaking flags',
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration'),
     gzip: true,
-    limit: '70.1 KB',
+    limit: '75 KB',
     modifyWebpackConfig: function (config) {
       const webpack = require('webpack');
 
@@ -75,7 +75,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration', 'replayCanvasIntegration'),
     gzip: true,
-    limit: '82 KB',
+    limit: '83 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay, Feedback)',
@@ -120,7 +120,7 @@ module.exports = [
     import: createImport('init', 'ErrorBoundary', 'reactRouterV6BrowserTracingIntegration'),
     ignore: ['react/jsx-runtime'],
     gzip: true,
-    limit: '41 KB',
+    limit: '42 KB',
   },
   // Vue SDK (ESM)
   {
@@ -135,7 +135,7 @@ module.exports = [
     path: 'packages/vue/build/esm/index.js',
     import: createImport('init', 'browserTracingIntegration'),
     gzip: true,
-    limit: '41 KB',
+    limit: '42 KB',
   },
   // Svelte SDK (ESM)
   {
@@ -156,7 +156,7 @@ module.exports = [
     name: 'CDN Bundle (incl. Tracing)',
     path: createCDNPath('bundle.tracing.min.js'),
     gzip: true,
-    limit: '39 KB',
+    limit: '41 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay)',
@@ -206,7 +206,7 @@ module.exports = [
     import: createImport('init'),
     ignore: ['next/router', 'next/constants'],
     gzip: true,
-    limit: '43 KB',
+    limit: '44 KB',
   },
   // SvelteKit SDK (ESM)
   {
@@ -215,7 +215,7 @@ module.exports = [
     import: createImport('init'),
     ignore: ['$app/stores'],
     gzip: true,
-    limit: '40 KB',
+    limit: '41 KB',
   },
   // Node SDK (ESM)
   {

@@ -1,6 +1,6 @@
 {
   "name": "@sentry/node-native",
-  "version": "9.33.0",
+  "version": "9.34.0",
   "description": "Native Tools for the Official Sentry Node.js SDK",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/node-native",
@@ -19,6 +19,14 @@
       "require": {
         "types": "./build/types/index.d.ts",
         "default": "./build/cjs/index.js"
+      }
+    },
+    "./event-loop-block-watchdog": {
+      "import": {
+        "default": "./build/esm/event-loop-block-watchdog.js"
+      },
+      "require": {
+        "default": "./build/cjs/event-loop-block-watchdog.js"
       }
     }
   },
@@ -55,8 +63,9 @@
     "build:tarball": "npm pack"
   },
   "dependencies": {
-    "@sentry/core": "9.33.0",
-    "@sentry/node": "9.33.0"
+    "@sentry-internal/node-native-stacktrace": "^0.1.0",
+    "@sentry/core": "9.34.0",
+    "@sentry/node": "9.34.0"
   },
   "devDependencies": {
     "@types/node": "^18.19.1"

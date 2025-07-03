@@ -48,15 +48,18 @@ export function wrapRequestHandler(
       attributes['http.request.body.size'] = parseInt(contentLength, 10);
     }
 
+    const userAgentHeader = request.headers.get('user-agent');
+    if (userAgentHeader) {
+      attributes['user_agent.original'] = userAgentHeader;
+    }
+
     attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] = 'http.server';
 
     addCloudResourceContext(isolationScope);
-    if (request) {
-      addRequest(isolationScope, request);
-      if (request.cf) {
-        addCultureContext(isolationScope, request.cf);
-        attributes['network.protocol.name'] = request.cf.httpProtocol;
-      }
+    addRequest(isolationScope, request);
+    if (request.cf) {
+      addCultureContext(isolationScope, request.cf);
+      attributes['network.protocol.name'] = request.cf.httpProtocol;
     }
 
     // Do not capture spans for OPTIONS and HEAD requests

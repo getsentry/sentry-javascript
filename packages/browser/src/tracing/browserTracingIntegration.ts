@@ -26,6 +26,7 @@ import {
   addHistoryInstrumentationHandler,
   addPerformanceEntries,
   registerInpInteractionListener,
+  startTrackingElementTiming,
   startTrackingINP,
   startTrackingInteractions,
   startTrackingLongAnimationFrames,
@@ -114,6 +115,14 @@ export interface BrowserTracingOptions {
    * Default: true
    */
   enableInp: boolean;
+
+  /**
+   * If true, Sentry will capture [element timing](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceElementTiming)
+   * information and add it to the corresponding transaction.
+   *
+   * Default: true
+   */
+  enableElementTiming: boolean;
 
   /**
    * Flag to disable patching all together for fetch requests.
@@ -236,6 +245,7 @@ export interface BrowserTracingOptions {
   _experiments: Partial<{
     enableInteractions: boolean;
     enableStandaloneClsSpans: boolean;
+    enableStandaloneLcpSpans: boolean;
   }>;
 
   /**
@@ -268,6 +278,7 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   enableLongTask: true,
   enableLongAnimationFrame: true,
   enableInp: true,
+  enableElementTiming: true,
   ignoreResourceSpans: [],
   ignorePerformanceApiSpans: [],
   linkPreviousTrace: 'in-memory',
@@ -299,9 +310,10 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
 
   const {
     enableInp,
+    enableElementTiming,
     enableLongTask,
     enableLongAnimationFrame,
-    _experiments: { enableInteractions, enableStandaloneClsSpans },
+    _experiments: { enableInteractions, enableStandaloneClsSpans, enableStandaloneLcpSpans },
     beforeStartSpan,
     idleTimeout,
     finalTimeout,
@@ -358,6 +370,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         _collectWebVitals?.();
         addPerformanceEntries(span, {
           recordClsOnPageloadSpan: !enableStandaloneClsSpans,
+          recordLcpOnPageloadSpan: !enableStandaloneLcpSpans,
           ignoreResourceSpans,
           ignorePerformanceApiSpans,
         });
@@ -400,10 +413,17 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     setup(client) {
       registerSpanErrorInstrumentation();
 
-      _collectWebVitals = startTrackingWebVitals({ recordClsStandaloneSpans: enableStandaloneClsSpans || false });
+      _collectWebVitals = startTrackingWebVitals({
+        recordClsStandaloneSpans: enableStandaloneClsSpans || false,
+        recordLcpStandaloneSpans: enableStandaloneLcpSpans || false,
+      });
 
       if (enableInp) {
         startTrackingINP();
+      }
+
+      if (enableElementTiming) {
+        startTrackingElementTiming();
       }
 
       if (
