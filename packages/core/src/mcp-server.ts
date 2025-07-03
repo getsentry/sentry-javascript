@@ -32,7 +32,7 @@ export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S):
   const serverInstance = mcpServerInstance as MCPServerInstance;
 
   // Wrap connect() to intercept AFTER Protocol sets up transport handlers
-  const originalConnect = serverInstance.connect;
+  const originalConnect = serverInstance.connect.bind(serverInstance);
   serverInstance.connect = new Proxy(originalConnect, {
     async apply(target, thisArg, argArray) {
       const [transport, ...restArgs] = argArray as [MCPTransport, ...unknown[]];
@@ -42,7 +42,7 @@ export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S):
 
       // Intercept incoming messages via onmessage
       if (transport.onmessage) {
-        const protocolOnMessage = transport.onmessage;
+        const protocolOnMessage = transport.onmessage.bind(transport);
 
         transport.onmessage = new Proxy(protocolOnMessage, {
           apply(onMessageTarget, onMessageThisArg, onMessageArgs) {
@@ -67,7 +67,7 @@ export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S):
 
       // Intercept outgoing messages via send
       if (transport.send) {
-        const originalSend = transport.send;
+        const originalSend = transport.send.bind(transport);
 
         transport.send = new Proxy(originalSend, {
           async apply(sendTarget, sendThisArg, sendArgs) {
@@ -87,10 +87,10 @@ export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S):
 
       // Handle transport lifecycle events
       if (transport.onclose) {
-        const originalOnClose = transport.onclose;
+        const originalOnClose = transport.onclose.bind(transport);
         transport.onclose = new Proxy(originalOnClose, {
           apply(onCloseTarget, onCloseThisArg, onCloseArgs) {
-            //TODO(bete): session and request correlation (methods at the bottom of this file)
+            // TODO(bete): session and request correlation (methods at the bottom of this file)
             // if (transport.sessionId) {
             //   handleTransportOnClose(transport.sessionId);
             // }
