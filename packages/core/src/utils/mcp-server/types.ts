@@ -2,6 +2,17 @@
  * types for MCP server instrumentation
  */
 
+
+/** Method configuration type */
+export type MethodConfig = {
+  targetField: string;
+  targetAttribute: string;
+  captureArguments?: boolean;
+  argumentsField?: string;
+  captureUri?: boolean;
+  captureName?: boolean;
+};
+
 /**
  * JSON-RPC 2.0 request object
  */
@@ -120,6 +131,7 @@ export interface McpSpanConfig {
   extra?: ExtraHandlerData;
   callback: () => unknown;
 }
+
 
 export type SessionId = string;
 export type RequestId = string | number;

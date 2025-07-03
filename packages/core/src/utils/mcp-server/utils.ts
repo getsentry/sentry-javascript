@@ -18,15 +18,18 @@ import {
   MCP_NOTIFICATION_CLIENT_TO_SERVER_OP_VALUE,
   MCP_NOTIFICATION_ORIGIN_VALUE,
   MCP_NOTIFICATION_SERVER_TO_CLIENT_OP_VALUE,
+  MCP_PROMPT_NAME_ATTRIBUTE,
   MCP_REQUEST_ID_ATTRIBUTE,
+  MCP_RESOURCE_URI_ATTRIBUTE,
   MCP_ROUTE_SOURCE_VALUE,
   MCP_SERVER_OP_VALUE,
   MCP_SESSION_ID_ATTRIBUTE,
+  MCP_TOOL_NAME_ATTRIBUTE,
   MCP_TRANSPORT_ATTRIBUTE,
   NETWORK_PROTOCOL_VERSION_ATTRIBUTE,
   NETWORK_TRANSPORT_ATTRIBUTE,
 } from './attributes';
-import type { ExtraHandlerData, JsonRpcNotification, JsonRpcRequest, McpSpanConfig, MCPTransport } from './types';
+import type { ExtraHandlerData, JsonRpcNotification, JsonRpcRequest, McpSpanConfig, MCPTransport, MethodConfig } from './types';
 
 /** Validates if a message is a JSON-RPC request */
 export function isJsonRpcRequest(message: unknown): message is JsonRpcRequest {
@@ -68,65 +71,82 @@ export function validateMcpServerInstance(instance: unknown): boolean {
   return false;
 }
 
+/** Configuration for MCP methods to extract targets and arguments */
+const METHOD_CONFIGS: Record<string, MethodConfig> = {
+  'tools/call': {
+    targetField: 'name',
+    targetAttribute: MCP_TOOL_NAME_ATTRIBUTE,
+    captureArguments: true,
+    argumentsField: 'arguments',
+  },
+  'resources/read': {
+    targetField: 'uri',
+    targetAttribute: MCP_RESOURCE_URI_ATTRIBUTE,
+    captureUri: true,
+  },
+  'resources/subscribe': {
+    targetField: 'uri',
+    targetAttribute: MCP_RESOURCE_URI_ATTRIBUTE,
+  },
+  'resources/unsubscribe': {
+    targetField: 'uri',
+    targetAttribute: MCP_RESOURCE_URI_ATTRIBUTE,
+  },
+  'prompts/get': {
+    targetField: 'name',
+    targetAttribute: MCP_PROMPT_NAME_ATTRIBUTE,
+    captureName: true,
+    captureArguments: true,
+    argumentsField: 'arguments',
+  },
+};
+
 /** Extracts target info from method and params based on method type */
 function extractTargetInfo(method: string, params: Record<string, unknown>): { 
   target?: string; 
   attributes: Record<string, string> 
 } {
-  let target: string | undefined;
-  let attributeKey: string | undefined;
-
-  switch (method) {
-    case 'tools/call':
-      target = typeof params?.name === 'string' ? params.name : undefined;
-      attributeKey = 'mcp.tool.name';
-      break;
-    case 'resources/read':
-    case 'resources/subscribe':
-    case 'resources/unsubscribe':
-      target = typeof params?.uri === 'string' ? params.uri : undefined;
-      attributeKey = 'mcp.resource.uri';
-      break;
-    case 'prompts/get':
-      target = typeof params?.name === 'string' ? params.name : undefined;
-      attributeKey = 'mcp.prompt.name';
-      break;
+  const config = METHOD_CONFIGS[method as keyof typeof METHOD_CONFIGS];
+  if (!config) {
+    return { attributes: {} };
   }
+
+  const target = config.targetField && typeof params?.[config.targetField] === 'string' 
+    ? params[config.targetField] as string 
+    : undefined;
 
   return {
     target,
-    attributes: target && attributeKey ? { [attributeKey]: target } : {}
+    attributes: target && config.targetAttribute ? { [config.targetAttribute]: target } : {}
   };
 }
 
 /** Extracts request arguments based on method type */
 function getRequestArguments(method: string, params: Record<string, unknown>): Record<string, string> {
   const args: Record<string, string> = {};
+  const config = METHOD_CONFIGS[method as keyof typeof METHOD_CONFIGS];
+  
+  if (!config) {
+    return args;
+  }
 
-  // Argument capture for different methods
-  switch (method) {
-    case 'tools/call':
-      if (params?.arguments && typeof params.arguments === 'object') {
-        for (const [key, value] of Object.entries(params.arguments as Record<string, unknown>)) {
-          args[`mcp.request.argument.${key.toLowerCase()}`] = JSON.stringify(value);
-        }
+  // Capture arguments from the configured field
+  if (config.captureArguments && config.argumentsField && params?.[config.argumentsField]) {
+    const argumentsObj = params[config.argumentsField];
+    if (typeof argumentsObj === 'object' && argumentsObj !== null) {
+      for (const [key, value] of Object.entries(argumentsObj as Record<string, unknown>)) {
+        args[`mcp.request.argument.${key.toLowerCase()}`] = JSON.stringify(value);
       }
-      break;
-    case 'resources/read':
-      if (params?.uri) {
-        args['mcp.request.argument.uri'] = JSON.stringify(params.uri);
-      }
-      break;
-    case 'prompts/get':
-      if (params?.name) {
-        args['mcp.request.argument.name'] = JSON.stringify(params.name);
-      }
-      if (params?.arguments && typeof params.arguments === 'object') {
-        for (const [key, value] of Object.entries(params.arguments as Record<string, unknown>)) {
-          args[`mcp.request.argument.${key.toLowerCase()}`] = JSON.stringify(value);
-        }
-      }
-      break;
+    }
+  }
+
+  // Capture specific fields as arguments
+  if (config.captureUri && params?.uri) {
+    args['mcp.request.argument.uri'] = JSON.stringify(params.uri);
+  }
+
+  if (config.captureName && params?.name) {
+    args['mcp.request.argument.name'] = JSON.stringify(params.name);
   }
 
   return args;
