@@ -140,20 +140,24 @@ targets:
     id: '@sentry-internal/eslint-config-sdk'
     includeNames: /^sentry-internal-eslint-config-sdk-\d.*\.tgz$/
 
+  # While craft does not push pre-releases to the release-registry, it does
+  # publish pre-releases of the Lambda Layer to the AWS production Lambda Layer.
+  # Therefore, we skip the Lambda Layer target for now.
+
   # AWS Lambda Layer target
-  - name: aws-lambda-layer
-    includeNames: /^sentry-node-serverless-\d+.\d+.\d+(-(beta|alpha|rc)\.\d+)?\.zip$/
-    layerName: SentryNodeServerlessSDKv9
-    compatibleRuntimes:
-      - name: node
-        versions:
-          - nodejs10.x
-          - nodejs12.x
-          - nodejs14.x
-          - nodejs16.x
-          - nodejs18.x
-          - nodejs20.x
-    license: MIT
+  # - name: aws-lambda-layer
+  #   includeNames: /^sentry-node-serverless-\d+.\d+.\d+(-(beta|alpha|rc)\.\d+)?\.zip$/
+  #   layerName: SentryNodeServerlessSDKv9
+  #   compatibleRuntimes:
+  #     - name: node
+  #       versions:
+  #         - nodejs10.x
+  #         - nodejs12.x
+  #         - nodejs14.x
+  #         - nodejs16.x
+  #         - nodejs18.x
+  #         - nodejs20.x
+  #   license: MIT
 
   # CDN Bundle Target
   - name: gcs
