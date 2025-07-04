@@ -47,12 +47,13 @@ describe('wrapMcpServerWithSentry', () => {
     let mockMcpServer: ReturnType<typeof createMockMcpServer>;
     let wrappedMcpServer: ReturnType<typeof createMockMcpServer>;
     let mockTransport: ReturnType<typeof createMockTransport>;
+    let originalConnect: any;
 
     beforeEach(() => {
       mockMcpServer = createMockMcpServer();
+      originalConnect = mockMcpServer.connect;
       wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
       mockTransport = createMockTransport();
-      // Don't connect transport here. let individual tests control when connection happens
     });
 
     it('should proxy the connect method', () => {
@@ -95,8 +96,8 @@ describe('wrapMcpServerWithSentry', () => {
     it('should call original connect and preserve functionality', async () => {
       await wrappedMcpServer.connect(mockTransport);
 
-      // Original connect should have been called
-      expect(mockMcpServer.connect).toHaveBeenCalledWith(mockTransport);
+      // Check the original spy was called
+      expect(originalConnect).toHaveBeenCalledWith(mockTransport);
     });
 
     it('should create spans for incoming JSON-RPC requests', async () => {

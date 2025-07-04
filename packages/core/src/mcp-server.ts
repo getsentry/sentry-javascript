@@ -11,6 +11,7 @@ import {
   isJsonRpcRequest,
   validateMcpServerInstance,
 } from './utils/mcp-server/utils';
+import { fill } from './utils/object';
 
 const wrappedMcpServerInstances = new WeakSet();
 
@@ -31,75 +32,50 @@ export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S):
 
   const serverInstance = mcpServerInstance as MCPServerInstance;
 
-  // Wrap connect() to intercept AFTER Protocol sets up transport handlers
-  const originalConnect = serverInstance.connect.bind(serverInstance);
-  serverInstance.connect = new Proxy(originalConnect, {
-    async apply(target, thisArg, argArray) {
-      const [transport, ...restArgs] = argArray as [MCPTransport, ...unknown[]];
+  fill(serverInstance, 'connect', (originalConnect) => {
+    return async function(this: MCPServerInstance, transport: MCPTransport, ...restArgs: unknown[]) {
+      const result = await originalConnect.call(this, transport, ...restArgs);
 
-      // Call the original connect first to let Protocol set up its handlers
-      const result = await Reflect.apply(target, thisArg, [transport, ...restArgs]);
-
-      // Intercept incoming messages via onmessage
       if (transport.onmessage) {
-        const protocolOnMessage = transport.onmessage.bind(transport);
-
-        transport.onmessage = new Proxy(protocolOnMessage, {
-          apply(onMessageTarget, onMessageThisArg, onMessageArgs) {
-            const [jsonRpcMessage, extra] = onMessageArgs;
-
-            // Instrument both requests and notifications
+        fill(transport, 'onmessage', (originalOnMessage) => {
+          return function(this: MCPTransport, jsonRpcMessage: unknown, extra?: unknown) {
             if (isJsonRpcRequest(jsonRpcMessage)) {
-              return createMcpServerSpan(jsonRpcMessage, transport, extra as ExtraHandlerData, () => {
-                return Reflect.apply(onMessageTarget, onMessageThisArg, onMessageArgs);
+              return createMcpServerSpan(jsonRpcMessage, this, extra as ExtraHandlerData, () => {
+                return originalOnMessage.call(this, jsonRpcMessage, extra);
               });
             }
             if (isJsonRpcNotification(jsonRpcMessage)) {
-              return createMcpNotificationSpan(jsonRpcMessage, transport, extra as ExtraHandlerData, () => {
-                return Reflect.apply(onMessageTarget, onMessageThisArg, onMessageArgs);
+              return createMcpNotificationSpan(jsonRpcMessage, this, extra as ExtraHandlerData, () => {
+                return originalOnMessage.call(this, jsonRpcMessage, extra);
               });
             }
-
-            return Reflect.apply(onMessageTarget, onMessageThisArg, onMessageArgs);
-          },
+            return originalOnMessage.call(this, jsonRpcMessage, extra);
+          };
         });
       }
 
-      // Intercept outgoing messages via send
       if (transport.send) {
-        const originalSend = transport.send.bind(transport);
-
-        transport.send = new Proxy(originalSend, {
-          async apply(sendTarget, sendThisArg, sendArgs) {
-            const [message] = sendArgs;
-
-            // Instrument outgoing notifications (but not requests/responses)
+        fill(transport, 'send', (originalSend) => {
+          return async function(this: MCPTransport, message: unknown) {
             if (isJsonRpcNotification(message)) {
-              return createMcpOutgoingNotificationSpan(message, transport, () => {
-                return Reflect.apply(sendTarget, sendThisArg, sendArgs);
+              return createMcpOutgoingNotificationSpan(message, this, () => {
+                return originalSend.call(this, message);
               });
             }
-
-            return Reflect.apply(sendTarget, sendThisArg, sendArgs);
-          },
+            return originalSend.call(this, message);
+          };
         });
       }
 
-      // Handle transport lifecycle events
       if (transport.onclose) {
-        const originalOnClose = transport.onclose.bind(transport);
-        transport.onclose = new Proxy(originalOnClose, {
-          apply(onCloseTarget, onCloseThisArg, onCloseArgs) {
-            // TODO(bete): session and request correlation (methods at the bottom of this file)
-            // if (transport.sessionId) {
-            //   handleTransportOnClose(transport.sessionId);
-            // }
-            return Reflect.apply(onCloseTarget, onCloseThisArg, onCloseArgs);
-          },
+        fill(transport, 'onclose', (originalOnClose) => {
+          return function(this: MCPTransport, ...args: unknown[]) {
+            return originalOnClose.call(this, ...args);
+          };
         });
       }
       return result;
-    },
+    };
   });
 
   wrappedMcpServerInstances.add(mcpServerInstance);
