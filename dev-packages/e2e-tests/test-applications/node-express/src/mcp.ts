@@ -2,7 +2,7 @@ import express from 'express';
 import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { z } from 'zod';
-import { wrapMcpServerWithSentry } from '@sentry/core';
+import { wrapMcpServerWithSentry } from '@sentry/node';
 
 const mcpRouter = express.Router();
 
