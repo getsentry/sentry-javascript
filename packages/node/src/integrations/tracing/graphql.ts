@@ -3,9 +3,8 @@ import { SpanStatusCode } from '@opentelemetry/api';
 import { GraphQLInstrumentation } from '@opentelemetry/instrumentation-graphql';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration, getRootSpan, spanToJSON } from '@sentry/core';
+import { addOriginToSpan, generateInstrumentOnce } from '@sentry/node-core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION } from '@sentry/opentelemetry';
-import { generateInstrumentOnce } from '../../otel/instrument';
-import { addOriginToSpan } from '../../utils/addOriginToSpan';
 
 interface GraphqlOptions {
   /**
