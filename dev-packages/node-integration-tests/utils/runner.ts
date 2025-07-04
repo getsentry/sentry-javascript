@@ -15,6 +15,7 @@ import { normalize } from '@sentry/core';
 import { execSync, spawn, spawnSync } from 'child_process';
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
 import { join } from 'path';
+import { inspect } from 'util';
 import { afterAll, beforeAll, describe, test } from 'vitest';
 import {
   assertEnvelopeHeader,
@@ -338,6 +339,8 @@ export function createRunner(...paths: string[]) {
       }
 
       function newEnvelope(envelope: Envelope): void {
+        if (process.env.DEBUG) log('newEnvelope', inspect(envelope, false, null, true));
+
         for (const item of envelope[1]) {
           const envelopeItemType = item[0].type;
 
@@ -448,6 +451,12 @@ export function createRunner(...paths: string[]) {
           if (process.env.DEBUG) log('starting scenario', testPath, flags, env.SENTRY_DSN);
 
           child = spawn('node', [...flags, testPath], { env });
+
+          child.on('error', e => {
+            // eslint-disable-next-line no-console
+            console.error('Error starting child process:', e);
+            complete(e);
+          });
 
           CLEANUP_STEPS.add(() => {
             child?.kill();

@@ -1,6 +1,8 @@
 export type {
   Breadcrumb,
   BreadcrumbHint,
+  Context,
+  Contexts,
   RequestEventData,
   SdkInfo,
   Event,

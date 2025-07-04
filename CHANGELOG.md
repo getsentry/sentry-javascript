@@ -4,6 +4,23 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 9.35.0
+
+- feat(browser): Add ElementTiming instrumentation and spans ([#16589](https://github.com/getsentry/sentry-javascript/pull/16589))
+- feat(browser): Export `Context` and `Contexts` types ([#16763](https://github.com/getsentry/sentry-javascript/pull/16763))
+- feat(cloudflare): Add user agent to cloudflare spans ([#16793](https://github.com/getsentry/sentry-javascript/pull/16793))
+- feat(node): Add `eventLoopBlockIntegration` ([#16709](https://github.com/getsentry/sentry-javascript/pull/16709))
+- feat(node): Export server-side feature flag integration shims ([#16735](https://github.com/getsentry/sentry-javascript/pull/16735))
+- feat(node): Update vercel ai integration attributes ([#16721](https://github.com/getsentry/sentry-javascript/pull/16721))
+- fix(astro): Handle errors in middlewares better ([#16693](https://github.com/getsentry/sentry-javascript/pull/16693))
+- fix(browser): Ensure explicit `parentSpan` is considered ([#16776](https://github.com/getsentry/sentry-javascript/pull/16776))
+- fix(node): Avoid using dynamic `require` for fastify integration ([#16789](https://github.com/getsentry/sentry-javascript/pull/16789))
+- fix(nuxt): Add `@sentry/cloudflare` as optional peerDependency ([#16782](https://github.com/getsentry/sentry-javascript/pull/16782))
+- fix(nuxt): Ensure order of plugins is consistent ([#16798](https://github.com/getsentry/sentry-javascript/pull/16798))
+- fix(nestjs): Fix exception handling in `@Cron` decorated tasks ([#16792](https://github.com/getsentry/sentry-javascript/pull/16792))
+
+Work in this release was contributed by @0xbad0c0d3 and @alSergey. Thank you for your contributions!
+
 ## 9.34.0
 
 ### Important Changes

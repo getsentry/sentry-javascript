@@ -42,6 +42,7 @@ export default defineNuxtModule<ModuleOptions>({
       addPluginTemplate({
         mode: 'client',
         filename: 'sentry-client-config.mjs',
+        order: 0,
 
         // Dynamic import of config file to wrap it within a Nuxt context (here: defineNuxtPlugin)
         // Makes it possible to call useRuntimeConfig() in the user-defined sentry config file
@@ -56,7 +57,13 @@ export default defineNuxtModule<ModuleOptions>({
           });`,
       });
 
-      addPlugin({ src: moduleDirResolver.resolve('./runtime/plugins/sentry.client'), mode: 'client' });
+      // Add the plugin which loads client integrations etc. -
+      // this must run after the sentry-client-config plugin has run, and the client is initialized!
+      addPlugin({
+        src: moduleDirResolver.resolve('./runtime/plugins/sentry.client'),
+        mode: 'client',
+        order: 1,
+      });
     }
 
     const serverConfigFile = findDefaultSdkInitFile('server', nuxt);

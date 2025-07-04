@@ -144,3 +144,34 @@ provide an abstraction layer of options that we expose on top of that.
 We generally want to support Node runtimes for the server. However, sometimes there may be alternate runtimes that may
 be supported, e.g. Cloudflare Workers or Vercel Edge Functions. We generally do not need to support these in an MVP, but
 may decide to support them later.
+
+#### Cloudflare Workers/Pages
+
+To add support for Cloudflare Workers or Pages in a specific SDK, you need to do the following:
+
+1.  Add `@sentry/cloudflare` as an optional peer dependency to the `package.json` of the SDK.
+    This ensures that users who want to use the SDK with Cloudflare will install the necessary package, but it won't be a requirement for users on other platforms.
+
+    ```json
+    "peerDependencies": {
+      "@sentry/cloudflare": ">=9.33.0"
+    },
+    "peerDependenciesMeta": {
+      "@sentry/cloudflare": {
+        "optional": true
+      }
+    }
+    ```
+
+2.  Add `@sentry/cloudflare` to the `devDependencies` in the SDK's `package.json`.
+    This is necessary for local development and testing, allowing you to use the Cloudflare-specific APIs in the development environment.
+
+    ```json
+    "devDependencies": {
+      "@sentry/cloudflare": "9.33.0",
+    }
+    ```
+
+3.  Add documentation to the [Cloudflare Frameworks docs](https://docs.sentry.io/platforms/javascript/guides/cloudflare/frameworks/) explaining how to set up the SDK for Cloudflare Workers/Pages.
+    This documentation should include instructions for users to add the `@sentry/cloudflare` package to their project.
+    You can then link from the framework-specific docs pages to the Cloudflare SDK docs page by adding an entry to "Next Steps" on the "Getting Started" and "Manual Setup" pages.

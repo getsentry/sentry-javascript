@@ -20,6 +20,14 @@
         "types": "./build/types/index.d.ts",
         "default": "./build/cjs/index.js"
       }
+    },
+    "./event-loop-block-watchdog": {
+      "import": {
+        "default": "./build/esm/event-loop-block-watchdog.js"
+      },
+      "require": {
+        "default": "./build/cjs/event-loop-block-watchdog.js"
+      }
     }
   },
   "typesVersions": {
@@ -55,6 +63,7 @@
     "build:tarball": "npm pack"
   },
   "dependencies": {
+    "@sentry-internal/node-native-stacktrace": "^0.1.0",
     "@sentry/core": "9.34.0",
     "@sentry/node": "9.34.0"
   },
