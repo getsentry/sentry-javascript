@@ -6,6 +6,10 @@
 
 Work in this release was contributed by @0xbad0c0d3 and @alSergey. Thank you for your contributions!
 
+## 9.34.0-alpha.1
+
+This is an internal alpha for `@sentry/node-core` and `@sentry/node`.
+
 ## 9.34.0
 
 ### Important Changes
