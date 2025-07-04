@@ -13,6 +13,7 @@ import {
   winterCGRequestToRequestData,
   withIsolationScope,
 } from '@sentry/core';
+import { NextResponse } from 'next/server';
 import type { EdgeRouteHandler } from '../edge/types';
 import { flushSafelyWithTimeout } from './utils/responseEnd';
 
@@ -27,6 +28,23 @@ export function wrapMiddlewareWithSentry<H extends EdgeRouteHandler>(
 ): (...params: Parameters<H>) => Promise<ReturnType<H>> {
   return new Proxy(middleware, {
     apply: async (wrappingTarget, thisArg, args: Parameters<H>) => {
+      const tunnelRoute =
+        '_sentryRewritesTunnelPath' in globalThis
+          ? (globalThis as Record<string, unknown>)._sentryRewritesTunnelPath
+          : undefined;
+
+      if (tunnelRoute && typeof tunnelRoute === 'string') {
+        const req: unknown = args[0];
+        // Check if the current request matches the tunnel route
+        if (req instanceof Request) {
+          const url = new URL(req.url);
+          const isTunnelRequest = url.pathname.startsWith(tunnelRoute);
+
+          if (isTunnelRequest) {
+            return NextResponse.next() as ReturnType<H>;
+          }
+        }
+      }
       // TODO: We still should add central isolation scope creation for when our build-time instrumentation does not work anymore with turbopack.
       return withIsolationScope(isolationScope => {
         const req: unknown = args[0];
