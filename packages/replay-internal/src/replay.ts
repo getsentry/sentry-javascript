@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
 import type { ReplayRecordingMode, Span } from '@sentry/core';
 import { getActiveSpan, getClient, getRootSpan, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON } from '@sentry/core';
-import { EventType, record } from '@sentry-internal/rrweb';
+import { EventType, record, utils as rrwebUtils } from '@sentry-internal/rrweb';
 import {
   BUFFER_CHECKOUT_TIME,
   SESSION_IDLE_EXPIRE_DURATION,
@@ -1304,7 +1304,20 @@ export class ReplayContainer implements ReplayContainerInterface {
   }
 
   /** Handler for rrweb.record.onMutation */
-  private _onMutationHandler(mutations: unknown[]): boolean {
+  private _onMutationHandler(mutations: MutationRecord[]): boolean {
+    const { ignoreMutations } = this._options;
+    if (ignoreMutations.length) {
+      if (
+        mutations.some(mutation => {
+          const el = rrwebUtils.closestElementOfNode(mutation.target);
+          const selector = ignoreMutations.join(',');
+          return el?.matches(selector);
+        })
+      ) {
+        return false;
+      }
+    }
+
     const count = mutations.length;
 
     const mutationLimit = this._options.mutationLimit;
@@ -1335,4 +1348,13 @@ export class ReplayContainer implements ReplayContainerInterface {
     // `true` means we use the regular mutation handling by rrweb
     return true;
   }
+}
+
+interface MutationRecord {
+  type: string;
+  target: Node;
+  oldValue: string | null;
+  addedNodes: NodeList;
+  removedNodes: NodeList;
+  attributeName: string | null;
 }

@@ -162,6 +162,14 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
   mutationLimit: number;
 
   /**
+   * Completetly ignore mutations matching the given selectors.
+   * This can be used if a specific type of mutation is causing (e.g. performance) problems.
+   * NOTE: This can be dangerous to use, as mutations are applied as incremental patches.
+   * Make sure to verify that the captured replays still work when using this option.
+   */
+  ignoreMutations: string[];
+
+  /**
    * The max. time in ms to wait for a slow click to finish.
    * After this amount of time we stop waiting for actions after a click happened.
    * Set this to 0 to disable slow click capture.
