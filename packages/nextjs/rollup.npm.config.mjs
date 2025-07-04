@@ -17,7 +17,7 @@ export default [
       // prevent this internal nextjs code from ending up in our built package (this doesn't happen automatically because
       // the name doesn't match an SDK dependency)
       packageSpecificConfig: {
-        external: ['next/router', 'next/constants', 'next/headers', 'next/server', 'stacktrace-parser'],
+        external: ['next/router', 'next/constants', 'next/headers', 'stacktrace-parser'],
 
         // Next.js and our users are more happy when our client code has the "use client" directive
         plugins: [

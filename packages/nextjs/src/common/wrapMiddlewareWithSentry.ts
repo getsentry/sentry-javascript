@@ -13,7 +13,6 @@ import {
   winterCGRequestToRequestData,
   withIsolationScope,
 } from '@sentry/core';
-import { NextResponse } from 'next/server';
 import type { EdgeRouteHandler } from '../edge/types';
 import { flushSafelyWithTimeout } from './utils/responseEnd';
 
@@ -41,7 +40,15 @@ export function wrapMiddlewareWithSentry<H extends EdgeRouteHandler>(
           const isTunnelRequest = url.pathname.startsWith(tunnelRoute);
 
           if (isTunnelRequest) {
-            return NextResponse.next() as ReturnType<H>;
+            // Create a simple response that mimics NextResponse.next() so we don't need to import internals here
+            // which breaks next 13 apps
+            // https://github.com/vercel/next.js/blob/c12c9c1f78ad384270902f0890dc4cd341408105/packages/next/src/server/web/spec-extension/response.ts#L146
+            return new Response(null, {
+              status: 200,
+              headers: {
+                'x-middleware-next': '1',
+              },
+            }) as ReturnType<H>;
           }
         }
       }
