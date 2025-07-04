@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 9.36.0-alpha.1
+
+This is an internal alpha for `@sentry/node-core` and `@sentry/node`.
+
 ## 9.35.0
 
 - feat(browser): Add ElementTiming instrumentation and spans ([#16589](https://github.com/getsentry/sentry-javascript/pull/16589))
