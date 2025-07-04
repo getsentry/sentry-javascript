@@ -1,6 +1,6 @@
 {
   "name": "@sentry/nuxt",
-  "version": "9.34.0",
+  "version": "9.35.0",
   "description": "Official Sentry SDK for Nuxt (EXPERIMENTAL)",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/nuxt",
@@ -43,8 +43,8 @@
     "access": "public"
   },
   "peerDependencies": {
-    "nuxt": ">=3.7.0 || 4.x",
-    "@sentry/cloudflare": ">=9.34.0"
+    "@sentry/cloudflare": ">=9.34.0",
+    "nuxt": ">=3.7.0 || 4.x"
   },
   "peerDependenciesMeta": {
     "@sentry/cloudflare": {
@@ -53,16 +53,16 @@
   },
   "dependencies": {
     "@nuxt/kit": "^3.13.2",
-    "@sentry/browser": "9.34.0",
-    "@sentry/core": "9.34.0",
-    "@sentry/node": "9.34.0",
+    "@sentry/browser": "9.35.0",
+    "@sentry/core": "9.35.0",
+    "@sentry/node": "9.35.0",
     "@sentry/rollup-plugin": "^3.5.0",
     "@sentry/vite-plugin": "^3.5.0",
-    "@sentry/vue": "9.34.0"
+    "@sentry/vue": "9.35.0"
   },
   "devDependencies": {
     "@nuxt/module-builder": "^0.8.4",
-    "@sentry/cloudflare": "9.34.0",
+    "@sentry/cloudflare": "9.35.0",
     "nuxt": "^3.13.2"
   },
   "scripts": {
