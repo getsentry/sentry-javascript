@@ -4,6 +4,8 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+Work in this release was contributed by @Spice-King. Thank you for your contribution!
+
 ## 9.35.0
 
 - feat(browser): Add ElementTiming instrumentation and spans ([#16589](https://github.com/getsentry/sentry-javascript/pull/16589))
