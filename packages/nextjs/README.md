@@ -57,3 +57,54 @@ Sentry.captureMessage('Hello, world!');
 - [Sentry.io](https://sentry.io/?utm_source=github&utm_medium=npm_nextjs)
 - [Sentry Discord Server](https://discord.gg/Ww9hbqr)
 - [Stack Overflow](https://stackoverflow.com/questions/tagged/sentry)
+
+## Disabling Tracing
+
+If you want to disable tracing in your Next.js application, there are two approaches:
+
+### 1. Tree-shaking Tracing Code (Recommended)
+
+You can use the `__SENTRY_TRACING__` build-time flag to tree-shake (remove) all tracing-related code from your bundles. This reduces the bundle size and ensures no tracing code is executed.
+
+Configure your bundler to replace `__SENTRY_TRACING__` with `false`:
+
+```js
+// next.config.js with Sentry
+const { withSentryConfig } = require('@sentry/nextjs');
+
+const nextConfig = {
+  // Your Next.js configuration
+  webpack: (config, options) => {
+    config.plugins.push(
+      new options.webpack.DefinePlugin({
+        __SENTRY_TRACING__: false,
+      }),
+    );
+    return config;
+  },
+};
+
+module.exports = withSentryConfig(nextConfig, {
+  // Your Sentry Webpack plugin options
+});
+```
+
+### 2. Runtime Configuration
+
+To disable tracing at runtime while keeping the tracing code in your bundles, simply **do not set** `tracesSampleRate` or `tracesSampler` in your Sentry configuration.
+
+**Important:** Do NOT set `tracesSampleRate: 0` as this will still initialize tracing infrastructure. Instead, completely omit the option:
+
+```js
+// sentry.client.config.js
+import * as Sentry from '@sentry/nextjs';
+
+Sentry.init({
+  dsn: '__YOUR_DSN__',
+  // Do NOT include tracesSampleRate or tracesSampler
+  // ❌ tracesSampleRate: 0, // Don't do this
+  // ✅ Simply omit the option
+});
+```
+
+The same applies to your server and edge configurations.
