@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "nuxt build && bash ./copyIITM.bash",
+    "build": "nuxt build",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
@@ -15,10 +15,14 @@
   },
   "dependencies": {
     "@sentry/nuxt": "latest || *",
+    "@sentry/core": "latest || *",
     "nuxt": "^3.14.0"
   },
   "devDependencies": {
     "@playwright/test": "~1.50.0",
     "@sentry-internal/test-utils": "link:../../../test-utils"
+  },
+  "volta": {
+    "extends": "../../package.json"
   }
 }
