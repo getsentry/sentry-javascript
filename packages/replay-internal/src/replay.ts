@@ -1305,8 +1305,8 @@ export class ReplayContainer implements ReplayContainerInterface {
 
   /** Handler for rrweb.record.onMutation */
   private _onMutationHandler(mutations: MutationRecord[]): boolean {
-    const { ignoreMutations } = this._options;
-    if (ignoreMutations.length) {
+    const { ignoreMutations } = this._options._experiments;
+    if (ignoreMutations?.length) {
       if (
         mutations.some(mutation => {
           const el = rrwebUtils.closestElementOfNode(mutation.target);

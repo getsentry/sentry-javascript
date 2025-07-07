@@ -6,7 +6,9 @@ window.Replay = Sentry.replayIntegration({
   flushMaxDelay: 200,
   minReplayDuration: 0,
   useCompression: false,
-  ignoreMutations: ['.moving'],
+  _experiments: {
+    ignoreMutations: ['.moving'],
+  },
 });
 
 Sentry.init({
