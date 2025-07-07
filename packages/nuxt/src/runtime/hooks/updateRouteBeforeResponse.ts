@@ -36,7 +36,8 @@ export function updateRouteBeforeResponse(event: H3Event): void {
 
           if (params && typeof params === 'object') {
             Object.entries(params).forEach(([key, value]) => {
-              rootSpan.setAttribute(`params.${key}`, String(value));
+              // Based on this convention: https://getsentry.github.io/sentry-conventions/generated/attributes/url.html#urlpathparameterkey
+              rootSpan.setAttribute(`url.path.parameter.${key}`, String(value));
             });
           }
 
