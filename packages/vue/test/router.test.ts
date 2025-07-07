@@ -423,6 +423,7 @@ function getAttributesForRoute(route: Route): SpanAttributes {
   const attributes: SpanAttributes = {};
 
   for (const key of Object.keys(params)) {
+    attributes[`url.path.parameter.${key}`] = params[key];
     attributes[`params.${key}`] = params[key];
   }
   for (const key of Object.keys(query)) {
