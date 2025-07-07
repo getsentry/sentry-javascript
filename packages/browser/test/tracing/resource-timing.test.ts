@@ -110,9 +110,14 @@ describe('resourceTimingToSpanAttributes', () => {
       global.performance = originalPerformance;
     });
 
-    it('should not extract network protocol when nextHopProtocol is empty', () => {
+    it('should extract network protocol even when nextHopProtocol is empty', () => {
       const mockResourceTiming = createMockResourceTiming({
         nextHopProtocol: '',
+      });
+
+      extractNetworkProtocolSpy.mockReturnValue({
+        name: '',
+        version: 'unknown',
       });
 
       browserPerformanceTimeOriginSpy.mockReturnValue(null);
@@ -126,8 +131,11 @@ describe('resourceTimingToSpanAttributes', () => {
 
       const result = resourceTimingToSpanAttributes(mockResourceTiming);
 
-      expect(extractNetworkProtocolSpy).not.toHaveBeenCalled();
-      expect(result).toEqual([]);
+      expect(extractNetworkProtocolSpy).toHaveBeenCalledWith('');
+      expect(result).toEqual([
+        ['network.protocol.version', 'unknown'],
+        ['network.protocol.name', ''],
+      ]);
 
       // Restore global performance
       global.performance = originalPerformance;
@@ -188,9 +196,14 @@ describe('resourceTimingToSpanAttributes', () => {
       global.performance = originalPerformance;
     });
 
-    it('should return empty array when no network protocol and no browserPerformanceTimeOrigin', () => {
+    it('should return network protocol attributes even when empty string and no browserPerformanceTimeOrigin', () => {
       const mockResourceTiming = createMockResourceTiming({
         nextHopProtocol: '',
+      });
+
+      extractNetworkProtocolSpy.mockReturnValue({
+        name: '',
+        version: 'unknown',
       });
 
       browserPerformanceTimeOriginSpy.mockReturnValue(null);
@@ -204,7 +217,10 @@ describe('resourceTimingToSpanAttributes', () => {
 
       const result = resourceTimingToSpanAttributes(mockResourceTiming);
 
-      expect(result).toEqual([]);
+      expect(result).toEqual([
+        ['network.protocol.version', 'unknown'],
+        ['network.protocol.name', ''],
+      ]);
 
       // Restore global performance
       global.performance = originalPerformance;
@@ -255,6 +271,11 @@ describe('resourceTimingToSpanAttributes', () => {
     });
 
     it('should handle zero timing values', () => {
+      extractNetworkProtocolSpy.mockReturnValue({
+        name: '',
+        version: 'unknown',
+      });
+
       const mockResourceTiming = createMockResourceTiming({
         nextHopProtocol: '',
         redirectStart: 0,
@@ -272,6 +293,8 @@ describe('resourceTimingToSpanAttributes', () => {
       const result = resourceTimingToSpanAttributes(mockResourceTiming);
 
       expect(result).toEqual([
+        ['network.protocol.version', 'unknown'],
+        ['network.protocol.name', ''],
         ['http.request.redirect_start', 1000], // (1000000 + 0) / 1000
         ['http.request.fetch_start', 1000],
         ['http.request.domain_lookup_start', 1000],
@@ -329,6 +352,11 @@ describe('resourceTimingToSpanAttributes', () => {
       // Mock browserPerformanceTimeOrigin to return null for the main check
       browserPerformanceTimeOriginSpy.mockReturnValue(null);
 
+      extractNetworkProtocolSpy.mockReturnValue({
+        name: '',
+        version: 'unknown',
+      });
+
       const mockResourceTiming = createMockResourceTiming({
         nextHopProtocol: '',
         redirectStart: 20,
@@ -345,13 +373,21 @@ describe('resourceTimingToSpanAttributes', () => {
 
       const result = resourceTimingToSpanAttributes(mockResourceTiming);
 
-      // When browserPerformanceTimeOrigin returns null, function returns early without timing attributes
-      expect(result).toEqual([]);
+      // When browserPerformanceTimeOrigin returns null, function returns early with only network protocol attributes
+      expect(result).toEqual([
+        ['network.protocol.version', 'unknown'],
+        ['network.protocol.name', ''],
+      ]);
     });
 
     it('should use performance.timeOrigin fallback in getAbsoluteTime when available', () => {
       // Mock browserPerformanceTimeOrigin to return 500000 for the main check
       browserPerformanceTimeOriginSpy.mockReturnValue(500000);
+
+      extractNetworkProtocolSpy.mockReturnValue({
+        name: '',
+        version: 'unknown',
+      });
 
       const mockResourceTiming = createMockResourceTiming({
         nextHopProtocol: '',
@@ -370,6 +406,8 @@ describe('resourceTimingToSpanAttributes', () => {
       const result = resourceTimingToSpanAttributes(mockResourceTiming);
 
       expect(result).toEqual([
+        ['network.protocol.version', 'unknown'],
+        ['network.protocol.name', ''],
         ['http.request.redirect_start', 500.02], // (500000 + 20) / 1000
         ['http.request.fetch_start', 500.04], // (500000 + 40) / 1000
         ['http.request.domain_lookup_start', 500.06], // (500000 + 60) / 1000
@@ -386,6 +424,11 @@ describe('resourceTimingToSpanAttributes', () => {
     it('should handle case when neither browserPerformanceTimeOrigin nor performance.timeOrigin is available', () => {
       browserPerformanceTimeOriginSpy.mockReturnValue(null);
 
+      extractNetworkProtocolSpy.mockReturnValue({
+        name: '',
+        version: 'unknown',
+      });
+
       // Mock performance.timeOrigin as undefined
       const originalPerformance = global.performance;
       global.performance = {
@@ -399,8 +442,11 @@ describe('resourceTimingToSpanAttributes', () => {
 
       const result = resourceTimingToSpanAttributes(mockResourceTiming);
 
-      // When neither timing source is available, should return empty array
-      expect(result).toEqual([]);
+      // When neither timing source is available, should return network protocol attributes for empty string
+      expect(result).toEqual([
+        ['network.protocol.version', 'unknown'],
+        ['network.protocol.name', ''],
+      ]);
 
       // Restore global performance
       global.performance = originalPerformance;
@@ -410,6 +456,11 @@ describe('resourceTimingToSpanAttributes', () => {
   describe('edge cases', () => {
     it('should handle undefined timing values', () => {
       browserPerformanceTimeOriginSpy.mockReturnValue(1000000);
+
+      extractNetworkProtocolSpy.mockReturnValue({
+        name: '',
+        version: 'unknown',
+      });
 
       const mockResourceTiming = createMockResourceTiming({
         nextHopProtocol: '',
@@ -428,6 +479,8 @@ describe('resourceTimingToSpanAttributes', () => {
       const result = resourceTimingToSpanAttributes(mockResourceTiming);
 
       expect(result).toEqual([
+        ['network.protocol.version', 'unknown'],
+        ['network.protocol.name', ''],
         ['http.request.redirect_start', 1000], // (1000000 + 0) / 1000
         ['http.request.fetch_start', 1000],
         ['http.request.domain_lookup_start', 1000],
@@ -443,6 +496,11 @@ describe('resourceTimingToSpanAttributes', () => {
 
     it('should handle very large timing values', () => {
       browserPerformanceTimeOriginSpy.mockReturnValue(1000000);
+
+      extractNetworkProtocolSpy.mockReturnValue({
+        name: '',
+        version: 'unknown',
+      });
 
       const mockResourceTiming = createMockResourceTiming({
         nextHopProtocol: '',
@@ -461,6 +519,8 @@ describe('resourceTimingToSpanAttributes', () => {
       const result = resourceTimingToSpanAttributes(mockResourceTiming);
 
       expect(result).toEqual([
+        ['network.protocol.version', 'unknown'],
+        ['network.protocol.name', ''],
         ['http.request.redirect_start', 1999.999], // (1000000 + 999999) / 1000
         ['http.request.fetch_start', 1999.999],
         ['http.request.domain_lookup_start', 1999.999],
