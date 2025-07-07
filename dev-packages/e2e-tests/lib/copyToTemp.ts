@@ -45,7 +45,7 @@ function fixPackageJson(cwd: string): void {
   writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
 }
 
-function fixFileLinkDependencies(dependencyObj: Record<string, string>): boolean {
+function fixFileLinkDependencies(dependencyObj: Record<string, string>): void {
   for (const [key, value] of Object.entries(dependencyObj)) {
     if (value.startsWith('link:')) {
       const dirPath = value.replace('link:', '');
@@ -58,6 +58,4 @@ function fixFileLinkDependencies(dependencyObj: Record<string, string>): boolean
       console.log(`Fixed ${key} dependency to ${newPath}`);
     }
   }
-
-  return false;
 }
