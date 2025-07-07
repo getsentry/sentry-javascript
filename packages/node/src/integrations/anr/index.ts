@@ -119,6 +119,8 @@ type AnrReturn = (options?: Partial<AnrIntegrationOptions>) => Integration & Anr
 /**
  * Application Not Responding (ANR) integration for Node.js applications.
  *
+ * @deprecated The ANR integration has been deprecated. Use `eventLoopBlockIntegration` from `@sentry/node-native` instead.
+ *
  * Detects when the Node.js main thread event loop is blocked for more than the configured
  * threshold (5 seconds by default) and reports these as Sentry events.
  *
@@ -163,9 +165,6 @@ type AnrReturn = (options?: Partial<AnrIntegrationOptions>) => Integration & Anr
  *   ],
  * });
  * ```
- *
- * @deprecated The ANR integration has been deprecated. Use `eventLoopBlockIntegration` from `@sentry/node-native` instead.
- * @see {@link https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/application-not-responding/}
  */
 export const anrIntegration = defineIntegration(_anrIntegration) as AnrReturn;
 
@@ -286,42 +285,7 @@ export function disableAnrDetectionForCallback<T>(callback: () => Promise<T>): P
  * are expected to block the event loop, such as intensive computational tasks or
  * synchronous I/O operations.
  *
- * ## Use Cases
- *
- * - CPU-intensive operations that legitimately block the event loop
- * - Synchronous file operations or database queries
- * - Intentional blocking operations during application startup
- * - Long-running computations that should not trigger ANR events
- *
- * ## Behavior
- *
- * - **Synchronous callbacks**: ANR detection is disabled before the callback runs
- *   and re-enabled immediately after it completes
- * - **Asynchronous callbacks**: ANR detection is disabled before the callback runs
- *   and re-enabled after the Promise resolves or rejects
- * - **No ANR integration**: If the ANR integration is not active, the callback
- *   runs normally without any modifications
- *
- * @example
- * ```javascript
- * // For synchronous operations
- * const result = disableAnrDetectionForCallback(() => {
- *   // Perform CPU-intensive work that might block for several seconds
- *   return performHeavyComputation();
- * });
- *
- * // For asynchronous operations
- * const result = await disableAnrDetectionForCallback(async () => {
- *   // Perform async work without ANR detection
- *   return await heavyAsyncOperation();
- * });
- * ```
- *
- * @param callback - The function to execute with ANR detection disabled
- * @returns The result of the callback function
- *
  * @deprecated The ANR integration has been deprecated. Use `eventLoopBlockIntegration` from `@sentry/node-native` instead.
- * @see {@link https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/application-not-responding/}
  */
 export function disableAnrDetectionForCallback<T>(callback: () => T | Promise<T>): T | Promise<T> {
   const integration = getClient()?.getIntegrationByName(INTEGRATION_NAME) as AnrInternal | undefined;

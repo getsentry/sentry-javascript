@@ -7,7 +7,6 @@ import type { Contexts, DsnComponents, Primitive, SdkMetadata } from '@sentry/co
  * and reports blocking events.
  *
  * @deprecated The ANR integration has been deprecated. Use `eventLoopBlockIntegration` from `@sentry/node-native` instead.
- * @see {@link https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/application-not-responding/}
  */
 export interface AnrIntegrationOptions {
   /**
