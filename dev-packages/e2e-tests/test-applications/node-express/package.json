@@ -12,7 +12,6 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.10.2",
-    "@sentry/core": "latest || *",
     "@sentry/node": "latest || *",
     "@trpc/server": "10.45.2",
     "@trpc/client": "10.45.2",
@@ -24,7 +23,8 @@
   },
   "devDependencies": {
     "@playwright/test": "~1.50.0",
-    "@sentry-internal/test-utils": "link:../../../test-utils"
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@sentry/core": "latest || *"
   },
   "resolutions": {
     "@types/qs": "6.9.17"

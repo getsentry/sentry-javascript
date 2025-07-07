@@ -23,5 +23,8 @@
   },
   "devDependencies": {
     "@astrojs/internal-helpers": "^0.4.1"
+  },
+  "volta": {
+    "extends": "../../package.json"
   }
 }

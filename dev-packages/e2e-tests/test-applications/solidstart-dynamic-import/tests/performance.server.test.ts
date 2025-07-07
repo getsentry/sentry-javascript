@@ -4,7 +4,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-} from '@sentry/core';
+} from '@sentry/solidstart';
 
 test('sends a server action transaction on pageload', async ({ page }) => {
   const transactionPromise = waitForTransaction('solidstart-dynamic-import', transactionEvent => {
