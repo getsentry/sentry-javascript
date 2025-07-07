@@ -236,7 +236,8 @@ function getFinalConfigObject(
   const instrumentationClientFileContents = getInstrumentationClientFileContents();
   if (
     instrumentationClientFileContents !== undefined &&
-    !instrumentationClientFileContents.includes('onRouterTransitionStart')
+    !instrumentationClientFileContents.includes('onRouterTransitionStart') &&
+    !userSentryOptions.suppressOnRouterTransitionStartWarning
   ) {
     // eslint-disable-next-line no-console
     console.warn(

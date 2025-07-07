@@ -10,15 +10,6 @@
     "@react-router/node": "^7.1.5",
     "@react-router/serve": "^7.1.5",
     "@sentry/react-router": "latest || *",
-    "@sentry-internal/feedback": "latest || *",
-    "@sentry-internal/replay-canvas": "latest || *",
-    "@sentry-internal/browser-utils": "latest || *",
-    "@sentry/browser": "latest || *",
-    "@sentry/core": "latest || *",
-    "@sentry/node": "latest || *",
-    "@sentry/opentelemetry": "latest || *",
-    "@sentry/react": "latest || *",
-    "@sentry-internal/replay": "latest || *",
     "isbot": "^5.1.17"
   },
   "devDependencies": {

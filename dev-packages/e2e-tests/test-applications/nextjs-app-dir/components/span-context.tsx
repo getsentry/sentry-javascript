@@ -1,7 +1,6 @@
 'use client';
 
-import { Span } from '@sentry/core';
-import { startInactiveSpan } from '@sentry/nextjs';
+import { startInactiveSpan, Span } from '@sentry/nextjs';
 import { PropsWithChildren, createContext, useState } from 'react';
 
 export const SpanContext = createContext<
