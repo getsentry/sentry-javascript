@@ -53,6 +53,7 @@ import { isExpired } from './util/isExpired';
 import { isSessionExpired } from './util/isSessionExpired';
 import { logger } from './util/logger';
 import { resetReplayIdOnDynamicSamplingContext } from './util/resetReplayIdOnDynamicSamplingContext';
+import { closestElementOfNode } from './util/rrweb';
 import { sendReplay } from './util/sendReplay';
 import { RateLimitError } from './util/sendReplayRequest';
 import type { SKIPPED } from './util/throttle';
@@ -1304,7 +1305,20 @@ export class ReplayContainer implements ReplayContainerInterface {
   }
 
   /** Handler for rrweb.record.onMutation */
-  private _onMutationHandler(mutations: unknown[]): boolean {
+  private _onMutationHandler(mutations: MutationRecord[]): boolean {
+    const { ignoreMutations } = this._options._experiments;
+    if (ignoreMutations?.length) {
+      if (
+        mutations.some(mutation => {
+          const el = closestElementOfNode(mutation.target);
+          const selector = ignoreMutations.join(',');
+          return el?.matches(selector);
+        })
+      ) {
+        return false;
+      }
+    }
+
     const count = mutations.length;
 
     const mutationLimit = this._options.mutationLimit;
@@ -1335,4 +1349,13 @@ export class ReplayContainer implements ReplayContainerInterface {
     // `true` means we use the regular mutation handling by rrweb
     return true;
   }
+}
+
+interface MutationRecord {
+  type: string;
+  target: Node;
+  oldValue: string | null;
+  addedNodes: NodeList;
+  removedNodes: NodeList;
+  attributeName: string | null;
 }

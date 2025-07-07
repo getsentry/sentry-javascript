@@ -234,6 +234,13 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
      */
     recordCrossOriginIframes: boolean;
     autoFlushOnFeedback: boolean;
+    /**
+     * Completetly ignore mutations matching the given selectors.
+     * This can be used if a specific type of mutation is causing (e.g. performance) problems.
+     * NOTE: This can be dangerous to use, as mutations are applied as incremental patches.
+     * Make sure to verify that the captured replays still work when using this option.
+     */
+    ignoreMutations: string[];
   }>;
 }
 
