@@ -19,9 +19,6 @@ import type { AnrIntegrationOptions, WorkerStartData } from './common';
 
 const { isPromise } = types;
 
-/**
- * @deprecated The ANR integration has been deprecated. Use `eventLoopBlockIntegration` from `@sentry/node-native` instead.
- */
 // This string is a placeholder that gets overwritten with the worker code.
 export const base64WorkerScript = '###AnrWorkerScript###';
 
