@@ -133,3 +133,22 @@ A standardized frontend test application has the following features:
 ### Standardized Backend Test Apps
 
 TBD
+
+### Standardized Frontend-to-Backend Test Apps
+
+A standardized Meta test application has the following features:
+
+- Has a parameterized backend API route `/user/:id` that returns a JSON object with the user ID.
+- Has a parameterized frontend page (can be SSR) `/user/:id` that fetches the user data on the client-side from the API route and displays it.
+
+The following test cases for connected tracing should be implemented in the test app:
+
+- Capturing a distributed page load trace when a page is loaded
+  - The HTML meta-tag should include the Sentry trace data and baggage
+  - The server root span should be the parent of the client pageload span
+  - All routes (server and client) should be parameterized, e.g. `/user/5` should be captured as `/user/:id` route
+- Capturing a distributed trace when requesting the API from the client-side
+  - There should be three transactions involved: the client pageload, the server "pageload", and the server API request
+  - The client pageload should include an `http.client` span that is the parent of the server API request span
+  - All three transactions and the `http.client` span should share the same `trace_id`
+  - All `transaction` names and the `span` description should be parameterized, e.g. `/user/5` should be captured as `/user/:id` route

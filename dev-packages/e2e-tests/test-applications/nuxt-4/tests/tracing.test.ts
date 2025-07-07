@@ -69,17 +69,17 @@ test.describe('distributed tracing', () => {
 
   test('capture a distributed trace from a client-side API request with parametrized routes', async ({ page }) => {
     const clientTxnEventPromise = waitForTransaction('nuxt-4', txnEvent => {
-      return txnEvent.transaction === '/test-param/fetch-api/:param()';
+      return txnEvent.transaction === '/test-param/user/:userId()';
     });
     const ssrTxnEventPromise = waitForTransaction('nuxt-4', txnEvent => {
-      return txnEvent.transaction?.includes('GET /test-param/fetch-api') ?? false;
+      return txnEvent.transaction?.includes('GET /test-param/user') ?? false;
     });
     const serverReqTxnEventPromise = waitForTransaction('nuxt-4', txnEvent => {
-      return txnEvent.transaction?.includes('GET /api/test-param/') ?? false;
+      return txnEvent.transaction?.includes('GET /api/user/') ?? false;
     });
 
     // Navigate to the page which will trigger an API call from the client-side
-    await page.goto(`/test-param/fetch-api/${PARAM}`);
+    await page.goto(`/test-param/user/${PARAM}`);
 
     const [clientTxnEvent, ssrTxnEvent, serverReqTxnEvent] = await Promise.all([
       clientTxnEventPromise,
@@ -87,12 +87,12 @@ test.describe('distributed tracing', () => {
       serverReqTxnEventPromise,
     ]);
 
-    const httpClientSpan = clientTxnEvent?.spans?.find(span => span.description === `GET /api/test-param/${PARAM}`);
+    const httpClientSpan = clientTxnEvent?.spans?.find(span => span.description === `GET /api/user/${PARAM}`);
 
     expect(clientTxnEvent).toEqual(
       expect.objectContaining({
         type: 'transaction',
-        transaction: '/test-param/fetch-api/:param()', // parametrized route
+        transaction: '/test-param/user/:userId()', // parametrized route
         transaction_info: { source: 'route' },
         contexts: expect.objectContaining({
           trace: expect.objectContaining({
@@ -106,10 +106,10 @@ test.describe('distributed tracing', () => {
     expect(httpClientSpan).toBeDefined();
     expect(httpClientSpan).toEqual(
       expect.objectContaining({
-        description: `GET /api/test-param/${PARAM}`, // fixme: parametrize
+        description: `GET /api/user/${PARAM}`, // fixme: parametrize
         parent_span_id: clientTxnEvent.contexts?.trace?.span_id, // pageload span is parent
         data: expect.objectContaining({
-          url: `/api/test-param/${PARAM}`, // fixme: parametrize
+          url: `/api/user/${PARAM}`,
           type: 'fetch',
           'sentry.op': 'http.client',
           'sentry.origin': 'auto.http.browser',
@@ -121,7 +121,7 @@ test.describe('distributed tracing', () => {
     expect(ssrTxnEvent).toEqual(
       expect.objectContaining({
         type: 'transaction',
-        transaction: `GET /test-param/fetch-api/${PARAM}`, // fixme: parametrize (nitro)
+        transaction: `GET /test-param/user/${PARAM}`, // fixme: parametrize (nitro)
         transaction_info: { source: 'url' },
         contexts: expect.objectContaining({
           trace: expect.objectContaining({
@@ -135,7 +135,7 @@ test.describe('distributed tracing', () => {
     expect(serverReqTxnEvent).toEqual(
       expect.objectContaining({
         type: 'transaction',
-        transaction: `GET /api/test-param/${PARAM}`,
+        transaction: `GET /api/user/${PARAM}`,
         transaction_info: { source: 'url' },
         contexts: expect.objectContaining({
           trace: expect.objectContaining({
