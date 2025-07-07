@@ -1,5 +1,8 @@
 import type { Contexts, DsnComponents, Primitive, SdkMetadata } from '@sentry/core';
 
+/**
+ * @deprecated The ANR integration has been deprecated. Use `eventLoopBlockIntegration` from `@sentry/node-native` instead.
+ */
 export interface AnrIntegrationOptions {
   /**
    * Interval to send heartbeat messages to the ANR worker.
@@ -39,6 +42,9 @@ export interface AnrIntegrationOptions {
   appRootPath: string | undefined;
 }
 
+/**
+ * @deprecated The ANR integration has been deprecated. Use `eventLoopBlockIntegration` from `@sentry/node-native` instead.
+ */
 export interface WorkerStartData extends AnrIntegrationOptions {
   debug: boolean;
   sdkMetadata: SdkMetadata;

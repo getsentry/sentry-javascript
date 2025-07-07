@@ -19,6 +19,9 @@ import type { AnrIntegrationOptions, WorkerStartData } from './common';
 
 const { isPromise } = types;
 
+/**
+ * @deprecated The ANR integration has been deprecated. Use `eventLoopBlockIntegration` from `@sentry/node-native` instead.
+ */
 // This string is a placeholder that gets overwritten with the worker code.
 export const base64WorkerScript = '###AnrWorkerScript###';
 
@@ -116,6 +119,9 @@ const _anrIntegration = ((options: Partial<AnrIntegrationOptions> = {}) => {
 
 type AnrReturn = (options?: Partial<AnrIntegrationOptions>) => Integration & AnrInternal;
 
+/**
+ * @deprecated The ANR integration has been deprecated. Use `eventLoopBlockIntegration` from `@sentry/node-native` instead.
+ */
 export const anrIntegration = defineIntegration(_anrIntegration) as AnrReturn;
 
 /**
@@ -230,6 +236,7 @@ export function disableAnrDetectionForCallback<T>(callback: () => T): T;
 export function disableAnrDetectionForCallback<T>(callback: () => Promise<T>): Promise<T>;
 /**
  * Disables ANR detection for the duration of the callback
+ * @deprecated The ANR integration has been deprecated. Use `eventLoopBlockIntegration` from `@sentry/node-native` instead.
  */
 export function disableAnrDetectionForCallback<T>(callback: () => T | Promise<T>): T | Promise<T> {
   const integration = getClient()?.getIntegrationByName(INTEGRATION_NAME) as AnrInternal | undefined;
