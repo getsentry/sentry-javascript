@@ -112,9 +112,7 @@ function getFinalConfigObject(
       }
     } else {
       const resolvedTunnelRoute =
-       userSentryOptions.tunnelRoute === true
-          ? generateRandomTunnelRoute()
-          : userSentryOptions.tunnelRoute;
+        userSentryOptions.tunnelRoute === true ? generateRandomTunnelRoute() : userSentryOptions.tunnelRoute;
 
       // Update the global options object to use the resolved value everywhere
       userSentryOptions.tunnelRoute = resolvedTunnelRoute || undefined;
