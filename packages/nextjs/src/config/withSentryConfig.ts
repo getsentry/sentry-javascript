@@ -112,7 +112,7 @@ function getFinalConfigObject(
       }
     } else {
       const resolvedTunnelRoute =
-        typeof userSentryOptions.tunnelRoute === 'boolean' && userSentryOptions.tunnelRoute === true
+       userSentryOptions.tunnelRoute === true
           ? generateRandomTunnelRoute()
           : userSentryOptions.tunnelRoute;
 
