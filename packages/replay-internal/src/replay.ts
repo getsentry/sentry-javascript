@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
 import type { ReplayRecordingMode, Span } from '@sentry/core';
 import { getActiveSpan, getClient, getRootSpan, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON } from '@sentry/core';
-import { EventType, record, utils as rrwebUtils } from '@sentry-internal/rrweb';
+import { EventType, record } from '@sentry-internal/rrweb';
 import {
   BUFFER_CHECKOUT_TIME,
   SESSION_IDLE_EXPIRE_DURATION,
@@ -53,6 +53,7 @@ import { isExpired } from './util/isExpired';
 import { isSessionExpired } from './util/isSessionExpired';
 import { logger } from './util/logger';
 import { resetReplayIdOnDynamicSamplingContext } from './util/resetReplayIdOnDynamicSamplingContext';
+import { closestElementOfNode } from './util/rrweb';
 import { sendReplay } from './util/sendReplay';
 import { RateLimitError } from './util/sendReplayRequest';
 import type { SKIPPED } from './util/throttle';
@@ -1309,7 +1310,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     if (ignoreMutations?.length) {
       if (
         mutations.some(mutation => {
-          const el = rrwebUtils.closestElementOfNode(mutation.target);
+          const el = closestElementOfNode(mutation.target);
           const selector = ignoreMutations.join(',');
           return el?.matches(selector);
         })
