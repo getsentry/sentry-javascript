@@ -6,14 +6,19 @@ import type { H3Event } from 'h3';
  */
 export function updateRouteBeforeResponse(event: H3Event): void {
   if (event.context.matchedRoute) {
-    const matchedRoute = event.context.matchedRoute;
-    const matchedRoutePath = matchedRoute.path;
-    const params = event.context?.params || null;
-    const method = event._method || 'GET';
+    const matchedRoutePath = event.context.matchedRoute.path;
 
     // If the matched route path is defined and differs from the event's path, it indicates a parametrized route
-    // Example: If the matched route is "/users/:id" and the event's path is "/users/123",
+    // Example: Matched route is "/users/:id" and the event's path is "/users/123",
     if (matchedRoutePath && matchedRoutePath !== event._path) {
+      if (matchedRoutePath === '/**') {
+        // todo: support parametrized SSR pageload spans
+        // If page is server-side rendered, the whole path gets transformed to `/**` (Example : `/users/123` becomes `/**` instead of `/users/:id`).
+        return; // Skip if the matched route is a catch-all route.
+      }
+
+      const method = event._method || 'GET';
+
       const parametrizedTransactionName = `${method.toUpperCase()} ${matchedRoutePath}`;
       getCurrentScope().setTransactionName(parametrizedTransactionName);
 
@@ -22,8 +27,12 @@ export function updateRouteBeforeResponse(event: H3Event): void {
         const rootSpan = getRootSpan(activeSpan);
         if (rootSpan) {
           rootSpan.updateName(parametrizedTransactionName);
-          rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
-          rootSpan.setAttribute('http.route', matchedRoutePath);
+          rootSpan.setAttributes({
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+            'http.route': matchedRoutePath,
+          });
+
+          const params = event.context?.params || null;
 
           if (params && typeof params === 'object') {
             Object.entries(params).forEach(([key, value]) => {
