@@ -136,10 +136,12 @@ TBD
 
 ### Standardized Frontend-to-Backend Test Apps
 
-A standardized Meta test application has the following features:
+A standardized Meta-Framework test application has the following features:
 
 - Has a parameterized backend API route `/user/:id` that returns a JSON object with the user ID.
 - Has a parameterized frontend page (can be SSR) `/user/:id` that fetches the user data on the client-side from the API route and displays it.
+
+This setup creates the scenario where the frontend page loads, and then immediately makes an API request to the backend API.
 
 The following test cases for connected tracing should be implemented in the test app:
 
