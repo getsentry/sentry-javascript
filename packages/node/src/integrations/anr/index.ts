@@ -126,33 +126,19 @@ type AnrReturn = (options?: Partial<AnrIntegrationOptions>) => Integration & Anr
  * Detects when the Node.js main thread event loop is blocked for more than the configured
  * threshold (5 seconds by default) and reports these as Sentry events.
  *
- * ## How it works
- *
  * ANR detection uses a worker thread to monitor the event loop in the main app thread.
  * The main app thread sends a heartbeat message to the ANR worker thread every 50ms by default.
  * If the ANR worker does not receive a heartbeat message for the configured threshold duration,
  * it triggers an ANR event.
  *
- * ## Requirements
- *
  * - Node.js 16.17.0 or higher
  * - Only supported in the Node.js runtime (not browsers)
  * - Not supported for Node.js clusters
- *
- * ## Performance Impact
  *
  * Overhead should be minimal:
  * - Main thread: Only polling the ANR worker over IPC every 50ms
  * - Worker thread: Consumes around 10-20 MB of RAM
  * - When ANR detected: Brief pause in debugger to capture stack trace (negligible compared to the blocking)
- *
- * ## Configuration Options
- *
- * - `pollInterval`: Interval to send heartbeat messages (default: 50ms)
- * - `anrThreshold`: Threshold in milliseconds to trigger an ANR event (default: 5000ms)
- * - `captureStackTrace`: Whether to capture stack traces using the Node.js inspector API (default: false)
- * - `maxAnrEvents`: Maximum number of ANR events to send (default: 1)
- * - `staticTags`: Tags to include with ANR events
  *
  * @example
  * ```javascript
