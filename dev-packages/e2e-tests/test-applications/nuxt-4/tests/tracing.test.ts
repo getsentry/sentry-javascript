@@ -10,7 +10,7 @@ test.describe('distributed tracing', () => {
     });
 
     const serverTxnEventPromise = waitForTransaction('nuxt-4', txnEvent => {
-      return txnEvent.transaction.includes('GET /test-param/');
+      return txnEvent.transaction?.includes('GET /test-param/') ?? false;
     });
 
     const [_, clientTxnEvent, serverTxnEvent] = await Promise.all([
@@ -67,66 +67,87 @@ test.describe('distributed tracing', () => {
     expect(serverTxnEvent.contexts?.trace?.trace_id).toBe(metaTraceId);
   });
 
-  test('capture a distributed server request with parametrization', async ({ page }) => {
+  test('capture a distributed trace from a client-side API request with parametrized routes', async ({ page }) => {
     const clientTxnEventPromise = waitForTransaction('nuxt-4', txnEvent => {
-      return txnEvent.transaction === '/test-param/:param()';
+      return txnEvent.transaction === '/test-param/fetch-api/:param()';
     });
-
     const ssrTxnEventPromise = waitForTransaction('nuxt-4', txnEvent => {
-      return txnEvent.transaction.includes('GET /test-param/');
+      return txnEvent.transaction?.includes('GET /test-param/fetch-api') ?? false;
     });
-
     const serverReqTxnEventPromise = waitForTransaction('nuxt-4', txnEvent => {
-      return txnEvent.transaction.includes('GET /api/test-param/');
+      return txnEvent.transaction?.includes('GET /api/test-param/') ?? false;
     });
 
-    const [, clientTxnEvent, ssrTxnEvent, , , serverReqTxnEvent] = await Promise.all([
-      page.goto(`/test-param/${PARAM}`),
+    // Navigate to the page which will trigger an API call from the client-side
+    await page.goto(`/test-param/fetch-api/${PARAM}`);
+
+    const [clientTxnEvent, ssrTxnEvent, serverReqTxnEvent] = await Promise.all([
       clientTxnEventPromise,
       ssrTxnEventPromise,
-      expect(page.getByText(`Param: ${PARAM}`)).toBeVisible(),
-      page.getByText('Fetch Server Data', { exact: true }).click(),
       serverReqTxnEventPromise,
     ]);
 
     const httpClientSpan = clientTxnEvent?.spans?.find(span => span.description === `GET /api/test-param/${PARAM}`);
 
-    expect(ssrTxnEvent).toMatchObject({
-      transaction: `GET /test-param/${PARAM}`, // todo: parametrize (nitro)
-      transaction_info: { source: 'url' },
-      type: 'transaction',
-      contexts: {
-        trace: {
-          op: 'http.server',
-          origin: 'auto.http.otel.http',
-        },
-      },
-    });
-
-    expect(httpClientSpan).toMatchObject({
-      description: `GET /api/test-param/${PARAM}`, // todo: parametrize (nitro)
-      parent_span_id: clientTxnEvent.contexts?.trace?.span_id, // pageload span is parent
-      data: expect.objectContaining({
-        'sentry.op': 'http.client',
-        'sentry.origin': 'auto.http.browser',
-        'http.request_method': 'GET',
+    expect(clientTxnEvent).toEqual(
+      expect.objectContaining({
+        type: 'transaction',
+        transaction: '/test-param/fetch-api/:param()', // parametrized route
+        transaction_info: { source: 'route' },
+        contexts: expect.objectContaining({
+          trace: expect.objectContaining({
+            op: 'pageload',
+            origin: 'auto.pageload.vue',
+          }),
+        }),
       }),
-    });
+    );
 
-    expect(serverReqTxnEvent).toMatchObject({
-      transaction: `GET /api/test-param/${PARAM}`, // todo: parametrize (nitro)
-      transaction_info: { source: 'url' },
-      type: 'transaction',
-      contexts: {
-        trace: {
-          op: 'http.server',
-          origin: 'auto.http.otel.http',
-          parent_span_id: httpClientSpan?.span_id, // http.client span is parent
-        },
-      },
-    });
+    expect(httpClientSpan).toBeDefined();
+    expect(httpClientSpan).toEqual(
+      expect.objectContaining({
+        description: `GET /api/test-param/${PARAM}`, // fixme: parametrize
+        parent_span_id: clientTxnEvent.contexts?.trace?.span_id, // pageload span is parent
+        data: expect.objectContaining({
+          url: `/api/test-param/${PARAM}`, // fixme: parametrize
+          type: 'fetch',
+          'sentry.op': 'http.client',
+          'sentry.origin': 'auto.http.browser',
+          'http.method': 'GET',
+        }),
+      }),
+    );
 
-    // All share the same trace_id
+    expect(ssrTxnEvent).toEqual(
+      expect.objectContaining({
+        type: 'transaction',
+        transaction: `GET /test-param/fetch-api/${PARAM}`, // fixme: parametrize (nitro)
+        transaction_info: { source: 'url' },
+        contexts: expect.objectContaining({
+          trace: expect.objectContaining({
+            op: 'http.server',
+            origin: 'auto.http.otel.http',
+          }),
+        }),
+      }),
+    );
+
+    expect(serverReqTxnEvent).toEqual(
+      expect.objectContaining({
+        type: 'transaction',
+        transaction: `GET /api/test-param/${PARAM}`,
+        transaction_info: { source: 'url' },
+        contexts: expect.objectContaining({
+          trace: expect.objectContaining({
+            op: 'http.server',
+            origin: 'auto.http.otel.http',
+            parent_span_id: httpClientSpan?.span_id, // http.client span is parent
+          }),
+        }),
+      }),
+    );
+
+    // All 3 transactions and the http.client span should share the same trace_id
     expect(clientTxnEvent.contexts?.trace?.trace_id).toBeDefined();
     expect(clientTxnEvent.contexts?.trace?.trace_id).toBe(httpClientSpan?.trace_id);
     expect(clientTxnEvent.contexts?.trace?.trace_id).toBe(ssrTxnEvent.contexts?.trace?.trace_id);
