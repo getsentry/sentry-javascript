@@ -261,6 +261,9 @@ function instrumentPrototype<T extends NewableFunction>(
       });
       Object.defineProperty(receiver, prop, {
         value: instrumented,
+        enumerable: true,
+        writable: true,
+        configurable: true,
       });
       return instrumented;
     },
