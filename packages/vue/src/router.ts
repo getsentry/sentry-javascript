@@ -61,7 +61,8 @@ export function instrumentVueRouter(
     const attributes: SpanAttributes = {};
 
     for (const key of Object.keys(to.params)) {
-      attributes[`params.${key}`] = to.params[key];
+      attributes[`url.path.parameter.${key}`] = to.params[key];
+      attributes[`params.${key}`] = to.params[key]; // params.[key] is an alias
     }
     for (const key of Object.keys(to.query)) {
       const value = to.query[key];
