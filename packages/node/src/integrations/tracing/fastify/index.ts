@@ -17,6 +17,41 @@ import { FastifyOtelInstrumentation } from './fastify-otel/index';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from './types';
 import { FastifyInstrumentationV3 } from './v3/instrumentation';
 
+/**
+ * Options for the Fastify integration.
+ *
+ * `shouldHandleDiagnosticsChannelError` - Callback method deciding whether error should be captured and sent to Sentry
+ * This is used on Fastify v5 where Sentry handles errors in the diagnostics channel.
+ * Fastify v3 and v4 use `setupFastifyErrorHandler` instead.
+ *
+ * @example
+ *
+ * ```javascript
+ * Sentry.init({
+ *   integrations: [
+ *     Sentry.fastifyIntegration({
+ *       shouldHandleDiagnosticsChannelError(_error, _request, reply) {
+ *         return reply.statusCode >= 500;
+ *       },
+ *     });
+ *   },
+ * });
+ * ```
+ *
+ */
+interface FastifyIntegrationOptions {
+  /**
+   * Callback method deciding whether error should be captured and sent to Sentry
+   * This is used on Fastify v5 where Sentry handles errors in the diagnostics channel.
+   * Fastify v3 and v4 use `setupFastifyErrorHandler` instead.
+   *
+   * @param error Captured Fastify error
+   * @param request Fastify request (or any object containing at least method, routeOptions.url, and routerPath)
+   * @param reply Fastify reply (or any object containing at least statusCode)
+   */
+  shouldHandleDiagnosticsChannelError: (error: Error, request: FastifyRequest, reply: FastifyReply) => boolean;
+}
+
 interface FastifyHandlerOptions {
   /**
    * Callback method deciding whether error should be captured and sent to Sentry
@@ -36,19 +71,6 @@ interface FastifyHandlerOptions {
    * });
    * ```
    *
-   * or if you use Fastify v5 you can set options in the Sentry.init call:
-   *
-   * ```javascript
-   * Sentry.init({
-   *   integrations: [
-   *     Sentry.fastifyIntegration({
-   *       shouldHandleError(_error, _request, reply) {
-   *         return reply.statusCode >= 500;
-   *       },
-   *     });
-   *   },
-   * });
-   * ```
    *
    * If using TypeScript, you can cast the request and reply to get full type safety.
    *
@@ -105,7 +127,7 @@ function handleFastifyError(
 
 export const instrumentFastify = generateInstrumentOnce(
   INTEGRATION_NAME,
-  (options: Partial<FastifyHandlerOptions> = {}) => {
+  (options: Partial<FastifyIntegrationOptions> = {}) => {
     const fastifyOtelInstrumentationInstance = new FastifyOtelInstrumentation();
     const plugin = fastifyOtelInstrumentationInstance.plugin();
 
@@ -140,23 +162,23 @@ export const instrumentFastify = generateInstrumentOnce(
         error,
         request,
         reply,
-        options?.shouldHandleError || defaultShouldHandleError,
+        options?.shouldHandleDiagnosticsChannelError || defaultShouldHandleError,
         'diagnostics-channel',
       );
     });
 
     // Returning this as unknown not to deal with the internal types of the FastifyOtelInstrumentation
-    return fastifyOtelInstrumentationInstance as Instrumentation<InstrumentationConfig & FastifyHandlerOptions>;
+    return fastifyOtelInstrumentationInstance as Instrumentation<InstrumentationConfig & FastifyIntegrationOptions>;
   },
 );
 
-const _fastifyIntegration = (({ shouldHandleError }) => {
+const _fastifyIntegration = (({ shouldHandleDiagnosticsChannelError }: Partial<FastifyIntegrationOptions>) => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
       instrumentFastifyV3();
       instrumentFastify({
-        shouldHandleError,
+        shouldHandleDiagnosticsChannelError,
       });
     },
   };
@@ -178,7 +200,7 @@ const _fastifyIntegration = (({ shouldHandleError }) => {
  * })
  * ```
  */
-export const fastifyIntegration = defineIntegration((options: Partial<FastifyHandlerOptions> = {}) =>
+export const fastifyIntegration = defineIntegration((options: Partial<FastifyIntegrationOptions> = {}) =>
   _fastifyIntegration(options),
 );
 
