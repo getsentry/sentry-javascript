@@ -1,8 +1,5 @@
-import type {
-  ExtraHandlerData,
-  MCPServerInstance,
-  MCPTransport,
-} from './utils/mcp-server/types';
+import { fill } from '../../utils/object';
+import type { ExtraHandlerData, MCPServerInstance, MCPTransport } from './types';
 import {
   createMcpNotificationSpan,
   createMcpOutgoingNotificationSpan,
@@ -10,8 +7,7 @@ import {
   isJsonRpcNotification,
   isJsonRpcRequest,
   validateMcpServerInstance,
-} from './utils/mcp-server/utils';
-import { fill } from './utils/object';
+} from './utils';
 
 const wrappedMcpServerInstances = new WeakSet();
 

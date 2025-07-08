@@ -9,7 +9,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '../../semanticAttributes';
 import { startSpan } from '../../tracing';
-import { logger } from '../logger';
+import { logger } from '../../utils/logger';
 import {
   CLIENT_ADDRESS_ATTRIBUTE,
   CLIENT_PORT_ATTRIBUTE,
@@ -30,6 +30,7 @@ import {
   NETWORK_TRANSPORT_ATTRIBUTE,
 } from './attributes';
 import type { ExtraHandlerData, JsonRpcNotification, JsonRpcRequest, McpSpanConfig, MCPTransport, MethodConfig } from './types';
+import { isURLObjectRelative, parseStringToURLObject } from '../../utils/url';
 
 /** Validates if a message is a JSON-RPC request */
 export function isJsonRpcRequest(message: unknown): message is JsonRpcRequest {
@@ -102,17 +103,17 @@ const METHOD_CONFIGS: Record<string, MethodConfig> = {
 };
 
 /** Extracts target info from method and params based on method type */
-function extractTargetInfo(method: string, params: Record<string, unknown>): { 
-  target?: string; 
-  attributes: Record<string, string> 
+function extractTargetInfo(method: string, params: Record<string, unknown>): {
+  target?: string;
+  attributes: Record<string, string>
 } {
   const config = METHOD_CONFIGS[method as keyof typeof METHOD_CONFIGS];
   if (!config) {
     return { attributes: {} };
   }
 
-  const target = config.targetField && typeof params?.[config.targetField] === 'string' 
-    ? params[config.targetField] as string 
+  const target = config.targetField && typeof params?.[config.targetField] === 'string'
+    ? params[config.targetField] as string
     : undefined;
 
   return {
@@ -125,7 +126,7 @@ function extractTargetInfo(method: string, params: Record<string, unknown>): {
 function getRequestArguments(method: string, params: Record<string, unknown>): Record<string, string> {
   const args: Record<string, string> = {};
   const config = METHOD_CONFIGS[method as keyof typeof METHOD_CONFIGS];
-  
+
   if (!config) {
     return args;
   }
@@ -160,13 +161,13 @@ function getTransportTypes(transport: MCPTransport): { mcpTransport: string; net
   if (transportName.includes('stdio')) {
     return { mcpTransport: 'stdio', networkTransport: 'pipe' };
   }
-  
+
   // Streamable HTTP is the standard HTTP-based transport
   // The official SDK uses 'StreamableHTTPServerTransport' / 'StreamableHTTPClientTransport'
   if (transportName.includes('streamablehttp') || transportName.includes('streamable')) {
     return { mcpTransport: 'http', networkTransport: 'tcp' };
   }
-  
+
   // SSE is the deprecated HTTP+SSE transport (backwards compatibility)
   // Note: Modern Streamable HTTP can use SSE internally, but SSE transport is deprecated
   if (transportName.includes('sse')) {
@@ -335,7 +336,7 @@ function buildTypeSpecificAttributes(
   if (type === 'request') {
     const request = message as JsonRpcRequest;
     const targetInfo = extractTargetInfo(request.method, params || {});
-    
+
     return {
       ...(request.id !== undefined && { [MCP_REQUEST_ID_ATTRIBUTE]: String(request.id) }),
       ...targetInfo.attributes,
@@ -354,7 +355,7 @@ function buildTypeSpecificAttributes(
 function buildSentryAttributes(type: McpSpanConfig['type']): Record<string, string> {
   let op: string;
   let origin: string;
-  
+
   switch (type) {
     case 'request':
       op = MCP_SERVER_OP_VALUE;
@@ -369,7 +370,7 @@ function buildSentryAttributes(type: McpSpanConfig['type']): Record<string, stri
       origin = MCP_NOTIFICATION_ORIGIN_VALUE;
       break;
   }
-  
+
   return {
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin,
@@ -432,17 +433,17 @@ export function createMcpOutgoingNotificationSpan(
 /**
  * Combine the two extraction functions into one
  */
-function extractClientInfo(extra: ExtraHandlerData): { 
-  address?: string; 
-  port?: number 
+function extractClientInfo(extra: ExtraHandlerData): {
+  address?: string;
+  port?: number
 } {
   return {
     address: extra?.requestInfo?.remoteAddress ||
              extra?.clientAddress ||
              extra?.request?.ip ||
              extra?.request?.connection?.remoteAddress,
-    port: extra?.requestInfo?.remotePort || 
-          extra?.clientPort || 
+    port: extra?.requestInfo?.remotePort ||
+          extra?.clientPort ||
           extra?.request?.connection?.remotePort
   };
 }
