@@ -26,26 +26,32 @@ export function updateRouteBeforeResponse(event: H3Event): void {
     getCurrentScope().setTransactionName(parametrizedTransactionName);
 
     const activeSpan = getActiveSpan(); // In development mode, getActiveSpan() is always undefined
-    if (activeSpan) {
-      const rootSpan = getRootSpan(activeSpan);
-      if (rootSpan) {
-        rootSpan.updateName(parametrizedTransactionName);
-        rootSpan.setAttributes({
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-          'http.route': matchedRoutePath,
-        });
-
-        const params = event.context?.params;
-
-        if (params && typeof params === 'object') {
-          Object.entries(params).forEach(([key, value]) => {
-            // Based on this convention: https://getsentry.github.io/sentry-conventions/generated/attributes/url.html#urlpathparameterkey
-            rootSpan.setAttribute(`url.path.parameter.${key}`, String(value));
-          });
-        }
-
-        logger.log(`Updated transaction name for parametrized route: ${parametrizedTransactionName}`);
-      }
+    if (!activeSpan) {
+      return;
     }
+
+    const rootSpan = getRootSpan(activeSpan);
+    if (!rootSpan) {
+      return;
+    }
+
+    rootSpan.setAttributes({
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+      'http.route': matchedRoutePath,
+    });
+
+    const params = event.context?.params;
+
+    if (params && typeof params === 'object') {
+      Object.entries(params).forEach(([key, value]) => {
+        // Based on this convention: https://getsentry.github.io/sentry-conventions/generated/attributes/url.html#urlpathparameterkey
+        rootSpan.setAttributes({
+          [`url.path.parameter.${key}`]: String(value),
+          [`params.${key}`]: String(value),
+        });
+      });
+    }
+
+    logger.log(`Updated transaction name for parametrized route: ${parametrizedTransactionName}`);
   }
 }
