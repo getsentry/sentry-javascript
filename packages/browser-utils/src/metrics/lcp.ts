@@ -119,7 +119,7 @@ function sendStandaloneLcpSpan(lcpValue: number, entry: LargestContentfulPaint |
     // `Timing-Allow-Origin` header.
     entry.renderTime != null && (attributes['lcp.renderTime'] = entry.renderTime);
 
-    entry.size && (attributes['lcp.size'] = entry.size);
+    entry.size != null && (attributes['lcp.size'] = entry.size);
   }
 
   const span = startStandaloneWebVitalSpan({
