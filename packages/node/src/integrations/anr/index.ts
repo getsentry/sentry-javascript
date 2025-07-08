@@ -66,6 +66,7 @@ const INTEGRATION_NAME = 'Anr';
 
 type AnrInternal = { startWorker: () => void; stopWorker: () => void };
 
+// eslint-disable-next-line deprecation/deprecation
 const _anrIntegration = ((options: Partial<AnrIntegrationOptions> = {}) => {
   if (NODE_VERSION.major < 16 || (NODE_VERSION.major === 16 && NODE_VERSION.minor < 17)) {
     throw new Error('ANR detection requires Node 16.17.0 or later');
@@ -114,8 +115,45 @@ const _anrIntegration = ((options: Partial<AnrIntegrationOptions> = {}) => {
   } as Integration & AnrInternal;
 }) satisfies IntegrationFn;
 
+// eslint-disable-next-line deprecation/deprecation
 type AnrReturn = (options?: Partial<AnrIntegrationOptions>) => Integration & AnrInternal;
 
+/**
+ * Application Not Responding (ANR) integration for Node.js applications.
+ *
+ * @deprecated The ANR integration has been deprecated. Use `eventLoopBlockIntegration` from `@sentry/node-native` instead.
+ *
+ * Detects when the Node.js main thread event loop is blocked for more than the configured
+ * threshold (5 seconds by default) and reports these as Sentry events.
+ *
+ * ANR detection uses a worker thread to monitor the event loop in the main app thread.
+ * The main app thread sends a heartbeat message to the ANR worker thread every 50ms by default.
+ * If the ANR worker does not receive a heartbeat message for the configured threshold duration,
+ * it triggers an ANR event.
+ *
+ * - Node.js 16.17.0 or higher
+ * - Only supported in the Node.js runtime (not browsers)
+ * - Not supported for Node.js clusters
+ *
+ * Overhead should be minimal:
+ * - Main thread: Only polling the ANR worker over IPC every 50ms
+ * - Worker thread: Consumes around 10-20 MB of RAM
+ * - When ANR detected: Brief pause in debugger to capture stack trace (negligible compared to the blocking)
+ *
+ * @example
+ * ```javascript
+ * Sentry.init({
+ *   dsn: "https://examplePublicKey@o0.ingest.sentry.io/0",
+ *   integrations: [
+ *     Sentry.anrIntegration({
+ *       anrThreshold: 5000,
+ *       captureStackTrace: true,
+ *       pollInterval: 50,
+ *     }),
+ *   ],
+ * });
+ * ```
+ */
 export const anrIntegration = defineIntegration(_anrIntegration) as AnrReturn;
 
 /**
@@ -125,6 +163,7 @@ export const anrIntegration = defineIntegration(_anrIntegration) as AnrReturn;
  */
 async function _startWorker(
   client: NodeClient,
+  // eslint-disable-next-line deprecation/deprecation
   integrationOptions: Partial<AnrIntegrationOptions>,
 ): Promise<() => void> {
   const dsn = client.getDsn();
@@ -229,7 +268,13 @@ async function _startWorker(
 export function disableAnrDetectionForCallback<T>(callback: () => T): T;
 export function disableAnrDetectionForCallback<T>(callback: () => Promise<T>): Promise<T>;
 /**
- * Disables ANR detection for the duration of the callback
+ * Temporarily disables ANR detection for the duration of a callback function.
+ *
+ * This utility function allows you to disable ANR detection during operations that
+ * are expected to block the event loop, such as intensive computational tasks or
+ * synchronous I/O operations.
+ *
+ * @deprecated The ANR integration has been deprecated. Use `eventLoopBlockIntegration` from `@sentry/node-native` instead.
  */
 export function disableAnrDetectionForCallback<T>(callback: () => T | Promise<T>): T | Promise<T> {
   const integration = getClient()?.getIntegrationByName(INTEGRATION_NAME) as AnrInternal | undefined;
