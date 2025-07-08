@@ -17,7 +17,18 @@ console.warn = new Proxy(console.warn, {
 Sentry.init({
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: process.env.E2E_TEST_DSN,
-  integrations: [],
+  integrations: [
+    Sentry.fastifyIntegration({
+      shouldHandleError: (error, _request, _reply) => {
+        if (_request.routeOptions?.url?.includes('/test-error-not-captured')) {
+          // Errors from this path will not be captured by Sentry
+          return false;
+        }
+
+        return true;
+      },
+    }),
+  ],
   tracesSampleRate: 1,
   tunnel: 'http://localhost:3031/', // proxy server
   tracePropagationTargets: ['http://localhost:3030', '/external-allowed'],
@@ -77,6 +88,11 @@ app.get('/test-error', async function (req, res) {
   await Sentry.flush(2000);
 
   res.send({ exceptionId });
+});
+
+app.get('/test-error-not-captured', async function () {
+  // This error will not be captured by Sentry
+  throw new Error('This is an error that will not be captured');
 });
 
 app.get<{ Params: { id: string } }>('/test-exception/:id', async function (req, res) {
