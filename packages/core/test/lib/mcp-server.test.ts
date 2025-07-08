@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { wrapMcpServerWithSentry } from '../../src/mcp-server';
+import { wrapMcpServerWithSentry } from '../../src/integrations/mcp-server';
 import * as tracingModule from '../../src/tracing';
 
 describe('wrapMcpServerWithSentry', () => {
@@ -497,7 +497,7 @@ describe('wrapMcpServerWithSentry', () => {
           attributes: expect.objectContaining({
             'mcp.method.name': 'notifications/resources/updated',
             'mcp.resource.uri': 'file:///tmp/data.json',
-            'mcp.resource.protocol': 'file:',
+            'mcp.resource.protocol': 'file',
             'sentry.op': 'mcp.notification.client_to_server',
             'sentry.origin': 'auto.mcp.notification',
             'sentry.source': 'route',
@@ -671,7 +671,7 @@ function createMockTransport() {
     send = vi.fn().mockResolvedValue(undefined);
     sessionId = 'test-session-123';
   }
-  
+
   return new StreamableHTTPServerTransport();
 }
 
@@ -684,7 +684,7 @@ function createMockStdioTransport() {
     send = vi.fn().mockResolvedValue(undefined);
     sessionId = 'stdio-session-456';
   }
-  
+
   return new StdioServerTransport();
 }
 
@@ -697,6 +697,6 @@ function createMockSseTransport() {
     send = vi.fn().mockResolvedValue(undefined);
     sessionId = 'sse-session-789';
   }
-  
+
   return new SSEServerTransport();
 }

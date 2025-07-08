@@ -236,11 +236,9 @@ function getNotificationAttributes(
       if (params?.uri) {
         attributes['mcp.resource.uri'] = String(params.uri);
         // Extract protocol from URI
-        try {
-          const url = new URL(String(params.uri));
-          attributes['mcp.resource.protocol'] = url.protocol;
-        } catch {
-          // Ignore invalid URIs
+        const urlObject = parseStringToURLObject(String(params.uri));
+        if (urlObject && !isURLObjectRelative(urlObject)) {
+          attributes['mcp.resource.protocol'] = urlObject.protocol.replace(':', '');
         }
       }
       break;
