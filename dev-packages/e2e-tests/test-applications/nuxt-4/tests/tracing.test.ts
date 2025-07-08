@@ -22,8 +22,9 @@ test.describe('distributed tracing', () => {
 
     const baggageMetaTagContent = await page.locator('meta[name="baggage"]').getAttribute('content');
 
+    // URL-encoded for parametrized 'GET /test-param/s0me-param' -> `GET /test-param/:param`
+    expect(baggageMetaTagContent).toContain(`sentry-transaction=GET%20%2Ftest-param%2F%3Aparam`);
     expect(baggageMetaTagContent).toContain(`sentry-trace_id=${serverTxnEvent.contexts?.trace?.trace_id}`);
-    expect(baggageMetaTagContent).toContain(`sentry-transaction=GET%20%2Ftest-param%2F${PARAM}`); // URL-encoded for 'GET /test-param/s0me-param'
     expect(baggageMetaTagContent).toContain('sentry-sampled=true');
     expect(baggageMetaTagContent).toContain('sentry-sample_rate=1');
 
@@ -47,8 +48,8 @@ test.describe('distributed tracing', () => {
     });
 
     expect(serverTxnEvent).toMatchObject({
-      transaction: `GET /test-param/${PARAM}`, // todo: parametrize (nitro)
-      transaction_info: { source: 'url' },
+      transaction: `GET /test-param/:param()`, // parametrized route
+      transaction_info: { source: 'route' },
       type: 'transaction',
       contexts: {
         trace: {
@@ -121,8 +122,8 @@ test.describe('distributed tracing', () => {
     expect(ssrTxnEvent).toEqual(
       expect.objectContaining({
         type: 'transaction',
-        transaction: `GET /test-param/user/${PARAM}`, // fixme: parametrize (nitro)
-        transaction_info: { source: 'url' },
+        transaction: `GET /test-param/user/:userId()`, // parametrized route
+        transaction_info: { source: 'route' },
         contexts: expect.objectContaining({
           trace: expect.objectContaining({
             op: 'http.server',

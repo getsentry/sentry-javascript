@@ -1,4 +1,11 @@
-import { addPlugin, addPluginTemplate, addServerPlugin, createResolver, defineNuxtModule } from '@nuxt/kit';
+import {
+  addPlugin,
+  addPluginTemplate,
+  addServerPlugin,
+  addTemplate,
+  createResolver,
+  defineNuxtModule,
+} from '@nuxt/kit';
 import { consoleSandbox } from '@sentry/core';
 import * as path from 'path';
 import type { SentryNuxtModuleOptions } from './common/types';
@@ -70,6 +77,11 @@ export default defineNuxtModule<ModuleOptions>({
 
     if (serverConfigFile) {
       addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/sentry.server'));
+
+      addPlugin({
+        src: moduleDirResolver.resolve('./runtime/plugins/route-detector.server'),
+        mode: 'server',
+      });
     }
 
     if (clientConfigFile || serverConfigFile) {
@@ -77,6 +89,17 @@ export default defineNuxtModule<ModuleOptions>({
     }
 
     addOTelCommonJSImportAlias(nuxt);
+
+    const pagesDataTemplate = addTemplate({
+      filename: 'sentry--nuxt-pages-data.mjs',
+      // Initial empty array (later filled in pages:extend hook)
+      // Template needs to be created in the root-level of the module to work
+      getContents: () => 'export default [];',
+    });
+
+    nuxt.hooks.hook('pages:extend', pages => {
+      pagesDataTemplate.getContents = () => `export default ${JSON.stringify(pages, null, 2)};`;
+    });
 
     nuxt.hooks.hook('nitro:init', nitro => {
       if (serverConfigFile?.includes('.server.config')) {
