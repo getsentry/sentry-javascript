@@ -83,7 +83,7 @@ function scanAppDirectory(dir: string, basePath: string = ''): RouteInfo[] {
 
   try {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
-    const pageFile = getHighestPriorityPageFile(entries);
+    const pageFile = entries.some(entry => isPageFile(entry.name));
 
     if (pageFile) {
       const routePath = basePath || '/';
@@ -136,20 +136,6 @@ function scanAppDirectory(dir: string, basePath: string = ''): RouteInfo[] {
   }
 
   return routes;
-}
-
-function getHighestPriorityPageFile(entries: fs.Dirent[]): string | null {
-  // Next.js precedence order: .tsx > .ts > .jsx > .js
-  const pageFiles = entries.filter(entry => entry.isFile() && isPageFile(entry.name)).map(entry => entry.name);
-
-  if (pageFiles.length === 0) return null;
-
-  if (pageFiles.includes('page.tsx')) return 'page.tsx';
-  if (pageFiles.includes('page.ts')) return 'page.ts';
-  if (pageFiles.includes('page.jsx')) return 'page.jsx';
-  if (pageFiles.includes('page.js')) return 'page.js';
-
-  return null;
 }
 
 /**
