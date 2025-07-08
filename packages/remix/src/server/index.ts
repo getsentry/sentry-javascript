@@ -5,6 +5,7 @@ export {
   addEventProcessor,
   addIntegration,
   amqplibIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   anrIntegration,
   disableAnrDetectionForCallback,
   captureCheckIn,

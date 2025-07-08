@@ -107,17 +107,15 @@ function getFinalConfigObject(
         showedExportModeTunnelWarning = true;
         // eslint-disable-next-line no-console
         console.warn(
-          '[@sentry/nextjs] The Sentry Next.js SDK `tunnelRoute` option will not work in combination with Next.js static exports. The `tunnelRoute` option uses serverside features that cannot be accessed in export mode. If you still want to tunnel Sentry events, set up your own tunnel: https://docs.sentry.io/platforms/javascript/troubleshooting/#using-the-tunnel-option',
+          '[@sentry/nextjs] The Sentry Next.js SDK `tunnelRoute` option will not work in combination with Next.js static exports. The `tunnelRoute` option uses server-side features that cannot be accessed in export mode. If you still want to tunnel Sentry events, set up your own tunnel: https://docs.sentry.io/platforms/javascript/troubleshooting/#using-the-tunnel-option',
         );
       }
     } else {
       const resolvedTunnelRoute =
-        typeof userSentryOptions.tunnelRoute === 'boolean'
-          ? generateRandomTunnelRoute()
-          : userSentryOptions.tunnelRoute;
+        userSentryOptions.tunnelRoute === true ? generateRandomTunnelRoute() : userSentryOptions.tunnelRoute;
 
       // Update the global options object to use the resolved value everywhere
-      userSentryOptions.tunnelRoute = resolvedTunnelRoute;
+      userSentryOptions.tunnelRoute = resolvedTunnelRoute || undefined;
       setUpTunnelRewriteRules(incomingUserNextConfigObject, resolvedTunnelRoute);
     }
   }
