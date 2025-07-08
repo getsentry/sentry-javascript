@@ -132,7 +132,7 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
   addOriginToSpan(span, 'auto.vercelai.otel');
 
   const nameWthoutAi = name.replace('ai.', '');
-  span.setAttribute('ai.pipeline.name', nameWthoutAi);
+  span.setAttribute('vercel.ai.pipeline.name', nameWthoutAi);
   span.updateName(nameWthoutAi);
 
   // If a Telemetry name is set and it is a pipeline span, use that as the operation name
@@ -148,7 +148,7 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
   if (attributes[AI_MODEL_ID_ATTRIBUTE] && !attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]) {
     span.setAttribute(GEN_AI_RESPONSE_MODEL_ATTRIBUTE, attributes[AI_MODEL_ID_ATTRIBUTE]);
   }
-  span.setAttribute('ai.streaming', name.includes('stream'));
+  span.setAttribute('vercel.ai.streaming', name.includes('stream'));
 
   // Generate Spans
   if (name === 'ai.generateText') {
