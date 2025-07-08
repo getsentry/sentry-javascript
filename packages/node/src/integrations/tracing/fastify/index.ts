@@ -27,10 +27,25 @@ interface FastifyHandlerOptions {
    *
    * @example
    *
+   *
    * ```javascript
    * setupFastifyErrorHandler(app, {
    *   shouldHandleError(_error, _request, reply) {
    *     return reply.statusCode >= 400;
+   *   },
+   * });
+   * ```
+   *
+   * or if you use Fastify v5 you can set options in the Sentry.init call:
+   *
+   * ```javascript
+   * Sentry.init({
+   *   integrations: [
+   *     Sentry.fastifyIntegration({
+   *       shouldHandleError(_error, _request, reply) {
+   *         return reply.statusCode >= 500;
+   *       },
+   *     });
    *   },
    * });
    * ```
@@ -88,51 +103,65 @@ function handleFastifyError(
   }
 }
 
-export const instrumentFastify = generateInstrumentOnce(INTEGRATION_NAME, () => {
-  const fastifyOtelInstrumentationInstance = new FastifyOtelInstrumentation();
-  const plugin = fastifyOtelInstrumentationInstance.plugin();
-  const options = fastifyOtelInstrumentationInstance.getConfig();
-  const shouldHandleError = (options as FastifyHandlerOptions)?.shouldHandleError || defaultShouldHandleError;
+export const instrumentFastify = generateInstrumentOnce(
+  INTEGRATION_NAME,
+  (
+    options: Partial<FastifyHandlerOptions> = {
+      shouldHandleError: defaultShouldHandleError,
+    },
+  ) => {
+    const fastifyOtelInstrumentationInstance = new FastifyOtelInstrumentation();
+    const plugin = fastifyOtelInstrumentationInstance.plugin();
 
-  // This message handler works for Fastify versions 3, 4 and 5
-  diagnosticsChannel.subscribe('fastify.initialization', message => {
-    const fastifyInstance = (message as { fastify?: FastifyInstance }).fastify;
+    // This message handler works for Fastify versions 3, 4 and 5
+    diagnosticsChannel.subscribe('fastify.initialization', message => {
+      const fastifyInstance = (message as { fastify?: FastifyInstance }).fastify;
 
-    fastifyInstance?.register(plugin).after(err => {
-      if (err) {
-        DEBUG_BUILD && debug.error('Failed to setup Fastify instrumentation', err);
-      } else {
-        instrumentClient();
+      fastifyInstance?.register(plugin).after(err => {
+        if (err) {
+          DEBUG_BUILD && debug.error('Failed to setup Fastify instrumentation', err);
+        } else {
+          instrumentClient();
 
-        if (fastifyInstance) {
-          instrumentOnRequest(fastifyInstance);
+          if (fastifyInstance) {
+            instrumentOnRequest(fastifyInstance);
+          }
         }
-      }
+      });
     });
-  });
 
-  // This diagnostics channel only works on Fastify version 5
-  // For versions 3 and 4, we use `setupFastifyErrorHandler` instead
-  diagnosticsChannel.subscribe('tracing:fastify.request.handler:error', message => {
-    const { error, request, reply } = message as {
-      error: Error;
-      request: FastifyRequest & { opentelemetry?: () => { span?: Span } };
-      reply: FastifyReply;
-    };
+    // This diagnostics channel only works on Fastify version 5
+    // For versions 3 and 4, we use `setupFastifyErrorHandler` instead
+    diagnosticsChannel.subscribe('tracing:fastify.request.handler:error', message => {
+      const { error, request, reply } = message as {
+        error: Error;
+        request: FastifyRequest & { opentelemetry?: () => { span?: Span } };
+        reply: FastifyReply;
+      };
 
-    handleFastifyError.call(handleFastifyError, error, request, reply, shouldHandleError, 'diagnostics-channel');
-  });
+      handleFastifyError.call(
+        handleFastifyError,
+        error,
+        request,
+        reply,
+        options.shouldHandleError,
+        'diagnostics-channel',
+      );
+    });
 
-  // Returning this as unknown not to deal with the internal types of the FastifyOtelInstrumentation
-  return fastifyOtelInstrumentationInstance as Instrumentation<InstrumentationConfig & FastifyHandlerOptions>;
-});
+    // Returning this as unknown not to deal with the internal types of the FastifyOtelInstrumentation
+    return fastifyOtelInstrumentationInstance as Instrumentation<InstrumentationConfig & FastifyHandlerOptions>;
+  },
+);
 
-const _fastifyIntegration = (() => {
+const _fastifyIntegration = (({ shouldHandleError }) => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
       instrumentFastifyV3();
-      instrumentFastify();
+      instrumentFastify({
+        shouldHandleError,
+      });
     },
   };
 }) satisfies IntegrationFn;
@@ -153,7 +182,9 @@ const _fastifyIntegration = (() => {
  * })
  * ```
  */
-export const fastifyIntegration = defineIntegration(_fastifyIntegration);
+export const fastifyIntegration = defineIntegration((options: Partial<FastifyHandlerOptions> = {}) =>
+  _fastifyIntegration(options),
+);
 
 /**
  * Default function to determine if an error should be sent to Sentry
