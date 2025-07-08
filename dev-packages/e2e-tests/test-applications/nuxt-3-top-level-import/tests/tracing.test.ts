@@ -47,7 +47,7 @@ test.describe('distributed tracing', () => {
     });
 
     expect(serverTxnEvent).toMatchObject({
-      transaction: `GET /test-param/${PARAM}`, // todo: parametrize (nitro)
+      transaction: `GET /test-param/${PARAM}`, // todo: parametrize
       transaction_info: { source: 'url' },
       type: 'transaction',
       contexts: {
