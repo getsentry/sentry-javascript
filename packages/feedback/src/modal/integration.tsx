@@ -77,9 +77,9 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
               options.onFormClose?.();
             }}
             onSubmit={sendFeedback}
-            onSubmitSuccess={(data: FeedbackFormData) => {
+            onSubmitSuccess={(data: FeedbackFormData, eventId: string) => {
               renderContent(false);
-              options.onSubmitSuccess?.(data);
+              options.onSubmitSuccess?.(data, eventId);
             }}
             onSubmitError={(error: Error) => {
               options.onSubmitError?.(error);
