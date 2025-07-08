@@ -122,6 +122,21 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
     }
   }
 
+  // Update operation.name and operationId values to use vercel.ai.* prefix for all Vercel AI spans
+  if (attributes['operation.name'] && typeof attributes['operation.name'] === 'string') {
+    const operationName = attributes['operation.name'] as string;
+    if (operationName.startsWith('ai.')) {
+      attributes['operation.name'] = operationName.replace(/^ai\./, 'vercel.ai.');
+    }
+  }
+
+  if (attributes['vercel.ai.operationId'] && typeof attributes['vercel.ai.operationId'] === 'string') {
+    const operationId = attributes['vercel.ai.operationId'] as string;
+    if (operationId.startsWith('ai.')) {
+      attributes['vercel.ai.operationId'] = operationId.replace(/^ai\./, 'vercel.ai.');
+    }
+  }
+
   // Process the renamed attributes for both manual and OpenTelemetry spans
   renameAttributeKey(attributes, 'vercel.ai.usage.completionTokens', GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE);
   renameAttributeKey(attributes, 'vercel.ai.usage.promptTokens', GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE);
