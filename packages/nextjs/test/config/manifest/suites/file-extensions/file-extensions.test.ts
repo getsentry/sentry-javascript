@@ -1,6 +1,6 @@
 import path from 'path';
 import { describe, expect, test } from 'vitest';
-import { createRouteManifest } from '../../../../../src/config/manifest/build-manifest';
+import { createRouteManifest } from '../../../../../src/config/manifest/buildManifest';
 
 describe('file-extensions', () => {
   const manifest = createRouteManifest({ appDirPath: path.join(__dirname, 'app') });

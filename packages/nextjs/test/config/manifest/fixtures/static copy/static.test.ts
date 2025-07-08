@@ -2,7 +2,7 @@ import path from 'path';
 import { describe, expect, test } from 'vitest';
 import { createRouteManifest } from '../../../../../src/config/manifest/buildManifest';
 
-describe('static', () => {
+describe('simple', () => {
   test('should generate a static manifest', () => {
     const manifest = createRouteManifest({ appDirPath: path.join(__dirname, 'app') });
     expect(manifest).toEqual({
