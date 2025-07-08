@@ -12,6 +12,7 @@ import type {
   TransactionEvent,
 } from '@sentry/core';
 import { normalize } from '@sentry/core';
+import { createBasicSentryServer } from '@sentry-internal/test-utils';
 import { execSync, spawn, spawnSync } from 'child_process';
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
 import { join } from 'path';
@@ -27,7 +28,6 @@ import {
   assertSentrySessions,
   assertSentryTransaction,
 } from './assertions';
-import { createBasicSentryServer } from './server';
 
 const CLEANUP_STEPS = new Set<VoidFunction>();
 

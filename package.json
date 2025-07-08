@@ -94,6 +94,7 @@
     "dev-packages/bundle-analyzer-scenarios",
     "dev-packages/e2e-tests",
     "dev-packages/node-integration-tests",
+    "dev-packages/cloudflare-integration-tests",
     "dev-packages/test-utils",
     "dev-packages/size-limit-gh-action",
     "dev-packages/clear-cache-gh-action",
