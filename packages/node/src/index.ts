@@ -155,7 +155,9 @@ export {
   modulesIntegration,
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   anrIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   disableAnrDetectionForCallback,
   spotlightIntegration,
   childProcessIntegration,
