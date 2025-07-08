@@ -25,7 +25,9 @@ type MethodWrapperOptions = {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function wrapMethodWithSentry<T extends (...args: any[]) => any>(
+type OriginalMethod = (...args: any[]) => any;
+
+function wrapMethodWithSentry<T extends OriginalMethod>(
   wrapperOptions: MethodWrapperOptions,
   handler: T,
   callback?: (...args: Parameters<T>) => void,
@@ -221,8 +223,61 @@ export function instrumentDurableObjectWithSentry<
           );
         }
       }
+      const instrumentedPrototype = instrumentPrototype(target, options, context);
+      Object.setPrototypeOf(obj, instrumentedPrototype);
 
       return obj;
     },
   });
+}
+
+function instrumentPrototype<T extends NewableFunction>(
+  target: T,
+  options: CloudflareOptions,
+  context: MethodWrapperOptions['context'],
+): typeof target.prototype {
+  const sentryMethods = new Map<string | symbol, OriginalMethod>();
+  let proto = target.prototype;
+  const instrumentedPrototype = new Proxy(proto, {
+    get(target, prop, receiver) {
+      if (sentryMethods.has(prop)) {
+        return sentryMethods.get(prop);
+      }
+      return Reflect.get(target, prop, receiver);
+    },
+  });
+  while (proto && proto !== Object.prototype) {
+    for (const method of Object.getOwnPropertyNames(proto)) {
+      if (method === 'constructor' || sentryMethods.has(method)) {
+        continue;
+      }
+
+      const value = Reflect.get(proto, method, proto);
+      if (typeof value === 'function') {
+        sentryMethods.set(
+          method,
+          wrapMethodWithSentry(
+            {
+              options,
+              context,
+              spanName: method,
+              spanOp: 'rpc',
+            },
+            // <editor-fold desc="Disable __SENTRY_INSTRUMENTED__ for prototype methods">
+            new Proxy(value, {
+              set(target, p, newValue, receiver): boolean {
+                if ('__SENTRY_INSTRUMENTED__' === p) {
+                  return true;
+                }
+                return Reflect.set(target, p, newValue, receiver);
+              },
+            }),
+            // </editor-fold>
+          ),
+        );
+      }
+    }
+    proto = Object.getPrototypeOf(proto);
+  }
+  return instrumentedPrototype;
 }
