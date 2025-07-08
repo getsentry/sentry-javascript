@@ -17,7 +17,7 @@ export const OPERATION_NAME_ATTRIBUTE = 'operation.name';
  * Common attribute for AI operation ID across all functions and spans
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#collected-data
  */
-export const AI_OPERATION_ID_ATTRIBUTE = 'vercel.ai.operationId';
+export const AI_OPERATION_ID_ATTRIBUTE = 'ai.operationId';
 
 // =============================================================================
 // SHARED ATTRIBUTES
@@ -31,7 +31,7 @@ export const AI_OPERATION_ID_ATTRIBUTE = 'vercel.ai.operationId';
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#generatetext-function
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#streamtext-function
  */
-export const AI_PROMPT_ATTRIBUTE = 'vercel.ai.prompt';
+export const AI_PROMPT_ATTRIBUTE = 'ai.prompt';
 
 /**
  * `generateObject` function - `ai.generateObject` span
@@ -41,7 +41,7 @@ export const AI_PROMPT_ATTRIBUTE = 'vercel.ai.prompt';
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#generateobject-function
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#streamobject-function
  */
-export const AI_SCHEMA_ATTRIBUTE = 'vercel.ai.schema';
+export const AI_SCHEMA_ATTRIBUTE = 'ai.schema';
 
 /**
  * `generateObject` function - `ai.generateObject` span
@@ -51,7 +51,7 @@ export const AI_SCHEMA_ATTRIBUTE = 'vercel.ai.schema';
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#generateobject-function
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#streamobject-function
  */
-export const AI_SCHEMA_NAME_ATTRIBUTE = 'vercel.ai.schema.name';
+export const AI_SCHEMA_NAME_ATTRIBUTE = 'ai.schema.name';
 
 /**
  * `generateObject` function - `ai.generateObject` span
@@ -61,7 +61,7 @@ export const AI_SCHEMA_NAME_ATTRIBUTE = 'vercel.ai.schema.name';
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#generateobject-function
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#streamobject-function
  */
-export const AI_SCHEMA_DESCRIPTION_ATTRIBUTE = 'vercel.ai.schema.description';
+export const AI_SCHEMA_DESCRIPTION_ATTRIBUTE = 'ai.schema.description';
 
 /**
  * `generateObject` function - `ai.generateObject` span
@@ -71,7 +71,7 @@ export const AI_SCHEMA_DESCRIPTION_ATTRIBUTE = 'vercel.ai.schema.description';
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#generateobject-function
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#streamobject-function
  */
-export const AI_RESPONSE_OBJECT_ATTRIBUTE = 'vercel.ai.response.object';
+export const AI_RESPONSE_OBJECT_ATTRIBUTE = 'ai.response.object';
 
 /**
  * `generateObject` function - `ai.generateObject` span
@@ -81,7 +81,7 @@ export const AI_RESPONSE_OBJECT_ATTRIBUTE = 'vercel.ai.response.object';
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#generateobject-function
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#streamobject-function
  */
-export const AI_SETTINGS_MODE_ATTRIBUTE = 'vercel.ai.settings.mode';
+export const AI_SETTINGS_MODE_ATTRIBUTE = 'ai.settings.mode';
 
 /**
  * `generateObject` function - `ai.generateObject` span
@@ -91,7 +91,7 @@ export const AI_SETTINGS_MODE_ATTRIBUTE = 'vercel.ai.settings.mode';
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#generateobject-function
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#streamobject-function
  */
-export const AI_SETTINGS_OUTPUT_ATTRIBUTE = 'vercel.ai.settings.output';
+export const AI_SETTINGS_OUTPUT_ATTRIBUTE = 'ai.settings.output';
 
 /**
  * `embed` function - `ai.embed.doEmbed` span
@@ -101,7 +101,7 @@ export const AI_SETTINGS_OUTPUT_ATTRIBUTE = 'vercel.ai.settings.output';
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#embed-function
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#embedmany-function
  */
-export const AI_VALUES_ATTRIBUTE = 'vercel.ai.values';
+export const AI_VALUES_ATTRIBUTE = 'ai.values';
 
 /**
  * `embed` function - `ai.embed.doEmbed` span
@@ -111,7 +111,7 @@ export const AI_VALUES_ATTRIBUTE = 'vercel.ai.values';
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#embed-function
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#embedmany-function
  */
-export const AI_EMBEDDINGS_ATTRIBUTE = 'vercel.ai.embeddings';
+export const AI_EMBEDDINGS_ATTRIBUTE = 'ai.embeddings';
 
 // =============================================================================
 // GENERATETEXT FUNCTION - UNIQUE ATTRIBUTES
@@ -123,7 +123,7 @@ export const AI_EMBEDDINGS_ATTRIBUTE = 'vercel.ai.embeddings';
  * The text that was generated
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#generatetext-function
  */
-export const AI_RESPONSE_TEXT_ATTRIBUTE = 'vercel.ai.response.text';
+export const AI_RESPONSE_TEXT_ATTRIBUTE = 'ai.response.text';
 
 /**
  * `generateText` function - `ai.generateText` span
@@ -131,7 +131,7 @@ export const AI_RESPONSE_TEXT_ATTRIBUTE = 'vercel.ai.response.text';
  * The tool calls that were made as part of the generation (stringified JSON)
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#generatetext-function
  */
-export const AI_RESPONSE_TOOL_CALLS_ATTRIBUTE = 'vercel.ai.response.toolCalls';
+export const AI_RESPONSE_TOOL_CALLS_ATTRIBUTE = 'ai.response.toolCalls';
 
 /**
  * `generateText` function - `ai.generateText` span
@@ -139,7 +139,7 @@ export const AI_RESPONSE_TOOL_CALLS_ATTRIBUTE = 'vercel.ai.response.toolCalls';
  * The reason why the generation finished
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#generatetext-function
  */
-export const AI_RESPONSE_FINISH_REASON_ATTRIBUTE = 'vercel.ai.response.finishReason';
+export const AI_RESPONSE_FINISH_REASON_ATTRIBUTE = 'ai.response.finishReason';
 
 /**
  * `generateText` function - `ai.generateText` span
@@ -147,7 +147,7 @@ export const AI_RESPONSE_FINISH_REASON_ATTRIBUTE = 'vercel.ai.response.finishRea
  * The maximum number of steps that were set
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#generatetext-function
  */
-export const AI_SETTINGS_MAX_STEPS_ATTRIBUTE = 'vercel.ai.settings.maxSteps';
+export const AI_SETTINGS_MAX_STEPS_ATTRIBUTE = 'ai.settings.maxSteps';
 
 /**
  * `generateText` function - `ai.generateText.doGenerate` span
@@ -155,7 +155,7 @@ export const AI_SETTINGS_MAX_STEPS_ATTRIBUTE = 'vercel.ai.settings.maxSteps';
  * The format of the prompt
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#generatetext-function
  */
-export const AI_PROMPT_FORMAT_ATTRIBUTE = 'vercel.ai.prompt.format';
+export const AI_PROMPT_FORMAT_ATTRIBUTE = 'ai.prompt.format';
 
 /**
  * `generateText` function - `ai.generateText.doGenerate` span
@@ -163,7 +163,7 @@ export const AI_PROMPT_FORMAT_ATTRIBUTE = 'vercel.ai.prompt.format';
  * The messages that were passed into the provider
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#generatetext-function
  */
-export const AI_PROMPT_MESSAGES_ATTRIBUTE = 'vercel.ai.prompt.messages';
+export const AI_PROMPT_MESSAGES_ATTRIBUTE = 'ai.prompt.messages';
 
 /**
  * `generateText` function - `ai.generateText.doGenerate` span
@@ -171,7 +171,7 @@ export const AI_PROMPT_MESSAGES_ATTRIBUTE = 'vercel.ai.prompt.messages';
  * Array of stringified tool definitions
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#generatetext-function
  */
-export const AI_PROMPT_TOOLS_ATTRIBUTE = 'vercel.ai.prompt.tools';
+export const AI_PROMPT_TOOLS_ATTRIBUTE = 'ai.prompt.tools';
 
 /**
  * `generateText` function - `ai.generateText.doGenerate` span
@@ -179,7 +179,7 @@ export const AI_PROMPT_TOOLS_ATTRIBUTE = 'vercel.ai.prompt.tools';
  * The stringified tool choice setting (JSON)
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#generatetext-function
  */
-export const AI_PROMPT_TOOL_CHOICE_ATTRIBUTE = 'vercel.ai.prompt.toolChoice';
+export const AI_PROMPT_TOOL_CHOICE_ATTRIBUTE = 'ai.prompt.toolChoice';
 
 // =============================================================================
 // STREAMTEXT FUNCTION - UNIQUE ATTRIBUTES
@@ -191,7 +191,7 @@ export const AI_PROMPT_TOOL_CHOICE_ATTRIBUTE = 'vercel.ai.prompt.toolChoice';
  * The time it took to receive the first chunk in milliseconds
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#streamtext-function
  */
-export const AI_RESPONSE_MS_TO_FIRST_CHUNK_ATTRIBUTE = 'vercel.ai.response.msToFirstChunk';
+export const AI_RESPONSE_MS_TO_FIRST_CHUNK_ATTRIBUTE = 'ai.response.msToFirstChunk';
 
 /**
  * `streamText` function - `ai.streamText.doStream` span
@@ -199,7 +199,7 @@ export const AI_RESPONSE_MS_TO_FIRST_CHUNK_ATTRIBUTE = 'vercel.ai.response.msToF
  * The time it took to receive the finish part of the LLM stream in milliseconds
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#streamtext-function
  */
-export const AI_RESPONSE_MS_TO_FINISH_ATTRIBUTE = 'vercel.ai.response.msToFinish';
+export const AI_RESPONSE_MS_TO_FINISH_ATTRIBUTE = 'ai.response.msToFinish';
 
 /**
  * `streamText` function - `ai.streamText.doStream` span
@@ -207,7 +207,7 @@ export const AI_RESPONSE_MS_TO_FINISH_ATTRIBUTE = 'vercel.ai.response.msToFinish
  * The average completion tokens per second
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#streamtext-function
  */
-export const AI_RESPONSE_AVG_COMPLETION_TOKENS_PER_SECOND_ATTRIBUTE = 'vercel.ai.response.avgCompletionTokensPerSecond';
+export const AI_RESPONSE_AVG_COMPLETION_TOKENS_PER_SECOND_ATTRIBUTE = 'ai.response.avgCompletionTokensPerSecond';
 
 // =============================================================================
 // EMBED FUNCTION - UNIQUE ATTRIBUTES
@@ -219,7 +219,7 @@ export const AI_RESPONSE_AVG_COMPLETION_TOKENS_PER_SECOND_ATTRIBUTE = 'vercel.ai
  * The value that was passed into the `embed` function
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#embed-function
  */
-export const AI_VALUE_ATTRIBUTE = 'vercel.ai.value';
+export const AI_VALUE_ATTRIBUTE = 'ai.value';
 
 /**
  * `embed` function - `ai.embed` span
@@ -227,7 +227,7 @@ export const AI_VALUE_ATTRIBUTE = 'vercel.ai.value';
  * A JSON-stringified embedding
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#embed-function
  */
-export const AI_EMBEDDING_ATTRIBUTE = 'vercel.ai.embedding';
+export const AI_EMBEDDING_ATTRIBUTE = 'ai.embedding';
 
 // =============================================================================
 // BASIC LLM SPAN INFORMATION
@@ -249,7 +249,7 @@ export const RESOURCE_NAME_ATTRIBUTE = 'resource.name';
  * The id of the model
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#basic-llm-span-information
  */
-export const AI_MODEL_ID_ATTRIBUTE = 'vercel.ai.model.id';
+export const AI_MODEL_ID_ATTRIBUTE = 'ai.model.id';
 
 /**
  * Basic LLM span information
@@ -258,7 +258,7 @@ export const AI_MODEL_ID_ATTRIBUTE = 'vercel.ai.model.id';
  * The provider of the model
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#basic-llm-span-information
  */
-export const AI_MODEL_PROVIDER_ATTRIBUTE = 'vercel.ai.model.provider';
+export const AI_MODEL_PROVIDER_ATTRIBUTE = 'ai.model.provider';
 
 /**
  * Basic LLM span information
@@ -267,7 +267,7 @@ export const AI_MODEL_PROVIDER_ATTRIBUTE = 'vercel.ai.model.provider';
  * The request headers that were passed in through `headers`
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#basic-llm-span-information
  */
-export const AI_REQUEST_HEADERS_ATTRIBUTE = 'vercel.ai.request.headers';
+export const AI_REQUEST_HEADERS_ATTRIBUTE = 'ai.request.headers';
 
 /**
  * Basic LLM span information
@@ -276,7 +276,7 @@ export const AI_REQUEST_HEADERS_ATTRIBUTE = 'vercel.ai.request.headers';
  * The maximum number of retries that were set
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#basic-llm-span-information
  */
-export const AI_SETTINGS_MAX_RETRIES_ATTRIBUTE = 'vercel.ai.settings.maxRetries';
+export const AI_SETTINGS_MAX_RETRIES_ATTRIBUTE = 'ai.settings.maxRetries';
 
 /**
  * Basic LLM span information
@@ -285,7 +285,7 @@ export const AI_SETTINGS_MAX_RETRIES_ATTRIBUTE = 'vercel.ai.settings.maxRetries'
  * The functionId that was set through `telemetry.functionId`
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#basic-llm-span-information
  */
-export const AI_TELEMETRY_FUNCTION_ID_ATTRIBUTE = 'vercel.ai.telemetry.functionId';
+export const AI_TELEMETRY_FUNCTION_ID_ATTRIBUTE = 'ai.telemetry.functionId';
 
 /**
  * Basic LLM span information
@@ -294,7 +294,7 @@ export const AI_TELEMETRY_FUNCTION_ID_ATTRIBUTE = 'vercel.ai.telemetry.functionI
  * The metadata that was passed in through `telemetry.metadata`
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#basic-llm-span-information
  */
-export const AI_TELEMETRY_METADATA_ATTRIBUTE = 'vercel.ai.telemetry.metadata';
+export const AI_TELEMETRY_METADATA_ATTRIBUTE = 'ai.telemetry.metadata';
 
 /**
  * Basic LLM span information
@@ -303,7 +303,7 @@ export const AI_TELEMETRY_METADATA_ATTRIBUTE = 'vercel.ai.telemetry.metadata';
  * The number of completion tokens that were used
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#basic-llm-span-information
  */
-export const AI_USAGE_COMPLETION_TOKENS_ATTRIBUTE = 'vercel.ai.usage.completionTokens';
+export const AI_USAGE_COMPLETION_TOKENS_ATTRIBUTE = 'ai.usage.completionTokens';
 
 /**
  * Basic LLM span information
@@ -312,7 +312,7 @@ export const AI_USAGE_COMPLETION_TOKENS_ATTRIBUTE = 'vercel.ai.usage.completionT
  * The number of prompt tokens that were used
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#basic-llm-span-information
  */
-export const AI_USAGE_PROMPT_TOKENS_ATTRIBUTE = 'vercel.ai.usage.promptTokens';
+export const AI_USAGE_PROMPT_TOKENS_ATTRIBUTE = 'ai.usage.promptTokens';
 
 // =============================================================================
 // CALL LLM SPAN INFORMATION
@@ -325,7 +325,7 @@ export const AI_USAGE_PROMPT_TOKENS_ATTRIBUTE = 'vercel.ai.usage.promptTokens';
  * The model that was used to generate the response
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#call-llm-span-information
  */
-export const AI_RESPONSE_MODEL_ATTRIBUTE = 'vercel.ai.response.model';
+export const AI_RESPONSE_MODEL_ATTRIBUTE = 'ai.response.model';
 
 /**
  * Call LLM span information
@@ -334,7 +334,7 @@ export const AI_RESPONSE_MODEL_ATTRIBUTE = 'vercel.ai.response.model';
  * The id of the response
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#call-llm-span-information
  */
-export const AI_RESPONSE_ID_ATTRIBUTE = 'vercel.ai.response.id';
+export const AI_RESPONSE_ID_ATTRIBUTE = 'ai.response.id';
 
 /**
  * Call LLM span information
@@ -343,7 +343,7 @@ export const AI_RESPONSE_ID_ATTRIBUTE = 'vercel.ai.response.id';
  * The timestamp of the response
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#call-llm-span-information
  */
-export const AI_RESPONSE_TIMESTAMP_ATTRIBUTE = 'vercel.ai.response.timestamp';
+export const AI_RESPONSE_TIMESTAMP_ATTRIBUTE = 'ai.response.timestamp';
 
 // =============================================================================
 // SEMANTIC CONVENTIONS FOR GENAI OPERATIONS
@@ -486,7 +486,7 @@ export const GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE = 'gen_ai.usage.output_tokens'
  * The number of tokens that were used
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#basic-embedding-span-information
  */
-export const AI_USAGE_TOKENS_ATTRIBUTE = 'vercel.ai.usage.tokens';
+export const AI_USAGE_TOKENS_ATTRIBUTE = 'ai.usage.tokens';
 
 // =============================================================================
 // TOOL CALL SPANS
@@ -499,7 +499,7 @@ export const AI_USAGE_TOKENS_ATTRIBUTE = 'vercel.ai.usage.tokens';
  * The name of the tool
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#tool-call-spans
  */
-export const AI_TOOL_CALL_NAME_ATTRIBUTE = 'vercel.ai.toolCall.name';
+export const AI_TOOL_CALL_NAME_ATTRIBUTE = 'ai.toolCall.name';
 
 /**
  * Tool call spans
@@ -508,7 +508,7 @@ export const AI_TOOL_CALL_NAME_ATTRIBUTE = 'vercel.ai.toolCall.name';
  * The id of the tool call
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#tool-call-spans
  */
-export const AI_TOOL_CALL_ID_ATTRIBUTE = 'vercel.ai.toolCall.id';
+export const AI_TOOL_CALL_ID_ATTRIBUTE = 'ai.toolCall.id';
 
 /**
  * Tool call spans
@@ -517,7 +517,7 @@ export const AI_TOOL_CALL_ID_ATTRIBUTE = 'vercel.ai.toolCall.id';
  * The parameters of the tool call
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#tool-call-spans
  */
-export const AI_TOOL_CALL_ARGS_ATTRIBUTE = 'vercel.ai.toolCall.args';
+export const AI_TOOL_CALL_ARGS_ATTRIBUTE = 'ai.toolCall.args';
 
 /**
  * Tool call spans
@@ -526,21 +526,7 @@ export const AI_TOOL_CALL_ARGS_ATTRIBUTE = 'vercel.ai.toolCall.args';
  * The result of the tool call
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#tool-call-spans
  */
-export const AI_TOOL_CALL_RESULT_ATTRIBUTE = 'vercel.ai.toolCall.result';
-
-// =============================================================================
-// ADDITIONAL SENTRY ATTRIBUTES
-// =============================================================================
-
-/**
- * Sentry-specific attribute for AI pipeline name
- */
-export const AI_PIPELINE_NAME_ATTRIBUTE = 'vercel.ai.pipeline.name';
-
-/**
- * Sentry-specific attribute for AI streaming flag
- */
-export const AI_STREAMING_ATTRIBUTE = 'vercel.ai.streaming';
+export const AI_TOOL_CALL_RESULT_ATTRIBUTE = 'ai.toolCall.result';
 
 // =============================================================================
 // SPAN ATTRIBUTE OBJECTS
