@@ -1,4 +1,4 @@
-import { getActiveSpan, getRootSpan, logger, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, updateSpanName } from '@sentry/core';
+import { getActiveSpan, getRootSpan, logger, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { defineNuxtPlugin } from 'nuxt/app';
 import type { NuxtPage } from 'nuxt/schema';
 import { extractParametrizedRouteFromContext } from '../utils/route-extraction';
@@ -32,18 +32,19 @@ export default defineNuxtPlugin(nuxtApp => {
     if (activeSpan && routeInfo.parametrizedRoute) {
       const rootSpan = getRootSpan(activeSpan);
 
-      if (rootSpan) {
-        const method = ssrContext?.event?._method || 'GET';
-        const parametrizedTransactionName = `${method.toUpperCase()} ${routeInfo.parametrizedRoute}`;
-
-        logger.log('Updating root span name to:', parametrizedTransactionName);
-        updateSpanName(rootSpan, parametrizedTransactionName);
-
-        rootSpan.setAttributes({
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-          'http.route': routeInfo.parametrizedRoute,
-        });
+      if (!rootSpan) {
+        return;
       }
+
+      const method = ssrContext?.event?._method || 'GET';
+      const parametrizedTransactionName = `${method.toUpperCase()} ${routeInfo.parametrizedRoute}`;
+
+      logger.log('Matched parametrized server route:', parametrizedTransactionName);
+
+      rootSpan.setAttributes({
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        'http.route': routeInfo.parametrizedRoute,
+      });
     }
   });
 });
