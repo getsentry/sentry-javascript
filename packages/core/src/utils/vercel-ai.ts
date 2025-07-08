@@ -4,20 +4,47 @@ import type { Event } from '../types-hoist/event';
 import type { Span, SpanAttributes, SpanJSON, SpanOrigin } from '../types-hoist/span';
 import { spanToJSON } from './spanUtils';
 import {
+  AI_EMBEDDING_ATTRIBUTE,
+  AI_EMBEDDINGS_ATTRIBUTE,
   AI_MODEL_ID_ATTRIBUTE,
   AI_MODEL_PROVIDER_ATTRIBUTE,
+  AI_OPERATION_ID_ATTRIBUTE,
+  AI_PIPELINE_NAME_ATTRIBUTE,
   AI_PROMPT_ATTRIBUTE,
+  AI_PROMPT_FORMAT_ATTRIBUTE,
   AI_PROMPT_MESSAGES_ATTRIBUTE,
+  AI_PROMPT_TOOL_CHOICE_ATTRIBUTE,
   AI_PROMPT_TOOLS_ATTRIBUTE,
+  AI_REQUEST_HEADERS_ATTRIBUTE,
+  AI_RESPONSE_AVG_COMPLETION_TOKENS_PER_SECOND_ATTRIBUTE,
+  AI_RESPONSE_FINISH_REASON_ATTRIBUTE,
+  AI_RESPONSE_ID_ATTRIBUTE,
+  AI_RESPONSE_MODEL_ATTRIBUTE,
+  AI_RESPONSE_MS_TO_FINISH_ATTRIBUTE,
+  AI_RESPONSE_MS_TO_FIRST_CHUNK_ATTRIBUTE,
+  AI_RESPONSE_OBJECT_ATTRIBUTE,
   AI_RESPONSE_TEXT_ATTRIBUTE,
+  AI_RESPONSE_TIMESTAMP_ATTRIBUTE,
   AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
+  AI_SCHEMA_ATTRIBUTE,
+  AI_SCHEMA_DESCRIPTION_ATTRIBUTE,
+  AI_SCHEMA_NAME_ATTRIBUTE,
+  AI_SETTINGS_MAX_RETRIES_ATTRIBUTE,
+  AI_SETTINGS_MAX_STEPS_ATTRIBUTE,
+  AI_SETTINGS_MODE_ATTRIBUTE,
+  AI_SETTINGS_OUTPUT_ATTRIBUTE,
+  AI_STREAMING_ATTRIBUTE,
   AI_TELEMETRY_FUNCTION_ID_ATTRIBUTE,
+  AI_TELEMETRY_METADATA_ATTRIBUTE,
   AI_TOOL_CALL_ARGS_ATTRIBUTE,
   AI_TOOL_CALL_ID_ATTRIBUTE,
   AI_TOOL_CALL_NAME_ATTRIBUTE,
   AI_TOOL_CALL_RESULT_ATTRIBUTE,
   AI_USAGE_COMPLETION_TOKENS_ATTRIBUTE,
   AI_USAGE_PROMPT_TOKENS_ATTRIBUTE,
+  AI_USAGE_TOKENS_ATTRIBUTE,
+  AI_VALUE_ATTRIBUTE,
+  AI_VALUES_ATTRIBUTE,
   GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
@@ -40,16 +67,16 @@ function onVercelAiSpanStart(span: Span): void {
 
   // Tool call spans
   // https://ai-sdk.dev/docs/ai-sdk-core/telemetry#tool-call-spans
-  if (attributes[AI_TOOL_CALL_NAME_ATTRIBUTE] && attributes[AI_TOOL_CALL_ID_ATTRIBUTE] && name === 'ai.toolCall') {
+  if (attributes['ai.toolCall.name'] && attributes['ai.toolCall.id'] && name === 'ai.toolCall') {
     processToolCallSpan(span, attributes);
     return;
   }
 
   // The AI and Provider must be defined for generate, stream, and embed spans.
   // The id of the model
-  const aiModelId = attributes[AI_MODEL_ID_ATTRIBUTE];
+  const aiModelId = attributes['ai.model.id'];
   // the provider of the model
-  const aiModelProvider = attributes[AI_MODEL_PROVIDER_ATTRIBUTE];
+  const aiModelProvider = attributes['ai.model.provider'];
   if (typeof aiModelId !== 'string' || typeof aiModelProvider !== 'string' || !aiModelId || !aiModelProvider) {
     return;
   }
@@ -116,8 +143,8 @@ function renameAttributeKey(attributes: Record<string, unknown>, oldKey: string,
 function processToolCallSpan(span: Span, attributes: SpanAttributes): void {
   addOriginToSpan(span, 'auto.vercelai.otel');
   span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'gen_ai.execute_tool');
-  renameAttributeKey(attributes, AI_TOOL_CALL_NAME_ATTRIBUTE, 'gen_ai.tool.name');
-  renameAttributeKey(attributes, AI_TOOL_CALL_ID_ATTRIBUTE, 'gen_ai.tool.call.id');
+  renameAttributeKey(attributes, 'ai.toolCall.name', 'gen_ai.tool.name');
+  renameAttributeKey(attributes, 'ai.toolCall.id', 'gen_ai.tool.call.id');
   // https://opentelemetry.io/docs/specs/semconv/registry/attributes/gen-ai/#gen-ai-tool-type
   if (!attributes['gen_ai.tool.type']) {
     span.setAttribute('gen_ai.tool.type', 'function');
@@ -131,8 +158,47 @@ function processToolCallSpan(span: Span, attributes: SpanAttributes): void {
 function processGenerateSpan(span: Span, name: string, attributes: SpanAttributes): void {
   addOriginToSpan(span, 'auto.vercelai.otel');
 
+  // First, rename all the ai.* attributes to vercel.ai.* attributes
+  renameAttributeKey(attributes, 'ai.model.id', AI_MODEL_ID_ATTRIBUTE);
+  renameAttributeKey(attributes, 'ai.model.provider', AI_MODEL_PROVIDER_ATTRIBUTE);
+  renameAttributeKey(attributes, 'ai.operationId', AI_OPERATION_ID_ATTRIBUTE);
+  renameAttributeKey(attributes, 'ai.prompt', AI_PROMPT_ATTRIBUTE);
+  renameAttributeKey(attributes, 'ai.schema', AI_SCHEMA_ATTRIBUTE);
+  renameAttributeKey(attributes, 'ai.schema.name', AI_SCHEMA_NAME_ATTRIBUTE);
+  renameAttributeKey(attributes, 'ai.schema.description', AI_SCHEMA_DESCRIPTION_ATTRIBUTE);
+  renameAttributeKey(attributes, 'ai.response.object', AI_RESPONSE_OBJECT_ATTRIBUTE);
+  renameAttributeKey(attributes, 'ai.settings.mode', AI_SETTINGS_MODE_ATTRIBUTE);
+  renameAttributeKey(attributes, 'ai.settings.output', AI_SETTINGS_OUTPUT_ATTRIBUTE);
+  renameAttributeKey(attributes, 'ai.values', AI_VALUES_ATTRIBUTE);
+  renameAttributeKey(attributes, 'ai.embeddings', AI_EMBEDDINGS_ATTRIBUTE);
+  renameAttributeKey(attributes, 'ai.response.text', AI_RESPONSE_TEXT_ATTRIBUTE);
+  renameAttributeKey(attributes, 'ai.response.toolCalls', AI_RESPONSE_TOOL_CALLS_ATTRIBUTE);
+  renameAttributeKey(attributes, 'ai.response.finishReason', AI_RESPONSE_FINISH_REASON_ATTRIBUTE);
+  renameAttributeKey(attributes, 'ai.settings.maxSteps', AI_SETTINGS_MAX_STEPS_ATTRIBUTE);
+  renameAttributeKey(attributes, 'ai.prompt.format', AI_PROMPT_FORMAT_ATTRIBUTE);
+  renameAttributeKey(attributes, 'ai.prompt.messages', AI_PROMPT_MESSAGES_ATTRIBUTE);
+  renameAttributeKey(attributes, 'ai.prompt.tools', AI_PROMPT_TOOLS_ATTRIBUTE);
+  renameAttributeKey(attributes, 'ai.prompt.toolChoice', AI_PROMPT_TOOL_CHOICE_ATTRIBUTE);
+  renameAttributeKey(attributes, 'ai.response.msToFirstChunk', AI_RESPONSE_MS_TO_FIRST_CHUNK_ATTRIBUTE);
+  renameAttributeKey(attributes, 'ai.response.msToFinish', AI_RESPONSE_MS_TO_FINISH_ATTRIBUTE);
+  renameAttributeKey(attributes, 'ai.response.avgCompletionTokensPerSecond', AI_RESPONSE_AVG_COMPLETION_TOKENS_PER_SECOND_ATTRIBUTE);
+  renameAttributeKey(attributes, 'ai.value', AI_VALUE_ATTRIBUTE);
+  renameAttributeKey(attributes, 'ai.embedding', AI_EMBEDDING_ATTRIBUTE);
+  renameAttributeKey(attributes, 'ai.request.headers', AI_REQUEST_HEADERS_ATTRIBUTE);
+  renameAttributeKey(attributes, 'ai.settings.maxRetries', AI_SETTINGS_MAX_RETRIES_ATTRIBUTE);
+  renameAttributeKey(attributes, 'ai.telemetry.functionId', AI_TELEMETRY_FUNCTION_ID_ATTRIBUTE);
+  renameAttributeKey(attributes, 'ai.telemetry.metadata', AI_TELEMETRY_METADATA_ATTRIBUTE);
+  renameAttributeKey(attributes, 'ai.usage.completionTokens', AI_USAGE_COMPLETION_TOKENS_ATTRIBUTE);
+  renameAttributeKey(attributes, 'ai.usage.promptTokens', AI_USAGE_PROMPT_TOKENS_ATTRIBUTE);
+  renameAttributeKey(attributes, 'ai.response.model', AI_RESPONSE_MODEL_ATTRIBUTE);
+  renameAttributeKey(attributes, 'ai.response.id', AI_RESPONSE_ID_ATTRIBUTE);
+  renameAttributeKey(attributes, 'ai.response.timestamp', AI_RESPONSE_TIMESTAMP_ATTRIBUTE);
+  renameAttributeKey(attributes, 'ai.usage.tokens', AI_USAGE_TOKENS_ATTRIBUTE);
+  renameAttributeKey(attributes, 'ai.toolCall.args', AI_TOOL_CALL_ARGS_ATTRIBUTE);
+  renameAttributeKey(attributes, 'ai.toolCall.result', AI_TOOL_CALL_RESULT_ATTRIBUTE);
+
   const nameWthoutAi = name.replace('ai.', '');
-  span.setAttribute('ai.pipeline.name', nameWthoutAi);
+  span.setAttribute(AI_PIPELINE_NAME_ATTRIBUTE, nameWthoutAi);
   span.updateName(nameWthoutAi);
 
   // If a Telemetry name is set and it is a pipeline span, use that as the operation name
@@ -148,7 +214,7 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
   if (attributes[AI_MODEL_ID_ATTRIBUTE] && !attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]) {
     span.setAttribute(GEN_AI_RESPONSE_MODEL_ATTRIBUTE, attributes[AI_MODEL_ID_ATTRIBUTE]);
   }
-  span.setAttribute('ai.streaming', name.includes('stream'));
+  span.setAttribute(AI_STREAMING_ATTRIBUTE, name.includes('stream'));
 
   // Generate Spans
   if (name === 'ai.generateText') {
