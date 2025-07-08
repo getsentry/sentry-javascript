@@ -8,12 +8,11 @@
     "build": "wrangler deploy --dry-run",
     "test": "vitest --run",
     "typecheck": "tsc --noEmit",
-    "clean:state": "rimraf .wrangler",
     "cf-typegen": "wrangler types",
     "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm test:dev && pnpm test:prod",
-    "test:prod": "pnpm clean:state && TEST_ENV=production playwright test",
-    "test:dev": "pnpm clean:state && TEST_ENV=development playwright test"
+    "test:prod": "TEST_ENV=production playwright test",
+    "test:dev": "TEST_ENV=development playwright test"
   },
   "dependencies": {
     "@sentry/cloudflare": "latest || *"
