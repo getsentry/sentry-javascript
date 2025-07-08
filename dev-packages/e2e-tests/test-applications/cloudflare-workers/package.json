@@ -34,8 +34,5 @@
     "overrides": {
       "strip-literal": "~2.0.0"
     }
-  },
-  "sentryTest": {
-    "optional": true
   }
 }
