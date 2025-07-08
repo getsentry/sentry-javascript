@@ -175,7 +175,10 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
                   'messaging.destination.name': batch.queue,
                   'messaging.system': 'cloudflare',
                   'messaging.batch.message_count': batch.messages.length,
-                  'messaging.message.retry.count': batch.messages.reduce((acc, message) => acc + message.attempts - 1, 0),
+                  'messaging.message.retry.count': batch.messages.reduce(
+                    (acc, message) => acc + message.attempts - 1,
+                    0,
+                  ),
                   [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'queue.process',
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.queue',
                   [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
