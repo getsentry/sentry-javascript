@@ -1,30 +1,68 @@
 import type { ExecutionContext } from '@cloudflare/workers-types';
 import * as SentryCore from '@sentry/core';
-import { describe, expect, it, onTestFinished, vi } from 'vitest';
-import { instrumentDurableObjectWithSentry } from '../src/durableobject';
+import { afterEach, describe, expect, it, onTestFinished, vi } from 'vitest';
+import { instrumentDurableObjectWithSentry } from '../src';
 import { isInstrumented } from '../src/instrument';
 
-describe('durable object', () => {
-  it('instrumentDurableObjectWithSentry generic functionality', () => {
+describe('instrumentDurableObjectWithSentry', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+  it('Generic functionality', () => {
     const options = vi.fn();
     const instrumented = instrumentDurableObjectWithSentry(options, vi.fn());
     expect(instrumented).toBeTypeOf('function');
     expect(() => Reflect.construct(instrumented, [])).not.toThrow();
     expect(options).toHaveBeenCalledOnce();
   });
-  it('all available durable object methods are instrumented', () => {
-    const testClass = vi.fn(() => ({
-      customMethod: vi.fn(),
-      fetch: vi.fn(),
-      alarm: vi.fn(),
-      webSocketMessage: vi.fn(),
-      webSocketClose: vi.fn(),
-      webSocketError: vi.fn(),
-    }));
+  it('Instruments prototype methods without "sticking" to the options', () => {
+    const initCore = vi.spyOn(SentryCore, 'initAndBind');
+    vi.spyOn(SentryCore, 'getClient').mockReturnValue(undefined);
+    const options = vi
+      .fn()
+      .mockReturnValueOnce({
+        orgId: 1,
+      })
+      .mockReturnValueOnce({
+        orgId: 2,
+      });
+    const testClass = class {
+      method() {}
+    };
+    (Reflect.construct(instrumentDurableObjectWithSentry(options, testClass as any), []) as any).method();
+    (Reflect.construct(instrumentDurableObjectWithSentry(options, testClass as any), []) as any).method();
+    expect(initCore).nthCalledWith(1, expect.any(Function), expect.objectContaining({ orgId: 1 }));
+    expect(initCore).nthCalledWith(2, expect.any(Function), expect.objectContaining({ orgId: 2 }));
+  });
+  it('All available durable object methods are instrumented', () => {
+    const testClass = class {
+      propertyFunction = vi.fn();
+
+      rpcMethod() {}
+
+      fetch() {}
+
+      alarm() {}
+
+      webSocketMessage() {}
+
+      webSocketClose() {}
+
+      webSocketError() {}
+    };
     const instrumented = instrumentDurableObjectWithSentry(vi.fn(), testClass as any);
-    const dObject: any = Reflect.construct(instrumented, []);
-    for (const method of Object.getOwnPropertyNames(dObject)) {
-      expect(isInstrumented(dObject[method]), `Method ${method} is instrumented`).toBeTruthy();
+    const obj = Reflect.construct(instrumented, []);
+    expect(Object.getPrototypeOf(obj), 'Prototype is instrumented').not.toBe(testClass.prototype);
+    expect(isInstrumented((obj as any)['rpcMethod']), 'RPC method').toBeFalsy();
+    for (const method_name of [
+      'propertyFunction',
+      'fetch',
+      'alarm',
+      'webSocketMessage',
+      'webSocketClose',
+      'webSocketError',
+    ]) {
+      expect(isInstrumented((obj as any)[method_name]), `Method ${method_name} is instrumented`).toBeTruthy();
     }
   });
   it('flush performs after all waitUntil promises are finished', async () => {
