@@ -105,12 +105,21 @@ function sendStandaloneLcpSpan(lcpValue: number, entry: LargestContentfulPaint |
   };
 
   if (entry) {
-    attributes['lcp.element'] = htmlTreeAsString(entry.element);
-    attributes['lcp.id'] = entry.id;
-    attributes['lcp.url'] = entry.url;
-    attributes['lcp.loadTime'] = entry.loadTime;
-    attributes['lcp.renderTime'] = entry.renderTime;
-    attributes['lcp.size'] = entry.size;
+    entry.element && (attributes['lcp.element'] = htmlTreeAsString(entry.element));
+    entry.id && (attributes['lcp.id'] = entry.id);
+
+    // Trim URL to the first 200 characters.
+    entry.url && (attributes['lcp.url'] = entry.url.trim().slice(0, 200));
+
+    // loadTime is the time of LCP that's related to receiving the LCP element response..
+    entry.loadTime != null && (attributes['lcp.loadTime'] = entry.loadTime);
+
+    // renderTime is loadTime + rendering time
+    // it's 0 if the LCP element is loaded from a 3rd party origin that doesn't send the
+    // `Timing-Allow-Origin` header.
+    entry.renderTime != null && (attributes['lcp.renderTime'] = entry.renderTime);
+
+    entry.size && (attributes['lcp.size'] = entry.size);
   }
 
   const span = startStandaloneWebVitalSpan({
