@@ -105,11 +105,7 @@ function handleFastifyError(
 
 export const instrumentFastify = generateInstrumentOnce(
   INTEGRATION_NAME,
-  (
-    options: Partial<FastifyHandlerOptions> = {
-      shouldHandleError: defaultShouldHandleError,
-    },
-  ) => {
+  (options: Partial<FastifyHandlerOptions> = {}) => {
     const fastifyOtelInstrumentationInstance = new FastifyOtelInstrumentation();
     const plugin = fastifyOtelInstrumentationInstance.plugin();
 
@@ -144,7 +140,7 @@ export const instrumentFastify = generateInstrumentOnce(
         error,
         request,
         reply,
-        options.shouldHandleError,
+        options?.shouldHandleError || defaultShouldHandleError,
         'diagnostics-channel',
       );
     });

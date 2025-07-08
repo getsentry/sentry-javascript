@@ -39,5 +39,5 @@ test('Does not send error when shouldHandleError returns false', async ({ baseUR
   // Wait for a short time to ensure no error is sent
   await new Promise(resolve => setTimeout(resolve, 1000));
 
-  expect(errorEventPromise).rejects.toBeDefined();
+  await expect(errorEventPromise).rejects.toBeDefined();
 });
