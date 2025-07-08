@@ -44,7 +44,7 @@ export function trackLcpAsStandaloneSpan(): void {
     }
     sentSpan = true;
     if (pageloadSpanId) {
-      sendStandaloneLcpSpan(standaloneLcpValue, standaloneLcpEntry, pageloadSpanId);
+      _sendStandaloneLcpSpan(standaloneLcpValue, standaloneLcpEntry, pageloadSpanId);
     }
     cleanupLcpHandler();
   }
@@ -88,7 +88,14 @@ export function trackLcpAsStandaloneSpan(): void {
   }, 0);
 }
 
-function sendStandaloneLcpSpan(lcpValue: number, entry: LargestContentfulPaint | undefined, pageloadSpanId: string) {
+/**
+ * Exported only for testing!
+ */
+export function _sendStandaloneLcpSpan(
+  lcpValue: number,
+  entry: LargestContentfulPaint | undefined,
+  pageloadSpanId: string,
+) {
   DEBUG_BUILD && logger.log(`Sending LCP span (${lcpValue})`);
 
   const startTime = msToSec((browserPerformanceTimeOrigin() || 0) + (entry?.startTime || 0));
