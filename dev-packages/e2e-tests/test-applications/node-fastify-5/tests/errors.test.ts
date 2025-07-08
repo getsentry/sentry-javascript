@@ -34,10 +34,12 @@ test('Does not send error when shouldHandleError returns false', async ({ baseUR
     return !event.type && event.exception?.values?.[0]?.value === 'This is an error that will not be captured';
   });
 
+  errorEventPromise.then(() => {
+    test.fail();
+  });
+
   await fetch(`${baseURL}/test-error-not-captured`);
 
-  // Wait for a short time to ensure no error is sent
+  // wait for a short time to ensure the error is not captured
   await new Promise(resolve => setTimeout(resolve, 1000));
-
-  await expect(errorEventPromise).rejects.toBeDefined();
 });
