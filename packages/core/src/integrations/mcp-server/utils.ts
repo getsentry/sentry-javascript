@@ -2,14 +2,14 @@
  * Essential utility functions for MCP server instrumentation
  */
 
+import { startSpan } from '../../tracing';
+import { logger } from '../../utils/logger';
 import { DEBUG_BUILD } from '../../debug-build';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '../../semanticAttributes';
-import { startSpan } from '../../tracing';
-import { logger } from '../../utils/logger';
 import {
   CLIENT_ADDRESS_ATTRIBUTE,
   CLIENT_PORT_ATTRIBUTE,
@@ -29,7 +29,14 @@ import {
   NETWORK_PROTOCOL_VERSION_ATTRIBUTE,
   NETWORK_TRANSPORT_ATTRIBUTE,
 } from './attributes';
-import type { ExtraHandlerData, JsonRpcNotification, JsonRpcRequest, McpSpanConfig, MCPTransport, MethodConfig } from './types';
+import type {
+  ExtraHandlerData,
+  JsonRpcNotification,
+  JsonRpcRequest,
+  MCPTransport,
+  McpSpanConfig,
+  MethodConfig,
+} from './types';
 import { isURLObjectRelative, parseStringToURLObject } from '../../utils/url';
 
 /** Validates if a message is a JSON-RPC request */
@@ -292,6 +299,7 @@ function createMcpSpan(config: McpSpanConfig): unknown {
     ...buildSentryAttributes(type),
   };
 
+  // Use startSpan with manual control to ensure proper async handling
   return startSpan(
     {
       name: spanName,

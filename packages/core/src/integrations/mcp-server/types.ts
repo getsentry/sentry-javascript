@@ -132,6 +132,15 @@ export interface McpSpanConfig {
   callback: () => unknown;
 }
 
+/**
+ * Type for the extra parameter passed to MCP handlers
+ */
+export interface McpHandlerExtra {
+  sessionId?: string;
+  requestId: string | number;
+  [key: string]: unknown;
+}
+
 
 export type SessionId = string;
 export type RequestId = string | number;

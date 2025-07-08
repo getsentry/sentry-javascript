@@ -1,5 +1,7 @@
 import { fill } from '../../utils/object';
-import type { ExtraHandlerData, MCPServerInstance, MCPTransport } from './types';
+import { logger } from '../../utils/logger';
+import { DEBUG_BUILD } from '../../debug-build';
+import type { ExtraHandlerData, MCPServerInstance, MCPTransport, McpHandlerExtra } from './types';
 import {
   createMcpNotificationSpan,
   createMcpOutgoingNotificationSpan,
@@ -10,6 +12,18 @@ import {
 } from './utils';
 
 const wrappedMcpServerInstances = new WeakSet();
+const wrappedHandlerMethods = new WeakSet();
+
+// Map to track handler completion promises by request ID
+const requestToHandlerPromiseMap = new Map<string | number, {
+  resolve: (value: unknown) => void;
+  reject: (reason: unknown) => void;
+}>();
+
+/**
+ * Type for MCP handler callbacks
+ */
+type McpHandlerCallback = (...args: unknown[]) => unknown | Promise<unknown>;
 
 /**
  * Wraps a MCP Server instance from the `@modelcontextprotocol/sdk` package with Sentry instrumentation.
@@ -28,24 +42,44 @@ export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S):
 
   const serverInstance = mcpServerInstance as MCPServerInstance;
 
+  // Wrap tool, resource, and prompt methods to ensure proper async context
+  wrapHandlerMethods(serverInstance);
+
   fill(serverInstance, 'connect', (originalConnect) => {
     return async function(this: MCPServerInstance, transport: MCPTransport, ...restArgs: unknown[]) {
       const result = await originalConnect.call(this, transport, ...restArgs);
 
       if (transport.onmessage) {
         fill(transport, 'onmessage', (originalOnMessage) => {
-          return function(this: MCPTransport, jsonRpcMessage: unknown, extra?: unknown) {
+          return async function(this: MCPTransport, jsonRpcMessage: unknown, extra?: unknown) {
             if (isJsonRpcRequest(jsonRpcMessage)) {
-              return createMcpServerSpan(jsonRpcMessage, this, extra as ExtraHandlerData, () => {
-                return originalOnMessage.call(this, jsonRpcMessage, extra);
+              return await createMcpServerSpan(jsonRpcMessage, this, extra as ExtraHandlerData, async () => {
+                const request = jsonRpcMessage as { id: string | number; method: string };
+                
+                const handlerPromise = new Promise<unknown>((resolve, reject) => {
+                  requestToHandlerPromiseMap.set(request.id, { resolve, reject });
+                  
+                  setTimeout(() => {
+                    const entry = requestToHandlerPromiseMap.get(request.id);
+                    if (entry) {
+                      requestToHandlerPromiseMap.delete(request.id);
+                      resolve(undefined);
+                    }
+                  }, 30000);
+                });
+
+                const originalResult = originalOnMessage.call(this, jsonRpcMessage, extra);
+                await handlerPromise;
+                return originalResult;
               });
             }
+            
             if (isJsonRpcNotification(jsonRpcMessage)) {
-              return createMcpNotificationSpan(jsonRpcMessage, this, extra as ExtraHandlerData, () => {
-                return originalOnMessage.call(this, jsonRpcMessage, extra);
+              return await createMcpNotificationSpan(jsonRpcMessage, this, extra as ExtraHandlerData, async () => {
+                return await originalOnMessage.call(this, jsonRpcMessage, extra);
               });
             }
-            return originalOnMessage.call(this, jsonRpcMessage, extra);
+            return await originalOnMessage.call(this, jsonRpcMessage, extra);
           };
         });
       }
@@ -54,11 +88,11 @@ export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S):
         fill(transport, 'send', (originalSend) => {
           return async function(this: MCPTransport, message: unknown) {
             if (isJsonRpcNotification(message)) {
-              return createMcpOutgoingNotificationSpan(message, this, () => {
-                return originalSend.call(this, message);
+              return await createMcpOutgoingNotificationSpan(message, this, async () => {
+                return await originalSend.call(this, message);
               });
             }
-            return originalSend.call(this, message);
+            return await originalSend.call(this, message);
           };
         });
       }
@@ -66,6 +100,11 @@ export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S):
       if (transport.onclose) {
         fill(transport, 'onclose', (originalOnClose) => {
           return function(this: MCPTransport, ...args: unknown[]) {
+            for (const [, promiseEntry] of requestToHandlerPromiseMap.entries()) {
+              promiseEntry.resolve(undefined);
+            }
+            requestToHandlerPromiseMap.clear();
+            
             return originalOnClose.call(this, ...args);
           };
         });
@@ -76,6 +115,98 @@ export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S):
 
   wrappedMcpServerInstances.add(mcpServerInstance);
   return mcpServerInstance as S;
+}
+
+/**
+ * Wraps the tool, resource, and prompt registration methods to ensure
+ * handlers execute within the correct span context
+ */
+function wrapHandlerMethods(serverInstance: MCPServerInstance): void {
+  if (wrappedHandlerMethods.has(serverInstance)) {
+    return;
+  }
+
+  fill(serverInstance, 'tool', (originalTool) => {
+    return function(this: MCPServerInstance, ...args: unknown[]) {
+      const toolName = args[0] as string;
+      const lastArg = args[args.length - 1];
+      
+      if (typeof lastArg !== 'function') {
+        return originalTool.apply(this, args);
+      }
+
+      const wrappedCallback = wrapHandlerCallback(lastArg as McpHandlerCallback, 'tool', toolName);
+      const newArgs = [...args.slice(0, -1), wrappedCallback];
+      
+      return originalTool.apply(this, newArgs);
+    };
+  });
+
+  fill(serverInstance, 'resource', (originalResource) => {
+    return function(this: MCPServerInstance, ...args: unknown[]) {
+      const resourceName = args[0] as string;
+      const lastArg = args[args.length - 1];
+      
+      if (typeof lastArg !== 'function') {
+        return originalResource.apply(this, args);
+      }
+
+      const wrappedCallback = wrapHandlerCallback(lastArg as McpHandlerCallback, 'resource', resourceName);
+      const newArgs = [...args.slice(0, -1), wrappedCallback];
+      
+      return originalResource.apply(this, newArgs);
+    };
+  });
+
+  fill(serverInstance, 'prompt', (originalPrompt) => {
+    return function(this: MCPServerInstance, ...args: unknown[]) {
+      const promptName = args[0] as string;
+      const lastArg = args[args.length - 1];
+      
+      if (typeof lastArg !== 'function') {
+        return originalPrompt.apply(this, args);
+      }
+
+      const wrappedCallback = wrapHandlerCallback(lastArg as McpHandlerCallback, 'prompt', promptName);
+      const newArgs = [...args.slice(0, -1), wrappedCallback];
+      
+      return originalPrompt.apply(this, newArgs);
+    };
+  });
+
+  wrappedHandlerMethods.add(serverInstance);
+}
+
+/**
+ * Wraps a handler callback to ensure it executes within the correct span context
+ */
+function wrapHandlerCallback(callback: McpHandlerCallback, handlerType: string, handlerName: string): McpHandlerCallback {
+  return async function(this: unknown, ...args: unknown[]) {
+    const extra = args.find((arg): arg is McpHandlerExtra => 
+      typeof arg === 'object' && 
+      arg !== null && 
+      'requestId' in arg
+    );
+
+    if (extra?.requestId) {
+      const promiseEntry = requestToHandlerPromiseMap.get(extra.requestId);
+      
+      if (promiseEntry) {
+        try {
+          const result = await callback.apply(this, args);
+          requestToHandlerPromiseMap.delete(extra.requestId);
+          promiseEntry.resolve(result);
+          return result;
+        } catch (error) {
+          requestToHandlerPromiseMap.delete(extra.requestId);
+          promiseEntry.reject(error);
+          throw error;
+        }
+      }
+    }
+
+    return await callback.apply(this, args);
+  };
 }
 
 // =============================================================================
