@@ -31,12 +31,15 @@ function wrapMethodWithSentry<T extends OriginalMethod>(
   wrapperOptions: MethodWrapperOptions,
   handler: T,
   callback?: (...args: Parameters<T>) => void,
+  noMark?: true,
 ): T {
   if (isInstrumented(handler)) {
     return handler;
   }
 
-  markAsInstrumented(handler);
+  if (!noMark) {
+    markAsInstrumented(handler);
+  }
 
   return new Proxy(handler, {
     apply(target, thisArg, args: Parameters<T>) {
@@ -235,49 +238,31 @@ function instrumentPrototype<T extends NewableFunction>(
   target: T,
   options: CloudflareOptions,
   context: MethodWrapperOptions['context'],
-): typeof target.prototype {
-  const sentryMethods = new Map<string | symbol, OriginalMethod>();
-  let proto = target.prototype;
-  const instrumentedPrototype = new Proxy(proto, {
+): T {
+  return new Proxy(target.prototype, {
     get(target, prop, receiver) {
-      if (sentryMethods.has(prop)) {
-        return sentryMethods.get(prop);
+      const value = Reflect.get(target, prop, receiver);
+      if (prop === 'constructor' || typeof value !== 'function') {
+        return value;
       }
-      return Reflect.get(target, prop, receiver);
+      const wrapped = wrapMethodWithSentry(
+        { options, context, spanName: prop.toString(), spanOp: 'rpc' },
+        value,
+        undefined,
+        true,
+      );
+      const instrumented = new Proxy(wrapped, {
+        get(target, p, receiver) {
+          if ('__SENTRY_INSTRUMENTED__' === p) {
+            return true;
+          }
+          return Reflect.get(target, p, receiver);
+        },
+      });
+      Object.defineProperty(receiver, prop, {
+        value: instrumented,
+      });
+      return instrumented;
     },
   });
-  while (proto && proto !== Object.prototype) {
-    for (const method of Object.getOwnPropertyNames(proto)) {
-      if (method === 'constructor' || sentryMethods.has(method)) {
-        continue;
-      }
-
-      const value = Reflect.get(proto, method, proto);
-      if (typeof value === 'function') {
-        sentryMethods.set(
-          method,
-          wrapMethodWithSentry(
-            {
-              options,
-              context,
-              spanName: method,
-              spanOp: 'rpc',
-            },
-            // <editor-fold desc="Disable __SENTRY_INSTRUMENTED__ for prototype methods">
-            new Proxy(value, {
-              set(target, p, newValue, receiver): boolean {
-                if ('__SENTRY_INSTRUMENTED__' === p) {
-                  return true;
-                }
-                return Reflect.set(target, p, newValue, receiver);
-              },
-            }),
-            // </editor-fold>
-          ),
-        );
-      }
-    }
-    proto = Object.getPrototypeOf(proto);
-  }
-  return instrumentedPrototype;
 }

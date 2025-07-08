@@ -15,6 +15,13 @@ describe('instrumentDurableObjectWithSentry', () => {
     expect(() => Reflect.construct(instrumented, [])).not.toThrow();
     expect(options).toHaveBeenCalledOnce();
   });
+  it('Instruments prototype methods and defines implementation in the object', () => {
+    const testClass = class {
+      method() {}
+    };
+    const obj = Reflect.construct(instrumentDurableObjectWithSentry(vi.fn(), testClass as any), []) as any;
+    expect(obj.method).toBe(obj.method);
+  });
   it('Instruments prototype methods without "sticking" to the options', () => {
     const initCore = vi.spyOn(SentryCore, 'initAndBind');
     vi.spyOn(SentryCore, 'getClient').mockReturnValue(undefined);
@@ -53,7 +60,6 @@ describe('instrumentDurableObjectWithSentry', () => {
     const instrumented = instrumentDurableObjectWithSentry(vi.fn(), testClass as any);
     const obj = Reflect.construct(instrumented, []);
     expect(Object.getPrototypeOf(obj), 'Prototype is instrumented').not.toBe(testClass.prototype);
-    expect(isInstrumented((obj as any)['rpcMethod']), 'RPC method').toBeFalsy();
     for (const method_name of [
       'propertyFunction',
       'fetch',
@@ -61,6 +67,7 @@ describe('instrumentDurableObjectWithSentry', () => {
       'webSocketMessage',
       'webSocketClose',
       'webSocketError',
+      'rpcMethod',
     ]) {
       expect(isInstrumented((obj as any)[method_name]), `Method ${method_name} is instrumented`).toBeTruthy();
     }
