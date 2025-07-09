@@ -2,6 +2,8 @@ import { logger } from '@sentry/core';
 import type { NuxtSSRContext } from 'nuxt/app';
 import type { NuxtPage } from 'nuxt/schema';
 
+export type NuxtPageSubset = { path: NuxtPage['path']; file: NuxtPage['file'] };
+
 /**
  * Extracts route information from the SSR context modules and URL.
  *
@@ -17,12 +19,12 @@ import type { NuxtPage } from 'nuxt/schema';
  *
  * @param buildTimePagesData
  * An array of NuxtPage objects representing the build-time pages data.
- * Example: [{ name: 'some-path', path: '/some/path' }, { name: 'user-userId', path: '/user/:userId()' }]
+ * Example: [{ file: '/a/file/pages/some/path', path: '/some/path' }, { file: '/a/file/pages/user/[userId].vue', path: '/user/:userId()' }]
  */
 export function extractParametrizedRouteFromContext(
   ssrContextModules?: NuxtSSRContext['modules'],
   currentUrl?: NuxtSSRContext['url'],
-  buildTimePagesData: NuxtPage[] = [],
+  buildTimePagesData: NuxtPageSubset[] = [],
 ): null | { parametrizedRoute: string } {
   if (!ssrContextModules || !currentUrl) {
     logger.warn('SSR context modules or URL is not available.');
@@ -35,30 +37,28 @@ export function extractParametrizedRouteFromContext(
 
   const modulesArray = Array.from(ssrContextModules);
 
-  // Find the route data that corresponds to a module in ssrContext.modules
-  const foundRouteData = buildTimePagesData.find(routeData => {
-    if (!routeData.file) return false;
+  const modulePagePaths = modulesArray.map(module => {
+    const filePathParts = module.split('/');
 
-    return modulesArray.some(module => {
-      // Extract the folder name and relative path from the page file
-      // e.g., 'pages/test-param/[param].vue' -> folder: 'pages', path: 'test-param/[param].vue'
-      const filePathParts = module.split('/');
+    // Exclude root-level files (e.g., 'app.vue')
+    if (filePathParts.length < 2) return null;
 
-      // Exclude root-level files (e.g., 'app.vue')
-      if (filePathParts.length < 2) return false;
-
-      // Normalize path separators to handle both Unix and Windows paths
-      const normalizedRouteFile = routeData.file?.replace(/\\/g, '/');
-
-      const pagesFolder = filePathParts[0];
-      const pageRelativePath = filePathParts.slice(1).join('/');
-
-      // Check if any module in ssrContext.modules ends with the same folder/relative path structure
-      return normalizedRouteFile?.endsWith(`/${pagesFolder}/${pageRelativePath}`);
-    });
+    const pagesFolder = filePathParts[0];
+    const pageRelativePath = filePathParts.slice(1).join('/');
+    return `/${pagesFolder}/${pageRelativePath}`;
   });
 
-  const parametrizedRoute = foundRouteData?.path ?? null;
+  for (const routeData of buildTimePagesData) {
+    if (routeData.file && routeData.path) {
+      // Handle Windows paths
+      const normalizedFile = routeData.file.replace(/\\/g, '/');
 
-  return parametrizedRoute === null ? null : { parametrizedRoute };
+      // Check if any module of the requested page ends with the same folder/relative path structure as the parametrized filePath from build time.
+      if (modulePagePaths.some(filePath => filePath && normalizedFile.endsWith(filePath))) {
+        return { parametrizedRoute: routeData.path };
+      }
+    }
+  }
+
+  return null;
 }
