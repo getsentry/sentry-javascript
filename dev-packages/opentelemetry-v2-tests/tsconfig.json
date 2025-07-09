@@ -1,8 +1,0 @@
-{
-  "extends": "../../tsconfig.json",
-  "compilerOptions": {
-    "outDir": "./build",
-    "types": ["node", "vitest/globals"]
-  },
-  "include": ["test/**/*", "vite.config.ts"]
-}
