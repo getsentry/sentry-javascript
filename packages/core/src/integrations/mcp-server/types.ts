@@ -2,6 +2,8 @@
  * types for MCP server instrumentation
  */
 
+export type SessionId = string;
+export type RequestId = string | number;
 
 /** Method configuration type */
 export type MethodConfig = {
@@ -136,11 +138,22 @@ export interface McpSpanConfig {
  * Type for the extra parameter passed to MCP handlers
  */
 export interface McpHandlerExtra {
-  sessionId?: string;
-  requestId: string | number;
   [key: string]: unknown;
+  requestId: string | number;
+  sessionId?: string;
 }
 
+/**
+/**
+ * Enhanced extra data that includes transport info for handler spans
+ */
+export interface ExtendedExtraHandlerData extends ExtraHandlerData {
+  _mcpTransport?: MCPTransport;
+  requestId: string | number;
+  sessionId?: string;
+}
 
-export type SessionId = string;
-export type RequestId = string | number;
+export interface TransportInfo {
+  mcpTransport: string;
+  networkTransport: string;
+}
