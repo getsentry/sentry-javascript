@@ -657,7 +657,7 @@ export function startBrowserTracingNavigationSpan(
   options?: { url?: string; isRedirect?: boolean },
 ): Span | undefined {
   const { url, isRedirect } = options || {};
-
+  client.emit('beforeStartNavigationSpan', spanOptions);
   client.emit('startNavigationSpan', spanOptions, { isRedirect });
 
   const scope = getCurrentScope();
