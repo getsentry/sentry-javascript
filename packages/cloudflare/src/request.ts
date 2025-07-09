@@ -18,6 +18,17 @@ interface RequestHandlerWrapperOptions {
   options: CloudflareOptions;
   request: Request<unknown, IncomingRequestCfProperties<unknown>>;
   context: ExecutionContext;
+  /**
+   * If true, errors will be captured, rethrown and sent to Sentry.
+   * Otherwise, errors are rethrown but not captured.
+   *
+   * You most likely don't want to set this to `false`, if you use `wrapRequestHandler` directly.
+   * This is primarily meant as an escape hatch for higher-level SDKs relying on additional error
+   * capturing mechanisms where this wrapper captures errors too early or too generally.
+   *
+   * @default true
+   */
+  captureErrors?: boolean;
 }
 
 /**
@@ -28,7 +39,7 @@ export function wrapRequestHandler(
   handler: (...args: unknown[]) => Response | Promise<Response>,
 ): Promise<Response> {
   return withIsolationScope(async isolationScope => {
-    const { options, request } = wrapperOptions;
+    const { options, request, captureErrors = true } = wrapperOptions;
 
     // In certain situations, the passed context can become undefined.
     // For example, for Astro while prerendering pages at build time.
@@ -67,7 +78,9 @@ export function wrapRequestHandler(
       try {
         return await handler();
       } catch (e) {
-        captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
+        if (captureErrors) {
+          captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
+        }
         throw e;
       } finally {
         waitUntil?.(flush(2000));
@@ -91,7 +104,9 @@ export function wrapRequestHandler(
               setHttpStatus(span, res.status);
               return res;
             } catch (e) {
-              captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
+              if (captureErrors) {
+                captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
+              }
               throw e;
             } finally {
               waitUntil?.(flush(2000));
