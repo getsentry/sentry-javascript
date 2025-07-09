@@ -99,10 +99,13 @@ export default defineNuxtModule<ModuleOptions>({
 
     nuxt.hooks.hook('pages:extend', pages => {
       pagesDataTemplate.getContents = () => {
-        const pagesSubset = pages.map(page => ({
-          file: page.file,
-          path: page.path,
-        }));
+        const pagesSubset = pages
+          .map(page => ({ file: page.file, path: page.path }))
+          .filter(page => {
+            // Check for dynamic parameter (e.g., :userId or [userId])
+            return page.path.includes(':') || page?.file?.includes('[');
+          });
+
         return `export default ${JSON.stringify(pagesSubset, null, 2)};`;
       };
     });
