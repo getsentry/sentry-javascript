@@ -10,7 +10,7 @@ test.describe('distributed tracing', () => {
     });
 
     const serverTxnEventPromise = waitForTransaction('nuxt-3-dynamic-import', txnEvent => {
-      return txnEvent.transaction.includes('GET /test-param/');
+      return txnEvent.transaction?.includes('GET /test-param/') || false;
     });
 
     const [_, clientTxnEvent, serverTxnEvent] = await Promise.all([
@@ -136,8 +136,8 @@ test.describe('distributed tracing', () => {
     expect(serverReqTxnEvent).toEqual(
       expect.objectContaining({
         type: 'transaction',
-        transaction: `GET /api/user/${PARAM}`,
-        transaction_info: { source: 'url' },
+        transaction: `GET /api/user/:userId`, // parametrized route
+        transaction_info: { source: 'route' },
         contexts: expect.objectContaining({
           trace: expect.objectContaining({
             op: 'http.server',
