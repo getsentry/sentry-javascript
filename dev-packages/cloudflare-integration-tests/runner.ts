@@ -7,19 +7,41 @@ import { join } from 'path';
 import { inspect } from 'util';
 import { expect } from 'vitest';
 
-/** Promise only resolves when fn returns true */
-async function waitFor(fn: () => boolean, timeout = 10_000, message = 'Timed out waiting'): Promise<void> {
-  let remaining = timeout;
-  while (fn() === false) {
-    await new Promise<void>(resolve => setTimeout(resolve, 100));
-    remaining -= 100;
-    if (remaining < 0) {
-      throw new Error(message);
-    }
+const CLEANUP_STEPS = new Set<() => void>();
+
+export function cleanupChildProcesses(): void {
+  for (const step of CLEANUP_STEPS) {
+    step();
   }
+  CLEANUP_STEPS.clear();
 }
 
-type VoidFunction = () => void;
+process.on('exit', cleanupChildProcesses);
+
+function deferredPromise<T = void>(
+  done?: () => void,
+): { resolve: (val: T) => void; reject: (reason?: unknown) => void; promise: Promise<T> } {
+  let resolve;
+  let reject;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = (val: T) => {
+      done?.();
+      res(val);
+    };
+    reject = (reason: Error) => {
+      done?.();
+      rej(reason);
+    };
+  });
+  if (!resolve || !reject) {
+    throw new Error('Failed to create deferred promise');
+  }
+  return {
+    resolve,
+    reject,
+    promise,
+  };
+}
 
 type Expected = Envelope | ((envelope: Envelope) => void);
 
@@ -41,7 +63,6 @@ export function createRunner(...paths: string[]) {
     throw new Error(`Test scenario not found: ${testPath}`);
   }
 
-  const cleanupSteps = new Set<VoidFunction>();
   const expectedEnvelopes: Expected[] = [];
   // By default, we ignore session & sessions
   const ignored: Set<EnvelopeItemType> = new Set(['session', 'sessions', 'client_report']);
@@ -68,32 +89,18 @@ export function createRunner(...paths: string[]) {
       return this;
     },
     start: function (): StartResult {
-      let isComplete = false;
-      let completeError: Error | undefined;
-
+      const { resolve, reject, promise: isComplete } = deferredPromise(cleanupChildProcesses);
       const expectedEnvelopeCount = expectedEnvelopes.length;
 
       let envelopeCount = 0;
-      let scenarioServerPort: number | undefined;
+      const { resolve: setWorkerPort, promise: workerPortPromise } = deferredPromise<number>();
       let child: ReturnType<typeof spawn> | undefined;
-
-      function complete(error?: Error): void {
-        if (isComplete) {
-          return;
-        }
-
-        isComplete = true;
-        completeError = error || undefined;
-        for (const step of cleanupSteps) {
-          step();
-        }
-      }
 
       /** Called after each expect callback to check if we're complete */
       function expectCallbackCalled(): void {
         envelopeCount++;
         if (envelopeCount === expectedEnvelopeCount) {
-          complete();
+          resolve();
         }
       }
 
@@ -121,87 +128,68 @@ export function createRunner(...paths: string[]) {
           }
           expectCallbackCalled();
         } catch (e) {
-          complete(e as Error);
+          reject(e);
         }
       }
 
       createBasicSentryServer(newEnvelope)
         .then(([mockServerPort, mockServerClose]) => {
           if (mockServerClose) {
-            cleanupSteps.add(() => {
+            CLEANUP_STEPS.add(() => {
               mockServerClose();
             });
           }
 
-          // const env = { ...process.env, ...withEnv, SENTRY_DSN: `http://public@localhost:${mockServerPort}/1337` };
+          if (process.env.DEBUG) log('Starting scenario', testPath);
 
-          const SENTRY_DSN = `http://public@localhost:${mockServerPort}/1337`;
+          const stdio: ('inherit' | 'ipc' | 'ignore')[] = process.env.DEBUG
+            ? ['inherit', 'inherit', 'inherit', 'ipc']
+            : ['ignore', 'ignore', 'ignore', 'ipc'];
 
-          if (process.env.DEBUG) log('starting scenario', { testPath, SENTRY_DSN });
+          child = spawn(
+            'wrangler',
+            [
+              'dev',
+              '--config',
+              join(testPath, 'wrangler.jsonc'),
+              '--show-interactive-dev-session',
+              'false',
+              '--var',
+              `SENTRY_DSN:http://public@localhost:${mockServerPort}/1337`,
+            ],
+            { stdio },
+          );
 
-          const wranglerConfigPath = join(testPath, 'wrangler.jsonc');
-
-          child = spawn('wrangler', ['dev', '--config', wranglerConfigPath, '--var', `SENTRY_DSN:${SENTRY_DSN}`]);
+          CLEANUP_STEPS.add(() => {
+            child?.kill();
+          });
 
           child.on('error', e => {
             // eslint-disable-next-line no-console
             console.error('Error starting child process:', e);
-            complete(e);
+            reject(e);
           });
 
-          cleanupSteps.add(() => {
-            child?.kill();
-          });
-
-          if (process.env.DEBUG) {
-            child.stderr?.on('data', (data: Buffer) => {
-              log('stderr line', data.toString());
-            });
-          }
-
-          child.stdout?.on('data', (data: Buffer) => {
-            if (scenarioServerPort === undefined) {
-              const line = data.toString();
-              const result = line.match(/Ready on http:\/\/localhost:(\d+)/);
-              if (result?.[1]) {
-                scenarioServerPort = parseInt(result[1], 10);
-              }
+          child.on('message', (message: string) => {
+            const msg = JSON.parse(message) as { event: string; port?: number };
+            if (msg.event === 'DEV_SERVER_READY' && typeof msg.port === 'number') {
+              setWorkerPort(msg.port);
+              if (process.env.DEBUG) log('worker ready on port', msg.port);
             }
-
-            if (process.env.DEBUG) {
-              log('stdout line', data.toString());
-            }
-          });
-
-          // Pass error to done to end the test quickly
-          child.on('error', e => {
-            if (process.env.DEBUG) log('scenario error', e);
-            complete(e);
           });
         })
-        .catch(e => complete(e));
+        .catch(e => reject(e));
 
       return {
         completed: async function (): Promise<void> {
-          await waitFor(() => isComplete, 120_000, 'Timed out waiting for test to complete');
-
-          if (completeError) {
-            throw completeError;
-          }
+          return isComplete;
         },
         makeRequest: async function <T>(
           method: 'get' | 'post',
           path: string,
           options: { headers?: Record<string, string>; data?: BodyInit; expectError?: boolean } = {},
         ): Promise<T | undefined> {
-          try {
-            await waitFor(() => scenarioServerPort !== undefined, 10_000, 'Timed out waiting for server port');
-          } catch (e) {
-            complete(e as Error);
-            return;
-          }
-
-          const url = `http://localhost:${scenarioServerPort}${path}`;
+          const url = `http://localhost:${await workerPortPromise}${path}`;
           const body = options.data;
           const headers = options.headers || {};
           const expectError = options.expectError || false;
@@ -213,14 +201,14 @@ export function createRunner(...paths: string[]) {
 
             if (!res.ok) {
               if (!expectError) {
-                complete(new Error(`Expected request to "${path}" to succeed, but got a ${res.status} response`));
+                reject(new Error(`Expected request to "${path}" to succeed, but got a ${res.status} response`));
               }
 
               return;
             }
 
             if (expectError) {
-              complete(new Error(`Expected request to "${path}" to fail, but got a ${res.status} response`));
+              reject(new Error(`Expected request to "${path}" to fail, but got a ${res.status} response`));
               return;
             }
 
@@ -234,7 +222,7 @@ export function createRunner(...paths: string[]) {
               return;
             }
 
-            complete(e as Error);
+            reject(e);
             return;
           }
         },
