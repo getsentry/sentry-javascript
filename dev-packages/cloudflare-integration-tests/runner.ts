@@ -25,11 +25,9 @@ function deferredPromise<T = void>(
   let reject;
   const promise = new Promise<T>((res, rej) => {
     resolve = (val: T) => {
-      done?.();
       res(val);
     };
     reject = (reason: Error) => {
-      done?.();
       rej(reason);
     };
   });
@@ -39,7 +37,7 @@ function deferredPromise<T = void>(
   return {
     resolve,
     reject,
-    promise,
+    promise: promise.finally(() => done?.()),
   };
 }
 
