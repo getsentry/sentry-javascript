@@ -48,6 +48,7 @@ function buildRegexForDynamicRoute(routePath: string): { pattern: string; paramN
   const segments = routePath.split('/').filter(Boolean);
   const regexSegments: string[] = [];
   const paramNames: string[] = [];
+  let hasOptionalCatchall = false;
 
   for (const segment of segments) {
     if (segment.startsWith(':')) {
@@ -57,7 +58,8 @@ function buildRegexForDynamicRoute(routePath: string): { pattern: string; paramN
         // Optional catchall: matches zero or more segments
         const cleanParamName = paramName.slice(0, -2);
         paramNames.push(cleanParamName);
-        regexSegments.push('(.*)');
+        // Handling this special case in pattern construction below
+        hasOptionalCatchall = true;
       } else if (paramName.endsWith('*')) {
         // Required catchall: matches one or more segments
         const cleanParamName = paramName.slice(0, -1);
@@ -74,7 +76,16 @@ function buildRegexForDynamicRoute(routePath: string): { pattern: string; paramN
     }
   }
 
-  const pattern = `^/${regexSegments.join('/')}$`;
+  let pattern: string;
+  if (hasOptionalCatchall) {
+    // For optional catchall, make the trailing slash and segments optional
+    // This allows matching both /catchall and /catchall/anything
+    const staticParts = regexSegments.join('/');
+    pattern = `^/${staticParts}(?:/(.*))?$`;
+  } else {
+    pattern = `^/${regexSegments.join('/')}$`;
+  }
+
   return { pattern, paramNames };
 }
 

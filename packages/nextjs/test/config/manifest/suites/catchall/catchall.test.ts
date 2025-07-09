@@ -11,7 +11,7 @@ describe('catchall', () => {
         {
           path: '/catchall/:path*?',
           dynamic: true,
-          pattern: '^/catchall/(.*)$',
+          pattern: '^/catchall(?:/(.*))?$',
           paramNames: ['path'],
         },
       ],
@@ -26,6 +26,7 @@ describe('catchall', () => {
     expect(regex.test('/catchall/123/456')).toBe(true);
     expect(regex.test('/catchall/123/abc/789')).toBe(true);
     expect(regex.test('/catchall/')).toBe(true);
+    expect(regex.test('/catchall')).toBe(true);
     expect(regex.test('/123/catchall/123')).toBe(false);
     expect(regex.test('/')).toBe(false);
   });
