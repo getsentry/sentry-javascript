@@ -21,6 +21,11 @@ interface RequestHandlerWrapperOptions {
   /**
    * If true, errors will be captured, rethrown and sent to Sentry.
    * Otherwise, errors are rethrown but not captured.
+   *
+   * You most likely don't want to set this to `false`, if you use `wrapRequestHandler` directly.
+   * This is primarily meant as an escape hatch for higher-level SDKs relying on additional error
+   * capturing mechanisms where this wrapper captures errors too early or too generally.
+   *
    * @default true
    */
   captureErrors?: boolean;
