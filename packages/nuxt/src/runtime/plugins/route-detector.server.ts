@@ -11,6 +11,7 @@ export default defineNuxtPlugin(nuxtApp => {
       // @ts-expect-error This import is dynamically resolved at build time (`addTemplate` in module.ts)
       const { default: importedPagesData } = await import('#build/sentry--nuxt-pages-data.mjs');
       buildTimePagesData = importedPagesData || [];
+      logger.log('Imported build-time pages data:', buildTimePagesData);
     } catch (error) {
       buildTimePagesData = [];
       logger.warn('Failed to import build-time pages data:', error);

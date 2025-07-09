@@ -29,7 +29,6 @@ export function extractParametrizedRouteFromContext(
   buildTimePagesData: NuxtPageSubset[] = [],
 ): null | { parametrizedRoute: string } {
   if (!ssrContextModules || !currentUrl) {
-    logger.warn('SSR context modules or URL is not available.');
     return null;
   }
 
