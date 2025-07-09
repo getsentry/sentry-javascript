@@ -35,6 +35,70 @@ describe('valueInjectionLoader', () => {
     expect(result).toMatch(';globalThis["foo"] = "bar";');
   });
 
+  it('should work with instrumentation-client.js files', () => {
+    const instrumentationLoaderThis = {
+      ...loaderThis,
+      resourcePath: './instrumentation-client.js',
+    };
+
+    const userCode = `
+      import * as Sentry from '@sentry/nextjs';
+      Sentry.init();
+    `;
+
+    const result = valueInjectionLoader.call(instrumentationLoaderThis, userCode);
+
+    expect(result).toMatch(';globalThis["foo"] = "bar";');
+  });
+
+  it('should work with instrumentation-client.ts files', () => {
+    const instrumentationLoaderThis = {
+      ...loaderThis,
+      resourcePath: './instrumentation-client.ts',
+    };
+
+    const userCode = `
+      import * as Sentry from '@sentry/nextjs';
+      Sentry.init();
+    `;
+
+    const result = valueInjectionLoader.call(instrumentationLoaderThis, userCode);
+
+    expect(result).toMatch(';globalThis["foo"] = "bar";');
+  });
+
+  it('should work with src/instrumentation-client.js files', () => {
+    const instrumentationLoaderThis = {
+      ...loaderThis,
+      resourcePath: './src/instrumentation-client.js',
+    };
+
+    const userCode = `
+      import * as Sentry from '@sentry/nextjs';
+      Sentry.init();
+    `;
+
+    const result = valueInjectionLoader.call(instrumentationLoaderThis, userCode);
+
+    expect(result).toMatch(';globalThis["foo"] = "bar";');
+  });
+
+  it('should work with src/instrumentation-client.ts files', () => {
+    const instrumentationLoaderThis = {
+      ...loaderThis,
+      resourcePath: './src/instrumentation-client.ts',
+    };
+
+    const userCode = `
+      import * as Sentry from '@sentry/nextjs';
+      Sentry.init();
+    `;
+
+    const result = valueInjectionLoader.call(instrumentationLoaderThis, userCode);
+
+    expect(result).toMatch(';globalThis["foo"] = "bar";');
+  });
+
   it('should correctly insert values with directive', () => {
     const userCode = `
       "use client"
