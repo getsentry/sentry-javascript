@@ -5,6 +5,8 @@ import { getSentryRelease } from '@sentry/node';
 import * as childProcess from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import type { RouteManifest } from './manifest/buildManifest';
+import { createRouteManifest } from './manifest/buildManifest';
 import type {
   ExportedNextConfig as NextConfig,
   NextConfigFunction,
@@ -139,6 +141,11 @@ function getFinalConfigObject(
       // We skip Sentry processing during generate to avoid this issue.
       return incomingUserNextConfigObject;
     }
+  }
+
+  let routeManifest: RouteManifest | undefined;
+  if (userSentryOptions.enableManifest !== false) {
+    routeManifest = createRouteManifest();
   }
 
   setUpBuildTimeVariables(incomingUserNextConfigObject, userSentryOptions, releaseName);
@@ -300,7 +307,12 @@ function getFinalConfigObject(
             ],
           },
         }),
-    webpack: constructWebpackConfigFunction(incomingUserNextConfigObject, userSentryOptions, releaseName),
+    webpack: constructWebpackConfigFunction(
+      incomingUserNextConfigObject,
+      userSentryOptions,
+      releaseName,
+      routeManifest,
+    ),
   };
 }
 
