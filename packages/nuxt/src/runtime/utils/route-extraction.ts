@@ -4,6 +4,8 @@ import type { NuxtPage } from 'nuxt/schema';
 
 export type NuxtPageSubset = { path: NuxtPage['path']; file: NuxtPage['file'] };
 
+const extractionResultCache = new Map<string, null | { parametrizedRoute: string }>();
+
 /**
  * Extracts route information from the SSR context modules and URL.
  *
@@ -35,6 +37,15 @@ export function extractParametrizedRouteFromContext(
     return null;
   }
 
+  const cacheKey = Array.from(ssrContextModules).sort().join('|');
+  const cachedResult = extractionResultCache.get(cacheKey);
+  if (cachedResult !== undefined) {
+    logger.log('Found cached result for parametrized route:', currentUrl);
+    return cachedResult;
+  }
+
+  logger.log('No parametrized route found in cache lookup. Extracting parametrized route for:', currentUrl);
+
   const modulesArray = Array.from(ssrContextModules);
 
   const modulePagePaths = modulesArray.map(module => {
@@ -55,10 +66,13 @@ export function extractParametrizedRouteFromContext(
 
       // Check if any module of the requested page ends with the same folder/relative path structure as the parametrized filePath from build time.
       if (modulePagePaths.some(filePath => filePath && normalizedFile.endsWith(filePath))) {
-        return { parametrizedRoute: routeData.path };
+        const result = { parametrizedRoute: routeData.path };
+        extractionResultCache.set(cacheKey, result);
+        return result;
       }
     }
   }
 
+  extractionResultCache.set(cacheKey, null);
   return null;
 }
