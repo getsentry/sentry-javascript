@@ -609,6 +609,7 @@ export function startBrowserTracingPageLoadSpan(
  * This will only do something if a browser tracing integration has been setup.
  */
 export function startBrowserTracingNavigationSpan(client: Client, spanOptions: StartSpanOptions): Span | undefined {
+  client.emit('beforeStartNavigationSpan', spanOptions);
   client.emit('startNavigationSpan', spanOptions);
 
   getCurrentScope().setTransactionName(spanOptions.name);

@@ -604,6 +604,12 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   ): () => void;
 
   /**
+   * A hook for triggering right before a navigation span is started.
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'beforeStartNavigationSpan', callback: (options: StartSpanOptions) => void): () => void;
+
+  /**
    * A hook for browser tracing integrations to trigger a span for a navigation.
    * @returns {() => void} A function that, when executed, removes the registered callback.
    */
@@ -778,6 +784,11 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     options: StartSpanOptions,
     traceOptions?: { sentryTrace?: string | undefined; baggage?: string | undefined },
   ): void;
+
+  /**
+   * Emit a hook event for triggering right before a navigation span is started.
+   */
+  public emit(hook: 'beforeStartNavigationSpan', options: StartSpanOptions): void;
 
   /**
    * Emit a hook event for browser tracing integrations to trigger a span for a navigation.
