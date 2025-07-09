@@ -72,7 +72,7 @@ export function trackClsAsStandaloneSpan(): void {
       return;
     }
 
-    const unsubscribeStartNavigation = client.on('startNavigationSpan', () => {
+    const unsubscribeStartNavigation = client.on('beforeStartNavigationSpan', () => {
       _collectClsOnce();
       unsubscribeStartNavigation?.();
     });

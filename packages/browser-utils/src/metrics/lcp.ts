@@ -72,7 +72,7 @@ export function trackLcpAsStandaloneSpan(): void {
       return;
     }
 
-    const unsubscribeStartNavigation = client.on('startNavigationSpan', () => {
+    const unsubscribeStartNavigation = client.on('beforeStartNavigationSpan', () => {
       _collectLcpOnce();
       unsubscribeStartNavigation?.();
     });
