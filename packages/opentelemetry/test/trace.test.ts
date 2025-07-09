@@ -20,6 +20,7 @@ import {
   withScope,
 } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { getParentSpanId } from '../../../packages/opentelemetry/src/utils/getParentSpanId';
 import { continueTrace, startInactiveSpan, startSpan, startSpanManual } from '../src/trace';
 import type { AbstractSpan } from '../src/types';
 import { getActiveSpan } from '../src/utils/getActiveSpan';
@@ -27,9 +28,8 @@ import { getSamplingDecision } from '../src/utils/getSamplingDecision';
 import { getSpanKind } from '../src/utils/getSpanKind';
 import { makeTraceState } from '../src/utils/makeTraceState';
 import { spanHasAttributes, spanHasName } from '../src/utils/spanTypes';
-import { cleanupOtel, mockSdkInit } from './helpers/mockSdkInit';
 import { isSpan } from './helpers/isSpan';
-import { getParentSpanId } from '../../../packages/opentelemetry/src/utils/getParentSpanId';
+import { cleanupOtel, mockSdkInit } from './helpers/mockSdkInit';
 
 describe('trace', () => {
   beforeEach(() => {
