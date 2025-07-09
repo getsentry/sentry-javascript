@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
+import {WebSocket} from 'ws'
 
 test('Index page', async ({ baseURL }) => {
   const result = await fetch(baseURL!);
@@ -35,3 +36,32 @@ test('Request processed by DurableObject\'s fetch is recorded', async ({baseURL}
   const event = await eventWaiter;
   expect(event.exception?.values?.[0]?.value).toBe('Should be recorded in Sentry.');
 });
+test('Websocket.webSocketMessage', async ({baseURL}) => {
+  const eventWaiter = waitForError('cloudflare-workers', (event) => {
+    return event.exception?.values?.[0]?.mechanism?.type === 'cloudflare_durableobject';
+  });
+  const url = new URL('/pass-to-object/ws', baseURL);
+  url.protocol = url.protocol.replace('http', 'ws');
+  const socket = new WebSocket(url.toString());
+  socket.addEventListener('open', () => {
+    socket.send('throwException')
+  });
+  const event = await eventWaiter;
+  socket.close();
+  expect(event.exception?.values?.[0]?.value).toBe('Should be recorded in Sentry: webSocketMessage');
+})
+
+test('Websocket.webSocketClose', async ({baseURL}) => {
+  const eventWaiter = waitForError('cloudflare-workers', (event) => {
+    return event.exception?.values?.[0]?.mechanism?.type === 'cloudflare_durableobject';
+  });
+  const url = new URL('/pass-to-object/ws', baseURL);
+  url.protocol = url.protocol.replace('http', 'ws');
+  const socket = new WebSocket(url.toString());
+  socket.addEventListener('open', () => {
+    socket.send('throwOnExit')
+    socket.close()
+  });
+  const event = await eventWaiter;
+  expect(event.exception?.values?.[0]?.value).toBe('Should be recorded in Sentry: webSocketClose');
+})

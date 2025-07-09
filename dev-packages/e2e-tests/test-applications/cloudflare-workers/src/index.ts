@@ -14,17 +14,42 @@ import * as Sentry from '@sentry/cloudflare';
 import { DurableObject } from "cloudflare:workers";
 
 class MyDurableObjectBase extends DurableObject<Env> {
-  async throwException(): Promise<string> {
-    throw new Error("Should be recorded in Sentry.")
-  }
+	private throwOnExit = new WeakMap<WebSocket, Error>();
+	async throwException(): Promise<void> {
+		throw new Error('Should be recorded in Sentry.');
+	}
 
-  async fetch(request: Request){
-    const {pathname} = new URL(request.url)
-    if(pathname === '/throwException'){
-      await this.throwException()
-    }
-    return new Response('DO is fine')
-  }
+	async fetch(request: Request) {
+		const { pathname } = new URL(request.url);
+		switch (pathname) {
+			case '/throwException': {
+				await this.throwException();
+				break;
+			}
+			case '/ws':
+				const webSocketPair = new WebSocketPair();
+				const [client, server] = Object.values(webSocketPair);
+				this.ctx.acceptWebSocket(server);
+				return new Response(null, { status: 101, webSocket: client });
+		}
+		return new Response('DO is fine');
+	}
+
+	webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): void | Promise<void> {
+		if (message === 'throwException') {
+			throw new Error('Should be recorded in Sentry: webSocketMessage');
+		} else if (message === 'throwOnExit') {
+			this.throwOnExit.set(ws, new Error('Should be recorded in Sentry: webSocketClose'));
+		}
+	}
+
+	webSocketClose(ws: WebSocket): void | Promise<void> {
+    if (this.throwOnExit.has(ws)) {
+			const error = this.throwOnExit.get(ws)!;
+			this.throwOnExit.delete(ws);
+			throw error;
+		}
+	}
 }
 
 export const MyDurableObject = Sentry.instrumentDurableObjectWithSentry(
