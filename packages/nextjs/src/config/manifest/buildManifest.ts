@@ -38,9 +38,9 @@ function getDynamicRouteSegment(name: string): string {
     // Required catchall: [...param]
     const paramName = name.slice(4, -1); // Remove [... and ]
     return `:${paramName}*`;
-  } 
- // Regular dynamic: [param]
- return `:${name.slice(1, -1)}`;
+  }
+  // Regular dynamic: [param]
+  return `:${name.slice(1, -1)}`;
 }
 
 function buildRegexForDynamicRoute(routePath: string): { pattern: string; paramNames: string[] } {
