@@ -1,11 +1,11 @@
 import { MongoDBInstrumentation } from '@opentelemetry/instrumentation-mongodb';
+import { INSTRUMENTED } from '@sentry/node-core';
 import { type MockInstance, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   _defaultDbStatementSerializer,
   instrumentMongo,
   mongoIntegration,
 } from '../../../src/integrations/tracing/mongo';
-import { INSTRUMENTED } from '../../../src/otel/instrument';
 
 vi.mock('@opentelemetry/instrumentation-mongodb');
 
