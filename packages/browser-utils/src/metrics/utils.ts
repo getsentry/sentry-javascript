@@ -170,6 +170,3 @@ export function extractNetworkProtocol(nextHopProtocol: string): { name: string;
   }
   return { name, version };
 }
-
-type ReportEvent = 'pagehide' | 'navigation';
-function createReportOnceHandler();
