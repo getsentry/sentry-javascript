@@ -4,7 +4,57 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-Work in this release was contributed by @Spice-King. Thank you for your contribution!
+## 9.36.0
+
+### Important Changes
+
+- **feat(node-core): Add node-core SDK ([#16745](https://github.com/getsentry/sentry-javascript/pull/16745))**
+
+This release adds a new SDK `@sentry/node-core` which ships without any OpenTelemetry instrumententation out of the box. All OpenTelemetry dependencies are peer dependencies and OpenTelemetry has to be set up manually.
+
+Use `@sentry/node-core` when:
+
+- You already have OpenTelemetry set up
+- You need custom OpenTelemetry configuration
+- You want minimal dependencies
+- You need fine-grained control over instrumentation
+
+Use `@sentry/node` when:
+
+- You want an automatic setup
+- You're new to OpenTelemetry
+- You want sensible defaults
+- You prefer convenience over control
+
+* **feat(node): Deprecate ANR integration ([#16832](https://github.com/getsentry/sentry-javascript/pull/16832))**
+
+The ANR integration has been deprecated and will be removed in future versions. Use `eventLoopBlockIntegration` from `@sentry/node-native` instead.
+
+- **feat(replay): Add `_experiments.ignoreMutations` option ([#16816](https://github.com/getsentry/sentry-javascript/pull/16816))**
+
+This replay option allows to configure a selector list of elements to not capture mutations for.
+
+```js
+Sentry.replayIntegration({
+  _experiments: {
+    ignoreMutations: ['.dragging'],
+  },
+});
+```
+
+### Other changes
+
+- feat(deps): bump @prisma/instrumentation from 6.10.1 to 6.11.1 ([#16833](https://github.com/getsentry/sentry-javascript/pull/16833))
+- feat(nextjs): Add flag for suppressing router transition warning ([#16823](https://github.com/getsentry/sentry-javascript/pull/16823))
+- feat(nextjs): Automatically skip middleware requests for tunnel route ([#16812](https://github.com/getsentry/sentry-javascript/pull/16812))
+- feat(replay): Export compression worker from `@sentry/replay-internal` ([#16794](https://github.com/getsentry/sentry-javascript/pull/16794))
+- fix(browser): Avoid 4xx response for succesful `diagnoseSdkConnectivity` request ([#16840](https://github.com/getsentry/sentry-javascript/pull/16840))
+- fix(browser): Guard against undefined nextHopProtocol ([#16806](https://github.com/getsentry/sentry-javascript/pull/16806))
+- fix(cloudflare): calculate retries not attempts ([#16834](https://github.com/getsentry/sentry-javascript/pull/16834))
+- fix(nuxt): Parametrize routes on the server-side ([#16785](https://github.com/getsentry/sentry-javascript/pull/16785))
+- fix(vue): Make pageload span handling more reliable ([#16799](https://github.com/getsentry/sentry-javascript/pull/16799))
+
+Work in this release was contributed by @Spice-King and @stayallive. Thank you for your contributions!
 
 ## 9.35.0
 

@@ -12,8 +12,6 @@ targets:
   - name: npm
     id: '@sentry/core'
     includeNames: /^sentry-core-\d.*\.tgz$/
-  # This SDK does not exist yet on `develop` but we need an entry
-  # here to be able to publish a pre-release
   - name: npm
     id: '@sentry/node-core'
     includeNames: /^sentry-node-core-\d.*\.tgz$/

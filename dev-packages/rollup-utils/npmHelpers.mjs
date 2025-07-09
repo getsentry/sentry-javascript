@@ -152,9 +152,14 @@ export function makeOtelLoaders(outputFolder, hookVariant) {
   }
 
   const requiredDep = hookVariant === 'otel' ? '@opentelemetry/instrumentation' : '@sentry/node';
-  const foundImportInTheMiddleDep = Object.keys(packageDotJSON.dependencies ?? {}).some(key => {
-    return key === requiredDep;
-  });
+  const foundImportInTheMiddleDep =
+    Object.keys(packageDotJSON.dependencies ?? {}).some(key => {
+      return key === requiredDep;
+    }) ||
+    Object.keys(packageDotJSON.devDependencies ?? {}).some(key => {
+      return key === requiredDep;
+    });
+
   if (!foundImportInTheMiddleDep) {
     throw new Error(
       `You used the makeOtelLoaders() rollup utility but didn't specify the "${requiredDep}" dependency in ${path.resolve(

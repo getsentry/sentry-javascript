@@ -748,7 +748,7 @@ function addValueInjectionLoader(
     });
   } else {
     newConfig.module.rules.push({
-      test: /sentry\.client\.config\.(jsx?|tsx?)/,
+      test: /(?:sentry\.client\.config\.(jsx?|tsx?)|(?:src[\\/])?instrumentation-client\.(js|ts))$/,
       use: [
         {
           loader: path.resolve(__dirname, 'loaders/valueInjectionLoader.js'),
