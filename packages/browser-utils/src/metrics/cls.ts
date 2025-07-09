@@ -16,8 +16,10 @@ import {
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { addClsInstrumentationHandler } from './instrument';
+import type { WebVitalReportEvent } from './utils';
 import { msToSec, startStandaloneWebVitalSpan } from './utils';
 import { onHidden } from './web-vitals/lib/onHidden';
+import { runOnce } from './web-vitals/lib/runOnce';
 
 /**
  * Starts tracking the Cumulative Layout Shift on the current page and collects the value once
@@ -37,16 +39,13 @@ export function trackClsAsStandaloneSpan(): void {
     return;
   }
 
-  let sentSpan = false;
-  function _collectClsOnce() {
-    if (sentSpan) {
-      return;
-    }
-    sentSpan = true;
-    if (pageloadSpanId) {
-      sendStandaloneClsSpan(standaloneCLsValue, standaloneClsEntry, pageloadSpanId);
-    }
-    cleanupClsHandler();
+  function _collectClsOnce(reportEvent: WebVitalReportEvent) {
+    runOnce(() => {
+      if (pageloadSpanId) {
+        sendStandaloneClsSpan(standaloneCLsValue, standaloneClsEntry, pageloadSpanId, reportEvent);
+      }
+      cleanupClsHandler();
+    });
   }
 
   const cleanupClsHandler = addClsInstrumentationHandler(({ metric }) => {
@@ -59,7 +58,7 @@ export function trackClsAsStandaloneSpan(): void {
   }, true);
 
   onHidden(() => {
-    _collectClsOnce();
+    _collectClsOnce('pagehide');
   });
 
   // Since the call chain of this function is synchronous and evaluates before the SDK client is created,
@@ -73,9 +72,9 @@ export function trackClsAsStandaloneSpan(): void {
     }
 
     const unsubscribeStartNavigation = client.on('beforeStartNavigationSpan', (_, options) => {
-      // we only want to collect LCP if we actually navigate. Redirects should be ignored.
+      // we only want to collect CLS if we actually navigate. Redirects should be ignored.
       if (!options?.isRedirect) {
-        _collectClsOnce();
+        _collectClsOnce('navigation');
         unsubscribeStartNavigation?.();
       }
     });
@@ -91,7 +90,12 @@ export function trackClsAsStandaloneSpan(): void {
   }, 0);
 }
 
-function sendStandaloneClsSpan(clsValue: number, entry: LayoutShift | undefined, pageloadSpanId: string) {
+function sendStandaloneClsSpan(
+  clsValue: number,
+  entry: LayoutShift | undefined,
+  pageloadSpanId: string,
+  reportEvent: WebVitalReportEvent,
+) {
   DEBUG_BUILD && logger.log(`Sending CLS span (${clsValue})`);
 
   const startTime = msToSec((browserPerformanceTimeOrigin() || 0) + (entry?.startTime || 0));
@@ -105,6 +109,8 @@ function sendStandaloneClsSpan(clsValue: number, entry: LayoutShift | undefined,
     [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: entry?.duration || 0,
     // attach the pageload span id to the CLS span so that we can link them in the UI
     'sentry.pageload.span_id': pageloadSpanId,
+    // describes what triggered the web vital to be reported
+    'sentry.report_event': reportEvent,
   };
 
   // Add CLS sources as span attributes to help with debugging layout shifts

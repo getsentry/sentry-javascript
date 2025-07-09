@@ -2,6 +2,8 @@ import type { Integration, SentrySpan, Span, SpanAttributes, SpanTimeInput, Star
 import { getClient, getCurrentScope, spanToJSON, startInactiveSpan, withActiveSpan } from '@sentry/core';
 import { WINDOW } from '../types';
 
+export type WebVitalReportEvent = 'pagehide' | 'navigation';
+
 /**
  * Checks if a given value is a valid measurement value.
  */
@@ -168,3 +170,6 @@ export function extractNetworkProtocol(nextHopProtocol: string): { name: string;
   }
   return { name, version };
 }
+
+type ReportEvent = 'pagehide' | 'navigation';
+function createReportOnceHandler();
