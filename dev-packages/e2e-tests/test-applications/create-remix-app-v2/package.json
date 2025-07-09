@@ -25,7 +25,6 @@
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@remix-run/dev": "2.16.7",
     "@remix-run/eslint-config": "2.16.7",
-    "@sentry/core": "latest || *",
     "@types/react": "^18.2.64",
     "@types/react-dom": "^18.2.34",
     "@types/prop-types": "15.7.7",

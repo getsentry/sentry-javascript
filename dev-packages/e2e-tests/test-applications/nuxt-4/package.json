@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "nuxt build && bash ./copyIITM.bash",
+    "build": "nuxt build",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
@@ -24,8 +24,8 @@
     "@playwright/test": "~1.50.0",
     "@sentry-internal/test-utils": "link:../../../test-utils"
   },
-  "overrides": {
-    "@vercel/nft": "0.27.4"
+  "volta": {
+    "extends": "../../package.json"
   },
   "sentryTest": {
     "optionalVariants": [

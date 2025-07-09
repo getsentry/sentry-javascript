@@ -1,13 +1,13 @@
 import { getWorkerURL } from '@sentry-internal/replay-worker';
 import { DEBUG_BUILD } from '../debug-build';
-import type { EventBuffer } from '../types';
+import type { EventBuffer, ReplayWorkerURL } from '../types';
 import { logger } from '../util/logger';
 import { EventBufferArray } from './EventBufferArray';
 import { EventBufferProxy } from './EventBufferProxy';
 
 interface CreateEventBufferParams {
   useCompression: boolean;
-  workerUrl?: string;
+  workerUrl?: ReplayWorkerURL;
 }
 
 // Treeshakable guard to remove the code of the included compression worker
@@ -36,7 +36,7 @@ export function createEventBuffer({
   return new EventBufferArray();
 }
 
-function _loadWorker(customWorkerUrl?: string): EventBufferProxy | void {
+function _loadWorker(customWorkerUrl?: ReplayWorkerURL): EventBufferProxy | void {
   try {
     const workerUrl = customWorkerUrl || _getWorkerUrl();
 

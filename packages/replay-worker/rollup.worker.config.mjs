@@ -48,6 +48,24 @@ const config = defineConfig([
       },
     ],
   },
+  {
+    input: ['./src/_worker.ts'],
+    output: {
+      file: './build/esm/worker-bundler.js',
+      format: 'esm',
+    },
+    treeshake: 'smallest',
+    plugins: [
+      commonjs(),
+      typescript({ tsconfig: './tsconfig.json', inlineSourceMap: false, sourceMap: false, inlineSources: false }),
+      resolve(),
+      terser({
+        mangle: {
+          module: true,
+        },
+      }),
+    ],
+  },
 ]);
 
 export default config;

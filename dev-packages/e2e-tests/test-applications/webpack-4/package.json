@@ -18,5 +18,8 @@
     "terser-webpack-plugin": "^4.2.3",
     "html-webpack-plugin": "^4.5.2",
     "serve": "^14.2.1"
+  },
+  "volta": {
+    "extends": "../../package.json"
   }
 }
