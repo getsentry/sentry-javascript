@@ -45,7 +45,7 @@ describe('initCloudflareSentryHandle', () => {
 
     expect(SentryCloudflare.wrapRequestHandler).toHaveBeenCalledTimes(1);
     expect(SentryCloudflare.wrapRequestHandler).toHaveBeenCalledWith(
-      { options: expect.objectContaining({ dsn: options.dsn }), request, context },
+      { options: expect.objectContaining({ dsn: options.dsn }), request, context, captureErrors: false },
       expect.any(Function),
     );
 
