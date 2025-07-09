@@ -1,5 +1,5 @@
 import { context, propagation, ProxyTracerProvider, trace } from '@opentelemetry/api';
-import { Resource } from '@opentelemetry/resources';
+import { defaultResource, resourceFromAttributes } from '@opentelemetry/resources';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import {
   ATTR_SERVICE_NAME,
@@ -64,12 +64,14 @@ export function setupOtel(client: NodeClient): BasicTracerProvider | undefined {
   // Create and configure TracerProvider with same config as Node SDK
   const provider = new BasicTracerProvider({
     sampler: new SentrySampler(client),
-    resource: new Resource({
-      [ATTR_SERVICE_NAME]: 'node',
-      // eslint-disable-next-line deprecation/deprecation
-      [SEMRESATTRS_SERVICE_NAMESPACE]: 'sentry',
-      [ATTR_SERVICE_VERSION]: SDK_VERSION,
-    }),
+    resource: defaultResource().merge(
+      resourceFromAttributes({
+        [ATTR_SERVICE_NAME]: 'node',
+        // eslint-disable-next-line deprecation/deprecation
+        [SEMRESATTRS_SERVICE_NAMESPACE]: 'sentry',
+        [ATTR_SERVICE_VERSION]: SDK_VERSION,
+      }),
+    ),
     forceFlushTimeoutMillis: 500,
     spanProcessors: [
       new SentrySpanProcessor({
