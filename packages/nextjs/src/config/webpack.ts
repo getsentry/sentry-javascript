@@ -7,7 +7,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { sync as resolveSync } from 'resolve';
 import type { VercelCronsConfig } from '../common/types';
-import type { RouteManifest } from './manifest/buildManifest';
+import type { RouteManifest } from './manifest/types';
 // Note: If you need to import a type from Webpack, do it in `types.ts` and export it from there. Otherwise, our
 // circular dependency check thinks this file is importing from itself. See https://github.com/pahen/madge/issues/306.
 import type {

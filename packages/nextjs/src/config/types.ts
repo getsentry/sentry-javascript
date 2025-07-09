@@ -468,11 +468,11 @@ export type SentryBuildOptions = {
   suppressOnRouterTransitionStartWarning?: boolean;
 
   /**
-   * Enables manifest injection.
+   * Disables manifest injection.
    *
-   * Defaults to `true`.
+   * Defaults to `false`.
    */
-  enableManifest?: boolean;
+  disableManifestInjection?: boolean;
 
   /**
    * Contains a set of experimental flags that might change in future releases. These flags enable

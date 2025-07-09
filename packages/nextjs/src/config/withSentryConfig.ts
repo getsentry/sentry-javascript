@@ -5,8 +5,8 @@ import { getSentryRelease } from '@sentry/node';
 import * as childProcess from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
-import type { RouteManifest } from './manifest/buildManifest';
-import { createRouteManifest } from './manifest/buildManifest';
+import { createRouteManifest } from './manifest/createRouteManifest';
+import type { RouteManifest } from './manifest/types';
 import type {
   ExportedNextConfig as NextConfig,
   NextConfigFunction,
@@ -144,7 +144,7 @@ function getFinalConfigObject(
   }
 
   let routeManifest: RouteManifest | undefined;
-  if (userSentryOptions.enableManifest !== false) {
+  if (!userSentryOptions.disableManifestInjection) {
     routeManifest = createRouteManifest();
   }
 
