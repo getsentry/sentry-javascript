@@ -321,18 +321,17 @@ describe('pagesRouterInstrumentNavigation', () => {
 
       Router.events.emit('routeChangeStart', targetLocation);
 
-      expect(emit).toHaveBeenCalledTimes(1);
-      expect(emit).toHaveBeenCalledWith(
-        'startNavigationSpan',
-        expect.objectContaining({
-          name: expectedTransactionName,
-          attributes: {
-            'sentry.op': 'navigation',
-            'sentry.origin': 'auto.navigation.nextjs.pages_router_instrumentation',
-            'sentry.source': expectedTransactionSource,
-          },
-        }),
-      );
+      expect(emit).toHaveBeenCalledTimes(2);
+      const expectedSpanOptions = {
+        name: expectedTransactionName,
+        attributes: {
+          'sentry.op': 'navigation',
+          'sentry.origin': 'auto.navigation.nextjs.pages_router_instrumentation',
+          'sentry.source': expectedTransactionSource,
+        },
+      };
+      expect(emit).toHaveBeenCalledWith('beforeStartNavigationSpan', expect.objectContaining(expectedSpanOptions));
+      expect(emit).toHaveBeenCalledWith('startNavigationSpan', expect.objectContaining(expectedSpanOptions));
     },
   );
 });
