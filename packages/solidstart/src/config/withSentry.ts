@@ -37,10 +37,11 @@ export function withSentry(
 
   const server = (solidStartConfig.server || {}) as SolidStartInlineServerConfig;
   const hooks = server.hooks || {};
+  const viteConfig = solidStartConfig.vite;
   const vite =
-    typeof solidStartConfig.vite === 'function'
-      ? (...args: unknown[]) => addSentryPluginToVite(solidStartConfig.vite(...args), sentryPluginOptions)
-      : addSentryPluginToVite(solidStartConfig.vite, sentryPluginOptions);
+    typeof viteConfig === 'function'
+      ? (...args: Parameters<typeof viteConfig>) => addSentryPluginToVite(viteConfig(...args), sentryPluginOptions)
+      : addSentryPluginToVite(viteConfig, sentryPluginOptions);
 
   return {
     ...solidStartConfig,
