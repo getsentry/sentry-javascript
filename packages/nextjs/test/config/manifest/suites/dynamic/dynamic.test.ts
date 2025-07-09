@@ -1,48 +1,42 @@
 import path from 'path';
 import { describe, expect, test } from 'vitest';
-import { createRouteManifest } from '../../../../../src/config/manifest/buildManifest';
+import { createRouteManifest } from '../../../../../src/config/manifest/createRouteManifest';
 
 describe('dynamic', () => {
   const manifest = createRouteManifest({ appDirPath: path.join(__dirname, 'app') });
 
-  test('should generate a comprehensive dynamic manifest', () => {
+  test('should generate a dynamic manifest', () => {
     expect(manifest).toEqual({
-      dynamic: [
+      routes: [
+        { path: '/' },
         {
           path: '/dynamic/:id',
-          dynamic: true,
-          pattern: '^/dynamic/([^/]+)$',
+          regex: '^/dynamic/([^/]+)$',
           paramNames: ['id'],
         },
+        { path: '/static/nested' },
         {
           path: '/users/:id',
-          dynamic: true,
-          pattern: '^/users/([^/]+)$',
+          regex: '^/users/([^/]+)$',
           paramNames: ['id'],
         },
         {
           path: '/users/:id/posts/:postId',
-          dynamic: true,
-          pattern: '^/users/([^/]+)/posts/([^/]+)$',
+          regex: '^/users/([^/]+)/posts/([^/]+)$',
           paramNames: ['id', 'postId'],
         },
         {
           path: '/users/:id/settings',
-          dynamic: true,
-          pattern: '^/users/([^/]+)/settings$',
+          regex: '^/users/([^/]+)/settings$',
           paramNames: ['id'],
         },
-      ],
-      static: [
-        { path: '/', dynamic: false },
-        { path: '/static/nested', dynamic: false },
       ],
     });
   });
 
   test('should generate correct pattern for single dynamic route', () => {
-    const singleDynamic = manifest.dynamic.find(route => route.path === '/dynamic/:id');
-    const regex = new RegExp(singleDynamic?.pattern ?? '');
+    const singleDynamic = manifest.routes.find(route => route.path === '/dynamic/:id');
+    const regex = new RegExp(singleDynamic?.regex ?? '');
     expect(regex.test('/dynamic/123')).toBe(true);
     expect(regex.test('/dynamic/abc')).toBe(true);
     expect(regex.test('/dynamic/123/456')).toBe(false);
@@ -51,8 +45,8 @@ describe('dynamic', () => {
   });
 
   test('should generate correct pattern for mixed static-dynamic route', () => {
-    const mixedRoute = manifest.dynamic.find(route => route.path === '/users/:id/settings');
-    const regex = new RegExp(mixedRoute?.pattern ?? '');
+    const mixedRoute = manifest.routes.find(route => route.path === '/users/:id/settings');
+    const regex = new RegExp(mixedRoute?.regex ?? '');
 
     expect(regex.test('/users/123/settings')).toBe(true);
     expect(regex.test('/users/john-doe/settings')).toBe(true);
@@ -62,8 +56,8 @@ describe('dynamic', () => {
   });
 
   test('should generate correct pattern for multiple dynamic segments', () => {
-    const multiDynamic = manifest.dynamic.find(route => route.path === '/users/:id/posts/:postId');
-    const regex = new RegExp(multiDynamic?.pattern ?? '');
+    const multiDynamic = manifest.routes.find(route => route.path === '/users/:id/posts/:postId');
+    const regex = new RegExp(multiDynamic?.regex ?? '');
 
     expect(regex.test('/users/123/posts/456')).toBe(true);
     expect(regex.test('/users/john/posts/my-post')).toBe(true);
@@ -79,11 +73,11 @@ describe('dynamic', () => {
 
   test('should handle special characters in dynamic segments', () => {
     // Test that dynamic segments with special characters work properly
-    const userSettingsRoute = manifest.dynamic.find(route => route.path === '/users/:id/settings');
+    const userSettingsRoute = manifest.routes.find(route => route.path === '/users/:id/settings');
     expect(userSettingsRoute).toBeDefined();
-    expect(userSettingsRoute?.pattern).toBeDefined();
+    expect(userSettingsRoute?.regex).toBeDefined();
 
-    const regex = new RegExp(userSettingsRoute!.pattern!);
+    const regex = new RegExp(userSettingsRoute!.regex!);
     expect(regex.test('/users/user-with-dashes/settings')).toBe(true);
     expect(regex.test('/users/user_with_underscores/settings')).toBe(true);
     expect(regex.test('/users/123/settings')).toBe(true);

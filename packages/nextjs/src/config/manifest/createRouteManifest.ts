@@ -1,17 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-
-export type RouteInfo = {
-  path: string;
-  dynamic: boolean;
-  pattern?: string;
-  paramNames?: string[];
-};
-
-export type RouteManifest = {
-  dynamic: RouteInfo[];
-  static: RouteInfo[];
-};
+import type { RouteInfo, RouteManifest } from './types';
 
 export type CreateRouteManifestOptions = {
   // For starters we only support app router
@@ -43,7 +32,7 @@ function getDynamicRouteSegment(name: string): string {
   return `:${name.slice(1, -1)}`;
 }
 
-function buildRegexForDynamicRoute(routePath: string): { pattern: string; paramNames: string[] } {
+function buildRegexForDynamicRoute(routePath: string): { regex: string; paramNames: string[] } {
   const segments = routePath.split('/').filter(Boolean);
   const regexSegments: string[] = [];
   const paramNames: string[] = [];
@@ -85,7 +74,7 @@ function buildRegexForDynamicRoute(routePath: string): { pattern: string; paramN
     pattern = `^/${regexSegments.join('/')}$`;
   }
 
-  return { pattern, paramNames };
+  return { regex: pattern, paramNames };
 }
 
 function scanAppDirectory(dir: string, basePath: string = ''): RouteInfo[] {
@@ -100,17 +89,15 @@ function scanAppDirectory(dir: string, basePath: string = ''): RouteInfo[] {
       const isDynamic = routePath.includes(':');
 
       if (isDynamic) {
-        const { pattern, paramNames } = buildRegexForDynamicRoute(routePath);
+        const { regex, paramNames } = buildRegexForDynamicRoute(routePath);
         routes.push({
           path: routePath,
-          dynamic: true,
-          pattern,
+          regex,
           paramNames,
         });
       } else {
         routes.push({
           path: routePath,
-          dynamic: false,
         });
       }
     }
@@ -170,8 +157,7 @@ export function createRouteManifest(options?: CreateRouteManifestOptions): Route
 
   if (!targetDir) {
     return {
-      dynamic: [],
-      static: [],
+      routes: [],
     };
   }
 
@@ -183,8 +169,7 @@ export function createRouteManifest(options?: CreateRouteManifestOptions): Route
   const routes = scanAppDirectory(targetDir);
 
   const manifest: RouteManifest = {
-    dynamic: routes.filter(route => route.dynamic),
-    static: routes.filter(route => !route.dynamic),
+    routes,
   };
 
   // set cache
