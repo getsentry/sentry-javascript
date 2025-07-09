@@ -98,7 +98,13 @@ export default defineNuxtModule<ModuleOptions>({
     });
 
     nuxt.hooks.hook('pages:extend', pages => {
-      pagesDataTemplate.getContents = () => `export default ${JSON.stringify(pages, null, 2)};`;
+      pagesDataTemplate.getContents = () => {
+        const pagesSubset = pages.map(page => ({
+          file: page.file,
+          path: page.path,
+        }));
+        return `export default ${JSON.stringify(pagesSubset, null, 2)};`;
+      };
     });
 
     nuxt.hooks.hook('nitro:init', nitro => {

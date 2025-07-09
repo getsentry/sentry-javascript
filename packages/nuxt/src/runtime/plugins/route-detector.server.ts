@@ -1,11 +1,11 @@
 import { getActiveSpan, getRootSpan, logger, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { defineNuxtPlugin } from 'nuxt/app';
-import type { NuxtPage } from 'nuxt/schema';
+import type { NuxtPageSubset } from '../utils/route-extraction';
 import { extractParametrizedRouteFromContext } from '../utils/route-extraction';
 
 export default defineNuxtPlugin(nuxtApp => {
   nuxtApp.hooks.hook('app:rendered', async renderContext => {
-    let buildTimePagesData: NuxtPage[] = [];
+    let buildTimePagesData: NuxtPageSubset[];
     try {
       // This is a common Nuxt pattern to import build-time generated data: https://nuxt.com/docs/4.x/api/kit/templates#creating-a-virtual-file-for-runtime-plugin
       // @ts-expect-error This import is dynamically resolved at build time (`addTemplate` in module.ts)
@@ -13,6 +13,7 @@ export default defineNuxtPlugin(nuxtApp => {
       buildTimePagesData = importedPagesData || [];
     } catch (error) {
       buildTimePagesData = [];
+      logger.warn('Failed to import build-time pages data:', error);
     }
 
     const ssrContext = renderContext.ssrContext;
@@ -36,10 +37,7 @@ export default defineNuxtPlugin(nuxtApp => {
         return;
       }
 
-      const method = ssrContext?.event?._method || 'GET';
-      const parametrizedTransactionName = `${method.toUpperCase()} ${routeInfo.parametrizedRoute}`;
-
-      logger.log('Matched parametrized server route:', parametrizedTransactionName);
+      logger.log('Matched parametrized server route:', routeInfo.parametrizedRoute);
 
       rootSpan.setAttributes({
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
