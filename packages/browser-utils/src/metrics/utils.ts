@@ -238,13 +238,6 @@ export function listenForWebVitalReportEvents(
       }
     });
 
-    client.on('spanEnd', span => {
-      const spanJSON = spanToJSON(span);
-      if (spanJSON.op === 'pageload') {
-        pageloadSpanId = span.spanContext().spanId;
-      }
-    });
-
     const activeSpan = getActiveSpan();
     if (activeSpan) {
       const rootSpan = getRootSpan(activeSpan);
