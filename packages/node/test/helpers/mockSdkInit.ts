@@ -55,8 +55,7 @@ export function getSpanProcessor(): SentrySpanProcessor | undefined {
   }
 
   // Access the span processors from the provider via _activeSpanProcessor
-  // Casted as any because _activeSpanProcessor is marked as readonly
-  const multiSpanProcessor = (provider as any)._activeSpanProcessor as
+  const multiSpanProcessor = provider?.['_activeSpanProcessor'] as
     | (SpanProcessor & { _spanProcessors?: SpanProcessor[] })
     | undefined;
 
