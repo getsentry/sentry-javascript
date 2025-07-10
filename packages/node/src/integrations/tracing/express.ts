@@ -15,10 +15,8 @@ import {
 } from '@sentry/core';
 import { addOriginToSpan, ensureIsWrapped, generateInstrumentOnce } from '@sentry/node-core';
 import { DEBUG_BUILD } from '../../debug-build';
-import { ExpressInstrumentationV5 } from './express-v5/instrumentation';
 
 const INTEGRATION_NAME = 'Express';
-const INTEGRATION_NAME_V5 = 'Express-V5';
 
 function requestHook(span: Span): void {
   addOriginToSpan(span, 'auto.http.otel.express');
@@ -61,21 +59,11 @@ export const instrumentExpress = generateInstrumentOnce(
     }),
 );
 
-export const instrumentExpressV5 = generateInstrumentOnce(
-  INTEGRATION_NAME_V5,
-  () =>
-    new ExpressInstrumentationV5({
-      requestHook: span => requestHook(span),
-      spanNameHook: (info, defaultName) => spanNameHook(info, defaultName),
-    }),
-);
-
 const _expressIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
       instrumentExpress();
-      instrumentExpressV5();
     },
   };
 }) satisfies IntegrationFn;
