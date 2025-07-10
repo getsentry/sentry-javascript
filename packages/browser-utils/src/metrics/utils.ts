@@ -213,8 +213,8 @@ export function listenForWebVitalReportEvents(
   function _runCollectorCallbackOnce(event: WebVitalReportEvent) {
     if (!collected && pageloadSpanId) {
       collectorCallback(event, pageloadSpanId);
-      collected = true;
     }
+    collected = true;
   }
 
   onHidden(() => {
