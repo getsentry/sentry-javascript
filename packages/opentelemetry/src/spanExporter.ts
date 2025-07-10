@@ -191,6 +191,14 @@ export class SentrySpanExporter {
       sentSpans.add(span);
       const transactionEvent = createTransactionForOtelSpan(span);
 
+      // Add an attribute to the transaction event to indicate that this transaction is an orphaned transaction
+      if (root.parentNode && this._sentSpans.has(root.parentNode.id)) {
+        const traceData = transactionEvent.contexts?.trace?.data;
+        if (traceData) {
+          traceData['sentry.transaction.parent_span_already_sent'] = true;
+        }
+      }
+
       // We'll recursively add all the child spans to this array
       const spans = transactionEvent.spans || [];
 
