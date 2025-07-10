@@ -195,7 +195,7 @@ export class SentrySpanExporter {
       if (root.parentNode && this._sentSpans.has(root.parentNode.id)) {
         const traceData = transactionEvent.contexts?.trace?.data;
         if (traceData) {
-          traceData['sentry.transaction.parent_span_already_sent'] = true;
+          traceData['sentry.parent_span_already_sent'] = true;
         }
       }
 

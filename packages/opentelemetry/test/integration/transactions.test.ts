@@ -621,7 +621,7 @@ describe('Integration | Transactions', () => {
 
     expect(transactions[1]?.transaction).toBe('inner span 2');
     expect(transactions[1]?.contexts?.trace?.data).toEqual({
-      'sentry.transaction.parent_span_already_sent': true,
+      'sentry.parent_span_already_sent': true,
       'sentry.origin': 'manual',
       'sentry.source': 'custom',
     });
