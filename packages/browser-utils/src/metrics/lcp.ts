@@ -1,10 +1,7 @@
 import type { SpanAttributes } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
-  getActiveSpan,
-  getClient,
   getCurrentScope,
-  getRootSpan,
   htmlTreeAsString,
   logger,
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
@@ -12,14 +9,11 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  spanToJSON,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { addLcpInstrumentationHandler } from './instrument';
 import type { WebVitalReportEvent } from './utils';
-import { msToSec, startStandaloneWebVitalSpan, supportsWebVital } from './utils';
-import { onHidden } from './web-vitals/lib/onHidden';
-import { runOnce } from './web-vitals/lib/runOnce';
+import { listenForWebVitalReportEvents, msToSec, startStandaloneWebVitalSpan, supportsWebVital } from './utils';
 
 /**
  * Starts tracking the Largest Contentful Paint on the current page and collects the value once
@@ -33,19 +27,9 @@ import { runOnce } from './web-vitals/lib/runOnce';
 export function trackLcpAsStandaloneSpan(): void {
   let standaloneLcpValue = 0;
   let standaloneLcpEntry: LargestContentfulPaint | undefined;
-  let pageloadSpanId: string | undefined;
 
   if (!supportsWebVital('largest-contentful-paint')) {
     return;
-  }
-
-  function _collectLcpOnce(reportEvent: WebVitalReportEvent) {
-    runOnce(() => {
-      if (pageloadSpanId) {
-        _sendStandaloneLcpSpan(standaloneLcpValue, standaloneLcpEntry, pageloadSpanId, reportEvent);
-      }
-      cleanupLcpHandler();
-    });
   }
 
   const cleanupLcpHandler = addLcpInstrumentationHandler(({ metric }) => {
@@ -57,37 +41,10 @@ export function trackLcpAsStandaloneSpan(): void {
     standaloneLcpEntry = entry;
   }, true);
 
-  onHidden(() => {
-    _collectLcpOnce('pagehide');
+  listenForWebVitalReportEvents((reportEvent, pageloadSpanId) => {
+    _sendStandaloneLcpSpan(standaloneLcpValue, standaloneLcpEntry, pageloadSpanId, reportEvent);
+    cleanupLcpHandler();
   });
-
-  // Since the call chain of this function is synchronous and evaluates before the SDK client is created,
-  // we need to wait with subscribing to a client hook until the client is created. Therefore, we defer
-  // to the next tick after the SDK setup.
-  setTimeout(() => {
-    const client = getClient();
-
-    if (!client) {
-      return;
-    }
-
-    const unsubscribeStartNavigation = client.on('beforeStartNavigationSpan', (_, options) => {
-      // we only want to collect LCP if we actually navigate. Redirects should be ignored.
-      if (!options?.isRedirect) {
-        _collectLcpOnce('navigation');
-        unsubscribeStartNavigation?.();
-      }
-    });
-
-    const activeSpan = getActiveSpan();
-    if (activeSpan) {
-      const rootSpan = getRootSpan(activeSpan);
-      const spanJSON = spanToJSON(rootSpan);
-      if (spanJSON.op === 'pageload') {
-        pageloadSpanId = rootSpan.spanContext().spanId;
-      }
-    }
-  }, 0);
 }
 
 /**

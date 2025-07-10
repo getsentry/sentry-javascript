@@ -1,10 +1,7 @@
 import type { SpanAttributes } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
-  getActiveSpan,
-  getClient,
   getCurrentScope,
-  getRootSpan,
   htmlTreeAsString,
   logger,
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
@@ -12,14 +9,11 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  spanToJSON,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { addClsInstrumentationHandler } from './instrument';
 import type { WebVitalReportEvent } from './utils';
-import { msToSec, startStandaloneWebVitalSpan, supportsWebVital } from './utils';
-import { onHidden } from './web-vitals/lib/onHidden';
-import { runOnce } from './web-vitals/lib/runOnce';
+import { listenForWebVitalReportEvents, msToSec, startStandaloneWebVitalSpan, supportsWebVital } from './utils';
 
 /**
  * Starts tracking the Cumulative Layout Shift on the current page and collects the value once
@@ -33,19 +27,9 @@ import { runOnce } from './web-vitals/lib/runOnce';
 export function trackClsAsStandaloneSpan(): void {
   let standaloneCLsValue = 0;
   let standaloneClsEntry: LayoutShift | undefined;
-  let pageloadSpanId: string | undefined;
 
   if (!supportsWebVital('layout-shift')) {
     return;
-  }
-
-  function _collectClsOnce(reportEvent: WebVitalReportEvent) {
-    runOnce(() => {
-      if (pageloadSpanId) {
-        sendStandaloneClsSpan(standaloneCLsValue, standaloneClsEntry, pageloadSpanId, reportEvent);
-      }
-      cleanupClsHandler();
-    });
   }
 
   const cleanupClsHandler = addClsInstrumentationHandler(({ metric }) => {
@@ -57,37 +41,10 @@ export function trackClsAsStandaloneSpan(): void {
     standaloneClsEntry = entry;
   }, true);
 
-  onHidden(() => {
-    _collectClsOnce('pagehide');
+  listenForWebVitalReportEvents((reportEvent, pageloadSpanId) => {
+    sendStandaloneClsSpan(standaloneCLsValue, standaloneClsEntry, pageloadSpanId, reportEvent);
+    cleanupClsHandler();
   });
-
-  // Since the call chain of this function is synchronous and evaluates before the SDK client is created,
-  // we need to wait with subscribing to a client hook until the client is created. Therefore, we defer
-  // to the next tick after the SDK setup.
-  setTimeout(() => {
-    const client = getClient();
-
-    if (!client) {
-      return;
-    }
-
-    const unsubscribeStartNavigation = client.on('beforeStartNavigationSpan', (_, options) => {
-      // we only want to collect CLS if we actually navigate. Redirects should be ignored.
-      if (!options?.isRedirect) {
-        _collectClsOnce('navigation');
-        unsubscribeStartNavigation?.();
-      }
-    });
-
-    const activeSpan = getActiveSpan();
-    if (activeSpan) {
-      const rootSpan = getRootSpan(activeSpan);
-      const spanJSON = spanToJSON(rootSpan);
-      if (spanJSON.op === 'pageload') {
-        pageloadSpanId = rootSpan.spanContext().spanId;
-      }
-    }
-  }, 0);
 }
 
 function sendStandaloneClsSpan(
