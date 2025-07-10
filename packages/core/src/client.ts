@@ -607,7 +607,10 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * A hook for triggering right before a navigation span is started.
    * @returns {() => void} A function that, when executed, removes the registered callback.
    */
-  public on(hook: 'beforeStartNavigationSpan', callback: (options: StartSpanOptions) => void): () => void;
+  public on(
+    hook: 'beforeStartNavigationSpan',
+    callback: (options: StartSpanOptions, navigationOptions?: { isRedirect?: boolean }) => void,
+  ): () => void;
 
   /**
    * A hook for browser tracing integrations to trigger a span for a navigation.
@@ -791,7 +794,11 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   /**
    * Emit a hook event for triggering right before a navigation span is started.
    */
-  public emit(hook: 'beforeStartNavigationSpan', options: StartSpanOptions): void;
+  public emit(
+    hook: 'beforeStartNavigationSpan',
+    options: StartSpanOptions,
+    navigationOptions?: { isRedirect?: boolean },
+  ): void;
 
   /**
    * Emit a hook event for browser tracing integrations to trigger a span for a navigation.
