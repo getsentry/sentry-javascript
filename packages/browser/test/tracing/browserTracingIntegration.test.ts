@@ -804,7 +804,10 @@ describe('browserTracingIntegration', () => {
 
       startBrowserTracingNavigationSpan(client, { name: 'test span', op: 'navigation' });
 
-      expect(mockBeforeStartNavigationSpanCallback).toHaveBeenCalledWith({ name: 'test span', op: 'navigation' });
+      expect(mockBeforeStartNavigationSpanCallback).toHaveBeenCalledWith(
+        { name: 'test span', op: 'navigation' },
+        { isRedirect: undefined },
+      );
     });
   });
 
