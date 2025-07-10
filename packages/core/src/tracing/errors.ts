@@ -41,5 +41,3 @@ export function registerSpanErrorInstrumentation(): void {
   addGlobalErrorInstrumentationHandler(errorCallback);
   addGlobalUnhandledRejectionInstrumentationHandler(errorCallback);
 }
-
-
