@@ -209,20 +209,18 @@ export function listenForWebVitalReportEvents(
   collectorCallback: (event: WebVitalReportEvent, pageloadSpanId: string) => void,
 ) {
   let pageloadSpanId: string | undefined;
-  let triggeredReportEvent: WebVitalReportEvent | undefined;
-  let collected = false;
 
-  function _runCollectorCallbackOnce() {
-    if (!collected && triggeredReportEvent) {
-      collectorCallback(triggeredReportEvent, pageloadSpanId ?? 'unknown');
+  let collected = false;
+  function _runCollectorCallbackOnce(event: WebVitalReportEvent) {
+    if (!collected) {
+      collectorCallback(event, pageloadSpanId ?? 'unknown');
       collected = true;
     }
   }
 
   onHidden(() => {
     if (!collected) {
-      triggeredReportEvent = 'pagehide';
-      _runCollectorCallbackOnce();
+      _runCollectorCallbackOnce('pagehide');
     }
   });
 
@@ -235,8 +233,7 @@ export function listenForWebVitalReportEvents(
     const unsubscribeStartNavigation = client.on('beforeStartNavigationSpan', (_, options) => {
       // we only want to collect LCP if we actually navigate. Redirects should be ignored.
       if (!options?.isRedirect) {
-        triggeredReportEvent = 'navigation';
-        _runCollectorCallbackOnce();
+        _runCollectorCallbackOnce('navigation');
         unsubscribeStartNavigation?.();
       }
     });
