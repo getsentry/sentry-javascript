@@ -348,10 +348,10 @@ sentryTest(
 sentryTest('sends CLS of the initial page when soft-navigating to a new page', async ({ getLocalTestUrl, page }) => {
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  const eventData = await getFirstSentryEnvelopeRequest<SentryEvent>(page, url);
+  const pageloadEventData = await getFirstSentryEnvelopeRequest<SentryEvent>(page, url);
 
-  expect(eventData.type).toBe('transaction');
-  expect(eventData.contexts?.trace?.op).toBe('pageload');
+  expect(pageloadEventData.type).toBe('transaction');
+  expect(pageloadEventData.contexts?.trace?.op).toBe('pageload');
 
   const spanEnvelopePromise = getMultipleSentryEnvelopeRequests<SpanEnvelope>(
     page,
@@ -364,12 +364,16 @@ sentryTest('sends CLS of the initial page when soft-navigating to a new page', a
 
   await page.goto(`${url}#soft-navigation`);
 
+  const pageloadTraceId = pageloadEventData.contexts?.trace?.trace_id;
+  expect(pageloadTraceId).toMatch(/[a-f0-9]{32}/);
+
   const spanEnvelope = (await spanEnvelopePromise)[0];
   const spanEnvelopeItem = spanEnvelope[1][0][1];
   // Flakey value dependent on timings -> we check for a range
   expect(spanEnvelopeItem.measurements?.cls?.value).toBeGreaterThan(0.05);
   expect(spanEnvelopeItem.measurements?.cls?.value).toBeLessThan(0.15);
-  expect(spanEnvelopeItem.data?.['sentry.pageload.span_id']).toMatch(/[a-f0-9]{16}/);
+  expect(spanEnvelopeItem.data?.['sentry.pageload.span_id']).toBe(pageloadEventData.contexts?.trace?.span_id);
+  expect(spanEnvelopeItem.trace_id).toEqual(pageloadTraceId);
 });
 
 sentryTest("doesn't send further CLS after the first navigation", async ({ getLocalTestUrl, page }) => {

@@ -41,6 +41,6 @@ test('does not send transactions for build asset folder "_nuxt"', async ({ page 
 
   expect(buildAssetFolderOccurred).toBe(false);
 
-  // todo: url not yet parametrized
+  // Parametrization does not work in Nuxt 3.7 yet (only in newer versions)
   expect(transactionEvent.transaction).toBe('GET /test-param/1234');
 });

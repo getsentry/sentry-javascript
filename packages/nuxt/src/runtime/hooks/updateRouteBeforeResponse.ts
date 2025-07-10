@@ -1,4 +1,4 @@
-import { getActiveSpan, getCurrentScope, getRootSpan, logger, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { getActiveSpan, getRootSpan, logger, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import type { H3Event } from 'h3';
 
 /**
@@ -15,15 +15,9 @@ export function updateRouteBeforeResponse(event: H3Event): void {
   // Example: Matched route is "/users/:id" and the event's path is "/users/123",
   if (matchedRoutePath && matchedRoutePath !== event._path) {
     if (matchedRoutePath === '/**') {
-      // todo: support parametrized SSR pageload spans
       // If page is server-side rendered, the whole path gets transformed to `/**` (Example : `/users/123` becomes `/**` instead of `/users/:id`).
-      return; // Skip if the matched route is a catch-all route.
+      return; // Skip if the matched route is a catch-all route (handled in `route-detector.server.ts`)
     }
-
-    const method = event._method || 'GET';
-
-    const parametrizedTransactionName = `${method.toUpperCase()} ${matchedRoutePath}`;
-    getCurrentScope().setTransactionName(parametrizedTransactionName);
 
     const activeSpan = getActiveSpan(); // In development mode, getActiveSpan() is always undefined
     if (!activeSpan) {
@@ -52,6 +46,6 @@ export function updateRouteBeforeResponse(event: H3Event): void {
       });
     }
 
-    logger.log(`Updated transaction name for parametrized route: ${parametrizedTransactionName}`);
+    logger.log(`Updated transaction name for parametrized route: ${matchedRoutePath}`);
   }
 }

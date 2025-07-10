@@ -43,17 +43,12 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@sentry/cloudflare": ">=9.34.0",
     "nuxt": ">=3.7.0 || 4.x"
-  },
-  "peerDependenciesMeta": {
-    "@sentry/cloudflare": {
-      "optional": true
-    }
   },
   "dependencies": {
     "@nuxt/kit": "^3.13.2",
     "@sentry/browser": "9.36.0",
+    "@sentry/cloudflare": "9.36.0",
     "@sentry/core": "9.36.0",
     "@sentry/node": "9.36.0",
     "@sentry/rollup-plugin": "^3.5.0",
@@ -62,8 +57,9 @@
   },
   "devDependencies": {
     "@nuxt/module-builder": "^0.8.4",
-    "@sentry/cloudflare": "9.36.0",
-    "nuxt": "^3.13.2"
+    "nuxt": "^3.13.2",
+    "nuxi": "^3.25.1",
+    "vite": "^5.4.11"
   },
   "scripts": {
     "build": "run-s build:types build:transpile",

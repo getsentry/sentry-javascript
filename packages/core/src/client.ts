@@ -604,10 +604,22 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   ): () => void;
 
   /**
+   * A hook for triggering right before a navigation span is started.
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(
+    hook: 'beforeStartNavigationSpan',
+    callback: (options: StartSpanOptions, navigationOptions?: { isRedirect?: boolean }) => void,
+  ): () => void;
+
+  /**
    * A hook for browser tracing integrations to trigger a span for a navigation.
    * @returns {() => void} A function that, when executed, removes the registered callback.
    */
-  public on(hook: 'startNavigationSpan', callback: (options: StartSpanOptions) => void): () => void;
+  public on(
+    hook: 'startNavigationSpan',
+    callback: (options: StartSpanOptions, navigationOptions?: { isRedirect?: boolean }) => void,
+  ): () => void;
 
   /**
    * A hook for GraphQL client integration to enhance a span with request data.
@@ -780,9 +792,22 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   ): void;
 
   /**
+   * Emit a hook event for triggering right before a navigation span is started.
+   */
+  public emit(
+    hook: 'beforeStartNavigationSpan',
+    options: StartSpanOptions,
+    navigationOptions?: { isRedirect?: boolean },
+  ): void;
+
+  /**
    * Emit a hook event for browser tracing integrations to trigger a span for a navigation.
    */
-  public emit(hook: 'startNavigationSpan', options: StartSpanOptions): void;
+  public emit(
+    hook: 'startNavigationSpan',
+    options: StartSpanOptions,
+    navigationOptions?: { isRedirect?: boolean },
+  ): void;
 
   /**
    * Emit a hook event for GraphQL client integration to enhance a span with request data.
