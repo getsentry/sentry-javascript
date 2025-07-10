@@ -4,6 +4,30 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 9.37.0
+
+### Important Changes
+
+- **feat(nuxt): Parametrize SSR routes ([#16843](https://github.com/getsentry/sentry-javascript/pull/16843))**
+
+  When requesting dynamic or catch-all routes in Nuxt, those will now be shown as parameterized routes in Sentry.
+  For example, `/users/123` will be shown as `/users/:userId()` in Sentry. This will make it easier to identify patterns and make grouping easier.
+
+### Other Changes
+
+- feat(astro): Deprecate passing runtime config to astro integration ([#16839](https://github.com/getsentry/sentry-javascript/pull/16839))
+- feat(browser): Add `beforeStartNavigationSpan` lifecycle hook ([#16863](https://github.com/getsentry/sentry-javascript/pull/16863))
+- feat(browser): Detect redirects when emitting navigation spans ([#16324](https://github.com/getsentry/sentry-javascript/pull/16324))
+- feat(cloudflare): Add option to opt out of capturing errors in `wrapRequestHandler` ([#16852](https://github.com/getsentry/sentry-javascript/pull/16852))
+- feat(feedback): Return the eventId into the onSubmitSuccess callback ([#16835](https://github.com/getsentry/sentry-javascript/pull/16835))
+- feat(vercel-edge): Do not vendor in all OpenTelemetry dependencies ([#16841](https://github.com/getsentry/sentry-javascript/pull/16841))
+- fix(browser): Ensure standalone CLS and LCP spans have traceId of pageload span ([#16864](https://github.com/getsentry/sentry-javascript/pull/16864))
+- fix(nextjs): Use value injection loader on `instrumentation-client.ts|js` ([#16855](https://github.com/getsentry/sentry-javascript/pull/16855))
+- fix(sveltekit): Avoid capturing `redirect()` calls as errors in Cloudflare ([#16853](https://github.com/getsentry/sentry-javascript/pull/16853))
+- docs(nextjs): Update `deleteSourcemapsAfterUpload` jsdoc default value ([#16867](https://github.com/getsentry/sentry-javascript/pull/16867))
+
+Work in this release was contributed by @zachkirsch. Thank you for your contribution!
+
 ## 9.36.0
 
 ### Important Changes
