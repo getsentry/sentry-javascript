@@ -211,8 +211,8 @@ export function listenForWebVitalReportEvents(
 
   let collected = false;
   function _runCollectorCallbackOnce(event: WebVitalReportEvent) {
-    if (!collected) {
-      collectorCallback(event, pageloadSpanId ?? 'unknown');
+    if (!collected && pageloadSpanId) {
+      collectorCallback(event, pageloadSpanId);
       collected = true;
     }
   }
