@@ -1,5 +1,5 @@
 import type { Integration } from '@sentry/core';
-import { getGlobalScope, getIsolationScope, logger } from '@sentry/core';
+import { debug, getGlobalScope, getIsolationScope } from '@sentry/core';
 import * as SentryReact from '@sentry/react';
 import { getClient, getCurrentScope, WINDOW } from '@sentry/react';
 import { JSDOM } from 'jsdom';
@@ -7,7 +7,7 @@ import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 import { breadcrumbsIntegration, browserTracingIntegration, init } from '../src/client';
 
 const reactInit = vi.spyOn(SentryReact, 'init');
-const loggerLogSpy = vi.spyOn(logger, 'log');
+const debugLogSpy = vi.spyOn(debug, 'log');
 
 // We're setting up JSDom here because the Next.js routing instrumentations requires a few things to be present on pageload:
 // 1. Access to window.document API for `window.document.getElementById`
@@ -90,7 +90,7 @@ describe('Client init()', () => {
     });
 
     expect(transportSend).not.toHaveBeenCalled();
-    expect(loggerLogSpy).toHaveBeenCalledWith('An event processor returned `null`, will not send event.');
+    expect(debugLogSpy).toHaveBeenCalledWith('An event processor returned `null`, will not send event.');
   });
 
   describe('integrations', () => {
