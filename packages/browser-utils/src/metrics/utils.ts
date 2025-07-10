@@ -237,13 +237,9 @@ export function listenForWebVitalReportEvents(
       }
     });
 
-    const activeSpan = getActiveSpan();
-    if (activeSpan) {
-      const rootSpan = getRootSpan(activeSpan);
-      const spanJSON = spanToJSON(rootSpan);
-      if (spanJSON.op === 'pageload') {
-        pageloadSpanId = rootSpan.spanContext().spanId;
-      }
-    }
+    const unsubscribeAfterStartPageLoadSpan = client.on('afterStartPageLoadSpan', span => {
+      pageloadSpanId = span.spanContext().spanId;
+      unsubscribeAfterStartPageLoadSpan?.();
+    });
   }, 0);
 }

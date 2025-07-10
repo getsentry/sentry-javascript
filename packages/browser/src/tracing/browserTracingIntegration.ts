@@ -644,7 +644,13 @@ export function startBrowserTracingPageLoadSpan(
   client.emit('startPageLoadSpan', spanOptions, traceOptions);
   getCurrentScope().setTransactionName(spanOptions.name);
 
-  return getActiveIdleSpan(client);
+  const pageloadSpan = getActiveIdleSpan(client);
+
+  if (pageloadSpan) {
+    client.emit('afterStartPageLoadSpan', pageloadSpan);
+  }
+
+  return pageloadSpan;
 }
 
 /**
