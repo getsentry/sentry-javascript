@@ -215,28 +215,26 @@ describe('wrapMcpServerWithSentry', () => {
 
       mockTransport.onmessage?.(jsonRpcRequest, extraWithClientInfo);
 
-      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
-        {
-          name: 'tools/call get-weather',
-          op: 'mcp.server',
-          forceTransaction: true,
-          attributes: {
-            'mcp.method.name': 'tools/call',
-            'mcp.tool.name': 'get-weather',
-            'mcp.request.id': 'req-1',
-            'mcp.session.id': 'test-session-123',
-            'client.address': '192.168.1.100',
-            'client.port': 54321,
-            'mcp.transport': 'http',
-            'network.transport': 'tcp',
-            'network.protocol.version': '2.0',
-            'mcp.request.argument.location': '"Seattle, WA"',
-            'sentry.op': 'mcp.server',
-            'sentry.origin': 'auto.function.mcp_server',
-            'sentry.source': 'route',
-          },
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith({
+        name: 'tools/call get-weather',
+        op: 'mcp.server',
+        forceTransaction: true,
+        attributes: {
+          'mcp.method.name': 'tools/call',
+          'mcp.tool.name': 'get-weather',
+          'mcp.request.id': 'req-1',
+          'mcp.session.id': 'test-session-123',
+          'client.address': '192.168.1.100',
+          'client.port': 54321,
+          'mcp.transport': 'http',
+          'network.transport': 'tcp',
+          'network.protocol.version': '2.0',
+          'mcp.request.argument.location': '"Seattle, WA"',
+          'sentry.op': 'mcp.server',
+          'sentry.origin': 'auto.function.mcp_server',
+          'sentry.source': 'route',
         },
-      );
+      });
     });
 
     it('should create spans with correct attributes for resource operations', async () => {
@@ -251,26 +249,24 @@ describe('wrapMcpServerWithSentry', () => {
 
       mockTransport.onmessage?.(jsonRpcRequest, {});
 
-      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
-        {
-          name: 'resources/read file:///docs/api.md',
-          op: 'mcp.server',
-          forceTransaction: true,
-          attributes: {
-            'mcp.method.name': 'resources/read',
-            'mcp.resource.uri': 'file:///docs/api.md',
-            'mcp.request.id': 'req-2',
-            'mcp.session.id': 'test-session-123',
-            'mcp.transport': 'http',
-            'network.transport': 'tcp',
-            'network.protocol.version': '2.0',
-            'mcp.request.argument.uri': '"file:///docs/api.md"',
-            'sentry.op': 'mcp.server',
-            'sentry.origin': 'auto.function.mcp_server',
-            'sentry.source': 'route',
-          },
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith({
+        name: 'resources/read file:///docs/api.md',
+        op: 'mcp.server',
+        forceTransaction: true,
+        attributes: {
+          'mcp.method.name': 'resources/read',
+          'mcp.resource.uri': 'file:///docs/api.md',
+          'mcp.request.id': 'req-2',
+          'mcp.session.id': 'test-session-123',
+          'mcp.transport': 'http',
+          'network.transport': 'tcp',
+          'network.protocol.version': '2.0',
+          'mcp.request.argument.uri': '"file:///docs/api.md"',
+          'sentry.op': 'mcp.server',
+          'sentry.origin': 'auto.function.mcp_server',
+          'sentry.source': 'route',
         },
-      );
+      });
     });
 
     it('should create spans with correct attributes for prompt operations', async () => {
@@ -285,26 +281,24 @@ describe('wrapMcpServerWithSentry', () => {
 
       mockTransport.onmessage?.(jsonRpcRequest, {});
 
-      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
-        {
-          name: 'prompts/get analyze-code',
-          op: 'mcp.server',
-          forceTransaction: true,
-          attributes: {
-            'mcp.method.name': 'prompts/get',
-            'mcp.prompt.name': 'analyze-code',
-            'mcp.request.id': 'req-3',
-            'mcp.session.id': 'test-session-123',
-            'mcp.transport': 'http',
-            'network.transport': 'tcp',
-            'network.protocol.version': '2.0',
-            'mcp.request.argument.name': '"analyze-code"',
-            'sentry.op': 'mcp.server',
-            'sentry.origin': 'auto.function.mcp_server',
-            'sentry.source': 'route',
-          },
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith({
+        name: 'prompts/get analyze-code',
+        op: 'mcp.server',
+        forceTransaction: true,
+        attributes: {
+          'mcp.method.name': 'prompts/get',
+          'mcp.prompt.name': 'analyze-code',
+          'mcp.request.id': 'req-3',
+          'mcp.session.id': 'test-session-123',
+          'mcp.transport': 'http',
+          'network.transport': 'tcp',
+          'network.protocol.version': '2.0',
+          'mcp.request.argument.name': '"analyze-code"',
+          'sentry.op': 'mcp.server',
+          'sentry.origin': 'auto.function.mcp_server',
+          'sentry.source': 'route',
         },
-      );
+      });
     });
 
     it('should create spans with correct attributes for notifications (no request id)', async () => {
@@ -547,7 +541,7 @@ describe('wrapMcpServerWithSentry', () => {
         id: 'req-tool-result',
         params: {
           name: 'weather-lookup',
-          arguments: { location: 'San Francisco', units: 'celsius' }
+          arguments: { location: 'San Francisco', units: 'celsius' },
         },
       };
 
@@ -576,11 +570,11 @@ describe('wrapMcpServerWithSentry', () => {
           content: [
             {
               type: 'text',
-              text: 'The weather in San Francisco is 18°C with partly cloudy skies.'
-            }
+              text: 'The weather in San Francisco is 18°C with partly cloudy skies.',
+            },
           ],
-          isError: false
-        }
+          isError: false,
+        },
       };
 
       // Simulate the outgoing response (this should trigger span completion)
@@ -591,8 +585,9 @@ describe('wrapMcpServerWithSentry', () => {
         expect.objectContaining({
           'mcp.tool.result.is_error': false,
           'mcp.tool.result.content_count': 1,
-          'mcp.tool.result.content': '[{"type":"text","text":"The weather in San Francisco is 18°C with partly cloudy skies."}]',
-        })
+          'mcp.tool.result.content':
+            '[{"type":"text","text":"The weather in San Francisco is 18°C with partly cloudy skies."}]',
+        }),
       );
 
       // Verify span was completed successfully (no error status set)
@@ -625,26 +620,24 @@ describe('wrapMcpServerWithSentry', () => {
 
       mockStdioTransport.onmessage?.(jsonRpcRequest, {});
 
-      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
-        {
-          name: 'tools/call process-file',
-          op: 'mcp.server',
-          forceTransaction: true,
-          attributes: {
-            'mcp.method.name': 'tools/call',
-            'mcp.tool.name': 'process-file',
-            'mcp.request.id': 'req-stdio-1',
-            'mcp.session.id': 'stdio-session-456',
-            'mcp.transport': 'stdio',  // Should be stdio, not http
-            'network.transport': 'pipe',  // Should be pipe, not tcp
-            'network.protocol.version': '2.0',
-            'mcp.request.argument.path': '"/tmp/data.txt"',
-            'sentry.op': 'mcp.server',
-            'sentry.origin': 'auto.function.mcp_server',
-            'sentry.source': 'route',
-          },
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith({
+        name: 'tools/call process-file',
+        op: 'mcp.server',
+        forceTransaction: true,
+        attributes: {
+          'mcp.method.name': 'tools/call',
+          'mcp.tool.name': 'process-file',
+          'mcp.request.id': 'req-stdio-1',
+          'mcp.session.id': 'stdio-session-456',
+          'mcp.transport': 'stdio', // Should be stdio, not http
+          'network.transport': 'pipe', // Should be pipe, not tcp
+          'network.protocol.version': '2.0',
+          'mcp.request.argument.path': '"/tmp/data.txt"',
+          'sentry.op': 'mcp.server',
+          'sentry.origin': 'auto.function.mcp_server',
+          'sentry.source': 'route',
         },
-      );
+      });
     });
 
     it('should handle stdio transport notifications correctly', async () => {
@@ -708,7 +701,7 @@ describe('wrapMcpServerWithSentry', () => {
           attributes: expect.objectContaining({
             'mcp.method.name': 'resources/read',
             'mcp.resource.uri': 'https://api.example.com/data',
-            'mcp.transport': 'sse',  // Deprecated but supported
+            'mcp.transport': 'sse', // Deprecated but supported
             'network.transport': 'tcp',
             'mcp.session.id': 'sse-session-789',
           }),
