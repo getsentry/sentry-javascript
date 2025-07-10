@@ -3,10 +3,12 @@ import { expect } from '@playwright/test';
 import type { Event as SentryEvent, EventEnvelope, SpanEnvelope } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import {
+  envelopeRequestParser,
   getFirstSentryEnvelopeRequest,
   getMultipleSentryEnvelopeRequests,
   properFullEnvelopeRequestParser,
   shouldSkipTracingTest,
+  waitForTransactionRequest,
 } from '../../../../utils/helpers';
 
 sentryTest.beforeEach(async ({ browserName, page }) => {
@@ -31,6 +33,8 @@ sentryTest('captures LCP vital as a standalone span', async ({ getLocalTestUrl, 
     properFullEnvelopeRequestParser,
   );
 
+  const pageloadEnvelopePromise = waitForTransactionRequest(page, e => e.contexts?.trace?.op === 'pageload');
+
   page.route('**', route => route.continue());
   page.route('**/my/image.png', async (route: Route) => {
     return route.fulfill({
@@ -47,9 +51,13 @@ sentryTest('captures LCP vital as a standalone span', async ({ getLocalTestUrl, 
   await hidePage(page);
 
   const spanEnvelope = (await spanEnvelopePromise)[0];
+  const pageloadTransactionEvent = envelopeRequestParser(await pageloadEnvelopePromise);
 
   const spanEnvelopeHeaders = spanEnvelope[0];
   const spanEnvelopeItem = spanEnvelope[1][0][1];
+
+  const pageloadTraceId = pageloadTransactionEvent.contexts?.trace?.trace_id;
+  expect(pageloadTraceId).toMatch(/[a-f0-9]{32}/);
 
   expect(spanEnvelopeItem).toEqual({
     data: {
@@ -80,7 +88,7 @@ sentryTest('captures LCP vital as a standalone span', async ({ getLocalTestUrl, 
     segment_id: expect.stringMatching(/[a-f0-9]{16}/),
     start_timestamp: expect.any(Number),
     timestamp: spanEnvelopeItem.start_timestamp, // LCP is a point-in-time metric
-    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    trace_id: pageloadTraceId,
   });
 
   // LCP value should be greater than 0
@@ -95,7 +103,6 @@ sentryTest('captures LCP vital as a standalone span', async ({ getLocalTestUrl, 
       sampled: 'true',
       trace_id: spanEnvelopeItem.trace_id,
       sample_rand: expect.any(String),
-      // no transaction, because span source is URL
     },
   });
 });
@@ -152,10 +159,10 @@ sentryTest('sends LCP of the initial page when soft-navigating to a new page', a
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  const eventData = await getFirstSentryEnvelopeRequest<SentryEvent>(page, url);
+  const pageloadEventData = await getFirstSentryEnvelopeRequest<SentryEvent>(page, url);
 
-  expect(eventData.type).toBe('transaction');
-  expect(eventData.contexts?.trace?.op).toBe('pageload');
+  expect(pageloadEventData.type).toBe('transaction');
+  expect(pageloadEventData.contexts?.trace?.op).toBe('pageload');
 
   const spanEnvelopePromise = getMultipleSentryEnvelopeRequests<SpanEnvelope>(
     page,
@@ -173,7 +180,8 @@ sentryTest('sends LCP of the initial page when soft-navigating to a new page', a
   const spanEnvelopeItem = spanEnvelope[1][0][1];
 
   expect(spanEnvelopeItem.measurements?.lcp?.value).toBeGreaterThan(0);
-  expect(spanEnvelopeItem.data?.['sentry.pageload.span_id']).toMatch(/[a-f0-9]{16}/);
+  expect(spanEnvelopeItem.data?.['sentry.pageload.span_id']).toBe(pageloadEventData.contexts?.trace?.span_id);
+  expect(spanEnvelopeItem.trace_id).toBe(pageloadEventData.contexts?.trace?.trace_id);
 });
 
 sentryTest("doesn't send further LCP after the first navigation", async ({ getLocalTestUrl, page }) => {

@@ -72,7 +72,7 @@ export function trackClsAsStandaloneSpan(): void {
       return;
     }
 
-    const unsubscribeStartNavigation = client.on('startNavigationSpan', (_, options) => {
+    const unsubscribeStartNavigation = client.on('beforeStartNavigationSpan', (_, options) => {
       // we only want to collect LCP if we actually navigate. Redirects should be ignored.
       if (!options?.isRedirect) {
         _collectClsOnce();
