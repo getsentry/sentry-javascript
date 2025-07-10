@@ -717,7 +717,7 @@ export function _addResourceSpans(
 
   // Checking for only `undefined` and `null` is intentional because it's
   // valid for `nextHopProtocol` to be an empty string.
-  if (entry.nextHopProtocol != undefined) {
+  if (entry.nextHopProtocol != null) {
     const { name, version } = extractNetworkProtocol(entry.nextHopProtocol);
     attributes['network.protocol.name'] = name;
     attributes['network.protocol.version'] = version;
