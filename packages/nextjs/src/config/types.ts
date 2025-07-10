@@ -51,6 +51,7 @@ export type NextConfigObject = {
   // https://nextjs.org/docs/pages/api-reference/next-config-js/env
   env?: Record<string, string>;
   serverExternalPackages?: string[]; // next >= v15.0.0
+  turbopack?: TurbopackOptions;
 };
 
 export type SentryBuildOptions = {
@@ -596,3 +597,38 @@ export type EnhancedGlobal = typeof GLOBAL_OBJ & {
   SENTRY_RELEASE?: { id: string };
   SENTRY_RELEASES?: { [key: string]: { id: string } };
 };
+
+type JSONValue = string | number | boolean | JSONValue[] | { [k: string]: JSONValue };
+
+type TurbopackLoaderItem =
+  | string
+  | {
+      loader: string;
+      // At the moment, Turbopack options must be JSON-serializable, so restrict values.
+      options: Record<string, JSONValue>;
+    };
+
+type TurbopackRuleCondition = {
+  path: string | RegExp;
+};
+
+export type TurbopackRuleConfigItemOrShortcut = TurbopackLoaderItem[] | TurbopackRuleConfigItem;
+
+type TurbopackRuleConfigItemOptions = {
+  loaders: TurbopackLoaderItem[];
+  as?: string;
+};
+
+type TurbopackRuleConfigItem =
+  | TurbopackRuleConfigItemOptions
+  | { [condition: string]: TurbopackRuleConfigItem }
+  | false;
+
+export interface TurbopackOptions {
+  resolveAlias?: Record<string, string | string[] | Record<string, string | string[]>>;
+  resolveExtensions?: string[];
+  rules?: Record<string, TurbopackRuleConfigItemOrShortcut>;
+  conditions?: Record<string, TurbopackRuleCondition>;
+  moduleIds?: 'named' | 'deterministic';
+  root?: string;
+}
