@@ -8,11 +8,3 @@ Sentry.init({
   tracesSampleRate: 1,
   debug: true,
 });
-
-document.getElementById('btn1').addEventListener('click', () => {
-  // trigger redirect immediately
-  window.history.pushState({}, '', '/sub-page');
-});
-
-// Now trigger click, whic should trigger navigation
-document.getElementById('btn1').click();

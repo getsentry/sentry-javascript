@@ -469,8 +469,8 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         const clickHandler = (): void => {
           lastInteractionTimestamp = timestampInSeconds();
         };
-        addEventListener('click', () => clickHandler, { capture: true, passive: true });
-        addEventListener('keypress', () => clickHandler, { capture: true, passive: true });
+        addEventListener('click', clickHandler, { capture: true });
+        addEventListener('keydown', clickHandler, { capture: true, passive: true });
       }
 
       function maybeEndActiveSpan(): void {
