@@ -466,11 +466,11 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       }
 
       if (detectRedirects && optionalWindowDocument) {
-        const clickHandler = (): void => {
+        const interactionHandler = (): void => {
           lastInteractionTimestamp = timestampInSeconds();
         };
-        addEventListener('click', clickHandler, { capture: true });
-        addEventListener('keydown', clickHandler, { capture: true, passive: true });
+        addEventListener('click', interactionHandler, { capture: true });
+        addEventListener('keydown', interactionHandler, { capture: true, passive: true });
       }
 
       function maybeEndActiveSpan(): void {
