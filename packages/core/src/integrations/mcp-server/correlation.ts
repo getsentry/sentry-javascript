@@ -9,11 +9,14 @@ import type { RequestId, SessionId } from './types';
 
 // Simplified correlation system that works with or without sessionId
 // Maps requestId directly to span data for stateless operation
-const requestIdToSpanMap = new Map<RequestId, {
-  span: Span;
-  method: string;
-  startTime: number;
-}>();
+const requestIdToSpanMap = new Map<
+  RequestId,
+  {
+    span: Span;
+    method: string;
+    startTime: number;
+  }
+>();
 
 /**
  * Stores span context for later correlation with handler execution
@@ -35,7 +38,7 @@ export function associateContextWithRequestSpan<T>(
 ): T {
   if (extraHandlerData) {
     const { requestId } = extraHandlerData;
-    
+
     const spanData = requestIdToSpanMap.get(requestId);
     if (!spanData) {
       return cb();
@@ -57,32 +60,32 @@ export function completeSpanWithResults(requestId: RequestId, result: unknown): 
   const spanData = requestIdToSpanMap.get(requestId);
   if (spanData) {
     const { span, method } = spanData;
-    
-    const spanWithMethods = span as Span & { 
-      setAttributes: (attrs: Record<string, unknown>) => void; 
+
+    const spanWithMethods = span as Span & {
+      setAttributes: (attrs: Record<string, unknown>) => void;
       setStatus: (status: { code: number; message: string }) => void;
       end: () => void;
     };
-    
+
     if (spanWithMethods.setAttributes && method === 'tools/call') {
       // Add tool-specific attributes
       const toolAttributes = extractToolResultAttributes(result);
       spanWithMethods.setAttributes(toolAttributes);
-      
+
       // Set span status based on tool result
       if (toolAttributes['mcp.tool.result.is_error']) {
-        spanWithMethods.setStatus({ 
+        spanWithMethods.setStatus({
           code: 2, // ERROR
-          message: 'Tool execution failed' 
+          message: 'Tool execution failed',
         });
       }
     }
-    
+
     // Complete the span
     if (spanWithMethods.end) {
       spanWithMethods.end();
     }
-    
+
     // Clean up correlation
     requestIdToSpanMap.delete(requestId);
   }
@@ -93,18 +96,21 @@ export function completeSpanWithResults(requestId: RequestId, result: unknown): 
  */
 export function cleanupAllPendingSpans(): number {
   const pendingCount = requestIdToSpanMap.size;
-  
+
   for (const [, spanData] of requestIdToSpanMap) {
-    const spanWithEnd = spanData.span as Span & { end: () => void; setStatus: (status: { code: number; message: string }) => void };
+    const spanWithEnd = spanData.span as Span & {
+      end: () => void;
+      setStatus: (status: { code: number; message: string }) => void;
+    };
     if (spanWithEnd.setStatus && spanWithEnd.end) {
-      spanWithEnd.setStatus({ 
+      spanWithEnd.setStatus({
         code: 2, // ERROR
-        message: 'Transport closed before request completion' 
+        message: 'Transport closed before request completion',
       });
       spanWithEnd.end();
     }
   }
-  
+
   requestIdToSpanMap.clear();
   return pendingCount;
 }
@@ -114,25 +120,24 @@ export function cleanupAllPendingSpans(): number {
  */
 function extractToolResultAttributes(result: unknown): Record<string, string | number | boolean> {
   const attributes: Record<string, string | number | boolean> = {};
-  
+
   if (typeof result === 'object' && result !== null) {
     const resultObj = result as Record<string, unknown>;
-    
+
     // Check if this is an error result
     if (typeof resultObj.isError === 'boolean') {
       attributes['mcp.tool.result.is_error'] = resultObj.isError;
     }
-    
+
     // Store content as-is (serialized)
     if (Array.isArray(resultObj.content)) {
       attributes['mcp.tool.result.content_count'] = resultObj.content.length;
-      
+
       const serializedContent = JSON.stringify(resultObj.content);
-      attributes['mcp.tool.result.content'] = serializedContent.length > 5000 
-        ? `${serializedContent.substring(0, 4997)}...`
-        : serializedContent;
+      attributes['mcp.tool.result.content'] =
+        serializedContent.length > 5000 ? `${serializedContent.substring(0, 4997)}...` : serializedContent;
     }
   }
-  
+
   return attributes;
 }

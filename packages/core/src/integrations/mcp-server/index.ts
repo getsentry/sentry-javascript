@@ -22,9 +22,13 @@ export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S):
 
   const serverInstance = mcpServerInstance as MCPServerInstance;
 
-  fill(serverInstance, 'connect', (originalConnect) => {
-    return async function(this: MCPServerInstance, transport: MCPTransport, ...restArgs: unknown[]) {
-      const result = await (originalConnect as (...args: unknown[]) => Promise<unknown>).call(this, transport, ...restArgs);
+  fill(serverInstance, 'connect', originalConnect => {
+    return async function (this: MCPServerInstance, transport: MCPTransport, ...restArgs: unknown[]) {
+      const result = await (originalConnect as (...args: unknown[]) => Promise<unknown>).call(
+        this,
+        transport,
+        ...restArgs,
+      );
 
       // Wrap transport methods
       wrapTransportOnMessage(transport);

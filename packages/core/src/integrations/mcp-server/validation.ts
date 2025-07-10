@@ -31,7 +31,9 @@ export function isJsonRpcNotification(message: unknown): message is JsonRpcNotif
 }
 
 /** Validates if a message is a JSON-RPC response */
-export function isJsonRpcResponse(message: unknown): message is { jsonrpc: '2.0'; id: string | number | null; result?: unknown; error?: unknown } {
+export function isJsonRpcResponse(
+  message: unknown,
+): message is { jsonrpc: '2.0'; id: string | number | null; result?: unknown; error?: unknown } {
   return (
     typeof message === 'object' &&
     message !== null &&

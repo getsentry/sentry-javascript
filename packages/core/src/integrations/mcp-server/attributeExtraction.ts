@@ -15,7 +15,14 @@ import {
   NETWORK_PROTOCOL_VERSION_ATTRIBUTE,
   NETWORK_TRANSPORT_ATTRIBUTE,
 } from './attributes';
-import type { ExtraHandlerData, JsonRpcNotification, JsonRpcRequest, McpSpanType,MCPTransport, MethodConfig } from './types';
+import type {
+  ExtraHandlerData,
+  JsonRpcNotification,
+  JsonRpcRequest,
+  McpSpanType,
+  MCPTransport,
+  MethodConfig,
+} from './types';
 
 /** Configuration for MCP methods to extract targets and arguments */
 const METHOD_CONFIGS: Record<string, MethodConfig> = {
@@ -48,22 +55,26 @@ const METHOD_CONFIGS: Record<string, MethodConfig> = {
 };
 
 /** Extracts target info from method and params based on method type */
-export function extractTargetInfo(method: string, params: Record<string, unknown>): {
+export function extractTargetInfo(
+  method: string,
+  params: Record<string, unknown>,
+): {
   target?: string;
-  attributes: Record<string, string>
+  attributes: Record<string, string>;
 } {
   const config = METHOD_CONFIGS[method as keyof typeof METHOD_CONFIGS];
   if (!config) {
     return { attributes: {} };
   }
 
-  const target = config.targetField && typeof params?.[config.targetField] === 'string'
-    ? params[config.targetField] as string
-    : undefined;
+  const target =
+    config.targetField && typeof params?.[config.targetField] === 'string'
+      ? (params[config.targetField] as string)
+      : undefined;
 
   return {
     target,
-    attributes: target && config.targetAttribute ? { [config.targetAttribute]: target } : {}
+    attributes: target && config.targetAttribute ? { [config.targetAttribute]: target } : {},
   };
 }
 
@@ -197,16 +208,15 @@ export function getNotificationAttributes(
 /** Extracts client connection info from extra handler data */
 export function extractClientInfo(extra: ExtraHandlerData): {
   address?: string;
-  port?: number
+  port?: number;
 } {
   return {
-    address: extra?.requestInfo?.remoteAddress ||
-             extra?.clientAddress ||
-             extra?.request?.ip ||
-             extra?.request?.connection?.remoteAddress,
-    port: extra?.requestInfo?.remotePort ||
-          extra?.clientPort ||
-          extra?.request?.connection?.remotePort
+    address:
+      extra?.requestInfo?.remoteAddress ||
+      extra?.clientAddress ||
+      extra?.request?.ip ||
+      extra?.request?.connection?.remoteAddress,
+    port: extra?.requestInfo?.remotePort || extra?.clientPort || extra?.request?.connection?.remotePort,
   };
 }
 
@@ -250,70 +260,106 @@ export function buildTypeSpecificAttributes(
   return getNotificationAttributes(message.method, params || {});
 }
 
-/** Simplified tool result attribute extraction */
-export function extractSimpleToolAttributes(result: unknown): Record<string, string | number | boolean> {
-  const attributes: Record<string, string | number | boolean> = {};
-  
-  if (typeof result === 'object' && result !== null) {
-    const resultObj = result as Record<string, unknown>;
-    
-    // Check if this is an error result
-    if (typeof resultObj.isError === 'boolean') {
-      attributes['mcp.tool.result.is_error'] = resultObj.isError;
-    }
-    
-    // Extract basic content info
-    if (Array.isArray(resultObj.content)) {
-      attributes['mcp.tool.result.content_count'] = resultObj.content.length;
-      
-      // Extract info from all content items
-      for (let i = 0; i < resultObj.content.length; i++) {
-        const item = resultObj.content[i];
-        if (item && typeof item === 'object' && item !== null) {
-          const contentItem = item as Record<string, unknown>;
-          const prefix = resultObj.content.length === 1 ? 'mcp.tool.result' : `mcp.tool.result.${i}`;
-          
-          // Always capture the content type
-          if (typeof contentItem.type === 'string') {
-            attributes[`${prefix}.content_type`] = contentItem.type;
-          }
-          
-          // Extract common fields generically
-          if (typeof contentItem.text === 'string') {
-            const text = contentItem.text;
-            attributes[`${prefix}.content`] = text.length > 500 ? `${text.substring(0, 497)}...` : text;
-          }
-          
-          if (typeof contentItem.mimeType === 'string') {
-            attributes[`${prefix}.mime_type`] = contentItem.mimeType;
-          }
-          
-          if (typeof contentItem.uri === 'string') {
-            attributes[`${prefix}.uri`] = contentItem.uri;
-          }
-          
-          if (typeof contentItem.name === 'string') {
-            attributes[`${prefix}.name`] = contentItem.name;
-          }
-          
-          if (typeof contentItem.data === 'string') {
-            attributes[`${prefix}.data_size`] = contentItem.data.length;
-          }
-          
-          // For embedded resources, check the nested resource object
-          if (contentItem.resource && typeof contentItem.resource === 'object') {
-            const resource = contentItem.resource as Record<string, unknown>;
-            if (typeof resource.uri === 'string') {
-              attributes[`${prefix}.resource_uri`] = resource.uri;
-            }
-            if (typeof resource.mimeType === 'string') {
-              attributes[`${prefix}.resource_mime_type`] = resource.mimeType;
-            }
-          }
-        }
+/** Get metadata about tool result content array */
+function getContentMetadata(content: unknown[]): Record<string, string | number> {
+  return {
+    'mcp.tool.result.content_count': content.length,
+  };
+}
+
+/** Build attributes from a single content item */
+function buildContentItemAttributes(
+  contentItem: Record<string, unknown>,
+  prefix: string,
+): Record<string, string | number> {
+  const attributes: Record<string, string | number> = {};
+
+  if (typeof contentItem.type === 'string') {
+    attributes[`${prefix}.content_type`] = contentItem.type;
+  }
+
+  if (typeof contentItem.text === 'string') {
+    const text = contentItem.text;
+    attributes[`${prefix}.content`] = text.length > 500 ? `${text.substring(0, 497)}...` : text;
+  }
+
+  if (typeof contentItem.mimeType === 'string') {
+    attributes[`${prefix}.mime_type`] = contentItem.mimeType;
+  }
+
+  if (typeof contentItem.uri === 'string') {
+    attributes[`${prefix}.uri`] = contentItem.uri;
+  }
+
+  if (typeof contentItem.name === 'string') {
+    attributes[`${prefix}.name`] = contentItem.name;
+  }
+
+  if (typeof contentItem.data === 'string') {
+    attributes[`${prefix}.data_size`] = contentItem.data.length;
+  }
+
+  return attributes;
+}
+
+/** Build attributes from embedded resource object */
+function buildEmbeddedResourceAttributes(resource: Record<string, unknown>, prefix: string): Record<string, string> {
+  const attributes: Record<string, string> = {};
+
+  if (typeof resource.uri === 'string') {
+    attributes[`${prefix}.resource_uri`] = resource.uri;
+  }
+
+  if (typeof resource.mimeType === 'string') {
+    attributes[`${prefix}.resource_mime_type`] = resource.mimeType;
+  }
+
+  return attributes;
+}
+
+/** Build attributes for all content items in the result */
+function buildAllContentItemAttributes(content: unknown[]): Record<string, string | number> {
+  const attributes: Record<string, string | number> = {};
+
+  for (let i = 0; i < content.length; i++) {
+    const item = content[i];
+    if (item && typeof item === 'object' && item !== null) {
+      const contentItem = item as Record<string, unknown>;
+      const prefix = content.length === 1 ? 'mcp.tool.result' : `mcp.tool.result.${i}`;
+
+      Object.assign(attributes, buildContentItemAttributes(contentItem, prefix));
+
+      if (contentItem.resource && typeof contentItem.resource === 'object') {
+        const resourceAttrs = buildEmbeddedResourceAttributes(contentItem.resource as Record<string, unknown>, prefix);
+        Object.assign(attributes, resourceAttrs);
       }
     }
   }
-  
+
+  return attributes;
+}
+
+/** Extract tool result attributes for span instrumentation */
+export function extractToolResultAttributes(result: unknown): Record<string, string | number | boolean> {
+  let attributes: Record<string, string | number | boolean> = {};
+
+  if (typeof result !== 'object' || result === null) {
+    return attributes;
+  }
+
+  const resultObj = result as Record<string, unknown>;
+
+  if (typeof resultObj.isError === 'boolean') {
+    attributes['mcp.tool.result.is_error'] = resultObj.isError;
+  }
+
+  if (Array.isArray(resultObj.content)) {
+    attributes = {
+      ...attributes,
+      ...getContentMetadata(resultObj.content),
+      ...buildAllContentItemAttributes(resultObj.content),
+    };
+  }
+
   return attributes;
 }
