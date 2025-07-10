@@ -17,6 +17,15 @@ export interface Logger {
   trace(...args: Parameters<typeof console.trace>): void;
 }
 
+export interface SentryDebugLogger {
+  disable(): void;
+  enable(): void;
+  isEnabled(): boolean;
+  log(...args: Parameters<typeof console.log>): void;
+  warn(...args: Parameters<typeof console.warn>): void;
+  error(...args: Parameters<typeof console.error>): void;
+}
+
 export const CONSOLE_LEVELS: readonly ConsoleLevel[] = [
   'debug',
   'info',
@@ -102,7 +111,7 @@ function error(...args: Parameters<typeof console.error>): void {
   _maybeLog('error', ...args);
 }
 
-function debug(...args: Parameters<typeof console.debug>): void {
+function _debug(...args: Parameters<typeof console.debug>): void {
   _maybeLog('debug', ...args);
 }
 
@@ -154,9 +163,27 @@ export const logger = {
   /** Log an error. */
   error,
   /** Log a debug message. */
-  debug,
+  debug: _debug,
   /** Log an assertion. */
   assert,
   /** Log a trace. */
   trace,
 } satisfies Logger;
+
+/**
+ * This is a logger singleton which either logs things or no-ops if logging is not enabled.
+ */
+export const debug = {
+  /** Enable logging. */
+  enable,
+  /** Disable logging. */
+  disable,
+  /** Check if logging is enabled. */
+  isEnabled,
+  /** Log a message. */
+  log,
+  /** Log a warning. */
+  warn,
+  /** Log an error. */
+  error,
+} satisfies SentryDebugLogger;

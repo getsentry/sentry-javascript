@@ -4,7 +4,7 @@ import type { Event } from '../types-hoist/event';
 import type { Exception } from '../types-hoist/exception';
 import type { IntegrationFn } from '../types-hoist/integration';
 import type { StackFrame } from '../types-hoist/stackframe';
-import { logger } from '../utils/logger';
+import { debug } from '../utils/logger';
 import { getFramesFromEvent } from '../utils/stacktrace';
 
 const INTEGRATION_NAME = 'Dedupe';
@@ -24,7 +24,7 @@ const _dedupeIntegration = (() => {
       // Juuust in case something goes wrong
       try {
         if (_shouldDropEvent(currentEvent, previousEvent)) {
-          DEBUG_BUILD && logger.warn('Event dropped due to being a duplicate of previously captured event.');
+          DEBUG_BUILD && debug.warn('Event dropped due to being a duplicate of previously captured event.');
           return null;
         }
       } catch (_oO) {} // eslint-disable-line no-empty
