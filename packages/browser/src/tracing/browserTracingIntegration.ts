@@ -3,6 +3,7 @@ import type { Client, IntegrationFn, Span, StartSpanOptions, TransactionSource, 
 import {
   addNonEnumerableProperty,
   browserPerformanceTimeOrigin,
+  dateTimestampInSeconds,
   generateTraceId,
   getClient,
   getCurrentScope,
@@ -20,6 +21,8 @@ import {
   spanIsSampled,
   spanToJSON,
   startIdleSpan,
+  startInactiveSpan,
+  timestampInSeconds,
   TRACING_DEFAULTS,
 } from '@sentry/core';
 import {
@@ -196,6 +199,14 @@ export interface BrowserTracingOptions {
   ignorePerformanceApiSpans: Array<string | RegExp>;
 
   /**
+   * By default, the SDK will try to detect redirects and avoid creating separate spans for them.
+   * If you want to opt-out of this behavior, you can set this option to `false`.
+   *
+   * Default: true
+   */
+  detectRedirects: boolean;
+
+  /**
    * Link the currently started trace to a previous trace (e.g. a prior pageload, navigation or
    * manually started span). When enabled, this option will allow you to navigate between traces
    * in the Sentry UI.
@@ -281,6 +292,7 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   enableElementTiming: true,
   ignoreResourceSpans: [],
   ignorePerformanceApiSpans: [],
+  detectRedirects: true,
   linkPreviousTrace: 'in-memory',
   consistentTraceSampling: false,
   _experiments: {},
@@ -328,6 +340,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     ignorePerformanceApiSpans,
     instrumentPageLoad,
     instrumentNavigation,
+    detectRedirects,
     linkPreviousTrace,
     consistentTraceSampling,
     onRequestSpanStart,
@@ -337,9 +350,10 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
   };
 
   let _collectWebVitals: undefined | (() => void);
+  let lastInteractionTimestamp: number | undefined;
 
   /** Create routing idle transaction. */
-  function _createRouteSpan(client: Client, startSpanOptions: StartSpanOptions): void {
+  function _createRouteSpan(client: Client, startSpanOptions: StartSpanOptions, makeActive = true): void {
     const isPageloadTransaction = startSpanOptions.op === 'pageload';
 
     const finalStartSpanOptions: StartSpanOptions = beforeStartSpan
@@ -353,6 +367,16 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     if (startSpanOptions.name !== finalStartSpanOptions.name) {
       attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'custom';
       finalStartSpanOptions.attributes = attributes;
+    }
+
+    if (!makeActive) {
+      // We want to ensure this has 0s duration
+      const now = dateTimestampInSeconds();
+      startInactiveSpan({
+        ...finalStartSpanOptions,
+        startTime: now,
+      }).end(now);
+      return;
     }
 
     latestRoute.name = finalStartSpanOptions.name;
@@ -441,6 +465,14 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         startTrackingInteractions();
       }
 
+      if (detectRedirects && optionalWindowDocument) {
+        const interactionHandler = (): void => {
+          lastInteractionTimestamp = timestampInSeconds();
+        };
+        addEventListener('click', interactionHandler, { capture: true });
+        addEventListener('keydown', interactionHandler, { capture: true, passive: true });
+      }
+
       function maybeEndActiveSpan(): void {
         const activeSpan = getActiveIdleSpan(client);
 
@@ -452,8 +484,22 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         }
       }
 
-      client.on('startNavigationSpan', startSpanOptions => {
+      client.on('startNavigationSpan', (startSpanOptions, navigationOptions) => {
         if (getClient() !== client) {
+          return;
+        }
+
+        if (navigationOptions?.isRedirect) {
+          DEBUG_BUILD &&
+            logger.warn('[Tracing] Detected redirect, navigation span will not be the root span, but a child span.');
+          _createRouteSpan(
+            client,
+            {
+              op: 'navigation.redirect',
+              ...startSpanOptions,
+            },
+            false,
+          );
           return;
         }
 
@@ -540,23 +586,20 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
 
             startingUrl = undefined;
             const parsed = parseStringToURLObject(to);
-            startBrowserTracingNavigationSpan(client, {
-              name: parsed?.pathname || WINDOW.location.pathname,
-              attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
+            const activeSpan = getActiveIdleSpan(client);
+            const navigationIsRedirect =
+              activeSpan && detectRedirects && isRedirect(activeSpan, lastInteractionTimestamp);
+            startBrowserTracingNavigationSpan(
+              client,
+              {
+                name: parsed?.pathname || WINDOW.location.pathname,
+                attributes: {
+                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
+                },
               },
-            });
-
-            // We store the normalized request data on the scope, so we get the request data at time of span creation
-            // otherwise, the URL etc. may already be of the following navigation, and we'd report the wrong URL
-            getCurrentScope().setSDKProcessingMetadata({
-              normalizedRequest: {
-                ...getHttpRequestData(),
-                // Ensure to set this, so this matches the target route even if the URL has not yet been updated
-                url: to,
-              },
-            });
+              { url: to, isRedirect: navigationIsRedirect },
+            );
           });
         }
       }
@@ -608,10 +651,28 @@ export function startBrowserTracingPageLoadSpan(
  * Manually start a navigation span.
  * This will only do something if a browser tracing integration has been setup.
  */
-export function startBrowserTracingNavigationSpan(client: Client, spanOptions: StartSpanOptions): Span | undefined {
-  client.emit('startNavigationSpan', spanOptions);
+export function startBrowserTracingNavigationSpan(
+  client: Client,
+  spanOptions: StartSpanOptions,
+  options?: { url?: string; isRedirect?: boolean },
+): Span | undefined {
+  const { url, isRedirect } = options || {};
 
-  getCurrentScope().setTransactionName(spanOptions.name);
+  client.emit('startNavigationSpan', spanOptions, { isRedirect });
+
+  const scope = getCurrentScope();
+  scope.setTransactionName(spanOptions.name);
+
+  // We store the normalized request data on the scope, so we get the request data at time of span creation
+  // otherwise, the URL etc. may already be of the following navigation, and we'd report the wrong URL
+  if (url && !isRedirect) {
+    scope.setSDKProcessingMetadata({
+      normalizedRequest: {
+        ...getHttpRequestData(),
+        url,
+      },
+    });
+  }
 
   return getActiveIdleSpan(client);
 }
@@ -684,7 +745,7 @@ function registerInteractionListener(
   };
 
   if (optionalWindowDocument) {
-    addEventListener('click', registerInteractionTransaction, { once: false, capture: true });
+    addEventListener('click', registerInteractionTransaction, { capture: true });
   }
 }
 
@@ -696,4 +757,28 @@ function getActiveIdleSpan(client: Client): Span | undefined {
 
 function setActiveIdleSpan(client: Client, span: Span | undefined): void {
   addNonEnumerableProperty(client, ACTIVE_IDLE_SPAN_PROPERTY, span);
+}
+
+// The max. time in seconds between two pageload/navigation spans that makes us consider the second one a redirect
+const REDIRECT_THRESHOLD = 0.3;
+
+function isRedirect(activeSpan: Span, lastInteractionTimestamp: number | undefined): boolean {
+  const spanData = spanToJSON(activeSpan);
+
+  const now = dateTimestampInSeconds();
+
+  // More than 300ms since last navigation/pageload span?
+  // --> never consider this a redirect
+  const startTimestamp = spanData.start_timestamp;
+  if (now - startTimestamp > REDIRECT_THRESHOLD) {
+    return false;
+  }
+
+  // A click happened in the last 300ms?
+  // --> never consider this a redirect
+  if (lastInteractionTimestamp && now - lastInteractionTimestamp <= REDIRECT_THRESHOLD) {
+    return false;
+  }
+
+  return true;
 }
