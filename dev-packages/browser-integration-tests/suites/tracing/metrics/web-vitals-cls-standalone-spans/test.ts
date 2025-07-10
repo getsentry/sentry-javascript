@@ -65,6 +65,7 @@ sentryTest('captures a "GOOD" CLS vital with its source as a standalone span', a
       'sentry.exclusive_time': 0,
       'sentry.op': 'ui.webvital.cls',
       'sentry.origin': 'auto.http.browser.cls',
+      'sentry.report_event': 'pagehide',
       transaction: expect.stringContaining('index.html'),
       'user_agent.original': expect.stringContaining('Chrome'),
       'sentry.pageload.span_id': expect.stringMatching(/[a-f0-9]{16}/),
@@ -134,6 +135,7 @@ sentryTest('captures a "MEH" CLS vital with its source as a standalone span', as
       'sentry.exclusive_time': 0,
       'sentry.op': 'ui.webvital.cls',
       'sentry.origin': 'auto.http.browser.cls',
+      'sentry.report_event': 'pagehide',
       transaction: expect.stringContaining('index.html'),
       'user_agent.original': expect.stringContaining('Chrome'),
       'sentry.pageload.span_id': expect.stringMatching(/[a-f0-9]{16}/),
@@ -201,6 +203,7 @@ sentryTest('captures a "POOR" CLS vital with its source as a standalone span.', 
       'sentry.exclusive_time': 0,
       'sentry.op': 'ui.webvital.cls',
       'sentry.origin': 'auto.http.browser.cls',
+      'sentry.report_event': 'pagehide',
       transaction: expect.stringContaining('index.html'),
       'user_agent.original': expect.stringContaining('Chrome'),
       'sentry.pageload.span_id': expect.stringMatching(/[a-f0-9]{16}/),
@@ -269,6 +272,7 @@ sentryTest(
         'sentry.exclusive_time': 0,
         'sentry.op': 'ui.webvital.cls',
         'sentry.origin': 'auto.http.browser.cls',
+        'sentry.report_event': 'pagehide',
         transaction: expect.stringContaining('index.html'),
         'user_agent.original': expect.stringContaining('Chrome'),
         'sentry.pageload.span_id': expect.stringMatching(/[a-f0-9]{16}/),
@@ -342,6 +346,8 @@ sentryTest(
     // Ensure the CLS span is connected to the pageload span and trace
     expect(spanEnvelopeItem.data?.['sentry.pageload.span_id']).toBe(pageloadSpanId);
     expect(spanEnvelopeItem.trace_id).toEqual(pageloadTraceId);
+
+    expect(spanEnvelopeItem.data?.['sentry.report_event']).toBe('pagehide');
   },
 );
 
@@ -374,6 +380,8 @@ sentryTest('sends CLS of the initial page when soft-navigating to a new page', a
   expect(spanEnvelopeItem.measurements?.cls?.value).toBeLessThan(0.15);
   expect(spanEnvelopeItem.data?.['sentry.pageload.span_id']).toBe(pageloadEventData.contexts?.trace?.span_id);
   expect(spanEnvelopeItem.trace_id).toEqual(pageloadTraceId);
+
+  expect(spanEnvelopeItem.data?.['sentry.report_event']).toBe('navigation');
 });
 
 sentryTest("doesn't send further CLS after the first navigation", async ({ getLocalTestUrl, page }) => {
@@ -398,6 +406,7 @@ sentryTest("doesn't send further CLS after the first navigation", async ({ getLo
   const spanEnvelope = (await spanEnvelopePromise)[0];
   const spanEnvelopeItem = spanEnvelope[1][0][1];
   expect(spanEnvelopeItem.measurements?.cls?.value).toBeGreaterThan(0);
+  expect(spanEnvelopeItem.data?.['sentry.report_event']).toBe('navigation');
 
   getMultipleSentryEnvelopeRequests<SpanEnvelope>(page, 1, { envelopeType: 'span' }, () => {
     throw new Error('Unexpected span - This should not happen!');
@@ -442,6 +451,7 @@ sentryTest("doesn't send further CLS after the first page hide", async ({ getLoc
   const spanEnvelope = (await spanEnvelopePromise)[0];
   const spanEnvelopeItem = spanEnvelope[1][0][1];
   expect(spanEnvelopeItem.measurements?.cls?.value).toBeGreaterThan(0);
+  expect(spanEnvelopeItem.data?.['sentry.report_event']).toBe('pagehide');
 
   getMultipleSentryEnvelopeRequests<SpanEnvelope>(page, 1, { envelopeType: 'span' }, () => {
     throw new Error('Unexpected span - This should not happen!');

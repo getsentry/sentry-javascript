@@ -10,7 +10,6 @@ import {
 } from '@sentry/core';
 import { WINDOW } from '../types';
 import { onHidden } from './web-vitals/lib/onHidden';
-import { runOnce } from './web-vitals/lib/runOnce';
 
 export type WebVitalReportEvent = 'pagehide' | 'navigation';
 
