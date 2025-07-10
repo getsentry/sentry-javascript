@@ -1,10 +1,22 @@
 import { format } from 'node:util';
-import type { Log, LogSeverityLevel, ParameterizedString } from '@sentry/core';
+import type { Client, Log, LogSeverityLevel, ParameterizedString, Scope } from '@sentry/core';
 import { _INTERNAL_captureLog } from '@sentry/core';
 
-export type CaptureLogArgs =
-  | [message: ParameterizedString, attributes?: Log['attributes']]
-  | [messageTemplate: string, messageParams: Array<unknown>, attributes?: Log['attributes']];
+type CaptureLogsArgsParametrized = [
+  message: ParameterizedString,
+  attributes?: Log['attributes'],
+  client?: Client,
+  scope?: Scope,
+];
+type CaptureLogsArgsTemplate = [
+  messageTemplate: string,
+  messageParams: Array<unknown>,
+  attributes?: Log['attributes'],
+  client?: Client,
+  scope?: Scope,
+];
+
+export type CaptureLogArgs = CaptureLogsArgsParametrized | CaptureLogsArgsTemplate;
 
 /**
  * Capture a log with the given level.
@@ -14,16 +26,21 @@ export type CaptureLogArgs =
  * @param attributes - Arbitrary structured data that stores information about the log - e.g., userId: 100.
  */
 export function captureLog(level: LogSeverityLevel, ...args: CaptureLogArgs): void {
-  const [messageOrMessageTemplate, paramsOrAttributes, maybeAttributes] = args;
-  if (Array.isArray(paramsOrAttributes)) {
-    const attributes = { ...maybeAttributes };
-    attributes['sentry.message.template'] = messageOrMessageTemplate;
-    paramsOrAttributes.forEach((param, index) => {
+  if (!isParametrizedArgs(args)) {
+    const [messageTemplate, messageParams, messageAttributes, client, scope] = args;
+    const attributes = { ...messageAttributes };
+    attributes['sentry.message.template'] = messageTemplate;
+    messageParams.forEach((param, index) => {
       attributes[`sentry.message.parameter.${index}`] = param;
     });
-    const message = format(messageOrMessageTemplate, ...paramsOrAttributes);
-    _INTERNAL_captureLog({ level, message, attributes });
+    const message = format(messageTemplate, ...messageParams);
+    _INTERNAL_captureLog({ level, message, attributes }, client, scope);
   } else {
-    _INTERNAL_captureLog({ level, message: messageOrMessageTemplate, attributes: paramsOrAttributes });
+    const [message, attributes, client, scope] = args;
+    _INTERNAL_captureLog({ level, message, attributes }, client, scope);
   }
+}
+
+function isParametrizedArgs(args: CaptureLogArgs): args is CaptureLogsArgsParametrized {
+  return !Array.isArray(args[1]);
 }
