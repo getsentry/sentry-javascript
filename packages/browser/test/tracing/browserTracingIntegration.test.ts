@@ -788,6 +788,27 @@ describe('browserTracingIntegration', () => {
         },
       });
     });
+
+    it('triggers beforeStartNavigationSpan hook listeners', () => {
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          tracesSampleRate: 1,
+          integrations: [browserTracingIntegration()],
+        }),
+      );
+      setCurrentClient(client);
+
+      const mockBeforeStartNavigationSpanCallback = vi.fn((options: StartSpanOptions) => options);
+
+      client.on('beforeStartNavigationSpan', mockBeforeStartNavigationSpanCallback);
+
+      startBrowserTracingNavigationSpan(client, { name: 'test span', op: 'navigation' });
+
+      expect(mockBeforeStartNavigationSpanCallback).toHaveBeenCalledWith(
+        { name: 'test span', op: 'navigation' },
+        { isRedirect: undefined },
+      );
+    });
   });
 
   describe('using the <meta> tag data', () => {

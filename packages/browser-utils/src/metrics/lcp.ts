@@ -72,9 +72,12 @@ export function trackLcpAsStandaloneSpan(): void {
       return;
     }
 
-    const unsubscribeStartNavigation = client.on('startNavigationSpan', () => {
-      _collectLcpOnce();
-      unsubscribeStartNavigation?.();
+    const unsubscribeStartNavigation = client.on('startNavigationSpan', (_, options) => {
+      // we only want to collect LCP if we actually navigate. Redirects should be ignored.
+      if (!options?.isRedirect) {
+        _collectLcpOnce();
+        unsubscribeStartNavigation?.();
+      }
     });
 
     const activeSpan = getActiveSpan();
