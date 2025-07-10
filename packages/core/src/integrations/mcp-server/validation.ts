@@ -1,6 +1,10 @@
-import type { JsonRpcNotification, JsonRpcRequest } from './types';
+/**
+ * Message validation functions for MCP server instrumentation
+ */
+
 import { DEBUG_BUILD } from '../../debug-build';
 import { logger } from '../../utils/logger';
+import type { JsonRpcNotification, JsonRpcRequest } from './types';
 
 /** Validates if a message is a JSON-RPC request */
 export function isJsonRpcRequest(message: unknown): message is JsonRpcRequest {
@@ -26,7 +30,19 @@ export function isJsonRpcNotification(message: unknown): message is JsonRpcNotif
   );
 }
 
-/** Validates MCP server instance with comprehensive type checking */
+/** Validates if a message is a JSON-RPC response */
+export function isJsonRpcResponse(message: unknown): message is { jsonrpc: '2.0'; id: string | number | null; result?: unknown; error?: unknown } {
+  return (
+    typeof message === 'object' &&
+    message !== null &&
+    'jsonrpc' in message &&
+    (message as { jsonrpc: string }).jsonrpc === '2.0' &&
+    'id' in message &&
+    ('result' in message || 'error' in message)
+  );
+}
+
+/** Validates MCP server instance with type checking */
 export function validateMcpServerInstance(instance: unknown): boolean {
   if (
     typeof instance === 'object' &&
@@ -40,4 +56,4 @@ export function validateMcpServerInstance(instance: unknown): boolean {
   }
   DEBUG_BUILD && logger.warn('Did not patch MCP server. Interface is incompatible.');
   return false;
-} 
+}

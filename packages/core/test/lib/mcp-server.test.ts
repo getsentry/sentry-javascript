@@ -4,6 +4,7 @@ import * as tracingModule from '../../src/tracing';
 
 describe('wrapMcpServerWithSentry', () => {
   const startSpanSpy = vi.spyOn(tracingModule, 'startSpan');
+  const startInactiveSpanSpy = vi.spyOn(tracingModule, 'startInactiveSpan');
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -30,8 +31,9 @@ describe('wrapMcpServerWithSentry', () => {
     expect(result.resource).toBe(invalidMcpServer.resource);
     expect(result.tool).toBe(invalidMcpServer.tool);
 
-    // No calls to startSpan
+    // No calls to startSpan or startInactiveSpan
     expect(startSpanSpy).not.toHaveBeenCalled();
+    expect(startInactiveSpanSpy).not.toHaveBeenCalled();
   });
 
   it('should not wrap the same instance twice', () => {
@@ -113,12 +115,11 @@ describe('wrapMcpServerWithSentry', () => {
       // Simulate incoming message
       mockTransport.onmessage?.(jsonRpcRequest, {});
 
-      expect(startSpanSpy).toHaveBeenCalledWith(
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'tools/call get-weather',
           forceTransaction: true,
         }),
-        expect.any(Function),
       );
     });
 
@@ -214,9 +215,10 @@ describe('wrapMcpServerWithSentry', () => {
 
       mockTransport.onmessage?.(jsonRpcRequest, extraWithClientInfo);
 
-      expect(startSpanSpy).toHaveBeenCalledWith(
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
         {
           name: 'tools/call get-weather',
+          op: 'mcp.server',
           forceTransaction: true,
           attributes: {
             'mcp.method.name': 'tools/call',
@@ -234,7 +236,6 @@ describe('wrapMcpServerWithSentry', () => {
             'sentry.source': 'route',
           },
         },
-        expect.any(Function),
       );
     });
 
@@ -250,9 +251,10 @@ describe('wrapMcpServerWithSentry', () => {
 
       mockTransport.onmessage?.(jsonRpcRequest, {});
 
-      expect(startSpanSpy).toHaveBeenCalledWith(
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
         {
           name: 'resources/read file:///docs/api.md',
+          op: 'mcp.server',
           forceTransaction: true,
           attributes: {
             'mcp.method.name': 'resources/read',
@@ -268,7 +270,6 @@ describe('wrapMcpServerWithSentry', () => {
             'sentry.source': 'route',
           },
         },
-        expect.any(Function),
       );
     });
 
@@ -284,9 +285,10 @@ describe('wrapMcpServerWithSentry', () => {
 
       mockTransport.onmessage?.(jsonRpcRequest, {});
 
-      expect(startSpanSpy).toHaveBeenCalledWith(
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
         {
           name: 'prompts/get analyze-code',
+          op: 'mcp.server',
           forceTransaction: true,
           attributes: {
             'mcp.method.name': 'prompts/get',
@@ -302,7 +304,6 @@ describe('wrapMcpServerWithSentry', () => {
             'sentry.source': 'route',
           },
         },
-        expect.any(Function),
       );
     });
 
@@ -354,7 +355,7 @@ describe('wrapMcpServerWithSentry', () => {
 
       mockTransport.onmessage?.(jsonRpcRequest, {});
 
-      expect(startSpanSpy).toHaveBeenCalledWith(
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'tools/list',
           forceTransaction: true,
@@ -372,7 +373,6 @@ describe('wrapMcpServerWithSentry', () => {
             'sentry.source': 'route',
           }),
         }),
-        expect.any(Function),
       );
     });
 
@@ -530,6 +530,75 @@ describe('wrapMcpServerWithSentry', () => {
         expect.any(Function),
       );
     });
+
+    it('should instrument tool call results and complete span with enriched attributes', async () => {
+      await wrappedMcpServer.connect(mockTransport);
+
+      const mockSpan = {
+        setAttributes: vi.fn(),
+        setStatus: vi.fn(),
+        end: vi.fn(),
+      };
+      startInactiveSpanSpy.mockReturnValueOnce(mockSpan);
+
+      const toolCallRequest = {
+        jsonrpc: '2.0',
+        method: 'tools/call',
+        id: 'req-tool-result',
+        params: { 
+          name: 'weather-lookup',
+          arguments: { location: 'San Francisco', units: 'celsius' }
+        },
+      };
+
+      // Simulate the incoming tool call request
+      mockTransport.onmessage?.(toolCallRequest, {});
+
+      // Verify span was created for the request
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'tools/call weather-lookup',
+          op: 'mcp.server',
+          forceTransaction: true,
+          attributes: expect.objectContaining({
+            'mcp.method.name': 'tools/call',
+            'mcp.tool.name': 'weather-lookup',
+            'mcp.request.id': 'req-tool-result',
+          }),
+        }),
+      );
+
+      // Simulate tool execution response with results
+      const toolResponse = {
+        jsonrpc: '2.0',
+        id: 'req-tool-result',
+        result: {
+          content: [
+            {
+              type: 'text',
+              text: 'The weather in San Francisco is 18°C with partly cloudy skies.'
+            }
+          ],
+          isError: false
+        }
+      };
+
+      // Simulate the outgoing response (this should trigger span completion)
+      mockTransport.send?.(toolResponse);
+
+      // Verify that the span was enriched with tool result attributes
+      expect(mockSpan.setAttributes).toHaveBeenCalledWith(
+        expect.objectContaining({
+          'mcp.tool.result.is_error': false,
+          'mcp.tool.result.content_count': 1,
+          'mcp.tool.result.content': '[{"type":"text","text":"The weather in San Francisco is 18°C with partly cloudy skies."}]',
+        })
+      );
+
+      // Verify span was completed successfully (no error status set)
+      expect(mockSpan.setStatus).not.toHaveBeenCalled();
+      expect(mockSpan.end).toHaveBeenCalled();
+    });
   });
 
   describe('Stdio Transport Tests', () => {
@@ -556,9 +625,10 @@ describe('wrapMcpServerWithSentry', () => {
 
       mockStdioTransport.onmessage?.(jsonRpcRequest, {});
 
-      expect(startSpanSpy).toHaveBeenCalledWith(
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
         {
           name: 'tools/call process-file',
+          op: 'mcp.server',
           forceTransaction: true,
           attributes: {
             'mcp.method.name': 'tools/call',
@@ -574,7 +644,6 @@ describe('wrapMcpServerWithSentry', () => {
             'sentry.source': 'route',
           },
         },
-        expect.any(Function),
       );
     });
 
@@ -633,7 +702,7 @@ describe('wrapMcpServerWithSentry', () => {
 
       mockSseTransport.onmessage?.(jsonRpcRequest, {});
 
-      expect(startSpanSpy).toHaveBeenCalledWith(
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'resources/read https://api.example.com/data',
           attributes: expect.objectContaining({
@@ -644,7 +713,6 @@ describe('wrapMcpServerWithSentry', () => {
             'mcp.session.id': 'sse-session-789',
           }),
         }),
-        expect.any(Function),
       );
     });
   });
