@@ -7,7 +7,6 @@ import { _INTERNAL_captureLog } from '@sentry/core';
  * @param level - The level of the log.
  * @param message - The message to log.
  * @param attributes - Arbitrary structured data that stores information about the log - e.g., userId: 100.
- * @param severityNumber - The severity number of the log.
  */
 function captureLog(
   level: LogSeverityLevel,
