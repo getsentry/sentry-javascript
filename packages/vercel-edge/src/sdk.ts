@@ -10,6 +10,7 @@ import type { Client, Integration, Options } from '@sentry/core';
 import {
   consoleIntegration,
   createStackParser,
+  debug,
   dedupeIntegration,
   functionToStringIntegration,
   getCurrentScope,
@@ -18,7 +19,6 @@ import {
   hasSpansEnabled,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
-  logger,
   nodeStackLineParser,
   requestDataIntegration,
   SDK_VERSION,
@@ -135,14 +135,14 @@ function validateOpenTelemetrySetup(): void {
 
   for (const k of required) {
     if (!setup.includes(k)) {
-      logger.error(
+      debug.error(
         `You have to set up the ${k}. Without this, the OpenTelemetry & Sentry integration will not work properly.`,
       );
     }
   }
 
   if (!setup.includes('SentrySampler')) {
-    logger.warn(
+    debug.warn(
       'You have to set up the SentrySampler. Without this, the OpenTelemetry & Sentry integration may still work, but sample rates set for the Sentry SDK will not be respected. If you use a custom sampler, make sure to use `wrapSamplingDecision`.',
     );
   }
@@ -182,10 +182,10 @@ export function setupOtel(client: VercelEdgeClient): void {
 }
 
 /**
- * Setup the OTEL logger to use our own logger.
+ * Setup the OTEL logger to use our own debug logger.
  */
 function setupOpenTelemetryLogger(): void {
-  const otelLogger = new Proxy(logger as typeof logger & { verbose: (typeof logger)['debug'] }, {
+  const otelLogger = new Proxy(debug as typeof debug & { verbose: (typeof debug)['log'] }, {
     get(target, prop, receiver) {
       const actualProp = prop === 'verbose' ? 'debug' : prop;
       return Reflect.get(target, actualProp, receiver);
@@ -194,7 +194,16 @@ function setupOpenTelemetryLogger(): void {
 
   // Disable diag, to ensure this works even if called multiple times
   diag.disable();
-  diag.setLogger(otelLogger, DiagLogLevel.DEBUG);
+  diag.setLogger(
+    {
+      error: otelLogger.error,
+      warn: otelLogger.warn,
+      info: otelLogger.log,
+      debug: otelLogger.log,
+      verbose: otelLogger.log,
+    },
+    DiagLogLevel.DEBUG,
+  );
 }
 
 /**
