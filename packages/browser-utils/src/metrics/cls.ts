@@ -17,7 +17,7 @@ import {
 import { DEBUG_BUILD } from '../debug-build';
 import { addClsInstrumentationHandler } from './instrument';
 import type { WebVitalReportEvent } from './utils';
-import { msToSec, startStandaloneWebVitalSpan } from './utils';
+import { msToSec, startStandaloneWebVitalSpan, supportsWebVital } from './utils';
 import { onHidden } from './web-vitals/lib/onHidden';
 import { runOnce } from './web-vitals/lib/runOnce';
 
@@ -35,7 +35,7 @@ export function trackClsAsStandaloneSpan(): void {
   let standaloneClsEntry: LayoutShift | undefined;
   let pageloadSpanId: string | undefined;
 
-  if (!supportsLayoutShift()) {
+  if (!supportsWebVital('layout-shift')) {
     return;
   }
 
@@ -137,13 +137,5 @@ function sendStandaloneClsSpan(
     // LayoutShift performance entries always have a duration of 0, so we don't need to add `entry.duration` here
     // see: https://developer.mozilla.org/en-US/docs/Web/API/PerformanceEntry/duration
     span.end(startTime);
-  }
-}
-
-function supportsLayoutShift(): boolean {
-  try {
-    return PerformanceObserver.supportedEntryTypes.includes('layout-shift');
-  } catch {
-    return false;
   }
 }

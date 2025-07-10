@@ -170,3 +170,14 @@ export function extractNetworkProtocol(nextHopProtocol: string): { name: string;
   }
   return { name, version };
 }
+
+/**
+ * Generic support check for web vitals
+ */
+export function supportsWebVital(entryType: 'layout-shift' | 'largest-contentful-paint'): boolean {
+  try {
+    return PerformanceObserver.supportedEntryTypes.includes(entryType);
+  } catch {
+    return false;
+  }
+}

@@ -17,7 +17,7 @@ import {
 import { DEBUG_BUILD } from '../debug-build';
 import { addLcpInstrumentationHandler } from './instrument';
 import type { WebVitalReportEvent } from './utils';
-import { msToSec, startStandaloneWebVitalSpan } from './utils';
+import { msToSec, startStandaloneWebVitalSpan, supportsWebVital } from './utils';
 import { onHidden } from './web-vitals/lib/onHidden';
 import { runOnce } from './web-vitals/lib/runOnce';
 
@@ -35,7 +35,7 @@ export function trackLcpAsStandaloneSpan(): void {
   let standaloneLcpEntry: LargestContentfulPaint | undefined;
   let pageloadSpanId: string | undefined;
 
-  if (!supportsLargestContentfulPaint()) {
+  if (!supportsWebVital('largest-contentful-paint')) {
     return;
   }
 
@@ -149,13 +149,5 @@ export function _sendStandaloneLcpSpan(
 
     // LCP is a point-in-time metric, so we end the span immediately
     span.end(startTime);
-  }
-}
-
-function supportsLargestContentfulPaint(): boolean {
-  try {
-    return PerformanceObserver.supportedEntryTypes.includes('largest-contentful-paint');
-  } catch {
-    return false;
   }
 }
