@@ -1,4 +1,4 @@
-import { captureException, flush, logger, objectify } from '@sentry/core';
+import { captureException, flush, debug, objectify } from '@sentry/core';
 import type { RequestEvent } from '@sveltejs/kit';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { isHttpError, isRedirect } from '../common/utils';
@@ -26,11 +26,11 @@ export async function flushIfServerless(): Promise<void> {
 
   if (!platformSupportsStreaming) {
     try {
-      DEBUG_BUILD && logger.log('Flushing events...');
+      DEBUG_BUILD && debug.log('Flushing events...');
       await flush(2000);
-      DEBUG_BUILD && logger.log('Done flushing events');
+      DEBUG_BUILD && debug.log('Done flushing events');
     } catch (e) {
-      DEBUG_BUILD && logger.log('Error while flushing events:\n', e);
+      DEBUG_BUILD && debug.log('Error while flushing events:\n', e);
     }
   }
 }
