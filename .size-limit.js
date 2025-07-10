@@ -89,7 +89,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'logger'),
     gzip: true,
-    limit: '40 KB',
+    limit: '26 KB',
   },
   {
     name: '@sentry/browser (incl. Feedback)',

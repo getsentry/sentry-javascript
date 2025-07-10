@@ -26,7 +26,7 @@ export type CaptureLogArgs = CaptureLogsArgsParametrized | CaptureLogsArgsTempla
  * @param attributes - Arbitrary structured data that stores information about the log - e.g., userId: 100.
  */
 export function captureLog(level: LogSeverityLevel, ...args: CaptureLogArgs): void {
-  if (!isParametrizedArgs(args)) {
+  if (isTemplateArgs(args)) {
     const [messageTemplate, messageParams, messageAttributes, client, scope] = args;
     const attributes = { ...messageAttributes };
     attributes['sentry.message.template'] = messageTemplate;
@@ -41,6 +41,6 @@ export function captureLog(level: LogSeverityLevel, ...args: CaptureLogArgs): vo
   }
 }
 
-function isParametrizedArgs(args: CaptureLogArgs): args is CaptureLogsArgsParametrized {
-  return !Array.isArray(args[1]);
+function isTemplateArgs(args: CaptureLogArgs): args is CaptureLogsArgsTemplate {
+  return Array.isArray(args[1]);
 }
