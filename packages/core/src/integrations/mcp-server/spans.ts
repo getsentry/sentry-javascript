@@ -2,6 +2,7 @@
  * Span creation and management functions for MCP server instrumentation
  */
 
+import { getClient } from '../../currentScopes';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -18,6 +19,7 @@ import {
   MCP_ROUTE_SOURCE_VALUE,
   MCP_SERVER_OP_VALUE,
 } from './attributes';
+import { filterMcpPiiFromSpanData } from './piiFiltering';
 import type { ExtraHandlerData, JsonRpcNotification, JsonRpcRequest, McpSpanConfig, MCPTransport } from './types';
 
 /**
@@ -77,7 +79,7 @@ function createMcpSpan(config: McpSpanConfig): unknown {
   }
 
   // Build attributes
-  const attributes: Record<string, string | number> = {
+  const rawAttributes: Record<string, string | number> = {
     // Base attributes
     ...buildTransportAttributes(transport, extra),
     // Method name (required for all spans)
@@ -87,6 +89,11 @@ function createMcpSpan(config: McpSpanConfig): unknown {
     // Sentry attributes
     ...buildSentryAttributes(type),
   };
+
+  // Apply PII filtering based on sendDefaultPii setting
+  const client = getClient();
+  const sendDefaultPii = Boolean(client?.getOptions().sendDefaultPii);
+  const attributes = filterMcpPiiFromSpanData(rawAttributes, sendDefaultPii) as Record<string, string | number>;
 
   return startSpan(
     {
@@ -154,7 +161,7 @@ export function buildMcpServerSpanConfig(
   const spanName = createSpanName(method, targetInfo.target);
 
   // Build comprehensive attributes
-  const attributes: Record<string, string | number> = {
+  const rawAttributes: Record<string, string | number> = {
     // Base attributes
     ...buildTransportAttributes(transport, extra),
     // Method and request info
@@ -164,6 +171,11 @@ export function buildMcpServerSpanConfig(
     // Sentry attributes
     ...buildSentryAttributes('request'),
   };
+
+  // Apply PII filtering based on sendDefaultPii setting
+  const client = getClient();
+  const sendDefaultPii = Boolean(client?.getOptions().sendDefaultPii);
+  const attributes = filterMcpPiiFromSpanData(rawAttributes, sendDefaultPii) as Record<string, string | number>;
 
   return {
     name: spanName,

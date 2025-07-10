@@ -3,8 +3,10 @@
  * Handles mapping requestId to span data for correlation with handler execution
  */
 
+import { getClient } from '../../currentScopes';
 import { withActiveSpan } from '../../tracing';
 import type { Span } from '../../types-hoist/span';
+import { filterMcpPiiFromSpanData } from './piiFiltering';
 import type { RequestId, SessionId } from './types';
 
 // Simplified correlation system that works with or without sessionId
@@ -68,8 +70,12 @@ export function completeSpanWithResults(requestId: RequestId, result: unknown): 
     };
 
     if (spanWithMethods.setAttributes && method === 'tools/call') {
-      // Add tool-specific attributes
-      const toolAttributes = extractToolResultAttributes(result);
+      // Add tool-specific attributes with PII filtering
+      const rawToolAttributes = extractToolResultAttributes(result);
+      const client = getClient();
+      const sendDefaultPii = Boolean(client?.getOptions().sendDefaultPii);
+      const toolAttributes = filterMcpPiiFromSpanData(rawToolAttributes, sendDefaultPii);
+
       spanWithMethods.setAttributes(toolAttributes);
 
       // Set span status based on tool result
