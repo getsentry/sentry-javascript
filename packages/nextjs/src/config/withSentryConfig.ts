@@ -320,7 +320,7 @@ function getFinalConfigObject(
         ? constructTurbopackConfig({
             userNextConfig: incomingUserNextConfigObject,
             userSentryOptions,
-            manifest: routeManifest,
+            routeManifest,
           })
         : undefined,
   };

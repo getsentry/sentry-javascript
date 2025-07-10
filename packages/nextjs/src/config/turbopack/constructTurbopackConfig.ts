@@ -16,17 +16,17 @@ import type {
  */
 export function constructTurbopackConfig({
   userNextConfig,
-  manifest,
+  routeManifest,
 }: {
   userNextConfig: NextConfigObject;
   userSentryOptions: SentryBuildOptions;
-  manifest?: RouteManifest;
+  routeManifest?: RouteManifest;
 }): TurbopackOptions {
   const newConfig: TurbopackOptions = {
     ...userNextConfig.turbopack,
   };
 
-  if (manifest) {
+  if (routeManifest) {
     newConfig.rules = safelyAddTurbopackRule(newConfig.rules, {
       matcher: '**/instrumentation-client.*',
       rule: {
@@ -35,7 +35,7 @@ export function constructTurbopackConfig({
             loader: path.resolve(__dirname, '../loaders/valueInjectionLoader.js'),
             options: {
               values: {
-                _sentryRouteManifest: JSON.stringify(manifest),
+                _sentryRouteManifest: JSON.stringify(routeManifest),
               },
             },
           },

@@ -48,7 +48,7 @@ describe('constructTurbopackConfig', () => {
       const result = constructTurbopackConfig({
         userNextConfig,
         userSentryOptions: mockSentryOptions,
-        manifest: mockRouteManifest,
+        routeManifest: mockRouteManifest,
       });
 
       expect(result).toEqual({
@@ -76,10 +76,10 @@ describe('constructTurbopackConfig', () => {
       constructTurbopackConfig({
         userNextConfig,
         userSentryOptions: mockSentryOptions,
-        manifest: mockRouteManifest,
+        routeManifest: mockRouteManifest,
       });
 
-      expect(pathResolveSpy).toHaveBeenCalledWith(expect.any(String), 'loaders/valueInjectionLoader.js');
+      expect(pathResolveSpy).toHaveBeenCalledWith(expect.any(String), '../loaders/valueInjectionLoader.js');
     });
   });
 
@@ -126,7 +126,7 @@ describe('constructTurbopackConfig', () => {
       const result = constructTurbopackConfig({
         userNextConfig,
         userSentryOptions: mockSentryOptions,
-        manifest: mockRouteManifest,
+        routeManifest: mockRouteManifest,
       });
 
       expect(result).toEqual({
@@ -172,7 +172,7 @@ describe('constructTurbopackConfig', () => {
       const result = constructTurbopackConfig({
         userNextConfig,
         userSentryOptions: mockSentryOptions,
-        manifest: mockRouteManifest,
+        routeManifest: mockRouteManifest,
       });
 
       expect(result).toEqual({
@@ -191,7 +191,7 @@ describe('constructTurbopackConfig', () => {
       const result = constructTurbopackConfig({
         userNextConfig,
         userSentryOptions: mockSentryOptions,
-        manifest: emptyManifest,
+        routeManifest: emptyManifest,
       });
 
       expect(result).toEqual({
@@ -224,7 +224,7 @@ describe('constructTurbopackConfig', () => {
       const result = constructTurbopackConfig({
         userNextConfig,
         userSentryOptions: mockSentryOptions,
-        manifest: complexManifest,
+        routeManifest: complexManifest,
       });
 
       expect(result).toEqual({
