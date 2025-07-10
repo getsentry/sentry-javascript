@@ -545,7 +545,7 @@ describe('wrapMcpServerWithSentry', () => {
         jsonrpc: '2.0',
         method: 'tools/call',
         id: 'req-tool-result',
-        params: { 
+        params: {
           name: 'weather-lookup',
           arguments: { location: 'San Francisco', units: 'celsius' }
         },
