@@ -1,7 +1,7 @@
 import { getClient } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import type { Profiler, ProfilingIntegration } from './types-hoist/profiling';
-import { logger } from './utils/logger';
+import { debug } from './utils/logger';
 
 function isProfilingIntegrationWithProfiler(
   integration: ProfilingIntegration<any> | undefined,
@@ -21,19 +21,19 @@ function isProfilingIntegrationWithProfiler(
 function startProfiler(): void {
   const client = getClient();
   if (!client) {
-    DEBUG_BUILD && logger.warn('No Sentry client available, profiling is not started');
+    DEBUG_BUILD && debug.warn('No Sentry client available, profiling is not started');
     return;
   }
 
   const integration = client.getIntegrationByName<ProfilingIntegration<any>>('ProfilingIntegration');
 
   if (!integration) {
-    DEBUG_BUILD && logger.warn('ProfilingIntegration is not available');
+    DEBUG_BUILD && debug.warn('ProfilingIntegration is not available');
     return;
   }
 
   if (!isProfilingIntegrationWithProfiler(integration)) {
-    DEBUG_BUILD && logger.warn('Profiler is not available on profiling integration.');
+    DEBUG_BUILD && debug.warn('Profiler is not available on profiling integration.');
     return;
   }
 
@@ -47,18 +47,18 @@ function startProfiler(): void {
 function stopProfiler(): void {
   const client = getClient();
   if (!client) {
-    DEBUG_BUILD && logger.warn('No Sentry client available, profiling is not started');
+    DEBUG_BUILD && debug.warn('No Sentry client available, profiling is not started');
     return;
   }
 
   const integration = client.getIntegrationByName<ProfilingIntegration<any>>('ProfilingIntegration');
   if (!integration) {
-    DEBUG_BUILD && logger.warn('ProfilingIntegration is not available');
+    DEBUG_BUILD && debug.warn('ProfilingIntegration is not available');
     return;
   }
 
   if (!isProfilingIntegrationWithProfiler(integration)) {
-    DEBUG_BUILD && logger.warn('Profiler is not available on profiling integration.');
+    DEBUG_BUILD && debug.warn('Profiler is not available on profiling integration.');
     return;
   }
 

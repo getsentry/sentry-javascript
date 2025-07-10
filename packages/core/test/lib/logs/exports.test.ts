@@ -100,7 +100,7 @@ describe('_INTERNAL_captureLog', () => {
   });
 
   it('does not capture logs when enableLogs experiment is not enabled', () => {
-    const logWarnSpy = vi.spyOn(loggerModule.logger, 'warn').mockImplementation(() => undefined);
+    const logWarnSpy = vi.spyOn(loggerModule.debug, 'warn').mockImplementation(() => undefined);
     const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
     const client = new TestClient(options);
 
@@ -332,7 +332,7 @@ describe('_INTERNAL_captureLog', () => {
   it('drops logs when beforeSendLog returns null', () => {
     const beforeSendLog = vi.fn().mockReturnValue(null);
     const recordDroppedEventSpy = vi.spyOn(TestClient.prototype, 'recordDroppedEvent');
-    const loggerWarnSpy = vi.spyOn(loggerModule.logger, 'warn').mockImplementation(() => undefined);
+    const loggerWarnSpy = vi.spyOn(loggerModule.debug, 'warn').mockImplementation(() => undefined);
 
     const options = getDefaultTestClientOptions({
       dsn: PUBLIC_DSN,
