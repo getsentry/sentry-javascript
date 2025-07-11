@@ -92,7 +92,6 @@ export function _sendStandaloneLcpSpan(
   }
 
   const span = startStandaloneWebVitalSpan({
-    type: 'lcp',
     name,
     transaction: routeName,
     attributes,

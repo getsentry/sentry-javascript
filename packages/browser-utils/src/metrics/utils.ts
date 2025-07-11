@@ -7,8 +7,7 @@ import type {
   SpanTimeInput,
   StartSpanOptions,
 } from '@sentry/core';
-import { debug, getClient, getCurrentScope, spanToJSON, startInactiveSpan, withActiveSpan } from '@sentry/core';
-import { DEBUG_BUILD } from '../debug-build';
+import { getClient, getCurrentScope, spanToJSON, startInactiveSpan, withActiveSpan } from '@sentry/core';
 import { WINDOW } from '../types';
 import { onHidden } from './web-vitals/lib/onHidden';
 
@@ -56,7 +55,6 @@ export function startAndEndSpan(
 }
 
 interface StandaloneWebVitalSpanOptions {
-  type: 'lcp' | 'cls' | 'inp';
   name: string;
   transaction?: string;
   attributes: SpanAttributes;
@@ -85,7 +83,7 @@ export function startStandaloneWebVitalSpan(options: StandaloneWebVitalSpanOptio
     return;
   }
 
-  const { name, transaction, attributes: passedAttributes, startTime, type } = options;
+  const { name, transaction, attributes: passedAttributes, startTime } = options;
 
   const { release, environment, sendDefaultPii } = client.getOptions();
   // We need to get the replay, user, and activeTransaction from the current scope
@@ -126,9 +124,6 @@ export function startStandaloneWebVitalSpan(options: StandaloneWebVitalSpanOptio
 
     ...passedAttributes,
   };
-
-  DEBUG_BUILD &&
-    debug.log('Starting standalone web vital span', { type, name, transaction, startTime }, 'attributes:', attributes);
 
   return startInactiveSpan({
     name,

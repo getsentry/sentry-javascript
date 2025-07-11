@@ -79,7 +79,6 @@ function sendStandaloneClsSpan(
   }
 
   const span = startStandaloneWebVitalSpan({
-    type: 'cls',
     name,
     transaction: routeName,
     attributes,
