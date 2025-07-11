@@ -7,24 +7,26 @@ describe('route-groups', () => {
 
   test('should generate a manifest with route groups', () => {
     expect(manifest).toEqual({
-      routes: [
+      staticRoutes: [
         { path: '/' },
         { path: '/login' },
         { path: '/signup' },
         { path: '/dashboard' },
+        { path: '/settings/profile' },
+        { path: '/public/about' },
+      ],
+      dynamicRoutes: [
         {
           path: '/dashboard/:id',
           regex: '^/dashboard/([^/]+)$',
           paramNames: ['id'],
         },
-        { path: '/settings/profile' },
-        { path: '/public/about' },
       ],
     });
   });
 
   test('should handle dynamic routes within route groups', () => {
-    const dynamicRoute = manifest.routes.find(route => route.path.includes('/dashboard/:id'));
+    const dynamicRoute = manifest.dynamicRoutes.find(route => route.path.includes('/dashboard/:id'));
     const regex = new RegExp(dynamicRoute?.regex ?? '');
     expect(regex.test('/dashboard/123')).toBe(true);
     expect(regex.test('/dashboard/abc')).toBe(true);

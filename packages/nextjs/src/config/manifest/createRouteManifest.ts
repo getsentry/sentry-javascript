@@ -18,6 +18,11 @@ function isRouteGroup(name: string): boolean {
   return name.startsWith('(') && name.endsWith(')');
 }
 
+function normalizeRoutePath(routePath: string): string {
+  // Remove route group segments from the path
+  return routePath.replace(/\/\([^)]+\)/g, '');
+}
+
 function getDynamicRouteSegment(name: string): string {
   if (name.startsWith('[[...') && name.endsWith(']]')) {
     // Optional catchall: [[...param]]
@@ -77,27 +82,32 @@ function buildRegexForDynamicRoute(routePath: string): { regex: string; paramNam
   return { regex: pattern, paramNames };
 }
 
-function scanAppDirectory(dir: string, basePath: string = ''): RouteInfo[] {
-  const routes: RouteInfo[] = [];
+function scanAppDirectory(
+  dir: string,
+  basePath: string = '',
+): { dynamicRoutes: RouteInfo[]; staticRoutes: RouteInfo[] } {
+  const dynamicRoutes: RouteInfo[] = [];
+  const staticRoutes: RouteInfo[] = [];
 
   try {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
     const pageFile = entries.some(entry => isPageFile(entry.name));
 
     if (pageFile) {
-      const routePath = basePath || '/';
-      const isDynamic = routePath.includes(':');
+      // Normalize the path by removing route groups when creating the final route
+      const normalizedRoutePath = normalizeRoutePath(basePath || '/');
+      const isDynamic = normalizedRoutePath.includes(':');
 
       if (isDynamic) {
-        const { regex, paramNames } = buildRegexForDynamicRoute(routePath);
-        routes.push({
-          path: routePath,
+        const { regex, paramNames } = buildRegexForDynamicRoute(normalizedRoutePath);
+        dynamicRoutes.push({
+          path: normalizedRoutePath,
           regex,
           paramNames,
         });
       } else {
-        routes.push({
-          path: routePath,
+        staticRoutes.push({
+          path: normalizedRoutePath,
         });
       }
     }
@@ -105,18 +115,14 @@ function scanAppDirectory(dir: string, basePath: string = ''): RouteInfo[] {
     for (const entry of entries) {
       if (entry.isDirectory()) {
         const fullPath = path.join(dir, entry.name);
-
-        if (isRouteGroup(entry.name)) {
-          // Route groups don't affect the URL, just scan them
-          const subRoutes = scanAppDirectory(fullPath, basePath);
-          routes.push(...subRoutes);
-          continue;
-        }
-
-        const isDynamic = entry.name.startsWith('[') && entry.name.endsWith(']');
         let routeSegment: string;
 
-        if (isDynamic) {
+        const isDynamic = entry.name.startsWith('[') && entry.name.endsWith(']');
+        const isRouteGroupDir = isRouteGroup(entry.name);
+
+        if (isRouteGroupDir) {
+          routeSegment = entry.name;
+        } else if (isDynamic) {
           routeSegment = getDynamicRouteSegment(entry.name);
         } else {
           routeSegment = entry.name;
@@ -124,7 +130,9 @@ function scanAppDirectory(dir: string, basePath: string = ''): RouteInfo[] {
 
         const newBasePath = `${basePath}/${routeSegment}`;
         const subRoutes = scanAppDirectory(fullPath, newBasePath);
-        routes.push(...subRoutes);
+
+        dynamicRoutes.push(...subRoutes.dynamicRoutes);
+        staticRoutes.push(...subRoutes.staticRoutes);
       }
     }
   } catch (error) {
@@ -132,7 +140,7 @@ function scanAppDirectory(dir: string, basePath: string = ''): RouteInfo[] {
     console.warn('Error building route manifest:', error);
   }
 
-  return routes;
+  return { dynamicRoutes, staticRoutes };
 }
 
 /**
@@ -157,7 +165,8 @@ export function createRouteManifest(options?: CreateRouteManifestOptions): Route
 
   if (!targetDir) {
     return {
-      routes: [],
+      dynamicRoutes: [],
+      staticRoutes: [],
     };
   }
 
@@ -166,10 +175,11 @@ export function createRouteManifest(options?: CreateRouteManifestOptions): Route
     return manifestCache;
   }
 
-  const routes = scanAppDirectory(targetDir);
+  const { dynamicRoutes, staticRoutes } = scanAppDirectory(targetDir);
 
   const manifest: RouteManifest = {
-    routes,
+    dynamicRoutes,
+    staticRoutes,
   };
 
   // set cache

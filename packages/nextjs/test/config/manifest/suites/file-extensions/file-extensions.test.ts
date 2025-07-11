@@ -7,7 +7,7 @@ describe('file-extensions', () => {
 
   test('should detect page files with all supported extensions', () => {
     expect(manifest).toEqual({
-      routes: [
+      staticRoutes: [
         { path: '/' },
         { path: '/javascript' },
         { path: '/jsx-route' },
@@ -15,6 +15,7 @@ describe('file-extensions', () => {
         { path: '/precedence' },
         { path: '/typescript' },
       ],
+      dynamicRoutes: [],
     });
   });
 });

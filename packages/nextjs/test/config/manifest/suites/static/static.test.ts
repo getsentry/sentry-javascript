@@ -6,7 +6,8 @@ describe('static', () => {
   test('should generate a static manifest', () => {
     const manifest = createRouteManifest({ appDirPath: path.join(__dirname, 'app') });
     expect(manifest).toEqual({
-      routes: [{ path: '/' }, { path: '/some/nested' }, { path: '/user' }, { path: '/users' }],
+      staticRoutes: [{ path: '/' }, { path: '/some/nested' }, { path: '/user' }, { path: '/users' }],
+      dynamicRoutes: [],
     });
   });
 });
