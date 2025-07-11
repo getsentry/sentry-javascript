@@ -76,7 +76,7 @@ export function createCallbackList<T>(complete: Next<T>): CallbackWrapper<T> {
 
     try {
       popped(result);
-    } catch (_) {
+    } catch {
       // If there is an error, we still want to call the complete callback
       checkedComplete(result);
     }

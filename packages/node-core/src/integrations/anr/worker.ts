@@ -62,7 +62,7 @@ async function sendAbnormalSession(): Promise<void> {
     try {
       // Notify the main process that the session has ended so the session can be cleared from the scope
       parentPort?.postMessage('session-ended');
-    } catch (_) {
+    } catch {
       // ignore
     }
   }
@@ -280,7 +280,7 @@ if (options.captureStackTrace) {
       session.post('Debugger.enable', () => {
         session.post('Debugger.pause');
       });
-    } catch (_) {
+    } catch {
       //
     }
   };

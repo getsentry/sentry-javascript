@@ -45,7 +45,7 @@ export function uuid4(crypto = getCrypto()): string {
         return typedArray[0]!;
       };
     }
-  } catch (_) {
+  } catch {
     // some runtimes can crash invoking crypto
     // https://github.com/getsentry/sentry-javascript/issues/8935
   }

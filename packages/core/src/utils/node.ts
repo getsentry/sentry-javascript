@@ -50,7 +50,7 @@ export function loadModule<T>(moduleName: string, existingModule: any = module):
 
   try {
     mod = dynamicRequire(existingModule, moduleName);
-  } catch (e) {
+  } catch {
     // no-empty
   }
 
@@ -58,7 +58,7 @@ export function loadModule<T>(moduleName: string, existingModule: any = module):
     try {
       const { cwd } = dynamicRequire(existingModule, 'process');
       mod = dynamicRequire(existingModule, `${cwd()}/node_modules/${moduleName}`) as T;
-    } catch (e) {
+    } catch {
       // no-empty
     }
   }

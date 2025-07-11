@@ -133,7 +133,7 @@ describe('sentryHandle', () => {
 
       try {
         await sentryHandle()({ event: mockEvent(), resolve: resolve(type, isError) });
-      } catch (e) {
+      } catch {
         //
       }
 
@@ -172,7 +172,7 @@ describe('sentryHandle', () => {
             return mockResponse;
           },
         });
-      } catch (e) {
+      } catch {
         //
       }
 
@@ -275,7 +275,7 @@ describe('sentryHandle', () => {
 
       try {
         await sentryHandle()({ event, resolve: resolve(type, isError) });
-      } catch (e) {
+      } catch {
         //
       }
 
@@ -305,7 +305,7 @@ describe('sentryHandle', () => {
     it("doesn't send redirects in a request handler to Sentry", async () => {
       try {
         await sentryHandle()({ event: mockEvent(), resolve: resolve(type, false, 'redirect') });
-      } catch (e) {
+      } catch {
         expect(mockCaptureException).toBeCalledTimes(0);
       }
     });
@@ -313,7 +313,7 @@ describe('sentryHandle', () => {
     it("doesn't send Http 4xx errors in a request handler to Sentry", async () => {
       try {
         await sentryHandle()({ event: mockEvent(), resolve: resolve(type, false, 'http') });
-      } catch (e) {
+      } catch {
         expect(mockCaptureException).toBeCalledTimes(0);
       }
     });
