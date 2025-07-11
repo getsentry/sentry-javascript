@@ -56,6 +56,25 @@ export const MCP_RESOURCE_URI_ATTRIBUTE = 'mcp.resource.uri';
 export const MCP_PROMPT_NAME_ATTRIBUTE = 'mcp.prompt.name';
 
 // =============================================================================
+// TOOL RESULT ATTRIBUTES
+// =============================================================================
+
+/**
+ * Whether a tool execution resulted in an error
+ */
+export const MCP_TOOL_RESULT_IS_ERROR_ATTRIBUTE = 'mcp.tool.result.is_error';
+
+/**
+ * Number of content items in the tool result
+ */
+export const MCP_TOOL_RESULT_CONTENT_COUNT_ATTRIBUTE = 'mcp.tool.result.content_count';
+
+/**
+ * Serialized content of the tool result
+ */
+export const MCP_TOOL_RESULT_CONTENT_ATTRIBUTE = 'mcp.tool.result.content';
+
+// =============================================================================
 // NETWORK ATTRIBUTES (OpenTelemetry Standard)
 // =============================================================================
 

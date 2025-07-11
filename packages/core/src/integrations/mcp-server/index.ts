@@ -1,6 +1,6 @@
 import { fill } from '../../utils/object';
 import { wrapAllMCPHandlers } from './handlers';
-import { wrapTransportOnClose, wrapTransportOnMessage, wrapTransportSend } from './transport';
+import { wrapTransportError, wrapTransportOnClose, wrapTransportOnMessage, wrapTransportSend } from './transport';
 import type { MCPServerInstance, MCPTransport } from './types';
 import { validateMcpServerInstance } from './validation';
 
@@ -34,6 +34,7 @@ export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S):
       wrapTransportOnMessage(transport);
       wrapTransportSend(transport);
       wrapTransportOnClose(transport);
+      wrapTransportError(transport);
 
       return result;
     };

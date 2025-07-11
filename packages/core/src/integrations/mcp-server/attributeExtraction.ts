@@ -11,6 +11,8 @@ import {
   MCP_RESOURCE_URI_ATTRIBUTE,
   MCP_SESSION_ID_ATTRIBUTE,
   MCP_TOOL_NAME_ATTRIBUTE,
+  MCP_TOOL_RESULT_CONTENT_COUNT_ATTRIBUTE,
+  MCP_TOOL_RESULT_IS_ERROR_ATTRIBUTE,
   MCP_TRANSPORT_ATTRIBUTE,
   NETWORK_PROTOCOL_VERSION_ATTRIBUTE,
   NETWORK_TRANSPORT_ATTRIBUTE,
@@ -263,7 +265,7 @@ export function buildTypeSpecificAttributes(
 /** Get metadata about tool result content array */
 function getContentMetadata(content: unknown[]): Record<string, string | number> {
   return {
-    'mcp.tool.result.content_count': content.length,
+    [MCP_TOOL_RESULT_CONTENT_COUNT_ATTRIBUTE]: content.length,
   };
 }
 
@@ -350,7 +352,7 @@ export function extractToolResultAttributes(result: unknown): Record<string, str
   const resultObj = result as Record<string, unknown>;
 
   if (typeof resultObj.isError === 'boolean') {
-    attributes['mcp.tool.result.is_error'] = resultObj.isError;
+    attributes[MCP_TOOL_RESULT_IS_ERROR_ATTRIBUTE] = resultObj.isError;
   }
 
   if (Array.isArray(resultObj.content)) {

@@ -6,6 +6,8 @@
 import { getClient } from '../../currentScopes';
 import { withActiveSpan } from '../../tracing';
 import type { Span } from '../../types-hoist/span';
+import { MCP_TOOL_RESULT_CONTENT_ATTRIBUTE, MCP_TOOL_RESULT_CONTENT_COUNT_ATTRIBUTE, MCP_TOOL_RESULT_IS_ERROR_ATTRIBUTE } from './attributes';
+import { captureError } from './errorCapture';
 import { filterMcpPiiFromSpanData } from './piiFiltering';
 import type { RequestId, SessionId } from './types';
 
@@ -78,21 +80,22 @@ export function completeSpanWithResults(requestId: RequestId, result: unknown): 
 
       spanWithMethods.setAttributes(toolAttributes);
 
-      // Set span status based on tool result
-      if (toolAttributes['mcp.tool.result.is_error']) {
+      const isToolError = rawToolAttributes[MCP_TOOL_RESULT_IS_ERROR_ATTRIBUTE] === true;
+      
+      if (isToolError) {
         spanWithMethods.setStatus({
           code: 2, // ERROR
           message: 'Tool execution failed',
         });
+
+        captureError(new Error('Tool returned error result'), 'tool_execution');
       }
     }
 
-    // Complete the span
     if (spanWithMethods.end) {
       spanWithMethods.end();
     }
 
-    // Clean up correlation
     requestIdToSpanMap.delete(requestId);
   }
 }
@@ -130,17 +133,15 @@ function extractToolResultAttributes(result: unknown): Record<string, string | n
   if (typeof result === 'object' && result !== null) {
     const resultObj = result as Record<string, unknown>;
 
-    // Check if this is an error result
     if (typeof resultObj.isError === 'boolean') {
-      attributes['mcp.tool.result.is_error'] = resultObj.isError;
+      attributes[MCP_TOOL_RESULT_IS_ERROR_ATTRIBUTE] = resultObj.isError;
     }
 
-    // Store content as-is (serialized)
     if (Array.isArray(resultObj.content)) {
-      attributes['mcp.tool.result.content_count'] = resultObj.content.length;
+      attributes[MCP_TOOL_RESULT_CONTENT_COUNT_ATTRIBUTE] = resultObj.content.length;
 
       const serializedContent = JSON.stringify(resultObj.content);
-      attributes['mcp.tool.result.content'] =
+      attributes[MCP_TOOL_RESULT_CONTENT_ATTRIBUTE] =
         serializedContent.length > 5000 ? `${serializedContent.substring(0, 4997)}...` : serializedContent;
     }
   }

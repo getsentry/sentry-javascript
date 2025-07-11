@@ -3,13 +3,15 @@
  * Removes sensitive data when sendDefaultPii is false
  */
 
+import { MCP_TOOL_RESULT_CONTENT_ATTRIBUTE } from './attributes';
+
 /** PII attributes that should be removed when sendDefaultPii is false */
 const PII_ATTRIBUTES = new Set([
   'client.address',
   'client.port',
   'mcp.logging.message',
   'mcp.resource.uri',
-  'mcp.tool.result.content',
+  MCP_TOOL_RESULT_CONTENT_ATTRIBUTE,
 ]);
 
 /**

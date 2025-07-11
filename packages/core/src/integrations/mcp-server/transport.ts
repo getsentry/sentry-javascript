@@ -7,6 +7,7 @@ import { getIsolationScope, withIsolationScope } from '../../currentScopes';
 import { startInactiveSpan, withActiveSpan } from '../../tracing';
 import { fill } from '../../utils/object';
 import { cleanupAllPendingSpans, completeSpanWithResults, storeSpanForRequest } from './correlation';
+import { captureError } from './errorCapture';
 import { buildMcpServerSpanConfig, createMcpNotificationSpan, createMcpOutgoingNotificationSpan } from './spans';
 import type { ExtraHandlerData, MCPTransport } from './types';
 import { isJsonRpcNotification, isJsonRpcRequest, isJsonRpcResponse } from './validation';
@@ -65,12 +66,14 @@ export function wrapTransportSend(transport: MCPTransport): void {
           });
         }
 
-        // Handle responses - enrich spans with tool results
         if (isJsonRpcResponse(message)) {
           const messageTyped = message as { id: string | number; result?: unknown; error?: unknown };
 
           if (messageTyped.id !== null && messageTyped.id !== undefined) {
-            // Complete span with tool results
+            if (messageTyped.error) {
+              captureJsonRpcErrorResponse(messageTyped.error, messageTyped.id, this);
+            }
+
             completeSpanWithResults(messageTyped.id, messageTyped.result);
           }
         }
@@ -88,11 +91,58 @@ export function wrapTransportOnClose(transport: MCPTransport): void {
   if (transport.onclose) {
     fill(transport, 'onclose', originalOnClose => {
       return function (this: MCPTransport, ...args: unknown[]) {
-        // Clean up any pending spans on transport close
         cleanupAllPendingSpans();
 
         return (originalOnClose as (...args: unknown[]) => unknown).call(this, ...args);
       };
     });
+  }
+}
+
+/**
+ * Wraps transport error handlers to capture connection errors
+ */
+export function wrapTransportError(transport: MCPTransport): void {
+  // All MCP transports have an onerror method as part of the standard interface
+  if (transport.onerror) {
+    fill(transport, 'onerror', (originalOnError: (error: Error) => void) => {
+      return function (this: MCPTransport, error: Error) {
+        captureTransportError(error, this);
+        return originalOnError.call(this, error);
+      };
+    });
+  }
+}
+
+/**
+ * Captures JSON-RPC error responses
+ */
+function captureJsonRpcErrorResponse(
+  errorResponse: unknown,
+  _requestId: string | number,
+  _transport: MCPTransport,
+): void {
+  try {
+    if (errorResponse && typeof errorResponse === 'object' && 'code' in errorResponse && 'message' in errorResponse) {
+      const jsonRpcError = errorResponse as { code: number; message: string; data?: unknown };
+
+      const error = new Error(jsonRpcError.message);
+      error.name = `JsonRpcError_${jsonRpcError.code}`;
+
+      captureError(error, 'protocol');
+    }
+  } catch {
+    // Silently ignore capture errors
+  }
+}
+
+/**
+ * Captures transport connection errors
+ */
+function captureTransportError(error: Error, _transport: MCPTransport): void {
+  try {
+    captureError(error, 'transport');
+  } catch {
+    // Silently ignore capture errors
   }
 }

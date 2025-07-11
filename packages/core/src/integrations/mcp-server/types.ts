@@ -67,6 +67,11 @@ export interface MCPTransport {
   onclose?: (...args: unknown[]) => void;
 
   /**
+   * Error handler for transport errors
+   */
+    onerror?: (error: Error) => void;
+
+  /**
    * Send method for outgoing messages
    */
   send?: (message: JsonRpcMessage, options?: Record<string, unknown>) => Promise<void>;
@@ -142,4 +147,20 @@ export type MCPHandler = (...args: unknown[]) => unknown;
 export interface HandlerExtraData {
   sessionId?: SessionId;
   requestId: RequestId;
+}
+
+/** Error types for MCP server operations */
+export type McpErrorType = 'tool_execution' | 'transport' | 'protocol' | 'validation' | 'timeout';
+
+/** Context information for MCP errors */
+export interface McpErrorContext {
+  errorType: McpErrorType;
+  method?: string;
+  toolName?: string;
+  resourceUri?: string;
+  requestId?: string;
+  sessionId?: string;
+  transportType?: string;
+  errorData?: Record<string, unknown>;
+  contextData?: Record<string, unknown>;
 }
