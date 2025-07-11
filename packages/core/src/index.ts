@@ -118,7 +118,7 @@ export { featureFlagsIntegration, type FeatureFlagsIntegration } from './integra
 export { profiler } from './profiling';
 export { instrumentFetchRequest } from './fetch';
 export { trpcMiddleware } from './trpc';
-export { wrapMcpServerWithSentry } from './mcp-server';
+export { wrapMcpServerWithSentry } from './integrations/mcp-server';
 export { captureFeedback } from './feedback';
 export type { ReportDialogOptions } from './report-dialog';
 export { _INTERNAL_captureLog, _INTERNAL_flushLogsBuffer, _INTERNAL_captureSerializedLog } from './logs/exports';
