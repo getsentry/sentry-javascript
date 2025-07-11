@@ -185,22 +185,15 @@ export function setupOtel(client: VercelEdgeClient): void {
  * Setup the OTEL logger to use our own debug logger.
  */
 function setupOpenTelemetryLogger(): void {
-  const otelLogger = new Proxy(debug as typeof debug & { verbose: (typeof debug)['log'] }, {
-    get(target, prop, receiver) {
-      const actualProp = prop === 'verbose' ? 'debug' : prop;
-      return Reflect.get(target, actualProp, receiver);
-    },
-  });
-
   // Disable diag, to ensure this works even if called multiple times
   diag.disable();
   diag.setLogger(
     {
-      error: otelLogger.error,
-      warn: otelLogger.warn,
-      info: otelLogger.log,
-      debug: otelLogger.log,
-      verbose: otelLogger.log,
+      error: debug.error,
+      warn: debug.warn,
+      info: debug.log,
+      debug: debug.log,
+      verbose: debug.log,
     },
     DiagLogLevel.DEBUG,
   );
