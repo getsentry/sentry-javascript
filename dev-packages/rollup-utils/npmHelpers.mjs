@@ -26,7 +26,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const packageDotJSON = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), './package.json'), { encoding: 'utf8' }));
 
-const ignoreSideEffects = [/[\\\/]debug-build\.ts$/];
+const ignoreSideEffects = /[\\\/]debug-build\.ts$/;
 
 export function makeBaseNPMConfig(options = {}) {
   const {
@@ -87,7 +87,7 @@ export function makeBaseNPMConfig(options = {}) {
 
     treeshake: {
       moduleSideEffects: (id, external) => {
-        return external === false && ignoreSideEffects.some(regex => regex.test(id));
+        return external === false && ignoreSideEffects.test(id);
       }
     },
 
