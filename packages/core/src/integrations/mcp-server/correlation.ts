@@ -6,7 +6,11 @@
 import { getClient } from '../../currentScopes';
 import { withActiveSpan } from '../../tracing';
 import type { Span } from '../../types-hoist/span';
-import { MCP_TOOL_RESULT_CONTENT_ATTRIBUTE, MCP_TOOL_RESULT_CONTENT_COUNT_ATTRIBUTE, MCP_TOOL_RESULT_IS_ERROR_ATTRIBUTE } from './attributes';
+import {
+  MCP_TOOL_RESULT_CONTENT_ATTRIBUTE,
+  MCP_TOOL_RESULT_CONTENT_COUNT_ATTRIBUTE,
+  MCP_TOOL_RESULT_IS_ERROR_ATTRIBUTE,
+} from './attributes';
 import { captureError } from './errorCapture';
 import { filterMcpPiiFromSpanData } from './piiFiltering';
 import type { RequestId, SessionId } from './types';
@@ -81,7 +85,7 @@ export function completeSpanWithResults(requestId: RequestId, result: unknown): 
       spanWithMethods.setAttributes(toolAttributes);
 
       const isToolError = rawToolAttributes[MCP_TOOL_RESULT_IS_ERROR_ATTRIBUTE] === true;
-      
+
       if (isToolError) {
         spanWithMethods.setStatus({
           code: 2, // ERROR

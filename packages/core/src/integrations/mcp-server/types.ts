@@ -69,7 +69,7 @@ export interface MCPTransport {
   /**
    * Error handler for transport errors
    */
-    onerror?: (error: Error) => void;
+  onerror?: (error: Error) => void;
 
   /**
    * Send method for outgoing messages

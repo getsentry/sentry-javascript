@@ -15,7 +15,7 @@ export function captureError(error: Error, errorType?: string): void {
   try {
     const client = getClient();
     if (!client) {
-      return
+      return;
     }
 
     captureException(error, {
