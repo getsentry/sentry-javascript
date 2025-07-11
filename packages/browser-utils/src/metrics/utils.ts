@@ -1,13 +1,14 @@
-import type { Integration, SentrySpan, Span, SpanAttributes, SpanTimeInput, StartSpanOptions } from '@sentry/core';
-import {
-  getActiveSpan,
-  getClient,
-  getCurrentScope,
-  getRootSpan,
-  spanToJSON,
-  startInactiveSpan,
-  withActiveSpan,
+import type {
+  Client,
+  Integration,
+  SentrySpan,
+  Span,
+  SpanAttributes,
+  SpanTimeInput,
+  StartSpanOptions,
 } from '@sentry/core';
+import { debug, getClient, getCurrentScope, spanToJSON, startInactiveSpan, withActiveSpan } from '@sentry/core';
+import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../types';
 import { onHidden } from './web-vitals/lib/onHidden';
 
@@ -55,6 +56,7 @@ export function startAndEndSpan(
 }
 
 interface StandaloneWebVitalSpanOptions {
+  type: 'lcp' | 'cls' | 'inp';
   name: string;
   transaction?: string;
   attributes: SpanAttributes;
@@ -83,7 +85,7 @@ export function startStandaloneWebVitalSpan(options: StandaloneWebVitalSpanOptio
     return;
   }
 
-  const { name, transaction, attributes: passedAttributes, startTime } = options;
+  const { name, transaction, attributes: passedAttributes, startTime, type } = options;
 
   const { release, environment, sendDefaultPii } = client.getOptions();
   // We need to get the replay, user, and activeTransaction from the current scope
@@ -124,6 +126,9 @@ export function startStandaloneWebVitalSpan(options: StandaloneWebVitalSpanOptio
 
     ...passedAttributes,
   };
+
+  DEBUG_BUILD &&
+    debug.log('Starting standalone web vital span', { type, name, transaction, startTime }, 'attributes:', attributes);
 
   return startInactiveSpan({
     name,
@@ -205,6 +210,7 @@ export function supportsWebVital(entryType: 'layout-shift' | 'largest-contentful
  * - pageloadSpanId: the span id of the pageload span. This is used to link the web vital span to the pageload span.
  */
 export function listenForWebVitalReportEvents(
+  client: Client,
   collectorCallback: (event: WebVitalReportEvent, pageloadSpanId: string) => void,
 ) {
   let pageloadSpanId: string | undefined;
@@ -218,28 +224,20 @@ export function listenForWebVitalReportEvents(
   }
 
   onHidden(() => {
-    if (!collected) {
-      _runCollectorCallbackOnce('pagehide');
+    _runCollectorCallbackOnce('pagehide');
+  });
+
+  const unsubscribeStartNavigation = client.on('beforeStartNavigationSpan', (_, options) => {
+    // we only want to collect LCP if we actually navigate. Redirects should be ignored.
+    if (!options?.isRedirect) {
+      _runCollectorCallbackOnce('navigation');
+      unsubscribeStartNavigation?.();
+      unsubscribeAfterStartPageLoadSpan?.();
     }
   });
 
-  setTimeout(() => {
-    const client = getClient();
-    if (!client) {
-      return;
-    }
-
-    const unsubscribeStartNavigation = client.on('beforeStartNavigationSpan', (_, options) => {
-      // we only want to collect LCP if we actually navigate. Redirects should be ignored.
-      if (!options?.isRedirect) {
-        _runCollectorCallbackOnce('navigation');
-        unsubscribeStartNavigation?.();
-      }
-    });
-
-    const unsubscribeAfterStartPageLoadSpan = client.on('afterStartPageLoadSpan', span => {
-      pageloadSpanId = span.spanContext().spanId;
-      unsubscribeAfterStartPageLoadSpan?.();
-    });
-  }, 0);
+  const unsubscribeAfterStartPageLoadSpan = client.on('afterStartPageLoadSpan', span => {
+    pageloadSpanId = span.spanContext().spanId;
+    unsubscribeAfterStartPageLoadSpan?.();
+  });
 }

@@ -1,4 +1,4 @@
-import type { SpanAttributes } from '@sentry/core';
+import type { Client, SpanAttributes } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
   getCurrentScope,
@@ -24,7 +24,7 @@ import { listenForWebVitalReportEvents, msToSec, startStandaloneWebVitalSpan, su
  * Once either of these events triggers, the CLS value is sent as a standalone span and we stop
  * measuring CLS.
  */
-export function trackClsAsStandaloneSpan(): void {
+export function trackClsAsStandaloneSpan(client: Client): void {
   let standaloneCLsValue = 0;
   let standaloneClsEntry: LayoutShift | undefined;
 
@@ -41,7 +41,7 @@ export function trackClsAsStandaloneSpan(): void {
     standaloneClsEntry = entry;
   }, true);
 
-  listenForWebVitalReportEvents((reportEvent, pageloadSpanId) => {
+  listenForWebVitalReportEvents(client, (reportEvent, pageloadSpanId) => {
     sendStandaloneClsSpan(standaloneCLsValue, standaloneClsEntry, pageloadSpanId, reportEvent);
     cleanupClsHandler();
   });
@@ -79,6 +79,7 @@ function sendStandaloneClsSpan(
   }
 
   const span = startStandaloneWebVitalSpan({
+    type: 'cls',
     name,
     transaction: routeName,
     attributes,

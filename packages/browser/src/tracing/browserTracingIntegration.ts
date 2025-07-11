@@ -440,6 +440,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       _collectWebVitals = startTrackingWebVitals({
         recordClsStandaloneSpans: enableStandaloneClsSpans || false,
         recordLcpStandaloneSpans: enableStandaloneLcpSpans || false,
+        client,
       });
 
       if (enableInp) {

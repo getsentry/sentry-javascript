@@ -129,6 +129,7 @@ export const _onInp: InstrumentationHandlerCallback = ({ metric }) => {
   };
 
   const span = startStandaloneWebVitalSpan({
+    type: 'inp',
     name,
     transaction: routeName,
     attributes,

@@ -37,7 +37,7 @@ import { dsnToString, makeDsn } from './utils/dsn';
 import { addItemToEnvelope, createAttachmentEnvelopeItem } from './utils/envelope';
 import { getPossibleEventMessages } from './utils/eventUtils';
 import { isParameterizedString, isPlainObject, isPrimitive, isThenable } from './utils/is';
-import { debug } from './utils/logger';
+import { logger } from './utils/logger';
 import { merge } from './utils/merge';
 import { checkOrSetAlreadyCaught, uuid4 } from './utils/misc';
 import { parseSampleRate } from './utils/parseSampleRate';
@@ -154,7 +154,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     if (options.dsn) {
       this._dsn = makeDsn(options.dsn);
     } else {
-      DEBUG_BUILD && debug.warn('No DSN provided, client will not send events.');
+      DEBUG_BUILD && logger.warn('No DSN provided, client will not send events.');
     }
 
     if (this._dsn) {
@@ -182,7 +182,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
     // ensure we haven't captured this very object before
     if (checkOrSetAlreadyCaught(exception)) {
-      DEBUG_BUILD && debug.log(ALREADY_SEEN_ERROR);
+      DEBUG_BUILD && logger.log(ALREADY_SEEN_ERROR);
       return eventId;
     }
 
@@ -237,7 +237,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
     // ensure we haven't captured this very object before
     if (hint?.originalException && checkOrSetAlreadyCaught(hint.originalException)) {
-      DEBUG_BUILD && debug.log(ALREADY_SEEN_ERROR);
+      DEBUG_BUILD && logger.log(ALREADY_SEEN_ERROR);
       return eventId;
     }
 
@@ -429,7 +429,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     if ('aggregates' in session) {
       const sessionAttrs = session.attrs || {};
       if (!sessionAttrs.release && !clientReleaseOption) {
-        DEBUG_BUILD && debug.warn(MISSING_RELEASE_FOR_SESSION_ERROR);
+        DEBUG_BUILD && logger.warn(MISSING_RELEASE_FOR_SESSION_ERROR);
         return;
       }
       sessionAttrs.release = sessionAttrs.release || clientReleaseOption;
@@ -437,7 +437,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       session.attrs = sessionAttrs;
     } else {
       if (!session.release && !clientReleaseOption) {
-        DEBUG_BUILD && debug.warn(MISSING_RELEASE_FOR_SESSION_ERROR);
+        DEBUG_BUILD && logger.warn(MISSING_RELEASE_FOR_SESSION_ERROR);
         return;
       }
       session.release = session.release || clientReleaseOption;
@@ -465,7 +465,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       // would be `Partial<Record<SentryRequestType, Partial<Record<Outcome, number>>>>`
       // With typescript 4.1 we could even use template literal types
       const key = `${reason}:${category}`;
-      DEBUG_BUILD && debug.log(`Recording outcome: "${key}"${count > 1 ? ` (${count} times)` : ''}`);
+      DEBUG_BUILD && logger.log(`Recording outcome: "${key}"${count > 1 ? ` (${count} times)` : ''}`);
       this._outcomes[key] = (this._outcomes[key] || 0) + count;
     }
   }
@@ -877,12 +877,12 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
     if (this._isEnabled() && this._transport) {
       return this._transport.send(envelope).then(null, reason => {
-        DEBUG_BUILD && debug.error('Error while sending envelope:', reason);
+        DEBUG_BUILD && logger.error('Error while sending envelope:', reason);
         return reason;
       });
     }
 
-    DEBUG_BUILD && debug.error('Transport disabled');
+    DEBUG_BUILD && logger.error('Transport disabled');
 
     return resolvedSyncPromise({});
   }
@@ -1032,7 +1032,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     isolationScope = getIsolationScope(),
   ): PromiseLike<string | undefined> {
     if (DEBUG_BUILD && isErrorEvent(event)) {
-      debug.log(`Captured error event \`${getPossibleEventMessages(event)[0] || '<unknown>'}\``);
+      logger.log(`Captured error event \`${getPossibleEventMessages(event)[0] || '<unknown>'}\``);
     }
 
     return this._processEvent(event, hint, currentScope, isolationScope).then(
@@ -1042,11 +1042,11 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       reason => {
         if (DEBUG_BUILD) {
           if (_isDoNotSendEventError(reason)) {
-            debug.log(reason.message);
+            logger.log(reason.message);
           } else if (_isInternalError(reason)) {
-            debug.warn(reason.message);
+            logger.warn(reason.message);
           } else {
-            debug.warn(reason);
+            logger.warn(reason);
           }
         }
         return undefined;
@@ -1207,22 +1207,22 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * Sends client reports as an envelope.
    */
   protected _flushOutcomes(): void {
-    DEBUG_BUILD && debug.log('Flushing outcomes...');
+    DEBUG_BUILD && logger.log('Flushing outcomes...');
 
     const outcomes = this._clearOutcomes();
 
     if (outcomes.length === 0) {
-      DEBUG_BUILD && debug.log('No outcomes to send');
+      DEBUG_BUILD && logger.log('No outcomes to send');
       return;
     }
 
     // This is really the only place where we want to check for a DSN and only send outcomes then
     if (!this._dsn) {
-      DEBUG_BUILD && debug.log('No dsn provided, will not send outcomes');
+      DEBUG_BUILD && logger.log('No dsn provided, will not send outcomes');
       return;
     }
 
-    DEBUG_BUILD && debug.log('Sending outcomes:', outcomes);
+    DEBUG_BUILD && logger.log('Sending outcomes:', outcomes);
 
     const envelope = createClientReportEnvelope(outcomes, this._options.tunnel && dsnToString(this._dsn));
 
