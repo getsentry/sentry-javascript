@@ -1,6 +1,8 @@
 import type { AsyncContextStack } from './asyncContext/stackStrategy';
 import type { AsyncContextStrategy } from './asyncContext/types';
+import type { Client } from './client';
 import type { Scope } from './scope';
+import type { SerializedLog } from './types-hoist/log';
 import type { Logger } from './utils/logger';
 import { SDK_VERSION } from './utils/version';
 import { GLOBAL_OBJ } from './utils/worldwide';
@@ -27,6 +29,11 @@ export interface SentryCarrier {
   /** @deprecated Logger is no longer set. Instead, we keep enabled state in loggerSettings. */
   logger?: Logger;
   loggerSettings?: { enabled: boolean };
+  /**
+   * A map of Sentry clients to their log buffers.
+   * This is used to store logs that are sent to Sentry.
+   */
+  clientToLogBufferMap?: WeakMap<Client, Array<SerializedLog>>;
 
   /** Overwrites TextEncoder used in `@sentry/core`, need for `react-native@0.73` and older */
   encodePolyfill?: (input: string) => Uint8Array;
