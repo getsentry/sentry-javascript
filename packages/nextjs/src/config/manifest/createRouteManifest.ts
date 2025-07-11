@@ -5,10 +5,16 @@ import type { RouteInfo, RouteManifest } from './types';
 export type CreateRouteManifestOptions = {
   // For starters we only support app router
   appDirPath?: string;
+  /**
+   * Whether to include route groups (e.g., (auth-layout)) in the final route paths.
+   * By default, route groups are stripped from paths following Next.js convention.
+   */
+  includeRouteGroups?: boolean;
 };
 
 let manifestCache: RouteManifest | null = null;
 let lastAppDirPath: string | null = null;
+let lastIncludeRouteGroups: boolean | undefined = undefined;
 
 function isPageFile(filename: string): boolean {
   return filename === 'page.tsx' || filename === 'page.jsx' || filename === 'page.ts' || filename === 'page.js';
@@ -64,7 +70,7 @@ function buildRegexForDynamicRoute(routePath: string): { regex: string; paramNam
         regexSegments.push('([^/]+)');
       }
     } else {
-      // Static segment
+      // Static segment - escape regex special characters including route group parentheses
       regexSegments.push(segment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
     }
   }
@@ -85,6 +91,7 @@ function buildRegexForDynamicRoute(routePath: string): { regex: string; paramNam
 function scanAppDirectory(
   dir: string,
   basePath: string = '',
+  includeRouteGroups: boolean = false,
 ): { dynamicRoutes: RouteInfo[]; staticRoutes: RouteInfo[] } {
   const dynamicRoutes: RouteInfo[] = [];
   const staticRoutes: RouteInfo[] = [];
@@ -94,20 +101,20 @@ function scanAppDirectory(
     const pageFile = entries.some(entry => isPageFile(entry.name));
 
     if (pageFile) {
-      // Normalize the path by removing route groups when creating the final route
-      const normalizedRoutePath = normalizeRoutePath(basePath || '/');
-      const isDynamic = normalizedRoutePath.includes(':');
+      // Conditionally normalize the path based on includeRouteGroups option
+      const routePath = includeRouteGroups ? basePath || '/' : normalizeRoutePath(basePath || '/');
+      const isDynamic = routePath.includes(':');
 
       if (isDynamic) {
-        const { regex, paramNames } = buildRegexForDynamicRoute(normalizedRoutePath);
+        const { regex, paramNames } = buildRegexForDynamicRoute(routePath);
         dynamicRoutes.push({
-          path: normalizedRoutePath,
+          path: routePath,
           regex,
           paramNames,
         });
       } else {
         staticRoutes.push({
-          path: normalizedRoutePath,
+          path: routePath,
         });
       }
     }
@@ -121,15 +128,19 @@ function scanAppDirectory(
         const isRouteGroupDir = isRouteGroup(entry.name);
 
         if (isRouteGroupDir) {
-          routeSegment = entry.name;
+          if (includeRouteGroups) {
+            routeSegment = entry.name;
+          } else {
+            routeSegment = '';
+          }
         } else if (isDynamic) {
           routeSegment = getDynamicRouteSegment(entry.name);
         } else {
           routeSegment = entry.name;
         }
 
-        const newBasePath = `${basePath}/${routeSegment}`;
-        const subRoutes = scanAppDirectory(fullPath, newBasePath);
+        const newBasePath = routeSegment ? `${basePath}/${routeSegment}` : basePath;
+        const subRoutes = scanAppDirectory(fullPath, newBasePath, includeRouteGroups);
 
         dynamicRoutes.push(...subRoutes.dynamicRoutes);
         staticRoutes.push(...subRoutes.staticRoutes);
@@ -171,11 +182,11 @@ export function createRouteManifest(options?: CreateRouteManifestOptions): Route
   }
 
   // Check if we can use cached version
-  if (manifestCache && lastAppDirPath === targetDir) {
+  if (manifestCache && lastAppDirPath === targetDir && lastIncludeRouteGroups === options?.includeRouteGroups) {
     return manifestCache;
   }
 
-  const { dynamicRoutes, staticRoutes } = scanAppDirectory(targetDir);
+  const { dynamicRoutes, staticRoutes } = scanAppDirectory(targetDir, '', options?.includeRouteGroups);
 
   const manifest: RouteManifest = {
     dynamicRoutes,
@@ -185,6 +196,7 @@ export function createRouteManifest(options?: CreateRouteManifestOptions): Route
   // set cache
   manifestCache = manifest;
   lastAppDirPath = targetDir;
+  lastIncludeRouteGroups = options?.includeRouteGroups;
 
   return manifest;
 }
