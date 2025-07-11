@@ -1,7 +1,7 @@
 import type { ReportDialogOptions } from '@sentry/browser';
 import { getClient, showReportDialog, withScope } from '@sentry/browser';
 import type { Scope } from '@sentry/core';
-import { logger } from '@sentry/core';
+import { debug } from '@sentry/core';
 import * as React from 'react';
 import { DEBUG_BUILD } from './debug-build';
 import { captureReactException } from './error';
@@ -207,7 +207,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     }
 
     if (fallback) {
-      DEBUG_BUILD && logger.warn('fallback did not produce a valid ReactElement');
+      DEBUG_BUILD && debug.warn('fallback did not produce a valid ReactElement');
     }
 
     // Fail gracefully if no fallback provided or is not valid

@@ -166,7 +166,7 @@ export {
 } from './utils/is';
 export { isBrowser } from './utils/isBrowser';
 export { CONSOLE_LEVELS, consoleSandbox, debug, logger, originalConsoleMethods } from './utils/logger';
-export type { Logger } from './utils/logger';
+export type { Logger, SentryDebugLogger } from './utils/logger';
 export {
   addContextToFrame,
   addExceptionMechanism,
