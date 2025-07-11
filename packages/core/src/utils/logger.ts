@@ -3,8 +3,28 @@ import { DEBUG_BUILD } from '../debug-build';
 import type { ConsoleLevel } from '../types-hoist/instrument';
 import { GLOBAL_OBJ } from './worldwide';
 
-/** Prefix for logging strings */
-const PREFIX = 'Sentry Logger ';
+/** A Sentry Logger instance. */
+export interface Logger {
+  disable(): void;
+  enable(): void;
+  isEnabled(): boolean;
+  log(...args: Parameters<typeof console.log>): void;
+  info(...args: Parameters<typeof console.info>): void;
+  warn(...args: Parameters<typeof console.warn>): void;
+  error(...args: Parameters<typeof console.error>): void;
+  debug(...args: Parameters<typeof console.debug>): void;
+  assert(...args: Parameters<typeof console.assert>): void;
+  trace(...args: Parameters<typeof console.trace>): void;
+}
+
+export interface SentryDebugLogger {
+  disable(): void;
+  enable(): void;
+  isEnabled(): boolean;
+  log(...args: Parameters<typeof console.log>): void;
+  warn(...args: Parameters<typeof console.warn>): void;
+  error(...args: Parameters<typeof console.error>): void;
+}
 
 export const CONSOLE_LEVELS: readonly ConsoleLevel[] = [
   'debug',
@@ -16,20 +36,19 @@ export const CONSOLE_LEVELS: readonly ConsoleLevel[] = [
   'trace',
 ] as const;
 
-type LoggerMethod = (...args: unknown[]) => void;
-type LoggerConsoleMethods = Record<ConsoleLevel, LoggerMethod>;
+/** Prefix for logging strings */
+const PREFIX = 'Sentry Logger ';
 
 /** This may be mutated by the console instrumentation. */
-export const originalConsoleMethods: {
-  [key in ConsoleLevel]?: (...args: unknown[]) => void;
-} = {};
-
-/** A Sentry Logger instance. */
-export interface Logger extends LoggerConsoleMethods {
-  disable(): void;
-  enable(): void;
-  isEnabled(): boolean;
-}
+export const originalConsoleMethods: Partial<{
+  log(...args: Parameters<typeof console.log>): void;
+  info(...args: Parameters<typeof console.info>): void;
+  warn(...args: Parameters<typeof console.warn>): void;
+  error(...args: Parameters<typeof console.error>): void;
+  debug(...args: Parameters<typeof console.debug>): void;
+  assert(...args: Parameters<typeof console.assert>): void;
+  trace(...args: Parameters<typeof console.trace>): void;
+}> = {};
 
 /**
  * Temporarily disable sentry console instrumentations.
@@ -43,15 +62,15 @@ export function consoleSandbox<T>(callback: () => T): T {
   }
 
   const console = GLOBAL_OBJ.console as Console;
-  const wrappedFuncs: Partial<LoggerConsoleMethods> = {};
+  const wrappedFuncs: Partial<Record<ConsoleLevel, (...args: unknown[]) => void>> = {};
 
   const wrappedLevels = Object.keys(originalConsoleMethods) as ConsoleLevel[];
 
   // Restore all wrapped console methods
   wrappedLevels.forEach(level => {
-    const originalConsoleMethod = originalConsoleMethods[level] as LoggerMethod;
-    wrappedFuncs[level] = console[level] as LoggerMethod | undefined;
-    console[level] = originalConsoleMethod;
+    const originalConsoleMethod = originalConsoleMethods[level];
+    wrappedFuncs[level] = console[level] as (...args: unknown[]) => void;
+    console[level] = originalConsoleMethod as (...args: unknown[]) => void;
   });
 
   try {
@@ -59,44 +78,112 @@ export function consoleSandbox<T>(callback: () => T): T {
   } finally {
     // Revert restoration to wrapped state
     wrappedLevels.forEach(level => {
-      console[level] = wrappedFuncs[level] as LoggerMethod;
+      console[level] = wrappedFuncs[level] as (...args: unknown[]) => void;
     });
   }
 }
 
-function makeLogger(): Logger {
-  let enabled = false;
-  const logger: Partial<Logger> = {
-    enable: () => {
-      enabled = true;
-    },
-    disable: () => {
-      enabled = false;
-    },
-    isEnabled: () => enabled,
-  };
+function enable(): void {
+  _getLoggerSettings().enabled = true;
+}
 
-  if (DEBUG_BUILD) {
-    CONSOLE_LEVELS.forEach(name => {
-      logger[name] = (...args: Parameters<(typeof GLOBAL_OBJ.console)[typeof name]>) => {
-        if (enabled) {
-          consoleSandbox(() => {
-            GLOBAL_OBJ.console[name](`${PREFIX}[${name}]:`, ...args);
-          });
-        }
-      };
-    });
-  } else {
-    CONSOLE_LEVELS.forEach(name => {
-      logger[name] = () => undefined;
-    });
+function disable(): void {
+  _getLoggerSettings().enabled = false;
+}
+
+function isEnabled(): boolean {
+  return _getLoggerSettings().enabled;
+}
+
+function log(...args: Parameters<typeof console.log>): void {
+  _maybeLog('log', ...args);
+}
+
+function info(...args: Parameters<typeof console.info>): void {
+  _maybeLog('info', ...args);
+}
+
+function warn(...args: Parameters<typeof console.warn>): void {
+  _maybeLog('warn', ...args);
+}
+
+function error(...args: Parameters<typeof console.error>): void {
+  _maybeLog('error', ...args);
+}
+
+function _debug(...args: Parameters<typeof console.debug>): void {
+  _maybeLog('debug', ...args);
+}
+
+function assert(...args: Parameters<typeof console.assert>): void {
+  _maybeLog('assert', ...args);
+}
+
+function trace(...args: Parameters<typeof console.trace>): void {
+  _maybeLog('trace', ...args);
+}
+
+function _maybeLog(level: ConsoleLevel, ...args: Parameters<(typeof console)[typeof level]>): void {
+  if (!DEBUG_BUILD) {
+    return;
   }
 
-  return logger as Logger;
+  if (isEnabled()) {
+    consoleSandbox(() => {
+      GLOBAL_OBJ.console[level](`${PREFIX}[${level}]:`, ...args);
+    });
+  }
+}
+
+function _getLoggerSettings(): { enabled: boolean } {
+  if (!DEBUG_BUILD) {
+    return { enabled: false };
+  }
+
+  return getGlobalSingleton('loggerSettings', () => ({ enabled: false }));
 }
 
 /**
  * This is a logger singleton which either logs things or no-ops if logging is not enabled.
  * The logger is a singleton on the carrier, to ensure that a consistent logger is used throughout the SDK.
  */
-export const logger = getGlobalSingleton('logger', makeLogger);
+export const logger = {
+  /** Enable logging. */
+  enable,
+  /** Disable logging. */
+  disable,
+  /** Check if logging is enabled. */
+  isEnabled,
+  /** Log a message. */
+  log,
+  /** Log level info */
+  info,
+  /** Log a warning. */
+  warn,
+  /** Log an error. */
+  error,
+  /** Log a debug message. */
+  debug: _debug,
+  /** Log an assertion. */
+  assert,
+  /** Log a trace. */
+  trace,
+} satisfies Logger;
+
+/**
+ * This is a logger singleton which either logs things or no-ops if logging is not enabled.
+ */
+export const debug = {
+  /** Enable logging. */
+  enable,
+  /** Disable logging. */
+  disable,
+  /** Check if logging is enabled. */
+  isEnabled,
+  /** Log a message. */
+  log,
+  /** Log a warning. */
+  warn,
+  /** Log an error. */
+  error,
+} satisfies SentryDebugLogger;

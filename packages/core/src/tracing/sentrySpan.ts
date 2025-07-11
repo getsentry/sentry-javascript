@@ -25,7 +25,7 @@ import type {
 import type { SpanStatus } from '../types-hoist/spanStatus';
 import type { TimedEvent } from '../types-hoist/timedEvent';
 import type { TransactionSource } from '../types-hoist/transaction';
-import { logger } from '../utils/logger';
+import { debug } from '../utils/logger';
 import { generateSpanId, generateTraceId } from '../utils/propagationContext';
 import {
   convertSpanLinksForEnvelope,
@@ -255,7 +255,7 @@ export class SentrySpan implements Span {
     attributesOrStartTime?: SpanAttributes | SpanTimeInput,
     startTime?: SpanTimeInput,
   ): this {
-    DEBUG_BUILD && logger.log('[Tracing] Adding an event to span:', name);
+    DEBUG_BUILD && debug.log('[Tracing] Adding an event to span:', name);
 
     const time = isSpanTimeInput(attributesOrStartTime) ? attributesOrStartTime : startTime || timestampInSeconds();
     const attributes = isSpanTimeInput(attributesOrStartTime) ? {} : attributesOrStartTime || {};
@@ -305,7 +305,7 @@ export class SentrySpan implements Span {
         sendSpanEnvelope(createSpanEnvelope([this], client));
       } else {
         DEBUG_BUILD &&
-          logger.log('[Tracing] Discarding standalone span because its trace was not chosen to be sampled.');
+          debug.log('[Tracing] Discarding standalone span because its trace was not chosen to be sampled.');
         if (client) {
           client.recordDroppedEvent('sample_rate', 'span');
         }
@@ -330,7 +330,7 @@ export class SentrySpan implements Span {
     }
 
     if (!this._name) {
-      DEBUG_BUILD && logger.warn('Transaction has no name, falling back to `<unlabeled transaction>`.');
+      DEBUG_BUILD && debug.warn('Transaction has no name, falling back to `<unlabeled transaction>`.');
       this._name = '<unlabeled transaction>';
     }
 
@@ -389,7 +389,7 @@ export class SentrySpan implements Span {
 
     if (hasMeasurements) {
       DEBUG_BUILD &&
-        logger.log(
+        debug.log(
           '[Measurements] Adding measurements to transaction event',
           JSON.stringify(measurements, undefined, 2),
         );

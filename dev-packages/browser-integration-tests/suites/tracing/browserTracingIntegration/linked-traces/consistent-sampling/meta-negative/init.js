@@ -10,7 +10,7 @@ Sentry.init({
       consistentTraceSampling: true,
     }),
   ],
-  tracePropagationTargets: ['someurl.com'],
+  tracePropagationTargets: ['sentry-test-external.io'],
   tracesSampleRate: 1,
   debug: true,
   sendClientReports: true,

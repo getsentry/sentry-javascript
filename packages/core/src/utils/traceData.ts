@@ -8,7 +8,7 @@ import { getDynamicSamplingContextFromScope, getDynamicSamplingContextFromSpan }
 import type { Span } from '../types-hoist/span';
 import type { SerializedTraceData } from '../types-hoist/tracing';
 import { dynamicSamplingContextToSentryBaggageHeader } from './baggage';
-import { logger } from './logger';
+import { debug } from './logger';
 import { getActiveSpan, spanToTraceHeader } from './spanUtils';
 import { generateSentryTraceHeader, TRACEPARENT_REGEXP } from './tracing';
 
@@ -43,7 +43,7 @@ export function getTraceData(options: { span?: Span; scope?: Scope; client?: Cli
 
   const isValidSentryTraceHeader = TRACEPARENT_REGEXP.test(sentryTrace);
   if (!isValidSentryTraceHeader) {
-    logger.warn('Invalid sentry-trace data. Cannot generate trace data');
+    debug.warn('Invalid sentry-trace data. Cannot generate trace data');
     return {};
   }
 

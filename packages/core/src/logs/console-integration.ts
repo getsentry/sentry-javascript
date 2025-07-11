@@ -6,7 +6,7 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import type { ConsoleLevel } from '../types-hoist/instrument';
 import type { IntegrationFn } from '../types-hoist/integration';
 import { isPrimitive } from '../utils/is';
-import { CONSOLE_LEVELS, logger } from '../utils/logger';
+import { CONSOLE_LEVELS, debug } from '../utils/logger';
 import { normalize } from '../utils/normalize';
 import { GLOBAL_OBJ } from '../utils/worldwide';
 import { _INTERNAL_captureLog } from './exports';
@@ -35,7 +35,7 @@ const _consoleLoggingIntegration = ((options: Partial<CaptureConsoleOptions> = {
     setup(client) {
       const { _experiments, normalizeDepth = 3, normalizeMaxBreadth = 1_000 } = client.getOptions();
       if (!_experiments?.enableLogs) {
-        DEBUG_BUILD && logger.warn('`_experiments.enableLogs` is not enabled, ConsoleLogs integration disabled');
+        DEBUG_BUILD && debug.warn('`_experiments.enableLogs` is not enabled, ConsoleLogs integration disabled');
         return;
       }
 

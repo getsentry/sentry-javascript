@@ -125,7 +125,7 @@ describe('CaptureConsole setup', () => {
     expect(captureMessage).toHaveBeenCalledWith('', { extra: { arguments: [] }, level: 'log' });
   });
 
-  it('should add an event processor that sets the `logger` field of events', () => {
+  it('should add an event processor that sets the `debug` field of events', () => {
     const captureConsole = captureConsoleIntegration({ levels: ['log'] });
     captureConsole.setup?.(mockClient);
 

@@ -2,7 +2,7 @@ import { getCurrentScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { type Event } from '../types-hoist/event';
 import { type Span } from '../types-hoist/span';
-import { logger } from '../utils/logger';
+import { debug } from '../utils/logger';
 import { GLOBAL_OBJ } from '../utils/worldwide';
 import { getActiveSpan } from './spanUtils';
 
@@ -95,7 +95,7 @@ export function _INTERNAL_insertToFlagBuffer(
   }
 
   if (flags.length > maxSize) {
-    DEBUG_BUILD && logger.error(`[Feature Flags] insertToFlagBuffer called on a buffer larger than maxSize=${maxSize}`);
+    DEBUG_BUILD && debug.error(`[Feature Flags] insertToFlagBuffer called on a buffer larger than maxSize=${maxSize}`);
     return;
   }
 
