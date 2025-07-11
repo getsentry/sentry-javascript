@@ -1,7 +1,8 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/browser';
 import type { Span } from '@sentry/core';
-import { logger, startInactiveSpan } from '@sentry/core';
+import { debug, startInactiveSpan } from '@sentry/core';
 import { afterUpdate, beforeUpdate, onMount } from 'svelte';
+import { DEBUG_BUILD } from './debug_build';
 import type { TrackComponentOptions } from './types';
 
 const defaultTrackComponentOptions: {
@@ -37,9 +38,10 @@ export function trackComponent(options?: TrackComponentOptions): void {
     try {
       recordUpdateSpans(componentName);
     } catch {
-      logger.warn(
-        "Cannot track component updates. This is likely because you're using Svelte 5 in Runes mode. Set `trackUpdates: false` in `withSentryConfig` or `trackComponent` to disable this warning.",
-      );
+      DEBUG_BUILD &&
+        debug.warn(
+          "Cannot track component updates. This is likely because you're using Svelte 5 in Runes mode. Set `trackUpdates: false` in `withSentryConfig` or `trackComponent` to disable this warning.",
+        );
     }
   }
 }

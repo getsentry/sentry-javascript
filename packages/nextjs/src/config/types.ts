@@ -154,7 +154,7 @@ export type SentryBuildOptions = {
     /**
      * Toggle whether generated source maps within your Next.js build folder should be automatically deleted after being uploaded to Sentry.
      *
-     * Defaults to `false`.
+     * Defaults to `true`.
      */
     deleteSourcemapsAfterUpload?: boolean;
   };

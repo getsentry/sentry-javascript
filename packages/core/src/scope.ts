@@ -1,5 +1,6 @@
 /* eslint-disable max-lines */
 import type { Client } from './client';
+import { DEBUG_BUILD } from './debug-build';
 import { updateSession } from './session';
 import type { Attachment } from './types-hoist/attachment';
 import type { Breadcrumb } from './types-hoist/breadcrumb';
@@ -16,7 +17,7 @@ import type { Span } from './types-hoist/span';
 import type { PropagationContext } from './types-hoist/tracing';
 import type { User } from './types-hoist/user';
 import { isPlainObject } from './utils/is';
-import { logger } from './utils/logger';
+import { debug } from './utils/logger';
 import { merge } from './utils/merge';
 import { uuid4 } from './utils/misc';
 import { generateTraceId } from './utils/propagationContext';
@@ -573,7 +574,7 @@ export class Scope {
     const eventId = hint?.event_id || uuid4();
 
     if (!this._client) {
-      logger.warn('No client configured on scope - will not capture exception!');
+      DEBUG_BUILD && debug.warn('No client configured on scope - will not capture exception!');
       return eventId;
     }
 
@@ -602,7 +603,7 @@ export class Scope {
     const eventId = hint?.event_id || uuid4();
 
     if (!this._client) {
-      logger.warn('No client configured on scope - will not capture message!');
+      DEBUG_BUILD && debug.warn('No client configured on scope - will not capture message!');
       return eventId;
     }
 
@@ -632,7 +633,7 @@ export class Scope {
     const eventId = hint?.event_id || uuid4();
 
     if (!this._client) {
-      logger.warn('No client configured on scope - will not capture event!');
+      DEBUG_BUILD && debug.warn('No client configured on scope - will not capture event!');
       return eventId;
     }
 

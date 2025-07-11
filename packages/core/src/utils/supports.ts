@@ -1,5 +1,5 @@
 import { DEBUG_BUILD } from '../debug-build';
-import { logger } from './logger';
+import { debug } from './logger';
 import { GLOBAL_OBJ } from './worldwide';
 
 const WINDOW = GLOBAL_OBJ as unknown as Window;
@@ -133,8 +133,7 @@ export function supportsNativeFetch(): boolean {
       }
       doc.head.removeChild(sandbox);
     } catch (err) {
-      DEBUG_BUILD &&
-        logger.warn('Could not create sandbox iframe for pure fetch check, bailing to window.fetch: ', err);
+      DEBUG_BUILD && debug.warn('Could not create sandbox iframe for pure fetch check, bailing to window.fetch: ', err);
     }
   }
 

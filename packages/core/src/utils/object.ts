@@ -3,7 +3,7 @@ import { DEBUG_BUILD } from '../debug-build';
 import type { WrappedFunction } from '../types-hoist/wrappedfunction';
 import { htmlTreeAsString } from './browser';
 import { isElement, isError, isEvent, isInstanceOf, isPrimitive } from './is';
-import { logger } from './logger';
+import { debug } from './logger';
 import { truncate } from './string';
 
 /**
@@ -42,7 +42,7 @@ export function fill(source: { [key: string]: any }, name: string, replacementFa
   try {
     source[name] = wrapped;
   } catch {
-    DEBUG_BUILD && logger.log(`Failed to replace method "${name}" in object`, source);
+    DEBUG_BUILD && debug.log(`Failed to replace method "${name}" in object`, source);
   }
 }
 
@@ -62,7 +62,7 @@ export function addNonEnumerableProperty(obj: object, name: string, value: unkno
       configurable: true,
     });
   } catch (o_O) {
-    DEBUG_BUILD && logger.log(`Failed to add non-enumerable property "${name}" to object`, obj);
+    DEBUG_BUILD && debug.log(`Failed to add non-enumerable property "${name}" to object`, obj);
   }
 }
 

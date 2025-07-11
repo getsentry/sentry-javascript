@@ -1,6 +1,6 @@
 import { getActiveSpan, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/browser';
 import type { Span } from '@sentry/core';
-import { logger, timestampInSeconds } from '@sentry/core';
+import { debug, timestampInSeconds } from '@sentry/core';
 import { DEFAULT_HOOKS } from './constants';
 import { DEBUG_BUILD } from './debug-build';
 import type { Hook, Operation, TracingOptions, ViewModel, Vue } from './types';
@@ -73,7 +73,7 @@ export const createTracingMixins = (options: Partial<TracingOptions> = {}): Mixi
     // eg. mount => ['beforeMount', 'mounted']
     const internalHooks = HOOKS[operation];
     if (!internalHooks) {
-      DEBUG_BUILD && logger.warn(`Unknown hook: ${operation}`);
+      DEBUG_BUILD && debug.warn(`Unknown hook: ${operation}`);
       continue;
     }
 
