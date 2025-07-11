@@ -1,7 +1,7 @@
 import { DEBUG_BUILD } from '../debug-build';
 import { addGlobalErrorInstrumentationHandler } from '../instrument/globalError';
 import { addGlobalUnhandledRejectionInstrumentationHandler } from '../instrument/globalUnhandledRejection';
-import { logger } from '../utils/logger';
+import { debug } from '../utils/logger';
 import { getActiveSpan, getRootSpan } from '../utils/spanUtils';
 import { SPAN_STATUS_ERROR } from './spanstatus';
 
@@ -28,7 +28,7 @@ export function registerSpanErrorInstrumentation(): void {
     const rootSpan = activeSpan && getRootSpan(activeSpan);
     if (rootSpan) {
       const message = 'internal_error';
-      DEBUG_BUILD && logger.log(`[Tracing] Root span: ${message} -> Global error occurred`);
+      DEBUG_BUILD && debug.log(`[Tracing] Root span: ${message} -> Global error occurred`);
       rootSpan.setStatus({ code: SPAN_STATUS_ERROR, message });
     }
   }
