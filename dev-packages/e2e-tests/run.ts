@@ -73,7 +73,7 @@ async function run(): Promise<void> {
 
     const testAppPaths = appName ? [appName.trim()] : globSync('*', { cwd: `${__dirname}/test-applications/` });
 
-    console.log(`Runnings tests for: ${testAppPaths.join(', ')}`);
+    console.log(`Running tests for: ${testAppPaths.join(', ')}`);
     console.log('');
 
     for (const testAppPath of testAppPaths) {
