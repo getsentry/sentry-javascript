@@ -13,7 +13,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import type { Carrier } from '../carrier';
-import type { Span } from '../types-hoist/span';
 import type { SdkSource } from './env';
 
 /** Internal global with common properties and Sentry extensions  */
@@ -49,10 +48,6 @@ export type InternalGlobal = {
    */
   _sentryModuleMetadata?: Record<string, any>;
   _sentryEsmLoaderHookRegistered?: boolean;
-  /**
-   * A map of spans to evaluated feature flags. Populated by feature flag integrations.
-   */
-  _spanToFlagBufferMap?: WeakMap<Span, Set<string>>;
 } & Carrier;
 
 /** Get's the global object for the current JavaScript runtime */
