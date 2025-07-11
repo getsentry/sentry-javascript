@@ -103,7 +103,7 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
   // Change attributes namespaced with `ai.X` to `vercel.ai.X`
   for (const key of Object.keys(attributes)) {
     if (key.startsWith('ai.')) {
-      renameAttributeKey(attributes, key, `vercel.ai.${key.slice(3)}`);
+      renameAttributeKey(attributes, key, `vercel.${key}`);
     }
   }
 }
