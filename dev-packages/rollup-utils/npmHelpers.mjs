@@ -87,7 +87,12 @@ export function makeBaseNPMConfig(options = {}) {
 
     treeshake: {
       moduleSideEffects: (id, external) => {
-        return external === false && ignoreSideEffects.test(id);
+        if (external === false && ignoreSideEffects.test(id)) {
+          // Tell Rollup this module has no side effects, so it can be tree-shaken
+          return false;
+        }
+
+        return true;
       }
     },
 
