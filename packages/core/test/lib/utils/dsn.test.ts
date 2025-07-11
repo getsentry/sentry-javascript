@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it, test, vi } from 'vitest';
 import { DEBUG_BUILD } from '../../../src/debug-build';
 import { dsnToString, extractOrgIdFromDsnHost, makeDsn } from '../../../src/utils/dsn';
-import { logger } from '../../../src/utils/logger';
+import { debug } from '../../../src/utils/logger';
 
 function testIf(condition: boolean) {
   return condition ? test : test.skip;
 }
 
-const loggerErrorSpy = vi.spyOn(logger, 'error').mockImplementation(() => {});
+const loggerErrorSpy = vi.spyOn(debug, 'error').mockImplementation(() => {});
 const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 describe('Dsn', () => {

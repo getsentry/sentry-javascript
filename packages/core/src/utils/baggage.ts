@@ -1,7 +1,7 @@
 import { DEBUG_BUILD } from '../debug-build';
 import type { DynamicSamplingContext } from '../types-hoist/envelope';
 import { isString } from './is';
-import { logger } from './logger';
+import { debug } from './logger';
 
 export const SENTRY_BAGGAGE_KEY_PREFIX = 'sentry-';
 
@@ -150,7 +150,7 @@ export function objectToBaggageHeader(object: Record<string, string>): string | 
     const newBaggageHeader = currentIndex === 0 ? baggageEntry : `${baggageHeader},${baggageEntry}`;
     if (newBaggageHeader.length > MAX_BAGGAGE_STRING_LENGTH) {
       DEBUG_BUILD &&
-        logger.warn(
+        debug.warn(
           `Not adding key: ${objectKey} with val: ${objectValue} to baggage header due to exceeding baggage size limits.`,
         );
       return baggageHeader;
