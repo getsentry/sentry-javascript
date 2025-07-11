@@ -176,5 +176,5 @@ function _isSameFingerprint(currentEvent: Event, previousEvent: Event): boolean 
 }
 
 function _getExceptionFromEvent(event: Event): Exception | undefined {
-  return event.exception?.values && event.exception.values[0];
+  return event.exception?.values?.[0];
 }

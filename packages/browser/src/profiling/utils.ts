@@ -98,7 +98,7 @@ export interface ProfiledEvent extends Event {
 }
 
 function getTraceId(event: Event): string {
-  const traceId: unknown = event.contexts?.trace?.['trace_id'];
+  const traceId: unknown = event.contexts?.trace?.trace_id;
   // Log a warning if the profile has an invalid traceId (should be uuidv4).
   // All profiles and transactions are rejected if this is the case and we want to
   // warn users that this is happening if they enable debug flag
@@ -333,7 +333,7 @@ export function findProfiledTransactionsFromEnvelope(envelope: Envelope): Event[
     for (let j = 1; j < item.length; j++) {
       const event = item[j] as Event;
 
-      if (event?.contexts && event.contexts['profile'] && event.contexts['profile']['profile_id']) {
+      if (event?.contexts?.profile?.profile_id) {
         events.push(item[j] as Event);
       }
     }

@@ -30,8 +30,7 @@ export const handleDomListener: (replay: ReplayContainer) => (handlerData: Handl
     if (
       isClick &&
       replay.clickDetector &&
-      event &&
-      event.target &&
+      event?.target &&
       !event.altKey &&
       !event.metaKey &&
       !event.ctrlKey &&
