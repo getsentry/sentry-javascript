@@ -265,5 +265,5 @@ export function restartEventLoopBlockDetection(): void {
     return;
   }
 
-  integration.stop();
+  integration.start();
 }
