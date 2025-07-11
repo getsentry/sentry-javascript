@@ -16,7 +16,7 @@ const extractionResultCache = new Map<string, null | { parametrizedRoute: string
  * This is a Set of module paths that were used when loading one specific page.
  * Example: `Set(['app.vue', 'components/Button.vue', 'pages/user/[userId].vue'])`
  *
- * @param currentUrl - The requested URL string
+ * @param requestedUrl - The requested URL string
  * Example: `/user/123`
  *
  * @param buildTimePagesData
@@ -25,10 +25,10 @@ const extractionResultCache = new Map<string, null | { parametrizedRoute: string
  */
 export function extractParametrizedRouteFromContext(
   ssrContextModules?: NuxtSSRContext['modules'],
-  currentUrl?: NuxtSSRContext['url'],
+  requestedUrl?: NuxtSSRContext['url'],
   buildTimePagesData: NuxtPageSubset[] = [],
 ): null | { parametrizedRoute: string } {
-  if (!ssrContextModules || !currentUrl) {
+  if (!ssrContextModules || !requestedUrl) {
     return null;
   }
 
@@ -39,11 +39,11 @@ export function extractParametrizedRouteFromContext(
   const cacheKey = Array.from(ssrContextModules).sort().join('|');
   const cachedResult = extractionResultCache.get(cacheKey);
   if (cachedResult !== undefined) {
-    logger.log('Found cached result for parametrized route:', currentUrl);
+    logger.log('Found cached result for parametrized route:', requestedUrl);
     return cachedResult;
   }
 
-  logger.log('No parametrized route found in cache lookup. Extracting parametrized route for:', currentUrl);
+  logger.log('No parametrized route found in cache lookup. Extracting parametrized route for:', requestedUrl);
 
   const modulesArray = Array.from(ssrContextModules);
 

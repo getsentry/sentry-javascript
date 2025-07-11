@@ -2,7 +2,7 @@ import { DEBUG_BUILD } from '../debug-build';
 import type { Options } from '../types-hoist/options';
 import type { SamplingContext } from '../types-hoist/samplingcontext';
 import { hasSpansEnabled } from '../utils/hasSpansEnabled';
-import { logger } from '../utils/logger';
+import { debug } from '../utils/logger';
 import { parseSampleRate } from '../utils/parseSampleRate';
 
 /**
@@ -59,7 +59,7 @@ export function sampleSpan(
 
   if (parsedSampleRate === undefined) {
     DEBUG_BUILD &&
-      logger.warn(
+      debug.warn(
         `[Tracing] Discarding root span because of invalid sample rate. Sample rate must be a boolean or a number between 0 and 1. Got ${JSON.stringify(
           sampleRate,
         )} of type ${JSON.stringify(typeof sampleRate)}.`,
@@ -70,7 +70,7 @@ export function sampleSpan(
   // if the function returned 0 (or false), or if `tracesSampleRate` is 0, it's a sign the transaction should be dropped
   if (!parsedSampleRate) {
     DEBUG_BUILD &&
-      logger.log(
+      debug.log(
         `[Tracing] Discarding transaction because ${
           typeof options.tracesSampler === 'function'
             ? 'tracesSampler returned 0 or false'
@@ -87,7 +87,7 @@ export function sampleSpan(
   // if we're not going to keep it, we're done
   if (!shouldSample) {
     DEBUG_BUILD &&
-      logger.log(
+      debug.log(
         `[Tracing] Discarding transaction because it's not included in the random sample (sampling rate = ${Number(
           sampleRate,
         )})`,

@@ -715,9 +715,13 @@ export function _addResourceSpans(
 
   attributes['url.same_origin'] = resourceUrl.includes(WINDOW.location.origin);
 
-  const { name, version } = extractNetworkProtocol(entry.nextHopProtocol);
-  attributes['network.protocol.name'] = name;
-  attributes['network.protocol.version'] = version;
+  // Checking for only `undefined` and `null` is intentional because it's
+  // valid for `nextHopProtocol` to be an empty string.
+  if (entry.nextHopProtocol != null) {
+    const { name, version } = extractNetworkProtocol(entry.nextHopProtocol);
+    attributes['network.protocol.name'] = name;
+    attributes['network.protocol.version'] = version;
+  }
 
   const startTimestamp = timeOrigin + startTime;
   const endTimestamp = startTimestamp + duration;
