@@ -304,6 +304,35 @@ describe('sentryAstro integration', () => {
     expect(injectScript).toHaveBeenCalledWith('page-ssr', expect.stringContaining('Sentry.init'));
   });
 
+  it('injects runtime config into client and server init scripts and warns about deprecation', async () => {
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const integration = sentryAstro({
+      environment: 'test',
+      release: '1.0.0',
+      dsn: 'https://test.sentry.io/123',
+      debug: true,
+      bundleSizeOptimizations: {},
+    });
+
+    expect(integration.hooks['astro:config:setup']).toBeDefined();
+    // @ts-expect-error - the hook exists and we only need to pass what we actually use
+    await integration.hooks['astro:config:setup']({ updateConfig, injectScript, config, logger: { info: vi.fn() } });
+
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      '[Sentry] You passed in additional options (environment, release, dsn) to the Sentry integration. This is deprecated and will stop working in a future version. Instead, configure the Sentry SDK in your `sentry.client.config.(js|ts)` or `sentry.server.config.(js|ts)` files.',
+    );
+
+    expect(injectScript).toHaveBeenCalledTimes(2);
+    expect(injectScript).toHaveBeenCalledWith('page', expect.stringContaining('Sentry.init'));
+    expect(injectScript).toHaveBeenCalledWith('page', expect.stringContaining('dsn: "https://test.sentry.io/123"'));
+    expect(injectScript).toHaveBeenCalledWith('page', expect.stringContaining('release: "1.0.0"'));
+    expect(injectScript).toHaveBeenCalledWith('page', expect.stringContaining('environment: "test"'));
+    expect(injectScript).toHaveBeenCalledWith('page-ssr', expect.stringContaining('Sentry.init'));
+    expect(injectScript).toHaveBeenCalledWith('page-ssr', expect.stringContaining('dsn: "https://test.sentry.io/123"'));
+    expect(injectScript).toHaveBeenCalledWith('page-ssr', expect.stringContaining('release: "1.0.0"'));
+    expect(injectScript).toHaveBeenCalledWith('page-ssr', expect.stringContaining('environment: "test"'));
+  });
+
   it("doesn't inject client init script if `enabled.client` is `false`", async () => {
     const integration = sentryAstro({ enabled: { client: false } });
 

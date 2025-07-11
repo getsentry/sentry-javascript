@@ -1,10 +1,7 @@
 import type { SpanAttributes } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
-  getActiveSpan,
-  getClient,
   getCurrentScope,
-  getRootSpan,
   htmlTreeAsString,
   logger,
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
@@ -12,12 +9,11 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  spanToJSON,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { addLcpInstrumentationHandler } from './instrument';
-import { msToSec, startStandaloneWebVitalSpan } from './utils';
-import { onHidden } from './web-vitals/lib/onHidden';
+import type { WebVitalReportEvent } from './utils';
+import { listenForWebVitalReportEvents, msToSec, startStandaloneWebVitalSpan, supportsWebVital } from './utils';
 
 /**
  * Starts tracking the Largest Contentful Paint on the current page and collects the value once
@@ -31,22 +27,9 @@ import { onHidden } from './web-vitals/lib/onHidden';
 export function trackLcpAsStandaloneSpan(): void {
   let standaloneLcpValue = 0;
   let standaloneLcpEntry: LargestContentfulPaint | undefined;
-  let pageloadSpanId: string | undefined;
 
-  if (!supportsLargestContentfulPaint()) {
+  if (!supportsWebVital('largest-contentful-paint')) {
     return;
-  }
-
-  let sentSpan = false;
-  function _collectLcpOnce() {
-    if (sentSpan) {
-      return;
-    }
-    sentSpan = true;
-    if (pageloadSpanId) {
-      sendStandaloneLcpSpan(standaloneLcpValue, standaloneLcpEntry, pageloadSpanId);
-    }
-    cleanupLcpHandler();
   }
 
   const cleanupLcpHandler = addLcpInstrumentationHandler(({ metric }) => {
@@ -58,37 +41,21 @@ export function trackLcpAsStandaloneSpan(): void {
     standaloneLcpEntry = entry;
   }, true);
 
-  onHidden(() => {
-    _collectLcpOnce();
+  listenForWebVitalReportEvents((reportEvent, pageloadSpanId) => {
+    _sendStandaloneLcpSpan(standaloneLcpValue, standaloneLcpEntry, pageloadSpanId, reportEvent);
+    cleanupLcpHandler();
   });
-
-  // Since the call chain of this function is synchronous and evaluates before the SDK client is created,
-  // we need to wait with subscribing to a client hook until the client is created. Therefore, we defer
-  // to the next tick after the SDK setup.
-  setTimeout(() => {
-    const client = getClient();
-
-    if (!client) {
-      return;
-    }
-
-    const unsubscribeStartNavigation = client.on('startNavigationSpan', () => {
-      _collectLcpOnce();
-      unsubscribeStartNavigation?.();
-    });
-
-    const activeSpan = getActiveSpan();
-    if (activeSpan) {
-      const rootSpan = getRootSpan(activeSpan);
-      const spanJSON = spanToJSON(rootSpan);
-      if (spanJSON.op === 'pageload') {
-        pageloadSpanId = rootSpan.spanContext().spanId;
-      }
-    }
-  }, 0);
 }
 
-function sendStandaloneLcpSpan(lcpValue: number, entry: LargestContentfulPaint | undefined, pageloadSpanId: string) {
+/**
+ * Exported only for testing!
+ */
+export function _sendStandaloneLcpSpan(
+  lcpValue: number,
+  entry: LargestContentfulPaint | undefined,
+  pageloadSpanId: string,
+  reportEvent: WebVitalReportEvent,
+) {
   DEBUG_BUILD && logger.log(`Sending LCP span (${lcpValue})`);
 
   const startTime = msToSec((browserPerformanceTimeOrigin() || 0) + (entry?.startTime || 0));
@@ -102,15 +69,26 @@ function sendStandaloneLcpSpan(lcpValue: number, entry: LargestContentfulPaint |
     [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: 0, // LCP is a point-in-time metric
     // attach the pageload span id to the LCP span so that we can link them in the UI
     'sentry.pageload.span_id': pageloadSpanId,
+    // describes what triggered the web vital to be reported
+    'sentry.report_event': reportEvent,
   };
 
   if (entry) {
-    attributes['lcp.element'] = htmlTreeAsString(entry.element);
-    attributes['lcp.id'] = entry.id;
-    attributes['lcp.url'] = entry.url;
-    attributes['lcp.loadTime'] = entry.loadTime;
-    attributes['lcp.renderTime'] = entry.renderTime;
-    attributes['lcp.size'] = entry.size;
+    entry.element && (attributes['lcp.element'] = htmlTreeAsString(entry.element));
+    entry.id && (attributes['lcp.id'] = entry.id);
+
+    // Trim URL to the first 200 characters.
+    entry.url && (attributes['lcp.url'] = entry.url.trim().slice(0, 200));
+
+    // loadTime is the time of LCP that's related to receiving the LCP element response..
+    entry.loadTime != null && (attributes['lcp.loadTime'] = entry.loadTime);
+
+    // renderTime is loadTime + rendering time
+    // it's 0 if the LCP element is loaded from a 3rd party origin that doesn't send the
+    // `Timing-Allow-Origin` header.
+    entry.renderTime != null && (attributes['lcp.renderTime'] = entry.renderTime);
+
+    entry.size != null && (attributes['lcp.size'] = entry.size);
   }
 
   const span = startStandaloneWebVitalSpan({
@@ -128,13 +106,5 @@ function sendStandaloneLcpSpan(lcpValue: number, entry: LargestContentfulPaint |
 
     // LCP is a point-in-time metric, so we end the span immediately
     span.end(startTime);
-  }
-}
-
-function supportsLargestContentfulPaint(): boolean {
-  try {
-    return PerformanceObserver.supportedEntryTypes.includes('largest-contentful-paint');
-  } catch {
-    return false;
   }
 }

@@ -1,5 +1,3 @@
-import type { BrowserOptions } from '@sentry/browser';
-import type { Options } from '@sentry/core';
 import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
 
 type SdkInitPaths = {
@@ -185,40 +183,14 @@ type SdkEnabledOptions = {
       };
 };
 
-type DeprecatedRuntimeOptions = Pick<
-  Options,
-  'environment' | 'release' | 'dsn' | 'debug' | 'sampleRate' | 'tracesSampleRate'
-> &
-  Pick<BrowserOptions, 'replaysSessionSampleRate' | 'replaysOnErrorSampleRate'> & {
-    /**
-     * @deprecated Use the `environment` option in your runtime-specific Sentry.init() call in sentry.client.config.(js|ts) or sentry.server.config.(js|ts) instead.
-     */
-    environment?: string;
-    /**
-     * @deprecated Use the `release` option in your runtime-specific Sentry.init() call in sentry.client.config.(js|ts) or sentry.server.config.(js|ts) instead.
-     */
-    release?: string;
-    /**
-     * @deprecated Use the `dsn` option in your runtime-specific Sentry.init() call in sentry.client.config.(js|ts) or sentry.server.config.(js|ts) instead.
-     */
-    dsn?: string;
-    /**
-     * @deprecated Use the `sampleRate` option in your runtime-specific Sentry.init() call in sentry.client.config.(js|ts) or sentry.server.config.(js|ts) instead.
-     */
-    sampleRate?: number;
-    /**
-     * @deprecated Use the `tracesSampleRate` option in your runtime-specific Sentry.init() call in sentry.client.config.(js|ts) or sentry.server.config.(js|ts) instead.
-     */
-    tracesSampleRate?: number;
-    /**
-     * @deprecated Use the `replaysSessionSampleRate` option in your Sentry.init() call in sentry.client.config.(js|ts) instead.
-     */
-    replaysSessionSampleRate?: number;
-    /**
-     * @deprecated Use the `replaysOnErrorSampleRate` option in your Sentry.init() call in sentry.client.config.(js|ts) instead.
-     */
-    replaysOnErrorSampleRate?: number;
-  };
+/**
+ * We accept aribtrary options that are passed through to the Sentry SDK.
+ * This is not recommended and will stop working in a future version.
+ * Note: Not all options are actually passed through, only a select subset:
+ * release, environment, dsn, debug, sampleRate, tracesSampleRate, replaysSessionSampleRate, replaysOnErrorSampleRate
+ * @deprecated This will be removed in a future major.
+ **/
+type DeprecatedRuntimeOptions = Record<string, unknown>;
 
 /**
  * A subset of Sentry SDK options that can be set via the `sentryAstro` integration.
@@ -230,7 +202,6 @@ type DeprecatedRuntimeOptions = Pick<
  * If you specify a dedicated init file, the SDK options passed to `sentryAstro` will be ignored.
  */
 export type SentryOptions = SdkInitPaths &
-  DeprecatedRuntimeOptions &
   InstrumentationOptions &
   SdkEnabledOptions & {
     /**
@@ -251,4 +222,5 @@ export type SentryOptions = SdkInitPaths &
      * If enabled, prints debug logs during the build process.
      */
     debug?: boolean;
-  };
+    // eslint-disable-next-line deprecation/deprecation
+  } & DeprecatedRuntimeOptions;

@@ -153,7 +153,7 @@ export type SentryBuildOptions = {
     /**
      * Toggle whether generated source maps within your Next.js build folder should be automatically deleted after being uploaded to Sentry.
      *
-     * Defaults to `false`.
+     * Defaults to `true`.
      */
     deleteSourcemapsAfterUpload?: boolean;
   };
@@ -461,6 +461,11 @@ export type SentryBuildOptions = {
    * ```
    */
   errorHandler?: (err: Error) => void;
+
+  /**
+   * Suppress the warning about the `onRouterTransitionStart` hook.
+   */
+  suppressOnRouterTransitionStartWarning?: boolean;
 
   /**
    * Contains a set of experimental flags that might change in future releases. These flags enable

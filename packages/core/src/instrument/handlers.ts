@@ -1,5 +1,5 @@
 import { DEBUG_BUILD } from '../debug-build';
-import { logger } from '../utils/logger';
+import { debug } from '../utils/logger';
 import { getFunctionName } from '../utils/stacktrace';
 
 export type InstrumentHandlerType =
@@ -41,7 +41,7 @@ export function maybeInstrument(type: InstrumentHandlerType, instrumentFn: () =>
     try {
       instrumentFn();
     } catch (e) {
-      DEBUG_BUILD && logger.error(`Error while instrumenting ${type}`, e);
+      DEBUG_BUILD && debug.error(`Error while instrumenting ${type}`, e);
     }
   }
 }
@@ -58,7 +58,7 @@ export function triggerHandlers(type: InstrumentHandlerType, data: unknown): voi
       handler(data);
     } catch (e) {
       DEBUG_BUILD &&
-        logger.error(
+        debug.error(
           `Error while triggering instrumentation handler.\nType: ${type}\nName: ${getFunctionName(handler)}\nError:`,
           e,
         );

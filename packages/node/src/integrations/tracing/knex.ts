@@ -1,7 +1,7 @@
 import { KnexInstrumentation } from '@opentelemetry/instrumentation-knex';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, spanToJSON } from '@sentry/core';
-import { generateInstrumentOnce, instrumentWhenWrapped } from '../../otel/instrument';
+import { generateInstrumentOnce, instrumentWhenWrapped } from '@sentry/node-core';
 
 const INTEGRATION_NAME = 'Knex';
 

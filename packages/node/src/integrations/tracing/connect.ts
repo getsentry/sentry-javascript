@@ -8,8 +8,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
 } from '@sentry/core';
-import { generateInstrumentOnce } from '../../otel/instrument';
-import { ensureIsWrapped } from '../../utils/ensureIsWrapped';
+import { ensureIsWrapped, generateInstrumentOnce } from '@sentry/node-core';
 
 type ConnectApp = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

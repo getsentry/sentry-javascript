@@ -37,6 +37,9 @@ export function initCloudflareSentryHandle(options: CloudflareOptions): Handle {
           request: event.request as Request<unknown, IncomingRequestCfProperties<unknown>>,
           // @ts-expect-error This will exist in Cloudflare
           context: event.platform.context,
+          // We don't want to capture errors here, as we want to capture them in the `sentryHandle` handler
+          // where we can distinguish between redirects and actual errors.
+          captureErrors: false,
         },
         () => resolve(event),
       );

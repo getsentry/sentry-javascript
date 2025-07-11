@@ -10,7 +10,7 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '
 import { setHttpStatus, SPAN_STATUS_ERROR, SPAN_STATUS_OK, startSpan } from '../tracing';
 import type { IntegrationFn } from '../types-hoist/integration';
 import { isPlainObject } from '../utils/is';
-import { logger } from '../utils/logger';
+import { debug } from '../utils/logger';
 
 const AUTH_OPERATIONS_TO_INSTRUMENT = [
   'reauthenticate',
@@ -481,7 +481,7 @@ function instrumentPostgRESTQueryBuilder(PostgRESTQueryBuilder: new () => PostgR
           const rv = Reflect.apply(target, thisArg, argumentsList);
           const PostgRESTFilterBuilder = (rv as PostgRESTFilterBuilder).constructor;
 
-          DEBUG_BUILD && logger.log(`Instrumenting ${operation} operation's PostgRESTFilterBuilder`);
+          DEBUG_BUILD && debug.log(`Instrumenting ${operation} operation's PostgRESTFilterBuilder`);
 
           instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder);
 
@@ -496,7 +496,7 @@ function instrumentPostgRESTQueryBuilder(PostgRESTQueryBuilder: new () => PostgR
 
 export const instrumentSupabaseClient = (supabaseClient: unknown): void => {
   if (!supabaseClient) {
-    DEBUG_BUILD && logger.warn('Supabase integration was not installed because no Supabase client was provided.');
+    DEBUG_BUILD && debug.warn('Supabase integration was not installed because no Supabase client was provided.');
     return;
   }
   const SupabaseClientConstructor =

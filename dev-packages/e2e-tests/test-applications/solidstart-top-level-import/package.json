@@ -4,7 +4,7 @@
   "scripts": {
     "clean": "pnpx rimraf node_modules pnpm-lock.yaml .vinxi .output",
     "dev": "vinxi dev",
-    "build": "vinxi build && sh ./post_build.sh",
+    "build": "vinxi build",
     "preview": "HOST=localhost PORT=3030 vinxi start",
     "test:prod": "TEST_ENV=production playwright test",
     "test:build": "pnpm install && pnpm build",
@@ -15,7 +15,8 @@
     "@sentry/solidstart": "latest || *"
   },
   "devDependencies": {
-    "@playwright/test": "~1.50.0",
+    "@playwright/test": "~1.53.2",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
     "@solidjs/meta": "^0.29.4",
     "@solidjs/router": "^0.13.4",
     "@solidjs/start": "^1.0.2",
@@ -31,7 +32,7 @@
     "vite-plugin-solid": "^2.11.6",
     "vitest": "^1.5.0"
   },
-  "overrides": {
-    "@vercel/nft": "0.27.4"
+  "volta": {
+    "extends": "../../package.json"
   }
 }
