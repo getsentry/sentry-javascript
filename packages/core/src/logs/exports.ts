@@ -6,7 +6,7 @@ import type { Scope, ScopeData } from '../scope';
 import type { Log, SerializedLog, SerializedLogAttributeValue } from '../types-hoist/log';
 import { mergeScopeData } from '../utils/applyScopeDataToEvent';
 import { isParameterizedString } from '../utils/is';
-import { debug } from '../utils/logger';
+import { consoleSandbox, debug } from '../utils/logger';
 import { _getSpanForScope } from '../utils/spanOnScope';
 import { timestampInSeconds } from '../utils/time';
 import { GLOBAL_OBJ } from '../utils/worldwide';
@@ -169,7 +169,8 @@ export function _INTERNAL_captureLog(
 
   client.emit('beforeCaptureLog', processedLog);
 
-  const log = beforeSendLog ? beforeSendLog(processedLog) : processedLog;
+  // We need to wrap this in `consoleSandbox` to avoid recursive calls to `beforeSendLog`
+  const log = beforeSendLog ? consoleSandbox(() => beforeSendLog(processedLog)) : processedLog;
   if (!log) {
     client.recordDroppedEvent('before_send', 'log_item', 1);
     DEBUG_BUILD && debug.warn('beforeSendLog returned null, log will not be captured.');
