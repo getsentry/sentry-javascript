@@ -1,5 +1,5 @@
 import type { LogSeverityLevel } from '@sentry/core';
-import { _INTERNAL_captureLog, isPrimitive, debug, normalize } from '@sentry/core';
+import { _INTERNAL_captureLog, debug, isPrimitive, normalize } from '@sentry/core';
 import type buildType from 'pino-abstract-transport';
 import * as pinoAbstractTransport from 'pino-abstract-transport';
 import { DEBUG_BUILD } from './debug-build';
