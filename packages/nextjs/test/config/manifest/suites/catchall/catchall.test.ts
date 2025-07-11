@@ -7,8 +7,8 @@ describe('catchall', () => {
 
   test('should generate a manifest with catchall route', () => {
     expect(manifest).toEqual({
-      routes: [
-        { path: '/' },
+      staticRoutes: [{ path: '/' }],
+      dynamicRoutes: [
         {
           path: '/catchall/:path*?',
           regex: '^/catchall(?:/(.*))?$',
@@ -19,7 +19,7 @@ describe('catchall', () => {
   });
 
   test('should generate correct pattern for catchall route', () => {
-    const catchallRoute = manifest.routes.find(route => route.path === '/catchall/:path*?');
+    const catchallRoute = manifest.dynamicRoutes.find(route => route.path === '/catchall/:path*?');
     const regex = new RegExp(catchallRoute?.regex ?? '');
     expect(regex.test('/catchall/123')).toBe(true);
     expect(regex.test('/catchall/abc')).toBe(true);

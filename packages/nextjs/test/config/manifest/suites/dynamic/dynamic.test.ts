@@ -7,14 +7,13 @@ describe('dynamic', () => {
 
   test('should generate a dynamic manifest', () => {
     expect(manifest).toEqual({
-      routes: [
-        { path: '/' },
+      staticRoutes: [{ path: '/' }, { path: '/dynamic/static' }, { path: '/static/nested' }],
+      dynamicRoutes: [
         {
           path: '/dynamic/:id',
           regex: '^/dynamic/([^/]+)$',
           paramNames: ['id'],
         },
-        { path: '/static/nested' },
         {
           path: '/users/:id',
           regex: '^/users/([^/]+)$',
@@ -35,7 +34,7 @@ describe('dynamic', () => {
   });
 
   test('should generate correct pattern for single dynamic route', () => {
-    const singleDynamic = manifest.routes.find(route => route.path === '/dynamic/:id');
+    const singleDynamic = manifest.dynamicRoutes.find(route => route.path === '/dynamic/:id');
     const regex = new RegExp(singleDynamic?.regex ?? '');
     expect(regex.test('/dynamic/123')).toBe(true);
     expect(regex.test('/dynamic/abc')).toBe(true);
@@ -45,7 +44,7 @@ describe('dynamic', () => {
   });
 
   test('should generate correct pattern for mixed static-dynamic route', () => {
-    const mixedRoute = manifest.routes.find(route => route.path === '/users/:id/settings');
+    const mixedRoute = manifest.dynamicRoutes.find(route => route.path === '/users/:id/settings');
     const regex = new RegExp(mixedRoute?.regex ?? '');
 
     expect(regex.test('/users/123/settings')).toBe(true);
@@ -56,7 +55,7 @@ describe('dynamic', () => {
   });
 
   test('should generate correct pattern for multiple dynamic segments', () => {
-    const multiDynamic = manifest.routes.find(route => route.path === '/users/:id/posts/:postId');
+    const multiDynamic = manifest.dynamicRoutes.find(route => route.path === '/users/:id/posts/:postId');
     const regex = new RegExp(multiDynamic?.regex ?? '');
 
     expect(regex.test('/users/123/posts/456')).toBe(true);
@@ -72,8 +71,7 @@ describe('dynamic', () => {
   });
 
   test('should handle special characters in dynamic segments', () => {
-    // Test that dynamic segments with special characters work properly
-    const userSettingsRoute = manifest.routes.find(route => route.path === '/users/:id/settings');
+    const userSettingsRoute = manifest.dynamicRoutes.find(route => route.path === '/users/:id/settings');
     expect(userSettingsRoute).toBeDefined();
     expect(userSettingsRoute?.regex).toBeDefined();
 

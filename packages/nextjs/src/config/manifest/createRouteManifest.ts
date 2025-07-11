@@ -5,10 +5,16 @@ import type { RouteInfo, RouteManifest } from './types';
 export type CreateRouteManifestOptions = {
   // For starters we only support app router
   appDirPath?: string;
+  /**
+   * Whether to include route groups (e.g., (auth-layout)) in the final route paths.
+   * By default, route groups are stripped from paths following Next.js convention.
+   */
+  includeRouteGroups?: boolean;
 };
 
 let manifestCache: RouteManifest | null = null;
 let lastAppDirPath: string | null = null;
+let lastIncludeRouteGroups: boolean | undefined = undefined;
 
 function isPageFile(filename: string): boolean {
   return filename === 'page.tsx' || filename === 'page.jsx' || filename === 'page.ts' || filename === 'page.js';
@@ -16,6 +22,11 @@ function isPageFile(filename: string): boolean {
 
 function isRouteGroup(name: string): boolean {
   return name.startsWith('(') && name.endsWith(')');
+}
+
+function normalizeRoutePath(routePath: string): string {
+  // Remove route group segments from the path
+  return routePath.replace(/\/\([^)]+\)/g, '');
 }
 
 function getDynamicRouteSegment(name: string): string {
@@ -59,7 +70,7 @@ function buildRegexForDynamicRoute(routePath: string): { regex: string; paramNam
         regexSegments.push('([^/]+)');
       }
     } else {
-      // Static segment
+      // Static segment - escape regex special characters including route group parentheses
       regexSegments.push(segment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
     }
   }
@@ -77,26 +88,32 @@ function buildRegexForDynamicRoute(routePath: string): { regex: string; paramNam
   return { regex: pattern, paramNames };
 }
 
-function scanAppDirectory(dir: string, basePath: string = ''): RouteInfo[] {
-  const routes: RouteInfo[] = [];
+function scanAppDirectory(
+  dir: string,
+  basePath: string = '',
+  includeRouteGroups: boolean = false,
+): { dynamicRoutes: RouteInfo[]; staticRoutes: RouteInfo[] } {
+  const dynamicRoutes: RouteInfo[] = [];
+  const staticRoutes: RouteInfo[] = [];
 
   try {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
     const pageFile = entries.some(entry => isPageFile(entry.name));
 
     if (pageFile) {
-      const routePath = basePath || '/';
+      // Conditionally normalize the path based on includeRouteGroups option
+      const routePath = includeRouteGroups ? basePath || '/' : normalizeRoutePath(basePath || '/');
       const isDynamic = routePath.includes(':');
 
       if (isDynamic) {
         const { regex, paramNames } = buildRegexForDynamicRoute(routePath);
-        routes.push({
+        dynamicRoutes.push({
           path: routePath,
           regex,
           paramNames,
         });
       } else {
-        routes.push({
+        staticRoutes.push({
           path: routePath,
         });
       }
@@ -105,26 +122,28 @@ function scanAppDirectory(dir: string, basePath: string = ''): RouteInfo[] {
     for (const entry of entries) {
       if (entry.isDirectory()) {
         const fullPath = path.join(dir, entry.name);
-
-        if (isRouteGroup(entry.name)) {
-          // Route groups don't affect the URL, just scan them
-          const subRoutes = scanAppDirectory(fullPath, basePath);
-          routes.push(...subRoutes);
-          continue;
-        }
-
-        const isDynamic = entry.name.startsWith('[') && entry.name.endsWith(']');
         let routeSegment: string;
 
-        if (isDynamic) {
+        const isDynamic = entry.name.startsWith('[') && entry.name.endsWith(']');
+        const isRouteGroupDir = isRouteGroup(entry.name);
+
+        if (isRouteGroupDir) {
+          if (includeRouteGroups) {
+            routeSegment = entry.name;
+          } else {
+            routeSegment = '';
+          }
+        } else if (isDynamic) {
           routeSegment = getDynamicRouteSegment(entry.name);
         } else {
           routeSegment = entry.name;
         }
 
-        const newBasePath = `${basePath}/${routeSegment}`;
-        const subRoutes = scanAppDirectory(fullPath, newBasePath);
-        routes.push(...subRoutes);
+        const newBasePath = routeSegment ? `${basePath}/${routeSegment}` : basePath;
+        const subRoutes = scanAppDirectory(fullPath, newBasePath, includeRouteGroups);
+
+        dynamicRoutes.push(...subRoutes.dynamicRoutes);
+        staticRoutes.push(...subRoutes.staticRoutes);
       }
     }
   } catch (error) {
@@ -132,7 +151,7 @@ function scanAppDirectory(dir: string, basePath: string = ''): RouteInfo[] {
     console.warn('Error building route manifest:', error);
   }
 
-  return routes;
+  return { dynamicRoutes, staticRoutes };
 }
 
 /**
@@ -157,24 +176,27 @@ export function createRouteManifest(options?: CreateRouteManifestOptions): Route
 
   if (!targetDir) {
     return {
-      routes: [],
+      dynamicRoutes: [],
+      staticRoutes: [],
     };
   }
 
   // Check if we can use cached version
-  if (manifestCache && lastAppDirPath === targetDir) {
+  if (manifestCache && lastAppDirPath === targetDir && lastIncludeRouteGroups === options?.includeRouteGroups) {
     return manifestCache;
   }
 
-  const routes = scanAppDirectory(targetDir);
+  const { dynamicRoutes, staticRoutes } = scanAppDirectory(targetDir, '', options?.includeRouteGroups);
 
   const manifest: RouteManifest = {
-    routes,
+    dynamicRoutes,
+    staticRoutes,
   };
 
   // set cache
   manifestCache = manifest;
   lastAppDirPath = targetDir;
+  lastIncludeRouteGroups = options?.includeRouteGroups;
 
   return manifest;
 }

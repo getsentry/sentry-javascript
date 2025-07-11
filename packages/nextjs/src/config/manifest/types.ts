@@ -21,7 +21,12 @@ export type RouteInfo = {
  */
 export type RouteManifest = {
   /**
-   * List of all routes (static and dynamic)
+   * List of all dynamic routes
    */
-  routes: RouteInfo[];
+  dynamicRoutes: RouteInfo[];
+
+  /**
+   * List of all static routes
+   */
+  staticRoutes: RouteInfo[];
 };
