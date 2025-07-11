@@ -26,6 +26,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const packageDotJSON = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), './package.json'), { encoding: 'utf8' }));
 
+const ignoreSideEffects = [/[\\\/]debug-build\.ts$/];
+
 export function makeBaseNPMConfig(options = {}) {
   const {
     entrypoints = ['src/index.ts'],
@@ -81,6 +83,12 @@ export function makeBaseNPMConfig(options = {}) {
       freeze: false,
 
       interop: 'esModule',
+    },
+
+    treeshake: {
+      moduleSideEffects: (id, external) => {
+        return external === false && ignoreSideEffects.some(regex => regex.test(id));
+      }
     },
 
     plugins: [nodeResolvePlugin, sucrasePlugin, debugBuildStatementReplacePlugin, rrwebBuildPlugin, cleanupPlugin],
