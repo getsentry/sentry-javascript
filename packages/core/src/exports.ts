@@ -11,7 +11,7 @@ import type { Session, SessionContext } from './types-hoist/session';
 import type { SeverityLevel } from './types-hoist/severity';
 import type { User } from './types-hoist/user';
 import { isThenable } from './utils/is';
-import { logger } from './utils/logger';
+import { debug } from './utils/logger';
 import { uuid4 } from './utils/misc';
 import type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
 import { parseEventHintOrCaptureContext } from './utils/prepareEvent';
@@ -136,9 +136,9 @@ export function captureCheckIn(checkIn: CheckIn, upsertMonitorConfig?: MonitorCo
   const scope = getCurrentScope();
   const client = getClient();
   if (!client) {
-    DEBUG_BUILD && logger.warn('Cannot capture check-in. No client defined.');
+    DEBUG_BUILD && debug.warn('Cannot capture check-in. No client defined.');
   } else if (!client.captureCheckIn) {
-    DEBUG_BUILD && logger.warn('Cannot capture check-in. Client does not support sending check-ins.');
+    DEBUG_BUILD && debug.warn('Cannot capture check-in. Client does not support sending check-ins.');
   } else {
     return client.captureCheckIn(checkIn, upsertMonitorConfig, scope);
   }
@@ -206,7 +206,7 @@ export async function flush(timeout?: number): Promise<boolean> {
   if (client) {
     return client.flush(timeout);
   }
-  DEBUG_BUILD && logger.warn('Cannot flush events. No client defined.');
+  DEBUG_BUILD && debug.warn('Cannot flush events. No client defined.');
   return Promise.resolve(false);
 }
 
@@ -223,7 +223,7 @@ export async function close(timeout?: number): Promise<boolean> {
   if (client) {
     return client.close(timeout);
   }
-  DEBUG_BUILD && logger.warn('Cannot flush events and disable SDK. No client defined.');
+  DEBUG_BUILD && debug.warn('Cannot flush events and disable SDK. No client defined.');
   return Promise.resolve(false);
 }
 

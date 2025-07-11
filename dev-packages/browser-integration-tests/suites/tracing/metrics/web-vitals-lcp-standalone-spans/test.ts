@@ -64,6 +64,7 @@ sentryTest('captures LCP vital as a standalone span', async ({ getLocalTestUrl, 
       'sentry.exclusive_time': 0,
       'sentry.op': 'ui.webvital.lcp',
       'sentry.origin': 'auto.http.browser.lcp',
+      'sentry.report_event': 'pagehide',
       transaction: expect.stringContaining('index.html'),
       'user_agent.original': expect.stringContaining('Chrome'),
       'sentry.pageload.span_id': expect.stringMatching(/[a-f0-9]{16}/),
@@ -181,6 +182,7 @@ sentryTest('sends LCP of the initial page when soft-navigating to a new page', a
 
   expect(spanEnvelopeItem.measurements?.lcp?.value).toBeGreaterThan(0);
   expect(spanEnvelopeItem.data?.['sentry.pageload.span_id']).toBe(pageloadEventData.contexts?.trace?.span_id);
+  expect(spanEnvelopeItem.data?.['sentry.report_event']).toBe('navigation');
   expect(spanEnvelopeItem.trace_id).toBe(pageloadEventData.contexts?.trace?.trace_id);
 });
 
@@ -194,10 +196,10 @@ sentryTest("doesn't send further LCP after the first navigation", async ({ getLo
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  const eventData = await getFirstSentryEnvelopeRequest<SentryEvent>(page, url);
+  const pageloadEventData = await getFirstSentryEnvelopeRequest<SentryEvent>(page, url);
 
-  expect(eventData.type).toBe('transaction');
-  expect(eventData.contexts?.trace?.op).toBe('pageload');
+  expect(pageloadEventData.type).toBe('transaction');
+  expect(pageloadEventData.contexts?.trace?.op).toBe('pageload');
 
   const spanEnvelopePromise = getMultipleSentryEnvelopeRequests<SpanEnvelope>(
     page,
@@ -214,6 +216,8 @@ sentryTest("doesn't send further LCP after the first navigation", async ({ getLo
   const spanEnvelope = (await spanEnvelopePromise)[0];
   const spanEnvelopeItem = spanEnvelope[1][0][1];
   expect(spanEnvelopeItem.measurements?.lcp?.value).toBeGreaterThan(0);
+  expect(spanEnvelopeItem.data?.['sentry.report_event']).toBe('navigation');
+  expect(spanEnvelopeItem.trace_id).toBe(pageloadEventData.contexts?.trace?.trace_id);
 
   getMultipleSentryEnvelopeRequests<SpanEnvelope>(page, 1, { envelopeType: 'span' }, () => {
     throw new Error('Unexpected span - This should not happen!');
@@ -246,10 +250,10 @@ sentryTest("doesn't send further LCP after the first page hide", async ({ getLoc
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  const eventData = await getFirstSentryEnvelopeRequest<SentryEvent>(page, url);
+  const pageloadEventData = await getFirstSentryEnvelopeRequest<SentryEvent>(page, url);
 
-  expect(eventData.type).toBe('transaction');
-  expect(eventData.contexts?.trace?.op).toBe('pageload');
+  expect(pageloadEventData.type).toBe('transaction');
+  expect(pageloadEventData.contexts?.trace?.op).toBe('pageload');
 
   const spanEnvelopePromise = getMultipleSentryEnvelopeRequests<SpanEnvelope>(
     page,
@@ -266,6 +270,8 @@ sentryTest("doesn't send further LCP after the first page hide", async ({ getLoc
   const spanEnvelope = (await spanEnvelopePromise)[0];
   const spanEnvelopeItem = spanEnvelope[1][0][1];
   expect(spanEnvelopeItem.measurements?.lcp?.value).toBeGreaterThan(0);
+  expect(spanEnvelopeItem.data?.['sentry.report_event']).toBe('pagehide');
+  expect(spanEnvelopeItem.trace_id).toBe(pageloadEventData.contexts?.trace?.trace_id);
 
   getMultipleSentryEnvelopeRequests<SpanEnvelope>(page, 1, { envelopeType: 'span' }, () => {
     throw new Error('Unexpected span - This should not happen!');

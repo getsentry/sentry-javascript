@@ -4,6 +4,19 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 9.38.0
+
+### Important Changes
+
+- **chore: Add craft entry for @sentry/node-native ([#16907](https://github.com/getsentry/sentry-javascript/pull/16907))**
+
+This release publishes the `@sentry/node-native` SDK.
+
+### Other Changes
+
+- feat(core): Introduce `debug` to replace `logger` ([#16906](https://github.com/getsentry/sentry-javascript/pull/16906))
+- fix(browser): Guard `nextHopProtocol` when adding resource spans ([#16900](https://github.com/getsentry/sentry-javascript/pull/16900))
+
 ## 9.37.0
 
 ### Important Changes

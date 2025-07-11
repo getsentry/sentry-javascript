@@ -25,9 +25,6 @@ sentryTest.describe('When `consistentTraceSampling` is `true` and page contains 
         sentryTest.skip();
       }
 
-
-
-
       const url = await getLocalTestUrl({ testDir: __dirname });
 
       const clientReportPromise = waitForClientReportRequest(page);

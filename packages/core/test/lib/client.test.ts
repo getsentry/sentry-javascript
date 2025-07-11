@@ -348,8 +348,8 @@ describe('Client', () => {
       expect(clientEventFromException).toHaveBeenCalledTimes(1);
     });
 
-    test('captures logger message', () => {
-      const logSpy = vi.spyOn(loggerModule.logger, 'log').mockImplementation(() => undefined);
+    test('captures debug message', () => {
+      const logSpy = vi.spyOn(loggerModule.debug, 'log').mockImplementation(() => undefined);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
@@ -440,8 +440,8 @@ describe('Client', () => {
       );
     });
 
-    test('captures logger message', () => {
-      const logSpy = vi.spyOn(loggerModule.logger, 'log').mockImplementation(() => undefined);
+    test('captures debug message', () => {
+      const logSpy = vi.spyOn(loggerModule.debug, 'log').mockImplementation(() => undefined);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
@@ -1207,7 +1207,7 @@ describe('Client', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSend });
       const client = new TestClient(options);
       const captureExceptionSpy = vi.spyOn(client, 'captureException');
-      const loggerLogSpy = vi.spyOn(loggerModule.logger, 'log');
+      const loggerLogSpy = vi.spyOn(loggerModule.debug, 'log');
 
       client.captureEvent({ message: 'hello' });
 
@@ -1226,7 +1226,7 @@ describe('Client', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendTransaction });
       const client = new TestClient(options);
       const captureExceptionSpy = vi.spyOn(client, 'captureException');
-      const loggerLogSpy = vi.spyOn(loggerModule.logger, 'log');
+      const loggerLogSpy = vi.spyOn(loggerModule.debug, 'log');
 
       client.captureEvent({ transaction: '/dogs/are/great', type: 'transaction' });
 
@@ -1288,7 +1288,7 @@ describe('Client', () => {
         // @ts-expect-error we need to test regular-js behavior
         const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSend });
         const client = new TestClient(options);
-        const loggerWarnSpy = vi.spyOn(loggerModule.logger, 'warn');
+        const loggerWarnSpy = vi.spyOn(loggerModule.debug, 'warn');
 
         client.captureEvent({ message: 'hello' });
 
@@ -1307,7 +1307,7 @@ describe('Client', () => {
         // @ts-expect-error we need to test regular-js behavior
         const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendTransaction });
         const client = new TestClient(options);
-        const loggerWarnSpy = vi.spyOn(loggerModule.logger, 'warn');
+        const loggerWarnSpy = vi.spyOn(loggerModule.debug, 'warn');
 
         client.captureEvent({ transaction: '/dogs/are/great', type: 'transaction' });
 
@@ -1551,7 +1551,7 @@ describe('Client', () => {
 
       const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
       const captureExceptionSpy = vi.spyOn(client, 'captureException');
-      const loggerLogSpy = vi.spyOn(loggerModule.logger, 'log');
+      const loggerLogSpy = vi.spyOn(loggerModule.debug, 'log');
       const scope = new Scope();
       scope.addEventProcessor(() => null);
 
@@ -1569,7 +1569,7 @@ describe('Client', () => {
 
       const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
       const captureExceptionSpy = vi.spyOn(client, 'captureException');
-      const loggerLogSpy = vi.spyOn(loggerModule.logger, 'log');
+      const loggerLogSpy = vi.spyOn(loggerModule.debug, 'log');
       const scope = new Scope();
       scope.addEventProcessor(() => null);
 
@@ -1668,7 +1668,7 @@ describe('Client', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
       const captureExceptionSpy = vi.spyOn(client, 'captureException');
-      const loggerWarnSpy = vi.spyOn(loggerModule.logger, 'warn');
+      const loggerWarnSpy = vi.spyOn(loggerModule.debug, 'warn');
       const scope = new Scope();
       const exception = new Error('sorry');
       scope.addEventProcessor(() => {
@@ -1701,8 +1701,8 @@ describe('Client', () => {
       expect(recordLostEventSpy).toHaveBeenCalledWith('sample_rate', 'error');
     });
 
-    test('captures logger message', () => {
-      const logSpy = vi.spyOn(loggerModule.logger, 'log').mockImplementation(() => undefined);
+    test('captures debug message', () => {
+      const logSpy = vi.spyOn(loggerModule.debug, 'log').mockImplementation(() => undefined);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
