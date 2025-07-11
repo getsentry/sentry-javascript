@@ -1,5 +1,5 @@
 import type { EventProcessor, Options } from '@sentry/core';
-import { logger } from '@sentry/core';
+import { debug } from '@sentry/core';
 import { flush, getGlobalScope } from '@sentry/node';
 import { DEBUG_BUILD } from '../common/debug-build';
 
@@ -9,11 +9,11 @@ export async function flushIfServerless(): Promise<void> {
 
   if (isServerless) {
     try {
-      DEBUG_BUILD && logger.log('Flushing events...');
+      DEBUG_BUILD && debug.log('Flushing events...');
       await flush(2000);
-      DEBUG_BUILD && logger.log('Done flushing events');
+      DEBUG_BUILD && debug.log('Done flushing events');
     } catch (e) {
-      DEBUG_BUILD && logger.log('Error while flushing events:\n', e);
+      DEBUG_BUILD && debug.log('Error while flushing events:\n', e);
     }
   }
 }
@@ -46,7 +46,7 @@ export function filterLowQualityTransactions(options: Options): void {
         }
         // Filter out transactions for build assets
         if (event.transaction?.match(/^GET \/_build\//)) {
-          options.debug && logger.log('SolidStartLowQualityTransactionsFilter filtered transaction', event.transaction);
+          options.debug && debug.log('SolidStartLowQualityTransactionsFilter filtered transaction', event.transaction);
           return null;
         }
         return event;
