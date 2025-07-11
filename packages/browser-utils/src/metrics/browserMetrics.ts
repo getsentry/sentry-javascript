@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import type { Measurements, Span, SpanAttributes, SpanAttributeValue, StartSpanOptions } from '@sentry/core';
+import type { Client, Measurements, Span, SpanAttributes, SpanAttributeValue, StartSpanOptions } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
   getActiveSpan,
@@ -83,6 +83,7 @@ let _clsEntry: LayoutShift | undefined;
 interface StartTrackingWebVitalsOptions {
   recordClsStandaloneSpans: boolean;
   recordLcpStandaloneSpans: boolean;
+  client: Client;
 }
 
 /**
@@ -94,6 +95,7 @@ interface StartTrackingWebVitalsOptions {
 export function startTrackingWebVitals({
   recordClsStandaloneSpans,
   recordLcpStandaloneSpans,
+  client,
 }: StartTrackingWebVitalsOptions): () => void {
   const performance = getBrowserPerformanceAPI();
   if (performance && browserPerformanceTimeOrigin()) {
@@ -102,9 +104,9 @@ export function startTrackingWebVitals({
       WINDOW.performance.mark('sentry-tracing-init');
     }
     const fidCleanupCallback = _trackFID();
-    const lcpCleanupCallback = recordLcpStandaloneSpans ? trackLcpAsStandaloneSpan() : _trackLCP();
+    const lcpCleanupCallback = recordLcpStandaloneSpans ? trackLcpAsStandaloneSpan(client) : _trackLCP();
     const ttfbCleanupCallback = _trackTtfb();
-    const clsCleanupCallback = recordClsStandaloneSpans ? trackClsAsStandaloneSpan() : _trackCLS();
+    const clsCleanupCallback = recordClsStandaloneSpans ? trackClsAsStandaloneSpan(client) : _trackCLS();
 
     return (): void => {
       fidCleanupCallback();

@@ -1,4 +1,4 @@
-import type { SpanAttributes } from '@sentry/core';
+import type { Client, SpanAttributes } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
   getCurrentScope,
@@ -24,7 +24,7 @@ import { listenForWebVitalReportEvents, msToSec, startStandaloneWebVitalSpan, su
  * Once either of these events triggers, the LCP value is sent as a standalone span and we stop
  * measuring LCP for subsequent routes.
  */
-export function trackLcpAsStandaloneSpan(): void {
+export function trackLcpAsStandaloneSpan(client: Client): void {
   let standaloneLcpValue = 0;
   let standaloneLcpEntry: LargestContentfulPaint | undefined;
 
@@ -41,7 +41,7 @@ export function trackLcpAsStandaloneSpan(): void {
     standaloneLcpEntry = entry;
   }, true);
 
-  listenForWebVitalReportEvents((reportEvent, pageloadSpanId) => {
+  listenForWebVitalReportEvents(client, (reportEvent, pageloadSpanId) => {
     _sendStandaloneLcpSpan(standaloneLcpValue, standaloneLcpEntry, pageloadSpanId, reportEvent);
     cleanupLcpHandler();
   });
