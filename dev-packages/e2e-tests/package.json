@@ -13,7 +13,7 @@
     "test:validate-test-app-setups": "ts-node validate-test-app-setups.ts",
     "test:prepare": "ts-node prepare.ts",
     "test:validate": "run-s test:validate-configuration test:validate-test-app-setups",
-    "clean": "rimraf tmp node_modules && yarn clean:test-applications && yarn clean:pnpm",
+    "clean": "ts-node ./clean.ts node_modules && yarn clean:test-applications && yarn clean:pnpm",
     "ci:build-matrix": "ts-node ./lib/getTestMatrix.ts",
     "ci:build-matrix-optional": "ts-node ./lib/getTestMatrix.ts --optional=true",
     "ci:copy-to-temp": "ts-node ./ciCopyToTemp.ts",

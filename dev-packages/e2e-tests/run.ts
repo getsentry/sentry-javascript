@@ -4,7 +4,8 @@ import * as dotenv from 'dotenv';
 import { mkdtemp, rm } from 'fs/promises';
 import { sync as globSync } from 'glob';
 import { tmpdir } from 'os';
-import { join, resolve } from 'path';
+import { basename, join, resolve } from 'path';
+import { rimraf } from 'rimraf';
 import { copyToTemp } from './lib/copyToTemp';
 import { registrySetup } from './registrySetup';
 
@@ -56,6 +57,9 @@ async function run(): Promise<void> {
     console.log('Cleaning test-applications...');
     console.log('');
 
+    const tmpPrefix = join(tmpdir(), 'sentry-e2e-tests-')
+    await rimraf(`${tmpPrefix}*`, { glob: true });
+
     if (!process.env.SKIP_REGISTRY) {
       registrySetup();
     }
@@ -68,8 +72,8 @@ async function run(): Promise<void> {
     console.log('');
 
     for (const testAppPath of testAppPaths) {
-      const originalPath = resolve('test-applications', testAppPath);
-      const tmpDirPath = await mkdtemp(join(tmpdir(), `sentry-e2e-tests-${appName}-`));
+      const originalPath = resolve(__dirname, 'test-applications', testAppPath);
+      const tmpDirPath = await mkdtemp(`${tmpPrefix}${basename(testAppPath)}-`);
 
       await copyToTemp(originalPath, tmpDirPath);
       const cwd = tmpDirPath;
