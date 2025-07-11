@@ -140,7 +140,7 @@ export function _INTERNAL_addFeatureFlagToActiveSpan(
   const attributes = spanToJSON(span).data;
 
   // If the flag already exists, always update it
-  if (attributes[`${SPAN_FLAG_ATTRIBUTE_PREFIX}${name}`] != null) {
+  if (`${SPAN_FLAG_ATTRIBUTE_PREFIX}${name}` in attributes) {
     span.setAttribute(`${SPAN_FLAG_ATTRIBUTE_PREFIX}${name}`, value);
     return;
   }
