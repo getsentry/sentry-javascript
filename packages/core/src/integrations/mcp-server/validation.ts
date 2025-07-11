@@ -3,7 +3,7 @@
  */
 
 import { DEBUG_BUILD } from '../../debug-build';
-import { logger } from '../../utils/logger';
+import { debug } from '../../utils/logger';
 import type { JsonRpcNotification, JsonRpcRequest } from './types';
 
 /** Validates if a message is a JSON-RPC request */
@@ -56,6 +56,6 @@ export function validateMcpServerInstance(instance: unknown): boolean {
   ) {
     return true;
   }
-  DEBUG_BUILD && logger.warn('Did not patch MCP server. Interface is incompatible.');
+  DEBUG_BUILD && debug.warn('Did not patch MCP server. Interface is incompatible.');
   return false;
 }
