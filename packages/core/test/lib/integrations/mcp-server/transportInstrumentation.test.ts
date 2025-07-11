@@ -1,21 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 import * as currentScopes from '../../../../src/currentScopes';
 import { wrapMcpServerWithSentry } from '../../../../src/integrations/mcp-server';
 import { buildMcpServerSpanConfig } from '../../../../src/integrations/mcp-server/spans';
 import {
+  wrapTransportError,
+  wrapTransportOnClose,
   wrapTransportOnMessage,
   wrapTransportSend,
-  wrapTransportOnClose,
-  wrapTransportError,
 } from '../../../../src/integrations/mcp-server/transport';
 import * as tracingModule from '../../../../src/tracing';
-
 import {
   createMockMcpServer,
-  createMockTransport,
-  createMockStdioTransport,
   createMockSseTransport,
+  createMockStdioTransport,
+  createMockTransport,
 } from './testUtils';
 
 describe('MCP Server Transport Instrumentation', () => {

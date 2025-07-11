@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as currentScopes from '../../../../src/currentScopes';
 import * as exports from '../../../../src/exports';
-import { captureError } from '../../../../src/integrations/mcp-server/errorCapture';
 import { wrapMcpServerWithSentry } from '../../../../src/integrations/mcp-server';
+import { captureError } from '../../../../src/integrations/mcp-server/errorCapture';
 import { createMockMcpServer } from './testUtils';
 
 describe('MCP Server Error Capture', () => {
