@@ -557,9 +557,7 @@ class ContinuousProfiler {
   private _setupSpanChunkInstrumentation(): void {
     if (!this._client) {
       DEBUG_BUILD &&
-        debug.log(
-          '[Profiling] Failed to initialize span profiling, sentry client was never attached to the profiler.',
-        );
+        debug.log('[Profiling] Failed to initialize span profiling, sentry client was never attached to the profiler.');
       return;
     }
 
