@@ -10,3 +10,4 @@ export {
 } from './event-proxy-server';
 
 export { getPlaywrightConfig } from './playwright-config';
+export { createBasicSentryServer } from './server';
