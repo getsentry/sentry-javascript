@@ -68,7 +68,6 @@ async function run(): Promise<void> {
       registrySetup();
     }
 
-    await asyncExec('pnpm clean:test-applications', { env, cwd: __dirname });
     await asyncExec('pnpm cache delete "@sentry/*"', { env, cwd: __dirname });
 
     const testAppPaths = appName ? [appName.trim()] : globSync('*', { cwd: `${__dirname}/test-applications/` });
