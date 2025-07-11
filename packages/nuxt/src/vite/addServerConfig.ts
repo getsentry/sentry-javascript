@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
 import { createResolver } from '@nuxt/kit';
-import { logger } from '@sentry/core';
+import { debug } from '@sentry/core';
 import * as fs from 'fs';
 import type { Nitro } from 'nitropack';
 import type { InputPluginOption } from 'rollup';
@@ -117,6 +117,7 @@ export function addDynamicImportEntryFileWrapper(
     wrapEntryWithDynamicImport({
       resolvedSentryConfigPath: createResolver(nitro.options.srcDir).resolve(`/${serverConfigFile}`),
       experimental_entrypointWrappedFunctions: moduleOptions.experimental_entrypointWrappedFunctions,
+      debugMode: moduleOptions.debug,
     }),
   );
 }
@@ -124,7 +125,7 @@ export function addDynamicImportEntryFileWrapper(
 /**
  * Rollup plugin to include the Sentry server configuration file to the server build output.
  */
-function injectServerConfigPlugin(nitro: Nitro, serverConfigFile: string, debug?: boolean): InputPluginOption {
+function injectServerConfigPlugin(nitro: Nitro, serverConfigFile: string, debugMode?: boolean): InputPluginOption {
   const filePrefix = '\0virtual:sentry-server-config:';
 
   return {
@@ -134,8 +135,8 @@ function injectServerConfigPlugin(nitro: Nitro, serverConfigFile: string, debug?
       const configPath = createResolver(nitro.options.srcDir).resolve(`/${serverConfigFile}`);
 
       if (!existsSync(configPath)) {
-        if (debug) {
-          logger.log(`[Sentry] Sentry server config file not found: ${configPath}`);
+        if (debugMode) {
+          debug.log(`[Sentry] Sentry server config file not found: ${configPath}`);
         }
         return;
       }
@@ -168,11 +169,11 @@ function injectServerConfigPlugin(nitro: Nitro, serverConfigFile: string, debug?
 function wrapEntryWithDynamicImport({
   resolvedSentryConfigPath,
   experimental_entrypointWrappedFunctions,
-  debug,
+  debugMode,
 }: {
   resolvedSentryConfigPath: string;
   experimental_entrypointWrappedFunctions: string[];
-  debug?: boolean;
+  debugMode?: boolean;
 }): InputPluginOption {
   // In order to correctly import the server config file
   // and dynamically import the nitro runtime, we need to
@@ -215,7 +216,7 @@ function wrapEntryWithDynamicImport({
                 constructWrappedFunctionExportQuery(
                   moduleInfo.exportedBindings,
                   experimental_entrypointWrappedFunctions,
-                  debug,
+                  debugMode,
                 ),
               )
               .concat(QUERY_END_INDICATOR)}`;

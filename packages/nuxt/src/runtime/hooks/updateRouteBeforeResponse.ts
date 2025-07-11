@@ -1,4 +1,4 @@
-import { getActiveSpan, getRootSpan, logger, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { debug, getActiveSpan, getRootSpan, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import type { H3Event } from 'h3';
 
 /**
@@ -46,6 +46,6 @@ export function updateRouteBeforeResponse(event: H3Event): void {
       });
     }
 
-    logger.log(`Updated transaction name for parametrized route: ${matchedRoutePath}`);
+    debug.log(`Updated transaction name for parametrized route: ${matchedRoutePath}`);
   }
 }
