@@ -37,7 +37,7 @@ const triggeredThreads = new Set<string>();
 function log(...msg: unknown[]): void {
   if (debug) {
     // eslint-disable-next-line no-console
-    console.log('[Sentry Block Event Loop Watchdog]', ...msg);
+    console.log('[Sentry Event Loop Blocked Watchdog]', ...msg);
   }
 }
 
