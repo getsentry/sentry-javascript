@@ -6,7 +6,7 @@ import type { Scope, ScopeData } from '../scope';
 import type { Log, SerializedLog, SerializedLogAttributeValue } from '../types-hoist/log';
 import { mergeScopeData } from '../utils/applyScopeDataToEvent';
 import { isParameterizedString } from '../utils/is';
-import { logger } from '../utils/logger';
+import { debug } from '../utils/logger';
 import { _getSpanForScope } from '../utils/spanOnScope';
 import { timestampInSeconds } from '../utils/time';
 import { GLOBAL_OBJ } from '../utils/worldwide';
@@ -121,14 +121,14 @@ export function _INTERNAL_captureLog(
   captureSerializedLog: (client: Client, log: SerializedLog) => void = _INTERNAL_captureSerializedLog,
 ): void {
   if (!client) {
-    DEBUG_BUILD && logger.warn('No client available to capture log.');
+    DEBUG_BUILD && debug.warn('No client available to capture log.');
     return;
   }
 
   const { _experiments, release, environment } = client.getOptions();
   const { enableLogs = false, beforeSendLog } = _experiments ?? {};
   if (!enableLogs) {
-    DEBUG_BUILD && logger.warn('logging option not enabled, log will not be captured.');
+    DEBUG_BUILD && debug.warn('logging option not enabled, log will not be captured.');
     return;
   }
 
@@ -172,7 +172,7 @@ export function _INTERNAL_captureLog(
   const log = beforeSendLog ? beforeSendLog(processedLog) : processedLog;
   if (!log) {
     client.recordDroppedEvent('before_send', 'log_item', 1);
-    DEBUG_BUILD && logger.warn('beforeSendLog returned null, log will not be captured.');
+    DEBUG_BUILD && debug.warn('beforeSendLog returned null, log will not be captured.');
     return;
   }
 

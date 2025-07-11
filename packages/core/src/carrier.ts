@@ -24,7 +24,9 @@ export interface SentryCarrier {
   globalScope?: Scope;
   defaultIsolationScope?: Scope;
   defaultCurrentScope?: Scope;
+  /** @deprecated Logger is no longer set. Instead, we keep enabled state in loggerSettings. */
   logger?: Logger;
+  loggerSettings?: { enabled: boolean };
 
   /** Overwrites TextEncoder used in `@sentry/core`, need for `react-native@0.73` and older */
   encodePolyfill?: (input: string) => Uint8Array;

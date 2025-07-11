@@ -3,7 +3,7 @@
  * constants, which can be overridden during build. By guarding certain pieces of code with functions that return these
  * constants, we can control whether or not they appear in the final bundle. (Any code guarded by a false condition will
  * never run, and will hence be dropped during treeshaking.) The two primary uses for this are stripping out calls to
- * `logger` and preventing node-related code from appearing in browser bundles.
+ * `debug` and preventing node-related code from appearing in browser bundles.
  *
  * Attention:
  * This file should not be used to define constants/flags that are intended to be used for tree-shaking conducted by

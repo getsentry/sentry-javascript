@@ -149,29 +149,8 @@ may decide to support them later.
 
 To add support for Cloudflare Workers or Pages in a specific SDK, you need to do the following:
 
-1.  Add `@sentry/cloudflare` as an optional peer dependency to the `package.json` of the SDK.
-    This ensures that users who want to use the SDK with Cloudflare will install the necessary package, but it won't be a requirement for users on other platforms.
+1.  Add `@sentry/cloudflare` to the `dependencies` in the `package.json` of the SDK.
+    This ensures that users who want to use the SDK with Cloudflare have the Cloudflare SDK automatically installed.
 
-    ```json
-    "peerDependencies": {
-      "@sentry/cloudflare": ">=9.33.0"
-    },
-    "peerDependenciesMeta": {
-      "@sentry/cloudflare": {
-        "optional": true
-      }
-    }
-    ```
-
-2.  Add `@sentry/cloudflare` to the `devDependencies` in the SDK's `package.json`.
-    This is necessary for local development and testing, allowing you to use the Cloudflare-specific APIs in the development environment.
-
-    ```json
-    "devDependencies": {
-      "@sentry/cloudflare": "9.33.0",
-    }
-    ```
-
-3.  Add documentation to the [Cloudflare Frameworks docs](https://docs.sentry.io/platforms/javascript/guides/cloudflare/frameworks/) explaining how to set up the SDK for Cloudflare Workers/Pages.
-    This documentation should include instructions for users to add the `@sentry/cloudflare` package to their project.
+2.  Add documentation to the [Cloudflare Frameworks docs](https://docs.sentry.io/platforms/javascript/guides/cloudflare/frameworks/) explaining how to set up the SDK for Cloudflare Workers/Pages.
     You can then link from the framework-specific docs pages to the Cloudflare SDK docs page by adding an entry to "Next Steps" on the "Getting Started" and "Manual Setup" pages.

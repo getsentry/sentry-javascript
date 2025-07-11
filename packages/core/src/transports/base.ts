@@ -13,7 +13,7 @@ import {
   forEachEnvelopeItem,
   serializeEnvelope,
 } from '../utils/envelope';
-import { logger } from '../utils/logger';
+import { debug } from '../utils/logger';
 import { type PromiseBuffer, makePromiseBuffer, SENTRY_BUFFER_FULL_ERROR } from '../utils/promisebuffer';
 import { type RateLimits, isRateLimited, updateRateLimits } from '../utils/ratelimit';
 import { resolvedSyncPromise } from '../utils/syncpromise';
@@ -68,7 +68,7 @@ export function createTransport(
         response => {
           // We don't want to throw on NOK responses, but we want to at least log them
           if (response.statusCode !== undefined && (response.statusCode < 200 || response.statusCode >= 300)) {
-            DEBUG_BUILD && logger.warn(`Sentry responded with status code ${response.statusCode} to sent event.`);
+            DEBUG_BUILD && debug.warn(`Sentry responded with status code ${response.statusCode} to sent event.`);
           }
 
           rateLimits = updateRateLimits(rateLimits, response);
@@ -76,7 +76,7 @@ export function createTransport(
         },
         error => {
           recordEnvelopeLoss('network_error');
-          DEBUG_BUILD && logger.error('Encountered error running transport request:', error);
+          DEBUG_BUILD && debug.error('Encountered error running transport request:', error);
           throw error;
         },
       );
@@ -85,7 +85,7 @@ export function createTransport(
       result => result,
       error => {
         if (error === SENTRY_BUFFER_FULL_ERROR) {
-          DEBUG_BUILD && logger.error('Skipped sending event because buffer is full.');
+          DEBUG_BUILD && debug.error('Skipped sending event because buffer is full.');
           recordEnvelopeLoss('queue_overflow');
           return resolvedSyncPromise({});
         } else {

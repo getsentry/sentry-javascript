@@ -41,6 +41,5 @@ test('does not send transactions for build asset folder "_nuxt"', async ({ page 
 
   expect(buildAssetFolderOccurred).toBe(false);
 
-  // todo: url not yet parametrized
-  expect(transactionEvent.transaction).toBe('GET /test-param/1234');
+  expect(transactionEvent.transaction).toBe('GET /test-param/:param()');
 });

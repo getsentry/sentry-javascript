@@ -22,8 +22,9 @@ test.describe('distributed tracing', () => {
 
     const baggageMetaTagContent = await page.locator('meta[name="baggage"]').getAttribute('content');
 
-    expect(baggageMetaTagContent).toContain(`sentry-trace_id=${serverTxnEvent.contexts?.trace?.trace_id}`);
+    // Parametrization does not work in Nuxt 3.7 yet (only in newer versions)
     expect(baggageMetaTagContent).toContain(`sentry-transaction=GET%20%2Ftest-param%2F${PARAM}`); // URL-encoded for 'GET /test-param/s0me-param'
+    expect(baggageMetaTagContent).toContain(`sentry-trace_id=${serverTxnEvent.contexts?.trace?.trace_id}`);
     expect(baggageMetaTagContent).toContain('sentry-sampled=true');
     expect(baggageMetaTagContent).toContain('sentry-sample_rate=1');
 
@@ -47,7 +48,7 @@ test.describe('distributed tracing', () => {
     });
 
     expect(serverTxnEvent).toMatchObject({
-      transaction: `GET /test-param/${PARAM}`, // todo: parametrize
+      transaction: `GET /test-param/${PARAM}`, // Parametrization does not work in Nuxt 3.7 yet (only in newer versions)
       transaction_info: { source: 'url' },
       type: 'transaction',
       contexts: {
@@ -121,7 +122,7 @@ test.describe('distributed tracing', () => {
     expect(ssrTxnEvent).toEqual(
       expect.objectContaining({
         type: 'transaction',
-        transaction: `GET /test-param/user/${PARAM}`, // fixme: parametrize (nitro)
+        transaction: `GET /test-param/user/${PARAM}`, // Parametrization does not work in Nuxt 3.7 yet (only in newer versions)
         transaction_info: { source: 'url' },
         contexts: expect.objectContaining({
           trace: expect.objectContaining({
