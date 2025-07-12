@@ -1,3 +1,4 @@
+import { getGlobalSingleton } from '../carrier';
 import type { Client } from '../client';
 import { _getTraceInfoFromScope } from '../client';
 import { getClient, getCurrentScope, getGlobalScope, getIsolationScope } from '../currentScopes';
@@ -9,14 +10,10 @@ import { isParameterizedString } from '../utils/is';
 import { debug } from '../utils/logger';
 import { _getSpanForScope } from '../utils/spanOnScope';
 import { timestampInSeconds } from '../utils/time';
-import { GLOBAL_OBJ } from '../utils/worldwide';
 import { SEVERITY_TEXT_TO_SEVERITY_NUMBER } from './constants';
 import { createLogEnvelope } from './envelope';
 
 const MAX_LOG_BUFFER_SIZE = 100;
-
-// The reference to the Client <> LogBuffer map is stored to ensure it's always the same
-GLOBAL_OBJ._sentryClientToLogBufferMap = new WeakMap<Client, Array<SerializedLog>>();
 
 /**
  * Converts a log attribute to a serialized log attribute.
@@ -92,11 +89,13 @@ function setLogAttribute(
  * the stable Sentry SDK API and can be changed or removed without warning.
  */
 export function _INTERNAL_captureSerializedLog(client: Client, serializedLog: SerializedLog): void {
+  const bufferMap = _getBufferMap();
+
   const logBuffer = _INTERNAL_getLogBuffer(client);
   if (logBuffer === undefined) {
-    GLOBAL_OBJ._sentryClientToLogBufferMap?.set(client, [serializedLog]);
+    bufferMap.set(client, [serializedLog]);
   } else {
-    GLOBAL_OBJ._sentryClientToLogBufferMap?.set(client, [...logBuffer, serializedLog]);
+    bufferMap.set(client, [...logBuffer, serializedLog]);
     if (logBuffer.length >= MAX_LOG_BUFFER_SIZE) {
       _INTERNAL_flushLogsBuffer(client, logBuffer);
     }
@@ -217,7 +216,7 @@ export function _INTERNAL_flushLogsBuffer(client: Client, maybeLogBuffer?: Array
   const envelope = createLogEnvelope(logBuffer, clientOptions._metadata, clientOptions.tunnel, client.getDsn());
 
   // Clear the log buffer after envelopes have been constructed.
-  GLOBAL_OBJ._sentryClientToLogBufferMap?.set(client, []);
+  _getBufferMap().set(client, []);
 
   client.emit('flushLogs');
 
@@ -235,7 +234,7 @@ export function _INTERNAL_flushLogsBuffer(client: Client, maybeLogBuffer?: Array
  * @returns The log buffer for the given client.
  */
 export function _INTERNAL_getLogBuffer(client: Client): Array<SerializedLog> | undefined {
-  return GLOBAL_OBJ._sentryClientToLogBufferMap?.get(client);
+  return _getBufferMap().get(client);
 }
 
 /**
@@ -250,4 +249,9 @@ function getMergedScopeData(currentScope: Scope): ScopeData {
   mergeScopeData(scopeData, getIsolationScope().getScopeData());
   mergeScopeData(scopeData, currentScope.getScopeData());
   return scopeData;
+}
+
+function _getBufferMap(): WeakMap<Client, Array<SerializedLog>> {
+  // The reference to the Client <> LogBuffer map is stored on the carrier to ensure it's always the same
+  return getGlobalSingleton('clientToLogBufferMap', () => new WeakMap<Client, Array<SerializedLog>>());
 }
