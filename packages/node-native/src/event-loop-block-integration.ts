@@ -1,6 +1,6 @@
 import { Worker } from 'node:worker_threads';
 import type { Contexts, Event, EventHint, IntegrationFn } from '@sentry/core';
-import { defineIntegration, getFilenameToDebugIdMap, getIsolationScope, logger } from '@sentry/core';
+import { debug, defineIntegration, getFilenameToDebugIdMap, getIsolationScope } from '@sentry/core';
 import type { NodeClient } from '@sentry/node';
 import { registerThread, threadPoll } from '@sentry-internal/node-native-stacktrace';
 import type { ThreadBlockedIntegrationOptions, WorkerStartData } from './common';
@@ -9,7 +9,7 @@ import { POLL_RATIO } from './common';
 const DEFAULT_THRESHOLD_MS = 1_000;
 
 function log(message: string, ...args: unknown[]): void {
-  logger.log(`[Sentry Block Event Loop] ${message}`, ...args);
+  debug.log(`[Sentry Block Event Loop] ${message}`, ...args);
 }
 
 /**
@@ -103,7 +103,7 @@ async function _startWorker(
   }
 
   const options: WorkerStartData = {
-    debug: logger.isEnabled(),
+    debug: debug.isEnabled(),
     dsn,
     tunnel: initOptions.tunnel,
     environment: initOptions.environment || 'production',
