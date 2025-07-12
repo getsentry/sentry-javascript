@@ -612,6 +612,20 @@ describe('Integration | Transactions', () => {
     expect(transactions).toHaveLength(2);
     expect(transactions[0]?.spans).toHaveLength(1);
 
+    expect(transactions[0]?.transaction).toBe('test name');
+    expect(transactions[0]?.contexts?.trace?.data).toEqual({
+      'sentry.origin': 'manual',
+      'sentry.sample_rate': 1,
+      'sentry.source': 'custom',
+    });
+
+    expect(transactions[1]?.transaction).toBe('inner span 2');
+    expect(transactions[1]?.contexts?.trace?.data).toEqual({
+      'sentry.parent_span_already_sent': true,
+      'sentry.origin': 'manual',
+      'sentry.source': 'custom',
+    });
+
     const finishedSpans: any = exporter['_finishedSpanBuckets'].flatMap(bucket =>
       bucket ? Array.from(bucket.spans) : [],
     );
