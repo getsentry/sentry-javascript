@@ -1,5 +1,5 @@
 import type { ProfileChunk, ProfilingIntegration, Transport } from '@sentry/core';
-import { createEnvelope, getMainCarrier, GLOBAL_OBJ, logger } from '@sentry/core';
+import { createEnvelope, debug, getMainCarrier, GLOBAL_OBJ } from '@sentry/core';
 import * as Sentry from '@sentry/node';
 import type { NodeClientOptions } from '@sentry/node/build/types/types';
 import { CpuProfilerBindings } from '@sentry-internal/node-cpu-profiler';
@@ -127,7 +127,7 @@ describe('ProfilingIntegration', () => {
     });
 
     it('logger warns user if there are insufficient samples and discards the profile', async () => {
-      const logSpy = vi.spyOn(logger, 'log');
+      const logSpy = vi.spyOn(debug, 'log');
 
       const [client, transport] = makeLegacySpanProfilingClient();
       Sentry.setCurrentClient(client);
@@ -166,7 +166,7 @@ describe('ProfilingIntegration', () => {
     });
 
     it('logger warns user if traceId is invalid', async () => {
-      const logSpy = vi.spyOn(logger, 'log');
+      const logSpy = vi.spyOn(debug, 'log');
 
       const [client, transport] = makeLegacySpanProfilingClient();
       Sentry.setCurrentClient(client);
