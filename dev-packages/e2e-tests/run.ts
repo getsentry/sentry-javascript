@@ -1,10 +1,11 @@
 /* eslint-disable no-console */
-import { spawn } from 'child_process';
+import { type SpawnOptions, spawn } from 'child_process';
 import * as dotenv from 'dotenv';
 import { mkdtemp, rm } from 'fs/promises';
 import { sync as globSync } from 'glob';
 import { tmpdir } from 'os';
-import { join, resolve } from 'path';
+import { basename, join, resolve } from 'path';
+import { rimraf } from 'rimraf';
 import { copyToTemp } from './lib/copyToTemp';
 import { registrySetup } from './registrySetup';
 
@@ -12,17 +13,9 @@ const DEFAULT_DSN = 'https://username@domain/123';
 const DEFAULT_SENTRY_ORG_SLUG = 'sentry-javascript-sdks';
 const DEFAULT_SENTRY_PROJECT = 'sentry-javascript-e2e-tests';
 
-function asyncExec(command: string, options: { env: Record<string, string | undefined>; cwd: string }): Promise<void> {
+function asyncExec(command: string, options: Omit<SpawnOptions, 'shell'|'stdio'>): Promise<void> {
   return new Promise((resolve, reject) => {
-    const process = spawn(command, { ...options, shell: true });
-
-    process.stdout.on('data', data => {
-      console.log(`${data}`);
-    });
-
-    process.stderr.on('data', data => {
-      console.error(`${data}`);
-    });
+    const process = spawn(command, { ...options, shell: true, stdio: ['ignore', 'inherit', 'inherit'] });
 
     process.on('error', error => {
       reject(error);
@@ -64,21 +57,23 @@ async function run(): Promise<void> {
     console.log('Cleaning test-applications...');
     console.log('');
 
+    const tmpPrefix = join(tmpdir(), 'sentry-e2e-tests-')
+    await rimraf(`${tmpPrefix}*`, { glob: true });
+
     if (!process.env.SKIP_REGISTRY) {
       registrySetup();
     }
 
-    await asyncExec('pnpm clean:test-applications', { env, cwd: __dirname });
     await asyncExec('pnpm cache delete "@sentry/*"', { env, cwd: __dirname });
 
     const testAppPaths = appName ? [appName.trim()] : globSync('*', { cwd: `${__dirname}/test-applications/` });
 
-    console.log(`Runnings tests for: ${testAppPaths.join(', ')}`);
+    console.log(`Running tests for: ${testAppPaths.join(', ')}`);
     console.log('');
 
     for (const testAppPath of testAppPaths) {
-      const originalPath = resolve('test-applications', testAppPath);
-      const tmpDirPath = await mkdtemp(join(tmpdir(), `sentry-e2e-tests-${appName}-`));
+      const originalPath = resolve(__dirname, 'test-applications', testAppPath);
+      const tmpDirPath = await mkdtemp(`${tmpPrefix}${basename(testAppPath)}-`);
 
       await copyToTemp(originalPath, tmpDirPath);
       const cwd = tmpDirPath;
