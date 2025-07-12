@@ -1,6 +1,8 @@
 import * as sentryCore from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { NodeClient } from '../../src';
 import * as nodeLogger from '../../src/logs/exports';
+import { getDefaultNodeClientOptions } from '../helpers/getDefaultNodeClientOptions';
 
 // Mock the core functions
 vi.mock('@sentry/core', async () => {
@@ -36,110 +38,212 @@ describe('Node Logger', () => {
 
     it('should call _INTERNAL_captureLog with trace level', () => {
       nodeLogger.trace('Test trace message', { key: 'value' });
-      expect(mockCaptureLog).toHaveBeenCalledWith({
-        level: 'trace',
-        message: 'Test trace message',
-        attributes: { key: 'value' },
-      });
+      expect(mockCaptureLog).toHaveBeenCalledWith(
+        {
+          level: 'trace',
+          message: 'Test trace message',
+          attributes: { key: 'value' },
+        },
+        undefined,
+        undefined,
+      );
     });
 
     it('should call _INTERNAL_captureLog with debug level', () => {
       nodeLogger.debug('Test debug message', { key: 'value' });
-      expect(mockCaptureLog).toHaveBeenCalledWith({
-        level: 'debug',
-        message: 'Test debug message',
-        attributes: { key: 'value' },
-      });
+      expect(mockCaptureLog).toHaveBeenCalledWith(
+        {
+          level: 'debug',
+          message: 'Test debug message',
+          attributes: { key: 'value' },
+        },
+        undefined,
+        undefined,
+      );
     });
 
     it('should call _INTERNAL_captureLog with info level', () => {
       nodeLogger.info('Test info message', { key: 'value' });
-      expect(mockCaptureLog).toHaveBeenCalledWith({
-        level: 'info',
-        message: 'Test info message',
-        attributes: { key: 'value' },
-      });
+      expect(mockCaptureLog).toHaveBeenCalledWith(
+        {
+          level: 'info',
+          message: 'Test info message',
+          attributes: { key: 'value' },
+        },
+        undefined,
+        undefined,
+      );
     });
 
     it('should call _INTERNAL_captureLog with warn level', () => {
       nodeLogger.warn('Test warn message', { key: 'value' });
-      expect(mockCaptureLog).toHaveBeenCalledWith({
-        level: 'warn',
-        message: 'Test warn message',
-        attributes: { key: 'value' },
-      });
+      expect(mockCaptureLog).toHaveBeenCalledWith(
+        {
+          level: 'warn',
+          message: 'Test warn message',
+          attributes: { key: 'value' },
+        },
+        undefined,
+        undefined,
+      );
     });
 
     it('should call _INTERNAL_captureLog with error level', () => {
       nodeLogger.error('Test error message', { key: 'value' });
-      expect(mockCaptureLog).toHaveBeenCalledWith({
-        level: 'error',
-        message: 'Test error message',
-        attributes: { key: 'value' },
-      });
+      expect(mockCaptureLog).toHaveBeenCalledWith(
+        {
+          level: 'error',
+          message: 'Test error message',
+          attributes: { key: 'value' },
+        },
+        undefined,
+        undefined,
+      );
     });
 
     it('should call _INTERNAL_captureLog with fatal level', () => {
       nodeLogger.fatal('Test fatal message', { key: 'value' });
-      expect(mockCaptureLog).toHaveBeenCalledWith({
-        level: 'fatal',
-        message: 'Test fatal message',
-        attributes: { key: 'value' },
-      });
+      expect(mockCaptureLog).toHaveBeenCalledWith(
+        {
+          level: 'fatal',
+          message: 'Test fatal message',
+          attributes: { key: 'value' },
+        },
+        undefined,
+        undefined,
+      );
     });
   });
 
   describe('Template string logging', () => {
     it('should handle template strings with parameters', () => {
       nodeLogger.info('Hello %s, your balance is %d', ['John', 100], { userId: 123 });
-      expect(mockCaptureLog).toHaveBeenCalledWith({
-        level: 'info',
-        message: 'Hello John, your balance is 100',
-        attributes: {
-          userId: 123,
-          'sentry.message.template': 'Hello %s, your balance is %d',
-          'sentry.message.parameter.0': 'John',
-          'sentry.message.parameter.1': 100,
+      expect(mockCaptureLog).toHaveBeenCalledWith(
+        {
+          level: 'info',
+          message: 'Hello John, your balance is 100',
+          attributes: {
+            userId: 123,
+            'sentry.message.template': 'Hello %s, your balance is %d',
+            'sentry.message.parameter.0': 'John',
+            'sentry.message.parameter.1': 100,
+          },
         },
-      });
+        undefined,
+        undefined,
+      );
     });
 
     it('should handle template strings without additional attributes', () => {
       nodeLogger.debug('User %s logged in from %s', ['Alice', 'mobile']);
-      expect(mockCaptureLog).toHaveBeenCalledWith({
-        level: 'debug',
-        message: 'User Alice logged in from mobile',
-        attributes: {
-          'sentry.message.template': 'User %s logged in from %s',
-          'sentry.message.parameter.0': 'Alice',
-          'sentry.message.parameter.1': 'mobile',
+      expect(mockCaptureLog).toHaveBeenCalledWith(
+        {
+          level: 'debug',
+          message: 'User Alice logged in from mobile',
+          attributes: {
+            'sentry.message.template': 'User %s logged in from %s',
+            'sentry.message.parameter.0': 'Alice',
+            'sentry.message.parameter.1': 'mobile',
+          },
         },
-      });
+        undefined,
+        undefined,
+      );
     });
 
     it('should handle parameterized strings with parameters', () => {
       nodeLogger.info(nodeLogger.fmt`Hello ${'John'}, your balance is ${100}`, { userId: 123 });
-      expect(mockCaptureLog).toHaveBeenCalledWith({
-        level: 'info',
-        message: expect.objectContaining({
-          __sentry_template_string__: 'Hello %s, your balance is %s',
-          __sentry_template_values__: ['John', 100],
-        }),
-        attributes: {
-          userId: 123,
+      expect(mockCaptureLog).toHaveBeenCalledWith(
+        {
+          level: 'info',
+          message: expect.objectContaining({
+            __sentry_template_string__: 'Hello %s, your balance is %s',
+            __sentry_template_values__: ['John', 100],
+          }),
+          attributes: {
+            userId: 123,
+          },
         },
-      });
+        undefined,
+        undefined,
+      );
     });
 
     it('should handle parameterized strings without additional attributes', () => {
       nodeLogger.debug(nodeLogger.fmt`User ${'Alice'} logged in from ${'mobile'}`);
-      expect(mockCaptureLog).toHaveBeenCalledWith({
-        level: 'debug',
-        message: expect.objectContaining({
-          __sentry_template_string__: 'User %s logged in from %s',
-          __sentry_template_values__: ['Alice', 'mobile'],
-        }),
-      });
+      expect(mockCaptureLog).toHaveBeenCalledWith(
+        {
+          level: 'debug',
+          message: expect.objectContaining({
+            __sentry_template_string__: 'User %s logged in from %s',
+            __sentry_template_values__: ['Alice', 'mobile'],
+          }),
+        },
+        undefined,
+        undefined,
+      );
     });
   });
+
+  describe.each(['trace', 'debug', 'info', 'warn', 'error', 'fatal'] as const)(
+    'passing client and scope for %s level',
+    level => {
+      it('should allow to pass a client and scope with plain message', () => {
+        const client = new NodeClient(getDefaultNodeClientOptions());
+        const scope = new sentryCore.Scope();
+
+        nodeLogger[level]('Test message', { key: 'value' }, client, scope);
+        expect(mockCaptureLog).toHaveBeenCalledWith(
+          {
+            level,
+            message: 'Test message',
+            attributes: { key: 'value' },
+          },
+          client,
+          scope,
+        );
+      });
+
+      it('should allow to pass a client and scope with parametrized string', () => {
+        const client = new NodeClient(getDefaultNodeClientOptions());
+        const scope = new sentryCore.Scope();
+
+        nodeLogger[level](nodeLogger.fmt`Hello ${'John'}, your balance is ${100}`, { userId: 123 }, client, scope);
+        expect(mockCaptureLog).toHaveBeenCalledWith(
+          {
+            level,
+            message: expect.objectContaining({
+              __sentry_template_string__: 'Hello %s, your balance is %s',
+              __sentry_template_values__: ['John', 100],
+            }),
+            attributes: {
+              userId: 123,
+            },
+          },
+          client,
+          scope,
+        );
+      });
+
+      it('should allow to pass a client and scope with template string', () => {
+        const client = new NodeClient(getDefaultNodeClientOptions());
+        const scope = new sentryCore.Scope();
+
+        nodeLogger[level]('User %s logged in from %s', ['Alice', 'mobile'], {}, client, scope);
+        expect(mockCaptureLog).toHaveBeenCalledWith(
+          {
+            level,
+            message: 'User Alice logged in from mobile',
+            attributes: {
+              'sentry.message.template': 'User %s logged in from %s',
+              'sentry.message.parameter.0': 'Alice',
+              'sentry.message.parameter.1': 'mobile',
+            },
+          },
+          client,
+          scope,
+        );
+      });
+    },
+  );
 });
