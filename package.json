@@ -100,8 +100,7 @@
     "dev-packages/size-limit-gh-action",
     "dev-packages/clear-cache-gh-action",
     "dev-packages/external-contributor-gh-action",
-    "dev-packages/rollup-utils",
-    "dev-packages/opentelemetry-v2-tests"
+    "dev-packages/rollup-utils"
   ],
   "devDependencies": {
     "@rollup/plugin-commonjs": "^25.0.7",

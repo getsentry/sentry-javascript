@@ -320,8 +320,7 @@ describe('express tracing', () => {
           const runner = createRunner()
             .expect({
               transaction: {
-                // FIXME: This is incorrect, sadly :(
-                transaction: 'GET /',
+                transaction: 'GET /does-not-exist',
                 contexts: {
                   trace: {
                     span_id: expect.stringMatching(/[a-f0-9]{16}/),

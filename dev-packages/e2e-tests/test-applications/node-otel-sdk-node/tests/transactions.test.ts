@@ -74,7 +74,6 @@ test('Sends an API route transaction', async ({ baseURL }) => {
     data: {
       'sentry.origin': 'auto.http.otel.express',
       'sentry.op': 'middleware.express',
-      'http.route': '/',
       'express.name': 'query',
       'express.type': 'middleware',
     },
@@ -93,7 +92,6 @@ test('Sends an API route transaction', async ({ baseURL }) => {
     data: {
       'sentry.origin': 'auto.http.otel.express',
       'sentry.op': 'middleware.express',
-      'http.route': '/',
       'express.name': 'expressInit',
       'express.type': 'middleware',
     },
@@ -152,7 +150,6 @@ test('Sends an API route transaction for an errored route', async ({ baseURL }) 
     data: {
       'sentry.origin': 'auto.http.otel.express',
       'sentry.op': 'middleware.express',
-      'http.route': '/',
       'express.name': 'query',
       'express.type': 'middleware',
     },
@@ -171,7 +168,6 @@ test('Sends an API route transaction for an errored route', async ({ baseURL }) 
     data: {
       'sentry.origin': 'auto.http.otel.express',
       'sentry.op': 'middleware.express',
-      'http.route': '/',
       'express.name': 'expressInit',
       'express.type': 'middleware',
     },
@@ -200,8 +196,9 @@ test('Sends an API route transaction for an errored route', async ({ baseURL }) 
     parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     start_timestamp: expect.any(Number),
-    status: 'ok',
+    status: 'unknown_error',
     timestamp: expect.any(Number),
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    measurements: {},
   });
 });

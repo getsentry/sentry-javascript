@@ -1,6 +1,6 @@
 import { context, propagation, ProxyTracerProvider, trace } from '@opentelemetry/api';
-import { Resource } from '@opentelemetry/resources';
-import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
+import { defaultResource, resourceFromAttributes } from '@opentelemetry/resources';
+import { type SpanProcessor, BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import {
   ATTR_SERVICE_NAME,
   ATTR_SERVICE_VERSION,
@@ -64,12 +64,14 @@ export function setupOtel(client: NodeClient): BasicTracerProvider | undefined {
   // Create and configure TracerProvider with same config as Node SDK
   const provider = new BasicTracerProvider({
     sampler: new SentrySampler(client),
-    resource: new Resource({
-      [ATTR_SERVICE_NAME]: 'node',
-      // eslint-disable-next-line deprecation/deprecation
-      [SEMRESATTRS_SERVICE_NAMESPACE]: 'sentry',
-      [ATTR_SERVICE_VERSION]: SDK_VERSION,
-    }),
+    resource: defaultResource().merge(
+      resourceFromAttributes({
+        [ATTR_SERVICE_NAME]: 'node',
+        // eslint-disable-next-line deprecation/deprecation
+        [SEMRESATTRS_SERVICE_NAMESPACE]: 'sentry',
+        [ATTR_SERVICE_VERSION]: SDK_VERSION,
+      }),
+    ),
     forceFlushTimeoutMillis: 500,
     spanProcessors: [
       new SentrySpanProcessor({
@@ -126,6 +128,30 @@ export function cleanupOtel(_provider?: BasicTracerProvider): void {
 
   // Reset globals to ensure clean state
   resetGlobals();
+}
+
+export function getSpanProcessor(): SentrySpanProcessor | undefined {
+  const client = getClient<NodeClient>();
+  if (!client?.traceProvider) {
+    return undefined;
+  }
+
+  const provider = getProvider(client.traceProvider);
+  if (!provider) {
+    return undefined;
+  }
+
+  // Access the span processors from the provider via _activeSpanProcessor
+  // Casted as any because _activeSpanProcessor is marked as readonly
+  const multiSpanProcessor = (provider as any)._activeSpanProcessor as
+    | (SpanProcessor & { _spanProcessors?: SpanProcessor[] })
+    | undefined;
+
+  const spanProcessor = multiSpanProcessor?.['_spanProcessors']?.find(
+    (spanProcessor: SpanProcessor) => spanProcessor instanceof SentrySpanProcessor,
+  ) as SentrySpanProcessor | undefined;
+
+  return spanProcessor;
 }
 
 export function getProvider(_provider?: BasicTracerProvider): BasicTracerProvider | undefined {

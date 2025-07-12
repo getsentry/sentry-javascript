@@ -15,14 +15,14 @@ describe('kafkajs', () => {
         })
         .expect({
           transaction: {
-            transaction: 'test-topic',
+            transaction: 'send test-topic',
             contexts: {
               trace: expect.objectContaining({
                 op: 'message',
                 status: 'ok',
                 data: expect.objectContaining({
                   'messaging.system': 'kafka',
-                  'messaging.destination': 'test-topic',
+                  'messaging.destination.name': 'test-topic',
                   'otel.kind': 'PRODUCER',
                   'sentry.op': 'message',
                   'sentry.origin': 'auto.kafkajs.otel.producer',
@@ -33,14 +33,14 @@ describe('kafkajs', () => {
         })
         .expect({
           transaction: {
-            transaction: 'test-topic',
+            transaction: 'process test-topic',
             contexts: {
               trace: expect.objectContaining({
                 op: 'message',
                 status: 'ok',
                 data: expect.objectContaining({
                   'messaging.system': 'kafka',
-                  'messaging.destination': 'test-topic',
+                  'messaging.destination.name': 'test-topic',
                   'otel.kind': 'CONSUMER',
                   'sentry.op': 'message',
                   'sentry.origin': 'auto.kafkajs.otel.consumer',
