@@ -6,9 +6,26 @@ const globalWithInjectedManifest = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
 };
 
 export const maybeParameterizeRoute = (route: string): string | undefined => {
-  const manifest = globalWithInjectedManifest._sentryRouteManifest;
+  if (
+    !globalWithInjectedManifest._sentryRouteManifest ||
+    typeof globalWithInjectedManifest._sentryRouteManifest !== 'string'
+  ) {
+    return undefined;
+  }
 
-  if (!manifest) {
+  let manifest: RouteManifest = {
+    staticRoutes: [],
+    dynamicRoutes: [],
+  };
+
+  // Shallow check if the manifest is actually what we expect it to be
+  try {
+    manifest = JSON.parse(globalWithInjectedManifest._sentryRouteManifest);
+    if (!Array.isArray(manifest.staticRoutes) || !Array.isArray(manifest.dynamicRoutes)) {
+      return undefined;
+    }
+  } catch (error) {
+    // Something went wrong while parsing the manifest, so we'll fallback to no parameterization
     return undefined;
   }
 
