@@ -4,7 +4,7 @@ import { maybeParameterizeRoute } from '../../src/client/routing/parameterizatio
 import type { RouteManifest } from '../../src/config/manifest/types';
 
 const globalWithInjectedManifest = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
-  _sentryRouteManifest: RouteManifest | undefined;
+  _sentryRouteManifest: string | undefined;
 };
 
 describe('maybeParameterizeRoute', () => {
@@ -30,7 +30,7 @@ describe('maybeParameterizeRoute', () => {
         staticRoutes: [{ path: '/' }, { path: '/some/nested' }, { path: '/user' }, { path: '/users' }],
         dynamicRoutes: [],
       };
-      globalWithInjectedManifest._sentryRouteManifest = manifest;
+      globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
 
       expect(maybeParameterizeRoute('/')).toBeUndefined();
       expect(maybeParameterizeRoute('/some/nested')).toBeUndefined();
@@ -66,7 +66,7 @@ describe('maybeParameterizeRoute', () => {
           },
         ],
       };
-      globalWithInjectedManifest._sentryRouteManifest = manifest;
+      globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
 
       expect(maybeParameterizeRoute('/dynamic/123')).toBe('/dynamic/:id');
       expect(maybeParameterizeRoute('/dynamic/abc')).toBe('/dynamic/:id');
@@ -89,7 +89,7 @@ describe('maybeParameterizeRoute', () => {
           },
         ],
       };
-      globalWithInjectedManifest._sentryRouteManifest = manifest;
+      globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
 
       expect(maybeParameterizeRoute('/')).toBeUndefined();
       expect(maybeParameterizeRoute('/dynamic/static')).toBeUndefined();
@@ -107,7 +107,7 @@ describe('maybeParameterizeRoute', () => {
           },
         ],
       };
-      globalWithInjectedManifest._sentryRouteManifest = manifest;
+      globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
 
       expect(maybeParameterizeRoute('/catchall/123')).toBe('/catchall/:path*?');
       expect(maybeParameterizeRoute('/catchall/abc')).toBe('/catchall/:path*?');
@@ -135,7 +135,7 @@ describe('maybeParameterizeRoute', () => {
           },
         ],
       };
-      globalWithInjectedManifest._sentryRouteManifest = manifest;
+      globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
 
       expect(maybeParameterizeRoute('/(auth)/login')).toBeUndefined();
       expect(maybeParameterizeRoute('/(auth)/signup')).toBeUndefined();
@@ -163,7 +163,7 @@ describe('maybeParameterizeRoute', () => {
           },
         ],
       };
-      globalWithInjectedManifest._sentryRouteManifest = manifest;
+      globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
 
       expect(maybeParameterizeRoute('/login')).toBeUndefined();
       expect(maybeParameterizeRoute('/signup')).toBeUndefined();
@@ -184,7 +184,7 @@ describe('maybeParameterizeRoute', () => {
           },
         ],
       };
-      globalWithInjectedManifest._sentryRouteManifest = manifest;
+      globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
 
       expect(maybeParameterizeRoute('/users/user-with-dashes/settings')).toBe('/users/:id/settings');
       expect(maybeParameterizeRoute('/users/user_with_underscores/settings')).toBe('/users/:id/settings');
@@ -207,7 +207,7 @@ describe('maybeParameterizeRoute', () => {
           },
         ],
       };
-      globalWithInjectedManifest._sentryRouteManifest = manifest;
+      globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
 
       expect(maybeParameterizeRoute('/users/123')).toBe('/users/:id');
       expect(maybeParameterizeRoute('/about')).toBe('/:slug');
@@ -223,7 +223,7 @@ describe('maybeParameterizeRoute', () => {
           },
         ],
       };
-      globalWithInjectedManifest._sentryRouteManifest = manifest;
+      globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
 
       expect(maybeParameterizeRoute('/users/123')).toBeUndefined();
     });
@@ -239,7 +239,7 @@ describe('maybeParameterizeRoute', () => {
           },
         ],
       };
-      globalWithInjectedManifest._sentryRouteManifest = manifest;
+      globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
 
       expect(maybeParameterizeRoute('/users/123')).toBeUndefined();
     });
@@ -257,7 +257,7 @@ describe('maybeParameterizeRoute', () => {
           },
         ],
       };
-      globalWithInjectedManifest._sentryRouteManifest = manifest;
+      globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
 
       expect(maybeParameterizeRoute('/unknown')).toBeUndefined();
       expect(maybeParameterizeRoute('/posts/123')).toBeUndefined();
@@ -271,7 +271,7 @@ describe('maybeParameterizeRoute', () => {
         staticRoutes: [],
         dynamicRoutes: [],
       };
-      globalWithInjectedManifest._sentryRouteManifest = manifest;
+      globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
 
       expect(maybeParameterizeRoute('')).toBeUndefined();
     });
@@ -281,7 +281,7 @@ describe('maybeParameterizeRoute', () => {
         staticRoutes: [{ path: '/' }],
         dynamicRoutes: [],
       };
-      globalWithInjectedManifest._sentryRouteManifest = manifest;
+      globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
 
       expect(maybeParameterizeRoute('/')).toBeUndefined();
     });
@@ -297,7 +297,7 @@ describe('maybeParameterizeRoute', () => {
           },
         ],
       };
-      globalWithInjectedManifest._sentryRouteManifest = manifest;
+      globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
 
       expect(maybeParameterizeRoute('/api/v1/users/123/posts/456/comments/789')).toBe(
         '/api/v1/users/:id/posts/:postId/comments/:commentId',
@@ -387,7 +387,7 @@ describe('maybeParameterizeRoute', () => {
           },
         ],
       };
-      globalWithInjectedManifest._sentryRouteManifest = manifest;
+      globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
 
       if (expectedRoute === undefined) {
         expect(maybeParameterizeRoute(inputRoute)).toBeUndefined();
