@@ -141,7 +141,7 @@ test('should create a partially parameterized transaction when the `app` directo
   });
 });
 
-test('should create a nested parameterized transaction when the `app` directory is used', async ({ page }) => {
+test('should create a nested parameterized transaction when the `app` directory is used.', async ({ page }) => {
   const transactionPromise = waitForTransaction('nextjs-15', async transactionEvent => {
     return (
       transactionEvent.transaction === '/parameterized/:one/beep/:two' &&
