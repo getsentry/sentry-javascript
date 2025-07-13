@@ -396,4 +396,252 @@ describe('maybeParameterizeRoute', () => {
       }
     });
   });
+
+  describe('route specificity and precedence', () => {
+    it('should prefer more specific routes over catch-all routes', () => {
+      const manifest: RouteManifest = {
+        staticRoutes: [],
+        dynamicRoutes: [
+          {
+            path: '/:parameter',
+            regex: '^/([^/]+)$',
+            paramNames: ['parameter'],
+          },
+          {
+            path: '/:parameters*',
+            regex: '^/(.+)$',
+            paramNames: ['parameters'],
+          },
+        ],
+      };
+      globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
+
+      // Single segment should match the specific route, not the catch-all
+      expect(maybeParameterizeRoute('/123')).toBe('/:parameter');
+      expect(maybeParameterizeRoute('/abc')).toBe('/:parameter');
+      expect(maybeParameterizeRoute('/user-id')).toBe('/:parameter');
+
+      // Multiple segments should match the catch-all
+      expect(maybeParameterizeRoute('/123/456')).toBe('/:parameters*');
+      expect(maybeParameterizeRoute('/users/123/posts')).toBe('/:parameters*');
+    });
+
+    it('should prefer regular dynamic routes over optional catch-all routes', () => {
+      const manifest: RouteManifest = {
+        staticRoutes: [],
+        dynamicRoutes: [
+          {
+            path: '/:parameter',
+            regex: '^/([^/]+)$',
+            paramNames: ['parameter'],
+          },
+          {
+            path: '/:parameters*?',
+            regex: '^(?:/(.*))?$',
+            paramNames: ['parameters'],
+          },
+        ],
+      };
+      globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
+
+      // Single segment should match the specific route, not the optional catch-all
+      expect(maybeParameterizeRoute('/123')).toBe('/:parameter');
+      expect(maybeParameterizeRoute('/test')).toBe('/:parameter');
+    });
+
+    it('should handle multiple levels of specificity correctly', () => {
+      const manifest: RouteManifest = {
+        staticRoutes: [{ path: '/static' }],
+        dynamicRoutes: [
+          {
+            path: '/:param',
+            regex: '^/([^/]+)$',
+            paramNames: ['param'],
+          },
+          {
+            path: '/:catch*',
+            regex: '^/(.+)$',
+            paramNames: ['catch'],
+          },
+          {
+            path: '/:optional*?',
+            regex: '^(?:/(.*))?$',
+            paramNames: ['optional'],
+          },
+        ],
+      };
+      globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
+
+      // Static route should take precedence (no parameterization)
+      expect(maybeParameterizeRoute('/static')).toBeUndefined();
+
+      // Single segment should match regular dynamic route
+      expect(maybeParameterizeRoute('/dynamic')).toBe('/:param');
+
+      // Multiple segments should match required catch-all over optional catch-all
+      expect(maybeParameterizeRoute('/path/to/resource')).toBe('/:catch*');
+    });
+
+    it('should handle real-world Next.js app directory structure', () => {
+      const manifest: RouteManifest = {
+        staticRoutes: [{ path: '/' }, { path: '/about' }, { path: '/contact' }],
+        dynamicRoutes: [
+          {
+            path: '/blog/:slug',
+            regex: '^/blog/([^/]+)$',
+            paramNames: ['slug'],
+          },
+          {
+            path: '/users/:id',
+            regex: '^/users/([^/]+)$',
+            paramNames: ['id'],
+          },
+          {
+            path: '/users/:id/posts/:postId',
+            regex: '^/users/([^/]+)/posts/([^/]+)$',
+            paramNames: ['id', 'postId'],
+          },
+          {
+            path: '/:segments*',
+            regex: '^/(.+)$',
+            paramNames: ['segments'],
+          },
+          {
+            path: '/:catch*?',
+            regex: '^(?:/(.*))?$',
+            paramNames: ['catch'],
+          },
+        ],
+      };
+      globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
+
+      // Static routes should not be parameterized
+      expect(maybeParameterizeRoute('/')).toBeUndefined();
+      expect(maybeParameterizeRoute('/about')).toBeUndefined();
+      expect(maybeParameterizeRoute('/contact')).toBeUndefined();
+
+      // Specific dynamic routes should take precedence over catch-all
+      expect(maybeParameterizeRoute('/blog/my-post')).toBe('/blog/:slug');
+      expect(maybeParameterizeRoute('/users/123')).toBe('/users/:id');
+      expect(maybeParameterizeRoute('/users/john/posts/456')).toBe('/users/:id/posts/:postId');
+
+      // Unmatched multi-segment paths should match required catch-all
+      expect(maybeParameterizeRoute('/api/v1/data')).toBe('/:segments*');
+      expect(maybeParameterizeRoute('/some/deep/nested/path')).toBe('/:segments*');
+    });
+
+    it('should prefer routes with more static segments', () => {
+      const manifest: RouteManifest = {
+        staticRoutes: [],
+        dynamicRoutes: [
+          {
+            path: '/api/users/:id',
+            regex: '^/api/users/([^/]+)$',
+            paramNames: ['id'],
+          },
+          {
+            path: '/api/:resource/:id',
+            regex: '^/api/([^/]+)/([^/]+)$',
+            paramNames: ['resource', 'id'],
+          },
+          {
+            path: '/:segments*',
+            regex: '^/(.+)$',
+            paramNames: ['segments'],
+          },
+        ],
+      };
+      globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
+
+      // More specific route with static segments should win
+      expect(maybeParameterizeRoute('/api/users/123')).toBe('/api/users/:id');
+
+      // Less specific but still targeted route should win over catch-all
+      expect(maybeParameterizeRoute('/api/posts/456')).toBe('/api/:resource/:id');
+
+      // Unmatched patterns should fall back to catch-all
+      expect(maybeParameterizeRoute('/some/other/path')).toBe('/:segments*');
+    });
+
+    it('should handle complex nested catch-all scenarios', () => {
+      const manifest: RouteManifest = {
+        staticRoutes: [],
+        dynamicRoutes: [
+          {
+            path: '/docs/:slug',
+            regex: '^/docs/([^/]+)$',
+            paramNames: ['slug'],
+          },
+          {
+            path: '/docs/:sections*',
+            regex: '^/docs/(.+)$',
+            paramNames: ['sections'],
+          },
+          {
+            path: '/files/:path*?',
+            regex: '^/files(?:/(.*))?$',
+            paramNames: ['path'],
+          },
+        ],
+      };
+      globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
+
+      // Single segment should match specific route
+      expect(maybeParameterizeRoute('/docs/introduction')).toBe('/docs/:slug');
+
+      // Multiple segments should match catch-all
+      expect(maybeParameterizeRoute('/docs/api/reference')).toBe('/docs/:sections*');
+      expect(maybeParameterizeRoute('/docs/guide/getting-started/installation')).toBe('/docs/:sections*');
+
+      // Optional catch-all should match both empty and filled cases
+      expect(maybeParameterizeRoute('/files')).toBe('/files/:path*?');
+      expect(maybeParameterizeRoute('/files/documents')).toBe('/files/:path*?');
+      expect(maybeParameterizeRoute('/files/images/avatar.png')).toBe('/files/:path*?');
+    });
+
+    it('should correctly order routes by specificity score', () => {
+      const manifest: RouteManifest = {
+        staticRoutes: [],
+        dynamicRoutes: [
+          // These routes are intentionally in non-specificity order
+          {
+            path: '/:optional*?', // Specificity: 1000 (least specific)
+            regex: '^(?:/(.*))?$',
+            paramNames: ['optional'],
+          },
+          {
+            path: '/:catchall*', // Specificity: 100
+            regex: '^/(.+)$',
+            paramNames: ['catchall'],
+          },
+          {
+            path: '/api/:endpoint/:id', // Specificity: 20 (2 dynamic segments)
+            regex: '^/api/([^/]+)/([^/]+)$',
+            paramNames: ['endpoint', 'id'],
+          },
+          {
+            path: '/users/:id', // Specificity: 10 (1 dynamic segment)
+            regex: '^/users/([^/]+)$',
+            paramNames: ['id'],
+          },
+          {
+            path: '/api/users/:id', // Specificity: 10 (1 dynamic segment)
+            regex: '^/api/users/([^/]+)$',
+            paramNames: ['id'],
+          },
+        ],
+      };
+      globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
+
+      // Most specific route should win despite order in manifest
+      expect(maybeParameterizeRoute('/users/123')).toBe('/users/:id');
+      expect(maybeParameterizeRoute('/api/users/456')).toBe('/api/users/:id');
+
+      // More general dynamic route should win over catch-all
+      expect(maybeParameterizeRoute('/api/posts/789')).toBe('/api/:endpoint/:id');
+
+      // Catch-all should be used when no more specific routes match
+      expect(maybeParameterizeRoute('/some/random/path')).toBe('/:catchall*');
+    });
+  });
 });

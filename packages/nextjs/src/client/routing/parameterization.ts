@@ -5,6 +5,40 @@ const globalWithInjectedManifest = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryRouteManifest: RouteManifest | undefined;
 };
 
+/**
+ * Calculate the specificity score for a route path.
+ * Lower scores indicate more specific routes.
+ */
+function getRouteSpecificity(routePath: string): number {
+  const segments = routePath.split('/').filter(Boolean);
+  let score = 0;
+
+  for (const segment of segments) {
+    if (segment.startsWith(':')) {
+      const paramName = segment.substring(1);
+      if (paramName.endsWith('*?')) {
+        // Optional catch-all: [[...param]]
+        score += 1000;
+      } else if (paramName.endsWith('*')) {
+        // Required catch-all: [...param]
+        score += 100;
+      } else {
+        // Regular dynamic segment: [param]
+        score += 10;
+      }
+    }
+    // Static segments add 0 to score as they are most specific
+  }
+
+  return score;
+}
+
+/**
+ * Parameterize a route using the route manifest.
+ *
+ * @param route - The route to parameterize.
+ * @returns The parameterized route or undefined if no parameterization is needed.
+ */
 export const maybeParameterizeRoute = (route: string): string | undefined => {
   if (
     !globalWithInjectedManifest._sentryRouteManifest ||
@@ -34,6 +68,8 @@ export const maybeParameterizeRoute = (route: string): string | undefined => {
     return undefined;
   }
 
+  const matches: string[] = [];
+
   // Dynamic path: find the route pattern that matches the concrete route
   for (const dynamicRoute of manifest.dynamicRoutes) {
     if (dynamicRoute.regex) {
@@ -41,7 +77,7 @@ export const maybeParameterizeRoute = (route: string): string | undefined => {
         // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor -- regex patterns are from build-time route manifest, not user input
         const regex = new RegExp(dynamicRoute.regex);
         if (regex.test(route)) {
-          return dynamicRoute.path;
+          matches.push(dynamicRoute.path);
         }
       } catch (error) {
         // Just skip this route in case of invalid regex
@@ -50,6 +86,12 @@ export const maybeParameterizeRoute = (route: string): string | undefined => {
     }
   }
 
-  // We should never end up here
+  if (matches.length === 1) {
+    return matches[0];
+  } else if (matches.length > 1) {
+    // Only calculate specificity when we have multiple matches like [param] and [...params]
+    return matches.sort((a, b) => getRouteSpecificity(a) - getRouteSpecificity(b))[0];
+  }
+
   return undefined;
 };
