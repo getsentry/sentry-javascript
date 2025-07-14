@@ -66,37 +66,18 @@ describe('webWorkerIntegration', () => {
     vi.clearAllMocks();
   });
 
-  describe('integration creation', () => {
-    it('creates integration with correct name', () => {
-      const integration = webWorkerIntegration({ worker: mockWorker as any });
+  it('creates integration with correct name', () => {
+    const integration = webWorkerIntegration({ worker: mockWorker as any });
 
-      expect(integration.name).toBe(INTEGRATION_NAME);
-      expect(integration.name).toBe('WebWorker');
-    });
-
-    it('returns a properly structured integration object', () => {
-      const integration = webWorkerIntegration({ worker: mockWorker as any });
-
-      expect(typeof integration).toBe('object');
-      expect(integration.name).toBeDefined();
-      expect(integration.setupOnce).toBeDefined();
-    });
-
-    it('returns integration object with setupOnce function', () => {
-      const integration = webWorkerIntegration({ worker: mockWorker as any });
-
-      expect(integration).toMatchObject({
-        name: 'WebWorker',
-        setupOnce: expect.any(Function),
-      });
-    });
+    expect(integration.name).toBe(INTEGRATION_NAME);
+    expect(integration.name).toBe('WebWorker');
+    expect(typeof integration.setupOnce).toBe('function');
   });
 
   describe('setupOnce', () => {
     it('adds message event listener to worker', () => {
       const integration = webWorkerIntegration({ worker: mockWorker as any });
 
-      expect(integration.setupOnce).toBeDefined();
       integration.setupOnce!();
 
       expect(mockWorker.addEventListener).toHaveBeenCalledWith('message', expect.any(Function));
@@ -107,7 +88,6 @@ describe('webWorkerIntegration', () => {
 
       beforeEach(() => {
         const integration = webWorkerIntegration({ worker: mockWorker as any });
-        expect(integration.setupOnce).toBeDefined();
         integration.setupOnce!();
 
         // Extract the message handler from the addEventListener call
@@ -136,23 +116,10 @@ describe('webWorkerIntegration', () => {
         expect(mockDebugLog).not.toHaveBeenCalled();
       });
 
-      it('ignores messages without _sentry object', () => {
-        mockEvent.data = {
-          _sentryMessage: true,
-          _sentryDebugIds: { 'file1.js': 'debug-id-1' },
-        };
-
-        messageHandler(mockEvent);
-
-        expect(mockEvent.stopImmediatePropagation).not.toHaveBeenCalled();
-        expect(mockDebugLog).not.toHaveBeenCalled();
-      });
-
       it('processes valid Sentry messages', () => {
         mockEvent.data = {
           _sentryMessage: true,
           _sentryDebugIds: { 'file1.js': 'debug-id-1' },
-          _sentry: {},
         };
 
         messageHandler(mockEvent);
@@ -170,7 +137,6 @@ describe('webWorkerIntegration', () => {
             'worker-file1.js': 'worker-debug-1',
             'worker-file2.js': 'worker-debug-2',
           },
-          _sentry: {},
         };
 
         messageHandler(mockEvent);
@@ -193,7 +159,6 @@ describe('webWorkerIntegration', () => {
             'shared-file.js': 'worker-debug-id', // Should be overridden
             'worker-only.js': 'worker-debug-3', // Should be kept
           },
-          _sentry: {},
         };
 
         messageHandler(mockEvent);
@@ -211,7 +176,6 @@ describe('webWorkerIntegration', () => {
         mockEvent.data = {
           _sentryMessage: true,
           _sentryDebugIds: {},
-          _sentry: {},
         };
 
         messageHandler(mockEvent);
@@ -241,6 +205,7 @@ describe('registerWebWorker', () => {
   it('posts message with _sentryMessage flag', () => {
     registerWebWorker(mockWorkerSelf as any);
 
+    expect(mockWorkerSelf.postMessage).toHaveBeenCalledTimes(1);
     expect(mockWorkerSelf.postMessage).toHaveBeenCalledWith({
       _sentryMessage: true,
       _sentryDebugIds: undefined,
@@ -255,6 +220,7 @@ describe('registerWebWorker', () => {
 
     registerWebWorker(mockWorkerSelf as any);
 
+    expect(mockWorkerSelf.postMessage).toHaveBeenCalledTimes(1);
     expect(mockWorkerSelf.postMessage).toHaveBeenCalledWith({
       _sentryMessage: true,
       _sentryDebugIds: {
@@ -269,64 +235,57 @@ describe('registerWebWorker', () => {
 
     registerWebWorker(mockWorkerSelf as any);
 
+    expect(mockWorkerSelf.postMessage).toHaveBeenCalledTimes(1);
     expect(mockWorkerSelf.postMessage).toHaveBeenCalledWith({
       _sentryMessage: true,
       _sentryDebugIds: undefined,
     });
   });
-
-  it('handles empty debug IDs object', () => {
-    mockWorkerSelf._sentryDebugIds = {};
-
-    registerWebWorker(mockWorkerSelf as any);
-
-    expect(mockWorkerSelf.postMessage).toHaveBeenCalledWith({
-      _sentryMessage: true,
-      _sentryDebugIds: {},
-    });
-  });
-
-  it('calls postMessage exactly once', () => {
-    registerWebWorker(mockWorkerSelf as any);
-
-    expect(mockWorkerSelf.postMessage).toHaveBeenCalledTimes(1);
-  });
 });
 
-describe('event propagation ', () => {
-  // Since isWebWorkerMessage is not exported, we test it indirectly through the integration
-  let messageHandler: (event: any) => void;
-  let mockWorker: { addEventListener: ReturnType<typeof vi.fn> };
+describe('registerWebWorker and webWorkerIntegration', () => {
+  beforeEach(() => {});
 
-  beforeEach(() => {
-    mockWorker = { addEventListener: vi.fn() };
+  it('works together', () => {
+    (helpers.WINDOW as any)._sentryDebugIds = {
+      'main-file1.js': 'main-debug-1',
+      'main-file2.js': 'main-debug-2',
+      'shared-file.js': 'main-debug-id',
+    };
+
+    let cb: ((arg0: any) => any) | undefined = undefined;
+
+    // Setup mock worker
+    const mockWorker = {
+      _sentryDebugIds: {
+        'worker-file1.js': 'worker-debug-1',
+        'worker-file2.js': 'worker-debug-2',
+        'shared-file.js': 'worker-debug-id',
+      },
+      addEventListener: vi.fn((_, l) => (cb = l)),
+      postMessage: vi.fn(message => {
+        // @ts-expect-error - cb is defined
+        cb({ data: message, stopImmediatePropagation: vi.fn() });
+      }),
+    };
+
     const integration = webWorkerIntegration({ worker: mockWorker as any });
     integration.setupOnce!();
-    expect(mockWorker.addEventListener).toHaveBeenCalled();
-    expect(mockWorker.addEventListener.mock.calls).toBeDefined();
-    messageHandler = mockWorker.addEventListener.mock.calls![0]![1];
-  });
 
-  it.each([
-    ['plain object but missing _sentryMessage: { _sentry: {} }', { _sentry: {} }],
-    [
-      'plain object but _sentryMessage is false: { _sentryMessage: false, _sentry: {} }',
-      { _sentryMessage: false, _sentry: {} },
-    ],
-    ['plain object but missing _sentry: { _sentryMessage: true }', { _sentryMessage: true }],
-    [
-      'plain object but _sentry is not an object: { _sentryMessage: true, _sentry: "not-object" }',
-      { _sentryMessage: true, _sentry: 'not-object' },
-    ],
-  ])("doesn't stop propagation for %s", (_desc, data) => {
-    const mockEvent = { stopImmediatePropagation: vi.fn(), data };
-    messageHandler(mockEvent);
-    expect(mockEvent.stopImmediatePropagation).not.toHaveBeenCalled();
-  });
+    registerWebWorker(mockWorker as any);
 
-  it('stops propagation for sentry message', () => {
-    const mockEvent = { stopImmediatePropagation: vi.fn(), data: { _sentryMessage: true, _sentryDebugIds: {} } };
-    messageHandler(mockEvent);
-    expect(mockEvent.stopImmediatePropagation).toHaveBeenCalledTimes(1);
+    expect(mockWorker.addEventListener).toHaveBeenCalledWith('message', expect.any(Function));
+    expect(mockWorker.postMessage).toHaveBeenCalledWith({
+      _sentryMessage: true,
+      _sentryDebugIds: mockWorker._sentryDebugIds,
+    });
+
+    expect((helpers.WINDOW as any)._sentryDebugIds).toEqual({
+      'main-file1.js': 'main-debug-1',
+      'main-file2.js': 'main-debug-2',
+      'shared-file.js': 'main-debug-id',
+      'worker-file1.js': 'worker-debug-1',
+      'worker-file2.js': 'worker-debug-2',
+    });
   });
 });

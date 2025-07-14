@@ -103,5 +103,5 @@ export function registerWebWorker(self: Worker & { _sentryDebugIds: Record<strin
 }
 
 function isWebWorkerMessage(eventData: unknown): eventData is WebWorkerMessage {
-  return isPlainObject(eventData) && eventData._sentryMessage === true && typeof eventData._sentry === 'object';
+  return isPlainObject(eventData) && eventData._sentryMessage === true && typeof eventData._sentryDebugIds === 'object';
 }
