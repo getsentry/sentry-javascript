@@ -15,10 +15,10 @@ import {
   captureEvent,
   convertSpanLinksForEnvelope,
   debounce,
+  debug,
   getCapturedScopesOnSpan,
   getDynamicSamplingContextFromSpan,
   getStatusMessage,
-  logger,
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -105,7 +105,7 @@ export class SentrySpanExporter {
       });
       if (droppedSpanCount > 0) {
         DEBUG_BUILD &&
-          logger.log(
+          debug.log(
             `SpanExporter dropped ${droppedSpanCount} spans because they were pending for more than ${this._finishedSpanBucketSize} seconds.`,
           );
       }
@@ -142,7 +142,7 @@ export class SentrySpanExporter {
     const sentSpanCount = sentSpans.size;
     const remainingOpenSpanCount = finishedSpans.length - sentSpanCount;
     DEBUG_BUILD &&
-      logger.log(
+      debug.log(
         `SpanExporter exported ${sentSpanCount} spans, ${remainingOpenSpanCount} spans are waiting for their parent spans to finish`,
       );
 
