@@ -10,7 +10,7 @@ import type {
 /**
  * Construct a Turbopack config object from a Next.js config object and a Turbopack options object.
  *
- * @param nextConfig - The Next.js config object.
+ * @param userNextConfig - The Next.js config object.
  * @param turbopackOptions - The Turbopack options object.
  * @returns The Turbopack config object.
  */
