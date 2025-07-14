@@ -383,7 +383,7 @@ describe('Integration | flush', () => {
             type: 'default',
             category: 'console',
             data: { logger: 'replay' },
-            level: 'log',
+            level: 'info',
             message: '[Replay] Creating new session',
           },
         },
