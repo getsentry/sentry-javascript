@@ -1,7 +1,7 @@
 import type { Client } from '../client';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import type { Event } from '../types-hoist/event';
-import type { Span, SpanAttributes, SpanJSON, SpanOrigin } from '../types-hoist/span';
+import type { Span, SpanAttributes, SpanAttributeValue, SpanJSON, SpanOrigin } from '../types-hoist/span';
 import { spanToJSON } from './spanUtils';
 import type { ProviderMetadata } from './vercel-ai-attributes';
 import {
@@ -245,32 +245,78 @@ function addProviderMetadataToAttributes(attributes: SpanAttributes): void {
     try {
       const providerMetadataObject = JSON.parse(providerMetadata) as ProviderMetadata;
       if (providerMetadataObject.openai) {
-        attributes['gen_ai.usage.input_tokens.cached'] = providerMetadataObject.openai.cachedPromptTokens;
-        attributes['gen_ai.usage.output_tokens.reasoning'] = providerMetadataObject.openai.reasoningTokens;
-        attributes['gen_ai.usage.output_tokens.prediction_accepted'] =
-          providerMetadataObject.openai.acceptedPredictionTokens;
-        attributes['gen_ai.usage.output_tokens.prediction_rejected'] =
-          providerMetadataObject.openai.rejectedPredictionTokens;
-        attributes['gen_ai.conversation.id'] = providerMetadataObject.openai.responseId;
+        setAttributeIfDefined(
+          attributes,
+          'gen_ai.usage.input_tokens.cached',
+          providerMetadataObject.openai.cachedPromptTokens,
+        );
+        setAttributeIfDefined(
+          attributes,
+          'gen_ai.usage.output_tokens.reasoning',
+          providerMetadataObject.openai.reasoningTokens,
+        );
+        setAttributeIfDefined(
+          attributes,
+          'gen_ai.usage.output_tokens.prediction_accepted',
+          providerMetadataObject.openai.acceptedPredictionTokens,
+        );
+        setAttributeIfDefined(
+          attributes,
+          'gen_ai.usage.output_tokens.prediction_rejected',
+          providerMetadataObject.openai.rejectedPredictionTokens,
+        );
+        setAttributeIfDefined(attributes, 'gen_ai.conversation.id', providerMetadataObject.openai.responseId);
       }
 
       if (providerMetadataObject.anthropic) {
-        attributes['gen_ai.usage.input_tokens.cached'] = providerMetadataObject.anthropic.cacheReadInputTokens;
-        attributes['gen_ai.usage.input_tokens.cache_write'] = providerMetadataObject.anthropic.cacheCreationInputTokens;
+        setAttributeIfDefined(
+          attributes,
+          'gen_ai.usage.input_tokens.cached',
+          providerMetadataObject.anthropic.cacheReadInputTokens,
+        );
+        setAttributeIfDefined(
+          attributes,
+          'gen_ai.usage.input_tokens.cache_write',
+          providerMetadataObject.anthropic.cacheCreationInputTokens,
+        );
       }
 
       if (providerMetadataObject.bedrock?.usage) {
-        attributes['gen_ai.usage.input_tokens.cached'] = providerMetadataObject.bedrock.usage.cacheReadInputTokens;
-        attributes['gen_ai.usage.input_tokens.cache_write'] =
-          providerMetadataObject.bedrock.usage.cacheWriteInputTokens;
+        setAttributeIfDefined(
+          attributes,
+          'gen_ai.usage.input_tokens.cached',
+          providerMetadataObject.bedrock.usage.cacheReadInputTokens,
+        );
+        setAttributeIfDefined(
+          attributes,
+          'gen_ai.usage.input_tokens.cache_write',
+          providerMetadataObject.bedrock.usage.cacheWriteInputTokens,
+        );
       }
 
       if (providerMetadataObject.deepseek) {
-        attributes['gen_ai.usage.input_tokens.cached'] = providerMetadataObject.deepseek.promptCacheHitTokens;
-        attributes['gen_ai.usage.input_tokens.cache_miss'] = providerMetadataObject.deepseek.promptCacheMissTokens;
+        setAttributeIfDefined(
+          attributes,
+          'gen_ai.usage.input_tokens.cached',
+          providerMetadataObject.deepseek.promptCacheHitTokens,
+        );
+        setAttributeIfDefined(
+          attributes,
+          'gen_ai.usage.input_tokens.cache_miss',
+          providerMetadataObject.deepseek.promptCacheMissTokens,
+        );
       }
     } catch {
       // Ignore
     }
+  }
+}
+
+/**
+ * Sets an attribute only if the value is not null or undefined.
+ */
+function setAttributeIfDefined(attributes: SpanAttributes, key: string, value: SpanAttributeValue | undefined): void {
+  if (value != null) {
+    attributes[key] = value;
   }
 }
