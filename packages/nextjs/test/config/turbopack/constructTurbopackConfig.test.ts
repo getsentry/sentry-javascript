@@ -5,7 +5,7 @@ import {
   constructTurbopackConfig,
   safelyAddTurbopackRule,
 } from '../../../src/config/turbopack/constructTurbopackConfig';
-import type { NextConfigObject, SentryBuildOptions } from '../../../src/config/types';
+import type { NextConfigObject } from '../../../src/config/types';
 
 // Mock path.resolve to return a predictable loader path
 vi.mock('path', async () => {
@@ -18,16 +18,11 @@ vi.mock('path', async () => {
 
 describe('constructTurbopackConfig', () => {
   const mockRouteManifest: RouteManifest = {
-    routes: [
+    dynamicRoutes: [{ path: '/users/[id]', regex: '/users/([^/]+)', paramNames: ['id'] }],
+    staticRoutes: [
       { path: '/users', regex: '/users' },
-      { path: '/users/[id]', regex: '/users/([^/]+)', paramNames: ['id'] },
       { path: '/api/health', regex: '/api/health' },
     ],
-  };
-
-  const mockSentryOptions: SentryBuildOptions = {
-    org: 'test-org',
-    project: 'test-project',
   };
 
   describe('without existing turbopack config', () => {
@@ -36,7 +31,6 @@ describe('constructTurbopackConfig', () => {
 
       const result = constructTurbopackConfig({
         userNextConfig,
-        userSentryOptions: mockSentryOptions,
       });
 
       expect(result).toEqual({});
@@ -47,7 +41,6 @@ describe('constructTurbopackConfig', () => {
 
       const result = constructTurbopackConfig({
         userNextConfig,
-        userSentryOptions: mockSentryOptions,
         routeManifest: mockRouteManifest,
       });
 
@@ -75,11 +68,45 @@ describe('constructTurbopackConfig', () => {
 
       constructTurbopackConfig({
         userNextConfig,
-        userSentryOptions: mockSentryOptions,
         routeManifest: mockRouteManifest,
       });
 
-      expect(pathResolveSpy).toHaveBeenCalledWith(expect.any(String), '../loaders/valueInjectionLoader.js');
+      expect(pathResolveSpy).toHaveBeenCalledWith(expect.any(String), '..', 'loaders', 'valueInjectionLoader.js');
+    });
+
+    it('should handle Windows-style paths correctly', () => {
+      // Mock path.resolve to return a Windows-style path
+      const windowsLoaderPath = 'C:\\my\\project\\dist\\config\\loaders\\valueInjectionLoader.js';
+      const pathResolveSpy = vi.spyOn(path, 'resolve');
+      pathResolveSpy.mockReturnValue(windowsLoaderPath);
+
+      const userNextConfig: NextConfigObject = {};
+
+      const result = constructTurbopackConfig({
+        userNextConfig,
+        routeManifest: mockRouteManifest,
+      });
+
+      expect(result.rules).toBeDefined();
+      expect(result.rules!['**/instrumentation-client.*']).toBeDefined();
+
+      const rule = result.rules!['**/instrumentation-client.*'];
+      expect(rule).toHaveProperty('loaders');
+
+      const ruleWithLoaders = rule as { loaders: Array<{ loader: string; options: any }> };
+      expect(ruleWithLoaders.loaders).toBeDefined();
+      expect(ruleWithLoaders.loaders).toHaveLength(1);
+
+      const loader = ruleWithLoaders.loaders[0]!;
+      expect(loader).toHaveProperty('loader');
+      expect(loader).toHaveProperty('options');
+      expect(loader.options).toHaveProperty('values');
+      expect(loader.options.values).toHaveProperty('_sentryRouteManifest');
+      expect(loader.loader).toBe(windowsLoaderPath);
+      expect(pathResolveSpy).toHaveBeenCalledWith(expect.any(String), '..', 'loaders', 'valueInjectionLoader.js');
+
+      // Restore the original mock behavior
+      pathResolveSpy.mockReturnValue('/mocked/path/to/valueInjectionLoader.js');
     });
   });
 
@@ -98,7 +125,6 @@ describe('constructTurbopackConfig', () => {
 
       const result = constructTurbopackConfig({
         userNextConfig,
-        userSentryOptions: mockSentryOptions,
       });
 
       expect(result).toEqual({
@@ -125,7 +151,6 @@ describe('constructTurbopackConfig', () => {
 
       const result = constructTurbopackConfig({
         userNextConfig,
-        userSentryOptions: mockSentryOptions,
         routeManifest: mockRouteManifest,
       });
 
@@ -171,7 +196,6 @@ describe('constructTurbopackConfig', () => {
 
       const result = constructTurbopackConfig({
         userNextConfig,
-        userSentryOptions: mockSentryOptions,
         routeManifest: mockRouteManifest,
       });
 
@@ -186,11 +210,10 @@ describe('constructTurbopackConfig', () => {
   describe('with edge cases', () => {
     it('should handle empty route manifest', () => {
       const userNextConfig: NextConfigObject = {};
-      const emptyManifest: RouteManifest = { routes: [] };
+      const emptyManifest: RouteManifest = { dynamicRoutes: [], staticRoutes: [] };
 
       const result = constructTurbopackConfig({
         userNextConfig,
-        userSentryOptions: mockSentryOptions,
         routeManifest: emptyManifest,
       });
 
@@ -215,15 +238,15 @@ describe('constructTurbopackConfig', () => {
     it('should handle complex route manifest', () => {
       const userNextConfig: NextConfigObject = {};
       const complexManifest: RouteManifest = {
-        routes: [
+        dynamicRoutes: [
           { path: '/users/[id]/posts/[postId]', regex: '/users/([^/]+)/posts/([^/]+)', paramNames: ['id', 'postId'] },
           { path: '/api/[...params]', regex: '/api/(.+)', paramNames: ['params'] },
         ],
+        staticRoutes: [],
       };
 
       const result = constructTurbopackConfig({
         userNextConfig,
-        userSentryOptions: mockSentryOptions,
         routeManifest: complexManifest,
       });
 

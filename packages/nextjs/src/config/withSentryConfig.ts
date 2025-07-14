@@ -319,7 +319,6 @@ function getFinalConfigObject(
       ? {
           turbopack: constructTurbopackConfig({
             userNextConfig: incomingUserNextConfigObject,
-            userSentryOptions,
             routeManifest,
           }),
         }
