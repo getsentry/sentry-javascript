@@ -28,7 +28,7 @@ export function constructTurbopackConfig({
       rule: {
         loaders: [
           {
-            loader: path.resolve(__dirname, '../loaders/valueInjectionLoader.js'),
+            loader: path.resolve(__dirname, '..', 'loaders', 'valueInjectionLoader.js'),
             options: {
               values: {
                 _sentryRouteManifest: JSON.stringify(routeManifest),
