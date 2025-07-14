@@ -3,7 +3,7 @@
 
   // We don't ship this in the npm package (it exists purely for controlling what ends up in the AWS lambda layer), so
   // no need to build types for it
-  "exclude": ["src/index.awslambda.ts"],
+  "exclude": ["src/index.awslambda.ts", "scripts/**/*"],
 
   "compilerOptions": {
     "declaration": true,
