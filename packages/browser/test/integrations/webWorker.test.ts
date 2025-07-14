@@ -248,9 +248,9 @@ describe('registerWebWorker and webWorkerIntegration', () => {
 
   it('works together', () => {
     (helpers.WINDOW as any)._sentryDebugIds = {
-      'main-file1.js': 'main-debug-1',
-      'main-file2.js': 'main-debug-2',
-      'shared-file.js': 'main-debug-id',
+      'Error at \n /main-file1.js': 'main-debug-1',
+      'Error at \n /main-file2.js': 'main-debug-2',
+      'Error at \n /shared-file.js': 'main-debug-id',
     };
 
     let cb: ((arg0: any) => any) | undefined = undefined;
@@ -258,9 +258,9 @@ describe('registerWebWorker and webWorkerIntegration', () => {
     // Setup mock worker
     const mockWorker = {
       _sentryDebugIds: {
-        'worker-file1.js': 'worker-debug-1',
-        'worker-file2.js': 'worker-debug-2',
-        'shared-file.js': 'worker-debug-id',
+        'Error at \n /worker-file1.js': 'worker-debug-1',
+        'Error at \n /worker-file2.js': 'worker-debug-2',
+        'Error at \n /shared-file.js': 'worker-debug-id',
       },
       addEventListener: vi.fn((_, l) => (cb = l)),
       postMessage: vi.fn(message => {
@@ -281,11 +281,11 @@ describe('registerWebWorker and webWorkerIntegration', () => {
     });
 
     expect((helpers.WINDOW as any)._sentryDebugIds).toEqual({
-      'main-file1.js': 'main-debug-1',
-      'main-file2.js': 'main-debug-2',
-      'shared-file.js': 'main-debug-id',
-      'worker-file1.js': 'worker-debug-1',
-      'worker-file2.js': 'worker-debug-2',
+      'Error at \n /main-file1.js': 'main-debug-1',
+      'Error at \n /main-file2.js': 'main-debug-2',
+      'Error at \n /shared-file.js': 'main-debug-id',
+      'Error at \n /worker-file1.js': 'worker-debug-1',
+      'Error at \n /worker-file2.js': 'worker-debug-2',
     });
   });
 });
