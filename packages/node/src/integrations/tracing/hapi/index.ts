@@ -12,9 +12,8 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
 } from '@sentry/core';
+import { ensureIsWrapped, generateInstrumentOnce } from '@sentry/node-core';
 import { DEBUG_BUILD } from '../../../debug-build';
-import { generateInstrumentOnce } from '../../../otel/instrument';
-import { ensureIsWrapped } from '../../../utils/ensureIsWrapped';
 import type { Request, RequestEvent, Server } from './types';
 
 const INTEGRATION_NAME = 'Hapi';

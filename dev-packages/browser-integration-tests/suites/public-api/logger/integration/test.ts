@@ -18,7 +18,7 @@ sentryTest('should capture console object calls', async ({ getLocalTestUrl, page
   expect(envelopeItems[0]).toEqual([
     {
       type: 'log',
-      item_count: 8,
+      item_count: 11,
       content_type: 'application/vnd.sentry.items.log+json',
     },
     {
@@ -101,6 +101,42 @@ sentryTest('should capture console object calls', async ({ getLocalTestUrl, page
           severity_number: 17,
           trace_id: expect.any(String),
           body: 'Assertion failed: console.assert 123 false',
+          attributes: {
+            'sentry.origin': { value: 'auto.console.logging', type: 'string' },
+            'sentry.sdk.name': { value: 'sentry.javascript.browser', type: 'string' },
+            'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+          },
+        },
+        {
+          timestamp: expect.any(Number),
+          level: 'info',
+          severity_number: 10,
+          trace_id: expect.any(String),
+          body: 'Object: {"key":"value","nested":{"prop":123}}',
+          attributes: {
+            'sentry.origin': { value: 'auto.console.logging', type: 'string' },
+            'sentry.sdk.name': { value: 'sentry.javascript.browser', type: 'string' },
+            'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+          },
+        },
+        {
+          timestamp: expect.any(Number),
+          level: 'info',
+          severity_number: 10,
+          trace_id: expect.any(String),
+          body: 'Array: [1,2,3,"string"]',
+          attributes: {
+            'sentry.origin': { value: 'auto.console.logging', type: 'string' },
+            'sentry.sdk.name': { value: 'sentry.javascript.browser', type: 'string' },
+            'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+          },
+        },
+        {
+          timestamp: expect.any(Number),
+          level: 'info',
+          severity_number: 10,
+          trace_id: expect.any(String),
+          body: 'Mixed: prefix {"obj":true} [4,5,6] suffix',
           attributes: {
             'sentry.origin': { value: 'auto.console.logging', type: 'string' },
             'sentry.sdk.name': { value: 'sentry.javascript.browser', type: 'string' },

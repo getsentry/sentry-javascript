@@ -49,6 +49,8 @@ export function sentryPagesPlugin<
   setAsyncLocalStorageAsyncContextStrategy();
   return context => {
     const options = typeof handlerOrOptions === 'function' ? handlerOrOptions(context) : handlerOrOptions;
-    return wrapRequestHandler({ options, request: context.request, context }, () => context.next());
+    return wrapRequestHandler({ options, request: context.request, context: { ...context, props: {} } }, () =>
+      context.next(),
+    );
   };
 }

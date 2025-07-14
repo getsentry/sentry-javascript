@@ -13,12 +13,12 @@ import type { SentrySpanArguments, Span, SpanTimeInput } from '../types-hoist/sp
 import type { StartSpanOptions } from '../types-hoist/startSpanOptions';
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
 import { hasSpansEnabled } from '../utils/hasSpansEnabled';
+import { debug } from '../utils/logger';
 import { parseSampleRate } from '../utils/parseSampleRate';
+import { generateTraceId } from '../utils/propagationContext';
 import { _getSpanForScope, _setSpanForScope } from '../utils/spanOnScope';
 import { addChildSpanToSpan, getRootSpan, spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
-import { logger } from '../utils-hoist/logger';
-import { generateTraceId } from '../utils-hoist/propagationContext';
-import { propagationContextFromHeaders } from '../utils-hoist/tracing';
+import { propagationContextFromHeaders } from '../utils/tracing';
 import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanStart } from './logSpans';
 import { sampleSpan } from './sampling';
@@ -58,7 +58,7 @@ export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) =
 
     return wrapper(() => {
       const scope = getCurrentScope();
-      const parentSpan = getParentSpan(scope);
+      const parentSpan = getParentSpan(scope, customParentSpan);
 
       const shouldSkipSpan = options.onlyIfParent && !parentSpan;
       const activeSpan = shouldSkipSpan
@@ -116,7 +116,7 @@ export function startSpanManual<T>(options: StartSpanOptions, callback: (span: S
 
     return wrapper(() => {
       const scope = getCurrentScope();
-      const parentSpan = getParentSpan(scope);
+      const parentSpan = getParentSpan(scope, customParentSpan);
 
       const shouldSkipSpan = options.onlyIfParent && !parentSpan;
       const activeSpan = shouldSkipSpan
@@ -176,7 +176,7 @@ export function startInactiveSpan(options: StartSpanOptions): Span {
 
   return wrapper(() => {
     const scope = getCurrentScope();
-    const parentSpan = getParentSpan(scope);
+    const parentSpan = getParentSpan(scope, customParentSpan);
 
     const shouldSkipSpan = options.onlyIfParent && !parentSpan;
 
@@ -287,7 +287,7 @@ export function startNewTrace<T>(callback: () => T): T {
       traceId: generateTraceId(),
       sampleRand: Math.random(),
     });
-    DEBUG_BUILD && logger.info(`Starting a new trace with id ${scope.getPropagationContext().traceId}`);
+    DEBUG_BUILD && debug.log(`Starting a new trace with id ${scope.getPropagationContext().traceId}`);
     return withActiveSpan(null, callback);
   });
 }
@@ -447,7 +447,7 @@ function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parent
   });
 
   if (!sampled && client) {
-    DEBUG_BUILD && logger.log('[Tracing] Discarding root span because its trace was not chosen to be sampled.');
+    DEBUG_BUILD && debug.log('[Tracing] Discarding root span because its trace was not chosen to be sampled.');
     client.recordDroppedEvent('sample_rate', 'transaction');
   }
 
@@ -489,7 +489,17 @@ function _startChildSpan(parentSpan: Span, scope: Scope, spanArguments: SentrySp
   return childSpan;
 }
 
-function getParentSpan(scope: Scope): SentrySpan | undefined {
+function getParentSpan(scope: Scope, customParentSpan: Span | null | undefined): SentrySpan | undefined {
+  // always use the passed in span directly
+  if (customParentSpan) {
+    return customParentSpan as SentrySpan;
+  }
+
+  // This is different from `undefined` as it means the user explicitly wants no parent span
+  if (customParentSpan === null) {
+    return undefined;
+  }
+
   const span = _getSpanForScope(scope) as SentrySpan | undefined;
 
   if (!span) {

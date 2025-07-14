@@ -13,5 +13,8 @@
   </NuxtLayout>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import { useSentryTestTag } from '#imports';
+
+useSentryTestTag();
 </script>

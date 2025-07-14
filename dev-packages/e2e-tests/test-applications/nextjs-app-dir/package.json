@@ -11,11 +11,12 @@
     "test:test-build": "pnpm ts-node --script-mode assert-build.ts",
     "test:build-canary": "pnpm install && pnpm add next@canary && pnpm add react@beta && pnpm add react-dom@beta && pnpm build",
     "test:build-latest": "pnpm install && pnpm add next@latest && pnpm build",
-    "test:build-13": "pnpm install && pnpm add next@13.4.19 && pnpm build",
+    "test:build-13": "pnpm install && pnpm add next@13.5.11 && pnpm build",
     "test:assert": "pnpm test:test-build && pnpm test:prod && pnpm test:dev"
   },
   "dependencies": {
     "@sentry/nextjs": "latest || *",
+    "@sentry/core": "latest || *",
     "@types/node": "^18.19.1",
     "@types/react": "18.0.26",
     "@types/react-dom": "18.0.9",
@@ -25,19 +26,8 @@
     "typescript": "~5.0.0"
   },
   "devDependencies": {
-    "@playwright/test": "~1.50.0",
+    "@playwright/test": "~1.53.2",
     "@sentry-internal/test-utils": "link:../../../test-utils",
-    "@sentry-internal/feedback": "latest || *",
-    "@sentry-internal/replay-canvas": "latest || *",
-    "@sentry-internal/browser-utils": "latest || *",
-    "@sentry/browser": "latest || *",
-    "@sentry/core": "latest || *",
-    "@sentry/nextjs": "latest || *",
-    "@sentry/node": "latest || *",
-    "@sentry/opentelemetry": "latest || *",
-    "@sentry/react": "latest || *",
-    "@sentry-internal/replay": "latest || *",
-    "@sentry/vercel-edge": "latest || *",
     "ts-node": "10.9.1"
   },
   "volta": {

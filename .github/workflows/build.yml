@@ -415,8 +415,6 @@ jobs:
     if: needs.job_build.outputs.changed_bun == 'true' || github.event_name != 'pull_request'
     timeout-minutes: 10
     runs-on: ubuntu-24.04
-    strategy:
-      fail-fast: false
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -442,8 +440,6 @@ jobs:
     if: needs.job_build.outputs.changed_deno == 'true' || github.event_name != 'pull_request'
     timeout-minutes: 10
     runs-on: ubuntu-24.04
-    strategy:
-      fail-fast: false
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -475,7 +471,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [18, 20, 22, '^24.0.1']
+        node: [18, 20, 22, 24]
     steps:
       - name: Check out base commit (${{ github.event.pull_request.base.sha }})
         uses: actions/checkout@v4
@@ -713,7 +709,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: ['18.20.5', 20, 22, 24]
+        node: [18, 20, 22, 24]
         typescript:
           - false
         include:
@@ -885,18 +881,11 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - uses: pnpm/action-setup@v4
         with:
-          version: 9.4.0
-      # TODO: Remove this once the repo is bumped to 20.19.2 or higher
-      - name: Set up Node for Angular 20
-        if: matrix.test-application == 'angular-20'
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20.19.2'
+          version: 9.15.9
       - name: Set up Node
-        if: matrix.test-application != 'angular-20'
         uses: actions/setup-node@v4
         with:
-          node-version-file: 'dev-packages/e2e-tests/package.json'
+          node-version-file: 'dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/package.json'
       - name: Set up Bun
         if: matrix.test-application == 'node-exports-test-app'
         uses: oven-sh/setup-bun@v2
@@ -931,8 +920,12 @@ jobs:
         env:
           E2E_TEST_PUBLISH_SCRIPT_NODE_VERSION: ${{ steps.versions.outputs.node }}
 
+      - name: Copy to temp
+        run: yarn ci:copy-to-temp ./test-applications/${{ matrix.test-application }} ${{ runner.temp }}/test-application
+        working-directory: dev-packages/e2e-tests
+
       - name: Build E2E app
-        working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
+        working-directory: ${{ runner.temp }}/test-application
         timeout-minutes: 7
         run: pnpm ${{ matrix.build-command || 'test:build' }}
 
@@ -940,10 +933,10 @@ jobs:
         uses: ./.github/actions/install-playwright
         with:
           browsers: chromium
-          cwd: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
+          cwd: ${{ runner.temp }}/test-application
 
       - name: Run E2E test
-        working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
+        working-directory: ${{ runner.temp }}/test-application
         timeout-minutes: 10
         run: pnpm test:assert
 
@@ -952,7 +945,7 @@ jobs:
         if: failure()
         with:
           name: playwright-traces-job_e2e_playwright_tests-${{ matrix.test-application}}
-          path: dev-packages/e2e-tests/test-applications/${{ matrix.test-application}}/test-results
+          path: ${{ runner.temp }}/test-application/test-results
           overwrite: true
           retention-days: 7
 
@@ -966,7 +959,7 @@ jobs:
         if: always()
         with:
           name: E2E Test Dump (${{ matrix.label || matrix.test-application }})
-          path: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/event-dumps
+          path: ${{ runner.temp }}/test-application/event-dumps
           overwrite: true
           retention-days: 7
           if-no-files-found: ignore
@@ -1012,11 +1005,11 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - uses: pnpm/action-setup@v4
         with:
-          version: 9.4.0
+          version: 9.15.9
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version-file: 'dev-packages/e2e-tests/package.json'
+          node-version-file: 'dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
@@ -1048,8 +1041,12 @@ jobs:
         env:
           E2E_TEST_PUBLISH_SCRIPT_NODE_VERSION: ${{ steps.versions.outputs.node }}
 
+      - name: Copy to temp
+        run: yarn ci:copy-to-temp ./test-applications/${{ matrix.test-application }} ${{ runner.temp }}/test-application
+        working-directory: dev-packages/e2e-tests
+
       - name: Build E2E app
-        working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
+        working-directory: ${{ runner.temp }}/test-application
         timeout-minutes: 7
         run: pnpm ${{ matrix.build-command || 'test:build' }}
 
@@ -1057,10 +1054,10 @@ jobs:
         uses: ./.github/actions/install-playwright
         with:
           browsers: chromium
-          cwd: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
+          cwd: ${{ runner.temp }}/test-application
 
       - name: Run E2E test
-        working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
+        working-directory: ${{ runner.temp }}/test-application
         timeout-minutes: 10
         run: pnpm ${{ matrix.assert-command || 'test:assert' }}
 
@@ -1074,20 +1071,19 @@ jobs:
         if: always()
         with:
           name: E2E Test Dump (${{ matrix.label || matrix.test-application }})
-          path: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/event-dumps
+          path: ${{ runner.temp }}/test-application/event-dumps
           overwrite: true
           retention-days: 7
           if-no-files-found: ignore
 
       - name: Deploy Astro to Cloudflare
-        uses: cloudflare/pages-action@v1
+        uses: cloudflare/wrangler-action@v3
         if: matrix.test-application == 'cloudflare-astro'
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: ${{ secrets.CLOUDFLARE_PROJECT_NAME }}
-          directory: dist
-          workingDirectory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
+          command: pages deploy dist --project-name=${{ secrets.CLOUDFLARE_PROJECT_NAME }}
+          workingDirectory: ${{ runner.temp }}/test-application
 
   job_required_jobs_passed:
     name: All required jobs passed or were skipped

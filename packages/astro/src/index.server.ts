@@ -12,7 +12,9 @@ export {
   addEventProcessor,
   addIntegration,
   amqplibIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   anrIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   disableAnrDetectionForCallback,
   captureCheckIn,
   captureConsoleIntegration,
@@ -84,6 +86,7 @@ export {
   onUnhandledRejectionIntegration,
   parameterize,
   postgresIntegration,
+  postgresJsIntegration,
   prismaIntegration,
   childProcessIntegration,
   createSentryWinstonTransport,
@@ -135,6 +138,14 @@ export {
   consoleLoggingIntegration,
   wrapMcpServerWithSentry,
   NODE_VERSION,
+  featureFlagsIntegration,
+  type FeatureFlagsIntegration,
+  launchDarklyIntegration,
+  buildLaunchDarklyFlagUsedHandler,
+  openFeatureIntegration,
+  OpenFeatureIntegrationHook,
+  statsigIntegration,
+  unleashIntegration,
 } from '@sentry/node';
 
 export { init } from './server/sdk';

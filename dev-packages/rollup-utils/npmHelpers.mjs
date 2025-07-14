@@ -26,6 +26,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const packageDotJSON = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), './package.json'), { encoding: 'utf8' }));
 
+const ignoreSideEffects = /[\\\/]debug-build\.ts$/;
+
 export function makeBaseNPMConfig(options = {}) {
   const {
     entrypoints = ['src/index.ts'],
@@ -81,6 +83,17 @@ export function makeBaseNPMConfig(options = {}) {
       freeze: false,
 
       interop: 'esModule',
+    },
+
+    treeshake: {
+      moduleSideEffects: (id, external) => {
+        if (external === false && ignoreSideEffects.test(id)) {
+          // Tell Rollup this module has no side effects, so it can be tree-shaken
+          return false;
+        }
+
+        return true;
+      },
     },
 
     plugins: [nodeResolvePlugin, sucrasePlugin, debugBuildStatementReplacePlugin, rrwebBuildPlugin, cleanupPlugin],
@@ -152,9 +165,14 @@ export function makeOtelLoaders(outputFolder, hookVariant) {
   }
 
   const requiredDep = hookVariant === 'otel' ? '@opentelemetry/instrumentation' : '@sentry/node';
-  const foundImportInTheMiddleDep = Object.keys(packageDotJSON.dependencies ?? {}).some(key => {
-    return key === requiredDep;
-  });
+  const foundImportInTheMiddleDep =
+    Object.keys(packageDotJSON.dependencies ?? {}).some(key => {
+      return key === requiredDep;
+    }) ||
+    Object.keys(packageDotJSON.devDependencies ?? {}).some(key => {
+      return key === requiredDep;
+    });
+
   if (!foundImportInTheMiddleDep) {
     throw new Error(
       `You used the makeOtelLoaders() rollup utility but didn't specify the "${requiredDep}" dependency in ${path.resolve(

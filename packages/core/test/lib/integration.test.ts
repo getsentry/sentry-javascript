@@ -4,7 +4,7 @@ import { addIntegration, getIntegrationsToSetup, installedIntegrations, setupInt
 import { setCurrentClient } from '../../src/sdk';
 import type { Integration } from '../../src/types-hoist/integration';
 import type { Options } from '../../src/types-hoist/options';
-import { logger } from '../../src/utils-hoist/logger';
+import { debug } from '../../src/utils/logger';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
 function getTestClient(): TestClient {
@@ -594,7 +594,7 @@ describe('addIntegration', () => {
   });
 
   it('works with a client setup', () => {
-    const warnings = vi.spyOn(logger, 'warn');
+    const warnings = vi.spyOn(debug, 'warn');
 
     class CustomIntegration implements Integration {
       name = 'test';
@@ -612,7 +612,7 @@ describe('addIntegration', () => {
   });
 
   it('works without a client setup', () => {
-    const warnings = vi.spyOn(logger, 'warn');
+    const warnings = vi.spyOn(debug, 'warn');
     class CustomIntegration implements Integration {
       name = 'test';
       setupOnce = vi.fn();
@@ -653,7 +653,7 @@ describe('addIntegration', () => {
   });
 
   it('does not trigger hooks if already installed', () => {
-    const logs = vi.spyOn(logger, 'log');
+    const logs = vi.spyOn(debug, 'log');
 
     class CustomIntegration implements Integration {
       name = 'test';

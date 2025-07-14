@@ -4,15 +4,16 @@ import type { HttpInstrumentationConfig } from '@opentelemetry/instrumentation-h
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import type { Span } from '@sentry/core';
 import { defineIntegration, getClient, hasSpansEnabled } from '@sentry/core';
-import { NODE_VERSION } from '../../nodeVersion';
-import { generateInstrumentOnce } from '../../otel/instrument';
-import type { NodeClient } from '../../sdk/client';
-import type { HTTPModuleRequestIncomingMessage } from '../../transports/http-module';
+import type { HTTPModuleRequestIncomingMessage, NodeClient } from '@sentry/node-core';
+import {
+  type SentryHttpInstrumentationOptions,
+  addOriginToSpan,
+  generateInstrumentOnce,
+  getRequestUrl,
+  NODE_VERSION,
+  SentryHttpInstrumentation,
+} from '@sentry/node-core';
 import type { NodeClientOptions } from '../../types';
-import { addOriginToSpan } from '../../utils/addOriginToSpan';
-import { getRequestUrl } from '../../utils/getRequestUrl';
-import type { SentryHttpInstrumentationOptions } from './SentryHttpInstrumentation';
-import { SentryHttpInstrumentation } from './SentryHttpInstrumentation';
 
 const INTEGRATION_NAME = 'Http';
 

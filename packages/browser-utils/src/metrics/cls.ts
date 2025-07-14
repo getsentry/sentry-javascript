@@ -1,10 +1,7 @@
-import type { SpanAttributes } from '@sentry/core';
+import type { Client, SpanAttributes } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
-  getActiveSpan,
-  getClient,
   getCurrentScope,
-  getRootSpan,
   htmlTreeAsString,
   logger,
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
@@ -12,12 +9,11 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  spanToJSON,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { addClsInstrumentationHandler } from './instrument';
-import { msToSec, startStandaloneWebVitalSpan } from './utils';
-import { onHidden } from './web-vitals/lib/onHidden';
+import type { WebVitalReportEvent } from './utils';
+import { listenForWebVitalReportEvents, msToSec, startStandaloneWebVitalSpan, supportsWebVital } from './utils';
 
 /**
  * Starts tracking the Cumulative Layout Shift on the current page and collects the value once
@@ -28,25 +24,12 @@ import { onHidden } from './web-vitals/lib/onHidden';
  * Once either of these events triggers, the CLS value is sent as a standalone span and we stop
  * measuring CLS.
  */
-export function trackClsAsStandaloneSpan(): void {
+export function trackClsAsStandaloneSpan(client: Client): void {
   let standaloneCLsValue = 0;
   let standaloneClsEntry: LayoutShift | undefined;
-  let pageloadSpanId: string | undefined;
 
-  if (!supportsLayoutShift()) {
+  if (!supportsWebVital('layout-shift')) {
     return;
-  }
-
-  let sentSpan = false;
-  function _collectClsOnce() {
-    if (sentSpan) {
-      return;
-    }
-    sentSpan = true;
-    if (pageloadSpanId) {
-      sendStandaloneClsSpan(standaloneCLsValue, standaloneClsEntry, pageloadSpanId);
-    }
-    cleanupClsHandler();
   }
 
   const cleanupClsHandler = addClsInstrumentationHandler(({ metric }) => {
@@ -58,39 +41,18 @@ export function trackClsAsStandaloneSpan(): void {
     standaloneClsEntry = entry;
   }, true);
 
-  // TODO: Figure out if we can switch to using whenIdleOrHidden instead of onHidden
-  // use pagehide event from web-vitals
-  onHidden(() => {
-    _collectClsOnce();
+  listenForWebVitalReportEvents(client, (reportEvent, pageloadSpanId) => {
+    sendStandaloneClsSpan(standaloneCLsValue, standaloneClsEntry, pageloadSpanId, reportEvent);
+    cleanupClsHandler();
   });
-
-  // Since the call chain of this function is synchronous and evaluates before the SDK client is created,
-  // we need to wait with subscribing to a client hook until the client is created. Therefore, we defer
-  // to the next tick after the SDK setup.
-  setTimeout(() => {
-    const client = getClient();
-
-    if (!client) {
-      return;
-    }
-
-    const unsubscribeStartNavigation = client.on('startNavigationSpan', () => {
-      _collectClsOnce();
-      unsubscribeStartNavigation?.();
-    });
-
-    const activeSpan = getActiveSpan();
-    if (activeSpan) {
-      const rootSpan = getRootSpan(activeSpan);
-      const spanJSON = spanToJSON(rootSpan);
-      if (spanJSON.op === 'pageload') {
-        pageloadSpanId = rootSpan.spanContext().spanId;
-      }
-    }
-  }, 0);
 }
 
-function sendStandaloneClsSpan(clsValue: number, entry: LayoutShift | undefined, pageloadSpanId: string) {
+function sendStandaloneClsSpan(
+  clsValue: number,
+  entry: LayoutShift | undefined,
+  pageloadSpanId: string,
+  reportEvent: WebVitalReportEvent,
+) {
   DEBUG_BUILD && logger.log(`Sending CLS span (${clsValue})`);
 
   const startTime = msToSec((browserPerformanceTimeOrigin() || 0) + (entry?.startTime || 0));
@@ -104,7 +66,17 @@ function sendStandaloneClsSpan(clsValue: number, entry: LayoutShift | undefined,
     [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: entry?.duration || 0,
     // attach the pageload span id to the CLS span so that we can link them in the UI
     'sentry.pageload.span_id': pageloadSpanId,
+    // describes what triggered the web vital to be reported
+    'sentry.report_event': reportEvent,
   };
+
+  // Add CLS sources as span attributes to help with debugging layout shifts
+  // See: https://developer.mozilla.org/en-US/docs/Web/API/LayoutShift/sources
+  if (entry?.sources) {
+    entry.sources.forEach((source, index) => {
+      attributes[`cls.source.${index + 1}`] = htmlTreeAsString(source.node);
+    });
+  }
 
   const span = startStandaloneWebVitalSpan({
     name,
@@ -122,13 +94,5 @@ function sendStandaloneClsSpan(clsValue: number, entry: LayoutShift | undefined,
     // LayoutShift performance entries always have a duration of 0, so we don't need to add `entry.duration` here
     // see: https://developer.mozilla.org/en-US/docs/Web/API/PerformanceEntry/duration
     span.end(startTime);
-  }
-}
-
-function supportsLayoutShift(): boolean {
-  try {
-    return PerformanceObserver.supportedEntryTypes.includes('layout-shift');
-  } catch {
-    return false;
   }
 }

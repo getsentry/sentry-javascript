@@ -166,6 +166,11 @@ export function ScreenshotEditorFactory({
           );
           setScaleFactor(scale);
         });
+
+        // For Firefox, the canvas is not yet measured, so we need to wait for it to get the correct size
+        if (measurementDiv.clientHeight === 0 || measurementDiv.clientWidth === 0) {
+          setTimeout(handleResize, 0);
+        }
       };
 
       handleResize();

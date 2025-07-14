@@ -2,10 +2,9 @@ import type { UndiciInstrumentationConfig } from '@opentelemetry/instrumentation
 import { UndiciInstrumentation } from '@opentelemetry/instrumentation-undici';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration, getClient, hasSpansEnabled, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
-import { generateInstrumentOnce } from '../../otel/instrument';
-import type { NodeClient } from '../../sdk/client';
+import type { NodeClient } from '@sentry/node-core';
+import { generateInstrumentOnce, SentryNodeFetchInstrumentation } from '@sentry/node-core';
 import type { NodeClientOptions } from '../../types';
-import { SentryNodeFetchInstrumentation } from './SentryNodeFetchInstrumentation';
 
 const INTEGRATION_NAME = 'NodeFetch';
 

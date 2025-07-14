@@ -2,10 +2,9 @@ import type { Integration } from '@sentry/core';
 import { logger } from '@sentry/core';
 import * as SentryOpentelemetry from '@sentry/opentelemetry';
 import { type Mock, type MockInstance, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { getClient } from '../../src/';
+import { getClient, NodeClient, validateOpenTelemetrySetup } from '../../src/';
 import * as auto from '../../src/integrations/tracing';
-import { init, validateOpenTelemetrySetup } from '../../src/sdk';
-import { NodeClient } from '../../src/sdk/client';
+import { init } from '../../src/sdk';
 import { cleanupOtel } from '../helpers/mockSdkInit';
 
 // eslint-disable-next-line no-var
@@ -26,6 +25,9 @@ describe('init()', () => {
 
   beforeEach(() => {
     global.__SENTRY__ = {};
+
+    // prevent the logger from being enabled, resulting in console.log calls
+    vi.spyOn(logger, 'enable').mockImplementation(() => {});
 
     mockAutoPerformanceIntegrations = vi.spyOn(auto, 'getAutoPerformanceIntegrations').mockImplementation(() => []);
   });

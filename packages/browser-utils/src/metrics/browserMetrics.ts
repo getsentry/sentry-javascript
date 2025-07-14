@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import type { Measurements, Span, SpanAttributes, SpanAttributeValue, StartSpanOptions } from '@sentry/core';
+import type { Client, Measurements, Span, SpanAttributes, SpanAttributeValue, StartSpanOptions } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
   getActiveSpan,
@@ -22,6 +22,7 @@ import {
   addPerformanceInstrumentationHandler,
   addTtfbInstrumentationHandler,
 } from './instrument';
+import { trackLcpAsStandaloneSpan } from './lcp';
 import {
   extractNetworkProtocol,
   getBrowserPerformanceAPI,
@@ -81,6 +82,8 @@ let _clsEntry: LayoutShift | undefined;
 
 interface StartTrackingWebVitalsOptions {
   recordClsStandaloneSpans: boolean;
+  recordLcpStandaloneSpans: boolean;
+  client: Client;
 }
 
 /**
@@ -89,7 +92,11 @@ interface StartTrackingWebVitalsOptions {
  *
  * @returns A function that forces web vitals collection
  */
-export function startTrackingWebVitals({ recordClsStandaloneSpans }: StartTrackingWebVitalsOptions): () => void {
+export function startTrackingWebVitals({
+  recordClsStandaloneSpans,
+  recordLcpStandaloneSpans,
+  client,
+}: StartTrackingWebVitalsOptions): () => void {
   const performance = getBrowserPerformanceAPI();
   if (performance && browserPerformanceTimeOrigin()) {
     // @ts-expect-error we want to make sure all of these are available, even if TS is sure they are
@@ -97,13 +104,13 @@ export function startTrackingWebVitals({ recordClsStandaloneSpans }: StartTracki
       WINDOW.performance.mark('sentry-tracing-init');
     }
     const fidCleanupCallback = _trackFID();
-    const lcpCleanupCallback = _trackLCP();
+    const lcpCleanupCallback = recordLcpStandaloneSpans ? trackLcpAsStandaloneSpan(client) : _trackLCP();
     const ttfbCleanupCallback = _trackTtfb();
-    const clsCleanupCallback = recordClsStandaloneSpans ? trackClsAsStandaloneSpan() : _trackCLS();
+    const clsCleanupCallback = recordClsStandaloneSpans ? trackClsAsStandaloneSpan(client) : _trackCLS();
 
     return (): void => {
       fidCleanupCallback();
-      lcpCleanupCallback();
+      lcpCleanupCallback?.();
       ttfbCleanupCallback();
       clsCleanupCallback?.();
     };
@@ -298,10 +305,22 @@ function _trackTtfb(): () => void {
 
 interface AddPerformanceEntriesOptions {
   /**
-   * Flag to determine if CLS should be recorded as a measurement on the span or
+   * Flag to determine if CLS should be recorded as a measurement on the pageload span or
    * sent as a standalone span instead.
+   * Sending it as a standalone span will yield more accurate LCP values.
+   *
+   * Default: `false` for backwards compatibility.
    */
   recordClsOnPageloadSpan: boolean;
+
+  /**
+   * Flag to determine if LCP should be recorded as a measurement on the pageload span or
+   * sent as a standalone span instead.
+   * Sending it as a standalone span will yield more accurate LCP values.
+   *
+   * Default: `false` for backwards compatibility.
+   */
+  recordLcpOnPageloadSpan: boolean;
 
   /**
    * Resource spans with `op`s matching strings in the array will not be emitted.
@@ -418,6 +437,11 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
       delete _measurements.cls;
     }
 
+    // If LCP standalone spans are enabled, don't record LCP as a measurement
+    if (!options.recordLcpOnPageloadSpan) {
+      delete _measurements.lcp;
+    }
+
     Object.entries(_measurements).forEach(([measurementName, measurement]) => {
       setMeasurement(measurementName, measurement.value, measurement.unit);
     });
@@ -433,7 +457,7 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
     // the `activationStart` attribute of the "navigation" PerformanceEntry.
     span.setAttribute('performance.activationStart', getActivationStart());
 
-    _setWebVitalAttributes(span);
+    _setWebVitalAttributes(span, options);
   }
 
   _lcpEntry = undefined;
@@ -693,9 +717,13 @@ export function _addResourceSpans(
 
   attributes['url.same_origin'] = resourceUrl.includes(WINDOW.location.origin);
 
-  const { name, version } = extractNetworkProtocol(entry.nextHopProtocol);
-  attributes['network.protocol.name'] = name;
-  attributes['network.protocol.version'] = version;
+  // Checking for only `undefined` and `null` is intentional because it's
+  // valid for `nextHopProtocol` to be an empty string.
+  if (entry.nextHopProtocol != null) {
+    const { name, version } = extractNetworkProtocol(entry.nextHopProtocol);
+    attributes['network.protocol.name'] = name;
+    attributes['network.protocol.version'] = version;
+  }
 
   const startTimestamp = timeOrigin + startTime;
   const endTimestamp = startTimestamp + duration;
@@ -742,8 +770,9 @@ function _trackNavigator(span: Span): void {
 }
 
 /** Add LCP / CLS data to span to allow debugging */
-function _setWebVitalAttributes(span: Span): void {
-  if (_lcpEntry) {
+function _setWebVitalAttributes(span: Span, options: AddPerformanceEntriesOptions): void {
+  // Only add LCP attributes if LCP is being recorded on the pageload span
+  if (_lcpEntry && options.recordLcpOnPageloadSpan) {
     // Capture Properties of the LCP element that contributes to the LCP.
 
     if (_lcpEntry.element) {
@@ -774,8 +803,8 @@ function _setWebVitalAttributes(span: Span): void {
     span.setAttribute('lcp.size', _lcpEntry.size);
   }
 
-  // See: https://developer.mozilla.org/en-US/docs/Web/API/LayoutShift
-  if (_clsEntry?.sources) {
+  // Only add CLS attributes if CLS is being recorded on the pageload span
+  if (_clsEntry?.sources && options.recordClsOnPageloadSpan) {
     _clsEntry.sources.forEach((source, index) =>
       span.setAttribute(`cls.source.${index + 1}`, htmlTreeAsString(source.node)),
     );

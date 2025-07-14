@@ -10,13 +10,13 @@ import type { Primitive } from './types-hoist/misc';
 import type { Session, SessionContext } from './types-hoist/session';
 import type { SeverityLevel } from './types-hoist/severity';
 import type { User } from './types-hoist/user';
+import { isThenable } from './utils/is';
+import { debug } from './utils/logger';
+import { uuid4 } from './utils/misc';
 import type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
 import { parseEventHintOrCaptureContext } from './utils/prepareEvent';
-import { isThenable } from './utils-hoist/is';
-import { logger } from './utils-hoist/logger';
-import { uuid4 } from './utils-hoist/misc';
-import { timestampInSeconds } from './utils-hoist/time';
-import { GLOBAL_OBJ } from './utils-hoist/worldwide';
+import { timestampInSeconds } from './utils/time';
+import { GLOBAL_OBJ } from './utils/worldwide';
 
 /**
  * Captures an exception event and sends it to Sentry.
@@ -136,9 +136,9 @@ export function captureCheckIn(checkIn: CheckIn, upsertMonitorConfig?: MonitorCo
   const scope = getCurrentScope();
   const client = getClient();
   if (!client) {
-    DEBUG_BUILD && logger.warn('Cannot capture check-in. No client defined.');
+    DEBUG_BUILD && debug.warn('Cannot capture check-in. No client defined.');
   } else if (!client.captureCheckIn) {
-    DEBUG_BUILD && logger.warn('Cannot capture check-in. Client does not support sending check-ins.');
+    DEBUG_BUILD && debug.warn('Cannot capture check-in. Client does not support sending check-ins.');
   } else {
     return client.captureCheckIn(checkIn, upsertMonitorConfig, scope);
   }
@@ -150,6 +150,7 @@ export function captureCheckIn(checkIn: CheckIn, upsertMonitorConfig?: MonitorCo
  * Wraps a callback with a cron monitor check in. The check in will be sent to Sentry when the callback finishes.
  *
  * @param monitorSlug The distinct slug of the monitor.
+ * @param callback Callback to be monitored
  * @param upsertMonitorConfig An optional object that describes a monitor config. Use this if you want
  * to create a monitor automatically when sending a check in.
  */
@@ -175,18 +176,18 @@ export function withMonitor<T>(
     }
 
     if (isThenable(maybePromiseResult)) {
-      Promise.resolve(maybePromiseResult).then(
-        () => {
+      return maybePromiseResult.then(
+        r => {
           finishCheckIn('ok');
+          return r;
         },
         e => {
           finishCheckIn('error');
           throw e;
         },
-      );
-    } else {
-      finishCheckIn('ok');
+      ) as T;
     }
+    finishCheckIn('ok');
 
     return maybePromiseResult;
   });
@@ -205,7 +206,7 @@ export async function flush(timeout?: number): Promise<boolean> {
   if (client) {
     return client.flush(timeout);
   }
-  DEBUG_BUILD && logger.warn('Cannot flush events. No client defined.');
+  DEBUG_BUILD && debug.warn('Cannot flush events. No client defined.');
   return Promise.resolve(false);
 }
 
@@ -222,7 +223,7 @@ export async function close(timeout?: number): Promise<boolean> {
   if (client) {
     return client.close(timeout);
   }
-  DEBUG_BUILD && logger.warn('Cannot flush events and disable SDK. No client defined.');
+  DEBUG_BUILD && debug.warn('Cannot flush events and disable SDK. No client defined.');
   return Promise.resolve(false);
 }
 

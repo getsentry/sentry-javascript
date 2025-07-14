@@ -179,3 +179,27 @@ export function constructFunctionReExport(pathWithQuery: string, entryId: string
       ),
     );
 }
+
+/**
+ * Sets up alias to work around OpenTelemetry's incomplete ESM imports.
+ * https://github.com/getsentry/sentry-javascript/issues/15204
+ *
+ * OpenTelemetry's @opentelemetry/resources package has incomplete imports missing
+ * the .js file extensions (like execAsync for machine-id detection). This causes module resolution
+ * errors in certain Nuxt configurations, particularly when local Nuxt modules in Nuxt 4 are present.
+ *
+ * @see https://nuxt.com/docs/guide/concepts/esm#aliasing-libraries
+ */
+export function addOTelCommonJSImportAlias(nuxt: Nuxt): void {
+  if (!nuxt.options.dev) {
+    return;
+  }
+
+  if (!nuxt.options.alias) {
+    nuxt.options.alias = {};
+  }
+
+  if (!nuxt.options.alias['@opentelemetry/resources']) {
+    nuxt.options.alias['@opentelemetry/resources'] = '@opentelemetry/resources/build/src/index.js';
+  }
+}

@@ -1,10 +1,17 @@
-import { addPlugin, addPluginTemplate, addServerPlugin, createResolver, defineNuxtModule } from '@nuxt/kit';
+import {
+  addPlugin,
+  addPluginTemplate,
+  addServerPlugin,
+  addTemplate,
+  createResolver,
+  defineNuxtModule,
+} from '@nuxt/kit';
 import { consoleSandbox } from '@sentry/core';
 import * as path from 'path';
 import type { SentryNuxtModuleOptions } from './common/types';
 import { addDynamicImportEntryFileWrapper, addSentryTopImport, addServerConfigToBuild } from './vite/addServerConfig';
 import { setupSourceMaps } from './vite/sourceMaps';
-import { findDefaultSdkInitFile } from './vite/utils';
+import { addOTelCommonJSImportAlias, findDefaultSdkInitFile } from './vite/utils';
 
 export type ModuleOptions = SentryNuxtModuleOptions;
 
@@ -42,6 +49,7 @@ export default defineNuxtModule<ModuleOptions>({
       addPluginTemplate({
         mode: 'client',
         filename: 'sentry-client-config.mjs',
+        order: 0,
 
         // Dynamic import of config file to wrap it within a Nuxt context (here: defineNuxtPlugin)
         // Makes it possible to call useRuntimeConfig() in the user-defined sentry config file
@@ -56,18 +64,51 @@ export default defineNuxtModule<ModuleOptions>({
           });`,
       });
 
-      addPlugin({ src: moduleDirResolver.resolve('./runtime/plugins/sentry.client'), mode: 'client' });
+      // Add the plugin which loads client integrations etc. -
+      // this must run after the sentry-client-config plugin has run, and the client is initialized!
+      addPlugin({
+        src: moduleDirResolver.resolve('./runtime/plugins/sentry.client'),
+        mode: 'client',
+        order: 1,
+      });
     }
 
     const serverConfigFile = findDefaultSdkInitFile('server', nuxt);
 
     if (serverConfigFile) {
       addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/sentry.server'));
+
+      addPlugin({
+        src: moduleDirResolver.resolve('./runtime/plugins/route-detector.server'),
+        mode: 'server',
+      });
     }
 
     if (clientConfigFile || serverConfigFile) {
       setupSourceMaps(moduleOptions, nuxt);
     }
+
+    addOTelCommonJSImportAlias(nuxt);
+
+    const pagesDataTemplate = addTemplate({
+      filename: 'sentry--nuxt-pages-data.mjs',
+      // Initial empty array (later filled in pages:extend hook)
+      // Template needs to be created in the root-level of the module to work
+      getContents: () => 'export default [];',
+    });
+
+    nuxt.hooks.hook('pages:extend', pages => {
+      pagesDataTemplate.getContents = () => {
+        const pagesSubset = pages
+          .map(page => ({ file: page.file, path: page.path }))
+          .filter(page => {
+            // Check for dynamic parameter (e.g., :userId or [userId])
+            return page.path.includes(':') || page?.file?.includes('[');
+          });
+
+        return `export default ${JSON.stringify(pagesSubset, null, 2)};`;
+      };
+    });
 
     nuxt.hooks.hook('nitro:init', nitro => {
       if (serverConfigFile?.includes('.server.config')) {

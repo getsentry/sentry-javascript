@@ -1,9 +1,10 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
+// Cannot use @sentry/angular here due to build stuff
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 
 test('sends a pageload transaction with a parameterized URL', async ({ page }) => {
-  const transactionPromise = waitForTransaction('angular-18', async transactionEvent => {
+  const transactionPromise = waitForTransaction('angular-19', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
@@ -26,11 +27,11 @@ test('sends a pageload transaction with a parameterized URL', async ({ page }) =
 });
 
 test('sends a navigation transaction with a parameterized URL', async ({ page }) => {
-  const pageloadTxnPromise = waitForTransaction('angular-18', async transactionEvent => {
+  const pageloadTxnPromise = waitForTransaction('angular-19', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
-  const navigationTxnPromise = waitForTransaction('angular-18', async transactionEvent => {
+  const navigationTxnPromise = waitForTransaction('angular-19', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
   });
 
@@ -55,11 +56,11 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
 });
 
 test('sends a navigation transaction even if the pageload span is still active', async ({ page }) => {
-  const pageloadTxnPromise = waitForTransaction('angular-18', async transactionEvent => {
+  const pageloadTxnPromise = waitForTransaction('angular-19', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
-  const navigationTxnPromise = waitForTransaction('angular-18', async transactionEvent => {
+  const navigationTxnPromise = waitForTransaction('angular-19', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
   });
 
@@ -100,7 +101,7 @@ test('sends a navigation transaction even if the pageload span is still active',
 });
 
 test('groups redirects within one navigation root span', async ({ page }) => {
-  const navigationTxnPromise = waitForTransaction('angular-18', async transactionEvent => {
+  const navigationTxnPromise = waitForTransaction('angular-19', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
   });
 
@@ -130,7 +131,7 @@ test('groups redirects within one navigation root span', async ({ page }) => {
 
 test.describe('finish routing span', () => {
   test('finishes routing span on navigation cancel', async ({ page }) => {
-    const navigationTxnPromise = waitForTransaction('angular-18', async transactionEvent => {
+    const navigationTxnPromise = waitForTransaction('angular-19', async transactionEvent => {
       return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
     });
 
@@ -159,7 +160,7 @@ test.describe('finish routing span', () => {
   });
 
   test('finishes routing span on navigation error', async ({ page }) => {
-    const navigationTxnPromise = waitForTransaction('angular-18', async transactionEvent => {
+    const navigationTxnPromise = waitForTransaction('angular-19', async transactionEvent => {
       return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
     });
 
@@ -192,7 +193,7 @@ test.describe('finish routing span', () => {
 
 test.describe('TraceDirective', () => {
   test('creates a child span with the component name as span name on ngOnInit', async ({ page }) => {
-    const navigationTxnPromise = waitForTransaction('angular-18', async transactionEvent => {
+    const navigationTxnPromise = waitForTransaction('angular-19', async transactionEvent => {
       return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
     });
 
@@ -237,7 +238,7 @@ test.describe('TraceDirective', () => {
 
 test.describe('TraceClass Decorator', () => {
   test('adds init span for decorated class', async ({ page }) => {
-    const navigationTxnPromise = waitForTransaction('angular-18', async transactionEvent => {
+    const navigationTxnPromise = waitForTransaction('angular-19', async transactionEvent => {
       return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
     });
 
@@ -269,7 +270,7 @@ test.describe('TraceClass Decorator', () => {
 
 test.describe('TraceMethod Decorator', () => {
   test('adds name to span description of decorated method `ngOnInit`', async ({ page }) => {
-    const navigationTxnPromise = waitForTransaction('angular-18', async transactionEvent => {
+    const navigationTxnPromise = waitForTransaction('angular-19', async transactionEvent => {
       return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
     });
 
@@ -297,7 +298,7 @@ test.describe('TraceMethod Decorator', () => {
   });
 
   test('adds fallback name to span description of decorated method `ngAfterViewInit`', async ({ page }) => {
-    const navigationTxnPromise = waitForTransaction('angular-18', async transactionEvent => {
+    const navigationTxnPromise = waitForTransaction('angular-19', async transactionEvent => {
       return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
     });
 

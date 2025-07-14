@@ -18,7 +18,7 @@ export interface Props extends Pick<FeedbackInternalOptions, 'showEmail' | 'show
   defaultName: string;
   onFormClose: () => void;
   onSubmit: SendFeedback;
-  onSubmitSuccess: (data: FeedbackFormData) => void;
+  onSubmitSuccess: (data: FeedbackFormData, eventId: string) => void;
   onSubmitError: (error: Error) => void;
   screenshotInput: ReturnType<FeedbackScreenshotIntegration['createInput']> | undefined;
 }
@@ -118,7 +118,7 @@ export function Form({
         }
 
         try {
-          await onSubmit(
+          const eventId = await onSubmit(
             {
               name: data.name,
               email: data.email,
@@ -128,7 +128,7 @@ export function Form({
             },
             { attachments: data.attachments },
           );
-          onSubmitSuccess(data);
+          onSubmitSuccess(data, eventId);
         } catch (error) {
           DEBUG_BUILD && logger.error(error);
           setError(error as string);

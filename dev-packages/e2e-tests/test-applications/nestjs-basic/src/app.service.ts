@@ -1,16 +1,15 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { RpcException } from '@nestjs/microservices';
 import { Cron, SchedulerRegistry } from '@nestjs/schedule';
-import type { MonitorConfig } from '@sentry/core';
 import * as Sentry from '@sentry/nestjs';
 import { SentryCron, SentryTraced } from '@sentry/nestjs';
 
-const monitorConfig: MonitorConfig = {
+const monitorConfig = {
   schedule: {
     type: 'crontab',
     value: '* * * * *',
   },
-};
+} as const;
 
 @Injectable()
 export class AppService {
@@ -85,10 +84,21 @@ export class AppService {
   only supports minute granularity, but we don't want to wait (worst case) a
   full minute for the tests to finish.
   */
-  @Cron('*/5 * * * * *', { name: 'test-cron-error' })
-  @SentryCron('test-cron-error-slug', monitorConfig)
+  @Cron('*/5 * * * * *', { name: 'test-async-cron-error' })
+  @SentryCron('test-async-cron-error-slug', monitorConfig)
   async testCronError() {
-    throw new Error('Test error from cron job');
+    throw new Error('Test error from cron async job');
+  }
+
+  /*
+ Actual cron schedule differs from schedule defined in config because Sentry
+ only supports minute granularity, but we don't want to wait (worst case) a
+ full minute for the tests to finish.
+ */
+  @Cron('*/5 * * * * *', { name: 'test-sync-cron-error' })
+  @SentryCron('test-sync-cron-error-slug', monitorConfig)
+  testSyncCronError() {
+    throw new Error('Test error from cron sync job');
   }
 
   async killTestCron(job: string) {

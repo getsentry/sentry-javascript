@@ -1,5 +1,6 @@
 /* eslint-disable max-lines */
 import type { Client } from './client';
+import { DEBUG_BUILD } from './debug-build';
 import { updateSession } from './session';
 import type { Attachment } from './types-hoist/attachment';
 import type { Breadcrumb } from './types-hoist/breadcrumb';
@@ -15,14 +16,14 @@ import type { SeverityLevel } from './types-hoist/severity';
 import type { Span } from './types-hoist/span';
 import type { PropagationContext } from './types-hoist/tracing';
 import type { User } from './types-hoist/user';
+import { isPlainObject } from './utils/is';
+import { debug } from './utils/logger';
 import { merge } from './utils/merge';
+import { uuid4 } from './utils/misc';
+import { generateTraceId } from './utils/propagationContext';
 import { _getSpanForScope, _setSpanForScope } from './utils/spanOnScope';
-import { isPlainObject } from './utils-hoist/is';
-import { logger } from './utils-hoist/logger';
-import { uuid4 } from './utils-hoist/misc';
-import { generateTraceId } from './utils-hoist/propagationContext';
-import { truncate } from './utils-hoist/string';
-import { dateTimestampInSeconds } from './utils-hoist/time';
+import { truncate } from './utils/string';
+import { dateTimestampInSeconds } from './utils/time';
 
 /**
  * Default value for maximum number of breadcrumbs added to an event.
@@ -573,7 +574,7 @@ export class Scope {
     const eventId = hint?.event_id || uuid4();
 
     if (!this._client) {
-      logger.warn('No client configured on scope - will not capture exception!');
+      DEBUG_BUILD && debug.warn('No client configured on scope - will not capture exception!');
       return eventId;
     }
 
@@ -602,7 +603,7 @@ export class Scope {
     const eventId = hint?.event_id || uuid4();
 
     if (!this._client) {
-      logger.warn('No client configured on scope - will not capture message!');
+      DEBUG_BUILD && debug.warn('No client configured on scope - will not capture message!');
       return eventId;
     }
 
@@ -632,7 +633,7 @@ export class Scope {
     const eventId = hint?.event_id || uuid4();
 
     if (!this._client) {
-      logger.warn('No client configured on scope - will not capture event!');
+      DEBUG_BUILD && debug.warn('No client configured on scope - will not capture event!');
       return eventId;
     }
 
