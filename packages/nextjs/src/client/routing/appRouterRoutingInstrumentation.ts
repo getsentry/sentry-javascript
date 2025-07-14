@@ -87,8 +87,9 @@ const GLOBAL_OBJ_WITH_NEXT_ROUTER = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
 /** Instruments the Next.js app router for navigation. */
 export function appRouterInstrumentNavigation(client: Client): void {
   routerTransitionHandler = (href, navigationType) => {
-    const parameterizedPathname = maybeParameterizeRoute(href);
-    const pathname = parameterizedPathname ?? new URL(href, WINDOW.location.href).pathname;
+    const unparameterizedPathname = new URL(href, WINDOW.location.href).pathname;
+    const parameterizedPathname = maybeParameterizeRoute(unparameterizedPathname);
+    const pathname = parameterizedPathname ?? unparameterizedPathname;
 
     if (navigationRoutingMode === 'router-patch') {
       navigationRoutingMode = 'transition-start-hook';
@@ -99,6 +100,7 @@ export function appRouterInstrumentNavigation(client: Client): void {
       currentNavigationSpan.updateName(pathname);
       currentNavigationSpan.setAttributes({
         'navigation.type': `router.${navigationType}`,
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: parameterizedPathname ? 'route' : 'url',
       });
       currentRouterPatchingNavigationSpanRef.current = undefined;
     } else {
