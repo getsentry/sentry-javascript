@@ -398,7 +398,7 @@ describe('Integration | flush', () => {
             type: 'default',
             category: 'console',
             data: { logger: 'replay' },
-            level: 'info',
+            level: 'log',
             message: '[Replay] Flushing initial segment without checkout.',
           },
         },
