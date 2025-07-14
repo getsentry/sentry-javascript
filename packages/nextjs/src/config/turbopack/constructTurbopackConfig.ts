@@ -19,7 +19,6 @@ export function constructTurbopackConfig({
   routeManifest,
 }: {
   userNextConfig: NextConfigObject;
-  userSentryOptions: SentryBuildOptions;
   routeManifest?: RouteManifest;
 }): TurbopackOptions {
   const newConfig: TurbopackOptions = {
