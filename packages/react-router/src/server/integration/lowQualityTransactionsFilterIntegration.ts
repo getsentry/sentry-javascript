@@ -1,4 +1,4 @@
-import { type Client, type Event, type EventHint, defineIntegration, logger } from '@sentry/core';
+import { type Client, type Event, type EventHint, debug, defineIntegration } from '@sentry/core';
 import type { NodeOptions } from '@sentry/node';
 
 /**
@@ -23,7 +23,7 @@ function _lowQualityTransactionsFilterIntegration(options: NodeOptions): {
       const transaction = event.transaction;
 
       if (matchedRegexes.some(regex => transaction.match(regex))) {
-        options.debug && logger.log('[ReactRouter] Filtered node_modules transaction:', event.transaction);
+        options.debug && debug.log('[ReactRouter] Filtered node_modules transaction:', event.transaction);
         return null;
       }
 
