@@ -1,6 +1,12 @@
 import { RPCType } from '@opentelemetry/core';
 import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
-import { getActiveSpan, getRootSpan, getTraceMetaTags, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import {
+  getActiveSpan,
+  getRootSpan,
+  getTraceMetaTags,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+} from '@sentry/core';
 import { PassThrough } from 'stream';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { getMetaTagTransformer, wrapSentryHandleRequest } from '../../src/server/wrapSentryHandleRequest';
@@ -13,6 +19,7 @@ vi.mock('@opentelemetry/core', () => ({
 vi.mock('@sentry/core', () => ({
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE: 'sentry.source',
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME: 'sentry.custom-span-name',
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN: 'sentry.origin',
   getActiveSpan: vi.fn(),
   getRootSpan: vi.fn(),
   getTraceMetaTags: vi.fn(),
@@ -70,8 +77,8 @@ describe('wrapSentryHandleRequest', () => {
     expect(getRootSpan).toHaveBeenCalledWith(mockActiveSpan);
     expect(mockRootSpan.setAttributes).toHaveBeenCalledWith({
       [ATTR_HTTP_ROUTE]: '/some-path',
-      'sentry.custom-span-name': 'GET /some-path',
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react-router.request-handler',
     });
     expect(mockRpcMetadata.route).toBe('/some-path');
   });
