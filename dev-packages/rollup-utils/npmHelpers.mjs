@@ -93,7 +93,7 @@ export function makeBaseNPMConfig(options = {}) {
         }
 
         return true;
-      }
+      },
     },
 
     plugins: [nodeResolvePlugin, sucrasePlugin, debugBuildStatementReplacePlugin, rrwebBuildPlugin, cleanupPlugin],
