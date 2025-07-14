@@ -315,14 +315,15 @@ function getFinalConfigObject(
     webpack: !isTurbopack
       ? constructWebpackConfigFunction(incomingUserNextConfigObject, userSentryOptions, releaseName, routeManifest)
       : undefined,
-    turbopack:
-      isTurbopackSupported && isTurbopack
-        ? constructTurbopackConfig({
+    ...(isTurbopackSupported && isTurbopack
+      ? {
+          turbopack: constructTurbopackConfig({
             userNextConfig: incomingUserNextConfigObject,
             userSentryOptions,
             routeManifest,
-          })
-        : undefined,
+          }),
+        }
+      : {}),
   };
 }
 
