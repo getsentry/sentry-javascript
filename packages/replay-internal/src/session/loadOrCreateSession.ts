@@ -1,6 +1,6 @@
 import { DEBUG_BUILD } from '../debug-build';
 import type { Session, SessionOptions } from '../types';
-import { logger } from '../util/logger';
+import { debug } from '../util/logger';
 import { createSession } from './createSession';
 import { fetchSession } from './fetchSession';
 import { shouldRefreshSession } from './shouldRefreshSession';
@@ -25,7 +25,7 @@ export function loadOrCreateSession(
 
   // No session exists yet, just create a new one
   if (!existingSession) {
-    DEBUG_BUILD && logger.infoTick('Creating new session');
+    DEBUG_BUILD && debug.infoTick('Creating new session');
     return createSession(sessionOptions, { previousSessionId });
   }
 
@@ -33,6 +33,6 @@ export function loadOrCreateSession(
     return existingSession;
   }
 
-  DEBUG_BUILD && logger.infoTick('Session in sessionStorage is expired, creating new one...');
+  DEBUG_BUILD && debug.infoTick('Session in sessionStorage is expired, creating new one...');
   return createSession(sessionOptions, { previousSessionId: existingSession.id });
 }
