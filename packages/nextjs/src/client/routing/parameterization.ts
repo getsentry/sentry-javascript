@@ -1,4 +1,5 @@
-import { GLOBAL_OBJ } from '@sentry/core';
+import { GLOBAL_OBJ, logger } from '@sentry/core';
+import { DEBUG_BUILD } from '../../common/debug-build';
 import type { RouteManifest } from '../../config/manifest/types';
 
 const globalWithInjectedManifest = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
@@ -59,6 +60,7 @@ export const maybeParameterizeRoute = (route: string): string | undefined => {
       return undefined;
     }
   } catch (error) {
+    DEBUG_BUILD && logger.warn('Could not extract route manifest');
     // Something went wrong while parsing the manifest, so we'll fallback to no parameterization
     return undefined;
   }
