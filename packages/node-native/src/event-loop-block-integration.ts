@@ -229,13 +229,18 @@ export function disableBlockDetectionForCallback<T>(callback: () => T | Promise<
 
   integration.stop();
 
-  const result = callback();
-  if (isPromise(result)) {
-    return result.finally(() => integration.start());
-  }
+  try {
+    const result = callback();
+    if (isPromise(result)) {
+      return result.finally(() => integration.start());
+    }
 
-  integration.start();
-  return result;
+    integration.start();
+    return result;
+  } catch (error) {
+    integration.start();
+    throw error;
+  }
 }
 
 /**
