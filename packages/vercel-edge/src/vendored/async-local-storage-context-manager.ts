@@ -27,7 +27,7 @@
 
 import type { Context } from '@opentelemetry/api';
 import { ROOT_CONTEXT } from '@opentelemetry/api';
-import { GLOBAL_OBJ, logger } from '@sentry/core';
+import { debug, GLOBAL_OBJ } from '@sentry/core';
 import type { AsyncLocalStorage } from 'async_hooks';
 import { DEBUG_BUILD } from '../debug-build';
 import { AbstractAsyncHooksContextManager } from './abstract-async-hooks-context-manager';
@@ -42,7 +42,7 @@ export class AsyncLocalStorageContextManager extends AbstractAsyncHooksContextMa
 
     if (!MaybeGlobalAsyncLocalStorageConstructor) {
       DEBUG_BUILD &&
-        logger.warn(
+        debug.warn(
           "Tried to register AsyncLocalStorage async context strategy in a runtime that doesn't support AsyncLocalStorage.",
         );
 

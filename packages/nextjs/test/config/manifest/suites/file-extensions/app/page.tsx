@@ -1,0 +1,1 @@
+// Root page - TypeScript JSX
