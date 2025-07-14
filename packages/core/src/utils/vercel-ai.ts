@@ -3,12 +3,14 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '
 import type { Event } from '../types-hoist/event';
 import type { Span, SpanAttributes, SpanJSON, SpanOrigin } from '../types-hoist/span';
 import { spanToJSON } from './spanUtils';
+import type { ProviderMetadata } from './vercel-ai-attributes';
 import {
   AI_MODEL_ID_ATTRIBUTE,
   AI_MODEL_PROVIDER_ATTRIBUTE,
   AI_PROMPT_ATTRIBUTE,
   AI_PROMPT_MESSAGES_ATTRIBUTE,
   AI_PROMPT_TOOLS_ATTRIBUTE,
+  AI_RESPONSE_PROVIDER_METADATA_ATTRIBUTE,
   AI_RESPONSE_TEXT_ATTRIBUTE,
   AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
   AI_TELEMETRY_FUNCTION_ID_ATTRIBUTE,
@@ -95,6 +97,8 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
 
   renameAttributeKey(attributes, AI_TOOL_CALL_ARGS_ATTRIBUTE, 'gen_ai.tool.input');
   renameAttributeKey(attributes, AI_TOOL_CALL_RESULT_ATTRIBUTE, 'gen_ai.tool.output');
+
+  addProviderMetadataToAttributes(attributes);
 
   // Change attributes namespaced with `ai.X` to `vercel.ai.X`
   for (const key of Object.keys(attributes)) {
@@ -233,4 +237,40 @@ export function addVercelAiProcessors(client: Client): void {
   client.on('spanStart', onVercelAiSpanStart);
   // Note: We cannot do this on `spanEnd`, because the span cannot be mutated anymore at this point
   client.addEventProcessor(Object.assign(vercelAiEventProcessor, { id: 'VercelAiEventProcessor' }));
+}
+
+function addProviderMetadataToAttributes(attributes: SpanAttributes): void {
+  const providerMetadata = attributes[AI_RESPONSE_PROVIDER_METADATA_ATTRIBUTE] as string | undefined;
+  if (providerMetadata) {
+    try {
+      const providerMetadataObject = JSON.parse(providerMetadata) as ProviderMetadata;
+      if (providerMetadataObject.openai) {
+        attributes['gen_ai.usage.input_tokens.cached'] = providerMetadataObject.openai.cachedPromptTokens;
+        attributes['gen_ai.usage.output_tokens.reasoning'] = providerMetadataObject.openai.reasoningTokens;
+        attributes['gen_ai.usage.output_tokens.prediction_accepted'] =
+          providerMetadataObject.openai.acceptedPredictionTokens;
+        attributes['gen_ai.usage.output_tokens.prediction_rejected'] =
+          providerMetadataObject.openai.rejectedPredictionTokens;
+        attributes['gen_ai.conversation.id'] = providerMetadataObject.openai.responseId;
+      }
+
+      if (providerMetadataObject.anthropic) {
+        attributes['gen_ai.usage.input_tokens.cached'] = providerMetadataObject.anthropic.cacheReadInputTokens;
+        attributes['gen_ai.usage.input_tokens.cache_write'] = providerMetadataObject.anthropic.cacheCreationInputTokens;
+      }
+
+      if (providerMetadataObject.bedrock?.usage) {
+        attributes['gen_ai.usage.input_tokens.cached'] = providerMetadataObject.bedrock.usage.cacheReadInputTokens;
+        attributes['gen_ai.usage.input_tokens.cache_write'] =
+          providerMetadataObject.bedrock.usage.cacheWriteInputTokens;
+      }
+
+      if (providerMetadataObject.deepseek) {
+        attributes['gen_ai.usage.input_tokens.cached'] = providerMetadataObject.deepseek.promptCacheHitTokens;
+        attributes['gen_ai.usage.input_tokens.cache_miss'] = providerMetadataObject.deepseek.promptCacheMissTokens;
+      }
+    } catch {
+      // Ignore
+    }
+  }
 }
