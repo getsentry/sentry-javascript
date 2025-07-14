@@ -1,13 +1,5 @@
 import type { ClientOptions, Context, SerializedTraceData } from '@sentry/core';
-import {
-  captureException,
-  flush,
-  getClient,
-  getTraceMetaTags,
-  GLOBAL_OBJ,
-  logger,
-  vercelWaitUntil,
-} from '@sentry/core';
+import { captureException, debug, flush, getClient, getTraceMetaTags, GLOBAL_OBJ, vercelWaitUntil } from '@sentry/core';
 import type { VueOptions } from '@sentry/vue/src/types';
 import type { CapturedErrorContext } from 'nitropack/types';
 import type { NuxtRenderHTMLContext } from 'nuxt/app';
@@ -45,14 +37,14 @@ export function addSentryTracingMetaTags(head: NuxtRenderHTMLContext['head'], tr
   const metaTags = getTraceMetaTags(traceData);
 
   if (head.some(tag => tag.includes('meta') && tag.includes('sentry-trace'))) {
-    logger.warn(
+    debug.warn(
       'Skipping addition of meta tags. Sentry tracing meta tags are already present in HTML page. Make sure to only set up Sentry once on the server-side. ',
     );
     return;
   }
 
   if (metaTags) {
-    logger.log('Adding Sentry tracing meta tags to HTML page:', metaTags);
+    debug.log('Adding Sentry tracing meta tags to HTML page:', metaTags);
     head.push(metaTags);
   }
 }
@@ -96,11 +88,11 @@ export function reportNuxtError(options: {
 
 async function flushWithTimeout(): Promise<void> {
   try {
-    logger.log('Flushing events...');
+    debug.log('Flushing events...');
     await flush(2000);
-    logger.log('Done flushing events');
+    debug.log('Done flushing events');
   } catch (e) {
-    logger.log('Error while flushing events:\n', e);
+    debug.log('Error while flushing events:\n', e);
   }
 }
 
