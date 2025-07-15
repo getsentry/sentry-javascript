@@ -3,15 +3,17 @@ import { diag } from '@opentelemetry/api';
 import type { HttpInstrumentationConfig } from '@opentelemetry/instrumentation-http';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import type { Span } from '@sentry/core';
-import { defineIntegration, getClient } from '@sentry/core';
-import { generateInstrumentOnce } from '../../otel/instrument';
-import type { NodeClient } from '../../sdk/client';
-import type { HTTPModuleRequestIncomingMessage } from '../../transports/http-module';
+import { defineIntegration, getClient, hasSpansEnabled } from '@sentry/core';
+import type { HTTPModuleRequestIncomingMessage, NodeClient } from '@sentry/node-core';
+import {
+  type SentryHttpInstrumentationOptions,
+  addOriginToSpan,
+  generateInstrumentOnce,
+  getRequestUrl,
+  NODE_VERSION,
+  SentryHttpInstrumentation,
+} from '@sentry/node-core';
 import type { NodeClientOptions } from '../../types';
-import { addOriginToSpan } from '../../utils/addOriginToSpan';
-import { getRequestUrl } from '../../utils/getRequestUrl';
-import type { SentryHttpInstrumentationOptions } from './SentryHttpInstrumentation';
-import { SentryHttpInstrumentation } from './SentryHttpInstrumentation';
 
 const INTEGRATION_NAME = 'Http';
 
@@ -77,7 +79,7 @@ interface HttpOptions {
    * By default, spans with 404 status code are ignored.
    * Expects an array of status codes or a range of status codes, e.g. [[300,399], 404] would ignore 3xx and 404 status codes.
    *
-   * @default `[404]`
+   * @default `[[401, 404], [300, 399]]`
    */
   dropSpansForIncomingRequestStatusCodes?: (number | [number, number])[];
 
@@ -85,10 +87,26 @@ interface HttpOptions {
    * Do not capture the request body for incoming HTTP requests to URLs where the given callback returns `true`.
    * This can be useful for long running requests where the body is not needed and we want to avoid capturing it.
    *
-   * @param url Contains the entire URL, including query string (if any), protocol, host, etc. of the outgoing request.
-   * @param request Contains the {@type RequestOptions} object used to make the outgoing request.
+   * @param url Contains the entire URL, including query string (if any), protocol, host, etc. of the incoming request.
+   * @param request Contains the {@type RequestOptions} object used to make the incoming request.
    */
   ignoreIncomingRequestBody?: (url: string, request: RequestOptions) => boolean;
+
+  /**
+   * Controls the maximum size of incoming HTTP request bodies attached to events.
+   *
+   * Available options:
+   * - 'none': No request bodies will be attached
+   * - 'small': Request bodies up to 1,000 bytes will be attached
+   * - 'medium': Request bodies up to 10,000 bytes will be attached (default)
+   * - 'always': Request bodies will always be attached
+   *
+   * Note that even with 'always' setting, bodies exceeding 1MB will never be attached
+   * for performance and security reasons.
+   *
+   * @default 'medium'
+   */
+  maxIncomingRequestBodySize?: 'none' | 'small' | 'medium' | 'always';
 
   /**
    * If true, do not generate spans for incoming requests at all.
@@ -143,8 +161,22 @@ export const instrumentOtelHttp = generateInstrumentOnce<HttpInstrumentationConf
 /** Exported only for tests. */
 export function _shouldInstrumentSpans(options: HttpOptions, clientOptions: Partial<NodeClientOptions> = {}): boolean {
   // If `spans` is passed in, it takes precedence
-  // Else, we by default emit spans, unless `skipOpenTelemetrySetup` is set to `true`
-  return typeof options.spans === 'boolean' ? options.spans : !clientOptions.skipOpenTelemetrySetup;
+  // Else, we by default emit spans, unless `skipOpenTelemetrySetup` is set to `true` or spans are not enabled
+  if (typeof options.spans === 'boolean') {
+    return options.spans;
+  }
+
+  if (clientOptions.skipOpenTelemetrySetup) {
+    return false;
+  }
+
+  // IMPORTANT: We only disable span instrumentation when spans are not enabled _and_ we are on Node 22+,
+  // as otherwise the necessary diagnostics channel is not available yet
+  if (!hasSpansEnabled(clientOptions) && NODE_VERSION.major >= 22) {
+    return false;
+  }
+
+  return true;
 }
 
 /**
@@ -152,7 +184,10 @@ export function _shouldInstrumentSpans(options: HttpOptions, clientOptions: Part
  * It creates breadcrumbs and spans for outgoing HTTP requests which will be attached to the currently active span.
  */
 export const httpIntegration = defineIntegration((options: HttpOptions = {}) => {
-  const dropSpansForIncomingRequestStatusCodes = options.dropSpansForIncomingRequestStatusCodes ?? [404];
+  const dropSpansForIncomingRequestStatusCodes = options.dropSpansForIncomingRequestStatusCodes ?? [
+    [401, 404],
+    [300, 399],
+  ];
 
   return {
     name: INTEGRATION_NAME,

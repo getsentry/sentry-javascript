@@ -29,6 +29,18 @@ const port = 3030;
 
 app.use(mcpRouter);
 
+app.get('/crash-in-with-monitor/:id', async (req, res) => {
+  try {
+    await Sentry.withMonitor('express-crash', async () => {
+      throw new Error(`This is an exception withMonitor: ${req.params.id}`);
+    });
+    res.sendStatus(200);
+  } catch (error: any) {
+    res.status(500);
+    res.send({ message: error.message, pid: process.pid });
+  }
+});
+
 app.get('/test-success', function (req, res) {
   res.send({ version: 'v1' });
 });
@@ -131,8 +143,8 @@ export const appRouter = t.router({
     .mutation(() => {
       throw new Error('I crashed in a trpc handler');
     }),
-  unauthorized: procedure.mutation(() => {
-    throw new TRPCError({ code: 'UNAUTHORIZED', cause: new Error('Unauthorized') });
+  badRequest: procedure.mutation(() => {
+    throw new TRPCError({ code: 'BAD_REQUEST', cause: new Error('Bad Request') });
   }),
 });
 

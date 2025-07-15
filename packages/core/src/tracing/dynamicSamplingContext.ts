@@ -9,13 +9,11 @@ import {
 } from '../semanticAttributes';
 import type { DynamicSamplingContext } from '../types-hoist/envelope';
 import type { Span } from '../types-hoist/span';
+import { baggageHeaderToDynamicSamplingContext, dynamicSamplingContextToSentryBaggageHeader } from '../utils/baggage';
+import { extractOrgIdFromDsnHost } from '../utils/dsn';
 import { hasSpansEnabled } from '../utils/hasSpansEnabled';
+import { addNonEnumerableProperty } from '../utils/object';
 import { getRootSpan, spanIsSampled, spanToJSON } from '../utils/spanUtils';
-import {
-  baggageHeaderToDynamicSamplingContext,
-  dynamicSamplingContextToSentryBaggageHeader,
-} from '../utils-hoist/baggage';
-import { addNonEnumerableProperty } from '../utils-hoist/object';
 import { getCapturedScopesOnSpan } from './utils';
 
 /**
@@ -44,7 +42,14 @@ export function freezeDscOnSpan(span: Span, dsc: Partial<DynamicSamplingContext>
 export function getDynamicSamplingContextFromClient(trace_id: string, client: Client): DynamicSamplingContext {
   const options = client.getOptions();
 
-  const { publicKey: public_key } = client.getDsn() || {};
+  const { publicKey: public_key, host } = client.getDsn() || {};
+
+  let org_id: string | undefined;
+  if (options.orgId) {
+    org_id = String(options.orgId);
+  } else if (host) {
+    org_id = extractOrgIdFromDsnHost(host);
+  }
 
   // Instead of conditionally adding non-undefined values, we add them and then remove them if needed
   // otherwise, the order of baggage entries changes, which "breaks" a bunch of tests etc.
@@ -53,6 +58,7 @@ export function getDynamicSamplingContextFromClient(trace_id: string, client: Cl
     release: options.release,
     public_key,
     trace_id,
+    org_id,
   };
 
   client.emit('createDsc', dsc);

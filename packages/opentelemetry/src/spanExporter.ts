@@ -14,6 +14,7 @@ import type {
 import {
   captureEvent,
   convertSpanLinksForEnvelope,
+  debounce,
   getCapturedScopesOnSpan,
   getDynamicSamplingContextFromSpan,
   getStatusMessage,
@@ -49,8 +50,6 @@ interface FinishedSpanBucket {
  * A Sentry-specific exporter that converts OpenTelemetry Spans to Sentry Spans & Transactions.
  */
 export class SentrySpanExporter {
-  private _flushTimeout: ReturnType<typeof setTimeout> | undefined;
-
   /*
    * A quick explanation on the buckets: We do bucketing of finished spans for efficiency. This span exporter is
    * accumulating spans until a root span is encountered and then it flushes all the spans that are descendants of that
@@ -71,6 +70,11 @@ export class SentrySpanExporter {
   private _finishedSpanBucketSize: number;
   private _spansToBucketEntry: WeakMap<ReadableSpan, FinishedSpanBucket>;
   private _lastCleanupTimestampInS: number;
+  // Essentially a a set of span ids that are already sent. The values are expiration
+  // times in this cache so we don't hold onto them indefinitely.
+  private _sentSpans: Map<string, number>;
+  /* Internally, we use a debounced flush to give some wiggle room to the span processor to accumulate more spans. */
+  private _debouncedFlush: ReturnType<typeof debounce>;
 
   public constructor(options?: {
     /** Lower bound of time in seconds until spans that are buffered but have not been sent as part of a transaction get cleared from memory. */
@@ -80,9 +84,14 @@ export class SentrySpanExporter {
     this._finishedSpanBuckets = new Array(this._finishedSpanBucketSize).fill(undefined);
     this._lastCleanupTimestampInS = Math.floor(Date.now() / 1000);
     this._spansToBucketEntry = new WeakMap();
+    this._sentSpans = new Map<string, number>();
+    this._debouncedFlush = debounce(this.flush.bind(this), 1, { maxWait: 100 });
   }
 
-  /** Export a single span. */
+  /**
+   * Export a single span.
+   * This is called by the span processor whenever a span is ended.
+   */
   public export(span: ReadableSpan): void {
     const currentTimestampInS = Math.floor(Date.now() / 1000);
 
@@ -113,113 +122,130 @@ export class SentrySpanExporter {
     this._spansToBucketEntry.set(span, currentBucket);
 
     // If the span doesn't have a local parent ID (it's a root span), we're gonna flush all the ended spans
-    if (!getLocalParentId(span)) {
-      this._clearTimeout();
-
-      // If we got a parent span, we try to send the span tree
-      // Wait a tick for this, to ensure we avoid race conditions
-      this._flushTimeout = setTimeout(() => {
-        this.flush();
-      }, 1);
+    const localParentId = getLocalParentId(span);
+    if (!localParentId || this._sentSpans.has(localParentId)) {
+      this._debouncedFlush();
     }
   }
 
-  /** Try to flush any pending spans immediately. */
+  /**
+   * Try to flush any pending spans immediately.
+   * This is called internally by the exporter (via _debouncedFlush),
+   * but can also be triggered externally if we force-flush.
+   */
   public flush(): void {
-    this._clearTimeout();
+    const finishedSpans = this._finishedSpanBuckets.flatMap(bucket => (bucket ? Array.from(bucket.spans) : []));
 
-    const finishedSpans: ReadableSpan[] = [];
-    this._finishedSpanBuckets.forEach(bucket => {
-      if (bucket) {
-        finishedSpans.push(...bucket.spans);
-      }
-    });
-
-    const sentSpans = maybeSend(finishedSpans);
+    this._flushSentSpanCache();
+    const sentSpans = this._maybeSend(finishedSpans);
 
     const sentSpanCount = sentSpans.size;
-
     const remainingOpenSpanCount = finishedSpans.length - sentSpanCount;
-
     DEBUG_BUILD &&
       logger.log(
         `SpanExporter exported ${sentSpanCount} spans, ${remainingOpenSpanCount} spans are waiting for their parent spans to finish`,
       );
 
-    sentSpans.forEach(span => {
+    const expirationDate = Date.now() + DEFAULT_TIMEOUT * 1000;
+
+    for (const span of sentSpans) {
+      this._sentSpans.set(span.spanContext().spanId, expirationDate);
       const bucketEntry = this._spansToBucketEntry.get(span);
       if (bucketEntry) {
         bucketEntry.spans.delete(span);
       }
-    });
+    }
+    // Cancel a pending debounced flush, if there is one
+    // This can be relevant if we directly flush, circumventing the debounce
+    // in that case, we want to cancel any pending debounced flush
+    this._debouncedFlush.cancel();
   }
 
-  /** Clear the exporter. */
+  /**
+   * Clear the exporter.
+   * This is called when the span processor is shut down.
+   */
   public clear(): void {
     this._finishedSpanBuckets = this._finishedSpanBuckets.fill(undefined);
-    this._clearTimeout();
+    this._sentSpans.clear();
+    this._debouncedFlush.cancel();
   }
 
-  /** Clear the flush timeout. */
-  private _clearTimeout(): void {
-    if (this._flushTimeout) {
-      clearTimeout(this._flushTimeout);
-      this._flushTimeout = undefined;
+  /**
+   * Send the given spans, but only if they are part of a finished transaction.
+   *
+   * Returns the sent spans.
+   * Spans remain unsent when their parent span is not yet finished.
+   * This will happen regularly, as child spans are generally finished before their parents.
+   * But it _could_ also happen because, for whatever reason, a parent span was lost.
+   * In this case, we'll eventually need to clean this up.
+   */
+  private _maybeSend(spans: ReadableSpan[]): Set<ReadableSpan> {
+    const grouped = groupSpansWithParents(spans);
+    const sentSpans = new Set<ReadableSpan>();
+
+    const rootNodes = this._getCompletedRootNodes(grouped);
+
+    for (const root of rootNodes) {
+      const span = root.span;
+      sentSpans.add(span);
+      const transactionEvent = createTransactionForOtelSpan(span);
+
+      // Add an attribute to the transaction event to indicate that this transaction is an orphaned transaction
+      if (root.parentNode && this._sentSpans.has(root.parentNode.id)) {
+        const traceData = transactionEvent.contexts?.trace?.data;
+        if (traceData) {
+          traceData['sentry.parent_span_already_sent'] = true;
+        }
+      }
+
+      // We'll recursively add all the child spans to this array
+      const spans = transactionEvent.spans || [];
+
+      for (const child of root.children) {
+        createAndFinishSpanForOtelSpan(child, spans, sentSpans);
+      }
+
+      // spans.sort() mutates the array, but we do not use this anymore after this point
+      // so we can safely mutate it here
+      transactionEvent.spans =
+        spans.length > MAX_SPAN_COUNT
+          ? spans.sort((a, b) => a.start_timestamp - b.start_timestamp).slice(0, MAX_SPAN_COUNT)
+          : spans;
+
+      const measurements = timedEventsToMeasurements(span.events);
+      if (measurements) {
+        transactionEvent.measurements = measurements;
+      }
+
+      captureEvent(transactionEvent);
+    }
+
+    return sentSpans;
+  }
+
+  /** Remove "expired" span id entries from the _sentSpans cache. */
+  private _flushSentSpanCache(): void {
+    const currentTimestamp = Date.now();
+    // Note, it is safe to delete items from the map as we go: https://stackoverflow.com/a/35943995/90297
+    for (const [spanId, expirationTime] of this._sentSpans.entries()) {
+      if (expirationTime <= currentTimestamp) {
+        this._sentSpans.delete(spanId);
+      }
     }
   }
-}
 
-/**
- * Send the given spans, but only if they are part of a finished transaction.
- *
- * Returns the sent spans.
- * Spans remain unsent when their parent span is not yet finished.
- * This will happen regularly, as child spans are generally finished before their parents.
- * But it _could_ also happen because, for whatever reason, a parent span was lost.
- * In this case, we'll eventually need to clean this up.
- */
-function maybeSend(spans: ReadableSpan[]): Set<ReadableSpan> {
-  const grouped = groupSpansWithParents(spans);
-  const sentSpans = new Set<ReadableSpan>();
+  /** Check if a node is a completed root node or a node whose parent has already been sent */
+  private _nodeIsCompletedRootNodeOrHasSentParent(node: SpanNode): node is SpanNodeCompleted {
+    return !!node.span && (!node.parentNode || this._sentSpans.has(node.parentNode.id));
+  }
 
-  const rootNodes = getCompletedRootNodes(grouped);
-
-  rootNodes.forEach(root => {
-    const span = root.span;
-    sentSpans.add(span);
-    const transactionEvent = createTransactionForOtelSpan(span);
-
-    // We'll recursively add all the child spans to this array
-    const spans = transactionEvent.spans || [];
-
-    root.children.forEach(child => {
-      createAndFinishSpanForOtelSpan(child, spans, sentSpans);
-    });
-
-    // spans.sort() mutates the array, but we do not use this anymore after this point
-    // so we can safely mutate it here
-    transactionEvent.spans =
-      spans.length > MAX_SPAN_COUNT
-        ? spans.sort((a, b) => a.start_timestamp - b.start_timestamp).slice(0, MAX_SPAN_COUNT)
-        : spans;
-
-    const measurements = timedEventsToMeasurements(span.events);
-    if (measurements) {
-      transactionEvent.measurements = measurements;
-    }
-
-    captureEvent(transactionEvent);
-  });
-
-  return sentSpans;
-}
-
-function nodeIsCompletedRootNode(node: SpanNode): node is SpanNodeCompleted {
-  return !!node.span && !node.parentNode;
-}
-
-function getCompletedRootNodes(nodes: SpanNode[]): SpanNodeCompleted[] {
-  return nodes.filter(nodeIsCompletedRootNode);
+  /** Get all completed root nodes from a list of nodes */
+  private _getCompletedRootNodes(nodes: SpanNode[]): SpanNodeCompleted[] {
+    // TODO: We should be able to remove the explicit `node is SpanNodeCompleted` type guard
+    //       once we stop supporting TS < 5.5
+    return nodes.filter((node): node is SpanNodeCompleted => this._nodeIsCompletedRootNodeOrHasSentParent(node));
+  }
 }
 
 function parseSpan(span: ReadableSpan): { op?: string; origin?: SpanOrigin; source?: TransactionSource } {

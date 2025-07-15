@@ -12,15 +12,13 @@
   },
   "dependencies": {
     "@sentry/node": "latest || *",
-    "@sentry/core": "latest || *",
-    "@sentry/opentelemetry": "latest || *",
     "@types/node": "^18.19.1",
     "fastify": "3.29.5",
     "typescript": "~5.0.0",
     "ts-node": "10.9.1"
   },
   "devDependencies": {
-    "@playwright/test": "~1.50.0",
+    "@playwright/test": "~1.53.2",
     "@sentry-internal/test-utils": "link:../../../test-utils"
   },
   "volta": {

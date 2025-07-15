@@ -1,13 +1,14 @@
 import { getClient } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
+import { addConsoleInstrumentationHandler } from '../instrument/console';
 import { defineIntegration } from '../integration';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import type { ConsoleLevel } from '../types-hoist/instrument';
 import type { IntegrationFn } from '../types-hoist/integration';
-import { addConsoleInstrumentationHandler } from '../utils-hoist/instrument/console';
-import { CONSOLE_LEVELS, logger } from '../utils-hoist/logger';
-import { safeJoin } from '../utils-hoist/string';
-import { GLOBAL_OBJ } from '../utils-hoist/worldwide';
+import { isPrimitive } from '../utils/is';
+import { CONSOLE_LEVELS, debug } from '../utils/logger';
+import { normalize } from '../utils/normalize';
+import { GLOBAL_OBJ } from '../utils/worldwide';
 import { _INTERNAL_captureLog } from './exports';
 
 interface CaptureConsoleOptions {
@@ -32,8 +33,9 @@ const _consoleLoggingIntegration = ((options: Partial<CaptureConsoleOptions> = {
   return {
     name: INTEGRATION_NAME,
     setup(client) {
-      if (!client.getOptions()._experiments?.enableLogs) {
-        DEBUG_BUILD && logger.warn('`_experiments.enableLogs` is not enabled, ConsoleLogs integration disabled');
+      const { _experiments, normalizeDepth = 3, normalizeMaxBreadth = 1_000 } = client.getOptions();
+      if (!_experiments?.enableLogs) {
+        DEBUG_BUILD && debug.warn('`_experiments.enableLogs` is not enabled, ConsoleLogs integration disabled');
         return;
       }
 
@@ -45,9 +47,11 @@ const _consoleLoggingIntegration = ((options: Partial<CaptureConsoleOptions> = {
         if (level === 'assert') {
           if (!args[0]) {
             const followingArgs = args.slice(1);
-            const message =
-              followingArgs.length > 0 ? `Assertion failed: ${formatConsoleArgs(followingArgs)}` : 'Assertion failed';
-            _INTERNAL_captureLog({ level: 'error', message, attributes: DEFAULT_ATTRIBUTES });
+            const assertionMessage =
+              followingArgs.length > 0
+                ? `Assertion failed: ${formatConsoleArgs(followingArgs, normalizeDepth, normalizeMaxBreadth)}`
+                : 'Assertion failed';
+            _INTERNAL_captureLog({ level: 'error', message: assertionMessage, attributes: DEFAULT_ATTRIBUTES });
           }
           return;
         }
@@ -55,7 +59,7 @@ const _consoleLoggingIntegration = ((options: Partial<CaptureConsoleOptions> = {
         const isLevelLog = level === 'log';
         _INTERNAL_captureLog({
           level: isLevelLog ? 'info' : level,
-          message: formatConsoleArgs(args),
+          message: formatConsoleArgs(args, normalizeDepth, normalizeMaxBreadth),
           severityNumber: isLevelLog ? 10 : undefined,
           attributes: DEFAULT_ATTRIBUTES,
         });
@@ -85,8 +89,16 @@ const _consoleLoggingIntegration = ((options: Partial<CaptureConsoleOptions> = {
  */
 export const consoleLoggingIntegration = defineIntegration(_consoleLoggingIntegration);
 
-function formatConsoleArgs(values: unknown[]): string {
+function formatConsoleArgs(values: unknown[], normalizeDepth: number, normalizeMaxBreadth: number): string {
   return 'util' in GLOBAL_OBJ && typeof (GLOBAL_OBJ as GlobalObjectWithUtil).util.format === 'function'
     ? (GLOBAL_OBJ as GlobalObjectWithUtil).util.format(...values)
-    : safeJoin(values, ' ');
+    : safeJoinConsoleArgs(values, normalizeDepth, normalizeMaxBreadth);
+}
+
+function safeJoinConsoleArgs(values: unknown[], normalizeDepth: number, normalizeMaxBreadth: number): string {
+  return values
+    .map(value =>
+      isPrimitive(value) ? String(value) : JSON.stringify(normalize(value, normalizeDepth, normalizeMaxBreadth)),
+    )
+    .join(' ');
 }

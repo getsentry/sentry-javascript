@@ -197,7 +197,7 @@ export interface FeedbackCallbacks {
    *
    * After this you'll see a SuccessMessage on the screen for a moment.
    */
-  onSubmitSuccess?: (data: FeedbackFormData) => void;
+  onSubmitSuccess?: (data: FeedbackFormData, eventId: string) => void;
 
   /**
    * Callback when feedback is unsuccessfully submitted

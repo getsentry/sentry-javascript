@@ -1,6 +1,8 @@
 import * as fs from 'fs';
+import type { Nuxt } from 'nuxt/schema';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  addOTelCommonJSImportAlias,
   constructFunctionReExport,
   constructWrappedFunctionExportQuery,
   extractFunctionReexportQueryParameters,
@@ -68,6 +70,75 @@ describe('findDefaultSdkInitFile', () => {
 
     const result = findDefaultSdkInitFile('server');
     expect(result).toMatch('packages/nuxt/sentry.server.config.js');
+  });
+
+  it('should return the latest layer config file path if client config exists', () => {
+    vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
+      return !(filePath instanceof URL) && filePath.includes('sentry.client.config.ts');
+    });
+
+    const nuxtMock = {
+      options: {
+        _layers: [
+          {
+            cwd: 'packages/nuxt/module',
+          },
+          {
+            cwd: 'packages/nuxt',
+          },
+        ],
+      },
+    } as Nuxt;
+
+    const result = findDefaultSdkInitFile('client', nuxtMock);
+    expect(result).toMatch('packages/nuxt/sentry.client.config.ts');
+  });
+
+  it('should return the latest layer config file path if server config exists', () => {
+    vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
+      return (
+        !(filePath instanceof URL) &&
+        (filePath.includes('sentry.server.config.ts') || filePath.includes('instrument.server.ts'))
+      );
+    });
+
+    const nuxtMock = {
+      options: {
+        _layers: [
+          {
+            cwd: 'packages/nuxt/module',
+          },
+          {
+            cwd: 'packages/nuxt',
+          },
+        ],
+      },
+    } as Nuxt;
+
+    const result = findDefaultSdkInitFile('server', nuxtMock);
+    expect(result).toMatch('packages/nuxt/sentry.server.config.ts');
+  });
+
+  it('should return the latest layer config file path if client config exists in former layer', () => {
+    vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
+      return !(filePath instanceof URL) && filePath.includes('nuxt/sentry.client.config.ts');
+    });
+
+    const nuxtMock = {
+      options: {
+        _layers: [
+          {
+            cwd: 'packages/nuxt/module',
+          },
+          {
+            cwd: 'packages/nuxt',
+          },
+        ],
+      },
+    } as Nuxt;
+
+    const result = findDefaultSdkInitFile('client', nuxtMock);
+    expect(result).toMatch('packages/nuxt/sentry.client.config.ts');
   });
 });
 
@@ -294,5 +365,64 @@ export { foo_sentryWrapped as foo };
     const entryId = './module';
     const result = constructFunctionReExport(query, entryId);
     expect(result).toBe('');
+  });
+});
+
+describe('addOTelCommonJSImportAlias', () => {
+  it('adds alias for @opentelemetry/resources when options.alias does not exist', () => {
+    const nuxtMock: Nuxt = {
+      options: { dev: true },
+    } as unknown as Nuxt;
+
+    addOTelCommonJSImportAlias(nuxtMock);
+
+    expect(nuxtMock.options.alias).toEqual({
+      '@opentelemetry/resources': '@opentelemetry/resources/build/src/index.js',
+    });
+  });
+
+  it('adds alias for @opentelemetry/resources when options.alias already exists', () => {
+    const nuxtMock: Nuxt = {
+      options: {
+        dev: true,
+        alias: {
+          'existing-alias': 'some-path',
+        },
+      },
+    } as unknown as Nuxt;
+
+    addOTelCommonJSImportAlias(nuxtMock);
+
+    expect(nuxtMock.options.alias).toEqual({
+      'existing-alias': 'some-path',
+      '@opentelemetry/resources': '@opentelemetry/resources/build/src/index.js',
+    });
+  });
+
+  it('does not override existing alias for @opentelemetry/resources', () => {
+    const nuxtMock: Nuxt = {
+      options: {
+        dev: true,
+        alias: {
+          '@opentelemetry/resources': 'some-other-path',
+        },
+      },
+    } as unknown as Nuxt;
+
+    addOTelCommonJSImportAlias(nuxtMock);
+
+    expect(nuxtMock.options.alias).toEqual({
+      '@opentelemetry/resources': 'some-other-path',
+    });
+  });
+
+  it('does not add alias when not development mode', () => {
+    const nuxtMock: Nuxt = {
+      options: {},
+    } as unknown as Nuxt;
+
+    addOTelCommonJSImportAlias(nuxtMock);
+
+    expect(nuxtMock.options.alias).toBeUndefined();
   });
 });

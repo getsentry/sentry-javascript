@@ -47,9 +47,11 @@ function wrapMethodWithSentry<T extends (...args: any[]) => any>(
         // see: https://github.com/getsentry/sentry-javascript/issues/13217
         const context = wrapperOptions.context as ExecutionContext | undefined;
 
+        const waitUntil = context?.waitUntil?.bind?.(context);
+
         const currentClient = scope.getClient();
         if (!currentClient) {
-          const client = init(wrapperOptions.options);
+          const client = init({ ...wrapperOptions.options, ctx: context });
           scope.setClient(client);
         }
 
@@ -68,7 +70,7 @@ function wrapMethodWithSentry<T extends (...args: any[]) => any>(
             });
             throw e;
           } finally {
-            context?.waitUntil(flush(2000));
+            waitUntil?.(flush(2000));
           }
         }
 
@@ -92,7 +94,7 @@ function wrapMethodWithSentry<T extends (...args: any[]) => any>(
             });
             throw e;
           } finally {
-            context?.waitUntil(flush(2000));
+            waitUntil?.(flush(2000));
           }
         });
       });
@@ -133,10 +135,11 @@ function wrapMethodWithSentry<T extends (...args: any[]) => any>(
  * );
  * ```
  */
-export function instrumentDurableObjectWithSentry<E, T extends DurableObject<E>>(
-  optionsCallback: (env: E) => CloudflareOptions,
-  DurableObjectClass: new (state: DurableObjectState, env: E) => T,
-): new (state: DurableObjectState, env: E) => T {
+export function instrumentDurableObjectWithSentry<
+  E,
+  T extends DurableObject<E>,
+  C extends new (state: DurableObjectState, env: E) => T,
+>(optionsCallback: (env: E) => CloudflareOptions, DurableObjectClass: C): C {
   return new Proxy(DurableObjectClass, {
     construct(target, [context, env]) {
       setAsyncLocalStorageAsyncContextStrategy();

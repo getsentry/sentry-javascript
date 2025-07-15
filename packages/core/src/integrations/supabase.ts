@@ -9,8 +9,8 @@ import { defineIntegration } from '../integration';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import { setHttpStatus, SPAN_STATUS_ERROR, SPAN_STATUS_OK, startSpan } from '../tracing';
 import type { IntegrationFn } from '../types-hoist/integration';
-import { isPlainObject } from '../utils-hoist/is';
-import { logger } from '../utils-hoist/logger';
+import { isPlainObject } from '../utils/is';
+import { debug } from '../utils/logger';
 
 const AUTH_OPERATIONS_TO_INSTRUMENT = [
   'reauthenticate',
@@ -219,10 +219,12 @@ function instrumentAuthOperation(operation: AuthOperationFn, isAdmin = false): A
     apply(target, thisArg, argumentsList) {
       return startSpan(
         {
-          name: operation.name,
+          name: `auth ${isAdmin ? '(admin) ' : ''}${operation.name}`,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase',
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `db.auth.${isAdmin ? 'admin.' : ''}${operation.name}`,
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
+            'db.system': 'postgresql',
+            'db.operation': `auth.${isAdmin ? 'admin.' : ''}${operation.name}`,
           },
         },
         span => {
@@ -341,7 +343,6 @@ function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilte
 
         const pathParts = typedThis.url.pathname.split('/');
         const table = pathParts.length > 0 ? pathParts[pathParts.length - 1] : '';
-        const description = `from(${table})`;
 
         const queryItems: string[] = [];
         for (const [key, value] of typedThis.url.searchParams.entries()) {
@@ -349,7 +350,6 @@ function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilte
           // so we need to use array instead of object to collect them.
           queryItems.push(translateFiltersIntoMethods(key, value));
         }
-
         const body: Record<string, unknown> = Object.create(null);
         if (isPlainObject(typedThis.body)) {
           for (const [key, value] of Object.entries(typedThis.body)) {
@@ -357,14 +357,22 @@ function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilte
           }
         }
 
+        // Adding operation to the beginning of the description if it's not a `select` operation
+        // For example, it can be an `insert` or `update` operation but the query can be `select(...)`
+        // For `select` operations, we don't need repeat it in the description
+        const description = `${operation === 'select' ? '' : `${operation}${body ? '(...) ' : ''}`}${queryItems.join(
+          ' ',
+        )} from(${table})`;
+
         const attributes: Record<string, any> = {
           'db.table': table,
           'db.schema': typedThis.schema,
           'db.url': typedThis.url.origin,
           'db.sdk': typedThis.headers['X-Client-Info'],
           'db.system': 'postgresql',
+          'db.operation': operation,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `db.${operation}`,
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
         };
 
         if (queryItems.length) {
@@ -473,7 +481,7 @@ function instrumentPostgRESTQueryBuilder(PostgRESTQueryBuilder: new () => PostgR
           const rv = Reflect.apply(target, thisArg, argumentsList);
           const PostgRESTFilterBuilder = (rv as PostgRESTFilterBuilder).constructor;
 
-          DEBUG_BUILD && logger.log(`Instrumenting ${operation} operation's PostgRESTFilterBuilder`);
+          DEBUG_BUILD && debug.log(`Instrumenting ${operation} operation's PostgRESTFilterBuilder`);
 
           instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder);
 
@@ -488,7 +496,7 @@ function instrumentPostgRESTQueryBuilder(PostgRESTQueryBuilder: new () => PostgR
 
 export const instrumentSupabaseClient = (supabaseClient: unknown): void => {
   if (!supabaseClient) {
-    DEBUG_BUILD && logger.warn('Supabase integration was not installed because no Supabase client was provided.');
+    DEBUG_BUILD && debug.warn('Supabase integration was not installed because no Supabase client was provided.');
     return;
   }
   const SupabaseClientConstructor =

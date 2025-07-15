@@ -152,7 +152,7 @@ describe('Unit | eventBuffer | EventBufferCompressionWorker', () => {
     await expect(() => buffer.addEvent({ data: { o: 3 }, timestamp: BASE_TIMESTAMP, type: 3 })).rejects.toBeDefined();
   });
 
-  describe('size limit', () => {
+  describe('size limit', { timeout: 10_000 }, () => {
     it('rejects if size exceeds limit', async function () {
       const buffer = createEventBuffer({
         useCompression: true,

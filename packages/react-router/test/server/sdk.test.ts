@@ -71,5 +71,21 @@ describe('React Router server SDK', () => {
 
       expect(filterIntegration).toBeDefined();
     });
+
+    it('adds reactRouterServer integration by default', () => {
+      reactRouterInit({
+        dsn: 'https://public@dsn.ingest.sentry.io/1337',
+      });
+
+      expect(nodeInit).toHaveBeenCalledTimes(1);
+      const initOptions = nodeInit.mock.calls[0]?.[0];
+      const defaultIntegrations = initOptions?.defaultIntegrations as Integration[];
+
+      const reactRouterServerIntegration = defaultIntegrations.find(
+        integration => integration.name === 'ReactRouterServer',
+      );
+
+      expect(reactRouterServerIntegration).toBeDefined();
+    });
   });
 });

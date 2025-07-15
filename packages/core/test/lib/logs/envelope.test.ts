@@ -3,14 +3,14 @@ import { createLogContainerEnvelopeItem, createLogEnvelope } from '../../../src/
 import type { DsnComponents } from '../../../src/types-hoist/dsn';
 import type { SerializedLog } from '../../../src/types-hoist/log';
 import type { SdkMetadata } from '../../../src/types-hoist/sdkmetadata';
-import * as utilsDsn from '../../../src/utils-hoist/dsn';
-import * as utilsEnvelope from '../../../src/utils-hoist/envelope';
+import * as utilsDsn from '../../../src/utils/dsn';
+import * as utilsEnvelope from '../../../src/utils/envelope';
 
-// Mock utils-hoist functions
-vi.mock('../../../src/utils-hoist/dsn', () => ({
+// Mock utils functions
+vi.mock('../../../src/utils/dsn', () => ({
   dsnToString: vi.fn(dsn => `https://${dsn.publicKey}@${dsn.host}/`),
 }));
-vi.mock('../../../src/utils-hoist/envelope', () => ({
+vi.mock('../../../src/utils/envelope', () => ({
   createEnvelope: vi.fn((_headers, items) => [_headers, items]),
 }));
 

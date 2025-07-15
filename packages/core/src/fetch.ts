@@ -5,12 +5,12 @@ import { SentryNonRecordingSpan } from './tracing/sentryNonRecordingSpan';
 import type { FetchBreadcrumbHint } from './types-hoist/breadcrumb';
 import type { HandlerDataFetch } from './types-hoist/instrument';
 import type { Span, SpanAttributes, SpanOrigin } from './types-hoist/span';
+import { SENTRY_BAGGAGE_KEY_PREFIX } from './utils/baggage';
 import { hasSpansEnabled } from './utils/hasSpansEnabled';
+import { isInstanceOf, isRequest } from './utils/is';
 import { getActiveSpan } from './utils/spanUtils';
 import { getTraceData } from './utils/traceData';
-import { SENTRY_BAGGAGE_KEY_PREFIX } from './utils-hoist/baggage';
-import { isInstanceOf, isRequest } from './utils-hoist/is';
-import { getSanitizedUrlStringFromUrlObject, isURLObjectRelative, parseStringToURLObject } from './utils-hoist/url';
+import { getSanitizedUrlStringFromUrlObject, isURLObjectRelative, parseStringToURLObject } from './utils/url';
 
 type PolymorphicRequestHeaders =
   | Record<string, string | undefined>

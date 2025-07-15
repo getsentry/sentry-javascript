@@ -1,10 +1,10 @@
 import type { AttributeValue } from '@opentelemetry/api';
+import { SpanStatusCode } from '@opentelemetry/api';
 import { GraphQLInstrumentation } from '@opentelemetry/instrumentation-graphql';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration, getRootSpan, spanToJSON } from '@sentry/core';
+import { addOriginToSpan, generateInstrumentOnce } from '@sentry/node-core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION } from '@sentry/opentelemetry';
-import { generateInstrumentOnce } from '../../otel/instrument';
-import { addOriginToSpan } from '../../utils/addOriginToSpan';
 
 interface GraphqlOptions {
   /**
@@ -45,8 +45,15 @@ export const instrumentGraphql = generateInstrumentOnce(
 
     return {
       ...options,
-      responseHook(span) {
+      responseHook(span, result) {
         addOriginToSpan(span, 'auto.graphql.otel.graphql');
+
+        // We want to ensure spans are marked as errored if there are errors in the result
+        // We only do that if the span is not already marked with a status
+        const resultWithMaybeError = result as { errors?: { message: string }[] };
+        if (resultWithMaybeError.errors?.length && !spanToJSON(span).status) {
+          span.setStatus({ code: SpanStatusCode.ERROR });
+        }
 
         const attributes = spanToJSON(span).data;
 

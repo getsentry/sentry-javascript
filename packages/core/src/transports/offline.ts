@@ -1,9 +1,9 @@
 import { DEBUG_BUILD } from '../debug-build';
 import type { Envelope } from '../types-hoist/envelope';
 import type { InternalBaseTransportOptions, Transport, TransportMakeRequestResponse } from '../types-hoist/transport';
-import { envelopeContainsItemType } from '../utils-hoist/envelope';
-import { logger } from '../utils-hoist/logger';
-import { parseRetryAfterHeader } from '../utils-hoist/ratelimit';
+import { envelopeContainsItemType } from '../utils/envelope';
+import { debug } from '../utils/logger';
+import { parseRetryAfterHeader } from '../utils/ratelimit';
 
 export const MIN_DELAY = 100; // 100 ms
 export const START_DELAY = 5_000; // 5 seconds
@@ -64,7 +64,7 @@ export function makeOfflineTransport<TO>(
   createTransport: (options: TO) => Transport,
 ): (options: TO & OfflineTransportOptions) => Transport {
   function log(...args: unknown[]): void {
-    DEBUG_BUILD && logger.info('[Offline]:', ...args);
+    DEBUG_BUILD && debug.log('[Offline]:', ...args);
   }
 
   return options => {

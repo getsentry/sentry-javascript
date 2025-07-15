@@ -6,7 +6,7 @@ import { SentrySpan } from '../../../src/tracing/sentrySpan';
 import { SPAN_STATUS_ERROR } from '../../../src/tracing/spanstatus';
 import type { SpanJSON } from '../../../src/types-hoist/span';
 import { spanToJSON, TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED } from '../../../src/utils/spanUtils';
-import { timestampInSeconds } from '../../../src/utils-hoist/time';
+import { timestampInSeconds } from '../../../src/utils/time';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 describe('SentrySpan', () => {

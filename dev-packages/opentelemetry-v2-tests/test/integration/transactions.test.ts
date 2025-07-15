@@ -1,7 +1,6 @@
 import type { SpanContext } from '@opentelemetry/api';
 import { context, ROOT_CONTEXT, trace, TraceFlags } from '@opentelemetry/api';
 import { TraceState } from '@opentelemetry/core';
-import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
 import type { Event, TransactionEvent } from '@sentry/core';
 import {
   addBreadcrumb,
@@ -15,10 +14,9 @@ import {
 } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SENTRY_TRACE_STATE_DSC } from '../../../../packages/opentelemetry/src/constants';
-import { SentrySpanProcessor } from '../../../../packages/opentelemetry/src/spanProcessor';
 import { startInactiveSpan, startSpan } from '../../../../packages/opentelemetry/src/trace';
 import { makeTraceState } from '../../../../packages/opentelemetry/src/utils/makeTraceState';
-import { cleanupOtel, getProvider, getSpanProcessor, mockSdkInit } from '../helpers/mockSdkInit';
+import { cleanupOtel, getSpanProcessor, mockSdkInit } from '../helpers/mockSdkInit';
 import type { TestClientInterface } from '../helpers/TestClient';
 
 describe('Integration | Transactions', () => {
@@ -516,7 +514,6 @@ describe('Integration | Transactions', () => {
       },
     });
 
-    const provider = getProvider();
     const spanProcessor = getSpanProcessor();
 
     const exporter = spanProcessor ? spanProcessor['_exporter'] : undefined;
@@ -550,7 +547,8 @@ describe('Integration | Transactions', () => {
     expect(finishedSpans.length).toBe(0);
   });
 
-  it('discards child spans that are finished after their parent span', async () => {
+  it('collects child spans that are finished within 5 minutes their parent span has been sent', async () => {
+    const timeout = 5 * 60 * 1000;
     const now = Date.now();
     vi.useFakeTimers();
     vi.setSystemTime(now);
@@ -568,7 +566,6 @@ describe('Integration | Transactions', () => {
       },
     });
 
-    const provider = getProvider();
     const spanProcessor = getSpanProcessor();
 
     const exporter = spanProcessor ? spanProcessor['_exporter'] : undefined;
@@ -587,10 +584,61 @@ describe('Integration | Transactions', () => {
 
       setTimeout(() => {
         subSpan2.end();
-      }, 1);
+      }, timeout - 2);
     });
 
-    vi.advanceTimersByTime(2);
+    vi.advanceTimersByTime(timeout - 1);
+
+    expect(transactions).toHaveLength(2);
+    expect(transactions[0]?.spans).toHaveLength(1);
+
+    const finishedSpans: any = exporter['_finishedSpanBuckets'].flatMap(bucket =>
+      bucket ? Array.from(bucket.spans) : [],
+    );
+    expect(finishedSpans.length).toBe(0);
+  });
+
+  it('discards child spans that are finished after 5 minutes their parent span has been sent', async () => {
+    const timeout = 5 * 60 * 1000;
+    const now = Date.now();
+    vi.useFakeTimers();
+    vi.setSystemTime(now);
+
+    const logs: unknown[] = [];
+    vi.spyOn(logger, 'log').mockImplementation(msg => logs.push(msg));
+
+    const transactions: Event[] = [];
+
+    mockSdkInit({
+      tracesSampleRate: 1,
+      beforeSendTransaction: event => {
+        transactions.push(event);
+        return null;
+      },
+    });
+
+    const spanProcessor = getSpanProcessor();
+
+    const exporter = spanProcessor ? spanProcessor['_exporter'] : undefined;
+
+    if (!exporter) {
+      throw new Error('No exporter found, aborting test...');
+    }
+
+    startSpanManual({ name: 'test name' }, async span => {
+      const subSpan = startInactiveSpan({ name: 'inner span 1' });
+      subSpan.end();
+
+      const subSpan2 = startInactiveSpan({ name: 'inner span 2' });
+
+      span.end();
+
+      setTimeout(() => {
+        subSpan2.end();
+      }, timeout + 1);
+    });
+
+    vi.advanceTimersByTime(timeout + 2);
 
     expect(transactions).toHaveLength(1);
     expect(transactions[0]?.spans).toHaveLength(1);

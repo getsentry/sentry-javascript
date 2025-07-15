@@ -13,11 +13,11 @@ import type { ClientOptions } from './types-hoist/options';
 import type { ParameterizedString } from './types-hoist/parameterize';
 import type { SeverityLevel } from './types-hoist/severity';
 import type { BaseTransportOptions } from './types-hoist/transport';
-import { eventFromMessage, eventFromUnknownInput } from './utils-hoist/eventbuilder';
-import { isPrimitive } from './utils-hoist/is';
-import { logger } from './utils-hoist/logger';
-import { uuid4 } from './utils-hoist/misc';
-import { resolvedSyncPromise } from './utils-hoist/syncpromise';
+import { eventFromMessage, eventFromUnknownInput } from './utils/eventbuilder';
+import { isPrimitive } from './utils/is';
+import { debug } from './utils/logger';
+import { uuid4 } from './utils/misc';
+import { resolvedSyncPromise } from './utils/syncpromise';
 
 // TODO: Make this configurable
 const DEFAULT_LOG_FLUSH_INTERVAL = 5000;
@@ -134,7 +134,7 @@ export class ServerRuntimeClient<
   public captureCheckIn(checkIn: CheckIn, monitorConfig?: MonitorConfig, scope?: Scope): string {
     const id = 'checkInId' in checkIn && checkIn.checkInId ? checkIn.checkInId : uuid4();
     if (!this._isEnabled()) {
-      DEBUG_BUILD && logger.warn('SDK not enabled, will not capture check-in.');
+      DEBUG_BUILD && debug.warn('SDK not enabled, will not capture check-in.');
       return id;
     }
 
@@ -179,7 +179,7 @@ export class ServerRuntimeClient<
       this.getDsn(),
     );
 
-    DEBUG_BUILD && logger.info('Sending checkin:', checkIn.monitorSlug, checkIn.status);
+    DEBUG_BUILD && debug.log('Sending checkin:', checkIn.monitorSlug, checkIn.status);
 
     // sendEnvelope should not throw
     // eslint-disable-next-line @typescript-eslint/no-floating-promises

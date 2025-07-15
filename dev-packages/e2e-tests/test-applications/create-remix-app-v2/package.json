@@ -2,7 +2,7 @@
   "private": true,
   "sideEffects": false,
   "scripts": {
-    "build": "remix build",
+    "build": "remix build && pnpm typecheck",
     "dev": "remix dev",
     "start": "NODE_OPTIONS='--require=./instrument.server.cjs' remix-serve build/index.js",
     "typecheck": "tsc",
@@ -12,24 +12,28 @@
   },
   "dependencies": {
     "@sentry/remix": "latest || *",
-    "@remix-run/css-bundle": "2.16.5",
-    "@remix-run/node": "2.16.5",
-    "@remix-run/react": "2.16.5",
-    "@remix-run/serve": "2.16.5",
+    "@remix-run/css-bundle": "2.16.7",
+    "@remix-run/node": "2.16.7",
+    "@remix-run/react": "2.16.7",
+    "@remix-run/serve": "2.16.7",
     "isbot": "^3.6.8",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
-    "@playwright/test": "~1.50.0",
+    "@playwright/test": "~1.53.2",
     "@sentry-internal/test-utils": "link:../../../test-utils",
-    "@remix-run/dev": "2.16.5",
-    "@remix-run/eslint-config": "2.16.5",
-    "@sentry/core": "latest || *",
-    "@types/react": "^18.0.35",
-    "@types/react-dom": "^18.0.11",
+    "@remix-run/dev": "2.16.7",
+    "@remix-run/eslint-config": "2.16.7",
+    "@types/react": "^18.2.64",
+    "@types/react-dom": "^18.2.34",
+    "@types/prop-types": "15.7.7",
     "eslint": "^8.38.0",
-    "typescript": "^5.0.4"
+    "typescript": "^5.1.6",
+    "vite": "^5.4.11"
+  },
+  "resolutions": {
+    "@types/react": "18.2.22"
   },
   "volta": {
     "extends": "../../package.json"

@@ -36,43 +36,56 @@ export function instrumentHydratedRouter(): void {
       // The first time we hit the router, we try to update the pageload transaction
       // todo: update pageload tx here
       const pageloadSpan = getActiveRootSpan();
-      const pageloadName = pageloadSpan ? spanToJSON(pageloadSpan).description : undefined;
-      const parameterizePageloadRoute = getParameterizedRoute(router.state);
-      if (
-        pageloadName &&
-        normalizePathname(router.state.location.pathname) === normalizePathname(pageloadName) && // this event is for the currently active pageload
-        normalizePathname(parameterizePageloadRoute) !== normalizePathname(pageloadName) // route is not parameterized yet
-      ) {
-        pageloadSpan?.updateName(parameterizePageloadRoute);
-        pageloadSpan?.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
-      }
 
-      // Patching navigate for creating accurate navigation transactions
-      if (typeof router.navigate === 'function') {
-        const originalNav = router.navigate.bind(router);
-        router.navigate = function sentryPatchedNavigate(...args) {
-          maybeCreateNavigationTransaction(
-            String(args[0]) || '<unknown route>', // will be updated anyway
-            'url', // this also will be updated once we have the parameterized route
-          );
-          return originalNav(...args);
-        };
+      if (pageloadSpan) {
+        const pageloadName = spanToJSON(pageloadSpan).description;
+        const parameterizePageloadRoute = getParameterizedRoute(router.state);
+        if (
+          pageloadName &&
+          // this event is for the currently active pageload
+          normalizePathname(router.state.location.pathname) === normalizePathname(pageloadName)
+        ) {
+          pageloadSpan.updateName(parameterizePageloadRoute);
+          pageloadSpan.setAttributes({
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react-router',
+          });
+        }
+
+        // Patching navigate for creating accurate navigation transactions
+        if (typeof router.navigate === 'function') {
+          const originalNav = router.navigate.bind(router);
+          router.navigate = function sentryPatchedNavigate(...args) {
+            maybeCreateNavigationTransaction(
+              String(args[0]) || '<unknown route>', // will be updated anyway
+              'url', // this also will be updated once we have the parameterized route
+            );
+            return originalNav(...args);
+          };
+        }
       }
 
       // Subscribe to router state changes to update navigation transactions with parameterized routes
       router.subscribe(newState => {
         const navigationSpan = getActiveRootSpan();
-        const navigationSpanName = navigationSpan ? spanToJSON(navigationSpan).description : undefined;
+
+        if (!navigationSpan) {
+          return;
+        }
+
+        const navigationSpanName = spanToJSON(navigationSpan).description;
         const parameterizedNavRoute = getParameterizedRoute(newState);
 
         if (
-          navigationSpanName && // we have an active pageload tx
+          navigationSpanName &&
           newState.navigation.state === 'idle' && // navigation has completed
-          normalizePathname(newState.location.pathname) === normalizePathname(navigationSpanName) && // this event is for the currently active navigation
-          normalizePathname(parameterizedNavRoute) !== normalizePathname(navigationSpanName) // route is not parameterized yet
+          normalizePathname(newState.location.pathname) === normalizePathname(navigationSpanName) // this event is for the currently active navigation
         ) {
-          navigationSpan?.updateName(parameterizedNavRoute);
-          navigationSpan?.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+          navigationSpan.updateName(parameterizedNavRoute);
+          navigationSpan.setAttributes({
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react-router',
+          });
         }
       });
       return true;

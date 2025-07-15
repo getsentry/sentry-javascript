@@ -1,9 +1,10 @@
 // Note: These tests run the handler in Node.js, which has some differences to the cloudflare workers runtime.
 // Although this is not ideal, this is the best we can do until we have a better way to test cloudflare workers.
 
+import type { ExecutionContext } from '@cloudflare/workers-types';
 import type { Event } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
-import { beforeAll, beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, onTestFinished, test, vi } from 'vitest';
 import { setAsyncLocalStorageAsyncContextStrategy } from '../src/async';
 import type { CloudflareOptions } from '../src/client';
 import { CloudflareClient } from '../src/client';
@@ -12,6 +13,10 @@ import { wrapRequestHandler } from '../src/request';
 const MOCK_OPTIONS: CloudflareOptions = {
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
 };
+
+function addDelayedWaitUntil(context: ExecutionContext) {
+  context.waitUntil(new Promise<void>(resolve => setTimeout(() => resolve())));
+}
 
 describe('withSentry', () => {
   beforeAll(() => {
@@ -33,15 +38,14 @@ describe('withSentry', () => {
 
   test('flushes the event after the handler is done using the cloudflare context.waitUntil', async () => {
     const context = createMockExecutionContext();
+    const waitUntilSpy = vi.spyOn(context, 'waitUntil');
     await wrapRequestHandler(
       { options: MOCK_OPTIONS, request: new Request('https://example.com'), context },
       () => new Response('test'),
     );
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    expect(context.waitUntil).toHaveBeenCalledTimes(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    expect(context.waitUntil).toHaveBeenLastCalledWith(expect.any(Promise));
+    expect(waitUntilSpy).toHaveBeenCalledTimes(1);
+    expect(waitUntilSpy).toHaveBeenLastCalledWith(expect.any(Promise));
   });
 
   test("doesn't error if context is undefined", () => {
@@ -62,6 +66,30 @@ describe('withSentry', () => {
 
     expect(initAndBindSpy).toHaveBeenCalledTimes(1);
     expect(initAndBindSpy).toHaveBeenLastCalledWith(CloudflareClient, expect.any(Object));
+  });
+
+  test('flush must be called when all waitUntil are done', async () => {
+    const flush = vi.spyOn(SentryCore.Client.prototype, 'flush');
+    vi.useFakeTimers();
+    onTestFinished(() => {
+      vi.useRealTimers();
+    });
+    const waits: Promise<unknown>[] = [];
+    const waitUntil = vi.fn(promise => waits.push(promise));
+
+    const context = {
+      waitUntil,
+    } as unknown as ExecutionContext;
+
+    await wrapRequestHandler({ options: MOCK_OPTIONS, request: new Request('https://example.com'), context }, () => {
+      addDelayedWaitUntil(context);
+      return new Response('test');
+    });
+    expect(flush).not.toBeCalled();
+    expect(waitUntil).toBeCalled();
+    vi.advanceTimersToNextTimerAsync().then(() => vi.runAllTimers());
+    await Promise.all(waits);
+    expect(flush).toHaveBeenCalledOnce();
   });
 
   describe('scope instrumentation', () => {
@@ -182,6 +210,33 @@ describe('withSentry', () => {
         thrownError = e;
       }
 
+      expect(thrownError).toBe(error);
+    });
+
+    test("doesn't capture errors if `captureErrors` is false", async () => {
+      const captureExceptionSpy = vi.spyOn(SentryCore, 'captureException');
+      const error = new Error('test');
+
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
+      let thrownError: Error | undefined;
+
+      try {
+        await wrapRequestHandler(
+          {
+            options: MOCK_OPTIONS,
+            request: new Request('https://example.com'),
+            context: createMockExecutionContext(),
+            captureErrors: false,
+          },
+          () => {
+            throw error;
+          },
+        );
+      } catch (e: any) {
+        thrownError = e;
+      }
+
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
       expect(thrownError).toBe(error);
     });
   });

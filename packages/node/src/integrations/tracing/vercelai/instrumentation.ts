@@ -1,7 +1,8 @@
 import type { InstrumentationConfig, InstrumentationModuleDefinition } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
-import { SDK_VERSION } from '@sentry/core';
-import type { TelemetrySettings } from './types';
+import { getCurrentScope, SDK_VERSION } from '@sentry/core';
+import { INTEGRATION_NAME } from './constants';
+import type { TelemetrySettings, VercelAiIntegration } from './types';
 
 // List of patched methods
 // From: https://sdk.vercel.ai/docs/ai-sdk-core/telemetry#collected-data
@@ -22,6 +23,47 @@ type MethodArgs = [MethodFirstArg, ...unknown[]];
 
 type PatchedModuleExports = Record<(typeof INSTRUMENTED_METHODS)[number], (...args: MethodArgs) => unknown> &
   Record<string, unknown>;
+
+interface RecordingOptions {
+  recordInputs?: boolean;
+  recordOutputs?: boolean;
+}
+
+/**
+ * Determines whether to record inputs and outputs for Vercel AI telemetry based on the configuration hierarchy.
+ *
+ * The order of precedence is:
+ * 1. The vercel ai integration options
+ * 2. The experimental_telemetry options in the vercel ai method calls
+ * 3. When telemetry is explicitly enabled (isEnabled: true), default to recording
+ * 4. Otherwise, use the sendDefaultPii option from client options
+ */
+export function determineRecordingSettings(
+  integrationRecordingOptions: RecordingOptions | undefined,
+  methodTelemetryOptions: RecordingOptions,
+  telemetryExplicitlyEnabled: boolean | undefined,
+  defaultRecordingEnabled: boolean,
+): { recordInputs: boolean; recordOutputs: boolean } {
+  const recordInputs =
+    integrationRecordingOptions?.recordInputs !== undefined
+      ? integrationRecordingOptions.recordInputs
+      : methodTelemetryOptions.recordInputs !== undefined
+        ? methodTelemetryOptions.recordInputs
+        : telemetryExplicitlyEnabled === true
+          ? true // When telemetry is explicitly enabled, default to recording inputs
+          : defaultRecordingEnabled;
+
+  const recordOutputs =
+    integrationRecordingOptions?.recordOutputs !== undefined
+      ? integrationRecordingOptions.recordOutputs
+      : methodTelemetryOptions.recordOutputs !== undefined
+        ? methodTelemetryOptions.recordOutputs
+        : telemetryExplicitlyEnabled === true
+          ? true // When telemetry is explicitly enabled, default to recording inputs
+          : defaultRecordingEnabled;
+
+  return { recordInputs, recordOutputs };
+}
 
 /**
  * This detects is added by the Sentry Vercel AI Integration to detect if the integration should
@@ -71,16 +113,24 @@ export class SentryVercelAiInstrumentation extends InstrumentationBase {
         const existingExperimentalTelemetry = args[0].experimental_telemetry || {};
         const isEnabled = existingExperimentalTelemetry.isEnabled;
 
-        // if `isEnabled` is not explicitly set to `true` or `false`, enable telemetry
-        // but disable capturing inputs and outputs by default
-        if (isEnabled === undefined) {
-          args[0].experimental_telemetry = {
-            isEnabled: true,
-            recordInputs: false,
-            recordOutputs: false,
-            ...existingExperimentalTelemetry,
-          };
-        }
+        const client = getCurrentScope().getClient();
+        const integration = client?.getIntegrationByName<VercelAiIntegration>(INTEGRATION_NAME);
+        const integrationOptions = integration?.options;
+        const shouldRecordInputsAndOutputs = integration ? Boolean(client?.getOptions().sendDefaultPii) : false;
+
+        const { recordInputs, recordOutputs } = determineRecordingSettings(
+          integrationOptions,
+          existingExperimentalTelemetry,
+          isEnabled,
+          shouldRecordInputsAndOutputs,
+        );
+
+        args[0].experimental_telemetry = {
+          ...existingExperimentalTelemetry,
+          isEnabled: isEnabled !== undefined ? isEnabled : true,
+          recordInputs,
+          recordOutputs,
+        };
 
         // @ts-expect-error we know that the method exists
         return originalMethod.apply(this, args);

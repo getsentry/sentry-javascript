@@ -4,7 +4,7 @@ import { DEBUG_BUILD } from './debug-build';
 import type { Event, EventHint } from './types-hoist/event';
 import type { Integration, IntegrationFn } from './types-hoist/integration';
 import type { Options } from './types-hoist/options';
-import { logger } from './utils-hoist/logger';
+import { debug } from './utils/logger';
 
 export const installedIntegrations: string[] = [];
 
@@ -99,7 +99,7 @@ export function afterSetupIntegrations(client: Client, integrations: Integration
 /** Setup a single integration.  */
 export function setupIntegration(client: Client, integration: Integration, integrationIndex: IntegrationIndex): void {
   if (integrationIndex[integration.name]) {
-    DEBUG_BUILD && logger.log(`Integration skipped because it was already installed: ${integration.name}`);
+    DEBUG_BUILD && debug.log(`Integration skipped because it was already installed: ${integration.name}`);
     return;
   }
   integrationIndex[integration.name] = integration;
@@ -130,7 +130,7 @@ export function setupIntegration(client: Client, integration: Integration, integ
     client.addEventProcessor(processor);
   }
 
-  DEBUG_BUILD && logger.log(`Integration installed: ${integration.name}`);
+  DEBUG_BUILD && debug.log(`Integration installed: ${integration.name}`);
 }
 
 /** Add an integration to the current scope's client. */
@@ -138,7 +138,7 @@ export function addIntegration(integration: Integration): void {
   const client = getClient();
 
   if (!client) {
-    DEBUG_BUILD && logger.warn(`Cannot add integration "${integration.name}" because no SDK Client is available.`);
+    DEBUG_BUILD && debug.warn(`Cannot add integration "${integration.name}" because no SDK Client is available.`);
     return;
   }
 

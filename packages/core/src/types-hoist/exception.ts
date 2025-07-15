@@ -7,6 +7,6 @@ export interface Exception {
   value?: string;
   mechanism?: Mechanism;
   module?: string;
-  thread_id?: number;
+  thread_id?: number | string;
   stacktrace?: Stacktrace;
 }

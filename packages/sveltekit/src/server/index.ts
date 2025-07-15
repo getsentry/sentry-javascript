@@ -8,7 +8,9 @@ export {
   addEventProcessor,
   addIntegration,
   amqplibIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   anrIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   disableAnrDetectionForCallback,
   captureCheckIn,
   captureConsoleIntegration,
@@ -57,6 +59,7 @@ export {
   eventFiltersIntegration,
   initOpenTelemetry,
   isInitialized,
+  isEnabled,
   knexIntegration,
   kafkaIntegration,
   koaIntegration,
@@ -76,6 +79,7 @@ export {
   onUnhandledRejectionIntegration,
   parameterize,
   postgresIntegration,
+  postgresJsIntegration,
   prismaIntegration,
   redisIntegration,
   requestDataIntegration,
@@ -122,6 +126,7 @@ export {
   logger,
   consoleLoggingIntegration,
   createSentryWinstonTransport,
+  vercelAIIntegration,
 } from '@sentry/node';
 
 // We can still leave this for the carrier init and type exports

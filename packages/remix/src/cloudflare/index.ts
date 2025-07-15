@@ -8,6 +8,7 @@ export * from '@sentry/react';
 
 export { captureRemixErrorBoundaryError } from '../client/errors';
 export { withSentry } from '../client/performance';
+export { ErrorBoundary, browserTracingIntegration } from '../client';
 export { makeWrappedCreateRequestHandler, sentryHandleError };
 
 /**
@@ -31,6 +32,7 @@ export type {
   EventHint,
   ErrorEvent,
   Exception,
+  FeatureFlagsIntegration,
   Session,
   SeverityLevel,
   Span,
@@ -54,6 +56,7 @@ export {
   flush,
   getClient,
   isInitialized,
+  isEnabled,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
@@ -107,4 +110,5 @@ export {
   spanToTraceHeader,
   spanToBaggageHeader,
   updateSpanName,
+  featureFlagsIntegration,
 } from '@sentry/core';

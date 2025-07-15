@@ -1,5 +1,5 @@
 import type { Options } from '../types-hoist/options';
-import { SDK_VERSION } from '../utils-hoist/version';
+import { SDK_VERSION } from '../utils/version';
 
 /**
  * A builder for the SDK metadata in the options for the SDK initialization.

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { createTransport } from '../../src/transports/base';
-import { parseEnvelope } from '../../src/utils-hoist/envelope';
+import { parseEnvelope } from '../../src/utils/envelope';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
 describe('Attachments', () => {

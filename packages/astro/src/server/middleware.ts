@@ -184,14 +184,28 @@ async function instrumentRequest(
 
               const newResponseStream = new ReadableStream({
                 start: async controller => {
+                  // Assign to a new variable to avoid TS losing the narrower type checked above.
+                  const body = originalBody;
+
+                  async function* bodyReporter(): AsyncGenerator<string | Buffer> {
+                    try {
+                      for await (const chunk of body) {
+                        yield chunk;
+                      }
+                    } catch (e) {
+                      // Report stream errors coming from user code or Astro rendering.
+                      sendErrorToSentry(e);
+                      throw e;
+                    }
+                  }
+
                   try {
-                    for await (const chunk of originalBody) {
+                    for await (const chunk of bodyReporter()) {
                       const html = typeof chunk === 'string' ? chunk : decoder.decode(chunk, { stream: true });
                       const modifiedHtml = addMetaTagToHead(html);
                       controller.enqueue(new TextEncoder().encode(modifiedHtml));
                     }
                   } catch (e) {
-                    sendErrorToSentry(e);
                     controller.error(e);
                   } finally {
                     controller.close();

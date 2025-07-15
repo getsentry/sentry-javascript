@@ -8,7 +8,9 @@ export {
   addEventProcessor,
   addIntegration,
   amqplibIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   anrIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   disableAnrDetectionForCallback,
   captureCheckIn,
   captureConsoleIntegration,
@@ -55,6 +57,7 @@ export {
   eventFiltersIntegration,
   initOpenTelemetry,
   isInitialized,
+  isEnabled,
   knexIntegration,
   kafkaIntegration,
   koaIntegration,
@@ -74,6 +77,7 @@ export {
   onUnhandledRejectionIntegration,
   parameterize,
   postgresIntegration,
+  postgresJsIntegration,
   prismaIntegration,
   redisIntegration,
   requestDataIntegration,

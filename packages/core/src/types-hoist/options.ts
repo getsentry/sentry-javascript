@@ -321,6 +321,14 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   tracePropagationTargets?: TracePropagationTargets;
 
   /**
+   * The organization ID of the current SDK. The organization ID is a string containing only numbers. This ID is used to
+   * propagate traces to other Sentry services.
+   *
+   * The SDK tries to automatically extract the organization ID from the DSN. With this option, you can override it.
+   */
+  orgId?: `${number}` | number;
+
+  /**
    * Function to compute tracing sample rate dynamically and filter unwanted traces.
    *
    * Tracing is enabled if either this or `tracesSampleRate` is defined. If both are defined, `tracesSampleRate` is
@@ -348,7 +356,6 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
 
   /**
    * This function can be defined to modify a child span before it's sent.
-   * Returning `null` will cause this span to be dropped.
    *
    * Note that this function is only called for child spans and not for the root span (formerly known as transaction).
    * If you want to modify or drop the root span, use {@link Options.beforeSendTransaction} instead.

@@ -138,6 +138,23 @@ describe('getWebpackPluginOptions()', () => {
     });
   });
 
+  it('forwards errorHandler option', () => {
+    const buildContext = generateBuildContext({ isServer: false });
+    const mockErrorHandler = (err: Error) => {
+      throw err;
+    };
+
+    const generatedPluginOptions = getWebpackPluginOptions(
+      buildContext,
+      {
+        errorHandler: mockErrorHandler,
+      },
+      undefined,
+    );
+
+    expect(generatedPluginOptions.errorHandler).toBe(mockErrorHandler);
+  });
+
   it('returns the right `assets` and `ignore` values during the server build', () => {
     const buildContext = generateBuildContext({ isServer: true });
     const generatedPluginOptions = getWebpackPluginOptions(buildContext, {}, undefined);
@@ -153,9 +170,9 @@ describe('getWebpackPluginOptions()', () => {
     expect(generatedPluginOptions.sourcemaps).toMatchObject({
       assets: ['/my/project/dir/.next/static/chunks/pages/**', '/my/project/dir/.next/static/chunks/app/**'],
       ignore: [
+        '/my/project/dir/.next/static/chunks/main-*',
         '/my/project/dir/.next/static/chunks/framework-*',
         '/my/project/dir/.next/static/chunks/framework.*',
-        '/my/project/dir/.next/static/chunks/main-*',
         '/my/project/dir/.next/static/chunks/polyfills-*',
         '/my/project/dir/.next/static/chunks/webpack-*',
       ],
@@ -170,7 +187,6 @@ describe('getWebpackPluginOptions()', () => {
       ignore: [
         '/my/project/dir/.next/static/chunks/framework-*',
         '/my/project/dir/.next/static/chunks/framework.*',
-        '/my/project/dir/.next/static/chunks/main-*',
         '/my/project/dir/.next/static/chunks/polyfills-*',
         '/my/project/dir/.next/static/chunks/webpack-*',
       ],
@@ -197,7 +213,6 @@ describe('getWebpackPluginOptions()', () => {
       ignore: [
         'C:/my/windows/project/dir/.dist/v1/static/chunks/framework-*',
         'C:/my/windows/project/dir/.dist/v1/static/chunks/framework.*',
-        'C:/my/windows/project/dir/.dist/v1/static/chunks/main-*',
         'C:/my/windows/project/dir/.dist/v1/static/chunks/polyfills-*',
         'C:/my/windows/project/dir/.dist/v1/static/chunks/webpack-*',
       ],

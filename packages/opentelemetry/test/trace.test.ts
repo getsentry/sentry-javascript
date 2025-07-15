@@ -1342,6 +1342,21 @@ describe('trace', () => {
       });
     });
   });
+
+  describe('scope passing', () => {
+    it('handles active span when passing scopes to withScope', () => {
+      const [scope, span] = startSpan({ name: 'outer' }, span => {
+        return [getCurrentScope(), span];
+      });
+
+      const spanOnScope = withScope(scope, () => {
+        return getActiveSpan();
+      });
+
+      expect(spanOnScope).toBeDefined();
+      expect(spanOnScope).toBe(span);
+    });
+  });
 });
 
 describe('trace (tracing disabled)', () => {
@@ -1905,6 +1920,38 @@ describe('suppressTracing', () => {
       expect(child.isRecording()).toBe(false);
       expect(spanIsSampled(child)).toBe(false);
     });
+  });
+
+  it('works with parallel processes', async () => {
+    const span = suppressTracing(() => {
+      return startInactiveSpan({ name: 'span' });
+    });
+
+    const span2Promise = suppressTracing(async () => {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      return startInactiveSpan({ name: 'span2' });
+    });
+
+    const span3Promise = suppressTracing(async () => {
+      const span = startInactiveSpan({ name: 'span3' });
+      await new Promise(resolve => setTimeout(resolve, 100));
+      return span;
+    });
+
+    const span4 = suppressTracing(() => {
+      return startInactiveSpan({ name: 'span' });
+    });
+
+    const span5 = startInactiveSpan({ name: 'span5' });
+
+    const span2 = await span2Promise;
+    const span3 = await span3Promise;
+
+    expect(spanIsSampled(span)).toBe(false);
+    expect(spanIsSampled(span2)).toBe(false);
+    expect(spanIsSampled(span3)).toBe(false);
+    expect(spanIsSampled(span4)).toBe(false);
+    expect(spanIsSampled(span5)).toBe(true);
   });
 });
 

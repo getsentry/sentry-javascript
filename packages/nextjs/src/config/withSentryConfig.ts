@@ -5,6 +5,9 @@ import { getSentryRelease } from '@sentry/node';
 import * as childProcess from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import { createRouteManifest } from './manifest/createRouteManifest';
+import type { RouteManifest } from './manifest/types';
+import { constructTurbopackConfig } from './turbopack';
 import type {
   ExportedNextConfig as NextConfig,
   NextConfigFunction,
@@ -15,6 +18,40 @@ import { getNextjsVersion } from './util';
 import { constructWebpackConfigFunction } from './webpack';
 
 let showedExportModeTunnelWarning = false;
+let showedExperimentalBuildModeWarning = false;
+
+// Packages we auto-instrument need to be external for instrumentation to work
+// Next.js externalizes some packages by default, see: https://nextjs.org/docs/app/api-reference/config/next-config-js/serverExternalPackages
+// Others we need to add ourselves
+//
+// NOTE: 'ai' (Vercel AI SDK) is intentionally NOT included in this list.
+// When externalized, Next.js doesn't properly handle the package's conditional exports,
+// specifically the "react-server" export condition. This causes client-side code to be
+// loaded in server components instead of the appropriate server-side functions.
+export const DEFAULT_SERVER_EXTERNAL_PACKAGES = [
+  'amqplib',
+  'connect',
+  'dataloader',
+  'express',
+  'generic-pool',
+  'graphql',
+  '@hapi/hapi',
+  'ioredis',
+  'kafkajs',
+  'koa',
+  'lru-memoizer',
+  'mongodb',
+  'mongoose',
+  'mysql',
+  'mysql2',
+  'knex',
+  'pg',
+  'pg-pool',
+  '@node-redis/client',
+  '@redis/client',
+  'redis',
+  'tedious',
+];
 
 /**
  * Modifies the passed in Next.js configuration with automatic build-time instrumentation and source map upload.
@@ -45,13 +82,27 @@ export function withSentryConfig<C>(nextConfig?: C, sentryBuildOptions: SentryBu
   }
 }
 
+/**
+ * Generates a random tunnel route path that's less likely to be blocked by ad-blockers
+ */
+function generateRandomTunnelRoute(): string {
+  // Generate a random 8-character alphanumeric string
+  const randomString = Math.random().toString(36).substring(2, 10);
+  return `/${randomString}`;
+}
+
 // Modify the materialized object form of the user's next config by deleting the `sentry` property and wrapping the
 // `webpack` property
 function getFinalConfigObject(
   incomingUserNextConfigObject: NextConfigObject,
   userSentryOptions: SentryBuildOptions,
 ): NextConfigObject {
-  const releaseName = userSentryOptions.release?.name ?? getSentryRelease() ?? getGitRevision();
+  // Only determine a release name if release creation is not explicitly disabled
+  // This prevents injection of Git commit hashes that break build determinism
+  const shouldCreateRelease = userSentryOptions.release?.create !== false;
+  const releaseName = shouldCreateRelease
+    ? userSentryOptions.release?.name ?? getSentryRelease() ?? getGitRevision()
+    : userSentryOptions.release?.name;
 
   if (userSentryOptions?.tunnelRoute) {
     if (incomingUserNextConfigObject.output === 'export') {
@@ -59,12 +110,43 @@ function getFinalConfigObject(
         showedExportModeTunnelWarning = true;
         // eslint-disable-next-line no-console
         console.warn(
-          '[@sentry/nextjs] The Sentry Next.js SDK `tunnelRoute` option will not work in combination with Next.js static exports. The `tunnelRoute` option uses serverside features that cannot be accessed in export mode. If you still want to tunnel Sentry events, set up your own tunnel: https://docs.sentry.io/platforms/javascript/troubleshooting/#using-the-tunnel-option',
+          '[@sentry/nextjs] The Sentry Next.js SDK `tunnelRoute` option will not work in combination with Next.js static exports. The `tunnelRoute` option uses server-side features that cannot be accessed in export mode. If you still want to tunnel Sentry events, set up your own tunnel: https://docs.sentry.io/platforms/javascript/troubleshooting/#using-the-tunnel-option',
         );
       }
     } else {
-      setUpTunnelRewriteRules(incomingUserNextConfigObject, userSentryOptions.tunnelRoute);
+      const resolvedTunnelRoute =
+        userSentryOptions.tunnelRoute === true ? generateRandomTunnelRoute() : userSentryOptions.tunnelRoute;
+
+      // Update the global options object to use the resolved value everywhere
+      userSentryOptions.tunnelRoute = resolvedTunnelRoute || undefined;
+      setUpTunnelRewriteRules(incomingUserNextConfigObject, resolvedTunnelRoute);
     }
+  }
+
+  if (process.argv.includes('--experimental-build-mode')) {
+    if (!showedExperimentalBuildModeWarning) {
+      showedExperimentalBuildModeWarning = true;
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[@sentry/nextjs] The Sentry Next.js SDK does not currently fully support next build --experimental-build-mode',
+      );
+    }
+    if (process.argv.includes('generate')) {
+      // Next.js v15.3.0-canary.1 splits the experimental build into two phases:
+      // 1. compile: Code compilation
+      // 2. generate: Environment variable inlining and prerendering (We don't instrument this phase, we inline in the compile phase)
+      //
+      // We assume a single "full" build and reruns Webpack instrumentation in both phases.
+      // During the generate step it collides with Next.js's inliner
+      // producing malformed JS and build failures.
+      // We skip Sentry processing during generate to avoid this issue.
+      return incomingUserNextConfigObject;
+    }
+  }
+
+  let routeManifest: RouteManifest | undefined;
+  if (!userSentryOptions.disableManifestInjection) {
+    routeManifest = createRouteManifest();
   }
 
   setUpBuildTimeVariables(incomingUserNextConfigObject, userSentryOptions, releaseName);
@@ -160,7 +242,8 @@ function getFinalConfigObject(
   const instrumentationClientFileContents = getInstrumentationClientFileContents();
   if (
     instrumentationClientFileContents !== undefined &&
-    !instrumentationClientFileContents.includes('onRouterTransitionStart')
+    !instrumentationClientFileContents.includes('onRouterTransitionStart') &&
+    !userSentryOptions.suppressOnRouterTransitionStartWarning
   ) {
     // eslint-disable-next-line no-console
     console.warn(
@@ -168,8 +251,12 @@ function getFinalConfigObject(
     );
   }
 
+  let nextMajor: number | undefined;
+  const isTurbopack = process.env.TURBOPACK;
+  let isTurbopackSupported = false;
   if (nextJsVersion) {
     const { major, minor, patch, prerelease } = parseSemver(nextJsVersion);
+    nextMajor = major;
     const isSupportedVersion =
       major !== undefined &&
       minor !== undefined &&
@@ -178,6 +265,7 @@ function getFinalConfigObject(
         (major === 15 && minor > 3) ||
         (major === 15 && minor === 3 && patch === 0 && prerelease === undefined) ||
         (major === 15 && minor === 3 && patch > 0));
+    isTurbopackSupported = isSupportedVersion;
     const isSupportedCanary =
       major !== undefined &&
       minor !== undefined &&
@@ -190,7 +278,7 @@ function getFinalConfigObject(
       parseInt(prerelease.split('.')[1] || '', 10) >= 28;
     const supportsClientInstrumentation = isSupportedCanary || isSupportedVersion;
 
-    if (!supportsClientInstrumentation && process.env.TURBOPACK) {
+    if (!supportsClientInstrumentation && isTurbopack) {
       if (process.env.NODE_ENV === 'development') {
         // eslint-disable-next-line no-console
         console.warn(
@@ -207,7 +295,34 @@ function getFinalConfigObject(
 
   return {
     ...incomingUserNextConfigObject,
-    webpack: constructWebpackConfigFunction(incomingUserNextConfigObject, userSentryOptions, releaseName),
+    ...(nextMajor && nextMajor >= 15
+      ? {
+          serverExternalPackages: [
+            ...(incomingUserNextConfigObject.serverExternalPackages || []),
+            ...DEFAULT_SERVER_EXTERNAL_PACKAGES,
+          ],
+        }
+      : {
+          experimental: {
+            ...incomingUserNextConfigObject.experimental,
+            serverComponentsExternalPackages: [
+              ...(incomingUserNextConfigObject.experimental?.serverComponentsExternalPackages || []),
+              ...DEFAULT_SERVER_EXTERNAL_PACKAGES,
+            ],
+          },
+        }),
+    webpack:
+      isTurbopack || userSentryOptions.disableSentryWebpackConfig
+        ? incomingUserNextConfigObject.webpack // just return the original webpack config
+        : constructWebpackConfigFunction(incomingUserNextConfigObject, userSentryOptions, releaseName, routeManifest),
+    ...(isTurbopackSupported && isTurbopack
+      ? {
+          turbopack: constructTurbopackConfig({
+            userNextConfig: incomingUserNextConfigObject,
+            routeManifest,
+          }),
+        }
+      : {}),
   };
 }
 
@@ -294,8 +409,11 @@ function setUpBuildTimeVariables(
 ): void {
   const assetPrefix = userNextConfig.assetPrefix || userNextConfig.basePath || '';
   const basePath = userNextConfig.basePath ?? '';
+
   const rewritesTunnelPath =
-    userSentryOptions.tunnelRoute !== undefined && userNextConfig.output !== 'export'
+    userSentryOptions.tunnelRoute !== undefined &&
+    userNextConfig.output !== 'export' &&
+    typeof userSentryOptions.tunnelRoute === 'string'
       ? `${basePath}${userSentryOptions.tunnelRoute}`
       : undefined;
 
@@ -363,7 +481,7 @@ function getInstrumentationClientFileContents(): string | void {
     ['src', 'instrumentation-client.ts'],
     ['src', 'instrumentation-client.js'],
     ['instrumentation-client.ts'],
-    ['instrumentation-client.ts'],
+    ['instrumentation-client.js'],
   ];
 
   for (const pathSegments of potentialInstrumentationClientFileLocations) {
