@@ -7,6 +7,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { createRouteManifest } from './manifest/createRouteManifest';
 import type { RouteManifest } from './manifest/types';
+import { constructTurbopackConfig } from './turbopack';
 import type {
   ExportedNextConfig as NextConfig,
   NextConfigFunction,
@@ -251,6 +252,8 @@ function getFinalConfigObject(
   }
 
   let nextMajor: number | undefined;
+  const isTurbopack = process.env.TURBOPACK;
+  let isTurbopackSupported = false;
   if (nextJsVersion) {
     const { major, minor, patch, prerelease } = parseSemver(nextJsVersion);
     nextMajor = major;
@@ -262,6 +265,7 @@ function getFinalConfigObject(
         (major === 15 && minor > 3) ||
         (major === 15 && minor === 3 && patch === 0 && prerelease === undefined) ||
         (major === 15 && minor === 3 && patch > 0));
+    isTurbopackSupported = isSupportedVersion;
     const isSupportedCanary =
       major !== undefined &&
       minor !== undefined &&
@@ -274,7 +278,7 @@ function getFinalConfigObject(
       parseInt(prerelease.split('.')[1] || '', 10) >= 28;
     const supportsClientInstrumentation = isSupportedCanary || isSupportedVersion;
 
-    if (!supportsClientInstrumentation && process.env.TURBOPACK) {
+    if (!supportsClientInstrumentation && isTurbopack) {
       if (process.env.NODE_ENV === 'development') {
         // eslint-disable-next-line no-console
         console.warn(
@@ -307,12 +311,17 @@ function getFinalConfigObject(
             ],
           },
         }),
-    webpack: constructWebpackConfigFunction(
-      incomingUserNextConfigObject,
-      userSentryOptions,
-      releaseName,
-      routeManifest,
-    ),
+    webpack: !isTurbopack
+      ? constructWebpackConfigFunction(incomingUserNextConfigObject, userSentryOptions, releaseName, routeManifest)
+      : undefined,
+    ...(isTurbopackSupported && isTurbopack
+      ? {
+          turbopack: constructTurbopackConfig({
+            userNextConfig: incomingUserNextConfigObject,
+            routeManifest,
+          }),
+        }
+      : {}),
   };
 }
 
