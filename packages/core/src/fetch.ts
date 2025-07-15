@@ -66,9 +66,8 @@ export function instrumentFetchRequest(
   spans[span.spanContext().spanId] = span;
 
   if (shouldAttachHeaders(handlerData.fetchData.url)) {
-    const request: string | Request = handlerData.args[0];
-
-    const options: { [key: string]: unknown } = handlerData.args[1] || {};
+    const request = handlerData.args[0] as string | Request;
+    const options = (handlerData.args[1] || {}) as Record<string, unknown>;
 
     const headers = _addTracingHeadersToFetchRequest(
       request,
