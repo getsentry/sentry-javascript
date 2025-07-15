@@ -2,9 +2,9 @@ import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
 import { SEMATTRS_HTTP_TARGET } from '@opentelemetry/semantic-conventions';
 import {
+  debug,
   getActiveSpan,
   getRootSpan,
-  logger,
   SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -80,7 +80,7 @@ export class ReactRouterInstrumentation extends InstrumentationBase<Instrumentat
               const rootSpan = activeSpan && getRootSpan(activeSpan);
 
               if (!rootSpan) {
-                DEBUG_BUILD && logger.debug('No active root span found, skipping tracing for data request');
+                DEBUG_BUILD && debug.log('No active root span found, skipping tracing for data request');
                 return originalRequestHandler(request, initialContext);
               }
 
