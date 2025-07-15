@@ -392,6 +392,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     );
 
     this.session = session;
+    this.recordingMode = 'session';
 
     this._initializeRecording();
   }
