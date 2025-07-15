@@ -1,5 +1,5 @@
 import type { Integration } from '@sentry/core';
-import { applySdkMetadata, logger } from '@sentry/core';
+import { applySdkMetadata, debug } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrations as getDefaultNodeIntegrations, init as nodeInit, isInitialized } from '@sentry/node';
 import { DEBUG_BUILD } from '../utils/debug-build';
@@ -26,7 +26,7 @@ export function init(options: RemixOptions): NodeClient | undefined {
   applySdkMetadata(options, 'remix', ['remix', 'node']);
 
   if (isInitialized()) {
-    DEBUG_BUILD && logger.log('SDK already initialized');
+    DEBUG_BUILD && debug.log('SDK already initialized');
 
     return;
   }
