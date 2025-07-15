@@ -91,7 +91,7 @@ export async function devErrorSymbolicationEventProcessor(event: Event, hint: Ev
         );
       }
     }
-  } catch (e) {
+  } catch {
     return event;
   }
 

@@ -25,7 +25,7 @@ sentryTest('should capture feedback', async ({ forceFlushReplay, getLocalTestUrl
 
     try {
       return getEnvelopeType(req) === 'feedback';
-    } catch (err) {
+    } catch {
       return false;
     }
   });

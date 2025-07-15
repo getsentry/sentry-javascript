@@ -159,7 +159,7 @@ function _getDomBreadcrumbHandler(
 
       target = htmlTreeAsString(element, { keyAttrs, maxStringLength });
       componentName = getComponentName(element);
-    } catch (e) {
+    } catch {
       target = '<unknown>';
     }
 

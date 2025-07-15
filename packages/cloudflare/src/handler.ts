@@ -233,7 +233,7 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
     }
 
     // This is here because Miniflare sometimes cannot get instrumented
-  } catch (e) {
+  } catch {
     // Do not console anything here, we don't want to spam the console with errors
   }
 

@@ -12,7 +12,7 @@ export function closestElementOfNode(node: Node | null): HTMLElement | null {
   try {
     const el: HTMLElement | null = node.nodeType === node.ELEMENT_NODE ? (node as HTMLElement) : node.parentElement;
     return el;
-  } catch (error) {
+  } catch {
     return null;
   }
 }

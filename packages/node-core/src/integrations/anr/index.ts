@@ -231,7 +231,7 @@ async function _startWorker(
       const session = currentSession ? { ...currentSession, toJSON: undefined } : undefined;
       // message the worker to tell it the main event loop is still running
       worker.postMessage({ session, debugImages: getFilenameToDebugIdMap(initOptions.stackParser) });
-    } catch (_) {
+    } catch {
       //
     }
   }, options.pollInterval);

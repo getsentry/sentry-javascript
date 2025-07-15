@@ -75,7 +75,7 @@ export const rewriteFramesIntegration = defineIntegration((options: RewriteFrame
           })),
         },
       };
-    } catch (_oO) {
+    } catch {
       return event;
     }
   }
