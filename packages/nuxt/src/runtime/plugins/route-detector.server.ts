@@ -1,4 +1,4 @@
-import { getActiveSpan, getRootSpan, logger, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { debug, getActiveSpan, getRootSpan, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { defineNuxtPlugin } from 'nuxt/app';
 import type { NuxtPageSubset } from '../utils/route-extraction';
 import { extractParametrizedRouteFromContext } from '../utils/route-extraction';
@@ -11,10 +11,10 @@ export default defineNuxtPlugin(nuxtApp => {
       // @ts-expect-error This import is dynamically resolved at build time (`addTemplate` in module.ts)
       const { default: importedPagesData } = await import('#build/sentry--nuxt-pages-data.mjs');
       buildTimePagesData = importedPagesData || [];
-      logger.log('Imported build-time pages data:', buildTimePagesData);
+      debug.log('Imported build-time pages data:', buildTimePagesData);
     } catch (error) {
       buildTimePagesData = [];
-      logger.warn('Failed to import build-time pages data:', error);
+      debug.warn('Failed to import build-time pages data:', error);
     }
 
     const ssrContext = renderContext.ssrContext;
@@ -38,7 +38,7 @@ export default defineNuxtPlugin(nuxtApp => {
         return;
       }
 
-      logger.log('Matched parametrized server route:', routeInfo.parametrizedRoute);
+      debug.log('Matched parametrized server route:', routeInfo.parametrizedRoute);
 
       rootSpan.setAttributes({
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
