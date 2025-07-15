@@ -1,5 +1,5 @@
 import type { Integration } from '@sentry/core';
-import { logger } from '@sentry/core';
+import { logger, SDK_VERSION } from '@sentry/core';
 import * as SentryOpentelemetry from '@sentry/opentelemetry';
 import { type Mock, type MockInstance, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getClient, NodeClient, validateOpenTelemetrySetup } from '../../src/';
@@ -36,6 +36,24 @@ describe('init()', () => {
     cleanupOtel();
 
     vi.clearAllMocks();
+  });
+
+  describe('metadata', () => {
+    it('has the correct metadata', () => {
+      init({ dsn: PUBLIC_DSN });
+
+      const client = getClient<NodeClient>();
+
+      expect(client?.getSdkMetadata()).toEqual(
+        expect.objectContaining({
+          sdk: {
+            name: 'sentry.javascript.node',
+            version: SDK_VERSION,
+            packages: [{ name: 'npm:@sentry/node', version: SDK_VERSION }],
+          },
+        }),
+      );
+    });
   });
 
   describe('integrations', () => {

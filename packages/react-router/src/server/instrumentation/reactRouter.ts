@@ -1,5 +1,6 @@
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
+import { SEMATTRS_HTTP_TARGET } from '@opentelemetry/semantic-conventions';
 import {
   getActiveSpan,
   getRootSpan,
@@ -8,11 +9,13 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  spanToJSON,
   startSpan,
+  updateSpanName,
 } from '@sentry/core';
 import type * as reactRouter from 'react-router';
 import { DEBUG_BUILD } from '../../common/debug-build';
-import { getOpName, getSpanName, isDataRequest, SEMANTIC_ATTRIBUTE_SENTRY_OVERWRITE } from './util';
+import { getOpName, getSpanName, isDataRequest } from './util';
 
 type ReactRouterModuleExports = typeof reactRouter;
 
@@ -81,19 +84,23 @@ export class ReactRouterInstrumentation extends InstrumentationBase<Instrumentat
                 return originalRequestHandler(request, initialContext);
               }
 
-              // Set the source and overwrite attributes on the root span to ensure the transaction name
-              // is derived from the raw URL pathname rather than any parameterized route that may be set later
+              // We cannot rely on the regular span name inferral here, as the express instrumentation sets `*` as the route
+              // So we force this to be a more sensible name here
               // TODO: try to set derived parameterized route from build here (args[0])
+              const spanData = spanToJSON(rootSpan);
+              // eslint-disable-next-line deprecation/deprecation
+              const target = spanData.data[SEMATTRS_HTTP_TARGET] || url.pathname;
+              updateSpanName(rootSpan, `${request.method} ${target}`);
               rootSpan.setAttributes({
                 [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-                [SEMANTIC_ATTRIBUTE_SENTRY_OVERWRITE]: `${request.method} ${url.pathname}`,
+                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react-router.server',
               });
 
               return startSpan(
                 {
                   name: getSpanName(url.pathname, request.method),
                   attributes: {
-                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react-router',
+                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react-router.server',
                     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: getOpName(url.pathname, request.method),
                   },
                 },
