@@ -61,7 +61,7 @@ export function addNonEnumerableProperty(obj: object, name: string, value: unkno
       writable: true,
       configurable: true,
     });
-  } catch (o_O) {
+  } catch {
     DEBUG_BUILD && debug.log(`Failed to add non-enumerable property "${name}" to object`, obj);
   }
 }
@@ -78,7 +78,7 @@ export function markFunctionWrapped(wrapped: WrappedFunction, original: WrappedF
     const proto = original.prototype || {};
     wrapped.prototype = original.prototype = proto;
     addNonEnumerableProperty(wrapped, '__sentry_original__', original);
-  } catch (o_O) {} // eslint-disable-line no-empty
+  } catch {} // eslint-disable-line no-empty
 }
 
 /**
@@ -151,7 +151,7 @@ export function convertToPlainObject<V>(value: V):
 function serializeEventTarget(target: unknown): string {
   try {
     return isElement(target) ? htmlTreeAsString(target) : Object.prototype.toString.call(target);
-  } catch (_oO) {
+  } catch {
     return '<unknown>';
   }
 }

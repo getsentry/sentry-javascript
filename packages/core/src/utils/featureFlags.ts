@@ -1,10 +1,8 @@
 import { getCurrentScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { type Event } from '../types-hoist/event';
-import { type Span } from '../types-hoist/span';
 import { debug } from '../utils/logger';
-import { GLOBAL_OBJ } from '../utils/worldwide';
-import { getActiveSpan } from './spanUtils';
+import { getActiveSpan, spanToJSON } from './spanUtils';
 
 /**
  * Ordered LRU cache for storing feature flags in the scope context. The name
@@ -23,9 +21,6 @@ export const _INTERNAL_FLAG_BUFFER_SIZE = 100;
  * Max number of flag evaluations to record per span.
  */
 export const _INTERNAL_MAX_FLAGS_PER_SPAN = 10;
-
-// Global map of spans to feature flag buffers. Populated by feature flag integrations.
-GLOBAL_OBJ._spanToFlagBufferMap = new WeakMap<Span, Set<string>>();
 
 const SPAN_FLAG_ATTRIBUTE_PREFIX = 'flag.evaluation.';
 
@@ -133,20 +128,26 @@ export function _INTERNAL_addFeatureFlagToActiveSpan(
   value: unknown,
   maxFlagsPerSpan: number = _INTERNAL_MAX_FLAGS_PER_SPAN,
 ): void {
-  const spanFlagMap = GLOBAL_OBJ._spanToFlagBufferMap;
-  if (!spanFlagMap || typeof value !== 'boolean') {
+  if (typeof value !== 'boolean') {
     return;
   }
 
   const span = getActiveSpan();
-  if (span) {
-    const flags = spanFlagMap.get(span) || new Set<string>();
-    if (flags.has(name)) {
-      span.setAttribute(`${SPAN_FLAG_ATTRIBUTE_PREFIX}${name}`, value);
-    } else if (flags.size < maxFlagsPerSpan) {
-      flags.add(name);
-      span.setAttribute(`${SPAN_FLAG_ATTRIBUTE_PREFIX}${name}`, value);
-    }
-    spanFlagMap.set(span, flags);
+  if (!span) {
+    return;
+  }
+
+  const attributes = spanToJSON(span).data;
+
+  // If the flag already exists, always update it
+  if (`${SPAN_FLAG_ATTRIBUTE_PREFIX}${name}` in attributes) {
+    span.setAttribute(`${SPAN_FLAG_ATTRIBUTE_PREFIX}${name}`, value);
+    return;
+  }
+
+  // Else, add the flag to the span if we have not reached the max number of flags
+  const numOfAddedFlags = Object.keys(attributes).filter(key => key.startsWith(SPAN_FLAG_ATTRIBUTE_PREFIX)).length;
+  if (numOfAddedFlags < maxFlagsPerSpan) {
+    span.setAttribute(`${SPAN_FLAG_ATTRIBUTE_PREFIX}${name}`, value);
   }
 }

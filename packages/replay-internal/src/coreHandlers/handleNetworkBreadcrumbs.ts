@@ -3,7 +3,7 @@ import { getClient } from '@sentry/core';
 import type { FetchHint, XhrHint } from '@sentry-internal/browser-utils';
 import { DEBUG_BUILD } from '../debug-build';
 import type { ReplayContainer, ReplayNetworkOptions } from '../types';
-import { logger } from '../util/logger';
+import { debug } from '../util/logger';
 import { captureFetchBreadcrumbToReplay, enrichFetchBreadcrumb } from './util/fetchUtils';
 import { captureXhrBreadcrumbToReplay, enrichXhrBreadcrumb } from './util/xhrUtils';
 
@@ -79,7 +79,7 @@ export function beforeAddNetworkBreadcrumb(
       captureFetchBreadcrumbToReplay(breadcrumb, hint, options);
     }
   } catch (e) {
-    DEBUG_BUILD && logger.exception(e, 'Error when enriching network breadcrumb');
+    DEBUG_BUILD && debug.exception(e, 'Error when enriching network breadcrumb');
   }
 }
 

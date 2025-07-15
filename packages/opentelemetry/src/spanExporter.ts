@@ -15,10 +15,10 @@ import {
   captureEvent,
   convertSpanLinksForEnvelope,
   debounce,
+  debug,
   getCapturedScopesOnSpan,
   getDynamicSamplingContextFromSpan,
   getStatusMessage,
-  logger,
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -105,7 +105,7 @@ export class SentrySpanExporter {
       });
       if (droppedSpanCount > 0) {
         DEBUG_BUILD &&
-          logger.log(
+          debug.log(
             `SpanExporter dropped ${droppedSpanCount} spans because they were pending for more than ${this._finishedSpanBucketSize} seconds.`,
           );
       }
@@ -142,7 +142,7 @@ export class SentrySpanExporter {
     const sentSpanCount = sentSpans.size;
     const remainingOpenSpanCount = finishedSpans.length - sentSpanCount;
     DEBUG_BUILD &&
-      logger.log(
+      debug.log(
         `SpanExporter exported ${sentSpanCount} spans, ${remainingOpenSpanCount} spans are waiting for their parent spans to finish`,
       );
 
@@ -190,6 +190,14 @@ export class SentrySpanExporter {
       const span = root.span;
       sentSpans.add(span);
       const transactionEvent = createTransactionForOtelSpan(span);
+
+      // Add an attribute to the transaction event to indicate that this transaction is an orphaned transaction
+      if (root.parentNode && this._sentSpans.has(root.parentNode.id)) {
+        const traceData = transactionEvent.contexts?.trace?.data;
+        if (traceData) {
+          traceData['sentry.parent_span_already_sent'] = true;
+        }
+      }
 
       // We'll recursively add all the child spans to this array
       const spans = transactionEvent.spans || [];

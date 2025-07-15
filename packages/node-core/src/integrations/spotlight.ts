@@ -20,13 +20,12 @@ const _spotlightIntegration = ((options: Partial<SpotlightConnectionOptions> = {
   return {
     name: INTEGRATION_NAME,
     setup(client) {
-      if (
-        typeof process === 'object' &&
-        process.env &&
-        process.env.NODE_ENV &&
-        process.env.NODE_ENV !== 'development'
-      ) {
-        logger.warn("[Spotlight] It seems you're not in dev mode. Do you really want to have Spotlight enabled?");
+      try {
+        if (process.env.NODE_ENV && process.env.NODE_ENV !== 'development') {
+          logger.warn("[Spotlight] It seems you're not in dev mode. Do you really want to have Spotlight enabled?");
+        }
+      } catch {
+        // ignore
       }
       connectToSpotlight(client, _options);
     },

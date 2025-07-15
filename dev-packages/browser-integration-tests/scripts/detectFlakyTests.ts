@@ -131,7 +131,7 @@ function getApproximateNumberOfTests(testPath: string): number {
     const content = fs.readFileSync(path.join(process.cwd(), testPath, 'test.ts'), 'utf-8');
     const matches = content.match(/sentryTest\(/g);
     return Math.max(matches ? matches.length : 1, 1);
-  } catch (e) {
+  } catch {
     console.error(`Could not read file ${testPath}`);
     return 1;
   }

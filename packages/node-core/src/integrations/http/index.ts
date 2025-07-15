@@ -57,7 +57,7 @@ interface HttpOptions {
    * By default, spans with 404 status code are ignored.
    * Expects an array of status codes or a range of status codes, e.g. [[300,399], 404] would ignore 3xx and 404 status codes.
    *
-   * @default `[404]`
+   * @default `[[401, 404], [300, 399]]`
    */
   dropSpansForIncomingRequestStatusCodes?: (number | [number, number])[];
 
@@ -105,7 +105,10 @@ const instrumentSentryHttp = generateInstrumentOnce<SentryHttpInstrumentationOpt
  * It creates breadcrumbs for outgoing HTTP requests which will be attached to the currently active span.
  */
 export const httpIntegration = defineIntegration((options: HttpOptions = {}) => {
-  const dropSpansForIncomingRequestStatusCodes = options.dropSpansForIncomingRequestStatusCodes ?? [404];
+  const dropSpansForIncomingRequestStatusCodes = options.dropSpansForIncomingRequestStatusCodes ?? [
+    [401, 404],
+    [300, 399],
+  ];
 
   return {
     name: INTEGRATION_NAME,

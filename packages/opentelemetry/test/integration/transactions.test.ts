@@ -5,8 +5,8 @@ import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
 import type { Event, TransactionEvent } from '@sentry/core';
 import {
   addBreadcrumb,
+  debug,
   getClient,
-  logger,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setTag,
@@ -440,7 +440,7 @@ describe('Integration | Transactions', () => {
     vi.setSystemTime(now);
 
     const logs: unknown[] = [];
-    vi.spyOn(logger, 'log').mockImplementation(msg => logs.push(msg));
+    vi.spyOn(debug, 'log').mockImplementation(msg => logs.push(msg));
 
     mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
 
@@ -510,7 +510,7 @@ describe('Integration | Transactions', () => {
     vi.setSystemTime(now);
 
     const logs: unknown[] = [];
-    vi.spyOn(logger, 'log').mockImplementation(msg => logs.push(msg));
+    vi.spyOn(debug, 'log').mockImplementation(msg => logs.push(msg));
 
     const transactions: Event[] = [];
 
@@ -568,7 +568,7 @@ describe('Integration | Transactions', () => {
     vi.setSystemTime(now);
 
     const logs: unknown[] = [];
-    vi.spyOn(logger, 'log').mockImplementation(msg => logs.push(msg));
+    vi.spyOn(debug, 'log').mockImplementation(msg => logs.push(msg));
 
     const transactions: Event[] = [];
 
@@ -612,6 +612,20 @@ describe('Integration | Transactions', () => {
     expect(transactions).toHaveLength(2);
     expect(transactions[0]?.spans).toHaveLength(1);
 
+    expect(transactions[0]?.transaction).toBe('test name');
+    expect(transactions[0]?.contexts?.trace?.data).toEqual({
+      'sentry.origin': 'manual',
+      'sentry.sample_rate': 1,
+      'sentry.source': 'custom',
+    });
+
+    expect(transactions[1]?.transaction).toBe('inner span 2');
+    expect(transactions[1]?.contexts?.trace?.data).toEqual({
+      'sentry.parent_span_already_sent': true,
+      'sentry.origin': 'manual',
+      'sentry.source': 'custom',
+    });
+
     const finishedSpans: any = exporter['_finishedSpanBuckets'].flatMap(bucket =>
       bucket ? Array.from(bucket.spans) : [],
     );
@@ -625,7 +639,7 @@ describe('Integration | Transactions', () => {
     vi.setSystemTime(now);
 
     const logs: unknown[] = [];
-    vi.spyOn(logger, 'log').mockImplementation(msg => logs.push(msg));
+    vi.spyOn(debug, 'log').mockImplementation(msg => logs.push(msg));
 
     const transactions: Event[] = [];
 
@@ -687,7 +701,7 @@ describe('Integration | Transactions', () => {
     vi.setSystemTime(now);
 
     const logs: unknown[] = [];
-    vi.spyOn(logger, 'log').mockImplementation(msg => logs.push(msg));
+    vi.spyOn(debug, 'log').mockImplementation(msg => logs.push(msg));
 
     const transactions: Event[] = [];
 

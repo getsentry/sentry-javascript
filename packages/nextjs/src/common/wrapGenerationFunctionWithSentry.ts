@@ -40,7 +40,7 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
       // We try-catch here just in case anything goes wrong with the async storage here goes wrong since it is Next.js internal API
       try {
         headers = requestAsyncStorage?.getStore()?.headers;
-      } catch (e) {
+      } catch {
         /** empty */
       }
 

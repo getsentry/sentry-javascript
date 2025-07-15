@@ -30,8 +30,7 @@ export const handleDomListener: (replay: ReplayContainer) => (handlerData: Handl
     if (
       isClick &&
       replay.clickDetector &&
-      event &&
-      event.target &&
+      event?.target &&
       !event.altKey &&
       !event.metaKey &&
       !event.ctrlKey &&
@@ -98,7 +97,7 @@ function getDomTarget(handlerData: HandlerDataDom): { target: Node | null; messa
   try {
     target = isClick ? getClickTargetNode(handlerData.event as Event) : getTargetNode(handlerData.event as Event);
     message = htmlTreeAsString(target, { maxStringLength: 200 }) || '<unknown>';
-  } catch (e) {
+  } catch {
     message = '<unknown>';
   }
 

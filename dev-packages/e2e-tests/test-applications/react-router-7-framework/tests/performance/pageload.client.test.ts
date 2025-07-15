@@ -5,7 +5,7 @@ import { APP_NAME } from '../constants';
 test.describe('client - pageload performance', () => {
   test('should send pageload transaction', async ({ page }) => {
     const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      return transactionEvent.transaction === '/performance/';
+      return transactionEvent.transaction === '/performance';
     });
 
     await page.goto(`/performance`);
@@ -18,20 +18,20 @@ test.describe('client - pageload performance', () => {
           span_id: expect.any(String),
           trace_id: expect.any(String),
           data: {
-            'sentry.origin': 'auto.pageload.browser',
+            'sentry.origin': 'auto.pageload.react-router',
             'sentry.op': 'pageload',
-            'sentry.source': 'url',
+            'sentry.source': 'route',
           },
           op: 'pageload',
-          origin: 'auto.pageload.browser',
+          origin: 'auto.pageload.react-router',
         },
       },
       spans: expect.any(Array),
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
-      transaction: '/performance/',
+      transaction: '/performance',
       type: 'transaction',
-      transaction_info: { source: 'url' },
+      transaction_info: { source: 'route' },
       measurements: expect.any(Object),
       platform: 'javascript',
       request: {
@@ -68,12 +68,12 @@ test.describe('client - pageload performance', () => {
           span_id: expect.any(String),
           trace_id: expect.any(String),
           data: {
-            'sentry.origin': 'auto.pageload.browser',
+            'sentry.origin': 'auto.pageload.react-router',
             'sentry.op': 'pageload',
             'sentry.source': 'route',
           },
           op: 'pageload',
-          origin: 'auto.pageload.browser',
+          origin: 'auto.pageload.react-router',
         },
       },
       spans: expect.any(Array),
@@ -105,7 +105,7 @@ test.describe('client - pageload performance', () => {
 
   test('should send pageload transaction for prerendered pages', async ({ page }) => {
     const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      return transactionEvent.transaction === '/performance/static/';
+      return transactionEvent.transaction === '/performance/static';
     });
 
     await page.goto(`/performance/static`);
@@ -113,18 +113,18 @@ test.describe('client - pageload performance', () => {
     const transaction = await txPromise;
 
     expect(transaction).toMatchObject({
-      transaction: '/performance/static/',
+      transaction: '/performance/static',
       contexts: {
         trace: {
           span_id: expect.any(String),
           trace_id: expect.any(String),
           data: {
-            'sentry.origin': 'auto.pageload.browser',
+            'sentry.origin': 'auto.pageload.react-router',
             'sentry.op': 'pageload',
-            'sentry.source': 'url',
+            'sentry.source': 'route',
           },
           op: 'pageload',
-          origin: 'auto.pageload.browser',
+          origin: 'auto.pageload.react-router',
         },
       },
     });

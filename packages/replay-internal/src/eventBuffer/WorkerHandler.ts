@@ -1,6 +1,6 @@
 import { DEBUG_BUILD } from '../debug-build';
 import type { WorkerRequest, WorkerResponse } from '../types';
-import { logger } from '../util/logger';
+import { debug } from '../util/logger';
 
 /**
  * Event buffer that uses a web worker to compress events.
@@ -55,7 +55,7 @@ export class WorkerHandler {
    * Destroy the worker.
    */
   public destroy(): void {
-    DEBUG_BUILD && logger.info('Destroying compression worker');
+    DEBUG_BUILD && debug.log('Destroying compression worker');
     this._worker.terminate();
   }
 
@@ -83,7 +83,7 @@ export class WorkerHandler {
 
         if (!response.success) {
           // TODO: Do some error handling, not sure what
-          DEBUG_BUILD && logger.error('Error in compression worker: ', response.response);
+          DEBUG_BUILD && debug.error('Error in compression worker: ', response.response);
 
           reject(new Error('Error in compression worker'));
           return;
