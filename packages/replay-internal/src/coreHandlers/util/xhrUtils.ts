@@ -3,7 +3,7 @@ import type { NetworkMetaWarning, XhrHint } from '@sentry-internal/browser-utils
 import { getBodyString, SENTRY_XHR_DATA_KEY } from '@sentry-internal/browser-utils';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { ReplayContainer, ReplayNetworkOptions, ReplayNetworkRequestData } from '../../types';
-import { logger } from '../../util/logger';
+import { debug } from '../../util/logger';
 import { addNetworkBreadcrumb } from './addNetworkBreadcrumb';
 import {
   buildNetworkRequestOrResponse,
@@ -32,7 +32,7 @@ export async function captureXhrBreadcrumbToReplay(
     const result = makeNetworkReplayBreadcrumb('resource.xhr', data);
     addNetworkBreadcrumb(options.replay, result);
   } catch (error) {
-    DEBUG_BUILD && logger.exception(error, 'Failed to capture xhr breadcrumb');
+    DEBUG_BUILD && debug.exception(error, 'Failed to capture xhr breadcrumb');
   }
 }
 
@@ -106,7 +106,7 @@ function _prepareXhrData(
     : {};
   const networkResponseHeaders = getAllowedHeaders(getResponseHeaders(xhr), options.networkResponseHeaders);
 
-  const [requestBody, requestWarning] = options.networkCaptureBodies ? getBodyString(input, logger) : [undefined];
+  const [requestBody, requestWarning] = options.networkCaptureBodies ? getBodyString(input, debug) : [undefined];
   const [responseBody, responseWarning] = options.networkCaptureBodies ? _getXhrResponseBody(xhr) : [undefined];
 
   const request = buildNetworkRequestOrResponse(networkRequestHeaders, requestBodySize, requestBody);
@@ -156,7 +156,7 @@ function _getXhrResponseBody(xhr: XMLHttpRequest): [string | undefined, NetworkM
     errors.push(e);
   }
 
-  DEBUG_BUILD && logger.warn('Failed to get xhr response body', ...errors);
+  DEBUG_BUILD && debug.warn('Failed to get xhr response body', ...errors);
 
   return [undefined];
 }
@@ -193,11 +193,11 @@ export function _parseXhrResponse(
       return [undefined];
     }
   } catch (error) {
-    DEBUG_BUILD && logger.exception(error, 'Failed to serialize body', body);
+    DEBUG_BUILD && debug.exception(error, 'Failed to serialize body', body);
     return [undefined, 'BODY_PARSE_ERROR'];
   }
 
-  DEBUG_BUILD && logger.info('Skipping network body because of body type', body);
+  DEBUG_BUILD && debug.log('Skipping network body because of body type', body);
 
   return [undefined, 'UNPARSEABLE_BODY_TYPE'];
 }

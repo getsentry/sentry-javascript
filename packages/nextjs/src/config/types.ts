@@ -469,9 +469,20 @@ export type SentryBuildOptions = {
   suppressOnRouterTransitionStartWarning?: boolean;
 
   /**
-   * Disables manifest injection.
+   * Disables automatic injection of the route manifest into the client bundle.
    *
-   * Defaults to `false`.
+   * The route manifest is a build-time generated mapping of your Next.js App Router
+   * routes that enables Sentry to group transactions by parameterized route names
+   * (e.g., `/users/:id` instead of `/users/123`, `/users/456`, etc.).
+   *
+   * **Disable this option if:**
+   * - You want to minimize client bundle size
+   * - You're experiencing build issues related to route scanning
+   * - You're using custom routing that the scanner can't detect
+   * - You prefer raw URLs in transaction names
+   * - You're only using Pages Router (this feature is only supported in the App Router)
+   *
+   * @default false
    */
   disableManifestInjection?: boolean;
 

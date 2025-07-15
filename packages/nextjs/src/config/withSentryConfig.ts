@@ -311,7 +311,6 @@ function getFinalConfigObject(
             ],
           },
         }),
-
     webpack: !isTurbopack
       ? constructWebpackConfigFunction(incomingUserNextConfigObject, userSentryOptions, releaseName, routeManifest)
       : undefined,
