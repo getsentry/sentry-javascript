@@ -207,6 +207,8 @@ targets:
         onlyIfPresent: /^sentry-nuxt-\d.*\.tgz$/
       'npm:@sentry/node':
         onlyIfPresent: /^sentry-node-\d.*\.tgz$/
+      'npm:@sentry/node-core':
+        onlyIfPresent: /^sentry-node-core-\d.*\.tgz$/
       'npm:@sentry/react':
         onlyIfPresent: /^sentry-react-\d.*\.tgz$/
       'npm:@sentry/react-router':
