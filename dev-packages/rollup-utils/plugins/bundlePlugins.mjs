@@ -142,7 +142,7 @@ export const terserOptions = {
   output: {
     comments: false,
   },
-}
+};
 
 /**
  * Create a plugin to perform minification using `terser`.
