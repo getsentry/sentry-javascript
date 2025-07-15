@@ -7,6 +7,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
 import { startBrowserTracingNavigationSpan, startBrowserTracingPageLoadSpan, WINDOW } from '@sentry/react';
+import { maybeParameterizeRoute } from './parameterization';
 
 export const INCOMPLETE_APP_ROUTER_INSTRUMENTATION_TRANSACTION_NAME = 'incomplete-app-router-transaction';
 
@@ -34,15 +35,16 @@ const currentRouterPatchingNavigationSpanRef: NavigationSpanRef = { current: und
 
 /** Instruments the Next.js app router for pageloads. */
 export function appRouterInstrumentPageLoad(client: Client): void {
+  const parameterizedPathname = maybeParameterizeRoute(WINDOW.location.pathname);
   const origin = browserPerformanceTimeOrigin();
   startBrowserTracingPageLoadSpan(client, {
-    name: WINDOW.location.pathname,
+    name: parameterizedPathname ?? WINDOW.location.pathname,
     // pageload should always start at timeOrigin (and needs to be in s, not ms)
     startTime: origin ? origin / 1000 : undefined,
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.nextjs.app_router_instrumentation',
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: parameterizedPathname ? 'route' : 'url',
     },
   });
 }
@@ -85,7 +87,9 @@ const GLOBAL_OBJ_WITH_NEXT_ROUTER = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
 /** Instruments the Next.js app router for navigation. */
 export function appRouterInstrumentNavigation(client: Client): void {
   routerTransitionHandler = (href, navigationType) => {
-    const pathname = new URL(href, WINDOW.location.href).pathname;
+    const unparameterizedPathname = new URL(href, WINDOW.location.href).pathname;
+    const parameterizedPathname = maybeParameterizeRoute(unparameterizedPathname);
+    const pathname = parameterizedPathname ?? unparameterizedPathname;
 
     if (navigationRoutingMode === 'router-patch') {
       navigationRoutingMode = 'transition-start-hook';
@@ -96,6 +100,7 @@ export function appRouterInstrumentNavigation(client: Client): void {
       currentNavigationSpan.updateName(pathname);
       currentNavigationSpan.setAttributes({
         'navigation.type': `router.${navigationType}`,
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: parameterizedPathname ? 'route' : 'url',
       });
       currentRouterPatchingNavigationSpanRef.current = undefined;
     } else {
@@ -104,7 +109,7 @@ export function appRouterInstrumentNavigation(client: Client): void {
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: parameterizedPathname ? 'route' : 'url',
           'navigation.type': `router.${navigationType}`,
         },
       });
@@ -112,15 +117,19 @@ export function appRouterInstrumentNavigation(client: Client): void {
   };
 
   WINDOW.addEventListener('popstate', () => {
+    const parameterizedPathname = maybeParameterizeRoute(WINDOW.location.pathname);
     if (currentRouterPatchingNavigationSpanRef.current?.isRecording()) {
-      currentRouterPatchingNavigationSpanRef.current.updateName(WINDOW.location.pathname);
-      currentRouterPatchingNavigationSpanRef.current.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'url');
+      currentRouterPatchingNavigationSpanRef.current.updateName(parameterizedPathname ?? WINDOW.location.pathname);
+      currentRouterPatchingNavigationSpanRef.current.setAttribute(
+        SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+        parameterizedPathname ? 'route' : 'url',
+      );
     } else {
       currentRouterPatchingNavigationSpanRef.current = startBrowserTracingNavigationSpan(client, {
-        name: WINDOW.location.pathname,
+        name: parameterizedPathname ?? WINDOW.location.pathname,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: parameterizedPathname ? 'route' : 'url',
           'navigation.type': 'browser.popstate',
         },
       });
@@ -209,9 +218,14 @@ function patchRouter(client: Client, router: NextRouter, currentNavigationSpanRe
             transactionAttributes['navigation.type'] = 'router.forward';
           }
 
+          const parameterizedPathname = maybeParameterizeRoute(transactionName);
+
           currentNavigationSpanRef.current = startBrowserTracingNavigationSpan(client, {
-            name: transactionName,
-            attributes: transactionAttributes,
+            name: parameterizedPathname ?? transactionName,
+            attributes: {
+              ...transactionAttributes,
+              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: parameterizedPathname ? 'route' : 'url',
+            },
           });
 
           return target.apply(thisArg, argArray);

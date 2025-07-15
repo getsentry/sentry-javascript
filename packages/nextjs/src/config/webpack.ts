@@ -7,6 +7,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { sync as resolveSync } from 'resolve';
 import type { VercelCronsConfig } from '../common/types';
+import type { RouteManifest } from './manifest/types';
 // Note: If you need to import a type from Webpack, do it in `types.ts` and export it from there. Otherwise, our
 // circular dependency check thinks this file is importing from itself. See https://github.com/pahen/madge/issues/306.
 import type {
@@ -43,6 +44,7 @@ export function constructWebpackConfigFunction(
   userNextConfig: NextConfigObject = {},
   userSentryOptions: SentryBuildOptions = {},
   releaseName: string | undefined,
+  routeManifest: RouteManifest | undefined,
 ): WebpackConfigFunction {
   // Will be called by nextjs and passed its default webpack configuration and context data about the build (whether
   // we're building server or client, whether we're in dev, what version of webpack we're using, etc). Note that
@@ -88,7 +90,7 @@ export function constructWebpackConfigFunction(
     const newConfig = setUpModuleRules(rawNewConfig);
 
     // Add a loader which will inject code that sets global values
-    addValueInjectionLoader(newConfig, userNextConfig, userSentryOptions, buildContext, releaseName);
+    addValueInjectionLoader(newConfig, userNextConfig, userSentryOptions, buildContext, releaseName, routeManifest);
 
     addOtelWarningIgnoreRule(newConfig);
 
@@ -686,6 +688,7 @@ function addValueInjectionLoader(
   userSentryOptions: SentryBuildOptions,
   buildContext: BuildContext,
   releaseName: string | undefined,
+  routeManifest: RouteManifest | undefined,
 ): void {
   const assetPrefix = userNextConfig.assetPrefix || userNextConfig.basePath || '';
 
@@ -727,6 +730,7 @@ function addValueInjectionLoader(
     _sentryExperimentalThirdPartyOriginStackFrames: userSentryOptions._experimental?.thirdPartyOriginStackFrames
       ? 'true'
       : undefined,
+    _sentryRouteManifest: JSON.stringify(routeManifest),
   };
 
   if (buildContext.isServer) {
@@ -744,7 +748,7 @@ function addValueInjectionLoader(
     });
   } else {
     newConfig.module.rules.push({
-      test: /sentry\.client\.config\.(jsx?|tsx?)/,
+      test: /(?:sentry\.client\.config\.(jsx?|tsx?)|(?:src[\\/])?instrumentation-client\.(js|ts))$/,
       use: [
         {
           loader: path.resolve(__dirname, 'loaders/valueInjectionLoader.js'),

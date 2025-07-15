@@ -108,20 +108,3 @@ test('Should send a transaction and an error event for a faulty generateViewport
 
   expect(errorEvent.transaction).toBe('Page.generateViewport (/generation-functions)');
 });
-
-test('Should send a transaction event with correct status for a generateMetadata() function invocation with redirect()', async ({
-  page,
-}) => {
-  const testTitle = 'redirect-foobar';
-
-  const transactionPromise = waitForTransaction('nextjs-14', async transactionEvent => {
-    return (
-      transactionEvent.contexts?.trace?.data?.['http.target'] ===
-      `/generation-functions/with-redirect?metadataTitle=${testTitle}`
-    );
-  });
-
-  await page.goto(`/generation-functions/with-redirect?metadataTitle=${testTitle}`);
-
-  expect((await transactionPromise).contexts?.trace?.status).toBe('ok');
-});

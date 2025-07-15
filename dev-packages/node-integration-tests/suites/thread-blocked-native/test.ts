@@ -3,7 +3,7 @@ import type { Event } from '@sentry/core';
 import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../utils/runner';
 
-function EXCEPTION(thread_id = '0') {
+function EXCEPTION(thread_id = '0', fn = 'longWork') {
   return {
     values: [
       {
@@ -24,7 +24,7 @@ function EXCEPTION(thread_id = '0') {
               colno: expect.any(Number),
               lineno: expect.any(Number),
               filename: expect.any(String),
-              function: 'longWork',
+              function: fn,
               in_app: true,
             }),
           ]),
@@ -153,6 +153,19 @@ describe('Thread Blocked Native', { timeout: 30_000 }, () => {
     await new Promise(resolve => setTimeout(resolve, 5_000));
 
     expect(runner.childHasExited()).toBe(true);
+  });
+
+  test('can be disabled with disableBlockDetectionForCallback', async () => {
+    await createRunner(__dirname, 'basic-disabled.mjs')
+      .withMockSentryServer()
+      .expect({
+        event: {
+          ...ANR_EVENT,
+          exception: EXCEPTION('0', 'longWorkOther'),
+        },
+      })
+      .start()
+      .completed();
   });
 
   test('worker thread', async () => {

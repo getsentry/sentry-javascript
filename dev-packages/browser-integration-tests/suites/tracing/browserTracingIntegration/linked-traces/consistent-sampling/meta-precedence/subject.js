@@ -11,7 +11,7 @@ btn1?.addEventListener('click', () => {
 btn2?.addEventListener('click', () => {
   Sentry.startNewTrace(() => {
     Sentry.startSpan({ name: 'custom root span 2', op: 'custom' }, async () => {
-      await fetch('https://someUrl.com');
+      await fetch('http://sentry-test-external.io');
     });
   });
 });

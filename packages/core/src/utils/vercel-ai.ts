@@ -57,19 +57,15 @@ function onVercelAiSpanStart(span: Span): void {
   processGenerateSpan(span, name, attributes);
 }
 
-const vercelAiEventProcessor = Object.assign(
-  (event: Event): Event => {
-    if (event.type === 'transaction' && event.spans) {
-      for (const span of event.spans) {
-        // this mutates spans in-place
-        processEndedVercelAiSpan(span);
-      }
+function vercelAiEventProcessor(event: Event): Event {
+  if (event.type === 'transaction' && event.spans) {
+    for (const span of event.spans) {
+      // this mutates spans in-place
+      processEndedVercelAiSpan(span);
     }
-    return event;
-  },
-  { id: 'VercelAiEventProcessor' },
-);
-
+  }
+  return event;
+}
 /**
  * Post-process spans emitted by the Vercel AI SDK.
  */
@@ -99,6 +95,13 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
 
   renameAttributeKey(attributes, AI_TOOL_CALL_ARGS_ATTRIBUTE, 'gen_ai.tool.input');
   renameAttributeKey(attributes, AI_TOOL_CALL_RESULT_ATTRIBUTE, 'gen_ai.tool.output');
+
+  // Change attributes namespaced with `ai.X` to `vercel.ai.X`
+  for (const key of Object.keys(attributes)) {
+    if (key.startsWith('ai.')) {
+      renameAttributeKey(attributes, key, `vercel.${key}`);
+    }
+  }
 }
 
 /**
@@ -229,5 +232,5 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
 export function addVercelAiProcessors(client: Client): void {
   client.on('spanStart', onVercelAiSpanStart);
   // Note: We cannot do this on `spanEnd`, because the span cannot be mutated anymore at this point
-  client.addEventProcessor(vercelAiEventProcessor);
+  client.addEventProcessor(Object.assign(vercelAiEventProcessor, { id: 'VercelAiEventProcessor' }));
 }

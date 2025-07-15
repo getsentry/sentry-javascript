@@ -1,6 +1,17 @@
-import type { Integration, SentrySpan, Span, SpanAttributes, SpanTimeInput, StartSpanOptions } from '@sentry/core';
+import type {
+  Client,
+  Integration,
+  SentrySpan,
+  Span,
+  SpanAttributes,
+  SpanTimeInput,
+  StartSpanOptions,
+} from '@sentry/core';
 import { getClient, getCurrentScope, spanToJSON, startInactiveSpan, withActiveSpan } from '@sentry/core';
 import { WINDOW } from '../types';
+import { onHidden } from './web-vitals/lib/onHidden';
+
+export type WebVitalReportEvent = 'pagehide' | 'navigation';
 
 /**
  * Checks if a given value is a valid measurement value.
@@ -167,4 +178,61 @@ export function extractNetworkProtocol(nextHopProtocol: string): { name: string;
     name = _name;
   }
   return { name, version };
+}
+
+/**
+ * Generic support check for web vitals
+ */
+export function supportsWebVital(entryType: 'layout-shift' | 'largest-contentful-paint'): boolean {
+  try {
+    return PerformanceObserver.supportedEntryTypes.includes(entryType);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Listens for events on which we want to collect a previously accumulated web vital value.
+ * Currently, this includes:
+ *
+ * - pagehide (i.e. user minimizes browser window, hides tab, etc)
+ * - soft navigation (we only care about the vital of the initially loaded route)
+ *
+ * As a "side-effect", this function will also collect the span id of the pageload span.
+ *
+ * @param collectorCallback the callback to be called when the first of these events is triggered. Parameters:
+ * - event: the event that triggered the reporting of the web vital value.
+ * - pageloadSpanId: the span id of the pageload span. This is used to link the web vital span to the pageload span.
+ */
+export function listenForWebVitalReportEvents(
+  client: Client,
+  collectorCallback: (event: WebVitalReportEvent, pageloadSpanId: string) => void,
+) {
+  let pageloadSpanId: string | undefined;
+
+  let collected = false;
+  function _runCollectorCallbackOnce(event: WebVitalReportEvent) {
+    if (!collected && pageloadSpanId) {
+      collectorCallback(event, pageloadSpanId);
+    }
+    collected = true;
+  }
+
+  onHidden(() => {
+    _runCollectorCallbackOnce('pagehide');
+  });
+
+  const unsubscribeStartNavigation = client.on('beforeStartNavigationSpan', (_, options) => {
+    // we only want to collect LCP if we actually navigate. Redirects should be ignored.
+    if (!options?.isRedirect) {
+      _runCollectorCallbackOnce('navigation');
+      unsubscribeStartNavigation?.();
+      unsubscribeAfterStartPageLoadSpan?.();
+    }
+  });
+
+  const unsubscribeAfterStartPageLoadSpan = client.on('afterStartPageLoadSpan', span => {
+    pageloadSpanId = span.spanContext().spanId;
+    unsubscribeAfterStartPageLoadSpan?.();
+  });
 }

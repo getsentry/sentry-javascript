@@ -51,6 +51,7 @@ export type NextConfigObject = {
   // https://nextjs.org/docs/pages/api-reference/next-config-js/env
   env?: Record<string, string>;
   serverExternalPackages?: string[]; // next >= v15.0.0
+  turbopack?: TurbopackOptions;
 };
 
 export type SentryBuildOptions = {
@@ -153,7 +154,7 @@ export type SentryBuildOptions = {
     /**
      * Toggle whether generated source maps within your Next.js build folder should be automatically deleted after being uploaded to Sentry.
      *
-     * Defaults to `false`.
+     * Defaults to `true`.
      */
     deleteSourcemapsAfterUpload?: boolean;
   };
@@ -468,6 +469,24 @@ export type SentryBuildOptions = {
   suppressOnRouterTransitionStartWarning?: boolean;
 
   /**
+   * Disables automatic injection of the route manifest into the client bundle.
+   *
+   * The route manifest is a build-time generated mapping of your Next.js App Router
+   * routes that enables Sentry to group transactions by parameterized route names
+   * (e.g., `/users/:id` instead of `/users/123`, `/users/456`, etc.).
+   *
+   * **Disable this option if:**
+   * - You want to minimize client bundle size
+   * - You're experiencing build issues related to route scanning
+   * - You're using custom routing that the scanner can't detect
+   * - You prefer raw URLs in transaction names
+   * - You're only using Pages Router (this feature is only supported in the App Router)
+   *
+   * @default false
+   */
+  disableManifestInjection?: boolean;
+
+  /**
    * Contains a set of experimental flags that might change in future releases. These flags enable
    * features that are still in development and may be modified, renamed, or removed without notice.
    * Use with caution in production environments.
@@ -589,3 +608,38 @@ export type EnhancedGlobal = typeof GLOBAL_OBJ & {
   SENTRY_RELEASE?: { id: string };
   SENTRY_RELEASES?: { [key: string]: { id: string } };
 };
+
+type JSONValue = string | number | boolean | JSONValue[] | { [k: string]: JSONValue };
+
+type TurbopackLoaderItem =
+  | string
+  | {
+      loader: string;
+      // At the moment, Turbopack options must be JSON-serializable, so restrict values.
+      options: Record<string, JSONValue>;
+    };
+
+type TurbopackRuleCondition = {
+  path: string | RegExp;
+};
+
+export type TurbopackRuleConfigItemOrShortcut = TurbopackLoaderItem[] | TurbopackRuleConfigItem;
+
+type TurbopackRuleConfigItemOptions = {
+  loaders: TurbopackLoaderItem[];
+  as?: string;
+};
+
+type TurbopackRuleConfigItem =
+  | TurbopackRuleConfigItemOptions
+  | { [condition: string]: TurbopackRuleConfigItem }
+  | false;
+
+export interface TurbopackOptions {
+  resolveAlias?: Record<string, string | string[] | Record<string, string | string[]>>;
+  resolveExtensions?: string[];
+  rules?: Record<string, TurbopackRuleConfigItemOrShortcut>;
+  conditions?: Record<string, TurbopackRuleCondition>;
+  moduleIds?: 'named' | 'deterministic';
+  root?: string;
+}
