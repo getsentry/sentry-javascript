@@ -1,5 +1,5 @@
 import type { Integration, Options } from '@sentry/core';
-import { hasSpansEnabled } from '@sentry/core';
+import { applySdkMetadata, hasSpansEnabled } from '@sentry/core';
 import type { NodeClient } from '@sentry/node-core';
 import {
   getDefaultIntegrations as getNodeCoreDefaultIntegrations,
@@ -50,6 +50,8 @@ function _init(
   options: NodeOptions | undefined = {},
   getDefaultIntegrationsImpl: (options: Options) => Integration[],
 ): NodeClient | undefined {
+  applySdkMetadata(options, 'node');
+
   const client = initNodeCore({
     ...options,
     // Only use Node SDK defaults if none provided
