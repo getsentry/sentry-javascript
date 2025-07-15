@@ -16,10 +16,10 @@ import type {
 } from '@sentry/core';
 import {
   createEnvelope,
+  debug,
   dsnToString,
   forEachEnvelopeItem,
   getDebugImagesForResources,
-  logger,
   uuid4,
 } from '@sentry/core';
 import type { RawChunkCpuProfile, RawThreadCpuProfile } from '@sentry-internal/node-cpu-profiler';
@@ -133,7 +133,7 @@ function createProfilePayload(
   // All profiles and transactions are rejected if this is the case and we want to
   // warn users that this is happening if they enable debug flag
   if (trace_id?.length !== 32) {
-    DEBUG_BUILD && logger.log(`[Profiling] Invalid traceId: ${trace_id} on profiled event`);
+    DEBUG_BUILD && debug.log(`[Profiling] Invalid traceId: ${trace_id} on profiled event`);
   }
 
   const enrichedThreadProfile = enrichWithThreadInformation(cpuProfile);
@@ -206,7 +206,7 @@ function createProfileChunkPayload(
   // All profiles and transactions are rejected if this is the case and we want to
   // warn users that this is happening if they enable debug flag
   if (trace_id?.length !== 32) {
-    DEBUG_BUILD && logger.log(`[Profiling] Invalid traceId: ${trace_id} on profiled event`);
+    DEBUG_BUILD && debug.log(`[Profiling] Invalid traceId: ${trace_id} on profiled event`);
   }
 
   const enrichedThreadProfile = enrichWithThreadInformation(cpuProfile);
@@ -265,7 +265,7 @@ export function isValidSampleRate(rate: unknown): boolean {
   // we need to check NaN explicitly because it's of type 'number' and therefore wouldn't get caught by this typecheck
   if ((typeof rate !== 'number' && typeof rate !== 'boolean') || (typeof rate === 'number' && isNaN(rate))) {
     DEBUG_BUILD &&
-      logger.warn(
+      debug.warn(
         `[Profiling] Invalid sample rate. Sample rate must be a boolean or a number between 0 and 1. Got ${JSON.stringify(
           rate,
         )} of type ${JSON.stringify(typeof rate)}.`,
@@ -280,7 +280,7 @@ export function isValidSampleRate(rate: unknown): boolean {
 
   // in case sampleRate is a boolean, it will get automatically cast to 1 if it's true and 0 if it's false
   if (rate < 0 || rate > 1) {
-    DEBUG_BUILD && logger.warn(`[Profiling] Invalid sample rate. Sample rate must be between 0 and 1. Got ${rate}.`);
+    DEBUG_BUILD && debug.warn(`[Profiling] Invalid sample rate. Sample rate must be between 0 and 1. Got ${rate}.`);
     return false;
   }
   return true;
@@ -297,7 +297,7 @@ export function isValidProfile(profile: RawThreadCpuProfile): profile is RawThre
       // Log a warning if the profile has less than 2 samples so users can know why
       // they are not seeing any profiling data and we cant avoid the back and forth
       // of asking them to provide us with a dump of the profile data.
-      logger.log('[Profiling] Discarding profile because it contains less than 2 samples');
+      debug.log('[Profiling] Discarding profile because it contains less than 2 samples');
     return false;
   }
 
@@ -319,7 +319,7 @@ export function isValidProfileChunk(profile: RawChunkCpuProfile): profile is Raw
       // Log a warning if the profile has less than 2 samples so users can know why
       // they are not seeing any profiling data and we cant avoid the back and forth
       // of asking them to provide us with a dump of the profile data.
-      logger.log('[Profiling] Discarding profile chunk because it contains less than 2 samples');
+      debug.log('[Profiling] Discarding profile chunk because it contains less than 2 samples');
     return false;
   }
 

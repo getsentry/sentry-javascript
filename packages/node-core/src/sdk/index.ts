@@ -1,5 +1,6 @@
 import type { Integration, Options } from '@sentry/core';
 import {
+  applySdkMetadata,
   consoleIntegration,
   consoleSandbox,
   functionToStringIntegration,
@@ -119,6 +120,8 @@ function _init(
       }),
     );
   }
+
+  applySdkMetadata(options, 'node-core');
 
   const client = new NodeClient(options);
   // The client is on the current scope, from where it generally is inherited

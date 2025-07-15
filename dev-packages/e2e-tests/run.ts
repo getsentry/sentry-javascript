@@ -84,10 +84,10 @@ async function run(): Promise<void> {
       const cwd = tmpDirPath;
 
       console.log(`Building ${testAppPath} in ${tmpDirPath}...`);
-      await asyncExec('pnpm test:build', { env, cwd });
+      await asyncExec('volta run pnpm test:build', { env, cwd });
 
       console.log(`Testing ${testAppPath}...`);
-      await asyncExec('pnpm test:assert', { env, cwd });
+      await asyncExec('volta run pnpm test:assert', { env, cwd });
 
       // clean up (although this is tmp, still nice to do)
       await rm(tmpDirPath, { recursive: true });

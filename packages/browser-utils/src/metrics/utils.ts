@@ -1,13 +1,13 @@
-import type { Integration, SentrySpan, Span, SpanAttributes, SpanTimeInput, StartSpanOptions } from '@sentry/core';
-import {
-  getActiveSpan,
-  getClient,
-  getCurrentScope,
-  getRootSpan,
-  spanToJSON,
-  startInactiveSpan,
-  withActiveSpan,
+import type {
+  Client,
+  Integration,
+  SentrySpan,
+  Span,
+  SpanAttributes,
+  SpanTimeInput,
+  StartSpanOptions,
 } from '@sentry/core';
+import { getClient, getCurrentScope, spanToJSON, startInactiveSpan, withActiveSpan } from '@sentry/core';
 import { WINDOW } from '../types';
 import { onHidden } from './web-vitals/lib/onHidden';
 
@@ -205,6 +205,7 @@ export function supportsWebVital(entryType: 'layout-shift' | 'largest-contentful
  * - pageloadSpanId: the span id of the pageload span. This is used to link the web vital span to the pageload span.
  */
 export function listenForWebVitalReportEvents(
+  client: Client,
   collectorCallback: (event: WebVitalReportEvent, pageloadSpanId: string) => void,
 ) {
   let pageloadSpanId: string | undefined;
@@ -218,32 +219,20 @@ export function listenForWebVitalReportEvents(
   }
 
   onHidden(() => {
-    if (!collected) {
-      _runCollectorCallbackOnce('pagehide');
+    _runCollectorCallbackOnce('pagehide');
+  });
+
+  const unsubscribeStartNavigation = client.on('beforeStartNavigationSpan', (_, options) => {
+    // we only want to collect LCP if we actually navigate. Redirects should be ignored.
+    if (!options?.isRedirect) {
+      _runCollectorCallbackOnce('navigation');
+      unsubscribeStartNavigation?.();
+      unsubscribeAfterStartPageLoadSpan?.();
     }
   });
 
-  setTimeout(() => {
-    const client = getClient();
-    if (!client) {
-      return;
-    }
-
-    const unsubscribeStartNavigation = client.on('beforeStartNavigationSpan', (_, options) => {
-      // we only want to collect LCP if we actually navigate. Redirects should be ignored.
-      if (!options?.isRedirect) {
-        _runCollectorCallbackOnce('navigation');
-        unsubscribeStartNavigation?.();
-      }
-    });
-
-    const activeSpan = getActiveSpan();
-    if (activeSpan) {
-      const rootSpan = getRootSpan(activeSpan);
-      const spanJSON = spanToJSON(rootSpan);
-      if (spanJSON.op === 'pageload') {
-        pageloadSpanId = rootSpan.spanContext().spanId;
-      }
-    }
-  }, 0);
+  const unsubscribeAfterStartPageLoadSpan = client.on('afterStartPageLoadSpan', span => {
+    pageloadSpanId = span.spanContext().spanId;
+    unsubscribeAfterStartPageLoadSpan?.();
+  });
 }
