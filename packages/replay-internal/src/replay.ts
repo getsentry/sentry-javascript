@@ -503,6 +503,10 @@ export class ReplayContainer implements ReplayContainerInterface {
     // enter into an infinite loop when `stop()` is called while flushing.
     this._isEnabled = false;
 
+    // Make sure to reset `recordingMode` to `buffer` to avoid any additional
+    // breadcrumbs to trigger a flush (e.g. in `addUpdate()`)
+    this.recordingMode = 'buffer';
+
     try {
       DEBUG_BUILD && debug.log(`Stopping Replay${reason ? ` triggered by ${reason}` : ''}`);
 
@@ -623,7 +627,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     // If this option is turned on then we will only want to call `flush`
     // explicitly
-    if (this.recordingMode === 'buffer') {
+    if (this.recordingMode === 'buffer' || !this._isEnabled) {
       return;
     }
 
