@@ -5,11 +5,11 @@ import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
 import type { IntegrationFn } from '@sentry/core';
 import {
   captureException,
+  debug,
   defineIntegration,
   getDefaultIsolationScope,
   getIsolationScope,
   httpRequestToRequestData,
-  logger,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   spanToJSON,
 } from '@sentry/core';
@@ -40,7 +40,7 @@ function requestHook(span: Span): void {
 
 function spanNameHook(info: ExpressRequestInfo<unknown>, defaultName: string): string {
   if (getIsolationScope() === getDefaultIsolationScope()) {
-    DEBUG_BUILD && logger.warn('Isolation scope is still default isolation scope - skipping setting transactionName');
+    DEBUG_BUILD && debug.warn('Isolation scope is still default isolation scope - skipping setting transactionName');
     return defaultName;
   }
   if (info.layerType === 'request_handler') {
