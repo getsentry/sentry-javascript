@@ -100,9 +100,9 @@ sentryTest('handles an expired session that re-samples to buffer', async ({ brow
   await new Promise(resolve => setTimeout(resolve, SESSION_TIMEOUT));
   await page.evaluate(() => {
     // @ts-expect-error - Replay is not typed
-    window.Replay._replay._options.errorSampleRate = 1;
+    window.Replay._replay?._options?.errorSampleRate = 1;
     // @ts-expect-error - Replay is not typed
-    window.Replay._replay._options.sessionSampleRate = 0;
+    window.Replay._replay?._options?.sessionSampleRate = 0;
   });
 
   let wasReplayFlushed = false;
