@@ -108,7 +108,7 @@ sentryTest(
       const replayIntegration = (window as unknown as Window & { Replay: ReturnType<typeof actualReplayIntegration> })
         .Replay;
       replayIntegration['_replay'].getOptions().errorSampleRate = 1.0;
-      replayIntegration['_replay'].getOptions().sessionSampleRate = 1.0;
+      replayIntegration['_replay'].getOptions().sessionSampleRate = 0.0;
     });
 
     let wasReplayFlushed = false;
