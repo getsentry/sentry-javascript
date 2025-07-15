@@ -1,0 +1,111 @@
+import {
+  type InstrumentationConfig,
+  type InstrumentationModuleDefinition,
+  InstrumentationBase,
+  InstrumentationNodeModuleDefinition,
+} from '@opentelemetry/instrumentation';
+import { getCurrentScope, INTEGRATION_NAME, SDK_VERSION } from '@sentry/core';
+import type { Integration, OpenAiClient, OpenAiOptions } from '@sentry/core';
+import { instrumentOpenAiClient } from '@sentry/core';
+
+export interface OpenAiIntegration extends Integration {
+  options: OpenAiOptions;
+}
+
+/**
+ * Represents the patched shape of the OpenAI module export.
+ */
+interface PatchedModuleExports {
+  [key: string]: unknown;
+  OpenAI: abstract new (...args: unknown[]) => OpenAiClient;
+}
+
+/**
+ * Determines telemetry recording settings.
+ */
+function determineRecordingSettings(
+  integrationOptions: OpenAiOptions | undefined,
+  defaultEnabled: boolean,
+): { recordInputs: boolean; recordOutputs: boolean } {
+  const recordInputs = integrationOptions?.recordInputs ?? defaultEnabled;
+  const recordOutputs = integrationOptions?.recordOutputs ?? defaultEnabled;
+  return { recordInputs, recordOutputs };
+}
+
+/**
+ * Sentry OpenAI instrumentation using OpenTelemetry.
+ */
+export class SentryOpenAiInstrumentation extends InstrumentationBase<InstrumentationConfig> {
+  private _isPatched = false;
+  private _callbacks: Array<() => void> = [];
+
+  public constructor(config: InstrumentationConfig = {}) {
+    super('@sentry/instrumentation-openai', SDK_VERSION, config);
+  }
+
+  /**
+   * Initializes the instrumentation by defining the modules to be patched.
+   */
+  public init(): InstrumentationModuleDefinition {
+    const module = new InstrumentationNodeModuleDefinition('openai', ['>=4.0.0'], this._patch.bind(this));
+    return module;
+  }
+
+  /**
+   * Schedules a callback once patching is complete.
+   */
+  public callWhenPatched(callback: () => void): void {
+    if (this._isPatched) {
+      callback();
+    } else {
+      this._callbacks.push(callback);
+    }
+  }
+
+  /**
+   * Core patch logic applying instrumentation to the OpenAI client constructor.
+   */
+  private _patch(exports: PatchedModuleExports): PatchedModuleExports | void {
+    this._isPatched = true;
+    this._callbacks.forEach(cb => cb());
+    this._callbacks = [];
+
+    const Original = exports.OpenAI;
+
+    const WrappedOpenAI = function (this: unknown, ...args: unknown[]) {
+      const instance = Reflect.construct(Original, args);
+      const scopeClient = getCurrentScope().getClient();
+      const integration = scopeClient?.getIntegrationByName<OpenAiIntegration>(INTEGRATION_NAME);
+      const integrationOpts = integration?.options;
+      const defaultPii = integration ? Boolean(scopeClient?.getOptions().sendDefaultPii) : false;
+
+      const { recordInputs, recordOutputs } = determineRecordingSettings(integrationOpts, defaultPii);
+
+      return instrumentOpenAiClient(instance as OpenAiClient, {
+        recordInputs,
+        recordOutputs,
+      });
+    } as unknown as abstract new (...args: unknown[]) => OpenAiClient;
+
+    // Preserve static and prototype chains
+    Object.setPrototypeOf(WrappedOpenAI, Original);
+    Object.setPrototypeOf(WrappedOpenAI.prototype, Original.prototype);
+
+    for (const key of Object.getOwnPropertyNames(Original)) {
+      if (!['length', 'name', 'prototype'].includes(key)) {
+        const descriptor = Object.getOwnPropertyDescriptor(Original, key);
+        if (descriptor) {
+          Object.defineProperty(WrappedOpenAI, key, descriptor);
+        }
+      }
+    }
+
+    const isESM = Object.prototype.toString.call(exports) === '[object Module]';
+    if (isESM) {
+      exports.OpenAI = WrappedOpenAI;
+      return exports;
+    }
+
+    return { ...exports, OpenAI: WrappedOpenAI };
+  }
+}
