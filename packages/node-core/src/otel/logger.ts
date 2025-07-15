@@ -4,7 +4,7 @@ import { debug } from '@sentry/core';
 /**
  * Setup the OTEL logger to use our own debug logger.
  */
-export function setupOpenTelemetryDebug(): void {
+export function setupOpenTelemetryLogger(): void {
   // Disable diag, to ensure this works even if called multiple times
   diag.disable();
   diag.setLogger(
