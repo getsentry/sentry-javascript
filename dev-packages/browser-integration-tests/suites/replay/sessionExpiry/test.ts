@@ -107,7 +107,7 @@ sentryTest('handles an expired session that re-samples to buffer', async ({ brow
 
   let wasReplayFlushed = false;
   page.on('request', request => {
-    if (request.url().includes("/api/1337/envelope/")) {
+    if (request.url().includes('/api/1337/envelope/')) {
       wasReplayFlushed = true
   }
   })
