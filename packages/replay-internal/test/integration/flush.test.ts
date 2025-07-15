@@ -14,7 +14,7 @@ import { clearSession } from '../../src/session/clearSession';
 import type { EventBuffer } from '../../src/types';
 import { createPerformanceEntries } from '../../src/util/createPerformanceEntries';
 import { createPerformanceSpans } from '../../src/util/createPerformanceSpans';
-import { logger } from '../../src/util/logger';
+import { debug } from '../../src/util/logger';
 import * as SendReplay from '../../src/util/sendReplay';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '../index';
 import type { DomHandler } from '../types';
@@ -332,7 +332,7 @@ describe('Integration | flush', () => {
   });
 
   it('logs warning if flushing initial segment without checkout', async () => {
-    logger.setConfig({ traceInternals: true });
+    debug.setConfig({ traceInternals: true });
 
     sessionStorage.clear();
     clearSession(replay);
@@ -398,20 +398,20 @@ describe('Integration | flush', () => {
             type: 'default',
             category: 'console',
             data: { logger: 'replay' },
-            level: 'info',
+            level: 'log',
             message: '[Replay] Flushing initial segment without checkout.',
           },
         },
       },
     ]);
 
-    logger.setConfig({ traceInternals: false });
+    debug.setConfig({ traceInternals: false });
   });
 
   it('logs warning if adding event that is after maxReplayDuration', async () => {
-    logger.setConfig({ traceInternals: true });
+    debug.setConfig({ traceInternals: true });
 
-    const spyLogger = vi.spyOn(SentryUtils.logger, 'info');
+    const spyDebugLogger = vi.spyOn(SentryUtils.debug, 'log');
 
     sessionStorage.clear();
     clearSession(replay);
@@ -436,15 +436,15 @@ describe('Integration | flush', () => {
     expect(mockFlush).toHaveBeenCalledTimes(0);
     expect(mockSendReplay).toHaveBeenCalledTimes(0);
 
-    expect(spyLogger).toHaveBeenLastCalledWith(
+    expect(spyDebugLogger).toHaveBeenLastCalledWith(
       '[Replay] ',
       `Skipping event with timestamp ${
         BASE_TIMESTAMP + MAX_REPLAY_DURATION + 100
       } because it is after maxReplayDuration`,
     );
 
-    logger.setConfig({ traceInternals: false });
-    spyLogger.mockRestore();
+    debug.setConfig({ traceInternals: false });
+    spyDebugLogger.mockRestore();
   });
 
   /**

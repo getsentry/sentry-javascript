@@ -1,5 +1,4 @@
-import type { Logger } from '@sentry/core';
-import { logger } from '@sentry/core';
+import { debug } from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
 import type { NetworkMetaWarning } from './types';
 
@@ -16,7 +15,7 @@ export function serializeFormData(formData: FormData): string {
 }
 
 /** Get the string representation of a body. */
-export function getBodyString(body: unknown, _logger: Logger = logger): [string | undefined, NetworkMetaWarning?] {
+export function getBodyString(body: unknown, _debug: typeof debug = debug): [string | undefined, NetworkMetaWarning?] {
   try {
     if (typeof body === 'string') {
       return [body];
@@ -34,11 +33,11 @@ export function getBodyString(body: unknown, _logger: Logger = logger): [string 
       return [undefined];
     }
   } catch (error) {
-    DEBUG_BUILD && _logger.error(error, 'Failed to serialize body', body);
+    DEBUG_BUILD && _debug.error(error, 'Failed to serialize body', body);
     return [undefined, 'BODY_PARSE_ERROR'];
   }
 
-  DEBUG_BUILD && _logger.info('Skipping network body because of body type', body);
+  DEBUG_BUILD && _debug.log('Skipping network body because of body type', body);
 
   return [undefined, 'UNPARSEABLE_BODY_TYPE'];
 }

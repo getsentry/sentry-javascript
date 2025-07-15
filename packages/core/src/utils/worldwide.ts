@@ -13,9 +13,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import type { Carrier } from '../carrier';
-import type { Client } from '../client';
-import type { SerializedLog } from '../types-hoist/log';
-import type { Span } from '../types-hoist/span';
 import type { SdkSource } from './env';
 
 /** Internal global with common properties and Sentry extensions  */
@@ -39,12 +36,6 @@ export type InternalGlobal = {
   };
   SENTRY_SDK_SOURCE?: SdkSource;
   /**
-   * A map of Sentry clients to their log buffers.
-   *
-   * This is used to store logs that are sent to Sentry.
-   */
-  _sentryClientToLogBufferMap?: WeakMap<Client, Array<SerializedLog>>;
-  /**
    * Debug IDs are indirectly injected by Sentry CLI or bundler plugins to directly reference a particular source map
    * for resolving of a source file. The injected code will place an entry into the record for each loaded bundle/JS
    * file.
@@ -57,10 +48,6 @@ export type InternalGlobal = {
    */
   _sentryModuleMetadata?: Record<string, any>;
   _sentryEsmLoaderHookRegistered?: boolean;
-  /**
-   * A map of spans to evaluated feature flags. Populated by feature flag integrations.
-   */
-  _spanToFlagBufferMap?: WeakMap<Span, Set<string>>;
 } & Carrier;
 
 /** Get's the global object for the current JavaScript runtime */

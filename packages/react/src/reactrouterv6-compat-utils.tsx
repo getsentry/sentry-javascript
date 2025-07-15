@@ -10,11 +10,11 @@ import {
 } from '@sentry/browser';
 import type { Client, Integration, Span, TransactionSource } from '@sentry/core';
 import {
+  debug,
   getActiveSpan,
   getClient,
   getCurrentScope,
   getRootSpan,
-  logger,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -75,7 +75,7 @@ export function createV6CompatibleWrapCreateBrowserRouter<
 ): CreateRouterFunction<TState, TRouter> {
   if (!_useEffect || !_useLocation || !_useNavigationType || !_matchRoutes) {
     DEBUG_BUILD &&
-      logger.warn(
+      debug.warn(
         `reactRouterV${version}Instrumentation was unable to wrap the \`createRouter\` function because of one or more missing parameters.`,
       );
 
@@ -147,7 +147,7 @@ export function createV6CompatibleWrapCreateMemoryRouter<
 ): CreateRouterFunction<TState, TRouter> {
   if (!_useEffect || !_useLocation || !_useNavigationType || !_matchRoutes) {
     DEBUG_BUILD &&
-      logger.warn(
+      debug.warn(
         `reactRouterV${version}Instrumentation was unable to wrap the \`createMemoryRouter\` function because of one or more missing parameters.`,
       );
 
@@ -271,7 +271,7 @@ export function createReactRouterV6CompatibleTracingIntegration(
 export function createV6CompatibleWrapUseRoutes(origUseRoutes: UseRoutes, version: V6CompatibleVersion): UseRoutes {
   if (!_useEffect || !_useLocation || !_useNavigationType || !_matchRoutes) {
     DEBUG_BUILD &&
-      logger.warn(
+      debug.warn(
         'reactRouterV6Instrumentation was unable to wrap `useRoutes` because of one or more missing parameters.',
       );
 
@@ -632,7 +632,7 @@ export function createV6CompatibleWithSentryReactRouterRouting<P extends Record<
 ): R {
   if (!_useEffect || !_useLocation || !_useNavigationType || !_createRoutesFromChildren || !_matchRoutes) {
     DEBUG_BUILD &&
-      logger.warn(`reactRouterV6Instrumentation was unable to wrap Routes because of one or more missing parameters.
+      debug.warn(`reactRouterV6Instrumentation was unable to wrap Routes because of one or more missing parameters.
       useEffect: ${_useEffect}. useLocation: ${_useLocation}. useNavigationType: ${_useNavigationType}.
       createRoutesFromChildren: ${_createRoutesFromChildren}. matchRoutes: ${_matchRoutes}.`);
 
