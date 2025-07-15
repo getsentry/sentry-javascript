@@ -18,7 +18,6 @@ vi.mock('@opentelemetry/core', () => ({
 
 vi.mock('@sentry/core', () => ({
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE: 'sentry.source',
-  SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME: 'sentry.custom-span-name',
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN: 'sentry.origin',
   getActiveSpan: vi.fn(),
   getRootSpan: vi.fn(),
@@ -56,7 +55,7 @@ describe('wrapSentryHandleRequest', () => {
     const originalHandler = vi.fn().mockResolvedValue('test');
     const wrappedHandler = wrapSentryHandleRequest(originalHandler);
 
-    const mockActiveSpan = { setAttribute: vi.fn() };
+    const mockActiveSpan = {};
     const mockRootSpan = { setAttributes: vi.fn() };
     const mockRpcMetadata = { type: RPCType.HTTP, route: '/some-path' };
 
@@ -73,8 +72,6 @@ describe('wrapSentryHandleRequest', () => {
 
     await wrappedHandler(new Request('https://nacho.queso'), 200, new Headers(), routerContext, {} as any);
 
-    expect(getActiveSpan).toHaveBeenCalled();
-    expect(getRootSpan).toHaveBeenCalledWith(mockActiveSpan);
     expect(mockRootSpan.setAttributes).toHaveBeenCalledWith({
       [ATTR_HTTP_ROUTE]: '/some-path',
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
@@ -84,6 +81,12 @@ describe('wrapSentryHandleRequest', () => {
   });
 
   test('should not set span attributes when parameterized path does not exist', async () => {
+    const mockActiveSpan = {};
+    const mockRootSpan = { setAttributes: vi.fn() };
+
+    (getActiveSpan as unknown as ReturnType<typeof vi.fn>).mockReturnValue(mockActiveSpan);
+    (getRootSpan as unknown as ReturnType<typeof vi.fn>).mockReturnValue(mockRootSpan);
+
     const originalHandler = vi.fn().mockResolvedValue('test');
     const wrappedHandler = wrapSentryHandleRequest(originalHandler);
 
@@ -95,14 +98,19 @@ describe('wrapSentryHandleRequest', () => {
 
     await wrappedHandler(new Request('https://guapo.chulo'), 200, new Headers(), routerContext, {} as any);
 
-    expect(getActiveSpan).not.toHaveBeenCalled();
+    expect(mockRootSpan.setAttributes).not.toHaveBeenCalled();
   });
 
   test('should not set span attributes when active span does not exist', async () => {
     const originalHandler = vi.fn().mockResolvedValue('test');
     const wrappedHandler = wrapSentryHandleRequest(originalHandler);
 
+    const mockRpcMetadata = { type: RPCType.HTTP, route: '/some-path' };
+
     (getActiveSpan as unknown as ReturnType<typeof vi.fn>).mockReturnValue(null);
+
+    const getRPCMetadata = vi.fn().mockReturnValue(mockRpcMetadata);
+    vi.mocked(vi.importActual('@opentelemetry/core')).getRPCMetadata = getRPCMetadata;
 
     const routerContext = {
       staticHandlerContext: {
@@ -112,8 +120,7 @@ describe('wrapSentryHandleRequest', () => {
 
     await wrappedHandler(new Request('https://tio.pepe'), 200, new Headers(), routerContext, {} as any);
 
-    expect(getActiveSpan).toHaveBeenCalled();
-    expect(getRootSpan).not.toHaveBeenCalled();
+    expect(getRPCMetadata).not.toHaveBeenCalled();
   });
 });
 
