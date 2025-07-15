@@ -157,7 +157,7 @@ export function init(options: VercelEdgeOptions = {}): void {
     if (
       event.type === 'transaction' &&
       event.contexts?.trace?.data?.['next.span_type'] === 'Middleware.execute' &&
-      event.contexts?.trace?.data?.['next.span_name']
+      typeof event.contexts?.trace?.data?.['next.span_name'] === 'string'
     ) {
       if (event.transaction) {
         // Older nextjs versions pass the full url appended to the middleware name, which results in high cardinality transaction names.

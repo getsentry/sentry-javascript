@@ -92,9 +92,9 @@ function _isFetchBreadcrumb(breadcrumb: Breadcrumb): breadcrumb is Breadcrumb & 
 }
 
 function _isXhrHint(hint?: BreadcrumbHint): hint is XhrHint {
-  return hint?.xhr;
+  return !!hint?.xhr;
 }
 
 function _isFetchHint(hint?: BreadcrumbHint): hint is FetchHint {
-  return hint?.response;
+  return !!hint?.response;
 }

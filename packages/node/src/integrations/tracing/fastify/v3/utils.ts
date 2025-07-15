@@ -56,7 +56,7 @@ export function startSpan(
  * @param reply - reply function
  * @param err - error
  */
-export function endSpan(reply: PluginFastifyReply, err?: any) {
+export function endSpan(reply: PluginFastifyReply, err?: Error) {
   const spans = reply[spanRequestSymbol] || [];
   // there is no active span, or it has already ended
   if (!spans.length) {

@@ -97,11 +97,9 @@ export class FastifyInstrumentationV3 extends InstrumentationBase<FastifyInstrum
       }
       instrumentation._wrap(reply, 'send', instrumentation._patchSend());
 
-      const anyRequest = request as any;
-
       const rpcMetadata = getRPCMetadata(context.active());
-      const routeName = anyRequest.routeOptions
-        ? anyRequest.routeOptions.url // since fastify@4.10.0
+      const routeName = request.routeOptions
+        ? request.routeOptions.url // since fastify@4.10.0
         : request.routerPath;
       if (routeName && rpcMetadata?.type === RPCType.HTTP) {
         rpcMetadata.route = routeName;
@@ -123,7 +121,7 @@ export class FastifyInstrumentationV3 extends InstrumentationBase<FastifyInstrum
     const instrumentation = this;
     this._diag.debug('Patching fastify route.handler function');
 
-    return function (this: any, ...args: unknown[]): Promise<unknown> {
+    return function (this: unknown, ...args: unknown[]): Promise<unknown> {
       if (!instrumentation.isEnabled()) {
         return original.apply(this, args);
       }
@@ -176,10 +174,10 @@ export class FastifyInstrumentationV3 extends InstrumentationBase<FastifyInstrum
 
     // biome-ignore lint/complexity/useArrowFunction: <explanation>
     return function (original: FastifyInstance['addHook']): () => FastifyInstance {
-      return function wrappedAddHook(this: any, ...args: any) {
+      return function wrappedAddHook(this: { pluginName?: string }, ...args: unknown[]) {
         const name = args[0] as string;
         const handler = args[1] as HandlerOriginal;
-        const pluginName = this.pluginName;
+        const pluginName = this.pluginName || ANONYMOUS_NAME;
         if (!hooksNamesToWrap.has(name)) {
           return original.apply(this, args);
         }
@@ -201,7 +199,7 @@ export class FastifyInstrumentationV3 extends InstrumentationBase<FastifyInstrum
   }): () => FastifyInstance {
     const instrumentation = this;
 
-    function fastify(this: FastifyInstance, ...args: any) {
+    function fastify(this: FastifyInstance, ...args: unknown[]) {
       const app: FastifyInstance = moduleExports.fastify.apply(this, args);
       app.addHook('onRequest', instrumentation._hookOnRequest());
       app.addHook('preHandler', instrumentation._hookPreHandler());
@@ -226,8 +224,8 @@ export class FastifyInstrumentationV3 extends InstrumentationBase<FastifyInstrum
     this._diag.debug('Patching fastify reply.send function');
 
     return function patchSend(original: () => FastifyReply): () => FastifyReply {
-      return function send(this: FastifyReply, ...args: any) {
-        const maybeError: any = args[0];
+      return function send(this: FastifyReply, ...args: unknown[]) {
+        const maybeError = args[0];
 
         if (!instrumentation.isEnabled()) {
           return original.apply(this, args);
@@ -253,13 +251,21 @@ export class FastifyInstrumentationV3 extends InstrumentationBase<FastifyInstrum
     const instrumentation = this;
     this._diag.debug('Patching fastify preHandler function');
 
-    return function preHandler(this: any, request: FastifyRequest, reply: FastifyReply, done: HookHandlerDoneFunction) {
+    return function preHandler(
+      this: { pluginName?: string },
+      request: FastifyRequest,
+      reply: FastifyReply,
+      done: HookHandlerDoneFunction,
+    ) {
       if (!instrumentation.isEnabled()) {
         return done();
       }
-      const anyRequest = request as any;
+      const typeCastRequest = request as FastifyRequest & {
+        routeOptions?: { handler: HandlerOriginal };
+        context?: { handler: HandlerOriginal };
+      };
 
-      const handler = anyRequest.routeOptions?.handler || anyRequest.context?.handler;
+      const handler = typeCastRequest.routeOptions?.handler || typeCastRequest.context?.handler;
       const handlerName = handler?.name.startsWith('bound ') ? handler.name.substring(6) : handler?.name;
       const spanName = `${FastifyNames.REQUEST_HANDLER} - ${handlerName || this.pluginName || ANONYMOUS_NAME}`;
 
@@ -267,8 +273,8 @@ export class FastifyInstrumentationV3 extends InstrumentationBase<FastifyInstrum
         [AttributeNames.PLUGIN_NAME]: this.pluginName,
         [AttributeNames.FASTIFY_TYPE]: FastifyTypes.REQUEST_HANDLER,
         // eslint-disable-next-line deprecation/deprecation
-        [SEMATTRS_HTTP_ROUTE]: anyRequest.routeOptions
-          ? anyRequest.routeOptions.url // since fastify@4.10.0
+        [SEMATTRS_HTTP_ROUTE]: typeCastRequest.routeOptions
+          ? typeCastRequest.routeOptions.url // since fastify@4.10.0
           : request.routerPath,
       };
       if (handlerName) {

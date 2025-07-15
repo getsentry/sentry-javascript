@@ -17,8 +17,7 @@ type SentryPiniaPluginOptions = {
   addBreadcrumbs: boolean;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   actionTransformer: (action: string) => any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  stateTransformer: (state: Record<string, unknown>) => any;
+  stateTransformer: (state: Record<string, unknown>) => Record<string, unknown>;
 };
 
 const DEFAULT_PINIA_PLUGIN_OPTIONS: SentryPiniaPluginOptions = {

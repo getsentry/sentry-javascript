@@ -35,6 +35,9 @@ const INTEGRATION_NAME = 'PostgresJs';
 const SUPPORTED_VERSIONS = ['>=3.0.0 <4'];
 const SQL_OPERATION_REGEX = /^(SELECT|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER)/i;
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ResolveRejectFunction = (...args: any[]) => any;
+
 type PostgresConnectionContext = {
   ATTR_DB_NAMESPACE?: string; // Database name
   ATTR_SERVER_ADDRESS?: string; // Hostname or IP address of the database server

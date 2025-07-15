@@ -1,4 +1,5 @@
 import type { Primitive } from '../misc';
+import type { User } from '../user';
 import type { FeedbackFormData } from './form';
 import type { FeedbackTheme } from './theme';
 
@@ -53,8 +54,8 @@ export interface FeedbackGeneralConfiguration {
    * The value of the email/name keys represent the properties of your user context.
    */
   useSentryUser: {
-    email: string;
-    name: string;
+    email: keyof User;
+    name: keyof User;
   };
 
   /**

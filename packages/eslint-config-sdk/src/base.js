@@ -113,6 +113,9 @@ module.exports = {
 
         // We do not care about empty functions
         '@typescript-eslint/no-empty-function': 'off',
+
+        // Disallow (instead of warn) for usage of any.
+        '@typescript-eslint/no-explicit-any': 'error',
       },
     },
     {
