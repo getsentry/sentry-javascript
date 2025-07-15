@@ -176,7 +176,7 @@ export function addPreviousTraceSpanLink(
   // - enable more efficient querying for previous/next traces in Sentry
   if (Date.now() / 1000 - previousTraceInfo.startTimestamp <= PREVIOUS_TRACE_MAX_DURATION) {
     if (DEBUG_BUILD) {
-      debug.info(
+      debug.log(
         `Adding previous_trace ${previousTraceSpanCtx} link to span ${{
           op: spanJson.op,
           ...span.spanContext(),
