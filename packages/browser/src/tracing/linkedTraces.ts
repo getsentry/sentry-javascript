@@ -1,9 +1,9 @@
 import type { Client, PropagationContext, Span } from '@sentry/core';
 import {
   type SpanContextData,
+  debug,
   getCurrentScope,
   getRootSpan,
-  logger,
   SEMANTIC_ATTRIBUTE_SENTRY_PREVIOUS_TRACE_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE,
@@ -176,7 +176,7 @@ export function addPreviousTraceSpanLink(
   // - enable more efficient querying for previous/next traces in Sentry
   if (Date.now() / 1000 - previousTraceInfo.startTimestamp <= PREVIOUS_TRACE_MAX_DURATION) {
     if (DEBUG_BUILD) {
-      logger.info(
+      debug.info(
         `Adding previous_trace ${previousTraceSpanCtx} link to span ${{
           op: spanJson.op,
           ...span.spanContext(),
@@ -214,7 +214,7 @@ export function storePreviousTraceInSessionStorage(previousTraceInfo: PreviousTr
     WINDOW.sessionStorage.setItem(PREVIOUS_TRACE_KEY, JSON.stringify(previousTraceInfo));
   } catch (e) {
     // Ignore potential errors (e.g. if sessionStorage is not available)
-    DEBUG_BUILD && logger.warn('Could not store previous trace in sessionStorage', e);
+    DEBUG_BUILD && debug.warn('Could not store previous trace in sessionStorage', e);
   }
 }
 
