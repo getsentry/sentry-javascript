@@ -28950,7 +28950,7 @@ terser@5.14.2:
     commander "^2.20.0"
     source-map-support "~0.5.20"
 
-terser@^5.10.0, terser@^5.17.4, terser@^5.31.1, terser@^5.43.1, terser@^5.7.0:
+terser@^5.10.0, terser@^5.17.4, terser@^5.31.1, terser@^5.7.0:
   version "5.43.1"
   resolved "https://registry.yarnpkg.com/terser/-/terser-5.43.1.tgz#88387f4f9794ff1a29e7ad61fb2932e25b4fdb6d"
   integrity sha512-+6erLbBm0+LROX2sPXlUYx/ux5PyE9K/a92Wrt6oA+WDAoFTdpHE5tCYCI5PNzq2y8df4rA+QgHLJuR4jNymsg==

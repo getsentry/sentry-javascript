@@ -75,8 +75,7 @@
   },
   "devDependencies": {
     "@types/node": "^18.19.1",
-    "@vercel/nft": "^0.29.4",
-    "terser": "^5.43.1"
+    "@vercel/nft": "^0.29.4"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",

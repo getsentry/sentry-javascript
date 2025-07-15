@@ -1,11 +1,8 @@
 /* eslint-disable no-console */
-// @ts-expect-error - no types
-import { terserOptions } from '@sentry-internal/rollup-utils';
 import { nodeFileTrace } from '@vercel/nft';
 import * as childProcess from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
-import { minify } from 'terser';
 import { version } from '../package.json';
 
 /**
@@ -91,8 +88,6 @@ async function pruneNodeModules(): Promise<void> {
   console.log('Cleaning up empty directories.');
 
   removeEmptyDirs('./build/aws/dist-serverless/nodejs/node_modules');
-
-  await minifyJavaScriptFiles(fileList);
 }
 
 function removeEmptyDirs(dir: string): void {
@@ -141,36 +136,4 @@ function getAllFiles(dir: string): string[] {
 
   walkDirectory(dir);
   return files;
-}
-
-async function minifyJavaScriptFiles(fileList: Set<string>): Promise<void> {
-  console.log('Minifying JavaScript files.');
-  let minifiedCount = 0;
-
-  for (const file of fileList) {
-    if (!file.endsWith('.js') && !file.endsWith('.mjs') && !file.endsWith('.cjs')) {
-      continue;
-    }
-
-    // Skip minification for OpenTelemetry files to avoid CommonJS/ESM interop issues
-    if (file.includes('@opentelemetry')) {
-      continue;
-    }
-
-    try {
-      const fullPath = path.resolve(file);
-      const code = fs.readFileSync(fullPath, 'utf-8');
-
-      const result = await minify(code, terserOptions);
-
-      if (result.code) {
-        fs.writeFileSync(fullPath, result.code, 'utf-8');
-        minifiedCount++;
-      }
-    } catch (error) {
-      console.error(`Error minifying ${file}`, error);
-    }
-  }
-
-  console.log(`Minified ${minifiedCount} files.`);
 }

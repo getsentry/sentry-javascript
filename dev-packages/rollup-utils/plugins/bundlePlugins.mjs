@@ -86,63 +86,8 @@ export function makeBrowserBuildPlugin(isBrowserBuild) {
   });
 }
 
-/**
- * Terser options for bundling the SDK.
- *
- * @see https://github.com/terser/terser#api-reference
- * @see https://github.com/TrySound/rollup-plugin-terser#options
- * @type {import('terser').MinifyOptions}
- */
-export const terserOptions = {
-  mangle: {
-    // `captureException` and `captureMessage` are public API methods and they don't need to be listed here, as the
-    // mangler won't touch user-facing things, but `sentryWrapped` is not user-facing, and would be mangled during
-    // minification. (We need it in its original form to correctly detect our internal frames for stripping.) All three
-    // are all listed here just for the clarity's sake, as they are all used in the frames manipulation process.
-    reserved: ['captureException', 'captureMessage', 'sentryWrapped'],
-    properties: {
-      // allow mangling of private field names...
-      regex: /^_[^_]/,
-      reserved: [
-        // ...except for `_experiments`, which we want to remain usable from the outside
-        '_experiments',
-        // We want to keep some replay fields unmangled to enable integration tests to access them
-        '_replay',
-        '_canvas',
-        // We also can't mangle rrweb private fields when bundling rrweb in the replay CDN bundles
-        '_cssText',
-        // We want to keep the _integrations variable unmangled to send all installed integrations from replay
-        '_integrations',
-        // _meta is used to store metadata of replay network events
-        '_meta',
-        // We store SDK metadata in the options
-        '_metadata',
-        // Object we inject debug IDs into with bundler plugins
-        '_sentryDebugIds',
-        // These are used by instrument.ts in utils for identifying HTML elements & events
-        '_sentryCaptured',
-        '_sentryId',
-        // Keeps the frozen DSC on a Sentry Span
-        '_frozenDsc',
-        // These are used to keep span & scope relationships
-        '_sentryRootSpan',
-        '_sentryChildSpans',
-        '_sentrySpan',
-        '_sentryScope',
-        '_sentryIsolationScope',
-        // require-in-the-middle calls `Module._resolveFilename`. We cannot mangle this (AWS lambda layer bundle).
-        '_resolveFilename',
-        // Set on e.g. the shim feedbackIntegration to be able to detect it
-        '_isShim',
-        // This is used in metadata integration
-        '_sentryModuleMetadata',
-      ],
-    },
-  },
-  output: {
-    comments: false,
-  },
-};
+// `terser` options reference: https://github.com/terser/terser#api-reference
+// `rollup-plugin-terser` options reference: https://github.com/TrySound/rollup-plugin-terser#options
 
 /**
  * Create a plugin to perform minification using `terser`.
@@ -150,7 +95,56 @@ export const terserOptions = {
  * @returns An instance of the `terser` plugin
  */
 export function makeTerserPlugin() {
-  return terser(terserOptions);
+  return terser({
+    mangle: {
+      // `captureException` and `captureMessage` are public API methods and they don't need to be listed here, as the
+      // mangler won't touch user-facing things, but `sentryWrapped` is not user-facing, and would be mangled during
+      // minification. (We need it in its original form to correctly detect our internal frames for stripping.) All three
+      // are all listed here just for the clarity's sake, as they are all used in the frames manipulation process.
+      reserved: ['captureException', 'captureMessage', 'sentryWrapped'],
+      properties: {
+        // allow mangling of private field names...
+        regex: /^_[^_]/,
+        reserved: [
+          // ...except for `_experiments`, which we want to remain usable from the outside
+          '_experiments',
+          // We want to keep some replay fields unmangled to enable integration tests to access them
+          '_replay',
+          '_canvas',
+          // We also can't mangle rrweb private fields when bundling rrweb in the replay CDN bundles
+          '_cssText',
+          // We want to keep the _integrations variable unmangled to send all installed integrations from replay
+          '_integrations',
+          // _meta is used to store metadata of replay network events
+          '_meta',
+          // We store SDK metadata in the options
+          '_metadata',
+          // Object we inject debug IDs into with bundler plugins
+          '_sentryDebugIds',
+          // These are used by instrument.ts in utils for identifying HTML elements & events
+          '_sentryCaptured',
+          '_sentryId',
+          // Keeps the frozen DSC on a Sentry Span
+          '_frozenDsc',
+          // These are used to keep span & scope relationships
+          '_sentryRootSpan',
+          '_sentryChildSpans',
+          '_sentrySpan',
+          '_sentryScope',
+          '_sentryIsolationScope',
+          // require-in-the-middle calls `Module._resolveFilename`. We cannot mangle this (AWS lambda layer bundle).
+          '_resolveFilename',
+          // Set on e.g. the shim feedbackIntegration to be able to detect it
+          '_isShim',
+          // This is used in metadata integration
+          '_sentryModuleMetadata',
+        ],
+      },
+    },
+    output: {
+      comments: false,
+    },
+  });
 }
 
 // We don't pass these plugins any options which need to be calculated or changed by us, so no need to wrap them in
