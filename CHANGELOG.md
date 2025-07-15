@@ -4,6 +4,37 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 9.39.0
+
+### Important Changes
+
+- **feat(browser): Add `afterStartPageloadSpan` hook to improve spanId assignment on web vital spans ([#16893](https://github.com/getsentry/sentry-javascript/pull/16893))**
+
+This PR adds a new afterStartPageloadSpan lifecycle hook to more robustly assign the correct pageload span ID to web vital spans, replacing the previous unreliable "wait for a tick" approach with a direct callback that fires when the pageload span becomes available.
+
+- **feat(nextjs): Client-side parameterized routes ([#16934](https://github.com/getsentry/sentry-javascript/pull/16934))**
+
+This PR implements client-side parameterized routes for Next.js by leveraging an injected manifest within the existing app-router instrumentation to automatically parameterize all client-side transactions (e.g. `users/123` and `users/456` now become become `users/:id`).
+
+- **feat(node): Drop 401-404 and 3xx status code spans by default ([#16972](https://github.com/getsentry/sentry-javascript/pull/16972))**
+
+This PR changes the default behavior in the Node SDK to drop HTTP spans with 401-404 and 3xx status codes by default to reduce noise in tracing data.
+
+### Other Changes
+
+- feat(core): Prepend vercel ai attributes with `vercel.ai.X` ([#16908](https://github.com/getsentry/sentry-javascript/pull/16908))
+- feat(nextjs): Add `disableSentryWebpackConfig` flag ([#17013](https://github.com/getsentry/sentry-javascript/pull/17013))
+- feat(nextjs): Build app manifest ([#16851](https://github.com/getsentry/sentry-javascript/pull/16851))
+- feat(nextjs): Inject manifest into client for turbopack builds ([#16902](https://github.com/getsentry/sentry-javascript/pull/16902))
+- feat(nextjs): Inject manifest into client for webpack builds ([#16857](https://github.com/getsentry/sentry-javascript/pull/16857))
+- feat(node-native): Add option to disable event loop blocked detection ([#16919](https://github.com/getsentry/sentry-javascript/pull/16919))
+- feat(react-router): Ensure http.server route handling is consistent ([#16986](https://github.com/getsentry/sentry-javascript/pull/16986))
+- fix(core): Avoid prolonging idle span when starting standalone span ([#16928](https://github.com/getsentry/sentry-javascript/pull/16928))
+- fix(core): Remove side-effect from `tracing/errors.ts` ([#16888](https://github.com/getsentry/sentry-javascript/pull/16888))
+- fix(core): Wrap `beforeSendLog` in `consoleSandbox` ([#16968](https://github.com/getsentry/sentry-javascript/pull/16968))
+- fix(node-core): Apply correct SDK metadata ([#17014](https://github.com/getsentry/sentry-javascript/pull/17014))
+- fix(react-router): Ensure that all browser spans have `source=route` ([#16984](https://github.com/getsentry/sentry-javascript/pull/16984))
+
 Work in this release was contributed by @janpapenbrock. Thank you for your contribution!
 
 ## 9.38.0
