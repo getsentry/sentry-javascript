@@ -226,7 +226,7 @@ export function getPreviousTraceFromSessionStorage(): PreviousTraceInfo | undefi
     const previousTraceInfo = WINDOW.sessionStorage?.getItem(PREVIOUS_TRACE_KEY);
     // @ts-expect-error - intentionally risking JSON.parse throwing when previousTraceInfo is null to save bundle size
     return JSON.parse(previousTraceInfo);
-  } catch (e) {
+  } catch {
     return undefined;
   }
 }

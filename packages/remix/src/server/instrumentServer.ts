@@ -288,7 +288,7 @@ function wrapRequestHandler<T extends ServerBuild | (() => ServerBuild | Promise
 
       try {
         normalizedRequest = winterCGRequestToRequestData(request);
-      } catch (e) {
+      } catch {
         DEBUG_BUILD && debug.warn('Failed to normalize Remix request');
       }
 

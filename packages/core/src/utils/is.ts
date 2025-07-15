@@ -182,7 +182,7 @@ export function isSyntheticEvent(wat: unknown): boolean {
 export function isInstanceOf(wat: any, base: any): boolean {
   try {
     return wat instanceof base;
-  } catch (_e) {
+  } catch {
     return false;
   }
 }

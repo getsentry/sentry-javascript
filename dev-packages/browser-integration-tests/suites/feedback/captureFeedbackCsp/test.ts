@@ -17,7 +17,7 @@ sentryTest('should capture feedback', async ({ getLocalTestUrl, page }) => {
 
     try {
       return getEnvelopeType(req) === 'feedback';
-    } catch (err) {
+    } catch {
       return false;
     }
   });

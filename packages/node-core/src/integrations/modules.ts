@@ -44,7 +44,7 @@ export const modulesIntegration = _modulesIntegration;
 function getRequireCachePaths(): string[] {
   try {
     return require.cache ? Object.keys(require.cache as Record<string, unknown>) : [];
-  } catch (e) {
+  } catch {
     return [];
   }
 }
@@ -96,7 +96,7 @@ function collectRequireModules(): ModuleInfo {
           version: string;
         };
         infos[info.name] = info.version;
-      } catch (_oO) {
+      } catch {
         // no-empty
       }
     };
@@ -126,7 +126,7 @@ function getPackageJson(): PackageJson {
     const packageJson = JSON.parse(readFileSync(filePath, 'utf8')) as PackageJson;
 
     return packageJson;
-  } catch (e) {
+  } catch {
     return {};
   }
 }

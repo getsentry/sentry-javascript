@@ -67,7 +67,7 @@ export class ReactRouterInstrumentation extends InstrumentationBase<Instrumentat
               let url: URL;
               try {
                 url = new URL(request.url);
-              } catch (error) {
+              } catch {
                 return originalRequestHandler(request, initialContext);
               }
 

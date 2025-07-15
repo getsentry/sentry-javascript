@@ -98,7 +98,7 @@ function getDomTarget(handlerData: HandlerDataDom): { target: Node | null; messa
   try {
     target = isClick ? getClickTargetNode(handlerData.event as Event) : getTargetNode(handlerData.event as Event);
     message = htmlTreeAsString(target, { maxStringLength: 200 }) || '<unknown>';
-  } catch (e) {
+  } catch {
     message = '<unknown>';
   }
 

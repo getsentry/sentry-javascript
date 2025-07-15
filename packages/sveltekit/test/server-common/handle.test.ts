@@ -226,7 +226,7 @@ describe('sentryHandle', () => {
 
       try {
         await sentryHandle()({ event, resolve: resolve(type, isError) });
-      } catch (e) {
+      } catch {
         //
       }
 

@@ -133,7 +133,7 @@ export function getFunctionName(fn: unknown): string {
       return defaultFunctionName;
     }
     return fn.name || defaultFunctionName;
-  } catch (e) {
+  } catch {
     // Just accessing custom props in some Selenium environments
     // can cause a "Permission denied" exception (see raven-js#495).
     return defaultFunctionName;
@@ -158,7 +158,7 @@ export function getFramesFromEvent(event: Event): StackFrame[] | undefined {
         }
       });
       return frames;
-    } catch (_oO) {
+    } catch {
       return undefined;
     }
   }
