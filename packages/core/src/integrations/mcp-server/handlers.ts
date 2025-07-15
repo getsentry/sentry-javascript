@@ -37,7 +37,14 @@ function createWrappedHandler(originalHandler: MCPHandler, methodName: keyof MCP
       const extraHandlerData = findExtraHandlerData(handlerArgs);
 
       return associateContextWithRequestSpan(extraHandlerData, () => {
-        return createErrorCapturingHandler(originalHandler, methodName, handlerName, handlerArgs, extraHandlerData);
+        return createErrorCapturingHandler.call(
+          this,
+          originalHandler,
+          methodName,
+          handlerName,
+          handlerArgs,
+          extraHandlerData,
+        );
       });
     } catch (error) {
       DEBUG_BUILD && logger.warn('MCP handler wrapping failed:', error);
@@ -50,6 +57,7 @@ function createWrappedHandler(originalHandler: MCPHandler, methodName: keyof MCP
  * Creates a handler that captures execution errors for Sentry
  */
 function createErrorCapturingHandler(
+  this: MCPServerInstance,
   originalHandler: MCPHandler,
   methodName: keyof MCPServerInstance,
   handlerName: string,
@@ -57,7 +65,7 @@ function createErrorCapturingHandler(
   extraHandlerData?: HandlerExtraData,
 ): unknown {
   try {
-    const result = originalHandler.apply(originalHandler, handlerArgs);
+    const result = originalHandler.apply(this, handlerArgs);
 
     // Handle both sync and async handlers
     if (result && typeof result === 'object' && 'then' in result) {
