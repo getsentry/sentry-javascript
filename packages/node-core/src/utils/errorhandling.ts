@@ -1,4 +1,4 @@
-import { consoleSandbox, getClient, debug } from '@sentry/core';
+import { consoleSandbox, debug,getClient } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import type { NodeClient } from '../sdk/client';
 
