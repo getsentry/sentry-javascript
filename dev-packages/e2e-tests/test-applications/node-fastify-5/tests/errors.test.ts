@@ -35,7 +35,7 @@ test('Does not send error when shouldHandleError returns false', async ({ baseUR
   });
 
   errorEventPromise.then(() => {
-    test.fail();
+    throw new Error('This error should not be captured');
   });
 
   await fetch(`${baseURL}/test-error-not-captured`);

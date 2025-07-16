@@ -19,7 +19,7 @@ Sentry.init({
   dsn: process.env.E2E_TEST_DSN,
   integrations: [
     Sentry.fastifyIntegration({
-      shouldHandleDiagnosticsChannelError: (error, _request, _reply) => {
+      shouldHandleError: (error, _request, _reply) => {
         if (_request.routeOptions?.url?.includes('/test-error-not-captured')) {
           // Errors from this path will not be captured by Sentry
           return false;
