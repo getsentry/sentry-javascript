@@ -1,6 +1,6 @@
 import * as http from 'node:http';
 import type { Client, Envelope, IntegrationFn } from '@sentry/core';
-import { defineIntegration, logger, serializeEnvelope, suppressTracing } from '@sentry/core';
+import { debug, defineIntegration, serializeEnvelope, suppressTracing } from '@sentry/core';
 
 type SpotlightConnectionOptions = {
   /**
@@ -20,13 +20,12 @@ const _spotlightIntegration = ((options: Partial<SpotlightConnectionOptions> = {
   return {
     name: INTEGRATION_NAME,
     setup(client) {
-      if (
-        typeof process === 'object' &&
-        process.env &&
-        process.env.NODE_ENV &&
-        process.env.NODE_ENV !== 'development'
-      ) {
-        logger.warn("[Spotlight] It seems you're not in dev mode. Do you really want to have Spotlight enabled?");
+      try {
+        if (process.env.NODE_ENV && process.env.NODE_ENV !== 'development') {
+          debug.warn("[Spotlight] It seems you're not in dev mode. Do you really want to have Spotlight enabled?");
+        }
+      } catch {
+        // ignore
       }
       connectToSpotlight(client, _options);
     },
@@ -52,7 +51,7 @@ function connectToSpotlight(client: Client, options: Required<SpotlightConnectio
 
   client.on('beforeEnvelope', (envelope: Envelope) => {
     if (failedRequests > 3) {
-      logger.warn('[Spotlight] Disabled Sentry -> Spotlight integration due to too many failed requests');
+      debug.warn('[Spotlight] Disabled Sentry -> Spotlight integration due to too many failed requests');
       return;
     }
 
@@ -86,7 +85,7 @@ function connectToSpotlight(client: Client, options: Required<SpotlightConnectio
 
       req.on('error', () => {
         failedRequests++;
-        logger.warn('[Spotlight] Failed to send envelope to Spotlight Sidecar');
+        debug.warn('[Spotlight] Failed to send envelope to Spotlight Sidecar');
       });
       req.write(serializedEnvelope);
       req.end();
@@ -98,7 +97,7 @@ function parseSidecarUrl(url: string): URL | undefined {
   try {
     return new URL(`${url}`);
   } catch {
-    logger.warn(`[Spotlight] Invalid sidecar URL: ${url}`);
+    debug.warn(`[Spotlight] Invalid sidecar URL: ${url}`);
     return undefined;
   }
 }

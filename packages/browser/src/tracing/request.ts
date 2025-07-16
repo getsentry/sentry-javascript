@@ -277,7 +277,7 @@ export function shouldAttachHeaders(
     try {
       resolvedUrl = new URL(targetUrl, href);
       currentOrigin = new URL(href).origin;
-    } catch (e) {
+    } catch {
       return false;
     }
 
@@ -413,7 +413,7 @@ function setHeaderOnXhr(
         xhr.setRequestHeader!('baggage', sentryBaggageHeader);
       }
     }
-  } catch (_) {
+  } catch {
     // Error: InvalidStateError: Failed to execute 'setRequestHeader' on 'XMLHttpRequest': The object's state must be OPENED.
   }
 }

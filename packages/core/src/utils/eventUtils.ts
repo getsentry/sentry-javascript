@@ -19,7 +19,7 @@ export function getPossibleEventMessages(event: Event): string[] {
         possibleMessages.push(`${lastException.type}: ${lastException.value}`);
       }
     }
-  } catch (e) {
+  } catch {
     // ignore errors here
   }
 

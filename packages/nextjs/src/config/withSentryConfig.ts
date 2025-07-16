@@ -470,7 +470,7 @@ function getGitRevision(): string | undefined {
       .execSync('git rev-parse HEAD', { stdio: ['ignore', 'pipe', 'ignore'] })
       .toString()
       .trim();
-  } catch (e) {
+  } catch {
     // noop
   }
   return gitRevision;

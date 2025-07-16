@@ -70,7 +70,7 @@ export const createSentryPiniaPlugin: (
               },
             ];
           }
-        } catch (_) {
+        } catch {
           // empty
         }
 

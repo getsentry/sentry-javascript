@@ -4,13 +4,13 @@ import { isTracingSuppressed, W3CBaggagePropagator } from '@opentelemetry/core';
 import { ATTR_URL_FULL, SEMATTRS_HTTP_URL } from '@opentelemetry/semantic-conventions';
 import type { Client, continueTrace, DynamicSamplingContext, Options, Scope } from '@sentry/core';
 import {
+  debug,
   generateSentryTraceHeader,
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromScope,
   getDynamicSamplingContextFromSpan,
   getIsolationScope,
-  logger,
   LRUMap,
   parseBaggageHeader,
   propagationContextFromHeaders,
@@ -45,7 +45,7 @@ export class SentryPropagator extends W3CBaggagePropagator {
    */
   public inject(context: Context, carrier: unknown, setter: TextMapSetter): void {
     if (isTracingSuppressed(context)) {
-      DEBUG_BUILD && logger.log('[Tracing] Not injecting trace data for url because tracing is suppressed.');
+      DEBUG_BUILD && debug.log('[Tracing] Not injecting trace data for url because tracing is suppressed.');
       return;
     }
 
@@ -55,10 +55,7 @@ export class SentryPropagator extends W3CBaggagePropagator {
     const tracePropagationTargets = getClient()?.getOptions()?.tracePropagationTargets;
     if (!shouldPropagateTraceForUrl(url, tracePropagationTargets, this._urlMatchesTargetsMap)) {
       DEBUG_BUILD &&
-        logger.log(
-          '[Tracing] Not injecting trace data for url because it does not match tracePropagationTargets:',
-          url,
-        );
+        debug.log('[Tracing] Not injecting trace data for url because it does not match tracePropagationTargets:', url);
       return;
     }
 
@@ -139,14 +136,14 @@ export function shouldPropagateTraceForUrl(
 
   const cachedDecision = decisionMap?.get(url);
   if (cachedDecision !== undefined) {
-    DEBUG_BUILD && !cachedDecision && logger.log(NOT_PROPAGATED_MESSAGE, url);
+    DEBUG_BUILD && !cachedDecision && debug.log(NOT_PROPAGATED_MESSAGE, url);
     return cachedDecision;
   }
 
   const decision = stringMatchesSomePattern(url, tracePropagationTargets);
   decisionMap?.set(url, decision);
 
-  DEBUG_BUILD && !decision && logger.log(NOT_PROPAGATED_MESSAGE, url);
+  DEBUG_BUILD && !decision && debug.log(NOT_PROPAGATED_MESSAGE, url);
   return decision;
 }
 

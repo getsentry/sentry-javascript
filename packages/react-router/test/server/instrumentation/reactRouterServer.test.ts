@@ -10,8 +10,8 @@ vi.mock('@sentry/core', async () => {
     getRootSpan: vi.fn(),
     spanToJSON: vi.fn(),
     updateSpanName: vi.fn(),
-    logger: {
-      debug: vi.fn(),
+    debug: {
+      log: vi.fn(),
     },
     SDK_VERSION: '1.0.0',
     SEMANTIC_ATTRIBUTE_SENTRY_OP: 'sentry.op',
@@ -82,9 +82,7 @@ describe('ReactRouterInstrumentation', () => {
     const req = createRequest('https://test.com/data');
     await wrappedHandler(req);
 
-    expect(SentryCore.logger.debug).toHaveBeenCalledWith(
-      'No active root span found, skipping tracing for data request',
-    );
+    expect(SentryCore.debug.log).toHaveBeenCalledWith('No active root span found, skipping tracing for data request');
     expect(originalHandler).toHaveBeenCalledWith(req, undefined);
   });
 

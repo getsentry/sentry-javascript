@@ -16,7 +16,7 @@ export function supportsErrorEvent(): boolean {
   try {
     new ErrorEvent('');
     return true;
-  } catch (e) {
+  } catch {
     return false;
   }
 }
@@ -34,7 +34,7 @@ export function supportsDOMError(): boolean {
     // @ts-expect-error It really needs 1 argument, not 0.
     new DOMError('');
     return true;
-  } catch (e) {
+  } catch {
     return false;
   }
 }
@@ -49,7 +49,7 @@ export function supportsDOMException(): boolean {
   try {
     new DOMException('');
     return true;
-  } catch (e) {
+  } catch {
     return false;
   }
 }
@@ -83,7 +83,7 @@ function _isFetchSupported(): boolean {
     new Request('http://www.example.com');
     new Response();
     return true;
-  } catch (e) {
+  } catch {
     return false;
   }
 }
@@ -172,7 +172,7 @@ export function supportsReferrerPolicy(): boolean {
       referrerPolicy: 'origin' as ReferrerPolicy,
     });
     return true;
-  } catch (e) {
+  } catch {
     return false;
   }
 }

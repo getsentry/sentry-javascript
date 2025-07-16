@@ -48,7 +48,7 @@ function poll(enabled: boolean, clientOptions: ClientOptions): void {
     const session = currentSession ? { ...currentSession, toJSON: undefined } : undefined;
     // message the worker to tell it the main event loop is still running
     threadPoll({ session, debugImages: getFilenameToDebugIdMap(clientOptions.stackParser) }, !enabled);
-  } catch (_) {
+  } catch {
     // we ignore all errors
   }
 }

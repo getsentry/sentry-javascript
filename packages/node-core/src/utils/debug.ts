@@ -9,7 +9,7 @@ export async function isDebuggerEnabled(): Promise<boolean> {
       // Node can be built without inspector support
       const inspector = await import('node:inspector');
       cachedDebuggerEnabled = !!inspector.url();
-    } catch (_) {
+    } catch {
       cachedDebuggerEnabled = false;
     }
   }

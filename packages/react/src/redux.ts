@@ -106,7 +106,7 @@ function createReduxEnhancer(enhancerOptions?: Partial<SentryEnhancerOptions>): 
                 { filename: 'redux_state.json', data: JSON.stringify(event.contexts.state.state.value) },
               ];
             }
-          } catch (_) {
+          } catch {
             // empty
           }
           return event;
