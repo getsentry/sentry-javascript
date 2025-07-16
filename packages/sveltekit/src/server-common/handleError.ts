@@ -1,4 +1,4 @@
-import { captureException, consoleSandbox } from '@sentry/core';
+import { captureException, consoleSandbox, flush } from '@sentry/core';
 import type { HandleServerError } from '@sveltejs/kit';
 import { flushIfServerless } from '../server-common/utils';
 
@@ -42,7 +42,23 @@ export function handleErrorWithSentry(handleError: HandleServerError = defaultEr
       },
     });
 
-    await flushIfServerless();
+    const platform = input.event.platform as {
+      context?: {
+        waitUntil?: (fn: () => Promise<void>) => void;
+      };
+    };
+
+    // Cloudflare workers have a `waitUntil` method that we can use to flush the event queue
+    // We already call this in `wrapRequestHandler` from `sentryHandleInitCloudflare`
+    // However, `handleError` can be invoked when wrapRequestHandler already finished
+    // (e.g. when responses are streamed / returning promises from load functions)
+    const cloudflareWaitUntil = platform?.context?.waitUntil;
+    if (typeof cloudflareWaitUntil === 'function') {
+      const waitUntil = cloudflareWaitUntil.bind(platform.context);
+      waitUntil(flush(2000));
+    } else {
+      await flushIfServerless();
+    }
 
     // We're extra cautious with SafeHandleServerErrorInput - this type is not compatible with HandleServerErrorInput
     // @ts-expect-error - we're still passing the same object, just with a different (backwards-compatible) type
