@@ -44,7 +44,6 @@ import {
 
 /**
  * Extract request attributes from method arguments
- * Following Sentry's AI Agents conventions
  */
 function extractRequestAttributes(args: unknown[], methodPath: string): Record<string, unknown> {
   const attributes: Record<string, unknown> = {
@@ -52,26 +51,16 @@ function extractRequestAttributes(args: unknown[], methodPath: string): Record<s
     [GEN_AI_OPERATION_NAME_ATTRIBUTE]: getOperationName(methodPath),
   };
 
-  if (args.length > 0 && args[0] && typeof args[0] === 'object') {
+  if (args.length > 0 && typeof args[0] === 'object' && args[0] !== null) {
     const params = args[0] as Record<string, unknown>;
 
-    attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] = params.model || 'unknown';
-
-    if (params.temperature !== undefined) {
-      attributes[GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE] = params.temperature;
-    }
-    if (params.top_p !== undefined) {
-      attributes[GEN_AI_REQUEST_TOP_P_ATTRIBUTE] = params.top_p;
-    }
-
-    if (params.frequency_penalty !== undefined) {
+    attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] = params.model ?? 'unknown';
+    if ('temperature' in params) attributes[GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE] = params.temperature;
+    if ('top_p' in params) attributes[GEN_AI_REQUEST_TOP_P_ATTRIBUTE] = params.top_p;
+    if ('frequency_penalty' in params)
       attributes[GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE] = params.frequency_penalty;
-    }
-    if (params.presence_penalty !== undefined) {
-      attributes[GEN_AI_REQUEST_PRESENCE_PENALTY_ATTRIBUTE] = params.presence_penalty;
-    }
+    if ('presence_penalty' in params) attributes[GEN_AI_REQUEST_PRESENCE_PENALTY_ATTRIBUTE] = params.presence_penalty;
   } else {
-    // REQUIRED: Ensure model is always set even when no params provided
     attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] = 'unknown';
   }
 
@@ -134,7 +123,6 @@ function setCommonResponseAttributes(span: Span, id?: string, model?: string, ti
  */
 function addChatCompletionAttributes(span: Span, response: OpenAiChatCompletionObject): void {
   setCommonResponseAttributes(span, response.id, response.model, response.created);
-
   if (response.usage) {
     setTokenUsageAttributes(
       span,
@@ -143,11 +131,10 @@ function addChatCompletionAttributes(span: Span, response: OpenAiChatCompletionO
       response.usage.total_tokens,
     );
   }
-
-  // Finish reasons - must be stringified array
-  if (response.choices && Array.isArray(response.choices)) {
-    const finishReasons = response.choices.map(choice => choice.finish_reason).filter(reason => reason !== null);
-
+  if (Array.isArray(response.choices)) {
+    const finishReasons = response.choices
+      .map(choice => choice.finish_reason)
+      .filter((reason): reason is string => reason !== null);
     if (finishReasons.length > 0) {
       span.setAttributes({
         [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: JSON.stringify(finishReasons),
@@ -161,14 +148,11 @@ function addChatCompletionAttributes(span: Span, response: OpenAiChatCompletionO
  */
 function addResponsesApiAttributes(span: Span, response: OpenAIResponseObject): void {
   setCommonResponseAttributes(span, response.id, response.model, response.created_at);
-
   if (response.status) {
     span.setAttributes({
       [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: JSON.stringify([response.status]),
     });
   }
-
-  // Token usage for responses API
   if (response.usage) {
     setTokenUsageAttributes(
       span,
@@ -190,27 +174,28 @@ function addResponseAttributes(span: Span, result: unknown, recordOutputs?: bool
 
   if (isChatCompletionResponse(response)) {
     addChatCompletionAttributes(span, response);
-
-    if (recordOutputs && response.choices && response.choices.length > 0) {
+    if (recordOutputs && response.choices?.length) {
       const responseTexts = response.choices.map(choice => choice.message?.content || '');
-      span.setAttributes({
-        [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: JSON.stringify(responseTexts),
-      });
+      span.setAttributes({ [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: JSON.stringify(responseTexts) });
     }
   } else if (isResponsesApiResponse(response)) {
     addResponsesApiAttributes(span, response);
-
     if (recordOutputs && response.output_text) {
-      span.setAttributes({
-        [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: response.output_text,
-      });
+      span.setAttributes({ [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: response.output_text });
     }
   }
 }
 
-/**
- * Get options from integration configuration
- */
+// Extract and record AI request inputs, if present. This is intentionally separate from response attributes.
+function addRequestAttributes(span: Span, params: Record<string, unknown>): void {
+  if ('messages' in params) {
+    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(params.messages) });
+  }
+  if ('input' in params) {
+    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(params.input) });
+  }
+}
+
 function getOptionsFromIntegration(): OpenAiOptions {
   const scope = getCurrentScope();
   const client = scope.getClient();
@@ -237,33 +222,24 @@ function instrumentMethod<T extends unknown[], R>(
   return async function instrumentedMethod(...args: T): Promise<R> {
     const finalOptions = options || getOptionsFromIntegration();
     const requestAttributes = extractRequestAttributes(args, methodPath);
-    const model = requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] || 'unknown';
+    const model = (requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] as string) || 'unknown';
     const operationName = getOperationName(methodPath);
 
     return startSpan(
       {
-        // Span name follows Sentry convention: "{operation_name} {model}"
-        // e.g., "chat gpt-4", "chat o3-mini", "embeddings text-embedding-3-small"
         name: `${operationName} ${model}`,
         op: getSpanOperation(methodPath),
         attributes: requestAttributes as Record<string, SpanAttributeValue>,
       },
       async (span: Span) => {
         try {
-          // Record inputs if enabled - must be stringified JSON
           if (finalOptions.recordInputs && args[0] && typeof args[0] === 'object') {
-            const params = args[0] as Record<string, unknown>;
-            if (params.messages) {
-              span.setAttributes({
-                [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(params.messages),
-              });
-            }
+            addRequestAttributes(span, args[0] as Record<string, unknown>);
           }
 
           const result = await originalMethod.apply(context, args);
           // TODO: Add streaming support
           addResponseAttributes(span, result, finalOptions.recordOutputs);
-
           return result;
         } catch (error) {
           captureException(error);
@@ -279,20 +255,16 @@ function instrumentMethod<T extends unknown[], R>(
  */
 function createDeepProxy(target: object, currentPath = '', options?: OpenAiOptions): OpenAiClient {
   return new Proxy(target, {
-    get(obj: Record<string | symbol, unknown>, prop: string | symbol): unknown {
-      if (typeof prop === 'symbol') {
-        return obj[prop];
-      }
-
-      const value = obj[prop];
-      const methodPath = buildMethodPath(currentPath, prop);
+    get(obj: object, prop: string): unknown {
+      const value = (obj as Record<string, unknown>)[prop];
+      const methodPath = buildMethodPath(currentPath, String(prop));
 
       if (typeof value === 'function' && shouldInstrument(methodPath)) {
         return instrumentMethod(value as (...args: unknown[]) => Promise<unknown>, methodPath, obj, options);
       }
 
-      if (typeof value === 'object' && value !== null) {
-        return createDeepProxy(value, methodPath, options);
+      if (value && typeof value === 'object') {
+        return createDeepProxy(value as object, methodPath, options);
       }
 
       return value;

@@ -107,7 +107,7 @@ describe('OpenAI integration', () => {
         origin: 'manual',
         status: 'ok',
       }),
-      // Second span - responses API with PII (no messages attribute for this API)
+      // Second span - responses API with PII
       expect.objectContaining({
         data: {
           'gen_ai.operation.name': 'chat',
@@ -115,6 +115,7 @@ describe('OpenAI integration', () => {
           'sentry.origin': 'manual',
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'gpt-3.5-turbo',
+          'gen_ai.request.messages': '"Translate this to French: Hello"',
           'gen_ai.response.text': 'Response to: Translate this to French: Hello',
           'gen_ai.response.model': 'gpt-3.5-turbo',
           'gen_ai.response.id': 'resp_mock456',
