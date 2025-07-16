@@ -11,7 +11,7 @@ These docs walk through how to migrate our JavaScript SDKs through different maj
 
 ## Deprecated `@sentry/core` SDK internal `logger` export
 
-The `logger` export from `@sentry/core` has been deprecated in favor of the `debug` export. `debug` only exposes `log`, `warn`, and `error` methods but is otherwise identical to `logger`.
+The internal SDK `logger` export from `@sentry/core` has been deprecated in favor of the `debug` export. `debug` only exposes `log`, `warn`, and `error` methods but is otherwise identical to `logger`. Note that this deprecation does not affect the `logger` export from other packages (like `@sentry/browser` or `@sentry/node`) which is used for Sentry Logging.
 
 ```js
 import { logger, debug } from '@sentry/core';

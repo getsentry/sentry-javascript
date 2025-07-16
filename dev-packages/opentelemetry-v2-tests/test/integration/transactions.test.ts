@@ -6,7 +6,6 @@ import {
   addBreadcrumb,
   debug,
   getClient,
-  logger,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setTag,
@@ -503,7 +502,7 @@ describe('Integration | Transactions', () => {
     vi.setSystemTime(now);
 
     const logs: unknown[] = [];
-    vi.spyOn(logger, 'log').mockImplementation(msg => logs.push(msg));
+    vi.spyOn(debug, 'log').mockImplementation(msg => logs.push(msg));
 
     const transactions: Event[] = [];
 
@@ -555,7 +554,7 @@ describe('Integration | Transactions', () => {
     vi.setSystemTime(now);
 
     const logs: unknown[] = [];
-    vi.spyOn(logger, 'log').mockImplementation(msg => logs.push(msg));
+    vi.spyOn(debug, 'log').mockImplementation(msg => logs.push(msg));
 
     const transactions: Event[] = [];
 
@@ -606,7 +605,7 @@ describe('Integration | Transactions', () => {
     vi.setSystemTime(now);
 
     const logs: unknown[] = [];
-    vi.spyOn(logger, 'log').mockImplementation(msg => logs.push(msg));
+    vi.spyOn(debug, 'log').mockImplementation(msg => logs.push(msg));
 
     const transactions: Event[] = [];
 
