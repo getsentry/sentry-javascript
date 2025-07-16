@@ -1,8 +1,7 @@
 import type { Span } from '@opentelemetry/api';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration, SEMANTIC_ATTRIBUTE_SENTRY_OP } from '@sentry/core';
-import { generateInstrumentOnce } from '../../../otel/instrument';
-import { addOriginToSpan } from '../../../utils/addOriginToSpan';
+import { addOriginToSpan, generateInstrumentOnce } from '@sentry/node-core';
 import { type FirebaseInstrumentationConfig, FirebaseInstrumentation } from './otel';
 
 const INTEGRATION_NAME = 'Firebase';
