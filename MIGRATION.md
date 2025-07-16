@@ -14,7 +14,7 @@ These docs walk through how to migrate our JavaScript SDKs through different maj
 The `logger` export from `@sentry/core` has been deprecated in favor of the `debug` export. `debug` only exposes `log`, `warn`, and `error` methods but is otherwise identical to `logger`.
 
 ```js
-import { logger } from '@sentry/core';
+import { logger, debug } from '@sentry/core';
 
 // before
 logger.info('This is an info message');
