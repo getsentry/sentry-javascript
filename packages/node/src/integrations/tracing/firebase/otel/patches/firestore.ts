@@ -50,8 +50,8 @@ export function patchFirestore(
   unwrap: typeof shimmerUnwrap,
   config: FirebaseInstrumentationConfig,
 ): InstrumentationNodeModuleDefinition {
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
   // Setting an empty function as a default
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
   let firestoreSpanCreationHook: FirestoreSpanCreationHook = () => {};
   const configFirestoreSpanCreationHook = config.firestoreSpanCreationHook;
 
