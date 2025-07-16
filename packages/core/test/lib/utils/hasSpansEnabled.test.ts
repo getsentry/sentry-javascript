@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hasSpansEnabled, hasTracingEnabled } from '../../../src';
+import { hasSpansEnabled } from '../../../src';
 
 describe('hasSpansEnabled', () => {
   const tracesSampler = () => 1;
@@ -15,7 +15,5 @@ describe('hasSpansEnabled', () => {
     ['With tracesSampler and tracesSampleRate', { tracesSampler, tracesSampleRate }, true],
   ])('%s', (_: string, input: Parameters<typeof hasSpansEnabled>[0], output: ReturnType<typeof hasSpansEnabled>) => {
     expect(hasSpansEnabled(input)).toBe(output);
-    // eslint-disable-next-line deprecation/deprecation
-    expect(hasTracingEnabled(input)).toBe(output);
   });
 });
