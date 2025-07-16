@@ -6,7 +6,7 @@ export const INTEGRATION_NAME = 'WebWorker';
 
 interface WebWorkerMessage {
   _sentryMessage: boolean;
-  _sentryDebugIds: Record<string, string>;
+  _sentryDebugIds?: Record<string, string>;
 }
 
 interface WebWorkerIntegrationOptions {
@@ -111,5 +111,10 @@ export function registerWebWorker({ self }: RegisterWebWorkerOptions): void {
 }
 
 function isWebWorkerMessage(eventData: unknown): eventData is WebWorkerMessage {
-  return isPlainObject(eventData) && eventData._sentryMessage === true && typeof eventData._sentryDebugIds === 'object';
+  return (
+    isPlainObject(eventData) &&
+    eventData._sentryMessage === true &&
+    '_sentryDebugIds' in eventData &&
+    (isPlainObject(eventData._sentryDebugIds) || eventData._sentryDebugIds === undefined)
+  );
 }
