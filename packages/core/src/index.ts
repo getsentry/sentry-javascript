@@ -168,7 +168,7 @@ export { isBrowser } from './utils/isBrowser';
 // eslint-disable-next-line deprecation/deprecation
 export { CONSOLE_LEVELS, consoleSandbox, debug, logger, originalConsoleMethods } from './utils/debug-logger';
 // eslint-disable-next-line deprecation/deprecation
-export type { Logger } from './utils/debug-logger';
+export type { Logger, SentryDebugLogger } from './utils/debug-logger';
 export {
   addContextToFrame,
   addExceptionMechanism,
