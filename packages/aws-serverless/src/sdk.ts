@@ -1,7 +1,7 @@
 import type { Integration, Options, Scope, Span } from '@sentry/core';
 import {
   applySdkMetadata,
-  logger,
+  debug,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
@@ -127,7 +127,7 @@ export function tryPatchHandler(taskRoot: string, handlerPath: string): void {
   const handlerDesc = basename(handlerPath);
   const match = handlerDesc.match(/^([^.]*)\.(.*)$/);
   if (!match) {
-    DEBUG_BUILD && logger.error(`Bad handler ${handlerDesc}`);
+    DEBUG_BUILD && debug.error(`Bad handler ${handlerDesc}`);
     return;
   }
 
@@ -138,7 +138,7 @@ export function tryPatchHandler(taskRoot: string, handlerPath: string): void {
     const handlerDir = handlerPath.substring(0, handlerPath.indexOf(handlerDesc));
     obj = tryRequire(taskRoot, handlerDir, handlerMod);
   } catch (e) {
-    DEBUG_BUILD && logger.error(`Cannot require ${handlerPath} in ${taskRoot}`, e);
+    DEBUG_BUILD && debug.error(`Cannot require ${handlerPath} in ${taskRoot}`, e);
     return;
   }
 
@@ -150,17 +150,17 @@ export function tryPatchHandler(taskRoot: string, handlerPath: string): void {
     functionName = name;
   });
   if (!obj) {
-    DEBUG_BUILD && logger.error(`${handlerPath} is undefined or not exported`);
+    DEBUG_BUILD && debug.error(`${handlerPath} is undefined or not exported`);
     return;
   }
   if (typeof obj !== 'function') {
-    DEBUG_BUILD && logger.error(`${handlerPath} is not a function`);
+    DEBUG_BUILD && debug.error(`${handlerPath} is not a function`);
     return;
   }
 
   // Check for prototype pollution
   if (functionName === '__proto__' || functionName === 'constructor' || functionName === 'prototype') {
-    DEBUG_BUILD && logger.error(`Invalid handler name: ${functionName}`);
+    DEBUG_BUILD && debug.error(`Invalid handler name: ${functionName}`);
     return;
   }
 
@@ -317,7 +317,7 @@ export function wrapHandler<TEvent, TResult>(
           span.end();
         }
         await flush(options.flushTimeout).catch(e => {
-          DEBUG_BUILD && logger.error(e);
+          DEBUG_BUILD && debug.error(e);
         });
       }
       return rv;
