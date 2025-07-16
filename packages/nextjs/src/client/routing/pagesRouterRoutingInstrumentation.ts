@@ -1,7 +1,7 @@
 import type { Client, TransactionSource } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
-  logger,
+  debug,
   parseBaggageHeader,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -70,7 +70,7 @@ function extractNextDataTagInformation(): NextDataTagInfo {
     try {
       nextData = JSON.parse(nextDataTag.innerHTML);
     } catch {
-      DEBUG_BUILD && logger.warn('Could not extract __NEXT_DATA__');
+      DEBUG_BUILD && debug.warn('Could not extract __NEXT_DATA__');
     }
   }
 

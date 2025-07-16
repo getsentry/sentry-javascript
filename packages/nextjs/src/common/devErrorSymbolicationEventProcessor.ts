@@ -1,5 +1,5 @@
 import type { Event, EventHint } from '@sentry/core';
-import { GLOBAL_OBJ, logger, parseSemver, suppressTracing } from '@sentry/core';
+import { GLOBAL_OBJ, debug, parseSemver, suppressTracing } from '@sentry/core';
 import type { StackFrame } from 'stacktrace-parser';
 import * as stackTraceParser from 'stacktrace-parser';
 import { DEBUG_BUILD } from './debug-build';
@@ -150,7 +150,7 @@ async function resolveStackFrame(
       originalStackFrame: body.originalStackFrame,
     };
   } catch (e) {
-    DEBUG_BUILD && logger.error('Failed to symbolicate event with Next.js dev server', e);
+    DEBUG_BUILD && debug.error('Failed to symbolicate event with Next.js dev server', e);
     return null;
   }
 }
@@ -224,7 +224,7 @@ async function resolveStackFrames(
       };
     });
   } catch (e) {
-    DEBUG_BUILD && logger.error('Failed to symbolicate event with Next.js dev server', e);
+    DEBUG_BUILD && debug.error('Failed to symbolicate event with Next.js dev server', e);
     return null;
   }
 }
