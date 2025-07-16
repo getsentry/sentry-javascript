@@ -1,4 +1,4 @@
-import { GLOBAL_OBJ, debug } from '@sentry/core';
+import { debug, GLOBAL_OBJ } from '@sentry/core';
 import { DEBUG_BUILD } from '../../common/debug-build';
 import type { RouteManifest } from '../../config/manifest/types';
 
