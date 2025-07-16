@@ -44,7 +44,7 @@ export function handleErrorWithSentry(handleError: HandleServerError = defaultEr
 
     const platform = input.event.platform as {
       context?: {
-        waitUntil?: (fn: () => Promise<void>) => void;
+        waitUntil?: (p: Promise<void>) => void;
       };
     };
 
