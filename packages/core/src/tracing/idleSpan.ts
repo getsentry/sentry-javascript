@@ -4,8 +4,8 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON } from '../semanticAt
 import type { DynamicSamplingContext } from '../types-hoist/envelope';
 import type { Span } from '../types-hoist/span';
 import type { StartSpanOptions } from '../types-hoist/startSpanOptions';
+import { debug } from '../utils/debug-logger';
 import { hasSpansEnabled } from '../utils/hasSpansEnabled';
-import { debug } from '../utils/logger';
 import { _setSpanForScope } from '../utils/spanOnScope';
 import {
   getActiveSpan,

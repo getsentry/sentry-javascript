@@ -3,7 +3,7 @@ import type { AsyncContextStrategy } from './asyncContext/types';
 import type { Client } from './client';
 import type { Scope } from './scope';
 import type { SerializedLog } from './types-hoist/log';
-import type { Logger } from './utils/logger';
+import type { Logger } from './utils/debug-logger';
 import { SDK_VERSION } from './utils/version';
 import { GLOBAL_OBJ } from './utils/worldwide';
 

@@ -4,7 +4,7 @@ import { addConsoleInstrumentationHandler } from '../instrument/console';
 import { defineIntegration } from '../integration';
 import type { CaptureContext } from '../scope';
 import type { IntegrationFn } from '../types-hoist/integration';
-import { CONSOLE_LEVELS } from '../utils/logger';
+import { CONSOLE_LEVELS } from '../utils/debug-logger';
 import { addExceptionMechanism } from '../utils/misc';
 import { severityLevelFromString } from '../utils/severity';
 import { safeJoin } from '../utils/string';

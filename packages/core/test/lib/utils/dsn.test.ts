@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, test, vi } from 'vitest';
 import { DEBUG_BUILD } from '../../../src/debug-build';
+import { debug } from '../../../src/utils/debug-logger';
 import { dsnToString, extractOrgIdFromDsnHost, makeDsn } from '../../../src/utils/dsn';
-import { debug } from '../../../src/utils/logger';
 
 function testIf(condition: boolean) {
   return condition ? test : test.skip;

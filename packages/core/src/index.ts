@@ -165,8 +165,10 @@ export {
   isVueViewModel,
 } from './utils/is';
 export { isBrowser } from './utils/isBrowser';
-export { CONSOLE_LEVELS, consoleSandbox, debug, logger, originalConsoleMethods } from './utils/logger';
-export type { Logger } from './utils/logger';
+// eslint-disable-next-line deprecation/deprecation
+export { CONSOLE_LEVELS, consoleSandbox, debug, logger, originalConsoleMethods } from './utils/debug-logger';
+// eslint-disable-next-line deprecation/deprecation
+export type { Logger } from './utils/debug-logger';
 export {
   addContextToFrame,
   addExceptionMechanism,
