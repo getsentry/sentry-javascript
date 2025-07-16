@@ -1,4 +1,4 @@
-import { isNativeFunction, logger } from '@sentry/core';
+import { debug, isNativeFunction } from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
 import { WINDOW } from './types';
 
@@ -53,7 +53,7 @@ export function getNativeImplementation<T extends keyof CacheableImplementations
       document.head.removeChild(sandbox);
     } catch (e) {
       // Could not create sandbox iframe, just use window.xxx
-      DEBUG_BUILD && logger.warn(`Could not create sandbox iframe for ${name} check, bailing to window.${name}: `, e);
+      DEBUG_BUILD && debug.warn(`Could not create sandbox iframe for ${name} check, bailing to window.${name}: `, e);
     }
   }
 
