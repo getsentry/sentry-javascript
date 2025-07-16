@@ -23,7 +23,7 @@ import {
   OPENAI_RESPONSE_TIMESTAMP_ATTRIBUTE,
   OPENAI_USAGE_COMPLETION_TOKENS_ATTRIBUTE,
   OPENAI_USAGE_PROMPT_TOKENS_ATTRIBUTE,
-} from './openai-attributes';
+} from './gen-ai-attributes';
 import { INTEGRATION_NAME } from './openai-constants';
 import type {
   InstrumentedMethod,

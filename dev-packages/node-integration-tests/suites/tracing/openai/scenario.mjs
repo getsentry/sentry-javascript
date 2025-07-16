@@ -73,15 +73,7 @@ async function run() {
       apiKey: 'mock-api-key',
     });
 
-    const sentryClient = Sentry.getCurrentScope().getClient();
-    const sendDefaultPii = sentryClient?.getOptions().sendDefaultPii || false;
-
-    const options =
-      process.env.TEST_OPTIONS === '1'
-        ? { recordInputs: true, recordOutputs: true }
-        : { recordInputs: sendDefaultPii, recordOutputs: sendDefaultPii };
-
-    const client = instrumentOpenAiClient(mockClient, options);
+    const client = instrumentOpenAiClient(mockClient);
 
     // First test: basic chat completion
     await client.chat.completions.create({

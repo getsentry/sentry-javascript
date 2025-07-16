@@ -1,4 +1,4 @@
-import { OPENAI_OPERATIONS } from './openai-attributes';
+import { OPENAI_OPERATIONS } from './gen-ai-attributes';
 import { INSTRUMENTED_METHODS } from './openai-constants';
 import type { InstrumentedMethod, OpenAiChatCompletionObject, OpenAIResponseObject } from './openai-types';
 
