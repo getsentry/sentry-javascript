@@ -4,9 +4,8 @@ import {
   InstrumentationBase,
   InstrumentationNodeModuleDefinition,
 } from '@opentelemetry/instrumentation';
-import { getCurrentScope, INTEGRATION_NAME, SDK_VERSION } from '@sentry/core';
 import type { Integration, OpenAiClient, OpenAiOptions } from '@sentry/core';
-import { instrumentOpenAiClient } from '@sentry/core';
+import { getCurrentScope, instrumentOpenAiClient, INTEGRATION_NAME, SDK_VERSION } from '@sentry/core';
 
 export interface OpenAiIntegration extends Integration {
   options: OpenAiOptions;

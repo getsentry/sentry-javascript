@@ -1,7 +1,7 @@
-import type { Span, SpanAttributeValue } from '../types-hoist/span';
-import { captureException } from '../exports';
 import { getCurrentScope } from '../currentScopes';
+import { captureException } from '../exports';
 import { startSpan } from '../tracing/trace';
+import type { Span, SpanAttributeValue } from '../types-hoist/span';
 import {
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE,
@@ -25,13 +25,13 @@ import {
   OPENAI_USAGE_PROMPT_TOKENS_ATTRIBUTE,
 } from './openai-attributes';
 import type {
+  InstrumentedMethod,
   OpenAiChatCompletionObject,
-  OpenAiResponse,
-  OpenAIResponseObject,
-  OpenAiOptions,
   OpenAiClient,
   OpenAiIntegration,
-  InstrumentedMethod,
+  OpenAiOptions,
+  OpenAiResponse,
+  OpenAIResponseObject,
 } from './openai-types';
 import {
   buildMethodPath,
@@ -191,17 +191,6 @@ function addResponseAttributes(span: Span, result: unknown, recordOutputs?: bool
   if (isChatCompletionResponse(response)) {
     addChatCompletionAttributes(span, response);
 
-    // eslint-disable-next-line no-console
-    console.log(
-      'response is chat completion',
-      response,
-      'choices',
-      response.choices,
-      'choices length',
-      response.choices?.length,
-    );
-
-    // Record outputs if enabled - must be stringified JSON array
     if (recordOutputs && response.choices && response.choices.length > 0) {
       const responseTexts = response.choices.map(choice => choice.message?.content || '');
       span.setAttributes({
@@ -211,10 +200,9 @@ function addResponseAttributes(span: Span, result: unknown, recordOutputs?: bool
   } else if (isResponsesApiResponse(response)) {
     addResponsesApiAttributes(span, response);
 
-    // Record outputs if enabled - must be stringified JSON array
     if (recordOutputs && response.output_text) {
       span.setAttributes({
-        [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: JSON.stringify([response.output_text]),
+        [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: response.output_text,
       });
     }
   }
@@ -273,7 +261,7 @@ function instrumentMethod<T extends unknown[], R>(
           }
 
           const result = await originalMethod.apply(context, args);
-
+          // TODO: Add streaming support
           addResponseAttributes(span, result, finalOptions.recordOutputs);
 
           return result;

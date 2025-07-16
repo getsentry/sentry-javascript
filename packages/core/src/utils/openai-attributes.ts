@@ -21,6 +21,11 @@ export const GEN_AI_SYSTEM_ATTRIBUTE = 'gen_ai.system';
 export const GEN_AI_REQUEST_MODEL_ATTRIBUTE = 'gen_ai.request.model';
 
 /**
+ * Whether streaming was enabled for the request
+ */
+export const GEN_AI_REQUEST_STREAM_ATTRIBUTE = 'gen_ai.request.stream';
+
+/**
  * The temperature setting for the model request
  */
 export const GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE = 'gen_ai.request.temperature';

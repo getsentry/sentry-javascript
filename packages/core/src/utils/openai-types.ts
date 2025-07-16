@@ -1,4 +1,4 @@
-import { INSTRUMENTED_METHODS } from './openai-constants';
+import type { INSTRUMENTED_METHODS } from './openai-constants';
 
 /**
  * Attribute values may be any non-nullish primitive value except an object.
@@ -131,22 +131,6 @@ export interface OpenAIResponseObject {
 }
 
 export type OpenAiResponse = OpenAiChatCompletionObject | OpenAIResponseObject;
-
-export interface OpenAiOptions {
-  recordInputs?: boolean;
-  recordOutputs?: boolean;
-}
-
-export interface OpenAiClient {
-  responses?: {
-    create: (...args: unknown[]) => Promise<unknown>;
-  };
-  chat?: {
-    completions?: {
-      create: (...args: unknown[]) => Promise<unknown>;
-    };
-  };
-}
 
 /**
  * OpenAI Integration interface for type safety
