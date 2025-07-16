@@ -51,9 +51,8 @@ export function patchFirestore(
   config: FirebaseInstrumentationConfig,
 ): InstrumentationNodeModuleDefinition {
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  const defaultFirestoreSpanCreationHook: FirestoreSpanCreationHook = () => {};
-
-  let firestoreSpanCreationHook: FirestoreSpanCreationHook = defaultFirestoreSpanCreationHook;
+  // Setting an empty function as a default
+  let firestoreSpanCreationHook: FirestoreSpanCreationHook = () => {};
   const configFirestoreSpanCreationHook = config.firestoreSpanCreationHook;
 
   if (typeof configFirestoreSpanCreationHook === 'function') {

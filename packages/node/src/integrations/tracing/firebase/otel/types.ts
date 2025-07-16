@@ -46,7 +46,7 @@ export interface DocumentReference<T = DocumentData, U extends DocumentData = Do
       settings: FirestoreSettings;
     };
   };
-  type: string; // 'collection' or 'document'
+  type: 'collection' | 'document' | string;
   path: string;
   parent: CollectionReference<T, U>;
 }
