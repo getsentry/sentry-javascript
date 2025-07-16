@@ -1,4 +1,5 @@
 import MyWorker from './worker.ts?worker';
+import MyWorker2 from './worker2.ts?worker';
 import * as Sentry from '@sentry/browser';
 
 Sentry.init({
@@ -11,8 +12,10 @@ Sentry.init({
 });
 
 const worker = new MyWorker();
+const worker2 = new MyWorker2();
 
-Sentry.addIntegration(Sentry.webWorkerIntegration({ worker }));
+const webWorkerIntegration = Sentry.webWorkerIntegration({ worker: [worker, worker2] });
+Sentry.addIntegration(webWorkerIntegration);
 
 worker.addEventListener('message', event => {
   // this is part of the test, do not delete
@@ -21,6 +24,21 @@ worker.addEventListener('message', event => {
 
 document.querySelector<HTMLButtonElement>('#trigger-error')!.addEventListener('click', () => {
   worker.postMessage({
+    msg: 'TRIGGER_ERROR',
+  });
+});
+
+document.querySelector<HTMLButtonElement>('#trigger-error-2')!.addEventListener('click', () => {
+  worker2.postMessage({
+    msg: 'TRIGGER_ERROR',
+  });
+});
+
+document.querySelector<HTMLButtonElement>('#trigger-error-3')!.addEventListener('click', async () => {
+  const Worker3 = await import('./worker3.ts?worker');
+  const worker3 = new Worker3.default();
+  webWorkerIntegration.addWorker(worker3);
+  worker3.postMessage({
     msg: 'TRIGGER_ERROR',
   });
 });

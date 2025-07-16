@@ -1,3 +1,4 @@
+import type { Integration, IntegrationFn } from '@sentry/core';
 import { debug, defineIntegration, isPlainObject } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
@@ -10,7 +11,11 @@ interface WebWorkerMessage {
 }
 
 interface WebWorkerIntegrationOptions {
-  worker: Worker;
+  worker: Worker | Array<Worker>;
+}
+
+interface WebWorkerIntegration extends Integration {
+  addWorker: (worker: Worker) => void;
 }
 
 /**
@@ -18,13 +23,13 @@ interface WebWorkerIntegrationOptions {
  *
  * IMPORTANT: This integration must be added **before** you start listening to
  * any messages from the worker. Otherwise, your message handlers will receive
- * messages from Sentry which you need to ignore.
+ * messages from the Sentry SDK which you need to ignore.
  *
  * This integration only has an effect, if you call `Sentry.registerWorker(self)`
- * from within the worker you're adding to the integration.
+ * from within the worker(s) you're adding to the integration.
  *
  * Given that you want to initialize the SDK as early as possible, you most likely
- * want to add the integration after initializing the SDK:
+ * want to add this integration **after** initializing the SDK:
  *
  * @example:
  * ```ts filename={main.js}
@@ -37,12 +42,32 @@ interface WebWorkerIntegrationOptions {
  * const worker = new Worker(new URL('./worker.ts', import.meta.url));
  *
  * // 2. Add the integration
- * Sentry.addIntegration(Sentry.webWorkerIntegration({ worker }));
+ * const webWorkerIntegration = Sentry.webWorkerIntegration({ worker });
+ * Sentry.addIntegration(webWorkerIntegration);
  *
  * // 3. Register message listeners on the worker
  * worker.addEventListener('message', event => {
  *  // ...
  * });
+ * ```
+ *
+ * If you initialize multiple workers at the same time, you can also pass an array of workers
+ * to the integration:
+ *
+ * ```ts filename={main.js}
+ * const webWorkerIntegration = Sentry.webWorkerIntegration({ worker: [worker1, worker2] });
+ * Sentry.addIntegration(webWorkerIntegration);
+ * ```
+ *
+ * If you have any additional workers that you initialize at a later point,
+ * you can add them to the integration as follows:
+ *
+ * ```ts filename={main.js}
+ * const webWorkerIntegration = Sentry.webWorkerIntegration({ worker: worker1 });
+ * Sentry.addIntegration(webWorkerIntegration);
+ *
+ * // sometime later:
+ * webWorkerIntegration.addWorker(worker2);
  * ```
  *
  * Of course, you can also directly add the integration in Sentry.init:
@@ -69,19 +94,24 @@ interface WebWorkerIntegrationOptions {
 export const webWorkerIntegration = defineIntegration(({ worker }: WebWorkerIntegrationOptions) => ({
   name: INTEGRATION_NAME,
   setupOnce: () => {
-    worker.addEventListener('message', event => {
-      if (isSentryDebugIdMessage(event.data)) {
-        event.stopImmediatePropagation(); // other listeners should not receive this message
-        DEBUG_BUILD && debug.log('Sentry debugId web worker message received', event.data);
-        WINDOW._sentryDebugIds = {
-          ...event.data._sentryDebugIds,
-          // debugIds of the main thread have precedence over the worker's in case of a collision.
-          ...WINDOW._sentryDebugIds,
-        };
-      }
-    });
+    (Array.isArray(worker) ? worker : [worker]).forEach(w => listenForSentryDebugIdMessages(w));
   },
-}));
+  addWorker: (worker: Worker) => listenForSentryDebugIdMessages(worker),
+})) as IntegrationFn<WebWorkerIntegration>;
+
+function listenForSentryDebugIdMessages(worker: Worker): void {
+  worker.addEventListener('message', event => {
+    if (isSentryDebugIdMessage(event.data)) {
+      event.stopImmediatePropagation(); // other listeners should not receive this message
+      DEBUG_BUILD && debug.log('Sentry debugId web worker message received', event.data);
+      WINDOW._sentryDebugIds = {
+        ...event.data._sentryDebugIds,
+        // debugIds of the main thread have precedence over the worker's in case of a collision.
+        ...WINDOW._sentryDebugIds,
+      };
+    }
+  });
+}
 
 interface RegisterWebWorkerOptions {
   self: Worker & { _sentryDebugIds?: Record<string, string> };

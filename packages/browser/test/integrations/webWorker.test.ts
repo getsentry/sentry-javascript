@@ -38,6 +38,12 @@ describe('webWorkerIntegration', () => {
     _sentryDebugIds?: Record<string, string>;
   };
 
+  let mockWorker2: {
+    addEventListener: ReturnType<typeof vi.fn>;
+    postMessage: ReturnType<typeof vi.fn>;
+    _sentryDebugIds?: Record<string, string>;
+  };
+
   let mockEvent: {
     data: any;
     stopImmediatePropagation: ReturnType<typeof vi.fn>;
@@ -51,6 +57,11 @@ describe('webWorkerIntegration', () => {
 
     // Setup mock worker
     mockWorker = {
+      addEventListener: vi.fn(),
+      postMessage: vi.fn(),
+    };
+
+    mockWorker2 = {
       addEventListener: vi.fn(),
       postMessage: vi.fn(),
     };
@@ -75,12 +86,26 @@ describe('webWorkerIntegration', () => {
   });
 
   describe('setupOnce', () => {
-    it('adds message event listener to worker', () => {
+    it('adds message event listener to the worker', () => {
       const integration = webWorkerIntegration({ worker: mockWorker as any });
 
       integration.setupOnce!();
 
       expect(mockWorker.addEventListener).toHaveBeenCalledWith('message', expect.any(Function));
+    });
+
+    it('adds message event listener to multiple workers passed to the integration', () => {
+      const integration = webWorkerIntegration({ worker: [mockWorker, mockWorker2] as any });
+      integration.setupOnce!();
+      expect(mockWorker.addEventListener).toHaveBeenCalledWith('message', expect.any(Function));
+      expect(mockWorker2.addEventListener).toHaveBeenCalledWith('message', expect.any(Function));
+    });
+
+    it('adds message event listener to a worker added later', () => {
+      const integration = webWorkerIntegration({ worker: mockWorker as any });
+      integration.setupOnce!();
+      integration.addWorker(mockWorker2 as any);
+      expect(mockWorker2.addEventListener).toHaveBeenCalledWith('message', expect.any(Function));
     });
 
     describe('message handler', () => {
@@ -246,14 +271,16 @@ describe('registerWebWorker', () => {
 describe('registerWebWorker and webWorkerIntegration', () => {
   beforeEach(() => {});
 
-  it('works together', () => {
+  it('work together (with multiple workers)', () => {
     (helpers.WINDOW as any)._sentryDebugIds = {
       'Error at \n /main-file1.js': 'main-debug-1',
       'Error at \n /main-file2.js': 'main-debug-2',
       'Error at \n /shared-file.js': 'main-debug-id',
     };
 
-    let cb: ((arg0: any) => any) | undefined = undefined;
+    let cb1: ((arg0: any) => any) | undefined = undefined;
+    let cb2: ((arg0: any) => any) | undefined = undefined;
+    let cb3: ((arg0: any) => any) | undefined = undefined;
 
     // Setup mock worker
     const mockWorker = {
@@ -262,19 +289,47 @@ describe('registerWebWorker and webWorkerIntegration', () => {
         'Error at \n /worker-file2.js': 'worker-debug-2',
         'Error at \n /shared-file.js': 'worker-debug-id',
       },
-      addEventListener: vi.fn((_, l) => (cb = l)),
+      addEventListener: vi.fn((_, l) => (cb1 = l)),
       postMessage: vi.fn(message => {
         // @ts-expect-error - cb is defined
-        cb({ data: message, stopImmediatePropagation: vi.fn() });
+        cb1({ data: message, stopImmediatePropagation: vi.fn() });
       }),
     };
 
-    const integration = webWorkerIntegration({ worker: mockWorker as any });
+    const mockWorker2 = {
+      _sentryDebugIds: {
+        'Error at \n /worker-2-file1.js': 'worker-2-debug-1',
+        'Error at \n /worker-2-file2.js': 'worker-2-debug-2',
+      },
+
+      addEventListener: vi.fn((_, l) => (cb2 = l)),
+      postMessage: vi.fn(message => {
+        // @ts-expect-error - cb is defined
+        cb2({ data: message, stopImmediatePropagation: vi.fn() });
+      }),
+    };
+
+    const mockWorker3 = {
+      _sentryDebugIds: {
+        'Error at \n /worker-3-file1.js': 'worker-3-debug-1',
+        'Error at \n /worker-3-file2.js': 'worker-3-debug-2',
+      },
+      addEventListener: vi.fn((_, l) => (cb3 = l)),
+      postMessage: vi.fn(message => {
+        // @ts-expect-error - cb is defined
+        cb3({ data: message, stopImmediatePropagation: vi.fn() });
+      }),
+    };
+
+    const integration = webWorkerIntegration({ worker: [mockWorker as any, mockWorker2 as any] });
     integration.setupOnce!();
 
     registerWebWorker({ self: mockWorker as any });
+    registerWebWorker({ self: mockWorker2 as any });
 
     expect(mockWorker.addEventListener).toHaveBeenCalledWith('message', expect.any(Function));
+    expect(mockWorker2.addEventListener).toHaveBeenCalledWith('message', expect.any(Function));
+
     expect(mockWorker.postMessage).toHaveBeenCalledWith({
       _sentryMessage: true,
       _sentryDebugIds: mockWorker._sentryDebugIds,
@@ -286,6 +341,30 @@ describe('registerWebWorker and webWorkerIntegration', () => {
       'Error at \n /shared-file.js': 'main-debug-id',
       'Error at \n /worker-file1.js': 'worker-debug-1',
       'Error at \n /worker-file2.js': 'worker-debug-2',
+      'Error at \n /worker-2-file1.js': 'worker-2-debug-1',
+      'Error at \n /worker-2-file2.js': 'worker-2-debug-2',
+    });
+
+    integration.addWorker(mockWorker3 as any);
+    registerWebWorker({ self: mockWorker3 as any });
+
+    expect(mockWorker3.addEventListener).toHaveBeenCalledWith('message', expect.any(Function));
+
+    expect(mockWorker3.postMessage).toHaveBeenCalledWith({
+      _sentryMessage: true,
+      _sentryDebugIds: mockWorker3._sentryDebugIds,
+    });
+
+    expect((helpers.WINDOW as any)._sentryDebugIds).toEqual({
+      'Error at \n /main-file1.js': 'main-debug-1',
+      'Error at \n /main-file2.js': 'main-debug-2',
+      'Error at \n /shared-file.js': 'main-debug-id',
+      'Error at \n /worker-file1.js': 'worker-debug-1',
+      'Error at \n /worker-file2.js': 'worker-debug-2',
+      'Error at \n /worker-2-file1.js': 'worker-2-debug-1',
+      'Error at \n /worker-2-file2.js': 'worker-2-debug-2',
+      'Error at \n /worker-3-file1.js': 'worker-3-debug-1',
+      'Error at \n /worker-3-file2.js': 'worker-3-debug-2',
     });
   });
 });

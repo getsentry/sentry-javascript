@@ -71,3 +71,103 @@ test("user worker message handlers don't trigger for sentry messages", async ({ 
 
   expect(workerMessageCount).toBe(1);
 });
+
+test('captures an error from the second eagerly added worker', async ({ page }) => {
+  const errorEventPromise = waitForError('browser-webworker-vite', async event => {
+    return !event.type && !!event.exception?.values?.[0];
+  });
+
+  const transactionPromise = waitForTransaction('browser-webworker-vite', transactionEvent => {
+    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+  });
+
+  await page.goto('/');
+
+  await page.locator('#trigger-error-2').click();
+
+  await page.waitForTimeout(1000);
+
+  const errorEvent = await errorEventPromise;
+  const transactionEvent = await transactionPromise;
+
+  const pageloadTraceId = transactionEvent.contexts?.trace?.trace_id;
+  const pageloadSpanId = transactionEvent.contexts?.trace?.span_id;
+
+  expect(errorEvent.exception?.values).toHaveLength(1);
+  expect(errorEvent.exception?.values?.[0]?.value).toBe('Uncaught Error: Uncaught error in worker 2');
+  expect(errorEvent.exception?.values?.[0]?.stacktrace?.frames).toHaveLength(1);
+  expect(errorEvent.exception?.values?.[0]?.stacktrace?.frames?.[0]?.filename).toMatch(/worker2-.+\.js$/);
+
+  expect(errorEvent.transaction).toBe('/');
+  expect(transactionEvent.transaction).toBe('/');
+
+  expect(errorEvent.request).toEqual({
+    url: 'http://localhost:3030/',
+    headers: expect.any(Object),
+  });
+
+  expect(errorEvent.contexts?.trace).toEqual({
+    trace_id: pageloadTraceId,
+    span_id: pageloadSpanId,
+  });
+
+  expect(errorEvent.debug_meta).toEqual({
+    images: [
+      {
+        code_file: expect.stringMatching(/http:\/\/localhost:3030\/assets\/worker2-.+\.js/),
+        debug_id: expect.stringMatching(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/),
+        type: 'sourcemap',
+      },
+    ],
+  });
+});
+
+test('captures an error from the third lazily added worker', async ({ page }) => {
+  const errorEventPromise = waitForError('browser-webworker-vite', async event => {
+    return !event.type && !!event.exception?.values?.[0];
+  });
+
+  const transactionPromise = waitForTransaction('browser-webworker-vite', transactionEvent => {
+    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+  });
+
+  await page.goto('/');
+
+  await page.locator('#trigger-error-3').click();
+
+  await page.waitForTimeout(1000);
+
+  const errorEvent = await errorEventPromise;
+  const transactionEvent = await transactionPromise;
+
+  const pageloadTraceId = transactionEvent.contexts?.trace?.trace_id;
+  const pageloadSpanId = transactionEvent.contexts?.trace?.span_id;
+
+  expect(errorEvent.exception?.values).toHaveLength(1);
+  expect(errorEvent.exception?.values?.[0]?.value).toBe('Uncaught Error: Uncaught error in worker 3');
+  expect(errorEvent.exception?.values?.[0]?.stacktrace?.frames).toHaveLength(1);
+  expect(errorEvent.exception?.values?.[0]?.stacktrace?.frames?.[0]?.filename).toMatch(/worker3-.+\.js$/);
+
+  expect(errorEvent.transaction).toBe('/');
+  expect(transactionEvent.transaction).toBe('/');
+
+  expect(errorEvent.request).toEqual({
+    url: 'http://localhost:3030/',
+    headers: expect.any(Object),
+  });
+
+  expect(errorEvent.contexts?.trace).toEqual({
+    trace_id: pageloadTraceId,
+    span_id: pageloadSpanId,
+  });
+
+  expect(errorEvent.debug_meta).toEqual({
+    images: [
+      {
+        code_file: expect.stringMatching(/http:\/\/localhost:3030\/assets\/worker3-.+\.js/),
+        debug_id: expect.stringMatching(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/),
+        type: 'sourcemap',
+      },
+    ],
+  });
+});
