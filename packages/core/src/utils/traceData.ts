@@ -8,7 +8,7 @@ import { getDynamicSamplingContextFromScope, getDynamicSamplingContextFromSpan }
 import type { Span } from '../types-hoist/span';
 import type { SerializedTraceData } from '../types-hoist/tracing';
 import { dynamicSamplingContextToSentryBaggageHeader } from './baggage';
-import { debug } from './logger';
+import { debug } from './debug-logger';
 import { getActiveSpan, spanToTraceHeader } from './spanUtils';
 import { generateSentryTraceHeader, TRACEPARENT_REGEXP } from './tracing';
 

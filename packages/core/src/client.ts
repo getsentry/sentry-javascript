@@ -33,11 +33,11 @@ import type { Span, SpanAttributes, SpanContextData, SpanJSON } from './types-ho
 import type { StartSpanOptions } from './types-hoist/startSpanOptions';
 import type { Transport, TransportMakeRequestResponse } from './types-hoist/transport';
 import { createClientReportEnvelope } from './utils/clientreport';
+import { debug } from './utils/debug-logger';
 import { dsnToString, makeDsn } from './utils/dsn';
 import { addItemToEnvelope, createAttachmentEnvelopeItem } from './utils/envelope';
 import { getPossibleEventMessages } from './utils/eventUtils';
 import { isParameterizedString, isPlainObject, isPrimitive, isThenable } from './utils/is';
-import { debug } from './utils/logger';
 import { merge } from './utils/merge';
 import { checkOrSetAlreadyCaught, uuid4 } from './utils/misc';
 import { parseSampleRate } from './utils/parseSampleRate';

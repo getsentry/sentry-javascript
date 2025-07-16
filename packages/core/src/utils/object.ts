@@ -2,8 +2,8 @@
 import { DEBUG_BUILD } from '../debug-build';
 import type { WrappedFunction } from '../types-hoist/wrappedfunction';
 import { htmlTreeAsString } from './browser';
+import { debug } from './debug-logger';
 import { isElement, isError, isEvent, isInstanceOf, isPrimitive } from './is';
-import { debug } from './logger';
 import { truncate } from './string';
 
 /**

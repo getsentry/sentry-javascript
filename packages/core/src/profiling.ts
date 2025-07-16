@@ -1,7 +1,7 @@
 import { getClient } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import type { Profiler, ProfilingIntegration } from './types-hoist/profiling';
-import { debug } from './utils/logger';
+import { debug } from './utils/debug-logger';
 
 function isProfilingIntegrationWithProfiler(
   integration: ProfilingIntegration<any> | undefined,

@@ -3,7 +3,11 @@ import { DEBUG_BUILD } from '../debug-build';
 import type { ConsoleLevel } from '../types-hoist/instrument';
 import { GLOBAL_OBJ } from './worldwide';
 
-/** A Sentry Logger instance. */
+/**
+ * A Sentry Logger instance.
+ *
+ * @deprecated Use {@link debug} instead with the {@link SentryDebugLogger} type.
+ */
 export interface Logger {
   disable(): void;
   enable(): void;
@@ -146,6 +150,8 @@ function _getLoggerSettings(): { enabled: boolean } {
 /**
  * This is a logger singleton which either logs things or no-ops if logging is not enabled.
  * The logger is a singleton on the carrier, to ensure that a consistent logger is used throughout the SDK.
+ *
+ * @deprecated Use {@link debug} instead.
  */
 export const logger = {
   /** Enable logging. */
@@ -168,6 +174,7 @@ export const logger = {
   assert,
   /** Log a trace. */
   trace,
+  // eslint-disable-next-line deprecation/deprecation
 } satisfies Logger;
 
 /**
