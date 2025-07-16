@@ -91,5 +91,29 @@ describe('handleError', () => {
       // Check that the default handler wasn't invoked
       expect(consoleErrorSpy).toHaveBeenCalledTimes(0);
     });
+
+    it('calls waitUntil if available', async () => {
+      const wrappedHandleError = handleErrorWithSentry();
+      const mockError = new Error('test');
+      const waitUntilSpy = vi.fn();
+
+      await wrappedHandleError({
+        error: mockError,
+        event: {
+          ...requestEvent,
+          platform: {
+            context: {
+              waitUntil: waitUntilSpy,
+            },
+          },
+        },
+        status: 500,
+        message: 'Internal Error',
+      });
+
+      expect(waitUntilSpy).toHaveBeenCalledTimes(1);
+      // flush() returns a promise, this is what we expect here
+      expect(waitUntilSpy).toHaveBeenCalledWith(expect.any(Promise));
+    });
   });
 });
