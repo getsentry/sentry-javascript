@@ -203,7 +203,7 @@ describe('registerWebWorker', () => {
   });
 
   it('posts message with _sentryMessage flag', () => {
-    registerWebWorker(mockWorkerSelf as any);
+    registerWebWorker({ self: mockWorkerSelf as any });
 
     expect(mockWorkerSelf.postMessage).toHaveBeenCalledTimes(1);
     expect(mockWorkerSelf.postMessage).toHaveBeenCalledWith({
@@ -218,7 +218,7 @@ describe('registerWebWorker', () => {
       'worker-file2.js': 'debug-id-2',
     };
 
-    registerWebWorker(mockWorkerSelf as any);
+    registerWebWorker({ self: mockWorkerSelf as any });
 
     expect(mockWorkerSelf.postMessage).toHaveBeenCalledTimes(1);
     expect(mockWorkerSelf.postMessage).toHaveBeenCalledWith({
@@ -233,7 +233,7 @@ describe('registerWebWorker', () => {
   it('handles undefined debug IDs', () => {
     mockWorkerSelf._sentryDebugIds = undefined;
 
-    registerWebWorker(mockWorkerSelf as any);
+    registerWebWorker({ self: mockWorkerSelf as any });
 
     expect(mockWorkerSelf.postMessage).toHaveBeenCalledTimes(1);
     expect(mockWorkerSelf.postMessage).toHaveBeenCalledWith({
@@ -272,7 +272,7 @@ describe('registerWebWorker and webWorkerIntegration', () => {
     const integration = webWorkerIntegration({ worker: mockWorker as any });
     integration.setupOnce!();
 
-    registerWebWorker(mockWorker as any);
+    registerWebWorker({ self: mockWorker as any });
 
     expect(mockWorker.addEventListener).toHaveBeenCalledWith('message', expect.any(Function));
     expect(mockWorker.postMessage).toHaveBeenCalledWith({

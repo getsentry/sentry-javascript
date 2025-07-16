@@ -62,6 +62,9 @@ interface WebWorkerIntegrationOptions {
  *  // ...
  * });
  * ```
+ *
+ * @param options {WebWorkerIntegrationOptions} Integration options:
+ *   - `worker`: The worker instance.
  */
 export const webWorkerIntegration = defineIntegration(({ worker }: WebWorkerIntegrationOptions) => ({
   name: INTEGRATION_NAME,
@@ -80,6 +83,10 @@ export const webWorkerIntegration = defineIntegration(({ worker }: WebWorkerInte
   },
 }));
 
+interface RegisterWebWorkerOptions {
+  self: Worker & { _sentryDebugIds?: Record<string, string> };
+}
+
 /**
  * Use this function to register the worker with the Sentry SDK.
  *
@@ -88,14 +95,15 @@ export const webWorkerIntegration = defineIntegration(({ worker }: WebWorkerInte
  * import * as Sentry from '@sentry/<your-sdk>';
  *
  * // Do this as early as possible in your worker.
- * Sentry.registerWorker(self);
+ * Sentry.registerWorker({ self });
  *
  * // continue setting up your worker
  * self.postMessage(...)
  * ```
- * @param self The worker instance.
+ * @param options {RegisterWebWorkerOptions} Integration options:
+ *   - `self`: The worker instance you're calling this function from (self).
  */
-export function registerWebWorker(self: Worker & { _sentryDebugIds: Record<string, string> }): void {
+export function registerWebWorker({ self }: RegisterWebWorkerOptions): void {
   self.postMessage({
     _sentryMessage: true,
     _sentryDebugIds: self._sentryDebugIds ?? undefined,
