@@ -98,7 +98,7 @@ function getManifest(): RouteManifest | null {
     cachedManifest = manifest;
     cachedManifestString = currentManifestString;
     return manifest;
-  } catch (error) {
+  } catch {
     // Something went wrong while parsing the manifest, so we'll fallback to no parameterization
     DEBUG_BUILD && logger.warn('Could not extract route manifest');
     return null;

@@ -69,7 +69,7 @@ function extractNextDataTagInformation(): NextDataTagInfo {
   if (nextDataTag?.innerHTML) {
     try {
       nextData = JSON.parse(nextDataTag.innerHTML);
-    } catch (e) {
+    } catch {
       DEBUG_BUILD && logger.warn('Could not extract __NEXT_DATA__');
     }
   }

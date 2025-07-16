@@ -70,8 +70,8 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
             screenshotInput={screenshotInput}
             showName={options.showName || options.isNameRequired}
             showEmail={options.showEmail || options.isEmailRequired}
-            defaultName={(userKey && user && user[userKey.name]) || ''}
-            defaultEmail={(userKey && user && user[userKey.email]) || ''}
+            defaultName={(userKey && user?.[userKey.name]) || ''}
+            defaultEmail={(userKey && user?.[userKey.email]) || ''}
             onFormClose={() => {
               renderContent(false);
               options.onFormClose?.();

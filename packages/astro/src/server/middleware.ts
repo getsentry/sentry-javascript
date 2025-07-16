@@ -1,8 +1,8 @@
 import type { RequestEventData, Scope, SpanAttributes } from '@sentry/core';
 import {
   addNonEnumerableProperty,
+  debug,
   extractQueryParamsFromUrl,
-  logger,
   objectify,
   stripUrlQueryAndFragment,
   vercelWaitUntil,
@@ -228,7 +228,7 @@ async function instrumentRequest(
             try {
               await flush(2000);
             } catch (e) {
-              logger.log('Error while flushing events:\n', e);
+              debug.log('Error while flushing events:\n', e);
             }
           })(),
         );

@@ -107,7 +107,7 @@ async function getNodeAdapterOutputDir(svelteConfig: Config): Promise<string> {
 
   try {
     await nodeAdapter.adapt(adapterBuilder);
-  } catch (_) {
+  } catch {
     // We expect the adapter to throw in writeClient!
   }
 

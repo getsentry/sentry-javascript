@@ -1,4 +1,4 @@
-import { getFunctionName, logger } from '@sentry/core';
+import { debug, getFunctionName } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { onCLS } from './web-vitals/getCLS';
 import { onFID } from './web-vitals/getFID';
@@ -214,7 +214,7 @@ function triggerHandlers(type: InstrumentHandlerType, data: unknown): void {
       handler(data);
     } catch (e) {
       DEBUG_BUILD &&
-        logger.error(
+        debug.error(
           `Error while triggering instrumentation handler.\nType: ${type}\nName: ${getFunctionName(handler)}\nError:`,
           e,
         );

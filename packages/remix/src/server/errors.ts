@@ -54,7 +54,7 @@ export async function captureRemixServerException(err: unknown, name: string, re
 
   try {
     normalizedRequest = winterCGRequestToRequestData(request);
-  } catch (e) {
+  } catch {
     DEBUG_BUILD && debug.warn('Failed to normalize Remix request');
   }
 

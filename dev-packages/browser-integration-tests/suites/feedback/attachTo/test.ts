@@ -17,7 +17,7 @@ sentryTest('should capture feedback with custom button', async ({ getLocalTestUr
 
     try {
       return getEnvelopeType(req) === 'feedback';
-    } catch (err) {
+    } catch {
       return false;
     }
   });

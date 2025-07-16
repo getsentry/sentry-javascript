@@ -70,7 +70,7 @@ export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
           const rawRes = await getRawInput();
 
           trpcContext.input = normalize(rawRes);
-        } catch (err) {
+        } catch {
           // noop
         }
       }

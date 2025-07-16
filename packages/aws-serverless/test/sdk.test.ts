@@ -265,7 +265,7 @@ describe('AWSLambda', () => {
 
       try {
         await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
-      } catch (e) {
+      } catch {
         const fakeTransactionContext = {
           name: 'functionName',
           op: 'function.aws.lambda',
@@ -376,7 +376,7 @@ describe('AWSLambda', () => {
 
       try {
         await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
-      } catch (e) {
+      } catch {
         const fakeTransactionContext = {
           name: 'functionName',
           op: 'function.aws.lambda',
@@ -458,7 +458,7 @@ describe('AWSLambda', () => {
 
       try {
         await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
-      } catch (e) {
+      } catch {
         const fakeTransactionContext = {
           name: 'functionName',
           op: 'function.aws.lambda',
@@ -489,7 +489,7 @@ describe('AWSLambda', () => {
 
     try {
       await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
-    } catch (e) {
+    } catch {
       expect(mockCaptureException).toBeCalledWith(error, expect.any(Function));
 
       const scopeFunction = mockCaptureException.mock.calls[0][1];

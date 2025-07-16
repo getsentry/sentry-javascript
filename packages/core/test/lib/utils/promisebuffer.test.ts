@@ -74,7 +74,7 @@ describe('PromiseBuffer', () => {
     expect(buffer.$.length).toEqual(1);
     try {
       await task;
-    } catch (_) {
+    } catch {
       // no-empty
     }
     expect(buffer.$.length).toEqual(0);

@@ -211,7 +211,7 @@ function _getEventFilterUrl(event: Event): string | null {
       .find(value => value.mechanism?.parent_id === undefined && value.stacktrace?.frames?.length);
     const frames = rootException?.stacktrace?.frames;
     return frames ? _getLastValidUrl(frames) : null;
-  } catch (oO) {
+  } catch {
     DEBUG_BUILD && debug.error(`Cannot extract url for event ${getEventDescription(event)}`);
     return null;
   }

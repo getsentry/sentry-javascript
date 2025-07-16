@@ -11,6 +11,10 @@ module.exports = {
       rules: {
         'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       },
+      parserOptions: {
+        sourceType: 'module',
+        ecmaVersion: 2020,
+      },
     },
     {
       // Configuration for typescript files
@@ -185,7 +189,7 @@ module.exports = {
       files: ['*.config.js', '*.config.mjs'],
       parserOptions: {
         sourceType: 'module',
-        ecmaVersion: 2018,
+        ecmaVersion: 2020,
       },
     },
     {

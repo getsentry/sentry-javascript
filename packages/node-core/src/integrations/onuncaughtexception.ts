@@ -1,4 +1,4 @@
-import { captureException, defineIntegration, getClient, logger } from '@sentry/core';
+import { captureException, debug, defineIntegration, getClient } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import type { NodeClient } from '../sdk/client';
 import { logAndExitProcess } from '../utils/errorhandling';
@@ -122,7 +122,7 @@ export function makeErrorHandler(client: NodeClient, options: OnUncaughtExceptio
           if (calledFatalError) {
             // we hit an error *after* calling onFatalError - pretty boned at this point, just shut it down
             DEBUG_BUILD &&
-              logger.warn(
+              debug.warn(
                 'uncaught exception after calling fatal error shutdown callback - this is bad! forcing shutdown',
               );
             logAndExitProcess(error);
