@@ -73,3 +73,4 @@ export { openFeatureIntegration, OpenFeatureIntegrationHook } from './integratio
 export { unleashIntegration } from './integrations/featureFlags/unleash';
 export { statsigIntegration } from './integrations/featureFlags/statsig';
 export { diagnoseSdkConnectivity } from './diagnose-sdk';
+export { webWorkerIntegration } from './integrations/webWorker';
