@@ -4,6 +4,7 @@ import { TraceState } from '@opentelemetry/core';
 import type { Event, TransactionEvent } from '@sentry/core';
 import {
   addBreadcrumb,
+  debug,
   getClient,
   logger,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -438,7 +439,7 @@ describe('Integration | Transactions', () => {
     vi.setSystemTime(now);
 
     const logs: unknown[] = [];
-    vi.spyOn(logger, 'log').mockImplementation(msg => logs.push(msg));
+    vi.spyOn(debug, 'log').mockImplementation(msg => logs.push(msg));
 
     mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
 
