@@ -115,7 +115,7 @@ describe('OpenAI integration', () => {
           'sentry.origin': 'manual',
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'gpt-3.5-turbo',
-          'gen_ai.response.text': '["Response to: Translate this to French: Hello"]',
+          'gen_ai.response.text': 'Response to: Translate this to French: Hello',
           'gen_ai.response.model': 'gpt-3.5-turbo',
           'gen_ai.response.id': 'resp_mock456',
           'gen_ai.usage.input_tokens': 5,
