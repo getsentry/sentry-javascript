@@ -24,6 +24,7 @@ import {
   OPENAI_USAGE_COMPLETION_TOKENS_ATTRIBUTE,
   OPENAI_USAGE_PROMPT_TOKENS_ATTRIBUTE,
 } from './openai-attributes';
+import { INTEGRATION_NAME } from './openai-constants';
 import type {
   InstrumentedMethod,
   OpenAiChatCompletionObject,
@@ -199,7 +200,7 @@ function addRequestAttributes(span: Span, params: Record<string, unknown>): void
 function getOptionsFromIntegration(): OpenAiOptions {
   const scope = getCurrentScope();
   const client = scope.getClient();
-  const integration = client?.getIntegrationByName('OpenAI') as OpenAiIntegration | undefined;
+  const integration = client?.getIntegrationByName(INTEGRATION_NAME) as OpenAiIntegration | undefined;
   const shouldRecordInputsAndOutputs = integration ? Boolean(client?.getOptions().sendDefaultPii) : false;
 
   return {
