@@ -27,6 +27,7 @@ export interface SentryCarrier {
   defaultIsolationScope?: Scope;
   defaultCurrentScope?: Scope;
   /** @deprecated Logger is no longer set. Instead, we keep enabled state in loggerSettings. */
+  // eslint-disable-next-line deprecation/deprecation
   logger?: Logger;
   loggerSettings?: { enabled: boolean };
   /**
