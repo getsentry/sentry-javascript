@@ -155,7 +155,7 @@ function patchAddDoc<AppModelType, DbModelType extends DocumentData>(
       reference: CollectionReference<AppModelType, DbModelType>,
       data: WithFieldValue<AppModelType>,
     ): Promise<DocumentReference<AppModelType, DbModelType>> {
-      const span = startSpan(tracer, 'addDoc', reference);
+      const span = startDBSpan(tracer, 'addDoc', reference);
       firestoreSpanCreationHook(span);
       return executeContextWithSpan<Promise<DocumentReference<AppModelType, DbModelType>>>(span, () => {
         return original(reference, data);
@@ -172,7 +172,7 @@ function patchDeleteDoc<AppModelType, DbModelType extends DocumentData>(
 ) => (this: FirebaseInstrumentation, reference: DocumentReference<AppModelType, DbModelType>) => Promise<void> {
   return function deleteDoc(original: DeleteDocType<AppModelType, DbModelType>) {
     return function patchDeleteDoc(reference: DocumentReference<AppModelType, DbModelType>): Promise<void> {
-      const span = startSpan(tracer, 'deleteDoc', reference.parent || reference);
+      const span = startDBSpan(tracer, 'deleteDoc', reference.parent || reference);
       firestoreSpanCreationHook(span);
       return executeContextWithSpan<Promise<void>>(span, () => {
         return original(reference);
@@ -194,7 +194,7 @@ function patchGetDocs<AppModelType, DbModelType extends DocumentData>(
     return function patchGetDocs(
       reference: CollectionReference<AppModelType, DbModelType>,
     ): Promise<QuerySnapshot<AppModelType, DbModelType>> {
-      const span = startSpan(tracer, 'getDocs', reference);
+      const span = startDBSpan(tracer, 'getDocs', reference);
       firestoreSpanCreationHook(span);
       return executeContextWithSpan<Promise<QuerySnapshot<AppModelType, DbModelType>>>(span, () => {
         return original(reference);
@@ -220,7 +220,7 @@ function patchSetDoc<AppModelType, DbModelType extends DocumentData>(
       data: WithFieldValue<AppModelType> & PartialWithFieldValue<AppModelType>,
       options?: SetOptions,
     ): Promise<void> {
-      const span = startSpan(tracer, 'setDocs', reference.parent || reference);
+      const span = startDBSpan(tracer, 'setDocs', reference.parent || reference);
       firestoreSpanCreationHook(span);
 
       return executeContextWithSpan<Promise<void>>(span, () => {
@@ -247,7 +247,7 @@ function executeContextWithSpan<T>(span: Span, callback: () => T): T {
   });
 }
 
-function startSpan<AppModelType, DbModelType extends DocumentData>(
+function startDBSpan<AppModelType, DbModelType extends DocumentData>(
   tracer: Tracer,
   spanName: string,
   reference: CollectionReference<AppModelType, DbModelType> | DocumentReference<AppModelType, DbModelType>,
