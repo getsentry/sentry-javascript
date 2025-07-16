@@ -85,7 +85,7 @@ function wrapTestInZone(testBody: string | any[] | undefined) {
       enumerable: false,
     });
     wrappedFunc.length = testBody.length;
-  } catch (e) {
+  } catch {
     return testBody.length === 0
       ? () => testProxyZone.run(testBody, null)
       : (done: any) => testProxyZone.run(testBody, null, [done]);

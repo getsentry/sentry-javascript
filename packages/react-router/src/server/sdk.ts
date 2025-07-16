@@ -1,5 +1,5 @@
 import type { Integration } from '@sentry/core';
-import { applySdkMetadata, logger, setTag } from '@sentry/core';
+import { applySdkMetadata, debug, setTag } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrations as getNodeDefaultIntegrations, init as initNodeSdk } from '@sentry/node';
 import { DEBUG_BUILD } from '../common/debug-build';
@@ -27,7 +27,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
     defaultIntegrations: getDefaultReactRouterServerIntegrations(options),
   };
 
-  DEBUG_BUILD && logger.log('Initializing SDK...');
+  DEBUG_BUILD && debug.log('Initializing SDK...');
 
   applySdkMetadata(opts, 'react-router', ['react-router', 'node']);
 
@@ -35,7 +35,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
   setTag('runtime', 'node');
 
-  DEBUG_BUILD && logger.log('SDK successfully initialized');
+  DEBUG_BUILD && debug.log('SDK successfully initialized');
 
   return client;
 }

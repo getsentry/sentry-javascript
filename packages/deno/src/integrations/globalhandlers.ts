@@ -96,7 +96,7 @@ function installGlobalUnhandledRejectionHandler(client: Client): void {
       if ('reason' in e) {
         error = e.reason;
       }
-    } catch (_oO) {
+    } catch {
       // no-empty
     }
 

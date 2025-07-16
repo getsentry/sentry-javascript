@@ -94,7 +94,7 @@ describe('startSpan', () => {
         await startSpan({ name: 'GET users/[id]' }, () => {
           return callback();
         });
-      } catch (e) {
+      } catch {
         //
       }
       expect(_span).toBeDefined();
@@ -113,7 +113,7 @@ describe('startSpan', () => {
           span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'http.server');
           return callback();
         });
-      } catch (e) {
+      } catch {
         //
       }
 
@@ -133,7 +133,7 @@ describe('startSpan', () => {
             return callback();
           });
         });
-      } catch (e) {
+      } catch {
         //
       }
 
@@ -160,7 +160,7 @@ describe('startSpan', () => {
             return callback();
           });
         });
-      } catch (e) {
+      } catch {
         //
       }
 
@@ -186,7 +186,7 @@ describe('startSpan', () => {
             return callback();
           },
         );
-      } catch (e) {
+      } catch {
         //
       }
 

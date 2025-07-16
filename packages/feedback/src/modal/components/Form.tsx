@@ -4,7 +4,7 @@ import type {
   FeedbackScreenshotIntegration,
   SendFeedback,
 } from '@sentry/core';
-import { logger } from '@sentry/core';
+import { debug } from '@sentry/core';
 import type { JSX, VNode } from 'preact';
 import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
 import { useCallback, useState } from 'preact/hooks';
@@ -130,7 +130,7 @@ export function Form({
           );
           onSubmitSuccess(data, eventId);
         } catch (error) {
-          DEBUG_BUILD && logger.error(error);
+          DEBUG_BUILD && debug.error(error);
           setError(error as string);
           onSubmitError(error as Error);
         }

@@ -82,7 +82,7 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
       awaitedHeaders?.forEach((value, key) => {
         fullHeadersObject[key] = value;
       });
-    } catch (e) {
+    } catch {
       DEBUG_BUILD &&
         logger.warn(
           "Sentry wasn't able to extract the tracing headers for a server action. Will not trace this request.",

@@ -13,7 +13,7 @@ for (const path of paths) {
     // eslint-disable-next-line no-console
     console.log(`docker compose down @ ${path}`);
     execSync('docker compose down --volumes', { stdio: 'inherit', cwd: path });
-  } catch (_) {
+  } catch {
     //
   }
 }

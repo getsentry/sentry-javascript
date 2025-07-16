@@ -1,6 +1,6 @@
 import {
+  debug,
   handleCallbackErrors,
-  logger,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
@@ -59,7 +59,7 @@ function _wrapEventFunction<F extends EventFunction | EventFunctionWithCallback>
           // eslint-disable-next-line @typescript-eslint/no-floating-promises
           flush(options.flushTimeout)
             .then(null, e => {
-              DEBUG_BUILD && logger.error(e);
+              DEBUG_BUILD && debug.error(e);
             })
             .then(() => {
               if (typeof callback === 'function') {

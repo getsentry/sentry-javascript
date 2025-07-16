@@ -487,7 +487,7 @@ function getInstrumentationFile(projectDir: string, dotPrefixedExtensions: strin
   for (const pathSegments of paths) {
     try {
       return fs.readFileSync(path.resolve(projectDir, ...pathSegments), { encoding: 'utf-8' });
-    } catch (e) {
+    } catch {
       // no-op
     }
   }

@@ -497,7 +497,7 @@ export function createRunner(...paths: string[]) {
             try {
               const envelope = JSON.parse(cleanedLine) as Envelope;
               newEnvelope(envelope);
-            } catch (_) {
+            } catch {
               //
             }
           }

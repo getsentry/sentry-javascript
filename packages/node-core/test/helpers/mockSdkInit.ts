@@ -8,11 +8,11 @@ import {
 } from '@opentelemetry/semantic-conventions';
 import {
   createTransport,
+  debug,
   getClient,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
-  logger,
   resolvedSyncPromise,
   SDK_VERSION,
 } from '@sentry/core';
@@ -36,10 +36,10 @@ function clampSpanProcessorTimeout(maxSpanWaitDuration: number | undefined): num
   // We guard for a max. value here, because we create an array with this length
   // So if this value is too large, this would fail
   if (maxSpanWaitDuration > MAX_MAX_SPAN_WAIT_DURATION) {
-    logger.warn(`\`maxSpanWaitDuration\` is too high, using the maximum value of ${MAX_MAX_SPAN_WAIT_DURATION}`);
+    debug.warn(`\`maxSpanWaitDuration\` is too high, using the maximum value of ${MAX_MAX_SPAN_WAIT_DURATION}`);
     return MAX_MAX_SPAN_WAIT_DURATION;
   } else if (maxSpanWaitDuration <= 0 || Number.isNaN(maxSpanWaitDuration)) {
-    logger.warn('`maxSpanWaitDuration` must be a positive number, using default value instead.');
+    debug.warn('`maxSpanWaitDuration` must be a positive number, using default value instead.');
     return undefined;
   }
 
