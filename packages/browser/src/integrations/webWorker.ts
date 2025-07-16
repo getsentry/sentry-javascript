@@ -70,7 +70,7 @@ export const webWorkerIntegration = defineIntegration(({ worker }: WebWorkerInte
   name: INTEGRATION_NAME,
   setupOnce: () => {
     worker.addEventListener('message', event => {
-      if (isWebWorkerMessage(event.data)) {
+      if (isSentryDebugIdMessage(event.data)) {
         event.stopImmediatePropagation(); // other listeners should not receive this message
         DEBUG_BUILD && debug.log('Sentry debugId web worker message received', event.data);
         WINDOW._sentryDebugIds = {
@@ -110,7 +110,7 @@ export function registerWebWorker({ self }: RegisterWebWorkerOptions): void {
   });
 }
 
-function isWebWorkerMessage(eventData: unknown): eventData is WebWorkerMessage {
+function isSentryDebugIdMessage(eventData: unknown): eventData is WebWorkerMessage {
   return (
     isPlainObject(eventData) &&
     eventData._sentryMessage === true &&
