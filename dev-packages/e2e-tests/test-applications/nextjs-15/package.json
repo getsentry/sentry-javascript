@@ -12,7 +12,8 @@
     "test:build-canary": "pnpm install && pnpm add next@canary && pnpm add react@beta && pnpm add react-dom@beta && pnpm build",
     "//": "15.0.0-canary.194 is the canary release attached to Next.js RC 1. We need to use the canary version instead of the RC because PPR will not work without. The specific react version is also attached to RC 1.",
     "test:build-latest": "pnpm install && pnpm add next@15.0.0-canary.194 && pnpm add react@19.0.0-rc-cd22717c-20241013 && pnpm add react-dom@19.0.0-rc-cd22717c-20241013 && pnpm build",
-    "test:assert": "pnpm test:dev-turbopack"
+    "test:build-turbo": "pnpm install && next build --turbopack",
+    "test:assert": "pnpm test:prod && pnpm test:dev && pnpm test:dev-turbopack"
   },
   "dependencies": {
     "@sentry/nextjs": "latest || *",
@@ -42,6 +43,11 @@
       {
         "build-command": "test:build-latest",
         "label": "nextjs-15 (latest)"
+      },
+      {
+        "build-command": "test:build-turbo",
+        "assert-command": "pnpm test:prod",
+        "label": "nextjs-15 (turbo-prod)"
       }
     ]
   }
