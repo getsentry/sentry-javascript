@@ -36,7 +36,7 @@ Updates and fixes for version 9 will be published as `SentryNodeServerlessSDKv9`
 
 ### `@sentry/core` / All SDKs
 
-- TODO: fill in removed APIs
+- `BaseClient` was removed, use `Client` as a direct replacement.
 
 ## No Version Support Timeline
 
