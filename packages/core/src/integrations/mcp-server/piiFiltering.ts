@@ -2,7 +2,7 @@
  * PII filtering for MCP server spans
  * Removes sensitive data when sendDefaultPii is false
  */
-
+import type { SpanAttributeValue } from '../../types-hoist/span';
 import { MCP_TOOL_RESULT_CONTENT_ATTRIBUTE } from './attributes';
 
 /** PII attributes that should be removed when sendDefaultPii is false */
@@ -20,9 +20,9 @@ const PII_ATTRIBUTES = new Set([
 export function filterMcpPiiFromSpanData(
   spanData: Record<string, unknown>,
   sendDefaultPii: boolean,
-): Record<string, unknown> {
+): Record<string, SpanAttributeValue | undefined> {
   if (sendDefaultPii) {
-    return spanData; // Send everything when PII is allowed
+    return spanData as Record<string, SpanAttributeValue | undefined>; // Cast for type safety
   }
 
   // Use Object.fromEntries with filter for a more functional approach
@@ -31,5 +31,5 @@ export function filterMcpPiiFromSpanData(
       const isPiiAttribute = PII_ATTRIBUTES.has(key) || key.startsWith('mcp.request.argument.');
       return !isPiiAttribute;
     }),
-  );
+  ) as Record<string, SpanAttributeValue | undefined>;
 }

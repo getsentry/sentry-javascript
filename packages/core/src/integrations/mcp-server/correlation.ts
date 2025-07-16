@@ -4,8 +4,8 @@
  */
 
 import { getClient } from '../../currentScopes';
-import { withActiveSpan } from '../../tracing';
-import type { Span } from '../../types-hoist/span';
+import { SPAN_STATUS_ERROR, withActiveSpan } from '../../tracing';
+import type { Span, SpanAttributeValue } from '../../types-hoist/span';
 import {
   MCP_TOOL_RESULT_CONTENT_ATTRIBUTE,
   MCP_TOOL_RESULT_CONTENT_COUNT_ATTRIBUTE,
@@ -13,18 +13,11 @@ import {
 } from './attributes';
 import { captureError } from './errorCapture';
 import { filterMcpPiiFromSpanData } from './piiFiltering';
-import type { RequestId, SessionId } from './types';
+import type { RequestId, RequestSpanMapValue, SessionId } from './types';
 
 // Simplified correlation system that works with or without sessionId
 // Maps requestId directly to span data for stateless operation
-const requestIdToSpanMap = new Map<
-  RequestId,
-  {
-    span: Span;
-    method: string;
-    startTime: number;
-  }
->();
+const requestIdToSpanMap = new Map<RequestId, RequestSpanMapValue>();
 
 /**
  * Stores span context for later correlation with handler execution
@@ -69,37 +62,28 @@ export function completeSpanWithResults(requestId: RequestId, result: unknown): 
   if (spanData) {
     const { span, method } = spanData;
 
-    const spanWithMethods = span as Span & {
-      setAttributes: (attrs: Record<string, unknown>) => void;
-      setStatus: (status: { code: number; message: string }) => void;
-      end: () => void;
-    };
-
-    if (spanWithMethods.setAttributes && method === 'tools/call') {
+    if (method === 'tools/call') {
       // Add tool-specific attributes with PII filtering
       const rawToolAttributes = extractToolResultAttributes(result);
       const client = getClient();
       const sendDefaultPii = Boolean(client?.getOptions().sendDefaultPii);
       const toolAttributes = filterMcpPiiFromSpanData(rawToolAttributes, sendDefaultPii);
 
-      spanWithMethods.setAttributes(toolAttributes);
+      span.setAttributes(toolAttributes);
 
       const isToolError = rawToolAttributes[MCP_TOOL_RESULT_IS_ERROR_ATTRIBUTE] === true;
 
       if (isToolError) {
-        spanWithMethods.setStatus({
-          code: 2, // ERROR
-          message: 'Tool execution failed',
+        span.setStatus({
+          code: SPAN_STATUS_ERROR,
+          message: 'Tool returned error result',
         });
 
         captureError(new Error('Tool returned error result'), 'tool_execution');
       }
     }
 
-    if (spanWithMethods.end) {
-      spanWithMethods.end();
-    }
-
+    span.end();
     requestIdToSpanMap.delete(requestId);
   }
 }
@@ -111,17 +95,11 @@ export function cleanupAllPendingSpans(): number {
   const pendingCount = requestIdToSpanMap.size;
 
   for (const [, spanData] of requestIdToSpanMap) {
-    const spanWithEnd = spanData.span as Span & {
-      end: () => void;
-      setStatus: (status: { code: number; message: string }) => void;
-    };
-    if (spanWithEnd.setStatus && spanWithEnd.end) {
-      spanWithEnd.setStatus({
-        code: 2, // ERROR
-        message: 'Transport closed before request completion',
-      });
-      spanWithEnd.end();
-    }
+    spanData.span.setStatus({
+      code: SPAN_STATUS_ERROR,
+      message: 'Transport closed before request completion',
+    });
+    spanData.span.end();
   }
 
   requestIdToSpanMap.clear();
@@ -131,8 +109,8 @@ export function cleanupAllPendingSpans(): number {
 /**
  * Simplified tool result attribute extraction
  */
-function extractToolResultAttributes(result: unknown): Record<string, string | number | boolean> {
-  const attributes: Record<string, string | number | boolean> = {};
+function extractToolResultAttributes(result: unknown): Record<string, SpanAttributeValue | undefined> {
+  const attributes: Record<string, SpanAttributeValue | undefined> = {};
 
   if (typeof result === 'object' && result !== null) {
     const resultObj = result as Record<string, unknown>;

@@ -1,3 +1,5 @@
+import type { Span } from '../../types-hoist/span';
+
 /**
  * types for MCP server instrumentation
  */
@@ -143,6 +145,14 @@ export interface McpSpanConfig {
 
 export type SessionId = string;
 export type RequestId = string | number;
+
+// Type for the value stored in requestIdToSpanMap
+export type RequestSpanMapValue = {
+  span: Span;
+  method: string;
+  startTime: number;
+};
+
 export type MCPHandler = (...args: unknown[]) => unknown;
 export interface HandlerExtraData {
   sessionId?: SessionId;
