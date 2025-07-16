@@ -1,20 +1,20 @@
 import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
-const E2E_TEST_APP_NAME = 'browser-webworker-vite';
-
 test('captures an error with debug ids and pageload trace context', async ({ page }) => {
-  const errorEventPromise = waitForError(E2E_TEST_APP_NAME, event => {
-    return !event.type && event.exception?.values?.[0]?.value === 'Uncaught error in worker';
+  const errorEventPromise = waitForError('browser-webworker-vite', async event => {
+    return !event.type && !!event.exception?.values?.[0];
   });
 
-  const transactionPromise = waitForTransaction(E2E_TEST_APP_NAME, transactionEvent => {
+  const transactionPromise = waitForTransaction('browser-webworker-vite', transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
   await page.goto('/');
 
-  await page.locator('id=trigger-error').click();
+  await page.locator('#trigger-error').click();
+
+  await page.waitForTimeout(1000);
 
   const errorEvent = await errorEventPromise;
   const transactionEvent = await transactionPromise;
@@ -23,15 +23,15 @@ test('captures an error with debug ids and pageload trace context', async ({ pag
   const pageloadSpanId = transactionEvent.contexts?.trace?.span_id;
 
   expect(errorEvent.exception?.values).toHaveLength(1);
-  expect(errorEvent.exception?.values?.[0]?.value).toBe('Uncaught error in worker');
+  expect(errorEvent.exception?.values?.[0]?.value).toBe('Uncaught Error: Uncaught error in worker');
   expect(errorEvent.exception?.values?.[0]?.stacktrace?.frames).toHaveLength(1);
-  expect(errorEvent.exception?.values?.[0]?.stacktrace?.frames?.[0]?.filename).toContain('worker.js');
+  expect(errorEvent.exception?.values?.[0]?.stacktrace?.frames?.[0]?.filename).toMatch(/worker-.+\.js$/);
 
   expect(errorEvent.transaction).toBe('/');
   expect(transactionEvent.transaction).toBe('/');
 
   expect(errorEvent.request).toEqual({
-    url: 'http://localhost:4173/',
+    url: 'http://localhost:3030/',
     headers: expect.any(Object),
   });
 
@@ -41,11 +41,33 @@ test('captures an error with debug ids and pageload trace context', async ({ pag
   });
 
   expect(errorEvent.debug_meta).toEqual({
-    sourcemaps: {
-      'worker.js': {
-        version: expect.any(String),
-        url: expect.any(String),
+    images: [
+      {
+        code_file: expect.stringMatching(/http:\/\/localhost:3030\/assets\/worker-.+\.js/),
+        debug_id: expect.stringMatching(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/),
+        type: 'sourcemap',
       },
-    },
+    ],
   });
+});
+
+test("user worker message handlers don't trigger for sentry messages", async ({ page }) => {
+  const workerReadyPromise = new Promise<number>(resolve => {
+    let workerMessageCount = 0;
+    page.on('console', msg => {
+      if (msg.text().startsWith('received message from worker:')) {
+        workerMessageCount++;
+      }
+
+      if (msg.text() === 'received message from worker: WORKER_READY') {
+        resolve(workerMessageCount);
+      }
+    });
+  });
+
+  await page.goto('/');
+
+  const workerMessageCount = await workerReadyPromise;
+
+  expect(workerMessageCount).toBe(1);
 });
