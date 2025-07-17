@@ -124,8 +124,7 @@ export function _INTERNAL_captureLog(
     return;
   }
 
-  const { _experiments, release, environment, enableLogs = false } = client.getOptions();
-  const { beforeSendLog } = _experiments ?? {};
+  const { release, environment, enableLogs = false, beforeSendLog } = client.getOptions();
   if (!enableLogs) {
     DEBUG_BUILD && debug.warn('logging option not enabled, log will not be captured.');
     return;
