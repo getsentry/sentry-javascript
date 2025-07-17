@@ -74,6 +74,17 @@ interface IdleSpanOptions {
    * Defaults to `false`.
    */
   disableAutoFinish?: boolean;
+  /**
+   * When set to `true`, will completely disable all idle span timeouts
+   * (idleTimeout, finalTimeout, childSpanTimeout). The span will only be finished
+   * when manually ended.
+   *
+   * This is useful when you want to manually control when the span finishes
+   * instead of relying on automatic timeout mechanisms.
+   *
+   * Defaults to `false`.
+   */
+  disableIdleTimeouts?: boolean;
   /** Allows to configure a hook that is called when the idle span is ended, before it is processed. */
   beforeSpanEnd?: (span: Span) => void;
 }
@@ -107,6 +118,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
     finalTimeout = TRACING_DEFAULTS.finalTimeout,
     childSpanTimeout = TRACING_DEFAULTS.childSpanTimeout,
     beforeSpanEnd,
+    disableIdleTimeouts = false,
   } = options;
 
   const client = getClient();
@@ -203,6 +215,9 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
    * Restarts idle timeout, if there is no running idle timeout it will start one.
    */
   function _restartIdleTimeout(endTimestamp?: number): void {
+    if (disableIdleTimeouts) {
+      return;
+    }
     _cancelIdleTimeout();
     _idleTimeoutID = setTimeout(() => {
       if (!_finished && activities.size === 0 && _autoFinishAllowed) {
@@ -216,6 +231,9 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
    * Restarts child span timeout, if there is none running it will start one.
    */
   function _restartChildSpanTimeout(endTimestamp?: number): void {
+    if (disableIdleTimeouts) {
+      return;
+    }
     _cancelChildSpanTimeout();
     _idleTimeoutID = setTimeout(() => {
       if (!_finished && _autoFinishAllowed) {
@@ -373,13 +391,16 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
     _restartIdleTimeout();
   }
 
-  setTimeout(() => {
-    if (!_finished) {
-      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'deadline_exceeded' });
-      _finishReason = FINISH_REASON_FINAL_TIMEOUT;
-      span.end();
-    }
-  }, finalTimeout);
+  // Set up final timeout only if idle timeouts are not disabled
+  if (!disableIdleTimeouts) {
+    setTimeout(() => {
+      if (!_finished) {
+        span.setStatus({ code: SPAN_STATUS_ERROR, message: 'deadline_exceeded' });
+        _finishReason = FINISH_REASON_FINAL_TIMEOUT;
+        span.end();
+      }
+    }, finalTimeout);
+  }
 
   return span;
 }

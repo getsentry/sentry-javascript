@@ -249,6 +249,18 @@ export interface BrowserTracingOptions {
   consistentTraceSampling: boolean;
 
   /**
+   * If true, the idle span timeouts (idleTimeout, finalTimeout, childSpanTimeout) will be
+   * completely disabled for pageload spans. This is useful when you want to manually
+   * control when the pageload span finishes using `Sentry.reportPageLoaded()`.
+   *
+   * When this option is enabled, pageload spans will not finish automatically and must
+   * be finished manually by calling `Sentry.reportPageLoaded()`.
+   *
+   * @default false
+   */
+  disableIdleTimeouts: boolean;
+
+  /**
    * _experiments allows the user to send options to define how this integration works.
    *
    * Default: undefined
@@ -295,6 +307,7 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   detectRedirects: true,
   linkPreviousTrace: 'in-memory',
   consistentTraceSampling: false,
+  disableIdleTimeouts: false,
   _experiments: {},
   ...defaultRequestInstrumentationOptions,
 };
@@ -344,6 +357,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     linkPreviousTrace,
     consistentTraceSampling,
     onRequestSpanStart,
+    disableIdleTimeouts,
   } = {
     ...DEFAULT_BROWSER_TRACING_OPTIONS,
     ..._options,
@@ -388,6 +402,8 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       childSpanTimeout,
       // should wait for finish signal if it's a pageload transaction
       disableAutoFinish: isPageloadTransaction,
+      // completely disable timeouts for pageload transactions if configured
+      disableIdleTimeouts: isPageloadTransaction && disableIdleTimeouts,
       beforeSpanEnd: span => {
         // This will generally always be defined here, because it is set in `setup()` of the integration
         // but technically, it is optional, so we guard here to be extra safe
@@ -682,6 +698,40 @@ export function startBrowserTracingNavigationSpan(
   }
 
   return getActiveIdleSpan(client);
+}
+
+/**
+ * Report that the page has loaded and manually finish the current pageload span.
+ * This is useful when you want to manually control when the pageload span finishes
+ * instead of relying on automatic idle span timeouts.
+ *
+ * This function should be used with the `disableIdleTimeouts` option set to `true`
+ * in the browserTracingIntegration configuration.
+ *
+ * @param client - The Sentry client instance
+ * @param endTimestamp - Optional timestamp for when the pageload finished
+ */
+export function reportPageLoaded(client?: Client, endTimestamp?: number): void {
+  const actualClient = client || getClient();
+  if (!actualClient) {
+    DEBUG_BUILD && debug.warn('[Tracing] Cannot report pageload - no client found');
+    return;
+  }
+
+  const activeSpan = getActiveIdleSpan(actualClient);
+  if (!activeSpan) {
+    DEBUG_BUILD && debug.warn('[Tracing] Cannot report pageload - no active pageload span found');
+    return;
+  }
+
+  const spanJSON = spanToJSON(activeSpan);
+  if (spanJSON.op !== 'pageload') {
+    DEBUG_BUILD && debug.warn('[Tracing] Cannot report pageload - active span is not a pageload span');
+    return;
+  }
+
+  DEBUG_BUILD && debug.log('[Tracing] Manually finishing pageload span');
+  activeSpan.end(endTimestamp);
 }
 
 /** Returns the value of a meta tag */

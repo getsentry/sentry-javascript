@@ -27,6 +27,7 @@ import {
   browserTracingIntegration,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
+  reportPageLoaded,
 } from '../../src/tracing/browserTracingIntegration';
 import { PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE } from '../../src/tracing/linkedTraces';
 import { getDefaultBrowserClientOptions } from '../helper/browser-client-options';
@@ -1161,4 +1162,168 @@ describe('browserTracingIntegration', () => {
     expect(mockFinish).toHaveBeenCalledTimes(1);
   });
   */
+});
+
+describe('reportPageLoaded', () => {
+  it('should manually finish a pageload span', () => {
+    const options = getDefaultBrowserClientOptions({
+      integrations: [browserTracingIntegration({ disableIdleTimeouts: true })],
+    });
+    const client = new BrowserClient(options);
+    setCurrentClient(client);
+
+    const span = startBrowserTracingPageLoadSpan(client, {
+      name: 'test-pageload',
+      attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser' },
+    });
+
+    expect(span).toBeDefined();
+    expect(spanToJSON(span!).op).toBe('pageload');
+    expect(spanToJSON(span!).timestamp).toBeUndefined();
+
+    reportPageLoaded(client);
+
+    expect(spanToJSON(span!).timestamp).toBeDefined();
+  });
+
+  it('should use the current client if no client is provided', () => {
+    const options = getDefaultBrowserClientOptions({
+      integrations: [browserTracingIntegration({ disableIdleTimeouts: true })],
+    });
+    const client = new BrowserClient(options);
+    setCurrentClient(client);
+
+    const span = startBrowserTracingPageLoadSpan(client, {
+      name: 'test-pageload',
+      attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser' },
+    });
+
+    expect(span).toBeDefined();
+    expect(spanToJSON(span!).timestamp).toBeUndefined();
+
+    reportPageLoaded(); // No client provided, should use current client
+
+    expect(spanToJSON(span!).timestamp).toBeDefined();
+  });
+
+  it('should do nothing if no client is found', () => {
+    setCurrentClient(undefined);
+
+    const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    reportPageLoaded();
+
+    expect(consoleSpy).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
+
+  it('should do nothing if no active span is found', () => {
+    const options = getDefaultBrowserClientOptions({
+      integrations: [browserTracingIntegration({ disableIdleTimeouts: true })],
+    });
+    const client = new BrowserClient(options);
+    setCurrentClient(client);
+
+    const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    reportPageLoaded(client);
+
+    expect(consoleSpy).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
+
+  it('should do nothing if active span is not a pageload span', () => {
+    const options = getDefaultBrowserClientOptions({
+      integrations: [browserTracingIntegration({ disableIdleTimeouts: true })],
+    });
+    const client = new BrowserClient(options);
+    setCurrentClient(client);
+
+    const span = startBrowserTracingNavigationSpan(client, {
+      name: 'test-navigation',
+      attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser' },
+    });
+
+    expect(span).toBeDefined();
+    expect(spanToJSON(span!).op).toBe('navigation');
+
+    const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    reportPageLoaded(client);
+
+    expect(consoleSpy).not.toHaveBeenCalled();
+    expect(spanToJSON(span!).timestamp).toBeUndefined();
+    consoleSpy.mockRestore();
+  });
+
+  it('should accept a custom end timestamp', () => {
+    const options = getDefaultBrowserClientOptions({
+      integrations: [browserTracingIntegration({ disableIdleTimeouts: true })],
+    });
+    const client = new BrowserClient(options);
+    setCurrentClient(client);
+
+    const span = startBrowserTracingPageLoadSpan(client, {
+      name: 'test-pageload',
+      attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser' },
+    });
+
+    expect(span).toBeDefined();
+    expect(spanToJSON(span!).timestamp).toBeUndefined();
+
+    const customTimestamp = Date.now() / 1000;
+    reportPageLoaded(client, customTimestamp);
+
+    expect(spanToJSON(span!).timestamp).toBe(customTimestamp);
+  });
+});
+
+describe('disableIdleTimeouts option', () => {
+  it('should disable all timeouts when disableIdleTimeouts is true', () => {
+    const options = getDefaultBrowserClientOptions({
+      integrations: [browserTracingIntegration({ disableIdleTimeouts: true })],
+    });
+    const client = new BrowserClient(options);
+    setCurrentClient(client);
+
+    const span = startBrowserTracingPageLoadSpan(client, {
+      name: 'test-pageload',
+      attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser' },
+    });
+
+    expect(span).toBeDefined();
+    expect(spanToJSON(span!).op).toBe('pageload');
+
+    // Wait for any potential timeouts to fire
+    vi.advanceTimersByTime(100_000);
+
+    // Span should still be active since timeouts are disabled
+    expect(spanToJSON(span!).timestamp).toBeUndefined();
+
+    // Manually finish the span
+    reportPageLoaded(client);
+    expect(spanToJSON(span!).timestamp).toBeDefined();
+  });
+
+  it('should still allow automatic finishing when disableIdleTimeouts is false', () => {
+    const options = getDefaultBrowserClientOptions({
+      integrations: [browserTracingIntegration({ disableIdleTimeouts: false })],
+    });
+    const client = new BrowserClient(options);
+    setCurrentClient(client);
+
+    const span = startBrowserTracingPageLoadSpan(client, {
+      name: 'test-pageload',
+      attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser' },
+    });
+
+    expect(span).toBeDefined();
+    expect(spanToJSON(span!).op).toBe('pageload');
+
+    // Advance time to trigger the final timeout
+    vi.advanceTimersByTime(TRACING_DEFAULTS.finalTimeout + 1000);
+
+    // Span should be finished by the timeout
+    expect(spanToJSON(span!).timestamp).toBeDefined();
+  });
 });
