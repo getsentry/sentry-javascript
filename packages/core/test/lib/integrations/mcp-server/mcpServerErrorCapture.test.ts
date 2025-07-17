@@ -17,26 +17,18 @@ describe('MCP Server Error Capture', () => {
   });
 
   describe('captureError', () => {
-    it('should capture errors with default error type', () => {
-      const error = new Error('Test error');
-
-      captureError(error);
-
-      expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
-        tags: {
-          mcp_error_type: 'handler_execution',
-        },
-      });
-    });
-
-    it('should capture errors with custom error type', () => {
+    it('should capture errors with error type', () => {
       const error = new Error('Tool execution failed');
 
       captureError(error, 'tool_execution');
 
       expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
-        tags: {
-          mcp_error_type: 'tool_execution',
+        mechanism: {
+          type: 'mcp_server',
+          handled: false,
+          data: {
+            error_type: 'tool_execution',
+          },
         },
       });
     });
@@ -47,8 +39,12 @@ describe('MCP Server Error Capture', () => {
       captureError(error, 'transport');
 
       expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
-        tags: {
-          mcp_error_type: 'transport',
+        mechanism: {
+          type: 'mcp_server',
+          handled: false,
+          data: {
+            error_type: 'transport',
+          },
         },
       });
     });
@@ -59,8 +55,12 @@ describe('MCP Server Error Capture', () => {
       captureError(error, 'protocol');
 
       expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
-        tags: {
-          mcp_error_type: 'protocol',
+        mechanism: {
+          type: 'mcp_server',
+          handled: false,
+          data: {
+            error_type: 'protocol',
+          },
         },
       });
     });
@@ -71,8 +71,12 @@ describe('MCP Server Error Capture', () => {
       captureError(error, 'validation');
 
       expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
-        tags: {
-          mcp_error_type: 'validation',
+        mechanism: {
+          type: 'mcp_server',
+          handled: false,
+          data: {
+            error_type: 'validation',
+          },
         },
       });
     });
@@ -83,8 +87,29 @@ describe('MCP Server Error Capture', () => {
       captureError(error, 'timeout');
 
       expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
-        tags: {
-          mcp_error_type: 'timeout',
+        mechanism: {
+          type: 'mcp_server',
+          handled: false,
+          data: {
+            error_type: 'timeout',
+          },
+        },
+      });
+    });
+
+    it('should capture errors with MCP data for filtering', () => {
+      const error = new Error('Tool failed');
+
+      captureError(error, 'tool_execution', { tool_name: 'my-tool' });
+
+      expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
+        mechanism: {
+          type: 'mcp_server',
+          handled: false,
+          data: {
+            error_type: 'tool_execution',
+            tool_name: 'my-tool',
+          },
         },
       });
     });

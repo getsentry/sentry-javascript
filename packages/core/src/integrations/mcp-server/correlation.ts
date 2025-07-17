@@ -5,15 +5,10 @@
 
 import { getClient } from '../../currentScopes';
 import { SPAN_STATUS_ERROR, withActiveSpan } from '../../tracing';
-import type { Span, SpanAttributeValue } from '../../types-hoist/span';
-import {
-  MCP_TOOL_RESULT_CONTENT_ATTRIBUTE,
-  MCP_TOOL_RESULT_CONTENT_COUNT_ATTRIBUTE,
-  MCP_TOOL_RESULT_IS_ERROR_ATTRIBUTE,
-} from './attributes';
-import { captureError } from './errorCapture';
+import type { Span } from '../../types-hoist/span';
+import { extractToolResultAttributes } from './attributeExtraction';
 import { filterMcpPiiFromSpanData } from './piiFiltering';
-import type { RequestId, RequestSpanMapValue, SessionId } from './types';
+import type { RequestId, RequestSpanMapValue } from './types';
 
 // Simplified correlation system that works with or without sessionId
 // Maps requestId directly to span data for stateless operation
@@ -34,7 +29,7 @@ export function storeSpanForRequest(requestId: RequestId, span: Span, method: st
  * Associates handler execution with the corresponding request span
  */
 export function associateContextWithRequestSpan<T>(
-  extraHandlerData: { sessionId?: SessionId; requestId: RequestId } | undefined,
+  extraHandlerData: { requestId: RequestId } | undefined,
   cb: () => T,
 ): T {
   if (extraHandlerData) {
@@ -70,17 +65,6 @@ export function completeSpanWithResults(requestId: RequestId, result: unknown): 
       const toolAttributes = filterMcpPiiFromSpanData(rawToolAttributes, sendDefaultPii);
 
       span.setAttributes(toolAttributes);
-
-      const isToolError = rawToolAttributes[MCP_TOOL_RESULT_IS_ERROR_ATTRIBUTE] === true;
-
-      if (isToolError) {
-        span.setStatus({
-          code: SPAN_STATUS_ERROR,
-          message: 'Tool returned error result',
-        });
-
-        captureError(new Error('Tool returned error result'), 'tool_execution');
-      }
     }
 
     span.end();
@@ -97,36 +81,11 @@ export function cleanupAllPendingSpans(): number {
   for (const [, spanData] of requestIdToSpanMap) {
     spanData.span.setStatus({
       code: SPAN_STATUS_ERROR,
-      message: 'Transport closed before request completion',
+      message: 'cancelled',
     });
     spanData.span.end();
   }
 
   requestIdToSpanMap.clear();
   return pendingCount;
-}
-
-/**
- * Simplified tool result attribute extraction
- */
-function extractToolResultAttributes(result: unknown): Record<string, SpanAttributeValue | undefined> {
-  const attributes: Record<string, SpanAttributeValue | undefined> = {};
-
-  if (typeof result === 'object' && result !== null) {
-    const resultObj = result as Record<string, unknown>;
-
-    if (typeof resultObj.isError === 'boolean') {
-      attributes[MCP_TOOL_RESULT_IS_ERROR_ATTRIBUTE] = resultObj.isError;
-    }
-
-    if (Array.isArray(resultObj.content)) {
-      attributes[MCP_TOOL_RESULT_CONTENT_COUNT_ATTRIBUTE] = resultObj.content.length;
-
-      const serializedContent = JSON.stringify(resultObj.content);
-      attributes[MCP_TOOL_RESULT_CONTENT_ATTRIBUTE] =
-        serializedContent.length > 5000 ? `${serializedContent.substring(0, 4997)}...` : serializedContent;
-    }
-  }
-
-  return attributes;
 }

@@ -91,32 +91,37 @@ function createErrorCapturingHandler(
 function captureHandlerError(
   error: Error,
   methodName: keyof MCPServerInstance,
-  _handlerName: string,
+  handlerName: string,
   _handlerArgs: unknown[],
   _extraHandlerData?: HandlerExtraData,
 ): void {
   try {
+    const extraData: Record<string, unknown> = {};
+
     if (methodName === 'tool') {
-      // Check if this is a validation/protocol error
+      extraData.tool_name = handlerName;
+
       if (
         error.name === 'ProtocolValidationError' ||
         error.message.includes('validation') ||
         error.message.includes('protocol')
       ) {
-        captureError(error, 'validation');
+        captureError(error, 'validation', extraData);
       } else if (
         error.name === 'ServerTimeoutError' ||
         error.message.includes('timed out') ||
         error.message.includes('timeout')
       ) {
-        captureError(error, 'timeout');
+        captureError(error, 'timeout', extraData);
       } else {
-        captureError(error, 'tool_execution');
+        captureError(error, 'tool_execution', extraData);
       }
     } else if (methodName === 'resource') {
-      captureError(error, 'resource_operation');
+      extraData.resource_uri = handlerName;
+      captureError(error, 'resource_operation', extraData);
     } else if (methodName === 'prompt') {
-      captureError(error, 'prompt_execution');
+      extraData.prompt_name = handlerName;
+      captureError(error, 'prompt_execution', extraData);
     }
   } catch (captureErr) {
     // silently ignore capture errors to not affect MCP operation
