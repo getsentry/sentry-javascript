@@ -5,7 +5,7 @@ import {
   InstrumentationNodeModuleDefinition,
 } from '@opentelemetry/instrumentation';
 import type { Integration, OpenAiClient, OpenAiOptions } from '@sentry/core';
-import { getCurrentScope, instrumentOpenAiClient, INTEGRATION_NAME, SDK_VERSION } from '@sentry/core';
+import { getCurrentScope, instrumentOpenAiClient, OPENAI_INTEGRATION_NAME, SDK_VERSION } from '@sentry/core';
 
 const supportedVersions = ['>=4.0.0 <6'];
 
@@ -37,9 +37,6 @@ function determineRecordingSettings(
  * Sentry OpenAI instrumentation using OpenTelemetry.
  */
 export class SentryOpenAiInstrumentation extends InstrumentationBase<InstrumentationConfig> {
-  private _isPatched = false;
-  private _callbacks: Array<() => void> = [];
-
   public constructor(config: InstrumentationConfig = {}) {
     super('@sentry/instrumentation-openai', SDK_VERSION, config);
   }
@@ -53,30 +50,15 @@ export class SentryOpenAiInstrumentation extends InstrumentationBase<Instrumenta
   }
 
   /**
-   * Schedules a callback once patching is complete.
-   */
-  public callWhenPatched(callback: () => void): void {
-    if (this._isPatched) {
-      callback();
-    } else {
-      this._callbacks.push(callback);
-    }
-  }
-
-  /**
    * Core patch logic applying instrumentation to the OpenAI client constructor.
    */
   private _patch(exports: PatchedModuleExports): PatchedModuleExports | void {
-    this._isPatched = true;
-    this._callbacks.forEach(cb => cb());
-    this._callbacks = [];
-
     const Original = exports.OpenAI;
 
     const WrappedOpenAI = function (this: unknown, ...args: unknown[]) {
       const instance = Reflect.construct(Original, args);
       const scopeClient = getCurrentScope().getClient();
-      const integration = scopeClient?.getIntegrationByName<OpenAiIntegration>(INTEGRATION_NAME);
+      const integration = scopeClient?.getIntegrationByName<OpenAiIntegration>(OPENAI_INTEGRATION_NAME);
       const integrationOpts = integration?.options;
       const defaultPii = Boolean(scopeClient?.getOptions().sendDefaultPii);
 

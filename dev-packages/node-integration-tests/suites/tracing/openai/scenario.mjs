@@ -99,7 +99,7 @@ async function run() {
         model: 'error-model',
         messages: [{ role: 'user', content: 'This will fail' }],
       });
-    } catch (error) {
+    } catch {
       // Error is expected and handled
     }
   });

@@ -13,10 +13,6 @@ export function getOperationName(methodPath: string): string {
     // The responses API is also a chat operation
     return OPENAI_OPERATIONS.CHAT;
   }
-  if (methodPath.includes('embeddings')) {
-    return 'embeddings';
-  }
-  // Default to the last part of the method path
   return methodPath.split('.').pop() || 'unknown';
 }
 
