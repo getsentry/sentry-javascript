@@ -2,6 +2,7 @@ import type {
   Client,
   Event,
   EventHint,
+  EventProcessor,
   Integration,
   IntegrationClass,
   IntegrationFn,
@@ -148,9 +149,9 @@ export function setupIntegration(client: Client, integration: Integration, integ
   if (client.addEventProcessor && typeof integration.processEvent === 'function') {
     const callback = integration.processEvent.bind(integration) as typeof integration.processEvent;
 
-    const processor = Object.assign((event: Event, hint: EventHint) => callback(event, hint, client), {
-      id: integration.name,
-    });
+    const processor: EventProcessor = (event: Event, hint: EventHint): ReturnType<typeof callback> =>
+      callback(event, hint, client);
+    processor.id = integration.name;
 
     client.addEventProcessor(processor);
   }
@@ -191,12 +192,11 @@ export function convertIntegrationFnToClass<Fn extends IntegrationFn>(
   name: string,
   fn: Fn,
 ): IntegrationClass<Integration> {
-  return Object.assign(
-    function ConvertedIntegration(...args: Parameters<Fn>): Integration {
-      return fn(...args);
-    },
-    { id: name },
-  ) as unknown as IntegrationClass<Integration>;
+  const ConvertedIntegration = function ConvertedIntegration(...args: Parameters<Fn>): Integration {
+    return fn(...args);
+  };
+  ConvertedIntegration.id = name;
+  return ConvertedIntegration as unknown as IntegrationClass<Integration>;
 }
 
 /**
