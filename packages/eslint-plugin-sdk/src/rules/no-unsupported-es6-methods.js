@@ -20,9 +20,10 @@ module.exports = {
         const functionName = node.callee.property.name;
 
         const es6ArrayFunctions = ['copyWithin', 'values', 'fill'];
+        const es6ObjectFunctions = ['assign'];
         const es6StringFunctions = ['repeat'];
 
-        const es6Functions = [].concat(es6ArrayFunctions, es6StringFunctions);
+        const es6Functions = [].concat(es6ArrayFunctions, es6StringFunctions, es6ObjectFunctions);
         if (es6Functions.indexOf(functionName) > -1) {
           context.report({
             node: node.callee.property,
