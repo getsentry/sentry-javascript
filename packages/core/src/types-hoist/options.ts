@@ -247,12 +247,6 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [key: string]: any;
     /**
-     * If logs support should be enabled.
-     *
-     * @default false
-     */
-    enableLogs?: boolean;
-    /**
      * An event-processing callback for logs, guaranteed to be invoked after all other log
      * processors. This allows a log to be modified or dropped before it's sent.
      *
@@ -327,6 +321,13 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * The SDK tries to automatically extract the organization ID from the DSN. With this option, you can override it.
    */
   orgId?: `${number}` | number;
+
+  /**
+   * If logs support should be enabled.
+   *
+   * @default false
+   */
+  enableLogs?: boolean;
 
   /**
    * Function to compute tracing sample rate dynamically and filter unwanted traces.
