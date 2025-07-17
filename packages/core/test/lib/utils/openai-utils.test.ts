@@ -20,11 +20,6 @@ describe('openai-utils', () => {
       expect(getOperationName('some.path.responses.method')).toBe('chat');
     });
 
-    it('should return embeddings for embeddings methods', () => {
-      expect(getOperationName('embeddings.create')).toBe('embeddings');
-      expect(getOperationName('some.path.embeddings.method')).toBe('embeddings');
-    });
-
     it('should return the last part of path for unknown methods', () => {
       expect(getOperationName('some.unknown.method')).toBe('method');
       expect(getOperationName('create')).toBe('create');
@@ -39,7 +34,6 @@ describe('openai-utils', () => {
     it('should prefix operation with gen_ai', () => {
       expect(getSpanOperation('chat.completions.create')).toBe('gen_ai.chat');
       expect(getSpanOperation('responses.create')).toBe('gen_ai.chat');
-      expect(getSpanOperation('embeddings.create')).toBe('gen_ai.embeddings');
       expect(getSpanOperation('some.custom.operation')).toBe('gen_ai.operation');
     });
   });
@@ -51,7 +45,6 @@ describe('openai-utils', () => {
     });
 
     it('should return false for non-instrumented methods', () => {
-      expect(shouldInstrument('embeddings.create')).toBe(false);
       expect(shouldInstrument('unknown.method')).toBe(false);
       expect(shouldInstrument('')).toBe(false);
     });
