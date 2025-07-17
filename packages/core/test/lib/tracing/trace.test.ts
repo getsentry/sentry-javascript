@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  ClientOptions,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
@@ -660,30 +661,60 @@ describe('startSpan', () => {
     });
   });
 
-  it('samples with a tracesSampler', () => {
-    const tracesSampler = vi.fn(() => {
+  describe('uses tracesSampler if defined', () => {
+    const tracesSampler = vi.fn<() => boolean | number>(() => {
       return true;
     });
 
-    const options = getDefaultTestClientOptions({ tracesSampler });
-    client = new TestClient(options);
-    setCurrentClient(client);
-    client.init();
+    it.each([true, 1])('returns a positive sampling decision if tracesSampler returns %s', tracesSamplerResult => {
+      tracesSampler.mockReturnValueOnce(tracesSamplerResult);
 
-    startSpan({ name: 'outer', attributes: { test1: 'aa', test2: 'aa', test3: 'bb' } }, outerSpan => {
-      expect(outerSpan).toBeDefined();
+      const options = getDefaultTestClientOptions({ tracesSampler });
+      client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
+
+      startSpan({ name: 'outer', attributes: { test1: 'aa', test2: 'aa', test3: 'bb' } }, outerSpan => {
+        expect(outerSpan).toBeDefined();
+        expect(spanIsSampled(outerSpan)).toBe(true);
+      });
+
+      expect(tracesSampler).toBeCalledTimes(1);
+      expect(tracesSampler).toHaveBeenLastCalledWith({
+        parentSampled: undefined,
+        name: 'outer',
+        attributes: {
+          test1: 'aa',
+          test2: 'aa',
+          test3: 'bb',
+        },
+        inheritOrSampleWith: expect.any(Function),
+      });
     });
 
-    expect(tracesSampler).toBeCalledTimes(1);
-    expect(tracesSampler).toHaveBeenLastCalledWith({
-      parentSampled: undefined,
-      name: 'outer',
-      attributes: {
-        test1: 'aa',
-        test2: 'aa',
-        test3: 'bb',
-      },
-      inheritOrSampleWith: expect.any(Function),
+    it.each([false, 0])('returns a negative sampling decision if tracesSampler returns %s', tracesSamplerResult => {
+      tracesSampler.mockReturnValueOnce(tracesSamplerResult);
+
+      const options = getDefaultTestClientOptions({ tracesSampler });
+      client = new TestClient(options);
+      setCurrentClient(client);
+
+      startSpan({ name: 'outer', attributes: { test1: 'aa', test2: 'aa', test3: 'bb' } }, outerSpan => {
+        expect(outerSpan).toBeDefined();
+        expect(spanIsSampled(outerSpan)).toBe(false);
+      });
+
+      expect(tracesSampler).toBeCalledTimes(1);
+      expect(tracesSampler).toHaveBeenLastCalledWith({
+        parentSampled: undefined,
+        name: 'outer',
+        attributes: {
+          test1: 'aa',
+          test2: 'aa',
+          test3: 'bb',
+        },
+        inheritOrSampleWith: expect.any(Function),
+      });
     });
   });
 
