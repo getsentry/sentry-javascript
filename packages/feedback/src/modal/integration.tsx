@@ -22,7 +22,6 @@ function getUser(): User | undefined {
 export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
   return {
     name: 'FeedbackModal',
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
     setupOnce() {},
     createDialog: ({ options, screenshotIntegration, sendFeedback, shadow }) => {
       const shadowRoot = shadow as unknown as ShadowRoot;
