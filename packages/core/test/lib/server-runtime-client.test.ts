@@ -265,7 +265,6 @@ describe('ServerRuntimeClient', () => {
     it('does not flush logs when logs are disabled', () => {
       const options = getDefaultClientOptions({
         dsn: PUBLIC_DSN,
-        enableLogs: true,
       });
       client = new ServerRuntimeClient(options);
 
