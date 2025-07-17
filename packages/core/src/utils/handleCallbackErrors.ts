@@ -17,7 +17,6 @@ export function handleCallbackErrors<
 >(
   fn: Fn,
   onError: (error: unknown) => void,
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
   onFinally: () => void = () => {},
 ): ReturnType<Fn> {
   let maybePromiseResult: ReturnType<Fn>;

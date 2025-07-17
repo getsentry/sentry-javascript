@@ -178,7 +178,6 @@ module.exports = {
         '@typescript-eslint/explicit-member-accessibility': 'off',
         '@typescript-eslint/no-explicit-any': 'off',
         '@typescript-eslint/no-non-null-assertion': 'off',
-        '@typescript-eslint/no-empty-function': 'off',
         '@typescript-eslint/no-floating-promises': 'off',
         '@sentry-internal/sdk/no-focused-tests': 'error',
         '@sentry-internal/sdk/no-skipped-tests': 'error',
