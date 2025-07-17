@@ -13,9 +13,7 @@ Sentry.init({
   debug: !!process.env.DEBUG,
   tunnel: `http://localhost:3031/`, // proxy server
   tracesSampleRate: 1,
-  _experiments: {
-    enableLogs: true,
-  },
+  enableLogs: true,
 });
 
 import { TRPCError, initTRPC } from '@trpc/server';
