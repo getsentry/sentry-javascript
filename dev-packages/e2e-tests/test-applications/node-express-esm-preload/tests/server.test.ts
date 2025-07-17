@@ -65,7 +65,6 @@ test('Should record a transaction for route with parameters', async ({ request }
     data: {
       'express.name': 'query',
       'express.type': 'middleware',
-      'http.route': '/',
       'sentry.origin': 'auto.http.otel.express',
       'sentry.op': 'middleware.express',
     },
@@ -84,7 +83,6 @@ test('Should record a transaction for route with parameters', async ({ request }
     data: {
       'express.name': 'expressInit',
       'express.type': 'middleware',
-      'http.route': '/',
       'sentry.origin': 'auto.http.otel.express',
       'sentry.op': 'middleware.express',
     },

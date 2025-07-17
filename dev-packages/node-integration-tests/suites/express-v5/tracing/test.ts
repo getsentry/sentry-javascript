@@ -82,6 +82,22 @@ describe('express v5 tracing', () => {
         .expect({
           transaction: {
             transaction: 'GET /',
+            contexts: {
+              trace: {
+                span_id: expect.stringMatching(/[a-f0-9]{16}/),
+                trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                data: {
+                  'http.response.status_code': 200,
+                  url: expect.stringMatching(/\/$/),
+                  'http.method': 'GET',
+                  'http.url': expect.stringMatching(/\/$/),
+                  'http.route': '/',
+                  'http.target': '/',
+                },
+                op: 'http.server',
+                status: 'ok',
+              },
+            },
           },
         })
         .start();

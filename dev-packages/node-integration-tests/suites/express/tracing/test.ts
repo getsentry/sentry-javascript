@@ -83,6 +83,22 @@ describe('express tracing', () => {
         .expect({
           transaction: {
             transaction: 'GET /',
+            contexts: {
+              trace: {
+                span_id: expect.stringMatching(/[a-f0-9]{16}/),
+                trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                data: {
+                  'http.response.status_code': 200,
+                  url: expect.stringMatching(/\/$/),
+                  'http.method': 'GET',
+                  'http.url': expect.stringMatching(/\/$/),
+                  'http.route': '/',
+                  'http.target': '/',
+                },
+                op: 'http.server',
+                status: 'ok',
+              },
+            },
           },
         })
         .start();
@@ -327,8 +343,7 @@ describe('express tracing', () => {
             const runner = createRunner()
               .expect({
                 transaction: {
-                  // TODO(v10): This is incorrect on OpenTelemetry v1 but can be fixed in v2
-                  transaction: `GET ${status_code === 404 ? '/' : url}`,
+                  transaction: `GET ${url}`,
                   contexts: {
                     trace: {
                       span_id: expect.stringMatching(/[a-f0-9]{16}/),
