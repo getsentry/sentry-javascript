@@ -50,7 +50,6 @@ test('Sends a sampled API route transaction', async ({ baseURL }) => {
     data: {
       'sentry.origin': 'auto.http.otel.express',
       'sentry.op': 'middleware.express',
-      'http.route': '/',
       'express.name': 'query',
       'express.type': 'middleware',
     },
@@ -69,7 +68,6 @@ test('Sends a sampled API route transaction', async ({ baseURL }) => {
     data: {
       'sentry.origin': 'auto.http.otel.express',
       'sentry.op': 'middleware.express',
-      'http.route': '/',
       'express.name': 'expressInit',
       'express.type': 'middleware',
     },

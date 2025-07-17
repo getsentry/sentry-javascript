@@ -9,8 +9,8 @@ import { defineIntegration } from '../integration';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import { setHttpStatus, SPAN_STATUS_ERROR, SPAN_STATUS_OK, startSpan } from '../tracing';
 import type { IntegrationFn } from '../types-hoist/integration';
+import { debug } from '../utils/debug-logger';
 import { isPlainObject } from '../utils/is';
-import { debug } from '../utils/logger';
 
 const AUTH_OPERATIONS_TO_INSTRUMENT = [
   'reauthenticate',

@@ -1,6 +1,6 @@
 import type { Debugger, InspectorNotification, Runtime, Session } from 'node:inspector';
 import type { Event, Exception, IntegrationFn, StackFrame, StackParser } from '@sentry/core';
-import { defineIntegration, getClient, logger, LRUMap } from '@sentry/core';
+import { debug, defineIntegration, getClient, LRUMap } from '@sentry/core';
 import { NODE_MAJOR } from '../../nodeVersion';
 import type { NodeClient } from '../../sdk/client';
 import { isDebuggerEnabled } from '../../utils/debug';
@@ -303,12 +303,12 @@ const _localVariablesSyncIntegration = ((
       const unsupportedNodeVersion = NODE_MAJOR < 18;
 
       if (unsupportedNodeVersion) {
-        logger.log('The `LocalVariables` integration is only supported on Node >= v18.');
+        debug.log('The `LocalVariables` integration is only supported on Node >= v18.');
         return;
       }
 
       if (await isDebuggerEnabled()) {
-        logger.warn('Local variables capture has been disabled because the debugger was already enabled');
+        debug.warn('Local variables capture has been disabled because the debugger was already enabled');
         return;
       }
 
@@ -384,11 +384,11 @@ const _localVariablesSyncIntegration = ((
             rateLimiter = createRateLimiter(
               max,
               () => {
-                logger.log('Local variables rate-limit lifted.');
+                debug.log('Local variables rate-limit lifted.');
                 session.setPauseOnExceptions(true);
               },
               seconds => {
-                logger.log(
+                debug.log(
                   `Local variables rate-limit exceeded. Disabling capturing of caught exceptions for ${seconds} seconds.`,
                 );
                 session.setPauseOnExceptions(false);
@@ -399,7 +399,7 @@ const _localVariablesSyncIntegration = ((
           shouldProcessEvent = true;
         },
         error => {
-          logger.log('The `LocalVariables` integration failed to start.', error);
+          debug.log('The `LocalVariables` integration failed to start.', error);
         },
       );
     },

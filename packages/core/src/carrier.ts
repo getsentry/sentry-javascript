@@ -3,7 +3,7 @@ import type { AsyncContextStrategy } from './asyncContext/types';
 import type { Client } from './client';
 import type { Scope } from './scope';
 import type { SerializedLog } from './types-hoist/log';
-import type { Logger } from './utils/logger';
+import type { Logger } from './utils/debug-logger';
 import { SDK_VERSION } from './utils/version';
 import { GLOBAL_OBJ } from './utils/worldwide';
 
@@ -27,6 +27,7 @@ export interface SentryCarrier {
   defaultIsolationScope?: Scope;
   defaultCurrentScope?: Scope;
   /** @deprecated Logger is no longer set. Instead, we keep enabled state in loggerSettings. */
+  // eslint-disable-next-line deprecation/deprecation
   logger?: Logger;
   loggerSettings?: { enabled: boolean };
   /**

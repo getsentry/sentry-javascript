@@ -84,6 +84,7 @@ export {
   nodeContextIntegration,
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
+  openAIIntegration,
   parameterize,
   postgresIntegration,
   postgresJsIntegration,

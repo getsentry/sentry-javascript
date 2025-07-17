@@ -1,5 +1,5 @@
 import { DEBUG_BUILD } from '../debug-build';
-import { debug } from '../utils/logger';
+import { debug } from '../utils/debug-logger';
 import { getFunctionName } from '../utils/stacktrace';
 
 export type InstrumentHandlerType =

@@ -7,6 +7,22 @@ These docs walk through how to migrate our JavaScript SDKs through different maj
 - Upgrading from [SDK 7.x to 8.x](./docs/migration/v7-to-v8.md)
 - Upgrading from [SDK 8.x to 9.x](#upgrading-from-8x-to-9x)
 
+# Deprecations in 9.x
+
+## Deprecated `@sentry/core` SDK internal `logger` export
+
+The internal SDK `logger` export from `@sentry/core` has been deprecated in favor of the `debug` export. `debug` only exposes `log`, `warn`, and `error` methods but is otherwise identical to `logger`. Note that this deprecation does not affect the `logger` export from other packages (like `@sentry/browser` or `@sentry/node`) which is used for Sentry Logging.
+
+```js
+import { logger, debug } from '@sentry/core';
+
+// before
+logger.info('This is an info message');
+
+// after
+debug.log('This is an info message');
+```
+
 # Upgrading from 8.x to 9.x
 
 Version 9 of the Sentry JavaScript SDK primarily introduces API cleanup and version support changes.

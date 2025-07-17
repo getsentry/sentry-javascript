@@ -4,7 +4,7 @@ import type { Event } from '../types-hoist/event';
 import type { Exception } from '../types-hoist/exception';
 import type { IntegrationFn } from '../types-hoist/integration';
 import type { StackFrame } from '../types-hoist/stackframe';
-import { debug } from '../utils/logger';
+import { debug } from '../utils/debug-logger';
 import { getFramesFromEvent } from '../utils/stacktrace';
 
 const INTEGRATION_NAME = 'Dedupe';

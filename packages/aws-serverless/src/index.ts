@@ -51,6 +51,7 @@ export {
   nativeNodeFetchIntegration,
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
+  openAIIntegration,
   modulesIntegration,
   contextLinesIntegration,
   nodeContextIntegration,

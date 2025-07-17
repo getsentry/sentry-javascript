@@ -2,7 +2,7 @@ import type { Client } from './client';
 import { getCurrentScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import type { ClientOptions } from './types-hoist/options';
-import { consoleSandbox, debug } from './utils/logger';
+import { consoleSandbox, debug } from './utils/debug-logger';
 
 /** A class object that can instantiate Client objects. */
 export type ClientClass<F extends Client, O extends ClientOptions> = new (options: O) => F;
