@@ -1,12 +1,11 @@
 /**
- * Handler wrapping functions for MCP server methods
- * Provides span correlation for tool, resource, and prompt handlers
+ * Handler method wrapping for MCP server instrumentation
+ * Provides automatic error capture and span correlation for tool, resource, and prompt handlers
  */
 
 import { DEBUG_BUILD } from '../../debug-build';
 import { debug } from '../../utils/debug-logger';
 import { fill } from '../../utils/object';
-import { associateContextWithRequestSpan } from './correlation';
 import { captureError } from './errorCapture';
 import type { HandlerExtraData, MCPHandler, MCPServerInstance } from './types';
 
@@ -36,25 +35,23 @@ function createWrappedHandler(originalHandler: MCPHandler, methodName: keyof MCP
     try {
       const extraHandlerData = findExtraHandlerData(handlerArgs);
 
-      return associateContextWithRequestSpan(extraHandlerData, () => {
-        return createErrorCapturingHandler.call(
-          this,
-          originalHandler,
-          methodName,
-          handlerName,
-          handlerArgs,
-          extraHandlerData,
-        );
-      });
-    } catch (error) {
-      DEBUG_BUILD && debug.warn('MCP handler wrapping failed:', error);
-      return originalHandler.apply(this, handlerArgs);
-    }
+      return createErrorCapturingHandler.call(
+        this,
+        originalHandler,
+        methodName,
+        handlerName,
+        handlerArgs,
+        extraHandlerData,
+      );
+          } catch (error) {
+        DEBUG_BUILD && debug.warn('MCP handler wrapping failed:', error);
+        return originalHandler.apply(this, handlerArgs);
+      }
   };
 }
 
 /**
- * Creates a handler that captures execution errors for Sentry
+ * Creates an error-capturing wrapper for handler execution
  */
 function createErrorCapturingHandler(
   this: MCPServerInstance,
@@ -67,19 +64,15 @@ function createErrorCapturingHandler(
   try {
     const result = originalHandler.apply(this, handlerArgs);
 
-    // Handle both sync and async handlers
-    if (result && typeof result === 'object' && 'then' in result) {
-      // Async handler - wrap with error capture
-      return (result as Promise<unknown>).catch((error: Error) => {
+    if (result && typeof result === 'object' && typeof (result as { then?: unknown }).then === 'function') {
+      return Promise.resolve(result).catch(error => {
         captureHandlerError(error, methodName, handlerName, handlerArgs, extraHandlerData);
         throw error; // Re-throw to maintain MCP error handling behavior
       });
     }
 
-    // Sync handler - return result as-is
     return result;
   } catch (error) {
-    // Sync handler threw an error - capture it
     captureHandlerError(error as Error, methodName, handlerName, handlerArgs, extraHandlerData);
     throw error; // Re-throw to maintain MCP error handling behavior
   }

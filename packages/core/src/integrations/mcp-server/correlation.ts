@@ -4,21 +4,34 @@
  */
 
 import { getClient } from '../../currentScopes';
-import { SPAN_STATUS_ERROR, withActiveSpan } from '../../tracing';
+import { SPAN_STATUS_ERROR } from '../../tracing';
 import type { Span } from '../../types-hoist/span';
 import { extractToolResultAttributes } from './attributeExtraction';
 import { filterMcpPiiFromSpanData } from './piiFiltering';
-import type { RequestId, RequestSpanMapValue } from './types';
+import type { MCPTransport, RequestId, RequestSpanMapValue } from './types';
 
-// Simplified correlation system that works with or without sessionId
-// Maps requestId directly to span data for stateless operation
-const requestIdToSpanMap = new Map<RequestId, RequestSpanMapValue>();
+// Transport-scoped correlation system that prevents collisions between different MCP sessions
+// Each transport instance gets its own correlation map, eliminating request ID conflicts
+const transportToSpanMap = new WeakMap<MCPTransport, Map<RequestId, RequestSpanMapValue>>();
+
+/**
+ * Gets or creates the span map for a specific transport instance
+ */
+function getOrCreateSpanMap(transport: MCPTransport): Map<RequestId, RequestSpanMapValue> {
+  let spanMap = transportToSpanMap.get(transport);
+  if (!spanMap) {
+    spanMap = new Map();
+    transportToSpanMap.set(transport, spanMap);
+  }
+  return spanMap;
+}
 
 /**
  * Stores span context for later correlation with handler execution
  */
-export function storeSpanForRequest(requestId: RequestId, span: Span, method: string): void {
-  requestIdToSpanMap.set(requestId, {
+export function storeSpanForRequest(transport: MCPTransport, requestId: RequestId, span: Span, method: string): void {
+  const spanMap = getOrCreateSpanMap(transport);
+  spanMap.set(requestId, {
     span,
     method,
     startTime: Date.now(),
@@ -26,34 +39,11 @@ export function storeSpanForRequest(requestId: RequestId, span: Span, method: st
 }
 
 /**
- * Associates handler execution with the corresponding request span
- */
-export function associateContextWithRequestSpan<T>(
-  extraHandlerData: { requestId: RequestId } | undefined,
-  cb: () => T,
-): T {
-  if (extraHandlerData) {
-    const { requestId } = extraHandlerData;
-
-    const spanData = requestIdToSpanMap.get(requestId);
-    if (!spanData) {
-      return cb();
-    }
-
-    // Keep span in map for response enrichment (don't delete yet)
-    return withActiveSpan(spanData.span, () => {
-      return cb();
-    });
-  }
-
-  return cb();
-}
-
-/**
  * Completes span with tool results and cleans up correlation
  */
-export function completeSpanWithResults(requestId: RequestId, result: unknown): void {
-  const spanData = requestIdToSpanMap.get(requestId);
+export function completeSpanWithResults(transport: MCPTransport, requestId: RequestId, result: unknown): void {
+  const spanMap = getOrCreateSpanMap(transport);
+  const spanData = spanMap.get(requestId);
   if (spanData) {
     const { span, method } = spanData;
 
@@ -68,17 +58,20 @@ export function completeSpanWithResults(requestId: RequestId, result: unknown): 
     }
 
     span.end();
-    requestIdToSpanMap.delete(requestId);
+    spanMap.delete(requestId);
   }
 }
 
 /**
- * Cleans up all pending spans (for transport close)
+ * Cleans up pending spans for a specific transport (when that transport closes)
  */
-export function cleanupAllPendingSpans(): number {
-  const pendingCount = requestIdToSpanMap.size;
+export function cleanupPendingSpansForTransport(transport: MCPTransport): number {
+  const spanMap = transportToSpanMap.get(transport);
+  if (!spanMap) return 0;
 
-  for (const [, spanData] of requestIdToSpanMap) {
+  const pendingCount = spanMap.size;
+
+  for (const [, spanData] of spanMap) {
     spanData.span.setStatus({
       code: SPAN_STATUS_ERROR,
       message: 'cancelled',
@@ -86,6 +79,6 @@ export function cleanupAllPendingSpans(): number {
     spanData.span.end();
   }
 
-  requestIdToSpanMap.clear();
+  spanMap.clear();
   return pendingCount;
 }

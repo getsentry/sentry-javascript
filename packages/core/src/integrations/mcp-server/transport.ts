@@ -6,7 +6,7 @@
 import { getIsolationScope, withIsolationScope } from '../../currentScopes';
 import { startInactiveSpan, withActiveSpan } from '../../tracing';
 import { fill } from '../../utils/object';
-import { cleanupAllPendingSpans, completeSpanWithResults, storeSpanForRequest } from './correlation';
+import { cleanupPendingSpansForTransport, completeSpanWithResults, storeSpanForRequest } from './correlation';
 import { captureError } from './errorCapture';
 import { buildMcpServerSpanConfig, createMcpNotificationSpan, createMcpOutgoingNotificationSpan } from './spans';
 import type { ExtraHandlerData, MCPTransport } from './types';
@@ -30,8 +30,7 @@ export function wrapTransportOnMessage(transport: MCPTransport): void {
             const spanConfig = buildMcpServerSpanConfig(jsonRpcMessage, this, extra as ExtraHandlerData);
             const span = startInactiveSpan(spanConfig);
 
-            // Store span context for handler correlation using requestId
-            storeSpanForRequest(messageTyped.id, span, messageTyped.method);
+            storeSpanForRequest(this, messageTyped.id, span, messageTyped.method);
 
             // Execute handler within span context
             return withActiveSpan(span, () => {
@@ -74,7 +73,7 @@ export function wrapTransportSend(transport: MCPTransport): void {
               captureJsonRpcErrorResponse(messageTyped.error, messageTyped.id, this);
             }
 
-            completeSpanWithResults(messageTyped.id, messageTyped.result);
+            completeSpanWithResults(this, messageTyped.id, messageTyped.result);
           }
         }
 
@@ -85,13 +84,14 @@ export function wrapTransportSend(transport: MCPTransport): void {
 }
 
 /**
- * Wraps transport.onclose to clean up pending spans
+ * Wraps transport.onclose to clean up pending spans for this transport only
  */
 export function wrapTransportOnClose(transport: MCPTransport): void {
   if (transport.onclose) {
     fill(transport, 'onclose', originalOnClose => {
       return function (this: MCPTransport, ...args: unknown[]) {
-        cleanupAllPendingSpans();
+        // Clean up only spans associated with this specific transport
+        cleanupPendingSpansForTransport(this);
 
         return (originalOnClose as (...args: unknown[]) => unknown).call(this, ...args);
       };
