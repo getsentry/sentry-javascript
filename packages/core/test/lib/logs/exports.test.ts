@@ -291,7 +291,7 @@ describe('_INTERNAL_captureLog', () => {
     const options = getDefaultTestClientOptions({
       dsn: PUBLIC_DSN,
       enableLogs: true,
-      _experiments: { beforeSendLog },
+      beforeSendLog,
     });
     const client = new TestClient(options);
 
@@ -338,7 +338,7 @@ describe('_INTERNAL_captureLog', () => {
     const options = getDefaultTestClientOptions({
       dsn: PUBLIC_DSN,
       enableLogs: true,
-      _experiments: { beforeSendLog },
+      beforeSendLog,
     });
     const client = new TestClient(options);
 
