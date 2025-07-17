@@ -36,7 +36,7 @@ Updates and fixes for version 9 will be published as `SentryNodeServerlessSDKv9`
 
 ### `@sentry/core` / All SDKs
 
-- TODO: fill in removed APIs
+- `logger` and type `Logger` were removed, use `debug` and type `SentryDebugLogger` instead.
 
 ## No Version Support Timeline
 

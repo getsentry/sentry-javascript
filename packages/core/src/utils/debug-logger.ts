@@ -3,24 +3,6 @@ import { DEBUG_BUILD } from '../debug-build';
 import type { ConsoleLevel } from '../types-hoist/instrument';
 import { GLOBAL_OBJ } from './worldwide';
 
-/**
- * A Sentry Logger instance.
- *
- * @deprecated Use {@link debug} instead with the {@link SentryDebugLogger} type.
- */
-export interface Logger {
-  disable(): void;
-  enable(): void;
-  isEnabled(): boolean;
-  log(...args: Parameters<typeof console.log>): void;
-  info(...args: Parameters<typeof console.info>): void;
-  warn(...args: Parameters<typeof console.warn>): void;
-  error(...args: Parameters<typeof console.error>): void;
-  debug(...args: Parameters<typeof console.debug>): void;
-  assert(...args: Parameters<typeof console.assert>): void;
-  trace(...args: Parameters<typeof console.trace>): void;
-}
-
 export interface SentryDebugLogger {
   disable(): void;
   enable(): void;
@@ -146,36 +128,6 @@ function _getLoggerSettings(): { enabled: boolean } {
 
   return getGlobalSingleton('loggerSettings', () => ({ enabled: false }));
 }
-
-/**
- * This is a logger singleton which either logs things or no-ops if logging is not enabled.
- * The logger is a singleton on the carrier, to ensure that a consistent logger is used throughout the SDK.
- *
- * @deprecated Use {@link debug} instead.
- */
-export const logger = {
-  /** Enable logging. */
-  enable,
-  /** Disable logging. */
-  disable,
-  /** Check if logging is enabled. */
-  isEnabled,
-  /** Log a message. */
-  log,
-  /** Log level info */
-  info,
-  /** Log a warning. */
-  warn,
-  /** Log an error. */
-  error,
-  /** Log a debug message. */
-  debug: _debug,
-  /** Log an assertion. */
-  assert,
-  /** Log a trace. */
-  trace,
-  // eslint-disable-next-line deprecation/deprecation
-} satisfies Logger;
 
 /**
  * This is a logger singleton which either logs things or no-ops if logging is not enabled.
