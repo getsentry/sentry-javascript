@@ -107,6 +107,9 @@ module.exports = {
         // Be explicit about class member accessibility (public, private, protected). Turned off
         // on tests for ease of use.
         '@typescript-eslint/explicit-member-accessibility': ['error'],
+
+        // We do not care about empty functions
+        '@typescript-eslint/no-empty-function': 'off',
       },
     },
     {
