@@ -698,6 +698,7 @@ describe('startSpan', () => {
       const options = getDefaultTestClientOptions({ tracesSampler });
       client = new TestClient(options);
       setCurrentClient(client);
+      client.init();
 
       startSpan({ name: 'outer' }, outerSpan => {
         expect(outerSpan).toBeDefined();
