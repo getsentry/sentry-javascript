@@ -4,7 +4,7 @@
  */
 
 import { DEBUG_BUILD } from '../../debug-build';
-import { logger } from '../../utils/logger';
+import { debug } from '../../utils/debug-logger';
 import { fill } from '../../utils/object';
 import { associateContextWithRequestSpan } from './correlation';
 import { captureError } from './errorCapture';
@@ -47,7 +47,7 @@ function createWrappedHandler(originalHandler: MCPHandler, methodName: keyof MCP
         );
       });
     } catch (error) {
-      DEBUG_BUILD && logger.warn('MCP handler wrapping failed:', error);
+      DEBUG_BUILD && debug.warn('MCP handler wrapping failed:', error);
       return originalHandler.apply(this, handlerArgs);
     }
   };

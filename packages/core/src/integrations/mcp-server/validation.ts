@@ -3,8 +3,8 @@
  */
 
 import { DEBUG_BUILD } from '../../debug-build';
-import { debug } from '../../utils/logger';
 import type { JsonRpcNotification, JsonRpcRequest } from './types';
+import { debug } from '../../utils/debug-logger';
 
 /** Validates if a message is a JSON-RPC request */
 export function isJsonRpcRequest(message: unknown): message is JsonRpcRequest {
