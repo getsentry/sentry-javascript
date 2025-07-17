@@ -4,8 +4,8 @@ import type { Profiler, ProfilingIntegration } from './types-hoist/profiling';
 import { debug } from './utils/debug-logger';
 
 function isProfilingIntegrationWithProfiler(
-  integration: ProfilingIntegration<any> | undefined,
-): integration is ProfilingIntegration<any> {
+  integration: ProfilingIntegration | undefined,
+): integration is ProfilingIntegration {
   return (
     !!integration &&
     typeof integration['_profiler'] !== 'undefined' &&
@@ -25,7 +25,7 @@ function startProfiler(): void {
     return;
   }
 
-  const integration = client.getIntegrationByName<ProfilingIntegration<any>>('ProfilingIntegration');
+  const integration = client.getIntegrationByName<ProfilingIntegration>('ProfilingIntegration');
 
   if (!integration) {
     DEBUG_BUILD && debug.warn('ProfilingIntegration is not available');
@@ -51,7 +51,7 @@ function stopProfiler(): void {
     return;
   }
 
-  const integration = client.getIntegrationByName<ProfilingIntegration<any>>('ProfilingIntegration');
+  const integration = client.getIntegrationByName<ProfilingIntegration>('ProfilingIntegration');
   if (!integration) {
     DEBUG_BUILD && debug.warn('ProfilingIntegration is not available');
     return;
