@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import {
   InstrumentationBase,

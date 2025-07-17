@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import type { MonitorConfig } from '@sentry/core';
 import { captureException, isThenable } from '@sentry/core';
 import * as Sentry from '@sentry/node';
