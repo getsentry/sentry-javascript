@@ -699,7 +699,7 @@ describe('startSpan', () => {
       client = new TestClient(options);
       setCurrentClient(client);
 
-      startSpan({ name: 'outer', attributes: { test1: 'aa', test2: 'aa', test3: 'bb' } }, outerSpan => {
+      startSpan({ name: 'outer' }, outerSpan => {
         expect(outerSpan).toBeDefined();
         expect(spanIsSampled(outerSpan)).toBe(false);
       });
@@ -707,12 +707,8 @@ describe('startSpan', () => {
       expect(tracesSampler).toBeCalledTimes(1);
       expect(tracesSampler).toHaveBeenLastCalledWith({
         parentSampled: undefined,
+        attributes: {},
         name: 'outer',
-        attributes: {
-          test1: 'aa',
-          test2: 'aa',
-          test3: 'bb',
-        },
         inheritOrSampleWith: expect.any(Function),
       });
     });
