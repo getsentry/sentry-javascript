@@ -6,7 +6,7 @@ import {
   isChatCompletionResponse,
   isResponsesApiResponse,
   shouldInstrument,
-} from '../../../src/utils/openai-utils';
+} from '../../../src/utils/openai/utils';
 
 describe('openai-utils', () => {
   describe('getOperationName', () => {

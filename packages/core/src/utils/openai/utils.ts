@@ -1,6 +1,6 @@
-import { OPENAI_OPERATIONS } from './gen-ai-attributes';
-import { INSTRUMENTED_METHODS } from './openai-constants';
-import type { InstrumentedMethod, OpenAiChatCompletionObject, OpenAIResponseObject } from './openai-types';
+import { OPENAI_OPERATIONS } from '../gen-ai-attributes';
+import { INSTRUMENTED_METHODS } from './constants';
+import type { InstrumentedMethod, OpenAiChatCompletionObject, OpenAIResponseObject } from './types';
 
 /**
  * Maps OpenAI method paths to Sentry operation names

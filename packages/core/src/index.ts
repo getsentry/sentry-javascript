@@ -125,8 +125,8 @@ export { _INTERNAL_captureLog, _INTERNAL_flushLogsBuffer, _INTERNAL_captureSeria
 export { consoleLoggingIntegration } from './logs/console-integration';
 export { addVercelAiProcessors } from './utils/vercel-ai';
 export { instrumentOpenAiClient } from './utils/openai';
-export { INTEGRATION_NAME } from './utils/openai-constants';
-export type { OpenAiClient, OpenAiOptions, InstrumentedMethod } from './utils/openai-types';
+export { INTEGRATION_NAME } from './utils/openai/constants';
+export type { OpenAiClient, OpenAiOptions, InstrumentedMethod } from './utils/openai/types';
 export type { FeatureFlag } from './utils/featureFlags';
 export {
   _INTERNAL_copyFlagsFromScopeToEvent,

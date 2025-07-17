@@ -1,7 +1,7 @@
-import { getCurrentScope } from '../currentScopes';
-import { captureException } from '../exports';
-import { startSpan } from '../tracing/trace';
-import type { Span, SpanAttributeValue } from '../types-hoist/span';
+import { getCurrentScope } from '../../currentScopes';
+import { captureException } from '../../exports';
+import { startSpan } from '../../tracing/trace';
+import type { Span, SpanAttributeValue } from '../../types-hoist/span';
 import {
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE,
@@ -23,8 +23,8 @@ import {
   OPENAI_RESPONSE_TIMESTAMP_ATTRIBUTE,
   OPENAI_USAGE_COMPLETION_TOKENS_ATTRIBUTE,
   OPENAI_USAGE_PROMPT_TOKENS_ATTRIBUTE,
-} from './gen-ai-attributes';
-import { INTEGRATION_NAME } from './openai-constants';
+} from '../gen-ai-attributes';
+import { INTEGRATION_NAME } from './constants';
 import type {
   InstrumentedMethod,
   OpenAiChatCompletionObject,
@@ -33,7 +33,7 @@ import type {
   OpenAiOptions,
   OpenAiResponse,
   OpenAIResponseObject,
-} from './openai-types';
+} from './types';
 import {
   buildMethodPath,
   getOperationName,
@@ -41,7 +41,7 @@ import {
   isChatCompletionResponse,
   isResponsesApiResponse,
   shouldInstrument,
-} from './openai-utils';
+} from './utils';
 
 /**
  * Extract request attributes from method arguments

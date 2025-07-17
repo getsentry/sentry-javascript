@@ -7,6 +7,8 @@ import {
 import type { Integration, OpenAiClient, OpenAiOptions } from '@sentry/core';
 import { getCurrentScope, instrumentOpenAiClient, INTEGRATION_NAME, SDK_VERSION } from '@sentry/core';
 
+const supportedVersions = ['>=4.0.0 <6'];
+
 export interface OpenAiIntegration extends Integration {
   options: OpenAiOptions;
 }
@@ -46,7 +48,7 @@ export class SentryOpenAiInstrumentation extends InstrumentationBase<Instrumenta
    * Initializes the instrumentation by defining the modules to be patched.
    */
   public init(): InstrumentationModuleDefinition {
-    const module = new InstrumentationNodeModuleDefinition('openai', ['>=4.0.0'], this._patch.bind(this));
+    const module = new InstrumentationNodeModuleDefinition('openai', supportedVersions, this._patch.bind(this));
     return module;
   }
 
@@ -76,7 +78,7 @@ export class SentryOpenAiInstrumentation extends InstrumentationBase<Instrumenta
       const scopeClient = getCurrentScope().getClient();
       const integration = scopeClient?.getIntegrationByName<OpenAiIntegration>(INTEGRATION_NAME);
       const integrationOpts = integration?.options;
-      const defaultPii = integration ? Boolean(scopeClient?.getOptions().sendDefaultPii) : false;
+      const defaultPii = Boolean(scopeClient?.getOptions().sendDefaultPii);
 
       const { recordInputs, recordOutputs } = determineRecordingSettings(integrationOpts, defaultPii);
 

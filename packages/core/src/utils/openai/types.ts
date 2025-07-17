@@ -1,4 +1,4 @@
-import type { INSTRUMENTED_METHODS } from './openai-constants';
+import type { INSTRUMENTED_METHODS } from './constants';
 
 /**
  * Attribute values may be any non-nullish primitive value except an object.
