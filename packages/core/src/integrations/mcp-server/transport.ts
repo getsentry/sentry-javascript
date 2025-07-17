@@ -116,6 +116,7 @@ export function wrapTransportError(transport: MCPTransport): void {
 
 /**
  * Captures JSON-RPC error responses
+ * Only captures server-side errors, not client validation errors
  */
 function captureJsonRpcErrorResponse(
   errorResponse: unknown,
@@ -126,13 +127,20 @@ function captureJsonRpcErrorResponse(
     if (errorResponse && typeof errorResponse === 'object' && 'code' in errorResponse && 'message' in errorResponse) {
       const jsonRpcError = errorResponse as { code: number; message: string; data?: unknown };
 
-      const error = new Error(jsonRpcError.message);
-      error.name = `JsonRpcError_${jsonRpcError.code}`;
+      // Only capture server-side errors, not client validation errors
+      // Per JSON-RPC 2.0 error object spec:
+      // https://www.jsonrpc.org/specification#error_object
+      const isServerError = jsonRpcError.code === -32603 || (jsonRpcError.code >= -32099 && jsonRpcError.code <= -32000);
 
-      captureError(error, 'protocol');
+      if (isServerError) {
+        const error = new Error(jsonRpcError.message);
+        error.name = `JsonRpcError_${jsonRpcError.code}`;
+
+        captureError(error, 'protocol');
+      }
     }
   } catch {
-    // Silently ignore capture errors
+    // noop
   }
 }
 
@@ -143,6 +151,6 @@ function captureTransportError(error: Error, _transport: MCPTransport): void {
   try {
     captureError(error, 'transport');
   } catch {
-    // Silently ignore capture errors
+    // noop
   }
 }
