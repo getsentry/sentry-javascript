@@ -1,6 +1,6 @@
 import { DEBUG_BUILD } from '../debug-build';
 import type { Span } from '../types-hoist/span';
-import { debug } from '../utils/logger';
+import { debug } from '../utils/debug-logger';
 import { getRootSpan, spanIsSampled, spanToJSON } from '../utils/spanUtils';
 
 /**

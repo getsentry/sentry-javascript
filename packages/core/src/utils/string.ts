@@ -85,7 +85,7 @@ export function safeJoin(input: unknown[], delimiter?: string): string {
       } else {
         output.push(String(value));
       }
-    } catch (e) {
+    } catch {
       output.push('[value cannot be serialized]');
     }
   }

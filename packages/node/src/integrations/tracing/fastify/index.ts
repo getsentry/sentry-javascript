@@ -3,10 +3,10 @@ import type { Instrumentation, InstrumentationConfig } from '@opentelemetry/inst
 import type { IntegrationFn, Span } from '@sentry/core';
 import {
   captureException,
+  debug,
   defineIntegration,
   getClient,
   getIsolationScope,
-  logger,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
@@ -74,7 +74,7 @@ function handleFastifyError(
 
   if (this.diagnosticsChannelExists && handlerOrigin === 'onError-hook') {
     DEBUG_BUILD &&
-      logger.warn(
+      debug.warn(
         'Fastify error handler was already registered via diagnostics channel.',
         'You can safely remove `setupFastifyErrorHandler` call.',
       );
@@ -100,7 +100,7 @@ export const instrumentFastify = generateInstrumentOnce(INTEGRATION_NAME, () => 
 
     fastifyInstance?.register(plugin).after(err => {
       if (err) {
-        DEBUG_BUILD && logger.error('Failed to setup Fastify instrumentation', err);
+        DEBUG_BUILD && debug.error('Failed to setup Fastify instrumentation', err);
       } else {
         instrumentClient();
 

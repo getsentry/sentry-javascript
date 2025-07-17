@@ -4,10 +4,10 @@ import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
 import type { IntegrationFn } from '@sentry/core';
 import {
   captureException,
+  debug,
   defineIntegration,
   getDefaultIsolationScope,
   getIsolationScope,
-  logger,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   spanToJSON,
 } from '@sentry/core';
@@ -49,7 +49,7 @@ export const instrumentKoa = generateInstrumentOnce(
         }
 
         if (getIsolationScope() === getDefaultIsolationScope()) {
-          DEBUG_BUILD && logger.warn('Isolation scope is default isolation scope - skipping setting transactionName');
+          DEBUG_BUILD && debug.warn('Isolation scope is default isolation scope - skipping setting transactionName');
           return;
         }
         const route = attributes[ATTR_HTTP_ROUTE];

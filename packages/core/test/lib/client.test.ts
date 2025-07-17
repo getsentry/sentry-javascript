@@ -16,7 +16,7 @@ import * as integrationModule from '../../src/integration';
 import type { Envelope } from '../../src/types-hoist/envelope';
 import type { ErrorEvent, Event, TransactionEvent } from '../../src/types-hoist/event';
 import type { SpanJSON } from '../../src/types-hoist/span';
-import * as loggerModule from '../../src/utils/logger';
+import * as debugLoggerModule from '../../src/utils/debug-logger';
 import * as miscModule from '../../src/utils/misc';
 import * as stringModule from '../../src/utils/string';
 import * as timeModule from '../../src/utils/time';
@@ -33,7 +33,7 @@ const clientEventFromException = vi.spyOn(TestClient.prototype, 'eventFromExcept
 const clientProcess = vi.spyOn(TestClient.prototype as any, '_process');
 
 vi.spyOn(miscModule, 'uuid4').mockImplementation(() => '12312012123120121231201212312012');
-vi.spyOn(loggerModule, 'consoleSandbox').mockImplementation(cb => cb());
+vi.spyOn(debugLoggerModule, 'consoleSandbox').mockImplementation(cb => cb());
 vi.spyOn(stringModule, 'truncate').mockImplementation(str => str);
 vi.spyOn(timeModule, 'dateTimestampInSeconds').mockImplementation(() => 2020);
 
@@ -349,7 +349,7 @@ describe('Client', () => {
     });
 
     test('captures debug message', () => {
-      const logSpy = vi.spyOn(loggerModule.debug, 'log').mockImplementation(() => undefined);
+      const logSpy = vi.spyOn(debugLoggerModule.debug, 'log').mockImplementation(() => undefined);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
@@ -441,7 +441,7 @@ describe('Client', () => {
     });
 
     test('captures debug message', () => {
-      const logSpy = vi.spyOn(loggerModule.debug, 'log').mockImplementation(() => undefined);
+      const logSpy = vi.spyOn(debugLoggerModule.debug, 'log').mockImplementation(() => undefined);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
@@ -1207,7 +1207,7 @@ describe('Client', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSend });
       const client = new TestClient(options);
       const captureExceptionSpy = vi.spyOn(client, 'captureException');
-      const loggerLogSpy = vi.spyOn(loggerModule.debug, 'log');
+      const loggerLogSpy = vi.spyOn(debugLoggerModule.debug, 'log');
 
       client.captureEvent({ message: 'hello' });
 
@@ -1226,7 +1226,7 @@ describe('Client', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendTransaction });
       const client = new TestClient(options);
       const captureExceptionSpy = vi.spyOn(client, 'captureException');
-      const loggerLogSpy = vi.spyOn(loggerModule.debug, 'log');
+      const loggerLogSpy = vi.spyOn(debugLoggerModule.debug, 'log');
 
       client.captureEvent({ transaction: '/dogs/are/great', type: 'transaction' });
 
@@ -1288,7 +1288,7 @@ describe('Client', () => {
         // @ts-expect-error we need to test regular-js behavior
         const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSend });
         const client = new TestClient(options);
-        const loggerWarnSpy = vi.spyOn(loggerModule.debug, 'warn');
+        const loggerWarnSpy = vi.spyOn(debugLoggerModule.debug, 'warn');
 
         client.captureEvent({ message: 'hello' });
 
@@ -1307,7 +1307,7 @@ describe('Client', () => {
         // @ts-expect-error we need to test regular-js behavior
         const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendTransaction });
         const client = new TestClient(options);
-        const loggerWarnSpy = vi.spyOn(loggerModule.debug, 'warn');
+        const loggerWarnSpy = vi.spyOn(debugLoggerModule.debug, 'warn');
 
         client.captureEvent({ transaction: '/dogs/are/great', type: 'transaction' });
 
@@ -1551,7 +1551,7 @@ describe('Client', () => {
 
       const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
       const captureExceptionSpy = vi.spyOn(client, 'captureException');
-      const loggerLogSpy = vi.spyOn(loggerModule.debug, 'log');
+      const loggerLogSpy = vi.spyOn(debugLoggerModule.debug, 'log');
       const scope = new Scope();
       scope.addEventProcessor(() => null);
 
@@ -1569,7 +1569,7 @@ describe('Client', () => {
 
       const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
       const captureExceptionSpy = vi.spyOn(client, 'captureException');
-      const loggerLogSpy = vi.spyOn(loggerModule.debug, 'log');
+      const loggerLogSpy = vi.spyOn(debugLoggerModule.debug, 'log');
       const scope = new Scope();
       scope.addEventProcessor(() => null);
 
@@ -1668,7 +1668,7 @@ describe('Client', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
       const captureExceptionSpy = vi.spyOn(client, 'captureException');
-      const loggerWarnSpy = vi.spyOn(loggerModule.debug, 'warn');
+      const loggerWarnSpy = vi.spyOn(debugLoggerModule.debug, 'warn');
       const scope = new Scope();
       const exception = new Error('sorry');
       scope.addEventProcessor(() => {
@@ -1702,7 +1702,7 @@ describe('Client', () => {
     });
 
     test('captures debug message', () => {
-      const logSpy = vi.spyOn(loggerModule.debug, 'log').mockImplementation(() => undefined);
+      const logSpy = vi.spyOn(debugLoggerModule.debug, 'log').mockImplementation(() => undefined);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);

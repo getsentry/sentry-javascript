@@ -1,9 +1,9 @@
 import type { Client, SpanAttributes } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
+  debug,
   getCurrentScope,
   htmlTreeAsString,
-  logger,
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT,
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE,
@@ -53,7 +53,7 @@ function sendStandaloneClsSpan(
   pageloadSpanId: string,
   reportEvent: WebVitalReportEvent,
 ) {
-  DEBUG_BUILD && logger.log(`Sending CLS span (${clsValue})`);
+  DEBUG_BUILD && debug.log(`Sending CLS span (${clsValue})`);
 
   const startTime = msToSec((browserPerformanceTimeOrigin() || 0) + (entry?.startTime || 0));
   const routeName = getCurrentScope().getScopeData().transactionName;

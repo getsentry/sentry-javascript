@@ -124,7 +124,9 @@ export type { ReportDialogOptions } from './report-dialog';
 export { _INTERNAL_captureLog, _INTERNAL_flushLogsBuffer, _INTERNAL_captureSerializedLog } from './logs/exports';
 export { consoleLoggingIntegration } from './logs/console-integration';
 export { addVercelAiProcessors } from './utils/vercel-ai';
-
+export { instrumentOpenAiClient } from './utils/openai';
+export { OPENAI_INTEGRATION_NAME } from './utils/openai/constants';
+export type { OpenAiClient, OpenAiOptions, InstrumentedMethod } from './utils/openai/types';
 export type { FeatureFlag } from './utils/featureFlags';
 export {
   _INTERNAL_copyFlagsFromScopeToEvent,
@@ -165,8 +167,10 @@ export {
   isVueViewModel,
 } from './utils/is';
 export { isBrowser } from './utils/isBrowser';
-export { CONSOLE_LEVELS, consoleSandbox, debug, logger, originalConsoleMethods } from './utils/logger';
-export type { Logger } from './utils/logger';
+// eslint-disable-next-line deprecation/deprecation
+export { CONSOLE_LEVELS, consoleSandbox, debug, logger, originalConsoleMethods } from './utils/debug-logger';
+// eslint-disable-next-line deprecation/deprecation
+export type { Logger, SentryDebugLogger } from './utils/debug-logger';
 export {
   addContextToFrame,
   addExceptionMechanism,

@@ -21,7 +21,7 @@ import {
   startInactiveSpan,
 } from '@sentry/browser';
 import type { Integration, Span } from '@sentry/core';
-import { logger, stripUrlQueryAndFragment, timestampInSeconds } from '@sentry/core';
+import { debug, stripUrlQueryAndFragment, timestampInSeconds } from '@sentry/core';
 import type { Observable } from 'rxjs';
 import { Subscription } from 'rxjs';
 import { filter, tap } from 'rxjs/operators';
@@ -75,7 +75,7 @@ export class TraceService implements OnDestroy {
     tap(navigationEvent => {
       if (!instrumentationInitialized) {
         IS_DEBUG_BUILD &&
-          logger.error('Angular integration has tracing enabled, but Tracing integration is not configured');
+          debug.error('Angular integration has tracing enabled, but Tracing integration is not configured');
         return;
       }
 

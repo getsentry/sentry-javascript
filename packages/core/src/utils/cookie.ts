@@ -66,7 +66,7 @@ export function parseCookie(str: string): Record<string, string> {
 
       try {
         obj[key] = val.indexOf('%') !== -1 ? decodeURIComponent(val) : val;
-      } catch (e) {
+      } catch {
         obj[key] = val;
       }
     }

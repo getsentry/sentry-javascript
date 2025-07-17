@@ -6,7 +6,7 @@ import {
 } from './semanticAttributes';
 import { startSpan, withActiveSpan } from './tracing';
 import type { Span } from './types-hoist/span';
-import { debug } from './utils/logger';
+import { debug } from './utils/debug-logger';
 import { getActiveSpan } from './utils/spanUtils';
 
 interface MCPTransport {

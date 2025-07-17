@@ -1,8 +1,8 @@
 import { DEBUG_BUILD } from '../debug-build';
 import type { Options } from '../types-hoist/options';
 import type { SamplingContext } from '../types-hoist/samplingcontext';
+import { debug } from '../utils/debug-logger';
 import { hasSpansEnabled } from '../utils/hasSpansEnabled';
-import { debug } from '../utils/logger';
 import { parseSampleRate } from '../utils/parseSampleRate';
 
 /**

@@ -2,6 +2,7 @@ import { types } from 'node:util';
 import { Worker } from 'node:worker_threads';
 import type { Contexts, Event, EventHint, Integration, IntegrationFn, ScopeData } from '@sentry/core';
 import {
+  debug,
   defineIntegration,
   getClient,
   getCurrentScope,
@@ -9,7 +10,6 @@ import {
   getGlobalScope,
   getIsolationScope,
   GLOBAL_OBJ,
-  logger,
   mergeScopeData,
 } from '@sentry/core';
 import { NODE_VERSION } from '../../nodeVersion';
@@ -26,7 +26,7 @@ const DEFAULT_INTERVAL = 50;
 const DEFAULT_HANG_THRESHOLD = 5000;
 
 function log(message: string, ...args: unknown[]): void {
-  logger.log(`[ANR] ${message}`, ...args);
+  debug.log(`[ANR] ${message}`, ...args);
 }
 
 function globalWithScopeFetchFn(): typeof GLOBAL_OBJ & { __SENTRY_GET_SCOPES__?: () => ScopeData } {
@@ -104,7 +104,7 @@ const _anrIntegration = ((options: Partial<AnrIntegrationOptions> = {}) => {
       client = initClient;
 
       if (options.captureStackTrace && (await isDebuggerEnabled())) {
-        logger.warn('ANR captureStackTrace has been disabled because the debugger was already enabled');
+        debug.warn('ANR captureStackTrace has been disabled because the debugger was already enabled');
         options.captureStackTrace = false;
       }
 
@@ -188,7 +188,7 @@ async function _startWorker(
   }
 
   const options: WorkerStartData = {
-    debug: logger.isEnabled(),
+    debug: debug.isEnabled(),
     dsn,
     tunnel: initOptions.tunnel,
     environment: initOptions.environment || 'production',
@@ -231,7 +231,7 @@ async function _startWorker(
       const session = currentSession ? { ...currentSession, toJSON: undefined } : undefined;
       // message the worker to tell it the main event loop is still running
       worker.postMessage({ session, debugImages: getFilenameToDebugIdMap(initOptions.stackParser) });
-    } catch (_) {
+    } catch {
       //
     }
   }, options.pollInterval);

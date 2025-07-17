@@ -1,6 +1,6 @@
 import { Worker } from 'node:worker_threads';
 import type { Event, EventHint, Exception, IntegrationFn } from '@sentry/core';
-import { defineIntegration, logger } from '@sentry/core';
+import { debug, defineIntegration } from '@sentry/core';
 import type { NodeClient } from '../../sdk/client';
 import { isDebuggerEnabled } from '../../utils/debug';
 import type { FrameVariables, LocalVariablesIntegrationOptions, LocalVariablesWorkerArgs } from './common';
@@ -10,7 +10,7 @@ import { functionNamesMatch, LOCAL_VARIABLES_KEY } from './common';
 export const base64WorkerScript = '###LocalVariablesWorkerScript###';
 
 function log(...args: unknown[]): void {
-  logger.log('[LocalVariables]', ...args);
+  debug.log('[LocalVariables]', ...args);
 }
 
 /**
@@ -111,13 +111,13 @@ export const localVariablesAsyncIntegration = defineIntegration(((
       }
 
       if (await isDebuggerEnabled()) {
-        logger.warn('Local variables capture has been disabled because the debugger was already enabled');
+        debug.warn('Local variables capture has been disabled because the debugger was already enabled');
         return;
       }
 
       const options: LocalVariablesWorkerArgs = {
         ...integrationOptions,
-        debug: logger.isEnabled(),
+        debug: debug.isEnabled(),
       };
 
       startInspector().then(
@@ -125,11 +125,11 @@ export const localVariablesAsyncIntegration = defineIntegration(((
           try {
             startWorker(options);
           } catch (e) {
-            logger.error('Failed to start worker', e);
+            debug.error('Failed to start worker', e);
           }
         },
         e => {
-          logger.error('Failed to start inspector', e);
+          debug.error('Failed to start inspector', e);
         },
       );
     },

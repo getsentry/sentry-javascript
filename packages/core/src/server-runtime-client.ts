@@ -13,9 +13,9 @@ import type { ClientOptions } from './types-hoist/options';
 import type { ParameterizedString } from './types-hoist/parameterize';
 import type { SeverityLevel } from './types-hoist/severity';
 import type { BaseTransportOptions } from './types-hoist/transport';
+import { debug } from './utils/debug-logger';
 import { eventFromMessage, eventFromUnknownInput } from './utils/eventbuilder';
 import { isPrimitive } from './utils/is';
-import { debug } from './utils/logger';
 import { uuid4 } from './utils/misc';
 import { resolvedSyncPromise } from './utils/syncpromise';
 

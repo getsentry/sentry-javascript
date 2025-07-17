@@ -7,7 +7,7 @@ import {
   ATTR_SERVICE_VERSION,
   SEMRESATTRS_SERVICE_NAMESPACE,
 } from '@opentelemetry/semantic-conventions';
-import { getClient, logger, SDK_VERSION } from '@sentry/core';
+import { debug as debugLogger, getClient, SDK_VERSION } from '@sentry/core';
 import { wrapContextManagerClass } from '../../../../packages/opentelemetry/src/contextManager';
 import { DEBUG_BUILD } from '../../../../packages/opentelemetry/src/debug-build';
 import { SentryPropagator } from '../../../../packages/opentelemetry/src/propagator';
@@ -25,21 +25,23 @@ export function initOtel(): void {
 
   if (!client) {
     DEBUG_BUILD &&
-      logger.warn(
+      debugLogger.warn(
         'No client available, skipping OpenTelemetry setup. This probably means that `Sentry.init()` was not called before `initOtel()`.',
       );
     return;
   }
 
   if (client.getOptions().debug) {
-    const otelLogger = new Proxy(logger as typeof logger & { verbose: (typeof logger)['debug'] }, {
-      get(target, prop, receiver) {
-        const actualProp = prop === 'verbose' ? 'debug' : prop;
-        return Reflect.get(target, actualProp, receiver);
+    diag.setLogger(
+      {
+        error: debugLogger.error,
+        warn: debugLogger.warn,
+        info: debugLogger.log,
+        debug: debugLogger.log,
+        verbose: debugLogger.log,
       },
-    });
-
-    diag.setLogger(otelLogger, DiagLogLevel.DEBUG);
+      DiagLogLevel.DEBUG,
+    );
   }
 
   setupEventContextTrace(client);

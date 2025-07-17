@@ -59,17 +59,3 @@ Sentry.captureEvent({
   ],
 });
 ```
-
-It's not possible to capture unhandled exceptions, unhandled promise rejections now - Bun is working on adding support
-for it. [Github Issue](https://github.com/oven-sh/bun/issues/5091) follow this issue. To report errors to Sentry, you
-have to manually try-catch and call `Sentry.captureException` in the catch block.
-
-```ts
-import * as Sentry from '@sentry/bun';
-
-try {
-  throw new Error('test');
-} catch (e) {
-  Sentry.captureException(e);
-}
-```

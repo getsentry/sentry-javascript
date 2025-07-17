@@ -7,13 +7,13 @@ import type {
   TransportMakeRequestResponse,
   TransportRequestExecutor,
 } from '../types-hoist/transport';
+import { debug } from '../utils/debug-logger';
 import {
   createEnvelope,
   envelopeItemTypeToDataCategory,
   forEachEnvelopeItem,
   serializeEnvelope,
 } from '../utils/envelope';
-import { debug } from '../utils/logger';
 import { type PromiseBuffer, makePromiseBuffer, SENTRY_BUFFER_FULL_ERROR } from '../utils/promisebuffer';
 import { type RateLimits, isRateLimited, updateRateLimits } from '../utils/ratelimit';
 import { resolvedSyncPromise } from '../utils/syncpromise';

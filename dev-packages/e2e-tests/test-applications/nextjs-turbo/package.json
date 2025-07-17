@@ -9,17 +9,17 @@
     "test:dev": "TEST_ENV=development playwright test",
     "test:build": "pnpm install && pnpm build",
     "test:build-canary": "pnpm install && pnpm add next@canary && pnpm add react@canary && pnpm add react-dom@canary && pnpm build",
-    "test:build-latest": "pnpm install && pnpm add next@latest && pnpm add react@rc && pnpm add react-dom@rc && pnpm build",
+    "test:build-latest": "pnpm install && pnpm add next@latest && pnpm build",
     "test:assert": "pnpm test:prod && pnpm test:dev"
   },
   "dependencies": {
     "@sentry/nextjs": "latest || *",
     "@types/node": "^18.19.1",
-    "@types/react": "18.0.26",
-    "@types/react-dom": "18.0.9",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
     "next": "^15.3.5",
-    "react": "rc",
-    "react-dom": "rc",
+    "react": "^19",
+    "react-dom": "^19",
     "typescript": "~5.0.0"
   },
   "devDependencies": {

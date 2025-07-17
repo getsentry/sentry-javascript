@@ -4,6 +4,78 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 9.40.0
+
+### Important Changes
+
+- **feat(browser): Add debugId sync APIs between web worker and main thread ([#16981](https://github.com/getsentry/sentry-javascript/pull/16981))**
+
+This release adds two Browser SDK APIs to let the main thread know about debugIds of worker files:
+
+- `webWorkerIntegration({worker})` to be used in the main thread
+- `registerWebWorker({self})` to be used in the web worker
+
+```js
+// main.js
+Sentry.init({...})
+
+const worker = new MyWorker(...);
+
+Sentry.addIntegration(Sentry.webWorkerIntegration({ worker }));
+
+worker.addEventListener('message', e => {...});
+```
+
+```js
+// worker.js
+Sentry.registerWebWorker({ self });
+
+self.postMessage(...);
+```
+
+- **feat(core): Deprecate logger in favor of debug ([#17040](https://github.com/getsentry/sentry-javascript/pull/17040))**
+
+The internal SDK `logger` export from `@sentry/core` has been deprecated in favor of the `debug` export. `debug` only exposes `log`, `warn`, and `error` methods but is otherwise identical to `logger`. Note that this deprecation does not affect the `logger` export from other packages (like `@sentry/browser` or `@sentry/node`) which is used for Sentry Logging.
+
+```js
+import { logger, debug } from '@sentry/core';
+
+// before
+logger.info('This is an info message');
+
+// after
+debug.log('This is an info message');
+```
+
+- **feat(node): Add OpenAI integration ([#17022](https://github.com/getsentry/sentry-javascript/pull/17022))**
+
+This release adds official support for instrumenting OpenAI SDK calls in with Sentry tracing, following OpenTelemetry semantic conventions for Generative AI. It instruments:
+
+- `client.chat.completions.create()` - For chat-based completions
+- `client.responses.create()` - For the responses API
+
+```js
+// The integration respects your `sendDefaultPii` option, but you can override the behavior in the integration options
+
+Sentry.init({
+  dsn: '__DSN__',
+  integrations: [
+    Sentry.openAIIntegration({
+      recordInputs: true, // Force recording prompts
+      recordOutputs: true, // Force recording responses
+    }),
+  ],
+});
+```
+
+### Other Changes
+
+- feat(node-core): Expand `@opentelemetry/instrumentation` range to cover `0.203.0` ([#17043](https://github.com/getsentry/sentry-javascript/pull/17043))
+- fix(cloudflare): Ensure errors get captured from durable objects ([#16838](https://github.com/getsentry/sentry-javascript/pull/16838))
+- fix(sveltekit): Ensure server errors from streamed responses are sent ([#17044](https://github.com/getsentry/sentry-javascript/pull/17044))
+
+Work in this release was contributed by @0xbad0c0d3 and @tommy-gilligan. Thank you for your contributions!
+
 ## 9.39.0
 
 ### Important Changes

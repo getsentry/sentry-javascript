@@ -7,7 +7,7 @@ import {
   ATTR_SERVICE_VERSION,
   SEMRESATTRS_SERVICE_NAMESPACE,
 } from '@opentelemetry/semantic-conventions';
-import { consoleSandbox, GLOBAL_OBJ, logger, SDK_VERSION } from '@sentry/core';
+import { consoleSandbox, debug as coreDebug, GLOBAL_OBJ, SDK_VERSION } from '@sentry/core';
 import { type NodeClient, isCjs, SentryContextManager, setupOpenTelemetryLogger } from '@sentry/node-core';
 import { SentryPropagator, SentrySampler, SentrySpanProcessor } from '@sentry/opentelemetry';
 import { createAddHookMessageChannel } from 'import-in-the-middle';
@@ -50,7 +50,7 @@ export function maybeInitializeEsmLoader(): void {
           transferList: [addHookMessagePort],
         });
       } catch (error) {
-        logger.warn('Failed to register ESM hook', error);
+        coreDebug.warn('Failed to register ESM hook', error);
       }
     }
   } else {
@@ -77,7 +77,7 @@ export function preloadOpenTelemetry(options: NodePreloadOptions = {}): void {
   const { debug } = options;
 
   if (debug) {
-    logger.enable();
+    coreDebug.enable();
   }
 
   if (!isCjs()) {
@@ -89,7 +89,7 @@ export function preloadOpenTelemetry(options: NodePreloadOptions = {}): void {
     fn();
 
     if (debug) {
-      logger.log(`[Sentry] Preloaded ${fn.id} instrumentation`);
+      coreDebug.log(`[Sentry] Preloaded ${fn.id} instrumentation`);
     }
   });
 }
@@ -142,10 +142,10 @@ export function _clampSpanProcessorTimeout(maxSpanWaitDuration: number | undefin
   // So if this value is too large, this would fail
   if (maxSpanWaitDuration > MAX_MAX_SPAN_WAIT_DURATION) {
     DEBUG_BUILD &&
-      logger.warn(`\`maxSpanWaitDuration\` is too high, using the maximum value of ${MAX_MAX_SPAN_WAIT_DURATION}`);
+      coreDebug.warn(`\`maxSpanWaitDuration\` is too high, using the maximum value of ${MAX_MAX_SPAN_WAIT_DURATION}`);
     return MAX_MAX_SPAN_WAIT_DURATION;
   } else if (maxSpanWaitDuration <= 0 || Number.isNaN(maxSpanWaitDuration)) {
-    DEBUG_BUILD && logger.warn('`maxSpanWaitDuration` must be a positive number, using default value instead.');
+    DEBUG_BUILD && coreDebug.warn('`maxSpanWaitDuration` must be a positive number, using default value instead.');
     return undefined;
   }
 

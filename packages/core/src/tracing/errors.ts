@@ -1,7 +1,7 @@
 import { DEBUG_BUILD } from '../debug-build';
 import { addGlobalErrorInstrumentationHandler } from '../instrument/globalError';
 import { addGlobalUnhandledRejectionInstrumentationHandler } from '../instrument/globalUnhandledRejection';
-import { debug } from '../utils/logger';
+import { debug } from '../utils/debug-logger';
 import { getActiveSpan, getRootSpan } from '../utils/spanUtils';
 import { SPAN_STATUS_ERROR } from './spanstatus';
 
