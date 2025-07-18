@@ -17,15 +17,16 @@ function run(cmd: string, options?: childProcess.ExecSyncOptions): string {
  * Build the AWS lambda layer by first installing the local package into `build/aws/dist-serverless/nodejs`.
  * Then, prune the node_modules directory to remove unused files by first getting all necessary files with
  * `@vercel/nft` and then deleting all other files inside `node_modules`.
- * Finally, minify the files and create a zip file of the layer.
+ * Finally, create a zip file of the layer.
  */
 async function buildLambdaLayer(): Promise<void> {
+  console.log('Building Lambda layer.');
   console.log('Installing local @sentry/aws-serverless into build/aws/dist-serverless/nodejs.');
   run('npm install . --prefix ./build/aws/dist-serverless/nodejs --install-links --silent');
 
   await pruneNodeModules();
-  fs.unlinkSync('./build/aws/dist-serverless/nodejs/package.json');
-  fs.unlinkSync('./build/aws/dist-serverless/nodejs/package-lock.json');
+  fs.rmSync('./build/aws/dist-serverless/nodejs/package.json', { force: true });
+  fs.rmSync('./build/aws/dist-serverless/nodejs/package-lock.json', { force: true });
 
   // The layer also includes `awslambda-auto.js`, a helper file which calls `Sentry.init()` and wraps the lambda
   // handler. It gets run when Node is launched inside the lambda, using the environment variable
@@ -107,7 +108,7 @@ function removeEmptyDirs(dir: string): void {
     if (remainingEntries.length === 0) {
       fs.rmdirSync(dir);
     }
-  } catch (error) {
+  } catch {
     // Directory might not exist or might not be empty, that's ok
   }
 }

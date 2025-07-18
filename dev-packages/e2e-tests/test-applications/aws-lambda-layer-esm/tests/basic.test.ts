@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Lambda layer SDK bundle sends events', async ({ request }) => {
-  const transactionEventPromise = waitForTransaction('aws-serverless-lambda-layer-esm', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('aws-lambda-layer-esm', transactionEvent => {
     return transactionEvent?.transaction === 'my-lambda';
   });
 

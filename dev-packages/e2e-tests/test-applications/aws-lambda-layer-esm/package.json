@@ -1,5 +1,5 @@
 {
-  "name": "node-express-app",
+  "name": "aws-lambda-layer-esm",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -10,6 +10,7 @@
     "test:assert": "pnpm test"
   },
   "dependencies": {
+    "//": "Linked to the local Lambda layer build",
     "@sentry/aws-serverless": "link:../../../../packages/aws-serverless/build/aws/dist-serverless/nodejs/node_modules/@sentry/aws-serverless"
   },
   "devDependencies": {
