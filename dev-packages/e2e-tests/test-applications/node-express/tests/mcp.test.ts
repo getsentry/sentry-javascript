@@ -18,7 +18,7 @@ test('Should record transactions for mcp handlers', async ({ baseURL }) => {
       return transactionEvent.transaction === 'POST /messages';
     });
     const toolTransactionPromise = waitForTransaction('node-express', transactionEvent => {
-      return transactionEvent.transaction === 'mcp-server/tool:echo';
+      return transactionEvent.transaction === 'tools/call echo';
     });
 
     const toolResult = await client.callTool({
@@ -39,11 +39,14 @@ test('Should record transactions for mcp handlers', async ({ baseURL }) => {
 
     const postTransaction = await postTransactionPromise;
     expect(postTransaction).toBeDefined();
+    expect(postTransaction.contexts?.trace?.op).toEqual('http.server');
 
     const toolTransaction = await toolTransactionPromise;
     expect(toolTransaction).toBeDefined();
+    expect(toolTransaction.contexts?.trace?.op).toEqual('mcp.server');
+    expect(toolTransaction.contexts?.trace?.data?.['mcp.method.name']).toEqual('tools/call');
+      // TODO: When https://github.com/modelcontextprotocol/typescript-sdk/pull/358 is released check for trace id equality between the post transaction and the handler transaction
 
-    // TODO: When https://github.com/modelcontextprotocol/typescript-sdk/pull/358 is released check for trace id equality between the post transaction and the handler transaction
   });
 
   await test.step('resource handler', async () => {
@@ -51,7 +54,7 @@ test('Should record transactions for mcp handlers', async ({ baseURL }) => {
       return transactionEvent.transaction === 'POST /messages';
     });
     const resourceTransactionPromise = waitForTransaction('node-express', transactionEvent => {
-      return transactionEvent.transaction === 'mcp-server/resource:echo';
+      return transactionEvent.transaction === 'resources/read echo://foobar';
     });
 
     const resourceResult = await client.readResource({
@@ -64,10 +67,12 @@ test('Should record transactions for mcp handlers', async ({ baseURL }) => {
 
     const postTransaction = await postTransactionPromise;
     expect(postTransaction).toBeDefined();
+    expect(postTransaction.contexts?.trace?.op).toEqual('http.server');
 
     const resourceTransaction = await resourceTransactionPromise;
     expect(resourceTransaction).toBeDefined();
-
+    expect(resourceTransaction.contexts?.trace?.op).toEqual('mcp.server');
+    expect(resourceTransaction.contexts?.trace?.data?.['mcp.method.name']).toEqual('resources/read');
     // TODO: When https://github.com/modelcontextprotocol/typescript-sdk/pull/358 is released check for trace id equality between the post transaction and the handler transaction
   });
 
@@ -76,7 +81,7 @@ test('Should record transactions for mcp handlers', async ({ baseURL }) => {
       return transactionEvent.transaction === 'POST /messages';
     });
     const promptTransactionPromise = waitForTransaction('node-express', transactionEvent => {
-      return transactionEvent.transaction === 'mcp-server/prompt:echo';
+      return transactionEvent.transaction === 'prompts/get echo';
     });
 
     const promptResult = await client.getPrompt({
@@ -100,10 +105,12 @@ test('Should record transactions for mcp handlers', async ({ baseURL }) => {
 
     const postTransaction = await postTransactionPromise;
     expect(postTransaction).toBeDefined();
+    expect(postTransaction.contexts?.trace?.op).toEqual('http.server');
 
     const promptTransaction = await promptTransactionPromise;
     expect(promptTransaction).toBeDefined();
-
+    expect(promptTransaction.contexts?.trace?.op).toEqual('mcp.server');
+    expect(promptTransaction.contexts?.trace?.data?.['mcp.method.name']).toEqual('prompts/get');
     // TODO: When https://github.com/modelcontextprotocol/typescript-sdk/pull/358 is released check for trace id equality between the post transaction and the handler transaction
   });
 });
