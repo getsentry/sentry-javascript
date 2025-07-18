@@ -1046,6 +1046,178 @@ describe('Client', () => {
       expect(capturedEvent.transaction).toEqual(transaction.transaction);
     });
 
+    test('uses `ignoreSpans` to drop root spans', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, ignoreSpans: ['root span'] });
+      const client = new TestClient(options);
+
+      const captureExceptionSpy = vi.spyOn(client, 'captureException');
+      const loggerLogSpy = vi.spyOn(debugLoggerModule.debug, 'log');
+
+      const transaction: Event = {
+        transaction: 'root span',
+        type: 'transaction',
+        spans: [
+          {
+            description: 'first span',
+            span_id: '9e15bf99fbe4bc80',
+            start_timestamp: 1591603196.637835,
+            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+            data: {},
+          },
+          {
+            description: 'second span',
+            span_id: 'aa554c1f506b0783',
+            start_timestamp: 1591603196.637835,
+            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+            data: {},
+          },
+        ],
+      };
+      client.captureEvent(transaction);
+
+      expect(TestClient.instance!.event).toBeUndefined();
+      // This proves that the reason the event didn't send/didn't get set on the test client is not because there was an
+      // error, but because the event processor returned `null`
+      expect(captureExceptionSpy).not.toBeCalled();
+      expect(loggerLogSpy).toBeCalledWith('before send for type `transaction` returned `null`, will not send event.');
+    });
+
+    test('uses `ignoreSpans` to drop child spans', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, ignoreSpans: ['first span'] });
+      const client = new TestClient(options);
+      const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+
+      const transaction: Event = {
+        contexts: {
+          trace: {
+            span_id: 'root-span-id',
+            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          },
+        },
+        transaction: 'root span',
+        type: 'transaction',
+        spans: [
+          {
+            description: 'first span',
+            span_id: '9e15bf99fbe4bc80',
+            parent_span_id: 'root-span-id',
+            start_timestamp: 1591603196.637835,
+            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+            data: {},
+          },
+          {
+            description: 'second span',
+            span_id: 'aa554c1f506b0783',
+            parent_span_id: 'root-span-id',
+            start_timestamp: 1591603196.637835,
+            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+            data: {},
+          },
+          {
+            description: 'third span',
+            span_id: 'aa554c1f506b0783',
+            parent_span_id: '9e15bf99fbe4bc80',
+            start_timestamp: 1591603196.637835,
+            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+            data: {},
+          },
+        ],
+      };
+      client.captureEvent(transaction);
+
+      const capturedEvent = TestClient.instance!.event!;
+      expect(capturedEvent.spans).toEqual([
+        {
+          description: 'second span',
+          span_id: 'aa554c1f506b0783',
+          parent_span_id: 'root-span-id',
+          start_timestamp: 1591603196.637835,
+          trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          data: {},
+        },
+        {
+          description: 'third span',
+          span_id: 'aa554c1f506b0783',
+          parent_span_id: 'root-span-id',
+          start_timestamp: 1591603196.637835,
+          trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          data: {},
+        },
+      ]);
+      expect(recordDroppedEventSpy).toBeCalledWith('before_send', 'span', 1);
+    });
+
+    test('uses complex `ignoreSpans` to drop child spans', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        ignoreSpans: [
+          {
+            name: 'first span',
+          },
+          {
+            name: 'span',
+            op: 'op1',
+          },
+        ],
+      });
+      const client = new TestClient(options);
+      const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+
+      const transaction: Event = {
+        contexts: {
+          trace: {
+            span_id: 'root-span-id',
+            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          },
+        },
+        transaction: 'root span',
+        type: 'transaction',
+        spans: [
+          {
+            description: 'first span',
+            span_id: '9e15bf99fbe4bc80',
+            parent_span_id: 'root-span-id',
+            start_timestamp: 1591603196.637835,
+            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+            data: {},
+          },
+          {
+            description: 'second span',
+            op: 'op1',
+            span_id: 'aa554c1f506b0783',
+            parent_span_id: 'root-span-id',
+            start_timestamp: 1591603196.637835,
+            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+            data: {},
+          },
+          {
+            description: 'third span',
+            op: 'other op',
+            span_id: 'aa554c1f506b0783',
+            parent_span_id: '9e15bf99fbe4bc80',
+            start_timestamp: 1591603196.637835,
+            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+            data: {},
+          },
+        ],
+      };
+      client.captureEvent(transaction);
+
+      const capturedEvent = TestClient.instance!.event!;
+      expect(capturedEvent.spans).toEqual([
+        {
+          description: 'third span',
+          op: 'other op',
+          span_id: 'aa554c1f506b0783',
+          parent_span_id: 'root-span-id',
+          start_timestamp: 1591603196.637835,
+          trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          data: {},
+        },
+      ]);
+      expect(recordDroppedEventSpy).toBeCalledWith('before_send', 'span', 2);
+    });
+
     test('does not modify existing contexts for root span in `beforeSendSpan`', () => {
       const beforeSendSpan = vi.fn((span: SpanJSON) => {
         return {
