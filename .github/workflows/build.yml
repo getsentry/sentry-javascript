@@ -63,7 +63,7 @@ env:
 jobs:
   job_get_metadata:
     name: Get Metadata
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     permissions:
       pull-requests: read
     steps:
@@ -183,7 +183,7 @@ jobs:
   job_install_deps:
     name: Install Dependencies
     needs: job_get_metadata
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     if: |
       (needs.job_get_metadata.outputs.is_gitflow_sync == 'false' && needs.job_get_metadata.outputs.has_gitflow_label == 'false')
@@ -218,7 +218,7 @@ jobs:
   job_check_branches:
     name: Check PR branches
     needs: job_get_metadata
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     if: github.event_name == 'pull_request'
     permissions:
       pull-requests: write
@@ -233,7 +233,7 @@ jobs:
   job_build:
     name: Build
     needs: [job_get_metadata, job_install_deps]
-    runs-on: ubuntu-20.04-large-js
+    runs-on: ubuntu-24.04-large-js
     timeout-minutes: 30
     if: |
       (needs.job_get_metadata.outputs.changed_any_code == 'true' || github.event_name != 'pull_request')
@@ -291,7 +291,7 @@ jobs:
     name: Size Check
     needs: [job_get_metadata, job_build]
     timeout-minutes: 15
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     if:
       github.event_name == 'pull_request' || needs.job_get_metadata.outputs.is_develop == 'true' ||
       needs.job_get_metadata.outputs.is_release == 'true'
@@ -326,7 +326,7 @@ jobs:
     # inter-package dependencies resolve cleanly.
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -351,7 +351,7 @@ jobs:
     name: Check file formatting
     needs: [job_get_metadata, job_install_deps]
     timeout-minutes: 10
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -374,7 +374,7 @@ jobs:
     name: Circular Dependency Check
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -394,7 +394,7 @@ jobs:
   job_artifacts:
     name: Upload Artifacts
     needs: [job_get_metadata, job_build, job_compile_bindings_profiling_node]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     # Build artifacts are only needed for releasing workflow.
     if: needs.job_get_metadata.outputs.is_release == 'true'
     steps:
@@ -436,7 +436,7 @@ jobs:
     name: Browser Unit Tests
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -463,7 +463,7 @@ jobs:
     name: Bun Unit Tests
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
     steps:
@@ -494,7 +494,7 @@ jobs:
     needs: [job_get_metadata, job_build]
     if: needs.job_get_metadata.outputs.changed_deno == 'true' || github.event_name != 'pull_request'
     timeout-minutes: 10
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
     steps:
@@ -529,7 +529,7 @@ jobs:
     if: needs.job_get_metadata.outputs.changed_node == 'true' || github.event_name != 'pull_request'
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -591,7 +591,7 @@ jobs:
     needs: [job_get_metadata, job_build]
     if: needs.job_get_metadata.outputs.changed_nextjs == 'true' || github.event_name != 'pull_request'
     timeout-minutes: 25
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -640,7 +640,7 @@ jobs:
     name: Playwright (${{ matrix.bundle }}${{ matrix.shard && format(' {0}/{1}', matrix.shard, matrix.shards) || ''}}) Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_get_metadata.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
-    runs-on: ubuntu-20.04-large-js
+    runs-on: ubuntu-24.04-large-js
     timeout-minutes: 25
     strategy:
       fail-fast: false
@@ -733,7 +733,7 @@ jobs:
     name: Playwright Loader (${{ matrix.bundle }}) Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_get_metadata.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -790,7 +790,7 @@ jobs:
     name: Browser (${{ matrix.browser }}) Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_get_metadata.outputs.changed_browser == 'true' || github.event_name != 'pull_request'
-    runs-on: ubuntu-20.04-large-js
+    runs-on: ubuntu-24.04-large-js
     timeout-minutes: 20
     strategy:
       fail-fast: false
@@ -823,7 +823,7 @@ jobs:
   job_browser_build_tests:
     name: Browser Build Tests
     needs: [job_get_metadata, job_build]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -850,7 +850,7 @@ jobs:
   job_check_for_faulty_dts:
     name: Check for faulty .d.ts files
     needs: [job_get_metadata, job_build]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -879,7 +879,7 @@ jobs:
       Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_get_metadata.outputs.changed_node == 'true' || github.event_name != 'pull_request'
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -920,7 +920,7 @@ jobs:
     name: Remix v${{ matrix.remix }} (Node ${{ matrix.node }}) ${{ matrix.tracingIntegration && 'TracingIntegration'}} Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_get_metadata.outputs.changed_remix == 'true' || github.event_name != 'pull_request'
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     strategy:
       fail-fast: false
@@ -969,7 +969,7 @@ jobs:
       (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
       github.actor != 'dependabot[bot]'
     needs: [job_get_metadata, job_build, job_compile_bindings_profiling_node]
-    runs-on: ubuntu-20.04-large-js
+    runs-on: ubuntu-24.04-large-js
     timeout-minutes: 15
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -1034,7 +1034,7 @@ jobs:
       (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
       github.actor != 'dependabot[bot]'
     needs: [job_get_metadata, job_build, job_e2e_prepare]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
       E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
@@ -1169,7 +1169,7 @@ jobs:
         (github.event_name != 'pull_request')
       )
     needs: [job_get_metadata, job_build, job_e2e_prepare]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
       E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
@@ -1267,7 +1267,7 @@ jobs:
       ]
     # Always run this, even if a dependent job failed
     if: always()
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Check for failures
         if: contains(needs.*.result, 'failure')
@@ -1277,7 +1277,7 @@ jobs:
   overhead_metrics:
     name: Overhead metrics
     needs: [job_get_metadata, job_build]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     if: |
       contains(github.event.pull_request.labels.*.name, 'ci-overhead-measurements')
@@ -1332,57 +1332,57 @@ jobs:
       matrix:
         include:
             # x64 glibc
-          - os: ubuntu-20.04
+          - os: ubuntu-24.04
             node: 16
-          - os: ubuntu-20.04
+          - os: ubuntu-24.04
             node: 18
-          - os: ubuntu-20.04
+          - os: ubuntu-24.04
             node: 20
-          - os: ubuntu-20.04
+          - os: ubuntu-24.04
             node: 22
 
             # x64 musl
-          - os: ubuntu-20.04
+          - os: ubuntu-24.04
             container: node:16-alpine3.16
             node: 16
-          - os: ubuntu-20.04
+          - os: ubuntu-24.04
             container: node:18-alpine3.17
             node: 18
-          - os: ubuntu-20.04
+          - os: ubuntu-24.04
             container: node:20-alpine3.17
             node: 20
-          - os: ubuntu-20.04
+          - os: ubuntu-24.04
             container: node:22-alpine3.18
             node: 22
 
             # arm64 glibc
-          - os: ubuntu-20.04
+          - os: ubuntu-24.04
             arch: arm64
             node: 16
-          - os: ubuntu-20.04
+          - os: ubuntu-24.04
             arch: arm64
             node: 18
-          - os: ubuntu-20.04
+          - os: ubuntu-24.04
             arch: arm64
             node: 20
-          - os: ubuntu-20.04
+          - os: ubuntu-24.04
             arch: arm64
             node: 22
 
             # arm64 musl
-          - os: ubuntu-20.04
+          - os: ubuntu-24.04
             container: node:16-alpine3.16
             arch: arm64
             node: 16
-          - os: ubuntu-20.04
+          - os: ubuntu-24.04
             arch: arm64
             container: node:18-alpine3.17
             node: 18
-          - os: ubuntu-20.04
+          - os: ubuntu-24.04
             arch: arm64
             container: node:20-alpine3.17
             node: 20
-          - os: ubuntu-20.04
+          - os: ubuntu-24.04
             arch: arm64
             container: node:22-alpine3.18
             node: 22
