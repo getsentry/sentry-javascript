@@ -27,7 +27,6 @@ describe('BrowserClient', () => {
   it('does not flush logs when logs are disabled', () => {
     client = new BrowserClient(
       getDefaultBrowserClientOptions({
-        enableLogs: true,
         sendClientReports: true,
       }),
     );
