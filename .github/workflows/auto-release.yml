@@ -9,7 +9,7 @@ on:
 # This workflow tirggers a release when merging a branch with the pattern `prepare-release/VERSION` into master.
 jobs:
   release:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     name: 'Prepare a new version'
 
     steps:

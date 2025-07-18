@@ -13,7 +13,7 @@ on:
 # It fetches the size-limit info from the release branch and adds it to the release
 jobs:
   release-size-info:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     name: 'Add size-limit info to release'
 
     steps:
