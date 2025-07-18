@@ -49,7 +49,9 @@ export class ServerRuntimeClient<
 
     this._logWeight = 0;
 
-    if (this._options.enableLogs) {
+    // eslint-disable-next-line deprecation/deprecation
+    const shouldEnableLogs = this._options.enableLogs ?? this._options._experiments?.enableLogs;
+    if (shouldEnableLogs) {
       // eslint-disable-next-line @typescript-eslint/no-this-alias
       const client = this;
 

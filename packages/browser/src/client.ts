@@ -85,9 +85,10 @@ export class BrowserClient extends Client<BrowserClientOptions> {
 
     super(opts);
 
-    const { sendDefaultPii, sendClientReports, enableLogs } = this._options;
+    const { sendDefaultPii, sendClientReports, enableLogs, _experiments } = this._options;
+    const shouldEnableLogs = enableLogs ?? _experiments?.enableLogs;
 
-    if (WINDOW.document && (sendClientReports || enableLogs)) {
+    if (WINDOW.document && (sendClientReports || shouldEnableLogs)) {
       WINDOW.document.addEventListener('visibilitychange', () => {
         if (WINDOW.document.visibilityState === 'hidden') {
           if (sendClientReports) {

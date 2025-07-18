@@ -33,8 +33,10 @@ const _consoleLoggingIntegration = ((options: Partial<CaptureConsoleOptions> = {
   return {
     name: INTEGRATION_NAME,
     setup(client) {
-      const { enableLogs, normalizeDepth = 3, normalizeMaxBreadth = 1_000 } = client.getOptions();
-      if (!enableLogs) {
+      const { enableLogs, _experiments, normalizeDepth = 3, normalizeMaxBreadth = 1_000 } = client.getOptions();
+      // eslint-disable-next-line deprecation/deprecation
+      const shouldEnableLogs = enableLogs ?? _experiments?.enableLogs;
+      if (!shouldEnableLogs) {
         DEBUG_BUILD && debug.warn('`enableLogs` is not enabled, ConsoleLogs integration disabled');
         return;
       }
