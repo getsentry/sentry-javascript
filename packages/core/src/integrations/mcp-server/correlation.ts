@@ -1,6 +1,9 @@
 /**
  * Request-span correlation system for MCP server instrumentation
- * Handles mapping requestId to span data for correlation with handler execution
+ *
+ * Handles mapping requestId to span data for correlation with handler execution.
+ * Uses WeakMap to scope correlation maps per transport instance, preventing
+ * request ID collisions between different MCP sessions.
  */
 
 import { getClient } from '../../currentScopes';
@@ -10,12 +13,17 @@ import { extractToolResultAttributes } from './attributeExtraction';
 import { filterMcpPiiFromSpanData } from './piiFiltering';
 import type { MCPTransport, RequestId, RequestSpanMapValue } from './types';
 
-// Transport-scoped correlation system that prevents collisions between different MCP sessions
-// Each transport instance gets its own correlation map, eliminating request ID conflicts
+/**
+ * Transport-scoped correlation system that prevents collisions between different MCP sessions
+ * @internal Each transport instance gets its own correlation map, eliminating request ID conflicts
+ */
 const transportToSpanMap = new WeakMap<MCPTransport, Map<RequestId, RequestSpanMapValue>>();
 
 /**
  * Gets or creates the span map for a specific transport instance
+ * @internal
+ * @param transport - MCP transport instance
+ * @returns Span map for the transport
  */
 function getOrCreateSpanMap(transport: MCPTransport): Map<RequestId, RequestSpanMapValue> {
   let spanMap = transportToSpanMap.get(transport);
@@ -28,6 +36,10 @@ function getOrCreateSpanMap(transport: MCPTransport): Map<RequestId, RequestSpan
 
 /**
  * Stores span context for later correlation with handler execution
+ * @param transport - MCP transport instance
+ * @param requestId - Request identifier
+ * @param span - Active span to correlate
+ * @param method - MCP method name
  */
 export function storeSpanForRequest(transport: MCPTransport, requestId: RequestId, span: Span, method: string): void {
   const spanMap = getOrCreateSpanMap(transport);
@@ -40,6 +52,9 @@ export function storeSpanForRequest(transport: MCPTransport, requestId: RequestI
 
 /**
  * Completes span with tool results and cleans up correlation
+ * @param transport - MCP transport instance
+ * @param requestId - Request identifier
+ * @param result - Tool execution result for attribute extraction
  */
 export function completeSpanWithResults(transport: MCPTransport, requestId: RequestId, result: unknown): void {
   const spanMap = getOrCreateSpanMap(transport);
@@ -48,7 +63,6 @@ export function completeSpanWithResults(transport: MCPTransport, requestId: Requ
     const { span, method } = spanData;
 
     if (method === 'tools/call') {
-      // Add tool-specific attributes with PII filtering
       const rawToolAttributes = extractToolResultAttributes(result);
       const client = getClient();
       const sendDefaultPii = Boolean(client?.getOptions().sendDefaultPii);
@@ -64,6 +78,8 @@ export function completeSpanWithResults(transport: MCPTransport, requestId: Requ
 
 /**
  * Cleans up pending spans for a specific transport (when that transport closes)
+ * @param transport - MCP transport instance
+ * @returns Number of pending spans that were cleaned up
  */
 export function cleanupPendingSpansForTransport(transport: MCPTransport): number {
   const spanMap = transportToSpanMap.get(transport);

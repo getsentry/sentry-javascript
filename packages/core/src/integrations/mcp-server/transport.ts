@@ -1,6 +1,8 @@
 /**
  * Transport layer instrumentation for MCP server
- * Handles message interception and response correlation
+ *
+ * Handles message interception and response correlation.
+ * @see https://modelcontextprotocol.io/specification/2025-06-18/basic/transports
  */
 
 import { getIsolationScope, withIsolationScope } from '../../currentScopes';
@@ -14,6 +16,7 @@ import { isJsonRpcNotification, isJsonRpcRequest, isJsonRpcResponse } from './va
 
 /**
  * Wraps transport.onmessage to create spans for incoming messages
+ * @param transport - MCP transport instance to wrap
  */
 export function wrapTransportOnMessage(transport: MCPTransport): void {
   if (transport.onmessage) {
@@ -22,17 +25,14 @@ export function wrapTransportOnMessage(transport: MCPTransport): void {
         if (isJsonRpcRequest(jsonRpcMessage)) {
           const messageTyped = jsonRpcMessage as { method: string; id: string | number };
 
-          // Create isolation scope for this request (standard Sentry pattern)
           const isolationScope = getIsolationScope().clone();
 
           return withIsolationScope(isolationScope, () => {
-            // Create manual span that stays open until response
             const spanConfig = buildMcpServerSpanConfig(jsonRpcMessage, this, extra as ExtraHandlerData);
             const span = startInactiveSpan(spanConfig);
 
             storeSpanForRequest(this, messageTyped.id, span, messageTyped.method);
 
-            // Execute handler within span context
             return withActiveSpan(span, () => {
               return (originalOnMessage as (...args: unknown[]) => unknown).call(this, jsonRpcMessage, extra);
             });
@@ -53,12 +53,12 @@ export function wrapTransportOnMessage(transport: MCPTransport): void {
 
 /**
  * Wraps transport.send to handle outgoing messages and response correlation
+ * @param transport - MCP transport instance to wrap
  */
 export function wrapTransportSend(transport: MCPTransport): void {
   if (transport.send) {
     fill(transport, 'send', originalSend => {
       return async function (this: MCPTransport, message: unknown) {
-        // Handle outgoing notifications
         if (isJsonRpcNotification(message)) {
           return createMcpOutgoingNotificationSpan(message, this, () => {
             return (originalSend as (...args: unknown[]) => unknown).call(this, message);
@@ -70,7 +70,7 @@ export function wrapTransportSend(transport: MCPTransport): void {
 
           if (messageTyped.id !== null && messageTyped.id !== undefined) {
             if (messageTyped.error) {
-              captureJsonRpcErrorResponse(messageTyped.error, messageTyped.id, this);
+              captureJsonRpcErrorResponse(messageTyped.error);
             }
 
             completeSpanWithResults(this, messageTyped.id, messageTyped.result);
@@ -85,12 +85,12 @@ export function wrapTransportSend(transport: MCPTransport): void {
 
 /**
  * Wraps transport.onclose to clean up pending spans for this transport only
+ * @param transport - MCP transport instance to wrap
  */
 export function wrapTransportOnClose(transport: MCPTransport): void {
   if (transport.onclose) {
     fill(transport, 'onclose', originalOnClose => {
       return function (this: MCPTransport, ...args: unknown[]) {
-        // Clean up only spans associated with this specific transport
         cleanupPendingSpansForTransport(this);
 
         return (originalOnClose as (...args: unknown[]) => unknown).call(this, ...args);
@@ -101,13 +101,13 @@ export function wrapTransportOnClose(transport: MCPTransport): void {
 
 /**
  * Wraps transport error handlers to capture connection errors
+ * @param transport - MCP transport instance to wrap
  */
 export function wrapTransportError(transport: MCPTransport): void {
-  // All MCP transports have an onerror method as part of the standard interface
   if (transport.onerror) {
     fill(transport, 'onerror', (originalOnError: (error: Error) => void) => {
       return function (this: MCPTransport, error: Error) {
-        captureTransportError(error, this);
+        captureTransportError(error);
         return originalOnError.call(this, error);
       };
     });
@@ -115,21 +115,16 @@ export function wrapTransportError(transport: MCPTransport): void {
 }
 
 /**
- * Captures JSON-RPC error responses
- * Only captures server-side errors, not client validation errors
+ * Captures JSON-RPC error responses for server-side errors.
+ * @see https://www.jsonrpc.org/specification#error_object
+ * @internal
+ * @param errorResponse - JSON-RPC error response
  */
-function captureJsonRpcErrorResponse(
-  errorResponse: unknown,
-  _requestId: string | number,
-  _transport: MCPTransport,
-): void {
+function captureJsonRpcErrorResponse(errorResponse: unknown): void {
   try {
     if (errorResponse && typeof errorResponse === 'object' && 'code' in errorResponse && 'message' in errorResponse) {
       const jsonRpcError = errorResponse as { code: number; message: string; data?: unknown };
 
-      // Only capture server-side errors, not client validation errors
-      // Per JSON-RPC 2.0 error object spec:
-      // https://www.jsonrpc.org/specification#error_object
       const isServerError =
         jsonRpcError.code === -32603 || (jsonRpcError.code >= -32099 && jsonRpcError.code <= -32000);
 
@@ -147,8 +142,10 @@ function captureJsonRpcErrorResponse(
 
 /**
  * Captures transport connection errors
+ * @internal
+ * @param error - Transport error
  */
-function captureTransportError(error: Error, _transport: MCPTransport): void {
+function captureTransportError(error: Error): void {
   try {
     captureError(error, 'transport');
   } catch {

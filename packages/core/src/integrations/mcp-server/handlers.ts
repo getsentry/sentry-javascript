@@ -1,16 +1,21 @@
 /**
  * Handler method wrapping for MCP server instrumentation
- * Provides automatic error capture and span correlation for tool, resource, and prompt handlers
+ *
+ * Provides automatic error capture and span correlation for tool, resource,
+ * and prompt handlers.
  */
 
 import { DEBUG_BUILD } from '../../debug-build';
 import { debug } from '../../utils/debug-logger';
 import { fill } from '../../utils/object';
 import { captureError } from './errorCapture';
-import type { HandlerExtraData, MCPHandler, MCPServerInstance } from './types';
+import type { MCPHandler, MCPServerInstance } from './types';
 
 /**
  * Generic function to wrap MCP server method handlers
+ * @internal
+ * @param serverInstance - MCP server instance
+ * @param methodName - Method name to wrap (tool, resource, prompt)
  */
 function wrapMethodHandler(serverInstance: MCPServerInstance, methodName: keyof MCPServerInstance): void {
   fill(serverInstance, methodName, originalMethod => {
@@ -29,20 +34,16 @@ function wrapMethodHandler(serverInstance: MCPServerInstance, methodName: keyof 
 
 /**
  * Creates a wrapped handler with span correlation and error capture
+ * @internal
+ * @param originalHandler - Original handler function
+ * @param methodName - MCP method name
+ * @param handlerName - Handler identifier
+ * @returns Wrapped handler function
  */
 function createWrappedHandler(originalHandler: MCPHandler, methodName: keyof MCPServerInstance, handlerName: string) {
   return function (this: unknown, ...handlerArgs: unknown[]): unknown {
     try {
-      const extraHandlerData = findExtraHandlerData(handlerArgs);
-
-      return createErrorCapturingHandler.call(
-        this,
-        originalHandler,
-        methodName,
-        handlerName,
-        handlerArgs,
-        extraHandlerData,
-      );
+      return createErrorCapturingHandler.call(this, originalHandler, methodName, handlerName);
     } catch (error) {
       DEBUG_BUILD && debug.warn('MCP handler wrapping failed:', error);
       return originalHandler.apply(this, handlerArgs);
@@ -52,6 +53,13 @@ function createWrappedHandler(originalHandler: MCPHandler, methodName: keyof MCP
 
 /**
  * Creates an error-capturing wrapper for handler execution
+ * @internal
+ * @param originalHandler - Original handler function
+ * @param methodName - MCP method name
+ * @param handlerName - Handler identifier
+ * @param handlerArgs - Handler arguments
+ * @param extraHandlerData - Additional handler context
+ * @returns Handler execution result
  */
 function createErrorCapturingHandler(
   this: MCPServerInstance,
@@ -59,35 +67,32 @@ function createErrorCapturingHandler(
   methodName: keyof MCPServerInstance,
   handlerName: string,
   handlerArgs: unknown[],
-  extraHandlerData?: HandlerExtraData,
 ): unknown {
   try {
     const result = originalHandler.apply(this, handlerArgs);
 
     if (result && typeof result === 'object' && typeof (result as { then?: unknown }).then === 'function') {
       return Promise.resolve(result).catch(error => {
-        captureHandlerError(error, methodName, handlerName, handlerArgs, extraHandlerData);
-        throw error; // Re-throw to maintain MCP error handling behavior
+        captureHandlerError(error, methodName, handlerName);
+        throw error;
       });
     }
 
     return result;
   } catch (error) {
-    captureHandlerError(error as Error, methodName, handlerName, handlerArgs, extraHandlerData);
-    throw error; // Re-throw to maintain MCP error handling behavior
+    captureHandlerError(error as Error, methodName, handlerName);
+    throw error;
   }
 }
 
 /**
  * Captures handler execution errors based on handler type
+ * @internal
+ * @param error - Error to capture
+ * @param methodName - MCP method name
+ * @param handlerName - Handler identifier
  */
-function captureHandlerError(
-  error: Error,
-  methodName: keyof MCPServerInstance,
-  handlerName: string,
-  _handlerArgs: unknown[],
-  _extraHandlerData?: HandlerExtraData,
-): void {
+function captureHandlerError(error: Error, methodName: keyof MCPServerInstance, handlerName: string): void {
   try {
     const extraData: Record<string, unknown> = {};
 
@@ -111,28 +116,19 @@ function captureHandlerError(
       }
     } else if (methodName === 'resource') {
       extraData.resource_uri = handlerName;
-      captureError(error, 'resource_operation', extraData);
+      captureError(error, 'resource_execution', extraData);
     } else if (methodName === 'prompt') {
       extraData.prompt_name = handlerName;
       captureError(error, 'prompt_execution', extraData);
     }
   } catch (captureErr) {
-    // silently ignore capture errors to not affect MCP operation
+    // noop
   }
 }
 
 /**
- * Extracts request/session data from handler arguments
- */
-function findExtraHandlerData(handlerArgs: unknown[]): HandlerExtraData | undefined {
-  return handlerArgs.find(
-    (arg): arg is HandlerExtraData =>
-      arg != null && typeof arg === 'object' && 'requestId' in arg && (arg as { requestId: unknown }).requestId != null,
-  );
-}
-
-/**
  * Wraps tool handlers to associate them with request spans
+ * @param serverInstance - MCP server instance
  */
 export function wrapToolHandlers(serverInstance: MCPServerInstance): void {
   wrapMethodHandler(serverInstance, 'tool');
@@ -140,6 +136,7 @@ export function wrapToolHandlers(serverInstance: MCPServerInstance): void {
 
 /**
  * Wraps resource handlers to associate them with request spans
+ * @param serverInstance - MCP server instance
  */
 export function wrapResourceHandlers(serverInstance: MCPServerInstance): void {
   wrapMethodHandler(serverInstance, 'resource');
@@ -147,6 +144,7 @@ export function wrapResourceHandlers(serverInstance: MCPServerInstance): void {
 
 /**
  * Wraps prompt handlers to associate them with request spans
+ * @param serverInstance - MCP server instance
  */
 export function wrapPromptHandlers(serverInstance: MCPServerInstance): void {
   wrapMethodHandler(serverInstance, 'prompt');
@@ -154,6 +152,7 @@ export function wrapPromptHandlers(serverInstance: MCPServerInstance): void {
 
 /**
  * Wraps all MCP handler types (tool, resource, prompt) for span correlation
+ * @param serverInstance - MCP server instance
  */
 export function wrapAllMCPHandlers(serverInstance: MCPServerInstance): void {
   wrapToolHandlers(serverInstance);

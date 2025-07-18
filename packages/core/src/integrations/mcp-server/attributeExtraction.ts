@@ -6,7 +6,12 @@ import { isURLObjectRelative, parseStringToURLObject } from '../../utils/url';
 import {
   CLIENT_ADDRESS_ATTRIBUTE,
   CLIENT_PORT_ATTRIBUTE,
+  MCP_LOGGING_DATA_TYPE_ATTRIBUTE,
+  MCP_LOGGING_LEVEL_ATTRIBUTE,
+  MCP_LOGGING_LOGGER_ATTRIBUTE,
+  MCP_LOGGING_MESSAGE_ATTRIBUTE,
   MCP_PROMPT_NAME_ATTRIBUTE,
+  MCP_REQUEST_ARGUMENT,
   MCP_REQUEST_ID_ATTRIBUTE,
   MCP_RESOURCE_URI_ATTRIBUTE,
   MCP_SESSION_ID_ATTRIBUTE,
@@ -26,7 +31,10 @@ import type {
   MethodConfig,
 } from './types';
 
-/** Configuration for MCP methods to extract targets and arguments */
+/**
+ * Configuration for MCP methods to extract targets and arguments
+ * @internal Maps method names to their extraction configuration
+ */
 const METHOD_CONFIGS: Record<string, MethodConfig> = {
   'tools/call': {
     targetField: 'name',
@@ -56,7 +64,12 @@ const METHOD_CONFIGS: Record<string, MethodConfig> = {
   },
 };
 
-/** Extracts target info from method and params based on method type */
+/**
+ * Extracts target info from method and params based on method type
+ * @param method - MCP method name
+ * @param params - Method parameters
+ * @returns Target name and attributes for span instrumentation
+ */
 export function extractTargetInfo(
   method: string,
   params: Record<string, unknown>,
@@ -80,7 +93,12 @@ export function extractTargetInfo(
   };
 }
 
-/** Extracts request arguments based on method type */
+/**
+ * Extracts request arguments based on method type
+ * @param method - MCP method name
+ * @param params - Method parameters
+ * @returns Arguments as span attributes with mcp.request.argument prefix
+ */
 export function getRequestArguments(method: string, params: Record<string, unknown>): Record<string, string> {
   const args: Record<string, string> = {};
   const config = METHOD_CONFIGS[method as keyof typeof METHOD_CONFIGS];
@@ -89,52 +107,55 @@ export function getRequestArguments(method: string, params: Record<string, unkno
     return args;
   }
 
-  // Capture arguments from the configured field
   if (config.captureArguments && config.argumentsField && params?.[config.argumentsField]) {
     const argumentsObj = params[config.argumentsField];
     if (typeof argumentsObj === 'object' && argumentsObj !== null) {
       for (const [key, value] of Object.entries(argumentsObj as Record<string, unknown>)) {
-        args[`mcp.request.argument.${key.toLowerCase()}`] = JSON.stringify(value);
+        args[`${MCP_REQUEST_ARGUMENT}.${key.toLowerCase()}`] = JSON.stringify(value);
       }
     }
   }
 
-  // Capture specific fields as arguments
   if (config.captureUri && params?.uri) {
-    args['mcp.request.argument.uri'] = JSON.stringify(params.uri);
+    args[`${MCP_REQUEST_ARGUMENT}.uri`] = JSON.stringify(params.uri);
   }
 
   if (config.captureName && params?.name) {
-    args['mcp.request.argument.name'] = JSON.stringify(params.name);
+    args[`${MCP_REQUEST_ARGUMENT}.name`] = JSON.stringify(params.name);
   }
 
   return args;
 }
 
-/** Extracts transport types based on transport constructor name */
+/**
+ * Extracts transport types based on transport constructor name
+ * @param transport - MCP transport instance
+ * @returns Transport type mapping for span attributes
+ */
 export function getTransportTypes(transport: MCPTransport): { mcpTransport: string; networkTransport: string } {
   const transportName = transport.constructor?.name?.toLowerCase() || '';
 
-  // Standard MCP transports per specification
   if (transportName.includes('stdio')) {
     return { mcpTransport: 'stdio', networkTransport: 'pipe' };
   }
 
-  // Streamable HTTP is the standard HTTP-based transport
   if (transportName.includes('streamablehttp') || transportName.includes('streamable')) {
     return { mcpTransport: 'http', networkTransport: 'tcp' };
   }
 
-  // SSE is deprecated (backwards compatibility)
   if (transportName.includes('sse')) {
     return { mcpTransport: 'sse', networkTransport: 'tcp' };
   }
 
-  // For custom transports, mark as unknown
   return { mcpTransport: 'unknown', networkTransport: 'unknown' };
 }
 
-/** Extracts additional attributes for specific notification types */
+/**
+ * Extracts additional attributes for specific notification types
+ * @param method - Notification method name
+ * @param params - Notification parameters
+ * @returns Method-specific attributes for span instrumentation
+ */
 export function getNotificationAttributes(
   method: string,
   params: Record<string, unknown>,
@@ -153,18 +174,17 @@ export function getNotificationAttributes(
 
     case 'notifications/message':
       if (params?.level) {
-        attributes['mcp.logging.level'] = String(params.level);
+        attributes[MCP_LOGGING_LEVEL_ATTRIBUTE] = String(params.level);
       }
       if (params?.logger) {
-        attributes['mcp.logging.logger'] = String(params.logger);
+        attributes[MCP_LOGGING_LOGGER_ATTRIBUTE] = String(params.logger);
       }
       if (params?.data !== undefined) {
-        attributes['mcp.logging.data_type'] = typeof params.data;
-        // Store the actual message content
+        attributes[MCP_LOGGING_DATA_TYPE_ATTRIBUTE] = typeof params.data;
         if (typeof params.data === 'string') {
-          attributes['mcp.logging.message'] = params.data;
+          attributes[MCP_LOGGING_MESSAGE_ATTRIBUTE] = params.data;
         } else {
-          attributes['mcp.logging.message'] = JSON.stringify(params.data);
+          attributes[MCP_LOGGING_MESSAGE_ATTRIBUTE] = JSON.stringify(params.data);
         }
       }
       break;
@@ -189,8 +209,7 @@ export function getNotificationAttributes(
 
     case 'notifications/resources/updated':
       if (params?.uri) {
-        attributes['mcp.resource.uri'] = String(params.uri);
-        // Extract protocol from URI
+        attributes[MCP_RESOURCE_URI_ATTRIBUTE] = String(params.uri);
         const urlObject = parseStringToURLObject(String(params.uri));
         if (urlObject && !isURLObjectRelative(urlObject)) {
           attributes['mcp.resource.protocol'] = urlObject.protocol.replace(':', '');
@@ -207,7 +226,11 @@ export function getNotificationAttributes(
   return attributes;
 }
 
-/** Extracts client connection info from extra handler data */
+/**
+ * Extracts client connection info from extra handler data
+ * @param extra - Extra handler data containing connection info
+ * @returns Client address and port information
+ */
 export function extractClientInfo(extra: ExtraHandlerData): {
   address?: string;
   port?: number;
@@ -222,7 +245,12 @@ export function extractClientInfo(extra: ExtraHandlerData): {
   };
 }
 
-/** Build transport and network attributes */
+/**
+ * Build transport and network attributes
+ * @param transport - MCP transport instance
+ * @param extra - Optional extra handler data
+ * @returns Transport attributes for span instrumentation
+ */
 export function buildTransportAttributes(
   transport: MCPTransport,
   extra?: ExtraHandlerData,
@@ -241,7 +269,13 @@ export function buildTransportAttributes(
   };
 }
 
-/** Build type-specific attributes based on message type */
+/**
+ * Build type-specific attributes based on message type
+ * @param type - Span type (request or notification)
+ * @param message - JSON-RPC message
+ * @param params - Optional parameters for attribute extraction
+ * @returns Type-specific attributes for span instrumentation
+ */
 export function buildTypeSpecificAttributes(
   type: McpSpanType,
   message: JsonRpcRequest | JsonRpcNotification,
@@ -258,18 +292,23 @@ export function buildTypeSpecificAttributes(
     };
   }
 
-  // For notifications, only include notification-specific attributes
   return getNotificationAttributes(message.method, params || {});
 }
 
-/** Get metadata about tool result content array */
+/**
+ * Get metadata about tool result content array
+ * @internal
+ */
 function getContentMetadata(content: unknown[]): Record<string, string | number> {
   return {
     [MCP_TOOL_RESULT_CONTENT_COUNT_ATTRIBUTE]: content.length,
   };
 }
 
-/** Build attributes from a single content item */
+/**
+ * Build attributes from a single content item
+ * @internal
+ */
 function buildContentItemAttributes(
   contentItem: Record<string, unknown>,
   prefix: string,
@@ -304,7 +343,10 @@ function buildContentItemAttributes(
   return attributes;
 }
 
-/** Build attributes from embedded resource object */
+/**
+ * Build attributes from embedded resource object
+ * @internal
+ */
 function buildEmbeddedResourceAttributes(resource: Record<string, unknown>, prefix: string): Record<string, string> {
   const attributes: Record<string, string> = {};
 
@@ -319,7 +361,10 @@ function buildEmbeddedResourceAttributes(resource: Record<string, unknown>, pref
   return attributes;
 }
 
-/** Build attributes for all content items in the result */
+/**
+ * Build attributes for all content items in the tool result
+ * @internal
+ */
 function buildAllContentItemAttributes(content: unknown[]): Record<string, string | number> {
   const attributes: Record<string, string | number> = {};
 
@@ -341,7 +386,11 @@ function buildAllContentItemAttributes(content: unknown[]): Record<string, strin
   return attributes;
 }
 
-/** Extract tool result attributes for span instrumentation */
+/**
+ * Extract tool result attributes for span instrumentation
+ * @param result - Tool execution result
+ * @returns Attributes extracted from tool result content
+ */
 export function extractToolResultAttributes(result: unknown): Record<string, string | number | boolean> {
   let attributes: Record<string, string | number | boolean> = {};
 

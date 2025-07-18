@@ -1,12 +1,18 @@
 /**
  * Message validation functions for MCP server instrumentation
+ *
+ * Provides JSON-RPC 2.0 message type validation and MCP server instance validation.
  */
 
 import { DEBUG_BUILD } from '../../debug-build';
 import { debug } from '../../utils/debug-logger';
 import type { JsonRpcNotification, JsonRpcRequest } from './types';
 
-/** Validates if a message is a JSON-RPC request */
+/**
+ * Validates if a message is a JSON-RPC request
+ * @param message - Message to validate
+ * @returns True if message is a JSON-RPC request
+ */
 export function isJsonRpcRequest(message: unknown): message is JsonRpcRequest {
   return (
     typeof message === 'object' &&
@@ -18,7 +24,11 @@ export function isJsonRpcRequest(message: unknown): message is JsonRpcRequest {
   );
 }
 
-/** Validates if a message is a JSON-RPC notification */
+/**
+ * Validates if a message is a JSON-RPC notification
+ * @param message - Message to validate
+ * @returns True if message is a JSON-RPC notification
+ */
 export function isJsonRpcNotification(message: unknown): message is JsonRpcNotification {
   return (
     typeof message === 'object' &&
@@ -30,7 +40,11 @@ export function isJsonRpcNotification(message: unknown): message is JsonRpcNotif
   );
 }
 
-/** Validates if a message is a JSON-RPC response */
+/**
+ * Validates if a message is a JSON-RPC response
+ * @param message - Message to validate
+ * @returns True if message is a JSON-RPC response
+ */
 export function isJsonRpcResponse(
   message: unknown,
 ): message is { jsonrpc: '2.0'; id: string | number | null; result?: unknown; error?: unknown } {
@@ -44,7 +58,11 @@ export function isJsonRpcResponse(
   );
 }
 
-/** Validates MCP server instance with type checking */
+/**
+ * Validates MCP server instance with type checking
+ * @param instance - Object to validate as MCP server instance
+ * @returns True if instance has required MCP server methods
+ */
 export function validateMcpServerInstance(instance: unknown): boolean {
   if (
     typeof instance === 'object' &&

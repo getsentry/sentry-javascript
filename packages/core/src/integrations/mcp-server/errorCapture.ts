@@ -1,19 +1,25 @@
 /**
  * Safe error capture utilities for MCP server instrumentation
- * Ensures Sentry error reporting never interferes with MCP service operation
+ *
+ * Ensures error reporting never interferes with MCP server operation.
+ * All capture operations are wrapped in try-catch to prevent side effects.
  */
 
 import { getClient } from '../../currentScopes';
 import { captureException } from '../../exports';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import { getActiveSpan } from '../../utils/spanUtils';
+import type { McpErrorType } from './types';
 
 /**
- * Safely captures an error to Sentry without affecting MCP service operation
+ * Captures an error without affecting MCP server operation.
+ *
  * The active span already contains all MCP context (method, tool, arguments, etc.)
- * Sentry automatically associates the error with the active span
+ * @param error - Error to capture
+ * @param errorType - Classification of error type for filtering
+ * @param extraData - Additional context data to include
  */
-export function captureError(error: Error, errorType?: string, extraData?: Record<string, unknown>): void {
+export function captureError(error: Error, errorType?: McpErrorType, extraData?: Record<string, unknown>): void {
   try {
     const client = getClient();
     if (!client) {
@@ -39,6 +45,6 @@ export function captureError(error: Error, errorType?: string, extraData?: Recor
       },
     });
   } catch {
-    // Silently ignore capture errors - never affect MCP operation
+    // noop
   }
 }

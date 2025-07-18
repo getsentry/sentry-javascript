@@ -1,5 +1,8 @@
 /**
  * Span creation and management functions for MCP server instrumentation
+ *
+ * Provides unified span creation following OpenTelemetry MCP semantic conventions and our opinitionated take on MCP.
+ * Handles both request and notification spans with attribute extraction.
  */
 
 import { getClient } from '../../currentScopes';
@@ -24,6 +27,10 @@ import type { ExtraHandlerData, JsonRpcNotification, JsonRpcRequest, McpSpanConf
 
 /**
  * Creates a span name based on the method and target
+ * @internal
+ * @param method - MCP method name
+ * @param target - Optional target identifier
+ * @returns Formatted span name
  */
 function createSpanName(method: string, target?: string): string {
   return target ? `${method} ${target}` : method;
@@ -31,7 +38,9 @@ function createSpanName(method: string, target?: string): string {
 
 /**
  * Build Sentry-specific attributes based on span type
- * Uses specific operations for notification direction
+ * @internal
+ * @param type - Span type configuration
+ * @returns Sentry-specific attributes
  */
 function buildSentryAttributes(type: McpSpanConfig['type']): Record<string, string> {
   let op: string;
@@ -61,7 +70,9 @@ function buildSentryAttributes(type: McpSpanConfig['type']): Record<string, stri
 
 /**
  * Unified builder for creating MCP spans
- * Follows OpenTelemetry semantic conventions for span naming
+ * @internal
+ * @param config - Span configuration
+ * @returns Created span
  */
 function createMcpSpan(config: McpSpanConfig): unknown {
   const { type, message, transport, extra, callback } = config;
@@ -78,19 +89,13 @@ function createMcpSpan(config: McpSpanConfig): unknown {
     spanName = method;
   }
 
-  // Build attributes
   const rawAttributes: Record<string, string | number> = {
-    // Base attributes
     ...buildTransportAttributes(transport, extra),
-    // Method name (required for all spans)
     [MCP_METHOD_NAME_ATTRIBUTE]: method,
-    // Type-specific attributes
     ...buildTypeSpecificAttributes(type, message, params),
-    // Sentry attributes
     ...buildSentryAttributes(type),
   };
 
-  // Apply PII filtering based on sendDefaultPii setting
   const client = getClient();
   const sendDefaultPii = Boolean(client?.getOptions().sendDefaultPii);
   const attributes = filterMcpPiiFromSpanData(rawAttributes, sendDefaultPii) as Record<string, string | number>;
@@ -107,6 +112,11 @@ function createMcpSpan(config: McpSpanConfig): unknown {
 
 /**
  * Creates a span for incoming MCP notifications
+ * @param jsonRpcMessage - Notification message
+ * @param transport - MCP transport instance
+ * @param extra - Extra handler data
+ * @param callback - Span execution callback
+ * @returns Span execution result
  */
 export function createMcpNotificationSpan(
   jsonRpcMessage: JsonRpcNotification,
@@ -125,6 +135,10 @@ export function createMcpNotificationSpan(
 
 /**
  * Creates a span for outgoing MCP notifications
+ * @param jsonRpcMessage - Notification message
+ * @param transport - MCP transport instance
+ * @param callback - Span execution callback
+ * @returns Span execution result
  */
 export function createMcpOutgoingNotificationSpan(
   jsonRpcMessage: JsonRpcNotification,
@@ -141,7 +155,10 @@ export function createMcpOutgoingNotificationSpan(
 
 /**
  * Builds span configuration for MCP server requests
- * Used for deferred span completion pattern
+ * @param jsonRpcMessage - Request message
+ * @param transport - MCP transport instance
+ * @param extra - Optional extra handler data
+ * @returns Span configuration object
  */
 export function buildMcpServerSpanConfig(
   jsonRpcMessage: JsonRpcRequest,
@@ -156,23 +173,16 @@ export function buildMcpServerSpanConfig(
   const { method } = jsonRpcMessage;
   const params = jsonRpcMessage.params as Record<string, unknown> | undefined;
 
-  // Extract target for span name
   const targetInfo = extractTargetInfo(method, params || {});
   const spanName = createSpanName(method, targetInfo.target);
 
-  // Build comprehensive attributes
   const rawAttributes: Record<string, string | number> = {
-    // Base attributes
     ...buildTransportAttributes(transport, extra),
-    // Method and request info
     [MCP_METHOD_NAME_ATTRIBUTE]: method,
-    // Type-specific attributes
     ...buildTypeSpecificAttributes('request', jsonRpcMessage, params),
-    // Sentry attributes
     ...buildSentryAttributes('request'),
   };
 
-  // Apply PII filtering based on sendDefaultPii setting
   const client = getClient();
   const sendDefaultPii = Boolean(client?.getOptions().sendDefaultPii);
   const attributes = filterMcpPiiFromSpanData(rawAttributes, sendDefaultPii) as Record<string, string | number>;
