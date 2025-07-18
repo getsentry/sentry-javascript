@@ -5,6 +5,8 @@ const uploadSourceMapsMock = vi.fn();
 const finalizeMock = vi.fn();
 const proposeVersionMock = vi.fn(() => '0.1.2.3.4');
 
+const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
 // The createRelease script requires the Sentry CLI, which we need to mock so we
 // hook require to do this
 async function mock(mockedUri: string, stub: any) {
@@ -56,6 +58,7 @@ describe('createRelease', () => {
       urlPrefix: '~/build/',
       include: ['public/build'],
       useArtifactBundle: true,
+      live: 'rejectOnError',
     });
     expect(finalizeMock).toHaveBeenCalledWith('0.1.2.3');
   });
@@ -69,6 +72,7 @@ describe('createRelease', () => {
       urlPrefix: '~/build/',
       include: ['public/build'],
       useArtifactBundle: true,
+      live: 'rejectOnError',
     });
     expect(finalizeMock).toHaveBeenCalledWith('0.1.2.3.4');
   });
@@ -89,7 +93,25 @@ describe('createRelease', () => {
       urlPrefix: '~/build/',
       include: ['public/build'],
       useArtifactBundle: true,
+      live: 'rejectOnError',
     });
+    expect(finalizeMock).toHaveBeenCalledWith('0.1.2.3.4');
+  });
+
+  it('logs an error when uploadSourceMaps fails', async () => {
+    uploadSourceMapsMock.mockRejectedValue(new Error('Failed to upload sourcemaps'));
+
+    await createRelease({}, '~/build/', 'public/build');
+
+    expect(uploadSourceMapsMock).toHaveBeenCalledWith('0.1.2.3.4', {
+      urlPrefix: '~/build/',
+      include: ['public/build'],
+      useArtifactBundle: true,
+      live: 'rejectOnError',
+    });
+
+    expect(consoleWarnSpy).toHaveBeenCalledWith('[sentry] Failed to upload sourcemaps.');
+
     expect(finalizeMock).toHaveBeenCalledWith('0.1.2.3.4');
   });
 });
