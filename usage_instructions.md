@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `enableManualPageLoadFinish` option allows you to take full control over when your page load spans finish, instead of relying on automatic timeout mechanisms.
+The `manualPageLoad` option allows you to take full control over when your page load spans finish, instead of relying on automatic timeout mechanisms.
 
 ## Configuration
 
@@ -13,7 +13,7 @@ Sentry.init({
   dsn: 'YOUR_DSN',
   integrations: [
     browserTracingIntegration({
-      enableManualPageLoadFinish: true, // Enable manual control
+      manualPageLoad: true, // Enable manual control
       // Other options...
     }),
   ],
@@ -22,7 +22,7 @@ Sentry.init({
 
 ## Usage
 
-When `enableManualPageLoadFinish: true` is set:
+When `manualPageLoad: true` is set:
 
 1. **Page load spans will NOT finish automatically** - all timeout mechanisms are disabled
 2. **You MUST call `Sentry.reportPageLoaded()`** to finish the span manually
@@ -98,7 +98,7 @@ browserTracingIntegration({
 
 // New way
 browserTracingIntegration({
-  enableManualPageLoadFinish: true, // ✅ Clear intent
+  manualPageLoad: true, // ✅ Clear intent
 })
 ```
 
