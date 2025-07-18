@@ -27,11 +27,16 @@ async function createRelease(argv, URL_PREFIX, BUILD_PATH) {
 
   await sentry.releases.new(release);
 
-  await sentry.releases.uploadSourceMaps(release, {
-    urlPrefix: URL_PREFIX,
-    include: [BUILD_PATH],
-    useArtifactBundle: !argv.disableDebugIds,
-  });
+  try {
+    await sentry.releases.uploadSourceMaps(release, {
+      urlPrefix: URL_PREFIX,
+      include: [BUILD_PATH],
+      useArtifactBundle: !argv.disableDebugIds,
+      live: 'rejectOnError',
+    });
+  } catch (error) {
+    console.warn('[sentry] Failed to upload sourcemaps.');
+  }
 
   await sentry.releases.finalize(release);
 
