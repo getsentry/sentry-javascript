@@ -59,8 +59,6 @@ export { getIntegrationsToSetup, addIntegration, defineIntegration } from './int
 export { applyScopeDataToEvent, mergeScopeData } from './utils/applyScopeDataToEvent';
 export { prepareEvent } from './utils/prepareEvent';
 export { createCheckInEnvelope } from './checkin';
-// eslint-disable-next-line deprecation/deprecation
-export { hasTracingEnabled } from './utils/hasSpansEnabled';
 export { hasSpansEnabled } from './utils/hasSpansEnabled';
 export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
 export { handleCallbackErrors } from './utils/handleCallbackErrors';
