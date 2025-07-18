@@ -94,14 +94,14 @@ export class BrowserClient extends Client<BrowserClientOptions> {
           if (sendClientReports) {
             this._flushOutcomes();
           }
-          if (enableLogs) {
+          if (shouldEnableLogs) {
             _INTERNAL_flushLogsBuffer(this);
           }
         }
       });
     }
 
-    if (enableLogs) {
+    if (shouldEnableLogs) {
       this.on('flush', () => {
         _INTERNAL_flushLogsBuffer(this);
       });
