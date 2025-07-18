@@ -130,7 +130,8 @@ function captureJsonRpcErrorResponse(
       // Only capture server-side errors, not client validation errors
       // Per JSON-RPC 2.0 error object spec:
       // https://www.jsonrpc.org/specification#error_object
-      const isServerError = jsonRpcError.code === -32603 || (jsonRpcError.code >= -32099 && jsonRpcError.code <= -32000);
+      const isServerError =
+        jsonRpcError.code === -32603 || (jsonRpcError.code >= -32099 && jsonRpcError.code <= -32000);
 
       if (isServerError) {
         const error = new Error(jsonRpcError.message);

@@ -43,10 +43,10 @@ function createWrappedHandler(originalHandler: MCPHandler, methodName: keyof MCP
         handlerArgs,
         extraHandlerData,
       );
-          } catch (error) {
-        DEBUG_BUILD && debug.warn('MCP handler wrapping failed:', error);
-        return originalHandler.apply(this, handlerArgs);
-      }
+    } catch (error) {
+      DEBUG_BUILD && debug.warn('MCP handler wrapping failed:', error);
+      return originalHandler.apply(this, handlerArgs);
+    }
   };
 }
 

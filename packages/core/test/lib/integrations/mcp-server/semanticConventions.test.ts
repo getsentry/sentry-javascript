@@ -371,7 +371,9 @@ describe('MCP Server Semantic Conventions', () => {
         setStatus: setStatusSpy,
         end: endSpy,
       };
-      startInactiveSpanSpy.mockReturnValueOnce(mockSpan as unknown as ReturnType<typeof tracingModule.startInactiveSpan>);
+      startInactiveSpanSpy.mockReturnValueOnce(
+        mockSpan as unknown as ReturnType<typeof tracingModule.startInactiveSpan>,
+      );
 
       const toolCallRequest = {
         jsonrpc: '2.0',
