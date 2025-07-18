@@ -43,7 +43,7 @@ function wrapMethodHandler(serverInstance: MCPServerInstance, methodName: keyof 
 function createWrappedHandler(originalHandler: MCPHandler, methodName: keyof MCPServerInstance, handlerName: string) {
   return function (this: unknown, ...handlerArgs: unknown[]): unknown {
     try {
-      return createErrorCapturingHandler.call(this, originalHandler, methodName, handlerName);
+      return createErrorCapturingHandler.call(this, originalHandler, methodName, handlerName, handlerArgs);
     } catch (error) {
       DEBUG_BUILD && debug.warn('MCP handler wrapping failed:', error);
       return originalHandler.apply(this, handlerArgs);
