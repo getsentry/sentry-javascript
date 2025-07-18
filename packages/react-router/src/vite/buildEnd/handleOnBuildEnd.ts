@@ -61,8 +61,6 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
     try {
       await cliInstance.execute(
         ['sourcemaps', 'inject', reactRouterConfig.buildDirectory],
-        // @ts-expect-error - 'rejectOnError' is not yet exported as a type from @sentry/cli. It is valid though.
-        // TODO: update to @sentry/cli@2.50.0 once the fix is released: https://github.com/getsentry/sentry-cli/pull/2628
         debug ? 'rejectOnError' : false,
       );
     } catch (error) {
