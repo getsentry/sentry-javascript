@@ -22,7 +22,11 @@ function run(cmd: string, options?: childProcess.ExecSyncOptions): string {
 async function buildLambdaLayer(): Promise<void> {
   console.log('Building Lambda layer.');
   console.log('Installing local @sentry/aws-serverless into build/aws/dist-serverless/nodejs.');
-  run('npm install . --prefix ./build/aws/dist-serverless/nodejs --install-links --silent');
+
+  console.log('Creating target directory for npm install.');
+  fsForceMkdirSync('./build/aws/dist-serverless/nodejs');
+
+  run('npm install . --prefix ./build/aws/dist-serverless/nodejs --install-links');
 
   await pruneNodeModules();
   fs.rmSync('./build/aws/dist-serverless/nodejs/package.json', { force: true });
@@ -60,7 +64,7 @@ buildLambdaLayer();
  */
 function fsForceMkdirSync(path: string): void {
   fs.rmSync(path, { recursive: true, force: true });
-  fs.mkdirSync(path);
+  fs.mkdirSync(path, { recursive: true });
 }
 
 async function pruneNodeModules(): Promise<void> {
