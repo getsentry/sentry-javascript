@@ -30,7 +30,7 @@ pnpm add @sentry/pino-transport pino
 
 - Node.js 18+
 - Pino v8 or v9
-- `@sentry/node` SDK with `_experiments.enableLogs: true`
+- `@sentry/node` SDK with `enableLogs: true`
 
 ## Setup
 
@@ -41,9 +41,7 @@ import * as Sentry from '@sentry/node';
 
 Sentry.init({
   dsn: 'YOUR_DSN',
-  _experiments: {
-    enableLogs: true,
-  },
+  enableLogs: true,
 });
 ```
 
@@ -252,7 +250,7 @@ const logger = pino({
 
 ### Logs not appearing in Sentry
 
-1. Ensure `_experiments.enableLogs: true` is set in your Sentry configuration.
+1. Ensure `enableLogs: true` is set in your Sentry configuration.
 2. Check that your DSN is correct and the SDK is properly initialized.
 3. Verify the log level is included in the `levels` configuration.
 4. Check your Sentry organization stats page to see if logs are being received by Sentry.

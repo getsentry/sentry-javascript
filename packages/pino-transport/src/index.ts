@@ -84,7 +84,7 @@ interface PinoSourceConfig {
 }
 
 /**
- * Creates a new Sentry Pino transport that forwards logs to Sentry. Requires `_experiments.enableLogs` to be enabled.
+ * Creates a new Sentry Pino transport that forwards logs to Sentry. Requires the `enableLogs` option to be enabled.
  *
  * Supports Pino v8 and v9.
  *

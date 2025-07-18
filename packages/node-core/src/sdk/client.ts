@@ -45,7 +45,7 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
 
     super(clientOptions);
 
-    if (this.getOptions()._experiments?.enableLogs) {
+    if (this.getOptions().enableLogs) {
       this._logOnExitFlushListener = () => {
         _INTERNAL_flushLogsBuffer(this);
       };

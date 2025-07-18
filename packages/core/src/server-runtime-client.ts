@@ -49,7 +49,7 @@ export class ServerRuntimeClient<
 
     this._logWeight = 0;
 
-    if (this._options._experiments?.enableLogs) {
+    if (this._options.enableLogs) {
       // eslint-disable-next-line @typescript-eslint/no-this-alias
       const client = this;
 

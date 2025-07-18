@@ -296,7 +296,7 @@ describe('NodeClient', () => {
 
   describe('log capture', () => {
     it('adds server name to log attributes', () => {
-      const options = getDefaultNodeClientOptions({ _experiments: { enableLogs: true } });
+      const options = getDefaultNodeClientOptions({ enableLogs: true });
       const client = new NodeClient(options);
 
       const log: Log = { level: 'info', message: 'test message', attributes: {} };
@@ -309,7 +309,7 @@ describe('NodeClient', () => {
 
     it('preserves existing log attributes', () => {
       const serverName = 'test-server';
-      const options = getDefaultNodeClientOptions({ serverName, _experiments: { enableLogs: true } });
+      const options = getDefaultNodeClientOptions({ serverName, enableLogs: true });
       const client = new NodeClient(options);
 
       const log: Log = { level: 'info', message: 'test message', attributes: { 'existing.attr': 'value' } };

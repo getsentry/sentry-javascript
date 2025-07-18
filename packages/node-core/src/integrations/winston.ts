@@ -28,7 +28,7 @@ interface WinstonTransportOptions {
 }
 
 /**
- * Creates a new Sentry Winston transport that fowards logs to Sentry. Requires `_experiments.enableLogs` to be enabled.
+ * Creates a new Sentry Winston transport that fowards logs to Sentry. Requires the `enableLogs` option to be enabled.
  *
  * Supports Winston 3.x.x.
  *
