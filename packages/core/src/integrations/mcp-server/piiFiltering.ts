@@ -27,6 +27,14 @@ const PII_ATTRIBUTES = new Set([
 ]);
 
 /**
+ * Checks if an attribute key should be considered PII
+ * @internal
+ */
+function isPiiAttribute(key: string): boolean {
+  return PII_ATTRIBUTES.has(key) || key.startsWith(`${MCP_REQUEST_ARGUMENT}.`);
+}
+
+/**
  * Removes PII attributes from span data when sendDefaultPii is false
  * @param spanData - Raw span attributes
  * @param sendDefaultPii - Whether to include PII data
@@ -35,15 +43,18 @@ const PII_ATTRIBUTES = new Set([
 export function filterMcpPiiFromSpanData(
   spanData: Record<string, unknown>,
   sendDefaultPii: boolean,
-): Record<string, SpanAttributeValue | undefined> {
+): Record<string, SpanAttributeValue> {
   if (sendDefaultPii) {
-    return spanData as Record<string, SpanAttributeValue | undefined>;
+    return spanData as Record<string, SpanAttributeValue>;
   }
 
-  return Object.fromEntries(
-    Object.entries(spanData).filter(([key]) => {
-      const isPiiAttribute = PII_ATTRIBUTES.has(key) || key.startsWith(`${MCP_REQUEST_ARGUMENT}.`);
-      return !isPiiAttribute;
-    }),
-  ) as Record<string, SpanAttributeValue | undefined>;
+  return Object.entries(spanData).reduce(
+    (acc, [key, value]) => {
+      if (!isPiiAttribute(key)) {
+        acc[key] = value as SpanAttributeValue;
+      }
+      return acc;
+    },
+    {} as Record<string, SpanAttributeValue>,
+  );
 }
