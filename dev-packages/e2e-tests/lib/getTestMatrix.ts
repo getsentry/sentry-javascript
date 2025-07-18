@@ -143,9 +143,46 @@ function getAffectedTestApplications(
     .map(line => line.trim())
     .filter(Boolean);
 
-  // If something in e2e tests themselves are changed, just run everything
+  // If something in e2e tests themselves are changed, check if only test applications were changed
   if (affectedProjects.includes('@sentry-internal/e2e-tests')) {
-    return testApplications;
+    try {
+      const changedFiles = execSync(
+        `git diff --name-only ${base}${head ? `..${head}` : ''} -- dev-packages/e2e-tests/`,
+        { encoding: 'utf-8' },
+      )
+        .toString()
+        .split('\n')
+        .map(line => line.trim())
+        .filter(Boolean);
+
+      // Check if only test application files were changed
+      const changedTestApps = new Set<string>();
+      const hasSharedCodeChanges = changedFiles.some(file => {
+        // Check if the file is within a test application directory
+        const testAppMatch = file.match(/^dev-packages\/e2e-tests\/test-applications\/([^/]+)\//);
+        if (testAppMatch?.[1]) {
+          changedTestApps.add(testAppMatch[1]);
+          return false;
+        }
+        // If it's not in test-applications/, we assume it's shared code
+        return true;
+      });
+
+      // Shared code was changed, run all tests
+      if (hasSharedCodeChanges) {
+        return testApplications;
+      }
+
+      // Only test applications were changed, run selectively
+      if (changedTestApps.size > 0) {
+        return testApplications.filter(testApp => changedTestApps.has(testApp));
+      }
+    } catch (error) {
+      // Fall back to running all tests
+      // eslint-disable-next-line no-console
+      console.error('Failed to get changed files, running all tests:', error);
+      return testApplications;
+    }
   }
 
   return testApplications.filter(testApp => {
