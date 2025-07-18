@@ -4,7 +4,6 @@ import { WINDOW } from '../../../src/constants';
 import {
   createPerformanceEntries,
   getCumulativeLayoutShift,
-  getFirstInputDelay,
   getInteractionToNextPaint,
   getLargestContentfulPaint,
 } from '../../../src/util/createPerformanceEntries';
@@ -104,26 +103,6 @@ describe('Unit | util | createPerformanceEntries', () => {
         start: 1672531205.108299,
         end: 1672531205.108299,
         data: { value: 5108.299, size: 5108.299, rating: 'good', nodeIds: [], attributions: [] },
-      });
-    });
-  });
-
-  describe('getFirstInputDelay', () => {
-    it('works with an FID metric', async () => {
-      const metric = {
-        value: 5108.299,
-        rating: 'good' as const,
-        entries: [],
-      };
-
-      const event = getFirstInputDelay(metric);
-
-      expect(event).toEqual({
-        type: 'web-vital',
-        name: 'first-input-delay',
-        start: 1672531205.108299,
-        end: 1672531205.108299,
-        data: { value: 5108.299, size: 5108.299, rating: 'good', nodeIds: undefined, attributions: undefined },
       });
     });
   });

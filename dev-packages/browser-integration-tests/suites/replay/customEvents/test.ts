@@ -4,7 +4,6 @@ import {
   expectedClickBreadcrumb,
   expectedCLSPerformanceSpan,
   expectedFCPPerformanceSpan,
-  expectedFIDPerformanceSpan,
   expectedFPPerformanceSpan,
   expectedLCPPerformanceSpan,
   expectedMemoryPerformanceSpan,
@@ -56,7 +55,7 @@ sentryTest(
         expectedNavigationPerformanceSpan,
         expectedLCPPerformanceSpan,
         expectedCLSPerformanceSpan,
-        expectedFIDPerformanceSpan,
+        expectedFPPerformanceSpan,
         expectedFPPerformanceSpan,
         expectedFCPPerformanceSpan,
         expectedMemoryPerformanceSpan, // two memory spans - once per flush
