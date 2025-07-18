@@ -148,19 +148,6 @@ export const expectedCLSPerformanceSpan = {
   },
 };
 
-export const expectedFIDPerformanceSpan = {
-  op: 'web-vital',
-  description: 'first-input-delay',
-  startTimestamp: expect.any(Number),
-  endTimestamp: expect.any(Number),
-  data: {
-    value: expect.any(Number),
-    rating: expect.any(String),
-    size: expect.any(Number),
-    nodeIds: expect.any(Array),
-  },
-};
-
 export const expectedINPPerformanceSpan = {
   op: 'web-vital',
   description: 'interaction-to-next-paint',

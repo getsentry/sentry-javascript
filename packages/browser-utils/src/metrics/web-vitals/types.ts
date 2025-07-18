@@ -15,11 +15,9 @@
  */
 
 export * from './types/base';
-export * from './types/polyfills';
 
 export * from './types/cls';
 export * from './types/fcp';
-export * from './types/fid'; // FIX was removed in 5.0.2 but we keep it around for now
 export * from './types/inp';
 export * from './types/lcp';
 export * from './types/ttfb';

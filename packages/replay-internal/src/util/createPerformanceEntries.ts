@@ -222,15 +222,6 @@ export function getCumulativeLayoutShift(metric: Metric): ReplayPerformanceEntry
 }
 
 /**
- * Add a FID event to the replay based on a FID metric.
- */
-export function getFirstInputDelay(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
-  const lastEntry = metric.entries[metric.entries.length - 1] as (PerformanceEntry & { target?: Node }) | undefined;
-  const node = lastEntry?.target ? [lastEntry.target] : undefined;
-  return getWebVital(metric, 'first-input-delay', node);
-}
-
-/**
  * Add an INP event to the replay based on an INP metric.
  */
 export function getInteractionToNextPaint(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
