@@ -1,6 +1,0 @@
-.config
-cache
-firebase/data
-firebase/firebase-export-*
-*-debug.log
-.env

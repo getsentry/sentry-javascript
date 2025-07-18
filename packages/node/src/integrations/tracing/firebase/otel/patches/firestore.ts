@@ -63,7 +63,7 @@ export function patchFirestore(
           if (!error) {
             return;
           }
-          diag.error(error?.message);
+          diag.error('Firebase Firestore span creation hook failed', error?.message);
         },
         true,
       );
@@ -156,7 +156,9 @@ function patchAddDoc<AppModelType, DbModelType extends DocumentData>(
       data: WithFieldValue<AppModelType>,
     ): Promise<DocumentReference<AppModelType, DbModelType>> {
       const span = startDBSpan(tracer, 'addDoc', reference);
+
       firestoreSpanCreationHook(span);
+
       return executeContextWithSpan<Promise<DocumentReference<AppModelType, DbModelType>>>(span, () => {
         return original(reference, data);
       });
