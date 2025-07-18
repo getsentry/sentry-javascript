@@ -33,9 +33,8 @@ function beforeAddBreadcrumb(replay: ReplayContainer, breadcrumb: Breadcrumb): v
 }
 
 /** Exported only for tests. */
-export function normalizeBreadcrumb(breadcrumb: Breadcrumb): Breadcrumb | null {
+export function normalizeBreadcrumb(breadcrumb: Required<Pick<Breadcrumb, 'category'>>): Breadcrumb | null {
   if (
-    !isBreadcrumbWithCategory(breadcrumb) ||
     [
       // fetch & xhr are handled separately,in handleNetworkBreadcrumbs
       'fetch',
