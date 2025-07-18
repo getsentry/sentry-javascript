@@ -56,7 +56,6 @@ sentryTest(
         expectedLCPPerformanceSpan,
         expectedCLSPerformanceSpan,
         expectedFPPerformanceSpan,
-        expectedFPPerformanceSpan,
         expectedFCPPerformanceSpan,
         expectedMemoryPerformanceSpan, // two memory spans - once per flush
         expectedMemoryPerformanceSpan,
