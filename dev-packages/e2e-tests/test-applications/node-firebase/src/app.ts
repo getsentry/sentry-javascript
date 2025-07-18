@@ -12,7 +12,7 @@ import {
   getDocs,
   getFirestore,
   setDoc,
-} from 'firebase/firestore/lite'; // seems like "firebase/firestore" is trying to use grpc for connection and it
+} from 'firebase/firestore/lite';
 
 const options: FirebaseOptions = {
   projectId: 'sentry-15d85',
@@ -22,7 +22,7 @@ const options: FirebaseOptions = {
 const app = initializeApp(options);
 
 const db = getFirestore(app);
-connectFirestoreEmulator(db, '127.0.0.1', 5504);
+connectFirestoreEmulator(db, '127.0.0.1', 8080);
 const citiesRef = collection(db, 'cities');
 
 async function addCity(): Promise<void> {
