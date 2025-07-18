@@ -50,3 +50,18 @@ test('Does not send 4xx errors by default', async ({ baseURL }) => {
   const errorEvent = await serverErrorPromise;
   expect(errorEvent.exception?.values?.[0]?.value).toContain('This is a 5xx error');
 });
+
+test('Does not send error when shouldHandleError returns false', async ({ baseURL }) => {
+  const errorEventPromise = waitForError('node-fastify-4', event => {
+    return !event.type && event.exception?.values?.[0]?.value === 'This is an error that will not be captured';
+  });
+
+  errorEventPromise.then(() => {
+    throw new Error('This error should not be captured');
+  });
+
+  await fetch(`${baseURL}/test-error-not-captured`);
+
+  // wait for a short time to ensure the error is not captured
+  await new Promise(resolve => setTimeout(resolve, 1000));
+});

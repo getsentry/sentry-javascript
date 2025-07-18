@@ -20,11 +20,6 @@ Sentry.init({
   integrations: [
     Sentry.fastifyIntegration({
       shouldHandleError: (error, _request, _reply) => {
-        if (_request.routeOptions?.url?.includes('/test-error-not-captured')) {
-          // Errors from this path will not be captured by Sentry
-          return false;
-        }
-
         return true;
       },
     }),
@@ -45,7 +40,17 @@ const app = fastify();
 const port = 3030;
 const port2 = 3040;
 
-Sentry.setupFastifyErrorHandler(app);
+Sentry.setupFastifyErrorHandler(app, {
+  shouldHandleError: (error, _request, _reply) => {
+    // @ts-ignore // Fastify V3 is not typed correctly
+    if (_request.url?.includes('/test-error-not-captured')) {
+      // Errors from this path will not be captured by Sentry
+      return false;
+    }
+
+    return true;
+  },
+});
 
 app.get('/test-success', function (_req, res) {
   res.send({ version: 'v1' });
@@ -95,16 +100,6 @@ app.get('/test-error', async function (req, res) {
 app.get('/test-error-not-captured', async function () {
   // This error will not be captured by Sentry
   throw new Error('This is an error that will not be captured');
-});
-
-app.get('/test-4xx-error', async function (req, res) {
-  res.code(400);
-  throw new Error('This is a 4xx error');
-});
-
-app.get('/test-5xx-error', async function (req, res) {
-  res.code(500);
-  throw new Error('This is a 5xx error');
 });
 
 app.get<{ Params: { id: string } }>('/test-exception/:id', async function (req, res) {

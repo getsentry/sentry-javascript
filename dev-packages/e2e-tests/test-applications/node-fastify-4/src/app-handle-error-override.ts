@@ -20,11 +20,6 @@ Sentry.init({
   integrations: [
     Sentry.fastifyIntegration({
       shouldHandleError: (error, _request, _reply) => {
-        if (_request.routeOptions?.url?.includes('/test-error-not-captured')) {
-          // Errors from this path will not be captured by Sentry
-          return false;
-        }
-
         return true;
       },
     }),
@@ -45,7 +40,16 @@ const app = fastify();
 const port = 3030;
 const port2 = 3040;
 
-Sentry.setupFastifyErrorHandler(app);
+Sentry.setupFastifyErrorHandler(app, {
+  shouldHandleError: (error, _request, _reply) => {
+    if (_request.routeOptions?.url?.includes('/test-error-not-captured')) {
+      // Errors from this path will not be captured by Sentry
+      return false;
+    }
+
+    return true;
+  },
+});
 
 app.get('/test-success', function (_req, res) {
   res.send({ version: 'v1' });
