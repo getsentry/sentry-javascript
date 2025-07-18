@@ -6,7 +6,15 @@ import { onLCP } from './web-vitals/getLCP';
 import { observe } from './web-vitals/lib/observe';
 import { onTTFB } from './web-vitals/onTTFB';
 
-type InstrumentHandlerTypePerformanceObserver = 'longtask' | 'event' | 'navigation' | 'paint' | 'resource' | 'element';
+type InstrumentHandlerTypePerformanceObserver =
+  | 'longtask'
+  | 'event'
+  | 'navigation'
+  | 'paint'
+  | 'resource'
+  | 'element'
+  // fist-input is still needed for INP
+  | 'first-input';
 
 type InstrumentHandlerTypeMetric = 'cls' | 'lcp' | 'ttfb' | 'inp';
 
