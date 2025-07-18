@@ -178,11 +178,13 @@ function getAffectedTestApplications(
         return testApplications.filter(testApp => changedTestApps.has(testApp));
       }
     } catch (error) {
-      // Fall back to running all tests
       // eslint-disable-next-line no-console
       console.error('Failed to get changed files, running all tests:', error);
       return testApplications;
     }
+
+    // Fall back to running all tests
+    return testApplications;
   }
 
   return testApplications.filter(testApp => {
