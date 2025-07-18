@@ -69,7 +69,7 @@
     "@sentry/core": "9.40.0",
     "@sentry/node": "9.40.0",
     "@sentry/solid": "9.40.0",
-    "@sentry/vite-plugin": "2.22.6"
+    "@sentry/vite-plugin": "^4.0.0"
   },
   "devDependencies": {
     "@solidjs/router": "^0.13.4",
