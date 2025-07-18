@@ -1115,7 +1115,7 @@ describe('Client', () => {
           },
           {
             description: 'third span',
-            span_id: 'aa554c1f506b0783',
+            span_id: 'aa554c1f506b0784',
             parent_span_id: '9e15bf99fbe4bc80',
             start_timestamp: 1591603196.637835,
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
@@ -1137,7 +1137,7 @@ describe('Client', () => {
         },
         {
           description: 'third span',
-          span_id: 'aa554c1f506b0783',
+          span_id: 'aa554c1f506b0784',
           parent_span_id: 'root-span-id',
           start_timestamp: 1591603196.637835,
           trace_id: '86f39e84263a4de99c326acab3bfe3bd',
@@ -1193,7 +1193,7 @@ describe('Client', () => {
           {
             description: 'third span',
             op: 'other op',
-            span_id: 'aa554c1f506b0783',
+            span_id: 'aa554c1f506b0784',
             parent_span_id: '9e15bf99fbe4bc80',
             start_timestamp: 1591603196.637835,
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
@@ -1208,7 +1208,7 @@ describe('Client', () => {
         {
           description: 'third span',
           op: 'other op',
-          span_id: 'aa554c1f506b0783',
+          span_id: 'aa554c1f506b0784',
           parent_span_id: 'root-span-id',
           start_timestamp: 1591603196.637835,
           trace_id: '86f39e84263a4de99c326acab3bfe3bd',
