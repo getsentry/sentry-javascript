@@ -42,9 +42,7 @@ describe('Logger', () => {
     init({
       dsn,
       transport: makeSimpleTransport,
-      _experiments: {
-        enableLogs: true,
-      },
+      enableLogs: true,
     });
   });
 

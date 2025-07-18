@@ -124,12 +124,15 @@ export function _INTERNAL_captureLog(
     return;
   }
 
-  const { _experiments, release, environment } = client.getOptions();
-  const { enableLogs = false, beforeSendLog } = _experiments ?? {};
-  if (!enableLogs) {
+  const { release, environment, enableLogs, beforeSendLog, _experiments } = client.getOptions();
+  // eslint-disable-next-line deprecation/deprecation
+  const shouldEnableLogs = enableLogs ?? _experiments?.enableLogs;
+  if (!shouldEnableLogs) {
     DEBUG_BUILD && debug.warn('logging option not enabled, log will not be captured.');
     return;
   }
+  // eslint-disable-next-line deprecation/deprecation
+  const actualBeforeSendLog = beforeSendLog ?? _experiments?.beforeSendLog;
 
   const [, traceContext] = _getTraceInfoFromScope(client, currentScope);
 
@@ -169,7 +172,7 @@ export function _INTERNAL_captureLog(
   client.emit('beforeCaptureLog', processedLog);
 
   // We need to wrap this in `consoleSandbox` to avoid recursive calls to `beforeSendLog`
-  const log = beforeSendLog ? consoleSandbox(() => beforeSendLog(processedLog)) : processedLog;
+  const log = actualBeforeSendLog ? consoleSandbox(() => actualBeforeSendLog(processedLog)) : processedLog;
   if (!log) {
     client.recordDroppedEvent('before_send', 'log_item', 1);
     DEBUG_BUILD && debug.warn('beforeSendLog returned null, log will not be captured.');

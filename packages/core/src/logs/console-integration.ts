@@ -33,9 +33,11 @@ const _consoleLoggingIntegration = ((options: Partial<CaptureConsoleOptions> = {
   return {
     name: INTEGRATION_NAME,
     setup(client) {
-      const { _experiments, normalizeDepth = 3, normalizeMaxBreadth = 1_000 } = client.getOptions();
-      if (!_experiments?.enableLogs) {
-        DEBUG_BUILD && debug.warn('`_experiments.enableLogs` is not enabled, ConsoleLogs integration disabled');
+      const { enableLogs, _experiments, normalizeDepth = 3, normalizeMaxBreadth = 1_000 } = client.getOptions();
+      // eslint-disable-next-line deprecation/deprecation
+      const shouldEnableLogs = enableLogs ?? _experiments?.enableLogs;
+      if (!shouldEnableLogs) {
+        DEBUG_BUILD && debug.warn('`enableLogs` is not enabled, ConsoleLogs integration disabled');
         return;
       }
 
@@ -69,7 +71,7 @@ const _consoleLoggingIntegration = ((options: Partial<CaptureConsoleOptions> = {
 }) satisfies IntegrationFn;
 
 /**
- * Captures calls to the `console` API as logs in Sentry. Requires `_experiments.enableLogs` to be enabled.
+ * Captures calls to the `console` API as logs in Sentry. Requires the `enableLogs` option to be enabled.
  *
  * @experimental This feature is experimental and may be changed or removed in future versions.
  *
@@ -83,6 +85,7 @@ const _consoleLoggingIntegration = ((options: Partial<CaptureConsoleOptions> = {
  * import * as Sentry from '@sentry/browser';
  *
  * Sentry.init({
+ *   enableLogs: true,
  *   integrations: [Sentry.consoleLoggingIntegration({ levels: ['error', 'warn'] })],
  * });
  * ```
