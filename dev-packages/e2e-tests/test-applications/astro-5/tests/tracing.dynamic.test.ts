@@ -233,7 +233,7 @@ test.describe('nested SSR routes (client, server, server request)', () => {
     expect(serverRequestHTTPClientSpan).toMatchObject({
       op: 'http.client',
       origin: 'auto.http.otel.node_fetch',
-      description: 'GET http://localhost:3030/api/user/myUsername123.json', // todo: parametrize (this is just a span though - no transaction)
+      description: 'GET http://localhost:3030/api/user/myUsername123.json', // http.client does not need to be parametrized
       data: {
         'sentry.op': 'http.client',
         'sentry.origin': 'auto.http.otel.node_fetch',
