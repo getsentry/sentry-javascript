@@ -182,5 +182,4 @@ export function registerInpInteractionListener(): void {
   };
 
   addPerformanceInstrumentationHandler('event', handleEntries);
-  addPerformanceInstrumentationHandler('first-input', handleEntries);
 }

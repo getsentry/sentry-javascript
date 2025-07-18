@@ -16,7 +16,6 @@
 
 interface PerformanceEntryMap {
   event: PerformanceEventTiming[];
-  'first-input': PerformanceEventTiming[];
   'layout-shift': LayoutShift[];
   'largest-contentful-paint': LargestContentfulPaint[];
   'long-animation-frame': PerformanceLongAnimationFrameTiming[];
