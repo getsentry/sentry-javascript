@@ -9,8 +9,8 @@
     "test:build": "pnpm install",
     "test:assert": "pnpm test"
   },
+  "//": "Link from local Lambda layer build",
   "dependencies": {
-    "//": "Linked to the local Lambda layer build",
     "@sentry/aws-serverless": "link:../../../../packages/aws-serverless/build/aws/dist-serverless/nodejs/node_modules/@sentry/aws-serverless"
   },
   "devDependencies": {
