@@ -124,7 +124,7 @@ export function _INTERNAL_captureLog(
     return;
   }
 
-  const { release, environment, enableLogs = false, beforeSendLog, _experiments } = client.getOptions();
+  const { release, environment, enableLogs, beforeSendLog, _experiments } = client.getOptions();
   // eslint-disable-next-line deprecation/deprecation
   const shouldEnableLogs = enableLogs ?? _experiments?.enableLogs;
   if (!shouldEnableLogs) {
