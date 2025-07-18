@@ -262,4 +262,53 @@ test.describe('nested SSR routes (client, server, server request)', () => {
       request: { url: expect.stringContaining('/api/user/myUsername123.json') },
     });
   });
+
+  test('sends parametrized pageload and server transaction names for catch-all routes', async ({ page }) => {
+    const clientPageloadTxnPromise = waitForTransaction('astro-5', txnEvent => {
+      return txnEvent?.transaction?.startsWith('/catchAll/') ?? false;
+    });
+
+    const serverPageRequestTxnPromise = waitForTransaction('astro-5', txnEvent => {
+      return txnEvent?.transaction?.startsWith('GET /catchAll/') ?? false;
+    });
+
+    await page.goto('/catchAll/hell0/whatever-do');
+
+    const clientPageloadTxn = await clientPageloadTxnPromise;
+    const serverPageRequestTxn = await serverPageRequestTxnPromise;
+
+    expect(clientPageloadTxn).toMatchObject({
+      transaction: '/catchAll/hell0/whatever-do', // todo: parametrize to '/catchAll/[...path]'
+      transaction_info: { source: 'url' },
+      contexts: {
+        trace: {
+          op: 'pageload',
+          origin: 'auto.pageload.browser',
+          data: {
+            'sentry.op': 'pageload',
+            'sentry.origin': 'auto.pageload.browser',
+            'sentry.source': 'url',
+          },
+        },
+      },
+    });
+
+    expect(serverPageRequestTxn).toMatchObject({
+      transaction: 'GET /catchAll/[path]',
+      transaction_info: { source: 'route' },
+      contexts: {
+        trace: {
+          op: 'http.server',
+          origin: 'auto.http.astro',
+          data: {
+            'sentry.op': 'http.server',
+            'sentry.origin': 'auto.http.astro',
+            'sentry.source': 'route',
+            url: expect.stringContaining('/catchAll/hell0/whatever-do'),
+          },
+        },
+      },
+      request: { url: expect.stringContaining('/catchAll/hell0/whatever-do') },
+    });
+  });
 });
