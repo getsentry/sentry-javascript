@@ -114,6 +114,14 @@ describe('createRelease', () => {
 
     expect(finalizeMock).toHaveBeenCalledWith('0.1.2.3.4');
   });
+
+  it('logs an error when finalize fails', async () => {
+    finalizeMock.mockRejectedValue(new Error('Failed to finalize release'));
+
+    await createRelease({}, '~/build/', 'public/build');
+
+    expect(consoleWarnSpy).toHaveBeenCalledWith('[sentry] Failed to finalize release.');
+  });
 });
 
 // To avoid `--isolatedModules` flag as we're not importing

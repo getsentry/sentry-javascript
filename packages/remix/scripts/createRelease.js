@@ -38,7 +38,11 @@ async function createRelease(argv, URL_PREFIX, BUILD_PATH) {
     console.warn('[sentry] Failed to upload sourcemaps.');
   }
 
-  await sentry.releases.finalize(release);
+  try {
+    await sentry.releases.finalize(release);
+  } catch (error) {
+    console.warn('[sentry] Failed to finalize release.');
+  }
 
   if (argv.deleteAfterUpload) {
     try {
