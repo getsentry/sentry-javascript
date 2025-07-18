@@ -17,7 +17,7 @@
     "@sentry/sveltekit": "latest || *"
   },
   "devDependencies": {
-    "@playwright/test": "^1.36.2",
+    "@playwright/test": "~1.52.0",
     "@sentry/types": "latest || *",
     "@sentry/utils": "latest || *",
     "@sveltejs/adapter-auto": "^3.0.0",
