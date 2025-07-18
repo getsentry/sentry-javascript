@@ -1,4 +1,4 @@
-import { Context, GLOBAL_OBJ, flush, logger, vercelWaitUntil } from '@sentry/core';
+import { Context, GLOBAL_OBJ, flush, debug, vercelWaitUntil } from '@sentry/core';
 import * as SentryNode from '@sentry/node';
 import { H3Error } from 'h3';
 import type { CapturedErrorContext } from 'nitropack';
@@ -74,10 +74,10 @@ async function flushWithTimeout(): Promise<void> {
   const isDebug = sentryClient ? sentryClient.getOptions().debug : false;
 
   try {
-    isDebug && logger.log('Flushing events...');
+    isDebug && debug.log('Flushing events...');
     await flush(2000);
-    isDebug && logger.log('Done flushing events');
+    isDebug && debug.log('Done flushing events');
   } catch (e) {
-    isDebug && logger.log('Error while flushing events:\n', e);
+    isDebug && debug.log('Error while flushing events:\n', e);
   }
 }
