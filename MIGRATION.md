@@ -41,6 +41,7 @@ Updates and fixes for version 9 will be published as `SentryNodeServerlessSDKv9`
 
 - `BaseClient` was removed, use `Client` as a direct replacement.
 - `hasTracingEnabled` was removed, use `hasSpansEnabled` as a direct replacement.
+- `logger` and type `Logger` were removed, use `debug` and type `SentryDebugLogger` instead.
 
 ## No Version Support Timeline
 
