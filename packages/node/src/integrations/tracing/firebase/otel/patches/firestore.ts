@@ -50,9 +50,10 @@ export function patchFirestore(
   unwrap: typeof shimmerUnwrap,
   config: FirebaseInstrumentationConfig,
 ): InstrumentationNodeModuleDefinition {
-  // Setting an empty function as a default
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  let firestoreSpanCreationHook: FirestoreSpanCreationHook = () => {};
+  const defaultFirestoreSpanCreationHook: FirestoreSpanCreationHook = () => {};
+
+  let firestoreSpanCreationHook: FirestoreSpanCreationHook = defaultFirestoreSpanCreationHook;
   const configFirestoreSpanCreationHook = config.firestoreSpanCreationHook;
 
   if (typeof configFirestoreSpanCreationHook === 'function') {
@@ -63,7 +64,7 @@ export function patchFirestore(
           if (!error) {
             return;
           }
-          diag.error('Firebase Firestore span creation hook failed', error?.message);
+          diag.error(error?.message);
         },
         true,
       );
@@ -151,14 +152,12 @@ function patchAddDoc<AppModelType, DbModelType extends DocumentData>(
   data: WithFieldValue<AppModelType>,
 ) => Promise<DocumentReference<AppModelType, DbModelType>> {
   return function addDoc(original: AddDocType<AppModelType, DbModelType>) {
-    return function patchAddDoc(
+    return function (
       reference: CollectionReference<AppModelType, DbModelType>,
       data: WithFieldValue<AppModelType>,
     ): Promise<DocumentReference<AppModelType, DbModelType>> {
       const span = startDBSpan(tracer, 'addDoc', reference);
-
       firestoreSpanCreationHook(span);
-
       return executeContextWithSpan<Promise<DocumentReference<AppModelType, DbModelType>>>(span, () => {
         return original(reference, data);
       });
@@ -173,7 +172,7 @@ function patchDeleteDoc<AppModelType, DbModelType extends DocumentData>(
   original: DeleteDocType<AppModelType, DbModelType>,
 ) => (this: FirebaseInstrumentation, reference: DocumentReference<AppModelType, DbModelType>) => Promise<void> {
   return function deleteDoc(original: DeleteDocType<AppModelType, DbModelType>) {
-    return function patchDeleteDoc(reference: DocumentReference<AppModelType, DbModelType>): Promise<void> {
+    return function (reference: DocumentReference<AppModelType, DbModelType>): Promise<void> {
       const span = startDBSpan(tracer, 'deleteDoc', reference.parent || reference);
       firestoreSpanCreationHook(span);
       return executeContextWithSpan<Promise<void>>(span, () => {
@@ -193,7 +192,7 @@ function patchGetDocs<AppModelType, DbModelType extends DocumentData>(
   reference: CollectionReference<AppModelType, DbModelType>,
 ) => Promise<QuerySnapshot<AppModelType, DbModelType>> {
   return function getDocs(original: GetDocsType<AppModelType, DbModelType>) {
-    return function patchGetDocs(
+    return function (
       reference: CollectionReference<AppModelType, DbModelType>,
     ): Promise<QuerySnapshot<AppModelType, DbModelType>> {
       const span = startDBSpan(tracer, 'getDocs', reference);
@@ -217,7 +216,7 @@ function patchSetDoc<AppModelType, DbModelType extends DocumentData>(
   options?: SetOptions,
 ) => Promise<void> {
   return function setDoc(original: SetDocType<AppModelType, DbModelType>) {
-    return function patchSetDoc(
+    return function (
       reference: DocumentReference<AppModelType, DbModelType>,
       data: WithFieldValue<AppModelType> & PartialWithFieldValue<AppModelType>,
       options?: SetOptions,
