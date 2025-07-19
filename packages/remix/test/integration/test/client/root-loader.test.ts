@@ -20,6 +20,17 @@ async function extractTraceAndBaggageFromMeta(
   return { sentryTrace: sentryTraceContent, sentryBaggage: sentryBaggageContent };
 }
 
+async function mockExampleRoute(page: Page): Promise<void> {
+  await page.route('https://example.com/**/*', route => {
+    return route.fulfill({
+      status: 200,
+      body: JSON.stringify({
+        foo: 'bar',
+      }),
+    });
+  });
+}
+
 test('should inject `sentry-trace` and `baggage` into root loader returning an empty object.', async ({ page }) => {
   await page.goto('/?type=empty');
 
@@ -123,6 +134,7 @@ test('should inject `sentry-trace` and `baggage` into root loader returning `und
 test('should inject `sentry-trace` and `baggage` into root loader throwing a redirection to a plain object.', async ({
   page,
 }) => {
+  await mockExampleRoute(page);
   await page.goto('/?type=throwRedirect');
 
   const { sentryTrace, sentryBaggage } = await extractTraceAndBaggageFromMeta(page);
@@ -144,6 +156,7 @@ test('should inject `sentry-trace` and `baggage` into root loader throwing a red
 test('should inject `sentry-trace` and `baggage` into root loader returning a redirection to valid path.', async ({
   page,
 }) => {
+  await mockExampleRoute(page);
   await page.goto('/?type=returnRedirect');
 
   const { sentryTrace, sentryBaggage } = await extractTraceAndBaggageFromMeta(page);
@@ -163,6 +176,7 @@ test('should inject `sentry-trace` and `baggage` into root loader returning a re
 });
 
 test('should return redirect to an external path with no baggage and trace injected.', async ({ page }) => {
+  await mockExampleRoute(page);
   await page.goto('/?type=returnRedirectToExternal');
 
   const { sentryTrace, sentryBaggage } = await extractTraceAndBaggageFromMeta(page);
@@ -175,6 +189,7 @@ test('should return redirect to an external path with no baggage and trace injec
 });
 
 test('should throw redirect to an external path with no baggage and trace injected.', async ({ page }) => {
+  await mockExampleRoute(page);
   await page.goto('/?type=throwRedirectToExternal');
 
   const { sentryTrace, sentryBaggage } = await extractTraceAndBaggageFromMeta(page);
