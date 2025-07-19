@@ -125,10 +125,10 @@ test('should inject `sentry-trace` and `baggage` into root loader throwing a red
 }) => {
   await page.goto('/?type=throwRedirect');
 
+  const { sentryTrace, sentryBaggage } = await extractTraceAndBaggageFromMeta(page);
+
   // We should be successfully redirected to the path.
   expect(page.url()).toEqual(expect.stringContaining('/?type=plain'));
-
-  const { sentryTrace, sentryBaggage } = await extractTraceAndBaggageFromMeta(page);
 
   expect(sentryTrace).toMatch(/.+/);
   expect(sentryBaggage).toMatch(/.+/);
@@ -146,10 +146,10 @@ test('should inject `sentry-trace` and `baggage` into root loader returning a re
 }) => {
   await page.goto('/?type=returnRedirect');
 
+  const { sentryTrace, sentryBaggage } = await extractTraceAndBaggageFromMeta(page);
+
   // We should be successfully redirected to the path.
   expect(page.url()).toEqual(expect.stringContaining('/?type=plain'));
-
-  const { sentryTrace, sentryBaggage } = await extractTraceAndBaggageFromMeta(page);
 
   expect(sentryTrace).toMatch(/.+/);
   expect(sentryBaggage).toMatch(/.+/);
@@ -165,10 +165,10 @@ test('should inject `sentry-trace` and `baggage` into root loader returning a re
 test('should return redirect to an external path with no baggage and trace injected.', async ({ page }) => {
   await page.goto('/?type=returnRedirectToExternal');
 
+  const { sentryTrace, sentryBaggage } = await extractTraceAndBaggageFromMeta(page);
+
   // We should be successfully redirected to the external path.
   expect(page.url()).toEqual(expect.stringContaining('https://example.com'));
-
-  const { sentryTrace, sentryBaggage } = await extractTraceAndBaggageFromMeta(page);
 
   expect(sentryTrace).toBeUndefined();
   expect(sentryBaggage).toBeUndefined();
@@ -177,10 +177,10 @@ test('should return redirect to an external path with no baggage and trace injec
 test('should throw redirect to an external path with no baggage and trace injected.', async ({ page }) => {
   await page.goto('/?type=throwRedirectToExternal');
 
+  const { sentryTrace, sentryBaggage } = await extractTraceAndBaggageFromMeta(page);
+
   // We should be successfully redirected to the external path.
   expect(page.url()).toEqual(expect.stringContaining('https://example.com'));
-
-  const { sentryTrace, sentryBaggage } = await extractTraceAndBaggageFromMeta(page);
 
   expect(sentryTrace).toBeUndefined();
   expect(sentryBaggage).toBeUndefined();
