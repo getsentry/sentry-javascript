@@ -155,7 +155,7 @@ test('should inject `sentry-trace` and `baggage` into root loader returning a re
   });
 });
 
-test('should return redirect to an external path with no baggage and trace injected.', async ({ page,baseURL }) => {
+test('should return redirect to an external path with no baggage and trace injected.', async ({ page, baseURL }) => {
   await page.goto(`${baseURL}/?type=returnRedirectToExternal`);
 
   expect(page.url()).toEqual(expect.stringContaining('docs.sentry.io'));
