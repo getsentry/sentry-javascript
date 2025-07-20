@@ -1,4 +1,4 @@
-import { type Page, expect, test } from '@playwright/test';
+import { type Page, expect, test, chromium } from '@playwright/test';
 
 async function getRouteData(page: Page): Promise<any> {
   return page.evaluate('window.__remixContext.state.loaderData').catch(err => {
@@ -20,20 +20,8 @@ async function extractTraceAndBaggageFromMeta(
   return { sentryTrace: sentryTraceContent, sentryBaggage: sentryBaggageContent };
 }
 
-async function mockExampleRoute(page: Page): Promise<void> {
-  await page.route('https://example.com/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      body: JSON.stringify({
-        foo: 'bar',
-      }),
-    });
-  });
-}
-
 test('should inject `sentry-trace` and `baggage` into root loader returning an empty object.', async ({ page }) => {
   await page.goto('/?type=empty');
-
   const { sentryTrace, sentryBaggage } = await extractTraceAndBaggageFromMeta(page);
 
   expect(sentryTrace).toMatch(/.+/);
@@ -49,7 +37,6 @@ test('should inject `sentry-trace` and `baggage` into root loader returning an e
 
 test('should inject `sentry-trace` and `baggage` into root loader returning a plain object.', async ({ page }) => {
   await page.goto('/?type=plain');
-
   const { sentryTrace, sentryBaggage } = await extractTraceAndBaggageFromMeta(page);
 
   expect(sentryTrace).toMatch(/.+/);
@@ -67,7 +54,6 @@ test('should inject `sentry-trace` and `baggage` into root loader returning a pl
 
 test('should inject `sentry-trace` and `baggage` into root loader returning a `JSON response`.', async ({ page }) => {
   await page.goto('/?type=json');
-
   const { sentryTrace, sentryBaggage } = await extractTraceAndBaggageFromMeta(page);
 
   expect(sentryTrace).toMatch(/.+/);
@@ -85,7 +71,6 @@ test('should inject `sentry-trace` and `baggage` into root loader returning a `J
 
 test('should inject `sentry-trace` and `baggage` into root loader returning a deferred response', async ({ page }) => {
   await page.goto('/?type=defer');
-
   const { sentryTrace, sentryBaggage } = await extractTraceAndBaggageFromMeta(page);
 
   expect(sentryTrace).toMatch(/.+/);
@@ -101,7 +86,6 @@ test('should inject `sentry-trace` and `baggage` into root loader returning a de
 
 test('should inject `sentry-trace` and `baggage` into root loader returning `null`.', async ({ page }) => {
   await page.goto('/?type=null');
-
   const { sentryTrace, sentryBaggage } = await extractTraceAndBaggageFromMeta(page);
 
   expect(sentryTrace).toMatch(/.+/);
@@ -117,7 +101,6 @@ test('should inject `sentry-trace` and `baggage` into root loader returning `nul
 
 test('should inject `sentry-trace` and `baggage` into root loader returning `undefined`.', async ({ page }) => {
   await page.goto('/?type=undefined');
-
   const { sentryTrace, sentryBaggage } = await extractTraceAndBaggageFromMeta(page);
 
   expect(sentryTrace).toMatch(/.+/);
@@ -134,9 +117,7 @@ test('should inject `sentry-trace` and `baggage` into root loader returning `und
 test('should inject `sentry-trace` and `baggage` into root loader throwing a redirection to a plain object.', async ({
   page,
 }) => {
-  await mockExampleRoute(page);
   await page.goto('/?type=throwRedirect');
-
   const { sentryTrace, sentryBaggage } = await extractTraceAndBaggageFromMeta(page);
 
   // We should be successfully redirected to the path.
@@ -155,10 +136,9 @@ test('should inject `sentry-trace` and `baggage` into root loader throwing a red
 
 test('should inject `sentry-trace` and `baggage` into root loader returning a redirection to valid path.', async ({
   page,
+  baseURL,
 }) => {
-  await mockExampleRoute(page);
-  await page.goto('/?type=returnRedirect');
-
+  await page.goto(`${baseURL}/?type=returnRedirect`);
   const { sentryTrace, sentryBaggage } = await extractTraceAndBaggageFromMeta(page);
 
   // We should be successfully redirected to the path.
@@ -175,27 +155,24 @@ test('should inject `sentry-trace` and `baggage` into root loader returning a re
   });
 });
 
-test('should return redirect to an external path with no baggage and trace injected.', async ({ page }) => {
-  await mockExampleRoute(page);
-  await page.goto('/?type=returnRedirectToExternal');
+test('should return redirect to an external path with no baggage and trace injected.', async ({ page,baseURL }) => {
+  await page.goto(`${baseURL}/?type=returnRedirectToExternal`);
+
+  expect(page.url()).toEqual(expect.stringContaining('docs.sentry.io'));
 
   const { sentryTrace, sentryBaggage } = await extractTraceAndBaggageFromMeta(page);
-
-  // We should be successfully redirected to the external path.
-  expect(page.url()).toEqual(expect.stringContaining('https://example.com'));
 
   expect(sentryTrace).toBeUndefined();
   expect(sentryBaggage).toBeUndefined();
 });
 
-test('should throw redirect to an external path with no baggage and trace injected.', async ({ page }) => {
-  await mockExampleRoute(page);
-  await page.goto('/?type=throwRedirectToExternal');
-
-  const { sentryTrace, sentryBaggage } = await extractTraceAndBaggageFromMeta(page);
+test('should throw redirect to an external path with no baggage and trace injected.', async ({ page, baseURL }) => {
+  await page.goto(`${baseURL}/?type=throwRedirectToExternal`);
 
   // We should be successfully redirected to the external path.
-  expect(page.url()).toEqual(expect.stringContaining('https://example.com'));
+  expect(page.url()).toEqual(expect.stringContaining('docs.sentry.io'));
+
+  const { sentryTrace, sentryBaggage } = await extractTraceAndBaggageFromMeta(page);
 
   expect(sentryTrace).toBeUndefined();
   expect(sentryBaggage).toBeUndefined();
