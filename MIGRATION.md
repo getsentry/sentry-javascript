@@ -23,6 +23,30 @@ logger.info('This is an info message');
 debug.log('This is an info message');
 ```
 
+## Deprecated `_experiments.enableLogs` and `_experiments.beforeSendLog` options
+
+The `_experiments.enableLogs` and `_experiments.beforeSendLog` options have been deprecated in favor of the top-level `enableLogs` and `beforeSendLog` options.
+
+```js
+// before
+Sentry.init({
+  _experiments: {
+    enableLogs: true,
+    beforeSendLog: log => {
+      return log;
+    },
+  },
+});
+
+// after
+Sentry.init({
+  enableLogs: true,
+  beforeSendLog: log => {
+    return log;
+  },
+});
+```
+
 # Upgrading from 8.x to 9.x
 
 Version 9 of the Sentry JavaScript SDK primarily introduces API cleanup and version support changes.
