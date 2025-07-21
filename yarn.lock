@@ -7090,7 +7090,7 @@
     "@sentry/cli-win32-i686" "2.42.2"
     "@sentry/cli-win32-x64" "2.42.2"
 
-"@sentry/cli@^2.36.1", "@sentry/cli@^2.46.0", "@sentry/cli@^2.50.0":
+"@sentry/cli@^2.36.1", "@sentry/cli@^2.50.0":
   version "2.50.0"
   resolved "https://registry.yarnpkg.com/@sentry/cli/-/cli-2.50.0.tgz#7e2298bea9a2bb50126bfb24116ae98199bc1f6f"
   integrity sha512-OHRRQPUNjBpzOT6arNhxXQ71DKs5jSziCfDzmEGwAs+K8J/I1QxnvJkto88HbXE54oiWhSEJwL0pvcowFXyVbA==
@@ -7109,6 +7109,26 @@
     "@sentry/cli-win32-arm64" "2.50.0"
     "@sentry/cli-win32-i686" "2.50.0"
     "@sentry/cli-win32-x64" "2.50.0"
+
+"@sentry/cli@^2.49.0":
+  version "2.49.0"
+  resolved "https://registry.yarnpkg.com/@sentry/cli/-/cli-2.49.0.tgz#a8332ae38e9f92a0da3d939bdbce119e63450e99"
+  integrity sha512-99IKax3yjOaPlWJh3rAJC/R6hdmZZJ2B3ACVP8CpOYE+JzGGLyir1fvTzrdFKFLPLOq2lGC3RqWuKqU7PJUTZQ==
+  dependencies:
+    https-proxy-agent "^5.0.0"
+    node-fetch "^2.6.7"
+    progress "^2.0.3"
+    proxy-from-env "^1.1.0"
+    which "^2.0.2"
+  optionalDependencies:
+    "@sentry/cli-darwin" "2.49.0"
+    "@sentry/cli-linux-arm" "2.49.0"
+    "@sentry/cli-linux-arm64" "2.49.0"
+    "@sentry/cli-linux-i686" "2.49.0"
+    "@sentry/cli-linux-x64" "2.49.0"
+    "@sentry/cli-win32-arm64" "2.49.0"
+    "@sentry/cli-win32-i686" "2.49.0"
+    "@sentry/cli-win32-x64" "2.49.0"
 
 "@sentry/rollup-plugin@^3.5.0":
   version "3.5.0"
