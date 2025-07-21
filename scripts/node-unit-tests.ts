@@ -61,6 +61,8 @@ const SKIP_TEST_PACKAGES: Record<NodeVersion, VersionConfig> = {
       '@sentry/opentelemetry',
       '@sentry/vercel-edge',
       '@sentry/astro',
+      // Test binaries not supported anymore in our Github Runners
+      '@sentry/serverless',
     ],
     legacyDeps: ['jsdom@16.x', 'lerna@3.13.4'],
     shouldES6Utils: true,
@@ -73,6 +75,8 @@ const SKIP_TEST_PACKAGES: Record<NodeVersion, VersionConfig> = {
       '@sentry/opentelemetry',
       '@sentry/vercel-edge',
       '@sentry/astro',
+      // Test binaries not supported anymore in our Github Runners
+      '@sentry/serverless',
     ],
     legacyDeps: ['lerna@3.13.4'],
     shouldES6Utils: true,
