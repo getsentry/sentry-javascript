@@ -172,6 +172,27 @@ describe('componentTrackingPreprocessor', () => {
     });
   });
 
+    it('doesnt inject the function call to a module context script block with Svelte 5 module attribute', () => {
+      const preProc = componentTrackingPreprocessor();
+      const component = {
+        originalCode: 'console.log(cmp2)',
+        filename: 'lib/Cmp2.svelte',
+        name: 'Cmp2',
+      };
+
+      const res: any = preProc.script?.({
+        content: component.originalCode,
+        filename: component.filename,
+        attributes: { module: true },
+        markup: '',
+      });
+
+      const processedComponent = { ...component, newCode: res.code, map: res.map };
+
+      expect(processedComponent.newCode).toEqual(processedComponent.originalCode);
+    });
+  });
+
   describe('markup hook', () => {
     it("adds a <script> tag to components that don't have one", () => {
       const preProc = componentTrackingPreprocessor();
