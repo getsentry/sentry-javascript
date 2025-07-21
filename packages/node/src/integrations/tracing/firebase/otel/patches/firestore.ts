@@ -123,26 +123,13 @@ function unwrapMethods(
   unwrap: typeof shimmerUnwrap,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): any {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  if (isWrapped(moduleExports.addDoc)) {
-    unwrap(moduleExports, 'addDoc');
+  for (const method of ['addDoc', 'getDocs', 'setDoc', 'deleteDoc']) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    if (isWrapped(moduleExports[method])) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      unwrap(moduleExports, method);
+    }
   }
-
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  if (isWrapped(moduleExports.getDocs)) {
-    unwrap(moduleExports, 'getDocs');
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  if (isWrapped(moduleExports.setDoc)) {
-    unwrap(moduleExports, 'setDoc');
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  if (isWrapped(moduleExports.deleteDoc)) {
-    unwrap(moduleExports, 'deleteDoc');
-  }
-
   return moduleExports;
 }
 
