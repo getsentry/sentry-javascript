@@ -45,7 +45,10 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
 
     super(clientOptions);
 
-    if (this.getOptions()._experiments?.enableLogs) {
+    const { enableLogs, _experiments } = this.getOptions();
+    // eslint-disable-next-line deprecation/deprecation
+    const shouldEnableLogs = enableLogs ?? _experiments?.enableLogs;
+    if (shouldEnableLogs) {
       this._logOnExitFlushListener = () => {
         _INTERNAL_flushLogsBuffer(this);
       };

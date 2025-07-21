@@ -85,23 +85,24 @@ export class BrowserClient extends Client<BrowserClientOptions> {
 
     super(opts);
 
-    const { sendDefaultPii, sendClientReports, _experiments } = this._options;
-    const enableLogs = _experiments?.enableLogs;
+    const { sendDefaultPii, sendClientReports, enableLogs, _experiments } = this._options;
+    // eslint-disable-next-line deprecation/deprecation
+    const shouldEnableLogs = enableLogs ?? _experiments?.enableLogs;
 
-    if (WINDOW.document && (sendClientReports || enableLogs)) {
+    if (WINDOW.document && (sendClientReports || shouldEnableLogs)) {
       WINDOW.document.addEventListener('visibilitychange', () => {
         if (WINDOW.document.visibilityState === 'hidden') {
           if (sendClientReports) {
             this._flushOutcomes();
           }
-          if (enableLogs) {
+          if (shouldEnableLogs) {
             _INTERNAL_flushLogsBuffer(this);
           }
         }
       });
     }
 
-    if (enableLogs) {
+    if (shouldEnableLogs) {
       this.on('flush', () => {
         _INTERNAL_flushLogsBuffer(this);
       });
