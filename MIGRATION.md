@@ -39,6 +39,27 @@ Updates and fixes for version 9 will be published as `SentryNodeServerlessSDKv9`
 - `BaseClient` was removed, use `Client` as a direct replacement.
 - `hasTracingEnabled` was removed, use `hasSpansEnabled` as a direct replacement.
 - `logger` and type `Logger` were removed, use `debug` and type `SentryDebugLogger` instead.
+- The `_experiments.enableLogs` and `_experiments.beforeSendLog` options were removed, use the top-level `enableLogs` and `beforeSendLog` options instead.
+
+```js
+// before
+Sentry.init({
+  _experiments: {
+    enableLogs: true,
+    beforeSendLog: log => {
+      return log;
+    },
+  },
+});
+
+// after
+Sentry.init({
+  enableLogs: true,
+  beforeSendLog: log => {
+    return log;
+  },
+});
+```
 
 ## No Version Support Timeline
 
