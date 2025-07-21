@@ -51,7 +51,7 @@
     "@sentry/cloudflare": "9.40.0",
     "@sentry/core": "9.40.0",
     "@sentry/node": "9.40.0",
-    "@sentry/rollup-plugin": "^3.5.0",
+    "@sentry/rollup-plugin": "^4.0.0",
     "@sentry/vite-plugin": "^3.5.0",
     "@sentry/vue": "9.40.0"
   },
