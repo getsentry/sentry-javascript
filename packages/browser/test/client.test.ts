@@ -27,7 +27,6 @@ describe('BrowserClient', () => {
   it('does not flush logs when logs are disabled', () => {
     client = new BrowserClient(
       getDefaultBrowserClientOptions({
-        _experiments: { enableLogs: false },
         sendClientReports: true,
       }),
     );
@@ -50,7 +49,7 @@ describe('BrowserClient', () => {
       vi.useFakeTimers();
       client = new BrowserClient(
         getDefaultBrowserClientOptions({
-          _experiments: { enableLogs: true },
+          enableLogs: true,
           sendClientReports: true,
         }),
       );
