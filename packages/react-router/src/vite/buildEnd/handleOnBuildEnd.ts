@@ -59,7 +59,12 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
   if (sourceMapsUploadOptions?.enabled ?? (true && viteConfig.build.sourcemap !== false)) {
     // inject debugIds
     try {
-      await cliInstance.execute(['sourcemaps', 'inject', reactRouterConfig.buildDirectory], debug);
+      await cliInstance.execute(
+        ['sourcemaps', 'inject', reactRouterConfig.buildDirectory],
+        // @ts-expect-error - 'rejectOnError' is not yet exported as a type from @sentry/cli. It is valid though.
+        // TODO: update to @sentry/cli@2.50.0 once the fix is released: https://github.com/getsentry/sentry-cli/pull/2628
+        debug ? 'rejectOnError' : false,
+      );
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('[Sentry] Could not inject debug ids', error);
@@ -73,6 +78,7 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
             paths: [reactRouterConfig.buildDirectory],
           },
         ],
+        live: 'rejectOnError',
       });
     } catch (error) {
       // eslint-disable-next-line no-console
