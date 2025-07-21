@@ -200,6 +200,7 @@ jobs:
       - name: Install OS Dependencies for Playwright
         run: |
           sudo apt-get update
+          # Install core dependencies for Playwright on Ubuntu 24.04
           sudo apt-get install -y \
             libasound2t64 \
             libasound2-dev \
@@ -221,8 +222,21 @@ jobs:
             libmanette-0.2-0 \
             libflite1 \
             libxss1 \
-            xvfb
-
+            xvfb \
+            fonts-liberation \
+            fonts-noto-color-emoji \
+            fonts-noto-cjk \
+            libnss3 \
+            libdrm2 \
+            libxcomposite1 \
+            libxdamage1 \
+            libxrandr2 \
+            libgbm1 \
+            libxkbcommon0 \
+            libpango-1.0-0 \
+            libcairo-gobject2 \
+            libdbus-1-3 \
+            libasound2-plugins
 
       - name: Install dependencies
         if: steps.cache_dependencies.outputs.cache-hit != 'true'
@@ -600,12 +614,9 @@ jobs:
           key: ${{ runner.os }}-Playwright-${{steps.playwright-version.outputs.version}}
       - name: Install Playwright browser if not cached
         if: steps.playwright-cache.outputs.cache-hit != 'true' && matrix.node >= 14
-        run: npx playwright install --with-deps
+        run: npx playwright install
         env:
           PLAYWRIGHT_BROWSERS_PATH: ${{steps.npm-cache-dir.outputs.dir}}
-      - name: Install OS dependencies of Playwright if cache hit
-        if: steps.playwright-cache.outputs.cache-hit == 'true' && matrix.node >= 14
-        run: npx playwright install-deps
       - name: Run tests
         env:
           NODE_VERSION: ${{ matrix.node }}
@@ -694,12 +705,9 @@ jobs:
           key: ${{ runner.os }}-Playwright-${{steps.playwright-version.outputs.version}}
       - name: Install Playwright browser if not cached
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps
+        run: npx playwright install
         env:
           PLAYWRIGHT_BROWSERS_PATH: ${{steps.npm-cache-dir.outputs.dir}}
-      - name: Install OS dependencies of Playwright if cache hit
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: npx playwright install-deps
       - name: Run Playwright tests
         env:
           PW_BUNDLE: ${{ matrix.bundle }}
@@ -750,12 +758,9 @@ jobs:
           key: ${{ runner.os }}-Playwright-${{steps.playwright-version.outputs.version}}
       - name: Install Playwright browser if not cached
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps
+        run: npx playwright install
         env:
           PLAYWRIGHT_BROWSERS_PATH: ${{steps.npm-cache-dir.outputs.dir}}
-      - name: Install OS dependencies of Playwright if cache hit
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: npx playwright install-deps
       - name: Run Playwright Loader tests
         env:
           PW_BUNDLE: ${{ matrix.bundle }}
