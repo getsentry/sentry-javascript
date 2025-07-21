@@ -243,7 +243,7 @@ test.describe('nested SSR routes (client, server, server request)', () => {
       },
     });
 
-    // Server HTTP request transaction - should be parametrized (todo: currently not parametrized)
+    // Server HTTP request transaction
     expect(serverHTTPServerRequestTxn).toMatchObject({
       transaction: 'GET /api/user/[userId].json',
       transaction_info: { source: 'route' },
@@ -330,7 +330,7 @@ test.describe('parametrized vs static paths', () => {
     const serverPageRequestTxn = await serverPageRequestTxnPromise;
 
     expect(clientPageloadTxn).toMatchObject({
-      transaction: '/user-page/settings', // todo: parametrize to '/catchAll/[...path]'
+      transaction: '/user-page/settings',
       transaction_info: { source: 'url' },
       contexts: {
         trace: {
