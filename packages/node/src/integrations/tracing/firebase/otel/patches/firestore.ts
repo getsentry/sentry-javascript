@@ -138,6 +138,11 @@ function unwrapMethods(
     unwrap(moduleExports, 'setDoc');
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  if (isWrapped(moduleExports.deleteDoc)) {
+    unwrap(moduleExports, 'deleteDoc');
+  }
+
   return moduleExports;
 }
 
