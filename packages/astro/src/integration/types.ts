@@ -1,5 +1,5 @@
 import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
-import type { InjectedRoute, RouteData } from 'astro';
+import type { RouteData } from 'astro';
 
 type SdkInitPaths = {
   /**
@@ -227,12 +227,16 @@ export type SentryOptions = SdkInitPaths &
   } & DeprecatedRuntimeOptions;
 
 /**
- * Inline type for official `IntegrationResolvedRoute` (only available after Astro v5)
+ * Routes inside 'astro:routes:resolved' hook (Astro v5+)
+ *
+ * Inline type for official `IntegrationResolvedRoute`.
  * The type includes more properties, but we only need some of them.
  *
  * @see https://github.com/withastro/astro/blob/04e60119afee668264a2ff6665c19a32150f4c91/packages/astro/src/types/public/integrations.ts#L287
  */
-export type IntegrationResolvedRoute = InjectedRoute & {
+export type IntegrationResolvedRoute = {
+  isPrerendered: RouteData['prerender'];
+  pattern: RouteData['route'];
   patternRegex: RouteData['pattern'];
   segments: RouteData['segments'];
 };

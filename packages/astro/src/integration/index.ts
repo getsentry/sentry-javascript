@@ -12,6 +12,8 @@ const PKG_NAME = '@sentry/astro';
 export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
   let sentryServerInitPath: string | undefined;
 
+  let didSaveRouteData = false;
+
   return {
     name: PKG_NAME,
     hooks: {
@@ -171,13 +173,34 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
         }
       },
 
-      // @ts-expect-error - This hook is available in Astro 5
+      // @ts-expect-error - This hook is available in Astro 5+
       'astro:routes:resolved': ({ routes }: { routes: IntegrationResolvedRoute[] }) => {
-        if (!sentryServerInitPath) {
+        if (!sentryServerInitPath || didSaveRouteData) {
           return;
         }
 
-        includeRouteDataToConfigFile(sentryServerInitPath, routes);
+        try {
+          const serverInitContent = readFileSync(sentryServerInitPath, 'utf8');
+
+          const updatedServerInitContent = `${serverInitContent}\nglobalThis["__sentryRouteInfo"] = ${JSON.stringify(
+            routes.map(route => {
+              return {
+                ...route,
+                patternCaseSensitive: joinRouteSegments(route.segments), // Store parametrized routes with correct casing on `globalThis` to be able to use them on the server during runtime
+                patternRegex: route.patternRegex.source, // using `source` to be able to serialize the regex
+              };
+            }),
+            null,
+            2,
+          )};`;
+
+          writeFileSync(sentryServerInitPath, updatedServerInitContent, 'utf8');
+
+          didSaveRouteData = true; // Prevents writing the file multiple times during runtime
+          debug.log('Successfully added route pattern information to Sentry config file:', sentryServerInitPath);
+        } catch (error) {
+          debug.warn(`Failed to write to Sentry config file at ${sentryServerInitPath}:`, error);
+        }
       },
     },
   };
@@ -299,28 +322,4 @@ function joinRouteSegments(segments: RoutePart[][]): string {
   );
 
   return `/${parthArray.join('/')}`;
-}
-
-function includeRouteDataToConfigFile(sentryInitPath: string, routes: IntegrationResolvedRoute[]): void {
-  try {
-    const serverInitContent = readFileSync(sentryInitPath, 'utf8');
-
-    const updatedServerInitContent = `${serverInitContent}\nglobalThis["__sentryRouteInfo"] = ${JSON.stringify(
-      routes.map(route => {
-        return {
-          ...route,
-          patternCaseSensitive: joinRouteSegments(route.segments), // Store parametrized routes with correct casing on `globalThis` to be able to use them on the server during runtime
-          patternRegex: route.patternRegex.source, // using `source` to be able to serialize the regex
-        };
-      }),
-      null,
-      2,
-    )};`;
-
-    writeFileSync(sentryInitPath, updatedServerInitContent, 'utf8');
-
-    debug.log('Successfully added route pattern information to Sentry config file:', sentryInitPath);
-  } catch (error) {
-    debug.warn(`Failed to write to Sentry config file at ${sentryInitPath}:`, error);
-  }
 }
