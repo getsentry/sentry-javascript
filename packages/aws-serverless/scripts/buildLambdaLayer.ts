@@ -169,7 +169,7 @@ function buildPackageJson(): void {
 
   const packageJson = {
     dependencies: {
-      '@sentry/aws-serverless': version,
+      '@sentry/aws-serverless': 'file:../../../../../../packages/aws-serverless',
     },
     resolutions,
   };
