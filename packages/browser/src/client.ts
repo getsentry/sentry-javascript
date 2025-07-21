@@ -86,6 +86,7 @@ export class BrowserClient extends Client<BrowserClientOptions> {
     super(opts);
 
     const { sendDefaultPii, sendClientReports, enableLogs, _experiments } = this._options;
+    // eslint-disable-next-line deprecation/deprecation
     const shouldEnableLogs = enableLogs ?? _experiments?.enableLogs;
 
     if (WINDOW.document && (sendClientReports || shouldEnableLogs)) {
