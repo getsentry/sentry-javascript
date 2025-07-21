@@ -27,7 +27,18 @@
       "node": {
         "import": "./build/esm/index.server.js",
         "require": "./build/cjs/index.server.js"
+      },
+      "worker": {
+        "import": "./build/esm/cloudflare/index.js",
+        "require": "./build/cjs/cloudflare/index.js",
+        "default": "./build/esm/cloudflare/index.js"
       }
+    },
+    "./cloudflare": {
+      "import": "./build/esm/cloudflare/index.js",
+      "require": "./build/cjs/cloudflare/index.js",
+      "types": "./build/types/cloudflare/index.d.ts",
+      "default": "./build/esm/cloudflare/index.js"
     }
   },
   "publishConfig": {
