@@ -34,13 +34,13 @@ async function createRelease(argv, URL_PREFIX, BUILD_PATH) {
       useArtifactBundle: !argv.disableDebugIds,
       live: 'rejectOnError',
     });
-  } catch (error) {
+  } catch {
     console.warn('[sentry] Failed to upload sourcemaps.');
   }
 
   try {
     await sentry.releases.finalize(release);
-  } catch (error) {
+  } catch {
     console.warn('[sentry] Failed to finalize release.');
   }
 
