@@ -25,6 +25,7 @@ import { BrowserClient } from '../../src/client';
 import { WINDOW } from '../../src/helpers';
 import {
   browserTracingIntegration,
+  reportPageLoaded,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
 } from '../../src/tracing/browserTracingIntegration';
@@ -1058,6 +1059,164 @@ describe('browserTracingIntegration', () => {
       // there is also the `sentry-tracing-init` span included
       expect(spans).toHaveLength(3);
       expect(spans[2]).toBe(idleSpan);
+    });
+  });
+
+  describe('reportPageLoaded', () => {
+    it('finishes pageload span when called', async () => {
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          tracesSampleRate: 1,
+          integrations: [browserTracingIntegration({ manualPageLoadFinish: true })],
+        }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      const pageloadSpan = getActiveSpan();
+      expect(pageloadSpan).toBeDefined();
+      expect(spanToJSON(pageloadSpan!).op).toBe('pageload');
+      expect(pageloadSpan!.isRecording()).toBe(true);
+
+      // Call reportPageLoaded to manually finish the span
+      reportPageLoaded();
+
+      // Allow minimal event processing (avoid final timeout)
+      vi.advanceTimersByTime(100);
+
+      // The span should still be active but will finish once idle timeout is reached
+      expect(pageloadSpan!.isRecording()).toBe(true);
+
+      // Fast forward the idle timeout
+      vi.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout);
+
+      expect(pageloadSpan!.isRecording()).toBe(false);
+    });
+
+    it('does nothing when no pageload span is active', () => {
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          tracesSampleRate: 1,
+          integrations: [browserTracingIntegration({ instrumentPageLoad: false })],
+        }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      expect(getActiveSpan()).toBeUndefined();
+
+      // Should not throw
+      expect(() => reportPageLoaded()).not.toThrow();
+    });
+
+    it('does nothing when active span is not a pageload span', () => {
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          tracesSampleRate: 1,
+          integrations: [browserTracingIntegration({ instrumentPageLoad: false })],
+        }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      // Start a manual navigation span
+      const navigationSpan = startBrowserTracingNavigationSpan(client, { name: '/test' });
+      expect(navigationSpan).toBeDefined();
+      expect(spanToJSON(navigationSpan!).op).toBe('navigation');
+
+      // Should not affect the navigation span
+      reportPageLoaded();
+      expect(navigationSpan!.isRecording()).toBe(true);
+    });
+
+    it('does nothing when no client is available', () => {
+      setCurrentClient(undefined);
+
+      // Should not throw
+      expect(() => reportPageLoaded()).not.toThrow();
+    });
+  });
+
+  describe('manualPageLoadFinish option', () => {
+    it('prevents automatic pageload finishing when enabled', async () => {
+      // Mock document ready state
+      Object.defineProperty(document, 'readyState', {
+        value: 'loading',
+        writable: true,
+      });
+
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          tracesSampleRate: 1,
+          integrations: [browserTracingIntegration({ manualPageLoadFinish: true })],
+        }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      const pageloadSpan = getActiveSpan();
+      expect(pageloadSpan).toBeDefined();
+      expect(spanToJSON(pageloadSpan!).op).toBe('pageload');
+      expect(pageloadSpan!.isRecording()).toBe(true);
+
+      // Simulate document becoming ready
+      Object.defineProperty(document, 'readyState', {
+        value: 'complete',
+        writable: true,
+      });
+
+      // Dispatch readystate change event
+      document.dispatchEvent(new Event('readystatechange'));
+
+      // Process events but not all timers (to avoid triggering final timeout)
+      vi.advanceTimersByTime(100);
+
+      // With manualPageLoadFinish: true, the span should still be recording
+      // even after document is ready
+      expect(pageloadSpan!.isRecording()).toBe(true);
+    });
+
+    it('allows automatic pageload finishing when disabled (default)', async () => {
+      // Mock document ready state
+      Object.defineProperty(document, 'readyState', {
+        value: 'loading',
+        writable: true,
+      });
+
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          tracesSampleRate: 1,
+          integrations: [browserTracingIntegration({ manualPageLoadFinish: false })],
+        }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      const pageloadSpan = getActiveSpan();
+      expect(pageloadSpan).toBeDefined();
+      expect(spanToJSON(pageloadSpan!).op).toBe('pageload');
+      expect(pageloadSpan!.isRecording()).toBe(true);
+
+      // Simulate document becoming ready
+      Object.defineProperty(document, 'readyState', {
+        value: 'complete',
+        writable: true,
+      });
+
+      // Dispatch readystate change event
+      document.dispatchEvent(new Event('readystatechange'));
+
+      // Process events but not all timers
+      vi.advanceTimersByTime(100);
+
+      // The span should still be recording after readystate change 
+      expect(pageloadSpan!.isRecording()).toBe(true);
+
+      // Fast forward the idle timeout to finish the span
+      vi.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout);
+
+      // With manualPageLoadFinish: false (default), the span should finish automatically
+      expect(pageloadSpan!.isRecording()).toBe(false);
     });
   });
 

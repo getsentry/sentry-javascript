@@ -279,6 +279,33 @@ export interface BrowserTracingOptions {
    * attributes based on the passed request headers.
    */
   onRequestSpanStart?(span: Span, requestInformation: { headers?: WebFetchHeaders }): void;
+
+  /**
+   * If true, pageload spans will not auto-finish based on document readyState
+   * and require manual finishing via `Sentry.reportPageLoaded()`.
+   *
+   * This is useful for single-page applications or complex page loads where
+   * you want to control exactly when the pageload span ends.
+   * 
+   * @example
+   * ```javascript
+   * import { Sentry } from '@sentry/browser';
+   * 
+   * Sentry.init({
+   *   integrations: [
+   *     Sentry.browserTracingIntegration({
+   *       manualPageLoadFinish: true,
+   *     }),
+   *   ],
+   * });
+   * 
+   * // Later, when your page is fully loaded:
+   * Sentry.reportPageLoaded();
+   * ```
+   *
+   * Default: false
+   */
+  manualPageLoadFinish: boolean;
 }
 
 const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
@@ -295,6 +322,7 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   detectRedirects: true,
   linkPreviousTrace: 'in-memory',
   consistentTraceSampling: false,
+  manualPageLoadFinish: false,
   _experiments: {},
   ...defaultRequestInstrumentationOptions,
 };
@@ -343,6 +371,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     detectRedirects,
     linkPreviousTrace,
     consistentTraceSampling,
+    manualPageLoadFinish,
     onRequestSpanStart,
   } = {
     ...DEFAULT_BROWSER_TRACING_OPTIONS,
@@ -382,9 +411,11 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     latestRoute.name = finalStartSpanOptions.name;
     latestRoute.source = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
 
+    const effectiveFinalTimeout = manualPageLoadFinish && isPageloadTransaction ? 300_000 : finalTimeout;
+    
     const idleSpan = startIdleSpan(finalStartSpanOptions, {
       idleTimeout,
-      finalTimeout,
+      finalTimeout: effectiveFinalTimeout,
       childSpanTimeout,
       // should wait for finish signal if it's a pageload transaction
       disableAutoFinish: isPageloadTransaction,
@@ -418,7 +449,11 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     setActiveIdleSpan(client, idleSpan);
 
     function emitFinish(): void {
-      if (optionalWindowDocument && ['interactive', 'complete'].includes(optionalWindowDocument.readyState)) {
+      if (
+        !manualPageLoadFinish &&
+        optionalWindowDocument &&
+        ['interactive', 'complete'].includes(optionalWindowDocument.readyState)
+      ) {
         client.emit('idleSpanEnableAutoFinish', idleSpan);
       }
     }
@@ -788,4 +823,31 @@ function isRedirect(activeSpan: Span, lastInteractionTimestamp: number | undefin
   }
 
   return true;
+}
+
+/**
+ * Manually finish the current pageload span.
+ * This only works when the browser tracing integration is configured with `manualPageLoadFinish: true`.
+ */
+export function reportPageLoaded(): void {
+  const client = getClient();
+  if (!client) {
+    DEBUG_BUILD && debug.warn('[Tracing] Cannot report page loaded - no client available.');
+    return;
+  }
+
+  const activeSpan = getActiveIdleSpan(client);
+  if (!activeSpan) {
+    DEBUG_BUILD && debug.warn('[Tracing] Cannot report page loaded - no active pageload span found.');
+    return;
+  }
+
+  const spanData = spanToJSON(activeSpan);
+  if (spanData.op !== 'pageload') {
+    DEBUG_BUILD && debug.warn('[Tracing] Cannot report page loaded - active span is not a pageload span.');
+    return;
+  }
+
+  DEBUG_BUILD && debug.log('[Tracing] Manually finishing pageload span via reportPageLoaded().');
+  client.emit('idleSpanEnableAutoFinish', activeSpan);
 }
