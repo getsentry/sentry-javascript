@@ -75,8 +75,6 @@ We currently ship prebuilt binaries for a few of the most common platforms and n
 - Linux x64 (glibc)
 - Windows x64
 
-For a more detailed list, see job_compile_bindings_profiling_node job in our build.yml github action workflow.
-
 ### Bundling
 
 If you are looking to squeeze some extra performance or improve cold start in your application (especially true for

@@ -19,7 +19,6 @@ const DEFAULT_SKIP_TESTS_PACKAGES = [
   '@sentry/react',
   '@sentry/angular',
   '@sentry/svelte',
-  '@sentry/profiling-node',
   '@sentry/replay',
   '@sentry-internal/replay-canvas',
   '@sentry-internal/feedback',
@@ -41,6 +40,8 @@ const SKIP_TEST_PACKAGES: Record<NodeVersion, VersionConfig> = {
       '@sentry/opentelemetry',
       '@sentry/vercel-edge',
       '@sentry/astro',
+      // No bindings for Node 8
+      '@sentry/profiling-node',
     ],
     legacyDeps: [
       'jsdom@15.x',
@@ -63,6 +64,8 @@ const SKIP_TEST_PACKAGES: Record<NodeVersion, VersionConfig> = {
       '@sentry/astro',
       // Test binaries not supported anymore in our Github Runners
       '@sentry/serverless',
+      // No bindings for Node 10
+      '@sentry/profiling-node',
     ],
     legacyDeps: ['jsdom@16.x', 'lerna@3.13.4'],
     shouldES6Utils: true,
@@ -77,12 +80,20 @@ const SKIP_TEST_PACKAGES: Record<NodeVersion, VersionConfig> = {
       '@sentry/astro',
       // Test binaries not supported anymore in our Github Runners
       '@sentry/serverless',
+      // No bindings for Node 12
+      '@sentry/profiling-node',
     ],
     legacyDeps: ['lerna@3.13.4'],
     shouldES6Utils: true,
   },
   '14': {
-    ignoredPackages: ['@sentry/sveltekit', '@sentry/vercel-edge', '@sentry/astro'],
+    ignoredPackages: [
+      '@sentry/sveltekit',
+      '@sentry/vercel-edge',
+      '@sentry/astro',
+      // No bindings for Node 14
+      '@sentry/profiling-node',
+    ],
     legacyDeps: [],
     shouldES6Utils: false,
   },
