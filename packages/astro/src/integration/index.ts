@@ -177,40 +177,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
           return;
         }
 
-        /**
-         * Astro lowercases the parametrized route. Joining segments manually is recommended to get the correct casing of the routes.
-         * Recommendation in comment: https://github.com/withastro/astro/issues/13885#issuecomment-2934203029
-         * Function Reference: https://github.com/joanrieu/astro-typed-links/blob/b3dc12c6fe8d672a2bc2ae2ccc57c8071bbd09fa/package/src/integration.ts#L16
-         */
-        const joinSegments = (segments: RoutePart[][]): string => {
-          const parthArray = segments.map(segment =>
-            segment.map(routePart => (routePart.dynamic ? `[${routePart.content}]` : routePart.content)).join(''),
-          );
-
-          return `/${parthArray.join('/')}`;
-        };
-
-        try {
-          const serverInitContent = readFileSync(sentryServerInitPath, 'utf8');
-
-          const updatedServerInitContent = `${serverInitContent}\nglobalThis["__sentryRouteInfo"] = ${JSON.stringify(
-            routes.map(route => {
-              return {
-                ...route,
-                patternCaseSensitive: joinSegments(route.segments), // Store parametrized routes with correct casing on `globalThis` to be able to use them on the server during runtime
-                patternRegex: route.patternRegex.source, // using `source` to be able to serialize the regex
-              };
-            }),
-            null,
-            2,
-          )};`;
-
-          writeFileSync(sentryServerInitPath, updatedServerInitContent, 'utf8');
-
-          debug.log('Successfully added route pattern information to Sentry server file:', sentryServerInitPath);
-        } catch (error) {
-          debug.warn(`Failed to write to sentry client init file at ${sentryServerInitPath}:`, error);
-        }
+        includeRouteDataToConfigFile(sentryServerInitPath, routes);
       },
     },
   };
@@ -317,4 +284,43 @@ export function getUpdatedSourceMapSettings(
   }
 
   return { previousUserSourceMapSetting, updatedSourceMapSetting };
+}
+
+/**
+ * Join Astro route segments into a case-sensitive single path string.
+ *
+ * Astro lowercases the parametrized route. Joining segments manually is recommended to get the correct casing of the routes.
+ * Recommendation in comment: https://github.com/withastro/astro/issues/13885#issuecomment-2934203029
+ * Function Reference: https://github.com/joanrieu/astro-typed-links/blob/b3dc12c6fe8d672a2bc2ae2ccc57c8071bbd09fa/package/src/integration.ts#L16
+ */
+function joinRouteSegments(segments: RoutePart[][]): string {
+  const parthArray = segments.map(segment =>
+    segment.map(routePart => (routePart.dynamic ? `[${routePart.content}]` : routePart.content)).join(''),
+  );
+
+  return `/${parthArray.join('/')}`;
+}
+
+function includeRouteDataToConfigFile(sentryInitPath: string, routes: IntegrationResolvedRoute[]): void {
+  try {
+    const serverInitContent = readFileSync(sentryInitPath, 'utf8');
+
+    const updatedServerInitContent = `${serverInitContent}\nglobalThis["__sentryRouteInfo"] = ${JSON.stringify(
+      routes.map(route => {
+        return {
+          ...route,
+          patternCaseSensitive: joinRouteSegments(route.segments), // Store parametrized routes with correct casing on `globalThis` to be able to use them on the server during runtime
+          patternRegex: route.patternRegex.source, // using `source` to be able to serialize the regex
+        };
+      }),
+      null,
+      2,
+    )};`;
+
+    writeFileSync(sentryInitPath, updatedServerInitContent, 'utf8');
+
+    debug.log('Successfully added route pattern information to Sentry config file:', sentryInitPath);
+  } catch (error) {
+    debug.warn(`Failed to write to Sentry config file at ${sentryInitPath}:`, error);
+  }
 }
