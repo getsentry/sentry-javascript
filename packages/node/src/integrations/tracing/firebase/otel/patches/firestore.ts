@@ -1,4 +1,3 @@
-import * as net from 'node:net';
 import type { Span, Tracer } from '@opentelemetry/api';
 import { context, diag, SpanKind, trace } from '@opentelemetry/api';
 import {
@@ -273,13 +272,23 @@ function addAttributes<AppModelType, DbModelType extends DocumentData>(
   };
 
   if (typeof settings.host === 'string') {
-    const arr = net.isIPv6(settings.host)
-      ? settings.host.split(']:') // Handling IPv6 addresses
-      : settings.host.split(':'); // Handling IPv4 addresses
+    if (settings.host.startsWith('[') && settings.host.endsWith(']')) {
+      // Handling IPv6 addresses
+      attributes[ATTR_SERVER_ADDRESS] = settings.host.slice(1, -1);
+    } else {
+      // Handling IPv4 addresses
+      attributes[ATTR_SERVER_ADDRESS] = settings.host;
+    }
 
-    if (arr.length === 2) {
-      attributes[ATTR_SERVER_ADDRESS] = arr[0];
-      attributes[ATTR_SERVER_PORT] = Number(arr[1]);
+    if (settings.host.includes(':')) {
+      // Split the host by ':' to get the address and port
+      // This will handle both IPv4 and IPv6 addresses correctly
+      // It will split at the last colon
+      const lastColonIndex = settings.host.lastIndexOf(':');
+      if (lastColonIndex !== -1) {
+        attributes[ATTR_SERVER_ADDRESS] = settings.host.slice(0, lastColonIndex);
+        attributes[ATTR_SERVER_PORT] = Number(settings.host.slice(lastColonIndex + 1));
+      }
     }
   }
 
