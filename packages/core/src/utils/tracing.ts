@@ -1,12 +1,10 @@
 import type { Client } from '../client';
-import { DEBUG_BUILD } from '../debug-build';
 import type { DynamicSamplingContext } from '../types-hoist/envelope';
 import type { PropagationContext } from '../types-hoist/tracing';
 import type { TraceparentData } from '../types-hoist/transaction';
-import { parseSampleRate } from '../utils/parseSampleRate';
-import { deriveOrgIdFromClient } from '../utils-hoist/dsn';
-import { logger } from '../utils-hoist/logger';
+import { debug } from '../utils/debug-logger';
 import { baggageHeaderToDynamicSamplingContext } from './baggage';
+import { deriveOrgIdFromClient } from './dsn';
 import { parseSampleRate } from './parseSampleRate';
 import { generateSpanId, generateTraceId } from './propagationContext';
 
@@ -142,10 +140,9 @@ export function shouldContinueTrace(client: Client | undefined, baggageOrgId?: s
 
   // Case: baggage org ID and SDK org ID don't match - always start new trace
   if (baggageOrgId && sdkOptionOrgId && baggageOrgId !== sdkOptionOrgId) {
-    DEBUG_BUILD &&
-      logger.info(
-        `Starting a new trace because org IDs don't match (incoming baggage: ${baggageOrgId}, SDK options: ${sdkOptionOrgId})`,
-      );
+    debug.log(
+      `Starting a new trace because org IDs don't match (incoming baggage: ${baggageOrgId}, SDK options: ${sdkOptionOrgId})`,
+    );
     return false;
   }
 
@@ -156,10 +153,9 @@ export function shouldContinueTrace(client: Client | undefined, baggageOrgId?: s
     // - Baggage has org ID but SDK doesn't have one
     // - SDK has org ID but baggage doesn't have one
     if ((baggageOrgId && !sdkOptionOrgId) || (!baggageOrgId && sdkOptionOrgId)) {
-      DEBUG_BUILD &&
-        logger.info(
-          `Starting a new trace because strict trace continuation is enabled and one org ID is missing (incoming baggage: ${baggageOrgId}, SDK options: ${sdkOptionOrgId})`,
-        );
+      debug.log(
+        `Starting a new trace because strict trace continuation is enabled and one org ID is missing (incoming baggage: ${baggageOrgId}, SDK options: ${sdkOptionOrgId})`,
+      );
       return false;
     }
   }

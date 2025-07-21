@@ -31,7 +31,6 @@ import type { Span } from '../../../src/types-hoist/span';
 import type { StartSpanOptions } from '../../../src/types-hoist/startSpanOptions';
 import { _setSpanForScope } from '../../../src/utils/spanOnScope';
 import { getActiveSpan, getRootSpan, getSpanDescendants, spanIsSampled } from '../../../src/utils/spanUtils';
-import { extractOrgIdFromDsnHost } from '../../../src/utils-hoist/dsn';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 const enum Type {

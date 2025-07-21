@@ -1,10 +1,6 @@
 import { describe, expect, it, test } from 'vitest';
-import {
-  extractTraceparentData,
-  propagationContextFromHeaders,
-  shouldContinueTrace,
-} from '../../../src/utils/tracing';
-import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
+import { extractTraceparentData, propagationContextFromHeaders, shouldContinueTrace } from '../../../src/utils/tracing';
+import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 const EXAMPLE_SENTRY_TRACE = '12312012123120121231201212312012-1121201211212012-1';
 const EXAMPLE_BAGGAGE = 'sentry-release=1.2.3,sentry-foo=bar,other=baz,sentry-sample_rand=0.42';
