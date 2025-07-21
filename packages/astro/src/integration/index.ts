@@ -11,7 +11,6 @@ const PKG_NAME = '@sentry/astro';
 
 export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
   let sentryServerInitPath: string | undefined;
-
   let didSaveRouteData = false;
 
   return {
