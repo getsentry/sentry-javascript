@@ -1,14 +1,18 @@
-import { consoleSandbox } from '@sentry/core';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { consoleSandbox, debug } from '@sentry/core';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
-import type { AstroConfig, AstroIntegration } from 'astro';
+import type { AstroConfig, AstroIntegration, RoutePart } from 'astro';
 import * as fs from 'fs';
 import * as path from 'path';
 import { buildClientSnippet, buildSdkInitFileImportSnippet, buildServerSnippet } from './snippets';
-import type { SentryOptions } from './types';
+import type { IntegrationResolvedRoute, SentryOptions } from './types';
 
 const PKG_NAME = '@sentry/astro';
 
 export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
+  let sentryServerInitPath: string | undefined;
+  let didSaveRouteData = false;
+
   return {
     name: PKG_NAME,
     hooks: {
@@ -134,6 +138,8 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
             injectScript('page-ssr', buildServerSnippet(options || {}));
           }
 
+          sentryServerInitPath = pathToServerInit;
+
           // Prevent Sentry from being externalized for SSR.
           // Cloudflare like environments have Node.js APIs are available under `node:` prefix.
           // Ref: https://developers.cloudflare.com/workers/runtime-apis/nodejs/
@@ -163,6 +169,36 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
             order: 'pre',
             entrypoint: '@sentry/astro/middleware',
           });
+        }
+      },
+
+      // @ts-expect-error - This hook is available in Astro 5+
+      'astro:routes:resolved': ({ routes }: { routes: IntegrationResolvedRoute[] }) => {
+        if (!sentryServerInitPath || didSaveRouteData) {
+          return;
+        }
+
+        try {
+          const serverInitContent = readFileSync(sentryServerInitPath, 'utf8');
+
+          const updatedServerInitContent = `${serverInitContent}\nglobalThis["__sentryRouteInfo"] = ${JSON.stringify(
+            routes.map(route => {
+              return {
+                ...route,
+                patternCaseSensitive: joinRouteSegments(route.segments), // Store parametrized routes with correct casing on `globalThis` to be able to use them on the server during runtime
+                patternRegex: route.patternRegex.source, // using `source` to be able to serialize the regex
+              };
+            }),
+            null,
+            2,
+          )};`;
+
+          writeFileSync(sentryServerInitPath, updatedServerInitContent, 'utf8');
+
+          didSaveRouteData = true; // Prevents writing the file multiple times during runtime
+          debug.log('Successfully added route pattern information to Sentry config file:', sentryServerInitPath);
+        } catch (error) {
+          debug.warn(`Failed to write to Sentry config file at ${sentryServerInitPath}:`, error);
         }
       },
     },
@@ -270,4 +306,19 @@ export function getUpdatedSourceMapSettings(
   }
 
   return { previousUserSourceMapSetting, updatedSourceMapSetting };
+}
+
+/**
+ * Join Astro route segments into a case-sensitive single path string.
+ *
+ * Astro lowercases the parametrized route. Joining segments manually is recommended to get the correct casing of the routes.
+ * Recommendation in comment: https://github.com/withastro/astro/issues/13885#issuecomment-2934203029
+ * Function Reference: https://github.com/joanrieu/astro-typed-links/blob/b3dc12c6fe8d672a2bc2ae2ccc57c8071bbd09fa/package/src/integration.ts#L16
+ */
+function joinRouteSegments(segments: RoutePart[][]): string {
+  const parthArray = segments.map(segment =>
+    segment.map(routePart => (routePart.dynamic ? `[${routePart.content}]` : routePart.content)).join(''),
+  );
+
+  return `/${parthArray.join('/')}`;
 }
