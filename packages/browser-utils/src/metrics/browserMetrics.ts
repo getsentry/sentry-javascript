@@ -430,10 +430,8 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
       delete _measurements['mark.fid'];
     }
 
-    // If FCP is not recorded we should not record the cls value
-    // according to the new definition of CLS.
-    // TODO: Check if the first condition is still necessary: `onCLS` already only fires once `onFCP` was called.
-    if (!('fcp' in _measurements) || !options.recordClsOnPageloadSpan) {
+    // If CLS standalone spans are enabled, don't record CLS as a measurement
+    if (!options.recordClsOnPageloadSpan) {
       delete _measurements.cls;
     }
 
