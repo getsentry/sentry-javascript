@@ -201,9 +201,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            libasound2 \
-            libffi7 \
-            libx264-163 \
+            libasound2t64 \
             libasound2-dev \
             libatk-bridge2.0-0t64 \
             libatk1.0-0t64 \
