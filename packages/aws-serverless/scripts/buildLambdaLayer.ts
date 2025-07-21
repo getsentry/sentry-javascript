@@ -21,16 +21,13 @@ function run(cmd: string, options?: childProcess.ExecSyncOptions): string {
  */
 async function buildLambdaLayer(): Promise<void> {
   console.log('Building Lambda layer.');
+  buildPackageJson();
   console.log('Installing local @sentry/aws-serverless into build/aws/dist-serverless/nodejs.');
-
-  console.log('Creating target directory for npm install.');
-  fsForceMkdirSync('./build/aws/dist-serverless/nodejs');
-
-  run('npm install . --prefix ./build/aws/dist-serverless/nodejs --install-links');
+  run('yarn install --prod --cwd ./build/aws/dist-serverless/nodejs');
 
   await pruneNodeModules();
   fs.rmSync('./build/aws/dist-serverless/nodejs/package.json', { force: true });
-  fs.rmSync('./build/aws/dist-serverless/nodejs/package-lock.json', { force: true });
+  fs.rmSync('./build/aws/dist-serverless/nodejs/yarn.lock', { force: true });
 
   // The layer also includes `awslambda-auto.js`, a helper file which calls `Sentry.init()` and wraps the lambda
   // handler. It gets run when Node is launched inside the lambda, using the environment variable
@@ -141,4 +138,43 @@ function getAllFiles(dir: string): string[] {
 
   walkDirectory(dir);
   return files;
+}
+
+function buildPackageJson(): void {
+  console.log('Building package.json');
+  const packagesDir = path.resolve(__dirname, '..');
+  const packageDirs = fs
+    .readdirSync(packagesDir, { withFileTypes: true })
+    .filter(dirent => dirent.isDirectory())
+    .map(dirent => dirent.name)
+    .filter(name => !name.startsWith('.')) // Skip hidden directories
+    .sort();
+
+  const resolutions: Record<string, string> = {};
+
+  for (const packageDir of packageDirs) {
+    const packageJsonPath = path.join(packagesDir, packageDir, 'package.json');
+    if (fs.existsSync(packageJsonPath)) {
+      try {
+        const packageContent = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8')) as { name?: string };
+        const packageName = packageContent.name;
+        if (typeof packageName === 'string' && packageName) {
+          resolutions[packageName] = `file:../../../../../../packages/${packageDir}`;
+        }
+      } catch {
+        console.warn(`Warning: Could not read package.json for ${packageDir}`);
+      }
+    }
+  }
+
+  const packageJson = {
+    dependencies: {
+      '@sentry/aws-serverless': version,
+    },
+    resolutions,
+  };
+
+  fsForceMkdirSync('./build/aws/dist-serverless/nodejs');
+  const packageJsonPath = './build/aws/dist-serverless/nodejs/package.json';
+  fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
 }

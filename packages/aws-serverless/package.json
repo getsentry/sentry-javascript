@@ -79,7 +79,6 @@
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
-    "build:bundle": "yarn build:layer",
     "build:layer": "yarn ts-node scripts/buildLambdaLayer.ts",
     "build:dev": "run-p build:transpile build:types",
     "build:transpile": "rollup -c rollup.npm.config.mjs && yarn build:layer",
@@ -103,18 +102,5 @@
   "volta": {
     "extends": "../../package.json"
   },
-  "sideEffects": false,
-  "nx": {
-    "targets": {
-      "build:bundle": {
-        "dependsOn": [
-          "build:transpile",
-          "build:types"
-        ],
-        "outputs": [
-          "{projectRoot}/build/aws"
-        ]
-      }
-    }
-  }
+  "sideEffects": false
 }
