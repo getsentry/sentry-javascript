@@ -183,7 +183,7 @@ function instrumentMethod<T extends unknown[], R>(
     if (isStream(result)) {
       return startSpanManual(
         {
-          name: `${operationName} ${model}`,
+          name: `${operationName} ${model} stream-response`,
           op: getSpanOperation(methodPath),
           attributes: requestAttributes as Record<string, SpanAttributeValue>,
         },
@@ -199,6 +199,7 @@ function instrumentMethod<T extends unknown[], R>(
               finalOptions.recordOutputs ?? false,
               finish,
             ) as unknown as R;
+            
           } catch (error) {
             captureException(error);
             finish();
@@ -207,6 +208,7 @@ function instrumentMethod<T extends unknown[], R>(
         },
       );
     } else {
+      // Non-streaming responses
       return startSpan(
         {
           name: `${operationName} ${model}`,
