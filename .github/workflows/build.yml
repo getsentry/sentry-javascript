@@ -799,7 +799,6 @@ jobs:
           KARMA_BROWSER: ${{ matrix.browser }}
         run: |
           cd packages/browser
-          [[ $KARMA_BROWSER == WebkitHeadless ]] && yarn run playwright install-deps webkit
           yarn test:integration
 
   job_browser_build_tests:
